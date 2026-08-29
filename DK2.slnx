@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DK2.AI/DK2.AI.csproj" />
+    <Project Path="src/DK2.Assets/DK2.Assets.csproj" />
+    <Project Path="src/DK2.Core/DK2.Core.csproj" />
+    <Project Path="src/DK2.Data.Model/DK2.Data.Model.csproj" />
+    <Project Path="src/DK2.Data/DK2.Data.csproj" />
+    <Project Path="src/DK2.Harness/DK2.Harness.csproj" />
+    <Project Path="src/DK2.Pathfinding/DK2.Pathfinding.csproj" />
+    <Project Path="src/DK2.Simulation/DK2.Simulation.csproj" />
+    <Project Path="src/DK2.Tools/DK2.Tools.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DK2.Behavior.Tests/DK2.Behavior.Tests.csproj" />
+    <Project Path="tests/DK2.Core.Tests/DK2.Core.Tests.csproj" />
+    <Project Path="tests/DK2.Data.Tests/DK2.Data.Tests.csproj" />
+    <Project Path="tests/DK2.Simulation.Tests/DK2.Simulation.Tests.csproj" />
+  </Folder>
+</Solution>

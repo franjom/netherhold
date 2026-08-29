@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>DK2.Harness</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../DK2.Core/DK2.Core.csproj" />
+    <ProjectReference Include="../DK2.Data/DK2.Data.csproj" />
+    <ProjectReference Include="../DK2.Data.Model/DK2.Data.Model.csproj" />
+    <ProjectReference Include="../DK2.Simulation/DK2.Simulation.csproj" />
+    <ProjectReference Include="../DK2.AI/DK2.AI.csproj" />
+  </ItemGroup>
+
+</Project>

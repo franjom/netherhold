@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <DK2UnityBound>true</DK2UnityBound>
+    <RootNamespace>DK2.Pathfinding</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../DK2.Core/DK2.Core.csproj" />
+  </ItemGroup>
+</Project>

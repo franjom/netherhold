@@ -1,0 +1,40 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+build/
+artifacts/
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/
+
+# ---------------------------------------------------------------
+# NEVER COMMIT: original Dungeon Keeper 2 material.
+# Proprietary, EA-owned. Local development reference only.
+# ---------------------------------------------------------------
+original-reference/**
+!original-reference/README.md
+!original-reference/research/
+!original-reference/research/**
+
+# Converted assets derived from the original game are equally proprietary.
+converted-assets/
+*.kwd
+*.kld
+*.wad
+*.kmf
+*.sdt
+*.tgq
+*.bf4
+
+# Unity
+unity/**/Library/
+unity/**/Temp/
+unity/**/Logs/
+unity/**/UserSettings/
+unity/**/Build/
+
+# Local config
+local.settings.json
+*.local.json
