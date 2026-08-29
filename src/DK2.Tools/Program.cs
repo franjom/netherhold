@@ -49,6 +49,78 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length >= 2 && args[1] == "terrain":
+    {
+        List<TerrainDef> terrains = KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(
+            Path.Combine(Dk2Install.Require(), "Data", "editor", "Terrain.kwd")));
+
+        Console.WriteLine($"{"id",3} {"name",-24} {"health",7} {"gold",5} {"mana",5} {"dmg",4} " +
+                          $"{"->maxHp",7} {"->dead",7}  flags");
+        foreach (TerrainDef t in terrains.OrderBy(t => t.TerrainId))
+        {
+            string flags = string.Join(",", new[]
+            {
+                t.IsSolid ? "solid" : null,
+                t.IsImpenetrable ? "impenetrable" : null,
+                t.IsOwnable ? "ownable" : null,
+                t.IsTaggable ? "taggable" : null,
+                t.IsRoom ? "room" : null,
+                t.IsWater ? "water" : null,
+                t.IsLava ? "lava" : null,
+            }.Where(s => s is not null));
+            Console.WriteLine($"{t.TerrainId,3} {t.Name,-24} {t.StartingHealth,7} {t.GoldValue,5} " +
+                              $"{t.ManaGain,5} {t.Damage,4} {t.MaxHealthTypeTerrainId,7} " +
+                              $"{t.DestroyedTypeTerrainId,7}  {flags}");
+        }
+        Console.WriteLine($"-- {terrains.Count} terrain types");
+        return 0;
+    }
+
+    case "kwd" when args.Length >= 2 && args[1] == "rooms":
+    {
+        List<RoomDef> rooms = KwdTerrainRooms.ParseRooms(KwdReader.ReadFile(
+            Path.Combine(Dk2Install.Require(), "Data", "editor", "Rooms.kwd")));
+
+        Console.WriteLine($"{"id",3} {"name",-24} {"cost",5} {"sell%",5} {"terr",4} {"spawn",5} " +
+                          $"{"size",5} {"construction",-20} flags");
+        foreach (RoomDef r in rooms.OrderBy(r => r.RoomId))
+        {
+            string flags = string.Join(",", new[]
+            {
+                r.IsBuildable ? "buildable" : null,
+                r.IsGood ? "good" : null,
+                r.HasWalls ? "walls" : null,
+            }.Where(s => s is not null));
+            Console.WriteLine($"{r.RoomId,3} {r.Name,-24} {r.Cost,5} {r.ReturnPercentage,5} " +
+                              $"{r.TerrainId,4} {r.CreatedCreatureId,5} " +
+                              $"{r.RecommendedSizeX + "x" + r.RecommendedSizeY,5} " +
+                              $"{r.Construction,-20} {flags}");
+        }
+        Console.WriteLine($"-- {rooms.Count} room types");
+        return 0;
+    }
+
+    case "kwd" when args.Length >= 3 && args[1] == "map":
+    {
+        List<KwdChunk> mapChunks = KwdReader.ReadFile(ResolveEditor(args[2]));
+        MapGrid? grid = MapGrid.Parse(mapChunks);
+        if (grid is null)
+        {
+            Console.Error.WriteLine("no MAP chunk in that file");
+            return 2;
+        }
+
+        Console.WriteLine($"{grid.Width} x {grid.Height} tiles");
+        var byTerrain = grid.Tiles.GroupBy(t => t.TerrainId)
+            .OrderByDescending(g => g.Count()).ToList();
+        Console.WriteLine("terrain histogram:");
+        foreach (var g in byTerrain.Take(12))
+            Console.WriteLine($"  terrain {g.Key,3}: {g.Count(),6} tiles");
+        var owners = grid.Tiles.GroupBy(t => t.PlayerId).OrderBy(g => g.Key);
+        Console.WriteLine("owners: " + string.Join(", ", owners.Select(g => $"p{g.Key}={g.Count()}")));
+        return 0;
+    }
+
     case "kwd" when args.Length >= 3 && args[1] == "creature":
     {
         List<CreatureDef> all = KwdCreatures.Parse(KwdReader.ReadFile(

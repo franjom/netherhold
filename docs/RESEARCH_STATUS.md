@@ -5,6 +5,9 @@ Snapshot of what is known vs unknown. Authoritative long-form:
 Live question list: `docs/research/open-questions.md`.
 
 ## Solved (usable today)
+- Terrain (41 types), rooms (26 types) and the level tile grid: parsed and
+  cross-validated; the dig/claim terrain transition graph is data. See
+  docs/research/kwd-terrain-rooms.md.
 - Creature definitions: all 46 records parsed (stats, flags, job tables,
   attractions, spells, resistances) — cross-validated against Flame. See
   docs/research/kwd-creatures.md and creature-table-dump.md.
