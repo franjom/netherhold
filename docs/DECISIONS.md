@@ -193,7 +193,11 @@ hash moves in the same commit.
 
 ## ADR-0014 — Worker behaviour covers marked work only
 
-**Status:** accepted (2026-08-29, M3)
+**Status:** **SUPERSEDED by ADR-0018** (2026-08-29, same day) — the owner supplied
+the priority order from the original, so the reason for the restriction went away.
+Kept in full because the *reasoning* is the point: the restriction was correct
+while the order was unknown, and it is what made the answer cheap to adopt when
+it arrived. Originally accepted 2026-08-29, M3.
 
 **Context.** A DK2 imp digs what is marked, but also claims floor, reinforces
 walls, carries gold to a treasury, drags bodies and flees fights. Implementing
@@ -289,3 +293,47 @@ and needs one accumulator field.
 
 This generalises the rule `SimulationTiming.WorkApplicationPeriodTicks` already
 encoded for tile work; ADR-0011 (ticks meet seconds in one place) is unchanged.
+
+---
+
+## ADR-0018 — Imps take jobs in a strict, confirmed priority order
+
+**Status:** accepted (2026-08-29, M3). Supersedes ADR-0014.
+
+**Context.** ADR-0014 restricted workers to marked excavation because the order
+an imp prefers its jobs in was UNKNOWN (Q24) and any order we picked would have
+been an invention at the centre of creature behaviour. The owner then supplied
+the order from the original: **marked excavation, then claiming, then
+reinforcing**, and after that wandering the dungeon and interacting with scenery
+and creatures.
+
+**Decision.** `ImpTaskSystem` implements those three, in that order, as a strict
+priority: the whole reachable map is searched for excavation before a single
+claimable tile is considered. Three sequential nearest-searches, not one scored
+search over a mixed candidate list — because what was described is an ordering,
+not a weighting.
+
+Carrying mined gold is deliberately **not** in the list. The same session
+established that an imp mines into its own hands and delivers when full, so
+carrying is the tail of a mining job rather than a job an imp chooses; putting it
+in the priority list would have modelled it as the latter.
+
+**Consequences.** An imp with nothing marked is no longer an imp with nothing to
+do — it claims and reinforces outward from its keeper's territory, which is what
+the original does and which changed five tests that had encoded the old
+restriction. What is still not implemented is the *fourth* behaviour: an imp with
+none of the three available stands still rather than wandering (Q41), because
+wandering has no simulation consequence we model and inventing a walk would put
+imps where DK2 would not.
+
+Two smaller rules ride along, both flagged rather than hidden: claiming and
+reinforcing are taken only from ground the keeper already holds, which is what
+makes territory spread outwards rather than appear in islands (STRONGLY INFERRED,
+Q42); and the original's cap of three imps a face and twelve a tile is
+**not** implemented yet (Q43).
+
+**What this decision is really about.** ADR-0014 was not wrong and is not being
+corrected. Refusing to guess an order is precisely why adopting the real one cost
+one afternoon and five test rewrites instead of an archaeology exercise against
+an invented order that had spread into a dozen behaviours. That is the pattern to
+repeat, not to regret.

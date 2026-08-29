@@ -62,12 +62,33 @@ public class ImpTests
         }
     }
 
+    /// <summary>
+    /// An imp in a sealed pocket of <b>unowned</b> dirt, cut off from its
+    /// keeper's room.
+    ///
+    /// Needed because an imp with nothing marked is not an imp with nothing to
+    /// do: standing on its keeper's floor it would start claiming or
+    /// reinforcing, which is the point of the priority order. Unowned ground it
+    /// cannot leave is the only place a DK2 imp genuinely has no job.
+    /// </summary>
+    private static Run StartWithNothingToDo(int extraTiles = 0)
+    {
+        Run run = Start(new TilePos(5, 2));
+        GameDatabase database = Dk2TerrainFixture.Database();
+
+        var pocket = new List<TilePos> { new(5, 2) };
+        for (int i = 0; i < extraTiles; i++) pocket.Add(new TilePos(5, 3 + i));
+
+        Carve(run.World, database, [.. pocket]);
+        return run;
+    }
+
     // ---- doing nothing ---------------------------------------------------
 
     [Fact]
-    public void AnImpWithNothingMarked_StaysWhereItIs()
+    public void AnImpWithNothingToDo_StaysWhereItIs()
     {
-        Run run = Start(new TilePos(2, 2));
+        Run run = StartWithNothingToDo();
         int x = run.Imp.PosX;
         int y = run.Imp.PosY;
 
@@ -79,23 +100,111 @@ public class ImpTests
         Assert.Empty(run.Of("job_taken"));
     }
 
+    /// <summary>
+    /// <b>Nothing marked is not nothing to do.</b> An imp standing in its
+    /// keeper's room with no orders reinforces the walls around it — third in
+    /// the priority order, and the last thing before it gives up.
+    /// </summary>
+    [Fact]
+    public void AnImpWithNothingMarked_ReinforcesTheWallsAroundIt()
+    {
+        Run run = Start(new TilePos(2, 2));
+
+        run.Ticks(SimulationTiming.WorkApplicationPeriodTicks * 2);
+
+        SimEvent taken = Assert.Single(run.Of("job_taken"));
+        Assert.Contains("Reinforce", taken.Detail);
+        Assert.Contains("priority=Reinforce", taken.Detail);
+    }
+
     [Fact]
     public void AnIdleImp_LooksForWorkOnTheIntervalTheDataNames()
     {
         // ImpIdleDelayBeforeReevaluationSeconds is 5. An imp that found nothing
         // on its first look must not notice a new mark before that delay is up,
-        // and must notice it once the delay has passed.
-        Run run = Start(new TilePos(2, 2));
+        // and must notice it once the delay has passed. The pocket reaches (5,4),
+        // whose neighbour (6,4) is markable rock.
+        Run run = StartWithNothingToDo(extraTiles: 2);
         int delay = SimulationTiming.TicksFromSeconds(5);
 
-        run.Tick();                                       // first look: nothing marked
-        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 2)));
+        run.Tick();                                       // first look: nothing to do at all
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(6, 4)));
 
         run.Ticks(delay - 2);
         Assert.Empty(run.Of("job_taken"));
 
         run.Ticks(2);
         Assert.Single(run.Of("job_taken"));
+    }
+
+    // ---- the priority order (CONFIRMED, owner observation) ----------------
+
+    /// <summary>
+    /// Marked excavation outranks claiming <b>however far away it is</b>. The
+    /// order is an ordering, not a weighting: the imp walks past claimable floor
+    /// on its doorstep to get to a tagged wall across the map.
+    /// </summary>
+    [Fact]
+    public void MarkedWorkOutranksClaiming_AtAnyDistance()
+    {
+        Run run = Start(new TilePos(2, 2));
+        GameDatabase database = Dk2TerrainFixture.Database();
+
+        // Unclaimed floor immediately beside the imp, and a marked wall further off.
+        Carve(run.World, database, new TilePos(4, 2), new TilePos(5, 2), new TilePos(6, 2));
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(7, 2)));
+
+        SimEvent taken = run.Of("job_taken").First();
+        Assert.Contains("priority=MarkedExcavation", taken.Detail);
+        Assert.Contains("(7,2)", taken.Detail);
+    }
+
+    [Fact]
+    public void ClaimingOutranksReinforcing()
+    {
+        Run run = Start(new TilePos(2, 2));
+        GameDatabase database = Dk2TerrainFixture.Database();
+
+        // Unclaimed floor beside the keeper's room. Rock to reinforce is
+        // everywhere; the claim must win anyway.
+        Carve(run.World, database, new TilePos(4, 2));
+
+        run.Tick();
+
+        SimEvent taken = run.Of("job_taken").First();
+        Assert.Contains("priority=Claim", taken.Detail);
+        Assert.Contains("(4,2)", taken.Detail);
+    }
+
+    [Fact]
+    public void AnImpClaimsFloorNobodyMarked()
+    {
+        Run run = Start(new TilePos(2, 2));
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Carve(run.World, database, new TilePos(4, 2));
+
+        run.Ticks(SimulationTiming.WorkApplicationPeriodTicks * 2);
+
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(4, 2).TerrainId);
+        Assert.Equal(Keeper, run.World.Tile(4, 2).OwnerPlayerId);
+    }
+
+    /// <summary>
+    /// Claiming and reinforcing spread from ground the keeper already holds. An
+    /// imp marooned on unowned floor will not start either, however much of it
+    /// is within reach — which is what keeps a dungeon growing outwards from its
+    /// heart rather than appearing in islands (Q42).
+    /// </summary>
+    [Fact]
+    public void AnImpWillNotClaimFromGroundItsKeeperDoesNotHold()
+    {
+        Run run = StartWithNothingToDo(extraTiles: 2);
+
+        run.Ticks(200);
+
+        Assert.Empty(run.Of("job_taken"));
+        Assert.Equal(Dk2TerrainFixture.DirtPath, run.World.Tile(5, 3).TerrainId);
     }
 
     // ---- marked work -----------------------------------------------------
@@ -110,9 +219,18 @@ public class ImpTests
 
         // Rock at 165 health against DigRockHealth -5000: one application ends
         // it (that is Q20, not a bug here).
-        Assert.Equal(Dk2TerrainFixture.DirtPath, run.World.Tile(4, 2).TerrainId);
-        Assert.Single(run.Of("job_taken"));
         Assert.Contains(run.Of("destroyed"), e => e.Detail.Contains("(4,2)"));
+
+        // The first job it took was the marked one.
+        SimEvent first = run.Of("job_taken").First();
+        Assert.Contains("priority=MarkedExcavation", first.Detail);
+        Assert.Contains("(4,2)", first.Detail);
+
+        // And then it claimed the floor it had just opened up, because that is
+        // what an imp does next when nobody has marked anything else. The whole
+        // priority order in one tile.
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(4, 2).TerrainId);
+        Assert.Equal(Keeper, run.World.Tile(4, 2).OwnerPlayerId);
     }
 
     [Fact]
@@ -135,8 +253,9 @@ public class ImpTests
         // (8,8) is rock in the middle of rock: there is no floor tile beside it,
         // so there is nowhere to stand and no job. Unreachable work is not
         // rejected after the fact — it is never a candidate, because the search
-        // walks outwards from the imp and never arrives.
-        Run run = Start(new TilePos(2, 2));
+        // walks outwards from the imp and never arrives. The imp is sealed in an
+        // unowned pocket so that nothing else distracts it either.
+        Run run = StartWithNothingToDo();
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(8, 8)));
         run.Ticks(200);
@@ -184,13 +303,16 @@ public class ImpTests
     [Fact]
     public void AMarkFromAnotherKeeper_IsNotThisImpsJob()
     {
-        Run run = Start(new TilePos(2, 2));
+        // In the sealed pocket, so that the imp has no work of its own to
+        // confuse the question: (6,4) is rock it could reach, and the only
+        // reason to touch it would be the rival's mark.
+        Run run = StartWithNothingToDo(extraTiles: 2);
 
-        run.Tick(TagTilesCommand.Tag(2, new TilePos(4, 2)));
+        run.Tick(TagTilesCommand.Tag(2, new TilePos(6, 4)));
         run.Ticks(200);
 
         Assert.Empty(run.Of("job_taken"));
-        Assert.Equal(Dk2TerrainFixture.Rock, run.World.Tile(4, 2).TerrainId);
+        Assert.Equal(Dk2TerrainFixture.Rock, run.World.Tile(6, 4).TerrainId);
     }
 
     // ---- mining ----------------------------------------------------------

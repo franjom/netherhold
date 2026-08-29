@@ -13,28 +13,56 @@ namespace DK2.Simulation.Systems;
 /// <see cref="TileWorkRules"/> and is data; everything about <i>who</i> does it
 /// and <i>when</i> lives here, and much of that is not.</para>
 ///
-/// <para><b>Scope: marked work only.</b> A DK2 imp also claims floor, reinforces
-/// walls, carries mined gold to a treasury, drags the unconscious to a prison
-/// and flees from a fight. None of that is here. Those jobs are not requested by
-/// the player, so each needs a rule for when an imp decides to start one — and
-/// the priority order between them is exactly the part of Q2 that is still
-/// UNKNOWN. Marked work is the one job whose trigger is not in doubt: the keeper
-/// asked for it. See docs/research/imp-tasks.md.</para>
+/// <para><b>The order an imp prefers its jobs in is CONFIRMED</b> (owner
+/// observation of the original, 2026-08-29) and is the whole of
+/// <see cref="JobPriority"/>:</para>
+/// <list type="number">
+/// <item><b>Marked excavation</b> — whatever the keeper has tagged, rock or gold
+/// alike.</item>
+/// <item><b>Claiming floor.</b></item>
+/// <item><b>Reinforcing walls.</b></item>
+/// </list>
+/// <para>The order is strict, not weighted: <i>any</i> reachable marked tile
+/// beats <i>every</i> claimable one however far away, and so on down. That is
+/// what "first do what is designated for excavation, after that comes claiming,
+/// after that reinforcing" says, and it is why this is three searches rather
+/// than one scored one.</para>
+///
+/// <para><b>What an imp does when all three come up empty is NOT implemented.</b>
+/// In the original it wanders the dungeon and interacts with the environment and
+/// with creatures; here it stands still and looks again after
+/// <c>ImpIdleDelayBeforeReevaluationSeconds</c>. Wandering is visible behaviour
+/// with no simulation consequence we model yet, and inventing a walk would put
+/// imps in places DK2 would not (Q41).</para>
+///
+/// <para><b>Still absent:</b> dragging the unconscious to a prison, fleeing a
+/// fight, and picking up gold somebody else dropped. Carrying mined gold <i>is</i>
+/// here, but as the tail of a mining job rather than as a job of its own — which
+/// is what the original does and why it is not in the priority list above.
+/// See docs/research/imp-tasks.md.</para>
 ///
 /// <para>What is inferred rather than known, with nothing hidden:</para>
 /// <list type="bullet">
-/// <item><b>Nearest first.</b> Of all the tiles a keeper has marked, an imp takes
-/// the one fewest steps away, and unreachable ones are not considered at all —
-/// which falls out of searching outwards from the imp rather than being a rule
-/// applied afterwards. HYPOTHESIS: it matches how the original's imps visibly
-/// behave, but "nearest" could as easily mean straight-line distance, or the
-/// order the tiles were marked in (Q25).</item>
+/// <item><b>Nearest first.</b> Within one priority, an imp takes the tile fewest
+/// steps away, and unreachable ones are not considered at all — which falls out
+/// of searching outwards from the imp rather than being a rule applied
+/// afterwards. HYPOTHESIS: it matches how the original's imps visibly behave,
+/// but "nearest" could as easily mean straight-line distance, or the order the
+/// tiles were marked in (Q25).</item>
+/// <item><b>Claiming and reinforcing are done from ground the keeper already
+/// holds.</b> An imp will only take one of those jobs if the tile it would stand
+/// on belongs to its keeper, which is what makes territory spread outwards from
+/// a dungeon rather than appear in islands across the map. STRONGLY INFERRED
+/// from how the original visibly grows; the alternative — any reachable floor,
+/// anywhere — is Q42. Marked work carries no such condition: a keeper may tag a
+/// wall anywhere.</item>
 /// <item><b>No reservation.</b> Several imps happily converge on one wall,
-/// because nothing stops them. That is what the original visibly does; whether
-/// it is for the same reason is UNKNOWN (Q26).</item>
+/// because nothing stops them. The original caps this at three imps a face and
+/// twelve a tile (CONFIRMED), which is not implemented yet — see Q43.</item>
 /// <item><b>Worked from an orthogonal neighbour.</b> An imp stands on a tile
-/// sharing an edge with its target. Whether the original also lets one work a
-/// diagonal neighbour is UNKNOWN (Q27).</item>
+/// sharing an edge with its target. CONFIRMED by the same observation: a gold
+/// block takes three imps a side and twelve in all, and twelve is four sides of
+/// three (Q27).</item>
 /// <item><b>One application per work period.</b> Work lands every
 /// <see cref="SimulationTiming.WorkApplicationPeriodTicks"/> ticks, starting one
 /// period after the imp arrives — the period being the Q19 reading that the
@@ -57,6 +85,21 @@ namespace DK2.Simulation.Systems;
 public sealed class ImpTaskSystem : ISimulationSystem
 {
     private const string SystemName = "ImpTask";
+
+    /// <summary>
+    /// What an imp looks for, in the order it looks. CONFIRMED — see the type
+    /// comment. Strictly ordered: nothing at a later priority is considered
+    /// while anything at an earlier one is reachable.
+    /// </summary>
+    private enum JobPriority
+    {
+        MarkedExcavation = 0,
+        Claim = 1,
+        Reinforce = 2,
+    }
+
+    private static readonly JobPriority[] Priorities =
+        [JobPriority.MarkedExcavation, JobPriority.Claim, JobPriority.Reinforce];
 
     /// <summary>
     /// The neighbours a tile can be worked from, in the order they are tried.
@@ -189,16 +232,34 @@ public sealed class ImpTaskSystem : ISimulationSystem
         WorldState world = context.World;
         var grid = new WorldPathGrid(context.Database, world, definition);
 
+        // Strict priority: the whole map is searched for excavation before a
+        // single claimable tile is considered, and so on. Three searches, not
+        // one scored search over a mixed candidate list — because the order is
+        // an ordering, not a weighting.
+        foreach (JobPriority priority in Priorities)
+        {
+            if (TryTakeJobAt(context, creature, grid, priority)) return true;
+        }
+
+        return false;
+    }
+
+    private bool TryTakeJobAt(
+        SimulationContext context, CreatureState creature, WorldPathGrid grid, JobPriority priority)
+    {
+        WorldState world = context.World;
+        byte player = creature.OwnerPlayerId;
+
         bool found = _pathfinder.TryFindNearest(
             grid,
             creature.Tile,
-            stand => TryJobBeside(context, stand, creature.OwnerPlayerId, out _, out _),
+            stand => TryJobBeside(context, stand, player, priority, out _, out _),
             _route);
 
         if (!found) return false;
 
         TilePos standing = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
-        if (!TryJobBeside(context, standing, creature.OwnerPlayerId, out int tileIndex, out TileWorkKind kind))
+        if (!TryJobBeside(context, standing, player, priority, out int tileIndex, out TileWorkKind kind))
             return false;
 
         creature.TargetTileIndex = tileIndex;
@@ -218,23 +279,34 @@ public sealed class ImpTaskSystem : ISimulationSystem
         }
 
         context.Emit(SystemName, "job_taken",
-            $"imp={creature.Id} player={creature.OwnerPlayerId} " +
-            $"{Describe(world, tileIndex)} {kind} steps={_route.Count}");
+            $"imp={creature.Id} player={player} " +
+            $"{Describe(world, tileIndex)} {kind} priority={priority} steps={_route.Count}");
         return true;
     }
 
     /// <summary>
-    /// The first marked, workable tile orthogonally adjacent to
-    /// <paramref name="standing"/>, in the fixed neighbour order.
+    /// The first tile orthogonally adjacent to <paramref name="standing"/> that
+    /// offers work of the given priority, in the fixed neighbour order.
     /// </summary>
     private static bool TryJobBeside(
         SimulationContext context,
         TilePos standing,
         byte playerId,
+        JobPriority priority,
         out int tileIndex,
         out TileWorkKind kind)
     {
         WorldState world = context.World;
+
+        // Claiming and reinforcing spread from ground the keeper already holds;
+        // marked work does not, because the keeper asked for it by name.
+        if (priority != JobPriority.MarkedExcavation
+            && !StandsOnOwnLand(context, world, standing, playerId))
+        {
+            tileIndex = -1;
+            kind = default;
+            return false;
+        }
 
         for (int i = 0; i < NeighbourDx.Length; i++)
         {
@@ -243,8 +315,29 @@ public sealed class ImpTaskSystem : ISimulationSystem
             if (!world.Contains(x, y)) continue;
 
             ref TileState tile = ref world.Tile(x, y);
-            if (!tile.IsTaggedBy(playerId)) continue;
-            if (!TileWorkRules.TryTaggedWork(context.Database, tile, playerId, out kind)) continue;
+
+            switch (priority)
+            {
+                case JobPriority.MarkedExcavation:
+                    if (!tile.IsTaggedBy(playerId)) continue;
+                    if (!TileWorkRules.TryTaggedWork(context.Database, tile, playerId, out kind)) continue;
+                    break;
+
+                case JobPriority.Claim:
+                    if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId))
+                        continue;
+                    kind = TileWorkKind.Claim;
+                    break;
+
+                case JobPriority.Reinforce:
+                    if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Reinforce, playerId))
+                        continue;
+                    kind = TileWorkKind.Reinforce;
+                    break;
+
+                default:
+                    continue;
+            }
 
             tileIndex = (y * world.Width) + x;
             return true;
@@ -255,12 +348,58 @@ public sealed class ImpTaskSystem : ISimulationSystem
         return false;
     }
 
-    /// <summary>Whether the creature's target is still marked and still workable.</summary>
+    /// <summary>
+    /// Whether this tile belongs to the keeper — the condition an unprompted
+    /// claim or reinforce is taken from.
+    ///
+    /// It is the standing tile that is tested, not the target: an imp reaches
+    /// out from its own territory into the next tile, which is what makes a
+    /// dungeon grow outwards from its heart instead of in islands. STRONGLY
+    /// INFERRED; Q42.
+    /// </summary>
+    private static bool StandsOnOwnLand(
+        SimulationContext context, WorldState world, TilePos standing, byte playerId)
+    {
+        if (!world.Contains(standing)) return false;
+
+        ref TileState tile = ref world.Tile(standing);
+        return tile.OwnerPlayerId == playerId
+            && context.Database.TerrainById(tile.TerrainId).IsOwnable;
+    }
+
+    /// <summary>
+    /// Whether the creature's target is still workable — and, if the keeper
+    /// asked for it by name, still asked for.
+    ///
+    /// The mark is only a condition on excavation. An unprompted claim or
+    /// reinforce was never tagged, so testing the tag for those would abandon
+    /// the job on the tick after it was taken and take it again on the next,
+    /// forever.
+    /// </summary>
     private static bool JobStillStands(SimulationContext context, CreatureState creature)
     {
         ref TileState tile = ref context.World.TileAtIndex(creature.TargetTileIndex);
-        return tile.IsTaggedBy(creature.OwnerPlayerId)
-            && TileWorkRules.Applies(context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
+
+        if (IsExcavation(creature.TargetWork) && !tile.IsTaggedBy(creature.OwnerPlayerId))
+            return false;
+
+        return TileWorkRules.Applies(
+            context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
+    }
+
+    /// <summary>
+    /// Whether this kind of work can only have come from a dig marker.
+    ///
+    /// Reads <see cref="TileWorkRules.TaggedWork"/> rather than listing kinds,
+    /// so that a kind added to the marker mapping cannot quietly fall out of
+    /// this test.
+    /// </summary>
+    private static bool IsExcavation(TileWorkKind kind)
+    {
+        IReadOnlyList<TileWorkKind> tagged = TileWorkRules.TaggedWork;
+        for (int i = 0; i < tagged.Count; i++)
+            if (tagged[i] == kind) return true;
+        return false;
     }
 
     private static bool IsInWorkingPosition(WorldState world, CreatureState creature)

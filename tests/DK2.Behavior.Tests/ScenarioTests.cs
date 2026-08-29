@@ -113,7 +113,7 @@ public class ScenarioTests
             Assert.Contains(result.Unsupported,
                 u => u.Contains("places creatures directly", StringComparison.Ordinal));
             Assert.Contains(result.Unsupported,
-                u => u.Contains("only do work the keeper marked", StringComparison.Ordinal));
+                u => u.Contains("marked excavation first, then claim floor", StringComparison.Ordinal));
             Assert.Contains(result.Unsupported,
                 u => u.Contains("routing is ours, not DK2's", StringComparison.Ordinal));
         }

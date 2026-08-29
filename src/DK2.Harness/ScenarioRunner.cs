@@ -273,9 +273,10 @@ public sealed class ScenarioRunner
         }
 
         unsupported.Add(
-            "workers only do work the keeper marked. Claiming floor, reinforcing walls, carrying " +
-            "gold to a treasury and fleeing a fight are all real imp jobs that are not " +
-            "implemented, and the priority order between them is UNKNOWN (Q2/Q24)");
+            "workers do marked excavation first, then claim floor, then reinforce walls - the " +
+            "order is CONFIRMED (Q24) but what an imp does when all three run out is not: in DK2 " +
+            "it wanders the dungeon and interacts with creatures and scenery, and here it stands " +
+            "still (Q41). Dragging the unconscious to a prison and fleeing a fight are still absent");
         unsupported.Add(
             "routing is ours, not DK2's (Q5): a four-connected shortest-path search with uniform " +
             "step costs. Travel times in this run are a consequence of that choice");

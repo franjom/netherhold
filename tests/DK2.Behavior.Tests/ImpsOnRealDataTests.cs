@@ -159,7 +159,12 @@ public class ImpsOnRealDataTests
 
         Assert.False(db.TerrainById(world.Tile(rock).TerrainId).IsSolid,
             $"{rock} is still solid after four work periods");
-        Assert.Equal(CreatureActivity.Idle, imp.Activity);
+
+        // Not idle afterwards: on a real level there is always more to do, and
+        // an imp that has finished what was marked goes on to claim and
+        // reinforce. Only a worker with nowhere of its keeper's to stand runs
+        // out of jobs — see ImpTests.AnImpWithNothingToDo_StaysWhereItIs.
+        Assert.NotEqual(CreatureActivity.Idle, imp.Activity);
     }
 
     private static (TilePos Stand, TilePos Rock)? FindDiggableEdge(GameDatabase db, WorldState world)

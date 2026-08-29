@@ -18,12 +18,15 @@ Implemented by `DK2.Simulation.Systems.ImpTaskSystem`,
 | An idle worker re-evaluates every `ImpIdleDelayBeforeReevaluationSeconds` (5) | **CONFIRMED** — the variable names exactly this |
 | Creature `speed` is in tiles per second | **STRONGLY INFERRED** — see below |
 | Walkability follows `CanWalkOnWater` / `CanWalkOnLava` | **STRONGLY INFERRED** — the flags exist for nothing else |
+| **Job priority: marked excavation, then claiming, then reinforcing** | **CONFIRMED** — owner observation of the original (Q24); implemented as a strict ordering, ADR-0018 |
+| A tile is worked from an orthogonal neighbour | **CONFIRMED** — twelve imps a block at three a face is four faces (Q27) |
+| An imp with none of the three available wanders and interacts with scenery and creatures | **CONFIRMED but NOT IMPLEMENTED** (Q41) — ours stands still |
+| Three imps a face, twelve a block, is a hard cap | **CONFIRMED but NOT IMPLEMENTED** (Q26/Q43) — ours converge without limit |
+| Claiming and reinforcing are taken from ground the keeper already holds | **STRONGLY INFERRED** (Q42) — supported by Q33, where a room tile must touch owned land |
 | A worker takes the marked tile fewest steps away | **HYPOTHESIS** (Q25) |
-| Nothing reserves a job, so several workers pile onto one tile | **HYPOTHESIS** (Q26) |
-| A tile is worked from an orthogonal neighbour | **HYPOTHESIS** (Q27) |
 | A worker that finishes a job starts the next one at once rather than waiting out the idle delay | **STRONGLY INFERRED** — an imp that has just finished has not been idle |
+| Imps never eat | **CONFIRMED** — owner observation; the Imp's hunger rate of 32767 does mean "never" (Q12) |
 | Everything about *routing* | **UNKNOWN** (Q5) |
-| Everything about job priority once a worker has more than one kind of job available | **UNKNOWN** (Q2/Q24) |
 
 ---
 
@@ -162,20 +165,28 @@ same `Taggable` flag the mark itself is validated against.
 
 ## What is not implemented, and is not guessed at
 
-An imp in Dungeon Keeper 2 also claims floor, reinforces walls, carries mined
-gold to a treasury, drags the unconscious to a prison and the dead to a
-graveyard, and flees a fight. None of it is here.
+**Claiming and reinforcing are now implemented** — Q24 was answered by the owner
+and the priority order is CONFIRMED (ADR-0018). What is still absent:
 
-The reason is not that these are hard to write — claiming is one call into rules
-that already exist. It is that **marked work is the only job whose trigger is not
-in doubt**: the keeper asked for it. Every other job is one the imp starts by
-itself, so implementing it means inventing a rule for when it starts and where it
-prioritises against the others, and that priority order is exactly the part of Q2
-that remains unanswered. See Q24.
+- **Wandering.** An imp with no excavation, nothing to claim and nothing to
+  reinforce stands still. In the original it runs around the dungeon and
+  interacts with the environment and with creatures (CONFIRMED). It is not
+  implemented because it has no simulation consequence we model, and a walk we
+  invented would put imps where DK2 would not. Q41.
+- **The crowding cap.** Three imps a face and twelve a block is a hard limit in
+  the original (CONFIRMED). Ours converge without limit. Implementing it means
+  choosing between reservation — a fourth imp picks a different job — and
+  crowding — a fourth imp walks over and waits — which is Q43 and is not
+  observed yet.
+- **Dragging the unconscious to a prison and the dead to a graveyard**, and
+  **fleeing a fight.** Neither has a trigger anybody has stated, and neither has
+  anything to act on: there is no combat, no unconsciousness and no prison.
+- **Picking up gold somebody else dropped.** Carrying gold an imp mined itself is
+  implemented as the tail of a mining job; a pile already on the floor needs a
+  trigger of its own and is not in the priority order the owner gave.
 
-Gold is still reported and dropped. `MaxGoldPerTreasuryTile` (3000),
-`MaxGoldPileOutsideTreasury` (2000) and `MaxGoldPerDungeonHeartTile` (1000) are
-extracted and waiting for a room to put them in.
+Note what is *not* on this list any more: the priority order itself. It was the
+biggest unknown in this file and it was answered in one sentence.
 
 ## Routing is ours, not DK2's
 
