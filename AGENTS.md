@@ -52,6 +52,11 @@ DOCUMENT IT.
 
 Do not leave important knowledge only inside chat history.
 
+## Session handoff
+
+Read docs/HANDOFF.md first: current state, next steps, decisions already made,
+environment gotchas, and the research method in use.
+
 ## Before changing architecture
 
 Read:
