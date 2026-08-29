@@ -1,0 +1,55 @@
+# The first scenario with an economy in it.
+#
+# A keeper starts with a dungeon heart and a thousand gold - and the gold is
+# *in* the heart, because that is the only place a keeper with no treasury can
+# keep any. Six floor tiles are claimed, and the keeper then asks for a six-tile
+# treasury on them at 200 gold a tile. Five is what a thousand gold buys.
+#
+# What to read in the event log: one `built` line naming how many tiles landed,
+# what they cost, and why the last one did not - `NotEnoughGold=1`. The state
+# hash moves on the tick the command lands, because the gold really left the
+# heart and the terrain really changed.
+#
+# What this run does NOT establish, and the report repeats it: whether DK2's
+# room cost is per tile or per room (Q32), whether a room must touch land the
+# keeper already holds (Q33), how long a keeper's imps would take to build the
+# thing (nothing here builds over time), and where mined gold goes (Q31 - the
+# treasury this run builds has no way of being filled).
+#
+# The claiming is injected work, not an imp: claiming is a job an imp starts by
+# itself and the trigger for that is UNKNOWN (Q24), so the harness stands in and
+# says so.
+id: rooms-build-a-treasury-001
+question: >
+  Does a keeper's gold live in tiles rather than in a counter - so that a room
+  is paid for out of a heart or a treasury, and a keeper who cannot pay for the
+  last tile of a room gets the rest of it and a reason?
+map: flat_16x12
+seed: 5
+duration_ticks: 20
+setup:
+  players:
+    - { id: 1, gold: 1000, mana: 0 }
+  rooms:
+    # One heart tile, which holds exactly MaxGoldPerDungeonHeartTile. The
+    # thousand gold above fits in it with nothing to spare, which is why the
+    # sixth treasury tile below cannot be paid for.
+    - { type: Dungeon Heart, at: [2, 2], player: 1 }
+work:
+  # Six tiles of floor claimed for player 1. ClaimTileHealth is large enough
+  # that one application takes a dirt path tile all the way to claimed.
+  - { at_tick: 0, player: 1, kind: Claim, at: [5, 5] }
+  - { at_tick: 0, player: 1, kind: Claim, at: [6, 5] }
+  - { at_tick: 0, player: 1, kind: Claim, at: [7, 5] }
+  - { at_tick: 0, player: 1, kind: Claim, at: [5, 6] }
+  - { at_tick: 0, player: 1, kind: Claim, at: [6, 6] }
+  - { at_tick: 0, player: 1, kind: Claim, at: [7, 6] }
+commands:
+  - at_tick: 2
+    player: 1
+    build:
+      type: Treasury
+      tiles: [[5, 5], [6, 5], [7, 5], [5, 6], [6, 6], [7, 6]]
+observe:
+  - state_hash
+  - events

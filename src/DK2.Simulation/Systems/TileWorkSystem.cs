@@ -91,5 +91,11 @@ public sealed class TileWorkSystem : ISimulationSystem
             context.Emit(SystemName, "gold_released",
                 $"{where} amount={result.GoldReleased} (uncollected: no carrier yet)");
         }
+
+        if (result.GoldSpilled > 0)
+        {
+            context.Emit(SystemName, "gold_spilled",
+                $"{where} amount={result.GoldSpilled} (lost: gold piles are objects, not implemented)");
+        }
     }
 }

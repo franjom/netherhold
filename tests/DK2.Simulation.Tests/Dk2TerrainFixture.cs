@@ -4,9 +4,9 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Tests;
 
 /// <summary>
-/// The seven terrain types, eleven variables and one creature that the M3
-/// mechanics touch, transcribed from the reference install so they can be tested
-/// where no Dungeon Keeper 2 installation exists — CI included.
+/// The twelve terrain types, four rooms, fourteen variables and one creature that
+/// the M3 mechanics touch, transcribed from the reference install so they can be
+/// tested where no Dungeon Keeper 2 installation exists — CI included.
 ///
 /// Unlike <see cref="TestWorld"/>, nothing here is invented: every number is
 /// DK2's own, extracted by <c>dk2tools</c> and recorded in
@@ -24,10 +24,15 @@ internal static class Dk2TerrainFixture
     public const byte ImpenetrableRock = 1;
     public const byte Rock = 2;
     public const byte DirtPath = 3;
+    public const byte Water = 4;
     public const byte Gold = 6;
     public const byte Gems = 7;
     public const byte ClaimedPath = 8;
     public const byte ReinforcedWall = 9;
+    public const byte TreasuryTerrain = 10;
+    public const byte LairTerrain = 11;
+    public const byte DungeonHeartTerrain = 14;
+    public const byte WoodenBridgeTerrain = 17;
 
     public static GameDatabase Database() => new(
         [
@@ -37,6 +42,8 @@ internal static class Dk2TerrainFixture
               TerrainFlags.Solid | TerrainFlags.Taggable, 165, 660, ReinforcedWall, DirtPath),
             T(DirtPath, "Dirt Path",
               TerrainFlags.FillInable, 1, 660, ClaimedPath, DirtPath),
+            T(Water, "Water",
+              TerrainFlags.Impenetrable | TerrainFlags.Water, 1, 1, Water, Water, damage: 100),
             T(Gold, "Gold",
               TerrainFlags.Solid | TerrainFlags.Taggable, 660, 660, Gold, DirtPath, goldValue: 3000),
             T(Gems, "Gems",
@@ -48,10 +55,30 @@ internal static class Dk2TerrainFixture
             T(ReinforcedWall, "Reinforced Wall",
               TerrainFlags.Solid | TerrainFlags.Ownable | TerrainFlags.Taggable | TerrainFlags.Attackable,
               900, 900, ReinforcedWall, Rock, manaGain: 1),
+            T(TreasuryTerrain, "Treasury", RoomTerrain, 10000, 10000, TreasuryTerrain, ClaimedPath),
+            T(LairTerrain, "Lair", RoomTerrain, 10000, 10000, LairTerrain, ClaimedPath),
+            T(DungeonHeartTerrain, "Dungeon Heart",
+              RoomTerrain, 10000, 10000, DungeonHeartTerrain, ClaimedPath),
+            T(WoodenBridgeTerrain, "Wooden Bridge",
+              RoomTerrain, 2000, 2000, WoodenBridgeTerrain, ClaimedPath),
         ],
-        rooms: [],
+        rooms:
+        [
+            // Cost, terrain and placement flags exactly as the install has them
+            // (dk2tools kwd rooms / kwd roomflags). The bridge is here because it
+            // is the only shipped room that goes anywhere but land, which is what
+            // makes the placeable-on flags worth reading rather than assuming.
+            R(RoomTypeId.Treasury, "Treasury", 200, TreasuryTerrain, 0x128Cu),
+            R(RoomTypeId.Lair, "Lair", 300, LairTerrain, 0x128Cu),
+            R(RoomTypeId.DungeonHeart, "Dungeon Heart", 0, DungeonHeartTerrain, 0x204u),
+            R(RoomTypeId.WoodenBridge, "Wooden Bridge", 200, WoodenBridgeTerrain, 0x1083u),
+        ],
         creatures: [Imp()],
         variables: Variables());
+
+    /// <summary>The flags every room terrain in the install carries: Ownable, Room, Attackable.</summary>
+    private const TerrainFlags RoomTerrain =
+        TerrainFlags.Ownable | TerrainFlags.Room | TerrainFlags.Attackable;
 
     public const byte ImpCreatureId = 1;
 
@@ -139,7 +166,8 @@ internal static class Dk2TerrainFixture
         IntroductionStringId = 0,
     };
 
-    /// <summary>The ten tile-work health deltas plus the gems yield, as shipped.</summary>
+    /// <summary>The ten tile-work health deltas, the gems yield, the imp idle delay
+    /// and the three gold-per-tile limits, as shipped.</summary>
     public static GlobalVariables Variables()
     {
         var vars = new GlobalVariables();
@@ -155,6 +183,9 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.RepairWallHealth, 22);
         Set(vars, VariableTypeId.GoldMinedFromGems, 25);
         Set(vars, VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds, 5);
+        Set(vars, VariableTypeId.MaxGoldPerTreasuryTile, 3000);
+        Set(vars, VariableTypeId.MaxGoldPerDungeonHeartTile, 1000);
+        Set(vars, VariableTypeId.MaxGoldPileOutsideTreasury, 2000);
         return vars;
     }
 
@@ -165,7 +196,7 @@ internal static class Dk2TerrainFixture
         byte id, string name, TerrainFlags flags,
         ushort startingHealth, ushort maxHealth,
         byte maxHealthType, byte destroyedType,
-        ushort goldValue = 0, ushort manaGain = 0) => new()
+        ushort goldValue = 0, ushort manaGain = 0, short damage = 0) => new()
     {
         Name = name,
         TerrainId = id,
@@ -175,10 +206,36 @@ internal static class Dk2TerrainFixture
         GoldValue = goldValue,
         ManaGain = manaGain,
         MaxManaGain = 0,
-        Damage = 0,
+        Damage = damage,
         MaxHealthTypeTerrainId = maxHealthType,
         DestroyedTypeTerrainId = destroyedType,
         Depth = new Fp32(0),
+        NameStringId = 0,
+        TooltipStringId = 0,
+    };
+
+    /// <summary>
+    /// One room record. Only the fields the room rules read are transcribed;
+    /// the drift guard in <c>RoomsOnRealDataTests</c> checks exactly these.
+    /// </summary>
+    private static RoomDef R(RoomTypeId id, string name, ushort cost, byte terrainId, uint flags) => new()
+    {
+        Name = name,
+        RoomId = (byte)id,
+        Flags = (RoomFlags)flags,
+        Cost = cost,
+        TerrainId = terrainId,
+        ReturnPercentage = 100,
+
+        // Not transcribed. Present because the record requires them.
+        Construction = TileConstruction.Normal,
+        CreatedCreatureId = 0,
+        ObjectIds = [],
+        HealthGain = 0,
+        CeilingHeight = new Fp32(0),
+        RecommendedSizeX = 0,
+        RecommendedSizeY = 0,
+        OrderInEditor = 0,
         NameStringId = 0,
         TooltipStringId = 0,
     };

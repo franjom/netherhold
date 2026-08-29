@@ -210,3 +210,51 @@ missing and that their priority order is UNKNOWN (Q24). The alternative —
 shipping a plausible priority order — would have put an invention at the centre
 of creature behaviour, where later evidence would be hardest to reconcile
 against it.
+
+## ADR-0015 — Gold lives in tiles; a player has no gold counter
+
+**Status:** accepted (2026-08-29, M3)
+
+**Context.** `PlayerState` carried a `Gold` integer from M2, on the assumption
+that gold is a player-level resource that treasuries merely cap. Extracting the
+balance table for the treasury work contradicted that: DK2 has **no** variable
+for a player's gold, a starting balance or a maximum. It has four limits, and
+all four are per place — `MaxGoldPerTreasuryTile` (3000),
+`MaxGoldPerDungeonHeartTile` (1000), `MaxGoldPileOutsideTreasury` (2000), and
+the CREATURES record's own per-creature `maxGoldHeld`.
+
+**Decision.** Gold is stored on tiles (`TileState.GoldHeld`) and nowhere else.
+`PlayerState.Gold` is removed. `GoldStore` is the only way gold moves, and a
+player's spendable total is the sum over the tiles they own. Mana stays on the
+player, because its variables are ceilings and rates on one pool with no
+per-place storage anywhere.
+
+**Consequences.** Three behaviours stop being special cases and become
+consequences: a keeper with no treasury cannot keep gold, destroying a treasury
+takes the gold with it, and a keeper's first treasury is necessarily paid for out
+of the dungeon heart. Gold that will not fit is refused and reported rather than
+silently kept or silently dropped — `GoldStore.Deposit` returns what it accepted
+and `TileWorkResult.GoldSpilled` reports what a destroyed room lost. The cost is
+that `Total` and `TryWithdraw` scan the tile array; that is one scan per room
+tile bought, and a renderer that wants the number every frame should cache it.
+
+## ADR-0016 — Where a room may go is read from the room's own flags
+
+**Status:** accepted (2026-08-29, M3)
+
+**Context.** "Bridges go on water, everything else goes on land" is a rule that
+could be written as a switch on room type. The ROOMS record already carries
+`PlaceableOnLand`, `PlaceableOnWater` and `PlaceableOnLava`, and the TERRAIN
+record already carries `Water`, `Lava`, `Solid` and `Room`.
+
+**Decision.** `RoomRules.IsSuitableGround` asks the flags and never names a room.
+The same discipline as "a gameplay rule keyed on a terrain id is a rule about the
+reference install" (ADR-0009's neighbourhood), extended to rooms.
+
+**Consequences.** No code knows what a bridge is, and the three bridges in the
+shipped data fall out of the flags rather than out of a list.
+`RoomsOnRealDataTests` asserts the partition against the install, so a data set
+that broke it fails a test instead of quietly changing the rules. The one place
+a room type *is* named is `GoldStore.Capacity`, where the two variables are
+themselves named for the treasury and the dungeon heart — there the room type is
+the data's own vocabulary for the question.

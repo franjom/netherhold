@@ -40,8 +40,6 @@ public sealed class ScenarioRunner
 
         foreach (string key in scenario.UnknownKeys)
             unsupported.Add($"unknown key '{key}' in the scenario file");
-        if (scenario.Setup.Rooms.Count > 0)
-            unsupported.Add($"setup.rooms ({scenario.Setup.Rooms.Count}) - rooms are not simulated yet");
 
         foreach (string observation in scenario.Observe)
             if (observation is not ("state_hash" or "events"))
@@ -67,12 +65,11 @@ public sealed class ScenarioRunner
             : map.Tiles.Select(t => t.PlayerId).Distinct();
 
         WorldState world = WorldState.FromMap(_database, map, playerIds);
-        foreach (ScenarioPlayer p in scenario.Setup.Players)
-        {
-            world.Player(p.Id).Gold = p.Gold;
-            world.Player(p.Id).Mana = p.Mana;
-        }
 
+        // Rooms first, gold second: gold has to be stored somewhere, and a
+        // treasury is the only somewhere there is.
+        PlaceRooms(scenario, world, unsupported);
+        PlaceResources(scenario, world, unsupported);
         SpawnCreatures(scenario, world, unsupported);
 
         // Registration order is part of the simulation's definition, and there
@@ -101,6 +98,100 @@ public sealed class ScenarioRunner
 
         return new ScenarioResult(
             scenario, scenario.DurationTicks, simulation.StateHash(), hashes, sink.Events, unsupported);
+    }
+
+    /// <summary>
+    /// Lays down the scenario's rooms, and says what laying them down does not
+    /// amount to.
+    /// </summary>
+    private void PlaceRooms(Scenario scenario, WorldState world, List<string> unsupported)
+    {
+        int placed = 0;
+
+        foreach (ScenarioRoom r in scenario.Setup.Rooms)
+        {
+            RoomDef? room = _database.RoomByName(r.Type);
+            if (room is null)
+            {
+                unsupported.Add($"setup.rooms entry '{r.Type}' is not a room in the database");
+                continue;
+            }
+
+            if (r.At.Count != 2)
+            {
+                unsupported.Add($"setup.rooms entry '{r.Type}' needs at: [x, y]");
+                continue;
+            }
+
+            int w = r.Size.Count == 2 ? r.Size[0] : 1;
+            int h = r.Size.Count == 2 ? r.Size[1] : 1;
+            if (w < 1 || h < 1)
+            {
+                unsupported.Add($"setup.rooms entry '{r.Type}' has size [{w},{h}]");
+                continue;
+            }
+
+            int refused = 0;
+            for (int y = r.At[1]; y < r.At[1] + h; y++)
+            {
+                for (int x = r.At[0]; x < r.At[0] + w; x++)
+                {
+                    if (!world.Contains(x, y))
+                    {
+                        refused++;
+                        continue;
+                    }
+
+                    ref TileState tile = ref world.Tile(x, y);
+                    if (!RoomRules.IsSuitableGround(_database, tile, room))
+                    {
+                        refused++;
+                        continue;
+                    }
+
+                    RoomRules.Place(_database, ref tile, room, r.Player);
+                    placed++;
+                }
+            }
+
+            if (refused > 0)
+            {
+                unsupported.Add(
+                    $"setup.rooms entry '{r.Type}' at [{r.At[0]},{r.At[1]}] size [{w},{h}]: " +
+                    $"{refused} of its {w * h} tiles are not ground this room can sit on and were skipped");
+            }
+        }
+
+        if (placed == 0) return;
+
+        unsupported.Add(
+            "setup.rooms lays room terrain down directly: nothing is charged for it, no imp builds " +
+            "it, and no room does anything a room does beyond being terrain its owner holds. A " +
+            "treasury stores gold because a variable says how much per tile; a library, a lair and " +
+            "a hatchery are inert");
+    }
+
+    /// <summary>
+    /// Applies starting mana, and stores starting gold — which can only go where
+    /// there is room for it.
+    /// </summary>
+    private void PlaceResources(Scenario scenario, WorldState world, List<string> unsupported)
+    {
+        foreach (ScenarioPlayer p in scenario.Setup.Players)
+        {
+            world.Player(p.Id).Mana = p.Mana;
+
+            if (p.Gold <= 0) continue;
+
+            int stored = GoldStore.Deposit(world, _database, p.Id, p.Gold);
+            if (stored == p.Gold) continue;
+
+            unsupported.Add(
+                $"setup.players[{p.Id}].gold: {p.Gold - stored} of {p.Gold} had nowhere to go. A " +
+                "keeper's gold lives in treasury and dungeon-heart tiles and nowhere else here; " +
+                "DK2 would drop the rest on the floor as gold piles, which are objects and are not " +
+                "implemented (Q31). Give the player a treasury in setup.rooms to hold it");
+        }
     }
 
     /// <summary>
@@ -156,7 +247,7 @@ public sealed class ScenarioRunner
     }
 
     /// <summary>Turns the scenario's scheduled commands into one input frame per tick.</summary>
-    private static Dictionary<int, InputFrame> BuildInput(Scenario scenario, List<string> unsupported)
+    private Dictionary<int, InputFrame> BuildInput(Scenario scenario, List<string> unsupported)
     {
         var byTick = new Dictionary<int, List<PlayerCommand>>();
 
@@ -174,11 +265,36 @@ public sealed class ScenarioRunner
 
             if (c.Tag.Count > 0) list.Add(new TagTilesCommand(c.Player, ToTiles(c.Tag), true));
             if (c.Untag.Count > 0) list.Add(new TagTilesCommand(c.Player, ToTiles(c.Untag), false));
-            if (c.Tag.Count == 0 && c.Untag.Count == 0)
-                unsupported.Add($"commands entry at_tick={c.AtTick} names no tag or untag tiles");
+
+            bool built = c.Build is not null && TryBuild(c, list, unsupported);
+
+            if (c.Tag.Count == 0 && c.Untag.Count == 0 && !built)
+                unsupported.Add($"commands entry at_tick={c.AtTick} names nothing this build can do");
         }
 
         return byTick.ToDictionary(kv => kv.Key, kv => new InputFrame(kv.Value));
+    }
+
+    private bool TryBuild(ScenarioCommand c, List<PlayerCommand> into, List<string> unsupported)
+    {
+        ScenarioBuild build = c.Build!;
+        RoomDef? room = _database.RoomByName(build.Type);
+        if (room is null)
+        {
+            unsupported.Add(
+                $"commands entry at_tick={c.AtTick} builds '{build.Type}', which is not a room in the database");
+            return false;
+        }
+
+        List<TilePos> tiles = ToTiles(build.Tiles);
+        if (tiles.Count == 0)
+        {
+            unsupported.Add($"commands entry at_tick={c.AtTick} builds '{build.Type}' on no tiles");
+            return false;
+        }
+
+        into.Add(new BuildRoomCommand(c.Player, room.RoomId, tiles));
+        return true;
     }
 
     private static List<TilePos> ToTiles(List<List<int>> pairs) =>

@@ -3,12 +3,43 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace DK2.Harness;
 
-/// <summary>Starting resources for one player. Applied directly to PlayerState.</summary>
+/// <summary>
+/// Starting resources for one player.
+///
+/// Mana goes straight onto the player. Gold does not: it has to be stored
+/// somewhere, so it is deposited into the player's treasury and dungeon-heart
+/// tiles, and a run whose player has nowhere to put it says so rather than
+/// conjuring a gold counter (<see cref="DK2.Simulation.GoldStore"/>).
+/// </summary>
 public sealed class ScenarioPlayer
 {
     public byte Id { get; set; }
     public int Gold { get; set; }
     public int Mana { get; set; }
+}
+
+/// <summary>
+/// One block of room tiles laid down before the run starts.
+///
+/// <b>Placement is the level author's, not a player's.</b> Nothing is charged
+/// for, no ground rule is applied beyond the room's own placeable-on flags, and
+/// no imp builds it — the same standing that <see cref="ScenarioCreature"/> has.
+/// A scenario that wants to watch a keeper pay for a room uses a
+/// <c>build</c> command instead.
+/// </summary>
+public sealed class ScenarioRoom
+{
+    /// <summary>A ROOMS record name, e.g. <c>Treasury</c>.</summary>
+    public string Type { get; set; } = "";
+
+    /// <summary>Top-left corner, as <c>[x, y]</c>.</summary>
+    public List<int> At { get; set; } = [];
+
+    /// <summary>Extent in tiles, as <c>[w, h]</c>. Defaults to a single tile.</summary>
+    public List<int> Size { get; set; } = [];
+
+    /// <summary>Whose room it is.</summary>
+    public byte Player { get; set; }
 }
 
 /// <summary>
@@ -32,16 +63,16 @@ public sealed class ScenarioCreature
 }
 
 /// <summary>
-/// Initial conditions. <see cref="Players"/> and <see cref="Creatures"/> are
-/// applied; <see cref="Rooms"/> is parsed so that scenarios can be written now
-/// and reported as unsupported rather than silently ignored.
+/// Initial conditions, applied in the order listed here: rooms, then gold and
+/// mana, then creatures. Rooms come first because gold needs a treasury to go
+/// into.
 /// </summary>
 public sealed class ScenarioSetup
 {
     public List<ScenarioPlayer> Players { get; set; } = [];
 
-    /// <summary>Not applied yet (rooms arrive later in M3).</summary>
-    public List<Dictionary<string, object>> Rooms { get; set; } = [];
+    /// <summary>Room tiles to lay down before tick 0.</summary>
+    public List<ScenarioRoom> Rooms { get; set; } = [];
 
     /// <summary>Creatures to place before tick 0.</summary>
     public List<ScenarioCreature> Creatures { get; set; } = [];
@@ -61,6 +92,23 @@ public sealed class ScenarioCommand
 
     /// <summary>Tiles to unmark, as <c>[[x, y], …]</c>.</summary>
     public List<List<int>> Untag { get; set; } = [];
+
+    /// <summary>
+    /// A room to build and pay for, as a real player command. Unlike
+    /// <see cref="ScenarioRoom"/> this goes through the ground rules and the
+    /// treasury.
+    /// </summary>
+    public ScenarioBuild? Build { get; set; }
+}
+
+/// <summary>A room a player asks to build, at a tick, and pays for.</summary>
+public sealed class ScenarioBuild
+{
+    /// <summary>A ROOMS record name, e.g. <c>Treasury</c>.</summary>
+    public string Type { get; set; } = "";
+
+    /// <summary>The tiles to build on, as <c>[[x, y], …]</c>, in the order they are charged.</summary>
+    public List<List<int>> Tiles { get; set; } = [];
 }
 
 /// <summary>

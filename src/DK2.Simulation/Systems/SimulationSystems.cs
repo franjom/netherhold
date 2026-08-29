@@ -13,6 +13,10 @@ namespace DK2.Simulation.Systems;
 /// <list type="number">
 /// <item><see cref="TileTagSystem"/> — the player's marks land first, so a tile
 /// marked on tick N is marked for the whole of tick N.</item>
+/// <item><see cref="RoomBuildSystem"/> — the player's other command. After
+/// tagging rather than before it, so that a tile both marked and built on in one
+/// tick ends up a room: building is the later, more specific intent, and a mark
+/// on room terrain is dropped by the conversion anyway.</item>
 /// <item><see cref="CreatureMovementSystem"/> — creatures move, so a worker that
 /// arrives beside its job is noticed on the tick it arrives rather than the
 /// next.</item>
@@ -32,6 +36,7 @@ public static class SimulationSystems
     public static ISimulationSystem[] Default() =>
     [
         new TileTagSystem(),
+        new RoomBuildSystem(),
         new CreatureMovementSystem(),
         new ImpTaskSystem(),
         new TileWorkSystem(),

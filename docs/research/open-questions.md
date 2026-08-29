@@ -59,3 +59,18 @@ theoretical.
 | Q28 | Is DK2's creature movement four- or eight-connected — specifically, can a creature pass diagonally between two solid tiles? Implemented as four-connected, the conservative choice. Part of Q5 but separable and cheaply testable against the original | UNKNOWN |
 | Q29 | Is a creature's `speed` in tiles per second? Three variables on the identical fixed-point scale name that unit in their own names (`BoulderSpeedTilesPerSecond` and friends), and the resulting imp/dwarf ratio matches the original | STRONGLY INFERRED |
 | Q30 | Does terrain weight a path (water visibly slower), or only the mover's speed? Implemented as uniform step cost | UNKNOWN |
+
+## Questions from rooms and the treasury (2026-08-29)
+
+See `docs/research/rooms-and-gold.md`. Q31 is the one that matters: it is the
+other half of the gold loop, and it is the same UNKNOWN as Q24 wearing a
+different hat.
+
+| # | Question | Status |
+|---|---|---|
+| Q31 | **Where does mined gold go?** `TileWorkResult` still reports gold released and credits nobody, because gold has to be carried and nothing carries. Three sub-questions: does the mining imp take the gold it just freed, or does it appear on the floor as a pile first? What decides when an imp stops mining and delivers — the Imp's `maxGoldHeld` is 1400 against a gold seam that yields ~1363 an application and a gem face that yields 25? And which treasury tile does it fill? | **UNKNOWN — blocking the rest of the gold loop.** The pile half needs the OBJECTS record (M6); the threshold half needs measurement against the original |
+| Q32 | Is `RoomDef.Cost` per tile or per room? Implemented per tile, which is how the original charges as a keeper paints. Cheap to settle: build a two-tile treasury in the original and read the gold drop | STRONGLY INFERRED (per tile) |
+| Q33 | Must a new room tile touch land the keeper already holds? Not checked. On land the ownership rule already rejects everything such a rule would; the gap shows only for bridges, which our rules let a keeper start anywhere on the water | UNKNOWN |
+| Q34 | **Selling a room refunds 100% under both candidate numbers** — `RoomDef.ReturnPercentage` (100 for all 26 rooms) and `RoomSellValuePercentageOfCost` (100). That would make rooms free to try, which the original is not. One of the two is not what its name says. Selling is not implemented, so nothing depends on this yet | UNKNOWN |
+| Q35 | Which tile of a multi-tile treasury does a deposit land in, and which does a withdrawal drain? Ours is tile-index order. It is behaviour — it decides which gold survives a treasury being partly destroyed — and the original plausibly fills whichever tile the carrier reached | UNKNOWN |
+| Q36 | Do a room's `RecommendedSizeX/Y` and `TileConstruction` constrain what a keeper may build, or only how it is drawn? Nothing here reads them, so a 1x1 temple is buildable | UNKNOWN |

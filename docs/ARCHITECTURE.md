@@ -126,3 +126,32 @@ spell at a mana cost, and from specials; `WorldState.SpawnCreature` is what test
 and scenario files use in the meantime, and it says so.
 
 Evidence and confidence: `docs/research/imp-tasks.md`.
+
+## Rooms and gold (M3)
+
+The second player command, and the first resource that is somewhere rather than
+just a number.
+
+- `RoomRules` says where a room may go, what it costs and what it does to the
+  tile. Where it may go is read from the room's own placeable-on flags, so no
+  code knows what a bridge is (ADR-0016).
+- `BuildRoomCommand` + `RoomBuildSystem` are the command path, alongside
+  `TagTilesCommand` + `TileTagSystem`. A tile at a time, in the order the command
+  gives, with every refusal counted by reason in the event log.
+- `GoldStore` is the only way gold moves. **A player has no gold counter**:
+  `TileState.GoldHeld` is where gold is, and a keeper's total is the sum over the
+  tiles they own (ADR-0015). Every limit DK2 sets on gold is per tile, which is
+  what forced the shape.
+
+Three behaviours fall out rather than being written: a keeper with no treasury
+cannot keep gold, destroying a treasury takes the gold with it, and a keeper's
+first treasury is necessarily paid for out of the dungeon heart.
+
+What is deliberately absent: **a room does nothing.** A treasury and a heart hold
+gold because a variable says how much per tile; every other room is inert terrain
+its owner holds. Rooms have no size or shape rules (Q36), cannot be sold (Q34),
+and are built instantly — building over time is another worker job with the same
+unknown trigger as the rest (Q24). And gold released by mining still reaches
+nobody, because nothing carries it (Q31).
+
+Evidence and confidence: `docs/research/rooms-and-gold.md`.

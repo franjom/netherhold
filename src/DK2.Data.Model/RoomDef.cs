@@ -82,6 +82,9 @@ public sealed record RoomDef
     public required ushort TooltipStringId { get; init; }
 
     public bool IsBuildable => Flags.HasFlag(RoomFlags.Buildable);
+    public bool PlaceableOnLand => Flags.HasFlag(RoomFlags.PlaceableOnLand);
+    public bool PlaceableOnWater => Flags.HasFlag(RoomFlags.PlaceableOnWater);
+    public bool PlaceableOnLava => Flags.HasFlag(RoomFlags.PlaceableOnLava);
     public bool IsGood => Flags.HasFlag(RoomFlags.IsGood);
     public bool HasWalls => Flags.HasFlag(RoomFlags.HasWalls);
 

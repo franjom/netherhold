@@ -202,8 +202,15 @@ a worker.
 
 Gold released by mining is reported as an event and dropped. Crediting a player
 directly would be inventing an economy rather than reproducing one: in the
-original the imp picks the gold up and carries it to a treasury, and neither the
-carrier nor the treasury exists yet.
+original the imp picks the gold up and carries it to a treasury. The treasury
+exists now (`rooms-and-gold.md`); the carrier does not, and what would decide
+when an imp stops mining and delivers is UNKNOWN (Q31).
+
+A tile can also *lose* gold. Room terrain is ownable floor, so a rival can attack
+a treasury down to nothing; when it converts to claimed path — which holds no
+gold — the amount is reported as `GoldSpilled` and emitted as `gold_spilled`. In
+the original that gold scatters as piles on the floor; piles are objects (M6), so
+here it is lost, loudly rather than quietly.
 
 ---
 

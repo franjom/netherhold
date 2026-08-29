@@ -88,6 +88,18 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length >= 2 && args[1] == "roomflags":
+    {
+        List<RoomDef> flagged = KwdTerrainRooms.ParseRooms(KwdReader.ReadFile(
+            Path.Combine(Dk2Install.Require(), "Data", "editor", "Rooms.kwd")));
+
+        foreach (RoomDef r in flagged.OrderBy(r => r.RoomId))
+            Console.WriteLine($"{r.RoomId,3} {r.Name,-32} 0x{(uint)r.Flags:X8}  {r.Flags}");
+
+        Console.WriteLine($"-- {flagged.Count} room types");
+        return 0;
+    }
+
     case "kwd" when args.Length >= 2 && args[1] == "rooms":
     {
         List<RoomDef> rooms = KwdTerrainRooms.ParseRooms(KwdReader.ReadFile(
@@ -166,6 +178,7 @@ switch (args[0])
         Console.WriteLine($"  hungerRate={c.HungerRate} hungerFill={c.HungerFill} " +
                           $"awake={c.TimeAwake} sleep={c.TimeSleep}");
         Console.WriteLine($"  meleeRange={c.MeleeRange} recharge={c.MeleeRecharge} attack={c.MeleeAttackType}");
+        Console.WriteLine($"  maxGoldHeld={c.MaxGoldHeld} initialGoldHeld={c.InitialGoldHeld}");
         Console.WriteLine($"  exp/lvl={c.ExpForNextLevel} exp/s={c.ExpPerSecond} train={c.ExpPerSecondTraining} " +
                           $"research={c.ResearchPerSecond} manufacture={c.ManufacturePerSecond}");
         Console.WriteLine($"  unhappyThreshold={c.UnhappyThreshold} angerNoLair={c.AngerNoLair} " +

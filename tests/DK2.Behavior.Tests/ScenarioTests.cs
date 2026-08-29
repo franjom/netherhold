@@ -206,6 +206,11 @@ public class ScenarioTests
             Assert.Contains(result.Unsupported, u => u.StartsWith("setup.rooms", StringComparison.Ordinal));
             Assert.Contains(result.Unsupported, u => u.StartsWith("setup.creatures", StringComparison.Ordinal));
             Assert.Contains(result.Unsupported, u => u.StartsWith("observe.first_destination", StringComparison.Ordinal));
+
+            // The gold has nowhere to go: the scenario asks for a lair, which
+            // this database does not have, so no treasury is ever laid down.
+            Assert.Contains(result.Unsupported,
+                u => u.Contains("had nowhere to go", StringComparison.Ordinal));
         }
         finally
         {
@@ -214,37 +219,126 @@ public class ScenarioTests
     }
 
     [Fact]
-    public void Setup_AppliesStartingGoldAndMana()
+    public void Setup_AppliesStartingMana()
     {
-        // Gold and mana are the two things M2 can honour, so they must actually
-        // reach the world - a scenario whose setup is a no-op is worse than no
-        // scenario at all.
+        // A scenario whose setup is a no-op is worse than no scenario at all, so
+        // mana has to reach the world and move the hash on its own.
         string path = Path.Combine(Path.GetTempPath(), $"dk2-scenario-{Guid.NewGuid():N}.yaml");
         File.WriteAllText(path, """
-            id: starting-resources-probe
+            id: starting-mana-probe
             map: flat_8x8
             seed: 1
             duration_ticks: 1
             setup:
               players:
-                - { id: 1, gold: 1234, mana: 5678 }
+                - { id: 1, gold: 0, mana: 5678 }
             """);
 
         try
         {
             Scenario scenario = Scenario.Load(path);
-            var withResources = new ScenarioRunner(SyntheticDatabase(), null).Run(scenario);
+            var withMana = new ScenarioRunner(SyntheticDatabase(), null).Run(scenario);
 
-            scenario.Setup.Players[0].Gold = 0;
             scenario.Setup.Players[0].Mana = 0;
             ScenarioResult without = new ScenarioRunner(SyntheticDatabase(), null).Run(scenario);
 
-            Assert.NotEqual(withResources.FinalStateHash, without.FinalStateHash);
+            Assert.NotEqual(withMana.FinalStateHash, without.FinalStateHash);
         }
         finally
         {
             File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void Setup_StoresStartingGoldInATreasuryAndSaysSoWhenItCannot()
+    {
+        // Gold is not a number on a player: it goes into treasury tiles. A
+        // scenario that gives a keeper a treasury gets the gold; the same
+        // scenario without one gets a report saying where it went instead.
+        string with = WriteScenario("""
+            id: starting-gold-probe
+            map: flat_8x8
+            seed: 1
+            duration_ticks: 1
+            setup:
+              players:
+                - { id: 1, gold: 1234, mana: 0 }
+              rooms:
+                - { type: Treasury, at: [2, 2], size: [2, 2], player: 1 }
+            """);
+
+        string without = WriteScenario("""
+            id: starting-gold-probe
+            map: flat_8x8
+            seed: 1
+            duration_ticks: 1
+            setup:
+              players:
+                - { id: 1, gold: 1234, mana: 0 }
+            """);
+
+        try
+        {
+            ScenarioResult stored = new ScenarioRunner(SyntheticDatabase(), null).Run(Scenario.Load(with));
+            ScenarioResult homeless = new ScenarioRunner(SyntheticDatabase(), null).Run(Scenario.Load(without));
+
+            Assert.DoesNotContain(stored.Unsupported,
+                u => u.Contains("had nowhere to go", StringComparison.Ordinal));
+            Assert.Contains(homeless.Unsupported,
+                u => u.Contains("1234 of 1234 had nowhere to go", StringComparison.Ordinal));
+
+            // And the treasury is real state, not a report: the two runs differ.
+            Assert.NotEqual(stored.FinalStateHash, homeless.FinalStateHash);
+        }
+        finally
+        {
+            File.Delete(with);
+            File.Delete(without);
+        }
+    }
+
+    [Fact]
+    public void ABuildCommand_LaysTheRoomDownAndIsReportedAsApplied()
+    {
+        // The build command is a real player command: it goes through the input
+        // frame, the ground rules and the treasury, and nothing about it is
+        // listed as unsupported.
+        string path = WriteScenario("""
+            id: build-command-probe
+            map: flat_8x8
+            seed: 1
+            duration_ticks: 3
+            setup:
+              players:
+                - { id: 0, gold: 1000, mana: 0 }
+              rooms:
+                - { type: Treasury, at: [1, 1], player: 0 }
+            commands:
+              - at_tick: 1
+                player: 0
+                build: { type: Treasury, tiles: [[3, 3], [4, 3]] }
+            """);
+
+        try
+        {
+            ScenarioResult result = new ScenarioRunner(SyntheticDatabase(), null).Run(Scenario.Load(path));
+
+            Assert.Contains(result.Events, e => e.Kind == "built" && e.Detail.Contains("tiles=2", StringComparison.Ordinal));
+            Assert.DoesNotContain(result.Unsupported,
+                u => u.Contains("names nothing this build can do", StringComparison.Ordinal));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private static string WriteScenario(string yaml)
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"dk2-scenario-{Guid.NewGuid():N}.yaml");
+        File.WriteAllText(path, yaml);
+        return path;
     }
 
     [Fact]
@@ -296,10 +390,37 @@ public class ScenarioTests
             Terrain(1, "Impenetrable Rock", TerrainFlags.Solid | TerrainFlags.Impenetrable, 0),
             Terrain(2, "Rock", TerrainFlags.Solid | TerrainFlags.Taggable, 165),
             Terrain(3, "Dirt Path", TerrainFlags.Ownable, 100),
+            Terrain(4, "Treasury",
+                TerrainFlags.Ownable | TerrainFlags.Room | TerrainFlags.Attackable, 10000),
         ],
-        rooms: [],
+        rooms: [SyntheticTreasury()],
         creatures: [Worker("Imp", 1)],
         variables: Variables());
+
+    /// <summary>
+    /// A stand-in treasury. It carries the real room id, because
+    /// <see cref="DK2.Simulation.GoldStore"/> keys gold capacity on the room
+    /// type; everything else about it is invented like the terrain above.
+    /// </summary>
+    private static RoomDef SyntheticTreasury() => new()
+    {
+        Name = "Treasury",
+        RoomId = (byte)RoomTypeId.Treasury,
+        Flags = RoomFlags.PlaceableOnLand | RoomFlags.Buildable,
+        Cost = 200,
+        ReturnPercentage = 100,
+        TerrainId = 4,
+        Construction = TileConstruction.Normal,
+        CreatedCreatureId = 0,
+        ObjectIds = [],
+        HealthGain = 0,
+        CeilingHeight = new Fp32(0),
+        RecommendedSizeX = 1,
+        RecommendedSizeY = 1,
+        OrderInEditor = 0,
+        NameStringId = 0,
+        TooltipStringId = 0,
+    };
 
     private static GlobalVariables Variables()
     {
@@ -312,6 +433,11 @@ public class ScenarioTests
         {
             vars.Misc[id] = new MiscVariable(id, 1, 0, 0);
         }
+
+        vars.Misc[VariableTypeId.MaxGoldPerTreasuryTile] =
+            new MiscVariable(VariableTypeId.MaxGoldPerTreasuryTile, 3000, 0, 0);
+        vars.Misc[VariableTypeId.MaxGoldPerDungeonHeartTile] =
+            new MiscVariable(VariableTypeId.MaxGoldPerDungeonHeartTile, 1000, 0, 0);
 
         return vars;
     }

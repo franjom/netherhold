@@ -25,7 +25,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 3;
+    private const int FormatVersion = 4;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -53,6 +53,7 @@ public static class WorldSnapshot
             w.Write(t.OwnerPlayerId);
             w.Write(t.Flags);
             w.Write(t.Health);
+            w.Write(t.GoldHeld);
             w.Write(t.TaggedBy);
         }
 
@@ -61,7 +62,6 @@ public static class WorldSnapshot
         {
             ref PlayerState p = ref world.PlayerAtIndex(i);
             w.Write(p.PlayerId);
-            w.Write(p.Gold);
             w.Write(p.Mana);
         }
 
@@ -147,6 +147,7 @@ public static class WorldSnapshot
                 OwnerPlayerId = r.ReadByte(),
                 Flags = r.ReadByte(),
                 Health = r.ReadInt32(),
+                GoldHeld = r.ReadInt32(),
                 TaggedBy = r.ReadUInt16(),
             };
         }
@@ -158,7 +159,6 @@ public static class WorldSnapshot
             players[i] = new PlayerState
             {
                 PlayerId = r.ReadByte(),
-                Gold = r.ReadInt32(),
                 Mana = r.ReadInt32(),
             };
         }

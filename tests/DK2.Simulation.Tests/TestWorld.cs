@@ -109,24 +109,27 @@ internal sealed class ChaosSystem : ISimulationSystem
         tile.Health -= context.Rng.NextInt(1, 10);
         if (tile.Health < 0) tile.Health = 0;
 
-        // Move gold between two random players.
+        // Move mana between two random players. Mana rather than gold because gold
+        // is not a player-level number - it lives on tiles (GoldStore) - and a
+        // chaos system that wrote one would be writing to a field the game does
+        // not have.
         int from = context.Rng.NextInt(world.PlayerCount);
         int to = context.Rng.NextInt(world.PlayerCount);
         int amount = context.Rng.NextInt(1, 25);
-        world.PlayerAtIndex(from).Gold -= amount;
-        world.PlayerAtIndex(to).Gold += amount;
+        world.PlayerAtIndex(from).Mana -= amount;
+        world.PlayerAtIndex(to).Mana += amount;
 
         // Commands are applied verbatim so input differences show up in state.
         foreach (PlayerCommand command in context.Input.All)
-            if (command is AddGoldCommand gold && world.HasPlayer(gold.PlayerId))
-                world.Player(gold.PlayerId).Gold += gold.Amount;
+            if (command is AddManaCommand mana && world.HasPlayer(mana.PlayerId))
+                world.Player(mana.PlayerId).Mana += mana.Amount;
 
         context.Emit(Name, "tile-damaged", $"index={index} health={tile.Health}");
     }
 }
 
 /// <summary>Test-only command, to exercise the input path of the gate.</summary>
-internal sealed record AddGoldCommand(byte PlayerId, int Amount) : PlayerCommand(PlayerId)
+internal sealed record AddManaCommand(byte PlayerId, int Amount) : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
     {

@@ -25,10 +25,29 @@ public sealed class GameDatabase
         Rooms = rooms.ToDictionary(r => r.RoomId);
         Creatures = creatures.ToDictionary(c => c.CreatureId);
         Variables = variables;
+
+        // Lowest room id wins a shared terrain id. In the shipped data no two
+        // rooms share one — RoomsOnRealDataTests asserts that — so the tie-break
+        // never fires; it exists so a data set which broke the assumption would
+        // still load deterministically rather than throwing at startup.
+        RoomsByTerrain = Rooms.Values
+            .GroupBy(r => r.TerrainId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(r => r.RoomId).First());
     }
 
     public IReadOnlyDictionary<byte, TerrainDef> Terrain { get; }
     public IReadOnlyDictionary<byte, RoomDef> Rooms { get; }
+
+    /// <summary>
+    /// The room each room-terrain type belongs to.
+    ///
+    /// Rooms own their terrain in the data — the ROOMS record names a terrain id
+    /// and the TERRAIN record flags that type <c>Room</c> — so this is the
+    /// reverse of a link the files already draw, not an invention. It is what
+    /// lets a rule ask "is the tile I am standing on a treasury?" without
+    /// naming terrain id 10.
+    /// </summary>
+    public IReadOnlyDictionary<byte, RoomDef> RoomsByTerrain { get; }
     public IReadOnlyDictionary<byte, CreatureDef> Creatures { get; }
     public GlobalVariables Variables { get; }
 
@@ -44,6 +63,10 @@ public sealed class GameDatabase
         : throw new KeyNotFoundException($"No ROOMS definition with id {id}.");
 
     public RoomDef Room(RoomTypeId id) => RoomById((byte)id);
+
+    /// <summary>The room a room-terrain tile belongs to, or null if that terrain is not a room.</summary>
+    public RoomDef? RoomByTerrain(byte terrainId) =>
+        RoomsByTerrain.TryGetValue(terrainId, out RoomDef? r) ? r : null;
 
     public CreatureDef CreatureById(byte id) => Creatures.TryGetValue(id, out CreatureDef? c)
         ? c

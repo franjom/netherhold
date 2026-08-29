@@ -397,18 +397,24 @@ public class TileWorkTests
     [Fact]
     public void MiningReleasesGoldButCreditsNobody()
     {
-        // There is no carrier and no treasury yet. Reporting the amount and
-        // dropping it is honest; crediting the player would be an invented
-        // economy. See docs/research/tile-work.md.
+        // There is a treasury now, but still no carrier: nothing walks the gold
+        // from the seam to the room. Reporting the amount and dropping it is
+        // honest; crediting the player would be an invented economy. See
+        // docs/research/tile-work.md and rooms-and-gold.md (Q31).
         GameSimulation sim = Dk2TerrainFixture.Simulation();
         var events = new ListEventSink();
         sim.ObserveWith(events);
+
+        // Player 1's room at the top-left, turned into somewhere gold could go.
+        ref TileState treasury = ref sim.World.Tile(1, 1);
+        RoomRules.Place(Dk2TerrainFixture.Database(), ref treasury,
+            Dk2TerrainFixture.Database().Room(RoomTypeId.Treasury), 1);
 
         sim.World.QueueWork(5, 5, TileWorkKind.MineGold, 1);
         sim.Tick();
 
         Assert.Contains(events.Events, e => e.Kind == "gold_released");
-        Assert.Equal(0, sim.World.Player(1).Gold);
+        Assert.Equal(0, GoldStore.Total(sim.World, 1));
     }
 
     // ---- determinism, with real systems registered ------------------------

@@ -54,7 +54,7 @@ public class DeterminismTests
         GameSimulation a = TestWorld.Simulation();
         GameSimulation b = TestWorld.Simulation();
 
-        a.Tick(InputFrame.Of(new AddGoldCommand(1, 100)));
+        a.Tick(InputFrame.Of(new AddManaCommand(1, 100)));
         b.Tick(InputFrame.Empty);
 
         Assert.NotEqual(a.StateHash(), b.StateHash());
@@ -103,7 +103,7 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        Assert.Equal(0x0D5820465E1DB983UL, sim.StateHash());
+        Assert.Equal(0xC50AC0FA7D67623AUL, sim.StateHash());
     }
 
     [Fact]
@@ -120,6 +120,6 @@ public class DeterminismTests
     }
 
     private static InputFrame InputAt(int tick) => tick % 7 == 0
-        ? InputFrame.Of(new AddGoldCommand((byte)(tick % 3), tick))
+        ? InputFrame.Of(new AddManaCommand((byte)(tick % 3), tick))
         : InputFrame.Empty;
 }

@@ -8,17 +8,20 @@ Update this whenever a session ends or context is compacted.
 
 ## Current state (2026-08-29)
 
-**M3 tile mechanics and the first worker: complete. M3 as a whole: partial.**
-M2 and the five record types M1 needed are done. 163 tests green with and
-without a DK2 install, clean tree.
+**M3 tile mechanics, the first worker, and rooms + the treasury: complete.
+M3 as a whole: partial.** M2 and the five record types M1 needed are done.
+198 tests green with and without a DK2 install, clean tree.
 
 Three honest caveats:
-- M3's definition of done also asks for a treasury, gold reaching a player, and
-  a Unity view. None of those exist. **A worker only does work the keeper
-  marked** — claiming, reinforcing, carrying gold and fleeing are real imp jobs
-  that are not implemented because their trigger and priority order are UNKNOWN
-  (Q24). **And nothing generates imps**: scenario files and tests place them.
-  Every scenario run that places a worker says both of those out loud.
+- M3's definition of done also asks for gold reaching a player and a Unity view.
+  Neither exists. There is a treasury now, but **nothing carries mined gold to
+  it** (Q31), and **a worker only does work the keeper marked** — claiming,
+  reinforcing, carrying gold and fleeing are real imp jobs that are not
+  implemented because their trigger and priority order are UNKNOWN (Q24).
+  **Nothing generates imps** either: scenario files and tests place them. Every
+  scenario run that places a worker says all of that out loud. And **a room does
+  nothing**: a treasury and a dungeon heart hold gold because a variable says
+  how much per tile; every other room is inert terrain its owner holds.
 - M1's stated definition of done was "all 18 record types round-trip". Five are
   parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP) plus the WAD and KWD
   containers. The rest (THINGS, TRIGGERS, PLAYERS, OBJECTS, SHOTS, …) are needed
@@ -53,14 +56,17 @@ What the simulation can do:
 | Dig markers, first real command | `TileTagSystem` + `TagTilesCommand` | per player; cleared only when the tile can no longer carry one |
 | Workers that find, walk to and do marked work | `ImpTaskSystem` + `CreatureMovementSystem` | imps dig a corridor on a synthetic map and on a shipped campaign level |
 | Grid search behind an interface | `DK2.Pathfinding.GridPathfinder` | shortest, wall-respecting, reproducible; reused buffers proven inert |
+| Rooms: where one may go, what it costs | `RoomRules` + `BuildRoomCommand` | placement flags partition the shipped rooms; ground rules run on a campaign level |
+| Gold, stored in tiles rather than on players | `GoldStore` | per-tile limits honoured; a first treasury is paid for out of the dungeon heart |
 
 Extracted data artifacts (the specification the simulation is written against):
 `docs/research/game-database-dump.md`, `creature-table-dump.md`,
 `terrain-room-dump.md`. The last of these now carries the terrain table's
-`maxHealth` column and full flag set (`dk2tools kwd terrain` / `kwd terrainflags`),
+`maxHealth` column and full flag set, and the room table's full flag set
+(`dk2tools kwd terrain` / `kwd terrainflags` / `kwd rooms` / `kwd roomflags`),
 which is what M3's rules are built on.
 
-**Next: the rest of M3 — a treasury, gold that goes somewhere, rooms.**
+**Next: the rest of M3 — gold that reaches a keeper, and the Unity view.**
 
 How this milestone stands against the twelve long-term goals in `AGENTS.md`, and
 which of them have deadlines attached: `docs/GOAL_ALIGNMENT.md`. Re-run that
@@ -102,6 +108,13 @@ to miss.
 | `src/DK2.Simulation/Systems/SimulationSystems.cs` | **The one** declaration of system order (ADR-0013). |
 | `src/DK2.Simulation/WorldPathGrid.cs` | What "walkable" means, for one particular creature. |
 | `src/DK2.Pathfinding/IPathfinder.cs`, `GridPathfinder.cs` | The Q5 placeholder, and its interface. |
+| `src/DK2.Simulation/RoomRules.cs` | Where a room may go, what it costs, what it does to the tile. |
+| `src/DK2.Simulation/GoldStore.cs` | **The only** way gold moves. Gold is in tiles, not on players (ADR-0015). |
+| `src/DK2.Simulation/Commands/RoomCommands.cs` | `BuildRoomCommand` — the second real player command. |
+| `src/DK2.Simulation/Systems/RoomBuildSystem.cs` | Applies it: a tile at a time, every refusal counted by reason. |
+| `tests/DK2.Behavior.Tests/RoomsOnRealDataTests.cs` | The room fixture's drift guard, plus the flag-partition claim. |
+| `scenarios/rooms/` | A keeper builds a treasury and cannot afford the last tile of it. |
+| `docs/research/rooms-and-gold.md` | Rooms and the gold model: evidence, what falls out, what is absent. |
 | `tests/DK2.Simulation.Tests/Dk2TerrainFixture.cs` | DK2's real numbers, transcribed so the rules test in CI. |
 | `tests/DK2.Behavior.Tests/TileWorkOnRealDataTests.cs` | The same rules against the real install — keeps the fixture from drifting. |
 | `tests/DK2.Behavior.Tests/ImpsOnRealDataTests.cs` | Same, for the Imp record, plus imps digging a real level. |
@@ -126,33 +139,46 @@ Harness output lands in `build/scenario-runs/<id>/` (gitignored).
 
 ## Immediate next steps (rest of M3)
 
-The tile rules, the first real command, the timing constant, real scenarios and
-the first worker are done. What is left is the resource loop and the view.
+The tile rules, the first worker, rooms and the treasury are done. What is left
+is the half of the gold loop that needs a carrier, and the view.
 
-1. **Treasury and gold** — the first resource loop, and the natural next imp
-   job. `TileWorkResult` already reports gold released and deliberately credits
-   nobody; give it a carrier and a destination. `MaxGoldPerTreasuryTile=3000`,
-   `MaxGoldPileOutsideTreasury=2000` and `MaxGoldPerDungeonHeartTile=1000` are
-   extracted and waiting. **This is also where Q24 has to be faced**: an imp
-   carrying gold is the first job it starts by itself, so it forces a rule for
-   when an imp abandons digging to carry, which is the thing `ImpTaskSystem`
-   currently refuses to invent.
-2. **Rooms** — `setup.rooms` is parsed by the harness and reported as
-   unapplied. `RoomDef` carries cost, size, construction type and terrain id.
-   Rooms are also what a treasury needs to exist in, so 1 and 2 are entangled.
-3. **Claiming as an imp job** — `Claim` already works as a rule and is exercised
+1. **Mana from claimed tiles** — the cheapest real thing left, and it needs
+   nobody's permission. `ManaGain`/`MaxManaGain` are on every terrain (Claimed
+   Path 1, Claimed Vault 100) and nothing reads them; `MaximumManaThreshold`,
+   `MaximumManaGainPerSecond` and `ExcessManaDecreaseRatePerSecond` are all
+   extracted. Mana is already a player-level pool (`PlayerState.Mana`), so
+   unlike gold it needs no new state. It is also the precondition for the Create
+   Imp spell, which is the precondition for anything generating workers.
+2. **Unity presentation** — the simulation runs a dig scenario with moving
+   workers and a keeper building a room, headlessly, which was the precondition.
+   `CreatureState.PosX/PosY` are fixed point in tile units; a renderer converts,
+   the simulation never does. **`docs/GOAL_ALIGNMENT.md` gap 3 applies here and
+   is the expensive one to miss: the asset abstraction layer must land in the
+   same milestone as the first Unity view, not after it.**
+3. **Gold reaching a keeper (Q31)** — the remaining half of M3's definition of
+   done, and the one that is blocked on research rather than on typing. The
+   treasury and the spill rule exist; what is missing is the carrier. Three
+   things have to be settled first, and none can be guessed: does the mining imp
+   take the gold it freed or does it land on the floor as a pile (a pile is an
+   OBJECT, so that branch needs M6); what decides when an imp stops mining and
+   delivers (the Imp's `maxGoldHeld` is 1400 against ~1363 an application from a
+   seam and 25 from a gem face — recorded in `rooms-and-gold.md`); and which
+   treasury tile it fills (Q35). **This is also where Q24 has to be faced.**
+4. **Claiming as an imp job** — `Claim` already works as a rule and is exercised
    by scenario-injected work. Making an imp start one unprompted is a Q24
    decision, not a coding one; do the research before the code.
-4. **Mana from claimed tiles** — `ManaGain`/`MaxManaGain` are on every terrain
-   (Claimed Path 1, Claimed Vault 100) and nothing reads them yet.
-5. **Unity presentation** — the simulation now runs a dig scenario with moving
-   workers headlessly, which was the precondition. `CreatureState.PosX/PosY` are
-   fixed point in tile units; a renderer converts, the simulation never does.
+5. **What rooms actually do** — a lair, a hatchery, a library and the rest are
+   inert terrain. Each needs its own research note; none can be guessed from the
+   ROOMS record, which carries art, size and cost and nothing about behaviour.
 
 **Before touching worker behaviour, read `docs/research/imp-tasks.md`
 §"What is not implemented, and is not guessed at".** The missing jobs are
 missing on purpose, and adding one means answering Q24 rather than picking an
 order that looks right.
+
+**And before adding to `RoomRules`, read `docs/research/rooms-and-gold.md`
+§"What is not implemented, and is not guessed at".** Same discipline: rooms have
+no size rules, no selling and no behaviour on purpose.
 
 **And `docs/research/tile-work.md` §"What does not fit" still stands.** Q20
 (DigRockHealth destroys a rock tile in one application) is now visible in every
@@ -188,6 +214,11 @@ it by changing the number.
 - System order is declared once, in `SimulationSystems.Default()` (ADR-0013).
 - Workers do marked work only, on purpose (ADR-0014). Adding a job means
   answering Q24, not writing code.
+- **Gold lives in tiles; a player has no gold counter** (ADR-0015). DK2 has no
+  player-gold variable — it has four per-place limits. `GoldStore` is the only
+  way gold moves.
+- Where a room may go is read from the room's own placeable-on flags, so nothing
+  in the rules knows what a bridge is (ADR-0016).
 - Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Resolved by
   `DK2.Data.Dk2Install`. **`DK2_DIR` is authoritative when set** — if it is set
   and invalid, no fallback is tried, which is how CI runs with no install.
@@ -285,10 +316,13 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 30 (one answered). The ones that
+`docs/research/open-questions.md` holds all 36 (one answered). The ones that
 gate progress:
 
-- **Q24 — worker job priority.** New, and now the one blocking the rest of M3.
+- **Q31 — where mined gold goes.** The other half of M3's gold loop. Needs the
+  OBJECTS record for the gold-pile branch (M6) and measurement against the
+  original for the threshold. See the "Immediate next steps" entry.
+- **Q24 — worker job priority.** Still the one blocking the rest of M3.
   An imp digs what is marked, but also claims, reinforces, carries gold and
   flees; the order it prefers them in and what makes it start an unprompted one
   are UNKNOWN. This is *not* Q2 — worker jobs are not in the creature job tables

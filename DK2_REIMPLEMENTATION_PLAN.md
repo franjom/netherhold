@@ -735,7 +735,7 @@ is very expensive to retrofit.
 | **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
 
 **Status (2026-08-29).** M2 is done: the loop, the state hash, save/load and the
-scenario harness all exist and are covered by passing tests (163 now), run with
+scenario harness all exist and are covered by passing tests (198 now), run with
 and without a DK2 install. The CI workflow is written and its steps verified
 locally on Windows; it has not yet been exercised on GitHub-hosted Linux, which
 is the run that turns the pinned hash into a genuine cross-platform claim.
@@ -756,8 +756,23 @@ priority order is UNKNOWN (Q24); and its routing is ours rather than DK2's
 (Q5) — an admitted four-connected placeholder behind an interface. Evidence:
 `docs/research/imp-tasks.md`.
 
-What M3's definition of done still asks for and does not have: a treasury, gold
-reaching a player, and the Unity view.
+Rooms and the treasury came next, and turned up the milestone's most structural
+finding: **DK2 has no player gold counter.** The balance table sets four limits
+on gold and every one of them is per place — treasury tile, dungeon-heart tile,
+floor pile, creature's hands. So gold was moved onto tiles and `PlayerState.Gold`
+was removed (ADR-0015), and three behaviours stopped being special cases: a
+keeper with no treasury cannot keep gold, destroying a treasury takes the gold
+with it, and a keeper's first treasury is necessarily paid for out of the
+dungeon heart. Where a room may go is read from the room record's own
+placeable-on flags, so nothing in the rules knows what a bridge is (ADR-0016).
+Evidence: `docs/research/rooms-and-gold.md`.
+
+What M3's definition of done still asks for and does not have: **gold reaching a
+player** — there is a treasury now, but nothing carries mined gold to it, and
+what would decide when an imp stops mining and delivers is UNKNOWN (Q31) — and
+**the Unity view**. Rooms exist as owned terrain that costs gold; what a room
+*does* is a per-room research question that has not been started, and only the
+treasury and the heart do anything at all.
 
 M1 is marked partial deliberately. Its definition of done says "all 18 record
 types round-trip"; five are parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP)

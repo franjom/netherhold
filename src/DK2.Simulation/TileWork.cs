@@ -72,11 +72,19 @@ public enum TileWorkOutcome
 /// exist yet, so the amount is reported and dropped. See
 /// docs/research/tile-work.md.
 /// </param>
+/// <param name="GoldSpilled">
+/// Gold that was stored on the tile and is no longer, because the tile stopped
+/// being somewhere gold can be kept. <b>Also credited to nobody.</b> In DK2 a
+/// destroyed treasury scatters its contents across the floor as gold piles;
+/// piles are objects and objects are not parsed until M6, so the amount is
+/// reported and dropped rather than quietly retained (Q31).
+/// </param>
 /// <param name="NewTerrainId">The tile's terrain type after the application.</param>
 public readonly record struct TileWorkResult(
     TileWorkOutcome Outcome,
     int HealthDelta,
     int GoldReleased,
+    int GoldSpilled,
     byte NewTerrainId)
 {
     public bool Changed => Outcome is TileWorkOutcome.Progressed
@@ -271,7 +279,7 @@ public static class TileWorkRules
         byte playerId)
     {
         if (!Applies(database, tile, kind, playerId))
-            return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, tile.TerrainId);
+            return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
         int delta = database[Variable(kind)];
@@ -286,30 +294,32 @@ public static class TileWorkRules
             {
                 return new TileWorkResult(
                     applied == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed,
-                    applied, gold, tile.TerrainId);
+                    applied, gold, 0, tile.TerrainId);
             }
 
-            Convert(database, ref tile, terrain.DestroyedTypeTerrainId, playerId, takeOwnership: false);
-            return new TileWorkResult(TileWorkOutcome.Destroyed, applied, gold, tile.TerrainId);
+            int spilled = Convert(
+                database, ref tile, terrain.DestroyedTypeTerrainId, playerId, takeOwnership: false);
+            return new TileWorkResult(TileWorkOutcome.Destroyed, applied, gold, spilled, tile.TerrainId);
         }
 
         int room = terrain.MaxHealth - tile.Health;
         if (room <= 0 && !CompletesUpward(kind))
-            return new TileWorkResult(TileWorkOutcome.NoChange, 0, 0, tile.TerrainId);
+            return new TileWorkResult(TileWorkOutcome.NoChange, 0, 0, 0, tile.TerrainId);
 
         int upward = Math.Min(delta, Math.Max(room, 0));
         tile.Health += upward;
 
         if (tile.Health < terrain.MaxHealth)
-            return new TileWorkResult(TileWorkOutcome.Progressed, upward, 0, tile.TerrainId);
+            return new TileWorkResult(TileWorkOutcome.Progressed, upward, 0, 0, tile.TerrainId);
 
         if (!CompletesUpward(kind))
             return new TileWorkResult(
                 upward == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed,
-                upward, 0, tile.TerrainId);
+                upward, 0, 0, tile.TerrainId);
 
-        Convert(database, ref tile, terrain.MaxHealthTypeTerrainId, playerId, takeOwnership: true);
-        return new TileWorkResult(TileWorkOutcome.Transformed, upward, 0, tile.TerrainId);
+        int lost = Convert(
+            database, ref tile, terrain.MaxHealthTypeTerrainId, playerId, takeOwnership: true);
+        return new TileWorkResult(TileWorkOutcome.Transformed, upward, 0, lost, tile.TerrainId);
     }
 
     /// <summary>
@@ -361,8 +371,16 @@ public static class TileWorkRules
     /// solid rock, and which id means "nobody" is UNKNOWN (Q17). Leaving the
     /// byte alone lets whatever the level file says is neutral propagate through
     /// a dug-out tile on its own, instead of us inventing a neutral id.
+    ///
+    /// Gold stored on the tile leaves with the tile if the new terrain cannot
+    /// keep any — a treasury beaten down to claimed floor does not carry on
+    /// holding three thousand gold in a tile with no capacity for it. The amount
+    /// is returned so the caller can report it; the alternative, leaving the
+    /// number in place, would make <see cref="GoldStore.Total"/> count gold that
+    /// nothing can reach.
     /// </summary>
-    private static void Convert(
+    /// <returns>Gold that was on the tile and could not stay.</returns>
+    private static int Convert(
         GameDatabase database,
         ref TileState tile,
         byte newTerrainId,
@@ -376,5 +394,9 @@ public static class TileWorkRules
         if (!next.IsTaggable) tile.TaggedBy = 0;
 
         if (takeOwnership && next.IsOwnable) tile.OwnerPlayerId = playerId;
+
+        int spilled = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));
+        tile.GoldHeld -= spilled;
+        return spilled;
     }
 }

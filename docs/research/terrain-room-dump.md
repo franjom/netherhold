@@ -134,6 +134,42 @@ read structurally rather than by terrain id (`dk2tools kwd terrainflags`):
 -- 26 room types
 ```
 
+### Full room flags
+
+Which ground a room may sit on, and whether a player may build it at all, are
+read from these rather than from the room's identity — see
+docs/research/rooms-and-gold.md and ADR-0016 (`dk2tools kwd roomflags`):
+
+```
+  1 Treasury                         0x0000128C  PlaceableOnLand, HasWalls, Buildable, Attackable, HasFlame
+  2 Lair                             0x0000128C  PlaceableOnLand, HasWalls, Buildable, Attackable, HasFlame
+  3 Portal                           0x00001004  PlaceableOnLand, HasFlame
+  4 Hatchery                         0x0000128C  PlaceableOnLand, HasWalls, Buildable, Attackable, HasFlame
+  5 Dungeon Heart                    0x00000204  PlaceableOnLand, Attackable
+  6 Library                          0x000011AC  PlaceableOnLand, HasWalls, SpecialTiles, Buildable, SpecialWalls, HasFlame
+  7 Training Room                    0x000013AC  PlaceableOnLand, HasWalls, SpecialTiles, Buildable, SpecialWalls, Attackable, HasFlame
+  8 Wooden Bridge                    0x00001083  PlaceableOnWater, PlaceableOnLava, Buildable, HasFlame
+  9 Guard Room                       0x000010A4  PlaceableOnLand, SpecialTiles, Buildable, HasFlame
+ 10 Work Shop                        0x000013AC  PlaceableOnLand, HasWalls, SpecialTiles, Buildable, SpecialWalls, Attackable, HasFlame
+ 11 Prison                           0x000013AC  PlaceableOnLand, HasWalls, SpecialTiles, Buildable, SpecialWalls, Attackable, HasFlame
+ 12 Torture Chamber                  0x000013AC  PlaceableOnLand, HasWalls, SpecialTiles, Buildable, SpecialWalls, Attackable, HasFlame
+ 13 Temple                           0x0000108C  PlaceableOnLand, HasWalls, Buildable, HasFlame
+ 14 Graveyard                        0x000010AC  PlaceableOnLand, HasWalls, SpecialTiles, Buildable, HasFlame
+ 15 Casino                           0x000013AC  PlaceableOnLand, HasWalls, SpecialTiles, Buildable, SpecialWalls, Attackable, HasFlame
+ 16 Combat Pit                       0x000012AC  PlaceableOnLand, HasWalls, SpecialTiles, Buildable, Attackable, HasFlame
+ 17 Stone Bridge                     0x00001083  PlaceableOnWater, PlaceableOnLava, Buildable, HasFlame
+ 18 Hero Gate [ Final ]              0x00000E4C  PlaceableOnLand, HasWalls, NormalTiles, Attackable, Unk10, Unk11
+ 19 Hero Gate [ Tile ] [<not used>]  0x00002E4C  PlaceableOnLand, HasWalls, NormalTiles, Attackable, Unk10, Unk11, IsGood
+ 20 Hero Gate [ 2x2 ]                0x00000244  PlaceableOnLand, NormalTiles, Attackable
+ 21 Hero Gate [ FrontEnd ]           0x00000204  PlaceableOnLand, Attackable
+ 22 Hero Stone Bridge                0x00002003  PlaceableOnWater, PlaceableOnLava, IsGood
+ 23 Hero Gate [ 3x1 ]                0x00000244  PlaceableOnLand, NormalTiles, Attackable
+ 24 Mercenary Gate [<not used>]      0x00000244  PlaceableOnLand, NormalTiles, Attackable
+ 25 Hero Portal                      0x00001004  PlaceableOnLand, HasFlame
+ 26 Crypt                            0x0000102C  PlaceableOnLand, HasWalls, SpecialTiles, HasFlame
+-- 26 room types
+```
+
 ## Sample level grids
 
 ```

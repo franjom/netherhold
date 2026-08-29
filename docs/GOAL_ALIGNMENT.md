@@ -29,7 +29,7 @@ discipline that refuses to invent — and roughly **one vertebra of actual game*
 
 Concretely: a determinism-gated headless simulation core; a reader for five of
 DK2's eighteen record types; and one vertical slice of gameplay (terrain work,
-plus a worker that does it). 163 tests, ~2,200 lines of research documentation.
+plus a worker that does it). 198 tests, ~2,500 lines of research documentation.
 No Unity project exists; `DK2.AI` and `DK2.Assets` are empty shells.
 
 Against the plan's own milestones: M2 done, M1 and M3 partial, M4–M11 untouched.
@@ -106,3 +106,30 @@ is worth doing before the shape of the loop hardens.
 | Date | Commit | Milestone | One-line summary |
 |---|---|---|---|
 | 2026-08-29 | `e5260d8` | M3 partial | Spine built (determinism, data-in, headless, evidence discipline); one gameplay slice. Goal 5 found to depend on goal 6 via Q1. Asset-layer deadline recorded. |
+| 2026-08-29 | (rooms) | M3 partial | Rooms, the treasury and the gold model. Goal 5 gained its clearest win so far: the data contradicted an assumption the code already held, and the code changed. Goals 1, 8 and 10 move slightly; nothing else does. |
+
+### Note on the rooms/gold review
+
+Not a full re-run — the table above stands. One thing is worth recording because
+it is the pattern goal 5 exists to produce, and it had not happened before:
+
+**A schema assumption was refuted by the data and the code changed to match.**
+`PlayerState.Gold` was written in M2 on the natural assumption that gold is a
+player-level resource. Extracting the balance table for the treasury showed DK2
+has no such variable — it has four limits and every one is per place — so gold
+moved onto tiles and the field was removed (ADR-0015). Three behaviours the
+original has then fell out for free instead of needing rules.
+
+That is the goal-5 method working on something structural rather than on a
+constant, which is the case the confidence tags were always going to be least
+help with. Worth remembering the shape of it: the tell was not a wrong number,
+it was **a missing variable**. When the data has no variable for a thing the
+design assumes exists, the design is probably wrong.
+
+Two smaller movements: goal 8 (modding) is better served than before, because
+the room rules read placement from flags rather than from room identity — a
+mod-authored room needs no code. Goal 10 (bot interface) gained its second
+command type, which was the missing half of "commands are the only input".
+
+Gap 3 (the asset-layer deadline) is unchanged and is now the next thing that
+could go wrong, because the Unity view is the next item on the handoff list.

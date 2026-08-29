@@ -32,13 +32,16 @@ duration_ticks: 600              # required, positive
 setup:
   players:
     - { id: 1, gold: 20000, mana: 1000 }
-  rooms:                         # parsed, not applied yet
-    - { type: Lair, at: [4, 4], size: [3, 3] }
+  rooms:                         # laid down before tick 0 — see below
+    - { type: Treasury, at: [4, 4], size: [3, 3], player: 1 }
   creatures:                     # placed before tick 0 — see below
     - { type: Imp, at: [6, 6], player: 1 }
 commands:                        # real player input, scheduled by tick
   - { at_tick: 0, player: 1, tag: [[5, 5], [6, 5]] }
   - { at_tick: 4, player: 1, untag: [[6, 5]] }
+  - at_tick: 6                   # builds and pays, through the ground rules
+    player: 1
+    build: { type: Lair, tiles: [[7, 7], [8, 7]] }
 work:                            # harness-injected tile work — see below
   - { at_tick: 8, player: 1, kind: Dig, at: [5, 5] }
   - { at_tick: 12, until_tick: 25, player: 1, kind: Reinforce, at: [5, 4], repeat: 1 }
@@ -54,6 +57,34 @@ opening at the centre, which is what an experiment with workers needs, since a
 worker has to stand somewhere. All three are testing conveniences and **none** is
 a DK2 map layout. `map: campaign:level1` loads a shipped map and therefore needs
 a Dungeon Keeper 2 installation (`DK2_DIR`).
+
+### `setup.players[].gold`
+
+A keeper's gold is not a counter: it is stored in treasury and dungeon-heart
+tiles and nowhere else (ADR-0015). Starting gold is *deposited*, so a player with
+no room to keep it in gets a report line saying how much had nowhere to go rather
+than a silent number. Give the player a `Treasury` or a `Dungeon Heart` in
+`setup.rooms` first. Mana is a player-level pool and needs no room.
+
+### `setup.rooms`
+
+Lays room terrain down before tick 0, owned by `player` (default 0). `size` is
+`[w, h]` and defaults to one tile; tiles the room cannot sit on are skipped and
+counted in the report.
+
+**This is the level author placing a room, not a keeper building one.** Nothing
+is charged, no imp constructs it, and the only rule applied is the room's own
+placeable-on flags. Use a `build` command to exercise the ground rules and the
+treasury. And note what a room still is not: a treasury holds gold and a heart
+holds gold, because a variable says how much per tile — every other room is inert
+terrain that somebody owns.
+
+### `commands[].build`
+
+A real player command: it goes through the input frame, the ground rules
+(`RoomRules`) and the treasury (`GoldStore`), exactly as the tag command does.
+Tiles are charged in the order they are listed, so a keeper who can afford four
+of six gets the first four and a `built` event naming the reason for the rest.
 
 ### `setup.creatures`
 
@@ -104,8 +135,9 @@ neighbours.
 
 Tile mechanics run for real: `scenarios/tiles/` digs, claims, reinforces and
 mines against DK2's own numbers. `scenarios/imps/` puts workers on the map and
-lets them find the work themselves. See `docs/research/tile-work.md` and
-`docs/research/imp-tasks.md`.
+lets them find the work themselves. `scenarios/rooms/` builds a room and pays for
+it out of a dungeon heart. See `docs/research/tile-work.md`,
+`docs/research/imp-tasks.md` and `docs/research/rooms-and-gold.md`.
 
 What a run still cannot tell you:
 
@@ -118,5 +150,10 @@ What a run still cannot tell you:
   uniform cost. Travel times follow from that choice.
 - **How long anything takes.** The health deltas carry no unit (Q19), and the
   tick rate is unmeasured (Q1). Tick numbers in a report are ordering, not time.
-- **Anything about rooms, spells or the economy.** Gold released by mining is
-  reported and dropped — there is no treasury to put it in.
+- **What a room does.** A treasury and a dungeon heart hold gold. Every other
+  room is terrain its owner holds and nothing more; rooms have no size or shape
+  rules (Q36), cannot be sold (Q34), and are built instantly because building
+  over time is another worker job with the same unknown trigger.
+- **Where mined gold goes.** Still reported and dropped: there is a treasury to
+  put it in now, but nothing carries it there (Q31).
+- **Anything about spells, needs, moods or combat.**
