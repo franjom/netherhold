@@ -55,13 +55,65 @@ public class ScenarioTests
     }
 
     [Fact]
-    public void Run_ReportsThatNoSystemsAreRegisteredYet()
+    public void Run_ReportsThatInjectedWorkHasNoWorkerAndNoKnownRate()
     {
-        // The honesty check. Until real mechanics land, every run must say so;
-        // a report that looks complete would corrupt the regression corpus.
-        ScenarioResult result = new ScenarioRunner(SyntheticDatabase(), null).Run(LoadFlatScenario());
+        // The honesty check, in its M3 form. Tile mechanics now run for real,
+        // but nothing decides who does the work or how fast, and the queue is
+        // filled by the scenario file rather than by a creature. A report that
+        // looked complete would corrupt the regression corpus.
+        string path = Path.Combine(Path.GetTempPath(), $"dk2-scenario-{Guid.NewGuid():N}.yaml");
+        File.WriteAllText(path, """
+            id: injected-work-probe
+            map: flat_8x8
+            seed: 1
+            duration_ticks: 3
+            work:
+              - { at_tick: 0, player: 1, kind: Claim, at: [3, 3] }
+            """);
 
-        Assert.Contains(result.Unsupported, u => u.Contains("no simulation systems", StringComparison.Ordinal));
+        try
+        {
+            ScenarioResult result = new ScenarioRunner(SyntheticDatabase(), null).Run(Scenario.Load(path));
+
+            Assert.Contains(result.Unsupported,
+                u => u.Contains("injected by the harness", StringComparison.Ordinal));
+            Assert.Contains(result.Unsupported,
+                u => u.Contains("rate of work is UNKNOWN", StringComparison.Ordinal));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Run_ReportsWorkItCannotPlace()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"dk2-scenario-{Guid.NewGuid():N}.yaml");
+        File.WriteAllText(path, """
+            id: bad-work-probe
+            map: flat_8x8
+            seed: 1
+            duration_ticks: 3
+            work:
+              - { at_tick: 0, player: 1, kind: Yodel, at: [3, 3] }
+              - { at_tick: 0, player: 1, kind: Dig, at: [99, 99] }
+            commands:
+              - { at_tick: 99, player: 1, tag: [[1, 1]] }
+            """);
+
+        try
+        {
+            ScenarioResult result = new ScenarioRunner(SyntheticDatabase(), null).Run(Scenario.Load(path));
+
+            Assert.Contains(result.Unsupported, u => u.Contains("'Yodel'", StringComparison.Ordinal));
+            Assert.Contains(result.Unsupported, u => u.Contains("[99,99]", StringComparison.Ordinal));
+            Assert.Contains(result.Unsupported, u => u.Contains("at_tick=99", StringComparison.Ordinal));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]

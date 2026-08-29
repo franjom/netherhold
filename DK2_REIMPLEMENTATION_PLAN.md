@@ -724,7 +724,7 @@ is very expensive to retrofit.
 | **M0** | Research baseline | This document; repo skeleton; DK2 v1.70 installed; Flame + OpenKeeper building locally | 1–2 wk |
 | **M1** ◐ | Formats readable | `DK2.Tools extract` dumps WAD contents; KWD parses to `GameDatabase`; all 18 record types round-trip; unit tests over the shipped campaign maps | 3–5 wk |
 | **M2** ✅ | Deterministic skeleton | `GameSimulation.Tick()` exists; `StateHash()` stable; save/load round-trips; CI determinism gate green; headless harness runs a scenario file | 3–4 wk |
-| **M3** | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold. Unity view renders it with placeholder art | 8–12 wk |
+| **M3** ◐ | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold. Unity view renders it with placeholder art | 8–12 wk |
 | **M4** | First creature loop | Portal spawn; lair claim; hunger→hatchery; sleep; training; payday; job selection with logged reasons | 8–12 wk |
 | **M5** | First oracle comparison | Memory-reading oracle probe working against DK2 under Flame; 20+ scenarios captured from both sides; first divergence report | 4–6 wk |
 | **M6** | Real level loads | A stock campaign level loads, terrain and things place correctly, triggers/objectives fire, level is winnable | 6–10 wk |
@@ -735,10 +735,20 @@ is very expensive to retrofit.
 | **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
 
 **Status (2026-08-29).** M2 is done: the loop, the state hash, save/load and the
-scenario harness all exist and are covered by 88 passing tests, run with and
-without a DK2 install. The CI workflow is written and its steps verified
+scenario harness all exist and are covered by passing tests (127 now), run with
+and without a DK2 install. The CI workflow is written and its steps verified
 locally on Windows; it has not yet been exercised on GitHub-hosted Linux, which
 is the run that turns the pinned hash into a genuine cross-platform claim.
+
+M3 has started and is marked partial. Its terrain half is done: dig, mine,
+claim, reinforce, repair, attack and fill-in are implemented as one uniform
+data-driven rule, along with dig markers and the first real player command, and
+they are exercised against the real game's data. What its definition of done
+still asks for and does not have: an imp doing tasks, a treasury, gold reaching
+a player, and the Unity view. Nothing decides *who* works — that needs job
+selection (Q2) and pathfinding (Q5) — so the work queue is filled by tests and
+by scenario files, and every run that does so reports it. Evidence and the three
+anomalies the data throws up: `docs/research/tile-work.md`.
 
 M1 is marked partial deliberately. Its definition of done says "all 18 record
 types round-trip"; five are parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP)

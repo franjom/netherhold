@@ -1,0 +1,39 @@
+# The first scenario that exercises a real mechanic rather than the plumbing.
+#
+# Player 1 marks three rock tiles, then work is applied to them: dig each one
+# out, then claim the floor that appears. The interesting output is the event
+# log - which tiles converted, into what, and on which tick.
+#
+# What this run does NOT establish, and the report repeats it: nothing here
+# decided that an imp would do this work, that it could reach the tile, or how
+# long any of it takes. The work is injected by the harness because no creature
+# exists yet, and the tick numbers are not seconds (Q19/Q1).
+id: tiles-dig-and-claim-001
+question: >
+  Does the data-driven tile rule reproduce DK2's dig-then-claim cycle - rock
+  becoming dirt path on destruction, and dirt path becoming claimed path owned
+  by the claiming player?
+map: rock_20x16
+seed: 7
+duration_ticks: 40
+setup:
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 2, gold: 0, mana: 0 }
+commands:
+  # Marking is a real player command through a real input frame.
+  - { at_tick: 0, player: 1, tag: [[5, 5], [6, 5], [7, 5]] }
+  # Player 1 changes their mind about the third tile.
+  - { at_tick: 2, player: 1, untag: [[7, 5]] }
+work:
+  # DigRockHealth is -5000 against Rock's 165 health, so one application each.
+  - { at_tick: 4, player: 1, kind: Dig, at: [5, 5] }
+  - { at_tick: 4, player: 1, kind: Dig, at: [6, 5] }
+  # ClaimTileHealth is 825 against Dirt Path's 1/660, so one application each.
+  - { at_tick: 8, player: 1, kind: Claim, at: [5, 5] }
+  - { at_tick: 8, player: 2, kind: Claim, at: [6, 5] }
+  # Reinforcing takes ten applications: 165 -> 660 at 50 a time.
+  - { at_tick: 12, until_tick: 25, player: 1, kind: Reinforce, at: [5, 4] }
+observe:
+  - state_hash
+  - events

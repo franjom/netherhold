@@ -1,0 +1,37 @@
+# Gold economics at the rock face, on a real campaign map so the seams are
+# DK2's own rather than something we placed. The coordinates below were surveyed
+# out of Level10Map.kld with `dk2tools kwd map maps/Level10Map.kld 6` (and 7 for
+# gems); they are not guesses.
+#
+# Two things this is looking at:
+#   1. a gold seam is finite - 3000 gold over 660 health at -300 an application,
+#      so three applications exhaust it and it collapses to dirt path;
+#   2. a gem face is not - it is impenetrable and its destroyed type is itself,
+#      so it collapses and immediately reappears at full health, yielding
+#      GoldMinedFromGems (25) each cycle. That is why gems are endless but slow.
+#
+# The gold released is reported and then dropped. There is no imp to carry it
+# and no treasury to carry it to, so crediting a player would be an invented
+# economy rather than a reproduced one.
+#
+# Needs a Dungeon Keeper 2 installation (DK2_DIR); the harness reports the
+# missing install rather than pretending to run.
+id: tiles-mine-gold-001
+question: >
+  Does mining release gold in proportion to the rock removed for a finite seam,
+  and at the flat gems rate for an inexhaustible gem face?
+map: campaign:Level10
+seed: 11
+duration_ticks: 12
+setup:
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+work:
+  # A gold seam. Three applications take it from 660 to nothing.
+  - { at_tick: 0, until_tick: 5, player: 1, kind: MineGold, at: [22, 4] }
+  # A gem face. Ten applications, ten collapses, ten times 25 gold, and the
+  # tile is still gems at the end.
+  - { at_tick: 0, until_tick: 9, player: 1, kind: MineGold, at: [8, 75] }
+observe:
+  - state_hash
+  - events

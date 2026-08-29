@@ -4,52 +4,102 @@ Extracted from the reference install on 2026-08-29.
 Layout and validation: docs/research/kwd-terrain-rooms.md
 
 ## Terrain types (Terrain.kwd)
-
 ```
- id name                      health  gold  mana  dmg ->maxHp  ->dead  flags
-  1 Impenetrable Rock              1     0     0    0       1       1  solid,impenetrable
-  2 Rock                         165     0     0    0       9       3  solid,taggable
-  3 Dirt Path                      1     0     0    0       8       3  
-  4 Water                          1     0     0  100       4       4  impenetrable,water
-  5 Lava                           1     0     0  100       5       5  impenetrable,lava
-  6 Gold                         660  3000     0    0       6       3  solid,taggable
-  7 Gems                         100  3000     0    0       7       7  solid,impenetrable,taggable
-  8 Claimed Path                 660     0     1    0       2       3  ownable
-  9 Reinforced Wall              900     0     1    0       9       2  solid,ownable,taggable
- 10 Treasury                   10000     0     0    0      10       8  ownable,room
- 11 Lair                       10000     0     0    0      11       8  ownable,room
- 12 Portal                     10000     0     0    0      12       8  ownable,room
- 13 Hatchery                   10000     0     0    0      13       8  ownable,room
- 14 Dungeon Heart              10000     0     0    0      14       8  ownable,room
- 15 Library                    10000     0     0    0      15       8  ownable,room
- 16 Training Room              10000     0     0    0      16       8  ownable,room
- 17 Wooden Bridge               2000     0     0    0      17       8  ownable,room
- 18 Guard Room                 10000     0     0    0      18       8  ownable,room
- 19 Work Shop                  10000     0     0    0      19       8  ownable,room
- 20 Prison                     10000     0     0    0      20       8  ownable,room
- 21 Torture Chamber            10000     0     0    0      21       8  ownable,room
- 22 Temple                     10000     0     0    0      22       8  ownable,room
- 23 Graveyard                  10000     0     0    0      23       8  ownable,room
- 24 Casino                     10000     0     0    0      24       8  ownable,room
- 25 Combat Pit                 10000     0     0    0      25       8  ownable,room
- 26 Stone Bridge                2000     0     0    0      26       8  ownable,room
- 27 Fog Of War                     1     0     0    0      27      27  solid,impenetrable,taggable
- 28 Hero Gate [ Final ]          100     0     0    0      28       8  ownable,room
- 29 Hero Gate [ Tile ] [<not used>]     100     0     0    0      29       8  ownable,room
- 30 Edge of Map                    1     0     0    0      30      30  solid,impenetrable
- 31 Mana Vault                     1     0     0    0      32      31  
- 32 Claimed Vault               2000     0   100    0      32      31  ownable
- 33 Hero Gate [ 2x2 ]            100     0     0    0      33       8  ownable,room
- 34 Hero Gate [ FrontEnd ]       144     0     0    0      34       8  ownable,room
- 35 Hero Lair                    660     0     0  -67      35      35  ownable
- 36 Hero Stone Bridge            208     0     0    0      36       8  ownable,room
- 37 Hero Gate [ 3x1 ]            100     0     0    0      37       8  ownable,room
- 38 Claim Scan                     1     0     0    0      38      38  solid,impenetrable,taggable
- 39 Mercenary Gate [<not used>]     100     0     0    0      39       8  ownable,room
- 40 Hero Portal                10000     0     0    0      40       8  ownable,room
- 41 Crypt                      10000     0     0    0      41       8  ownable,room
+ id name                      health   maxHp  gold  mana  dmg ->maxHp  ->dead  flags
+  1 Impenetrable Rock              1       1     0     0    0       1       1  solid,impenetrable
+  2 Rock                         165     660     0     0    0       9       3  solid,taggable
+  3 Dirt Path                      1     660     0     0    0       8       3  
+  4 Water                          1       1     0     0  100       4       4  impenetrable,water
+  5 Lava                           1       1     0     0  100       5       5  impenetrable,lava
+  6 Gold                         660     660  3000     0    0       6       3  solid,taggable
+  7 Gems                         100     100  3000     0    0       7       7  solid,impenetrable,taggable
+  8 Claimed Path                 660     660     0     1    0       2       3  ownable
+  9 Reinforced Wall              900     900     0     1    0       9       2  solid,ownable,taggable
+ 10 Treasury                   10000   10000     0     0    0      10       8  ownable,room
+ 11 Lair                       10000   10000     0     0    0      11       8  ownable,room
+ 12 Portal                     10000   10000     0     0    0      12       8  ownable,room
+ 13 Hatchery                   10000   10000     0     0    0      13       8  ownable,room
+ 14 Dungeon Heart              10000   10000     0     0    0      14       8  ownable,room
+ 15 Library                    10000   10000     0     0    0      15       8  ownable,room
+ 16 Training Room              10000   10000     0     0    0      16       8  ownable,room
+ 17 Wooden Bridge               2000    2000     0     0    0      17       8  ownable,room
+ 18 Guard Room                 10000   10000     0     0    0      18       8  ownable,room
+ 19 Work Shop                  10000   10000     0     0    0      19       8  ownable,room
+ 20 Prison                     10000   10000     0     0    0      20       8  ownable,room
+ 21 Torture Chamber            10000   10000     0     0    0      21       8  ownable,room
+ 22 Temple                     10000   10000     0     0    0      22       8  ownable,room
+ 23 Graveyard                  10000   10000     0     0    0      23       8  ownable,room
+ 24 Casino                     10000   10000     0     0    0      24       8  ownable,room
+ 25 Combat Pit                 10000   10000     0     0    0      25       8  ownable,room
+ 26 Stone Bridge                2000    2000     0     0    0      26       8  ownable,room
+ 27 Fog Of War                     1       1     0     0    0      27      27  solid,impenetrable,taggable
+ 28 Hero Gate [ Final ]          100     100     0     0    0      28       8  ownable,room
+ 29 Hero Gate [ Tile ] [<not used>]     100     100     0     0    0      29       8  ownable,room
+ 30 Edge of Map                    1       1     0     0    0      30      30  solid,impenetrable
+ 31 Mana Vault                     1    2000     0     0    0      32      31  
+ 32 Claimed Vault               2000    2000     0   100    0      32      31  ownable
+ 33 Hero Gate [ 2x2 ]            100     100     0     0    0      33       8  ownable,room
+ 34 Hero Gate [ FrontEnd ]       144     144     0     0    0      34       8  ownable,room
+ 35 Hero Lair                    660     660     0     0  -67      35      35  ownable
+ 36 Hero Stone Bridge            208     208     0     0    0      36       8  ownable,room
+ 37 Hero Gate [ 3x1 ]            100     100     0     0    0      37       8  ownable,room
+ 38 Claim Scan                     1       1     0     0    0      38      38  solid,impenetrable,taggable
+ 39 Mercenary Gate [<not used>]     100     100     0     0    0      39       8  ownable,room
+ 40 Hero Portal                10000   10000     0     0    0      40       8  ownable,room
+ 41 Crypt                      10000   10000     0     0    0      41       8  ownable,room
 -- 41 terrain types
 ```
+
+### Full terrain flags
+
+The flag column above is abridged. The complete set, which the M3 tile rules
+read structurally rather than by terrain id (`dk2tools kwd terrainflags`):
+
+```
+  1 Impenetrable Rock                0x11050043  Solid, Impenetrable, Torch, AllowRoomWalls, RandomTexture, RevealThroughFogOfWar, TerrainLight
+  2 Rock                             0x00840009  Solid, Taggable, RandomTexture, DwarfCanDigThrough
+  3 Dirt Path                        0x10008000  FillInable, TerrainLight
+  4 Water                            0x11101082  Impenetrable, Water, ConstructionTypeWater, TerrainColorGreen, RevealThroughFogOfWar, TerrainLight
+  5 Lava                             0x11081102  Impenetrable, Lava, ConstructionTypeWater, TerrainColorRed, RevealThroughFogOfWar, TerrainLight
+  6 Gold                             0x11840009  Solid, Taggable, RandomTexture, DwarfCanDigThrough, RevealThroughFogOfWar, TerrainLight
+  7 Gems                             0x1100000B  Solid, Impenetrable, Taggable, RevealThroughFogOfWar, TerrainLight
+  8 Claimed Path                     0x1000A424  Ownable, Attackable, PlayerColouredPath, ConstructionTypeQuad, FillInable, TerrainLight
+  9 Reinforced Wall                  0x1003286D  Solid, Ownable, Taggable, Attackable, Torch, PlayerColouredWall, ConstructionTypeQuad, AllowRoomWalls, Decay, TerrainLight
+ 10 Treasury                         0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 11 Lair                             0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 12 Portal                           0x20000034  Ownable, Room, Attackable, AmbientLight
+ 13 Hatchery                         0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 14 Dungeon Heart                    0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 15 Library                          0x10000034  Ownable, Room, Attackable, TerrainLight
+ 16 Training Room                    0x10000034  Ownable, Room, Attackable, TerrainLight
+ 17 Wooden Bridge                    0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 18 Guard Room                       0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 19 Work Shop                        0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 20 Prison                           0x10000034  Ownable, Room, Attackable, TerrainLight
+ 21 Torture Chamber                  0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 22 Temple                           0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 23 Graveyard                        0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 24 Casino                           0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 25 Combat Pit                       0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 26 Stone Bridge                     0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+ 27 Fog Of War                       0x0000000B  Solid, Impenetrable, Taggable
+ 28 Hero Gate [ Final ]              0x20000014  Ownable, Room, AmbientLight
+ 29 Hero Gate [ Tile ] [<not used>]  0x20000014  Ownable, Room, AmbientLight
+ 30 Edge of Map                      0x01050043  Solid, Impenetrable, Torch, AllowRoomWalls, RandomTexture, RevealThroughFogOfWar
+ 31 Mana Vault                       0x10008000  FillInable, TerrainLight
+ 32 Claimed Vault                    0x10008024  Ownable, Attackable, FillInable, TerrainLight
+ 33 Hero Gate [ 2x2 ]                0x00800014  Ownable, Room, DwarfCanDigThrough
+ 34 Hero Gate [ FrontEnd ]           0x00000034  Ownable, Room, Attackable
+ 35 Hero Lair                        0x0000A404  Ownable, PlayerColouredPath, ConstructionTypeQuad, FillInable
+ 36 Hero Stone Bridge                0x00000034  Ownable, Room, Attackable
+ 37 Hero Gate [ 3x1 ]                0x00000014  Ownable, Room
+ 38 Claim Scan                       0x1000000B  Solid, Impenetrable, Taggable, TerrainLight
+ 39 Mercenary Gate [<not used>]      0x00000014  Ownable, Room
+ 40 Hero Portal                      0x20000034  Ownable, Room, Attackable, AmbientLight
+ 41 Crypt                            0x30000034  Ownable, Room, Attackable, TerrainLight, AmbientLight
+-- 41 terrain types
+```
+
 
 ## Room types (Rooms.kwd)
 

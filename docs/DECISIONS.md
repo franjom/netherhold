@@ -89,3 +89,60 @@ The loader reports unrecognised keys instead of ignoring them, and the runner
 reports recognised-but-unapplied setup. A scenario that quietly does less than
 it claims would corrupt the corpus, which is the one artifact this project
 cannot afford to have lying to it.
+
+## ADR-0009 — Tile transitions are triggered by work, not by health level
+
+**Status:** accepted (2026-08-29, M3)
+
+**Context.** Each terrain type carries `maxHealthTypeTerrainId`, which reads
+naturally as "what this tile becomes at full health". It cannot mean that. Six
+terrain types ship at maximum health while pointing at a different type —
+Claimed Path is 660/660 and points at Rock — so a level-triggered rule would
+turn every claimed floor tile in every level into rock on the first tick.
+
+**Decision.** The conversion belongs to the work, not to the health level. Only
+claiming, reinforcing and filling in convert a tile on reaching maximum;
+repairing clamps and stops. Each of the three lands exactly where the data
+points, which also answers Q18: there is no second meaning for the field.
+
+**Consequences.** The rule stays uniform and data-driven, and no terrain is
+special-cased. `TileWorkRules.CompletesUpward` is the single place the decision
+lives. If Q18 is ever settled differently by disassembly, that one predicate is
+what changes.
+
+## ADR-0010 — Work orders are a queue on the world, filled by whoever is working
+
+**Status:** accepted (2026-08-29, M3)
+
+**Context.** Tile mechanics are ready before the creature that performs them.
+Job selection (Q2) and pathfinding (Q5) are the two largest open questions in
+the project and neither should block the mechanics they eventually drive.
+
+**Decision.** `WorldState` carries a FIFO `TileWorkOrder` queue. `TileWorkSystem`
+drains it every tick and applies the rules. Producing orders is somebody else's
+job: eventually a working creature, for now a test or the scenario harness.
+
+**Consequences.** The mechanics are testable and reviewable now, against real
+game data, without inventing a worker. The cost is that a scenario can inject
+work no creature would ever do, so the harness reports injected work as
+unanswered in every run that uses it, and `ScenarioTests` asserts that it does.
+The queue is a list, hashed and snapshotted like all other state: order is
+behaviour, so it is never sorted or deduplicated.
+
+## ADR-0011 — Ticks are related to seconds in exactly one place
+
+**Status:** accepted (2026-08-29, M3)
+
+**Context.** Q1 (DK2's tick rate) is unmeasured, and Q19 (what the health deltas
+are *per*) depends on it. M3 needs both and can answer neither.
+
+**Decision.** `SimulationTiming` holds every tick-to-second relationship,
+including a placeholder `TicksPerSecond`. No tick count that means a duration
+may be written anywhere else.
+
+**Consequences.** Answering Q1 is a one-line change. The placeholder does not
+affect the *order* of simulated events — per-second work is scheduled as one
+application every `TicksPerSecond` ticks — so the determinism gate and the
+pinned hash are independent of the guess. What it does affect is the mapping
+from ticks to wall-clock seconds, which is precisely the claim the project is
+not yet entitled to make.

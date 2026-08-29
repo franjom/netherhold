@@ -64,3 +64,33 @@ Full rationale: `docs/architecture/simulation-loop.md`.
 `DK2.Harness`. The runner reports every part of a scenario it could not honour
 — unknown keys, unapplied setup, observations nothing produces yet — so a run
 can never look more complete than it is. See `scenarios/README.md`.
+
+## Tile mechanics (M3)
+
+The first real gameplay. Digging, mining, claiming, reinforcing, repairing,
+attacking and filling in are one uniform, entirely data-driven rule in
+`DK2.Simulation.TileWorkRules`; the numbers come from the terrain table and the
+ten health-delta variables, and none of them appears in the code.
+
+- `TileWorkRules` is pure and static: no world, no RNG, no time. It answers
+  "does this kind of work apply to this tile" and "what does one application
+  do", and nothing else.
+- `TileWorkSystem` drains a FIFO queue of `TileWorkOrder`s on the world. Order
+  is behaviour, so the queue is never sorted or deduplicated.
+- `TileTagSystem` applies `TagTilesCommand` — the first real player command.
+  Markers are per player, one bit each, and are cleared when a tile converts.
+- The rules are written against terrain **flags**, never terrain ids. A rule
+  keyed on id 2 would be a rule about the reference install rather than DK2.
+
+Two things are deliberately absent. Nothing decides *who* works — that needs job
+selection (Q2) and pathfinding (Q5) — so the work queue is filled by tests and
+by the scenario harness, which says so in every report. And gold released by
+mining is reported and dropped rather than credited, because the imp that would
+carry it and the treasury it would carry it to do not exist yet.
+
+Timing is the open wound: the health deltas carry no unit (Q19, tied to Q1), so
+tick counts are not seconds. Everything that relates ticks to seconds lives in
+`SimulationTiming` and nowhere else.
+
+Evidence, confidence and the three anomalies the data throws up:
+`docs/research/tile-work.md`.

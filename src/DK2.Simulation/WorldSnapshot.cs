@@ -25,7 +25,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 1;
+    private const int FormatVersion = 2;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -53,6 +53,7 @@ public static class WorldSnapshot
             w.Write(t.OwnerPlayerId);
             w.Write(t.Flags);
             w.Write(t.Health);
+            w.Write(t.TaggedBy);
         }
 
         w.Write(world.PlayerCount);
@@ -62,6 +63,18 @@ public static class WorldSnapshot
             w.Write(p.PlayerId);
             w.Write(p.Gold);
             w.Write(p.Mana);
+        }
+
+        // Normally empty at a tick boundary — TileWorkSystem drains it every
+        // tick — but it is hashed state, so it is snapshotted state. Anything
+        // reachable from WorldState has to survive the round trip or the
+        // restore-and-continue invariant is a lie.
+        w.Write(world.PendingWork.Count);
+        foreach (TileWorkOrder o in world.PendingWork)
+        {
+            w.Write(o.TileIndex);
+            w.Write((int)o.Kind);
+            w.Write(o.PlayerId);
         }
     }
 
@@ -107,6 +120,7 @@ public static class WorldSnapshot
                 OwnerPlayerId = r.ReadByte(),
                 Flags = r.ReadByte(),
                 Health = r.ReadInt32(),
+                TaggedBy = r.ReadUInt16(),
             };
         }
 
@@ -124,6 +138,13 @@ public static class WorldSnapshot
 
         WorldState world = WorldState.FromParts(width, height, tiles, players);
         world.CurrentTick = tick;
+
+        int workCount = r.ReadInt32();
+        for (int i = 0; i < workCount; i++)
+        {
+            world.QueueWork(new TileWorkOrder(
+                r.ReadInt32(), (TileWorkKind)r.ReadInt32(), r.ReadByte()));
+        }
 
         return new GameSimulation(database, world, rng, systems);
     }

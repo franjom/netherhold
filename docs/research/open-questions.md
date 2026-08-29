@@ -32,5 +32,14 @@ may treat it as fact.
 |---|---|---|
 | Q16 | MAP tile bytes 3 (`flags`, bridge-related) and 4 — meaning? | UNKNOWN |
 | Q17 | MAP `playerId` numbering: which id is neutral? (level1: p1=32, p2=1048, p3=60) | UNKNOWN |
-| Q18 | `maxHealthTypeTerrainId` on Claimed Path points at Rock — does not fit the "upgrade at full health" reading. Second meaning for path tiles? | UNKNOWN |
-| Q19 | How often are the VARIABLES health deltas applied (per tick? per second?) — needed to turn dig/claim rates into real timings | UNKNOWN (tied to Q1) |
+| Q18 | `maxHealthTypeTerrainId` on Claimed Path points at Rock — does not fit the "upgrade at full health" reading. Second meaning for path tiles? | **ANSWERED** (2026-08-29) — no second meaning. The field is the destination of whichever *upward job* that terrain admits, and the conversion is triggered by the work rather than by the health level. Claimed Path's upward job is fill-in, whose result is rock. Evidence: the `FillInable` flag falls on exactly the five floor types, and six terrain types ship at full health pointing elsewhere, which refutes the level-triggered reading outright. See `tile-work.md` |
+| Q19 | How often are the VARIABLES health deltas applied (per tick? per second?) — needed to turn dig/claim rates into real timings | UNKNOWN (tied to Q1). Now load-bearing: the M3 tile mechanics ship behind `SimulationTiming.WorkApplicationPeriodTicks` |
+
+## Questions from the tile mechanics (2026-08-29)
+
+| # | Question | Status |
+|---|---|---|
+| Q20 | `DigRockHealth` is −5000 against Rock's 165 health, so one application destroys it — digging earth would be instantaneous, which it is not in the original. Every other work rate is sane under a per-second reading. Is an application much shorter than a second, does a worker apply only a fraction of the delta, or does `DigRockHealth` not apply to terrain 2 at all? | **UNKNOWN — blocking real dig timings.** Implemented faithfully to the data; see `tile-work.md` |
+| Q21 | Does a gold seam release its 3000 gold in proportion to the health removed, or in a lump when it collapses? | HYPOTHESIS (proportional) |
+| Q22 | `FillInHealth` is 5, but every fill-inable tile is already at maximum health, so one application converts it. Does fill-in restart the health accounting? | UNKNOWN |
+| Q23 | Is a dig marker per player or global? Assumed per player. | STRONGLY INFERRED |

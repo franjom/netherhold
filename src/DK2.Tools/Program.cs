@@ -54,8 +54,8 @@ switch (args[0])
         List<TerrainDef> terrains = KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(
             Path.Combine(Dk2Install.Require(), "Data", "editor", "Terrain.kwd")));
 
-        Console.WriteLine($"{"id",3} {"name",-24} {"health",7} {"gold",5} {"mana",5} {"dmg",4} " +
-                          $"{"->maxHp",7} {"->dead",7}  flags");
+        Console.WriteLine($"{"id",3} {"name",-24} {"health",7} {"maxHp",7} {"gold",5} {"mana",5} " +
+                          $"{"dmg",4} {"->maxHp",7} {"->dead",7}  flags");
         foreach (TerrainDef t in terrains.OrderBy(t => t.TerrainId))
         {
             string flags = string.Join(",", new[]
@@ -68,10 +68,22 @@ switch (args[0])
                 t.IsWater ? "water" : null,
                 t.IsLava ? "lava" : null,
             }.Where(s => s is not null));
-            Console.WriteLine($"{t.TerrainId,3} {t.Name,-24} {t.StartingHealth,7} {t.GoldValue,5} " +
-                              $"{t.ManaGain,5} {t.Damage,4} {t.MaxHealthTypeTerrainId,7} " +
-                              $"{t.DestroyedTypeTerrainId,7}  {flags}");
+            Console.WriteLine($"{t.TerrainId,3} {t.Name,-24} {t.StartingHealth,7} {t.MaxHealth,7} " +
+                              $"{t.GoldValue,5} {t.ManaGain,5} {t.Damage,4} " +
+                              $"{t.MaxHealthTypeTerrainId,7} {t.DestroyedTypeTerrainId,7}  {flags}");
         }
+        Console.WriteLine($"-- {terrains.Count} terrain types");
+        return 0;
+    }
+
+    case "kwd" when args.Length >= 2 && args[1] == "terrainflags":
+    {
+        List<TerrainDef> terrains = KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(
+            Path.Combine(Dk2Install.Require(), "Data", "editor", "Terrain.kwd")));
+
+        foreach (TerrainDef t in terrains.OrderBy(t => t.TerrainId))
+            Console.WriteLine($"{t.TerrainId,3} {t.Name,-32} 0x{(uint)t.Flags:X8}  {t.Flags}");
+
         Console.WriteLine($"-- {terrains.Count} terrain types");
         return 0;
     }
@@ -118,6 +130,21 @@ switch (args[0])
             Console.WriteLine($"  terrain {g.Key,3}: {g.Count(),6} tiles");
         var owners = grid.Tiles.GroupBy(t => t.PlayerId).OrderBy(g => g.Key);
         Console.WriteLine("owners: " + string.Join(", ", owners.Select(g => $"p{g.Key}={g.Count()}")));
+
+        // Optional: where a given terrain type actually is, so scenarios can
+        // name real coordinates instead of guessing at them.
+        if (args.Length >= 4 && byte.TryParse(args[3], out byte wanted))
+        {
+            var found = new List<string>();
+            for (int y = 0; y < grid.Height && found.Count < 24; y++)
+                for (int x = 0; x < grid.Width && found.Count < 24; x++)
+                    if (grid[x, y].TerrainId == wanted)
+                        found.Add($"({x},{y})");
+
+            Console.WriteLine($"terrain {wanted} at: {string.Join(" ", found)}"
+                              + (found.Count == 24 ? " ..." : ""));
+        }
+
         return 0;
     }
 

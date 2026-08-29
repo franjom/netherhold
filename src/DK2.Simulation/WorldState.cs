@@ -14,8 +14,8 @@ namespace DK2.Simulation;
 /// digging, claiming and reinforcing modify (CONFIRMED — see
 /// docs/research/kwd-terrain-rooms.md).</item>
 /// </list>
-/// Anything else a tile needs (room membership, tagged-for-digging, gold left
-/// in a seam) arrives with M3, when there is a mechanic that reads it.
+/// Anything else a tile needs (room membership, gold left in a seam) arrives
+/// with the mechanic that reads it, not before.
 /// </summary>
 public struct TileState
 {
@@ -28,12 +28,44 @@ public struct TileState
     /// <summary>Current tile health. Seeded from the terrain type's starting health.</summary>
     public int Health;
 
+    /// <summary>
+    /// Which players have this tile tagged for digging: bit <c>n</c> is set for
+    /// player id <c>n</c>.
+    ///
+    /// STRONGLY INFERRED that tagging is per player rather than global: DK2 is a
+    /// multiplayer game in which each keeper marks and sees their own dig
+    /// orders, and the terrain table carries a per-type <c>Taggable</c> flag
+    /// rather than a shared tag list. The bitmask is our representation, not a
+    /// claim about the original's storage.
+    /// </summary>
+    public ushort TaggedBy;
+
+    /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
+    public const int MaxTaggingPlayerId = 15;
+
+    public readonly bool IsTaggedBy(byte playerId) =>
+        playerId <= MaxTaggingPlayerId && (TaggedBy & (ushort)(1 << playerId)) != 0;
+
+    public readonly bool IsTaggedByAnyone => TaggedBy != 0;
+
+    public void SetTaggedBy(byte playerId, bool tagged)
+    {
+        if (playerId > MaxTaggingPlayerId)
+            throw new ArgumentOutOfRangeException(
+                nameof(playerId), playerId,
+                $"Tile tags only track player ids 0..{MaxTaggingPlayerId}.");
+
+        ushort bit = (ushort)(1 << playerId);
+        TaggedBy = tagged ? (ushort)(TaggedBy | bit) : (ushort)(TaggedBy & ~bit);
+    }
+
     public readonly void HashInto(ref Hash64 hash)
     {
         hash.Add(TerrainId);
         hash.Add(OwnerPlayerId);
         hash.Add(Flags);
         hash.Add(Health);
+        hash.Add(TaggedBy);
     }
 }
 
@@ -67,6 +99,7 @@ public sealed class WorldState
 {
     private readonly TileState[] _tiles;
     private readonly PlayerState[] _players; // kept sorted by PlayerId, for stable hashing
+    private readonly List<TileWorkOrder> _pendingWork = [];
 
     private WorldState(int width, int height, TileState[] tiles, PlayerState[] players)
     {
@@ -112,6 +145,37 @@ public sealed class WorldState
                 return ref _players[i];
         throw new KeyNotFoundException($"No player with id {playerId} in this world.");
     }
+
+    /// <summary>
+    /// Work applications waiting to be resolved by
+    /// <see cref="Systems.TileWorkSystem"/>, in the order they were queued.
+    ///
+    /// A list, not a set or a dictionary: order is behaviour. Two imps working
+    /// the same seam in a different order can end up carrying different amounts
+    /// of gold, so the queue is FIFO and never sorted or deduplicated.
+    ///
+    /// In DK2 the producer is a working creature. That creature does not exist
+    /// yet, so for now tests and the scenario harness queue work directly and
+    /// say so in their reports.
+    /// </summary>
+    public IReadOnlyList<TileWorkOrder> PendingWork => _pendingWork;
+
+    public void QueueWork(TileWorkOrder order)
+    {
+        if ((uint)order.TileIndex >= (uint)_tiles.Length)
+            throw new ArgumentOutOfRangeException(
+                nameof(order), order.TileIndex, "Work order references a tile outside the map.");
+        _pendingWork.Add(order);
+    }
+
+    public void QueueWork(int x, int y, TileWorkKind kind, byte playerId)
+    {
+        if (!Contains(x, y))
+            throw new ArgumentOutOfRangeException(nameof(x), $"({x},{y}) is outside the map.");
+        _pendingWork.Add(new TileWorkOrder((y * Width) + x, kind, playerId));
+    }
+
+    internal void ClearPendingWork() => _pendingWork.Clear();
 
     public bool HasPlayer(byte playerId)
     {
@@ -163,6 +227,7 @@ public sealed class WorldState
 
     internal TileState[] RawTiles => _tiles;
     internal PlayerState[] RawPlayers => _players;
+    internal List<TileWorkOrder> RawPendingWork => _pendingWork;
 
     public void HashInto(ref Hash64 hash)
     {
@@ -173,5 +238,7 @@ public sealed class WorldState
         foreach (TileState t in _tiles) t.HashInto(ref hash);
         hash.Add(_players.Length);
         foreach (PlayerState p in _players) p.HashInto(ref hash);
+        hash.Add(_pendingWork.Count);
+        foreach (TileWorkOrder o in _pendingWork) o.HashInto(ref hash);
     }
 }

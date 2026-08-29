@@ -20,11 +20,54 @@ public sealed class ScenarioSetup
 {
     public List<ScenarioPlayer> Players { get; set; } = [];
 
-    /// <summary>Not applied yet (rooms arrive with M3).</summary>
+    /// <summary>Not applied yet (rooms arrive later in M3).</summary>
     public List<Dictionary<string, object>> Rooms { get; set; } = [];
 
     /// <summary>Not applied yet (creatures arrive with M4).</summary>
     public List<Dictionary<string, object>> Creatures { get; set; } = [];
+}
+
+/// <summary>
+/// A player command scheduled for one tick. Real input: it goes through the
+/// same <see cref="DK2.Simulation.InputFrame"/> the game would use.
+/// </summary>
+public sealed class ScenarioCommand
+{
+    public int AtTick { get; set; }
+    public byte Player { get; set; }
+
+    /// <summary>Tiles to mark for digging, as <c>[[x, y], …]</c>.</summary>
+    public List<List<int>> Tag { get; set; } = [];
+
+    /// <summary>Tiles to unmark, as <c>[[x, y], …]</c>.</summary>
+    public List<List<int>> Untag { get; set; } = [];
+}
+
+/// <summary>
+/// A work application injected straight onto the world's queue at a given tick.
+///
+/// <b>This is a harness affordance, not a player command and not DK2.</b> In the
+/// original a working imp produces these; no creature exists yet, so a scenario
+/// that wants to watch a tile get dug has to stand in for one. Every run that
+/// uses this says so under "Not answered by this run", because a dig timed by a
+/// scenario file tells you nothing about how long DK2 takes to dig.
+/// </summary>
+public sealed class ScenarioWork
+{
+    public int AtTick { get; set; }
+    public byte Player { get; set; }
+
+    /// <summary>A <see cref="DK2.Simulation.TileWorkKind"/> name.</summary>
+    public string Kind { get; set; } = "";
+
+    /// <summary>Target tile, as <c>[x, y]</c>.</summary>
+    public List<int> At { get; set; } = [];
+
+    /// <summary>How many applications to queue on that tick. Defaults to one.</summary>
+    public int Repeat { get; set; } = 1;
+
+    /// <summary>Repeat the same injection every tick until this one, inclusive.</summary>
+    public int UntilTick { get; set; } = -1;
 }
 
 /// <summary>
@@ -56,6 +99,12 @@ public sealed class Scenario
 
     public ScenarioSetup Setup { get; set; } = new();
 
+    /// <summary>Player commands, scheduled by tick.</summary>
+    public List<ScenarioCommand> Commands { get; set; } = [];
+
+    /// <summary>Harness-injected tile work, standing in for a creature that does not exist yet.</summary>
+    public List<ScenarioWork> Work { get; set; } = [];
+
     /// <summary>What the run should record. Unrecognised entries are reported.</summary>
     public List<string> Observe { get; set; } = [];
 
@@ -67,7 +116,7 @@ public sealed class Scenario
     public string SourcePath { get; private set; } = "";
 
     private static readonly string[] KnownKeys =
-        ["id", "question", "map", "seed", "duration_ticks", "setup", "observe"];
+        ["id", "question", "map", "seed", "duration_ticks", "setup", "commands", "work", "observe"];
 
     public static Scenario Load(string path)
     {
