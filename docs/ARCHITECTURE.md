@@ -35,3 +35,32 @@ DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding
 
 Unity project lives under `unity/`, consumes the netstandard2.1 assemblies,
 renders `SimulationEvent`s and submits `InputFrame`s. It owns no game state.
+
+## Determinism (M2)
+
+The load-bearing contract: **same database + same initial world + same seed +
+same input frames produce the same `GameSimulation.StateHash()` at every tick,
+on any machine.** Enforced by `DK2.Simulation.Tests.DeterminismTests` and by the
+CI gate, which runs it on Linux and Windows.
+
+- `Tick(in InputFrame)` is the only way time moves; systems run in explicit
+  registration order.
+- The RNG's position is part of the state hash — two runs that look identical
+  but have consumed different draws are about to diverge.
+- `Hash64` is FNV-1a. `GetHashCode` is forbidden in the hash path (.NET
+  randomises string hashing per process).
+- One pinned hash literal guards cross-machine stability. Changing simulation
+  state deliberately means bumping `GameSimulation.HashVersion` and updating the
+  literal in the same commit.
+- Events are write-only: attaching a recorder must not change behaviour.
+- `WorldSnapshot` round-trips are verified by continuing both runs for hundreds
+  of ticks, not by comparing bytes.
+
+Full rationale: `docs/architecture/simulation-loop.md`.
+
+## Scenarios (M2)
+
+`scenarios/**.yaml` are declarative experiments, run headlessly by
+`DK2.Harness`. The runner reports every part of a scenario it could not honour
+— unknown keys, unapplied setup, observations nothing produces yet — so a run
+can never look more complete than it is. See `scenarios/README.md`.

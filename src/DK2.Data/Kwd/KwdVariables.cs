@@ -3,42 +3,18 @@ using DK2.Data.Model;
 
 namespace DK2.Data.Kwd;
 
-/// <summary>Creature availability pool entry (variable id 1).</summary>
-public sealed record CreaturePoolEntry(int CreatureId, int Value, int PlayerId);
-
-/// <summary>Room/creature/trap/door/spell availability entry (variable id 2).</summary>
-public sealed record AvailabilityEntry(ushort Kind, ushort PlayerId, int TypeId, int Value);
-
-/// <summary>Temple sacrifice recipe (variable id 43).</summary>
-public sealed record SacrificeEntry(
-    byte Type1, byte Id1, byte Type2, byte Id2, byte Type3, byte Id3,
-    byte RewardType, byte SpeechId, int RewardValue);
-
-/// <summary>Per-creature, per-level stat override (variable ids 65 / 224).</summary>
-public sealed record CreatureStatEntry(int StatId, int Value, int Level, bool FirstPerson);
-
-/// <summary>Plain global rule value — the vast majority of VARIABLES records.</summary>
-public sealed record MiscVariable(VariableTypeId Id, int Value, int Unk1, int Unk2);
-
 /// <summary>
-/// Parsed contents of VARIABLES(230) chunks — DK2's global game-rule table.
+/// Decodes VARIABLES(230) chunks into a <see cref="GlobalVariables"/> table.
+///
 /// Record layout: 16 bytes each — u32 variable id + a 12-byte payload whose
 /// shape depends on the id (CONFIRMED: 621 records * 16 bytes == contentSize
 /// of the reference GlobalVariables.kwd; docs/research/kwd-variables.md).
 /// </summary>
-public sealed class KwdVariables
+public static class KwdVariables
 {
-    public List<CreaturePoolEntry> CreaturePool { get; } = [];
-    public List<AvailabilityEntry> Availabilities { get; } = [];
-    public List<SacrificeEntry> Sacrifices { get; } = [];
-    public List<CreatureStatEntry> CreatureStats { get; } = [];
-    public Dictionary<VariableTypeId, MiscVariable> Misc { get; } = [];
-
-    public int this[VariableTypeId id] => Misc[id].Value;
-
-    public static KwdVariables Parse(IEnumerable<KwdChunk> chunks)
+    public static GlobalVariables Parse(IEnumerable<KwdChunk> chunks)
     {
-        var result = new KwdVariables();
+        var result = new GlobalVariables();
         foreach (KwdChunk chunk in chunks)
         {
             if (chunk.Type != KwdRecordType.Variables) continue;

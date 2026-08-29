@@ -8,13 +8,7 @@ namespace DK2.Data.Tests;
 /// </summary>
 public class KwdSmokeTests
 {
-    private static string? FindInstall()
-    {
-        string? env = Environment.GetEnvironmentVariable("DK2_DIR");
-        if (env is not null && File.Exists(Path.Combine(env, "DKII.EXE"))) return env;
-        const string fallback = @"E:\GogGames\Dungeon Keeper 2";
-        return File.Exists(Path.Combine(fallback, "DKII.EXE")) ? fallback : null;
-    }
+    private static string? FindInstall() => Dk2Install.Find();
 
     public static bool InstallPresent => FindInstall() is not null;
 

@@ -1,7 +1,7 @@
+using DK2.Data;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
 using DK2.Data.Wad;
-using DK2.Tools;
 
 // DK2.Tools — command-line utilities for inspecting original game data.
 
@@ -103,7 +103,7 @@ switch (args[0])
     case "kwd" when args.Length >= 3 && args[1] == "map":
     {
         List<KwdChunk> mapChunks = KwdReader.ReadFile(ResolveEditor(args[2]));
-        MapGrid? grid = MapGrid.Parse(mapChunks);
+        LevelMap? grid = MapGrid.Parse(mapChunks);
         if (grid is null)
         {
             Console.Error.WriteLine("no MAP chunk in that file");
@@ -187,7 +187,7 @@ switch (args[0])
         string path = args.Length > 2
             ? ResolveEditor(args[2])
             : Path.Combine(Dk2Install.Require(), "Data", "editor", "GlobalVariables.kwd");
-        KwdVariables vars = KwdVariables.Parse(KwdReader.ReadFile(path));
+        GlobalVariables vars = KwdVariables.Parse(KwdReader.ReadFile(path));
 
         Console.WriteLine($"# Misc variables ({vars.Misc.Count})");
         foreach (MiscVariable v in vars.Misc.Values.OrderBy(v => (int)v.Id))

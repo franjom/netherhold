@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # Authoritative and deliberately invalid: CI has no Dungeon Keeper 2
+  # installation, and no test may quietly depend on one. Tests that need the
+  # original game skip themselves when this resolves to nothing.
+  DK2_DIR: /nonexistent
+
+jobs:
+  build:
+    name: build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both platforms on purpose. The determinism gate pins an exact state
+        # hash, so running it on Linux and Windows is what turns "deterministic
+        # in this process" into "deterministic across machines".
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore DK2.slnx
+
+      - name: Build
+        # Directory.Build.props sets TreatWarningsAsErrors, so this is also the
+        # style gate.
+        run: dotnet build DK2.slnx --no-restore --configuration Release
+
+      - name: Architecture gate (simulation must not reference Unity)
+        run: >
+          dotnet test tests/DK2.Simulation.Tests/DK2.Simulation.Tests.csproj
+          --no-build --configuration Release
+          --filter "FullyQualifiedName~ArchitectureTests"
+
+      - name: Determinism gate
+        # The project's load-bearing check: same seed and inputs must produce
+        # the same state hash at every tick, on every machine. If this fails,
+        # nothing downstream that claims behavioural fidelity means anything.
+        run: >
+          dotnet test tests/DK2.Simulation.Tests/DK2.Simulation.Tests.csproj
+          --no-build --configuration Release
+          --filter "FullyQualifiedName~DeterminismTests|FullyQualifiedName~SnapshotTests"
+
+      - name: Test
+        run: dotnet test DK2.slnx --no-build --configuration Release

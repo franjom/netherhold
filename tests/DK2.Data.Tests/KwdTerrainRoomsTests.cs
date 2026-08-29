@@ -7,8 +7,7 @@ public class KwdTerrainRoomsTests
 {
     private static string? EditorDir()
     {
-        string? env = Environment.GetEnvironmentVariable("DK2_DIR");
-        string dir = env ?? @"E:\GogGames\Dungeon Keeper 2";
+        string dir = Dk2Install.Find() ?? "";
         string editor = Path.Combine(dir, "Data", "editor");
         return Directory.Exists(editor) ? editor : null;
     }
@@ -161,8 +160,7 @@ public class KwdTerrainRoomsTests
         List<RoomDef>? rooms = Rooms();
         if (rooms is null) return;
 
-        string? env = Environment.GetEnvironmentVariable("DK2_DIR");
-        string dir = env ?? @"E:\GogGames\Dungeon Keeper 2";
+        string dir = Dk2Install.Find() ?? "";
         List<CreatureDef> creatures = KwdCreatures.Parse(
             KwdReader.ReadFile(Path.Combine(dir, "Data", "editor", "Creatures.kwd")));
 
@@ -210,7 +208,7 @@ public class KwdTerrainRoomsTests
         foreach (string file in Directory.GetFiles(Path.Combine(editor, "maps"), "*.kld")
                                          .Where(f => f.EndsWith("Map.kld", StringComparison.OrdinalIgnoreCase)))
         {
-            MapGrid? grid = MapGrid.Parse(KwdReader.ReadFile(file));
+            LevelMap? grid = MapGrid.Parse(KwdReader.ReadFile(file));
             if (grid is null) continue;
             gridsFound++;
 

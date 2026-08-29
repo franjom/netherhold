@@ -13,4 +13,8 @@
     <ProjectReference Include="../DK2.AI/DK2.AI.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
+  </ItemGroup>
+
 </Project>

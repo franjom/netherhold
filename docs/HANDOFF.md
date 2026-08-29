@@ -8,10 +8,20 @@ Update this whenever a session ends or context is compacted.
 
 ## Current state (2026-08-29)
 
-**Phase 1 / milestone M1 data foundation: complete.** 7 commits, 44 tests green,
-clean tree. Latest: `3cb6d41`.
+**M2 deterministic skeleton: complete. M1 data foundation: complete for the
+five record types the simulation needs.** 88 tests green with and without a DK2
+install, clean tree.
 
-What can be read from the original game today:
+Two honest caveats:
+- M1's stated definition of done was "all 18 record types round-trip". Five are
+  parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP) plus the WAD and KWD
+  containers. The rest (THINGS, TRIGGERS, PLAYERS, OBJECTS, SHOTS, …) are needed
+  at M6 and scheduled there.
+- The CI workflow is written and every step verified locally on Windows, but it
+  has never run on GitHub. The Linux leg is what turns the pinned state hash
+  into a real cross-platform claim; until it runs, that claim is untested.
+
+What can be read from the original game:
 
 | Capability | Entry point | Validation |
 |---|---|---|
@@ -20,36 +30,50 @@ What can be read from the original game today:
 | Global balance table (197 vars) | `DK2.Data.Kwd.KwdVariables` | values spot-checked vs. community docs |
 | 46 creature definitions | `DK2.Data.Kwd.KwdCreatures` | ids match Flame; happy-job % sum to 100 |
 | 41 terrain + 26 room types | `DK2.Data.Kwd.KwdTerrainRooms` | cross-parser: room→terrain, room→creature |
-| Level tile grids | `DK2.Data.Kwd.MapGrid` | every tile of every campaign map |
+| Level tile grids | `DK2.Data.Kwd.MapGrid` → `LevelMap` | every tile of every campaign map |
+| **All of the above, as one object** | `DK2.Data.GameDatabaseLoader` → `GameDatabase` | loads the real install; every room's terrain resolves |
+
+What the simulation can do:
+
+| Capability | Entry point | Validation |
+|---|---|---|
+| Fixed-tick loop | `DK2.Simulation.GameSimulation.Tick()` | tick advances exactly one |
+| Deterministic state hash | `GameSimulation.StateHash()` | identical over 1000 ticks; diverges on seed/input change; one pinned literal |
+| Save/load | `DK2.Simulation.WorldSnapshot` | restored run continues identically for 500 ticks |
+| World from real map data | `WorldState.FromMap` | every campaign level builds; tile health from `TerrainDef` |
+| Headless scenarios | `DK2.Harness` + `scenarios/**.yaml` | runs on a real campaign map; reproducible hash series |
+| CI gate | `.github/workflows/ci.yml` | Linux + Windows, no DK2 install |
 
 Extracted data artifacts (the specification the simulation is written against):
 `docs/research/game-database-dump.md`, `creature-table-dump.md`,
 `terrain-room-dump.md`.
 
-**Next milestone: M2 — deterministic simulation skeleton.** Nothing started.
+**Next milestone: M3 — dungeon prototype.** Nothing started.
 
 ---
 
-## Immediate next steps (M2)
+## Immediate next steps (M3)
 
-The first code that is genuinely ours rather than a reading of DK2's data.
+The first real mechanics. Everything they need is already extracted — this is
+implementation against a known specification, not research.
 
-1. **`GameDatabase`** in `DK2.Data.Model` — load all parsed records into one
-   immutable object, built from a DK2 install path. This is the seam between
-   the data layer (done) and the simulation layer (not started).
-2. **`GameSimulation`** in `DK2.Simulation` — `Tick()` advancing one `GameTick`,
-   holding `WorldState` + `SimRandom`. No gameplay yet; just the loop and state.
-3. **`StateHash()`** — structural hash of all simulation state.
-4. **CI determinism gate** — same seed + same inputs ⇒ identical hash at every
-   tick. Must be green before any gameplay logic lands, or fidelity work later
-   is meaningless. Also add the `DK2.Simulation` → no-Unity check to CI (the
-   test exists; CI does not run yet).
-5. **Scenario harness** — `DK2.Harness` reads a YAML scenario from `/scenarios`,
-   runs N ticks headless, writes an event log. Format sketched in
-   `DK2_REIMPLEMENTATION_PLAN.md` §6.2.
+1. **Tile mechanics as systems** — dig, claim, reinforce, repair. The numbers
+   are all in hand: `DigRockHealth=-5000`, `ClaimTileHealth=825`,
+   `MineGoldHealth=-300`, `ReinforceWallHealth=50`, `RepairWallHealth=22`
+   (`kwd-variables.md`), and the terrain transition graph
+   (`kwd-terrain-rooms.md`). Read them from `GameDatabase`, never inline.
+2. **The first real commands** — `TagTilesCommand`, `ClaimCommand`. `TileState`
+   gains a tagged-for-digging flag at this point, not before.
+3. **The open timing question surfaces immediately.** The health deltas are
+   per *something* — Q1, the tick rate, is UNKNOWN. Implement the deltas behind
+   a single named constant and flag it; do not silently pick 25 ticks/second.
+4. **First Imp** — spawn, task selection, movement. This is where `IPathfinder`
+   gets its honest A* placeholder (plan risk R1).
+5. **Treasury and gold** — the first resource loop.
+6. **Real dig/claim scenarios** in `scenarios/`, replacing the two smoke files.
 
-Only after that does M3 (grid, digging, claiming, first Imp) make sense — and
-the dig/claim numbers are already extracted, see `kwd-terrain-rooms.md`.
+Unity presentation also belongs to M3, but the simulation should be able to run
+a dig-and-claim scenario headlessly first.
 
 ---
 
@@ -64,20 +88,50 @@ the dig/claim numbers are already extracted, see `kwd-terrain-rooms.md`.
 - Simulation assemblies target netstandard2.1 and must never reference Unity;
   enforced by `ArchitectureTests` (ADR-0002).
 - `.slnx` solution format, .NET 10 (ADR-0005).
-- Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Resolved via
-  `DK2_DIR` env var or `Dk2Install`. Tests auto-skip when absent.
+- Determinism gate design — RNG position in the hash, FNV-1a not `GetHashCode`,
+  one pinned literal, test-only `ChaosSystem` (ADR-0006).
+- Our own save format; DK2 save compatibility is not a goal (ADR-0007).
+- YamlDotNet for scenarios, tooling only (ADR-0008).
+- Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Resolved by
+  `DK2.Data.Dk2Install`. **`DK2_DIR` is authoritative when set** — if it is set
+  and invalid, no fallback is tried, which is how CI runs with no install.
+  Tests auto-skip when it resolves to nothing.
+
+---
+
+## Conventions that are easy to violate by accident
+
+- **A balance constant hardcoded in simulation code is a bug** — read it from
+  `GameDatabase`. `GameDatabase[VariableTypeId.X]` throws rather than returning
+  zero for a missing value, on purpose.
+- **Changing simulation state breaks the pinned hash.** That is the design.
+  Bump `GameSimulation.HashVersion` and update the literal in
+  `DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines` in the same
+  commit. Never "fix" it by loosening the assertion.
+- **Nothing in the simulation may read an event back.** Events are write-only
+  observation; a system that reads one makes the observer part of the observed.
+- **New state must be reachable from `WorldState`** or it is invisible to the
+  hash and the snapshot — and therefore silently non-deterministic.
+- Confidence tags are mandatory in docs and code comments:
+  **CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN**.
+- Every researched mechanic gets a `docs/research/<name>.md` using the template
+  in `DK2_REIMPLEMENTATION_PLAN.md` Appendix B.
+- Never commit anything from `original-reference/` or any `.kwd`/`.wad`/`.kmf`
+  (gitignored, but check before `git add -A`; a third-party template slipped in
+  once and had to be removed in `4cdcd38`).
 
 ---
 
 ## Environment gotchas (each of these already cost time)
 
-**Bash heredocs eat backslashes.** Writing C# via `cat > file <<'EOF'` silently
-turns `Replace('\\', '/')` into `Replace('\', '/')` — a compile error. This bit
-twice. Use the `Write`/`Edit` tools for any C# containing backslash escapes,
-or verify with `grep` afterwards.
+**Bash heredocs and C#.** Writing C# via `cat > file <<'EOF'` has bitten twice
+by eating backslashes (`Replace('\\', '/')` → `Replace('\', '/')`), and once by
+choking on a file containing backticks. Use the `Write`/`Edit` tools for any C#
+containing backslash escapes or backticks; verify with `grep` otherwise.
 
-**`cat > file` with no stdin hangs** the Bash tool until timeout. Never write a
-bare `cat >` redirect without a heredoc body.
+**`cat > file` with no stdin hangs** the Bash tool until timeout. So does
+`python`/`python3` — it is not installed and the Windows Store stub blocks.
+Never write a bare `cat >` redirect, and do not reach for python.
 
 **`ctx_batch_execute` sandbox quirks:**
 - `for ... do ... done` loops fail to parse (the wrapper prefixes the command
@@ -86,7 +140,9 @@ bare `cat >` redirect without a heredoc body.
   workspace. Pipe directly, or `curl -o` and use the file in the *same* command.
 - `python3` is not available; `curl`, `grep`, `sed`, `awk`, `perl`, `xxd` are.
 
-**Windows/git:** CRLF warnings on every commit are expected noise, not a problem.
+**`dotnet build` takes one project, not several.** Pass `DK2.slnx` instead.
+
+**Windows/git:** CRLF warnings on every commit are expected noise.
 
 ---
 
@@ -119,8 +175,9 @@ caught real errors so far:
 
 `docs/research/open-questions.md` holds all 19. The ones that gate progress:
 
-- **Q1 — simulation tick rate.** Blocks all timing fidelity. Flame's `limit_tps`
-  patch proves it is fixed; the value is unmeasured. Needed at M5.
+- **Q1 — simulation tick rate.** Now blocking: M3's health deltas are per unit
+  of time and we do not know the unit. Flame's `limit_tps` patch proves it is
+  fixed; the value is unmeasured. Keep it one named constant until measured.
 - **Q5 — pathfinding.** The project's biggest risk (plan §9, R1). Flame names
   `Follow_Path` but has zero named fields for it. Nobody has solved this.
 - **Q2 — job selection.** Narrowed: candidates and weights are *data*. The
@@ -128,17 +185,6 @@ caught real errors so far:
   mood picks which of the three tables applies, handling unavailable jobs).
 - **Q7 — creature moods.** Genuinely unsolved; OpenKeeper's system is an empty
   stub after 12 years.
-
----
-
-## Conventions
-
-- Confidence tags are mandatory in docs and code comments:
-  **CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN**.
-- Every researched mechanic gets a `docs/research/<name>.md` using the template
-  in `DK2_REIMPLEMENTATION_PLAN.md` Appendix B.
-- A balance constant hardcoded in simulation code is a bug — read it from
-  `GameDatabase`.
-- Never commit anything from `original-reference/` or any `.kwd`/`.wad`/`.kmf`
-  (gitignored, but check before `git add -A`; a third-party template slipped in
-  once and had to be removed in `4cdcd38`).
+- **New at M2 — system update order.** DK2's own per-tick subsystem ordering is
+  UNKNOWN. Ours is explicit and declared at registration. It starts to matter
+  around M4; treat it as a research question then, not a convenience choice.

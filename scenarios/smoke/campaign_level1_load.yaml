@@ -1,0 +1,15 @@
+# Loads the first campaign level's real tile grid into the simulation.
+#
+# This is the first time original game data reaches the simulation layer, so
+# what it proves is narrow but real: every terrain id on a shipped map resolves
+# against the TERRAIN table, and every tile gets its starting health from the
+# terrain definition rather than from a number we invented.
+id: smoke-campaign-level1-001
+question: >
+  Does a shipped campaign map load into WorldState with every tile resolving
+  to a real terrain definition?
+map: campaign:level1
+seed: 1
+duration_ticks: 60
+observe:
+  - state_hash

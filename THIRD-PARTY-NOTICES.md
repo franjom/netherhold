@@ -10,3 +10,9 @@
 - DiaLight/Flame — DKII.EXE v1.70 structure and symbol research.
 - tonihele/OpenKeeper (GPLv3) — consulted as documentation only; no code
   copied or transliterated (see docs/DECISIONS.md ADR-0003).
+
+## YamlDotNet
+- https://github.com/aaubry/YamlDotNet — MIT License, Copyright (c) Antoine Aubry
+  and contributors
+- Used by `DK2.Harness` to read scenario files. Tooling only — no simulation
+  assembly references it.

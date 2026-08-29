@@ -10,8 +10,7 @@ public class WadArchiveTests
 {
     private static string? DataDir()
     {
-        string? env = Environment.GetEnvironmentVariable("DK2_DIR");
-        string dir = env ?? @"E:\GogGames\Dungeon Keeper 2";
+        string dir = Dk2Install.Find() ?? "";
         return File.Exists(Path.Combine(dir, "DKII.EXE")) ? Path.Combine(dir, "Data") : null;
     }
 

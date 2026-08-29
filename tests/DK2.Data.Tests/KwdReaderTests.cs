@@ -7,8 +7,7 @@ public class KwdReaderTests
 {
     private static string? EditorDir()
     {
-        string? env = Environment.GetEnvironmentVariable("DK2_DIR");
-        string dir = env ?? @"E:\GogGames\Dungeon Keeper 2";
+        string dir = Dk2Install.Find() ?? "";
         string editor = Path.Combine(dir, "Data", "editor");
         return Directory.Exists(editor) ? editor : null;
     }
@@ -66,7 +65,7 @@ public class KwdReaderTests
         if (editor is null) return;
 
         List<KwdChunk> chunks = KwdReader.ReadFile(Path.Combine(editor, "GlobalVariables.kwd"));
-        KwdVariables vars = KwdVariables.Parse(chunks);
+        GlobalVariables vars = KwdVariables.Parse(chunks);
 
         // Empirical spot checks. These specific values were documented by the
         // OpenKeeper project; here we CONFIRM them against real v1.70 GOG data.

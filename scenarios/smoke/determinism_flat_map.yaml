@@ -1,0 +1,19 @@
+# Plumbing check, not a behavioural experiment.
+#
+# Confirms the harness can build a world, advance the fixed tick and produce a
+# stable per-tick state-hash series. Answers nothing about DK2 itself: no
+# simulation systems are registered yet, which the run report states out loud.
+id: smoke-determinism-flat-001
+question: >
+  Does a scenario run over a synthetic map advance the tick and produce a
+  reproducible state-hash series?
+map: flat_24x20
+seed: 12345
+duration_ticks: 600
+setup:
+  players:
+    - { id: 1, gold: 20000, mana: 1000 }
+    - { id: 2, gold: 20000, mana: 1000 }
+observe:
+  - state_hash
+  - events
