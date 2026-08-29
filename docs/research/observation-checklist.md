@@ -20,151 +20,131 @@ something does *not* happen closes a question just as hard.
 
 ---
 
-## 1. Blocking — these stop work from continuing
+## Answered so far (2026-08-29)
 
-### Q31 — where does mined gold go?
-**The single most valuable observation on this list.** It is the missing half of
-M3's economy and everything about the gold loop waits on it.
+Nineteen questions went onto this list; **fifteen came back in two sittings**.
+Kept as a record of what the method is worth, and because several of the answers
+are load-bearing enough that a future session should see them here rather than
+having to dig them out of the question list.
 
-Watch one imp mine a gold seam, closely, and answer:
+| Q | What playing settled |
+|---|---|
+| Q12 | Imps never eat. The Imp's hunger rate of 32767 does mean "never" |
+| Q20 | Rock: 2-3 hits, 1-2 s. Gold: 4-5 hits, 1.5-3 s |
+| Q21 | A seam pays out **gradually as it is mined**, not in a lump |
+| Q24 | Job order: **marked excavation → claim → reinforce → wander** |
+| Q25 | Nearest **by walking distance**; marking order is irrelevant |
+| Q26/Q43 | Three imps a face, twelve a block — and a fourth **goes to find other work** rather than queueing |
+| Q27 | Work is **orthogonal**: twelve a block at three a face is four faces |
+| Q28 | Creatures **can cut a diagonal corner** — movement is eight-connected |
+| Q30 | Terrain does **not** weight a path; the shortest route wins even through water |
+| Q31 | An imp mines **into its own hands** and delivers when full; a floor lump is the fallback for when there is nowhere to store it |
+| Q33 | A room tile must **touch land the keeper owns** |
+| Q34 | Selling refunds **50% of the cost, per tile** — a number in neither candidate variable |
+| Q36 | A 1×1 temple really is buildable; minimum sizes are about **function**, not building |
+| Q37 | The mana ceiling is a flat **200000** and never moves |
+| Q38 | The mana gain cap is **per keeper**, not shared |
+| Q40 | On defeat, creatures **leave by the nearest portal** and **rivals claim the rooms and gold** |
+| Q42/Q44 | An imp **jumps onto** the tile it claims, and only claims from beside land its keeper owns |
+| Q46 | Claiming a tile takes **2-4 jumps, about 2 seconds** |
+| — | A keeper has **exactly one dungeon heart**, and losing it is defeat |
+| Q7 | What angers a creature: **no lair, hunger, no pay, the company of creatures they hate** |
+| Q9 | Unpaid → unhappy → angry → **leaves**; a converted creature **rebels** instead |
 
-1. When gold comes out, does the **imp pick it up and carry it**, or does a
-   **pile appear on the floor** for someone to fetch later? (Or both — mines into
-   its hands, drops a pile when full?)
-2. Does the seam give up gold **gradually as it is mined**, or **all at once when
-   the tile collapses**? (That is Q21, and the same session answers it.)
-3. What makes the imp **stop mining and walk off to the treasury** — a full load,
-   the tile finishing, something else? Roughly how many trips does one seam take?
-4. When it arrives at a multi-tile treasury, **which tile does it fill** — the
-   nearest, the first, the emptiest? (Q35. Watch where the gold piles appear.)
-5. What happens when the treasury is **full** — does the imp stand there, drop
-   the gold on the floor, or take it somewhere else?
+Four of those contradicted the implementation (Q24, Q28, Q42/Q44, Q43) and two
+contradicted the data (Q34's refund, Q37's ceiling). That is the list working.
 
-### Q24 — what does an imp do when nothing is marked?
-The other blocker, and the reason no worker behaviour beyond digging exists.
-Ours only does work the keeper marked, on purpose.
-
-Leave a dungeon alone with **nothing marked for digging** and watch idle imps:
-
-1. What is the **first** thing an unprompted imp does? Claim floor? Reinforce a
-   wall? Fetch gold? Something else?
-2. Give it several options at once — unclaimed floor, an unreinforced wall, a
-   gold pile on the ground — and see which it picks. That ordering is the answer.
-3. Now **mark a wall for digging** while it is mid-job. Does it drop what it is
-   doing immediately, or finish first? (Does marked work outrank everything?)
-4. Does an imp ever **stop and do nothing at all**, and if so, when?
-5. What does an imp do when an enemy creature comes near — flee at once, flee
-   only when attacked, keep working?
-
-### Q20 — how long does digging actually take?
-The data says one application of `DigRockHealth` destroys a rock tile outright,
-which would make digging earth instantaneous. It is not. Something is wrong with
-our reading and nothing else in the tile rules is.
-
-With a single imp digging alone:
-
-1. Roughly **how many seconds** to break through one plain earth/rock tile?
-2. Does a **gold seam** take noticeably longer than plain rock? A **gem** face?
-3. Does an imp visibly **swing repeatedly** at one tile, or does the tile go on
-   the first contact?
-4. Do **two imps on the same tile** finish it in about half the time?
+**One was also corrected by the owner after the fact** — the claim count came
+back as ten jumps and was revised to 2–4 the same day. Worth recording as
+process, not embarrassment: at ten there was no common factor between the
+observed work rates and the whole tile-work model looked wrong; at 2–4 the factor
+is about two everywhere and the model is fine but too coarse. A wrong number
+recorded confidently would have sent the next session rewriting something that
+was not broken. Ranges and "I am not sure" are more useful here than round
+numbers, and Q35 is explicitly flagged as belief rather than observation for the
+same reason.
 
 ---
 
-## 2. Cheap, and each settles a contradiction in the data
+## 1. Still open, and blocking
 
-### Q34 — what does selling a room refund?
-Both candidate numbers in the data say **100%**, which would make rooms free to
-try. The original is not like that, so one of the two numbers is not what its
-name says.
+### Q35 — which treasury tile does an imp fill?
+The owner's belief is *nearest tile, spillover to another empty treasury tile,
+and when the whole treasury is full a lump on an empty tile beside it* — but
+flagged as uncertain, and it decides which gold survives a treasury being partly
+destroyed. Worth a deliberate look before it is implemented.
 
-Build a 1-tile treasury (200 gold), note the gold, sell that tile, note it again.
-**How much came back?** That is the whole experiment.
+Watch imps deliver into a **3×3 treasury** and answer: does the first load land
+in the tile nearest the door, or somewhere fixed? When one tile fills, where does
+the next load go? And when the whole treasury is full, where exactly does the
+lump appear — beside the treasury, or back where the imp was mining?
 
-### Q32 — is a room's cost per tile or per room?
-Ours charges per tile. Note your gold, paint a **two-tile** treasury, note it
-again. 200 or 400?
+### Q31 leftover — how big is a floor lump?
+When there is nowhere to store gold, a lump grows in front of the mining imp
+"up to a designated sum". `MaxGoldPileOutsideTreasury` is 2000 and is the
+candidate. Fill the treasury, keep mining, and see how much piles up before the
+imp stops.
 
-### Q36 — do a room's recommended dimensions constrain what you may build?
-The ROOMS record carries `RecommendedSizeX/Y` and a construction style; nothing
-here reads them, so a 1×1 temple is buildable.
+### Q47 — the tile-work rates
+Our rates come from the balance table and every one of them is too fast against
+observation — but, since the correction to the claim count, by a **consistent
+factor of about two**. That is the difference between "one number is wrong" and
+"the model is wrong", and it lands on the first.
 
-**Try to build a 1×1 temple, a 1×1 lair, a 1×2 casino.** Does the game refuse, or
-allow it and just draw it oddly? Does anything need a minimum size?
+The reading that fits: an application happens **twice a second and applies half
+the tabled delta**. That is self-consistent — half the delta twice a second *is*
+the delta per second — so the balance numbers are per-second after all and only
+the granularity is off. Mining fits it exactly. `DigRockHealth` still fits
+nothing.
 
-### Q33 — must a new room tile touch land you already hold?
-On land, ownership already forbids everything such a rule would. The gap shows
-only for **bridges**.
-
-Find water with your land on the near shore. **Can you start a bridge tile out in
-the middle of the water**, not touching anything you own, or must it grow out
-from your shore one tile at a time?
-
----
-
-## 3. Movement and worker detail — a few minutes each
-
-### Q28 — can creatures cut a diagonal corner?
-Ours says no (four-connected), chosen as the conservative guess. Dig an L-bend so
-two solid tiles meet at a diagonal pinch, and watch a creature routed through it:
-**does it slip diagonally between the two corners, or go around?**
-
-### Q27 — where does an imp stand to work a tile?
-Watch an imp digging a wall. Is it always **orthogonally** adjacent (N/S/E/W), or
-will it work a tile from a **diagonal** neighbour?
-
-### Q25 — which marked tile does an imp choose?
-Mark two walls, one clearly nearer **by walking distance** and one nearer **in a
-straight line but around a corner**. Which does the imp go to? (Ours: fewest
-steps.) Then mark a far one *first* and a near one *second* — does marking order
-matter at all?
-
-### Q26 — do imps spread out or pile on?
-Mark **four separate walls** far apart and release **four imps**. Do they take
-one each, or do several converge on the same tile? (Ours: no reservation, they
-converge.)
-
-### Q30 — does terrain slow a path down, or only the creature?
-With a creature that can cross water, offer it a **short route through water** and
-a **longer dry route**. Which does it take? And does anything visibly move slower
-*on* water rather than simply taking longer to arrive?
-
-### Q29 — is creature speed in tiles per second?
-Stopwatch an imp walking a straight **ten-tile corridor**, then a dwarf over the
-same ground. We predict the imp is about 1.84 tiles/second and the dwarf slower
-in a fixed ratio. Even a rough number confirms or kills the unit.
+What would settle it is **exact counts rather than ranges**, from one imp working
+alone: exactly how many hits for a plain rock tile, a gold seam and a gem face,
+exactly how many jumps to claim one tile, and roughly how many seconds each
+takes. Two or three careful counts would be enough to pin the granularity and
+leave `DigRockHealth` as the only outlier.
 
 ---
 
-## 4. Free to note whenever you happen to see them
+## 2. Still open, and cheap
 
-### Q40 — what does defeat actually do?
-We know losing your heart is defeat. Watch a **rival keeper** lose theirs:
-what happens to their **creatures**, their **rooms**, their **claimed land**, and
-their **gold**? Does their territory revert to unclaimed, or stay coloured? Do
-their creatures die, flee, or change owner?
+### Q48 — what does a diagonal step cost?
+Now that Q28 says creatures cut corners, an eight-connected router needs to know
+whether a diagonal is worth the same as a straight step. Time a creature walking
+**ten tiles straight** and then **ten tiles diagonally** across open floor. If the
+diagonal run takes about 1.4× as long, diagonals cost their true length; if the
+two take the same time, they are free.
+
+### Q22 — filling a tile in
+Not yet observed — the answer offered against it described claiming instead.
+Fill in a claimed floor tile: does it take about as long as digging one out? Does
+a partly-filled tile revert if you cancel?
 
 ### Q23 — are dig markers per keeper or shared?
-In a skirmish, **can you see a rival keeper's dig markers** on their walls? (Ours
-assumes each keeper has their own.)
+In a skirmish, can you **see a rival keeper's dig markers** on their walls?
+
+### Q49 — do the other floor jobs work like claiming?
+An imp stands *on* a tile to claim it (Q44). Does it also stand on the tile to
+**repair** damaged floor, to **attack** a rival's floor, and to **fill in**? Or
+does it stand beside those? And is the ~500 ms an imp lingers after claiming a
+real pause, or just the animation finishing?
 
 ### Q9 — payday
-Roughly **how often** does payday come round, and is it the same clock for every
-creature or per creature? What visibly happens when a keeper **cannot pay**?
+Roughly **how often** does payday come round, and is it one clock for the whole
+dungeon or per creature?
 
-### Q22 — filling a tile back in
-Fill in a claimed floor tile. Does it take about as long as digging it out, or
-noticeably less? Does a partly-filled tile **revert** if you cancel?
+---
 
-### Q12 — do imps ever eat or sleep?
-The Imp's hunger rate and wake time are both 32767, which we read as a "never"
-sentinel. **Do imps ever go to a hatchery, or to a lair to sleep?** A plain no
-confirms it.
+## 3. Bigger, and worth it whenever you fancy
 
-### Q38 — is the mana gain cap shared between keepers?
-Hard to stage, so only if it falls out naturally: in a skirmish where one keeper
-holds an enormous dungeon, does **another keeper's** mana income visibly suffer?
-(Ours: per keeper, no interaction.)
+### Q45 — which rooms need a minimum size to work?
+You flagged temple ≈ 5×5. This is the shape of the answer for *every* room's
+behaviour, so even a partial list helps — pictures welcome.
+
+### Q7 — the mood model, beyond the four causes
+The four causes are recorded. What is still missing is the shape: does anger
+build gradually or arrive in steps? Roughly how long from "unhappy" to "leaves"
+with no pay at all? Do the four stack, or does the worst one dominate? Does anger
+fade once the cause is fixed?
 
 ---
 
@@ -173,17 +153,13 @@ holds an enormous dungeon, does **another keeper's** mana income visibly suffer?
 Do not spend time on these at the keyboard — they need instrumentation,
 measurement tooling, or disassembly, and are scheduled accordingly:
 
-- **Q1 — the exact tick rate.** Fixed, but the number is internal. Needs the M5
-  oracle probe, not an eye. (A stopwatch on a *long* repeated action gives an
-  approximation, which is why some entries above ask for seconds.)
-- **Q19 — what the health deltas are *per*.** Tied to Q1, same reason.
-- **Q5 — the pathfinding algorithm.** You can see the *route* (Q28, Q30 above),
-  never the algorithm.
+- **Q1 — the exact tick rate.** Fixed, but internal. Needs the M5 oracle probe.
+  (Stopwatch counts on long repeated actions give an approximation, which is why
+  several entries above ask for seconds.)
+- **Q19 — what the health deltas are *per*.** Tied to Q1 and now to Q47.
+- **Q5 — the pathfinding algorithm.** You can see the *route* — Q28 and Q30 both
+  came from watching one — never the algorithm.
 - **Q3 — which RNG.** Invisible by construction.
-- **Q7 — the mood model.** You can see a creature get angry; the formula behind
-  it is a disassembly job.
-- **Q35's tie-breaks, Q21's exact arithmetic** and anything else that is a
-  *number per tile per application* rather than a visible event.
-- **Q37a — what `MaxManaGain` and `DungeonHeartMaxManaIncrease` are for.**
-  Closed by elimination; they affect nothing a player can see, so there is
-  nothing to look at.
+- **Q11, Q13, Q14, Q15, Q16, Q17** — record layouts and field meanings.
+- **Q37a — what `MaxManaGain` and `DungeonHeartMaxManaIncrease` are for.** Closed
+  by elimination; they affect nothing a player can see.
