@@ -4,17 +4,20 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Tests;
 
 /// <summary>
-/// The seven terrain types and ten work variables that tile mechanics touch,
-/// transcribed from the reference install so the rules can be tested where no
-/// Dungeon Keeper 2 installation exists — CI included.
+/// The seven terrain types, eleven variables and one creature that the M3
+/// mechanics touch, transcribed from the reference install so they can be tested
+/// where no Dungeon Keeper 2 installation exists — CI included.
 ///
 /// Unlike <see cref="TestWorld"/>, nothing here is invented: every number is
 /// DK2's own, extracted by <c>dk2tools</c> and recorded in
-/// docs/research/terrain-room-dump.md and game-database-dump.md. That makes the
-/// fixture a liability as well as a convenience — a transcription can drift
-/// from the game it claims to copy — so
-/// <c>DK2.Behavior.Tests.TileWorkOnRealDataTests</c> re-runs the same
-/// assertions against the real install whenever one is present.
+/// docs/research/terrain-room-dump.md, game-database-dump.md and imp-tasks.md.
+/// That makes the fixture a liability as well as a convenience — a
+/// transcription can drift from the game it claims to copy — so
+/// <c>DK2.Behavior.Tests.TileWorkOnRealDataTests</c> and
+/// <c>ImpsOnRealDataTests</c> re-run the same assertions against the real
+/// install whenever one is present. That guard has already earned its keep: the
+/// Imp's hunger rate was first transcribed from a lossy decimal and was wrong by
+/// a factor of 4096.
 /// </summary>
 internal static class Dk2TerrainFixture
 {
@@ -47,8 +50,94 @@ internal static class Dk2TerrainFixture
               900, 900, ReinforcedWall, Rock, manaGain: 1),
         ],
         rooms: [],
-        creatures: [],
+        creatures: [Imp()],
         variables: Variables());
+
+    public const byte ImpCreatureId = 1;
+
+    /// <summary>
+    /// The Imp, as the reference install has it.
+    ///
+    /// Only the fields listed here are transcribed; everything else is left at
+    /// zero and is <b>not</b> a claim about the creature. The drift guard in
+    /// <c>DK2.Behavior.Tests.ImpsOnRealDataTests</c> compares exactly these
+    /// against the install, so a field added here without being checked there
+    /// would be an invention nobody notices.
+    /// </summary>
+    public static CreatureDef Imp() => new()
+    {
+        Name = "Imp",
+        CreatureId = ImpCreatureId,
+        Flags = (CreatureFlags)0xB000089Fu,
+
+        Speed = new Fp32(7536),
+        RunSpeed = new Fp32(7536),
+        ShuffleSpeed = new Fp32(4096),
+        Height = new Fp32(2048),
+        DistanceCanSee = new Fp32(16384),
+        DistanceCanHear = new Fp32(16384),
+
+        Hp = 500,
+        HungerRate = new Fp32(134213632), // 32767 in DK2's fixed point: the "never" sentinel (Q12)
+        TimeAwake = 32767,
+        TimeSleep = 0,
+
+        MeleeDamage = 30,
+        MeleeRange = new Fp32(1433),
+        MeleeRecharge = new Fp32(4915),
+        MeleeAttackType = AttackType.MeleeBlade,
+
+        Pay = 0,
+        Fear = 5,
+        Threat = 2,
+        ExpForNextLevel = 3000,
+        ExpPerSecond = 1200,
+        ExpPerSecondTraining = 30,
+        UnhappyThreshold = 50,
+        JobClass = JobClass.Scout,
+        FightStyle = FightStyle.NonFighter,
+
+        // Not transcribed. Present because the record requires them.
+        EyeHeight = new Fp32(0),
+        PerceptionRange = new Fp32(0),
+        HpFromChicken = 0,
+        HungerFill = 0,
+        OwnLandHealthIncreasePerSecond = 0,
+        DecomposeValue = 0,
+        SlapDamage = 0,
+        StunDuration = new Fp32(0),
+        Resistances = [],
+        Spells = [],
+        MaxGoldHeld = 0,
+        InitialGoldHeld = 0,
+        ResearchPerSecond = 0,
+        ManufacturePerSecond = 0,
+        ManaGeneratedByPrayerPerSecond = 0,
+        AngerNoLair = 0,
+        AngerNoFood = 0,
+        AngerNoPay = 0,
+        AngerNoWork = 0,
+        AngerSlap = 0,
+        AngerInHand = 0,
+        TortureHpChange = 0,
+        TortureMoodChange = 0,
+        TortureTimeToConvert = new Fp32(0),
+        HappyJobs = [],
+        UnhappyJobs = [],
+        AngryJobs = [],
+        HateJobs = [],
+        AlternativeJobs = [],
+        Attractions = [],
+        GuardDuration = new Fp32(0),
+        IdleDuration = new Fp32(0),
+        SlapFearlessDuration = new Fp32(0),
+        PossessionManaCost = 0,
+        LairObjectId = 0,
+        CloneCreatureId = 0,
+        NameStringId = 0,
+        TooltipStringId = 0,
+        IntroductionStringId = 0,
+    };
 
     /// <summary>The ten tile-work health deltas plus the gems yield, as shipped.</summary>
     public static GlobalVariables Variables()
@@ -65,6 +154,7 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.ReinforceWallHealth, 50);
         Set(vars, VariableTypeId.RepairWallHealth, 22);
         Set(vars, VariableTypeId.GoldMinedFromGems, 25);
+        Set(vars, VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds, 5);
         return vars;
     }
 
@@ -121,7 +211,7 @@ internal static class Dk2TerrainFixture
     public static WorldState World() =>
         WorldState.FromMap(Database(), Map(), [(byte)0, (byte)1, (byte)2]);
 
-    /// <summary>A simulation with the real M3 tile systems, in registration order.</summary>
+    /// <summary>A simulation with the real M3 systems, in registration order.</summary>
     public static GameSimulation Simulation(ulong seed = 4242)
     {
         GameDatabase database = Database();
@@ -129,6 +219,9 @@ internal static class Dk2TerrainFixture
             database,
             WorldState.FromMap(database, Map(), [(byte)0, (byte)1, (byte)2]),
             seed,
-            [new Systems.TileTagSystem(), new Systems.TileWorkSystem()]);
+            DefaultSystems());
     }
+
+    /// <summary>The one declared system order — see <see cref="Systems.SimulationSystems"/>.</summary>
+    public static ISimulationSystem[] DefaultSystems() => Systems.SimulationSystems.Default();
 }

@@ -42,8 +42,6 @@ public sealed class ScenarioRunner
             unsupported.Add($"unknown key '{key}' in the scenario file");
         if (scenario.Setup.Rooms.Count > 0)
             unsupported.Add($"setup.rooms ({scenario.Setup.Rooms.Count}) - rooms are not simulated yet");
-        if (scenario.Setup.Creatures.Count > 0)
-            unsupported.Add($"setup.creatures ({scenario.Setup.Creatures.Count}) - creatures are not simulated until M4");
 
         foreach (string observation in scenario.Observe)
             if (observation is not ("state_hash" or "events"))
@@ -52,9 +50,11 @@ public sealed class ScenarioRunner
         if (scenario.Work.Count > 0)
         {
             unsupported.Add(
-                $"work ({scenario.Work.Count} entries) is injected by the harness. In DK2 a working " +
-                "imp produces these; no creature exists yet, so this run says nothing about who " +
-                "would do the work, whether they could reach the tile, or how long it would take");
+                $"work ({scenario.Work.Count} entries) is injected by the harness, bypassing the " +
+                "worker that would produce it. Nothing has decided that a creature wanted this job, " +
+                "could reach the tile or was standing beside it, so this run says nothing about " +
+                "who would do the work or how long it would take. Use setup.creatures and a tag " +
+                "command instead to watch a worker do it");
             unsupported.Add(
                 "the rate of work is UNKNOWN (Q19/Q1): the health deltas carry no unit, so tick " +
                 "counts in this run are not seconds and must not be read as timings");
@@ -73,12 +73,14 @@ public sealed class ScenarioRunner
             world.Player(p.Id).Mana = p.Mana;
         }
 
-        // Registration order is part of the simulation's definition: tags are
-        // applied before the work that reads them, so a tile marked on tick N is
-        // marked for the whole of tick N.
+        SpawnCreatures(scenario, world, unsupported);
+
+        // Registration order is part of the simulation's definition, and there
+        // is exactly one of it — see SimulationSystems. A harness that ran the
+        // systems in a different order from the test suite would be producing
+        // evidence about neither.
         var simulation = new GameSimulation(
-            _database, world, scenario.Seed,
-            [new TileTagSystem(), new TileWorkSystem()]);
+            _database, world, scenario.Seed, SimulationSystems.Default());
 
         var sink = new ListEventSink();
         simulation.ObserveWith(sink);
@@ -99,6 +101,58 @@ public sealed class ScenarioRunner
 
         return new ScenarioResult(
             scenario, scenario.DurationTicks, simulation.StateHash(), hashes, sink.Events, unsupported);
+    }
+
+    /// <summary>
+    /// Places the scenario's creatures, and says what having them still does not
+    /// buy the run.
+    /// </summary>
+    private void SpawnCreatures(Scenario scenario, WorldState world, List<string> unsupported)
+    {
+        int workers = 0;
+
+        foreach (ScenarioCreature c in scenario.Setup.Creatures)
+        {
+            CreatureDef? definition = _database.CreatureByName(c.Type);
+            if (definition is null)
+            {
+                unsupported.Add($"setup.creatures entry '{c.Type}' is not a creature in the database");
+                continue;
+            }
+
+            if (c.At.Count != 2 || !world.Contains(c.At[0], c.At[1]))
+            {
+                unsupported.Add(
+                    $"setup.creatures entry '{c.Type}' at [{string.Join(",", c.At)}] is not a tile on this map");
+                continue;
+            }
+
+            world.SpawnCreature(definition.CreatureId, c.Player, new TilePos(c.At[0], c.At[1]));
+            if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) workers++;
+        }
+
+        if (scenario.Setup.Creatures.Count == 0) return;
+
+        unsupported.Add(
+            "setup.creatures places creatures directly. DK2 makes imps from a dungeon heart, from " +
+            "the Create Imp spell at a mana cost, and from level specials - none of which exists " +
+            "yet, so nothing here says how many workers a keeper would actually have");
+
+        if (workers == 0)
+        {
+            unsupported.Add(
+                "none of the placed creatures is a worker, and only workers do anything at all " +
+                "yet: no creature has needs, moods, combat or a job of its own");
+            return;
+        }
+
+        unsupported.Add(
+            "workers only do work the keeper marked. Claiming floor, reinforcing walls, carrying " +
+            "gold to a treasury and fleeing a fight are all real imp jobs that are not " +
+            "implemented, and the priority order between them is UNKNOWN (Q2/Q24)");
+        unsupported.Add(
+            "routing is ours, not DK2's (Q5): a four-connected shortest-path search with uniform " +
+            "step costs. Travel times in this run are a consequence of that choice");
     }
 
     /// <summary>Turns the scenario's scheduled commands into one input frame per tick.</summary>
@@ -180,16 +234,19 @@ public sealed class ScenarioRunner
     /// Resolves a scenario's map field.
     ///
     /// <c>campaign:level1</c> loads a shipped map. <c>flat_24x20</c> builds a
-    /// synthetic dungeon - impenetrable border, dirt path inside - and
+    /// synthetic dungeon - impenetrable border, dirt path inside;
     /// <c>rock_24x20</c> the same thing filled with diggable rock, which is what
-    /// a dig experiment needs. Both are testing conveniences and neither is a
-    /// DK2 layout.
+    /// a dig experiment needs; and <c>chamber_24x20</c> solid rock with a small
+    /// open chamber at the centre, which is what an experiment with workers
+    /// needs, since a worker has to stand somewhere. All three are testing
+    /// conveniences and none is a DK2 layout.
     /// </summary>
     private LevelMap ResolveMap(string spec)
     {
         const string campaign = "campaign:";
         const string flat = "flat_";
         const string rock = "rock_";
+        const string chamber = "chamber_";
 
         if (spec.StartsWith(campaign, StringComparison.OrdinalIgnoreCase))
         {
@@ -203,7 +260,7 @@ public sealed class ScenarioRunner
                     $"No campaign map named '{level}' under the installation's Data/editor/maps.");
         }
 
-        foreach (string prefix in new[] { flat, rock })
+        foreach (string prefix in new[] { flat, rock, chamber })
         {
             if (!spec.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
 
@@ -215,26 +272,42 @@ public sealed class ScenarioRunner
                 throw new InvalidDataException(
                     $"Map spec '{spec}' is not of the form {prefix}WxH (min 3x3).");
 
-            return SyntheticMap(w, h, solid: prefix == rock);
+            if (prefix == chamber && (w < 7 || h < 7))
+                throw new InvalidDataException(
+                    $"Map spec '{spec}' needs at least 7x7 to hold a chamber and a wall around it.");
+
+            return SyntheticMap(w, h, solid: prefix != flat, chamber: prefix == chamber);
         }
 
         throw new InvalidDataException(
-            $"Unrecognised map spec '{spec}'. Use 'campaign:<level>', 'flat_WxH' or 'rock_WxH'.");
+            $"Unrecognised map spec '{spec}'. Use 'campaign:<level>', 'flat_WxH', 'rock_WxH' or 'chamber_WxH'.");
     }
 
-    private LevelMap SyntheticMap(int width, int height, bool solid)
+    private LevelMap SyntheticMap(int width, int height, bool solid, bool chamber = false)
     {
         byte border = FindTerrain(t => t.IsImpenetrable);
+        byte floor = FindTerrain(t => t.Name.Equals("Dirt Path", StringComparison.OrdinalIgnoreCase));
         byte fill = solid
             ? FindTerrain(t => t.IsSolid && t.IsTaggable && !t.IsImpenetrable && t.GoldValue == 0)
-            : FindTerrain(t => t.Name.Equals("Dirt Path", StringComparison.OrdinalIgnoreCase));
+            : floor;
+
+        // A 3x3 opening at the centre. Small on purpose: it is a place to stand,
+        // not a dungeon, and anything larger would start to look like a claim
+        // about how DK2 lays a level out.
+        int chamberX = width / 2;
+        int chamberY = height / 2;
 
         var tiles = new MapTile[width * height];
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
             {
                 bool edge = x == 0 || y == 0 || x == width - 1 || y == height - 1;
-                tiles[(y * width) + x] = new MapTile(edge ? border : fill, 0, 0, 0);
+                bool open = chamber
+                    && Math.Abs(x - chamberX) <= 1
+                    && Math.Abs(y - chamberY) <= 1;
+
+                byte terrain = edge ? border : open ? floor : fill;
+                tiles[(y * width) + x] = new MapTile(terrain, 0, 0, 0);
             }
         return new LevelMap(width, height, tiles);
     }

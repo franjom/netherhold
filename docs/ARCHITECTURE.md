@@ -78,15 +78,14 @@ ten health-delta variables, and none of them appears in the code.
 - `TileWorkSystem` drains a FIFO queue of `TileWorkOrder`s on the world. Order
   is behaviour, so the queue is never sorted or deduplicated.
 - `TileTagSystem` applies `TagTilesCommand` — the first real player command.
-  Markers are per player, one bit each, and are cleared when a tile converts.
+  Markers are per player, one bit each, and are cleared when a tile converts
+  into terrain that cannot carry one (so a gem face, which collapses into
+  itself, keeps its mark).
 - The rules are written against terrain **flags**, never terrain ids. A rule
   keyed on id 2 would be a rule about the reference install rather than DK2.
 
-Two things are deliberately absent. Nothing decides *who* works — that needs job
-selection (Q2) and pathfinding (Q5) — so the work queue is filled by tests and
-by the scenario harness, which says so in every report. And gold released by
-mining is reported and dropped rather than credited, because the imp that would
-carry it and the treasury it would carry it to do not exist yet.
+Gold released by mining is reported and dropped rather than credited, because
+the treasury it would go to does not exist yet.
 
 Timing is the open wound: the health deltas carry no unit (Q19, tied to Q1), so
 tick counts are not seconds. Everything that relates ticks to seconds lives in
@@ -94,3 +93,36 @@ tick counts are not seconds. Everything that relates ticks to seconds lives in
 
 Evidence, confidence and the three anomalies the data throws up:
 `docs/research/tile-work.md`.
+
+## Workers (M3)
+
+The producer the work queue was written to wait for. Anything flagged
+`IsWorker` — the Imp and the Dwarf, never creature id 1 — looks for the nearest
+tile its keeper has marked, walks to it, and works on it.
+
+- `CreatureState` is the first mutable creature state: position in fixed point,
+  activity, target, timer and route. Only fields a mechanic actually reads are
+  there; health, mood and hunger arrive with the mechanics that read them.
+- `ImpTaskSystem` decides. One outward search from the worker answers "which job
+  is nearest", "how do I get there" and "is anything reachable at all" at once.
+  It queues `TileWorkOrder`s; it never applies them.
+- `CreatureMovementSystem` walks. Speed is read as tiles per second
+  (`docs/research/imp-tasks.md`), spent per tick, with the remainder carried so
+  nothing drifts slow.
+- `DK2.Pathfinding` holds the search behind `IPathfinder`. It knows nothing of
+  terrain or creatures: `WorldPathGrid` decides what "walkable" means for one
+  particular mover, from terrain flags and that creature's own flags.
+- `SimulationSystems.Default()` is the one declaration of system order (ADR-0013).
+
+Two things are deliberately absent, and both are reported by every scenario run
+that places a worker. **Workers only do marked work** — claiming, reinforcing,
+carrying gold and fleeing are real imp jobs whose trigger and priority order are
+UNKNOWN (Q24, ADR-0014). And **routing is ours, not DK2's** (Q5, ADR-0012):
+four-connected, uniform cost, deterministically tie-broken, and an admitted
+placeholder behind an interface.
+
+Nothing generates workers either. DK2 makes imps from a dungeon heart, from a
+spell at a mana cost, and from specials; `WorldState.SpawnCreature` is what tests
+and scenario files use in the meantime, and it says so.
+
+Evidence and confidence: `docs/research/imp-tasks.md`.

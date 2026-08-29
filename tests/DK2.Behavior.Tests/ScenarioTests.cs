@@ -87,6 +87,43 @@ public class ScenarioTests
     }
 
     [Fact]
+    public void Run_ReportsWhatItsWorkersStillCannotDo()
+    {
+        // Workers exist now, which makes a run look much more like a game than
+        // it is. Every run that places one has to say that it only does marked
+        // work, that its routing is ours rather than DK2's, and that nothing
+        // decided how many workers a keeper would have.
+        string path = Path.Combine(Path.GetTempPath(), $"dk2-scenario-{Guid.NewGuid():N}.yaml");
+        File.WriteAllText(path, """
+            id: worker-honesty-probe
+            map: chamber_11x11
+            seed: 1
+            duration_ticks: 5
+            setup:
+              players:
+                - { id: 1, gold: 0, mana: 0 }
+              creatures:
+                - { type: Imp, at: [5, 5], player: 1 }
+            """);
+
+        try
+        {
+            ScenarioResult result = new ScenarioRunner(SyntheticDatabase(), null).Run(Scenario.Load(path));
+
+            Assert.Contains(result.Unsupported,
+                u => u.Contains("places creatures directly", StringComparison.Ordinal));
+            Assert.Contains(result.Unsupported,
+                u => u.Contains("only do work the keeper marked", StringComparison.Ordinal));
+            Assert.Contains(result.Unsupported,
+                u => u.Contains("routing is ours, not DK2's", StringComparison.Ordinal));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Run_ReportsWorkItCannotPlace()
     {
         string path = Path.Combine(Path.GetTempPath(), $"dk2-scenario-{Guid.NewGuid():N}.yaml");
@@ -257,11 +294,102 @@ public class ScenarioTests
     private static GameDatabase SyntheticDatabase() => new(
         [
             Terrain(1, "Impenetrable Rock", TerrainFlags.Solid | TerrainFlags.Impenetrable, 0),
+            Terrain(2, "Rock", TerrainFlags.Solid | TerrainFlags.Taggable, 165),
             Terrain(3, "Dirt Path", TerrainFlags.Ownable, 100),
         ],
         rooms: [],
-        creatures: [],
-        variables: new GlobalVariables());
+        creatures: [Worker("Imp", 1)],
+        variables: Variables());
+
+    private static GlobalVariables Variables()
+    {
+        var vars = new GlobalVariables();
+        foreach (VariableTypeId id in new[]
+                 {
+                     VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds,
+                     VariableTypeId.DigRockHealth,
+                 })
+        {
+            vars.Misc[id] = new MiscVariable(id, 1, 0, 0);
+        }
+
+        return vars;
+    }
+
+    /// <summary>
+    /// A worker with a name and a speed and nothing else. Invented, like the
+    /// terrain above — these tests are about the harness reporting honestly, not
+    /// about DK2. Real creature numbers live in
+    /// <see cref="ImpsOnRealDataTests"/>.
+    /// </summary>
+    private static CreatureDef Worker(string name, byte id) => new()
+    {
+        Name = name,
+        CreatureId = id,
+        Flags = CreatureFlags.IsWorker,
+        Speed = new Fp32(4096),
+        RunSpeed = new Fp32(4096),
+        ShuffleSpeed = new Fp32(4096),
+        Height = new Fp32(0),
+        EyeHeight = new Fp32(0),
+        DistanceCanSee = new Fp32(0),
+        DistanceCanHear = new Fp32(0),
+        PerceptionRange = new Fp32(0),
+        Hp = 1,
+        HpFromChicken = 0,
+        HungerRate = new Fp32(0),
+        HungerFill = 0,
+        TimeAwake = 0,
+        TimeSleep = 0,
+        OwnLandHealthIncreasePerSecond = 0,
+        DecomposeValue = 0,
+        Fear = 0,
+        Threat = 0,
+        MeleeDamage = 0,
+        SlapDamage = 0,
+        MeleeRange = new Fp32(0),
+        MeleeRecharge = new Fp32(0),
+        MeleeAttackType = AttackType.None,
+        StunDuration = new Fp32(0),
+        FightStyle = FightStyle.NonFighter,
+        Resistances = [],
+        Spells = [],
+        Pay = 0,
+        MaxGoldHeld = 0,
+        InitialGoldHeld = 0,
+        ExpForNextLevel = 0,
+        ExpPerSecond = 0,
+        ExpPerSecondTraining = 0,
+        ResearchPerSecond = 0,
+        ManufacturePerSecond = 0,
+        ManaGeneratedByPrayerPerSecond = 0,
+        JobClass = JobClass.Scout,
+        UnhappyThreshold = 0,
+        AngerNoLair = 0,
+        AngerNoFood = 0,
+        AngerNoPay = 0,
+        AngerNoWork = 0,
+        AngerSlap = 0,
+        AngerInHand = 0,
+        TortureHpChange = 0,
+        TortureMoodChange = 0,
+        TortureTimeToConvert = new Fp32(0),
+        HappyJobs = [],
+        UnhappyJobs = [],
+        AngryJobs = [],
+        HateJobs = [],
+        AlternativeJobs = [],
+        Attractions = [],
+        GuardDuration = new Fp32(0),
+        IdleDuration = new Fp32(0),
+        SlapFearlessDuration = new Fp32(0),
+        PossessionManaCost = 0,
+        LairObjectId = 0,
+        CloneCreatureId = 0,
+        NameStringId = 0,
+        TooltipStringId = 0,
+        IntroductionStringId = 0,
+    };
 
     private static TerrainDef Terrain(byte id, string name, TerrainFlags flags, ushort health) => new()
     {

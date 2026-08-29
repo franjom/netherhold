@@ -146,3 +146,67 @@ application every `TicksPerSecond` ticks — so the determinism gate and the
 pinned hash are independent of the guess. What it does affect is the mapping
 from ticks to wall-clock seconds, which is precisely the claim the project is
 not yet entitled to make.
+
+## ADR-0012 — The pathfinder is an admitted placeholder behind an interface
+
+**Status:** accepted (2026-08-29, M3)
+
+**Context.** A worker cannot exist without routing, and DK2's routing is Q5 —
+the project's largest open question (plan §9, R1). Flame names a 36-byte
+`Follow_Path` struct with no named fields; nobody has reconstructed it. Waiting
+for Q5 would block every mechanic that needs somebody to walk somewhere.
+
+**Decision.** `DK2.Pathfinding.IPathfinder` defines the two questions the
+simulation asks — route to a known tile, and route to the nearest tile
+satisfying a predicate. `GridPathfinder` answers them with a four-connected,
+uniform-cost, deterministically tie-broken search, and its own documentation
+says it is not DK2. `ImpTaskSystem` takes the pathfinder by constructor, so a
+reconstruction drops in without touching the systems.
+
+**Consequences.** Three gameplay-visible choices are ours and are recorded as
+such: four-connectivity (Q28), uniform terrain cost (Q30), and which of several
+equally short routes comes back. Travel times in any scenario run are a
+consequence of those choices, and the harness says so in every run that places a
+worker. The conservative option was taken where there was one: a four-connected
+route is walkable by an eight-connected mover, so replacing the search can only
+widen the set of valid paths, never invalidate a path already relied upon.
+
+## ADR-0013 — One declared system order, in one place
+
+**Status:** accepted (2026-08-29, M3)
+
+**Context.** System order is part of the simulation's definition: two systems
+touching the same state in a different order produce a different game. With four
+systems it was already being written out twice — once in the test fixture and
+once in the scenario harness — and a divergence between them would mean the
+regression corpus and the test suite were describing different games.
+
+**Decision.** `DK2.Simulation.Systems.SimulationSystems.Default()` is the single
+declaration of which systems run and in what order: tags, then movement, then
+task selection, then work. Tests and the harness both use it.
+
+**Consequences.** The order is stated once, with its rationale, rather than
+implied in several places. DK2's own per-tick subsystem ordering remains
+UNKNOWN; ours is explicit and explicable, which is the most that can honestly be
+claimed. A system added later is added to one list, and the pinned determinism
+hash moves in the same commit.
+
+## ADR-0014 — Worker behaviour covers marked work only
+
+**Status:** accepted (2026-08-29, M3)
+
+**Context.** A DK2 imp digs what is marked, but also claims floor, reinforces
+walls, carries gold to a treasury, drags bodies and flees fights. Implementing
+the others is not technically hard — claiming is one call into rules that
+already exist — but each is a job the imp starts *by itself*, so each needs an
+invented rule for when it starts and how it ranks against the rest.
+
+**Decision.** `ImpTaskSystem` implements marked work and nothing else. Marked
+work is the one job whose trigger is not in doubt: the keeper asked for it.
+
+**Consequences.** A worker in this build does less than a DK2 imp, visibly and
+by design, and every scenario run that places one says exactly which jobs are
+missing and that their priority order is UNKNOWN (Q24). The alternative —
+shipping a plausible priority order — would have put an invention at the centre
+of creature behaviour, where later evidence would be hardest to reconcile
+against it.

@@ -179,6 +179,14 @@ switch (args[0])
                               .Select(a => $"room{a.RoomId}(size>={a.RoomSize})"))}");
         Console.WriteLine($"  spells  : {string.Join(", ", c.Spells.Select(s => $"#{s.CreatureSpellId}@lvl{s.LevelAvailable}"))}");
         Console.WriteLine($"  resists : {string.Join(", ", c.Resistances.Select(x => $"{x.AttackType}={x.Value}"))}");
+
+        // Raw fixed-point values, for exact transcription into test fixtures.
+        // Fp32's denominator is 4096, so the decimal forms above are lossy.
+        Console.WriteLine($"  flags   : 0x{(uint)c.Flags:X8} {c.Flags}");
+        Console.WriteLine($"  raw     : speed={c.Speed.Raw} run={c.RunSpeed.Raw} shuffle={c.ShuffleSpeed.Raw} " +
+                          $"height={c.Height.Raw} see={c.DistanceCanSee.Raw} hear={c.DistanceCanHear.Raw} " +
+                          $"meleeRange={c.MeleeRange.Raw} recharge={c.MeleeRecharge.Raw} " +
+                          $"guard={c.GuardDuration.Raw} idle={c.IdleDuration.Raw}");
         return 0;
     }
 

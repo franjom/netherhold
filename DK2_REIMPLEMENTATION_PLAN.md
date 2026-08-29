@@ -735,7 +735,7 @@ is very expensive to retrofit.
 | **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
 
 **Status (2026-08-29).** M2 is done: the loop, the state hash, save/load and the
-scenario harness all exist and are covered by passing tests (127 now), run with
+scenario harness all exist and are covered by passing tests (163 now), run with
 and without a DK2 install. The CI workflow is written and its steps verified
 locally on Windows; it has not yet been exercised on GitHub-hosted Linux, which
 is the run that turns the pinned hash into a genuine cross-platform claim.
@@ -743,12 +743,21 @@ is the run that turns the pinned hash into a genuine cross-platform claim.
 M3 has started and is marked partial. Its terrain half is done: dig, mine,
 claim, reinforce, repair, attack and fill-in are implemented as one uniform
 data-driven rule, along with dig markers and the first real player command, and
-they are exercised against the real game's data. What its definition of done
-still asks for and does not have: an imp doing tasks, a treasury, gold reaching
-a player, and the Unity view. Nothing decides *who* works — that needs job
-selection (Q2) and pathfinding (Q5) — so the work queue is filled by tests and
-by scenario files, and every run that does so reports it. Evidence and the three
+they are exercised against the real game's data. Evidence and the three
 anomalies the data throws up: `docs/research/tile-work.md`.
+
+The first worker followed. An imp finds the nearest marked tile its keeper can
+reach, walks to it at the speed its own record gives, and digs or mines it —
+driven by a tag command and nothing else. That closes the "one imp doing tasks"
+half of M3's definition of done, with two limits stated in every scenario run
+that places a worker: it only performs **marked** work, because claiming,
+reinforcing and carrying gold are jobs an imp starts by itself and their
+priority order is UNKNOWN (Q24); and its routing is ours rather than DK2's
+(Q5) — an admitted four-connected placeholder behind an interface. Evidence:
+`docs/research/imp-tasks.md`.
+
+What M3's definition of done still asks for and does not have: a treasury, gold
+reaching a player, and the Unity view.
 
 M1 is marked partial deliberately. Its definition of done says "all 18 record
 types round-trip"; five are parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP)

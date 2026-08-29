@@ -1,0 +1,38 @@
+# The first scenario with somebody in it.
+#
+# Two imps stand in a small chamber. Their keeper marks a line of rock; the
+# imps find it, walk to it and dig it out. Nothing is injected: the only input
+# is the tag command, exactly as a player would issue it.
+#
+# What to read in the event log: a `job_taken` for each imp naming the tile it
+# chose, then `destroyed` events as the rock goes. The gap between an imp taking
+# a job and the tile going is travel plus one work period.
+#
+# What this run does NOT establish, and the report repeats it: how many imps a
+# keeper would have (nothing generates them), what an imp does when nothing is
+# marked (claiming, reinforcing and carrying gold are not implemented), how it
+# would route around a real dungeon (the pathfinder is ours, Q5), and how long
+# any of it takes in seconds (Q19/Q1).
+id: imps-dig-what-is-marked-001
+question: >
+  Given only a dig marker, does a worker find the nearest reachable marked
+  tile, walk to it and dig it out - and does a second worker join the same
+  work rather than waiting?
+map: chamber_21x17
+seed: 11
+duration_ticks: 200
+setup:
+  players:
+    - { id: 0, gold: 0, mana: 0 }
+  creatures:
+    # The chamber of chamber_21x17 is the 3x3 around (10, 8).
+    - { type: Imp, at: [10, 8], player: 0 }
+    - { type: Imp, at: [9, 8], player: 0 }
+commands:
+  # A corridor east out of the chamber, marked in one go. The imps take the
+  # near end first; the far tiles only become reachable once the near ones are
+  # gone, which is the point of marking all four at once.
+  - { at_tick: 0, player: 0, tag: [[12, 8], [13, 8], [14, 8], [15, 8]] }
+observe:
+  - state_hash
+  - events

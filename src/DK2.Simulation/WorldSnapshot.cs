@@ -25,7 +25,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 2;
+    private const int FormatVersion = 3;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -75,6 +75,33 @@ public static class WorldSnapshot
             w.Write(o.TileIndex);
             w.Write((int)o.Kind);
             w.Write(o.PlayerId);
+        }
+
+        w.Write(world.NextCreatureId);
+        w.Write(world.Creatures.Count);
+        foreach (CreatureState c in world.Creatures)
+        {
+            w.Write(c.Id);
+            w.Write(c.CreatureTypeId);
+            w.Write(c.OwnerPlayerId);
+            w.Write(c.PosX);
+            w.Write(c.PosY);
+            w.Write(c.MoveRemainder);
+            w.Write((int)c.Activity);
+            w.Write(c.TargetTileIndex);
+            w.Write((int)c.TargetWork);
+            w.Write(c.TimerTicks);
+            w.Write(c.PathIndex);
+
+            // The path is state, not a cache: a creature restored without it
+            // would re-plan and could pick a different equally short route, so
+            // the restored run would diverge from the one it claims to continue.
+            w.Write(c.Path.Count);
+            foreach (TilePos p in c.Path)
+            {
+                w.Write(p.X);
+                w.Write(p.Y);
+            }
         }
     }
 
@@ -145,6 +172,37 @@ public static class WorldSnapshot
             world.QueueWork(new TileWorkOrder(
                 r.ReadInt32(), (TileWorkKind)r.ReadInt32(), r.ReadByte()));
         }
+
+        int nextCreatureId = r.ReadInt32();
+        int creatureCount = r.ReadInt32();
+        for (int i = 0; i < creatureCount; i++)
+        {
+            var creature = new CreatureState
+            {
+                Id = r.ReadInt32(),
+                CreatureTypeId = r.ReadByte(),
+                OwnerPlayerId = r.ReadByte(),
+                PosX = r.ReadInt32(),
+                PosY = r.ReadInt32(),
+                MoveRemainder = r.ReadInt32(),
+                Activity = (CreatureActivity)r.ReadInt32(),
+                TargetTileIndex = r.ReadInt32(),
+                TargetWork = (TileWorkKind)r.ReadInt32(),
+                TimerTicks = r.ReadInt32(),
+                PathIndex = r.ReadInt32(),
+            };
+
+            int pathLength = r.ReadInt32();
+            for (int p = 0; p < pathLength; p++)
+                creature.Path.Add(new TilePos(r.ReadInt32(), r.ReadInt32()));
+
+            world.RawCreatures.Add(creature);
+        }
+
+        // Creatures are put back with their stored ids rather than re-spawned,
+        // so the counter is restored rather than derived: a level that has had
+        // creatures die must not hand out an id it has already used.
+        world.NextCreatureId = nextCreatureId;
 
         return new GameSimulation(database, world, rng, systems);
     }

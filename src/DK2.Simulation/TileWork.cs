@@ -203,6 +203,51 @@ public static class TileWorkRules
     }
 
     /// <summary>
+    /// The kinds of work a dig marker can be asking for.
+    ///
+    /// The order is not a priority. The four are mutually exclusive on the
+    /// shipped data — <see cref="TileWorkKind.Dig"/> demands unowned rock worth
+    /// no gold, <see cref="TileWorkKind.MineGold"/> demands gold, and the two
+    /// wall jobs demand ownable terrain — so at most one of them ever applies to
+    /// a tile. <c>DK2.Behavior.Tests</c> asserts that against the real terrain
+    /// table, so that a data change which broke the exclusivity would show up as
+    /// a failing test rather than as a silent priority rule nobody chose.
+    /// </summary>
+    private static readonly TileWorkKind[] TaggedWorkKinds =
+    [
+        TileWorkKind.Dig,
+        TileWorkKind.MineGold,
+        TileWorkKind.DigOwnWall,
+        TileWorkKind.DigEnemyWall,
+    ];
+
+    /// <summary>Every kind of work a dig marker can call for. Order carries no meaning.</summary>
+    public static IReadOnlyList<TileWorkKind> TaggedWork => TaggedWorkKinds;
+
+    /// <summary>
+    /// What work a tile marked by <paramref name="playerId"/> is asking for.
+    ///
+    /// This is the whole of the mapping from "the keeper marked this" to "an imp
+    /// does that": marked rock is dug, marked gold is mined, a marked wall is
+    /// dug through at one rate if it is yours and another if it is not. Which
+    /// applies follows from the terrain's flags and the tile's owner, never from
+    /// a terrain id.
+    /// </summary>
+    public static bool TryTaggedWork(
+        GameDatabase database, in TileState tile, byte playerId, out TileWorkKind kind)
+    {
+        foreach (TileWorkKind candidate in TaggedWorkKinds)
+        {
+            if (!Applies(database, tile, candidate, playerId)) continue;
+            kind = candidate;
+            return true;
+        }
+
+        kind = default;
+        return false;
+    }
+
+    /// <summary>
     /// Applies exactly one application of work to <paramref name="tile"/>.
     ///
     /// The rule is uniform and entirely data-driven:
@@ -303,6 +348,13 @@ public static class TileWorkRules
     /// <summary>
     /// Turns a tile into another terrain type at that type's starting health.
     ///
+    /// Dig markers survive only if the new terrain can still carry one. Rock
+    /// that becomes floor loses its mark, because floor cannot be marked; a gem
+    /// face, whose destroyed type is itself, keeps it. STRONGLY INFERRED, and
+    /// the reason it is not merely "always clear the mark": marking a gem face
+    /// once in the original sets imps mining it indefinitely, which a rule that
+    /// cleared the mark on every collapse would turn into a single application.
+    ///
     /// Ownership is written only when the new terrain is ownable and the work
     /// was the kind that takes ownership. It is never <i>cleared</i>, and that
     /// is deliberate: DK2's map data gives every tile an owner id including
@@ -321,7 +373,7 @@ public static class TileWorkRules
 
         tile.TerrainId = newTerrainId;
         tile.Health = next.StartingHealth;
-        tile.TaggedBy = 0;
+        if (!next.IsTaggable) tile.TaggedBy = 0;
 
         if (takeOwnership && next.IsOwnable) tile.OwnerPlayerId = playerId;
     }

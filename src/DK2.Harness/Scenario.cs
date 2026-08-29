@@ -12,9 +12,29 @@ public sealed class ScenarioPlayer
 }
 
 /// <summary>
-/// Initial conditions. Only <see cref="Players"/> is applied today; the rest
-/// are parsed so that scenarios can be written now and reported as unsupported
-/// rather than silently ignored.
+/// One creature placed on the map before the run starts.
+///
+/// <b>Placement is the harness's, not DK2's.</b> The original's imps come out of
+/// a dungeon heart or a spell and cost mana; none of that machinery exists, so a
+/// scenario that wants workers says where they stand and the report says that is
+/// what happened.
+/// </summary>
+public sealed class ScenarioCreature
+{
+    /// <summary>A CREATURES record name, e.g. <c>Imp</c>.</summary>
+    public string Type { get; set; } = "";
+
+    /// <summary>Where it starts, as <c>[x, y]</c>.</summary>
+    public List<int> At { get; set; } = [];
+
+    /// <summary>Whose creature it is.</summary>
+    public byte Player { get; set; }
+}
+
+/// <summary>
+/// Initial conditions. <see cref="Players"/> and <see cref="Creatures"/> are
+/// applied; <see cref="Rooms"/> is parsed so that scenarios can be written now
+/// and reported as unsupported rather than silently ignored.
 /// </summary>
 public sealed class ScenarioSetup
 {
@@ -23,8 +43,8 @@ public sealed class ScenarioSetup
     /// <summary>Not applied yet (rooms arrive later in M3).</summary>
     public List<Dictionary<string, object>> Rooms { get; set; } = [];
 
-    /// <summary>Not applied yet (creatures arrive with M4).</summary>
-    public List<Dictionary<string, object>> Creatures { get; set; } = [];
+    /// <summary>Creatures to place before tick 0.</summary>
+    public List<ScenarioCreature> Creatures { get; set; } = [];
 }
 
 /// <summary>

@@ -5,8 +5,8 @@ may treat it as fact.
 
 | # | Question | Status | Blocking |
 |---|---|---|---|
-| Q1 | Simulation ticks-per-second of DK2 v1.70? | UNKNOWN — Flame `limit_tps` proves fixed tick; value unmeasured | All timing fidelity (M5) |
-| Q2 | Creature job-selection priority order? OpenKeeper uses lair→sleep→eat→work — theirs or DK2's? | **NARROWED** — the candidate jobs and their percentage weights are DATA (happy/unhappy/angry tables per creature, see kwd-creatures.md). Still UNKNOWN: re-evaluation timing, how mood picks the table, interaction with availability/reachability | M4 |
+| Q1 | Simulation ticks-per-second of DK2 v1.70? | UNKNOWN — Flame `limit_tps` proves fixed tick; value unmeasured. **Negative result (2026-08-29):** the VARIABLES id space has an id 74 named `GameTicks` in the community template, but no shipped file carries it — not GlobalVariables.kwd, not any of the 71 map KWDs. Q1 cannot be answered from KWD data; it needs measurement against the running original | All timing fidelity (M5) |
+| Q2 | Creature job-selection priority order? OpenKeeper uses lair→sleep→eat→work — theirs or DK2's? | **NARROWED TWICE** — (a) the candidate jobs and their percentage weights are DATA (happy/unhappy/angry tables per creature, see kwd-creatures.md); (b) **this does not cover workers at all**: the Imp's only job-table entry is `Explore` at 100%, so digging, claiming, carrying and the rest are engine behaviour attached to the `IsWorker` flag, not table entries (see imp-tasks.md). Still UNKNOWN for non-workers: re-evaluation timing, how mood picks the table, interaction with availability/reachability. For workers, see Q24 | M4 |
 | Q3 | What RNG does DK2 use, and does its sequence matter observably? | UNKNOWN | Possibly nothing; revisit at M5 |
 | Q4 | `CMapEntry` (11 bytes) — full per-tile runtime state or cache? Field meanings? | UNKNOWN | M3 terrain runtime |
 | Q5 | `Follow_Path` (36 bytes) contents; pathfinding algorithm | UNKNOWN — the big one | M9 pathfinding fidelity |
@@ -43,3 +43,19 @@ may treat it as fact.
 | Q21 | Does a gold seam release its 3000 gold in proportion to the health removed, or in a lump when it collapses? | HYPOTHESIS (proportional) |
 | Q22 | `FillInHealth` is 5, but every fill-inable tile is already at maximum health, so one application converts it. Does fill-in restart the health accounting? | UNKNOWN |
 | Q23 | Is a dig marker per player or global? Assumed per player. | STRONGLY INFERRED |
+
+## Questions from the first worker (2026-08-29)
+
+See `docs/research/imp-tasks.md`. Q5 (pathfinding) is unchanged and still the
+biggest of these; what is new is that it is now load-bearing rather than
+theoretical.
+
+| # | Question | Status |
+|---|---|---|
+| Q24 | **Worker job priority.** An imp digs what is marked, claims unclaimed floor, reinforces walls, carries gold to a treasury, drags bodies, and flees a fight. In what order does it prefer them, and what makes it start an unprompted one? Marked work is the only job whose trigger is not in doubt, so it is the only one implemented | **UNKNOWN — blocking the rest of imp behaviour.** Distinct from Q2: worker jobs are not in the creature job tables at all |
+| Q25 | Of several marked tiles, which does an imp take? Implemented as fewest steps away, which is also what the search naturally yields. Could as easily be straight-line distance, or the order the tiles were marked in | HYPOTHESIS (nearest by path) |
+| Q26 | Does anything reserve a job, so that imps spread across several marked tiles instead of converging on one? Implemented as no reservation, which is what the original visibly does | HYPOTHESIS (no reservation) |
+| Q27 | Can a tile be worked from a diagonal neighbour, or only an orthogonal one? Implemented as orthogonal | HYPOTHESIS (orthogonal) |
+| Q28 | Is DK2's creature movement four- or eight-connected — specifically, can a creature pass diagonally between two solid tiles? Implemented as four-connected, the conservative choice. Part of Q5 but separable and cheaply testable against the original | UNKNOWN |
+| Q29 | Is a creature's `speed` in tiles per second? Three variables on the identical fixed-point scale name that unit in their own names (`BoulderSpeedTilesPerSecond` and friends), and the resulting imp/dwarf ratio matches the original | STRONGLY INFERRED |
+| Q30 | Does terrain weight a path (water visibly slower), or only the mover's speed? Implemented as uniform step cost | UNKNOWN |

@@ -66,8 +66,16 @@ One application of work:
 2. at or below zero the tile becomes its `destroyedTypeTerrainId`;
 3. at or above `maxHealth` it clamps, and — **for upward work only** — becomes
    its `maxHealthTypeTerrainId`;
-4. the new tile starts at its own terrain's `startingHealth`, and loses its dig
-   markers.
+4. the new tile starts at its own terrain's `startingHealth`, and keeps its dig
+   markers only if the new terrain is still `Taggable`.
+
+Step 4's second half was refined once the first worker existed (2026-08-29). The
+markers used to be cleared on every conversion, which is right for rock becoming
+floor and wrong for a gem face, whose destroyed type is itself: mining a marked
+gem face collapsed it, cleared the mark, and left the imp with nothing to do,
+where the original mines a marked gem face indefinitely from a single mark.
+STRONGLY INFERRED, on the same flag the mark is validated against. See
+`imp-tasks.md`.
 
 Ownership is written only when upward work converts a tile into an ownable
 type. It is never cleared: DK2's map data gives every tile an owner id including
@@ -179,12 +187,18 @@ to the presentation layer, not to the simulation.
 
 ## Who does the work
 
-Nobody, yet. `TileWorkSystem` drains a queue of work orders that something else
-fills. In DK2 that something is a working imp: it has to want the job, be able
-to reach the tile, and stand next to it. None of that exists — job selection is
-Q2, pathfinding is Q5 — so for now tests and the scenario harness queue work
-directly, and every scenario run that does so says exactly that under
-"Not answered by this run".
+An imp, since 2026-08-29 — for marked work only. `TileWorkSystem` still drains a
+queue that something else fills; the something is now
+`DK2.Simulation.Systems.ImpTaskSystem`, which finds the nearest marked tile its
+keeper can reach, walks a worker to it and queues one application per work
+period. Everything about how it chooses, routes and times that is in
+`imp-tasks.md`, and much of it is inferred rather than known.
+
+Tests and the scenario harness can still queue work directly, and that remains
+the only way to exercise the kinds a worker does not do on its own — claim,
+reinforce, repair, attack, fill in. Every scenario run that injects work says
+exactly that under "Not answered by this run", and so does every run that places
+a worker.
 
 Gold released by mining is reported as an event and dropped. Crediting a player
 directly would be inventing an economy rather than reproducing one: in the

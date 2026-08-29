@@ -103,7 +103,7 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        Assert.Equal(0x450CA816D0C7FC31UL, sim.StateHash());
+        Assert.Equal(0x0D5820465E1DB983UL, sim.StateHash());
     }
 
     [Fact]

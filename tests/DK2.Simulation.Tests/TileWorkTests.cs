@@ -283,6 +283,49 @@ public class TileWorkTests
     }
 
     [Fact]
+    public void AMarkSurvivesAGemCollapse_BecauseAGemFaceIsStillMarkable()
+    {
+        // Gems collapse into themselves. Clearing the mark on every conversion
+        // would make a marked gem face a one-shot job, when the original mines
+        // one indefinitely from a single mark. The mark is cleared only when the
+        // tile becomes something that cannot carry one.
+        GameSimulation sim = Dk2TerrainFixture.Simulation();
+        var tile = new TilePos(6, 5);
+
+        sim.Tick(InputFrame.Of(TagTilesCommand.Tag(1, tile)));
+        sim.World.QueueWork(tile.X, tile.Y, TileWorkKind.MineGold, 1);
+        sim.Tick();
+
+        Assert.Equal(Dk2TerrainFixture.Gems, sim.World.Tile(tile).TerrainId);
+        Assert.True(sim.World.Tile(tile).IsTaggedBy(1));
+    }
+
+    [Fact]
+    public void EveryTerrainAdmitsAtMostOneKindOfMarkedWork()
+    {
+        // The four marked-work kinds are tried in a fixed order, and that order
+        // is only free of policy while no tile admits two of them.
+        foreach (TerrainDef terrain in Db.Terrain.Values)
+        {
+            foreach (byte owner in new byte[] { 0, 1 })
+            {
+                var tile = new TileState
+                {
+                    TerrainId = terrain.TerrainId,
+                    OwnerPlayerId = owner,
+                    Health = terrain.StartingHealth,
+                };
+
+                int applicable = TileWorkRules.TaggedWork
+                    .Count(k => TileWorkRules.Applies(Db, tile, k, 1));
+
+                Assert.True(applicable <= 1,
+                    $"{terrain.Name} (owner {owner}) admits {applicable} kinds of marked work");
+            }
+        }
+    }
+
+    [Fact]
     public void TaggingARectangle_CoversEveryTileInIt()
     {
         GameSimulation sim = Dk2TerrainFixture.Simulation();

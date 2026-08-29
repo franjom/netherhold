@@ -8,15 +8,17 @@ Update this whenever a session ends or context is compacted.
 
 ## Current state (2026-08-29)
 
-**M3 tile mechanics: complete. M3 as a whole: partial.** M2 and the five
-record types M1 needed are done. 127 tests green with and without a DK2
-install, clean tree.
+**M3 tile mechanics and the first worker: complete. M3 as a whole: partial.**
+M2 and the five record types M1 needed are done. 163 tests green with and
+without a DK2 install, clean tree.
 
 Three honest caveats:
-- M3's definition of done also asks for an imp doing tasks, a treasury, gold
-  reaching a player, and a Unity view. None of those exist. The terrain half is
-  what is finished. **Nothing decides who works** — the work queue is filled by
-  tests and by scenario files, and every run that does so reports it.
+- M3's definition of done also asks for a treasury, gold reaching a player, and
+  a Unity view. None of those exist. **A worker only does work the keeper
+  marked** — claiming, reinforcing, carrying gold and fleeing are real imp jobs
+  that are not implemented because their trigger and priority order are UNKNOWN
+  (Q24). **And nothing generates imps**: scenario files and tests place them.
+  Every scenario run that places a worker says both of those out loud.
 - M1's stated definition of done was "all 18 record types round-trip". Five are
   parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP) plus the WAD and KWD
   containers. The rest (THINGS, TRIGGERS, PLAYERS, OBJECTS, SHOTS, …) are needed
@@ -48,7 +50,9 @@ What the simulation can do:
 | Headless scenarios | `DK2.Harness` + `scenarios/**.yaml` | runs on a real campaign map; reproducible hash series |
 | CI gate | `.github/workflows/ci.yml` | Linux + Windows, no DK2 install |
 | Dig / mine / claim / reinforce / repair / attack / fill in | `DK2.Simulation.TileWorkRules` | rules run against the real install; terrain graph terminates on a whole campaign level |
-| Dig markers, first real command | `TileTagSystem` + `TagTilesCommand` | per player; cleared on terrain change |
+| Dig markers, first real command | `TileTagSystem` + `TagTilesCommand` | per player; cleared only when the tile can no longer carry one |
+| Workers that find, walk to and do marked work | `ImpTaskSystem` + `CreatureMovementSystem` | imps dig a corridor on a synthetic map and on a shipped campaign level |
+| Grid search behind an interface | `DK2.Pathfinding.GridPathfinder` | shortest, wall-respecting, reproducible; reused buffers proven inert |
 
 Extracted data artifacts (the specification the simulation is written against):
 `docs/research/game-database-dump.md`, `creature-table-dump.md`,
@@ -56,9 +60,7 @@ Extracted data artifacts (the specification the simulation is written against):
 `maxHealth` column and full flag set (`dk2tools kwd terrain` / `kwd terrainflags`),
 which is what M3's rules are built on.
 
-**Next: the rest of M3 — a worker, a treasury, gold that goes somewhere.**
-
-Latest commit: `0039c9a` (M3 tile mechanics). 11 commits total.
+**Next: the rest of M3 — a treasury, gold that goes somewhere, rooms.**
 
 ---
 
@@ -88,10 +90,19 @@ Latest commit: `0039c9a` (M3 tile mechanics). 11 commits total.
 | `src/DK2.Simulation/Systems/TileTagSystem.cs` | Applies dig markers. |
 | `src/DK2.Simulation/Commands/TileCommands.cs` | `TagTilesCommand` — the first real player command. |
 | `src/DK2.Simulation/SimulationTiming.cs` | **The only** place ticks relate to seconds. Q1 placeholder. |
+| `src/DK2.Simulation/CreatureState.cs` | The first mutable creature state. Position is fixed point; the route is state, not a cache. |
+| `src/DK2.Simulation/Systems/ImpTaskSystem.cs` | Which marked tile a worker takes, and when it applies work. |
+| `src/DK2.Simulation/Systems/CreatureMovementSystem.cs` | Walking, at the speed the creature record gives. |
+| `src/DK2.Simulation/Systems/SimulationSystems.cs` | **The one** declaration of system order (ADR-0013). |
+| `src/DK2.Simulation/WorldPathGrid.cs` | What "walkable" means, for one particular creature. |
+| `src/DK2.Pathfinding/IPathfinder.cs`, `GridPathfinder.cs` | The Q5 placeholder, and its interface. |
 | `tests/DK2.Simulation.Tests/Dk2TerrainFixture.cs` | DK2's real numbers, transcribed so the rules test in CI. |
 | `tests/DK2.Behavior.Tests/TileWorkOnRealDataTests.cs` | The same rules against the real install — keeps the fixture from drifting. |
+| `tests/DK2.Behavior.Tests/ImpsOnRealDataTests.cs` | Same, for the Imp record, plus imps digging a real level. |
 | `scenarios/tiles/` | Dig/claim on a synthetic map; gold mining on a surveyed campaign map. |
-| `docs/research/tile-work.md` | The evidence, the confidence tags, and the three anomalies. |
+| `scenarios/imps/` | Two imps digging a corridor from nothing but a tag command. |
+| `docs/research/tile-work.md` | The tile rules: evidence, confidence tags, three anomalies. |
+| `docs/research/imp-tasks.md` | The worker: evidence, what is inferred, what is deliberately absent. |
 
 ## Running things
 
@@ -109,30 +120,39 @@ Harness output lands in `build/scenario-runs/<id>/` (gitignored).
 
 ## Immediate next steps (rest of M3)
 
-Steps 1–3 and 6 of the old list are done (tile mechanics, the first real
-command, the timing constant, real scenarios). What is left is the part that
-needs an actor, and it is where the project's two hardest questions live.
+The tile rules, the first real command, the timing constant, real scenarios and
+the first worker are done. What is left is the resource loop and the view.
 
-1. **First Imp** — spawn, task selection, movement. This is what fills the
-   `TileWorkOrder` queue that `TileWorkSystem` already drains, so the seam is
-   ready. It is also where `IPathfinder` gets its honest A* placeholder (plan
-   risk R1, Q5) and where job selection (Q2) starts to matter. Expect this to
-   be mostly research, unlike the tile rules which were mostly transcription.
-2. **Treasury and gold** — the first resource loop. `TileWorkResult` already
-   reports gold released and deliberately credits nobody; give it a carrier and
-   a destination. `MaxGoldPerTreasuryTile=3000` and
-   `MaxGoldPileOutsideTreasury=2000` are extracted and waiting.
-3. **Rooms** — `setup.rooms` is parsed by the harness and reported as
+1. **Treasury and gold** — the first resource loop, and the natural next imp
+   job. `TileWorkResult` already reports gold released and deliberately credits
+   nobody; give it a carrier and a destination. `MaxGoldPerTreasuryTile=3000`,
+   `MaxGoldPileOutsideTreasury=2000` and `MaxGoldPerDungeonHeartTile=1000` are
+   extracted and waiting. **This is also where Q24 has to be faced**: an imp
+   carrying gold is the first job it starts by itself, so it forces a rule for
+   when an imp abandons digging to carry, which is the thing `ImpTaskSystem`
+   currently refuses to invent.
+2. **Rooms** — `setup.rooms` is parsed by the harness and reported as
    unapplied. `RoomDef` carries cost, size, construction type and terrain id.
+   Rooms are also what a treasury needs to exist in, so 1 and 2 are entangled.
+3. **Claiming as an imp job** — `Claim` already works as a rule and is exercised
+   by scenario-injected work. Making an imp start one unprompted is a Q24
+   decision, not a coding one; do the research before the code.
 4. **Mana from claimed tiles** — `ManaGain`/`MaxManaGain` are on every terrain
    (Claimed Path 1, Claimed Vault 100) and nothing reads them yet.
-5. **Unity presentation** — the simulation can now run a dig-and-claim scenario
-   headlessly, which was the precondition.
+5. **Unity presentation** — the simulation now runs a dig scenario with moving
+   workers headlessly, which was the precondition. `CreatureState.PosX/PosY` are
+   fixed point in tile units; a renderer converts, the simulation never does.
 
-**Before starting step 1, read `docs/research/tile-work.md` §"What does not fit".**
-Q20 (DigRockHealth destroys a rock tile in one application) becomes visible the
-moment an imp is doing the digging, and it is a data anomaly, not a bug in the
-rules. Do not "fix" it by changing the number.
+**Before touching worker behaviour, read `docs/research/imp-tasks.md`
+§"What is not implemented, and is not guessed at".** The missing jobs are
+missing on purpose, and adding one means answering Q24 rather than picking an
+order that looks right.
+
+**And `docs/research/tile-work.md` §"What does not fit" still stands.** Q20
+(DigRockHealth destroys a rock tile in one application) is now visible in every
+imp scenario: a marked wall falls one work period after an imp reaches it,
+whatever the wall is. It is a data anomaly, not a bug in the rules. Do not "fix"
+it by changing the number.
 
 ---
 
@@ -157,6 +177,11 @@ rules. Do not "fix" it by changing the number.
 - Work orders are a FIFO queue on `WorldState`, filled by whoever is working
   (ADR-0010). Order is behaviour: never sort or deduplicate it.
 - Ticks relate to seconds in `SimulationTiming` and nowhere else (ADR-0011).
+- The pathfinder is an admitted placeholder behind `IPathfinder` (ADR-0012).
+  Four-connected and uniform-cost by deliberate conservatism, not by belief.
+- System order is declared once, in `SimulationSystems.Default()` (ADR-0013).
+- Workers do marked work only, on purpose (ADR-0014). Adding a job means
+  answering Q24, not writing code.
 - Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Resolved by
   `DK2.Data.Dk2Install`. **`DK2_DIR` is authoritative when set** — if it is set
   and invalid, no fallback is tried, which is how CI runs with no install.
@@ -186,6 +211,13 @@ rules. Do not "fix" it by changing the number.
 - **A number that does not match how the original plays is not licence to
   change it.** Reproduce the data, record the discrepancy as an open question,
   and let the scenario output show it (Q20 is the live example).
+- **A decimal printed from an `Fp32` is lossy.** Transcribe the raw value.
+  `dk2tools kwd creature <name>` prints a `raw:` line for exactly this reason;
+  the fixture's first copy of the Imp's hunger rate was 32767 where the raw
+  value is 134213632, and only the real-data guard caught it.
+- **Read a creature's capability from its flags, never its id.** `IsWorker`
+  picks out the Imp and the Dwarf; `CanWalkOnWater` / `CanWalkOnLava` decide
+  what a mover may cross. Same rule as terrain flags, same reason.
 - Confidence tags are mandatory in docs and code comments:
   **CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN**.
 - Every researched mechanic gets a `docs/research/<name>.md` using the template
@@ -247,12 +279,20 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 23 (one answered). The ones that
+`docs/research/open-questions.md` holds all 30 (one answered). The ones that
 gate progress:
 
+- **Q24 — worker job priority.** New, and now the one blocking the rest of M3.
+  An imp digs what is marked, but also claims, reinforces, carries gold and
+  flees; the order it prefers them in and what makes it start an unprompted one
+  are UNKNOWN. This is *not* Q2 — worker jobs are not in the creature job tables
+  at all (the Imp's only entry is `Explore` at 100%).
 - **Q1 — simulation tick rate.** Blocking any timing claim. Flame's `limit_tps`
   patch proves it is fixed; the value is unmeasured. It is one constant,
-  `SimulationTiming.TicksPerSecond`, and it must stay that way.
+  `SimulationTiming.TicksPerSecond`, and it must stay that way. **Do not go
+  looking in the KWD data again**: id 74 `GameTicks` exists in the format's id
+  space but no shipped file carries it — checked across every editor KWD and all
+  71 map KWDs. Q1 needs measurement against the running original.
 - **Q19 — what the health deltas are *per*.** Tied to Q1. The variables table
   spells out `…PerSecond` / `…Seconds` on its other entries and not on these
   ten, which is the whole of the ambiguity.
@@ -264,15 +304,19 @@ gate progress:
   destination of whichever upward job the terrain admits. Do not reopen it
   without new evidence.
 - **Q5 — pathfinding.** The project's biggest risk (plan §9, R1). Flame names
-  `Follow_Path` but has zero named fields for it. Nobody has solved this.
+  `Follow_Path` but has zero named fields for it. Nobody has solved this. Now
+  load-bearing rather than theoretical: `GridPathfinder` routes every worker,
+  and Q28 (four- or eight-connected?) and Q30 (does terrain weight a path?) are
+  the two cheapest pieces of it to settle against the original.
 - **Q2 — job selection.** Narrowed: candidates and weights are *data*. The
   remaining unknown is the procedure around them (re-evaluation timing, how
   mood picks which of the three tables applies, handling unavailable jobs).
 - **Q7 — creature moods.** Genuinely unsolved; OpenKeeper's system is an empty
   stub after 12 years.
 - **New at M2 — system update order.** DK2's own per-tick subsystem ordering is
-  UNKNOWN. Ours is explicit and declared at registration. It starts to matter
-  around M4; treat it as a research question then, not a convenience choice.
+  UNKNOWN. Ours is explicit and declared in exactly one place
+  (`SimulationSystems.Default()`, ADR-0013). It starts to matter around M4;
+  treat it as a research question then, not a convenience choice.
 
 ---
 

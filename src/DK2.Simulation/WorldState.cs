@@ -100,6 +100,8 @@ public sealed class WorldState
     private readonly TileState[] _tiles;
     private readonly PlayerState[] _players; // kept sorted by PlayerId, for stable hashing
     private readonly List<TileWorkOrder> _pendingWork = [];
+    private readonly List<CreatureState> _creatures = [];
+    private int _nextCreatureId = 1;
 
     private WorldState(int width, int height, TileState[] tiles, PlayerState[] players)
     {
@@ -177,6 +179,53 @@ public sealed class WorldState
 
     internal void ClearPendingWork() => _pendingWork.Clear();
 
+    /// <summary>
+    /// Every creature in the level, in spawn order.
+    ///
+    /// The order is behaviour, not bookkeeping: creatures are updated in it, so
+    /// two imps that reach for the same job get it in this order. Never sorted,
+    /// never reordered — removing a creature must preserve the order of the
+    /// rest.
+    /// </summary>
+    public IReadOnlyList<CreatureState> Creatures => _creatures;
+
+    /// <summary>
+    /// Puts a creature on the map, at the centre of the given tile.
+    ///
+    /// <b>This is not how DK2 makes creatures.</b> The original's imps come from
+    /// a dungeon heart, from the Create Imp spell at a mana cost, and from
+    /// specials — governed by <c>TimeBeforeFreeImpGeneratedSeconds</c>,
+    /// <c>MinimumImpThreshold</c> and <c>ImpPopCountdownTimeSeconds</c>, none of
+    /// which can run without rooms and mana. Until they exist, something outside
+    /// the simulation (a test, a scenario file) places creatures directly, and
+    /// says so.
+    /// </summary>
+    public CreatureState SpawnCreature(byte creatureTypeId, byte ownerPlayerId, TilePos at)
+    {
+        if (!Contains(at))
+            throw new ArgumentOutOfRangeException(nameof(at), at, "Spawn tile is outside the map.");
+
+        var creature = new CreatureState
+        {
+            Id = _nextCreatureId++,
+            CreatureTypeId = creatureTypeId,
+            OwnerPlayerId = ownerPlayerId,
+            PosX = CreatureState.CentreOf(at.X),
+            PosY = CreatureState.CentreOf(at.Y),
+            Activity = CreatureActivity.Idle,
+        };
+
+        _creatures.Add(creature);
+        return creature;
+    }
+
+    public CreatureState? CreatureById(int id)
+    {
+        foreach (CreatureState c in _creatures)
+            if (c.Id == id) return c;
+        return null;
+    }
+
     public bool HasPlayer(byte playerId)
     {
         foreach (PlayerState p in _players)
@@ -228,6 +277,14 @@ public sealed class WorldState
     internal TileState[] RawTiles => _tiles;
     internal PlayerState[] RawPlayers => _players;
     internal List<TileWorkOrder> RawPendingWork => _pendingWork;
+    internal List<CreatureState> RawCreatures => _creatures;
+
+    /// <summary>Restores the id counter after a snapshot, so ids stay unique across a save.</summary>
+    internal int NextCreatureId
+    {
+        get => _nextCreatureId;
+        set => _nextCreatureId = value;
+    }
 
     public void HashInto(ref Hash64 hash)
     {
@@ -240,5 +297,13 @@ public sealed class WorldState
         foreach (PlayerState p in _players) p.HashInto(ref hash);
         hash.Add(_pendingWork.Count);
         foreach (TileWorkOrder o in _pendingWork) o.HashInto(ref hash);
+
+        // The id counter is hashed too: two worlds holding identical creatures
+        // but disagreeing about the next id will diverge the moment either one
+        // spawns, which is exactly the kind of late divergence the gate exists
+        // to catch early.
+        hash.Add(_creatures.Count);
+        hash.Add(_nextCreatureId);
+        foreach (CreatureState c in _creatures) c.HashInto(ref hash);
     }
 }
