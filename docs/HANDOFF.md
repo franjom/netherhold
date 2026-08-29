@@ -50,6 +50,39 @@ Extracted data artifacts (the specification the simulation is written against):
 
 **Next milestone: M3 — dungeon prototype.** Nothing started.
 
+Latest commit: `2e457e3` (M2). 9 commits total.
+
+---
+
+## Where the M2 code lives
+
+| File | What it is |
+|---|---|
+| `src/DK2.Core/Hash64.cs` | FNV-1a structural hash. The determinism gate's foundation. |
+| `src/DK2.Simulation/GameSimulation.cs` | The loop, `StateHash()`, system registration. |
+| `src/DK2.Simulation/WorldState.cs` | `TileState`, `PlayerState`, `FromMap`. All mutable state. |
+| `src/DK2.Simulation/ISimulationSystem.cs` | `SimulationContext` — the only things a system may touch. |
+| `src/DK2.Simulation/InputFrame.cs` | `PlayerCommand` base; no concrete commands yet. |
+| `src/DK2.Simulation/WorldSnapshot.cs` | Binary save/load, RNG position included. |
+| `src/DK2.Simulation/SimulationEvents.cs` | Write-only observation. |
+| `src/DK2.Data.Model/GameDatabase.cs` | The data/simulation seam. Immutable, no IO. |
+| `src/DK2.Data/GameDatabaseLoader.cs` | Builds one from an install; loads campaign maps. |
+| `src/DK2.Harness/Scenario.cs`, `ScenarioRunner.cs` | YAML scenarios and the run report. |
+| `tests/DK2.Simulation.Tests/TestWorld.cs` | Synthetic database + `ChaosSystem`. Test-only, no DK2 mechanics. |
+| `docs/architecture/simulation-loop.md` | Why the gate is built the way it is. |
+
+## Running things
+
+```
+dotnet build DK2.slnx
+dotnet test  DK2.slnx
+DK2_DIR=/nonexistent dotnet test DK2.slnx      # what CI sees: install-gated tests skip
+dotnet run --project src/DK2.Harness -- list
+dotnet run --project src/DK2.Harness -- run scenarios
+```
+
+Harness output lands in `build/scenario-runs/<id>/` (gitignored).
+
 ---
 
 ## Immediate next steps (M3)
@@ -188,3 +221,16 @@ caught real errors so far:
 - **New at M2 — system update order.** DK2's own per-tick subsystem ordering is
   UNKNOWN. Ours is explicit and declared at registration. It starts to matter
   around M4; treat it as a research question then, not a convenience choice.
+
+---
+
+## Corrections carried forward
+
+At the end of the previous session I told the owner that `AGENTS.md` references
+a `docs/ai/CLAUDE.md` scoping the assistant to research and analysis, and
+suggested it might need updating now that implementation has started. **That was
+wrong.** No `CLAUDE.md` exists anywhere in the repository and `AGENTS.md` makes
+no such reference. There is nothing to reconcile; do not go looking for it.
+
+`AGENTS.md` itself is the operating instruction, and it does not restrict
+implementation.
