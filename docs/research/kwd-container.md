@@ -29,3 +29,13 @@ Tests: `DK2.Data.Tests.KwdSmokeTests`
 Known exceptions: none yet.
 
 Open questions: KLD relationship to KWD (same container, level-local data?).
+
+## Update 2026-08-29 (parser implemented)
+
+Header layout CONFIRMED (KwdReader): 5 x u32 fixed header (sig, byteSize=4,
+chunkEndOffset, checkOne=sig+1, headerBlockSize), then headerBlockSize bytes of
+type-specific header (general: u32 itemCount, u32 unk, 2 x 10-byte timestamp),
+then u32 checkTwo (sig+2 or sig+3), u32 contentSize, then records. Chunks
+repeat until EOF (GlobalVariables.kwd = VARIABLES + THINGS chunks).
+Timestamps are 10 bytes: u16 year, u8 month, u8 day, 2 unk, u8 h, u8 m, u8 s, pad.
+Full corpus parses: 13 editor KWDs, 71 map KWDs, 330 KLDs.
