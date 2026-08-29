@@ -10,14 +10,37 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, and mana:
 complete. M3 as a whole: partial.** M2 and the five record types M1 needed are
-done. 226 tests green with and without a DK2 install, clean tree.
+done. 231 tests green with and without a DK2 install, clean tree.
+
+> ### ⚠ Read this first: the owner answered 23 open questions on 2026-08-29
+>
+> In two sittings the owner supplied, from playing the original, answers to
+> **Q7, Q9, Q12, Q20, Q21, Q24, Q25, Q26, Q27, Q28, Q30, Q31, Q33, Q34, Q36,
+> Q37, Q37a, Q38, Q40, Q42, Q43, Q44, Q46** — plus the one-dungeon-heart rule.
+> Most are recorded and **not yet implemented**. `docs/research/open-questions.md`
+> has every one; `docs/research/observation-checklist.md` has the summary and
+> what is still worth asking.
+>
+> **Four of them say the code is wrong.** These are not bugs to find — they are
+> known defects with a known correct answer, listed under "Immediate next steps"
+> below. Do not spend time rediscovering them:
+> - **Q28** — movement is eight-connected; `GridPathfinder` is four-connected.
+> - **Q44/Q42** — an imp stands *on* the floor tile it claims, not beside it, and
+>   the ownership test belongs on that tile's neighbour.
+> - **Q43** — three imps a face, twelve a block, and a fourth goes elsewhere;
+>   ours converge without limit.
+> - **Q47** — every tile-work rate here runs about twice as fast as the original.
+>
+> **The lesson, now step 0 of the research method: ask the owner.** Several of
+> these had been written up as unanswerable from the KWD data, which is not the
+> same as unanswerable. The test is "would a player *see* this happen?"
 
 Three honest caveats:
 - M3's definition of done also asks for gold reaching a player and a Unity view.
   Neither exists. There is a treasury now, but **nothing carries mined gold to
-  it** (Q31), and **a worker only does work the keeper marked** — claiming,
-  reinforcing, carrying gold and fleeing are real imp jobs that are not
-  implemented because their trigger and priority order are UNKNOWN (Q24).
+  it** (Q31 — the behaviour is now known, it is simply unbuilt). A worker does
+  marked excavation, then claims, then reinforces (Q24, ADR-0018); what it does
+  when all three run out is stand still, where DK2 would have it wander (Q41).
   **Nothing generates imps** either: scenario files and tests place them. Every
   scenario run that places a worker says all of that out loud. And **a room does
   nothing**: a treasury and a dungeon heart hold gold because a variable says
@@ -58,7 +81,7 @@ What the simulation can do:
 | CI gate | `.github/workflows/ci.yml` | Linux + Windows, no DK2 install |
 | Dig / mine / claim / reinforce / repair / attack / fill in | `DK2.Simulation.TileWorkRules` | rules run against the real install; terrain graph terminates on a whole campaign level |
 | Dig markers, first real command | `TileTagSystem` + `TagTilesCommand` | per player; cleared only when the tile can no longer carry one |
-| Workers that find, walk to and do marked work | `ImpTaskSystem` + `CreatureMovementSystem` | imps dig a corridor on a synthetic map and on a shipped campaign level |
+| Workers that excavate, then claim, then reinforce | `ImpTaskSystem` + `CreatureMovementSystem` | the priority order is CONFIRMED (ADR-0018); imps dig a corridor on a synthetic map and on a shipped campaign level, then claim the floor they opened |
 | Grid search behind an interface | `DK2.Pathfinding.GridPathfinder` | shortest, wall-respecting, reproducible; reused buffers proven inert |
 | Rooms: where one may go, what it costs | `RoomRules` + `BuildRoomCommand` | placement flags partition the shipped rooms; ground rules run on a campaign level |
 | Gold, stored in tiles rather than on players | `GoldStore` | per-tile limits honoured; a first treasury is paid for out of the dungeon heart |
@@ -71,7 +94,9 @@ Extracted data artifacts (the specification the simulation is written against):
 (`dk2tools kwd terrain` / `kwd terrainflags` / `kwd terrainmana` / `kwd rooms` /
 `kwd roomflags`), which is what M3's rules are built on.
 
-**Next: the rest of M3 — the Unity view, and gold that reaches a keeper.**
+**Next: four known defects with known answers, then the Unity view.** See
+"Immediate next steps" — the gold carrier, claiming from the tile itself,
+eight-connected movement and the crowding cap.
 
 How this milestone stands against the twelve long-term goals in `AGENTS.md`, and
 which of them have deadlines attached: `docs/GOAL_ALIGNMENT.md`. Re-run that
@@ -150,39 +175,71 @@ Harness output lands in `build/scenario-runs/<id>/` (gitignored).
 
 ## Immediate next steps (rest of M3)
 
-The tile rules, the first worker, rooms, the treasury and mana are done. What is
-left is the view, and the half of the gold loop that needs a carrier.
+**The order changed on 2026-08-29.** The owner's answers turned four research
+questions into ordinary implementation work, and that work now comes before the
+Unity view, because every one of them is a behaviour a renderer would display
+incorrectly.
 
-1. **Unity presentation** — the simulation runs a dig scenario with moving
+1. **The gold carrier (Q31)** — the remaining half of M3's definition of done,
+   and no longer blocked on research. **The behaviour is known:** if the keeper
+   has free capacity in a treasury or dungeon heart, the mining imp takes the
+   gold into its own hands up to `maxGoldHeld` (Imp: 1400), carries it and adds
+   it to the store. If there is nowhere to put it, the imp keeps mining and a
+   lump grows on the floor in front of it up to a cap — candidate
+   `MaxGoldPileOutsideTreasury` (2000), unconfirmed. So **a pile is the fallback,
+   not the first step**, and carrying is the tail of a mining job rather than a
+   job an imp chooses — which is why it is deliberately absent from the ADR-0018
+   priority list. Still open: which treasury tile fills first (Q35, and the owner
+   flagged their answer as belief rather than observation).
+2. **Claiming from the tile itself (Q44/Q42)** — **a known defect.** An imp jumps
+   onto the tile it claims and stays ~500 ms; ours works it from a neighbour.
+   The ownership condition moves with it: it is the *claimed tile's neighbour*
+   that must belong to the keeper, not the tile the imp stands on. Touches
+   `ImpTaskSystem.TryJobBeside` / `IsInWorkingPosition`, which currently have one
+   adjacency model for walls and floor alike and need two (Q49).
+3. **Eight-connected movement (Q28)** — **a known defect.** Creatures cut
+   diagonal corners; `GridPathfinder` is four-connected, so every route it
+   produces is an overestimate. Settle Q48 first if possible (what a diagonal
+   step costs) — uniform cost makes diagonals a free shortcut, octile 14/10 keeps
+   distance honest. ADR-0012 already frames the pathfinder as a replaceable
+   placeholder behind `IPathfinder`, which is exactly the seam this uses.
+4. **The crowding cap (Q43)** — **a known defect.** Three imps a face, twelve a
+   block, and a fourth that cannot reach a free face **goes and finds other
+   work** rather than queueing. Needs an imp's intended standing tile to be
+   visible to job selection.
+5. **Unity presentation** — the simulation runs a dig scenario with moving
    workers and a keeper building a room, headlessly, which was the precondition.
    `CreatureState.PosX/PosY` are fixed point in tile units; a renderer converts,
    the simulation never does. **`docs/GOAL_ALIGNMENT.md` gap 3 applies here and
    is the expensive one to miss: the asset abstraction layer must land in the
    same milestone as the first Unity view, not after it.**
-2. **Gold reaching a keeper (Q31)** — the remaining half of M3's definition of
-   done, and the one that is blocked on research rather than on typing. The
-   treasury and the spill rule exist; what is missing is the carrier. Three
-   things have to be settled first, and none can be guessed: does the mining imp
-   take the gold it freed or does it land on the floor as a pile (a pile is an
-   OBJECT, so that branch needs M6); what decides when an imp stops mining and
-   delivers (the Imp's `maxGoldHeld` is 1400 against ~1363 an application from a
-   seam and 25 from a gem face — recorded in `rooms-and-gold.md`); and which
-   treasury tile it fills (Q35). **This is also where Q24 has to be faced.**
-3. **Claiming as an imp job** — `Claim` already works as a rule and is exercised
-   by scenario-injected work. Making an imp start one unprompted is a Q24
-   decision, not a coding one; do the research before the code.
-4. **What rooms actually do** — a lair, a hatchery, a library and the rest are
+6. **What rooms actually do** — a lair, a hatchery, a library and the rest are
    inert terrain. Each needs its own research note; none can be guessed from the
    ROOMS record, which carries art, size and cost and nothing about behaviour.
+   Q45 (minimum size for a room to *function*) is the shape of that answer and
+   the owner is investigating it.
+
+**Not on this list, on purpose: Q47, the tile-work rates.** Everything here runs
+about twice as fast as the original, and the reading that fits is an application
+landing twice a second applying half the tabled delta — self-consistent, because
+that delivers the tabled amount per second. It is not implemented because the fit
+rests on ranges rather than exact counts, and because it changes *when* a tile
+flips rather than how fast it wears down. Get exact hit counts before touching
+`SimulationTiming.WorkApplicationPeriodTicks`.
 
 **Before touching worker behaviour, read `docs/research/imp-tasks.md`
-§"What is not implemented, and is not guessed at".** The missing jobs are
-missing on purpose, and adding one means answering Q24 rather than picking an
-order that looks right.
+§"What is not implemented, and is not guessed at".** The priority order is no
+longer among the unknowns — it is CONFIRMED and built (ADR-0018). What is still
+missing is missing on purpose: wandering (Q41), the crowding cap (Q43), dragging
+bodies, fleeing, and picking up gold somebody else dropped.
 
 **And before adding to `RoomRules`, read `docs/research/rooms-and-gold.md`
-§"What is not implemented, and is not guessed at".** Same discipline: rooms have
-no size rules, no selling and no behaviour on purpose.
+§"What is not implemented, and is not guessed at".** Rooms still have no
+behaviour and no selling on purpose. Two of that file's open questions are now
+answered and the file has not caught up with either: **a room tile must touch
+land the keeper owns (Q33, not enforced — bridges can still start in open
+water), and selling refunds 50% of cost per tile (Q34) — a number that is in
+neither candidate variable, so the data cannot supply it.**
 
 **And before adding to `ManaRules`, read `docs/research/mana.md` §"What is not
 implemented, and is not guessed at".** The mana ceiling is the cautionary tale
@@ -196,11 +253,17 @@ second and never moves, which refutes the growing-ceiling variant as well.
 candidate explanation left, and **may not be used to justify a mana rule**
 (Q37a).
 
-**And `docs/research/tile-work.md` §"What does not fit" still stands.** Q20
-(DigRockHealth destroys a rock tile in one application) is now visible in every
-imp scenario: a marked wall falls one work period after an imp reaches it,
-whatever the wall is. It is a data anomaly, not a bug in the rules. Do not "fix"
-it by changing the number.
+**And `docs/research/tile-work.md` §"What does not fit" still stands, but has
+been reframed — read Q47 before Q20.** `DigRockHealth` destroying a rock tile in
+one application is still a data anomaly and must not be "fixed" by changing the
+number. What is new is that it is now the *only* anomaly: measured against the
+original, every rate here runs about twice as fast, and an application landing
+twice a second applying half the tabled delta reconciles mining exactly and
+claiming approximately. That reading is self-consistent — half the delta twice a
+second is the delta per second — so **the balance numbers are per-second and the
+granularity is what is wrong.** Not implemented: the fit rests on ranges, and
+exact hit counts are needed first. `tile-work.md` itself has not been rewritten
+for this; Q47 in `open-questions.md` is the current statement.
 
 ---
 
@@ -228,8 +291,9 @@ it by changing the number.
 - The pathfinder is an admitted placeholder behind `IPathfinder` (ADR-0012).
   Four-connected and uniform-cost by deliberate conservatism, not by belief.
 - System order is declared once, in `SimulationSystems.Default()` (ADR-0013).
-- Workers do marked work only, on purpose (ADR-0014). Adding a job means
-  answering Q24, not writing code.
+- Imps take jobs in a strict CONFIRMED order - marked excavation, then claiming,
+  then reinforcing (ADR-0018, superseding ADR-0014). Carrying gold is NOT in that
+  list: it is the tail of a mining job, not a job an imp chooses.
 - **Gold lives in tiles; a player has no gold counter** (ADR-0015). DK2 has no
   player-gold variable — it has four per-place limits. `GoldStore` is the only
   way gold moves.
@@ -361,21 +425,26 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 41 (three answered). The ones that
-gate progress:
+`docs/research/open-questions.md` holds all 50, of which **23 were answered on
+2026-08-29 by the owner** and most of those are recorded rather than built. The
+ones that gate progress:
 
-- **Q40 — losing your dungeon heart is defeat.** CONFIRMED (owner observation)
-  and **not implemented**: nothing eliminates a player. What defeat does to a
-  keeper's creatures, rooms, land and gold is unresearched and belongs with
-  objectives and win conditions at M6, not with mana.
-- **Q31 — where mined gold goes.** The other half of M3's gold loop. Needs the
-  OBJECTS record for the gold-pile branch (M6) and measurement against the
-  original for the threshold. See the "Immediate next steps" entry.
-- **Q24 — worker job priority.** Still the one blocking the rest of M3.
-  An imp digs what is marked, but also claims, reinforces, carries gold and
-  flees; the order it prefers them in and what makes it start an unprompted one
-  are UNKNOWN. This is *not* Q2 — worker jobs are not in the creature job tables
-  at all (the Imp's only entry is `Explore` at 100%).
+- **Q47 — every tile-work rate here is about twice as fast as the original.**
+  The largest live question in the tile mechanics, and the one most likely to be
+  misread by a future session: the *rate* looks right and the *granularity* does
+  not. Needs exact hit counts, not ranges. Supersedes the old framing of Q20,
+  which treated `DigRockHealth` as one odd number — it is now the sole outlier
+  in a model that otherwise fits.
+- **Q40 — losing your dungeon heart is defeat.** Now fully described (the
+  defeated keeper's creatures leave by the nearest portal; rivals claim their
+  rooms and gold) and **not implementable yet**: it needs portals, which are an
+  M6 record. Scheduled with objectives and win conditions.
+- **Q7 — the creature mood model.** No longer a blank sheet. The four things that
+  anger a creature are recorded and three of them map onto fields already parsed
+  per creature (`AngerNoLair`, `AngerNoFood`, `AngerNoPay`). What is missing is
+  the shape — accumulation, decay, thresholds. This was the area nobody had
+  solved; it is now the area with a starting point.
+- **Q1 — simulation tick rate.** Blocking any timing claim. Flame's `limit_tps`
 - **Q1 — simulation tick rate.** Blocking any timing claim. Flame's `limit_tps`
   patch proves it is fixed; the value is unmeasured. It is one constant,
   `SimulationTiming.TicksPerSecond`, and it must stay that way. **Do not go
