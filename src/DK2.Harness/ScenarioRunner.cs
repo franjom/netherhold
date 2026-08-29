@@ -117,12 +117,22 @@ public sealed class ScenarioRunner
             "possession and research all cost mana in DK2 and none of them exists yet, so a mana " +
             "total in this run is what a keeper would have earned, not what they would have left");
         unsupported.Add(
-            "a dungeon heart contributes no mana. DungeonHeartManaGenerationIncreasePerSecond (30) " +
-            "is per heart, and a heart is a room instance - rooms here are terrain, so there is " +
-            "nothing to count (Q37)");
-        unsupported.Add(
             "mana is paid once a game second and a game second is TicksPerSecond ticks, which is a " +
             "placeholder (Q1). The totals are right; the wall-clock rate they imply is not a claim");
+
+        byte? heartTerrain = ManaRules.DungeonHeartTerrainId(_database);
+        if (heartTerrain is null) return;
+
+        for (int i = 0; i < world.TileCount; i++)
+        {
+            if (world.TileAtIndex(i).TerrainId != heartTerrain) continue;
+
+            unsupported.Add(
+                "a dungeon heart on this map is terrain and a mana source and nothing else. In DK2 " +
+                "losing it is defeat, and defeat is not implemented: a keeper whose heart is beaten " +
+                "down here simply stops earning the heart's 30 a second and plays on");
+            return;
+        }
     }
 
     /// <summary>

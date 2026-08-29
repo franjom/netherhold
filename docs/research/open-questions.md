@@ -77,12 +77,13 @@ different hat.
 
 ## Questions from mana (2026-08-29)
 
-See `docs/research/mana.md`. Q37 is the one with teeth: it is the difference
-between a keeper's mana ceiling being flat and being a function of their
-dungeon, and our answer is currently the generous one.
+See `docs/research/mana.md`. Q37 was the one with teeth and it is now answered,
+by the owner rather than by the data: the ceiling is flat.
 
 | # | Question | Status |
 |---|---|---|
-| Q37 | **Does a keeper have a computed mana ceiling?** Three variables look like contributions to one — `DungeonHeartMaxManaIncrease` (32000), `DungeonHeartManaGenerationIncreasePerSecond` (30) and `TerrainDef.MaxManaGain` (non-zero on Claimed Vault alone, where it just repeats `ManaGain`) — which would make `MaximumManaThreshold` (200000) an absolute limit on top of a smaller per-keeper one. Implemented as flat, so a one-heart keeper's ceiling here is plausibly six times too high. Cheap to settle: read the mana bar's maximum in the original, claim a mana vault, read it again. Also settles whether the heart's contribution is per heart tile or per heart room — the second needs a room-instance concept we do not have | **UNKNOWN — the mana model's one real gap** |
+| Q37 | **Does a keeper have a computed mana ceiling?** Three variables looked like contributions to one — `DungeonHeartMaxManaIncrease` (32000), `DungeonHeartManaGenerationIncreasePerSecond` (30) and `TerrainDef.MaxManaGain` — which would have made `MaximumManaThreshold` (200000) an absolute limit on top of a smaller per-keeper one. **ANSWERED (2026-08-29, owner observation of the original): 200000 is the ceiling every keeper has, and it does not grow with the dungeon.** The implementation was already flat and is unchanged. The same observation dissolved the heart's per-heart-or-per-tile ambiguity — a keeper has at most one heart, so its 30 a second is now implemented. Do not reopen without new evidence | **ANSWERED — implemented as observed** |
+| Q37a | Residual: what are `DungeonHeartMaxManaIncrease` (32000) and `TerrainDef.MaxManaGain` (100, on Claimed Vault alone) *for*, given the ceiling is flat at 200000? Candidates: the ceiling starts lower and grows toward 200000; they are legacy or editor-only data; they mean something else entirely. Both are read by nothing, so nothing depends on the answer. Cheap to settle: watch whether the mana bar's maximum changes as a dungeon grows | UNKNOWN — nothing depends on it |
 | Q38 | Is `MaximumManaGainPerSecond` (500) a per-keeper cap or one shared across the level? Implemented per keeper: a shared cap would make one keeper's expansion throttle another's, which is not how the original plays | HYPOTHESIS (per keeper) |
 | Q39 | Does mana accrue smoothly or in whole seconds? Ours is once a game second (ADR-0017), which is invisible in any total and visible only in the shape of the counter. Unmeasurable until Q1 is | UNKNOWN — nothing depends on it |
+| Q40 | **Losing your dungeon heart is defeat** (CONFIRMED — owner observation). Not implemented: nothing eliminates a player, and a keeper whose heart is beaten down here simply stops earning its 30 a second and plays on. What defeat *does* — to their creatures, rooms, claimed land and gold — is unresearched, and belongs with objectives and win conditions at M6 rather than with mana | **CONFIRMED but NOT IMPLEMENTED** — scheduled M6 |

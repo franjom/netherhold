@@ -202,6 +202,7 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.MaximumManaThreshold, 200000);
         Set(vars, VariableTypeId.MaximumManaGainPerSecond, 500);
         Set(vars, VariableTypeId.ExcessManaDecreaseRatePerSecond, 5);
+        Set(vars, VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond, 30);
         return vars;
     }
 

@@ -181,6 +181,77 @@ public class ManaTests
         Assert.Equal(9, run.Mana(Keeper));
     }
 
+    // ---- the dungeon heart ---------------------------------------------
+
+    /// <summary>
+    /// A keeper's heart pays a flat 30 a second on top of their land, which is
+    /// why a keeper with a heart and nothing else still has an income.
+    /// </summary>
+    [Fact]
+    public void ADungeonHeartPaysOnTopOfTheLand()
+    {
+        Run run = Start();
+
+        // Off the claimed block, so the land's nine is untouched — putting the
+        // heart *on* claimed floor costs a tile of income, which is
+        // <see cref="HeartTerrainItselfPaysNothing"/>'s business.
+        GiveHeart(run, Keeper, new TilePos(5, 1));
+
+        run.Seconds(1);
+        Assert.Equal(9 + 30, run.Mana(Keeper));
+    }
+
+    /// <summary>
+    /// <b>Once per keeper, not once per tile.</b> A dungeon heart is 5×5 in the
+    /// shipped data, and a keeper has at most one of them ever — losing it is
+    /// what defeat is. So 25 heart tiles are worth 30 a second between them, and
+    /// counting tiles would have been wrong by a factor of 25.
+    /// </summary>
+    [Fact]
+    public void AWholeHeartIsWorthOneHeart_NotOnePerTile()
+    {
+        Run run = Start();
+        GiveHeart(run, Keeper, new TilePos(5, 1), new TilePos(6, 1), new TilePos(7, 1));
+
+        run.Seconds(1);
+        Assert.Equal(9 + 30, run.Mana(Keeper));
+    }
+
+    [Fact]
+    public void AKeeperWithNoHeartGetsNothingFromOne()
+    {
+        Run run = Start();
+        GiveHeart(run, Rival, new TilePos(5, 1));
+
+        run.Seconds(1);
+        Assert.Equal(9, run.Mana(Keeper));
+        Assert.Equal(30, run.Mana(Rival));
+    }
+
+    /// <summary>
+    /// Heart terrain generates no mana of its own — the 30 is the keeper's, not
+    /// the tile's. Paving claimed floor into a heart therefore costs income the
+    /// same way any other room does.
+    /// </summary>
+    [Fact]
+    public void HeartTerrainItselfPaysNothing()
+    {
+        Run run = Start();
+        GiveHeart(run, Keeper, new TilePos(1, 1), new TilePos(2, 1));
+
+        run.Seconds(1);
+        Assert.Equal(7 + 30, run.Mana(Keeper));
+    }
+
+    /// <summary>Somewhere for the heart's 30 a second to come from.</summary>
+    private static void GiveHeart(Run run, byte player, params TilePos[] tiles)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        RoomDef heart = database.Room(RoomTypeId.DungeonHeart);
+        foreach (TilePos p in tiles)
+            RoomRules.Place(database, ref run.World.Tile(p), heart, player);
+    }
+
     // ---- the two limits ------------------------------------------------
 
     [Fact]

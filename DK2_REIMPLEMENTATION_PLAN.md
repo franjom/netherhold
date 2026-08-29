@@ -768,16 +768,23 @@ placeable-on flags, so nothing in the rules knows what a bridge is (ADR-0016).
 Evidence: `docs/research/rooms-and-gold.md`.
 
 Mana came last, and it is the first thing in the simulation that changes because
-time passed. A keeper's income is the sum of `ManaGain` over the tiles they own,
-capped by `MaximumManaGainPerSecond`, paid once a game second (ADR-0017). The
-finding worth keeping is again in the zeroes: three terrain types out of 41
-generate any mana at all, and they are exactly the ownable non-room ones — so
-claiming ground raises income, losing it lowers it, and building a room on your
-own floor takes that floor off the payroll, none of which is written anywhere.
-What was *not* done matters as much: three variables look like contributions to
-a per-keeper mana ceiling and all three were left unread, so our ceiling is flat
-and plausibly six times too generous for a one-heart keeper (Q37). Evidence:
-`docs/research/mana.md`.
+time passed. A keeper's income is the sum of `ManaGain` over the tiles they own
+plus a flat 30 for their dungeon heart, capped by `MaximumManaGainPerSecond` and
+paid once a game second (ADR-0017). The finding worth keeping is again in the
+zeroes: three terrain types out of 41 generate any mana at all, and they are
+exactly the ownable non-room ones — so claiming ground raises income, losing it
+lowers it, and building a room on your own floor takes that floor off the
+payroll, none of which is written anywhere.
+
+Two things the files could not settle came from the owner playing the original,
+which is what the oracle is for: the mana ceiling is a flat 200000 for every
+keeper and does not grow with the dungeon, and **a keeper has at most one dungeon
+heart, whose loss is defeat.** The first closed a question that three
+plausible-looking variables would otherwise have been guessed into
+(`MaxManaGain`, `DungeonHeartMaxManaIncrease`); the second turned the heart's
+"30 per heart" from unimplementable — a heart is a room instance and rooms here
+are terrain — into a boolean. Defeat itself is not implemented and belongs with
+objectives at M6 (Q40). Evidence: `docs/research/mana.md`.
 
 What M3's definition of done still asks for and does not have: **gold reaching a
 player** — there is a treasury now, but nothing carries mined gold to it, and

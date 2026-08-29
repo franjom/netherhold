@@ -108,6 +108,7 @@ is worth doing before the shape of the loop hardens.
 | 2026-08-29 | `e5260d8` | M3 partial | Spine built (determinism, data-in, headless, evidence discipline); one gameplay slice. Goal 5 found to depend on goal 6 via Q1. Asset-layer deadline recorded. |
 | 2026-08-29 | (rooms) | M3 partial | Rooms, the treasury and the gold model. Goal 5 gained its clearest win so far: the data contradicted an assumption the code already held, and the code changed. Goals 1, 8 and 10 move slightly; nothing else does. |
 | 2026-08-29 | (mana) | M3 partial | Mana income from owned land. Goal 5's harder case: the data was nearly enough for a computed mana ceiling and the ceiling was left flat with the gap recorded (Q37) rather than guessed. ADR-0017 decouples per-second totals from the unmeasured tick rate. |
+| 2026-08-29 | (mana, cont.) | M3 partial | Owner answered Q37 and the one-heart rule from the original in one message. Ceiling confirmed flat; the heart's 30/s became implementable. Process gap found: "the files cannot say" had been treated as "nobody can say" - asking the owner is now step 0 of the research method. |
 
 ### Note on the rooms/gold review
 
@@ -167,3 +168,28 @@ would be.
 Gap 3 (the asset-layer deadline) is still unchanged and still the next thing that
 could go wrong, because the Unity view is still the next item on the handoff
 list.
+
+### Addendum — the mana ceiling, one message later
+
+The note above was written before the owner said, in one sentence, that a
+keeper's maximum mana is 200000 and that a keeper has exactly one dungeon heart
+whose loss is defeat. Both had been written up here as things the data could not
+settle. Both were settled immediately, and both changed the code.
+
+The praise in that note was therefore half-earned, and the honest version is
+worth having on the record: **refusing to guess was right, but treating "the
+files cannot say" as "nobody can say" was a process failure.** Goal 5 names the
+original as the behavioural oracle; the owner has played it. Asking is the
+cheapest research step available and it was not in the method at all until now —
+it is step 0 in `HANDOFF.md` §"Research method that has been working".
+
+Two of the four questions this session raised were answerable that way. The test
+for the rest is simple: **would a player see this happen?** If yes, ask before
+writing it up as UNKNOWN. If no — tick rates, per-tile arithmetic, which treasury
+tile a deposit lands in — the question is genuinely for measurement or
+disassembly and belongs on the list.
+
+What the caution bought is still real, and is the reason this is an addendum
+rather than a retraction: the tidier computed-ceiling reading was **wrong**, and
+it would have looked better justified than the flat ceiling that turned out to be
+right. Having not implemented it meant the answer, when it arrived, cost nothing.

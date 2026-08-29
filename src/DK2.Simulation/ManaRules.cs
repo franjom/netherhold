@@ -21,14 +21,20 @@ namespace DK2.Simulation;
 /// where a large dungeon would actually meet it, which a per-tick reading would
 /// not.</para>
 ///
+/// <para><b>A dungeon heart pays too</b>, a flat
+/// <c>DungeonHeartManaGenerationIncreasePerSecond</c> (30) on top of the land.
+/// It is counted once per keeper rather than once per heart tile, and that is
+/// exact rather than a simplification: <b>a keeper has at most one dungeon
+/// heart, ever</b> — CONFIRMED by observation of the original, where losing it
+/// is what defeat <i>is</i>. So "per heart" and "per keeper who has one" are the
+/// same quantity, and no room-instance concept is needed to count it.</para>
+///
 /// <para><b>What is not here.</b> Nothing spends mana yet, because no spell
-/// exists. The dungeon heart contributes nothing, because
-/// <c>DungeonHeartManaGenerationIncreasePerSecond</c> (30) is per
-/// <i>heart</i> and a heart is a room instance, which the simulation does not
-/// have — rooms are terrain here. And <see cref="TerrainDef.MaxManaGain"/> is
-/// read by nothing at all: it is non-zero on exactly one terrain, which is not
-/// enough to tell what it means (Q37). See docs/research/mana.md
-/// §"What is not implemented, and is not guessed at".</para>
+/// exists. And <see cref="TerrainDef.MaxManaGain"/> is read by nothing at all:
+/// it is non-zero on exactly one terrain, which is not enough to tell what it
+/// means, and the ceiling it might have contributed to is flat anyway (Q37).
+/// See docs/research/mana.md §"What is not implemented, and is not guessed
+/// at".</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/mana.md")]
 public static class ManaRules
@@ -55,12 +61,39 @@ public static class ManaRules
         database[VariableTypeId.MaximumManaGainPerSecond];
 
     /// <summary>
+    /// What a keeper's dungeon heart generates per second, on top of their land.
+    ///
+    /// Counted once per keeper, not once per heart tile: a keeper has at most
+    /// one heart (CONFIRMED — observed in the original, where losing it is
+    /// defeat), so a 5×5 heart is worth 30 a second and not 750.
+    /// </summary>
+    public static int HeartGainPerSecond(GameDatabase database) =>
+        database[VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond];
+
+    /// <summary>
+    /// The terrain a dungeon heart is made of, or null if this database has no
+    /// dungeon heart at all (which only a synthetic one does not).
+    ///
+    /// Names the room <i>type</i>, like <see cref="GoldStore.Capacity"/> and for
+    /// the same reason: the variable is itself named for the dungeon heart, so
+    /// the room type is the data's own vocabulary for this question. It is still
+    /// not a terrain id — the id is read out of the room record.
+    /// </summary>
+    public static byte? DungeonHeartTerrainId(GameDatabase database)
+    {
+        foreach (RoomDef room in database.Rooms.Values)
+            if (room.TypeId == RoomTypeId.DungeonHeart) return room.TerrainId;
+        return null;
+    }
+
+    /// <summary>
     /// The level at which mana stops accruing and starts draining back.
     ///
-    /// A soft ceiling, not a clamp: <c>ExcessManaDecreaseRatePerSecond</c> only
-    /// means something if mana can be above this, which lump sums such as
-    /// <c>SpecialIncreaseManaAmount</c> (50000) can do. STRONGLY INFERRED from
-    /// those two variables existing together.
+    /// <b>200000 is the ceiling every keeper has</b> — CONFIRMED by observation
+    /// of the original — and it does not grow with the dungeon. A soft ceiling
+    /// rather than a clamp: <c>ExcessManaDecreaseRatePerSecond</c> only means
+    /// something if mana can be above this, which lump sums such as
+    /// <c>SpecialIncreaseManaAmount</c> (50000) can do.
     /// </summary>
     public static int Threshold(GameDatabase database) =>
         database[VariableTypeId.MaximumManaThreshold];
@@ -79,6 +112,8 @@ public static class ManaRules
     public static int[] GainPerSecondByPlayerIndex(WorldState world, GameDatabase database)
     {
         var gain = new int[world.PlayerCount];
+        var hasHeart = new bool[world.PlayerCount];
+        byte? heartTerrain = DungeonHeartTerrainId(database);
 
         // owner id -> index into gain, or -1. Tile ownership is a byte, so this
         // covers every value a tile can hold without a search per tile.
@@ -95,11 +130,16 @@ public static class ManaRules
 
             int perTile = GainPerSecond(database, tile);
             if (perTile != 0) gain[player] += perTile;
+
+            // A flag rather than a count: however many tiles a heart covers,
+            // it is one heart, and a keeper never has two.
+            if (tile.TerrainId == heartTerrain) hasHeart[player] = true;
         }
 
+        int fromHeart = hasHeart.Contains(true) ? HeartGainPerSecond(database) : 0;
         int cap = MaxGainPerSecond(database);
         for (int i = 0; i < gain.Length; i++)
-            gain[i] = Math.Min(gain[i], cap);
+            gain[i] = Math.Min(gain[i] + (hasHeart[i] ? fromHeart : 0), cap);
 
         return gain;
     }

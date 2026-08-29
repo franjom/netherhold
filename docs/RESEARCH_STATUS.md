@@ -23,16 +23,18 @@ What is *built* rather than known, against the long-term goals:
   Gold lives in tiles. See docs/research/rooms-and-gold.md and ADR-0015.
 - Where a room may go: the ROOMS record's own placeable-on flags decide, and
   they partition the shipped rooms exactly as the game plays.
-- Where mana comes from: owned land, and nothing else. Three terrain types out of
-  41 carry a mana gain and they are exactly the ownable non-room ones. See
-  docs/research/mana.md.
+- Where mana comes from: owned land plus a flat 30 for a keeper's dungeon heart.
+  Three terrain types out of 41 carry a mana gain and they are exactly the
+  ownable non-room ones. The ceiling is a flat 200000 for every keeper, and a
+  keeper has exactly one heart whose loss is defeat (both observed in the
+  original). See docs/research/mana.md.
 
 ## Unsolved (research required before implementing)
 - Pathfinding (biggest risk), creature moods/anger, combat resolution,
   job-selection priority order, computer-player AI, audio event semantics.
 - Where mined gold goes, and what a room does beyond holding gold or not.
-- Whether a keeper's mana ceiling is computed from their dungeon (Q37); ours is
-  flat, and plausibly too generous.
+- What happens on defeat when a dungeon heart falls (Q40) - the rule is known,
+  the consequences are not, and nothing implements it.
 
 ## Per-mechanic notes
 One file per mechanic in `docs/research/`, tagged

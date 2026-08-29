@@ -1,16 +1,20 @@
 # Mana, and why it is the size of a dungeon
 
 Milestone M3. Where a keeper's mana comes from, what stops it growing, and the
-one thing the data will not say.
+two things the data could not say.
 
 Implemented by `DK2.Simulation.ManaRules` and
 `DK2.Simulation.Systems.ManaSystem`.
 
-The short version: **mana income is territory.** Three terrain types out of 41
-generate any, and between them they are every kind of ground a keeper can hold
-without having built on it. Nothing else in the game pays. That makes the rule a
-sum over owned tiles and nothing more, which is why the implementation is under
-a hundred lines.
+The short version: **mana income is territory, plus a flat thirty for your
+heart.** Three terrain types out of 41 generate any mana at all, and between them
+they are every kind of ground a keeper can hold without having built on it. That
+makes the rule a sum over owned tiles and one boolean, which is why the
+implementation is under a hundred lines.
+
+The two things the files could not settle — the ceiling, and how to count a
+heart — were both answered by the owner from playing the original, which is what
+the oracle is for. See §"How this was established" step 5.
 
 ---
 
@@ -23,12 +27,15 @@ a hundred lines.
 | The unit is per second | **STRONGLY INFERRED** — `MaximumManaGainPerSecond` caps the total, and a cap shares the unit of the thing it caps |
 | Only tiles the player *owns* pay them | **STRONGLY INFERRED** — all three paying terrains are `Ownable`, and the unclaimed forms pay nothing |
 | A room tile pays nothing, so building costs income | **CONFIRMED** — `ManaGain` is 0 on all 26 room terrains |
-| `MaximumManaThreshold` (200000) is a ceiling mana settles back to | **STRONGLY INFERRED** — `ExcessManaDecreaseRatePerSecond` only means something if mana can exceed something |
+| A dungeon heart pays its keeper a flat 30 a second | **STRONGLY INFERRED** — the variable is named for it, and the per-heart/per-tile ambiguity is dissolved by the one-heart rule below |
+| **A keeper has at most one dungeon heart, ever, and losing it is defeat** | **CONFIRMED** — observed in the original; the ROOMS record agrees from its side, the heart being unbuildable |
+| **A keeper's mana ceiling is 200000, flat, and does not grow with the dungeon** | **CONFIRMED** — observed in the original (Q37) |
+| The ceiling is soft: mana above it drains back rather than being clamped | **STRONGLY INFERRED** — `ExcessManaDecreaseRatePerSecond` only means something if mana can exceed the ceiling |
 | The gain cap is per player, not shared across the level | **HYPOTHESIS** (Q38) |
 | Mana is paid once a game second rather than smoothly | **OURS, not DK2's** (ADR-0017) — invisible in totals, visible only in the shape of the counter |
-| What `TerrainDef.MaxManaGain` means | **UNKNOWN** (Q37) — non-zero on exactly one terrain, where it merely repeats `ManaGain` |
-| What a dungeon heart contributes | **UNKNOWN** (Q37) — `DungeonHeartManaGenerationIncreasePerSecond` is per heart, and a heart is a room instance we do not have |
+| What `TerrainDef.MaxManaGain` and `DungeonHeartMaxManaIncrease` are *for* | **UNKNOWN** (Q37a) — read by nothing, and nothing depends on them now the ceiling is known to be flat |
 | What mana is *for* | **NOT IMPLEMENTED** — nothing spends it; every spender is a spell, and spells are M7 |
+| What defeat does when a heart falls | **NOT IMPLEMENTED** (Q40) — scheduled with objectives at M6 |
 
 ---
 
@@ -76,10 +83,12 @@ three shapes a keeper's plain territory can take.
 So the rule needs no policy of its own. A keeper's income is
 
 ```
-min(  Σ over tiles they own of terrain.ManaGain  ,  MaximumManaGainPerSecond  )
+min(  Σ over tiles they own of terrain.ManaGain
+      + (30 if they have a dungeon heart)          ,  MaximumManaGainPerSecond  )
 ```
 
-and three behaviours the original has fall out of it without being written:
+and three behaviours the original has fall out of the land term without being
+written:
 
 - **Claiming raises income**, because claiming is what turns Dirt Path into
   Claimed Path, and it is the *tile rules* that do that. `ManaRules` has never
@@ -92,9 +101,33 @@ and three behaviours the original has fall out of it without being written:
   consequence of two data tables agreeing.
 
 That last one is the mana scenario's whole point
-(`scenarios/mana/land_pays_a_keeper.yaml`): the reported rate falls from 8/s to
-5/s when three of eight claimed tiles become a treasury, and no rule in the
+(`scenarios/mana/land_pays_a_keeper.yaml`): the reported rate falls from 38/s to
+35/s when three of eight claimed tiles become a treasury, and no rule in the
 codebase knows a treasury was involved.
+
+### The dungeon heart's thirty
+
+`DungeonHeartManaGenerationIncreasePerSecond` is 30 and it is per *heart*. That
+phrasing was the whole difficulty for a while, because a shipped heart covers 25
+tiles and the simulation has no room instances — rooms here are terrain — so
+"per heart" looked unimplementable without inventing a way to count hearts.
+
+It is not, because of a fact from the original rather than from the files:
+**a keeper has at most one dungeon heart, ever, and losing it is defeat**
+(CONFIRMED — owner observation; Q40). Given that, "per heart" and "per keeper who
+has one" are the same quantity, and the count collapses to a boolean:
+`ManaRules.GainPerSecondByPlayerIndex` sets a flag when it sees a heart tile and
+adds 30 once. A 5×5 heart is worth 30 a second, not 750.
+
+The ROOMS record agrees from its own side. The Dungeon Heart is the one room a
+keeper starts with that carries no `Buildable` flag, so there is no way to
+acquire a second — asserted against the install in
+`ADungeonHeartCannotBeBuilt_WhichIsWhyAKeeperOnlyEverHasOne`. Two independent
+lines of evidence for the same rule is as good as this project's evidence gets.
+
+Note what the 30 is *not*: heart terrain has a `ManaGain` of zero like every
+other room terrain, so the 30 belongs to the keeper and not to the tiles. Paving
+claimed floor into a heart therefore costs income exactly as any other room does.
 
 ### Why per second
 
@@ -124,11 +157,25 @@ a level special worth 50000 in one lump. So the drain is implemented, and tested
 (`ManaAboveTheThresholdDrainsBackToIt`), even though nothing in the simulation
 can yet reach the state that needs it.
 
-**What is not claimed here:** that 200000 is the ceiling *every* keeper has. See
-Q37 — `DungeonHeartMaxManaIncrease` (32000) and `MaxManaGain` both look like
-contributions to a per-keeper ceiling, in which case 200000 would be the
-absolute limit on top of a smaller computed one. Neither can be read with the
-data in hand, so neither is implemented, and a keeper's ceiling here is flat.
+**And 200000 is the ceiling every keeper has.** It does not grow with the
+dungeon — CONFIRMED by observation of the original (Q37), which is the only way
+this could have been settled.
+
+It is worth recording how close this came to being got wrong in the other
+direction. `DungeonHeartMaxManaIncrease` (32000) and `TerrainDef.MaxManaGain`
+(100, on Claimed Vault alone) both look exactly like contributions to a computed
+per-keeper ceiling, under which 200000 would have been an absolute limit sitting
+on top of a much smaller starting one. That reading is tidier than the truth: it
+gives both variables a job, and it explains why 32000 is in the table at all.
+Implementing it would have made a one-heart keeper's ceiling roughly six times
+too low, and it would have *looked* better justified than the flat ceiling that
+turned out to be right.
+
+The flat ceiling was implemented instead, not because it was better supported —
+it was not — but because the tidier reading required choosing between "per heart
+tile" and "per heart room" with nothing to choose on. Refusing that guess is what
+left the answer reachable. What the two variables are actually for is Q37a; both
+are still read by nothing, and now nothing depends on them.
 
 ---
 
@@ -141,15 +188,18 @@ Read this before adding to `ManaRules`.
   (`ManaCostInFirstPersonPerSecond`). Spells are M7. Until then a mana total is
   what a keeper *earned*, not what they would have left, and every scenario
   report says so.
-- **A dungeon heart contributes nothing.** `DungeonHeartManaGenerationIncrease-`
-  `PerSecond` is 30 and `DungeonHeartMaxManaIncrease` is 32000, both per *heart*.
-  A heart is a room instance; rooms here are terrain, so there is nothing to
-  count. Implementing it per *tile* would multiply it by nine on a 3×3 heart, and
-  per *room* needs a room-instance concept that does not exist. Q37.
-- **`MaxManaGain` is read by nothing.** It is non-zero on exactly one terrain in
-  the whole table, where it repeats `ManaGain`. That is one data point, and it
-  cannot distinguish "contribution to the keeper's ceiling" from "cap on this
-  tile's output" from something else. `MaxManaGainIsSetOnExactlyOneTerrain_-`
+- **Nothing happens when a heart falls.** Losing your dungeon heart is defeat in
+  DK2 (CONFIRMED — owner observation), and defeat is not implemented: no player
+  is eliminated, nothing happens to their creatures, rooms, land or gold. A
+  keeper whose heart is beaten down here just stops earning its 30 a second and
+  plays on, and every scenario with a heart on the map says so. Q40 — it belongs
+  with objectives and win conditions at M6, not with mana.
+- **`MaxManaGain` and `DungeonHeartMaxManaIncrease` are read by nothing.**
+  `MaxManaGain` is non-zero on exactly one terrain in the whole table, where it
+  repeats `ManaGain`; `DungeonHeartMaxManaIncrease` is 32000 against a ceiling
+  now known to be a flat 200000. Both look like contributions to a computed
+  ceiling and neither can be one, so what they are for is Q37a and nothing
+  depends on it. `MaxManaGainIsSetOnExactlyOneTerrain_-`
   `WhichIsWhyNothingReadsIt` pins the negative result so that a future data set
   which contradicts it fails loudly.
 - **A mana vault cannot be claimed by anything.** The terrain pair and the two
@@ -175,8 +225,12 @@ Cheapest first, per the method in `HANDOFF.md`:
    three ids, and `NoRoomGeneratesMana` walks all 26 rooms. Both run in
    `DK2.Behavior.Tests` and skip with no install.
 4. No disassembly was needed and none was done.
+5. **Two facts came from the owner playing the game**, and neither was reachable
+   from the files: the ceiling is a flat 200000, and a keeper has exactly one
+   dungeon heart whose loss is defeat. The first closed Q37 outright; the second
+   turned the heart's 30 a second from unimplementable into a boolean.
 
-The transcription into `Dk2TerrainFixture` (the two vault terrains, the three
+The transcription into `Dk2TerrainFixture` (the two vault terrains, the four
 rates) is guarded by `ManaOnRealDataTests` in the same way the terrain, room and
 Imp transcriptions are. That guard has already caught one real error in this
 project's history and it is cheap.
@@ -185,16 +239,16 @@ project's history and it is cheap.
 
 ## What does not fit
 
-**One thing.** If `MaximumManaThreshold` really is the ceiling for everyone, then
-`DungeonHeartMaxManaIncrease` at 32000 is a strange number to exist — it is
-neither the threshold nor a fraction of it. The tidier reading is that a
-keeper's ceiling is *computed* (32000 a heart, plus `MaxManaGain` per tile) and
-that 200000 is the absolute limit that computation is clamped to. That reading
-would make our mana ceiling roughly six times too generous for a one-heart
-keeper.
+**One thing, and it is smaller than it was.** `DungeonHeartMaxManaIncrease`
+(32000) is a strange number to exist beside a ceiling that is flat at 200000: it
+is neither the threshold nor a fraction of it, and the same goes for
+`MaxManaGain` at 100. The reading that gave both a job — a ceiling computed as
+32000 a heart plus `MaxManaGain` a tile, clamped at 200000 — is refuted for the
+ceiling, so whatever they are, they are not that.
 
-It is recorded as Q37 rather than implemented, because implementing it means
-choosing between "per heart tile" and "per heart room" with nothing to choose
-on, and the second of those needs a room-instance concept the simulation does
-not have. It is cheap to settle against the original: start a level, note the
-mana bar's maximum, claim a mana vault, note it again.
+Candidates for what remains (Q37a): the ceiling starts lower and *grows* toward
+200000, and the observation was of a mature dungeon; they are legacy or
+editor-only data; or they mean something else entirely. Nothing reads either
+value, so nothing depends on the answer. Cheap to settle whenever somebody is in
+front of the game: start a level and watch whether the mana bar's maximum moves
+as the dungeon grows.

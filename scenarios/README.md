@@ -137,8 +137,9 @@ Tile mechanics run for real: `scenarios/tiles/` digs, claims, reinforces and
 mines against DK2's own numbers. `scenarios/imps/` puts workers on the map and
 lets them find the work themselves. `scenarios/rooms/` builds a room and pays for
 it out of a dungeon heart. `scenarios/mana/` is the first run in which time alone
-changes something: a keeper's land pays them once a game second, and paving three
-tiles of it into a treasury lowers the rate. See `docs/research/tile-work.md`,
+changes something: a keeper's land and heart pay them once a game second, and
+paving three tiles of that land into a treasury lowers the rate. See
+`docs/research/tile-work.md`,
 `docs/research/imp-tasks.md`, `docs/research/rooms-and-gold.md` and
 `docs/research/mana.md`.
 
@@ -160,6 +161,8 @@ What a run still cannot tell you:
 - **Where mined gold goes.** Still reported and dropped: there is a treasury to
   put it in now, but nothing carries it there (Q31).
 - **What mana is for.** Nothing spends it. A mana total is what a keeper earned,
-  not what they would have left, and a keeper's ceiling here is flat rather than
-  computed from their dungeon (Q37).
+  not what they would have left.
+- **What happens when a dungeon heart falls.** Losing it is defeat in DK2; defeat
+  is not implemented, so a keeper whose heart is beaten down here stops earning
+  its 30 a second and plays on (Q40).
 - **Anything about spells, needs, moods or combat.**

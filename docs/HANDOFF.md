@@ -10,7 +10,7 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, and mana:
 complete. M3 as a whole: partial.** M2 and the five record types M1 needed are
-done. 221 tests green with and without a DK2 install, clean tree.
+done. 226 tests green with and without a DK2 install, clean tree.
 
 Three honest caveats:
 - M3's definition of done also asks for gold reaching a player and a Unity view.
@@ -22,9 +22,10 @@ Three honest caveats:
   scenario run that places a worker says all of that out loud. And **a room does
   nothing**: a treasury and a dungeon heart hold gold because a variable says
   how much per tile; every other room is inert terrain its owner holds. Mana is
-  income only — **nothing spends it**, because every spender is a spell (M7) —
-  and a keeper's mana ceiling is flat rather than computed from their dungeon,
-  which is plausibly six times too generous for a one-heart keeper (Q37).
+  income only — **nothing spends it**, because every spender is a spell (M7).
+  And **losing a dungeon heart is defeat in DK2 and defeat is not implemented**:
+  a keeper whose heart is beaten down here stops earning its 30 a second and
+  plays on (Q40, scheduled with objectives at M6).
 - M1's stated definition of done was "all 18 record types round-trip". Five are
   parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP) plus the WAD and KWD
   containers. The rest (THINGS, TRIGGERS, PLAYERS, OBJECTS, SHOTS, …) are needed
@@ -61,7 +62,7 @@ What the simulation can do:
 | Grid search behind an interface | `DK2.Pathfinding.GridPathfinder` | shortest, wall-respecting, reproducible; reused buffers proven inert |
 | Rooms: where one may go, what it costs | `RoomRules` + `BuildRoomCommand` | placement flags partition the shipped rooms; ground rules run on a campaign level |
 | Gold, stored in tiles rather than on players | `GoldStore` | per-tile limits honoured; a first treasury is paid for out of the dungeon heart |
-| Mana, earned by holding land | `ManaRules` + `ManaSystem` | the three paying terrains partition the install by exhaustion; income falls when claimed floor becomes a room |
+| Mana, earned by holding land and a heart | `ManaRules` + `ManaSystem` | the three paying terrains partition the install by exhaustion; income falls when claimed floor becomes a room; a 5x5 heart is worth 30/s, not 750 |
 
 Extracted data artifacts (the specification the simulation is written against):
 `docs/research/game-database-dump.md`, `creature-table-dump.md`,
@@ -183,11 +184,13 @@ order that looks right.
 no size rules, no selling and no behaviour on purpose.
 
 **And before adding to `ManaRules`, read `docs/research/mana.md` §"What is not
-implemented, and is not guessed at".** This one is the subtler trap: the mana
-data is *nearly* enough to build a computed per-keeper ceiling out of
-`MaxManaGain` and the two `DungeonHeart…` variables, and three plausible
-variables are exactly how a guess gets in. They are Q37 and they stay unread
-until somebody reads a mana bar in the original.
+implemented, and is not guessed at".** The mana ceiling is the cautionary tale
+worth keeping: the data was *nearly* enough to build a computed per-keeper
+ceiling out of `MaxManaGain` and `DungeonHeartMaxManaIncrease`, that reading was
+tidier than the truth, and it was wrong. It stayed unimplemented only because it
+required one more guess (per heart tile or per heart room?), and the owner then
+settled it from the game in one sentence. `MaxManaGain` and
+`DungeonHeartMaxManaIncrease` are still read by nothing (Q37a).
 
 **And `docs/research/tile-work.md` §"What does not fit" still stands.** Q20
 (DigRockHealth destroys a rock tile in one application) is now visible in every
@@ -231,6 +234,15 @@ it by changing the number.
 - A `…PerSecond` rate from the balance table is applied **in whole, once every
   `TicksPerSecond` ticks** (ADR-0017), not smoothed across ticks. That keeps
   totals independent of the unmeasured Q1 constant, which is the point.
+- **A keeper has at most one dungeon heart, ever, and losing it is defeat.**
+  CONFIRMED by the owner from the original, and the ROOMS record agrees — the
+  heart carries no `Buildable` flag. This is why the heart's mana is counted once
+  per keeper rather than per heart tile, and it is worth knowing before designing
+  anything that would otherwise need to count room instances.
+- **The keeper mana ceiling is a flat 200000 and does not grow with the
+  dungeon.** CONFIRMED by the owner from the original (Q37). Do not reopen it
+  with `DungeonHeartMaxManaIncrease` or `MaxManaGain`, which look like ceiling
+  contributions and are not.
 - Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Resolved by
   `DK2.Data.Dk2Install`. **`DK2_DIR` is authoritative when set** — if it is set
   and invalid, no fallback is tried, which is how CI runs with no install.
@@ -309,6 +321,13 @@ Never write a bare `cat >` redirect, and do not reach for python.
 
 Cheap-to-expensive, stop as soon as the question is answered:
 
+0. **Ask the owner.** They have played DK2 and the original is the behavioural
+   oracle. This is the cheapest source there is and it was under-used: Q37 (the
+   mana ceiling) and the one-dungeon-heart rule were both settled in one sentence
+   after being written up as unanswerable from the files. A question of the form
+   "what does the player *see* happen" is almost always one of these. Record the
+   answer as CONFIRMED with "owner observation" as the evidence, the same way a
+   data extract is recorded.
 1. Is the answer just sitting in the KWD data? (Often yes — check first.)
 2. ufdada/dk2-tools 010 Editor templates — independent format facts.
 3. Flame's `mapping/DKII_EXE_v170.sgmap` — 868 structs, 10,548 globals.
@@ -332,16 +351,13 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 39 (one answered). The ones that
+`docs/research/open-questions.md` holds all 41 (two answered). The ones that
 gate progress:
 
-- **Q37 — does a keeper have a computed mana ceiling?** The mana model's one
-  real gap, and the cheapest of these to settle: read the mana bar's maximum in
-  the original, claim a mana vault, read it again. Three variables
-  (`MaxManaGain`, `DungeonHeartMaxManaIncrease`,
-  `DungeonHeartManaGenerationIncreasePerSecond`) look like contributions to one
-  and are all left unread. If they are, our flat 200000 ceiling is roughly six
-  times too generous for a one-heart keeper.
+- **Q40 — losing your dungeon heart is defeat.** CONFIRMED (owner observation)
+  and **not implemented**: nothing eliminates a player. What defeat does to a
+  keeper's creatures, rooms, land and gold is unresearched and belongs with
+  objectives and win conditions at M6, not with mana.
 - **Q31 — where mined gold goes.** The other half of M3's gold loop. Needs the
   OBJECTS record for the gold-pile branch (M6) and measurement against the
   original for the threshold. See the "Immediate next steps" entry.

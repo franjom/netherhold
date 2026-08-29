@@ -85,6 +85,32 @@ public class ManaOnRealDataTests
         }
     }
 
+    /// <summary>
+    /// <b>The data agrees that a keeper only ever has one dungeon heart.</b>
+    /// A keeper has exactly one heart and loses the game when it falls
+    /// (CONFIRMED — observed in the original), and the ROOMS record backs that
+    /// up from its own side: the heart is the one room a keeper starts with that
+    /// carries no <c>Buildable</c> flag, so there is no way to acquire a second.
+    /// That is what licenses `ManaRules` to count the heart's 30 a second once
+    /// per keeper rather than once per heart, without a room-instance concept.
+    /// </summary>
+    [Fact]
+    public void ADungeonHeartCannotBeBuilt_WhichIsWhyAKeeperOnlyEverHasOne()
+    {
+        GameDatabase? db = RealDatabase();
+        if (db is null) return;
+
+        RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
+        Assert.False(heart.IsBuildable);
+        Assert.Equal(30, db[VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond]);
+
+        // And the 30 is the keeper's, not the tile's: heart terrain generates
+        // nothing of its own, so paving claimed floor into a heart costs income
+        // exactly as any other room does.
+        Assert.Equal(0, db.TerrainById(heart.TerrainId).ManaGain);
+        Assert.Equal(heart.TerrainId, ManaRules.DungeonHeartTerrainId(db));
+    }
+
     /// <summary>No room in the game generates mana, which is why building costs income.</summary>
     [Fact]
     public void NoRoomGeneratesMana()
@@ -165,17 +191,24 @@ public class ManaOnRealDataTests
         WorldState world = WorldState.FromMap(db, map, players);
 
         int[] gain = ManaRules.GainPerSecondByPlayerIndex(world, db);
+        byte heartTerrain = Assert.NotNull(ManaRules.DungeonHeartTerrainId(db));
 
         for (int i = 0; i < world.PlayerCount; i++)
         {
             byte player = world.PlayerAtIndex(i).PlayerId;
             int expected = 0;
+            bool heart = false;
             for (int t = 0; t < world.TileCount; t++)
             {
                 ref TileState tile = ref world.TileAtIndex(t);
-                if (tile.OwnerPlayerId == player)
-                    expected += db.TerrainById(tile.TerrainId).ManaGain;
+                if (tile.OwnerPlayerId != player) continue;
+                expected += db.TerrainById(tile.TerrainId).ManaGain;
+                if (tile.TerrainId == heartTerrain) heart = true;
             }
+
+            // The heart is a flat per-keeper amount however many tiles it covers,
+            // which on a shipped level is 25 of them.
+            if (heart) expected += db[VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond];
 
             Assert.Equal(Math.Min(expected, db[VariableTypeId.MaximumManaGainPerSecond]), gain[i]);
         }

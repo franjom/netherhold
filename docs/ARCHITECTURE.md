@@ -162,9 +162,14 @@ The first thing in the simulation that changes because time passed, rather than
 because a player or a worker did something.
 
 - `ManaRules` is the whole model: a keeper's income is the sum of
-  `TerrainDef.ManaGain` over the tiles they own, capped by
-  `MaximumManaGainPerSecond`, and `MaximumManaThreshold` is a ceiling mana
-  settles back to rather than a clamp.
+  `TerrainDef.ManaGain` over the tiles they own, plus a flat 30 if they have a
+  dungeon heart, capped by `MaximumManaGainPerSecond`. `MaximumManaThreshold` is
+  a flat 200000 ceiling for every keeper (CONFIRMED by observation), soft rather
+  than a clamp: mana above it drains back.
+- The heart's 30 is counted **once per keeper, not once per heart tile**, and
+  that is exact rather than a simplification — a keeper has at most one dungeon
+  heart, ever, and losing it is defeat. So no room-instance concept is needed to
+  count hearts, which was the thing blocking it.
 - `ManaSystem` pays it once a game second (ADR-0017) and runs last, after
   everything that could change what a keeper owns.
 - Mana stays a player-level number, unlike gold. The asymmetry is the data's:
@@ -176,11 +181,10 @@ pay anything, and they are exactly the ownable non-room ones — so claiming gro
 raises income, losing it lowers it, and building a room on your own floor takes
 that floor off the payroll, all without a rule about claiming, losing or
 building. `scenarios/mana/land_pays_a_keeper.yaml` shows the last of those: the
-rate falls from 8/s to 5/s when three of eight claimed tiles become a treasury.
+rate falls from 38/s to 35/s when three of eight claimed tiles become a treasury.
 
 What is deliberately absent: **nothing spends mana** (every spender is a spell,
-M7), a dungeon heart contributes nothing, and a keeper's ceiling is flat rather
-than computed — the one real gap, and plausibly six times too generous for a
-one-heart keeper (Q37).
+M7), and **nothing happens when a heart falls** — losing it is defeat in DK2, and
+defeat is a win-conditions mechanic that belongs with objectives at M6 (Q40).
 
 Evidence and confidence: `docs/research/mana.md`.
