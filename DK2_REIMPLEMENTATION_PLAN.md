@@ -774,7 +774,12 @@ Everything else is manageable.
 
 ## 10. Decisions required before implementation
 
-### 10.1 Licensing policy — **blocking, needs your decision**
+### 10.1 Licensing policy — **RESOLVED 2026-08-29: MIT + clean-room (ADR-0003)**
+
+> Owner decision: the project is MIT-licensed. The clean-room policy below is
+> therefore in force — facts from Flame/OpenKeeper may be used, code may not.
+> Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Original analysis kept
+> below for the record.
 
 Established facts: [KNOWN]
 
