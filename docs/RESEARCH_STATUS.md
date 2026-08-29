@@ -3,6 +3,8 @@
 Snapshot of what is known vs unknown. Authoritative long-form:
 `DK2_REIMPLEMENTATION_PLAN.md` §3 (full system-by-system table).
 Live question list: `docs/research/open-questions.md`.
+What is *built* rather than known, against the long-term goals:
+`docs/GOAL_ALIGNMENT.md`.
 
 ## Solved (usable today)
 - Terrain (41 types), rooms (26 types) and the level tile grid: parsed and

@@ -62,6 +62,12 @@ which is what M3's rules are built on.
 
 **Next: the rest of M3 — a treasury, gold that goes somewhere, rooms.**
 
+How this milestone stands against the twelve long-term goals in `AGENTS.md`, and
+which of them have deadlines attached: `docs/GOAL_ALIGNMENT.md`. Re-run that
+review at every milestone; the asset-abstraction deadline in it (goal 4 must
+land *with* the first Unity view, not after) is the one that would be expensive
+to miss.
+
 ---
 
 ## Where the M2 code lives
