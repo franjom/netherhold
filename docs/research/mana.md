@@ -29,11 +29,11 @@ the oracle is for. See §"How this was established" step 5.
 | A room tile pays nothing, so building costs income | **CONFIRMED** — `ManaGain` is 0 on all 26 room terrains |
 | A dungeon heart pays its keeper a flat 30 a second | **STRONGLY INFERRED** — the variable is named for it, and the per-heart/per-tile ambiguity is dissolved by the one-heart rule below |
 | **A keeper has at most one dungeon heart, ever, and losing it is defeat** | **CONFIRMED** — observed in the original; the ROOMS record agrees from its side, the heart being unbuildable |
-| **A keeper's mana ceiling is 200000, flat, and does not grow with the dungeon** | **CONFIRMED** — observed in the original (Q37) |
+| **A keeper's mana ceiling is 200000 from the first second and never moves** | **CONFIRMED** — observed in the original (Q37, Q37a) |
 | The ceiling is soft: mana above it drains back rather than being clamped | **STRONGLY INFERRED** — `ExcessManaDecreaseRatePerSecond` only means something if mana can exceed the ceiling |
 | The gain cap is per player, not shared across the level | **HYPOTHESIS** (Q38) |
 | Mana is paid once a game second rather than smoothly | **OURS, not DK2's** (ADR-0017) — invisible in totals, visible only in the shape of the counter |
-| What `TerrainDef.MaxManaGain` and `DungeonHeartMaxManaIncrease` are *for* | **UNKNOWN** (Q37a) — read by nothing, and nothing depends on them now the ceiling is known to be flat |
+| `TerrainDef.MaxManaGain` and `DungeonHeartMaxManaIncrease` are **not** ceiling contributions | **CONFIRMED by elimination** (Q37a) — the ceiling never moves, so nothing can contribute to it. What they *are* has no candidate left; both are read by nothing |
 | What mana is *for* | **NOT IMPLEMENTED** — nothing spends it; every spender is a spell, and spells are M7 |
 | What defeat does when a heart falls | **NOT IMPLEMENTED** (Q40) — scheduled with objectives at M6 |
 
@@ -157,9 +157,10 @@ a level special worth 50000 in one lump. So the drain is implemented, and tested
 (`ManaAboveTheThresholdDrainsBackToIt`), even though nothing in the simulation
 can yet reach the state that needs it.
 
-**And 200000 is the ceiling every keeper has.** It does not grow with the
-dungeon — CONFIRMED by observation of the original (Q37), which is the only way
-this could have been settled.
+**And 200000 is the ceiling every keeper has.** It is 200000 from the first
+second, it never moves, and it does not grow with the dungeon — CONFIRMED by
+observation of the original (Q37, Q37a), which is the only way this could have
+been settled.
 
 It is worth recording how close this came to being got wrong in the other
 direction. `DungeonHeartMaxManaIncrease` (32000) and `TerrainDef.MaxManaGain`
@@ -174,8 +175,13 @@ turned out to be right.
 The flat ceiling was implemented instead, not because it was better supported —
 it was not — but because the tidier reading required choosing between "per heart
 tile" and "per heart room" with nothing to choose on. Refusing that guess is what
-left the answer reachable. What the two variables are actually for is Q37a; both
-are still read by nothing, and now nothing depends on them.
+left the answer reachable.
+
+There is no weaker version of that reading left, either. A ceiling that *started*
+lower and grew toward 200000 would have given the two variables the same job on a
+smaller scale; the ceiling is 200000 from the first second and never moves, so
+that is refuted too (Q37a). **Neither variable contributes to a mana ceiling, and
+neither should be used to justify a mana rule.** Both are read by nothing.
 
 ---
 
@@ -246,9 +252,20 @@ is neither the threshold nor a fraction of it, and the same goes for
 32000 a heart plus `MaxManaGain` a tile, clamped at 200000 — is refuted for the
 ceiling, so whatever they are, they are not that.
 
-Candidates for what remains (Q37a): the ceiling starts lower and *grows* toward
-200000, and the observation was of a mature dungeon; they are legacy or
-editor-only data; or they mean something else entirely. Nothing reads either
-value, so nothing depends on the answer. Cheap to settle whenever somebody is in
-front of the game: start a level and watch whether the mana bar's maximum moves
-as the dungeon grows.
+The last version of that reading is refuted too. A ceiling that *started* lower
+and grew toward 200000 — with the first observation simply being of a mature
+dungeon — would have given both variables the same job on a smaller scale. The
+ceiling is 200000 from the first second and never moves (Q37a, owner
+observation), so it does not.
+
+That leaves two numbers in the balance table with no candidate explanation
+attached: legacy data, editor-only data, or something outside mana entirely.
+Nothing reads either, nothing depends on them, and the useful part of the finding
+is the prohibition rather than the mystery — **neither is a mana ceiling
+contribution, and neither may be used to justify a mana rule.** Q37a is closed on
+that basis rather than solved.
+
+This is a normal outcome for a twenty-five-year-old balance table and not a sign
+that the model is wrong. It is recorded because an unexplained number is exactly
+the kind of thing a future session will find, decide must mean something, and
+wire up.

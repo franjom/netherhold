@@ -124,7 +124,7 @@ to miss.
 | `src/DK2.Simulation/Systems/ManaSystem.cs` | Pays it once a game second (ADR-0017). Runs last, after anything that changes ownership. |
 | `tests/DK2.Behavior.Tests/ManaOnRealDataTests.cs` | The mana fixture's drift guard, plus the "only held ground pays" partition by exhaustion. |
 | `scenarios/mana/` | Land pays a keeper; paving three tiles of it into a treasury lowers the rate. |
-| `docs/research/mana.md` | Mana: evidence, why per second, and the one gap (Q37). |
+| `docs/research/mana.md` | Mana: evidence, why per second, and two numbers that mean nothing here (Q37a). |
 | `tests/DK2.Simulation.Tests/Dk2TerrainFixture.cs` | DK2's real numbers, transcribed so the rules test in CI. |
 | `tests/DK2.Behavior.Tests/TileWorkOnRealDataTests.cs` | The same rules against the real install — keeps the fixture from drifting. |
 | `tests/DK2.Behavior.Tests/ImpsOnRealDataTests.cs` | Same, for the Imp record, plus imps digging a real level. |
@@ -189,8 +189,11 @@ worth keeping: the data was *nearly* enough to build a computed per-keeper
 ceiling out of `MaxManaGain` and `DungeonHeartMaxManaIncrease`, that reading was
 tidier than the truth, and it was wrong. It stayed unimplemented only because it
 required one more guess (per heart tile or per heart room?), and the owner then
-settled it from the game in one sentence. `MaxManaGain` and
-`DungeonHeartMaxManaIncrease` are still read by nothing (Q37a).
+settled it from the game in two sentences - the ceiling is 200000 from the first
+second and never moves, which refutes the growing-ceiling variant as well.
+`MaxManaGain` and `DungeonHeartMaxManaIncrease` are read by nothing, have no
+candidate explanation left, and **may not be used to justify a mana rule**
+(Q37a).
 
 **And `docs/research/tile-work.md` §"What does not fit" still stands.** Q20
 (DigRockHealth destroys a rock tile in one application) is now visible in every
@@ -239,10 +242,11 @@ it by changing the number.
   heart carries no `Buildable` flag. This is why the heart's mana is counted once
   per keeper rather than per heart tile, and it is worth knowing before designing
   anything that would otherwise need to count room instances.
-- **The keeper mana ceiling is a flat 200000 and does not grow with the
-  dungeon.** CONFIRMED by the owner from the original (Q37). Do not reopen it
-  with `DungeonHeartMaxManaIncrease` or `MaxManaGain`, which look like ceiling
-  contributions and are not.
+- **The keeper mana ceiling is 200000 from the first second and never moves.**
+  CONFIRMED by the owner from the original (Q37, Q37a). Do not reopen it with
+  `DungeonHeartMaxManaIncrease` or `MaxManaGain`: they look like ceiling
+  contributions, they are not, and a ceiling that never moves cannot have
+  contributions at all.
 - Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Resolved by
   `DK2.Data.Dk2Install`. **`DK2_DIR` is authoritative when set** — if it is set
   and invalid, no fallback is tried, which is how CI runs with no install.
@@ -351,7 +355,7 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 41 (two answered). The ones that
+`docs/research/open-questions.md` holds all 41 (three answered). The ones that
 gate progress:
 
 - **Q40 — losing your dungeon heart is defeat.** CONFIRMED (owner observation)

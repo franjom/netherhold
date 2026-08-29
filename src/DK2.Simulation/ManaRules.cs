@@ -30,11 +30,13 @@ namespace DK2.Simulation;
 /// same quantity, and no room-instance concept is needed to count it.</para>
 ///
 /// <para><b>What is not here.</b> Nothing spends mana yet, because no spell
-/// exists. And <see cref="TerrainDef.MaxManaGain"/> is read by nothing at all:
-/// it is non-zero on exactly one terrain, which is not enough to tell what it
-/// means, and the ceiling it might have contributed to is flat anyway (Q37).
-/// See docs/research/mana.md §"What is not implemented, and is not guessed
-/// at".</para>
+/// exists. And <see cref="TerrainDef.MaxManaGain"/> is read by nothing at all,
+/// nor is <c>DungeonHeartMaxManaIncrease</c>: both look like contributions to a
+/// keeper's mana ceiling, and neither can be one, because the ceiling is 200000
+/// from the first second and never moves (CONFIRMED — Q37/Q37a). What they are
+/// instead has no candidate explanation left. <b>Neither may be used to justify
+/// a mana rule.</b> See docs/research/mana.md §"What is not implemented, and is
+/// not guessed at".</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/mana.md")]
 public static class ManaRules

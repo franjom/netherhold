@@ -78,12 +78,15 @@ different hat.
 ## Questions from mana (2026-08-29)
 
 See `docs/research/mana.md`. Q37 was the one with teeth and it is now answered,
-by the owner rather than by the data: the ceiling is flat.
+by the owner rather than by the data: the ceiling is a flat 200000 from the first
+second and never moves. Q37a is closed with it. What is left in this group is one
+hypothesis (Q38), one unmeasurable (Q39) and one known rule nobody has
+implemented (Q40).
 
 | # | Question | Status |
 |---|---|---|
 | Q37 | **Does a keeper have a computed mana ceiling?** Three variables looked like contributions to one — `DungeonHeartMaxManaIncrease` (32000), `DungeonHeartManaGenerationIncreasePerSecond` (30) and `TerrainDef.MaxManaGain` — which would have made `MaximumManaThreshold` (200000) an absolute limit on top of a smaller per-keeper one. **ANSWERED (2026-08-29, owner observation of the original): 200000 is the ceiling every keeper has, and it does not grow with the dungeon.** The implementation was already flat and is unchanged. The same observation dissolved the heart's per-heart-or-per-tile ambiguity — a keeper has at most one heart, so its 30 a second is now implemented. Do not reopen without new evidence | **ANSWERED — implemented as observed** |
-| Q37a | Residual: what are `DungeonHeartMaxManaIncrease` (32000) and `TerrainDef.MaxManaGain` (100, on Claimed Vault alone) *for*, given the ceiling is flat at 200000? Candidates: the ceiling starts lower and grows toward 200000; they are legacy or editor-only data; they mean something else entirely. Both are read by nothing, so nothing depends on the answer. Cheap to settle: watch whether the mana bar's maximum changes as a dungeon grows | UNKNOWN — nothing depends on it |
+| Q37a | Residual: what are `DungeonHeartMaxManaIncrease` (32000) and `TerrainDef.MaxManaGain` (100, on Claimed Vault alone) *for*, given the ceiling is flat? **CLOSED (2026-08-29, owner observation): the ceiling is 200000 from the first second and never moves, so neither variable contributes to it and the growing-ceiling candidate is refuted.** What remains is a curiosity with no candidate attached — legacy data, editor-only data, or something outside mana entirely. Both are read by nothing and nothing depends on them. **Do not use either to justify a mana rule** | **CLOSED — not a ceiling contribution** |
 | Q38 | Is `MaximumManaGainPerSecond` (500) a per-keeper cap or one shared across the level? Implemented per keeper: a shared cap would make one keeper's expansion throttle another's, which is not how the original plays | HYPOTHESIS (per keeper) |
 | Q39 | Does mana accrue smoothly or in whole seconds? Ours is once a game second (ADR-0017), which is invisible in any total and visible only in the shape of the counter. Unmeasurable until Q1 is | UNKNOWN — nothing depends on it |
 | Q40 | **Losing your dungeon heart is defeat** (CONFIRMED — owner observation). Not implemented: nothing eliminates a player, and a keeper whose heart is beaten down here simply stops earning its 30 a second and plays on. What defeat *does* — to their creatures, rooms, claimed land and gold — is unresearched, and belongs with objectives and win conditions at M6 rather than with mana | **CONFIRMED but NOT IMPLEMENTED** — scheduled M6 |

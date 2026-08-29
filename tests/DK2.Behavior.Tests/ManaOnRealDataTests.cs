@@ -123,12 +123,15 @@ public class ManaOnRealDataTests
     }
 
     /// <summary>
-    /// Pins the negative result behind Q37: <c>MaxManaGain</c> is non-zero on
+    /// Pins the negative result behind Q37a. <c>MaxManaGain</c> is non-zero on
     /// exactly one terrain in the whole table, where it merely repeats
-    /// <c>ManaGain</c>. One data point is not enough to tell whether it is a
-    /// contribution to a keeper's mana ceiling, a cap on the tile's own output,
-    /// or something else, so nothing reads it. If this test ever fails, the
-    /// field has more to say than it does today and Q37 is worth reopening.
+    /// <c>ManaGain</c> — one data point, which was never enough to say what the
+    /// field means. The one reading that would have given it a job, a
+    /// contribution to a keeper's mana ceiling, is refuted: the ceiling is
+    /// 200000 from the first second and never moves. So nothing reads it, and
+    /// nothing should. If this test ever fails, a data set has given the field
+    /// more to say than the shipped one does and the question is worth
+    /// reopening — on that evidence, not on the field's name.
     /// </summary>
     [Fact]
     public void MaxManaGainIsSetOnExactlyOneTerrain_WhichIsWhyNothingReadsIt()
