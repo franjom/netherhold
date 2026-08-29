@@ -767,6 +767,18 @@ dungeon heart. Where a room may go is read from the room record's own
 placeable-on flags, so nothing in the rules knows what a bridge is (ADR-0016).
 Evidence: `docs/research/rooms-and-gold.md`.
 
+Mana came last, and it is the first thing in the simulation that changes because
+time passed. A keeper's income is the sum of `ManaGain` over the tiles they own,
+capped by `MaximumManaGainPerSecond`, paid once a game second (ADR-0017). The
+finding worth keeping is again in the zeroes: three terrain types out of 41
+generate any mana at all, and they are exactly the ownable non-room ones — so
+claiming ground raises income, losing it lowers it, and building a room on your
+own floor takes that floor off the payroll, none of which is written anywhere.
+What was *not* done matters as much: three variables look like contributions to
+a per-keeper mana ceiling and all three were left unread, so our ceiling is flat
+and plausibly six times too generous for a one-heart keeper (Q37). Evidence:
+`docs/research/mana.md`.
+
 What M3's definition of done still asks for and does not have: **gold reaching a
 player** — there is a treasury now, but nothing carries mined gold to it, and
 what would decide when an imp stops mining and delivers is UNKNOWN (Q31) — and

@@ -23,11 +23,16 @@ What is *built* rather than known, against the long-term goals:
   Gold lives in tiles. See docs/research/rooms-and-gold.md and ADR-0015.
 - Where a room may go: the ROOMS record's own placeable-on flags decide, and
   they partition the shipped rooms exactly as the game plays.
+- Where mana comes from: owned land, and nothing else. Three terrain types out of
+  41 carry a mana gain and they are exactly the ownable non-room ones. See
+  docs/research/mana.md.
 
 ## Unsolved (research required before implementing)
 - Pathfinding (biggest risk), creature moods/anger, combat resolution,
   job-selection priority order, computer-player AI, audio event semantics.
 - Where mined gold goes, and what a room does beyond holding gold or not.
+- Whether a keeper's mana ceiling is computed from their dungeon (Q37); ours is
+  flat, and plausibly too generous.
 
 ## Per-mechanic notes
 One file per mechanic in `docs/research/`, tagged

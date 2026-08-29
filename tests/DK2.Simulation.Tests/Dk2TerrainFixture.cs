@@ -4,9 +4,9 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Tests;
 
 /// <summary>
-/// The twelve terrain types, four rooms, fourteen variables and one creature that
-/// the M3 mechanics touch, transcribed from the reference install so they can be
-/// tested where no Dungeon Keeper 2 installation exists — CI included.
+/// The fourteen terrain types, four rooms, eighteen variables and one creature
+/// that the M3 mechanics touch, transcribed from the reference install so they
+/// can be tested where no Dungeon Keeper 2 installation exists — CI included.
 ///
 /// Unlike <see cref="TestWorld"/>, nothing here is invented: every number is
 /// DK2's own, extracted by <c>dk2tools</c> and recorded in
@@ -33,6 +33,8 @@ internal static class Dk2TerrainFixture
     public const byte LairTerrain = 11;
     public const byte DungeonHeartTerrain = 14;
     public const byte WoodenBridgeTerrain = 17;
+    public const byte ManaVaultTerrain = 31;
+    public const byte ClaimedVaultTerrain = 32;
 
     public static GameDatabase Database() => new(
         [
@@ -61,6 +63,17 @@ internal static class Dk2TerrainFixture
               RoomTerrain, 10000, 10000, DungeonHeartTerrain, ClaimedPath),
             T(WoodenBridgeTerrain, "Wooden Bridge",
               RoomTerrain, 2000, 2000, WoodenBridgeTerrain, ClaimedPath),
+
+            // The vault pair is here for the mana rules: the claimed vault is the
+            // only terrain in the game worth more than one mana a second, and the
+            // only one with a non-zero MaxManaGain (Q37). Its unclaimed form is
+            // worth nothing, which is the whole point of claiming it.
+            T(ManaVaultTerrain, "Mana Vault",
+              TerrainFlags.FillInable, 1, 2000, ClaimedVaultTerrain, ManaVaultTerrain),
+            T(ClaimedVaultTerrain, "Claimed Vault",
+              TerrainFlags.Ownable | TerrainFlags.Attackable | TerrainFlags.FillInable,
+              2000, 2000, ClaimedVaultTerrain, ManaVaultTerrain,
+              manaGain: 100, maxManaGain: 100),
         ],
         rooms:
         [
@@ -166,8 +179,8 @@ internal static class Dk2TerrainFixture
         IntroductionStringId = 0,
     };
 
-    /// <summary>The ten tile-work health deltas, the gems yield, the imp idle delay
-    /// and the three gold-per-tile limits, as shipped.</summary>
+    /// <summary>The ten tile-work health deltas, the gems yield, the imp idle delay,
+    /// the three gold-per-tile limits and the three mana rates, as shipped.</summary>
     public static GlobalVariables Variables()
     {
         var vars = new GlobalVariables();
@@ -186,6 +199,9 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.MaxGoldPerTreasuryTile, 3000);
         Set(vars, VariableTypeId.MaxGoldPerDungeonHeartTile, 1000);
         Set(vars, VariableTypeId.MaxGoldPileOutsideTreasury, 2000);
+        Set(vars, VariableTypeId.MaximumManaThreshold, 200000);
+        Set(vars, VariableTypeId.MaximumManaGainPerSecond, 500);
+        Set(vars, VariableTypeId.ExcessManaDecreaseRatePerSecond, 5);
         return vars;
     }
 
@@ -196,7 +212,8 @@ internal static class Dk2TerrainFixture
         byte id, string name, TerrainFlags flags,
         ushort startingHealth, ushort maxHealth,
         byte maxHealthType, byte destroyedType,
-        ushort goldValue = 0, ushort manaGain = 0, short damage = 0) => new()
+        ushort goldValue = 0, ushort manaGain = 0, ushort maxManaGain = 0,
+        short damage = 0) => new()
     {
         Name = name,
         TerrainId = id,
@@ -205,7 +222,7 @@ internal static class Dk2TerrainFixture
         MaxHealth = maxHealth,
         GoldValue = goldValue,
         ManaGain = manaGain,
-        MaxManaGain = 0,
+        MaxManaGain = maxManaGain,
         Damage = damage,
         MaxHealthTypeTerrainId = maxHealthType,
         DestroyedTypeTerrainId = destroyedType,

@@ -74,3 +74,15 @@ different hat.
 | Q34 | **Selling a room refunds 100% under both candidate numbers** — `RoomDef.ReturnPercentage` (100 for all 26 rooms) and `RoomSellValuePercentageOfCost` (100). That would make rooms free to try, which the original is not. One of the two is not what its name says. Selling is not implemented, so nothing depends on this yet | UNKNOWN |
 | Q35 | Which tile of a multi-tile treasury does a deposit land in, and which does a withdrawal drain? Ours is tile-index order. It is behaviour — it decides which gold survives a treasury being partly destroyed — and the original plausibly fills whichever tile the carrier reached | UNKNOWN |
 | Q36 | Do a room's `RecommendedSizeX/Y` and `TileConstruction` constrain what a keeper may build, or only how it is drawn? Nothing here reads them, so a 1x1 temple is buildable | UNKNOWN |
+
+## Questions from mana (2026-08-29)
+
+See `docs/research/mana.md`. Q37 is the one with teeth: it is the difference
+between a keeper's mana ceiling being flat and being a function of their
+dungeon, and our answer is currently the generous one.
+
+| # | Question | Status |
+|---|---|---|
+| Q37 | **Does a keeper have a computed mana ceiling?** Three variables look like contributions to one — `DungeonHeartMaxManaIncrease` (32000), `DungeonHeartManaGenerationIncreasePerSecond` (30) and `TerrainDef.MaxManaGain` (non-zero on Claimed Vault alone, where it just repeats `ManaGain`) — which would make `MaximumManaThreshold` (200000) an absolute limit on top of a smaller per-keeper one. Implemented as flat, so a one-heart keeper's ceiling here is plausibly six times too high. Cheap to settle: read the mana bar's maximum in the original, claim a mana vault, read it again. Also settles whether the heart's contribution is per heart tile or per heart room — the second needs a room-instance concept we do not have | **UNKNOWN — the mana model's one real gap** |
+| Q38 | Is `MaximumManaGainPerSecond` (500) a per-keeper cap or one shared across the level? Implemented per keeper: a shared cap would make one keeper's expansion throttle another's, which is not how the original plays | HYPOTHESIS (per keeper) |
+| Q39 | Does mana accrue smoothly or in whole seconds? Ours is once a game second (ADR-0017), which is invisible in any total and visible only in the shape of the counter. Unmeasurable until Q1 is | UNKNOWN — nothing depends on it |

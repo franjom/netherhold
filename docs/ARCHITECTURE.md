@@ -155,3 +155,32 @@ unknown trigger as the rest (Q24). And gold released by mining still reaches
 nobody, because nothing carries it (Q31).
 
 Evidence and confidence: `docs/research/rooms-and-gold.md`.
+
+## Mana (M3)
+
+The first thing in the simulation that changes because time passed, rather than
+because a player or a worker did something.
+
+- `ManaRules` is the whole model: a keeper's income is the sum of
+  `TerrainDef.ManaGain` over the tiles they own, capped by
+  `MaximumManaGainPerSecond`, and `MaximumManaThreshold` is a ceiling mana
+  settles back to rather than a clamp.
+- `ManaSystem` pays it once a game second (ADR-0017) and runs last, after
+  everything that could change what a keeper owns.
+- Mana stays a player-level number, unlike gold. The asymmetry is the data's:
+  every limit DK2 sets on gold is per place, and every variable it sets on mana
+  is per player.
+
+**Mana income is territory**, and no code says so. Three terrain types out of 41
+pay anything, and they are exactly the ownable non-room ones — so claiming ground
+raises income, losing it lowers it, and building a room on your own floor takes
+that floor off the payroll, all without a rule about claiming, losing or
+building. `scenarios/mana/land_pays_a_keeper.yaml` shows the last of those: the
+rate falls from 8/s to 5/s when three of eight claimed tiles become a treasury.
+
+What is deliberately absent: **nothing spends mana** (every spender is a spell,
+M7), a dungeon heart contributes nothing, and a keeper's ceiling is flat rather
+than computed — the one real gap, and plausibly six times too generous for a
+one-heart keeper (Q37).
+
+Evidence and confidence: `docs/research/mana.md`.

@@ -76,6 +76,19 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length >= 2 && args[1] == "terrainmana":
+    {
+        List<TerrainDef> terrains = KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(
+            Path.Combine(Dk2Install.Require(), "Data", "editor", "Terrain.kwd")));
+
+        Console.WriteLine($"{"id",3} {"name",-32} {"manaGain",8} {"maxManaGain",11}");
+        foreach (TerrainDef t in terrains.OrderBy(t => t.TerrainId))
+            Console.WriteLine($"{t.TerrainId,3} {t.Name,-32} {t.ManaGain,8} {t.MaxManaGain,11}");
+
+        Console.WriteLine($"-- {terrains.Count} terrain types");
+        return 0;
+    }
+
     case "kwd" when args.Length >= 2 && args[1] == "terrainflags":
     {
         List<TerrainDef> terrains = KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(

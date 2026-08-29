@@ -107,6 +107,7 @@ is worth doing before the shape of the loop hardens.
 |---|---|---|---|
 | 2026-08-29 | `e5260d8` | M3 partial | Spine built (determinism, data-in, headless, evidence discipline); one gameplay slice. Goal 5 found to depend on goal 6 via Q1. Asset-layer deadline recorded. |
 | 2026-08-29 | (rooms) | M3 partial | Rooms, the treasury and the gold model. Goal 5 gained its clearest win so far: the data contradicted an assumption the code already held, and the code changed. Goals 1, 8 and 10 move slightly; nothing else does. |
+| 2026-08-29 | (mana) | M3 partial | Mana income from owned land. Goal 5's harder case: the data was nearly enough for a computed mana ceiling and the ceiling was left flat with the gap recorded (Q37) rather than guessed. ADR-0017 decouples per-second totals from the unmeasured tick rate. |
 
 ### Note on the rooms/gold review
 
@@ -133,3 +134,36 @@ command type, which was the missing half of "commands are the only input".
 
 Gap 3 (the asset-layer deadline) is unchanged and is now the next thing that
 could go wrong, because the Unity view is the next item on the handoff list.
+
+### Note on the mana review
+
+Not a full re-run either — the table above still stands, with two small
+movements and one thing worth recording.
+
+**Goal 5 (behavioural fidelity) gained its second structural win, and it is the
+opposite shape from the first.** With gold, the tell was a *missing* variable and
+the code had to change. With mana the data was complete and unambiguous, and the
+win was refusing to stop there: `MaxManaGain`, `DungeonHeartMaxManaIncrease` and
+`DungeonHeartManaGenerationIncreasePerSecond` are three plausible-looking
+variables that would have been easy to wire up into a keeper's mana ceiling. Each
+would have been a guess. They are Q37 instead, and the note says out loud that
+our flat ceiling is plausibly six times too generous for a one-heart keeper.
+
+That is the harder half of the discipline. Refusing to invent a rule when the
+data is silent is easy; refusing to invent one when the data is *nearly* enough
+is where a project actually drifts.
+
+**Goal 8 (modding) again.** Mana income reads `TerrainDef.ManaGain` and nothing
+else. A mod-authored terrain that generates mana needs no code, exactly as a
+mod-authored room needs none.
+
+**Goal 9 (deterministic, fast).** ADR-0017 is a small decision with a
+disproportionate payoff for goal 5's dependency on goal 6: paying per-second
+rates once a game second means mana totals are independent of `TicksPerSecond`,
+so answering Q1 will not silently rewrite the economy. Gap 1 is unchanged, but
+one of the things that would have been damaged by a late Q1 answer no longer
+would be.
+
+Gap 3 (the asset-layer deadline) is still unchanged and still the next thing that
+could go wrong, because the Unity view is still the next item on the handoff
+list.

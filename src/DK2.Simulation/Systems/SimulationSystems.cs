@@ -24,6 +24,9 @@ namespace DK2.Simulation.Systems;
 /// work they are in position for.</item>
 /// <item><see cref="TileWorkSystem"/> — the work queued this tick resolves this
 /// tick, so nothing survives a tick boundary half-done.</item>
+/// <item><see cref="ManaSystem"/> — last, because mana is a consequence of what
+/// a keeper owns and everything that can change that has now run. A tile claimed
+/// on tick N is worth mana from tick N.</item>
 /// </list>
 ///
 /// <para><b>UNKNOWN: DK2's own per-tick subsystem ordering.</b> Flame's
@@ -40,5 +43,6 @@ public static class SimulationSystems
         new CreatureMovementSystem(),
         new ImpTaskSystem(),
         new TileWorkSystem(),
+        new ManaSystem(),
     ];
 }

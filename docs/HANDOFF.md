@@ -8,9 +8,9 @@ Update this whenever a session ends or context is compacted.
 
 ## Current state (2026-08-29)
 
-**M3 tile mechanics, the first worker, and rooms + the treasury: complete.
-M3 as a whole: partial.** M2 and the five record types M1 needed are done.
-198 tests green with and without a DK2 install, clean tree.
+**M3 tile mechanics, the first worker, rooms + the treasury, and mana:
+complete. M3 as a whole: partial.** M2 and the five record types M1 needed are
+done. 221 tests green with and without a DK2 install, clean tree.
 
 Three honest caveats:
 - M3's definition of done also asks for gold reaching a player and a Unity view.
@@ -21,7 +21,10 @@ Three honest caveats:
   **Nothing generates imps** either: scenario files and tests place them. Every
   scenario run that places a worker says all of that out loud. And **a room does
   nothing**: a treasury and a dungeon heart hold gold because a variable says
-  how much per tile; every other room is inert terrain its owner holds.
+  how much per tile; every other room is inert terrain its owner holds. Mana is
+  income only — **nothing spends it**, because every spender is a spell (M7) —
+  and a keeper's mana ceiling is flat rather than computed from their dungeon,
+  which is plausibly six times too generous for a one-heart keeper (Q37).
 - M1's stated definition of done was "all 18 record types round-trip". Five are
   parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP) plus the WAD and KWD
   containers. The rest (THINGS, TRIGGERS, PLAYERS, OBJECTS, SHOTS, …) are needed
@@ -58,15 +61,16 @@ What the simulation can do:
 | Grid search behind an interface | `DK2.Pathfinding.GridPathfinder` | shortest, wall-respecting, reproducible; reused buffers proven inert |
 | Rooms: where one may go, what it costs | `RoomRules` + `BuildRoomCommand` | placement flags partition the shipped rooms; ground rules run on a campaign level |
 | Gold, stored in tiles rather than on players | `GoldStore` | per-tile limits honoured; a first treasury is paid for out of the dungeon heart |
+| Mana, earned by holding land | `ManaRules` + `ManaSystem` | the three paying terrains partition the install by exhaustion; income falls when claimed floor becomes a room |
 
 Extracted data artifacts (the specification the simulation is written against):
 `docs/research/game-database-dump.md`, `creature-table-dump.md`,
 `terrain-room-dump.md`. The last of these now carries the terrain table's
 `maxHealth` column and full flag set, and the room table's full flag set
-(`dk2tools kwd terrain` / `kwd terrainflags` / `kwd rooms` / `kwd roomflags`),
-which is what M3's rules are built on.
+(`dk2tools kwd terrain` / `kwd terrainflags` / `kwd terrainmana` / `kwd rooms` /
+`kwd roomflags`), which is what M3's rules are built on.
 
-**Next: the rest of M3 — gold that reaches a keeper, and the Unity view.**
+**Next: the rest of M3 — the Unity view, and gold that reaches a keeper.**
 
 How this milestone stands against the twelve long-term goals in `AGENTS.md`, and
 which of them have deadlines attached: `docs/GOAL_ALIGNMENT.md`. Re-run that
@@ -115,6 +119,11 @@ to miss.
 | `tests/DK2.Behavior.Tests/RoomsOnRealDataTests.cs` | The room fixture's drift guard, plus the flag-partition claim. |
 | `scenarios/rooms/` | A keeper builds a treasury and cannot afford the last tile of it. |
 | `docs/research/rooms-and-gold.md` | Rooms and the gold model: evidence, what falls out, what is absent. |
+| `src/DK2.Simulation/ManaRules.cs` | The whole mana model: income from owned land, the cap and the ceiling. |
+| `src/DK2.Simulation/Systems/ManaSystem.cs` | Pays it once a game second (ADR-0017). Runs last, after anything that changes ownership. |
+| `tests/DK2.Behavior.Tests/ManaOnRealDataTests.cs` | The mana fixture's drift guard, plus the "only held ground pays" partition by exhaustion. |
+| `scenarios/mana/` | Land pays a keeper; paving three tiles of it into a treasury lowers the rate. |
+| `docs/research/mana.md` | Mana: evidence, why per second, and the one gap (Q37). |
 | `tests/DK2.Simulation.Tests/Dk2TerrainFixture.cs` | DK2's real numbers, transcribed so the rules test in CI. |
 | `tests/DK2.Behavior.Tests/TileWorkOnRealDataTests.cs` | The same rules against the real install — keeps the fixture from drifting. |
 | `tests/DK2.Behavior.Tests/ImpsOnRealDataTests.cs` | Same, for the Imp record, plus imps digging a real level. |
@@ -139,23 +148,16 @@ Harness output lands in `build/scenario-runs/<id>/` (gitignored).
 
 ## Immediate next steps (rest of M3)
 
-The tile rules, the first worker, rooms and the treasury are done. What is left
-is the half of the gold loop that needs a carrier, and the view.
+The tile rules, the first worker, rooms, the treasury and mana are done. What is
+left is the view, and the half of the gold loop that needs a carrier.
 
-1. **Mana from claimed tiles** — the cheapest real thing left, and it needs
-   nobody's permission. `ManaGain`/`MaxManaGain` are on every terrain (Claimed
-   Path 1, Claimed Vault 100) and nothing reads them; `MaximumManaThreshold`,
-   `MaximumManaGainPerSecond` and `ExcessManaDecreaseRatePerSecond` are all
-   extracted. Mana is already a player-level pool (`PlayerState.Mana`), so
-   unlike gold it needs no new state. It is also the precondition for the Create
-   Imp spell, which is the precondition for anything generating workers.
-2. **Unity presentation** — the simulation runs a dig scenario with moving
+1. **Unity presentation** — the simulation runs a dig scenario with moving
    workers and a keeper building a room, headlessly, which was the precondition.
    `CreatureState.PosX/PosY` are fixed point in tile units; a renderer converts,
    the simulation never does. **`docs/GOAL_ALIGNMENT.md` gap 3 applies here and
    is the expensive one to miss: the asset abstraction layer must land in the
    same milestone as the first Unity view, not after it.**
-3. **Gold reaching a keeper (Q31)** — the remaining half of M3's definition of
+2. **Gold reaching a keeper (Q31)** — the remaining half of M3's definition of
    done, and the one that is blocked on research rather than on typing. The
    treasury and the spill rule exist; what is missing is the carrier. Three
    things have to be settled first, and none can be guessed: does the mining imp
@@ -164,10 +166,10 @@ is the half of the gold loop that needs a carrier, and the view.
    delivers (the Imp's `maxGoldHeld` is 1400 against ~1363 an application from a
    seam and 25 from a gem face — recorded in `rooms-and-gold.md`); and which
    treasury tile it fills (Q35). **This is also where Q24 has to be faced.**
-4. **Claiming as an imp job** — `Claim` already works as a rule and is exercised
+3. **Claiming as an imp job** — `Claim` already works as a rule and is exercised
    by scenario-injected work. Making an imp start one unprompted is a Q24
    decision, not a coding one; do the research before the code.
-5. **What rooms actually do** — a lair, a hatchery, a library and the rest are
+4. **What rooms actually do** — a lair, a hatchery, a library and the rest are
    inert terrain. Each needs its own research note; none can be guessed from the
    ROOMS record, which carries art, size and cost and nothing about behaviour.
 
@@ -179,6 +181,13 @@ order that looks right.
 **And before adding to `RoomRules`, read `docs/research/rooms-and-gold.md`
 §"What is not implemented, and is not guessed at".** Same discipline: rooms have
 no size rules, no selling and no behaviour on purpose.
+
+**And before adding to `ManaRules`, read `docs/research/mana.md` §"What is not
+implemented, and is not guessed at".** This one is the subtler trap: the mana
+data is *nearly* enough to build a computed per-keeper ceiling out of
+`MaxManaGain` and the two `DungeonHeart…` variables, and three plausible
+variables are exactly how a guess gets in. They are Q37 and they stay unread
+until somebody reads a mana bar in the original.
 
 **And `docs/research/tile-work.md` §"What does not fit" still stands.** Q20
 (DigRockHealth destroys a rock tile in one application) is now visible in every
@@ -219,6 +228,9 @@ it by changing the number.
   way gold moves.
 - Where a room may go is read from the room's own placeable-on flags, so nothing
   in the rules knows what a bridge is (ADR-0016).
+- A `…PerSecond` rate from the balance table is applied **in whole, once every
+  `TicksPerSecond` ticks** (ADR-0017), not smoothed across ticks. That keeps
+  totals independent of the unmeasured Q1 constant, which is the point.
 - Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Resolved by
   `DK2.Data.Dk2Install`. **`DK2_DIR` is authoritative when set** — if it is set
   and invalid, no fallback is tried, which is how CI runs with no install.
@@ -230,7 +242,11 @@ it by changing the number.
 
 - **A balance constant hardcoded in simulation code is a bug** — read it from
   `GameDatabase`. `GameDatabase[VariableTypeId.X]` throws rather than returning
-  zero for a missing value, on purpose.
+  zero for a missing value, on purpose. Consequence, and it bites every time: a
+  system that reads a *new* variable breaks every synthetic database until that
+  variable is added to it — `TestWorld.Variables()`,
+  `Dk2TerrainFixture.Variables()` and `ScenarioTests.Variables()`. That is the
+  design working; add the entry rather than defaulting the lookup.
 - **Changing simulation state breaks the pinned hash.** That is the design.
   Bump `GameSimulation.HashVersion` and update the literal in
   `DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines` in the same
@@ -316,9 +332,16 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 36 (one answered). The ones that
+`docs/research/open-questions.md` holds all 39 (one answered). The ones that
 gate progress:
 
+- **Q37 — does a keeper have a computed mana ceiling?** The mana model's one
+  real gap, and the cheapest of these to settle: read the mana bar's maximum in
+  the original, claim a mana vault, read it again. Three variables
+  (`MaxManaGain`, `DungeonHeartMaxManaIncrease`,
+  `DungeonHeartManaGenerationIncreasePerSecond`) look like contributions to one
+  and are all left unread. If they are, our flat 200000 ceiling is roughly six
+  times too generous for a one-heart keeper.
 - **Q31 — where mined gold goes.** The other half of M3's gold loop. Needs the
   OBJECTS record for the gold-pile branch (M6) and measurement against the
   original for the threshold. See the "Immediate next steps" entry.

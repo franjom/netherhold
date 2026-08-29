@@ -1,0 +1,60 @@
+# The first scenario in which time alone changes something.
+#
+# A keeper claims eight tiles of floor and then does nothing. Mana arrives once
+# a game second, eight at a time, because claimed path is worth one mana a
+# second in DK2's terrain table and nothing else on this map is worth anything.
+#
+# Three seconds in, the keeper paves three of those eight tiles into a treasury.
+# The income drops to five, and it drops for a reason nothing here implements:
+# room terrain has a mana gain of zero in all 26 of the game's rooms, so
+# building on your own floor takes that floor off the payroll. Read the
+# `mana_gained` lines: the rate falls from 8/s to 5/s without a single rule
+# knowing that a treasury was involved.
+#
+# What to read in the event log: five `mana_gained` lines, at ticks 19, 39, 59,
+# 79 and 99 - the end of each game second - and one `built` line between the
+# third and the fourth.
+#
+# What this run does NOT establish, and the report repeats it: how long a game
+# second is (Q1 - TicksPerSecond is a placeholder, so the totals are right and
+# the wall-clock rate is not a claim); whether DK2 accrues smoothly or in whole
+# seconds; what a dungeon heart contributes (Q37 - a heart is a room instance
+# and rooms here are terrain); and what mana is for, since nothing spends it.
+#
+# The claiming is injected work, not an imp: claiming is a job an imp starts by
+# itself and the trigger for that is UNKNOWN (Q24), so the harness stands in and
+# says so.
+id: mana-land-pays-a-keeper-001
+question: >
+  Is a keeper's mana income the size of their territory - so that claiming
+  ground raises it, and building a room on that same ground lowers it again?
+map: flat_16x12
+seed: 5
+duration_ticks: 100
+setup:
+  players:
+    - { id: 1, gold: 600, mana: 0 }
+  rooms:
+    # Somewhere to keep the 600 gold the treasury below is paid for with. A
+    # heart tile generates no mana, so it does not muddy the income.
+    - { type: Dungeon Heart, at: [2, 2], player: 1 }
+work:
+  # Eight tiles of floor claimed for player 1, one application each.
+  - { at_tick: 0, player: 1, kind: Claim, at: [5, 5] }
+  - { at_tick: 0, player: 1, kind: Claim, at: [6, 5] }
+  - { at_tick: 0, player: 1, kind: Claim, at: [7, 5] }
+  - { at_tick: 0, player: 1, kind: Claim, at: [8, 5] }
+  - { at_tick: 0, player: 1, kind: Claim, at: [5, 6] }
+  - { at_tick: 0, player: 1, kind: Claim, at: [6, 6] }
+  - { at_tick: 0, player: 1, kind: Claim, at: [7, 6] }
+  - { at_tick: 0, player: 1, kind: Claim, at: [8, 6] }
+commands:
+  # Three seconds in, after the third payment: pave three of the eight.
+  - at_tick: 60
+    player: 1
+    build:
+      type: Treasury
+      tiles: [[5, 5], [6, 5], [7, 5]]
+observe:
+  - state_hash
+  - events

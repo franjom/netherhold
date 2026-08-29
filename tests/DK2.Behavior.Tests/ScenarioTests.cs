@@ -439,6 +439,16 @@ public class ScenarioTests
         vars.Misc[VariableTypeId.MaxGoldPerDungeonHeartTile] =
             new MiscVariable(VariableTypeId.MaxGoldPerDungeonHeartTile, 1000, 0, 0);
 
+        // ManaSystem reads these every second and GameDatabase throws rather
+        // than defaulting. No terrain here generates mana, so the values only
+        // have to exist.
+        vars.Misc[VariableTypeId.MaximumManaThreshold] =
+            new MiscVariable(VariableTypeId.MaximumManaThreshold, 200000, 0, 0);
+        vars.Misc[VariableTypeId.MaximumManaGainPerSecond] =
+            new MiscVariable(VariableTypeId.MaximumManaGainPerSecond, 500, 0, 0);
+        vars.Misc[VariableTypeId.ExcessManaDecreaseRatePerSecond] =
+            new MiscVariable(VariableTypeId.ExcessManaDecreaseRatePerSecond, 5, 0, 0);
+
         return vars;
     }
 

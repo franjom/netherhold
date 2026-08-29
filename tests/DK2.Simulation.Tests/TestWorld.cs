@@ -31,7 +31,27 @@ internal static class TestWorld
         ],
         rooms: [],
         creatures: [],
-        variables: new GlobalVariables());
+        variables: Variables());
+
+    /// <summary>
+    /// Only what a system would throw without. `GameDatabase` refuses to invent
+    /// a missing balance value, so a synthetic database has to carry an entry
+    /// for every variable the registered systems read — these three are
+    /// <see cref="ManaSystem"/>'s. The numbers are DK2's, because a made-up
+    /// threshold here would be a made-up number in a determinism hash; no
+    /// terrain in this fixture generates mana, so nothing depends on them.
+    /// </summary>
+    private static GlobalVariables Variables()
+    {
+        var vars = new GlobalVariables();
+        Set(vars, VariableTypeId.MaximumManaThreshold, 200000);
+        Set(vars, VariableTypeId.MaximumManaGainPerSecond, 500);
+        Set(vars, VariableTypeId.ExcessManaDecreaseRatePerSecond, 5);
+        return vars;
+    }
+
+    private static void Set(GlobalVariables vars, VariableTypeId id, int value) =>
+        vars.Misc[id] = new MiscVariable(id, value, 0, 0);
 
     private static TerrainDef Terrain(
         byte id, string name, TerrainFlags flags, ushort health,

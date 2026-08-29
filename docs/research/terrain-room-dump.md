@@ -100,6 +100,25 @@ read structurally rather than by terrain id (`dk2tools kwd terrainflags`):
 -- 41 terrain types
 ```
 
+### Mana per terrain
+
+The `mana` column above is `ManaGain`. `MaxManaGain` sits beside it in the
+record and is dumped here too, because its emptiness is the evidence
+(`dk2tools kwd terrainmana`). Every terrain not listed is zero in both columns:
+
+```
+ id name                             manaGain maxManaGain
+  8 Claimed Path                            1           0
+  9 Reinforced Wall                         1           0
+ 32 Claimed Vault                         100         100
+-- 3 of 41 terrain types generate mana
+```
+
+Three paying terrains out of 41, and they are exactly the ownable non-room
+ones. That partition is what `DK2.Simulation.ManaRules` rests on, and
+`ManaOnRealDataTests` asserts it by exhaustion rather than by spot check. See
+`mana.md`; `MaxManaGain` is Q37.
+
 
 ## Room types (Rooms.kwd)
 

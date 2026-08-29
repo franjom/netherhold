@@ -96,8 +96,33 @@ public sealed class ScenarioRunner
         if (simulation.Systems.Count == 0)
             unsupported.Add("no simulation systems are registered - the world cannot change");
 
+        AddManaCaveats(world, unsupported);
+
         return new ScenarioResult(
             scenario, scenario.DurationTicks, simulation.StateHash(), hashes, sink.Events, unsupported);
+    }
+
+    /// <summary>
+    /// Mana accrues in every run now, so every run has to say what that number
+    /// is not. Only said when somebody actually earned some — a run with no
+    /// claimed land has nothing to disclaim.
+    /// </summary>
+    private void AddManaCaveats(WorldState world, List<string> unsupported)
+    {
+        int[] gain = ManaRules.GainPerSecondByPlayerIndex(world, _database);
+        if (gain.All(g => g == 0)) return;
+
+        unsupported.Add(
+            "mana here is income only: nothing spends it. The Create Imp spell, keeper spells, " +
+            "possession and research all cost mana in DK2 and none of them exists yet, so a mana " +
+            "total in this run is what a keeper would have earned, not what they would have left");
+        unsupported.Add(
+            "a dungeon heart contributes no mana. DungeonHeartManaGenerationIncreasePerSecond (30) " +
+            "is per heart, and a heart is a room instance - rooms here are terrain, so there is " +
+            "nothing to count (Q37)");
+        unsupported.Add(
+            "mana is paid once a game second and a game second is TicksPerSecond ticks, which is a " +
+            "placeholder (Q1). The totals are right; the wall-clock rate they imply is not a claim");
     }
 
     /// <summary>

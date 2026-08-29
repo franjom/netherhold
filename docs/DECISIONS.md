@@ -258,3 +258,34 @@ that broke it fails a test instead of quietly changing the rules. The one place
 a room type *is* named is `GoldStore.Capacity`, where the two variables are
 themselves named for the treasury and the dungeon heart — there the room type is
 the data's own vocabulary for the question.
+
+---
+
+## ADR-0017 — A per-second rate from the balance table is applied once a game second
+
+**Status:** accepted (2026-08-29, M3)
+
+**Context.** Mana income is the first rate in the simulation that is paid to a
+player rather than applied to a tile by a worker, and it is small: one mana per
+claimed tile per second. Spread smoothly over `TicksPerSecond` ticks it is a
+fraction, so it needs either fixed-point mana or a per-player accumulator — new
+state, in the hash and the snapshot, to represent a sub-tick remainder.
+
+**Decision.** Rates named `…PerSecond` in the data are applied in whole, once
+every `SimulationTiming.TicksPerSecond` ticks, on the last tick of each game
+second. `ManaSystem` does this and holds no state of its own.
+
+**Consequences.** The arithmetic stays in integers with no remainder to carry, no
+new field enters `PlayerState`, and — the reason this is a decision rather than a
+convenience — **totals stay independent of `TicksPerSecond`**, which is still the
+unmeasured Q1 placeholder. A run's mana after ten game seconds is the same number
+whatever that constant is set to, so answering Q1 will not silently rewrite the
+economy.
+
+What it costs: the counter moves in steps rather than smoothly. Whether DK2
+accrues smoothly is UNKNOWN (Q39), it is invisible in any total, and it cannot be
+measured before Q1 is. If it ever matters, the change is local to `ManaSystem`
+and needs one accumulator field.
+
+This generalises the rule `SimulationTiming.WorkApplicationPeriodTicks` already
+encoded for tile work; ADR-0011 (ticks meet seconds in one place) is unchanged.
