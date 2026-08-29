@@ -3,6 +3,11 @@
 Living list. Every entry needs an experiment or RE dig before implementation
 may treat it as fact.
 
+**Many of these can be answered by playing the game.**
+`observation-checklist.md` collects the ones a person in front of DK2 can settle
+by looking, as concrete experiments, and says which ones playing cannot settle.
+Check it before writing anything up as UNKNOWN.
+
 | # | Question | Status | Blocking |
 |---|---|---|---|
 | Q1 | Simulation ticks-per-second of DK2 v1.70? | UNKNOWN — Flame `limit_tps` proves fixed tick; value unmeasured. **Negative result (2026-08-29):** the VARIABLES id space has an id 74 named `GameTicks` in the community template, but no shipped file carries it — not GlobalVariables.kwd, not any of the 71 map KWDs. Q1 cannot be answered from KWD data; it needs measurement against the running original | All timing fidelity (M5) |

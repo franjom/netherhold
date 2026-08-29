@@ -132,6 +132,7 @@ to miss.
 | `scenarios/imps/` | Two imps digging a corridor from nothing but a tag command. |
 | `docs/research/tile-work.md` | The tile rules: evidence, confidence tags, three anomalies. |
 | `docs/research/imp-tasks.md` | The worker: evidence, what is inferred, what is deliberately absent. |
+| `docs/research/observation-checklist.md` | **Hand this to the owner.** Every open question a person playing DK2 can settle by looking, as experiments — and which ones playing cannot settle. |
 
 ## Running things
 
@@ -325,13 +326,18 @@ Never write a bare `cat >` redirect, and do not reach for python.
 
 Cheap-to-expensive, stop as soon as the question is answered:
 
-0. **Ask the owner.** They have played DK2 and the original is the behavioural
-   oracle. This is the cheapest source there is and it was under-used: Q37 (the
-   mana ceiling) and the one-dungeon-heart rule were both settled in one sentence
+0. **Ask the owner, or hand them `docs/research/observation-checklist.md`.**
+   They have played DK2 and the original is the behavioural oracle. That file
+   lists every open question a person in front of the game can settle by
+   looking, as concrete experiments, and says which ones playing cannot settle.
+
+   This is the cheapest source there is and it was under-used: Q37 (the mana
+   ceiling) and the one-dungeon-heart rule were both settled in one sentence
    after being written up as unanswerable from the files. A question of the form
    "what does the player *see* happen" is almost always one of these. Record the
    answer as CONFIRMED with "owner observation" as the evidence, the same way a
-   data extract is recorded.
+   data extract is recorded — and record a "no" too, since it closes a question
+   just as hard.
 1. Is the answer just sitting in the KWD data? (Often yes — check first.)
 2. ufdada/dk2-tools 010 Editor templates — independent format facts.
 3. Flame's `mapping/DKII_EXE_v170.sgmap` — 868 structs, 10,548 globals.

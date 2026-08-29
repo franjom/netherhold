@@ -39,3 +39,10 @@ What is *built* rather than known, against the long-term goals:
 ## Per-mechanic notes
 One file per mechanic in `docs/research/`, tagged
 CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN per AGENTS.md.
+
+## Answerable by playing the game
+`docs/research/observation-checklist.md` — the open questions a person in front
+of DK2 can settle by looking, as concrete experiments, ranked by what they
+unblock, plus the ones playing cannot settle. The two biggest blockers on the
+project right now (Q31, where mined gold goes; Q24, what an idle imp does) are
+both on it.
