@@ -26,6 +26,9 @@ Implemented by `DK2.Simulation.Systems.ImpTaskSystem`,
 | A worker takes the marked tile fewest steps away | **HYPOTHESIS** (Q25) |
 | A worker that finishes a job starts the next one at once rather than waiting out the idle delay | **STRONGLY INFERRED** — an imp that has just finished has not been idle |
 | Imps never eat | **CONFIRMED** — owner observation; the Imp's hunger rate of 32767 does mean "never" (Q12) |
+| An imp carries mined gold to a treasury or heart tile itself | **CONFIRMED** — owner observation (Q31); the tail of a mining job, not a job |
+| Where an imp breaks off mining to go and unload | **HYPOTHESIS** — when one more swing would free more than it can hold |
+| An imp with nowhere to unload keeps mining | **CONFIRMED** (Q31) — but the floor lump it should leave is NOT IMPLEMENTED, so the overflow is lost |
 | Everything about *routing* | **UNKNOWN** (Q5) |
 
 ---
@@ -114,18 +117,49 @@ snapshotted like everything else.
 
 Once per tick, for every creature flagged `IsWorker`, in spawn order:
 
-1. If it has a job and the target is no longer marked, or the work no longer
+1. If it is carrying gold, it deals with that first — see *The round trip* below.
+2. If it has a job and the target is no longer marked, or the work no longer
    applies to it, the job ends. It looks again on the next tick.
-2. If it is idle, it counts down; at zero it searches. A search that finds
+3. If it has gold in its hands and no job, it looks for somewhere to put the gold
+   before it looks for work.
+4. If it is idle, it counts down; at zero it searches. A search that finds
    nothing resets the count to `ImpIdleDelayBeforeReevaluationSeconds`.
-3. If it is walking and now occupies a tile orthogonally beside its target, it
+5. If it is walking and now occupies a tile orthogonally beside its target, it
    starts working. If it has walked its whole route and is still not beside the
    target, the job ends.
-4. If it is working, it counts down; at zero it queues one application of work
-   and resets the count to one work period.
+6. If it is working, it counts down; at zero it either queues one application of
+   work, or — if that application would free more gold than it can hold, and
+   there is somewhere reachable to put what it already has — breaks off and
+   carries.
 
 Movement is a separate system that runs *before* task selection, so a worker that
 arrives beside its job is noticed on the tick it arrives.
+
+### The round trip
+
+**CONFIRMED (Q31).** An imp mines into its own hands up to `maxGoldHeld` and
+carries the load to the nearest tile of its keeper's that has room for gold —
+which, given the data, means a treasury or dungeon-heart tile and nothing else.
+It puts down as much as fits and, if it is still carrying anything, looks again;
+that is what makes a load spill from one treasury tile into the next without a
+spillover rule existing anywhere.
+
+Two decisions in that are ours rather than the game's, and both are stated in the
+code:
+
+- **Where it stops mining.** "One more swing would not fit" — HYPOTHESIS. See
+  `rooms-and-gold.md` §*Where an imp decides to stop mining*, where the shipped
+  numbers turn out to say something about Q47 as well.
+- **What it does with nowhere to unload.** It keeps mining, which is DK2's
+  behaviour, and the gold it cannot hold is lost, which is not: the original
+  leaves a lump on the floor. The alternative — stand still holding a full
+  load — would stop a keeper with no treasury from mining at all, and would be a
+  worse wrong answer than losing the overflow loudly.
+
+**Carrying is not in the priority order.** An imp does not weigh "carry" against
+"claim"; it mines, and carrying is what happens next. That is the whole reason
+`CreatureActivity.DeliveringGold` is a state and `JobPriority` has no entry for
+it (ADR-0018).
 
 ### The search is the selection
 
@@ -184,9 +218,20 @@ and the priority order is CONFIRMED (ADR-0018). What is still absent:
 - **Picking up gold somebody else dropped.** Carrying gold an imp mined itself is
   implemented as the tail of a mining job; a pile already on the floor needs a
   trigger of its own and is not in the priority order the owner gave.
+- **The floor lump an imp leaves when there is nowhere to unload.** The
+  *decision* is DK2's and is implemented — an imp with nowhere to put gold keeps
+  mining rather than standing still — but what it cannot hold is reported as
+  `gold_uncollected` and lost, where the original grows a lump up to
+  `MaxGoldPileOutsideTreasury` (2000) that somebody can come back for. A lump is
+  an OBJECT and the OBJECTS record is not parsed until M6. Q31.
+- **Building rooms.** In DK2 an imp walks to a marked room tile and constructs
+  it; here `RoomBuildSystem` lays the terrain down instantly and no worker is
+  involved. That is a fourth thing an imp does and it is not in the priority
+  order the owner gave, so where it would sit is UNKNOWN.
 
-Note what is *not* on this list any more: the priority order itself. It was the
-biggest unknown in this file and it was answered in one sentence.
+Note what is *not* on this list any more: the priority order itself, and carrying
+gold. Both were among the biggest unknowns in this file and both were answered in
+one sentence each.
 
 ## Routing is ours, not DK2's
 

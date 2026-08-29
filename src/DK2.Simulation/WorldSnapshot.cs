@@ -25,7 +25,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 4;
+    private const int FormatVersion = 5;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -75,6 +75,7 @@ public static class WorldSnapshot
             w.Write(o.TileIndex);
             w.Write((int)o.Kind);
             w.Write(o.PlayerId);
+            w.Write(o.WorkerCreatureId);
         }
 
         w.Write(world.NextCreatureId);
@@ -87,6 +88,7 @@ public static class WorldSnapshot
             w.Write(c.PosX);
             w.Write(c.PosY);
             w.Write(c.MoveRemainder);
+            w.Write(c.GoldHeld);
             w.Write((int)c.Activity);
             w.Write(c.TargetTileIndex);
             w.Write((int)c.TargetWork);
@@ -170,7 +172,7 @@ public static class WorldSnapshot
         for (int i = 0; i < workCount; i++)
         {
             world.QueueWork(new TileWorkOrder(
-                r.ReadInt32(), (TileWorkKind)r.ReadInt32(), r.ReadByte()));
+                r.ReadInt32(), (TileWorkKind)r.ReadInt32(), r.ReadByte(), r.ReadInt32()));
         }
 
         int nextCreatureId = r.ReadInt32();
@@ -185,6 +187,7 @@ public static class WorldSnapshot
                 PosX = r.ReadInt32(),
                 PosY = r.ReadInt32(),
                 MoveRemainder = r.ReadInt32(),
+                GoldHeld = r.ReadInt32(),
                 Activity = (CreatureActivity)r.ReadInt32(),
                 TargetTileIndex = r.ReadInt32(),
                 TargetWork = (TileWorkKind)r.ReadInt32(),

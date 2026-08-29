@@ -280,6 +280,11 @@ public sealed class ScenarioRunner
         unsupported.Add(
             "routing is ours, not DK2's (Q5): a four-connected shortest-path search with uniform " +
             "step costs. Travel times in this run are a consequence of that choice");
+        unsupported.Add(
+            "a worker mining gold carries it to a treasury or dungeon-heart tile itself (Q31), but " +
+            "gold it cannot hold is LOST: DK2 grows a lump on the floor that somebody can come back " +
+            "for, and a lump is an object (M6). A keeper with nowhere to store gold still mines, and " +
+            "keeps only what fits in one pair of hands");
     }
 
     /// <summary>Turns the scenario's scheduled commands into one input frame per tick.</summary>

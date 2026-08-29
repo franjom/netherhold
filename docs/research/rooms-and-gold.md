@@ -21,11 +21,14 @@ Implemented by `DK2.Simulation.RoomRules`, `DK2.Simulation.GoldStore`,
 | A keeper's gold is the sum of what their tiles hold | **STRONGLY INFERRED** — every limit DK2 sets on gold is per tile |
 | A room is built on land the player already owns | **STRONGLY INFERRED** — observed, and the tile carries no other candidate |
 | `Cost` is per tile rather than per room | **STRONGLY INFERRED** (Q32) |
-| Which tile of a treasury a deposit lands in | **UNKNOWN** (Q35) — ours is tile-index order |
+| Which tile of a treasury a deposit lands in | **STRONGLY INFERRED** (Q35) — the tile the carrier walked to, spilling into the next |
 | Whether a new room tile must touch the keeper's existing land | **UNKNOWN** (Q33) |
 | What a room *does*, beyond being owned terrain | **NOT IMPLEMENTED** — only the treasury and the heart do anything, because only they have a variable |
 | Selling a room | **NOT IMPLEMENTED** (Q34) — two candidate refund numbers and no way to tell which applies |
-| Where mined gold goes | **UNKNOWN** (Q31) — there is still no carrier |
+| Where mined gold goes | **CONFIRMED** (Q31) — into the mining imp's hands, then carried to a treasury or heart tile |
+| How much an imp carries | **CONFIRMED** — the CREATURES record's `maxGoldHeld`; the Imp holds 1400 |
+| Where an imp stops mining to go and unload | **HYPOTHESIS** — when one more swing would free more than it can hold |
+| A floor lump when there is nowhere to store gold | **NOT IMPLEMENTED** (Q31) — lumps are OBJECTS, M6; the imp keeps mining and the overflow is lost |
 
 ---
 
@@ -92,22 +95,97 @@ convenience: mana's variables (`MaximumManaThreshold`,
 `ExcessManaDecreaseRatePerSecond`, `MaximumManaGainPerSecond`) are all rates and
 ceilings on one pool, with no per-tile storage anywhere.
 
-### Two of the four places exist
+### Three of the four places exist
 
 Treasury and heart tiles are implemented, because a variable says how much each
 holds and a tile can carry the number.
 
-Floor piles and creatures' hands are **not**. A pile is an OBJECT, and the
-OBJECTS record is not parsed until M6; modelling a pile as tile state instead
-would be inventing a representation, not implementing a mechanic. So gold that
-will not fit is *refused* — `GoldStore.Deposit` returns what it accepted, and
-every caller reports the shortfall. A scenario that gives a keeper gold with no
-treasury says so in its report.
+**A creature's hands are implemented too**, as `CreatureState.GoldHeld`, bounded
+by that creature's `maxGoldHeld`. Adding it was not a modelling choice so much as
+the only way to reproduce the confirmed behaviour: DK2's gold does not move from
+a seam to a treasury, it moves from a seam to an imp and then from an imp to a
+treasury, and an imp that is walking home is a keeper's gold being *somewhere*
+for a few seconds. That is worth stating plainly because it has a consequence
+nobody would guess from a spreadsheet: **a keeper's spendable total dips while
+their imps are in transit**, and it is not a rounding artefact, it is where the
+gold is.
+
+Floor piles are **not**. A pile is an OBJECT, and the OBJECTS record is not
+parsed until M6; modelling a pile as tile state instead would be inventing a
+representation, not implementing a mechanic. So gold that will not fit is
+*refused* — `GoldStore.Deposit` returns what it accepted, and every caller
+reports the shortfall. A scenario that gives a keeper gold with no treasury says
+so in its report.
 
 The same rule catches the other end. A treasury tile that is destroyed becomes
 claimed floor, which holds nothing, so `TileWorkRules` reports the gold as
 `GoldSpilled` and `TileWorkSystem` emits `gold_spilled`. In DK2 that gold
 scatters as piles; here it is lost, loudly.
+
+---
+
+## The round trip
+
+**CONFIRMED (Q31, owner observation of the original.)** If the keeper has room in
+a treasury or a dungeon heart, the mining imp takes the gold into its own hands
+up to `maxGoldHeld`, runs to the drop spot and adds it to the store. If there is
+nowhere to put it, the imp keeps mining and a lump grows on the floor in front of
+it.
+
+Two things follow that are worth stating because they are easy to get wrong:
+
+**Carrying is the tail of a mining job, not a job.** An imp does not choose
+between "mine" and "carry" — it mines, and carrying is what happens next. That is
+why `CreatureActivity.DeliveringGold` is a state and there is no `JobPriority`
+entry for it, and it is the one place the confirmed priority order (ADR-0018)
+deliberately does not apply.
+
+**A pile is the fallback, not the first step.** The obvious wrong model — mine,
+drop on the floor, have somebody collect it later — is not what the original
+does, and it would have made floor lumps a prerequisite for any gold economy at
+all. They are not: they are what happens when the economy is full.
+
+### Where an imp decides to stop mining
+
+The one part of this that is **HYPOTHESIS**. The rule implemented is *one more
+swing would free more gold than I can hold*, which is the only stopping point
+that neither wastes gold nor overfills a pair of hands. The obvious alternative —
+swing until the hands are exactly full — has to throw the overflow away, and with
+the shipped numbers that is most of a seam.
+
+The shipped numbers are worth laying out, because one of them is a surprise:
+
+```
+a gold seam        660 health, 3000 gold
+MineGoldHealth     -300 per application
+  → one swing frees 3000 * 300 / 660 = 1363, and a seam takes three swings
+    (1363 + 1363 + 272 = 2998; the two lost are DK2's integer truncation)
+Imp maxGoldHeld    1400
+```
+
+1363 against 1400 is a near-miss, and near-misses in shipped data are usually
+telling you something. **1400 is almost exactly two swings' worth under the Q47
+reading** — that an application lands twice a second and applies half the tabled
+delta, so a swing frees 681 and two of them 1362. That is independent support for
+Q47 from a number in a different record entirely, arrived at without looking for
+it. Nothing here depends on it: at the whole-delta granularity currently
+implemented an imp makes one trip per swing instead of one per two, and the total
+that reaches the treasury is the same either way.
+
+### Which tile the load lands in (Q35)
+
+The owner's answer was *the nearest tile, spilling into another empty treasury
+tile*, flagged as belief rather than observation. What is implemented is not a
+rule at all, which is why it is now STRONGLY INFERRED rather than a guess: the
+imp walks to the nearest tile with room, puts down as much as fits, and if it is
+still carrying anything it looks again. Spillover is the consequence, not a
+clause. `GoldStore.DepositInto` — one tile, the carrier's — is what makes that
+possible, and `GoldStore.Deposit`'s tile-index order survives only for the two
+cases with no carrier in them: paying for a room, and refunds.
+
+On the shipped level 1 that produces exactly the original's behaviour: 1000 into
+one heart tile, 363 into the next, and back to the seam. See
+`scenarios/imps/an_imp_carries_gold_home.yaml`.
 
 ---
 
@@ -196,6 +274,20 @@ is not how the original plays. Q34.
 **The objects a room places on its tiles** (`RoomDef.ObjectIds`) are not read.
 M6.
 
+**Gold that will not fit in an imp's hands is lost.** In the original the imp
+keeps mining and a lump grows on the floor in front of it, up to
+`MaxGoldPileOutsideTreasury` (2000), and somebody can come back for it. Here the
+imp keeps mining — that half is DK2's — but the overflow is reported as
+`gold_uncollected` and dropped, because a lump is an OBJECT (M6). The decision to
+keep mining rather than stand still is the important half: a keeper with no
+treasury still gets their seams dug out, and simply keeps only what one pair of
+hands holds. `TheFloorPileLimitIsInTheDataAndIsReadByNothing` exists so that this
+stays a deliberate gap rather than a forgotten one.
+
+**Nobody picks up gold somebody else dropped.** The same missing OBJECT record,
+plus the missing job: an imp in DK2 will collect a lump left by a dead creature
+or a destroyed treasury, and there is nothing here for it to collect.
+
 ---
 
 ## How this was established
@@ -208,10 +300,15 @@ M6.
    for a player gold variable. There is none; there are four per-place limits.
    That negative result is what moved gold onto tiles.
 3. The Imp's `maxGoldHeld` is **1400**, against 5000–7500 for everything else in
-   the game. It is not used yet — nothing carries gold — but it is recorded here
-   because it is the only per-creature number that looks like a carrying capacity
-   rather than a wallet, and it is where Q31 will start.
-4. The room→terrain link was checked both ways against the install: every room's
+   the game — the only per-creature number that looks like a carrying capacity
+   rather than a wallet. It is now what decides how often an imp breaks off
+   mining, and the number turned out to be more interesting than it looked:
+   see below.
+4. The owner then settled Q31 from the original in one sentence — the imp mines
+   into its own hands, runs to the drop spot, and only piles gold on the floor
+   when there is nowhere to put it. Two days of speculation about crediting
+   players, ended by asking. This is step 0 of the research method for a reason.
+5. The room→terrain link was checked both ways against the install: every room's
    terrain is flagged `Room`, and no two rooms share a terrain id. Both are
    asserted by `RoomsOnRealDataTests`, because `GameDatabase.RoomsByTerrain` is a
    dictionary and would silently lose a room if either failed.

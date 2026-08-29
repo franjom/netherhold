@@ -109,6 +109,7 @@ is worth doing before the shape of the loop hardens.
 | 2026-08-29 | (rooms) | M3 partial | Rooms, the treasury and the gold model. Goal 5 gained its clearest win so far: the data contradicted an assumption the code already held, and the code changed. Goals 1, 8 and 10 move slightly; nothing else does. |
 | 2026-08-29 | (mana) | M3 partial | Mana income from owned land. Goal 5's harder case: the data was nearly enough for a computed mana ceiling and the ceiling was left flat with the gap recorded (Q37) rather than guessed. ADR-0017 decouples per-second totals from the unmeasured tick rate. |
 | 2026-08-29 | (mana, cont.) | M3 partial | Owner answered Q37 and the one-heart rule from the original in one message. Ceiling confirmed flat; the heart's 30/s became implementable. Process gap found: "the files cannot say" had been treated as "nobody can say" - asking the owner is now step 0 of the research method. |
+| 2026-08-30 | (gold carrier) | M3 partial | Q31 built: gold moves seam - imp's hands - treasury. Goal 1 (behaviour first) gains its most visible slice yet; goal 5 holds, with the one invented decision isolated as Q50 and put on the observation checklist rather than buried. A number in the CREATURES record turned out to corroborate Q47 by accident. |
 
 ### Note on the rooms/gold review
 
@@ -193,3 +194,38 @@ What the caution bought is still real, and is the reason this is an addendum
 rather than a retraction: the tidier computed-ceiling reading was **wrong**, and
 it would have looked better justified than the flat ceiling that turned out to be
 right. Having not implemented it meant the answer, when it arrived, cost nothing.
+
+---
+
+### Note on the gold carrier — and a correction to the addendum above
+
+The addendum ends by listing questions that are "genuinely for measurement or
+disassembly", and one of the examples it gives is **which treasury tile a deposit
+lands in**. That example was wrong, twice over, and it is worth correcting in
+place rather than quietly.
+
+It was wrong first because the owner *did* answer it, the same day, from having
+played the game: the nearest tile, spilling into another (Q35). A player does see
+that happen. It was wrong second, and more interestingly, because implementing
+Q31 answered it without anyone deciding anything. The carrier walks to the
+nearest tile with room, puts down what fits, and looks again if it is still
+carrying something. "Nearest, then spillover" is what that *does*; there is no
+spillover rule anywhere in the code.
+
+That is the pattern worth naming, because it is the cheapest kind of fidelity
+there is: **a question about which of several outcomes the game picks sometimes
+dissolves when the mechanism underneath it is built properly.** The wrong move
+would have been to implement Q35 as a rule — a sort, a preference, a tie-break —
+on top of a `Deposit` that spread gold across tiles by index. The right move was
+to give the imp hands and a walk, and let the answer fall out.
+
+**Goal 5 in its harder form still held.** One decision here is genuinely ours:
+where an imp stops mining and turns round. It is not derivable from the data, the
+owner has not been asked, and the two candidate rules differ. Rather than pick
+quietly, it is Q50, it is tagged HYPOTHESIS in the code that implements it, and
+it is on the observation checklist as a one-minute experiment. The shipped
+numbers even say which answer to expect — the Imp's `maxGoldHeld` of 1400 is
+almost exactly two swings' worth under Q47's half-delta reading — which is
+corroboration for Q47 arriving from a record that has nothing to do with tile
+work. That is what the evidence discipline is for: the coincidence was only
+visible because both numbers had been written down honestly.

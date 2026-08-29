@@ -127,6 +127,9 @@ internal static class Dk2TerrainFixture
         MeleeRecharge = new Fp32(4915),
         MeleeAttackType = AttackType.MeleeBlade,
 
+        MaxGoldHeld = 1400,
+        InitialGoldHeld = 500,
+
         Pay = 0,
         Fear = 5,
         Threat = 2,
@@ -148,8 +151,6 @@ internal static class Dk2TerrainFixture
         StunDuration = new Fp32(0),
         Resistances = [],
         Spells = [],
-        MaxGoldHeld = 0,
-        InitialGoldHeld = 0,
         ResearchPerSecond = 0,
         ManufacturePerSecond = 0,
         ManaGeneratedByPrayerPerSecond = 0,

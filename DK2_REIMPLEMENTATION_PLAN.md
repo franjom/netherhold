@@ -749,11 +749,15 @@ anomalies the data throws up: `docs/research/tile-work.md`.
 The first worker followed. An imp finds the nearest marked tile its keeper can
 reach, walks to it at the speed its own record gives, and digs or mines it —
 driven by a tag command and nothing else. That closes the "one imp doing tasks"
-half of M3's definition of done, with two limits stated in every scenario run
-that places a worker: it only performs **marked** work, because claiming,
-reinforcing and carrying gold are jobs an imp starts by itself and their
-priority order is UNKNOWN (Q24); and its routing is ours rather than DK2's
-(Q5) — an admitted four-connected placeholder behind an interface. Evidence:
+half of M3's definition of done. The order it prefers its jobs in was UNKNOWN
+when that was written and is now CONFIRMED from the original — marked excavation,
+then claiming, then reinforcing (Q24, ADR-0018) — and carrying mined gold is
+built as the tail of a mining job rather than a fourth job (Q31, ADR-0019). What
+remains stated in every scenario run that places a worker: an imp that runs out
+of all three stands still where DK2 would have it wander (Q41); the crowding cap
+of three imps a face is not implemented (Q43); and its routing is ours rather
+than DK2's (Q5) — an admitted four-connected placeholder behind an interface,
+which Q28 has since shown to be the wrong connectivity. Evidence:
 `docs/research/imp-tasks.md`.
 
 Rooms and the treasury came next, and turned up the milestone's most structural
@@ -786,12 +790,17 @@ plausible-looking variables would otherwise have been guessed into
 are terrain — into a boolean. Defeat itself is not implemented and belongs with
 objectives at M6 (Q40). Evidence: `docs/research/mana.md`.
 
-What M3's definition of done still asks for and does not have: **gold reaching a
-player** — there is a treasury now, but nothing carries mined gold to it, and
-what would decide when an imp stops mining and delivers is UNKNOWN (Q31) — and
-**the Unity view**. Rooms exist as owned terrain that costs gold; what a room
-*does* is a per-room research question that has not been started, and only the
-treasury and the heart do anything at all.
+**Gold now reaches a player** (2026-08-30, Q31, ADR-0019): an imp mines into its
+own hands up to `maxGoldHeld` and carries the load to the nearest treasury or
+dungeon-heart tile with room in it. On shipped level 1 a 3000-gold seam arrives
+in the shipped dungeon heart, 1000 to a tile, across as many trips as an imp's
+hands need. What is left of that mechanic is the floor lump DK2 leaves when there
+is nowhere to unload, which needs the OBJECTS record (M6).
+
+What M3's definition of done still asks for and does not have: **the Unity
+view**. Rooms exist as owned terrain that costs gold; what a room *does* is a
+per-room research question that has not been started, and only the treasury and
+the heart do anything at all.
 
 M1 is marked partial deliberately. Its definition of done says "all 18 record
 types round-trip"; five are parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP)

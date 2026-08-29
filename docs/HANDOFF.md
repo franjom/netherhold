@@ -6,11 +6,11 @@ Update this whenever a session ends or context is compacted.
 
 ---
 
-## Current state (2026-08-29)
+## Current state (2026-08-30)
 
-**M3 tile mechanics, the first worker, rooms + the treasury, and mana:
-complete. M3 as a whole: partial.** M2 and the five record types M1 needed are
-done. 231 tests green with and without a DK2 install, clean tree.
+**M3 tile mechanics, the first worker, rooms + the treasury, mana, and the gold
+carrier: complete. M3 as a whole: partial.** M2 and the five record types M1
+needed are done. 245 tests green with and without a DK2 install, clean tree.
 
 > ### ⚠ Read this first: the owner answered 23 open questions on 2026-08-29
 >
@@ -21,7 +21,7 @@ done. 231 tests green with and without a DK2 install, clean tree.
 > has every one; `docs/research/observation-checklist.md` has the summary and
 > what is still worth asking.
 >
-> **Four of them say the code is wrong.** These are not bugs to find — they are
+> **Four of them said the code is wrong.** These are not bugs to find — they are
 > known defects with a known correct answer, listed under "Immediate next steps"
 > below. Do not spend time rediscovering them:
 > - **Q28** — movement is eight-connected; `GridPathfinder` is four-connected.
@@ -31,24 +31,30 @@ done. 231 tests green with and without a DK2 install, clean tree.
 >   ours converge without limit.
 > - **Q47** — every tile-work rate here runs about twice as fast as the original.
 >
+> **Q31, the gold carrier, was the fifth and is now built** (2026-08-30,
+> ADR-0019). What is left of it is the floor lump, which needs OBJECTS (M6).
+>
 > **The lesson, now step 0 of the research method: ask the owner.** Several of
 > these had been written up as unanswerable from the KWD data, which is not the
 > same as unanswerable. The test is "would a player *see* this happen?"
 
 Three honest caveats:
-- M3's definition of done also asks for gold reaching a player and a Unity view.
-  Neither exists. There is a treasury now, but **nothing carries mined gold to
-  it** (Q31 — the behaviour is now known, it is simply unbuilt). A worker does
-  marked excavation, then claims, then reinforces (Q24, ADR-0018); what it does
-  when all three run out is stand still, where DK2 would have it wander (Q41).
-  **Nothing generates imps** either: scenario files and tests place them. Every
-  scenario run that places a worker says all of that out loud. And **a room does
-  nothing**: a treasury and a dungeon heart hold gold because a variable says
-  how much per tile; every other room is inert terrain its owner holds. Mana is
-  income only — **nothing spends it**, because every spender is a spell (M7).
-  And **losing a dungeon heart is defeat in DK2 and defeat is not implemented**:
-  a keeper whose heart is beaten down here stops earning its 30 a second and
-  plays on (Q40, scheduled with objectives at M6).
+- M3's definition of done asked for gold reaching a player and a Unity view.
+  **Gold now does**: an imp mines into its own hands and carries the load to a
+  treasury or dungeon-heart tile (Q31, ADR-0019). The Unity view does not exist.
+  What is still missing from the gold loop is the **floor lump** an imp leaves
+  when there is nowhere to unload — it keeps mining, which is what DK2 does, but
+  what it cannot hold is lost rather than left on the floor, because a lump is an
+  OBJECT (M6). A worker does marked excavation, then claims, then reinforces
+  (Q24, ADR-0018); what it does when all three run out is stand still, where DK2
+  would have it wander (Q41). **Nothing generates imps** either: scenario files
+  and tests place them. Every scenario run that places a worker says all of that
+  out loud. And **a room does nothing**: a treasury and a dungeon heart hold gold
+  because a variable says how much per tile; every other room is inert terrain
+  its owner holds. Mana is income only — **nothing spends it**, because every
+  spender is a spell (M7). And **losing a dungeon heart is defeat in DK2 and
+  defeat is not implemented**: a keeper whose heart is beaten down here stops
+  earning its 30 a second and plays on (Q40, scheduled with objectives at M6).
 - M1's stated definition of done was "all 18 record types round-trip". Five are
   parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP) plus the WAD and KWD
   containers. The rest (THINGS, TRIGGERS, PLAYERS, OBJECTS, SHOTS, …) are needed
@@ -86,6 +92,7 @@ What the simulation can do:
 | Rooms: where one may go, what it costs | `RoomRules` + `BuildRoomCommand` | placement flags partition the shipped rooms; ground rules run on a campaign level |
 | Gold, stored in tiles rather than on players | `GoldStore` | per-tile limits honoured; a first treasury is paid for out of the dungeon heart |
 | Mana, earned by holding land and a heart | `ManaRules` + `ManaSystem` | the three paying terrains partition the install by exhaustion; income falls when claimed floor becomes a room; a 5x5 heart is worth 30/s, not 750 |
+| Gold carried from the seam to the treasury | `CreatureState.GoldHeld` + `ImpTaskSystem` | an imp mines a shipped seam on level 1 and every coin of its 3000 ends in the shipped dungeon heart, 1000 to a tile, across as many trips as its hands need |
 
 Extracted data artifacts (the specification the simulation is written against):
 `docs/research/game-database-dump.md`, `creature-table-dump.md`,
@@ -94,9 +101,9 @@ Extracted data artifacts (the specification the simulation is written against):
 (`dk2tools kwd terrain` / `kwd terrainflags` / `kwd terrainmana` / `kwd rooms` /
 `kwd roomflags`), which is what M3's rules are built on.
 
-**Next: four known defects with known answers, then the Unity view.** See
-"Immediate next steps" — the gold carrier, claiming from the tile itself,
-eight-connected movement and the crowding cap.
+**Next: three known defects with known answers, then the Unity view.** See
+"Immediate next steps" — claiming from the tile itself, eight-connected movement
+and the crowding cap. The gold carrier, which was first on that list, is done.
 
 How this milestone stands against the twelve long-term goals in `AGENTS.md`, and
 which of them have deadlines attached: `docs/GOAL_ALIGNMENT.md`. Re-run that
@@ -139,7 +146,10 @@ to miss.
 | `src/DK2.Simulation/WorldPathGrid.cs` | What "walkable" means, for one particular creature. |
 | `src/DK2.Pathfinding/IPathfinder.cs`, `GridPathfinder.cs` | The Q5 placeholder, and its interface. |
 | `src/DK2.Simulation/RoomRules.cs` | Where a room may go, what it costs, what it does to the tile. |
-| `src/DK2.Simulation/GoldStore.cs` | **The only** way gold moves. Gold is in tiles, not on players (ADR-0015). |
+| `src/DK2.Simulation/GoldStore.cs` | **The only** way gold moves. Gold is in tiles, not on players (ADR-0015); `DepositInto` is the carrier's route, one tile at a time. |
+| `tests/DK2.Simulation.Tests/GoldCarryingTests.cs` | The whole gold round trip: hands, trips, spillover, and what is lost when there is nowhere to unload. |
+| `tests/DK2.Behavior.Tests/GoldOnRealDataTests.cs` | The same round trip on shipped level 1 — a real seam into a real dungeon heart. |
+| `scenarios/imps/an_imp_carries_gold_home.yaml` | The trip end to end on a campaign map, and the event log that reads like DK2. |
 | `src/DK2.Simulation/Commands/RoomCommands.cs` | `BuildRoomCommand` — the second real player command. |
 | `src/DK2.Simulation/Systems/RoomBuildSystem.cs` | Applies it: a tile at a time, every refusal counted by reason. |
 | `tests/DK2.Behavior.Tests/RoomsOnRealDataTests.cs` | The room fixture's drift guard, plus the flag-partition claim. |
@@ -180,17 +190,13 @@ questions into ordinary implementation work, and that work now comes before the
 Unity view, because every one of them is a behaviour a renderer would display
 incorrectly.
 
-1. **The gold carrier (Q31)** — the remaining half of M3's definition of done,
-   and no longer blocked on research. **The behaviour is known:** if the keeper
-   has free capacity in a treasury or dungeon heart, the mining imp takes the
-   gold into its own hands up to `maxGoldHeld` (Imp: 1400), carries it and adds
-   it to the store. If there is nowhere to put it, the imp keeps mining and a
-   lump grows on the floor in front of it up to a cap — candidate
-   `MaxGoldPileOutsideTreasury` (2000), unconfirmed. So **a pile is the fallback,
-   not the first step**, and carrying is the tail of a mining job rather than a
-   job an imp chooses — which is why it is deliberately absent from the ADR-0018
-   priority list. Still open: which treasury tile fills first (Q35, and the owner
-   flagged their answer as belief rather than observation).
+**Step 1, the gold carrier (Q31), was done on 2026-08-30** — see ADR-0019,
+`docs/research/rooms-and-gold.md` §*The round trip*, and
+`scenarios/imps/an_imp_carries_gold_home.yaml`. What it left behind: the floor
+lump needs OBJECTS (M6), and Q50 — where an imp decides to stop mining — is a
+HYPOTHESIS that one minute in front of the game would settle, and that would
+corroborate Q47 if the answer is "two swings".
+
 2. **Claiming from the tile itself (Q44/Q42)** — **a known defect.** An imp jumps
    onto the tile it claims and stays ~500 ms; ours works it from a neighbour.
    The ownership condition moves with it: it is the *claimed tile's neighbour*
@@ -229,9 +235,10 @@ flips rather than how fast it wears down. Get exact hit counts before touching
 
 **Before touching worker behaviour, read `docs/research/imp-tasks.md`
 §"What is not implemented, and is not guessed at".** The priority order is no
-longer among the unknowns — it is CONFIRMED and built (ADR-0018). What is still
-missing is missing on purpose: wandering (Q41), the crowding cap (Q43), dragging
-bodies, fleeing, and picking up gold somebody else dropped.
+longer among the unknowns — it is CONFIRMED and built (ADR-0018) — and neither is
+carrying gold (Q31, ADR-0019). What is still missing is missing on purpose:
+wandering (Q41), the crowding cap (Q43), dragging bodies, fleeing, building rooms,
+picking up gold somebody else dropped, and the floor lump.
 
 **And before adding to `RoomRules`, read `docs/research/rooms-and-gold.md`
 §"What is not implemented, and is not guessed at".** Rooms still have no
@@ -239,7 +246,8 @@ behaviour and no selling on purpose. Two of that file's open questions are now
 answered and the file has not caught up with either: **a room tile must touch
 land the keeper owns (Q33, not enforced — bridges can still start in open
 water), and selling refunds 50% of cost per tile (Q34) — a number that is in
-neither candidate variable, so the data cannot supply it.**
+neither candidate variable, so the data cannot supply it.** The gold half of that
+file *has* caught up: §"The round trip" is current as of ADR-0019.
 
 **And before adding to `ManaRules`, read `docs/research/mana.md` §"What is not
 implemented, and is not guessed at".** The mana ceiling is the cautionary tale
@@ -297,6 +305,11 @@ for this; Q47 in `open-questions.md` is the current statement.
 - **Gold lives in tiles; a player has no gold counter** (ADR-0015). DK2 has no
   player-gold variable — it has four per-place limits. `GoldStore` is the only
   way gold moves.
+- **A creature's hands are the fourth place gold can be** (ADR-0019).
+  `CreatureState.GoldHeld`, bounded by the creature's own `maxGoldHeld`. A
+  keeper's spendable total dips while their imps are walking home, and that is
+  correct rather than an artefact. Deposits land in the tile the carrier reached,
+  which is why spillover between treasury tiles needs no rule (Q35).
 - Where a room may go is read from the room's own placeable-on flags, so nothing
   in the rules knows what a bridge is (ADR-0016).
 - A `…PerSecond` rate from the balance table is applied **in whole, once every
@@ -425,9 +438,9 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 50, of which **23 were answered on
-2026-08-29 by the owner** and most of those are recorded rather than built. The
-ones that gate progress:
+`docs/research/open-questions.md` holds all 51, of which **23 were answered on
+2026-08-29 by the owner**; most are recorded rather than built, and one of them
+(Q31) has since been built. The ones that gate progress:
 
 - **Q47 — every tile-work rate here is about twice as fast as the original.**
   The largest live question in the tile mechanics, and the one most likely to be

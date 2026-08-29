@@ -1,0 +1,62 @@
+# The other half of mining: what happens to the gold.
+#
+# CONFIRMED (Q31, owner observation of the original): an imp mines into its own
+# hands up to its carrying capacity, runs to the drop spot and puts the load
+# down. This runs that round trip on a shipped campaign map, so the seam, the
+# dungeon heart and the distance between them are DK2's own.
+#
+# The coordinates were surveyed out of Level1Map.kld with
+# `dk2tools kwd map maps/Level1Map.kld <terrain>`; they are not guesses:
+#   (14,24)  a gold seam, unowned            - terrain 6
+#   (14,25)  claimed path belonging to p3    - terrain 8
+#   (14,26)  a corner of p3's dungeon heart  - terrain 14, and the heart is the
+#            5x5 block (12..16, 26..30)
+#
+# What to read in the event log, in order:
+#   gold_mined      1363 into the imp's hands. A seam is 3000 gold over 660
+#                   health at MineGoldHealth -300, so a swing frees
+#                   3000 * 300 / 660 = 1363.
+#   delivering      the imp breaks off after ONE swing, because a second would
+#                   free 1363 more and the Imp's maxGoldHeld is 1400. Where it
+#                   stops is ours; that it stops when full is DK2's.
+#   gold_delivered  1000 into (14,26) - MaxGoldPerDungeonHeartTile - and then
+#                   the remaining 363 into (13,26) next door. That spillover is
+#                   not coded anywhere: the imp fills the tile it is standing
+#                   on, finds it still has gold, and looks again. It is the
+#                   closest thing we have to an answer to Q35.
+#   ... and round again. Three loads, 1363 + 1363 + 272 = 2998, spread across
+#   four heart tiles as each fills up. The two missing from 3000 are DK2's own
+#   integer truncation, kept rather than rounded away.
+#
+# Then, once the seam is gone, the priority order takes over on its own: the imp
+# claims the dirt path it just opened and reinforces the wall behind it, without
+# being told to (ADR-0018).
+#
+# What this run does NOT establish, and the report says so: how many imps a
+# keeper would have (nothing generates them), how long any of it takes in
+# seconds (Q19/Q1), and what happens when there is nowhere to put the gold - in
+# DK2 a lump grows on the floor that somebody can come back for, and a lump is
+# an object (M6). Here the imp keeps mining and the overflow is lost.
+#
+# Needs a Dungeon Keeper 2 installation (DK2_DIR); the harness reports the
+# missing install rather than pretending to run.
+id: imps-carry-gold-home-001
+question: >
+  Does a worker that mines a seam carry the gold to its keeper's dungeon heart
+  itself, break off when its hands are full, and spill a load too big for one
+  tile into the next?
+map: campaign:Level1
+seed: 11
+duration_ticks: 400
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 0 }
+  creatures:
+    # On p3's own claimed path, between the seam to the north and the heart to
+    # the south. One imp, so the log is one imp's round trip and not a crowd.
+    - { type: Imp, at: [14, 25], player: 3 }
+commands:
+  - { at_tick: 0, player: 3, tag: [[14, 24]] }
+observe:
+  - state_hash
+  - events

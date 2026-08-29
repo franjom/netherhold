@@ -5,10 +5,11 @@ namespace DK2.Simulation;
 /// <summary>
 /// What a creature is currently doing.
 ///
-/// Three states, because three is what the tile-work loop needs: look for
-/// something to do, walk to it, do it. DK2's own creature state machine is much
-/// larger — Flame names dozens of state constants — and reconstructing it is a
-/// later job (Q2, Q7). Nothing here claims to be that machine.
+/// Four states, because four is what the tile-work loop needs: look for
+/// something to do, walk to it, do it, and carry away what doing it produced.
+/// DK2's own creature state machine is much larger — Flame names dozens of state
+/// constants — and reconstructing it is a later job (Q2, Q7). Nothing here
+/// claims to be that machine.
 /// </summary>
 public enum CreatureActivity
 {
@@ -20,6 +21,15 @@ public enum CreatureActivity
 
     /// <summary>Standing next to its target tile, applying work to it.</summary>
     Working = 2,
+
+    /// <summary>
+    /// Carrying gold to somewhere its keeper can keep it.
+    ///
+    /// Not a job an imp chooses — it is the tail of a mining job (Q31,
+    /// ADR-0018), which is why it is a state rather than a
+    /// <c>JobPriority</c>.
+    /// </summary>
+    DeliveringGold = 3,
 }
 
 /// <summary>
@@ -70,6 +80,25 @@ public sealed class CreatureState
     /// </summary>
     public int MoveRemainder;
 
+    /// <summary>
+    /// Gold in this creature's hands.
+    ///
+    /// CONFIRMED that an imp carries mined gold itself rather than pushing it
+    /// straight into a treasury (Q31, owner observation): it mines into its own
+    /// hands up to <see cref="Data.Model.CreatureDef.MaxGoldHeld"/>, runs to a
+    /// place its keeper can keep gold, and puts it down there. That is why gold
+    /// is on the creature and not on the player — the same reason it is on tiles
+    /// and not on the player (ADR-0015). Gold in a creature's hands is gold that
+    /// is <i>somewhere</i>, and while it is here it is not spendable.
+    ///
+    /// <para>Survives losing a job on purpose: <see cref="ClearJob"/> does not
+    /// touch it. An imp whose seam collapsed is still holding what it mined.</para>
+    ///
+    /// <para><b>Not</b> seeded from <c>InitialGoldHeld</c> (Imp: 500). What that
+    /// field is for is UNKNOWN and nothing here reads it.</para>
+    /// </summary>
+    public int GoldHeld;
+
     public CreatureActivity Activity;
 
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
@@ -100,6 +129,11 @@ public sealed class CreatureState
     /// <summary>The centre of a tile, in position units.</summary>
     public static int CentreOf(int tile) => (tile * Fp32.One) + (Fp32.One / 2);
 
+    /// <summary>
+    /// Forgets what this creature was doing. Deliberately leaves
+    /// <see cref="GoldHeld"/> alone: what is in an imp's hands is not part of
+    /// its job.
+    /// </summary>
     public void ClearJob()
     {
         Activity = CreatureActivity.Idle;
@@ -117,6 +151,7 @@ public sealed class CreatureState
         hash.Add(PosX);
         hash.Add(PosY);
         hash.Add(MoveRemainder);
+        hash.Add(GoldHeld);
         hash.Add((int)Activity);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);

@@ -57,6 +57,13 @@ public class ImpsOnRealDataTests
         Assert.Equal(4915, real.MeleeRecharge.Raw);
         Assert.Equal(AttackType.MeleeBlade, real.MeleeAttackType);
 
+        // How much an imp can carry, which is what decides how often it breaks
+        // off mining to run to a treasury (Q31). InitialGoldHeld is transcribed
+        // because it sits beside it in the record and is worth not losing;
+        // nothing reads it, and what it means is UNKNOWN.
+        Assert.Equal(1400, real.MaxGoldHeld);
+        Assert.Equal(500, real.InitialGoldHeld);
+
         Assert.Equal(0, real.Pay);
         Assert.Equal(5, real.Fear);
         Assert.Equal(2, real.Threat);

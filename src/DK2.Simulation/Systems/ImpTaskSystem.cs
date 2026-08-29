@@ -35,10 +35,24 @@ namespace DK2.Simulation.Systems;
 /// with no simulation consequence we model yet, and inventing a walk would put
 /// imps in places DK2 would not (Q41).</para>
 ///
+/// <para><b>Carrying mined gold is here</b>, and deliberately not in that list.
+/// An imp mines into its own hands and, when the next swing would not fit, runs
+/// to the nearest place its keeper can keep gold and puts the load down
+/// (CONFIRMED, Q31). That makes it the tail of a mining job rather than a job an
+/// imp chooses, which is why <see cref="JobPriority"/> has no entry for it
+/// (ADR-0018).</para>
+///
+/// <para>An imp with nowhere to unload <b>keeps mining</b>, which is also what
+/// the original does — but the gold it can no longer hold is reported as
+/// uncollected and dropped, where DK2 would grow a lump on the floor in front of
+/// it that somebody can come back for. A lump is an OBJECT and the OBJECTS record
+/// is not parsed until M6. So the <i>decision</i> is DK2's and the <i>fallback
+/// store</i> is missing, which is the honest way round: a keeper with no treasury
+/// still mines here, and simply loses what a keeper in the original would keep.
+/// See Q31.</para>
+///
 /// <para><b>Still absent:</b> dragging the unconscious to a prison, fleeing a
-/// fight, and picking up gold somebody else dropped. Carrying mined gold <i>is</i>
-/// here, but as the tail of a mining job rather than as a job of its own — which
-/// is what the original does and why it is not in the priority list above.
+/// fight, and picking up gold somebody else dropped.
 /// See docs/research/imp-tasks.md.</para>
 ///
 /// <para>What is inferred rather than known, with nothing hidden:</para>
@@ -138,12 +152,31 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
     private void Update(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        if (creature.Activity == CreatureActivity.DeliveringGold)
+        {
+            UpdateDelivering(context, creature, definition);
+            return;
+        }
+
         if (creature.TargetTileIndex >= 0 && !JobStillStands(context, creature))
         {
             context.Emit(SystemName, "job_abandoned",
                 $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
                 $"{creature.TargetWork} reason=gone");
             GoIdle(creature);
+            return;
+        }
+
+        // An imp with gold in its hands and no job is not weighing what to do
+        // next: it is running to put the load down. This is the other half of
+        // the mining job — the seam ran out mid-load — and it comes before job
+        // selection rather than inside it, which is why carrying is absent from
+        // JobPriority (Q31, ADR-0018). The timer gate is what stops an imp with
+        // nowhere to unload from searching the whole dungeon every tick.
+        if (creature.GoldHeld > 0 && creature.TargetTileIndex < 0 && creature.TimerTicks <= 0
+            && TryRouteToSomewhereItFits(context, creature, definition))
+        {
+            BeginDelivering(creature);
             return;
         }
 
@@ -158,7 +191,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
                 break;
 
             case CreatureActivity.Working:
-                UpdateWorking(context, creature);
+                UpdateWorking(context, creature, definition);
                 break;
 
             default:
@@ -198,7 +231,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
         GoIdle(creature);
     }
 
-    private void UpdateWorking(SimulationContext context, CreatureState creature)
+    private void UpdateWorking(
+        SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (!IsInWorkingPosition(context.World, creature))
         {
@@ -212,9 +246,181 @@ public sealed class ImpTaskSystem : ISimulationSystem
         creature.TimerTicks--;
         if (creature.TimerTicks > 0) return;
 
+        // Stop before the swing that would not fit — but only if there is
+        // somewhere to take the load. An imp mines into its own hands up to
+        // maxGoldHeld and then runs to the drop spot (CONFIRMED, Q31); an imp
+        // with nowhere to run to keeps mining instead, which is also what the
+        // original does. See WouldOverfillItsHands.
+        if (WouldOverfillItsHands(context, creature, definition)
+            && TryRouteToSomewhereItFits(context, creature, definition))
+        {
+            BeginDelivering(creature);
+            return;
+        }
+
         context.World.QueueWork(new TileWorkOrder(
-            creature.TargetTileIndex, creature.TargetWork, creature.OwnerPlayerId));
+            creature.TargetTileIndex, creature.TargetWork, creature.OwnerPlayerId, creature.Id));
         creature.TimerTicks = SimulationTiming.WorkApplicationPeriodTicks;
+    }
+
+    /// <summary>
+    /// Whether one more swing would free more gold than this worker can hold.
+    ///
+    /// This is where an imp decides to break off and carry, and the rule is the
+    /// only stopping point that neither wastes gold nor overfills a pair of
+    /// hands. The obvious alternative — swing until the hands are exactly full —
+    /// has to throw the overflow away, and with the shipped numbers that is most
+    /// of a seam: <c>MineGoldHealth</c> is −300 against a seam's 660 health and
+    /// 3000 gold, so one swing frees 1363 where the Imp's <c>maxGoldHeld</c> is
+    /// 1400.
+    ///
+    /// <para>That near-miss is worth noticing rather than smoothing over. 1400 is
+    /// almost exactly <i>two</i> swings' worth under the Q47 reading that an
+    /// application lands twice a second and applies half the tabled delta
+    /// (2 × 681 = 1362) — independent support for that reading, from a number
+    /// nothing else in the tile mechanics touches. Nothing here depends on it:
+    /// at the whole-delta granularity we currently run, an imp makes one trip per
+    /// swing instead of one per two.</para>
+    ///
+    /// <para>Says nothing about whether there is anywhere to take the load. That
+    /// is the caller's second question, and the answer decides whether the imp
+    /// leaves or keeps mining.</para>
+    /// </summary>
+    private static bool WouldOverfillItsHands(
+        SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (creature.GoldHeld <= 0) return false;
+
+        ref TileState tile = ref context.World.TileAtIndex(creature.TargetTileIndex);
+        int yield = TileWorkRules.GoldYield(
+            context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
+
+        return yield > 0 && creature.GoldHeld + yield > definition.MaxGoldHeld;
+    }
+
+    /// <summary>
+    /// Commits a worker to the road, once a route to somewhere its load fits has
+    /// already been planned by <see cref="TryRouteToSomewhereItFits"/>.
+    ///
+    /// Sets the fields by hand rather than calling
+    /// <see cref="CreatureState.ClearJob"/>, which would throw away the route
+    /// that was just planned.
+    /// </summary>
+    private static void BeginDelivering(CreatureState creature)
+    {
+        creature.TargetTileIndex = -1;
+        creature.TargetWork = default;
+        creature.Activity = CreatureActivity.DeliveringGold;
+        creature.TimerTicks = 0;
+    }
+
+    /// <summary>
+    /// One tick of carrying: put the load down if this is somewhere it can go,
+    /// otherwise keep walking, otherwise look for somewhere else.
+    ///
+    /// <para>The put-down test runs every tick rather than only on arrival, so an
+    /// imp that walks over a treasury tile with room in it uses that one. Ours:
+    /// what the original does when a nearer store appears mid-journey is
+    /// UNKNOWN, and the alternative — march to whatever was nearest when the
+    /// journey started — would have an imp walk past an empty treasury.</para>
+    ///
+    /// <para>Re-routing on arrival is what makes a load spill from one treasury
+    /// tile into the next: the imp fills the tile it is standing on, finds it
+    /// still has gold, and looks for the nearest tile with room left. That is
+    /// Q35's spillover, arrived at rather than coded.</para>
+    ///
+    /// <para>A worker whose destination filled up while it walked, and which can
+    /// then find nowhere else, gives up and goes back to looking for work still
+    /// holding its load. It does not stand there: "goes and finds other work" is
+    /// what the original's imps do when they cannot get at what they wanted
+    /// (Q43), and the gold stays in its hands until somewhere opens up.</para>
+    /// </summary>
+    private void UpdateDelivering(
+        SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (TryPutDown(context, creature) && creature.GoldHeld == 0)
+        {
+            GoIdle(creature);
+            return;
+        }
+
+        // Still on the road.
+        if (creature.PathIndex < creature.Path.Count) return;
+
+        if (TryRouteToSomewhereItFits(context, creature, definition)) return;
+
+        context.Emit(SystemName, "delivery_blocked",
+            $"imp={creature.Id} player={creature.OwnerPlayerId} gold={creature.GoldHeld} " +
+            "reason=no_room (floor piles are objects, not implemented)");
+        GoIdle(creature);
+        creature.TimerTicks = IdleDelayTicks(context.Database);
+    }
+
+    /// <summary>
+    /// Puts as much of the load as will fit into the tile the worker is standing
+    /// on, and says whether any of it went in.
+    ///
+    /// Deposits into <i>this</i> tile rather than through
+    /// <see cref="GoldStore.Deposit"/>, because a carrier's gold lands where the
+    /// carrier is. Which tile of a multi-tile treasury that turns out to be is
+    /// therefore decided by the walk, which is the closest thing to Q35's answer
+    /// that does not require guessing.
+    /// </summary>
+    private static bool TryPutDown(SimulationContext context, CreatureState creature)
+    {
+        WorldState world = context.World;
+        TilePos here = creature.Tile;
+        if (!world.Contains(here)) return false;
+
+        ref TileState tile = ref world.Tile(here);
+        if (tile.OwnerPlayerId != creature.OwnerPlayerId) return false;
+
+        int put = GoldStore.DepositInto(context.Database, ref tile, creature.GoldHeld);
+        if (put <= 0) return false;
+
+        creature.GoldHeld -= put;
+        context.Emit(SystemName, "gold_delivered",
+            $"imp={creature.Id} player={creature.OwnerPlayerId} amount={put} " +
+            $"at=({here.X},{here.Y}) tile_total={tile.GoldHeld} carrying={creature.GoldHeld}");
+        return true;
+    }
+
+    /// <summary>
+    /// Routes the worker to the nearest tile of its keeper's that has room for
+    /// gold — a treasury tile or a dungeon-heart tile, since those are the only
+    /// two the data gives a capacity.
+    ///
+    /// Same search as job selection, for the same reason: "nearest" has to mean
+    /// nearest by walking, and unreachable stores must not be considered at all.
+    /// </summary>
+    private bool TryRouteToSomewhereItFits(
+        SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        WorldState world = context.World;
+        var grid = new WorldPathGrid(context.Database, world, definition);
+        byte player = creature.OwnerPlayerId;
+
+        if (!_pathfinder.TryFindNearest(grid, creature.Tile, at => HasRoomForGold(context, at, player), _route))
+            return false;
+
+        creature.Path.Clear();
+        creature.Path.AddRange(_route);
+        creature.PathIndex = 0;
+
+        TilePos drop = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
+        context.Emit(SystemName, "delivering",
+            $"imp={creature.Id} player={player} gold={creature.GoldHeld} " +
+            $"to=({drop.X},{drop.Y}) steps={_route.Count}");
+        return true;
+    }
+
+    private static bool HasRoomForGold(SimulationContext context, TilePos at, byte playerId)
+    {
+        WorldState world = context.World;
+        if (!world.Contains(at)) return false;
+
+        ref TileState tile = ref world.Tile(at);
+        return tile.OwnerPlayerId == playerId && GoldStore.SpaceIn(context.Database, tile) > 0;
     }
 
     /// <summary>

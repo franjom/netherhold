@@ -16,18 +16,21 @@ namespace DK2.Simulation;
 /// integer would have made all three unenforceable, so it is not modelled that
 /// way here (ADR-0015).</para>
 ///
-/// <para><b>Two of the four places exist.</b> Treasury tiles and dungeon-heart
-/// tiles are implemented, because a variable names each and a tile can carry the
-/// amount. Floor piles and creatures' hands are not: a pile is an OBJECT, and
-/// the OBJECTS record is not parsed until M6. So gold that will not fit is
-/// <i>refused</i> here and reported by the caller, never silently dropped and
-/// never silently kept. See docs/research/rooms-and-gold.md and Q31.</para>
+/// <para><b>Three of the four places exist.</b> Treasury tiles and dungeon-heart
+/// tiles are here, because a variable names each and a tile can carry the
+/// amount; a creature's hands are on the creature
+/// (<see cref="CreatureState.GoldHeld"/>), because that is where DK2 puts mined
+/// gold before a treasury ever sees it (Q31). <b>Floor piles are not:</b> a pile
+/// is an OBJECT and the OBJECTS record is not parsed until M6. So gold that will
+/// not fit is <i>refused</i> here and reported by the caller, never silently
+/// dropped and never silently kept. See docs/research/rooms-and-gold.md.</para>
 ///
-/// <para>Tiles are filled and drained in tile-index order. That order is
-/// behaviour — which tile a deposit lands in decides which gold survives a
-/// treasury being destroyed — and it is <b>ours, not DK2's</b>: the original
-/// plausibly fills whichever tile the carrier reached first, which nothing here
-/// can know until a carrier exists (Q35).</para>
+/// <para>Which tile gets filled depends on who is asking.
+/// <see cref="DepositInto"/> — the carrier's route — puts the load in the tile
+/// the imp walked to, which is DK2's own answer to Q35 as far as it is known.
+/// <see cref="Deposit"/> and <see cref="TryWithdraw"/> work in tile-index order,
+/// which is <b>ours, not DK2's</b>, and is used only where no carrier is
+/// involved: paying for a room, and refunds.</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public static class GoldStore
@@ -56,6 +59,26 @@ public static class GoldStore
     /// <summary>Room left in one tile.</summary>
     public static int SpaceIn(GameDatabase database, in TileState tile) =>
         Math.Max(0, Capacity(database, tile) - tile.GoldHeld);
+
+    /// <summary>
+    /// Puts as much of <paramref name="amount"/> into <i>this one tile</i> as it
+    /// will take, and returns how much went in.
+    ///
+    /// The carrier's version of <see cref="Deposit"/>, and the one that is
+    /// closest to what DK2 does: an imp walks to a tile and puts its load down
+    /// there, so the tile is chosen by the walk rather than by an index. That
+    /// makes which gold survives a treasury being partly destroyed a consequence
+    /// of where imps walked, which is what the original looks like (Q35 —
+    /// nearest tile, spillover to another, and the owner flagged it as belief).
+    /// </summary>
+    public static int DepositInto(GameDatabase database, ref TileState tile, int amount)
+    {
+        if (amount <= 0) return 0;
+
+        int put = Math.Min(SpaceIn(database, tile), amount);
+        tile.GoldHeld += put;
+        return put;
+    }
 
     /// <summary>Everything <paramref name="playerId"/> can spend.</summary>
     public static int Total(WorldState world, byte playerId)

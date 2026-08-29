@@ -135,7 +135,9 @@ neighbours.
 
 Tile mechanics run for real: `scenarios/tiles/` digs, claims, reinforces and
 mines against DK2's own numbers. `scenarios/imps/` puts workers on the map and
-lets them find the work themselves. `scenarios/rooms/` builds a room and pays for
+lets them find the work themselves - including the whole gold round trip, where
+one imp mines a shipped seam and carries every coin of it into a shipped dungeon
+heart. `scenarios/rooms/` builds a room and pays for
 it out of a dungeon heart. `scenarios/mana/` is the first run in which time alone
 changes something: a keeper's land and heart pay them once a game second, and
 paving three tiles of that land into a treasury lowers the rate. See
@@ -147,9 +149,12 @@ What a run still cannot tell you:
 
 - **How many workers a keeper would have.** Nothing generates imps; the scenario
   file places them.
-- **What a worker does when nothing is marked.** Claiming, reinforcing, carrying
-  gold and fleeing are not implemented, and their priority order is UNKNOWN
-  (Q24).
+- **What a worker does when it runs out of jobs.** The priority order is
+  CONFIRMED and built - marked excavation, then claiming, then reinforcing
+  (Q24, ADR-0018) - and carrying mined gold is built as the tail of a mining job
+  (Q31, ADR-0019). What is absent is the fourth behaviour: DK2 has an imp wander
+  the dungeon and interact with scenery and creatures, and here it stands still
+  (Q41). Fleeing, dragging bodies and building rooms are absent too.
 - **How it would move.** Routing is ours, not DK2's (Q5): four-connected,
   uniform cost. Travel times follow from that choice.
 - **How long anything takes.** The health deltas carry no unit (Q19), and the
@@ -158,8 +163,11 @@ What a run still cannot tell you:
   room is terrain its owner holds and nothing more; rooms have no size or shape
   rules (Q36), cannot be sold (Q34), and are built instantly because building
   over time is another worker job with the same unknown trigger.
-- **Where mined gold goes.** Still reported and dropped: there is a treasury to
-  put it in now, but nothing carries it there (Q31).
+- **What happens to gold nobody can hold.** Mined gold now reaches a treasury,
+  carried there by the imp that freed it (Q31). What is missing is the other end:
+  DK2 leaves a lump on the floor when there is nowhere to unload, and a lump is
+  an object (M6). The imp keeps mining, as it does in the original, and the
+  overflow is reported as `gold_uncollected` and lost.
 - **What mana is for.** Nothing spends it. A mana total is what a keeper earned,
   not what they would have left.
 - **What happens when a dungeon heart falls.** Losing it is defeat in DK2; defeat

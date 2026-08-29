@@ -324,6 +324,12 @@ public class ImpTests
         // takes three applications. What is asserted is the spacing: the gap
         // between applications is one work period, whatever a period turns out
         // to be worth in seconds (Q19).
+        //
+        // This keeper has no treasury, which is why the imp mines the seam
+        // straight through instead of running off with the first load. An imp
+        // with nowhere to put gold keeps mining in the original too (Q31); what
+        // is missing here is the floor lump the original leaves behind, so the
+        // overflow is reported as uncollected and lost.
         GameDatabase database = Dk2TerrainFixture.Database();
         Run run = Start(new TilePos(2, 2));
         Carve(run.World, database, new TilePos(4, 3), new TilePos(4, 4), new TilePos(4, 5));
@@ -331,11 +337,21 @@ public class ImpTests
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
         run.Ticks(SimulationTiming.WorkApplicationPeriodTicks * 6);
 
-        List<long> at = run.Of("gold_released").Select(e => e.Tick.Value).ToList();
+        List<long> at = run.Events.Events
+            .Where(e => e.Kind is "gold_mined" or "gold_uncollected")
+            .Select(e => e.Tick.Value)
+            .Distinct()
+            .ToList();
         Assert.Equal(3, at.Count);
         Assert.Equal(SimulationTiming.WorkApplicationPeriodTicks, (int)(at[1] - at[0]));
         Assert.Equal(SimulationTiming.WorkApplicationPeriodTicks, (int)(at[2] - at[1]));
         Assert.Equal(Dk2TerrainFixture.DirtPath, run.World.Tile(5, 5).TerrainId);
+
+        // A seam is worth 3000 and the imp's hands hold 1400. Everything above
+        // that is gold DK2 would have left on the floor and we cannot.
+        Assert.Equal(1400, run.Imp.GoldHeld);
+        Assert.Equal(1598, run.Of("gold_uncollected")
+            .Sum(e => int.Parse(e.Detail.Split("amount=")[1].Split(' ')[0])));
     }
 
     [Fact]
@@ -357,8 +373,8 @@ public class ImpTests
         // conversion would stop the imp after one application.
         Assert.Equal(Dk2TerrainFixture.Gems, run.World.Tile(6, 5).TerrainId);
         Assert.True(run.World.Tile(6, 5).IsTaggedBy(Keeper));
-        Assert.True(run.Of("gold_released").Count() >= 5,
-            $"only {run.Of("gold_released").Count()} applications");
+        Assert.True(run.Of("gold_mined").Count() >= 5,
+            $"only {run.Of("gold_mined").Count()} applications");
         Assert.Equal(CreatureActivity.Working, run.Imp.Activity);
     }
 

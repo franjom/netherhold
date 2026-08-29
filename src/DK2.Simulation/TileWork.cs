@@ -67,10 +67,12 @@ public enum TileWorkOutcome
 /// <param name="Outcome">What happened.</param>
 /// <param name="HealthDelta">Health actually applied, after clamping.</param>
 /// <param name="GoldReleased">
-/// Gold freed from the rock by this application. <b>Not credited to anyone.</b>
-/// In DK2 an imp picks it up and carries it to a treasury; that carrier does not
-/// exist yet, so the amount is reported and dropped. See
-/// docs/research/tile-work.md.
+/// Gold freed from the rock by this application.
+///
+/// <b>Credited to nobody here.</b> The rules are pure: who ends up holding this
+/// is <see cref="Systems.TileWorkSystem"/>'s business, and it puts it into the
+/// hands of the creature named on the order — or reports it as uncollected when
+/// no creature swung. See docs/research/tile-work.md and Q31.
 /// </param>
 /// <param name="GoldSpilled">
 /// Gold that was stored on the tile and is no longer, because the tile stopped
@@ -95,17 +97,28 @@ public readonly record struct TileWorkResult(
 /// <summary>
 /// A queued unit of work: "player P applies one application of kind K to tile I".
 ///
-/// Produced by whatever is doing the work — which, until the creature task
-/// system exists, is a test or the scenario harness — and consumed by
-/// <see cref="Systems.TileWorkSystem"/> in queue order.
+/// Produced by whatever is doing the work — a worker creature, a test, or the
+/// scenario harness — and consumed by <see cref="Systems.TileWorkSystem"/> in
+/// queue order.
 /// </summary>
-public readonly record struct TileWorkOrder(int TileIndex, TileWorkKind Kind, byte PlayerId)
+/// <param name="WorkerCreatureId">
+/// The creature that swung, or -1 when nothing did.
+///
+/// Carried because gold has to go <i>into someone's hands</i>: in DK2 the imp
+/// that freed gold from the rock is the imp that picks it up and carries it away
+/// (Q31), so the resolver needs to know which one that was. Work queued by a
+/// test or by the harness has no worker, and its gold is reported and dropped
+/// exactly as before.
+/// </param>
+public readonly record struct TileWorkOrder(
+    int TileIndex, TileWorkKind Kind, byte PlayerId, int WorkerCreatureId = -1)
 {
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(TileIndex);
         hash.Add((int)Kind);
         hash.Add(PlayerId);
+        hash.Add(WorkerCreatureId);
     }
 }
 
@@ -320,6 +333,28 @@ public static class TileWorkRules
         int lost = Convert(
             database, ref tile, terrain.MaxHealthTypeTerrainId, playerId, takeOwnership: true);
         return new TileWorkResult(TileWorkOutcome.Transformed, upward, 0, lost, tile.TerrainId);
+    }
+
+    /// <summary>
+    /// How much gold one more application of <paramref name="kind"/> would free
+    /// from this tile — without applying it.
+    ///
+    /// Exists so that a worker can decide whether its hands have room for
+    /// another swing before it takes one (Q31). It has to be this function and
+    /// not an estimate: an imp that guessed would either overfill its hands or
+    /// walk away from gold it could have carried, and both are visible
+    /// behaviour. Nothing here mutates anything.
+    /// </summary>
+    public static int GoldYield(GameDatabase database, in TileState tile, TileWorkKind kind, byte playerId)
+    {
+        if (!Applies(database, tile, kind, playerId)) return 0;
+
+        TerrainDef terrain = database.TerrainById(tile.TerrainId);
+        int delta = database[Variable(kind)];
+        if (delta >= 0) return 0;
+
+        int applied = Math.Max(delta, -tile.Health);
+        return GoldFor(database, terrain, kind, -applied, tile.Health + applied <= 0);
     }
 
     /// <summary>

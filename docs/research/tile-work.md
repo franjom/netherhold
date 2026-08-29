@@ -200,11 +200,14 @@ reinforce, repair, attack, fill in. Every scenario run that injects work says
 exactly that under "Not answered by this run", and so does every run that places
 a worker.
 
-Gold released by mining is reported as an event and dropped. Crediting a player
-directly would be inventing an economy rather than reproducing one: in the
-original the imp picks the gold up and carries it to a treasury. The treasury
-exists now (`rooms-and-gold.md`); the carrier does not, and what would decide
-when an imp stops mining and delivers is UNKNOWN (Q31).
+Gold released by mining goes into the hands of the creature that swung, and that
+creature carries it to a treasury or dungeon-heart tile (Q31, ADR-0019). The
+rules themselves stay pure: `TileWorkResult.GoldReleased` credits nobody, and it
+is `TileWorkSystem` that reads the creature id off the order and fills the right
+pair of hands. Work with nothing behind it - a test, the harness - still has its
+gold reported and dropped, because nobody was there to pick it up. What an imp
+cannot hold is lost rather than left on the floor, because a lump is an object
+(M6); where the imp decides to stop mining is Q50.
 
 A tile can also *lose* gold. Room terrain is ownable floor, so a rival can attack
 a treasury down to nothing; when it converts to claimed path — which holds no

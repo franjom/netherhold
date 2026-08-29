@@ -142,17 +142,25 @@ just a number.
   `TileState.GoldHeld` is where gold is, and a keeper's total is the sum over the
   tiles they own (ADR-0015). Every limit DK2 sets on gold is per tile, which is
   what forced the shape.
+- `CreatureState.GoldHeld` is the fourth place gold can be, and the reason mined
+  gold ever reaches a treasury. An imp mines into its own hands up to the
+  CREATURES record's `maxGoldHeld`, walks to the nearest tile of its keeper's
+  with room, and puts down what fits (ADR-0019, Q31). `TileWorkOrder` names the
+  creature that swung so the resolver knows whose hands to fill.
 
-Three behaviours fall out rather than being written: a keeper with no treasury
-cannot keep gold, destroying a treasury takes the gold with it, and a keeper's
-first treasury is necessarily paid for out of the dungeon heart.
+Four behaviours fall out rather than being written: a keeper with no treasury
+cannot keep gold, destroying a treasury takes the gold with it, a keeper's first
+treasury is necessarily paid for out of the dungeon heart, and a load too big for
+one treasury tile spills into the next — because the carrier puts down what fits
+and looks again, not because anything implements spillover.
 
 What is deliberately absent: **a room does nothing.** A treasury and a heart hold
 gold because a variable says how much per tile; every other room is inert terrain
 its owner holds. Rooms have no size or shape rules (Q36), cannot be sold (Q34),
-and are built instantly — building over time is another worker job with the same
-unknown trigger as the rest (Q24). And gold released by mining still reaches
-nobody, because nothing carries it (Q31).
+and are built instantly — building over time is another worker job that is not in
+the priority order the owner gave (Q24). And gold an imp cannot hold is still
+lost: DK2 leaves a lump on the floor for somebody to come back for, and a lump is
+an OBJECT (M6). The imp keeps mining, which is the half that matters.
 
 Evidence and confidence: `docs/research/rooms-and-gold.md`.
 

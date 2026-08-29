@@ -374,7 +374,7 @@ public class TileWorkTests
         sim.Tick();
 
         List<string> gold = events.Events
-            .Where(e => e.Kind == "gold_released")
+            .Where(e => e.Kind == "gold_uncollected")
             .Select(e => e.Detail)
             .ToList();
 
@@ -395,12 +395,13 @@ public class TileWorkTests
     }
 
     [Fact]
-    public void MiningReleasesGoldButCreditsNobody()
+    public void MiningWithNobodySwinging_CreditsNobody()
     {
-        // There is a treasury now, but still no carrier: nothing walks the gold
-        // from the seam to the room. Reporting the amount and dropping it is
-        // honest; crediting the player would be an invented economy. See
-        // docs/research/tile-work.md and rooms-and-gold.md (Q31).
+        // Imps carry gold now (Q31), so the way to lose gold is for nothing to
+        // have swung: work queued straight onto the world by a test or by the
+        // harness has no creature behind it, and there is nobody for the gold to
+        // go to. A treasury standing ready does not change that — gold does not
+        // teleport into a room, it is carried there.
         GameSimulation sim = Dk2TerrainFixture.Simulation();
         var events = new ListEventSink();
         sim.ObserveWith(events);
@@ -413,7 +414,8 @@ public class TileWorkTests
         sim.World.QueueWork(5, 5, TileWorkKind.MineGold, 1);
         sim.Tick();
 
-        Assert.Contains(events.Events, e => e.Kind == "gold_released");
+        Assert.Contains(events.Events,
+            e => e.Kind == "gold_uncollected" && e.Detail.Contains("nobody swung"));
         Assert.Equal(0, GoldStore.Total(sim.World, 1));
     }
 

@@ -90,9 +90,11 @@ public class ScenarioTests
     public void Run_ReportsWhatItsWorkersStillCannotDo()
     {
         // Workers exist now, which makes a run look much more like a game than
-        // it is. Every run that places one has to say that it only does marked
-        // work, that its routing is ours rather than DK2's, and that nothing
-        // decided how many workers a keeper would have.
+        // it is. Every run that places one has to say what order it takes jobs
+        // in and what it does not do afterwards, that its routing is ours rather
+        // than DK2's, that gold it cannot hold is lost where DK2 would leave it
+        // on the floor, and that nothing decided how many workers a keeper would
+        // have.
         string path = Path.Combine(Path.GetTempPath(), $"dk2-scenario-{Guid.NewGuid():N}.yaml");
         File.WriteAllText(path, """
             id: worker-honesty-probe
@@ -116,6 +118,8 @@ public class ScenarioTests
                 u => u.Contains("marked excavation first, then claim floor", StringComparison.Ordinal));
             Assert.Contains(result.Unsupported,
                 u => u.Contains("routing is ours, not DK2's", StringComparison.Ordinal));
+            Assert.Contains(result.Unsupported,
+                u => u.Contains("gold it cannot hold is LOST", StringComparison.Ordinal));
         }
         finally
         {

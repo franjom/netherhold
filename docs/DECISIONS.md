@@ -337,3 +337,54 @@ corrected. Refusing to guess an order is precisely why adopting the real one cos
 one afternoon and five test rewrites instead of an archaeology exercise against
 an invented order that had spread into a dozen behaviours. That is the pattern to
 repeat, not to regret.
+
+---
+
+## ADR-0019 — A creature's hands are a place gold can be
+
+**Status:** Accepted (2026-08-30)
+
+**Context.** ADR-0015 established that DK2 has no player gold counter — gold is
+always in one of four places, each with its own limit, and a keeper's total is
+the sum. Three of those four are tiles. The fourth is a creature's hands, bounded
+by the CREATURES record's own `maxGoldHeld`, and it was left unimplemented at M3
+because nothing carried anything.
+
+Q31 then came back from the owner: an imp mining a seam **takes the gold into its
+own hands** up to that capacity, runs to a treasury or dungeon heart, and puts it
+down. A pile on the floor is the fallback for when there is nowhere to put it,
+not the first step.
+
+The tempting shortcut was to credit the keeper at the rock face and treat the
+walk as decoration. It is not decoration: it is why gold arrives in lumps rather
+than as a trickle, why destroying a treasury mid-run loses a specific amount, and
+why a keeper watching their imps mine sees the number lag behind the seam.
+
+**Decision.** `CreatureState.GoldHeld` exists, is bounded by the creature's own
+`maxGoldHeld`, is hashed and snapshotted like every other piece of state, and
+survives `ClearJob` — what is in an imp's hands is not part of its job.
+`TileWorkOrder` carries the id of the creature that swung, so the resolver knows
+whose hands the gold goes into; an order with no creature behind it (a test, the
+harness) has its gold reported and dropped exactly as before.
+
+**Consequences.**
+
+- **A keeper's spendable total dips while imps are in transit.** That is not an
+  artefact, it is where the gold is, and `GoldStore.Total` is right to exclude it.
+- **Deposits land where the carrier walked.** `GoldStore.DepositInto` fills one
+  tile — the one the imp is standing on — and the imp looks again if it is still
+  carrying anything. Spillover from one treasury tile to the next is therefore a
+  consequence rather than a rule, which is as close to Q35 as observation has
+  got. `GoldStore.Deposit`'s tile-index order survives only where no carrier is
+  involved: paying for a room, and refunds.
+- **Where an imp stops mining is ours** (Q50, HYPOTHESIS): when one more swing
+  would free more than it can hold. It is the only stopping point that neither
+  wastes gold nor overfills a pair of hands.
+- **An imp with nowhere to unload keeps mining**, which is what the original
+  does, and loses what it cannot hold, which is not: DK2 leaves a lump. Standing
+  still instead would stop a keeper with no treasury from mining at all, and that
+  is a worse wrong answer than losing the overflow loudly. The lump needs the
+  OBJECTS record (M6).
+
+**Not decided here.** Whether `InitialGoldHeld` (500 on the Imp) means a creature
+spawns holding gold. Nothing reads it and nothing should until somebody knows.

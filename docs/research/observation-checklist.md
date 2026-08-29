@@ -79,6 +79,19 @@ in the tile nearest the door, or somewhere fixed? When one tile fills, where doe
 the next load go? And when the whole treasury is full, where exactly does the
 lump appear — beside the treasury, or back where the imp was mining?
 
+### Q50 — how many swings before an imp runs off with its load?
+**New, and the cheapest useful thing on this list.** The gold carrier is built
+(Q31) and the only invented part is *when* an imp turns round. Put one imp on one
+seam with a treasury in reach and count the swings between it starting to mine
+and it running off: **once, or twice?**
+
+It bears on Q47 as well, which is why it is worth the minute. A seam is 3000 gold
+over 660 health and an Imp holds 1400. At the tabled `MineGoldHealth` of −300 a
+swing frees 1363 and the imp can only manage one; at Q47's half-delta reading it
+frees 681 and two fit almost exactly (1362 against 1400). So "twice" is
+independent corroboration of the finer granularity, from a number in the CREATURES
+record that has nothing to do with the tile mechanics.
+
 ### Q31 leftover — how big is a floor lump?
 When there is nowhere to store gold, a lump grows in front of the mining imp
 "up to a designated sum". `MaxGoldPileOutsideTreasury` is 2000 and is the

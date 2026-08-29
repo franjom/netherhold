@@ -164,7 +164,7 @@ switch (args[0])
             for (int y = 0; y < grid.Height && found.Count < 24; y++)
                 for (int x = 0; x < grid.Width && found.Count < 24; x++)
                     if (grid[x, y].TerrainId == wanted)
-                        found.Add($"({x},{y})");
+                        found.Add($"({x},{y})p{grid[x, y].PlayerId}");
 
             Console.WriteLine($"terrain {wanted} at: {string.Join(" ", found)}"
                               + (found.Count == 24 ? " ..." : ""));
