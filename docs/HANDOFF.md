@@ -8,11 +8,15 @@ Update this whenever a session ends or context is compacted.
 
 ## Current state (2026-08-29)
 
-**M2 deterministic skeleton: complete. M1 data foundation: complete for the
-five record types the simulation needs.** 88 tests green with and without a DK2
+**M3 tile mechanics: complete. M3 as a whole: partial.** M2 and the five
+record types M1 needed are done. 127 tests green with and without a DK2
 install, clean tree.
 
-Two honest caveats:
+Three honest caveats:
+- M3's definition of done also asks for an imp doing tasks, a treasury, gold
+  reaching a player, and a Unity view. None of those exist. The terrain half is
+  what is finished. **Nothing decides who works** — the work queue is filled by
+  tests and by scenario files, and every run that does so reports it.
 - M1's stated definition of done was "all 18 record types round-trip". Five are
   parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP) plus the WAD and KWD
   containers. The rest (THINGS, TRIGGERS, PLAYERS, OBJECTS, SHOTS, …) are needed
@@ -43,14 +47,18 @@ What the simulation can do:
 | World from real map data | `WorldState.FromMap` | every campaign level builds; tile health from `TerrainDef` |
 | Headless scenarios | `DK2.Harness` + `scenarios/**.yaml` | runs on a real campaign map; reproducible hash series |
 | CI gate | `.github/workflows/ci.yml` | Linux + Windows, no DK2 install |
+| Dig / mine / claim / reinforce / repair / attack / fill in | `DK2.Simulation.TileWorkRules` | rules run against the real install; terrain graph terminates on a whole campaign level |
+| Dig markers, first real command | `TileTagSystem` + `TagTilesCommand` | per player; cleared on terrain change |
 
 Extracted data artifacts (the specification the simulation is written against):
 `docs/research/game-database-dump.md`, `creature-table-dump.md`,
-`terrain-room-dump.md`.
+`terrain-room-dump.md`. The last of these now carries the terrain table's
+`maxHealth` column and full flag set (`dk2tools kwd terrain` / `kwd terrainflags`),
+which is what M3's rules are built on.
 
-**Next milestone: M3 — dungeon prototype.** Nothing started.
+**Next: the rest of M3 — a worker, a treasury, gold that goes somewhere.**
 
-Latest commit: `2e457e3` (M2). 9 commits total.
+Latest commit: `0039c9a` (M3 tile mechanics). 11 commits total.
 
 ---
 
@@ -62,7 +70,7 @@ Latest commit: `2e457e3` (M2). 9 commits total.
 | `src/DK2.Simulation/GameSimulation.cs` | The loop, `StateHash()`, system registration. |
 | `src/DK2.Simulation/WorldState.cs` | `TileState`, `PlayerState`, `FromMap`. All mutable state. |
 | `src/DK2.Simulation/ISimulationSystem.cs` | `SimulationContext` — the only things a system may touch. |
-| `src/DK2.Simulation/InputFrame.cs` | `PlayerCommand` base; no concrete commands yet. |
+| `src/DK2.Simulation/InputFrame.cs` | `PlayerCommand` base and the per-tick input frame. |
 | `src/DK2.Simulation/WorldSnapshot.cs` | Binary save/load, RNG position included. |
 | `src/DK2.Simulation/SimulationEvents.cs` | Write-only observation. |
 | `src/DK2.Data.Model/GameDatabase.cs` | The data/simulation seam. Immutable, no IO. |
@@ -70,6 +78,20 @@ Latest commit: `2e457e3` (M2). 9 commits total.
 | `src/DK2.Harness/Scenario.cs`, `ScenarioRunner.cs` | YAML scenarios and the run report. |
 | `tests/DK2.Simulation.Tests/TestWorld.cs` | Synthetic database + `ChaosSystem`. Test-only, no DK2 mechanics. |
 | `docs/architecture/simulation-loop.md` | Why the gate is built the way it is. |
+
+## Where the M3 code lives
+
+| File | What it is |
+|---|---|
+| `src/DK2.Simulation/TileWork.cs` | `TileWorkKind`, `TileWorkOrder`, and `TileWorkRules` — the rules, pure and static. |
+| `src/DK2.Simulation/Systems/TileWorkSystem.cs` | Drains the world's work queue each tick. |
+| `src/DK2.Simulation/Systems/TileTagSystem.cs` | Applies dig markers. |
+| `src/DK2.Simulation/Commands/TileCommands.cs` | `TagTilesCommand` — the first real player command. |
+| `src/DK2.Simulation/SimulationTiming.cs` | **The only** place ticks relate to seconds. Q1 placeholder. |
+| `tests/DK2.Simulation.Tests/Dk2TerrainFixture.cs` | DK2's real numbers, transcribed so the rules test in CI. |
+| `tests/DK2.Behavior.Tests/TileWorkOnRealDataTests.cs` | The same rules against the real install — keeps the fixture from drifting. |
+| `scenarios/tiles/` | Dig/claim on a synthetic map; gold mining on a surveyed campaign map. |
+| `docs/research/tile-work.md` | The evidence, the confidence tags, and the three anomalies. |
 
 ## Running things
 
@@ -85,28 +107,32 @@ Harness output lands in `build/scenario-runs/<id>/` (gitignored).
 
 ---
 
-## Immediate next steps (M3)
+## Immediate next steps (rest of M3)
 
-The first real mechanics. Everything they need is already extracted — this is
-implementation against a known specification, not research.
+Steps 1–3 and 6 of the old list are done (tile mechanics, the first real
+command, the timing constant, real scenarios). What is left is the part that
+needs an actor, and it is where the project's two hardest questions live.
 
-1. **Tile mechanics as systems** — dig, claim, reinforce, repair. The numbers
-   are all in hand: `DigRockHealth=-5000`, `ClaimTileHealth=825`,
-   `MineGoldHealth=-300`, `ReinforceWallHealth=50`, `RepairWallHealth=22`
-   (`kwd-variables.md`), and the terrain transition graph
-   (`kwd-terrain-rooms.md`). Read them from `GameDatabase`, never inline.
-2. **The first real commands** — `TagTilesCommand`, `ClaimCommand`. `TileState`
-   gains a tagged-for-digging flag at this point, not before.
-3. **The open timing question surfaces immediately.** The health deltas are
-   per *something* — Q1, the tick rate, is UNKNOWN. Implement the deltas behind
-   a single named constant and flag it; do not silently pick 25 ticks/second.
-4. **First Imp** — spawn, task selection, movement. This is where `IPathfinder`
-   gets its honest A* placeholder (plan risk R1).
-5. **Treasury and gold** — the first resource loop.
-6. **Real dig/claim scenarios** in `scenarios/`, replacing the two smoke files.
+1. **First Imp** — spawn, task selection, movement. This is what fills the
+   `TileWorkOrder` queue that `TileWorkSystem` already drains, so the seam is
+   ready. It is also where `IPathfinder` gets its honest A* placeholder (plan
+   risk R1, Q5) and where job selection (Q2) starts to matter. Expect this to
+   be mostly research, unlike the tile rules which were mostly transcription.
+2. **Treasury and gold** — the first resource loop. `TileWorkResult` already
+   reports gold released and deliberately credits nobody; give it a carrier and
+   a destination. `MaxGoldPerTreasuryTile=3000` and
+   `MaxGoldPileOutsideTreasury=2000` are extracted and waiting.
+3. **Rooms** — `setup.rooms` is parsed by the harness and reported as
+   unapplied. `RoomDef` carries cost, size, construction type and terrain id.
+4. **Mana from claimed tiles** — `ManaGain`/`MaxManaGain` are on every terrain
+   (Claimed Path 1, Claimed Vault 100) and nothing reads them yet.
+5. **Unity presentation** — the simulation can now run a dig-and-claim scenario
+   headlessly, which was the precondition.
 
-Unity presentation also belongs to M3, but the simulation should be able to run
-a dig-and-claim scenario headlessly first.
+**Before starting step 1, read `docs/research/tile-work.md` §"What does not fit".**
+Q20 (DigRockHealth destroys a rock tile in one application) becomes visible the
+moment an imp is doing the digging, and it is a data anomaly, not a bug in the
+rules. Do not "fix" it by changing the number.
 
 ---
 
@@ -125,6 +151,12 @@ a dig-and-claim scenario headlessly first.
   one pinned literal, test-only `ChaosSystem` (ADR-0006).
 - Our own save format; DK2 save compatibility is not a goal (ADR-0007).
 - YamlDotNet for scenarios, tooling only (ADR-0008).
+- Tile transitions are triggered by the *work*, not by the health level
+  (ADR-0009). This is not a style choice — the level-triggered reading is
+  refuted by the data. See `tile-work.md`.
+- Work orders are a FIFO queue on `WorldState`, filled by whoever is working
+  (ADR-0010). Order is behaviour: never sort or deduplicate it.
+- Ticks relate to seconds in `SimulationTiming` and nowhere else (ADR-0011).
 - Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Resolved by
   `DK2.Data.Dk2Install`. **`DK2_DIR` is authoritative when set** — if it is set
   and invalid, no fallback is tried, which is how CI runs with no install.
@@ -144,7 +176,16 @@ a dig-and-claim scenario headlessly first.
 - **Nothing in the simulation may read an event back.** Events are write-only
   observation; a system that reads one makes the observer part of the observed.
 - **New state must be reachable from `WorldState`** or it is invisible to the
-  hash and the snapshot — and therefore silently non-deterministic.
+  hash and the snapshot — and therefore silently non-deterministic. When you add
+  a field, add it to `HashInto` *and* to `WorldSnapshot` (bump its
+  `FormatVersion`) in the same commit.
+- **A gameplay rule keyed on a terrain id is a rule about the reference
+  install, not about DK2.** Ask the terrain's flags. `TileWorkRules` does this
+  throughout and `TileWorkOnRealDataTests` checks it still holds against the
+  real database.
+- **A number that does not match how the original plays is not licence to
+  change it.** Reproduce the data, record the discrepancy as an open question,
+  and let the scenario output show it (Q20 is the live example).
 - Confidence tags are mandatory in docs and code comments:
   **CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN**.
 - Every researched mechanic gets a `docs/research/<name>.md` using the template
@@ -206,11 +247,22 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 19. The ones that gate progress:
+`docs/research/open-questions.md` holds all 23 (one answered). The ones that
+gate progress:
 
-- **Q1 — simulation tick rate.** Now blocking: M3's health deltas are per unit
-  of time and we do not know the unit. Flame's `limit_tps` patch proves it is
-  fixed; the value is unmeasured. Keep it one named constant until measured.
+- **Q1 — simulation tick rate.** Blocking any timing claim. Flame's `limit_tps`
+  patch proves it is fixed; the value is unmeasured. It is one constant,
+  `SimulationTiming.TicksPerSecond`, and it must stay that way.
+- **Q19 — what the health deltas are *per*.** Tied to Q1. The variables table
+  spells out `…PerSecond` / `…Seconds` on its other entries and not on these
+  ten, which is the whole of the ambiguity.
+- **Q20 — `DigRockHealth` is −5000 against Rock's 165 health.** One application
+  destroys it, so digging earth is instantaneous, which is wrong. Every other
+  work rate is sane. New at M3 and the first place the data and the original
+  visibly disagree. Candidate explanations in `tile-work.md`.
+- **Q18 is now answered** (2026-08-29): `maxHealthTypeTerrainId` is the
+  destination of whichever upward job the terrain admits. Do not reopen it
+  without new evidence.
 - **Q5 — pathfinding.** The project's biggest risk (plan §9, R1). Flame names
   `Follow_Path` but has zero named fields for it. Nobody has solved this.
 - **Q2 — job selection.** Narrowed: candidates and weights are *data*. The
