@@ -5,6 +5,9 @@ Snapshot of what is known vs unknown. Authoritative long-form:
 Live question list: `docs/research/open-questions.md`.
 
 ## Solved (usable today)
+- Creature definitions: all 46 records parsed (stats, flags, job tables,
+  attractions, spells, resistances) — cross-validated against Flame. See
+  docs/research/kwd-creatures.md and creature-table-dump.md.
 - File formats: WAD, KWD/KLD (~90%), KMF, STR, textures, video — via
   OpenKeeper + dk2-tools; record header verified locally (kwd-container.md).
 - Game database: DK2 balance data is KWD `VARIABLES`/`CREATURES`/... records,

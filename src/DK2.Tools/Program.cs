@@ -49,6 +49,67 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length >= 3 && args[1] == "creature":
+    {
+        List<CreatureDef> all = KwdCreatures.Parse(KwdReader.ReadFile(
+            Path.Combine(Dk2Install.Require(), "Data", "editor", "Creatures.kwd")));
+        CreatureDef? c = all.FirstOrDefault(x =>
+            x.Name.Equals(args[2], StringComparison.OrdinalIgnoreCase));
+        if (c is null)
+        {
+            Console.Error.WriteLine($"no creature named '{args[2]}'");
+            return 2;
+        }
+
+        Console.WriteLine($"{c.Name} (id {c.CreatureId})  class={c.JobClass} style={c.FightStyle}");
+        Console.WriteLine($"  hp={c.Hp} dmg={c.MeleeDamage} pay={c.Pay} fear={c.Fear} threat={c.Threat}");
+        Console.WriteLine($"  speed={c.Speed} run={c.RunSpeed} see={c.DistanceCanSee} hear={c.DistanceCanHear}");
+        Console.WriteLine($"  hungerRate={c.HungerRate} hungerFill={c.HungerFill} " +
+                          $"awake={c.TimeAwake} sleep={c.TimeSleep}");
+        Console.WriteLine($"  meleeRange={c.MeleeRange} recharge={c.MeleeRecharge} attack={c.MeleeAttackType}");
+        Console.WriteLine($"  exp/lvl={c.ExpForNextLevel} exp/s={c.ExpPerSecond} train={c.ExpPerSecondTraining} " +
+                          $"research={c.ResearchPerSecond} manufacture={c.ManufacturePerSecond}");
+        Console.WriteLine($"  unhappyThreshold={c.UnhappyThreshold} angerNoLair={c.AngerNoLair} " +
+                          $"angerNoFood={c.AngerNoFood} angerNoPay={c.AngerNoPay} angerNoWork={c.AngerNoWork}");
+        Console.WriteLine($"  happy   : {string.Join(", ", c.HappyJobs.Select(j => $"{j.Job}({j.ChancePercent}%)"))}");
+        Console.WriteLine($"  unhappy : {string.Join(", ", c.UnhappyJobs.Select(j => $"{j.Job}({j.ChancePercent}%)"))}");
+        Console.WriteLine($"  angry   : {string.Join(", ", c.AngryJobs.Select(j => $"{j.Job}({j.ChancePercent}%)"))}");
+        Console.WriteLine($"  hates   : {string.Join(", ", c.HateJobs)}");
+        Console.WriteLine($"  altJobs : {string.Join(", ", c.AlternativeJobs.Select(j => j.Job))}");
+        Console.WriteLine($"  attracts: {string.Join(", ", c.Attractions.Where(a => a.RoomId != 0)
+                              .Select(a => $"room{a.RoomId}(size>={a.RoomSize})"))}");
+        Console.WriteLine($"  spells  : {string.Join(", ", c.Spells.Select(s => $"#{s.CreatureSpellId}@lvl{s.LevelAvailable}"))}");
+        Console.WriteLine($"  resists : {string.Join(", ", c.Resistances.Select(x => $"{x.AttackType}={x.Value}"))}");
+        return 0;
+    }
+
+    case "kwd" when args.Length >= 2 && args[1] == "creatures":
+    {
+        string cpath = args.Length > 2
+            ? ResolveEditor(args[2])
+            : Path.Combine(Dk2Install.Require(), "Data", "editor", "Creatures.kwd");
+        List<CreatureDef> creatures = KwdCreatures.Parse(KwdReader.ReadFile(cpath));
+
+        Console.WriteLine($"{"id",3} {"name",-16} {"hp",5} {"dmg",4} {"pay",4} {"fear",5} {"threat",6} " +
+                          $"{"speed",6} {"exp/lvl",7} {"class",-8} {"flags"}");
+        foreach (CreatureDef c in creatures.OrderBy(c => c.CreatureId))
+        {
+            string flags = string.Join(",", new[]
+            {
+                c.Flags.HasFlag(CreatureFlags.IsWorker) ? "worker" : null,
+                c.Flags.HasFlag(CreatureFlags.IsEvil) ? "evil" : null,
+                c.Flags.HasFlag(CreatureFlags.CanFly) ? "fly" : null,
+                c.Flags.HasFlag(CreatureFlags.IsFearless) ? "fearless" : null,
+                c.Flags.HasFlag(CreatureFlags.IsUnique) ? "unique" : null,
+            }.Where(s => s is not null));
+
+            Console.WriteLine($"{c.CreatureId,3} {c.Name,-16} {c.Hp,5} {c.MeleeDamage,4} {c.Pay,4} " +
+                              $"{c.Fear,5} {c.Threat,6} {c.Speed,6} {c.ExpForNextLevel,7} {c.JobClass,-8} {flags}");
+        }
+        Console.WriteLine($"-- {creatures.Count} creatures");
+        return 0;
+    }
+
     case "kwd" when args.Length >= 2 && args[1] == "vars":
     {
         string path = args.Length > 2
