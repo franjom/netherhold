@@ -759,3 +759,70 @@ mechanics agree on the swing rate, **and only under the new reading**.
   unanswered thing on the observation checklist.
 - The rule for **which** terrain a tile becomes is untouched — that is still
   `MaxHealthTypeTerrainId` selected by the work, which is Q18 and stands.
+
+---
+
+## ADR-0025 — Movement is eight-connected, and a diagonal costs √2
+
+**Date.** 2026-08-30. **Status.** Accepted. **Supersedes** the four-connected
+choice recorded on `GridPathfinder` since M2.
+
+**Context.** `GridPathfinder` was four-connected on an explicit and reasonable
+argument: an eight-connected search can return a route that squeezes diagonally
+between two solid tiles, whether DK2 permits that was UNKNOWN, and a
+four-connected route is always walkable by an eight-connected mover — so the
+conservative choice could only ever be widened later.
+
+**The conservative choice was the wrong one.** The owner watched the original
+(Q28): a DK2 creature **will** pass diagonally between two solid tiles. Every
+route this project produced was therefore an overestimate, in the one system
+every other system depends on.
+
+Implementing it needed one number nobody had: what a diagonal step costs. That
+was Q48, and it was on the observation checklist as a stopwatch task for a long
+time. **It should not have been.** A creature's speed is in *tiles per second*
+(Q29 — three variables name that unit in their own words), so a creature moves
+continuously through world space at a constant rate, so a step to a diagonal
+neighbour covers **√2 tile-widths** and takes **1.41× as long**. There is no
+mechanism by which it could be free short of the creature teleporting or
+accelerating on the bias. Uniform cost was never a live option; it would have
+been the invention.
+
+**Decision.**
+
+- **Eight-connected, and corners may be cut.** No corner-cutting check: a
+  diagonal neighbour is reachable whatever its two orthogonal neighbours are,
+  which is precisely what the owner observed.
+- **Octile step cost: `StraightCost` 10, `DiagonalCost` 14**, the usual integer
+  stand-in for 10√2 = 14.142. Integers throughout, so no square root, so no
+  floating point, so no cross-machine drift.
+- **The heuristic is octile distance**, which is the exact cost of the cheapest
+  unobstructed route — admissible and consistent, so A* still returns shortest
+  routes.
+- **`TryFindNearest` becomes Dijkstra**, not breadth-first. This is the
+  non-obvious consequence and it is the one that matters: once steps stop costing
+  the same, a breadth-first sweep returns the goal reachable in the fewest
+  *steps* rather than the nearest one. The owner confirmed an imp takes the
+  marked tile nearest **by walking distance** (Q25), and three diagonal steps
+  (42) are further than four straight ones (40).
+- **The mover charges the same 14/10.** `CreatureMovementSystem` measured a leg
+  with `|dx| + |dy|`, which is right for a four-connected path and charges 2× for
+  a diagonal. It now uses the octile length. **A router and a mover that disagree
+  produce creatures that arrive early**, which is a bug nobody would find by
+  reading either one.
+
+**Consequences.**
+
+- **Every route in the game is shorter**, and journeys that were overestimated
+  are now right. Scenario hashes move; the pinned determinism hash does not,
+  because the fixture behind it has nothing that walks.
+- **Three tests changed**, and each had a four-connected assumption written into
+  it — a path-step adjacency assertion using Manhattan distance, a detour length
+  of 8 that is now 4 diagonals, and a gold-carrying test pinned to a fixed tick
+  count that the faster imp overran. The last was rewritten to run to the event
+  it is about rather than to a clock.
+- **What the *pathfinder* charges is still not evidence about DK2** (Q5). The
+  mover's √2 is forced; the router's 14 is the only choice consistent with it,
+  but whether the original's own search weights diagonals is unobserved and
+  probably unobservable — in open uniform terrain both cost models produce paths
+  of the same shape.

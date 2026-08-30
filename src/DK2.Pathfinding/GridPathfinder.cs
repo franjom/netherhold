@@ -3,24 +3,32 @@ using DK2.Core;
 namespace DK2.Pathfinding;
 
 /// <summary>
-/// Four-connected grid search: A* for a known destination, breadth-first for
-/// "the nearest tile that satisfies a predicate".
+/// Eight-connected grid search: A* for a known destination, Dijkstra for "the
+/// nearest tile that satisfies a predicate".
 ///
-/// <para><b>This is ours, not DK2's (Q5).</b> Three choices here are visible in
-/// gameplay and none of them is evidence about the original:</para>
+/// <para><b>Connectivity and step cost are DK2's; tie-breaking is ours.</b></para>
 /// <list type="bullet">
-/// <item><b>Four-connected.</b> Movement is north/west/east/south only. Chosen
-/// because it is the conservative option: an eight-connected search can return a
-/// route that squeezes diagonally between two solid tiles, and whether DK2
-/// permits that is UNKNOWN. A four-connected route is always walkable by an
-/// eight-connected mover, so replacing this later can only widen the set of
-/// paths, never invalidate one.</item>
-/// <item><b>Uniform step cost.</b> Every walkable tile costs the same to enter.
-/// DK2 may weight terrain (water is visibly slower to cross); UNKNOWN.</item>
-/// <item><b>Tie-breaking.</b> Several routes are usually equally short, and
-/// which one comes back is decided by a fixed neighbour order and then by tile
-/// index. That makes the result reproducible, which is what the determinism gate
-/// needs, but it is an arbitrary rule rather than a reconstructed one.</item>
+/// <item><b>Eight-connected, and corners may be cut.</b> CONFIRMED by observation
+/// of the original (Q28): a creature will pass diagonally between two solid
+/// tiles. This used to be four-connected on the grounds that it was the
+/// conservative choice, and the conservative choice turned out to be the wrong
+/// one - every route it produced was an overestimate.</item>
+/// <item><b>Octile step cost: 10 orthogonal, 14 diagonal.</b> STRONGLY INFERRED
+/// (Q48), and forced rather than chosen. A creature's speed is in tiles per
+/// second (Q29 - three variables name that unit in their own words), so movement
+/// is continuous through world space at a constant rate, so a step to a diagonal
+/// neighbour covers root-2 tile-widths and must take 1.41x as long. Uniform cost
+/// would make diagonals a free shortcut and have creatures crossing a dungeon
+/// measurably faster on the bias; 14/10 is the usual integer stand-in for root-2
+/// and is what <see cref="Systems"/>' mover charges too, which is the part that
+/// matters - a router and a mover that disagree produce creatures that arrive
+/// early.</item>
+/// <item><b>No terrain weighting.</b> CONFIRMED (Q30): the shortest route wins
+/// even through water. Every walkable tile costs the same to enter.</item>
+/// <item><b>Tie-breaking.</b> Several routes are usually equally short, and which
+/// one comes back is decided by a fixed neighbour order and then by tile index.
+/// That makes the result reproducible, which is what the determinism gate needs,
+/// but it is an arbitrary rule rather than a reconstructed one (Q5).</item>
 /// </list>
 ///
 /// <para>Determinism: no floating point, no hashing, no unordered iteration.
@@ -29,15 +37,29 @@ namespace DK2.Pathfinding;
 /// one — asserted by <c>PathfindingTests.RepeatedSearches_DoNotContaminateEachOther</c>.
 /// Not thread-safe; the simulation is single-threaded by design.</para>
 /// </summary>
-[Dk2Behavior(Confidence.Unknown, "docs/research/imp-tasks.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/imp-tasks.md")]
 public sealed class GridPathfinder : IPathfinder
 {
+    /// <summary>What one orthogonal step costs. The unit is arbitrary; the ratio is not.</summary>
+    public const int StraightCost = 10;
+
     /// <summary>
-    /// The order neighbours are expanded in. Fixed, because it decides which of
-    /// several equally short routes is returned.
+    /// What one diagonal step costs: <b>14</b>, the usual integer stand-in for
+    /// 10 x root-2 (14.142...). See Q48.
     /// </summary>
-    private static readonly int[] NeighbourDx = [0, -1, 1, 0];
-    private static readonly int[] NeighbourDy = [-1, 0, 0, 1];
+    public const int DiagonalCost = 14;
+
+    /// <summary>
+    /// The order neighbours are expanded in — four orthogonal, then four
+    /// diagonal. Fixed, because it decides which of several equally short routes
+    /// is returned.
+    /// </summary>
+    private static readonly int[] NeighbourDx = [0, -1, 1, 0, -1, 1, -1, 1];
+    private static readonly int[] NeighbourDy = [-1, 0, 0, 1, -1, -1, 1, 1];
+    private static readonly int[] NeighbourCost =
+        [StraightCost, StraightCost, StraightCost, StraightCost,
+         DiagonalCost, DiagonalCost, DiagonalCost, DiagonalCost];
+
 
     private int _width;
     private int _generation;
@@ -45,7 +67,6 @@ public sealed class GridPathfinder : IPathfinder
     private int[] _cameFrom = [];
     private int[] _cost = [];
 
-    private readonly List<int> _queue = [];
     private readonly List<int> _heapTile = [];
     private readonly List<int> _heapKey = [];
 
@@ -77,7 +98,6 @@ public sealed class GridPathfinder : IPathfinder
                 return true;
             }
 
-            int nextCost = _cost[current] + 1;
             int cx = current % _width;
             int cy = current / _width;
 
@@ -87,6 +107,11 @@ public sealed class GridPathfinder : IPathfinder
                 int ny = cy + NeighbourDy[i];
                 if (!InBounds(grid, nx, ny) || !grid.IsWalkable(nx, ny)) continue;
 
+                // No corner-cutting check: the original lets a creature pass
+                // diagonally between two solid tiles (Q28, owner-confirmed), so a
+                // diagonal neighbour is reachable whatever its two orthogonal
+                // neighbours are.
+                int nextCost = _cost[current] + NeighbourCost[i];
                 int n = (ny * _width) + nx;
                 bool seen = _stamp[n] == _generation;
                 if (seen && _cost[n] <= nextCost) continue;
@@ -119,14 +144,23 @@ public sealed class GridPathfinder : IPathfinder
         _stamp[start] = _generation;
         _cameFrom[start] = -1;
         _cost[start] = 0;
-        _queue.Add(start);
+        HeapPush(start, 0);
 
-        for (int head = 0; head < _queue.Count; head++)
+        // Dijkstra, not breadth-first. Steps stopped costing the same when
+        // movement went eight-connected (Q48: 10 orthogonal, 14 diagonal), and a
+        // breadth-first sweep would return the goal reachable in the fewest
+        // STEPS rather than the nearest one. That distinction is observable and
+        // observed: the owner confirmed an imp takes the marked tile closest by
+        // WALKING DISTANCE (Q25), and three diagonal steps are further than four
+        // straight ones.
+        while (_heapTile.Count > 0)
         {
-            int current = _queue[head];
+            int current = HeapPop();
             int cx = current % _width;
             int cy = current / _width;
 
+            // Popped in cost order, so the first goal off the heap is the
+            // cheapest to reach and the search can stop there.
             if (isGoal(new TilePos(cx, cy)))
             {
                 BuildPath(current, path);
@@ -139,21 +173,33 @@ public sealed class GridPathfinder : IPathfinder
                 int ny = cy + NeighbourDy[i];
                 if (!InBounds(grid, nx, ny) || !grid.IsWalkable(nx, ny)) continue;
 
+                int nextCost = _cost[current] + NeighbourCost[i];
                 int n = (ny * _width) + nx;
-                if (_stamp[n] == _generation) continue;
+                if (_stamp[n] == _generation && _cost[n] <= nextCost) continue;
 
                 _stamp[n] = _generation;
                 _cameFrom[n] = current;
-                _cost[n] = _cost[current] + 1;
-                _queue.Add(n);
+                _cost[n] = nextCost;
+                HeapPush(n, nextCost);
             }
         }
 
         return false;
     }
 
-    /// <summary>Manhattan distance — admissible and consistent for four-connected uniform steps.</summary>
-    private static int Heuristic(TilePos a, TilePos b) => a.ManhattanDistance(b);
+    /// <summary>
+    /// Octile distance: the exact cost of the cheapest unobstructed route, so it
+    /// is admissible and consistent for these step costs and A* stays optimal.
+    /// Take as many diagonals as the shorter axis allows, then go straight.
+    /// </summary>
+    private static int Heuristic(TilePos a, TilePos b)
+    {
+        int dx = Math.Abs(a.X - b.X);
+        int dy = Math.Abs(a.Y - b.Y);
+        int diagonal = Math.Min(dx, dy);
+        int straight = Math.Max(dx, dy) - diagonal;
+        return (diagonal * DiagonalCost) + (straight * StraightCost);
+    }
 
     private void Begin(IPathGrid grid)
     {
@@ -171,7 +217,6 @@ public sealed class GridPathfinder : IPathfinder
         // A fresh generation invalidates every stamp left by earlier searches,
         // so a reused buffer behaves exactly like a newly allocated one.
         _generation++;
-        _queue.Clear();
         _heapTile.Clear();
         _heapKey.Clear();
     }

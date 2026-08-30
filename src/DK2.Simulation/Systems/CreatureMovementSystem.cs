@@ -1,5 +1,6 @@
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
@@ -56,7 +57,7 @@ public sealed class CreatureMovementSystem : ISimulationSystem
 
             int dx = targetX - creature.PosX;
             int dy = targetY - creature.PosY;
-            int remaining = Math.Abs(dx) + Math.Abs(dy);
+            int remaining = LegLength(dx, dy);
 
             if (remaining == 0)
             {
@@ -73,12 +74,56 @@ public sealed class CreatureMovementSystem : ISimulationSystem
                 continue;
             }
 
-            // One axis at a time. A four-connected leg only ever has one, and
-            // moving X first for anything else keeps the result reproducible.
-            if (dx != 0) creature.PosX += Math.Sign(dx) * step;
-            else creature.PosY += Math.Sign(dy) * step;
+            if (dx != 0 && dy != 0)
+            {
+                // A diagonal leg advances both axes together, and the budget
+                // buys less of each than it would on a straight one: covering
+                // one tile of axis costs DiagonalCost/StraightCost of path.
+                int axis = step * GridPathfinder.StraightCost / GridPathfinder.DiagonalCost;
+                creature.PosX += Math.Sign(dx) * axis;
+                creature.PosY += Math.Sign(dy) * axis;
+            }
+            else if (dx != 0)
+            {
+                creature.PosX += Math.Sign(dx) * step;
+            }
+            else
+            {
+                creature.PosY += Math.Sign(dy) * step;
+            }
+
             step = 0;
         }
+    }
+
+    /// <summary>
+    /// How far a creature must travel to reach a waypoint, in position units and
+    /// on the same scale <see cref="StepThisTick"/> spends.
+    ///
+    /// <para><b>A diagonal leg is longer than a straight one, and by exactly the
+    /// factor the router charges.</b> Movement is continuous through world space
+    /// at a constant speed (Q29 - a creature's speed is in tiles per second), so
+    /// crossing to a diagonal neighbour covers root-2 tile-widths and takes
+    /// 1.41x as long. Using <c>|dx| + |dy|</c> here would charge 2x, and using
+    /// <c>max</c> would charge 1x; both are wrong, and both would put the mover
+    /// out of step with <see cref="GridPathfinder"/>, whose route was costed at
+    /// 14/10. A router and a mover that disagree produce creatures that arrive
+    /// early or late for no reason anybody can see.</para>
+    ///
+    /// <para>Integer arithmetic throughout, on the same 14/10 stand-in for
+    /// root-2 the search uses: no square root, so no floating point, so no
+    /// cross-machine drift (Q48).</para>
+    /// </summary>
+    private static int LegLength(int dx, int dy)
+    {
+        int ax = Math.Abs(dx);
+        int ay = Math.Abs(dy);
+        if (ax == 0 || ay == 0) return ax + ay;
+
+        // Legs between tile centres are square, so either axis gives the same
+        // answer; taking the larger keeps a mid-leg position (where rounding may
+        // have left the axes a unit apart) from under-charging.
+        return Math.Max(ax, ay) * GridPathfinder.DiagonalCost / GridPathfinder.StraightCost;
     }
 
     /// <summary>

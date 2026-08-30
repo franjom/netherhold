@@ -1,4 +1,5 @@
 using DK2.Core;
+using DK2.Pathfinding;
 using DK2.Data.Model;
 using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
@@ -433,6 +434,59 @@ public class ImpTests
         sim.Tick();
         Assert.Equal(CreatureState.CentreOf(2), imp.PosX);
         Assert.Equal(CreatureState.CentreOf(1), imp.PosY);
+    }
+
+    /// <summary>
+    /// <b>A diagonal leg is longer, and the mover charges for it.</b> Walking
+    /// four tiles on the bias covers 4 x root-2 tile-widths, so it takes about
+    /// 1.41x as long as walking four tiles straight — not the same time (which a
+    /// mover using Chebyshev distance would give) and not twice (which the
+    /// Manhattan distance it used to use would give).
+    ///
+    /// <para>Forced rather than chosen: a creature's speed is in tiles per second
+    /// (Q29), so it moves continuously through world space at a constant rate and
+    /// a longer leg simply takes longer. It also has to agree with
+    /// <see cref="GridPathfinder"/>, which costed the route at 14/10 — a router
+    /// and a mover that disagree produce creatures that arrive early. See Q48 and
+    /// ADR-0025.</para>
+    /// </summary>
+    [Fact]
+    public void WalkingOnTheBias_TakesRootTwoTimesAsLong()
+    {
+        static int TicksToWalk(bool diagonal)
+        {
+            GameDatabase database = Dk2TerrainFixture.Database();
+            WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+            CreatureState imp = world.SpawnCreature(
+                Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
+
+            for (int i = 1; i <= 4; i++)
+                imp.Path.Add(new TilePos(1 + i, diagonal ? 1 + i : 1));
+
+            var sim = new GameSimulation(database, world, 1, [new CreatureMovementSystem()]);
+            for (int tick = 1; tick <= 10_000; tick++)
+            {
+                sim.Tick();
+                if (imp.PathIndex >= imp.Path.Count) return tick;
+            }
+
+            throw new InvalidOperationException("the imp never arrived");
+        }
+
+        int straight = TicksToWalk(diagonal: false);
+        int bias = TicksToWalk(diagonal: true);
+
+        // 14/10 is the integer stand-in for root-2 that both the mover and the
+        // search use, so the ratio lands on it rather than on 1.41421...
+        Assert.Equal(
+            straight * GridPathfinder.DiagonalCost / GridPathfinder.StraightCost,
+            bias);
+
+        // Stated again as the property, because the numbers above would also be
+        // satisfied by two coincidences: the bias walk is strictly slower than
+        // the straight one and strictly faster than walking it as an L.
+        Assert.True(bias > straight, $"bias {bias} was not slower than straight {straight}");
+        Assert.True(bias < straight * 2, $"bias {bias} was not faster than an L of {straight * 2}");
     }
 
     [Fact]

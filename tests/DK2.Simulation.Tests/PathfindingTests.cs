@@ -83,9 +83,15 @@ public class PathfindingTests
         Assert.True(new GridPathfinder().TryFindPath(OneDoor, new TilePos(0, 0), new TilePos(0, 4), path));
 
         Assert.Contains(new TilePos(2, 2), path);
-        // Four-connected, so the length is the Manhattan detour: across to the
-        // gap, down through it, and back.
-        Assert.Equal(8, path.Count);
+
+        // FOUR steps, all of them diagonal: (1,1), (2,2), (1,3), (0,4). The gap
+        // at (2,2) is the only way through and a creature can reach it on the
+        // bias (Q28), so the detour costs 4 x 14 = 56 rather than the eight
+        // orthogonal steps a four-connected search had to take.
+        Assert.Equal(4, path.Count);
+        Assert.Equal(
+            [new TilePos(1, 1), new TilePos(2, 2), new TilePos(1, 3), new TilePos(0, 4)],
+            path);
     }
 
     [Fact]
@@ -98,9 +104,108 @@ public class PathfindingTests
         foreach (TilePos step in path)
         {
             Assert.True(OneDoor.IsWalkable(step.X, step.Y), $"{step} is a wall");
-            Assert.Equal(1, previous.ManhattanDistance(step));
+
+            // Eight-connected now (Q28): a step moves at most one tile on each
+            // axis and at least one somewhere, so Chebyshev distance is 1 and
+            // Manhattan is 1 or 2. Asserting Manhattan == 1 was the
+            // four-connected assumption written into a test.
+            int dx = Math.Abs(step.X - previous.X);
+            int dy = Math.Abs(step.Y - previous.Y);
+            Assert.Equal(1, Math.Max(dx, dy));
             previous = step;
         }
+    }
+
+    // ---- eight-connected movement (Q28) and octile cost (Q48) --------------
+
+    /// <summary>
+    /// <b>A creature crosses on the bias.</b> CONFIRMED (Q28, owner): DK2
+    /// creatures are eight-connected. Four diagonal steps beat the eight
+    /// orthogonal ones a four-connected search was obliged to take.
+    /// </summary>
+    [Fact]
+    public void AcrossOpenFloor_TheRouteIsDiagonal()
+    {
+        var path = new List<TilePos>();
+
+        Assert.True(new GridPathfinder().TryFindPath(Open, new TilePos(0, 0), new TilePos(4, 4), path));
+
+        Assert.Equal(
+            [new TilePos(1, 1), new TilePos(2, 2), new TilePos(3, 3), new TilePos(4, 4)],
+            path);
+    }
+
+    /// <summary>
+    /// <b>Corners may be cut.</b> This is the specific thing Q28 asked and the
+    /// owner answered: a creature will pass diagonally between two solid tiles.
+    /// The grid below gives it no other option — (1,0) and (0,1) are both wall,
+    /// so the only route from (0,0) to (1,1) is through the pinch.
+    /// </summary>
+    [Fact]
+    public void ADiagonalBetweenTwoSolidTiles_IsAllowed()
+    {
+        var pinch = new TextGrid(
+            ".#...",
+            "#....",
+            ".....",
+            ".....",
+            ".....");
+
+        var path = new List<TilePos>();
+
+        Assert.True(new GridPathfinder().TryFindPath(pinch, new TilePos(0, 0), new TilePos(1, 1), path));
+        Assert.Equal([new TilePos(1, 1)], path);
+    }
+
+    /// <summary>
+    /// <b>A diagonal is not a free shortcut.</b> Three diagonal steps cost 42 and
+    /// four orthogonal ones cost 40, so the four-step goal is the nearer one —
+    /// and a search that counted steps instead of distance would return the
+    /// other. That distinction is observable and observed: the owner confirmed an
+    /// imp takes the marked tile nearest by <i>walking distance</i> (Q25).
+    /// </summary>
+    [Fact]
+    public void TheNearestGoal_IsNearestByDistanceAndNotByStepCount()
+    {
+        var path = new List<TilePos>();
+        var goals = new HashSet<TilePos> { new(3, 3), new(4, 0) };
+
+        Assert.True(new GridPathfinder().TryFindNearest(
+            Open, new TilePos(0, 0), goals.Contains, path));
+
+        Assert.Equal(new TilePos(4, 0), path[^1]);
+        Assert.Equal(4, path.Count);
+    }
+
+    /// <summary>
+    /// The heuristic must never overestimate, or A* stops returning shortest
+    /// routes. Checked against the search's own answer on an open grid, where
+    /// the two have to agree exactly: with nothing in the way, the cheapest
+    /// route IS the octile distance.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 0, 4, 4, 4 * GridPathfinder.DiagonalCost)]
+    [InlineData(0, 0, 4, 0, 4 * GridPathfinder.StraightCost)]
+    [InlineData(0, 0, 4, 2, (2 * GridPathfinder.DiagonalCost) + (2 * GridPathfinder.StraightCost))]
+    [InlineData(0, 0, 0, 3, 3 * GridPathfinder.StraightCost)]
+    public void OnOpenFloor_TheCheapestRouteIsTheOctileDistance(
+        int fromX, int fromY, int toX, int toY, int expectedCost)
+    {
+        var path = new List<TilePos>();
+        Assert.True(new GridPathfinder().TryFindPath(
+            Open, new TilePos(fromX, fromY), new TilePos(toX, toY), path));
+
+        int cost = 0;
+        TilePos previous = new(fromX, fromY);
+        foreach (TilePos step in path)
+        {
+            cost += step.X != previous.X && step.Y != previous.Y
+                ? GridPathfinder.DiagonalCost
+                : GridPathfinder.StraightCost;
+            previous = step;
+        }
+
+        Assert.Equal(expectedCost, cost);
     }
 
     [Fact]

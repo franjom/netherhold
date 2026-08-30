@@ -175,7 +175,13 @@ public class GoldCarryingTests
         PutStoreAt(run, new TilePos(3, 2), RoomTypeId.DungeonHeart);
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        run.Ticks(95);
+
+        // Run to the moment the spillover lands rather than to a fixed tick.
+        // A fixed count broke when movement went eight-connected (ADR-0025):
+        // the imp got home sooner, unloaded, walked back and had already mined
+        // two more swings by tick 95. What the test is about is where the load
+        // goes, not how long the walk takes.
+        for (int i = 0; i < 95 && run.World.Tile(3, 2).GoldHeld == 0; i++) run.Tick();
 
         Assert.Equal(1000, run.World.Tile(3, 3).GoldHeld);
         Assert.Equal(363, run.World.Tile(3, 2).GoldHeld);
