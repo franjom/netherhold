@@ -247,12 +247,50 @@ which a room does nothing (Q45).
 Portal 3x3, Prison 5x5, Combat Pit 5x5, Crypt 5x5, and Treasury/Lair/Guard Room
 1x1 - so a **1x1 lair should work** and a **4x4 prison should not**.
 
-**And the open half is now Q60: how the yield scales above the minimum.** Your
-5x5 graveyard has 8 graves; the 3x3 minimum has 1. A 5x5 has nine tiles with all
-eight neighbours inside the room, and your screenshot shows a coffin in the
-middle with eight headstones round it, so the candidate rule is one grave per
-fully-interior tile less the centre. **A 4x4 or a 6x6 graveyard would settle it**
-- just the grave count off the tooltip.
+**And the open half is now Q60: how the yield scales above the minimum.** Two
+rooms measured, and **they do not follow the same rule**, which is the finding.
+
+| room | size | yield |
+|---|---|---|
+| Temple | 3x3 | capacity **8** |
+| Temple | ? | capacity **12** |
+| Temple | 5x5 | capacity **16** |
+| Graveyard | 3x3 | **1** grave |
+| Graveyard | 5x5 | **8** graves |
+
+The temple series is exactly the count of **edge tiles**, `2(w+h) − 4`: 8 for
+3x3, 12 for 4x4 or 3x5, 16 for 5x5. That fits what the room looks like — it is a
+pool, and creatures stand on the rim. The graveyard's 8 is **not** the 5x5 edge
+count of 16; it is the ring of eight tiles around the centre of the interior 3x3,
+which is exactly what your screenshot shows: a coffin with eight headstones round
+it.
+
+**One thing to check on your side:** you labelled two of the temples 5x5, but
+they read 12 and 16, so one of them must be smaller — 4x4 or 3x5 would both give
+12. Worth knowing which, because it separates "edge tiles" from every other
+formula that happens to fit 8/16.
+
+**What would settle both:** one more temple (a 4x4, or a 6x6 → the prediction is
+20) and one more graveyard (a 4x4, or a 7x7 → the prediction is 24 if the ring
+rule holds).
+
+### Q61 — does a small temple really not attract Dark Angels?
+You flagged this as needing verifying, and **the data does not support it**.
+Creature attraction is a parsed field — `CreatureAttraction(RoomId, RoomSize)`,
+two per creature — and it reads sensibly right across the roster: Warlock→Library,
+Vampire→Graveyard, Mistress→Torture Chamber, Skeleton→Prison, Goblin→Lair,
+Salamander→Training Room, Troll→Workshop, **Dark Angel→Temple**.
+
+`RoomSize` is a **tile count**, and the Bile Demon proves it: it is the only
+creature with a non-zero one, wanting a Workshop of any size *plus* a
+**Hatchery of 25 tiles or more** — 5x5, and a bile demon demanding a big hatchery
+is exactly how the original plays.
+
+**The Dark Angel's temple entry is `size >= 0`.** So either a 3x3 temple does
+attract them and the 5x5 belief is folklore, or the requirement lives in some
+mechanism other than this field. **Cheapest test:** a dungeon with a 3x3 temple
+and nothing else a Dark Angel wants — do any turn up?
+
 
 ### Q7 — the mood model, beyond the four causes
 The four causes are recorded. What is still missing is the shape: does anger
