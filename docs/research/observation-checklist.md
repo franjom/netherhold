@@ -323,31 +323,45 @@ An imp stands *on* a tile to claim it (Q44). Does it also stand on the tile to
 does it stand beside those? And is the ~500 ms an imp lingers after claiming a
 real pause, or just the animation finishing?
 
-### Q63 — what else does training cost? — **20 gold an action, source unknown**
-You measured a creature in a training room paying **20 gold per action**, the
-same for a melee creature swinging at a dummy and a ranged one hitting the
-moving target.
+### Q63 — what does training cost? — **20 at a dummy, 0 at the target**
+You measured a melee creature swinging at a training dummy paying **20 gold** an
+action, and then corrected the ranged half: a creature hitting the moving target
+pays **0**.
 
-**The balance table has no training cost in it at all.** The four variables named
-for training are a motionless duration, a max level, an experience-loss rate and
-a colour tweak. Nothing else in it holds 20 in a plausible role, and `Rooms.kwd`
-carries no 20 for the Training Room.
+**The asymmetry is worth more than the 20.** Ranged creatures appear to train for
+free, which is a gameplay fact in its own right and not something anyone would
+have guessed from the data.
 
-There is **one weak candidate that your own observation contradicts**:
-`Objects.kwd` offset 0x0208 reads **Training Dummy = 20** — but **Training Target
-= 0** at that same offset, and you priced the moving target at 20 too. A one-value
-fit with a sibling that disagrees is exactly the kind this project has been
-burned by twice now, so it is recorded and not believed.
+**The source is still not identified.** The balance table has no training cost in
+it at all — its four training-named variables are a motionless duration, a max
+level, an experience-loss rate and a colour tweak — and `Rooms.kwd` carries no 20
+for the Training Room.
 
-**What would settle it:** a second anchor that differs. **Does training cost the
-same for a level 1 creature and a level 4 one?** And **does it cost the same for
-a cheap creature and an expensive one** — a goblin against a bile demon? If the
-figure moves with either, it is per-creature or per-level and the flat 20 is a
-coincidence of what you happened to train.
+There is one candidate, and your correction turned it from *contradicted* into
+*merely unconvincing*. `Objects.kwd` offset **0x0208** reads Training Dummy **20**
+and Training Target **0**, which now matches you exactly. But it is the only
+offset in the whole record where the dummy holds 20, and **the rest of the column
+does not look like money**:
 
-Nothing is blocked on it: training is M4 and no creature here gains experience
-yet. It is worth having because it is a **gold sink**, and the economy so far has
-sinks only for rooms and imps.
+```
+  Gold Pile 1  4096      every creature bed  60      Chicken   45
+  Book Case    4096      Chicken Coop        77      Egg       16
+  Prison Door    10      Hero Gate Door      24      Call To Arms 60
+```
+
+4096 is this project's fixed-point denominator, and every creature bed reading
+the same 60 is the signature of a size or a duration rather than a price. So it
+is recorded and not believed.
+
+**What would settle it is an anchor that differs from 20** — the lesson the traps
+taught. Does training cost the same for a **level 1 and a level 4** creature? The
+same for a **goblin and a bile demon**? If either moves the figure, the flat 20 is
+a coincidence of what you happened to train, and the real field is per-creature
+or per-level.
+
+Nothing is blocked: training is M4 and no creature here gains experience. It is
+worth having because it is a **gold sink**, and the economy so far has sinks only
+for building rooms and buying imps.
 
 ### Q9 — payday — **ANSWERED, and the data agreed with you**
 Your "every 10 minutes" is `PayDayFrequencySeconds` = **600**, a variable that
