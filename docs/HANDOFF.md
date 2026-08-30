@@ -10,14 +10,17 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, and the gold
 carrier: complete. M3 as a whole: partial.** M2 and the five record types M1
-needed are done. 245 tests green with and without a DK2 install, clean tree.
+needed are done. 252 tests green with and without a DK2 install, clean tree.
 
 > ### ⚠ Read this first: the owner answered 23 open questions on 2026-08-29
 >
 > In two sittings the owner supplied, from playing the original, answers to
 > **Q7, Q9, Q12, Q20, Q21, Q24, Q25, Q26, Q27, Q28, Q30, Q31, Q33, Q34, Q36,
 > Q37, Q37a, Q38, Q40, Q42, Q43, Q44, Q46** — plus the one-dungeon-heart rule.
-> Most are recorded and **not yet implemented**. `docs/research/open-questions.md`
+> A third sitting on **2026-08-30** added the *measurements* that settled
+> **Q47** (273 gold a swing), **Q32** (five room costs, every one matching the
+> ROOMS record) and **Q52** (a dungeon heart stores 16000, not 25000) — the last
+> of which is a defect we cannot fix yet. `docs/research/open-questions.md`
 > has every one; `docs/research/observation-checklist.md` has the summary and
 > what is still worth asking.
 >
@@ -29,10 +32,19 @@ needed are done. 245 tests green with and without a DK2 install, clean tree.
 >   the ownership test belongs on that tile's neighbour.
 > - **Q43** — three imps a face, twelve a block, and a fourth goes elsewhere;
 >   ours converge without limit.
-> - **Q47** — every tile-work rate here runs about twice as fast as the original.
+> - **Q52** (new) — a dungeon heart stores **16000**, not the 25000 we give it.
+>   Sixteen of its 25 tiles hold gold; the middle 3x3 is the heart itself. Needs
+>   room instances to fix, so it is recorded rather than scheduled.
+> - ~~**Q47** - every tile-work rate here runs about twice as fast as the
+>   original.~~ **ANSWERED and fixed on 2026-08-30**, and the factor was five
+>   rather than two. See below.
 >
-> **Q31, the gold carrier, was the fifth and is now built** (2026-08-30,
-> ADR-0019). What is left of it is the floor lump, which needs OBJECTS (M6).
+> **Two of the five are now built.** **Q31**, the gold carrier (ADR-0019) - what
+> is left of it is the floor lump, which needs OBJECTS (M6). And **Q47**, the
+> work rate (ADR-0020): the owner measured **273 gold per swing** at a gold seam,
+> which pins one application at a fifth of the tabled delta, five a second. Every
+> application count in the game changed; no time in seconds did. `DigRockHealth`
+> is now the only number in the tile mechanics that does not fit.
 >
 > **The lesson, now step 0 of the research method: ask the owner.** Several of
 > these had been written up as unanswerable from the KWD data, which is not the
@@ -85,7 +97,7 @@ What the simulation can do:
 | World from real map data | `WorldState.FromMap` | every campaign level builds; tile health from `TerrainDef` |
 | Headless scenarios | `DK2.Harness` + `scenarios/**.yaml` | runs on a real campaign map; reproducible hash series |
 | CI gate | `.github/workflows/ci.yml` | Linux + Windows, no DK2 install |
-| Dig / mine / claim / reinforce / repair / attack / fill in | `DK2.Simulation.TileWorkRules` | rules run against the real install; terrain graph terminates on a whole campaign level |
+| Dig / mine / claim / reinforce / repair / attack / fill in | `DK2.Simulation.TileWorkRules` | rules run against the real install; terrain graph terminates on a whole campaign level; **a swing is a fifth of the tabled delta and a shipped seam gives up 273 gold eleven times** (ADR-0020) |
 | Dig markers, first real command | `TileTagSystem` + `TagTilesCommand` | per player; cleared only when the tile can no longer carry one |
 | Workers that excavate, then claim, then reinforce | `ImpTaskSystem` + `CreatureMovementSystem` | the priority order is CONFIRMED (ADR-0018); imps dig a corridor on a synthetic map and on a shipped campaign level, then claim the floor they opened |
 | Grid search behind an interface | `DK2.Pathfinding.GridPathfinder` | shortest, wall-respecting, reproducible; reused buffers proven inert |
@@ -103,7 +115,8 @@ Extracted data artifacts (the specification the simulation is written against):
 
 **Next: three known defects with known answers, then the Unity view.** See
 "Immediate next steps" — claiming from the tile itself, eight-connected movement
-and the crowding cap. The gold carrier, which was first on that list, is done.
+and the crowding cap. The gold carrier and the work rate, which were first and
+last on that list, are both done.
 
 How this milestone stands against the twelve long-term goals in `AGENTS.md`, and
 which of them have deadlines attached: `docs/GOAL_ALIGNMENT.md`. Re-run that
@@ -138,7 +151,7 @@ to miss.
 | `src/DK2.Simulation/Systems/TileWorkSystem.cs` | Drains the world's work queue each tick. |
 | `src/DK2.Simulation/Systems/TileTagSystem.cs` | Applies dig markers. |
 | `src/DK2.Simulation/Commands/TileCommands.cs` | `TagTilesCommand` — the first real player command. |
-| `src/DK2.Simulation/SimulationTiming.cs` | **The only** place ticks relate to seconds. Q1 placeholder. |
+| `src/DK2.Simulation/SimulationTiming.cs` | **The only** place ticks relate to seconds. `TicksPerSecond` is still the Q1 placeholder; `WorkApplicationsPerSecond` is measured (ADR-0020). |
 | `src/DK2.Simulation/CreatureState.cs` | The first mutable creature state. Position is fixed point; the route is state, not a cache. |
 | `src/DK2.Simulation/Systems/ImpTaskSystem.cs` | Which marked tile a worker takes, and when it applies work. |
 | `src/DK2.Simulation/Systems/CreatureMovementSystem.cs` | Walking, at the speed the creature record gives. |
@@ -225,13 +238,13 @@ corroborate Q47 if the answer is "two swings".
    Q45 (minimum size for a room to *function*) is the shape of that answer and
    the owner is investigating it.
 
-**Not on this list, on purpose: Q47, the tile-work rates.** Everything here runs
-about twice as fast as the original, and the reading that fits is an application
-landing twice a second applying half the tabled delta — self-consistent, because
-that delivers the tabled amount per second. It is not implemented because the fit
-rests on ranges rather than exact counts, and because it changes *when* a tile
-flips rather than how fast it wears down. Get exact hit counts before touching
-`SimulationTiming.WorkApplicationPeriodTicks`.
+**Q47 came off this list on 2026-08-30 and is done.** It had said: get exact hit
+counts before touching `SimulationTiming.WorkApplicationPeriodTicks`. The exact
+count arrived - **273 gold a swing** at a gold seam - and it was worth the wait,
+because the answer was five applications a second and not the two that the ranges
+had suggested. See ADR-0020. The lesson is the same one ADR-0014 taught: the
+half-delta reading was plausible, self-consistent, and wrong, and not having
+implemented it made the correction free.
 
 **Before touching worker behaviour, read `docs/research/imp-tasks.md`
 §"What is not implemented, and is not guessed at".** The priority order is no
@@ -305,6 +318,11 @@ for this; Q47 in `open-questions.md` is the current statement.
 - **Gold lives in tiles; a player has no gold counter** (ADR-0015). DK2 has no
   player-gold variable — it has four per-place limits. `GoldStore` is the only
   way gold moves.
+- **Work lands five times a second, a fifth of the tabled delta at a time**
+  (ADR-0020). Measured, not chosen: 273 gold a swing at a gold seam. The rate per
+  second is unchanged; the swing *count* is now the measured quantity and is
+  independent of Q1. `TileState.WorkRemainder` carries the fraction for the two
+  deltas that do not divide by five.
 - **A creature's hands are the fourth place gold can be** (ADR-0019).
   `CreatureState.GoldHeld`, bounded by the creature's own `maxGoldHeld`. A
   keeper's spendable total dips while their imps are walking home, and that is

@@ -13,20 +13,23 @@
 #            5x5 block (12..16, 26..30)
 #
 # What to read in the event log, in order:
-#   gold_mined      1363 into the imp's hands. A seam is 3000 gold over 660
-#                   health at MineGoldHealth -300, so a swing frees
-#                   3000 * 300 / 660 = 1363.
-#   delivering      the imp breaks off after ONE swing, because a second would
-#                   free 1363 more and the Imp's maxGoldHeld is 1400. Where it
-#                   stops is ours; that it stops when full is DK2's.
+#   gold_mined      273 into the imp's hands, five times over. A seam is 3000
+#                   gold over 660 health and a swing takes 60 of it (Q47), so a
+#                   swing frees 273 - the number the owner measured in the
+#                   original - and the seam is eleven swings totalling exactly
+#                   3000. (Eight swings give 273 and three give 272: gold is
+#                   taken from a running total, so truncation shows up between
+#                   swings and never as a shortfall.)
+#   delivering      the imp breaks off after FIVE swings, holding 1363, because
+#                   a sixth would take it over the Imp's maxGoldHeld of 1400.
+#                   Where it stops is ours; that it stops when full is DK2's.
 #   gold_delivered  1000 into (14,26) - MaxGoldPerDungeonHeartTile - and then
 #                   the remaining 363 into (13,26) next door. That spillover is
 #                   not coded anywhere: the imp fills the tile it is standing
 #                   on, finds it still has gold, and looks again. It is the
 #                   closest thing we have to an answer to Q35.
-#   ... and round again. Three loads, 1363 + 1363 + 272 = 2998, spread across
-#   four heart tiles as each fills up. The two missing from 3000 are DK2's own
-#   integer truncation, kept rather than rounded away.
+#   ... and round again. Three loads - 1363, 1364, 273 - spread across four
+#   heart tiles as each fills up, and exactly 3000 in total.
 #
 # Then, once the seam is gone, the priority order takes over on its own: the imp
 # claims the dirt path it just opened and reinforces the wall behind it, without
@@ -47,7 +50,7 @@ question: >
   tile into the next?
 map: campaign:Level1
 seed: 11
-duration_ticks: 400
+duration_ticks: 250
 setup:
   players:
     - { id: 3, gold: 0, mana: 0 }

@@ -16,11 +16,14 @@ written into the code.
 | Health reaching zero converts a tile to its `destroyedTypeTerrainId` | **CONFIRMED** by the data's shape (see below) |
 | Upward conversion is triggered by the *work*, not by the health level | **STRONGLY INFERRED** — the level-triggered reading is refuted by the data |
 | `maxHealthTypeTerrainId` is the destination of whichever upward job that terrain admits | **STRONGLY INFERRED** — resolves Q18 |
-| A gold seam releases gold in proportion to the rock removed | **HYPOTHESIS** (Q21) |
+| A gold seam releases gold in proportion to the rock removed | **CONFIRMED** (Q21) — 273 gold a swing is 60 health of a 660/3000 seam, measured in the original |
 | A gem face yields `GoldMinedFromGems` per collapse | **STRONGLY INFERRED** — see the gems argument below |
 | Tagging is per player | **STRONGLY INFERRED** |
-| How often an application happens, i.e. what these rates are *per* | **UNKNOWN** (Q19, tied to Q1) |
-| Whether one worker applies the whole delta | **UNKNOWN** (Q20) |
+| **How often an application happens: five times a second, a fifth of the tabled delta** | **STRONGLY INFERRED** (Q47, ADR-0020) — from 273 gold a swing, corroborated by eight of ten deltas dividing by five and by claiming's four swings |
+| The deltas are per second | **STRONGLY INFERRED** (Q19) — follows from the above; how long a second is in ticks is still Q1 |
+| A fully mined seam yields exactly its `goldValue` | **STRONGLY INFERRED** — gold taken from running totals, so truncation shows between swings and never as a shortfall |
+| Whether one worker applies the whole delta | **UNKNOWN** — untouched by the above, which measured one imp working alone |
+| `DigRockHealth` | **DOES NOT FIT, reproduced anyway** (Q20) — and is now the only thing in this table that does not |
 
 ---
 
@@ -55,8 +58,11 @@ And the ten deltas, from `GlobalVariables.kwd`:
 
 Note what the *names* do and do not say. Their neighbours in the same table are
 explicit about units — `PayDayFrequencySeconds`, `ImpExperienceGainPerSecond`,
-`HealthDecreaseWhenOnFirePerSecond`. None of the ten work deltas is. That
-silence is the whole of Q19.
+`HealthDecreaseWhenOnFirePerSecond`. None of the ten work deltas is. That silence
+was the whole of Q19, and it is now answered from the other end: **they are per
+second, and an application is a fifth of one.** See "How much one swing does"
+below - the answer came from a measurement in the original rather than from the
+names, which is why it took until 2026-08-30.
 
 ## The rule
 
@@ -110,11 +116,80 @@ Path, Mana Vault, Claimed Vault and Hero Lair — all of them floor, which is wh
 ### Why gems are inexhaustible
 
 Gems are impenetrable and their `destroyedTypeTerrainId` is *themselves*. A gem
-face at 100 health takes one `MineGoldHealth` application (−300), collapses, and
-immediately reappears at full health. The separate `GoldMinedFromGems` variable
+face at 100 health takes two swings of 60 (Q47), collapses, and immediately
+reappears at full health. The separate `GoldMinedFromGems` variable
 (25) is what each of those cycles yields, against a seam's 3000. The data
 therefore reproduces the thing every DK2 player knows — gems never run out and
 are far slower than a seam — without anything being special-cased for them.
+
+---
+
+## How much one swing does — the measurement that settled it
+
+**CONFIRMED (2026-08-30, owner measurement of the original): an imp mining a
+gold seam frees 273 gold a swing.**
+
+One number, and it propagates through the whole table:
+
+```
+a gold seam        660 health, 3000 gold  (terrain 6, shipped)
+observed           273 gold a swing
+  => health a swing = 273 * 660 / 3000 = 60.06, i.e. 60
+  => swings a seam  = 660 / 60          = 11
+  => MineGoldHealth = -300, and -300 / -60 = 5
+  => work lands FIVE times a second, a fifth of the tabled delta each
+```
+
+Two things corroborate it that were not looked for, which is what makes this
+CONFIRMED rather than a fit:
+
+**Eight of the ten tabled deltas divide by five exactly** — 825, −140, 125,
+−300, −5000, −130, 5, 50. Chance would give two. And no other small rate comes
+close: **825 is odd**, which on its own kills the "twice a second" reading that
+this replaces, and kills four and ten with it.
+
+| rate | deltas that divide exactly |
+|---|---|
+| 2 | −140, −300, −5000, −130, −8, 50, 22 (not 825, not 125, not 5) |
+| 4 | −140, −300, −5000, −8 |
+| **5** | **825, −140, 125, −300, −5000, −130, 5, 50** |
+| 10 | −140, −300, −5000, −130, 50 |
+
+**Claiming lands on a count observed a day earlier, from a different mechanic.**
+`ClaimTileHealth` 825 at a fifth is 165 a swing against a Dirt Path running
+1→660: **four swings**. Q46, measured by watching an imp jump, said "2-3-4 jumps
+MAX".
+
+### What it changed, and what it did not
+
+Times in seconds are **unchanged** — a fifth of the delta five times a second is
+the delta per second. What changed is *when* a tile flips and how many swings it
+takes:
+
+| job | was | now |
+|---|---|---|
+| claim a dirt path | 1 | **4** |
+| mine out a seam | 3 | **11** |
+| reinforce rock | 10 | **50** |
+| attack claimed floor | 5 | **24** |
+| dig your own wall | 7 | **35** |
+| dig an enemy's wall | 113 | **563** |
+
+And one consequence nobody designed: an Imp's `maxGoldHeld` of 1400 is **five
+swings** of 273 (1363), so a seam is three trips — 1363, 1364, 273 — which is
+what an imp shuttling to and from a rock face looks like in the original. That
+answers Q50, which had asked where an imp stops mining, by arithmetic rather
+than by the rule that had been guessed for it.
+
+Implemented as `SimulationTiming.WorkApplicationsPerSecond` and
+`TileWorkRules.PerApplication` (ADR-0020). Two deltas do not divide by five —
+`DigEnemyWallHealth` (−8) and `RepairWallHealth` (22) — so `TileState.WorkRemainder`
+carries the fraction between applications; without it an enemy wall would take
+900 swings instead of 563 and run 37% slow forever.
+
+**This is not a measurement of the tick rate.** It fixes the ratio between an
+application and a tabled per-second delta. How long five applications take in
+wall-clock terms is still Q1.
 
 ---
 
@@ -127,36 +202,62 @@ Rock has 165 health. `DigRockHealth` is −5000. One application destroys it wit
 digging earth is instantaneous. It is not, in the original: a single imp takes
 a few seconds.
 
-Every other rate is sane under a per-second reading — reinforce 10 applications,
-mine a seam 3, dig your own wall 7, dig an enemy's 113 — which makes
-`DigRockHealth` the odd one out rather than evidence that the whole reading is
-wrong.
+**It is now the only thing that does not fit, and that is new.** Until 2026-08-30
+this was one suspect among several: every rate ran too fast against the original,
+and it was reasonable to wonder whether the model was wrong rather than one
+number. The 273-gold measurement settled the granularity for the whole table at a
+stroke — five applications a second, a fifth of the delta each — and every other
+rate fell into place. Rock did not move at all: at −1000 a swing against 165
+health one application still ends it, where the owner observed 2–3 hits over 1–2
+seconds. So `DigRockHealth` is wrong by roughly a factor of a hundred and
+**nothing else is wrong at all**.
 
-Candidate explanations, none verified:
+The first candidate explanation below is therefore now dead, which is worth
+recording because it was the most attractive one:
 
-- an application is much shorter than a second, and the other rates are simply
-  slow;
+- ~~an application is much shorter than a second, and the other rates are simply
+  slow~~ — **refuted.** An application *is* much shorter than a second, it is a
+  fifth of one, and that made every other rate right and left this one exactly
+  where it was.
+
+The two that survive:
+
 - a worker contributes a fraction of the delta, scaled by a per-creature work
   rate (`DwarfDiggingMultiplier` = 184 shows that a multiplier concept exists,
   and `f3AF_workModifier` / `f3B3_workEnhancement` are named in Flame — Q6);
 - `DigRockHealth` applies to something other than terrain 2, and ordinary earth
   is dug by a variable we have not identified.
 
+The second has got more attractive by elimination: a single number that is wrong
+by a hundred, in a table where the other nine are now confirmed correct to the
+swing, looks less like a balance value and more like a variable we have
+misidentified.
+
 The implementation follows the data exactly and the tests assert the
 one-application result, because a number invented to make digging *feel* right
 would be worse than a faithful one that is visibly wrong. This is written down
 so nobody later mistakes it for a bug in the rules.
 
-### Q21 — how a seam divides its gold
+### Q21 — how a seam divides its gold — **answered**
 
-A seam carries 3000 gold over 660 health and gives up 300 health per
-application, so the natural reading is proportional: 3000 × removed ÷ 660.
-Integer truncation then makes a fully mined seam yield 2998 rather than 3000.
-The alternative — the whole 3000 in a lump on the final application — is also
-possible but fits the original's visible behaviour worse, since an imp mining a
-seam carries gold away repeatedly rather than once. Implemented as proportional,
-truncation kept rather than rounded away, since rounding it away would be an
-invention of its own.
+Proportional to the rock removed, and no longer an inference: the owner's 273
+gold a swing *is* the proportional rule read backwards, since
+273 × 660 / 3000 = 60 is exactly the health a swing takes. The alternative — the
+whole 3000 in a lump on the final application — is dead, because it would give a
+swing 0 gold and one swing 3000.
+
+What did change is *how* the proportion is taken. Truncating each swing on its
+own loses a coin a swing, and across eleven swings a seam would yield 2992 of its
+stated 3000. Gold is now the difference of two running totals — how much has come
+out by the time the seam is down to this health, minus how much had at the last
+swing — which makes a fully mined seam yield **exactly** 3000, needs no state to
+do it, and reproduces the measurement: 273 on eight of the eleven swings and 272
+on the other three.
+
+The earlier note here said the shortfall was "DK2's own truncation, kept rather
+than rounded away". That was a guess dressed as fidelity: nothing had been
+measured, and the honest reading of a seam being worth exactly what the record
+says it is worth is that it yields exactly that.
 
 ### Q22 — fill-in's accounting
 

@@ -206,6 +206,34 @@ public class RoomsOnRealDataTests
     }
 
     /// <summary>The first ownable, non-room, non-solid tile with an owner.</summary>
+    /// <summary>
+    /// <b>Room cost is per tile, and the ROOMS record's number is the one a
+    /// keeper pays.</b> CONFIRMED (2026-08-30, owner observation of the
+    /// original): five rooms were priced from the game and all five match the
+    /// shipped record exactly.
+    ///
+    /// <para>That closes Q32, which had been STRONGLY INFERRED on the grounds
+    /// that the original charges as a keeper paints. Five independent matches is
+    /// a different kind of evidence from one plausible reading, and it is worth
+    /// a test rather than a sentence: <c>Cost</c> could have been per room, or
+    /// scaled, or a base a room's size modified, and none of those would have
+    /// shown up until somebody built a big room.</para>
+    /// </summary>
+    [Theory]
+    [InlineData(RoomTypeId.Treasury, 200)]
+    [InlineData(RoomTypeId.Lair, 300)]
+    [InlineData(RoomTypeId.Hatchery, 300)]
+    [InlineData(RoomTypeId.Library, 600)]
+    [InlineData(RoomTypeId.TrainingRoom, 500)]
+    public void ARoomCostsWhatTheOriginalChargesForIt_PerTile(RoomTypeId room, int goldPerTile)
+    {
+        GameDatabase? db = RealDatabase();
+        if (db is null) return; // skipped: no DK2 install
+
+        Assert.Equal(goldPerTile, db.Room(room).Cost);
+        Assert.Equal(goldPerTile, RoomRules.CostPerTile(db.Room(room)));
+    }
+
     private static (int Index, byte Owner) FindClaimedFloor(GameDatabase db, WorldState world)
     {
         for (int i = 0; i < world.TileCount; i++)

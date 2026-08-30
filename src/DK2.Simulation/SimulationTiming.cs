@@ -40,12 +40,44 @@ public static class SimulationTiming
     public static int TicksFromSeconds(int seconds) => seconds * TicksPerSecond;
 
     /// <summary>
-    /// How often a per-second rate from the global variables table is applied.
+    /// How many times a second a worker applies work to a tile. <b>Five —
+    /// STRONGLY INFERRED, and measured rather than chosen</b> (Q47).
     ///
-    /// The VARIABLES health deltas (<c>DigRockHealth</c>, <c>ClaimTileHealth</c>,
-    /// …) carry no unit in the data — unlike their neighbours, which spell out
-    /// <c>…PerSecond</c> and <c>…Seconds</c> in their names. HYPOTHESIS: they
-    /// are per second, applied once per second of work. See Q19.
+    /// <para>The measurement: an imp mining a gold seam frees <b>273 gold per
+    /// swing</b> (owner observation of the original, 2026-08-30). A seam is 3000
+    /// gold over 660 health, so 273 gold is 273 × 660 / 3000 = <b>60 health</b>,
+    /// and a seam therefore takes 660 / 60 = <b>11 swings</b>. Against
+    /// <c>MineGoldHealth</c> of −300 that is exactly five applications to the
+    /// tabled value.</para>
+    ///
+    /// <para>Two things corroborate it, neither of which was looked for:</para>
+    /// <list type="bullet">
+    /// <item><b>Eight of the ten tabled deltas divide by five exactly</b> — 825,
+    /// −140, 125, −300, −5000, −130, 5, 50 — where you would expect two by
+    /// chance. No other small rate comes close: 825 is odd, which alone rules
+    /// out the "twice a second" reading this replaces, and rules out four and
+    /// ten as well.</item>
+    /// <item>Claiming lands where the owner said it does. Dirt Path is 660
+    /// health against <c>ClaimTileHealth</c> 825, so at five a second that is
+    /// 825 / 5 = 165 a swing and <b>four swings</b> — the "2-3-4 jumps MAX" of
+    /// Q46.</item>
+    /// </list>
+    ///
+    /// <para>What this is <i>not</i> is a measurement of the tick rate. It fixes
+    /// the ratio between an application and a tabled per-second delta, which is
+    /// what decides how much a swing does and how many swings a tile takes.
+    /// How long five applications take in wall-clock terms still rides on Q1.</para>
     /// </summary>
-    public const int WorkApplicationPeriodTicks = TicksPerSecond;
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/open-questions.md#Q47")]
+    public const int WorkApplicationsPerSecond = 5;
+
+    /// <summary>
+    /// How often a worker applies work to a tile, in ticks.
+    ///
+    /// The per-second rate is <see cref="WorkApplicationsPerSecond"/>; this is
+    /// only that rate expressed in the placeholder tick rate. Nothing may depend
+    /// on the number of ticks — the *count* of applications a tile takes is the
+    /// measured quantity, and it is independent of Q1.
+    /// </summary>
+    public const int WorkApplicationPeriodTicks = TicksPerSecond / WorkApplicationsPerSecond;
 }

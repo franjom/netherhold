@@ -126,7 +126,9 @@ public class ManaTests
         run.Seconds(1);
         Assert.Equal(9, run.Mana(Keeper));
 
-        run.World.QueueWork(4, 1, TileWorkKind.Claim, Keeper);
+        // Four applications to claim one tile (Q47), queued together so the
+        // claim completes inside the same game second the mana is paid for.
+        for (int i = 0; i < 4; i++) run.World.QueueWork(4, 1, TileWorkKind.Claim, Keeper);
         run.Seconds(1);
 
         Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(4, 1).TerrainId);

@@ -152,6 +152,45 @@ public static class TileWorkRules
     };
 
     /// <summary>
+    /// The health one application of <paramref name="kind"/> moves, and the
+    /// fraction it leaves behind in <paramref name="remainder"/>.
+    ///
+    /// Work lands <see cref="SimulationTiming.WorkApplicationsPerSecond"/> times
+    /// a second and the balance table's deltas are per second (Q19, Q47), so an
+    /// application is a fifth of the tabled value. Eight of the ten divide
+    /// exactly; the other two carry their remainder into the next application so
+    /// that the per-second rate stays exactly what the table says.
+    ///
+    /// <para>Mutates the remainder, which is why it takes it by reference and
+    /// why <see cref="PeekPerApplication"/> exists for callers that only want to
+    /// know what would happen.</para>
+    /// </summary>
+    public static int PerApplication(GameDatabase database, TileWorkKind kind, ref sbyte remainder)
+    {
+        int perSecond = database[Variable(kind)];
+        int rate = SimulationTiming.WorkApplicationsPerSecond;
+
+        int whole = perSecond / rate;
+        int carry = remainder + (perSecond % rate);
+
+        if (Math.Abs(carry) >= rate)
+        {
+            whole += Math.Sign(carry);
+            carry -= Math.Sign(carry) * rate;
+        }
+
+        remainder = (sbyte)carry;
+        return whole;
+    }
+
+    /// <summary>What the next application would move, without moving it.</summary>
+    public static int PeekPerApplication(GameDatabase database, TileWorkKind kind, sbyte remainder)
+    {
+        sbyte scratch = remainder;
+        return PerApplication(database, kind, ref scratch);
+    }
+
+    /// <summary>
     /// Whether reaching maximum health under this kind of work converts the tile
     /// to its <see cref="TerrainDef.MaxHealthTypeTerrainId"/>.
     ///
@@ -295,12 +334,14 @@ public static class TileWorkRules
             return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
-        int delta = database[Variable(kind)];
+        int delta = PerApplication(database, kind, ref tile.WorkRemainder);
 
         if (delta < 0)
         {
             int applied = Math.Max(delta, -tile.Health);
-            int gold = GoldFor(database, terrain, kind, -applied, tile.Health + applied <= 0);
+            int gold = GoldFor(
+                database, terrain, kind, tile.Health, tile.Health + applied,
+                tile.Health + applied <= 0);
 
             tile.Health += applied;
             if (tile.Health > 0)
@@ -350,23 +391,28 @@ public static class TileWorkRules
         if (!Applies(database, tile, kind, playerId)) return 0;
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
-        int delta = database[Variable(kind)];
+        int delta = PeekPerApplication(database, kind, tile.WorkRemainder);
         if (delta >= 0) return 0;
 
         int applied = Math.Max(delta, -tile.Health);
-        return GoldFor(database, terrain, kind, -applied, tile.Health + applied <= 0);
+        return GoldFor(
+            database, terrain, kind, tile.Health, tile.Health + applied,
+            tile.Health + applied <= 0);
     }
 
     /// <summary>
-    /// Gold freed by removing <paramref name="healthRemoved"/> health.
+    /// Gold freed by taking a tile from <paramref name="healthBefore"/> down to
+    /// <paramref name="healthAfter"/>.
     ///
-    /// HYPOTHESIS, and two different rules because the data forces it:
+    /// Two different rules because the data forces it:
     /// <list type="bullet">
-    /// <item>A gold seam is finite. It carries <c>goldValue</c> = 3000 over 660
-    /// health, so gold comes out in proportion to the rock removed. Integer
-    /// truncation means a fully mined seam can yield a point or two less than
-    /// its stated value — a quirk we keep rather than round away, because
-    /// rounding it away would be an invention too.</item>
+    /// <item>A gold seam is finite, and gold comes out <b>in proportion to the
+    /// rock removed</b> — CONFIRMED (2026-08-30). It carries <c>goldValue</c>
+    /// 3000 over 660 health and is mined 60 health at a time, and the owner
+    /// measured 273 gold a swing in the original: 273 × 660 / 3000 = 60.06,
+    /// which is the proportional rule stated backwards. See
+    /// <see cref="ExtractedBy"/> for why the sum is taken from running totals
+    /// rather than per swing.</item>
     /// <item>A gem face is infinite: it is impenetrable and its destroyed type
     /// is itself, so it collapses and immediately reappears at full health. The
     /// separate <c>GoldMinedFromGems</c> variable (25) is what each of those
@@ -378,7 +424,8 @@ public static class TileWorkRules
         GameDatabase database,
         TerrainDef terrain,
         TileWorkKind kind,
-        int healthRemoved,
+        int healthBefore,
+        int healthAfter,
         bool destroyed)
     {
         if (kind != TileWorkKind.MineGold || terrain.GoldValue == 0) return 0;
@@ -387,8 +434,27 @@ public static class TileWorkRules
             return destroyed ? database[VariableTypeId.GoldMinedFromGems] : 0;
 
         if (terrain.MaxHealth <= 0) return 0;
-        return (int)((long)terrain.GoldValue * healthRemoved / terrain.MaxHealth);
+        return ExtractedBy(terrain, healthAfter) - ExtractedBy(terrain, healthBefore);
     }
+
+    /// <summary>
+    /// How much of a seam's gold has come out by the time it is down to
+    /// <paramref name="health"/>.
+    ///
+    /// Gold is computed from where the seam has got to, not from how much the
+    /// last swing removed, and the difference is not pedantry: truncating each
+    /// swing independently loses a coin per swing and a seam ends up worth less
+    /// than the data says it is. Taking the difference of two running totals
+    /// makes a fully mined seam yield exactly its <c>goldValue</c>, and it needs
+    /// no state to do it, because the running total is a function of health.
+    ///
+    /// <para>It also reproduces the measurement. On the shipped seam — 3000 gold
+    /// over 660 health, mined 60 health at a time (Q47) — this yields 273 on
+    /// eight of the eleven swings and 272 on the other three, totalling 3000.
+    /// The owner observed 273 (2026-08-30).</para>
+    /// </summary>
+    private static int ExtractedBy(TerrainDef terrain, int health) =>
+        (int)((long)terrain.GoldValue * Math.Max(0, terrain.MaxHealth - health) / terrain.MaxHealth);
 
     /// <summary>
     /// Turns a tile into another terrain type at that type's starting health.

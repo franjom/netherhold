@@ -52,6 +52,30 @@ public struct TileState
     /// </summary>
     public ushort TaggedBy;
 
+    /// <summary>
+    /// Health owed to this tile that was too small to apply, carried between
+    /// applications. Always smaller in magnitude than
+    /// <see cref="SimulationTiming.WorkApplicationsPerSecond"/>.
+    ///
+    /// <para>Work lands five times a second and each application moves a fifth
+    /// of the tabled per-second delta (Q47). Eight of the ten deltas divide by
+    /// five exactly; <c>DigEnemyWallHealth</c> (−8) and <c>RepairWallHealth</c>
+    /// (22) do not, and integer division alone would quietly run them 37% and
+    /// 10% slow forever. Carrying the remainder makes every rate exactly what
+    /// the table says over any whole second while keeping the arithmetic in
+    /// integers — the same device <see cref="CreatureState.MoveRemainder"/> uses
+    /// for the same reason (ADR-0001).</para>
+    ///
+    /// <para>On the tile rather than on the worker, because the fraction belongs
+    /// to the wearing-down of this tile: two imps on one wall should between
+    /// them remove what the table says per second, which is what a shared
+    /// accumulator gives and two private ones would not. Shared across work
+    /// kinds too, which is a simplification with no observable consequence —
+    /// only the two wall jobs above ever leave a remainder, and a tile that
+    /// changes terrain starts again at zero.</para>
+    /// </summary>
+    public sbyte WorkRemainder;
+
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = 15;
 
@@ -79,6 +103,7 @@ public struct TileState
         hash.Add(Health);
         hash.Add(GoldHeld);
         hash.Add(TaggedBy);
+        hash.Add(WorkRemainder);
     }
 }
 

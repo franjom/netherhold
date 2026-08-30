@@ -66,6 +66,37 @@ same reason.
 
 ---
 
+## Answered on 2026-08-30 — the measurements
+
+Three numbers arrived, and they were worth more than the fifteen yes/no answers
+before them, because a number propagates and a yes does not.
+
+| Q | What was measured | What it settled |
+|---|---|---|
+| **Q47** | **273 gold per swing** at a gold seam | The whole tile-work granularity. 273 × 660 / 3000 = 60 health a swing, so 11 swings a seam, so an application is a **fifth** of the tabled delta and work lands **five times a second**. Every application count in the game changed; no time in seconds did |
+| **Q32** | Room costs: Treasury 200, Lair 300, Hatchery 300, Library 600, Training Room 500 — **per tile** | All five match the ROOMS record exactly. `Cost` is per tile and the record's number is the price |
+| **Q52** | A keeper with no treasury tops out at **16000 gold** | `MaxGoldPerDungeonHeartTile` is 1000, so 16 heart tiles store gold. A heart is 5×5 = 25, and 25 − 16 = 9 = the 3×3 the heart structure stands on. **Ours stores 25000** — a defect we cannot fix until rooms are instances |
+
+A screenshot settled two more at a glance: **"Mana held: 15081 / 200000"** put
+Q37's flat ceiling on screen, and the heart's own geometry — a raised 3×3 with
+gold piles ringing it — is what makes Q52's 16 tiles obvious rather than inferred.
+
+**Screenshots are the best format for this.** A still frame with the HUD visible
+is worth more than video: the numbers can be read directly, and a counter before
+and after is a measurement. Video cannot be read at all.
+
+### What Q47 cost by being asked properly
+
+Worth recording next to the correction below, because it is the same lesson from
+the other side. Q47 had a plausible answer — "twice a second, half the delta" —
+that fitted the ranges, was self-consistent, and was **wrong**. It was left
+unimplemented on the grounds that ranges are not counts. One measured number
+later, the answer turned out to be five a second, and **825 is odd**, which alone
+rules out the twice-a-second reading. Not having built it made the correction
+free; building it would have changed every timing in the game twice.
+
+---
+
 ## 1. Still open, and blocking
 
 ### Q35 — which treasury tile does an imp fill?
@@ -79,18 +110,15 @@ in the tile nearest the door, or somewhere fixed? When one tile fills, where doe
 the next load go? And when the whole treasury is full, where exactly does the
 lump appear — beside the treasury, or back where the imp was mining?
 
-### Q50 — how many swings before an imp runs off with its load?
-**New, and the cheapest useful thing on this list.** The gold carrier is built
-(Q31) and the only invented part is *when* an imp turns round. Put one imp on one
-seam with a treasury in reach and count the swings between it starting to mine
-and it running off: **once, or twice?**
+### Q50 — how many swings before an imp runs off with its load? — **answered by arithmetic**
+Was on this list as the cheapest useful experiment. Q47's measurement answered it
+without anyone playing: a swing frees 273, an Imp holds 1400, so it fills after
+**five** swings (1363) and a seam of eleven swings is **three trips** — 1363,
+1364, 273. That is what an imp shuttling to and from a rock face looks like.
 
-It bears on Q47 as well, which is why it is worth the minute. A seam is 3000 gold
-over 660 health and an Imp holds 1400. At the tabled `MineGoldHealth` of −300 a
-swing frees 1363 and the imp can only manage one; at Q47's half-delta reading it
-frees 681 and two fit almost exactly (1362 against 1400). So "twice" is
-independent corroboration of the finer granularity, from a number in the CREATURES
-record that has nothing to do with the tile mechanics.
+Still worth thirty seconds of confirmation if you are in front of the game
+anyway: **count the swings between an imp starting on a fresh seam and running
+off.** Five is the prediction.
 
 ### Q31 leftover — how big is a floor lump?
 When there is nowhere to store gold, a lump grows in front of the mining imp
@@ -98,25 +126,19 @@ When there is nowhere to store gold, a lump grows in front of the mining imp
 candidate. Fill the treasury, keep mining, and see how much piles up before the
 imp stops.
 
-### Q47 — the tile-work rates
-Our rates come from the balance table and every one of them is too fast against
-observation — but, since the correction to the claim count, by a **consistent
-factor of about two**. That is the difference between "one number is wrong" and
-"the model is wrong", and it lands on the first.
+### Q47 — the tile-work rates — **ANSWERED, and the answer was 273**
+Left here as the record of what one number was worth. Every rate used to be too
+fast against observation and the best available reading was "twice a second, half
+the delta" — plausible, self-consistent, and wrong. The measurement of **273 gold
+a swing** put an application at a *fifth* of the tabled delta, five a second, and
+two things nobody had looked for agreed: eight of the ten tabled deltas divide by
+five exactly, and claiming comes out at four swings, which is Q46's independently
+observed "2-3-4 jumps MAX".
 
-The reading that fits: an application happens **twice a second and applies half
-the tabled delta**. That is self-consistent — half the delta twice a second *is*
-the delta per second — so the balance numbers are per-second after all and only
-the granularity is off. Mining fits it exactly. `DigRockHealth` still fits
-nothing.
+Implemented (ADR-0020). `DigRockHealth` still fits nothing and is now the only
+number in the tile mechanics that does not — which makes it much more likely to
+be a variable we have misidentified than a balance value.
 
-What would settle it is **exact counts rather than ranges**, from one imp working
-alone: exactly how many hits for a plain rock tile, a gold seam and a gem face,
-exactly how many jumps to claim one tile, and roughly how many seconds each
-takes. Two or three careful counts would be enough to pin the granularity and
-leave `DigRockHealth` as the only outlier.
-
----
 
 ## 2. Still open, and cheap
 
@@ -140,6 +162,15 @@ An imp stands *on* a tile to claim it (Q44). Does it also stand on the tile to
 **repair** damaged floor, to **attack** a rival's floor, and to **fill in**? Or
 does it stand beside those? And is the ~500 ms an imp lingers after claiming a
 real pause, or just the animation finishing?
+
+### Q51 — what is the red number under the mana orb?
+**New.** A screenshot of the original shows two rates beneath the mana counter: a
+green one (~53) and a **red one (~28)**. Our model has no mana expenditure at all
+— every spender is a spell, which is M7 — so if the red figure is a continuous
+drain, there is a mechanic missing.
+
+Two screenshots a few seconds apart with the counter visible would settle it: does
+the counter climb by the green figure, or by green minus red?
 
 ### Q9 — payday
 Roughly **how often** does payday come round, and is it one clock for the whole
@@ -168,10 +199,15 @@ measurement tooling, or disassembly, and are scheduled accordingly:
 
 - **Q1 — the exact tick rate.** Fixed, but internal. Needs the M5 oracle probe.
   (Stopwatch counts on long repeated actions give an approximation, which is why
-  several entries above ask for seconds.)
-- **Q19 — what the health deltas are *per*.** Tied to Q1 and now to Q47.
-- **Q5 — the pathfinding algorithm.** You can see the *route* — Q28 and Q30 both
-  came from watching one — never the algorithm.
+  several entries above ask for seconds.) **Note what Q47 did NOT settle**: it
+  fixed the ratio between a swing and a per-second delta, not the tick rate. The
+  swing count a tile takes is now measured; the wall-clock time it takes is not.
+- ~~**Q19 - what the health deltas are per.**~~ **ANSWERED (2026-08-30)** and not
+  by playing directly: the 273-gold measurement fixed it. They are per second, and
+  an application is a fifth of one. What is left is only how long a second is,
+  which is Q1.
+- **Q5 - the pathfinding algorithm.** You can see the *route* - Q28 and Q30 both
+  came from watching one - never the algorithm.
 - **Q3 — which RNG.** Invisible by construction.
 - **Q11, Q13, Q14, Q15, Q16, Q17** — record layouts and field meanings.
 - **Q37a — what `MaxManaGain` and `DungeonHeartMaxManaIncrease` are for.** Closed

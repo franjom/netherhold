@@ -20,14 +20,15 @@ Implemented by `DK2.Simulation.RoomRules`, `DK2.Simulation.GoldStore`,
 | A treasury tile holds 3000; a dungeon-heart tile holds 1000 | **CONFIRMED** — two variables, named for those two rooms |
 | A keeper's gold is the sum of what their tiles hold | **STRONGLY INFERRED** — every limit DK2 sets on gold is per tile |
 | A room is built on land the player already owns | **STRONGLY INFERRED** — observed, and the tile carries no other candidate |
-| `Cost` is per tile rather than per room | **STRONGLY INFERRED** (Q32) |
+| `Cost` is per tile, and the ROOMS record's number is the price | **CONFIRMED** (Q32) — five rooms priced in the original, all five matching the record |
 | Which tile of a treasury a deposit lands in | **STRONGLY INFERRED** (Q35) — the tile the carrier walked to, spilling into the next |
 | Whether a new room tile must touch the keeper's existing land | **UNKNOWN** (Q33) |
 | What a room *does*, beyond being owned terrain | **NOT IMPLEMENTED** — only the treasury and the heart do anything, because only they have a variable |
 | Selling a room | **NOT IMPLEMENTED** (Q34) — two candidate refund numbers and no way to tell which applies |
 | Where mined gold goes | **CONFIRMED** (Q31) — into the mining imp's hands, then carried to a treasury or heart tile |
 | How much an imp carries | **CONFIRMED** — the CREATURES record's `maxGoldHeld`; the Imp holds 1400 |
-| Where an imp stops mining to go and unload | **HYPOTHESIS** — when one more swing would free more than it can hold |
+| Where an imp stops mining to go and unload | **STRONGLY INFERRED** (Q50) — when one more swing would not fit, which the shipped numbers make five swings and 1363 gold |
+| A dungeon heart stores 16000 | **CONFIRMED, NOT IMPLEMENTED** (Q52) — 16 of its 25 tiles hold gold; ours stores 25000 |
 | A floor lump when there is nowhere to store gold | **NOT IMPLEMENTED** (Q31) — lumps are OBJECTS, M6; the imp keeps mining and the overflow is lost |
 
 ---
@@ -147,30 +148,32 @@ all. They are not: they are what happens when the economy is full.
 
 ### Where an imp decides to stop mining
 
-The one part of this that is **HYPOTHESIS**. The rule implemented is *one more
-swing would free more gold than I can hold*, which is the only stopping point
-that neither wastes gold nor overfills a pair of hands. The obvious alternative —
-swing until the hands are exactly full — has to throw the overflow away, and with
-the shipped numbers that is most of a seam.
+Was the one part of this that was HYPOTHESIS (Q50). The rule implemented is *one
+more swing would free more gold than I can hold*, which is the only stopping
+point that neither wastes gold nor overfills a pair of hands. It now has a reason
+as well as a justification - see below.
 
 The shipped numbers are worth laying out, because one of them is a surprise:
 
 ```
 a gold seam        660 health, 3000 gold
-MineGoldHealth     -300 per application
-  → one swing frees 3000 * 300 / 660 = 1363, and a seam takes three swings
-    (1363 + 1363 + 272 = 2998; the two lost are DK2's integer truncation)
+MineGoldHealth     -300 per SECOND, at five applications a second (Q47)
+  -> a swing takes 60 health and frees 273 gold, measured in the original
+  -> a seam is 11 swings and yields exactly 3000
 Imp maxGoldHeld    1400
+  -> five swings fill it (1363), so a seam is three trips: 1363, 1364, 273
 ```
 
-1363 against 1400 is a near-miss, and near-misses in shipped data are usually
-telling you something. **1400 is almost exactly two swings' worth under the Q47
-reading** — that an application lands twice a second and applies half the tabled
-delta, so a swing frees 681 and two of them 1362. That is independent support for
-Q47 from a number in a different record entirely, arrived at without looking for
-it. Nothing here depends on it: at the whole-delta granularity currently
-implemented an imp makes one trip per swing instead of one per two, and the total
-that reaches the treasury is the same either way.
+1363 against 1400 was a near-miss, and near-misses in shipped data usually mean
+something. **They did here, and the something turned out to be Q47.** The owner
+then measured 273 gold a swing, which put a swing at 60 health and an application
+at a fifth of the tabled delta (ADR-0020) - and 1400 is **five** swings of 273,
+which is 1363. So an imp fills after five swings and a seam of eleven swings is
+exactly three trips: 1363, 1364, 273.
+
+That also answered Q50, which had asked where an imp decides to turn round, by
+arithmetic rather than by the rule guessed for it. The rule was right; it now has
+a reason.
 
 ### Which tile the load lands in (Q35)
 
@@ -244,7 +247,48 @@ Charging is all-or-nothing per tile (`GoldStore.TryWithdraw`): a tile that was
 paid for but not laid, or laid but not paid for, would both be worse than a
 refusal.
 
----
+
+### What a room costs (Q32) — **confirmed from the game**
+
+The owner priced five rooms in the original (2026-08-30) and every one matches
+the ROOMS record exactly:
+
+```
+              original   record
+Treasury          200      200
+Lair              300      300
+Hatchery          300      300
+Library           600      600
+Training Room     500      500
+```
+
+— and the owner stated they are **per tile**, which is what the implementation
+already assumed. Nothing changed; what changed is the evidence. `Cost` could have
+been per room, or a base that a room's `RecommendedSize` modified, and neither
+would have shown up until somebody built a big room. Five independent matches is
+a different kind of claim from one plausible reading, and
+`RoomsOnRealDataTests.ARoomCostsWhatTheOriginalChargesForIt_PerTile` holds it.
+
+Note the three at 3×3 — Hatchery, Library, Training Room. That is
+`RecommendedSize`, which does **not** constrain building (Q36) and probably does
+describe the size at which a room starts to function (Q45).
+
+### What a dungeon heart holds (Q52) — **confirmed, and we are wrong**
+
+A keeper with no treasury tops out at **16000 gold** (owner, 2026-08-30).
+`MaxGoldPerDungeonHeartTile` is 1000, so **16 tiles of a heart store gold**. A
+heart is 5×5, which is 25 tiles, and 25 − 16 = 9 = 3×3 — the raised centre the
+heart structure itself stands on. A screenshot of the original shows exactly
+that: a 3×3 platform with the heart on it, ringed by 16 floor tiles with gold
+piled on them.
+
+**Ours stores 25000**, because a room here is terrain tile by tile with no notion
+of an instance or an origin, so nothing can ask which of 25 tiles is a middle one.
+`RoomDef.TileConstruction` is `FiveByFiveRotated` for the heart and is unread; it
+is the field that would answer it. This lands with room instances and room shape,
+alongside Q36 and Q45. Recorded with a test that asserts the arithmetic of the
+gap rather than left as a comment.
+
 
 ## What is not implemented, and is not guessed at
 

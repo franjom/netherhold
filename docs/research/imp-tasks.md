@@ -27,7 +27,7 @@ Implemented by `DK2.Simulation.Systems.ImpTaskSystem`,
 | A worker that finishes a job starts the next one at once rather than waiting out the idle delay | **STRONGLY INFERRED** — an imp that has just finished has not been idle |
 | Imps never eat | **CONFIRMED** — owner observation; the Imp's hunger rate of 32767 does mean "never" (Q12) |
 | An imp carries mined gold to a treasury or heart tile itself | **CONFIRMED** — owner observation (Q31); the tail of a mining job, not a job |
-| Where an imp breaks off mining to go and unload | **HYPOTHESIS** — when one more swing would free more than it can hold |
+| Where an imp breaks off mining to go and unload | **STRONGLY INFERRED** (Q50) — when one more swing would not fit; the shipped numbers make that five swings and 1363 gold |
 | An imp with nowhere to unload keeps mining | **CONFIRMED** (Q31) — but the floor lump it should leave is NOT IMPLEMENTED, so the overflow is lost |
 | Everything about *routing* | **UNKNOWN** (Q5) |
 
@@ -128,9 +128,9 @@ Once per tick, for every creature flagged `IsWorker`, in spawn order:
    starts working. If it has walked its whole route and is still not beside the
    target, the job ends.
 6. If it is working, it counts down; at zero it either queues one application of
-   work, or — if that application would free more gold than it can hold, and
-   there is somewhere reachable to put what it already has — breaks off and
-   carries.
+   work - one fifth of the tabled delta, five times a second (Q47, ADR-0020) -
+   or, if that application would free more gold than it can hold and there is
+   somewhere reachable to put what it already has, breaks off and carries.
 
 Movement is a separate system that runs *before* task selection, so a worker that
 arrives beside its job is noticed on the tick it arrives.
@@ -147,9 +147,11 @@ spillover rule existing anywhere.
 Two decisions in that are ours rather than the game's, and both are stated in the
 code:
 
-- **Where it stops mining.** "One more swing would not fit" — HYPOTHESIS. See
-  `rooms-and-gold.md` §*Where an imp decides to stop mining*, where the shipped
-  numbers turn out to say something about Q47 as well.
+- **Where it stops mining.** "One more swing would not fit" - STRONGLY INFERRED
+  (Q50). The shipped numbers turn it into five swings and a 1363 load, and a seam
+  into three trips; see `rooms-and-gold.md`, "Where an imp decides to stop
+  mining". The 1400/273 near-miss that made this look arbitrary is what pointed
+  at Q47 in the first place.
 - **What it does with nowhere to unload.** It keeps mining, which is DK2's
   behaviour, and the gold it cannot hold is lost, which is not: the original
   leaves a lump on the floor. The alternative — stand still holding a full

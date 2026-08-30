@@ -4,15 +4,18 @@
 # gems); they are not guesses.
 #
 # Two things this is looking at:
-#   1. a gold seam is finite - 3000 gold over 660 health at -300 an application,
-#      so three applications exhaust it and it collapses to dirt path;
+#   1. a gold seam is finite - 3000 gold over 660 health, mined 60 at a time
+#      (Q47), so ELEVEN applications exhaust it, each freeing 273 gold, and it
+#      collapses to dirt path;
 #   2. a gem face is not - it is impenetrable and its destroyed type is itself,
-#      so it collapses and immediately reappears at full health, yielding
-#      GoldMinedFromGems (25) each cycle. That is why gems are endless but slow.
+#      so it collapses (two applications, at 100 health) and immediately
+#      reappears at full health, yielding GoldMinedFromGems (25) each cycle.
+#      That is why gems are endless but slow.
 #
-# The gold released is reported and then dropped. There is no imp to carry it
-# and no treasury to carry it to, so crediting a player would be an invented
-# economy rather than a reproduced one.
+# The gold released is reported and then dropped. Nothing swung: this is work
+# injected straight onto the world, so there are no hands for the gold to go into
+# (Q31). An imp mining the same seam would carry it - see
+# scenarios/imps/an_imp_carries_gold_home.yaml.
 #
 # Needs a Dungeon Keeper 2 installation (DK2_DIR); the harness reports the
 # missing install rather than pretending to run.
@@ -22,16 +25,16 @@ question: >
   and at the flat gems rate for an inexhaustible gem face?
 map: campaign:Level10
 seed: 11
-duration_ticks: 12
+duration_ticks: 24
 setup:
   players:
     - { id: 1, gold: 0, mana: 0 }
 work:
-  # A gold seam. Three applications take it from 660 to nothing.
-  - { at_tick: 0, until_tick: 5, player: 1, kind: MineGold, at: [22, 4] }
-  # A gem face. Ten applications, ten collapses, ten times 25 gold, and the
-  # tile is still gems at the end.
-  - { at_tick: 0, until_tick: 9, player: 1, kind: MineGold, at: [8, 75] }
+  # A gold seam. Eleven applications take it from 660 to nothing (Q47).
+  - { at_tick: 0, until_tick: 12, player: 1, kind: MineGold, at: [22, 4] }
+  # A gem face. Twenty applications, ten collapses at two swings each, ten times
+  # 25 gold, and the tile is still gems at the end.
+  - { at_tick: 0, until_tick: 19, player: 1, kind: MineGold, at: [8, 75] }
 observe:
   - state_hash
   - events

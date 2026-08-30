@@ -94,6 +94,38 @@ public class GoldOnRealDataTests
         Assert.Empty(level.Of("gold_uncollected"));
     }
 
+    /// <summary>
+    /// <b>273 gold a swing, eleven swings, exactly 3000.</b> The measurement
+    /// that settled Q47, checked against the shipped seam rather than the
+    /// fixture's copy of it.
+    ///
+    /// The chain, so a future session can see it rather than take it: the owner
+    /// measured 273 gold per swing in the original; a seam is 3000 gold over 660
+    /// health; so a swing takes 273 × 660 / 3000 = 60 health; so a seam takes 11
+    /// swings; so an application is a fifth of <c>MineGoldHealth</c>'s −300, and
+    /// work lands five times a second.
+    /// </summary>
+    [Fact]
+    public void ASwingAtARealSeamFreesTheGoldTheOriginalFrees()
+    {
+        Level? level = Level1();
+        if (level is null) return;
+
+        var swings = new List<int>();
+        ref TileState seam = ref level.World.Tile(Seam);
+        while (level.Db.TerrainById(seam.TerrainId).GoldValue > 0)
+        {
+            TileWorkResult result = TileWorkRules.Apply(
+                level.Db, ref seam, TileWorkKind.MineGold, Keeper);
+            swings.Add(result.GoldReleased);
+            Assert.Equal(-60, result.HealthDelta);
+        }
+
+        Assert.Equal(11, swings.Count);
+        Assert.Equal(273, swings.GroupBy(g => g).OrderByDescending(g => g.Count()).First().Key);
+        Assert.Equal(3000, swings.Sum());
+    }
+
     [Fact]
     public void ItTakesMoreThanOneTripBecauseAnImpsHandsAreSmallerThanASeam()
     {
@@ -140,6 +172,52 @@ public class GoldOnRealDataTests
         Assert.True(tiles.Count >= 2, $"every load landed in the same tile: {tiles[0]}");
         Assert.All(loads, e => Assert.True(Amount(e) <= perTile,
             $"a tile took {Amount(e)}, over the limit of {perTile}"));
+    }
+
+    /// <summary>
+    /// <b>A keeper with no treasury can hold 16000 gold, and we say 25000.</b>
+    /// CONFIRMED by the owner from the original (2026-08-30), and a defect
+    /// recorded rather than fixed, because fixing it needs something we do not
+    /// have.
+    ///
+    /// <para>The arithmetic says exactly where the difference is.
+    /// <c>MaxGoldPerDungeonHeartTile</c> is 1000 and a dungeon heart is a 5×5
+    /// block, which is 25 tiles and would be 25000. The original stores 16000,
+    /// so <b>16 tiles store gold and 9 do not</b> — and 9 is 3×3, the raised
+    /// centre the heart itself stands on. A screenshot of the heart shows it:
+    /// the structure occupies a 3×3 platform and the gold piles sit on the ring
+    /// of 16 around it.</para>
+    ///
+    /// <para>Not implemented because nothing here knows a room <i>instance</i>
+    /// or its origin — a room is terrain, tile by tile, so there is no way to
+    /// ask which of 25 heart tiles is a centre one. <c>TileConstruction</c> is
+    /// <c>FiveByFiveRotated</c> for the heart and unread, and it is the field
+    /// that would answer it. Room shape is Q36/Q45 territory and lands with room
+    /// instances. Q52.</para>
+    /// </summary>
+    [Fact]
+    public void AKeepersHeartHoldsMoreGoldHereThanInTheOriginal()
+    {
+        Level? level = Level1();
+        if (level is null) return;
+
+        int perTile = level.Db[VariableTypeId.MaxGoldPerDungeonHeartTile];
+        int heartTiles = 0;
+        for (int i = 0; i < level.World.TileCount; i++)
+        {
+            ref TileState tile = ref level.World.TileAtIndex(i);
+            if (tile.OwnerPlayerId != Keeper) continue;
+            if (RoomRules.RoomOn(level.Db, tile)?.TypeId == RoomTypeId.DungeonHeart) heartTiles++;
+        }
+
+        // A 5x5 heart, all of it storing, is where our number comes from.
+        Assert.Equal(25, heartTiles);
+        Assert.Equal(25_000, heartTiles * perTile);
+
+        // The original stores 16000, which is the 16-tile ring around a 3x3
+        // centre. The nine missing tiles are the heart's own platform.
+        Assert.Equal(16_000, (heartTiles - 9) * perTile);
+        Assert.Equal(9, 3 * 3);
     }
 
     /// <summary>

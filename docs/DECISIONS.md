@@ -388,3 +388,75 @@ harness) has its gold reported and dropped exactly as before.
 
 **Not decided here.** Whether `InitialGoldHeld` (500 on the Imp) means a creature
 spawns holding gold. Nothing reads it and nothing should until somebody knows.
+
+---
+
+## ADR-0020 — Work lands five times a second, a fifth of the tabled delta at a time
+
+**Status:** Accepted (2026-08-30). Supersedes the granularity half of ADR-0011's
+placeholder status; ADR-0017's rule for `…PerSecond` variables is unaffected.
+
+**Context.** The ten tile-work deltas in DK2's balance table carry no unit —
+unlike their neighbours, which spell out `…PerSecond` and `…Seconds` in their
+names. M3 shipped with the simplest reading that could be defended: one
+application a second, applying the whole tabled delta. Against the original that
+ran everything visibly too fast, and Q47 recorded it as a factor of about two
+without implementing anything, because the fit rested on ranges ("2–3 hits",
+"4–5 hits") rather than on a number.
+
+The owner then measured one: **an imp mining a gold seam frees 273 gold a
+swing.**
+
+That is not a range, and it propagates. A seam is 3000 gold over 660 health, so
+273 gold is 273 × 660 / 3000 = **60 health**; 660 / 60 is **11 swings**; and 60
+is exactly a fifth of `MineGoldHealth`'s −300. Five applications a second.
+
+**Two corroborations, neither of which was looked for.**
+
+1. **Eight of the ten tabled deltas divide by five exactly** — 825, −140, 125,
+   −300, −5000, −130, 5, 50. Chance would give two. No other small rate comes
+   close: **825 is odd**, which on its own rules out the twice-a-second reading
+   this replaces, and rules out four and ten as well.
+2. **Claiming lands on the independently observed count.** `ClaimTileHealth` 825
+   at a fifth is 165 a swing against a Dirt Path running 1→660: **four swings**,
+   which is the top of Q46's "2-3-4 jumps MAX", measured a day earlier and from
+   a different mechanic.
+
+**Decision.** `SimulationTiming.WorkApplicationsPerSecond` is 5, and
+`TileWorkRules.PerApplication` divides the tabled delta by it. The rate per
+second is unchanged; only the granularity is. That is the whole point: **the
+count of swings a tile takes is now the measured quantity and is independent of
+Q1**, where the wall-clock time a tile takes still is not.
+
+Two deltas do not divide — `DigEnemyWallHealth` (−8) and `RepairWallHealth` (22)
+— so `TileState.WorkRemainder` carries the fraction between applications, the
+same device `CreatureState.MoveRemainder` uses and for the same reason
+(ADR-0001). Without it an enemy wall would take 900 swings instead of 563 and
+run 37% slow forever. The remainder is on the *tile* rather than the worker,
+because the fraction belongs to the wearing-down of the tile: two imps on one
+wall should between them remove what the table says per second.
+
+**Gold changed with it.** Gold released is now the difference of two running
+totals — how much has come out by the time a seam is down to *this* health,
+minus how much had at the last — rather than a proportion of the last swing.
+Truncating each swing independently loses a coin a swing, and at eleven swings a
+seam would be worth 2992 of its stated 3000. The running-total form makes a
+fully mined seam yield **exactly** its `goldValue`, needs no state to do it, and
+reproduces the measurement: 273 on eight of the eleven swings and 272 on the
+other three.
+
+**Consequences.**
+
+- Every application count in the game changed. Claiming a tile is 4 swings where
+  it was 1; reinforcing rock is 50 where it was 10; attacking floor is 24 where
+  it was 5. Times in seconds are unchanged throughout.
+- An imp fills its hands after **five** swings (1363 of 1400) and a seam takes
+  **three trips** — 1363, 1364, 273. Q50, which asked where an imp stops mining,
+  is answered by arithmetic rather than by the rule that was guessed for it.
+- `DigRockHealth` is now the **only** number in the tile mechanics that does not
+  fit. It was one anomaly among several suspects; it is now alone. See
+  `tile-work.md` — it is still reproduced, not corrected.
+- The pinned determinism hash and the snapshot format both moved.
+
+**What this is not.** It is not a measurement of the tick rate. It fixes the
+ratio between an application and a tabled per-second delta. Q1 is untouched.

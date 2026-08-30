@@ -101,6 +101,13 @@ public class TileWorkOnRealDataTests
             TileWorkRules.Apply(db, ref tile, TileWorkKind.Dig, 1).Outcome);
         Assert.Equal(IdOf(db, "Dirt Path"), tile.TerrainId);
 
+        // Four swings to claim one tile against the real numbers (Q47), which is
+        // the owner's "2-3-4 jumps MAX" (Q46) — asserted rather than looped, so
+        // that a change to the application rate shows up here too.
+        for (int i = 0; i < 3; i++)
+            Assert.Equal(TileWorkOutcome.Progressed,
+                TileWorkRules.Apply(db, ref tile, TileWorkKind.Claim, 1).Outcome);
+
         Assert.Equal(TileWorkOutcome.Transformed,
             TileWorkRules.Apply(db, ref tile, TileWorkKind.Claim, 1).Outcome);
         Assert.Equal(IdOf(db, "Claimed Path"), tile.TerrainId);
@@ -174,10 +181,12 @@ public class TileWorkOnRealDataTests
         // every destroyed type must eventually reach something that cannot be
         // dug, or an imp in the real game would grind at a tile forever.
         //
-        // The bound is generous on purpose. A reinforced wall belonging to
-        // another player is 900 health at DigEnemyWallHealth = -8, so it alone
-        // needs 113 applications before it even reverts to rock.
-        const int maxPasses = 200;
+        // The bound is generous on purpose, and it is the slowest job in the game
+        // that sets it: a reinforced wall belonging to another player is 900
+        // health at DigEnemyWallHealth = -8 a second, and at five applications a
+        // second (Q47) that is 563 swings before it even reverts to rock. Each
+        // pass here queues one application per tile, so the bound is in swings.
+        const int maxPasses = 1200;
         int passes = 0;
         bool workRemains = true;
 

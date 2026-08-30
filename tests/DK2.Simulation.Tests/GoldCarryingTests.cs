@@ -17,10 +17,12 @@ namespace DK2.Simulation.Tests;
 /// worse than one that is loud.
 ///
 /// <para>The numbers all come out of the shipped data and are worth having in one
-/// place. A gold seam is 660 health and 3000 gold, <c>MineGoldHealth</c> is −300,
-/// so a swing frees 3000 × 300 / 660 = 1363 and a seam takes three swings
-/// (1363 + 1363 + 272 = 2998; the two lost to integer truncation are DK2's, not
-/// ours). An Imp's <c>maxGoldHeld</c> is 1400, a treasury tile holds 3000 and a
+/// place. A gold seam is 660 health and 3000 gold; <c>MineGoldHealth</c> is −300 a
+/// second and work lands five times a second (Q47), so a swing takes 60 health and
+/// frees 273 gold — the number the owner measured in the original. A seam is
+/// therefore <b>eleven swings</b> totalling exactly 3000. An Imp's
+/// <c>maxGoldHeld</c> is 1400, so it fills after five swings and a seam takes
+/// <b>three trips</b>: 1363, 1364, 273. A treasury tile holds 3000 and a
 /// dungeon-heart tile 1000.</para>
 /// </summary>
 public class GoldCarryingTests
@@ -28,8 +30,8 @@ public class GoldCarryingTests
     private const byte Keeper = 1;
     private const byte Rival = 2;
 
-    /// <summary>Gold freed by one swing at a full seam: 3000 × 300 / 660.</summary>
-    private const int SwingYield = 1363;
+    /// <summary>What an imp is holding when it breaks off: five swings' worth.</summary>
+    private const int FullLoad = 1363;
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {
@@ -99,9 +101,11 @@ public class GoldCarryingTests
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
         run.Ticks(800);
 
-        // A seam is worth 3000; two are lost to DK2's own integer truncation.
-        Assert.Equal(2998, run.World.Tile(1, 1).GoldHeld);
-        Assert.Equal(2998, GoldStore.Total(run.World, Keeper));
+        // A seam is worth exactly 3000, and exactly 3000 arrives. Gold is taken
+        // from a running total rather than per swing, so truncation shows up as
+        // a coin's difference between swings and never as a shortfall.
+        Assert.Equal(3000, run.World.Tile(1, 1).GoldHeld);
+        Assert.Equal(3000, GoldStore.Total(run.World, Keeper));
         Assert.Equal(0, run.Imp.GoldHeld);
         Assert.NotEqual(Dk2TerrainFixture.Gold, run.World.Tile(5, 5).TerrainId);
 
@@ -112,8 +116,8 @@ public class GoldCarryingTests
     [Fact]
     public void AnImpBreaksOffMiningWhenTheNextSwingWouldNotFit()
     {
-        // maxGoldHeld is 1400 and a swing frees 1363, so the imp downs tools
-        // after one swing rather than take a second it could not hold.
+        // maxGoldHeld is 1400 and a swing frees 273, so the imp downs tools after
+        // five swings (1363 held) rather than take a sixth it could not hold.
         Run run = AtTheSeam();
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
 
@@ -121,19 +125,20 @@ public class GoldCarryingTests
         run.Ticks(120);
 
         SimEvent leaving = run.Of("delivering").First();
-        Assert.Contains($"gold={SwingYield}", leaving.Detail);
+        Assert.Contains($"gold={FullLoad}", leaving.Detail);
         Assert.Contains("to=(1,1)", leaving.Detail);
 
-        // One swing, and nothing thrown away to get there.
-        Assert.Single(run.Of("gold_mined"));
+        // Five swings, and nothing thrown away to get there.
+        Assert.Equal(5, run.Of("gold_mined").Count());
         Assert.Empty(run.Of("gold_uncollected"));
     }
 
     [Fact]
     public void AnImpDeliversWhatItIsHoldingWhenTheSeamRunsOut()
     {
-        // The last swing frees 272, which is nowhere near a full load. An imp
-        // that only ran when full would stand on an exhausted seam holding it.
+        // Eleven swings split five, five and one, so the last trip carries a
+        // single swing - nowhere near a full load. An imp that only ran when full
+        // would stand on an exhausted seam holding it.
         Run run = AtTheSeam();
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
 
@@ -141,7 +146,8 @@ public class GoldCarryingTests
         run.Ticks(800);
 
         List<int> loads = run.Of("gold_delivered").Select(Run.Amount).ToList();
-        Assert.Equal([SwingYield, SwingYield, 272], loads);
+        Assert.Equal([1363, 1364, 273], loads);
+        Assert.Equal(3000, loads.Sum());
     }
 
     // ---- where the load lands (Q35) --------------------------------------
@@ -217,7 +223,7 @@ public class GoldCarryingTests
         // it opened - which is the priority order doing its job (ADR-0018).
         Assert.NotEqual(Dk2TerrainFixture.Gold, run.World.Tile(5, 5).TerrainId);
         Assert.Equal(1400, run.Imp.GoldHeld);
-        Assert.Equal(1598, run.Amounts("gold_uncollected"));
+        Assert.Equal(1600, run.Amounts("gold_uncollected"));
         Assert.Contains(run.Of("gold_uncollected"),
             e => e.Detail.Contains("would not fit in the worker's hands"));
     }

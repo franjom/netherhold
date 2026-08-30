@@ -15,7 +15,7 @@ question: >
   by the claiming player?
 map: rock_20x16
 seed: 7
-duration_ticks: 40
+duration_ticks: 80
 setup:
   players:
     - { id: 1, gold: 0, mana: 0 }
@@ -29,11 +29,14 @@ work:
   # DigRockHealth is -5000 against Rock's 165 health, so one application each.
   - { at_tick: 4, player: 1, kind: Dig, at: [5, 5] }
   - { at_tick: 4, player: 1, kind: Dig, at: [6, 5] }
-  # ClaimTileHealth is 825 against Dirt Path's 1/660, so one application each.
-  - { at_tick: 8, player: 1, kind: Claim, at: [5, 5] }
-  - { at_tick: 8, player: 2, kind: Claim, at: [6, 5] }
-  # Reinforcing takes ten applications: 165 -> 660 at 50 a time.
-  - { at_tick: 12, until_tick: 25, player: 1, kind: Reinforce, at: [5, 4] }
+  # ClaimTileHealth is 825 a second and work lands five times a second (Q47), so
+  # 165 a swing against Dirt Path's 1/660: FOUR swings each. That count is the
+  # owner's "2-3-4 jumps MAX" for claiming a tile, observed in the original.
+  - { at_tick: 8, until_tick: 11, player: 1, kind: Claim, at: [5, 5] }
+  - { at_tick: 8, until_tick: 11, player: 2, kind: Claim, at: [6, 5] }
+  # Reinforcing takes fifty swings: 165 -> 660 at 10 a time. Ten seconds of an
+  # imp's life either way - the granularity changed, the rate did not.
+  - { at_tick: 15, until_tick: 64, player: 1, kind: Reinforce, at: [5, 4] }
 observe:
   - state_hash
   - events

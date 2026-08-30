@@ -110,7 +110,7 @@ public class ImpTests
     {
         Run run = Start(new TilePos(2, 2));
 
-        run.Ticks(SimulationTiming.WorkApplicationPeriodTicks * 2);
+        run.Ticks(SimulationTiming.TicksFromSeconds(1));
 
         SimEvent taken = Assert.Single(run.Of("job_taken"));
         Assert.Contains("Reinforce", taken.Detail);
@@ -184,7 +184,7 @@ public class ImpTests
         GameDatabase database = Dk2TerrainFixture.Database();
         Carve(run.World, database, new TilePos(4, 2));
 
-        run.Ticks(SimulationTiming.WorkApplicationPeriodTicks * 2);
+        run.Ticks(SimulationTiming.TicksFromSeconds(4));
 
         Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(4, 2).TerrainId);
         Assert.Equal(Keeper, run.World.Tile(4, 2).OwnerPlayerId);
@@ -215,7 +215,7 @@ public class ImpTests
         Run run = Start(new TilePos(2, 2));
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 2)));
-        run.Ticks(SimulationTiming.WorkApplicationPeriodTicks * 3);
+        run.Ticks(SimulationTiming.TicksFromSeconds(4));
 
         // Rock at 165 health against DigRockHealth -5000: one application ends
         // it (that is Q20, not a bug here).
@@ -290,12 +290,18 @@ public class ImpTests
         int idleDelay = SimulationTiming.TicksFromSeconds(5);
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 2), new TilePos(4, 3)));
-        run.Ticks(SimulationTiming.WorkApplicationPeriodTicks * 2);
+        run.Ticks(SimulationTiming.TicksFromSeconds(4));
 
-        Assert.Equal(2, run.Of("job_taken").Count());
+        // Only the two marked tiles matter here; once they are gone the imp goes
+        // on to claim and reinforce, which is the priority order and not this
+        // test's business.
+        List<SimEvent> marked = run.Of("job_taken")
+            .Where(e => e.Detail.Contains("priority=MarkedExcavation"))
+            .ToList();
+        Assert.Equal(2, marked.Count);
 
-        long first = run.Of("job_taken").First().Tick.Value;
-        long second = run.Of("job_taken").Last().Tick.Value;
+        long first = marked[0].Tick.Value;
+        long second = marked[1].Tick.Value;
         Assert.True(second - first < idleDelay,
             $"took {second - first} ticks to start the next job, the idle delay is {idleDelay}");
     }
@@ -320,10 +326,10 @@ public class ImpTests
     [Fact]
     public void AnImpMinesAMarkedSeam_OneApplicationEveryWorkPeriod()
     {
-        // The seam at (5,5) is 660 health against MineGoldHealth -300, so it
-        // takes three applications. What is asserted is the spacing: the gap
+        // The seam at (5,5) is 660 health and a swing takes 60 of it (Q47), so
+        // it takes eleven applications. What is asserted is the spacing: the gap
         // between applications is one work period, whatever a period turns out
-        // to be worth in seconds (Q19).
+        // to be worth in seconds (Q19/Q1).
         //
         // This keeper has no treasury, which is why the imp mines the seam
         // straight through instead of running off with the first load. An imp
@@ -335,22 +341,25 @@ public class ImpTests
         Carve(run.World, database, new TilePos(4, 3), new TilePos(4, 4), new TilePos(4, 5));
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        run.Ticks(SimulationTiming.WorkApplicationPeriodTicks * 6);
+        run.Ticks(SimulationTiming.TicksFromSeconds(10));
 
         List<long> at = run.Events.Events
             .Where(e => e.Kind is "gold_mined" or "gold_uncollected")
             .Select(e => e.Tick.Value)
             .Distinct()
             .ToList();
-        Assert.Equal(3, at.Count);
-        Assert.Equal(SimulationTiming.WorkApplicationPeriodTicks, (int)(at[1] - at[0]));
-        Assert.Equal(SimulationTiming.WorkApplicationPeriodTicks, (int)(at[2] - at[1]));
-        Assert.Equal(Dk2TerrainFixture.DirtPath, run.World.Tile(5, 5).TerrainId);
+        Assert.Equal(11, at.Count);
+        for (int i = 1; i < at.Count; i++)
+            Assert.Equal(SimulationTiming.WorkApplicationPeriodTicks, (int)(at[i] - at[i - 1]));
 
-        // A seam is worth 3000 and the imp's hands hold 1400. Everything above
-        // that is gold DK2 would have left on the floor and we cannot.
+        // Mined out - and by ten seconds the imp has gone on to claim the floor
+        // it opened, which is the priority order doing its job.
+        Assert.NotEqual(Dk2TerrainFixture.Gold, run.World.Tile(5, 5).TerrainId);
+
+        // A seam is worth exactly 3000 and the imp's hands hold 1400. Everything
+        // above that is gold DK2 would have left on the floor and we cannot.
         Assert.Equal(1400, run.Imp.GoldHeld);
-        Assert.Equal(1598, run.Of("gold_uncollected")
+        Assert.Equal(1600, run.Of("gold_uncollected")
             .Sum(e => int.Parse(e.Detail.Split("amount=")[1].Split(' ')[0])));
     }
 
@@ -366,7 +375,7 @@ public class ImpTests
             new TilePos(4, 3), new TilePos(4, 4), new TilePos(4, 5), new TilePos(5, 5));
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(6, 5)));
-        run.Ticks(SimulationTiming.WorkApplicationPeriodTicks * 12);
+        run.Ticks(SimulationTiming.TicksFromSeconds(10));
 
         // The mark survives each collapse because the tile is still a gem face
         // and gem faces are markable. A rule that cleared the mark on every
@@ -392,7 +401,7 @@ public class ImpTests
         Carve(run.World, database, new TilePos(4, 3), new TilePos(4, 4), new TilePos(4, 5));
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        run.Ticks(SimulationTiming.WorkApplicationPeriodTicks * 2);
+        run.Ticks(SimulationTiming.TicksFromSeconds(1));
 
         Assert.Equal(2, run.Of("job_taken").Count());
         Assert.All(run.World.Creatures, c => Assert.Equal(5 + (5 * run.World.Width), c.TargetTileIndex));

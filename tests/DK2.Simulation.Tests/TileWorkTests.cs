@@ -47,25 +47,37 @@ public class TileWorkTests
     [Fact]
     public void ClaimingDirtPath_YieldsClaimedPathOwnedByTheClaimer()
     {
-        // Dirt Path: 1/660, ClaimTileHealth 825 => one application crosses the top.
+        // Dirt Path: 1/660, ClaimTileHealth 825 per second over five applications
+        // a second (Q47) => 165 a swing, and four swings to cross the top. That
+        // count is the owner's "2-3-4 jumps MAX" for claiming one tile (Q46).
         TileState tile = TileOf(Dk2TerrainFixture.DirtPath, owner: 3);
+
+        for (int i = 0; i < 3; i++)
+        {
+            TileWorkResult step = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Claim, 2);
+            Assert.Equal(TileWorkOutcome.Progressed, step.Outcome);
+            Assert.Equal(165, step.HealthDelta);
+            Assert.Equal(Dk2TerrainFixture.DirtPath, tile.TerrainId);
+        }
 
         TileWorkResult result = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Claim, 2);
 
         Assert.Equal(TileWorkOutcome.Transformed, result.Outcome);
         Assert.Equal(Dk2TerrainFixture.ClaimedPath, tile.TerrainId);
         Assert.Equal(2, tile.OwnerPlayerId);
-        Assert.Equal(659, result.HealthDelta); // clamped at MaxHealth, not 825
+        Assert.Equal(164, result.HealthDelta); // clamped at MaxHealth, not 165
     }
 
     [Fact]
-    public void ReinforcingRock_TakesTenApplications_AndYieldsAWall()
+    public void ReinforcingRock_TakesFiftyApplications_AndYieldsAWall()
     {
-        // 165 -> 660 at ReinforceWallHealth 50 per application: 495/50 = 9.9,
-        // so the tenth application completes it.
+        // 165 -> 660 at ReinforceWallHealth 50 per SECOND over five applications
+        // a second (Q47): 10 a swing, 495 / 10 = 49.5, so the fiftieth completes
+        // it. Ten seconds of an imp's time either way - the granularity changed,
+        // the rate did not.
         TileState tile = TileOf(Dk2TerrainFixture.Rock);
 
-        for (int i = 1; i <= 9; i++)
+        for (int i = 1; i <= 49; i++)
         {
             TileWorkResult step = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Reinforce, 1);
             Assert.Equal(TileWorkOutcome.Progressed, step.Outcome);
@@ -105,12 +117,13 @@ public class TileWorkTests
     }
 
     [Fact]
-    public void AttackingEnemyFloor_DestroysItAfterFiveApplications()
+    public void AttackingEnemyFloor_DestroysItAfterTwentyFourApplications()
     {
-        // Claimed Path 660 at AttackTileHealth -140: 660/140 = 4.71 -> five.
+        // Claimed Path 660 at AttackTileHealth -140 a second, 28 a swing (Q47):
+        // 660 / 28 = 23.6 -> twenty-four.
         TileState tile = TileOf(Dk2TerrainFixture.ClaimedPath, owner: 1);
 
-        for (int i = 1; i <= 4; i++)
+        for (int i = 1; i <= 23; i++)
             Assert.Equal(
                 TileWorkOutcome.Progressed,
                 TileWorkRules.Apply(Db, ref tile, TileWorkKind.AttackTile, 2).Outcome);
@@ -127,10 +140,16 @@ public class TileWorkTests
     [Fact]
     public void DiggingAnEnemyWallIsVastlySlowerThanDiggingYourOwn()
     {
-        // -130 vs -8 per application against 900 health: 7 applications vs 113.
-        Assert.Equal(7, ApplicationsToDestroy(Dk2TerrainFixture.ReinforcedWall,
+        // -130 vs -8 per second against 900 health, at five applications a
+        // second: 26 vs 1.6 a swing, so 35 swings against 563.
+        //
+        // DigEnemyWallHealth is one of only two deltas that does not divide by
+        // five, so this is also the test that would catch a lost remainder: 563
+        // swings is 8 health a second exactly, where truncating to -1 a swing
+        // would take 900 and run the job 37% slow forever.
+        Assert.Equal(35, ApplicationsToDestroy(Dk2TerrainFixture.ReinforcedWall,
             TileWorkKind.DigOwnWall, owner: 1, worker: 1));
-        Assert.Equal(113, ApplicationsToDestroy(Dk2TerrainFixture.ReinforcedWall,
+        Assert.Equal(563, ApplicationsToDestroy(Dk2TerrainFixture.ReinforcedWall,
             TileWorkKind.DigEnemyWall, owner: 1, worker: 2));
     }
 
@@ -163,25 +182,34 @@ public class TileWorkTests
     [Fact]
     public void MiningAGoldSeam_ReleasesGoldInProportionToTheRockRemoved()
     {
-        // 3000 gold over 660 health, -300 per application.
+        // 3000 gold over 660 health. MineGoldHealth is -300 per second and work
+        // lands five times a second (Q47), so a swing takes 60 health — and the
+        // owner measured 273 gold a swing in the original, which is where the 60
+        // came from: 273 * 660 / 3000 = 60.06.
         TileState tile = TileOf(Dk2TerrainFixture.Gold);
+        var swings = new List<int>();
 
-        TileWorkResult first = TileWorkRules.Apply(Db, ref tile, TileWorkKind.MineGold, 1);
-        Assert.Equal(3000 * 300 / 660, first.GoldReleased);
-        Assert.Equal(360, tile.Health);
+        for (int i = 0; i < 11; i++)
+        {
+            TileWorkResult result = TileWorkRules.Apply(Db, ref tile, TileWorkKind.MineGold, 1);
+            swings.Add(result.GoldReleased);
 
-        TileWorkResult second = TileWorkRules.Apply(Db, ref tile, TileWorkKind.MineGold, 1);
-        Assert.Equal(3000 * 300 / 660, second.GoldReleased);
-        Assert.Equal(60, tile.Health);
+            Assert.Equal(
+                i == 10 ? TileWorkOutcome.Destroyed : TileWorkOutcome.Progressed,
+                result.Outcome);
+            Assert.Equal(-60, result.HealthDelta);
+        }
 
-        TileWorkResult third = TileWorkRules.Apply(Db, ref tile, TileWorkKind.MineGold, 1);
-        Assert.Equal(TileWorkOutcome.Destroyed, third.Outcome);
+        // Eleven swings, of which eight are the 273 that was observed and three
+        // are 272. The alternation is integer truncation showing through a
+        // running total, not a rounding choice: gold is computed from where the
+        // seam has got to, so the swings differ by a coin but the sum is exact.
+        Assert.Equal(11, swings.Count);
+        Assert.Equal(8, swings.Count(g => g == 273));
+        Assert.Equal(3, swings.Count(g => g == 272));
+        Assert.Equal(3000, swings.Sum());
+
         Assert.Equal(Dk2TerrainFixture.DirtPath, tile.TerrainId);
-
-        // Integer truncation loses a few gold against the stated 3000. Kept, not
-        // rounded away - rounding it away would be an invention of its own.
-        int total = first.GoldReleased + second.GoldReleased + third.GoldReleased;
-        Assert.InRange(total, 2990, 3000);
     }
 
     [Fact]
@@ -189,6 +217,11 @@ public class TileWorkTests
     {
         // Gems are impenetrable and their destroyed type is themselves, so a
         // face collapses and instantly reappears at full health.
+        //
+        // 100 health against 60 a swing (Q47) means a face takes two swings to
+        // collapse, and only the collapse pays. Fifty swings are therefore
+        // twenty-five collapses — the *rate per second* is unchanged by the
+        // finer granularity, which is the whole point of it.
         TileState tile = TileOf(Dk2TerrainFixture.Gems);
         int total = 0;
 
@@ -199,7 +232,7 @@ public class TileWorkTests
             Assert.Equal(Dk2TerrainFixture.Gems, tile.TerrainId);
         }
 
-        Assert.Equal(50 * 25, total);
+        Assert.Equal(25 * 25, total);
         Assert.Equal(100, tile.Health);
     }
 

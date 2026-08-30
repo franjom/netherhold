@@ -110,6 +110,7 @@ is worth doing before the shape of the loop hardens.
 | 2026-08-29 | (mana) | M3 partial | Mana income from owned land. Goal 5's harder case: the data was nearly enough for a computed mana ceiling and the ceiling was left flat with the gap recorded (Q37) rather than guessed. ADR-0017 decouples per-second totals from the unmeasured tick rate. |
 | 2026-08-29 | (mana, cont.) | M3 partial | Owner answered Q37 and the one-heart rule from the original in one message. Ceiling confirmed flat; the heart's 30/s became implementable. Process gap found: "the files cannot say" had been treated as "nobody can say" - asking the owner is now step 0 of the research method. |
 | 2026-08-30 | (gold carrier) | M3 partial | Q31 built: gold moves seam - imp's hands - treasury. Goal 1 (behaviour first) gains its most visible slice yet; goal 5 holds, with the one invented decision isolated as Q50 and put on the observation checklist rather than buried. A number in the CREATURES record turned out to corroborate Q47 by accident. |
+| 2026-08-30 | (Q47) | M3 partial | One measured number - 273 gold a swing - settled the tile-work granularity for the whole game, and the answer (five a second) was NOT the plausible one that had been recorded (twice a second). Goal 5 vindicated in its hardest form: the wrong reading was self-consistent, fitted every range, and would have been built if the discipline had been weaker. Also Q32 confirmed from five room prices, and Q52 recorded as a defect we cannot yet fix. |
 
 ### Note on the rooms/gold review
 
@@ -229,3 +230,47 @@ almost exactly two swings' worth under Q47's half-delta reading — which is
 corroboration for Q47 arriving from a record that has nothing to do with tile
 work. That is what the evidence discipline is for: the coincidence was only
 visible because both numbers had been written down honestly.
+
+---
+
+### Note on Q47 — the clearest case goal 5 has produced
+
+Goal 5 says the original is the behavioural oracle and that we distinguish what
+is known from what is guessed. Most entries in this log are about *refusing* to
+guess. This one is about what that refusal was worth, and it is the sharpest
+example so far because the guess was good.
+
+The recorded reading of Q47 was: an application lands **twice a second** and
+applies **half** the tabled delta. It was not lazy. It was self-consistent (half
+the delta twice a second is the delta per second), it fitted every observed range
+the owner had given, and it explained why everything ran too fast. It was tagged
+HYPOTHESIS and left unimplemented for one reason: **ranges are not counts.**
+
+Then one count arrived — 273 gold a swing — and the answer was **five a second, a
+fifth of the delta.** The recorded reading was not slightly off; it was wrong by a
+factor of 2.5, and the refutation is one line long: **`ClaimTileHealth` is 825,
+which is odd, so half of it is not an integer.** That was sitting in the data the
+whole time and nobody looked, because the reading fitted well enough not to be
+questioned.
+
+Two things worth taking from it.
+
+**The cost of having been careful was zero, and the cost of not would have been
+two rewrites.** Every application count in the game changed with this commit —
+claiming 1→4, reinforcing 10→50, an enemy wall 113→563. Had the twice-a-second
+reading been implemented, all of those would have moved twice, and the second move
+would have arrived with a set of tests already written against the wrong numbers.
+
+**A measurement is worth more than an observation, and it is a different ask.**
+Fifteen questions came back from "would a player see this happen?" and every one
+was a yes/no or a range. Q47 needed a *number*, and asking for a number got one.
+Worth putting on the checklist explicitly: when a question is quantitative, ask
+for the quantity, and say which one — "how much gold per swing" got an answer that
+"how fast does mining feel" could not have.
+
+**And the corroborations mattered more than the measurement.** 273 on its own is
+one data point from one person watching one seam. What makes this CONFIRMED rather
+than a fit is that two things agreed which were not consulted: eight of the ten
+tabled deltas divide by five exactly, and claiming independently lands on the four
+swings Q46 had measured a day earlier by watching an imp jump. Neither was
+available to be fitted to, which is the whole test.
