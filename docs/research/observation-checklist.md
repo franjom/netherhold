@@ -267,47 +267,37 @@ the same model that 273 gold a swing fixed, and neither has been checked against
 the game. If they land, the model is confirmed on numbers three orders of
 magnitude apart and `DigRockHealth` is definitively alone.
 
-### Q48 — what does a diagonal step cost?
-Now that Q28 says creatures cut corners, an eight-connected router needs to know
-whether a diagonal is worth the same as a straight step. Time a creature walking
-**ten tiles straight** and then **ten tiles diagonally** across open floor. If the
-diagonal run takes about 1.4× as long, diagonals cost their true length; if the
-two take the same time, they are free.
+### Q48 — what does a diagonal step cost? — **mostly answerable without playing**
+Asking you to time this was the wrong ask, and here is a better answer.
 
-### Q62 — reinforcing takes longer than the model says — **ANSWERED by the stopwatch**
-You timed one imp reinforcing one wall: **13.38 s and 13.77 s**, noting that both
-carry your own reaction time on the start and the stop, so the true figure sits
-at or below 13.38 — "maybe 13 seconds".
+**The half that blocks Q28 is forced by physics, not by observation.** A
+creature's speed is in **tiles per second** (Q29 — and three variables in the
+balance table name that unit in their own words), so a creature moves
+continuously through world space at a constant rate. A step to a diagonal
+neighbour covers **√2 tile-widths**. At a constant speed that takes **1.41× as
+long**, and there is no mechanism by which it could be free short of the creature
+teleporting or speeding up on the bias.
 
-At the confirmed five swings a second that is **66–67 swings**, and **13.2 s is
-66 exactly**. `ReinforceWallHealth` is 50 a second, so 10 a swing, so the work
-required is:
+So the mover's cost is **octile — 14 against 10** — and it is *uniform* cost that
+would be the invention here, not octile. That is enough to implement Q28.
 
-```
-  66 swings x 10 = 660   <- exactly Rock's maxHealth
-```
+**What is still open is different and much harder to see.** What the *pathfinder*
+charges for a diagonal when choosing between routes is not the same question. In
+open uniform terrain both cost models produce paths of the same shape; they only
+diverge where a route with fewer steps is longer in true distance. If DK2 charged
+10 for a diagonal, its creatures would sometimes take visibly slower routes —
+and nobody has ever reported that.
 
-**Not** the 495 that `maxHealth − startingHealth` gives, which is what we
-implement and which predicts 50 swings and 10.0 seconds.
+**If you want to confirm the first half anyway, it needs no stopwatch.** Watch a
+creature cross a large open claimed room **corner to corner**:
 
-**And the same rule fits claiming.** Dirt Path takes 4 swings at 165 a swing:
+- a **smooth diagonal glide** means each step really is √2 long, and octile is
+  right;
+- a **staircase** of alternating orthogonal moves would mean the "diagonal" is
+  actually two steps and costs 2, not 1.41.
 
-```
-   4 swings x 165 = 660  <- exactly Dirt Path's maxHealth
-```
-
-So **one rule reproduces two independently measured jobs**. The implemented rule
-fits claiming only by luck — Dirt Path ships at 1 health, so its deficit and its
-maximum are within a single swing of each other — and misses reinforcing by 16
-swings.
-
-**A third independent confirmation of Q47 falls out of your stopwatch**, which is
-the part worth pausing on. 66 swings over 13.38 s is **4.93 a second**. Under the
-rule we currently implement it would be 50 swings over the same 13.38 s, or
-**3.74 a second**, which flatly contradicts the five-a-second reading that your
-273-gold measurement established. Two measurements taken weeks apart on
-completely different mechanics agree on the swing rate, and only under the new
-reading.
+Your Q28 answer — that creatures cut corners between two solid tiles — already
+points at the first.
 
 ### Q22 — filling a tile in
 Not yet observed — the answer offered against it described claiming instead.
@@ -353,11 +343,19 @@ does not look like money**:
 the same 60 is the signature of a size or a duration rather than a price. So it
 is recorded and not believed.
 
-**What would settle it is an anchor that differs from 20** — the lesson the traps
-taught. Does training cost the same for a **level 1 and a level 4** creature? The
-same for a **goblin and a bile demon**? If either moves the figure, the flat 20 is
-a coincidence of what you happened to train, and the real field is per-creature
-or per-level.
+**The level half came back flat.** It is 20 a hit at every level, and **level 4
+is the ceiling** the training room can reach - which `TrainingRoomMaxExperienceLevel`
+(4) says in its own words. That is the fourth time one of your observations and a
+variable name have met outright.
+
+**Flat across levels helps 0x0208**, because a cost that does not vary with the
+creature is a property of the *thing being hit*, and that is exactly what an
+OBJECTS field is. It is now the better of two poor options rather than a
+curiosity - but two anchors, one of them zero, is not enough.
+
+**The one anchor still missing is a different creature**: a goblin against a bile
+demon. Flat there too would put the cost firmly on the dummy and make 0x0208 hard
+to argue against.
 
 Nothing is blocked: training is M4 and no creature here gains experience. It is
 worth having because it is a **gold sink**, and the economy so far has sinks only
