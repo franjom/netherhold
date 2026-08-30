@@ -97,6 +97,15 @@ public class TileWorkOnRealDataTests
         byte rock = IdOf(db, "Rock");
         TileState tile = Tile(db, rock);
 
+        // TWO swings on real data, which is what the owner counted in the
+        // original. The shipped DigRockHealth would do it in one; it is the
+        // project's single ObservedCorrections entry, and asserting the count
+        // here rather than looping is what would catch the correction being
+        // removed or widened. See ADR-0023 and Q20.
+        Assert.Equal(TileWorkOutcome.Progressed,
+            TileWorkRules.Apply(db, ref tile, TileWorkKind.Dig, 1).Outcome);
+        Assert.Equal(rock, tile.TerrainId);
+
         Assert.Equal(TileWorkOutcome.Destroyed,
             TileWorkRules.Apply(db, ref tile, TileWorkKind.Dig, 1).Outcome);
         Assert.Equal(IdOf(db, "Dirt Path"), tile.TerrainId);
@@ -114,9 +123,26 @@ public class TileWorkOnRealDataTests
         Assert.Equal(1, tile.OwnerPlayerId);
 
         TileState wall = Tile(db, rock);
+        int swings = 0;
         while (wall.TerrainId == rock)
+        {
             TileWorkRules.Apply(db, ref wall, TileWorkKind.Reinforce, 1);
+            swings++;
+        }
         Assert.Equal(IdOf(db, "Reinforced Wall"), wall.TerrainId);
+
+        // FIFTY swings: Rock 165 -> its maxHealth 660 is 495 health at 10 a
+        // swing (ReinforceWallHealth 50, a fifth each). At five a second that
+        // is 10.0 seconds of work.
+        //
+        // **The owner measured 14-15 seconds in the original (Q62)**, so this
+        // is pinned as the model's prediction rather than as a confirmed
+        // behaviour. Some of the gap is walking up and animating - claiming
+        // takes 4 swings (0.8s) and was observed at "about 2 seconds", so
+        // roughly 1.2s of overhead - but not 4.5s of it. The number is here so
+        // that whichever way Q62 resolves, this test has to be edited
+        // deliberately.
+        Assert.Equal(50, swings);
     }
 
     [Fact]

@@ -217,8 +217,9 @@ public class ImpTests
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 2)));
         run.Ticks(SimulationTiming.TicksFromSeconds(4));
 
-        // Rock at 165 health against DigRockHealth -5000: one application ends
-        // it (that is Q20, not a bug here).
+        // Rock at 165 health takes TWO applications - the count the owner
+        // measured in the original, which the ObservedCorrections entry for
+        // DigRockHealth reproduces (ADR-0023, Q20). Four seconds is ample.
         Assert.Contains(run.Of("destroyed"), e => e.Detail.Contains("(4,2)"));
 
         // The first job it took was the marked one.

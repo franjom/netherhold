@@ -206,7 +206,7 @@ be a variable we have misidentified than a balance value.
 
 ## 2. Still open, and cheap
 
-### Q20 — exactly how many swings to dig out one plain wall? — **the last anomaly**
+### Q20 — how many swings to dig one plain wall? — **ANSWERED and now IMPLEMENTED**
 **Which tile: the plain, unreinforced wall.** Terrain id 2, "Rock" in the data —
 the ordinary one an imp digs out to open a corridor, not the reinforced kind and
 not the impenetrable map edge. A reinforced wall is a different terrain with its
@@ -226,6 +226,11 @@ per-second field at **415-820** against a shipped **5000**, so it is 6x to 12x
 too big, and **500 is the only round number in the window and is exactly
 5000/10**. No other variable is a candidate; the table was scanned.
 
+**You approved the override, so it is built** (ADR-0023): -500 lives in
+`ObservedCorrections`, the only place in the project allowed to hold a number the
+data does not, guarded so it fires on the exact shipped -5000 and nothing else.
+A plain wall now takes two swings here, as it does in the original.
+
 **Worth having at the same time, and cheap once you are counting:** the swings to
 dig through **your own reinforced wall** (prediction: **35**) and through **a
 rival's** (prediction: **563**, which is about two minutes). Those two come from
@@ -239,6 +244,32 @@ whether a diagonal is worth the same as a straight step. Time a creature walking
 **ten tiles straight** and then **ten tiles diagonally** across open floor. If the
 diagonal run takes about 1.4× as long, diagonals cost their true length; if the
 two take the same time, they are free.
+
+### Q62 — reinforcing takes longer than the model says — **the new live one**
+You timed an imp reinforcing a wall at **14–15 seconds**. Ours predicts **10.0**:
+Rock's 165 health up to its maxHealth 660 is 495 at 10 a swing, so 50 swings at
+five a second.
+
+Some of the 4.5-second gap is walking up and animating — claiming is 4 swings
+(0.8 s) and you observed "about 2 seconds", so the overhead looks like ~1.2 s —
+but not all of it. **Two re-readings fit, and they disagree about where an upward
+job stops:**
+
+- **(a) it works up to the destination terrain's health**, not the source's
+  maxHealth: 165 → Reinforced Wall's 900 is 735, **74 swings = 14.8 s**, which
+  fits with no overhead at all;
+- **(b) it accumulates the source's maxHealth from zero**: **66 swings = 13.2 s**,
+  which fits with the 1.2 s overhead.
+
+**Reinforcing is the only job that can separate them**, which is why this never
+showed up: for claiming, Dirt Path's maxHealth and Claimed Path's health are both
+660, so both readings give the same four swings.
+
+**The experiment is not to re-time reinforcing.** Time something with no
+ambiguity in it and use it to calibrate the overhead: **dig through your own
+reinforced wall** (900 health down at 26 a swing = **35 swings = 7.0 s**). If it
+comes out near **8.2 s** the overhead is real and reading (b) wins; if it comes
+out near **7.0 s** there is no overhead and (a) does.
 
 ### Q22 — filling a tile in
 Not yet observed — the answer offered against it described claiming instead.

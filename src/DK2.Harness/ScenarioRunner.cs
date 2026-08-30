@@ -60,6 +60,25 @@ public sealed class ScenarioRunner
                 "a wall-clock timing");
         }
 
+        // A run that used a number the game's own files do not contain has to
+        // say which, every time. There is exactly one (ADR-0023), and this
+        // enumerates rather than naming it so a second would report itself.
+        List<string> corrected = Enum.GetValues<TileWorkKind>()
+            .Select(TileWorkRules.Variable)
+            .Where(v => ObservedCorrections.IsCorrected(_database, v))
+            .Select(v => $"{v} (shipped {_database[v]}, " +
+                         $"used {ObservedCorrections.TileWorkPerSecond(_database, v)})")
+            .ToList();
+
+        if (corrected.Count > 0)
+            unsupported.Add(
+                $"this run used {corrected.Count} corrected balance value(s) rather than what the " +
+                $"game ships: {string.Join(", ", corrected)}. Each is a case where the shipped " +
+                "number demonstrably cannot produce behaviour measured in the original, the " +
+                "balance table was searched for an alternative and came back empty, and the " +
+                "correction is guarded on the exact shipped value. See ObservedCorrections and " +
+                "ADR-0023");
+
         LevelMap map = ResolveMap(scenario.Map);
 
         IEnumerable<byte> playerIds = scenario.Setup.Players.Count > 0

@@ -28,20 +28,59 @@ public class TileWorkTests
     // ---- the rules -------------------------------------------------------
 
     [Fact]
-    public void DiggingRock_DestroysItInOneApplication_AndLeavesDirtPath()
+    public void DiggingRock_TakesTwoApplications_AndLeavesDirtPath()
     {
-        // Rock ships at 165 health; DigRockHealth is -5000. One application is
-        // enough with 4835 to spare. This is faithful to the data and it is also
-        // the anomaly recorded as Q20: it makes digging earth instantaneous,
-        // which is not how the original plays.
+        // TWO applications, which is what the owner counted in the original
+        // (2026-08-30) - being careful to note that a third animation plays
+        // over the block already crumbling, so two do the damage.
+        //
+        // The shipped DigRockHealth of -5000 would fell it in one with 4835 to
+        // spare. That value cannot produce the observed behaviour, so it is
+        // corrected to -500 in ObservedCorrections - the project's only such
+        // override, and the reasoning is there. See ADR-0023 and Q20.
         TileState tile = TileOf(Dk2TerrainFixture.Rock);
 
-        TileWorkResult result = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Dig, 1);
+        TileWorkResult first = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Dig, 1);
 
-        Assert.Equal(TileWorkOutcome.Destroyed, result.Outcome);
+        Assert.Equal(TileWorkOutcome.Progressed, first.Outcome);
+        Assert.Equal(Dk2TerrainFixture.Rock, tile.TerrainId);
+        Assert.Equal(-100, first.HealthDelta);   // -500 a second, a fifth each
+        Assert.Equal(65, tile.Health);
+
+        TileWorkResult second = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Dig, 1);
+
+        Assert.Equal(TileWorkOutcome.Destroyed, second.Outcome);
         Assert.Equal(Dk2TerrainFixture.DirtPath, tile.TerrainId);
         Assert.Equal(Db.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth, tile.Health);
-        Assert.Equal(-165, result.HealthDelta); // clamped to the health present
+        Assert.Equal(-65, second.HealthDelta);   // clamped to the health present
+    }
+
+    /// <summary>
+    /// The override is narrow on purpose: it fires only on the exact shipped
+    /// value it was measured against, so a mod or a patch carrying a workable
+    /// number is left alone. Guarding this is the difference between a recorded
+    /// correction and a silent one.
+    /// </summary>
+    [Fact]
+    public void TheDigCorrection_LeavesAnyOtherValueAlone()
+    {
+        Assert.Equal(
+            ObservedCorrections.CorrectedDigRockHealth,
+            ObservedCorrections.TileWorkPerSecond(Db, VariableTypeId.DigRockHealth));
+        Assert.True(ObservedCorrections.IsCorrected(Db, VariableTypeId.DigRockHealth));
+
+        // The raw value is still there and still says what the file says.
+        Assert.Equal(
+            ObservedCorrections.ShippedDigRockHealth, Db[VariableTypeId.DigRockHealth]);
+
+        // Nothing else in the table is touched.
+        foreach (TileWorkKind kind in Enum.GetValues<TileWorkKind>())
+        {
+            if (kind == TileWorkKind.Dig) continue;
+            Assert.False(
+                ObservedCorrections.IsCorrected(Db, TileWorkRules.Variable(kind)),
+                $"{kind} is being corrected and should not be");
+        }
     }
 
     [Fact]
@@ -308,8 +347,12 @@ public class TileWorkTests
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(1, tile)));
         Assert.True(sim.World.Tile(tile).IsTaggedBy(1));
 
-        sim.World.QueueWork(tile.X, tile.Y, TileWorkKind.Dig, 1);
-        sim.Tick();
+        // Two applications: a plain wall takes two swings (ADR-0023, Q20).
+        for (int i = 0; i < 2; i++)
+        {
+            sim.World.QueueWork(tile.X, tile.Y, TileWorkKind.Dig, 1);
+            sim.Tick();
+        }
 
         Assert.Equal(Dk2TerrainFixture.DirtPath, sim.World.Tile(tile).TerrainId);
         Assert.False(sim.World.Tile(tile).IsTaggedByAnyone);
@@ -383,12 +426,19 @@ public class TileWorkTests
     public void TheWorkSystem_DrainsItsQueueEveryTick()
     {
         GameSimulation sim = Dk2TerrainFixture.Simulation();
-        sim.World.QueueWork(5, 1, TileWorkKind.Dig, 1);
-        sim.World.QueueWork(6, 1, TileWorkKind.Dig, 1);
+        // Two rounds, because a plain wall takes two swings (ADR-0023). What
+        // this test is about is that the queue empties every tick, which the
+        // first round already shows.
+        for (int round = 0; round < 2; round++)
+        {
+            sim.World.QueueWork(5, 1, TileWorkKind.Dig, 1);
+            sim.World.QueueWork(6, 1, TileWorkKind.Dig, 1);
 
-        sim.Tick();
+            sim.Tick();
 
-        Assert.Empty(sim.World.PendingWork);
+            Assert.Empty(sim.World.PendingWork);
+        }
+
         Assert.Equal(Dk2TerrainFixture.DirtPath, sim.World.Tile(5, 1).TerrainId);
         Assert.Equal(Dk2TerrainFixture.DirtPath, sim.World.Tile(6, 1).TerrainId);
     }
@@ -493,6 +543,17 @@ public class TileWorkTests
 
         sim.Tick();
         restored.Tick();
+        Assert.Equal(sim.StateHash(), restored.StateHash());
+
+        // The queued swing was the first of the two a plain wall takes
+        // (ADR-0023), so the restored run has to be given the second before the
+        // tile falls — and it has to fall in both runs identically, which is
+        // the point of the test.
+        sim.World.QueueWork(5, 1, TileWorkKind.Dig, 1);
+        restored.World.QueueWork(5, 1, TileWorkKind.Dig, 1);
+        sim.Tick();
+        restored.Tick();
+
         Assert.Equal(sim.StateHash(), restored.StateHash());
         Assert.Equal(Dk2TerrainFixture.DirtPath, restored.World.Tile(5, 1).TerrainId);
     }

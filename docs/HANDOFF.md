@@ -10,8 +10,8 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
-five record types M1 needed are done. **278 tests green** with and without a DK2
-install; nine scenarios run; clean tree. (Core 14, Simulation 163, Data 41, Behavior 60.)
+five record types M1 needed are done. **280 tests green** with and without a DK2
+install; nine scenarios run; clean tree. (Core 14, Simulation 165, Data 41, Behavior 60.)
 
 > ### ⚠ Read this first: three sittings of owner answers, 2026-08-29 and 30
 >
@@ -493,7 +493,7 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 62. The ones that gate progress:
+`docs/research/open-questions.md` holds all 64. The ones that gate progress:
 
 - **Q53 is ANSWERED and built** (2026-08-30): 7 mana a second per imp, measured
   by the owner and read off DK2's own Create Imp spell record (ADR-0022). Left in

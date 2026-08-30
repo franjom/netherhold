@@ -167,7 +167,11 @@ public static class TileWorkRules
     /// </summary>
     public static int PerApplication(GameDatabase database, TileWorkKind kind, ref sbyte remainder)
     {
-        int perSecond = database[Variable(kind)];
+        // Through ObservedCorrections, not straight off the database: exactly
+        // one variable in the table does not produce the behaviour the original
+        // shows, and this is the single seam where that correction enters the
+        // simulation. See ADR-0023 and Q20.
+        int perSecond = ObservedCorrections.TileWorkPerSecond(database, Variable(kind));
         int rate = SimulationTiming.WorkApplicationsPerSecond;
 
         int whole = perSecond / rate;

@@ -622,3 +622,70 @@ then clamp to the threshold. The separation of the two figures still matters —
 it just matters for the income cap and not for the ceiling. A detail that would
 have been chosen rather than known if a screenshot had not caught it, and the
 kind of thing nobody would have noticed for a long time.
+
+---
+
+## ADR-0023 — One measured behaviour overrides one shipped number
+
+**Date.** 2026-08-30. **Status.** Accepted, owner-approved.
+
+**Context.** Two of this project's rules pointed opposite ways for exactly one
+variable, and no amount of research was going to reconcile them.
+
+`DigRockHealth` ships as **−5000**. Rock has 165 health. Under the CONFIRMED
+five-applications-a-second model (ADR-0020) that is 1000 a swing, so a plain wall
+falls in **one**. The owner dug one out in the original and counted **two**,
+drawing the distinction that made the count usable: two swings do the damage, and
+a third animation plays over the block already crumbling.
+
+Two applications against 165 health bounds the per-application damage at
+**[83, 164]** — under 165 or one swing would finish it, at least 83 or two would
+not — so the per-second figure has to be in **[415, 820]**. The shipped value is
+six to twelve times too big.
+
+Everything that could make this a misreading was checked and came back negative:
+
+- **No alternative variable.** The balance table was scanned for anything holding
+  a value in [415, 820]. Six hits: two payday intervals, a boulder fear amount, a
+  tremor damage, a music threshold and the mana gain cap. None is a candidate.
+- **The model around it is confirmed.** The same five-a-second reading gives a
+  gold seam 273 gold a swing and claiming four swings, both measured in the
+  original by the owner, independently, on different days.
+- **The value is an outlier in its own table.** Every other tile delta is in the
+  tens or low hundreds — 825, 125, −300, −130, −8, 5, 50, 22. −5000 is the sole
+  four-digit one.
+
+**Decision.** Correct it to **−500**, in one named place.
+
+- **`ObservedCorrections` is the only place in the project that may contain a
+  number the data does not.** It carries the measurement, the arithmetic, the
+  negative search and the rules for adding to it, and it is the single seam
+  through which a corrected value can enter the simulation —
+  `TileWorkRules.PerApplication` reads through it rather than off the database.
+- **−500 rather than any other value in the window.** It is the only round number
+  in [415, 820] and exactly a tenth of the shipped figure; an extra zero is the
+  most ordinary way for a number to be wrong. It gives 100 a swing: 165 → 65 →
+  destroyed, two applications, no coincidence required.
+- **The correction fires only on the exact shipped −5000.** A mod, a patch or any
+  data set carrying a workable number is left alone, so this is a correction to
+  one known-bad value and not a policy about digging.
+- **The raw value stays readable.** `db[VariableTypeId.DigRockHealth]` still
+  returns −5000, and tests assert both it and the corrected behaviour.
+- **Four rules govern adding a second entry**, written on the type: the behaviour
+  must be measured rather than inferred; the shipped value must be shown
+  incapable of producing it, with the arithmetic; the table must have been
+  searched for an alternative variable and come back empty; and the correction
+  must be guarded on the exact shipped value.
+
+**Consequences.**
+
+- **Five tests changed**, all of which had encoded the one-swing behaviour,
+  including two that were only incidentally digging. Each now takes two swings.
+- **This corrects the behaviour, not the explanation.** Whether the engine reads
+  a different field, applies a divisor nobody has found, or ships a typo is still
+  UNKNOWN, and finding out would let the override be deleted.
+- **It is a precedent, and it is meant to be a narrow one.** The bar in the four
+  rules is deliberately hard to clear: in three sittings of owner measurements
+  this is the only number that has cleared it, and two others that looked like
+  candidates (the imp mana upkeep, the Create Imp cost) turned out to be findable
+  in the data instead. **Look for the field before reaching for this file.**

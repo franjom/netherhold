@@ -23,7 +23,8 @@ written into the code.
 | The deltas are per second | **STRONGLY INFERRED** (Q19) — follows from the above; how long a second is in ticks is still Q1 |
 | A fully mined seam yields exactly its `goldValue` | **STRONGLY INFERRED** — gold taken from running totals, so truncation shows between swings and never as a shortfall |
 | Whether one worker applies the whole delta | **UNKNOWN** — untouched by the above, which measured one imp working alone |
-| `DigRockHealth` | **DOES NOT FIT, reproduced anyway** (Q20) — and is now the only thing in this table that does not |
+| `DigRockHealth` | **DOES NOT FIT, and is now CORRECTED rather than reproduced** (Q20, ADR-0023) - the shipped -5000 cannot produce the two swings the owner measured, so `ObservedCorrections` reads it as -500. The only such override in the project |
+| Reinforcing takes 50 swings (10.0 s) | **CONTRADICTED by observation** (Q62) - the owner timed 14-15 seconds. Two candidate re-readings; not changed pending one more timing |
 
 ---
 
