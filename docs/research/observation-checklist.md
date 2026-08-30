@@ -132,37 +132,36 @@ within minutes of the second screenshot arriving. See `imps-and-mana.md`
 
 ## 1. Still open, and blocking
 
-### Q59 — how much mana does one trap draw? — **one more trap finishes this**
-You measured a **spike trap** and a **sentry trap**: both **+5**. That was enough
-to parse `Traps.kwd` for the first time - 16 records of 579 bytes, names readable
-- and narrow the field to **two offsets**, but not to pick between them, because
-your two traps happen to share a value.
+### Q59 — how much mana does one trap draw? — **measured; the source is not in the data**
+You measured five: **Spike 5, Sentry 5, Fireburst 10, Freeze 10, Lightning 15**
+mana a second each. That opened `Traps.kwd` for the first time (16 records of 579
+bytes, names readable) and then **refuted the candidate it produced**, which is
+exactly what the fifth measurement was for.
 
-| offset | Guard Post | most traps | Fireburst / Freeze | Lightning | Magic Door | Hero Sentry |
-|---|---|---|---|---|---|---|
-| **0x0202** | **0** | **5** | **10** | **25** | **30** | **50** |
-| 0x0070 | 5 | 5 | 5 | 5 | 5 | 5 |
+Offset **0x0202** matches four of your five exactly — Spike 5, Sentry 5,
+Fireburst 10, Freeze 10 — and predicts **25** for Lightning. You saw **15**.
 
-0x0202 is far the better candidate - it ranks the way the game plays, and 0x0070
-being 5-or-6 for nearly everything is the shape of a category byte rather than a
-cost. But **0x0202 could also be a charge or shot count**, which fits Spike = 5
-just as comfortably, and that is exactly the reading a second identical
-measurement cannot rule out.
+Four searches followed, all negative:
 
-**Build one Lightning Trap and note the change.** The predictions are as far
-apart as they get:
+- **no offset anywhere in the Lightning Trap's 579 bytes holds 15**, at any of
+  u8 / u16 / s16 / s32;
+- **no column is proportional to your (1, 1, 2, 2, 3)** at any scale from 1 to 20;
+- **`Shots.kwd`** — 65 records, and it names "Lightning Trap Shot" — holds no 15
+  for it either;
+- **`Objects.kwd`** has a "Crate Lightning" and that does not hold 15 either.
 
-- **+25** -> 0x0202 is the mana upkeep, and the whole column comes with it;
-- **+5** -> the charge is flat per trap and both offsets are red herrings;
-- anything else -> neither, and it is more interesting than either.
+There is no global to fall back on: all thirteen balance variables equal to 5 are
+something else entirely. So the figure is computed from something not yet
+identified, or it lives in the executable.
 
-**Two cheap extras that would make it airtight.** A **Freeze** or **Fireburst**
-trap should be **+10**. And a **Guard Post** should be **+0** - a negative
-prediction, and the strongest kind, because a guard post is a standing spot
-rather than a trap and nothing else in the column is zero.
+**One thing worth re-checking, and only one.** 0x0202 is otherwise a very good
+column and a single value separates it from dead. If you are near a Lightning
+Trap again, note the change once more. And two values far from 5/10/15 would
+settle it outright: **Magic Door** should be **+30** and a **Guard Post** should
+be **+0**.
 
-**Note there is no global to fall back on:** the balance table was checked and
-all thirteen variables holding 5 are something else entirely.
+**This is banked either way** — traps are objects and arrive at M6 regardless, so
+nothing is blocked on it.
 
 ### Q58 — does possession really cost nothing per second?
 You reported no continuous drain while possessing, and **the data disagrees with
