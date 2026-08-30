@@ -28,8 +28,10 @@ public static class GameDatabaseLoader
             KwdReader.ReadFile(Path.Combine(editor, "Creatures.kwd")));
         GlobalVariables variables = KwdVariables.Parse(
             KwdReader.ReadFile(Path.Combine(editor, "GlobalVariables.kwd")));
+        List<KeeperSpellDef> keeperSpells = KwdKeeperSpells.Parse(
+            KwdReader.ReadFile(Path.Combine(editor, "KeeperSpells.kwd")));
 
-        return new GameDatabase(terrain, rooms, creatures, variables);
+        return new GameDatabase(terrain, rooms, creatures, variables, keeperSpells);
     }
 
     /// <summary>

@@ -54,8 +54,10 @@ public sealed class ScenarioRunner
                 "who would do the work or how long it would take. Use setup.creatures and a tag " +
                 "command instead to watch a worker do it");
             unsupported.Add(
-                "the rate of work is UNKNOWN (Q19/Q1): the health deltas carry no unit, so tick " +
-                "counts in this run are not seconds and must not be read as timings");
+                "how many swings a tile takes is now known (Q47: work lands five times a second, " +
+                "a fifth of the tabled delta), but how long a second is in ticks is not (Q1). " +
+                "Tick counts in this run are therefore a faithful count of applications and not " +
+                "a wall-clock timing");
         }
 
         LevelMap map = ResolveMap(scenario.Map);
@@ -113,13 +115,13 @@ public sealed class ScenarioRunner
         if (gain.All(g => g == 0)) return;
 
         unsupported.Add(
-            "the only thing that spends mana here is Create Imp. Every other keeper spell, " +
-            "possession, research and trap upkeep cost mana in DK2 and none of them exists yet - " +
-            "and neither does the biggest drain of all: imps cost about 7 mana a second each to " +
-            "keep (Q53), which is the red figure under a keeper's mana orb. That number is in " +
-            "neither the balance table nor the CREATURES record, so it is recorded rather than " +
-            "invented. A mana total in this run is close to what a keeper would have earned and " +
-            "well above what they would have left");
+            "mana here has both halves of the economy but not all of either. Income is land and " +
+            "a dungeon heart; outgoings are Create Imp's cast cost and the 7 a second every imp " +
+            "charges its keeper (Q53, confirmed and now read off DK2's own Create Imp record). " +
+            "What is missing is every other keeper spell - a summoned Horned Reaper costs 2000 a " +
+            "second and Call To Arms 90, and neither spell exists yet - plus research and the " +
+            "mana traps draw, which is reported and uninvestigated. A mana total in this run is " +
+            "close to what a keeper would have, and short of every outgoing but one");
         unsupported.Add(
             "mana is paid once a game second and a game second is TicksPerSecond ticks, which is a " +
             "placeholder (Q1). The totals are right; the wall-clock rate they imply is not a claim");

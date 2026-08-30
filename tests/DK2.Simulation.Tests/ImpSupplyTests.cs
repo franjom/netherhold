@@ -153,7 +153,7 @@ public class ImpSupplyTests
         run.Tick(new CreateImpCommand(Keeper));
 
         Assert.Equal(5, run.Imps);
-        Assert.Equal(before - ImpSupplyRules.CreateImpBaseCost, run.Mana);
+        Assert.Equal(before - ImpSupplyRules.CreateImpBaseCost(run.Db), run.Mana);
         Assert.Contains(run.Of("imp_created"), e => e.Detail.Contains("cost=1500"));
     }
 
@@ -208,7 +208,7 @@ public class ImpSupplyTests
 
         Assert.Equal(4, run.Imps);
         Assert.Equal(
-            ImpSupplyRules.CreateImpBaseCost,
+            ImpSupplyRules.CreateImpBaseCost(run.Db),
             ImpSupplyRules.CreateImpCost(run.World, run.Db, Keeper));
 
         int before = run.Mana;
@@ -227,7 +227,7 @@ public class ImpSupplyTests
         // mana never went DOWN, not that it stayed at 100. It is still short of
         // the 1500 the spell wants.
         int before = run.Mana;
-        Assert.True(before < ImpSupplyRules.CreateImpBaseCost,
+        Assert.True(before < ImpSupplyRules.CreateImpBaseCost(run.Db),
             $"the keeper earned {before} while waiting, which is enough to buy an imp");
 
         run.Tick(new CreateImpCommand(Keeper));

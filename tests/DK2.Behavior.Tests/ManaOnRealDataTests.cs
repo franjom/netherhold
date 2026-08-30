@@ -36,6 +36,20 @@ public class ManaOnRealDataTests
         Assert.Equal(5, db[VariableTypeId.ExcessManaDecreaseRatePerSecond]);
     }
 
+    /// <summary>
+    /// <b>Claimed Vault's 100 is CONFIRMED in the game</b> (owner, 2026-08-30):
+    /// "each claimed mana vault raises mana production by +100". A vault a keeper
+    /// has not taken pays nothing, which the pair of terrain types says in the
+    /// data and the observation says on screen.
+    ///
+    /// <para>Nothing had to change for it — <see cref="ManaRules.GainPerSecond"/>
+    /// reads <see cref="TerrainDef.ManaGain"/> off whatever terrain a tile is, so
+    /// a vault has always paid its 100 here. Worth recording anyway, because it
+    /// is the first time the <i>size</i> of a mana rate has been checked against
+    /// the original rather than only its sign: a green figure that moves by
+    /// exactly the tabled number is what makes "the unit is per second" more than
+    /// an inference (Q39).</para>
+    /// </summary>
     [Fact]
     public void TheVaultTerrainFixture_MatchesTheInstall()
     {

@@ -537,3 +537,88 @@ CREATURES record, where no offset holds the Imp's 7 against the Horned Reaper's
 reported 2000. Writing it in would be a second hardcoded constant with no file to
 check it against, which is exactly the thing the first exception was allowed to
 stay narrow. Q53, and it is the top of the research list.
+
+---
+
+## ADR-0022 — An imp costs mana to keep, and the number was on the spell
+
+**Date.** 2026-08-30. **Status.** Accepted. **Supersedes** the closing paragraph
+of ADR-0021, which said this could not be built.
+
+**Context.** ADR-0021 ended by naming the largest hole in the economy: DK2
+charges a keeper about 7 mana a second for every imp they have, and this
+simulation charged nothing, so a keeper here could buy imps until the map was
+full. It was left unimplemented on the stated grounds that **the 7 was in no file
+we parse** — writing it into simulation code would have been a balance constant
+with nothing to check it against.
+
+Both halves of that blocker have now gone, in that order:
+
+1. **The owner measured it.** Two screenshots of the mana orb: four imps read
+   **−28**, and after summoning a fifth, **−35**. Seven a second per imp, and two
+   readings rather than one, so the *unit* is confirmed too.
+2. **The field was found**, once the search could be anchored on a number that
+   was known rather than quoted. It is not on the creature — a rescan of all 5449
+   bytes of the CREATURES record found four offsets holding the Imp's 7 and every
+   one of them is an ArtResource frame count, an array-length header or
+   uninitialised padding. It is on the **spell**: `KeeperSpells.kwd` offset
+   **0x00E2**.
+
+**Decision.**
+
+- **`KwdKeeperSpells` parses two fields of the 406-byte KEEPERSPELLS record** and
+  no more: the cast cost at 0x11C and the per-second upkeep at 0x00E2. Parsing a
+  record badly is worse than not parsing it; the other 400 bytes wait for M7.
+- **The upkeep offset is accepted on structure, not on the anchor.** It reads
+  non-zero for exactly the five spells whose result persists — Create Imp 7,
+  Summon Horny 2000, Call To Arms 90, Possession 25, OneShotReaper 125 — and zero
+  for all eight instantaneous ones. A spell that is over when it lands has
+  nothing to keep. **And the column carries its own second anchor**: 2000 is the
+  community's Horned Reaper figure, which had been the right number in the wrong
+  record all along.
+- **Income and upkeep stay separate through the whole calculation** rather than
+  being netted first. The original shows them separately, and
+  `MaximumManaGainPerSecond` (500) caps only the income — netting first would let
+  a big enough workforce raise a keeper's income cap, which is nonsense.
+- **Every imp is charged, including the free four.** The owner's starting
+  complement drains 28. The floor is free to fill and not free to keep, and that
+  is the pressure the imp economy is built on.
+- **Mana floors at zero and nothing else happens.** What the original does when a
+  keeper cannot pay is UNKNOWN (Q57); `InsufficientManaImpEvaluationPeriodSeconds`
+  (10) says *something* does, and guessing it would put imps in graves DK2 might
+  not.
+- **Keeper spells are keyed by their data-file name**, via `KeeperSpellName`,
+  because the record's id field has not been identified and inventing an ordinal
+  from record order would break silently if the shipped order ever differed.
+
+**Consequences.**
+
+- **ADR-0021's admitted exception is gone.** `CreateImpBaseCost` is a lookup now.
+  Chasing the upkeep into `KeeperSpells.kwd` forced the parser to exist, so the
+  hardcoded 1500 lasted exactly one session — which is the right lifetime for an
+  exception granted on the promise that it would.
+- **A synthetic database must now supply keeper spells.** Three test fixtures
+  gained a Create Imp definition. `GameDatabase.RequireKeeperSpell` throws with
+  the missing name in the message, which is the same loud-at-the-seam convention
+  the balance variables use, and it is how the third fixture was found.
+- **`GameDatabase`'s constructor takes spells as an optional last parameter**, so
+  data that has none still loads. `KeeperSpell` returns null; only
+  `RequireKeeperSpell` throws.
+- **The pinned determinism hash did not move**, correctly: `TestWorld` has no
+  workers and no mana-generating terrain, so there is nothing for the upkeep to
+  charge. No `HashVersion` bump — no hashed field changed shape.
+
+**Still not decided.** What a trap draws (Q59 — confirmed to exist, unmeasured,
+`Traps.kwd` unparsed); whether possession really drains 25 (Q58 — the data
+disagrees with itself and with the owner); and what happens at zero mana (Q57).
+
+**Amended the same day, from a third screenshot.** The first cut of
+`ApplyOneSecond` clamped income to the ceiling and *then* charged upkeep. The
+owner then photographed a keeper at full mana: the counter reads exactly
+**200000** while the orb shows **+400** and **−297**. Under the first ordering
+that keeper would sit permanently at 199703. So the ceiling sees the **net**,
+and the order is: cap the income at `MaximumManaGainPerSecond`, subtract upkeep,
+then clamp to the threshold. The separation of the two figures still matters —
+it just matters for the income cap and not for the ceiling. A detail that would
+have been chosen rather than known if a screenshot had not caught it, and the
+kind of thing nobody would have noticed for a long time.

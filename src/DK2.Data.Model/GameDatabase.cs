@@ -19,12 +19,15 @@ public sealed class GameDatabase
         IEnumerable<TerrainDef> terrain,
         IEnumerable<RoomDef> rooms,
         IEnumerable<CreatureDef> creatures,
-        GlobalVariables variables)
+        GlobalVariables variables,
+        IEnumerable<KeeperSpellDef>? keeperSpells = null)
     {
         Terrain = terrain.ToDictionary(t => t.TerrainId);
         Rooms = rooms.ToDictionary(r => r.RoomId);
         Creatures = creatures.ToDictionary(c => c.CreatureId);
         Variables = variables;
+        KeeperSpells = (keeperSpells ?? []).ToDictionary(
+            s => s.Name, StringComparer.OrdinalIgnoreCase);
 
         // Lowest room id wins a shared terrain id. In the shipped data no two
         // rooms share one — RoomsOnRealDataTests asserts that — so the tie-break
@@ -51,6 +54,23 @@ public sealed class GameDatabase
     public IReadOnlyDictionary<byte, CreatureDef> Creatures { get; }
     public GlobalVariables Variables { get; }
 
+    /// <summary>
+    /// The keeper spells, by the name the data file gives them.
+    ///
+    /// <para><b>Keyed by name, unusually.</b> Everything else here is keyed by
+    /// the id the record carries; the KEEPERSPELLS record's id field has not
+    /// been identified, and inventing an ordinal from record order would break
+    /// silently if the shipped order ever differed. The names are the file's own
+    /// internal ASCII, not the localised display strings (those live behind a
+    /// string id), so they are as stable as an id would be. See Q55.</para>
+    ///
+    /// <para>Empty on a synthetic database that does not supply spells, which is
+    /// why <see cref="KeeperSpell"/> returns null rather than throwing: a caller
+    /// that genuinely needs one says so with
+    /// <see cref="RequireKeeperSpell"/>.</para>
+    /// </summary>
+    public IReadOnlyDictionary<string, KeeperSpellDef> KeeperSpells { get; }
+
     /// <summary>Global rule value by id — the simulation's only source of balance numbers.</summary>
     public int this[VariableTypeId id] => Variables[id];
 
@@ -71,6 +91,25 @@ public sealed class GameDatabase
     public CreatureDef CreatureById(byte id) => Creatures.TryGetValue(id, out CreatureDef? c)
         ? c
         : throw new KeyNotFoundException($"No CREATURES definition with id {id}.");
+
+    /// <summary>The named keeper spell, or null if this database has none.</summary>
+    public KeeperSpellDef? KeeperSpell(string name) =>
+        KeeperSpells.TryGetValue(name, out KeeperSpellDef? s) ? s : null;
+
+    /// <summary>
+    /// The named keeper spell, or a throw naming what is missing.
+    ///
+    /// Deliberately loud, and for the reason recorded in docs/HANDOFF.md: a rule
+    /// that starts reading a new piece of the database breaks every synthetic
+    /// database that does not supply it, and it should break at the seam with a
+    /// name in the message rather than quietly behaving differently in tests
+    /// than it does on the real data.
+    /// </summary>
+    public KeeperSpellDef RequireKeeperSpell(string name) =>
+        KeeperSpell(name) ?? throw new KeyNotFoundException(
+            $"No KEEPERSPELLS definition named '{name}'. This database carries " +
+            $"{KeeperSpells.Count} keeper spells; a synthetic one built for a test " +
+            "must supply the spells the rules under test read.");
 
     /// <summary>Look up a creature by its data-file name, case-insensitively.</summary>
     public CreatureDef? CreatureByName(string name) =>

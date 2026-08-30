@@ -31,7 +31,24 @@ internal static class TestWorld
         ],
         rooms: [],
         creatures: [],
-        variables: Variables());
+        variables: Variables(),
+        keeperSpells: KeeperSpells());
+
+    /// <summary>
+    /// The keeper spells a registered system reads. Only Create Imp, because
+    /// only Create Imp is read: <see cref="ImpSupplyRules"/> takes its cast cost
+    /// and <see cref="ManaRules"/> takes the per-second upkeep every imp then
+    /// charges its keeper.
+    ///
+    /// <para>Both numbers are DK2's own — 1500 to cast, 7 a second to keep — for
+    /// the same reason the variables below are: a made-up figure here would be a
+    /// made-up figure inside a determinism hash. `KeeperSpellsOnRealDataTests`
+    /// reads both back out of the shipped file so these cannot drift from it.</para>
+    /// </summary>
+    private static KeeperSpellDef[] KeeperSpells() =>
+    [
+        new() { Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7 },
+    ];
 
     /// <summary>
     /// Only what a system would throw without. `GameDatabase` refuses to invent

@@ -20,8 +20,10 @@ Implemented by `DK2.Simulation.ImpSupplyRules`,
 | Create Imp costs 1500 mana | **CONFIRMED** — owner, and it is the cost on DK2's own Create Imp record |
 | The cost rises by 1500 each time, and falls back when imps die | **CONFIRMED** (Q54) — the free four are free, and the price is a function of the imps a keeper has, not of what they have bought |
 | Imps are created at the dungeon heart | **STRONGLY INFERRED** — and a keeper without one has already lost (Q40) |
-| **Imps cost about 7 mana a second each to keep** | **STRONGLY INFERRED, NOT IMPLEMENTED** — Q53, and the number is in no file we parse |
-| Traps draw mana continuously | **REPORTED, not investigated** — Q53 |
+| **Imps cost 7 mana a second each to keep** | **CONFIRMED and IMPLEMENTED** (Q53) — owner measured 28 at four imps and 35 at five, and 7 is the upkeep on DK2's own Create Imp record |
+| Traps draw mana continuously | **CONFIRMED, not implemented** (Q59) — owner watched the red figure rise per trap built; how much per trap is unmeasured |
+| A claimed mana vault is worth +100 a second | **CONFIRMED** (Q37b) — owner, and `TerrainDef.ManaGain` for Claimed Vault is 100. Already implemented; nothing changed |
+| Possession drains 25 a second | **DISPUTED** (Q58) — the data says 25, `ManaCostInFirstPersonPerSecond` says 5, and the owner saw no drain at all |
 | Whether the free-imp clock runs while a keeper is at full strength | **UNKNOWN** (Q56) — ours runs only while short |
 
 ---
@@ -117,77 +119,126 @@ nothing and rebuilds the rest from the cheap end of the curve.
 
 ## The drain — what mana is actually for
 
-**This is the open question that matters**, and it started with a screenshot. The
-mana orb in DK2 shows two rates beneath the counter, one green and one red. The
-owner's screenshot of a level-1-ish dungeon showed roughly **+53 and −28**, and
-the tooltip read `Mana held: 15081 / 200000` — which incidentally put Q37's flat
-ceiling on screen.
+**This was the open question that mattered, and it is now answered and built.**
+It started with a screenshot. The mana orb in DK2 shows two rates beneath the
+counter, one green and one red. The owner's screenshot of an early dungeon
+showed roughly **+53 and −28**, and the tooltip read `Mana held: 15081 / 200000`
+— which incidentally put Q37's flat ceiling on screen.
 
-Nothing in this simulation drains mana at all. So what is the 28?
+Nothing in this simulation drained mana at all. So what was the 28?
 
-**Community answer: imps cost 7 mana a second each.** Two independent search
-results agree, and one of them carries a cross-check that is not circular — the
-Receive Imps special grants ten imps and is described as raising consumption by
-**70 a turn**, which is 7 × 10 and matches our own parsed
-`SpecialReceiveImpsAmount` of 10.
+### The measurement
 
-**And the arithmetic lands on the screenshot.** A keeper's starting complement is
-four imps. 4 × 7 = **28**. That is a third line of evidence, independent of the
-community source and of the data, arriving at the same number.
+The owner settled it with two frames of the same dungeon:
 
-Together with `InsufficientManaImpEvaluationPeriodSeconds` — a variable that only
-makes sense in a game where imps cost mana — that is enough to call the mechanic
-STRONGLY INFERRED.
+| | imps | green | red |
+|---|---|---|---|
+| before | 4 | +150 | **−28** |
+| after summoning one | 5 | +150 | **−35** |
 
-### Why it is not implemented
+**Seven a second, per imp.** One reading would have given the rate; two give the
+*unit* as well, because a per-imp charge is the only reading under which the
+figure moves by exactly one imp's worth when exactly one imp is added.
 
-**The 7 is in no file we can read.** Searched:
+The same pair of frames confirmed two more things for free. The second shot's
+tooltip reads **"Create Imp. Spell Grade 1. Mana Cost 3000"** with five imps on
+the roster, which is `1500 × (5 − 4 + 1)` — the escalation formula of Q54,
+photographed. And the arithmetic between the frames closes: mana went 2684 →
+2369 across a 1500 spend, so the keeper *gained* **1185**; at +122/s before the
+cast and +115/s after that is between 9.7 and 10.3 seconds, and the HUD clock in
+the two frames reads 38 and 28. Two numbers measured for different reasons agree
+to within a rounding error (Q39).
 
-- the balance table: no variable holds 7 in any imp- or mana-related role
-  (the four that hold 7 are gathering and reporting distances, and a chase
-  duration);
-- the CREATURES record: **no offset holds the Imp's 7 against the Horned Reaper's
-  reported 2000**, which is the test that would have found a per-creature mana
-  upkeep field. Two independent anchors, and nothing matches both.
+### Where the 7 lives — and why it took so long to find
 
-So implementing it means writing 7 into simulation code, and this project treats
-a hardcoded balance constant as a bug. There is exactly one such exception in the
-codebase — Create Imp's 1500 — and it earns its place by being read back out of
-the real file by a test. 7 cannot be, because there is no file to read it from.
+**It is not on the creature.** That assumption cost a session. An upkeep charged
+per imp ought to sit on the CREATURES record, and a scan of all 5449 bytes of it
+for an offset holding the Imp's 7 finds four candidates and not one of them is a
+cost:
 
-**What would settle it**, cheapest first:
+| offset | what it actually is |
+|---|---|
+| 0x0311, 0x0312 | inside an ArtResource block — 0x0314 onward is the animation's ASCII name, and the Imp's slot in this one is empty |
+| 0x0E08 | reads 7 for **all 46 creatures**, immediately before an array of (spell-id, percent) pairs: an array-length header |
+| 0x0EBF | a scattered category flag (Imp, Vampire, Skeleton, Horny, Stone Knight…) |
+| 0x1333 | `0xCD` filler — uninitialised memory |
 
-1. **Two screenshots.** Note the red figure with four imps, summon a fifth, and
-   note it again. 28 → 35 confirms 7 per imp and confirms the reading is per
-   second. Anything else is more interesting still.
-2. **Where the number lives.** If it is per creature it is in CREATURES at an
-   offset we have not identified; if it is global it is in one of the four
-   `Unknown_*` variables (17, 61, 62, 63, 233) or in a variable whose name we
-   have misread. A second anchor — what a Horned Reaper actually drains, measured
-   rather than quoted — would find it the same way the Create Imp cost was found.
-3. **Traps.** The owner reports traps draw mana continuously as well as per
-   trigger. `Traps.kwd` is 16 records over 9264 bytes and is unparsed; the same
-   anchor-and-scan that found the spell costs would find a trap's mana field, but
-   it needs a known number to anchor on.
+It is not in the balance table either: the only four variables holding 7 are two
+reporting distances, a gathering distance and a chase duration, and none of the
+five `Unknown_*` variables is 7.
 
-### What its absence costs
+**It is on the spell.** `KeeperSpells.kwd`, offset **0x00E2** of the 406-byte
+record:
 
-A dungeon full of imps is free to run here and is not free in the original. That
-is not a rounding error — it is the whole reason a DK2 keeper cannot simply buy
-imps until the map is full, and it is why `InsufficientManaImpEvaluationPeriodSeconds`
-exists. Every scenario run that earns mana now says so.
+```
+  Create Imp         7      Sight Of Evil   0     Turncoat      0
+  Possession        25      Heal            0     Tremor        0
+  Call To Arms      90      Thunderbolt     0     Inferno       0
+  OneShotReaper    125      Chicken         0
+  Summon Horny    2000      Create Gold     0
+```
+
+**Non-zero for exactly the five spells whose result persists; zero for all eight
+instants.** A spell that is over the moment it lands has nothing to keep, and
+every one of them reads zero. No offset picked at random behaves like that.
+
+And the column carries **its own second anchor**: 2000 for Summon Horny is the
+figure the community reports for a Horned Reaper's drain, arrived at with no
+reference to this file — and it is the very number whose absence from CREATURES
+was the stated reason for not implementing this. It was on the spell all along,
+sitting beside the answer.
+
+### What it changed
+
+Implemented as `ManaRules.ImpUpkeepPerSecond` and
+`ManaRules.UpkeepPerSecondByPlayerIndex` (ADR-0022). Income and upkeep are kept
+apart all the way through rather than netted, because the original shows them
+apart and because `MaximumManaGainPerSecond` (500) caps only the income half —
+netting first would let a large enough workforce raise a keeper's income cap.
+
+Every imp is charged, **including the free four**: the owner's starting
+complement drains 28, so the floor is free to fill and not free to keep. That is
+the pressure the whole imp economy is built on, and its absence is why a keeper
+here could previously buy imps until the map was full.
+
+**It also closed the project's last hardcoded balance constant.** Chasing the
+upkeep into `KeeperSpells.kwd` forced a parser to exist, and `CreateImpBaseCost`
+became a lookup in the same change. The exception granted to that 1500 lasted
+exactly one session, which is the right lifetime for an exception.
+
+### What is still open
+
+- **Q57 — what happens when a keeper cannot pay.** Ours floors mana at zero and
+  carries on. `InsufficientManaImpEvaluationPeriodSeconds` (10) says the original
+  re-evaluates imps on a ten-second clock when mana is short; the obvious guess
+  is that imps start dying, and it is a guess.
+- **Q58 — possession.** The data says 25 a second and the owner saw no drain at
+  all. `ManaCostInFirstPersonPerSecond` says 5, so the data disagrees with itself
+  before it disagrees with the observation. The likely explanation is that the
+  mana orb is not on screen in first person, which would make the observation an
+  absence of HUD rather than an absence of drain — but nothing here depends on
+  it, and possession arrives at M7.
+- **Q59 — traps.** CONFIRMED by the owner: spike traps and sentry cannons each
+  raised the red figure when built, so a trap is a standing charge and not only a
+  per-trigger cost. `Traps.kwd` is 16 records over 9264 bytes and unparsed. One
+  measured trap would anchor the same scan that found this — `dk2tools kwd
+  recscan Traps.kwd <n>` exists for it.
+- **The other four upkeeps.** Summon Horny's 2000 a second and Call To Arms' 90
+  are parsed and read by nothing, because neither spell exists (M7).
 
 ---
 
 ## What is not implemented, and is not guessed at
 
-**Imp upkeep**, above. The largest gap in the mana economy.
-
 **Everything else that spends mana.** Create Imp is the only spell implemented,
 because it is the only one whose effect is a mechanic that already exists.
-Possession, Call to Arms, Sight of Evil and the rest arrive at M7 with the
-SPELLS record; `KeeperSpells.kwd` is unparsed and its 0x11C is the only field
-anybody here has identified.
+Possession, Call to Arms, Sight of Evil and the rest arrive at M7. Two fields of
+`KeeperSpells.kwd` are parsed now - the cast cost at 0x11C and the upkeep at
+0x00E2 - which means the upkeeps of the four other persistent spells are sitting
+in the database being read by nothing, waiting for the spells themselves.
+
+**What traps draw** (Q59). Confirmed to exist, unmeasured, and `Traps.kwd` is
+unparsed.
 
 **Death.** `WorldState.RemoveCreature` exists so that an imp count can fall and
 the floor can be seen to work, and nothing calls it. Dying in DK2 is a process —
@@ -218,12 +269,42 @@ read.
 4. The mana drain was researched on the owner's request. The community figure of
    7 mana per imp per turn was cross-checked against the Receive Imps special
    (10 imps, +70) and against the owner's screenshot (4 imps, −28).
-5. The CREATURES record was then scanned for an offset holding the Imp's 7 and
-   the Horned Reaper's reported 2000. **Nothing matched**, which is why the
-   figure is recorded rather than implemented.
+5. The CREATURES record was scanned for an offset holding the Imp's 7 *and* the
+   Horned Reaper's reported 2000. **Nothing matched**, so the figure was recorded
+   rather than implemented, and the mechanic sat unbuilt for a session.
+6. The owner then measured it properly: two screenshots, **four imps at −28 and
+   five at −35**. That turned 7 from a community claim into a confirmed number
+   and, more usefully, removed the need for the second anchor.
+7. CREATURES was rescanned with **7 as the sole anchor**, on the theory that the
+   unverified 2000 had been the half that poisoned the search. It had not: all
+   four Imp=7 offsets turned out to be an ArtResource frame count, an
+   array-length header and uninitialised padding. **A complete negative** — the
+   upkeep is not on the creature.
+8. `KeeperSpells.kwd` was scanned instead, anchored on Create Imp. **Offset
+   0x00E2 held 7**, and the column held 2000 for Summon Horny — the community's
+   Horned Reaper figure, which had been the right number in the wrong record all
+   along. Zero for all eight instantaneous spells, non-zero for all five
+   persistent ones.
+9. Implemented, with `KwdKeeperSpells` parsing both 0x00E2 and 0x11C, which also
+   retired the project's last hardcoded balance constant.
+
+**The lesson worth keeping.** Step 5 failed because it required *two* things to
+be true, and one of them was a forum post. A search that will only report success
+on an unverified premise cannot report a useful failure — it had, in fact, found
+nothing because it was looking in the wrong file, and the bad anchor hid that.
+One measured number (step 6) let the same technique run on one leg, and the
+negative it produced was then trustworthy enough to act on. **Anchor a scan on
+what you measured, and use the community figure to confirm the hit, never to
+qualify it.**
+
+The tooling from steps 7 and 8 was kept: `dk2tools kwd creaturescan`,
+`kwd creaturehex` and the general `kwd recscan <file> <value> [record]`. The
+last is what `Traps.kwd` needs (Q59).
 
 Sources for step 4, both community rather than data:
 [Dungeon Keeper Wiki — Mana](https://dungeonkeeper.fandom.com/wiki/Mana),
 [GameFAQs — mana upkeep](https://gamefaqs.gamespot.com/boards/176198-dungeon-keeper-2/43507970).
-Treated as leads to verify, not as facts: nothing from either is implemented, and
-what was checkable against our own data (the Receive Imps count) checked out.
+Treated as leads to verify, not as facts. Both turned out to be right, and
+neither was believed until the file said so: the imp figure was confirmed by
+measurement first and by DK2's own record second, and the Horned Reaper figure
+arrived as corroboration once the offset was already found.

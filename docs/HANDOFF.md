@@ -10,8 +10,8 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
-five record types M1 needed are done. **266 tests green** with and without a DK2
-install; nine scenarios run; clean tree. (Core 14, Simulation 155, Data 41, Behavior 56.)
+five record types M1 needed are done. **278 tests green** with and without a DK2
+install; nine scenarios run; clean tree. (Core 14, Simulation 163, Data 41, Behavior 60.)
 
 > ### ⚠ Read this first: three sittings of owner answers, 2026-08-29 and 30
 >
@@ -40,10 +40,10 @@ install; nine scenarios run; clean tree. (Core 14, Simulation 155, Data 41, Beha
 > - **Q43** — three imps a face, twelve a block, and a fourth goes elsewhere;
 >   ours converge without limit.
 > - **Q52** — the dungeon heart holds 16000, not 25000. Needs room instances.
-> - **Q53** — **imps cost ~7 mana a second each and ours cost nothing.** This is
->   the biggest hole in the economy: it is why a DK2 keeper cannot buy imps until
->   the map is full. NOT implemented because the 7 is in no file we parse — see
->   below, it is the top of the research list.
+> - ~~**Q53**~~ — **FIXED.** Imps cost 7 mana a second each, measured by the owner
+>   and then found on DK2's own Create Imp spell record (ADR-0022). This was the
+>   biggest hole in the economy, and closing it retired the last hardcoded
+>   balance constant with it.
 >
 > **The lesson, now step 0 of the research method: ask the owner — and when the
 > question is quantitative, ask for the quantity by name.** "How much gold per
@@ -63,10 +63,12 @@ Three honest caveats:
   `TimeBeforeFreeImpGeneratedSeconds`, and can buy more with Create Imp at 1500
   mana rising by 1500 each time. And **a room does nothing**: a treasury and a dungeon heart hold gold
   because a variable says how much per tile; every other room is inert terrain
-  its owner holds. **Mana is now spent** - by Create Imp, and by nothing else; and
-  more importantly **nothing DRAINS it**, where DK2 charges about 7 a second per
-  imp (Q53). That is the biggest hole in the economy and the number is in no file
-  we parse. And **losing a dungeon heart is defeat in DK2 and
+  its owner holds. **Mana is now spent AND drained** - Create Imp costs 1500 to cast and
+  every imp charges its keeper 7 a second to keep (Q53, ADR-0022), which is the
+  red figure under the original's mana orb. What is still missing from the
+  outgoings: every other keeper spell (a summoned Horned Reaper is 2000 a second
+  and Call To Arms 90, both parsed and read by nothing until M7), research, and
+  what traps draw - confirmed to exist and unmeasured (Q59). And **losing a dungeon heart is defeat in DK2 and
   defeat is not implemented**: a keeper whose heart is beaten down here stops
   earning its 30 a second and plays on (Q40, scheduled with objectives at M6).
 - M1's stated definition of done was "all 18 record types round-trip". Five are
@@ -183,9 +185,10 @@ to miss.
 | `scenarios/imps/` | Two imps digging a corridor from nothing but a tag command. |
 | `docs/research/tile-work.md` | The tile rules: evidence, confidence tags, three anomalies. |
 | `docs/research/imp-tasks.md` | The worker: evidence, what is inferred, what is deliberately absent. |
-| `src/DK2.Simulation/ImpSupplyRules.cs` | Where imps come from and what they cost. Holds the project's **only** hardcoded balance constant (Create Imp's 1500) and says why. |
+| `src/DK2.Simulation/ImpSupplyRules.cs` | Where imps come from and what they cost. Both numbers are lookups; the project has no hardcoded balance constants. |
+| `src/DK2.Data/Kwd/KwdKeeperSpells.cs` | Two fields of a 406-byte record nobody has a template for - the cast cost (0x11C) and the per-second upkeep (0x00E2) - and a long note on why those two offsets are believable. |
 | `src/DK2.Simulation/Systems/ImpSupplySystem.cs` | Free imps up to the floor, bought imps on command. The first system that spends mana. |
-| `tests/DK2.Behavior.Tests/KeeperSpellsOnRealDataTests.cs` | Reads the 1500 back out of `KeeperSpells.kwd` so the constant cannot drift, and re-validates the offset across all 13 spells. |
+| `tests/DK2.Behavior.Tests/KeeperSpellsOnRealDataTests.cs` | Makes both unparsed-record offsets earn their place: 13 plausible costs, and an upkeep column that is non-zero for exactly the five spells whose result persists. |
 | `scenarios/imps/a_keeper_never_runs_out_of_imps.yaml` | The imp economy end to end on a campaign map. |
 | `docs/research/imps-and-mana.md` | Imps, the Create Imp price, and **the mana drain research** — the biggest open hole. |
 | `docs/research/observation-checklist.md` | **Hand this to the owner.** Every open question a person playing DK2 can settle by looking, as experiments — and which ones playing cannot settle. |
@@ -211,23 +214,22 @@ questions into ordinary implementation work, and that work now comes before the
 Unity view, because every one of them is a behaviour a renderer would display
 incorrectly.
 
-**Where to pick up, 2026-08-30.** Two of the original five known defects are
-built (Q31 the gold carrier, Q47 the work rate) and the imp economy landed on top
-of them. What is left, in the order it is worth doing:
+**Where to pick up, 2026-08-30 (third sitting).** Three of the original five
+known defects are built — Q31 the gold carrier, Q47 the work rate, and now Q53
+the imp mana upkeep. What is left, in the order it is worth doing:
 
-0. **Q53 — imp mana upkeep. RESEARCH FIRST, and it is the most valuable thing on
-   this list.** DK2 charges about 7 mana a second per imp; ours charge nothing,
-   which is why a keeper here can buy imps until the map is full and a keeper in
-   the original cannot. The mechanic is STRONGLY INFERRED from three converging
-   lines (community figure, its Receive-Imps cross-check against our own parsed
-   `SpecialReceiveImpsAmount` of 10, and the owner's screenshot showing −28
-   against four imps). **It is blocked on finding where the 7 lives**, because
-   writing it into the code would be a hardcoded balance constant with no file to
-   check it against. Two cheap unblockers, both in
-   `docs/research/imps-and-mana.md`: two screenshots (4 imps then 5, watching the
-   red figure) to confirm 7-per-imp-per-second; and a second anchor — what a
-   Horned Reaper actually drains — to run the same offset scan that found the
-   Create Imp cost.
+0. ~~**Q53 — imp mana upkeep.**~~ **DONE**, and worth reading how, because it is
+   the sharpest case this project has produced of a research method failing and
+   then working. It sat blocked for a session on "the 7 is in no file we parse",
+   which was true of the file being searched and false in general. The owner
+   measured it (two screenshots: four imps −28, five imps −35), and with a
+   *known* anchor instead of a quoted one the same scan produced a trustworthy
+   negative on CREATURES and then found the field on the **spell** —
+   `KeeperSpells.kwd` offset 0x00E2, non-zero for exactly the five spells whose
+   result persists, and holding 2000 for Summon Horny, which is the community's
+   Horned Reaper figure that had been the wrong half of the original search. See
+   ADR-0022 and `docs/research/imps-and-mana.md` §*How this was established*.
+   **It also retired the project's last hardcoded balance constant.**
 
 **Step 1, the gold carrier (Q31), is done** - see ADR-0019,
 `docs/research/rooms-and-gold.md` §*The round trip*, and
@@ -341,9 +343,12 @@ for this; Q47 in `open-questions.md` is the current statement.
 - **Imps come from a floor and a price** (ADR-0021). Below `MinimumImpThreshold`
   (4) a keeper gets one free every `TimeBeforeFreeImpGeneratedSeconds` (5);
   beyond it, Create Imp costs 1500 x (imps - 4 + 1), and the price FALLS BACK
-  when imps die. `ImpSupplyRules.CreateImpBaseCost` is the project's only
-  hardcoded balance constant and a real-data test reads it back out of
-  KeeperSpells.kwd (Q55).
+  when imps die. Both numbers are read from `KeeperSpells.kwd` (ADR-0022); the
+  hardcoded 1500 that ADR-0021 admitted lasted exactly one session.
+- **Every imp costs its keeper 7 mana a second to keep** (ADR-0022, Q53),
+  measured by the owner and read off DK2's own Create Imp record. Income and
+  upkeep are capped separately and clamped to the ceiling together - an order
+  fixed by a screenshot of a keeper pinned at exactly 200000 with +400 and -297.
 - Imps take jobs in a strict CONFIRMED order - marked excavation, then claiming,
   then reinforcing (ADR-0018, superseding ADR-0014). Carrying gold is NOT in that
   list: it is the tail of a mining job, not a job an imp chooses.
@@ -488,12 +493,17 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 56. The ones that gate progress:
+`docs/research/open-questions.md` holds all 61. The ones that gate progress:
 
-- **Q53 - imps cost mana to keep and ours do not.** The largest live question in
-  the economy. STRONGLY INFERRED at ~7 a second each from three converging lines;
-  blocked on finding where the 7 lives, because it is in neither the balance
-  table nor the CREATURES record. See `imps-and-mana.md`.
+- **Q53 is ANSWERED and built** (2026-08-30): 7 mana a second per imp, measured
+  by the owner and read off DK2's own Create Imp spell record (ADR-0022). Left in
+  this list for the method, which is in `imps-and-mana.md` §*How this was
+  established*: a scan anchored on a measured number produces a trustworthy
+  negative, and a scan anchored partly on a forum post does not.
+- **Q59 - what a trap draws.** Confirmed by the owner to be a standing charge per
+  trap, not only a per-trigger cost, and unmeasured. `Traps.kwd` is 16 records
+  over 9264 bytes and unparsed; one measured trap would anchor the same scan
+  (`dk2tools kwd recscan Traps.kwd <n>`) that found the spell upkeeps.
 - **Q47 is ANSWERED and built** (2026-08-30): 273 gold a swing put an application
   at a fifth of the tabled delta, five a second (ADR-0020). Left in this list
   only to say that `DigRockHealth` is now the sole thing in the tile mechanics

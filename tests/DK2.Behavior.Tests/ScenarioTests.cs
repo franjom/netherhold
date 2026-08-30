@@ -77,8 +77,11 @@ public class ScenarioTests
 
             Assert.Contains(result.Unsupported,
                 u => u.Contains("injected by the harness", StringComparison.Ordinal));
+            // Q47 turned this caveat from "the rate is unknown" into the
+            // narrower and now-true "the swing count is known, the wall clock
+            // is not". The assertion tracks the surviving half, Q1.
             Assert.Contains(result.Unsupported,
-                u => u.Contains("rate of work is UNKNOWN", StringComparison.Ordinal));
+                u => u.Contains("how long a second is in ticks is not", StringComparison.Ordinal));
         }
         finally
         {
@@ -399,7 +402,24 @@ public class ScenarioTests
         ],
         rooms: [SyntheticTreasury()],
         creatures: [Worker("Imp", 1)],
-        variables: Variables());
+        variables: Variables(),
+        keeperSpells: KeeperSpells());
+
+    /// <summary>
+    /// The keeper spells a registered system reads. Only Create Imp, because
+    /// only Create Imp is read: <see cref="ImpSupplyRules"/> takes its cast cost
+    /// and <see cref="ManaRules"/> takes the per-second upkeep every imp then
+    /// charges its keeper.
+    ///
+    /// <para>Both numbers are DK2's own — 1500 to cast, 7 a second to keep — for
+    /// the same reason the variables below are: a made-up figure here would be a
+    /// made-up figure inside a determinism hash. `KeeperSpellsOnRealDataTests`
+    /// reads both back out of the shipped file so these cannot drift from it.</para>
+    /// </summary>
+    private static KeeperSpellDef[] KeeperSpells() =>
+    [
+        new() { Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7 },
+    ];
 
     /// <summary>
     /// A stand-in treasury. It carries the real room id, because

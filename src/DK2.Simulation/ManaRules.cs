@@ -29,13 +29,22 @@ namespace DK2.Simulation;
 /// is what defeat <i>is</i>. So "per heart" and "per keeper who has one" are the
 /// same quantity, and no room-instance concept is needed to count it.</para>
 ///
-/// <para><b>What is not here.</b> Nothing spends mana yet, because no spell
-/// exists. And <see cref="TerrainDef.MaxManaGain"/> is read by nothing at all,
+/// <para><b>Mana also drains.</b> Every imp alive costs its keeper
+/// <see cref="ImpUpkeepPerSecond"/> — 7 a second, the upkeep on DK2's own Create
+/// Imp spell record — which is what the red figure under the mana orb is made
+/// of. CONFIRMED by the owner from two screenshots: four imps drain 28 and five
+/// drain 35 (Q53). Income and upkeep are kept apart rather than netted, because
+/// the original shows them apart and because <c>MaximumManaGainPerSecond</c>
+/// caps only the income half.</para>
+///
+/// <para><b>What is not here.</b> Only Create Imp's upkeep, of the five spells
+/// that carry one: a summoned Horned Reaper costs 2000 a second and Call To Arms
+/// 90, but neither spell exists yet (M7). Traps draw mana too — reported by the
+/// owner, not investigated. And <see cref="TerrainDef.MaxManaGain"/> is read by nothing at all,
 /// nor is <c>DungeonHeartMaxManaIncrease</c>: both look like contributions to a
 /// keeper's mana ceiling, and neither can be one, because the ceiling is 200000
-/// from the first second and never moves (CONFIRMED — Q37/Q37a). What they are
-/// instead has no candidate explanation left. <b>Neither may be used to justify
-/// a mana rule.</b> See docs/research/mana.md §"What is not implemented, and is
+/// from the first second and never moves (CONFIRMED — Q37/Q37a). <b>Neither may
+/// be used to justify a mana rule.</b> See docs/research/mana.md §"What is not implemented, and is
 /// not guessed at".</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/mana.md")]
@@ -147,26 +156,107 @@ public static class ManaRules
     }
 
     /// <summary>
-    /// One second of mana for one player: accrual up to the threshold, or drain
-    /// back down to it, and never both.
+    /// What one imp costs its keeper per second, for as long as it is alive.
+    ///
+    /// <b>CONFIRMED (2026-08-30, owner, Q53): 7.</b> The owner photographed the
+    /// mana orb with four imps and again with five; the red figure read 28 and
+    /// then 35. Both divide by 7 exactly, which fixes the rate and confirms the
+    /// unit is per second at the same time.
+    ///
+    /// <para><b>It is DK2's number, off the Create Imp spell record</b>, not a
+    /// constant written here — which is the whole reason this rule exists now
+    /// and did not before. The field was hunted for a long time in the wrong
+    /// place: an upkeep for a creature ought to be on the CREATURES record and
+    /// is not, and a scan of all 5449 bytes for the Imp's 7 turned up only an
+    /// ArtResource frame count, an array-length header and uninitialised
+    /// padding. It lives on the <i>spell</i>, and the giveaway is that the same
+    /// column holds 2000 for Summon Horny — the figure the community reports for
+    /// a Horned Reaper's drain, arrived at independently.</para>
+    /// </summary>
+    public static int ImpUpkeepPerSecond(GameDatabase database) =>
+        database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaUpkeepPerSecond;
+
+    /// <summary>
+    /// What every player pays per second to keep the imps they have, indexed to
+    /// match <see cref="WorldState.PlayerAtIndex"/>.
+    ///
+    /// <para>Charged for every imp, including the free ones a keeper never paid
+    /// for: the owner's four starting imps drain 28, so the floor is free to
+    /// fill and not free to keep. That is what stops a keeper buying imps until
+    /// the map is full, and it is the pressure the whole imp economy is built
+    /// around.</para>
+    /// </summary>
+    public static int[] UpkeepPerSecondByPlayerIndex(WorldState world, GameDatabase database)
+    {
+        var upkeep = new int[world.PlayerCount];
+        int perImp = ImpUpkeepPerSecond(database);
+        if (perImp == 0) return upkeep;
+
+        Span<int> indexOfOwner = stackalloc int[256];
+        indexOfOwner.Fill(-1);
+        for (int i = 0; i < world.PlayerCount; i++)
+            indexOfOwner[world.PlayerAtIndex(i).PlayerId] = i;
+
+        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            CreatureState creature = creatures[i];
+            int player = indexOfOwner[creature.OwnerPlayerId];
+            if (player < 0) continue;
+            if (database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker))
+                upkeep[player] += perImp;
+        }
+        return upkeep;
+    }
+
+    /// <summary>
+    /// One second of mana for one player: what their land earned, less what
+    /// their imps cost.
+    ///
+    /// <para><b>The two halves are separate for the income cap and netted for
+    /// the ceiling</b>, and both halves of that are observed rather than
+    /// chosen. <see cref="MaxGainPerSecond"/> caps the green figure alone, so
+    /// upkeep must not be subtracted before it — otherwise a big enough
+    /// workforce would raise a keeper's income cap. But the <i>ceiling</i> sees
+    /// the net: the owner's screenshot of a keeper at full mana reads exactly
+    /// 200000 with +400 and −297 on the orb, so income beating upkeep pins a
+    /// keeper at the top rather than parking them 297 short of it.</para>
+    ///
+    /// <para><b>Mana floors at zero</b>, and what the original does when a
+    /// keeper cannot pay is UNKNOWN. <c>InsufficientManaImpEvaluationPeriodSeconds</c>
+    /// (10) says something happens on a ten-second clock — the obvious guess is
+    /// that imps start dying — but guessing it would be inventing behaviour, so
+    /// a keeper here simply sits at zero. See Q57.</para>
     ///
     /// Returns the change actually applied, which is what the caller reports.
     /// </summary>
-    public static int ApplyOneSecond(GameDatabase database, ref PlayerState player, int gainPerSecond)
+    public static int ApplyOneSecond(
+        GameDatabase database, ref PlayerState player, int gainPerSecond, int upkeepPerSecond = 0)
     {
         int threshold = Threshold(database);
         int before = player.Mana;
+        long mana;
 
-        if (player.Mana > threshold)
+        if (before > threshold)
         {
-            // Above the ceiling nothing accrues, whatever the land is worth.
-            player.Mana = Math.Max(threshold, player.Mana - ExcessDrainPerSecond(database));
+            // Above the ceiling nothing accrues, whatever the land is worth;
+            // the excess bleeds off at its own rate and upkeep comes out too.
+            mana = Math.Max(threshold, (long)before - ExcessDrainPerSecond(database))
+                   - upkeepPerSecond;
         }
-        else if (gainPerSecond > 0)
+        else
         {
-            player.Mana = (int)Math.Min(threshold, (long)player.Mana + gainPerSecond);
+            // Netted, THEN clamped — in that order, and the order is observed
+            // rather than chosen. The owner's screenshot of a full treasury of
+            // mana reads exactly 200000 while the orb shows +400 and −297: a
+            // keeper whose income beats their upkeep sits pinned at the
+            // ceiling. Clamping the income first and taking upkeep afterwards
+            // would park them 297 below it for ever, which is a different and
+            // wrong-looking number.
+            mana = Math.Min(threshold, (long)before + gainPerSecond - upkeepPerSecond);
         }
 
+        player.Mana = (int)Math.Max(0, mana);
         return player.Mana - before;
     }
 }

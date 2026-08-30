@@ -32,16 +32,19 @@ public sealed class ManaSystem : ISimulationSystem
 
         WorldState world = context.World;
         int[] gain = ManaRules.GainPerSecondByPlayerIndex(world, context.Database);
+        int[] upkeep = ManaRules.UpkeepPerSecondByPlayerIndex(world, context.Database);
 
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(i);
-            int changed = ManaRules.ApplyOneSecond(context.Database, ref player, gain[i]);
+            int changed = ManaRules.ApplyOneSecond(context.Database, ref player, gain[i], upkeep[i]);
             if (changed == 0) continue;
 
+            // Both halves are reported, not just the net, because that is what
+            // the original puts on screen: a green figure and a red one.
             context.Emit(SystemName, changed > 0 ? "mana_gained" : "mana_drained",
                 $"player={player.PlayerId} amount={Math.Abs(changed)} " +
-                $"rate={gain[i]}/s total={player.Mana}");
+                $"rate={gain[i]}/s upkeep={upkeep[i]}/s total={player.Mana}");
         }
     }
 }

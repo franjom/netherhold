@@ -109,28 +109,59 @@ free; building it would have changed every timing in the game twice.
 Both are **implemented** — `ImpSupplySystem`, and the first thing in this project
 that spends mana rather than only earning it.
 
+## Answered on 2026-08-30, third sitting — the mana drain
+
+| Q | What was settled |
+|---|---|
+| **Q53** | **7 mana a second, per imp.** Two screenshots: four imps read −28, five read −35. Two readings rather than one, so the *unit* is confirmed as well as the rate — and it found the field, which a single reading would not have |
+| **Q39** | The rates are **per second**, to the unit. Between the two frames mana moved 2684 → 2369 across a 1500 spend, so the keeper gained 1185; at +122/s then +115/s that is 9.7–10.3 seconds, and the HUD clock moved from 38 to 28. Two numbers read for different reasons, agreeing |
+| **Q54** | Photographed rather than described: the second frame's tooltip reads **"Create Imp. Spell Grade 1. Mana Cost 3000"** with five imps, which is the implemented `1500 × (5 − 4 + 1)` |
+| **Q37b** | **A claimed mana vault is +100 a second.** Already implemented — `TerrainDef.ManaGain` for Claimed Vault is 100 — so nothing changed, but it is the first time the *size* of a mana rate has been checked against the game rather than only its sign |
+| **Q59** | **Traps draw mana continuously**, a standing charge per trap built and not only a cost per trigger |
+| **Q58** | Possession showed **no** continuous drain. Recorded as a disagreement, not an answer — see below |
+
+**Why the screenshots were worth so much more than a description.** The blocker
+was never "what is the rate", it was "where does the game keep it". A measured 7
+turned an offset scan from a search needing two unverified numbers to be true
+into one needing none — and the scan then said, trustworthily, *not in the
+creature record*, which is what pointed at the spell record. The field was found
+within minutes of the second screenshot arriving. See `imps-and-mana.md`
+§*How this was established*.
+
+---
+
 ## 1. Still open, and blocking
 
-### Q53 — what is the red number under the mana orb? — **the one that matters**
-Your screenshot showed roughly **+53 green and −28 red**, and nothing in this
-project drains mana at all. Three independent lines say the answer is **imps cost
-7 mana a second each**: the community figure, its own cross-check (the Receive
-Imps special grants 10 imps and adds 70 a turn — and our data does say that
-special grants 10), and your screenshot's 28 against four starting imps.
+### Q59 — how much mana does one trap draw? — **the new top of the list**
+You confirmed each trap raises the red figure. **What is missing is one number.**
+Note the red figure with no traps, build **one spike trap**, note it again. Then
+do the same for **one sentry cannon** — they will differ, and two values are much
+harder to fit by accident than one.
 
-**It is not implemented because the 7 is in no file we can read** — not the
-balance table, and not the CREATURES record, where no offset holds the Imp's 7
-against the Horned Reaper's reported 2000.
+That single number would anchor a scan of `Traps.kwd` (16 records over 9264
+bytes, unparsed) exactly as your 7 anchored the spell record, and the tool for it
+already exists.
 
-**Two screenshots would confirm it in a minute.** Note the red figure with four
-imps. Summon a fifth. Note it again. 28 → 35 confirms both the 7 and that the
-rate is per second. Anything else is more interesting still.
+### Q58 — does possession really cost nothing per second?
+You reported no continuous drain while possessing, and **the data disagrees with
+itself as well as with you**: the Create Imp scan turned up Possession = 25 a
+second on the spell record, while `ManaCostInFirstPersonPerSecond` in the balance
+table says 5.
 
-Two follow-ups if you fancy them: what does the red figure read while
-**possessing** a creature (`ManaCostInFirstPersonPerSecond` is 5, so it should
-jump by 5), and what does it read with **one armed trap** on the map versus none?
-A trap's mana field would then be findable in `Traps.kwd` the same way the spell
-costs were.
+The likely explanation is that the mana orb is not on screen in first person, so
+what you saw was the absence of the HUD rather than the absence of a drain — but
+that is a guess and it is written down as one. **To settle it:** note your mana
+total, possess a creature, stay in for a measured ~30 seconds, leave, and note it
+again. Compare against what your green rate alone would have earned. Nothing
+depends on this yet; possession arrives at M7.
+
+### Q57 — what happens when a keeper runs out of mana?
+New, and it exists because of the upkeep. Ours floors mana at zero and carries
+on, which is certainly not what DK2 does:
+`InsufficientManaImpEvaluationPeriodSeconds` (10) says the original re-evaluates
+imps on a ten-second clock when mana is short. **Do imps start dying? Do they
+stop working? Does the game just refuse to spend?** Buy a lot of imps on a small
+dungeon, spend down to nothing, and watch.
 
 ### Q35 — which treasury tile does an imp fill?
 The owner's belief is *nearest tile, spillover to another empty treasury tile,
@@ -205,8 +236,23 @@ dungeon or per creature?
 ## 3. Bigger, and worth it whenever you fancy
 
 ### Q45 — which rooms need a minimum size to work?
-You flagged temple ≈ 5×5. This is the shape of the answer for *every* room's
-behaviour, so even a partial list helps — pictures welcome.
+**Largely answered, and it turned out to be sitting in data we already parse.**
+Your graveyard note - "needs a minimum 3x3 so one grave appears" - matches
+`RoomDef.RecommendedSizeX/Y`, which says 3x3 for the Graveyard and 5x5 for the
+Temple, the size you had flagged earlier. Two matches from two sittings, neither
+made with the field in view. It is a badly named field: it is the size below
+which a room does nothing (Q45).
+
+**What would confirm it:** one more room checked against the table. It says
+Portal 3x3, Prison 5x5, Combat Pit 5x5, Crypt 5x5, and Treasury/Lair/Guard Room
+1x1 - so a **1x1 lair should work** and a **4x4 prison should not**.
+
+**And the open half is now Q60: how the yield scales above the minimum.** Your
+5x5 graveyard has 8 graves; the 3x3 minimum has 1. A 5x5 has nine tiles with all
+eight neighbours inside the room, and your screenshot shows a coffin in the
+middle with eight headstones round it, so the candidate rule is one grave per
+fully-interior tile less the centre. **A 4x4 or a 6x6 graveyard would settle it**
+- just the grave count off the tooltip.
 
 ### Q7 — the mood model, beyond the four causes
 The four causes are recorded. What is still missing is the shape: does anger

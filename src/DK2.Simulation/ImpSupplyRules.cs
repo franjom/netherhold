@@ -89,33 +89,27 @@ public static class ImpSupplyRules
     /// </summary>
     public static int CreateImpCost(WorldState world, GameDatabase database, byte playerId)
     {
-        int baseCost = CreateImpBaseCost;
+        int baseCost = CreateImpBaseCost(database);
         int over = ImpCount(world, database, playerId) - MinimumImps(database);
         return baseCost * (Math.Max(0, over) + 1);
     }
 
     /// <summary>
-    /// The Create Imp spell's own mana cost: <b>1500</b>, and it is DK2's number
-    /// rather than a chosen one.
+    /// The Create Imp spell's own mana cost: <b>1500</b> in the shipped data,
+    /// and read out of it rather than written here.
     ///
-    /// <para><b>A deliberate, single exception</b> to this project's rule that a
-    /// balance constant written into simulation code is a bug. The value comes
-    /// from <c>KeeperSpells.kwd</c>, which is a real record in the shipped data
-    /// but is <i>not parsed yet</i> — keeper spells arrive at M7. It was read at
-    /// offset 0x11C of the 406-byte spell record, and that offset is validated
-    /// structurally rather than trusted: it holds a plausible mana cost for all
-    /// thirteen spells (Possession 500, Create Imp 1500, Sight of Evil 5000,
-    /// Thunderbolt 6000, Call to Arms 10000, Chicken 10000, Create Gold 15000,
-    /// Turncoat 20000, Tremor 30000, Inferno 50000, Summon Horny 100000), and
-    /// Create Imp's 1500 is exactly the figure the owner measured in the game
-    /// without reference to the file.</para>
-    ///
-    /// <para>The constant goes when <c>KwdKeeperSpells</c> exists and this
-    /// becomes a lookup. Until then it is here, named, and pointed at by a test
-    /// that reads 1500 back out of the real install so that the two cannot
-    /// drift. See Q55.</para>
+    /// <para><b>This used to be the project's only hardcoded balance constant,
+    /// and it is not one any more.</b> It was a named exception for one session,
+    /// on the grounds that <c>KeeperSpells.kwd</c> was unparsed and 1500 could
+    /// only be had by reading the file by hand. Chasing the imp mana upkeep
+    /// (Q53) into the same record forced a parser to exist, so the exception
+    /// paid for itself and then closed: <see cref="KwdKeeperSpells"/> now reads
+    /// the cost at offset 0x11C, where all thirteen spells hold a plausible
+    /// price that ranks the way the game plays, and Create Imp's 1500 is exactly
+    /// what the owner measured in the original.</para>
     /// </summary>
-    public const int CreateImpBaseCost = 1500;
+    public static int CreateImpBaseCost(GameDatabase database) =>
+        database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaCost;
 
     /// <summary>
     /// Where a new imp appears: a walkable dungeon-heart tile belonging to this

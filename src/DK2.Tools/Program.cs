@@ -243,6 +243,168 @@ switch (args[0])
         return 0;
     }
 
+    // Offset hunting in a record we only partly understand. Give it a creature
+    // and a value measured in the original, and it prints every offset whose
+    // u8 / u16 / s16 reading holds that value for that creature, with the whole
+    // column beside it so the reading can be judged plausible across all of
+    // them. This is the technique that found the Create Imp mana cost in
+    // KeeperSpells.kwd; a single hit is luck, a whole column that ranks the way
+    // the game plays is not. See docs/research/imps-and-mana.md.
+    // Raw window onto the CREATURES record, for judging a candidate offset
+    // found by creaturescan. Prints the same byte range for every creature so a
+    // column can be read down.
+    // Generic offset hunt in a record type we do not parse. Give it a file and
+    // a number measured in the original, and it prints every offset whose
+    // u8/u16/s16/s32 reading holds that number in some record, with the whole
+    // column beside it. Optionally anchor on one record index. This is the
+    // technique that found the Create Imp mana cost at KeeperSpells 0x11C; a
+    // single hit is luck, a column that ranks the way the game plays is not.
+    case "kwd" when args.Length >= 4 && args[1] == "recscan":
+    {
+        string rpath = ResolveEditor(args[2]);
+        int target = int.Parse(args[3]);
+        int anchor = args.Length > 4 ? int.Parse(args[4]) : -1;
+
+        foreach (KwdChunk chunk in KwdReader.ReadFile(rpath))
+        {
+            if (chunk.ItemCount == 0 || chunk.Content.Length % chunk.ItemCount != 0) continue;
+            int size = chunk.Content.Length / chunk.ItemCount;
+            if (size < 8) continue;
+            Console.WriteLine($"chunk {chunk.Type}: {chunk.ItemCount} records of {size} bytes");
+
+            byte[] c = chunk.Content;
+            string Nm(int r)
+            {
+                int e = Array.IndexOf(c, (byte)0, r * size, Math.Min(32, size));
+                string s = System.Text.Encoding.ASCII.GetString(c, r * size, e < 0 ? 0 : e - r * size);
+                return s.Length > 1 && s.All(ch => ch >= 32 && ch < 127) ? s : $"[{r}]";
+            }
+            int hits = 0;
+            for (int off = 0; off < size; off++)
+            {
+                foreach ((string w, int n) in new[] { ("u8", 1), ("u16", 2), ("s16", 2), ("s32", 4) })
+                {
+                    if (off + n > size) continue;
+                    int Read(int rec)
+                    {
+                        int b = rec * size + off;
+                        return w switch
+                        {
+                            "u8" => c[b],
+                            "u16" => c[b] | (c[b + 1] << 8),
+                            "s16" => (short)(c[b] | (c[b + 1] << 8)),
+                            _ => c[b] | (c[b + 1] << 8) | (c[b + 2] << 16) | (c[b + 3] << 24),
+                        };
+                    }
+
+                    bool match = anchor >= 0
+                        ? Read(anchor) == target
+                        : Enumerable.Range(0, chunk.ItemCount).Any(r => Read(r) == target);
+                    if (!match) continue;
+
+                    hits++;
+                    Console.WriteLine($"0x{off:X4} {w,-3} : " + string.Join(" ",
+                        Enumerable.Range(0, chunk.ItemCount).Select(r => $"{Nm(r)}={Read(r)}")));
+                }
+            }
+            Console.WriteLine($"-- {hits} candidate offsets");
+        }
+        return 0;
+    }
+
+    case "kwd" when args.Length >= 4 && args[1] == "creaturehex":
+    {
+        int start = Convert.ToInt32(args[2], 16);
+        int count = int.Parse(args[3]);
+        string hpath = args.Length > 4
+            ? ResolveEditor(args[4])
+            : Path.Combine(Dk2Install.Require(), "Data", "editor", "Creatures.kwd");
+
+        foreach (KwdChunk chunk in KwdReader.ReadFile(hpath))
+        {
+            if (chunk.Type != KwdRecordType.Creatures) continue;
+            int size = chunk.Content.Length / chunk.ItemCount;
+            Console.Write($"{"creature",-20}");
+            for (int o = start; o < start + count; o++) Console.Write($" {o:X4}");
+            Console.WriteLine();
+            for (int i = 0; i < chunk.ItemCount; i++)
+            {
+                byte[] rec = chunk.Content[(i * size)..((i + 1) * size)];
+                int end = Array.IndexOf(rec, (byte)0, 0, 32);
+                string name = System.Text.Encoding.ASCII.GetString(rec, 0, end < 0 ? 32 : end);
+                Console.Write($"{name,-20}");
+                for (int o = start; o < start + count; o++) Console.Write($" {rec[o],4}");
+                Console.WriteLine();
+            }
+            break;
+        }
+        return 0;
+    }
+
+    case "kwd" when args.Length >= 4 && args[1] == "creaturescan":
+    {
+        string wanted = args[2];
+        if (!int.TryParse(args[3], out int target))
+        {
+            Console.Error.WriteLine($"'{args[3]}' is not a number");
+            return 2;
+        }
+
+        string spath = args.Length > 4
+            ? ResolveEditor(args[4])
+            : Path.Combine(Dk2Install.Require(), "Data", "editor", "Creatures.kwd");
+
+        var records = new List<(string Name, byte[] Bytes)>();
+        foreach (KwdChunk chunk in KwdReader.ReadFile(spath))
+        {
+            if (chunk.Type != KwdRecordType.Creatures) continue;
+            int size = chunk.Content.Length / chunk.ItemCount;
+            for (int i = 0; i < chunk.ItemCount; i++)
+            {
+                byte[] rec = chunk.Content[(i * size)..((i + 1) * size)];
+                int end = Array.IndexOf(rec, (byte)0, 0, 32);
+                string name = System.Text.Encoding.ASCII.GetString(
+                    rec, 0, end < 0 ? 32 : end);
+                records.Add((name, rec));
+            }
+            break;
+        }
+
+        int anchor = records.FindIndex(r =>
+            r.Name.Equals(wanted, StringComparison.OrdinalIgnoreCase));
+        if (anchor < 0)
+        {
+            Console.Error.WriteLine($"no creature named '{wanted}' in {records.Count} records");
+            return 2;
+        }
+
+        int len = records[anchor].Bytes.Length;
+        Console.WriteLine($"scanning {records.Count} records of {len} bytes for " +
+                          $"{records[anchor].Name} == {target}");
+
+        int hits = 0;
+        for (int off = 0; off < len; off++)
+        {
+            foreach (string width in new[] { "u8", "u16", "s16" })
+            {
+                if (width != "u8" && off + 1 >= len) continue;
+                int Read(byte[] r) => width switch
+                {
+                    "u8" => r[off],
+                    "u16" => r[off] | (r[off + 1] << 8),
+                    _ => (short)(r[off] | (r[off + 1] << 8)),
+                };
+
+                if (Read(records[anchor].Bytes) != target) continue;
+                hits++;
+                Console.WriteLine($"0x{off:X4} {width,-3} : " + string.Join(" ",
+                    records.Select(r => $"{r.Name}={Read(r.Bytes)}")));
+            }
+        }
+        Console.WriteLine($"-- {hits} candidate offsets");
+        return 0;
+    }
+
     case "kwd" when args.Length >= 2 && args[1] == "vars":
     {
         string path = args.Length > 2
@@ -290,5 +452,10 @@ static int Usage()
     Console.WriteLine("  wad extract <file.WAD> <entry> [out]   extract one entry");
     Console.WriteLine("  kwd chunks <file.kwd|kld>              list chunks of a KWD/KLD file");
     Console.WriteLine("  kwd vars [file.kwd]                    dump the global balance table");
+    Console.WriteLine();
+    Console.WriteLine("offset hunting in records we do not parse:");
+    Console.WriteLine("  kwd recscan <file.kwd> <value> [rec]   offsets holding a measured value, with the column");
+    Console.WriteLine("  kwd creaturescan <name> <value>        the same, anchored on one creature");
+    Console.WriteLine("  kwd creaturehex <offsetHex> <count>    raw byte window across every creature");
     return 1;
 }
