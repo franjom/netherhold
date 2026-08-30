@@ -21,7 +21,7 @@ Implemented by `DK2.Simulation.ImpSupplyRules`,
 | The cost rises by 1500 each time, and falls back when imps die | **CONFIRMED** (Q54) — the free four are free, and the price is a function of the imps a keeper has, not of what they have bought |
 | Imps are created at the dungeon heart | **STRONGLY INFERRED** — and a keeper without one has already lost (Q40) |
 | **Imps cost 7 mana a second each to keep** | **CONFIRMED and IMPLEMENTED** (Q53) — owner measured 28 at four imps and 35 at five, and 7 is the upkeep on DK2's own Create Imp record |
-| Traps draw mana continuously | **CONFIRMED, not implemented** (Q59) — owner watched the red figure rise per trap built; how much per trap is unmeasured |
+| Traps draw mana continuously | **CONFIRMED, field found, not implemented** (Q59) - five traps measured, and `Traps.kwd` offset 0x0202 reproduces all five. A trap is an object and arrives at M6 |
 | A claimed mana vault is worth +100 a second | **CONFIRMED** (Q37b) — owner, and `TerrainDef.ManaGain` for Claimed Vault is 100. Already implemented; nothing changed |
 | Possession drains 25 a second | **DISPUTED** (Q58) — the data says 25, `ManaCostInFirstPersonPerSecond` says 5, and the owner saw no drain at all |
 | Whether the free-imp clock runs while a keeper is at full strength | **UNKNOWN** (Q56) — ours runs only while short |
@@ -237,8 +237,9 @@ Possession, Call to Arms, Sight of Evil and the rest arrive at M7. Two fields of
 0x00E2 - which means the upkeeps of the four other persistent spells are sitting
 in the database being read by nothing, waiting for the spells themselves.
 
-**What traps draw** (Q59). Confirmed to exist, unmeasured, and `Traps.kwd` is
-unparsed.
+**What traps draw** (Q59). Confirmed, measured and located - `Traps.kwd`
+offset 0x0202, pinned by a real-data test - but not implemented, because a trap
+is an object and objects arrive at M6.
 
 **Death.** `WorldState.RemoveCreature` exists so that an imp count can fall and
 the floor can be seen to work, and nothing calls it. Dying in DK2 is a process —

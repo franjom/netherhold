@@ -132,36 +132,36 @@ within minutes of the second screenshot arriving. See `imps-and-mana.md`
 
 ## 1. Still open, and blocking
 
-### Q59 — how much mana does one trap draw? — **measured; the source is not in the data**
-You measured five: **Spike 5, Sentry 5, Fireburst 10, Freeze 10, Lightning 15**
-mana a second each. That opened `Traps.kwd` for the first time (16 records of 579
-bytes, names readable) and then **refuted the candidate it produced**, which is
-exactly what the fifth measurement was for.
+### Q59 — how much mana does one trap draw? — **ANSWERED and pinned**
+You measured five: **Spike 5, Sentry 5, Fireburst 10, Freeze 10, Lightning 25**.
+That is `Traps.kwd` offset **0x0202**, and the whole column comes with it:
 
-Offset **0x0202** matches four of your five exactly — Spike 5, Sentry 5,
-Fireburst 10, Freeze 10 — and predicts **25** for Lightning. You saw **15**.
+```
+  Gas 5     Fireburst 10    Guard Post 0      Hero Sentry 50
+  Boulder 5 Lightning 25    Magic Door 30     Hero Alarm 5
+  Sentry 5  Freeze 10       Spare Door 1 250  Jack In The Box 5
+  Alarm 5   Fear 5          Trigger 5         Spike 5
+```
 
-Four searches followed, all negative:
+**Guard Post reading zero is the column's own argument.** It is the only zero of
+the sixteen, and it is the one entry in TRAPS that is not a trap — it is a spot
+for a creature to stand on.
 
-- **no offset anywhere in the Lightning Trap's 579 bytes holds 15**, at any of
-  u8 / u16 / s16 / s32;
-- **no column is proportional to your (1, 1, 2, 2, 3)** at any scale from 1 to 20;
-- **`Shots.kwd`** — 65 records, and it names "Lightning Trap Shot" — holds no 15
-  for it either;
-- **`Objects.kwd`** has a "Crate Lightning" and that does not hold 15 either.
+**Worth recording how this went, because the detour was the useful part.** With
+only your first two traps measured, both read 5 — and *two* offsets fitted, one
+of which (0x0070) reads 5-or-6 for nearly everything and cannot be a cost. A
+second identical value cannot separate a real column from a coincidence. It was
+the **three-valued spread** that settled it, and briefly the fifth value looked
+like it refuted the whole column, which sent four further searches through
+`Shots.kwd`, `Objects.kwd` and the balance table before it turned out to fit
+after all. **Ask for values that differ from each other**, not more of the same.
 
-There is no global to fall back on: all thirteen balance variables equal to 5 are
-something else entirely. So the figure is computed from something not yet
-identified, or it lives in the executable.
+Pinned by `TrapsOnRealDataTests`. There is deliberately no `KwdTraps` parser:
+one understood field out of 579 bytes is not a parser, and traps are objects that
+arrive at M6 regardless.
 
-**One thing worth re-checking, and only one.** 0x0202 is otherwise a very good
-column and a single value separates it from dead. If you are near a Lightning
-Trap again, note the change once more. And two values far from 5/10/15 would
-settle it outright: **Magic Door** should be **+30** and a **Guard Post** should
-be **+0**.
-
-**This is banked either way** — traps are objects and arrive at M6 regardless, so
-nothing is blocked on it.
+**Two cheap confirmations left, both unmeasured predictions:** a **Magic Door**
+should be **+30**, and a **Guard Post** should move the red figure **not at all**.
 
 ### Q58 — does possession really cost nothing per second?
 You reported no continuous drain while possessing, and **the data disagrees with

@@ -10,8 +10,8 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
-five record types M1 needed are done. **280 tests green** with and without a DK2
-install; nine scenarios run; clean tree. (Core 14, Simulation 165, Data 41, Behavior 60.)
+five record types M1 needed are done. **288 tests green** with and without a DK2
+install; nine scenarios run; clean tree. (Core 14, Simulation 165, Data 41, Behavior 68.)
 
 > ### ⚠ Read this first: three sittings of owner answers, 2026-08-29 and 30
 >
@@ -500,10 +500,10 @@ caught real errors so far:
   this list for the method, which is in `imps-and-mana.md` §*How this was
   established*: a scan anchored on a measured number produces a trustworthy
   negative, and a scan anchored partly on a forum post does not.
-- **Q59 - what a trap draws.** Confirmed by the owner to be a standing charge per
-  trap, not only a per-trigger cost, and unmeasured. `Traps.kwd` is 16 records
-  over 9264 bytes and unparsed; one measured trap would anchor the same scan
-  (`dk2tools kwd recscan Traps.kwd <n>`) that found the spell upkeeps.
+- **Q59 is ANSWERED** (2026-08-30): a trap is a standing mana charge, and the
+  field is `Traps.kwd` offset 0x0202, confirmed against five owner measurements
+  across three distinct values and pinned by `TrapsOnRealDataTests`. Not
+  implemented, because a trap is an object and objects arrive at M6.
 - **Q47 is ANSWERED and built** (2026-08-30): 273 gold a swing put an application
   at a fifth of the tabled delta, five a second (ADR-0020). Left in this list
   only to say that `DigRockHealth` is now the sole thing in the tile mechanics
