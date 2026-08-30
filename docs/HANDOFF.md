@@ -10,8 +10,8 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
-five record types M1 needed are done. **296 tests green** with and without a DK2
-install; nine scenarios run; clean tree. (Core 14, Simulation 173, Data 41, Behavior 68.)
+five record types M1 needed are done. **299 tests green** with and without a DK2
+install; nine scenarios run; clean tree. (Core 14, Simulation 176, Data 41, Behavior 68.)
 
 > ### ⚠ Read this first: three sittings of owner answers, 2026-08-29 and 30
 >
@@ -34,10 +34,10 @@ install; nine scenarios run; clean tree. (Core 14, Simulation 173, Data 41, Beha
 > | **4 imps, 5s, 1500 mana** | The imp economy, and all three are named by DK2's own data (ADR-0021) |
 >
 > **Known defects with known answers — do not rediscover these:**
-> > - **Q44/Q42** — an imp stands *on* the floor tile it claims, not beside it, and
->   the ownership test belongs on that tile's neighbour.
-> - **Q43** — three imps a face, twelve a block, and a fourth goes elsewhere;
->   ours converge without limit.
+> > - **Q44/Q42** - an imp stands *on* the floor tile it claims, not beside it, and
+>   the ownership test belongs on that tile's neighbour. **The only defect from
+>   the original list still standing**, and it wants Q49 answered first so that
+>   repairing, attacking and filling in are not guessed at alongside it.
 > - **Q52** — the dungeon heart holds 16000, not 25000. Needs room instances.
 > - ~~**Q53**~~ — **FIXED.** Imps cost 7 mana a second each, measured by the owner
 >   and then found on DK2's own Create Imp spell record (ADR-0022). This was the

@@ -409,6 +409,125 @@ public class ImpTests
         Assert.All(run.World.Creatures, c => Assert.Equal(5 + (5 * run.World.Width), c.TargetTileIndex));
     }
 
+    // ---- crowding (Q43) ---------------------------------------------------
+
+    /// <summary>
+    /// <b>Three workers to a face, and a fourth goes elsewhere.</b> CONFIRMED by
+    /// the owner (Q26/Q43): three imps fit on one side of a block and twelve on
+    /// the whole block, and an imp that cannot get on <b>finds other work rather
+    /// than queueing</b>.
+    ///
+    /// <para>Four imps are dropped on the same tile beside the same marked seam.
+    /// Three take it from where they stand; the fourth cannot, and the assertion
+    /// is that it does not simply stand there — it is either working the same
+    /// block from a different side, or working something else, or idle. What it
+    /// must not be is a fourth worker on that face.</para>
+    /// </summary>
+    [Fact]
+    public void AFourthImpCannotJoinAFullFace()
+    {
+        // The fixture's only floor is the claimed 3x3 room, so (3,3) is the
+        // corner of it and (4,3) is the rock face beside it.
+        Run run = Start(new TilePos(3, 3), imps: 4);
+        int marked = (3 * run.World.Width) + 4;
+        int face = (3 * run.World.Width) + 3;
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 3)));
+
+        // Three ticks: long enough for the jobs to be handed out, short enough
+        // that no swing has landed. A plain wall falls in two swings and a swing
+        // is four ticks (ADR-0023, ADR-0020), so waiting longer would leave
+        // nothing to be crowded around.
+        run.Ticks(3);
+
+        List<CreatureState> onThatFace = run.World.Creatures
+            .Where(c => c.TargetTileIndex == marked && ImpCrowding.FaceOf(run.World, c) == face)
+            .ToList();
+
+        Assert.Equal(ImpCrowding.MaxWorkersPerFace, onThatFace.Count);
+        Assert.Equal(4, run.World.Creatures.Count);
+
+        // And the fourth went and found something else rather than waiting -
+        // which is the half of Q43 that matters. Rock beside the keeper's own
+        // land can be reinforced, so there is other work to find.
+        CreatureState fourth = run.World.Creatures.Single(c => !onThatFace.Contains(c));
+        Assert.NotEqual(-1, fourth.TargetTileIndex);
+    }
+
+    /// <summary>
+    /// The cap is on the face, not on the block: the same seam approached from a
+    /// different tile is a different face and takes its own three. This is what
+    /// makes the owner's "twelve on a block" fall out of the three without
+    /// anything counting to twelve.
+    /// </summary>
+    [Fact]
+    public void ADifferentFaceOfTheSameBlockIsNotFull()
+    {
+        Run run = Start(new TilePos(3, 3), imps: 3);
+        int marked = (3 * run.World.Width) + 4;
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 3)));
+
+        // Three ticks: long enough for the jobs to be handed out, short enough
+        // that no swing has landed. A plain wall falls in two swings and a swing
+        // is four ticks (ADR-0023, ADR-0020), so waiting longer would leave
+        // nothing to be crowded around.
+        run.Ticks(3);
+
+        // The face they are on is full...
+        Assert.True(ImpCrowding.FaceIsFull(
+            run.World, Dk2TerrainFixture.Database(), marked, new TilePos(3, 3), askingCreatureId: -1));
+
+        // ...and every other side of the same block is not.
+        foreach (TilePos other in new[]
+                 {
+                     new TilePos(5, 3), new TilePos(4, 2), new TilePos(4, 4),
+                 })
+        {
+            Assert.False(
+                ImpCrowding.FaceIsFull(
+                    run.World, Dk2TerrainFixture.Database(), marked, other, askingCreatureId: -1),
+                $"{other} should not be full");
+        }
+    }
+
+    /// <summary>
+    /// An imp re-evaluating the job it already holds must not count itself out of
+    /// its own face. Without the exclusion, the third imp on a face would drop
+    /// its job the moment it looked at it again.
+    /// </summary>
+    [Fact]
+    public void AnImpDoesNotCountItselfOutOfItsOwnFace()
+    {
+        Run run = Start(new TilePos(3, 3), imps: 3);
+        int marked = (3 * run.World.Width) + 4;
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 3)));
+
+        // Three ticks: long enough for the jobs to be handed out, short enough
+        // that no swing has landed. A plain wall falls in two swings and a swing
+        // is four ticks (ADR-0023, ADR-0020), so waiting longer would leave
+        // nothing to be crowded around.
+        run.Ticks(3);
+
+        CreatureState[] working = [.. run.World.Creatures.Where(c => c.TargetTileIndex == marked)];
+        Assert.Equal(3, working.Length);
+
+        foreach (CreatureState imp in working)
+        {
+            Assert.False(
+                ImpCrowding.FaceIsFull(
+                    run.World, Dk2TerrainFixture.Database(), marked, new TilePos(3, 3), imp.Id),
+                $"imp {imp.Id} counts itself out of its own face");
+        }
+
+        // And they keep it: the block goes on being dug rather than being
+        // dropped and retaken every tick. Four more ticks is one swing, and
+        // still short of the two that would end the block.
+        run.Ticks(4);
+        Assert.Equal(3, run.World.Creatures.Count(c => c.TargetTileIndex == marked));
+    }
+
     // ---- movement --------------------------------------------------------
 
     [Fact]

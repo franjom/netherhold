@@ -826,3 +826,62 @@ been the invention.
   but whether the original's own search weights diagonals is unobserved and
   probably unobservable — in open uniform terrain both cost models produce paths
   of the same shape.
+
+---
+
+## ADR-0026 — Three workers to a face, and the fourth goes elsewhere
+
+**Date.** 2026-08-30. **Status.** Accepted.
+
+**Context.** The owner watched a block being dug in the original (Q26/Q43):
+**three imps to a face, twelve to a block**, and an imp that cannot get onto a
+face **goes and finds other work — it does not queue**. Ours converged without
+limit, so a marked tile could soak up every imp a keeper had while the rest of
+the dungeon stood still.
+
+**Decision.**
+
+- **The cap is on the face, not on the block.** `ImpCrowding.FaceIsFull` counts
+  workers whose *target tile* is this one and whose *face* is this neighbour, and
+  `TryJobBeside` skips a full face. **The twelve is not a rule and nothing counts
+  to it** — it is the three, four times, because a tile has four orthogonal
+  neighbours and work is orthogonal (Q27). Indeed the twelve is how the owner
+  established that work is orthogonal in the first place: twelve at three a face
+  is four faces, and eight-connected work would have given eight.
+- **Rejecting the face rather than the tile is what makes the fourth imp leave.**
+  The search simply carries on to the next standing tile, which may be another
+  side of the same block or another block entirely, and if nothing is left it
+  falls through to the next job priority. Nothing waits, which is what was
+  observed.
+- **A worker's face is derived, not stored**: the end of its route if it is still
+  walking, the tile under it if it has arrived. Counting the *intended* face is
+  what stops four imps setting off for the same side and only discovering the
+  crowd on arrival. Deriving it keeps a field out of the determinism hash and
+  makes it impossible for the face to disagree with the route.
+- **The asking creature is excluded from the count**, or the third imp on a face
+  would drop its own job the instant it re-evaluated it.
+- **Counted across every player.** The limit is physical space on a tile, and two
+  keepers' imps on the same side of the same block are in each other's way
+  exactly as much as one keeper's would be.
+
+**The three is an observed number with no source in the data, and that is a new
+category.** `ObservedCorrections` exists for a shipped value that cannot produce
+the observed behaviour; this is different — the files carry **no** value at all.
+The balance table was searched and has no per-face, per-tile or crowding limit
+for workers; the nearest thing to one, `OvercrowdingJailBreakPercentagePerExtraCreature`,
+is about prisons. It is not derivable from geometry either: CREATURES gives a
+creature a `Height` and no width or radius, so "how many fit along an edge"
+cannot be computed from anything we parse. It lives in `ImpCrowding`, named,
+documented, with the search recorded. **Q34's 50% sell refund is the other known
+member of this category** and will join it when selling is implemented.
+
+**Consequences.**
+
+- **Imps now spread.** A crowd on one marked tile pushes the surplus onto other
+  faces and then into other jobs, which is what a DK2 dungeon looks like.
+- **No test broke**, which is worth noting rather than celebrating: every
+  existing imp test uses one or two imps, so none of them ever reached the cap.
+  Three new tests cover it.
+- **The count is O(creatures) inside a search predicate.** Acceptable at the
+  tens-of-creatures scale this runs at, and worth revisiting if a level ever
+  carries hundreds.

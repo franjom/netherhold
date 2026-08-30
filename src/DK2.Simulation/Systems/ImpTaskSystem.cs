@@ -459,13 +459,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
         bool found = _pathfinder.TryFindNearest(
             grid,
             creature.Tile,
-            stand => TryJobBeside(context, stand, player, priority, out _, out _),
+            stand => TryJobBeside(context, stand, player, priority, creature.Id, out _, out _),
             _route);
 
         if (!found) return false;
 
         TilePos standing = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
-        if (!TryJobBeside(context, standing, player, priority, out int tileIndex, out TileWorkKind kind))
+        if (!TryJobBeside(context, standing, player, priority, creature.Id, out int tileIndex, out TileWorkKind kind))
             return false;
 
         creature.TargetTileIndex = tileIndex;
@@ -499,6 +499,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         TilePos standing,
         byte playerId,
         JobPriority priority,
+        int askingCreatureId,
         out int tileIndex,
         out TileWorkKind kind)
     {
@@ -545,7 +546,18 @@ public sealed class ImpTaskSystem : ISimulationSystem
                     continue;
             }
 
+            // Three workers to a face, and a fourth goes and finds other work
+            // rather than queueing (Q43). Rejecting the FACE rather than the
+            // tile is what makes that happen: the search simply carries on to
+            // the next standing tile, which may be another side of this same
+            // block or another block entirely.
             tileIndex = (y * world.Width) + x;
+            if (ImpCrowding.FaceIsFull(
+                    world, context.Database, tileIndex, standing, askingCreatureId))
+            {
+                continue;
+            }
+
             return true;
         }
 
