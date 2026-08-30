@@ -266,31 +266,40 @@ whether a diagonal is worth the same as a straight step. Time a creature walking
 diagonal run takes about 1.4× as long, diagonals cost their true length; if the
 two take the same time, they are free.
 
-### Q62 — reinforcing takes longer than the model says — **the new live one**
-You timed an imp reinforcing a wall at **14–15 seconds**. Ours predicts **10.0**:
-Rock's 165 health up to its maxHealth 660 is 495 at 10 a swing, so 50 swings at
-five a second.
+### Q62 — reinforcing takes longer than the model says — **ANSWERED by the stopwatch**
+You timed one imp reinforcing one wall: **13.38 s and 13.77 s**, noting that both
+carry your own reaction time on the start and the stop, so the true figure sits
+at or below 13.38 — "maybe 13 seconds".
 
-Some of the 4.5-second gap is walking up and animating — claiming is 4 swings
-(0.8 s) and you observed "about 2 seconds", so the overhead looks like ~1.2 s —
-but not all of it. **Two re-readings fit, and they disagree about where an upward
-job stops:**
+At the confirmed five swings a second that is **66–67 swings**, and **13.2 s is
+66 exactly**. `ReinforceWallHealth` is 50 a second, so 10 a swing, so the work
+required is:
 
-- **(a) it works up to the destination terrain's health**, not the source's
-  maxHealth: 165 → Reinforced Wall's 900 is 735, **74 swings = 14.8 s**, which
-  fits with no overhead at all;
-- **(b) it accumulates the source's maxHealth from zero**: **66 swings = 13.2 s**,
-  which fits with the 1.2 s overhead.
+```
+  66 swings x 10 = 660   <- exactly Rock's maxHealth
+```
 
-**Reinforcing is the only job that can separate them**, which is why this never
-showed up: for claiming, Dirt Path's maxHealth and Claimed Path's health are both
-660, so both readings give the same four swings.
+**Not** the 495 that `maxHealth − startingHealth` gives, which is what we
+implement and which predicts 50 swings and 10.0 seconds.
 
-**The experiment is not to re-time reinforcing.** Time something with no
-ambiguity in it and use it to calibrate the overhead: **dig through your own
-reinforced wall** (900 health down at 26 a swing = **35 swings = 7.0 s**). If it
-comes out near **8.2 s** the overhead is real and reading (b) wins; if it comes
-out near **7.0 s** there is no overhead and (a) does.
+**And the same rule fits claiming.** Dirt Path takes 4 swings at 165 a swing:
+
+```
+   4 swings x 165 = 660  <- exactly Dirt Path's maxHealth
+```
+
+So **one rule reproduces two independently measured jobs**. The implemented rule
+fits claiming only by luck — Dirt Path ships at 1 health, so its deficit and its
+maximum are within a single swing of each other — and misses reinforcing by 16
+swings.
+
+**A third independent confirmation of Q47 falls out of your stopwatch**, which is
+the part worth pausing on. 66 swings over 13.38 s is **4.93 a second**. Under the
+rule we currently implement it would be 50 swings over the same 13.38 s, or
+**3.74 a second**, which flatly contradicts the five-a-second reading that your
+273-gold measurement established. Two measurements taken weeks apart on
+completely different mechanics agree on the swing rate, and only under the new
+reading.
 
 ### Q22 — filling a tile in
 Not yet observed — the answer offered against it described claiming instead.
