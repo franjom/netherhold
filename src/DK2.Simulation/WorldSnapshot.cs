@@ -25,7 +25,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 6;
+    private const int FormatVersion = 7;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -64,6 +64,7 @@ public static class WorldSnapshot
             ref PlayerState p = ref world.PlayerAtIndex(i);
             w.Write(p.PlayerId);
             w.Write(p.Mana);
+            w.Write(p.FreeImpCountdownTicks);
         }
 
         // Normally empty at a tick boundary — TileWorkSystem drains it every
@@ -164,6 +165,7 @@ public static class WorldSnapshot
             {
                 PlayerId = r.ReadByte(),
                 Mana = r.ReadInt32(),
+                FreeImpCountdownTicks = r.ReadInt32(),
             };
         }
 

@@ -60,12 +60,13 @@ public class GoldCarryingTests
     /// (5,5), and the seam marked for mining. The corridor is carved rather than
     /// dug so that the test is about carrying and not about digging.
     /// </summary>
-    private static Run AtTheSeam()
+    private static Run AtTheSeam(TilePos? impAt = null)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, Rival]);
-        world.SpawnCreature(Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        world.SpawnCreature(
+            Dk2TerrainFixture.ImpCreatureId, Keeper, impAt ?? new TilePos(2, 2));
 
         foreach (TilePos p in new[] { new TilePos(4, 3), new TilePos(4, 4), new TilePos(4, 5) })
         {
@@ -159,18 +160,25 @@ public class GoldCarryingTests
         // the one it walked to and carries the rest to the next — which is Q35's
         // spillover, and it falls out of re-routing rather than being coded.
         //
-        // (1,2) fills first because that is the one the imp reaches first coming
+        // (3,3) fills first because that is the one the imp reaches first coming
         // back along the corridor, which is the whole point: which tile of a
         // store fills is decided by the walk, not by an index.
-        Run run = AtTheSeam();
-        PutStoreAt(run, new TilePos(1, 1), RoomTypeId.DungeonHeart);
-        PutStoreAt(run, new TilePos(1, 2), RoomTypeId.DungeonHeart);
+        //
+        // Everything here is placed to finish inside
+        // TimeBeforeFreeImpGeneratedSeconds. Heart tiles are the only way to get
+        // a 1000-capacity store, and a heart is also where ImpSupplySystem puts
+        // the imps it hands a short-staffed keeper - so the imp starts beside the
+        // seam and the store is two steps away, and the run stops before the
+        // first free imp arrives. This test is about one imp's load.
+        Run run = AtTheSeam(new TilePos(4, 4));
+        PutStoreAt(run, new TilePos(3, 3), RoomTypeId.DungeonHeart);
+        PutStoreAt(run, new TilePos(3, 2), RoomTypeId.DungeonHeart);
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        run.Ticks(300);
+        run.Ticks(95);
 
-        Assert.Equal(1000, run.World.Tile(1, 2).GoldHeld);
-        Assert.Equal(363, run.World.Tile(1, 1).GoldHeld);
+        Assert.Equal(1000, run.World.Tile(3, 3).GoldHeld);
+        Assert.Equal(363, run.World.Tile(3, 2).GoldHeld);
         Assert.Equal(0, run.Imp.GoldHeld);
     }
 

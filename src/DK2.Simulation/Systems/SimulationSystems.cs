@@ -24,9 +24,15 @@ namespace DK2.Simulation.Systems;
 /// work they are in position for.</item>
 /// <item><see cref="TileWorkSystem"/> — the work queued this tick resolves this
 /// tick, so nothing survives a tick boundary half-done.</item>
-/// <item><see cref="ManaSystem"/> — last, because mana is a consequence of what
-/// a keeper owns and everything that can change that has now run. A tile claimed
-/// on tick N is worth mana from tick N.</item>
+/// <item><see cref="ManaSystem"/> — mana is a consequence of what a keeper owns
+/// and everything that can change that has now run. A tile claimed on tick N is
+/// worth mana from tick N.</item>
+/// <item><see cref="ImpSupplySystem"/> — last, and after the mana it spends. A
+/// keeper who earns the price of an imp on tick N can cast for it on tick N,
+/// which is the friendlier of the two orderings and the one a player would
+/// expect. It also means a new imp starts looking for work on tick N+1 rather
+/// than immediately, which keeps <see cref="ImpTaskSystem"/>'s "spawn order
+/// decides who gets the job" rule honest for creatures created mid-tick.</item>
 /// </list>
 ///
 /// <para><b>UNKNOWN: DK2's own per-tick subsystem ordering.</b> Flame's
@@ -44,5 +50,6 @@ public static class SimulationSystems
         new ImpTaskSystem(),
         new TileWorkSystem(),
         new ManaSystem(),
+        new ImpSupplySystem(),
     ];
 }

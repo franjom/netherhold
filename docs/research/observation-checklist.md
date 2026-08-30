@@ -97,7 +97,40 @@ free; building it would have changed every timing in the game twice.
 
 ---
 
+
+## Answered on 2026-08-30, second sitting — imps
+
+| Q | What was settled |
+|---|---|
+| — | Every keeper starts with **4 imps**, and 4 is a **floor**: drop them all into the heart and they come back at ~5s intervals. The data names both — `MinimumImpThreshold` 4, `TimeBeforeFreeImpGeneratedSeconds` 5 |
+| Q54 | Create Imp costs **1500**, rising by 1500 each time — **and falling back** when imps die, because the free four never count towards the price. That second half is what made the rule provable rather than merely fitted |
+| Q55 | The 1500 is DK2's own: it is the mana cost on the Create Imp record in `KeeperSpells.kwd`, at an offset that holds a plausible cost for all thirteen spells |
+
+Both are **implemented** — `ImpSupplySystem`, and the first thing in this project
+that spends mana rather than only earning it.
+
 ## 1. Still open, and blocking
+
+### Q53 — what is the red number under the mana orb? — **the one that matters**
+Your screenshot showed roughly **+53 green and −28 red**, and nothing in this
+project drains mana at all. Three independent lines say the answer is **imps cost
+7 mana a second each**: the community figure, its own cross-check (the Receive
+Imps special grants 10 imps and adds 70 a turn — and our data does say that
+special grants 10), and your screenshot's 28 against four starting imps.
+
+**It is not implemented because the 7 is in no file we can read** — not the
+balance table, and not the CREATURES record, where no offset holds the Imp's 7
+against the Horned Reaper's reported 2000.
+
+**Two screenshots would confirm it in a minute.** Note the red figure with four
+imps. Summon a fifth. Note it again. 28 → 35 confirms both the 7 and that the
+rate is per second. Anything else is more interesting still.
+
+Two follow-ups if you fancy them: what does the red figure read while
+**possessing** a creature (`ManaCostInFirstPersonPerSecond` is 5, so it should
+jump by 5), and what does it read with **one armed trap** on the map versus none?
+A trap's mana field would then be findable in `Traps.kwd` the same way the spell
+costs were.
 
 ### Q35 — which treasury tile does an imp fill?
 The owner's belief is *nearest tile, spillover to another empty treasury tile,
@@ -162,15 +195,6 @@ An imp stands *on* a tile to claim it (Q44). Does it also stand on the tile to
 **repair** damaged floor, to **attack** a rival's floor, and to **fill in**? Or
 does it stand beside those? And is the ~500 ms an imp lingers after claiming a
 real pause, or just the animation finishing?
-
-### Q51 — what is the red number under the mana orb?
-**New.** A screenshot of the original shows two rates beneath the mana counter: a
-green one (~53) and a **red one (~28)**. Our model has no mana expenditure at all
-— every spender is a spell, which is M7 — so if the red figure is a continuous
-drain, there is a mechanic missing.
-
-Two screenshots a few seconds apart with the counter visible would settle it: does
-the counter climb by the green figure, or by green minus red?
 
 ### Q9 — payday
 Roughly **how often** does payday come round, and is it one clock for the whole

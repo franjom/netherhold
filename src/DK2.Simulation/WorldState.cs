@@ -123,10 +123,24 @@ public struct PlayerState
     public byte PlayerId;
     public int Mana;
 
+    /// <summary>
+    /// Ticks until this keeper is handed a free imp, or 0 when they are not
+    /// owed one.
+    ///
+    /// A keeper below <c>MinimumImpThreshold</c> (4) gets one imp every
+    /// <c>TimeBeforeFreeImpGeneratedSeconds</c> (5) until they are back up to it -
+    /// CONFIRMED, and named by both variables (see <see cref="ImpSupplyRules"/>).
+    /// The countdown runs only while they are short, which is ours: a clock that
+    /// ticked always would differ only in how fast the first replacement arrives
+    /// after a long spell at full strength (Q56).
+    /// </summary>
+    public int FreeImpCountdownTicks;
+
     public readonly void HashInto(ref Hash64 hash)
     {
         hash.Add(PlayerId);
         hash.Add(Mana);
+        hash.Add(FreeImpCountdownTicks);
     }
 }
 
@@ -258,6 +272,35 @@ public sealed class WorldState
 
         _creatures.Add(creature);
         return creature;
+    }
+
+    /// <summary>
+    /// Takes a creature out of the world, and says whether it was there.
+    ///
+    /// <para><b>Not death.</b> Dying in DK2 is a process — a creature drops
+    /// whatever it was carrying, lies there for
+    /// <c>CreatureDyingStateDurationSeconds</c>, and may be dragged to a
+    /// graveyard — and none of that is implemented. This is the removal that
+    /// process would end with, and nothing in the simulation calls it yet: it
+    /// exists because a keeper's imp count has to be able to fall for
+    /// <see cref="Systems.ImpSupplySystem"/>'s floor to mean anything, and a
+    /// rule that can only be tested by inventing the mechanic it depends on is
+    /// not tested at all.</para>
+    ///
+    /// <para>The creature's id is <b>not</b> reused: <c>_nextCreatureId</c> only
+    /// ever goes up, so a level that has had creatures die cannot hand out an id
+    /// it has already used, and a snapshot restores the counter rather than
+    /// deriving it.</para>
+    /// </summary>
+    public bool RemoveCreature(int id)
+    {
+        for (int i = 0; i < _creatures.Count; i++)
+        {
+            if (_creatures[i].Id != id) continue;
+            _creatures.RemoveAt(i);
+            return true;
+        }
+        return false;
     }
 
     public CreatureState? CreatureById(int id)

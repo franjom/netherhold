@@ -36,10 +36,12 @@ internal static class TestWorld
     /// <summary>
     /// Only what a system would throw without. `GameDatabase` refuses to invent
     /// a missing balance value, so a synthetic database has to carry an entry
-    /// for every variable the registered systems read — these three are
-    /// <see cref="ManaSystem"/>'s. The numbers are DK2's, because a made-up
-    /// threshold here would be a made-up number in a determinism hash; no
-    /// terrain in this fixture generates mana, so nothing depends on them.
+    /// for every variable the registered systems read - three for
+    /// <see cref="ManaSystem"/> and two for
+    /// <see cref="Systems.ImpSupplySystem"/>. The numbers are DK2's, because a
+    /// made-up threshold here would be a made-up number in a determinism hash;
+    /// no terrain in this fixture generates mana and no creature in it is a
+    /// worker, so nothing depends on them.
     /// </summary>
     private static GlobalVariables Variables()
     {
@@ -47,6 +49,8 @@ internal static class TestWorld
         Set(vars, VariableTypeId.MaximumManaThreshold, 200000);
         Set(vars, VariableTypeId.MaximumManaGainPerSecond, 500);
         Set(vars, VariableTypeId.ExcessManaDecreaseRatePerSecond, 5);
+        Set(vars, VariableTypeId.MinimumImpThreshold, 4);
+        Set(vars, VariableTypeId.TimeBeforeFreeImpGeneratedSeconds, 5);
         return vars;
     }
 

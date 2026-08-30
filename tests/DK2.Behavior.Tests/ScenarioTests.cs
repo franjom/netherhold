@@ -433,6 +433,8 @@ public class ScenarioTests
                  {
                      VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds,
                      VariableTypeId.DigRockHealth,
+                     VariableTypeId.MinimumImpThreshold,
+                     VariableTypeId.TimeBeforeFreeImpGeneratedSeconds,
                  })
         {
             vars.Misc[id] = new MiscVariable(id, 1, 0, 0);

@@ -8,47 +8,46 @@ Update this whenever a session ends or context is compacted.
 
 ## Current state (2026-08-30)
 
-**M3 tile mechanics, the first worker, rooms + the treasury, mana, and the gold
-carrier: complete. M3 as a whole: partial.** M2 and the five record types M1
-needed are done. 252 tests green with and without a DK2 install, clean tree.
+**M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
+carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
+five record types M1 needed are done. **266 tests green** with and without a DK2
+install; nine scenarios run; clean tree. (Core 14, Simulation 155, Data 41, Behavior 56.)
 
-> ### ⚠ Read this first: the owner answered 23 open questions on 2026-08-29
+> ### ⚠ Read this first: three sittings of owner answers, 2026-08-29 and 30
 >
-> In two sittings the owner supplied, from playing the original, answers to
-> **Q7, Q9, Q12, Q20, Q21, Q24, Q25, Q26, Q27, Q28, Q30, Q31, Q33, Q34, Q36,
-> Q37, Q37a, Q38, Q40, Q42, Q43, Q44, Q46** — plus the one-dungeon-heart rule.
-> A third sitting on **2026-08-30** added the *measurements* that settled
-> **Q47** (273 gold a swing), **Q32** (five room costs, every one matching the
-> ROOMS record) and **Q52** (a dungeon heart stores 16000, not 25000) — the last
-> of which is a defect we cannot fix yet. `docs/research/open-questions.md`
-> has every one; `docs/research/observation-checklist.md` has the summary and
-> what is still worth asking.
+> From playing the original, the owner has supplied answers to **Q7, Q9, Q12,
+> Q20, Q21, Q24, Q25, Q26, Q27, Q28, Q30, Q31, Q32, Q33, Q34, Q36, Q37, Q37a,
+> Q38, Q40, Q42, Q43, Q44, Q46, Q47, Q52, Q54** plus the one-dungeon-heart rule,
+> the four-imp floor, and the Create Imp price. `docs/research/open-questions.md`
+> has every one; `docs/research/observation-checklist.md` is the file to hand
+> back for more.
 >
-> **Four of them said the code is wrong.** These are not bugs to find — they are
-> known defects with a known correct answer, listed under "Immediate next steps"
-> below. Do not spend time rediscovering them:
+> **The 2026-08-30 sitting was different in kind: it produced NUMBERS.** A
+> measurement propagates where a yes/no does not, and three of them rewrote more
+> than the previous fifteen answers combined:
+>
+> | Measurement | What it settled |
+> |---|---|
+> | **273 gold a swing** | Q47 — an application is a fifth of the tabled delta, five a second. Every swing count in the game changed; no time in seconds did (ADR-0020) |
+> | **Room costs, 5 of them** | Q32 — `Cost` is per tile and the ROOMS record's number is the price, confirmed five times over |
+> | **16000 gold in a heart** | Q52 — only 16 of a 5×5 heart's 25 tiles store gold. **Ours stores 25000.** A defect we cannot fix without room instances |
+> | **4 imps, 5s, 1500 mana** | The imp economy, and all three are named by DK2's own data (ADR-0021) |
+>
+> **Known defects with known answers — do not rediscover these:**
 > - **Q28** — movement is eight-connected; `GridPathfinder` is four-connected.
 > - **Q44/Q42** — an imp stands *on* the floor tile it claims, not beside it, and
 >   the ownership test belongs on that tile's neighbour.
 > - **Q43** — three imps a face, twelve a block, and a fourth goes elsewhere;
 >   ours converge without limit.
-> - **Q52** (new) — a dungeon heart stores **16000**, not the 25000 we give it.
->   Sixteen of its 25 tiles hold gold; the middle 3x3 is the heart itself. Needs
->   room instances to fix, so it is recorded rather than scheduled.
-> - ~~**Q47** - every tile-work rate here runs about twice as fast as the
->   original.~~ **ANSWERED and fixed on 2026-08-30**, and the factor was five
->   rather than two. See below.
+> - **Q52** — the dungeon heart holds 16000, not 25000. Needs room instances.
+> - **Q53** — **imps cost ~7 mana a second each and ours cost nothing.** This is
+>   the biggest hole in the economy: it is why a DK2 keeper cannot buy imps until
+>   the map is full. NOT implemented because the 7 is in no file we parse — see
+>   below, it is the top of the research list.
 >
-> **Two of the five are now built.** **Q31**, the gold carrier (ADR-0019) - what
-> is left of it is the floor lump, which needs OBJECTS (M6). And **Q47**, the
-> work rate (ADR-0020): the owner measured **273 gold per swing** at a gold seam,
-> which pins one application at a fifth of the tabled delta, five a second. Every
-> application count in the game changed; no time in seconds did. `DigRockHealth`
-> is now the only number in the tile mechanics that does not fit.
->
-> **The lesson, now step 0 of the research method: ask the owner.** Several of
-> these had been written up as unanswerable from the KWD data, which is not the
-> same as unanswerable. The test is "would a player *see* this happen?"
+> **The lesson, now step 0 of the research method: ask the owner — and when the
+> question is quantitative, ask for the quantity by name.** "How much gold per
+> swing" got an answer that "how fast does mining feel" could not have.
 
 Three honest caveats:
 - M3's definition of done asked for gold reaching a player and a Unity view.
@@ -59,12 +58,15 @@ Three honest caveats:
   what it cannot hold is lost rather than left on the floor, because a lump is an
   OBJECT (M6). A worker does marked excavation, then claims, then reinforces
   (Q24, ADR-0018); what it does when all three run out is stand still, where DK2
-  would have it wander (Q41). **Nothing generates imps** either: scenario files
-  and tests place them. Every scenario run that places a worker says all of that
-  out loud. And **a room does nothing**: a treasury and a dungeon heart hold gold
+  would have it wander (Q41). **Imps now generate themselves** (ADR-0021): a
+  keeper below `MinimumImpThreshold` gets one free every
+  `TimeBeforeFreeImpGeneratedSeconds`, and can buy more with Create Imp at 1500
+  mana rising by 1500 each time. And **a room does nothing**: a treasury and a dungeon heart hold gold
   because a variable says how much per tile; every other room is inert terrain
-  its owner holds. Mana is income only — **nothing spends it**, because every
-  spender is a spell (M7). And **losing a dungeon heart is defeat in DK2 and
+  its owner holds. **Mana is now spent** - by Create Imp, and by nothing else; and
+  more importantly **nothing DRAINS it**, where DK2 charges about 7 a second per
+  imp (Q53). That is the biggest hole in the economy and the number is in no file
+  we parse. And **losing a dungeon heart is defeat in DK2 and
   defeat is not implemented**: a keeper whose heart is beaten down here stops
   earning its 30 a second and plays on (Q40, scheduled with objectives at M6).
 - M1's stated definition of done was "all 18 record types round-trip". Five are
@@ -105,6 +107,7 @@ What the simulation can do:
 | Gold, stored in tiles rather than on players | `GoldStore` | per-tile limits honoured; a first treasury is paid for out of the dungeon heart |
 | Mana, earned by holding land and a heart | `ManaRules` + `ManaSystem` | the three paying terrains partition the install by exhaustion; income falls when claimed floor becomes a room; a 5x5 heart is worth 30/s, not 750 |
 | Gold carried from the seam to the treasury | `CreatureState.GoldHeld` + `ImpTaskSystem` | an imp mines a shipped seam on level 1 and every coin of its 3000 ends in the shipped dungeon heart, 1000 to a tile, across as many trips as its hands need |
+| Where imps come from, and the first mana spender | `ImpSupplyRules` + `ImpSupplySystem` | four free imps five seconds apart on a shipped level, then 1500 / 3000 / 4500 for the next three and a refusal for the fourth |
 
 Extracted data artifacts (the specification the simulation is written against):
 `docs/research/game-database-dump.md`, `creature-table-dump.md`,
@@ -180,6 +183,11 @@ to miss.
 | `scenarios/imps/` | Two imps digging a corridor from nothing but a tag command. |
 | `docs/research/tile-work.md` | The tile rules: evidence, confidence tags, three anomalies. |
 | `docs/research/imp-tasks.md` | The worker: evidence, what is inferred, what is deliberately absent. |
+| `src/DK2.Simulation/ImpSupplyRules.cs` | Where imps come from and what they cost. Holds the project's **only** hardcoded balance constant (Create Imp's 1500) and says why. |
+| `src/DK2.Simulation/Systems/ImpSupplySystem.cs` | Free imps up to the floor, bought imps on command. The first system that spends mana. |
+| `tests/DK2.Behavior.Tests/KeeperSpellsOnRealDataTests.cs` | Reads the 1500 back out of `KeeperSpells.kwd` so the constant cannot drift, and re-validates the offset across all 13 spells. |
+| `scenarios/imps/a_keeper_never_runs_out_of_imps.yaml` | The imp economy end to end on a campaign map. |
+| `docs/research/imps-and-mana.md` | Imps, the Create Imp price, and **the mana drain research** — the biggest open hole. |
 | `docs/research/observation-checklist.md` | **Hand this to the owner.** Every open question a person playing DK2 can settle by looking, as experiments — and which ones playing cannot settle. |
 
 ## Running things
@@ -203,7 +211,25 @@ questions into ordinary implementation work, and that work now comes before the
 Unity view, because every one of them is a behaviour a renderer would display
 incorrectly.
 
-**Step 1, the gold carrier (Q31), was done on 2026-08-30** — see ADR-0019,
+**Where to pick up, 2026-08-30.** Two of the original five known defects are
+built (Q31 the gold carrier, Q47 the work rate) and the imp economy landed on top
+of them. What is left, in the order it is worth doing:
+
+0. **Q53 — imp mana upkeep. RESEARCH FIRST, and it is the most valuable thing on
+   this list.** DK2 charges about 7 mana a second per imp; ours charge nothing,
+   which is why a keeper here can buy imps until the map is full and a keeper in
+   the original cannot. The mechanic is STRONGLY INFERRED from three converging
+   lines (community figure, its Receive-Imps cross-check against our own parsed
+   `SpecialReceiveImpsAmount` of 10, and the owner's screenshot showing −28
+   against four imps). **It is blocked on finding where the 7 lives**, because
+   writing it into the code would be a hardcoded balance constant with no file to
+   check it against. Two cheap unblockers, both in
+   `docs/research/imps-and-mana.md`: two screenshots (4 imps then 5, watching the
+   red figure) to confirm 7-per-imp-per-second; and a second anchor — what a
+   Horned Reaper actually drains — to run the same offset scan that found the
+   Create Imp cost.
+
+**Step 1, the gold carrier (Q31), is done** - see ADR-0019,
 `docs/research/rooms-and-gold.md` §*The round trip*, and
 `scenarios/imps/an_imp_carries_gold_home.yaml`. What it left behind: the floor
 lump needs OBJECTS (M6), and Q50 — where an imp decides to stop mining — is a
@@ -312,6 +338,12 @@ for this; Q47 in `open-questions.md` is the current statement.
 - The pathfinder is an admitted placeholder behind `IPathfinder` (ADR-0012).
   Four-connected and uniform-cost by deliberate conservatism, not by belief.
 - System order is declared once, in `SimulationSystems.Default()` (ADR-0013).
+- **Imps come from a floor and a price** (ADR-0021). Below `MinimumImpThreshold`
+  (4) a keeper gets one free every `TimeBeforeFreeImpGeneratedSeconds` (5);
+  beyond it, Create Imp costs 1500 x (imps - 4 + 1), and the price FALLS BACK
+  when imps die. `ImpSupplyRules.CreateImpBaseCost` is the project's only
+  hardcoded balance constant and a real-data test reads it back out of
+  KeeperSpells.kwd (Q55).
 - Imps take jobs in a strict CONFIRMED order - marked excavation, then claiming,
   then reinforcing (ADR-0018, superseding ADR-0014). Carrying gold is NOT in that
   list: it is the tail of a mining job, not a job an imp chooses.
@@ -456,16 +488,16 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 51, of which **23 were answered on
-2026-08-29 by the owner**; most are recorded rather than built, and one of them
-(Q31) has since been built. The ones that gate progress:
+`docs/research/open-questions.md` holds all 56. The ones that gate progress:
 
-- **Q47 — every tile-work rate here is about twice as fast as the original.**
-  The largest live question in the tile mechanics, and the one most likely to be
-  misread by a future session: the *rate* looks right and the *granularity* does
-  not. Needs exact hit counts, not ranges. Supersedes the old framing of Q20,
-  which treated `DigRockHealth` as one odd number — it is now the sole outlier
-  in a model that otherwise fits.
+- **Q53 - imps cost mana to keep and ours do not.** The largest live question in
+  the economy. STRONGLY INFERRED at ~7 a second each from three converging lines;
+  blocked on finding where the 7 lives, because it is in neither the balance
+  table nor the CREATURES record. See `imps-and-mana.md`.
+- **Q47 is ANSWERED and built** (2026-08-30): 273 gold a swing put an application
+  at a fifth of the tabled delta, five a second (ADR-0020). Left in this list
+  only to say that `DigRockHealth` is now the sole thing in the tile mechanics
+  that does not fit, where it used to be one suspect among several.
 - **Q40 — losing your dungeon heart is defeat.** Now fully described (the
   defeated keeper's creatures leave by the nearest portal; rivals claim their
   rooms and gold) and **not implementable yet**: it needs portals, which are an

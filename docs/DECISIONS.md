@@ -460,3 +460,80 @@ other three.
 
 **What this is not.** It is not a measurement of the tick rate. It fixes the
 ratio between an application and a tabled per-second delta. Q1 is untouched.
+
+---
+
+## ADR-0021 — Imps come from a floor and a price, and mana finally has an outgoing
+
+**Status:** Accepted (2026-08-30)
+
+**Context.** Every scenario run since workers existed has carried the same
+caveat: *"nothing generates imps: scenario files and tests place them"*. And
+every run that earned mana carried another: *"mana here is income only, nothing
+spends it"*. The two are the same gap seen from opposite ends.
+
+The owner supplied the mechanic from the original: a keeper starts with four
+imps, four is a **floor** rather than an allowance — drop them all into the
+dungeon heart and they come back at roughly five-second intervals — and beyond
+that an imp must be bought with the Create Imp spell at 1500 mana, rising by
+1500 each time.
+
+**Every number in that is in DK2's own data.** The balance table names the first
+two in its own words:
+
+```
+   94  MinimumImpThreshold                  4
+   95  TimeBeforeFreeImpGeneratedSeconds    5
+```
+
+It is rare for an observation and a variable name to meet this cleanly, which is
+why the free supply is CONFIRMED rather than inferred.
+
+The 1500 needed finding. `KeeperSpells.kwd` is real shipped data that this
+project does not parse — keeper spells arrive at M7 — but it holds 13 records
+over 5278 bytes, which is exactly 406 each, and offset **0x11C** of that record
+turns out to be the mana cost: Possession 500, Create Imp **1500**, Sight of Evil
+5000, Thunderbolt 6000, Call to Arms 10000, Create Gold 15000, Turncoat 20000,
+Tremor 30000, Inferno 50000, Summon Horny 100000. Thirteen plausible prices in an
+order that matches how the game plays, one of them independently measured by the
+owner: that is a structural validation, not a lucky hit.
+
+**Decision.**
+
+- `ImpSupplySystem` hands a keeper below `MinimumImpThreshold` one imp every
+  `TimeBeforeFreeImpGeneratedSeconds`, at their dungeon heart, and stops.
+- `CreateImpCommand` buys one for
+  `CreateImpBaseCost × (imps − minimum + 1)` — 1500 for the fifth, 3000 for the
+  sixth, and so on. The owner settled the shape of that escalation in a second
+  message: *"four free (starting) imps don't raise mana cost… if you drop down to
+  4, cost also drops to base 1500"*. **The price falls back**, so the cost is a
+  function of the imps a keeper has now and not a tally of what they have bought
+  — which means it needs no counter and cannot drift from the roster.
+- **One hardcoded balance constant is admitted**, `CreateImpBaseCost = 1500`, in
+  express violation of this project's own rule. It earns the exception by being
+  read back out of the real `KeeperSpells.kwd` by
+  `KeeperSpellsOnRealDataTests`, which also re-validates the offset across all
+  thirteen spells. It goes when the record is parsed (Q55).
+- `WorldState.RemoveCreature` exists so that an imp count can fall. Nothing calls
+  it: death is a process nobody has modelled. A floor that cannot be tested by
+  dropping below it is not a tested floor.
+
+**Consequences.**
+
+- **Mana can go down.** The first outgoing in the project, and the caveat every
+  scenario printed is now false and has been rewritten.
+- **Any world with a dungeon heart grows imps.** That is correct and it surprised
+  two existing tests, which had heart tiles for their gold capacity and quietly
+  acquired a workforce. Both were re-timed rather than exempted, because the
+  behaviour is right.
+- **`ImpSupplySystem` runs last**, after the mana it spends, so a keeper who earns
+  the price on tick N can cast on tick N.
+
+**What is NOT decided here, and it is the big one.** Imps cost mana to *keep* —
+about 7 a second each, which is the red figure under a keeper's mana orb and
+which the owner's screenshot corroborates at 4 × 7 = 28. It is not implemented
+because **the 7 is in no file we parse**: not the balance table, and not the
+CREATURES record, where no offset holds the Imp's 7 against the Horned Reaper's
+reported 2000. Writing it in would be a second hardcoded constant with no file to
+check it against, which is exactly the thing the first exception was allowed to
+stay narrow. Q53, and it is the top of the research list.

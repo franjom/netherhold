@@ -99,6 +99,13 @@ public sealed class ScenarioCommand
     /// treasury.
     /// </summary>
     public ScenarioBuild? Build { get; set; }
+
+    /// <summary>
+    /// Casts Create Imp: buy one imp at the dungeon heart for mana. The first
+    /// scenario command that SPENDS a resource rather than earning or moving
+    /// one.
+    /// </summary>
+    public bool CreateImp { get; set; }
 }
 
 /// <summary>A room a player asks to build, at a tick, and pays for.</summary>

@@ -1,0 +1,63 @@
+# Where imps come from - and the first thing in this project that SPENDS mana.
+#
+# Every scenario run that placed a worker has carried the same caveat since
+# workers existed: "nothing generates imps: scenario files and tests place them".
+# This is the run where that stops being true.
+#
+# CONFIRMED (owner observation of the original, 2026-08-30), and the shipped data
+# names both halves in its own words:
+#
+#   MinimumImpThreshold             4   a keeper always has at least four imps.
+#                                       Kill them, or drop them into the dungeon
+#                                       heart, and they come back.
+#   TimeBeforeFreeImpGeneratedSeconds 5 one every five seconds until they do.
+#
+# It is rare for an observation and a variable name to meet this cleanly, which
+# is why this is CONFIRMED rather than inferred.
+#
+# Beyond the fourth, an imp has to be bought. The Create Imp keeper spell costs
+# 1500 mana for the first, 3000 for the second, 4500 for the third - so a rich
+# keeper still cannot flood the map. The 1500 is DK2's own number, read out of
+# the Create Imp record in KeeperSpells.kwd at the offset that holds a plausible
+# mana cost for all thirteen spells; the escalation is the owner's description
+# and is Q54.
+#
+# What to read in the event log:
+#   imp_generated   four of them, five seconds apart, at the dungeon heart. The
+#                   keeper started this level with none.
+#   imp_created     the paid ones, with the price climbing 1500 / 3000 / 4500 and
+#                   the keeper's mana falling to match.
+#   ... and the fifth cast is REFUSED, because the land has not earned the 7500
+#   the sixth imp would cost. That refusal is the mechanic working.
+#
+# What this run does NOT establish, and the report says so: what imps cost to
+# KEEP. The community figure is 7 mana a second each and the owner's screenshot
+# of the original agrees - a red drain of about 28 against four imps - but that 7
+# is in neither the balance table nor the CREATURES record, so it is recorded
+# rather than invented (Q53). A dungeon full of imps is free to run here and is
+# not free in the original.
+#
+# Needs a Dungeon Keeper 2 installation (DK2_DIR).
+id: imps-never-run-out-001
+question: >
+  Does a keeper with a dungeon heart and no imps get four of them, one every
+  five seconds - and can they then buy more with mana, at a price that climbs
+  fast enough to stop them buying many?
+map: campaign:Level1
+seed: 11
+duration_ticks: 700
+setup:
+  players:
+    # Player 3 owns the 5x5 dungeon heart at (12..16, 26..30) on this level, and
+    # starts with enough mana for three imps but not four.
+    - { id: 3, gold: 0, mana: 9000 }
+commands:
+  # Four casts once the free four have arrived, at 20 ticks apart. The last one
+  # has nothing to pay with.
+  - { at_tick: 450, player: 3, create_imp: true }
+  - { at_tick: 470, player: 3, create_imp: true }
+  - { at_tick: 490, player: 3, create_imp: true }
+  - { at_tick: 510, player: 3, create_imp: true }
+observe:
+  - state_hash
+  - events

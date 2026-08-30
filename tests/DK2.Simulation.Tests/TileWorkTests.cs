@@ -479,10 +479,14 @@ public class TileWorkTests
         GameSimulation sim = Dk2TerrainFixture.Simulation();
         sim.World.QueueWork(5, 1, TileWorkKind.Dig, 1);
 
+        // Restored with the SAME systems it was saved with. A snapshot carries
+        // state, not behaviour, so a run restored under a different system list
+        // is a different game — and this test used to get away with a shorter
+        // list only because none of the systems it dropped did anything on the
+        // one tick it takes afterwards.
         byte[] bytes = WorldSnapshot.ToBytes(sim);
         GameSimulation restored = WorldSnapshot.FromBytes(
-            bytes, Dk2TerrainFixture.Database(),
-            [new TileTagSystem(), new TileWorkSystem()]);
+            bytes, Dk2TerrainFixture.Database(), Dk2TerrainFixture.DefaultSystems());
 
         Assert.Equal(sim.StateHash(), restored.StateHash());
         Assert.Single(restored.World.PendingWork);

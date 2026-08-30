@@ -113,9 +113,13 @@ public sealed class ScenarioRunner
         if (gain.All(g => g == 0)) return;
 
         unsupported.Add(
-            "mana here is income only: nothing spends it. The Create Imp spell, keeper spells, " +
-            "possession and research all cost mana in DK2 and none of them exists yet, so a mana " +
-            "total in this run is what a keeper would have earned, not what they would have left");
+            "the only thing that spends mana here is Create Imp. Every other keeper spell, " +
+            "possession, research and trap upkeep cost mana in DK2 and none of them exists yet - " +
+            "and neither does the biggest drain of all: imps cost about 7 mana a second each to " +
+            "keep (Q53), which is the red figure under a keeper's mana orb. That number is in " +
+            "neither the balance table nor the CREATURES record, so it is recorded rather than " +
+            "invented. A mana total in this run is close to what a keeper would have earned and " +
+            "well above what they would have left");
         unsupported.Add(
             "mana is paid once a game second and a game second is TicksPerSecond ticks, which is a " +
             "placeholder (Q1). The totals are right; the wall-clock rate they imply is not a claim");
@@ -308,8 +312,9 @@ public sealed class ScenarioRunner
             if (c.Untag.Count > 0) list.Add(new TagTilesCommand(c.Player, ToTiles(c.Untag), false));
 
             bool built = c.Build is not null && TryBuild(c, list, unsupported);
+            if (c.CreateImp) list.Add(new CreateImpCommand(c.Player));
 
-            if (c.Tag.Count == 0 && c.Untag.Count == 0 && !built)
+            if (c.Tag.Count == 0 && c.Untag.Count == 0 && !built && !c.CreateImp)
                 unsupported.Add($"commands entry at_tick={c.AtTick} names nothing this build can do");
         }
 
