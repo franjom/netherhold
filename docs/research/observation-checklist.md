@@ -132,15 +132,37 @@ within minutes of the second screenshot arriving. See `imps-and-mana.md`
 
 ## 1. Still open, and blocking
 
-### Q59 — how much mana does one trap draw? — **the new top of the list**
-You confirmed each trap raises the red figure. **What is missing is one number.**
-Note the red figure with no traps, build **one spike trap**, note it again. Then
-do the same for **one sentry cannon** — they will differ, and two values are much
-harder to fit by accident than one.
+### Q59 — how much mana does one trap draw? — **one more trap finishes this**
+You measured a **spike trap** and a **sentry trap**: both **+5**. That was enough
+to parse `Traps.kwd` for the first time - 16 records of 579 bytes, names readable
+- and narrow the field to **two offsets**, but not to pick between them, because
+your two traps happen to share a value.
 
-That single number would anchor a scan of `Traps.kwd` (16 records over 9264
-bytes, unparsed) exactly as your 7 anchored the spell record, and the tool for it
-already exists.
+| offset | Guard Post | most traps | Fireburst / Freeze | Lightning | Magic Door | Hero Sentry |
+|---|---|---|---|---|---|---|
+| **0x0202** | **0** | **5** | **10** | **25** | **30** | **50** |
+| 0x0070 | 5 | 5 | 5 | 5 | 5 | 5 |
+
+0x0202 is far the better candidate - it ranks the way the game plays, and 0x0070
+being 5-or-6 for nearly everything is the shape of a category byte rather than a
+cost. But **0x0202 could also be a charge or shot count**, which fits Spike = 5
+just as comfortably, and that is exactly the reading a second identical
+measurement cannot rule out.
+
+**Build one Lightning Trap and note the change.** The predictions are as far
+apart as they get:
+
+- **+25** -> 0x0202 is the mana upkeep, and the whole column comes with it;
+- **+5** -> the charge is flat per trap and both offsets are red herrings;
+- anything else -> neither, and it is more interesting than either.
+
+**Two cheap extras that would make it airtight.** A **Freeze** or **Fireburst**
+trap should be **+10**. And a **Guard Post** should be **+0** - a negative
+prediction, and the strongest kind, because a guard post is a standing spot
+rather than a trap and nothing else in the column is zero.
+
+**Note there is no global to fall back on:** the balance table was checked and
+all thirteen variables holding 5 are something else entirely.
 
 ### Q58 — does possession really cost nothing per second?
 You reported no continuous drain while possessing, and **the data disagrees with
