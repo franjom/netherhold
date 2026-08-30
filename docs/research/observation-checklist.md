@@ -206,6 +206,33 @@ be a variable we have misidentified than a balance value.
 
 ## 2. Still open, and cheap
 
+### Q20 — exactly how many swings to dig out one plain wall? — **the last anomaly**
+**Which tile: the plain, unreinforced wall.** Terrain id 2, "Rock" in the data —
+the ordinary one an imp digs out to open a corridor, not the reinforced kind and
+not the impenetrable map edge. A reinforced wall is a different terrain with its
+own two rates (`DigOwnWallHealth` −130 for your own, `DigEnemyWallHealth` −8 for
+a rival's), and **neither of those is anomalous**, so they are not what is
+wanted here.
+
+`DigRockHealth` is −5000 a second against 165 health, so under the confirmed
+five-swings-a-second model one swing would end it. You measured 2–3 hits, which
+puts the true rate at 55–82 a swing — the field is **12× to 18× too big**, and
+it is the only number in the tile table that fits nothing.
+
+**ANSWERED (2026-08-30): two swings.** You drew the distinction that made it
+usable - two swings do the damage, and the third animation plays over the block
+already crumbling. That bounds the per-swing damage at [83, 164] and the
+per-second field at **415-820** against a shipped **5000**, so it is 6x to 12x
+too big, and **500 is the only round number in the window and is exactly
+5000/10**. No other variable is a candidate; the table was scanned.
+
+**Worth having at the same time, and cheap once you are counting:** the swings to
+dig through **your own reinforced wall** (prediction: **35**) and through **a
+rival's** (prediction: **563**, which is about two minutes). Those two come from
+the same model that 273 gold a swing fixed, and neither has been checked against
+the game. If they land, the model is confirmed on numbers three orders of
+magnitude apart and `DigRockHealth` is definitively alone.
+
 ### Q48 — what does a diagonal step cost?
 Now that Q28 says creatures cut corners, an eight-connected router needs to know
 whether a diagonal is worth the same as a straight step. Time a creature walking
@@ -227,9 +254,15 @@ An imp stands *on* a tile to claim it (Q44). Does it also stand on the tile to
 does it stand beside those? And is the ~500 ms an imp lingers after claiming a
 real pause, or just the animation finishing?
 
-### Q9 — payday
-Roughly **how often** does payday come round, and is it one clock for the whole
-dungeon or per creature?
+### Q9 — payday — **ANSWERED, and the data agreed with you**
+Your "every 10 minutes" is `PayDayFrequencySeconds` = **600**, a variable that
+names itself. Three more came with it, all unread by anything:
+`TimeBeforeFirstPayDaySeconds` 600 (the first payday is at ten minutes, not at
+zero), `PayDayCutOffTimeSeconds` 120, and `DelayBeforePayReevaluationSeconds` 4.
+
+**The one part still open** is what that 120-second cut-off is: the guess is how
+long a creature has to reach the treasury before it counts as unpaid. Watch a
+creature that is slow to arrive at payday and see whether it gets angry.
 
 ---
 
@@ -253,26 +286,26 @@ rooms measured, and **they do not follow the same rule**, which is the finding.
 | room | size | yield |
 |---|---|---|
 | Temple | 3x3 | capacity **8** |
-| Temple | ? | capacity **12** |
+| Temple | 4x4 | capacity **12** |
 | Temple | 5x5 | capacity **16** |
 | Graveyard | 3x3 | **1** grave |
 | Graveyard | 5x5 | **8** graves |
 
-The temple series is exactly the count of **edge tiles**, `2(w+h) − 4`: 8 for
-3x3, 12 for 4x4 or 3x5, 16 for 5x5. That fits what the room looks like — it is a
+The temple series is exactly the count of **edge tiles**, `2(w+h) − 4`: 8, 12,
+16 for 3x3, 4x4, 5x5. That fits what the room looks like — it is a
 pool, and creatures stand on the rim. The graveyard's 8 is **not** the 5x5 edge
 count of 16; it is the ring of eight tiles around the centre of the interior 3x3,
 which is exactly what your screenshot shows: a coffin with eight headstones round
 it.
 
-**One thing to check on your side:** you labelled two of the temples 5x5, but
-they read 12 and 16, so one of them must be smaller — 4x4 or 3x5 would both give
-12. Worth knowing which, because it separates "edge tiles" from every other
-formula that happens to fit 8/16.
+**The temple half is now CONFIRMED.** You pinned the three sizes down as 3x3,
+4x4 and 5x5, which is what turned it from a fit into a confirmation - 12 could
+have come from a 3x5, and three consecutive squares landing on 4n-4 leaves
+nothing else standing.
 
-**What would settle both:** one more temple (a 4x4, or a 6x6 → the prediction is
-20) and one more graveyard (a 4x4, or a 7x7 → the prediction is 24 if the ring
-rule holds).
+**What is left:** a **non-square** temple (a 3x5 should give 12, a 3x7 should
+give 16) and **one more graveyard size** (a 4x4, or a 7x7 - the prediction is 24
+if the interior-ring rule holds).
 
 ### Q61 — does a small temple really not attract Dark Angels?
 You flagged this as needing verifying, and **the data does not support it**.

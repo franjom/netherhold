@@ -209,8 +209,42 @@ number. The 273-gold measurement settled the granularity for the whole table at 
 stroke — five applications a second, a fifth of the delta each — and every other
 rate fell into place. Rock did not move at all: at −1000 a swing against 165
 health one application still ends it, where the owner observed 2–3 hits over 1–2
-seconds. So `DigRockHealth` is wrong by roughly a factor of a hundred and
-**nothing else is wrong at all**.
+seconds. So `DigRockHealth` is wrong and **nothing else is wrong at all**.
+
+**By how much, precisely.** The owner settled the count on 2026-08-30, and the
+distinction they drew is the useful part: **two swings do the damage**, and a
+third animation plays over the block already crumbling. So it is 2, not the
+"2-3" a casual count gives.
+
+Two damaging swings against 165 health bounds the per-swing damage `d` from both
+sides: `d < 165`, or one swing would finish it, and `2d >= 165`, or two would
+not. So `d` is in **[83, 164]**, and at five swings a second the per-second field
+should read **415 to 820**. It reads **5000** - **6x to 12x too big**.
+
+**500 is the only round number in that window, and it is exactly 5000/10.** Two
+things support it beyond its roundness. `d = 100` gives 165 -> 65 -> destroyed,
+which is two swings with no coincidence required. And **every other tile delta in
+the table is in the tens or low hundreds** - 825, 125, -300, -130, -8, 5, 50, 22
+- so -5000 is the sole four-digit one and -500 would put it back inside the
+family it belongs to.
+
+**It is not a different variable.** The balance table was scanned for anything
+holding a value in [415, 820] that could plausibly be a dig rate: the six hits
+are two payday intervals, a boulder fear amount, a tremor damage, a music
+threshold and the mana gain cap. None is a candidate. `DigRockHealth` is the
+field, and its shipped value does not produce the shipped behaviour.
+
+**And the model around it is confirmed, which is what isolates this.** The same
+five-swings-a-second reading gives a gold seam 273 gold a swing, which is what
+the owner measured; it gives claiming four swings, which is what the owner
+observed. It is right everywhere it has been checked and wrong here.
+
+**This leaves an open decision, not just an open question.** We currently
+implement the field as shipped, so a plain wall here falls in **one** swing where
+DK2 takes **two** - a known, measured behavioural deviation. Correcting it means
+writing a number the file does not contain, which this project treats as a bug.
+See Q20 and `HANDOFF.md`; the owner's call.
+
 
 The first candidate explanation below is therefore now dead, which is worth
 recording because it was the most attractive one:
