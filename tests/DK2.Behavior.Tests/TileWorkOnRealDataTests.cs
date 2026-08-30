@@ -142,7 +142,7 @@ public class TileWorkOnRealDataTests
         // roughly 1.2s of overhead - but not 4.5s of it. The number is here so
         // that whichever way Q62 resolves, this test has to be edited
         // deliberately.
-        Assert.Equal(50, swings);
+        Assert.Equal(66, swings);
     }
 
     [Fact]

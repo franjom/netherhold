@@ -24,7 +24,7 @@ written into the code.
 | A fully mined seam yields exactly its `goldValue` | **STRONGLY INFERRED** — gold taken from running totals, so truncation shows between swings and never as a shortfall |
 | Whether one worker applies the whole delta | **UNKNOWN** — untouched by the above, which measured one imp working alone |
 | `DigRockHealth` | **DOES NOT FIT, and is now CORRECTED rather than reproduced** (Q20, ADR-0023) - the shipped -5000 cannot produce the two swings the owner measured, so `ObservedCorrections` reads it as -500. The only such override in the project |
-| Upward work needs `maxHealth - currentHealth` | **WRONG, and the replacement is measured** (Q62) - the owner stopwatched reinforcing at 13.38 s, which is 66 swings, which is exactly Rock's `maxHealth` of 660 at 10 a swing. An upward job needs **`maxHealth` worth of work**, full stop. The same rule gives claiming its measured 4 swings (4 x 165 = 660 = Dirt Path's `maxHealth`); the implemented rule fits claiming only by luck and misses reinforcing by 16 swings. **Not yet built** |
+| **An upward job needs the terrain's whole `maxHealth` worth of work** | **CONFIRMED and IMPLEMENTED** (Q62, ADR-0024) - the owner stopwatched reinforcing at 13.38 s, which is 66 swings, which is exactly Rock's `maxHealth` of 660 at 10 a swing. The same rule gives claiming its measured 4 swings (4 x 165 = 660 = Dirt Path's `maxHealth`). The rule it replaced fitted claiming only by luck and missed reinforcing by 16 swings |
 
 ---
 

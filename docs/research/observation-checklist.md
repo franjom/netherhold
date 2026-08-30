@@ -299,10 +299,18 @@ creature cross a large open claimed room **corner to corner**:
 Your Q28 answer — that creatures cut corners between two solid tiles — already
 points at the first.
 
-### Q22 — filling a tile in
-Not yet observed — the answer offered against it described claiming instead.
-Fill in a claimed floor tile: does it take about as long as digging one out? Does
-a partly-filled tile revert if you cancel?
+### Q22 — how long does filling a tile in take? — **now a hard prediction**
+ADR-0024 turned this from a puzzle into a number. Under the old rule fill-in was
+*instantaneous* - a claimed floor tile ships at full health, so there was no gap
+to close and one application converted it. Under the measured rule an upward job
+needs the terrain's whole maxHealth of work, so filling in needs **660 swings,
+about 132 seconds**.
+
+Instant was obviously wrong. **132 seconds is untested, and it is a long time** -
+over two minutes to fill in one tile. **Fill in a claimed floor tile and time
+it**; the stopwatch method you used on reinforcing is exactly right for this.
+
+Still open alongside it: does a partly-filled tile revert if you cancel?
 
 ### Q23 — are dig markers per keeper or shared?
 In a skirmish, can you **see a rival keeper's dig markers** on their walls?

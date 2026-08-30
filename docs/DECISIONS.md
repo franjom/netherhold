@@ -689,3 +689,73 @@ Everything that could make this a misreading was checked and came back negative:
   this is the only number that has cleared it, and two others that looked like
   candidates (the imp mana upkeep, the Create Imp cost) turned out to be findable
   in the data instead. **Look for the field before reaching for this file.**
+
+---
+
+## ADR-0024 — An upward job costs the terrain's whole MaxHealth
+
+**Date.** 2026-08-30. **Status.** Accepted. **Amends** ADR-0020 and the rule
+recorded against Q18.
+
+**Context.** Claiming, reinforcing and filling in convert a tile to its
+`MaxHealthTypeTerrainId`. Until now they did it by *healing* the tile: work added
+to `Health`, and the conversion fired when `Health` reached `MaxHealth`. So the
+work required was the **gap** — `MaxHealth − Health`.
+
+The owner stopwatched one imp reinforcing one wall: **13.38 s and 13.77 s**, both
+carrying their own reaction time on the start and the stop, so the truth sits at
+or below 13.38. At the confirmed five applications a second (ADR-0020) that is
+66–67 swings, and **13.2 s is 66 exactly**. `ReinforceWallHealth` is 50 a second,
+so 10 a swing, so the work required is **660 — precisely Rock's `MaxHealth`**, and
+not the 495 the gap from its 165 starting health gives.
+
+The gap rule predicts 50 swings and **10.0 seconds**, three and a half seconds
+short of anything observed.
+
+**The same rule reproduces claiming**, which was already measured: Dirt Path takes
+4 swings at 165, and **4 × 165 = 660 = Dirt Path's `MaxHealth`**. So one rule fits
+two independently measured jobs.
+
+**Why this survived so long.** Dirt Path ships at **1** health, so its gap (659)
+and its maximum (660) are within a single swing of each other. Claiming is
+precisely where the two rules agree. Reinforcing is the only job where they
+differ enough to see, and it needed a stopwatch to see it.
+
+**A third confirmation of ADR-0020 falls out.** 66 swings over 13.38 s is 4.93 a
+second. Under the gap rule it would be 50 swings over the same 13.38 s — 3.74 a
+second — which contradicts the five-a-second reading that the 273-gold
+measurement established. Two measurements taken on different days on unrelated
+mechanics agree on the swing rate, **and only under the new reading**.
+
+**Decision.**
+
+- **An upward conversion needs `terrain.MaxHealth` worth of work**, counted from
+  zero and independent of the tile's current health.
+- **Progress lives in `TileState.UpwardWork`, not in `Health`.** Counting it in
+  health would mean letting a tile climb past its own maximum while a job ran — a
+  wall at 825 of 660 — leaking an impossible number into every snapshot, event
+  and observer, and it would make a *damaged* tile take longer to convert, which
+  nothing has observed. One integer is cheaper than either.
+- **Reinforcing does not heal.** A wall's health is untouched while it is being
+  reinforced; the conversion is what changes it. How DK2 stores this internally
+  is UNKNOWN and is explicitly not a fidelity requirement (goal 5).
+- **Repair jobs are unchanged** — they raise `Health` and stop at `MaxHealth`.
+  The two used to share a code path, and sharing it was the bug.
+- `UpwardWork` resets on any terrain change, along with `WorkRemainder`.
+
+**Consequences.**
+
+- **`HashVersion` 7 → 8 and snapshot `FormatVersion` 7 → 8**, and the pinned
+  determinism hash moves with them. The fixture behind it does no upward work at
+  all; the hash changed purely because the composition did.
+- **Reinforcing a wall goes from 50 swings to 66**, 10.0 s to 13.2 s.
+- **Claiming is unchanged at 4 swings**, which is the corroboration.
+- **Filling in changes beyond recognition, and this is the one to watch.** Under
+  the old rule it was *instantaneous*: Claimed Path ships at 660/660, so the gap
+  was zero and one application converted it — the whole of Q22's puzzle. Under the
+  measured rule it needs 660 of work at `FillInHealth`'s 1 a swing, so **660
+  swings, about 132 seconds**. Neither figure has been observed. Instant was
+  obviously wrong; **132 seconds is a prediction**, and it is now the cheapest
+  unanswered thing on the observation checklist.
+- The rule for **which** terrain a tile becomes is untouched — that is still
+  `MaxHealthTypeTerrainId` selected by the work, which is Q18 and stands.

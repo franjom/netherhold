@@ -360,24 +360,36 @@ public static class TileWorkRules
             return new TileWorkResult(TileWorkOutcome.Destroyed, applied, gold, spilled, tile.TerrainId);
         }
 
+        // A conversion job accumulates toward the terrain's whole MaxHealth and
+        // leaves the tile's health alone; a repair job restores health and stops
+        // at the maximum. The two used to share one path, and sharing it was the
+        // bug: it made reinforcing cost the GAP from a wall's starting health
+        // (495, so 50 swings) where the original charges the whole MaxHealth
+        // (660, so 66). See ADR-0024, Q62 and TileState.UpwardWork.
+        if (CompletesUpward(kind))
+        {
+            tile.UpwardWork += delta;
+            if (tile.UpwardWork < terrain.MaxHealth)
+            {
+                return new TileWorkResult(
+                    delta == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed,
+                    delta, 0, 0, tile.TerrainId);
+            }
+
+            int lost = Convert(
+                database, ref tile, terrain.MaxHealthTypeTerrainId, playerId, takeOwnership: true);
+            return new TileWorkResult(TileWorkOutcome.Transformed, delta, 0, lost, tile.TerrainId);
+        }
+
         int room = terrain.MaxHealth - tile.Health;
-        if (room <= 0 && !CompletesUpward(kind))
+        if (room <= 0)
             return new TileWorkResult(TileWorkOutcome.NoChange, 0, 0, 0, tile.TerrainId);
 
-        int upward = Math.Min(delta, Math.Max(room, 0));
-        tile.Health += upward;
-
-        if (tile.Health < terrain.MaxHealth)
-            return new TileWorkResult(TileWorkOutcome.Progressed, upward, 0, 0, tile.TerrainId);
-
-        if (!CompletesUpward(kind))
-            return new TileWorkResult(
-                upward == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed,
-                upward, 0, 0, tile.TerrainId);
-
-        int lost = Convert(
-            database, ref tile, terrain.MaxHealthTypeTerrainId, playerId, takeOwnership: true);
-        return new TileWorkResult(TileWorkOutcome.Transformed, upward, 0, lost, tile.TerrainId);
+        int repaired = Math.Min(delta, room);
+        tile.Health += repaired;
+        return new TileWorkResult(
+            repaired == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed,
+            repaired, 0, 0, tile.TerrainId);
     }
 
     /// <summary>
@@ -496,6 +508,11 @@ public static class TileWorkRules
 
         tile.TerrainId = newTerrainId;
         tile.Health = next.StartingHealth;
+
+        // The work was toward a conversion that has now happened; whatever the
+        // tile becomes starts its own upward job from nothing.
+        tile.UpwardWork = 0;
+        tile.WorkRemainder = 0;
         if (!next.IsTaggable) tile.TaggedBy = 0;
 
         if (takeOwnership && next.IsOwnable) tile.OwnerPlayerId = playerId;

@@ -76,6 +76,34 @@ public struct TileState
     /// </summary>
     public sbyte WorkRemainder;
 
+    /// <summary>
+    /// Work accumulated toward an <b>upward conversion</b> of this tile —
+    /// claiming, reinforcing or filling in — and nothing else.
+    ///
+    /// <para><b>An upward job needs the terrain's whole <c>MaxHealth</c> worth of
+    /// work, not the gap between where the tile sits and its maximum.</b> That
+    /// distinction is measured, not chosen (Q62, ADR-0024). The owner
+    /// stopwatched one imp reinforcing one wall at 13.38 s, which at five swings
+    /// a second is 66 swings, which at <c>ReinforceWallHealth</c>'s 10 a swing is
+    /// exactly 660 — precisely Rock's <c>MaxHealth</c>, and not the 495 that the
+    /// gap from its 165 starting health would give. The same rule reproduces
+    /// claiming's measured four swings: 4 x 165 is 660, precisely Dirt Path's
+    /// <c>MaxHealth</c> too.</para>
+    ///
+    /// <para><b>Why it is a field of its own rather than health.</b> Counting the
+    /// work in <see cref="Health"/> would mean letting a tile climb past its own
+    /// maximum while a job ran — a wall at 825 of 660 — which would leak an
+    /// impossible number into every snapshot, event and observer. It would also
+    /// make a damaged tile take longer to convert, which nothing has observed.
+    /// Keeping progress separate costs one integer and says what it means. How
+    /// DK2 stores it internally is unknown and is explicitly not a fidelity
+    /// requirement.</para>
+    ///
+    /// <para>Reset to zero whenever the tile changes terrain, since the work was
+    /// toward a conversion that has now happened.</para>
+    /// </summary>
+    public int UpwardWork;
+
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = 15;
 
@@ -104,6 +132,7 @@ public struct TileState
         hash.Add(GoldHeld);
         hash.Add(TaggedBy);
         hash.Add(WorkRemainder);
+        hash.Add(UpwardWork);
     }
 }
 

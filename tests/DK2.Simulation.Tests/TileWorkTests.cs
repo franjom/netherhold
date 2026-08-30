@@ -86,9 +86,16 @@ public class TileWorkTests
     [Fact]
     public void ClaimingDirtPath_YieldsClaimedPathOwnedByTheClaimer()
     {
-        // Dirt Path: 1/660, ClaimTileHealth 825 per second over five applications
-        // a second (Q47) => 165 a swing, and four swings to cross the top. That
-        // count is the owner's "2-3-4 jumps MAX" for claiming one tile (Q46).
+        // Dirt Path's MaxHealth is 660 and ClaimTileHealth is 825 a second over
+        // five applications (Q47) => 165 a swing, so an upward job needing the
+        // whole 660 takes exactly FOUR swings (ADR-0024, Q62). That count is the
+        // owner's "2-3-4 jumps MAX" for claiming one tile (Q46).
+        //
+        // The count is unchanged by ADR-0024 and that is the point: Dirt Path
+        // ships at 1 health, so the old rule's gap (659) and the new rule's
+        // MaxHealth (660) are within a single swing of each other. Claiming is
+        // where the two rules agree, which is exactly why the bug survived until
+        // somebody stopwatched REINFORCING.
         TileState tile = TileOf(Dk2TerrainFixture.DirtPath, owner: 3);
 
         for (int i = 0; i < 3; i++)
@@ -99,35 +106,51 @@ public class TileWorkTests
             Assert.Equal(Dk2TerrainFixture.DirtPath, tile.TerrainId);
         }
 
+        Assert.Equal(495, tile.UpwardWork);
+
         TileWorkResult result = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Claim, 2);
 
         Assert.Equal(TileWorkOutcome.Transformed, result.Outcome);
         Assert.Equal(Dk2TerrainFixture.ClaimedPath, tile.TerrainId);
         Assert.Equal(2, tile.OwnerPlayerId);
-        Assert.Equal(164, result.HealthDelta); // clamped at MaxHealth, not 165
+        Assert.Equal(165, result.HealthDelta);  // no clamp: progress is not health
+        Assert.Equal(0, tile.UpwardWork);       // reset by the conversion
     }
 
     [Fact]
-    public void ReinforcingRock_TakesFiftyApplications_AndYieldsAWall()
+    public void ReinforcingRock_TakesSixtySixApplications_AndYieldsAWall()
     {
-        // 165 -> 660 at ReinforceWallHealth 50 per SECOND over five applications
-        // a second (Q47): 10 a swing, 495 / 10 = 49.5, so the fiftieth completes
-        // it. Ten seconds of an imp's time either way - the granularity changed,
-        // the rate did not.
+        // SIXTY-SIX, and this is the count the owner stopwatched (Q62,
+        // ADR-0024). Rock's MaxHealth is 660 and ReinforceWallHealth is 50 a
+        // second over five applications (Q47) => 10 a swing, so an upward job
+        // needing the whole 660 takes 66 swings = 13.2 seconds. The owner
+        // measured 13.38 s and 13.77 s with a phone stopwatch, both carrying
+        // their own reaction time.
+        //
+        // The old rule charged the GAP from Rock's 165 starting health - 495, so
+        // 50 swings, so 10.0 seconds - which is three and a half seconds short of
+        // anything observed. Reinforcing is the only job where the two rules
+        // differ enough to see, which is why this went unnoticed.
         TileState tile = TileOf(Dk2TerrainFixture.Rock);
 
-        for (int i = 1; i <= 49; i++)
+        for (int i = 1; i <= 65; i++)
         {
             TileWorkResult step = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Reinforce, 1);
             Assert.Equal(TileWorkOutcome.Progressed, step.Outcome);
             Assert.Equal(Dk2TerrainFixture.Rock, tile.TerrainId);
         }
 
+        // The wall's own health never moved: reinforcing is progress toward a
+        // conversion, not healing.
+        Assert.Equal(Db.TerrainById(Dk2TerrainFixture.Rock).StartingHealth, tile.Health);
+        Assert.Equal(650, tile.UpwardWork);
+
         TileWorkResult last = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Reinforce, 1);
 
         Assert.Equal(TileWorkOutcome.Transformed, last.Outcome);
         Assert.Equal(Dk2TerrainFixture.ReinforcedWall, tile.TerrainId);
         Assert.Equal(1, tile.OwnerPlayerId);
+        Assert.Equal(0, tile.UpwardWork);
     }
 
     [Fact]
@@ -206,14 +229,33 @@ public class TileWorkTests
     public void FillingInClaimedPath_TurnsItBackIntoRock()
     {
         // The reading that makes Claimed Path's max-health type of Rock coherent.
-        // HYPOTHESIS on the timing (FillInHealth is 5 against a tile already at
-        // 660/660, so one application does it) - see Q22.
+        //
+        // ADR-0024 changed this beyond recognition and it is worth saying how.
+        // Under the old rule, fill-in was INSTANT: Claimed Path ships at 660/660,
+        // so the gap to its maximum was zero and one application converted it,
+        // which was the whole of Q22's puzzle. Under the measured rule an upward
+        // job needs the terrain's MaxHealth of work - 660 - and FillInHealth is 5
+        // a second, so 1 a swing, so filling in one tile takes 660 swings and
+        // about 132 seconds.
+        //
+        // NEITHER figure has been observed. Instant was obviously wrong; 132
+        // seconds is a PREDICTION, and it is now the cheapest thing on the
+        // observation checklist (Q22).
         TileState tile = TileOf(Dk2TerrainFixture.ClaimedPath, owner: 1);
+        int maxHealth = Db.TerrainById(Dk2TerrainFixture.ClaimedPath).MaxHealth;
+
+        for (int i = 1; i < maxHealth; i++)
+        {
+            TileWorkResult step = TileWorkRules.Apply(Db, ref tile, TileWorkKind.FillIn, 1);
+            Assert.Equal(TileWorkOutcome.Progressed, step.Outcome);
+            Assert.Equal(Dk2TerrainFixture.ClaimedPath, tile.TerrainId);
+        }
 
         TileWorkResult result = TileWorkRules.Apply(Db, ref tile, TileWorkKind.FillIn, 1);
 
         Assert.Equal(TileWorkOutcome.Transformed, result.Outcome);
         Assert.Equal(Dk2TerrainFixture.Rock, tile.TerrainId);
+        Assert.Equal(660, maxHealth);   // so the loop above really was 660 swings
     }
 
     // ---- gold ------------------------------------------------------------
