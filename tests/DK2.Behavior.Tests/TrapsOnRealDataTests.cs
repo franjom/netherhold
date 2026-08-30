@@ -108,9 +108,13 @@ public class TrapsOnRealDataTests
     /// in TRAPS that is not a trap at all — it is a spot for a creature to stand
     /// on. A cost field would read zero there and an arbitrary column would not.
     ///
-    /// <para>UNMEASURED and worth confirming: the prediction is that building a
-    /// guard post moves the red figure not at all, and a magic door moves it by
-    /// 30.</para>
+    /// <para><b>The door rows are not live data, and the owner proved it.</b>
+    /// This column says Magic Door 30; the owner built two magic doors and the
+    /// drain did not move at all. Doors have their own record - `Doors.kwd`, 8
+    /// of them, Magic Door among them - so the door rows in TRAPS are
+    /// vestigial, which "Spare Door 1" at 250 corroborates: no cost in this
+    /// game is 250 a second. The five values that matter are all traps and all
+    /// measured. See Q59.</para>
     /// </summary>
     [Fact]
     public void AGuardPostIsTheOnlyFreeEntry_BecauseItIsNotATrap()
