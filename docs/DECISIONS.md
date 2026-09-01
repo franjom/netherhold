@@ -885,3 +885,78 @@ member of this category** and will join it when selling is implemented.
 - **The count is O(creatures) inside a search predicate.** Acceptable at the
   tens-of-creatures scale this runs at, and worth revisiting if a level ever
   carries hundreds.
+
+---
+
+## ADR-0027 — A room is an instance, and it is derived rather than stored
+
+**Date.** 2026-08-30. **Status.** Accepted.
+
+**Context.** A room here was terrain, tile by tile. Nothing could ask the
+question most room rules turn out to need: *how big is the room this tile
+belongs to, and where is this tile within it?* Five separate findings — all of
+them measured in the original, all of them recorded — sat unimplementable on
+that one gap:
+
+| | |
+|---|---|
+| **Q52** | a dungeon heart holds **16000**, because 9 of its 25 tiles are the platform |
+| **Q60** | a temple's capacity is its **rim** — 8, 12, 16 for 3x3, 4x4, 5x5 |
+| **Q60** | a graveyard's graves are its **interior ring** |
+| **Q45** | `RecommendedSizeX/Y` is the size below which a room **does nothing** |
+| **Q61** | creature attraction wants a room's **tile count** (Bile Demon: hatchery ≥ 25) |
+
+**Decision.** `RoomInstance` — a connected group of tiles with the same room
+terrain and the same owner — found by `RoomIndex`.
+
+- **Derived, never stored.** Membership is recomputed from the tiles rather than
+  kept in `TileState`. Three reasons, and the second is the one that decided it:
+  - stored membership must be maintained on **every** path that changes a tile —
+    built, sold, dug out, destroyed, claimed by a rival — and the first one
+    anybody forgets leaves a room disagreeing with the map;
+  - **splitting and merging come free.** Cut a treasury in half and it is two
+    treasuries on the next query, with no split logic to write and no chance to
+    write it wrong. A tile joining two rooms merges them the same way. Both are
+    tested;
+  - it stays **out of the determinism hash**, being a pure function of state that
+    is already hashed. **No new field, no snapshot format change, no
+    `HashVersion` bump** — which for a change this size is worth a great deal.
+- **Connectivity is orthogonal**, and **owner counts**: two keepers' treasuries
+  meeting along a line are two treasuries, or a rival's tiles would inflate your
+  capacity.
+- **Two entry points, agreeing by construction** because they share one flood
+  fill: `RoomAt` walks a single room, `Build` sweeps the map once. A caller
+  looping over tiles uses `Build`; the test suite asserts they agree.
+- **`GoldStore.Capacity` gained a room-aware overload.** The old tile-only one
+  survives for the single caller that has a tile and no map — the spill
+  calculation when a tile stops being a store — where the difference cannot bite,
+  because a platform tile can never have had gold to spill.
+
+**What this fixed, and what it merely enabled.**
+
+- **Q52 is fixed.** A keeper's heart on the real campaign map now holds exactly
+  **16000**, asserted against `level1`'s actual heart. The platform is found from
+  the bounding box's centre, so it needs nothing from `TileConstruction`
+  (`FiveByFiveRotated`, which we do not read) and a half-destroyed heart degrades
+  sensibly instead of by a hardcoded 16.
+- **Q45 is implemented** as `IsFunctional`, and pinned against the real record in
+  both directions — Graveyard 3x3 and Temple 5x5 as the owner observed, and
+  Treasury/Lair/Guard Room at 1x1 so that "every room needs to be big" could not
+  fit the same evidence.
+- **Q60's temple half is expressed** as `EdgeTileCount`, counted rather than
+  computed from `2(w+h) − 4`, so an L-shaped room answers sensibly. Nothing reads
+  it yet — no creature worships — but the geometry is tested against the owner's
+  three measurements.
+- **Q60's graveyard half is not implemented.** Two data points and an ad-hoc rule
+  (interior tiles, less one for the centrepiece) is not enough; it needs one more
+  graveyard size.
+- **Q61 is not implemented.** Attraction needs portals, which are M6.
+
+**Consequences.**
+
+- `RoomIndex.Build` is O(tiles) and `RoomAt` is O(room). `GoldStore.Deposit` and
+  `SpaceFor` build the index once rather than filling per tile.
+- The fixture now transcribes `RecommendedSizeX/Y`, and the real-data drift guard
+  checks them, because a rule reads them now.
+- **No behaviour changed except the heart's capacity**, and no scenario hash
+  moved.

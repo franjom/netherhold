@@ -83,7 +83,7 @@ internal static class Dk2TerrainFixture
             // makes the placeable-on flags worth reading rather than assuming.
             R(RoomTypeId.Treasury, "Treasury", 200, TreasuryTerrain, 0x128Cu),
             R(RoomTypeId.Lair, "Lair", 300, LairTerrain, 0x128Cu),
-            R(RoomTypeId.DungeonHeart, "Dungeon Heart", 0, DungeonHeartTerrain, 0x204u),
+            R(RoomTypeId.DungeonHeart, "Dungeon Heart", 0, DungeonHeartTerrain, 0x204u, 5, 5),
             R(RoomTypeId.WoodenBridge, "Wooden Bridge", 200, WoodenBridgeTerrain, 0x1083u),
         ],
         creatures: [Imp()],
@@ -256,7 +256,9 @@ internal static class Dk2TerrainFixture
     /// One room record. Only the fields the room rules read are transcribed;
     /// the drift guard in <c>RoomsOnRealDataTests</c> checks exactly these.
     /// </summary>
-    private static RoomDef R(RoomTypeId id, string name, ushort cost, byte terrainId, uint flags) => new()
+    private static RoomDef R(
+        RoomTypeId id, string name, ushort cost, byte terrainId, uint flags,
+        byte sizeX = 1, byte sizeY = 1) => new()
     {
         Name = name,
         RoomId = (byte)id,
@@ -265,14 +267,17 @@ internal static class Dk2TerrainFixture
         TerrainId = terrainId,
         ReturnPercentage = 100,
 
+        // Transcribed, because RoomInstance.IsFunctional reads them: the size
+        // below which a room does nothing (Q45).
+        RecommendedSizeX = sizeX,
+        RecommendedSizeY = sizeY,
+
         // Not transcribed. Present because the record requires them.
         Construction = TileConstruction.Normal,
         CreatedCreatureId = 0,
         ObjectIds = [],
         HealthGain = 0,
         CeilingHeight = new Fp32(0),
-        RecommendedSizeX = 0,
-        RecommendedSizeY = 0,
         OrderInEditor = 0,
         NameStringId = 0,
         TooltipStringId = 0,

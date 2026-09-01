@@ -175,50 +175,81 @@ public class GoldOnRealDataTests
     }
 
     /// <summary>
-    /// <b>A keeper with no treasury can hold 16000 gold, and we say 25000.</b>
-    /// CONFIRMED by the owner from the original (2026-08-30), and a defect
-    /// recorded rather than fixed, because fixing it needs something we do not
-    /// have.
+    /// <b>A keeper with no treasury holds exactly 16000 gold</b>, on the real
+    /// campaign map, from the real heart. CONFIRMED by the owner (Q52) and now
+    /// reproduced rather than merely recorded (ADR-0027).
     ///
-    /// <para>The arithmetic says exactly where the difference is.
-    /// <c>MaxGoldPerDungeonHeartTile</c> is 1000 and a dungeon heart is a 5×5
-    /// block, which is 25 tiles and would be 25000. The original stores 16000,
-    /// so <b>16 tiles store gold and 9 do not</b> — and 9 is 3×3, the raised
-    /// centre the heart itself stands on. A screenshot of the heart shows it:
-    /// the structure occupies a 3×3 platform and the gold piles sit on the ring
-    /// of 16 around it.</para>
+    /// <para>The arithmetic says exactly where the number comes from.
+    /// <c>MaxGoldPerDungeonHeartTile</c> is 1000 and a dungeon heart is 5x5, so
+    /// twenty-five tiles would be 25000 — which is what this project stored
+    /// until room instances existed. The original stores 16000, so <b>16 tiles
+    /// store gold and 9 do not</b>, and 9 is 3x3: the raised platform the heart
+    /// structure stands on. A screenshot of the heart shows it, with the gold
+    /// piles ringing the centre.</para>
     ///
-    /// <para>Not implemented because nothing here knows a room <i>instance</i>
-    /// or its origin — a room is terrain, tile by tile, so there is no way to
-    /// ask which of 25 heart tiles is a centre one. <c>TileConstruction</c> is
-    /// <c>FiveByFiveRotated</c> for the heart and unread, and it is the field
-    /// that would answer it. Room shape is Q36/Q45 territory and lands with room
-    /// instances. Q52.</para>
+    /// <para>This is the test the whole room-instance change was for. It reads
+    /// the real level's real heart, and it is deliberately expressed as a total
+    /// rather than as "9 tiles are excluded", because the total is the thing the
+    /// owner actually measured.</para>
     /// </summary>
     [Fact]
-    public void AKeepersHeartHoldsMoreGoldHereThanInTheOriginal()
+    public void AKeepersHeartHoldsExactlySixteenThousand()
     {
         Level? level = Level1();
         if (level is null) return;
 
         int perTile = level.Db[VariableTypeId.MaxGoldPerDungeonHeartTile];
         int heartTiles = 0;
+        int storing = 0;
+
         for (int i = 0; i < level.World.TileCount; i++)
         {
             ref TileState tile = ref level.World.TileAtIndex(i);
             if (tile.OwnerPlayerId != Keeper) continue;
-            if (RoomRules.RoomOn(level.Db, tile)?.TypeId == RoomTypeId.DungeonHeart) heartTiles++;
+            if (RoomRules.RoomOn(level.Db, tile)?.TypeId != RoomTypeId.DungeonHeart) continue;
+
+            heartTiles++;
+            if (GoldStore.Capacity(level.World, level.Db, i) > 0) storing++;
         }
 
-        // A 5x5 heart, all of it storing, is where our number comes from.
         Assert.Equal(25, heartTiles);
-        Assert.Equal(25_000, heartTiles * perTile);
+        Assert.Equal(16, storing);
+        Assert.Equal(9, heartTiles - storing);
 
-        // The original stores 16000, which is the 16-tile ring around a 3x3
-        // centre. The nine missing tiles are the heart's own platform.
-        Assert.Equal(16_000, (heartTiles - 9) * perTile);
-        Assert.Equal(9, 3 * 3);
+        // What the owner measured: the whole keeper's capacity with no treasury.
+        Assert.Equal(16_000, GoldStore.SpaceFor(level.World, level.Db, Keeper));
+        Assert.Equal(16_000, storing * perTile);
     }
+
+    /// <summary>
+    /// The heart on the real map is one room instance of twenty-five tiles, and
+    /// it is a solid 5x5. Asserted separately from the gold, because if the
+    /// flood fill ever split it — a neighbouring tile changing owner would do
+    /// it — the capacity test above would still pass for the wrong reason.
+    /// </summary>
+    [Fact]
+    public void TheHeartOnTheRealMapIsOneFiveByFiveInstance()
+    {
+        Level? level = Level1();
+        if (level is null) return;
+
+        List<RoomInstance> hearts = RoomIndex.Build(level.World, level.Db)
+            .Where(r => r.Definition.TypeId == RoomTypeId.DungeonHeart
+                        && r.OwnerPlayerId == Keeper)
+            .ToList();
+
+        RoomInstance heart = Assert.Single(hearts);
+        Assert.Equal(25, heart.TileCount);
+        Assert.Equal(5, heart.Width);
+        Assert.Equal(5, heart.Height);
+        Assert.True(heart.IsRectangular);
+
+        // 5x5: sixteen on the rim, nine inside — and the nine inside are exactly
+        // the platform, which is why the two counts agree.
+        Assert.Equal(16, heart.EdgeTileCount);
+        Assert.Equal(9, heart.InteriorTileCount);
+    }
+
 
     /// <summary>
     /// The one place the whole model can be checked against a single shipped

@@ -10,8 +10,8 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
-five record types M1 needed are done. **299 tests green** with and without a DK2
-install; nine scenarios run; clean tree. (Core 14, Simulation 176, Data 41, Behavior 68.)
+five record types M1 needed are done. **325 tests green** with and without a DK2
+install; nine scenarios run; clean tree. (Core 14, Simulation 200, Data 41, Behavior 70.)
 
 > ### ⚠ Read this first: three sittings of owner answers, 2026-08-29 and 30
 >
@@ -30,7 +30,7 @@ install; nine scenarios run; clean tree. (Core 14, Simulation 176, Data 41, Beha
 > |---|---|
 > | **273 gold a swing** | Q47 — an application is a fifth of the tabled delta, five a second. Every swing count in the game changed; no time in seconds did (ADR-0020) |
 > | **Room costs, 5 of them** | Q32 — `Cost` is per tile and the ROOMS record's number is the price, confirmed five times over |
-> | **16000 gold in a heart** | Q52 — only 16 of a 5×5 heart's 25 tiles store gold. **Ours stores 25000.** A defect we cannot fix without room instances |
+> | **16000 gold in a heart** | Q52 - only 16 of a 5x5 heart's 25 tiles store gold; the middle nine are the platform. **FIXED** by room instances (ADR-0027) and asserted against level1's real heart |
 > | **4 imps, 5s, 1500 mana** | The imp economy, and all three are named by DK2's own data (ADR-0021) |
 >
 > **Known defects with known answers — do not rediscover these:**
@@ -38,7 +38,6 @@ install; nine scenarios run; clean tree. (Core 14, Simulation 176, Data 41, Beha
 >   the ownership test belongs on that tile's neighbour. **The only defect from
 >   the original list still standing**, and it wants Q49 answered first so that
 >   repairing, attacking and filling in are not guessed at alongside it.
-> - **Q52** — the dungeon heart holds 16000, not 25000. Needs room instances.
 > - ~~**Q53**~~ — **FIXED.** Imps cost 7 mana a second each, measured by the owner
 >   and then found on DK2's own Create Imp spell record (ADR-0022). This was the
 >   biggest hole in the economy, and closing it retired the last hardcoded
@@ -492,7 +491,7 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 66. The ones that gate progress:
+`docs/research/open-questions.md` holds all 66 (Q1-Q63; Q51 superseded). The ones that gate progress:
 
 - **Q53 is ANSWERED and built** (2026-08-30): 7 mana a second per imp, measured
   by the owner and read off DK2's own Create Imp spell record (ADR-0022). Left in

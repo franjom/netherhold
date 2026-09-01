@@ -36,7 +36,8 @@ namespace DK2.Simulation;
 public static class GoldStore
 {
     /// <summary>
-    /// How much gold one tile can hold.
+    /// How much gold one tile can hold, <b>ignoring the shape of the room it is
+    /// in</b>.
     ///
     /// Keyed on the room the tile's terrain belongs to, not on a terrain id: the
     /// two variables are named for the treasury and the dungeon heart, so the
@@ -44,6 +45,14 @@ public static class GoldStore
     /// tile holds nothing — including plain floor, whose
     /// <c>MaxGoldPileOutsideTreasury</c> would need gold-pile objects to mean
     /// anything.
+    ///
+    /// <para><b>Prefer the overload that takes a tile index.</b> This one cannot
+    /// see that nine of a dungeon heart's tiles are the raised platform its
+    /// structure stands on and hold nothing (Q52), so it over-reports a heart by
+    /// 9000. It survives for the one caller that has a tile and no map — the
+    /// spill calculation when a tile stops being a store — where the difference
+    /// cannot bite, because a platform tile can never have had gold on it to
+    /// spill.</para>
     /// </summary>
     public static int Capacity(GameDatabase database, in TileState tile)
     {
@@ -56,9 +65,64 @@ public static class GoldStore
         };
     }
 
-    /// <summary>Room left in one tile.</summary>
+    /// <summary>
+    /// How much gold the tile at <paramref name="tileIndex"/> can hold, given
+    /// the room it is part of.
+    ///
+    /// <para><b>This is where a dungeon heart's 16000 comes from</b> (Q52,
+    /// ADR-0027). A heart is 5x5 and the middle 3x3 is the platform the heart
+    /// structure stands on, so sixteen tiles store gold at
+    /// <c>MaxGoldPerDungeonHeartTile</c>'s 1000 and nine store nothing. The
+    /// owner measured the total in the original: a keeper with no treasury tops
+    /// out at 16000, and a screenshot shows the raised centre with gold piles
+    /// ringing it.</para>
+    ///
+    /// <para>A treasury has no such platform, so every tile of one counts. The
+    /// rule asks the room instance rather than the room type for the geometry,
+    /// which is why a heart that has been partly destroyed answers sensibly
+    /// instead of by a hardcoded 16.</para>
+    /// </summary>
+    public static int Capacity(WorldState world, GameDatabase database, int tileIndex) =>
+        Capacity(world, database, tileIndex, RoomIndex.RoomAt(world, database, tileIndex));
+
+    /// <summary>
+    /// The same, for a caller that has already worked out which room the tile is
+    /// in — a loop over every tile should build the index once rather than
+    /// flood-filling per tile.
+    /// </summary>
+    public static int Capacity(
+        WorldState world, GameDatabase database, int tileIndex, RoomInstance? room)
+    {
+        if (room is null) return 0;
+
+        int perTile = room.Definition.TypeId switch
+        {
+            RoomTypeId.Treasury => database[VariableTypeId.MaxGoldPerTreasuryTile],
+            RoomTypeId.DungeonHeart => database[VariableTypeId.MaxGoldPerDungeonHeartTile],
+            _ => 0,
+        };
+
+        if (perTile == 0) return 0;
+        if (room.Definition.TypeId != RoomTypeId.DungeonHeart) return perTile;
+
+        return room.IsCentrePlatform(tileIndex % world.Width, tileIndex / world.Width)
+            ? 0
+            : perTile;
+    }
+
+    /// <summary>Room left in the tile at <paramref name="tileIndex"/>.</summary>
+    public static int SpaceIn(WorldState world, GameDatabase database, int tileIndex) =>
+        Math.Max(0, Capacity(world, database, tileIndex) - world.TileAtIndex(tileIndex).GoldHeld);
+
+    private static int SpaceIn(
+        WorldState world, GameDatabase database, int tileIndex, RoomInstance? room) =>
+        Math.Max(0, Capacity(world, database, tileIndex, room)
+                    - world.TileAtIndex(tileIndex).GoldHeld);
+
+    /// <summary>Room left in one tile, ignoring room shape. See the note on <see cref="Capacity(GameDatabase, in TileState)"/>.</summary>
     public static int SpaceIn(GameDatabase database, in TileState tile) =>
         Math.Max(0, Capacity(database, tile) - tile.GoldHeld);
+
 
     /// <summary>
     /// Puts as much of <paramref name="amount"/> into <i>this one tile</i> as it
@@ -71,12 +135,13 @@ public static class GoldStore
     /// of where imps walked, which is what the original looks like (Q35 —
     /// nearest tile, spillover to another, and the owner flagged it as belief).
     /// </summary>
-    public static int DepositInto(GameDatabase database, ref TileState tile, int amount)
+    public static int DepositInto(
+        WorldState world, GameDatabase database, int tileIndex, int amount)
     {
         if (amount <= 0) return 0;
 
-        int put = Math.Min(SpaceIn(database, tile), amount);
-        tile.GoldHeld += put;
+        int put = Math.Min(SpaceIn(world, database, tileIndex), amount);
+        world.TileAtIndex(tileIndex).GoldHeld += put;
         return put;
     }
 
@@ -92,15 +157,19 @@ public static class GoldStore
         return (int)Math.Min(total, int.MaxValue);
     }
 
-    /// <summary>How much more this player could store, across every tile they own.</summary>
+    /// <summary>
+    /// How much more this player could store, across every tile they own.
+    ///
+    /// Builds the room index once rather than flood-filling per tile, which is
+    /// the whole reason <see cref="RoomIndex.Build"/> exists alongside
+    /// <see cref="RoomIndex.RoomAt"/>.
+    /// </summary>
     public static int SpaceFor(WorldState world, GameDatabase database, byte playerId)
     {
         long space = 0;
-        for (int i = 0; i < world.TileCount; i++)
-        {
-            ref TileState tile = ref world.TileAtIndex(i);
-            if (tile.OwnerPlayerId == playerId) space += SpaceIn(database, tile);
-        }
+        foreach ((int index, RoomInstance room) in StoreTilesOf(world, database, playerId))
+            space += SpaceIn(world, database, index, room);
+
         return (int)Math.Min(space, int.MaxValue);
     }
 
@@ -116,21 +185,44 @@ public static class GoldStore
         if (amount <= 0) return 0;
 
         int remaining = amount;
-        for (int i = 0; i < world.TileCount && remaining > 0; i++)
+        foreach ((int index, RoomInstance room) in StoreTilesOf(world, database, playerId))
         {
-            ref TileState tile = ref world.TileAtIndex(i);
-            if (tile.OwnerPlayerId != playerId) continue;
+            if (remaining <= 0) break;
 
-            int space = SpaceIn(database, tile);
+            int space = SpaceIn(world, database, index, room);
             if (space <= 0) continue;
 
             int put = Math.Min(space, remaining);
-            tile.GoldHeld += put;
+            world.TileAtIndex(index).GoldHeld += put;
             remaining -= put;
         }
 
         return amount - remaining;
     }
+
+    /// <summary>
+    /// Every tile this player owns that is part of a room, paired with the room,
+    /// in ascending tile order.
+    ///
+    /// One sweep of the map, and the tile order is what makes
+    /// <see cref="Deposit"/> and <see cref="TryWithdraw"/> reproducible. That
+    /// order is <b>ours, not DK2's</b> — see the note on the class.
+    /// </summary>
+    private static List<(int Index, RoomInstance Room)> StoreTilesOf(
+        WorldState world, GameDatabase database, byte playerId)
+    {
+        var result = new List<(int, RoomInstance)>();
+
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
+            if (room.OwnerPlayerId != playerId) continue;
+            foreach (int index in room.TileIndices) result.Add((index, room));
+        }
+
+        result.Sort((a, b) => a.Item1.CompareTo(b.Item1));
+        return result;
+    }
+
 
     /// <summary>
     /// Takes exactly <paramref name="amount"/> from this player's tiles, or

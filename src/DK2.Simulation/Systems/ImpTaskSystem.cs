@@ -372,10 +372,11 @@ public sealed class ImpTaskSystem : ISimulationSystem
         TilePos here = creature.Tile;
         if (!world.Contains(here)) return false;
 
-        ref TileState tile = ref world.Tile(here);
+        int index = (here.Y * world.Width) + here.X;
+        ref TileState tile = ref world.TileAtIndex(index);
         if (tile.OwnerPlayerId != creature.OwnerPlayerId) return false;
 
-        int put = GoldStore.DepositInto(context.Database, ref tile, creature.GoldHeld);
+        int put = GoldStore.DepositInto(world, context.Database, index, creature.GoldHeld);
         if (put <= 0) return false;
 
         creature.GoldHeld -= put;
@@ -419,8 +420,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
         WorldState world = context.World;
         if (!world.Contains(at)) return false;
 
-        ref TileState tile = ref world.Tile(at);
-        return tile.OwnerPlayerId == playerId && GoldStore.SpaceIn(context.Database, tile) > 0;
+        int index = (at.Y * world.Width) + at.X;
+        ref TileState tile = ref world.TileAtIndex(index);
+
+        // Room-aware: the nine tiles of a dungeon heart's raised platform hold
+        // nothing (Q52), so an imp must not set off for one.
+        return tile.OwnerPlayerId == playerId
+               && GoldStore.SpaceIn(world, context.Database, index) > 0;
     }
 
     /// <summary>

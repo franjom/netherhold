@@ -25,13 +25,63 @@ public class RoomsOnRealDataTests
         return install is null ? null : GameDatabaseLoader.Load(install);
     }
 
+    /// <summary>
+    /// <b>`RecommendedSizeX/Y` is the size below which a room does nothing</b>,
+    /// and the owner matched it twice without ever seeing the field (Q45).
+    ///
+    /// <list type="bullet">
+    /// <item>"a graveyard needs a minimum 3x3 so one grave appears" — the record
+    /// says <b>3x3</b>;</item>
+    /// <item>a temple was flagged as needing <b>5x5</b> — the record says
+    /// 5x5.</item>
+    /// </list>
+    ///
+    /// <para>The field is badly named: it recommends nothing, and it does not
+    /// stop a keeper building smaller — a 1x1 temple really is buildable (Q36),
+    /// it just does not work. Read by
+    /// <c>RoomInstance.IsFunctional</c>.</para>
+    ///
+    /// <para>Also asserted: the rooms whose size is 1x1. Without them the claim
+    /// would be untestable in the direction that matters — a rule which said
+    /// every room needs to be big would fit the two observations equally
+    /// well.</para>
+    /// </summary>
+    [Fact]
+    public void TheRecommendedSizesAreTheFunctionalMinimumsTheOwnerObserved()
+    {
+        GameDatabase? db = RealDatabase();
+        if (db is null) return;
+
+        void Size(string name, int x, int y)
+        {
+            RoomDef room = db.Rooms.Values.Single(r => r.Name == name);
+            Assert.Equal(x, room.RecommendedSizeX);
+            Assert.Equal(y, room.RecommendedSizeY);
+        }
+
+        Size("Graveyard", 3, 3);   // owner: 3x3 before a single grave appears
+        Size("Temple", 5, 5);      // owner: believed 5x5
+
+        // The other end of the claim: rooms that work at a single tile.
+        Size("Treasury", 1, 1);
+        Size("Lair", 1, 1);
+        Size("Guard Room", 1, 1);
+
+        // And the ones nobody has looked at, pinned so a data change is visible.
+        Size("Prison", 5, 5);
+        Size("Combat Pit", 5, 5);
+        Size("Library", 3, 3);
+    }
+
     [Fact]
     public void TheRoomFixture_MatchesTheInstall()
     {
         GameDatabase? db = RealDatabase();
         if (db is null) return; // skipped: no DK2 install
 
-        void Check(RoomTypeId id, string name, ushort cost, byte terrain, uint flags)
+        void Check(
+            RoomTypeId id, string name, ushort cost, byte terrain, uint flags,
+            byte sizeX, byte sizeY)
         {
             RoomDef r = db.Room(id);
             Assert.Equal(name, r.Name);
@@ -39,12 +89,17 @@ public class RoomsOnRealDataTests
             Assert.Equal(terrain, r.TerrainId);
             Assert.Equal(flags, (uint)r.Flags);
             Assert.Equal(100, r.ReturnPercentage);
+
+            // Read by RoomInstance.IsFunctional (Q45), so the fixture has to
+            // carry the real values and this is what stops it drifting.
+            Assert.Equal(sizeX, r.RecommendedSizeX);
+            Assert.Equal(sizeY, r.RecommendedSizeY);
         }
 
-        Check(RoomTypeId.Treasury, "Treasury", 200, 10, 0x128Cu);
-        Check(RoomTypeId.Lair, "Lair", 300, 11, 0x128Cu);
-        Check(RoomTypeId.DungeonHeart, "Dungeon Heart", 0, 14, 0x204u);
-        Check(RoomTypeId.WoodenBridge, "Wooden Bridge", 200, 17, 0x1083u);
+        Check(RoomTypeId.Treasury, "Treasury", 200, 10, 0x128Cu, 1, 1);
+        Check(RoomTypeId.Lair, "Lair", 300, 11, 0x128Cu, 1, 1);
+        Check(RoomTypeId.DungeonHeart, "Dungeon Heart", 0, 14, 0x204u, 5, 5);
+        Check(RoomTypeId.WoodenBridge, "Wooden Bridge", 200, 17, 0x1083u, 1, 1);
 
         Assert.Equal(3000, db[VariableTypeId.MaxGoldPerTreasuryTile]);
         Assert.Equal(1000, db[VariableTypeId.MaxGoldPerDungeonHeartTile]);
