@@ -6,12 +6,12 @@ Update this whenever a session ends or context is compacted.
 
 ---
 
-## Current state (2026-08-30)
+## Current state (2026-09-01)
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
-five record types M1 needed are done. **325 tests green** with and without a DK2
-install; nine scenarios run; clean tree. (Core 14, Simulation 200, Data 41, Behavior 70.)
+five record types M1 needed are done. **339 tests green** with and without a DK2
+install; nine scenarios run; clean tree. (Core 14, Simulation 214, Data 41, Behavior 70.)
 
 > ### ⚠ Read this first: four sittings of owner answers, 2026-08-29 and 30
 >
@@ -38,13 +38,15 @@ install; nine scenarios run; clean tree. (Core 14, Simulation 200, Data 41, Beha
 > | **Room costs, 5 of them** | Q32 — `Cost` is per tile, confirmed five times over |
 > | **4 imps, 5s, 1500 mana** | The imp economy, all three named by DK2's own data (ADR-0021) |
 >
-> **One known defect is left from the original list:**
-> - **Q44/Q42** — an imp stands *on* the floor tile it claims, not beside it, and
->   the ownership test belongs on that tile's neighbour. Wants Q49 answered first,
->   so that repairing, attacking and filling in are not guessed at alongside the
->   one case that is confirmed.
+> **Every known defect from the original list is now fixed.** The last one,
+> **Q44/Q42**, went on 2026-09-01 (ADR-0028): an imp claims a floor tile by
+> standing *on* it, and the ownership test moved to that tile's neighbour. It had
+> been waiting on Q49 — whether repairing, attacking and filling in work the same
+> way — and Q49 was settled **without an observation**, by deriving the stance
+> from two physical clauses instead of listing it per work kind. See the fourth
+> lesson below.
 >
-> **Three lessons from these sittings, in order of how much they cost to learn:**
+> **Four lessons from these sittings, in order of how much they cost to learn:**
 >
 > 1. **Ask for the quantity by name.** "How much gold per swing" got an answer
 >    that "how fast does mining feel" could not have.
@@ -56,6 +58,14 @@ install; nine scenarios run; clean tree. (Core 14, Simulation 200, Data 41, Beha
 >    upkeep search failed for a whole session because it required an unverified
 >    2000 to also be true; the negative it produced was therefore worthless, and
 >    it hid the fact that the search was in the wrong file entirely.
+> 4. **Some questions are cheaper to derive than to observe.** Q49 asked which of
+>    four floor jobs are worked standing on the tile. Asking for four observations
+>    was the obvious move; the right one was to notice that *filling a tile in
+>    turns it to rock*, so a worker standing on it would be entombed — and that
+>    two physical clauses then answer all ten work kinds with nothing left to
+>    guess. Q48 fell the same way a day earlier (a diagonal is √2 tile-widths, so
+>    octile is forced). **Before writing an observation request, check whether the
+>    answer is already implied by something the data says.**
 
 Three honest caveats:
 - M3's definition of done asked for gold reaching a player and a Unity view.
@@ -116,6 +126,7 @@ What the simulation can do:
 | Dig / mine / claim / reinforce / repair / attack / fill in | `DK2.Simulation.TileWorkRules` | rules run against the real install; terrain graph terminates on a whole campaign level; **a swing is a fifth of the tabled delta and a shipped seam gives up 273 gold eleven times** (ADR-0020) |
 | Dig markers, first real command | `TileTagSystem` + `TagTilesCommand` | per player; cleared only when the tile can no longer carry one |
 | Workers that excavate, then claim, then reinforce | `ImpTaskSystem` + `CreatureMovementSystem` | the priority order is CONFIRMED (ADR-0018); imps dig a corridor on a synthetic map and on a shipped campaign level, then claim the floor they opened |
+| Where a worker stands to do a job | `WorkStance` | a wall is worked from beside, floor from on top of it (Q44/Q49, ADR-0028); derived from two clauses rather than listed, and both clauses are pinned by a test that fails without them |
 | Grid search behind an interface | `DK2.Pathfinding.GridPathfinder` | shortest, wall-respecting, reproducible; reused buffers proven inert |
 | Rooms: where one may go, what it costs | `RoomRules` + `BuildRoomCommand` | placement flags partition the shipped rooms; ground rules run on a campaign level |
 | Gold, stored in tiles rather than on players | `GoldStore` | per-tile limits honoured; a first treasury is paid for out of the dungeon heart |
@@ -130,10 +141,10 @@ Extracted data artifacts (the specification the simulation is written against):
 (`dk2tools kwd terrain` / `kwd terrainflags` / `kwd terrainmana` / `kwd rooms` /
 `kwd roomflags`), which is what M3's rules are built on.
 
-**Next: three known defects with known answers, then the Unity view.** See
-"Immediate next steps" — claiming from the tile itself, eight-connected movement
-and the crowding cap. The gold carrier and the work rate, which were first and
-last on that list, are both done.
+**Next: selling a room, then the Unity view.** See "Immediate next steps". Every
+known defect that list ever held is now built - the gold carrier, the work rate,
+the imp upkeep, the dig rate, the upward-work rule, eight-connected movement, the
+crowding cap, the heart's 16000, and the work stance.
 
 How this milestone stands against the twelve long-term goals in `AGENTS.md`, and
 which of them have deadlines attached: `docs/GOAL_ALIGNMENT.md`. Re-run that
@@ -171,6 +182,7 @@ to miss.
 | `src/DK2.Simulation/SimulationTiming.cs` | **The only** place ticks relate to seconds. `TicksPerSecond` is still the Q1 placeholder; `WorkApplicationsPerSecond` is measured (ADR-0020). |
 | `src/DK2.Simulation/CreatureState.cs` | The first mutable creature state. Position is fixed point; the route is state, not a cache. |
 | `src/DK2.Simulation/Systems/ImpTaskSystem.cs` | Which marked tile a worker takes, and when it applies work. |
+| `src/DK2.Simulation/WorkStance.cs` | **The one** rule for where a worker stands: on the tile for floor, beside it for a wall (ADR-0028). |
 | `src/DK2.Simulation/Systems/CreatureMovementSystem.cs` | Walking, at the speed the creature record gives. |
 | `src/DK2.Simulation/Systems/SimulationSystems.cs` | **The one** declaration of system order (ADR-0013). |
 | `src/DK2.Simulation/WorldPathGrid.cs` | What "walkable" means, for one particular creature. |
@@ -226,36 +238,28 @@ questions into ordinary implementation work, and that work now comes before the
 Unity view, because every one of them is a behaviour a renderer would display
 incorrectly.
 
-**Where to pick up, 2026-08-30 (fourth sitting).** **Every known defect from the
-original list is fixed except one.** Q31 the gold carrier, Q47 the work rate,
-Q53 the imp mana upkeep, Q20 the dig rate, Q62 the upward-work rule, Q28/Q48
-eight-connected movement, Q43 the crowding cap and Q52 the heart's 16000 are all
-built. What is left, in the order it is worth doing:
+**Where to pick up, 2026-09-01 (fifth sitting).** **Every known defect from the
+original list is now fixed.** Q31 the gold carrier, Q47 the work rate, Q53 the
+imp mana upkeep, Q20 the dig rate, Q62 the upward-work rule, Q28/Q48
+eight-connected movement, Q43 the crowding cap, Q52 the heart's 16000 and — last
+— Q44/Q42 the work stance are all built. What is left, in the order it is worth
+doing:
 
-1. **Claiming from the tile itself (Q44/Q42)** — **the last known defect.** An
-   imp jumps onto the tile it claims and stays ~500 ms; ours works it from a
-   neighbour. The ownership condition moves with it: it is the *claimed tile's
-   neighbour* that must belong to the keeper, not the tile the imp stands on.
-   Touches `ImpTaskSystem.TryJobBeside` / `IsInWorkingPosition`, which have one
-   adjacency model for walls and floor alike and need two. **Worth asking Q49
-   first** — whether repairing, attacking and filling in work the same way — so
-   that three rules are not guessed at alongside the one that is confirmed.
-
-2. **Selling a room (Q34).** Answered and unimplemented: **50% of the cost, per
+1. **Selling a room (Q34).** Answered and unimplemented: **50% of the cost, per
    tile**, and the number is in *neither* candidate variable — `ReturnPercentage`
    and `RoomSellValuePercentageOfCost` both say 100. So it is a second member of
    the "observed, absent from the data" category that `ImpCrowding` opened, and
    it belongs beside that constant with the same four rules applied. Small,
    self-contained, and a gold sink the economy does not have.
 
-3. **Unity presentation** — the simulation runs a dig scenario with moving
+2. **Unity presentation** — the simulation runs a dig scenario with moving
    workers and a keeper building a room, headlessly, which was the precondition.
    `CreatureState.PosX/PosY` are fixed point in tile units; a renderer converts,
    the simulation never does. **`docs/GOAL_ALIGNMENT.md` gap 3 applies here and
    is the expensive one to miss: the asset abstraction layer must land in the
    same milestone as the first Unity view, not after it.**
 
-4. **What rooms actually do.** Room instances exist now (ADR-0027), so the
+3. **What rooms actually do.** Room instances exist now (ADR-0027), so the
    machinery is finally there: `RoomInstance` gives a room its tile count, its
    bounding box, its rim and whether it is big enough to function. A lair, a
    hatchery, a library and the rest are still inert terrain, and each needs its
@@ -272,8 +276,10 @@ and defeat (Q40, needs portals and objectives).
 **The cheapest unanswered observations**, if the owner is ever at the keyboard:
 fill-in now predicts **660 swings, about 132 seconds** for one tile (Q22) and
 that is untested and a long time; a **non-square temple** would finish Q60's
-temple half; **one more graveyard size** would settle its grave rule; and
-**Q49** unblocks item 1 above.
+temple half; **one more graveyard size** would settle its grave rule; and a
+**diagonal walk across a large claimed room** would confirm Q48 from the outside
+(7 tiles predicts 3.8 s straight against 5.4 s diagonal), though octile is
+already implemented from the physics and nothing waits on it.
 
 **Q47 came off this list on 2026-08-30 and is done.** It had said: get exact hit
 counts before touching `SimulationTiming.WorkApplicationPeriodTicks`. The exact
@@ -287,8 +293,11 @@ implemented it made the correction free.
 §"What is not implemented, and is not guessed at".** The priority order is no
 longer among the unknowns — it is CONFIRMED and built (ADR-0018) — and neither is
 carrying gold (Q31, ADR-0019). What is still missing is missing on purpose:
-wandering (Q41), the crowding cap (Q43), dragging bodies, fleeing, building rooms,
-picking up gold somebody else dropped, and the floor lump.
+wandering (Q41), the ~500 ms an imp lingers after claiming (Q49 - cooldown or
+animation, and the two are indistinguishable from outside), dragging bodies,
+fleeing, building rooms, picking up gold somebody else dropped, and the floor
+lump. The crowding cap came off that list (ADR-0026) and so did the work stance
+(ADR-0028).
 
 **And before adding to `RoomRules`, read `docs/research/rooms-and-gold.md`
 §"What is not implemented, and is not guessed at".** Rooms still have no
@@ -573,14 +582,15 @@ implementation.
 
 ---
 
-## Where the project stood at the 2026-08-30 compaction
+## Where the project stood at the 2026-09-01 compaction
 
-Four sittings of owner measurements and four ADRs in one day. The state:
+Four sittings of owner measurements and five ADRs, then one more the day after
+that needed no measurement at all. The state:
 
-**325 tests green** with and without a DK2 install (Core 14, Simulation 200,
+**339 tests green** with and without a DK2 install (Core 14, Simulation 214,
 Data 41, Behavior 70), nine scenarios running, clean tree.
 
-**Eight of the nine known defects are fixed.** In the order they fell:
+**Every known defect is fixed.** In the order they fell:
 
 | | |
 |---|---|
@@ -593,8 +603,10 @@ Data 41, Behavior 70), nine scenarios running, clean tree.
 | ADR-0025 | Q28/Q48 — eight-connected movement, a diagonal costs √2 |
 | ADR-0026 | Q43 — three workers to a face, the fourth goes elsewhere |
 | ADR-0027 | Q52/Q45/Q60 — a room is an instance, derived rather than stored |
+| ADR-0028 | Q44/Q42/Q49 — floor is worked from on top of it, walls from beside |
 
-**The ninth is Q44/Q42** and is item 1 of the pick-up list above.
+**Nothing is left on that list**, which is why the pick-up list above now starts
+with selling a room and then goes to the Unity view.
 
 **Two mechanisms were created for numbers that come from observation rather than
 from the files, and both are meant to stay narrow:**
@@ -607,7 +619,7 @@ from the files, and both are meant to stay narrow:**
 
 **The research method that produced all of this is written up in three places
 and is worth reading before the next research push:** the call-out at the top of
-this file (three lessons), `docs/research/imps-and-mana.md` §*How this was
+this file (four lessons), `docs/research/imps-and-mana.md` §*How this was
 established* (the failure and recovery in full), and
 `docs/research/observation-checklist.md` (what is still worth asking, and what
 playing cannot settle).

@@ -19,10 +19,14 @@ Implemented by `DK2.Simulation.Systems.ImpTaskSystem`,
 | Creature `speed` is in tiles per second | **STRONGLY INFERRED** — see below |
 | Walkability follows `CanWalkOnWater` / `CanWalkOnLava` | **STRONGLY INFERRED** — the flags exist for nothing else |
 | **Job priority: marked excavation, then claiming, then reinforcing** | **CONFIRMED** — owner observation of the original (Q24); implemented as a strict ordering, ADR-0018 |
-| A tile is worked from an orthogonal neighbour | **CONFIRMED** — twelve imps a block at three a face is four faces (Q27) |
+| A **wall** is worked from an orthogonal neighbour | **CONFIRMED** — twelve imps a block at three a face is four faces (Q27) |
+| **Floor is worked standing on the tile itself** | **CONFIRMED** for claiming (Q44) — *"imps claim tiles by jumping on them"*; ADR-0028 |
+| Repairing and attacking floor use the same stance as claiming | **STRONGLY INFERRED** (Q49) — identical geometry, and no observation distinguishes them |
+| Filling a tile in is worked from beside, though the tile is floor | **STRONGLY INFERRED** (Q49) — it becomes rock, so a worker on it would be entombed |
+| The ~500 ms an imp lingers on a tile it has just claimed | **UNKNOWN** (Q49) — cooldown or animation, indistinguishable from outside; not modelled |
 | An imp with none of the three available wanders and interacts with scenery and creatures | **CONFIRMED but NOT IMPLEMENTED** (Q41) — ours stands still |
-| Three imps a face, twelve a block, is a hard cap | **CONFIRMED but NOT IMPLEMENTED** (Q26/Q43) — ours converge without limit |
-| Claiming and reinforcing are taken from ground the keeper already holds | **STRONGLY INFERRED** (Q42) — supported by Q33, where a room tile must touch owned land |
+| Three imps a face, and the fourth goes elsewhere | **CONFIRMED and IMPLEMENTED** (Q26/Q43, ADR-0026) — `ImpCrowding` |
+| Claiming and reinforcing spread from ground the keeper already holds | **CONFIRMED** (Q42) — supported by Q33, where a room tile must touch owned land. Which tile carries the condition follows from the stance (ADR-0028) |
 | A worker takes the marked tile fewest steps away | **HYPOTHESIS** (Q25) |
 | A worker that finishes a job starts the next one at once rather than waiting out the idle delay | **STRONGLY INFERRED** — an imp that has just finished has not been idle |
 | Imps never eat | **CONFIRMED** — owner observation; the Imp's hunger rate of 32767 does mean "never" (Q12) |
@@ -124,16 +128,56 @@ Once per tick, for every creature flagged `IsWorker`, in spawn order:
    before it looks for work.
 4. If it is idle, it counts down; at zero it searches. A search that finds
    nothing resets the count to `ImpIdleDelayBeforeReevaluationSeconds`.
-5. If it is walking and now occupies a tile orthogonally beside its target, it
-   starts working. If it has walked its whole route and is still not beside the
-   target, the job ends.
+5. If it is walking and is now in the working position for its job - **on** the
+   target tile for floor work, orthogonally **beside** it for a wall (ADR-0028) -
+   it starts working. If it has walked its whole route and is still not in
+   position, the job ends.
 6. If it is working, it counts down; at zero it either queues one application of
    work - one fifth of the tabled delta, five times a second (Q47, ADR-0020) -
    or, if that application would free more gold than it can hold and there is
    somewhere reachable to put what it already has, breaks off and carries.
 
 Movement is a separate system that runs *before* task selection, so a worker that
-arrives beside its job is noticed on the tick it arrives.
+arrives at its job is noticed on the tick it arrives.
+
+### Where a worker stands
+
+**A wall is worked from beside it; floor is worked from on top of it.**
+
+The first half is CONFIRMED and old: twelve imps to a block at three a face is
+four faces, and only orthogonal neighbours give four (Q27). The second half is
+CONFIRMED and new - *"imps claim tiles by jumping on them"*, they stay on the
+tile about half a second, then move to an adjacent unclaimed one and do it again
+(Q44). Everything here used to use the first rule for both, which is the defect
+ADR-0028 closes.
+
+The rule is **derived rather than enumerated**. A worker works from the target
+tile when it can stand there *both while it works and when the job finishes*:
+
+- **standable now** rules out every wall job without naming one - those tiles
+  are `Solid`, and the question is asked of the same walkability grid the mover
+  routes over, so a creature that cannot cross water does not plan to stand in
+  it;
+- **standable when it finishes** rules out **fill-in**, and is the clause that
+  earns this being a rule. Fill-in turns floor into rock (Q18), so a worker
+  standing on it would be sealed inside its own work. Nothing else in the ten
+  work kinds needs the clause, and there is exactly one stance that does not
+  entomb the worker.
+
+That is why repairing and attacking floor are STRONGLY INFERRED rather than
+guesses: they are not separate decisions. Two physical clauses answer all ten
+kinds, and a hand-written list of which job uses which stance would have been
+the invention.
+
+**The ownership condition follows the stance.** Claiming and reinforcing spread
+from ground the keeper already holds (Q42) - but *which* tile carries that
+condition depends on where the imp's feet are. A wall job is taken standing on
+the keeper's own land, so the **standing** tile must be owned. A floor job is
+done standing on the tile being claimed, which is by definition not owned yet,
+so it is the **target** that must touch owned land instead. Both readings say
+the same thing about the map: territory grows outwards, never in islands.
+
+What is **not** modelled is the ~500 ms linger (Q49).
 
 ### The round trip
 
@@ -167,7 +211,8 @@ it (ADR-0018).
 
 There is no candidate list, no sort and no reachability filter. The worker walks
 outwards from where it stands over walkable tiles, and stops at the first tile
-that has a workable marked tile beside it. That one search answers three
+from which a job can be worked - the tile underfoot first, then the four around
+it. That one search answers three
 questions at once: which job is nearest in steps, how to get there, and whether
 anything is reachable at all. Unreachable marks are never candidates because the
 search never arrives at them.
@@ -209,11 +254,10 @@ and the priority order is CONFIRMED (ADR-0018). What is still absent:
   interacts with the environment and with creatures (CONFIRMED). It is not
   implemented because it has no simulation consequence we model, and a walk we
   invented would put imps where DK2 would not. Q41.
-- **The crowding cap.** Three imps a face and twelve a block is a hard limit in
-  the original (CONFIRMED). Ours converge without limit. Implementing it means
-  choosing between reservation — a fourth imp picks a different job — and
-  crowding — a fourth imp walks over and waits — which is Q43 and is not
-  observed yet.
+- **The ~500 ms an imp lingers on a tile it has just claimed.** Whether that is
+  a real cooldown or the claim animation finishing is UNKNOWN, and the two are
+  indistinguishable from outside the game. An imp here goes straight to the next
+  job. Q49.
 - **Dragging the unconscious to a prison and the dead to a graveyard**, and
   **fleeing a fight.** Neither has a trigger anybody has stated, and neither has
   anything to act on: there is no combat, no unconsciousness and no prison.
@@ -231,15 +275,18 @@ and the priority order is CONFIRMED (ADR-0018). What is still absent:
   involved. That is a fourth thing an imp does and it is not in the priority
   order the owner gave, so where it would sit is UNKNOWN.
 
-Note what is *not* on this list any more: the priority order itself, and carrying
-gold. Both were among the biggest unknowns in this file and both were answered in
-one sentence each.
+Note what is *not* on this list any more: the priority order itself, carrying
+gold, the crowding cap, and where a worker stands to do a job. All four were
+among the biggest unknowns in this file. Three of them were answered in one
+sentence each by somebody looking at the original; the fourth (Q49) was answered
+by deriving the rule instead of enumerating it — see ADR-0028.
 
 ## Routing is ours, not DK2's
 
-`GridPathfinder` is a four-connected shortest-path search: A* with a Manhattan
-heuristic for a known destination, breadth-first for the nearest goal. Uniform
-step costs, a fixed neighbour order, and tile index as the final tie-break.
+`GridPathfinder` is an eight-connected shortest-path search: A* with an octile
+heuristic for a known destination, Dijkstra for the nearest goal. Octile step
+costs - 10 straight, 14 diagonal (Q28/Q48, ADR-0025) - a fixed neighbour order,
+and tile index as the final tie-break.
 
 **None of that is evidence about the original.** Q5 is the project's largest open
 question; Flame names a 36-byte `Follow_Path` struct with not one named field,

@@ -299,6 +299,22 @@ creature cross a large open claimed room **corner to corner**:
 Your Q28 answer — that creatures cut corners between two solid tiles — already
 points at the first.
 
+**You raised the real difficulty: you cannot order a creature to walk anywhere,
+because creatures pick their own routes.** You can, though, arrange a dungeon in
+which the route they pick is the one you want to see. Use an **imp**, which is
+the one creature whose destination you *can* choose:
+
+1. A large claimed room, at least 8x8, with nothing else in it.
+2. Put the imp in one corner and mark **one** tile at the far corner. It is the
+   only job on the map, so it goes there, and marked excavation outranks
+   everything (Q24).
+3. Watch the shape of the walk, not the clock. A **glide along the diagonal** is
+   the answer; a **staircase** of alternating north/east steps is the other one.
+
+If you do want a number, 7 tiles diagonally is **3.8 s** if a diagonal is free
+and **5.4 s** if it costs √2, and the gap is wide enough for a phone stopwatch.
+But the shape alone settles it, and the shape needs no timing at all.
+
 ### Q22 — how long does filling a tile in take? — **now a hard prediction**
 ADR-0024 turned this from a puzzle into a number. Under the old rule fill-in was
 *instantaneous* - a claimed floor tile ships at full health, so there was no gap
@@ -315,11 +331,23 @@ Still open alongside it: does a partly-filled tile revert if you cancel?
 ### Q23 — are dig markers per keeper or shared?
 In a skirmish, can you **see a rival keeper's dig markers** on their walls?
 
-### Q49 — do the other floor jobs work like claiming?
-An imp stands *on* a tile to claim it (Q44). Does it also stand on the tile to
-**repair** damaged floor, to **attack** a rival's floor, and to **fill in**? Or
-does it stand beside those? And is the ~500 ms an imp lingers after claiming a
-real pause, or just the animation finishing?
+### Q49 — do the other floor jobs work like claiming? — **withdrawn, mostly**
+This used to ask you to watch four jobs. Three of them are answered without
+playing, and asking would have been the wrong move — the same mistake as Q48.
+
+The rule turns out to be forced by two physical clauses rather than being four
+separate facts: **a worker works from the tile itself when it can stand there
+both while it works and when the job finishes.** The first clause rules out every
+wall job (those tiles are solid). The second rules out **filling in** — a filled
+tile becomes rock, so a worker standing on it would be sealed inside its own
+work. Repairing and attacking floor are then the same case as claiming, because
+they are the same geometry. See ADR-0028.
+
+**What is still worth a look, and is small:** is the **~500 ms an imp lingers**
+after claiming a real pause before its next job, or just the claim animation
+finishing? Watch whether an imp with another claimable tile right beside it
+sets off *immediately* or hesitates. We model no pause at all, so a visible
+hesitation is the thing that would change something.
 
 ### Q63 — what does training cost? — **20 at a dummy, 0 at the target**
 You measured a melee creature swinging at a training dummy paying **20 gold** an

@@ -960,3 +960,84 @@ terrain and the same owner — found by `RoomIndex`.
   checks them, because a rule reads them now.
 - **No behaviour changed except the heart's capacity**, and no scenario hash
   moved.
+
+---
+
+## ADR-0028 — Floor is worked from on top of it, walls from beside
+
+**Date.** 2026-09-01. **Status.** Accepted.
+
+**Context.** Everything in this project was worked from an orthogonal
+neighbour. That model came from Q27, which is CONFIRMED and about **walls** — a
+gold block takes three imps a side and twelve in all, and twelve is four sides
+of three — and it was then applied to floor as well, because at the time there
+was nothing to say otherwise.
+
+There is now. The owner's observation of the original (Q44, CONFIRMED) is
+unambiguous: *"imps claim tiles by jumping on them"*, they stay on the tile
+roughly half a second afterwards, and then move to an adjacent unclaimed one and
+do it again. The last known defect on the M3 list.
+
+It is not only where the imp stands. The **ownership condition moves with it.**
+Claiming and reinforcing spread from ground the keeper already holds (Q42), and
+that was implemented as *the tile the imp stands on must be owned*. An imp
+standing on the tile it is claiming can never satisfy that, because the tile
+being claimed is by definition not owned yet.
+
+**Decision.** A worker works from the target tile itself when it can stand
+there **both while it works and when the job finishes**; otherwise from an
+orthogonal neighbour. `WorkStance` is the whole rule, and it is *derived* rather
+than a list of work kinds:
+
+| Clause | What it rules out | Why it is not a guess |
+|---|---|---|
+| standable **now** | dig, mine, reinforce, repair-wall | those tiles are `Solid`; nothing may stand on them |
+| standable **when it finishes** | fill in | fill-in turns floor into rock (Q18) — a worker on it would be **entombed by its own work** |
+
+Standability is asked of the same `IPathGrid` the mover will route over, so the
+stance is per worker and cannot pick a tile the pathfinder then refuses.
+
+**And the ownership condition follows the stance:**
+
+- **worked from beside** → the **standing** tile must belong to the keeper
+  (unchanged);
+- **worked from on top** → the **target** must touch a tile that belongs to the
+  keeper.
+
+Both say the same thing about the map — territory grows outwards, never in
+islands — and they differ only in where the imp's feet are.
+
+**Confidence, split honestly.**
+
+- **CONFIRMED** for claiming. This is what the owner watched.
+- **STRONGLY INFERRED** for repairing and attacking floor: identical geometry — a
+  walkable tile that stays walkable — and no observation distinguishes them (Q49).
+- **STRONGLY INFERRED** for fill-in, from the entombment argument rather than
+  from anything anybody has seen.
+
+Deriving the rule is what makes those last two something other than three
+guesses made alongside one confirmation, which was the reason this sat waiting
+on Q49. Two physical clauses answer all ten work kinds; a hand-written list
+would have been the invention.
+
+**What is deliberately still absent.** The **~500 ms an imp lingers** on a tile
+it has just claimed. Whether that is a real cooldown or the claim animation
+finishing is UNKNOWN and the two are indistinguishable from outside (Q49). An
+imp here goes straight on to the next job.
+
+**Consequences.**
+
+- `ImpTaskSystem.TryJobBeside` became `TryJobFrom`, and now considers the tile
+  underfoot before the four around it — a job that can be done where the worker
+  already is beats one it must reach for.
+- The crowding cap (ADR-0026) applies unchanged: for a job done on the tile, the
+  face *is* the tile, which is the same rule the cap already states — three
+  workers is physical room to stand.
+- One `WorldPathGrid` is now built per worker per tick and threaded through, so
+  that routing, stance and arrival are all answered against the same world.
+- **Visible in the scenarios**: a claim in `imps-carry-gold-home` now reads
+  `steps=2` where it read `steps=1` — the imp walks onto the tile.
+- `TileWorkRules` gained `PerSecond` and `OutcomeTerrainId`: "what will this tile
+  be when the job is done" is now askable without simulating it.
+- No new state, so **no `HashVersion` bump** — but imp *positions* differ, so
+  scenario hashes moved.

@@ -192,6 +192,96 @@ public class ImpTests
     }
 
     /// <summary>
+    /// <b>An imp claims a floor tile by standing on it</b> (Q44, CONFIRMED —
+    /// <i>"imps claim tiles by jumping on them"</i>). It does not reach across
+    /// from the tile it started on, which is what everything here used to do and
+    /// what is right only for walls.
+    /// </summary>
+    [Fact]
+    public void AnImpStandsOnTheTileItClaims()
+    {
+        Run run = Start(new TilePos(3, 2));
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Carve(run.World, database, new TilePos(4, 2));
+
+        run.Tick();
+        Assert.Contains("priority=Claim", run.Of("job_taken").First().Detail);
+
+        // Run to the moment the claim lands, and look at where its feet are.
+        for (int i = 0; i < 200 && run.World.Tile(4, 2).TerrainId != Dk2TerrainFixture.ClaimedPath; i++)
+            run.Tick();
+
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(4, 2).TerrainId);
+        Assert.Equal(new TilePos(4, 2), run.Imp.Tile);
+    }
+
+    /// <summary>
+    /// The other half of what Q44 moved: the ownership condition is on the
+    /// <b>claimed tile's</b> neighbour, not on the tile the imp is standing on.
+    ///
+    /// The imp here starts on ground nobody owns. Under the rule this replaces
+    /// it would have refused the job outright; what actually decides it is that
+    /// (4,2) touches the keeper's room at (3,2). Territory still only ever grows
+    /// outwards — it is the imp's feet that were in the wrong place, not the
+    /// rule (Q42).
+    /// </summary>
+    [Fact]
+    public void AnImpOnUnownedGroundStillClaims_WhenTheTileTouchesItsKeepersLand()
+    {
+        Run run = Start(new TilePos(5, 2));
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Carve(run.World, database, new TilePos(5, 2), new TilePos(4, 2));
+
+        run.Tick();
+
+        SimEvent taken = run.Of("job_taken").First();
+        Assert.Contains("priority=Claim", taken.Detail);
+        Assert.Contains("(4,2)", taken.Detail);
+    }
+
+    /// <summary>
+    /// <i>"then move to an adjacent unclaimed one and do it again"</i> — the rest
+    /// of the same observation. Each newly claimed tile is what makes the next
+    /// one eligible, so a corridor of unowned floor is taken one tile at a time
+    /// rather than all at once or not at all.
+    /// </summary>
+    [Fact]
+    public void ClaimedTerritoryCreepsOneTileAtATime()
+    {
+        Run run = Start(new TilePos(3, 2));
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Carve(run.World, database, new TilePos(4, 2), new TilePos(5, 2), new TilePos(6, 2));
+
+        // (6,2) is only reachable as a claim once (5,2) is the keeper's, which
+        // is only true once (4,2) is. Three claims in sequence, not three at once.
+        run.Ticks(SimulationTiming.TicksFromSeconds(12));
+
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(4, 2).TerrainId);
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(5, 2).TerrainId);
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(6, 2).TerrainId);
+    }
+
+    /// <summary>
+    /// The stance rule has to keep giving the old answer for walls, or Q27's
+    /// three-imps-a-side observation stops making sense. An imp reinforcing rock
+    /// stands beside it, never on it.
+    /// </summary>
+    [Fact]
+    public void AnImpReinforcesFromBesideTheWall()
+    {
+        Run run = Start(new TilePos(2, 2));
+
+        run.Ticks(SimulationTiming.TicksFromSeconds(1));
+
+        Assert.Contains("priority=Reinforce", Assert.Single(run.Of("job_taken")).Detail);
+
+        int width = run.World.Width;
+        var target = new TilePos(
+            run.Imp.TargetTileIndex % width, run.Imp.TargetTileIndex / width);
+        Assert.Equal(1, run.Imp.Tile.ManhattanDistance(target));
+    }
+
+    /// <summary>
     /// Claiming and reinforcing spread from ground the keeper already holds. An
     /// imp marooned on unowned floor will not start either, however much of it
     /// is within reach — which is what keeps a dungeon growing outwards from its

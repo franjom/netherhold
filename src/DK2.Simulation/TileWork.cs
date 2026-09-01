@@ -212,6 +212,41 @@ public static class TileWorkRules
         kind is TileWorkKind.Claim or TileWorkKind.Reinforce or TileWorkKind.FillIn;
 
     /// <summary>
+    /// The per-second health delta the balance table gives this kind of work,
+    /// after <see cref="ObservedCorrections"/>.
+    ///
+    /// The sign is the interesting part and is what callers outside the
+    /// application loop want: negative work takes a tile apart and ends at its
+    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/>, positive work builds it
+    /// up. <see cref="PerApplication"/> is the per-swing figure and carries a
+    /// remainder; this one is the raw rate and carries nothing.
+    /// </summary>
+    public static int PerSecond(GameDatabase database, TileWorkKind kind) =>
+        ObservedCorrections.TileWorkPerSecond(database, Variable(kind));
+
+    /// <summary>
+    /// The terrain this tile will be once <paramref name="kind"/> has run to
+    /// completion on it — which for a repair job is the terrain it already is.
+    ///
+    /// <para>Exists so that a caller can ask what a job <i>leads to</i> without
+    /// simulating it. <see cref="WorkStance"/> is the one that needs it: whether
+    /// a worker may stand on the tile it is working depends on the tile it will
+    /// be standing on when the job finishes, not only on the tile it is now, and
+    /// filling a floor tile back in is the case where those two differ (Q49).</para>
+    ///
+    /// <para>Says nothing about whether the job applies — ask
+    /// <see cref="Applies"/> for that.</para>
+    /// </summary>
+    public static byte OutcomeTerrainId(GameDatabase database, in TileState tile, TileWorkKind kind)
+    {
+        TerrainDef terrain = database.TerrainById(tile.TerrainId);
+
+        if (CompletesUpward(kind)) return terrain.MaxHealthTypeTerrainId;
+        if (PerSecond(database, kind) < 0) return terrain.DestroyedTypeTerrainId;
+        return tile.TerrainId;
+    }
+
+    /// <summary>
     /// Whether <paramref name="kind"/> can be applied to this tile at all.
     ///
     /// Deliberately structural — it asks the terrain's own flags and the tile's

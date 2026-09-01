@@ -63,20 +63,19 @@ namespace DK2.Simulation.Systems;
 /// afterwards. HYPOTHESIS: it matches how the original's imps visibly behave,
 /// but "nearest" could as easily mean straight-line distance, or the order the
 /// tiles were marked in (Q25).</item>
-/// <item><b>Claiming and reinforcing are done from ground the keeper already
-/// holds.</b> An imp will only take one of those jobs if the tile it would stand
-/// on belongs to its keeper, which is what makes territory spread outwards from
-/// a dungeon rather than appear in islands across the map. STRONGLY INFERRED
-/// from how the original visibly grows; the alternative — any reachable floor,
-/// anywhere — is Q42. Marked work carries no such condition: a keeper may tag a
-/// wall anywhere.</item>
-/// <item><b>No reservation.</b> Several imps happily converge on one wall,
-/// because nothing stops them. The original caps this at three imps a face and
-/// twelve a tile (CONFIRMED), which is not implemented yet — see Q43.</item>
-/// <item><b>Worked from an orthogonal neighbour.</b> An imp stands on a tile
-/// sharing an edge with its target. CONFIRMED by the same observation: a gold
-/// block takes three imps a side and twelve in all, and twelve is four sides of
-/// three (Q27).</item>
+/// <item><b>Claiming and reinforcing spread from ground the keeper already
+/// holds.</b> An imp will only take one of those jobs where the tile touches its
+/// keeper's territory, which is what makes a dungeon grow outwards rather than
+/// appear in islands across the map. CONFIRMED (Q42); the alternative — any
+/// reachable floor, anywhere — is refuted. Marked work carries no such
+/// condition: a keeper may tag a wall anywhere.</item>
+/// <item><b>Three workers to a face</b>, and the fourth goes and finds other
+/// work rather than queueing (Q43, CONFIRMED). See <see cref="ImpCrowding"/>.</item>
+/// <item><b>A wall is worked from beside it and floor is worked from on top of
+/// it.</b> CONFIRMED both ways: a gold block takes three imps a side and twelve
+/// in all, which is four sides of three (Q27), and an imp claims a floor tile by
+/// jumping onto it (Q44). Which stance a job uses is derived rather than listed —
+/// see <see cref="WorkStance"/>.</item>
 /// <item><b>One application per work period.</b> Work lands every
 /// <see cref="SimulationTiming.WorkApplicationPeriodTicks"/> ticks, starting one
 /// period after the imp arrives — the period being the Q19 reading that the
@@ -152,9 +151,16 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
     private void Update(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        // One grid for the whole of this creature's tick. Every question below
+        // that depends on what this worker can stand on — where it may route,
+        // which stance a job is done from, whether it has arrived — has to be
+        // answered against the same world, or a worker can be routed by one
+        // answer and judged by another.
+        var grid = new WorldPathGrid(context.Database, context.World, definition);
+
         if (creature.Activity == CreatureActivity.DeliveringGold)
         {
-            UpdateDelivering(context, creature, definition);
+            UpdateDelivering(context, creature, grid);
             return;
         }
 
@@ -174,7 +180,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         // JobPriority (Q31, ADR-0018). The timer gate is what stops an imp with
         // nowhere to unload from searching the whole dungeon every tick.
         if (creature.GoldHeld > 0 && creature.TargetTileIndex < 0 && creature.TimerTicks <= 0
-            && TryRouteToSomewhereItFits(context, creature, definition))
+            && TryRouteToSomewhereItFits(context, creature, grid))
         {
             BeginDelivering(creature);
             return;
@@ -183,15 +189,15 @@ public sealed class ImpTaskSystem : ISimulationSystem
         switch (creature.Activity)
         {
             case CreatureActivity.Idle:
-                UpdateIdle(context, creature, definition);
+                UpdateIdle(context, creature, grid);
                 break;
 
             case CreatureActivity.MovingToJob:
-                UpdateMoving(context, creature);
+                UpdateMoving(context, creature, grid);
                 break;
 
             case CreatureActivity.Working:
-                UpdateWorking(context, creature, definition);
+                UpdateWorking(context, creature, definition, grid);
                 break;
 
             default:
@@ -200,18 +206,18 @@ public sealed class ImpTaskSystem : ISimulationSystem
         }
     }
 
-    private void UpdateIdle(SimulationContext context, CreatureState creature, CreatureDef definition)
+    private void UpdateIdle(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
         creature.TimerTicks--;
         if (creature.TimerTicks > 0) return;
 
-        if (!TryTakeJob(context, creature, definition))
+        if (!TryTakeJob(context, creature, grid))
             creature.TimerTicks = IdleDelayTicks(context.Database);
     }
 
-    private void UpdateMoving(SimulationContext context, CreatureState creature)
+    private void UpdateMoving(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        if (IsInWorkingPosition(context.World, creature))
+        if (IsInWorkingPosition(context, creature, grid))
         {
             creature.Path.Clear();
             creature.PathIndex = 0;
@@ -232,9 +238,9 @@ public sealed class ImpTaskSystem : ISimulationSystem
     }
 
     private void UpdateWorking(
-        SimulationContext context, CreatureState creature, CreatureDef definition)
+        SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
-        if (!IsInWorkingPosition(context.World, creature))
+        if (!IsInWorkingPosition(context, creature, grid))
         {
             GoIdle(creature);
             return;
@@ -252,7 +258,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         // with nowhere to run to keeps mining instead, which is also what the
         // original does. See WouldOverfillItsHands.
         if (WouldOverfillItsHands(context, creature, definition)
-            && TryRouteToSomewhereItFits(context, creature, definition))
+            && TryRouteToSomewhereItFits(context, creature, grid))
         {
             BeginDelivering(creature);
             return;
@@ -336,7 +342,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// (Q43), and the gold stays in its hands until somewhere opens up.</para>
     /// </summary>
     private void UpdateDelivering(
-        SimulationContext context, CreatureState creature, CreatureDef definition)
+        SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
         if (TryPutDown(context, creature) && creature.GoldHeld == 0)
         {
@@ -347,7 +353,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         // Still on the road.
         if (creature.PathIndex < creature.Path.Count) return;
 
-        if (TryRouteToSomewhereItFits(context, creature, definition)) return;
+        if (TryRouteToSomewhereItFits(context, creature, grid)) return;
 
         context.Emit(SystemName, "delivery_blocked",
             $"imp={creature.Id} player={creature.OwnerPlayerId} gold={creature.GoldHeld} " +
@@ -395,10 +401,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// nearest by walking, and unreachable stores must not be considered at all.
     /// </summary>
     private bool TryRouteToSomewhereItFits(
-        SimulationContext context, CreatureState creature, CreatureDef definition)
+        SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        WorldState world = context.World;
-        var grid = new WorldPathGrid(context.Database, world, definition);
         byte player = creature.OwnerPlayerId;
 
         if (!_pathfinder.TryFindNearest(grid, creature.Tile, at => HasRoomForGold(context, at, player), _route))
@@ -431,19 +435,16 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
     /// <summary>
     /// Looks for the nearest tile this keeper has marked that this creature can
-    /// get beside, and takes it.
+    /// work, and takes it.
     ///
     /// One search answers both halves of the question. Walking outwards from the
-    /// creature and stopping at the first tile that has a job beside it gives
+    /// creature and stopping at the first tile a job can be worked from gives
     /// the nearest job measured in steps, and gives the route to it, and rules
     /// out everything unreachable, all without ever building a list of
     /// candidates to sort.
     /// </summary>
-    private bool TryTakeJob(SimulationContext context, CreatureState creature, CreatureDef definition)
+    private bool TryTakeJob(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        WorldState world = context.World;
-        var grid = new WorldPathGrid(context.Database, world, definition);
-
         // Strict priority: the whole map is searched for excavation before a
         // single claimable tile is considered, and so on. Three searches, not
         // one scored search over a mixed candidate list — because the order is
@@ -465,13 +466,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
         bool found = _pathfinder.TryFindNearest(
             grid,
             creature.Tile,
-            stand => TryJobBeside(context, stand, player, priority, creature.Id, out _, out _),
+            stand => TryJobFrom(context, grid, stand, player, priority, creature.Id, out _, out _),
             _route);
 
         if (!found) return false;
 
         TilePos standing = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
-        if (!TryJobBeside(context, standing, player, priority, creature.Id, out int tileIndex, out TileWorkKind kind))
+        if (!TryJobFrom(context, grid, standing, player, priority, creature.Id, out int tileIndex, out TileWorkKind kind))
             return false;
 
         creature.TargetTileIndex = tileIndex;
@@ -497,11 +498,17 @@ public sealed class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// The first tile orthogonally adjacent to <paramref name="standing"/> that
-    /// offers work of the given priority, in the fixed neighbour order.
+    /// A job of the given priority that a worker at <paramref name="standing"/>
+    /// could be doing — the tile underfoot first, then the four around it.
+    ///
+    /// <para>The tile underfoot comes first because a job that can be done where
+    /// the worker already is beats one it would have to reach for; the neighbour
+    /// order after that is the pathfinder's, so that the tile an imp takes is the
+    /// tile the search stopped for.</para>
     /// </summary>
-    private static bool TryJobBeside(
+    private static bool TryJobFrom(
         SimulationContext context,
+        WorldPathGrid grid,
         TilePos standing,
         byte playerId,
         JobPriority priority,
@@ -509,62 +516,20 @@ public sealed class ImpTaskSystem : ISimulationSystem
         out int tileIndex,
         out TileWorkKind kind)
     {
-        WorldState world = context.World;
-
-        // Claiming and reinforcing spread from ground the keeper already holds;
-        // marked work does not, because the keeper asked for it by name.
-        if (priority != JobPriority.MarkedExcavation
-            && !StandsOnOwnLand(context, world, standing, playerId))
+        if (TryJobOn(context, grid, standing, standing, playerId, priority, askingCreatureId,
+                     out tileIndex, out kind))
         {
-            tileIndex = -1;
-            kind = default;
-            return false;
+            return true;
         }
 
         for (int i = 0; i < NeighbourDx.Length; i++)
         {
-            int x = standing.X + NeighbourDx[i];
-            int y = standing.Y + NeighbourDy[i];
-            if (!world.Contains(x, y)) continue;
-
-            ref TileState tile = ref world.Tile(x, y);
-
-            switch (priority)
+            var target = new TilePos(standing.X + NeighbourDx[i], standing.Y + NeighbourDy[i]);
+            if (TryJobOn(context, grid, standing, target, playerId, priority, askingCreatureId,
+                         out tileIndex, out kind))
             {
-                case JobPriority.MarkedExcavation:
-                    if (!tile.IsTaggedBy(playerId)) continue;
-                    if (!TileWorkRules.TryTaggedWork(context.Database, tile, playerId, out kind)) continue;
-                    break;
-
-                case JobPriority.Claim:
-                    if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId))
-                        continue;
-                    kind = TileWorkKind.Claim;
-                    break;
-
-                case JobPriority.Reinforce:
-                    if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Reinforce, playerId))
-                        continue;
-                    kind = TileWorkKind.Reinforce;
-                    break;
-
-                default:
-                    continue;
+                return true;
             }
-
-            // Three workers to a face, and a fourth goes and finds other work
-            // rather than queueing (Q43). Rejecting the FACE rather than the
-            // tile is what makes that happen: the search simply carries on to
-            // the next standing tile, which may be another side of this same
-            // block or another block entirely.
-            tileIndex = (y * world.Width) + x;
-            if (ImpCrowding.FaceIsFull(
-                    world, context.Database, tileIndex, standing, askingCreatureId))
-            {
-                continue;
-            }
-
-            return true;
         }
 
         tileIndex = -1;
@@ -573,13 +538,110 @@ public sealed class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Whether this tile belongs to the keeper — the condition an unprompted
-    /// claim or reinforce is taken from.
+    /// Whether a worker standing at <paramref name="standing"/> can do work of
+    /// this priority on <paramref name="target"/>.
     ///
-    /// It is the standing tile that is tested, not the target: an imp reaches
-    /// out from its own territory into the next tile, which is what makes a
-    /// dungeon grow outwards from its heart instead of in islands. STRONGLY
-    /// INFERRED; Q42.
+    /// <para>Three conditions, and the middle one is what changed with Q44.
+    /// The work must <i>apply</i> to the tile; the worker must be in the
+    /// <see cref="WorkStance"/> that job is done from — <b>on</b> the tile for
+    /// floor, <b>beside</b> it for a wall; and, unless the keeper asked for the
+    /// work by name, the tile must touch ground that keeper already holds.</para>
+    /// </summary>
+    private static bool TryJobOn(
+        SimulationContext context,
+        WorldPathGrid grid,
+        TilePos standing,
+        TilePos target,
+        byte playerId,
+        JobPriority priority,
+        int askingCreatureId,
+        out int tileIndex,
+        out TileWorkKind kind)
+    {
+        tileIndex = -1;
+        kind = default;
+
+        WorldState world = context.World;
+        if (!world.Contains(target)) return false;
+
+        ref TileState tile = ref world.Tile(target);
+
+        switch (priority)
+        {
+            case JobPriority.MarkedExcavation:
+                if (!tile.IsTaggedBy(playerId)) return false;
+                if (!TileWorkRules.TryTaggedWork(context.Database, tile, playerId, out kind)) return false;
+                break;
+
+            case JobPriority.Claim:
+                if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId))
+                    return false;
+                kind = TileWorkKind.Claim;
+                break;
+
+            case JobPriority.Reinforce:
+                if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Reinforce, playerId))
+                    return false;
+                kind = TileWorkKind.Reinforce;
+                break;
+
+            default:
+                return false;
+        }
+
+        // An imp claims a floor tile by standing on it (Q44, CONFIRMED) and digs
+        // a wall from beside it (Q27, CONFIRMED). One stance rule decides which,
+        // and a worker in the wrong one has no job here.
+        bool onTheTile = WorkStance.IsOnTheTile(context.Database, world, grid, target, kind);
+        if (onTheTile != (standing == target))
+        {
+            kind = default;
+            return false;
+        }
+
+        // Claiming and reinforcing spread from ground the keeper already holds;
+        // marked work does not, because the keeper asked for it by name.
+        //
+        // Which tile carries that condition follows from the stance, and this is
+        // the other half of what Q44 moved. A wall job is taken from the keeper's
+        // own land, so the STANDING tile must be owned. A floor job is done
+        // standing on the tile being claimed — which is by definition not owned
+        // yet — so it is the TARGET that must touch owned land instead. Both
+        // readings say the same thing about the map (territory grows outwards,
+        // never in islands); they differ only in where the imp's feet are (Q42).
+        if (priority != JobPriority.MarkedExcavation)
+        {
+            bool reachesOwnLand = onTheTile
+                ? TouchesOwnLand(context, world, target, playerId)
+                : StandsOnOwnLand(context, world, standing, playerId);
+
+            if (!reachesOwnLand)
+            {
+                kind = default;
+                return false;
+            }
+        }
+
+        // Three workers to a face, and a fourth goes and finds other work rather
+        // than queueing (Q43). Rejecting the FACE rather than the tile is what
+        // makes that happen: the search simply carries on to the next standing
+        // tile, which may be another side of this same block or another block
+        // entirely. For a job done on the tile itself the face IS the tile, which
+        // is the same rule — the cap is physical room to stand.
+        int index = (target.Y * world.Width) + target.X;
+        if (ImpCrowding.FaceIsFull(world, context.Database, index, standing, askingCreatureId))
+        {
+            kind = default;
+            return false;
+        }
+
+        tileIndex = index;
+        return true;
+    }
+
+    /// <summary>
+    /// Whether this tile belongs to the keeper and is the kind of tile a keeper
+    /// can hold at all.
     /// </summary>
     private static bool StandsOnOwnLand(
         SimulationContext context, WorldState world, TilePos standing, byte playerId)
@@ -589,6 +651,28 @@ public sealed class ImpTaskSystem : ISimulationSystem
         ref TileState tile = ref world.Tile(standing);
         return tile.OwnerPlayerId == playerId
             && context.Database.TerrainById(tile.TerrainId).IsOwnable;
+    }
+
+    /// <summary>
+    /// Whether any tile orthogonally adjacent to <paramref name="target"/>
+    /// belongs to the keeper — the condition on an unprompted job the worker
+    /// does standing on the target itself.
+    ///
+    /// Orthogonal, matching the way work spreads (Q27), and deliberately not the
+    /// eight-connected neighbourhood the mover uses: a keeper's territory
+    /// creeping diagonally across a corner is not what the original shows.
+    /// STRONGLY INFERRED; Q42.
+    /// </summary>
+    private static bool TouchesOwnLand(
+        SimulationContext context, WorldState world, TilePos target, byte playerId)
+    {
+        for (int i = 0; i < NeighbourDx.Length; i++)
+        {
+            var neighbour = new TilePos(target.X + NeighbourDx[i], target.Y + NeighbourDy[i]);
+            if (StandsOnOwnLand(context, world, neighbour, playerId)) return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -626,11 +710,19 @@ public sealed class ImpTaskSystem : ISimulationSystem
         return false;
     }
 
-    private static bool IsInWorkingPosition(WorldState world, CreatureState creature)
+    /// <summary>
+    /// Whether the worker is where it needs to be to swing — which depends on
+    /// the job, not only on the distance. See <see cref="WorkStance"/>.
+    /// </summary>
+    private static bool IsInWorkingPosition(
+        SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        int targetX = creature.TargetTileIndex % world.Width;
-        int targetY = creature.TargetTileIndex / world.Width;
-        return creature.Tile.ManhattanDistance(new TilePos(targetX, targetY)) == 1;
+        WorldState world = context.World;
+        var target = new TilePos(
+            creature.TargetTileIndex % world.Width, creature.TargetTileIndex / world.Width);
+
+        return WorkStance.IsInPosition(
+            context.Database, world, grid, creature.Tile, target, creature.TargetWork);
     }
 
     /// <summary>
