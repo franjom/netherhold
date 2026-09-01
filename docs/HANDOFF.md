@@ -13,39 +13,49 @@ carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
 five record types M1 needed are done. **325 tests green** with and without a DK2
 install; nine scenarios run; clean tree. (Core 14, Simulation 200, Data 41, Behavior 70.)
 
-> ### ⚠ Read this first: three sittings of owner answers, 2026-08-29 and 30
+> ### ⚠ Read this first: four sittings of owner answers, 2026-08-29 and 30
 >
 > From playing the original, the owner has supplied answers to **Q7, Q9, Q12,
 > Q20, Q21, Q24, Q25, Q26, Q27, Q28, Q30, Q31, Q32, Q33, Q34, Q36, Q37, Q37a,
-> Q38, Q40, Q42, Q43, Q44, Q46, Q47, Q52, Q54** plus the one-dungeon-heart rule,
-> the four-imp floor, and the Create Imp price. `docs/research/open-questions.md`
-> has every one; `docs/research/observation-checklist.md` is the file to hand
-> back for more.
+> Q37b, Q38, Q40, Q42, Q43, Q44, Q45, Q46, Q47, Q52, Q53, Q54, Q58, Q59, Q60,
+> Q62, Q63** plus the one-dungeon-heart rule, the four-imp floor and the Create
+> Imp price. `docs/research/open-questions.md` has every one;
+> `docs/research/observation-checklist.md` is the file to hand back for more.
 >
-> **The 2026-08-30 sitting was different in kind: it produced NUMBERS.** A
-> measurement propagates where a yes/no does not, and three of them rewrote more
-> than the previous fifteen answers combined:
+> **The measurements are worth more than the yes/no answers.** A number
+> propagates where a yes does not, and these rewrote more than every earlier
+> answer combined:
 >
 > | Measurement | What it settled |
 > |---|---|
-> | **273 gold a swing** | Q47 — an application is a fifth of the tabled delta, five a second. Every swing count in the game changed; no time in seconds did (ADR-0020) |
-> | **Room costs, 5 of them** | Q32 — `Cost` is per tile and the ROOMS record's number is the price, confirmed five times over |
-> | **16000 gold in a heart** | Q52 - only 16 of a 5x5 heart's 25 tiles store gold; the middle nine are the platform. **FIXED** by room instances (ADR-0027) and asserted against level1's real heart |
-> | **4 imps, 5s, 1500 mana** | The imp economy, and all three are named by DK2's own data (ADR-0021) |
+> | **273 gold a swing** | Q47 — an application is a fifth of the tabled delta, five a second (ADR-0020) |
+> | **2 swings to dig a plain wall** | Q20 — `DigRockHealth`'s shipped −5000 cannot produce it, so it is corrected to −500 (ADR-0023) |
+> | **13.38 s to reinforce a wall** | Q62 — an upward job costs the terrain's whole `MaxHealth`, not the gap (ADR-0024) |
+> | **−28 then −35 mana, 4 then 5 imps** | Q53 — 7 a second per imp, and it is on the *spell* record, not the creature (ADR-0022) |
+> | **5 traps, three distinct values** | Q59 — `Traps.kwd` 0x0202, pinned by a test, unimplemented until objects (M6) |
+> | **Temple capacity 8 / 12 / 16** | Q60 — a temple's capacity is its rim, `2(w+h) − 4` (ADR-0027) |
+> | **16000 gold in a heart** | Q52 — nine of a heart's 25 tiles are its platform. FIXED (ADR-0027) |
+> | **Room costs, 5 of them** | Q32 — `Cost` is per tile, confirmed five times over |
+> | **4 imps, 5s, 1500 mana** | The imp economy, all three named by DK2's own data (ADR-0021) |
 >
-> **Known defects with known answers — do not rediscover these:**
-> > - **Q44/Q42** - an imp stands *on* the floor tile it claims, not beside it, and
->   the ownership test belongs on that tile's neighbour. **The only defect from
->   the original list still standing**, and it wants Q49 answered first so that
->   repairing, attacking and filling in are not guessed at alongside it.
-> - ~~**Q53**~~ — **FIXED.** Imps cost 7 mana a second each, measured by the owner
->   and then found on DK2's own Create Imp spell record (ADR-0022). This was the
->   biggest hole in the economy, and closing it retired the last hardcoded
->   balance constant with it.
+> **One known defect is left from the original list:**
+> - **Q44/Q42** — an imp stands *on* the floor tile it claims, not beside it, and
+>   the ownership test belongs on that tile's neighbour. Wants Q49 answered first,
+>   so that repairing, attacking and filling in are not guessed at alongside the
+>   one case that is confirmed.
 >
-> **The lesson, now step 0 of the research method: ask the owner — and when the
-> question is quantitative, ask for the quantity by name.** "How much gold per
-> swing" got an answer that "how fast does mining feel" could not have.
+> **Three lessons from these sittings, in order of how much they cost to learn:**
+>
+> 1. **Ask for the quantity by name.** "How much gold per swing" got an answer
+>    that "how fast does mining feel" could not have.
+> 2. **Ask for values that DIFFER from each other.** Two traps both measured 5,
+>    two offsets fitted, and neither could be ruled out. It was the three-valued
+>    spread that identified the field. A second identical measurement cannot
+>    separate a real column from a coincidence.
+> 3. **Anchor a scan on what was measured, never on a community figure.** The imp
+>    upkeep search failed for a whole session because it required an unverified
+>    2000 to also be true; the negative it produced was therefore worthless, and
+>    it hid the fact that the search was in the wrong file entirely.
 
 Three honest caveats:
 - M3's definition of done asked for gold reaching a player and a Unity view.
@@ -59,14 +69,18 @@ Three honest caveats:
   would have it wander (Q41). **Imps now generate themselves** (ADR-0021): a
   keeper below `MinimumImpThreshold` gets one free every
   `TimeBeforeFreeImpGeneratedSeconds`, and can buy more with Create Imp at 1500
-  mana rising by 1500 each time. And **a room does nothing**: a treasury and a dungeon heart hold gold
-  because a variable says how much per tile; every other room is inert terrain
-  its owner holds. **Mana is now spent AND drained** - Create Imp costs 1500 to cast and
+  mana rising by 1500 each time. And **a room is an instance now** (ADR-0027) but still
+  mostly does nothing: a treasury and a dungeon heart hold gold because a
+  variable says how much per tile, and a heart correctly withholds the nine
+  tiles of its platform (Q52). Every other room is inert terrain its owner
+  holds - though the machinery to change that finally exists, since a room can
+  now be asked its size, its rim and whether it is big enough to function. **Mana is now spent AND drained** - Create Imp costs 1500 to cast and
   every imp charges its keeper 7 a second to keep (Q53, ADR-0022), which is the
   red figure under the original's mana orb. What is still missing from the
   outgoings: every other keeper spell (a summoned Horned Reaper is 2000 a second
   and Call To Arms 90, both parsed and read by nothing until M7), research, and
-  what traps draw - confirmed to exist and unmeasured (Q59). And **losing a dungeon heart is defeat in DK2 and
+  what traps draw - measured, located at `Traps.kwd` 0x0202 and unimplemented
+  because a trap is an object (Q59, M6). And **losing a dungeon heart is defeat in DK2 and
   defeat is not implemented**: a keeper whose heart is beaten down here stops
   earning its 30 a second and plays on (Q40, scheduled with objectives at M6).
 - M1's stated definition of done was "all 18 record types round-trip". Five are
@@ -212,57 +226,54 @@ questions into ordinary implementation work, and that work now comes before the
 Unity view, because every one of them is a behaviour a renderer would display
 incorrectly.
 
-**Where to pick up, 2026-08-30 (third sitting).** Three of the original five
-known defects are built — Q31 the gold carrier, Q47 the work rate, and now Q53
-the imp mana upkeep. What is left, in the order it is worth doing:
+**Where to pick up, 2026-08-30 (fourth sitting).** **Every known defect from the
+original list is fixed except one.** Q31 the gold carrier, Q47 the work rate,
+Q53 the imp mana upkeep, Q20 the dig rate, Q62 the upward-work rule, Q28/Q48
+eight-connected movement, Q43 the crowding cap and Q52 the heart's 16000 are all
+built. What is left, in the order it is worth doing:
 
-0. ~~**Q53 — imp mana upkeep.**~~ **DONE**, and worth reading how, because it is
-   the sharpest case this project has produced of a research method failing and
-   then working. It sat blocked for a session on "the 7 is in no file we parse",
-   which was true of the file being searched and false in general. The owner
-   measured it (two screenshots: four imps −28, five imps −35), and with a
-   *known* anchor instead of a quoted one the same scan produced a trustworthy
-   negative on CREATURES and then found the field on the **spell** —
-   `KeeperSpells.kwd` offset 0x00E2, non-zero for exactly the five spells whose
-   result persists, and holding 2000 for Summon Horny, which is the community's
-   Horned Reaper figure that had been the wrong half of the original search. See
-   ADR-0022 and `docs/research/imps-and-mana.md` §*How this was established*.
-   **It also retired the project's last hardcoded balance constant.**
+1. **Claiming from the tile itself (Q44/Q42)** — **the last known defect.** An
+   imp jumps onto the tile it claims and stays ~500 ms; ours works it from a
+   neighbour. The ownership condition moves with it: it is the *claimed tile's
+   neighbour* that must belong to the keeper, not the tile the imp stands on.
+   Touches `ImpTaskSystem.TryJobBeside` / `IsInWorkingPosition`, which have one
+   adjacency model for walls and floor alike and need two. **Worth asking Q49
+   first** — whether repairing, attacking and filling in work the same way — so
+   that three rules are not guessed at alongside the one that is confirmed.
 
-**Step 1, the gold carrier (Q31), is done** - see ADR-0019,
-`docs/research/rooms-and-gold.md` §*The round trip*, and
-`scenarios/imps/an_imp_carries_gold_home.yaml`. What it left behind: the floor
-lump needs OBJECTS (M6), and Q50 — where an imp decides to stop mining — is a
-HYPOTHESIS that one minute in front of the game would settle, and that would
-corroborate Q47 if the answer is "two swings".
+2. **Selling a room (Q34).** Answered and unimplemented: **50% of the cost, per
+   tile**, and the number is in *neither* candidate variable — `ReturnPercentage`
+   and `RoomSellValuePercentageOfCost` both say 100. So it is a second member of
+   the "observed, absent from the data" category that `ImpCrowding` opened, and
+   it belongs beside that constant with the same four rules applied. Small,
+   self-contained, and a gold sink the economy does not have.
 
-2. **Claiming from the tile itself (Q44/Q42)** — **a known defect.** An imp jumps
-   onto the tile it claims and stays ~500 ms; ours works it from a neighbour.
-   The ownership condition moves with it: it is the *claimed tile's neighbour*
-   that must belong to the keeper, not the tile the imp stands on. Touches
-   `ImpTaskSystem.TryJobBeside` / `IsInWorkingPosition`, which currently have one
-   adjacency model for walls and floor alike and need two (Q49).
-3. **Eight-connected movement (Q28)** — **a known defect.** Creatures cut
-   diagonal corners; `GridPathfinder` is four-connected, so every route it
-   produces is an overestimate. Settle Q48 first if possible (what a diagonal
-   step costs) — uniform cost makes diagonals a free shortcut, octile 14/10 keeps
-   distance honest. ADR-0012 already frames the pathfinder as a replaceable
-   placeholder behind `IPathfinder`, which is exactly the seam this uses.
-4. **The crowding cap (Q43)** — **a known defect.** Three imps a face, twelve a
-   block, and a fourth that cannot reach a free face **goes and finds other
-   work** rather than queueing. Needs an imp's intended standing tile to be
-   visible to job selection.
-5. **Unity presentation** — the simulation runs a dig scenario with moving
+3. **Unity presentation** — the simulation runs a dig scenario with moving
    workers and a keeper building a room, headlessly, which was the precondition.
    `CreatureState.PosX/PosY` are fixed point in tile units; a renderer converts,
    the simulation never does. **`docs/GOAL_ALIGNMENT.md` gap 3 applies here and
    is the expensive one to miss: the asset abstraction layer must land in the
    same milestone as the first Unity view, not after it.**
-6. **What rooms actually do** — a lair, a hatchery, a library and the rest are
-   inert terrain. Each needs its own research note; none can be guessed from the
-   ROOMS record, which carries art, size and cost and nothing about behaviour.
-   Q45 (minimum size for a room to *function*) is the shape of that answer and
-   the owner is investigating it.
+
+4. **What rooms actually do.** Room instances exist now (ADR-0027), so the
+   machinery is finally there: `RoomInstance` gives a room its tile count, its
+   bounding box, its rim and whether it is big enough to function. A lair, a
+   hatchery, a library and the rest are still inert terrain, and each needs its
+   own research note — none can be guessed from the ROOMS record, which carries
+   art, size and cost and nothing about behaviour.
+
+**What is banked and waiting for a milestone, not for research:** the trap mana
+upkeep (Q59, `Traps.kwd` 0x0202, pinned by a test, needs objects at M6); the four
+other spell upkeeps (Q55, parsed and read by nothing until spells at M7); payday
+at 600 seconds (Q9, needs creatures that get paid at M4); creature attraction
+(Q61, needs portals at M6); the floor gold lump (Q31 leftover, needs objects);
+and defeat (Q40, needs portals and objectives).
+
+**The cheapest unanswered observations**, if the owner is ever at the keyboard:
+fill-in now predicts **660 swings, about 132 seconds** for one tile (Q22) and
+that is untested and a long time; a **non-square temple** would finish Q60's
+temple half; **one more graveyard size** would settle its grave rule; and
+**Q49** unblocks item 1 above.
 
 **Q47 came off this list on 2026-08-30 and is done.** It had said: get exact hit
 counts before touching `SimulationTiming.WorkApplicationPeriodTicks`. The exact
@@ -559,3 +570,44 @@ no such reference. There is nothing to reconcile; do not go looking for it.
 
 `AGENTS.md` itself is the operating instruction, and it does not restrict
 implementation.
+
+---
+
+## Where the project stood at the 2026-08-30 compaction
+
+Four sittings of owner measurements and four ADRs in one day. The state:
+
+**325 tests green** with and without a DK2 install (Core 14, Simulation 200,
+Data 41, Behavior 70), nine scenarios running, clean tree.
+
+**Eight of the nine known defects are fixed.** In the order they fell:
+
+| | |
+|---|---|
+| ADR-0019 | Q31 — gold moves seam → imp's hands → treasury |
+| ADR-0020 | Q47 — work lands five times a second, a fifth of the tabled delta |
+| ADR-0021 | Imps come from a floor and an escalating price |
+| ADR-0022 | Q53 — every imp costs 7 mana a second, off the *spell* record |
+| ADR-0023 | Q20 — `DigRockHealth` corrected to −500, the only such override |
+| ADR-0024 | Q62 — an upward job costs the terrain's whole `MaxHealth` |
+| ADR-0025 | Q28/Q48 — eight-connected movement, a diagonal costs √2 |
+| ADR-0026 | Q43 — three workers to a face, the fourth goes elsewhere |
+| ADR-0027 | Q52/Q45/Q60 — a room is an instance, derived rather than stored |
+
+**The ninth is Q44/Q42** and is item 1 of the pick-up list above.
+
+**Two mechanisms were created for numbers that come from observation rather than
+from the files, and both are meant to stay narrow:**
+
+- `ObservedCorrections` — the file carries a value that *cannot produce* the
+  observed behaviour. One member: `DigRockHealth`. Four rules for adding a
+  second are written on the type.
+- `ImpCrowding` — the file carries *no* value at all. One member: three workers
+  to a face. Q34's 50% sell refund is the known next member.
+
+**The research method that produced all of this is written up in three places
+and is worth reading before the next research push:** the call-out at the top of
+this file (three lessons), `docs/research/imps-and-mana.md` §*How this was
+established* (the failure and recovery in full), and
+`docs/research/observation-checklist.md` (what is still worth asking, and what
+playing cannot settle).
