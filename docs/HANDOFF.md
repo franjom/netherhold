@@ -9,10 +9,52 @@ Update this whenever a session ends or context is compacted.
 ## Current state (2026-09-04)
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
-carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
+carrier, where imps come from, the asset layer and the presentation boundary:
+complete. M3 as a whole: partial — there is still no Unity view.** M2 and the
 five record types M1 needed are done, and **every** record type's on-disk size is
-now known and pinned (2026-09-04). **396 tests green** with and without a DK2
-install; ten scenarios run; clean tree. (Core 14, Simulation 250, Data 55, Behavior 77.)
+now known and pinned. **471 tests green** with and without a DK2
+install; ten scenarios run, each now drawing a picture of its finished world;
+clean tree. (Core 14, Simulation 250, Data 55, Behavior 77, Assets 58, Presentation 17.)
+
+> ### The asset layer and the presentation boundary landed 2026-09-04 (ADR-0034, ADR-0035)
+>
+> **`GOAL_ALIGNMENT.md` gap 3 is closed, and it was closed while it was still
+> cheap** — the gap's whole point was that the asset layer costs nothing before a
+> renderer exists and a great deal afterwards, so it went in first.
+>
+> | | |
+> |---|---|
+> | `DK2.Assets` | `AssetRef` (a validated logical key), `IAssetProvider`, `AssetProviderChain` (replacement → converted → placeholder), `PlaceholderProvider` (**total**), `AssetCatalogue` |
+> | `DK2.Presentation` | `WorldView` → `TileView` / `CreatureView`, and `TextRenderer` |
+> | The promise, now a test | every key the shipped database implies resolves **with no DK2 install and no art pack**. The game runs as boxes and that it does is checked on every commit (plan §7.2) |
+> | The second renderer | every scenario writes `world.txt` and a picture in its report, through the same view and the same provider chain Unity will use |
+>
+> **There is no Unity project, and that is not an oversight.** Unity is not
+> installed on this machine, so Unity code written here could not be compiled or
+> run, and this project does not commit code it has not built. What is left is an
+> adapter — subscribe to a `WorldView`, turn a `ResolvedAsset` into a
+> `GameObject`, convert `Fp32` to `float`. Small, and genuinely not done.
+>
+> **Three things went wrong on the way, and all three are worth keeping:**
+>
+> 1. **The glyph scheme drew a lie, and a picture of a real level exposed it.**
+>    `TextRenderer`'s wall alphabet contained `@` and `$`, which are also the
+>    creature and stored-gold glyphs — so on campaign level 1 rock variants read
+>    as imps, and the dungeon heart (which really does hold gold) was
+>    indistinguishable from the rock beside it. `GlyphsAreDisjoint` now fails if
+>    any alphabet overlaps another. **Rendering the real thing found in one look
+>    what the unit tests could not.**
+> 2. **A hash cannot promise distinctness.** The replacement test first asserted
+>    that the shipped terrains spread across the wall alphabet; eight terrains in
+>    eight hash buckets gave five distinct symbols, which is exactly what random
+>    bucketing predicts. Widening the alphabet lowers the collision rate and
+>    cannot abolish it, so the test now asserts the property that matters —
+>    **Rock, Gold, Gems and Impenetrable Rock are distinguishable** — and says
+>    out loud that it is not a uniqueness claim.
+> 3. **`AssetRef`'s separator set was a guess, and the shipped terrain table
+>    refuted it on the first run.** It allowed space, dash and apostrophe;
+>    `Hero Gate [ Final ]` and `Mercenary Gate [<not used>]` exist. The set is
+>    now measured over all 113 shipped names, and a test normalises every one.
 
 > ### ⚠ Read this first: six sittings of owner answers, 2026-08-29 to 09-03
 >
@@ -168,6 +210,9 @@ What the simulation can do:
 | Workers that excavate, then claim, then reinforce | `ImpTaskSystem` + `CreatureMovementSystem` | the priority order is CONFIRMED (ADR-0018); imps dig a corridor on a synthetic map and on a shipped campaign level, then claim the floor they opened |
 | Where a worker stands to do a job | `WorkStance` | a wall is worked from beside, floor from on top of it (Q44/Q49, ADR-0028); derived from two clauses rather than listed, and both clauses are pinned by a test that fails without them |
 | Grid search behind an interface | `DK2.Pathfinding.GridPathfinder` | shortest, wall-respecting, reproducible; reused buffers proven inert |
+| An asset named logically, resolved by a chain | `DK2.Assets.AssetRef` + `AssetProviderChain` | `replacement → converted → placeholder`; every key the shipped database implies resolves **with no DK2 install and no art pack**, and no filename literal exists outside this assembly (ADR-0034) |
+| Simulation state as something drawable | `DK2.Presentation.WorldView` | one translation for every renderer; asset keys agree with `AssetCatalogue` tile by tile on a campaign level, and rendering a whole world leaves the state hash untouched (ADR-0035) |
+| A second presentation mode, in CI | `DK2.Presentation.TextRenderer` | every scenario writes a picture of its finished world through the same view and provider chain Unity will use; every glyph proven to mean one thing |
 | Rooms: where one may go, what it costs | `RoomRules` + `BuildRoomCommand` | placement flags partition the shipped rooms; ground rules run on a campaign level |
 | Taking a rival's ground | `TileWorkRules.Applies` + the existing priority order | claimed directly, no neutral step (Q68, ADR-0033); hostile expansion fell out of rules already present rather than being built |
 | A wooden bridge over lava burning away | `BridgeRules.LifetimeTicks` + `BridgeBurnSystem` | 30 s from the build, CONFIRMED (Q67, ADR-0032); the tile half only - what happens to creatures on it needs creature health |
@@ -185,7 +230,8 @@ Extracted data artifacts (the specification the simulation is written against):
 (`dk2tools kwd terrain` / `kwd terrainflags` / `kwd terrainmana` / `kwd rooms` /
 `kwd roomflags`), which is what M3's rules are built on.
 
-**Next: the Unity view, then what rooms actually do.** The record-layout sweep
+**Next: the Unity adapter (the boundary under it is done), then what rooms
+actually do.** The record-layout sweep
 that used to head this list is done (2026-09-04). See "Immediate next
 steps". Every known defect that list ever held is built, and so is selling - the
 gold carrier, the work rate, the imp upkeep, the dig rate, the upward-work rule,
@@ -263,7 +309,14 @@ to miss.
 | `docs/research/imps-and-mana.md` | Imps, the Create Imp price, and **the mana drain research** — the biggest open hole. |
 | `src/DK2.Data/Kwd/KwdTaggedRecords.cs` | THINGS and TRIGGERS, which carry their own record sizes. Stops at the tag and the payload bytes on purpose — decoding a payload is M6's job, and doing it early would be guessing. |
 | `tests/DK2.Data.Tests/KwdRecordLayoutTests.cs` | Every record type's stride, pinned against the install. **A document cannot fail; this can.** |
-| `docs/research/external-resources.md` | **The licence boundary, once**, plus three worked cross-checks. OpenKeeper is GPLv3 and this is MIT: facts with provenance, never code. **It has confirmed three scan-derived offsets and every record type's size** (eight of them new, each to the byte), the MAP flags byte from a second direction, and one place where its own layout is incomplete (Q70). Read before researching anything that might be answered outside this repo. |
+| `src/DK2.Assets/AssetRef.cs` | **The one** way an asset is named, and the only place that validates a key. Its `[a-z0-9_]` rule is what makes the key-to-path mapping safe, not tidiness. |
+| `src/DK2.Assets/PlaceholderProvider.cs` | **Total on purpose.** The "runs with no assets" promise is only true if this never fails, and `AssetCatalogueTests` checks it over the whole shipped database. |
+| `src/DK2.Assets/FileAssetProvider.cs` | **The only** type that turns a key into a path. Reads `build/converted` and an art pack; knows nothing about DK2's own formats. |
+| `src/DK2.Assets/AssetCatalogue.cs` | Every key the database implies — what a converter must produce, and what makes the placeholder's totality testable. Claims only what the game asks for. |
+| `src/DK2.Presentation/WorldView.cs` | **The one** place world state becomes something drawable. Every renderer consumes this; two renderers disagreeing here would look like a simulation bug. |
+| `src/DK2.Presentation/TextRenderer.cs` | The second presentation mode, and the one that runs in CI. Read it before writing the Unity adapter — same job, character grid. |
+| `docs/research/wall-rendering.md` | How DK2 actually draws walls (Simon Schreibt, verified vs inferred separated). Corroborated `HealthPermille`, refuted one-mesh-per-terrain, and produced Q71/Q72. Rendering only — **no rule may depend on it**. |
+| `docs/research/external-resources.md` | **The licence boundary, once**, plus four worked cross-checks. OpenKeeper is GPLv3 and this is MIT: facts with provenance, never code. **It has confirmed three scan-derived offsets and every record type's size** (eight of them new, each to the byte), the MAP flags byte from a second direction, and one place where its own layout is incomplete (Q70). Read before researching anything that might be answered outside this repo. |
 | `docs/research/observation-checklist.md` | **Hand this to the owner.** Every open question a person playing DK2 can settle by looking, as experiments — and which ones playing cannot settle. |
 
 ## Running things
@@ -308,12 +361,23 @@ it is worth doing:
    the field-by-field layouts, and it belongs with the mechanic that needs
    them** - M6 can now start parsing without deriving a single stride first.
 
-2. **Unity presentation** — the simulation runs a dig scenario with moving
-   workers and a keeper building a room, headlessly, which was the precondition.
-   `CreatureState.PosX/PosY` are fixed point in tile units; a renderer converts,
-   the simulation never does. **`docs/GOAL_ALIGNMENT.md` gap 3 applies here and
-   is the expensive one to miss: the asset abstraction layer must land in the
-   same milestone as the first Unity view, not after it.**
+2. **Unity presentation — the boundary and the asset layer are DONE (2026-09-04,
+   ADR-0034/0035); what is left is the Unity adapter itself.** Gap 3 is closed:
+   `DK2.Assets` and `DK2.Presentation` exist, are tested, and the game renders as
+   boxes with no DK2 install. **The remaining work is small and specific:** a
+   Unity project holding one component that owns a `GameSimulation`, calls
+   `Tick`, walks `WorldView.Tiles` / `.Creatures`, resolves each `AssetRef`
+   through an `AssetProviderChain`, and turns a `ResolvedAsset` into a
+   `GameObject` — instantiating a file when `FilePath` is set and a coloured
+   primitive from `PlaceholderLook` when it is not. Positions are `Fp32` tile
+   units: divide by `Fp32.One`, and **do the conversion in Unity, never in the
+   simulation** (ADR-0001).
+
+   **Blocked on one thing only: Unity is not installed on this machine.** Nothing
+   Unity-shaped can be compiled or run here, and this project does not commit
+   code it has not built. Read `TextRenderer` first when the adapter is written —
+   it is the same job against a character grid, it runs in CI, and any
+   disagreement between the two is a bug in one of them.
 
 3. **What rooms actually do.** Room instances exist now (ADR-0027), so the
    machinery is finally there: `RoomInstance` gives a room its tile count, its
@@ -639,7 +703,7 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 74 (Q1-Q70; Q51 superseded). The ones that gate progress:
+`docs/research/open-questions.md` holds all 76 (Q1-Q72; Q51 superseded). The ones that gate progress:
 
 - **Q53 is ANSWERED and built** (2026-08-30): 7 mana a second per imp, measured
   by the owner and read off DK2's own Create Imp spell record (ADR-0022). Left in
@@ -716,8 +780,9 @@ Six sittings of owner measurements and ten ADRs - one of which needed no
 measurement at all, and one of which needed no new data either, only a look at
 the dump we already had. The state:
 
-**396 tests green** with and without a DK2 install (Core 14, Simulation 250,
-Data 55, Behavior 77), ten scenarios running, clean tree.
+**471 tests green** with and without a DK2 install (Core 14, Simulation 250,
+Data 55, Behavior 77, Assets 58, Presentation 17), ten scenarios running, clean
+tree.
 
 **Every known defect is fixed, and the room economy now runs both ways.** In the
 order they fell:
@@ -739,6 +804,8 @@ order they fell:
 | ADR-0031 | Q64/Q16 — a bridge reverts to the hazard it spanned, and the MAP record says which |
 | ADR-0032 | Q67 — a wooden bridge over lava burns, and the clock starts at build |
 | ADR-0033 | Q68 — a rival claims your ground directly, and hostile expansion falls out |
+| ADR-0034 | An asset is named by a logical key, and a provider chain resolves it |
+| ADR-0035 | Rendering goes through one view, and the harness draws it as text |
 
 **Nothing is left on that list**, which is why the pick-up list above now starts
 with the Unity view.
@@ -774,3 +841,29 @@ expected to — **static sources for structure, the owner and the original for
 behaviour** is now a division of labour with three worked examples behind it.
 `docs/research/kwd-container.md` §*Update 2026-09-04* is the result;
 `external-resources.md` §*Worked example 3* is the method.
+
+**And the eighth sitting (2026-09-04, afternoon) built the asset layer and the
+presentation boundary** (ADR-0034, ADR-0035) — `GOAL_ALIGNMENT.md` gap 3 closed
+on the correct side of its deadline, which was the whole point of writing the
+deadline down. Two new assemblies, 75 new tests, and the game now renders. **What
+it did not build is the Unity project**, because Unity is not installed here and
+this project does not commit code it has not compiled; the remaining adapter is
+described in pick-up item 2.
+
+**Three mistakes, and the shape of them is worth more than the fixes.** All three
+were caught by real data rather than by reasoning: a glyph scheme that read rock
+as imps until a campaign level was actually drawn; a test that asked a hash for
+distinctness it cannot give; and a character set for record names that the
+shipped terrain table refuted on first contact. **The pattern across the whole
+day — record layouts in the morning, rendering in the afternoon — is the same
+one: every wrong belief was found by running it against the install, and none by
+inspection.**
+
+**One process lesson, from the owner rather than from the code.** The Simon
+Schreibt wall-rendering article had sat in `external-resources.md` for a day in a
+row that said, in its own words, *"useful for the Unity view"*. The Unity view
+became the task and nobody re-read the row; the owner asked directly whether it
+had been read. It had not, and it was worth an afternoon — it corroborated one
+design decision and refuted another. **A resource table's "when" column is a
+commitment, and the table cannot tell you when its moment arrives.** The editor
+manual's row says M6 and is set up for exactly the same failure.

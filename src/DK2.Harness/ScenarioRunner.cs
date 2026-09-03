@@ -1,8 +1,10 @@
 using System.Globalization;
 using System.Text;
+using DK2.Assets;
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.Presentation;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
@@ -16,7 +18,28 @@ public sealed record ScenarioResult(
     ulong FinalStateHash,
     IReadOnlyList<ulong> HashPerTick,
     IReadOnlyList<SimEvent> Events,
-    IReadOnlyList<string> Unsupported);
+    IReadOnlyList<string> Unsupported)
+{
+    /// <summary>
+    /// The world at the end of the run, drawn as text through the same
+    /// presentation boundary a Unity view uses.
+    ///
+    /// <para>Worth having in a scenario report for a reason the hash series
+    /// cannot cover: a hash tells you two runs differed, and a picture tells you
+    /// <i>where</i>. When the imp-corridor scenario's hash moved after the work
+    /// stance changed (ADR-0028), the question was always "moved how" — and
+    /// answering it meant reading the event log line by line.</para>
+    ///
+    /// <para>Empty when the run rendered nothing, which is not an error.</para>
+    /// </summary>
+    public string Picture { get; init; } = "";
+
+    /// <summary>
+    /// Where the run's art came from — normally "all placeholders", and saying
+    /// so is the point (plan §7.2).
+    /// </summary>
+    public string AssetSummary { get; init; } = "";
+}
 
 /// <summary>
 /// Runs a scenario headlessly against the simulation and writes an evidence
@@ -119,9 +142,28 @@ public sealed class ScenarioRunner
 
         AddManaCaveats(world, unsupported);
 
+        // Draw the finished world through the presentation boundary. Runs with
+        // no assets installed, which is every run: see the summary line.
+        AssetProviderChain assets = AssetProviderChain.Standard(
+            replacementRoot: null, convertedRoot: ConvertedAssetRoot);
+        var renderer = new TextRenderer(new WorldView(_database), assets);
+        string picture = renderer.Render(world);
+
         return new ScenarioResult(
-            scenario, scenario.DurationTicks, simulation.StateHash(), hashes, sink.Events, unsupported);
+            scenario, scenario.DurationTicks, simulation.StateHash(), hashes, sink.Events, unsupported)
+        {
+            Picture = picture,
+            AssetSummary = assets.Summarise(),
+        };
     }
+
+    /// <summary>
+    /// Where the converter puts its output (plan §7.1). Named here rather than
+    /// inline because it is the one path the harness knows, and it is a
+    /// directory that normally does not exist — which is exactly the "no assets"
+    /// case the placeholder covers.
+    /// </summary>
+    public const string ConvertedAssetRoot = "build/converted";
 
     /// <summary>
     /// Mana accrues in every run now, so every run has to say what that number
@@ -549,6 +591,22 @@ public sealed class ScenarioRunner
             report.AppendLine();
             foreach (string item in result.Unsupported)
                 report.AppendLine($"- {item}");
+        }
+
+        if (!string.IsNullOrEmpty(result.Picture))
+        {
+            report.AppendLine();
+            report.AppendLine("## The world at the end of the run");
+            report.AppendLine();
+            report.AppendLine($"Art: {result.AssetSummary}.");
+            report.AppendLine();
+            report.AppendLine(TextRenderer.Legend());
+            report.AppendLine();
+            report.AppendLine("```");
+            report.Append(result.Picture);
+            report.AppendLine("```");
+
+            File.WriteAllText(Path.Combine(outputDir, "world.txt"), result.Picture);
         }
 
         File.WriteAllText(Path.Combine(outputDir, "report.md"), report.ToString());

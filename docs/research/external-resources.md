@@ -65,7 +65,7 @@ Status is what a fetch from here actually returned.
 | [Jadex AgentKeeper](https://code.google.com/p/jadex-agentkeeper/) | **dead** (Google Code is shut down) | — |
 | [werkt/kwd](https://github.com/werkt/kwd) | live | A KWD/KLD loading library, and **code** — so facts only, and check its licence before reading closely. Written by the author of the format thread above |
 | [EA sound & video formats](http://wiki.multimedia.cx/index.php?title=Electronic_Arts_Formats) | live | Audio/video containers. M7+, and presentation rather than simulation |
-| [Simon Schreibt on DK2's walls](http://simonschreibt.de/gat/dungeon-keeper-2-walls/) | live | A rendering write-up. Useful for the Unity view, says nothing about simulation |
+| [Simon Schreibt on DK2's walls](http://simonschreibt.de/gat/dungeon-keeper-2-walls/) | **live, read 2026-09-04** | **Read, and it paid off twice** — see below. Rendering only, and it says nothing about simulation, which was the right reason to defer it and the wrong reason to have kept deferring it. Write-up: `wall-rendering.md` |
 | [DK2 official editor manual](http://keeper.lubiki.pl/dk2_docs/dk2_editor_manual.htm) | **live, ~145KB** | **The one to read properly, and not yet.** See below |
 
 Also on the README, outside Resources: the
@@ -272,3 +272,51 @@ branches, which is meaningless. Both were caught by the install disagreeing.
    charge still took five owner measurements; the MAP flags byte still took a
    66-map behavioural sweep. **The division of labour is stable — static sources
    for structure, the owner and the original for behaviour.**
+
+---
+
+## Worked example 4: the resource that was filed correctly and read too late
+
+**2026-09-04, at the owner's prompting** — *"did you read this resource:
+simonschreibt.de/gat/dungeon-keeper-2-walls/ ? maybe it will be useful"*. It was.
+Full write-up in `docs/research/wall-rendering.md`; what belongs here is why it
+sat unread for a day when the table above already said what it was for.
+
+**The filing was right.** The row said "useful for the Unity view, says nothing
+about simulation", and both halves are true. Deferring it while the work was tile
+rules and mana was correct.
+
+**The trigger was missed.** The Unity view became the current task, and nothing
+went back to the row that said "for the Unity view". A resource table is only as
+good as the moment somebody re-reads it, and this one had a "when" column that
+nobody consulted when the *when* arrived. The editor manual has the same shape —
+its row says **M6** — so the same failure is queued up for triggers and
+objectives.
+
+**What reading it bought, in an afternoon:**
+
+- **It corroborated a guess.** `TileView.HealthPermille` was added on the
+  reasoning that a renderer should not need the terrain table to draw damage.
+  DK2 does show wall damage and does it by swapping in damage-state *textures* —
+  so both the fraction and the eventual asset kind are confirmed.
+- **It refuted a simplification.** `AssetCatalogue` asks for one mesh per solid
+  terrain. DK2 draws a wall from a set of pieces chosen by the size and shape of
+  the room behind it. One key per terrain is too coarse, and the catalogue now
+  says so rather than reading as complete.
+- **It gave the converter its route** — DK2WADTOOL, Hoenir's 010 Editor KMF
+  template, trass3r's KMF→OBJ scripts. Same category of third-party format
+  documentation this project already relies on for KWD, so squarely inside the
+  boundary; and no converted mesh may be committed, which is what
+  `FileAssetProvider` assumes by only ever reading `build/converted`.
+
+**And it produced two open questions rather than pretending to answer them**
+(Q71, what picks a wall piece; Q72, whether the deformation is deterministic per
+tile). The article's own author separates what he verified from what he inferred,
+and marks the runtime "noise modifier" as his inference with the alternative
+stated. **Copying that discipline across was most of the work of writing the
+note** — a source that labels its own confidence is easy to record faithfully and
+easy to over-read.
+
+**The rule this adds to the standing one:** a resource row's "when" is a
+commitment. When a milestone starts, re-read the rows that name it — the table
+already knows what to read and it cannot tell you on its own.

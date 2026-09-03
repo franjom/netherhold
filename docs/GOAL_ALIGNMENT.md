@@ -274,3 +274,80 @@ than a fit is that two things agreed which were not consulted: eight of the ten
 tabled deltas divide by five exactly, and claiming independently lands on the four
 swings Q46 had measured a day earlier by watching an imp jump. Neither was
 available to be fitted to, which is the whole test.
+
+---
+
+## Review — 2026-09-04, the asset layer and the presentation boundary
+
+Not a full re-run. **Gap 3 is closed**, which is the whole point of this entry:
+it had a deadline attached, and the deadline has been met on the correct side of
+it.
+
+### Gap 3 is closed, and it was closed the cheap way
+
+The gap said: *"AGENTS.md states that all asset access must go through an
+abstraction layer. Goal 4 is cheap today, because nothing depends on an asset,
+and expensive the moment a renderer exists. It must land in the same milestone as
+the first Unity view, not after."*
+
+`DK2.Assets` now exists in full (ADR-0034), and it landed **before** any renderer
+did — so it cost what the gap predicted it would cost while it was still cheap:
+nothing had to be retrofitted, because nothing depended on an asset yet. That is
+the third time this project has paid a small cost early rather than a large one
+late, after Unity independence (ADR-0002) and fixed-point maths (ADR-0001), and
+it is worth noting that all three were recorded as risks *before* they were paid.
+
+**Goal 4 (replaceable assets) moves from "not started, not yet owed" to
+"built, and continuously tested".** The property AGENTS.md actually asks for —
+that the engine must not fundamentally depend on proprietary assets — is now a
+test rather than an intention: `AssetCatalogue` enumerates every key the shipped
+game database implies and `AssetCatalogueTests` resolves every one of them with
+no DK2 install and no art pack. The game runs as boxes, and *that it does* is
+checked on every commit.
+
+**Goal 3 (sim/render separation) moves from "enforced, unused" to "enforced and
+exercised".** `DK2.Presentation` translates world state into asset-keyed
+descriptions once (ADR-0035), and a test asserts that building and rendering a
+whole view leaves the state hash untouched — the determinism gate pointed at the
+presentation layer. The honest caveat is in the ADR: `WorldState.Tile` hands out
+a `ref`, so observation is a convention plus a test rather than a compiler
+guarantee.
+
+**Goal 11 (presentation modes) moves from "headless works; it is the only one" to
+two modes.** The harness's `TextRenderer` is a real second renderer — every
+scenario now writes a picture of the finished world — and it is the only one that
+will ever **run in CI**, which is what makes it evidence about the Unity view
+rather than a toy. If the view types were secretly Unity-shaped, it would not
+compile.
+
+### What has NOT moved, and must not be read as having moved
+
+**Goal 1 still has no Unity view, and this entry does not claim one.** Unity is
+not installed on the development machine, so Unity code written here could not be
+compiled or run, and this project does not commit code it has not built. What is
+finished is everything that makes the Unity view thin — the boundary, the asset
+layer, and a second renderer proving both work. The remaining piece is an
+adapter: subscribe to a `WorldView`, turn `ResolvedAsset` into a `GameObject`,
+convert `Fp32` to `float`. It is genuinely small, and it is genuinely not done.
+
+**M3's definition of done still is not met**, for that reason and no other.
+
+### The new gap, and it is small
+
+**5. `AssetCatalogue` asks for one mesh per solid terrain, and DK2 does not
+work that way.** Wall pieces are chosen by the size and shape of the room behind
+them, and damage has its own textures (`wall-rendering.md`, CONFIRMED). The key
+type already carries a variant segment, so this is a missing *list* rather than a
+missing design — and the list is missing because nobody has established what the
+pieces are (Q71). Recorded rather than guessed. It costs nothing until a renderer
+wants to look like DK2, and then it costs whatever Q71 costs.
+
+### One process note, which is the actual lesson of the day
+
+The Simon Schreibt article that produced `wall-rendering.md` had been sitting in
+`external-resources.md` for a day, in a row whose own text said *"useful for the
+Unity view"*. The Unity view became the task and nobody re-read the row; the
+owner asked about it directly. **A resource table's "when" column is a
+commitment, and a table cannot tell you when its moment has come.** The editor
+manual's row says **M6** and is queued up for the identical failure. See
+`external-resources.md` §*Worked example 4*.

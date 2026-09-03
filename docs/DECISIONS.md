@@ -1479,3 +1479,125 @@ The confidence rating stays **STRONGLY INFERRED**: the field is now confirmed,
 our reading of its purpose is still ours. Facts quoted with provenance and no
 code taken — see `docs/research/external-resources.md` for the licence boundary
 this sits inside.
+
+---
+
+## ADR-0034 — An asset is named by a logical key, and a provider chain resolves it
+
+**Status.** Accepted.
+**Date.** 2026-09-04.
+
+Goal 4 (`AGENTS.md`) draws the pipeline as
+`Game Definition → Asset Reference → Asset Provider → Actual Asset`, and
+`GOAL_ALIGNMENT.md` gap 3 attaches a deadline to it: **the asset layer must land
+in the same milestone as the first Unity view, not after it.** Cheap today,
+because nothing depends on an asset; expensive the moment a renderer exists.
+
+**The decision.** `DK2.Assets` holds four things and no more:
+
+- **`AssetRef`** — a validated logical key, `category.subject.role[.variant]`,
+  built from a record's **name** and never its id. Same reasoning that keeps
+  gameplay rules off terrain ids: an id is a fact about the reference install, a
+  name survives a mod and a re-extract.
+- **`IAssetProvider`** — given a key, answer or say you cannot. **Never throw for
+  a key you do not have**, because "no asset" is a normal condition in a project
+  that must run with no assets at all.
+- **`AssetProviderChain`** — first answer wins, in the declared order
+  `replacement → converted → placeholder`. Order *is* the policy; a
+  "best answer" rule would need a judgement no code here can make and would make
+  the result depend on what happens to be installed. Same reasoning as ADR-0013.
+- **`PlaceholderProvider`** — **total**. Answers every valid key with a coloured
+  box whose colour is derived from the key's hash, so a type is the same colour
+  in every run, on every machine and in every renderer.
+
+**Why the placeholder is load-bearing rather than a fallback.** Plan §7.2 asks
+that the game *run* with no DK2 install and no art pack, so that "shippable
+without proprietary assets" is continuously tested instead of aspirational. That
+is only true if the provider is total — and `AssetCatalogue` makes it checkable
+by enumerating every key the shipped database implies, which
+`AssetCatalogueTests` then resolves one by one with nothing installed.
+
+**Consequences.**
+
+- **No filename literal exists outside `DK2.Assets`** (plan §4.8). One type turns
+  a key into a path, mechanically: `creature.imp.mesh` →
+  `creature/imp/mesh.glb`. An art pack's layout is knowable from the key alone,
+  with no manifest to fall out of date.
+- **`AssetRef`'s validation is a security property, not tidiness.** A key segment
+  is `[a-z0-9_]` only, so it cannot be `..`, absolute, or contain a separator —
+  which is what makes the dot-to-separator mapping safe. Refusing an unmappable
+  character also catches the real bug: a name carrying `.` or `/` did not come
+  from a record, and sanitising it would mint a believable key for a wrong thing.
+- **The separator set is measured, not assumed.** The first version allowed only
+  space, dash and apostrophe; the shipped terrain table carries
+  `Hero Gate [ Final ]` and refuted it on the first run against real data.
+- **The catalogue claims only what the game asks for.** DK2's creature record
+  names about thirty animations; ours lists the four activities the simulation
+  can distinguish, checked equal to `CreatureActivity` by a test. Enumerating
+  DK2's full set would put keys in a converter's work list that nothing requests.
+- **`DK2.Assets` must not reference Unity or the simulation**, asserted by
+  `AssetArchitectureTests`. It is the abstraction; the engine-specific half lives
+  in the Unity project.
+
+**What this does not decide.** It says nothing about how many assets a terrain
+needs. `AssetCatalogue` currently asks for one mesh per solid terrain, and that
+is **known to be a simplification** — DK2 picks wall pieces by the size and shape
+of the room behind them (`wall-rendering.md`, Q71). `AssetRef` already carries a
+variant segment, so the shape is right; the variant list waits for evidence.
+
+---
+
+## ADR-0035 — Rendering goes through one view, and the harness draws it as text
+
+**Status.** Accepted.
+**Date.** 2026-09-04.
+
+Plan §4.7 puts the presentation boundary at `SimulationEvent` out and
+`InputFrame` in, with Unity holding no authoritative state. That says what may
+cross; it does not say who decides *which asset a tile needs*.
+
+**The decision.** `DK2.Presentation` owns that translation exactly once.
+`WorldView` turns `WorldState` into `TileView` / `CreatureView` — readonly
+structs carrying asset keys, fixed-point positions and the few state bits a
+player can see — and every renderer consumes those.
+
+**Why not let each renderer read `WorldState`.** Three decisions would otherwise
+be repeated per renderer: which asset key a terrain implies, which animation an
+activity implies, and how a room's floor differs from its furniture. Two
+renderers disagreeing about those looks exactly like a simulation bug, which is
+the most expensive kind of confusion this project can manufacture. The view also
+has to agree with `AssetCatalogue`, because **a key the catalogue never
+enumerates is a key no converter ever produces** — a real failure mode with no
+error anywhere, and now a test.
+
+**And the harness draws it as text.** A second renderer is the only thing that
+actually proves the boundary is one: if the view types were secretly
+Unity-shaped, `TextRenderer` would not compile. It also **runs in CI**, which the
+Unity view will not, so "the presentation layer still works" is a test result
+rather than something somebody notices on opening the editor. Every scenario run
+now writes `world.txt` and a picture into its report, with a line saying where
+the art came from — normally "all placeholders", and saying so is the point.
+
+**Consequences.**
+
+- Positions cross the boundary in `Fp32` tile units, untouched. A view that
+  helpfully divided would throw away the sub-tile position a renderer needs to
+  interpolate, and ADR-0001 puts that conversion on the renderer.
+- A tile reports `HealthPermille` rather than health, so a renderer needs no
+  terrain table. DK2 shows wall damage by swapping textures, which corroborates
+  both the fraction and the eventual asset kind (`wall-rendering.md`).
+- A scenario report now shows *where* two runs differ, not only that they do —
+  the gap the hash series has always had.
+- **Observation is a convention here, not a compiler guarantee**, and this is the
+  honest caveat: `WorldState.Tile` hands out a `ref`, so a determined renderer
+  could still mutate. The view copies by value and a test asserts that building
+  and rendering a whole view leaves the state hash untouched. The guarantee the
+  plan actually wants — deleting every `GameObject` changes nothing — holds by
+  construction, since the simulation references none of this.
+
+**What is NOT decided, and is the reason this ADR is not "the Unity view".**
+There is no Unity project. Unity is not installed on the development machine, so
+any Unity code written here could not be compiled, let alone run, and this
+project does not commit code it has not built. What is done is everything the
+Unity view needs to be thin: the boundary, the asset layer, and a working second
+renderer proving both.

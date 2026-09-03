@@ -11,6 +11,8 @@
     <ProjectReference Include="../DK2.Data.Model/DK2.Data.Model.csproj" />
     <ProjectReference Include="../DK2.Simulation/DK2.Simulation.csproj" />
     <ProjectReference Include="../DK2.AI/DK2.AI.csproj" />
+    <ProjectReference Include="../DK2.Assets/DK2.Assets.csproj" />
+    <ProjectReference Include="../DK2.Presentation/DK2.Presentation.csproj" />
   </ItemGroup>
 
   <ItemGroup>

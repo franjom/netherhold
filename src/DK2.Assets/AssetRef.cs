@@ -1,0 +1,249 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using DK2.Core;
+
+namespace DK2.Assets;
+
+/// <summary>What sort of thing an <see cref="AssetRef"/> points at.</summary>
+///
+/// <remarks>
+/// The list is AGENTS.md goal 4's own list of what must be replaceable —
+/// models, textures, animations, sounds, music, video, effects — and nothing
+/// beyond it. A kind earns its place by being a thing a provider resolves
+/// differently, not by being a word somebody might want.
+/// </remarks>
+public enum AssetKind
+{
+    Mesh,
+    Texture,
+    Animation,
+    Sound,
+    Music,
+    Video,
+    Effect,
+}
+
+/// <summary>
+/// A logical asset key: the middle arrow of goal 4's
+/// <c>Game Definition → Asset Reference → Asset Provider → Actual Asset</c>.
+///
+/// <para><b>The whole point is that this is not a filename.</b> A key names what
+/// the game needs — "the imp's mesh" — and a provider decides where that comes
+/// from. That is what lets original art, fan-made art and coloured boxes be
+/// swapped without touching a line of simulation or renderer code, and it is
+/// what keeps a redistributable build possible: no path to a proprietary file
+/// exists anywhere except inside a provider.</para>
+///
+/// <para><b>Shape:</b> <c>category.subject.role</c>, all lowercase, dot
+/// separated, with <c>[a-z0-9_]</c> in each segment — <c>creature.imp.mesh</c>,
+/// <c>terrain.gold_seam.texture</c>, <c>creature.imp.animation.walk</c>. The
+/// segments are validated rather than trusted, because a mistyped key that
+/// silently resolves to a placeholder is exactly the bug this design would
+/// otherwise invite: the game would keep running and quietly show a box.</para>
+///
+/// <para><b>Why keys are built from a record's name, not its id.</b> An id is a
+/// fact about the reference install's data files; a name survives a mod, a
+/// re-extract and a hand-authored database. The same reasoning that keeps
+/// gameplay rules off terrain ids (see <c>TileWorkRules</c>) keeps asset keys
+/// off them.</para>
+/// </summary>
+public readonly struct AssetRef : IEquatable<AssetRef>
+{
+    /// <summary>The categories in use. Kept closed so a typo cannot invent one.</summary>
+    public const string TerrainCategory = "terrain";
+    public const string RoomCategory = "room";
+    public const string CreatureCategory = "creature";
+    public const string UiCategory = "ui";
+
+    private static readonly HashSet<string> Categories =
+        new(StringComparer.Ordinal) { TerrainCategory, RoomCategory, CreatureCategory, UiCategory };
+
+    private readonly string? _key;
+
+    private AssetRef(string key, AssetKind kind)
+    {
+        _key = key;
+        Kind = kind;
+    }
+
+    /// <summary>The full key, e.g. <c>creature.imp.mesh</c>. Never null once created.</summary>
+    public string Key => _key ?? throw new InvalidOperationException(
+        "A default AssetRef has no key. Build one through Create or a For* helper.");
+
+    /// <summary>What kind of asset this is. Part of the identity, not a lookup.</summary>
+    public AssetKind Kind { get; }
+
+    /// <summary>True for a <c>default</c> value, which is not a usable reference.</summary>
+    public bool IsEmpty => _key is null;
+
+    /// <summary>
+    /// Builds a reference from its parts, normalising the subject and validating
+    /// everything. Throws on anything that would not round-trip, because the
+    /// alternative is a key that resolves to a placeholder and never complains.
+    /// </summary>
+    public static AssetRef Create(string category, string subject, AssetKind kind, string? variant = null)
+    {
+        if (!Categories.Contains(category))
+            throw new ArgumentException(
+                $"'{category}' is not a known asset category. Add it to AssetRef if it is real.",
+                nameof(category));
+
+        string normalisedSubject = NormaliseSubject(subject);
+        string role = RoleOf(kind);
+
+        var key = new StringBuilder(category).Append('.').Append(normalisedSubject).Append('.').Append(role);
+
+        if (variant is not null)
+        {
+            string normalisedVariant = NormaliseSubject(variant);
+            key.Append('.').Append(normalisedVariant);
+        }
+
+        return new AssetRef(key.ToString(), kind);
+    }
+
+    /// <summary>The mesh, texture or effect belonging to a terrain type.</summary>
+    public static AssetRef ForTerrain(string terrainName, AssetKind kind, string? variant = null) =>
+        Create(TerrainCategory, terrainName, kind, variant);
+
+    /// <summary>The art belonging to a room type.</summary>
+    public static AssetRef ForRoom(string roomName, AssetKind kind, string? variant = null) =>
+        Create(RoomCategory, roomName, kind, variant);
+
+    /// <summary>The art belonging to a creature type.</summary>
+    public static AssetRef ForCreature(string creatureName, AssetKind kind, string? variant = null) =>
+        Create(CreatureCategory, creatureName, kind, variant);
+
+    /// <summary>
+    /// The role segment for a kind. Deliberately a total function over the enum,
+    /// so adding a kind without deciding its role does not compile.
+    /// </summary>
+    public static string RoleOf(AssetKind kind) => kind switch
+    {
+        AssetKind.Mesh => "mesh",
+        AssetKind.Texture => "texture",
+        AssetKind.Animation => "animation",
+        AssetKind.Sound => "sound",
+        AssetKind.Music => "music",
+        AssetKind.Video => "video",
+        AssetKind.Effect => "effect",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No role segment for this asset kind."),
+    };
+
+    /// <summary>
+    /// The characters that shipped record names use as punctuation, all of which
+    /// become a single underscore.
+    ///
+    /// <para><b>This set is measured, not guessed.</b> Sweeping the reference
+    /// install's 41 terrain, 26 room and 46 creature names for anything outside
+    /// <c>[A-Za-z0-9 ]</c> returns exactly <c>&lt; &gt; [ ]</c> — from editor
+    /// annotations like <c>Hero Gate [ Final ]</c> and
+    /// <c>Mercenary Gate [&lt;not used&gt;]</c>. Dash and apostrophe are here
+    /// too, for names a mod or a later record type may carry; they cost nothing
+    /// and are unambiguously punctuation.</para>
+    ///
+    /// <para>The first version of this method allowed only space, dash and
+    /// apostrophe and it was <i>wrong about the real data</i> — the shipped
+    /// terrain table refuted it immediately. Pinned by
+    /// <c>AssetCatalogueTests</c>, which normalises every name in the install.</para>
+    /// </summary>
+    private const string Separators = " -'[]<>";
+
+    /// <summary>
+    /// Turns a record's name into a key segment: lowercase, punctuation to a
+    /// single underscore, and <b>everything else refused</b>.
+    ///
+    /// <para>Refusing rather than stripping is the deliberate part, and it is
+    /// load-bearing twice over. A name carrying <c>.</c>, <c>/</c>, <c>\</c> or a
+    /// control character did not come from a record — it came from a truncated
+    /// string, a byte read at the wrong offset, or a path — and sanitising that
+    /// would mint a believable key for the wrong thing. It is also what makes
+    /// <see cref="FileAssetProvider"/>'s dot-to-separator mapping safe: a segment
+    /// that cannot contain a separator or a dot cannot escape the asset root.</para>
+    ///
+    /// <para>Runs of punctuation collapse and the edges are trimmed, so
+    /// <c>Hero Gate [ Final ]</c> is <c>hero_gate_final</c> rather than
+    /// <c>hero_gate___final_</c>. Collapsing could in principle make two names
+    /// share a key; <c>AssetCatalogueTests</c> asserts the shipped database
+    /// produces none.</para>
+    /// </summary>
+    public static string NormaliseSubject(string subject)
+    {
+        if (string.IsNullOrWhiteSpace(subject))
+            throw new ArgumentException("An asset key segment cannot be blank.", nameof(subject));
+
+        string trimmed = subject.Trim();
+        var sb = new StringBuilder(trimmed.Length);
+        bool pendingSeparator = false;
+
+        foreach (char c in trimmed)
+        {
+            char mapped;
+            if (c is >= 'a' and <= 'z' || c is >= '0' and <= '9')
+                mapped = c;
+            else if (c is >= 'A' and <= 'Z')
+                mapped = (char)(c + 32);
+            else if (c == '_' || Separators.IndexOf(c) >= 0)
+                mapped = '_';
+            else
+                throw new ArgumentException(
+                    $"'{subject}' cannot be an asset key segment: '{c}' has no mapping. " +
+                    "Asset keys come from record names, so an unmappable character usually " +
+                    "means the name was read from the wrong place.",
+                    nameof(subject));
+
+            if (mapped == '_')
+            {
+                // Collapse a run, and never lead with one.
+                pendingSeparator = sb.Length > 0;
+                continue;
+            }
+
+            if (pendingSeparator)
+            {
+                sb.Append('_');
+                pendingSeparator = false;
+            }
+
+            sb.Append(mapped);
+        }
+
+        // A trailing separator is dropped by simply never flushing it.
+        string result = sb.ToString();
+        if (result.Length == 0)
+            throw new ArgumentException(
+                $"'{subject}' normalises to nothing usable.", nameof(subject));
+
+        return result;
+    }
+
+    /// <summary>
+    /// A stable 64-bit hash of the key. Used by <see cref="PlaceholderProvider"/>
+    /// to give every asset a consistent placeholder appearance, so the same
+    /// terrain is the same colour in every run and on every machine — which is
+    /// what makes a box-only view readable rather than a kaleidoscope.
+    /// </summary>
+    public ulong StableHash()
+    {
+        Hash64 hash = Hash64.Start();
+        hash.Add(Key);
+        hash.Add((int)Kind);
+        return hash.Value;
+    }
+
+    public bool Equals(AssetRef other) =>
+        Kind == other.Kind && string.Equals(_key, other._key, StringComparison.Ordinal);
+
+    public override bool Equals(object? obj) => obj is AssetRef other && Equals(other);
+
+    // Not the structural hash: this one only has to be consistent within a
+    // process, and StableHash exists for the case that must not be.
+    public override int GetHashCode() =>
+        unchecked(((_key?.GetHashCode() ?? 0) * 397) ^ (int)Kind);
+
+    public override string ToString() => _key ?? "<empty AssetRef>";
+
+    public static bool operator ==(AssetRef left, AssetRef right) => left.Equals(right);
+    public static bool operator !=(AssetRef left, AssetRef right) => !left.Equals(right);
+}

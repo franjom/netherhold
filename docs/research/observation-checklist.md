@@ -239,6 +239,40 @@ be a variable we have misidentified than a balance value.
 
 ## 2. Still open, and cheap
 
+### Q72 — does a wall deform the same way twice? — **new, and it is a look-and-see**
+**This one is purely cosmetic, and that is why it is worth asking now.** The
+Unity view is being built, and the answer decides whether a renderer can
+reproduce DK2's wall shapes from nothing but a tile coordinate, or has to
+remember them.
+
+**The background.** DK2's wall meshes are authored straight — somebody extracted
+them and looked. In the game they are visibly bent, and the bending is
+sometimes dramatic rather than a subtle wobble. Whoever wrote that up thinks the
+engine displaces the vertices at runtime; he says out loud that it is his
+inference and that the alternative is several hand-made variants assembled by
+code.
+
+**What to do.** Find a wall with a distinctive silhouette — a bulge, a lean, a
+notch. Take a screenshot. Have an imp dig it out. Then **fill the tile back in**
+(the fill-in order, so the wall returns), let it finish, and screenshot the same
+wall again from the same camera angle.
+
+**What the answer means:**
+- **Identical both times** → the shape is a function of where the tile is. A
+  renderer computes it from the coordinate and stores nothing. This is the
+  convenient answer and the likely one.
+- **Different** → the shape is decided when the wall appears, so it is view
+  state a renderer has to keep.
+
+**Either way, nothing in the simulation changes.** Where a wall's vertices sit
+cannot affect a rule, so this must never become a field on a tile — the question
+is only about which half of the renderer owns it.
+
+**If you would rather not bother:** say so and it stays open. It costs a
+renderer some memory and nothing else, and the answer is cheap to get later
+because it is not blocking anything.
+
+
 ### Q20 — how many swings to dig one plain wall? — **ANSWERED and now IMPLEMENTED**
 **Which tile: the plain, unreinforced wall.** Terrain id 2, "Rock" in the data —
 the ordinary one an imp digs out to open a corridor, not the reinforced kind and

@@ -12,6 +12,9 @@ public class ArchitectureTests
     [InlineData("DK2.Core")]
     [InlineData("DK2.Data.Model")]
     [InlineData("DK2.Simulation")]
+    // DK2.Assets is guarded the same way, in DK2.Assets.Tests — the guard lives
+    // beside the assembly it guards rather than dragging an asset reference into
+    // the simulation's own tests.
     public void SimulationAssemblies_DoNotReferenceUnity(string assemblyName)
     {
         var assembly = Assembly.Load(assemblyName);
