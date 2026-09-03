@@ -199,4 +199,76 @@ public class BridgesOnRealDataTests
         Assert.Equal("Water", db.WaterTerrain!.Name);
         Assert.Equal("Lava", db.LavaTerrain!.Name);
     }
+
+    /// <summary>
+    /// <b>The lava-immune creatures the owner named are in the data, and the data
+    /// names four more</b> (Q67).
+    ///
+    /// <para>The owner said "some creatures, like salamander and giant are
+    /// immune". <see cref="CreatureFlags.CanWalkOnLava"/> falls on exactly seven:
+    /// the Salamander and the Giant they named, the two unique variants of the
+    /// Salamander and the Firefly, plus the Firefly, the Fairy and Horny. Two
+    /// fliers and the Horned Reaper is precisely the set one would guess, which
+    /// makes this corroboration of an incomplete list rather than a
+    /// contradiction of it.</para>
+    ///
+    /// <para>Asserted in both directions, because "most creatures are immune"
+    /// would fit a one-sided test just as well: the Imp, which is what walks over
+    /// a keeper's bridges, is <b>not</b> immune.</para>
+    /// </summary>
+    [Fact]
+    public void TheLavaImmuneCreaturesAreTheOnesTheOwnerNamedAndFourMore()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        string[] immune = [.. db.Creatures.Values
+            .Where(c => c.Flags.HasFlag(CreatureFlags.CanWalkOnLava))
+            .Select(c => c.Name)
+            .OrderBy(n => n, StringComparer.Ordinal)];
+
+        Assert.Equal<string[]>(
+            ["Fairy", "Firefly", "Giant", "Horny", "Salamander", "Unique Firefly", "Unique Salamander"],
+            immune);
+
+        // And the creature that actually uses a keeper's bridges is not immune,
+        // which is what makes a wooden bridge over lava a real trap.
+        Assert.False(db.CreatureByName("Imp")!.Flags.HasFlag(CreatureFlags.CanWalkOnLava));
+    }
+
+    /// <summary>
+    /// The burn time the rule reads, straight off the install, plus the fact that
+    /// makes the rule need a room type at all: <b>the two bridges are
+    /// indistinguishable in the terrain table</b>.
+    /// </summary>
+    [Fact]
+    public void OnlyTheWoodenBridgeBurns_AndTheTerrainTableCannotTellThemApart()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        Assert.Equal(30, db[VariableTypeId.WoodBridgeLifeOnLavaSeconds]);
+
+        RoomDef wooden = db.Room(RoomTypeId.WoodenBridge);
+        RoomDef stone = db.Room(RoomTypeId.StoneBridge);
+        TerrainDef woodenTerrain = db.TerrainById(wooden.TerrainId);
+        TerrainDef stoneTerrain = db.TerrainById(stone.TerrainId);
+
+        // Identical flags and identical health, and neither decays. So nothing in
+        // the terrain table distinguishes the bridge that burns from the one that
+        // does not - which is why BridgeRules.LifetimeTicks reads the room type,
+        // following DK2's own variable name.
+        Assert.Equal(woodenTerrain.Flags, stoneTerrain.Flags);
+        Assert.Equal(woodenTerrain.MaxHealth, stoneTerrain.MaxHealth);
+        Assert.False(woodenTerrain.Flags.HasFlag(TerrainFlags.Decay));
+        Assert.False(stoneTerrain.Flags.HasFlag(TerrainFlags.Decay));
+
+        TerrainDef lava = db.LavaTerrain!;
+        Assert.True(BridgeRules.LifetimeTicks(db, wooden, lava) > 0);
+        Assert.Equal(0, BridgeRules.LifetimeTicks(db, stone, lava));
+        Assert.Equal(0, BridgeRules.LifetimeTicks(db, wooden, db.WaterTerrain!));
+    }
 }

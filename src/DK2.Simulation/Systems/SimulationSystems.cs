@@ -28,6 +28,10 @@ namespace DK2.Simulation.Systems;
 /// work they are in position for.</item>
 /// <item><see cref="TileWorkSystem"/> — the work queued this tick resolves this
 /// tick, so nothing survives a tick boundary half-done.</item>
+/// <item><see cref="BridgeBurnSystem"/> — a wooden bridge over lava runs out
+/// (Q67). After the work, so a bridge somebody was repairing on the tick it
+/// burned gets the repair and then burns anyway, which is the order that makes
+/// the fire final rather than something a keeper can outrun by a tick.</item>
 /// <item><see cref="ManaSystem"/> — mana is a consequence of what a keeper owns
 /// and everything that can change that has now run. A tile claimed on tick N is
 /// worth mana from tick N.</item>
@@ -54,6 +58,7 @@ public static class SimulationSystems
         new CreatureMovementSystem(),
         new ImpTaskSystem(),
         new TileWorkSystem(),
+        new BridgeBurnSystem(),
         new ManaSystem(),
         new ImpSupplySystem(),
     ];

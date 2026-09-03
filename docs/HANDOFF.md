@@ -10,8 +10,8 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
-five record types M1 needed are done. **368 tests green** with and without a DK2
-install; ten scenarios run; clean tree. (Core 14, Simulation 238, Data 41, Behavior 75.)
+five record types M1 needed are done. **376 tests green** with and without a DK2
+install; ten scenarios run; clean tree. (Core 14, Simulation 244, Data 41, Behavior 77.)
 
 > ### ⚠ Read this first: five sittings of owner answers, 2026-08-29 to 09-03
 >
@@ -151,6 +151,7 @@ What the simulation can do:
 | Where a worker stands to do a job | `WorkStance` | a wall is worked from beside, floor from on top of it (Q44/Q49, ADR-0028); derived from two clauses rather than listed, and both clauses are pinned by a test that fails without them |
 | Grid search behind an interface | `DK2.Pathfinding.GridPathfinder` | shortest, wall-respecting, reproducible; reused buffers proven inert |
 | Rooms: where one may go, what it costs | `RoomRules` + `BuildRoomCommand` | placement flags partition the shipped rooms; ground rules run on a campaign level |
+| A wooden bridge over lava burning away | `BridgeRules.LifetimeTicks` + `BridgeBurnSystem` | 30 s from the build, CONFIRMED (Q67, ADR-0032); the tile half only - what happens to creatures on it needs creature health |
 | What a bridge is built over | `BridgeRules` | the MAP record's third byte marks a bridge over lava (Q64/Q16, ADR-0031); the partition is swept over all 66 shipped maps, and one rule now serves both selling and destruction |
 | Selling a room back | `RoomRules.RefundPerTile` + `RoomSellSystem` | half the cost per tile, every number from the data (ADR-0029); `ReturnPercentage` is 0 for exactly the rooms a keeper cannot sell, asserted both ways against the install |
 | Gold, stored in tiles rather than on players | `GoldStore` | per-tile limits honoured; a first treasury is paid for out of the dungeon heart |
@@ -285,13 +286,17 @@ it is worth doing:
    own research note — none can be guessed from the ROOMS record, which carries
    art, size and cost and nothing about behaviour.
 
-**New and worth an owner look, since it is very visible:** a **wooden bridge over
-lava burns away** after `WoodBridgeLifeOnLavaSeconds` = 30, and that rule only
-became implementable once Q64 told us which bridges are over lava. What is
-UNKNOWN is the shape - does the clock start when the bridge is built, or run only
-while nobody stands on it, and does a creature on it fall in? The shipped
-campaign has no wooden bridge over lava anywhere, so this is a player-built case
-only (Q67).
+**A wooden bridge over lava burns away, and the tile half is built** (Q67,
+ADR-0032). The owner answered the shape the same day it was asked: the clock
+starts at the build, everything on the tile falls into the lava, a dead body
+disappears, and a living creature burns until it escapes or dies. Only the tile
+half is implemented, because **creature health does not exist** - and lava
+damage is not a bridge rule anyway, it is `TerrainDef.Damage` (100 a second, the
+same field that heals in a Hero Lair), so it belongs with creature health
+generally. The immunity is already in the data: `CanWalkOnLava` falls on exactly
+seven creatures and the Imp is not one of them. **Do not ask the owner about gold
+on a burning bridge yet** - they offered, and it is blocked behind objects (M6)
+either way, so the answer could not be used.
 
 **What is banked and waiting for a milestone, not for research:** the trap mana
 upkeep (Q59, `Traps.kwd` 0x0202, pinned by a test, needs objects at M6); the four
@@ -617,12 +622,12 @@ implementation.
 
 ## Where the project stood at the 2026-09-03 compaction
 
-Six sittings of owner measurements and eight ADRs - one of which needed no
+Six sittings of owner measurements and nine ADRs - one of which needed no
 measurement at all, and one of which needed no new data either, only a look at
 the dump we already had. The state:
 
-**368 tests green** with and without a DK2 install (Core 14, Simulation 238,
-Data 41, Behavior 75), ten scenarios running, clean tree.
+**376 tests green** with and without a DK2 install (Core 14, Simulation 244,
+Data 41, Behavior 77), ten scenarios running, clean tree.
 
 **Every known defect is fixed, and the room economy now runs both ways.** In the
 order they fell:
@@ -642,6 +647,7 @@ order they fell:
 | ADR-0029 | Q34 — selling returns half the cost, and the data said so all along |
 | ADR-0030 | Q43 — the crowding cap follows the stance: three to a wall, one to a floor tile |
 | ADR-0031 | Q64/Q16 — a bridge reverts to the hazard it spanned, and the MAP record says which |
+| ADR-0032 | Q67 — a wooden bridge over lava burns, and the clock starts at build |
 
 **Nothing is left on that list**, which is why the pick-up list above now starts
 with the Unity view.

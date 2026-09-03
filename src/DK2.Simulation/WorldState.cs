@@ -119,6 +119,28 @@ public struct TileState
     /// </summary>
     public int UpwardWork;
 
+    /// <summary>
+    /// Ticks left before this tile burns away, or 0 when nothing is burning.
+    ///
+    /// <para><b>A wooden bridge over lava does not last</b>
+    /// (<c>WoodBridgeLifeOnLavaSeconds</c> = 30, a variable that names its own
+    /// mechanic). CONFIRMED by the owner (2026-09-03), including the detail that
+    /// decides the shape: <b>the clock starts when the bridge is built</b> — not
+    /// when a creature steps on it, and not as damage to the tile's health.
+    /// Q67.</para>
+    ///
+    /// <para>A separate countdown rather than health decay, because health is
+    /// already what a rival attacking the bridge reduces, and a bridge over
+    /// water has exactly the same 2000 health and never burns. Conflating the
+    /// two would make combat damage and fire the same quantity, which they are
+    /// not.</para>
+    ///
+    /// <para>Set by <see cref="RoomRules.Place"/> and spent by
+    /// <see cref="Systems.BridgeBurnSystem"/>. Reset to zero the moment the tile
+    /// stops being that bridge, however it stops.</para>
+    /// </summary>
+    public int BurnTicksRemaining;
+
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = 15;
 
@@ -148,6 +170,7 @@ public struct TileState
         hash.Add(TaggedBy);
         hash.Add(WorkRemainder);
         hash.Add(UpwardWork);
+        hash.Add(BurnTicksRemaining);
     }
 }
 

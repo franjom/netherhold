@@ -473,3 +473,45 @@ cannot inherit the first hazard.
 lava burns away. That rule needs to know which bridges are over lava and nothing
 here could tell before. Still not implemented, because the shape of the countdown
 is UNKNOWN — Q67.
+
+### A wooden bridge over lava burns
+
+**CONFIRMED** (owner, 2026-09-03). `WoodBridgeLifeOnLavaSeconds` is **30**, and
+the detail that made it implementable is that **the clock starts when the bridge
+is built** — not on the first footstep, and not as damage to the tile's health.
+The variable's name fits all three readings equally well; only an observation
+picks one.
+
+Implemented as a countdown of its own (`TileState.BurnTicksRemaining`,
+`BridgeBurnSystem`) rather than as health decay, because health is already what
+a rival attacking the bridge reduces, and a wooden bridge over **water** has
+identical health and never burns.
+
+**Which bridge burns is read from the room type**, and it is the only rule in the
+bridge code that names one. DK2's own variable names it — `WoodBridge…` — and the
+terrain table genuinely cannot help: Wooden Bridge and Stone Bridge carry
+identical flags and identical health, and neither carries `Decay`. Asserted
+against the install both ways.
+
+**The larger half is confirmed and not implemented.** Everything on the tile
+falls into the lava; a dead body disappears; a living creature burns until it
+gets out or its health reaches zero; some creatures are immune. None of that is
+here because **creature health does not exist**, and lava's harm is not a bridge
+rule in any case — it is `TerrainDef.Damage` at 100 a second, the same field that
+makes a Hero Lair heal at −67, so it belongs with creature health and terrain
+damage generally.
+
+**The immunity was already in the data and it extends the owner's list.**
+`CanWalkOnLava` falls on exactly **seven** creatures: the Salamander and Giant
+they named, the two unique variants, plus Firefly, Fairy and Horny. Two fliers
+and the Horned Reaper is exactly the set one would guess, so it corroborates a
+partial list rather than contradicting it. The **Imp is not immune**, which is
+what makes a cheap wooden bridge a real trap.
+
+A creature caught on a burning bridge is unharmed here but **not stranded**: the
+pathfinder enters a mover's starting tile without testing walkability, so it can
+walk out of the lava. That rule predates anything that could turn the ground
+under a creature impassable, and this is its first real cause.
+
+**What happens to gold on the tile is UNKNOWN and not worth an observation yet** —
+a pile is an OBJECT (M6), so the answer could not be modelled either way. Q67.

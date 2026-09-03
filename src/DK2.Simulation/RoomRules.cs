@@ -167,7 +167,13 @@ public static class RoomRules
         // file carries this byte for bridges it shipped with; a bridge a player
         // builds has to write its own. See BridgeRules.
         if (BridgeRules.IsBridge(room) && (covered.IsWater || covered.IsLava))
+        {
             tile.Flags = BridgeRules.MarkerFor(covered);
+
+            // And a wooden one over lava starts burning the moment it is laid
+            // (Q67, CONFIRMED: the clock starts at build).
+            tile.BurnTicksRemaining = BridgeRules.LifetimeTicks(database, room, covered);
+        }
 
         tile.TerrainId = room.TerrainId;
         tile.Health = terrain.StartingHealth;
@@ -270,6 +276,7 @@ public static class RoomRules
         tile.Health = next.StartingHealth;
         tile.UpwardWork = 0;
         tile.WorkRemainder = 0;
+        tile.BurnTicksRemaining = 0;
         if (!next.IsTaggable) tile.TaggedBy = 0;
 
         // The owner byte is deliberately left alone even when the tile reverts to

@@ -1272,3 +1272,89 @@ what each tile **borders** is what made the partition visible.
   implemented: the *shape* of the countdown is UNKNOWN.
 - The test fixture gained a Lava terrain, because a fixture with one hazard
   cannot tell a correct revert from a lucky one.
+
+---
+
+## ADR-0032 — A wooden bridge over lava burns, and the clock starts when it is built
+
+**Date.** 2026-09-03. **Status.** Accepted. **Answers** the tile half of Q67.
+
+**Context.** `WoodBridgeLifeOnLavaSeconds` is 30 in the balance table — a
+variable that names its own mechanic and that nothing in this project read.
+ADR-0031 made it implementable for the first time by establishing which bridges
+are over lava; before that, a bridge tile's terrain said "Wooden Bridge" and its
+destroyed type said "Claimed Path", neither of which mentions the hazard.
+
+What was still missing was the **shape**. The variable's name fits three readings
+equally well: the clock runs from the build, from the first footstep, or as
+damage to the tile's health. The owner settled it (2026-09-03): **the clock
+starts when the bridge is built.**
+
+**Decision.** A countdown of its own — `TileState.BurnTicksRemaining`, set by
+`RoomRules.Place`, spent by `BridgeBurnSystem`, and cleared by every path that
+takes the tile away.
+
+**Not health decay**, and the reason is not tidiness. `TileState.Health` is
+already what a rival attacking the bridge reduces, and a wooden bridge over
+**water** carries exactly the same 2000 health and never burns. Modelling fire as
+health would make combat damage and fire the same quantity, which they are not.
+
+**Which bridge burns is read from the room type**, and this is the one rule in
+the bridge code that names one. The justification is that **DK2's own variable
+names it** — `WoodBridge…` — and the terrain table cannot help: Wooden Bridge and
+Stone Bridge carry *identical* flags (0x30000034) and identical health, and
+neither carries `TerrainFlags.Decay`. Asserted against the install, so a data set
+where they diverged would say so. Reading the room's identity here is following
+the data rather than working around it.
+
+**What is CONFIRMED and deliberately NOT implemented — the larger half.** The
+owner described the whole mechanic:
+
+| | |
+|---|---|
+| everything on the tile | **falls into the lava** |
+| a dead body | **disappears** |
+| a living creature | **burns until it gets out of the lava or its health reaches zero** |
+| some creatures | **immune** |
+| gold | **UNKNOWN** |
+
+None of it is built, because **creature health does not exist**:
+`CreatureState` carries only the fields a built mechanic reads, and nothing
+damages a creature. Lava's harm is not a bridge rule in any case — it is
+`TerrainDef.Damage`, 100 a second, the same field that makes a Hero Lair heal at
+−67 — so it belongs with creature health and terrain damage generally, not here.
+The tile half stands on its own and the event log says what is missing.
+
+**The immunity is already in the data, and it extends the owner's list.**
+`CanWalkOnLava` falls on exactly seven creatures: the **Salamander** and
+**Giant** they named, the two unique variants, plus **Firefly**, **Fairy** and
+**Horny**. Two fliers and the Horned Reaper is precisely the set one would guess,
+so this corroborates an admittedly partial list ("some creatures, like…") rather
+than contradicting it. Pinned in both directions — the **Imp is not immune**,
+which is what makes a cheap wooden bridge a real trap.
+
+**Gold is not worth an observation yet.** The owner offered to play a game to find
+out what happens to gold on a burning bridge. It is blocked behind objects (M6)
+either way, so we could not model the answer if we had it; better to ask when it
+matters than to spend their time now.
+
+**A creature caught on a burning bridge is unharmed here but not stranded.** The
+pathfinder enters a mover's starting tile without testing walkability, so a
+creature standing in lava can still walk out — a rule written long before
+anything existed that could turn the ground under a creature impassable, and this
+is its first real cause. Tested.
+
+**Consequences.**
+
+- `HashVersion` 8 → 9 and snapshot `FormatVersion` 8 → 9, with the pinned literal
+  updated in the same commit. First state addition since ADR-0024.
+- `BridgeBurnSystem` runs **after** `TileWorkSystem`: a bridge somebody was
+  repairing on the tick it ran out gets the repair and burns anyway, so the fire
+  is final rather than something a keeper can outrun by one tick.
+- A stone bridge over lava is permanent, which is what makes the wooden one a
+  real decision in the original — 200 a tile and temporary against 500 and
+  forever.
+- A level-authored wooden bridge over lava does not burn here, because the clock
+  is set at build and a shipped bridge has no build event. Moot in practice: the
+  campaign contains **no** wooden bridge over lava anywhere, which is presumably
+  the designers avoiding exactly this.

@@ -464,6 +464,8 @@ public class ScenarioTests
             new MiscVariable(VariableTypeId.MaxGoldPerTreasuryTile, 3000, 0, 0);
         vars.Misc[VariableTypeId.RoomSellValuePercentageOfCost] =
             new MiscVariable(VariableTypeId.RoomSellValuePercentageOfCost, 50, 0, 0);
+        vars.Misc[VariableTypeId.WoodBridgeLifeOnLavaSeconds] =
+            new MiscVariable(VariableTypeId.WoodBridgeLifeOnLavaSeconds, 30, 0, 0);
         vars.Misc[VariableTypeId.MaxGoldPerDungeonHeartTile] =
             new MiscVariable(VariableTypeId.MaxGoldPerDungeonHeartTile, 1000, 0, 0);
 

@@ -48,10 +48,13 @@ namespace DK2.Simulation;
 /// an assumption about the byte, it is the ROOMS record — neither bridge carries
 /// <c>PlaceableOnLand</c>.</para>
 ///
-/// <para><b>What this unlocks beyond selling.</b>
-/// <c>WoodBridgeLifeOnLavaSeconds</c> is 30 in the balance table: a wooden bridge
-/// over lava burns away. That rule needs to know which bridges are over lava, and
-/// until now nothing here could tell. Not implemented — see Q67.</para>
+/// <para><b>What this unlocked beyond selling.</b>
+/// <c>WoodBridgeLifeOnLavaSeconds</c> is 30: a wooden bridge over lava burns
+/// away, and that rule needs to know which bridges are over lava. Nothing here
+/// could tell before. It is implemented now as <see cref="LifetimeTicks"/> and
+/// <see cref="Systems.BridgeBurnSystem"/> — the <i>tile</i> half of it. What
+/// happens to whatever was standing on the bridge needs creature health, which
+/// does not exist yet. Q67.</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public static class BridgeRules
@@ -95,6 +98,39 @@ public static class BridgeRules
     /// </summary>
     public static byte MarkerFor(TerrainDef covered) =>
         covered.IsLava ? SpansLava : SpansWater;
+
+    /// <summary>
+    /// How long a bridge laid on this terrain lasts, in ticks, or 0 if it lasts
+    /// for ever.
+    ///
+    /// <para><b>A wooden bridge over lava burns away</b>
+    /// (<c>WoodBridgeLifeOnLavaSeconds</c> = 30). CONFIRMED by the owner
+    /// (2026-09-03), and with it the one detail that decides the shape: <b>the
+    /// clock starts when the bridge is built.</b> Not when a creature steps on
+    /// it, and not as damage to the tile's health — which rules out the two
+    /// readings that would otherwise have fitted the variable's name equally
+    /// well.</para>
+    ///
+    /// <para><b>This is the one rule here that names a room type</b>, and the
+    /// reason is that DK2's own variable names it: <c>WoodBridge…</c>. The
+    /// terrain table cannot help — Wooden Bridge and Stone Bridge carry
+    /// <i>identical</i> flags (0x30000034) and identical health, and neither
+    /// carries <see cref="TerrainFlags.Decay"/>. So the distinction exists only
+    /// as the room's identity, and reading it here is following the data rather
+    /// than working around it.</para>
+    ///
+    /// <para>A stone bridge over lava lasts for ever, which is what makes the
+    /// wooden one a real decision in the original: cheap and temporary against
+    /// 500 a tile and permanent.</para>
+    /// </summary>
+    public static int LifetimeTicks(GameDatabase database, RoomDef room, TerrainDef covered)
+    {
+        if (!covered.IsLava) return 0;
+        if (room.TypeId != RoomTypeId.WoodenBridge) return 0;
+
+        return SimulationTiming.TicksFromSeconds(
+            database[VariableTypeId.WoodBridgeLifeOnLavaSeconds]);
+    }
 
     /// <summary>
     /// What a tile becomes when whatever is on it is taken away — a bridge back

@@ -190,4 +190,170 @@ public class BridgeTests
 
         Assert.Equal(Dk2TerrainFixture.Lava, tile.TerrainId);
     }
+
+    // ---- burning (Q67) ---------------------------------------------------
+
+    /// <summary>
+    /// <b>A wooden bridge over lava burns away</b>, and the clock starts when it
+    /// is built — CONFIRMED (owner, 2026-09-03). It is the start-at-build detail
+    /// that made this implementable: the variable's name fits three readings and
+    /// only an observation picks one.
+    /// </summary>
+    [Fact]
+    public void AWoodenBridgeOverLavaBurnsAwayAfterTheTimeTheDataGives()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        var span = new TilePos(6, 6);
+        Run run = Start(Dk2TerrainFixture.Lava, span);
+        GiveHeart(run, new TilePos(1, 1), 1000);
+
+        run.Tick(BuildRoomCommand.At(Keeper, BridgeId, span));
+
+        int life = SimulationTiming.TicksFromSeconds(
+            database[VariableTypeId.WoodBridgeLifeOnLavaSeconds]);
+        Assert.True(life > 1);
+
+        // Still there just before the clock runs out...
+        for (int i = 0; i < life - 2; i++) run.Tick();
+        Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, run.World.Tile(span).TerrainId);
+
+        // ...and gone, back to the lava it spanned, once it does.
+        run.Tick();
+        run.Tick();
+        Assert.Equal(Dk2TerrainFixture.Lava, run.World.Tile(span).TerrainId);
+        Assert.Contains(run.Of("bridge_burnt"), e => e.Detail.Contains("(6,6)"));
+    }
+
+    /// <summary>
+    /// A wooden bridge over <b>water</b> lasts for ever. The variable is
+    /// <c>WoodBridgeLifeOnLava</c>Seconds, and the hazard is the whole of the
+    /// difference.
+    /// </summary>
+    [Fact]
+    public void AWoodenBridgeOverWaterNeverBurns()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        var span = new TilePos(6, 6);
+        Run run = Start(Dk2TerrainFixture.Water, span);
+        GiveHeart(run, new TilePos(1, 1), 1000);
+
+        run.Tick(BuildRoomCommand.At(Keeper, BridgeId, span));
+        Assert.Equal(0, run.World.Tile(span).BurnTicksRemaining);
+
+        int life = SimulationTiming.TicksFromSeconds(
+            database[VariableTypeId.WoodBridgeLifeOnLavaSeconds]);
+        for (int i = 0; i < life * 2; i++) run.Tick();
+
+        Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, run.World.Tile(span).TerrainId);
+        Assert.Empty(run.Of("bridge_burnt"));
+    }
+
+    /// <summary>
+    /// The clock is set at build, not on the first footstep, and it is visible in
+    /// the tile the moment the bridge lands.
+    /// </summary>
+    [Fact]
+    public void TheClockIsRunningFromTheTickTheBridgeIsBuilt()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        var span = new TilePos(6, 6);
+        Run run = Start(Dk2TerrainFixture.Lava, span);
+        GiveHeart(run, new TilePos(1, 1), 1000);
+
+        Assert.Equal(0, run.World.Tile(span).BurnTicksRemaining);
+
+        run.Tick(BuildRoomCommand.At(Keeper, BridgeId, span));
+
+        int life = SimulationTiming.TicksFromSeconds(
+            database[VariableTypeId.WoodBridgeLifeOnLavaSeconds]);
+
+        // Set on the build tick, and already one tick down because the burn
+        // system runs after the build system in the same tick.
+        Assert.InRange(run.World.Tile(span).BurnTicksRemaining, life - 1, life);
+    }
+
+    /// <summary>
+    /// Selling a burning bridge stops the clock, so a tile bridged again later
+    /// does not inherit a countdown from the bridge before it.
+    /// </summary>
+    [Fact]
+    public void SellingABurningBridgeStopsTheClock()
+    {
+        var span = new TilePos(6, 6);
+        Run run = Start(Dk2TerrainFixture.Lava, span);
+        GiveHeart(run, new TilePos(1, 1), 1000);
+
+        run.Tick(BuildRoomCommand.At(Keeper, BridgeId, span));
+        Assert.True(run.World.Tile(span).BurnTicksRemaining > 0);
+
+        run.Tick(SellRoomCommand.At(Keeper, span));
+
+        Assert.Equal(0, run.World.Tile(span).BurnTicksRemaining);
+        Assert.Equal(Dk2TerrainFixture.Lava, run.World.Tile(span).TerrainId);
+    }
+
+    /// <summary>
+    /// The rule reads a variable that names the wooden bridge, so a stone bridge
+    /// over the same lava is permanent. That is the one place the bridge rules
+    /// name a room type, and DK2's own variable name is why.
+    /// </summary>
+    [Fact]
+    public void OnlyTheWoodenBridgeBurns()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        TerrainDef lava = database.TerrainById(Dk2TerrainFixture.Lava);
+
+        Assert.True(
+            BridgeRules.LifetimeTicks(database, database.Room(RoomTypeId.WoodenBridge), lava) > 0);
+        Assert.Equal(
+            0, BridgeRules.LifetimeTicks(database, database.Room(RoomTypeId.DungeonHeart), lava));
+
+        // And nothing burns over water, whichever bridge it is.
+        TerrainDef water = database.TerrainById(Dk2TerrainFixture.Water);
+        Assert.Equal(
+            0, BridgeRules.LifetimeTicks(database, database.Room(RoomTypeId.WoodenBridge), water));
+    }
+
+    /// <summary>
+    /// A creature caught on a burning bridge is <b>unharmed here and not
+    /// stranded</b>. Unharmed is a known gap — creature health does not exist, so
+    /// the burning the owner described cannot be modelled (Q67). Not stranded is
+    /// the part that matters for correctness: the pathfinder enters a mover's
+    /// starting tile without testing walkability, so a creature standing in lava
+    /// can still walk out.
+    /// </summary>
+    [Fact]
+    public void ACreatureOnABurntBridgeCanStillLeaveTheTileItIsOn()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        var span = new TilePos(6, 6);
+        Run run = Start(Dk2TerrainFixture.Lava, span);
+        GiveHeart(run, new TilePos(1, 1), 1000);
+        run.Tick(BuildRoomCommand.At(Keeper, BridgeId, span));
+
+        // Somewhere to escape TO. The fixture's rock body surrounds (6,6), so
+        // without this the imp is encased and the test would be asserting that
+        // rock is impassable rather than anything about lava.
+        ref TileState escape = ref run.World.Tile(6, 7);
+        escape.TerrainId = Dk2TerrainFixture.DirtPath;
+        escape.Health = database.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
+
+        // Put an imp on the bridge and let it burn out from under it.
+        run.World.SpawnCreature(Dk2TerrainFixture.ImpCreatureId, Keeper, span);
+        int life = SimulationTiming.TicksFromSeconds(
+            database[VariableTypeId.WoodBridgeLifeOnLavaSeconds]);
+        for (int i = 0; i < life + 2; i++) run.Tick();
+
+        Assert.Equal(Dk2TerrainFixture.Lava, run.World.Tile(span).TerrainId);
+
+        // The imp is standing on lava it could never have walked onto, and a
+        // route out of it is still findable.
+        CreatureState imp = run.World.Creatures[0];
+        var grid = new WorldPathGrid(database, run.World, database.CreatureById(imp.CreatureTypeId));
+        Assert.False(grid.IsWalkable(span.X, span.Y));
+
+        var route = new List<TilePos>();
+        Assert.True(new Pathfinding.GridPathfinder().TryFindNearest(
+            grid, span, at => grid.IsWalkable(at.X, at.Y), route));
+    }
 }

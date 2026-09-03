@@ -103,10 +103,11 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // Bumped with HashVersion 7 -> 8 (ADR-0024): TileState gained UpwardWork,
-        // so the hash composition changed even though this fixture never does
-        // any upward work.
-        Assert.Equal(0xA66A16AE376D6CF6UL, sim.StateHash());
+        // Bumped with HashVersion 8 -> 9 (ADR-0032): TileState gained
+        // BurnTicksRemaining, so the hash composition changed even though this
+        // fixture has no bridges and nothing here ever burns. Snapshot
+        // FormatVersion went 8 -> 9 in the same commit.
+        Assert.Equal(0x4F824667CDA7EF25UL, sim.StateHash());
     }
 
     [Fact]

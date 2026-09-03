@@ -554,6 +554,9 @@ public static class TileWorkRules
         // tile becomes starts its own upward job from nothing.
         tile.UpwardWork = 0;
         tile.WorkRemainder = 0;
+
+        // Whatever was burning is not this tile any more (Q67).
+        tile.BurnTicksRemaining = 0;
         if (!next.IsTaggable) tile.TaggedBy = 0;
 
         if (takeOwnership && next.IsOwnable) tile.OwnerPlayerId = playerId;
