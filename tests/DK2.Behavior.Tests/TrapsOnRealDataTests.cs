@@ -33,6 +33,21 @@ public class TrapsOnRealDataTests
     /// <b>CONFIRMED against five independent measurements</b> taken in the
     /// original by the owner (2026-08-30): Spike 5, Sentry 5, Fireburst 10,
     /// Freeze 10, Lightning 25 — five anchors across three distinct values.
+    ///
+    /// <para><b>And now confirmed a second way, from the other direction</b>
+    /// (2026-09-03). OpenKeeper parses this record in full, and its field order
+    /// puts <c>manaUsage</c> — an unsigned short — at exactly <b>0x0202</b>, with
+    /// a record size of 516 to match. Its own offset comments elsewhere in the
+    /// same reader act as checkpoints on that arithmetic. The offset here was
+    /// found by scanning for a measured value; the name and width came from a
+    /// source that never saw our measurements. See
+    /// docs/research/external-resources.md.</para>
+    ///
+    /// <para><b>It also drew a distinction we had missed.</b> A trap has <i>two</i>
+    /// mana fields: this standing <c>manaUsage</c>, and a separate 4-byte
+    /// <c>manaCostToFire</c> at 0x01D4 — what one shot costs. The owner measured a
+    /// standing upkeep that rose as traps were built, which is this one. Nothing
+    /// reads the per-shot cost yet.</para>
     /// </summary>
     private const int OffsetManaUpkeepPerSecond = 0x0202;
 

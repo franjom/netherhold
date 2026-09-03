@@ -242,7 +242,7 @@ to miss.
 | `tests/DK2.Behavior.Tests/KeeperSpellsOnRealDataTests.cs` | Makes both unparsed-record offsets earn their place: 13 plausible costs, and an upkeep column that is non-zero for exactly the five spells whose result persists. |
 | `scenarios/imps/a_keeper_never_runs_out_of_imps.yaml` | The imp economy end to end on a campaign map. |
 | `docs/research/imps-and-mana.md` | Imps, the Create Imp price, and **the mana drain research** — the biggest open hole. |
-| `docs/research/external-resources.md` | **The licence boundary, once.** OpenKeeper is GPLv3 and this is MIT: facts with provenance, never code. Plus the seven Resources links, which resolve, and when each is worth reading. |
+| `docs/research/external-resources.md` | **The licence boundary, once**, plus two worked cross-checks. OpenKeeper is GPLv3 and this is MIT: facts with provenance, never code. **It has already confirmed three scan-derived offsets and two record sizes**, and the MAP flags byte from a second direction. Read before researching anything that might be answered outside this repo. |
 | `docs/research/observation-checklist.md` | **Hand this to the owner.** Every open question a person playing DK2 can settle by looking, as experiments — and which ones playing cannot settle. |
 
 ## Running things
@@ -589,7 +589,7 @@ caught real errors so far:
   this list for the method, which is in `imps-and-mana.md` §*How this was
   established*: a scan anchored on a measured number produces a trustworthy
   negative, and a scan anchored partly on a forum post does not.
-- **Q59 is ANSWERED** (2026-08-30): a trap is a standing mana charge, and the
+- **Q59 is ANSWERED and now cross-checked** (2026-08-30, 2026-09-03): a trap is a standing mana charge, and the
   field is `Traps.kwd` offset 0x0202, confirmed against five owner measurements
   across three distinct values and pinned by `TrapsOnRealDataTests`. Not
   implemented, because a trap is an object and objects arrive at M6.

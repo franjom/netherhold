@@ -144,3 +144,65 @@ is: **the claim, the source, and the confidence.** A number from a forum post is
 a *hypothesis to confirm against the install or the running game*, never an
 anchor — that lesson cost this project a whole session on Q53, and it is lesson 3
 in `HANDOFF.md`.
+
+---
+
+## Worked example 2: the three offsets we found by scanning
+
+**2026-09-03, with the repo cloned locally.** The owner's framing — *"if someone
+has already done the research and it is solid, not refutable, why wander around?
+Reference it and compare with our own findings, not copy it"* — points at exactly
+the right first target: **the three offsets this project found by scanning for a
+measured value.** Those were its shakiest data findings. OpenKeeper parses both
+records in full.
+
+**Method.** Read the field *order and widths* out of OpenKeeper's reader, compute
+cumulative offsets, and compare. Nothing was copied; what was taken is arithmetic
+over a field list, which is fact.
+
+**The arithmetic is self-validating.** `readArtResource` consumes 64 + 4 + 12 + 4 =
+**84** bytes, and OpenKeeper's own scattered offset comments then act as
+checkpoints on the running total:
+
+| their comment | our computed offset | agrees |
+|---|---|---|
+| `xc8` | 0x00C8 | ✓ |
+| `// e0` | 0x00E0 | ✓ |
+| `// ee` | 0x00EE | ✓ |
+| `// 120` | 0x0120 | ✓ |
+| `// 174` | 0x0174 | ✓ |
+
+Five checkpoints land exactly, so the layout is certainly right — and therefore so
+is everything derived from it:
+
+| ours | theirs | verdict |
+|---|---|---|
+| `KwdKeeperSpells.OffsetManaUpkeepPerSecond` **0xE2**, u16 | `manaDrain`, `readUnsignedShort` at **0xE2** | **confirmed, and named** |
+| `KwdKeeperSpells.OffsetManaCost` **0x11C**, s32 | `manaCost`, `readInteger` (signed) at **0x11C** | **confirmed, including the signedness** |
+| KEEPERSPELLS record size **406** (derived from contentSize / itemCount) | field list totals **406** | **confirmed** |
+| `TrapsOnRealDataTests` trap upkeep **0x0202**, u16 | `manaUsage`, `readUnsignedShort` at **0x0202** | **confirmed, and named** |
+| TRAPS record size — we never derived one | field list totals **516** | new |
+
+**The signedness agreement is the pleasing part.** We read `manaCost` as signed
+32-bit for one reason: Summon Horny's 100000 overflows a u16. They declare it
+`int` and read it signed. Two routes, same width, same reason.
+
+**And it drew a distinction we had missed.** A trap carries **two** mana fields:
+the standing `manaUsage` at 0x0202, and a separate 4-byte **`manaCostToFire`** at
+0x01D4 — what one shot costs. The owner's Q59 measurement was of a standing
+upkeep that rose as traps were built, so it is the first; the per-shot cost is a
+field nothing here reads yet, and it is not something the measurement could have
+told us apart.
+
+**What this cost and what it bought.** Ten minutes, and it upgraded three
+scan-derived offsets from "believable, with a long note explaining why" to
+"confirmed from an independent direction, with the original field names". That is
+the best value-per-minute of any research this project has done, and it is a
+direct argument for doing the same sweep across the other record types before
+parsing them at M6.
+
+**What it did not do**, and this is the honest half: it confirmed *where* the
+fields are, not *what the numbers mean*. `manaDrain` being 7 for Create Imp still
+needed the owner watching an orb go from −28 to −35, and `manaUsage` being a
+standing charge still needed five trap measurements across three values. Static
+reversal locates fields; only the running game says what they do.

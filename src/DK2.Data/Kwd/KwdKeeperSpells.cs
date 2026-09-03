@@ -42,9 +42,17 @@ public static class KwdKeeperSpells
     private const int RecordSize = 406;
 
     /// <summary>Mana per second the spell's result costs while it exists.</summary>
+    // OpenKeeper calls this field `manaDrain` and reads it as an unsigned
+    // short at exactly this offset (2026-09-03 cross-check; its own `e0` and
+    // `ee` offset comments bracket it, so the arithmetic is self-checking).
+    // Found here by scanning for a measured 7; named there. Independent.
     private const int OffsetManaUpkeepPerSecond = 0xE2;
 
     /// <summary>Mana to cast, once. 32-bit: Summon Horny's 100000 overflows a ushort.</summary>
+    // OpenKeeper calls this `manaCost` and reads it as a SIGNED 32-bit integer
+    // at exactly this offset, with `bonusIcon` at 0x120 immediately after it as
+    // the checkpoint. We chose s32 independently, because Summon Horny's 100000
+    // overflows a u16 - and arrived at the same width for the same reason.
     private const int OffsetManaCost = 0x11C;
 
     public static List<KeeperSpellDef> Parse(IEnumerable<KwdChunk> chunks)
