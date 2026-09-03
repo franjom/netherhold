@@ -1601,3 +1601,57 @@ any Unity code written here could not be compiled, let alone run, and this
 project does not commit code it has not built. What is done is everything the
 Unity view needs to be thin: the boundary, the asset layer, and a working second
 renderer proving both.
+
+---
+
+## ADR-0036 — Unity 6 LTS, and the adapter is six methods
+
+**Status.** Accepted (version choice) / Pending an install (the adapter).
+**Date.** 2026-09-04.
+
+`DK2_REIMPLEMENTATION_PLAN.md` §11 says *"Unity version: latest LTS; decide at
+M3, not now — nothing before M3 needs Unity"*. It is M3 and the presentation
+boundary is built, so the decision is due.
+
+**The version.** **Unity 6 LTS**, `6000.6.0f1`, which is what
+`winget install --source winget --id Unity.Unity.6000` installs. The previous LTS
+(2022.3.62f3) is also available and is the fallback if Unity 6 turns out to
+misbehave; nothing in this project depends on a Unity 6 feature, because nothing
+in this project depends on Unity at all.
+
+**Why the version barely matters, which is the point of ADR-0002.** Every
+assembly Unity will load targets `netstandard2.1`, enforced by
+`Directory.Build.props` since M1 and by `ArchitectureTests`. Both LTS lines
+support that profile, so the choice is about tooling comfort rather than
+compatibility, and switching it later is a Hub download rather than a port.
+
+**What is NOT decided here, and cannot be.** The Unity project itself does not
+exist. Unity is not installed on the development machine, and **this project does
+not commit code it has not compiled** — a rule worth more here than anywhere
+else, since a plausible-looking `MonoBehaviour` that does not build is exactly
+the kind of thing that sits in a repository for months looking finished.
+
+**What was done instead, and it is most of the work** (ADR-0035, extended):
+`ScenePresenter` and `IRenderTarget`. The presenter owns every decision a
+renderer could get wrong — what counts as a visible change, what order things
+are pushed in, which asset key each thing needs, create versus update versus
+remove — and is tested against a real campaign level. `IRenderTarget` is six
+methods with no logic in them: make a tile, update a tile, make a creature,
+update a creature, forget a creature, flush.
+
+So the remaining Unity work is *one class implementing six methods*, and the
+things it must not do are already impossible: it never sees a `WorldState`, it
+never resolves an asset, it never decides an order, and it gets positions in
+`Fp32` tile units so the conversion has to happen on its side (ADR-0001).
+
+**Two properties that shrink the risk further, both now tested:**
+
+- **Presenting an unchanged world pushes nothing.** A target that rebuilt 3,721
+  tile objects a frame would be unusable; over 60 ticks of a running campaign
+  level the presenter pushes well under a tenth of that.
+- **Presenting never changes the world.** Asserted per tick over a run, using
+  the same state hash the determinism gate uses.
+
+**Consequence for whoever writes the adapter:** read `TextRenderer` first. It is
+the same job against a character grid, it runs in CI, and a disagreement between
+the two is a bug in one of them rather than a matter of taste.

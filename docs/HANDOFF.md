@@ -12,9 +12,9 @@ Update this whenever a session ends or context is compacted.
 carrier, where imps come from, the asset layer and the presentation boundary:
 complete. M3 as a whole: partial — there is still no Unity view.** M2 and the
 five record types M1 needed are done, and **every** record type's on-disk size is
-now known and pinned. **471 tests green** with and without a DK2
+now known and pinned. **480 tests green** with and without a DK2
 install; ten scenarios run, each now drawing a picture of its finished world;
-clean tree. (Core 14, Simulation 250, Data 55, Behavior 77, Assets 58, Presentation 17.)
+clean tree. (Core 14, Simulation 250, Data 55, Behavior 77, Assets 58, Presentation 26.)
 
 > ### The asset layer and the presentation boundary landed 2026-09-04 (ADR-0034, ADR-0035)
 >
@@ -31,9 +31,26 @@ clean tree. (Core 14, Simulation 250, Data 55, Behavior 77, Assets 58, Presentat
 >
 > **There is no Unity project, and that is not an oversight.** Unity is not
 > installed on this machine, so Unity code written here could not be compiled or
-> run, and this project does not commit code it has not built. What is left is an
-> adapter — subscribe to a `WorldView`, turn a `ResolvedAsset` into a
-> `GameObject`, convert `Fp32` to `float`. Small, and genuinely not done.
+> run, and this project does not commit code it has not built.
+>
+> **The version is decided: Unity 6 LTS, `6000.6.0f1`** (ADR-0036) — the plan
+> deferred that choice to M3 and it is M3. Installed with
+> `winget install --source winget --id Unity.UnityHub` then
+> `winget install --source winget --id Unity.Unity.6000`, plus one sign-in for
+> activation. **Installation and activation are the owner's** — the first accepts
+> a proprietary licence and the second needs their account, so neither is an
+> assistant's to do. 2022.3 LTS is the fallback and nothing here depends on
+> either, because nothing here depends on Unity.
+>
+> **What is left is one class implementing six methods.** `ScenePresenter` and
+> `IRenderTarget` (also ADR-0035) took every decision a renderer could get wrong
+> out of the adapter and put it under test: what counts as a visible change, what
+> order things are pushed in, which asset key each thing needs, and create versus
+> update versus remove. Two properties are pinned against a running campaign
+> level — **presenting an unchanged world pushes nothing** (60 ticks push under a
+> tenth of a whole-world redraw) and **presenting never changes the world**
+> (state hash, per tick). The adapter never sees a `WorldState`, never resolves
+> an asset and never picks an order, so the ways it can be wrong are nearly gone.
 >
 > **Three things went wrong on the way, and all three are worth keeping:**
 >
@@ -315,6 +332,8 @@ to miss.
 | `src/DK2.Assets/AssetCatalogue.cs` | Every key the database implies — what a converter must produce, and what makes the placeholder's totality testable. Claims only what the game asks for. |
 | `src/DK2.Presentation/WorldView.cs` | **The one** place world state becomes something drawable. Every renderer consumes this; two renderers disagreeing here would look like a simulation bug. |
 | `src/DK2.Presentation/TextRenderer.cs` | The second presentation mode, and the one that runs in CI. Read it before writing the Unity adapter — same job, character grid. |
+| `src/DK2.Presentation/IRenderTarget.cs` | **The Unity seam.** Six methods, no logic. Deliberately small because it is the one thing that cannot be compiled here. |
+| `src/DK2.Presentation/ScenePresenter.cs` | Diffs the world and pushes only what changed, in a fixed order. **Everything the adapter would otherwise have to get right, tested here instead.** |
 | `docs/research/wall-rendering.md` | How DK2 actually draws walls (Simon Schreibt, verified vs inferred separated). Corroborated `HealthPermille`, refuted one-mesh-per-terrain, and produced Q71/Q72. Rendering only — **no rule may depend on it**. |
 | `docs/research/external-resources.md` | **The licence boundary, once**, plus four worked cross-checks. OpenKeeper is GPLv3 and this is MIT: facts with provenance, never code. **It has confirmed three scan-derived offsets and every record type's size** (eight of them new, each to the byte), the MAP flags byte from a second direction, and one place where its own layout is incomplete (Q70). Read before researching anything that might be answered outside this repo. |
 | `docs/research/observation-checklist.md` | **Hand this to the owner.** Every open question a person playing DK2 can settle by looking, as experiments — and which ones playing cannot settle. |
@@ -361,23 +380,31 @@ it is worth doing:
    the field-by-field layouts, and it belongs with the mechanic that needs
    them** - M6 can now start parsing without deriving a single stride first.
 
-2. **Unity presentation — the boundary and the asset layer are DONE (2026-09-04,
-   ADR-0034/0035); what is left is the Unity adapter itself.** Gap 3 is closed:
-   `DK2.Assets` and `DK2.Presentation` exist, are tested, and the game renders as
-   boxes with no DK2 install. **The remaining work is small and specific:** a
-   Unity project holding one component that owns a `GameSimulation`, calls
-   `Tick`, walks `WorldView.Tiles` / `.Creatures`, resolves each `AssetRef`
-   through an `AssetProviderChain`, and turns a `ResolvedAsset` into a
-   `GameObject` — instantiating a file when `FilePath` is set and a coloured
-   primitive from `PlaceholderLook` when it is not. Positions are `Fp32` tile
-   units: divide by `Fp32.One`, and **do the conversion in Unity, never in the
-   simulation** (ADR-0001).
+2. **Unity presentation — everything but the adapter is DONE (2026-09-04,
+   ADR-0034/0035/0036).** Gap 3 is closed: `DK2.Assets` and `DK2.Presentation`
+   exist, are tested, and the game renders as boxes with no DK2 install.
 
-   **Blocked on one thing only: Unity is not installed on this machine.** Nothing
-   Unity-shaped can be compiled or run here, and this project does not commit
-   code it has not built. Read `TextRenderer` first when the adapter is written —
-   it is the same job against a character grid, it runs in CI, and any
-   disagreement between the two is a bug in one of them.
+   **What is left is one class implementing `IRenderTarget`'s six methods:**
+   create/update a tile, create/update/remove a creature, flush. It receives a
+   `TileView` or `CreatureView` and already-resolved `ResolvedAsset`s, so it
+   instantiates the file when `FilePath` is set and a coloured primitive from
+   `PlaceholderLook` when it is not — and **that branch is the whole of its
+   judgement**. Around it: a `MonoBehaviour` owning a `GameSimulation`, calling
+   `Tick`, then `ScenePresenter.Present(world)`. Positions arrive in `Fp32` tile
+   units; divide by `Fp32.One` **in Unity, never in the simulation** (ADR-0001).
+
+   **Blocked on one thing: Unity must be installed and activated, and that is
+   the owner's to do** — installing accepts a proprietary licence and activation
+   needs their account. Version decided: **Unity 6 LTS `6000.6.0f1`**, via
+   `winget install --source winget --id Unity.UnityHub` and
+   `winget install --source winget --id Unity.Unity.6000` (ADR-0036).
+
+   **Read `TextRenderer` before writing the adapter.** It is the same job against
+   a character grid, it runs in CI, and a disagreement between the two is a bug
+   in one of them rather than a matter of taste. Note the two are deliberately
+   opposite strategies — the text renderer redraws everything because a character
+   grid is free, the presenter diffs because instantiating is not — and having
+   both is what proves the boundary assumes neither.
 
 3. **What rooms actually do.** Room instances exist now (ADR-0027), so the
    machinery is finally there: `RoomInstance` gives a room its tile count, its
@@ -780,8 +807,8 @@ Six sittings of owner measurements and ten ADRs - one of which needed no
 measurement at all, and one of which needed no new data either, only a look at
 the dump we already had. The state:
 
-**471 tests green** with and without a DK2 install (Core 14, Simulation 250,
-Data 55, Behavior 77, Assets 58, Presentation 17), ten scenarios running, clean
+**480 tests green** with and without a DK2 install (Core 14, Simulation 250,
+Data 55, Behavior 77, Assets 58, Presentation 26), ten scenarios running, clean
 tree.
 
 **Every known defect is fixed, and the room economy now runs both ways.** In the
@@ -806,6 +833,7 @@ order they fell:
 | ADR-0033 | Q68 — a rival claims your ground directly, and hostile expansion falls out |
 | ADR-0034 | An asset is named by a logical key, and a provider chain resolves it |
 | ADR-0035 | Rendering goes through one view, and the harness draws it as text |
+| ADR-0036 | Unity 6 LTS, and the adapter is six methods |
 
 **Nothing is left on that list**, which is why the pick-up list above now starts
 with the Unity view.
