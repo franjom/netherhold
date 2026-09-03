@@ -10,8 +10,8 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
-five record types M1 needed are done. **376 tests green** with and without a DK2
-install; ten scenarios run; clean tree. (Core 14, Simulation 244, Data 41, Behavior 77.)
+five record types M1 needed are done. **378 tests green** with and without a DK2
+install; ten scenarios run; clean tree. (Core 14, Simulation 246, Data 41, Behavior 77.)
 
 > ### ⚠ Read this first: five sittings of owner answers, 2026-08-29 to 09-03
 >
@@ -286,6 +286,19 @@ it is worth doing:
    own research note — none can be guessed from the ROOMS record, which carries
    art, size and cost and nothing about behaviour.
 
+**A rival takes a bridge by claiming it, not by beating it down** (Q68,
+CONFIRMED). Worth reading for the method rather than the mechanic: **both halves
+of the owner's sentence were rules this project already had**, arrived at from
+unrelated evidence. "Jumping on it" is `WorkStance`'s on-the-tile stance, which
+falls out of "standable while working and standable when the job finishes" - a
+bridge is walkable and stays a bridge, and nobody had considered bridges when
+that rule was written. "Adjacent to their keeper's territory" is the ownership
+condition on the claimed tile's neighbour (Q42). Two derived rules predicting an
+observation neither was built from is the best evidence either has had. What is
+missing is not bridge-specific: `Claim` takes only unowned ground, so **hostile
+expansion is unbuilt in general** - no imp ever chooses `AttackTile` and
+`JobPriority` has no entry for taking enemy ground.
+
 **A wooden bridge over lava burns away, and the tile half is built** (Q67,
 ADR-0032). The owner answered the shape the same day it was asked: the clock
 starts at the build, everything on the tile falls into the lava, a dead body
@@ -313,9 +326,11 @@ seconds** for one tile (Q22) and that is untested and a long time; a **3x5
 temple** is the only shape that can tell Q60's rim rule from a rule keyed on one
 dimension, since all three measurements so far were squares; and a **5x5
 graveyard's stated capacity** - 8 or 9 - would settle its grave rule in one look,
-with a **4x4** as the fallback; and **Q66**, whether a tile touching owned ground
-only at a corner is claimable, which became a live question the moment movement
-went eight-connected. **Q48 came off this list on 2026-09-03**: the
+with a **4x4** as the fallback; **Q66**, whether a tile touching owned ground only
+at a corner is claimable, which became a live question the moment movement went
+eight-connected; and **Q68**, whether a rival imp taking one of your tiles turns
+it neutral in between or flips it straight to their colour - one tile, one look,
+no timing. **Q48 came off this list on 2026-09-03**: the
 owner watched a creature cross open ground and it glides rather than
 staircasing.
 
@@ -549,7 +564,7 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 71 (Q1-Q67; Q51 superseded). The ones that gate progress:
+`docs/research/open-questions.md` holds all 72 (Q1-Q68; Q51 superseded). The ones that gate progress:
 
 - **Q53 is ANSWERED and built** (2026-08-30): 7 mana a second per imp, measured
   by the owner and read off DK2's own Create Imp spell record (ADR-0022). Left in
@@ -626,7 +641,7 @@ Six sittings of owner measurements and nine ADRs - one of which needed no
 measurement at all, and one of which needed no new data either, only a look at
 the dump we already had. The state:
 
-**376 tests green** with and without a DK2 install (Core 14, Simulation 244,
+**378 tests green** with and without a DK2 install (Core 14, Simulation 246,
 Data 41, Behavior 77), ten scenarios running, clean tree.
 
 **Every known defect is fixed, and the room economy now runs both ways.** In the

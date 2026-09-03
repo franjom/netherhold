@@ -592,3 +592,30 @@ up one room.
 one of its corners — no orthogonal route of owned floor to it. Then leave an imp
 with nothing else to do and see whether it claims the diagonal tile or ignores it.
 The same question applies to reinforcing, and one answer probably covers both.
+
+### Q68 — does a rival's imp take a tile in one step or two? — **the cheapest one left**
+
+You told me (2026-09-03) that a bridge is only ever taken by a **rival keeper's
+imps jumping on it and claiming it**, adjacent to their own territory. Both halves
+of that were already rules here, arrived at from other evidence — which is the
+strongest confirmation either has had, and there is nothing to ask about them.
+
+**What is still open is the step count**, and it applies to all of a keeper's
+ground rather than to bridges:
+
+- **one step** — the rival imp claims your tile directly, and it flips from your
+  colour to theirs;
+- **two steps** — it damages the tile to neutral first (`AttackTileHealth` = −140),
+  and then claims the neutral tile (`ClaimTileHealth` = 825).
+
+Ours is the two-step reading, and the data is genuinely ambiguous: there is one
+claim rate and one attack rate and **no** "claim enemy tile" rate — but a **mana
+vault** gets dedicated neutral *and* enemy claim rates (4 and 20), so DK2 clearly
+does direct enemy-claiming for at least one thing.
+
+**The experiment:** let a rival imp take one tile of your claimed floor and watch
+that single tile. **Does it go grey or neutral in between, or flip straight from
+your colour to theirs?** One tile, one look, no timing.
+
+Nothing waits on the answer — hostile expansion is unbuilt and unscheduled — so
+this is for whenever you happen to be in a skirmish.

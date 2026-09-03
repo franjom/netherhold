@@ -169,12 +169,22 @@ public class BridgeTests
     // ---- destruction and selling agree ----------------------------------
 
     /// <summary>
-    /// A bridge beaten down by a rival leaves the same hazard selling it does.
-    /// The two used to go through the destroyed-type field separately, and both
-    /// were wrong the same way; there is one rule now.
+    /// <b>Whatever removes a bridge tile leaves the hazard</b> — asserted through
+    /// the rules rather than through a mechanic, because the original has no
+    /// mechanic that does this.
+    ///
+    /// <para>The owner (2026-09-03): a bridge can only be "attacked" by a rival
+    /// keeper's imps, who <i>claim</i> it rather than beat it down. So this is not
+    /// a test that DK2 destroys bridges by damage — it does not (Q68). It is a
+    /// test that the destroyed path and the selling path cannot disagree, since
+    /// both used to consult the destroyed-type field separately and both were
+    /// wrong the same way. `AttackTile` is the only work kind that will currently
+    /// take an enemy bridge tile to zero, and nothing in the simulation ever
+    /// chooses it; the injection here stands in for any future path that
+    /// might.</para>
     /// </summary>
     [Fact]
-    public void ABridgeBeatenDownLeavesTheHazardToo()
+    public void AnythingThatRemovesABridgeTileLeavesTheHazard()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         var span = new TilePos(6, 6);
@@ -182,8 +192,8 @@ public class BridgeTests
         GiveHeart(run, new TilePos(1, 1), 1000);
         run.Tick(BuildRoomCommand.At(Keeper, BridgeId, span));
 
-        // A rival attacks the tile until it falls. AttackTile applies to
-        // somebody else's non-solid ownable terrain, which a bridge is.
+        // Driven straight through the rules. Nothing in the simulation chooses
+        // AttackTile, and in the original nothing attacks a bridge at all.
         ref TileState tile = ref run.World.Tile(span);
         for (int i = 0; i < 5000 && tile.TerrainId == Dk2TerrainFixture.WoodenBridgeTerrain; i++)
             TileWorkRules.Apply(database, ref tile, TileWorkKind.AttackTile, playerId: 2);
@@ -355,5 +365,80 @@ public class BridgeTests
         var route = new List<TilePos>();
         Assert.True(new Pathfinding.GridPathfinder().TryFindNearest(
             grid, span, at => grid.IsWalkable(at.X, at.Y), route));
+    }
+
+    // ---- a rival taking a bridge (Q68) -----------------------------------
+
+    /// <summary>
+    /// <b>The derived stance rule already predicts what the owner described, for
+    /// a case it was never designed for.</b>
+    ///
+    /// <para>The owner (2026-09-03): a rival keeper's imps take a bridge by
+    /// <i>jumping on it and claiming it, if it is adjacent to their keeper's
+    /// territory</i>. Both halves of that sentence are rules this project already
+    /// has, arrived at from other evidence entirely:</para>
+    /// <list type="bullet">
+    /// <item><b>jumping on it</b> is <see cref="WorkStance"/>'s on-the-tile
+    /// stance, which falls out of "standable while working and standable when the
+    /// job finishes" — a bridge is walkable and stays a bridge, so the rule says
+    /// stand on it without anyone having considered bridges (ADR-0028);</item>
+    /// <item><b>adjacent to their territory</b> is the ownership condition on the
+    /// claimed tile's neighbour (Q42, ADR-0028).</item>
+    /// </list>
+    ///
+    /// <para>Two derived rules predicting an observation neither was built from is
+    /// the strongest evidence either has had. The gap is elsewhere — see
+    /// <see cref="ARivalCannotYetClaimABridgeBecauseClaimingRefusesOwnedGround"/>.</para>
+    /// </summary>
+    [Fact]
+    public void TheStanceRuleAlreadySaysABridgeIsClaimedByStandingOnIt()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        var span = new TilePos(6, 6);
+        Run run = Start(Dk2TerrainFixture.Water, span);
+        GiveHeart(run, new TilePos(1, 1), 1000);
+        run.Tick(BuildRoomCommand.At(Keeper, BridgeId, span));
+
+        var grid = new WorldPathGrid(
+            database, run.World, database.CreatureById(Dk2TerrainFixture.ImpCreatureId));
+
+        Assert.True(WorkStance.IsOnTheTile(
+            database, run.World, grid, span, TileWorkKind.Claim));
+    }
+
+    /// <summary>
+    /// <b>The one thing actually missing</b>, recorded as a test so it cannot be
+    /// forgotten: <see cref="TileWorkRules.Applies"/> lets `Claim` take only
+    /// <i>unowned</i> ground, so a rival's bridge is not claimable here at all.
+    ///
+    /// <para>Hostile expansion is unbuilt in general — no imp ever chooses
+    /// `AttackTile`, and `JobPriority` has no entry for taking enemy ground — so
+    /// this is one corner of a mechanic rather than a bridge bug. What rate a
+    /// rival claims at is UNKNOWN: the balance table has one `ClaimTileHealth`
+    /// and one `AttackTileHealth` and <b>no</b> `ClaimEnemyTileHealth`, while a
+    /// mana vault gets dedicated neutral and enemy claim rates (4 and 20). So DK2
+    /// does have direct enemy-claiming for at least one thing, and whether a
+    /// bridge follows that shape or the attack-then-claim one is Q68.</para>
+    /// </summary>
+    [Fact]
+    public void ARivalCannotYetClaimABridgeBecauseClaimingRefusesOwnedGround()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        var span = new TilePos(6, 6);
+        Run run = Start(Dk2TerrainFixture.Water, span);
+        GiveHeart(run, new TilePos(1, 1), 1000);
+        run.Tick(BuildRoomCommand.At(Keeper, BridgeId, span));
+
+        // Player 2's imp cannot claim player 1's bridge, because claiming demands
+        // terrain nobody owns.
+        Assert.False(TileWorkRules.Applies(
+            database, run.World.Tile(span), TileWorkKind.Claim, playerId: 2));
+
+        // Attacking it is what the rules currently allow a rival to do, and the
+        // owner says that is not what happens. Pinned so the day somebody
+        // implements hostile expansion, this reads as a decision rather than an
+        // accident.
+        Assert.True(TileWorkRules.Applies(
+            database, run.World.Tile(span), TileWorkKind.AttackTile, playerId: 2));
     }
 }

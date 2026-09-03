@@ -460,10 +460,18 @@ pond. Counting hazards nearly killed a correct reading. Asking what each tile
 the next map-data question.
 
 **One rule, one place.** `BridgeRules.RevertsTo` is the only thing that decides
-what a removed tile leaves, and both callers use it — selling, and being beaten
-down by a rival (`AttackTile` already applies to a bridge tile, since it is
-non-solid ownable terrain). Those two used to consult the destroyed-type field
-separately and were wrong in the same way.
+what a removed tile leaves, and every caller uses it: selling, burning, and the
+destroyed path. Those used to consult the destroyed-type field separately and
+were wrong in the same way.
+
+**A rival does not beat a bridge down — it claims it.** CONFIRMED (owner,
+2026-09-03): a bridge is only ever taken by a rival keeper's imps jumping on it
+and claiming it, adjacent to their own territory. Both halves of that were
+already rules here from unrelated evidence — the on-the-tile stance (ADR-0028)
+and the neighbour ownership condition (Q42) — so the observation confirms two
+derived rules on a case neither was built for. `AttackTile` still *applies* to a
+bridge tile in our rules, and nothing ever chooses it; taking enemy ground at all
+is unbuilt. Q68.
 
 **A player-built bridge writes its own marker**, since the level file speaks only
 for bridges it shipped with; selling clears it again so a tile bridged twice
