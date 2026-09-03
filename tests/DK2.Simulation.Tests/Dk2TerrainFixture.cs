@@ -25,6 +25,7 @@ internal static class Dk2TerrainFixture
     public const byte Rock = 2;
     public const byte DirtPath = 3;
     public const byte Water = 4;
+    public const byte Lava = 5;
     public const byte Gold = 6;
     public const byte Gems = 7;
     public const byte ClaimedPath = 8;
@@ -46,6 +47,12 @@ internal static class Dk2TerrainFixture
               TerrainFlags.FillInable, 1, 660, ClaimedPath, DirtPath),
             T(Water, "Water",
               TerrainFlags.Impenetrable | TerrainFlags.Water, 1, 1, Water, Water, damage: 100),
+
+            // Present so the bridge rules can be tested both ways: a bridge over
+            // lava must revert to lava and one over water to water, and a
+            // fixture with only one hazard could not tell them apart (Q64).
+            T(Lava, "Lava",
+              TerrainFlags.Impenetrable | TerrainFlags.Lava, 1, 1, Lava, Lava, damage: 100),
             T(Gold, "Gold",
               TerrainFlags.Solid | TerrainFlags.Taggable, 660, 660, Gold, DirtPath, goldValue: 3000),
             T(Gems, "Gems",

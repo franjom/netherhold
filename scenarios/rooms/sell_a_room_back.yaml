@@ -21,9 +21,14 @@
 #     the keeper loses it permanently where the original would let them fetch it.
 #
 # What this run does NOT establish, and the report repeats it: how long selling
-# takes (in DK2 an imp walks over and dismantles the tile - Q24), and what
-# happens to a bridge sold over water, since every room terrain's destroyed type
-# is Claimed Path and the tile does not record what was underneath it (Q64/Q16).
+# takes, since in DK2 an imp walks over and dismantles the tile (Q24).
+#
+# Bridges are no longer among the caveats. A sold bridge reverts to the water or
+# lava it spanned (CONFIRMED, owner), which the terrain table cannot say on its
+# own - and the MAP record's third byte per tile turns out to mark which
+# (Q64, ADR-0031). See BridgeTests and BridgesOnRealDataTests; this scenario
+# stays on land because the bridge case is covered there against all 66 shipped
+# maps rather than against one synthetic pond.
 id: rooms-sell-a-room-back-001
 question: >
   Does selling a room return half its cost per tile into the keeper's own store,

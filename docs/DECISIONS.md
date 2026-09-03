@@ -1188,3 +1188,87 @@ what is implemented, matching the way work spreads (Q27). New as Q66.
 - `ImpCrowding`'s note about the balance table having no crowding limit for
   workers now covers two numbers rather than one; neither is in any file we read.
 - No new state, so **no `HashVersion` bump**.
+
+---
+
+## ADR-0031 — A bridge reverts to the hazard it spanned, and the MAP record says which
+
+**Date.** 2026-09-03. **Status.** Accepted. **Answers** Q64, and the bridge half
+of Q16.
+
+**Context.** ADR-0029 took a sold room's tile back to its terrain's own
+`DestroyedTypeTerrainId`. That is Claimed Path for **every** room terrain in the
+shipped data, the two bridges included — so selling a bridge left walkable floor
+where there had been water or lava. It was recorded as Q64: known wrong,
+reproduced deliberately, with the note that the tile "does not record what was
+underneath it" and that unblocking it needed Q16.
+
+The owner then confirmed the behaviour (2026-09-03): **a sold bridge reverts to
+the water or lava it spanned.** So the hazard *is* recorded somewhere.
+
+**Decision.** It is recorded in a byte the project had been carrying since M2
+without a meaning. `TileState.Flags` — the MAP record's third byte per tile,
+commented "bridge-related; exact meaning UNKNOWN, preserved verbatim" — **marks a
+bridge over lava.**
+
+The evidence, swept over all **66** shipped level maps:
+
+| | |
+|---|---|
+| the byte takes **no value but 1 or 2** anywhere in the corpus | so there is nothing else left for it to mean |
+| **2 occurs only on bridge terrain** | never on any of the other 38 terrain types |
+| every `2` bridge tile **borders lava** | across all three bridge types |
+| every `1` bridge tile that touches a hazard **borders water** | the two sets never cross |
+
+`BridgeRules` holds the reading, and `BridgesOnRealDataTests` pins all four
+claims so that a data set breaking any of them fails loudly rather than quietly
+reverting a bridge to the wrong thing.
+
+**Confidence, split.** The **behaviour** is CONFIRMED — the owner watched it. That
+**this byte** is where the original keeps it is **STRONGLY INFERRED** from a clean
+partition over 66 maps; it could be a rendering hint that happens to correlate
+perfectly. Nothing depends on being right about the original's storage, only on
+the revert being correct, and the project's brief puts internal representation
+explicitly outside what must match.
+
+**A bridge cannot be built on land**, so for a bridge tile the byte is a straight
+binary — and that is the ROOMS record rather than an assumption, since neither
+bridge carries `PlaceableOnLand`.
+
+**One rule, one place.** `BridgeRules.RevertsTo` is now the only thing that
+decides what a removed tile leaves, and both callers go through it: selling
+(`RoomRules.Unmake`) and being beaten down (`TileWorkRules.Apply`'s destroyed
+path). Those two used to consult the destroyed-type field separately and **both
+were wrong in the same way** — a rival could already attack a bridge tile, since
+`AttackTile` applies to any non-solid ownable terrain somebody else owns.
+
+**A player-built bridge writes its own marker.** The level file speaks only for
+bridges it shipped with, so `RoomRules.Place` records the hazard it is covering,
+and `Unmake` clears the marker again so a tile bridged twice cannot inherit the
+first hazard.
+
+**The near-miss worth keeping.** The first attempt at this compared each level's
+*remaining* water and lava counts against its bridges, and appeared to refute the
+reading: Furnace has bridges of both markers and, apparently, no water at all.
+That is because **a fully bridged pond leaves no water to count** — the bridge
+tiles *are* the pond. Counting hazards nearly killed a correct reading; asking
+what each tile **borders** is what made the partition visible.
+
+**Consequences.**
+
+- **No new state and no `HashVersion` bump.** The byte was already in
+  `TileState`, already hashed, already snapshotted. It went from carried to
+  understood.
+- `GameDatabase` gained `WaterTerrain` and `LavaTerrain`, found **by flag** and
+  not by id, like every other gameplay lookup here. The install has exactly one
+  of each, which is asserted.
+- The owner byte is **still not cleared** when a tile reverts to water, matching
+  `TileWorkRules`: which owner id means "nobody" is UNKNOWN (Q17), every rule that
+  cares asks `IsOwnable` first, and inventing a neutral id would be the riskier
+  move.
+- **Q67 became implementable.** `WoodBridgeLifeOnLavaSeconds` is 30 — a wooden
+  bridge over lava burns away — and that rule needs to know which bridges are over
+  lava. Nothing here could tell before; `BridgeRules.SpannedTerrain` now can. Not
+  implemented: the *shape* of the countdown is UNKNOWN.
+- The test fixture gained a Lava terrain, because a fixture with one hazard
+  cannot tell a correct revert from a lucky one.

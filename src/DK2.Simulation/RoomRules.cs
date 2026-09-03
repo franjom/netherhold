@@ -158,7 +158,16 @@ public static class RoomRules
     public static void Place(
         GameDatabase database, ref TileState tile, RoomDef room, byte playerId)
     {
+        TerrainDef covered = database.TerrainById(tile.TerrainId);
         TerrainDef terrain = database.TerrainById(room.TerrainId);
+
+        // A bridge records the hazard it is being laid over, because that is
+        // what it must revert to when it goes (Q64) and the terrain table's
+        // destroyed-type field says Claimed Path for every room alike. The level
+        // file carries this byte for bridges it shipped with; a bridge a player
+        // builds has to write its own. See BridgeRules.
+        if (BridgeRules.IsBridge(room) && (covered.IsWater || covered.IsLava))
+            tile.Flags = BridgeRules.MarkerFor(covered);
 
         tile.TerrainId = room.TerrainId;
         tile.Health = terrain.StartingHealth;
@@ -254,14 +263,24 @@ public static class RoomRules
     /// </summary>
     public static int Unmake(GameDatabase database, ref TileState tile)
     {
-        TerrainDef terrain = database.TerrainById(tile.TerrainId);
-        TerrainDef next = database.TerrainById(terrain.DestroyedTypeTerrainId);
+        byte revertsTo = BridgeRules.RevertsTo(database, tile);
+        TerrainDef next = database.TerrainById(revertsTo);
 
-        tile.TerrainId = terrain.DestroyedTypeTerrainId;
+        tile.TerrainId = revertsTo;
         tile.Health = next.StartingHealth;
         tile.UpwardWork = 0;
         tile.WorkRemainder = 0;
         if (!next.IsTaggable) tile.TaggedBy = 0;
+
+        // The owner byte is deliberately left alone even when the tile reverts to
+        // water, for the same reason TileWorkRules never clears it: which owner
+        // id means "nobody" is UNKNOWN (Q17), and every rule that cares asks
+        // TerrainDef.IsOwnable first, so a stale byte on unownable terrain is
+        // inert. Inventing a neutral id here would be the riskier choice.
+        //
+        // The bridge marker does go back to its default, because the bridge that
+        // recorded which hazard this was no longer exists.
+        tile.Flags = BridgeRules.SpansWater;
 
         int displaced = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));
         tile.GoldHeld -= displaced;

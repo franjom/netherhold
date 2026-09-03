@@ -10,15 +10,15 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
-five record types M1 needed are done. **356 tests green** with and without a DK2
-install; ten scenarios run; clean tree. (Core 14, Simulation 230, Data 41, Behavior 71.)
+five record types M1 needed are done. **368 tests green** with and without a DK2
+install; ten scenarios run; clean tree. (Core 14, Simulation 238, Data 41, Behavior 75.)
 
 > ### ⚠ Read this first: five sittings of owner answers, 2026-08-29 to 09-03
 >
 > From playing the original, the owner has supplied answers to **Q7, Q9, Q12,
 > Q20, Q21, Q24, Q25, Q26, Q27, Q28, Q30, Q31, Q32, Q33, Q34, Q36, Q37, Q37a,
 > Q37b, Q38, Q40, Q42, Q43, Q44, Q45, Q46, Q47, Q48, Q49, Q52, Q53, Q54, Q58,
-> Q59, Q60, Q62, Q63, Q66** plus the one-dungeon-heart rule, the four-imp floor and the Create
+> Q59, Q60, Q62, Q63, Q64, Q66** plus the one-dungeon-heart rule, the four-imp floor and the Create
 > Imp price. `docs/research/open-questions.md` has every one;
 > `docs/research/observation-checklist.md` is the file to hand back for more.
 >
@@ -46,7 +46,7 @@ install; ten scenarios run; clean tree. (Core 14, Simulation 230, Data 41, Behav
 > from two physical clauses instead of listing it per work kind. See the fourth
 > lesson below.
 >
-> **Six lessons from these sittings, in order of how much they cost to learn:**
+> **Seven lessons from these sittings, in order of how much they cost to learn:**
 >
 > 1. **Ask for the quantity by name.** "How much gold per swing" got an answer
 >    that "how fast does mining feel" could not have.
@@ -72,7 +72,14 @@ install; ten scenarios run; clean tree. (Core 14, Simulation 230, Data 41, Behav
 >    is 50, `docs/research/game-database-dump.md` said so all along, and the
 >    owner's observation matched the shipped value exactly. A number believed
 >    absent sends you looking for an override you do not need.
-> 6. **Some questions are cheaper to derive than to observe.** Q49 asked which of
+> 6. **Count what a tile BORDERS, not what a level contains.** The bridge
+>    marker (Q64) was nearly refuted by comparing each level's remaining water
+>    and lava counts against its bridges - Furnace carries bridges of both
+>    markers and, apparently, no water at all. The reason is that **a fully
+>    bridged pond leaves no water to count**: the bridge tiles *are* the pond.
+>    Asking what each tile borders made a clean partition over 66 maps visible
+>    immediately. Aggregate counts can hide the very thing they are counting.
+> 7. **Some questions are cheaper to derive than to observe.** Q49 asked which of
 >    four floor jobs are worked standing on the tile. Asking for four observations
 >    was the obvious move; the right one was to notice that *filling a tile in
 >    turns it to rock*, so a worker standing on it would be entombed — and that
@@ -144,6 +151,7 @@ What the simulation can do:
 | Where a worker stands to do a job | `WorkStance` | a wall is worked from beside, floor from on top of it (Q44/Q49, ADR-0028); derived from two clauses rather than listed, and both clauses are pinned by a test that fails without them |
 | Grid search behind an interface | `DK2.Pathfinding.GridPathfinder` | shortest, wall-respecting, reproducible; reused buffers proven inert |
 | Rooms: where one may go, what it costs | `RoomRules` + `BuildRoomCommand` | placement flags partition the shipped rooms; ground rules run on a campaign level |
+| What a bridge is built over | `BridgeRules` | the MAP record's third byte marks a bridge over lava (Q64/Q16, ADR-0031); the partition is swept over all 66 shipped maps, and one rule now serves both selling and destruction |
 | Selling a room back | `RoomRules.RefundPerTile` + `RoomSellSystem` | half the cost per tile, every number from the data (ADR-0029); `ReturnPercentage` is 0 for exactly the rooms a keeper cannot sell, asserted both ways against the install |
 | Gold, stored in tiles rather than on players | `GoldStore` | per-tile limits honoured; a first treasury is paid for out of the dungeon heart |
 | Mana, earned by holding land and a heart | `ManaRules` + `ManaSystem` | the three paying terrains partition the install by exhaustion; income falls when claimed floor becomes a room; a 5x5 heart is worth 30/s, not 750 |
@@ -256,7 +264,8 @@ Unity view, because every one of them is a behaviour a renderer would display
 incorrectly.
 
 **Where to pick up, 2026-09-03 (sixth sitting).** **Every known defect from the
-original list is fixed, and selling is built.** Q31 the gold carrier, Q47 the
+original list is fixed, selling is built, and Q64 - which was recorded as "known
+wrong, reproduced deliberately" the same day - is fixed too.** Q31 the gold carrier, Q47 the
 work rate, Q53 the imp mana upkeep, Q20 the dig rate, Q62 the upward-work rule,
 Q28/Q48 eight-connected movement, Q43 the crowding cap, Q52 the heart's 16000,
 Q44/Q42 the work stance and Q34 selling are all built. What is left, in the order
@@ -275,6 +284,14 @@ it is worth doing:
    hatchery, a library and the rest are still inert terrain, and each needs its
    own research note — none can be guessed from the ROOMS record, which carries
    art, size and cost and nothing about behaviour.
+
+**New and worth an owner look, since it is very visible:** a **wooden bridge over
+lava burns away** after `WoodBridgeLifeOnLavaSeconds` = 30, and that rule only
+became implementable once Q64 told us which bridges are over lava. What is
+UNKNOWN is the shape - does the clock start when the bridge is built, or run only
+while nobody stands on it, and does a creature on it fall in? The shipped
+campaign has no wooden bridge over lava anywhere, so this is a player-built case
+only (Q67).
 
 **What is banked and waiting for a milestone, not for research:** the trap mana
 upkeep (Q59, `Traps.kwd` 0x0202, pinned by a test, needs objects at M6); the four
@@ -527,7 +544,7 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 69 (Q1-Q66; Q51 superseded). The ones that gate progress:
+`docs/research/open-questions.md` holds all 71 (Q1-Q67; Q51 superseded). The ones that gate progress:
 
 - **Q53 is ANSWERED and built** (2026-08-30): 7 mana a second per imp, measured
   by the owner and read off DK2's own Create Imp spell record (ADR-0022). Left in
@@ -600,12 +617,12 @@ implementation.
 
 ## Where the project stood at the 2026-09-03 compaction
 
-Six sittings of owner measurements and seven ADRs - one of which needed no
+Six sittings of owner measurements and eight ADRs - one of which needed no
 measurement at all, and one of which needed no new data either, only a look at
 the dump we already had. The state:
 
-**356 tests green** with and without a DK2 install (Core 14, Simulation 230,
-Data 41, Behavior 71), ten scenarios running, clean tree.
+**368 tests green** with and without a DK2 install (Core 14, Simulation 238,
+Data 41, Behavior 75), ten scenarios running, clean tree.
 
 **Every known defect is fixed, and the room economy now runs both ways.** In the
 order they fell:
@@ -624,6 +641,7 @@ order they fell:
 | ADR-0028 | Q44/Q42/Q49 — floor is worked from on top of it, walls from beside |
 | ADR-0029 | Q34 — selling returns half the cost, and the data said so all along |
 | ADR-0030 | Q43 — the crowding cap follows the stance: three to a wall, one to a floor tile |
+| ADR-0031 | Q64/Q16 — a bridge reverts to the hazard it spanned, and the MAP record says which |
 
 **Nothing is left on that list**, which is why the pick-up list above now starts
 with the Unity view.
@@ -645,7 +663,7 @@ from the files, and both are meant to stay narrow:**
 
 **The research method that produced all of this is written up in three places
 and is worth reading before the next research push:** the call-out at the top of
-this file (six lessons), `docs/research/imps-and-mana.md` §*How this was
+this file (seven lessons), `docs/research/imps-and-mana.md` §*How this was
 established* (the failure and recovery in full), and
 `docs/research/observation-checklist.md` (what is still worth asking, and what
 playing cannot settle).

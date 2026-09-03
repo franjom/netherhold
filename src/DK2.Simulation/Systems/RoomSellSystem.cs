@@ -20,6 +20,11 @@ namespace DK2.Simulation.Systems;
 /// exactly when, instead of the answer depending on which order the loop
 /// happened to use.</para>
 ///
+/// <para><b>A bridge is the one sale whose outcome is not the destroyed-type
+/// field.</b> It goes back to the water or lava it spanned (Q64, CONFIRMED), and
+/// <see cref="BridgeRules"/> is what knows which; the event log names it when a
+/// sale involved one.</para>
+///
 /// <para><b>Selling is instant, and the imp that should do it is missing.</b> In
 /// DK2 an imp walks over and dismantles the tile, the same worker job that builds
 /// it (Q24). Nothing here pretends to time that. What is not in doubt is the part
@@ -81,9 +86,11 @@ public sealed class RoomSellSystem : ISimulationSystem
 
             int refund = RoomRules.RefundPerTile(context.Database, room);
 
-            // A bridge reverts to floor rather than to the water it spanned,
-            // because the tile does not record what was underneath (Q64/Q16).
-            if (room.PlaceableOnWater || room.PlaceableOnLava) bridges++;
+            // A bridge goes back to the water or lava it spanned rather than to
+            // the Claimed Path its terrain record names (Q64, BridgeRules).
+            // Counted so the run says when one was involved, because it is the
+            // only sale whose outcome is not the destroyed-type field.
+            if (BridgeRules.IsBridge(room)) bridges++;
 
             // Unmake first, then bank. The other order would let a refund land on
             // the tile being sold and spill straight back out again.
@@ -118,7 +125,7 @@ public sealed class RoomSellSystem : ISimulationSystem
         {
             context.Emit(SystemName, "bridge_sold",
                 $"player={command.PlayerId} tiles={bridges} " +
-                "note=reverts to floor, not to the water or lava it spanned (Q64)");
+                "note=reverted to the water or lava each one spanned (Q64)");
         }
     }
 

@@ -24,7 +24,22 @@ public struct TileState
     public byte TerrainId;
     public byte OwnerPlayerId;
 
-    /// <summary>MAP byte 3. Bridge-related; exact meaning UNKNOWN, preserved verbatim.</summary>
+    /// <summary>
+    /// The MAP record's third byte per tile, preserved verbatim — and, for a
+    /// bridge, <b>the hazard the bridge spans</b>: 2 for lava, 1 for water.
+    ///
+    /// <para>Carried since M2 with the meaning UNKNOWN (Q16). It was worked out
+    /// on 2026-09-03, when the owner confirmed that a sold bridge reverts to the
+    /// water or lava underneath it rather than to floor: the byte is 1 on every
+    /// tile of all 66 shipped maps except bridge tiles over lava, where it is 2,
+    /// and the two sets never cross. See <see cref="BridgeRules"/> for the
+    /// evidence and the confidence, and Q64.</para>
+    ///
+    /// <para>Written by <see cref="RoomRules.Place"/> when a player builds a
+    /// bridge, since the level file only speaks for bridges it shipped with.
+    /// Whether the byte carries other meanings on other terrain is still
+    /// UNKNOWN; nothing reads it except the bridge rules.</para>
+    /// </summary>
     public byte Flags;
 
     /// <summary>Current tile health. Seeded from the terrain type's starting health.</summary>

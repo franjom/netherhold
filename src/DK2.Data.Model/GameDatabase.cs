@@ -36,6 +36,9 @@ public sealed class GameDatabase
         RoomsByTerrain = Rooms.Values
             .GroupBy(r => r.TerrainId)
             .ToDictionary(g => g.Key, g => g.OrderBy(r => r.RoomId).First());
+
+        WaterTerrain = Terrain.Values.Where(t => t.IsWater).OrderBy(t => t.TerrainId).FirstOrDefault();
+        LavaTerrain = Terrain.Values.Where(t => t.IsLava).OrderBy(t => t.TerrainId).FirstOrDefault();
     }
 
     public IReadOnlyDictionary<byte, TerrainDef> Terrain { get; }
@@ -53,6 +56,22 @@ public sealed class GameDatabase
     public IReadOnlyDictionary<byte, RoomDef> RoomsByTerrain { get; }
     public IReadOnlyDictionary<byte, CreatureDef> Creatures { get; }
     public GlobalVariables Variables { get; }
+
+    /// <summary>
+    /// The one terrain type flagged <see cref="TerrainFlags.Water"/>, or null if
+    /// this data set has none.
+    ///
+    /// Found by flag rather than by id, for the same reason every gameplay rule
+    /// asks the flags: an id would be a fact about the reference install. The
+    /// shipped table has exactly one water and one lava type, which
+    /// <c>TerrainOnRealDataTests</c> asserts — a set with two would need a rule
+    /// nobody has evidence for, so this deliberately refuses to guess and takes
+    /// the lowest id.
+    /// </summary>
+    public TerrainDef? WaterTerrain { get; }
+
+    /// <summary>The one terrain type flagged <see cref="TerrainFlags.Lava"/>. See <see cref="WaterTerrain"/>.</summary>
+    public TerrainDef? LavaTerrain { get; }
 
     /// <summary>
     /// The keeper spells, by the name the data file gives them.

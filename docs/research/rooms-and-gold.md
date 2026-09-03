@@ -410,15 +410,66 @@ falls by exactly that much, so the *economy* of a sale is right. The pile is
 absent because a pile is an OBJECT (M6, Q31), so a keeper here loses permanently
 what a keeper there picks back up. Reported as `gold_displaced`, never hidden.
 
-**Three things are deliberately still wrong or missing:**
+**Two things are deliberately still missing:**
 
-- **Selling a bridge** reverts it to claimed floor rather than to the water or
-  lava it spanned, because every room terrain's destroyed type is Claimed Path
-  and the tile does not record what was underneath (Q64; the MAP record's byte 3
-  is bridge-related and unparsed, Q16). Not special-cased — the event says so.
 - **Selling is instant.** In DK2 an imp walks over and dismantles the tile, the
   same missing worker job as building (Q24).
 - **A pile may not hold what a treasury tile held.** `MaxGoldPerTreasuryTile` is
   3000 and `MaxGoldPileOutsideTreasury` is 2000, so selling a full tile has 1000
   more gold than a pile can take. What happens to the surplus is UNKNOWN and only
   became askable once selling existed (Q65).
+
+### Bridges: what is underneath
+
+**CONFIRMED** (owner, 2026-09-03): a sold bridge **reverts to the water or lava
+it spanned**, not to floor. The terrain table cannot say that on its own —
+`DestroyedTypeTerrainId` is Claimed Path for all 26 room terrains, bridges
+included — so the hazard is recorded per tile, and it is recorded in a byte this
+project had been carrying since M2 without a meaning.
+
+**`TileState.Flags`, the MAP record's third byte per tile, marks a bridge over
+lava.** Swept across all **66** shipped level maps:
+
+| claim | result |
+|---|---|
+| what values does the byte take? | **only 1 or 2**, anywhere in the corpus |
+| where does 2 occur? | **only on bridge terrain** — never on the other 38 types |
+| what does a `2` bridge tile border? | **lava**, every time, all three bridge types |
+| what does a `1` bridge tile border? | **water**, whenever it touches a hazard at all |
+
+The two sets never cross. `BridgeRules` holds the reading and
+`BridgesOnRealDataTests` pins every row of that table.
+
+**STRONGLY INFERRED, not CONFIRMED** — and the split matters. The *behaviour* is
+confirmed. That *this byte* is where the original keeps it is an inference from a
+clean partition, and it could in principle be a rendering hint that correlates
+perfectly. Nothing depends on being right about the original's storage, only on
+the revert being correct; the project's brief puts internal representation
+outside what has to match.
+
+A bridge cannot be built on land — neither bridge carries `PlaceableOnLand` — so
+for a bridge tile the byte is a straight binary rather than one reading among
+several.
+
+**The near-miss.** The first pass at this compared each level's *remaining* water
+and lava counts against its bridges and looked like a refutation: Furnace carries
+bridges of both markers and, apparently, no water whatsoever. The reason is that
+**a fully bridged pond leaves no water to count** — the bridge tiles *are* the
+pond. Counting hazards nearly killed a correct reading. Asking what each tile
+**borders** is what made the partition visible, and it is the lesson to carry into
+the next map-data question.
+
+**One rule, one place.** `BridgeRules.RevertsTo` is the only thing that decides
+what a removed tile leaves, and both callers use it — selling, and being beaten
+down by a rival (`AttackTile` already applies to a bridge tile, since it is
+non-solid ownable terrain). Those two used to consult the destroyed-type field
+separately and were wrong in the same way.
+
+**A player-built bridge writes its own marker**, since the level file speaks only
+for bridges it shipped with; selling clears it again so a tile bridged twice
+cannot inherit the first hazard.
+
+**What this unlocked.** `WoodBridgeLifeOnLavaSeconds` is 30: a wooden bridge over
+lava burns away. That rule needs to know which bridges are over lava and nothing
+here could tell before. Still not implemented, because the shape of the countdown
+is UNKNOWN — Q67.

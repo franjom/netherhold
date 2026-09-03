@@ -390,8 +390,14 @@ public static class TileWorkRules
                     applied, gold, 0, tile.TerrainId);
             }
 
+            // Through BridgeRules, not straight to the destroyed-type field: a
+            // bridge beaten down leaves the water or lava it spanned, and every
+            // room terrain in the data claims to leave Claimed Path (Q64). One
+            // place decides that, so selling a bridge and destroying one cannot
+            // disagree.
             int spilled = Convert(
-                database, ref tile, terrain.DestroyedTypeTerrainId, playerId, takeOwnership: false);
+                database, ref tile, BridgeRules.RevertsTo(database, tile), playerId,
+                takeOwnership: false);
             return new TileWorkResult(TileWorkOutcome.Destroyed, applied, gold, spilled, tile.TerrainId);
         }
 

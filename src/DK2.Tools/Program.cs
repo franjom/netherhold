@@ -137,6 +137,69 @@ switch (args[0])
         return 0;
     }
 
+    // Q64/Q16: the MAP record's four bytes per tile are terrainId, playerId and
+    // two we do not use. A sold bridge reverts to the water or lava it spanned
+    // (CONFIRMED, owner), so the underlying terrain has to be recorded per tile
+    // somewhere, and one of these two bytes is the obvious candidate. This
+    // cross-tabulates them against terrain so the question can be settled by
+    // looking rather than by guessing.
+    case "kwd" when args.Length >= 3 && args[1] == "mapbytes":
+    {
+        LevelMap? bytesGrid = MapGrid.Parse(KwdReader.ReadFile(ResolveEditor(args[2])));
+        if (bytesGrid is null)
+        {
+            Console.Error.WriteLine("no MAP chunk in that file");
+            return 2;
+        }
+
+        byte? only = args.Length >= 4 && byte.TryParse(args[3], out byte want) ? want : null;
+
+        // "neighbours" mode: for every tile of the wanted terrain, what is
+        // orthogonally next to it, grouped by the two unparsed bytes. This is
+        // the test for whether byte 2 records the hazard a bridge spans, since
+        // a fully bridged pond leaves no visible water to count.
+        if (args.Length >= 5 && args[4] == "neighbours" && byte.TryParse(args[3], out byte wantN))
+        {
+            var tally = new Dictionary<string, int>();
+            for (int y = 0; y < bytesGrid.Height; y++)
+            {
+                for (int x = 0; x < bytesGrid.Width; x++)
+                {
+                    MapTile t = bytesGrid[x, y];
+                    if (t.TerrainId != wantN) continue;
+
+                    int[] dx = [0, -1, 1, 0];
+                    int[] dy = [-1, 0, 0, 1];
+                    for (int i = 0; i < 4; i++)
+                    {
+                        int nx = x + dx[i], ny = y + dy[i];
+                        if (nx < 0 || ny < 0 || nx >= bytesGrid.Width || ny >= bytesGrid.Height) continue;
+                        string key = $"flags={t.Flags} neighbour={bytesGrid[nx, ny].TerrainId}";
+                        tally[key] = tally.TryGetValue(key, out int c) ? c + 1 : 1;
+                    }
+                }
+            }
+
+            foreach (var kv in tally.OrderBy(k => k.Key))
+                Console.WriteLine($"  {kv.Key,-28} {kv.Value,5}");
+            return 0;
+        }
+
+
+        Console.WriteLine($"{"terr",4} {"flags",5} {"unk",4} {"count",6}");
+        var groups = bytesGrid.Tiles
+            .Where(t => only is null || t.TerrainId == only)
+            .GroupBy(t => (t.TerrainId, t.Flags, t.Unknown))
+            .OrderBy(g => g.Key.TerrainId).ThenBy(g => g.Key.Flags).ThenBy(g => g.Key.Unknown);
+
+        foreach (var g in groups)
+        {
+            Console.WriteLine(
+                $"{g.Key.TerrainId,4} {g.Key.Flags,5} {g.Key.Unknown,4} {g.Count(),6}");
+        }
+        return 0;
+    }
+
     case "kwd" when args.Length >= 3 && args[1] == "map":
     {
         List<KwdChunk> mapChunks = KwdReader.ReadFile(ResolveEditor(args[2]));
