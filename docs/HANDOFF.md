@@ -13,12 +13,12 @@ carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
 five record types M1 needed are done. **382 tests green** with and without a DK2
 install; ten scenarios run; clean tree. (Core 14, Simulation 250, Data 41, Behavior 77.)
 
-> ### ⚠ Read this first: five sittings of owner answers, 2026-08-29 to 09-03
+> ### ⚠ Read this first: six sittings of owner answers, 2026-08-29 to 09-03
 >
 > From playing the original, the owner has supplied answers to **Q7, Q9, Q12,
 > Q20, Q21, Q24, Q25, Q26, Q27, Q28, Q30, Q31, Q32, Q33, Q34, Q36, Q37, Q37a,
 > Q37b, Q38, Q40, Q42, Q43, Q44, Q45, Q46, Q47, Q48, Q49, Q52, Q53, Q54, Q58,
-> Q59, Q60, Q62, Q63, Q64, Q66** plus the one-dungeon-heart rule, the four-imp floor and the Create
+> Q59, Q60, Q62, Q63, Q64, Q66, Q67, Q68** plus the one-dungeon-heart rule, the four-imp floor and the Create
 > Imp price. `docs/research/open-questions.md` has every one;
 > `docs/research/observation-checklist.md` is the file to hand back for more.
 >
@@ -38,7 +38,10 @@ install; ten scenarios run; clean tree. (Core 14, Simulation 250, Data 41, Behav
 > | **Room costs, 5 of them** | Q32 — `Cost` is per tile, confirmed five times over |
 > | **4 imps, 5s, 1500 mana** | The imp economy, all three named by DK2's own data (ADR-0021) |
 >
-> **Every known defect from the original list is now fixed.** The last one,
+> **Every known defect from the original list is now fixed, and three mechanics
+> arrived that were never on it** - selling (ADR-0029), a wooden bridge burning
+> over lava (ADR-0032) and hostile expansion (ADR-0033), the last of which fell
+> out of rules already present. The final defect,
 > **Q44/Q42**, went on 2026-09-01 (ADR-0028): an imp claims a floor tile by
 > standing *on* it, and the ownership test moved to that tile's neighbour. It had
 > been waiting on Q49 — whether repairing, attacking and filling in work the same
@@ -167,7 +170,8 @@ Extracted data artifacts (the specification the simulation is written against):
 (`dk2tools kwd terrain` / `kwd terrainflags` / `kwd terrainmana` / `kwd rooms` /
 `kwd roomflags`), which is what M3's rules are built on.
 
-**Next: the Unity view, then what rooms actually do.** See "Immediate next
+**Next: sweep the unparsed record layouts against OpenKeeper, then the Unity
+view, then what rooms actually do.** See "Immediate next
 steps". Every known defect that list ever held is built, and so is selling - the
 gold carrier, the work rate, the imp upkeep, the dig rate, the upward-work rule,
 eight-connected movement, the crowding cap, the heart's 16000, the work stance
@@ -274,14 +278,25 @@ Q28/Q48 eight-connected movement, Q43 the crowding cap, Q52 the heart's 16000,
 Q44/Q42 the work stance and Q34 selling are all built. What is left, in the order
 it is worth doing:
 
-1. **Unity presentation** — the simulation runs a dig scenario with moving
+1. **Sweep the unparsed record layouts against OpenKeeper, before M6 needs
+   them.** Ten minutes of this confirmed three scan-derived offsets, two record
+   sizes and both signedness choices, and turned up a field we had no reason to
+   look for (a trap's per-shot `manaCostToFire`, distinct from its standing
+   `manaUsage`). The 13 unparsed types - THINGS, TRIGGERS, PLAYERS, OBJECTS,
+   SHOTS, DOORS and the rest - are the same trade at scale. Method and licence
+   boundary: `docs/research/external-resources.md`. Every fact recorded as claim
+   + source + confidence, and **structurally validated against the install
+   before it goes in**, same bar as the 010 templates. Cheap, and it de-risks M6
+   rather than being M6.
+
+2. **Unity presentation** — the simulation runs a dig scenario with moving
    workers and a keeper building a room, headlessly, which was the precondition.
    `CreatureState.PosX/PosY` are fixed point in tile units; a renderer converts,
    the simulation never does. **`docs/GOAL_ALIGNMENT.md` gap 3 applies here and
    is the expensive one to miss: the asset abstraction layer must land in the
    same milestone as the first Unity view, not after it.**
 
-2. **What rooms actually do.** Room instances exist now (ADR-0027), so the
+3. **What rooms actually do.** Room instances exist now (ADR-0027), so the
    machinery is finally there: `RoomInstance` gives a room its tile count, its
    bounding box, its rim and whether it is big enough to function. A lair, a
    hatchery, a library and the rest are still inert terrain, and each needs its
@@ -460,6 +475,15 @@ for this; Q47 in `open-questions.md` is the current statement.
   `DungeonHeartMaxManaIncrease` or `MaxManaGain`: they look like ceiling
   contributions, they are not, and a ceiling that never moves cannot have
   contributions at all.
+- **OpenKeeper is cloned at `D:\OpenKeeper`** (owner, 2026-09-03) and is
+  **GPLv3**. Use it the way the owner asked: **reference and compare, never
+  copy** — field names, record layouts and offsets as facts with provenance.
+  `docs/research/external-resources.md` holds the boundary and two worked
+  cross-checks. It has already confirmed three scan-derived offsets, two record
+  sizes and both signedness choices, and found a field we had no reason to look
+  for. **Where it is weakest is gameplay rules** — its creature AI has been an
+  acknowledged stub for years, the same wall Q7 describes — so it corroborates
+  the owner's observations rather than replacing them.
 - Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Resolved by
   `DK2.Data.Dk2Install`. **`DK2_DIR` is authoritative when set** — if it is set
   and invalid, no fallback is tried, which is how CI runs with no install.
