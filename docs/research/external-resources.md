@@ -181,7 +181,15 @@ is everything derived from it:
 | `KwdKeeperSpells.OffsetManaCost` **0x11C**, s32 | `manaCost`, `readInteger` (signed) at **0x11C** | **confirmed, including the signedness** |
 | KEEPERSPELLS record size **406** (derived from contentSize / itemCount) | field list totals **406** | **confirmed** |
 | `TrapsOnRealDataTests` trap upkeep **0x0202**, u16 | `manaUsage`, `readUnsignedShort` at **0x0202** | **confirmed, and named** |
-| TRAPS record size — we never derived one | field list totals **516** | new |
+| TRAPS record size — we never derived one | field list totals **579** | new, and confirmed against the install |
+
+> **Correction, 2026-09-04.** This row first read "totals 516", which was a
+> partial sum: 516 is where `manaUsage` *ends*, not where the record does. The
+> full field list is **579**, and `Traps.kwd`'s own `contentSize / itemCount` is
+> 579 exactly. The mistake is instructive — a sum abandoned at the interesting
+> field looks like a record size and is not one, and nothing catches it except
+> the install. Worked example 3 makes that check the method rather than an
+> afterthought.
 
 **The signedness agreement is the pleasing part.** We read `manaCost` as signed
 32-bit for one reason: Summon Horny's 100000 overflows a u16. They declare it
@@ -206,3 +214,61 @@ fields are, not *what the numbers mean*. `manaDrain` being 7 for Create Imp stil
 needed the owner watching an orb go from −28 to −35, and `manaUsage` being a
 standing charge still needed five trap measurements across three values. Static
 reversal locates fields; only the running game says what they do.
+
+---
+
+## Worked example 3: every record size, in an afternoon
+
+**2026-09-04.** Worked example 2 ended with an argument for doing the same sweep
+across the other record types before parsing them at M6. This is that sweep. Full
+results and the tables live in `docs/research/kwd-container.md` §*Update
+2026-09-04*; what belongs here is the **method**, because it generalises and
+because it is the shape every future use of these sources should take.
+
+**The method, in one line:** read the field *order and widths* out of their
+reader, sum them, and check the total against `contentSize / itemCount` from the
+shipped files.
+
+**Why that is inside the boundary.** A list of field widths is a fact about a
+file format. Adding it up is arithmetic. Nothing is copied, nothing is
+translated, and the output is a single integer per record type — which is then
+*verified against the install*, so the sources are contributing a hypothesis and
+the original is still the oracle. The C# that came out of it
+(`KwdTaggedRecords`) implements a rule the install proved, not a structure their
+code has.
+
+**What it bought.** **Eight new record sizes, every one confirmed to the byte on
+the first attempt**, and the shape of the two types that have no fixed size at
+all. A field list is a hundred-odd widths in sequence; a sum that lands exactly
+on an independently measured stride cannot contain a wrong field cancelled out by
+another wrong field — not eight times running. So the *layouts* are confirmed,
+not merely the totals, and that is the whole of what M6 needs before it can start
+parsing.
+
+**What it cost.** An afternoon, most of it spent on two things the arithmetic
+could not do by itself: OpenKeeper's `readArtResource` peeks 12 bytes behind a
+`mark`/`reset` and switches on a type where every branch happens to consume the
+same 12 bytes, so it is 84 bytes rather than the 174 a naive sum gives; and
+tagged unions (VARIABLES, THINGS, TRIGGERS) sum to the total of all their
+branches, which is meaningless. Both were caught by the install disagreeing.
+
+**The three results worth carrying, beyond the numbers:**
+
+1. **The cross-check is the method, not a formality.** It caught a partial sum I
+   had already written down as a record size (TRAPS 516; see the correction
+   above), it caught `readArtResource` at 174, and it caught three tagged unions.
+   Every single failure of the arithmetic was found by the install and none by
+   inspection.
+2. **A source can be wrong in a direction that costs you nothing, and you should
+   still write it down.** Their CREATURES field list totals **5377** against the
+   shipped **5449**; their own offset check skips the last 72 bytes with a
+   warning. It is harmless to us — `KwdCreatures` stops at `0x1081`, and every
+   offset it reads was *confirmed* by this same sweep — but anyone extending that
+   parser past `0x1501` would be extending it into territory nobody has
+   described. Recorded as **Q70** rather than left as a shrug.
+3. **They locate fields; only the running game says what they mean.** Unchanged
+   from worked example 2 and worth repeating with evidence: this sweep produced
+   twelve record sizes and not one gameplay rule. `manaUsage` being a standing
+   charge still took five owner measurements; the MAP flags byte still took a
+   66-map behavioural sweep. **The division of labour is stable — static sources
+   for structure, the owner and the original for behaviour.**

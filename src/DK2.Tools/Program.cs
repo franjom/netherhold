@@ -45,7 +45,49 @@ switch (args[0])
     case "kwd" when args.Length >= 3 && args[1] == "chunks":
     {
         foreach (KwdChunk c in KwdReader.ReadFile(ResolveEditor(args[2])))
-            Console.WriteLine($"{c.Type,-16} items={c.ItemCount,-6} content={c.Content.Length} bytes");
+        {
+            // The stride is the structural check every record layout has to pass:
+            // a field list that does not sum to it is wrong. Prints "varies" for
+            // the two tagged types, whose records carry their own size instead.
+            string stride =
+                c.ItemCount <= 0 ? "n/a"
+                : KwdTaggedRecords.IsTagged(c.Type) ? "varies (tagged records)"
+                : c.Content.Length % c.ItemCount == 0
+                    ? (c.Content.Length / c.ItemCount).ToString()
+                    : $"NOT A WHOLE NUMBER ({c.Content.Length}/{c.ItemCount})";
+
+            Console.WriteLine(
+                $"{c.Type,-16} items={c.ItemCount,-6} content={c.Content.Length,-8} stride={stride}");
+        }
+        return 0;
+    }
+
+    case "kwd" when args.Length >= 3 && args[1] == "tagged":
+    {
+        // Splits THINGS/TRIGGERS into their self-describing records and reports
+        // what tags the file carries. See docs/research/kwd-container.md.
+        foreach (KwdChunk c in KwdReader.ReadFile(ResolveEditor(args[2])))
+        {
+            if (!KwdTaggedRecords.IsTagged(c.Type)) continue;
+
+            var byTag = new SortedDictionary<int, (int Count, SortedSet<int> Sizes)>();
+            foreach (KwdTaggedRecords.TaggedRecord r in KwdTaggedRecords.Split(c))
+            {
+                if (!byTag.TryGetValue(r.Tag, out (int Count, SortedSet<int> Sizes) e))
+                    byTag[r.Tag] = e = (0, []);
+                e.Sizes.Add(r.Payload.Length);
+                byTag[r.Tag] = (e.Count + 1, e.Sizes);
+            }
+
+            Console.WriteLine($"{c.Type} — {c.ItemCount} records, {c.Content.Length} bytes, all accounted for");
+            foreach ((int tag, (int count, SortedSet<int> sizes)) in byTag)
+            {
+                string name = c.Type == KwdRecordType.Things
+                    ? KwdTaggedRecords.ThingPayloadSizes.TryGetValue(tag, out var t) ? t.Name : "?"
+                    : KwdTaggedRecords.TriggerPayloadSizes.TryGetValue(tag, out var g) ? g.Name : "?";
+                Console.WriteLine($"  tag {tag,-4} {name,-16} {count,5} records   payload={string.Join(",", sizes)}");
+            }
+        }
         return 0;
     }
 

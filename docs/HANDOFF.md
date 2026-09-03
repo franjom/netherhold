@@ -6,12 +6,13 @@ Update this whenever a session ends or context is compacted.
 
 ---
 
-## Current state (2026-09-03)
+## Current state (2026-09-04)
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
-five record types M1 needed are done. **382 tests green** with and without a DK2
-install; ten scenarios run; clean tree. (Core 14, Simulation 250, Data 41, Behavior 77.)
+five record types M1 needed are done, and **every** record type's on-disk size is
+now known and pinned (2026-09-04). **396 tests green** with and without a DK2
+install; ten scenarios run; clean tree. (Core 14, Simulation 250, Data 55, Behavior 77.)
 
 > ### ⚠ Read this first: six sittings of owner answers, 2026-08-29 to 09-03
 >
@@ -49,7 +50,7 @@ install; ten scenarios run; clean tree. (Core 14, Simulation 250, Data 41, Behav
 > from two physical clauses instead of listing it per work kind. See the fourth
 > lesson below.
 >
-> **Seven lessons from these sittings, in order of how much they cost to learn:**
+> **Eight lessons from these sittings, in order of how much they cost to learn:**
 >
 > 1. **Ask for the quantity by name.** "How much gold per swing" got an answer
 >    that "how fast does mining feel" could not have.
@@ -90,6 +91,14 @@ install; ten scenarios run; clean tree. (Core 14, Simulation 250, Data 41, Behav
 >    guess. Q48 fell the same way a day earlier (a diagonal is √2 tile-widths, so
 >    octile is forced). **Before writing an observation request, check whether the
 >    answer is already implied by something the data says.**
+> 8. **A negative from a sweep is a claim about the sweep's scope, not about the
+>    game.** The record-layout sweep (2026-09-04) reported that two THINGS types
+>    appear in no shipped file. One of them, the camera, has 39 records sitting in
+>    `GlobalVariables.kwd` — the sweep had globbed `maps/*Things.kld` and the
+>    conclusion was about the glob. This is lesson 6 in a different costume, and
+>    the two together are worth stating as one rule: **before believing an absence,
+>    say out loud what was searched.** Where a sweep's scope matters, the
+>    test now sweeps the whole corpus and carries a comment saying why.
 
 Three honest caveats:
 - M3's definition of done asked for gold reaching a player and a Unity view.
@@ -120,7 +129,11 @@ Three honest caveats:
 - M1's stated definition of done was "all 18 record types round-trip". Five are
   parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP) plus the WAD and KWD
   containers. The rest (THINGS, TRIGGERS, PLAYERS, OBJECTS, SHOTS, …) are needed
-  at M6 and scheduled there.
+  at M6 and scheduled there — **but no longer from a standing start**: every one
+  of them now has its record size pinned against the install, and THINGS and
+  TRIGGERS split into records already (`KwdTaggedRecords`). What M6 adds is
+  field meanings, not structure. See `docs/research/kwd-container.md`
+  §*Update 2026-09-04*.
 - The CI workflow is written and every step verified locally on Windows, but it
   has never run on GitHub. The Linux leg is what turns the pinned state hash
   into a real cross-platform claim; until it runs, that claim is untested.
@@ -135,6 +148,8 @@ What can be read from the original game:
 | 46 creature definitions | `DK2.Data.Kwd.KwdCreatures` | ids match Flame; happy-job % sum to 100 |
 | 41 terrain + 26 room types | `DK2.Data.Kwd.KwdTerrainRooms` | cross-parser: room→terrain, room→creature |
 | Level tile grids | `DK2.Data.Kwd.MapGrid` → `LevelMap` | every tile of every campaign map |
+| Every record type's on-disk size | `DK2.Data.Tests.KwdRecordLayoutTests` | 12 strides pinned against the install, 8 of them new and each independently reproduced by summing a published field list |
+| THINGS + TRIGGERS split into records | `DK2.Data.Kwd.KwdTaggedRecords` | records carry their own size; 133 tagged chunks consumed to the byte, 11 of 12 thing payload sizes confirmed both ways |
 | **All of the above, as one object** | `DK2.Data.GameDatabaseLoader` → `GameDatabase` | loads the real install; every room's terrain resolves |
 
 What the simulation can do:
@@ -170,8 +185,8 @@ Extracted data artifacts (the specification the simulation is written against):
 (`dk2tools kwd terrain` / `kwd terrainflags` / `kwd terrainmana` / `kwd rooms` /
 `kwd roomflags`), which is what M3's rules are built on.
 
-**Next: sweep the unparsed record layouts against OpenKeeper, then the Unity
-view, then what rooms actually do.** See "Immediate next
+**Next: the Unity view, then what rooms actually do.** The record-layout sweep
+that used to head this list is done (2026-09-04). See "Immediate next
 steps". Every known defect that list ever held is built, and so is selling - the
 gold carrier, the work rate, the imp upkeep, the dig rate, the upward-work rule,
 eight-connected movement, the crowding cap, the heart's 16000, the work stance
@@ -246,7 +261,9 @@ to miss.
 | `tests/DK2.Behavior.Tests/KeeperSpellsOnRealDataTests.cs` | Makes both unparsed-record offsets earn their place: 13 plausible costs, and an upkeep column that is non-zero for exactly the five spells whose result persists. |
 | `scenarios/imps/a_keeper_never_runs_out_of_imps.yaml` | The imp economy end to end on a campaign map. |
 | `docs/research/imps-and-mana.md` | Imps, the Create Imp price, and **the mana drain research** — the biggest open hole. |
-| `docs/research/external-resources.md` | **The licence boundary, once**, plus two worked cross-checks. OpenKeeper is GPLv3 and this is MIT: facts with provenance, never code. **It has already confirmed three scan-derived offsets and two record sizes**, and the MAP flags byte from a second direction. Read before researching anything that might be answered outside this repo. |
+| `src/DK2.Data/Kwd/KwdTaggedRecords.cs` | THINGS and TRIGGERS, which carry their own record sizes. Stops at the tag and the payload bytes on purpose — decoding a payload is M6's job, and doing it early would be guessing. |
+| `tests/DK2.Data.Tests/KwdRecordLayoutTests.cs` | Every record type's stride, pinned against the install. **A document cannot fail; this can.** |
+| `docs/research/external-resources.md` | **The licence boundary, once**, plus three worked cross-checks. OpenKeeper is GPLv3 and this is MIT: facts with provenance, never code. **It has confirmed three scan-derived offsets and every record type's size** (eight of them new, each to the byte), the MAP flags byte from a second direction, and one place where its own layout is incomplete (Q70). Read before researching anything that might be answered outside this repo. |
 | `docs/research/observation-checklist.md` | **Hand this to the owner.** Every open question a person playing DK2 can settle by looking, as experiments — and which ones playing cannot settle. |
 
 ## Running things
@@ -278,16 +295,18 @@ Q28/Q48 eight-connected movement, Q43 the crowding cap, Q52 the heart's 16000,
 Q44/Q42 the work stance and Q34 selling are all built. What is left, in the order
 it is worth doing:
 
-1. **Sweep the unparsed record layouts against OpenKeeper, before M6 needs
-   them.** Ten minutes of this confirmed three scan-derived offsets, two record
-   sizes and both signedness choices, and turned up a field we had no reason to
-   look for (a trap's per-shot `manaCostToFire`, distinct from its standing
-   `manaUsage`). The 13 unparsed types - THINGS, TRIGGERS, PLAYERS, OBJECTS,
-   SHOTS, DOORS and the rest - are the same trade at scale. Method and licence
-   boundary: `docs/research/external-resources.md`. Every fact recorded as claim
-   + source + confidence, and **structurally validated against the install
-   before it goes in**, same bar as the 010 templates. Cheap, and it de-risks M6
-   rather than being M6.
+1. ~~**Sweep the unparsed record layouts against OpenKeeper.**~~ **DONE
+   2026-09-04.** Every KWD record type now has its on-disk size, pinned by a
+   test against the install: **eight new sizes, every one confirmed to the byte
+   on the first attempt** (TRAPS 579, DOORS 616, OBJECTS 894, SHOTS 239,
+   PLAYERS 205, CREATURE_SPELLS 266, EFFECTS 246, EFFECT_ELEMENTS 182). **And
+   THINGS and TRIGGERS turned out to need no size at all** - each record carries
+   its own, so a chunk splits with zero layout knowledge, validated over all 133
+   tagged chunks the install ships. Tables, method and the one disagreement:
+   `docs/research/kwd-container.md` §*Update 2026-09-04* and
+   `external-resources.md` §*Worked example 3*. **What is left of this item is
+   the field-by-field layouts, and it belongs with the mechanic that needs
+   them** - M6 can now start parsing without deriving a single stride first.
 
 2. **Unity presentation** — the simulation runs a dig scenario with moving
    workers and a keeper building a room, headlessly, which was the precondition.
@@ -478,10 +497,13 @@ for this; Q47 in `open-questions.md` is the current statement.
 - **OpenKeeper is cloned at `D:\OpenKeeper`** (owner, 2026-09-03) and is
   **GPLv3**. Use it the way the owner asked: **reference and compare, never
   copy** — field names, record layouts and offsets as facts with provenance.
-  `docs/research/external-resources.md` holds the boundary and two worked
-  cross-checks. It has already confirmed three scan-derived offsets, two record
-  sizes and both signedness choices, and found a field we had no reason to look
-  for. **Where it is weakest is gameplay rules** — its creature AI has been an
+  `docs/research/external-resources.md` holds the boundary and three worked
+  cross-checks. It has confirmed three scan-derived offsets, both signedness
+  choices and **every record type's size** — eight of them new and each to the
+  byte — found a field we had no reason to look for, and turned up one place
+  where its own layout is *incomplete* (Q70), which is the reason the install
+  check is the method rather than a formality.
+  **Where it is weakest is gameplay rules** — its creature AI has been an
   acknowledged stub for years, the same wall Q7 describes — so it corroborates
   the owner's observations rather than replacing them.
 - Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Resolved by
@@ -594,7 +616,18 @@ caught real errors so far:
 - Record size must equal `contentSize / itemCount` exactly (caught the 40-byte
   WAD entry stride, which the template got wrong at 36).
 - Sum the template's field widths and check it reproduces the record size
-  (confirmed terrain 552 and rooms 1055 before writing any parser).
+  (confirmed terrain 552 and rooms 1055 before writing any parser). **This is
+  now the workhorse**: on 2026-09-04 it produced eight new record sizes, every
+  one landing exactly on the measured stride — and a sum that lands exactly
+  cannot have a wrong field cancelled out by another, so it validates the
+  *layout*, not just the total. Three ways it goes wrong, all caught by the
+  stride and none by inspection: a **partial sum** stopped at the interesting
+  field looks like a record size (TRAPS 516 vs the real 579); a **tagged union**
+  sums to all its branches at once (VARIABLES 100 vs the real 16); and a
+  **peek behind a mark/reset** double-counts (`readArtResource` 174 vs 84).
+- **A whole stride is not proof of a fixed-stride record type.**
+  `GlobalVariables.kwd`'s THINGS chunk divides perfectly at 92 bytes and is
+  really 39 self-describing records that happen to be the same size.
 - Look for semantic invariants: happy-job chances summing to 100 across all 46
   creatures proved the JobPreference offsets were right.
 - Cross-check between independent parsers: room→terrain→creature references all
@@ -606,7 +639,7 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 73 (Q1-Q69; Q51 superseded). The ones that gate progress:
+`docs/research/open-questions.md` holds all 74 (Q1-Q70; Q51 superseded). The ones that gate progress:
 
 - **Q53 is ANSWERED and built** (2026-08-30): 7 mana a second per imp, measured
   by the owner and read off DK2's own Create Imp spell record (ADR-0022). Left in
@@ -677,14 +710,14 @@ implementation.
 
 ---
 
-## Where the project stood at the 2026-09-03 compaction
+## Where the project stood at the 2026-09-04 sitting
 
 Six sittings of owner measurements and ten ADRs - one of which needed no
 measurement at all, and one of which needed no new data either, only a look at
 the dump we already had. The state:
 
-**382 tests green** with and without a DK2 install (Core 14, Simulation 250,
-Data 41, Behavior 77), ten scenarios running, clean tree.
+**396 tests green** with and without a DK2 install (Core 14, Simulation 250,
+Data 55, Behavior 77), ten scenarios running, clean tree.
 
 **Every known defect is fixed, and the room economy now runs both ways.** In the
 order they fell:
@@ -727,7 +760,17 @@ from the files, and both are meant to stay narrow:**
 
 **The research method that produced all of this is written up in three places
 and is worth reading before the next research push:** the call-out at the top of
-this file (seven lessons), `docs/research/imps-and-mana.md` §*How this was
+this file (eight lessons), `docs/research/imps-and-mana.md` §*How this was
 established* (the failure and recovery in full), and
 `docs/research/observation-checklist.md` (what is still worth asking, and what
 playing cannot settle).
+
+**And the seventh sitting (2026-09-04) added no ADR and no mechanic**, which is
+the point of it: it was the record-layout sweep, and it produced **structure**.
+Twelve record sizes pinned against the install, eight of them new; THINGS and
+TRIGGERS revealed to carry their own record sizes and split accordingly; one
+disagreement recorded as Q70. No gameplay rule came out of it and none was
+expected to — **static sources for structure, the owner and the original for
+behaviour** is now a division of labour with three worked examples behind it.
+`docs/research/kwd-container.md` §*Update 2026-09-04* is the result;
+`external-resources.md` §*Worked example 3* is the method.
