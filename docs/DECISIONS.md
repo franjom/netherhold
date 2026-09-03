@@ -1358,3 +1358,89 @@ is its first real cause. Tested.
   is set at build and a shipped bridge has no build event. Moot in practice: the
   campaign contains **no** wooden bridge over lava anywhere, which is presumably
   the designers avoiding exactly this.
+
+---
+
+## ADR-0033 — A rival claims your ground directly, and hostile expansion falls out
+
+**Date.** 2026-09-03. **Status.** Accepted. **Answers** Q68. **Refutes** the
+two-step reading this project had carried since M3.
+
+**Context.** `TileWorkKind.Claim` applied only to terrain that was **not
+`Ownable`** — unclaimed Dirt Path. A rival's claimed floor was therefore not
+claimable at all, and the implied model was two steps: damage the tile to neutral
+with `AttackTileHealth` (−140), then claim the neutral tile with
+`ClaimTileHealth` (825). Nothing had tested it, because no imp ever chooses
+`AttackTile` and `JobPriority` has no entry for taking enemy ground.
+
+The owner settled it in two messages (2026-09-03). First: a bridge can only be
+"attacked" by a **rival keeper's imps, who jump on it and claim it if it is
+adjacent to their keeper's territory**. Then, asked directly whether the tile
+turns neutral on the way: **"no it doesn't go to neutral first, it is immediately
+claimed by an imp."**
+
+**The two-step model is refuted.**
+
+**Two derived rules predicted the rest of it, which is the part worth
+remembering.** Both halves of the owner's first sentence were already implemented
+here, from evidence that had nothing to do with rival keepers:
+
+| the owner said | this project already had |
+|---|---|
+| *"jump on it"* | `WorkStance`'s on-the-tile stance — derived from "standable while working and standable when the job finishes", and written without a thought for bridges (ADR-0028) |
+| *"adjacent to their keeper's territory"* | the ownership condition on the **claimed tile's neighbour** (Q42, same ADR) |
+
+Two derived rules predicting an observation neither was built from is the
+strongest evidence either has had, and both are now pinned by tests that say so.
+
+**Decision.**
+
+- **`Claim` applies to any non-solid tile that is not already yours** — neutral or
+  a rival's. The old `!IsOwnable` test is replaced by
+  `tile.OwnerPlayerId != playerId`, plus a "nowhere to go" guard: either the
+  terrain is already the claimable kind, or it converts into something.
+- **Claiming ground that is already `Ownable` changes only the owner**
+  (`UpwardDestination`). This is not a nicety: a claim normally converts to
+  `MaxHealthTypeTerrainId`, and for Claimed Path that field is **Rock** — its
+  fill-in destination (Q18) — so following it would have turned a rival's floor
+  into a wall. Decided by the terrain's own flag, so the rule reads identically
+  for a rival's floor, bridge and room.
+- **`Convert` no longer resets `BurnTicksRemaining` when the terrain is
+  unchanged.** A rival claiming a burning wooden bridge takes the bridge, fire and
+  all; putting the fire out by capturing the tile would be a reward for capturing
+  it (Q67).
+
+**Hostile expansion came free, and that is the point.** Claiming is already
+second in the CONFIRMED priority order (ADR-0018), already requires the tile to
+touch the keeper's territory, and is already done standing on the tile. So imps
+now take a rival's border tiles **unprompted, with no new decision logic and no
+new job kind** — exactly the behaviour the owner described. A mechanic that would
+have been a milestone's work arrived as a two-line change to one predicate,
+because the rules around it were right.
+
+**Confidence.** CONFIRMED for a rival's **claimed floor** (measured) and for a
+**bridge** (measured). **STRONGLY INFERRED** for a rival's **rooms** — the same
+rule, applied uniformly, because a bridge *is* room terrain and singling other
+rooms out would need evidence nobody has.
+
+**Rate.** `ClaimTileHealth` (825) for neutral and enemy alike, because the table
+offers nothing else. A mana vault has *dedicated* neutral and enemy claim rates
+(4 and 20) which nothing reads — so DK2 does differentiate for at least one
+thing, and our generic rate is certainly wrong for a vault. Q69.
+
+**Consequences.**
+
+- **No scenario changed.** Verified by running the corpus with and without the
+  change: identical hashes. No shipped scenario has two keepers with adjacent
+  claimed floor, so the new behaviour is unit-tested rather than scenario-tested,
+  and that is worth knowing rather than assuming.
+- **`AttackTileHealth` now has no user at all.** It must have one in the original;
+  the obvious candidate is creatures other than imps smashing enemy floor during
+  an invasion, which would make attacking and claiming two actors' jobs rather
+  than two steps. HYPOTHESIS, recorded as Q69.
+- No new state, so **no `HashVersion` bump**.
+- A tile of `Ownable` terrain owned by id 0 is now claimable, which matters
+  because **which owner id means "nobody" is still UNKNOWN** (Q17). The rule is
+  right either way — id 0 is either nobody, in which case claiming neutral floor
+  is correct, or a keeper, in which case it is hostile claiming — but it is the
+  first rule whose reach depends on that question.

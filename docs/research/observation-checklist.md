@@ -593,7 +593,21 @@ one of its corners — no orthogonal route of owned floor to it. Then leave an i
 with nothing else to do and see whether it claims the diagonal tile or ignores it.
 The same question applies to reinforcing, and one answer probably covers both.
 
-### Q68 — does a rival's imp take a tile in one step or two? — **the cheapest one left**
+### Q68 — does a rival's imp take a tile in one step or two? — **ANSWERED**
+
+**One step.** You answered immediately: it does not go neutral first, it is
+claimed directly. That refuted the two-step model this project had and, once
+`Claim` was fixed to take ground that is merely *not yours*, **hostile expansion
+fell out of rules already present** - see ADR-0033. The experiment below is kept
+only because it is the shape of a good question: one tile, one look, no timing.
+
+What is open now is **Q69**: `AttackTileHealth` (-140) has no user left, and the
+two mana-vault claim rates (4 neutral, 20 enemy) are read by nothing while saying
+DK2 does differentiate somewhere.
+
+---
+
+#### The original question, for the record
 
 You told me (2026-09-03) that a bridge is only ever taken by a **rival keeper's
 imps jumping on it and claiming it**, adjacent to their own territory. Both halves

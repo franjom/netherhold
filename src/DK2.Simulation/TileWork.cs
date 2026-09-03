@@ -241,10 +241,30 @@ public static class TileWorkRules
     {
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
 
-        if (CompletesUpward(kind)) return terrain.MaxHealthTypeTerrainId;
+        if (CompletesUpward(kind)) return UpwardDestination(terrain, kind);
         if (PerSecond(database, kind) < 0) return terrain.DestroyedTypeTerrainId;
         return tile.TerrainId;
     }
+
+    /// <summary>
+    /// The terrain an upward job converts a tile into.
+    ///
+    /// <para>Normally the terrain's own <see cref="TerrainDef.MaxHealthTypeTerrainId"/>
+    /// — Rock becomes a Reinforced Wall, Dirt Path becomes Claimed Path. The one
+    /// exception is <b>claiming ground that is already the claimable kind</b>:
+    /// taking a rival's Claimed Path must not follow that field, because Claimed
+    /// Path's max-health type is <i>Rock</i> (it is the fill-in destination, Q18)
+    /// and a claim would turn their floor into a wall.</para>
+    ///
+    /// <para>So for a claim the terrain stays put and only the owner changes,
+    /// which is what taking somebody's ground means. Decided by the terrain's own
+    /// <c>Ownable</c> flag rather than by comparing owners, so the rule reads the
+    /// same for a rival's floor, a rival's bridge and a rival's room.</para>
+    /// </summary>
+    private static byte UpwardDestination(TerrainDef terrain, TileWorkKind kind) =>
+        kind == TileWorkKind.Claim && terrain.IsOwnable
+            ? terrain.TerrainId
+            : terrain.MaxHealthTypeTerrainId;
 
     /// <summary>
     /// Whether <paramref name="kind"/> can be applied to this tile at all.
@@ -275,9 +295,16 @@ public static class TileWorkRules
                 terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId != playerId,
 
             // Claiming targets unowned floor that has somewhere to become.
+            // Claiming takes ground that is not already yours — neutral OR a
+            // rival's. CONFIRMED (Q68, owner 2026-09-03): a rival keeper's imp
+            // claims your tile **directly**, with no neutral step in between,
+            // which is what this replaces. Two clauses, and the second is the
+            // "nowhere to go" guard: either the terrain is already the claimable
+            // kind and only the owner changes, or it converts into something.
             TileWorkKind.Claim =>
-                !terrain.IsSolid && !terrain.IsOwnable
-                && terrain.MaxHealthTypeTerrainId != tile.TerrainId,
+                !terrain.IsSolid
+                && tile.OwnerPlayerId != playerId
+                && (terrain.IsOwnable || terrain.MaxHealthTypeTerrainId != tile.TerrainId),
 
             TileWorkKind.AttackTile =>
                 !terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId != playerId,
@@ -418,7 +445,7 @@ public static class TileWorkRules
             }
 
             int lost = Convert(
-                database, ref tile, terrain.MaxHealthTypeTerrainId, playerId, takeOwnership: true);
+                database, ref tile, UpwardDestination(terrain, kind), playerId, takeOwnership: true);
             return new TileWorkResult(TileWorkOutcome.Transformed, delta, 0, lost, tile.TerrainId);
         }
 
@@ -546,6 +573,7 @@ public static class TileWorkRules
         bool takeOwnership)
     {
         TerrainDef next = database.TerrainById(newTerrainId);
+        bool terrainChanged = tile.TerrainId != newTerrainId;
 
         tile.TerrainId = newTerrainId;
         tile.Health = next.StartingHealth;
@@ -555,8 +583,10 @@ public static class TileWorkRules
         tile.UpwardWork = 0;
         tile.WorkRemainder = 0;
 
-        // Whatever was burning is not this tile any more (Q67).
-        tile.BurnTicksRemaining = 0;
+        // Only when the tile actually became something else. A rival claiming a
+        // burning wooden bridge takes the bridge, fire and all — putting the fire
+        // out by taking the tile would be a reward for it (Q67, Q68).
+        if (terrainChanged) tile.BurnTicksRemaining = 0;
         if (!next.IsTaggable) tile.TaggedBy = 0;
 
         if (takeOwnership && next.IsOwnable) tile.OwnerPlayerId = playerId;

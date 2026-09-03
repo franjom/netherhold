@@ -827,4 +827,79 @@ public class ImpTests
         floor.Ticks(2);
         Assert.Equal(1, floor.World.Creatures.Count(c => c.TargetTileIndex == target));
     }
+
+    // ---- taking a rival's ground (Q68) -----------------------------------
+
+    /// <summary>
+    /// <b>A rival's floor is claimed directly, with no neutral step</b> —
+    /// CONFIRMED (Q68, owner 2026-09-03), and it refutes the two-step model this
+    /// project had: attack the tile to neutral with <c>AttackTileHealth</c>, then
+    /// claim the neutral tile.
+    ///
+    /// <para>The tile keeps its terrain and changes hands. Following
+    /// <c>MaxHealthTypeTerrainId</c> as a claim normally does would have turned
+    /// their floor into <b>Rock</b>, since that field is Claimed Path's fill-in
+    /// destination (Q18).</para>
+    /// </summary>
+    [Fact]
+    public void ARivalsFloorIsClaimedDirectlyAndStaysFloor()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Run run = Start(new TilePos(2, 2));
+
+        // A rival's claimed floor just outside the keeper's room.
+        ref TileState theirs = ref run.World.Tile(4, 2);
+        theirs.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        theirs.OwnerPlayerId = 2;
+        theirs.Health = database.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
+
+        Assert.True(TileWorkRules.Applies(database, theirs, TileWorkKind.Claim, Keeper));
+
+        for (int i = 0; i < 5000 && theirs.OwnerPlayerId != Keeper; i++)
+            TileWorkRules.Apply(database, ref theirs, TileWorkKind.Claim, Keeper);
+
+        Assert.Equal(Keeper, theirs.OwnerPlayerId);
+        Assert.Equal(Dk2TerrainFixture.ClaimedPath, theirs.TerrainId);
+    }
+
+    /// <summary>
+    /// <b>An imp takes a rival's ground on its own</b>, which is hostile
+    /// expansion falling out of rules that were already here: claiming is second
+    /// in the priority order (ADR-0018), the tile must touch its keeper's
+    /// territory (Q42), and the imp stands on the tile it claims (Q44). Nothing
+    /// new decides to do it.
+    /// </summary>
+    [Fact]
+    public void AnImpTakesARivalsFloorWithoutBeingTold()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Run run = Start(new TilePos(2, 2));
+
+        ref TileState theirs = ref run.World.Tile(4, 2);
+        theirs.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        theirs.OwnerPlayerId = 2;
+        theirs.Health = database.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
+
+        run.Tick();
+        SimEvent taken = run.Of("job_taken").First();
+        Assert.Contains("priority=Claim", taken.Detail);
+        Assert.Contains("(4,2)", taken.Detail);
+
+        run.Ticks(SimulationTiming.TicksFromSeconds(4));
+        Assert.Equal(Keeper, run.World.Tile(4, 2).OwnerPlayerId);
+    }
+
+    /// <summary>
+    /// A keeper does not claim ground it already holds — otherwise every imp
+    /// would spend for ever re-claiming its own dungeon.
+    /// </summary>
+    [Fact]
+    public void AKeeperDoesNotClaimItsOwnGround()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Run run = Start(new TilePos(2, 2));
+
+        Assert.False(TileWorkRules.Applies(
+            database, run.World.Tile(2, 2), TileWorkKind.Claim, Keeper));
+    }
 }

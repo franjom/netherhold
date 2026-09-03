@@ -455,6 +455,12 @@ public class ScenarioTests
                      VariableTypeId.DigRockHealth,
                      VariableTypeId.MinimumImpThreshold,
                      VariableTypeId.TimeBeforeFreeImpGeneratedSeconds,
+
+                     // Needed since Q68: claiming now applies to ground that is
+                     // not already yours rather than only to unowned terrain, so
+                     // a claim on this map's neutral floor reaches the rate
+                     // lookup where it used to be rejected before getting there.
+                     VariableTypeId.ClaimTileHealth,
                  })
         {
             vars.Misc[id] = new MiscVariable(id, 1, 0, 0);

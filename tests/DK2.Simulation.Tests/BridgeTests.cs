@@ -17,6 +17,7 @@ namespace DK2.Simulation.Tests;
 public class BridgeTests
 {
     private const byte Keeper = 1;
+    private const byte Rival = 2;
 
     private static byte BridgeId => (byte)RoomTypeId.WoodenBridge;
 
@@ -407,21 +408,20 @@ public class BridgeTests
     }
 
     /// <summary>
-    /// <b>The one thing actually missing</b>, recorded as a test so it cannot be
-    /// forgotten: <see cref="TileWorkRules.Applies"/> lets `Claim` take only
-    /// <i>unowned</i> ground, so a rival's bridge is not claimable here at all.
+    /// <b>A rival claims a bridge, and it stays a bridge.</b> CONFIRMED (Q68,
+    /// owner 2026-09-03): there is no neutral step — the tile is claimed
+    /// directly.
     ///
-    /// <para>Hostile expansion is unbuilt in general — no imp ever chooses
-    /// `AttackTile`, and `JobPriority` has no entry for taking enemy ground — so
-    /// this is one corner of a mechanic rather than a bridge bug. What rate a
-    /// rival claims at is UNKNOWN: the balance table has one `ClaimTileHealth`
-    /// and one `AttackTileHealth` and <b>no</b> `ClaimEnemyTileHealth`, while a
-    /// mana vault gets dedicated neutral and enemy claim rates (4 and 20). So DK2
-    /// does have direct enemy-claiming for at least one thing, and whether a
-    /// bridge follows that shape or the attack-then-claim one is Q68.</para>
+    /// <para>The subtlety is the destination. Claiming normally converts a tile
+    /// to its <c>MaxHealthTypeTerrainId</c>, and for a bridge that is the bridge
+    /// itself, so it happens to work. For a rival's <i>Claimed Path</i> the same
+    /// field says <b>Rock</b> — it is the fill-in destination (Q18) — so
+    /// following it would turn their floor into a wall. Hence
+    /// <c>UpwardDestination</c>: claiming ground that is already the claimable
+    /// kind changes the owner and leaves the terrain alone.</para>
     /// </summary>
     [Fact]
-    public void ARivalCannotYetClaimABridgeBecauseClaimingRefusesOwnedGround()
+    public void ARivalClaimsABridgeDirectlyAndItStaysABridge()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         var span = new TilePos(6, 6);
@@ -429,16 +429,43 @@ public class BridgeTests
         GiveHeart(run, new TilePos(1, 1), 1000);
         run.Tick(BuildRoomCommand.At(Keeper, BridgeId, span));
 
-        // Player 2's imp cannot claim player 1's bridge, because claiming demands
-        // terrain nobody owns.
-        Assert.False(TileWorkRules.Applies(
-            database, run.World.Tile(span), TileWorkKind.Claim, playerId: 2));
-
-        // Attacking it is what the rules currently allow a rival to do, and the
-        // owner says that is not what happens. Pinned so the day somebody
-        // implements hostile expansion, this reads as a decision rather than an
-        // accident.
         Assert.True(TileWorkRules.Applies(
-            database, run.World.Tile(span), TileWorkKind.AttackTile, playerId: 2));
+            database, run.World.Tile(span), TileWorkKind.Claim, playerId: Rival));
+
+        ref TileState tile = ref run.World.Tile(span);
+        for (int i = 0; i < 5000 && tile.OwnerPlayerId != Rival; i++)
+            TileWorkRules.Apply(database, ref tile, TileWorkKind.Claim, Rival);
+
+        Assert.Equal(Rival, tile.OwnerPlayerId);
+        Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, tile.TerrainId);
+
+        // And the hazard marker survives, so the rival's bridge still knows what
+        // it is standing over.
+        Assert.Equal(BridgeRules.SpansWater, tile.Flags);
+    }
+
+    /// <summary>
+    /// A rival claiming a <b>burning</b> wooden bridge takes the fire with it.
+    /// Putting the fire out by taking the tile would be a reward for taking it,
+    /// and the terrain never changed, so nothing has restarted (Q67, Q68).
+    /// </summary>
+    [Fact]
+    public void ClaimingABurningBridgeDoesNotPutTheFireOut()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        var span = new TilePos(6, 6);
+        Run run = Start(Dk2TerrainFixture.Lava, span);
+        GiveHeart(run, new TilePos(1, 1), 1000);
+        run.Tick(BuildRoomCommand.At(Keeper, BridgeId, span));
+
+        ref TileState tile = ref run.World.Tile(span);
+        int burningBefore = tile.BurnTicksRemaining;
+        Assert.True(burningBefore > 0);
+
+        for (int i = 0; i < 5000 && tile.OwnerPlayerId != Rival; i++)
+            TileWorkRules.Apply(database, ref tile, TileWorkKind.Claim, Rival);
+
+        Assert.Equal(Rival, tile.OwnerPlayerId);
+        Assert.Equal(burningBefore, tile.BurnTicksRemaining);
     }
 }
