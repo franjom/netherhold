@@ -1444,3 +1444,38 @@ thing, and our generic rate is certainly wrong for a vault. Q69.
   right either way — id 0 is either nobody, in which case claiming neutral floor
   is correct, or a keeper, in which case it is hostile claiming — but it is the
   first rule whose reach depends on that question.
+
+---
+
+### ADR-0031 amendment — independent corroboration of the MAP flags byte
+
+**Date.** 2026-09-03.
+
+ADR-0031 read `TileState.Flags` (the MAP record's third byte) as marking a bridge
+over lava, on the strength of a clean partition across 66 shipped maps, and rated
+that **STRONGLY INFERRED** because the byte could have been a rendering hint that
+happened to correlate.
+
+A 2013 KeeperKlan reverse-engineering thread — reached through web.archive.org,
+since the forum now returns 403 — documents the on-disk element as
+`{BYTE idTerrain; BYTE idPlayer; BYTE flags; BYTE unused;}`, notes that **"only a
+'2' bit here is interpreted to do anything special at load, 1 may indicate
+'valid'"**, and adds that the 2 bit *"assigns an as yet unknown flag in the
+runtime map element"*. The author says they had been "upside down inside of this
+executable for the past year and a half".
+
+That independently confirms three things we had inferred: the byte **is** a flags
+field, **2 is the only value that means anything**, and the fourth byte is
+**unused** (which closes the second half of Q16 rather than leaving it merely
+uninteresting).
+
+**What it does not supply is the meaning** — that was explicitly open there. So
+the two approaches turn out to be complementary rather than redundant: static
+reversal of the executable finds the fields, and sweeping the shipped maps for
+what each bridge tile *borders* finds what they mean. Worth remembering as the
+expected shape of value from these resources.
+
+The confidence rating stays **STRONGLY INFERRED**: the field is now confirmed,
+our reading of its purpose is still ours. Facts quoted with provenance and no
+code taken — see `docs/research/external-resources.md` for the licence boundary
+this sits inside.

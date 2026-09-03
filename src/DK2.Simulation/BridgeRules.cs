@@ -36,6 +36,20 @@ namespace DK2.Simulation;
 /// <i>borders</i> is what makes the partition visible.</item>
 /// </list>
 ///
+/// <para><b>Independently corroborated, by somebody who did not know what it
+/// meant.</b> A 2013 KeeperKlan reverse-engineering thread — the author says they
+/// had been "upside down inside of this executable for the past year and a half"
+/// — documents the on-disk map element as
+/// <c>{BYTE idTerrain; BYTE idPlayer; BYTE flags; BYTE unused;}</c> and notes of
+/// the third byte that <i>"only a '2' bit here is interpreted to do anything
+/// special at load, 1 may indicate 'valid'"</i>, and that the 2 bit <i>"assigns an
+/// as yet unknown flag in the runtime map element"</i>. That confirms three things
+/// from a source with no stake in this reading: the byte is a flags field, the
+/// only value that means anything is 2, and the fourth byte is unused. What the
+/// 2 is <b>for</b> was open there and is what the 66-map sweep above supplies.
+/// Facts quoted with provenance; no code taken. See
+/// docs/research/external-resources.md.</para>
+///
 /// <para><b>STRONGLY INFERRED rather than CONFIRMED.</b> The behaviour is
 /// confirmed; that this byte is where the original keeps it is an inference from
 /// a clean partition over 66 maps. It could be a rendering hint that merely

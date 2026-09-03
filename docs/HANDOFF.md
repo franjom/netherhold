@@ -242,6 +242,7 @@ to miss.
 | `tests/DK2.Behavior.Tests/KeeperSpellsOnRealDataTests.cs` | Makes both unparsed-record offsets earn their place: 13 plausible costs, and an upkeep column that is non-zero for exactly the five spells whose result persists. |
 | `scenarios/imps/a_keeper_never_runs_out_of_imps.yaml` | The imp economy end to end on a campaign map. |
 | `docs/research/imps-and-mana.md` | Imps, the Create Imp price, and **the mana drain research** — the biggest open hole. |
+| `docs/research/external-resources.md` | **The licence boundary, once.** OpenKeeper is GPLv3 and this is MIT: facts with provenance, never code. Plus the seven Resources links, which resolve, and when each is worth reading. |
 | `docs/research/observation-checklist.md` | **Hand this to the owner.** Every open question a person playing DK2 can settle by looking, as experiments — and which ones playing cannot settle. |
 
 ## Running things
@@ -537,7 +538,15 @@ Never write a bare `cat >` redirect, and do not reach for python.
 
 Cheap-to-expensive, stop as soon as the question is answered:
 
-0. **Ask the owner, or hand them `docs/research/observation-checklist.md`.**
+0. **Read `docs/research/external-resources.md` first if the question might be
+   answered outside this repo.** It records the seven resources OpenKeeper
+   points at, which of them still resolve, what each is good for and **when** -
+   and, once, the licence boundary: **OpenKeeper is GPLv3 and this project is
+   MIT, so facts with provenance only, never code.** It also holds the worked
+   example of these sources paying off (an independent reversal confirming the
+   MAP flags byte without knowing what it meant).
+
+0b. **Ask the owner, or hand them `docs/research/observation-checklist.md`.**
    They have played DK2 and the original is the behavioural oracle. That file
    lists every open question a person in front of the game can settle by
    looking, as concrete experiments, and says which ones playing cannot settle.
@@ -552,7 +561,8 @@ Cheap-to-expensive, stop as soon as the question is answered:
 1. Is the answer just sitting in the KWD data? (Often yes — check first.)
 2. ufdada/dk2-tools 010 Editor templates — independent format facts.
 3. Flame's `mapping/DKII_EXE_v170.sgmap` — 868 structs, 10,548 globals.
-4. OpenKeeper — consult as documentation only (GPLv3).
+4. OpenKeeper — consult as documentation only (**GPLv3**; see
+   `external-resources.md` for what that permits and what it forbids).
 5. Only then: IDA/Ghidra on DKII.EXE, using Flame's IDA import scripts.
 
 **Validate offsets structurally, never on trust.** The techniques that have
