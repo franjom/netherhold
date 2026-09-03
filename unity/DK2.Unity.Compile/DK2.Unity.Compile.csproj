@@ -1,0 +1,89 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Compiles the Unity adapter's C# against the real UnityEngine assemblies, so
+    that this project's rule - do not commit code you have not built - applies to
+    Unity code as well.
+
+    It is deliberately NOT in DK2.slnx. A machine without Unity cannot build it,
+    and CI has no Unity, so putting it in the solution would break the build for
+    everyone who has not installed the editor. Run it by hand:
+
+        dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj
+
+    What it proves: the adapter compiles against Unity's own API surface, with
+    the same netstandard2.1 target Unity will load the DK2 assemblies under.
+
+    What it does NOT prove: that the scene runs. That needs an activated editor
+    and a person looking at it. See ADR-0036.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>DK2.Unity.Compile</AssemblyName>
+    <RootNamespace>DK2.Unity</RootNamespace>
+
+    <!-- Unity's own C# is not warning-clean at this project's usual settings,
+         and its API surface is not ours to fix. Errors still fail the build,
+         which is the whole point of this project existing. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS0649;CS0169</NoWarn>
+  </PropertyGroup>
+
+  <!--
+    Where Unity is. Override on the command line if the editor lives elsewhere:
+        dotnet build ... -p:UnityManagedDir="D:\Unity\6000.6.0f1\Editor\Data\Managed"
+  -->
+  <PropertyGroup>
+    <UnityVersion Condition="'$(UnityVersion)' == ''">6000.6.0f1</UnityVersion>
+    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">$(ProgramFiles)\Unity $(UnityVersion)\Editor\Data\Managed</UnityManagedDir>
+  </PropertyGroup>
+
+  <Target Name="CheckUnityPresent" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(UnityManagedDir)\UnityEngine\UnityEngine.CoreModule.dll')"
+           Text="No Unity engine assemblies at '$(UnityManagedDir)'. Install Unity $(UnityVersion) (winget install --source winget --id Unity.Unity.6000), or pass -p:UnityManagedDir=... . This project is intentionally outside DK2.slnx so that its absence cannot break the main build." />
+  </Target>
+
+  <!--
+    The module assemblies only, NOT the top-level UnityEngine.dll.
+
+    That facade re-exports the same types, so referencing both makes every
+    UnityEngine type ambiguous (CS0433 on GameObject, Transform, Color, ...).
+    Unity's own asmdef compilation references the modules, which is why this
+    list mirrors them: add a module here when the adapter starts using one.
+  -->
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- The adapter's actual source, compiled from where Unity keeps it. One copy
+       of the file, two compilers. -->
+  <ItemGroup>
+    <Compile Include="../DK2.Unity/Assets/DK2/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/DK2.Core/DK2.Core.csproj" />
+    <ProjectReference Include="../../src/DK2.Data/DK2.Data.csproj" />
+    <ProjectReference Include="../../src/DK2.Data.Model/DK2.Data.Model.csproj" />
+    <ProjectReference Include="../../src/DK2.Simulation/DK2.Simulation.csproj" />
+    <ProjectReference Include="../../src/DK2.Assets/DK2.Assets.csproj" />
+    <ProjectReference Include="../../src/DK2.Presentation/DK2.Presentation.csproj" />
+  </ItemGroup>
+
+</Project>

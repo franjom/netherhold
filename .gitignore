@@ -38,3 +38,9 @@ unity/**/Build/
 # Local config
 local.settings.json
 *.local.json
+
+# Unity: the DK2 assemblies are build output, synced by unity/sync-assemblies.ps1
+unity/DK2.Unity/Assets/Plugins/DK2/*.dll
+unity/DK2.Unity/Assets/Plugins/DK2/*.pdb
+unity/DK2.Unity/Assets/Plugins/DK2/*.meta
+unity/**/obj/

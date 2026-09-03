@@ -30,6 +30,25 @@ public class AssetArchitectureTests
     }
 
     /// <summary>
+    /// <c>DK2.Assets</c> and <c>DK2.Presentation</c> target netstandard2.1, so
+    /// Unity can load them. Same guard as
+    /// <c>ArchitectureTests.UnityLoadableAssemblies_TargetNetStandard21</c> and
+    /// for the same reason: that constraint was configuration-only for four
+    /// months and never actually applied. See ADR-0036.
+    /// </summary>
+    [Theory]
+    [InlineData(typeof(AssetRef))]
+    [InlineData(typeof(DK2.Presentation.WorldView))]
+    public void TheRenderingAssembliesTargetNetStandard21(Type witness)
+    {
+        string? target = witness.Assembly
+            .GetCustomAttribute<System.Runtime.Versioning.TargetFrameworkAttribute>()
+            ?.FrameworkName;
+
+        Assert.Equal(".NETStandard,Version=v2.1", target);
+    }
+
+    /// <summary>
     /// The asset layer must not depend on the simulation either.
     ///
     /// <para>The dependency runs the other way in every sane design — a renderer

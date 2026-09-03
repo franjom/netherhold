@@ -16,6 +16,40 @@ Simulation-side assemblies target netstandard2.1 (Unity-loadable) and are
 forbidden from referencing Unity. Enforcement: `ArchitectureTests` fails the
 test run if any simulation assembly references an assembly named `Unity*`.
 
+> ### ⚠ Correction, 2026-09-04: half of this was not true for four months
+>
+> **The no-Unity-reference half held.** `ArchitectureTests` really did check it
+> and it really did pass.
+>
+> **The netstandard2.1 half never happened.** `Directory.Build.props` selected
+> the framework behind a `Condition` on a `DK2UnityBound` marker that each
+> project set *in its own body* — which MSBuild evaluates **after** importing
+> that props file. The condition was therefore always false, both branches fell
+> through to `net10.0`, and **every assembly in this repository built as
+> net10.0 from M1 until 2026-09-04.** `src/Shared/Polyfills.cs` sat behind
+> `#if NETSTANDARD2_1` and was never once compiled.
+>
+> Nothing noticed because nothing had yet handed a DLL to Unity. **Unity cannot
+> load a net10.0 assembly at all**, so the entire presentation plan would have
+> failed at the first attempt to use it. It surfaced the moment the Unity
+> adapter was compiled against Unity's own assemblies (ADR-0036) — an
+> `NU1201: not compatible with netstandard2.1` from the projects that were
+> supposed to *be* netstandard2.1.
+>
+> **Fixed**: `src/Shared/UnityBound.props`, imported explicitly from the body of
+> each Unity-bound project, where the ordering works. The cost of four months of
+> silence turned out to be small — one `Enum.IsDefined` overload, one
+> `Stream.ReadExactly` polyfill, and the pinned determinism hash did not move —
+> but that was luck, not design: every month of net10.0-only API use would have
+> made it worse.
+>
+> **Now enforced from the built artefact**, not from configuration:
+> `ArchitectureTests.UnityLoadableAssemblies_TargetNetStandard21` reads
+> `TargetFrameworkAttribute` off the compiled assembly. **The lesson is the
+> general one: a constraint expressed only in build configuration is a hope, and
+> "enforced at compile time" in an ADR title is a claim that itself needs a
+> test.**
+
 ## ADR-0003 — MIT license; clean-room use of reference projects
 **Date:** 2026-08-29 · **Status:** accepted (owner decision)
 
@@ -1655,3 +1689,41 @@ never resolves an asset, it never decides an order, and it gets positions in
 **Consequence for whoever writes the adapter:** read `TextRenderer` first. It is
 the same job against a character grid, it runs in CI, and a disagreement between
 the two is a bug in one of them rather than a matter of taste.
+
+### ADR-0036 amendment, 2026-09-04 — the adapter exists and compiles
+
+Written when Unity was not installed. It is now installed (`6000.6.0f1`, via
+winget) and the adapter is written:
+
+| | |
+|---|---|
+| `unity/DK2.Unity/` | the Unity project — `ProjectVersion.txt`, `manifest.json`, an asmdef |
+| `Assets/DK2/DungeonScene.cs` | `IRenderTarget` in GameObjects. Arithmetic and `Instantiate`, no judgement |
+| `Assets/DK2/DungeonRunner.cs` | the `MonoBehaviour`: own a simulation, tick it, present it |
+| `unity/DK2.Unity.Compile/` | **compiles the adapter against Unity's real assemblies** |
+| `unity/sync-assemblies.ps1` | builds the 7 netstandard2.1 DLLs into `Assets/Plugins/DK2` |
+
+**`DK2.Unity.Compile` is the point worth keeping.** This project's rule is that
+it does not commit code it has not built, and Unity code has no other way to
+satisfy it. The project is **deliberately outside `DK2.slnx`** — a machine
+without Unity cannot build it, and CI has none, so including it would break the
+build for everyone who has not installed the editor. It is run by hand:
+
+```
+dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj
+```
+
+It earned its place immediately, catching three things reading could not have:
+the seed is `ulong` and not `int`, the map tile type is `MapTile` and not
+`LevelTile`, and referencing `UnityEngine.dll` *alongside* the module assemblies
+makes every Unity type ambiguous (Unity's own asmdef compilation references only
+the modules, which is why the project now does too).
+
+**What is still not verified, and it is the honest remainder.** Unity is
+installed but **not activated** — a headless run exits with code 198 and
+`Found 0 entitlement groups and 0 free entitlements`. So the C# is confirmed to
+compile against Unity's API surface, and *nothing has been seen to run*. Opening
+the project and pressing Play needs an activated editor and a person looking at
+the result, and activation needs the owner's account: it is not an assistant's to
+do. Until then, `TextRenderer` remains the only renderer this project has
+actually watched work.

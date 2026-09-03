@@ -89,6 +89,14 @@ public sealed record RoomDef
     public bool HasWalls => Flags.HasFlag(RoomFlags.HasWalls);
 
     /// <summary>The strongly-typed room type, when it is one we have named.</summary>
+    ///
+    /// <remarks>
+    /// The non-generic <c>Enum.IsDefined(Type, object)</c> rather than the
+    /// generic overload, which is .NET 5+ and therefore unavailable on
+    /// netstandard2.1 — the framework Unity actually loads (ADR-0002). It boxes,
+    /// which is why this is a property on a definition record read at load time
+    /// and not something a per-tick rule calls.
+    /// </remarks>
     public RoomTypeId? TypeId =>
-        Enum.IsDefined((RoomTypeId)RoomId) ? (RoomTypeId)RoomId : null;
+        Enum.IsDefined(typeof(RoomTypeId), (RoomTypeId)RoomId) ? (RoomTypeId)RoomId : null;
 }

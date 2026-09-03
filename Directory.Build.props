@@ -13,21 +13,20 @@
   </PropertyGroup>
 
   <!--
-    Unity-bound assemblies target netstandard2.1 so that the "simulation must not
-    depend on Unity, and must be loadable BY Unity" constraint is enforced by the
-    compiler from day one rather than discovered at milestone M3.
-    See docs/DECISIONS.md ADR-0002.
-  -->
-  <PropertyGroup Condition="'$(DK2UnityBound)' == 'true'">
-    <TargetFramework>netstandard2.1</TargetFramework>
-  </PropertyGroup>
+    Default target framework. An assembly Unity has to load overrides this to
+    netstandard2.1 by importing src/Shared/UnityBound.props from inside its own
+    project body (ADR-0002).
 
-  <PropertyGroup Condition="'$(DK2UnityBound)' != 'true'">
+    DO NOT move that back here behind a Condition on a marker property. It was
+    written that way originally and it never worked: this file is imported
+    BEFORE the project body, so the marker was always empty, every project
+    silently built as net10.0, and Polyfills.cs was never compiled. Four months
+    later the first attempt to compile against Unity's own assemblies found it.
+    UnityBound.props explains the evaluation order in full, and
+    ArchitectureTests asserts the outcome so it cannot go quiet again.
+  -->
+  <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
-
-  <ItemGroup Condition="'$(DK2UnityBound)' == 'true'">
-    <Compile Include="$(MSBuildThisFileDirectory)src/Shared/Polyfills.cs" Link="Properties/Polyfills.cs" />
-  </ItemGroup>
 
 </Project>

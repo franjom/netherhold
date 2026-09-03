@@ -12,9 +12,9 @@ Update this whenever a session ends or context is compacted.
 carrier, where imps come from, the asset layer and the presentation boundary:
 complete. M3 as a whole: partial — there is still no Unity view.** M2 and the
 five record types M1 needed are done, and **every** record type's on-disk size is
-now known and pinned. **480 tests green** with and without a DK2
+now known and pinned. **486 tests green** with and without a DK2
 install; ten scenarios run, each now drawing a picture of its finished world;
-clean tree. (Core 14, Simulation 250, Data 55, Behavior 77, Assets 58, Presentation 26.)
+clean tree. (Core 14, Simulation 254, Data 55, Behavior 77, Assets 60, Presentation 26.)
 
 > ### The asset layer and the presentation boundary landed 2026-09-04 (ADR-0034, ADR-0035)
 >
@@ -29,28 +29,63 @@ clean tree. (Core 14, Simulation 250, Data 55, Behavior 77, Assets 58, Presentat
 > | The promise, now a test | every key the shipped database implies resolves **with no DK2 install and no art pack**. The game runs as boxes and that it does is checked on every commit (plan §7.2) |
 > | The second renderer | every scenario writes `world.txt` and a picture in its report, through the same view and the same provider chain Unity will use |
 >
-> **There is no Unity project, and that is not an oversight.** Unity is not
-> installed on this machine, so Unity code written here could not be compiled or
-> run, and this project does not commit code it has not built.
+> ### The Unity project exists and compiles; nobody has watched it run
 >
-> **The version is decided: Unity 6 LTS, `6000.6.0f1`** (ADR-0036) — the plan
-> deferred that choice to M3 and it is M3. Installed with
-> `winget install --source winget --id Unity.UnityHub` then
-> `winget install --source winget --id Unity.Unity.6000`, plus one sign-in for
-> activation. **Installation and activation are the owner's** — the first accepts
-> a proprietary licence and the second needs their account, so neither is an
-> assistant's to do. 2022.3 LTS is the fallback and nothing here depends on
-> either, because nothing here depends on Unity.
+> **Unity 6 LTS `6000.6.0f1`** is installed (ADR-0036) and `unity/DK2.Unity/`
+> holds the adapter: `DungeonScene` (`IRenderTarget` in GameObjects) and
+> `DungeonRunner` (the `MonoBehaviour`). `unity/sync-assemblies.ps1` builds the
+> seven netstandard2.1 DLLs into `Assets/Plugins/DK2`.
 >
-> **What is left is one class implementing six methods.** `ScenePresenter` and
-> `IRenderTarget` (also ADR-0035) took every decision a renderer could get wrong
-> out of the adapter and put it under test: what counts as a visible change, what
-> order things are pushed in, which asset key each thing needs, and create versus
-> update versus remove. Two properties are pinned against a running campaign
-> level — **presenting an unchanged world pushes nothing** (60 ticks push under a
-> tenth of a whole-world redraw) and **presenting never changes the world**
-> (state hash, per tick). The adapter never sees a `WorldState`, never resolves
-> an asset and never picks an order, so the ways it can be wrong are nearly gone.
+> **`unity/DK2.Unity.Compile/` compiles the adapter against Unity's real module
+> assemblies**, which is the only way this project's "do not commit code you have
+> not built" rule can reach Unity code. Deliberately **outside `DK2.slnx`**: a
+> machine without Unity cannot build it and CI has none. Run it by hand —
+> `dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj`. It caught
+> three things on its first run that reading could not.
+>
+> **What is NOT verified: Unity is installed but not activated.** A headless run
+> exits 198 with `Found 0 entitlement groups and 0 free entitlements`. So the C#
+> is confirmed against Unity's API surface and **nothing has been seen to run** —
+> that needs a sign-in in Unity Hub, which is the owner's account and not an
+> assistant's to do. `TextRenderer` is still the only renderer anyone has watched
+> work.
+>
+> **Why the adapter is nearly incapable of being wrong.** `ScenePresenter` and
+> `IRenderTarget` (ADR-0035) took every decision a renderer could get wrong out
+> of it and put it under test: what counts as a visible change, push order, which
+> asset key each thing needs, create versus update versus remove. Two properties
+> are pinned against a running campaign level — **presenting an unchanged world
+> pushes nothing** (60 ticks push under a tenth of a whole-world redraw) and
+> **presenting never changes the world** (state hash, per tick). `DungeonScene`
+> never sees a `WorldState`, never resolves an asset and never picks an order.
+>
+> ### ⚠ And it found a four-month-old defect in a load-bearing claim
+>
+> **ADR-0002 said the Unity-loadable assemblies target netstandard2.1, "enforced
+> by the compiler from day one". They did not, and it was not.**
+> `Directory.Build.props` chose the framework behind a `Condition` on a marker
+> the project bodies set *after* that file had already been evaluated, so the
+> condition was always false and **every assembly built as net10.0 from M1 until
+> 2026-09-04**. `Polyfills.cs` sat behind `#if NETSTANDARD2_1` and was never
+> compiled.
+>
+> **Unity cannot load a net10.0 assembly**, so the whole presentation plan would
+> have failed at the first attempt to use it. It surfaced the instant the adapter
+> was compiled against Unity's assemblies: `NU1201: not compatible with
+> netstandard2.1`, from the seven projects that were supposed to *be*
+> netstandard2.1.
+>
+> Fixed via `src/Shared/UnityBound.props`, imported from each project body where
+> the ordering works. **The four months cost almost nothing to unwind** — one
+> `Enum.IsDefined` overload, one `Stream.ReadExactly` polyfill, and the pinned
+> determinism hash did not move — **but that was luck.** Every month of
+> net10.0-only API use would have made it worse.
+>
+> Now enforced from the built artefact rather than from configuration:
+> `ArchitectureTests.UnityLoadableAssemblies_TargetNetStandard21` reads
+> `TargetFrameworkAttribute` off the compiled assembly. **A constraint expressed
+> only in build configuration is a hope, and "enforced at compile time" in an ADR
+> title is itself a claim that needs a test.**
 >
 > **Three things went wrong on the way, and all three are worth keeping:**
 >
@@ -334,6 +369,11 @@ to miss.
 | `src/DK2.Presentation/TextRenderer.cs` | The second presentation mode, and the one that runs in CI. Read it before writing the Unity adapter — same job, character grid. |
 | `src/DK2.Presentation/IRenderTarget.cs` | **The Unity seam.** Six methods, no logic. Deliberately small because it is the one thing that cannot be compiled here. |
 | `src/DK2.Presentation/ScenePresenter.cs` | Diffs the world and pushes only what changed, in a fixed order. **Everything the adapter would otherwise have to get right, tested here instead.** |
+| `src/Shared/UnityBound.props` | **Imported from each Unity-bound project body, and the comment explains why it cannot live in `Directory.Build.props`.** Four months of a silently-broken target framework are written on it. |
+| `unity/DK2.Unity/Assets/DK2/DungeonScene.cs` | `IRenderTarget` in GameObjects. Arithmetic and `Instantiate`; the only judgement is "file or placeholder". |
+| `unity/DK2.Unity/Assets/DK2/DungeonRunner.cs` | The `MonoBehaviour`: owns a simulation, ticks it, presents it. Holds no game state. |
+| `unity/DK2.Unity.Compile/` | **Compiles the adapter against Unity's real assemblies.** The only way "do not commit code you have not built" reaches Unity code. Outside `DK2.slnx` on purpose. |
+| `unity/README.md` | How to run it, and four things it deliberately does not do. |
 | `docs/research/wall-rendering.md` | How DK2 actually draws walls (Simon Schreibt, verified vs inferred separated). Corroborated `HealthPermille`, refuted one-mesh-per-terrain, and produced Q71/Q72. Rendering only — **no rule may depend on it**. |
 | `docs/research/external-resources.md` | **The licence boundary, once**, plus four worked cross-checks. OpenKeeper is GPLv3 and this is MIT: facts with provenance, never code. **It has confirmed three scan-derived offsets and every record type's size** (eight of them new, each to the byte), the MAP flags byte from a second direction, and one place where its own layout is incomplete (Q70). Read before researching anything that might be answered outside this repo. |
 | `docs/research/observation-checklist.md` | **Hand this to the owner.** Every open question a person playing DK2 can settle by looking, as experiments — and which ones playing cannot settle. |
@@ -393,11 +433,13 @@ it is worth doing:
    `Tick`, then `ScenePresenter.Present(world)`. Positions arrive in `Fp32` tile
    units; divide by `Fp32.One` **in Unity, never in the simulation** (ADR-0001).
 
-   **Blocked on one thing: Unity must be installed and activated, and that is
-   the owner's to do** — installing accepts a proprietary licence and activation
-   needs their account. Version decided: **Unity 6 LTS `6000.6.0f1`**, via
-   `winget install --source winget --id Unity.UnityHub` and
-   `winget install --source winget --id Unity.Unity.6000` (ADR-0036).
+   **DONE as of 2026-09-04, except for being seen to run.** `unity/DK2.Unity/`
+   holds `DungeonScene` and `DungeonRunner`, and both compile against Unity's
+   real assemblies via `unity/DK2.Unity.Compile/`. Unity 6 LTS `6000.6.0f1` is
+   installed but **not activated** (headless exits 198, `Found 0 entitlement
+   groups`), so **the one remaining step is a sign-in in Unity Hub and pressing
+   Play** — the owner's account, not an assistant's to use. See `unity/README.md`
+   for the whole flow, including `sync-assemblies.ps1`.
 
    **Read `TextRenderer` before writing the adapter.** It is the same job against
    a character grid, it runs in CI, and a disagreement between the two is a bug
@@ -807,8 +849,8 @@ Six sittings of owner measurements and ten ADRs - one of which needed no
 measurement at all, and one of which needed no new data either, only a look at
 the dump we already had. The state:
 
-**480 tests green** with and without a DK2 install (Core 14, Simulation 250,
-Data 55, Behavior 77, Assets 58, Presentation 26), ten scenarios running, clean
+**486 tests green** with and without a DK2 install (Core 14, Simulation 254,
+Data 55, Behavior 77, Assets 60, Presentation 26), ten scenarios running, clean
 tree.
 
 **Every known defect is fixed, and the room economy now runs both ways.** In the
@@ -895,3 +937,22 @@ had been read. It had not, and it was worth an afternoon — it corroborated one
 design decision and refuted another. **A resource table's "when" column is a
 commitment, and the table cannot tell you when its moment arrives.** The editor
 manual's row says M6 and is set up for exactly the same failure.
+
+**And the ninth sitting (2026-09-04, evening) wrote the Unity adapter and found
+what four months of not using Unity had hidden.** The adapter itself was small,
+as designed. What mattered was the first honest attempt to compile against
+Unity's own assemblies, which produced `NU1201: not compatible with
+netstandard2.1` from the seven projects that were supposed to *be*
+netstandard2.1 — a claim ADR-0002 had been making since M1 and which had never
+been true (see the correction on that ADR).
+
+**The general lesson, and it is the one to carry:** every previous defect in this
+project was found by running rules against the real install. This one was found
+by *using the thing for its purpose*. A constraint that nothing exercises is not
+enforced no matter what the build files say, and "enforced at compile time" in an
+ADR title is itself a claim that needs a test. There is now one, and it reads the
+built assembly rather than the configuration that was already wrong.
+
+**What is genuinely unverified and should not be described otherwise:** Unity is
+installed but not activated, so the adapter is *compiled* and has never *run*.
+`TextRenderer` remains the only renderer anyone has watched work.

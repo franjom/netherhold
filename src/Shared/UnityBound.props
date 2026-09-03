@@ -1,0 +1,48 @@
+<Project>
+
+  <!--
+    Imported by every assembly Unity has to be able to load. ADR-0002.
+
+    IMPORT THIS FROM INSIDE THE PROJECT BODY, not from Directory.Build.props:
+
+        <Project Sdk="Microsoft.NET.Sdk">
+          <Import Project="../Shared/UnityBound.props" />
+          ...
+
+    WHY, and it is worth reading before "simplifying" this back:
+
+    Directory.Build.props used to carry these settings behind a
+    Condition="'$(DK2UnityBound)' == 'true'" that each project was supposed to
+    switch on. It never worked, and nothing noticed for four months. MSBuild
+    imports Directory.Build.props *before* the project body, so $(DK2UnityBound)
+    was always empty when the condition was evaluated - every project, including
+    every Unity-bound one, silently built as net10.0. Polyfills.cs sat behind
+    #if NETSTANDARD2_1 and was never once compiled.
+
+    ADR-0002 claimed netstandard2.1 was "enforced by the compiler from day one".
+    It was not enforced at all, and the first thing that noticed was an attempt
+    to actually compile against Unity's assemblies (2026-09-04). Unity cannot
+    load a net10.0 assembly, so the entire Unity plan would have failed at the
+    first attempt to use it.
+
+    An import in the body evaluates after the SDK props and before the SDK
+    targets, which is exactly when TargetFramework has to be set. That is why
+    this is an explicit Import and not a condition.
+
+    ArchitectureTests.UnityLoadableAssemblies_TargetNetStandard21 now asserts the
+    result from the built assemblies, so a repeat cannot be silent.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <DK2UnityBound>true</DK2UnityBound>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Compiler shims for records, init accessors and required members, which
+         netstandard2.1 does not provide. Guarded by #if NETSTANDARD2_1 in the
+         file itself, so it is inert if this ever targets something newer. -->
+    <Compile Include="$(MSBuildThisFileDirectory)Polyfills.cs" Link="Properties/Polyfills.cs" />
+  </ItemGroup>
+
+</Project>

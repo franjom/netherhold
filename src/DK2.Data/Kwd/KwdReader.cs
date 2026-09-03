@@ -117,6 +117,6 @@ public static class KwdReader
 
         return byteSize == 4
             && checkOne == signature + 1
-            && Enum.IsDefined((KwdRecordType)signature);
+            && Enum.IsDefined(typeof(KwdRecordType), (KwdRecordType)signature);
     }
 }
