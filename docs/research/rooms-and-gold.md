@@ -310,11 +310,12 @@ original — recorded as Q36 rather than fixed by inventing a size rule.
 it. That is another worker job with the same UNKNOWN trigger as every other
 unprompted imp job (Q24), so building here is instant and the report says so.
 
-**Rooms cannot be sold**, though the refund rate is now known and needs nothing
-invented. `RoomSellValuePercentageOfCost` is **50**, and the owner independently
-observed a 50% refund per tile (Q34). `RoomDef.ReturnPercentage` is a per-room
-gate on top of it: 100 for every buildable room and **0 for exactly the hero
-gates**, which a keeper cannot sell. Q34.
+**Rooms are sold** (ADR-0029), and every number in it came from the data.
+`RoomSellValuePercentageOfCost` is **50**, the owner independently observed a
+50% refund per tile, and `RoomDef.ReturnPercentage` is a per-room gate on top of
+it: 100 for every buildable room and **0 for exactly the hero gates**, which a
+keeper cannot sell. Sellable means buildable, so the rules name no room. See
+*Selling* below.
 
 **The objects a room places on its tiles** (`RoomDef.ObjectIds`) are not read.
 M6.
@@ -366,3 +367,58 @@ or a destroyed treasury, and there is nothing here for it to collect.
 300 and a temple 3000. Nothing wrong with it — just worth noting before anyone
 "corrects" the treasury's cost on the grounds that it feels too cheap for the
 room a keeper cannot start without.
+
+---
+
+## Selling
+
+**CONFIRMED, and the whole of it is data** (Q34, ADR-0029).
+
+| what | where it comes from | shipped value |
+|---|---|---|
+| the standard rate | `RoomSellValuePercentageOfCost` | **50** |
+| the per-room gate | `RoomDef.ReturnPercentage` | **100** buildable, **0** hero gates |
+| what a tile cost | `RoomDef.Cost`, per tile (Q32) | 200 treasury … 3000 temple |
+| what a tile becomes | `TerrainDef.DestroyedTypeTerrainId` | 8, Claimed Path, for every room terrain |
+| doors and traps | `DoorSellValuePercentageOfCost`, `TrapSellValuePercentageOfCost` | **50** each |
+
+So a treasury tile returns 100 of its 200 and a temple tile 1500 of its 3000,
+which is exactly the 50% per tile the owner measured in the original.
+
+**This question was answered wrongly for four sessions and it was our fault.**
+The refund was recorded as being in *neither* candidate variable, on the strength
+of a `RoomSellValuePercentageOfCost` transcribed as 100 — while
+`game-database-dump.md`, generated from the install by this project's own tools,
+said 50 throughout. The plan that followed was to write an override for a number
+that was never missing. The lesson is in `HANDOFF.md`: check the dump before
+recording a number as absent.
+
+**`ReturnPercentage` is a gate, not a rate.** It takes two values across all 26
+rooms — 100 and 0 — and the zero rows are **precisely** the hero gates, the rooms
+a keeper cannot sell. That coincidence is what makes it more than a guess, and it
+is asserted in both directions so "the field is always 100" cannot fit the same
+evidence. Whether it multiplies the global rate or replaces it is
+**indistinguishable on shipped data**, since no room carries a middle value; the
+code multiplies, which is the reading that still behaves sensibly on data we do
+not have.
+
+**What happens to gold on a sold treasury tile is CONFIRMED** (owner,
+2026-09-03): the tile reverts to claimed floor and the gold **drops onto that
+same tile as a pile**, coming off the keeper's spendable total until somebody
+fetches it. Two thirds of that is reproduced — the tile reverts, and the total
+falls by exactly that much, so the *economy* of a sale is right. The pile is
+absent because a pile is an OBJECT (M6, Q31), so a keeper here loses permanently
+what a keeper there picks back up. Reported as `gold_displaced`, never hidden.
+
+**Three things are deliberately still wrong or missing:**
+
+- **Selling a bridge** reverts it to claimed floor rather than to the water or
+  lava it spanned, because every room terrain's destroyed type is Claimed Path
+  and the tile does not record what was underneath (Q64; the MAP record's byte 3
+  is bridge-related and unparsed, Q16). Not special-cased — the event says so.
+- **Selling is instant.** In DK2 an imp walks over and dismantles the tile, the
+  same missing worker job as building (Q24).
+- **A pile may not hold what a treasury tile held.** `MaxGoldPerTreasuryTile` is
+  3000 and `MaxGoldPileOutsideTreasury` is 2000, so selling a full tile has 1000
+  more gold than a pile can take. What happens to the surplus is UNKNOWN and only
+  became askable once selling existed (Q65).

@@ -13,6 +13,10 @@ namespace DK2.Simulation.Systems;
 /// <list type="number">
 /// <item><see cref="TileTagSystem"/> — the player's marks land first, so a tile
 /// marked on tick N is marked for the whole of tick N.</item>
+/// <item><see cref="RoomSellSystem"/> — before building rather than after, so a
+/// keeper who sells one room to afford another can do both on the same tick. The
+/// friendlier of the two orderings, and the same reasoning as
+/// <see cref="ImpSupplySystem"/> running after the mana it spends.</item>
 /// <item><see cref="RoomBuildSystem"/> — the player's other command. After
 /// tagging rather than before it, so that a tile both marked and built on in one
 /// tick ends up a room: building is the later, more specific intent, and a mark
@@ -45,6 +49,7 @@ public static class SimulationSystems
     public static ISimulationSystem[] Default() =>
     [
         new TileTagSystem(),
+        new RoomSellSystem(),
         new RoomBuildSystem(),
         new CreatureMovementSystem(),
         new ImpTaskSystem(),

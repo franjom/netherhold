@@ -1,0 +1,61 @@
+# The first gold sink that runs backwards.
+#
+# A keeper with a heart, a treasury and a lair sells the lair. The refund is
+# half of what the lair cost per tile - CONFIRMED by owner observation of the
+# original, and read straight off the shipped data: `RoomSellValuePercentageOfCost`
+# is 50, and `RoomDef.ReturnPercentage` is 100 for every room a keeper can build
+# and 0 for exactly the hero gates they cannot. Nothing here is an override.
+#
+# Then it sells a treasury tile with gold on it, which is the interesting half.
+#
+# What to read in the event log:
+#   - one `sold` line per command, naming tiles and refund, with refusals by
+#     reason - and the dungeon heart tile gives `NotSellable=1`, because
+#     sellable means buildable and a keeper never bought their heart;
+#   - a `gold_displaced` line when a treasury tile with gold in it goes. In the
+#     original that gold drops onto the claimed floor tile that replaces it, as
+#     a pile an imp can come back for, and is deducted from the keeper's
+#     spendable total until it does (CONFIRMED, owner, 2026-09-03). Our total
+#     drops by the same amount, so the ECONOMY here is right; what is missing is
+#     the pile, because a pile is an OBJECT and objects arrive at M6 (Q31). So
+#     the keeper loses it permanently where the original would let them fetch it.
+#
+# What this run does NOT establish, and the report repeats it: how long selling
+# takes (in DK2 an imp walks over and dismantles the tile - Q24), and what
+# happens to a bridge sold over water, since every room terrain's destroyed type
+# is Claimed Path and the tile does not record what was underneath it (Q64/Q16).
+id: rooms-sell-a-room-back-001
+question: >
+  Does selling a room return half its cost per tile into the keeper's own store,
+  refuse the rooms a keeper never bought, and report the gold it cannot put
+  anywhere rather than quietly keeping or losing it?
+map: flat_16x12
+seed: 9
+duration_ticks: 12
+setup:
+  players:
+    - { id: 1, gold: 1500, mana: 0 }
+  rooms:
+    # A heart, so there is a store the refunds can land in that is not itself
+    # being sold - and so the run can show a heart being refused.
+    - { type: Dungeon Heart, at: [2, 2], player: 1 }
+    - { type: Treasury, at: [5, 5], player: 1 }
+    - { type: Treasury, at: [6, 5], player: 1 }
+    - { type: Lair, at: [7, 5], player: 1 }
+    - { type: Lair, at: [8, 5], player: 1 }
+commands:
+  # Two lair tiles at 300 apiece: 150 back from each. The heart is already full
+  # at MaxGoldPerDungeonHeartTile, so the 300 lands in the treasury instead -
+  # which is what makes the second command below interesting. The heart tile is
+  # in the same selection and must be refused, not sold.
+  - at_tick: 2
+    player: 1
+    sell: [[7, 5], [8, 5], [2, 2]]
+
+  # Now the treasury tile, which is holding gold put there by the setup above.
+  - at_tick: 6
+    player: 1
+    sell: [[5, 5]]
+observe:
+  - state_hash
+  - events

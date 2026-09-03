@@ -6,12 +6,12 @@ Update this whenever a session ends or context is compacted.
 
 ---
 
-## Current state (2026-09-01)
+## Current state (2026-09-03)
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
-five record types M1 needed are done. **339 tests green** with and without a DK2
-install; nine scenarios run; clean tree. (Core 14, Simulation 214, Data 41, Behavior 70.)
+five record types M1 needed are done. **354 tests green** with and without a DK2
+install; ten scenarios run; clean tree. (Core 14, Simulation 228, Data 41, Behavior 71.)
 
 > ### ⚠ Read this first: five sittings of owner answers, 2026-08-29 to 09-03
 >
@@ -135,6 +135,7 @@ What the simulation can do:
 | Where a worker stands to do a job | `WorkStance` | a wall is worked from beside, floor from on top of it (Q44/Q49, ADR-0028); derived from two clauses rather than listed, and both clauses are pinned by a test that fails without them |
 | Grid search behind an interface | `DK2.Pathfinding.GridPathfinder` | shortest, wall-respecting, reproducible; reused buffers proven inert |
 | Rooms: where one may go, what it costs | `RoomRules` + `BuildRoomCommand` | placement flags partition the shipped rooms; ground rules run on a campaign level |
+| Selling a room back | `RoomRules.RefundPerTile` + `RoomSellSystem` | half the cost per tile, every number from the data (ADR-0029); `ReturnPercentage` is 0 for exactly the rooms a keeper cannot sell, asserted both ways against the install |
 | Gold, stored in tiles rather than on players | `GoldStore` | per-tile limits honoured; a first treasury is paid for out of the dungeon heart |
 | Mana, earned by holding land and a heart | `ManaRules` + `ManaSystem` | the three paying terrains partition the install by exhaustion; income falls when claimed floor becomes a room; a 5x5 heart is worth 30/s, not 750 |
 | Gold carried from the seam to the treasury | `CreatureState.GoldHeld` + `ImpTaskSystem` | an imp mines a shipped seam on level 1 and every coin of its 3000 ends in the shipped dungeon heart, 1000 to a tile, across as many trips as its hands need |
@@ -147,10 +148,11 @@ Extracted data artifacts (the specification the simulation is written against):
 (`dk2tools kwd terrain` / `kwd terrainflags` / `kwd terrainmana` / `kwd rooms` /
 `kwd roomflags`), which is what M3's rules are built on.
 
-**Next: selling a room, then the Unity view.** See "Immediate next steps". Every
-known defect that list ever held is now built - the gold carrier, the work rate,
-the imp upkeep, the dig rate, the upward-work rule, eight-connected movement, the
-crowding cap, the heart's 16000, and the work stance.
+**Next: the Unity view, then what rooms actually do.** See "Immediate next
+steps". Every known defect that list ever held is built, and so is selling - the
+gold carrier, the work rate, the imp upkeep, the dig rate, the upward-work rule,
+eight-connected movement, the crowding cap, the heart's 16000, the work stance
+and the sell refund.
 
 How this milestone stands against the twelve long-term goals in `AGENTS.md`, and
 which of them have deadlines attached: `docs/GOAL_ALIGNMENT.md`. Re-run that
@@ -244,33 +246,21 @@ questions into ordinary implementation work, and that work now comes before the
 Unity view, because every one of them is a behaviour a renderer would display
 incorrectly.
 
-**Where to pick up, 2026-09-01 (fifth sitting).** **Every known defect from the
-original list is now fixed.** Q31 the gold carrier, Q47 the work rate, Q53 the
-imp mana upkeep, Q20 the dig rate, Q62 the upward-work rule, Q28/Q48
-eight-connected movement, Q43 the crowding cap, Q52 the heart's 16000 and — last
-— Q44/Q42 the work stance are all built. What is left, in the order it is worth
-doing:
+**Where to pick up, 2026-09-03 (sixth sitting).** **Every known defect from the
+original list is fixed, and selling is built.** Q31 the gold carrier, Q47 the
+work rate, Q53 the imp mana upkeep, Q20 the dig rate, Q62 the upward-work rule,
+Q28/Q48 eight-connected movement, Q43 the crowding cap, Q52 the heart's 16000,
+Q44/Q42 the work stance and Q34 selling are all built. What is left, in the order
+it is worth doing:
 
-1. **Selling a room (Q34).** Answered and unimplemented: **50% of the cost, per
-   tile** - and, correcting four sessions of this file,
-   **`RoomSellValuePercentageOfCost` is 50, not 100.** Our own
-   `docs/research/game-database-dump.md` said 50 the whole time.
-   `RoomDef.ReturnPercentage` is not a rival reading of the same number but a
-   **per-room gate**: 100 for every buildable room and 0 for exactly the hero
-   gates, which a keeper cannot sell. So this needs **no observed constant**, and
-   the prediction that it would be the second member of the `ImpCrowding`
-   category was wrong. `DoorSellValuePercentageOfCost` and
-   `TrapSellValuePercentageOfCost` are 50 as well. Small, self-contained, and a
-   gold sink the economy does not have.
-
-2. **Unity presentation** — the simulation runs a dig scenario with moving
+1. **Unity presentation** — the simulation runs a dig scenario with moving
    workers and a keeper building a room, headlessly, which was the precondition.
    `CreatureState.PosX/PosY` are fixed point in tile units; a renderer converts,
    the simulation never does. **`docs/GOAL_ALIGNMENT.md` gap 3 applies here and
    is the expensive one to miss: the asset abstraction layer must land in the
    same milestone as the first Unity view, not after it.**
 
-3. **What rooms actually do.** Room instances exist now (ADR-0027), so the
+2. **What rooms actually do.** Room instances exist now (ADR-0027), so the
    machinery is finally there: `RoomInstance` gives a room its tile count, its
    bounding box, its rim and whether it is big enough to function. A lair, a
    hatchery, a library and the rest are still inert terrain, and each needs its
@@ -526,7 +516,7 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 66 (Q1-Q63; Q51 superseded). The ones that gate progress:
+`docs/research/open-questions.md` holds all 68 (Q1-Q65; Q51 superseded). The ones that gate progress:
 
 - **Q53 is ANSWERED and built** (2026-08-30): 7 mana a second per imp, measured
   by the owner and read off DK2's own Create Imp spell record (ADR-0022). Left in
@@ -597,15 +587,17 @@ implementation.
 
 ---
 
-## Where the project stood at the 2026-09-01 compaction
+## Where the project stood at the 2026-09-03 compaction
 
-Four sittings of owner measurements and five ADRs, then one more the day after
-that needed no measurement at all. The state:
+Six sittings of owner measurements and six ADRs - one of which needed no
+measurement at all, and one of which needed no new data either, only a look at
+the dump we already had. The state:
 
-**339 tests green** with and without a DK2 install (Core 14, Simulation 214,
-Data 41, Behavior 70), nine scenarios running, clean tree.
+**354 tests green** with and without a DK2 install (Core 14, Simulation 228,
+Data 41, Behavior 71), ten scenarios running, clean tree.
 
-**Every known defect is fixed.** In the order they fell:
+**Every known defect is fixed, and the room economy now runs both ways.** In the
+order they fell:
 
 | | |
 |---|---|
@@ -619,9 +611,10 @@ Data 41, Behavior 70), nine scenarios running, clean tree.
 | ADR-0026 | Q43 — three workers to a face, the fourth goes elsewhere |
 | ADR-0027 | Q52/Q45/Q60 — a room is an instance, derived rather than stored |
 | ADR-0028 | Q44/Q42/Q49 — floor is worked from on top of it, walls from beside |
+| ADR-0029 | Q34 — selling returns half the cost, and the data said so all along |
 
 **Nothing is left on that list**, which is why the pick-up list above now starts
-with selling a room and then goes to the Unity view.
+with the Unity view.
 
 **Two mechanisms were created for numbers that come from observation rather than
 from the files, and both are meant to stay narrow:**
@@ -630,12 +623,13 @@ from the files, and both are meant to stay narrow:**
   observed behaviour. One member: `DigRockHealth`. Four rules for adding a
   second are written on the type.
 - `ImpCrowding` — the file carries *no* value at all. One member: three workers
-  to a face. **Q34 was expected to join it and does not**: the shipped
-  `RoomSellValuePercentageOfCost` really is 50 and this file had it wrong. The
-  live candidate is now the **~500 ms pause after claiming** (Q49) - real,
-  observed, and in no field we read, because every `...Seconds` variable in the
-  balance table is a whole number and none is below 1. It needs a measurement
-  first; see `observation-checklist.md` for the chain-of-ten method.
+  to a face. **Q34 was expected to join it and does not** (ADR-0029): the shipped
+  `RoomSellValuePercentageOfCost` really is 50 and this file had it wrong, so
+  selling needed no override at all. The live candidate is now the **~500 ms
+  pause after claiming** (Q49) - real, observed, and in no field we read, because
+  every `...Seconds` variable in the balance table is a whole number and none is
+  below 1. It needs a measurement first; see `observation-checklist.md` for the
+  chain-of-ten method.
 
 **The research method that produced all of this is written up in three places
 and is worth reading before the next research push:** the call-out at the top of

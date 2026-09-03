@@ -101,6 +101,12 @@ public sealed class ScenarioCommand
     public ScenarioBuild? Build { get; set; }
 
     /// <summary>
+    /// Tiles to sell the rooms on, as <c>[[x, y], …]</c>, in the order each
+    /// refund is banked.
+    /// </summary>
+    public List<List<int>> Sell { get; set; } = [];
+
+    /// <summary>
     /// Casts Create Imp: buy one imp at the dungeon heart for mana. The first
     /// scenario command that SPENDS a resource rather than earning or moving
     /// one.

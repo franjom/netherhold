@@ -104,6 +104,46 @@ public class RoomsOnRealDataTests
         Assert.Equal(3000, db[VariableTypeId.MaxGoldPerTreasuryTile]);
         Assert.Equal(1000, db[VariableTypeId.MaxGoldPerDungeonHeartTile]);
         Assert.Equal(2000, db[VariableTypeId.MaxGoldPileOutsideTreasury]);
+
+        // The sell rate the fixture copies (Q34). This is the assertion that
+        // would have caught four sessions of recording it as 100.
+        Assert.Equal(50, db[VariableTypeId.RoomSellValuePercentageOfCost]);
+        Assert.Equal(50, db[VariableTypeId.DoorSellValuePercentageOfCost]);
+        Assert.Equal(50, db[VariableTypeId.TrapSellValuePercentageOfCost]);
+    }
+
+    /// <summary>
+    /// <b>`ReturnPercentage` is a per-room gate, not a rival refund rate</b> (Q34).
+    /// It is 100 for every room a keeper can build and 0 for every room they
+    /// cannot sell, and the fact that those two sets coincide is what makes the
+    /// reading more than a guess. Asserted in both directions, so that "it is
+    /// always 100" could not fit the same evidence.
+    /// </summary>
+    [Fact]
+    public void ReturnPercentageIsZeroForExactlyTheRoomsAKeeperCannotSell()
+    {
+        GameDatabase? db = RealDatabase();
+        if (db is null) return;
+
+        RoomDef[] zero = [.. db.Rooms.Values.Where(r => r.ReturnPercentage == 0)];
+        RoomDef[] hundred = [.. db.Rooms.Values.Where(r => r.ReturnPercentage == 100)];
+
+        // Nothing in between: the field is a gate, not a scale.
+        Assert.Equal(db.Rooms.Count, zero.Length + hundred.Length);
+
+        // Not one of the zero rows is buildable, and every zero row is a gate.
+        Assert.All(zero, r => Assert.False(r.IsBuildable));
+        Assert.All(zero, r => Assert.Contains("Gate", r.Name));
+        Assert.NotEmpty(zero);
+
+        // And every buildable room refunds exactly half its cost.
+        RoomDef[] buildable = [.. db.Rooms.Values.Where(r => r.IsBuildable)];
+        Assert.NotEmpty(buildable);
+        Assert.All(buildable, r =>
+            Assert.Equal(r.Cost / 2, RoomRules.RefundPerTile(db, r)));
+
+        // A temple is the expensive end of it: 3000 a tile, 1500 back.
+        Assert.Equal(1500, RoomRules.RefundPerTile(db, db.Room(RoomTypeId.Temple)));
     }
 
     [Fact]

@@ -1041,3 +1041,93 @@ imp here goes straight on to the next job.
   be when the job is done" is now askable without simulating it.
 - No new state, so **no `HashVersion` bump** — but imp *positions* differ, so
   scenario hashes moved.
+
+---
+
+## ADR-0029 — Selling a room returns half its cost, and the data said so all along
+
+**Date.** 2026-09-03. **Status.** Accepted.
+
+**Context.** Q34 asked what selling a room refunds. The owner observed **50% of
+the cost, per tile** on 2026-08-29, and this project recorded the answer with a
+warning attached: that the number appeared in *neither* candidate variable, since
+`RoomDef.ReturnPercentage` and `RoomSellValuePercentageOfCost` "both say 100". It
+was written up as the next member of the `ImpCrowding` category — a behaviour
+observed in the original with no value anywhere in the files — and the pick-up
+list carried it for four sessions on that footing.
+
+**That was wrong, and it was our own error.** `RoomSellValuePercentageOfCost` is
+**50**. `docs/research/game-database-dump.md` — a file this project generated
+from the install — has said 50 since it was written. The 100 came from a
+transcription that nobody checked against the dump, and having believed a number
+absent, the plan was to invent an override for it.
+
+**Decision.** Selling is implemented, entirely from the data.
+
+**The refund.** `RoomRules.RefundPerTile` = `Cost` × `ReturnPercentage`% ×
+`RoomSellValuePercentageOfCost`%. With the shipped numbers that is half the cost
+per tile for every buildable room: a treasury 100 of its 200, a temple 1500 of
+its 3000. Exactly what the owner measured.
+
+**`ReturnPercentage` is a per-room gate, not a rival refund rate.** This is the
+reading that makes the two variables agree rather than compete:
+
+| | |
+|---|---|
+| **100** | every room a keeper can build — 17 of them |
+| **0** | exactly the hero gates, which a keeper cannot sell |
+
+Nothing in between. That the zero rows coincide precisely with the unsellable
+rooms is the internal check, and it is asserted in both directions so that "the
+field is always 100" could not fit the same evidence. Whether the two numbers
+multiply or the per-room value overrides the global is **indistinguishable on
+shipped data** — no room carries a middle value — so the behaviour is settled and
+the composition is not. They are multiplied, which is the reading that still
+behaves sensibly on data we do not have.
+
+**Sellable means buildable.** The same `Buildable` flag that decides what a
+keeper may put down decides what they may take up, so the two rules can never
+disagree and nothing in the code names a portal or a dungeon heart.
+
+**The tile reverts to its terrain's own `DestroyedTypeTerrainId`**, which for
+every room terrain in the shipped data is Claimed Path — and **CONFIRMED by the
+owner the same day**: a sold treasury tile becomes claimed floor. Ownership is
+not cleared, for the same reason `TileWorkRules` never clears it: selling your
+own room does not hand the ground to nobody.
+
+**What happens to gold on a sold treasury tile is CONFIRMED and half
+implemented.** The owner: the gold **drops onto the claimed floor tile that
+replaces the store** and comes off the keeper's spendable total until somebody
+fetches it. Two of those three things are reproduced — the tile reverts, and the
+total falls by exactly that much, so the *economy* of a sale is right. The pile
+is missing, because a pile is an OBJECT and objects arrive at M6 (Q31). So a
+keeper here loses permanently what a keeper there can pick back up, and the run
+says so as `gold_displaced` rather than hiding it. Same for a refund with nowhere
+to go (`refund_lost`).
+
+**Ordering.** `RoomSellSystem` runs **before** `RoomBuildSystem`, so a keeper can
+sell one room to afford another on the same tick — the friendlier of the two
+orderings, and the same reasoning as `ImpSupplySystem` running after the mana it
+spends. Within a command, tiles are sold one at a time and each refund is banked
+before the next tile goes, so a keeper selling their whole treasury runs out of
+somewhere to put the money at a point the run can name.
+
+**Consequences.**
+
+- Doors and traps come free: `DoorSellValuePercentageOfCost` and
+  `TrapSellValuePercentageOfCost` are **50** as well, which answers the owner's
+  next question before they tested it. Neither is implemented — a door and a trap
+  are objects (M6).
+- **Selling a bridge is known wrong, and the data is why** (Q64). A wooden
+  bridge's destroyed type is Claimed Path like every other room terrain, so
+  selling a bridge over water leaves walkable floor where there should be water.
+  The tile does not record what was underneath — the MAP record's byte 3 is
+  bridge-related and unparsed (Q16). Reproduced as the data has it rather than
+  special-cased, and the event names it.
+- Selling is **instant**; in DK2 an imp walks over and dismantles the tile, which
+  is the same missing worker job as building (Q24).
+- The harness gained a `sell:` command, and
+  `scenarios/rooms/sell_a_room_back.yaml` runs the whole thing — including a
+  dungeon heart being refused in the middle of a selection.
+- **No new state, so no `HashVersion` bump.** The economy now has its first sink
+  that runs backwards.

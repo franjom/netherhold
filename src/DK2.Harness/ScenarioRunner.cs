@@ -333,9 +333,11 @@ public sealed class ScenarioRunner
             if (c.Untag.Count > 0) list.Add(new TagTilesCommand(c.Player, ToTiles(c.Untag), false));
 
             bool built = c.Build is not null && TryBuild(c, list, unsupported);
+            if (c.Sell.Count > 0) list.Add(new SellRoomCommand(c.Player, ToTiles(c.Sell)));
             if (c.CreateImp) list.Add(new CreateImpCommand(c.Player));
 
-            if (c.Tag.Count == 0 && c.Untag.Count == 0 && !built && !c.CreateImp)
+            if (c.Tag.Count == 0 && c.Untag.Count == 0 && !built
+                && c.Sell.Count == 0 && !c.CreateImp)
                 unsupported.Add($"commands entry at_tick={c.AtTick} names nothing this build can do");
         }
 

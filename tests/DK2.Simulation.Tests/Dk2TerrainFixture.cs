@@ -217,6 +217,7 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.MinimumImpThreshold, 4);
         Set(vars, VariableTypeId.TimeBeforeFreeImpGeneratedSeconds, 5);
         Set(vars, VariableTypeId.MaxGoldPerTreasuryTile, 3000);
+        Set(vars, VariableTypeId.RoomSellValuePercentageOfCost, 50);
         Set(vars, VariableTypeId.MaxGoldPerDungeonHeartTile, 1000);
         Set(vars, VariableTypeId.MaxGoldPileOutsideTreasury, 2000);
         Set(vars, VariableTypeId.MaximumManaThreshold, 200000);
