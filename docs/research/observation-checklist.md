@@ -40,7 +40,7 @@ having to dig them out of the question list.
 | Q30 | Terrain does **not** weight a path; the shortest route wins even through water |
 | Q31 | An imp mines **into its own hands** and delivers when full; a floor lump is the fallback for when there is nowhere to store it |
 | Q33 | A room tile must **touch land the keeper owns** |
-| Q34 | Selling refunds **50% of the cost, per tile** — a number in neither candidate variable |
+| Q34 | Selling refunds **50% of the cost, per tile** — and the data says 50 too; the "neither variable" note was our own transcription error |
 | Q36 | A 1×1 temple really is buildable; minimum sizes are about **function**, not building |
 | Q37 | The mana ceiling is a flat **200000** and never moves |
 | Q38 | The mana gain cap is **per keeper**, not shared |
@@ -51,8 +51,12 @@ having to dig them out of the question list.
 | Q7 | What angers a creature: **no lair, hunger, no pay, the company of creatures they hate** |
 | Q9 | Unpaid → unhappy → angry → **leaves**; a converted creature **rebels** instead |
 
-Four of those contradicted the implementation (Q24, Q28, Q42/Q44, Q43) and two
-contradicted the data (Q34's refund, Q37's ceiling). That is the list working.
+Four of those contradicted the implementation (Q24, Q28, Q42/Q44, Q43) and one
+contradicted the data (Q37's ceiling). That is the list working. **Q34 looked
+like a second such contradiction and was not**: `RoomSellValuePercentageOfCost` is
+50, exactly as observed, and had been mis-transcribed here as 100 for four
+sessions - our own extracted dump said 50 the whole time. Check the dump before
+recording a number as absent.
 
 **One was also corrected by the owner after the fact** — the claim count came
 back as ten jumps and was revised to 2–4 the same day. Worth recording as
@@ -267,8 +271,11 @@ the same model that 273 gold a swing fixed, and neither has been checked against
 the game. If they land, the model is confirmed on numbers three orders of
 magnitude apart and `DigRockHealth` is definitively alone.
 
-### Q48 — what does a diagonal step cost? — **mostly answerable without playing**
-Asking you to time this was the wrong ask, and here is a better answer.
+### Q48 — what does a diagonal step cost? — **ANSWERED, and you confirmed it**
+You looked (2026-09-03): **a glide, not a staircase.** That is the whole of part
+(a), and it agrees with what the physics forced. Nothing further is needed here;
+the reasoning below is kept because it is the second case where deriving beat
+asking, and part (b) is still open.
 
 **The half that blocks Q28 is forced by physics, not by observation.** A
 creature's speed is in **tiles per second** (Q29 — and three variables in the
@@ -343,11 +350,41 @@ tile becomes rock, so a worker standing on it would be sealed inside its own
 work. Repairing and attacking floor are then the same case as claiming, because
 they are the same geometry. See ADR-0028.
 
-**What is still worth a look, and is small:** is the **~500 ms an imp lingers**
-after claiming a real pause before its next job, or just the claim animation
-finishing? Watch whether an imp with another claimable tile right beside it
-sets off *immediately* or hesitates. We model no pause at all, so a visible
-hesitation is the thing that would change something.
+**The pause is real, and now it needs a number.** You looked (2026-09-03): an
+imp that has claimed a tile **hesitates** before starting the next one. That is
+worth more than it sounds, because you separately reported that an imp whose
+*wall* has just fallen moves straight on - so this is specific to claiming, not a
+generic pause after every job. At roughly 500 ms on top of a 0.8 s claim it is a
+~60% tax on how fast territory spreads, so it is not cosmetic.
+
+**The balance table has no field for it.** Every `...Seconds` variable in it is a
+whole number and none is below 1, so a sub-second delay is in nothing we read.
+Before it goes into the simulation it needs a measurement, and 500 ms is below
+anybody's stopwatch reaction time - so **do not time one claim, time a chain of
+them**:
+
+1. One imp, one straight run of **10 unclaimed floor tiles** it can reach, and
+   nothing else marked anywhere.
+2. Start the clock when it lands on the first tile, stop it when the tenth turns
+   your colour.
+3. **We predict about 12 s with no pause** (10 claims at 0.8 s of work, plus the
+   walking). **A 500 ms pause makes it about 17 s.** Five seconds apart is far
+   wider than your reaction time, and dividing by ten gets the per-tile pause to
+   a precision a single observation could never reach.
+
+This is the same trick that made reinforcing measurable: you timed 66 swings, not
+one.
+
+**One loose end from the same session, and it is probably nothing.** You noticed
+that while one imp was claiming, *the others did not join in*. Under our rules
+they would - claiming outranks reinforcing, so every free imp should pile onto
+unclaimed floor. The innocent explanation is that they were already **mid-job**,
+and a reinforce takes 13 s, so a few seconds of watching would show exactly what
+you saw; our imps do not abandon a job in progress either. Worth one look if it
+is cheap: **with several genuinely idle imps and a patch of unclaimed floor, do
+several of them claim at once, or does one do it while the rest go elsewhere?**
+If it is one at a time, our priority order is too eager and that is a real
+finding.
 
 ### Q63 — what does training cost? — **20 at a dummy, 0 at the target**
 You measured a melee creature swinging at a training dummy paying **20 gold** an
@@ -446,9 +483,46 @@ it.
 have come from a 3x5, and three consecutive squares landing on 4n-4 leaves
 nothing else standing.
 
-**What is left:** a **non-square** temple (a 3x5 should give 12, a 3x7 should
-give 16) and **one more graveyard size** (a 4x4, or a 7x7 - the prediction is 24
-if the interior-ring rule holds).
+**You asked what these two are actually for. Here is exactly what each would
+settle, and neither is about confirming a number I already believe.**
+
+**The non-square temple: 3x5.** All three temple measurements were *squares*, so
+width and height were never independent - and **any rule that agrees along w = h
+is indistinguishable from the rim count on the evidence we have.** A 3x5 splits
+them three ways:
+
+| what the rule might be | 3x5 predicts |
+|---|---|
+| **edge tiles**, `2(w+h) - 4` - what is implemented | **12** |
+| `4 x (smaller side - 1)` | 8 |
+| `4 x (larger side - 1)` | 16 |
+
+So a 3x5 temple is not a fourth data point on a line - it is the only
+measurement that can tell a rim from a rule keyed on one dimension. If it says 8
+or 16, `RoomInstance.EdgeTileCount` is wrong and so is the story about creatures
+standing on the pool rim.
+
+**The graveyard: the cheapest test is not a new room at all.** The whole
+ambiguity is one tile. A 5x5 graveyard has **9 interior tiles**, and you counted
+**8** graves - "a coffin with eight headstones round it". Two readings fit:
+
+- **graves = interior tiles** (9), and the coffin at the centre is the ninth
+  burial spot, drawn differently and so counted separately by eye;
+- **graves = interior tiles minus one** (8), the centre being a fixture rather
+  than a grave.
+
+And 3x3 does not separate them: its interior is a single tile, and you saw one
+grave, which both readings allow.
+
+1. **If the graveyard has a capacity in its tooltip the way the temple did, just
+   read it off a 5x5.** 8 or 9 ends the question in one look, on a room you may
+   already have built.
+2. **Otherwise build a 4x4.** Its interior is a 2x2 block with **no centre tile
+   at all**, so there is no coffin-versus-headstone ambiguity to muddy the count:
+   the first reading predicts **4**, the second predicts **3**.
+
+That is why 4x4 rather than a bigger one - a 7x7 would give 25 against 24 and
+leave you counting headstones in a crowd.
 
 ### Q61 — does a small temple really not attract Dark Angels?
 You flagged this as needing verifying, and **the data does not support it**.

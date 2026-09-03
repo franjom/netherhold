@@ -13,12 +13,12 @@ carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
 five record types M1 needed are done. **339 tests green** with and without a DK2
 install; nine scenarios run; clean tree. (Core 14, Simulation 214, Data 41, Behavior 70.)
 
-> ### ⚠ Read this first: four sittings of owner answers, 2026-08-29 and 30
+> ### ⚠ Read this first: five sittings of owner answers, 2026-08-29 to 09-03
 >
 > From playing the original, the owner has supplied answers to **Q7, Q9, Q12,
 > Q20, Q21, Q24, Q25, Q26, Q27, Q28, Q30, Q31, Q32, Q33, Q34, Q36, Q37, Q37a,
-> Q37b, Q38, Q40, Q42, Q43, Q44, Q45, Q46, Q47, Q52, Q53, Q54, Q58, Q59, Q60,
-> Q62, Q63** plus the one-dungeon-heart rule, the four-imp floor and the Create
+> Q37b, Q38, Q40, Q42, Q43, Q44, Q45, Q46, Q47, Q48, Q49, Q52, Q53, Q54, Q58,
+> Q59, Q60, Q62, Q63** plus the one-dungeon-heart rule, the four-imp floor and the Create
 > Imp price. `docs/research/open-questions.md` has every one;
 > `docs/research/observation-checklist.md` is the file to hand back for more.
 >
@@ -46,7 +46,7 @@ install; nine scenarios run; clean tree. (Core 14, Simulation 214, Data 41, Beha
 > from two physical clauses instead of listing it per work kind. See the fourth
 > lesson below.
 >
-> **Four lessons from these sittings, in order of how much they cost to learn:**
+> **Five lessons from these sittings, in order of how much they cost to learn:**
 >
 > 1. **Ask for the quantity by name.** "How much gold per swing" got an answer
 >    that "how fast does mining feel" could not have.
@@ -58,7 +58,13 @@ install; nine scenarios run; clean tree. (Core 14, Simulation 214, Data 41, Beha
 >    upkeep search failed for a whole session because it required an unverified
 >    2000 to also be true; the negative it produced was therefore worthless, and
 >    it hid the fact that the search was in the wrong file entirely.
-> 4. **Some questions are cheaper to derive than to observe.** Q49 asked which of
+> 4. **Check our own extracted dump before recording a number as absent.** Q34
+>    was written up for four sessions as "the refund is in neither candidate
+>    variable" on the strength of a mis-transcribed 100. `RoomSellValuePercentageOfCost`
+>    is 50, `docs/research/game-database-dump.md` said so all along, and the
+>    owner's observation matched the shipped value exactly. A number believed
+>    absent sends you looking for an override you do not need.
+> 5. **Some questions are cheaper to derive than to observe.** Q49 asked which of
 >    four floor jobs are worked standing on the tile. Asking for four observations
 >    was the obvious move; the right one was to notice that *filling a tile in
 >    turns it to rock*, so a worker standing on it would be entombed — and that
@@ -246,11 +252,16 @@ eight-connected movement, Q43 the crowding cap, Q52 the heart's 16000 and — la
 doing:
 
 1. **Selling a room (Q34).** Answered and unimplemented: **50% of the cost, per
-   tile**, and the number is in *neither* candidate variable — `ReturnPercentage`
-   and `RoomSellValuePercentageOfCost` both say 100. So it is a second member of
-   the "observed, absent from the data" category that `ImpCrowding` opened, and
-   it belongs beside that constant with the same four rules applied. Small,
-   self-contained, and a gold sink the economy does not have.
+   tile** - and, correcting four sessions of this file,
+   **`RoomSellValuePercentageOfCost` is 50, not 100.** Our own
+   `docs/research/game-database-dump.md` said 50 the whole time.
+   `RoomDef.ReturnPercentage` is not a rival reading of the same number but a
+   **per-room gate**: 100 for every buildable room and 0 for exactly the hero
+   gates, which a keeper cannot sell. So this needs **no observed constant**, and
+   the prediction that it would be the second member of the `ImpCrowding`
+   category was wrong. `DoorSellValuePercentageOfCost` and
+   `TrapSellValuePercentageOfCost` are 50 as well. Small, self-contained, and a
+   gold sink the economy does not have.
 
 2. **Unity presentation** — the simulation runs a dig scenario with moving
    workers and a keeper building a room, headlessly, which was the precondition.
@@ -274,12 +285,16 @@ at 600 seconds (Q9, needs creatures that get paid at M4); creature attraction
 and defeat (Q40, needs portals and objectives).
 
 **The cheapest unanswered observations**, if the owner is ever at the keyboard:
-fill-in now predicts **660 swings, about 132 seconds** for one tile (Q22) and
-that is untested and a long time; a **non-square temple** would finish Q60's
-temple half; **one more graveyard size** would settle its grave rule; and a
-**diagonal walk across a large claimed room** would confirm Q48 from the outside
-(7 tiles predicts 3.8 s straight against 5.4 s diagonal), though octile is
-already implemented from the physics and nothing waits on it.
+**a chain of ten claims timed end to end** would give the Q49 pause a number
+(about 12 s with no pause against 17 s with one), and that is the only thing
+blocking an implementation; fill-in now predicts **660 swings, about 132
+seconds** for one tile (Q22) and that is untested and a long time; a **3x5
+temple** is the only shape that can tell Q60's rim rule from a rule keyed on one
+dimension, since all three measurements so far were squares; and a **5x5
+graveyard's stated capacity** - 8 or 9 - would settle its grave rule in one look,
+with a **4x4** as the fallback. **Q48 came off this list on 2026-09-03**: the
+owner watched a creature cross open ground and it glides rather than
+staircasing.
 
 **Q47 came off this list on 2026-08-30 and is done.** It had said: get exact hit
 counts before touching `SimulationTiming.WorkApplicationPeriodTicks`. The exact
@@ -615,11 +630,16 @@ from the files, and both are meant to stay narrow:**
   observed behaviour. One member: `DigRockHealth`. Four rules for adding a
   second are written on the type.
 - `ImpCrowding` — the file carries *no* value at all. One member: three workers
-  to a face. Q34's 50% sell refund is the known next member.
+  to a face. **Q34 was expected to join it and does not**: the shipped
+  `RoomSellValuePercentageOfCost` really is 50 and this file had it wrong. The
+  live candidate is now the **~500 ms pause after claiming** (Q49) - real,
+  observed, and in no field we read, because every `...Seconds` variable in the
+  balance table is a whole number and none is below 1. It needs a measurement
+  first; see `observation-checklist.md` for the chain-of-ten method.
 
 **The research method that produced all of this is written up in three places
 and is worth reading before the next research push:** the call-out at the top of
-this file (four lessons), `docs/research/imps-and-mana.md` §*How this was
+this file (five lessons), `docs/research/imps-and-mana.md` §*How this was
 established* (the failure and recovery in full), and
 `docs/research/observation-checklist.md` (what is still worth asking, and what
 playing cannot settle).

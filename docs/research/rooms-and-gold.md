@@ -310,10 +310,11 @@ original — recorded as Q36 rather than fixed by inventing a size rule.
 it. That is another worker job with the same UNKNOWN trigger as every other
 unprompted imp job (Q24), so building here is instant and the report says so.
 
-**Rooms cannot be sold.** Two numbers claim to govern the refund and they are not
-obviously the same thing: `RoomDef.ReturnPercentage` (100 for every room) and the
-global `RoomSellValuePercentageOfCost`. Both being 100 makes selling free, which
-is not how the original plays. Q34.
+**Rooms cannot be sold**, though the refund rate is now known and needs nothing
+invented. `RoomSellValuePercentageOfCost` is **50**, and the owner independently
+observed a 50% refund per tile (Q34). `RoomDef.ReturnPercentage` is a per-room
+gate on top of it: 100 for every buildable room and **0 for exactly the hero
+gates**, which a keeper cannot sell. Q34.
 
 **The objects a room places on its tiles** (`RoomDef.ObjectIds`) are not read.
 M6.
@@ -360,12 +361,6 @@ or a destroyed treasury, and there is nothing here for it to collect.
 ---
 
 ## What does not fit
-
-**Selling refunds everything.** `ReturnPercentage` is 100 for all 26 rooms and
-`RoomSellValuePercentageOfCost` is 100 as well, which would make a room free to
-try. The original does not play that way. One of the two numbers is not what its
-name says, or selling applies a rule neither of them describes. Q34; selling is
-not implemented, so nothing depends on the answer yet.
 
 **The treasury costs the same as a wooden bridge.** 200 apiece, where a lair is
 300 and a temple 3000. Nothing wrong with it — just worth noting before anyone
