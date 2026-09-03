@@ -69,8 +69,11 @@ namespace DK2.Simulation.Systems;
 /// appear in islands across the map. CONFIRMED (Q42); the alternative — any
 /// reachable floor, anywhere — is refuted. Marked work carries no such
 /// condition: a keeper may tag a wall anywhere.</item>
-/// <item><b>Three workers to a face</b>, and the fourth goes and finds other
-/// work rather than queueing (Q43, CONFIRMED). See <see cref="ImpCrowding"/>.</item>
+/// <item><b>Three workers to a face of a wall, and exactly one to a floor tile
+/// somebody is standing on to claim it</b> — the surplus goes and finds other
+/// work rather than queueing (Q43, CONFIRMED both ways). The cap is per job
+/// rather than per tile, which is observed and not derivable; see
+/// <see cref="ImpCrowding"/>.</item>
 /// <item><b>A wall is worked from beside it and floor is worked from on top of
 /// it.</b> CONFIRMED both ways: a gold block takes three imps a side and twelve
 /// in all, which is four sides of three (Q27), and an imp claims a floor tile by
@@ -622,14 +625,15 @@ public sealed class ImpTaskSystem : ISimulationSystem
             }
         }
 
-        // Three workers to a face, and a fourth goes and finds other work rather
-        // than queueing (Q43). Rejecting the FACE rather than the tile is what
-        // makes that happen: the search simply carries on to the next standing
-        // tile, which may be another side of this same block or another block
-        // entirely. For a job done on the tile itself the face IS the tile, which
-        // is the same rule — the cap is physical room to stand.
+        // Three workers to a face for a wall and exactly ONE for a tile a worker
+        // stands on to claim it (Q43, Q44), and the surplus goes and finds other
+        // work rather than queueing. Rejecting the FACE rather than the tile is
+        // what makes that happen: the search simply carries on to the next
+        // standing tile, which may be another side of this same block, another
+        // block, or another priority entirely.
         int index = (target.Y * world.Width) + target.X;
-        if (ImpCrowding.FaceIsFull(world, context.Database, index, standing, askingCreatureId))
+        if (ImpCrowding.FaceIsFull(
+                world, context.Database, index, standing, askingCreatureId, onTheTile))
         {
             kind = default;
             return false;

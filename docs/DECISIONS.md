@@ -1131,3 +1131,60 @@ somewhere to put the money at a point the run can name.
   dungeon heart being refused in the middle of a selection.
 - **No new state, so no `HashVersion` bump.** The economy now has its first sink
   that runs backwards.
+
+---
+
+## ADR-0030 — The crowding cap follows the stance: three to a wall, one to a floor tile
+
+**Date.** 2026-09-03. **Status.** Accepted. **Refines** ADR-0026.
+
+**Context.** ADR-0026 implemented the owner's observation of three imps to a face
+and twelve to a block, and justified it as *"the limit is physical space on a
+tile"*. ADR-0028 then gave floor jobs a different stance — an imp claims a tile
+by standing **on** it — and reused the same cap on the grounds that standing on
+the target *is* standing on a tile, so the same rule applied.
+
+**That reasoning was wrong, and the owner's next observation says so**
+(2026-09-03): *"only one claiming imp jumping per unclaimed tile is allowed"*.
+
+Three imps really do share a single tile to get at a wall. Only one may stand on
+a floor tile to claim it. So the cap is **not** about how many bodies fit on a
+tile — if it were, the two numbers would agree. It is per job.
+
+**A test was passing for the wrong reason because of this.**
+`AnImpDoesNotCountItselfOutOfItsOwnFace` ticked four times past its crowding
+assertions and checked three imps still held the block. Three imps swinging
+together put 300 damage into a plain wall's 165, so the block had already fallen
+and the tile had become claimable floor — what the assertion actually read was
+**three imps claiming one tile**, which the original does not do. The wrong cap
+made a wrong test green.
+
+**Decision.** `ImpCrowding.MaxWorkers(workedFromTheTile)` — **1** on the tile,
+**3** from a neighbour — and `FaceIsFull` takes the stance. `ImpTaskSystem`
+already knows which stance a job uses (ADR-0028), so nothing new is computed and
+no work kind is named.
+
+**Confidence.** CONFIRMED for both numbers, and **neither is derived**. That is
+worth stating plainly, because the pull towards one unifying number was what
+produced the error: the tidier story ("a tile holds three workers") is refuted by
+the very observation that gave us the second number. Both are here because both
+were watched.
+
+**Also CONFIRMED the same day:** *"imps claim tiles adjacent to claimed tiles"* —
+which is Q42 exactly as implemented since ADR-0028, the ownership condition
+sitting on the target's neighbour rather than on the imp's feet. **Whether
+"adjacent" includes diagonals is UNKNOWN** and now matters, because movement is
+eight-connected (ADR-0025) so a corner-touching tile is reachable. Orthogonal is
+what is implemented, matching the way work spreads (Q27). New as Q66.
+
+**Consequences.**
+
+- Visible in the scenarios: `imps-carry-gold-home` previously had both imps claim
+  the tile they had just mined out; now one claims it and the other goes to
+  reinforce, so its hash moved.
+- The claim of ADR-0026 that the cap counts across every player still holds — two
+  keepers' imps are in each other's way — but its stated *reason* is replaced by
+  this one.
+- `ImpCrowding`'s note about the balance table having no crowding limit for
+  workers now covers two numbers rather than one; neither is in any file we read.
+- No new state, so **no `HashVersion` bump**.

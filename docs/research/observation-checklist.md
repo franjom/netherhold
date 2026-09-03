@@ -375,16 +375,18 @@ them**:
 This is the same trick that made reinforcing measurable: you timed 66 swings, not
 one.
 
-**One loose end from the same session, and it is probably nothing.** You noticed
-that while one imp was claiming, *the others did not join in*. Under our rules
-they would - claiming outranks reinforcing, so every free imp should pile onto
-unclaimed floor. The innocent explanation is that they were already **mid-job**,
-and a reinforce takes 13 s, so a few seconds of watching would show exactly what
-you saw; our imps do not abandon a job in progress either. Worth one look if it
-is cheap: **with several genuinely idle imps and a patch of unclaimed floor, do
-several of them claim at once, or does one do it while the rest go elsewhere?**
-If it is one at a time, our priority order is too eager and that is a real
-finding.
+**That loose end is closed, and it was not nothing.** I had written this off as
+"they were probably mid-job". You answered it directly: **only one claiming imp
+per unclaimed tile is allowed.** So the reason the others did not join in was a
+rule, not a coincidence — and our cap was wrong, because ADR-0028 had reused the
+three-a-face wall number for a job done standing on the tile.
+
+It also refutes the *reason* ADR-0026 gave for that cap. "Three is how many
+bodies fit on a tile" cannot be right when three share a tile to reach a wall and
+only one may stand on floor. **The cap is per job, and both numbers are observed
+rather than derived** (ADR-0030). Worth remembering the shape of this: the tidier
+single-number story was the one that turned out to be wrong, and it had also made
+a test pass for the wrong reason.
 
 ### Q63 — what does training cost? — **20 at a dummy, 0 at the target**
 You measured a melee creature swinging at a training dummy paying **20 gold** an
@@ -570,3 +572,23 @@ measurement tooling, or disassembly, and are scheduled accordingly:
 - **Q11, Q13, Q14, Q15, Q16, Q17** — record layouts and field meanings.
 - **Q37a — what `MaxManaGain` and `DungeonHeartMaxManaIncrease` are for.** Closed
   by elimination; they affect nothing a player can see.
+
+### Q66 — does "adjacent to claimed ground" include diagonals? — **new, and cheap**
+
+You said imps claim tiles **adjacent to claimed tiles**, which confirms the rule
+as built. What it does not settle is what "adjacent" means at a **corner**.
+
+This was a non-question until last week. While movement was four-connected an imp
+could not get to a corner-touching tile anyway; now that movement is
+eight-connected (Q28, your corner-cutting answer) it can, so the two readings give
+visibly different dungeons — a diagonal reading lets territory spread through a
+corner and creep around a pillar, an orthogonal one walls it off.
+
+**Orthogonal is what is implemented**, which at least keeps it consistent with the
+way work spreads (Q27, three imps a side) and the way we decide which tiles make
+up one room.
+
+**The experiment:** claim a tile, then dig out **only** the tile diagonally beyond
+one of its corners — no orthogonal route of owned floor to it. Then leave an imp
+with nothing else to do and see whether it claims the diagonal tile or ignores it.
+The same question applies to reinforcing, and one answer probably covers both.

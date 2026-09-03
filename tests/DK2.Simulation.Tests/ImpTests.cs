@@ -566,7 +566,7 @@ public class ImpTests
 
         // The face they are on is full...
         Assert.True(ImpCrowding.FaceIsFull(
-            run.World, Dk2TerrainFixture.Database(), marked, new TilePos(3, 3), askingCreatureId: -1));
+            run.World, Dk2TerrainFixture.Database(), marked, new TilePos(3, 3), askingCreatureId: -1, workedFromTheTile: false));
 
         // ...and every other side of the same block is not.
         foreach (TilePos other in new[]
@@ -576,7 +576,7 @@ public class ImpTests
         {
             Assert.False(
                 ImpCrowding.FaceIsFull(
-                    run.World, Dk2TerrainFixture.Database(), marked, other, askingCreatureId: -1),
+                    run.World, Dk2TerrainFixture.Database(), marked, other, askingCreatureId: -1, workedFromTheTile: false),
                 $"{other} should not be full");
         }
     }
@@ -607,15 +607,28 @@ public class ImpTests
         {
             Assert.False(
                 ImpCrowding.FaceIsFull(
-                    run.World, Dk2TerrainFixture.Database(), marked, new TilePos(3, 3), imp.Id),
+                    run.World, Dk2TerrainFixture.Database(), marked, new TilePos(3, 3), imp.Id, workedFromTheTile: false),
                 $"imp {imp.Id} counts itself out of its own face");
         }
 
-        // And they keep it: the block goes on being dug rather than being
-        // dropped and retaken every tick. Four more ticks is one swing, and
-        // still short of the two that would end the block.
-        run.Ticks(4);
-        Assert.Equal(3, run.World.Creatures.Count(c => c.TargetTileIndex == marked));
+        // And they keep it for as long as the block lasts: it goes on being dug
+        // rather than being dropped and retaken every tick.
+        //
+        // Ticked one at a time against the terrain rather than for a fixed count,
+        // because three imps swinging together put 300 damage into a plain wall's
+        // 165 and the block falls fast. A fixed count here used to pass only
+        // because the crowding cap was wrongly 3 for a job worked ON the tile: it
+        // was reading three imps claiming the floor they had just opened, which
+        // is a thing the original does not do (Q44, OnlyOneImpClaimsOneTile).
+        for (int i = 0; i < 8; i++)
+        {
+            run.Tick();
+            if (run.World.Tile(4, 3).TerrainId != Dk2TerrainFixture.Rock) break;
+            Assert.Equal(3, run.World.Creatures.Count(c => c.TargetTileIndex == marked));
+        }
+
+        // And the block really did fall, so the loop above was not vacuous.
+        Assert.NotEqual(Dk2TerrainFixture.Rock, run.World.Tile(4, 3).TerrainId);
     }
 
     // ---- movement --------------------------------------------------------
@@ -755,5 +768,63 @@ public class ImpTests
             restored.Tick();
             Assert.Equal(run.Sim.StateHash(), restored.StateHash());
         }
+    }
+
+    /// <summary>
+    /// <b>One claiming imp per unclaimed tile</b> — CONFIRMED (owner, 2026-09-03:
+    /// <i>"only one claiming imp jumping per unclaimed tile is allowed"</i>).
+    ///
+    /// <para>Same crowding machinery as the three-a-face wall cap (Q43) with a
+    /// different number, and the difference is <b>observed rather than
+    /// derived</b>. Three imps really do share one tile to get at a wall; only one
+    /// may stand on a floor tile to claim it. So the cap is per job, not "how many
+    /// bodies fit on a tile" — see <see cref="ImpCrowding"/>.</para>
+    /// </summary>
+    [Fact]
+    public void OnlyOneImpClaimsOneTile()
+    {
+        Run run = Start(new TilePos(3, 3), imps: 3);
+        GameDatabase database = Dk2TerrainFixture.Database();
+
+        // One claimable tile beside the keeper's room, and three imps able to
+        // reach it. Rock to reinforce is everywhere, so the surplus has
+        // somewhere else to go.
+        Carve(run.World, database, new TilePos(4, 3));
+        int target = (3 * run.World.Width) + 4;
+
+        run.Ticks(2);
+
+        Assert.Equal(1, run.World.Creatures.Count(c => c.TargetTileIndex == target));
+
+        // And the other two did not queue: they went and found other work, which
+        // is the half of Q43 that matters and holds here too.
+        foreach (CreatureState other in run.World.Creatures.Where(c => c.TargetTileIndex != target))
+            Assert.NotEqual(-1, other.TargetTileIndex);
+    }
+
+    /// <summary>
+    /// The cap follows the stance, not the tile: the very same tile admits three
+    /// workers while it is a wall to be dug and one once it is floor to be
+    /// claimed. Asserted on one tile, so the two numbers cannot be put down to the
+    /// tiles being different.
+    /// </summary>
+    [Fact]
+    public void TheSameTileTakesThreeDiggersAndOneClaimer()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        int target;
+
+        // As a wall: three.
+        Run wall = Start(new TilePos(3, 3), imps: 3);
+        target = (3 * wall.World.Width) + 4;
+        wall.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 3)));
+        wall.Ticks(2);
+        Assert.Equal(3, wall.World.Creatures.Count(c => c.TargetTileIndex == target));
+
+        // The same tile as floor: one.
+        Run floor = Start(new TilePos(3, 3), imps: 3);
+        Carve(floor.World, database, new TilePos(4, 3));
+        floor.Ticks(2);
+        Assert.Equal(1, floor.World.Creatures.Count(c => c.TargetTileIndex == target));
     }
 }

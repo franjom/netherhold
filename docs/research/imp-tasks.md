@@ -25,8 +25,10 @@ Implemented by `DK2.Simulation.Systems.ImpTaskSystem`,
 | Filling a tile in is worked from beside, though the tile is floor | **STRONGLY INFERRED** (Q49) — it becomes rock, so a worker on it would be entombed |
 | The ~500 ms an imp lingers on a tile it has just claimed | **UNKNOWN** (Q49) — cooldown or animation, indistinguishable from outside; not modelled |
 | An imp with none of the three available wanders and interacts with scenery and creatures | **CONFIRMED but NOT IMPLEMENTED** (Q41) — ours stands still |
-| Three imps a face, and the fourth goes elsewhere | **CONFIRMED and IMPLEMENTED** (Q26/Q43, ADR-0026) — `ImpCrowding` |
-| Claiming and reinforcing spread from ground the keeper already holds | **CONFIRMED** (Q42) — supported by Q33, where a room tile must touch owned land. Which tile carries the condition follows from the stance (ADR-0028) |
+| Three imps a face for a wall, and the surplus goes elsewhere | **CONFIRMED and IMPLEMENTED** (Q26/Q43, ADR-0026) — `ImpCrowding` |
+| **One** imp for a tile it stands on to claim | **CONFIRMED and IMPLEMENTED** (Q43, ADR-0030) — the cap is per job, not per tile; three share a tile to reach a wall and one may stand on floor |
+| Claiming and reinforcing spread from ground the keeper already holds | **CONFIRMED** (Q42, restated by the owner on 2026-09-03: imps claim tiles adjacent to claimed tiles) — supported by Q33, where a room tile must touch owned land. Which tile carries the condition follows from the stance (ADR-0028) |
+| Whether "adjacent" there includes diagonals | **UNKNOWN** (Q66) — moot while movement was four-connected, live now that it is not. Orthogonal is implemented |
 | A worker takes the marked tile fewest steps away | **HYPOTHESIS** (Q25) |
 | A worker that finishes a job starts the next one at once rather than waiting out the idle delay | **STRONGLY INFERRED** — an imp that has just finished has not been idle |
 | Imps never eat | **CONFIRMED** — owner observation; the Imp's hunger rate of 32767 does mean "never" (Q12) |

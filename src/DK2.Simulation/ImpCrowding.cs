@@ -4,13 +4,14 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>
-/// How many workers fit on one face of a block, and what the ones who do not fit
-/// do about it.
+/// How many workers fit on one job at once, and what the ones who do not fit do
+/// about it.
 ///
-/// <para><b>CONFIRMED by observation of the original</b> (2026-08-29, owner,
-/// Q26/Q43): <b>three imps to a face and twelve to a block</b>, and — the half
-/// that matters far more — an imp that cannot get onto a face <b>goes and finds
-/// other work</b>. It does not queue. So imps spread around a block face by face
+/// <para><b>CONFIRMED by observation of the original</b> (2026-08-29 and
+/// 2026-09-03, owner, Q26/Q43/Q44): <b>three imps to a face and twelve to a
+/// block</b> for a wall, <b>exactly one</b> for a tile a worker stands on to
+/// claim it, and — the half that matters far more — an imp that cannot get onto a
+/// face <b>goes and finds other work</b>. It does not queue. So imps spread around a block face by face
 /// and then overflow into different jobs entirely, which is why a DK2 dungeon
 /// makes progress on several fronts at once instead of piling onto the nearest
 /// marked tile.</para>
@@ -20,7 +21,16 @@ namespace DK2.Simulation;
 /// the owner established that — twelve at three a face is four faces, which
 /// eight-connected work could not give). Nothing here counts to twelve.</para>
 ///
-/// <para><b>The three is an observed number with no source in the data</b>, and
+/// <para><b>The cap depends on the stance, and no argument derives it.</b> One
+/// number covering both would have been tidier and it is not what the original
+/// does: three imps share a single tile to get at a wall, and only one may stand
+/// on a floor tile to claim it (<i>"only one claiming imp jumping per unclaimed
+/// tile is allowed"</i>). So this is not "how many bodies fit on a tile" — it is
+/// per job, measured twice, and both numbers are here because both were watched.
+/// The earlier note in this file that called it physical space was wrong and has
+/// been removed.</para>
+///
+/// <para><b>Both numbers are observed with no source in the data</b>, and
 /// that is a second and different category from
 /// <see cref="ObservedCorrections"/>. There the file carries a value that cannot
 /// produce the observed behaviour; here the file carries no value at all. The
@@ -33,8 +43,10 @@ namespace DK2.Simulation;
 ///
 /// <para>The same bar applies as for a correction: the behaviour is measured
 /// rather than inferred, and the data was searched before the constant was
-/// written. Q34's 50% sell refund is the other known member of this category and
-/// will land here when selling is implemented.</para>
+/// written. <b>Q34's sell refund was expected to join it and did not</b> — the
+/// shipped <c>RoomSellValuePercentageOfCost</c> really is 50 (ADR-0029). The live
+/// candidate is the ~500 ms an imp pauses after claiming (Q49), which is real,
+/// observed, and in no field we read.</para>
 /// </summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/imp-tasks.md")]
 public static class ImpCrowding
@@ -46,6 +58,20 @@ public static class ImpCrowding
     public const int MaxWorkersPerFace = 3;
 
     /// <summary>
+    /// How many workers may work a tile they are standing <i>on</i>:
+    /// <b>one</b>. CONFIRMED (owner, 2026-09-03) — <i>"only one claiming imp
+    /// jumping per unclaimed tile is allowed"</i>.
+    /// </summary>
+    public const int MaxWorkersOnTheTile = 1;
+
+    /// <summary>
+    /// The cap for a job in the given <see cref="WorkStance"/>: one worker if it
+    /// is done standing on the target, three if it is done from a neighbour.
+    /// </summary>
+    public static int MaxWorkers(bool workedFromTheTile) =>
+        workedFromTheTile ? MaxWorkersOnTheTile : MaxWorkersPerFace;
+
+    /// <summary>
     /// Whether <paramref name="face"/> already has its full complement of
     /// workers on <paramref name="targetTileIndex"/>.
     ///
@@ -55,11 +81,17 @@ public static class ImpCrowding
     /// what stops four imps setting off for the same side of a block and only
     /// discovering the crowd on arrival.</para>
     ///
-    /// <para>Counted across every player, not per keeper: the limit is physical
-    /// space on a tile, and two keepers' imps digging the same block from the
-    /// same side are in each other's way exactly as much as one keeper's would
-    /// be. <paramref name="askingCreatureId"/> is excluded so that a worker
+    /// <para>Counted across every player, not per keeper: two keepers' imps
+    /// getting at the same block from the same side are in each other's way
+    /// exactly as much as one keeper's would be.
+    /// <paramref name="askingCreatureId"/> is excluded so that a worker
     /// re-evaluating the job it already holds does not count itself out of
+    /// it.</para>
+    ///
+    /// <para><b>The cap depends on the stance, and that is observed rather than
+    /// derived</b> — see <see cref="MaxWorkers"/>. It would have been tidier if
+    /// one number covered both, and it does not: three imps really do share one
+    /// tile to get at a wall, and only one may stand on a floor tile to claim
     /// it.</para>
     /// </summary>
     public static bool FaceIsFull(
@@ -67,8 +99,10 @@ public static class ImpCrowding
         GameDatabase database,
         int targetTileIndex,
         TilePos face,
-        int askingCreatureId)
+        int askingCreatureId,
+        bool workedFromTheTile)
     {
+        int limit = MaxWorkers(workedFromTheTile);
         int faceIndex = (face.Y * world.Width) + face.X;
         int count = 0;
 
@@ -82,7 +116,7 @@ public static class ImpCrowding
             if (!database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker))
                 continue;
 
-            if (++count >= MaxWorkersPerFace) return true;
+            if (++count >= limit) return true;
         }
 
         return false;

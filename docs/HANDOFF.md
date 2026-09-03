@@ -10,15 +10,15 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier and where imps come from: complete. M3 as a whole: partial.** M2 and the
-five record types M1 needed are done. **354 tests green** with and without a DK2
-install; ten scenarios run; clean tree. (Core 14, Simulation 228, Data 41, Behavior 71.)
+five record types M1 needed are done. **356 tests green** with and without a DK2
+install; ten scenarios run; clean tree. (Core 14, Simulation 230, Data 41, Behavior 71.)
 
 > ### ⚠ Read this first: five sittings of owner answers, 2026-08-29 to 09-03
 >
 > From playing the original, the owner has supplied answers to **Q7, Q9, Q12,
 > Q20, Q21, Q24, Q25, Q26, Q27, Q28, Q30, Q31, Q32, Q33, Q34, Q36, Q37, Q37a,
 > Q37b, Q38, Q40, Q42, Q43, Q44, Q45, Q46, Q47, Q48, Q49, Q52, Q53, Q54, Q58,
-> Q59, Q60, Q62, Q63** plus the one-dungeon-heart rule, the four-imp floor and the Create
+> Q59, Q60, Q62, Q63, Q66** plus the one-dungeon-heart rule, the four-imp floor and the Create
 > Imp price. `docs/research/open-questions.md` has every one;
 > `docs/research/observation-checklist.md` is the file to hand back for more.
 >
@@ -46,7 +46,7 @@ install; ten scenarios run; clean tree. (Core 14, Simulation 228, Data 41, Behav
 > from two physical clauses instead of listing it per work kind. See the fourth
 > lesson below.
 >
-> **Five lessons from these sittings, in order of how much they cost to learn:**
+> **Six lessons from these sittings, in order of how much they cost to learn:**
 >
 > 1. **Ask for the quantity by name.** "How much gold per swing" got an answer
 >    that "how fast does mining feel" could not have.
@@ -58,13 +58,21 @@ install; ten scenarios run; clean tree. (Core 14, Simulation 228, Data 41, Behav
 >    upkeep search failed for a whole session because it required an unverified
 >    2000 to also be true; the negative it produced was therefore worthless, and
 >    it hid the fact that the search was in the wrong file entirely.
-> 4. **Check our own extracted dump before recording a number as absent.** Q34
+> 4. **Beware the number that tidies two observations into one.** ADR-0026 capped
+>    workers at three a face and explained it as "how many bodies fit on a tile".
+>    ADR-0028 then reused it for a job done standing ON the tile, because the
+>    single-number story made that look obviously right. It was wrong - the
+>    original allows exactly one claiming imp per tile - and the wrong cap had
+>    also made a test pass for the wrong reason, by letting three imps claim one
+>    tile after the wall they were digging fell. **Two observations that a tidy
+>    rule unifies are still two observations.**
+> 5. **Check our own extracted dump before recording a number as absent.** Q34
 >    was written up for four sessions as "the refund is in neither candidate
 >    variable" on the strength of a mis-transcribed 100. `RoomSellValuePercentageOfCost`
 >    is 50, `docs/research/game-database-dump.md` said so all along, and the
 >    owner's observation matched the shipped value exactly. A number believed
 >    absent sends you looking for an override you do not need.
-> 5. **Some questions are cheaper to derive than to observe.** Q49 asked which of
+> 6. **Some questions are cheaper to derive than to observe.** Q49 asked which of
 >    four floor jobs are worked standing on the tile. Asking for four observations
 >    was the obvious move; the right one was to notice that *filling a tile in
 >    turns it to rock*, so a worker standing on it would be entombed — and that
@@ -131,6 +139,7 @@ What the simulation can do:
 | CI gate | `.github/workflows/ci.yml` | Linux + Windows, no DK2 install |
 | Dig / mine / claim / reinforce / repair / attack / fill in | `DK2.Simulation.TileWorkRules` | rules run against the real install; terrain graph terminates on a whole campaign level; **a swing is a fifth of the tabled delta and a shipped seam gives up 273 gold eleven times** (ADR-0020) |
 | Dig markers, first real command | `TileTagSystem` + `TagTilesCommand` | per player; cleared only when the tile can no longer carry one |
+| Three workers to a wall, one to a floor tile | `ImpCrowding` | the cap is per job, not per tile (ADR-0026, ADR-0030); the surplus goes and finds other work rather than queueing |
 | Workers that excavate, then claim, then reinforce | `ImpTaskSystem` + `CreatureMovementSystem` | the priority order is CONFIRMED (ADR-0018); imps dig a corridor on a synthetic map and on a shipped campaign level, then claim the floor they opened |
 | Where a worker stands to do a job | `WorkStance` | a wall is worked from beside, floor from on top of it (Q44/Q49, ADR-0028); derived from two clauses rather than listed, and both clauses are pinned by a test that fails without them |
 | Grid search behind an interface | `DK2.Pathfinding.GridPathfinder` | shortest, wall-respecting, reproducible; reused buffers proven inert |
@@ -282,7 +291,9 @@ seconds** for one tile (Q22) and that is untested and a long time; a **3x5
 temple** is the only shape that can tell Q60's rim rule from a rule keyed on one
 dimension, since all three measurements so far were squares; and a **5x5
 graveyard's stated capacity** - 8 or 9 - would settle its grave rule in one look,
-with a **4x4** as the fallback. **Q48 came off this list on 2026-09-03**: the
+with a **4x4** as the fallback; and **Q66**, whether a tile touching owned ground
+only at a corner is claimable, which became a live question the moment movement
+went eight-connected. **Q48 came off this list on 2026-09-03**: the
 owner watched a creature cross open ground and it glides rather than
 staircasing.
 
@@ -516,7 +527,7 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 68 (Q1-Q65; Q51 superseded). The ones that gate progress:
+`docs/research/open-questions.md` holds all 69 (Q1-Q66; Q51 superseded). The ones that gate progress:
 
 - **Q53 is ANSWERED and built** (2026-08-30): 7 mana a second per imp, measured
   by the owner and read off DK2's own Create Imp spell record (ADR-0022). Left in
@@ -589,11 +600,11 @@ implementation.
 
 ## Where the project stood at the 2026-09-03 compaction
 
-Six sittings of owner measurements and six ADRs - one of which needed no
+Six sittings of owner measurements and seven ADRs - one of which needed no
 measurement at all, and one of which needed no new data either, only a look at
 the dump we already had. The state:
 
-**354 tests green** with and without a DK2 install (Core 14, Simulation 228,
+**356 tests green** with and without a DK2 install (Core 14, Simulation 230,
 Data 41, Behavior 71), ten scenarios running, clean tree.
 
 **Every known defect is fixed, and the room economy now runs both ways.** In the
@@ -612,6 +623,7 @@ order they fell:
 | ADR-0027 | Q52/Q45/Q60 — a room is an instance, derived rather than stored |
 | ADR-0028 | Q44/Q42/Q49 — floor is worked from on top of it, walls from beside |
 | ADR-0029 | Q34 — selling returns half the cost, and the data said so all along |
+| ADR-0030 | Q43 — the crowding cap follows the stance: three to a wall, one to a floor tile |
 
 **Nothing is left on that list**, which is why the pick-up list above now starts
 with the Unity view.
@@ -633,7 +645,7 @@ from the files, and both are meant to stay narrow:**
 
 **The research method that produced all of this is written up in three places
 and is worth reading before the next research push:** the call-out at the top of
-this file (five lessons), `docs/research/imps-and-mana.md` §*How this was
+this file (six lessons), `docs/research/imps-and-mana.md` §*How this was
 established* (the failure and recovery in full), and
 `docs/research/observation-checklist.md` (what is still worth asking, and what
 playing cannot settle).
