@@ -46,6 +46,31 @@ public enum TileWorkKind
 
     /// <summary>Fill a floor tile back in. <c>FillInHealth</c>.</summary>
     FillIn = 9,
+
+    /// <summary>
+    /// Take a room that belongs to somebody else — a rival's or a neutral one.
+    /// <c>ConvertRoomHealth</c>.
+    ///
+    /// <para><b>The one kind of work whose outcome is not confined to the tile
+    /// it is applied to.</b> CONFIRMED (owner, 2026-09-04): <i>"once an imp
+    /// claims a portal then the entire portal gets claimed, all tiles that are
+    /// assigned to that portal are immediately claimed … rooms are instantly
+    /// claimed by imps, not tile by tile."</i> So one tile is worked and the
+    /// whole room instance changes hands at once. <see cref="Apply"/> converts
+    /// the worked tile; <see cref="Systems.TileWorkSystem"/> spreads it to the
+    /// rest, because "the rest of the room" needs the world and these rules are
+    /// pure.</para>
+    ///
+    /// <para><b>This is a fix, not a new feature.</b>
+    /// <see cref="TileWorkKind.Claim"/> already applied to room terrain — room
+    /// terrain is <c>Ownable</c> and not <c>Solid</c>, which is all the claim
+    /// rule asked for — so rooms had been converting tile by tile since rooms
+    /// existed, at <c>ClaimTileHealth</c>'s rate, and nothing checked it. The
+    /// <c>Claim</c> rule now excludes room terrain and this kind takes it over,
+    /// which is also what makes <c>ConvertRoomHealth</c> mean something: it had
+    /// been in <see cref="VariableTypeId"/> unused. Q92.</para>
+    /// </summary>
+    ConvertRoom = 10,
 }
 
 /// <summary>What one application of work did to a tile.</summary>
@@ -152,6 +177,7 @@ public static class TileWorkRules
         TileWorkKind.Reinforce => VariableTypeId.ReinforceWallHealth,
         TileWorkKind.RepairWall => VariableTypeId.RepairWallHealth,
         TileWorkKind.FillIn => VariableTypeId.FillInHealth,
+        TileWorkKind.ConvertRoom => VariableTypeId.ConvertRoomHealth,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown tile work kind."),
     };
 
@@ -216,6 +242,26 @@ public static class TileWorkRules
         kind is TileWorkKind.Claim or TileWorkKind.Reinforce or TileWorkKind.FillIn;
 
     /// <summary>
+    /// Whether this kind of work ends by <b>taking the tile over</b> rather than
+    /// by destroying it, despite running its health <i>down</i> to zero.
+    ///
+    /// <para>Exactly one kind does: <see cref="TileWorkKind.ConvertRoom"/>. And
+    /// the mixed direction is the data's, not a choice —
+    /// <c>ClaimTileHealth</c> is <b>+825</b> and builds a floor tile up to its
+    /// maximum, while <c>ConvertRoomHealth</c> is <b>−4000</b> and beats a room
+    /// down. Two jobs that both end in "this is mine now", from opposite
+    /// directions, because the balance table gives them opposite signs.</para>
+    ///
+    /// <para>Without this, the downward path would send a converted room to its
+    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/> — every room terrain in
+    /// the data claims to leave Claimed Path — so claiming a rival's treasury
+    /// would demolish it. That is <c>AttackRoomHealth</c>'s job (−1500), and it
+    /// is a separate work kind that does not exist yet.</para>
+    /// </summary>
+    public static bool CompletesAsTakeover(TileWorkKind kind) =>
+        kind is TileWorkKind.ConvertRoom;
+
+    /// <summary>
     /// The per-second health delta the balance table gives this kind of work,
     /// after <see cref="ObservedCorrections"/>.
     ///
@@ -246,6 +292,14 @@ public static class TileWorkRules
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
 
         if (CompletesUpward(kind)) return UpwardDestination(terrain, kind);
+
+        // A takeover leaves the terrain exactly as it found it and changes only
+        // who holds it, so the tile a worker will be standing on when the job
+        // finishes is the tile it is standing on now. That is what puts an imp
+        // *inside* a rival's room to claim it, which is where the original puts
+        // one.
+        if (CompletesAsTakeover(kind)) return tile.TerrainId;
+
         if (PerSecond(database, kind) < 0) return terrain.DestroyedTypeTerrainId;
         return tile.TerrainId;
     }
@@ -305,10 +359,32 @@ public static class TileWorkRules
             // which is what this replaces. Two clauses, and the second is the
             // "nowhere to go" guard: either the terrain is already the claimable
             // kind and only the owner changes, or it converts into something.
+            // A room is NOT claimed this way: it is converted whole
+            // (TileWorkKind.ConvertRoom), at its own rate, and this rule used to
+            // take rooms tile by tile because room terrain satisfies every other
+            // clause here. Q92.
             TileWorkKind.Claim =>
                 !terrain.IsSolid
+                && !terrain.IsRoom
                 && tile.OwnerPlayerId != playerId
                 && (terrain.IsOwnable || terrain.MaxHealthTypeTerrainId != tile.TerrainId),
+
+            // Somebody else's room — a rival's or a neutral one, which is what
+            // an unclaimed portal is (PlayerIds.Neutral, ADR-0043).
+            //
+            // The dungeon heart is the one exception, and it is STRONGLY
+            // INFERRED rather than observed: a heart is beaten down, not taken,
+            // and Q40's defeat rule — "rivals claim the rooms and gold" — is
+            // what happens *after* it falls. Letting this apply to a heart would
+            // send imps to steal one, which is visibly not DK2. By room identity
+            // rather than by a flag because nothing in the record distinguishes
+            // a heart from a portal: both are `ownable, room` terrain, and the
+            // room flags differ only in Attackable and HasFlame. Q93.
+            TileWorkKind.ConvertRoom =>
+                !terrain.IsSolid
+                && terrain.IsRoom
+                && tile.OwnerPlayerId != playerId
+                && terrain.TerrainId != ManaRules.DungeonHeartTerrainId(database),
 
             TileWorkKind.AttackTile =>
                 !terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId != playerId,
@@ -419,6 +495,19 @@ public static class TileWorkRules
                 return new TileWorkResult(
                     applied == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed,
                     applied, gold, 0, tile.TerrainId);
+            }
+
+            // A takeover ran the same way down and means the opposite: the
+            // terrain stays exactly what it was and only the owner changes.
+            // Converting to the tile's own terrain is what resets its health,
+            // its accumulated work and its remainder, and keeps a burning
+            // bridge burning (Q67, Q68) because the terrain did not change.
+            if (CompletesAsTakeover(kind))
+            {
+                int kept = Convert(
+                    database, ref tile, tile.TerrainId, playerId, takeOwnership: true);
+                return new TileWorkResult(
+                    TileWorkOutcome.Transformed, applied, gold, kept, tile.TerrainId);
             }
 
             // Through BridgeRules, not straight to the destroyed-type field: a
@@ -594,6 +683,26 @@ public static class TileWorkRules
         if (!next.IsTaggable) tile.TaggedBy = 0;
 
         if (takeOwnership && next.IsOwnable) tile.OwnerPlayerId = playerId;
+
+        // A tile that cannot be owned does not carry an owner. This used to keep
+        // the byte, on a reason that has since expired twice over — it said
+        // "which owner id means nobody is UNKNOWN (Q17), and every rule that
+        // cares asks IsOwnable first, so a stale byte on unownable terrain is
+        // inert."
+        //
+        // <b>Q17 is answered</b> (ADR-0043): 0 is unowned, confirmed three ways
+        // across all 66 shipped levels. <b>And the byte was never inert.</b>
+        // TileWorkKind.Claim asks `OwnerPlayerId != playerId` and does NOT ask
+        // IsOwnable first, so a keeper who dug through their own reinforced wall
+        // was left with Dirt Path still stamped with their id — which is neither
+        // claimable by them (the owner matches) nor their own land (the terrain
+        // is not ownable). Their territory could not grow through it, ever. On
+        // level 1 that walls a keeper in permanently, because the only route out
+        // of its dungeon heart is through the keeper's own reinforced wall.
+        //
+        // Found 2026-09-04 by a scenario that dug from level 1's heart toward
+        // its portal and did nothing at all for 130 seconds. Q95, ADR-0045.
+        if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Unowned;
 
         int spilled = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));
         tile.GoldHeld -= spilled;

@@ -186,26 +186,45 @@ under Q61 below settles it, and **Q89 is now a second reason to run it**: if a
 3x3 temple attracts anything at all, a room below its `RecommendedSize` still
 advertises while doing nothing.
 
-### Q92 — how do you claim a portal? — **NEW, and it is the portal's biggest gap**
+### Q92 — how do you claim a portal? — **ANSWERED, and it exposed a four-month defect**
 
-`ConvertRoomHealth` = **−4000** and `AttackRoomHealth` = **−1500** name the
-mechanic, and there is no work kind for either, so **an imp here cannot take a
-portal at all**. A portal ships owned by the neutral player and the only way to
-get one is a level file or a direct terrain write.
+Answered by the owner within an hour of being asked: *"once an imp claims a
+portal then the entire portal gets claimed, all tiles that are assigned to that
+portal are immediately claimed … that is a game mechanic that works on claiming
+enemy/neutral rooms too, rooms are instantly claimed by imps, not tile by
+tile."* Implemented as ADR-0044.
 
-The rates are in the data. What is missing is the **shape**.
+**Worth recording what that one sentence was worth.** It was asked as a portal
+question and it was really a defect report: `Claim` already applied to room
+terrain, so every room in the project had been changing hands one tile at a time
+at the wrong rate since rooms existed, and nothing had checked because nobody had
+asked. Then implementing it produced a scenario that dug toward level 1's portal
+and did nothing for 130 seconds — which turned out to be a *second*, unrelated
+four-month defect that had **walled a level-1 keeper in permanently** (ADR-0045).
+One sentence, two defects, neither of them about portals.
 
-**Claim a neutral portal in the original and watch how it changes.** Does it go
-tile by tile, the way claiming floor creeps (Q42/Q44) — nine separate
-conversions, with the room part yours and part neutral in between? Or does the
-whole 3x3 flip at once when enough of it is taken? A screenshot mid-claim would
-settle it outright.
+**Three things about it are still ours rather than yours, in descending order of
+how much they would change:**
 
-**And two follow-ups while you are there:** how long does claiming a whole portal
-take, roughly; and does a portal claimed mid-game produce its first creature
-straight away or after the normal interval? The second decides whether an
-unclaimed portal banks the time it stood idle — implemented as "it does not"
-(`TileState.EntranceIdleTicks`), and OpenKeeper does the opposite by accident.
+**1. Does a long bridge go whole?** (Q94) A wooden bridge is a room in every way
+the data can tell, so taking one tile of a rival's ten-tile bridge hands over all
+ten. That is a big consequence to draw from a sentence about portals. **Claim one
+end of a long bridge and see whether the far end changes colour.**
+
+**2. Can a dungeon heart be claimed?** (Q93) Excluded here, on the grounds that a
+heart is beaten down rather than taken and that Q40's "rivals claim the rooms and
+gold" happens *after* it falls. **Try to claim a rival's heart and see whether an
+imp even walks over.**
+
+**3. How long does it take?** Only the propagation is confirmed. The rate here is
+`ConvertRoomHealth` = −4000 a second against a room tile's 10000 health, so
+thirteen swings, about **2.6 seconds** for one imp. **Time an imp taking a
+portal**, and if it is much faster than that, the rate is not this variable.
+
+And a fourth that is cheap while you are there: **does a portal claimed mid-game
+produce its first creature straight away, or after the normal interval?** Ours
+waits a full interval — the clock starts at the claim and an idle portal banks
+nothing. OpenKeeper does the opposite, by accident rather than design.
 
 ### Q59 — how much mana does one trap draw? — **ANSWERED and pinned**
 You measured five: **Spike 5, Sentry 5, Fireburst 10, Freeze 10, Lightning 25**.

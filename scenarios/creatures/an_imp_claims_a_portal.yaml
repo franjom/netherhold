@@ -1,0 +1,61 @@
+# One tile is worked; nine change hands.
+#
+# The conversion mechanic on its own, on a synthetic map, so that it can be read
+# without a shipped level's terrain getting in the way. The companion run —
+# a_portal_fills_a_dungeon.yaml — does the same thing on level 1's real map and
+# then produces creatures.
+#
+# CONFIRMED by the owner (2026-09-04): "once an imp claims a portal then the
+# entire portal gets claimed, all tiles that are assigned to that portal are
+# immediately claimed ... rooms are instantly claimed by imps, not tile by
+# tile." It applies to a rival's rooms as well as to neutral ones.
+#
+# This closed the gap the portal work left open. Until room conversion existed
+# an imp could not take a portal at all, and every level ships its portals owned
+# by the neutral player (player 2 — PlayerIds, ADR-0043), so the one thing a
+# keeper always does with a portal was the one thing that could not be done.
+#
+# Nothing here is queued by hand. Four imps arrive on their own
+# (MinimumImpThreshold = 4) and taking somebody else's room sits at the claiming
+# priority, so they find the portal exactly as they find floor to claim.
+#
+# What to read in the event log: the single `room_converted` line, naming the
+# room, how many tiles it had, how many the takeover *spread* to, and who it came
+# from. `tiles=9 spread=8` is the mechanic in one line.
+#
+# The thirteen applications a takeover needs are the data's: ConvertRoomHealth is
+# -4000 a second, work lands five times a second, and a room tile has 10000
+# health. 10000 / 800 = 12.5, so thirteen swings — about 2.6 seconds. That is
+# the "instantly" the owner describes: not zero time, but fast enough that the
+# propagation is what a player notices.
+#
+# No creature arrives, and that is not a failure: a synthetic map carries no
+# level VARIABLES, so this keeper has no creature pool and no creature
+# availability, and all four of the portal's gates but one are shut. The
+# producing half needs a real level.
+#
+# What this run does NOT establish, and the report repeats it: how long claiming
+# a portal takes in the original — only the propagation is confirmed, not the
+# rate — and whether a dungeon heart can be taken the same way. It cannot here,
+# on the STRONGLY INFERRED grounds that a heart is beaten down rather than taken
+# (Q40, Q93).
+id: creatures-an-imp-claims-a-portal-001
+question: >
+  Does an imp take a neutral portal by itself, and does working one tile of it
+  hand over all nine at once?
+map: flat_24x20
+seed: 3
+duration_ticks: 900
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 0 }
+  rooms:
+    # A dungeon heart, because that is where imps come from and where a keeper's
+    # territory starts.
+    - { type: Dungeon Heart, at: [3, 3], size: [5, 5], player: 3 }
+
+    # The portal, neutral — which is how every shipped level ships one.
+    - { type: Portal, at: [9, 3], size: [3, 3], player: 2 }
+observe:
+  - state_hash
+  - events

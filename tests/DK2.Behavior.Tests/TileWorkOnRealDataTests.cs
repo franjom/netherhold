@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
@@ -309,5 +310,61 @@ public class TileWorkOnRealDataTests
             Assert.True(
                 t.Name == "Gems" || internalMarkers.Contains(t.Name),
                 $"{t.Name} is taggable and impenetrable and is neither Gems nor an internal marker");
+    }
+
+    /// <summary>
+    /// <b>A level-1 keeper is not walled in by their own wall.</b>
+    ///
+    /// <para>The real-data form of Q95 / ADR-0045, and the reason that defect
+    /// mattered rather than merely being untidy. Level 1's dungeon heart is
+    /// enclosed on every side, and the only tile between it and the rest of the
+    /// level is <b>the keeper's own reinforced wall</b> at (18,28). Dig it and
+    /// the owner byte used to survive onto the Dirt Path underneath — which the
+    /// keeper could then neither claim (the owner already matched) nor treat as
+    /// their own land (the terrain is not ownable). Their territory could not
+    /// grow through it, so nothing beyond the heart was ever reachable: not the
+    /// portal, not a lair, not a treasury.</para>
+    ///
+    /// <para>Asserted on the shipped map rather than a fixture, because the thing
+    /// that made it fatal is a fact about level 1's layout and not about the
+    /// rule.</para>
+    /// </summary>
+    [Fact]
+    public void ALevelOneKeeperCanClaimTheGroundUnderTheirOwnWall()
+    {
+        string? install = Dk2Install.Find();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level1");
+        LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, "Level1");
+        if (map is null) return;
+
+        var world = WorldState.FromMap(db, map, [(byte)0, (byte)3]);
+        var wall = new TilePos(18, 28);
+
+        // The premise: it really is the keeper's own reinforced wall, and it
+        // really is solid. If the map ever changes, this fails here rather than
+        // silently testing an ordinary rock.
+        ref TileState tile = ref world.Tile(wall);
+        Assert.Equal((byte)3, tile.OwnerPlayerId);
+        Assert.True(db.TerrainById(tile.TerrainId).IsSolid);
+        Assert.True(db.TerrainById(tile.TerrainId).IsOwnable);
+        Assert.True(TileWorkRules.Applies(db, tile, TileWorkKind.DigOwnWall, 3));
+
+        // Dig it down, then dig the rock it leaves.
+        for (int i = 0; i < 5000 && db.TerrainById(world.Tile(wall).TerrainId).IsSolid; i++)
+        {
+            ref TileState t = ref world.Tile(wall);
+            TileWorkKind kind = TileWorkRules.Applies(db, t, TileWorkKind.DigOwnWall, 3)
+                ? TileWorkKind.DigOwnWall
+                : TileWorkKind.Dig;
+            TileWorkRules.Apply(db, ref t, kind, 3);
+        }
+
+        Assert.False(db.TerrainById(world.Tile(wall).TerrainId).IsSolid);
+
+        // And the whole point: the keeper can take the ground they opened.
+        Assert.Equal(PlayerIds.Unowned, world.Tile(wall).OwnerPlayerId);
+        Assert.True(TileWorkRules.Applies(db, world.Tile(wall), TileWorkKind.Claim, 3));
     }
 }

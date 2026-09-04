@@ -562,3 +562,62 @@ its own sample size** (more than 100 files found) before checking any content,
 because a sweep that finds nothing passes every content assertion. Both are
 cheap; both would have caught a different failure from the one they were written
 for.
+
+---
+
+## Addendum, 2026-09-04 (third): a justification can rot on its own
+
+The portal sitting turned up a fifth instance of the pattern, and it is a
+different **kind** — which is why it gets its own clause rather than a row in the
+table above.
+
+The owner byte on a tile was never cleared when the tile became terrain nobody
+can own. The reason was written down, in two files, and it was a good reason:
+
+> *"which owner id means 'nobody' is UNKNOWN (Q17), and every rule that cares
+> asks `TerrainDef.IsOwnable` first, so a stale byte on unownable terrain is
+> inert."*
+
+**Both halves were false by the time it mattered, and each failed differently.**
+
+**The first half expired.** Q17 — *which player id is neutral?* — was answered on
+2026-09-04 by ADR-0043, while chasing something else entirely: 0 is unowned,
+confirmed three ways across all 66 shipped levels. The moment that landed, "there
+is no id meaning nobody, so we cannot write one" stopped being true. **Nothing
+connected the answer to the decision that rested on it.** The answer did not know
+what depended on it, and the decision did not know it had been answered.
+
+**The second half was never true at all.** `TileWorkKind.Claim` does not ask
+`IsOwnable` first — it tests `OwnerPlayerId != playerId` and nothing else. So the
+stale byte was not inert: it made a tile permanently unclaimable by the one
+keeper whose id was stuck on it. That is the ordinary "a claim nothing checks may
+already be false" shape.
+
+**What it cost:** a keeper who dug through their own reinforced wall could never
+grow through the hole. On level 1 that is the *only* route out of the dungeon
+heart, so nothing beyond it was ever reachable — no portal, no lair, no treasury.
+Four months. It surfaced because a scenario dug toward level 1's portal and then
+sat still for 130 game-seconds, which is the loudest a defect has ever been in
+this project and still needed somebody to look.
+
+### The third clause
+
+The standing review question was *what would fail if this claim stopped being
+true?* and *does anything read this fact at all?* and *could this check pass
+while the thing it checks is wrong?* Add:
+
+> **Is this justification still true — and would anybody notice if it stopped
+> being?**
+
+A reason that rests on an open question is a dependency, and it is the only kind
+of dependency in this project that nothing tracks. Two cheap habits follow, and
+both are being adopted rather than merely noted:
+
+1. **When a question is answered, grep for its number.** Q17 appeared in
+   `TileWorkRules.Convert`, `RoomRules.Unmake` and the question list. Answering
+   it should have been followed by reading the two places that cited it. That is
+   a thirty-second check and it would have saved four months.
+2. **A justification that names an open question should say what it will do when
+   it closes.** "UNKNOWN, so we keep the byte" is a decision with no exit; "we
+   keep the byte until Q17 says which id means nobody, and then we clear it" is
+   the same decision with a trigger.

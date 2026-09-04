@@ -208,8 +208,65 @@ public class GoldCarryingTests
         Assert.Empty(run.Of("gold_delivered"));
     }
 
+    /// <summary>
+    /// An imp puts nothing into a rival's treasury <b>for as long as it is the
+    /// rival's</b>.
+    ///
+    /// <para>The qualifier was added 2026-09-04 and it is not a weakening — it is
+    /// the test becoming true of a world where rooms can change hands. This used
+    /// to tick 300 and assert the tile was still empty, which held only because
+    /// nothing could take a room. Now the imp mines its seam out, finds the
+    /// rival's treasury claimable, takes it, and quite properly fills it: see
+    /// <see cref="AnImpTakesARivalsTreasuryAndThenUsesIt"/>. So the check moved
+    /// to every tick up to the takeover, which is what the sentence always
+    /// meant.</para>
+    /// </summary>
     [Fact]
-    public void AnImpWillNotFillARivalsTreasury()
+    public void AnImpWillNotFillARivalsTreasuryWhileItIsStillTheRivals()
+    {
+        Run run = AtTheSeam();
+        PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury, owner: Rival);
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
+
+        bool takenOver = false;
+        for (int i = 0; i < 300 && !takenOver; i++)
+        {
+            run.Ticks(1);
+            takenOver = run.World.Tile(1, 1).OwnerPlayerId != Rival;
+            if (!takenOver) Assert.Equal(0, run.World.Tile(1, 1).GoldHeld);
+        }
+
+        // And the run really did reach the interesting state rather than simply
+        // running out of ticks with the imp still busy — otherwise the loop above
+        // asserts nothing about a rival's treasury that a rock would not satisfy.
+        Assert.True(takenOver, "the imp never took the rival's treasury, so nothing above was tested");
+    }
+
+    /// <summary>
+    /// The other half, and it is new behaviour rather than a rearranged
+    /// assertion: <b>an imp takes a rival's treasury and then uses it — in that
+    /// order.</b>
+    ///
+    /// <para><b>The order is the whole point, and it is CONFIRMED</b> (owner,
+    /// 2026-09-04): <i>"imps fill only their own keeper's treasury … for SP my
+    /// imps NEVER fill anyone's treasure but my own."</i> So this test asserts
+    /// the takeover happens strictly <i>before</i> the first delivery, which is
+    /// that rule stated as a sequence rather than as a prohibition. It is also
+    /// structurally guaranteed rather than merely observed:
+    /// `GoldStore`'s own store lookup skips every room whose owner is not
+    /// the depositor, and it is the only path into a tile's
+    /// <see cref="TileState.GoldHeld"/>.</para>
+    ///
+    /// <para>Nothing here was written to make the takeover happen. It falls out
+    /// of two rules meeting — a room somebody else holds is convertible work at
+    /// the claiming priority (Q92), and a treasury tile the keeper owns is
+    /// somewhere gold can go (ADR-0015) — and the whole sequence is the imp's
+    /// own: mine, fill its hands, find nowhere to unload, mine on, run out of
+    /// seam, look for a claim, take the treasury, unload into it.</para>
+    /// </summary>
+    [Fact]
+    public void AnImpTakesARivalsTreasuryBeforeItEverPutsGoldInIt()
     {
         Run run = AtTheSeam();
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury, owner: Rival);
@@ -217,8 +274,59 @@ public class GoldCarryingTests
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
         run.Ticks(300);
 
-        Assert.Equal(0, run.World.Tile(1, 1).GoldHeld);
-        Assert.Empty(run.Of("gold_delivered"));
+        Assert.Equal(Keeper, run.World.Tile(1, 1).OwnerPlayerId);
+        Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, run.World.Tile(1, 1).TerrainId);
+        Assert.True(run.World.Tile(1, 1).GoldHeld > 0, "the imp took the treasury and then left it empty");
+
+        SimEvent taken = Assert.Single(run.Of("room_converted"));
+        SimEvent firstDelivery = run.Of("gold_delivered").First();
+        Assert.True(
+            taken.Tick.Value < firstDelivery.Tick.Value,
+            $"gold went in on tick {firstDelivery.Tick.Value} but the treasury only " +
+            $"became this keeper's on tick {taken.Tick.Value}");
+    }
+
+    /// <summary>
+    /// The owner's rule in its general form: <b>no gold ever enters a tile its
+    /// keeper does not own</b>, on any tick of a run with a rival store in it.
+    ///
+    /// <para>The test above pins the one sequence; this pins the invariant, which
+    /// is what the sentence actually says. It watches every tick rather than the
+    /// end state, because a deposit that went in and was later taken over would
+    /// leave an end state indistinguishable from a legal one.</para>
+    /// </summary>
+    [Fact]
+    public void NoGoldEverEntersATileItsKeeperDoesNotOwn()
+    {
+        Run run = AtTheSeam();
+        PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury, owner: Rival);
+        PutStoreAt(run, new TilePos(3, 1), RoomTypeId.Treasury, owner: Keeper);
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
+
+        var lastGold = new Dictionary<int, int>();
+        int depositsSeen = 0;
+
+        for (int t = 0; t < 400; t++)
+        {
+            run.Ticks(1);
+
+            for (int i = 0; i < run.World.TileCount; i++)
+            {
+                ref TileState tile = ref run.World.TileAtIndex(i);
+                int before = lastGold.TryGetValue(i, out int g) ? g : 0;
+                if (tile.GoldHeld > before)
+                {
+                    // Gold arrived here this tick. Whoever it arrived for, this
+                    // tile is theirs — there is no other legal way in.
+                    Assert.Equal(Keeper, tile.OwnerPlayerId);
+                    depositsSeen++;
+                }
+                lastGold[i] = tile.GoldHeld;
+            }
+        }
+
+        Assert.True(depositsSeen > 0, "no gold moved at all, so the invariant above was never tested");
     }
 
     // ---- nowhere to put it -----------------------------------------------

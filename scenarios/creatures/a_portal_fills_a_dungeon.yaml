@@ -1,53 +1,65 @@
-# The first scenario in which a creature that is not an imp exists.
+# The whole chain, on level 1's own map, with one dig order and nothing else.
 #
-# Level 1's own map, its own portal and its own balance table. The keeper is
-# player 3 - which is what a keeper is, and this run is also the first place
-# that distinction is load-bearing: the portal at (21,27) ships owned by player
-# 2, the neutral player, and claiming it is what starts its clock. Player 1 is
-# the hero side and owns the level's hero gate; player 0 is unmined rock.
+# A keeper starts level 1 walled in: a dungeon heart, a few tiles of claimed
+# floor, and rock in every direction. Its portal sits three tiles east, owned by
+# the **neutral player** (player 2 - PlayerIds, ADR-0043), which is how every
+# shipped level ships one. This run marks three tiles for digging and then does
+# nothing further. Everything after that is the imps' own:
 #
-# Two rooms are laid down. The portal, re-owned to player 3 the way an imp
-# claiming it would leave it. And a one-tile lair on (11,28), a floor tile the
-# keeper already holds - because **the Goblin's only attraction is a Lair**, so
-# without one this portal produces nothing at all, however long it waits. That
-# is not a quirk of this run: it is what makes level 1 teach lairs before it
-# gives you anything to put in them.
+#   t276-324  dig the three tiles (DigOwnWall through the keeper's own
+#             reinforced wall, then Dig through rock)
+#   t343-396  claim the floor they opened, spreading from land already held
+#   t465      take the portal - `room_converted ... tiles=9 spread=8 from=2`.
+#             One tile was worked; eight came with it. CONFIRMED by the owner:
+#             rooms are claimed whole, never tile by tile (Q92).
+#   t552+     reinforce the new walls, which is priority 3 doing its job
+#   t824      the first Goblin
 #
-# What to read in the event log: `creature_entered` lines, each naming the
-# keeper's creature count, their capacity and the interval that arrival waited
-# for. The interval is the interesting column. Level 1 overrides
-# EntranceGenerationSpeedSeconds from the game-wide 25 down to **18**, so the
-# first goblin takes 360 ticks - and the requirement then grows with the
-# dungeon, max(base, base x creatures / 2), so the fourth arrival waits 540 and
-# the fifteenth would wait 2700. Fifteen is also where it stops: level 1's
-# creature pool is fifteen Goblins and one portal supports fifteen creatures, so
-# the two limits coincide on this level and a longer run cannot tell them apart.
+# Note t465 + 359 = t824. The portal's clock starts when it is claimed, not
+# before - so an idle portal banks nothing for whoever takes it. That is a
+# decision, not an observation (Q86), and this run is where you can see it.
+#
+# A lair is placed on ground the keeper already holds, and it is not decoration:
+# **the Goblin's only attraction is a Lair**, so without one this portal produces
+# nothing at all however long it waits. That is what makes level 1 teach lairs
+# before it gives you anything to put in them - a mechanic, not a script.
+#
+# What to read in the event log: the `interval` column on `creature_entered`.
+# Level 1 overrides EntranceGenerationSpeedSeconds from the game-wide 25 down to
+# **18**, so arrivals are 360 ticks apart - until the fourth, which waits 540,
+# because the requirement grows with the keeper's creature count. Fifteen is
+# where it would stop: level 1's pool is fifteen Goblins and one portal supports
+# fifteen creatures, so the two limits coincide here and a longer run cannot
+# tell them apart.
 #
 # What this run does NOT establish, and the report repeats it: whether the
-# interval scaling is real (it comes from OpenKeeper and nothing in the shipped
-# files expresses it - Q86, and a stopwatch on the original settles it); whether
-# the pool is a standing limit or a draining quota (Q87); and what the arriving
-# goblins then do, which is nothing, because a non-worker has no needs, no job
-# and no moods yet.
+# interval scaling is real at all (it comes from OpenKeeper, nothing in the
+# shipped files expresses it, and a stopwatch on the original settles it - Q86);
+# whether the creature pool is a standing limit or a draining quota (Q87); how
+# long claiming a portal takes in the original, since only the propagation is
+# confirmed and not the rate (Q92); and what the arriving goblins then do, which
+# is nothing, because a non-worker has no needs, no job and no moods yet.
 id: creatures-a-portal-fills-a-dungeon-001
 question: >
-  Does a claimed portal produce a level's own creatures, at the level's own
-  interval, only once something in the dungeon attracts them?
+  Given one dig order, will a keeper's imps open a route to level 1's neutral
+  portal, take it whole, and start receiving the level's own creatures at the
+  level's own interval?
 map: campaign:level1
 seed: 11
-duration_ticks: 1800
+duration_ticks: 2600
 setup:
   players:
     - { id: 3, gold: 0, mana: 0 }
   rooms:
-    # The portal itself, claimed. Nine tiles at (21,27); the hole in the middle
-    # at (22,28) is where creatures appear and where the spawn clock lives.
-    - { type: Portal, at: [21, 27], size: [3, 3], player: 3 }
-
     # One tile of lair on ground the keeper already owns. Any size will do -
     # the Goblin's attraction slot carries no minimum, unlike the Bile Demon's
     # 25-tile hatchery.
     - { type: Lair, at: [11, 28], player: 3 }
+commands:
+  # Three tiles between the keeper's land at (17,28) and the portal at (21,27).
+  # (18,28) is the keeper's own reinforced wall; (19,28) and (20,28) are rock.
+  # This is the only instruction the run gives.
+  - { at_tick: 0, player: 3, tag: [[18, 28], [19, 28], [20, 28]] }
 observe:
   - state_hash
   - events

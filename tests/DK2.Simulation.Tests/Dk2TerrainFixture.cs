@@ -288,6 +288,7 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.FillInHealth, 5);
         Set(vars, VariableTypeId.ReinforceWallHealth, 50);
         Set(vars, VariableTypeId.RepairWallHealth, 22);
+        Set(vars, VariableTypeId.ConvertRoomHealth, -4000);
         Set(vars, VariableTypeId.GoldMinedFromGems, 25);
         Set(vars, VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds, 5);
         Set(vars, VariableTypeId.MinimumImpThreshold, 4);

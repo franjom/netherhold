@@ -408,7 +408,7 @@ public class BridgeTests
             database, run.World, database.CreatureById(Dk2TerrainFixture.ImpCreatureId));
 
         Assert.True(WorkStance.IsOnTheTile(
-            database, run.World, grid, span, TileWorkKind.Claim));
+            database, run.World, grid, span, TileWorkKind.ConvertRoom));
     }
 
     /// <summary>
@@ -434,11 +434,11 @@ public class BridgeTests
         run.Tick(BuildRoomCommand.At(Keeper, BridgeId, span));
 
         Assert.True(TileWorkRules.Applies(
-            database, run.World.Tile(span), TileWorkKind.Claim, playerId: Rival));
+            database, run.World.Tile(span), TileWorkKind.ConvertRoom, playerId: Rival));
 
         ref TileState tile = ref run.World.Tile(span);
         for (int i = 0; i < 5000 && tile.OwnerPlayerId != Rival; i++)
-            TileWorkRules.Apply(database, ref tile, TileWorkKind.Claim, Rival);
+            TileWorkRules.Apply(database, ref tile, TileWorkKind.ConvertRoom, Rival);
 
         Assert.Equal(Rival, tile.OwnerPlayerId);
         Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, tile.TerrainId);
@@ -467,7 +467,7 @@ public class BridgeTests
         Assert.True(burningBefore > 0);
 
         for (int i = 0; i < 5000 && tile.OwnerPlayerId != Rival; i++)
-            TileWorkRules.Apply(database, ref tile, TileWorkKind.Claim, Rival);
+            TileWorkRules.Apply(database, ref tile, TileWorkKind.ConvertRoom, Rival);
 
         Assert.Equal(Rival, tile.OwnerPlayerId);
         Assert.Equal(burningBefore, tile.BurnTicksRemaining);

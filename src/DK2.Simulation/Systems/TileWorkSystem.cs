@@ -52,17 +52,77 @@ public sealed class TileWorkSystem : ISimulationSystem
         for (int i = 0; i < count; i++)
         {
             TileWorkOrder order = world.PendingWork[i];
+
+            // The room this tile belongs to, read BEFORE the work lands and only
+            // for the one kind of work whose outcome is room-scoped. It has to be
+            // before: a room instance is tiles of one terrain with one owner
+            // (ADR-0027), so the moment the worked tile changes hands it becomes
+            // a room of its own and the rest of the room is unreachable from it.
+            RoomInstance? convertingRoom = TileWorkRules.CompletesAsTakeover(order.Kind)
+                ? RoomIndex.RoomAt(world, context.Database, order.TileIndex)
+                : null;
+
             ref TileState tile = ref world.TileAtIndex(order.TileIndex);
             byte before = tile.TerrainId;
 
             TileWorkResult result = TileWorkRules.Apply(
                 context.Database, ref tile, order.Kind, order.PlayerId);
 
+            if (convertingRoom is not null && result.Outcome == TileWorkOutcome.Transformed)
+                SpreadTakeover(context, order, convertingRoom);
+
             int carried = HandTo(context, order, result.GoldReleased);
             Report(context, order, result, before, world, carried);
         }
 
         world.RawPendingWork.RemoveRange(0, count);
+    }
+
+    /// <summary>
+    /// Hands the rest of a converted room to its new owner, all at once.
+    ///
+    /// <para><b>CONFIRMED</b> (owner, 2026-09-04): <i>"once an imp claims a
+    /// portal then the entire portal gets claimed, all tiles that are assigned
+    /// to that portal are immediately claimed … rooms are instantly claimed by
+    /// imps, not tile by tile."</i> One tile is worked; the room changes hands.
+    /// Without this a keeper would have to claim a portal nine times and could
+    /// leave one half-taken, which is a state DK2 cannot be in.</para>
+    ///
+    /// <para><b>Only the owner is written, not the terrain or the health.</b> The
+    /// worked tile went through <see cref="TileWorkRules.Apply"/> and had its
+    /// health, accumulated work and remainder reset by the conversion; the other
+    /// tiles were never worked, so resetting theirs would repair a room by
+    /// taking it. A rival who has been chipping at your treasury and then claims
+    /// it gets the damage along with it — the same reasoning that keeps a claimed
+    /// burning bridge burning (Q68).</para>
+    ///
+    /// <para>Gold is deliberately left where it is. A treasury's contents change
+    /// hands with the treasury, which is exactly what Q40 observed on defeat:
+    /// rivals claim the rooms <i>and gold</i>. Nothing spills, because the tile's
+    /// capacity is a property of its terrain and the terrain did not
+    /// change.</para>
+    /// </summary>
+    private static void SpreadTakeover(
+        SimulationContext context, TileWorkOrder order, RoomInstance room)
+    {
+        WorldState world = context.World;
+        int spread = 0;
+
+        foreach (int index in room.TileIndices)
+        {
+            if (index == order.TileIndex) continue;
+
+            ref TileState other = ref world.TileAtIndex(index);
+            if (other.OwnerPlayerId == order.PlayerId) continue;
+
+            other.OwnerPlayerId = order.PlayerId;
+            spread++;
+        }
+
+        context.Emit(SystemName, "room_converted",
+            $"({order.TileIndex % world.Width},{order.TileIndex / world.Width}) " +
+            $"player={order.PlayerId} {room.Definition.Name} " +
+            $"tiles={room.TileCount} spread={spread} from={room.OwnerPlayerId}");
     }
 
     /// <summary>

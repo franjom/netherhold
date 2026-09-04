@@ -245,3 +245,84 @@ it touches five hundred tests that were written on the old convention.
   portal and balance table, 90 seconds. Four goblins arrive, and the fourth
   waits 540 ticks where the first waited 360, which is the interval scaling
   visible in an event log.
+
+---
+
+## Update, later the same day: the portal is claimable, and two defects went with it
+
+Q92 came back from the owner within the hour: *"once an imp claims a portal then
+the entire portal gets claimed, all tiles that are assigned to that portal are
+immediately claimed … that is a game mechanic that works on claiming
+enemy/neutral rooms too, rooms are instantly claimed by imps, not tile by
+tile."*
+
+**CONFIRMED**, implemented as ADR-0044, and it changed the section above from "a
+portal cannot be claimed" to the full chain working on level 1's real map with
+one dig order:
+
+```
+t276-324  dig three tiles out of the keeper's own wall and the rock beyond
+t343-396  claim the floor they opened
+t465      room_converted: (21,28) player=3 Portal tiles=9 spread=8 from=2
+t824      creature_entered: type=Goblin ... interval=360
+```
+
+`tiles=9 spread=8` is the mechanic in one line: one tile was worked, eight came
+with it. And **t465 + 359 = t824**, which is the portal's clock starting at the
+claim rather than before it — the decision recorded under
+`TileState.EntranceIdleTicks`, now visible in an event log.
+
+### What the mechanic is
+
+`TileWorkKind.ConvertRoom`, reading `ConvertRoomHealth` = **−4000** (an entry
+that had sat unused in `VariableTypeId`). Thirteen applications against a room
+tile's 10000 health at five a second, so **2.6 seconds** — the "instantly" is
+about the propagation, not the duration. `Claim` now excludes room terrain, which
+is the fix: it had applied to rooms all along, because room terrain is `Ownable`
+and not `Solid` and that is all it asked for. **So rooms had been converting tile
+by tile at the wrong rate since rooms existed.**
+
+The mixed direction is the data's: `ClaimTileHealth` is **+825** and builds floor
+*up*, `ConvertRoomHealth` is **−4000** and beats a room *down*. Hence
+`CompletesAsTakeover` — without it the downward path would send a converted room
+to its `DestroyedTypeTerrainId` (Claimed Path, for every room in the data) and
+claiming a treasury would demolish it. Demolishing is `AttackRoomHealth`'s job
+(−1500) and still has no work kind.
+
+Two things fell out rather than being written: **a worker takes a room by
+standing in it** (the stance rule asks what the tile will be when the job
+finishes, and a takeover leaves it alone — ADR-0028), and **an imp holding gold
+takes a rival's adjacent treasury and then uses it.** That last one prompted the
+owner to confirm the rule it might have broken: *"imps fill only their own
+keeper's treasury … for SP my imps NEVER fill anyone's treasure but my own."* It
+holds structurally — `GoldStore`'s store lookup skips every room whose owner is
+not the depositor, and it is the only path into a tile's gold — and is now
+asserted both as an ordering (the takeover precedes the first delivery) and as an
+invariant over every tick of a run.
+
+### The second defect, which was worse and unrelated
+
+Implementing the first produced a scenario that dug from level 1's heart toward
+its portal and **did nothing at all for 130 game-seconds.**
+
+The owner byte survived every terrain conversion, on a recorded reason: *"which
+owner id means 'nobody' is UNKNOWN (Q17), and every rule that cares asks
+`IsOwnable` first, so a stale byte on unownable terrain is inert."* **Q17 was
+answered the same day** (ADR-0043) and **`Claim` never asked `IsOwnable`** — so a
+keeper who dug through their own reinforced wall got Dirt Path stamped with their
+own id, which is neither claimable by them nor their own land. Territory could
+not grow through it. On level 1 the only route out of the dungeon heart *is* the
+keeper's own wall, so **nothing beyond it was ever reachable.** Fixed in
+ADR-0045; the general lesson — a justification resting on an open question rots
+the day that question is answered elsewhere — is `GOAL_ALIGNMENT.md`'s third
+review clause.
+
+### Still ours rather than the owner's
+
+- **A dungeon heart cannot be taken this way** (Q93). Inferred from Q40: a heart
+  is beaten down, and "rivals claim the rooms and gold" happens after it falls.
+- **A multi-tile bridge converts whole** (Q94). A bridge is a room in every way
+  the data can tell, but "one imp takes a whole ten-tile span" is a large
+  consequence to draw from a sentence about portals. Pinned as behaviour so it is
+  one line to change.
+- **The rate.** Only the propagation is confirmed.

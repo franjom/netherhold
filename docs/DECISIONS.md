@@ -2481,3 +2481,129 @@ The test suite also uses player 1 as "a keeper" and 2 as "a rival" throughout.
 Both are **Q91**, with the fix named — gate on `PlayerIds.IsKeeper`, re-key the
 fixtures — and left as their own change rather than bundled into the portal's,
 because they touch five hundred tests written on the old convention.
+
+---
+
+## ADR-0044 — A room is claimed whole, never tile by tile
+
+**Date:** 2026-09-04 · **Status:** Accepted · **Implements:**
+`TileWorkKind.ConvertRoom`, `TileWorkRules.CompletesAsTakeover`,
+`TileWorkSystem.SpreadTakeover`
+
+**Context.** **CONFIRMED by the owner**, unprompted, the day the portal landed:
+*"once an imp claims a portal then the entire portal gets claimed, all tiles
+that are assigned to that portal are immediately claimed … that is a game
+mechanic that works on claiming enemy/neutral rooms too, rooms are instantly
+claimed by imps, not tile by tile."*
+
+**It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and it
+turned out to be a defect report about something much older.** The project did
+not lack room claiming; it had it and it was wrong.
+`TileWorkKind.Claim` applied to room terrain, because room terrain is `Ownable`
+and not `Solid` and that is all the claim rule asked for. So a rival's treasury
+came over one tile at a time, at `ClaimTileHealth`'s rate, and a half-taken
+portal was a reachable state. Nothing checked it, and nothing checked it because
+nobody had asked: it took an owner sentence about portals to notice the general
+case.
+
+**Decision.**
+1. **`Claim` excludes room terrain** (`!terrain.IsRoom`).
+2. **`ConvertRoom` takes rooms**, reading `ConvertRoomHealth` — **−4000**, which
+   until now was an unused entry in `VariableTypeId`. At five applications a
+   second against a room tile's 10000 health that is **thirteen swings, about
+   2.6 seconds**: the propagation is instant, the work is not.
+3. **Completion is room-scoped.** `TileWorkRules.Apply` converts the worked
+   tile; `TileWorkSystem` reads the `RoomInstance` *before* the work lands and
+   hands the rest of it over. It has to be before — a room instance is tiles of
+   one terrain with **one owner** (ADR-0027), so the moment the worked tile
+   changes hands the rest of the room is unreachable from it.
+4. **Only the owner is written on the other tiles.** They were never worked, so
+   resetting their health would repair a room by taking it. A rival who has been
+   chipping at your treasury gets the damage with it — the same reasoning that
+   keeps a claimed burning bridge burning (Q68).
+5. **Gold changes hands with the room.** Nothing spills: a tile's capacity is a
+   property of its terrain and the terrain did not change. Exactly what Q40
+   observed on defeat — rivals claim the rooms *and gold*.
+
+**The mixed direction is the data's, not a choice.** `ClaimTileHealth` is
+**+825** and builds a floor tile *up* to its maximum; `ConvertRoomHealth` is
+**−4000** and beats a room *down* to zero. Two jobs that both end in "this is
+mine now", from opposite directions, which is why `CompletesAsTakeover` exists:
+without it the downward path would send a converted room to its
+`DestroyedTypeTerrainId` — Claimed Path for every room in the data — and
+claiming a treasury would demolish it. Demolishing is `AttackRoomHealth`'s job
+(−1500) and has no work kind yet.
+
+**Two things that fell out rather than being written.** A worker takes a room by
+standing **in** it, because the stance rule asks what the tile will be when the
+job finishes and a takeover leaves it alone (ADR-0028). And an imp holding gold
+with a rival's treasury next door now **takes it and then uses it** — which
+prompted the owner to confirm the rule it might have broken: *"imps fill only
+their own keeper's treasury … for SP my imps NEVER fill anyone's treasure but my
+own."* That holds, structurally: `GoldStore`'s store lookup skips every room
+whose owner is not the depositor, and it is the only path into a tile's gold.
+Asserted as an ordering — the takeover precedes the first delivery — and as an
+invariant over every tick.
+
+**Consequences.**
+- Two rules are ours rather than the owner's, both flagged: **a dungeon heart
+  cannot be taken this way** (a heart is beaten down, and Q40's "rivals claim the
+  rooms" happens *after* it falls — Q93), and **a multi-tile bridge converts
+  whole** (a bridge is a room in every way the data can tell, but the owner said
+  "rooms" and a ten-tile bridge changing hands from one tile is a large
+  consequence to draw from that — Q94).
+- Q92's *rate* is still unobserved. Only the propagation is confirmed.
+
+---
+
+## ADR-0045 — A tile that cannot be owned does not carry an owner
+
+**Date:** 2026-09-04 · **Status:** Accepted · **Supersedes:** the
+never-clear-ownership rule stated in `TileWorkRules.Convert` and
+`RoomRules.Unmake`
+
+**Context.** Found by a scenario, not by review. A run that dug from level 1's
+dungeon heart toward its portal did **nothing at all for 130 game-seconds**: it
+dug the three tiles it was told to and then sat there.
+
+**The cause is four months old and it walled a level-1 keeper in permanently.**
+The owner byte survived every terrain conversion, on a justification recorded in
+two places: *"which owner id means 'nobody' is UNKNOWN (Q17), and every rule that
+cares asks `TerrainDef.IsOwnable` first, so a stale byte on unownable terrain is
+inert."*
+
+**Both halves were false by the time it mattered.**
+
+| the claim | why it failed |
+|---|---|
+| "which id means nobody is UNKNOWN (Q17)" | **Answered the same day, in ADR-0043**: 0 is unowned, confirmed three ways across all 66 shipped levels. The reason for not writing a neutral id had expired, and nothing connected the two facts. |
+| "every rule that cares asks `IsOwnable` first, so a stale byte is inert" | **`TileWorkKind.Claim` does not.** It tests `OwnerPlayerId != playerId` and nothing else about ownership. |
+
+So a keeper who dug through **their own reinforced wall** got Dirt Path still
+stamped with their id — neither claimable by them (the owner already matched) nor
+their own land (`StandsOnOwnLand` requires `IsOwnable`). Their territory could
+not grow through it, ever. On level 1 that is fatal rather than untidy: the only
+route out of that dungeon heart is through the keeper's own wall, so nothing
+beyond it was reachable — not the portal, not a lair, not a treasury.
+
+**Decision.** `Convert` and `RoomRules.Unmake` clear the owner to
+`PlayerIds.Unowned` when the terrain they leave cannot be owned. The original
+reason for keeping it still holds where it applied: a treasury's destroyed type
+is Claimed Path, which *is* ownable, so **selling your own room still keeps the
+floor it stood on**. What changes is the cases nobody had in view — a dug wall, a
+destroyed claimed path, and a sold bridge over water, which no longer leaves you
+owning the water.
+
+**Consequences.**
+- Eight tests in `TileOwnershipTests` and one on the shipped level-1 map, and the
+  point of them is that **every existing claiming test opened *unowned* rock**,
+  which never carried the stale byte. The gap was specifically a wall the keeper
+  already owned, and nothing dug one and then tried to grow past it.
+- One scenario hash moved (`tiles-mine-gold-001`): a mined seam's tile no longer
+  carries the owner the rock happened to have.
+- **The lesson generalises and is new.** The project's standing review question
+  has been *what would fail if this stopped being true?* and *does anything read
+  this fact at all?* This adds a third: **is this justification still true?** A
+  reason resting on an open question rots silently the day that question is
+  answered somewhere else, and neither the answer nor the reason knows about the
+  other. `GOAL_ALIGNMENT.md` carries it.

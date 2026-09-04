@@ -283,14 +283,20 @@ public static class RoomRules
         tile.BurnTicksRemaining = 0;
         if (!next.IsTaggable) tile.TaggedBy = 0;
 
-        // The owner byte is deliberately left alone even when the tile reverts to
-        // water, for the same reason TileWorkRules never clears it: which owner
-        // id means "nobody" is UNKNOWN (Q17), and every rule that cares asks
-        // TerrainDef.IsOwnable first, so a stale byte on unownable terrain is
-        // inert. Inventing a neutral id here would be the riskier choice.
+        // The owner survives a revert to ownable ground and is cleared when the
+        // ground cannot be owned — so selling your own treasury keeps the floor
+        // it stood on, and selling a bridge over water does not leave you owning
+        // the water.
+        //
+        // This used to keep the byte unconditionally, on the grounds that
+        // "which owner id means nobody is UNKNOWN (Q17)" and that a stale byte
+        // was inert. Both expired: Q17 is answered (ADR-0043, 0 is unowned) and
+        // the byte was never inert — see the account in TileWorkRules.Convert
+        // and ADR-0045.
         //
         // The bridge marker does go back to its default, because the bridge that
         // recorded which hazard this was no longer exists.
+        if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Unowned;
         tile.Flags = BridgeRules.SpansWater;
 
         int displaced = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));

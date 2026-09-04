@@ -580,10 +580,20 @@ public sealed class ImpTaskSystem : ISimulationSystem
                 if (!TileWorkRules.TryTaggedWork(context.Database, tile, playerId, out kind)) return false;
                 break;
 
+            // Claiming floor and taking somebody else's room are the same
+            // priority and two kinds of work, because the balance table gives
+            // them separate rates (ClaimTileHealth +825, ConvertRoomHealth
+            // −4000) and the terrain flag partitions them exactly: a room tile
+            // is one and only one of the two. The owner describes both as
+            // claiming (Q24, Q92), so nothing here has to choose an order
+            // between them.
             case JobPriority.Claim:
-                if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId))
+                if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId))
+                    kind = TileWorkKind.Claim;
+                else if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.ConvertRoom, playerId))
+                    kind = TileWorkKind.ConvertRoom;
+                else
                     return false;
-                kind = TileWorkKind.Claim;
                 break;
 
             case JobPriority.Reinforce:

@@ -13,9 +13,9 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **551 tests green**
-with and without a DK2 install; eleven scenarios run, each drawing a picture of
-its finished world; clean tree. (Core 17, Simulation 291, Data 63, Behavior 94,
+**every** record type's on-disk size is now known and pinned. **573 tests green**
+with and without a DK2 install; twelve scenarios run, each drawing a picture of
+its finished world; clean tree. (Core 17, Simulation 313, Data 63, Behavior 95,
 Assets 60, Presentation 26.)
 
 **The first room whose behaviour exists is the portal** (2026-09-04, ADR-0042):
@@ -325,6 +325,8 @@ What the simulation can do:
 | A level playing on its own balance numbers | `GlobalVariables.MergedWith` + `GameDatabase.ForLevel` + `GameDatabaseLoader.LoadForCampaignLevel` | 26 variable ids are overridden by at least one shipped level, and one was already live: `MinimumImpThreshold` is 0 on four secret levels against a global 4 (ADR-0040, Q82). Pinned against the install and, separately, as merge rules without one |
 | **Where every other creature comes from** | `PortalRules` + `PortalSystem` | four gates all in the data — unlocked (`Availability` kind 2), pool has room (`CreaturePool`), something attracts it (`CreatureAttraction`), under capacity (15 + 5 per extra portal). **Level 1 gives nothing until a lair exists.** ADR-0042. First consumer of the RNG. The interval scaling is OpenKeeper's, not the data's — Q86 |
 | **Which players are keepers at all** | `PlayerIds` | 0 unowned, 1 hero, **2 neutral (an unclaimed room)**, 3–7 keepers. CONFIRMED three ways over all 66 levels. ADR-0043. Only `PortalSystem` honours it so far — Q91 |
+| **Claiming a room somebody else holds** | `TileWorkKind.ConvertRoom` + `TileWorkSystem.SpreadTakeover` | CONFIRMED (owner, Q92, ADR-0044): **whole, never tile by tile.** One tile at `ConvertRoomHealth`'s −4000 (13 swings, 2.6s) and the room changes hands, gold included. Fixed `Claim` silently taking rooms a tile at a time since rooms existed |
+| **A tile that cannot be owned carries no owner** | `TileWorkRules.Convert` + `RoomRules.Unmake` | ADR-0045. Four-month defect: a keeper who dug their own reinforced wall could never grow through the hole, which on level 1 walls them in permanently. The reason it survived was a justification resting on Q17, answered the same day elsewhere |
 | Where imps come from, and the first mana spender | `ImpSupplyRules` + `ImpSupplySystem` | four free imps five seconds apart on a shipped level, then 1500 / 3000 / 4500 for the next three and a refusal for the fourth |
 
 Extracted data artifacts (the specification the simulation is written against):
@@ -1890,3 +1892,104 @@ Ahead of the library, the cheapest genuinely useful thing is **Q92 —
 room conversion as a work kind** — because it makes a portal claimable and makes
 every room-taking scenario honest, and both balance values are already in the
 table.
+
+### Later the same day: two owner sentences, two four-month defects
+
+Three answers arrived from the owner after the portal was committed, and between
+them they cost more than the portal did.
+
+**1. "Rooms are instantly claimed by imps, not tile by tile."** Asked as Q92 —
+*how does a keeper claim a portal?* — and it was really a defect report.
+`TileWorkKind.Claim` already applied to room terrain, because room terrain is
+`Ownable` and not `Solid` and that is everything the claim rule asked. **So
+rooms had been changing hands one tile at a time, at the wrong rate, since rooms
+existed**, and a half-taken portal was a reachable state. Fixed as ADR-0044:
+`Claim` excludes rooms, `ConvertRoom` takes them at `ConvertRoomHealth` (−4000,
+an entry that had sat unused in `VariableTypeId`), and `TileWorkSystem` reads the
+`RoomInstance` *before* the work lands and hands the rest of it over — it has to
+be before, because a room instance is tiles of one terrain with one owner, so the
+moment the worked tile flips the rest is unreachable from it.
+
+**2. "Imps fill only their own keeper's treasury."** Volunteered while watching
+me split a test, and it turned out to be exactly the rule the new behaviour
+threatened: an imp holding gold with a rival's treasury next door now takes it
+and then fills it. That is fine — it fills its *own* treasury, after taking it —
+and it is structurally guaranteed, since `GoldStore`'s store lookup skips every
+room whose owner is not the depositor. Now asserted as an ordering (takeover
+before first delivery) and as a per-tick invariant, not just as an end state.
+
+**3. The goblin timing, and it is still the open one.** The owner sees roughly 30
+seconds between arrivals, measured **flower to flower** rather than from the
+portal animation — which is the right way to measure it, since the animation
+cancels. It does not yet discriminate the scaling: at a small dungeon size the
+rule predicts the flat base (18s on level 1, 25s elsewhere), and ~30s is
+consistent with a base of 25 and a low creature count. **What settles it is the
+level and the creature count**, which is now the question at the top of the
+observation checklist.
+
+### The defect that was worse, and it was not about portals at all
+
+Implementing (1) produced a scenario that dug from level 1's heart toward its
+portal and **did nothing for 130 game-seconds.** Not a crash, not a wrong number
+— nothing.
+
+The owner byte survived every terrain conversion, on a reason recorded in two
+files:
+
+> *"which owner id means 'nobody' is UNKNOWN (Q17), and every rule that cares
+> asks `IsOwnable` first, so a stale byte on unownable terrain is inert."*
+
+**Both halves were false, and each failed differently.** Q17 had been answered
+*earlier that same day* by ADR-0043 — 0 is unowned — so the first half had
+expired and nothing connected the answer to the decision resting on it. And
+`Claim` never asked `IsOwnable`: it tests `OwnerPlayerId != playerId` and nothing
+more, so the byte was never inert.
+
+Consequence: a keeper who dug through **their own reinforced wall** got Dirt Path
+still stamped with their own id — neither claimable by them (the owner matched)
+nor their own land (the terrain is not ownable). Territory could not grow through
+it. **On level 1 the only route out of the dungeon heart is the keeper's own
+wall**, so nothing beyond it was ever reachable: no portal, no lair, no treasury.
+Four months. Fixed as ADR-0045.
+
+Every existing claiming test opened *unowned* rock, which never carried the stale
+byte. The gap was specifically a wall the keeper already owned, and nothing dug
+one and then tried to grow past it. Eight tests in `TileOwnershipTests` and one
+on the shipped level-1 map now do.
+
+**`GOAL_ALIGNMENT.md` gains a third review clause**, because this is a new *kind*
+of failure rather than another instance: **is this justification still true — and
+would anybody notice if it stopped being?** A reason resting on an open question
+is a dependency, and it is the only kind nothing in this project tracks. Two
+habits adopted: when a question is answered, grep for its number (Q17 appeared in
+two source files, and reading them would have taken thirty seconds); and a
+justification citing an open question should name what it will do when that
+question closes.
+
+### What the level-1 scenario looks like now
+
+One dig order, and everything after it is the imps' own:
+
+```
+t276-324  dig three tiles — the keeper's own wall, then rock
+t343-396  claim the floor they opened
+t465      room_converted: (21,28) player=3 Portal tiles=9 spread=8 from=2
+t552+     reinforce the new walls (priority 3, doing its job)
+t824      creature_entered: type=Goblin ... interval=360
+```
+
+`tiles=9 spread=8` is the mechanic in one line. **t465 + 359 = t824**, so the
+portal's clock starts at the claim — the decision recorded under
+`TileState.EntranceIdleTicks`, now visible rather than merely documented.
+
+### State
+
+**573 tests green** (Core 17, Simulation 313, Data 63, Behavior 95, Assets 60,
+Presentation 26). Clean Release build, no suppressions. **Twelve scenarios.** One
+scenario hash moved for a real reason (`tiles-mine-gold-001`: a mined seam's tile
+no longer inherits the owner the rock happened to carry).
+
+Two rules inside room conversion are ours rather than the owner's and both are
+flagged with experiments: **a dungeon heart is exempt** (Q93) and **a multi-tile
+bridge converts whole** (Q94) — the second being the largest extrapolation, since
+"one imp takes a ten-tile span" is a lot to draw from a sentence about portals.

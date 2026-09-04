@@ -73,7 +73,16 @@ What is *built* rather than known, against the long-term goals:
 - **Not every player is a keeper** (ADR-0043, `PlayerIds`): 0 is unowned, 1 the
   hero side, **2 neutral — which is what an unclaimed room belongs to** — and
   3–7 keepers. CONFIRMED three ways, and it had been assumed away everywhere.
-  The by-product of asking whose portal an unclaimed portal is.
+  The by-product of asking whose portal an unclaimed portal is, and it closed
+  Q17 — which had been open long enough for a decision to rot on it (ADR-0045).
+- **How a keeper claims a room somebody else holds** (ADR-0044): **whole, never
+  tile by tile.** CONFIRMED by the owner. One tile is worked at
+  `ConvertRoomHealth`'s −4000 — thirteen swings, 2.6 seconds — and the entire
+  room instance changes hands, gold included (which is what Q40 saw on defeat).
+  Answering it exposed that `Claim` had been taking rooms a tile at a time since
+  rooms existed, and building it exposed a second, unrelated defect that had
+  **walled a level-1 keeper in permanently** (ADR-0045). One owner sentence, two
+  four-month defects, neither about portals.
 
 ## Unsolved (research required before implementing)
 - **What a room does.** ← being worked on, **the portal done and the library
@@ -93,10 +102,12 @@ What is *built* rather than known, against the long-term goals:
   non-worker still has no health, hunger, mood, experience or job — so it stands
   on the portal's hole forever. This is the next real frontier, and it is what
   every remaining room behaviour is blocked on rather than on research.
-- **How a keeper claims a room somebody else holds.** `ConvertRoomHealth` =
-  −4000 and `AttackRoomHealth` = −1500 name it and there is no `TileWorkKind`
-  for either, so **an imp cannot take a portal** — the one thing every level
-  expects a keeper to do with one. Q92.
+- **How a keeper *destroys* a room somebody else holds.** `AttackRoomHealth` =
+  −1500 names it and there is no `TileWorkKind` for it. **Claiming** one is done
+  (ADR-0044) — a room changes hands whole, never tile by tile, CONFIRMED by the
+  owner — but beating one down is a different job at a different rate and is not
+  built. Two rules inside claiming are still ours: whether a dungeon heart is
+  exempt (Q93) and whether a long bridge really goes whole (Q94).
 - **A level's own starting creatures.** THINGS is unparsed, so no level's roster
   loads and every creature in a run either came from a portal, from
   `ImpSupplySystem`, or from a scenario file saying so.
