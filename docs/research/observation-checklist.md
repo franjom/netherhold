@@ -136,7 +136,35 @@ within minutes of the second screenshot arriving. See `imps-and-mana.md`
 
 ## 1. Still open, and blocking
 
-### Q86 — the portal: **one question left, and it is a stopwatch** — *updated 2026-09-04*
+### Q97 — the portal: **why** arrivals slow down — *added 2026-09-04, and it displaces Q86 at the head of this list*
+
+**The owner has confirmed that they do**, unprompted: *"goblin interval, seems
+to be prolonging after each goblin arrives."* That closes the question this list
+called unfalsifiable. It opens a better one, because **two different mechanisms
+predict the same thing** and the binary points at the one that is *not*
+implemented:
+
+| | Mechanism | Prediction |
+|---|---|---|
+| (a) | The **interval stretches** with your creature count — `max(base, base × creatures ÷ 2)`, from OpenKeeper, and what the code does today | Lair size is irrelevant to timing. A 3x3 lair and a 6x6 lair pace identically |
+| (b) | The interval never changes; **eligibility drains** — each creature type is weighted by its attracting rooms, minus one per creature of that type held, and drops out at zero | Lair size is the whole story. A big lair keeps goblins arriving at full speed until it fills |
+
+(b) is what `Entrance.cpp` appears to do, and there is **no interval arithmetic
+anywhere in that translation unit** — but the reading contradicts itself (taken
+literally it caps level 1 at one goblin) so it is a hypothesis, not a finding.
+See `docs/research/binary-entrance.md` §4.
+
+**The experiment, and it needs no stopwatch precision.** Play level 1 twice.
+Once with a **small lair** (one or two tiles), once with a **large** one (say
+5x5 or bigger), and in each case note roughly how long the third, fourth and
+fifth goblins take. **If the big-lair run keeps arrivals fast and then slows
+abruptly, it is (b).** If both runs slow at the same steady rate regardless of
+lair size, it is (a) and the code is right.
+
+Worth doing before the slope below, because if it is (b) the slope does not
+exist.
+
+### Q86 — the portal: **the slope, now that the direction is confirmed** — *updated 2026-09-04*
 
 The portal is built (ADR-0042, `docs/research/portals.md`). Three of this entry's
 four original questions were answered from OpenKeeper's implementation, now that

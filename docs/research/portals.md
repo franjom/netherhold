@@ -67,23 +67,52 @@ Two consequences worth having in front of you:
 Four gates, all four checked every tick. The gates themselves follow from the
 fields. What follows does not.
 
-### 1. The interval grows with the dungeon — and nothing in the files says so
+### 1. The interval grows with the dungeon — **CONFIRMED, and nothing in the files says so**
 
 The requirement is `max(base, base × creatures ÷ 2)` ticks, so on level 1 the
-first goblin takes 18 seconds, the fifth 36, the fifteenth 126. **This is the
-single most consequential inference in the whole mechanic** and it comes
-entirely from OpenKeeper's `CreatureSpawnSystem`. There is no
+first goblin takes 18 seconds, the fifth 36, the fifteenth 126. There is no
 "generation slowdown" variable, no per-creature multiplier, nothing in the
-balance table that expresses it.
+balance table that expresses it — it came entirely from OpenKeeper's
+`CreatureSpawnSystem`, and it was flagged here as the single most consequential
+inference in the whole mechanic.
 
 It also completely changes the pace of a level. Without it, fifteen goblins
 arrive in four and a half minutes; with it, in about fifteen — and level 1's own
 `AverageTime` variable says 8 (minutes), which sits between the two and settles
 nothing.
 
-**It is unfalsifiable from the files and only observation can check it.** Q86: a
-stopwatch on two consecutive arrivals at two different dungeon sizes does it in
-one sitting.
+> **Owner, 2026-09-04, unprompted:** *"goblin interval, seems to be prolonging
+> after each goblin arrives."*
+
+**That is the direction CONFIRMED**, and it is the answer to the thing this
+document called unfalsifiable. The pace of every level now rests on an observed
+behaviour rather than on somebody else's code.
+
+**One line of somebody else's code, for the record.** The formula is not a
+reconstruction — OpenKeeper states it outright, and its class comment
+independently confirms the two-portals quirk reproduced in §4:
+
+```java
+// CreatureSpawnSystem.evaluateAndSpawnCreature, GPLv3 — quoted as evidence
+timeSinceLastSpawn >= Math.max(entranceCooldownTime,
+        entranceCooldownTime * player.getCreatureControl().getTypeCount() * 0.5)
+```
+
+`getTypeCount()` is documented on `PlayerCreatureControl` as *"Get player
+creature count. Excluding imps."*, which is what `PortalRules.CreatureCount`
+does by the `IsWorker` flag.
+
+#### What is left of Q86 is the slope, and it is sharp
+
+"It gets slower" does not measure `÷ 2`. On level 1 (base 18) the formula
+predicts consecutive gaps of **18, 18, 27, 36, 45 seconds — exactly nine more
+per goblin**, and nine is `base ÷ 2`. That is the falsifiable claim.
+
+The owner's earlier ~30-second measurement is **consistent with the formula
+rather than evidence for it**: 30 sits between the n=3 (27s) and n=4 (36s)
+predictions. Two independent observations now agree with the shape, and neither
+constrains the slope. What does: two consecutive gaps *with the goblins
+counted*, or `Entrance.cpp` in the binary (ADR-0046).
 
 ### 2. The pool is a standing limit, not a draining quota
 

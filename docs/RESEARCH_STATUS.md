@@ -67,9 +67,26 @@ What is *built* rather than known, against the long-term goals:
   produces nothing until its keeper builds a lair**, because the Goblin's only
   attraction is a Lair — the tutorial's order is a mechanic, not a script. Three
   of the composition rules came from OpenKeeper rather than the files, the
-  licence now permitting it (ADR-0003 second amendment); the riskiest is that
-  **the interval scales with the keeper's creature count** and only a stopwatch
-  on the original can check it (Q86).
+  licence now permitting it (ADR-0003 second amendment). **A fifth gate was
+  found later the same day, in the binary:** a creature's own flags decide
+  whether a portal may produce it at all — `AvailableViaPortal` required,
+  `IsUnique` disqualifying — and without it a keeper's portal produced *Knights
+  and Fairies* on the three Frosty levels, which mark the whole hero roster
+  AVAILABLE and pooled for keepers 3 to 6 (ADR-0047).
+- **The owner CONFIRMED that arrivals slow as a dungeon fills** — the one thing
+  in the portal that nothing in the shipped data could express. What is left is
+  no longer *whether* but *why*: the implemented interval scaling and a
+  weighting the binary suggests would both produce it, and they differ in
+  whether lair size matters (Q97).
+- **DKII.EXE may be decompiled, and its output may not enter the repository**
+  (ADR-0046, answering Q96 — an owner decision). The rule is fact / expression:
+  numbers, formulas and control flow may cross into `docs/research/` in our own
+  words; decompiler output stays in gitignored `reverse-engineering/`. Binary
+  facts rank **below** owner observation and may never reach CONFIRMED on the
+  binary alone. First pass: `docs/research/binary-entrance.md` — five findings,
+  one defect fixed, one contradiction recorded unresolved, and the question it
+  was opened for (Q86's slope) **not** answered, because the spawn clock is not
+  in `Entrance.cpp`.
 - **Not every player is a keeper** (ADR-0043, `PlayerIds`): 0 is unowned, 1 the
   hero side, **2 neutral — which is what an unclaimed room belongs to** — and
   3–7 keepers. CONFIRMED three ways, and it had been assumed away everywhere.
@@ -133,9 +150,12 @@ CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN per AGENTS.md.
 of DK2 can settle by looking, as concrete experiments, ranked by what they
 unblock, plus the ones playing cannot settle. **Every question that has ever
 headed this list is now answered** — Q47's tile-work rates (273 gold a swing),
-Q45's room minimum sizes, and three of Q86's four portal questions (answered
-from OpenKeeper rather than by playing). What heads it now is **one stopwatch**:
-does the gap between arrivals grow with the size of your dungeon? Nothing in the
-shipped data can say, and it is the difference between fifteen goblins in four
-minutes and fifteen in fifteen. Followed by **Q92** — claim a portal in the
-original and watch whether it converts tile by tile or flips whole.
+Q45's room minimum sizes, three of Q86's four portal questions (answered from
+OpenKeeper rather than by playing), and Q86's fifth — *do arrivals slow as the
+dungeon fills* — CONFIRMED by the owner on 2026-09-04. What heads it now is
+**Q97, and it is one experiment rather than a stopwatch**: build a *large* lair
+and see whether arrivals still slow at the same rate. If lair size changes the
+pace, the slowdown is draining eligibility and the implemented interval scaling
+is the wrong cause for the right symptom; if it does not, the interval really
+does stretch. Followed by the slope itself — two consecutive gaps *with the
+goblins counted*, which the formula says differ by exactly `base ÷ 2`.

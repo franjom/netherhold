@@ -50,3 +50,12 @@ unity/**/obj/
 unity/DK2.Unity/*.csproj
 unity/DK2.Unity/*.sln
 unity/DK2.Unity/.vsconfig
+
+# ---------------------------------------------------------------
+# NEVER COMMIT: decompiler output. Derived from EA's executable and
+# therefore the same proprietary material as the binary itself.
+# Facts and formulas learnt here belong in docs/research/ in our own
+# words, with provenance. See ADR-0046 and reverse-engineering/README.md.
+# ---------------------------------------------------------------
+reverse-engineering/**
+!reverse-engineering/README.md

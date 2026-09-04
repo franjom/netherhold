@@ -243,7 +243,11 @@ internal static class Dk2TerrainFixture
     {
         Name = "Goblin",
         CreatureId = 7,
-        Flags = CreatureFlags.IsEvil,
+
+        // The real Goblin's flags are exactly these two. AvailableViaPortal is
+        // not decoration: PortalRules.CanComeFromPortal requires it, so a
+        // fixture Goblin without it never comes out of a portal at all.
+        Flags = CreatureFlags.IsEvil | CreatureFlags.AvailableViaPortal,
 
         Hp = 1500,
         MeleeDamage = 170,

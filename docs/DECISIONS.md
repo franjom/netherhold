@@ -2607,3 +2607,151 @@ owning the water.
   reason resting on an open question rots silently the day that question is
   answered somewhere else, and neither the answer nor the reason knows about the
   other. `GOAL_ALIGNMENT.md` carries it.
+
+---
+
+## ADR-0046 — DKII.EXE may be decompiled; its output may not enter the repository
+
+**Date:** 2026-09-04
+**Status:** Accepted
+**Answers:** Q96
+**Supersedes nothing. Extends:** ADR-0003 (what may be used as a source)
+
+### The decision the owner took
+
+*"about ghidra, you are free to use it and decompile it, put all decompiled
+resources under reverse-engineering folder."*
+
+So: **decompile freely, quarantine the output.** `reverse-engineering/` is
+gitignored except for its README. This ADR is the rule for what may leave it.
+
+### Why a rule was needed at all rather than just permission
+
+Q96 was put to the owner rather than decided here, because it is the one
+research decision that changes what the project can *say about its own method*.
+The brief is explicit twice over: prefer *"clean-room behavioural
+reimplementation based on observed behaviour and documented research rather than
+copying proprietary implementation wholesale"*, and *"do not copy original
+source code into the new project merely because it is available through reverse
+engineering."*
+
+Decompiler output is not a description of the binary. **It is source code
+derived from it** — a C rendering of EA's own statements, function by function,
+with EA's control flow and EA's operation order. The second sentence of the
+brief is about exactly this, and it does not stop applying because the route is
+a decompiler rather than a leak.
+
+But the *first* sentence says "documented research", and a number is not an
+expression. `EntranceGenerationSpeedSeconds` is 25 whether we read it from a
+KWD, watch it with a stopwatch, or find the comparison in `.text`. Facts about
+behaviour are the whole point of the project; they are not ownable and never
+were.
+
+So the boundary is not decompile / do-not-decompile. It is **fact / expression.**
+
+### The rule
+
+1. **Facts, formulas, thresholds, comparisons, orders of operation and
+   descriptions of control flow may cross** into `docs/research/`, written in
+   our own words, with provenance naming the binary and the address.
+2. **Decompiler output itself never crosses.** Not into `src/`, not into
+   `docs/`, not into a commit message, not into a test fixture, not renamed or
+   reformatted or tidied. It stays in `reverse-engineering/`, which is
+   gitignored, and a `git status` that shows a file in there is a bug.
+3. **Binary-derived facts rank below owner observation** of the game running.
+   The decompiler is an inference engine — it invents names, guesses types, and
+   quietly mismodels optimised fixed-point and float arithmetic. Where the two
+   disagree the running game wins, and the disagreement gets written down rather
+   than reconciled silently.
+4. **Every binary-derived fact is tagged as such** in its research doc, so that
+   a reader can always tell which of the four evidence classes a claim rests on:
+   shipped data, owner observation, community research, and now the binary.
+5. **`[Dk2Behavior]` confidence may rise on binary evidence, but not to
+   CONFIRMED.** CONFIRMED is reserved for the running game. A fact read cleanly
+   out of the binary and consistent with the data is STRONGLY INFERRED — which
+   is an honest promotion from HYPOTHESIS, and most of what decompiling is for.
+
+### The licence question, flagged rather than answered
+
+The brief says to flag legal questions rather than assume. Two, both noted and
+neither resolved here:
+
+- **The GOG EULA is a contract question distinct from copyright.** Reverse
+  engineering for interoperability has statutory protection in the EU
+  (Directive 2009/24/EC Art. 6, and Art. 5(3) for observation and testing,
+  which is what the observation checklist has been doing all along) and a
+  fair-use history in the US. Contractual prohibitions on it are of *doubtful
+  enforceability* in the EU and are void in some member states — but "doubtful"
+  is not "settled", and this project does not need to bet on it.
+- **What protects us is rule 2, not the statute.** Nothing derived from the
+  binary is distributed. The repository ships facts and our own code; the
+  decompilation stays on one machine. That is the same posture the project
+  already has toward the game's assets, which are equally undistributable and
+  equally used every day as an oracle.
+
+### What this unblocks, in order
+
+**Q1/Q83, the tick rate** — the project's largest single blocker,
+`SimulationTiming.TicksPerSecond = 20` is an admitted placeholder, and it is on
+the *playing cannot settle* list. The route is the four imported timer APIs
+(`QueryPerformanceCounter`, `QueryPerformanceFrequency`, `timeGetTime`,
+`GetTickCount`), all four of which the strings pass already found.
+
+Then **Q86's interval slope** — the owner has now CONFIRMED the interval grows
+with the dungeon (see Q86), which leaves only *by how much*; `Entrance.cpp`'s
+assert strings give the locality. Then the per-tick subsystem ordering, which
+`SimulationSystems` says outright is ours. Then Q90's entrance percentages, and
+ADR-0023's `DigRockHealth` override — the one place shipped data is deliberately
+disbelieved, and worth knowing whether the binary disbelieves it too.
+
+---
+
+## ADR-0047 — A portal produces only creatures whose own flags allow it
+
+**Date:** 2026-09-04
+**Status:** Accepted
+**Evidence:** the binary (ADR-0046), `docs/research/binary-entrance.md` §1
+**Amends:** ADR-0042 (the portal), which had four gates and needed five
+
+### The decision
+
+`PortalRules.CanComeFromPortal` is now the first gate in
+`PortalSystem.Pick`: a creature may come out of a portal only if it carries
+`CreatureFlags.AvailableViaPortal` (bit 10) and does **not** carry
+`CreatureFlags.IsUnique` (bit 27). Both flags were already parsed and named;
+neither was read by anything.
+
+### Why, and it is not a tidy-up
+
+The four existing gates let through nine creatures DK2 will not produce.
+**Frosty's Castle**, **Frosty's Lair** and **Frosty's Realm** mark the hero
+roster — Knight, Giant, Guard, Royal Guard, Monk, Wizard, Thief, Fairy, Elven
+Archer — both AVAILABLE and pooled for every keeper from player 3 to player 6.
+Availability passes, the pool passes, and a keeper's portal on those levels
+produced Knights.
+
+The entrance in the binary tests the creature's flags **before** consulting the
+level at all, which is also the natural order: whether a Knight can come out of
+a portal is a fact about Knights, not about the level.
+
+### The two things worth remembering about it
+
+**A flag nothing reads is a rule nothing enforces.** `AvailableViaPortal` had
+been sitting in `CreatureFlags` with the right name since creatures were
+parsed. The gap was not knowledge, it was that no rule asked. This is the same
+shape as ADR-0045 and it is now the third instance — see `GOAL_ALIGNMENT.md`,
+whose review clauses this feeds: *does anything read this fact at all?*
+
+**Availability is not the same question as producibility**, and the campaign
+proves it rather than merely permitting it. A creature can be in your roster and
+your pool and still not be something a portal hands you — because DK2 has other
+ways to acquire creatures, and the flag is how it says which.
+
+### The half that cannot be checked from the files
+
+No shipped level pools or unlocks a unique creature, so the `IsUnique` test
+never fires on shipped data. It rests on the binary alone, and it is implemented
+because all thirteen uniques *do* carry `AvailableViaPortal` — the second test
+is exactly what stops the first from handing over a Unique Dark Angel. Both
+premises are now tests (`NoShippedLevelEverPoolsOrUnlocksAUniqueCreature`,
+`TheThirteenUniqueCreaturesAllCarryThePortalFlag`) rather than sentences.

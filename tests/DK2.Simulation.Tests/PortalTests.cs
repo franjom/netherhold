@@ -143,6 +143,11 @@ public class PortalTests
         GameDatabase db = Database();
 
         // max(base, base * held / 2), so the scaling only bites past two.
+        //
+        // That the wait grows is CONFIRMED (owner, 2026-09-04). The step of
+        // base/2 is not: it is the part of Q86 still open, and it is what the
+        // n=4 and n=15 rows below pin. If the real slope turns out to be
+        // different, those two rows are what fails.
         int baseTicks = 25 * SimulationTiming.TicksPerSecond;
         Assert.Equal(baseTicks, PortalRules.SpawnIntervalTicks(db, 0));
         Assert.Equal(baseTicks, PortalRules.SpawnIntervalTicks(db, 1));
@@ -154,6 +159,82 @@ public class PortalTests
         // second is always even. If TicksPerSecond ever becomes odd this fails
         // rather than quietly drifting.
         Assert.Equal(0, baseTicks % 2);
+    }
+
+    // ---- gate 0: the creature's own flags --------------------------------
+
+    /// <summary>
+    /// The fixture Goblin, with its flags replaced. Everything else — terrain,
+    /// rooms, variables, spells — is the fixture's own, so a test built on this
+    /// differs from the rest of the suite in exactly one creature flag word.
+    /// </summary>
+    private static GameDatabase DatabaseWithGoblinFlags(CreatureFlags flags)
+    {
+        GameDatabase fixture = Dk2TerrainFixture.Database();
+        CreatureDef goblin = fixture.CreatureById(GoblinId) with { Flags = flags };
+
+        var level = new GlobalVariables();
+        level.CreaturePool.Add(new CreaturePoolEntry(GoblinId, 15, Keeper));
+        level.Availabilities.Add(new AvailabilityEntry(2, Keeper, GoblinId, 3));
+
+        return new GameDatabase(
+            fixture.Terrain.Values,
+            fixture.Rooms.Values,
+            fixture.Creatures.Values
+                .Where(c => c.CreatureId != GoblinId)
+                .Append(goblin),
+            fixture.Variables,
+            fixture.KeeperSpells.Values).ForLevel(level);
+    }
+
+    [Fact]
+    public void ACreatureWithoutThePortalFlagNeverArrives()
+    {
+        // Unlocked, pooled, attracted — and still ineligible, because the
+        // entrance tests the creature's own flags first. This is the case the
+        // shipped campaign actually contains: nine hero creatures are AVAILABLE
+        // and pooled for keepers on the Frosty levels and carry no portal flag.
+        GameDatabase db = DatabaseWithGoblinFlags(CreatureFlags.IsEvil);
+        WorldState world = World(db);
+        Portal(db, world, 5, 5);
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+
+        Simulation(db, world).Run(LongEnough);
+
+        Assert.DoesNotContain(world.Creatures, c => c.CreatureTypeId == GoblinId);
+    }
+
+    [Fact]
+    public void AUniqueCreatureNeverArrivesEvenCarryingThePortalFlag()
+    {
+        // Which is why DK2 needs two tests rather than one: all thirteen unique
+        // creatures carry AvailableViaPortal, so the flag alone would let a
+        // Unique Dark Angel walk out of a portal.
+        GameDatabase db = DatabaseWithGoblinFlags(
+            CreatureFlags.IsEvil | CreatureFlags.AvailableViaPortal | CreatureFlags.IsUnique);
+        WorldState world = World(db);
+        Portal(db, world, 5, 5);
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+
+        Simulation(db, world).Run(LongEnough);
+
+        Assert.DoesNotContain(world.Creatures, c => c.CreatureTypeId == GoblinId);
+    }
+
+    [Fact]
+    public void TheFlagGateIsTheTwoFlagsAndNothingElse()
+    {
+        CreatureDef goblin = Dk2TerrainFixture.Goblin();
+
+        Assert.True(PortalRules.CanComeFromPortal(goblin));
+        Assert.False(PortalRules.CanComeFromPortal(
+            goblin with { Flags = goblin.Flags & ~CreatureFlags.AvailableViaPortal }));
+        Assert.False(PortalRules.CanComeFromPortal(
+            goblin with { Flags = goblin.Flags | CreatureFlags.IsUnique }));
+
+        // A worker is excluded by the same gate rather than by a special case:
+        // the Imp carries no portal flag, so nothing has to know it is an imp.
+        Assert.False(PortalRules.CanComeFromPortal(Dk2TerrainFixture.Imp()));
     }
 
     // ---- gate 1: attraction ----------------------------------------------

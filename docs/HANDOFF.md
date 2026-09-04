@@ -830,13 +830,23 @@ containing backslash escapes or backticks; verify with `grep` otherwise.
 `python`/`python3` — it is not installed and the Windows Store stub blocks.
 Never write a bare `cat >` redirect, and do not reach for python.
 
-> **This entry has now cost time on seven separate occasions, five of them on
+> **This entry has now cost time on eight separate occasions, six of them on
 > 2026-09-04 alone, and it was already written down each time.** The seventh was
 > the most instructive and the most stupid: `python - <<'EOF' … EOF || echo "use
 > sed"` — a *guard* against the failure, written as a pipe into python, which
 > hung for the full two-minute timeout and took a batch of four `sed` edits down
 > with it. **Wrapping the mistake in a fallback does not make it safe; the hang
-> happens before the fallback can run.** Reading a
+> happens before the fallback can run.**
+>
+> **The eighth, hours later, was the seventh again with a different excuse:**
+> `python - <<'PYEOF' 2>/dev/null || echo "SKIP python"` written as a
+> *deliberately empty probe* to test whether python was usable — followed in the
+> same command by the `head`/`cat`/`mv` that actually mattered. It hung for the
+> full timeout and took all of them with it. An empty heredoc still has to be
+> read by an interpreter that never returns. **There is no safe way to "just
+> check" — the check is the failure.** Nothing needs testing: `perl -0pi -e`,
+> `awk`, `sed` and `Write`/`Edit` cover every case, so there is never a reason to
+> find out whether python would have worked. Reading a
 > gotchas list is not the same as remembering it mid-task, and the failure mode
 > is always the same: reaching for `python -` reflexively while thinking about
 > something else. **The habit that actually works is not "remember the list" but

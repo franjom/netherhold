@@ -164,6 +164,10 @@ public sealed class PortalSystem : ISimulationSystem
         var candidates = new List<CreatureDef>();
         foreach (CreatureDef creature in database.Creatures.Values.OrderBy(c => c.CreatureId))
         {
+            // Cheapest gate and the most fundamental: two creature flags, and
+            // the only one of the four that does not consult the level at all.
+            if (!PortalRules.CanComeFromPortal(creature)) continue;
+
             if (!PortalRules.IsUnlocked(database, playerId, creature.CreatureId)) continue;
 
             int limit = PortalRules.PoolLimit(database, playerId, creature.CreatureId);

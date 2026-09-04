@@ -480,6 +480,7 @@ switch (args[0])
                 c.Flags.HasFlag(CreatureFlags.CanFly) ? "fly" : null,
                 c.Flags.HasFlag(CreatureFlags.IsFearless) ? "fearless" : null,
                 c.Flags.HasFlag(CreatureFlags.IsUnique) ? "unique" : null,
+                c.Flags.HasFlag(CreatureFlags.AvailableViaPortal) ? "portal" : null,
             }.Where(s => s is not null));
 
             Console.WriteLine($"{c.CreatureId,3} {c.Name,-16} {c.Hp,5} {c.MeleeDamage,4} {c.Pay,4} " +

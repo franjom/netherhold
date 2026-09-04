@@ -84,6 +84,12 @@ public class PortalOnRealDataTests
         Assert.Equal(2867, goblin.Speed.Raw);
         Assert.False(goblin.Flags.HasFlag(CreatureFlags.IsWorker));
 
+        // The two flags the entrance itself tests, and the fixture Goblin has
+        // to carry them or it never comes out of a portal at all.
+        Assert.True(goblin.Flags.HasFlag(CreatureFlags.AvailableViaPortal));
+        Assert.False(goblin.Flags.HasFlag(CreatureFlags.IsUnique));
+        Assert.True(PortalRules.CanComeFromPortal(goblin));
+
         // One slot, wanting a Lair of any size. This is the fact that makes
         // level 1 produce nothing until its keeper builds a lair.
         Assert.Equal((byte)RoomTypeId.Lair, (byte)goblin.Attractions[0].RoomId);
@@ -405,5 +411,112 @@ public class PortalOnRealDataTests
         Assert.True(levelsWithPortals > 20,
             $"expected many levels with portals, found {levelsWithPortals}");
         Assert.True(portals >= levelsWithPortals);
+    }
+
+    // ---- gate 0: the creature flags, across the whole campaign ------------
+
+    [Fact]
+    public void TheCampaignUnlocksNineCreaturesOnlyTheFlagGateKeepsOut()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // PortalRules.CanComeFromPortal exists because of these nine. On the
+        // three Frosty levels every keeper from 3 to 6 has the hero roster both
+        // AVAILABLE and in its creature pool — so the level gate and the pool
+        // gate both pass — and none of the nine carries AvailableViaPortal.
+        // Without the flag gate a keeper's portal there produces Knights.
+        //
+        // Asserted as an exact set, in both directions: if a tenth appears, or
+        // one of these stops being unlocked, that is a fact about the shipped
+        // campaign that changed and it should be read again rather than
+        // absorbed.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        var blocked = new SortedSet<string>();
+        int checkedLevels = 0;
+
+        foreach (string level in CampaignLevels(install))
+        {
+            GlobalVariables? vars = GameDatabaseLoader.LoadCampaignVariables(install, level);
+            if (vars is null) continue;
+            checkedLevels++;
+
+            foreach (AvailabilityEntry entry in vars.Availabilities)
+            {
+                if (entry.Kind != 2 || entry.Value != 3) continue;
+                if (!PlayerIds.IsKeeper((byte)entry.PlayerId)) continue;
+
+                CreatureDef creature = db.CreatureById((byte)entry.TypeId);
+                if (!PortalRules.CanComeFromPortal(creature))
+                    blocked.Add(creature.Name);
+            }
+        }
+
+        Assert.True(checkedLevels > 50, $"expected the whole campaign, read {checkedLevels}");
+        Assert.Equal(
+            new SortedSet<string>
+            {
+                "Elven Archer", "Fairy", "Giant", "Guard", "Knight",
+                "Monk", "Royal Guard", "Thief", "Wizard",
+            },
+            blocked);
+    }
+
+    [Fact]
+    public void NoShippedLevelEverPoolsOrUnlocksAUniqueCreature()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // Which is why the IsUnique half of the flag gate never fires on
+        // shipped data, and is therefore unfalsifiable from the files: it rests
+        // on the binary alone (ADR-0046). It is implemented because all
+        // thirteen uniques *do* carry AvailableViaPortal, so the day a level
+        // pools one, the flag alone would hand it over. This test is what makes
+        // "never fires" a checked claim rather than an assumption.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        int checkedLevels = 0;
+
+        foreach (string level in CampaignLevels(install))
+        {
+            GlobalVariables? vars = GameDatabaseLoader.LoadCampaignVariables(install, level);
+            if (vars is null) continue;
+            checkedLevels++;
+
+            foreach (AvailabilityEntry entry in vars.Availabilities)
+            {
+                if (entry.Kind != 2) continue;
+                Assert.False(
+                    db.CreatureById((byte)entry.TypeId).Flags.HasFlag(CreatureFlags.IsUnique),
+                    $"{level}: availability lists unique creature {entry.TypeId}");
+            }
+
+            foreach (CreaturePoolEntry entry in vars.CreaturePool)
+            {
+                Assert.False(
+                    db.CreatureById((byte)entry.CreatureId).Flags.HasFlag(CreatureFlags.IsUnique),
+                    $"{level}: pool lists unique creature {entry.CreatureId}");
+            }
+        }
+
+        Assert.True(checkedLevels > 50, $"expected the whole campaign, read {checkedLevels}");
+    }
+
+    [Fact]
+    public void TheThirteenUniqueCreaturesAllCarryThePortalFlag()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The premise of the paragraph above, checked. If uniques did not carry
+        // the portal flag, DK2 would not have needed a second test and neither
+        // would we.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        List<CreatureDef> uniques = db.Creatures.Values
+            .Where(c => c.Flags.HasFlag(CreatureFlags.IsUnique)).ToList();
+
+        Assert.Equal(13, uniques.Count);
+        Assert.All(uniques, c =>
+            Assert.True(c.Flags.HasFlag(CreatureFlags.AvailableViaPortal), c.Name));
     }
 }

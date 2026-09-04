@@ -127,18 +127,34 @@ public static class PortalRules
     /// <c>EntranceGenerationSpeedSeconds</c> — 25 game-wide, and <b>18 on level
     /// 1</b>, which is one of the 26 ids a level overrides (ADR-0040).</para>
     ///
-    /// <para><b>The scaling is not, and it is the single most consequential
-    /// inference here.</b> The requirement is
-    /// <c>max(base, base x creatures / 2)</c>, so a keeper's dungeon fills
-    /// slower the fuller it gets: on level 1 the first goblin takes 18 seconds,
-    /// the fifth takes 36, the fifteenth takes 126. Nothing in the balance table
-    /// expresses it — there is no "generation slowdown" variable — and it comes
-    /// from OpenKeeper, which has it as settled behaviour. It is worth flagging
-    /// loudly because it is <b>unfalsifiable from the files</b> and completely
-    /// changes the pace of a level: without it fifteen goblins arrive in four
-    /// and a half minutes, with it in about fifteen. <b>Owner observation is the
-    /// only way to check it</b> (Q86), and a stopwatch on two consecutive
-    /// arrivals at different dungeon sizes settles it in one sitting.</para>
+    /// <para><b>That the wait grows at all is CONFIRMED</b> (owner, 2026-09-04:
+    /// the gap "seems to be prolonging after each goblin arrives"). That matters
+    /// more than it looks. Nothing in the balance table expresses a slowdown —
+    /// there is no "generation slowdown" variable — so this was
+    /// <b>unfalsifiable from the files</b> and rested entirely on OpenKeeper,
+    /// whose <c>CreatureSpawnSystem</c> has it as settled behaviour. It is the
+    /// difference between fifteen goblins in four and a half minutes and fifteen
+    /// in fifteen, and the owner watching the game says the slowdown is
+    /// there.</para>
+    ///
+    /// <para><b>The step is still ours.</b> <c>max(base, base x creatures / 2)</c>
+    /// is a specific slope, and observing "it gets slower" does not measure it:
+    /// on level 1 it predicts gaps of 18, 18, 27, 36, 45 seconds — <b>exactly
+    /// nine seconds more per goblin</b>, which is base/2 and is the falsifiable
+    /// part. The owner's earlier ~30-second measurement is consistent with it
+    /// rather than evidence for it: 30 sits between the n=3 and n=4 predictions,
+    /// which is corroboration of the shape and no constraint on the slope. Q86
+    /// is now one question — is the step base/2? — and the cheap route to it is
+    /// two consecutive gaps with the goblins counted, or `Entrance.cpp` in the
+    /// binary (ADR-0046).</para>
+    ///
+    /// <para><b>Counted excluding workers</b>, which is a second inference
+    /// riding on the first — see <see cref="CreatureCount"/>. OpenKeeper's
+    /// counter is documented "excluding imps" and excludes the imp <i>type</i>;
+    /// ours excludes anything flagged <see cref="CreatureFlags.IsWorker"/>,
+    /// which in the shipped data is the Imp and the heroes' Dwarf. The two
+    /// differ only for a keeper somehow holding a Dwarf, and no rule here can
+    /// tell them apart today.</para>
     ///
     /// <para>Integer arithmetic throughout, and exactly so: the base in ticks is
     /// always <c>seconds x 20</c> and therefore even, so halving the product
@@ -231,6 +247,47 @@ public static class PortalRules
     /// availability is one line, and the other 45 creatures are unmentioned
     /// rather than explicitly barred.</para>
     /// </summary>
+    /// <summary>
+    /// Whether a portal can produce this creature type at all, before any
+    /// question of levels, pools or rooms.
+    ///
+    /// <para><b>Two creature flags, and the binary tests exactly these two</b>
+    /// (ADR-0046, <c>docs/research/binary-entrance.md</c>): the candidate
+    /// builder in <c>Entrance.cpp</c> rejects a type unless it carries
+    /// <see cref="CreatureFlags.AvailableViaPortal"/>, and rejects it outright
+    /// if it carries <see cref="CreatureFlags.IsUnique"/>. The community name of
+    /// bit 10 turns out to mean precisely what it says.</para>
+    ///
+    /// <para><b>This gate is not redundant and its absence was a real defect.</b>
+    /// Nine hero creatures — Knight, Giant, Fairy, Monk, Wizard, Thief, Guard,
+    /// Royal Guard and Elven Archer — are marked AVAILABLE <i>and</i> listed in
+    /// the creature pool for keepers 3 to 6 on the three Frosty levels, and none
+    /// of them carries the flag. Without this check a keeper's portal on those
+    /// levels produces Knights and Fairies, which DK2 will not do. The other
+    /// three gates cannot catch it: the level really does unlock them, and it
+    /// really does pool them. They are obtainable by other means, and the
+    /// entrance is simply not one of them — which is also why Vampire and
+    /// Skeleton lack the flag, being the graveyard's and the prison's business
+    /// instead.</para>
+    ///
+    /// <para><b>The <see cref="CreatureFlags.IsUnique"/> half never fires on
+    /// shipped data</b> — no campaign level makes a unique creature available or
+    /// pools one — so it is unfalsifiable from the files and rests on the binary
+    /// alone. It is implemented anyway, because the thirteen unique creatures
+    /// <i>do</i> all carry <see cref="CreatureFlags.AvailableViaPortal"/>, which
+    /// is exactly why DK2 needs the second test: without it, a level that pooled
+    /// a Unique Dark Angel would get one out of a portal.</para>
+    ///
+    /// <para>A hero portal has its own flag in a second flag word this project
+    /// does not parse. It costs nothing today — <see cref="PortalSystem"/> only
+    /// produces for keepers — and is noted so that whoever teaches the hero side
+    /// to use its gates knows the rule is a different bit, not this one.</para>
+    /// </summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/binary-entrance.md")]
+    public static bool CanComeFromPortal(CreatureDef creature) =>
+        creature.Flags.HasFlag(CreatureFlags.AvailableViaPortal)
+        && !creature.Flags.HasFlag(CreatureFlags.IsUnique);
+
     public static bool IsUnlocked(GameDatabase database, byte playerId, byte creatureTypeId)
     {
         foreach (AvailabilityEntry entry in database.Variables.Availabilities)
