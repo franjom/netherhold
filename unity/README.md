@@ -78,3 +78,53 @@ them beyond "file or placeholder".
 **Read `src/DK2.Presentation/TextRenderer.cs` before changing anything here.**
 It is the same job against a character grid, it runs in CI, and a disagreement
 between the two is a bug in one of them rather than a matter of taste.
+
+## Verifying it inside Unity, from the command line
+
+Two headless checks, both of which have been run and pass. They need an
+activated editor (`Preferences → Licenses → Add → free personal license`);
+without one Unity exits **198** with `Found 0 entitlement groups`.
+
+**Does Unity compile the adapter?**
+
+```
+"C:\Program Files\Unity 6000.6.0f1\Editor\Unity.exe" -batchmode -quit -nographics ^
+  -projectPath unity\DK2.Unity -logFile build\unity-batch.log
+```
+
+Exit 0 means Unity built `DK2.Unity.dll` against the seven netstandard2.1
+assemblies in `Assets/Plugins/DK2`. Stronger than `DK2.Unity.Compile`, because
+it is Unity's own compiler resolving Unity's own references.
+
+**Does the whole pipeline actually run?**
+
+```
+"C:\Program Files\Unity 6000.6.0f1\Editor\Unity.exe" -batchmode -quit -nographics ^
+  -projectPath unity\DK2.Unity -logFile build\unity-smoke.log ^
+  -executeMethod DK2.Unity.Editor.DungeonSetup.SmokeTest
+```
+
+Loads a real campaign level, builds the simulation, presents it into a
+`DungeonScene`, ticks it 20 times and presents again — then fails unless there is
+one GameObject per tile. **This is the check worth having**, because everything
+it exercises was never going to fail at compile time and was always going to fail
+on first Play: whether `GameDatabaseLoader` can read a DK2 install from inside
+Unity's Mono runtime, whether the netstandard2.1 assemblies load there at all,
+and whether the presenter produces objects.
+
+Current result:
+
+```
+DK2 smoke test: 30x38 level, 1140 tile objects, 0 creatures,
+art: 1178 asset(s) resolved: 1178 from placeholder,
+hash aae0f0e17a769a21 -> 8e38409cdbd8d7c0
+DK2 smoke test: OK
+```
+
+**Zero creatures is correct, not a bug.** A level's creatures live in the THINGS
+record, which is unparsed until M6 — so a campaign level currently loads with
+terrain and no occupants. The imps in the harness scenarios are placed by the
+scenario file, not by the map.
+
+It skips cleanly with exit 0 when there is no DK2 install, exactly as the
+install-gated tests do.

@@ -44,3 +44,9 @@ unity/DK2.Unity/Assets/Plugins/DK2/*.dll
 unity/DK2.Unity/Assets/Plugins/DK2/*.pdb
 unity/DK2.Unity/Assets/Plugins/DK2/*.meta
 unity/**/obj/
+
+# Unity regenerates these from the asmdefs on every open; they are not sources.
+# Scoped to the Unity project so src/**/*.csproj and unity/DK2.Unity.Compile stay tracked.
+unity/DK2.Unity/*.csproj
+unity/DK2.Unity/*.sln
+unity/DK2.Unity/.vsconfig

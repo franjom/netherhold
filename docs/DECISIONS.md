@@ -1727,3 +1727,33 @@ the project and pressing Play needs an activated editor and a person looking at
 the result, and activation needs the owner's account: it is not an assistant's to
 do. Until then, `TextRenderer` remains the only renderer this project has
 actually watched work.
+
+### ADR-0036 second amendment, 2026-09-04 — Unity runs it
+
+The editor is activated, and both headless checks pass:
+
+| command | proves |
+|---|---|
+| `Unity.exe -batchmode -quit -nographics -projectPath unity/DK2.Unity` | Unity's own compiler builds `DK2.Unity.dll` against the seven netstandard2.1 plugin assemblies. Stronger than `DK2.Unity.Compile`, which is our compiler against Unity's DLLs |
+| `... -executeMethod DK2.Unity.Editor.DungeonSetup.SmokeTest` | **the whole pipeline runs inside Unity** |
+
+The smoke test is the one that matters, and `DungeonSetup` was written for it.
+It loads campaign level 1 from a real install, builds the simulation, presents
+into a `DungeonScene`, ticks 20 and presents again — failing unless there is one
+GameObject per tile. Result: **30×38, 1140 tile objects, 1178 assets all
+placeholders, hash `aae0f0e1…` → `8e38409c…`**.
+
+**Everything it exercises was never going to fail at compile time and was always
+going to fail on first Play**: whether `GameDatabaseLoader` can read a DK2
+install through Unity's Mono runtime, whether netstandard2.1 assemblies load
+there at all, and whether the presenter produces objects. That is the shape of
+check worth writing for any engine boundary — compiling proves the least
+interesting half.
+
+**Zero creatures is correct.** A level's creatures come from the THINGS record,
+unparsed until M6; the harness scenarios place their own.
+
+**What remains unverified is appearance.** Nobody has pressed Play. The smoke
+test proves the objects exist, not that the camera points at them or that the
+scale and colours read as a dungeon. That needs a person, and it is the one
+remaining step.

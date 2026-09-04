@@ -43,12 +43,21 @@ clean tree. (Core 14, Simulation 254, Data 55, Behavior 77, Assets 60, Presentat
 > `dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj`. It caught
 > three things on its first run that reading could not.
 >
-> **What is NOT verified: Unity is installed but not activated.** A headless run
-> exits 198 with `Found 0 entitlement groups and 0 free entitlements`. So the C#
-> is confirmed against Unity's API surface and **nothing has been seen to run** —
-> that needs a sign-in in Unity Hub, which is the owner's account and not an
-> assistant's to do. `TextRenderer` is still the only renderer anyone has watched
-> work.
+> **VERIFIED 2026-09-04: Unity itself compiles AND runs it, headlessly.** The
+> editor is activated. `Unity.exe -batchmode` exits 0 having built
+> `DK2.Unity.dll` against the seven plugin assemblies — stronger than
+> `DK2.Unity.Compile`, because it is Unity resolving Unity. And
+> `-executeMethod DK2.Unity.Editor.DungeonSetup.SmokeTest` runs the whole
+> pipeline: campaign level 1 (30x38) loaded from a real install through Unity's
+> Mono runtime, **1140 tile objects, 1178 assets all resolved as placeholders**,
+> 20 ticks, present again, and it fails unless there is one object per tile. Both
+> commands are in `unity/README.md`.
+>
+> **Still unverified: what it looks like.** Nobody has pressed Play. The smoke
+> test proves the objects exist, not that the camera, scale or colours are right.
+>
+> **Zero creatures on a campaign level is correct**, not a bug: creatures live in
+> the THINGS record, unparsed until M6. The harness scenarios place their own.
 >
 > **Why the adapter is nearly incapable of being wrong.** `ScenePresenter` and
 > `IRenderTarget` (ADR-0035) took every decision a renderer could get wrong out
@@ -433,13 +442,15 @@ it is worth doing:
    `Tick`, then `ScenePresenter.Present(world)`. Positions arrive in `Fp32` tile
    units; divide by `Fp32.One` **in Unity, never in the simulation** (ADR-0001).
 
-   **DONE as of 2026-09-04, except for being seen to run.** `unity/DK2.Unity/`
-   holds `DungeonScene` and `DungeonRunner`, and both compile against Unity's
-   real assemblies via `unity/DK2.Unity.Compile/`. Unity 6 LTS `6000.6.0f1` is
-   installed but **not activated** (headless exits 198, `Found 0 entitlement
-   groups`), so **the one remaining step is a sign-in in Unity Hub and pressing
-   Play** — the owner's account, not an assistant's to use. See `unity/README.md`
-   for the whole flow, including `sync-assemblies.ps1`.
+   **DONE as of 2026-09-04, except for being LOOKED AT.** `unity/DK2.Unity/`
+   holds `DungeonScene`, `DungeonRunner`, an editor `DungeonSetup` and a
+   committed `Dungeon.unity` scene. Unity 6 LTS `6000.6.0f1` is installed and
+   activated, and two headless commands pass: Unity compiles the adapter, and
+   `DungeonSetup.SmokeTest` runs the full pipeline against campaign level 1 —
+   1140 tile objects, 1178 placeholder assets, 20 ticks. **The remaining step is
+   opening `Assets/DK2/Scenes/Dungeon.unity` and pressing Play**, because nothing
+   yet checks how it looks: camera, scale and colours are unverified. See
+   `unity/README.md` for every command, including `sync-assemblies.ps1`.
 
    **Read `TextRenderer` before writing the adapter.** It is the same job against
    a character grid, it runs in CI, and a disagreement between the two is a bug
