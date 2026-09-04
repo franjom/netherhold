@@ -1,9 +1,58 @@
-# Anger: the ladder, and the one number that blocks it
+# Anger: the ladder, the ceiling, and how it was measured
 
-**The mechanic is not implemented.** The ladder is CONFIRMED by the owner, every
-per-creature rate is in the shipped data, and one number is missing without
-which none of it can be turned into seconds. This document is the case for
-waiting.
+**The mechanic is implemented.** The ceiling that blocked it for four sittings is
+**32767**, measured by the owner in the original game by two independent methods
+on 2026-09-04 (Q106 and Q114, ADR-0053). This document was the case for waiting;
+it is now the record of what waiting bought.
+
+## The two measurements
+
+**One — a stopwatch on a rate.** A Goblin with no lair, everything else
+provided, so `AngerNoLair` = 100 a second was the only source running:
+
+| Observed | Anger accrued | Against |
+|---|---|---|
+| unhappy at ~2:45 (165 s) | 16 500 | **16 383** = 32767 / 2 |
+| angry at ~5:30 (330 s) | 33 000 | **32 767** = `short.MaxValue` |
+
+**The 2:1 ratio is the stronger half**, because it pins the structure without
+needing the ceiling at all: anger accrues **linearly**, the *angry* threshold is
+**100%** of the ceiling — a number in none of the 214 variables — and
+`UnhappyThreshold` = 50 really is a percentage. It also refutes 10000 outright,
+which would predict 50 s and 100 s.
+
+**Two — a slap count, which closed the gap timing could not.** Duration cannot
+separate *(100/s into 32767)* from *(200/s into 65535)*: doubling both preserves
+every time. That is **Q47's trap exactly**, so the discriminator had to be a
+*discrete* delta, which scales with the ceiling where a rate does not.
+
+A **Salamander** (whose `AngerSlap` is also 3000) took **exactly 6 slaps to
+unhappy, then 5 more to angry**. The counts *bracket* the ceiling:
+
+| Observation | Implies |
+|---|---|
+| 5 not enough, 6 enough | ceiling in (30000, 36000] |
+| 10 not enough, 11 enough | **ceiling in (30000, 33000]** |
+
+32767 is the only meaningful number in the intersection; 65535 would have needed
+11 slaps to *unhappy* and 22 to angry.
+
+**And that fixes the cadence:** with the ceiling pinned, 165 seconds gives the
+rate as 16383/165 = **99.3, i.e. 100 once a second**, exactly as the field name
+says. No hidden sub-second cadence.
+
+## Why 32767 is the right shape as well as the right number
+
+- It is `short.MaxValue`, and the six per-creature anger fields are **signed
+  16-bit** (ADR-0050) — an s16 accumulator saturates at exactly this.
+- 32767 is **already** DK2's sentinel in the same record, meaning "never" for
+  `HungerRate` and `TimeAwake`. One house style, two meanings.
+- It needs **no invented cadence**.
+
+**OpenKeeper is no help and says so itself:** `CreatureMoodSystem` is an empty
+stub, and `CreaturesController` carries `// I guess the initial mood is 10000` —
+a guess, in the source, never implemented, and refuted above.
+
 
 ## The ladder — CONFIRMED (owner)
 
@@ -86,73 +135,68 @@ Fixed under ADR-0050 and pinned by `TheAngerFieldsAreSignedAndTheLastTwoAreWhy`.
 being picked up would have added 65286** — instantly maxing a creature's anger
 every time a player touched it.
 
-## Q106 — the blocking unknown: what is anger measured in?
+## What is implemented, and what is not
 
-`UnhappyThreshold` is 50, and 50 **percent of what?** There is no anger ceiling
-anywhere:
+`CreatureAngerRules` + `CreatureAngerSystem`, once a game second, registered
+after sleep (so a creature that claimed a bed this tick is not charged for the
+second it arrived) and after health (so a creature that collapsed this second is
+already `Dying` and is skipped).
 
-- Not in the balance table. All 214 variables were read; there is no
-  `MaxAnger`, no `AngerCeiling`, no `AnnoyanceMax`.
-- Not in the creature record.
-- **Not in OpenKeeper.** `CreatureMoodSystem` is a stub — an empty `processTick`
-  with a `TODO: Currently a stub, collection of modifiers we know we need`. This
-  is the first mechanic this project has reached where OpenKeeper has nothing to
-  offer at all.
+**Only two of the sources are applied, and the rule is one sentence: a source is
+applied when the player's own choices can turn it off.**
 
-Without the ceiling, the per-second rates cannot be turned into a duration.
-Two candidate scales, both self-consistent and hours apart:
+| Source | Value | Applied? |
+|---|---|---|
+| `AngerNoLair` | +100/s | **Yes** — lairs are built, sold and filled |
+| `ModifyAngerOfCreatureInLairPerSecond` | −550/s | **Yes** — sleep works, so recovery is real |
+| `AngerNoFood` | +100/s | No — chickens are objects (M6); *no* dungeon can feed anybody |
+| `AngerNoWork` | +50/s | No — non-workers have no job system; "no work" is a fact about us |
+| `AngerNoPay` | +60/s | No — there is no payday |
+| hated company | +150/s | No — the relation is parsed and unused |
 
-| Ceiling | No-lair Goblin becomes unhappy | …and leaves | One slap is |
-|---|---|---|---|
-| 65535 (a u16) | ~5.5 minutes | ~11 minutes | 4.6% |
-| 10000 | ~50 seconds | ~100 seconds | 30% |
+Otherwise anger stops being feedback and becomes a countdown no dungeon
+survives — which would say nothing about DK2 and would end every long scenario
+in mass desertion. **Each omission is a line in the scenario reports**, not a
+silence; when a hatchery can feed a creature, `AngerNoFood` goes in the same day.
 
-Neither is absurd. The second matches the feel of slapping — three slaps to make
-a creature visibly cross — and the first matches "a dungeon with no lair limps
-along for a while". **A ceiling picked wrong makes every timing in creature mood
-wrong**, and mood then feeds job selection, desertion and the whole M4 loop.
+**Recovery is 5.5× faster than accrual.** −550 a second asleep in one's own bed
+against +100 without one, which is why a keeper who builds a lair late still
+recovers.
 
-### Why this is not being built yet
+### The consequences
 
-This is the same shape as **Q47**, and the project has already learned that
-lesson once at a cost worth not repeating. Q47 had a plausible answer —
-"applications twice a second, half the tabled delta" — that fitted every
-observed range and was self-consistent and **wrong**. It was left unbuilt on the
-grounds that ranges are not counts. One measured number later the answer was
-five a second, and *not having built it made the correction free*.
+**What an angry creature does comes from its own record**, not from a rule of
+ours. A Goblin's three tables:
 
-Anger is that again: a mechanic whose every rate is known and whose unit is not.
+| Mood | Job table |
+|---|---|
+| content | `Train(100%)` |
+| unhappy | `Drink(100%)` — the Casino |
+| angry | `Leave(50%)`, `Rebel(50%)` |
 
-### The measurement that settles it
+The angry draw comes from the simulation's RNG, so it is part of the
+deterministic stream, and it is **drawn once and kept** — a creature re-rolling
+every second would eventually draw `Leave` by luck, reporting the unimplemented
+outcome as the implemented one.
 
-**One stopwatch, and it needs no precision.** Start a level, get a creature, and
-give it nowhere to sleep — no lair at all, or a lair already full. Then note:
+**Leaving is implemented. Rebelling is not**: it needs a creature to change sides
+and become a hero, and `RebelLeavingPercentage` (70),
+`RebelBecomeGoodPercentage` (15) and `RebelDefectPercentage` (15) have nothing to
+act on. A creature that draws it stays angry and says so, once.
 
-1. **How long until it looks unhappy** (the sulking/drinking behaviour, or the
-   mood indicator).
-2. **How long until it walks out.**
+### Who is exempt, without a special case
 
-Either number pins the ceiling, because the rate is known: a Goblin accrues
-`AngerNoLair` = 100 a second. If it leaves after about two minutes the ceiling
-is ~10000; if it takes ten, it is ~65535.
+- **Imps.** The DK2 wiki says flatly *"Imps never get angry."* The data says the
+  same arithmetically: `AngerNoLair` = 1, which against 32767 is **nine hours**.
+  Moot anyway, since an imp is owed no bed at all.
+- **The Skeleton**, the only creature whose four `angerNo*` fields are all zero.
+- **Anything that is down.** Something lying on the floor waiting to be carried
+  to bed is not accruing a grievance about not having got there (ADR-0051).
 
-**A second, cheaper cross-check:** how many slaps does it take to make a content
-creature angry? A slap is +3000, so three or four slaps means a ceiling near
-10000, and twenty means 65535.
+## Still open
 
-## What is implemented today, and what it costs
-
-Nothing of anger. The visible consequences, all recorded rather than hidden:
-
-- A creature with no bed stays awake for ever and never recovers from a wound
-  (`AWoundedGoblinWithNoLairStaysAwakeAndStaysWounded`). In DK2 it would get
-  unhappy and then leave.
-- A hungry creature that cannot eat is unharmed for ever
-  (`BeingHungryCostsNoHealthAtAll`). In DK2 it would get angry — `AngerNoFood`
-  is 100 for a Goblin, joint-largest with `AngerNoLair`.
-- Nothing can be slapped or picked up, so the two largest single anger sources
-  have no trigger anyway.
-
-The last of those is worth noting as a sequencing point: **anger has no player
-input to respond to until picking up and dropping exist**, and those are the
-other missing half of M4.
+| | |
+|---|---|
+| **Q115** | The zero floor is **ours**. Nothing in the data states it, and without it a combat-pit victor (−16400) would be immune to every grievance for three minutes |
+| **Q116** | **Where a deserter goes.** DK2 sends it to a portal, so a keeper with no portal keeps a creature that wanted to leave. The wiki's DK2 section describes rebellion as the *fallback* when the exit is unreachable, where the record plainly holds a weighted table — both cannot be right, and the record is the stronger source |
+| — | Rebellion itself, and the three percentages that govern its outcome |

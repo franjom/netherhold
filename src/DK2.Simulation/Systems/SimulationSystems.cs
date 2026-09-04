@@ -89,5 +89,6 @@ public static class SimulationSystems
         new PortalSystem(),
         new CreatureSleepSystem(),
         new CreatureHealthSystem(),
+        new CreatureAngerSystem(),
     ];
 }

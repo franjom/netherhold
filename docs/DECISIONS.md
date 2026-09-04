@@ -3312,3 +3312,135 @@ wrong — mana comes from owned terrain, and non-keepers do own terrain — and
 "only keepers accrue mana" is a claim with no source behind it. Left alone
 rather than changed on aesthetics; noted here so it is a decision and not an
 oversight.
+
+---
+
+## ADR-0053 — Anger's ceiling is 32767, measured twice by two methods
+
+**Status:** Accepted (2026-09-04)
+**Confidence:** Confirmed (owner measurement, twice, by independent methods)
+**Closes:** Q106 and Q114. **Supersedes** ADR-0050's decision to defer anger.
+
+### Context
+
+ADR-0050 deliberately left anger unbuilt. Every rate was in the shipped data —
+`AngerNoLair` 100 a second for a Goblin, nine more variables besides — and
+`UnhappyThreshold` was **50** on all 46 creatures, which makes it a *percentage*
+of a ceiling that appears **nowhere**: not in the 214 balance variables, not in
+the creature record, and not in OpenKeeper, whose `CreatureMoodSystem` is an
+empty stub and whose `CreaturesController` carries the comment
+`// I guess the initial mood is 10000`.
+
+That was Q47's lesson applied: a mechanic whose every rate is known and whose
+unit is not. Building it on a guessed ceiling would have propagated the error
+into job selection, desertion and the rest of M4.
+
+### The measurements
+
+**One — the stopwatch.** A Goblin in a dungeon with no lair, everything else
+provided, so `AngerNoLair` = 100/s was the only source running:
+
+| Observed | Anger accrued | Against |
+|---|---|---|
+| unhappy at ~2:45 (165 s) | 16 500 | **16 383** = 32767 ÷ 2 |
+| angry at ~5:30 (330 s) | 33 000 | **32 767** = `short.MaxValue` |
+
+Both inside 1%, which is inside the resolution of "ish" on a wristwatch.
+
+**The ratio is the stronger half.** 330/165 is exactly 2, and that pins three
+things *without* the ceiling: anger accrues **linearly**; the **angry** threshold
+is **100%** of the ceiling, a number that exists in no variable; and
+`UnhappyThreshold` = 50 really is a percentage. It also refutes 10000 outright,
+which predicts 50 s and 100 s.
+
+**Two — the slap count, which closed the gap timing could not.** Duration cannot
+separate *(100/s into 32767)* from *(200/s into 65535)*: doubling both preserves
+every time, and 65535 is equally round. **This is Q47's trap exactly**, so it was
+named rather than buried, and the discriminator is a *discrete* delta, which
+scales with the ceiling where a rate does not.
+
+The owner slapped a **Salamander** — whose `AngerSlap` is also 3000 — and got
+**exactly 6 slaps to unhappy, then 5 more to angry.** The two counts *bracket*
+the ceiling rather than merely agreeing with it:
+
+| Observation | Implies |
+|---|---|
+| 5 not enough, 6 enough | unhappy ∈ (15000, 18000] ⇒ ceiling ∈ (30000, 36000] |
+| 10 not enough, 11 enough | angry ∈ (30000, 33000] ⇒ **ceiling ∈ (30000, 33000]** |
+
+32767 is the only meaningful number in the intersection. **65535 and 10000 are
+excluded outright** — 65535 would have needed 11 slaps to *unhappy* and 22 to
+angry.
+
+**And that fixes the cadence, which is the part worth having.** With the ceiling
+pinned, the 165 seconds gives the rate as 16383/165 = **99.3, i.e. 100 once a
+second**, exactly as the field name says. No hidden sub-second cadence. Two
+independent methods, one number — which is what closes both questions rather
+than trading one unknown for another.
+
+### Decision
+
+`CreatureAngerRules.Ceiling` = `short.MaxValue`. **Not a balance variable**,
+because it is not in the balance table — it is a property of the field width,
+and the six per-creature anger fields are signed 16-bit (ADR-0050). 32767 is
+*already* DK2's sentinel in the same record, where it means "never" for
+`HungerRate` and `TimeAwake`: one house style, two meanings.
+
+**The ladder** is `Content → Unhappy → Angry`, at 0, 50% and 100%. Confirmed
+three times from three causes before it was ever built — Q9 (pay), Q105 (lairs),
+and the bed-loss answer.
+
+**What an angry creature does comes from its own record**, not from a rule here:
+a Goblin's `AngryJobs` is `Leave(50%)` / `Rebel(50%)`, drawn from the
+simulation's RNG so it is part of the deterministic stream, and drawn **once and
+kept**. Kept because re-rolling every second would eventually draw `Leave` by
+luck and desert — reporting the unimplemented outcome as the implemented one.
+
+**Only two of DK2's anger sources are applied, and the rule is one sentence: a
+source is applied when the player's own choices can turn it off.**
+
+| Source | Applied? |
+|---|---|
+| `AngerNoLair` +100 | **Yes** — lairs are built, sold and filled |
+| `ModifyAngerOfCreatureInLairPerSecond` −550 | **Yes** — sleep works, so recovery is real and 5.5× faster than the accrual |
+| `AngerNoFood` +100 | No — chickens are objects (M6); *no* dungeon can feed anybody |
+| `AngerNoWork` +50 | No — non-workers have no job system; "no work" is a fact about us |
+| `AngerNoPay` +60 | No — there is no payday |
+| hated company +150 | No — the relation is parsed and unused |
+
+Otherwise anger stops being feedback and becomes a countdown no dungeon
+survives, which would say nothing about DK2 and would end every long scenario in
+mass desertion.
+
+### Consequences
+
+`HashVersion` 13 → 14, snapshot `FormatVersion` 13 → 14: `CreatureState` gained
+`Anger` and `AngryChoice`.
+
+**A creature that is down is skipped.** Something lying on the floor waiting to
+be carried to bed is not accruing a grievance about not having got there — and a
+dying creature that deserted would leave the rescue window by a second route
+(ADR-0051).
+
+**Imps need no special case.** The DK2 wiki says flatly *"Imps never get
+angry"*, and the shipped data says the same arithmetically: `AngerNoLair` = 1,
+which against 32767 is **nine hours**. It is moot anyway, since an imp is owed no
+bed. The **Skeleton** is the only creature whose four `angerNo*` fields are all
+zero.
+
+### Not done
+
+**Rebelling**, which is half of a Goblin's table. It needs a creature to change
+sides and become a hero; `RebelLeavingPercentage` (70),
+`RebelBecomeGoodPercentage` (15) and `RebelDefectPercentage` (15) have nothing to
+act on. A creature that draws it stays angry and says so, once.
+
+**Where a deserter goes.** DK2 sends it to a portal, so a keeper with no portal
+keeps a creature that wanted to leave. The wiki's DK2 section describes rebellion
+as the *fallback* when the exit is unreachable, where the record plainly holds a
+weighted table. Both cannot be right; the record is the stronger source and
+reachability is untestable here anyway (Q116).
+
+**The zero floor is ours** (Q115). Nothing in the data states it, and without it
+a creature that had just won a combat pit (−16400) would be immune to every
+grievance for nearly three minutes.

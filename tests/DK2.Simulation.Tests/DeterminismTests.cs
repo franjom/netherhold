@@ -107,14 +107,16 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // Bumped with HashVersion 12 -> 13 (ADR-0051): CreatureState gained
-        // DyingTicks, because zero health is a 60-second window rather than
-        // death (Q99, CONFIRMED). The fixture's imps are at full health, so the
-        // field holds its initial value here and only the composition changed.
-        // Snapshot FormatVersion went 12 -> 13 in the same commit.
-        // Previous values: 0x9D2695B2F62707D2 (12), 0x12E4F45E48ACEB9B (11),
-        // 0x06F71648486D0FEC (10), 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0xAEAF871CC4814DA1UL, sim.StateHash());
+        // Bumped with HashVersion 13 -> 14 (ADR-0053): CreatureState gained
+        // Anger and AngryChoice, because the owner measured the anger ceiling
+        // (Q106/Q114: 32767). The fixture spawns imps, which need no bed and so
+        // are never charged AngerNoLair, so both fields hold their initial
+        // values here and only the composition changed. Snapshot FormatVersion
+        // went 13 -> 14 in the same commit.
+        // Previous values: 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
+        // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
+        // 0x4F824667CDA7EF25 (9).
+        Assert.Equal(0x5DB64D0C91D99368UL, sim.StateHash());
     }
 
     [Fact]

@@ -1,0 +1,114 @@
+# The owner's stopwatch, replayed (Q106).
+#
+# Three **Goblins** and a two-tile **Lair**. Two get beds; the third does not,
+# and the third is the experiment. This run exists because the number it depends
+# on was measured in the original rather than read out of a file — the only
+# scenario in the project whose expected timings came from playing DK2.
+#
+#   "it became unhappy after approx 02:45ish minutes and angry after approx
+#    05:30ish minutes"
+#
+# A Goblin's `AngerNoLair` is **100 a second**, so:
+#
+#   165 s x 100 = 16 500   against  16 383  = 32767 / 2
+#   330 s x 100 = 33 000   against  32 767  = short.MaxValue
+#
+# Both within 1%, which is inside the resolution of a wristwatch on "ish". The
+# **ceiling is 32767** — the same saturated signed-16-bit value the creature
+# record already uses to mean "never" for hunger and sleep.
+#
+# The 2:1 ratio is the stronger half of the evidence: it pins that anger accrues
+# linearly, that the *angry* threshold is 100% of the ceiling (a number that
+# appears nowhere in the 214 balance variables), and that `UnhappyThreshold` = 50
+# really is a percentage. OpenKeeper guessed **10000** in a comment and never
+# implemented it; 10000 predicts 50 s and 100 s, so it is out by 3.3x.
+#
+# A second, independent measurement closed the one gap timing could not. Timing
+# cannot separate (100/s into 32767) from (200/s into 65535) — doubling both
+# preserves every duration, which is exactly the Q47 trap. So the owner counted
+# **slaps** on a Salamander (whose `AngerSlap` is also 3000): 6 to unhappy, then
+# 5 more to angry. Those two counts *bracket* the ceiling into (30000, 33000],
+# and 32767 is the only meaningful number in it.
+#
+# What the event log shows, in order:
+#
+#   t0      `bed_claimed ... tile=(5,5)` and `tile=(6,5)`
+#           Two goblins take the two beds. **The third gets nothing**, and from
+#           this tick it is accruing 100 anger a second.
+#
+#   t3279   `creature_mood ... Content->Unhappy anger=16400/32767`
+#           163.8 seconds, which is 16383/100 rounded up to the next whole
+#           second. In DK2 this is the moment it stops training and heads for
+#           the casino — its `UnhappyJobs` table is `Drink(100%)`.
+#
+#   t6559   `creature_mood ... Unhappy->Angry anger=32767/32767`
+#           327.7 seconds. Exactly twice, as the thresholds require.
+#
+#   t6559   `creature_angry ... chose=Rebel from=[Leave:50%,Rebel:50%]`
+#           **Its own record decides what happens next**, not a rule of ours: a
+#           Goblin's `AngryJobs` is a coin toss between walking out and
+#           rebelling. The draw comes from the simulation's RNG so it is part of
+#           the deterministic stream, and it is drawn **once and kept** — a
+#           creature re-rolling every second would eventually draw `Leave` by
+#           luck, which would report the unimplemented outcome as the
+#           implemented one.
+#
+#           **On seed 5 it draws `Rebel`, which is the half that does not
+#           exist** — so the run ends with an angry goblin standing in the
+#           dungeon rather than a `creature_left`. That is the honest outcome
+#           and the reason the draw is kept rather than re-rolled: turning it
+#           into a desertion would misreport an unbuilt mechanic as a built one.
+#           Desertion itself is covered by
+#           `AnAngryGoblinLeavesTheDungeonAndGivesUpItsBed`, which forces the
+#           other side of the coin.
+#
+# Note the other two goblins: they claimed beds on tick 0, so their anger stays
+# at **zero** for the whole run. That contrast is the point. Anger is feedback on
+# the player's choices, not a countdown every dungeon loses, and one lair tile is
+# the whole difference.
+#
+# What this run does NOT establish, recorded rather than implied:
+#
+#   * **Rebelling.** Half the table, and unimplemented: it needs a creature to
+#     change sides and become a hero. `RebelLeavingPercentage` (70),
+#     `RebelBecomeGoodPercentage` (15) and `RebelDefectPercentage` (15) have
+#     nothing to act on. A goblin that draws it stays put, angry, and says so.
+#   * **Where a deserter goes.** DK2 sends it to a portal, so a keeper with no
+#     portal — or an unreachable one — keeps a creature that wanted to leave. The
+#     DK2 wiki says an angry creature heads for the exit "or rebel[s] ... if they
+#     can't do that", which is a *fallback* model where the record holds a
+#     weighted table. Both cannot be right; the record wins here. Q116.
+#   * **The other three anger sources.** `AngerNoFood` (100), `AngerNoPay` (60)
+#     and `AngerNoWork` (50) are all in the record and none is applied, because
+#     none can be *satisfied* yet: chickens are objects (M6), there is no payday,
+#     and non-workers have no job system. Charging them would anger every
+#     creature in every level regardless of play, which would say nothing about
+#     DK2. Each is a line in this run's caveats.
+id: creatures-a-goblin-with-no-lair-walks-out-001
+question: >
+  Does a Goblin with no bed become unhappy at 2:45 and angry at 5:30 — the
+  owner's own measurement — while two goblins with beds stay content for the
+  whole run?
+map: flat_24x20
+seed: 5
+duration_ticks: 6700
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 0 }
+  rooms:
+    # Two beds and three goblins. The shortfall is the experiment.
+    - { type: Lair, at: [5, 5], player: 3 }
+    - { type: Lair, at: [6, 5], player: 3 }
+  creatures:
+    # These two claim the beds on tick 0 and never anger at all.
+    - { type: Goblin, at: [8, 8], player: 3 }
+    - { type: Goblin, at: [9, 8], player: 3 }
+    # This one finds both taken. 100 anger a second from here on.
+    - { type: Goblin, at: [10, 8], player: 3 }
+    # Never eats, never sleeps, needs no bed — and so is never angered, which is
+    # how the shipped data says "imps never get angry" without a special case.
+    - { type: Imp, at: [5, 5], player: 3 }
+commands: []
+observe:
+  - state_hash
+  - events

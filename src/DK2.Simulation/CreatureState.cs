@@ -216,6 +216,28 @@ public sealed class CreatureState
     /// </summary>
     public int DyingTicks;
 
+    /// <summary>
+    /// How cross this creature is, from 0 to <see cref="CreatureAngerRules.Ceiling"/>
+    /// (32767).
+    ///
+    /// <para>The ceiling is the owner's stopwatch, not a guess: a lairless
+    /// Goblin accruing 100 a second became unhappy at 2:45 and angry at 5:30,
+    /// which is 32767/2 and 32767 to within a percent (Q106). See
+    /// <see cref="CreatureAngerRules"/>.</para>
+    /// </summary>
+    public int Anger;
+
+    /// <summary>
+    /// What this creature decided to do when it became angry, drawn once from
+    /// its own <c>AngryJobs</c> table and then kept.
+    ///
+    /// <para>Kept rather than re-rolled because half of a Goblin's table is
+    /// <c>Rebel</c>, which is not implemented: a creature re-rolling every
+    /// second would eventually draw <c>Leave</c> by luck and desert, which
+    /// would misreport the unbuilt outcome as the built one.</para>
+    /// </summary>
+    public Data.Model.JobType AngryChoice;
+
     public CreatureActivity Activity;
 
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
@@ -276,6 +298,8 @@ public sealed class CreatureState
         hash.Add(AwakeTicks);
         hash.Add(SleepTicks);
         hash.Add(DyingTicks);
+        hash.Add(Anger);
+        hash.Add((int)AngryChoice);
         hash.Add((int)Activity);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);

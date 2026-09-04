@@ -198,11 +198,15 @@ internal static class Dk2TerrainFixture
         ResearchPerSecond = 0,
         ManufacturePerSecond = 0,
         ManaGeneratedByPrayerPerSecond = 0,
-        AngerNoLair = 0,
-        AngerNoFood = 0,
-        AngerNoPay = 0,
-        AngerNoWork = 0,
-        AngerSlap = 0,
+        // The Imp's real anger values, and they are why it never gets angry
+        // without needing a special case: 1 a second against a ceiling of 32767
+        // is nine hours. The DK2 wiki says flatly "Imps never get angry"; the
+        // shipped data says the same thing arithmetically.
+        AngerNoLair = 1,
+        AngerNoFood = 1,
+        AngerNoPay = 1,
+        AngerNoWork = 1,
+        AngerSlap = 1,
         AngerInHand = 0,
         TortureHpChange = 0,
         TortureMoodChange = 0,
@@ -296,6 +300,26 @@ internal static class Dk2TerrainFixture
         // owner confirms means no lair at all (as for the Skeleton).
         LairObjectId = 22,
 
+        // The Goblin's real anger record. AngerNoLair is the rate the owner
+        // measured against a stopwatch to give the ceiling (Q106): 100 a second
+        // reached unhappy at 2:45 and angry at 5:30, which is 32767/2 and
+        // 32767. AngerSlap 3000 is the rate that gave the second, independent
+        // confirmation — 6 slaps to unhappy, 11 to angry (Q114).
+        AngerNoLair = 100,
+        AngerNoFood = 100,
+        AngerNoPay = 60,
+        AngerNoWork = 50,
+        AngerSlap = 3000,
+        AngerInHand = -250,
+
+        // Its three mood job tables, which are what the ladder actually drives.
+        // A content Goblin trains, an unhappy one drinks, and an angry one is a
+        // coin toss between walking out and rebelling — only the first of which
+        // is implemented (ADR-0053).
+        HappyJobs = [new(JobType.Train, 0, 0, 100)],
+        UnhappyJobs = [new(JobType.Drink, 0, 0, 100)],
+        AngryJobs = [new(JobType.Leave, 0, 0, 50), new(JobType.Rebel, 0, 0, 50)],
+
         // Imp facts, cleared rather than inherited.
         MaxGoldHeld = 0,
         InitialGoldHeld = 0,
@@ -327,6 +351,11 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.ModifyHealthOfCreatureInLairPerSecond, 100);
         Set(vars, VariableTypeId.CreatureCriticalHealthPercentageOfMax, 20);
         Set(vars, VariableTypeId.CreatureSleepsWhenBelowPercentHealth, 50);
+        // The anger recovery rate: -550 a second while asleep in one own bed,
+        // against AngerNoLair (+100), so a bed undoes in one second what five
+        // and a half seconds without one did (ADR-0053).
+        Set(vars, VariableTypeId.ModifyAngerOfCreatureInLairPerSecond, -550);
+
         Set(vars, VariableTypeId.CreatureDyingStateDurationSeconds, 60);
 
         // The corpse timer, which nothing reads: a body is an object (M6). Here

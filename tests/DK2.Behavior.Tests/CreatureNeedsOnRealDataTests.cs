@@ -687,6 +687,97 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(400, db.CreatureByName("King Reginald")!.OwnLandHealthIncreasePerSecond);
     }
 
+    // ---- anger, against the owner's two measurements ----------------------
+
+    [Fact]
+    public void TheOwnersMeasurementsReproduceOnTheShippedRecord()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // Both Q106 measurements, replayed against the install rather than the
+        // fixture, because the arithmetic is only meaningful if the *shipped*
+        // rates are the ones that were measured.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        CreatureDef goblin = db.CreatureById(7);
+        CreatureDef salamander = db.CreatureByName("Salamander")!;
+
+        // The stopwatch: a lairless Goblin at 100/s, unhappy ~2:45, angry ~5:30.
+        Assert.Equal(100, goblin.AngerNoLair);
+        Assert.Equal(164, CreatureAngerRules.UnhappyAt(goblin) / goblin.AngerNoLair + 1);
+        Assert.Equal(328, CreatureAngerRules.AngryAt(goblin) / goblin.AngerNoLair + 1);
+
+        // The slap count, taken on a Salamander — which works only because its
+        // AngerSlap is also 3000. If it were not, the observation would say
+        // nothing about a Goblin and this test is what would notice.
+        Assert.Equal(3000, salamander.AngerSlap);
+        Assert.Equal(goblin.AngerSlap, salamander.AngerSlap);
+
+        // 6 to unhappy, 11 to angry — the brackets, both sides.
+        Assert.True(5 * 3000 < CreatureAngerRules.UnhappyAt(salamander));
+        Assert.True(6 * 3000 >= CreatureAngerRules.UnhappyAt(salamander));
+        Assert.True(10 * 3000 < CreatureAngerRules.AngryAt(salamander));
+        Assert.True(11 * 3000 >= CreatureAngerRules.AngryAt(salamander));
+    }
+
+    [Fact]
+    public void EveryCreatureSharesTheSameCeilingBecauseEveryOneSharesTheThreshold()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The ceiling is global, and this is what makes it so: all 46 carry
+        // UnhappyThreshold = 50, so UnhappyAt is 16383 for every creature in
+        // the game. A per-creature ceiling would need a per-creature field, and
+        // there is none.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        foreach (CreatureDef c in db.Creatures.Values)
+        {
+            Assert.Equal(50, c.UnhappyThreshold);
+            Assert.Equal(16383, CreatureAngerRules.UnhappyAt(c));
+        }
+    }
+
+    [Fact]
+    public void ALairlessImpWouldTakeNineHoursToGetAngry()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // Why "Imps never get angry" needs no special case. Its AngerNoLair is
+        // 1, not 0 — present so something *can* happen — and against a ceiling
+        // of 32767 that is nine hours. The arithmetic is the exemption.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        CreatureDef imp = db.CreatureByName("Imp")!;
+
+        Assert.Equal(1, imp.AngerNoLair);
+
+        int seconds = CreatureAngerRules.AngryAt(imp) / imp.AngerNoLair;
+        Assert.Equal(32767, seconds);
+        Assert.InRange(seconds / 3600.0, 9.0, 9.2);
+
+        // And it is moot anyway: an imp is owed no bed, so nothing charges it.
+        Assert.False(LairRules.NeedsBed(imp));
+    }
+
+    [Fact]
+    public void OnlyTheSkeletonCannotBeAngeredAtAll()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        var unangerable = db.Creatures.Values
+            .Where(c => !CreatureAngerRules.CanBeAngered(c))
+            .Select(c => c.Name)
+            .ToHashSet();
+
+        Assert.Equal(new HashSet<string> { "Skeleton" }, unangerable);
+    }
+
     // ---- the vampire, cross-checked against the DK2 wiki ------------------
     //
     // Source: the Dungeon Keeper wiki's Vampire page, **Dungeon Keeper 2
