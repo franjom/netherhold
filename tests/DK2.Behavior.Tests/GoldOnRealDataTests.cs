@@ -67,7 +67,7 @@ public class GoldOnRealDataTests
             $"{Seam} is not a gold seam on the shipped level 1");
         Assert.Equal(RoomTypeId.DungeonHeart, RoomRules.RoomOn(db, world.Tile(Heart))?.TypeId);
 
-        world.SpawnCreature(db.CreatureByName("Imp")!.CreatureId, Keeper, Path);
+        world.SpawnCreature(db, db.CreatureByName("Imp")!.CreatureId, Keeper, Path);
 
         var sim = new GameSimulation(db, world, 7, SimulationSystems.Default());
         var sink = new ListEventSink();

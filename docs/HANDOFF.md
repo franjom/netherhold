@@ -13,10 +13,17 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **573 tests green**
-with and without a DK2 install; twelve scenarios run, each drawing a picture of
-its finished world; clean tree. (Core 17, Simulation 313, Data 63, Behavior 95,
+**every** record type's on-disk size is now known and pinned. **608 tests green**
+with and without a DK2 install; thirteen scenarios run, each drawing a picture of
+its finished world; clean tree. (Core 17, Simulation 333, Data 63, Behavior 109,
 Assets 60, Presentation 26.)
+
+**M4 has started.** Two of its seven items exist: the portal produces creatures
+(ADR-0042, ADR-0047) and **a creature now has health and a hunger clock**
+(ADR-0048). A creature can be hurt, healed and killed; it gets hungry and cannot
+eat, because chickens are objects (M6). What it still has no notion of is mood,
+anger, experience, sleep or a job, and it cannot be picked up or dropped.
+**Anger is the next one that matters** — it is what hunger actually costs.
 
 **The first room whose behaviour exists is the portal** (2026-09-04, ADR-0042):
 a claimed portal produces its level's own creatures, and **level 1 produces

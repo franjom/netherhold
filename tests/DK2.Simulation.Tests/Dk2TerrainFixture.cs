@@ -182,9 +182,14 @@ internal static class Dk2TerrainFixture
         // Not transcribed. Present because the record requires them.
         EyeHeight = new Fp32(0),
         PerceptionRange = new Fp32(0),
+        // HpFromChicken and HungerFill really are 0 — the Imp never eats. But
+        // OwnLandHealthIncreasePerSecond was transcribed as 0 and the install
+        // says 67, which is one of only two non-zero values in that whole
+        // column (the other is King Reginald at 400). Corrected 2026-09-04 and
+        // now checked by CreatureNeedsOnRealDataTests.
         HpFromChicken = 0,
         HungerFill = 0,
-        OwnLandHealthIncreasePerSecond = 0,
+        OwnLandHealthIncreasePerSecond = 67,
         DecomposeValue = 0,
         SlapDamage = 0,
         StunDuration = new Fp32(0),
@@ -268,11 +273,21 @@ internal static class Dk2TerrainFixture
             new CreatureAttraction(0, 0, 0),
         ],
 
+        // The needs, as shipped: hungry every 180 seconds, one chicken fills
+        // it, and that chicken is worth 375 — a quarter of its 1500 health.
+        // These are what make the Goblin the fixture creature that has needs,
+        // against the Imp which has none at all.
+        HungerRate = Fp32.FromDouble(180),
+        HungerFill = 1,
+        HpFromChicken = 375,
+        TimeAwake = 240,
+        TimeSleep = 9,
+        DecomposeValue = 200,
+        OwnLandHealthIncreasePerSecond = 0,
+
         // Imp facts, cleared rather than inherited.
         MaxGoldHeld = 0,
         InitialGoldHeld = 0,
-        HungerRate = new Fp32(0),
-        TimeAwake = 0,
         ExpPerSecond = 0,
     };
 
@@ -294,6 +309,14 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.RepairWallHealth, 22);
         Set(vars, VariableTypeId.ConvertRoomHealth, -4000);
         Set(vars, VariableTypeId.GoldMinedFromGems, 25);
+
+        // Creature needs. All four are the shipped values, and
+        // CreatureNeedsOnRealDataTests reads them back out of the install so
+        // they cannot drift from it.
+        Set(vars, VariableTypeId.ModifyHealthOfCreatureInLairPerSecond, 100);
+        Set(vars, VariableTypeId.CreatureCriticalHealthPercentageOfMax, 20);
+        Set(vars, VariableTypeId.CreatureSleepsWhenBelowPercentHealth, 50);
+        Set(vars, VariableTypeId.CreatureDyingStateDurationSeconds, 60);
         Set(vars, VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds, 5);
         Set(vars, VariableTypeId.MinimumImpThreshold, 4);
         Set(vars, VariableTypeId.TimeBeforeFreeImpGeneratedSeconds, 5);

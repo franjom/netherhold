@@ -152,7 +152,7 @@ public class TileOwnershipTests
         Set(world, new TilePos(4, 2), Dk2TerrainFixture.ReinforcedWall, Keeper);
         Set(world, new TilePos(5, 2), Dk2TerrainFixture.DirtPath, PlayerIds.Unowned);
 
-        world.SpawnCreature(Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        world.SpawnCreature(Db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
 
         var sim = new GameSimulation(Db, world, seed: 4, Dk2TerrainFixture.DefaultSystems());
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, new TilePos(4, 2))));

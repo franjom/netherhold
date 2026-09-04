@@ -136,6 +136,49 @@ within minutes of the second screenshot arriving. See `imps-and-mana.md`
 
 ## 1. Still open, and blocking
 
+### Q101 — the lair: what actually heals a creature? — *added 2026-09-04*
+
+**The weakest reading in the whole health mechanic**, and the one most worth an
+hour of play. Implemented: a creature heals at **100 a second** while standing
+on a lair tile its keeper owns. DK2 gives each creature a **personal** lair — a
+specific tile with its own bed — and heals it while it *sleeps* there.
+
+**Two questions:**
+
+1. Must it be **asleep**, or is standing in the lair enough?
+2. Must it be **its own** lair? Does a wounded goblin heal in any lair its
+   keeper owns, or only in the one belonging to it — and does a creature with no
+   lair of its own heal at all?
+
+**The experiment.** Wound a creature (drop it into a fight, or leave it on a
+rival's land), then drop it on a lair tile that belongs to a *different*
+creature and watch whether its health bar climbs while it stands there awake.
+
+Healing is the main way anything recovers in DK2, so this sets the pace of every
+fight and every siege. See `docs/research/creature-needs.md` §7.
+
+### Q99 — is zero health death, or a window before it? — *added 2026-09-04*
+
+Implemented: the creature is removed at zero. But
+`CreatureDyingStateDurationSeconds` is **60**, which is a long time to specify
+for nothing, and OpenKeeper models an *unconscious* state that becomes death
+after that timer and can be interrupted by rescue.
+
+**The experiment.** Let one of your own creatures lose a fight and watch the
+floor. Does it vanish, or lie there? Can it be picked up? Does it recover if
+dropped in a lair? Does it matter what killed it?
+
+### Q100 — does regeneration care what the creature is doing? — *added 2026-09-04*
+
+Implemented: own-land regeneration and lair healing **add**, and both apply
+regardless of activity. **An imp is the easy subject**, being one of only two
+creatures in the game that regenerate at all (67 a second; the other is King
+Reginald at 400).
+
+**The experiment.** Wound an imp, then watch whether it heals *while digging* on
+its keeper's land, or only when idle. 67 a second matters during a fight and is
+irrelevant outside one.
+
 ### Q97 — the portal: **why** arrivals slow down — *added 2026-09-04, and it displaces Q86 at the head of this list*
 
 **The owner has confirmed that they do**, unprompted: *"goblin interval, seems

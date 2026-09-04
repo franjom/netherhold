@@ -67,7 +67,7 @@ public class WallsBlockMovementTests
             database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, (byte)2]);
 
         for (int i = 0; i < 4; i++)
-            world.SpawnCreature(Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+            world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
 
         var sim = new GameSimulation(database, world, 7331, Dk2TerrainFixture.DefaultSystems());
         sim.Tick(InputFrame.Of(new TagTilesCommand(Keeper, EverythingDiggable(world, database), true)));
@@ -108,7 +108,7 @@ public class WallsBlockMovementTests
             database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, (byte)2]);
 
         for (int i = 0; i < 4; i++)
-            world.SpawnCreature(Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+            world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
 
         var sim = new GameSimulation(database, world, 7331, Dk2TerrainFixture.DefaultSystems());
         sim.Tick(InputFrame.Of(new TagTilesCommand(Keeper, EverythingDiggable(world, database), true)));
@@ -156,8 +156,7 @@ public class WallsBlockMovementTests
             tile.Health = database.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
         }
 
-        CreatureState imp = world.SpawnCreature(
-            Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
+        CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
         for (int x = 4; x <= 10; x++)
             imp.Path.Add(new TilePos(x, 2));
 

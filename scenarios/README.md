@@ -155,10 +155,20 @@ paving three tiles of that land into a treasury lowers the rate. See
 `docs/research/imp-tasks.md`, `docs/research/rooms-and-gold.md` and
 `docs/research/mana.md`.
 
+`scenarios/creatures/` is where M4 starts. A keeper opens a route to level
+1's neutral portal, takes it whole, and receives the level's own creatures at the
+level's own interval — and a Goblin placed beside an Imp gets hungry after
+exactly the 180 seconds its record gives while the Imp never does. See
+`docs/research/portals.md`, `docs/research/binary-entrance.md` and
+`docs/research/creature-needs.md`.
+
 What a run still cannot tell you:
 
-- **How many workers a keeper would have.** Nothing generates imps; the scenario
-  file places them.
+- **How many workers a keeper would have.** Imps now come from a dungeon heart
+  and from Create Imp at a mana cost (ADR-0021), and everything else comes out of
+  a portal. What is still missing is a level's own starting roster, because
+  THINGS is unparsed — so a creature a scenario places stands in for one the
+  level file would have put there.
 - **What a worker does when it runs out of jobs.** The priority order is
   CONFIRMED and built - marked excavation, then claiming, then reinforcing
   (Q24, ADR-0018) - and carrying mined gold is built as the tail of a mining job
@@ -169,8 +179,13 @@ What a run still cannot tell you:
   uniform cost. Travel times follow from that choice.
 - **How long anything takes.** The health deltas carry no unit (Q19), and the
   tick rate is unmeasured (Q1). Tick numbers in a report are ordering, not time.
-- **What a room does.** A treasury and a dungeon heart hold gold. Every other
-  room is terrain its owner holds and nothing more; rooms have no size or shape
+- **What a creature is.** It has health and a hunger clock (ADR-0048) and
+  nothing else: no mood, no anger, no experience, no sleep, no job. A hungry
+  creature stays hungry forever, because chickens are objects (M6), and it takes
+  no damage for it — DK2 charges anger, which does not exist here yet.
+- **What a room does.** A treasury and a dungeon heart hold gold, a portal
+  produces creatures, and a lair attracts them and heals whatever stands on it.
+  Every other room is terrain its owner holds and nothing more; rooms have no size or shape
   rules (Q36), cannot be sold (Q34), and are built instantly because building
   over time is another worker job with the same unknown trigger.
 - **What happens to gold nobody can hold.** Mined gold now reaches a treasury,

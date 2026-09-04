@@ -2755,3 +2755,96 @@ because all thirteen uniques *do* carry `AvailableViaPortal` — the second test
 is exactly what stops the first from handing over a Unique Dark Angel. Both
 premises are now tests (`NoShippedLevelEverPoolsOrUnlocksAUniqueCreature`,
 `TheThirteenUniqueCreaturesAllCarryThePortalFlag`) rather than sentences.
+
+---
+
+## ADR-0048 — A creature has health and a hunger clock
+
+**Date:** 2026-09-04
+**Status:** Accepted
+**Evidence:** `docs/research/creature-needs.md`
+**Milestone:** M4, second item after the portal
+
+### The decision
+
+`CreatureState` gains `Health`, `HungerTicks` and `ChickensNeeded`.
+`CreatureHealthRules` holds the rules and `CreatureHealthSystem` applies them
+once a game second, registered last in the tick. HashVersion 10 → 11, snapshot
+FormatVersion 10 → 11.
+
+Health first because **everything unbuilt reads it**: the balance table has 21
+health variables and they are the lair, the prison, torture, praying, fire,
+possession and the heart. `CreatureSleepsWhenBelowPercentHealth` makes sleep
+itself a function of health. Each of those is about one line once health exists
+and impossible before.
+
+### `SpawnCreature` now takes the database, and that is the point
+
+A creature seeded from a zero maximum dies on the tick it arrives. So there must
+be **no way to make one** — no overload that leaves health out, no lazy
+initialisation, no "0 means unset". The database is a parameter for exactly one
+line of that method, and it cost 25 call-site changes across 16 files.
+
+That is the right trade. The alternative — seeding health somewhere later —
+makes a silent corpse the default for anyone who adds a spawn site and does not
+know the convention. `EveryCreatureHasHealth` checks the other half of the
+invariant, that no shipped record has zero `Hp`.
+
+### Per second, not per tick
+
+Every number involved is written *per second* in the data. Applying a twentieth
+of it twenty times a tick would invent precision the files do not have and would
+make the result depend on `SimulationTiming.TicksPerSecond`, which is still an
+admitted placeholder (Q1). Same cadence and same phase as `ManaSystem`, which
+already had to make this choice.
+
+### Three things the data said that no list had
+
+**32767 means "never", and it is per need rather than per creature.** Eight
+creatures never get hungry, six never sleep, and **neither set contains the
+other** — the Vampire sleeps and never eats, the Dwarf eats and never sleeps. No
+single "undead" flag can produce that. This closes a question that had been open
+since creatures were parsed.
+
+**Own-land regeneration is real and applies to two creatures out of 46** — Imp
+67 a second, King Reginald 400, everyone else 0. The same shape as mana's three
+terrain types out of 41 (ADR-0017). Implemented as data so it is a no-op for the
+other 44 with no special case, and tested with a creature that has it *and* one
+that does not, because a rule written from the Imp alone would read as general.
+
+**A chicken can over-heal, so the clamp is load-bearing.** Jack has 240 health
+and a chicken worth 250. The test asserting that *no* creature could be
+over-healed was written first, and the install refuted it.
+
+### Hunger is half-built, deliberately
+
+The clock runs and nothing can stop it, because eating needs chickens, chickens
+are objects, and OBJECTS is unparsed (M6). **This costs no health on purpose:**
+searched 21 health variables and nine anger variables, and there is no
+starvation anywhere in the balance table. What going unfed costs is *anger*,
+which is per creature in the record (`angerNoFood`). Tested as a negative so
+nobody later turns it into damage.
+
+### The reading that is weakest, and it is flagged rather than buried
+
+Lair healing is implemented as **standing on a lair tile the creature's keeper
+owns**. DK2 gives each creature a personal lair with its own bed and heals it
+while it sleeps there — and there is no lair ownership, no sleeping and no bed
+yet, all three of which are the next mechanic. The proxy is deliberately a
+single expression so replacing it is one edit, and it is knowingly wrong twice
+over: a creature heals while awake, and in any of its keeper's lairs.
+
+Put to the owner as **Q101**, with Q99 (is zero health death, or a 60-second
+unconscious window?), Q100 (does regeneration care what the creature is doing?)
+and Q102 (when does the hunger clock start?).
+
+### What the binary could not say
+
+`HungerState.cpp` and `LairState.cpp` are both named in the executable's own
+assert strings, and four different approaches failed to reach their code: the
+creature state machine is dispatched entirely through vtables, so Ghidra's
+analysis never discovers those function bodies, and forcing them did not work
+either. The method is written down in `creature-needs.md` §6 so the next attempt
+starts further along, and the promising route is **reading the vtables**, which
+would name all ~25 state handlers at once. **Nothing in this ADR rests on the
+binary.**

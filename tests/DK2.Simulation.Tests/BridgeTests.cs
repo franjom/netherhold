@@ -354,7 +354,7 @@ public class BridgeTests
         escape.Health = database.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
 
         // Put an imp on the bridge and let it burn out from under it.
-        run.World.SpawnCreature(Dk2TerrainFixture.ImpCreatureId, Keeper, span);
+        run.World.SpawnCreature(run.Sim.Database, Dk2TerrainFixture.ImpCreatureId, Keeper, span);
         int life = SimulationTiming.TicksFromSeconds(
             database[VariableTypeId.WoodBridgeLifeOnLavaSeconds]);
         for (int i = 0; i < life + 2; i++) run.Tick();

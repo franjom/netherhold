@@ -69,8 +69,7 @@ public class GoldCarryingTests
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, Rival]);
-        world.SpawnCreature(
-            Dk2TerrainFixture.ImpCreatureId, Keeper, impAt ?? new TilePos(2, 2));
+        world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt ?? new TilePos(2, 2));
 
         foreach (TilePos p in new[] { new TilePos(4, 3), new TilePos(4, 4), new TilePos(4, 5) })
         {

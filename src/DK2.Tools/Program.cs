@@ -419,6 +419,9 @@ switch (args[0])
         Console.WriteLine($"  speed={c.Speed} run={c.RunSpeed} see={c.DistanceCanSee} hear={c.DistanceCanHear}");
         Console.WriteLine($"  hungerRate={c.HungerRate} hungerFill={c.HungerFill} " +
                           $"awake={c.TimeAwake} sleep={c.TimeSleep}");
+        Console.WriteLine($"  hpFromChicken={c.HpFromChicken} " +
+                          $"ownLandHeal/s={c.OwnLandHealthIncreasePerSecond} " +
+                          $"decompose={c.DecomposeValue}");
         Console.WriteLine($"  meleeRange={c.MeleeRange} recharge={c.MeleeRecharge} attack={c.MeleeAttackType}");
         Console.WriteLine($"  maxGoldHeld={c.MaxGoldHeld} initialGoldHeld={c.InitialGoldHeld}");
         Console.WriteLine($"  exp/lvl={c.ExpForNextLevel} exp/s={c.ExpPerSecond} train={c.ExpPerSecondTraining} " +

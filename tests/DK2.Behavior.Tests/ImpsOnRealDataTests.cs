@@ -162,7 +162,7 @@ public class ImpsOnRealDataTests
         if (!world.HasPlayer(keeper)) return;
 
         CreatureState imp = world.SpawnCreature(
-            db.CreatureByName("Imp")!.CreatureId, keeper, stand);
+            db, db.CreatureByName("Imp")!.CreatureId, keeper, stand);
 
         var sim = new GameSimulation(db, world, 7, SimulationSystems.Default());
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(keeper, rock)));

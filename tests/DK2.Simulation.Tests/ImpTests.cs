@@ -48,7 +48,7 @@ public class ImpTests
             database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, (byte)2]);
 
         for (int i = 0; i < imps; i++)
-            world.SpawnCreature(Dk2TerrainFixture.ImpCreatureId, Keeper, impAt);
+            world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt);
 
         var sim = new GameSimulation(database, world, seed, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();
@@ -646,7 +646,7 @@ public class ImpTests
         // ticks, and nothing about that number is written into the simulation.
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
-        CreatureState imp = world.SpawnCreature(Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
+        CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
         imp.Path.Add(new TilePos(2, 1));
 
         var sim = new GameSimulation(database, world, 1, [new CreatureMovementSystem()]);
@@ -683,8 +683,7 @@ public class ImpTests
         {
             GameDatabase database = Dk2TerrainFixture.Database();
             WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
-            CreatureState imp = world.SpawnCreature(
-                Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
+            CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
 
             // Open the route first. The fixture map is mostly rock, and a
             // creature does not walk through rock (CONFIRMED — see
@@ -731,7 +730,7 @@ public class ImpTests
         // Over a whole second the distance covered must be exactly the speed.
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
-        CreatureState imp = world.SpawnCreature(Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
+        CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
 
         // A long straight route so nothing snaps to a waypoint mid-second, and
         // an open corridor to walk it down — a route over rock would be dropped

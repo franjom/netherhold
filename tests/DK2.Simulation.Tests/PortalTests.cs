@@ -468,11 +468,11 @@ public class PortalTests
 
         CreatureDef imp = db.CreatureByName("Imp")!;
         for (int i = 0; i < 30; i++)
-            world.SpawnCreature(imp.CreatureId, Keeper, new TilePos(2, 2));
+            world.SpawnCreature(db, imp.CreatureId, Keeper, new TilePos(2, 2));
 
         Assert.Equal(0, PortalRules.CreatureCount(world, db, Keeper));
 
-        world.SpawnCreature(GoblinId, Keeper, new TilePos(2, 2));
+        world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         Assert.Equal(1, PortalRules.CreatureCount(world, db, Keeper));
     }
 
@@ -483,7 +483,7 @@ public class PortalTests
         WorldState world = World(db);
 
         for (int i = 0; i < 5; i++)
-            world.SpawnCreature(GoblinId, Rival, new TilePos(2, 2));
+            world.SpawnCreature(db, GoblinId, Rival, new TilePos(2, 2));
 
         Assert.Equal(0, PortalRules.CreatureCount(world, db, Keeper));
         Assert.Equal(5, PortalRules.CreatureCount(world, db, Rival));

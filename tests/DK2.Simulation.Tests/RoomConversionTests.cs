@@ -411,7 +411,7 @@ public class RoomConversionTests
         join.Health = Db.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
 
         Paint(world, RoomTypeId.Portal, 5, 1, 3, 3, PlayerIds.Neutral);
-        world.SpawnCreature(Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        world.SpawnCreature(Db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
 
         var sim = new GameSimulation(Db, world, seed: 7, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();

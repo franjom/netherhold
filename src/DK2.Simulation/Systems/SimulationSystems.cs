@@ -52,6 +52,13 @@ namespace DK2.Simulation.Systems;
 /// answer a player watching their first goblin arrive would expect. Nothing it
 /// does can affect a system above it in the same tick, so its position is a
 /// statement about what a new creature can see rather than a constraint.</item>
+/// <item><see cref="CreatureHealthSystem"/> — last, so a creature that arrives
+/// on tick N is not regenerated or aged on the tick it arrives, and its hunger
+/// clock starts from a whole second. It also means anything that damages a
+/// creature earlier in the tick is resolved before death is checked, so a
+/// creature killed and healed in the same second nets out rather than dying on
+/// the intermediate value. Per-second, on the same phase as
+/// <see cref="ManaSystem"/>.</item>
 /// </list>
 ///
 /// <para><b>UNKNOWN: DK2's own per-tick subsystem ordering.</b> Flame's
@@ -73,5 +80,6 @@ public static class SimulationSystems
         new ManaSystem(),
         new ImpSupplySystem(),
         new PortalSystem(),
+        new CreatureHealthSystem(),
     ];
 }

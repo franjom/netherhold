@@ -145,7 +145,7 @@ public class WorldViewTests
         CreatureDef imp = database.CreatureByName("Imp")
             ?? throw new InvalidOperationException("the shipped database has no Imp.");
 
-        CreatureState spawned = world.SpawnCreature(imp.CreatureId, 1, FirstWalkableTile(database, world));
+        CreatureState spawned = world.SpawnCreature(database, imp.CreatureId, 1, FirstWalkableTile(database, world));
         spawned.Activity = CreatureActivity.DeliveringGold;
         spawned.GoldHeld = 500;
 
@@ -173,7 +173,7 @@ public class WorldViewTests
         CreatureDef imp = database.CreatureByName("Imp")!;
         TilePos at = FirstWalkableTile(database, world);
 
-        CreatureState spawned = world.SpawnCreature(imp.CreatureId, 1, at);
+        CreatureState spawned = world.SpawnCreature(database, imp.CreatureId, 1, at);
         CreatureView rendered = view.Creatures(world).Single(c => c.Id == spawned.Id);
 
         Assert.Equal(spawned.PosX, rendered.PosX);

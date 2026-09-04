@@ -101,6 +101,22 @@ What is *built* rather than known, against the long-term goals:
   **walled a level-1 keeper in permanently** (ADR-0045). One owner sentence, two
   four-month defects, neither about portals.
 
+- **A creature has health, and a hunger clock** (ADR-0048,
+  docs/research/creature-needs.md). Maximum from the record's `Hp`,
+  regeneration on your own land from the record, healing in a lair at 100 a
+  second, and death at zero — once a game second, because every number involved
+  is written per second. Three things the data said that no list had: **32767
+  means "never" per need rather than per creature** (eight creatures never eat,
+  six never sleep, and neither set contains the other — the Vampire sleeps and
+  never eats, the **Dwarf** eats and never sleeps, which closes a question open
+  since creatures were parsed); **own-land regeneration applies to two creatures
+  out of 46** (Imp 67, King Reginald 400, the same shape as mana's three terrain
+  types out of 41); and **a chicken can over-heal** (Jack has 240 health and a
+  chicken worth 250), which makes the clamp load-bearing. Hunger arrives and
+  cannot be satisfied — chickens are objects (M6) — and **costs no health on
+  purpose**: there is no starvation anywhere in the balance table, because what
+  going unfed costs is anger.
+
 ## Unsolved (research required before implementing)
 - **What a room does.** ← being worked on, **the portal done and the library
   next**, and **much less of a
@@ -115,10 +131,13 @@ What is *built* rather than known, against the long-term goals:
   count": Q60 established that a temple's capacity is its **rim**, `2(w+h) − 4`,
   and the manual says the dungeon heart stores its gold in its "outer ring" too.
   Several rooms are blocked on objects (M6) or on creature needs, not on research.
-- **What creatures then do**, which is nothing. A portal now produces them, and a
-  non-worker still has no health, hunger, mood, experience or job — so it stands
-  on the portal's hole forever. This is the next real frontier, and it is what
-  every remaining room behaviour is blocked on rather than on research.
+- **What creatures then do.** ← **health and hunger now exist** (ADR-0048), so a
+  creature is no longer inert: it can be hurt, healed and killed, and it gets
+  hungry. What it still has no notion of is **mood, anger, experience, sleep or
+  a job**, and it still cannot be picked up or dropped. **Anger is the next one
+  that matters**, because it is what hunger actually costs and nothing can
+  respond to being unfed without it. Sleep needs a lair a creature *owns*, which
+  is the mechanic after that.
 - **How a keeper *destroys* a room somebody else holds.** `AttackRoomHealth` =
   −1500 names it and there is no `TileWorkKind` for it. **Claiming** one is done
   (ADR-0044) — a room changes hands whole, never tile by tile, CONFIRMED by the

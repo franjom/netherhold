@@ -103,6 +103,48 @@ public sealed class CreatureState
     /// </summary>
     public int GoldHeld;
 
+    /// <summary>
+    /// Current health. Seeded from the creature record's <c>Hp</c> on spawn and
+    /// clamped to it, so <c>Hp</c> is the maximum as well as the starting value.
+    ///
+    /// <para>DK2 has no separate max-health field — a creature's level scales
+    /// its stats through the <c>CreatureStats</c> table, which this project does
+    /// not model yet, so today max health is simply the record's number. When
+    /// levels arrive, the maximum becomes a function of level and this stays the
+    /// current value.</para>
+    ///
+    /// <para><b>Reaching zero is not automatically death</b> — see
+    /// <see cref="CreatureHealthRules"/>, and Q99 for the part that is still
+    /// the owner's to confirm.</para>
+    /// </summary>
+    public int Health;
+
+    /// <summary>
+    /// Ticks since this creature last ate, counting up. Compared against the
+    /// record's <c>HungerRate</c> in seconds.
+    ///
+    /// <para>Counts from spawn, so a creature arrives fed. It keeps counting
+    /// while hungry — <see cref="ChickensNeeded"/> is what says "hungry", not
+    /// this — because DK2 only resets the clock when a creature is
+    /// <i>fully</i> sated, not on each chicken.</para>
+    /// </summary>
+    public int HungerTicks;
+
+    /// <summary>
+    /// How many chickens this creature still needs to be full, or 0 when it is
+    /// not hungry. Set to the record's <c>HungerFill</c> the moment hunger
+    /// arrives.
+    ///
+    /// <para><b>Nothing can bring this back down yet.</b> Eating needs chickens,
+    /// chickens are objects, and the OBJECTS record is unparsed (M6). So a
+    /// creature here becomes hungry and stays hungry — which is honest rather
+    /// than harmless, and it is why hunger costs no health: in DK2 the price of
+    /// going unfed is <i>anger</i> (the record's own <c>angerNoFood</c>), and
+    /// there is no variable anywhere in the balance table that turns hunger into
+    /// damage.</para>
+    /// </summary>
+    public int ChickensNeeded;
+
     public CreatureActivity Activity;
 
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
@@ -156,6 +198,9 @@ public sealed class CreatureState
         hash.Add(PosY);
         hash.Add(MoveRemainder);
         hash.Add(GoldHeld);
+        hash.Add(Health);
+        hash.Add(HungerTicks);
+        hash.Add(ChickensNeeded);
         hash.Add((int)Activity);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);

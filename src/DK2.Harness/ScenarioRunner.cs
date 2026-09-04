@@ -418,7 +418,7 @@ public sealed class ScenarioRunner
                 continue;
             }
 
-            world.SpawnCreature(definition.CreatureId, c.Player, new TilePos(c.At[0], c.At[1]));
+            world.SpawnCreature(_database, definition.CreatureId, c.Player, new TilePos(c.At[0], c.At[1]));
             if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) workers++;
         }
 

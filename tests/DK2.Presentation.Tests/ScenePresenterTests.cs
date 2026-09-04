@@ -205,7 +205,7 @@ public class ScenePresenterTests
 
         CreatureDef imp = rig.Database.CreatureByName("Imp")!;
         TilePos at = FirstWalkable(rig.Database, world);
-        CreatureState spawned = world.SpawnCreature(imp.CreatureId, 1, at);
+        CreatureState spawned = world.SpawnCreature(rig.Simulation.Database, imp.CreatureId, 1, at);
 
         rig.Presenter.Present(world);
         Assert.Equal(1, rig.Target.CreatureCreates);
@@ -249,7 +249,7 @@ public class ScenePresenterTests
         WorldState world = rig.Simulation.World;
         CreatureDef imp = rig.Database.CreatureByName("Imp")!;
         CreatureState spawned = world.SpawnCreature(
-            imp.CreatureId, 1, FirstWalkable(rig.Database, world));
+            rig.Database, imp.CreatureId, 1, FirstWalkable(rig.Database, world));
 
         rig.Presenter.Present(world);
         rig.Target.Clear();

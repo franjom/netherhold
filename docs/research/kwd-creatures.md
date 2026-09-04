@@ -106,5 +106,13 @@ and the Flame cross-source id check)
 ## Open questions
 
 - `moodChange` / `manaChange` units on JobPreference records.
-- Are `hungerRate`/`timeAwake` == 32767 a general "never" sentinel, or Imp-specific?
+- ~~Are `hungerRate`/`timeAwake` == 32767 a general "never" sentinel, or
+  Imp-specific?~~ **ANSWERED 2026-09-04 (ADR-0048):** a general sentinel, and
+  **per need rather than per creature**. Eight creatures never get hungry (Imp,
+  Vampire, Skeleton, Horny, Stone Knight, and the unique Firefly, Skeleton and
+  Vampire); six never sleep (Imp, Skeleton, **Dwarf**, Horny, Stone Knight,
+  Unique Skeleton). Neither set contains the other — the Vampire sleeps and
+  never eats, the Dwarf eats and never sleeps — so no single "undead" flag can
+  produce it. Both sets are asserted by name in `CreatureNeedsOnRealDataTests`,
+  because both were guessed wrong first. See `creature-needs.md`.
 - The 88 extra bytes in the embedded 5537-byte record variant.

@@ -107,12 +107,14 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // Bumped with HashVersion 9 -> 10 (ADR-0042): TileState gained
-        // EntranceIdleTicks, the portal's spawn clock, so the hash composition
-        // changed even though this fixture has no portals and nothing here ever
-        // spawns. Snapshot FormatVersion went 9 -> 10 in the same commit. The
-        // previous value, for HashVersion 9, was 0x4F824667CDA7EF25.
-        Assert.Equal(0x06F71648486D0FECUL, sim.StateHash());
+        // Bumped with HashVersion 10 -> 11 (ADR-0048): CreatureState gained
+        // Health, HungerTicks and ChickensNeeded, so the hash composition
+        // changed. This fixture does spawn imps, so the value moved for two
+        // reasons at once: three new fields in the composition, and health
+        // actually being non-zero on every creature. Snapshot FormatVersion
+        // went 10 -> 11 in the same commit. Previous values: 0x06F71648486D0FEC
+        // (HashVersion 10), 0x4F824667CDA7EF25 (HashVersion 9).
+        Assert.Equal(0x12E4F45E48ACEB9BUL, sim.StateHash());
     }
 
     [Fact]

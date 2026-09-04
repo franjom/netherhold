@@ -1,0 +1,66 @@
+# A creature that has needs, next to one that has none.
+#
+# Two creatures are placed and nothing else happens: a **Goblin**, which gets
+# hungry every 180 seconds by its own record, and an **Imp**, which never does.
+# The run is 200 game-seconds so the Goblin's clock comes round once and the
+# Imp's never does, and the difference between the two is the whole point —
+# 32767 in `hungerRate` means never, and it is a real value in the shipped data
+# rather than an Imp quirk (ADR-0048).
+#
+# What to read in the event log:
+#
+#   t3599   `creature_hungry ... type=Goblin chickens=1 after=180s`
+#           Exactly 180 seconds, which is the record's HungerRate, and one
+#           chicken, which is its HungerFill. The Bile Demon would say five.
+#
+#           t3599 and not t3600 because the system runs on the *last* tick of
+#           each game second — the same phase ManaSystem uses, so that a level
+#           does not open by paying out a second that has not elapsed. 3599 is
+#           tick 20x180 - 1.
+#
+# And then nothing, for the remaining twenty seconds and for as long as the run
+# lasts. **The Goblin stays hungry forever**, because eating needs chickens,
+# chickens are objects, and the OBJECTS record is unparsed (M6). That is the
+# honest state of the mechanic and this scenario is where it is visible.
+#
+# **It costs the Goblin no health.** Not mercy — the balance table has 21 health
+# variables and nine anger ones and there is no starvation among them. What
+# going unfed costs in DK2 is *anger*, per creature in the record (`angerNoFood`
+# is 100 for a Goblin), and anger is the next need rather than this one.
+#
+# The Imp is here as the control, and it does something the Goblin cannot: it is
+# one of only **two** creatures in the game with a non-zero
+# `OwnLandHealthIncreasePerSecond` — 67 a second, the other being King Reginald
+# at 400. It is standing on its keeper's own land at full health, so nothing is
+# emitted; damage a creature and the same tile would heal it. There is no
+# command that wounds a creature, which is why that half is covered by tests
+# rather than by a scenario.
+#
+# What this run does NOT establish: when DK2 actually starts the hunger clock
+# (here it is spawn — Q102); whether zero health is death or a 60-second
+# unconscious window (Q99); or what heals a creature in a lair, which is
+# implemented as a proxy and is the weakest reading in the mechanic (Q101).
+id: creatures-a-goblin-gets-hungry-001
+question: >
+  Does a Goblin get hungry after exactly the 180 seconds its record gives, ask
+  for exactly the one chicken its record gives, and does an Imp beside it never
+  get hungry at all?
+map: flat_24x20
+seed: 5
+duration_ticks: 4000
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 0 }
+  rooms:
+    # The keeper needs land to stand on for the Imp's own-land rate to have
+    # anywhere to apply. A lair, because it is the room a creature belongs in.
+    - { type: Lair, at: [5, 5], player: 3 }
+  creatures:
+    # 180 seconds to hunger, one chicken to fill.
+    - { type: Goblin, at: [8, 8], player: 3 }
+    # Never hungry, and one of the two creatures that heal on their own land.
+    - { type: Imp, at: [5, 5], player: 3 }
+commands: []
+observe:
+  - state_hash
+  - events

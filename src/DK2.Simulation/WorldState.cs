@@ -362,7 +362,8 @@ public sealed class WorldState
     /// the simulation (a test, a scenario file) places creatures directly, and
     /// says so.
     /// </summary>
-    public CreatureState SpawnCreature(byte creatureTypeId, byte ownerPlayerId, TilePos at)
+    public CreatureState SpawnCreature(
+        GameDatabase database, byte creatureTypeId, byte ownerPlayerId, TilePos at)
     {
         if (!Contains(at))
             throw new ArgumentOutOfRangeException(nameof(at), at, "Spawn tile is outside the map.");
@@ -375,6 +376,12 @@ public sealed class WorldState
             PosX = CreatureState.CentreOf(at.X),
             PosY = CreatureState.CentreOf(at.Y),
             Activity = CreatureActivity.Idle,
+
+            // The database is a parameter for this one line. A creature spawned
+            // at zero health is a creature that dies on the tick it arrives, so
+            // there must be no way to make one — which means no overload that
+            // leaves health out.
+            Health = database.CreatureById(creatureTypeId).Hp,
         };
 
         _creatures.Add(creature);

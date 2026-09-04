@@ -123,7 +123,7 @@ public sealed class PortalSystem : ISimulationSystem
             if (arriving is null) continue;
 
             CreatureState spawned = world.SpawnCreature(
-                arriving.CreatureId, playerId,
+                database, arriving.CreatureId, playerId,
                 new TilePos(entranceTile % world.Width, entranceTile / world.Width));
 
             centre.EntranceIdleTicks = 0;

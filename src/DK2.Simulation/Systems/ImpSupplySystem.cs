@@ -160,6 +160,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
         if (imp is null) return null;
 
         return world.SpawnCreature(
-            imp.CreatureId, playerId, new TilePos(heart % world.Width, heart / world.Width));
+            context.Database, imp.CreatureId, playerId,
+            new TilePos(heart % world.Width, heart / world.Width));
     }
 }
