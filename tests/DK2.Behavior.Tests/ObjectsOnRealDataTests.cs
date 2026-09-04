@@ -421,6 +421,96 @@ public class ObjectsOnRealDataTests
     }
 
     [Fact]
+    public void TheHatcherysThreeObjectsAreTheRealRecords()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The simulation fixture transcribes these three because HatcheryRules
+        // needs them, and the same guard applies as to the beds: literals here,
+        // no project reference to the fixture, so the real file gets to
+        // contradict what the fixture claims.
+        //
+        // The flag words are the load-bearing part, and one of them is a
+        // negative: the EGG MUST NOT CARRY TypeFood. That is the whole of Q133 --
+        // a hatchery lays object 47 and a creature eats object 9 -- and a test
+        // that let the egg be food would erase the question.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        ObjectDef coop = Assert.IsType<ObjectDef>(db.ObjectById(35));
+        Assert.Equal("Chicken Coop", coop.Name);
+        Assert.Equal(0x00004000u, (uint)coop.Flags);   // Obstacle, and nothing else
+        Assert.Equal(1, coop.Hp);
+        Assert.Equal(0, coop.RoomCapacity);
+        Assert.Equal(3252, coop.Width.Raw);
+        Assert.Equal(1228, coop.Height.Raw);
+
+        // No type bit at all, which is why HatcheryRules names the id.
+        Assert.False(coop.IsFood);
+        Assert.False(coop.IsLair);
+        Assert.False(coop.IsGold);
+
+        ObjectDef egg = Assert.IsType<ObjectDef>(db.ObjectById(47));
+        Assert.Equal("Egg", egg.Name);
+        Assert.Equal(0x00018602u, (uint)egg.Flags);
+        Assert.Equal(128, egg.Hp);
+        Assert.Equal(0, egg.StartState);
+        Assert.Equal(2719, egg.NameStringId);
+        Assert.Equal(2720, egg.TooltipStringId);
+        Assert.False(egg.IsFood, "an egg is not food -- see Q133");
+        Assert.True(egg.Decays, "an egg rots outside a room");
+
+        ObjectDef chicken = Assert.IsType<ObjectDef>(db.ObjectById(9));
+        Assert.Equal("Chicken", chicken.Name);
+        Assert.Equal(0x00230782u, (uint)chicken.Flags);
+        Assert.Equal(1000, chicken.Hp);
+        Assert.Equal(1, chicken.RoomCapacity);
+        Assert.True(chicken.IsFood);
+        Assert.True(chicken.Decays);
+
+        // The two differ in more than the food bit, and the differences are the
+        // reason to believe they are different things rather than one thing
+        // misread: a chicken can be picked up and an egg cannot, and their
+        // start states are 10 and 0.
+        Assert.Equal(10, chicken.StartState);
+        Assert.True(chicken.Flags.HasFlag(ObjectFlags.CanBePickedUp));
+        Assert.False(egg.Flags.HasFlag(ObjectFlags.CanBePickedUp));
+
+        // Both die when slapped, which is DK2 letting you kill your own dinner.
+        Assert.True(chicken.Flags.HasFlag(ObjectFlags.DieWhenSlapped));
+        Assert.True(egg.Flags.HasFlag(ObjectFlags.DieWhenSlapped));
+    }
+
+    [Fact]
+    public void TheHatcherysOwnNumbersAreWhatTheGameShips()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        // The room the fixture transcribes: 300 to build, terrain 13, 3x3
+        // recommended -- and 3x3 matters, because nine tiles is where the
+        // laying curve's exponent gives exactly 2 (hatchery.md section 4).
+        RoomDef hatchery = db.RoomById(4);
+        Assert.Equal("Hatchery", hatchery.Name);
+        Assert.Equal(300, hatchery.Cost);
+        Assert.Equal(13, hatchery.TerrainId);
+        Assert.Equal(3, hatchery.RecommendedSizeX);
+        Assert.Equal(3, hatchery.RecommendedSizeY);
+
+        // The room names the coop among its furniture, which is the shipped
+        // data agreeing with the binary's hardcoded 35.
+        Assert.Contains((byte)35, hatchery.ObjectIds);
+
+        // And the two balance numbers. The generation time is read by the
+        // interval this project cannot yet build (Q132); the free-range cap is
+        // read but not enforced, because what its counter counts is UNKNOWN.
+        Assert.Equal(16, db[VariableTypeId.ChickenGenerationTimePerHatchery]);
+        Assert.Equal(12, db[VariableTypeId.MaxFreeRangeChickensPerPlayer]);
+    }
+
+    [Fact]
     public void ForLevelKeepsEveryRecordCollection()
     {
         string? install = Install();

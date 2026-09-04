@@ -366,11 +366,18 @@ public sealed class ScenarioRunner
             "setup.rooms lays room terrain down directly: nothing is charged for it and no imp " +
             "builds it. Most rooms still do nothing a room does beyond being terrain its owner " +
             "holds - a treasury stores gold because a variable says how much per tile, and a " +
-            "library, a hatchery and a training room are inert. Two now do more: a portal " +
+            "library and a training room are inert. Two now do more: a portal " +
             "produces creatures, and a lair both attracts them and holds one bed per tile that " +
             "a creature claims, sleeps in and is healed by. What a lair still cannot do is " +
             "anger the creature it turns away (Q106) or take back a creature an imp carried to " +
             "it, because nothing can be carried");
+        unsupported.Add(
+            "a hatchery is inert IN A RUN, but not for want of research: HatcheryRules knows how " +
+            "many coops a room of this size gets, where they may stand, and that the room lays an " +
+            "EGG (object 47) at a randomly chosen coop. What it has no clock for is how often - " +
+            "DK2 multiplies its interval by a balance variable that no shipped file supplies " +
+            "(Q132), so no system is registered and nothing here gets fed. A creature that grows " +
+            "hungry in this run stays hungry, and is angered for it rather than damaged");
     }
 
     /// <summary>

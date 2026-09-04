@@ -37,6 +37,7 @@ internal static class Dk2TerrainFixture
     public const byte TreasuryTerrain = 10;
     public const byte LairTerrain = 11;
     public const byte PortalTerrain = 12;
+    public const byte HatcheryTerrain = 13;
     public const byte DungeonHeartTerrain = 14;
     public const byte WoodenBridgeTerrain = 17;
     public const byte ManaVaultTerrain = 31;
@@ -72,6 +73,8 @@ internal static class Dk2TerrainFixture
             T(TreasuryTerrain, "Treasury", RoomTerrain, 10000, 10000, TreasuryTerrain, ClaimedPath),
             T(LairTerrain, "Lair", RoomTerrain, 10000, 10000, LairTerrain, ClaimedPath),
             T(PortalTerrain, "Portal", RoomTerrain, 10000, 10000, PortalTerrain, ClaimedPath),
+            T(HatcheryTerrain, "Hatchery",
+              RoomTerrain, 10000, 10000, HatcheryTerrain, ClaimedPath),
             T(DungeonHeartTerrain, "Dungeon Heart",
               RoomTerrain, 10000, 10000, DungeonHeartTerrain, ClaimedPath),
             T(WoodenBridgeTerrain, "Wooden Bridge",
@@ -107,6 +110,12 @@ internal static class Dk2TerrainFixture
             // PortalRules.IsEntrance is really identifying.
             R(RoomTypeId.Portal, "Portal", 0, PortalTerrain, 0x1004u, 3, 3,
               TileConstruction.ThreeByThree),
+
+            // The hatchery, for HatcheryRules. 300 to build and 3x3 recommended,
+            // which is also the smallest room DK2 lets you make -- and the
+            // number the laying curve is tuned around, since nine tiles is
+            // exactly where its exponent gives 2 (hatchery.md section 4).
+            R(RoomTypeId.Hatchery, "Hatchery", 300, HatcheryTerrain, 0x128Cu, 3, 3),
         ],
         creatures: [Imp(), Goblin(), Vampire()],
         variables: Variables(),
@@ -141,6 +150,72 @@ internal static class Dk2TerrainFixture
     [
         Bed(GoblinBedObjectId, "Goblin Creature Bed"),
         Bed(VampireBedObjectId, "Vampire Creature Bed"),
+
+        // The hatchery's two, transcribed the same way and guarded the same
+        // way. A coop carries NO type flag at all -- only Obstacle -- which is
+        // why HatcheryRules names its id instead of asking a flag, and why
+        // getting these numbers from the file matters: a fabricated flag word
+        // here would make a rule look right for the wrong reason.
+        new ObjectDef
+        {
+            Name = "Chicken Coop",
+            ObjectId = HatcheryRules.CoopObjectId,
+            Flags = (ObjectFlags)0x00004000u,   // Obstacle
+            Hp = 1,
+            ManaValue = 0,
+            RoomCapacity = 0,
+            StartState = 0,
+            PickUpPriority = 176,
+            Width = new Fp32(3252),
+            Height = new Fp32(1228),
+            Mass = new Fp32(4096),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        },
+        new ObjectDef
+        {
+            Name = "Egg",
+            ObjectId = HatcheryRules.EggObjectId,
+
+            // 0x00018602: DieOverTimeIfNotInRoom, CanBeSlapped, DieWhenSlapped,
+            // Bounce, BoulderCanRollThrough. Note what is NOT there: TypeFood.
+            // An egg is not edible, which is the whole of Q133.
+            Flags = (ObjectFlags)0x00018602u,
+            Hp = 128,
+            ManaValue = 0,
+            RoomCapacity = 0,
+            StartState = 0,
+            PickUpPriority = 176,
+            Width = new Fp32(128),
+            Height = new Fp32(128),
+            Mass = new Fp32(8192),
+            Speed = new Fp32(1024),
+            NameStringId = 2719,
+            TooltipStringId = 2720,
+        },
+        new ObjectDef
+        {
+            Name = "Chicken",
+            ObjectId = HatcheryRules.ChickenObjectId,
+
+            // 0x00230782: DieOverTimeIfNotInRoom, TypeFood, CanBePickedUp,
+            // CanBeSlapped, DieWhenSlapped, BoulderDestroys, Damageable. So a
+            // chicken can be picked up and dies if slapped, and the egg above
+            // shares neither the food bit nor the carrying one.
+            Flags = (ObjectFlags)0x00230782u,
+            Hp = 1000,
+            ManaValue = 0,
+            RoomCapacity = 1,
+            StartState = 10,
+            PickUpPriority = 176,
+            Width = new Fp32(128),
+            Height = new Fp32(128),
+            Mass = new Fp32(8192),
+            Speed = new Fp32(1024),
+            NameStringId = 2547,
+            TooltipStringId = 2677,
+        },
     ];
 
     private static ObjectDef Bed(byte id, string name) => new()
@@ -515,6 +590,12 @@ internal static class Dk2TerrainFixture
         // owner: "imps get experience by working... they get exp and passively
         // their level raises"). 3000 to level 2, so 150 seconds of digging.
         Set(vars, VariableTypeId.ImpExperienceGainPerSecond, 20);
+
+        // The hatchery's two shipped numbers. The generation time is here for
+        // completeness -- nothing reads it, because the interval it belongs to
+        // is multiplied by a variable no shipped file supplies (Q132).
+        Set(vars, VariableTypeId.ChickenGenerationTimePerHatchery, 16);
+        Set(vars, VariableTypeId.MaxFreeRangeChickensPerPlayer, 12);
         Set(vars, VariableTypeId.MinimumImpThreshold, 4);
         Set(vars, VariableTypeId.TimeBeforeFreeImpGeneratedSeconds, 5);
         Set(vars, VariableTypeId.MaxGoldPerTreasuryTile, 3000);

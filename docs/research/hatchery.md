@@ -1,12 +1,13 @@
-# The Hatchery: coops, eggs, and one unresolved unit
+﻿# The Hatchery: coops, eggs, and one unresolved unit
 
 **Source:** `DKII.EXE`, `Hatchery.cpp`'s translation unit, read on 2026-09-04,
 plus `Objects.kwd`. Facts in our own words; ADR-0046 governs the boundary.
 
-**Status: researched, not implemented.** Everything below is known except the
-unit of the laying interval, and that one gap is load-bearing — see §4. Building
-it with a guessed unit would be inventing DK2 behaviour, which the brief
-forbids.
+**Status: researched, and the determined parts are built.** `HatcheryRules`
+implements the coop count, the spacing, the coops as objects and the egg
+placement, with 18 tests. What is *not* built is the clock: the laying interval
+is multiplied by a balance variable no shipped file supplies, and a guessed unit
+would be inventing DK2 behaviour, which the brief forbids. See §4 and §6.
 
 ## Why this was worth doing now
 
@@ -136,14 +137,21 @@ it wanders, it pecks on a timer, and it scatters when something disturbs it —
 four fields that describe exactly the chickens one remembers milling about a
 hatchery.
 
-## 6. What this gives us, and what it does not
+## 6. What is built, and what it waits on
 
-**Ready to build**, with no open questions:
+**Built** — `HatcheryRules`, and every number in it is the original's:
 
-- coop count from tile count, and the spacing rule;
-- the egg goes at a random coop, or on a random empty tile when there are none;
-- the free-range cap per player;
-- a room's produced-count.
+- coop count from tile count, and the spacing rule (as integer tile distances,
+  which is exactly equivalent to the original's fixed-point comparison because a
+  coop always stands at a tile centre);
+- coops as real objects, placed idempotently so the call is safe to repeat;
+- the egg at a random coop, or on a random empty tile when the room has none;
+- the free-range cap **exposed but not enforced** — DK2 checks a counter it keeps
+  on the player, and what that counter counts (loose chickens only, or everything
+  the room ever made) is UNKNOWN, so applying it would silently throttle a room.
+
+**Not built, and named:** a room's produced-count, which has nothing to read it
+until laying happens on a clock.
 
 **Blocked on Q132** (the unit): the laying interval, and therefore the room
 actually producing anything on a clock.
