@@ -109,9 +109,66 @@ level-1 vampire is permanently dead by the owner's own rule. The flag is read
 and tested and nothing branches on it; it will be needed the day levels arrive
 and not before (Q111).
 
-**OpenKeeper does not implement or even read `CanBeResurrected`.** This is the
-second mechanic where the owner's testimony is the only source there is, after
-the anger ceiling.
+**OpenKeeper does not implement or even read `CanBeResurrected`.**
+
+### What the DK2 wiki adds, and where it disagrees
+
+Read through the MediaWiki API, **Dungeon Keeper 2 section only** — the page
+covers four games and tags each claim, and they differ. See
+`wiki-as-a-source.md`, including the licence flag on mirroring any of it.
+
+> *"Although not completely immortal, Vampires can only be eternally 'laid to
+> rest' by Monks (hence their unbridled hatred of the shaven-pated holy ones).
+> Each time a Vampire is slain, it loses an experience level before
+> re-incarnating in the Graveyard. If you are not in control of a Graveyard when
+> a Vampire is slain, or if the Vampire is level 1, then it is lost for good."*
+
+That **confirms three of the owner's four points** — loses a level, level 1 is
+final, only a Monk makes it final regardless — and adds two things:
+
+**A third permanent-death condition, which the owner did not mention: no
+Graveyard.** So a vampire dies for good if it is level 1, *or* a Monk killed it,
+*or* its keeper controls no Graveyard at that moment. Three conditions, and the
+third is the only one that is a property of the dungeon rather than of the
+creature or its killer.
+
+**And a conflict worth resolving before any of this is built (Q113): the wiki
+says it reincarnates *in the Graveyard*; the owner said *at their
+sarcophagus*.** These are not obviously the same place — a lair bed and a
+Graveyard are different rooms — and the vampire's `LairObjectId` really is a
+coffin, so both readings have data behind them. It matters because it decides
+what a reincarnation needs to find: a free lair tile, or a graveyard tile.
+
+**A third source disagrees with both on health.** The page's *lead paragraph*
+says a resurrected vampire returns "at full health" — but the lead is
+game-agnostic prose covering all four titles, so it is not a DK2 claim, and the
+DK2 section says nothing about health. The owner's account is that it *sleeps to
+recover*. Untagged lead prose is the weakest of the three and is not being
+followed.
+
+**Two numbers the wiki gave that the shipped data confirms exactly**, both now
+pinned by tests:
+
+- **Five corpses in a Graveyard make a Vampire.** The data never says "five": it
+  says `DecomposeValue` 200 a corpse and `DecomposeValueNeededForVampire` 1000.
+  1000 ÷ 200 = 5. Two independent sources on one integer, and it is worth more
+  than either alone — it confirms the wiki *and* confirms that our reading of
+  `DecomposeValue` as a per-corpse worth is right, which nothing else could
+  check. (DK1 needs ten, which is on the adjacent line of the same infobox
+  field. Read carelessly that page supports either number.)
+- **Two Black Knights sacrificed make a Vampire.** Present in the shipped temple
+  table as `BlackKnight + BlackKnight → rewardType=1 value=8`, and creature 8 is
+  the Vampire. This is the first thing in the project ever to read
+  `SacrificeEntry`, so it doubles as a layout check on that record.
+
+One more, unimplementable and worth knowing: **at level 10 a Vampire raises any
+corpse it sees into a Skeleton**, which competes with its keeper's own supply of
+corpses for making more Vampires. That is `SkeletonArmyDurationSeconds` and
+`RaiseDead` territory, and needs levels, corpses and combat first.
+
+So the vampire is now the best-sourced unimplemented mechanic in the project:
+owner testimony, a wiki section, and two arithmetic confirmations from the
+install — against zero help from OpenKeeper.
 
 ## What is implemented
 

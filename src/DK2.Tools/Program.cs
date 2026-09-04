@@ -700,6 +700,28 @@ switch (args[0])
             }
         }
 
+        // -s: the temple's sacrifice recipes, resolved to creature names where
+        // the ingredient is a creature. Added to check the DK2 wiki's claim
+        // that two Black Knights make a Vampire against the shipped table.
+        if (args.Contains("-s"))
+        {
+            List<CreatureDef> sacCreatures = KwdCreatures.Parse(KwdReader.ReadFile(
+                Path.Combine(Dk2Install.Require(), "Data", "editor", "Creatures.kwd")));
+            string Name(byte type, byte id) => type == 0 && id == 0
+                ? "-"
+                : $"t{type}:" + (sacCreatures.FirstOrDefault(c => c.CreatureId == id)?.Name ?? $"#{id}");
+
+            Console.WriteLine();
+            Console.WriteLine($"Sacrifice recipes ({vars.Sacrifices.Count}):");
+            foreach (SacrificeEntry s in vars.Sacrifices)
+            {
+                Console.WriteLine(
+                    $"  {Name(s.Type1, s.Id1),-22} + {Name(s.Type2, s.Id2),-22} " +
+                    $"+ {Name(s.Type3, s.Id3),-22} => rewardType={s.RewardType} " +
+                    $"value={s.RewardValue} speech={s.SpeechId}");
+            }
+        }
+
         return 0;
     }
 

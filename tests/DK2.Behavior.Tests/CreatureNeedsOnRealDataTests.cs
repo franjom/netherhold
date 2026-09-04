@@ -686,4 +686,90 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(new HashSet<string> { "King Reginald" }, healsAndCollapses);
         Assert.Equal(400, db.CreatureByName("King Reginald")!.OwnLandHealthIncreasePerSecond);
     }
+
+    // ---- the vampire, cross-checked against the DK2 wiki ------------------
+    //
+    // Source: the Dungeon Keeper wiki's Vampire page, **Dungeon Keeper 2
+    // section only** — the page covers DK1, DK2 and DK Online together and
+    // tags each claim, and the games differ (DK1 needs ten corpses, DK2 five).
+    // Read through the MediaWiki API; see docs/research/wiki-as-a-source.md for
+    // why no wiki prose is copied into this repository.
+
+    [Fact]
+    public void FiveCorpsesMakeAVampire_WhichIsTwoNumbersAgreeingFromTwoSources()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The DK2 wiki: "When five or more corpses rot in the Graveyard (DK2)"
+        // and "When five or more corpses rot in your Graveyard a Vampire
+        // appears."
+        //
+        // The shipped data never says "five". It says a corpse is worth 200
+        // (DecomposeValue) and a vampire needs 1000
+        // (DecomposeValueNeededForVampire). 1000 / 200 = 5.
+        //
+        // **Two independent sources landing on the same integer**, and it is
+        // worth more than either alone: it confirms the wiki's number *and*
+        // confirms that our reading of DecomposeValue as a per-corpse worth is
+        // right, which nothing else could have checked. It also rules out the
+        // reading where DecomposeValueNeededForVampire counts corpses directly.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        int perCorpse = db.CreatureById(7).DecomposeValue;             // Goblin
+        int needed = db[VariableTypeId.DecomposeValueNeededForVampire];
+
+        Assert.Equal(200, perCorpse);
+        Assert.Equal(1000, needed);
+        Assert.Equal(5, needed / perCorpse);
+        Assert.Equal(0, needed % perCorpse);        // a whole number of corpses
+    }
+
+    [Fact]
+    public void TwoBlackKnightsSacrificedMakeAVampire()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The DK2 wiki gives the Vampire's sacrifice recipe as "Black Knight
+        // x2 (DK2)". The shipped temple table has it, and this is the first
+        // time anything has read SacrificeEntry at all — so it doubles as a
+        // check that the record is decoded correctly, since a wrong layout
+        // would be very unlikely to produce this exact pair.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        byte blackKnight = db.CreatureByName("Black Knight")!.CreatureId;
+        byte vampire = db.CreatureByName("Vampire")!.CreatureId;
+
+        Assert.Contains(db.Variables.Sacrifices, s =>
+            s.Type1 == 1 && s.Id1 == blackKnight &&
+            s.Type2 == 1 && s.Id2 == blackKnight &&
+            s.Id3 == 0 &&                            // a two-ingredient recipe
+            s.RewardType == 1 && s.RewardValue == vampire);
+    }
+
+    [Fact]
+    public void TheVampiresOwnNumbersMatchTheWikisDk2Column()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // Four numbers the wiki states for DK2 specifically, checked against
+        // the install. Cheap, and it is what earns the right to trust the
+        // wiki's *unmeasurable* claims — the resurrection rule — since a source
+        // that got the health and the wage wrong would be no source at all.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        CreatureDef vampire = db.CreatureByName("Vampire")!;
+
+        Assert.Equal(2500, vampire.Hp);                     // "2500 (DK2)"
+        Assert.Equal(750, vampire.Pay);                     // "wages 750"
+        Assert.Equal(JobClass.Thinker, vampire.JobClass);   // "job Thinker"
+        Assert.Equal(FightStyle.Blitzer, vampire.FightStyle);   // "Blitzer (DK2)"
+
+        // And the two the wiki implies rather than states: undead do not eat,
+        // and a vampire is not finished when it drops.
+        Assert.False(CreatureHealthRules.CanGetHungry(vampire));
+        Assert.False(CreatureDeathRules.LeavesBody(vampire));
+        Assert.True(CreatureDeathRules.CanBeResurrected(vampire));
+    }
 }
