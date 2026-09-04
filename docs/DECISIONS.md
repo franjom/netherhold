@@ -2060,3 +2060,129 @@ fill-in job priority later would fail loudly.
   (660 swings, ~132 seconds) is a fact about the terrain table, not about play.
 - The one thing still worth a look, if the owner ever opens the level editor: is
   there a fill-in tool, or a fill-in action among the 51 trigger types?
+
+---
+
+## ADR-0040 — A level plays on its own VARIABLES, layered over the global table
+
+**Date:** 2026-09-04
+**Status:** Accepted
+**Context:** found while working out what "what rooms do" would need.
+Research: `docs/research/kwd-variables.md` §*Update 2026-09-04*. Questions: Q82,
+and it corrects Q1.
+
+### The defect
+
+`GameDatabaseLoader.Load` read `GlobalVariables.kwd` and nothing else. Every
+shipped level also ships `<name>Variables.kld`, in the identical record format,
+and **26 distinct variable ids are overridden by at least one level**.
+
+So every campaign run used the wrong numbers wherever a level disagreed — and one
+disagreement was already live: **`MinimumImpThreshold` is 0 on four of the five
+secret levels and on the front end**, against a global 4. A keeper there gets no
+free imps at all, which is exactly right for a fixed-roster puzzle level, and
+`ImpSupplyRules` (ADR-0021) would have handed out four. Level 1 doubles both
+payday variables, 600 to 1200.
+
+**This project's own notes had the fact and no code read it.**
+`kwd-variables.md` has said *"Per-level `*Variables.kld` files override it (same
+record format)"* since 2026-08-29. That is the third instance in a week of a
+claim written down and enforced nowhere — the netstandard target, the walls rule,
+and now this — and it is recorded in `GOAL_ALIGNMENT.md` as a standing review
+question rather than as three separate bugs.
+
+### The decision
+
+`GlobalVariables.MergedWith(level)` produces a new table; `GameDatabase.ForLevel`
+produces a new database around it; `GameDatabaseLoader.LoadForCampaignLevel` does
+both in one call and is the shape to prefer whenever a level is named.
+
+Two merge rules, because the file holds two kinds of thing.
+
+**1. Plain values replace by id, and ids only the level has are added.** That is
+what an override file is for, and it is the only reading under which the secret
+levels' 0 means anything. Levels also introduce ids the global table lacks
+entirely — `GameTicks`, `LevelRating`, `AverageTime`, and two unnamed ones — so
+"replace" has to include "add".
+
+**2. The four lists replace wholesale when the level provides any, and are kept
+when it does not.** STRONGLY INFERRED, and the shipped data argues for it rather
+than merely permitting it:
+
+- The **global availability list is a template keyed to player 0** — every room
+  AVAILABLE, every trap, door and spell RESEARCHABLE. A level's list names *its
+  own* player ids and its own states. A union would leave a level-1 keeper holding
+  "every room available" from the template beside its own "treasury unavailable",
+  which is not a state the game can be in.
+- Conversely **no level ships sacrifice recipes or creature-stat rows**, and the
+  temple's 44 recipes and the 320 stat rows are plainly game-wide. So silence has
+  to mean "keep".
+
+The one case this cannot distinguish is a level that meant to *add* a single
+availability entry. No shipped level looks like that — every level carrying any
+availability carries a full set across the same five kinds — so the question does
+not arise on this data (Q82).
+
+### Immutability, deliberately
+
+A merge returns a **new** `GlobalVariables` and `ForLevel` a **new**
+`GameDatabase`, sharing the parsed definitions. A running simulation holds a
+database, and one level's numbers must not be able to reach another level's run;
+`TheMergeNeverMutatesEitherSide` pins that in both directions. `ForLevel(null)`
+returns `this`, so a caller can hand it whatever the loader found without
+checking.
+
+### The harness
+
+`ScenarioRunner.Run` resolves the level's variables first and delegates to a
+runner built around the level's database, rather than threading a second database
+through every helper. Every rule below then reads the one `_database` that is
+correct for that run.
+
+The run's balance table is reported as **provenance, not as a shortfall**: it is a
+`ScenarioResult.BalanceTable` property and a line in the report header, not an
+entry in `Unsupported`. A reader of a campaign report should not have to guess
+which numbers produced it. Level 1's line reads
+`GlobalVariables.kwd + level1Variables.kld (202 values, 31 availability entries,
+1 creature-pool entry)`.
+
+**No hash moved.** All ten scenarios produce the same state hashes as before,
+which is the expected result and worth stating: level 1 overrides nothing that any
+currently-implemented system reads. The fix is for the levels and mechanics that
+come next, and it lands before them rather than after.
+
+### What it unblocks, and why it came before the rooms work
+
+The per-level file carries the two lists the global table leaves empty, and they
+are precisely what a **portal** needs: `CreaturePool` for who may come (level 1:
+fifteen Goblins), `Availability` kind 2 for whether they are unlocked yet,
+`EntranceGenerationSpeedSeconds` for how often, against
+`CreaturesSupportedByFirstPortal` = 15 for the cap.
+
+Decoding `Availability` was a by-product and a large one. Its `kind` and `value`
+enums were derived **from the shipped data before any external source was
+consulted** — kind by how many type ids appear under each (eleven traps, six
+doors, thirteen spells), value by how the states differ between the global
+template and levels 1, 5, 13 and 20 — and OpenKeeper names both fields exactly the
+same way. Details in `kwd-variables.md`. It explains the shape of a DK2 campaign:
+level 1 starts its keeper with almost everything UNAVAILABLE and one creature
+available, level 20 with nearly everything AVAILABLE, and `Secret1` with no
+availability entries and no pool at all.
+
+It also names a gap nobody had written down: **which rooms a keeper may build is
+per level, and `RoomRules` does not model it** — a keeper here can build any
+buildable room on any level.
+
+### Corrects Q1
+
+The id-74 `GameTicks` variable was recorded on 2026-08-29 as carried by "no
+shipped file — not GlobalVariables.kwd, not any of the 71 map KWDs". It is
+carried by **all 66 per-level files, at 340 in every one**. The sweep looked at
+the `*.kwd` map files; the value is in the `*Variables.kld` siblings, which
+nothing was loading.
+
+**What 340 means is UNKNOWN and is not being guessed** (Q83). 340 a second is
+implausible; the id shares its "no trailing fields" shape with the two
+front-end metadata ids; and OpenKeeper's comment on the same id says `value=4`,
+matching nothing here, so even the name is suspect. What has changed is that Q1
+has a datum that is invariant across the entire campaign instead of a blank.

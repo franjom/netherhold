@@ -50,6 +50,14 @@ What is *built* rather than known, against the long-term goals:
 - **What most rooms are for**, in prose if not in numbers — from the shipped 1999
   manual, paired with the balance variable that quantifies each one. Not
   implemented, but no longer unknown. See docs/research/manual-1999.md.
+- **Which balance numbers a level actually plays on.** Every shipped level ships
+  its own VARIABLES and 26 ids are overridden by at least one of them — one of
+  which was already live (`MinimumImpThreshold` is 0 on four secret levels
+  against a global 4). Loaded and merged as of ADR-0040. The by-product is
+  larger: **`Availability` is decoded** — kinds are rooms/creatures/traps/doors/
+  spells, states are unavailable/researchable/available, and it is per level and
+  per player, which is what makes level 1 a tutorial and `Secret1` a puzzle. See
+  docs/research/kwd-variables.md §*Update 2026-09-04*.
 
 ## Unsolved (research required before implementing)
 - **What a room does.** ← the next thing being worked on, and **much less of a
@@ -64,6 +72,17 @@ What is *built* rather than known, against the long-term goals:
   count": Q60 established that a temple's capacity is its **rim**, `2(w+h) − 4`,
   and the manual says the dungeon heart stores its gold in its "outer ring" too.
   Several rooms are blocked on objects (M6) or on creature needs, not on research.
+- **Where creatures come from.** The portal is the next thing being built, and it
+  is the prerequisite for every other room having occupants: nothing places
+  non-imp creatures today (THINGS is unparsed), and `ImpTaskSystem` skips
+  anything without `IsWorker`, so a non-worker dropped into the world stands
+  still. Its data is all parsed and loaded now — per-level creature pool,
+  creature availability, attraction slots, spawn interval, per-portal cap. What
+  is *not* settled: what a portal does when the pool is empty, and whether
+  attraction is checked once per spawn or continuously.
+- **Which rooms a keeper may build on a given level.** `Availability` kind 1 says
+  so, per level and per player, and `RoomRules` does not model it at all — a
+  keeper here can build any buildable room on any level.
 - Pathfinding (biggest risk), creature moods/anger, combat resolution,
   job-selection priority order, computer-player AI, audio event semantics.
 - **Creatures have no needs yet** — no health, hunger, mood or experience, by

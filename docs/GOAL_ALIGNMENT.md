@@ -489,3 +489,38 @@ Claimed Path's route back to Rock are all in the shipped file. The data model
 mirrors the data; behaviour is where fidelity is judged. Removing the transition
 would have made our terrain graph disagree with the file it was read from, which
 is a worse failure than carrying a rule nothing invokes.
+
+### Addendum, same day — the standing question needs a second half
+
+The review above asked *"what would fail if this claim stopped being true?"* and
+found one claim that was already false. Hours later a third instance turned up
+with a different shape, and it needs the question widened.
+
+`docs/research/kwd-variables.md` has said **"Per-level `*Variables.kld` files
+override it (same record format)"** since 2026-08-29. Correct, researched,
+written down — and **read by no code for six days**. `GameDatabaseLoader` loaded
+the global table and nothing else, so every campaign run used the wrong numbers
+wherever a level disagreed, and 26 variable ids disagree on at least one level.
+One of them was live: `MinimumImpThreshold` is 0 on four secret levels against a
+global 4 (ADR-0040).
+
+Three failures in a week, one pattern — **something stated in a place that does
+not run**:
+
+| | stated where | enforced where | how long |
+|---|---|---|---|
+| netstandard2.1 target | `Directory.Build.props`, behind a condition evaluated too early | nowhere | 4 months |
+| creatures do not walk through walls | one line of `WorldPathGrid` | nowhere | 4 months |
+| levels override the balance table | a research doc | nowhere | 6 days |
+
+So the review question gains a clause. Not only *what would fail if this claim
+stopped being true*, but **does anything read this fact at all?** The first
+catches a rule that has rotted; the second catches a fact that was never wired
+up. The research docs are full of the second kind by design — they are where
+findings live before they are built — so the check is not "everything must be
+implemented", it is: **when a doc states something the code should be doing, say
+which code does it, or say plainly that none does.**
+
+Goal 5 (research before implementation) is not damaged by this — the research was
+right and it was done first, which is the whole discipline working. What failed
+is the handover from research to code, and that is a different seam.

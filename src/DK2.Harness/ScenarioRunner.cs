@@ -1,3 +1,23 @@
+// Copyright (c) 2026 Franjo Misetic
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using System.Globalization;
 using System.Text;
 using DK2.Assets;
@@ -39,6 +59,17 @@ public sealed record ScenarioResult(
     /// so is the point (plan §7.2).
     /// </summary>
     public string AssetSummary { get; init; } = "";
+
+    /// <summary>
+    /// Which balance table produced these numbers.
+    ///
+    /// <para>Not in <see cref="Unsupported"/>, because it is not a shortfall —
+    /// it is provenance. A campaign level ships its own VARIABLES and 26 ids are
+    /// overridden by at least one shipped level, so "which table" is a real
+    /// question about any run on a campaign map, and a reader of the report
+    /// should not have to guess.</para>
+    /// </summary>
+    public string BalanceTable { get; init; } = "GlobalVariables.kwd";
 }
 
 /// <summary>
@@ -48,6 +79,9 @@ public sealed record ScenarioResult(
 /// </summary>
 public sealed class ScenarioRunner
 {
+    /// <summary>How a scenario names one of the original campaign maps.</summary>
+    private const string CampaignPrefix = "campaign:";
+
     private readonly GameDatabase _database;
     private readonly string? _installDir;
 
@@ -57,9 +91,54 @@ public sealed class ScenarioRunner
         _installDir = installDir;
     }
 
+    /// <summary>
+    /// Runs a scenario, on the balance table the level it names actually uses.
+    ///
+    /// <para>A campaign level ships its own VARIABLES, and 26 ids are overridden
+    /// by at least one shipped level — so a run on <c>campaign:level1</c> must
+    /// use level 1's numbers, not the global defaults. Rather than thread a
+    /// second database through every helper, the level's database is resolved
+    /// first and a runner built around it does the work; every rule below then
+    /// reads the one <c>_database</c> that is correct for this run.</para>
+    /// </summary>
     public ScenarioResult Run(Scenario scenario)
     {
+        GlobalVariables? levelVariables = ResolveLevelVariables(scenario.Map);
+        return levelVariables is null
+            ? RunAgainstThisDatabase(scenario, null)
+            : new ScenarioRunner(_database.ForLevel(levelVariables), _installDir)
+                .RunAgainstThisDatabase(scenario, LevelNameOf(scenario.Map));
+    }
+
+    /// <summary>The level's own VARIABLES, for a scenario that names a campaign map.</summary>
+    private GlobalVariables? ResolveLevelVariables(string mapSpec)
+    {
+        string? level = LevelNameOf(mapSpec);
+        return level is null || _installDir is null
+            ? null
+            : GameDatabaseLoader.LoadCampaignVariables(_installDir, level);
+    }
+
+    private static string? LevelNameOf(string mapSpec) =>
+        mapSpec.StartsWith(CampaignPrefix, StringComparison.OrdinalIgnoreCase)
+            ? mapSpec[CampaignPrefix.Length..].Trim()
+            : null;
+
+    private ScenarioResult RunAgainstThisDatabase(Scenario scenario, string? campaignLevel)
+    {
         var unsupported = new List<string>();
+
+        // Which balance table this run used, recorded as provenance rather than
+        // as a shortfall. A run that silently used the global defaults on a
+        // level that overrides them would be evidence about a game nobody plays.
+        string balanceTable = campaignLevel is null
+            ? "GlobalVariables.kwd"
+            : $"GlobalVariables.kwd + {campaignLevel}Variables.kld " +
+              $"({_database.Variables.Misc.Count} values, " +
+              $"{Count(_database.Variables.Availabilities.Count, "availability entry", "availability entries")}, " +
+              $"{Count(_database.Variables.CreaturePool.Count, "creature-pool entry", "creature-pool entries")})";
+
+        static string Count(int n, string one, string many) => $"{n} {(n == 1 ? one : many)}";
 
         foreach (string key in scenario.UnknownKeys)
             unsupported.Add($"unknown key '{key}' in the scenario file");
@@ -154,6 +233,7 @@ public sealed class ScenarioRunner
         {
             Picture = picture,
             AssetSummary = assets.Summarise(),
+            BalanceTable = balanceTable,
         };
     }
 
@@ -470,7 +550,7 @@ public sealed class ScenarioRunner
     /// </summary>
     private LevelMap ResolveMap(string spec)
     {
-        const string campaign = "campaign:";
+        const string campaign = CampaignPrefix;
         const string flat = "flat_";
         const string rock = "rock_";
         const string chamber = "chamber_";
@@ -565,6 +645,7 @@ public sealed class ScenarioRunner
         report.AppendLine($"- source: {result.Scenario.SourcePath}");
         report.AppendLine($"- map: {result.Scenario.Map}");
         report.AppendLine($"- seed: {result.Scenario.Seed}");
+        report.AppendLine($"- balance table: {result.BalanceTable}");
         report.AppendLine($"- ticks run: {result.TicksRun}");
         report.AppendLine($"- final state hash: {result.FinalStateHash:x16}");
         report.AppendLine($"- events recorded: {result.Events.Count}");

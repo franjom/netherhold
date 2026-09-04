@@ -1,3 +1,23 @@
+// Copyright (c) 2026 Franjo Misetic
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 namespace DK2.Data.Model;
 
 /// <summary>
@@ -92,6 +112,30 @@ public sealed class GameDatabase
 
     /// <summary>Global rule value by id — the simulation's only source of balance numbers.</summary>
     public int this[VariableTypeId id] => Variables[id];
+
+    /// <summary>
+    /// The same definitions with one level's own VARIABLES applied over the
+    /// global table — see <see cref="GlobalVariables.MergedWith"/> for what
+    /// "applied" means and why it is not a union.
+    ///
+    /// <para>A new instance rather than a mutation, because a
+    /// <see cref="GameDatabase"/> is immutable and a running simulation holds
+    /// one: a level's numbers must not leak into another level's run. The
+    /// definitions themselves are shared, so this costs a few dictionary
+    /// rebuilds over about 130 records and nothing else.</para>
+    ///
+    /// <para>Returns <c>this</c> when the level carries no variables of its own,
+    /// so a caller can hand it whatever the loader found without checking.</para>
+    /// </summary>
+    public GameDatabase ForLevel(GlobalVariables? levelVariables) =>
+        levelVariables is null
+            ? this
+            : new GameDatabase(
+                Terrain.Values,
+                Rooms.Values,
+                Creatures.Values,
+                Variables.MergedWith(levelVariables),
+                KeeperSpells.Values);
 
     public TerrainDef TerrainById(byte id) => Terrain.TryGetValue(id, out TerrainDef? t)
         ? t

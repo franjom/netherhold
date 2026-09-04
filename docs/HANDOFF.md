@@ -12,9 +12,9 @@ Update this whenever a session ends or context is compacted.
 carrier, where imps come from, the asset layer and the presentation boundary:
 complete. M3 as a whole: partial — there is still no Unity view.** M2 and the
 five record types M1 needed are done, and **every** record type's on-disk size is
-now known and pinned. **495 tests green** with and without a DK2
+now known and pinned. **511 tests green** with and without a DK2
 install; ten scenarios run, each now drawing a picture of its finished world;
-clean tree. (Core 14, Simulation 262, Data 55, Behavior 78, Assets 60, Presentation 26.)
+clean tree. (Core 16, Simulation 262, Data 63, Behavior 84, Assets 60, Presentation 26.)
 
 > ### The asset layer and the presentation boundary landed 2026-09-04 (ADR-0034, ADR-0035)
 >
@@ -297,6 +297,7 @@ What the simulation can do:
 | Gold carried from the seam to the treasury | `CreatureState.GoldHeld` + `ImpTaskSystem` | an imp mines a shipped seam on level 1 and every coin of its 3000 ends in the shipped dungeon heart, 1000 to a tile, across as many trips as its hands need |
 | Creatures never inside terrain they could not walk into | `WorldPathGrid` + the waypoint re-check in `CreatureMovementSystem` | CONFIRMED (owner, Q73, ADR-0038): solid means impassable, flight buys nothing over rock. Asserted over a 4000-tick dig — no creature on a solid tile, no route in flight across one |
 | A dug-out tile never closing, and two terrains never opening | the terrain table's flags, and what `ImpTaskSystem` does *not* choose | CONFIRMED (owner, Q73/Q74, ADR-0039): DK2 has no keeper-triggerable fill-in; Impenetrable Rock is unmarkable and Gems destroy to themselves. `FillInHealth` and the `FillInable` flag are kept because they are in the shipped file, and pinned as unreachable |
+| A level playing on its own balance numbers | `GlobalVariables.MergedWith` + `GameDatabase.ForLevel` + `GameDatabaseLoader.LoadForCampaignLevel` | 26 variable ids are overridden by at least one shipped level, and one was already live: `MinimumImpThreshold` is 0 on four secret levels against a global 4 (ADR-0040, Q82). Pinned against the install and, separately, as merge rules without one |
 | Where imps come from, and the first mana spender | `ImpSupplyRules` + `ImpSupplySystem` | four free imps five seconds apart on a shipped level, then 1500 / 3000 / 4500 for the next three and a refusal for the fourth |
 
 Extracted data artifacts (the specification the simulation is written against):
@@ -424,6 +425,7 @@ dk2tools kwd rooms                    # the ROOMS table, cross-checked against t
 dk2tools kwd terrain                  # the 41 terrain types with flags and transitions
 dk2tools kwd creatures                # all 46, and `kwd creature <name>` for one in full
 dk2tools kwd vars                     # the global balance table (203 entries)
+dk2tools kwd vars level1Variables.kld -a   # one level's own overrides, pool and availability
 dk2tools kwd alterterrain -v          # every ALTER_TERRAIN_TYPE trigger in every shipped map,
                                       #   with what each target tile starts as (Q74)
 dk2tools kwd recscan / creaturescan / creaturehex     # offset hunting
@@ -1357,3 +1359,140 @@ Keeper 2 material" rule already ignores it.
 about *shape* (capacity, eligibility, what happens to the state a room changes)
 rather than about purpose. Suggested order: lair, library, training room; the
 hatchery is blocked on objects (M6).
+
+---
+
+## The twelfth sitting (2026-09-04) — per-level variables, and the portal is next
+
+Asked "where do we go from here", the answer was worked out by **checking what
+the rooms work would actually need** rather than by planning on paper. That check
+found a defect and reordered the plan.
+
+### What the check found
+
+**Rooms are researched and mostly blocked, and not on research.** `ImpTaskSystem`
+skips anything without `IsWorker`, THINGS is unparsed so maps place nobody, and
+portals do not exist — so **there are no non-imp creatures in the simulation, and
+one dropped in would stand still forever.** A lair with nothing to sleep in it is
+decoration, not fidelity work. The blocker map is in *Immediate next steps* item 3.
+
+**And the loader was reading the wrong balance table.** `GameDatabaseLoader.Load`
+read `GlobalVariables.kwd` and nothing else; every level also ships
+`<name>Variables.kld`, and **26 variable ids are overridden by at least one
+shipped level**. One was already live — `MinimumImpThreshold` is **0** on four of
+the five secret levels and on the front end, against a global 4, so a keeper there
+gets no free imps at all where `ImpSupplyRules` would hand out four. Level 1
+doubles both payday variables.
+
+Fixed: ADR-0040, `GlobalVariables.MergedWith` / `GameDatabase.ForLevel` /
+`GameDatabaseLoader.LoadForCampaignLevel`, with the merge rules pinned without an
+install and the shipped numbers pinned against one. **No scenario hash moved**,
+which is the expected result and the point: level 1 overrides nothing any built
+system reads, so the fix lands *before* the mechanics that need it.
+
+### The by-product, which was larger than the fix
+
+**`Availability` decoded, from the data first.** The record
+(`u16 kind, u16 playerId, s32 typeId, s32 value`) was parsed, unread and
+unexplained. Its `kind` enum falls out of how many type ids appear under each
+(eleven traps, six doors, thirteen spells, up to seventeen rooms, and kind 2's
+ids match that level's creature pool exactly); its `value` enum falls out of how
+the states differ between the global template and levels 1, 5, 13 and 20.
+OpenKeeper names both fields the same way — `ROOM/CREATURE/TRAP/DOOR/SPELL` and
+`UNAVAILABLE/RESEARCHABLE/AVAILABLE/UNAVAILABLE_ROOM` — and that agreement was
+reached **after** the derivation, which is why it counts as corroboration.
+
+It explains the shape of a DK2 campaign: **the global list is a player-0
+template** (every room available, everything else researchable), and **a level's
+list is that level's own**. Level 1 starts its keeper with Treasury and Library
+UNAVAILABLE, the Portal UNAVAILABLE_ROOM, every trap/door/spell UNAVAILABLE, and
+exactly one creature — the **Goblin** — AVAILABLE, matching its one-entry pool of
+fifteen Goblins. The tutorial unlocks the rest by trigger. `Secret1` carries no
+availability and no pool at all.
+
+**And it named a gap nobody had written down:** which rooms a keeper may build is
+per level, and `RoomRules` does not model it — a keeper here can build any
+buildable room on any level.
+
+### Q1 has a datum for the first time
+
+The id-74 `GameTicks` variable was recorded on 2026-08-29 as carried by *"no
+shipped file — not GlobalVariables.kwd, not any of the 71 map KWDs"*. It is
+carried by **all 66 per-level `*Variables.kld` files, at 340 in every one**. The
+sweep behind the negative result looked at the `*.kwd` map files.
+
+**What 340 means is UNKNOWN and is not being guessed** (Q83). 340 a second is
+implausible; the id shares its "no trailing `unk1`/`unk2`" shape with
+`LevelRating` and `AverageTime`, which are front-end metadata; and OpenKeeper's
+comment on the same id records `value=4`, matching nothing in this install, so
+even the community *name* is suspect. What changed is that Q1 has an invariant
+number across the whole campaign instead of a blank. Note 340/60 = 5.67 against
+Q47's measured **five** work applications a second — suggestive, and deliberately
+not adopted.
+
+### The licence headers
+
+The `.editorconfig` added this session declares `file_header_template` and sets
+IDE0073 to warning, which `TreatWarningsAsErrors` turns into an error in every
+project — so a clean `dotnet build` was failing on **every** source file. Its own
+comment says to add such a rule "only in a commit that also fixes every file it
+flags", so the stamping was owed. **133 files stamped** from the one file that
+already carried the header, in a commit of its own (`bd68066`) so the diff stays
+readable.
+
+`LicenseHeaderTests` is worth knowing about: it ties the three copies of the MIT
+notice together — `LICENSE`, `license.txt` (an IDE header template) and
+`.editorconfig` (the copy Roslyn enforces). Before it, those three could have
+said different things and every build and test would still have passed.
+
+### The lesson, and it is the same one for the third time in a week
+
+**`kwd-variables.md` has said "per-level `*Variables.kld` files override it" since
+2026-08-29.** The fact was researched, written down, and read by no code for six
+days.
+
+That is the same shape as the netstandard2.1 target (declared in a props file
+under a condition that never fired) and the walls rule (implemented in one line,
+asserted nowhere). Three different failures, one pattern: **something is stated in
+a place that does not run.** The standing question at every review is in
+`GOAL_ALIGNMENT.md`, and it now has a second half: not only *what would fail if
+this claim stopped being true*, but **does anything read this fact at all?**
+
+### The state, precisely
+
+**511 tests green** (Core 16, Simulation 262, Data 63, Behavior 84, Assets 60,
+Presentation 26), with and without a DK2 install. Clean `dotnet build` with no
+suppressions. Ten scenarios, all hashes unchanged. Unity adapter compiles.
+
+New: `GlobalVariables.MergedWith`, `GameDatabase.ForLevel`,
+`GameDatabaseLoader.LoadCampaignVariables` / `LoadForCampaignLevel`,
+`ScenarioResult.BalanceTable`, `LevelVariablesOnRealDataTests`,
+`GlobalVariablesMergeTests`, ADR-0040, Q82–Q85, Q1 corrected, and
+`dk2tools kwd vars -a` for the pool and availability lists.
+
+### Next: the portal
+
+Agreed with the owner. It is the one room whose behaviour needs no creature needs,
+whose data is now entirely parsed and loaded, and which is the prerequisite for
+every other room having occupants:
+
+| what it needs | where it is |
+|---|---|
+| who may enter | `CreaturePool`, per level — level 1 is fifteen Goblins |
+| whether they are unlocked | `Availability` kind 2 (CREATURE), state AVAILABLE |
+| what attracts them | `CreatureAttraction` at CREATURES 0x0DAC, two slots (Q61, Q80) |
+| how often one arrives | `EntranceGenerationSpeedSeconds` — 25 globally, 18 on level 1 |
+| how many a keeper may hold | `CreaturesSupportedByFirstPortal` 15, `...PerAdditionalPortal` 5 |
+| sacking one | drop it back into the portal; `Decrease/IncreaseEntrancePersentage...` = 33 each |
+
+**What is not settled and should be asked or observed before it is built:** what a
+portal does when the pool is empty, whether the cap is per keeper or per portal in
+practice (the variable names say per portal), and whether attraction is checked
+once per spawn or continuously. And note Q61/Q80's live disagreement — the owner
+and the 1999 manual say a Dark Angel needs a 5x5 temple, the v1.70 record says
+size 0.
+
+After the portal: the **library** (needs no creature needs at all — a creature
+stands in the room and contributes `ResearchPerSecond` until a spell completes,
+and `Availability` states 2 and 3 are the before and after), then the **training
+room**, then whatever objects unlock at M6.

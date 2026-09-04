@@ -1,3 +1,23 @@
+// Copyright (c) 2026 Franjo Misetic
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 using DK2.Data;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
@@ -632,8 +652,9 @@ switch (args[0])
 
     case "kwd" when args.Length >= 2 && args[1] == "vars":
     {
-        string path = args.Length > 2
-            ? ResolveEditor(args[2])
+        string? named = args.Skip(2).FirstOrDefault(a => !a.StartsWith("-"));
+        string path = named is not null
+            ? ResolveEditor(named)
             : Path.Combine(Dk2Install.Require(), "Data", "editor", "GlobalVariables.kwd");
         GlobalVariables vars = KwdVariables.Parse(KwdReader.ReadFile(path));
 
@@ -641,13 +662,34 @@ switch (args[0])
         foreach (MiscVariable v in vars.Misc.Values.OrderBy(v => (int)v.Id))
         {
             string name = Enum.IsDefined(v.Id) ? v.Id.ToString() : $"Unknown_{(int)v.Id}";
-            Console.WriteLine($"{(int)v.Id,5}  {name,-64} {v.Value,10}");
+            string extra = v.Unk1 != 0 || v.Unk2 != 0 ? $"   unk1={v.Unk1} unk2={v.Unk2}" : "";
+            Console.WriteLine($"{(int)v.Id,5}  {name,-64} {v.Value,10}{extra}");
         }
         Console.WriteLine();
         Console.WriteLine($"# CreaturePool entries: {vars.CreaturePool.Count}");
         Console.WriteLine($"# Availability entries: {vars.Availabilities.Count}");
         Console.WriteLine($"# Sacrifice recipes:    {vars.Sacrifices.Count}");
         Console.WriteLine($"# Creature stat rows:   {vars.CreatureStats.Count}");
+
+        // The two lists a level actually carries. Printed on request because the
+        // question they answer — does a level's list replace the global one or
+        // add to it? — needs them side by side (Q82).
+        if (args.Contains("-a"))
+        {
+            Console.WriteLine();
+            Console.WriteLine("CreaturePool: " + string.Join(", ",
+                vars.CreaturePool.Select(e => $"creature{e.CreatureId}=+{e.Value} p{e.PlayerId}")));
+
+            Console.WriteLine();
+            Console.WriteLine("Availability, by kind:");
+            foreach (IGrouping<ushort, AvailabilityEntry> g in
+                     vars.Availabilities.GroupBy(a => a.Kind).OrderBy(g => g.Key))
+            {
+                Console.WriteLine($"  kind {g.Key}: " + string.Join(", ",
+                    g.OrderBy(a => a.TypeId).Select(a => $"{a.TypeId}={a.Value}(p{a.PlayerId})")));
+            }
+        }
+
         return 0;
     }
 
