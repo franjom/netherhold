@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -20,10 +20,13 @@ namespace DK2.Simulation.Tests;
 /// <c>GlobalVariables.CreatureStats</c> since variables were first read and
 /// examined by nothing (Q119).</para>
 ///
-/// <para><b>Gaining a level is deliberately not implemented</b> — the
-/// experience rate's unit is ambiguous (Q124) — so these tests set the level
-/// directly. That is the honest shape: the scaling is certain and the levelling
-/// is not.</para>
+/// <para><b>Earning a level came an hour later</b>, when the owner answered
+/// what raises one (Q124): <i>"imps get experience by working... they get exp
+/// and passively their level raises. creatures also gain levels through
+/// experience, mostly training and fighting."</i> So an imp levels here and
+/// nothing else does, because training and fighting do not exist — and the
+/// tests below assert that zero as deliberately as they assert the imp's
+/// curve.</para>
 /// </summary>
 public class CreatureLevelTests
 {
@@ -174,12 +177,150 @@ public class CreatureLevelTests
         // table is indexed by the creature's CURRENT level, which makes the
         // first level cost exactly the record's 3000. Indexed by the target
         // level it would cost 3900 and the record's own number would appear
-        // nowhere. Nothing reads this yet (Q124).
+        // nowhere. CreatureExperienceSystem depends on this reading now, so it
+        // is a live choice rather than a dormant one.
         GameDatabase db = Db;
         CreatureDef goblin = db.CreatureById(GoblinId);
 
         Assert.Equal(3000, goblin.ExpForNextLevel);
         Assert.Equal(3000, CreatureLevelRules.ExperienceForNextLevel(db, goblin, 1));
+    }
+
+    // ---- earning a level (Q124) -------------------------------------------
+
+    [Fact]
+    public void TheOwnersRule_AnImpEarnsExperienceOnlyWhileItIsWorking()
+    {
+        // OWNER (2026-09-04, Q124): "imps get experience by working, while they
+        // do their usual things around the dungeon, digging, reinforcing walls,
+        // mining gold, etc. they get exp and passively their level raises."
+        //
+        // Both halves are asserted, and the second is the one that makes it a
+        // rule rather than a trickle: an idle imp earns nothing at all.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        CreatureState worker = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        CreatureState idler = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 3));
+
+        worker.Activity = CreatureActivity.Working;
+        idler.Activity = CreatureActivity.Idle;
+
+        new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]).Run(Second * 10);
+
+        Assert.Equal(200, worker.ExperiencePoints);      // 20 a second, as shipped
+        Assert.Equal(0, idler.ExperiencePoints);
+        Assert.Equal(1, worker.Level);                   // 3000 buys the level, not 200
+    }
+
+    [Fact]
+    public void AnImpThatWorksForOneHundredAndFiftySecondsReachesLevelTwoAndSpeedsUp()
+    {
+        // The arithmetic the owner's answer makes checkable: 20 a second against
+        // the record's ExpForNextLevel of 3000 is 150 seconds of work for the
+        // second level. And the level is not bookkeeping -- it moves the
+        // creature faster, which is the thing the owner noticed in the first
+        // place ("imps gain speed as they gain more levels").
+        GameDatabase db = Db;
+        CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
+        WorldState world = World(db);
+
+        CreatureState state = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        state.Activity = CreatureActivity.Working;
+        var events = new ListEventSink();
+
+        var sim = new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]);
+        sim.ObserveWith(events);
+
+        // One second short, and it is still level 1 with the record's speed.
+        sim.Run(Second * 149);
+        Assert.Equal(1, state.Level);
+        Assert.Equal(7536, CreatureLevelRules.SpeedRaw(db, imp, state.Level));
+
+        sim.Run(Second);
+        Assert.Equal(2, state.Level);
+        Assert.Equal(7912, CreatureLevelRules.SpeedRaw(db, imp, state.Level));
+
+        // The threshold is spent, not banked as a lifetime total (Q127), so it
+        // starts the next level from nothing.
+        Assert.Equal(0, state.ExperiencePoints);
+
+        // And the event says what it cost and what the next one costs, so a
+        // log is enough to follow a creature up the curve.
+        SimEvent up = Assert.Single(events.Events, e => e.Kind == "creature_level_up");
+        Assert.Contains("1->2", up.Detail);
+        Assert.Contains("next_at=3900", up.Detail);   // 130% of 3000
+    }
+
+    [Fact]
+    public void ACreatureThatCannotTrainOrFightNeverLevelsAtAll()
+    {
+        // The honest zero. The owner: creatures "gain levels through experience,
+        // mostly training and fighting" -- and this simulation has neither, so a
+        // Goblin stays at level 1 for ever however long it stands there.
+        //
+        // Asserted rather than left implicit, because the tempting fix is to
+        // give everything the imp's rate and call it progression, which would
+        // invent a curve DK2 does not grant for existing.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        goblin.Activity = CreatureActivity.Working;   // even so
+
+        new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]).Run(Second * 600);
+
+        Assert.Equal(0, goblin.ExperiencePoints);
+        Assert.Equal(1, goblin.Level);
+    }
+
+    [Fact]
+    public void LevellingStopsAtTenBecauseTheTableStopsThere()
+    {
+        // The cap, and the reason it is ten: the shipped stat table has no rows
+        // past level 10. The owner's own caps are lower and belong to rooms
+        // rather than to the creature -- training to 4, the combat pit to 8, and
+        // "to get to level 10 they need to fight actual fights" -- and both room
+        // numbers are shipped variables (Q124). Neither room exists here, so
+        // this asserts the outer ceiling only.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        CreatureState state = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        state.Activity = CreatureActivity.Working;
+        state.Level = CreatureLevelRules.MaxLevel;
+
+        new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]).Run(Second * 300);
+
+        Assert.Equal(CreatureLevelRules.MaxLevel, state.Level);
+
+        // And it stops *earning*, not just stops promoting -- experience that
+        // could never be spent would be a number growing for no reason.
+        Assert.Equal(0, state.ExperiencePoints);
+    }
+
+    [Fact]
+    public void EnoughExperienceInOneGoBuysTwoLevelsRatherThanDiscardingOne()
+    {
+        // Nothing generates a rate this high today, but the loop is what makes
+        // the rule independent of the rate -- and a single-step version would
+        // silently drop the second level the day combat pays out in lumps.
+        GameDatabase db = Db;
+        CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
+        WorldState world = World(db);
+        CreatureState state = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+
+        // 3000 for level 2 and 3900 for level 3, so 6900 buys both exactly.
+        state.ExperiencePoints = 6900;
+
+        Assert.True(CreatureLevelRules.TryLevelUp(db, imp, state));
+        Assert.Equal(3, state.Level);
+        Assert.Equal(0, state.ExperiencePoints);
     }
 
     [Fact]

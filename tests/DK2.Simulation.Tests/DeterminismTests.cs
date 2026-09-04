@@ -107,19 +107,24 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // Bumped with HashVersion 14 -> 15 (Q119): CreatureState gained Level,
-        // because the owner mentioned that "imps gain speed as they gain more
-        // levels" and the shipped 32-stat by 9-level percentage table turned out
-        // to have been parsed and read by nothing. Every creature here is level
-        // 1, so the field holds its initial value and only the composition
-        // changed -- but movement now reads the level's speed rather than the
-        // record's, so this pin also guards the arithmetic that makes a level-1
-        // creature come out at exactly 100%. Snapshot FormatVersion went
-        // 14 -> 15 in the same commit.
-        // Previous values: 0x5DB64D0C91D99368 (14), 0xAEAF871CC4814DA1 (13),
-        // 0x9D2695B2F62707D2 (12), 0x12E4F45E48ACEB9B (11),
-        // 0x06F71648486D0FEC (10), 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x38CCE7E988729817UL, sim.StateHash());
+        // Bumped with HashVersion 15 -> 16 (Q124): CreatureState gained
+        // ExperiencePoints, and unlike the Level field one commit earlier this
+        // one actually MOVES during the run. The owner settled what raises a
+        // level -- "imps get experience by working... they get exp and passively
+        // their level raises" -- so the fixture's working imps now bank 20 a
+        // second. 500 ticks is 25 seconds, which is 500 experience against the
+        // 3000 a level costs, so nothing is promoted here and what changed is
+        // the banked total. Snapshot FormatVersion went 15 -> 16 in the same
+        // commit.
+        //
+        // Version 15 was the Level field itself (Q119), whose arithmetic is a
+        // proven no-op at level 1: only the hash composition moved.
+        //
+        // Previous values: 0x38CCE7E988729817 (15), 0x5DB64D0C91D99368 (14),
+        // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
+        // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
+        // 0x4F824667CDA7EF25 (9).
+        Assert.Equal(0x092072D0E7C9B04EUL, sim.StateHash());
     }
 
     [Fact]

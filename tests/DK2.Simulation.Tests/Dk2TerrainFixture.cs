@@ -454,6 +454,11 @@ internal static class Dk2TerrainFixture
         // documented — two variables sharing a value is a fact worth a test.
         Set(vars, VariableTypeId.DeadBodyDiesAfterSeconds, 60);
         Set(vars, VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds, 5);
+
+        // What an imp earns for a second of work (Q124, CONFIRMED by the
+        // owner: "imps get experience by working... they get exp and passively
+        // their level raises"). 3000 to level 2, so 150 seconds of digging.
+        Set(vars, VariableTypeId.ImpExperienceGainPerSecond, 20);
         Set(vars, VariableTypeId.MinimumImpThreshold, 4);
         Set(vars, VariableTypeId.TimeBeforeFreeImpGeneratedSeconds, 5);
         Set(vars, VariableTypeId.MaxGoldPerTreasuryTile, 3000);

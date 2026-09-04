@@ -1,8 +1,9 @@
-# Creature levels: what a level does, and what raises one
+﻿# Creature levels: what a level does, and what raises one
 
 A level multiplies a creature's stats by percentages the shipped data states
-outright. **The multiplying is implemented; gaining a level is not**, and the
-reason is a unit ambiguity in the data rather than a missing mechanic.
+outright. **Both halves are implemented for workers**: an imp earns experience by
+working and gets faster and tougher as it levels. Nothing else earns any, because
+training and fighting do not exist.
 
 Evidence classes per ADR-0046 rule 4: **shipped data** (the whole table),
 **owner observation** (that it happens at all), **OpenKeeper** (the stat names,
@@ -69,8 +70,8 @@ prove the correction from behaviour, which nobody has done for these.
 
 ## 3. What is implemented
 
-`CreatureLevelRules`, plus `CreatureState.Level` (hashed, snapshotted,
-`HashVersion` 15 / `FormatVersion` 15).
+`CreatureLevelRules`, plus `CreatureState.Level` and `ExperiencePoints` (both
+hashed and snapshotted; `HashVersion` 16 / `FormatVersion` 16).
 
 - **Maximum health** is the record's `Hp` scaled by the Health row.
   `CreatureHealthRules.MaxHealth` used to return `creature.Hp` flat with a
@@ -89,35 +90,77 @@ pinned determinism hash moved only because the field joined the hash — the
 arithmetic is a proven no-op at level 1, which is what
 `DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines` now also guards.
 
-## 4. What is NOT implemented, and why (Q124)
+## 4. What raises a level — ANSWERED (Q124)
 
-**Nothing raises a level.** The rate's unit is ambiguous, and guessing it would
-put an invented number inside a determinism hash:
+The owner, unprompted, an hour after the scaling landed:
 
-| Source | Value |
+> *"imps get experience by working, while they do their usual things around the
+> dungeon, digging, reinforcing walls, mining gold, etc. they get exp and
+> passively their level raises. creatures also gain levels through experience,
+> mostly training and fighting. creatures can get up to level 4 using the
+> training room, up to level 8 using the combat pit, and to get to level 10 they
+> need to fight actual fights."*
+
+**Two of those caps are shipped variables, to the number:**
+
+| The owner said | The balance table says |
 |---|---|
-| Creature record, the field this project calls `ExpPerSecond` | **1200** for an Imp, 200 for a Goblin |
-| Balance table, `ImpExperienceGainPerSecond` | **20** |
+| training room takes a creature to **level 4** | `TrainingRoomMaxExperienceLevel` = **4** |
+| combat pit takes it to **level 8** | `CombatPitMaxExperienceLevel` = **8** |
 
-**20 x 60 = 1200.** So one of the two is per *minute* and the two names cannot
-both be right. The consequences are three orders apart:
+That is the third time an owner statement and a variable name have met outright,
+and it is why the third clause — level 10 needs real fights — is taken as read:
+the two claims that *could* be checked both checked out, and the two variables
+had been sitting unread with nothing to say what they capped.
 
-- at 1200 a second an imp reaches level 2 in **two and a half seconds**;
-- at 20 a second, in **two and a half minutes**.
+### It also resolved the unit, from the other direction
 
-The second is plausible and the first is absurd, which is a reason to suspect
-the record is per minute — but "one of these is absurd" is not evidence about
-which field is misnamed, and the record's 200 for a Goblin does not divide as
-cleanly (200 / 60 = 3.33 a second).
+The problem was that the creature record's field this project calls
+`ExpPerSecond` reads **1200** for an Imp against a balance-table
+`ImpExperienceGainPerSecond` of **20**, and 20 x 60 = 1200, so one of the two had
+to be per minute with no way to tell which.
 
-**How to settle it:** the owner times a fresh imp from level 1 to level 2. Two
-and a half minutes confirms the global's 20 a second; anything near instant
-confirms the record. This is on the observation list as **Q124**.
+The owner's answer says imps earn **by working**, which is what the *global*
+variable is for — a rate that applies to a job, not to existing. So the global's
+20 a second is the imp's real rate, and the record's 1200 is **the same rate
+expressed per minute**. Two independent fields agreeing on one creature's rate
+promotes that from a coincidence to a reading (STRONGLY INFERRED), and on it a
+Goblin's 200 becomes 3.33 a second — fifteen minutes a level, plausible for a
+fighter, and unused here because nothing makes a Goblin fight.
 
-Also unimplemented, and separate: the two room caps are read by nothing —
-`TrainingRoomMaxExperienceLevel` is **4** and `CombatPitMaxExperienceLevel` is
-**8**, so neither room takes a creature to 10 and something else must (combat,
-presumably).
+### What is implemented
+
+`CreatureExperienceSystem`, once a game second, registered last so a creature is
+paid for a second it actually worked:
+
+- **A worker earns `ImpExperienceGainPerSecond` (20) while its activity is
+  `Working`** — digging, claiming, reinforcing, mining. An **idle imp earns
+  nothing**, which is the half of the owner's sentence that makes it a rule.
+- **150 seconds of work buys level 2** (3000 / 20), and about **114 minutes of
+  continuous work** buys level 10.
+- **Everything that is not a worker earns nothing**, because training and
+  fighting do not exist. A Goblin stays level 1 for ever, and a test asserts that
+  rather than leaving it implicit — the tempting fix is to give everything the
+  imp's rate and call it progression.
+- Levelling **stops at 10**, because the stat table stops there. The owner's two
+  room caps are lower and belong to the *rooms*, so they arrive with the rooms.
+
+`CreatureState.ExperiencePoints` is hashed and snapshotted (`HashVersion` 16,
+`FormatVersion` 16). This is the first hashed field whose value actually *moves*
+in the pinned determinism run: the fixture's working imps bank 20 a second, so
+500 ticks is 500 experience — not enough for a level, enough to move the hash.
+
+### Two readings that had to be chosen (Q127)
+
+1. **The threshold is spent, not accumulated.** `ExperiencePoints` holds progress
+   towards the *next* level, so it drops to the remainder on promotion. DK2 keeps
+   a field its debug dump calls `ExperiencePoints` and nothing says which of the
+   two it is. Spending keeps the number small and makes the curve additive; the
+   alternative is one comparison away.
+2. **A promotion loops.** Enough experience in one go buys two levels rather than
+   discarding the second. Nothing generates a rate that high today, and a
+   single-step version would silently drop levels the day combat pays out in
+   lumps.
 
 ## 5. One reading we had to choose
 
@@ -134,7 +177,8 @@ inheriting it silently.
 ## 6. What this unblocks
 
 - **Vampire reincarnation** (Q113, ADR-0051). The cost of coming back is a
-  level, and a level is now a known quantity. Still needs the Graveyard.
+  level, levels are now a known quantity **and creatures can hold one above 1**.
+  Still needs the Graveyard, and still needs a vampire, which needs corpses (M6).
 - **Combat.** Melee damage scales to 600%, so a combat system written against
   the record value alone would be wrong for every creature above level 1.
 - **Q118's water arithmetic.** `ShuffleSpeed` has **no row in the table**, so if

@@ -269,6 +269,17 @@ public sealed class CreatureState
     public int Level = CreatureLevelRules.FirstLevel;
 
     /// <summary>
+    /// Experience banked towards the <b>next</b> level, not a lifetime total —
+    /// see <see cref="CreatureLevelRules.TryLevelUp"/> for which of the two this
+    /// is and why (Q127).
+    ///
+    /// <para>An imp earns 20 a second while it works, so 150 seconds of digging
+    /// buys its second level (Q124, CONFIRMED). Nothing else earns any, because
+    /// training and fighting do not exist.</para>
+    /// </summary>
+    public int ExperiencePoints;
+
+    /// <summary>
     /// What this creature decided to do when it became angry, drawn once from
     /// its own <c>AngryJobs</c> table and then kept.
     ///
@@ -341,6 +352,7 @@ public sealed class CreatureState
         hash.Add(DyingTicks);
         hash.Add(Anger);
         hash.Add(Level);
+        hash.Add(ExperiencePoints);
         hash.Add((int)AngryChoice);
         hash.Add((int)Activity);
         hash.Add(TargetTileIndex);

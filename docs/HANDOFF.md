@@ -2716,7 +2716,12 @@ Two claims died and one target appeared.
 - **What is there:** `State.cpp` indexes a table at **0x00699688, 0x40-byte
   records**, by state id — and it is **all zeros in the file**. The state machine
   is **registered at runtime**, so the thing to read is the registration
-  function. `FUN_00476d30` does most of the writing.
+  function — and **the writer is at ~0x004798e0, inside `State.cpp`'s own
+  unit**, in code Ghidra never identified because nothing calls it: it is
+  reachable only from a data pointer at 0x0068e04c, which is a **static
+  initialiser**. (An earlier note here said `FUN_00476d30` did the writing.
+  Wrong: that function *reads*. The claim came from counting `DATA` references
+  without asking which were writes.)
 - **A reusable map came out of it:** the 55 translation units with an assert
   anchor, in address order. The state units occupy roughly
   **[0x00456000, 0x00484000)** and are laid out **alphabetically**, so the 11

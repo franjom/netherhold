@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -34,24 +34,29 @@ namespace DK2.Simulation;
 /// regeneration among them — an Imp heals at 67 a second for ever.</item>
 /// </list>
 ///
-/// <para><b>What is deliberately NOT implemented: gaining a level.</b> Every
-/// creature here is level 1 and stays there, because the unit of the experience
-/// rate is ambiguous and guessing it would put an invented number inside a
-/// determinism hash. The creature record's field this project calls
-/// <c>ExpPerSecond</c> reads <b>1200 for an Imp</b> against a global
-/// <c>ImpExperienceGainPerSecond</c> of <b>20</b> — and 20 x 60 = 1200, so one
-/// of the two is per <i>minute</i> and the names cannot both be right. At 1200 a
-/// second an imp would reach level 2 in two and a half seconds; at 20 a second,
-/// in two and a half minutes. Q124, and the owner can settle it with a
-/// stopwatch on a fresh imp.</para>
+/// <para><b>Gaining a level is implemented for workers only</b>, and the owner
+/// settled the rule (Q124): <i>"imps get experience by working, while they do
+/// their usual things around the dungeon, digging, reinforcing walls, mining
+/// gold, etc. they get exp and passively their level raises. creatures also gain
+/// levels through experience, mostly training and fighting. creatures can get up
+/// to level 4 using the training room, up to level 8 using the combat pit, and
+/// to get to level 10 they need to fight actual fights."</i></para>
 ///
-/// <para><b>Why implement the scaling before the levelling, then?</b> Because
-/// the two are independent and the scaling is the half that is certain: the
-/// percentages are in the file, unambiguous, and every stat read in this
-/// project has silently been the level-1 value while pretending to be the
-/// creature's. Making <see cref="CreatureState.Level"/> real means a level-2 imp
-/// dropped into a scenario is <i>actually</i> faster, which is testable today
-/// and is what the owner will be looking at tomorrow.</para>
+/// <para><b>Two of those caps are shipped variables to the number</b> —
+/// <c>TrainingRoomMaxExperienceLevel</c> 4 and
+/// <c>CombatPitMaxExperienceLevel</c> 8 — which is the third time an owner
+/// statement has landed on a variable name outright. So an imp works and levels
+/// here; nothing else earns anything, because training and fighting do not
+/// exist. See <see cref="Systems.CreatureExperienceSystem"/>.</para>
+///
+/// <para><b>And the owner's answer resolved a unit that looked unresolvable.</b>
+/// The record's field this project calls <c>ExpPerSecond</c> reads <b>1200</b>
+/// for an Imp, which is absurd per second — level 2 in two and a half seconds.
+/// But <b>1200 / 60 = 20</b>, exactly the global
+/// <c>ImpExperienceGainPerSecond</c>, so the record's field is <b>per
+/// minute</b>: two independent fields agreeing on one creature's rate. That
+/// makes a Goblin's 200 into 3.33 a second, or fifteen minutes a level —
+/// plausible, and unused here because nothing makes a Goblin fight.</para>
 ///
 /// <para>Integer arithmetic throughout, on the same 100-based percentages the
 /// file uses. A percentage is applied to the <i>record's</i> value rather than
@@ -115,6 +120,69 @@ public static class CreatureLevelRules
     /// <summary>Running speed, which scales by its own row — identical to walking's in the shipped table.</summary>
     public static int RunSpeedRaw(GameDatabase database, CreatureDef creature, int level) =>
         Scale(creature.RunSpeed.Raw, Percent(database, CreatureStatId.RunSpeed, level));
+
+    /// <summary>
+    /// Experience earned this second.
+    ///
+    /// <para><b>CONFIRMED by the owner</b> (Q124): <i>"imps get experience by
+    /// working, while they do their usual things around the dungeon, digging,
+    /// reinforcing walls, mining gold, etc."</i> and <i>"creatures also gain
+    /// levels through experience, mostly training and fighting."</i></para>
+    ///
+    /// <para>So the rule is <b>a worker earns while it works</b>, at DK2's
+    /// <c>ImpExperienceGainPerSecond</c> of 20 — 150 seconds to level 2 on the
+    /// record's 3000 — and <b>everything else earns nothing here</b>, because
+    /// training and fighting do not exist. That zero is the honest answer rather
+    /// than a placeholder: a Goblin in this simulation has no way to earn
+    /// experience, so it stays level 1, and pretending otherwise would invent a
+    /// progression DK2 does not grant for standing around.</para>
+    ///
+    /// <para><b>Working, not merely alive.</b> An idle imp earns nothing, which
+    /// is what the owner's <i>"while they do their usual things"</i> says and
+    /// what makes experience a consequence of the player keeping their imps
+    /// busy.</para>
+    /// </summary>
+    public static int ExperiencePerSecond(
+        GameDatabase database, CreatureDef creature, CreatureState state)
+    {
+        if (state.Level >= MaxLevel) return 0;
+        if (!creature.Flags.HasFlag(CreatureFlags.IsWorker)) return 0;
+        if (state.Activity != CreatureActivity.Working) return 0;
+
+        return database[VariableTypeId.ImpExperienceGainPerSecond];
+    }
+
+    /// <summary>
+    /// Spends banked experience on as many levels as it buys, and reports
+    /// whether any were gained.
+    ///
+    /// <para><b>The threshold is spent rather than accumulated</b>, so
+    /// <see cref="CreatureState.ExperiencePoints"/> holds progress towards the
+    /// <i>next</i> level and not a lifetime total. DK2 keeps a field its debug
+    /// dump calls <c>ExperiencePoints</c> and nothing says which of the two it
+    /// is (Q127). Spending is chosen because it makes the curve additive and
+    /// keeps the number small; the alternative is one comparison away if the
+    /// binary says otherwise.</para>
+    ///
+    /// <para>A loop rather than a single step, because a rate high enough to
+    /// cross two thresholds in one second would otherwise silently discard the
+    /// second one — and the loop is bounded by <see cref="MaxLevel"/>.</para>
+    /// </summary>
+    public static bool TryLevelUp(
+        GameDatabase database, CreatureDef creature, CreatureState state)
+    {
+        bool gained = false;
+        while (state.Level < MaxLevel)
+        {
+            int needed = ExperienceForNextLevel(database, creature, state.Level);
+            if (needed <= 0 || state.ExperiencePoints < needed) break;
+
+            state.ExperiencePoints -= needed;
+            state.Level++;
+            gained = true;
+        }
+        return gained;
+    }
 
     /// <summary>
     /// The experience needed to reach the next level: the record's
