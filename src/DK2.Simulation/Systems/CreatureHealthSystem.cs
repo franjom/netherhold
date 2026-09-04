@@ -31,11 +31,20 @@ namespace DK2.Simulation.Systems;
 /// dies. See <see cref="CreatureDeathRules"/> for the whole process and for
 /// which half of it is still missing.</para>
 ///
-/// <para><b>A dying creature is skipped entirely</b>, and that guard is not
-/// cosmetic. An Imp regenerates 67 health a second on its own land, so a dying
-/// imp that still regenerated would heal itself off the floor and become
-/// immortal on friendly ground — the one creature in the game that could never
-/// be killed at home. Recovery is the rescue, not self-healing.</para>
+/// <para><b>Not every creature gets that window.</b> One that leaves no body
+/// has no lying state and dies on the spot — CONFIRMED by the owner for the Imp
+/// (<i>"imps are dead right away, they don't have a lying state"</i>) and by
+/// OpenKeeper for all eight bodyless creatures, which tests the very same
+/// <c>GenerateDeadBody</c> flag before any unconscious handling.</para>
+///
+/// <para><b>A creature that is down is skipped entirely</b>, and that guard is
+/// not cosmetic. Own-land regeneration would otherwise heal a collapsed
+/// creature off the floor: <b>King Reginald</b> regenerates 400 health a second
+/// on his own land and does leave a body, so he is the one who would be
+/// unkillable at home. (The Imp has 67 and would have been, before the owner's
+/// answer took its lying state away.) Recovery is the rescue, not
+/// self-healing — so own-land regeneration is suppressed at zero health while
+/// lair healing is not, because a bed is the one route back.</para>
 ///
 /// <para>Registered <b>after</b> <see cref="PortalSystem"/> so a creature that
 /// arrives this tick is not regenerated on the tick it arrives, and so its
@@ -90,7 +99,15 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             // rescued into its bed at zero health is healed to 100 on this same
             // second and so is never seen collapsed. CreatureDeathRules.Rescue
             // explains why reversing these two would undo every rescue.
-            if (CreatureDeathRules.HasCollapsed(state)) Collapse(context, creature, state);
+            if (!CreatureDeathRules.HasCollapsed(state)) continue;
+
+            // A creature that leaves no body has no lying state at all — it is
+            // gone on the spot (CONFIRMED: the owner for the Imp, OpenKeeper
+            // for all eight). Everything else gets its sixty seconds.
+            if (CreatureDeathRules.HasDyingState(creature))
+                Collapse(context, creature, state);
+            else
+                Die(context, creature, state);
         }
     }
 

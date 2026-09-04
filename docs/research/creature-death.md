@@ -13,7 +13,16 @@ number in the shipped data with nothing able to read it.
 > graveyard. If that timer runs out and no one carries the corpse it just
 > disappears."*
 
-So dying is a **pipeline**, not an event:
+Followed the same day by three corrections that turned one pipeline into three:
+
+> *"Imps are dead right away, they don't have a lying state. Vampires also don't
+> drop a body, they reincarnate at their sarcophagus and sleep to recover, but
+> they lose a level once they reincarnate. If they were killed at level 1 they
+> are permanently dead. Exception to that rule for vampires are monks: if a monk
+> kills a vampire it is permanently dead, regardless of its level."*
+
+So dying is a **pipeline**, not an event — but only for creatures that leave a
+body:
 
 ```
   health -> 0
@@ -41,6 +50,68 @@ Two independently named variables holding the same value looked like redundancy
 before this answer. They are two clocks on two different things, which is why
 `CreatureDeathRules.BodyWindowTicks` exists and is deliberately uncalled: the
 number is pinned so the second timer is missing *visibly*.
+
+## Three deaths, and one flag that picks between two of them
+
+`GenerateDeadBody` (bit 15) decides whether running out of health puts a
+creature on the floor at all:
+
+| | Who | What happens |
+|---|---|---|
+| **Collapse** | the 38 creatures with `GenerateDeadBody` | 60 seconds rescuable, then dead, then a corpse |
+| **Instant** | the 8 without it | gone on the spot, nothing left |
+| **Reincarnate** | the 2 with `CanBeResurrected` | back at the sarcophagus, asleep, one level poorer |
+
+**The instant-death rule is CONFIRMED from two directions that never met.** The
+owner gave it for the Imp. OpenKeeper's `HealthSystem.processHealthDepleted`
+opens with exactly the same test, before any unconscious handling:
+
+```java
+// No body, just vanish from the world
+if (!isLeaveDeadBody(entityId)) {
+    entityPositionLookup.getEntityController(entityId).remove();
+    return;
+}
+```
+
+…where `isLeaveDeadBody` reads `GENERATE_DEAD_BODY` and nothing else. So **one
+flag decides both halves**, which is coherent in a way worth saying out loud:
+**the dying state *is* a body on the floor** — a live one. A creature that
+leaves nothing behind had nothing to lie there in the first place.
+
+That also retires the puzzle from the section below about why the bodyless set
+is such an odd mixture. It is not a mixture at all: a summon, three undead, a
+construct, a worker and Jack are exactly the things that would puff out rather
+than fall over.
+
+### The vampire, and why implementing it would be a mistake
+
+`CanBeResurrected` (bit 23) is set on **exactly the two Vampires and nobody
+else**, so the owner's rule is data-driven rather than a name check. Two things
+fall neatly into place:
+
+- **The sarcophagus is the vampire's lair bed.** Its `LairObjectId` is a coffin,
+  which `TheGoblinsBedIsObjectTwentyTwoAndTheVampiresIsACoffin` already pinned
+  for an unrelated reason. So reincarnation lands a creature in its own bed and
+  heals it there — which is `CreatureDeathRules.Rescue` with no imp involved.
+- **The vampire having no dead body stops being an oddity.** There is no corpse
+  because the creature is not finished.
+
+**And it is deliberately not implemented.** The cost of reincarnation is a level,
+and levels do not exist. A vampire that reincarnated without paying would come
+back for ever — the immortal Imp again, in a cape. Both exits are also out of
+reach: level 1 needs levels, and *"a monk killed it"* needs the killer's
+identity, which needs combat (M7).
+
+**So instant death is not a placeholder for vampires — it is correct for the
+world that currently exists.** With no levels every creature is level 1, and a
+level-1 vampire is permanently dead by the owner's own rule. The flag is read
+and tested and nothing branches on it; it will be needed the day levels arrive
+and not before (Q111).
+
+**OpenKeeper does not implement or even read `CanBeResurrected`.** This is the
+second mechanic where the owner's testimony is the only source there is, after
+the anger ceiling.
 
 ## What is implemented
 
@@ -89,8 +160,7 @@ things happen in that window:
   so it **never collapsed at all** whenever a bed was in reach.
 - **An Imp at zero health on its own land** regenerated its 67 a second before
   the collapse was booked, climbed back to 500, and **could not be killed at
-  home**. The one creature in the game that would have been immortal on friendly
-  ground.
+  home**.
 
 Both were found by a test written for the second. So every system guards on
 `CreatureDeathRules.IsDown` — *no health, or already dying* — not on the state.
@@ -103,6 +173,14 @@ Two corollaries of the same reasoning:
   The owner's answer gives exactly one route off the floor, so passive
   regeneration must not be a second one — and lair healing must still work at
   zero, because that *is* the rescue.
+
+  > The Imp's instant death then *removed* the guard's original subject, which
+  > would have made it look pointless. It is not: **King Reginald** regenerates
+  > **400** a second on his own land and does leave a body, so he collapses and
+  > would heal back up every second he lay there. He is the only creature in
+  > the shipped data with both properties, which is why
+  > `KingReginaldIsTheCreatureTheDownGuardNowProtectsAgainst` asserts that he
+  > is the only one rather than merely that he is one.
 - **The order inside `CreatureHealthSystem` is load-bearing.** Healing applies
   *before* the collapse test, so a creature rescued at zero health is above zero
   by the time anything asks. Reversed, a rescue would collapse the creature it
@@ -114,7 +192,8 @@ Two corollaries of the same reasoning:
 `CreatureFlags.GenerateDeadBody` (bit 15) is clear on eight of 46: **Imp,
 Vampire, Skeleton, Horny, Stone Knight, Unique Skeleton, Unique Vampire, Jack.**
 
-The Vampire is the coherent member — a vampire is what bodies are spent to make.
+The Vampire is the coherent member twice over — a vampire is what bodies are
+spent to make, *and* it leaves no corpse because it is not finished (above).
 
 **This is the third near-miss grouping in this record**, and the third time the
 shortcut "these are the undead, one flag would do" is refuted by one creature:

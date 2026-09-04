@@ -487,6 +487,8 @@ switch (args[0])
                 c.Flags.HasFlag(CreatureFlags.IsUnique) ? "unique" : null,
                 c.Flags.HasFlag(CreatureFlags.AvailableViaPortal) ? "portal" : null,
                 c.Flags.HasFlag(CreatureFlags.GenerateDeadBody) ? "body" : null,
+                c.Flags.HasFlag(CreatureFlags.CanBeResurrected) ? "resurrect" : null,
+                c.Flags.HasFlag(CreatureFlags.NeedBodyForFightIdle) ? "needbody" : null,
             }.Where(s => s is not null));
 
             Console.WriteLine($"{c.CreatureId,3} {c.Name,-16} {c.Hp,5} {c.MeleeDamage,4} {c.Pay,4} " +

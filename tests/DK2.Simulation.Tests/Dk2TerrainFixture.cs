@@ -252,7 +252,13 @@ internal static class Dk2TerrainFixture
         // The real Goblin's flags are exactly these two. AvailableViaPortal is
         // not decoration: PortalRules.CanComeFromPortal requires it, so a
         // fixture Goblin without it never comes out of a portal at all.
-        Flags = CreatureFlags.IsEvil | CreatureFlags.AvailableViaPortal,
+        // GenerateDeadBody is the real Goblin's, and it is load-bearing rather
+        // than decorative: it is what decides whether running out of health
+        // puts a creature on the floor for sixty seconds or ends it on the spot
+        // (Q99). The fixture had it missing, so every collapse test would have
+        // been testing instant death instead.
+        Flags = CreatureFlags.IsEvil | CreatureFlags.AvailableViaPortal
+                | CreatureFlags.GenerateDeadBody,
 
         Hp = 1500,
         MeleeDamage = 170,

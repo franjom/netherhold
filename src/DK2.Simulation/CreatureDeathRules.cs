@@ -65,6 +65,73 @@ public static class CreatureDeathRules
     /// </summary>
     public static bool HasCollapsed(CreatureState creature) => creature.Health <= 0;
 
+    /// <summary>
+    /// Whether running out of health puts this creature on the floor at all, or
+    /// simply ends it. <b>A creature that leaves no body has no dying state</b>
+    /// — it vanishes on the spot.
+    ///
+    /// <para><b>CONFIRMED twice over, from two independent directions.</b> The
+    /// owner: <i>"imps are dead right away, they don't have a lying state."</i>
+    /// And OpenKeeper's <c>HealthSystem.processHealthDepleted</c> opens with
+    /// exactly this test before any unconscious handling:</para>
+    ///
+    /// <code>
+    /// // No body, just vanish from the world
+    /// if (!isLeaveDeadBody(entityId)) { ...remove(); return; }
+    /// </code>
+    ///
+    /// <para>...where <c>isLeaveDeadBody</c> reads the <c>GENERATE_DEAD_BODY</c>
+    /// flag and nothing else. So the same flag decides both halves, which is
+    /// coherent in a way worth saying out loud: <b>the dying state <i>is</i> a
+    /// body on the floor</b> — a live one. A creature that leaves nothing behind
+    /// when it dies had nothing to lie there in the first place.</para>
+    ///
+    /// <para>The owner's testimony covers the Imp; OpenKeeper generalises it to
+    /// all eight bodyless creatures. The other seven are Vampire, Skeleton,
+    /// Horny, Stone Knight, Unique Skeleton, Unique Vampire and Jack — a
+    /// summon, three undead, a construct and Jack, all of which vanishing on
+    /// the spot is unsurprising for.</para>
+    /// </summary>
+    public static bool HasDyingState(CreatureDef creature) => LeavesBody(creature);
+
+    /// <summary>
+    /// Whether this creature comes back — <see cref="CreatureFlags.CanBeResurrected"/>,
+    /// which is set on <b>exactly the two Vampires and nobody else</b> in the
+    /// shipped data.
+    ///
+    /// <para><b>Nothing reads this, and the reason is that reading it would
+    /// make vampires immortal.</b> The owner's rule (2026-09-04):</para>
+    ///
+    /// <para><i>"vampires also don't drop a body, they reincarnate at their
+    /// sarcophagus and sleep to recover, but they lose a level once they
+    /// reincarnate. If they were killed at level 1 they are permanently dead.
+    /// Exception to that rule for vampires are monks: if a monk kills a vampire
+    /// it is permanently dead, regardless of its level."</i></para>
+    ///
+    /// <para>Two lovely confirmations fall out of that. The <b>sarcophagus is
+    /// the vampire's lair bed</b> — its <c>LairObjectId</c> is a coffin, which
+    /// <c>TheGoblinsBedIsObjectTwentyTwoAndTheVampiresIsACoffin</c> already
+    /// pins — so reincarnation lands a creature in its own bed and heals it
+    /// there, which is <see cref="Rescue"/> with no imp involved. And the
+    /// vampire having no dead body stops being an oddity: there is no corpse
+    /// because the creature is not finished.</para>
+    ///
+    /// <para><b>Why it stays unimplemented.</b> The cost of reincarnation is a
+    /// level, and levels do not exist. A vampire that reincarnated without
+    /// paying would come back for ever — the immortal Imp again, in a cape. And
+    /// the two ways it ends are both out of reach: level 1 needs levels, and
+    /// "a monk killed it" needs the killer's identity, which needs combat
+    /// (M7).</para>
+    ///
+    /// <para><b>So instant death is not a placeholder here — it is correct for
+    /// the world that currently exists.</b> With no levels, every creature is
+    /// level 1, and a level-1 vampire is permanently dead by the owner's own
+    /// rule. The behaviour is right; it will need this flag the day levels
+    /// arrive, and not before. Q111.</para>
+    /// </summary>
+    public static bool CanBeResurrected(CreatureDef creature) =>
+        creature.Flags.HasFlag(CreatureFlags.CanBeResurrected);
+
     /// <summary>Whether this creature is in the collapsed, rescuable window.</summary>
     public static bool IsDying(CreatureState creature) =>
         creature.Activity == CreatureActivity.Dying;

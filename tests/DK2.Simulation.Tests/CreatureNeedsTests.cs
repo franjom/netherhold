@@ -419,12 +419,17 @@ public class CreatureNeedsTests
     }
 
     [Fact]
-    public void ADyingImpDoesNotHealItselfOffTheFloorOnItsOwnLand()
+    public void AnImpIsDeadRightAwayAndHasNoLyingState()
     {
-        // The reason the dying guard exists rather than being tidy. An Imp
-        // regenerates 67 health a second on its own land, so without the guard
-        // a collapsed imp at home would heal back up every second and be the
-        // one creature in the game that could not be killed on friendly ground.
+        // CONFIRMED by the owner: "imps are dead right away, they don't have a
+        // lying state." The discriminator is the GenerateDeadBody flag, which
+        // an Imp lacks — and OpenKeeper tests exactly the same flag before any
+        // unconscious handling, so the rule generalises to all eight bodyless
+        // creatures rather than being an Imp special case.
+        //
+        // Placed on its own lair tile on purpose: an Imp regenerates 67 health
+        // a second at home, so if the collapse were deferred by even one second
+        // it would heal instead of dying.
         GameDatabase db = Db;
         WorldState world = World(db);
         var at = new TilePos(2, 2);
@@ -433,15 +438,44 @@ public class CreatureNeedsTests
         CreatureState imp = world.SpawnCreature(
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, at);
         imp.Health = 0;
+        var events = new ListEventSink();
 
         var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
+        sim.ObserveWith(events);
+        sim.Run(Second);
 
-        sim.Run(Second * 10);
-        Assert.Equal(0, imp.Health);                        // no self-rescue
-        Assert.Equal(CreatureActivity.Dying, imp.Activity);
+        Assert.Empty(world.Creatures);
+        Assert.Contains(events.Events, e => e.Kind == "creature_died");
+        Assert.DoesNotContain(events.Events, e => e.Kind == "creature_collapsed");
+    }
 
-        sim.Run(Second * 51);
-        Assert.Empty(world.Creatures);                      // and it does die
+    [Fact]
+    public void OwnLandRegenerationIsSuppressedForACreatureThatIsDown()
+    {
+        // The guard that keeps a collapsed creature on the floor. It no longer
+        // has an Imp to protect against — an imp dies outright — but it still
+        // has KING REGINALD, who regenerates 400 a second on his own land and
+        // *does* leave a body, so he is the creature who would be unkillable at
+        // home without this. Asserted on the rule rather than through a system
+        // because the fixture has no creature with both properties.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var at = new TilePos(2, 2);
+        Paint(db, world, RoomTypeId.Lair, at, Keeper);
+
+        CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
+        CreatureState state = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, at);
+
+        // Alive on its own land: the record's rate.
+        Assert.Equal(67, CreatureHealthRules.OwnLandRegenPerSecond(world, imp, state));
+
+        // Out of health: nothing, whether or not the collapse has been booked.
+        state.Health = 0;
+        Assert.Equal(0, CreatureHealthRules.OwnLandRegenPerSecond(world, imp, state));
+
+        CreatureDeathRules.Collapse(state);
+        Assert.Equal(0, CreatureHealthRules.OwnLandRegenPerSecond(world, imp, state));
     }
 
     [Fact]

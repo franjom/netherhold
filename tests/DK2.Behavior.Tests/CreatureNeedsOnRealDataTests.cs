@@ -585,4 +585,105 @@ public class CreatureNeedsOnRealDataTests
 
         Assert.Equal(new HashSet<string> { "Horny", "Jack" }, deadData);
     }
+
+    [Fact]
+    public void TheEightCreaturesThatLeaveNoBodyAreExactlyTheOnesWithNoLyingState()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // CONFIRMED from two directions that never met. The owner: "imps are
+        // dead right away, they don't have a lying state." OpenKeeper's
+        // HealthSystem.processHealthDepleted, before any unconscious handling:
+        //
+        //     // No body, just vanish from the world
+        //     if (!isLeaveDeadBody(entityId)) { ...remove(); return; }
+        //
+        // ...where isLeaveDeadBody reads GENERATE_DEAD_BODY and nothing else.
+        // So one flag decides both halves, which is coherent: the dying state
+        // *is* a body on the floor, a live one. Nothing left behind means there
+        // was nothing to lie there.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        foreach (CreatureDef c in db.Creatures.Values)
+        {
+            Assert.Equal(
+                CreatureDeathRules.LeavesBody(c),
+                CreatureDeathRules.HasDyingState(c));
+        }
+
+        Assert.False(CreatureDeathRules.HasDyingState(db.CreatureByName("Imp")!));
+        Assert.True(CreatureDeathRules.HasDyingState(db.CreatureById(7)));   // Goblin
+    }
+
+    [Fact]
+    public void OnlyTheTwoVampiresCanBeResurrectedAndTheirBedIsWhereTheyComeBack()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The owner's rule: "vampires also don't drop a body, they reincarnate
+        // at their sarcophagus and sleep to recover, but they lose a level once
+        // they reincarnate. If they were killed at level 1 they are permanently
+        // dead. Exception to that rule for vampires are monks: if a monk kills
+        // a vampire it is permanently dead, regardless of its level."
+        //
+        // CanBeResurrected turns out to be set on exactly the two Vampires, so
+        // the rule is data-driven rather than a name check. **OpenKeeper does
+        // not implement or even read this flag**, which makes this the second
+        // mechanic where the owner's testimony is the only source there is.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        var resurrects = db.Creatures.Values
+            .Where(CreatureDeathRules.CanBeResurrected)
+            .Select(c => c.Name)
+            .ToHashSet();
+
+        Assert.Equal(new HashSet<string> { "Vampire", "Unique Vampire" }, resurrects);
+
+        // And the sarcophagus is its lair bed, which is what makes the rule
+        // implementable at all when levels arrive: reincarnation puts the
+        // creature in its own bed asleep, which is CreatureDeathRules.Rescue
+        // with no imp involved.
+        CreatureDef vampire = db.CreatureByName("Vampire")!;
+        Assert.NotEqual(0, vampire.LairObjectId);
+        Assert.True(LairRules.NeedsBed(vampire));
+
+        // Neither of them leaves a body — there is no corpse because the
+        // creature is not finished. Both facts, one cause.
+        Assert.False(CreatureDeathRules.LeavesBody(vampire));
+        Assert.False(CreatureDeathRules.LeavesBody(db.CreatureByName("Unique Vampire")!));
+
+        // The monk exists and is an ordinary creature, so "a monk killed it"
+        // will be answerable the day a kill has an attributed killer (M7).
+        Assert.NotNull(db.CreatureByName("Monk"));
+    }
+
+    [Fact]
+    public void KingReginaldIsTheCreatureTheDownGuardNowProtectsAgainst()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // Own-land regeneration is suppressed at zero health so a collapsed
+        // creature cannot heal itself off the floor. That guard was written for
+        // the Imp — and the owner's answer then removed the Imp's lying state
+        // altogether, which would have made the guard look pointless.
+        //
+        // It is not. King Reginald regenerates 400 a second on his own land
+        // **and** leaves a body, so he collapses and would heal back up every
+        // second he lay there: the one creature in the shipped data who would
+        // be unkillable at home. He is also the only one, which is exactly why
+        // this is asserted rather than assumed.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        var healsAndCollapses = db.Creatures.Values
+            .Where(c => c.OwnLandHealthIncreasePerSecond > 0
+                        && CreatureDeathRules.HasDyingState(c))
+            .Select(c => c.Name)
+            .ToHashSet();
+
+        Assert.Equal(new HashSet<string> { "King Reginald" }, healsAndCollapses);
+        Assert.Equal(400, db.CreatureByName("King Reginald")!.OwnLandHealthIncreasePerSecond);
+    }
 }

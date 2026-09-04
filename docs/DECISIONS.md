@@ -3159,3 +3159,67 @@ is a summon rather than a roster creature (CONFIRMED). A graveyard counting
   rescued at all (Q107), which costs nothing while carrying does not exist. The
   alternative costs something now: a dying creature would take the last free bed
   from a goblin that walked in on its own feet.
+
+### Amendment (2026-09-04, same day) — not every creature gets the window
+
+The owner corrected the rule within hours of it landing:
+
+> *"Imps are dead right away, they don't have a lying state. Vampires also don't
+> drop a body, they reincarnate at their sarcophagus and sleep to recover, but
+> they lose a level once they reincarnate. If they were killed at level 1 they
+> are permanently dead. Exception to that rule for vampires are monks: if a monk
+> kills a vampire it is permanently dead, regardless of its level."*
+
+**A creature that leaves no body has no lying state — it dies on the spot.**
+`CreatureDeathRules.HasDyingState` is `LeavesBody`, and that is **CONFIRMED from
+two directions that never met**: the owner for the Imp, and OpenKeeper's
+`HealthSystem.processHealthDepleted`, which opens with
+
+```java
+// No body, just vanish from the world
+if (!isLeaveDeadBody(entityId)) { ...remove(); return; }
+```
+
+before any unconscious handling, reading `GENERATE_DEAD_BODY` and nothing else.
+So **one flag decides both halves**, which is coherent: the dying state *is* a
+body on the floor, a live one. Nothing left behind means there was nothing to
+lie there.
+
+This also retires the puzzle in the parent decision about the bodyless set being
+an odd mixture. It is not a mixture: a summon, three undead, a construct, a
+worker and Jack are exactly the things that puff out rather than fall over.
+
+**The vampire is data-driven and deliberately unimplemented.**
+`CanBeResurrected` (bit 23) is set on exactly the two Vampires. Two facts snap
+into place — the **sarcophagus is the vampire's lair bed** (its `LairObjectId`
+is a coffin, pinned months ago for an unrelated reason), so reincarnation is
+`Rescue` with no imp involved; and the vampire leaving no body stops being an
+oddity, because there is no corpse when the creature is not finished.
+
+It stays unimplemented because **the cost of reincarnation is a level and levels
+do not exist** — a vampire that reincarnated without paying would come back for
+ever, which is the immortal Imp again in a cape. Both exits are equally out of
+reach: level 1 needs levels, and "a monk killed it" needs an attributed killer,
+which needs combat (M7).
+
+**Instant death is therefore correct for vampires rather than a placeholder:**
+with no levels every creature is level 1, and a level-1 vampire is permanently
+dead by the owner's own rule. The flag is read, tested, and branched on by
+nothing (Q111).
+
+OpenKeeper neither implements nor reads `CanBeResurrected`. This is the second
+mechanic where the owner's testimony is the only source there is, after the
+anger ceiling.
+
+**One guard changed subject rather than becoming redundant.** Suppressing
+own-land regeneration at zero health was written to stop a collapsed Imp healing
+off the floor, and the Imp no longer collapses. The subject is now **King
+Reginald**: 400 health a second on his own land *and* a dead body, so he
+collapses and would heal every second he lay there. He is the only creature in
+the shipped data with both properties, so the test asserts he is the only one.
+
+**And a fixture bug this exposed:** `Dk2TerrainFixture`'s Goblin had
+`GenerateDeadBody` missing, so every collapse test would silently have been
+testing instant death. That is the **third** transcription error the drift guard
+has caught in this one record, after the Imp's hunger rate (wrong by 4096) and
+its own-land healing (transcribed as 0).
