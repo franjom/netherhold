@@ -2048,3 +2048,52 @@ interval scaling, because that is the riskiest thing currently shipping.
 2. **Q96**, above — the rule for decompiling, if any.
 3. **Q93/Q94** — the two rules inside room conversion that are ours: a dungeon
    heart being exempt, and a long bridge converting whole.
+
+### Ghidra: where it is, what blocks it, and the rule to start under
+
+The owner gave the location at the end of the sitting: **`D:\ghidra_11.0.1_PUBLIC`**.
+
+| | |
+|---|---|
+| GUI | `D:\ghidra_11.0.1_PUBLIC\ghidraRun.bat` |
+| Headless | `D:\ghidra_11.0.1_PUBLIC\support\analyzeHeadless.bat` |
+| Target | `E:\GogGames\Dungeon Keeper 2\DKII.EXE` (2,987,568 bytes, not packed) |
+| Java override | `support\launch.properties` → `JAVA_HOME_OVERRIDE=` (currently empty) |
+
+> **⚠ It will not launch as things stand.** `java` on PATH is **1.8.0_401**, 32-bit
+> Oracle via `C:\Program Files (x86)\Common Files\Oracle\Java\javapath`, and
+> there is **no other JDK on the machine** (searched `Program Files`,
+> `Program Files (x86)` and `D:\`). **Ghidra 11.0.1 needs JDK 17 or 21.** So the
+> first action next sitting is not analysis — it is a JDK, then either `JAVA_HOME`
+> or `JAVA_HOME_OVERRIDE` in `launch.properties`. Checked before compaction
+> specifically so this is not discovered an hour in.
+
+**The rule to work under, unless the owner says otherwise.** Pointing at the tool
+is not by itself an answer to Q96, so this is the default and it is deliberately
+the conservative one:
+
+- **Facts, formulas and control-flow *descriptions* may cross into
+  `docs/research/`.** A constant, a rate, an order of operations, "this reads
+  variable 3 and multiplies it by the creature count" — all fine, with the
+  offset or function name as provenance.
+- **No decompiler output crosses into the repository.** Not into source, not
+  into a doc, not into a commit message. Decompiler output is source derived
+  from the binary, and the brief says not to copy original source merely because
+  reverse engineering makes it available. This is **stricter than the OpenKeeper
+  rule the owner relaxed**, on purpose: OpenKeeper is somebody's clean
+  reimplementation under a compatible licence, and this is not.
+- **Confidence does not rise to CONFIRMED just because it came from the
+  executable.** It rises to *derived from the shipped binary*, which is stronger
+  than inference and weaker than an owner observation of the game actually
+  running — a misread disassembly is still a misread.
+- **It needs its own ADR before the first fact lands**, plus a note on the GOG
+  EULA, which is a contract question distinct from copyright and which nobody
+  has looked at.
+
+**First target, and only this one:** Q1, the tick rate, off the four timer
+imports. It is the biggest blocker in the project, it is on the *playing cannot
+settle* list, and it is a bounded search that either pays for itself in a sitting
+or gets dropped. **Second, if the first works:** Q86's interval scaling, because
+that is the riskiest thing currently shipping — find where the VARIABLES table is
+indexed by 3 and see whether the result is multiplied by a creature count.
+`Entrance.cpp`'s assert strings are the locality hint for that one.
