@@ -45,6 +45,13 @@ namespace DK2.Simulation.Systems;
 /// expect. It also means a new imp starts looking for work on tick N+1 rather
 /// than immediately, which keeps <see cref="ImpTaskSystem"/>'s "spawn order
 /// decides who gets the job" rule honest for creatures created mid-tick.</item>
+/// <item><see cref="PortalSystem"/> — after it, so the two things that make
+/// creatures sit together at the end of the tick and a creature born on tick N
+/// starts acting on tick N+1 either way. After building and selling for a
+/// concrete reason: a lair built on tick N attracts on tick N, which is the
+/// answer a player watching their first goblin arrive would expect. Nothing it
+/// does can affect a system above it in the same tick, so its position is a
+/// statement about what a new creature can see rather than a constraint.</item>
 /// </list>
 ///
 /// <para><b>UNKNOWN: DK2's own per-tick subsystem ordering.</b> Flame's
@@ -65,5 +72,6 @@ public static class SimulationSystems
         new BridgeBurnSystem(),
         new ManaSystem(),
         new ImpSupplySystem(),
+        new PortalSystem(),
     ];
 }

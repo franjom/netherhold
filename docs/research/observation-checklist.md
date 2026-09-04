@@ -136,57 +136,76 @@ within minutes of the second screenshot arriving. See `imps-and-mana.md`
 
 ## 1. Still open, and blocking
 
-### Q86 — the portal: four things, and they block the next thing being built — **NEW**
+### Q86 — the portal: **one question left, and it is a stopwatch** — *updated 2026-09-04*
 
-The portal is next (agreed 2026-09-04) because it is the only room whose
-behaviour needs no creature health, hunger, mood or experience — none of which
-exists — and because **every other room needs occupants and nothing currently
-produces any**. Its data is all parsed and loaded: level 1's pool is fifteen
-Goblins, its spawn interval is 18 seconds, and the cap variables say fifteen for
-a first portal and five for each after.
+The portal is built (ADR-0042, `docs/research/portals.md`). Three of this entry's
+four original questions were answered from OpenKeeper's implementation, now that
+the licence permits reusing it: **the cap really is per portal** and rises the
+moment a second is held; **attraction is re-checked every tick**, so selling your
+only lair stops the next arrival immediately; and **each portal keeps its own
+clock**, with two ripe portals producing on the same tick.
 
-What the files cannot say is how it *behaves*. All four of these are things you
-would see happen.
+**What is left is the one thing no file expresses, and it changes how a whole
+level feels.**
 
-**1. What does a portal do when the pool is empty?** Level 1's pool is a single
-entry — fifteen Goblins. After the fifteenth arrives, does the portal simply stop
-producing, or does something else happen (a message, a different creature, the
-pool refilling)? **Watch a level to the end of its pool.** Level 1 is the obvious
-one, and 8 minutes is its own expected play time.
+**The interval grows with your dungeon.** The implemented rule is
+`max(base, base x creatures / 2)`, so on level 1 — whose own
+`EntranceGenerationSpeedSeconds` is **18**, not the game-wide 25 — the first
+goblin takes 18 seconds, the fifth 36, the tenth 90, the fifteenth 126. Without
+the scaling, all fifteen arrive in four and a half minutes; with it, in about
+fifteen. **It comes entirely from OpenKeeper. Nothing in the balance table says
+it and nothing in the shipped data can confirm or refute it.**
 
-**2. Is the creature cap really per portal?** The variables are named
-`CreaturesSupportedByFirstPortal` (15) and
-`CreaturesSupportedPerAdditionalPortal` (5), which is unambiguous about intent —
-but names have been wrong before (`ModifyPlayerColdWhileTraining` is a typo for
-*Gold*). **On a level with two claimable portals: claim the second and see
-whether your maximum creature count rises by five, and whether it rises the
-moment you claim it.**
+**The experiment, and it is quick.** Start level 1, claim the portal, build a
+lair, and time the gap between arrivals **twice**: once early (one or two
+creatures in the dungeon) and once later (six or more).
 
-**3. Is attraction re-checked continuously, or only when a creature spawns?**
-This decides something real: if you sell your only lair, does the next goblin
-still arrive because attraction was already satisfied, or does the portal go
-quiet immediately? **Build a lair, wait for a creature or two, sell the lair, and
-watch whether the next arrival still comes.**
+- If both gaps are about **18 seconds**, there is no scaling and it should come
+  out.
+- If the later gap is roughly **half your creature count times 18**, the rule is
+  right.
+- If it grows but not like that, the shape is different and worth writing down
+  exactly — how many creatures you had, and how many seconds each gap took.
 
-**4. Does the spawn interval run per portal or per keeper?** With two portals, do
-creatures arrive twice as fast? Same experiment as (2), watching the clock rather
-than the cap.
+A second, cheaper reading of the same run: **does the very first goblin arrive
+before you have a lair?** It should not — the Goblin's only attraction is a Lair,
+and that is what makes level 1 teach lairs first. If one arrives anyway, the
+attraction gate is wrong.
 
-**A fifth, if it is easy:** the manual says a **sacked** creature (dropped back
-into the portal) *"leaves the dungeon immediately and, providing you are below
-your maximum creature level, they are replaced by a new creature"*, and that
-sacking makes that type rarer afterwards
-(`DecreaseEntrancePersentageOfLastSackedCreatureType` = 33). **Does the
-replacement arrive at once, or after the normal interval?**
+**Still open from the original list, and it needs sacking:** whether a sacked
+creature's replacement arrives at once or after the normal interval. Nothing can
+pick up a creature yet, so it is Q90's problem rather than this one's.
 
-**And a warning about attraction sizes before any of this is built.** Q61/Q80 is
-a live three-way disagreement: you *and* the 1999 manual say a Dark Angel needs a
-5x5 temple; the shipped v1.70 record says `size >= 0`. The mechanism can
-certainly express a minimum — four creatures carry one (Bile Demon and Giant want
-a Hatchery of 25+ tiles, Royal Guard a Training Room of 25+, Maiden Of The Nest a
-Temple of 9+) — it just does not carry one for the Dark Angel. The 3x3-temple
-experiment under Q61 below settles it.
+**And the warning about attraction sizes still stands.** Q61/Q80 is a live
+three-way disagreement: you *and* the 1999 manual say a Dark Angel needs a 5x5
+temple; the shipped v1.70 record says `size >= 0`. Four creatures do carry a real
+minimum (Bile Demon and Giant want a Hatchery of 25+ tiles, Royal Guard a
+Training Room of 25+, Maiden Of The Nest a Temple of 9+), so the mechanism can
+express one — it just does not for the Dark Angel. The 3x3-temple experiment
+under Q61 below settles it, and **Q89 is now a second reason to run it**: if a
+3x3 temple attracts anything at all, a room below its `RecommendedSize` still
+advertises while doing nothing.
 
+### Q92 — how do you claim a portal? — **NEW, and it is the portal's biggest gap**
+
+`ConvertRoomHealth` = **−4000** and `AttackRoomHealth` = **−1500** name the
+mechanic, and there is no work kind for either, so **an imp here cannot take a
+portal at all**. A portal ships owned by the neutral player and the only way to
+get one is a level file or a direct terrain write.
+
+The rates are in the data. What is missing is the **shape**.
+
+**Claim a neutral portal in the original and watch how it changes.** Does it go
+tile by tile, the way claiming floor creeps (Q42/Q44) — nine separate
+conversions, with the room part yours and part neutral in between? Or does the
+whole 3x3 flip at once when enough of it is taken? A screenshot mid-claim would
+settle it outright.
+
+**And two follow-ups while you are there:** how long does claiming a whole portal
+take, roughly; and does a portal claimed mid-game produce its first creature
+straight away or after the normal interval? The second decides whether an
+unclaimed portal banks the time it stood idle — implemented as "it does not"
+(`TileState.EntranceIdleTicks`), and OpenKeeper does the opposite by accident.
 
 ### Q59 — how much mana does one trap draw? — **ANSWERED and pinned**
 You measured five: **Spike 5, Sentry 5, Fireburst 10, Freeze 10, Lightning 25**.

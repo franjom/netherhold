@@ -447,10 +447,27 @@ switch (args[0])
 
     case "kwd" when args.Length >= 2 && args[1] == "creatures":
     {
-        string cpath = args.Length > 2
-            ? ResolveEditor(args[2])
+        string? carg = args.Skip(2).FirstOrDefault(a => !a.StartsWith('-'));
+        string cpath = carg is not null
+            ? ResolveEditor(carg)
             : Path.Combine(Dk2Install.Require(), "Data", "editor", "Creatures.kwd");
         List<CreatureDef> creatures = KwdCreatures.Parse(KwdReader.ReadFile(cpath));
+
+        // -a: what attracts each creature to a dungeon, which is what a portal
+        // reads. Its own column set, because the room ids and minimum sizes
+        // have nothing to do with the combat stats above.
+        if (args.Contains("-a"))
+        {
+            Console.WriteLine($"{"id",3} {"name",-16} attractions (roomId size, present)");
+            foreach (CreatureDef c in creatures.OrderBy(c => c.CreatureId))
+            {
+                string slots = string.Join("  ", c.Attractions.Select((a, i) =>
+                    $"[{i}] room={a.RoomId} size={a.RoomSize} present={a.Present}"));
+                Console.WriteLine($"{c.CreatureId,3} {c.Name,-16} {slots}");
+            }
+            Console.WriteLine($"-- {creatures.Count} creatures");
+            return 0;
+        }
 
         Console.WriteLine($"{"id",3} {"name",-16} {"hp",5} {"dmg",4} {"pay",4} {"fear",5} {"threat",6} " +
                           $"{"speed",6} {"exp/lvl",7} {"class",-8} {"flags"}");

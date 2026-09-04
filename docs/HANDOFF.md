@@ -9,19 +9,37 @@ Update this whenever a session ends or context is compacted.
 ## Current state (2026-09-04)
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
-carrier, where imps come from, the asset layer and the presentation boundary:
-complete, and each level now plays on its own balance numbers. M3 as a whole:
-substantially complete — the Unity view renders campaign level 1.** M2 and the
-five record types M1 needed are done, and **every** record type's on-disk size is
-now known and pinned. **512 tests green** with and without a DK2
-install; ten scenarios run, each drawing a picture of its finished world;
-clean tree. (Core 17, Simulation 262, Data 63, Behavior 84, Assets 60, Presentation 26.)
+carrier, where imps come from, **where every other creature comes from**, the
+asset layer and the presentation boundary: complete, and each level now plays on
+its own balance numbers. M3 as a whole: substantially complete — the Unity view
+renders campaign level 1.** M2 and the five record types M1 needed are done, and
+**every** record type's on-disk size is now known and pinned. **551 tests green**
+with and without a DK2 install; eleven scenarios run, each drawing a picture of
+its finished world; clean tree. (Core 17, Simulation 291, Data 63, Behavior 94,
+Assets 60, Presentation 26.)
+
+**The first room whose behaviour exists is the portal** (2026-09-04, ADR-0042):
+a claimed portal produces its level's own creatures, and **level 1 produces
+nothing until its keeper builds a lair**, because the Goblin's only attraction is
+a Lair. See `docs/research/portals.md`. The one number in it to be suspicious of
+is the interval scaling — `max(base, base × creatures ÷ 2)`, which no shipped
+file expresses and which only a stopwatch on the original can check (Q86, top of
+the observation checklist).
+
+**Not every player is a keeper** (ADR-0043, `PlayerIds`): 0 unowned, 1 the hero
+side, **2 neutral — what an unclaimed room belongs to** — 3–7 keepers. Assumed
+away everywhere until the portal forced the question. `ImpSupplySystem` and the
+whole test suite still use the old convention; Q91, fix named, deliberately not
+bundled.
 
 **Licence: GNU GPL version 3 or later** (2026-09-04, ADR-0041). Every source file
 carries the three-line SPDX notice, and `LicenseHeaderTests` enforces it rather
-than an analyser. This changed the *research method* as well as distribution —
-"no OpenKeeper code" is now a project standard rather than a legal limit. See
-*Decisions already made* below and `docs/research/external-resources.md`.
+than an analyser. **The owner then lifted the no-copy bar entirely** — *"if any
+of your doubts can be answered from OpenKeeper, feel free to copy, reuse,
+whatever"* — so OpenKeeper is now a source of implementation, not only of facts,
+with attribution in `THIRD-PARTY-NOTICES.md` as the price. ADR-0003 has both
+amendments; the caution that came with the first use is in the fourteenth
+sitting. See also `docs/research/external-resources.md`.
 
 > ### The asset layer and the presentation boundary landed 2026-09-04 (ADR-0034, ADR-0035)
 >
@@ -305,6 +323,8 @@ What the simulation can do:
 | Creatures never inside terrain they could not walk into | `WorldPathGrid` + the waypoint re-check in `CreatureMovementSystem` | CONFIRMED (owner, Q73, ADR-0038): solid means impassable, flight buys nothing over rock. Asserted over a 4000-tick dig — no creature on a solid tile, no route in flight across one |
 | A dug-out tile never closing, and two terrains never opening | the terrain table's flags, and what `ImpTaskSystem` does *not* choose | CONFIRMED (owner, Q73/Q74, ADR-0039): DK2 has no keeper-triggerable fill-in; Impenetrable Rock is unmarkable and Gems destroy to themselves. `FillInHealth` and the `FillInable` flag are kept because they are in the shipped file, and pinned as unreachable |
 | A level playing on its own balance numbers | `GlobalVariables.MergedWith` + `GameDatabase.ForLevel` + `GameDatabaseLoader.LoadForCampaignLevel` | 26 variable ids are overridden by at least one shipped level, and one was already live: `MinimumImpThreshold` is 0 on four secret levels against a global 4 (ADR-0040, Q82). Pinned against the install and, separately, as merge rules without one |
+| **Where every other creature comes from** | `PortalRules` + `PortalSystem` | four gates all in the data — unlocked (`Availability` kind 2), pool has room (`CreaturePool`), something attracts it (`CreatureAttraction`), under capacity (15 + 5 per extra portal). **Level 1 gives nothing until a lair exists.** ADR-0042. First consumer of the RNG. The interval scaling is OpenKeeper's, not the data's — Q86 |
+| **Which players are keepers at all** | `PlayerIds` | 0 unowned, 1 hero, **2 neutral (an unclaimed room)**, 3–7 keepers. CONFIRMED three ways over all 66 levels. ADR-0043. Only `PortalSystem` honours it so far — Q91 |
 | Where imps come from, and the first mana spender | `ImpSupplyRules` + `ImpSupplySystem` | four free imps five seconds apart on a shipped level, then 1500 / 3000 / 4500 for the next three and a refusal for the fourth |
 
 Extracted data artifacts (the specification the simulation is written against):
@@ -808,8 +828,13 @@ containing backslash escapes or backticks; verify with `grep` otherwise.
 `python`/`python3` — it is not installed and the Windows Store stub blocks.
 Never write a bare `cat >` redirect, and do not reach for python.
 
-> **This entry has now cost time on six separate occasions, four of them on
-> 2026-09-04 alone, and it was already written down each time.** Reading a
+> **This entry has now cost time on seven separate occasions, five of them on
+> 2026-09-04 alone, and it was already written down each time.** The seventh was
+> the most instructive and the most stupid: `python - <<'EOF' … EOF || echo "use
+> sed"` — a *guard* against the failure, written as a pipe into python, which
+> hung for the full two-minute timeout and took a batch of four `sed` edits down
+> with it. **Wrapping the mistake in a fallback does not make it safe; the hang
+> happens before the fallback can run.** Reading a
 > gotchas list is not the same as remembering it mid-task, and the failure mode
 > is always the same: reaching for `python -` reflexively while thinking about
 > something else. **The habit that actually works is not "remember the list" but
@@ -1681,3 +1706,187 @@ before and after; plus the manual's surprise that research is stored *in the
 room* and lost with it), then the **training room** (Q63 measured 20 gold a swing
 at a dummy, and `ModifyPlayerColdWhileTrainingPerSecond` = −5 is a typo for
 *Gold*), then whatever objects unlock at M6.
+
+---
+
+## The fourteenth sitting (2026-09-04) — the portal, and two things it dragged out with it
+
+**The owner lifted the no-copy bar at the start of the sitting**, explicitly:
+*"if any of your doubts can be answered from OpenKeeper, feel free to copy,
+reuse, whatever, we are now on the same license as them."* That reverses the
+recommendation the thirteenth sitting had put on record and it is now ADR-0003's
+**second amendment**. It changed how this sitting went from the first minute:
+instead of listing four portal questions for the owner to play, three of them
+were answered by reading `CreatureSpawnSystem.java`.
+
+### What was built
+
+**The portal** — ADR-0042, `PortalRules`, `PortalSystem`,
+`docs/research/portals.md`. Four gates, all four in the shipped data:
+
+| gate | data | level 1 |
+|---|---|---|
+| unlocked? | `Availability` kind 2 (CREATURE) | one creature: the Goblin |
+| any left? | `CreaturePool`, per level per player | `creature 7 = 15` |
+| attracted? | `CreatureAttraction`, two slots at CREATURES 0x0DAC | Goblin wants a **Lair** |
+| room for it? | `CreaturesSupportedByFirstPortal` 15, +5 each after | 15 |
+
+**The nicest thing it produced is a behavioural fact nobody had written down:
+level 1 produces nothing at all until its keeper builds a lair**, because the
+Goblin's only attraction is a Lair. The tutorial's order — dig, claim, lair,
+*then* creatures — turns out to be a mechanic rather than a script.
+
+Evidence: **29 tests** on the transcribed fixture (`PortalTests`), most of them
+negative — every gate gets a test that it *stops* a creature and one that
+lifting it lets the creature through, because a suite that only checked "a goblin
+eventually arrives" would pass against a portal that ignored the pool, the cap
+and the lair. **10 tests** against the shipped install
+(`PortalOnRealDataTests`), including level 1 end to end on its own map. And one
+scenario, `scenarios/creatures/a_portal_fills_a_dungeon.yaml`, whose event log
+is the mechanic in four lines:
+
+```
+t359  creature_entered: type=Goblin held=0 capacity=15 interval=360
+t719  creature_entered: type=Goblin held=1 capacity=15 interval=360
+t1079 creature_entered: type=Goblin held=2 capacity=15 interval=360
+t1619 creature_entered: type=Goblin held=3 capacity=15 interval=540
+```
+
+That last `interval=540` is the one thing in the mechanic worth arguing about —
+see below.
+
+### The one number to be suspicious of
+
+**The spawn interval scales with the keeper's creature count**:
+`max(base, base × creatures ÷ 2)`. On level 1 the first goblin takes 18 seconds
+and the fifteenth takes 126.
+
+**Nothing in the shipped data expresses this.** There is no slowdown variable, no
+per-creature multiplier, nothing. It comes entirely from OpenKeeper, and it is
+the difference between fifteen goblins in four and a half minutes and fifteen in
+about fifteen. Level 1's own `AverageTime` = 8 (minutes) sits between the two and
+settles nothing.
+
+**It is unfalsifiable from the files and it is the top of the observation
+checklist.** A stopwatch on two consecutive arrivals at two different dungeon
+sizes settles it in one sitting. If a future session is ever surprised that a
+level feels slow, this is the first line to suspect.
+
+Two lesser inferences, both also OpenKeeper's and both recorded with their
+reasoning: **the pool is a standing per-type limit rather than a draining quota**
+(Q87 — indistinguishable on level 1, where pool and capacity are both 15), and
+**a two-slot creature needs both rooms, with the size meaning one room's tile
+count** rather than the keeper's total.
+
+### Reuse is permitted; trust is not. One case proves it
+
+OpenKeeper hands a creature to whoever claims an idle portal. Read as intent that
+is a design decision worth copying. It is not intent — it resets the clock to
+Java's `Double.MIN_VALUE`, which is the smallest **positive** double, not the
+sentinel the code reads it as, so `elapsed − lastSpawn` ends up being the whole
+game clock and satisfies any interval. **The bug is indistinguishable from a
+decision unless you read closely.**
+
+Our clock does the opposite and says so: it counts only while a keeper owns the
+portal, so claiming an idle one does not hand over a banked wait (Q86). That is
+now the standing caution in ADR-0003's second amendment, and it is the one thing
+about the licence change worth carrying forward: *a rule taken from OpenKeeper is
+STRONGLY INFERRED, never CONFIRMED, because OpenKeeper is itself a
+reimplementation and can be wrong.*
+
+### The by-product, which is bigger than the portal: not every player is a keeper
+
+ADR-0043, `PlayerIds`. Found by asking a small question — *whose portal is an
+unclaimed portal?* Level 1's portal ships owned by **player 2**.
+
+| id | meaning |
+|---|---|
+| 0 | unowned — unmined rock, undug dirt |
+| 1 | the hero side |
+| 2 | **neutral — what an unclaimed room belongs to** |
+| 3–7 | keepers |
+
+CONFIRMED three ways, only one of which is OpenKeeper's `Player` constants: across
+all 66 levels **every dungeon-heart tile belongs to a player between 3 and 7**,
+and **every creature pool and creature-availability entry names a player between
+3 and 7**. Level 1 shows all four ids at once.
+
+**The obvious argument for it is wrong, and that is the part worth keeping.** I
+wrote the test first as "every solid tile is owner 0, so 0 must mean unclaimed" —
+and it **failed**, because rock carries a non-zero owner all over the campaign:
+DK2 colours the walls bordering a keeper's territory in that keeper's colour, and
+`TerrainFlags.PlayerColouredWall` exists for exactly that. Ownership of rock is a
+*rendering* fact. The argument that holds is the narrower one about hearts and
+pools. A test written to check a plausible sentence caught the sentence being
+false, which is precisely the discipline the week's pattern asked for.
+
+**A latent problem this exposes and which is deliberately NOT fixed here.**
+`ImpSupplySystem` loops every player in the world and would hand free imps to
+players 0, 1 and 2 — harmless on shipped data, since none of them has a dungeon
+heart, but the rule is unstated where it should be explicit. The whole test suite
+also uses player 1 as "a keeper" and 2 as "a rival", which now names the hero
+side and the neutral player. **Q91, fix named** — gate on `PlayerIds.IsKeeper`,
+re-key the fixtures — and left as its own change because it touches five hundred
+tests written on the old convention. `PortalTests` alone uses 3 and 4.
+
+### The gap the portal cannot close by itself
+
+**An imp cannot claim a portal.** Room conversion is a real DK2 job with its own
+balance value — `ConvertRoomHealth` = −4000, and `AttackRoomHealth` = −1500
+beside it — and there is **no `TileWorkKind` for either**. So the one thing every
+level expects a keeper to do with a portal is the one thing that cannot be done,
+and a scenario says "claimed portal" by re-owning the tiles. `ScenarioRunner`
+reports that as a shortfall rather than passing it off as setup.
+
+**Q92**, and it is on the observation checklist because the *rates* are in the
+data and only the **shape** is missing: does claiming a 3x3 portal convert nine
+tiles one at a time, the way claiming floor creeps, or does the room flip whole
+once enough is taken? A screenshot mid-claim settles it.
+
+### State changes worth knowing about
+
+- `TileState` gained `EntranceIdleTicks`, so **`HashVersion` 9 → 10** and
+  snapshot **`FormatVersion` 9 → 10**. The pinned determinism hash is now
+  `0x06F71648486D0FEC` (was `0x4F824667CDA7EF25`). **Every scenario hash moved**
+  as a consequence — that is the version bump, not a behaviour change, and this
+  commit's scenario reports are the new baseline.
+- **First consumer of `SimulationContext.Rng`.** It has been carried, hashed and
+  snapshotted since M1 with nothing drawing from it. The draw happens even when
+  only one creature qualifies, so the RNG position cannot become a function of
+  the keeper's rooms — otherwise two runs differing only in a room built and
+  sold would diverge forever.
+- `Dk2TerrainFixture` gained Portal terrain and room, a **Goblin**, and the three
+  portal variables. `dk2tools kwd creatures -a` dumps attraction slots.
+- Two now-false statements in `ScenarioRunner`'s shortfall list were corrected:
+  "nothing generates imps" (`ImpSupplySystem` has for two sittings) and "a lair
+  is inert" (it attracts).
+
+### The state, precisely
+
+**551 tests green** (Core 17, Simulation 291, Data 63, Behavior 94, Assets 60,
+Presentation 26), with and without a DK2 install. Clean `dotnet build -c Release`
+with no suppressions. Eleven scenarios run.
+
+### Next
+
+**The library**, and it is the right one for the same reason the portal was: it
+needs **no creature needs at all**. A creature stands in the room and contributes
+`CreatureDef.ResearchPerSecond` until a spell completes, and `Availability`
+states RESEARCHABLE → AVAILABLE are the before and after — which the portal work
+has already decoded and loaded. Plus the manual's surprise that **research is
+stored in the room and lost with it**.
+
+Two things now stand between any room and being interesting, and both are
+bigger than a room:
+
+1. **A creature does nothing.** A goblin arrives, stands on the portal's hole and
+   stays there forever. No health, hunger, mood, experience or job. Every
+   remaining room behaviour is blocked on this rather than on research.
+2. **Nothing can be picked up or dropped.** That is what gates sacking (Q90),
+   dropping a creature into a library or a lair, and the whole of what a player
+   actually *does* in DK2 minute to minute.
+
+Ahead of the library, the cheapest genuinely useful thing is **Q92 —
+room conversion as a work kind** — because it makes a portal claimable and makes
+every room-taking scenario honest, and both balance values are already in the
+table.

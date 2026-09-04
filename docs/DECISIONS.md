@@ -100,6 +100,40 @@ This project is MIT-licensed. Consequences:
 > The full boundary table lives in `docs/research/external-resources.md` and has
 > been rewritten for GPLv3.
 
+> ### ⚠ Second amendment, 2026-09-04: the owner walked through the door
+>
+> The recommendation above was to keep the clean-room rule as a project
+> standard. **The owner overrode it the same day, explicitly:** *"if any of your
+> doubts can be answered from OpenKeeper, feel free to copy, reuse, whatever, we
+> are now on the same license as them."* That is a decision, not an ambiguity,
+> and this is the record of it.
+>
+> **What the rule is now.** OpenKeeper may be used as a source of
+> *implementation*, not only of facts, wherever it answers a question the shipped
+> data cannot. Two obligations come with that and are not optional:
+>
+> 1. **Attribution and notice retention.** GPLv3 requires it. Every place a
+>    borrowed implementation lands gets an entry in `THIRD-PARTY-NOTICES.md`
+>    naming the upstream class and what was taken.
+> 2. **The provenance line stays visible.** A rule taken from OpenKeeper is
+>    STRONGLY INFERRED, not CONFIRMED — because OpenKeeper is itself a
+>    reimplementation and can be wrong. Its confidence never exceeds the
+>    evidence behind it, whatever its source.
+>
+> **First use, the same day.** The portal (ADR-0042) took three composition rules
+> from `CreatureSpawnSystem` — the interval scaling, the pool as a standing
+> limit, and both-slots attraction — none of which is derivable from the files.
+> It also inherited a fourth thing worth more than any of them: OpenKeeper's own
+> note that a documented original *quirk* (two portals producing on the same
+> tick) was replicated deliberately, which is a fidelity judgement we would
+> otherwise have had to make blind.
+>
+> **And a caution the same use produced.** OpenKeeper's portals hand a creature
+> to whoever claims an idle one — but only because it resets the clock to Java's
+> `Double.MIN_VALUE`, the smallest *positive* double rather than the sentinel it
+> reads as. **The bug is indistinguishable from a decision unless you read the
+> code closely.** Reuse is now permitted; taking it on trust is not.
+
 ## ADR-0004 — xoshiro256** as the simulation RNG
 **Date:** 2026-08-29 · **Status:** accepted
 
@@ -2338,3 +2372,112 @@ this project builds on Unity, which is proprietary. Distributing GPLv3 game code
 that links a proprietary engine runtime is a known friction point, and it is not
 resolved here because nothing is distributed yet. It needs an answer before the
 first public build, not before the next commit.
+
+---
+
+## ADR-0042 — The portal produces creatures, and three of its rules come from OpenKeeper
+
+**Date:** 2026-09-04 · **Status:** Accepted · **Supersedes:** nothing ·
+**Implements:** `PortalRules`, `PortalSystem`, `TileState.EntranceIdleTicks`
+
+**Context.** The portal is the first room whose behaviour is implemented, and it
+was chosen first for a structural reason: **nothing else could have occupants.**
+THINGS is unparsed so no level's creature roster loads, and `ImpTaskSystem` skips
+anything without `IsWorker`, so a non-worker dropped into the world stood still
+forever. Every other room's behaviour needs creatures in it; the portal's
+behaviour *is* producing them, and it needs no creature health, hunger, mood or
+experience — none of which exists.
+
+**Decision.** A portal produces a creature when four gates all pass: the creature
+is unlocked for that keeper (`Availability` kind 2), the pool has room for
+another of its type (`CreaturePool`), something in the dungeon attracts it
+(`CreatureAttraction`), and the keeper is under their portals' capacity
+(`CreaturesSupportedByFirstPortal` + 5 each after). Every number is CONFIRMED
+from the shipped v1.70 data and the 1999 manual states the capacity rule
+independently.
+
+**How they compose is STRONGLY INFERRED, and three of those inferences are
+OpenKeeper's rather than the data's.** They are itemised in
+docs/research/portals.md and listed in THIRD-PARTY-NOTICES.md, because that is a
+GPLv3 attribution obligation rather than a courtesy:
+
+1. **The interval grows with the dungeon** — `max(base, base × creatures ÷ 2)`.
+   Nothing in the balance table expresses this and it is the highest-risk
+   inference in the mechanic: it is the difference between fifteen goblins in
+   four and a half minutes and fifteen in fifteen. **Unfalsifiable from the
+   files; only a stopwatch on the original settles it (Q86).**
+2. **The pool is a standing per-type limit, not a draining quota**, so sacking a
+   creature lets another in. Corroborated by the manual's "replaced by a new
+   creature", and indistinguishable on level 1 where the pool and the capacity
+   are both 15 (Q87).
+3. **A two-slot creature needs both rooms, and the size means one room's tile
+   count** rather than the keeper's total.
+
+**One quirk is reproduced rather than fixed** (fidelity priority 4): the keeper's
+creature count is read once per tick, so two portals ripe on the same tick both
+produce and a multi-portal keeper can end a tick over their stated maximum.
+OpenKeeper documents this as original behaviour and replicates it deliberately.
+
+**The spawn clock lives on the portal's centre tile**, counts *up*, and runs only
+while a keeper owns the portal. It cannot live on `PlayerState` because the clock
+is per portal; it cannot live on `RoomInstance` because a room instance is
+derived fresh from the tiles and remembers nothing (ADR-0027). Counting up rather
+than down is what lets the requirement change mid-wait — a creature dying
+shortens the wait, and a portal blocked for want of a lair banks its wait and
+produces the moment one appears. `HashVersion` 9 → 10 and snapshot
+`FormatVersion` 9 → 10 in the same commit.
+
+**Consequences.**
+- Uniform random selection among eligible creatures is a placeholder. The data
+  carries a per-type percentage that shifts with sacking
+  (`DecreaseEntrancePersentageOfLastSackedCreatureType` = 33) and neither
+  sacking nor the weighting exists (Q90).
+- **This is the first consumer of `SimulationContext.Rng`**, which has been
+  carried, hashed and snapshotted since M1 with nothing drawing from it. The
+  draw happens even when only one creature qualifies, so the RNG position cannot
+  become a function of the keeper's rooms.
+- Level 1 produces nothing until its keeper builds a lair, because the Goblin's
+  only attraction is a Lair. The tutorial's order is a mechanic, not a script.
+- A portal still cannot be **claimed** by an imp: room conversion is a real job
+  with its own balance value (`ConvertRoomHealth` = −4000) and has no
+  `TileWorkKind`. A scenario says "claimed portal" by re-owning the tiles, and
+  the harness reports that as a shortfall (Q92).
+
+---
+
+## ADR-0043 — Not every player is a keeper: DK2's player ids are reserved
+
+**Date:** 2026-09-04 · **Status:** Accepted · **Implements:** `PlayerIds`
+
+**Context.** Found while asking whose portal an unclaimed portal is. Level 1's
+portal ships owned by **player 2**, not player 0 — and the assumption that every
+id in `WorldState.PlayerIds` is a keeper had been made silently everywhere.
+
+**Decision.** Four reserved ids: **0** unowned terrain, **1** the hero side,
+**2 neutral — which is what an unclaimed room belongs to**, and **3 to 7**
+keepers. `PlayerIds.IsKeeper(id)` is `id >= 3`.
+
+**CONFIRMED from three independent directions**, only one of which is
+OpenKeeper's `Player` constants. The campaign's own data says it twice: across
+all 66 levels every dungeon-heart tile belongs to a player between 3 and 7, and
+every creature pool and creature-availability entry names a player between 3 and
+7. Level 1 shows all four at once. Asserted in
+`PortalOnRealDataTests.TheReservedPlayerIdsAreWhatTheCampaignSays`.
+
+**The obvious argument for it is wrong, and that is the part worth keeping.**
+"Unclaimed things belong to player 0" fails twice over: solid rock carries a
+non-zero owner all over the campaign, because DK2 colours the walls bordering a
+keeper's territory in that keeper's colour (`TerrainFlags.PlayerColouredWall`),
+so ownership of rock is a rendering fact rather than a claim about who holds the
+tile — and an unclaimed room is player 2. The argument that does hold is the
+narrower one about hearts and pools.
+
+**Consequences, including one not acted on.** `PortalSystem` runs only a keeper's
+portals, so an unclaimed portal's clock stays at zero and claiming one does not
+hand over a banked wait. **`ImpSupplySystem` still loops every player** and would
+give free imps to 0, 1 and 2; it changes nothing on shipped data because none of
+them has a dungeon heart, but the rule is unstated where it should be explicit.
+The test suite also uses player 1 as "a keeper" and 2 as "a rival" throughout.
+Both are **Q91**, with the fix named — gate on `PlayerIds.IsKeeper`, re-key the
+fixtures — and left as their own change rather than bundled into the portal's,
+because they touch five hundred tests written on the old convention.

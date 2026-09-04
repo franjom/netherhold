@@ -36,6 +36,7 @@ internal static class Dk2TerrainFixture
     public const byte ReinforcedWall = 9;
     public const byte TreasuryTerrain = 10;
     public const byte LairTerrain = 11;
+    public const byte PortalTerrain = 12;
     public const byte DungeonHeartTerrain = 14;
     public const byte WoodenBridgeTerrain = 17;
     public const byte ManaVaultTerrain = 31;
@@ -70,6 +71,7 @@ internal static class Dk2TerrainFixture
               900, 900, ReinforcedWall, Rock, manaGain: 1),
             T(TreasuryTerrain, "Treasury", RoomTerrain, 10000, 10000, TreasuryTerrain, ClaimedPath),
             T(LairTerrain, "Lair", RoomTerrain, 10000, 10000, LairTerrain, ClaimedPath),
+            T(PortalTerrain, "Portal", RoomTerrain, 10000, 10000, PortalTerrain, ClaimedPath),
             T(DungeonHeartTerrain, "Dungeon Heart",
               RoomTerrain, 10000, 10000, DungeonHeartTerrain, ClaimedPath),
             T(WoodenBridgeTerrain, "Wooden Bridge",
@@ -96,8 +98,17 @@ internal static class Dk2TerrainFixture
             R(RoomTypeId.Lair, "Lair", 300, LairTerrain, 0x128Cu),
             R(RoomTypeId.DungeonHeart, "Dungeon Heart", 0, DungeonHeartTerrain, 0x204u, 5, 5),
             R(RoomTypeId.WoodenBridge, "Wooden Bridge", 200, WoodenBridgeTerrain, 0x1083u),
+
+            // The portal, and its flags are the interesting part: 0x1004 is
+            // PlaceableOnLand and HasFlame and nothing else — no Buildable, no
+            // Attackable, no HasWalls. A keeper finds a portal and claims it
+            // (manual §4.2.3), and the shipped record says so in three bits it
+            // does not set. ThreeByThree because that construction is what
+            // PortalRules.IsEntrance is really identifying.
+            R(RoomTypeId.Portal, "Portal", 0, PortalTerrain, 0x1004u, 3, 3,
+              TileConstruction.ThreeByThree),
         ],
-        creatures: [Imp()],
+        creatures: [Imp(), Goblin()],
         variables: Variables(),
         keeperSpells: KeeperSpells());
 
@@ -208,8 +219,62 @@ internal static class Dk2TerrainFixture
         IntroductionStringId = 0,
     };
 
+    /// <summary>
+    /// The Goblin — level 1's whole creature pool, and the first non-worker the
+    /// simulation can produce.
+    ///
+    /// <para>Written as a delta on <see cref="Imp"/> so the hundred fields no
+    /// mechanic reads stay in one place. <b>Every field the portal reads is
+    /// overridden here and is the Goblin's own</b>, taken from
+    /// <c>dk2tools kwd creatures</c> and <c>kwd creatures -a</c>: creature id 7,
+    /// evil and not a worker, 1500 hp, 170 melee, 500 pay, speed 2867 in DK2's
+    /// fixed point (0.7 tiles a second), and one attraction slot wanting a Lair
+    /// of any size.</para>
+    ///
+    /// <para><b>What is deliberately zeroed</b> is everything Imp-specific that
+    /// would otherwise be inherited and silently wrong: an imp's 1400 gold
+    /// capacity, its 500 starting gold and its "never hungry" sentinel are all
+    /// facts about imps. The fields left inherited are the ones
+    /// <see cref="Imp"/> itself marks as untranscribed, and no mechanic reads
+    /// any of them. <c>PortalOnRealDataTests</c> re-reads the overridden values
+    /// out of the shipped <c>Creatures.kwd</c> so this cannot drift from it.</para>
+    /// </summary>
+    public static CreatureDef Goblin() => Imp() with
+    {
+        Name = "Goblin",
+        CreatureId = 7,
+        Flags = CreatureFlags.IsEvil,
+
+        Hp = 1500,
+        MeleeDamage = 170,
+        Pay = 500,
+        Fear = 50,
+        Threat = 37,
+        Speed = new Fp32(2867),
+        RunSpeed = new Fp32(2867),
+        JobClass = JobClass.Fighter,
+        FightStyle = FightStyle.Blitzer,
+
+        // The one field the portal's attraction gate reads: a Lair, any size.
+        // The second slot is empty on the Goblin, as it is on all but four
+        // creatures.
+        Attractions =
+        [
+            new CreatureAttraction(1, (byte)RoomTypeId.Lair, 0),
+            new CreatureAttraction(0, 0, 0),
+        ],
+
+        // Imp facts, cleared rather than inherited.
+        MaxGoldHeld = 0,
+        InitialGoldHeld = 0,
+        HungerRate = new Fp32(0),
+        TimeAwake = 0,
+        ExpPerSecond = 0,
+    };
+
     /// <summary>The ten tile-work health deltas, the gems yield, the imp idle delay,
-    /// the three gold-per-tile limits and the three mana rates, as shipped.</summary>
+    /// the three gold-per-tile limits, the three mana rates and the three
+    /// portal numbers, as shipped.</summary>
     public static GlobalVariables Variables()
     {
         var vars = new GlobalVariables();
@@ -236,6 +301,14 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.MaximumManaGainPerSecond, 500);
         Set(vars, VariableTypeId.ExcessManaDecreaseRatePerSecond, 5);
         Set(vars, VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond, 30);
+
+        // The portal's three. The generation speed is the game-wide 25 rather
+        // than level 1's 18, because this fixture is the global table; the
+        // per-level override is exercised in PortalOnRealDataTests, which reads
+        // the real Level1Variables.kld.
+        Set(vars, VariableTypeId.EntranceGenerationSpeedSeconds, 25);
+        Set(vars, VariableTypeId.CreaturesSupportedByFirstPortal, 15);
+        Set(vars, VariableTypeId.CreaturesSupportedPerAdditionalPortal, 5);
         return vars;
     }
 
@@ -271,7 +344,8 @@ internal static class Dk2TerrainFixture
     /// </summary>
     private static RoomDef R(
         RoomTypeId id, string name, ushort cost, byte terrainId, uint flags,
-        byte sizeX = 1, byte sizeY = 1) => new()
+        byte sizeX = 1, byte sizeY = 1,
+        TileConstruction construction = TileConstruction.Normal) => new()
     {
         Name = name,
         RoomId = (byte)id,
@@ -285,8 +359,11 @@ internal static class Dk2TerrainFixture
         RecommendedSizeX = sizeX,
         RecommendedSizeY = sizeY,
 
+        // Transcribed for the portal, because PortalRules.IsEntrance asserts
+        // that ThreeByThree picks out exactly the two portals.
+        Construction = construction,
+
         // Not transcribed. Present because the record requires them.
-        Construction = TileConstruction.Normal,
         CreatedCreatureId = 0,
         ObjectIds = [],
         HealthGain = 0,

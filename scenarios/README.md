@@ -75,9 +75,19 @@ counted in the report.
 **This is the level author placing a room, not a keeper building one.** Nothing
 is charged, no imp constructs it, and the only rule applied is the room's own
 placeable-on flags. Use a `build` command to exercise the ground rules and the
-treasury. And note what a room still is not: a treasury holds gold and a heart
-holds gold, because a variable says how much per tile — every other room is inert
-terrain that somebody owns.
+treasury.
+
+**Where the tiles are already that room, only the owner changes** — which is how
+a scenario says "claimed portal". A portal ships owned by the neutral player
+(`PlayerIds`, ADR-0043) and there is no work kind for room conversion (Q92), so
+an imp cannot take one; re-owning is the stand-in, and the report says so as a
+shortfall rather than passing it off as setup.
+
+And note what most rooms still are not. A treasury and a heart hold gold because
+a variable says how much per tile. **Two rooms now do more**: a portal produces
+creatures and a lair attracts them (which is all a lair does — nothing sleeps in
+it, because no creature has needs). Every other room is inert terrain that
+somebody owns.
 
 ### `commands[].build`
 

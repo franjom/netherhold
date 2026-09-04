@@ -59,8 +59,25 @@ What is *built* rather than known, against the long-term goals:
   per player, which is what makes level 1 a tutorial and `Secret1` a puzzle. See
   docs/research/kwd-variables.md §*Update 2026-09-04*.
 
+- **Where creatures come from — the portal, implemented** (ADR-0042,
+  docs/research/portals.md). Four gates, all four in the data: `Availability`
+  kind 2 unlocks a creature, `CreaturePool` caps how many of it, its
+  `CreatureAttraction` slots say what must be in the dungeon to draw it, and
+  `CreaturesSupportedByFirstPortal`+5-each-after caps the lot. **Level 1
+  produces nothing until its keeper builds a lair**, because the Goblin's only
+  attraction is a Lair — the tutorial's order is a mechanic, not a script. Three
+  of the composition rules came from OpenKeeper rather than the files, the
+  licence now permitting it (ADR-0003 second amendment); the riskiest is that
+  **the interval scales with the keeper's creature count** and only a stopwatch
+  on the original can check it (Q86).
+- **Not every player is a keeper** (ADR-0043, `PlayerIds`): 0 is unowned, 1 the
+  hero side, **2 neutral — which is what an unclaimed room belongs to** — and
+  3–7 keepers. CONFIRMED three ways, and it had been assumed away everywhere.
+  The by-product of asking whose portal an unclaimed portal is.
+
 ## Unsolved (research required before implementing)
-- **What a room does.** ← being worked on, starting with the **portal**, and **much less of a
+- **What a room does.** ← being worked on, **the portal done and the library
+  next**, and **much less of a
   blank sheet than it was**. The ROOMS record carries art, size and cost and says
   nothing about behaviour, but the 1999 manual says what each room is *for* and
   the balance table has a per-second rate for nearly all of it — a lair heals 100
@@ -72,14 +89,17 @@ What is *built* rather than known, against the long-term goals:
   count": Q60 established that a temple's capacity is its **rim**, `2(w+h) − 4`,
   and the manual says the dungeon heart stores its gold in its "outer ring" too.
   Several rooms are blocked on objects (M6) or on creature needs, not on research.
-- **Where creatures come from.** The portal is the next thing being built, and it
-  is the prerequisite for every other room having occupants: nothing places
-  non-imp creatures today (THINGS is unparsed), and `ImpTaskSystem` skips
-  anything without `IsWorker`, so a non-worker dropped into the world stands
-  still. Its data is all parsed and loaded now — per-level creature pool,
-  creature availability, attraction slots, spawn interval, per-portal cap. What
-  is *not* settled: what a portal does when the pool is empty, and whether
-  attraction is checked once per spawn or continuously.
+- **What creatures then do**, which is nothing. A portal now produces them, and a
+  non-worker still has no health, hunger, mood, experience or job — so it stands
+  on the portal's hole forever. This is the next real frontier, and it is what
+  every remaining room behaviour is blocked on rather than on research.
+- **How a keeper claims a room somebody else holds.** `ConvertRoomHealth` =
+  −4000 and `AttackRoomHealth` = −1500 name it and there is no `TileWorkKind`
+  for either, so **an imp cannot take a portal** — the one thing every level
+  expects a keeper to do with one. Q92.
+- **A level's own starting creatures.** THINGS is unparsed, so no level's roster
+  loads and every creature in a run either came from a portal, from
+  `ImpSupplySystem`, or from a scenario file saying so.
 - **Which rooms a keeper may build on a given level.** `Availability` kind 1 says
   so, per level and per player, and `RoomRules` does not model it at all — a
   keeper here can build any buildable room on any level.
@@ -100,8 +120,11 @@ CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN per AGENTS.md.
 ## Answerable by playing the game
 `docs/research/observation-checklist.md` — the open questions a person in front
 of DK2 can settle by looking, as concrete experiments, ranked by what they
-unblock, plus the ones playing cannot settle. **Both of the questions that used
-to head this list are answered** — Q47's tile-work rates (273 gold a swing) and
-Q45's room minimum sizes (three independent sources agreeing). What heads it now
-is the **portal**: four questions about how creatures arrive, all of them things a
-player sees, and all four blocking the next thing being built.
+unblock, plus the ones playing cannot settle. **Every question that has ever
+headed this list is now answered** — Q47's tile-work rates (273 gold a swing),
+Q45's room minimum sizes, and three of Q86's four portal questions (answered
+from OpenKeeper rather than by playing). What heads it now is **one stopwatch**:
+does the gap between arrivals grow with the size of your dungeon? Nothing in the
+shipped data can say, and it is the difference between fifteen goblins in four
+minutes and fifteen in fifteen. Followed by **Q92** — claim a portal in the
+original and watch whether it converts tile by tile or flips whole.

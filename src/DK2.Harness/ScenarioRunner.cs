@@ -273,6 +273,7 @@ public sealed class ScenarioRunner
     private void PlaceRooms(Scenario scenario, WorldState world, List<string> unsupported)
     {
         int placed = 0;
+        int reowned = 0;
 
         foreach (ScenarioRoom r in scenario.Setup.Rooms)
         {
@@ -309,6 +310,26 @@ public sealed class ScenarioRunner
                     }
 
                     ref TileState tile = ref world.Tile(x, y);
+
+                    // Already this room, and only the owner differs: this is a
+                    // scenario claiming a room the map shipped, not building
+                    // one. It is the only way to express a claimed portal —
+                    // room conversion is a real DK2 job with its own balance
+                    // value (ConvertRoomHealth, -4000) and there is no
+                    // TileWorkKind for it yet (Q92), so a scenario cannot claim
+                    // one the way an imp would. Reported as a shortfall below
+                    // rather than treated as ordinary setup.
+                    if (tile.TerrainId == room.TerrainId)
+                    {
+                        if (tile.OwnerPlayerId != r.Player)
+                        {
+                            tile.OwnerPlayerId = r.Player;
+                            reowned++;
+                        }
+                        placed++;
+                        continue;
+                    }
+
                     if (!RoomRules.IsSuitableGround(_database, tile, room))
                     {
                         refused++;
@@ -328,13 +349,26 @@ public sealed class ScenarioRunner
             }
         }
 
+        if (reowned > 0)
+        {
+            unsupported.Add(
+                $"setup.rooms handed {reowned} tile(s) of a room the map already had to another " +
+                "player. That stands in for claiming it, which no imp can do here: converting a " +
+                "rival's or a neutral room is a job in DK2 with its own balance value " +
+                "(ConvertRoomHealth, -4000) and there is no work kind for it yet (Q92). So a run " +
+                "with a claimed portal says nothing about how long claiming one takes, or whether " +
+                "a portal claimed mid-game behaves like one held from the start");
+        }
+
         if (placed == 0) return;
 
         unsupported.Add(
-            "setup.rooms lays room terrain down directly: nothing is charged for it, no imp builds " +
-            "it, and no room does anything a room does beyond being terrain its owner holds. A " +
-            "treasury stores gold because a variable says how much per tile; a library, a lair and " +
-            "a hatchery are inert");
+            "setup.rooms lays room terrain down directly: nothing is charged for it and no imp " +
+            "builds it. Most rooms still do nothing a room does beyond being terrain its owner " +
+            "holds - a treasury stores gold because a variable says how much per tile, and a " +
+            "library, a hatchery and a training room are inert. Two now do more: a portal " +
+            "produces creatures, and a lair attracts them (which is all a lair does - nothing " +
+            "sleeps in it, because no creature has needs)");
     }
 
     /// <summary>
@@ -391,9 +425,11 @@ public sealed class ScenarioRunner
         if (scenario.Setup.Creatures.Count == 0) return;
 
         unsupported.Add(
-            "setup.creatures places creatures directly. DK2 makes imps from a dungeon heart, from " +
-            "the Create Imp spell at a mana cost, and from level specials - none of which exists " +
-            "yet, so nothing here says how many workers a keeper would actually have");
+            "setup.creatures places creatures directly, which is no longer the only way one can " +
+            "exist: imps come from a dungeon heart and from the Create Imp spell at a mana cost " +
+            "(ImpSupplySystem) and everything else comes out of a portal (PortalSystem). What is " +
+            "still missing is a level's own starting roster - THINGS is unparsed - so a creature " +
+            "placed here stands in for one the level file would have put there");
 
         if (workers == 0)
         {

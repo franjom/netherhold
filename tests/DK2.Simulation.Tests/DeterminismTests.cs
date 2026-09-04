@@ -107,11 +107,12 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // Bumped with HashVersion 8 -> 9 (ADR-0032): TileState gained
-        // BurnTicksRemaining, so the hash composition changed even though this
-        // fixture has no bridges and nothing here ever burns. Snapshot
-        // FormatVersion went 8 -> 9 in the same commit.
-        Assert.Equal(0x4F824667CDA7EF25UL, sim.StateHash());
+        // Bumped with HashVersion 9 -> 10 (ADR-0042): TileState gained
+        // EntranceIdleTicks, the portal's spawn clock, so the hash composition
+        // changed even though this fixture has no portals and nothing here ever
+        // spawns. Snapshot FormatVersion went 9 -> 10 in the same commit. The
+        // previous value, for HashVersion 9, was 0x4F824667CDA7EF25.
+        Assert.Equal(0x06F71648486D0FECUL, sim.StateHash());
     }
 
     [Fact]

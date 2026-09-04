@@ -145,6 +145,41 @@ public struct TileState
     /// </summary>
     public int BurnTicksRemaining;
 
+    /// <summary>
+    /// Ticks this portal has waited since it last produced a creature, or 0 on
+    /// every tile that is not a portal's centre.
+    ///
+    /// <para><b>The clock has to be per portal</b>, because two portals produce
+    /// on their own schedules and the cap rises with the second one
+    /// (<see cref="PortalRules.CreatureCapacity"/>). It cannot live on
+    /// <see cref="PlayerState"/> for that reason, and it cannot live on
+    /// <see cref="RoomInstance"/> because a room instance is derived fresh from
+    /// the tiles every time it is asked for and remembers nothing. So it lives
+    /// on the one tile that identifies a portal — the hole in its middle, which
+    /// <see cref="PortalRules.CanProduce"/> guarantees the portal owns.</para>
+    ///
+    /// <para><b>Counted up rather than down, on purpose.</b> The interval a
+    /// portal is waiting for is not fixed — it grows with the keeper's creature
+    /// count (Q86) — so a countdown set at the last spawn would freeze a
+    /// requirement that has since changed. Counting elapsed time and comparing
+    /// it against a requirement recomputed each tick means a creature dying
+    /// shortens the wait, which is the behaviour OpenKeeper has and the only one
+    /// that makes the scaling coherent. It also means a portal blocked for want
+    /// of a lair banks its wait and produces the moment the lair is built.</para>
+    ///
+    /// <para><b>Only while owned.</b> An unclaimed portal is not waiting for
+    /// anything, so its clock does not run and a keeper who claims one waits a
+    /// full interval for the first arrival. UNKNOWN, and the alternative — that
+    /// claiming a portal that has stood idle hands you a creature at once — is
+    /// what OpenKeeper does, though by accident rather than by design (it resets
+    /// to Java's <c>Double.MIN_VALUE</c>, which is the smallest <i>positive</i>
+    /// double and not the sentinel it reads as). Q86.</para>
+    ///
+    /// <para>Managed entirely by <see cref="Systems.PortalSystem"/>. On any
+    /// other tile the value is meaningless and nothing reads it.</para>
+    /// </summary>
+    public int EntranceIdleTicks;
+
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = 15;
 
@@ -175,6 +210,7 @@ public struct TileState
         hash.Add(WorkRemainder);
         hash.Add(UpwardWork);
         hash.Add(BurnTicksRemaining);
+        hash.Add(EntranceIdleTicks);
     }
 }
 
