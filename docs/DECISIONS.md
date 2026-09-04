@@ -1,4 +1,4 @@
-# Architecture Decision Records
+﻿# Architecture Decision Records
 
 ## ADR-0001 — Integer/fixed-point gameplay math
 **Date:** 2026-08-29 · **Status:** accepted
@@ -2670,6 +2670,46 @@ So the boundary is not decompile / do-not-decompile. It is **fact / expression.*
    CONFIRMED.** CONFIRMED is reserved for the running game. A fact read cleanly
    out of the binary and consistent with the data is STRONGLY INFERRED — which
    is an honest promotion from HYPOTHESIS, and most of what decompiling is for.
+
+### Amendment, 2026-09-04 — the binary is the *primary* source
+
+The owner, after watching a question get answered from the shipped data and a
+community enum: *"I want you to make using ghidra and decompiled sources as the
+primary source and go to when in doubt."*
+
+**This reorders the sources; it does not loosen rule 2.** Nothing about what may
+cross out of `reverse-engineering/` changes — the fact / expression boundary is
+the whole ADR and it stands. What changes is where to look *first*:
+
+| Before | After |
+|---|---|
+| OpenKeeper, then Flame, then Ember, then RE docs, then experiments (`AGENTS.md`) | **The binary first**, then the shipped data, then the running game, then the community sources |
+
+The reasoning is the owner's own and it is hard to argue with: `DKII.EXE` **is**
+DK2. Every other written source — OpenKeeper's field names, Flame's tables, the
+wiki's prose, this project's own inferences — is somebody's *reading* of that
+binary or of the game it runs. Reading the binary is reading the thing itself.
+
+**Rule 3 survives, narrowed.** The running game still outranks the binary *for
+behaviour the owner can observe*, because the decompiler is an inference engine
+and a misread disassembly is still a misread. What rule 3 must no longer be used
+for is deferring a question the owner cannot easily observe — "put it to the
+owner" is not a substitute for opening Ghidra. Where the binary and an
+observation genuinely conflict, the observation wins **and the conflict is
+written down**, as before.
+
+**Rule 5 survives unchanged.** CONFIRMED still means the running game. Being the
+primary source to *consult* is not the same as being the highest court on
+behaviour, and conflating those would let a plausible-looking decompilation
+freeze a wrong answer as CONFIRMED.
+
+**What it costs in practice:** an open question now owes a Ghidra pass before it
+is recorded as UNKNOWN with a "please play the game" note attached. The pass that
+prompted this amendment took twenty minutes and returned, from one debug-dump
+function, EA's own names for about 220 creature-instance fields — including
+`InWater`, `IsSlowed`, `Leaving`, `TurncoatPlayer`, `TurncoatTimer`,
+`HasBeenKnockedOut`, `DieInstantly`, `PortalGeneratedFromId` and
+`ContributesToPortalLimit`, four of which land directly on open questions.
 
 ### The licence question, flagged rather than answered
 

@@ -1,4 +1,4 @@
-# reverse-engineering/
+﻿# reverse-engineering/
 
 Working space for decompilation of the original `DKII.EXE`. **Everything in
 here except this file is gitignored, deliberately and permanently.**
@@ -25,11 +25,19 @@ expression of that fact.
 
 ## Rank of evidence
 
-Binary-derived facts rank **below** owner observation of the game running. A
-misread disassembly is still a misread, and the decompiler is an inference
-engine — it invents variable names, guesses types, and silently mismodels
-optimised float and fixed-point arithmetic. Where the two disagree, **the
-running game wins** and the disagreement gets written down.
+**This folder is the FIRST place to look, not the last.** Owner, 2026-09-04:
+*"I want you to make using ghidra and decompiled sources as the primary source
+and go to when in doubt."* `DKII.EXE` is the actual DK2; OpenKeeper, Flame, the
+wiki and this project's own inferences are all somebody's *reading* of it. An
+open question owes a Ghidra pass before it is filed as UNKNOWN. See ADR-0046's
+2026-09-04 amendment.
+
+**Consulted first is not the same as trusted most.** For behaviour the owner can
+watch, the running game still wins: a misread disassembly is still a misread,
+and the decompiler is an inference engine — it invents variable names, guesses
+types, and silently mismodels optimised float and fixed-point arithmetic. Where
+the two disagree, **the running game wins** and the disagreement gets written
+down. `[Dk2Behavior]` CONFIRMED remains reserved for the running game.
 
 Where the binary and the *shipped data* disagree, that is interesting rather
 than settled — ADR-0023 already deliberately disbelieves one shipped value.

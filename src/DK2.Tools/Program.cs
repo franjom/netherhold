@@ -683,6 +683,34 @@ switch (args[0])
         Console.WriteLine($"# Sacrifice recipes:    {vars.Sacrifices.Count}");
         Console.WriteLine($"# Creature stat rows:   {vars.CreatureStats.Count}");
 
+        // The per-level stat table (Q119). One row per (stat, level), and the
+        // question it answers is what a level actually does to a creature —
+        // the owner reports imps get faster as they level, and nothing in the
+        // creature record varies by level.
+        if (args.Contains("-s"))
+        {
+            Console.WriteLine();
+            foreach (IGrouping<int, CreatureStatEntry> g in vars.CreatureStats
+                         .Where(e => !e.FirstPerson)
+                         .GroupBy(e => e.StatId)
+                         .OrderBy(g => g.Key))
+            {
+                Console.WriteLine($"  stat {g.Key,3}: " + string.Join(" ",
+                    g.OrderBy(e => e.Level).Select(e => $"L{e.Level}={e.Value}")));
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("first-person rows:");
+            foreach (IGrouping<int, CreatureStatEntry> g in vars.CreatureStats
+                         .Where(e => e.FirstPerson)
+                         .GroupBy(e => e.StatId)
+                         .OrderBy(g => g.Key))
+            {
+                Console.WriteLine($"  stat {g.Key,3}: " + string.Join(" ",
+                    g.OrderBy(e => e.Level).Select(e => $"L{e.Level}={e.Value}")));
+            }
+        }
+
         // The two lists a level actually carries. Printed on request because the
         // question they answer — does a level's list replace the global one or
         // add to it? — needs them side by side (Q82).
