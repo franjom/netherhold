@@ -13,9 +13,9 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **687 tests green**
+**every** record type's on-disk size is now known and pinned. **701 tests green**
 with and without a DK2 install; **15 scenarios** run, each drawing a picture of
-its finished world; clean tree. (Core 17, Simulation 387, Data 63, Behavior 134,
+its finished world; clean tree. (Core 17, Simulation 392, Data 63, Behavior 143,
 Assets 60, Presentation 26.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
@@ -2783,3 +2783,114 @@ The owner approved this sequence explicitly:
   on a form that had worked twice in the same session. **The mitigation that
   works is to write the script to the scratchpad with the `Write` tool and run
   `python <path>`** — every multi-line edit went through cleanly after switching.
+
+## Two more commits after the handoff above (same sitting)
+
+| | |
+|---|---|
+| `0f552b2` | **An imp levels by working** — Q124 answered and implemented |
+| `8d49c69` | **OBJECTS is parsed, and there is no corpse in it** |
+
+`HashVersion` 15 → 16, snapshot `FormatVersion` 15 → 16
+(`CreatureState.ExperiencePoints`). Pinned hash **`0x092072D0E7C9B04E`**.
+**701 tests green**, 15 scenarios, zero warnings.
+
+### Experience: the owner answered Q124 unprompted
+
+> *"imps get experience by working, while they do their usual things around the
+> dungeon, digging, reinforcing walls, mining gold, etc. they get exp and
+> passively their level raises. creatures also gain levels through experience,
+> mostly training and fighting. creatures can get up to level 4 using the
+> training room, up to level 8 using the combat pit, and to get to level 10 they
+> need to fight actual fights."*
+
+**Two of those caps are shipped variables to the number** —
+`TrainingRoomMaxExperienceLevel` 4, `CombatPitMaxExperienceLevel` 8 — the third
+time an owner statement has landed on a variable name outright, and both
+variables had been unread with nothing to say what they capped.
+
+**It also resolved the unit that had looked unresolvable an hour earlier.** The
+record says 1200 for an Imp, the balance table says 20 a second, 20 x 60 = 1200,
+and nothing said which was which. The answer settles it from the side: imps earn
+*by working*, which is what a global per-job rate is for, so the **global's 20 a
+second is the real rate** and the record's 1200 is the same rate **per minute**.
+On that reading a Goblin's 200 is 3.33 a second — fifteen minutes a level.
+
+`CreatureExperienceSystem`, registered last so a creature is paid for a second it
+actually worked. A worker earns while its activity is `Working`; **150 seconds of
+digging buys level 2**; an idle imp earns nothing; anything that is not a worker
+earns nothing at all, and **that zero is asserted by a test** because the
+tempting fix is to give everything the imp's rate and call it progression.
+
+Two readings chosen and written down: the threshold is **spent** rather than
+accumulated (Q127), and a promotion **loops** so a lump sum buys two levels
+instead of discarding one.
+
+### OBJECTS: 145 records of 894 bytes, and the correction it forced
+
+Only the **last 82 bytes are gameplay**. The first 812 are nine art resources and
+a light, so `KwdObjects` models no art resource at all and starts at **0x32C** —
+thirty lines instead of three hundred.
+
+Four checks, three self-validating: the field list lands exactly on the
+independently measured **894**-byte stride; `ObjectId` at 0x35A is a
+**permutation of 1–145**; the sound category reads as text at 0x35E
+(`OBJECT_BED`, `OBJECT_HEART`), pinning the record's *end* independently of its
+start; and five pointers from three other records land — Goblin bed **22**,
+Vampire bed **26**, Tomb Stones **31–34**, Chicken Coop **35**, Training Dummy
+and Target **14 / 29**.
+
+**THE CORRECTION — a corpse is not an object.** This project wrote *"a corpse is
+an OBJECT (M6)"* as the named cause of three gaps (no body, no graveyard, no
+vampire) in ADR-0051, `creature-death.md` and several code comments. **All 145
+objects are named and none is a corpse**; the nearest are the untyped props
+Skeleton (48), Skull (49), Bone (50).
+
+The evidence had pointed the other way all along: both timers are **creature**
+variables, `DecomposeValue` is a **creature** field, and the binary's
+per-creature dump carries `HasBeenKnockedOut` and `DieInstantly`. **A corpse is a
+creature in a state**, so the graveyard needs a **creature-carrying imp task**,
+not a record. ADR-0051's *decision* still stands (a corpse must not be a fake
+creature in the creature list); what was wrong was its reason. Corrected in all
+three places; other mentions of the old phrasing survive in less load-bearing
+docs.
+
+What the record does say: **12 bed objects for 46 creatures** (beds are shared,
+one is the Hero Creature Bed), the **Chicken is object 9** with `TypeFood` and
+decays outside a room, gold on the floor is **three** objects, and **only 52 of
+145 carry any type flag** — the rest is pillars, arches and per-room furniture,
+which is a reason to ask a flag rather than name an id. The union of all flags is
+**0x07F7F7FF**, so `ObjectFlags` names exactly the bits the data uses and a test
+asserts it.
+
+### Where to pick up
+
+**Q130 is the gate, and it is a design question rather than research.** OBJECTS
+unblocks eating, gold piles and beds in *data* terms and immediately exposes that
+there is nowhere to put an **instance**: `WorldState` has tiles and creatures and
+no third list. DK2's own object is a **tagged union with per-kind state**
+(`Object.cpp`: `ThreatBurn` carries a threat and a timer, a mana vault an effect
+delay, a `Lair` a `CreatureId`). Whether ours mirrors that — one type with a
+union — or gives each kind its own list is open, and the determinism gate cares.
+
+**Note the ownership clash before designing it:** DK2 puts bed ownership on the
+*object* (`Lair.CreatureId`); `LairRules` puts it on the *creature*. Same
+relation, opposite end, and only one copy may be authoritative.
+
+**And one correction carried forward:** the state table's writer is at
+**~0x004798e0** inside `State.cpp`, in code Ghidra never identified because
+nothing calls it — reachable only from a data pointer at 0x0068e04c, i.e. a
+**static initialiser**. An earlier note in this file named `FUN_00476d30`, which
+in fact *reads*. The wrong claim came from counting `DATA` references without
+asking which were writes; Ghidra's generic reference type does not distinguish
+them, and `RefsToRange.py` now tests `isWrite()`.
+
+### Owner questions still open (none blocking)
+
+**Q124b** time a fresh level-1 imp to level 2 (~150 s confirms the rate) ·
+**Q118** the water slope, low-level against high-level in the same water ·
+**Q123** does a bed cool anger before the creature lies down ·
+**Q126** what level is the oldest imp in a long game — imps neither train nor
+fight, so nothing says what caps them · **Q129** a dungeon heart's real health,
+against a stored 34464 that looks like a truncated 100000 · plus Q97, Q103, Q112,
+Q107, Q100, Q86, Q65 from the list above.
