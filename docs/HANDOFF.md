@@ -1993,3 +1993,58 @@ Two rules inside room conversion are ours rather than the owner's and both are
 flagged with experiments: **a dungeon heart is exempt** (Q93) and **a multi-tile
 bridge converts whole** (Q94) — the second being the largest extrapolation, since
 "one imp takes a ten-tile span" is a lot to draw from a sentence about portals.
+
+### And the last thing: Ghidra is on the table, and the answer is waiting on the owner
+
+The owner offered Ghidra at the end of the sitting. Rather than answer from
+theory, four cheap questions went to `DKII.EXE` itself — **strings only, nothing
+disassembled** — and they changed the recommendation. Full account in
+`docs/research/executable-strings.md`.
+
+- **Not packed** (`.text`/`.rdata`/`.data`), and `DKII.EXE` and `DKII-DX.exe` are
+  the same size, so there is no ambiguity about which binary to look at.
+- **All four Windows timer APIs are imported** (`QueryPerformanceCounter`,
+  `QueryPerformanceFrequency`, `timeGetTime`, `GetTickCount`). That is a direct,
+  bounded route to **Q1 — the tick rate**, which is the project's biggest
+  blocker: `SimulationTiming.TicksPerSecond = 20` is an admitted placeholder and
+  Q1 is on the *playing cannot settle* list.
+- **The balance variable names are not in the executable**, so the VARIABLES
+  table is indexed by number. Q86's route therefore runs through arithmetic
+  rather than a name search — harder, but still narrow.
+- **72 of its own C++ source filenames survive** in the retail build, and this
+  is the find worth carrying: `Entrance.cpp` (so the portal's real name is
+  Entrance — no `Portal.cpp`, corroborating Flame from a third direction), about
+  **25 `*State.cpp` files that are DK2's creature state machine by name**
+  (`HungerState`, `PayState`, `SulkState`, `ResearchState`, `ManufactureState`,
+  `RunAway`, …), and **sixteen per-room files** — so "what does a room do" really
+  is sixteen behaviours rather than one parameterised room.
+
+**Open, and it is the owner's call, not a technical question (Q96).** Reading
+function bodies is a different step from reading strings: the brief asks for
+clean-room reimplementation and says not to copy original source merely because
+reverse engineering makes it available, and decompiler output *is* source derived
+from the binary. The rule would have to be **facts and formulas into research
+docs, never a transcribed function** — stricter than the OpenKeeper rule the
+owner just relaxed. It also wants a licence check nobody has done (GOG's EULA is
+a contract question distinct from copyright) and its own ADR. **Recommendation on
+record: do it, targeted at Q1 first**, as one bounded search off the timer
+imports that either pays for itself in a sitting or gets dropped; then Q86's
+interval scaling, because that is the riskiest thing currently shipping.
+
+> **A gotcha that nearly produced a false finding.** The first pass used
+> `strings`, which is **not installed on this machine**, so every search returned
+> zero and read as a definite absence. `grep -a` on the binary was the working
+> route. **A missing tool and an absent string are indistinguishable unless the
+> tool's presence is checked** — and this is the second time in two sittings that
+> a tool assumption cost something (see the `python -` entry above, seventh
+> occurrence).
+
+### The three things waiting for the owner
+
+1. **The goblin interval** (Q86). Their ~30 seconds, measured flower to flower,
+   is the right measurement but does not yet discriminate: it is consistent with
+   the flat base *and* with the scaling at a small dungeon. **What separates them
+   is which level and how many creatures were in the dungeon.**
+2. **Q96**, above — the rule for decompiling, if any.
+3. **Q93/Q94** — the two rules inside room conversion that are ours: a dungeon
+   heart being exempt, and a long bridge converting whole.
