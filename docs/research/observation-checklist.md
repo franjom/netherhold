@@ -183,15 +183,43 @@ Goblin's 1500. A short sleep is a big heal.
 **The experiment.** Watch a healthy goblin in a dungeon that has a lair. Does it
 go to bed roughly every four minutes, and is it up again inside ten seconds?
 
-### Q105 — what happens to a creature with no bed? — *added 2026-09-04*
+### Q106 — what is anger measured in? — *added 2026-09-04, and it blocks the whole mood mechanic*
 
-Implemented: it stays awake and never recovers. `angerNoLair` is **100** for a
-Goblin — joint-largest of its four anger sources — so DK2's answer is surely
-anger, and anger does not exist here yet.
+**Anger is not built, and this is the only reason.** Every rate is known — a
+Goblin accrues `AngerNoLair` **100 a second**, a lair calms at **−550**, a slap
+is **+3000** — and `UnhappyThreshold` is **50 on all 46 creatures**, which makes
+it a percentage. Of what? **There is no ceiling in the 214 balance variables,
+none in the creature record, and none in OpenKeeper** (its mood system is an
+empty stub).
 
-**The experiment.** Build a one-tile lair and let three creatures arrive. Does
-the third sleep on the floor, not sleep at all, or leave? And is "no lair" what
-makes creatures desert a dungeon whose lair is too small?
+| Ceiling | Lairless Goblin unhappy | …leaves | One slap |
+|---|---|---|---|
+| 65535 | ~5.5 min | ~11 min | 4.6% |
+| 10000 | ~50 s | ~100 s | 30% |
+
+Both are self-consistent, and a wrong ceiling propagates into job selection and
+desertion rather than staying in one rule. This is **Q47's lesson applied**: a
+plausible-but-wrong answer left unbuilt cost nothing to correct.
+
+**The experiment — two of them, neither needing precision:**
+
+1. Give a creature **nowhere to sleep** (no lair, or a full one) and time how
+   long until it looks unhappy, and how long until it walks out. Two minutes
+   means a ceiling near 10000; ten minutes means 65535.
+2. **Count the slaps.** How many does it take to turn a content creature angry?
+   A slap is +3000, so three or four means ~10000, twenty means ~65535.
+
+Either answer unblocks anger, desertion, sulking and the three job tables.
+
+### Q105 — a creature with no bed — **ANSWERED the same day, by the owner**
+
+> *"If a creature can't get a lair it becomes unhappy, it can't go to sleep,
+> then angry, then it leaves the dungeon."*
+
+So it **cannot sleep at all** — not on the floor — which is what
+`CreatureSleepSystem` already does. And the consequence is the anger ladder,
+confirmed now from two separate causes (Q9 gave the same sequence for unpaid
+creatures). Blocked on Q106 above.
 
 ### Q99 — is zero health death, or a window before it? — *added 2026-09-04*
 

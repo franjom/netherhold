@@ -53,7 +53,10 @@ Original version: DK2 v1.70 (GOG)
 0x0F12 u16 threat       0x0F14 u16 meleeDamage       0x0F16 u16 slapDamage
 0x0F18 u16 manaGenPrayer 0x0F1C u16 pay              0x0F1E u16 maxGoldHeld
 0x0F22 u16 decomposeValue 0x0F24 u16 nameStringId    0x0F26 u16 tooltipStringId
-0x0F28..0x0F32 u16 angerNoLair/NoFood/NoPay/NoWork/Slap/InHand
+0x0F28..0x0F32 **s16** angerNoLair/NoFood/NoPay/NoWork/Slap/InHand — signed, and the
+last two are why: read as u16 a Goblin's angerInHand is 65286 and Jack's angerSlap
+is 60536, which are -250 and -5000. Slapping angers, being picked up calms.
+Corrected 2026-09-04 (ADR-0050); this run was documented as u16 for four months
 0x0F34 u16 initialGoldHeld     0x0F4B u8 creatureId
 0x0F4E u8 hungerFill    0x0F4F u8 unhappyThreshold   0x0F50 u8 meleeAttackType
 0x0F52 u8 lairObjectId  0x107F s16 tortureHpChange   0x1081 s16 tortureMoodChange

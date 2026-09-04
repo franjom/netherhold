@@ -13,9 +13,9 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **619 tests green**
+**every** record type's on-disk size is now known and pinned. **622 tests green**
 with and without a DK2 install; thirteen scenarios run, each drawing a picture of
-its finished world; clean tree. (Core 17, Simulation 341, Data 63, Behavior 112,
+its finished world; clean tree. (Core 17, Simulation 341, Data 63, Behavior 115,
 Assets 60, Presentation 26.)
 
 **M4 has started, and three of its seven items exist.** The portal produces

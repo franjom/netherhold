@@ -145,8 +145,15 @@ What is *built* rather than known, against the long-term goals:
   and killed, it gets hungry, and it takes a bed in a lair, walks to it and
   sleeps in it. What it still has no notion of is **mood, anger, experience or a
   job**, and it still cannot be picked up or dropped. **Anger is the next one
-  that matters**, because it is what both going unfed and having no bed actually
-  cost, and nothing can respond to either without it.
+  that matters** — the owner has CONFIRMED the ladder twice (Q9 for pay, Q105 for
+  lairs: *unhappy, then angry, then it leaves the dungeon*) — but it is
+  **blocked on Q106, its unit.** Every rate is in the data and there is no
+  ceiling anywhere, including in OpenKeeper, whose mood system is an empty stub.
+  A wrong ceiling would propagate into job selection and desertion, so it waits
+  for one stopwatch (ADR-0050, docs/research/creature-anger.md). Fixing the
+  signedness of the six anger fields on the way in found that **slapping angers
+  and being picked up calms** — read unsigned, picking a creature up would have
+  added 65286 to its anger.
 - **How a keeper *destroys* a room somebody else holds.** `AttackRoomHealth` =
   −1500 names it and there is no `TileWorkKind` for it. **Claiming** one is done
   (ADR-0044) — a room changes hands whole, never tile by tile, CONFIRMED by the

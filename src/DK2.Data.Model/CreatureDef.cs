@@ -82,12 +82,12 @@ public sealed record CreatureDef
 
     // Mood / anger thresholds
     public required byte UnhappyThreshold { get; init; }
-    public required ushort AngerNoLair { get; init; }
-    public required ushort AngerNoFood { get; init; }
-    public required ushort AngerNoPay { get; init; }
-    public required ushort AngerNoWork { get; init; }
-    public required ushort AngerSlap { get; init; }
-    public required ushort AngerInHand { get; init; }
+    public required short AngerNoLair { get; init; }
+    public required short AngerNoFood { get; init; }
+    public required short AngerNoPay { get; init; }
+    public required short AngerNoWork { get; init; }
+    public required short AngerSlap { get; init; }
+    public required short AngerInHand { get; init; }
     public required short TortureHpChange { get; init; }
     public required short TortureMoodChange { get; init; }
     public required Fp32 TortureTimeToConvert { get; init; }

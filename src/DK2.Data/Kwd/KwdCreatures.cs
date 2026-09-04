@@ -169,12 +169,19 @@ public static class KwdCreatures
             JobClass = (JobClass)U8(0xF02),
 
             UnhappyThreshold = U8(0xF4F),
-            AngerNoLair = U16(0xF28),
-            AngerNoFood = U16(0xF2A),
-            AngerNoPay = U16(0xF2C),
-            AngerNoWork = U16(0xF2E),
-            AngerSlap = U16(0xF30),
-            AngerInHand = U16(0xF32),
+            // All six signed, and the last two are why. Read as u16 they come
+            // back as 60536 and 65286, which are -5000 and -250 in a 16-bit
+            // field: being slapped or picked up *calms* most creatures rather
+            // than angering them. The first four are small positives on every
+            // shipped creature (0..150), so signed reads them identically and
+            // is strictly the safer choice. docs/research/kwd-creatures.md had
+            // the whole run documented as u16; corrected 2026-09-04.
+            AngerNoLair = S16(0xF28),
+            AngerNoFood = S16(0xF2A),
+            AngerNoPay = S16(0xF2C),
+            AngerNoWork = S16(0xF2E),
+            AngerSlap = S16(0xF30),
+            AngerInHand = S16(0xF32),
             TortureHpChange = S16(0x107F),
             TortureMoodChange = S16(0x1081),
             TortureTimeToConvert = Fp(0xEF4),

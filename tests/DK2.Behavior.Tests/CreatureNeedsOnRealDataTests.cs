@@ -370,4 +370,99 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(18, db.CreatureByName("Bile Demon")!.LairObjectId);
         Assert.Equal(0, db.CreatureByName("Imp")!.LairObjectId);
     }
+
+    // ---- anger, which is not implemented but is parsed ---------------------
+
+    [Fact]
+    public void TheAngerFieldsAreSignedAndTheLastTwoAreWhy()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // Read as u16 — which is how the parser and kwd-creatures.md both had
+        // them until 2026-09-04 — a Goblin's angerInHand comes back as 65286
+        // and Jack's angerSlap as 60536. Signed, they are -250 and -5000, and
+        // the whole table becomes coherent:
+        //
+        //   slapping ANGERS (+3000 Goblin, +7000 Warlock, +8000 Horny)
+        //   being picked up CALMS (-250 Goblin, -500 Warlock)
+        //
+        // The first four fields are small positives on every shipped creature,
+        // so signed reads them identically and is strictly safer.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        CreatureDef goblin = db.CreatureById(7);
+        Assert.Equal(3000, goblin.AngerSlap);
+        Assert.Equal(-250, goblin.AngerInHand);
+
+        CreatureDef warlock = db.CreatureByName("Warlock")!;
+        Assert.Equal(7000, warlock.AngerSlap);
+        Assert.Equal(-500, warlock.AngerInHand);
+
+        // Jack is the inverse of everything else — slapping calms it and being
+        // held annoys it — which is of a piece with its other oddities (240
+        // health, and a chicken worth 250).
+        CreatureDef jack = db.CreatureByName("Jack")!;
+        Assert.Equal(-5000, jack.AngerSlap);
+        Assert.Equal(500, jack.AngerInHand);
+
+        // Nothing in the shipped data needs more than a signed 16-bit range.
+        Assert.All(db.Creatures.Values, c =>
+        {
+            Assert.InRange(c.AngerNoLair, (short)0, (short)1000);
+            Assert.InRange(c.AngerNoFood, (short)0, (short)1000);
+            Assert.InRange(c.AngerNoPay, (short)0, (short)1000);
+            Assert.InRange(c.AngerNoWork, (short)0, (short)1000);
+        });
+    }
+
+    [Fact]
+    public void EveryCreatureBecomesUnhappyAtFiftyPercentOfWhateverAngerIs()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // All 46 creatures share an UnhappyThreshold of 50, which is what makes
+        // it read as a percentage rather than an absolute. What it is 50% *of*
+        // is the blocking unknown for anger (Q106): there is no ceiling anywhere
+        // in the balance table, and without it a percentage cannot be turned
+        // into a number of seconds.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        Assert.All(db.Creatures.Values, c => Assert.Equal(50, c.UnhappyThreshold));
+    }
+
+    [Fact]
+    public void OnlyTheSkeletonCannotBeAngeredByAnUnmetNeed()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The plain Skeleton is the *only* creature with 0 in all four
+        // need-based anger fields — it has no lair, never eats, is not paid and
+        // does not care about work.
+        //
+        // The **Unique Skeleton** is not, though it shares every one of those
+        // properties. That is the second time a unique has diverged from the
+        // creature it is a variant of, after the Unique Firefly eating where the
+        // ordinary Firefly does not. Whether the uniques were edited
+        // inconsistently or deliberately is UNKNOWN and does not matter: the
+        // rules read the record.
+        //
+        // The Imp, the Dwarf and Horny carry 1, which is not zero but is a
+        // hundredth of a Goblin's 100: present so that something can happen,
+        // small enough that nothing does.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        var unangerable = db.Creatures.Values
+            .Where(c => c.AngerNoLair == 0 && c.AngerNoFood == 0
+                        && c.AngerNoPay == 0 && c.AngerNoWork == 0)
+            .Select(c => c.Name)
+            .ToHashSet();
+
+        Assert.Equal(new HashSet<string> { "Skeleton" }, unangerable);
+
+        Assert.Equal(1, db.CreatureByName("Imp")!.AngerNoLair);
+        Assert.Equal(100, db.CreatureById(7).AngerNoLair);
+    }
 }

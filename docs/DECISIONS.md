@@ -2950,3 +2950,76 @@ end with creatures streaming home rather than dying in place.
 Also Q104: the **Dwarf** and the **Stone Knight** carry a bed object *and* a
 `TimeAwake` of 32767, so by the record they occupy a lair tile and never sleep in
 it. `NeedsBed` gates on the object, so here they take a bed and never use it.
+
+---
+
+## ADR-0050 — The six anger fields are signed, and anger waits for its unit
+
+**Date:** 2026-09-04
+**Status:** Accepted
+**Evidence:** shipped data; the ladder CONFIRMED by the owner (Q9, Q105)
+**See:** `docs/research/creature-anger.md`
+
+### Two decisions, and the second is a decision not to build
+
+**One: the anger fields are `short`, not `ushort`.** `AngerSlap` and
+`AngerInHand` were parsed as unsigned, and `kwd-creatures.md` documented the
+whole run of six that way for four months. Read unsigned, a Goblin's
+`AngerInHand` is 65286 and Jack's `AngerSlap` is 60536 — **−250 and −5000**.
+
+Signed, the table means something:
+
+- **slapping angers** (+3000 Goblin, +7000 Warlock, +8000 Horny)
+- **being picked up calms** (−250 Goblin, −500 Warlock)
+- **Jack is the inverse** — slapping calms it, being held annoys it
+
+All six are now signed. The first four hold 0..150 on every shipped creature, so
+signed reads them identically and is strictly safer. **Had anger been built
+first, picking a creature up would have added 65286 to its anger** and maxed it
+on the spot.
+
+**Two: anger is not implemented, and will not be until Q106 is answered.**
+
+### The ladder is known; the unit is not
+
+The owner has CONFIRMED the ladder twice from two causes — *"unpaid → unhappy →
+angry → leaves"* (Q9) and *"if a creature can't get a lair it becomes unhappy,
+it can't go to sleep, then angry, then it leaves the dungeon"* (Q105). Every
+rate is in the data: `AngerNoLair` 100 a second for a Goblin, a lair calming at
+−550, a slap at +3000, nine more variables besides.
+
+What is missing is what those numbers are **measured in**.
+`UnhappyThreshold` is 50 on all 46 creatures, which makes it a percentage — and
+**there is no ceiling anywhere**: not in the 214 balance variables, not in the
+creature record, and **not in OpenKeeper, whose `CreatureMoodSystem` is an empty
+stub with a TODO.** This is the first mechanic the project has reached where
+OpenKeeper offers nothing at all.
+
+A ceiling of 65535 makes a lairless Goblin leave after eleven minutes; a ceiling
+of 10000 makes it two. Both are self-consistent. Both are plausible.
+
+### Why waiting is the decision rather than the absence of one
+
+**This is Q47 again**, and that lesson cost something worth not repeating. Q47
+had a plausible answer — work applied twice a second at half the tabled delta —
+that fitted every observed range and was wrong. It was left unbuilt because
+ranges are not counts; the measurement came back at five a second, and *not
+having built it made the correction free*.
+
+Anger is the same shape, and worse placed: mood feeds job selection, desertion
+and the rest of M4, so a wrong ceiling propagates into everything built on top
+of it rather than sitting in one rule.
+
+**The measurement is one stopwatch and needs no precision.** Give a creature
+nowhere to sleep and time how long until it leaves; or count how many slaps make
+a content creature angry. Either pins the ceiling, because the rates are known.
+
+### What the absence costs, stated rather than hidden
+
+- A creature with no bed stays awake for ever and never recovers from a wound.
+- A hungry creature that cannot eat is unharmed for ever — which ADR-0048
+  established is right about *health* and is now known to be wrong about
+  *anger*.
+- Neither matters much yet, because **nothing can slap or pick up a creature**,
+  so the two largest anger sources have no trigger. That is the sequencing
+  point: anger has no player input to respond to until the hand exists.
