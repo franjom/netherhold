@@ -52,6 +52,13 @@ namespace DK2.Simulation.Systems;
 /// answer a player watching their first goblin arrive would expect. Nothing it
 /// does can affect a system above it in the same tick, so its position is a
 /// statement about what a new creature can see rather than a constraint.</item>
+/// <item><see cref="CreatureSleepSystem"/> — the driver for creatures that are
+/// not workers, and the first one there has ever been: it claims a bed, walks
+/// the creature to it and puts it to sleep. Placed here for the same reason
+/// <see cref="ImpTaskSystem"/> sits after movement — it sets a path that
+/// movement walks on the following tick — and <i>before</i> the health system,
+/// so a creature that falls asleep this tick is healed on the same second
+/// rather than a second late.</item>
 /// <item><see cref="CreatureHealthSystem"/> — last, so a creature that arrives
 /// on tick N is not regenerated or aged on the tick it arrives, and its hunger
 /// clock starts from a whole second. It also means anything that damages a
@@ -80,6 +87,7 @@ public static class SimulationSystems
         new ManaSystem(),
         new ImpSupplySystem(),
         new PortalSystem(),
+        new CreatureSleepSystem(),
         new CreatureHealthSystem(),
     ];
 }

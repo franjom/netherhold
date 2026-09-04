@@ -2848,3 +2848,105 @@ either. The method is written down in `creature-needs.md` §6 so the next attemp
 starts further along, and the promising route is **reading the vtables**, which
 would name all ~25 state handlers at once. **Nothing in this ADR rests on the
 binary.**
+
+---
+
+## ADR-0049 — A creature has its own bed, and heals only while asleep in it
+
+**Date:** 2026-09-04
+**Status:** Accepted
+**Evidence:** owner observation — **CONFIRMED**
+**Amends:** ADR-0048, whose lair healing was a proxy and is now replaced
+
+### What the owner said
+
+> *"A lair is a room with tiles, on each tile only one bed/chair/whatever per
+> creature can be present. When a creature enters a dungeon through a portal it
+> goes to a lair, finds a free tile and occupies it with its bed. When a
+> creature is injured it heals while it sleeps in its own bed."*
+
+Plus two corrections in the same breath: **a skeleton does not have a lair**, and
+**Horny is a summon** — not in a regular roster, and only on particular maps
+when conditions are met. Both are consistent with `LairObjectId` being 0 for
+them, and the second is independently why Horny carries no
+`AvailableViaPortal` (ADR-0047).
+
+### The decision
+
+`CreatureState` gains `LairTileIndex`, `AwakeTicks` and `SleepTicks`.
+`LairRules` holds the rules; `CreatureSleepSystem` claims a bed, walks the
+creature to it, puts it to sleep and wakes it. HashVersion 11 → 12, snapshot
+FormatVersion 11 → 12.
+
+`CreatureHealthRules.LairHealPerSecond` is now one expression:
+`AsleepInOwnBed ? 100 : 0`.
+
+### What this replaced, and it was wrong twice over
+
+ADR-0048 healed **anything standing on any of its keeper's lair tiles**. Both
+halves were wrong:
+
+- **Asleep, not present.** A wounded creature standing awake in its own lair
+  heals nothing.
+- **Its own bed, not its keeper's lair.** One bed per tile, one tile per
+  creature. A creature with no bed never heals, whatever it stands on.
+
+Both were flagged as the weakest reading in the mechanic and written as a single
+expression precisely so that replacing them would be one edit. It was.
+
+### The third thing, which nobody asked
+
+**A lair's capacity is its tile count** — one bed per tile. Worth an ADR line of
+its own because it is **not** the general rule for rooms: a temple's capacity is
+its *rim*, `2(w+h) − 4` (Q60), and a dungeon heart stores gold in an outer ring.
+So capacity is per room type, and the lair's happens to be the obvious one.
+Anyone tempted to write a general `Capacity(room)` should read Q60 first.
+
+### The first driver a non-worker has ever had
+
+Until now the only creature that moved under its own steam was an imp, driven by
+`ImpTaskSystem`; a goblin out of a portal stood on the hole forever because
+nothing looked at it. `CreatureSleepSystem` is the other half of that, and it
+**reuses the imps' pathfinder and the imps' movement system** rather than
+growing a second way to walk. Registered after `ImpTaskSystem` and *before*
+`CreatureHealthSystem`, so a creature that falls asleep this tick is healed on
+the same game second rather than a second late.
+
+Workers are skipped by an **explicit** check rather than incidentally. An imp
+has no bed and never sleeps, so the two systems could not fight over one — but
+"the imp is excluded because its record happens to say 0" is the kind of
+reasoning that stops being true when somebody edits a record.
+
+### Two invariants that needed their own code
+
+**A bed is not a promise.** The lair can be sold, dug out or claimed by a rival
+while its owner is asleep in it, so `BedStillValid` is checked every tick and
+the bed is given up when it fails. Without it a creature goes on healing on a
+patch of claimed floor.
+
+**A dead creature gives up its bed.** Otherwise a lair silently loses a tile
+every time something dies in it. Both are tested.
+
+### Occupancy is derived, never stored
+
+A tile is taken if some creature's `LairTileIndex` points at it — the same
+discipline `RoomInstance` follows, and for the same reason: nothing can strand a
+bed that no creature owns. The cost is a scan of the creature list per query,
+and creatures are tens where tiles are tens of thousands.
+
+Which free tile gets claimed is **lowest tile index first**, across lairs in
+`RoomIndex` order. DK2 almost certainly picks nearest-to-the-door; this is
+deterministic, which is the property that cannot be given up (ADR-0001).
+
+### What is still a reading
+
+The **cycle**: `TimeAwake` 240 and `TimeSleep` 9 read as seconds, so four
+minutes up and nine seconds down. That looks wrong until you multiply — nine
+seconds at 100 a second is 900 of a Goblin's 1500 — but it is a reading, and it
+is Q103. The wounded shortcut is the data's own:
+`CreatureSleepsWhenBelowPercentHealth` is 50, which is what makes a losing fight
+end with creatures streaming home rather than dying in place.
+
+Also Q104: the **Dwarf** and the **Stone Knight** carry a bed object *and* a
+`TimeAwake` of 32767, so by the record they occupy a lair tile and never sleep in
+it. `NeedsBed` gates on the object, so here they take a bed and never use it.

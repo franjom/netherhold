@@ -1,64 +1,87 @@
-# A creature that has needs, next to one that has none.
+# Creatures with needs, next to one that has none.
 #
-# Two creatures are placed and nothing else happens: a **Goblin**, which gets
-# hungry every 180 seconds by its own record, and an **Imp**, which never does.
-# The run is 200 game-seconds so the Goblin's clock comes round once and the
-# Imp's never does, and the difference between the two is the whole point —
-# 32767 in `hungerRate` means never, and it is a real value in the shipped data
-# rather than an Imp quirk (ADR-0048).
+# Three **Goblins** and an **Imp** are placed and nothing else happens. A goblin
+# gets hungry every 180 seconds, sleeps every 240, and has a bed of its own
+# (`LairObjectId` 22). An imp does none of the three — its record says 32767 for
+# both hunger and sleep and 0 for its bed object, and the owner confirms that is
+# real: a skeleton has no lair either, and Horny is a summon rather than a
+# roster creature.
 #
-# What to read in the event log:
+# The lair is **two tiles**, which is two beds and no more, because a lair holds
+# one creature per tile (ADR-0049, CONFIRMED by the owner). Three goblins into
+# two beds is the point.
 #
-#   t3599   `creature_hungry ... type=Goblin chickens=1 after=180s`
-#           Exactly 180 seconds, which is the record's HungerRate, and one
-#           chicken, which is its HungerFill. The Bile Demon would say five.
+# What the event log shows, in order:
 #
-#           t3599 and not t3600 because the system runs on the *last* tick of
-#           each game second — the same phase ManaSystem uses, so that a level
-#           does not open by paying out a second that has not elapsed. 3599 is
-#           tick 20x180 - 1.
+#   t0      `bed_claimed ... object=22 tile=(5,5)` and `tile=(6,5)`
+#           Two goblins take the two beds on the tick they exist, in creature
+#           order. **The third gets nothing and never will** — its keeper has no
+#           more lair tiles. In DK2 that is what `angerNoLair` is for (100 for a
+#           Goblin, joint-largest in its record) and anger does not exist here
+#           yet, so the only visible consequence is that it never sleeps and
+#           would never recover from a wound. Q105.
 #
-# And then nothing, for the remaining twenty seconds and for as long as the run
-# lasts. **The Goblin stays hungry forever**, because eating needs chickens,
-# chickens are objects, and the OBJECTS record is unparsed (M6). That is the
-# honest state of the mechanic and this scenario is where it is visible.
+#   t3599   `creature_hungry ... chickens=1 after=180s`  — all three
+#           Exactly the record's HungerRate, and one chicken, which is its
+#           HungerFill. A Bile Demon would say five. t3599 and not t3600 because
+#           the health system runs on the *last* tick of each game second, the
+#           same phase ManaSystem uses; 3599 is 20x180 - 1.
 #
-# **It costs the Goblin no health.** Not mercy — the balance table has 21 health
-# variables and nine anger ones and there is no starvation among them. What
-# going unfed costs in DK2 is *anger*, per creature in the record (`angerNoFood`
-# is 100 for a Goblin), and anger is the next need rather than this one.
+#           And then nothing. **They stay hungry for the rest of the run**,
+#           because eating needs chickens, chickens are objects, and OBJECTS is
+#           unparsed (M6). It costs them no health, and that is a finding rather
+#           than mercy: 21 health variables and nine anger ones were searched and
+#           there is no starvation. DK2 charges anger for going unfed.
 #
-# The Imp is here as the control, and it does something the Goblin cannot: it is
-# one of only **two** creatures in the game with a non-zero
-# `OwnLandHealthIncreasePerSecond` — 67 a second, the other being King Reginald
-# at 400. It is standing on its keeper's own land at full health, so nothing is
-# emitted; damage a creature and the same tile would heal it. There is no
-# command that wounds a creature, which is why that half is covered by tests
-# rather than by a scenario.
+#   t4799   `going_to_sleep ... to=(5,5) steps=3 health=1500/1500`
+#           240 seconds awake, which is TimeAwake. Note it walks — three tiles —
+#           because `CreatureSleepSystem` is **the first driver a non-worker
+#           creature has ever had**, and it reuses the imps' pathfinder and
+#           movement rather than growing a second way to walk.
 #
-# What this run does NOT establish: when DK2 actually starts the hunger clock
-# (here it is spawn — Q102); whether zero health is death or a 60-second
-# unconscious window (Q99); or what heals a creature in a lair, which is
-# implemented as a proxy and is the weakest reading in the mechanic (Q101).
+#   t4900   `fell_asleep at=(5,5)`   — five seconds of walking
+#   t5080   `woke_up slept=180`      — nine seconds asleep, which is TimeSleep
+#
+# Nine seconds looks like a short night until you multiply: at
+# `ModifyHealthOfCreatureInLairPerSecond` = 100, one sleep is **900 health** of a
+# Goblin's 1500. So a short sleep is a big heal, which is why the 240/9 ratio is
+# implemented as written rather than assumed to be a misread (Q103).
+#
+# Nothing heals in this run because nothing is hurt, and there is no command that
+# wounds a creature — that half is covered by tests. What the tests also cover
+# and this cannot: healing needs the creature to be **asleep in its own bed**, so
+# standing awake in the lair heals nothing and lying on somebody else's bed heals
+# nothing.
+#
+# What this run does NOT establish: whether the 240/9 cycle is DK2's (Q103);
+# whether zero health is death or a 60-second unconscious window (Q99); whether
+# regeneration applies while a creature is busy (Q100); and when DK2 actually
+# starts the hunger clock, which here is spawn (Q102).
 id: creatures-a-goblin-gets-hungry-001
 question: >
-  Does a Goblin get hungry after exactly the 180 seconds its record gives, ask
-  for exactly the one chicken its record gives, and does an Imp beside it never
-  get hungry at all?
+  Do three Goblins take the two beds a two-tile lair has, get hungry after
+  exactly the 180 seconds their record gives, walk to bed after 240 and sleep
+  for 9 — while an Imp beside them does none of it?
 map: flat_24x20
 seed: 5
-duration_ticks: 4000
+duration_ticks: 5400
 setup:
   players:
     - { id: 3, gold: 0, mana: 0 }
   rooms:
-    # The keeper needs land to stand on for the Imp's own-land rate to have
-    # anywhere to apply. A lair, because it is the room a creature belongs in.
+    # A two-tile lair: two beds and no more, which is the whole capacity rule.
+    # One bed per tile (ADR-0049, CONFIRMED by the owner).
     - { type: Lair, at: [5, 5], player: 3 }
+    - { type: Lair, at: [6, 5], player: 3 }
   creatures:
-    # 180 seconds to hunger, one chicken to fill.
+    # 180 seconds to hunger, one chicken to fill, and a bed of its own
+    # (LairObjectId 22). Placed away from the lair so the walk is visible.
     - { type: Goblin, at: [8, 8], player: 3 }
-    # Never hungry, and one of the two creatures that heal on their own land.
+    - { type: Goblin, at: [9, 8], player: 3 }
+    # A third, which finds both beds taken and has nowhere to sleep (Q105).
+    - { type: Goblin, at: [10, 8], player: 3 }
+    # Never hungry, never sleeps, no bed at all — and one of only two creatures
+    # that heal on their own land.
     - { type: Imp, at: [5, 5], player: 3 }
 commands: []
 observe:

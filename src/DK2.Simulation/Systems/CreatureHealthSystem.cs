@@ -98,6 +98,9 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     private static void Die(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
+        // A dead creature gives up its bed, or a lair leaks a tile forever.
+        LairRules.ReleaseBed(state);
+
         bool leavesBody = creature.Flags.HasFlag(CreatureFlags.GenerateDeadBody);
 
         context.Emit(SystemName, "creature_died",

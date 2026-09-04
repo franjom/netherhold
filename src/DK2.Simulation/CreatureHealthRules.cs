@@ -138,38 +138,33 @@ public static class CreatureHealthRules
     }
 
     /// <summary>
-    /// Health per second for a creature in a lair of its own keeper's —
+    /// Health per second for a creature <b>asleep in its own bed</b> —
     /// <c>ModifyHealthOfCreatureInLairPerSecond</c>, which is <b>100</b>, and is
     /// the main way anything heals in DK2.
     ///
-    /// <para><b>This reading is a proxy and it is the weakest thing here
-    /// (Q101).</b> DK2 gives each creature <i>its own</i> lair — a specific
-    /// tile, with a bed object on it, that belongs to that creature and to no
-    /// other — and heals it while it sleeps there. None of that exists yet:
-    /// there is no lair ownership, no sleeping, and no bed, because beds are
-    /// objects (M6). So the implemented test is <b>standing on a lair tile whose
-    /// owner is this creature's keeper</b>, which is as close as the current
-    /// state can come.</para>
+    /// <para><b>CONFIRMED by the owner</b> (2026-09-04): <i>"when a creature is
+    /// injured it heals while it sleeps in its own bed."</i> Both halves are
+    /// load-bearing and both were wrong in the first implementation, which
+    /// healed anything standing on any of its keeper's lair tiles:</para>
     ///
-    /// <para>It is deliberately a single expression so that replacing it with
-    /// "asleep in a lair it owns" is one edit. Two things it gets wrong on
-    /// purpose, both recorded rather than papered over: a creature heals here
-    /// while awake, and any of a keeper's creatures heals in any of that
-    /// keeper's lairs.</para>
+    /// <list type="bullet">
+    /// <item><b>Asleep, not present.</b> A wounded creature standing awake in
+    /// its own lair heals nothing.</item>
+    /// <item><b>Its own bed, not its keeper's lair.</b> One bed per tile, one
+    /// tile per creature — see <see cref="LairRules"/>. A creature with no bed
+    /// never heals here at all, whatever it is standing on.</item>
+    /// </list>
+    ///
+    /// <para>Which makes the healing rate a <i>consequence</i> of the sleep
+    /// cycle rather than of position: a Goblin sleeps for its record's
+    /// <c>TimeSleep</c> of 9 seconds, so one sleep is worth 900 health of its
+    /// 1500 (Q103).</para>
     /// </summary>
     public static int LairHealPerSecond(
-        WorldState world, GameDatabase database, CreatureState state)
-    {
-        TilePos at = state.Tile;
-        if (!world.Contains(at)) return 0;
-
-        ref TileState tile = ref world.Tile(at.X, at.Y);
-        if (tile.OwnerPlayerId != state.OwnerPlayerId) return 0;
-
-        if (tile.TerrainId != database.Room(RoomTypeId.Lair).TerrainId) return 0;
-
-        return database[VariableTypeId.ModifyHealthOfCreatureInLairPerSecond];
-    }
+        WorldState world, GameDatabase database, CreatureState state) =>
+        LairRules.AsleepInOwnBed(world, state)
+            ? database[VariableTypeId.ModifyHealthOfCreatureInLairPerSecond]
+            : 0;
 
     /// <summary>
     /// Whether this creature ever gets hungry. False for the Imp, Vampire,

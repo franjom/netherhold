@@ -293,4 +293,81 @@ public class CreatureNeedsOnRealDataTests
 
         Assert.Equal(240, state.Health);
     }
+
+    // ---- beds ------------------------------------------------------------
+
+    [Fact]
+    public void TenCreaturesHaveNoBedAndTheyAreTheOnesWithNowhereToLive()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // LairObjectId is the bed object itself, and 0 means there is none.
+        // The owner CONFIRMED the two interesting members: "skeleton does not
+        // have a lair", and "horny is only a summonable creature, it is not in
+        // a regular roster of creatures, and only on special conditions/maps
+        // when conditions are met" — which is also why Horny carries no
+        // AvailableViaPortal (ADR-0047).
+        //
+        // The other seven fall out the same way: the Imp lives nowhere, and
+        // the five hero lords plus Jack come through hero gates rather than
+        // living in anybody's dungeon.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        var bedless = db.Creatures.Values
+            .Where(c => !LairRules.NeedsBed(c))
+            .Select(c => c.Name)
+            .ToHashSet();
+
+        Assert.Equal(
+            new HashSet<string>
+            {
+                "Imp", "Skeleton", "Unique Skeleton", "Horny", "Jack",
+                "Prince Tristran", "King Reginald", "Prince Felix",
+                "Lord Of The Land", "Prince Balder",
+            },
+            bedless);
+    }
+
+    [Fact]
+    public void TwoCreaturesOwnABedTheyCanNeverSleepIn()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The Dwarf and the Stone Knight both carry a bed object *and* a
+        // TimeAwake of 32767, so by the record they occupy a lair tile and
+        // never sleep in it. Which of the two fields DK2 gates on is Q104.
+        //
+        // Nothing depends on it — a creature that never sleeps never heals in a
+        // bed either way — but it is exactly the sort of quiet contradiction
+        // that a rule written from one field would get wrong, so it is checked
+        // rather than assumed away.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        var bedButSleepless = db.Creatures.Values
+            .Where(c => LairRules.NeedsBed(c) && c.TimeAwake >= Never)
+            .Select(c => c.Name)
+            .ToHashSet();
+
+        Assert.Equal(new HashSet<string> { "Dwarf", "Stone Knight" }, bedButSleepless);
+    }
+
+    [Fact]
+    public void TheGoblinsBedIsObjectTwentyTwoAndTheVampiresIsACoffin()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The fixture's Goblin carries 22, so this is its drift guard. The
+        // Vampire's 26 is here because it is the one that makes the field
+        // obviously a per-creature *object* rather than a flag — a vampire
+        // sleeps in a different thing from a goblin.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        Assert.Equal(22, db.CreatureById(7).LairObjectId);
+        Assert.Equal(26, db.CreatureByName("Vampire")!.LairObjectId);
+        Assert.Equal(18, db.CreatureByName("Bile Demon")!.LairObjectId);
+        Assert.Equal(0, db.CreatureByName("Imp")!.LairObjectId);
+    }
 }

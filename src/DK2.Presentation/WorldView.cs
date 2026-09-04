@@ -278,6 +278,8 @@ public sealed class WorldView
         CreatureActivity.MovingToJob => "moving_to_job",
         CreatureActivity.Working => "working",
         CreatureActivity.DeliveringGold => "delivering_gold",
+        CreatureActivity.GoingToSleep => "going_to_sleep",
+        CreatureActivity.Sleeping => "sleeping",
         _ => throw new ArgumentOutOfRangeException(
             nameof(activity), activity, "No animation key for this activity."),
     };

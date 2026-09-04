@@ -180,7 +180,7 @@ What a run still cannot tell you:
 - **How long anything takes.** The health deltas carry no unit (Q19), and the
   tick rate is unmeasured (Q1). Tick numbers in a report are ordering, not time.
 - **What a creature is.** It has health and a hunger clock (ADR-0048) and
-  nothing else: no mood, no anger, no experience, no sleep, no job. A hungry
+  nothing else: no mood, no anger, no experience, no job. A hungry
   creature stays hungry forever, because chickens are objects (M6), and it takes
   no damage for it — DK2 charges anger, which does not exist here yet.
 - **What a room does.** A treasury and a dungeon heart hold gold, a portal

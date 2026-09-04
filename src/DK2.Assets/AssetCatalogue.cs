@@ -40,7 +40,7 @@ public static class AssetCatalogue
     /// a renderer depends on both. <c>AssetCatalogueTests</c> asserts the two
     /// lists agree, so the copy cannot drift.</para>
     ///
-    /// <para>Four names is not DK2's animation set; it is ours, and it grows as
+    /// <para>Six names is not DK2's animation set; it is ours, and it grows as
     /// the simulation learns states.</para>
     /// </summary>
     public static readonly string[] CreatureAnimations =
@@ -49,6 +49,8 @@ public static class AssetCatalogue
         "moving_to_job",
         "working",
         "delivering_gold",
+        "going_to_sleep",
+        "sleeping",
     ];
 
     /// <summary>

@@ -285,6 +285,11 @@ internal static class Dk2TerrainFixture
         DecomposeValue = 200,
         OwnLandHealthIncreasePerSecond = 0,
 
+        // Its bed. 22 is the Goblin's own object id, and it is what makes the
+        // Goblin the fixture creature that sleeps — the Imp's is 0, which the
+        // owner confirms means no lair at all (as for the Skeleton).
+        LairObjectId = 22,
+
         // Imp facts, cleared rather than inherited.
         MaxGoldHeld = 0,
         InitialGoldHeld = 0,

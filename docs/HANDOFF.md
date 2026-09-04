@@ -13,17 +13,23 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **608 tests green**
+**every** record type's on-disk size is now known and pinned. **619 tests green**
 with and without a DK2 install; thirteen scenarios run, each drawing a picture of
-its finished world; clean tree. (Core 17, Simulation 333, Data 63, Behavior 109,
+its finished world; clean tree. (Core 17, Simulation 341, Data 63, Behavior 112,
 Assets 60, Presentation 26.)
 
-**M4 has started.** Two of its seven items exist: the portal produces creatures
-(ADR-0042, ADR-0047) and **a creature now has health and a hunger clock**
-(ADR-0048). A creature can be hurt, healed and killed; it gets hungry and cannot
-eat, because chickens are objects (M6). What it still has no notion of is mood,
-anger, experience, sleep or a job, and it cannot be picked up or dropped.
-**Anger is the next one that matters** — it is what hunger actually costs.
+**M4 has started, and three of its seven items exist.** The portal produces
+creatures (ADR-0042, ADR-0047); a creature has **health and a hunger clock**
+(ADR-0048); and it has **its own bed in a lair, and sleeps in it** (ADR-0049,
+CONFIRMED by the owner) — which also gave the project **the first driver a
+non-worker creature has ever had**, so a goblin out of a portal no longer stands
+on the hole forever. It claims a bed on arrival, walks to it when tired or hurt,
+sleeps, heals only while asleep in its own bed, and wakes up.
+
+What a creature still has no notion of is **mood, anger, experience or a job**,
+and it cannot be picked up or dropped. It gets hungry and cannot eat, because
+chickens are objects (M6). **Anger is the next one that matters** — it is what
+both hunger and having no bed actually cost.
 
 **The first room whose behaviour exists is the portal** (2026-09-04, ADR-0042):
 a claimed portal produces its level's own creatures, and **level 1 produces

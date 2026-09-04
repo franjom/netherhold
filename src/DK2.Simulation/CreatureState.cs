@@ -34,6 +34,15 @@ public enum CreatureActivity
     /// <c>JobPriority</c>.
     /// </summary>
     DeliveringGold = 3,
+
+    /// <summary>Walking to its own bed in a lair, to sleep in it.</summary>
+    GoingToSleep = 4,
+
+    /// <summary>
+    /// Asleep in its own bed. The only state in which a lair heals a creature
+    /// (ADR-0049, CONFIRMED by the owner).
+    /// </summary>
+    Sleeping = 5,
 }
 
 /// <summary>
@@ -145,6 +154,43 @@ public sealed class CreatureState
     /// </summary>
     public int ChickensNeeded;
 
+    /// <summary>
+    /// The lair tile this creature's own bed stands on, or -1 if it has none.
+    ///
+    /// <para><b>One bed per tile, one tile per creature</b> — CONFIRMED by the
+    /// owner: <i>"a lair is a room with tiles, on each tile only one
+    /// bed/chair/whatever per creature can be present. When a creature enters a
+    /// dungeon through a portal it goes to a lair, finds a free tile and
+    /// occupies it with its bed."</i> So a lair holds exactly as many creatures
+    /// as it has tiles, and this is the tile that belongs to this one.</para>
+    ///
+    /// <para><b>Occupancy is derived from this field and never stored on the
+    /// tile</b>, the same discipline <see cref="RoomInstance"/> follows: a tile
+    /// is taken if some creature points at it. That way a creature leaving,
+    /// dying or being removed cannot leave a bed behind that nothing owns.</para>
+    ///
+    /// <para>The bed <i>object</i> is
+    /// <see cref="Data.Model.CreatureDef.LairObjectId"/> — 22 for a Goblin, 26
+    /// for a Vampire, 18 for a Bile Demon, and <b>0 for the Imp, Skeleton and
+    /// Horny</b>, which is how the record says a creature has no bed at all.
+    /// Drawing it needs the OBJECTS record (M6); occupying a tile does
+    /// not.</para>
+    /// </summary>
+    public int LairTileIndex = -1;
+
+    /// <summary>
+    /// Ticks this creature has been awake, counting up towards the record's
+    /// <c>TimeAwake</c> in seconds (240 for a Goblin).
+    ///
+    /// <para>Reset when it wakes, not when it falls asleep, so the cycle is
+    /// "awake for TimeAwake, then asleep for TimeSleep" rather than a fixed
+    /// period. Whether that is DK2's cycle is Q103.</para>
+    /// </summary>
+    public int AwakeTicks;
+
+    /// <summary>Ticks this creature has been asleep, counting up towards <c>TimeSleep</c>.</summary>
+    public int SleepTicks;
+
     public CreatureActivity Activity;
 
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
@@ -201,6 +247,9 @@ public sealed class CreatureState
         hash.Add(Health);
         hash.Add(HungerTicks);
         hash.Add(ChickensNeeded);
+        hash.Add(LairTileIndex);
+        hash.Add(AwakeTicks);
+        hash.Add(SleepTicks);
         hash.Add((int)Activity);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);

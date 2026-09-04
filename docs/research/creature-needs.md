@@ -123,7 +123,12 @@ would lean on `TicksPerSecond`, still a placeholder (Q1).
   health dies on the tick it arrives, so there must be no overload that leaves
   health out. That cost 25 call-site changes and is worth it.
 - Own-land regeneration, per the record.
-- Lair healing at 100 a second — **the weakest reading here, see §7**.
+- **Beds and sleep** (`LairRules` + `CreatureSleepSystem`): one bed per lair
+  tile, claimed on arrival, walked to when the creature wants to sleep, and
+  **healing at 100 a second only while asleep in its own bed**. CONFIRMED by the
+  owner — see §7. This is also the **first driver any non-worker has ever had**;
+  it reuses the imps' pathfinder and movement system rather than growing a
+  second way to walk.
 - Hunger's clock, and the "needs N chickens" flag.
 - `Eat` — counts one chicken down, applies `HpFromChicken`, and resets the clock
   **only when the last one goes down**, because DK2 resets on being *full*, not
@@ -138,7 +143,7 @@ would lean on `TicksPerSecond`, still a placeholder (Q1).
 | | Why |
 |---|---|
 | **Eating** | Chickens are objects and the OBJECTS record is unparsed (M6). Hunger arrives and never leaves. Honest, and it costs no health |
-| **Sleep** | Needs a lair a creature *owns* — a specific tile with a bed object on it. That is the next mechanic, not this one |
+| **Anywhere to sleep but a bed** | A creature with no bed stays awake indefinitely and never recovers. In DK2 that is what `angerNoLair` is for — 100 for a Goblin, joint-largest in its record — and anger does not exist yet (Q105) |
 | **Anger** | The actual consequence of hunger. Its own need, its own record fields, its own step |
 | **Levels** | `Hp` is the maximum because `CreatureStats` scales stats by level and levels do not exist. When they do, the maximum becomes a function of level and `Health` stays the current value |
 | **Dying, bodies, graveyards** | `CreatureDyingStateDurationSeconds` is 60 and `GenerateDeadBody` is a flag we read, but a body is an object (M6) |
@@ -178,21 +183,39 @@ for when chickens are built.
 
 Ranked by how much they would change.
 
-### Q101 — the lair, and this is the one that matters
+### Q101 — the lair — **ANSWERED, and it replaced the implementation**
 
-Implemented reading: **a creature heals at 100 a second while standing on a lair
-tile its keeper owns.** That is a proxy and it is knowingly wrong in two ways.
+**CONFIRMED by the owner**, 2026-09-04:
 
-1. **Does a creature have to be *asleep* to heal**, or is standing in the lair
-   enough?
-2. **Does it have to be *its own* lair?** DK2 gives each creature a personal
-   lair tile with its own bed. Does a wounded goblin heal in any lair its keeper
-   owns, or only in the one that belongs to it — and does it heal at all if it
-   has no lair of its own?
+> *"A lair is a room with tiles, on each tile only one bed/chair/whatever per
+> creature can be present. When a creature enters a dungeon through a portal it
+> goes to a lair, finds a free tile and occupies it with its bed. When a
+> creature is injured it heals while it sleeps in its own bed."*
 
-*How to see it:* wound a creature (drop it in a fight, or on a rival's land),
-then drop it on a lair tile belonging to a *different* creature and watch
-whether its health bar climbs while it stands there awake.
+The first implementation healed anything standing on any of its keeper's lair
+tiles. **Both halves of that were wrong**, and the answer settles a third thing
+nobody asked:
+
+1. **Asleep, not present.** A wounded creature standing awake in its own lair
+   heals nothing.
+2. **Its own bed, not its keeper's lair.** One bed per tile, one tile per
+   creature. A creature with no bed never heals, whatever it stands on.
+3. **A lair's capacity is its tile count** — one bed per tile. Worth stating
+   because it is *not* the general rule for rooms: a temple's capacity is its
+   rim, `2(w+h) - 4` (Q60). Capacity is per room type, and the lair's happens to
+   be the obvious one.
+
+Built as `LairRules` + `CreatureSleepSystem` (ADR-0049), which is also **the
+first driver any non-worker creature has ever had** — before it, a goblin out of
+a portal stood on the hole forever.
+
+The bed object is `LairObjectId` in the creature record: 22 for a Goblin, 26 for
+a Vampire (a coffin), 18 for a Bile Demon, and **0 for ten creatures** — the Imp,
+both Skeletons, Horny, Jack and the five hero lords. The owner confirmed the two
+interesting ones: *"skeleton does not have a lair"*, and *"horny is only a
+summonable creature, it is not in a regular roster of creatures, and only on
+special conditions/maps when conditions are met"* — which is also why Horny
+carries no `AvailableViaPortal`.
 
 ### Q99 — is zero health death?
 
@@ -222,3 +245,39 @@ UNKNOWN whether DK2 starts it at spawn, at the first meal, or at level start.
 
 *How to see it:* start a level, note the clock when your first goblin arrives,
 and note when it first heads for the hatchery. Three minutes would confirm it.
+
+### Q103 — is the sleep cycle really 240 seconds up and 9 down?
+
+The record says `TimeAwake` 240 and `TimeSleep` 9 for a Goblin, and both are
+read as seconds. Four minutes awake and **nine seconds asleep** looks wrong
+until you multiply: nine seconds at 100 health a second is **900**, well over
+half a Goblin's 1500. So a short sleep is a big heal and the ratio stops looking
+odd — but it is still a reading.
+
+*How to see it:* watch a healthy goblin in a dungeon with a lair. Does it go to
+bed roughly every four minutes, and is it up again in under ten seconds?
+
+### Q104 — a bed it can never sleep in
+
+The **Dwarf** and the **Stone Knight** both carry a bed object *and* a
+`TimeAwake` of 32767. By the record they occupy a lair tile and never sleep in
+it. `LairRules.NeedsBed` gates on the object id, so here they claim a bed and
+never use it — which also means they take a bed away from something that would.
+
+Nothing depends on which field DK2 gates on, because a creature that never
+sleeps never heals in a bed either way. It is checked
+(`TwoCreaturesOwnABedTheyCanNeverSleepIn`) rather than assumed away.
+
+*How to see it:* Dwarves are hero creatures, so this needs a level where you can
+capture and convert one. Does a converted dwarf take a lair tile?
+
+### Q105 — what happens to a creature with no bed?
+
+Implemented: it stays awake, keeps its awake counter climbing, and never
+recovers. `angerNoLair` is **100** for a Goblin — joint-largest of its four
+anger sources — so DK2's answer is clearly *anger*, and anger does not exist
+here yet.
+
+*How to see it:* two questions really. Does a creature with no free lair tile
+sleep on the floor, or not sleep at all? And is "no lair" the anger source that
+makes creatures leave a dungeon whose lair is too small?

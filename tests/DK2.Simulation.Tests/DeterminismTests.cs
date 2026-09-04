@@ -107,14 +107,14 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // Bumped with HashVersion 10 -> 11 (ADR-0048): CreatureState gained
-        // Health, HungerTicks and ChickensNeeded, so the hash composition
-        // changed. This fixture does spawn imps, so the value moved for two
-        // reasons at once: three new fields in the composition, and health
-        // actually being non-zero on every creature. Snapshot FormatVersion
-        // went 10 -> 11 in the same commit. Previous values: 0x06F71648486D0FEC
-        // (HashVersion 10), 0x4F824667CDA7EF25 (HashVersion 9).
-        Assert.Equal(0x12E4F45E48ACEB9BUL, sim.StateHash());
+        // Bumped with HashVersion 11 -> 12 (ADR-0049): CreatureState gained
+        // LairTileIndex, AwakeTicks and SleepTicks for beds and sleep. The
+        // fixture spawns imps, which have no bed and never sleep, so all three
+        // fields hold their initial values here and only the composition
+        // changed. Snapshot FormatVersion went 11 -> 12 in the same commit.
+        // Previous values: 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
+        // 0x4F824667CDA7EF25 (9).
+        Assert.Equal(0x9D2695B2F62707D2UL, sim.StateHash());
     }
 
     [Fact]

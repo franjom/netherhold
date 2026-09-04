@@ -170,7 +170,7 @@ public class CreatureNeedsTests
     // ---- the lair ---------------------------------------------------------
 
     [Fact]
-    public void AGoblinInItsKeepersLairHealsAtAHundredASecond()
+    public void AGoblinAsleepInItsOwnBedHealsAtAHundredASecond()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -180,6 +180,8 @@ public class CreatureNeedsTests
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
         goblin.Health = 500;
+        goblin.LairTileIndex = (at.Y * world.Width) + at.X;
+        goblin.Activity = CreatureActivity.Sleeping;
 
         Simulation(db, world).Run(Second * 3);
 
@@ -187,40 +189,99 @@ public class CreatureNeedsTests
     }
 
     [Fact]
-    public void ALairBelongingToSomebodyElseDoesNotHeal()
+    public void AGoblinStandingAwakeInItsOwnBedHealsNothing()
     {
-        GameDatabase db = Db;
-        WorldState world = World(db);
-
-        var at = new TilePos(4, 4);
-        Paint(db, world, RoomTypeId.Lair, at, Rival);
-
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
-        goblin.Health = 500;
-
-        Simulation(db, world).Run(Second * 3);
-
-        Assert.Equal(500, goblin.Health);
-    }
-
-    [Fact]
-    public void AnImpInItsKeepersLairGetsBothRates()
-    {
-        // The only creature in the fixture that can, and the reason the two
-        // sources are documented as additive rather than exclusive (Q100).
+        // CONFIRMED by the owner: a creature heals *while it sleeps* in its own
+        // bed. Presence is not enough, and this is the half of the rule that the
+        // first implementation had wrong.
         GameDatabase db = Db;
         WorldState world = World(db);
 
         var at = new TilePos(4, 4);
         Paint(db, world, RoomTypeId.Lair, at, Keeper);
 
-        CreatureState imp = world.SpawnCreature(
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
+        goblin.Health = 500;
+        goblin.LairTileIndex = (at.Y * world.Width) + at.X;
+        goblin.Activity = CreatureActivity.Idle;
+
+        // The sleep system would eventually put it to bed, so run only the
+        // health system: this is about the healing gate, not the cycle.
+        new GameSimulation(db, world, 42, [new CreatureHealthSystem()]).Run(Second * 3);
+
+        Assert.Equal(500, goblin.Health);
+    }
+
+    [Fact]
+    public void AGoblinAsleepOnSomebodyElsesBedHealsNothing()
+    {
+        // The other half: its *own* bed, not any lair tile. One bed per tile,
+        // one tile per creature.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        Paint(db, world, RoomTypeId.Lair, new TilePos(4, 4), Keeper);
+        Paint(db, world, RoomTypeId.Lair, new TilePos(5, 4), Keeper);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(4, 4));
+        goblin.Health = 500;
+        goblin.Activity = CreatureActivity.Sleeping;
+
+        // Its bed is the tile next door, and it is lying on the wrong one.
+        goblin.LairTileIndex = (4 * world.Width) + 5;
+
+        new GameSimulation(db, world, 42, [new CreatureHealthSystem()]).Run(Second * 3);
+
+        Assert.Equal(500, goblin.Health);
+    }
+
+    [Fact]
+    public void AGoblinWithNoBedNeverHealsHoweverLongItRuns()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        // Lair terrain, its keeper's, and the creature is standing on it — but
+        // no bed has been claimed, so there is nothing to sleep in.
+        var at = new TilePos(4, 4);
+        Paint(db, world, RoomTypeId.Lair, at, Keeper);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
+        goblin.Health = 500;
+
+        new GameSimulation(db, world, 42, [new CreatureHealthSystem()]).Run(Second * 30);
+
+        Assert.Equal(500, goblin.Health);
+    }
+
+    [Fact]
+    public void AnImpAsleepInABedWouldGetBothRatesButAnImpHasNoBed()
+    {
+        // The Imp's LairObjectId is 0, which the owner confirms for the
+        // Skeleton too: some creatures simply have no lair. So the additive
+        // question (Q100) is unreachable for the only fixture creature that
+        // regenerates, and own-land healing is all an imp ever gets.
+        GameDatabase db = Db;
+        CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
+
+        Assert.False(LairRules.NeedsBed(imp));
+
+        WorldState world = World(db);
+        var at = new TilePos(4, 4);
+        Paint(db, world, RoomTypeId.Lair, at, Keeper);
+
+        CreatureState state = world.SpawnCreature(
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, at);
-        imp.Health = 100;
+        state.Health = 100;
+
+        Assert.False(LairRules.TryClaimBed(world, db, state));
+        Assert.Equal(-1, state.LairTileIndex);
 
         Simulation(db, world).Run(Second);
 
-        Assert.Equal(100 + 100 + 67, imp.Health);
+        // 67 from its own land — a lair tile its keeper owns is its own land —
+        // and nothing from the lair, because it cannot sleep in one.
+        Assert.Equal(167, state.Health);
     }
 
     // ---- hunger -----------------------------------------------------------
@@ -358,5 +419,177 @@ public class CreatureNeedsTests
         CreatureDef imp = Db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
         Assert.Equal(CreatureHealthRules.Never, imp.HungerRate.Raw / Fp32.One);
         Assert.False(CreatureHealthRules.CanGetHungry(imp));
+    }
+
+    // ---- beds, and the whole cycle end to end -----------------------------
+
+    [Fact]
+    public void AGoblinClaimsABedTheTickItCanAndTheLairHoldsOnePerTile()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        // Two tiles of lair, so two beds and no more.
+        Paint(db, world, RoomTypeId.Lair, new TilePos(4, 4), Keeper);
+        Paint(db, world, RoomTypeId.Lair, new TilePos(5, 4), Keeper);
+
+        CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 3));
+        CreatureState third = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 4));
+
+        new GameSimulation(db, world, 42, [new CreatureSleepSystem()]).Run(1);
+
+        // One bed each for the first two, in creature order, and nothing for
+        // the third — a lair's capacity is its tile count.
+        Assert.True(first.LairTileIndex >= 0);
+        Assert.True(second.LairTileIndex >= 0);
+        Assert.NotEqual(first.LairTileIndex, second.LairTileIndex);
+        Assert.Equal(-1, third.LairTileIndex);
+    }
+
+    [Fact]
+    public void AGoblinWalksToItsOwnBedFallsAsleepHealsAndWakesUp()
+    {
+        // The whole cycle, through the real systems, with the creature starting
+        // wounded so that CreatureSleepsWhenBelowPercentHealth sends it to bed
+        // at once rather than after its 240 awake seconds.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var events = new ListEventSink();
+
+        var bed = new TilePos(4, 4);
+        Paint(db, world, RoomTypeId.Lair, bed, Keeper);
+
+        // A walkable route from the creature to the bed.
+        for (int x = 2; x <= 4; x++)
+        {
+            ref TileState tile = ref world.Tile(x, 4);
+            if (tile.TerrainId == Dk2TerrainFixture.LairTerrain) continue;
+            tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+            tile.OwnerPlayerId = Keeper;
+        }
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 4));
+        goblin.Health = 300;    // a fifth of 1500, well under the 50% threshold
+
+        var sim = new GameSimulation(db, world, 42, [
+            new CreatureMovementSystem(),
+            new CreatureSleepSystem(),
+            new CreatureHealthSystem(),
+        ]);
+        sim.ObserveWith(events);
+        sim.Run(Second * 30);
+
+        Assert.Contains(events.Events, e => e.Kind == "bed_claimed");
+        Assert.Contains(events.Events, e => e.Kind == "going_to_sleep");
+        Assert.Contains(events.Events, e => e.Kind == "fell_asleep");
+        Assert.Contains(events.Events, e => e.Kind == "woke_up");
+
+        // It slept for its record's nine seconds at 100 a second, so it woke up
+        // considerably better off than it lay down.
+        Assert.True(goblin.Health > 300, $"health is {goblin.Health}, expected a heal");
+        Assert.Equal(CreatureActivity.Idle, goblin.Activity);
+        Assert.Equal(0, goblin.SleepTicks);
+    }
+
+    [Fact]
+    public void AWoundedGoblinWithNoLairStaysAwakeAndStaysWounded()
+    {
+        // No lair at all, so no bed, so nowhere to go. In DK2 this is what
+        // angerNoLair is for — 100 for a Goblin — and anger does not exist yet
+        // (Q105), so the visible consequence is simply that it never recovers.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        goblin.Health = 300;
+
+        new GameSimulation(db, world, 42, [
+            new CreatureMovementSystem(),
+            new CreatureSleepSystem(),
+            new CreatureHealthSystem(),
+        ]).Run(Second * 60);
+
+        Assert.Equal(-1, goblin.LairTileIndex);
+        Assert.Equal(300, goblin.Health);
+        Assert.NotEqual(CreatureActivity.Sleeping, goblin.Activity);
+    }
+
+    [Fact]
+    public void ABedSoldOutFromUnderACreatureIsGivenUp()
+    {
+        // A bed is not a promise: the lair can be sold, dug out or taken while
+        // its owner is asleep in it. Without this the creature would go on
+        // healing on a patch of claimed floor.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var events = new ListEventSink();
+
+        var bed = new TilePos(4, 4);
+        Paint(db, world, RoomTypeId.Lair, bed, Keeper);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, bed);
+        goblin.Health = 500;
+
+        var sim = new GameSimulation(db, world, 42, [
+            new CreatureSleepSystem(), new CreatureHealthSystem(),
+        ]);
+        sim.ObserveWith(events);
+        sim.Run(1);
+
+        Assert.Equal((4 * world.Width) + 4, goblin.LairTileIndex);
+
+        // The lair goes back to plain floor under it.
+        RoomRules.Unmake(db, ref world.Tile(bed.X, bed.Y));
+        sim.Run(1);
+
+        Assert.Equal(-1, goblin.LairTileIndex);
+        Assert.Contains(events.Events, e => e.Kind == "bed_lost");
+    }
+
+    [Fact]
+    public void ADeadCreaturesBedIsFreedForSomebodyElse()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        var bed = new TilePos(4, 4);
+        Paint(db, world, RoomTypeId.Lair, bed, Keeper);
+
+        CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        var sim = new GameSimulation(db, world, 42, [
+            new CreatureSleepSystem(), new CreatureHealthSystem(),
+        ]);
+        sim.Run(1);
+        Assert.True(first.LairTileIndex >= 0);
+
+        // It dies, and the one bed in the lair has to become available again —
+        // otherwise a lair silently loses a tile every time somebody dies.
+        first.Health = 0;
+        CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 3));
+        sim.Run(Second * 2);
+
+        Assert.DoesNotContain(world.Creatures, c => c.Id == first.Id);
+        Assert.True(second.LairTileIndex >= 0, "the dead creature's bed was never freed");
+    }
+
+    [Fact]
+    public void AnImpIsNeverDrivenBySleepEvenIfItSomehowGotABed()
+    {
+        // The worker guard is explicit rather than incidental. An imp is
+        // excluded because it is a worker, not merely because its record
+        // happens to say LairObjectId 0.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Lair, new TilePos(4, 4), Keeper);
+
+        CreatureState imp = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        imp.LairTileIndex = (4 * world.Width) + 4;
+
+        new GameSimulation(db, world, 42, [new CreatureSleepSystem()]).Run(Second * 300);
+
+        Assert.Equal(CreatureActivity.Idle, imp.Activity);
+        Assert.Equal(0, imp.AwakeTicks);
     }
 }

@@ -101,6 +101,15 @@ What is *built* rather than known, against the long-term goals:
   **walled a level-1 keeper in permanently** (ADR-0045). One owner sentence, two
   four-month defects, neither about portals.
 
+- **A creature has its own bed and sleeps in it** (ADR-0049, **CONFIRMED by the
+  owner**): a lair is one bed per tile, a creature takes a free tile on arrival,
+  and **it heals only while asleep in its own bed** — 100 a second. The proxy
+  ADR-0048 shipped was wrong in both halves, healing anything standing awake on
+  any of its keeper's lair tiles. It also settled a third thing nobody asked:
+  **a lair's capacity is its tile count**, which is *not* the general rule for
+  rooms (a temple's is its rim, Q60). And it produced **the first driver a
+  non-worker creature has ever had**, reusing the imps' pathfinder rather than
+  growing a second way to walk.
 - **A creature has health, and a hunger clock** (ADR-0048,
   docs/research/creature-needs.md). Maximum from the record's `Hp`,
   regeneration on your own land from the record, healing in a lair at 100 a
@@ -131,13 +140,13 @@ What is *built* rather than known, against the long-term goals:
   count": Q60 established that a temple's capacity is its **rim**, `2(w+h) − 4`,
   and the manual says the dungeon heart stores its gold in its "outer ring" too.
   Several rooms are blocked on objects (M6) or on creature needs, not on research.
-- **What creatures then do.** ← **health and hunger now exist** (ADR-0048), so a
-  creature is no longer inert: it can be hurt, healed and killed, and it gets
-  hungry. What it still has no notion of is **mood, anger, experience, sleep or
-  a job**, and it still cannot be picked up or dropped. **Anger is the next one
-  that matters**, because it is what hunger actually costs and nothing can
-  respond to being unfed without it. Sleep needs a lair a creature *owns*, which
-  is the mechanic after that.
+- **What creatures then do.** ← **health, hunger, beds and sleep now exist**
+  (ADR-0048, ADR-0049), so a creature is no longer inert: it can be hurt, healed
+  and killed, it gets hungry, and it takes a bed in a lair, walks to it and
+  sleeps in it. What it still has no notion of is **mood, anger, experience or a
+  job**, and it still cannot be picked up or dropped. **Anger is the next one
+  that matters**, because it is what both going unfed and having no bed actually
+  cost, and nothing can respond to either without it.
 - **How a keeper *destroys* a room somebody else holds.** `AttackRoomHealth` =
   −1500 names it and there is no `TileWorkKind` for it. **Claiming** one is done
   (ADR-0044) — a room changes hands whole, never tile by tile, CONFIRMED by the

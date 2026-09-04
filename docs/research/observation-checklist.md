@@ -136,7 +136,21 @@ within minutes of the second screenshot arriving. See `imps-and-mana.md`
 
 ## 1. Still open, and blocking
 
-### Q101 — the lair: what actually heals a creature? — *added 2026-09-04*
+### Q101 — the lair — **ANSWERED the same day, by the owner**
+
+> *"A lair is a room with tiles, on each tile only one bed/chair/whatever per
+> creature can be present. When a creature enters a dungeon through a portal it
+> goes to a lair, finds a free tile and occupies it with its bed. When a
+> creature is injured it heals while it sleeps in its own bed."*
+
+**Asleep, and in its own bed.** Both halves of the shipped proxy were wrong, and
+the answer settled a third thing nobody had asked — a lair holds one creature
+per tile. Built as ADR-0049. The follow-ups below (Q103, Q104, Q105) are what
+is left.
+
+<details><summary>The question as it was asked</summary>
+
+### Q101 — the lair: what actually heals a creature?
 
 **The weakest reading in the whole health mechanic**, and the one most worth an
 hour of play. Implemented: a creature heals at **100 a second** while standing
@@ -156,6 +170,28 @@ creature and watch whether its health bar climbs while it stands there awake.
 
 Healing is the main way anything recovers in DK2, so this sets the pace of every
 fight and every siege. See `docs/research/creature-needs.md` §7.
+
+</details>
+
+### Q103 — is the sleep cycle 240 seconds up and 9 down? — *added 2026-09-04*
+
+A Goblin's record says `TimeAwake` 240 and `TimeSleep` 9, and both are read as
+seconds. Four minutes awake and **nine seconds asleep** looks wrong until you
+multiply: nine seconds at 100 health a second is **900**, well over half a
+Goblin's 1500. A short sleep is a big heal.
+
+**The experiment.** Watch a healthy goblin in a dungeon that has a lair. Does it
+go to bed roughly every four minutes, and is it up again inside ten seconds?
+
+### Q105 — what happens to a creature with no bed? — *added 2026-09-04*
+
+Implemented: it stays awake and never recovers. `angerNoLair` is **100** for a
+Goblin — joint-largest of its four anger sources — so DK2's answer is surely
+anger, and anger does not exist here yet.
+
+**The experiment.** Build a one-tile lair and let three creatures arrive. Does
+the third sleep on the floor, not sleep at all, or leave? And is "no lair" what
+makes creatures desert a dungeon whose lair is too small?
 
 ### Q99 — is zero health death, or a window before it? — *added 2026-09-04*
 

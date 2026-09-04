@@ -419,6 +419,7 @@ switch (args[0])
         Console.WriteLine($"  speed={c.Speed} run={c.RunSpeed} see={c.DistanceCanSee} hear={c.DistanceCanHear}");
         Console.WriteLine($"  hungerRate={c.HungerRate} hungerFill={c.HungerFill} " +
                           $"awake={c.TimeAwake} sleep={c.TimeSleep}");
+        Console.WriteLine($"  lairObject={c.LairObjectId}");
         Console.WriteLine($"  hpFromChicken={c.HpFromChicken} " +
                           $"ownLandHeal/s={c.OwnLandHealthIncreasePerSecond} " +
                           $"decompose={c.DecomposeValue}");
