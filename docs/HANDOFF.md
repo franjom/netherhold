@@ -13,9 +13,9 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **674 tests green**
+**every** record type's on-disk size is now known and pinned. **687 tests green**
 with and without a DK2 install; **15 scenarios** run, each drawing a picture of
-its finished world; clean tree. (Core 17, Simulation 376, Data 63, Behavior 132,
+its finished world; clean tree. (Core 17, Simulation 387, Data 63, Behavior 134,
 Assets 60, Presentation 26.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
@@ -40,10 +40,23 @@ does it die — except for the eight creatures that leave no body, which die on 
 spot. And **hazard terrain acts on creatures that cannot cross it** — which for
 water is the two Vampires and nobody else (Q117/Q118).
 
-What a creature still has no notion of is **experience, levels or a job**, and it
-cannot be picked up or dropped. It gets hungry and cannot eat, because chickens
-are objects (M6). **Combat and jobs are what M4 still owes**, and combat is the
-first thing that will subtract health per *tick* rather than per second.
+**Levels landed on 2026-09-04 as a stat multiplier** (Q119), found because the
+owner mentioned that *"imps gain speed as they gain more levels"* — and the
+32-stat × 9-level percentage table turned out to have been parsed into
+`GlobalVariables.CreatureStats` since variables were first read and looked at by
+nothing. Maximum health and walking speed are now the *levelled* values. What
+raises a level is deliberately absent: the experience rate's unit is ambiguous
+in the data (Q124).
+
+**And the binary is now the primary research source** (ADR-0046's 2026-09-04
+amendment), at the owner's instruction. The first hour of that returned EA's own
+names for ~220 creature-instance fields and 23 object kinds, corrected two claims
+this project had committed, and answered the shape of Q98.
+
+What a creature still has no notion of is **experience or a job**, and it cannot
+be picked up or dropped. It gets hungry and cannot eat, because chickens are
+objects (M6). **Combat and jobs are what M4 still owes**, and combat is the first
+thing that will subtract health per *tick* rather than per second.
 
 **The first room whose behaviour exists is the portal** (2026-09-04, ADR-0042):
 a claimed portal produces its level's own creatures, and **level 1 produces
@@ -2537,3 +2550,231 @@ first is what left crossing free. When a flag decides access, ask what access
   **The mitigation that works:** write the script to the scratchpad with the
   `Write` tool and run `python <path>`. Multi-line edits went through cleanly
   every time after switching. Do not type the heredoc form at all.
+
+---
+
+# Where to pick up, 2026-09-04 (eighteenth sitting) — the binary became the primary source, and it started correcting us
+
+Four commits after the seventeenth sitting's handoff. **687 tests green** with
+and without an install (Core 17, Data 63, Assets 60, Presentation 26, Behavior
+134, Simulation 387), zero warnings, **15 scenarios**.
+
+| | |
+|---|---|
+| `2aa3202` | **The binary is the primary source now, not the last resort** |
+| `041e917` | A deserter walks to the portal, and a vampire comes back at the graveyard |
+| `27788fc` | Twenty-five files, one class: the RTTI corrects our state machine |
+| `dc9b78e` | **A level multiplies a creature, and the table was here all along** |
+
+`HashVersion` 14 → 15, snapshot `FormatVersion` 14 → 15 (`CreatureState.Level`).
+Pinned hash **`0x38CCE7E988729817`**.
+
+## The rule that governs everything after this
+
+**The binary is the first place to look.** The owner, twice: *"use ghidra when
+possible, that is the actual dk2 data"*, then *"I want you to make using ghidra
+and decompiled sources as the primary source and go to when in doubt, please
+memorize that, place it where any agent will pick it up as a rule."*
+
+Recorded in four places: `AGENTS.md`'s "Existing research" order (**in the
+owner's uncommitted working copy** — it goes in with their next commit),
+**ADR-0046's 2026-09-04 amendment**, `reverse-engineering/README.md`, and the
+session memory.
+
+Two things it does **not** change, both stated in the amendment so it cannot be
+read as a loosening:
+
+- **ADR-0046 rule 2 stands.** Facts, formulas, thresholds and control flow may
+  cross into `docs/research/` in our own words with provenance. **Decompiler
+  output may not cross anywhere, ever.**
+- **Consulted first is not trusted most.** For behaviour the owner can watch the
+  running game still wins, and `[Dk2Behavior]` **CONFIRMED stays reserved for
+  it**. Binary-derived facts are STRONGLY INFERRED at best.
+
+### How to run it, because this took a few tries
+
+Ghidra 11.0.1 at `D:\ghidra_11.0.1_PUBLIC`, project `D:\ghidra projects\DK2_RE`
+(already analysed, 8363 functions), JDK at
+`C:\Program Files\Java\jdk-26.0.2.1` — pass `JAVA_HOME` per invocation, do not
+set it on the machine:
+
+```text
+support/analyzeHeadless.bat "D:\ghidra projects" DK2_RE -process DKII.EXE \
+  -noanalysis -scriptPath <dir> -postScript <Script.py> <args>
+```
+
+Scripts are throwaway Jython in the scratchpad; output goes to
+`reverse-engineering/` (gitignored — `git status` must never show a file there).
+**Jython 2.7 traps that cost time:** no non-ASCII anywhere in a script, not even
+in a comment (em dashes are a `SyntaxError`), and **`Memory.getBytes` with a
+Python `bytearray` fails silently** — it reported "0 runs" across the whole
+binary and looked like a finding. Use `Memory.getInt` per word.
+
+**The way in is strings.** The retail build kept `__FILE__` asserts *and*
+printf-style debug dump functions, so one string dump names a whole struct in
+EA's own words. Search for a needle, then dump every string in the surrounding
+address range.
+
+## What the first hour of that bought
+
+`docs/research/executable-strings.md` has the detail. The highlights, each of
+which lands on an open question:
+
+- **~220 creature-instance field names.** `InWater` (a state of its own,
+  separate from `IsSlowed`/`IsHasted`), `Leaving`, `TurncoatPlayer`/`TurncoatTimer`,
+  `RebelActive`/`RebelLeader`/`RebelPos`/`RebelTag`/`RebelDelay`,
+  `HasBeenKnockedOut`, `DieInstantly`, `PortalGeneratedFromId`, and
+  **`ContributesToPortalLimit`** — which is **Q98's shape**, open since the
+  portal landed, and says the per-creature side is what we were missing rather
+  than the portal-counting side.
+- **`LastGameTickSuccessfullyChoseAngryJob`**, which says the angry job choice
+  **can fail and be retried** — evidence *against* ADR-0053's draw-once rule.
+  Recorded as Q122 and deliberately not acted on: a string does not settle
+  whether a retry re-draws.
+- **23 object kinds** from `Object.cpp`'s union (`Lair`, `TombStone`, `Chicken`,
+  `Coop`, `Gold`, `Boulder`, `ResearchBook`, …), that objects are a **tagged
+  union with per-kind state**, and that a `Lair` object carries a `CreatureId` —
+  the bed knows whose it is, where `LairRules` puts that on the creature.
+- **No `Sarcophagus` or `Coffin` string exists**, which is what closed Q113.
+
+## Four owner answers, and what each cost
+
+**Q116 — deserters. ANSWERED AND IMPLEMENTED.** *"angry evil creature goes to
+the nearest available portal and leaves the dungeon. Angry converted good
+creature turns turncoat and starts attacking the dungeon and its creatures."*
+
+Both halves are one mechanic split by alignment, which finally explains the
+`AngryJobs` tables: **`Leave` is the evil creature's exit, `Rebel` is the
+converted one's turncoat.** `CreatureAngerSystem.Leave` now walks the creature to
+the nearest portal its keeper owns — nearest **by path**, Dijkstra over the same
+grid it walks — and it only goes when it arrives. New:
+`CreatureActivity.Leaving`, `PortalRules.IsExitTile`, and a guard in
+`CreatureSleepSystem` so a leaver cannot take the last free bed on its way out.
+
+Two consequences are behaviour, not bookkeeping: **a keeper whose portal is
+unreachable keeps the creature**, and a deserter is killable and still on the
+payroll for the length of its walk.
+
+**Q113 — the sarcophagus. CLOSED, and it corrected us.** *"sarchopagus at the
+graveyard, I made a wrong claim earlier."* The previous sitting had read their
+first wording as the vampire's own bed, because its `LairObjectId` is a coffin.
+**That was a pun, not a finding**, and it stood in an ADR and a code comment for
+a day. The data was there: the **Graveyard's `CreatedCreatureId` is 8, the
+Vampire** (one of only two rooms that create a creature — the other is the
+Prison's Skeleton), and the Graveyard's object ids are **31–34** against the
+vampire's **26**.
+
+**Q115 — anger cools both ways. ANSWERED, and we were already right.** *"anger
+can be cooled down to unhappy, and unhappy can cool down to happy."* A mood is a
+pure function of the value — no latch. **The arithmetic is the finding:** cooling
+is −550 a second *asleep in its own bed* and a Goblin sleeps 9 seconds in every
+~250, so **a bed cures anger in instalments of exactly 4950, once every four
+minutes**. The test asserts the instalment size, which is also what fails if
+Q123's reading is wrong.
+
+**Q118 — water. The owner found the confound themselves.** *"no creature that can
+traverse through water looses health"* (already implemented last sitting), plus
+*"water visibly slows imps"*, plus **"imps gain speed as they gain more
+levels"** — which turned into the whole level mechanic below.
+
+## Levels: the table had been parsed and ignored the entire time
+
+`GlobalVariables.kwd` carries a **32-stat × 9-level** table of percentages
+against the level-1 value. `KwdVariables` has been parsing it into
+`GlobalVariables.CreatureStats` since variables were first read. **320 rows,
+looked at by nothing** — while every stat read in the simulation was silently the
+level-1 value and claiming to be the creature's.
+
+Health to **600%** at level 10, melee damage the same, speed and run speed to
+**250%**, experience-for-next-level to **1000%** — and **ten of the 32 stats
+never scale at all**, own-land regeneration among them. Same shape as mana (three
+terrains of 41) and terrain deltas (three of 41): *read the whole column before
+believing a rule is general.*
+
+Implemented: `CreatureState.Level`, `CreatureLevelRules`, and the two stats the
+simulation reads are now levelled — **maximum health and walking speed**. A
+level-2 imp walks at 7912 raw against 7536, which is what the owner saw.
+
+**`CreatureHealthRules.MaxHealth` lost its old signature rather than gaining an
+overload**, deliberately: a call that forgot the level would silently cap a
+level-10 Goblin at 1500 health. Eight call sites updated.
+
+**Nothing raises a level (Q124)**, and the blocker is a unit ambiguity: the
+creature record says **1200** for an Imp where the balance table says
+**20 a second**, and 20 × 60 = 1200. Two and a half seconds per level against two
+and a half minutes. Not guessed — the owner times a fresh imp.
+
+## What the state-machine dig actually established (Q125)
+
+Two claims died and one target appeared.
+
+- **"A class hierarchy with about 25 leaves" is wrong.** The build kept RTTI —
+  163 mangled class names — and **exactly one is a state, `CState`**.
+- **"Read the vtables" is not the route.** No static dispatch table exists: a
+  scan of `.rdata`/`.data` for runs of consecutive function pointers finds eight,
+  all switch jump tables, none pointing into the state code.
+- **What is there:** `State.cpp` indexes a table at **0x00699688, 0x40-byte
+  records**, by state id — and it is **all zeros in the file**. The state machine
+  is **registered at runtime**, so the thing to read is the registration
+  function. `FUN_00476d30` does most of the writing.
+- **A reusable map came out of it:** the 55 translation units with an assert
+  anchor, in address order. The state units occupy roughly
+  **[0x00456000, 0x00484000)** and are laid out **alphabetically**, so the 11
+  state units with no anchor can be *bracketed* — `HungerState` sits between
+  `GuardState` (0x00463190) and `ImpState` (0x00464240).
+
+**Next binary task:** read the call sites of the registration function. Each
+should name a state id and its handlers, which yields DK2's state enum — the
+numbering nothing here has. Worth doing **before combat**, since
+`FightWithDrawState`, `ThrowingState` and `RunAway` are three of the states it
+would name.
+
+## The agreed order of work, as of this sitting
+
+The owner approved this sequence explicitly:
+
+1. **The state registration read** (above) — cheap, and it makes everything after
+   it cheaper.
+2. **OBJECTS (M6)** — one unparsed record closes four half-mechanics at once:
+   hunger cannot be satisfied, death owes a corpse, no graveyard can fill (so no
+   vampire can exist), and gold piles do not exist. The string pass just handed
+   over the object-kind list and `Rooms.kwd`'s room→object mapping, so this is
+   cheaper than it was.
+3. **Levels' second half** once Q124 is measured.
+4. **Combat**, on a state machine that can be read. Deliberately *not* before —
+   it is the mechanic where fidelity matters most, and melee damage scales to
+   600%, so a combat system written against the record value would be wrong for
+   every creature above level 1.
+
+## Owner questions, in priority order
+
+| | |
+|---|---|
+| **Q124** | **Time a fresh level-1 imp to level 2.** ~150 s confirms the balance table's 20 a second; near-instant confirms the record's 1200. Last gate on levelling |
+| **Q118** | **The water slope**: a low-level and a high-level creature in the same water. `ShuffleSpeed` has no level row, so if it is the mechanism the *relative* penalty deepens with level (45.7% at L1, 48.2% at L2, 78% at L10) |
+| **Q123** | **Does a bed cool anger before the creature lies down?** Two orders of magnitude in how forgiving anger is |
+| **Q118b** | Drop a **Vampire** in a lake: 25 s to die means hazard damage is per second, 1.25 s means per tick |
+| **Q97** | Big lair vs tiny lair — does arrival pace change? |
+| **Q103** | Does a Goblin really sleep every ~240 s for ~9 s? |
+| **Q112** | Do Skeleton and Stone Knight vanish on the spot? |
+| **Q107** | Can a creature whose bed is sold while it lies dying be rescued? |
+| **Q100** | Does a wounded imp heal while digging? |
+| **Q86** | Two arrival gaps with goblins counted — the interval slope |
+| **Q65** | Sell a full 3000-gold treasury tile: one pile or two? |
+
+## Known and not done
+
+- **No `README.md`.** Still.
+- **Q98**: portal capacity — now known to hinge on a per-creature
+  `ContributesToPortalLimit` flag, probably one of `CreatureFlags`' unknown bits
+  (`Unk11` / `Unk29`). Cheap once the bit is identified.
+- **Q122**: the angry-job draw may need to be a retry rather than a keep.
+- **Rebel / turncoat** unimplemented, so half a Goblin's angry table is a
+  creature standing still.
+- **`ManaSystem` runs for every player** — deliberate (ADR-0052).
+- `AGENTS.md` carries the owner's own uncommitted edits **plus the new research
+  order**, and is excluded from every commit with `git add -A -- . ':!AGENTS.md'`.
+- **The `python - <<EOF` gotcha**: occurrence 12 this sitting, a bash parse error
+  on a form that had worked twice in the same session. **The mitigation that
+  works is to write the script to the scratchpad with the `Write` tool and run
+  `python <path>`** — every multi-line edit went through cleanly after switching.
