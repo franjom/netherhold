@@ -465,4 +465,124 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(1, db.CreatureByName("Imp")!.AngerNoLair);
         Assert.Equal(100, db.CreatureById(7).AngerNoLair);
     }
+
+    // ---- dying (Q99) ------------------------------------------------------
+
+    [Fact]
+    public void BothDyingTimersAreSixtySecondsAndTheyAreTwoDifferentClocks()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The owner's answer to Q99 describes two windows: a collapsed creature
+        // lying rescuable, and then its corpse lying carryable. Both variables
+        // were already parsed with nothing reading them, and both are 60.
+        //
+        // Asserted together precisely because they are equal. Two independently
+        // named timers with the same value invite being collapsed into one
+        // constant by someone tidying up, and they are not one thing: the first
+        // is implemented, the second cannot be until corpses exist as objects
+        // (M6). If EA ever shipped a level where these differ, this test says so.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        Assert.Equal(60, db[VariableTypeId.CreatureDyingStateDurationSeconds]);
+        Assert.Equal(60, db[VariableTypeId.DeadBodyDiesAfterSeconds]);
+    }
+
+    [Fact]
+    public void EightCreaturesLeaveNoBodyAndThatSetIsNotTheNeverHungryOne()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The third near-miss grouping in this record, and the third time the
+        // tempting shortcut — "these are the undead, one flag would do" — is
+        // refuted by a single creature.
+        //
+        //   never eats  : Imp Vampire Skeleton Horny StoneKnight
+        //                 UniqueFirefly UniqueSkeleton UniqueVampire
+        //   no body     : Imp Vampire Skeleton Horny StoneKnight
+        //                 Jack           UniqueSkeleton UniqueVampire
+        //
+        // Seven in common and one each way: the **Unique Firefly** never eats
+        // but does leave a body, and **Jack** eats but leaves none. Both sets
+        // were guessed before they were read and the guesses were wrong, which
+        // is why both are asserted by name.
+        //
+        // The Vampire leaving no body is the coherent member: a vampire is what
+        // bodies are spent to make (DecomposeValueNeededForVampire = 1000).
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        var noBody = db.Creatures.Values
+            .Where(c => !CreatureDeathRules.LeavesBody(c))
+            .Select(c => c.Name)
+            .ToHashSet();
+
+        Assert.Equal(
+            new HashSet<string>
+            {
+                "Imp", "Vampire", "Skeleton", "Horny", "Stone Knight",
+                "Jack", "Unique Skeleton", "Unique Vampire",
+            },
+            noBody);
+
+        var neverEats = db.Creatures.Values
+            .Where(c => !CreatureHealthRules.CanGetHungry(c))
+            .Select(c => c.Name)
+            .ToHashSet();
+
+        // Neither set contains the other, in both directions, by one member.
+        Assert.Equal(["Jack"], noBody.Except(neverEats).ToHashSet());
+        Assert.Equal(["Unique Firefly"], neverEats.Except(noBody).ToHashSet());
+    }
+
+    [Fact]
+    public void ADecomposingBodyIsWorthTwoHundredAndTheUndeadAreWorthNothing()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // Why the body flag matters beyond cosmetics: bodies accumulate toward
+        // a Vampire. Nothing implements that (M6), so this pins the numbers the
+        // graveyard will read rather than leaving them to be rediscovered.
+        //
+        // The claim asserted here first was that a creature leaving no body is
+        // worth nothing, since the two fields ought to agree. **They do not,
+        // for exactly two creatures**, and the test caught it:
+        //
+        //   Imp, Vampire, Skeleton, Stone Knight, Unique Skeleton,
+        //   Unique Vampire  -> no body, decompose 0     (consistent)
+        //   Horny, Jack                -> no body, decompose 200  (unreachable)
+        //
+        // Horny is a summon rather than a roster creature (CONFIRMED by the
+        // owner) and Jack is the creature whose whole record runs backwards, so
+        // both are exactly where template values would survive unedited. The
+        // **flag governs**: no body is generated, so there is nothing for the
+        // 200 to be the value of, and it can never be read. Recorded because
+        // reading DecomposeValue instead of the flag would put two ghosts into
+        // a graveyard.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        Assert.Equal(200, db.CreatureById(7).DecomposeValue);       // Goblin
+
+        var worthlessBodies = db.Creatures.Values
+            .Where(c => !CreatureDeathRules.LeavesBody(c) && c.DecomposeValue == 0)
+            .Select(c => c.Name)
+            .ToHashSet();
+
+        Assert.Equal(
+            new HashSet<string>
+            {
+                "Imp", "Vampire", "Skeleton", "Stone Knight",
+                "Unique Skeleton", "Unique Vampire",
+            },
+            worthlessBodies);
+
+        var deadData = db.Creatures.Values
+            .Where(c => !CreatureDeathRules.LeavesBody(c) && c.DecomposeValue != 0)
+            .Select(c => c.Name)
+            .ToHashSet();
+
+        Assert.Equal(new HashSet<string> { "Horny", "Jack" }, deadData);
+    }
 }

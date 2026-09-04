@@ -73,6 +73,12 @@ public sealed class CreatureMovementSystem : ISimulationSystem
         {
             if (creature.PathIndex >= creature.Path.Count) continue;
 
+            // Belt and braces: collapsing clears the path, so a dying creature
+            // has nothing to walk anyway (ADR-0051). The guard is here so that a
+            // future mechanic which sets a path on a creature that then drops
+            // cannot make a corpse-to-be keep walking.
+            if (CreatureDeathRules.IsDown(creature)) continue;
+
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             Advance(creature, definition, new WorldPathGrid(context.Database, context.World, definition));
         }

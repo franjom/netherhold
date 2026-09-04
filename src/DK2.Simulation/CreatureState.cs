@@ -43,6 +43,18 @@ public enum CreatureActivity
     /// (ADR-0049, CONFIRMED by the owner).
     /// </summary>
     Sleeping = 5,
+
+    /// <summary>
+    /// Collapsed at zero health, lying on the ground, and not yet dead —
+    /// DK2's <c>CreatureDyingStateDurationSeconds</c> window (ADR-0051,
+    /// CONFIRMED by the owner).
+    ///
+    /// <para>A dying creature does nothing at all: it does not move, work,
+    /// sleep, regenerate or grow hungry. It <b>keeps its bed</b>, because the
+    /// way out of this state is an imp carrying it back to that bed. What ends
+    /// the window is either that rescue or death.</para>
+    /// </summary>
+    Dying = 6,
 }
 
 /// <summary>
@@ -191,6 +203,19 @@ public sealed class CreatureState
     /// <summary>Ticks this creature has been asleep, counting up towards <c>TimeSleep</c>.</summary>
     public int SleepTicks;
 
+    /// <summary>
+    /// Ticks this creature has spent collapsed, counting up towards
+    /// <c>CreatureDyingStateDurationSeconds</c> (60).
+    ///
+    /// <para>Only meaningful while <see cref="Activity"/> is
+    /// <see cref="CreatureActivity.Dying"/>. It is the rescue window the owner
+    /// described: <i>"it remains lying on the ground for a period of time, that
+    /// gives imps an opportunity to return a creature to its bed in the lair for
+    /// healing, or to prison if it is an enemy creature"</i> — see
+    /// <see cref="CreatureDeathRules"/>.</para>
+    /// </summary>
+    public int DyingTicks;
+
     public CreatureActivity Activity;
 
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
@@ -250,6 +275,7 @@ public sealed class CreatureState
         hash.Add(LairTileIndex);
         hash.Add(AwakeTicks);
         hash.Add(SleepTicks);
+        hash.Add(DyingTicks);
         hash.Add((int)Activity);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);

@@ -358,8 +358,11 @@ public class CreatureNeedsTests
     // ---- death ------------------------------------------------------------
 
     [Fact]
-    public void ACreatureAtZeroHealthLeavesTheWorld()
+    public void ACreatureAtZeroHealthCollapsesAndDoesNotDieYet()
     {
+        // The correction Q99 forced. This used to assert the creature was gone
+        // after one second, which was the whole mechanic missing: DK2 gives it
+        // CreatureDyingStateDurationSeconds on the floor first.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
@@ -370,8 +373,172 @@ public class CreatureNeedsTests
         sim.ObserveWith(events);
         sim.Run(Second);
 
+        Assert.Single(world.Creatures);
+        Assert.Equal(CreatureActivity.Dying, goblin.Activity);
+        Assert.Contains(events.Events, e => e.Kind == "creature_collapsed");
+        Assert.DoesNotContain(events.Events, e => e.Kind == "creature_died");
+    }
+
+    [Fact]
+    public void ACollapsedCreatureLiesThereForSixtySecondsAndThenDies()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        var events = new ListEventSink();
+
+        goblin.Health = 0;
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
+        sim.ObserveWith(events);
+
+        // One second short of the window: still lying there, still rescuable.
+        sim.Run(Second * 60);
+        Assert.Single(world.Creatures);
+        Assert.Equal(CreatureActivity.Dying, goblin.Activity);
+
+        // And the second the window closes.
+        sim.Run(Second);
         Assert.Empty(world.Creatures);
         Assert.Contains(events.Events, e => e.Kind == "creature_died");
+    }
+
+    [Fact]
+    public void TheDyingWindowIsTheDatabasesAndNotAConstant()
+    {
+        GameDatabase db = Db;
+
+        Assert.Equal(60, db[VariableTypeId.CreatureDyingStateDurationSeconds]);
+        Assert.Equal(Second * 60, CreatureDeathRules.DyingWindowTicks(db));
+
+        // The second timer, which nothing implements: a corpse is an object
+        // (M6). Asserted anyway so the number is pinned for the day it is used,
+        // and so that two variables sharing a value stays a fact rather than a
+        // coincidence someone collapses into one.
+        Assert.Equal(60, db[VariableTypeId.DeadBodyDiesAfterSeconds]);
+        Assert.Equal(Second * 60, CreatureDeathRules.BodyWindowTicks(db));
+    }
+
+    [Fact]
+    public void ADyingImpDoesNotHealItselfOffTheFloorOnItsOwnLand()
+    {
+        // The reason the dying guard exists rather than being tidy. An Imp
+        // regenerates 67 health a second on its own land, so without the guard
+        // a collapsed imp at home would heal back up every second and be the
+        // one creature in the game that could not be killed on friendly ground.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var at = new TilePos(2, 2);
+        Paint(db, world, RoomTypeId.Lair, at, Keeper);
+
+        CreatureState imp = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, at);
+        imp.Health = 0;
+
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
+
+        sim.Run(Second * 10);
+        Assert.Equal(0, imp.Health);                        // no self-rescue
+        Assert.Equal(CreatureActivity.Dying, imp.Activity);
+
+        sim.Run(Second * 51);
+        Assert.Empty(world.Creatures);                      // and it does die
+    }
+
+    [Fact]
+    public void ADyingCreatureDoesNotGetHungrier()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+
+        goblin.Health = 0;
+        Simulation(db, world).Run(Second * 30);
+
+        // One second's worth, from the second it dropped — the collapse is
+        // booked at the end of that second, after the hunger clock has already
+        // ticked. From then on the clock is frozen: a creature lying on the
+        // floor is not working towards its next meal.
+        Assert.Equal(Second, goblin.HungerTicks);
+        Assert.Equal(0, goblin.ChickensNeeded);
+    }
+
+    [Fact]
+    public void ARescuedCreatureWakesInItsBedAndIsHealedRatherThanCollapsingAgain()
+    {
+        // The ordering test. Rescue puts the creature in its bed at zero health;
+        // the lair heals it before anything asks whether it has collapsed. Swap
+        // those two steps in CreatureHealthSystem and this goes red.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var bed = new TilePos(5, 5);
+        Paint(db, world, RoomTypeId.Lair, bed, Keeper);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, bed);
+        Assert.True(LairRules.TryClaimBed(world, db, goblin));
+
+        goblin.Health = 0;
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
+        sim.Run(Second);
+        Assert.Equal(CreatureActivity.Dying, goblin.Activity);
+
+        Assert.True(CreatureDeathRules.Rescue(world, goblin));
+        Assert.Equal(CreatureActivity.Sleeping, goblin.Activity);
+        Assert.Equal(0, goblin.Health);              // rescue heals nothing itself
+
+        sim.Run(Second);
+        Assert.Equal(100, goblin.Health);            // the lair does, at 100 a second
+        Assert.Single(world.Creatures);
+    }
+
+    [Fact]
+    public void ACreatureWithNoBedCannotBeRescued()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+
+        goblin.Health = 0;
+        Assert.True(CreatureDeathRules.Collapse(goblin));
+
+        // Nowhere to carry it to. Its keeper never built a lair.
+        Assert.Equal(-1, goblin.LairTileIndex);
+        Assert.False(CreatureDeathRules.Rescue(world, goblin));
+        Assert.Equal(CreatureActivity.Dying, goblin.Activity);
+    }
+
+    [Fact]
+    public void ACollapsedCreatureKeepsItsBedUntilItActuallyDies()
+    {
+        // Releasing the bed on collapse would be the obvious tidy-up and would
+        // break the rescue: another creature would move into the bed of the one
+        // lying on the floor waiting to be carried back to it.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var bed = new TilePos(5, 5);
+        Paint(db, world, RoomTypeId.Lair, bed, Keeper);
+
+        CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, bed);
+        Assert.True(LairRules.TryClaimBed(world, db, first));
+        int held = first.LairTileIndex;
+
+        first.Health = 0;
+        var sim = new GameSimulation(
+            db, world, 42, [new CreatureSleepSystem(), new CreatureHealthSystem()]);
+        sim.Run(Second * 30);
+
+        Assert.Equal(CreatureActivity.Dying, first.Activity);
+        Assert.Equal(held, first.LairTileIndex);         // still holds it
+
+        // And the only other tile in a one-tile lair is taken, so a newcomer
+        // gets nothing rather than the dying creature's bed.
+        CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        Assert.False(LairRules.TryClaimBed(world, db, second));
+
+        // Death is what frees it.
+        sim.Run(Second * 31);
+        Assert.DoesNotContain(world.Creatures, c => c.Id == first.Id);
+        Assert.True(LairRules.TryClaimBed(world, db, second));
+        Assert.Equal(held, second.LairTileIndex);
     }
 
     [Fact]
@@ -388,7 +555,7 @@ public class CreatureNeedsTests
         goblin.Health = 0;
         var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
         sim.ObserveWith(events);
-        sim.Run(Second);
+        sim.Run(Second * 61);
 
         SimEvent died = events.Events.First(e => e.Kind == "creature_died");
         Assert.Contains("leaves_body=", died.Detail);
@@ -565,9 +732,14 @@ public class CreatureNeedsTests
 
         // It dies, and the one bed in the lair has to become available again —
         // otherwise a lair silently loses a tile every time somebody dies.
+        //
+        // Two seconds used to be enough, because zero health used to be death.
+        // It now takes CreatureDyingStateDurationSeconds first (Q99), and the
+        // bed stays held for the whole of that window on purpose — the rescue
+        // path carries the creature back to it.
         first.Health = 0;
         CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 3));
-        sim.Run(Second * 2);
+        sim.Run(Second * 61);
 
         Assert.DoesNotContain(world.Creatures, c => c.Id == first.Id);
         Assert.True(second.LairTileIndex >= 0, "the dead creature's bed was never freed");

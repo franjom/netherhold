@@ -51,6 +51,7 @@ public static class AssetCatalogue
         "delivering_gold",
         "going_to_sleep",
         "sleeping",
+        "dying",
     ];
 
     /// <summary>

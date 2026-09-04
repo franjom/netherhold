@@ -64,6 +64,31 @@ public sealed class ScenarioCreature
 
     /// <summary>Whose creature it is.</summary>
     public byte Player { get; set; }
+
+    /// <summary>
+    /// Health to start with. Omit it for the record's full <c>Hp</c>.
+    ///
+    /// <para>Here because nothing in a scenario can hurt a creature — there is
+    /// no combat and no command that wounds one — so the only way to observe
+    /// anything downstream of damage is to place a creature already wounded.
+    /// <c>health: 0</c> is how a run watches a creature lie on the floor for
+    /// <c>CreatureDyingStateDurationSeconds</c> and then die (Q99).</para>
+    ///
+    /// <para><b>Nullable rather than defaulting 0 to "full"</b>, which is what
+    /// it did first and was wrong in both directions. Treating 0 as "full"
+    /// meant a scenario could not ask for a collapse at all; treating a plain
+    /// <c>int</c>'s 0 as zero health would mean a scenario that omitted the
+    /// field was silently about death. Null says "the record's", and every
+    /// number including 0 says itself.</para>
+    ///
+    /// <para>Note that a small positive value is <i>not</i> a way to reach the
+    /// dying state: with no damage anywhere in the simulation, a creature at 1
+    /// health simply stays at 1 — and if it is below
+    /// <c>CreatureSleepsWhenBelowPercentHealth</c> it goes to bed and heals back
+    /// to full. That is exactly what the first version of the collapse scenario
+    /// did instead of collapsing.</para>
+    /// </summary>
+    public int? Health { get; set; }
 }
 
 /// <summary>

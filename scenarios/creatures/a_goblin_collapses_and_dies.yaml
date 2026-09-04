@@ -1,0 +1,121 @@
+# Zero health is not death — it is a sixty-second window (Q99).
+#
+# Two **Goblins** are placed at `health: 0` beside a healthy third and a
+# two-tile **Lair**. Nothing attacks them; nothing needs to. A creature with no
+# health collapses the moment the health system next looks at it.
+#
+# `health: 0` and not `health: 1`, which is what this scenario asked for first
+# and is a mistake worth keeping written down: **nothing in the simulation deals
+# damage**, so a goblin at 1 health stays at 1 health forever — and since 1 is
+# below `CreatureSleepsWhenBelowPercentHealth` (50), it walked to its bed, slept,
+# and was healed back to 1500 by the lair. The first run of this file was a
+# scenario about recovery wearing the title of one about death.
+#
+# The owner's answer, which this run is the first half of:
+#
+#   "when a creature drops, its petals on the flower above its head are
+#    exhausted, it remains lying on the ground for a period of time, that gives
+#    imps an opportunity to return a creature to its bed in the lair for
+#    healing, or to prison if it is an enemy creature. once that timer runs out
+#    a creature dies and its corpse remains there lying, that gives imps an
+#    opportunity to carry it to graveyard. if that timer runs out and no one
+#    carries the corpse it just disappears"
+#
+# Both timers are in the shipped data and both are 60 seconds:
+# `CreatureDyingStateDurationSeconds` (26) and `DeadBodyDiesAfterSeconds` (23).
+# Two variables that had been parsed for months with nothing reading either.
+#
+# What the event log shows, in order:
+#
+#   t0      `bed_claimed ... creature=3 ... tile=(5,5)`
+#           **Only the healthy goblin claims a bed**, and the two on the floor
+#           get nothing — which is the second thing this file got wrong before
+#           it was run. A creature is skipped by the sleep system the moment it
+#           has no health, and these two have none from the tick they exist, so
+#           they are never eligible to claim. Their `bed=-1` below is that.
+#
+#           Which means the run demonstrates the *opposite* edge of the rule
+#           from the one intended: a creature that collapses before it ever had
+#           a bed can never be carried anywhere, because there is nowhere to
+#           carry it to. That a creature which *had* a bed keeps it for the
+#           whole dying window is real and is covered by
+#           `ACollapsedCreatureKeepsItsBedUntilItActuallyDies` — no scenario can
+#           show it, because showing it needs a creature wounded mid-life and
+#           nothing here can wound one.
+#
+#   t19     `creature_collapsed ... rescue_window=60s bed=-1`
+#           The last tick of the first game second, which is the phase the
+#           health system runs on. **They are still in the world**, and still
+#           their keeper's. This is the line that did not exist before Q99: the
+#           previous implementation removed the creature here and called it
+#           `creature_died`.
+#
+#           Note what does *not* happen next: no `going_to_sleep`. A collapsed
+#           creature does nothing at all — it does not walk, work, sleep, grow
+#           hungry, or heal. The last of those is the load-bearing one, and the
+#           test that found it used an **Imp**: an imp regenerates 67 health a
+#           second on its own land, so a dying imp that still regenerated would
+#           heal itself off the floor and be unkillable at home.
+#
+#   t1219   `creature_died ... dying_for=1200 leaves_body=True`
+#           Sixty seconds later, to the tick: 20 x 60 = 1200. A bed, when there
+#           is one, is released *here* and not on the collapse, because the
+#           rescue the owner describes carries the creature back to that bed — a
+#           lair tile freed on collapse would be a tile somebody else claims
+#           while its owner lies on the floor waiting to be carried to it.
+#
+#           `leaves_body=True` is a promise this run cannot keep. A Goblin's
+#           `GenerateDeadBody` flag is set and its `DecomposeValue` is 200, but
+#           a corpse is an OBJECT and OBJECTS is unparsed (M6) — so the second
+#           timer never starts and nothing accumulates toward a graveyard or a
+#           Vampire. The flag is published in the event so the gap is in the log
+#           rather than only in the docs.
+#
+# What this run does NOT establish, all of it recorded rather than implied:
+#
+#   * **Whether an imp would have saved them.** Carrying does not exist, so the
+#     rescue window is a window onto nothing. `CreatureDeathRules.Rescue` is
+#     written and tested and has no caller — the transition is the part worth
+#     getting right, and waiting for carrying would mean writing it blind.
+#   * **What an enemy creature's collapse does.** The owner's answer says an
+#     imp takes those to a prison instead. There is no prison and no capture.
+#   * **Whether the petals are the anger meter or a separate one.** The flower
+#     above a creature's head is described as exhausting when it drops; whether
+#     that is the same indicator the anger ladder drives is UNKNOWN (Q106 is
+#     still what blocks anger entirely).
+#   * **Whether a creature whose bed is sold while it lies dying can still be
+#     rescued.** It cannot here, because a collapsed creature is not allowed to
+#     claim a replacement bed — claiming is a walk and a placement in the
+#     owner's description, and something unconscious can do neither. Q107.
+id: creatures-a-goblin-collapses-and-dies-001
+question: >
+  Does a creature at zero health lie on the ground for the sixty seconds
+  CreatureDyingStateDurationSeconds gives it — keeping its bed, healing nothing,
+  and doing nothing — and only then die?
+map: flat_24x20
+seed: 5
+duration_ticks: 1400
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 0 }
+  rooms:
+    # Two beds, so one goblin has somewhere to be carried back to and the
+    # difference between them is visible in the collapse event's `bed=`.
+    - { type: Lair, at: [5, 5], player: 3 }
+    - { type: Lair, at: [6, 5], player: 3 }
+  creatures:
+    # No health at all, so both collapse on the first game second and never
+    # become eligible to claim a bed. Two of them rather than one only to show
+    # that the window is per creature and they die together, in creature order.
+    - { type: Goblin, at: [8, 8], player: 3, health: 0 }
+    - { type: Goblin, at: [9, 8], player: 3, health: 0 }
+    # Full health, and the control: it takes a bed the two on the floor cannot,
+    # and carries on with its 240-second sleep cycle while they lie there.
+    - { type: Goblin, at: [10, 8], player: 3 }
+    # Never eats, never sleeps, no bed — and the only creature here that heals
+    # on its own land, which is why the dying guard exists.
+    - { type: Imp, at: [5, 5], player: 3 }
+commands: []
+observe:
+  - state_hash
+  - events

@@ -322,6 +322,11 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.CreatureCriticalHealthPercentageOfMax, 20);
         Set(vars, VariableTypeId.CreatureSleepsWhenBelowPercentHealth, 50);
         Set(vars, VariableTypeId.CreatureDyingStateDurationSeconds, 60);
+
+        // The corpse timer, which nothing reads: a body is an object (M6). Here
+        // so CreatureDeathRules.BodyWindowTicks can be pinned rather than only
+        // documented — two variables sharing a value is a fact worth a test.
+        Set(vars, VariableTypeId.DeadBodyDiesAfterSeconds, 60);
         Set(vars, VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds, 5);
         Set(vars, VariableTypeId.MinimumImpThreshold, 4);
         Set(vars, VariableTypeId.TimeBeforeFreeImpGeneratedSeconds, 5);

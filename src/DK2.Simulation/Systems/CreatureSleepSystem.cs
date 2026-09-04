@@ -30,6 +30,19 @@ namespace DK2.Simulation.Systems;
 /// its keeper has a lair keeps trying every tick and takes a bed the moment one
 /// exists.</para>
 ///
+/// <para><b>A bed that stops existing is replaced, not mourned</b> — CONFIRMED
+/// by the owner (2026-09-04): <i>"if a lair tile with bed on it is sold, then
+/// the creature whose bed it was loses a place to sleep. It needs to find a new
+/// free lair tile to place its bed, otherwise anger mechanic is triggered, it
+/// gets upset, then angry then it leaves the dungeon."</i> That is exactly the
+/// order below — <c>bed_lost</c>, then <c>Claim</c> on the same tick — so a
+/// creature whose lair is partly sold moves along to a surviving tile without
+/// ever noticing, and only a creature that finds <i>no</i> free tile is left
+/// bedless. The consequence of being left bedless is the anger ladder, which is
+/// the third confirmation of it from a third cause (Q9, Q105) and is still not
+/// implemented: its unit is unknown (Q106, ADR-0050). So today such a creature
+/// simply stays awake for ever.</para>
+///
 /// <para><b>Order.</b> Registered after <see cref="ImpTaskSystem"/>, so it sees
 /// the same world an imp's job selection saw, and before
 /// <see cref="CreatureHealthSystem"/>, so a creature that falls asleep this tick
@@ -88,6 +101,25 @@ public sealed class CreatureSleepSystem : ISimulationSystem
                     Wake(creature);
                 }
             }
+
+            // A collapsed creature does nothing at all (ADR-0051), and where
+            // this line sits is the whole of that rule.
+            //
+            // *After* the validity check above, because a bed that stopped
+            // being a lair tile stopped existing whatever its owner is doing —
+            // that is the world removing something, not the creature acting,
+            // and a stale index left behind would make BedTaken lie.
+            //
+            // *Before* the claim below, because claiming is the creature
+            // acting: the owner's words are that it "goes to a lair, finds a
+            // free tile and occupies it with its bed", which is a walk and a
+            // placement, and something lying unconscious on the floor can do
+            // neither. The cost is that a creature whose bed is sold while it
+            // lies dying can no longer be carried anywhere — Q107, and it costs
+            // nothing today because carrying does not exist. The alternative
+            // costs something now: a dying creature would take the last free
+            // bed out from under a goblin that walked in on its own feet.
+            if (CreatureDeathRules.IsDown(creature)) continue;
 
             if (creature.LairTileIndex < 0) Claim(context, creature, definition);
 

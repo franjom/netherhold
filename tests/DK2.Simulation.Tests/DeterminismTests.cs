@@ -107,14 +107,14 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // Bumped with HashVersion 11 -> 12 (ADR-0049): CreatureState gained
-        // LairTileIndex, AwakeTicks and SleepTicks for beds and sleep. The
-        // fixture spawns imps, which have no bed and never sleep, so all three
-        // fields hold their initial values here and only the composition
-        // changed. Snapshot FormatVersion went 11 -> 12 in the same commit.
-        // Previous values: 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
-        // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x9D2695B2F62707D2UL, sim.StateHash());
+        // Bumped with HashVersion 12 -> 13 (ADR-0051): CreatureState gained
+        // DyingTicks, because zero health is a 60-second window rather than
+        // death (Q99, CONFIRMED). The fixture's imps are at full health, so the
+        // field holds its initial value here and only the composition changed.
+        // Snapshot FormatVersion went 12 -> 13 in the same commit.
+        // Previous values: 0x9D2695B2F62707D2 (12), 0x12E4F45E48ACEB9B (11),
+        // 0x06F71648486D0FEC (10), 0x4F824667CDA7EF25 (9).
+        Assert.Equal(0xAEAF871CC4814DA1UL, sim.StateHash());
     }
 
     [Fact]

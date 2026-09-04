@@ -24,15 +24,18 @@ namespace DK2.Simulation.Systems;
 /// so the question only arises for an Imp or King Reginald asleep in a lair.
 /// Recorded as the reading it is (Q100).</para>
 ///
-/// <para><b>Death is removal, for now.</b> A creature at zero health leaves the
-/// world. DK2 is more careful than that — it drops what it carried, lies there
-/// for <c>CreatureDyingStateDurationSeconds</c> (60), may be a body that can be
-/// dragged to a graveyard, and only some creatures leave a body at all
-/// (<see cref="CreatureFlags.GenerateDeadBody"/>) — and none of that can be
-/// built before objects exist (M6). So the flag is read and reported in the
-/// event, and the branch it will one day take is named there rather than
-/// guessed at. Q99 is the owner's part: whether zero health means dead or
-/// merely unconscious.</para>
+/// <para><b>Zero health is not death</b> — CONFIRMED by the owner (Q99), and
+/// this system used to have it wrong. A creature that runs out of health
+/// <i>collapses</i> and lies there for <c>CreatureDyingStateDurationSeconds</c>
+/// (60), rescuable by an imp that carries it back to its bed, and only then
+/// dies. See <see cref="CreatureDeathRules"/> for the whole process and for
+/// which half of it is still missing.</para>
+///
+/// <para><b>A dying creature is skipped entirely</b>, and that guard is not
+/// cosmetic. An Imp regenerates 67 health a second on its own land, so a dying
+/// imp that still regenerated would heal itself off the floor and become
+/// immortal on friendly ground — the one creature in the game that could never
+/// be killed at home. Recovery is the rescue, not self-healing.</para>
 ///
 /// <para>Registered <b>after</b> <see cref="PortalSystem"/> so a creature that
 /// arrives this tick is not regenerated on the tick it arrives, and so its
@@ -58,6 +61,14 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             CreatureState state = world.Creatures[i];
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
+            // A dying creature does nothing but die. No hunger clock, and above
+            // all no regeneration — see the type summary for the immortal imp.
+            if (CreatureDeathRules.IsDying(state))
+            {
+                Dying(context, creature, state);
+                continue;
+            }
+
             Hunger(context, creature, state);
 
             int regen = CreatureHealthRules.OwnLandRegenPerSecond(world, creature, state)
@@ -75,7 +86,11 @@ public sealed class CreatureHealthSystem : ISimulationSystem
                 }
             }
 
-            if (state.Health <= 0) Die(context, creature, state);
+            // Last, and deliberately after the healing above: a creature
+            // rescued into its bed at zero health is healed to 100 on this same
+            // second and so is never seen collapsed. CreatureDeathRules.Rescue
+            // explains why reversing these two would undo every rescue.
+            if (CreatureDeathRules.HasCollapsed(state)) Collapse(context, creature, state);
         }
     }
 
@@ -95,18 +110,51 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             $"after={state.HungerTicks / SimulationTiming.TicksPerSecond}s");
     }
 
+    /// <summary>Counts the rescue window down, and kills what it runs out on.</summary>
+    private static void Dying(
+        SimulationContext context, CreatureDef creature, CreatureState state)
+    {
+        state.DyingTicks += SimulationTiming.TicksPerSecond;
+
+        if (!CreatureDeathRules.DyingWindowElapsed(context.Database, state)) return;
+
+        Die(context, creature, state);
+    }
+
+    /// <summary>
+    /// Drops a creature to the floor. It is still alive, still its keeper's, and
+    /// still holds its bed and its gold.
+    /// </summary>
+    private static void Collapse(
+        SimulationContext context, CreatureDef creature, CreatureState state)
+    {
+        if (!CreatureDeathRules.Collapse(state)) return;
+
+        context.Emit(SystemName, "creature_collapsed",
+            $"creature={state.Id} type={creature.Name} " +
+            $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
+            $"rescue_window={CreatureDeathRules.DyingWindowTicks(context.Database)
+                / SimulationTiming.TicksPerSecond}s " +
+            $"bed={state.LairTileIndex}");
+    }
+
     private static void Die(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
         // A dead creature gives up its bed, or a lair leaks a tile forever.
+        // Not on collapse — the rescue path carries it back to that bed.
         LairRules.ReleaseBed(state);
 
-        bool leavesBody = creature.Flags.HasFlag(CreatureFlags.GenerateDeadBody);
+        // The body is owed and cannot be delivered: a corpse is an object, and
+        // OBJECTS is unparsed (M6). Reported so the gap is in the log rather
+        // than only in the docs, and so a graveyard has something to grep for.
+        bool leavesBody = CreatureDeathRules.LeavesBody(creature);
 
         context.Emit(SystemName, "creature_died",
             $"creature={state.Id} type={creature.Name} " +
             $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
-            $"gold_lost={state.GoldHeld} leaves_body={leavesBody}");
+            $"gold_lost={state.GoldHeld} dying_for={state.DyingTicks} " +
+            $"leaves_body={leavesBody}");
 
         context.World.RemoveCreature(state.Id);
     }

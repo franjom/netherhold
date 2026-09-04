@@ -391,15 +391,13 @@ public sealed class WorldState
     /// <summary>
     /// Takes a creature out of the world, and says whether it was there.
     ///
-    /// <para><b>Not death.</b> Dying in DK2 is a process — a creature drops
-    /// whatever it was carrying, lies there for
-    /// <c>CreatureDyingStateDurationSeconds</c>, and may be dragged to a
-    /// graveyard — and none of that is implemented. This is the removal that
-    /// process would end with, and nothing in the simulation calls it yet: it
-    /// exists because a keeper's imp count has to be able to fall for
-    /// <see cref="Systems.ImpSupplySystem"/>'s floor to mean anything, and a
-    /// rule that can only be tested by inventing the mechanic it depends on is
-    /// not tested at all.</para>
+    /// <para><b>Not death — the end of it.</b> Dying in DK2 is a process: a
+    /// creature collapses at zero health, lies there rescuable for
+    /// <c>CreatureDyingStateDurationSeconds</c>, and only then dies (Q99,
+    /// CONFIRMED, ADR-0051). <see cref="Systems.CreatureHealthSystem"/> runs
+    /// that process and calls this at the end of it. What is still missing is
+    /// what happens <i>after</i> — the corpse, which is an object (M6) — so this
+    /// removal currently stands in for "and then the body rots away too".</para>
     ///
     /// <para>The creature's id is <b>not</b> reused: <c>_nextCreatureId</c> only
     /// ever goes up, so a level that has had creatures die cannot hand out an id

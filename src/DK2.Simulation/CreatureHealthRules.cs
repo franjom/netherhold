@@ -131,6 +131,16 @@ public static class CreatureHealthRules
         int rate = creature.OwnLandHealthIncreasePerSecond;
         if (rate == 0) return 0;
 
+        // Standing on your own land does not pick you up off the floor. The
+        // owner's answer to Q99 gives exactly one route back from a collapse —
+        // an imp carrying the creature to its bed — so passive regeneration
+        // must not be a second one. Without this an Imp, which regenerates 67 a
+        // second at home, would be unkillable on its own territory: see
+        // CreatureDeathRules.IsDown. Lair healing is deliberately *not* gated
+        // this way, because healing a creature at zero health in its own bed is
+        // precisely what a rescue is.
+        if (CreatureDeathRules.IsDown(state)) return 0;
+
         TilePos at = state.Tile;
         if (!world.Contains(at)) return 0;
 

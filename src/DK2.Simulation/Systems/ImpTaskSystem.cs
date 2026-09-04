@@ -152,6 +152,12 @@ public sealed class ImpTaskSystem : ISimulationSystem
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
 
+            // A collapsed imp does not work (ADR-0051). Its job was cleared when
+            // it dropped, so this only stops it picking a new one — but without
+            // the guard a dying imp would keep mining, which is a strange thing
+            // for something lying on the floor to do.
+            if (CreatureDeathRules.IsDown(creature)) continue;
+
             Update(context, creature, definition);
         }
     }

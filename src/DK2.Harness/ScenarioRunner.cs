@@ -367,8 +367,10 @@ public sealed class ScenarioRunner
             "builds it. Most rooms still do nothing a room does beyond being terrain its owner " +
             "holds - a treasury stores gold because a variable says how much per tile, and a " +
             "library, a hatchery and a training room are inert. Two now do more: a portal " +
-            "produces creatures, and a lair attracts them (which is all a lair does - nothing " +
-            "sleeps in it, because no creature has needs)");
+            "produces creatures, and a lair both attracts them and holds one bed per tile that " +
+            "a creature claims, sleeps in and is healed by. What a lair still cannot do is " +
+            "anger the creature it turns away (Q106) or take back a creature an imp carried to " +
+            "it, because nothing can be carried");
     }
 
     /// <summary>
@@ -418,7 +420,18 @@ public sealed class ScenarioRunner
                 continue;
             }
 
-            world.SpawnCreature(_database, definition.CreatureId, c.Player, new TilePos(c.At[0], c.At[1]));
+            CreatureState placed = world.SpawnCreature(
+                _database, definition.CreatureId, c.Player, new TilePos(c.At[0], c.At[1]));
+
+            // Wounded on purpose, because nothing in a scenario can wound one.
+            // Clamped at both ends: a typo cannot make a creature stronger than
+            // its record, and cannot give it negative health either.
+            if (c.Health is int health)
+            {
+                placed.Health =
+                    Math.Clamp(health, 0, CreatureHealthRules.MaxHealth(definition));
+            }
+
             if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) workers++;
         }
 

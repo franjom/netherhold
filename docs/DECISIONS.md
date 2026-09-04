@@ -3023,3 +3023,139 @@ a content creature angry. Either pins the ceiling, because the rates are known.
 - Neither matters much yet, because **nothing can slap or pick up a creature**,
   so the two largest anger sources have no trigger. That is the sequencing
   point: anger has no player input to respond to until the hand exists.
+
+---
+
+## ADR-0051 — Zero health is a sixty-second window, and the dying creature is a creature while the corpse is not
+
+**Status:** Accepted (2026-09-04)
+**Confidence:** Confirmed (owner, Q99)
+**Supersedes:** the death branch of ADR-0048
+
+### Context
+
+`CreatureHealthSystem` removed a creature the moment its health reached zero and
+emitted `creature_died`. That was recorded as a placeholder with Q99 against it,
+because `CreatureDyingStateDurationSeconds` is 60 and 60 seconds is a long time
+to specify for nothing.
+
+The owner answered:
+
+> *"When a creature drops, its petals on the flower above its head are exhausted,
+> it remains lying on the ground for a period of time, that gives imps an
+> opportunity to return a creature to its bed in the lair for healing, or to
+> prison if it is an enemy creature. Once that timer runs out a creature dies and
+> its corpse remains there lying, that gives imps an opportunity to carry it to
+> graveyard. If that timer runs out and no one carries the corpse it just
+> disappears."*
+
+**Two timers, three states, and both timers were already in the shipped data:**
+
+| Variable | Id | Value | What it times |
+|---|---|---|---|
+| `CreatureDyingStateDurationSeconds` | 26 | **60** | collapsed, rescuable |
+| `DeadBodyDiesAfterSeconds` | 23 | **60** | corpse, carryable |
+
+Both had been parsed for months with nothing reading either. Two independently
+named variables holding the same value looked like redundancy; the answer says
+they are two clocks on two different things.
+
+### Decision
+
+**1. Zero health collapses; it does not kill.** A creature with no health enters
+`CreatureActivity.Dying`, keeps its owner, its tile, its gold and its bed, and
+dies only when `CreatureDyingStateDurationSeconds` elapses.
+
+**2. A dying creature does nothing at all** — no movement, no work, no sleep, no
+hunger, no regeneration.
+
+**3. The only route back is a bed.** `CreatureDeathRules.Rescue` puts a rescued
+creature into its own bed as `Sleeping` at *unchanged* health, and the lair heals
+it at `ModifyHealthOfCreatureInLairPerSecond`. Nothing calls it: carrying does
+not exist. It is written and tested for the same reason `Eat` is.
+
+**4. The dying creature stays in `WorldState.Creatures`; the corpse is not
+modelled.** A collapsed creature has health, an owner, a tile and a bed, and
+recovers by being healed — everything that reads a creature keeps working on it.
+A corpse has none of that: in DK2 it is an *object* with a `DecomposeValue` that
+imps haul and a graveyard counts toward `DecomposeValueNeededForVampire`. OBJECTS
+is unparsed (M6). Modelling it as a fake creature would put a thing with no needs
+into the creature list, where every present and future system would have to
+remember to skip it.
+
+**5. `GenerateDeadBody` governs, not `DecomposeValue`.**
+
+### Consequences
+
+**What it costs, stated rather than hidden:** a creature that dies vanishes
+instead of leaving a corpse for 60 further seconds, so nothing accumulates toward
+a graveyard and **no Vampire can ever be made**. Known gap, named cause.
+
+`HashVersion` 12 → 13 and snapshot `FormatVersion` 12 → 13: `CreatureState`
+gained `DyingTicks`.
+
+### The bug this found, which is the reason the guard is on health and not on state
+
+Guarding the other systems on "is in the Dying state" was wrong, because the
+collapse is *booked* once a game second. Between health reaching zero and the
+booking there is a window in which a creature has no health and is still `Idle`,
+and two things exploited it:
+
+- **A creature at zero health near its bed** decided it was wounded enough to
+  sleep (`CreatureSleepsWhenBelowPercentHealth`), walked there, and healed — so
+  it **never collapsed at all** whenever a bed was in reach.
+- **An Imp at zero health on its own land** regenerated its 67 a second before
+  the collapse was booked, climbed back to 500, and **could not be killed at
+  home**.
+
+So every system guards on `CreatureDeathRules.IsDown` — *has no health, or is
+already dying* — rather than on the state flag. This matters beyond the current
+cadence: combat will subtract health per tick, not per second.
+
+Two consequences of the same reasoning:
+
+- **Own-land regeneration is suppressed at zero health; lair healing is not.**
+  The owner's answer gives exactly one route off the floor, so passive
+  regeneration must not be a second one. Lair healing must still work at zero,
+  because that *is* the rescue.
+- **The order inside `CreatureHealthSystem` is load-bearing**: healing applies
+  *before* the collapse test, so a creature rescued at zero health is above zero
+  by the time anything asks. Reversed, a rescue would collapse the creature it
+  just saved.
+
+### What the data gave up in passing
+
+**Eight of 46 creatures leave no body:** Imp, Vampire, Skeleton, Horny, Stone
+Knight, Unique Skeleton, Unique Vampire, **Jack**. That is the **third near-miss
+grouping** in this record and the third refutation of "these are the undead, one
+flag would do":
+
+| Set | Members not shared |
+|---|---|
+| never eats | **Unique Firefly** (leaves a body) |
+| no body | **Jack** (eats) |
+
+Seven in common, one each way. Never-sleeps is a third, distinct set — the
+**Dwarf** sleeps never and leaves a body. There is no undead flag; each need is
+its own column, and all three sets are asserted by name because every one was
+guessed wrong before it was read.
+
+**And two records carry unreachable data:** `Horny` and `Jack` both have
+`DecomposeValue = 200` while generating no body, so those 200s can never be read.
+Both are records where a template value would plausibly survive unedited — Horny
+is a summon rather than a roster creature (CONFIRMED). A graveyard counting
+`DecomposeValue` would be fed by two corpses that never exist.
+
+### Rejected
+
+- **Modelling the corpse as a creature with a second timer.** Rejected under
+  point 4: it puts a non-creature in the creature list.
+- **Granting a rescued creature 1 health** so it is not collapsed. Invents a
+  number; the ordering achieves it with none.
+- **Letting a collapsed creature claim a replacement bed** when its lair is sold
+  from under it. The owner describes claiming as *"it goes to a lair, finds a
+  free tile and occupies it with its bed"* — a walk and a placement, which
+  something unconscious cannot do. Cost: such a creature can no longer be
+  rescued at all (Q107), which costs nothing while carrying does not exist. The
+  alternative costs something now: a dying creature would take the last free bed
+  from a goblin that walked in on its own feet.

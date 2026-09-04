@@ -31,7 +31,7 @@ It is also the substrate combat needs, and combat is M7.
 | `HungerFill` | chickens needed to be full | Goblin 1, Warlock 2, Bile Demon 5 |
 | `TimeAwake` / `TimeSleep` | the sleep cycle, seconds | Goblin 240/9, Troll 330/10 |
 | `OwnLandHealthIncreasePerSecond` | regeneration on your keeper's land | **Imp 67, King Reginald 400, everyone else 0** |
-| `DecomposeValue` | corpse worth, for the Vampire threshold | 200 for most, 0 for the undead |
+| `DecomposeValue` | corpse worth, for the Vampire threshold | 200 for most, 0 for the undead — but **it is not what decides whether a corpse exists**: `GenerateDeadBody` is, and the two disagree for Horny and Jack, which carry 200 while leaving no body at all |
 
 And from the balance table:
 
@@ -41,6 +41,7 @@ And from the balance table:
 | `CreatureSleepsWhenBelowPercentHealth` | 50 |
 | `CreatureCriticalHealthPercentageOfMax` | 20 |
 | `CreatureDyingStateDurationSeconds` | 60 |
+| `DeadBodyDiesAfterSeconds` | 60 |
 | `PrisonModifyCreatureHealthPerSecond` | −3 |
 | `HealthDecreaseWhenOnFirePerSecond` | −150 |
 | `ModifyCreatureHealthWhilePrayingPerSecond` | 33 |
@@ -133,10 +134,15 @@ would lean on `TicksPerSecond`, still a placeholder (Q1).
 - `Eat` — counts one chicken down, applies `HpFromChicken`, and resets the clock
   **only when the last one goes down**, because DK2 resets on being *full*, not
   on each chicken. Nothing calls it yet.
-- Death at zero health: removal, with an event naming what it will one day
-  branch on.
-- Two thresholds computed and not yet read: critical (20%) and
-  sleep-from-wounds (50%).
+- **Collapse and death** (`CreatureDeathRules`): zero health is a 60-second
+  window on the floor, not death — CONFIRMED by the owner (Q99, ADR-0051). A
+  collapsed creature keeps its owner, tile, gold and bed and does nothing at
+  all; only when `CreatureDyingStateDurationSeconds` elapses does it die. The
+  corpse that should follow is an OBJECT and is missing (M6). See
+  `docs/research/creature-death.md`.
+- **Sleep-from-wounds (50%) is read** — it is half of `LairRules.WantsToSleep`,
+  so a hurt creature goes to bed without being tired. Critical health (20%) is
+  computed and still unread; nothing flees yet.
 
 ## 5. What is deliberately absent
 
@@ -146,7 +152,7 @@ would lean on `TicksPerSecond`, still a placeholder (Q1).
 | **Anywhere to sleep but a bed** | A creature with no bed stays awake indefinitely and never recovers. In DK2 that is what `angerNoLair` is for — 100 for a Goblin, joint-largest in its record — and anger does not exist yet (Q105) |
 | **Anger** | The actual consequence of hunger. Its own need, its own record fields, its own step |
 | **Levels** | `Hp` is the maximum because `CreatureStats` scales stats by level and levels do not exist. When they do, the maximum becomes a function of level and `Health` stays the current value |
-| **Dying, bodies, graveyards** | `CreatureDyingStateDurationSeconds` is 60 and `GenerateDeadBody` is a flag we read, but a body is an object (M6) |
+| **Bodies, graveyards, the Vampire** | Dying itself is now implemented (Q99 ANSWERED, ADR-0051): a creature collapses for 60 seconds before it dies. What is still missing is what comes *after* — a corpse is an OBJECT (M6), so nothing lies on the floor to be carried and nothing accumulates toward a graveyard |
 
 ## 6. What the binary was asked, and refused to say
 
@@ -217,16 +223,23 @@ summonable creature, it is not in a regular roster of creatures, and only on
 special conditions/maps when conditions are met"* — which is also why Horny
 carries no `AvailableViaPortal`.
 
-### Q99 — is zero health death?
+### Q99 — is zero health death? **ANSWERED: no**
 
-Implemented: the creature is removed. But `CreatureDyingStateDurationSeconds` is
-**60**, which strongly suggests a window. OpenKeeper models an *unconscious*
-state that becomes death after that timer and can be interrupted by rescue.
+**CONFIRMED by the owner** (2026-09-04). A creature at zero health collapses and
+lies there rescuable for `CreatureDyingStateDurationSeconds` (60); only then does
+it die, leaving a corpse that lies carryable for `DeadBodyDiesAfterSeconds`
+(also 60). Two timers, three states, and both numbers were already parsed with
+nothing reading either.
 
-*How to see it:* let one of your creatures lose a fight and watch what is left
-on the floor. Does it vanish, or lie there? Can it be picked up, and does it
-recover if dropped in a lair? Does it matter whether it was a fight or something
-else that killed it?
+The collapse and the death are implemented; the corpse is not, because it is an
+OBJECT (M6). See **`docs/research/creature-death.md`** and ADR-0051 — including
+the defect this answer exposed, in which a creature at zero health could walk to
+bed and heal, and an Imp could regenerate off the floor and become unkillable on
+its own land.
+
+Also note what this changed about the guard here: **own-land regeneration is now
+suppressed at zero health, and lair healing is not**, because the owner's answer
+gives exactly one route off the floor and a bed is it.
 
 ### Q100 — does regeneration care what the creature is doing?
 
