@@ -1,4 +1,4 @@
-# Dying: two timers, three states, and the half that cannot be built
+﻿# Dying: two timers, three states, and the half that cannot be built
 
 **Status:** the first timer is implemented and CONFIRMED. The second is a real
 number in the shipped data with nothing able to read it.
@@ -60,7 +60,36 @@ creature on the floor at all:
 |---|---|---|
 | **Collapse** | the 38 creatures with `GenerateDeadBody` | 60 seconds rescuable, then dead, then a corpse |
 | **Instant** | the 8 without it | gone on the spot, nothing left |
-| **Reincarnate** | the 2 with `CanBeResurrected` | back at the sarcophagus, asleep, one level poorer |
+| **Reincarnate** | the 2 with `CanBeResurrected` | back at the Graveyard's sarcophagus, asleep, one level poorer |
+
+### Where a vampire comes back — CORRECTED
+
+The owner's first wording was *"they reincarnate at their sarcophagus"*, and this
+project read "their sarcophagus" as the vampire's own bed, because its
+`LairObjectId` had been pinned as a coffin. That was wrong, and the owner
+retracted it themselves on the same day: *"sarchopagus at the graveyard, I made a
+wrong claim earlier."*
+
+Two shipped facts back the correction, neither of which was looked at when the
+wrong one was written down:
+
+- The **Graveyard's `CreatedCreatureId` is 8 — the Vampire.** Only two rooms in
+  the table create a creature at all; the other is the Prison, whose 9 is the
+  Skeleton.
+- The **Graveyard's object ids are 31-34**; the Vampire's `LairObjectId` is
+  **26**. Two different objects.
+
+The executable settles the vocabulary: `Object.cpp`'s union names `Lair` and
+`TombStone` among its object kinds, and the words *sarcophagus* and *coffin*
+appear nowhere in its strings (binary, ADR-0046 - facts only). A bed is a `Lair`
+object whatever art it wears. The vampire's coffin-shaped bed and the graveyard's
+sarcophagus are two objects that look alike, and reading one as the other was a
+pun rather than a finding.
+
+Consequence for the day this is built: reincarnation puts the creature on a
+**Graveyard** tile, so it needs a Graveyard under the keeper's control - which
+the DK2 wiki also gives as a third permanent-death condition, and which is now
+corroborated rather than merely repeated. Q113 closed.
 
 **The instant-death rule is CONFIRMED from two directions that never met.** The
 owner gave it for the Imp. OpenKeeper's `HealthSystem.processHealthDepleted`

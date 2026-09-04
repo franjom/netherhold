@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -120,6 +120,14 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             // costs something now: a dying creature would take the last free
             // bed out from under a goblin that walked in on its own feet.
             if (CreatureDeathRules.IsDown(creature)) continue;
+
+            // A creature walking out of the dungeon does not stop for a nap,
+            // and above all does not claim a bed on its way past the lair —
+            // which it would, having given its own up when it decided to go
+            // (CreatureAngerSystem.Desert). Without this line a deserter takes
+            // the last free bed out from under a creature that intends to stay,
+            // and then leaves with it.
+            if (creature.Activity == CreatureActivity.Leaving) continue;
 
             if (creature.LairTileIndex < 0) Claim(context, creature, definition);
 

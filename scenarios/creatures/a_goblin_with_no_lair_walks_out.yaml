@@ -59,7 +59,7 @@
 #           and the reason the draw is kept rather than re-rolled: turning it
 #           into a desertion would misreport an unbuilt mechanic as a built one.
 #           Desertion itself is covered by
-#           `AnAngryGoblinLeavesTheDungeonAndGivesUpItsBed`, which forces the
+#           `AnAngryGoblinWalksToThePortalAndLeavesThroughIt`, which forces the
 #           other side of the coin.
 #
 # Note the other two goblins: they claimed beds on tick 0, so their anger stays
@@ -73,11 +73,16 @@
 #     change sides and become a hero. `RebelLeavingPercentage` (70),
 #     `RebelBecomeGoodPercentage` (15) and `RebelDefectPercentage` (15) have
 #     nothing to act on. A goblin that draws it stays put, angry, and says so.
-#   * **Where a deserter goes.** DK2 sends it to a portal, so a keeper with no
-#     portal — or an unreachable one — keeps a creature that wanted to leave. The
-#     DK2 wiki says an angry creature heads for the exit "or rebel[s] ... if they
-#     can't do that", which is a *fallback* model where the record holds a
-#     weighted table. Both cannot be right; the record wins here. Q116.
+#   * **Where a deserter goes — ANSWERED and implemented since this run was
+#     written** (owner, Q116): "angry evil creature goes to the nearest available
+#     portal and leaves the dungeon. Angry converted good creature turns turncoat
+#     and starts attacking the dungeon and its creatures." So the two table
+#     entries are two mechanics keyed on alignment: `Leave` is the evil
+#     creature's exit, `Rebel` is the converted one's turncoat. A deserter now
+#     walks to the nearest portal its keeper owns and only goes when it arrives,
+#     which means **this map has no portal and so nobody could leave it anyway**
+#     — a second reason the run ends with a creature still standing in the
+#     dungeon, on top of the Rebel draw.
 #   * **The other three anger sources.** `AngerNoFood` (100), `AngerNoPay` (60)
 #     and `AngerNoWork` (50) are all in the record and none is applied, because
 #     none can be *satisfied* yet: chickens are objects (M6), there is no payday,

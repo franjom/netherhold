@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -281,6 +281,7 @@ public sealed class WorldView
         CreatureActivity.GoingToSleep => "going_to_sleep",
         CreatureActivity.Sleeping => "sleeping",
         CreatureActivity.Dying => "dying",
+        CreatureActivity.Leaving => "leaving",
         _ => throw new ArgumentOutOfRangeException(
             nameof(activity), activity, "No animation key for this activity."),
     };

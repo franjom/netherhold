@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -80,6 +80,38 @@ public static class PortalRules
 
     /// <summary>Whether this room is a keeper's portal, as opposed to a hero one.</summary>
     public static bool IsKeeperPortal(RoomDef room) => room.RoomId == (byte)RoomTypeId.Portal;
+
+    /// <summary>
+    /// Whether a creature standing on this tile is standing on a way out of its
+    /// keeper's dungeon: portal terrain, owned by that keeper.
+    ///
+    /// <para><b>The exit a deserter walks to</b> (Q116, CONFIRMED by the owner:
+    /// <i>"angry evil creature goes to the nearest available portal and leaves
+    /// the dungeon"</i>). Written as a tile test rather than a room test so a
+    /// path search can use it as a goal predicate without building a
+    /// <see cref="RoomIndex"/> for every step — and terrain plus owner is
+    /// exactly what a <see cref="RoomInstance"/> is made of.</para>
+    ///
+    /// <para><b>"Available" is read as "reachable and yours"</b>, which is our
+    /// reading of one word and is where this could be wrong. It deliberately
+    /// does <i>not</i> require <see cref="CanProduce"/>: a portal that has lost
+    /// its centre tile to a rival is still a hole in the floor to walk into, and
+    /// nothing says a creature refuses to leave through a portal it could not
+    /// have arrived through. Hero portals are excluded for the same kind of
+    /// reason in reverse — an evil creature deserting a keeper has no business
+    /// walking into the hero side's gate, and the converted creature that might
+    /// is the <c>Rebel</c> branch, which does not exist yet.</para>
+    /// </summary>
+    public static bool IsExitTile(
+        WorldState world, GameDatabase database, TilePos at, byte playerId)
+    {
+        if (!world.Contains(at)) return false;
+
+        ref TileState tile = ref world.Tile(at.X, at.Y);
+        if (tile.OwnerPlayerId != playerId) return false;
+
+        return tile.TerrainId == database.Room(RoomTypeId.Portal).TerrainId;
+    }
 
     /// <summary>
     /// The tile a creature appears on: the centre of the portal's bounding box.

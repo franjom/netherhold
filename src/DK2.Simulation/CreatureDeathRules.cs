@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -108,13 +108,31 @@ public static class CreatureDeathRules
     /// Exception to that rule for vampires are monks: if a monk kills a vampire
     /// it is permanently dead, regardless of its level."</i></para>
     ///
-    /// <para>Two lovely confirmations fall out of that. The <b>sarcophagus is
-    /// the vampire's lair bed</b> — its <c>LairObjectId</c> is a coffin, which
-    /// <c>TheGoblinsBedIsObjectTwentyTwoAndTheVampiresIsACoffin</c> already
-    /// pins — so reincarnation lands a creature in its own bed and heals it
-    /// there, which is <see cref="Rescue"/> with no imp involved. And the
-    /// vampire having no dead body stops being an oddity: there is no corpse
-    /// because the creature is not finished.</para>
+    /// <para><b>One confirmation falls out of that, and one mistake was made
+    /// out of it.</b> The vampire having no dead body stops being an oddity:
+    /// there is no corpse because the creature is not finished. But this
+    /// comment used to add that the <i>sarcophagus is the vampire's lair
+    /// bed</i>, so that reincarnation would be <see cref="Rescue"/> with no imp
+    /// involved — and that was a pun on the word, not a finding. The owner
+    /// retracted the wording it rested on the same day: <i>"sarchopagus at the
+    /// graveyard, I made a wrong claim earlier."</i></para>
+    ///
+    /// <para><b>A vampire comes back at the Graveyard</b> (Q113, closed), and
+    /// the shipped data says so in two places that were never consulted while
+    /// the wrong claim stood: the <b>Graveyard's <c>CreatedCreatureId</c> is 8,
+    /// the Vampire</b> — one of only two rooms in the table that create a
+    /// creature, the other being the Prison's Skeleton — and the Graveyard's
+    /// object ids are <b>31-34</b> against the Vampire's <c>LairObjectId</c> of
+    /// <b>26</b>. Two different objects. The binary agrees about the vocabulary:
+    /// <c>Object.cpp</c>'s union names <c>Lair</c> and <c>TombStone</c>, and the
+    /// words <i>sarcophagus</i> and <i>coffin</i> appear nowhere in the
+    /// executable's strings (ADR-0046 — facts only). A bed is a <c>Lair</c>
+    /// object whatever art it wears.</para>
+    ///
+    /// <para>So the day this is implemented it needs a <b>Graveyard tile</b> to
+    /// put the creature on, not <see cref="Rescue"/> — which also makes the
+    /// wiki's third permanent-death condition (no Graveyard under your control)
+    /// corroborated rather than merely repeated.</para>
     ///
     /// <para><b>Why it stays unimplemented.</b> The cost of reincarnation is a
     /// level, and levels do not exist. A vampire that reincarnated without

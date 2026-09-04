@@ -1,9 +1,10 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
@@ -57,6 +58,14 @@ public sealed class CreatureAngerSystem : ISimulationSystem
 {
     private const string SystemName = "CreatureAnger";
 
+    private readonly IPathfinder _pathfinder;
+    private readonly List<TilePos> _route = [];
+
+    public CreatureAngerSystem() : this(new GridPathfinder()) { }
+
+    public CreatureAngerSystem(IPathfinder pathfinder) =>
+        _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
+
     public string Name => SystemName;
 
     public void Execute(SimulationContext context)
@@ -104,7 +113,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
     /// creature that drew Rebel would otherwise re-roll for ever and eventually
     /// leave by luck. So the draw is recorded on the creature and kept.</para>
     /// </summary>
-    private static void Decide(
+    private void Decide(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
         if (state.AngryChoice == JobType.None)
@@ -121,7 +130,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
         switch (state.AngryChoice)
         {
             case JobType.Leave:
-                Desert(context, creature, state);
+                Leave(context, creature, state);
                 break;
 
             default:
@@ -134,29 +143,122 @@ public sealed class CreatureAngerSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// The creature walks out. <b>It simply leaves</b> — no route to a portal,
-    /// no walk to the edge of the map.
+    /// The creature walks out — to <b>the nearest portal its keeper owns</b>,
+    /// and it only actually goes when it gets there.
     ///
-    /// <para>DK2 sends a deserter to a portal and it leaves through it, which
-    /// means a keeper with no portal, or one whose portal is unreachable, keeps
-    /// a creature that wanted to go. The wiki's DK2 section says as much: an
-    /// angry creature <i>"head[s] for the exit, or rebel[s] by becoming a hero
-    /// if they can't do that"</i>. That reachability test is not implemented, so
-    /// desertion here is unconditional and the event says so. Q116.</para>
+    /// <para><b>CONFIRMED by the owner</b> (2026-09-04, Q116): <i>"angry evil
+    /// creature goes to the nearest available portal and leaves the dungeon.
+    /// Angry converted good creature turns turncoat and starts attacking the
+    /// dungeon and its creatures."</i> Which settles a question this method
+    /// previously answered with a shrug — it removed the creature on the spot
+    /// and said <c>via=nowhere_in_particular</c> in its own event so the lie
+    /// would at least be greppable.</para>
     ///
-    /// <para>Its bed is released, for the same reason death releases one: a lair
-    /// that leaks a tile every time somebody storms off would quietly shrink.</para>
+    /// <para><b>Two consequences, and both are behaviour rather than
+    /// bookkeeping.</b> A keeper whose portal is unreachable — walled off, taken
+    /// by a rival, never claimed — <b>keeps a creature that wanted to leave</b>,
+    /// standing there angry. And a deserter is <i>visible</i> for the length of
+    /// its walk: it can be killed, and it is still on the payroll, which is
+    /// exactly the window in which a player would notice and do something about
+    /// it.</para>
+    ///
+    /// <para><b>Nearest is by path, not by line</b> — <see cref="IPathfinder"/>'s
+    /// Dijkstra over the same <see cref="WorldPathGrid"/> the creature would walk
+    /// on, so "nearest" already accounts for the walls in the way and for what
+    /// this particular creature can cross. A route is planned only when the
+    /// creature has run out of one, so an existing walk is never restarted; if a
+    /// route cannot be found at all it is retried, silently, every second, and
+    /// the one report of the failure goes out on the second it first happened.
+    /// A portal built later is therefore an escape route, which is the
+    /// forgiving reading and the one a player would expect.</para>
+    ///
+    /// <para><b>Its bed goes at the moment it decides</b>, not when it arrives,
+    /// for two reasons. A lair that leaks a tile every time somebody storms off
+    /// would quietly shrink; and a leaver still holding a bed would keep
+    /// <i>curing itself</i> at −550 a second the moment it walked past its own
+    /// lair, which would make the walk out reversible by accident rather than by
+    /// any rule anybody wrote (Q121).</para>
+    ///
+    /// <para><b>The other branch is CONFIRMED and unbuilt.</b> A converted good
+    /// creature does not walk out — it <i>turns turncoat and attacks the
+    /// dungeon</i>. That is the <c>Rebel</c> entry in the angry job tables (a
+    /// Goblin draws it half the time, a Vampire always), and the original tracks
+    /// it as its own per-creature state: <c>Creature.cpp</c>'s debug dump prints
+    /// <c>TurncoatPlayer</c> and <c>TurncoatTimer</c>, so becoming a turncoat
+    /// means belonging to another player for a time (binary, ADR-0046 — facts
+    /// only). It needs conversion, which needs the torture chamber, and the
+    /// three shipped percentages that split the outcome
+    /// (<c>RebelLeavingPercentage</c> 70, <c>RebelBecomeGoodPercentage</c> 15,
+    /// <c>RebelDefectPercentage</c> 15) have nothing to act on. So a creature
+    /// that draws Rebel still stands there.</para>
     /// </summary>
-    private static void Desert(
+    private void Leave(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
-        LairRules.ReleaseBed(state);
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
 
+        bool decidingNow = state.Activity != CreatureActivity.Leaving;
+        if (decidingNow)
+        {
+            LairRules.ReleaseBed(state);
+            state.Activity = CreatureActivity.Leaving;
+        }
+
+        // Standing on the way out already — either it walked here, or the anger
+        // ran out while it happened to be on the portal.
+        if (PortalRules.IsExitTile(world, database, state.Tile, state.OwnerPlayerId))
+        {
+            Gone(context, creature, state);
+            return;
+        }
+
+        // Mid-walk. Leave it alone; the movement system is carrying it.
+        if (state.PathIndex < state.Path.Count) return;
+
+        var grid = new WorldPathGrid(database, world, creature);
+        bool routed = _pathfinder.TryFindNearest(
+            grid,
+            state.Tile,
+            at => PortalRules.IsExitTile(world, database, at, state.OwnerPlayerId),
+            _route);
+
+        if (routed && _route.Count > 0)
+        {
+            state.Path.Clear();
+            state.Path.AddRange(_route);
+            state.PathIndex = 0;
+
+            if (decidingNow)
+            {
+                TilePos exit = _route[^1];
+                context.Emit(SystemName, "creature_leaving",
+                    $"creature={state.Id} type={creature.Name} " +
+                    $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
+                    $"anger={state.Anger} portal=({exit.X},{exit.Y}) " +
+                    $"steps={_route.Count}");
+            }
+
+            return;
+        }
+
+        if (decidingNow)
+        {
+            context.Emit(SystemName, "creature_leave_blocked",
+                $"creature={state.Id} type={creature.Name} " +
+                $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
+                $"anger={state.Anger} reason=no_reachable_portal");
+        }
+    }
+
+    /// <summary>It reached the portal. Gone, with whatever gold it was carrying.</summary>
+    private static void Gone(
+        SimulationContext context, CreatureDef creature, CreatureState state)
+    {
         context.Emit(SystemName, "creature_left",
             $"creature={state.Id} type={creature.Name} " +
             $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
-            $"anger={state.Anger} gold_lost={state.GoldHeld} " +
-            $"via=nowhere_in_particular");
+            $"anger={state.Anger} gold_lost={state.GoldHeld} via=portal");
 
         context.World.RemoveCreature(state.Id);
     }

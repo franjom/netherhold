@@ -3236,6 +3236,39 @@ is a coffin, pinned months ago for an unrelated reason), so reincarnation is
 `Rescue` with no imp involved; and the vampire leaving no body stops being an
 oddity, because there is no corpse when the creature is not finished.
 
+**Corrected 2026-09-04, by the owner retracting their own claim.** *"sarchopagus
+at the graveyard, I made a wrong claim earlier."* So reincarnation happens **at
+the Graveyard**, not at the vampire's own bed, and the "two facts snapping into
+place" above was one fact and one mistake — built on the owner's first wording
+(*"they reincarnate at their sarcophagus"*) and on an assumption that its
+`LairObjectId` was that sarcophagus.
+
+**The shipped data agrees with the correction, in two places neither of which
+was consulted when the wrong claim was made:**
+
+- **`Rooms.kwd` gives the Graveyard a `CreatedCreatureId` of 8 — the Vampire.**
+  Exactly two rooms in the whole table create a creature: the Graveyard (8,
+  Vampire) and the Prison (9, Skeleton). The room record says outright which
+  room makes a vampire.
+- **The Graveyard's object ids are 31, 32, 33, 34, and the Vampire's
+  `LairObjectId` is 26.** Different objects. The bed is not the sarcophagus, and
+  nothing ever said it was except us.
+
+**And the binary uses neither word.** `Object.cpp`'s union dump names its object
+kinds, and among them are `Lair` and `TombStone` — there is no Sarcophagus and no
+Coffin anywhere in the executable's strings (binary, ADR-0046 — facts only). So
+in DK2's own vocabulary a bed is a `Lair` object whatever art it wears, and the
+graveyard's furniture is a `TombStone`. The vampire's coffin-looking bed and the
+graveyard's sarcophagus are two different objects that happen to look alike, and
+the wrong claim was a pun.
+
+**What still stands:** the vampire leaving no body stops being an oddity, because
+there is no corpse when the creature is not finished. And the mechanic remains
+deliberately unimplemented for the level reason below — the correction changes
+*where* reincarnation would put the creature (a Graveyard tile, not its bed),
+which matters the day it is built and not before. Q113 is closed.
+
+
 It stays unimplemented because **the cost of reincarnation is a level and levels
 do not exist** — a vampire that reincarnated without paying would come back for
 ever, which is the immortal Imp again in a cape. Both exits are equally out of

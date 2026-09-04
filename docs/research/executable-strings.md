@@ -1,4 +1,4 @@
-# What DKII.EXE says about itself, without decompiling anything
+﻿# What DKII.EXE says about itself, without decompiling anything
 
 Status: **facts only** — strings read out of the shipped executable. No code has
 been decompiled, disassembled or transcribed. See the boundary note at the end,
@@ -99,3 +99,72 @@ executable and which the project has used since M1.
 the owner's decision and its own ADR, because it changes what the project can
 say about its own method. See the recommendation put to the owner on 2026-09-04
 and Q96.
+
+---
+
+## The debug dumps name the structs, field by field (2026-09-04)
+
+Found on the pass the owner asked for when they made the binary the primary
+source (ADR-0046 amendment). The retail build kept its **printf-style debug dump
+functions**, not just its `__FILE__` asserts — so `Creature.cpp` and `Object.cpp`
+each carry a contiguous block of format strings, one per field, in EA's own
+names. Reading them costs one string dump and no decompilation.
+
+Method, repeatable: search defined strings for a needle, then dump every string
+in the surrounding address range. Field labels sit in source order, and a
+`Name:\n` label with no `%d` marks the start of a sub-struct.
+
+### What a creature *is*, in DK2's own vocabulary
+
+About 220 fields in the `Creature.cpp` dump. Nine of them land on open questions,
+and this is why the pass was worth doing at all:
+
+| Field | Lands on |
+|---|---|
+| `InWater` | **A creature tracks being in water as its own state** — separate from `IsSlowed` and `IsHasted`, which are the spell effects. So the water hindrance is not implemented through the generic slow (Q118) |
+| `IsSlowed` / `IsHasted` | Two effects this project has no source of yet, and evidence that "slowed" is a *flag*, not a speed field |
+| `Leaving` | Desertion is a **state a creature is in**, not an event that happens to it — corroborating the owner's answer that a deserter walks to a portal (Q116). Also `LeaveNoTrace` and `CannotLeaveHealthLoss`, neither understood |
+| `TurncoatPlayer` / `TurncoatTimer` | Turning turncoat means **belonging to another player for a time**, which is the shape of the owner's *"angry converted good creature turns turncoat"* (Q116) |
+| `RebelActive`, `RebelLeader`, `RebelPos`, `RebelTag`, `RebelDelay` | **Rebellion has a leader and a place.** It is a bigger mechanic than "becomes a hero", and five fields wide (Q122) |
+| `LastGameTickSuccessfullyChoseAngryJob` | The angry job choice **can fail and is retried** — which is evidence against ADR-0053's draw-once rule, though not enough to settle whether a retry re-draws (Q122) |
+| `HasBeenKnockedOut` | EA's own name for the collapse ADR-0051 models. `DieInstantly` sits nearby, which is the bodyless creatures' path |
+| `PortalGeneratedFromId` | **A creature remembers which portal it came from.** Ours does not. Note it is *not* what a deserter uses — the owner says nearest, not origin |
+| `ContributesToPortalLimit` | **Q98's shape, answered.** Portal capacity counts creatures that carry this flag, so "sums hero portals and counts portals that cannot produce" was the wrong end of the problem — the per-creature side is what we were missing |
+| `Level`, `ExperiencePoints` | Levels are per-instance, as expected, and pair with the per-level stat table (Q119) |
+
+Others worth knowing exist, unexplained and not guessed at: `SpeedChangeTimer`,
+`WorkFasterTimer`, `AngrySpecialTimer`, `MoveFromWorkCounter`, `PaymentAttempts`,
+`PaymentNeeded`, `FearedByCreatureId`/`FearedSeverity`/`FearedTimer`,
+`PoisonedByPlayerId`/`PoisonedSeverity`/`PoisonedTimer`, `OnFirePlayerId`,
+`NWaterFootprints`, `HypnotisedPrevOwner`, `SkeletonCreationTime`, `SneakingAs`,
+`CasinoBigWinnerWinnings`, `KillsInCombatPit`, `CreatedAtMapX`/`CreatedAtMapY`.
+
+### What an object *is*: a tagged union, and the kinds are named
+
+`Object.cpp`'s dump prints a `Union Data:` block whose members name the object
+kinds: `Lair`, `TombStone`, `BookCase`, `GuardPost`, `TrainingTarget`, `Boulder`,
+`ManufactureCrate`, `TortureWheel`, `ResearchBook`, `Chicken`, `Coop`, `Rat`,
+`Gold`, `Special`, `CallToArms`, `ManaVault`, `ClaimedManaVault`,
+`TempleCandleStick`, `FECandleStick`, `Destructor`, `Spinning`, `ThreatBurn`,
+`HeroGate2By2`.
+
+Three things follow, and one of them corrected a claim this project had already
+committed:
+
+1. **There is no `Sarcophagus` and no `Coffin`** anywhere in the executable's
+   strings. A bed is a `Lair` object whatever art it wears — which is what
+   closed Q113 and retired a wrong reading of the owner's first wording.
+2. **A `Lair` object's own dump includes a `CreatureId`**: the bed knows whose it
+   is. `LairRules` puts that relation on the creature instead; same relation,
+   opposite end.
+3. **Objects carry per-kind state**, so the OBJECTS record (M6) is not one flat
+   struct — `ThreatBurn` has `CurrentThreat`/`StartThreat`/`Timer`, a mana vault
+   has an `EffectTriggerDelayGameTicks`, a torture wheel has an
+   `InitialRevolutionSpeed`.
+
+### The boundary, again
+
+Everything above is a **name and a relation** — facts, in ADR-0046's terms,
+written up here in our own words with the file that carries them. No decompiler
+output crossed, and none is quoted: this whole pass read *strings*, which is the
+cheapest evidence in the binary and the least ambiguous.

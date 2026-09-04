@@ -299,6 +299,13 @@ switch (args[0])
                               $"{r.RecommendedSizeX + "x" + r.RecommendedSizeY,5} " +
                               $"{r.Construction,-20} {flags}");
         }
+        Console.WriteLine();
+        Console.WriteLine("object ids per room (Q120: which room owns which object):");
+        foreach (RoomDef r in rooms.OrderBy(r => r.RoomId))
+        {
+            string objs = string.Join(",", r.ObjectIds.Where(o => o != 0));
+            if (objs.Length > 0) Console.WriteLine($"  {r.RoomId,3} {r.Name,-24} {objs}");
+        }
         Console.WriteLine($"-- {rooms.Count} room types");
         return 0;
     }

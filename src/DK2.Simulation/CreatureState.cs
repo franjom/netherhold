@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -55,6 +55,26 @@ public enum CreatureActivity
     /// the window is either that rescue or death.</para>
     /// </summary>
     Dying = 6,
+
+    /// <summary>
+    /// Walking out of the dungeon for good, having drawn <c>Leave</c> from its
+    /// angry job table.
+    ///
+    /// <para><b>CONFIRMED by the owner</b> (2026-09-04, Q116): <i>"angry evil
+    /// creature goes to the nearest available portal and leaves the dungeon"</i>
+    /// — so desertion is a walk to a place, not a disappearance, and a keeper
+    /// whose portal is unreachable keeps a creature that wanted to go.</para>
+    ///
+    /// <para>The original tracks the same thing: <c>Creature.cpp</c>'s debug
+    /// dump prints a per-creature <c>Leaving</c> field of its own, alongside
+    /// <c>LeaveNoTrace</c> and <c>CannotLeaveHealthLoss</c> (binary, ADR-0046 —
+    /// facts only). Which says leaving is a state a creature is *in*, exactly
+    /// as it is here, rather than an event that happens to it.</para>
+    ///
+    /// <para>A leaver has already given up its bed, will not claim another, and
+    /// is skipped by <see cref="Systems.CreatureSleepSystem"/> entirely.</para>
+    /// </summary>
+    Leaving = 7,
 }
 
 /// <summary>

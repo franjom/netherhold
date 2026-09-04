@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -50,6 +50,32 @@ public class CreatureAngerTests
     {
         ref TileState tile = ref world.Tile(at.X, at.Y);
         RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Lair), Keeper);
+    }
+
+    /// <summary>
+    /// The ladder plus the mover, which is what a deserter needs: leaving is a
+    /// walk to the nearest portal (Q116), so without
+    /// <see cref="CreatureMovementSystem"/> a creature decides to go and then
+    /// stands there for ever.
+    /// </summary>
+    private static GameSimulation Walking(
+        GameDatabase db, WorldState world, ListEventSink? sink = null)
+    {
+        var sim = new GameSimulation(db, world, seed: 42,
+        [
+            new CreatureMovementSystem(),
+            new CreatureSleepSystem(),
+            new CreatureHealthSystem(),
+            new CreatureAngerSystem(),
+        ]);
+        if (sink is not null) sim.ObserveWith(sink);
+        return sim;
+    }
+
+    private static void PaintPortal(GameDatabase db, WorldState world, TilePos at)
+    {
+        ref TileState tile = ref world.Tile(at.X, at.Y);
+        RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Portal), Keeper);
     }
 
     // ---- the measurement --------------------------------------------------
@@ -154,23 +180,159 @@ public class CreatureAngerTests
     }
 
     [Fact]
-    public void AnAngryGoblinLeavesTheDungeonAndGivesUpItsBed()
+    public void AnAngryGoblinWalksToThePortalAndLeavesThroughIt()
     {
-        // Seeded so the 50/50 Leave/Rebel draw comes out Leave. Both outcomes
-        // are real; only one is implemented, and this covers the one that is.
+        // OWNER, Q116 (2026-09-04): "angry evil creature goes to the nearest
+        // available portal and leaves the dungeon."
+        //
+        // Which is what this test is really about: the creature is NOT gone on
+        // the second it decides. It gives up its bed, sets off, and is still in
+        // the dungeon — killable, and still on the payroll — for the length of
+        // the walk. This method previously removed it on the spot and said
+        // via=nowhere_in_particular in its own event.
         GameDatabase db = Db;
         WorldState world = World(db);
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        PaintPortal(db, world, new TilePos(3, 3));
 
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
         goblin.Anger = CreatureAngerRules.Ceiling;
-        goblin.AngryChoice = JobType.Leave;      // the outcome under test
+        goblin.AngryChoice = JobType.Leave;
         var events = new ListEventSink();
 
-        Simulation(db, world, events).Run(Second);
+        GameSimulation sim = Walking(db, world, events);
 
-        Assert.Empty(world.Creatures);
-        Assert.Contains(events.Events, e => e.Kind == "creature_left");
+        // One second in: decided, bed given up, walking, still here.
+        sim.Run(Second);
+        Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
+        Assert.Equal(CreatureActivity.Leaving, goblin.Activity);
         Assert.Equal(-1, goblin.LairTileIndex);
+        Assert.NotEmpty(goblin.Path);
+
+        SimEvent leaving = Assert.Single(
+            events.Events, e => e.Kind == "creature_leaving");
+        Assert.Contains("portal=(3,3)", leaving.Detail);
+
+        // And then it gets there. Two diagonal tiles at 0.7 tiles a second.
+        sim.Run(Second * 20);
+
+        Assert.DoesNotContain(world.Creatures, c => c.Id == goblin.Id);
+        SimEvent left = Assert.Single(events.Events, e => e.Kind == "creature_left");
+        Assert.Contains("via=portal", left.Detail);
+    }
+
+    [Fact]
+    public void AKeeperWithNoPortalKeepsTheCreatureThatWantedToLeave()
+    {
+        // The consequence of Q116 that is behaviour rather than bookkeeping: if
+        // there is nowhere to walk to, the creature does not leave. It stands
+        // in the dungeon, angry, having given up its bed.
+        //
+        // The fixture map has no portal at all, which makes this the default
+        // case here and is why the assertion is worth writing down: a rule that
+        // removed the creature regardless would pass every other test in this
+        // file.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        goblin.Anger = CreatureAngerRules.Ceiling;
+        goblin.AngryChoice = JobType.Leave;
+        var events = new ListEventSink();
+
+        Walking(db, world, events).Run(Second * 60);
+
+        Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
+        Assert.Equal(CreatureActivity.Leaving, goblin.Activity);
+        Assert.Equal(-1, goblin.LairTileIndex);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "creature_left");
+
+        // Reported once, on the second it first failed, and not once a second
+        // for the next minute.
+        Assert.Single(events.Events, e => e.Kind == "creature_leave_blocked");
+    }
+
+    [Fact]
+    public void ADeserterDoesNotTakeABedOnItsWayOut()
+    {
+        // The bed is released when it decides to go, and the sleep system skips
+        // a leaver — so a lair that becomes free while a deserter is walking
+        // past it stays free for a creature that intends to stay.
+        //
+        // Without the guard in CreatureSleepSystem the deserter claims that
+        // bed, because it is a creature with no bed standing next to a free
+        // lair tile, and then walks out of the dungeon holding it.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        PaintLair(db, world, new TilePos(2, 2));
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        goblin.Anger = CreatureAngerRules.Ceiling;
+        goblin.AngryChoice = JobType.Leave;
+
+        Walking(db, world).Run(Second * 30);
+
+        Assert.Equal(CreatureActivity.Leaving, goblin.Activity);
+        Assert.Equal(-1, goblin.LairTileIndex);
+        Assert.False(LairRules.BedTaken(world, (2 * world.Width) + 2));
+    }
+
+    [Fact]
+    public void AnUnhappyGoblinGivenABedCoolsBackToContentOneSleepAtATime()
+    {
+        // OWNER, Q115 (2026-09-04): "anger can be cooled down to unhappy, and
+        // unhappy can cool down to happy."
+        //
+        // So the ladder is reversible and a mood is a pure function of the
+        // anger value — no latch, no hysteresis, no "once angry always angry".
+        // That is what CreatureAngerRules.MoodOf already is, and this test is
+        // what would notice if somebody made a transition sticky to stop a
+        // creature flapping between moods.
+        //
+        // The shape of the run matters: the lair is painted *after* the goblin
+        // is already unhappy, because a lair from the start means it claims a
+        // bed on tick 0 and never angers at all (see the control above).
+        //
+        // **And the rate is the finding.** Cooling is -550 a second *asleep in
+        // its own bed*, and a Goblin sleeps for 9 seconds out of every ~250
+        // (TimeSleep 9, TimeAwake 240). So a bed does not cure anger smoothly:
+        // it cures it in instalments of exactly 9 x 550 = 4950, once every four
+        // minutes. One sleep is enough to cross back under the halfway mark
+        // from where 170 seconds of lairlessness left it, and it is nowhere
+        // near enough to reach zero — which is asserted, because "a bed fixes
+        // it" is the intuition and the arithmetic disagrees. See Q123 for the
+        // reading this depends on.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        CreatureDef definition = db.CreatureById(GoblinId);
+        var events = new ListEventSink();
+        GameSimulation sim = Walking(db, world, events);
+
+        // 170 s of no lair at 100 a second: past the 16383 halfway mark.
+        sim.Run(Second * 170);
+        Assert.Equal(CreatureMood.Unhappy, CreatureAngerRules.MoodOf(definition, goblin));
+        int peak = goblin.Anger;
+
+        // Now the player does something about it. One tile.
+        PaintLair(db, world, new TilePos(2, 3));
+
+        // Long enough for it to claim the bed, get tired (TimeAwake 240) and
+        // sleep once.
+        sim.Run(Second * 300);
+
+        Assert.Equal(CreatureMood.Content, CreatureAngerRules.MoodOf(definition, goblin));
+        Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
+
+        // One sleep, and its worth is exact: nine seconds at -550.
+        Assert.Equal(peak - (9 * 550), goblin.Anger);
+
+        // Still carrying most of the grievance, though. Not a reset.
+        Assert.True(goblin.Anger > 0);
+
+        // And the log shows the ladder going back down, not just the value.
+        Assert.Contains(events.Events, e =>
+            e.Kind == "creature_mood" && e.Detail.Contains("Unhappy->Content"));
     }
 
     [Fact]
