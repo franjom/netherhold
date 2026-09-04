@@ -2120,3 +2120,113 @@ or gets dropped. **Second, if the first works:** Q86's interval scaling, because
 that is the riskiest thing currently shipping — find where the VARIABLES table is
 indexed by 3 and see whether the result is multiplied by a creature count.
 `Entrance.cpp`'s assert strings are the locality hint for that one.
+
+---
+
+## Where to pick up, 2026-09-04 (fifteenth sitting) — creatures stopped being scenery
+
+Six commits. **622 tests green** (Core 17, Simulation 341, Data 63, Behavior
+115, Assets 60, Presentation 26), thirteen scenarios, clean Release build, Unity
+adapter compiles. HashVersion 12, snapshot FormatVersion 12.
+
+| | |
+|---|---|
+| `f86e4e5` | The portal — four gates |
+| `e05d72c` | Rooms claimed whole; a keeper walled in by its own wall |
+| `77c3473`/`66a3c25`/`013c312` | Executable strings, handoff, Ghidra pre-flight |
+| `92f57f0` | **The entrance has five gates** — the flag gate, ADR-0046/0047 |
+| `fbd9002` | **Health and hunger** — ADR-0048 |
+| `42f564f` | **Beds and sleep** — ADR-0049 |
+| `14962e5` | **Anger fields signed; anger deliberately not built** — ADR-0050 |
+
+### The decompiler is authorised, and quarantined
+
+**ADR-0046** answers Q96: the owner said *"you are free to use it and decompile
+it, put all decompiled resources under reverse-engineering folder"*. The rule is
+**fact / expression** — numbers, formulas and control-flow descriptions may cross
+into `docs/research/` in our own words with provenance; **decompiler output never
+leaves `reverse-engineering/`**, which is gitignored except its README. Binary
+facts rank **below** owner observation and may reach STRONGLY INFERRED but never
+CONFIRMED on the binary alone.
+
+**Ghidra works.** JDK 26 at `C:\Program Files\Java\jdk-26.0.2.1`, project at
+`D:\ghidra projects\DK2_RE`, `application.java.max` is empty so 26 is accepted
+despite 21 being documented. Set `JAVA_HOME` per invocation rather than on the
+machine. Three reusable scripts and the exact command line are in
+`docs/research/binary-entrance.md` §"How this pass was run".
+
+**The way in is the assert strings.** The retail build kept its `__FILE__`
+strings, so 72 translation units name themselves, and a C++ unit's functions sit
+contiguously — one assert plus an address range gives the whole file.
+
+**What it refused.** The creature state machine (`HungerState.cpp`,
+`LairState.cpp`) is dispatched *entirely* through vtables, so Ghidra never
+discovers those bodies; four approaches failed, including forcing a function at
+the nearest prologue and re-running with Aggressive Instruction Finder.
+Addresses and method are in `creature-needs.md` §6. **Next thing to try: read the
+vtables**, which would name all ~25 state handlers at once and is the route into
+the whole `*State.cpp` family.
+
+### What a creature is now
+
+Health, hunger, a bed of its own, and sleep. It can be hurt, healed and killed;
+it gets hungry; it claims a lair tile on arrival, walks there when tired or hurt,
+sleeps and heals. **`CreatureSleepSystem` is the first driver a non-worker has
+ever had** — before it a goblin out of a portal stood on the hole forever.
+
+Still absent: **mood/anger, experience, a job**, and it cannot be picked up or
+dropped. It gets hungry and cannot eat (chickens are objects, M6).
+
+### Three owner answers, and what each cost
+
+- **Q92** rooms are claimed *whole* → exposed that `Claim` had been taking rooms
+  a tile at a time since rooms existed, plus a second defect that had **walled a
+  level-1 keeper in permanently** (ADR-0044/0045). One sentence, two four-month
+  defects.
+- **Q101** *"heals while it sleeps in its own bed"* → replaced ADR-0048's proxy,
+  which was wrong in both halves, and settled a third thing nobody asked: **a
+  lair's capacity is its tile count**, which is *not* the general rule for rooms
+  (a temple's is its rim, Q60).
+- **Q105** *"unhappy, can't sleep, then angry, then it leaves"* → confirmed the
+  ladder a second time (Q9 said the same for pay) and validated a guess: a
+  bedless creature **cannot sleep at all**, not on the floor.
+
+### Anger is blocked on one number, and that is a decision
+
+**Do not build anger before Q106 is answered.** Every rate is in the data and
+`UnhappyThreshold` is 50 on all 46 creatures — a percentage of a ceiling that
+exists **nowhere**: not in the 214 balance variables, not in the record, and not
+in OpenKeeper, whose `CreatureMoodSystem` is an empty stub with a TODO. 65535
+makes a lairless Goblin leave after 11 minutes; 10000 makes it 2.
+
+**This is Q47's lesson applied.** Mood feeds job selection and desertion, so a
+wrong ceiling propagates instead of staying in one rule. One stopwatch settles
+it — see ADR-0050 and `docs/research/creature-anger.md`.
+
+Fixing the fields' signedness on the way found that **slapping angers and being
+picked up calms**; read unsigned, picking a creature up would have added 65286.
+
+### The questions waiting on the owner, in priority order
+
+| Q | Ask |
+|---|---|
+| **Q106** | Time a creature with no lair until it leaves, or count slaps to angry. **Unblocks anger and everything after it** |
+| **Q97** | Big lair vs tiny lair — does arrival pace change? Separates the interval scaling from draining eligibility |
+| **Q99** | Does a creature at zero health vanish or lie there? `CreatureDyingStateDurationSeconds` is 60 |
+| **Q103** | Does a goblin sleep every ~4 minutes for ~9 seconds? |
+| **Q86** | Two consecutive arrival gaps *with the goblins counted* — pins the interval slope |
+| **Q100** | Does a wounded imp heal while digging, or only when idle? |
+| **Q93/Q94** | Is a dungeon heart claimable? Does a long bridge convert whole? |
+| **Q104** | Does a converted Dwarf take up a lair tile? |
+
+### Known and not done
+
+- **Q91**: `ImpSupplySystem` loops every player and would hand free imps to 0, 1
+  and 2. Much of the suite still uses player 1 as "a keeper" and 2 as "a rival",
+  where `PlayerIds` now says 1 is the hero side and 2 is neutral. Fix: gate on
+  `PlayerIds.IsKeeper`, re-key the fixtures.
+- **Q98**: DK2's portal capacity sums hero portals and counts portals that
+  cannot produce; ours does neither.
+- **The repository still has no `README.md`.**
+- `AGENTS.md` carries the owner's own uncommitted edit and is excluded from every
+  commit with `git add -A -- . ':!AGENTS.md'`.
