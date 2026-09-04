@@ -1,0 +1,31 @@
+# EditorConfig for the Dungeon Keeper 2 reimplementation.
+#
+# Deliberately narrow: it configures the MIT file header and nothing else.
+#
+# Directory.Build.props sets both EnforceCodeStyleInBuild and
+# TreatWarningsAsErrors, so any rule given a severity here becomes a build
+# error in every project at once. Add one only in a commit that also fixes
+# every file it flags.
+
+root = true
+
+[*.cs]
+
+# IDE0073: require the MIT notice at the top of every first-party source file.
+#
+# The template is one physical line because that is the only form Roslyn's
+# .editorconfig reader accepts - it unescapes \n itself and there is no
+# line-continuation syntax. license.txt carries the same notice in readable
+# form for IDEs that stamp headers from a template, and
+# tests/DK2.Core.Tests/LicenseHeaderTests.cs asserts the two still agree, so
+# editing one without the other fails the build rather than drifting quietly.
+file_header_template = Copyright (c) 2026 Franjo Misetic\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the "Software"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.
+# NOT YET ENFORCED. Raise this to "warning" in the same commit that stamps the
+# header into all 131 source files - at "warning" it is a build error (see the
+# note at the top of this file), so the two have to land together.
+dotnet_diagnostic.IDE0073.severity = suggestion
+
+# Unity's package cache is third-party code under its own licences, and Unity
+# rewrites it whenever the editor opens. It is gitignored; never stamp it.
+[unity/DK2.Unity/Library/**/*.cs]
+dotnet_diagnostic.IDE0073.severity = none
