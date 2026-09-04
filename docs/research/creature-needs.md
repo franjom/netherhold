@@ -217,7 +217,7 @@ would lean on `TicksPerSecond`, still a placeholder (Q1).
 
 | | Why |
 |---|---|
-| **Eating** | The Chicken is object 9 and the world has a list to put one in, but no **Hatchery** lays one. Hunger arrives and never leaves. Honest, and it costs no health |
+| **Eating** | The Chicken is object 9 and the world has a list to put one in, but no **Hatchery** lays one — and the binary says a hatchery lays an **egg** (object 47), so there is a transition to chicken nobody had accounted for. Hunger arrives and never leaves. Honest, and it costs no health. See `hatchery.md` |
 | **Anywhere to sleep but a bed** | A creature with no bed stays awake indefinitely and never recovers. In DK2 that is what `angerNoLair` is for — 100 for a Goblin, joint-largest in its record — and anger does not exist yet (Q105) |
 | **Anger** | The actual consequence of hunger. Its own need, its own record fields, its own step |
 | **Levels** | `Hp` is the maximum because `CreatureStats` scales stats by level and levels do not exist. When they do, the maximum becomes a function of level and `Health` stays the current value |

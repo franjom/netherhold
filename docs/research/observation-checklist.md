@@ -872,6 +872,26 @@ measurement tooling, or disassembly, and are scheduled accordingly:
 - **Q37a — what `MaxManaGain` and `DungeonHeartMaxManaIncrease` are for.** Closed
   by elimination; they affect nothing a player can see.
 
+### Q133 — does a hatchery make eggs or chickens? — **new, and you can just watch**
+
+**Build a hatchery and look at what appears on the coops.**
+
+The binary says the room lays **object 47, the Egg** — not object 9, the
+Chicken. Two different objects, and only the Chicken carries the "this is food"
+flag; only the Chicken has a per-creature `HpFromChicken` value against it (375
+for a Goblin). So something turns one into the other, and we have not found what.
+
+- **Eggs appear and visibly hatch** → there is a timed transition to build, and
+  the egg's own state machine is where it lives.
+- **Chickens appear directly** → then object 47 is a brief laying animation
+  rather than a thing that sits there, and eating can be built without it.
+
+Worth noticing too: **do the chickens wander?** The binary gives a chicken four
+pieces of state — free-range or not, a pecking timer, a "stay there" flag and a
+scatter countdown — so it should peck about and bolt when disturbed. And there
+is a cap of **12 free-range chickens per player**, which is the sort of number
+that shows: if you build an enormous hatchery, does the loose flock stop growing?
+
 ### Q131 — does a fresh lair tile look bare, or already furnished? — **new, and the cheapest on this list**
 
 **Build a lair somewhere with no creatures near it, and look at it.**
