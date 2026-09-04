@@ -28,6 +28,33 @@ namespace DK2.Simulation.Systems;
 /// four-connected, so every leg is a straight line along one axis. Ours, not
 /// DK2's: the original's creatures visibly turn, accelerate and avoid each
 /// other, none of which is reconstructed here.</para>
+///
+/// <para><b>A creature never enters a tile it could not walk to
+/// (CONFIRMED).</b> "Creatures can not pass through walls, they can only move
+/// through dug out tiles, not through solid rocks" — the owner, 2026-09-04,
+/// made explicit after watching another reimplementation let imps walk through
+/// rock. The route came from <see cref="WorldPathGrid"/> and so was legal when
+/// it was planned, but a route is planned once and the world keeps moving. The
+/// shipped cause is <see cref="BridgeBurnSystem"/>: a wooden bridge over lava
+/// runs out after thirty seconds and the tile becomes lava again (Q67), so a
+/// creature already walking a route across it would otherwise stroll over the
+/// lava. Every waypoint is therefore re-checked at the moment it is stepped
+/// onto, and a creature that finds one blocked stops and forgets the route
+/// rather than entering it. Dropping the route rather than re-planning here is
+/// the same choice <see cref="ImpTaskSystem"/> already makes when the world
+/// changes under a walk, and it composes with both users of a path: a worker
+/// abandons the job and looks again, a carrier re-routes to somewhere else that
+/// will take its gold.</para>
+///
+/// <para>The mover leaves the tile a creature is <i>standing</i> on alone, the
+/// same way <see cref="Pathfinding.GridPathfinder"/> does not test a mover's
+/// starting tile: a creature caught on ground that turned impassable has to be
+/// able to walk off it.</para>
+///
+/// <para>UNKNOWN, and deliberately not invented: what the original's creature
+/// does at that instant — whether it stops dead or re-routes around. Only the
+/// observable rule is reproduced, which is that no creature is ever inside
+/// terrain it could not have walked into.</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/imp-tasks.md")]
 public sealed class CreatureMovementSystem : ISimulationSystem
@@ -41,17 +68,30 @@ public sealed class CreatureMovementSystem : ISimulationSystem
         foreach (CreatureState creature in context.World.Creatures)
         {
             if (creature.PathIndex >= creature.Path.Count) continue;
-            Advance(creature, context.Database.CreatureById(creature.CreatureTypeId));
+
+            CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+            Advance(creature, definition, new WorldPathGrid(context.Database, context.World, definition));
         }
     }
 
-    private static void Advance(CreatureState creature, CreatureDef definition)
+    private static void Advance(CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
         int step = StepThisTick(creature, definition);
 
         while (step > 0 && creature.PathIndex < creature.Path.Count)
         {
             TilePos waypoint = creature.Path[creature.PathIndex];
+
+            // The route was legal when it was planned; the world has had ticks
+            // to change since — a bridge burning is the shipped case. A blocked
+            // waypoint ends the walk here.
+            if (!grid.IsWalkable(waypoint.X, waypoint.Y))
+            {
+                creature.Path.Clear();
+                creature.PathIndex = 0;
+                return;
+            }
+
             int targetX = CreatureState.CentreOf(waypoint.X);
             int targetY = CreatureState.CentreOf(waypoint.Y);
 

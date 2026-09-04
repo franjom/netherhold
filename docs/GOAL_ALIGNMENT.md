@@ -418,3 +418,74 @@ framed by width on a level deeper than it is wide — took one screenshot to fin
 That is the boundary of a test suite, not a hole in it. The correct response is
 to keep the screenshot loop short, not to try to automate a judgement about
 whether a dungeon looks like a dungeon.
+
+---
+
+## Review — 2026-09-04 (third entry), the manual and three rules
+
+A research sitting rather than a building one, so most of the table does not
+move. Two things happened that this document should record.
+
+### The new gap from the previous review answered its own question, badly
+
+The last entry added a gap of a *class* rather than a bug — *a constraint
+expressed only in build configuration is not enforced* — and asked: **which other
+claims in this document are checked by something that runs?**
+
+**One of them was not, and it was already false.** "Creatures move only on
+dug-out tiles" was implemented in a single line of `WorldPathGrid` and checked
+nowhere. `PathfindingTests` proved the *search* would not cross a wall on a
+hand-drawn grid, which is a property of the search. Nothing proved the
+*simulation* never put a creature inside one — and `CreatureMovementSystem` was
+walking stored routes without re-checking them, so it could.
+
+Worse, and this is the part worth carrying: **adding the invariant broke two
+existing tests that had been passing while walking imps through rock**. They
+hand-fed routes across the fixture's rock to measure movement arithmetic. The
+arithmetic was right, so they were green — for four months.
+
+So the gap generalises, and it should be read as the standing question at every
+review: **not "is this claim true" but "what would fail if it stopped being
+true?"** Three defects now share this shape — the netstandard2.1 target
+(ADR-0002's correction), the text renderer's overlapping glyphs, and this one. All
+three were *stated* correctly somewhere and *checked* nowhere.
+
+Two more claims got checks this sitting as a direct consequence: "a dug-out tile
+never closes" and "two terrains can never be dug through" were both true and both
+unasserted; they are now pinned over a 4000-tick run and against the shipped
+terrain table.
+
+### Goal 1 (behavioural fidelity) — a small honest move
+
+Still roughly 2 of 20 systems. What changed is not coverage but *confidence*:
+
+| | |
+|---|---|
+| newly CONFIRMED behaviours | 3 (walls block movement, no fill-in, two indestructible terrains) — all from the owner, none of them asked for |
+| behaviours upgraded from STRONGLY INFERRED | Q45 (room minimum sizes) now has a third independent source agreeing on 16 rooms |
+| behaviours independently corroborated | 12, by the 1999 manual — the gold overflow chain, the 50% sell rate, both experience caps, `CreatedCreatureId`, `MinimumImpThreshold`, payday, bridge burning, and more |
+| new questions | Q73–Q81, two of which push on existing decisions (ADR-0015's no-player-gold, and the flat mana ceiling) |
+
+**Goal 5 (research before implementation) had its cheapest day yet**, and it is
+worth naming why. The 1999 manual says what every room is *for*; the balance table
+has a per-second rate for nearly all of it. Neither alone is a rule; together they
+are. An afternoon of pairing them replaced what would have been several sittings
+of owner observation — and the pairing only worked because the balance table had
+already been fully extracted and named. **Research compounds: the dump made the
+manual usable.**
+
+### A discipline that held under temptation, and should be noted
+
+The manual names creature **health, hunger, mood and experience** repeatedly, with
+thresholds. `CreatureState` still carries none of them, because nothing reads
+them. That was the right call and it was not automatic — having a source describe
+four fields in detail is precisely when the "only what a built mechanic reads"
+rule is hardest to keep. It is recorded here so the next sitting does not quietly
+relax it.
+
+Likewise: **nothing was deleted for disagreeing with the owner.** DK2 has no
+keeper-triggerable fill-in, but `FillInHealth`, `TerrainFlags.FillInable` and
+Claimed Path's route back to Rock are all in the shipped file. The data model
+mirrors the data; behaviour is where fidelity is judged. Removing the transition
+would have made our terrain graph disagree with the file it was read from, which
+is a worse failure than carrying a rule nothing invokes.

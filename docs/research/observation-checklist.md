@@ -356,18 +356,28 @@ If you do want a number, 7 tiles diagonally is **3.8 s** if a diagonal is free
 and **5.4 s** if it costs √2, and the gap is wide enough for a phone stopwatch.
 But the shape alone settles it, and the shape needs no timing at all.
 
-### Q22 — how long does filling a tile in take? — **now a hard prediction**
-ADR-0024 turned this from a puzzle into a number. Under the old rule fill-in was
-*instantaneous* - a claimed floor tile ships at full health, so there was no gap
-to close and one application converted it. Under the measured rule an upward job
-needs the terrain's whole maxHealth of work, so filling in needs **660 swings,
-about 132 seconds**.
+### Q22 — how long does filling a tile in take? — **WITHDRAWN: you cannot**
+This used to ask you to fill in a claimed floor tile and time it, on the strength
+of a prediction (660 swings, about 132 seconds) derived from `FillInHealth` = 5
+and Claimed Path's route back to Rock.
 
-Instant was obviously wrong. **132 seconds is untested, and it is a long time** -
-over two minutes to fill in one tile. **Fill in a claimed floor tile and time
-it**; the stopwatch method you used on reinforcing is exactly right for this.
+**You answered it by telling us the experiment does not exist** (2026-09-04):
+*"once a tile is dug out, and maybe claimed, there is no possible way to fill in
+that tile to rock again. DK2 doesn't have a game mechanic for filling up dug out
+tiles."*
 
-Still open alongside it: does a partly-filled tile revert if you cancel?
+That is worth more than the timing would have been, because it caught a whole
+mechanic we had derived from data and would eventually have given imps a job for.
+Nothing needs deleting — `FillInHealth`, the `FillInable` flag and the terrain
+transition are all in the shipped file, three coordinated pieces of data that are
+not an accident — so the reading recorded is that the engine carries the concept
+and the game exposes no way to reach it (Q74). What changed is that "no tile ever
+closes" is now an asserted invariant rather than an accident of what imps happen
+to choose.
+
+**One thing you might still see, if you ever have the level editor open:** is
+there a fill-in tool in it, or a fill-in action among the level-script triggers?
+That would settle Q74. It is curiosity, not a blocker.
 
 ### Q23 — are dig markers per keeper or shared?
 In a skirmish, can you **see a rival keeper's dig markers** on their walls?
@@ -567,15 +577,35 @@ two per creature — and it reads sensibly right across the roster: Warlock→Li
 Vampire→Graveyard, Mistress→Torture Chamber, Skeleton→Prison, Goblin→Lair,
 Salamander→Training Room, Troll→Workshop, **Dark Angel→Temple**.
 
-`RoomSize` is a **tile count**, and the Bile Demon proves it: it is the only
-creature with a non-zero one, wanting a Workshop of any size *plus* a
-**Hatchery of 25 tiles or more** — 5x5, and a bile demon demanding a big hatchery
-is exactly how the original plays.
+`RoomSize` is a **tile count**, and the Bile Demon shows it: it wants a Workshop
+of any size *plus* a **Hatchery of 25 tiles or more** — 5x5, and a bile demon
+demanding a big hatchery is exactly how the original plays.
 
 **The Dark Angel's temple entry is `size >= 0`.** So either a 3x3 temple does
 attract them and the 5x5 belief is folklore, or the requirement lives in some
 mechanism other than this field. **Cheapest test:** a dungeon with a 3x3 temple
 and nothing else a Dark Angel wants — do any turn up?
+
+**Update 2026-09-04 — you have a witness, and the odds have shifted.** The 1999
+manual states your belief outright: *"9.1.14 DARK ANGEL — Attracted By: Temple
+(Minimum 5x5 tiles)"*. So this is no longer your recollection against the file; it
+is **you and EA's own manual** against the v1.70 record. The likeliest reading is
+that the manual describes 1.0 and the shipped balance relaxed the minimum — the
+manual gets four other attraction details wrong the same way (Q80) — but that is a
+guess, and the experiment above settles it either way.
+
+Two related things fell out of re-checking the field, and they make the question
+sharper rather than duller:
+
+- **The Bile Demon is not the only creature with a size minimum.** Four have one,
+  and only ever on a *second* attraction: Bile Demon and Giant want Hatchery ≥ 25,
+  Royal Guard wants Training Room ≥ 25, and **Maiden Of The Nest wants Temple ≥ 9**.
+  So temples *do* carry a size requirement in the shipped data — just not the Dark
+  Angel's. "The mechanism cannot express it" is therefore ruled out.
+- The manual gives the Bile Demon a **third** attraction (a Lair of 9+ tiles) that
+  the record has no room for: the eight bytes after the second slot decode as two
+  fixed-point values, not a third entry. Whatever changed between 1.0 and 1.70
+  changed the record, not just the numbers in it.
 
 
 ### Q7 — the mood model, beyond the four causes

@@ -294,13 +294,29 @@ than rounded away". That was a guess dressed as fidelity: nothing had been
 measured, and the honest reading of a seam being worth exactly what the record
 says it is worth is that it yields exactly that.
 
-### Q22 — fill-in's accounting
+### Q22 — fill-in's accounting, and why it stopped mattering
 
 `FillInHealth` is 5, which is small enough to suggest many applications, but the
 tiles it applies to are already at maximum health. Under the uniform rule one
 application converts them. Either fill-in restarts the health accounting or the
 tile is damaged first. UNKNOWN; the uniform rule is what ships, tagged
 HYPOTHESIS.
+
+**Downgraded to a curiosity (2026-09-04).** The owner, unprompted: *"once a tile
+is dug out, and maybe claimed, there is no possible way to fill in that tile to
+rock again. DK2 doesn't have a game mechanic for filling up dug out tiles."*
+CONFIRMED. So this accounting question is about a transition no keeper can
+trigger.
+
+The data is not wrong and has not been changed — `FillInHealth`, the `FillInable`
+flag on five terrain types, and Claimed Path's route back to Rock are three
+coordinated pieces of shipped data, which is not an accident. The reading is that
+the engine carries the concept and the shipped game exposes no way to reach it
+(level editor, a scripted trigger, or cut). What changed is the status of the
+*behaviour*: `ImpTaskSystem` never chooses fill-in, and
+`DugOutTilesStayDugOutTests` now asserts both halves — that no tile ever goes from
+open back to solid over a long dig, and that no worker ever queues the job. See
+`manual-1999.md` for the full argument.
 
 ---
 

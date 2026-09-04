@@ -10,10 +10,22 @@ namespace DK2.Simulation;
 /// Walkability is derived from the data rather than declared here: a tile is
 /// walkable when its terrain is not <see cref="TerrainFlags.Solid"/>, and when
 /// any hazard flag the terrain carries is matched by a corresponding creature
-/// flag. STRONGLY INFERRED — <see cref="CreatureFlags.CanWalkOnWater"/> and
+/// flag.
+///
+/// <para><b>The solid half is CONFIRMED</b> (owner, 2026-09-04): "creatures can
+/// not pass through walls, they can only move through dug out tiles, not
+/// through solid rocks". Stated for its own sake rather than in answer to a
+/// question, after watching another reimplementation get it wrong. Nothing in
+/// DK2 flies through rock — <see cref="CreatureFlags.CanFly"/> buys height over
+/// hazards, not passage through mass — so the flag needs no exception here.
+/// <see cref="Systems.CreatureMovementSystem"/> enforces the same rule a second
+/// time at the moment of stepping, because a route is planned once and the
+/// world keeps moving.</para>
+///
+/// <para>The hazard half is STRONGLY INFERRED — <see cref="CreatureFlags.CanWalkOnWater"/> and
 /// <see cref="CreatureFlags.CanWalkOnLava"/> exist for no other purpose, and
 /// they fall exactly where DK2's behaviour puts them (imps cross water, most
-/// creatures do not; almost nothing crosses lava).
+/// creatures do not; almost nothing crosses lava).</para>
 ///
 /// <para>UNKNOWN, and deliberately not guessed at: bridges. A bridge over water
 /// or lava is a room built on a hazard tile, and the MAP record's byte 3 is

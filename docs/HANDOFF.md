@@ -12,9 +12,9 @@ Update this whenever a session ends or context is compacted.
 carrier, where imps come from, the asset layer and the presentation boundary:
 complete. M3 as a whole: partial — there is still no Unity view.** M2 and the
 five record types M1 needed are done, and **every** record type's on-disk size is
-now known and pinned. **486 tests green** with and without a DK2
+now known and pinned. **495 tests green** with and without a DK2
 install; ten scenarios run, each now drawing a picture of its finished world;
-clean tree. (Core 14, Simulation 254, Data 55, Behavior 77, Assets 60, Presentation 26.)
+clean tree. (Core 14, Simulation 262, Data 55, Behavior 78, Assets 60, Presentation 26.)
 
 > ### The asset layer and the presentation boundary landed 2026-09-04 (ADR-0034, ADR-0035)
 >
@@ -295,6 +295,8 @@ What the simulation can do:
 | Gold, stored in tiles rather than on players | `GoldStore` | per-tile limits honoured; a first treasury is paid for out of the dungeon heart |
 | Mana, earned by holding land and a heart | `ManaRules` + `ManaSystem` | the three paying terrains partition the install by exhaustion; income falls when claimed floor becomes a room; a 5x5 heart is worth 30/s, not 750 |
 | Gold carried from the seam to the treasury | `CreatureState.GoldHeld` + `ImpTaskSystem` | an imp mines a shipped seam on level 1 and every coin of its 3000 ends in the shipped dungeon heart, 1000 to a tile, across as many trips as its hands need |
+| Creatures never inside terrain they could not walk into | `WorldPathGrid` + the waypoint re-check in `CreatureMovementSystem` | CONFIRMED (owner, Q73, ADR-0038): solid means impassable, flight buys nothing over rock. Asserted over a 4000-tick dig — no creature on a solid tile, no route in flight across one |
+| A dug-out tile never closing, and two terrains never opening | the terrain table's flags, and what `ImpTaskSystem` does *not* choose | CONFIRMED (owner, Q73/Q74, ADR-0039): DK2 has no keeper-triggerable fill-in; Impenetrable Rock is unmarkable and Gems destroy to themselves. `FillInHealth` and the `FillInable` flag are kept because they are in the shipped file, and pinned as unreachable |
 | Where imps come from, and the first mana spender | `ImpSupplyRules` + `ImpSupplySystem` | four free imps five seconds apart on a shipped level, then 1500 / 3000 / 4500 for the next three and a refusal for the fourth |
 
 Extracted data artifacts (the specification the simulation is written against):
@@ -481,28 +483,52 @@ it is worth doing:
    owned terrain that a keeper pays for and can sell back. **What no room except
    the treasury and the heart has is a behaviour.**
 
-   **Expect research, not coding.** None of it can be guessed from the ROOMS
-   record — that carries art, size, cost, `ReturnPercentage` and
-   `CreatedCreatureId`, and **nothing about what a room does**. So the method is
-   the one that has worked all along and is written up under *Research method*
-   below: **ask the owner first** (step 0 — it has repeatedly beaten reading the
-   files), then the balance table, then the shipped maps.
+   **Expect research, not coding — but read `docs/research/manual-1999.md`
+   first, because the research got a great deal cheaper on 2026-09-04.** The
+   owner supplied the shipped 1999 manual, and it says what every room is *for*.
+   Paired with the balance table, which has a per-second rate for nearly all of
+   it, most rooms now have a described purpose and a number:
 
-   **Suggested order, easiest evidence first:** the **lair** (a creature claims a
-   tile; capacity is presumably the tile count, which `RoomInstance` already
-   knows), the **hatchery** (chickens are objects — check whether it is blocked
-   behind M6 before starting), the **library** (research rate per tile, and
-   `GlobalVariables` may well carry it), then the **training room**, where Q63
-   already has a measured number: 20 gold at a dummy, 0 at the target.
+   | room | the manual says | the table says |
+   |---|---|---|
+   | Lair | creatures return below a health threshold and recover health and happiness; each owns a **bed**, and hostile roommates hurt | sleeps below **50%**, **+100** health/s, **−550** anger/s, **+150** anger/s beside a hated creature |
+   | Training Room | levels a creature and **charges the keeper per turn** | caps at level **4**; `ModifyPlayerColdWhileTraining…` is a typo for **Gold**, −5/s |
+   | Combat Pit | levels past 4 by fighting; winners gain happiness | caps at **8**, 10% chance of a kill, damage at **20%** of normal, victor **−16400** anger |
+   | Library | research; **and it is stored in the room** — capture it and the spells are lost | `MotionlessWhileResearching` **70**s, plus per-creature `ResearchPerSecond` |
+   | Prison | prisoners wither and rise as **Skeletons**; overcrowding causes jailbreak | **−3** health/s, `CreatedCreatureId` = 9 (Skeleton), jailbreak **50%** per extra creature |
+   | Graveyard | corpses accumulate life-force until a **Vampire** rises | **1000** needed, `CreatedCreatureId` = 8 (Vampire) |
+   | Casino | a payout lever, Smiley or **$** | every gambling variable comes in a `Smiles`/`Money` pair, and they match the lever exactly |
+   | Temple | praying makes mana, more for Thinkers, double for converts; a sacrificial pool gives gifts | **−275** anger/s, **+33** health/s, **44** sacrifice recipes |
+   | Workshop | a FIFO queue; more workers is faster | progress **decays at 1/s with nobody working** |
+   | Guard Room | creatures stay put and patrol nearby Guard Posts | wander after **60**s, **7**-tile reporting radius |
+   | Portal | the creature cap | **15** for the first portal, **5** per extra |
+
+   So the method is still the one written up under *Research method* below —
+   **ask the owner first** (step 0 has repeatedly beaten reading the files) — but
+   the questions to ask are now sharp ones about *shape* rather than open ones
+   about purpose.
+
+   **Suggested order, easiest evidence first:** the **lair** (the manual gives it
+   an almost complete model, and the only real unknown is capacity — note it is
+   **beds, not tiles**, so `RoomInstance.TileCount` may be the wrong measure),
+   the **library** (a rate per creature and a surprising ownership rule), the
+   **training room** (Q63 already measured 20 gold at a dummy and 0 at the
+   target, and the manual explains the per-second keeper cost), then the
+   **hatchery** — which is **blocked on objects (M6)**, because a chicken is one.
 
    **Two traps worth naming before starting.** First, a room's *capacity* rule is
    not one rule: Q60 established that a temple's is its **rim**, `2(w+h) − 4`,
    which nobody would have guessed, so do not assume "capacity = tile count" for
-   any room without evidence. Second, several rooms need creatures to have needs,
-   and **creatures currently have no health, hunger, mood or experience** —
-   `CreatureState` carries only what a built mechanic reads. A room whose
-   behaviour needs a field the simulation does not have is blocked, and saying so
-   is better than inventing the field.
+   any room without evidence. **The manual strengthens this trap rather than
+   weakening it**: it says the dungeon heart stores gold in its *"outer ring"*,
+   so the rim is a DK2-wide idiom, and it says a lair holds **beds** — one per
+   creature, placed by preference — which is a count of objects, not of tiles.
+   Second, several rooms need creatures to have needs, and **creatures currently
+   have no health, hunger, mood or experience** — `CreatureState` carries only
+   what a built mechanic reads. A room whose behaviour needs a field the
+   simulation does not have is blocked, and saying so is better than inventing
+   the field. The manual makes it very tempting to invent them, since it names
+   all four.
 
 **A rival claims your ground directly, and hostile expansion fell out of it**
 (Q68, ADR-0033). Worth reading for the method rather than the mechanic: **both halves
@@ -749,7 +775,7 @@ containing backslash escapes or backticks; verify with `grep` otherwise.
 `python`/`python3` — it is not installed and the Windows Store stub blocks.
 Never write a bare `cat >` redirect, and do not reach for python.
 
-> **This entry has now cost time on five separate occasions, three of them on
+> **This entry has now cost time on six separate occasions, four of them on
 > 2026-09-04 alone, and it was already written down each time.** Reading a
 > gotchas list is not the same as remembering it mid-task, and the failure mode
 > is always the same: reaching for `python -` reflexively while thinking about
@@ -758,6 +784,19 @@ Never write a bare `cat >` redirect, and do not reach for python.
 > `Write`/`Edit` tools, all of which are already sufficient for everything this
 > project has needed.** If a future session finds itself typing `python`, that is
 > the signal.
+>
+> Note: python *is* on PATH in this environment (`/d/Python/python`, 3.13), so
+> `python -c "..."` works. That does not make `python -` or a piped heredoc safe,
+> and the sixth occurrence was exactly that. The rule is about the pipe, not the
+> interpreter's absence.
+
+**⚠ Large heredocs into the Bash tool are unreliable.** Appending a long
+multi-line block to a document with `cat >> file <<'EOF' … EOF` failed to parse
+on 2026-09-04 (`unexpected EOF while looking for matching '`) even though the
+delimiter was quoted and the content contained nothing exotic. **The reliable
+pattern for appending a long block is: `Write` it to the scratchpad, then
+`cat scratchpad/file >> target`.** Short heredocs are fine; anything with tables,
+apostrophes and em dashes should go through `Write`.
 
 **`ctx_batch_execute` sandbox quirks:**
 - `for ... do ... done` loops fail to parse (the wrapper prefixes the command
@@ -1129,3 +1168,142 @@ Agreed with the owner. See item 3 under *Immediate next steps*, which names the
 suggested order and the two traps — that room capacity is **not** reliably "tile
 count" (Q60 proved a temple's is its rim), and that several rooms will be blocked
 because creatures still have no health, hunger, mood or experience.
+
+---
+
+## The eleventh sitting (2026-09-04, after compaction) — the manual, and three rules
+
+Two inputs from the owner, arriving together: the shipped **1999 game manual**,
+and three behavioural rules stated *"just to make explicit"*. Between them they
+were the most productive hour of research the project has had, and one of them
+found a four-month-old hole.
+
+### What the manual is, and the rank it was given
+
+ADR-0037. It is EA's own document about EA's own game, which makes it the most
+plausible external source encountered so far — and it shipped with **1.0** while
+this project targets **v1.70**. So it is admitted **below the shipped data and
+below the owner's observation, above every community source**: agreement raises
+confidence, disagreement is recorded as a question and the data is implemented.
+
+**It was tested before it was used**, on ground where we already had answers. Its
+room pages print a Cost and a Minimum Recommended Size for all seventeen rooms,
+both parsed from `Rooms.kwd` by offsets found without it. **17 of 17 costs
+matched; 16 of 17 sizes matched**, and the exception (Workshop) contradicts the
+manual's own creature page, so the record is right. That single check bought an
+independent cross-validation of our room offsets *and* a third source for Q45 —
+the manual states outright that the size gates *function* and not *building*,
+which is `RoomInstance.IsFunctional` and Q36 together.
+
+**What it is good at is the thing this project was short of: what a mechanic is
+for.** The balance table says `ModifyAngerOfCreatureInLairPerSecond = −550` and
+never says what a lair does; the manual says creatures recover health and
+happiness in lairs and never says how fast. Read together they are a rule. That
+pairing is now written up room by room in `docs/research/manual-1999.md`, and it
+is why item 3 in the pick-up list is no longer a blank sheet.
+
+**What it settled that nothing else had:** research is stored **in the library**
+and is lost with it; `ModifyPlayerColdWhileTrainingPerSecond` is **Gold**, not
+"Cold" (the manual says training costs the keeper per turn, so a variable that was
+unusable is now −5 gold/s per trainee); the casino's payout lever is exactly the
+`Smiles`/`Money` variable pairs; the creature cap is **per portal**, 15 then 5; a
+gold treat is a **prepayment** of wages; a lair holds **beds**, one per creature,
+not tiles.
+
+**What it corroborated, independently:** the gold overflow chain treasury → heart
+→ floor, word for word (Q31, ADR-0018/0019); the 50% sell rate (Q34, now on three
+agreeing sources); `TrainingRoomMaxExperienceLevel` = 4 and
+`CombatPitMaxExperienceLevel` = 8, both stated as prose in the manual and as
+numbers in the table; `RoomDef.CreatedCreatureId` (Graveyard → Vampire, Prison →
+Skeleton); `MinimumImpThreshold` = 4 — *"The Dungeon Heart always provides enough
+Mana to sustain your four Imps"*, which is ADR-0021's semantics as well as its
+number.
+
+**Where it lost:** five disagreements, all in creature attraction, all in the same
+direction — the manual is *more* demanding than the shipped record. In one of them
+it describes a **third** attraction slot the record has no bytes for. A source
+that describes a record layout the file does not have is describing a different
+build (Q80).
+
+### The three rules, and the one that mattered
+
+1. **Creatures cannot pass through walls** (ADR-0038). Already implemented — and
+   **implemented in one place and asserted in none**. `WorldPathGrid` had refused
+   solid terrain since the first worker, so no route was ever *planned* through
+   rock. But `CreatureMovementSystem` walked a stored route without re-checking
+   it, and there is a shipped mechanic that invalidates a route mid-walk: a
+   **wooden bridge over lava burns out thirty seconds after it is built** (Q67).
+   Four lines fixed it; two 4000-tick invariants now pin it.
+
+2. **A dug-out tile can never be closed again** (ADR-0039). This one argues with
+   the data, which is why it is interesting: `FillInHealth` = 5, a
+   `TerrainFlags.FillInable` bit on exactly the five floor terrains, and Claimed
+   Path's route back to Rock are three *coordinated* pieces of shipped data, and
+   three coordinated fields are not an accident. The owner has played the game and
+   says no keeper can trigger it. Both accepted: the engine carries the concept,
+   the shipped game exposes no way to reach it (Q74). **Nothing was deleted** —
+   the transition is in the file — but the behavioural claim is now asserted.
+
+3. **Two terrains can never be dug through**, for two different reasons:
+   Impenetrable Rock is **not taggable** so a keeper cannot mark it, and Gems
+   destroy to **themselves** so every swing yields gold and the tile survives.
+   The data already said this and the model was already right; it now has tests,
+   on the fixture and on the shipped table.
+
+### What that cost, and the lesson worth keeping
+
+**A rule that only one line of code knows is a rule that can be deleted by
+accident — and worse, a rule nothing checks may already be broken.**
+
+`PathfindingTests` proved the *search* would not cross a wall on a hand-drawn
+grid. That is a property of the search. Nothing proved that the *simulation*,
+running the real systems on real terrain over many ticks, never put a creature
+inside one — and it turned out it could.
+
+The sharpest part: adding the invariant **broke two existing tests**.
+`WalkingOnTheBias_TakesRootTwoTimesAsLong` and
+`SpeedDoesNotDriftFromRoundingItAwayEveryTick` hand-fed routes that ran straight
+across the fixture's rock. They were measuring movement arithmetic, the arithmetic
+was right, so they passed — while walking imps through walls for four months.
+**Nobody noticed because nothing looked.** That is the same shape as the
+netstandard2.1 defect (ADR-0002's correction) and the same shape as gap 6 in
+`GOAL_ALIGNMENT.md`: the question to keep asking is not *is this claim true* but
+*what would fail if it stopped being true*.
+
+Second, smaller lesson: **the owner volunteering an "obvious" observation is worth
+more than answering a question.** Neither of these was on the checklist. Nobody
+would have thought to ask "can creatures walk through rock?" — and the answer
+found a real hole. The `ask-the-owner-about-dk2-behaviour` habit should extend to
+welcoming statements nobody asked for.
+
+Third: **piping into `python` cost time again** — sixth occurrence, and it was
+already written down five times. See *Environment gotchas*. The habit that works
+is not remembering the list, it is never piping into an interpreter at all: use
+`perl -0pi -e`, `awk`, or Write/Edit. This sitting also hit a **heredoc** failing
+inside the Bash tool for a large multi-line append; Write-to-scratchpad then
+`cat >>` is the reliable pattern for appending a long block to a doc.
+
+### The state, precisely
+
+**495 tests green** (Core 14, Simulation 262, Data 55, Behavior 78, Assets 60,
+Presentation 26), with and without a DK2 install. Ten scenarios run. The pinned
+determinism hash **did not move** — the movement guard changes nothing that any
+scenario reaches, which is itself evidence that no shipped path was crossing a
+wall.
+
+New in the repository: `docs/research/manual-1999.md` (the extract, page
+referenced), `tests/DK2.Simulation.Tests/WallsBlockMovementTests.cs`,
+`tests/DK2.Simulation.Tests/DugOutTilesStayDugOutTests.cs`, ADR-0037 / 0038 /
+0039, Q73–Q81, and one more real-data test in `TileWorkOnRealDataTests`.
+
+The PDF itself lives in `original-reference/` — the owner moved it there when the
+copyright question was raised, where the existing "NEVER COMMIT: original Dungeon
+Keeper 2 material" rule already ignores it.
+
+### Next
+
+**Still item 3: what rooms actually do** — and now much better resourced. Read
+`docs/research/manual-1999.md` §*What each room does* first, then ask the owner
+about *shape* (capacity, eligibility, what happens to the state a room changes)
+rather than about purpose. Suggested order: lair, library, training room; the
+hatchery is blocked on objects (M6).

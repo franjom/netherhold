@@ -1789,3 +1789,235 @@ was right — the smoke test proves 1140 objects exist. *It cannot prove a camer
 points at them.* Framing, scale, colour and legibility need a person and a
 screenshot. That is not a gap in the test suite; it is the boundary of what a
 test suite is, and the honest thing is to know which side of it a claim sits on.
+
+---
+
+## ADR-0037 — The 1999 manual is a corroborating source, never an overriding one
+
+**Date:** 2026-09-04
+**Status:** Accepted
+**Context:** the owner supplied the shipped game manual
+(`original-reference/Dungeon_Keeper_2_Manual.pdf`, gitignored). Research write-up:
+`docs/research/manual-1999.md`.
+
+### The decision
+
+The manual is admitted as a research source with a **fixed rank**: below the
+shipped v1.70 data and below the owner's observation of the running game, above
+every community source. Concretely:
+
+- Where the manual and the shipped data agree, the claim is **corroborated** and
+  its confidence rises.
+- Where they disagree, **the data is implemented** and the disagreement is
+  recorded as a question rather than resolved by preference.
+- Where the data is silent, the manual may supply *what a mechanic is for* — but
+  never a number the data could have carried and does not.
+
+### Why it needs a rule at all
+
+Because it is unusually tempting. It is EA's own document about EA's own game,
+written by people who could ask the programmers, and it is far more readable than
+a hex dump. Nothing else in this project's sources has that combination.
+
+But it shipped with **1.0** and this project targets **v1.70**, and the gap is
+real rather than theoretical: it disagrees with the shipped `Creatures.kwd` five
+times, all in creature attraction, and in one of those it describes a **third**
+attraction slot the record has no bytes for (the eight bytes after the second slot
+decode as two fixed-point values in 0.1–1.0). A source that describes a record
+layout the shipped file does not have is describing a different build.
+
+The precedent this follows is ADR-0023 and the Q53 lesson: a plausible external
+number is a *hypothesis to check against the install*, never an anchor. The manual
+is the most plausible external source yet encountered, which is exactly why it
+gets the rule written down rather than assumed.
+
+### Establishing its reliability first
+
+The manual was tested before it was used, on ground where we already had an
+answer. Its room pages print a **Cost** and a **Minimum Recommended Size** for
+each of the seventeen rooms; both are fields parsed out of `Rooms.kwd` by offsets
+found without reference to it.
+
+**17 of 17 costs matched. 16 of 17 sizes matched.** The exception is the Workshop,
+where the manual's room page says 5x5 and the record says 3x3 — and the manual's
+*own* Bile Demon page says 3x3, so it contradicts itself and the record is right.
+
+That is a strong pass, and it bought two things at once: an independent
+cross-validation of our `Rooms.kwd` offsets, and a third source for Q45 — the
+manual states the semantics of `RecommendedSizeX/Y` outright (*"At this size the
+room is most likely to function effectively"*, and *"you can create smaller
+rooms"*), which is `RoomInstance.IsFunctional` and Q36 together.
+
+### What it delivered
+
+Corroborated, independently: the gold overflow chain treasury → heart → floor
+(Q31, ADR-0018/0019), the 50% sell rate (Q34), `TrainingRoomMaxExperienceLevel` =
+4, `CombatPitMaxExperienceLevel` = 8, `RoomDef.CreatedCreatureId` (Graveyard →
+Vampire, Prison → Skeleton), `MinimumImpThreshold` = 4 (ADR-0021), room tiles
+generating the same mana as plain claimed tiles, wooden bridges burning over lava
+(Q67), payday every 600 seconds (Q9), and the meaning of `Fear` and `Threat`.
+
+Settled, where nothing else had it: research is stored **in the library** and lost
+with it; `ModifyPlayerColdWhileTrainingPerSecond` is **Gold**, not "Cold"; the
+casino's payout lever is the `Smiles`/`Money` variable pairs; the creature cap is
+**per portal**; a gold treat is a **prepayment** of wages; a lair holds **beds**,
+one per creature, not tiles.
+
+Opened: Q74 through Q81, including two that push on existing decisions —
+whether there is a player-level starting-gold stockpile after all (against
+ADR-0015), and whether the mana ceiling is flat or per-heart.
+
+### Consequences
+
+- Room research for M8 now starts from prose plus a rate rather than from a
+  blank sheet. That is the single biggest effect.
+- `manual-1999.md` carries the page-referenced extract; nothing else should quote
+  the PDF directly.
+- The manual is **not** an oracle for timing. It says "each turn" throughout and
+  never defines a turn, so it says nothing about Q1.
+- The PDF stays out of the repository. It is EA's copyright, this project is MIT
+  and public, and it lives under `original-reference/` with the rest of the
+  original material.
+
+---
+
+## ADR-0038 — A creature never enters a tile it could not have walked into
+
+**Date:** 2026-09-04
+**Status:** Accepted
+**Supersedes nothing.** Prompted by the owner, unprompted, 2026-09-04:
+*"creatures CAN NOT pass through walls, they can only move through dug out tiles,
+not through solid rocks"*, after watching imps walk through rock in an OpenKeeper
+gameplay video.
+
+### The decision
+
+`CreatureMovementSystem` re-checks each waypoint against `WorldPathGrid` **at the
+moment it steps onto it**, and a creature that finds one blocked stops and drops
+the route. The tile it is *standing on* is deliberately not re-checked.
+
+### Why a second check, when the router already refuses walls
+
+`WorldPathGrid.IsWalkable` has refused `TerrainFlags.Solid` since the first worker,
+so no route has ever been *planned* through rock. But **a route is planned once and
+the world keeps moving**, and there is a shipped mechanic that makes it move in the
+wrong direction: a wooden bridge over lava burns out thirty seconds after it is
+built and the tile reverts to lava (Q67, ADR-0032). A creature already walking a
+route across that bridge would have strolled over the lava.
+
+`BridgeBurnSystem`'s own notes had anticipated half of this — a creature *caught*
+on ground that turned impassable must be able to leave, which is why the
+pathfinder does not test a mover's starting tile. Nothing had stopped one
+*entering* such ground.
+
+### Dropping the route rather than re-planning
+
+The mover clears the path and stops. It does not re-route, because it is not the
+mover's job to decide what a creature wants; `ImpTaskSystem` already handles an
+empty path in both states, and handles it differently and correctly in each:
+
+- a worker walking to a job **abandons the job and looks for another** — the same
+  "the world changed under the route" branch, with the same reasoning that an imp
+  should not chase a moving answer;
+- a carrier delivering gold **re-routes to somewhere else that will take it**,
+  keeping what is in its hands.
+
+So the change is four lines in the mover and no change anywhere else.
+
+### The invariant, and the thing that was missing
+
+`PathfindingTests` proved the *search* will not cross a wall on a hand-drawn grid.
+Nothing proved that the *simulation*, running the real systems on real terrain
+over many ticks, never puts a creature inside one. `WallsBlockMovementTests` now
+asserts, across a 4000-tick dig with four imps: no creature ever stands on a solid
+tile, no route in flight ever crosses one, and a staged case where lava appears
+ahead of a walk stops it.
+
+**Two existing tests had to be fixed to make this pass**, and they are the reason
+the invariant was worth writing. `WalkingOnTheBias_TakesRootTwoTimesAsLong` and
+`SpeedDoesNotDriftFromRoundingItAwayEveryTick` hand-fed routes that ran straight
+across the fixture's rock. They were measuring movement arithmetic and the
+arithmetic was right, so they passed — while walking imps through walls. Nobody
+noticed for four months because nothing looked.
+
+### Confidence
+
+The rule is CONFIRMED (owner). What the original does *at the instant* the ground
+fails — stop dead, or re-route — is UNKNOWN and deliberately not invented. Only
+the observable rule is reproduced.
+
+---
+
+## ADR-0039 — A dug-out tile is never closed again, and two terrains are never opened
+
+**Date:** 2026-09-04
+**Status:** Accepted
+**Context:** two more rules the owner made explicit, 2026-09-04.
+
+### The decisions
+
+1. **Nothing in a running simulation ever turns an open tile solid.** Asserted,
+   not merely true.
+2. **Impenetrable Rock and Gems can never be dug through**, by the two different
+   mechanisms the shipped data already gives them. Asserted, and it was already
+   correct.
+
+### The second one first, because it is easy
+
+> *"there are 2 categories (that I know of) of indestructable tiles, that can't be
+> dug through by imps, solid rock and a gem tile. gem tile is an infinite gold
+> source and solid rock is the boundary to limit expansion on the map."*
+
+The terrain table says exactly this. **Impenetrable Rock** is `Solid, Impenetrable`
+and **not taggable**, so a keeper cannot mark it and no rule ever runs.
+**Gems** are `Solid, Impenetrable, Taggable` with a gold value of 3000 and a
+`DestroyedTypeTerrainId` of *themselves*, so mining applies forever and the tile
+never goes. `TileWork`'s dig rule requires `IsSolid && IsTaggable &&
+!IsImpenetrable`, which excludes both without a special case; mining requires
+`IsSolid && IsTaggable && GoldValue > 0`, which includes gems. Nothing changed —
+tests were added, on the fixture and on the shipped table.
+
+### The first one is more interesting, because the data argues back
+
+> *"once a tile is dug out, and maybe claimed, there is no possible way to fill in
+> that tile to rock again. DK2 doesn't have a game mechanic for filling up dug out
+> tiles."*
+
+Three shipped fields describe filling in: `FillInHealth` = 5 in the balance table,
+`TerrainFlags.FillInable` on exactly the five floor terrains, and Claimed Path's
+`MaxHealthTypeTerrainId` pointing at Rock. Q18 and Q22 read those together and
+produced `TileWorkKind.FillIn`. The owner has played the game and says no keeper
+can do it.
+
+**Both are accepted as true.** The engine carries the concept; the shipped game
+exposes no way to reach it. The evidence for that reading is that three
+*coordinated* pieces of data are not an accident, while the manual — which
+documents every keeper affordance down to the casino payout lever — never mentions
+filling anything in. Level editor, scripted trigger, or cut feature; Q74 says how
+to find out.
+
+### What was done, and what was deliberately not done
+
+**Not done: deleting anything.** `TileWorkKind.FillIn` and the terrain transition
+stay. They are in the shipped file, and removing them would put our terrain graph
+out of step with the data it was read from — which is a worse failure than
+carrying a rule nothing invokes. This project's discipline is that the data model
+mirrors the data; behaviour is where fidelity is judged.
+
+**Done: making the behavioural claim executable.** `ImpTaskSystem` only ever
+chooses excavation, claiming and reinforcing, so no imp filled anything in — but
+that was an absence, and absences rot. `DugOutTilesStayDugOutTests` now pins both
+halves over a 4000-tick dig: **no tile ever goes from open back to solid**, and
+**no work order that reaches the queue is a fill-in**. Both are checked
+non-vacuously (the run is asserted to have queued digging and claiming). Adding a
+fill-in job priority later would fail loudly.
+
+### Consequences
+
+- The walkable set only ever grows, with the single exception of a wooden bridge
+  burning. Anything that caches reachability may rely on that.
+- Q22 — "how long does filling a tile in take?" — is withdrawn from the
+  observation checklist: the experiment does not exist. The prediction it carried
+  (660 swings, ~132 seconds) is a fact about the terrain table, not about play.
+- The one thing still worth a look, if the owner ever opens the level editor: is
+  there a fill-in tool, or a fill-in action among the 51 trigger types?

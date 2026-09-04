@@ -682,6 +682,14 @@ public class ImpTests
             CreatureState imp = world.SpawnCreature(
                 Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
 
+            // Open the route first. The fixture map is mostly rock, and a
+            // creature does not walk through rock (CONFIRMED — see
+            // WallsBlockMovementTests): a route laid over it would now be
+            // dropped at the first solid waypoint, and this test would be
+            // timing the block rather than the walk.
+            for (int i = 1; i <= 4; i++)
+                Carve(world, database, new TilePos(1 + i, diagonal ? 1 + i : 1));
+
             for (int i = 1; i <= 4; i++)
                 imp.Path.Add(new TilePos(1 + i, diagonal ? 1 + i : 1));
 
@@ -721,7 +729,10 @@ public class ImpTests
         WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
         CreatureState imp = world.SpawnCreature(Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
 
-        // A long straight route so nothing snaps to a waypoint mid-second.
+        // A long straight route so nothing snaps to a waypoint mid-second, and
+        // an open corridor to walk it down — a route over rock would be dropped
+        // at the first solid waypoint (see WallsBlockMovementTests).
+        for (int x = 2; x <= 14; x++) Carve(world, database, new TilePos(x, 1));
         for (int x = 2; x <= 14; x++) imp.Path.Add(new TilePos(x, 1));
 
         var sim = new GameSimulation(database, world, 1, [new CreatureMovementSystem()]);

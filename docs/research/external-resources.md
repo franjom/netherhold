@@ -137,6 +137,38 @@ now.
 
 ---
 
+## The game manual: read 2026-09-04, and it earned its keep
+
+Not an external resource in the sense of the rest of this file — it shipped in
+the box, and the owner supplied it (`original-reference/`, gitignored, EA's
+copyright). Full write-up in `manual-1999.md`. Recorded here because it changes
+where this project should look for a certain kind of answer.
+
+**What it is good at, and nothing else here is:** saying *what a mechanic is
+for*. The balance table gives `ModifyAngerOfCreatureInLairPerSecond = −550` with
+no statement of what a lair does; the manual says creatures in lairs recover
+health and happiness, with no number. Read together they are a rule. That pairing
+is the whole of the "what rooms do" research, and it took an afternoon rather than
+the several sittings of owner observation it would otherwise have needed.
+
+**What it is bad at:** numbers (it has almost none), timing (it says "each turn"
+and never defines a turn), and currency — it shipped with **1.0** and we target
+**v1.70**. It disagrees with the shipped data five times, all in creature
+attraction, and the data wins every time.
+
+**Its reliability was established before it was used**, which is the part worth
+copying: its room pages print a cost and a minimum size for all seventeen rooms,
+both of which we already parse. **17 of 17 costs matched and 16 of 17 sizes**, and
+the one exception contradicts the manual's own creature page. Only then was the
+rest of it trusted — and it immediately corroborated Q45, Q34, Q31, Q9, Q67,
+`MinimumImpThreshold`, and both experience caps.
+
+Filing it under the standing rule below: every fact taken from it is tagged with
+the manual as its source and, where the shipped data also speaks, the data's
+reading is the one implemented.
+
+---
+
 ## The standing rule
 
 Every fact taken from any of these gets recorded the way a data extract already

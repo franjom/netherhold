@@ -252,4 +252,58 @@ public class TileWorkOnRealDataTests
                 $"tile {i} is still diggable {t.Name} after six passes");
         }
     }
+
+    /// <summary>
+    /// The two indestructible terrains, on the shipped table.
+    ///
+    /// <para>CONFIRMED (owner, 2026-09-04): <i>"there are 2 categories (that I
+    /// know of) of indestructable tiles, that can't be dug through by imps, solid
+    /// rock and a gem tile. gem tile is an infinite gold source and solid rock is
+    /// the boundary to limit expansion on the map."</i></para>
+    ///
+    /// <para>The data says it two different ways, which is why this is worth
+    /// pinning rather than assuming. Impenetrable Rock is <b>not taggable</b>, so
+    /// a keeper cannot even mark it and no rule ever runs. Gems <i>are</i>
+    /// taggable and carry a gold value, so mining applies — but their
+    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/> is themselves, so the tile
+    /// survives every swing. One boundary, one infinite seam, no special
+    /// case.</para>
+    ///
+    /// <para>Also asserted: those are the only two <i>diggable-looking</i>
+    /// terrains that behave this way, so "two categories" is the whole list for
+    /// anything a keeper meets while digging.</para>
+    /// </summary>
+    [Fact]
+    public void ImpenetrableRockIsUnmarkableAndGemsAreInexhaustible()
+    {
+        GameDatabase? db = RealDatabase();
+        if (db is null) return;
+
+        TerrainDef rock = db.TerrainById(IdOf(db, "Impenetrable Rock"));
+        Assert.True(rock.IsSolid);
+        Assert.True(rock.IsImpenetrable);
+        Assert.False(rock.IsTaggable);
+
+        TerrainDef gems = db.TerrainById(IdOf(db, "Gems"));
+        Assert.True(gems.IsSolid);
+        Assert.True(gems.IsImpenetrable);
+        Assert.True(gems.IsTaggable);
+        Assert.True(gems.GoldValue > 0);
+        Assert.Equal(gems.TerrainId, gems.DestroyedTypeTerrainId);
+
+        // The contrast that makes it a claim: a plain gold seam is exhaustible.
+        TerrainDef gold = db.TerrainById(IdOf(db, "Gold"));
+        Assert.True(gold.GoldValue > 0);
+        Assert.False(gold.IsImpenetrable);
+        Assert.NotEqual(gold.TerrainId, gold.DestroyedTypeTerrainId);
+
+        // And no third case hides among the terrain a keeper can mark: every
+        // taggable, impenetrable terrain is either Gems or one of the engine's
+        // internal markers, which no map places as ground.
+        string[] internalMarkers = ["Fog Of War", "Claim Scan"];
+        foreach (TerrainDef t in db.Terrain.Values.Where(t => t.IsTaggable && t.IsImpenetrable))
+            Assert.True(
+                t.Name == "Gems" || internalMarkers.Contains(t.Name),
+                $"{t.Name} is taggable and impenetrable and is neither Gems nor an internal marker");
+    }
 }

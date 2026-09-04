@@ -41,14 +41,29 @@ What is *built* rather than known, against the long-term goals:
   room behind them, damage as a texture swap, and runtime vertex deformation
   (the last inferred rather than proven by its source). See
   docs/research/wall-rendering.md. **Rendering only — no rule may depend on it.**
+- **How terrain constrains movement.** Creatures move only on dug-out tiles and
+  never through solid rock; a dug-out tile can never be closed again (DK2 has no
+  fill-in a keeper can trigger); and two terrains can never be dug through, for
+  two different reasons — Impenetrable Rock is unmarkable, Gems destroy to
+  themselves. All CONFIRMED by the owner 2026-09-04, all now asserted rather than
+  merely true. Q73/Q74, docs/research/manual-1999.md.
+- **What most rooms are for**, in prose if not in numbers — from the shipped 1999
+  manual, paired with the balance variable that quantifies each one. Not
+  implemented, but no longer unknown. See docs/research/manual-1999.md.
 
 ## Unsolved (research required before implementing)
-- **What a room does.** ← the next thing being worked on. Rooms are owned terrain
-  with a cost, a size and a sell price; only the treasury and the dungeon heart
-  have any behaviour. The ROOMS record carries art, size and cost and **says
-  nothing about behaviour**, so each room is its own research question. Do not
-  assume "capacity = tile count": Q60 established that a temple's capacity is its
-  **rim**, `2(w+h) − 4`.
+- **What a room does.** ← the next thing being worked on, and **much less of a
+  blank sheet than it was**. The ROOMS record carries art, size and cost and says
+  nothing about behaviour, but the 1999 manual says what each room is *for* and
+  the balance table has a per-second rate for nearly all of it — a lair heals 100
+  and calms 550 a second, a prison drains 3, a casino's payout lever is the
+  `Smiles`/`Money` variable pairs, training caps at level 4 and costs the keeper
+  5 gold a second. See docs/research/manual-1999.md, "What each room does".
+  What is still missing is the *shape*: capacity, per-creature eligibility, and
+  what a room does with the state it changes. Do not assume "capacity = tile
+  count": Q60 established that a temple's capacity is its **rim**, `2(w+h) − 4`,
+  and the manual says the dungeon heart stores its gold in its "outer ring" too.
+  Several rooms are blocked on objects (M6) or on creature needs, not on research.
 - Pathfinding (biggest risk), creature moods/anger, combat resolution,
   job-selection priority order, computer-player AI, audio event semantics.
 - **Creatures have no needs yet** — no health, hunger, mood or experience, by
