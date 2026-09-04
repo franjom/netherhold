@@ -65,8 +65,12 @@ subsystems, in EA's own words**, and it costs nothing to read.
   `Entrance.cpp`. That independently corroborates the note already in
   `RoomTypeId` — *"Portal = 3, Flame calls this Entrance"* — from a third
   direction, and it is the file to look in for Q86.
-- **DK2's creature state machine is a class hierarchy with about 25 leaves**, and
-  they are named. `CreatureState` here carries four activities and its own
+- **DK2's creature state machine has about 25 named states** — though *"a class
+  hierarchy with 25 leaves"*, which this list said for a day, is now
+  **doubtful**: see the RTTI section below, where the executable turns out to
+  carry 163 mangled class names and **exactly one of them is a state**,
+  `CState`. Twenty-five files and one class is the shape of a dispatch table,
+  not an inheritance tree. `CreatureState` here carries four activities and its own
   comment says the real machine "is much larger — Flame names dozens of state
   constants — and reconstructing it is a later job (Q2, Q7)". This is that job's
   table of contents, and it maps onto things already known: `HungerState` is the
@@ -168,3 +172,46 @@ Everything above is a **name and a relation** — facts, in ADR-0046's terms,
 written up here in our own words with the file that carries them. No decompiler
 output crossed, and none is quoted: this whole pass read *strings*, which is the
 cheapest evidence in the binary and the least ambiguous.
+
+---
+
+## The executable kept its RTTI, and it corrects us (2026-09-04)
+
+163 mangled MSVC type names (`.?AV...@@`), so the build had `/GR` on and every
+class with a virtual function is named in `.rdata`. Ghidra has **not** been asked
+to lay the vtables out — the project carries exactly one stray `vftable` label —
+so this is a read of the *names* only, which is enough to settle a structural
+question and to refute one of our own claims.
+
+**The claim it refutes.** The `__FILE__` list above named 25 `*State.cpp`
+translation units, and this document concluded from that a class hierarchy with
+25 leaves. **There is one state class in RTTI: `CState`.** No `CImpState`, no
+`CHungerState`, no `CLairState`. A class per state, each with a virtual `Update`,
+would have produced 25 RTTI entries; one entry and 25 files is the signature of a
+**single state class driven by a table of per-state handler functions**, which is
+also exactly what a file per state would look like if each file exports a handful
+of free functions registered by state id.
+
+So the thing worth reading is not 25 vtables. It is **the dispatch table**, and
+what it gives is different and better:
+
+| | |
+|---|---|
+| The **state id numbering** | Nothing in this project has DK2's state enum. A table indexed by state id *is* that enum, in order |
+| Handler addresses per state | Turns "how does a creature choose a job?" from a hunt into a targeted read of two or three functions |
+| Which states share a handler | Tells us where DK2 treats several states as one behaviour, which no filename can |
+
+**What the class names give on their own.** A map of the engine's own
+architecture, in EA's words: `CThing` and `CTag` (the umbrella types),
+`CBridgeThing`, `CEffect`/`CEffectElement`, `CLight`, `CComponent`,
+`CEngineInterface`, `CGameManagerInterface`, `CPlayerInterface` /
+`CDefaultPlayerInterface`, and a `Tb`-prefixed layer (`TbWItemBase`,
+`TbGraphicFileLoader`, `TbPNGLoader`, `TbSysCommand::*`, `TbVariableTag`) which
+is Bullfrog's own toolbox library rather than DK2 code. `CThing` being the parent
+of both creatures and objects matches what `Object.cpp`'s tagged union already
+suggested.
+
+**Cost of going further:** one Ghidra run with RTTI/vtable analysis enabled, which
+is a one-off on the existing project. That is the next binary task, and it is
+worth doing *before* combat rather than after, because combat is `FightWithDraw`,
+`Throwing` and `RunAway` — three of the states the table would name.
