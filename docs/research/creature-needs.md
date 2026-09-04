@@ -1,4 +1,4 @@
-# Creature needs: health and hunger
+﻿# Creature needs: health and hunger
 
 What a creature *has*, as opposed to where it is standing. Health is
 implemented; hunger's clock is implemented and eating is not, for a reason given
@@ -111,6 +111,71 @@ So a hungry creature here takes no damage, and that is a deliberate negative
 rather than an omission. It is tested (`BeingHungryCostsNoHealthAtAll`) so that
 nobody later "fixes" it into starvation.
 
+### `TerrainDef.Damage` is a signed health delta, and only the stopped pay it — **CONFIRMED (owner)**
+
+The field is named for damage and is not damage. Three of the 41 terrains carry
+a non-zero one:
+
+| Terrain | `Damage` | What it means |
+|---|---|---|
+| Water | +100 | −100 health a second, to a creature that cannot cross water |
+| Lava | +100 | −100 health a second, to a creature that cannot cross lava |
+| **Hero Lair** | **−67** | **+67 health a second**, to anything standing on it |
+
+Hero Lair is the entry that settles the sign: it is the hero side's answer to a
+keeper's lair, and it heals. So the column is a per-second health delta, and
+`CreatureHealthRules.TerrainHealthPerSecond` returns it negated so that positive
+heals everywhere in this file.
+
+**Crossing a hazard you can cross is free.** The owner, 2026-09-04: *"no creature
+that can traverse through water looses health"*. The first implementation charged
+whatever stood in water, which would have drowned in five seconds the imp the
+owner had just watched wade a lake to mine a gem. The flag that decides
+passability decides the cost, one hazard at a time — so `WorldPathGrid` and this
+rule read the same bit for the same reason.
+
+**Then who pays?** A creature that cannot cross is never routed into water, but
+it can be *put* there — dropped from the keeper's hand, or in the original sent
+by a patrol route drawn across it. And the roster says water charges almost
+nobody: `CanWalkOnWater` is on **44 of the 46** creatures. The two without it are
+the **Vampire** and the **Unique Vampire**.
+
+Three sources that never met agree on those two records:
+
+- **The owner, from play, before the column was read:** *"I think vampires can't
+  cross through water, they need bridges"* — a two-element set out of 46, named
+  from memory, in a record whose flag layout this project reconstructed rather
+  than read anywhere.
+- **The shipped `Creatures.kwd`:** the flag is missing on exactly those two.
+- **The DK2 wiki:** its warning that water may leave a creature *"damaged,
+  resurrect, and even die"* is on the **Vampire page** (facts in our own words,
+  per `wiki-as-a-source.md` — the page's prose is CC BY-SA and is not vendored).
+
+So water is not a barrier with exceptions but a **hindrance with two
+exceptions**, which is what the game says in its own tooltip: *"Water. Impassable
+to some, others are merely hindered by it."* The two clauses split the roster
+2 / 44.
+
+**Lava is where the rule earns its keep.** Seven creatures carry
+`CanWalkOnLava` — Salamander, Firefly, Giant, Fairy, Horny and the unique Firefly
+and Salamander — so the other 39 burn. The Imp is the clean pair: free in water,
+dead in lava in five seconds.
+
+**Two things are still ours.** The **cadence** is per game second like every
+other rate here, and nothing states it — and the owner's answer removed the cheap
+way to check, because nothing they can walk into water is charged at all; it
+needs a Vampire dropped in a lake (Q118). The **slowdown** is CONFIRMED to exist
+(*"water visibly slows imps and other creatures passing through it"*) and is not
+implemented, because no variable for it exists in any of the 214. The standing
+hypothesis is the unread third speed in every creature record, `ShuffleSpeed`:
+Imp 4096 against its 7536 walk, Vampire 1638 against 2867 — not a constant ratio,
+so a per-creature speed rather than a global multiplier, which is the shape a
+hindrance needs.
+
+This is also why the fixture has a **Vampire**: it is the only creature a water
+test can honestly use. Adding it caught the Goblin missing `CanWalkOnWater` — the
+fourth flag the drift guard has found absent from that one record.
+
 ## 4. What is implemented
 
 `CreatureHealthRules` + `CreatureHealthSystem`, registered **last** in the tick
@@ -124,6 +189,10 @@ would lean on `TicksPerSecond`, still a placeholder (Q1).
   health dies on the tick it arrives, so there must be no overload that leaves
   health out. That cost 25 call-site changes and is worth it.
 - Own-land regeneration, per the record.
+- **Hazard and healing terrain** (`TerrainHealthPerSecond`), gated on the
+  creature's own crossing flag — see §3. Applied to a collapsed creature as well
+  as a standing one, which is currently a no-op because the clamp at zero cannot
+  take it lower.
 - **Beds and sleep** (`LairRules` + `CreatureSleepSystem`): one bed per lair
   tile, claimed on arrival, walked to when the creature wants to sleep, and
   **healing at 100 a second only while asleep in its own bed**. CONFIRMED by the

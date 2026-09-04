@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -483,6 +483,8 @@ switch (args[0])
                 c.Flags.HasFlag(CreatureFlags.IsWorker) ? "worker" : null,
                 c.Flags.HasFlag(CreatureFlags.IsEvil) ? "evil" : null,
                 c.Flags.HasFlag(CreatureFlags.CanFly) ? "fly" : null,
+                c.Flags.HasFlag(CreatureFlags.CanWalkOnWater) ? "water" : null,
+                c.Flags.HasFlag(CreatureFlags.CanWalkOnLava) ? "lava" : null,
                 c.Flags.HasFlag(CreatureFlags.IsFearless) ? "fearless" : null,
                 c.Flags.HasFlag(CreatureFlags.IsUnique) ? "unique" : null,
                 c.Flags.HasFlag(CreatureFlags.AvailableViaPortal) ? "portal" : null,

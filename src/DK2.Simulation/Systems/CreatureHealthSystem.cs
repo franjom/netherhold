@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -71,10 +71,12 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
             // Terrain first, and it applies to the dying as well as the
-            // standing: a creature that collapses in water is still in water,
-            // and lying in it is no safer than walking through it. This is the
-            // one thing that can still kill something mid-rescue.
-            int terrain = CreatureHealthRules.TerrainHealthPerSecond(world, database, state);
+            // standing: a creature that collapses in lava is still in lava, and
+            // lying in it is no safer than walking through it. A creature that
+            // can cross the hazard pays nothing — which for water is all but
+            // the two vampires (CONFIRMED, Q118).
+            int terrain = CreatureHealthRules.TerrainHealthPerSecond(
+                world, database, creature, state);
             if (terrain != 0)
             {
                 int landed = CreatureHealthRules.Apply(creature, state, terrain);

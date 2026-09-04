@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -12,12 +12,17 @@ namespace DK2.Simulation.Tests;
 /// Health and hunger — the first things a creature has that are not about where
 /// it is standing.
 ///
-/// <para>The fixture's two creatures are chosen opposites and that is what makes
+/// <para>The fixture's creatures are chosen opposites and that is what makes
 /// them useful here: the <b>Imp</b> never eats, never sleeps, and is one of only
 /// two creatures in the game that heal on their own land; the <b>Goblin</b> gets
 /// hungry every 180 seconds, needs one chicken, and heals on nobody's land. So
 /// every rule can be tested with a creature that has it and one that does
 /// not.</para>
+///
+/// <para>Hazard terrain needed a third, and the shipped data left no choice
+/// about which. Crossing a hazard is free to a creature that can cross it, and
+/// water is crossable by 44 of the 46; the <b>Vampire</b> is one of the two it
+/// is not, so it is the creature every water test here drowns.</para>
 ///
 /// <para>Several of these are negative tests about things that are deliberately
 /// absent — hunger costs no health, an unfed creature does not starve — because
@@ -29,6 +34,7 @@ public class CreatureNeedsTests
     private const byte Keeper = 3;
     private const byte Rival = 4;
     private const byte GoblinId = 7;
+    private const byte VampireId = Dk2TerrainFixture.VampireCreatureId;
 
     private static GameDatabase Db => Dk2TerrainFixture.Database();
 
@@ -358,13 +364,41 @@ public class CreatureNeedsTests
     // ---- terrain health deltas --------------------------------------------
 
     [Fact]
-    public void StandingInWaterCostsAHundredHealthASecond()
+    public void AVampireInWaterLosesAHundredHealthASecond()
     {
-        // The owner marked a gem tile on an island cut off by water, with no
-        // bridge, and imps waded across to mine it — which CONFIRMED that
-        // hazards are crossable and then exposed that crossing one was free
-        // here. Water's TerrainDef.Damage is 100 and was read by nothing but
-        // the asset catalogue.
+        // Water's TerrainDef.Damage is 100, and until the owner's observation
+        // it was read by nothing but the asset catalogue.
+        //
+        // The creature is a Vampire and that is the whole point: water charges
+        // only what cannot cross it, and in the shipped roster that is the
+        // Vampire and the Unique Vampire and nothing else. This test used to
+        // use a Goblin, which wades.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var pond = new TilePos(3, 6);
+        world.Tile(pond.X, pond.Y).TerrainId = Dk2TerrainFixture.Water;
+
+        CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, pond);
+        var events = new ListEventSink();
+
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
+        sim.ObserveWith(events);
+        sim.Run(Second * 3);
+
+        Assert.Equal(2500 - 300, vampire.Health);
+        Assert.Contains(events.Events, e => e.Kind == "creature_terrain_health");
+    }
+
+    [Fact]
+    public void AGoblinWadesTheSameWaterForNothing()
+    {
+        // CONFIRMED by the owner (Q118): "no creature that can traverse through
+        // water looses health". The first version of this rule charged
+        // everything standing in water, which would have drowned an imp in five
+        // seconds doing the very job the owner had watched it do.
+        //
+        // Same tile and same terrain as the test above, run ten times as long.
+        // The only difference is one flag.
         GameDatabase db = Db;
         WorldState world = World(db);
         var pond = new TilePos(3, 6);
@@ -375,24 +409,56 @@ public class CreatureNeedsTests
 
         var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
         sim.ObserveWith(events);
-        sim.Run(Second * 3);
+        sim.Run(Second * 30);
 
-        Assert.Equal(1500 - 300, goblin.Health);
-        Assert.Contains(events.Events, e => e.Kind == "creature_terrain_health");
+        Assert.Equal(1500, goblin.Health);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "creature_terrain_health");
     }
 
     [Fact]
-    public void ACreatureLeftInWaterLongEnoughDrowns()
+    public void AnImpCrossesWaterForFreeAndBurnsInLava()
     {
-        // Fifteen seconds for a Goblin, five for an Imp. Which is why the
-        // cadence matters and is flagged as ours (Q117): per tick instead of
-        // per second would make hazards twenty times deadlier.
+        // The pairing that makes the rule per-hazard rather than per-creature:
+        // the Imp carries CanWalkOnWater and not CanWalkOnLava, so one creature
+        // is immune to one hazard and killed by the other. Both halves are the
+        // shipped record's.
         GameDatabase db = Db;
         WorldState world = World(db);
         var pond = new TilePos(3, 6);
-        world.Tile(pond.X, pond.Y).TerrainId = Dk2TerrainFixture.Lava;
+        var fire = new TilePos(4, 6);
+        world.Tile(pond.X, pond.Y).TerrainId = Dk2TerrainFixture.Water;
+        world.Tile(fire.X, fire.Y).TerrainId = Dk2TerrainFixture.Lava;
 
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, pond);
+        CreatureState wader = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, pond);
+        CreatureState burner = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, fire);
+
+        // No movement system, so neither imp goes anywhere. Own-land healing is
+        // not in play either — this fixture map's water and lava belong to
+        // nobody — which matters because an Imp regenerates 67 a second at home
+        // and would otherwise outheal the lava.
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
+        sim.Run(Second * 3);
+
+        Assert.Equal(500, wader.Health);
+        Assert.Equal(500 - 300, burner.Health);
+    }
+
+    [Fact]
+    public void ACreatureLeftInLavaLongEnoughBurnsToDeath()
+    {
+        // Fifteen seconds for a Goblin. Which is why the cadence matters and is
+        // flagged as ours (Q118): per tick instead of per second would make
+        // hazards twenty times deadlier, and the owner's answer removed the
+        // easy way to measure it — nothing they can walk into water is charged
+        // at all.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var fire = new TilePos(3, 6);
+        world.Tile(fire.X, fire.Y).TerrainId = Dk2TerrainFixture.Lava;
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, fire);
 
         var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
         sim.Run(Second * 15);
@@ -405,8 +471,8 @@ public class CreatureNeedsTests
     [Fact]
     public void TerrainIsStillAppliedToACollapsedCreatureButCannotTakeItFurther()
     {
-        // Water is applied to the down as well as the standing, because a
-        // creature that drops in water is in water and lying in it is no safer
+        // Lava is applied to the down as well as the standing, because a
+        // creature that drops in lava is in lava and lying in it is no safer
         // than walking through it.
         //
         // **But it has no observable effect**, and this test exists because the
@@ -422,10 +488,10 @@ public class CreatureNeedsTests
         // place. What is corrected is the claim, not the behaviour.
         GameDatabase db = Db;
         WorldState world = World(db);
-        var pond = new TilePos(3, 6);
-        world.Tile(pond.X, pond.Y).TerrainId = Dk2TerrainFixture.Water;
+        var fire = new TilePos(3, 6);
+        world.Tile(fire.X, fire.Y).TerrainId = Dk2TerrainFixture.Lava;
 
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, pond);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, fire);
         goblin.Health = 50;
         var events = new ListEventSink();
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -108,7 +108,7 @@ internal static class Dk2TerrainFixture
             R(RoomTypeId.Portal, "Portal", 0, PortalTerrain, 0x1004u, 3, 3,
               TileConstruction.ThreeByThree),
         ],
-        creatures: [Imp(), Goblin()],
+        creatures: [Imp(), Goblin(), Vampire()],
         variables: Variables(),
         keeperSpells: KeeperSpells());
 
@@ -253,16 +253,29 @@ internal static class Dk2TerrainFixture
         Name = "Goblin",
         CreatureId = 7,
 
-        // The real Goblin's flags are exactly these two. AvailableViaPortal is
-        // not decoration: PortalRules.CanComeFromPortal requires it, so a
-        // fixture Goblin without it never comes out of a portal at all.
-        // GenerateDeadBody is the real Goblin's, and it is load-bearing rather
-        // than decorative: it is what decides whether running out of health
-        // puts a creature on the floor for sixty seconds or ends it on the spot
-        // (Q99). The fixture had it missing, so every collapse test would have
-        // been testing instant death instead.
+        // Four of the real Goblin's flags, and every one of them is
+        // load-bearing rather than decorative:
+        //
+        //   AvailableViaPortal  PortalRules.CanComeFromPortal requires it, so a
+        //                       fixture Goblin without it never comes out of a
+        //                       portal at all.
+        //   GenerateDeadBody    decides whether running out of health puts a
+        //                       creature on the floor for sixty seconds or ends
+        //                       it on the spot (Q99). The fixture had this
+        //                       missing, so every collapse test would have been
+        //                       testing instant death instead.
+        //   CanWalkOnWater      decides both whether water may be crossed and
+        //                       whether crossing it costs health (Q118). Also
+        //                       missing, and for the same reason: the comment
+        //                       here used to say "exactly these two" and was a
+        //                       claim about the shipped record that nothing
+        //                       checked. 44 of the 46 creatures carry it.
+        //
+        // This is the fourth flag the drift guard has caught missing from this
+        // one record, which is the argument for asserting the whole set rather
+        // than the flags a mechanic happens to read today.
         Flags = CreatureFlags.IsEvil | CreatureFlags.AvailableViaPortal
-                | CreatureFlags.GenerateDeadBody,
+                | CreatureFlags.GenerateDeadBody | CreatureFlags.CanWalkOnWater,
 
         Hp = 1500,
         MeleeDamage = 170,
@@ -324,6 +337,84 @@ internal static class Dk2TerrainFixture
         MaxGoldHeld = 0,
         InitialGoldHeld = 0,
         ExpPerSecond = 0,
+    };
+
+    public const byte VampireCreatureId = 8;
+
+    /// <summary>
+    /// The Vampire: the one creature in the roster that water can kill.
+    ///
+    /// <para><b>Why it is in the fixture at all.</b> Hazard terrain charges only
+    /// a creature that cannot cross the hazard (CONFIRMED, see
+    /// <c>CreatureHealthRules.TerrainHealthPerSecond</c>), and
+    /// <see cref="CreatureFlags.CanWalkOnWater"/> is on <b>44 of the 46</b>
+    /// creatures. The two without it are the Vampire and the Unique Vampire, so
+    /// without a Vampire here there is no way to test water's cost against a
+    /// creature the original would actually charge — and the previous water
+    /// tests were charging a Goblin, which in the shipped record wades.</para>
+    ///
+    /// <para>The owner named this from play, before the column was read:
+    /// <i>"I think vampires can't cross through water, they need bridges"</i>.
+    /// It is right, and it is right about exactly two records out of 46.</para>
+    ///
+    /// <para><b>Three flags it does not have</b> are as much of the record as
+    /// the ones it does. No <c>CanWalkOnWater</c>; no <c>GenerateDeadBody</c>,
+    /// because a vampire leaves no corpse but reincarnates (owner, Q113); and
+    /// no <c>AvailableViaPortal</c>, because a vampire is not recruited but
+    /// arrives from a Graveyard — its single attraction slot asks for room 14
+    /// and its <c>LairObjectId</c> is 26, its coffin.</para>
+    ///
+    /// <para>Everything overridden here is the shipped record's, from
+    /// <c>dk2tools kwd creature Vampire</c>. <c>CreatureNeedsOnRealDataTests</c>
+    /// reads them back out of the install, so this cannot drift from it.</para>
+    /// </summary>
+    public static CreatureDef Vampire() => Goblin() with
+    {
+        Name = "Vampire",
+        CreatureId = VampireCreatureId,
+
+        Flags = CreatureFlags.IsEvil | CreatureFlags.IsFearless
+                | CreatureFlags.CanBeResurrected | CreatureFlags.NeedBodyForFightIdle,
+
+        Hp = 2500,
+        MeleeDamage = 666,
+        Pay = 750,
+        Fear = 267,
+        Threat = 107,
+        Speed = new Fp32(2867),
+        RunSpeed = new Fp32(5160),
+        ShuffleSpeed = new Fp32(1638),
+        JobClass = JobClass.Thinker,
+
+        // Never eats — the same 32767 sentinel the Imp carries — but does
+        // sleep, and for the same nine seconds as a Goblin after a much longer
+        // 330 awake. Its bed is object 26 and its attraction is room 14, the
+        // Graveyard.
+        HungerRate = Imp().HungerRate,
+        HungerFill = 0,
+        HpFromChicken = 0,
+        TimeAwake = 330,
+        TimeSleep = 9,
+        LairObjectId = 26,
+        Attractions = [new CreatureAttraction(1, 14, 0), new CreatureAttraction(0, 0, 0)],
+
+        // Its own anger record. AngerNoFood is 1 rather than 0 on a creature
+        // that never eats, which is the shipped table's way of leaving a
+        // needle in a need it does not have. AngerSlap is 7000, so a Vampire
+        // takes five slaps to unhappy where a Goblin takes six.
+        AngerNoFood = 1,
+        AngerNoWork = 60,
+        AngerSlap = 7000,
+
+        // A vampire never walks out. Where a Goblin's angry table is a coin
+        // toss between Leave and Rebel, this one is Rebel outright.
+        HappyJobs = [new(JobType.Research, 0, 0, 80), new(JobType.Praying, 0, 0, 20)],
+        UnhappyJobs = [new(JobType.Sulk, 0, 0, 10), new(JobType.Drink, 0, 0, 90)],
+        AngryJobs = [new(JobType.Rebel, 0, 0, 100)],
+
+        DecomposeValue = 0,
+        MaxGoldHeld = 7500,
+        InitialGoldHeld = 500,
     };
 
     /// <summary>The ten tile-work health deltas, the gems yield, the imp idle delay,

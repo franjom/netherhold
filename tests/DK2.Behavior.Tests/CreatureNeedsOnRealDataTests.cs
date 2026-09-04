@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -743,20 +743,136 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal("Water", water.Name);
         Assert.True(water.IsWater);
         Assert.False(water.IsSolid);
+    }
 
-        // And the flag that decides who may cross. The Imp has it; so, as it
-        // happens, does the Goblin.
+    [Fact]
+    public void TheTwoVampiresAreTheOnlyCreaturesWaterStops()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The owner named this from play, before the column had been read:
+        // "I think vampires can't cross through water, they need bridges".
+        //
+        // It is right, and it is right about exactly two records out of 46.
+        // Which makes it the strongest single confirmation this project has of
+        // the CanWalkOnWater bit: a guess from memory of the original that
+        // lands on a two-element set in a 46-element column, in a record whose
+        // flag layout was reconstructed rather than documented.
+        //
+        // It also reframes water. 44 of 46 creatures cross it, so water is not
+        // a barrier with exceptions but a hindrance with two exceptions — which
+        // is what the tooltip says in the game's own words ("Impassable to
+        // some, others are merely hindered by it") and what makes it worth
+        // charging health only to those who cannot cross.
+        //
+        // Asserted by name rather than by count, because a count that changes
+        // for a different install tells nobody which creature moved.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        var landlubbers = db.Creatures.Values
+            .Where(c => !c.Flags.HasFlag(CreatureFlags.CanWalkOnWater))
+            .Select(c => c.Name)
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.Equal(["Unique Vampire", "Vampire"], landlubbers);
+        Assert.Equal(46, db.Creatures.Count);
+
+        // And the corollary the health rule depends on: the creature the owner
+        // watched wade is one of the 44, as is the Goblin the fixture used to
+        // charge for it.
         Assert.True(db.CreatureByName("Imp")!.Flags.HasFlag(CreatureFlags.CanWalkOnWater));
         Assert.True(db.CreatureById(7).Flags.HasFlag(CreatureFlags.CanWalkOnWater));
 
-        // Lava is the counterpart, and almost nothing crosses it.
-        var lavaWalkers = db.Creatures.Values
-            .Where(c => c.Flags.HasFlag(CreatureFlags.CanWalkOnLava))
-            .Select(c => c.Name)
-            .ToHashSet();
+        // Lava is the opposite shape and is where the rule does its work: seven
+        // creatures cross it, so the other 39 burn. The seven are named in
+        // BridgesOnRealDataTests; here it is enough that the Imp is not one.
+        Assert.False(db.CreatureByName("Imp")!.Flags.HasFlag(CreatureFlags.CanWalkOnLava));
+    }
 
-        Assert.DoesNotContain("Imp", lavaWalkers);
-        Assert.NotEmpty(lavaWalkers);
+    [Fact]
+    public void TheFixtureVampireIsTheShippedVampire()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The drift guard for the fixture's third creature, added because the
+        // Vampire is the only one water can kill and so the only one a hazard
+        // test can be honest with. Every number below is transcribed into
+        // Dk2TerrainFixture.Vampire(); this project deliberately does not
+        // reference the simulation fixture from here, so the values are
+        // repeated rather than compared, exactly as the Imp's and the Goblin's
+        // guards do it.
+        //
+        // Its three ABSENT flags are as much of the record as its present ones,
+        // and each is a mechanic:
+        //
+        //   no CanWalkOnWater     water charges it 100 a second
+        //   no GenerateDeadBody   it leaves no corpse but reincarnates (Q113)
+        //   no AvailableViaPortal it is not recruited; it arrives from a
+        //                         Graveyard, which its own attraction slot
+        //                         asks for by room id 14
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        CreatureDef vampire = db.CreatureByName("Vampire")!;
+
+        Assert.Equal(8, vampire.CreatureId);
+
+        Assert.False(vampire.Flags.HasFlag(CreatureFlags.CanWalkOnWater));
+        Assert.False(vampire.Flags.HasFlag(CreatureFlags.CanWalkOnLava));
+        Assert.False(vampire.Flags.HasFlag(CreatureFlags.GenerateDeadBody));
+        Assert.False(vampire.Flags.HasFlag(CreatureFlags.AvailableViaPortal));
+        Assert.True(vampire.Flags.HasFlag(CreatureFlags.IsEvil));
+        Assert.True(vampire.Flags.HasFlag(CreatureFlags.IsFearless));
+        Assert.True(vampire.Flags.HasFlag(CreatureFlags.CanBeResurrected));
+        Assert.True(vampire.Flags.HasFlag(CreatureFlags.NeedBodyForFightIdle));
+
+        Assert.Equal(2500, vampire.Hp);
+        Assert.Equal(666, vampire.MeleeDamage);
+        Assert.Equal(750, vampire.Pay);
+        Assert.Equal(267, vampire.Fear);
+        Assert.Equal(107, vampire.Threat);
+        Assert.Equal(2867, vampire.Speed.Raw);
+        Assert.Equal(5160, vampire.RunSpeed.Raw);
+        Assert.Equal(1638, vampire.ShuffleSpeed.Raw);
+        Assert.Equal(JobClass.Thinker, vampire.JobClass);
+
+        // Never eats, and the sentinel is the same 32767 the Imp carries.
+        Assert.False(CreatureHealthRules.CanGetHungry(vampire));
+        Assert.Equal(0, vampire.HungerFill);
+        Assert.Equal(0, vampire.HpFromChicken);
+
+        // But does sleep, and its bed is its coffin: object 26, against the
+        // Goblin's 22.
+        Assert.Equal(330, vampire.TimeAwake);
+        Assert.Equal(9, vampire.TimeSleep);
+        Assert.Equal(26, vampire.LairObjectId);
+        Assert.True(LairRules.NeedsBed(vampire));
+
+        // The Graveyard attraction, which is how a vampire is acquired at all.
+        Assert.Equal(14, vampire.Attractions[0].RoomId);
+
+        // Anger. AngerNoFood is 1 on a creature that never eats — a needle in
+        // a need it does not have — and AngerSlap 7000 is more than twice the
+        // Goblin's 3000, so five slaps make a Vampire unhappy where a Goblin
+        // takes six (Q114).
+        Assert.Equal(100, vampire.AngerNoLair);
+        Assert.Equal(1, vampire.AngerNoFood);
+        Assert.Equal(60, vampire.AngerNoPay);
+        Assert.Equal(60, vampire.AngerNoWork);
+        Assert.Equal(7000, vampire.AngerSlap);
+        Assert.Equal(-250, vampire.AngerInHand);
+        Assert.Equal(50, vampire.UnhappyThreshold);
+
+        // And an angry table with no Leave in it: a vampire rebels rather than
+        // walking out, which is the one creature-specific consequence of the
+        // anger ladder currently visible.
+        Assert.Equal([JobType.Rebel], vampire.AngryJobs.Select(j => j.Job));
+        Assert.Equal(100, vampire.AngryJobs[0].ChancePercent);
+
+        Assert.Equal(0, vampire.DecomposeValue);
+        Assert.Equal(7500, vampire.MaxGoldHeld);
+        Assert.Equal(500, vampire.InitialGoldHeld);
     }
 
     // ---- anger, against the owner's two measurements ----------------------

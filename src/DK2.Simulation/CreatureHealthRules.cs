@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -149,33 +149,58 @@ public static class CreatureHealthRules
 
     /// <summary>
     /// Health per second from the terrain a creature is standing on —
-    /// <c>TerrainDef.Damage</c>, which is a <b>signed delta and not damage</b>.
+    /// <c>TerrainDef.Damage</c>, which is a <b>signed delta and not damage</b>,
+    /// and which a creature that can cross the hazard does not pay at all.
     ///
     /// <para><b>Three of 41 terrains carry one</b>, and the third is why the
     /// field's name is wrong: <b>Water +100</b>, <b>Lava +100</b>, and
     /// <b>Hero Lair −67</b> — the hero side's lair, healing whatever stands on
     /// it. Returned negated here so the sign convention matches everything else
-    /// in this file: positive heals, negative hurts.</para>
+    /// in this file: positive heals, negative hurts. Hero Lair is neither water
+    /// nor lava, so the immunity below never reaches it and it heals everybody.</para>
     ///
-    /// <para><b>CONFIRMED that hazards are crossed at all</b> (owner, 2026-09-04):
-    /// a gem tile on an island cut off by water, no bridge, and imps waded over,
-    /// mined it and carried the gold home. The original states the rule in its
-    /// own tooltip — <i>"Water. Impassable to some, others are merely hindered
-    /// by it."</i> — and the DK2 wiki corroborates the cost, warning that
-    /// patrols routed through water "may get damaged, resurrect, and even
-    /// die".</para>
+    /// <para><b>Crossing a hazard you are able to cross is free</b> — CONFIRMED
+    /// (owner, 2026-09-04): <i>"no creature that can traverse through water
+    /// looses health"</i>. The first version of this method charged whatever was
+    /// standing in water, which would have drowned an imp in five seconds doing
+    /// the exact job the owner had just watched it do. The flag that decides
+    /// passability decides the cost too, one hazard at a time — so
+    /// <see cref="WorldPathGrid"/> and this method now read the same bit for the
+    /// same reason.</para>
     ///
-    /// <para><b>The cadence is ours</b> (Q117). The field is applied once a
-    /// game second, which is what every other rate in the data does and what
-    /// this system already runs on — but nothing states it, and at 100 a second
-    /// a Goblin drowns in fifteen seconds while an Imp lasts five. If DK2
-    /// charges per tick instead, hazards are twenty times deadlier than this.
-    /// The owner is the check: does an imp visibly lose health wading across?</para>
+    /// <para><b>Then who ever pays it?</b> A creature that cannot cross is never
+    /// routed into water by the path grid — but it can be <i>put</i> there: from
+    /// the keeper's hand, or in the original by a patrol route drawn across it.
+    /// And the roster says water is charged to almost nobody, because
+    /// <see cref="CreatureFlags.CanWalkOnWater"/> is on <b>44 of the 46</b>
+    /// creatures. The two without it are the <b>Vampire</b> and the <b>Unique
+    /// Vampire</b>.</para>
+    ///
+    /// <para><b>Three sources that never met agree on those two records.</b> The
+    /// owner named it from play before the column was read (<i>"I think vampires
+    /// can't cross through water, they need bridges"</i>); the shipped
+    /// <c>Creatures.kwd</c> has the flag missing on exactly those two; and the
+    /// DK2 wiki's warning about water damage sits on the <b>Vampire page</b>,
+    /// where it says a patrol routed through water may leave a vampire damaged,
+    /// resurrected or dead. A rule confirmed by observation, by data and by
+    /// documentation, on the one creature it applies to.</para>
+    ///
+    /// <para><b>Lava is the wide case.</b> Only <b>seven</b> creatures carry
+    /// <see cref="CreatureFlags.CanWalkOnLava"/> — Salamander, Firefly, Giant,
+    /// Fairy, Horny and the unique Firefly and Salamander — so lava is what the
+    /// other 39 pay for, and lava is where this rule does most of its work. An
+    /// Imp crosses water for nothing and burns in lava, which is the pairing
+    /// <c>CreatureNeedsTests</c> now uses.</para>
+    ///
+    /// <para><b>The cadence is still ours</b> (Q118), and the owner's answer
+    /// took away the cheap way to measure it: nothing they can walk into water
+    /// takes damage, so the per-second reading cannot be checked with a
+    /// stopwatch until a Vampire is dropped in a lake. At 100 a second a
+    /// Vampire lasts 25 seconds; per tick it would last one and a quarter.</para>
     ///
     /// <para>Applied to a creature that is <see cref="CreatureDeathRules.IsDown"/>
     /// as well as a standing one, deliberately: a creature that collapses in
-    /// water is in water, and lying in it is no safer than walking through
-    /// it.</para>
+    /// lava is in lava, and lying in it is no safer than walking through it.</para>
     ///
     /// <para><b>Though it has no observable effect there</b>, and the first
     /// version of this comment claimed otherwise — that terrain was the one
@@ -187,12 +212,19 @@ public static class CreatureHealthRules
     /// moment anything can heal a down creature in place; what was wrong was
     /// the boast, not the behaviour.</para>
     /// </summary>
-    public static int TerrainHealthPerSecond(WorldState world, GameDatabase database, CreatureState state)
+    public static int TerrainHealthPerSecond(
+        WorldState world, GameDatabase database, CreatureDef creature, CreatureState state)
     {
         TilePos at = state.Tile;
         if (!world.Contains(at)) return 0;
 
-        return -database.TerrainById(world.Tile(at.X, at.Y).TerrainId).Damage;
+        TerrainDef terrain = database.TerrainById(world.Tile(at.X, at.Y).TerrainId);
+        if (terrain.Damage == 0) return 0;
+
+        if (terrain.IsWater && creature.Flags.HasFlag(CreatureFlags.CanWalkOnWater)) return 0;
+        if (terrain.IsLava && creature.Flags.HasFlag(CreatureFlags.CanWalkOnLava)) return 0;
+
+        return -terrain.Damage;
     }
 
     /// <summary>

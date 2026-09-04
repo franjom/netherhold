@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -44,38 +44,50 @@ namespace DK2.Simulation;
 /// is true of water and says nothing about wading. Only <c>IsSolid</c> blocks a
 /// walker, and water is not solid.</para>
 ///
-/// <para><b>What "merely hindered" implies is NOT implemented, and there are two
-/// halves of it</b> (Q117):</para>
+/// <para><b>And the roster says water is barely a barrier at all.</b>
+/// <see cref="CreatureFlags.CanWalkOnWater"/> is on <b>44 of the 46</b>
+/// creatures; the two without it are the <b>Vampire</b> and the <b>Unique
+/// Vampire</b>. The owner named that from play before the column had been read
+/// — <i>"I think vampires can't cross through water, they need bridges"</i> —
+/// which is a two-element set picked out of 46 from memory, in a record whose
+/// flag layout this project reconstructed rather than read anywhere, and is the
+/// strongest single confirmation the bit has. So the tooltip's two clauses split
+/// the roster 2 / 44: <i>impassable to some</i> is the vampires, literally, and
+/// everybody else is merely hindered. <b>Lava is the opposite shape</b> — seven
+/// creatures cross it — which is why lava, not water, is what a hazard rule
+/// mostly acts on.</para>
 ///
-/// <list type="bullet">
-/// <item><b>The slowdown.</b> "Hindered" reads as a movement penalty, and no
-/// variable for one was found — 214 balance variables were searched and there is
-/// no water speed modifier. A creature crosses water here at its normal
-/// speed.</item>
-/// <item><b>The health cost.</b> <c>TerrainDef.Damage</c> is <b>100</b> for
-/// Water and Lava, and it is applied by
-/// <see cref="Systems.CreatureHealthSystem"/> — but only since the owner's
-/// observation prompted a look, because before that it was parsed and read by
-/// nothing but <c>AssetCatalogue</c>. The DK2 wiki corroborates that it is real:
-/// its Vampire page warns against patrols routed through water because they
-/// "may get damaged, resurrect, and even die".</item>
-/// </list>
+/// <para><b>What "merely hindered" means is CONFIRMED and NOT implemented</b>
+/// (Q118). The owner: <i>"water visibly slows imps and other creatures passing
+/// through it"</i>. There is no variable for it — all 214 balance variables were
+/// searched, and <see cref="TerrainDef"/> carries no speed field — so a creature
+/// crosses water here at full walking speed. The standing hypothesis is the
+/// unread third speed every creature record carries, <c>ShuffleSpeed</c> (Imp
+/// 4096 against its 7536 walk, Vampire 1638 against 2867): not a constant ratio,
+/// so a per-creature speed rather than a global multiplier, which is the shape a
+/// hindrance needs. Timing an imp over a known run of water against the same run
+/// of floor would implicate it or rule it out; until then nothing is invented,
+/// because a made-up multiplier here is a made-up number inside a determinism
+/// hash. Routing is unaffected either way — the shortest route wins even through
+/// water (Q30, CONFIRMED) — so the gap costs arrival times, not paths.</para>
 ///
-/// <para><b>And checking that claim found a third terrain.</b> The assertion
-/// first written here was that <c>Damage</c> is non-zero on Water and Lava
-/// alone. It is not: <b>Hero Lair</b> (terrain 35) carries <b>−67</b>. So the
-/// field is <i>signed</i> and is not damage at all but a <b>health delta per
-/// second</b> — the hero side's answer to a keeper's lair, healing whatever
-/// stands on it. Three of 41 terrains, which is the same shape as mana
-/// (three of 41 generate any, ADR-0017) and own-land regeneration (two of 46),
-/// and the third time this project has been caught claiming a column was
-/// simpler than it is.</para>
+/// <para><b>The health cost is implemented, and it is not paid by anyone who can
+/// cross</b> (CONFIRMED, owner: <i>"no creature that can traverse through water
+/// looses health"</i>). <c>TerrainDef.Damage</c> is 100 for Water and Lava and
+/// is applied by <see cref="Systems.CreatureHealthSystem"/> only to a creature
+/// the hazard would stop — which for water means the two vampires and nothing
+/// else. See <see cref="CreatureHealthRules.TerrainHealthPerSecond"/>, including
+/// the wiki's warning about water, which sits on the Vampire page and so agrees
+/// with both the owner and the data about exactly one creature.</para>
 ///
-/// <para>UNKNOWN, and deliberately not guessed at: bridges. A bridge over water
-/// or lava is a room built on a hazard tile, and the MAP record's byte 3 is
-/// bridge-related but unread (Q16). Until rooms exist, this grid says a lava
-/// tile is impassable to a creature that cannot cross lava, whether or not the
-/// original would have a bridge there.</para>
+/// <para><b>Bridges are what the flagless creature uses instead</b>, and the
+/// owner said so in the same breath as the vampires: <i>"they need
+/// bridges"</i>. A bridge over water or lava is a room built on a hazard tile,
+/// and a bridge tile carries its own terrain — so a bridged crossing is walkable
+/// to everybody by the ordinary rule here, with no bridge-specific case. What is
+/// still unread is the MAP record's bridge byte (Q16); until rooms are placed
+/// from a map, this grid says a lava tile is impassable to a creature that
+/// cannot cross lava whether or not the original would have a bridge there.</para>
 ///
 /// <para>Immutable, and cheap to construct: one instance answers for one
 /// creature type against one snapshot of the world, which is what makes it safe
