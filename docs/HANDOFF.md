@@ -2230,3 +2230,140 @@ picked up calms**; read unsigned, picking a creature up would have added 65286.
 - **The repository still has no `README.md`.**
 - `AGENTS.md` carries the owner's own uncommitted edit and is excluded from every
   commit with `git add -A -- . ':!AGENTS.md'`.
+
+---
+
+# Where to pick up, 2026-09-04 (sixteenth sitting) — dying is a process, and the suite stops lying about who a keeper is
+
+Four commits. All 645 tests green with and without an install, 14 scenarios,
+clean Release build, Unity adapter compiles separately.
+
+| | |
+|---|---|
+| `23db5d7` | **Zero health is a 60-second window, not death** (Q99, ADR-0051) |
+| `dcbb9b5` | **Imps die instantly; the sarcophagus is a lair bed** (Q111/Q112) |
+| `c961118` | **Only a keeper gets imps** (Q91 closed, ADR-0052) |
+| `9b8eb0f` | **The DK2 wiki as a source**, with a licence flag |
+
+`HashVersion` 12 → 13, snapshot `FormatVersion` 12 → 13 (`CreatureState.DyingTicks`).
+Pinned hash `0xAEAF871CC4814DA1`.
+
+## The rule that came out of this sitting
+
+**Guard on the condition, not on the bookkeeping.** The collapse is *booked*
+once a game second, so between health hitting zero and the booking there is a
+window where a creature has no health and is still `Idle`. Guarding the other
+systems on "is in the Dying state" let two absurd things through, and a test
+written for the second found both:
+
+- a creature at zero health near its bed decided it was wounded enough to sleep,
+  walked there and healed — so it **never collapsed at all** whenever a bed was
+  in reach;
+- an Imp at zero health on its own land regenerated 67/s before the booking and
+  climbed back to 500.
+
+Everything now guards on `CreatureDeathRules.IsDown` — *no health, or already
+dying*. This matters ahead: **combat will subtract health per tick, not per
+second.**
+
+Two consequences that are load-bearing and easy to undo by accident:
+- **Own-land regeneration is suppressed at zero health; lair healing is not.**
+  One route off the floor, and a bed is it.
+- **In `CreatureHealthSystem`, healing is applied *before* the collapse test.**
+  Reverse them and a rescue collapses the creature it just saved.
+
+## What a creature's death is now
+
+`health 0` → **Collapse** (60s, `CreatureDyingStateDurationSeconds`, keeps its
+bed and gold, does nothing) → **Die** (releases the bed, emits `leaves_body=`) →
+removed.
+
+**Except** a creature with no `GenerateDeadBody`, which dies on the spot.
+CONFIRMED from two directions that never met: the owner for the Imp, and
+OpenKeeper's `HealthSystem.processHealthDepleted`, which opens with
+`if (!isLeaveDeadBody(entityId)) { remove(); return; }` before any unconscious
+handling. **One flag decides both halves**, which is coherent — the dying state
+*is* a body on the floor, a live one.
+
+**Missing, with a named cause:** the corpse. It is an OBJECT (M6), so nothing
+accumulates toward a graveyard and **no Vampire can ever be made**. The second
+timer (`DeadBodyDiesAfterSeconds`, also 60) is defined in
+`CreatureDeathRules.BodyWindowTicks` and deliberately uncalled so the gap is
+visible where the rest of the mechanic lives.
+
+## Do not implement vampire reincarnation before levels exist
+
+`CanBeResurrected` is set on **exactly the two Vampires**. It is read, tested,
+and branched on by nothing — on purpose. **Reincarnation costs a level, levels
+do not exist, and a vampire that came back without paying would be immortal:
+the immortal imp again in a cape.**
+
+And instant death is *correct* meanwhile rather than a placeholder: with no
+levels every creature is level 1, and a level-1 vampire is permanently dead by
+the owner's own rule.
+
+Three permanent-death conditions, from two sources: level 1, killed by a Monk,
+**or no Graveyard under your control** (the wiki's addition — the owner did not
+mention it). **Q113 is a live conflict:** the owner says it reincarnates at its
+sarcophagus, the wiki says in the Graveyard, and both have data behind them.
+
+## The wiki: use it, cite it, never vendor it
+
+`docs/research/wiki-as-a-source.md`. Three things to carry forward:
+
+1. **`api.php`, not the page.** A plain page fetch returns **403** — Fandom
+   blocks non-browser agents. Use
+   `.../api.php?action=parse&page=X&prop=wikitext&format=json`.
+2. **DK2 section only.** Every page covers four games with `(DK1)`/`(DK2)`/`(DKO)`
+   tags and per-game headings. The Vampire infobox gives ten corpses for DK1 and
+   five for DK2 *on adjacent lines*, and the untagged lead paragraph makes a
+   health claim that is not a DK2 claim at all.
+3. **⚠ Licence FLAGGED, not decided.** Fandom is CC BY-SA, this repo is
+   GPL-3.0-or-later. No wiki prose committed. A local mirror, if wanted, belongs
+   *outside* the repository like `reverse-engineering/` — needs the owner's word.
+
+Worth fetching when the mechanic is being built, not before: **Graveyard,
+Prison, Torture Chamber, Temple, Lair, Monk.**
+
+## Q91's real lesson
+
+"Harmless because none of them has a dungeon heart" was a claim nothing checked
+— and it was **not even harmless**: `FreeImpCountdownTicks` is hashed state and
+was running for players 0, 1 and 2 on every level, so a non-keeper's imp clock
+sat inside the determinism hash. That is why seven scenario hashes moved on runs
+where no imp ever appears.
+
+The fixture half hid because **two errors agreed with each other**: fifteen files
+declared `Keeper = 1`, and `Dk2TerrainFixture.Map()` gave player 1 the starting
+room. Re-keying the constant alone produced **38 failures**.
+
+Still deliberately not done: **`ManaSystem` runs for every player.** Mana comes
+from owned terrain and non-keepers do own terrain, so "only keepers accrue mana"
+has no source. ADR-0052 records it as a decision.
+
+## Owner questions, in priority order
+
+| | |
+|---|---|
+| **Q106** | **Anger's unit — still blocks the most.** Time a lairless creature until it leaves, or count slaps to angry (+3000 each). Now confirmed *three* times from three causes (Q9, Q105, and the bed-loss answer) and still unbuildable |
+| **Q113** | Sarcophagus or Graveyard? Two good sources disagree |
+| **Q97** | Big lair vs tiny lair — does arrival pace change? |
+| **Q103** | Does a Goblin really sleep every ~240s for ~9s? |
+| **Q112** | Do Skeleton and Stone Knight really vanish on the spot? |
+| **Q107** | Can a creature whose bed is sold while it lies dying be rescued? |
+| **Q100** | Does a wounded imp heal while digging? |
+| **Q86** | Two arrival gaps with goblins counted — the interval slope |
+
+## Known and not done
+
+- **No `README.md`** still.
+- **Q98**: portal capacity sums hero portals and counts portals that cannot produce.
+- **Next Ghidra target: read the vtables** — would name all ~25 `*State.cpp`
+  handlers at once. Four approaches to the creature state machine failed; the
+  addresses are in the fifteenth sitting's notes.
+- `AGENTS.md` carries the owner's own uncommitted edit and is excluded from every
+  commit with `git add -A -- . ':!AGENTS.md'`.
+- **The `python - <<EOF` gotcha bit three more times this sitting** (occurrences
+  9, 10 and 11), twice on commands with no purpose at all, and occurrence 10
+  swallowed the output of the real command chained after it. There is no safe
+  way to "just check" — do not type it.
