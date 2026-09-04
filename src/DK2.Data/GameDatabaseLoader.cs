@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -34,8 +34,10 @@ public static class GameDatabaseLoader
             KwdReader.ReadFile(Path.Combine(editor, "GlobalVariables.kwd")));
         List<KeeperSpellDef> keeperSpells = KwdKeeperSpells.Parse(
             KwdReader.ReadFile(Path.Combine(editor, "KeeperSpells.kwd")));
+        List<ObjectDef> objects = KwdObjects.Parse(
+            KwdReader.ReadFile(Path.Combine(editor, "Objects.kwd")));
 
-        return new GameDatabase(terrain, rooms, creatures, variables, keeperSpells);
+        return new GameDatabase(terrain, rooms, creatures, variables, keeperSpells, objects);
     }
 
     /// <summary>

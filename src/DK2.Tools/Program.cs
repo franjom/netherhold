@@ -669,6 +669,56 @@ switch (args[0])
         return 0;
     }
 
+    // The OBJECTS record (M6): 145 objects of 894 bytes. Only the gameplay
+    // tail is parsed; the first 812 bytes are art. -t groups by type flag,
+    // which is what identifies a bed, a chicken or a gold pile.
+    case "kwd" when args.Length >= 2 && args[1] == "objects":
+    {
+        string? oarg = args.Skip(2).FirstOrDefault(a => !a.StartsWith('-'));
+        string opath = oarg is not null
+            ? ResolveEditor(oarg)
+            : Path.Combine(Dk2Install.Require(), "Data", "editor", "Objects.kwd");
+        List<ObjectDef> objects = KwdObjects.Parse(KwdReader.ReadFile(opath));
+
+        if (args.Contains("-t"))
+        {
+            foreach ((string label, Func<ObjectDef, bool> pick) in new (string, Func<ObjectDef, bool>)[]
+            {
+                ("lair (beds)", o => o.IsLair),
+                ("food", o => o.IsFood),
+                ("gold", o => o.IsGold),
+                ("spell book", o => o.IsSpellBook),
+                ("special", o => o.IsSpecial),
+                ("crate", o => o.Flags.HasFlag(ObjectFlags.TypeCrate)),
+                ("level gem", o => o.Flags.HasFlag(ObjectFlags.TypeLevelGem)),
+                ("decays", o => o.Decays),
+            })
+            {
+                var hits = objects.Where(pick).OrderBy(o => o.ObjectId).ToList();
+                Console.WriteLine($"{label,-12} {hits.Count,3}: " + string.Join(", ",
+                    hits.Select(o => $"{o.ObjectId}:{o.Name}")));
+                Console.WriteLine();
+            }
+
+            // Every flag bit the shipped data actually uses, so a bit nobody
+            // has seen set cannot be quietly named.
+            uint union = objects.Aggregate(0u, (a, o) => a | (uint)o.Flags);
+            Console.WriteLine($"union of all flags: 0x{union:X8}  ({(ObjectFlags)union})");
+            return 0;
+        }
+
+        Console.WriteLine($"{"id",3} {"name",-26} {"hp",5} {"mana",5} {"cap",4} " +
+                          $"{"state",5} {"prio",4} flags");
+        foreach (ObjectDef o in objects.OrderBy(o => o.ObjectId))
+        {
+            Console.WriteLine($"{o.ObjectId,3} {o.Name,-26} {o.Hp,5} {o.ManaValue,5} " +
+                              $"{o.RoomCapacity,4} {o.StartState,5} {o.PickUpPriority,4} {o.Flags}");
+        }
+        Console.WriteLine($"-- {objects.Count} objects, " +
+                          $"{objects.Select(o => o.ObjectId).Distinct().Count()} distinct ids");
+        return 0;
+    }
+
     case "kwd" when args.Length >= 2 && args[1] == "vars":
     {
         string? named = args.Skip(2).FirstOrDefault(a => !a.StartsWith("-"));

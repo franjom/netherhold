@@ -62,6 +62,28 @@ creature on the floor at all:
 | **Instant** | the 8 without it | gone on the spot, nothing left |
 | **Reincarnate** | the 2 with `CanBeResurrected` | back at the Graveyard's sarcophagus, asleep, one level poorer |
 
+### A corpse is not an object — CORRECTED
+
+This document, ADR-0051 and several code comments gave **"a corpse is an OBJECT,
+and OBJECTS is unparsed (M6)"** as the reason nothing lies on the floor after a
+death. The OBJECTS record was parsed on 2026-09-04: **145 objects, and not one of
+them is a corpse.** The nearest are decoration — Skeleton (48), Skull (49), Bone
+(50) — and none of them carries a type flag.
+
+Everything else already pointed the same way and nobody had put it together:
+
+- both timers are **creature** variables (`CreatureDyingStateDurationSeconds`,
+  `DeadBodyDiesAfterSeconds`);
+- `DecomposeValue` is a **creature** field;
+- the binary's per-creature debug dump carries **`HasBeenKnockedOut`** and
+  **`DieInstantly`**, and `Creature.cpp` owns the dying state.
+
+**A corpse is a creature in a state.** So the graveyard is buildable without any
+new record: it wants an imp task that carries a *creature* whose dying window has
+run out, and a room that consumes it for its `DecomposeValue`. Considerably
+smaller than "parse OBJECTS first" implied — and it was hiding behind a claim
+nobody had checked. See `docs/research/objects.md` §4.
+
 ### Where a vampire comes back — CORRECTED
 
 The owner's first wording was *"they reincarnate at their sarcophagus"*, and this

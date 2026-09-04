@@ -24,7 +24,8 @@ public sealed class GameDatabase
         IEnumerable<RoomDef> rooms,
         IEnumerable<CreatureDef> creatures,
         GlobalVariables variables,
-        IEnumerable<KeeperSpellDef>? keeperSpells = null)
+        IEnumerable<KeeperSpellDef>? keeperSpells = null,
+        IEnumerable<ObjectDef>? objects = null)
     {
         Terrain = terrain.ToDictionary(t => t.TerrainId);
         Rooms = rooms.ToDictionary(r => r.RoomId);
@@ -32,6 +33,11 @@ public sealed class GameDatabase
         Variables = variables;
         KeeperSpells = (keeperSpells ?? []).ToDictionary(
             s => s.Name, StringComparer.OrdinalIgnoreCase);
+
+        // Objects (M6). Keyed by id because that is how every other record
+        // refers to one: a creature names its bed by id, a room names its
+        // furniture by id.
+        Objects = (objects ?? []).ToDictionary(o => o.ObjectId);
 
         // Lowest room id wins a shared terrain id. In the shipped data no two
         // rooms share one — RoomsOnRealDataTests asserts that — so the tie-break
@@ -125,6 +131,25 @@ public sealed class GameDatabase
     /// </summary>
     public IReadOnlyDictionary<byte, RoomDef> RoomsByTerrain { get; }
     public IReadOnlyDictionary<byte, CreatureDef> Creatures { get; }
+
+    /// <summary>
+    /// The 145 objects, by id — beds, chickens, gold piles, tombstones, specials
+    /// and the room furniture.
+    ///
+    /// <para>Empty rather than absent when a data set carries no OBJECTS chunk,
+    /// so every rule that asks for an object has to cope with not finding one:
+    /// the fixture databases in the test suite do exactly that.</para>
+    /// </summary>
+    public IReadOnlyDictionary<byte, ObjectDef> Objects { get; }
+
+    /// <summary>The object with this id, or null. Id 0 means "none" throughout the data.</summary>
+    public ObjectDef? ObjectById(byte id) =>
+        Objects.TryGetValue(id, out ObjectDef? o) ? o : null;
+
+    /// <summary>The object with this name, or null. Case-insensitive.</summary>
+    public ObjectDef? ObjectByName(string name) =>
+        Objects.Values.FirstOrDefault(
+            o => string.Equals(o.Name, name, StringComparison.OrdinalIgnoreCase));
     public GlobalVariables Variables { get; }
 
     /// <summary>

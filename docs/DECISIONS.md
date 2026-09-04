@@ -3117,11 +3117,29 @@ not exist. It is written and tested for the same reason `Eat` is.
 **4. The dying creature stays in `WorldState.Creatures`; the corpse is not
 modelled.** A collapsed creature has health, an owner, a tile and a bed, and
 recovers by being healed — everything that reads a creature keeps working on it.
-A corpse has none of that: in DK2 it is an *object* with a `DecomposeValue` that
-imps haul and a graveyard counts toward `DecomposeValueNeededForVampire`. OBJECTS
-is unparsed (M6). Modelling it as a fake creature would put a thing with no needs
-into the creature list, where every present and future system would have to
-remember to skip it.
+A corpse has none of that: it has a `DecomposeValue` that imps haul and a
+graveyard counts toward `DecomposeValueNeededForVampire`. Modelling it as a fake
+creature would put a thing with no needs into the creature list, where every
+present and future system would have to remember to skip it.
+
+> **CORRECTED 2026-09-04 — the reason given here was wrong.** This paragraph said
+> a corpse "in DK2 is an *object*" and that OBJECTS was unparsed (M6), and that
+> pairing became the standing explanation for three gaps: no corpse on the floor,
+> no graveyard, no vampire.
+>
+> **OBJECTS is parsed now, and none of its 145 objects is a corpse.** The nearest
+> are the untyped props Skeleton (48), Skull (49) and Bone (50). So corpses were
+> never blocked on that record, and the evidence had been pointing the other way
+> the whole time: both timers are **creature** variables
+> (`CreatureDyingStateDurationSeconds`, `DeadBodyDiesAfterSeconds`),
+> `DecomposeValue` is a **creature** field, and the binary's per-creature debug
+> dump carries `HasBeenKnockedOut` and `DieInstantly`.
+>
+> **A corpse is a creature in a state.** The *decision* above still stands on its
+> own merits — a corpse should not be a fake creature in `WorldState.Creatures`
+> with needs it cannot have — but what it is waiting for is a **carry task and a
+> graveyard**, not a record. That is a much smaller job than this ADR implied for
+> five sittings. See `docs/research/objects.md` §4.
 
 **5. `GenerateDeadBody` governs, not `DecomposeValue`.**
 

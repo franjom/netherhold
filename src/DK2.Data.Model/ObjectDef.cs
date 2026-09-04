@@ -1,0 +1,160 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.Core;
+
+namespace DK2.Data.Model;
+
+/// <summary>
+/// What kind of thing an object is, and what may be done to it.
+///
+/// <para><b>The seven <c>Type</c> bits are the discriminator</b> that the OBJECTS
+/// record uses instead of a type field, and they are what four half-built
+/// mechanics in this project have been waiting for: <see cref="Food"/> is a
+/// chicken, <see cref="Lair"/> is a bed, <see cref="Gold"/> is a pile,
+/// <see cref="SpellBook"/> is what a library makes.</para>
+///
+/// <para>Names are OpenKeeper's <c>GameObject.ObjectFlag</c>, used under
+/// ADR-0003's second amendment with attribution in
+/// <c>THIRD-PARTY-NOTICES.md</c>, and every one this project relies on is
+/// checked against the shipped file by <c>ObjectsOnRealDataTests</c> rather than
+/// taken on trust — <see cref="Lair"/> falls on exactly the creature beds,
+/// <see cref="Food"/> on the chicken and its egg, and so on.</para>
+///
+/// <para>Bits 11, 19 and 31 are absent from that list and from the shipped
+/// data's union of all flags; they are not named here because nothing has seen
+/// them set.</para>
+/// </summary>
+[Flags]
+public enum ObjectFlags : uint
+{
+    None = 0,
+
+    /// <summary>Decays on its own — what a corpse and a chicken carcass do.</summary>
+    DieOverTime = 1u << 0,
+
+    /// <summary>Decays unless it is in a room that keeps it.</summary>
+    DieOverTimeIfNotInRoom = 1u << 1,
+
+    /// <summary>A level special: the box a keeper picks up for a bonus.</summary>
+    TypeSpecial = 1u << 2,
+
+    /// <summary>A spell book, which is what research produces.</summary>
+    TypeSpellBook = 1u << 3,
+
+    /// <summary>A manufacture crate — a finished trap or door waiting to be placed.</summary>
+    TypeCrate = 1u << 4,
+
+    /// <summary>A creature's bed. The object a lair tile holds.</summary>
+    TypeLair = 1u << 5,
+
+    /// <summary>Gold: a pile on the floor or in a treasury.</summary>
+    TypeGold = 1u << 6,
+
+    /// <summary>Food — the chicken a hungry creature eats.</summary>
+    TypeFood = 1u << 7,
+
+    CanBePickedUp = 1u << 8,
+    CanBeSlapped = 1u << 9,
+    DieWhenSlapped = 1u << 10,
+
+    /// <summary>The dungeon's level gem, which a level's objective may name.</summary>
+    TypeLevelGem = 1u << 12,
+
+    CanBeDroppedOnAnyLand = 1u << 13,
+    Obstacle = 1u << 14,
+    Bounce = 1u << 15,
+    BoulderCanRollThrough = 1u << 16,
+    BoulderDestroys = 1u << 17,
+    Pillar = 1u << 18,
+    DoorKey = 1u << 20,
+    Damageable = 1u << 21,
+    Highlightable = 1u << 22,
+    Placeable = 1u << 23,
+    FirstPersonObstacle = 1u << 24,
+    SolidObstacle = 1u << 25,
+    CastShadows = 1u << 26,
+}
+
+/// <summary>
+/// One OBJECTS(240) record: 145 of them, 894 bytes each.
+///
+/// <para><b>This is the record four mechanics have been blocked on</b>, each
+/// with the same named cause. Hunger arrives and cannot be satisfied because
+/// chickens are objects; a creature dies and leaves no corpse because a corpse
+/// is an object; a graveyard cannot fill and so no vampire can exist; and gold
+/// on the floor has nowhere to go. See <c>docs/research/objects.md</c>.</para>
+///
+/// <para><b>Only the gameplay tail is read.</b> The first 812 bytes are nine art
+/// resources and a light — mesh names, icons, in-hand art — and are skipped
+/// wholesale. Everything here lives at 0x32C or later, which is also why the
+/// parse is cheap: no art resource has to be understood for a bed to work.</para>
+///
+/// <para><b>The layout is validated, not trusted.</b> OpenKeeper's field order
+/// gave the sequence; the offsets come out of it arithmetically and then check
+/// themselves twice over — the fields from <c>0x34C</c> to the end sum to
+/// <b>0x37E = 894</b>, the independently measured record stride, and the
+/// <see cref="ObjectId"/> column reads 1 to 145 exactly once each.</para>
+/// </summary>
+public sealed record ObjectDef
+{
+    /// <summary>The editor's name, from the record's first 32 bytes.</summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// The id rooms and creatures refer to. A Goblin's <c>LairObjectId</c> is 22,
+    /// a Vampire's is 26, and the Graveyard's <c>ObjectIds</c> are 31 to 34.
+    /// </summary>
+    public required byte ObjectId { get; init; }
+
+    /// <summary>What kind of thing it is and what may be done to it.</summary>
+    public required ObjectFlags Flags { get; init; }
+
+    /// <summary>Health, for the objects that can be destroyed.</summary>
+    public required ushort Hp { get; init; }
+
+    /// <summary>Mana this object is worth — non-zero on very few.</summary>
+    public required ushort ManaValue { get; init; }
+
+    /// <summary>
+    /// How many of it a room tile holds. The number a treasury tile's gold cap
+    /// and a hatchery's chicken count would be expressed in.
+    /// </summary>
+    public required byte RoomCapacity { get; init; }
+
+    /// <summary>Which state the object starts in — its own small state machine.</summary>
+    public required byte StartState { get; init; }
+
+    /// <summary>Ordering for what an imp picks up first when several things lie about.</summary>
+    public required byte PickUpPriority { get; init; }
+
+    public required Fp32 Width { get; init; }
+    public required Fp32 Height { get; init; }
+    public required Fp32 Mass { get; init; }
+    public required Fp32 Speed { get; init; }
+
+    /// <summary>String table ids, for a renderer rather than a rule.</summary>
+    public required ushort NameStringId { get; init; }
+    public required ushort TooltipStringId { get; init; }
+
+    /// <summary>A creature's bed.</summary>
+    public bool IsLair => Flags.HasFlag(ObjectFlags.TypeLair);
+
+    /// <summary>A chicken.</summary>
+    public bool IsFood => Flags.HasFlag(ObjectFlags.TypeFood);
+
+    /// <summary>Gold, loose or stored.</summary>
+    public bool IsGold => Flags.HasFlag(ObjectFlags.TypeGold);
+
+    /// <summary>A spell book, which is what research produces.</summary>
+    public bool IsSpellBook => Flags.HasFlag(ObjectFlags.TypeSpellBook);
+
+    /// <summary>A level special box.</summary>
+    public bool IsSpecial => Flags.HasFlag(ObjectFlags.TypeSpecial);
+
+    /// <summary>Decays on its own, with or without a room to keep it.</summary>
+    public bool Decays =>
+        Flags.HasFlag(ObjectFlags.DieOverTime)
+        || Flags.HasFlag(ObjectFlags.DieOverTimeIfNotInRoom);
+}

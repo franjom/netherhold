@@ -49,7 +49,21 @@ namespace DK2.Simulation;
 /// modelling it as a fake creature would put a thing with no needs into the
 /// creature list, where every present and future system would have to remember
 /// to skip it. So the second timer is recorded and not implemented, and the
-/// death event names whether a body was owed.</para>
+/// death event names whether a body was owed.</para>    ///
+    /// <para><b>CORRECTED 2026-09-04: a corpse is NOT an object.</b> The
+    /// sentence above — and ADR-0051, and <c>creature-death.md</c> — gave
+    /// "a corpse is an OBJECT, and OBJECTS is unparsed (M6)" as the cause of
+    /// this gap. The OBJECTS record is parsed now: <b>145 objects, and not one
+    /// of them is a corpse.</b> The nearest are decoration — Skeleton (48),
+    /// Skull (49), Bone (50) — and none carries a type flag.</para>
+    ///
+    /// <para>Everything else already pointed the same way: both timers are
+    /// <i>creature</i> variables, <c>DecomposeValue</c> is a <i>creature</i>
+    /// field, and the binary's per-creature dump carries
+    /// <c>HasBeenKnockedOut</c> and <c>DieInstantly</c>. <b>A corpse is a
+    /// creature in a state</b>, so a graveyard needs an imp task that carries a
+    /// creature whose dying window ran out — not a new record. See
+    /// <c>docs/research/objects.md</c> §4.</para>
 ///
 /// <para><b>What this costs today, stated plainly:</b> a creature that dies
 /// vanishes at the end of the dying window instead of leaving a corpse for 60
