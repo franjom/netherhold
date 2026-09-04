@@ -176,8 +176,9 @@ public sealed class CreatureState
     /// not hungry. Set to the record's <c>HungerFill</c> the moment hunger
     /// arrives.
     ///
-    /// <para><b>Nothing can bring this back down yet.</b> Eating needs chickens,
-    /// chickens are objects, and the OBJECTS record is unparsed (M6). So a
+    /// <para><b>Nothing can bring this back down yet.</b> Eating needs a
+    /// chicken; the Chicken is object 9 and nothing lays one, because a Hatchery
+    /// is a room this simulation does not have. So a
     /// creature here becomes hungry and stays hungry — which is honest rather
     /// than harmless, and it is why hunger costs no health: in DK2 the price of
     /// going unfed is <i>anger</i> (the record's own <c>angerNoFood</c>), and
@@ -186,29 +187,15 @@ public sealed class CreatureState
     /// </summary>
     public int ChickensNeeded;
 
-    /// <summary>
-    /// The lair tile this creature's own bed stands on, or -1 if it has none.
-    ///
-    /// <para><b>One bed per tile, one tile per creature</b> — CONFIRMED by the
-    /// owner: <i>"a lair is a room with tiles, on each tile only one
-    /// bed/chair/whatever per creature can be present. When a creature enters a
-    /// dungeon through a portal it goes to a lair, finds a free tile and
-    /// occupies it with its bed."</i> So a lair holds exactly as many creatures
-    /// as it has tiles, and this is the tile that belongs to this one.</para>
-    ///
-    /// <para><b>Occupancy is derived from this field and never stored on the
-    /// tile</b>, the same discipline <see cref="RoomInstance"/> follows: a tile
-    /// is taken if some creature points at it. That way a creature leaving,
-    /// dying or being removed cannot leave a bed behind that nothing owns.</para>
-    ///
-    /// <para>The bed <i>object</i> is
-    /// <see cref="Data.Model.CreatureDef.LairObjectId"/> — 22 for a Goblin, 26
-    /// for a Vampire, 18 for a Bile Demon, and <b>0 for the Imp, Skeleton and
-    /// Horny</b>, which is how the record says a creature has no bed at all.
-    /// Drawing it needs the OBJECTS record (M6); occupying a tile does
-    /// not.</para>
-    /// </summary>
-    public int LairTileIndex = -1;
+    // Where LairTileIndex used to be.
+    //
+    // A creature no longer records which bed is its; the bed records whose it
+    // is. DK2 keeps the relation on the object - Lair.CreatureId, a u16 at the
+    // first offset of the object's union - and this project kept a second copy
+    // of it here until 2026-09-04, which is the shape that has already cost it
+    // three long-lived defects. Ask LairRules.BedTileIndex or LairRules.BedOf
+    // instead; see docs/research/objects.md section 7, and Q130 for the
+    // decision.
 
     /// <summary>
     /// Ticks this creature has been awake, counting up towards the record's
@@ -346,7 +333,6 @@ public sealed class CreatureState
         hash.Add(Health);
         hash.Add(HungerTicks);
         hash.Add(ChickensNeeded);
-        hash.Add(LairTileIndex);
         hash.Add(AwakeTicks);
         hash.Add(SleepTicks);
         hash.Add(DyingTicks);

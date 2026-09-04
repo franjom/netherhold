@@ -1,7 +1,8 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
 using DK2.Data.Model;
 
 namespace DK2.Data.Tests;
@@ -140,6 +141,65 @@ public class GlobalVariablesMergeTests
 
         Assert.Same(database, database.ForLevel(null));
     }
+
+    /// <summary>
+    /// <b>A regression guard with a real defect behind it.</b>
+    /// <see cref="GameDatabase.ForLevel"/> rebuilds the database from parts, and
+    /// it silently dropped <see cref="GameDatabase.Objects"/> for as long as
+    /// objects existed: the constructor gained the parameter and this call did
+    /// not. Nothing noticed, because objects were only definitions until a bed
+    /// became a thing standing on a tile — and then a campaign scenario threw
+    /// for want of object 22 while all 719 tests passed, because tests build
+    /// their database directly and none of them called this.
+    ///
+    /// <para>Only objects and spells are populated here, which is as much as a
+    /// test without an install can cheaply build. The complete sweep — every
+    /// record collection, all of them non-empty — is
+    /// <c>ObjectsOnRealDataTests.ForLevelKeepsEveryRecordCollection</c>, which
+    /// has the real files to work with.</para>
+    /// </summary>
+    [Fact]
+    public void ForLevelKeepsTheObjectDefinitions()
+    {
+        var database = new GameDatabase(
+            terrain: [],
+            rooms: [],
+            creatures: [],
+            variables: Table((VariableTypeId.MinimumImpThreshold, 4)),
+            keeperSpells: [new KeeperSpellDef
+            {
+                Name = "Create Imp", ManaCost = 1500, ManaUpkeepPerSecond = 7,
+            }],
+            objects: [Bed(22), Bed(26)]);
+
+        GameDatabase forLevel = database.ForLevel(
+            Table((VariableTypeId.MinimumImpThreshold, 0)));
+
+        Assert.Equal([(byte)22, (byte)26], forLevel.Objects.Keys.OrderBy(k => k));
+        Assert.Single(forLevel.KeeperSpells);
+
+        // Not passing by returning the original instance: the merge happened.
+        Assert.NotSame(database, forLevel);
+        Assert.Equal(0, forLevel[VariableTypeId.MinimumImpThreshold]);
+    }
+
+    private static ObjectDef Bed(byte id) => new()
+    {
+        Name = $"bed {id}",
+        ObjectId = id,
+        Flags = ObjectFlags.TypeLair,
+        Hp = 1,
+        ManaValue = 0,
+        RoomCapacity = 1,
+        StartState = 0,
+        PickUpPriority = 0,
+        Width = new Fp32(0),
+        Height = new Fp32(0),
+        Mass = new Fp32(0),
+        Speed = new Fp32(0),
+        NameStringId = 0,
+        TooltipStringId = 0,
+    };
 
     [Fact]
     public void ForLevelLeavesTheOriginalDatabaseAlone()

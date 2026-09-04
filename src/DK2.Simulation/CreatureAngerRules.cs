@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -166,9 +166,11 @@ public static class CreatureAngerRules
     /// <description><b>APPLIED.</b> Sleeping in one's own bed is implemented, so
     /// recovery is real — and 5.5× faster than the accrual it undoes.</description></item>
     /// <item><term><c>AngerNoFood</c> +100</term><description><b>NOT applied.</b>
-    /// Chickens are objects and OBJECTS is unparsed (M6), so <i>no</i> dungeon
-    /// can feed anybody. Charging it would anger every creature in every level
-    /// regardless of play.</description></item>
+    /// The Chicken is object 9 and there is no Hatchery to lay one, so
+    /// <i>no</i> dungeon can feed anybody. Charging it would anger every
+    /// creature in every level regardless of play. The record was the old
+    /// reason and it is parsed now; what is left to build is the room and the
+    /// eating.</description></item>
     /// <item><term><c>AngerNoWork</c> +50</term><description><b>NOT applied.</b>
     /// Non-workers have no job system yet, so "no work available" is a fact
     /// about this simulation rather than about the dungeon.</description></item>
@@ -190,13 +192,13 @@ public static class CreatureAngerRules
     {
         // A creature asleep in its own bed calms, and calming wins: it cannot
         // be simultaneously bedless and in its bed, so these never both fire.
-        if (LairRules.AsleepInOwnBed(world, state))
+        if (LairRules.AsleepInOwnBed(world, database, state))
             return database[VariableTypeId.ModifyAngerOfCreatureInLairPerSecond];
 
         // No bed, and it wanted one. A creature whose record gives it no lair
         // object at all — the Imp, the Skeleton, Horny — is not owed one and is
         // not angered by its absence.
-        if (LairRules.NeedsBed(creature) && state.LairTileIndex < 0)
+        if (LairRules.NeedsBed(creature) && !LairRules.HasBed(world, database, state))
             return creature.AngerNoLair;
 
         return 0;

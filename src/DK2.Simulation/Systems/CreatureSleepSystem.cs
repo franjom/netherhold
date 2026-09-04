@@ -87,14 +87,15 @@ public sealed class CreatureSleepSystem : ISimulationSystem
 
             // A bed on a tile that has stopped being this keeper's lair is not a
             // bed. Sold, dug out or taken by a rival while its owner was away.
-            if (creature.LairTileIndex >= 0
-                && !LairRules.BedStillValid(world, database, creature))
+            int bedIndex = LairRules.BedTileIndex(world, database, creature);
+            if (bedIndex >= 0 && !LairRules.BedStillValid(world, database, creature))
             {
                 context.Emit(SystemName, "bed_lost",
                     $"creature={creature.Id} type={definition.Name} " +
-                    $"player={creature.OwnerPlayerId} tile={creature.LairTileIndex}");
+                    $"player={creature.OwnerPlayerId} tile={bedIndex}");
 
-                LairRules.ReleaseBed(creature);
+                LairRules.ReleaseBed(world, database, creature);
+                bedIndex = -1;
                 if (creature.Activity is CreatureActivity.Sleeping
                     or CreatureActivity.GoingToSleep)
                 {
@@ -108,7 +109,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             // *After* the validity check above, because a bed that stopped
             // being a lair tile stopped existing whatever its owner is doing —
             // that is the world removing something, not the creature acting,
-            // and a stale index left behind would make BedTaken lie.
+            // and a bed object left behind would make BedTaken lie.
             //
             // *Before* the claim below, because claiming is the creature
             // acting: the owner's words are that it "goes to a lair, finds a
@@ -124,12 +125,12 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             // A creature walking out of the dungeon does not stop for a nap,
             // and above all does not claim a bed on its way past the lair —
             // which it would, having given its own up when it decided to go
-            // (CreatureAngerSystem.Desert). Without this line a deserter takes
+            // (CreatureAngerSystem.Leave). Without this line a deserter takes
             // the last free bed out from under a creature that intends to stay,
             // and then leaves with it.
             if (creature.Activity == CreatureActivity.Leaving) continue;
 
-            if (creature.LairTileIndex < 0) Claim(context, creature, definition);
+            if (bedIndex < 0) Claim(context, creature, definition);
 
             switch (creature.Activity)
             {
@@ -155,7 +156,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
     {
         if (!LairRules.TryClaimBed(context.World, context.Database, creature)) return;
 
-        int index = creature.LairTileIndex;
+        int index = LairRules.BedTileIndex(context.World, context.Database, creature);
         context.Emit(SystemName, "bed_claimed",
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} object={definition.LairObjectId} " +
@@ -169,11 +170,11 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         // No bed means nowhere to go. In DK2 this is what angers a creature
         // (angerNoLair), and anger does not exist yet — so it stays awake and
         // its awake counter keeps climbing. Q105.
-        if (creature.LairTileIndex < 0) return;
-
         WorldState world = context.World;
-        var bed = new TilePos(
-            creature.LairTileIndex % world.Width, creature.LairTileIndex / world.Width);
+        int index = LairRules.BedTileIndex(world, context.Database, creature);
+        if (index < 0) return;
+
+        var bed = new TilePos(index % world.Width, index / world.Width);
 
         var grid = new WorldPathGrid(context.Database, world, definition);
         if (!_pathfinder.TryFindPath(grid, creature.Tile, bed, _route)) return;
@@ -197,7 +198,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         TilePos at = creature.Tile;
         int here = (at.Y * world.Width) + at.X;
 
-        if (here != creature.LairTileIndex)
+        if (here != LairRules.BedTileIndex(world, context.Database, creature))
         {
             // Still walking. If the path has run out without arriving — the
             // route was blocked mid-walk — fall back to standing up, so a

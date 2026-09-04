@@ -201,7 +201,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
         bool decidingNow = state.Activity != CreatureActivity.Leaving;
         if (decidingNow)
         {
-            LairRules.ReleaseBed(state);
+            LairRules.ReleaseBed(context.World, context.Database, state);
             state.Activity = CreatureActivity.Leaving;
         }
 

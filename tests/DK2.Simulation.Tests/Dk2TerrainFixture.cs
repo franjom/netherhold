@@ -110,7 +110,63 @@ internal static class Dk2TerrainFixture
         ],
         creatures: [Imp(), Goblin(), Vampire()],
         variables: Variables(),
-        keeperSpells: KeeperSpells());
+        keeperSpells: KeeperSpells(),
+        objects: Objects());
+
+    /// <summary>Object id 22, the Goblin's bed.</summary>
+    public const byte GoblinBedObjectId = 22;
+
+    /// <summary>Object id 26, the Vampire's coffin.</summary>
+    public const byte VampireBedObjectId = 26;
+
+    /// <summary>
+    /// The object definitions a registered system reads: the two beds, because
+    /// a bed is now a thing that stands on a tile rather than an index on a
+    /// creature (Q130, <c>docs/research/objects.md</c> §7). Without them
+    /// <see cref="LairRules.TryClaimBed"/> has nothing to place.
+    ///
+    /// <para><b>Transcribed from the shipped <c>Objects.kwd</c>, not invented</b>,
+    /// for the reason every number in this fixture is: a made-up value here
+    /// would be a made-up value inside a determinism hash.
+    /// <c>ObjectsOnRealDataTests</c> reads both records back out of the real
+    /// file, so these cannot drift from it — which has caught four wrong
+    /// fixture values so far.</para>
+    ///
+    /// <para>The two are byte-for-byte identical apart from the name, which is
+    /// the record saying what §3 says: a bed is a bed by its
+    /// <see cref="ObjectFlags.TypeLair"/> bit, and which of the twelve it is
+    /// only decides what gets drawn.</para>
+    /// </summary>
+    private static ObjectDef[] Objects() =>
+    [
+        Bed(GoblinBedObjectId, "Goblin Creature Bed"),
+        Bed(VampireBedObjectId, "Vampire Creature Bed"),
+    ];
+
+    private static ObjectDef Bed(byte id, string name) => new()
+    {
+        Name = name,
+        ObjectId = id,
+
+        // 0x04034020: TypeLair (0x20), Obstacle (0x4000), BoulderCanRollThrough
+        // (0x10000), BoulderDestroys (0x20000), CastShadows (0x4000000). The
+        // first bit is the only one any rule reads; the rest are transcribed
+        // rather than trimmed, because a fixture that keeps only the bits it
+        // uses stops being a copy of the record.
+        Flags = (ObjectFlags)0x04034020u,
+
+        Hp = 128,
+        ManaValue = 0,
+        RoomCapacity = 1,
+        StartState = 0,
+        PickUpPriority = 176,
+        Width = new Fp32(2048),
+        Height = new Fp32(256),
+        Mass = new Fp32(8192),
+        Speed = new Fp32(0),
+        NameStringId = 0,
+        TooltipStringId = 0,
+    };
 
     /// <summary>
     /// The keeper spells a registered system reads. Only Create Imp, because

@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 16;
+    private const int FormatVersion = 17;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -101,7 +101,6 @@ public static class WorldSnapshot
             w.Write(c.Health);
             w.Write(c.HungerTicks);
             w.Write(c.ChickensNeeded);
-            w.Write(c.LairTileIndex);
             w.Write(c.AwakeTicks);
             w.Write(c.SleepTicks);
             w.Write(c.DyingTicks);
@@ -124,6 +123,17 @@ public static class WorldSnapshot
                 w.Write(p.X);
                 w.Write(p.Y);
             }
+        }
+
+        w.Write(world.NextObjectId);
+        w.Write(world.Objects.Count);
+        foreach (ObjectState o in world.Objects)
+        {
+            w.Write(o.Id);
+            w.Write(o.ObjectTypeId);
+            w.Write(o.OwnerPlayerId);
+            w.Write(o.TileIndex);
+            w.Write(o.CreatureId);
         }
     }
 
@@ -216,7 +226,6 @@ public static class WorldSnapshot
                 Health = r.ReadInt32(),
                 HungerTicks = r.ReadInt32(),
                 ChickensNeeded = r.ReadInt32(),
-                LairTileIndex = r.ReadInt32(),
                 AwakeTicks = r.ReadInt32(),
                 SleepTicks = r.ReadInt32(),
                 DyingTicks = r.ReadInt32(),
@@ -242,6 +251,25 @@ public static class WorldSnapshot
         // so the counter is restored rather than derived: a level that has had
         // creatures die must not hand out an id it has already used.
         world.NextCreatureId = nextCreatureId;
+
+        int nextObjectId = r.ReadInt32();
+        int objectCount = r.ReadInt32();
+        for (int i = 0; i < objectCount; i++)
+        {
+            world.RawObjects.Add(new ObjectState
+            {
+                Id = r.ReadInt32(),
+                ObjectTypeId = r.ReadByte(),
+                OwnerPlayerId = r.ReadByte(),
+                TileIndex = r.ReadInt32(),
+                CreatureId = r.ReadInt32(),
+            });
+        }
+
+        // Restored rather than re-derived, for the reason the creature counter
+        // is: a bed destroyed when its owner died must not have its id handed
+        // out again to the next bed.
+        world.NextObjectId = nextObjectId;
 
         return new GameSimulation(database, world, rng, systems);
     }

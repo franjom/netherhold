@@ -274,9 +274,11 @@ public static class CreatureDeathRules
     /// <see cref="Systems.CreatureHealthSystem"/>.</para>
     ///
     /// <para><b>It keeps its gold, too.</b> DK2 makes a dying imp drop what it
-    /// carried, and floor gold is an object (M6) — so the gold stays on the
-    /// creature and is reported lost when it dies, rather than being
-    /// invented onto a tile.</para>
+    /// carried, and floor gold is an object — three of the 145, and there is now
+    /// a list to put an instance in (Q130). What is missing is the mechanic
+    /// rather than the record, so for the moment the gold stays on the creature
+    /// and is reported lost when it dies, rather than being invented onto a
+    /// tile.</para>
     /// </summary>
     public static bool Collapse(CreatureState creature)
     {
@@ -321,12 +323,12 @@ public static class CreatureDeathRules
     /// not allowed to claim a replacement, and Q107 for the observation that
     /// would settle it.
     /// </remarks>
-    public static bool Rescue(WorldState world, CreatureState creature)
+    public static bool Rescue(WorldState world, GameDatabase database, CreatureState creature)
     {
         if (!IsDying(creature)) return false;
-        if (creature.LairTileIndex < 0) return false;
 
-        int bed = creature.LairTileIndex;
+        int bed = LairRules.BedTileIndex(world, database, creature);
+        if (bed < 0) return false;
         if (bed >= world.Width * world.Height) return false;
 
         creature.PosX = CreatureState.CentreOf(bed % world.Width);

@@ -33,8 +33,9 @@ namespace DK2.Simulation;
 /// rule is general.</para>
 ///
 /// <para><b>What is deliberately absent.</b> Hunger can arrive and cannot be
-/// satisfied, because eating needs chickens, chickens are objects, and the
-/// OBJECTS record is unparsed (M6). That gap costs no health on purpose: in DK2
+/// satisfied: eating needs a chicken, the Chicken is object 9, and nothing lays
+/// one — a Hatchery is a room this simulation does not have. That gap costs no
+/// health on purpose: in DK2
 /// the price of going unfed is <i>anger</i> — the creature record's own
 /// <c>angerNoFood</c>, 100 for a Goblin — and <b>there is no variable anywhere
 /// in the balance table that turns hunger into damage</b>. Checked: 21 health
@@ -268,7 +269,7 @@ public static class CreatureHealthRules
     /// </summary>
     public static int LairHealPerSecond(
         WorldState world, GameDatabase database, CreatureState state) =>
-        LairRules.AsleepInOwnBed(world, state)
+        LairRules.AsleepInOwnBed(world, database, state)
             ? database[VariableTypeId.ModifyHealthOfCreatureInLairPerSecond]
             : 0;
 

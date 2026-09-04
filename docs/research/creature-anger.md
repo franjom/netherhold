@@ -1,4 +1,4 @@
-# Anger: the ladder, the ceiling, and how it was measured
+﻿# Anger: the ladder, the ceiling, and how it was measured
 
 **The mechanic is implemented.** The ceiling that blocked it for four sittings is
 **32767**, measured by the owner in the original game by two independent methods
@@ -149,7 +149,7 @@ applied when the player's own choices can turn it off.**
 |---|---|---|
 | `AngerNoLair` | +100/s | **Yes** — lairs are built, sold and filled |
 | `ModifyAngerOfCreatureInLairPerSecond` | −550/s | **Yes** — sleep works, so recovery is real |
-| `AngerNoFood` | +100/s | No — chickens are objects (M6); *no* dungeon can feed anybody |
+| `AngerNoFood` | +100/s | No — the Chicken is object 9 but no Hatchery lays one; *no* dungeon can feed anybody |
 | `AngerNoWork` | +50/s | No — non-workers have no job system; "no work" is a fact about us |
 | `AngerNoPay` | +60/s | No — there is no payday |
 | hated company | +150/s | No — the relation is parsed and unused |

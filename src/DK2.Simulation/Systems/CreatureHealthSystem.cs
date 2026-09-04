@@ -172,7 +172,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
             $"rescue_window={CreatureDeathRules.DyingWindowTicks(context.Database)
                 / SimulationTiming.TicksPerSecond}s " +
-            $"bed={state.LairTileIndex}");
+            $"bed={LairRules.BedTileIndex(context.World, context.Database, state)}");
     }
 
     private static void Die(
@@ -180,11 +180,15 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     {
         // A dead creature gives up its bed, or a lair leaks a tile forever.
         // Not on collapse — the rescue path carries it back to that bed.
-        LairRules.ReleaseBed(state);
+        LairRules.ReleaseBed(context.World, context.Database, state);
 
-        // The body is owed and cannot be delivered: a corpse is an object, and
-        // OBJECTS is unparsed (M6). Reported so the gap is in the log rather
-        // than only in the docs, and so a graveyard has something to grep for.
+        // The body is owed and cannot be delivered. NOT because a corpse is an
+        // object -- that was this project's standing explanation for five
+        // sittings and it is wrong; none of the 145 objects is a corpse, and a
+        // corpse is a creature in a state (objects.md section 4). What is
+        // missing is an imp task that carries one. Reported so the gap is in the
+        // log rather than only in the docs, and so a graveyard has something to
+        // grep for.
         bool leavesBody = CreatureDeathRules.LeavesBody(creature);
 
         context.Emit(SystemName, "creature_died",

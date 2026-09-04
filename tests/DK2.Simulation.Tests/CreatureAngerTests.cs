@@ -205,7 +205,7 @@ public class CreatureAngerTests
         sim.Run(Second);
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
         Assert.Equal(CreatureActivity.Leaving, goblin.Activity);
-        Assert.Equal(-1, goblin.LairTileIndex);
+        Assert.Equal(-1, LairRules.BedTileIndex(world, db, goblin));
         Assert.NotEmpty(goblin.Path);
 
         SimEvent leaving = Assert.Single(
@@ -243,7 +243,7 @@ public class CreatureAngerTests
 
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
         Assert.Equal(CreatureActivity.Leaving, goblin.Activity);
-        Assert.Equal(-1, goblin.LairTileIndex);
+        Assert.Equal(-1, LairRules.BedTileIndex(world, db, goblin));
         Assert.DoesNotContain(events.Events, e => e.Kind == "creature_left");
 
         // Reported once, on the second it first failed, and not once a second
@@ -272,8 +272,8 @@ public class CreatureAngerTests
         Walking(db, world).Run(Second * 30);
 
         Assert.Equal(CreatureActivity.Leaving, goblin.Activity);
-        Assert.Equal(-1, goblin.LairTileIndex);
-        Assert.False(LairRules.BedTaken(world, (2 * world.Width) + 2));
+        Assert.Equal(-1, LairRules.BedTileIndex(world, db, goblin));
+        Assert.False(LairRules.BedTaken(world, db, (2 * world.Width) + 2));
     }
 
     [Fact]

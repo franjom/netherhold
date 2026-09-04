@@ -107,6 +107,19 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
+        // Bumped with HashVersion 16 -> 17 (Q130): the world gained an OBJECT
+        // list, and a creature LOST a field. A bed is now a thing standing on a
+        // tile -- an ObjectState whose CreatureId says whose it is -- where it
+        // used to be CreatureState.LairTileIndex saying which tile was mine.
+        // DK2 keeps the relation on the object and the binary settled it
+        // (docs/research/objects.md section 7), so there is one copy of the fact
+        // instead of two.
+        //
+        // The run itself moves nothing: the fixture's creatures are working imps
+        // and an imp has no bed. What changed is the composition -- one field
+        // out of every creature, and a count and an id counter in. Snapshot
+        // FormatVersion went 16 -> 17 in the same commit.
+        //
         // Bumped with HashVersion 15 -> 16 (Q124): CreatureState gained
         // ExperiencePoints, and unlike the Level field one commit earlier this
         // one actually MOVES during the run. The owner settled what raises a
@@ -120,11 +133,12 @@ public class DeterminismTests
         // Version 15 was the Level field itself (Q119), whose arithmetic is a
         // proven no-op at level 1: only the hash composition moved.
         //
-        // Previous values: 0x38CCE7E988729817 (15), 0x5DB64D0C91D99368 (14),
+        // Previous values: 0x092072D0E7C9B04E (16), 0x38CCE7E988729817 (15),
+        // 0x5DB64D0C91D99368 (14),
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x092072D0E7C9B04EUL, sim.StateHash());
+        Assert.Equal(0x6B5ECAD0E9EDB2F0UL, sim.StateHash());
     }
 
     [Fact]

@@ -150,3 +150,152 @@ tile.
 The next step is the same for the first three: **object instances in the world**.
 `WorldState` has tiles and creatures and no third list, and every one of those
 mechanics needs one.
+
+## 7. The instance: one type, an 18-byte union, and the id that picks it
+
+Everything above is the *definition* — the 145 records in `Objects.kwd`. This
+section is about the **instance**: the thing that sits on a tile. It comes from
+`DKII.EXE` rather than from any file, read on 2026-09-04 to settle Q130, and it
+is the reason that question had an answer instead of a coin flip.
+
+The evidence is the game's own debug dump for an object, in `Object.cpp`. A dump
+routine is unusually good evidence: it names every field, in order, and reads
+each one at a fixed offset, so the struct falls out of it without any guessing
+about types or padding.
+
+### It is a union, and DK2 says so in as many words
+
+The dump prints a literal header — **`Union Data:`** — and then one of
+**twenty-three** blocks. Every one of those blocks reads from **offset 0x14A**,
+and the field after the union sits at **0x15C**, so the union is exactly
+**18 bytes** of per-kind state reinterpreted by whichever kind the object is.
+The widest member is the Boulder, which fills 0x14A to 0x15B and therefore sets
+that 18.
+
+That answers the shape question directly: **DK2's object is one type with a
+tagged union, not a family of types with a list each.** Whether ours *stores* it
+as a union is a separate matter — internal layout is explicitly not a fidelity
+requirement — but the *semantics* are settled: one list, one id space, one
+object that may be any of these kinds, with at most one kind's state live.
+
+### The tag is the object's own definition id
+
+The discriminator is a **single byte at 0x12C**, and it is the object's
+`ObjectId` — the same 1..145 column §2 validated. The dump branches on it with
+**hardcoded literals**, which is worth stating plainly because §3 recommended
+the opposite: it said rules should "ask a flag rather than name an id". The
+original does both, and for the kinds below it names the id.
+
+**Twenty-one of those literals were checked against our own parse of
+`Objects.kwd`, and all twenty-one agree:**
+
+| Branch | Id | The name our parse gives that id |
+|---|---|---|
+| `ResearchBook` | 4 | Spell Book |
+| `TortureWheel` | 8 | Torture Wheel |
+| `Chicken` | 9 | Chicken |
+| `CallToArms` | 10 | Call To Arms |
+| `Rat` | 11 | Rat |
+| `TrainingTarget` | 29 | Training Target |
+| `TombStone` | 31, 32, 33, 34 | Tomb Stone 1–4 |
+| `Coop` | 35 | Chicken Coop |
+| `BookCase` | 64 | Book Case |
+| `GuardPost` | 70 | Guard Post |
+| `Boulder` | 74 | Boulder |
+| `Destructor` | 98 | Destructor |
+| `ManaVault` | 101 | Mana Vault |
+| `ThreatBurn` | 103 | Threat Burn |
+| `ClaimedManaVault` | 108 | Claimed Mana Vault |
+| `FECandleStick` | 110 | 3D Front End Candle Stick |
+| `TempleCandleStick` | 111 | Temple Candlestick |
+| `HeroGate2By2` | 114 | Hero Gate [ 2 By 2 ] |
+
+**This is the strongest check the OBJECTS layout has had**, and it comes from a
+direction none of §2's four checks could reach. Those were all internal — a
+field list that sums to the stride, an id column that is a permutation, a string
+that lands, pointers from other records. Every one of them says "these bytes are
+self-consistent". This one says the bytes mean what we think they mean: the
+*code* has eighteen names for eighteen numbers, and the *file* gives those
+eighteen numbers the same eighteen names, and the two were compiled and shipped
+by people who never had to agree about it afterwards.
+
+### Five type flags confirmed from the other side
+
+The rest of the dispatch does *not* use the id — it tests bits of a flags word
+on the loaded definition, and those bits are the ones §3 took on OpenKeeper's
+authority. The binary picks:
+
+| Branch | Bit tested | `ObjectFlags` name |
+|---|---|---|
+| `Gold` | 0x40 | `TypeGold` |
+| `Special` | 0x04 | `TypeSpecial` |
+| `Lair` | 0x20 | `TypeLair` |
+| `ManufactureCrate` | 0x10 | `TypeCrate` |
+| `ResearchBook`'s id-4 object | 0x08 | `TypeSpellBook` |
+
+So five of the seven type bits are now confirmed **by the code that acts on
+them**, not just by a name in another project and a plausible-looking column.
+`TypeFood` (0x80) and `TypeLevelGem` (0x1000) are not tested in this routine and
+remain on the earlier evidence.
+
+Note the precedence, because it is behaviour: **flags beat ids.** `Gold` is
+tested before any id, and `Lair` before the remaining ids — so a *bed* is a bed
+because of its flag, not because of which of the twelve it is. That is exactly
+what `ObjectDef.IsLair` does, and it is why a rule may ask `IsLair` and be right
+about all twelve.
+
+### The fields around the union
+
+Offsets are from the start of the object, and everything below 0x124 belongs to
+a base class this read did not need.
+
+| Offset | Field | What it says |
+|---|---|---|
+| 0x124 | `RoomNode` (x, y) | the object knows its room's node |
+| 0x12C | `TypeId` | **the tag** — the definition id |
+| ~0x12D | pointer to the loaded definition | its flags word is at +0xF4 |
+| 0x133 | `AutoPlaced` | placed by the level rather than by play |
+| 0x138 | `RoomId` | the room it belongs to |
+| 0x13A | `StateId`, `StateAge` | its own small state machine, and how long in it |
+| 0x142 | `WhoGetsThisFromADrop` | who owns it if a keeper drops it |
+| 0x146 | bit 0 `EnableDeathEffect`, 1 `BeingDragged`, 2 `BeingCarried`, 3 `Possessed`, 4 `InHand`, 5 `InUse` | six flags in one word |
+| 0x14A | **the union** | 18 bytes, per kind |
+| 0x15C | `UtilityNewState` | |
+| 0x160 | `MoveTo`: `EndX`, `EndY`, `dX`, `dY`, `GameTicksToDestination`, `Turning`, `Interruptable` | **an object moves**, on the same kind of interpolated walk a creature does |
+
+Two of those are worth pulling out. **`BeingCarried` and `InHand` are on the
+object**, which is how an imp hauling a chicken and a keeper holding one in the
+hand are the same object in two states rather than two mechanics. And **the
+`MoveTo` block means an object walks** — a chicken, a rat, a boulder — with
+`GameTicksToDestination` counted in the same ticks a creature uses.
+
+### `Lair.CreatureId` — and the clash it settles
+
+The `Lair` member of the union is two fields:
+
+- **`CreatureId`**, a u16 at 0x14A — *whose bed this is*;
+- `FlagDestroyWhenDropped`, at 0x14C.
+
+**This settles the ownership question Q130 opened.** `LairRules` had put the
+relation on the creature (`CreatureState.LairTileIndex`, "which bed is mine");
+DK2 puts it on the object ("whose bed am I"). Same relation, opposite end, and
+two copies of one fact is the shape that has already cost this project three
+multi-month defects. **The object's end wins**, for three reasons beyond
+fidelity:
+
+1. **A bed is a thing that can be destroyed.** `FlagDestroyWhenDropped` sitting
+   right next to `CreatureId` says so. A creature outliving its bed is real —
+   sell the lair — and representable either way; a *bed* outliving its creature
+   is a leak the creature-side model cannot even express, because there is
+   nothing to leak.
+2. **The bed is the creature's own.** Twelve bed objects serve 46 creatures and
+   each creature's `LairObjectId` names which of the twelve is its. So the thing
+   on the tile is not "a bed", it is "a Goblin's bed belonging to Goblin 7" —
+   which is one object carrying one creature id, and not a property of the tile.
+3. **The presentation layer needs the object anyway** to draw the right bed.
+
+**STRONGLY INFERRED, not confirmed:** that the bed object is *created* when a
+creature claims a tile rather than existing with the room. The three facts above
+all point that way — a per-creature bed type cannot be placed before the
+creature is known — but nobody has watched a lair tile go from bare to furnished
+and said so. Q131.

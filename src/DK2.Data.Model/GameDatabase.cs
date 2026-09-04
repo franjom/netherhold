@@ -202,6 +202,17 @@ public sealed class GameDatabase
     /// <para>Returns <c>this</c> when the level carries no variables of its own,
     /// so a caller can hand it whatever the loader found without checking.</para>
     /// </summary>
+    /// <remarks>
+    /// <b>Every record collection has to be passed through here.</b> This
+    /// rebuilds the database from parts, so a record that is added to the
+    /// constructor and forgotten in this call is silently absent from every
+    /// campaign level while staying present everywhere else — which is what
+    /// happened to <see cref="Objects"/> between the day it was parsed and
+    /// 2026-09-04, and the scenario harness is what caught it: a goblin
+    /// claiming a bed threw for want of object 22 on a campaign map and nowhere
+    /// else. <c>ForLevelKeepsEveryRecordCollection</c> exists so the next
+    /// record cannot repeat it.
+    /// </remarks>
     public GameDatabase ForLevel(GlobalVariables? levelVariables) =>
         levelVariables is null
             ? this
@@ -210,7 +221,8 @@ public sealed class GameDatabase
                 Rooms.Values,
                 Creatures.Values,
                 Variables.MergedWith(levelVariables),
-                KeeperSpells.Values);
+                KeeperSpells.Values,
+                Objects.Values);
 
     public TerrainDef TerrainById(byte id) => Terrain.TryGetValue(id, out TerrainDef? t)
         ? t

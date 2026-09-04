@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -31,12 +31,25 @@ namespace DK2.Simulation;
 /// awake in its own lair heals nothing.</item>
 /// </list>
 ///
-/// <para><b>Occupancy is derived, never stored.</b> A tile is taken if some
-/// creature's <see cref="CreatureState.LairTileIndex"/> points at it — the same
-/// discipline <see cref="RoomInstance"/> follows, and for the same reason: a
-/// creature that dies, leaves or is removed cannot strand a bed that nothing
-/// owns. The cost is a scan of the creature list per query, and creatures are
-/// tens where tiles are tens of thousands.</para>
+/// <para><b>A bed is an object, and the object holds the ownership</b> — since
+/// 2026-09-04, and it used to be the other way round. The relation lived on the
+/// creature, as a tile index; DK2 keeps it on the object, as
+/// <c>Lair.CreatureId</c> in the object's union. The binary settled it (see
+/// <c>docs/research/objects.md</c> §7 and Q130), and there is now exactly one
+/// copy of the fact, because two copies of one fact is the shape that has
+/// already cost this project three long-lived defects.</para>
+///
+/// <para><b>The bed exists only while it is owned.</b> Claiming a tile creates
+/// an <see cref="ObjectState"/> of the creature's own
+/// <see cref="CreatureDef.LairObjectId"/> — a Goblin's bed, a Vampire's coffin —
+/// and giving the bed up destroys it. That is why occupancy needs no separate
+/// bookkeeping: <b>a lair tile is taken exactly when a bed object stands on
+/// it</b>, and a creature that dies, leaves or is removed cannot strand a bed
+/// that nothing owns, because releasing the bed is what removes the object.
+/// STRONGLY INFERRED rather than watched — Q131.</para>
+///
+/// <para>The cost is a scan of the object list per query, and beds are tens
+/// where tiles are tens of thousands.</para>
 /// </summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-needs.md")]
 public static class LairRules
@@ -61,14 +74,53 @@ public static class LairRules
     /// </summary>
     public static bool NeedsBed(CreatureDef creature) => creature.LairObjectId != 0;
 
-    /// <summary>Whether any creature already owns the bed on this tile.</summary>
-    public static bool BedTaken(WorldState world, int tileIndex)
+    /// <summary>
+    /// Whether this object is a bed.
+    ///
+    /// <para><b>Asks the type flag, not the id</b>, and so does DK2: the
+    /// original's own union dispatch tests <c>TypeLair</c> (0x20) rather than
+    /// naming any of the twelve bed objects, which is how one branch serves all
+    /// twelve. Flags beat ids in its dispatch order (objects.md §7).</para>
+    /// </summary>
+    public static bool IsBed(GameDatabase database, ObjectState instance) =>
+        database.ObjectById(instance.ObjectTypeId) is { IsLair: true };
+
+    /// <summary>Whether a bed already stands on this tile.</summary>
+    public static bool BedTaken(WorldState world, GameDatabase database, int tileIndex)
     {
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
-            if (creatures[i].LairTileIndex == tileIndex) return true;
+        IReadOnlyList<ObjectState> objects = world.Objects;
+        for (int i = 0; i < objects.Count; i++)
+            if (objects[i].TileIndex == tileIndex && IsBed(database, objects[i]))
+                return true;
         return false;
     }
+
+    /// <summary>This creature's own bed, or null if it has none.</summary>
+    public static ObjectState? BedOf(
+        WorldState world, GameDatabase database, CreatureState creature)
+    {
+        IReadOnlyList<ObjectState> objects = world.Objects;
+        for (int i = 0; i < objects.Count; i++)
+            if (objects[i].CreatureId == creature.Id && IsBed(database, objects[i]))
+                return objects[i];
+        return null;
+    }
+
+    /// <summary>
+    /// Where this creature's bed is, as a tile index, or −1 if it has none.
+    ///
+    /// <para>The replacement for the field <c>CreatureState.LairTileIndex</c>
+    /// used to be. Same answer, derived from the one place the fact now
+    /// lives.</para>
+    /// </summary>
+    public static int BedTileIndex(
+        WorldState world, GameDatabase database, CreatureState creature) =>
+        BedOf(world, database, creature)?.TileIndex ?? -1;
+
+    /// <summary>Whether this creature owns a bed.</summary>
+    public static bool HasBed(
+        WorldState world, GameDatabase database, CreatureState creature) =>
+        BedOf(world, database, creature) is not null;
 
     /// <summary>
     /// How many creatures a lair can hold: one per tile.
@@ -78,17 +130,17 @@ public static class LairRules
     public static int Capacity(RoomInstance lair) => lair.TileIndices.Count;
 
     /// <summary>How many of a lair's beds are already owned.</summary>
-    public static int Occupied(WorldState world, RoomInstance lair)
+    public static int Occupied(WorldState world, GameDatabase database, RoomInstance lair)
     {
         int taken = 0;
         foreach (int index in lair.TileIndices)
-            if (BedTaken(world, index)) taken++;
+            if (BedTaken(world, database, index)) taken++;
         return taken;
     }
 
     /// <summary>
-    /// Finds a free bed for this creature in any lair its keeper owns and takes
-    /// it, or leaves it bedless and returns false.
+    /// Finds a free tile in any lair this creature's keeper owns and puts the
+    /// creature's own bed on it, or leaves it bedless and returns false.
     ///
     /// <para><b>Lowest tile index wins</b>, across lairs visited in
     /// <see cref="RoomIndex"/>'s own order, so two creatures spawning on the
@@ -97,15 +149,21 @@ public static class LairRules
     /// nearest-to-the-door; this is deterministic, which is the property that
     /// cannot be given up (ADR-0001).</para>
     ///
+    /// <para><b>The bed placed is the creature's own kind</b>, from its record's
+    /// <see cref="CreatureDef.LairObjectId"/> — which is the reason the bed has
+    /// to be created here rather than shipped with the room. Twelve bed objects
+    /// serve 46 creatures, and which of the twelve a tile holds cannot be known
+    /// before the creature that will sleep in it is.</para>
+    ///
     /// <para>A keeper with no lair, or a full one, leaves the creature with no
     /// bed. In DK2 that is what <c>angerNoLair</c> is for — 100 for a Goblin,
-    /// the joint-largest anger source in its record — and anger does not exist
-    /// yet, so today it simply never heals. Q105.</para>
+    /// the joint-largest anger source in its record — and
+    /// <see cref="CreatureAngerRules"/> charges it. Q105.</para>
     /// </summary>
     public static bool TryClaimBed(
         WorldState world, GameDatabase database, CreatureState creature)
     {
-        if (creature.LairTileIndex >= 0) return true;
+        if (HasBed(world, database, creature)) return true;
 
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         if (!NeedsBed(definition)) return false;
@@ -119,8 +177,8 @@ public static class LairRules
 
             foreach (int index in room.TileIndices)
             {
-                if (BedTaken(world, index)) continue;
-                creature.LairTileIndex = index;
+                if (BedTaken(world, database, index)) continue;
+                PlaceBed(world, database, creature, index);
                 return true;
             }
         }
@@ -129,24 +187,62 @@ public static class LairRules
     }
 
     /// <summary>
-    /// Gives up this creature's bed. Called when it dies, and the reason it is a
-    /// method rather than an assignment is that forgetting it would leak a bed
-    /// out of a lair permanently.
+    /// Puts this creature's own bed on a given tile and hands it over, without
+    /// asking whether the tile is a lair or whether the creature wanted one.
+    ///
+    /// <para>The placement half of <see cref="TryClaimBed"/>, separated because
+    /// two other callers need it without the search: <b>a level file</b>, whose
+    /// objects arrive already placed (DK2 marks them <c>AutoPlaced</c>), and a
+    /// test that wants a creature in a bed without walking it there.</para>
+    ///
+    /// <para>Unchecked on purpose. A caller that places a bed on rock has made a
+    /// mistake this method cannot tell from a level that ships one — and
+    /// <see cref="BedStillValid"/> already drops a bed whose tile is not a lair,
+    /// on the next tick, which is the same answer arrived at honestly.</para>
     /// </summary>
-    public static void ReleaseBed(CreatureState creature) => creature.LairTileIndex = -1;
+    public static ObjectState PlaceBed(
+        WorldState world, GameDatabase database, CreatureState creature, int tileIndex)
+    {
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        ObjectState bed = world.SpawnObject(
+            database, definition.LairObjectId, creature.OwnerPlayerId, tileIndex);
+        bed.CreatureId = creature.Id;
+        return bed;
+    }
 
     /// <summary>
-    /// Whether this creature's bed is still a lair tile its keeper owns.
+    /// Gives up this creature's bed, destroying the bed object with it, and says
+    /// whether there was one.
+    ///
+    /// <para>A method rather than an assignment because forgetting it would
+    /// leak a bed out of a lair permanently — and now literally so: the bed is a
+    /// thing, and an unreleased one would sit on its tile forever with a
+    /// creature id nothing answers to.</para>
+    /// </summary>
+    public static bool ReleaseBed(
+        WorldState world, GameDatabase database, CreatureState creature)
+    {
+        ObjectState? bed = BedOf(world, database, creature);
+        if (bed is null) return false;
+        return world.RemoveObject(bed.Id);
+    }
+
+    /// <summary>
+    /// Whether this creature's bed is still on a lair tile its keeper owns.
     ///
     /// <para>A bed is not a promise. The lair can be sold, dug out, or claimed
     /// by a rival while its owner is off somewhere, and a creature holding a bed
     /// on a tile that is no longer a lair would heal on a patch of rock. Checked
-    /// every time rather than trusted, and the bed is dropped when it fails.</para>
+    /// every time rather than trusted, and the bed is dropped when it
+    /// fails.</para>
     /// </summary>
     public static bool BedStillValid(
         WorldState world, GameDatabase database, CreatureState creature)
     {
-        int index = creature.LairTileIndex;
+        ObjectState? bed = BedOf(world, database, creature);
+        if (bed is null) return false;
+
+        int index = bed.TileIndex;
         if (index < 0 || index >= world.TileCount) return false;
 
         ref TileState tile = ref world.TileAtIndex(index);
@@ -155,14 +251,16 @@ public static class LairRules
     }
 
     /// <summary>Whether this creature is asleep in its own bed — the healing condition.</summary>
-    public static bool AsleepInOwnBed(WorldState world, CreatureState creature)
+    public static bool AsleepInOwnBed(
+        WorldState world, GameDatabase database, CreatureState creature)
     {
         if (creature.Activity != CreatureActivity.Sleeping) return false;
-        if (creature.LairTileIndex < 0) return false;
+
+        int bed = BedTileIndex(world, database, creature);
+        if (bed < 0) return false;
 
         TilePos at = creature.Tile;
-        return world.Contains(at)
-            && (at.Y * world.Width) + at.X == creature.LairTileIndex;
+        return world.Contains(at) && (at.Y * world.Width) + at.X == bed;
     }
 
     /// <summary>

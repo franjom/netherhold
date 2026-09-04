@@ -2858,8 +2858,10 @@ over-healed was written first, and the install refuted it.
 
 ### Hunger is half-built, deliberately
 
-The clock runs and nothing can stop it, because eating needs chickens, chickens
-are objects, and OBJECTS is unparsed (M6). **This costs no health on purpose:**
+The clock runs and nothing can stop it: eating needs a chicken, the Chicken is
+object 9, and nothing lays one — a Hatchery is a room this simulation does not
+have. (Until 2026-09-04 the reason given here was that OBJECTS was unparsed. It
+is parsed; the room is what is missing.) **This costs no health on purpose:**
 searched 21 health variables and nine anger variables, and there is no
 starvation anywhere in the balance table. What going unfed costs is *anger*,
 which is per creature in the record (`angerNoFood`). Tested as a negative so
@@ -3494,7 +3496,7 @@ source is applied when the player's own choices can turn it off.**
 |---|---|
 | `AngerNoLair` +100 | **Yes** — lairs are built, sold and filled |
 | `ModifyAngerOfCreatureInLairPerSecond` −550 | **Yes** — sleep works, so recovery is real and 5.5× faster than the accrual |
-| `AngerNoFood` +100 | No — chickens are objects (M6); *no* dungeon can feed anybody |
+| `AngerNoFood` +100 | No — the Chicken is object 9 but no Hatchery lays one; *no* dungeon can feed anybody |
 | `AngerNoWork` +50 | No — non-workers have no job system; "no work" is a fact about us |
 | `AngerNoPay` +60 | No — there is no payday |
 | hated company +150 | No — the relation is parsed and unused |
@@ -3535,3 +3537,113 @@ reachability is untestable here anyway (Q116).
 **The zero floor is ours** (Q115). Nothing in the data states it, and without it
 a creature that had just won a combat pit (−16400) would be immune to every
 grievance for nearly three minutes.
+
+## ADR-0054 — An object is one type with per-kind state, and a bed knows whose it is
+
+**Status:** Accepted (2026-09-04)
+**Confidence:** Strongly inferred (the shape is read out of `DKII.EXE`; the
+storage is ours and is explicitly not a fidelity requirement)
+**Closes:** Q130. **Opens:** Q131.
+
+### Context
+
+`OBJECTS` was parsed the sitting before this one: 145 definitions, twelve of them
+beds, the Chicken at 9, gold on the floor at three of them. That unblocked
+eating, gold piles and beds *in data terms* and immediately exposed that there
+was nowhere to put an **instance**. `WorldState` had tiles and creatures and no
+third list.
+
+Two shapes were available and the choice was not obvious:
+
+- **one type with per-kind state**, so a bed and a chicken are the same kind of
+  thing in different states;
+- **a list per kind**, easier to iterate and easier to hash, and it makes "the
+  gold pile that is also a bed" unrepresentable.
+
+There was also a conflict to resolve first. `LairRules` already modelled a bed —
+as `CreatureState.LairTileIndex`, a tile index on the *creature*. If an object
+carried the same relation from the other end, the project would hold **two
+copies of one fact**, which is the shape behind three of its longest-lived
+defects.
+
+### Decision
+
+**One type, and the object owns the relation.**
+
+`ObjectState` is a single type with a definition id, an owner, a tile and
+per-kind fields, added as mechanics need them. `WorldState.Objects` is one list
+in placement order. `CreatureState.LairTileIndex` is **removed**; the bed carries
+`CreatureId`, and `LairRules` derives everything else from that.
+
+A bed now exists only while it is owned: claiming a lair tile **creates** an
+object of the creature's own `LairObjectId`, and releasing the bed **destroys**
+it. So occupancy needs no bookkeeping at all — a lair tile is taken exactly when
+a bed object stands on it.
+
+### Why
+
+**The binary settled the shape, and it did not have to be asked twice.** DK2's
+object dump prints a literal `Union Data:` header and then one of twenty-three
+blocks, every one reading from offset **0x14A**; the field after the union sits
+at 0x15C, so the union is exactly **18 bytes** of per-kind state. That is one
+type with a tag, not a family of types — the original's own words for it.
+
+**The tag is the object's definition id**, branched on with hardcoded literals,
+and **twenty-one of those literals were checked against our parse of
+`Objects.kwd`.** All twenty-one agree: 9 is the Chicken, 35 the Chicken Coop, 74
+the Boulder, 31–34 the four Tomb Stones. This is the strongest evidence the
+OBJECTS layout has, and the only piece that comes from outside the file — the
+other four checks are internal consistency, and internal consistency cannot tell
+you that the bytes mean what you think they mean.
+
+**Five type flags are confirmed from the other side too.** The rest of that
+dispatch tests bits rather than ids — `TypeGold` 0x40, `TypeSpecial` 0x04,
+`TypeLair` 0x20, `TypeCrate` 0x10, `TypeSpellBook` 0x08 — so five of the seven
+bits §3 took on OpenKeeper's authority are now confirmed by the code that acts on
+them. Note the precedence, because it is behaviour: **flags beat ids.** The
+`Lair` branch is reached by flag alone, which is how one branch serves all twelve
+beds, and it is why `ObjectDef.IsLair` is the right question to ask.
+
+**Ownership went to the object for three reasons beyond fidelity.** A bed is a
+thing that can be destroyed, and `FlagDestroyWhenDropped` sits next to
+`CreatureId` saying so — a creature outliving its bed is real and representable
+either way, but a *bed* outliving its creature is a leak the creature-side model
+cannot even express, because there is nothing to leak. The bed is the creature's
+own: twelve objects serve 46 creatures and each names which is its, so the thing
+on the tile is not "a bed" but "a Goblin's bed belonging to Goblin 7". And the
+presentation layer needs the object anyway, to draw the right one.
+
+**Ours is flat rather than a union**, and that is not a compromise. The fidelity
+requirement is on behaviour, not layout (brief item 5), and the behavioural
+content of a union is that at most one kind's state is live — which a flat record
+with a documented owner per field gives exactly. What the union's real
+consequence costs us is a rule instead of a type: every field says which kind may
+write it, every other kind leaves it zero, and **the hash covers all of them
+unconditionally**, because a kind-dependent hash would let a stray write hide.
+
+### Consequences
+
+`HashVersion` 16 → 17 and snapshot `FormatVersion` 16 → 17. The pinned hash moved
+without any behaviour moving: the fixture's creatures are working imps and an imp
+has no bed, so what changed is the composition — one field out of every creature,
+a count and an id counter in.
+
+**The migration found a real defect in `GameDatabase.ForLevel`.** It rebuilds the
+database from parts and had been silently dropping `Objects` ever since the
+parameter was added — the constructor gained it, the call did not. Nothing
+noticed for two sittings, because objects were only definitions; the moment a bed
+became a thing, a campaign scenario threw for want of object 22 while all 719
+tests passed. Tests build their database directly and none of them called it.
+Two guards now exist, and the real one sweeps every record collection by
+reflection so the next record is covered the day it is added.
+
+**Q131 is what this decision assumes and nobody has watched:** that the bed
+object is *created* when a creature claims a tile rather than shipped with the
+room. Every piece of evidence points that way — a per-creature bed type cannot be
+placed before the creature is known — but the owner has not been asked whether a
+fresh lair tile looks bare until somebody moves in.
+
+What this unblocks, in order: the **Hatchery** (a chicken is an object with a
+pecking timer and a scatter countdown, and the union says so), **gold on the
+floor**, and the **graveyard** — which wants a creature-carrying imp task rather
+than a record, per ADR-0051's correction.

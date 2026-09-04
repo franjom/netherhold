@@ -1,4 +1,4 @@
-# What can be settled by playing the game
+﻿# What can be settled by playing the game
 
 Open questions that a person sitting in front of DK2 can answer by **looking**,
 ordered by what they unblock. Each entry is one experiment and what to watch.
@@ -871,6 +871,35 @@ measurement tooling, or disassembly, and are scheduled accordingly:
 - **Q11, Q13, Q14, Q15, Q16, Q17** — record layouts and field meanings.
 - **Q37a — what `MaxManaGain` and `DungeonHeartMaxManaIncrease` are for.** Closed
   by elimination; they affect nothing a player can see.
+
+### Q131 — does a fresh lair tile look bare, or already furnished? — **new, and the cheapest on this list**
+
+**Build a lair somewhere with no creatures near it, and look at it.**
+
+That is the whole experiment. It settles a thing this project now assumes in
+code: that a **bed is created when a creature claims a tile**, rather than
+placed when the room is built.
+
+Everything in the data points that way. There are **twelve bed objects** for 46
+creatures, and each creature's record names which of the twelve is its — a
+Goblin's is object 22, a Vampire's is 26, a coffin. So the object standing on a
+lair tile cannot be chosen before you know who is going to sleep in it. The bed
+object also carries the id of the creature that owns it, and a flag about being
+destroyed when dropped, both of which read like a thing that belongs to somebody
+rather than to the room.
+
+**But nobody has looked.** The alternative — a lair is furnished the moment it is
+built and an arriving creature takes a bed over — would look identical in every
+test written so far, and would mean the code should be *finding* a bed rather
+than making one.
+
+- **Bare tiles, and a bed appears when somebody moves in** → what is implemented
+  is right.
+- **Furnished the moment it is built** → tell me, and claiming becomes a lookup.
+
+Worth noticing while you are there: whether the bed that appears **matches the
+creature** (a coffin for a vampire, and not a goblin's bed), which is the same
+question from the other side.
 
 ### Q66 — does "adjacent to claimed ground" include diagonals? — **new, and cheap**
 

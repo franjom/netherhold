@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -263,7 +263,9 @@ public sealed class WorldState
     private readonly PlayerState[] _players; // kept sorted by PlayerId, for stable hashing
     private readonly List<TileWorkOrder> _pendingWork = [];
     private readonly List<CreatureState> _creatures = [];
+    private readonly List<ObjectState> _objects = [];
     private int _nextCreatureId = 1;
+    private int _nextObjectId = 1;
 
     private WorldState(int width, int height, TileState[] tiles, PlayerState[] players)
     {
@@ -396,8 +398,11 @@ public sealed class WorldState
     /// <c>CreatureDyingStateDurationSeconds</c>, and only then dies (Q99,
     /// CONFIRMED, ADR-0051). <see cref="Systems.CreatureHealthSystem"/> runs
     /// that process and calls this at the end of it. What is still missing is
-    /// what happens <i>after</i> — the corpse, which is an object (M6) — so this
-    /// removal currently stands in for "and then the body rots away too".</para>
+    /// what happens <i>after</i> — the corpse — so this removal currently stands
+    /// in for "and then the body rots away too". A corpse is <b>not</b> an
+    /// object, which is what this note used to say: it is a creature in a state,
+    /// and what it waits on is an imp that can carry one
+    /// (<c>docs/research/objects.md</c> §4).</para>
     ///
     /// <para>The creature's id is <b>not</b> reused: <c>_nextCreatureId</c> only
     /// ever goes up, so a level that has had creatures die cannot hand out an id
@@ -419,6 +424,81 @@ public sealed class WorldState
     {
         foreach (CreatureState c in _creatures)
             if (c.Id == id) return c;
+        return null;
+    }
+
+    /// <summary>
+    /// Every object standing in the level, in the order it was placed.
+    ///
+    /// <para><b>One list for every kind</b>, because DK2's object is one type
+    /// with a tagged union rather than a family of types — see
+    /// <see cref="ObjectState"/> and <c>docs/research/objects.md</c> §7. A list
+    /// per kind would have been easier to iterate and would have made "the
+    /// gold pile that is also a bed" unrepresentable, which sounds like a gain
+    /// until a mechanic needs to ask what is on a tile without knowing what it
+    /// is looking for — an imp choosing by <c>PickUpPriority</c> does exactly
+    /// that.</para>
+    ///
+    /// <para>Order is behaviour, for the same reason it is on
+    /// <see cref="Creatures"/>: two beds free on one tick are claimed in this
+    /// order. Never sorted, never reordered.</para>
+    /// </summary>
+    public IReadOnlyList<ObjectState> Objects => _objects;
+
+    /// <summary>
+    /// Puts an object on a tile.
+    ///
+    /// <para>Takes a definition id rather than a definition so that a caller
+    /// cannot place something the database has never heard of: the lookup is the
+    /// validation, and it throws rather than placing a nameless object that
+    /// every later rule would have to tolerate.</para>
+    /// </summary>
+    public ObjectState SpawnObject(
+        GameDatabase database, byte objectTypeId, byte ownerPlayerId, int tileIndex)
+    {
+        if ((uint)tileIndex >= (uint)_tiles.Length)
+            throw new ArgumentOutOfRangeException(
+                nameof(tileIndex), tileIndex, "Object tile is outside the map.");
+
+        // Refused rather than placed. An object the database has never heard
+        // of would be treated as "not a bed, not gold, not food" by every rule
+        // that asks a type flag, which is a silent wrong answer rather than a
+        // loud one.
+        if (database.ObjectById(objectTypeId) is null)
+            throw new KeyNotFoundException(
+                $"No object definition with id {objectTypeId}.");
+
+        var instance = new ObjectState
+        {
+            Id = _nextObjectId++,
+            ObjectTypeId = objectTypeId,
+            OwnerPlayerId = ownerPlayerId,
+            TileIndex = tileIndex,
+        };
+
+        _objects.Add(instance);
+        return instance;
+    }
+
+    /// <summary>
+    /// Takes an object out of the world, and says whether it was there. Ids are
+    /// never reused, exactly as for creatures.
+    /// </summary>
+    public bool RemoveObject(int id)
+    {
+        for (int i = 0; i < _objects.Count; i++)
+        {
+            if (_objects[i].Id != id) continue;
+            _objects.RemoveAt(i);
+            return true;
+        }
+        return false;
+    }
+
+    public ObjectState? ObjectById(int id)
+    {
+        foreach (ObjectState o in _objects)
+            if (o.Id == id) return o;
         return null;
     }
 
@@ -476,12 +556,20 @@ public sealed class WorldState
     internal PlayerState[] RawPlayers => _players;
     internal List<TileWorkOrder> RawPendingWork => _pendingWork;
     internal List<CreatureState> RawCreatures => _creatures;
+    internal List<ObjectState> RawObjects => _objects;
 
     /// <summary>Restores the id counter after a snapshot, so ids stay unique across a save.</summary>
     internal int NextCreatureId
     {
         get => _nextCreatureId;
         set => _nextCreatureId = value;
+    }
+
+    /// <summary>Restores the object id counter after a snapshot.</summary>
+    internal int NextObjectId
+    {
+        get => _nextObjectId;
+        set => _nextObjectId = value;
     }
 
     public void HashInto(ref Hash64 hash)
@@ -503,5 +591,9 @@ public sealed class WorldState
         hash.Add(_creatures.Count);
         hash.Add(_nextCreatureId);
         foreach (CreatureState c in _creatures) c.HashInto(ref hash);
+
+        hash.Add(_objects.Count);
+        hash.Add(_nextObjectId);
+        foreach (ObjectState o in _objects) o.HashInto(ref hash);
     }
 }

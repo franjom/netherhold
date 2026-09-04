@@ -463,7 +463,9 @@ public sealed class ScenarioRunner
         unsupported.Add(
             "a worker mining gold carries it to a treasury or dungeon-heart tile itself (Q31), but " +
             "gold it cannot hold is LOST: DK2 grows a lump on the floor that somebody can come back " +
-            "for, and a lump is an object (M6). A keeper with nowhere to store gold still mines, and " +
+            "for. Gold on the floor is three of the 145 objects and the world now has a list to put " +
+            "one in, so what is left is the mechanic rather than the record. A keeper with " +
+            "nowhere to store gold still mines, and " +
             "keeps only what fits in one pair of hands");
     }
 

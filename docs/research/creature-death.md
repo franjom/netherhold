@@ -237,7 +237,7 @@ released at death.
 
 | Missing | Why |
 |---|---|
-| **The corpse** | It is an OBJECT — it has a `DecomposeValue`, imps haul it like gold, a graveyard counts `DecomposeValueNeededForVampire` (1000) of them. OBJECTS is unparsed (M6) |
+| **The corpse** | **Not an object** — see the correction above; none of the 145 is a corpse. It is a creature in a state, with a `DecomposeValue` a graveyard counts 1000 of. What is missing is an imp that can carry one |
 | **Rescue** | Nothing can be carried. `CreatureDeathRules.Rescue` is written and tested and has no caller |
 | **Prison for enemies** | No prison, no capture. `MotionlessInPrisonSeconds` (8) and `PrisonModifyCreatureHealthPerSecond` (−3) are parsed and unread |
 | **The Vampire** | Downstream of the corpse. Nothing accumulates, so no Vampire can be made |

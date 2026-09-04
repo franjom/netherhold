@@ -280,4 +280,191 @@ public class ObjectsOnRealDataTests
                 Assert.NotNull(db.ObjectById(id));
         }
     }
+
+    // ---- the fixture cannot drift from the file ---------------------------
+
+    [Fact]
+    public void TheTwoBedsTheSimulationFixtureTranscribesAreTheRealRecords()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The simulation fixture now carries object definitions, because a bed
+        // is a thing that stands on a tile and TryClaimBed has to place one.
+        // Those definitions are transcribed by hand, which is how four wrong
+        // fixture values have got in before -- three creature flags and a
+        // fourth on the Goblin, each one asserting a behaviour the real record
+        // does not have.
+        //
+        // The values are repeated as literals rather than compared against the
+        // fixture type, on purpose: DK2.Behavior.Tests deliberately holds no
+        // project reference to DK2.Simulation.Tests, so this guard has to state
+        // what the fixture claims and let the real file contradict it.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        foreach ((byte id, string name) in new (byte, string)[]
+        {
+            (22, "Goblin Creature Bed"),
+            (26, "Vampire Creature Bed"),
+        })
+        {
+            ObjectDef bed = Assert.IsType<ObjectDef>(db.ObjectById(id));
+
+            Assert.Equal(name, bed.Name);
+            Assert.Equal(0x04034020u, (uint)bed.Flags);
+            Assert.Equal(128, bed.Hp);
+            Assert.Equal(0, bed.ManaValue);
+            Assert.Equal(1, bed.RoomCapacity);
+            Assert.Equal(0, bed.StartState);
+            Assert.Equal(176, bed.PickUpPriority);
+            Assert.Equal(2048, bed.Width.Raw);
+            Assert.Equal(256, bed.Height.Raw);
+            Assert.Equal(8192, bed.Mass.Raw);
+            Assert.Equal(0, bed.Speed.Raw);
+            Assert.Equal(0, bed.NameStringId);
+            Assert.Equal(0, bed.TooltipStringId);
+
+            // And the one bit any rule reads.
+            Assert.True(bed.IsLair);
+        }
+
+        // The two are the same record apart from the name, which is the file
+        // agreeing with the flag-not-id rule: which of the twelve beds a tile
+        // holds decides what is drawn and nothing else.
+        ObjectDef goblinBed = Assert.IsType<ObjectDef>(db.ObjectById(22));
+        ObjectDef vampireBed = Assert.IsType<ObjectDef>(db.ObjectById(26));
+        Assert.Equal(
+            goblinBed with { Name = "", ObjectId = 0 },
+            vampireBed with { Name = "", ObjectId = 0 });
+    }
+
+    [Fact]
+    public void TheObjectIdsTheBinaryHardcodesNameTheObjectsWeThinkTheyDo()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // Read out of DKII.EXE on 2026-09-04: the routine that dumps an object
+        // switches on a single byte -- the object's own id -- with hardcoded
+        // literals, one per union member. Eighteen of those literals could be
+        // paired with a name, and all eighteen agree with this parse.
+        //
+        // This is the strongest check the OBJECTS layout has, and the only one
+        // that comes from outside the file. The other four are internal: a
+        // field list that sums to the stride, an id column that is a
+        // permutation, a string that lands at the record's end, pointers from
+        // other records. Those say the bytes are self-consistent. This says
+        // they mean what we think they mean -- the code has eighteen names for
+        // eighteen numbers and the file gives those numbers the same names.
+        //
+        // See docs/research/objects.md section 7.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        var branches = new (byte Id, string Name)[]
+        {
+            (4, "Spell Book"),            // ResearchBook
+            (8, "Torture Wheel"),         // TortureWheel
+            (9, "Chicken"),               // Chicken
+            (10, "Call To Arms"),         // CallToArms
+            (11, "Rat"),                  // Rat
+            (29, "Training Target"),      // TrainingTarget
+            (31, "Tomb Stone 1"),         // TombStone, which tests 31..34
+            (32, "Tomb Stone 2"),
+            (33, "Tomb Stone 3"),
+            (34, "Tomb Stone 4"),
+            (35, "Chicken Coop"),         // Coop
+            (64, "Book Case"),            // BookCase
+            (70, "Guard Post"),           // GuardPost
+            (74, "Boulder"),              // Boulder
+            (98, "Destructor"),           // Destructor
+            (101, "Mana Vault"),          // ManaVault
+            (103, "Threat Burn"),         // ThreatBurn
+            (108, "Claimed Mana Vault"),  // ClaimedManaVault
+            (111, "Temple Candlestick"),  // TempleCandleStick
+        };
+
+        foreach ((byte id, string name) in branches)
+            Assert.Equal(name, db.ObjectById(id)?.Name);
+    }
+
+    [Fact]
+    public void TheTypeFlagsTheBinaryDispatchesOnAreTheOnesWeNamed()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The rest of that same dispatch does not use the id: it tests bits of
+        // the loaded definition's flags word. Five of the seven type bits are
+        // therefore confirmed by the code that ACTS on them, rather than only
+        // by a name borrowed from OpenKeeper and a column that looked
+        // plausible. TypeFood and TypeLevelGem are not tested there and stay on
+        // the earlier evidence.
+        //
+        // Each pair below is (bit the binary tests, object whose branch it
+        // takes), so a renamed or renumbered flag fails here.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        Assert.Equal(0x40u, (uint)ObjectFlags.TypeGold);
+        Assert.Equal(0x04u, (uint)ObjectFlags.TypeSpecial);
+        Assert.Equal(0x20u, (uint)ObjectFlags.TypeLair);
+        Assert.Equal(0x10u, (uint)ObjectFlags.TypeCrate);
+        Assert.Equal(0x08u, (uint)ObjectFlags.TypeSpellBook);
+
+        // Object 4 takes the ResearchBook branch by id, and its record carries
+        // the spell-book bit -- the two halves of the dispatch agreeing.
+        Assert.True(db.ObjectById(4)?.IsSpellBook);
+
+        // The Lair branch is reached by flag alone, so every bed must carry it.
+        Assert.Equal(12, db.Objects.Values.Count(o => o.IsLair));
+        Assert.True(db.ObjectById(22)?.IsLair);
+        Assert.True(db.ObjectById(26)?.IsLair);
+    }
+
+    [Fact]
+    public void ForLevelKeepsEveryRecordCollection()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // A regression guard with a real defect behind it.
+        // GameDatabase.ForLevel rebuilds the database from parts, and it
+        // silently dropped Objects for as long as objects existed: the
+        // constructor gained the parameter and this call did not.
+        //
+        // Nothing noticed for two sittings, because objects were only
+        // definitions -- until a bed became a thing standing on a tile, and
+        // then a campaign scenario threw for want of object 22 while all 719
+        // tests passed. Tests build their database directly; none of them
+        // called this.
+        //
+        // Swept by reflection rather than named one at a time, so a record
+        // added tomorrow is covered the day it is added. Every collection is
+        // asserted non-empty first, or an omission could pass by being zero on
+        // both sides.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        GameDatabase forLevel = db.ForLevel(new GlobalVariables());
+
+        Assert.NotSame(db, forLevel);
+
+        var collections = typeof(GameDatabase).GetProperties()
+            .Where(p => p.PropertyType.IsGenericType
+                && p.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>))
+            .ToArray();
+
+        Assert.NotEmpty(collections);
+
+        foreach (System.Reflection.PropertyInfo property in collections)
+        {
+            int before = Count(property.GetValue(db));
+            int after = Count(property.GetValue(forLevel));
+
+            Assert.True(before > 0, $"{property.Name} is empty, so this proves nothing");
+            Assert.True(
+                before == after,
+                $"ForLevel dropped {property.Name}: {before} became {after}");
+        }
+
+        static int Count(object? value) =>
+            value is System.Collections.IEnumerable e ? e.Cast<object>().Count() : -1;
+    }
 }
