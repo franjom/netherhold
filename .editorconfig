@@ -1,9 +1,7 @@
 # EditorConfig for the Dungeon Keeper 2 reimplementation.
 #
-# Deliberately narrow: it configures the MIT file header and nothing else.
-#
-# Directory.Build.props sets both EnforceCodeStyleInBuild and
-# TreatWarningsAsErrors, so any rule given a severity here becomes a build
+# Deliberately narrow. Directory.Build.props sets both EnforceCodeStyleInBuild
+# and TreatWarningsAsErrors, so any rule given a severity here becomes a build
 # error in every project at once. Add one only in a commit that also fixes
 # every file it flags.
 
@@ -11,21 +9,42 @@ root = true
 
 [*.cs]
 
-# IDE0073: require the MIT notice at the top of every first-party source file.
-#
-# The template is one physical line because that is the only form Roslyn's
-# .editorconfig reader accepts - it unescapes \n itself and there is no
-# line-continuation syntax. license.txt carries the same notice in readable
-# form for IDEs that stamp headers from a template, and
-# tests/DK2.Core.Tests/LicenseHeaderTests.cs asserts the two still agree, so
-# editing one without the other fails the build rather than drifting quietly.
-file_header_template = Copyright (c) 2026 Franjo Misetic\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the "Software"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.
-# NOT YET ENFORCED. Raise this to "warning" in the same commit that stamps the
-# header into all 131 source files - at "warning" it is a build error (see the
-# note at the top of this file), so the two have to land together.
-dotnet_diagnostic.IDE0073.severity = suggestion
+# The repository is LF throughout. Say so explicitly, because `dotnet format`
+# will otherwise rewrite a whole file to CRLF on Windows the first time it
+# touches it, burying a one-line change in a few hundred lines of noise.
+end_of_line = lf
+insert_final_newline = true
 
-# Unity's package cache is third-party code under its own licences, and Unity
-# rewrites it whenever the editor opens. It is gitignored; never stamp it.
-[unity/DK2.Unity/Library/**/*.cs]
-dotnet_diagnostic.IDE0073.severity = none
+# ---------------------------------------------------------------------------
+# The GPLv3 file notice is NOT enforced here. That is a choice, not an
+# oversight, and it survives the notice getting shorter.
+#
+# The obvious mechanism is IDE0073 with file_header_template, and with
+# EnforceCodeStyleInBuild already set it is a build error for free. Two reasons
+# it is not used:
+#
+# 1. It is blind to unity/DK2.Unity/Assets. No project in DK2.slnx compiles
+#    those three files - only unity/DK2.Unity.Compile does, and that needs an
+#    installed Unity editor (ADR-0036) - so a build-time analyser cannot see
+#    precisely the files most easily forgotten.
+#
+# 2. It truncates a template at the first ";" and does not say so. That is not
+#    hypothetical: the long-form GPL notice this project used briefly on
+#    2026-09-04 has a semicolon in
+#
+#        but WITHOUT ANY WARRANTY; without even the implied warranty of
+#
+#    and IDE0073 enforced - and `dotnet format` wrote into seven files - a
+#    notice whose warranty disclaimer had been cut in half, with a green build,
+#    because the files matched the truncated template exactly.
+#
+#    The current three-line notice has no semicolon, so IDE0073 would work
+#    today. It is still not used, because "works as long as nobody lengthens
+#    the text" is the kind of accident this project has been bitten by before
+#    (ADR-0036, ADR-0039, ADR-0040) and the failure mode is silent.
+#
+# The notice is enforced by tests/DK2.Core.Tests/LicenseHeaderTests.cs, which
+# renders license.txt and asserts every source file starts with it. CI already
+# runs `dotnet test DK2.slnx` on Linux and Windows, so it is gated with no new
+# workflow step. See ADR-0041.
+# ---------------------------------------------------------------------------

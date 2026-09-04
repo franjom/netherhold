@@ -2186,3 +2186,114 @@ implausible; the id shares its "no trailing fields" shape with the two
 front-end metadata ids; and OpenKeeper's comment on the same id says `value=4`,
 matching nothing here, so even the name is suspect. What has changed is that Q1
 has a datum that is invariant across the entire campaign instead of a blank.
+
+## ADR-0041 — The project is GPLv3, and the notice is enforced by a test
+
+**Date:** 2026-09-04
+**Status:** Accepted
+**Context:** the repository was MIT (ADR none — it was never decided, it was the
+default). Changed to GNU GPL version 3 at the owner's request, to match
+OpenKeeper.
+
+### The decision
+
+`LICENSE` is the GNU General Public License version 3, verbatim, 674 lines.
+
+`license.txt` is the per-file notice as a FreeMarker header template — the same
+form and the same purpose as OpenKeeper's `license.txt`, which is where this
+file came from and why a lower-case `license.txt` sits next to an upper-case
+`LICENSE`. IDEs that stamp a notice into new files read it.
+
+**The notice is three lines, not fourteen.**
+
+```
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+```
+
+Under the GPL the per-file notice is what makes `LICENSE` apply to a file
+rather than merely sit beside it in the repository, so this is not a purely
+cosmetic choice. It was first written as the GPL's own *How to Apply These
+Terms to Your New Programs* boilerplate — fourteen lines, copied verbatim out
+of `LICENSE` — and shortened the same day, on the owner's call, to the SPDX
+form. Fourteen lines across 134 files is 1,876 lines of prose that no reader
+ever reads twice, and it opened every diff.
+
+**What matters is that the short form does not narrow the grant.** The prose
+said "either version 3 of the License, or (at your option) any later version";
+`GPL-3.0-or-later` says exactly that, in a token that tooling can also read
+(the SPDX/REUSE convention). But the whole grant now rests on one token with
+no prose to fall back on, so two tests hold it in place:
+`TheNotice_DeclaresGpl3OrLater` pins the identifier — `GPL-3.0-only` or a bare
+`GPL-3.0` is a one-word edit and a narrower licence — and
+`TheLicenceFile_IsTheVersionTheNoticeClaims` parses the version out of the
+identifier and asserts `LICENSE` really is that version. Under a long notice
+each file quoted the licence; under a short one each file only names it, and
+naming can go stale silently.
+
+**This was a free choice, not an obligation.** `THIRD-PARTY-NOTICES.md` and
+ADR-0003 record that OpenKeeper was consulted as documentation only, with no
+code copied or transliterated, so nothing in this repository was under a
+copyleft obligation. The MIT-licensed material that *is* here — the GLKeeper WAD
+decompression adaptation in `WadDecompressor.cs`, and YamlDotNet — is
+GPL-compatible and keeps its own attribution.
+
+### The defect this uncovered
+
+The natural way to enforce a file header in .NET is Roslyn's IDE0073 with
+`file_header_template` in `.editorconfig`, and with
+`EnforceCodeStyleInBuild` + `TreatWarningsAsErrors` already set in
+`Directory.Build.props` it becomes a build error for free. That was built, and
+it works — for MIT.
+
+**It could not express the GPL's prose notice. An `.editorconfig` value ends at
+the first `;`, and that notice has one here:**
+
+```
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+```
+
+The template silently truncated at the semicolon. Roslyn then enforced, and
+`dotnet format` wrote into seven files, a notice whose warranty disclaimer had
+been cut in half — and the build went green, because the files matched the
+truncated template exactly. There is no escape for `;` in the format.
+
+**The MIT text contains no semicolon.** That is the only reason IDE0073 looked
+like the answer, and it is why this was found by changing licence rather than by
+review: the mechanism was never correct, only untested against text that
+happened to exercise it.
+
+### The enforcement
+
+`tests/DK2.Core.Tests/LicenseHeaderTests.cs` renders `license.txt` and asserts
+that all 134 source files start with it. Three reasons a test rather than an
+analyser:
+
+1. **It covers `unity/DK2.Unity/Assets`.** No project in `DK2.slnx` compiles
+   those three files — only `unity/DK2.Unity.Compile` does, and that needs an
+   installed editor (ADR-0036) — so a build-time analyser is structurally blind
+   to exactly the files most likely to be forgotten.
+2. It has no `;` problem, and no dependence on a template format's parsing.
+   **Note that the three-line notice contains no semicolon, so IDE0073 would
+   work today.** It is still not used: "correct as long as nobody lengthens the
+   text" is the same accident as before, and it fails silently both times.
+3. CI already runs `dotnet test DK2.slnx` on Linux and Windows, so it is gated
+   with no new workflow step.
+
+The sweep asserts its own file count is above 100 before checking anything. A
+search that finds nothing passes every content assertion, which is how a check
+becomes a decoration; this project has enough of those in its history
+(ADR-0036, ADR-0039, ADR-0040) to write the guard in up front.
+
+`.editorconfig` keeps the whole account of the IDE0073 failure, next to the
+`end_of_line = lf` that stops `dotnet format` rewriting whole files to CRLF on
+Windows — which it did, twice, while this was being built.
+
+### Open, not decided
+
+**GPLv3 and Unity.** OpenKeeper builds on jMonkeyEngine, which is BSD;
+this project builds on Unity, which is proprietary. Distributing GPLv3 game code
+that links a proprietary engine runtime is a known friction point, and it is not
+resolved here because nothing is distributed yet. It needs an answer before the
+first public build, not before the next commit.
