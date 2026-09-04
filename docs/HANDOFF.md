@@ -13,9 +13,9 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **721 tests green**
+**every** record type's on-disk size is now known and pinned. **741 tests green**
 with and without a DK2 install; **15 scenarios** run, each drawing a picture of
-its finished world; clean tree. (Core 17, Simulation 407, Data 64, Behavior 147,
+its finished world; clean tree. (Core 17, Simulation 425, Data 64, Behavior 149,
 Assets 60, Presentation 26.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
@@ -2962,3 +2962,96 @@ ADR-0051's correction wants a creature-carrying imp task rather than a record.
 **Q131 is the one thing ADR-0054 assumed and nobody has watched:** whether a
 fresh lair tile looks bare or arrives furnished. It is on the observation
 checklist as the cheapest item on it.
+
+## Nineteenth sitting, continued: the hatchery, and the Rosetta stone
+
+| | |
+|---|---|
+| `8746cfc` | **The hatchery lays an egg, and one variable is read 223 times** — research only |
+| `37f6e5a` | **A coop for every six tiles, and an egg on one of them** — `HatcheryRules` |
+
+**741 tests green**, 15 scenarios, zero warnings. **Hashes unmoved** — a rules
+class nothing calls cannot change a world, and the new fixture terrain is not on
+the pinned map.
+
+### THE BIG ONE: the balance table's id → global map
+
+Chasing the hatchery's interval multiplier turned up the engine's
+**balance-variable dispatch**: a 240-entry jump table indexed by **id − 3**,
+each entry a three-instruction stub storing the value into **one dedicated
+global**. Following all 240 gives a complete map for **181 variables**, which
+answers a question this project could not previously ask at all — **what code
+reads variable N.** There are 214 of them and several community names have
+already proved wrong. `docs/research/balance-variables-in-the-binary.md`.
+
+**Why the map is believed:** variable 18 is
+`ChickenGenerationTimePerHatchery`, and **two of the three readers of the global
+it maps to are functions inside `Hatchery.cpp`**. Plus: the globals are
+contiguous in id order (an off-by-one would break the ordering, not shift it);
+177 of the 181 are ids we had already named; and the **59 slots with no global
+are ids 4–17, the entire tile-work health block**, which the work code reads as
+a set indexed by job.
+
+### Variable 19 is a phantom, and it may be Q1
+
+- global read from **223 instructions** — the most of any; 225 of the 226 raw
+  occurrences are **direct absolute operands**, so no array-indexing inflation;
+- a **multiplier 28 times, a divisor 22 times**;
+- **exactly one instruction in the whole binary writes it** — its own stub;
+- lives in **uninitialised `.data`**, so the image carries no default;
+- and **no shipped file supplies id 19** — checked across all **1236 files**,
+  with a scanner first validated against ids 3, 18 and 74 (it finds those,
+  including `GameTicks` = 340 in 64 level files, exactly as Q1 recorded).
+
+Twenty-two sites divide by it and the game does not fault. Multiply-and-divide
+is the signature of a **unit conversion**; the table is in seconds and the
+engine counts ticks. **Strongest candidate yet for Q1** — and note the contrast
+it draws: `GameTicks` is read **twice** against variable 19's 223. **Q132, and
+it must not be guessed.**
+
+### The hatchery itself
+
+- **coops = min(tiles / 6, 36)**, integer division: a 3×3 room gets **one**;
+- **no two coops within a squared distance of 3** — not the same tile, not
+  orthogonally adjacent, not diagonally adjacent. The original compares
+  fixed-point distances against 3.0; integer tile distances against 3 are
+  **exactly equivalent**, because a coop always stands at a tile centre;
+- placement **walks the room's tiles** — no RNG, and the original has none;
+- **the room lays OBJECT 47, THE EGG**, at a randomly chosen coop, or on a
+  randomly chosen empty tile if the room earned no coop;
+- interval = `(int)(var18 / pow(tiles, 0.315477776)) × var19`, and the exponent
+  is chosen so **nine tiles gives exactly 2.0001** — the check that the formula
+  was read right.
+
+**THE EGG IS NOT FOOD**, and tests pin the negative. Only object 9, the Chicken,
+carries `TypeFood`, has `HpFromChicken` against it, and can be picked up; their
+`StartState`s are 10 and 0. So a transition exists that this project had never
+accounted for — **Q133**, and the owner can settle it by looking at a hatchery.
+
+`HatcheryRules` has all of the above except the clock, and the free-range cap
+(12) is **exposed but not enforced** because what its per-player counter counts
+is UNKNOWN. Registered as no system, deliberately.
+
+### Also established
+
+`DKII.EXE` and `DKII-DX.exe` are **the same size to the byte** and differ in
+**1126 bytes of 2.99 MB**, the first at 0x130 in the PE header. One game, two
+renderer paths — so a fact read out of `DKII.EXE`'s game logic holds for the DX
+build. The registry confirms **v1.70**.
+
+### Where to pick up
+
+**Gold on the floor** is the next clean piece: three of the 145 objects, the
+world has a list to put one in, and `CreatureDeathRules` already reports the
+gold it cannot drop. Then the **graveyard**, which wants a creature-carrying imp
+task rather than a record (ADR-0051's correction).
+
+**Do not build the hatchery's clock** until Q132 is answered.
+
+### Owner questions added this sitting
+
+**Q131** does a fresh lair tile look bare or arrive furnished · **Q132** what is
+variable 19 and what supplies it (the big one) · **Q133** does a hatchery make
+eggs or chickens, and does the loose flock stop at twelve · **Q134** why the
+exponent is 0.315477776 (recorded, does not matter). Q131 and Q133 are on the
+observation checklist as things to settle **by looking**.
