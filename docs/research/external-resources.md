@@ -5,34 +5,76 @@ possible. It is an invaluable resource and it is also **GPLv3**, so "as much as
 possible" has a precise boundary that this file records once so it does not have
 to be re-argued.
 
+**Revised 2026-09-04**: this project moved from MIT to GPLv3 (ADR-0041), which
+removed the *legal* half of that boundary and left the *methodological* half
+standing. The section below separates the two, because they no longer say the
+same thing.
+
 ---
 
 ## The licence boundary — read this before opening any of it
 
-**This project is MIT** (owner decision, ADR-0003). That is not a style
-preference; it decides what may enter the repository.
+**This project is GNU GPL version 3 or later** (owner decision 2026-09-04,
+ADR-0041; it was MIT until then, ADR-0003). Every source file carries
+`SPDX-License-Identifier: GPL-3.0-or-later` and a test enforces it.
 
-| source | licence | what we may take |
-|---|---|---|
-| **OpenKeeper** | **GPLv3** | **facts only, with provenance. No code, no structure, no translation.** |
-| Flame | unlicensed | facts only, with provenance |
-| GLKeeper | MIT | code may be adapted **with attribution** — done once, for the WAD decompressor (`THIRD-PARTY-NOTICES.md`) |
-| KeeperKlan / editor manual / format write-ups | third-party documentation | facts freely, cite the source |
-| the DK2 install itself | proprietary | **nothing may be redistributed** — no executable, model, texture, audio, video or map file |
+**Read the next two paragraphs together, because the interesting part of this
+file is that they now disagree.**
 
-**Why "facts only" and not "code with attribution".** GPLv3 is copyleft: a
-derivative work must itself be GPLv3. Copying, translating or closely
-paraphrasing OpenKeeper's Java into our C# would make this project GPLv3 too,
-which is the one outcome the owner's licence choice rules out. Facts —
-"the TERRAIN record is 552 bytes", "field 0x190 is a flag word" — are not
-copyrightable, and taking those is exactly what ADR-0003 already permits.
+| source | licence | what the *licence* permits | what this project *does* |
+|---|---|---|---|
+| **OpenKeeper** | **GPLv3** | code may be combined with a GPLv3 work, with attribution and notices retained | **facts only, with provenance — still no code.** A project choice now, not a legal limit. See below |
+| Flame | unlicensed | **nothing** | facts only, with provenance |
+| GLKeeper | MIT | inclusion in a GPLv3 work is fine (MIT is one-way compatible) | adapted once, for the WAD decompressor, attributed in `THIRD-PARTY-NOTICES.md` |
+| YamlDotNet | MIT | same | referenced as a package, attributed |
+| KeeperKlan / editor manual / format write-ups | third-party documentation | facts freely, cite the source | same |
+| the shipped DK2 manual | EA copyright | nothing may be redistributed | quoted in short excerpts for research (`manual-1999.md`); the PDF stays in gitignored `original-reference/` |
+| the DK2 install itself | proprietary | **nothing may be redistributed** | no executable, model, texture, audio, video or map file is ever committed |
 
-**The narrower risk, which matters even where the law is comfortable.** This
-project's brief asks for *clean-room behavioural reimplementation based on
-observed behaviour and documented research*. Reading somebody else's
-implementation makes a clean-room claim harder to make honestly, whatever the
-licence says. So the order of preference stays what the research method in
-`HANDOFF.md` already says:
+### The licence bar on OpenKeeper is gone. The project bar is not.
+
+Until 2026-09-04 the rule "no OpenKeeper code" had a legal reason: GPLv3 is
+copyleft, so copying its Java into an MIT project was the one outcome the
+licence choice ruled out. **That reason no longer exists** — this project is
+GPLv3, and GPLv3 code may be combined with it.
+
+Three things still forbid it, and none of them was ever a licence consequence:
+
+1. **The brief.** It asks for *clean-room behavioural reimplementation based on
+   observed behaviour and documented research rather than copying proprietary
+   implementation wholesale*. Reading somebody else's implementation makes a
+   clean-room claim harder to make honestly, whatever the licence says.
+2. **The owner's standing instruction**, given when OpenKeeper was first cloned:
+   *"if someone has already done the research and it is solid, not refutable, why
+   wander around? I need you to just reference it and compare with our own
+   findings, not copy it."* Reference and compare — not adopt.
+3. **It has been working.** Under the facts-only rule OpenKeeper has confirmed
+   three scan-derived offsets, **every** record type's on-disk size (eight of
+   them new, each correct to the byte on the first attempt), the MAP flags byte
+   from an independent direction, and one place where its own layout is
+   incomplete (Q70). Worked examples 2, 3 and 5 below are the record. A rule
+   that has produced that much corroboration is not obviously worth relaxing.
+
+**Worked example 5 is the template to keep**, and it is the sharpest case yet of
+why "reference, don't copy" is a *good* rule rather than a merely lawful one. On
+Q74 their source supplied a mechanism we had not considered
+(`ALTER_TERRAIN_TYPE`) and a byte layout that would have cost an afternoon of
+scanning; sweeping the shipped maps supplied the **answer**, which no amount of
+reading their code could have given, because their code does not know what the
+shipped maps contain either. Theirs said *how a tile could be closed*; ours said
+*whether any tile is*.
+
+**If the owner wants to change this, it takes its own ADR** — plus an entry in
+`THIRD-PARTY-NOTICES.md` and retained upstream copyright notices, because GPLv3
+attribution is an obligation and not a courtesy. Not a quiet copy. The one place
+worth even asking about is the file-format readers, which are the most complete
+in existence — and which are also the part already reproduced here independently
+and cross-validated to the byte. Their **gameplay** code is the part where the
+clean-room argument would cost something, and it is also where their own authors
+say the least is settled: OpenKeeper's creature AI has been an acknowledged stub
+for years, which is the same wall Q7 describes here.
+
+### The order of preference, unchanged
 
 1. ask the owner, or observe the original;
 2. read the KWD data ourselves;
@@ -41,13 +83,17 @@ licence says. So the order of preference stays what the research method in
    file-format *facts*;
 5. IDA/Ghidra on the executable.
 
-**Where OpenKeeper is most valuable and least risky:** it has solved the *file
-formats* and it has 2,800 commits of accumulated knowledge about which fields
-matter. Reading its **field names and record layouts as facts** is squarely
-inside the boundary. Reading its **gameplay rule implementations** is where the
-clean-room argument starts costing something — and it is also where its own
-authors say the least is settled: OpenKeeper's creature AI has been an
-acknowledged stub for years, which is the same wall Q7 describes here.
+### What the relicence *did* change here
+
+- **Flame did not move.** Unlicensed is unlicensed; a copyleft licence on our
+  side grants nothing over somebody else's work.
+- **The MIT material already here is fine.** MIT is one-way compatible with
+  GPLv3, so the GLKeeper WAD adaptation and YamlDotNet keep their attribution
+  and need no action (`THIRD-PARTY-NOTICES.md` says so).
+- **Provenance matters more, not less.** Under GPLv3 a borrowed *implementation*
+  carries attribution and notice-retention obligations, so the line between "we
+  learned a fact from them" and "we took code from them" has to stay visible in
+  the record. Every research note already states its source; keep doing that.
 
 **If a specific case looks borderline, flag it to the owner rather than
 deciding.** That instruction is in the brief and this file does not override it.

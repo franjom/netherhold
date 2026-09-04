@@ -136,6 +136,58 @@ within minutes of the second screenshot arriving. See `imps-and-mana.md`
 
 ## 1. Still open, and blocking
 
+### Q86 — the portal: four things, and they block the next thing being built — **NEW**
+
+The portal is next (agreed 2026-09-04) because it is the only room whose
+behaviour needs no creature health, hunger, mood or experience — none of which
+exists — and because **every other room needs occupants and nothing currently
+produces any**. Its data is all parsed and loaded: level 1's pool is fifteen
+Goblins, its spawn interval is 18 seconds, and the cap variables say fifteen for
+a first portal and five for each after.
+
+What the files cannot say is how it *behaves*. All four of these are things you
+would see happen.
+
+**1. What does a portal do when the pool is empty?** Level 1's pool is a single
+entry — fifteen Goblins. After the fifteenth arrives, does the portal simply stop
+producing, or does something else happen (a message, a different creature, the
+pool refilling)? **Watch a level to the end of its pool.** Level 1 is the obvious
+one, and 8 minutes is its own expected play time.
+
+**2. Is the creature cap really per portal?** The variables are named
+`CreaturesSupportedByFirstPortal` (15) and
+`CreaturesSupportedPerAdditionalPortal` (5), which is unambiguous about intent —
+but names have been wrong before (`ModifyPlayerColdWhileTraining` is a typo for
+*Gold*). **On a level with two claimable portals: claim the second and see
+whether your maximum creature count rises by five, and whether it rises the
+moment you claim it.**
+
+**3. Is attraction re-checked continuously, or only when a creature spawns?**
+This decides something real: if you sell your only lair, does the next goblin
+still arrive because attraction was already satisfied, or does the portal go
+quiet immediately? **Build a lair, wait for a creature or two, sell the lair, and
+watch whether the next arrival still comes.**
+
+**4. Does the spawn interval run per portal or per keeper?** With two portals, do
+creatures arrive twice as fast? Same experiment as (2), watching the clock rather
+than the cap.
+
+**A fifth, if it is easy:** the manual says a **sacked** creature (dropped back
+into the portal) *"leaves the dungeon immediately and, providing you are below
+your maximum creature level, they are replaced by a new creature"*, and that
+sacking makes that type rarer afterwards
+(`DecreaseEntrancePersentageOfLastSackedCreatureType` = 33). **Does the
+replacement arrive at once, or after the normal interval?**
+
+**And a warning about attraction sizes before any of this is built.** Q61/Q80 is
+a live three-way disagreement: you *and* the 1999 manual say a Dark Angel needs a
+5x5 temple; the shipped v1.70 record says `size >= 0`. The mechanism can
+certainly express a minimum — four creatures carry one (Bile Demon and Giant want
+a Hatchery of 25+ tiles, Royal Guard a Training Room of 25+, Maiden Of The Nest a
+Temple of 9+) — it just does not carry one for the Dark Angel. The 3x3-temple
+experiment under Q61 below settles it.
+
+
 ### Q59 — how much mana does one trap draw? — **ANSWERED and pinned**
 You measured five: **Spike 5, Sentry 5, Fireburst 10, Freeze 10, Lightning 25**.
 That is `Traps.kwd` offset **0x0202**, and the whole column comes with it:

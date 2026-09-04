@@ -50,8 +50,12 @@ test run if any simulation assembly references an assembly named `Unity*`.
 > "enforced at compile time" in an ADR title is a claim that itself needs a
 > test.**
 
-## ADR-0003 — MIT license; clean-room use of reference projects
-**Date:** 2026-08-29 · **Status:** accepted (owner decision)
+## ADR-0003 — ~~MIT license;~~ clean-room use of reference projects
+**Date:** 2026-08-29 · **Status:** **licence half SUPERSEDED by ADR-0041
+(2026-09-04); clean-room half still in force**
+
+*(Original text, kept for the record. **The first sentence is no longer true** —
+see the amendment below.)*
 
 This project is MIT-licensed. Consequences:
 - **OpenKeeper (GPLv3):** no code may be copied or transliterated. Facts
@@ -60,6 +64,41 @@ This project is MIT-licensed. Consequences:
   reuse rights at all. Its symbol maps are consulted as research material.
 - Every research note in `docs/research/` records provenance so any borrowed
   *fact* can be traced to its source.
+
+> ### ⚠ Amended 2026-09-04: the project is GPLv3, and one of these three rules
+> ### rested on the licence rather than on the method
+>
+> `LICENSE` is now GNU GPL version 3 and every source file carries
+> `SPDX-License-Identifier: GPL-3.0-or-later` (ADR-0041, owner decision). The
+> premise of this ADR is therefore gone. What it decided does **not** all fall
+> with it, and the difference matters:
+>
+> | rule | still holds? | on what grounds |
+> |---|---|---|
+> | **OpenKeeper: no code copied or transliterated** | **YES — but the reason changed** | The *licence* bar is gone: GPLv3 code may be combined with a GPLv3 work. What still forbids it is (a) the brief's request for *clean-room behavioural reimplementation based on observed behaviour and documented research*, and (b) the owner's explicit standing instruction — *"reference it and compare with our own findings, not copy it"*. Both are project choices, and neither was ever a licence consequence. |
+> | **Flame: no reuse rights at all** | **YES, unchanged** | Unlicensed is unlicensed. A copyleft licence on *our* side grants nothing over *their* work. |
+> | **Provenance recorded for every borrowed fact** | **YES, and it matters more now** | Under GPLv3 a borrowed *implementation* would need attribution and notice retention, so the line between "we learned a fact" and "we took an implementation" has to stay visible in the record. |
+>
+> **What genuinely changed is that a door is now open that used to be shut**, and
+> whether to walk through it is the owner's call rather than a licence question.
+> The most tempting candidate is the one place this project has repeatedly said
+> "nobody has solved this": OpenKeeper's creature AI is an acknowledged stub, so
+> the temptation is smaller than it looks. Its **file-format readers**, by
+> contrast, are the most complete in existence — and they are also the part we
+> have already reproduced independently and cross-validated to the byte
+> (`external-resources.md`, worked examples 2, 3 and 5).
+>
+> **Recommendation on record, for whoever asks next:** keep the clean-room rule
+> as a project standard, and keep taking facts with provenance. It has been
+> working — three scan-derived offsets and every record size confirmed against an
+> independent source, and in the one case where OpenKeeper had something we did
+> not (`ALTER_TERRAIN_TYPE`, Q74) the *mechanism* came from them and the *answer*
+> came from sweeping the install, which is exactly the division of labour to keep.
+> If the owner does decide to adopt code, it needs its own ADR, an entry in
+> `THIRD-PARTY-NOTICES.md`, and retained upstream notices — not a quiet copy.
+>
+> The full boundary table lives in `docs/research/external-resources.md` and has
+> been rewritten for GPLv3.
 
 ## ADR-0004 — xoshiro256** as the simulation RNG
 **Date:** 2026-08-29 · **Status:** accepted
@@ -1875,9 +1914,11 @@ ADR-0015), and whether the mana ceiling is flat or per-heart.
   the PDF directly.
 - The manual is **not** an oracle for timing. It says "each turn" throughout and
   never defines a turn, so it says nothing about Q1.
-- The PDF stays out of the repository. It is EA's copyright, this project is MIT
-  and public, and it lives under `original-reference/` with the rest of the
-  original material.
+- The PDF stays out of the repository. It is EA's copyright and this repository
+  is public, and it lives under `original-reference/` with the rest of the
+  original material. (Written when the project was MIT; the licence changed to
+  GPLv3 the same day, ADR-0041, and it makes no difference here — our licence
+  grants nothing over EA's work either way.)
 
 ---
 

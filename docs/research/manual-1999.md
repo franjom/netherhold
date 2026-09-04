@@ -6,9 +6,11 @@ Ladenburg (credits, p.44). Text extracted locally with `pdftotext`; page numbers
 below are PDF pages, and the manual's own printed numbers run 8 pages behind
 (PDF p.19 is printed p.34).
 
-> **LEGAL — flagged, and handled.** The PDF is EA's copyrighted work, and this
-> repository is MIT and public. It was raised as a question when the file first
-> landed in `docs/`; the owner moved it to `original-reference/`, which the
+> **LEGAL — flagged, and handled.** The PDF is EA's copyrighted work and this
+> repository is public. (It was MIT when this was written and is GPL-3.0-or-later
+> since 2026-09-04, ADR-0041; that changes nothing here — our licence grants
+> nothing over EA's work either way.) It was raised as a question when the file
+> first landed in `docs/`; the owner moved it to `original-reference/`, which the
 > existing "NEVER COMMIT: original Dungeon Keeper 2 material" rule already
 > ignores. So it is a local reference and nothing more. **This document quotes it
 > in short excerpts for research purposes and paraphrases everywhere the wording

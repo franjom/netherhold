@@ -857,12 +857,26 @@ Everything else is manageable.
 
 ## 10. Decisions required before implementation
 
-### 10.1 Licensing policy — **RESOLVED 2026-08-29: MIT + clean-room (ADR-0003)**
+### 10.1 Licensing policy — **RESOLVED: GPL-3.0-or-later + clean-room (ADR-0041, amending ADR-0003)**
 
-> Owner decision: the project is MIT-licensed. The clean-room policy below is
-> therefore in force — facts from Flame/OpenKeeper may be used, code may not.
+> **Owner decision 2026-09-04: the project is GNU GPL version 3 or later**, to
+> match OpenKeeper. It was MIT from 2026-08-29 until then (ADR-0003). Every
+> source file carries `SPDX-License-Identifier: GPL-3.0-or-later`, enforced by
+> `LicenseHeaderTests` rather than by an analyser (ADR-0041 records why).
+>
+> **The clean-room policy below stays in force, and its basis changed.** Under
+> MIT it was a licence consequence; under GPLv3 copying OpenKeeper's code would
+> be lawful, and it is still not done — because the brief asks for clean-room
+> behavioural reimplementation and the owner's instruction is to *"reference it
+> and compare with our own findings, not copy it"*. **Flame is unchanged:**
+> unlicensed means no reuse rights regardless of our licence. Facts from either,
+> always with provenance. Full boundary table:
+> `docs/research/external-resources.md`.
+>
 > Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Original analysis kept
-> below for the record.
+> below for the record — note that its conclusion "copying OpenKeeper's code
+> obliges us to license the whole project GPLv3" is now moot, because the whole
+> project *is* GPLv3.
 
 Established facts: [KNOWN]
 

@@ -524,3 +524,41 @@ which code does it, or say plainly that none does.**
 Goal 5 (research before implementation) is not damaged by this — the research was
 right and it was done first, which is the whole discipline working. What failed
 is the handover from research to code, and that is a different seam.
+
+### Second addendum, same day — a fourth instance, and it was a check that lied
+
+The pattern above gained a fourth member within hours, and it is the worst of the
+four because the check was *present and green*.
+
+The MIT file header was enforced by Roslyn's IDE0073 with `file_header_template`
+in `.editorconfig`. When the project moved to GPLv3 (ADR-0041) the notice text
+changed — and an `.editorconfig` value **ends at the first `;`**, which the GPL's
+prose notice has in *"WITHOUT ANY WARRANTY; without even the implied warranty
+of"*. The template truncated silently. Roslyn enforced the truncated form,
+`dotnet format` wrote it into seven files, and **the build was green**, because
+every file matched the template exactly.
+
+The MIT text contains no semicolon. That is the only reason the mechanism ever
+looked correct: it was never right, only untested against text that exercised it.
+
+| | stated where | enforced where | how long | how it surfaced |
+|---|---|---|---|---|
+| netstandard2.1 target | props file, condition evaluated too early | nowhere | 4 months | first attempt to load a DLL into Unity |
+| creatures do not walk through walls | one line of `WorldPathGrid` | nowhere | 4 months | the owner said it out loud |
+| levels override the balance table | a research doc | nowhere | 6 days | checking what the next task needed |
+| **the licence notice** | `.editorconfig` | **IDE0073 — and it passed** | ~1 hour | changing the text it checked |
+
+So the standing review question needs its third clause. Not only *what would fail
+if this claim stopped being true* and *does anything read this fact at all*, but
+also: **could this check pass while the thing it checks is wrong?** A check whose
+input is silently transformed before comparison — truncated, normalised,
+lower-cased, trimmed — is checking something other than what it appears to.
+
+The replacement is instructive on two counts beyond the licence. It is a **test
+rather than an analyser**, because a build-time analyser is structurally blind to
+`unity/DK2.Unity/Assets` — no project in `DK2.slnx` compiles those files, so the
+files most easily forgotten are exactly the ones it cannot see. And it **asserts
+its own sample size** (more than 100 files found) before checking any content,
+because a sweep that finds nothing passes every content assertion. Both are
+cheap; both would have caught a different failure from the one they were written
+for.

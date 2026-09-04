@@ -10,11 +10,18 @@ Update this whenever a session ends or context is compacted.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier, where imps come from, the asset layer and the presentation boundary:
-complete. M3 as a whole: partial — there is still no Unity view.** M2 and the
+complete, and each level now plays on its own balance numbers. M3 as a whole:
+substantially complete — the Unity view renders campaign level 1.** M2 and the
 five record types M1 needed are done, and **every** record type's on-disk size is
-now known and pinned. **511 tests green** with and without a DK2
-install; ten scenarios run, each now drawing a picture of its finished world;
-clean tree. (Core 16, Simulation 262, Data 63, Behavior 84, Assets 60, Presentation 26.)
+now known and pinned. **512 tests green** with and without a DK2
+install; ten scenarios run, each drawing a picture of its finished world;
+clean tree. (Core 17, Simulation 262, Data 63, Behavior 84, Assets 60, Presentation 26.)
+
+**Licence: GNU GPL version 3 or later** (2026-09-04, ADR-0041). Every source file
+carries the three-line SPDX notice, and `LicenseHeaderTests` enforces it rather
+than an analyser. This changed the *research method* as well as distribution —
+"no OpenKeeper code" is now a project standard rather than a legal limit. See
+*Decisions already made* below and `docs/research/external-resources.md`.
 
 > ### The asset layer and the presentation boundary landed 2026-09-04 (ADR-0034, ADR-0035)
 >
@@ -399,7 +406,7 @@ to miss.
 | `unity/DK2.Unity.Compile/` | **Compiles the adapter against Unity's real assemblies.** The only way "do not commit code you have not built" reaches Unity code. Outside `DK2.slnx` on purpose. |
 | `unity/README.md` | How to run it, and four things it deliberately does not do. |
 | `docs/research/wall-rendering.md` | How DK2 actually draws walls (Simon Schreibt, verified vs inferred separated). Corroborated `HealthPermille`, refuted one-mesh-per-terrain, and produced Q71/Q72. Rendering only — **no rule may depend on it**. |
-| `docs/research/external-resources.md` | **The licence boundary, once**, plus four worked cross-checks. OpenKeeper is GPLv3 and this is MIT: facts with provenance, never code. **It has confirmed three scan-derived offsets and every record type's size** (eight of them new, each to the byte), the MAP flags byte from a second direction, and one place where its own layout is incomplete (Q70). Read before researching anything that might be answered outside this repo. |
+| `docs/research/external-resources.md` | **The licence boundary, once**, plus five worked cross-checks. OpenKeeper is GPLv3 and so is this project since 2026-09-04 - so "no code" is now a **project standard, not a licence rule**: facts with provenance, never code, because the brief asks for clean-room work and the owner asked for reference-and-compare. **It has confirmed three scan-derived offsets and every record type's size** (eight of them new, each to the byte), the MAP flags byte from a second direction, and one place where its own layout is incomplete (Q70). Read before researching anything that might be answered outside this repo. |
 | `docs/research/observation-checklist.md` | **Hand this to the owner.** Every open question a person playing DK2 can settle by looking, as experiments — and which ones playing cannot settle. |
 
 ## Running things
@@ -656,11 +663,21 @@ for this; Q47 in `open-questions.md` is the current statement.
 
 ## Decisions already made — do not relitigate
 
-- **MIT licence** (owner decision). Consequence: **no code may be copied from
-  OpenKeeper (GPLv3) or Flame (unlicensed)** — facts only, always with
-  provenance. See ADR-0003 in `docs/DECISIONS.md`.
-- GLKeeper is MIT, so its code *may* be adapted with attribution — this was done
-  once, for the WAD decompressor (`THIRD-PARTY-NOTICES.md`).
+- **GPL-3.0-or-later** (owner decision 2026-09-04, ADR-0041; MIT until then).
+  Every source file carries the three-line SPDX notice and
+  `LicenseHeaderTests` fails the build if one does not. **The notice is not
+  enforced by IDE0073 and that is deliberate** — see ADR-0041 for the semicolon
+  defect that made an analyser silently enforce a truncated notice.
+- **No code is copied from OpenKeeper — and since 2026-09-04 that is a project
+  standard rather than a licence rule.** GPLv3 code may legally be combined with
+  a GPLv3 work; what still forbids it is the brief's clean-room request and the
+  owner's own instruction to *"reference it and compare with our own findings,
+  not copy it"*. Flame is unaffected: unlicensed means no reuse rights whatever
+  our licence is. Facts only, always with provenance. See the amendment on
+  ADR-0003 and the rewritten boundary table in `external-resources.md`.
+- GLKeeper (MIT) and YamlDotNet (MIT) are GPL-compatible and keep their own
+  attribution; the GLKeeper WAD decompressor adaptation needed no action on the
+  relicence (`THIRD-PARTY-NOTICES.md`).
 - Integer/fixed-point for gameplay maths, `float` presentation-only (ADR-0001).
 - Simulation assemblies target netstandard2.1 and must never reference Unity;
   enforced by `ArchitectureTests` (ADR-0002).
@@ -858,10 +875,13 @@ Cheap-to-expensive, stop as soon as the question is answered:
 0. **Read `docs/research/external-resources.md` first if the question might be
    answered outside this repo.** It records the seven resources OpenKeeper
    points at, which of them still resolve, what each is good for and **when** -
-   and, once, the licence boundary: **OpenKeeper is GPLv3 and this project is
-   MIT, so facts with provenance only, never code.** It also holds the worked
-   example of these sources paying off (an independent reversal confirming the
-   MAP flags byte without knowing what it meant).
+   and, once, the licence boundary. **Both projects are now GPLv3, so "facts with
+   provenance only, never code" is a project standard rather than a legal
+   limit** - and it stands, because the brief asks for clean-room work and the
+   owner asked to reference and compare rather than copy. It also holds five
+   worked examples of these sources paying off, including an independent reversal
+   confirming the MAP flags byte without knowing what it meant, and the Q74 case
+   where their source supplied the mechanism and the install supplied the answer.
 
 0b. **Ask the owner, or hand them `docs/research/observation-checklist.md`.**
    They have played DK2 and the original is the behavioural oracle. That file
@@ -1440,10 +1460,19 @@ flags", so the stamping was owed. **133 files stamped** from the one file that
 already carried the header, in a commit of its own (`bd68066`) so the diff stays
 readable.
 
-`LicenseHeaderTests` is worth knowing about: it ties the three copies of the MIT
+`LicenseHeaderTests` is worth knowing about: it tied the three copies of the
 notice together — `LICENSE`, `license.txt` (an IDE header template) and
-`.editorconfig` (the copy Roslyn enforces). Before it, those three could have
+`.editorconfig` (the copy Roslyn enforced). Before it, those three could have
 said different things and every build and test would still have passed.
+
+> **All of the above was MIT, and lasted about an hour.** The project moved to
+> **GPL-3.0-or-later** the same evening (ADR-0041), the notice shrank to three
+> SPDX lines, and IDE0073 was removed from `.editorconfig` altogether after it
+> silently enforced a *truncated* GPL notice — an `.editorconfig` value ends at
+> the first `;` and the GPL's prose has one in "WITHOUT ANY WARRANTY; without
+> even the implied warranty". Enforcement is now `LicenseHeaderTests` alone,
+> which also covers `unity/DK2.Unity/Assets` that no analyser in `DK2.slnx` can
+> see. See the thirteenth sitting below.
 
 ### The lesson, and it is the same one for the third time in a week
 
@@ -1496,3 +1525,159 @@ After the portal: the **library** (needs no creature needs at all — a creature
 stands in the room and contributes `ResearchPerSecond` until a spell completes,
 and `Availability` states 2 and 3 are the before and after), then the **training
 room**, then whatever objects unlock at M6.
+
+---
+
+## The thirteenth sitting (2026-09-04) — GPLv3, and what it changed downstream
+
+The owner relicensed the project from MIT to **GNU GPL version 3 or later**, to
+match OpenKeeper. The licence mechanics are all in **ADR-0041** and were already
+committed (`4671293`) — `LICENSE` is the verbatim GPLv3, `license.txt` is the
+three-line SPDX notice as a FreeMarker template, every source file carries it,
+and `LicenseHeaderTests` enforces it. This entry covers the part that was left:
+**what the relicence means for how research is done.**
+
+### The one thing to carry forward
+
+**"No OpenKeeper code" survived the relicence, but its reason did not.**
+
+Under MIT the rule had a legal basis: GPLv3 is copyleft, so copying its Java into
+an MIT project was the one outcome the licence choice ruled out. That basis is
+gone — this project is GPLv3, and GPLv3 code may lawfully be combined with it.
+
+Three things still forbid it, and **none of them was ever a licence
+consequence**:
+
+1. **The brief** asks for clean-room behavioural reimplementation from observed
+   behaviour and documented research.
+2. **The owner's standing instruction**: *"reference it and compare with our own
+   findings, not copy it."*
+3. **It has been working.** Under facts-only, OpenKeeper has confirmed three
+   scan-derived offsets, every record type's on-disk size (eight new, each to the
+   byte first time), the MAP flags byte from an independent direction, and one
+   place where its own layout is incomplete (Q70).
+
+So the *practice* does not change. What changed is that **a door is now open that
+used to be shut, and walking through it is the owner's call rather than a legal
+question.** If they ever do, it needs its own ADR, an entry in
+`THIRD-PARTY-NOTICES.md` and retained upstream notices — GPLv3 attribution is an
+obligation, not a courtesy. Recorded as an amendment on ADR-0003 with a
+recommendation on file, and the boundary table in `external-resources.md` is
+rewritten to separate *what the licence permits* from *what this project does*,
+because those two columns now disagree.
+
+Two smaller consequences, both settled: **Flame did not move** (unlicensed is
+unlicensed; our licence grants nothing over someone else's work), and **the MIT
+material already here is fine** (MIT is one-way compatible with GPLv3, so the
+GLKeeper WAD adaptation and YamlDotNet keep their attribution and needed no
+action).
+
+### The defect the relicence uncovered, which is worth knowing about
+
+Worth reading ADR-0041 for this even if the licence itself is of no interest.
+
+The MIT header was enforced by Roslyn's **IDE0073** with `file_header_template`
+in `.editorconfig`, which `TreatWarningsAsErrors` turned into a build error for
+free. It worked — **for MIT.** An `.editorconfig` value **ends at the first
+`;`**, and the GPL's prose notice has one in
+
+> but WITHOUT ANY WARRANTY; without even the implied warranty of
+
+so the template silently truncated. Roslyn then enforced, and `dotnet format`
+*wrote into seven files*, a notice whose warranty disclaimer had been cut in half
+— **with a green build**, because the files matched the truncated template
+exactly.
+
+The MIT text happens to contain no semicolon. That is the only reason the
+mechanism ever looked correct: it was never right, only untested against text
+that exercised it. The three-line SPDX notice has no semicolon either, so IDE0073
+*would* work today, and it is still not used — "correct until somebody lengthens
+the text" is the same accident, and it fails silently both times.
+
+**This is the fourth instance of the week's pattern** (see `GOAL_ALIGNMENT.md`):
+netstandard2.1 declared behind a condition that never fired; walls-block-movement
+implemented in one line and asserted nowhere; per-level variables researched and
+read by no code; and now a header analyser enforcing a text it had quietly
+truncated. All four were *stated correctly somewhere* and *checked by nothing that
+would notice being wrong*.
+
+`LicenseHeaderTests` is the replacement, and it is a test rather than an analyser
+for a reason that generalises: **it can see `unity/DK2.Unity/Assets`, which no
+project in `DK2.slnx` compiles** — only `unity/DK2.Unity.Compile` does, and that
+needs an installed editor. A build-time analyser is structurally blind to exactly
+the files most easily forgotten. It also asserts its own file count is above 100
+before checking anything, because a sweep that finds nothing passes every content
+assertion.
+
+### Documentation brought current
+
+| file | what changed |
+|---|---|
+| `docs/DECISIONS.md` | ADR-0003 marked *licence half superseded, clean-room half in force*, with a table of which of its three rules survive and on what grounds, and a recommendation on record. ADR-0037's "this project is MIT" corrected. |
+| `docs/research/external-resources.md` | Licence boundary rewritten: the table now has separate columns for *what the licence permits* and *what this project does*. New section on why the project bar outlives the licence bar. |
+| `DK2_REIMPLEMENTATION_PLAN.md` §10.1 | Resolved-as-MIT changed to resolved-as-GPLv3, noting the original analysis's conclusion ("copying OpenKeeper obliges GPLv3") is now moot because the project *is* GPLv3. |
+| `docs/research/manual-1999.md` | The legal note on the PDF — the licence change makes no difference there, and it says so. |
+| `docs/HANDOFF.md` | Header, *Decisions already made*, the research-method step 0, and the twelfth sitting's MIT-era account, now marked as having lasted about an hour. |
+
+No source changed in this sitting: **512 tests green** (Core 17, Simulation 262,
+Data 63, Behavior 84, Assets 60, Presentation 26), clean build, ten scenario
+hashes unchanged.
+
+One gap noticed and deliberately not filled: **the repository has no
+`README.md`.** For a public GPLv3 project that is a real omission — what it is,
+that it needs an original DK2 install, that no original asset is redistributed,
+how to build. Left for the owner because a README is a statement of intent about
+the project's public face.
+
+### Next: the portal
+
+Agreed with the owner, and everything it needs is now parsed **and** loaded — the
+per-level variables work of the twelfth sitting was the prerequisite.
+
+**Why the portal before any other room.** Nothing places non-imp creatures today
+(THINGS is unparsed) and `ImpTaskSystem` skips anything without `IsWorker`, so a
+non-worker dropped into the world stands still forever. Every other room's
+behaviour needs occupants. The portal's behaviour *is* producing them, and it
+needs no creature health, hunger, mood or experience — none of which exists.
+
+| what it needs | where it is |
+|---|---|
+| who may enter | `GlobalVariables.CreaturePool`, per level — level 1 is **fifteen Goblins** |
+| whether they are unlocked | `Availability` kind **2** (CREATURE), state **3** (AVAILABLE) |
+| what attracts them | `CreatureAttraction` at CREATURES 0x0DAC, **two** slots, `RoomId` + `RoomSize` in tiles (Q61, Q80) |
+| whether a room qualifies | `RoomInstance.TileCount` / `IsFunctional` (ADR-0027) — already there |
+| how often one arrives | `EntranceGenerationSpeedSeconds` — 25 globally, **18 on level 1** |
+| how many a keeper may hold | `CreaturesSupportedByFirstPortal` **15**, `CreaturesSupportedPerAdditionalPortal` **5** |
+| sacking one | drop it back in; `DecreaseEntrancePersentageOfLastSackedCreatureType` and `IncreaseEntrancePersentageOfNewCreatureTypes` are **33** each |
+| the room itself | `RoomTypeId.Portal` = 3, terrain 12, `Cost` 0, not buildable — **claimed, not built** (manual §4.2.3) |
+
+**What the manual adds** (`manual-1999.md`, p.22): the pool is finite in
+multiplayer; **losing a room removes from the pool every creature that depended
+on it**; a sacked creature leaves immediately and is replaced if below the cap;
+and the portal is `UNAVAILABLE_ROOM` in level 1's availability set, which is
+consistent with it being claimed rather than built.
+
+**Ask the owner before building** — these are all things a player would see:
+
+1. What does a portal do when the pool is empty? Nothing, or does it keep
+   offering creatures already in the dungeon?
+2. Is the cap really per portal (the variable names say so), and does a second
+   portal raise it by 5 immediately?
+3. Is attraction re-checked continuously, or only at the moment of a spawn? (It
+   decides whether selling a lair stops the next goblin or only later ones.)
+4. Does the 25-second (18 on level 1) interval run per portal or per keeper?
+
+**And note the live disagreement in Q61/Q80 before relying on attraction sizes:**
+the owner *and* the 1999 manual say a Dark Angel needs a 5x5 temple; the v1.70
+record says `size >= 0`. Four creatures do carry a real minimum (Bile Demon and
+Giant want Hatchery ≥ 25, Royal Guard Training Room ≥ 25, Maiden Of The Nest
+Temple ≥ 9), so the mechanism can express it — it just does not, for the Dark
+Angel. On the observation checklist.
+
+**After the portal:** the **library** (needs no creature needs at all — a
+creature stands in the room and contributes `CreatureDef.ResearchPerSecond` until
+a spell completes, and `Availability` states RESEARCHABLE → AVAILABLE are the
+before and after; plus the manual's surprise that research is stored *in the
+room* and lost with it), then the **training room** (Q63 measured 20 gold a swing
+at a dummy, and `ModifyPlayerColdWhileTrainingPerSecond` = −5 is a typo for
+*Gold*), then whatever objects unlock at M6.

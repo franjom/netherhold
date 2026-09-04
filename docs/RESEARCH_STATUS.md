@@ -60,7 +60,7 @@ What is *built* rather than known, against the long-term goals:
   docs/research/kwd-variables.md §*Update 2026-09-04*.
 
 ## Unsolved (research required before implementing)
-- **What a room does.** ← the next thing being worked on, and **much less of a
+- **What a room does.** ← being worked on, starting with the **portal**, and **much less of a
   blank sheet than it was**. The ROOMS record carries art, size and cost and says
   nothing about behaviour, but the 1999 manual says what each room is *for* and
   the balance table has a per-second rate for nearly all of it — a lair heals 100
@@ -100,7 +100,8 @@ CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN per AGENTS.md.
 ## Answerable by playing the game
 `docs/research/observation-checklist.md` — the open questions a person in front
 of DK2 can settle by looking, as concrete experiments, ranked by what they
-unblock, plus the ones playing cannot settle. The two biggest blockers on the
-project right now (Q47, the tile-work rates; Q45, room minimum sizes) are both
-on it, as is Q50 - how many swings an imp takes before it runs off with a load,
-which is one minute of looking and would corroborate Q47 into the bargain.
+unblock, plus the ones playing cannot settle. **Both of the questions that used
+to head this list are answered** — Q47's tile-work rates (273 gold a swing) and
+Q45's room minimum sizes (three independent sources agreeing). What heads it now
+is the **portal**: four questions about how creatures arrive, all of them things a
+player sees, and all four blocking the next thing being built.
