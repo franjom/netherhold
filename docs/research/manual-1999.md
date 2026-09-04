@@ -578,42 +578,144 @@ instant — stop dead, or re-route. Only the observable rule is reproduced.
 > in that tile to rock again. DK2 doesn't have a game mechanic for filling up dug
 > out tiles."* — owner, 2026-09-04
 
-**This one sits against the data rather than on it, which is why it matters.**
-Three shipped fields describe filling in:
+**This one sits against the data rather than on it, which is why it matters.** It
+was investigated properly on 2026-09-04 at the owner's request, and the answer
+came out cleaner than expected. What follows is the whole chain.
+
+#### The three fields that describe a mechanic
 
 - `FillInHealth` = **5** in the global balance table — a variable that names the
   mechanic;
-- `TerrainFlags.FillInable` (bit 15) on Dirt Path, Claimed Path and both mana
-  vaults — a per-terrain flag saying *this one can be filled in*;
+- `TerrainFlags.FillInable` (bit `0x8000`) on Dirt Path, Claimed Path, both mana
+  vaults and Hero Lair — a per-terrain flag saying *this one can be filled in*;
 - Claimed Path's `MaxHealthTypeTerrainId` is **Rock** — the destination.
 
-Q18 and Q22 read those three together and produced `TileWorkKind.FillIn`. The
-owner, who has played the game, says no keeper can do it.
+Q18 and Q22 read those three together and produced `TileWorkKind.FillIn`. Three
+*coordinated* pieces of data are not an accident: a rate, a per-terrain
+eligibility flag, and a transition. The owner, who has played the game, says no
+keeper can do it.
 
-**Both can be true**, and that is the reading recorded: the engine carries the
-concept and the shipped game exposes no way to reach it. The evidence for that
-reading is that the concept has a variable, a flag *and* a terrain transition —
-three coordinated pieces of data are not an accident — while the manual, which
-describes every keeper affordance down to the casino lever, never mentions filling
-anything in. (Its one nearby remark, *"once an area has been dug out, it is very
-difficult to fill it back in again"* (p.8), is flavour text in a paragraph about
-planning ahead, and "very difficult" is not "possible".) It may be a level-editor
-or scripted-trigger facility, or cut before release.
+#### What OpenKeeper has (asked for by the owner)
 
-**What this project does about it.** Nothing was deleted — the transition is in
-the shipped data and removing it would make our terrain graph disagree with the
-file. What changed is that the rule is now *asserted* rather than merely absent:
+**Exactly what we have, used exactly as much: not at all.** OpenKeeper is the most
+complete DK2 reimplementation in existence — it has creature AI, tasks, rooms,
+triggers, multiplayer — and it carries both fields in its **file-format layer
+only**:
+
+| where | what |
+|---|---|
+| `tools/convert/map/Terrain.java:55` | `FILL_INABLE(0x00008000)` — the same bit we have |
+| `tools/convert/map/Variable.java:333` | `FILL_IN_HEALTH(11), // value=5` — the same id and value |
+
+Both are **declared once and referenced nowhere else in the entire source tree**
+(verified by grep over `src/`, and over `assets/` for good measure). Their worker
+task list — `DigTileTask`, `ClaimTileTask`, `ClaimWallTileTask`,
+`RepairWallTileTask`, `ClaimRoomTask`, plus the carry/capture tasks — has **no
+fill-in task**, and their player interaction has no fill-in action.
+
+So the two independent projects that have read this data most carefully are in the
+same position: the fields are there, nobody has found a use, and the more advanced
+of the two never implemented one. That is corroboration, not proof — but it does
+rule out "OpenKeeper knows something we don't".
+
+*(Provenance note: OpenKeeper is GPLv3. Those are two facts about what its source
+contains, cited with file and line, per ADR-0003 and the owner's standing
+instruction. No code was copied.)*
+
+#### The one thing OpenKeeper did point at, and it turned out to matter
+
+Their trigger-action enum (`tools/convert/map/TriggerAction.java:55`) has
+**`ALTER_TERRAIN_TYPE(22)`** — a level-script action that writes a terrain id
+straight onto a tile — and `MapController.alterTerrain` shows what it does:
+`changeTerrain(tile, terrainId)` and optionally set the owner. **No health, no
+rate, no fill-in.** A direct write.
+
+That is a candidate for "some tile somewhere becomes rock again", so it was
+checked **against the install rather than against anybody's word**. New tool
+command `dk2tools kwd alterterrain [-v]` decodes every `ALTER_TERRAIN_TYPE`
+action in every shipped map and prints what the target tile *starts* as. The
+result, over all **66** trigger files and **5408** action records:
+
+```
+160 ALTER_TERRAIN_TYPE actions
+
+terrain written:
+    2 Rock                     SOLID     3 times
+    3 Dirt Path                open     94 times
+    5 Lava                     open     14 times
+    8 Claimed Path             open     41 times
+    9 Reinforced Wall          SOLID     2 times
+   17 Wooden Bridge            open      6 times
+```
+
+The layout was a hypothesis taken from OpenKeeper (action type in the
+second-to-last payload byte; body `terrainId, playerId, 0, 0, posX:u16,
+posY:u16`; coordinates 1-based) and it **self-validates**: every one of the 5408
+decoded action types lands inside the enumerated 1..60 range, every terrain id
+names a real terrain, and every target coordinate is inside its own map.
+
+**The dominant pattern is the opposite of filling in.** Ninety-four writes are
+`Impenetrable Rock → Dirt Path`: scripted levels opening a passage that was sealed
+against digging. Level 15b opens a nine-tile corridor that way; levels 7 and 18 do
+the same.
+
+**And the three Rock writes in level 1 — the level we render — are also opening,
+not closing.** They target (15,18), (16,18), (17,18), and all three tiles start as
+**Impenetrable Rock**. The script *softens* three boundary tiles into diggable
+Rock. That is the tutorial handing the player a route.
+
+**Exactly two writes in the entire shipped campaign turn an open tile solid**, and
+both are in the same secret level:
+
+```
+Secret3  (13,20) p3   was 8 Claimed Path  ->  9 Reinforced Wall
+Secret3  ( 5,25) p3   was 8 Claimed Path  ->  9 Reinforced Wall
+```
+
+#### So what is the answer
+
+**The owner is right about gameplay, and it is now much better established than
+"the manual does not mention it".**
+
+1. **No keeper can fill in a tile.** No player action, no imp job, nothing in the
+   UI. Confirmed by the owner, and consistent with the manual documenting every
+   keeper affordance down to the casino payout lever and never mentioning it.
+   (Its one nearby remark — *"once an area has been dug out, it is very difficult
+   to fill it back in again"*, p.8 — is flavour text in a paragraph about planning
+   ahead. "Very difficult" is not "possible", and it is the only such sentence.)
+2. **A level script can close a tile**, through `ALTER_TERRAIN_TYPE`, and the
+   shipped campaign does it **twice in 66 maps** — both times writing Reinforced
+   Wall, never Rock, both in a secret level. So it is a scripted set-piece, not a
+   mechanic.
+3. **None of that explains `FillInHealth`.** `ALTER_TERRAIN_TYPE` is a direct
+   write and needs no rate. So the *fill-in health mechanic* specifically — a
+   worker applying +5 a swing until a floor tile becomes Rock — has no user
+   anywhere: not in the keeper's hands, not in the level script, not in
+   OpenKeeper. It remains most likely a level-editor facility or a cut feature.
+   Q74 keeps that half open; the level editor is where to look next.
+
+#### What this project does about it
+
+**Nothing was deleted** — the transition is in the shipped data, and removing it
+would make our terrain graph disagree with the file it was read from. What changed
+is that the rule is now *asserted* rather than merely absent:
 `DugOutTilesStayDugOutTests` pins that, over a 4000-tick dig, **no tile ever goes
 from open back to solid** and **no worker ever queues a fill-in**. `ImpTaskSystem`
 only ever chooses excavation, claiming and reinforcing, so this already held; it
 now holds on purpose, and adding a fill-in job priority later would fail loudly.
 
-Two consequences worth carrying forward:
+Three consequences worth carrying forward:
 
 - The dungeon's walkable set only ever grows. Anything that caches reachability
-  can rely on that — with the single exception of a wooden bridge burning.
+  can rely on that — with two exceptions, both narrow: a wooden bridge burning
+  over lava, and an `ALTER_TERRAIN_TYPE` trigger, which arrives at M6 and which
+  two shipped tiles use to build a wall.
 - Q22's "fill-in's 660 swings" is a fact about the terrain table, not about
   anything a player can make happen.
+- **When M6 implements triggers, `ALTER_TERRAIN_TYPE` must be able to write solid
+  terrain onto an open tile**, and the `DugOutTilesStayDugOutTests` invariant is
+  about *workers*, not about the engine. Level 1's three Rock writes are also a
+  ready-made first test for the action, on the level we already render.
 
 ### 3. Two kinds of tile can never be dug through
 

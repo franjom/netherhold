@@ -415,6 +415,20 @@ Harness output lands in `build/scenario-runs/<id>/` (gitignored) — each run no
 writes a `world.txt` picture of the finished dungeon alongside the hashes and the
 event log.
 
+**Inspecting the original's data** (needs an install; `dotnet run --project
+src/DK2.Tools --` , written as `dk2tools` throughout the docs):
+
+```
+dk2tools where                        # resolved install path
+dk2tools kwd rooms                    # the ROOMS table, cross-checked against the 1999 manual
+dk2tools kwd terrain                  # the 41 terrain types with flags and transitions
+dk2tools kwd creatures                # all 46, and `kwd creature <name>` for one in full
+dk2tools kwd vars                     # the global balance table (203 entries)
+dk2tools kwd alterterrain -v          # every ALTER_TERRAIN_TYPE trigger in every shipped map,
+                                      #   with what each target tile starts as (Q74)
+dk2tools kwd recscan / creaturescan / creaturehex     # offset hunting
+```
+
 **Unity — none of it is in `DK2.slnx`, and that is deliberate** (CI has no Unity,
 and a machine without it must still build everything else):
 
@@ -1244,6 +1258,41 @@ build (Q80).
    the shipped game exposes no way to reach it (Q74). **Nothing was deleted** —
    the transition is in the file — but the behavioural claim is now asserted.
 
+   **Then the owner asked for this to be dug into properly, and two of the three
+   candidate explanations closed** — write-up in `manual-1999.md`, method in
+   `external-resources.md` §*Worked example 5*, which is the best illustration yet
+   of how OpenKeeper should be used:
+
+   - **OpenKeeper is in exactly our position.** `FILL_INABLE(0x00008000)` and
+     `FILL_IN_HEALTH(11), // value=5` are each declared **once and referenced
+     nowhere else** in its source, and its worker task list has no fill-in task.
+     A negative result worth having: it rules out "somebody already solved this".
+   - **It pointed at a mechanism we had not considered** — trigger action
+     `ALTER_TERRAIN_TYPE(22)`, a direct terrain write with no health and no rate —
+     and supplied a byte layout for the record.
+   - **The install settled it, not them.** New command
+     `dk2tools kwd alterterrain [-v]` decodes every such action in all 66 shipped
+     trigger files. The layout **self-validated** (5408 action records, every
+     decoded type inside the enumerated 1..60 range), and the answer was the
+     reverse of what was being looked for: **94 of the 160 uses are
+     `Impenetrable Rock → Dirt Path`**, scripts *opening* sealed passages.
+     **Level 1's three Rock writes are opening too** — (15,18)/(16,18)/(17,18) all
+     start as Impenetrable Rock and are softened into diggable Rock, the tutorial
+     handing the player a route. **Exactly two writes in the whole campaign turn
+     an open tile solid**: `Secret3` (13,20) and (5,25), Claimed Path →
+     **Reinforced Wall**.
+
+   So a level script can wall a tile up as a set-piece, twice in sixty-six maps,
+   and **nothing anywhere uses the fill-in *health* mechanic**. Q74 keeps only
+   that half open; the level editor is the last place to look, and there is now a
+   note in the editor-manual section saying what to look for.
+
+   **M6 consequence, recorded so it is not rediscovered:**
+   `ALTER_TERRAIN_TYPE` must be able to write solid terrain onto an open tile.
+   `DugOutTilesStayDugOutTests` is a statement about **workers**, not about the
+   engine, and its doc comment now says so. Level 1's three writes are a
+   ready-made first test for the action on a level that already renders.
+
 3. **Two terrains can never be dug through**, for two different reasons:
    Impenetrable Rock is **not taggable** so a keeper cannot mark it, and Gems
    destroy to **themselves** so every swing yields gold and the tile survives.
@@ -1294,7 +1343,8 @@ wall.
 New in the repository: `docs/research/manual-1999.md` (the extract, page
 referenced), `tests/DK2.Simulation.Tests/WallsBlockMovementTests.cs`,
 `tests/DK2.Simulation.Tests/DugOutTilesStayDugOutTests.cs`, ADR-0037 / 0038 /
-0039, Q73–Q81, and one more real-data test in `TileWorkOnRealDataTests`.
+0039, Q73-Q81, one more real-data test in `TileWorkOnRealDataTests`, and a new
+tool command `dk2tools kwd alterterrain [-v]`.
 
 The PDF itself lives in `original-reference/` — the owner moved it there when the
 copyright question was raised, where the existing "NEVER COMMIT: original Dungeon

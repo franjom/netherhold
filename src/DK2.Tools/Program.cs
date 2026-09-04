@@ -62,6 +62,126 @@ switch (args[0])
         return 0;
     }
 
+    // Q74: is there ANY way a dug-out tile becomes rock again? The owner says no
+    // keeper can fill one in, and the terrain table plainly carries a fill-in
+    // transition. The remaining candidate is the level script: DK2 has an
+    // ALTER_TERRAIN_TYPE trigger action (type 22) that writes a terrain id
+    // straight onto a tile. This sweeps every shipped map's TRIGGERS chunk,
+    // decodes those actions, and reports which terrain they write - so the
+    // question is answered from the install rather than from anybody's word.
+    //
+    // Layout HYPOTHESIS from OpenKeeper's KwdFile.java (facts, not code): the
+    // action type is the second-to-last byte of the payload and the repeat count
+    // the last, and an ALTER_TERRAIN_TYPE body is terrainId(u8), playerId(u8),
+    // two nulls, posX(u16), posY(u16). Verified here by whether every decoded
+    // action type lands inside the enumerated range and every terrain id names a
+    // terrain the database has.
+    case "kwd" when args.Length >= 2 && args[1] == "alterterrain":
+    {
+        string root = Dk2Install.Require();
+        string mapsDir = Path.Combine(root, "Data", "editor", "maps");
+        GameDatabase db = GameDatabaseLoader.Load(root);
+
+        const int ActionTypeAlterTerrain = 22;
+        const int TriggerActionTag = 214;
+
+        var writtenTerrain = new SortedDictionary<byte, int>();
+        var actionTypeHistogram = new SortedDictionary<int, int>();
+        int filesScanned = 0, actionRecords = 0, alterActions = 0;
+        var offenders = new List<string>();
+
+        foreach (string file in Directory.GetFiles(mapsDir, "*Triggers.kld").OrderBy(f => f))
+        {
+            filesScanned++;
+
+            // The level's own MAP, so each action can be compared against what
+            // the tile starts as. "Writes Rock" only means "closes a tile" if
+            // the tile was open to begin with.
+            string mapFile = file[..^"Triggers.kld".Length] + "Map.kld";
+            LevelMap? levelGrid = File.Exists(mapFile)
+                ? MapGrid.Parse(KwdReader.ReadFile(mapFile)) : null;
+            foreach (KwdChunk c in KwdReader.ReadFile(file))
+            {
+                if (!KwdTaggedRecords.IsTagged(c.Type)) continue;
+
+                foreach (KwdTaggedRecords.TaggedRecord r in KwdTaggedRecords.Split(c))
+                {
+                    if (r.Tag != TriggerActionTag) continue;
+                    ReadOnlySpan<byte> p = r.Payload.Span;
+                    if (p.Length < 8) continue;
+
+                    actionRecords++;
+                    int actionType = p[p.Length - 2];
+                    actionTypeHistogram.TryGetValue(actionType, out int seen);
+                    actionTypeHistogram[actionType] = seen + 1;
+
+                    if (actionType != ActionTypeAlterTerrain) continue;
+
+                    alterActions++;
+                    byte terrainId = p[0];
+                    writtenTerrain.TryGetValue(terrainId, out int n);
+                    writtenTerrain[terrainId] = n + 1;
+
+                    // Trigger coordinates are 1-based (OpenKeeper subtracts one
+                    // before touching the map); HYPOTHESIS, and the "was" column
+                    // below is what judges it.
+                    int posX = p[4] | (p[5] << 8);
+                    int posY = p[6] | (p[7] << 8);
+                    string name = db.Terrain.TryGetValue(terrainId, out TerrainDef? t)
+                        ? t.Name : "UNKNOWN TERRAIN";
+                    bool solid = t is not null && t.IsSolid;
+
+                    string was = "?";
+                    bool closesATile = false;
+                    if (levelGrid is not null
+                        && posX >= 1 && posY >= 1
+                        && posX <= levelGrid.Width && posY <= levelGrid.Height)
+                    {
+                        byte before = levelGrid[posX - 1, posY - 1].TerrainId;
+                        TerrainDef beforeDef = db.TerrainById(before);
+                        was = $"{before} {beforeDef.Name}";
+                        closesATile = solid && !beforeDef.IsSolid;
+                    }
+
+                    offenders.Add(
+                        $"    {Path.GetFileNameWithoutExtension(file),-24} ({posX,2},{posY,2}) " +
+                        $"p{p[1]}  was {was,-22} -> {terrainId,2} {name,-18} " +
+                        $"{(solid ? "SOLID" : "open"),-5} " +
+                        $"{(closesATile ? "  *** CLOSES AN OPEN TILE ***" : "")}");
+                }
+            }
+        }
+
+        Console.WriteLine($"{filesScanned} trigger files, {actionRecords} action records, " +
+                          $"{alterActions} ALTER_TERRAIN_TYPE");
+        Console.WriteLine();
+
+        // The layout check: an action type outside the enumerated range would
+        // mean the second-to-last byte is not the action type at all.
+        int outOfRange = actionTypeHistogram.Keys.Count(k => k is < 1 or > 60);
+        Console.WriteLine($"action types seen: {string.Join(", ", actionTypeHistogram.Keys)}");
+        Console.WriteLine($"outside the enumerated 1..60 range: {outOfRange}" +
+                          (outOfRange == 0 ? "  (layout hypothesis holds)" : "  (LAYOUT WRONG)"));
+        Console.WriteLine();
+
+        Console.WriteLine("terrain written by ALTER_TERRAIN_TYPE:");
+        foreach ((byte id, int count) in writtenTerrain)
+        {
+            string name = db.Terrain.TryGetValue(id, out TerrainDef? t) ? t.Name : "UNKNOWN";
+            string kind = t is null ? "?" : t.IsSolid ? "SOLID" : "open";
+            Console.WriteLine($"  {id,3} {name,-24} {kind,-6} {count,4} times");
+        }
+
+        if (offenders.Count > 0 && args.Length > 2 && args[2] == "-v")
+        {
+            Console.WriteLine();
+            Console.WriteLine("every occurrence:");
+            foreach (string o in offenders) Console.WriteLine(o);
+        }
+
+        return 0;
+    }
+
     case "kwd" when args.Length >= 3 && args[1] == "tagged":
     {
         // Splits THINGS/TRIGGERS into their self-describing records and reports
@@ -557,6 +677,8 @@ static int Usage()
     Console.WriteLine("  wad extract <file.WAD> <entry> [out]   extract one entry");
     Console.WriteLine("  kwd chunks <file.kwd|kld>              list chunks of a KWD/KLD file");
     Console.WriteLine("  kwd vars [file.kwd]                    dump the global balance table");
+    Console.WriteLine("  kwd alterterrain [-v]                  every ALTER_TERRAIN_TYPE trigger in every shipped");
+    Console.WriteLine("                                         map, with what each target tile starts as (Q74)");
     Console.WriteLine();
     Console.WriteLine("offset hunting in records we do not parse:");
     Console.WriteLine("  kwd recscan <file.kwd> <value> [rec]   offsets holding a measured value, with the column");

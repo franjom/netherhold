@@ -375,9 +375,19 @@ and the game exposes no way to reach it (Q74). What changed is that "no tile eve
 closes" is now an asserted invariant rather than an accident of what imps happen
 to choose.
 
+**The level-script half is now answered, and it was not fill-in.** DK2 has an
+`ALTER_TERRAIN_TYPE` trigger action that writes a terrain id straight onto a tile,
+with no health and no rate. Sweeping all 66 shipped maps: 160 of them, and the
+dominant use is the *opposite* of filling in — 94 are `Impenetrable Rock -> Dirt
+Path`, scripts opening sealed passages. Level 1 has three that soften Impenetrable
+Rock into diggable Rock, which is the tutorial handing you a route. **Exactly two
+in the whole campaign turn an open tile solid**, both in `Secret3`, both Claimed
+Path to Reinforced Wall. So a script can wall a tile up as a set-piece, and
+nothing anywhere uses the fill-in *health* mechanic.
+
 **One thing you might still see, if you ever have the level editor open:** is
-there a fill-in tool in it, or a fill-in action among the level-script triggers?
-That would settle Q74. It is curiosity, not a blocker.
+there a fill-in tool in it? That is all that is left of Q74, and it is curiosity
+rather than a blocker.
 
 ### Q23 — are dig markers per keeper or shared?
 In a skirmish, can you **see a rival keeper's dig markers** on their walls?

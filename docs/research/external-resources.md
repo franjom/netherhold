@@ -135,6 +135,13 @@ precise and more current than editor documentation. **Read it at M6**, when
 triggers and objectives arrive, and read it in full then rather than grepping it
 now.
 
+**One thing to look for when that happens** (added 2026-09-04): **is there a
+fill-in tool in the editor, or a fill-in trigger action?** That is the only
+surviving candidate explanation for `FillInHealth` and `TerrainFlags.FillInable`,
+which the shipped game gives no keeper access to and which OpenKeeper declares and
+never uses. §8.2 Triggers is where a trigger action would be documented. See Q74
+and *Worked example 5* below.
+
 ---
 
 ## The game manual: read 2026-09-04, and it earned its keep
@@ -352,3 +359,75 @@ easy to over-read.
 **The rule this adds to the standing one:** a resource row's "when" is a
 commitment. When a milestone starts, re-read the rows that name it — the table
 already knows what to read and it cannot tell you on its own.
+
+---
+
+## Worked example 5: OpenKeeper pointed at the mechanism, the install gave the answer
+
+The cleanest illustration yet of the owner's standing instruction — *"if someone
+has already done the research and it is solid, not refutable, why wander around? I
+need you to just reference it and compare with our own findings, not copy it."*
+
+**The question** (Q74, 2026-09-04): the owner said DK2 has no way to fill a
+dug-out tile back to rock. Our terrain data says otherwise — `FillInHealth` = 5,
+a `FillInable` flag on the five floor terrains, and Claimed Path's route back to
+Rock. Three coordinated fields are not an accident. So: is there *any* path by
+which a tile becomes solid again, and did anybody else find one?
+
+**Step 1 — what OpenKeeper has.** Two greps.
+
+| where | what |
+|---|---|
+| `tools/convert/map/Terrain.java:55` | `FILL_INABLE(0x00008000)` — the same bit we read |
+| `tools/convert/map/Variable.java:333` | `FILL_IN_HEALTH(11), // value=5` — the same id and value |
+
+Both **declared once and referenced nowhere else** in `src/`. Their worker task
+list — `DigTileTask`, `ClaimTileTask`, `ClaimWallTileTask`, `RepairWallTileTask`,
+`ClaimRoomTask`, plus the carry/capture tasks — has no fill-in task.
+
+That is a **negative result worth having**. The most complete reimplementation in
+existence read the same fields and never found a use, which rules out "somebody
+already solved this and we are re-deriving it badly". It is corroboration, not
+proof: two projects can be stuck in the same place.
+
+**Step 2 — the thing they had that we did not.** Their trigger-action enum
+(`TriggerAction.java:55`) has `ALTER_TERRAIN_TYPE(22)`, and
+`MapController.alterTerrain` implements it as a direct terrain write plus an
+optional owner change — **no health, no rate**. That is a mechanism we had not
+considered, and it is a genuine candidate answer to "how does a tile become solid
+again".
+
+Their reader also gave us a **layout hypothesis** for the record: the action type
+is the second-to-last byte of the payload, the repeat count the last, and an
+`ALTER_TERRAIN_TYPE` body is `terrainId(u8), playerId(u8), 0, 0, posX(u16),
+posY(u16)`, with 1-based coordinates.
+
+**Step 3 — the install decides, not them.** A hypothesis about a record layout is
+exactly the kind of claim this file says must be confirmed against the shipped
+data. New command `dk2tools kwd alterterrain [-v]` decodes every action record in
+every shipped trigger file and prints, per `ALTER_TERRAIN_TYPE`, what the target
+tile *starts* as.
+
+**The layout self-validated**: 5408 action records across 66 files, and every
+single decoded action type lands inside the enumerated 1..60 range. A wrong offset
+would have produced garbage in the hundreds.
+
+**And the answer was the reverse of what was being looked for.** Of 160
+`ALTER_TERRAIN_TYPE` actions, **94 are `Impenetrable Rock → Dirt Path`** — scripts
+*opening* passages sealed against digging. Level 1's three Rock writes are also
+opening: (15,18), (16,18) and (17,18) all start as Impenetrable Rock and are
+softened into diggable Rock. **Exactly two writes in the entire campaign turn an
+open tile solid**, both in `Secret3`, both Claimed Path → Reinforced Wall.
+
+**What the division of labour bought.** OpenKeeper supplied a mechanism we had not
+thought of and a byte layout that would have taken an afternoon to find by
+scanning. The install supplied the answer, which no amount of reading their source
+could have given — because their source does not know what the shipped maps
+contain either. Neither source alone would have done: theirs said *how a tile
+could be closed*, ours said *whether any tile is*.
+
+**And it closed the question the honest way, which was partly.** The fill-in
+*health* mechanic still has no user anywhere. The temptation was to call
+`ALTER_TERRAIN_TYPE` the explanation and file Q74 as answered; it is not the
+explanation, because it needs no rate. Two of three candidates eliminated, one
+left, and the remaining one named (the level editor).

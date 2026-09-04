@@ -1993,8 +1993,47 @@ can do it.
 exposes no way to reach it. The evidence for that reading is that three
 *coordinated* pieces of data are not an accident, while the manual — which
 documents every keeper affordance down to the casino payout lever — never mentions
-filling anything in. Level editor, scripted trigger, or cut feature; Q74 says how
-to find out.
+filling anything in.
+
+#### The investigation the owner asked for, same day
+
+Two of the three candidate explanations were then closed.
+
+**OpenKeeper is in exactly our position.** The most complete DK2 reimplementation
+in existence carries `FILL_INABLE(0x00008000)` (`Terrain.java:55`) and
+`FILL_IN_HEALTH(11), // value=5` (`Variable.java:333`) in its file-format layer,
+**both declared once and referenced nowhere else**, and its worker task list has
+no fill-in task. Corroboration rather than proof, but it rules out the possibility
+that somebody else had already solved this. *(GPLv3: cited facts about its source,
+per ADR-0003. No code copied.)*
+
+**It did point at the real mechanism, though, and the install settled it.**
+Their trigger-action enum has **`ALTER_TERRAIN_TYPE(22)`**, implemented as a
+direct terrain write with no health and no rate. That is a way a tile could become
+rock again, so it was checked against the shipped maps rather than taken on trust:
+new command `dk2tools kwd alterterrain` decodes every such action in all 66
+trigger files (5408 action records, 160 of type 22) and reports what each target
+tile *starts* as. The layout hypothesis self-validates — all 5408 decoded action
+types fall inside the enumerated 1..60 range.
+
+The finding is the opposite of what was being looked for. **Ninety-four of the 160
+writes are `Impenetrable Rock → Dirt Path`** — scripts *opening* passages sealed
+against digging. **Level 1's three Rock writes are also opening**: (15,18),
+(16,18) and (17,18) all start as Impenetrable Rock and are softened into diggable
+Rock, which is the tutorial handing the player a route. **Exactly two writes in
+the whole campaign turn an open tile solid** — `Secret3` at (13,20) and (5,25),
+both Claimed Path → **Reinforced Wall**, never Rock.
+
+So: a level script can wall a tile up, as a set-piece, twice in sixty-six maps.
+**Nothing anywhere uses the fill-in *health* mechanic** — not the keeper, not the
+level script, not OpenKeeper. Q74 keeps only that narrow half open, and the level
+editor is the remaining place to look.
+
+**One consequence for M6, recorded now so it is not discovered later:**
+`ALTER_TERRAIN_TYPE` must be able to write solid terrain onto an open tile. The
+invariant below is a statement about **workers**, not about the engine, and level
+1's three writes are a ready-made first test for the action on a level already
+rendering.
 
 ### What was done, and what was deliberately not done
 

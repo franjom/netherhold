@@ -311,12 +311,26 @@ trigger.
 The data is not wrong and has not been changed — `FillInHealth`, the `FillInable`
 flag on five terrain types, and Claimed Path's route back to Rock are three
 coordinated pieces of shipped data, which is not an accident. The reading is that
-the engine carries the concept and the shipped game exposes no way to reach it
-(level editor, a scripted trigger, or cut). What changed is the status of the
-*behaviour*: `ImpTaskSystem` never chooses fill-in, and
-`DugOutTilesStayDugOutTests` now asserts both halves — that no tile ever goes from
-open back to solid over a long dig, and that no worker ever queues the job. See
-`manual-1999.md` for the full argument.
+the engine carries the concept and the shipped game exposes no way to reach it.
+What changed is the status of the *behaviour*: `ImpTaskSystem` never chooses
+fill-in, and `DugOutTilesStayDugOutTests` now asserts both halves — that no tile
+ever goes from open back to solid over a long dig, and that no worker ever queues
+the job.
+
+**Two of the three candidate explanations were then closed** (2026-09-04, at the
+owner's request). **OpenKeeper carries both fields and uses neither** —
+`FILL_INABLE(0x00008000)` and `FILL_IN_HEALTH(11)` are each declared once and
+referenced nowhere in its source, and its worker task list has no fill-in task.
+And the level script turned out to close tiles by a **different** mechanism:
+`ALTER_TERRAIN_TYPE`, a direct terrain write with no health and no rate. Sweeping
+all 66 shipped maps (`dk2tools kwd alterterrain`), 94 of its 160 uses go the other
+way — `Impenetrable Rock → Dirt Path`, opening sealed passages — and **exactly two
+turn an open tile solid**, both in `Secret3`, both Claimed Path → Reinforced Wall.
+
+So the fill-in *health* mechanic has no user anywhere. Level editor or cut
+feature; Q74 keeps that half open. **M6 note:** `ALTER_TERRAIN_TYPE` must be able
+to write solid terrain onto an open tile, so the invariant above is about workers
+and not about the engine. Full argument: `manual-1999.md`.
 
 ---
 

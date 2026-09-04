@@ -39,6 +39,15 @@ namespace DK2.Simulation.Tests;
 /// resolve and <b>no imp ever chooses</b>. These tests pin the second half — that
 /// nothing in a running simulation ever closes a tile — so that adding a job
 /// priority for it later would fail loudly rather than quietly.</para>
+///
+/// <para><b>Scope, and it matters for M6.</b> These are statements about
+/// <i>workers</i>, not about the engine. DK2's level script has an
+/// <c>ALTER_TERRAIN_TYPE</c> trigger action that writes a terrain id straight
+/// onto a tile, and two tiles in the shipped campaign (both in <c>Secret3</c>)
+/// use it to turn Claimed Path into Reinforced Wall. So when triggers arrive,
+/// closing a tile becomes possible by script and these tests must not be read as
+/// forbidding it — they forbid a keeper's imps doing it. See Q74 and
+/// <c>docs/research/manual-1999.md</c>.</para>
 /// </summary>
 public class DugOutTilesStayDugOutTests
 {
