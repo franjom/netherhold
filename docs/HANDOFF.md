@@ -13,9 +13,9 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **701 tests green**
+**every** record type's on-disk size is now known and pinned. **721 tests green**
 with and without a DK2 install; **15 scenarios** run, each drawing a picture of
-its finished world; clean tree. (Core 17, Simulation 392, Data 63, Behavior 143,
+its finished world; clean tree. (Core 17, Simulation 407, Data 64, Behavior 147,
 Assets 60, Presentation 26.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
@@ -2894,3 +2894,71 @@ them, and `RefsToRange.py` now tests `isWrite()`.
 fight, so nothing says what caps them · **Q129** a dungeon heart's real health,
 against a stored 34464 that looks like a truncated 100000 · plus Q97, Q103, Q112,
 Q107, Q100, Q86, Q65 from the list above.
+
+## Nineteenth sitting: objects exist (`7dc753d`)
+
+| | |
+|---|---|
+| `7dc753d` | **Objects exist, and a bed knows whose it is** — Q130 answered from the binary, ADR-0054 |
+
+`HashVersion` 16 → 17, snapshot `FormatVersion` 16 → 17, pinned hash
+**`0x6B5ECAD0E9EDB2F0`**. **721 tests green**, 15 scenarios, zero warnings.
+
+### What the binary said, and why it is the strongest OBJECTS check yet
+
+DK2's object dump prints a literal **`Union Data:`** header and then one of
+**twenty-three** blocks, every one reading from offset **0x14A**; the next field
+is at 0x15C, so the union is exactly **18 bytes**. One type with a tag.
+
+The tag is the object's **own definition id**, branched on with hardcoded
+literals — and **twenty-one of those literals were paired with a name and all
+twenty-one agree with our parse of `Objects.kwd`** (9 Chicken, 35 Chicken Coop,
+74 Boulder, 31–34 Tomb Stones, 4 Spell Book, 29 Training Target, …). The record's
+four earlier checks were all *internal*; this is the first from outside the file,
+and internal consistency cannot tell you the bytes mean what you think.
+
+**Five type flags confirmed from the code that acts on them**: `TypeGold` 0x40,
+`TypeSpecial` 0x04, `TypeLair` 0x20, `TypeCrate` 0x10, `TypeSpellBook` 0x08.
+**Flags beat ids** in its precedence — the `Lair` branch is reached by flag
+alone, which is how one branch serves all twelve beds.
+
+### The shape chosen
+
+`ObjectState` in one `WorldState.Objects` list, **flat rather than a union**
+(layout is not a fidelity requirement; the union's behavioural content is that
+one kind's state is live, which a flat record with a documented owner per field
+gives). Every field says which kind writes it, every other kind leaves it zero,
+and **the hash covers all of them unconditionally** so a stray write cannot hide.
+
+**`CreatureState.LairTileIndex` is gone.** The bed carries `CreatureId`, as DK2
+does. A bed now exists **only while owned**: claiming creates an object of the
+creature's own `LairObjectId`, releasing destroys it, and occupancy is "a bed
+stands on this tile". `LairRules.PlaceBed` is the placement half, for a level
+file and for tests.
+
+### The defect the scenarios caught and the tests could not
+
+**`GameDatabase.ForLevel` had been silently dropping `Objects`** ever since the
+parameter was added — the constructor gained it, the call did not. Nothing
+noticed for two sittings because objects were only definitions; then a goblin
+claiming a bed threw for want of object 22 **on a campaign map** while all 719
+tests passed, because tests build their database directly and none called it.
+The real guard now sweeps **every record collection by reflection**, so the next
+record is covered the day it is added.
+
+### Where to pick up
+
+**The Hatchery.** Hunger has been half-built for many sittings: the clock runs,
+`ChickensNeeded` fills, `CreatureHealthRules.Eat` exists and nothing calls it.
+Everything it was blocked on is now present — the Chicken is object 9 with
+`TypeFood` and `DieOverTimeIfNotInRoom`, the Coop is 35, and there is a list to
+put an instance in. The binary's `Chicken` union member is
+`FreeRange` / `PeckingTimer` / `StayThere` / `ScatterGameTicks`, and
+`reverse-engineering/Hatchery.c` is already exported.
+
+Then: **gold on the floor** (three objects), and the **graveyard**, which per
+ADR-0051's correction wants a creature-carrying imp task rather than a record.
+
+**Q131 is the one thing ADR-0054 assumed and nobody has watched:** whether a
+fresh lair tile looks bare or arrives furnished. It is on the observation
+checklist as the cheapest item on it.
