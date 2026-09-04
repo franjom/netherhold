@@ -351,3 +351,70 @@ owner asked about it directly. **A resource table's "when" column is a
 commitment, and a table cannot tell you when its moment has come.** The editor
 manual's row says **M6** and is queued up for the identical failure. See
 `external-resources.md` §*Worked example 4*.
+
+---
+
+## Review — 2026-09-04 (evening), the Unity view renders
+
+The previous entry closed gap 3 and said, carefully, that goal 1 still had no
+Unity view. It does now, and the entry that claimed otherwise was written four
+hours earlier — which is the pace worth noting, not the achievement.
+
+### The table, where it moved
+
+**Goal 3 (sim/render separation): "enforced and exercised" → *demonstrated*.**
+The separation now has a second consumer that is a real engine. The strongest
+evidence is negative and worth stating: `DK2.Unity` is the only assembly in the
+repository that references `UnityEngine`, and the simulation references none of
+it, so deleting the entire Unity folder changes nothing that runs.
+
+**Goal 4 (replaceable assets): unchanged, and that is the point.** The renderer
+was built without touching the asset layer, because the layer landed first. Every
+one of the 1178 assets a running level asks for resolves to a placeholder with no
+DK2 art installed — measured in Unity, not asserted.
+
+**Goal 11 (presentation modes): two, and they are different in kind.** Headless,
+a text renderer that runs in CI, and now Unity. The text view redraws everything;
+the Unity view diffs. Neither strategy is baked into the boundary, which is the
+property having two renderers was supposed to establish.
+
+**Goal 1 (modern DK2 engine): the view exists; the game is still ~2 of 20
+systems.** Do not let a screenshot inflate this row. What renders is digging,
+claiming, a treasury and imps — the same two systems as before, now visible.
+
+**Goal 9 (deterministic, fast): one quiet confirmation.** Switching seven
+assemblies from net10.0 to netstandard2.1 — a change of runtime, framework and
+in two places the actual API called — **did not move the pinned determinism
+hash**. That is the strongest evidence yet that the integer/fixed-point rule
+(ADR-0001) does what it was chosen to do. It was luck that the change was small,
+but it was design that the change was safe.
+
+### The gap that closed, and the one that opened underneath it
+
+**Gap 3 is closed** (previous entry) and **gap 5 stands**: one mesh per solid
+terrain is a known simplification, waiting on Q71.
+
+**New gap 6, and it is the uncomfortable one: a constraint expressed only in
+build configuration is not enforced.** ADR-0002 claimed netstandard2.1 was
+"enforced by the compiler from day one". It was never true — the condition
+selecting it could not fire, and every assembly built as net10.0 from M1 to
+2026-09-04. Nothing noticed for four months because nothing used the constraint
+for its purpose.
+
+This is a *class* of gap, not one bug, and the review question it adds is:
+**which other claims in this document are checked by something that runs?** A
+first pass says the strong ones are (the Unity-reference rule, the determinism
+hash, the placeholder's totality, "presenting never changes the world" — all
+tests), and the weak ones are the ones phrased as habits: "no magic numbers in
+simulation code" is review-enforced, and "no filename literals outside
+`DK2.Assets`" is checked only in the direction of `ResolvedAsset` being immutable.
+Neither is urgent. Both are now written down as unchecked rather than assumed.
+
+### One thing that is not a gap and should not be treated as one
+
+**Appearance cannot be tested and it was still worth doing.** The headless smoke
+test proves 1140 objects exist; the camera bug it could not catch — the level
+framed by width on a level deeper than it is wide — took one screenshot to find.
+That is the boundary of a test suite, not a hole in it. The correct response is
+to keep the screenshot loop short, not to try to automate a judgement about
+whether a dungeon looks like a dungeon.

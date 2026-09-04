@@ -29,12 +29,35 @@ What is *built* rather than known, against the long-term goals:
   keeper has exactly one heart whose loss is defeat (both observed in the
   original). See docs/research/mana.md.
 
+- Where mined gold goes: seam → the imp's hands → a treasury tile, and what
+  happens when there is nowhere to put it. Q31, ADR-0018/0019, from the owner's
+  observation. The one loose end is the floor lump DK2 leaves when every store is
+  full, which needs the OBJECTS record (M6).
+- How a tile is worked: one uniform data-driven rule for all ten work kinds, at
+  **five applications a second** (Q47, measured at 273 gold a swing, ADR-0020),
+  worked **from beside a wall and standing on a floor tile** (Q44/Q49, ADR-0028).
+- **How DK2 draws its walls** — as far as anyone outside EA knows. Solid mass
+  with intersections cut into it, wall pieces chosen by the size and shape of the
+  room behind them, damage as a texture swap, and runtime vertex deformation
+  (the last inferred rather than proven by its source). See
+  docs/research/wall-rendering.md. **Rendering only — no rule may depend on it.**
+
 ## Unsolved (research required before implementing)
+- **What a room does.** ← the next thing being worked on. Rooms are owned terrain
+  with a cost, a size and a sell price; only the treasury and the dungeon heart
+  have any behaviour. The ROOMS record carries art, size and cost and **says
+  nothing about behaviour**, so each room is its own research question. Do not
+  assume "capacity = tile count": Q60 established that a temple's capacity is its
+  **rim**, `2(w+h) − 4`.
 - Pathfinding (biggest risk), creature moods/anger, combat resolution,
   job-selection priority order, computer-player AI, audio event semantics.
-- Where mined gold goes, and what a room does beyond holding gold or not.
+- **Creatures have no needs yet** — no health, hunger, mood or experience, by
+  design (`CreatureState` carries only what a built mechanic reads). Several room
+  behaviours will be blocked on this rather than on research.
 - What happens on defeat when a dungeon heart falls (Q40) - the rule is known,
   the consequences are not, and nothing implements it.
+- What picks a wall piece (Q71) and whether wall deformation is deterministic per
+  tile (Q72). Both presentation-only; Q72 is a look-and-see for the owner.
 
 ## Per-mechanic notes
 One file per mechanic in `docs/research/`, tagged

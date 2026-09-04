@@ -29,12 +29,14 @@ clean tree. (Core 14, Simulation 254, Data 55, Behavior 77, Assets 60, Presentat
 > | The promise, now a test | every key the shipped database implies resolves **with no DK2 install and no art pack**. The game runs as boxes and that it does is checked on every commit (plan §7.2) |
 > | The second renderer | every scenario writes `world.txt` and a picture in its report, through the same view and the same provider chain Unity will use |
 >
-> ### The Unity project exists and compiles; nobody has watched it run
+> ### The Unity view renders campaign level 1 (2026-09-04, ADR-0036)
 >
-> **Unity 6 LTS `6000.6.0f1`** is installed (ADR-0036) and `unity/DK2.Unity/`
-> holds the adapter: `DungeonScene` (`IRenderTarget` in GameObjects) and
-> `DungeonRunner` (the `MonoBehaviour`). `unity/sync-assemblies.ps1` builds the
-> seven netstandard2.1 DLLs into `Assets/Plugins/DK2`.
+> **Unity 6 LTS `6000.6.0f1`**, installed and activated. `unity/DK2.Unity/` holds
+> `DungeonScene` (`IRenderTarget` in GameObjects), `DungeonRunner` (the
+> `MonoBehaviour`), an editor `DungeonSetup` and a committed `Dungeon.unity`
+> scene. `unity/sync-assemblies.ps1` builds the seven netstandard2.1 DLLs into
+> `Assets/Plugins/DK2` (build output, gitignored — **re-run it after any change
+> under `src/`**). Everything about running it is in `unity/README.md`.
 >
 > **`unity/DK2.Unity.Compile/` compiles the adapter against Unity's real module
 > assemblies**, which is the only way this project's "do not commit code you have
@@ -43,8 +45,8 @@ clean tree. (Core 14, Simulation 254, Data 55, Behavior 77, Assets 60, Presentat
 > `dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj`. It caught
 > three things on its first run that reading could not.
 >
-> **VERIFIED 2026-09-04: Unity itself compiles AND runs it, headlessly.** The
-> editor is activated. `Unity.exe -batchmode` exits 0 having built
+> **Unity itself compiles AND runs it, headlessly.**
+> `Unity.exe -batchmode` exits 0 having built
 > `DK2.Unity.dll` against the seven plugin assemblies — stronger than
 > `DK2.Unity.Compile`, because it is Unity resolving Unity. And
 > `-executeMethod DK2.Unity.Editor.DungeonSetup.SmokeTest` runs the whole
@@ -302,10 +304,9 @@ Extracted data artifacts (the specification the simulation is written against):
 (`dk2tools kwd terrain` / `kwd terrainflags` / `kwd terrainmana` / `kwd rooms` /
 `kwd roomflags`), which is what M3's rules are built on.
 
-**Next: the Unity adapter (the boundary under it is done), then what rooms
-actually do.** The record-layout sweep
-that used to head this list is done (2026-09-04). See "Immediate next
-steps". Every known defect that list ever held is built, and so is selling - the
+**Next: what rooms actually do.** The Unity view is done and renders
+(2026-09-04), and so is the record-layout sweep that used to head this list.
+See "Immediate next steps". Every known defect that list ever held is built, and so is selling - the
 gold carrier, the work rate, the imp upkeep, the dig rate, the upward-work rule,
 eight-connected movement, the crowding cap, the heart's 16000, the work stance
 and the sell refund.
@@ -408,7 +409,28 @@ dotnet run --project src/DK2.Harness -- list
 dotnet run --project src/DK2.Harness -- run scenarios
 ```
 
-Harness output lands in `build/scenario-runs/<id>/` (gitignored).
+Harness output lands in `build/scenario-runs/<id>/` (gitignored) — each run now
+writes a `world.txt` picture of the finished dungeon alongside the hashes and the
+event log.
+
+**Unity — none of it is in `DK2.slnx`, and that is deliberate** (CI has no Unity,
+and a machine without it must still build everything else):
+
+```
+powershell -File unity/sync-assemblies.ps1        # after ANY change under src/
+dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj
+
+"C:\Program Files\Unity 6000.6.0f1\Editor\Unity.exe" -batchmode -quit -nographics \
+  -projectPath unity\DK2.Unity -logFile build\unity-batch.log
+"C:\Program Files\Unity 6000.6.0f1\Editor\Unity.exe" -batchmode -quit -nographics \
+  -projectPath unity\DK2.Unity -logFile build\unity-smoke.log \
+  -executeMethod DK2.Unity.Editor.DungeonSetup.SmokeTest
+```
+
+The last one is the valuable one: it runs the whole pipeline inside Unity against
+a real install and fails unless there is one GameObject per tile. **Exit 198 with
+`Found 0 entitlement groups` means the editor is not activated**, not that
+anything is broken. Full notes in `unity/README.md`.
 
 ---
 
@@ -440,45 +462,47 @@ it is worth doing:
    the field-by-field layouts, and it belongs with the mechanic that needs
    them** - M6 can now start parsing without deriving a single stride first.
 
-2. **Unity presentation — everything but the adapter is DONE (2026-09-04,
-   ADR-0034/0035/0036).** Gap 3 is closed: `DK2.Assets` and `DK2.Presentation`
-   exist, are tested, and the game renders as boxes with no DK2 install.
+2. ~~**Unity presentation.**~~ **DONE 2026-09-04** (ADR-0034 / 0035 / 0036).
+   Gap 3 closed, the asset layer and presentation boundary built, the adapter
+   written, and the owner pressed Play and got campaign level 1 first attempt.
+   Full account at the top of this file and in `unity/README.md`.
 
-   **What is left is one class implementing `IRenderTarget`'s six methods:**
-   create/update a tile, create/update/remove a creature, flush. It receives a
-   `TileView` or `CreatureView` and already-resolved `ResolvedAsset`s, so it
-   instantiates the file when `FilePath` is set and a coloured primitive from
-   `PlaceholderLook` when it is not — and **that branch is the whole of its
-   judgement**. Around it: a `MonoBehaviour` owning a `GameSimulation`, calling
-   `Tick`, then `ScenePresenter.Present(world)`. Positions arrive in `Fp32` tile
-   units; divide by `Fp32.One` **in Unity, never in the simulation** (ADR-0001).
+   **What is left is not the view but the game**, and none of it is renderer
+   work: **no input** (nothing builds an `InputFrame` yet, so you can watch a
+   dungeon and not touch it), **no art loading** (there is no converter —
+   plan §7.1), and **boxes rather than DK2's walls** (Q71).
 
-   **DONE 2026-09-04 — the dungeon renders.** `unity/DK2.Unity/` holds
-   `DungeonScene`, `DungeonRunner`, an editor `DungeonSetup` and a committed
-   `Dungeon.unity` scene. Unity 6 LTS `6000.6.0f1` is installed and activated;
-   two headless commands pass (Unity compiles the adapter; `DungeonSetup.SmokeTest`
-   runs the full pipeline), and **the owner pressed Play and got campaign level 1
-   first attempt** — see `unity/README.md`, which records what that screenshot
-   confirmed and the camera bug it found.
+3. ← **START HERE: what rooms actually do.** This is the next item, agreed with
+   the owner on 2026-09-04.
 
-   **What is left is not the view but the game:** no input (nothing builds an
-   `InputFrame` yet, so you can watch a dungeon and not touch it), no art loading
-   (there is no converter — plan §7.1), and boxes rather than DK2's actual walls
-   (Q71).
+   **The machinery is finally in place.** `RoomInstance` (ADR-0027) gives a room
+   its tile count, its bounding box, its rim and whether it is big enough to
+   function; `RoomRules` handles placement, cost and selling; a room's tiles are
+   owned terrain that a keeper pays for and can sell back. **What no room except
+   the treasury and the heart has is a behaviour.**
 
-   **Read `TextRenderer` before writing the adapter.** It is the same job against
-   a character grid, it runs in CI, and a disagreement between the two is a bug
-   in one of them rather than a matter of taste. Note the two are deliberately
-   opposite strategies — the text renderer redraws everything because a character
-   grid is free, the presenter diffs because instantiating is not — and having
-   both is what proves the boundary assumes neither.
+   **Expect research, not coding.** None of it can be guessed from the ROOMS
+   record — that carries art, size, cost, `ReturnPercentage` and
+   `CreatedCreatureId`, and **nothing about what a room does**. So the method is
+   the one that has worked all along and is written up under *Research method*
+   below: **ask the owner first** (step 0 — it has repeatedly beaten reading the
+   files), then the balance table, then the shipped maps.
 
-3. **What rooms actually do.** Room instances exist now (ADR-0027), so the
-   machinery is finally there: `RoomInstance` gives a room its tile count, its
-   bounding box, its rim and whether it is big enough to function. A lair, a
-   hatchery, a library and the rest are still inert terrain, and each needs its
-   own research note — none can be guessed from the ROOMS record, which carries
-   art, size and cost and nothing about behaviour.
+   **Suggested order, easiest evidence first:** the **lair** (a creature claims a
+   tile; capacity is presumably the tile count, which `RoomInstance` already
+   knows), the **hatchery** (chickens are objects — check whether it is blocked
+   behind M6 before starting), the **library** (research rate per tile, and
+   `GlobalVariables` may well carry it), then the **training room**, where Q63
+   already has a measured number: 20 gold at a dummy, 0 at the target.
+
+   **Two traps worth naming before starting.** First, a room's *capacity* rule is
+   not one rule: Q60 established that a temple's is its **rim**, `2(w+h) − 4`,
+   which nobody would have guessed, so do not assume "capacity = tile count" for
+   any room without evidence. Second, several rooms need creatures to have needs,
+   and **creatures currently have no health, hunger, mood or experience** —
+   `CreatureState` carries only what a built mechanic reads. A room whose
+   behaviour needs a field the simulation does not have is blocked, and saying so
+   is better than inventing the field.
 
 **A rival claims your ground directly, and hostile expansion fell out of it**
 (Q68, ADR-0033). Worth reading for the method rather than the mechanic: **both halves
@@ -721,9 +745,19 @@ by eating backslashes (`Replace('\\', '/')` → `Replace('\', '/')`), and once b
 choking on a file containing backticks. Use the `Write`/`Edit` tools for any C#
 containing backslash escapes or backticks; verify with `grep` otherwise.
 
-**`cat > file` with no stdin hangs** the Bash tool until timeout. So does
+**⚠ `cat > file` with no stdin hangs** the Bash tool until timeout. So does
 `python`/`python3` — it is not installed and the Windows Store stub blocks.
 Never write a bare `cat >` redirect, and do not reach for python.
+
+> **This entry has now cost time on five separate occasions, three of them on
+> 2026-09-04 alone, and it was already written down each time.** Reading a
+> gotchas list is not the same as remembering it mid-task, and the failure mode
+> is always the same: reaching for `python -` reflexively while thinking about
+> something else. **The habit that actually works is not "remember the list" but
+> "never pipe into an interpreter" — use `perl -0pi -e`, `awk`, or the
+> `Write`/`Edit` tools, all of which are already sufficient for everything this
+> project has needed.** If a future session finds itself typing `python`, that is
+> the signal.
 
 **`ctx_batch_execute` sandbox quirks:**
 - `for ... do ... done` loops fail to parse (the wrapper prefixes the command
@@ -735,6 +769,30 @@ Never write a bare `cat >` redirect, and do not reach for python.
 **`dotnet build` takes one project, not several.** Pass `DK2.slnx` instead.
 
 **Windows/git:** CRLF warnings on every commit are expected noise.
+
+**Unity and winget (all found 2026-09-04):**
+
+- **`winget search` without `--source winget` prompts** for the msstore
+  agreement and then fails with `Error reading input in prompt`, because the
+  tool has no interactive stdin. Always pass `--source winget`.
+- **Unity Hub installs as an MSIX package**, so it is *not* in `Program Files`
+  and `Get-AppxPackage *Unity*` is how to find it. The **editor** is a normal
+  install at `C:\Program Files\Unity 6000.6.0f1`.
+- **`pwsh` is not installed.** Use the `PowerShell` tool, or
+  `powershell.exe -NoProfile -File ...` from Bash.
+- **Never reference `UnityEngine.dll` alongside the module assemblies.** The
+  top-level facade re-exports the same types and every Unity type becomes
+  ambiguous (CS0433 on `GameObject`, `Transform`, `Color`, …). Unity's own asmdef
+  compilation references only the modules; `DK2.Unity.Compile` mirrors that.
+- **Unity exit code 198 with `Found 0 entitlement groups`** means the editor is
+  not activated — sign in via Unity Hub, then *add a free personal licence*,
+  which is a separate step from signing in.
+- **A `.sln` in the Unity project root is Unity's, not ours.** It regenerates it
+  for Visual Studio/Rider on every open. Unity opens the *folder*; the `.sln` and
+  `.csproj` there are gitignored. This confused the owner once and the confusion
+  was entirely reasonable.
+- **Unity's first launch on a project takes minutes** and the window title says
+  `Opening project...`. Not a hang.
 
 ---
 
@@ -981,3 +1039,93 @@ built assembly rather than the configuration that was already wrong.
 **What is genuinely unverified and should not be described otherwise:** Unity is
 installed but not activated, so the adapter is *compiled* and has never *run*.
 `TextRenderer` remains the only renderer anyone has watched work.
+
+---
+
+## The ninth and tenth sittings (2026-09-04) — the view, in one day
+
+Two sittings ran back to back and they belong together, because the second only
+happened because the first made it cheap.
+
+**The ninth built everything that is not Unity.** `DK2.Assets` (ADR-0034) and
+`DK2.Presentation` (ADR-0035) — the logical asset key, the provider chain ending
+in a total placeholder, the catalogue that makes "runs with no art" a test rather
+than an intention, the shared `WorldView`, `ScenePresenter`'s diffing, and a text
+renderer that runs in CI and draws every scenario's finished world. That closed
+`GOAL_ALIGNMENT.md` gap 3 **on the correct side of its deadline**, which was the
+entire point of having written the deadline down months earlier.
+
+**The tenth wrote the Unity adapter**, and it was small, because the ninth had
+already taken every decision out of it. Unity 6 LTS renders campaign level 1.
+
+### What that day actually taught, in order of how much it cost
+
+1. **A constraint expressed only in build configuration is a hope.** ADR-0002
+   claimed netstandard2.1 was "enforced by the compiler from day one" and it was
+   never true for a single day: the condition selecting it could not fire, and
+   every assembly built as net10.0 from M1 to 2026-09-04. **Unity cannot load a
+   net10.0 assembly**, so the presentation plan would have failed at the first
+   attempt to use it. Now asserted from `TargetFrameworkAttribute` on the built
+   assembly. **The general form: "enforced at compile time" in an ADR title is
+   itself a claim that needs a test.**
+
+2. **A constraint nothing exercises is not enforced, whatever it says.** This is
+   the same lesson from the other end, and it is the more useful half. Every
+   earlier defect in this project was found by running rules against the real
+   install. This one was found by **using the thing for its purpose** — no
+   amount of re-reading the build files would have surfaced it, because they
+   looked exactly right.
+
+3. **Rendering the real thing finds what unit tests cannot.** Three times in one
+   day: `TextRenderer`'s glyph alphabet contained `@` and `$`, so on campaign
+   level 1 rock read as imps and the dungeon heart was indistinguishable from
+   rock beside it — visible in one look, invisible to every test. Then the camera
+   framed the level by `world.Width` on a level 30 wide and 38 deep, so the near
+   end fell off the screen — found by the owner's first screenshot. **A smoke
+   test proves 1140 objects exist; it cannot prove a camera points at them, and
+   that is the boundary of a test suite rather than a hole in it.**
+
+4. **A hash cannot promise distinctness.** The test replacing the glyph bug first
+   asserted that eight solid terrains would spread across an eight-symbol
+   alphabet; they gave five, which is exactly what random bucketing predicts.
+   Widening the alphabet lowers the collision rate and cannot abolish it. The
+   test now asserts what a reader actually needs — Rock, Gold, Gems and
+   Impenetrable Rock distinguishable — and says out loud that it is not a
+   uniqueness claim.
+
+5. **A guessed character set met the real data and lost.** `AssetRef` allowed
+   space, dash and apostrophe; the shipped terrain table carries
+   `Hero Gate [ Final ]`. Measured over all 113 names now.
+
+6. **A resource table's "when" column is a commitment.** The Simon Schreibt
+   wall-rendering article sat unread in `external-resources.md` in a row whose
+   own text said *"useful for the Unity view"* — while the Unity view was being
+   built. The owner asked about it directly and it was worth an afternoon: it
+   **corroborated** `TileView.HealthPermille` (DK2 shows wall damage by swapping
+   textures) and **refuted** one-mesh-per-terrain (walls are drawn from a set of
+   pieces chosen by the room behind them). **The editor manual's row says M6 and
+   is set up for exactly the same miss.**
+
+### One quiet piece of good news
+
+Moving seven assemblies from net10.0 to netstandard2.1 — a change of framework,
+runtime and, in two places, the actual API called — **did not move the pinned
+determinism hash**. That is the best evidence yet that ADR-0001's
+integer/fixed-point rule does what it was chosen for. The change being small was
+luck; the change being *safe* was design.
+
+### The state, precisely
+
+**486 tests green** with and without a DK2 install (Core 14, Simulation 254,
+Data 55, Behavior 77, Assets 60, Presentation 26). Ten scenarios run, each
+writing a picture of its finished world. Unity compiles and smoke-tests clean,
+and renders. Clean tree apart from the owner's own `AGENTS.md` edit, which is
+**deliberately excluded from every commit** — use
+`git add -A -- . ':!AGENTS.md'`.
+
+### Next: what rooms actually do
+
+Agreed with the owner. See item 3 under *Immediate next steps*, which names the
+suggested order and the two traps — that room capacity is **not** reliably "tile
+count" (Q60 proved a temple's is its rim), and that several rooms will be blocked
+because creatures still have no health, hunger, mood or experience.

@@ -5,20 +5,34 @@ Full rationale: `DK2_REIMPLEMENTATION_PLAN.md` §4. This file is the working sum
 ## Layering (dependencies point downward only)
 
 ```
+unity/DK2.Unity            the only assembly that references UnityEngine
+        │
 DK2.Tools / DK2.Harness            net10.0 executables
         │
-DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding
-        │              │                  │
+        ├──────────────► DK2.Presentation ──► DK2.Assets
+        │                       │                  │
+DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding  │
+        │              │                  │        │
         └──────► DK2.Data.Model ◄── DK2.Data (parsers)
                        │
                    DK2.Core                netstandard2.1 (Unity-loadable)
 ```
 
-- `DK2.Core` … `DK2.Assets` target **netstandard2.1** (`DK2UnityBound` in
-  Directory.Build.props) so Unity can load them directly.
-- **No simulation assembly may reference Unity.** Enforced by
-  `DK2.Simulation.Tests.ArchitectureTests` — the build fails if violated.
-- Tools/harness/tests target net10.0.
+- Seven assemblies target **netstandard2.1** so Unity can load them: `DK2.Core`,
+  `DK2.Data.Model`, `DK2.Data`, `DK2.Pathfinding`, `DK2.Simulation`,
+  `DK2.Assets`, `DK2.Presentation`. `DK2.AI` does too.
+- The framework comes from **`src/Shared/UnityBound.props`, imported from inside
+  each project's own body**. It is *not* a condition in `Directory.Build.props`,
+  and the comment in that props file explains at length why: it was written that
+  way, the condition could never be true because of MSBuild's evaluation order,
+  and every assembly silently built as net10.0 for four months (ADR-0002
+  correction, ADR-0036).
+- **No simulation assembly may reference Unity**, and **the Unity-loadable ones
+  must actually be netstandard2.1.** Both are asserted from the *built
+  assemblies* by `ArchitectureTests` and `AssetArchitectureTests` — reading
+  `TargetFrameworkAttribute`, not the project files, because the project files
+  were the thing that was wrong.
+- Tools, harness and tests target net10.0.
 
 ## Simulation rules
 
@@ -31,10 +45,56 @@ DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding
 5. Every implemented DK2 mechanic carries a `[Dk2Behavior]` attribute with a
    confidence level and a pointer to its research note in `docs/research/`.
 
-## Unity (arrives at milestone M3)
+## Presentation (M3, done 2026-09-04)
 
-Unity project lives under `unity/`, consumes the netstandard2.1 assemblies,
-renders `SimulationEvent`s and submits `InputFrame`s. It owns no game state.
+**A renderer never reads `WorldState` directly.** `DK2.Presentation.WorldView`
+turns it into `TileView` / `CreatureView` — readonly structs carrying asset keys,
+fixed-point positions and the few state bits a player can see — and every
+renderer consumes those. Three decisions live there and nowhere else: which asset
+key a terrain implies, which animation an activity implies, and how a room's
+floor differs from its furniture. Two renderers disagreeing about any of them
+would look exactly like a simulation bug (ADR-0035).
+
+```
+WorldState ──► WorldView ──► ScenePresenter ──► IRenderTarget
+                                  │                   ├── DungeonScene   (Unity)
+                             AssetProviderChain        └── (a text view redraws
+                                  │                        from WorldView direct)
+              replacement ──► converted ──► placeholder
+```
+
+- **`ScenePresenter` diffs** and pushes only what changed, in a fixed order
+  (tiles row-major, creatures in spawn order, removals ascending) so a recorded
+  call sequence is reproducible. An unchanged world pushes nothing.
+- **`IRenderTarget` is six methods with no logic in them.** Everything an
+  engine adapter could get wrong is upstream of it and tested.
+- **`TextRenderer` is the second renderer**, and the one that runs in CI. It
+  redraws everything, because a character grid is free — deliberately the
+  opposite strategy, which is what proves the boundary assumes neither.
+
+## Assets (M3, done 2026-09-04)
+
+Goal 4's `Game Definition → Asset Reference → Asset Provider → Actual Asset`
+(ADR-0034). `AssetRef` is a validated logical key built from a record's **name**,
+never its id. A chain resolves it — replacement pack, then converted art, then
+`PlaceholderProvider`, which is **total**: every key the shipped database implies
+resolves with no DK2 install and no art pack, and `AssetCatalogueTests` checks
+exactly that. **No filename literal exists outside `DK2.Assets`.**
+
+## Unity (M3, done 2026-09-04)
+
+`unity/DK2.Unity` — Unity 6 LTS `6000.6.0f1` (ADR-0036). It consumes the
+netstandard2.1 DLLs from `Assets/Plugins/DK2` (synced by
+`unity/sync-assemblies.ps1`; they are build output and gitignored) and owns no
+game state: `DungeonRunner` ticks a `GameSimulation` and calls
+`ScenePresenter.Present`, and `DungeonScene` implements `IRenderTarget` in
+GameObjects. Deleting every GameObject would change nothing, because the
+simulation references none of it.
+
+`unity/DK2.Unity.Compile` compiles the adapter against Unity's real module
+assemblies, which is the only way "do not commit code you have not built"
+reaches Unity code. It is outside `DK2.slnx` on purpose — CI has no Unity. See
+`unity/README.md`.
 
 ## Determinism (M2)
 

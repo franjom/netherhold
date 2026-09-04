@@ -724,7 +724,7 @@ is very expensive to retrofit.
 | **M0** | Research baseline | This document; repo skeleton; DK2 v1.70 installed; Flame + OpenKeeper building locally | 1–2 wk |
 | **M1** ◐ | Formats readable | `DK2.Tools extract` dumps WAD contents; KWD parses to `GameDatabase`; all 18 record types round-trip; unit tests over the shipped campaign maps | 3–5 wk |
 | **M2** ✅ | Deterministic skeleton | `GameSimulation.Tick()` exists; `StateHash()` stable; save/load round-trips; CI determinism gate green; headless harness runs a scenario file | 3–4 wk |
-| **M3** ◐ | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold. Unity view renders it with placeholder art | 8–12 wk |
+| **M3** ◐ | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold. Unity view renders it with placeholder art — **the view is done (2026-09-04); what a room *does* is not** | 8–12 wk |
 | **M4** | First creature loop | Portal spawn; lair claim; hunger→hatchery; sleep; training; payday; job selection with logged reasons | 8–12 wk |
 | **M5** | First oracle comparison | Memory-reading oracle probe working against DK2 under Flame; 20+ scenarios captured from both sides; first divergence report | 4–6 wk |
 | **M6** | Real level loads | A stock campaign level loads, terrain and things place correctly, triggers/objectives fire, level is winnable | 6–10 wk |
@@ -797,10 +797,19 @@ in the shipped dungeon heart, 1000 to a tile, across as many trips as an imp's
 hands need. What is left of that mechanic is the floor lump DK2 leaves when there
 is nowhere to unload, which needs the OBJECTS record (M6).
 
-What M3's definition of done still asks for and does not have: **the Unity
-view**. Rooms exist as owned terrain that costs gold; what a room *does* is a
-per-room research question that has not been started, and only the treasury and
-the heart do anything at all.
+**Update 2026-09-04: the Unity view is done.** M3's definition of done asked for
+"Unity view renders it with placeholder art", and it does — Unity 6 LTS renders
+campaign level 1 as coloured boxes through an asset abstraction that resolves
+every key with no DK2 art installed (ADR-0034, ADR-0035, ADR-0036). Getting there
+also closed `GOAL_ALIGNMENT.md` gap 3 on the right side of its deadline, and
+uncovered that the netstandard2.1 target this plan assumes had never actually
+applied — see the correction on ADR-0002.
+
+What M3 still asks for and does not have: **what a room does**. Rooms exist as
+owned terrain that costs gold and can be sold back, but only the treasury and the
+heart do anything at all; every other room's behaviour is a per-room research
+question that has not been started. §7.3's converter does not exist either, which
+is why the renderer draws boxes rather than art.
 
 M1 is marked partial deliberately. Its definition of done says "all 18 record
 types round-trip"; five are parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP)
@@ -896,7 +905,7 @@ I have flagged rather than resolved this, per §32 of the brief.
 | Decision | Recommendation |
 |---|---|
 | .NET version | .NET 9 for libraries/tools; netstandard2.1-compatible surface for the Unity assembly |
-| Unity version | Latest LTS; decide at M3, not now — nothing before M3 needs Unity |
+| Unity version | **Decided 2026-09-04 (ADR-0036): Unity 6 LTS `6000.6.0f1`.** 2022.3 LTS is the fallback; nothing depends on either |
 | Fixed-point format | Q32.32 (`long`-backed). Revisit if profiling demands |
 | Test framework | xUnit + FluentAssertions; scenario tests generated from YAML |
 | Determinism gate | Enabled from the first commit that has a `Tick()` |
