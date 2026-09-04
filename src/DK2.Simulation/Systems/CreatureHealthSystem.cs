@@ -70,6 +70,24 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             CreatureState state = world.Creatures[i];
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
+            // Terrain first, and it applies to the dying as well as the
+            // standing: a creature that collapses in water is still in water,
+            // and lying in it is no safer than walking through it. This is the
+            // one thing that can still kill something mid-rescue.
+            int terrain = CreatureHealthRules.TerrainHealthPerSecond(world, database, state);
+            if (terrain != 0)
+            {
+                int landed = CreatureHealthRules.Apply(creature, state, terrain);
+                if (landed != 0)
+                {
+                    context.Emit(SystemName, "creature_terrain_health",
+                        $"creature={state.Id} type={creature.Name} " +
+                        $"player={state.OwnerPlayerId} delta={landed} " +
+                        $"health={state.Health}/{CreatureHealthRules.MaxHealth(creature)} " +
+                        $"at=({state.Tile.X},{state.Tile.Y})");
+                }
+            }
+
             // A dying creature does nothing but die. No hunger clock, and above
             // all no regeneration — see the type summary for the immortal imp.
             if (CreatureDeathRules.IsDying(state))

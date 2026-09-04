@@ -355,6 +355,107 @@ public class CreatureNeedsTests
         Assert.Equal(0, state.HungerTicks);         // full: the clock restarts
     }
 
+    // ---- terrain health deltas --------------------------------------------
+
+    [Fact]
+    public void StandingInWaterCostsAHundredHealthASecond()
+    {
+        // The owner marked a gem tile on an island cut off by water, with no
+        // bridge, and imps waded across to mine it — which CONFIRMED that
+        // hazards are crossable and then exposed that crossing one was free
+        // here. Water's TerrainDef.Damage is 100 and was read by nothing but
+        // the asset catalogue.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var pond = new TilePos(3, 6);
+        world.Tile(pond.X, pond.Y).TerrainId = Dk2TerrainFixture.Water;
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, pond);
+        var events = new ListEventSink();
+
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
+        sim.ObserveWith(events);
+        sim.Run(Second * 3);
+
+        Assert.Equal(1500 - 300, goblin.Health);
+        Assert.Contains(events.Events, e => e.Kind == "creature_terrain_health");
+    }
+
+    [Fact]
+    public void ACreatureLeftInWaterLongEnoughDrowns()
+    {
+        // Fifteen seconds for a Goblin, five for an Imp. Which is why the
+        // cadence matters and is flagged as ours (Q117): per tick instead of
+        // per second would make hazards twenty times deadlier.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var pond = new TilePos(3, 6);
+        world.Tile(pond.X, pond.Y).TerrainId = Dk2TerrainFixture.Lava;
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, pond);
+
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
+        sim.Run(Second * 15);
+
+        // Out of health, and now in the dying window rather than dead.
+        Assert.Equal(0, goblin.Health);
+        Assert.Equal(CreatureActivity.Dying, goblin.Activity);
+    }
+
+    [Fact]
+    public void TerrainIsStillAppliedToACollapsedCreatureButCannotTakeItFurther()
+    {
+        // Water is applied to the down as well as the standing, because a
+        // creature that drops in water is in water and lying in it is no safer
+        // than walking through it.
+        //
+        // **But it has no observable effect**, and this test exists because the
+        // first version of it asserted the opposite — that terrain was "the one
+        // thing that can still kill something during its rescue window". It is
+        // not: a creature at zero health cannot be taken lower, so the clamp
+        // makes every subsequent second a no-op and only ONE terrain event
+        // fires, the partial hit that took it to zero.
+        //
+        // The code is left as it is rather than adding a skip, because the rule
+        // "terrain acts on whatever is standing in it" is the true one and will
+        // start mattering the moment anything can heal a down creature in
+        // place. What is corrected is the claim, not the behaviour.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var pond = new TilePos(3, 6);
+        world.Tile(pond.X, pond.Y).TerrainId = Dk2TerrainFixture.Water;
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, pond);
+        goblin.Health = 50;
+        var events = new ListEventSink();
+
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
+        sim.ObserveWith(events);
+        sim.Run(Second * 5);
+
+        Assert.Equal(CreatureActivity.Dying, goblin.Activity);
+        Assert.Equal(0, goblin.Health);
+
+        // Exactly one: the 50 that was left, and nothing after.
+        Assert.Single(events.Events, e => e.Kind == "creature_terrain_health");
+        Assert.Contains("delta=-50", events.Events
+            .First(e => e.Kind == "creature_terrain_health").Detail);
+    }
+
+    [Fact]
+    public void DryLandCostsNothing()
+    {
+        // The control, and it is not idle: 38 of 41 terrains carry no delta at
+        // all, so a rule that charged everybody would be wrong nearly always.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+
+        Simulation(db, world).Run(Second * 30);
+
+        Assert.Equal(1500, goblin.Health);
+    }
+
     // ---- death ------------------------------------------------------------
 
     [Fact]

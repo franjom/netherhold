@@ -148,6 +148,54 @@ public static class CreatureHealthRules
     }
 
     /// <summary>
+    /// Health per second from the terrain a creature is standing on —
+    /// <c>TerrainDef.Damage</c>, which is a <b>signed delta and not damage</b>.
+    ///
+    /// <para><b>Three of 41 terrains carry one</b>, and the third is why the
+    /// field's name is wrong: <b>Water +100</b>, <b>Lava +100</b>, and
+    /// <b>Hero Lair −67</b> — the hero side's lair, healing whatever stands on
+    /// it. Returned negated here so the sign convention matches everything else
+    /// in this file: positive heals, negative hurts.</para>
+    ///
+    /// <para><b>CONFIRMED that hazards are crossed at all</b> (owner, 2026-09-04):
+    /// a gem tile on an island cut off by water, no bridge, and imps waded over,
+    /// mined it and carried the gold home. The original states the rule in its
+    /// own tooltip — <i>"Water. Impassable to some, others are merely hindered
+    /// by it."</i> — and the DK2 wiki corroborates the cost, warning that
+    /// patrols routed through water "may get damaged, resurrect, and even
+    /// die".</para>
+    ///
+    /// <para><b>The cadence is ours</b> (Q117). The field is applied once a
+    /// game second, which is what every other rate in the data does and what
+    /// this system already runs on — but nothing states it, and at 100 a second
+    /// a Goblin drowns in fifteen seconds while an Imp lasts five. If DK2
+    /// charges per tick instead, hazards are twenty times deadlier than this.
+    /// The owner is the check: does an imp visibly lose health wading across?</para>
+    ///
+    /// <para>Applied to a creature that is <see cref="CreatureDeathRules.IsDown"/>
+    /// as well as a standing one, deliberately: a creature that collapses in
+    /// water is in water, and lying in it is no safer than walking through
+    /// it.</para>
+    ///
+    /// <para><b>Though it has no observable effect there</b>, and the first
+    /// version of this comment claimed otherwise — that terrain was the one
+    /// thing which could still kill something inside its rescue window. It
+    /// cannot: a creature at zero health cannot be taken lower, so the clamp
+    /// makes every second after the collapse a no-op. A test written to
+    /// demonstrate the claim refuted it. The rule is kept because "terrain acts
+    /// on whatever is standing in it" is the true one and starts mattering the
+    /// moment anything can heal a down creature in place; what was wrong was
+    /// the boast, not the behaviour.</para>
+    /// </summary>
+    public static int TerrainHealthPerSecond(WorldState world, GameDatabase database, CreatureState state)
+    {
+        TilePos at = state.Tile;
+        if (!world.Contains(at)) return 0;
+
+        return -database.TerrainById(world.Tile(at.X, at.Y).TerrainId).Damage;
+    }
+
+    /// <summary>
     /// Health per second for a creature <b>asleep in its own bed</b> —
     /// <c>ModifyHealthOfCreatureInLairPerSecond</c>, which is <b>100</b>, and is
     /// the main way anything heals in DK2.

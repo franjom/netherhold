@@ -26,10 +26,50 @@ namespace DK2.Simulation;
 /// time at the moment of stepping, because a route is planned once and the
 /// world keeps moving.</para>
 ///
-/// <para>The hazard half is STRONGLY INFERRED — <see cref="CreatureFlags.CanWalkOnWater"/> and
-/// <see cref="CreatureFlags.CanWalkOnLava"/> exist for no other purpose, and
-/// they fall exactly where DK2's behaviour puts them (imps cross water, most
-/// creatures do not; almost nothing crosses lava).</para>
+/// <para><b>The hazard half is now CONFIRMED</b> (owner observation,
+/// 2026-09-04) after being inferred from the existence of
+/// <see cref="CreatureFlags.CanWalkOnWater"/> and
+/// <see cref="CreatureFlags.CanWalkOnLava"/> alone. The owner marked a gem tile
+/// on an island cut off by water, with no bridge anywhere, and <b>imps waded
+/// across, mined it and carried the gold home</b>. And the original states the
+/// rule itself in its own tile tooltip:</para>
+///
+/// <para><i>"Water. Impassable to some, others are merely hindered by it."</i></para>
+///
+/// <para>Which is as close to a specification as this project has found in the
+/// game's own text — a per-creature passability flag and a penalty for those who
+/// do cross, in one sentence. Both hazard terrains carry
+/// <c>Impenetrable</c> in the shipped record and that is deliberately <i>not</i>
+/// what is tested here: impenetrable means "cannot be tunnelled through", which
+/// is true of water and says nothing about wading. Only <c>IsSolid</c> blocks a
+/// walker, and water is not solid.</para>
+///
+/// <para><b>What "merely hindered" implies is NOT implemented, and there are two
+/// halves of it</b> (Q117):</para>
+///
+/// <list type="bullet">
+/// <item><b>The slowdown.</b> "Hindered" reads as a movement penalty, and no
+/// variable for one was found — 214 balance variables were searched and there is
+/// no water speed modifier. A creature crosses water here at its normal
+/// speed.</item>
+/// <item><b>The health cost.</b> <c>TerrainDef.Damage</c> is <b>100</b> for
+/// Water and Lava, and it is applied by
+/// <see cref="Systems.CreatureHealthSystem"/> — but only since the owner's
+/// observation prompted a look, because before that it was parsed and read by
+/// nothing but <c>AssetCatalogue</c>. The DK2 wiki corroborates that it is real:
+/// its Vampire page warns against patrols routed through water because they
+/// "may get damaged, resurrect, and even die".</item>
+/// </list>
+///
+/// <para><b>And checking that claim found a third terrain.</b> The assertion
+/// first written here was that <c>Damage</c> is non-zero on Water and Lava
+/// alone. It is not: <b>Hero Lair</b> (terrain 35) carries <b>−67</b>. So the
+/// field is <i>signed</i> and is not damage at all but a <b>health delta per
+/// second</b> — the hero side's answer to a keeper's lair, healing whatever
+/// stands on it. Three of 41 terrains, which is the same shape as mana
+/// (three of 41 generate any, ADR-0017) and own-land regeneration (two of 46),
+/// and the third time this project has been caught claiming a column was
+/// simpler than it is.</para>
 ///
 /// <para>UNKNOWN, and deliberately not guessed at: bridges. A bridge over water
 /// or lava is a room built on a hazard tile, and the MAP record's byte 3 is

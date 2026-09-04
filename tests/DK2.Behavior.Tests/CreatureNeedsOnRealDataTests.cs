@@ -687,6 +687,78 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(400, db.CreatureByName("King Reginald")!.OwnLandHealthIncreasePerSecond);
     }
 
+    // ---- terrain health deltas (the water observation) --------------------
+
+    [Fact]
+    public void ThreeTerrainsCarryAHealthDeltaAndOneOfThemHeals()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The claim written first was that TerrainDef.Damage is non-zero on
+        // Water and Lava alone. **It is not**, and this test is what caught it:
+        // Hero Lair carries -67, so the field is *signed* and is not damage but
+        // a health delta per second — the hero side's answer to a keeper's
+        // lair, healing whatever stands on it.
+        //
+        // Three of 41, which is the same shape as mana (three of 41 generate
+        // any, ADR-0017) and own-land regeneration (two of 46). Third time this
+        // project has claimed a column was simpler than it is, so it is
+        // asserted by name rather than by count.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        var deltas = db.Terrain.Values
+            .Where(t => t.Damage != 0)
+            .ToDictionary(t => t.Name, t => (int)t.Damage);
+
+        Assert.Equal(
+            new Dictionary<string, int>
+            {
+                ["Water"] = 100,
+                ["Lava"] = 100,
+                ["Hero Lair"] = -67,
+            },
+            deltas);
+    }
+
+    [Fact]
+    public void WaterIsImpenetrableButNotSolid_WhichIsWhyImpsCanWadeIt()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // CONFIRMED by the owner: a gem tile on an island cut off by water,
+        // no bridge, and imps waded over, mined it and carried the gold home.
+        // The original states the rule in its own tooltip — "Water. Impassable
+        // to some, others are merely hindered by it."
+        //
+        // The distinction that makes it work: water carries Impenetrable, which
+        // means "cannot be tunnelled through" and is true of water, and does
+        // NOT carry Solid, which is what blocks a walker. Asserted because
+        // reading Impenetrable as "impassable" is the obvious mistake and would
+        // strand every imp on its own side of a lake.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        TerrainDef water = db.TerrainById(4);
+
+        Assert.Equal("Water", water.Name);
+        Assert.True(water.IsWater);
+        Assert.False(water.IsSolid);
+
+        // And the flag that decides who may cross. The Imp has it; so, as it
+        // happens, does the Goblin.
+        Assert.True(db.CreatureByName("Imp")!.Flags.HasFlag(CreatureFlags.CanWalkOnWater));
+        Assert.True(db.CreatureById(7).Flags.HasFlag(CreatureFlags.CanWalkOnWater));
+
+        // Lava is the counterpart, and almost nothing crosses it.
+        var lavaWalkers = db.Creatures.Values
+            .Where(c => c.Flags.HasFlag(CreatureFlags.CanWalkOnLava))
+            .Select(c => c.Name)
+            .ToHashSet();
+
+        Assert.DoesNotContain("Imp", lavaWalkers);
+        Assert.NotEmpty(lavaWalkers);
+    }
+
     // ---- anger, against the owner's two measurements ----------------------
 
     [Fact]
