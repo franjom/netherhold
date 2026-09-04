@@ -79,13 +79,13 @@ public sealed class CreatureHealthSystem : ISimulationSystem
                 world, database, creature, state);
             if (terrain != 0)
             {
-                int landed = CreatureHealthRules.Apply(creature, state, terrain);
+                int landed = CreatureHealthRules.Apply(database, creature, state, terrain);
                 if (landed != 0)
                 {
                     context.Emit(SystemName, "creature_terrain_health",
                         $"creature={state.Id} type={creature.Name} " +
                         $"player={state.OwnerPlayerId} delta={landed} " +
-                        $"health={state.Health}/{CreatureHealthRules.MaxHealth(creature)} " +
+                        $"health={state.Health}/{CreatureHealthRules.MaxHealth(database, creature, state)} " +
                         $"at=({state.Tile.X},{state.Tile.Y})");
                 }
             }
@@ -105,13 +105,13 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
             if (regen != 0)
             {
-                int landed = CreatureHealthRules.Apply(creature, state, regen);
+                int landed = CreatureHealthRules.Apply(database, creature, state, regen);
                 if (landed != 0)
                 {
                     context.Emit(SystemName, "creature_health",
                         $"creature={state.Id} type={creature.Name} " +
                         $"player={state.OwnerPlayerId} delta={landed} " +
-                        $"health={state.Health}/{CreatureHealthRules.MaxHealth(creature)}");
+                        $"health={state.Health}/{CreatureHealthRules.MaxHealth(database, creature, state)}");
                 }
             }
 

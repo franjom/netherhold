@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -80,13 +80,15 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             if (CreatureDeathRules.IsDown(creature)) continue;
 
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-            Advance(creature, definition, new WorldPathGrid(context.Database, context.World, definition));
+            Advance(context.Database, creature, definition,
+                new WorldPathGrid(context.Database, context.World, definition));
         }
     }
 
-    private static void Advance(CreatureState creature, CreatureDef definition, WorldPathGrid grid)
+    private static void Advance(
+        GameDatabase database, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
-        int step = StepThisTick(creature, definition);
+        int step = StepThisTick(database, creature, definition);
 
         while (step > 0 && creature.PathIndex < creature.Path.Count)
         {
@@ -183,10 +185,20 @@ public sealed class CreatureMovementSystem : ISimulationSystem
     /// every creature permanently slower than its own data says; the carried
     /// remainder makes the speed exact over any whole number of seconds while
     /// keeping the arithmetic in integers (ADR-0001).
+    ///
+    /// <para><b>Speed is the creature's level speed, not its record speed</b>
+    /// (Q119). CONFIRMED by the owner: <i>"imps gain speed as they gain more
+    /// levels"</i>, and the shipped stat table says by how much — 105% per level
+    /// to level 5, then up to 250% at level 10. So a level-2 imp covers 7913
+    /// raw units a second against its record's 7536, which is the difference the
+    /// owner could see on screen. See <see cref="CreatureLevelRules"/>; nothing
+    /// raises a level yet, so today this reads 100% for everything that was not
+    /// placed at a level by hand.</para>
     /// </summary>
-    private static int StepThisTick(CreatureState creature, CreatureDef definition)
+    private static int StepThisTick(
+        GameDatabase database, CreatureState creature, CreatureDef definition)
     {
-        int perSecond = definition.Speed.Raw;
+        int perSecond = CreatureLevelRules.SpeedRaw(database, definition, creature.Level);
         int ticksPerSecond = SimulationTiming.TicksPerSecond;
 
         int step = perSecond / ticksPerSecond;

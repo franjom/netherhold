@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -23,7 +23,7 @@ namespace DK2.Simulation;
 /// </summary>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 14;
+    private const ulong HashVersion = 15;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationContext _context;

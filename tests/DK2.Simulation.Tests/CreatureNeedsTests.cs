@@ -66,7 +66,7 @@ public class CreatureNeedsTests
 
         Assert.Equal(500, imp.Health);
         Assert.Equal(500, CreatureHealthRules.MaxHealth(
-            db.CreatureById(Dk2TerrainFixture.ImpCreatureId)));
+            db, db.CreatureById(Dk2TerrainFixture.ImpCreatureId), imp));
     }
 
     [Fact]
@@ -79,16 +79,16 @@ public class CreatureNeedsTests
 
         // Healing at full health lands nothing at all, which is what lets the
         // per-second system apply regeneration unconditionally.
-        Assert.Equal(0, CreatureHealthRules.Apply(goblin, state, 500));
+        Assert.Equal(0, CreatureHealthRules.Apply(db, goblin, state, 500));
         Assert.Equal(1500, state.Health);
 
         // Overkill lands only what was left.
-        Assert.Equal(-1500, CreatureHealthRules.Apply(goblin, state, -99999));
+        Assert.Equal(-1500, CreatureHealthRules.Apply(db, goblin, state, -99999));
         Assert.Equal(0, state.Health);
 
         // And healing from zero works, because zero is not a trapdoor in the
         // rules — the system, not the clamp, decides what death is.
-        Assert.Equal(200, CreatureHealthRules.Apply(goblin, state, 200));
+        Assert.Equal(200, CreatureHealthRules.Apply(db, goblin, state, 200));
     }
 
     [Fact]
@@ -351,12 +351,12 @@ public class CreatureNeedsTests
         state.HungerTicks = 999;
         state.Health = 500;
 
-        CreatureHealthRules.Eat(goblin, state);
+        CreatureHealthRules.Eat(db, goblin, state);
         Assert.Equal(1, state.ChickensNeeded);
         Assert.Equal(999, state.HungerTicks);       // still hungry, clock runs on
         Assert.Equal(875, state.Health);            // 375 from the chicken
 
-        CreatureHealthRules.Eat(goblin, state);
+        CreatureHealthRules.Eat(db, goblin, state);
         Assert.Equal(0, state.ChickensNeeded);
         Assert.Equal(0, state.HungerTicks);         // full: the clock restarts
     }

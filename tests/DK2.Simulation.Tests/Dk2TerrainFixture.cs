@@ -473,7 +473,39 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.EntranceGenerationSpeedSeconds, 25);
         Set(vars, VariableTypeId.CreaturesSupportedByFirstPortal, 15);
         Set(vars, VariableTypeId.CreaturesSupportedPerAdditionalPortal, 5);
+
+        // Three rows of the per-level stat table, as shipped (Q119). The full
+        // table is 32 stats x 9 levels; these are the three stats anything here
+        // reads, and a stat with no rows correctly scales by 100% at every
+        // level -- which is why the fixture worked at all before these were
+        // added, and why the first version of CreatureLevelTests passed
+        // nothing.
+        //
+        // CreatureNeedsOnRealDataTests reads all three back out of the install,
+        // so they cannot drift from it.
+        Stat(vars, CreatureStatId.Health, [125, 150, 175, 200, 225, 250, 300, 400, 600]);
+        Stat(vars, CreatureStatId.Speed, [105, 110, 115, 120, 125, 150, 175, 200, 250]);
+        Stat(vars, CreatureStatId.ExperienceForNextLevel,
+             [130, 180, 250, 350, 470, 600, 720, 850, 1000]);
+
         return vars;
+    }
+
+    /// <summary>
+    /// Adds one stat's rows for levels 2 to 10, in that order. The table has no
+    /// level-1 row: level 1 is the creature record's own value, which
+    /// <c>GameDatabase.StatPercent</c> returns as an implicit 100%.
+    /// </summary>
+    private static void Stat(GlobalVariables vars, CreatureStatId stat, int[] percentByLevel)
+    {
+        for (int i = 0; i < percentByLevel.Length; i++)
+        {
+            vars.CreatureStats.Add(new CreatureStatEntry(
+                StatId: (int)stat,
+                Value: percentByLevel[i],
+                Level: i + 2,
+                FirstPerson: false));
+        }
     }
 
     private static void Set(GlobalVariables vars, VariableTypeId id, int value) =>

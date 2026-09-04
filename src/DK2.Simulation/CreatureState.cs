@@ -248,6 +248,27 @@ public sealed class CreatureState
     public int Anger;
 
     /// <summary>
+    /// Experience level, 1 to <see cref="CreatureLevelRules.MaxLevel"/>.
+    ///
+    /// <para><b>What it does is multiply the creature's stats</b>, by
+    /// percentages the shipped data states outright — see
+    /// <see cref="CreatureLevelRules"/>. CONFIRMED by the owner, who mentioned
+    /// in passing that <i>"imps gain speed as they gain more levels"</i> and
+    /// sent this project looking at a table it had been parsing and never
+    /// reading (Q119).</para>
+    ///
+    /// <para><b>Nothing raises it yet</b> and every creature spawns at 1. The
+    /// experience rate's unit is ambiguous in the data — the creature record
+    /// says 1200 for an Imp where the global variable says 20 a second, and
+    /// 20 x 60 = 1200 — so levelling would have to guess between two-and-a-half
+    /// seconds and two-and-a-half minutes per level (Q124). The field is real
+    /// and hashed regardless, because a scenario can set it and because every
+    /// stat read in this project was silently the level-1 value while claiming
+    /// to be the creature's.</para>
+    /// </summary>
+    public int Level = CreatureLevelRules.FirstLevel;
+
+    /// <summary>
     /// What this creature decided to do when it became angry, drawn once from
     /// its own <c>AngryJobs</c> table and then kept.
     ///
@@ -319,6 +340,7 @@ public sealed class CreatureState
         hash.Add(SleepTicks);
         hash.Add(DyingTicks);
         hash.Add(Anger);
+        hash.Add(Level);
         hash.Add((int)AngryChoice);
         hash.Add((int)Activity);
         hash.Add(TargetTileIndex);

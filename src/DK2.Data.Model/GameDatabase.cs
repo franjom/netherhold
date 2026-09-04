@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -43,6 +43,72 @@ public sealed class GameDatabase
 
         WaterTerrain = Terrain.Values.Where(t => t.IsWater).OrderBy(t => t.TerrainId).FirstOrDefault();
         LavaTerrain = Terrain.Values.Where(t => t.IsLava).OrderBy(t => t.TerrainId).FirstOrDefault();
+
+        // The per-level stat table, flattened at construction so a rule that
+        // asks it once a tick does not scan 320 rows to do so. Built here
+        // rather than lazily because a database is immutable once made and
+        // ForLevel() rebuilds one from scratch, so there is nowhere for a stale
+        // copy to hide.
+        _statPercent = new byte[StatCount * (MaxCreatureLevel + 1)];
+        Array.Fill(_statPercent, (byte)100);
+        foreach (CreatureStatEntry e in Variables.CreatureStats)
+        {
+            // First-person rows describe possession, which is a different
+            // scaling table for the same stats, and nothing reads it yet.
+            if (e.FirstPerson) continue;
+            if (e.StatId < 0 || e.StatId >= StatCount) continue;
+            if (e.Level < 1 || e.Level > MaxCreatureLevel) continue;
+            if (e.Value < 0 || e.Value > 65535) continue;
+
+            _statPercent[(e.StatId * (MaxCreatureLevel + 1)) + e.Level] =
+                (byte)Math.Min(e.Value, 255);
+        }
+
+        // A percentage above 255 would be silently clamped by the byte above,
+        // so the wide values get their own map and the byte array stays the
+        // fast path. ExperienceForNextLevel reaches 1000 at level 10, so this
+        // is not hypothetical.
+        _wideStatPercent = Variables.CreatureStats
+            .Where(e => !e.FirstPerson && e.Value > 255
+                        && e.Level >= 1 && e.Level <= MaxCreatureLevel)
+            .GroupBy(e => (e.StatId, e.Level))
+            .ToDictionary(g => g.Key, g => g.Last().Value);
+    }
+
+    /// <summary>How many stat ids the shipped `CreatureStats` table covers.</summary>
+    private const int StatCount = 32;
+
+    /// <summary>
+    /// The highest creature level the shipped table describes.
+    ///
+    /// <para>Ten, because the rows stop there. Not a rule about what a creature
+    /// may reach by play — <c>TrainingRoomMaxExperienceLevel</c> is 4 and
+    /// <c>CombatPitMaxExperienceLevel</c> is 8, so the two rooms cap well below
+    /// it — but a hard ceiling on what the data can scale.</para>
+    /// </summary>
+    public const int MaxCreatureLevel = 10;
+
+    private readonly byte[] _statPercent;
+    private readonly Dictionary<(int StatId, int Level), int> _wideStatPercent;
+
+    /// <summary>
+    /// What percentage of its level-1 value this stat has at this level.
+    ///
+    /// <para>100 for level 1, for a stat the table does not scale, and for a
+    /// level outside the table — so a caller never has to special-case any of
+    /// those, and a stat this project has not named still returns something
+    /// harmless rather than zero.</para>
+    /// </summary>
+    public int StatPercent(CreatureStatId stat, int level)
+    {
+        int id = (int)stat;
+        if (id < 0 || id >= StatCount) return 100;
+        if (level <= 1) return 100;
+        if (level > MaxCreatureLevel) level = MaxCreatureLevel;
+
+        return _wideStatPercent.TryGetValue((id, level), out int wide)
+            ? wide
+            : _statPercent[(id * (MaxCreatureLevel + 1)) + level];
     }
 
     public IReadOnlyDictionary<byte, TerrainDef> Terrain { get; }

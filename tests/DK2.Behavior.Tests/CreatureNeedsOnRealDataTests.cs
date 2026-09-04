@@ -289,7 +289,7 @@ public class CreatureNeedsOnRealDataTests
             ChickensNeeded = 2,
         };
 
-        CreatureHealthRules.Eat(jack, state);
+        CreatureHealthRules.Eat(db, jack, state);
 
         Assert.Equal(240, state.Health);
     }
@@ -874,6 +874,97 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(7500, vampire.MaxGoldHeld);
         Assert.Equal(500, vampire.InitialGoldHeld);
     }
+
+    // ---- levels (Q119) ----------------------------------------------------
+
+    [Fact]
+    public void ThePerLevelStatTableIsInTheShippedFileAndTheFixtureCopiesItExactly()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The owner, in passing, while trying to time an imp through water:
+        // "imps gain speed as they gain more levels". This is the table that
+        // makes that true, and it had been parsed into
+        // GlobalVariables.CreatureStats since variables were first read and
+        // examined by nothing.
+        //
+        // 320 rows: 32 stats x 9 levels (2 to 10) with a first-person set
+        // alongside. Asserted by value rather than by count, because a count
+        // that changed would not say which stat moved -- and because these
+        // exact rows are transcribed into Dk2TerrainFixture.Variables().
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        Assert.NotEmpty(db.Variables.CreatureStats);
+
+        // Health: 125% at level 2 to 600% at level 10. A level-10 Goblin has
+        // 9000 health against its record's 1500.
+        Assert.Equal(
+            new[] { 125, 150, 175, 200, 225, 250, 300, 400, 600 },
+            Levels(db, CreatureStatId.Health));
+
+        // Speed: +5% a level to level 5, then a much steeper climb. This is the
+        // row the owner was looking at without knowing it.
+        Assert.Equal(
+            new[] { 105, 110, 115, 120, 125, 150, 175, 200, 250 },
+            Levels(db, CreatureStatId.Speed));
+
+        // Run speed scales identically to walking speed, which is worth
+        // pinning: it means a level does not change the ratio between them.
+        Assert.Equal(Levels(db, CreatureStatId.Speed), Levels(db, CreatureStatId.RunSpeed));
+
+        // Experience for the next level, to 1000% -- the last level costs ten
+        // times the first.
+        Assert.Equal(
+            new[] { 130, 180, 250, 350, 470, 600, 720, 850, 1000 },
+            Levels(db, CreatureStatId.ExperienceForNextLevel));
+
+        // And the negative half of the finding: own-land regeneration never
+        // scales, so an Imp heals at 67 a second at level 1 and at level 10.
+        // Ten of the 32 stats are flat like this, so "levels scale everything"
+        // would be wrong about a third of the table.
+        Assert.Equal(
+            new[] { 100, 100, 100, 100, 100, 100, 100, 100, 100 },
+            Levels(db, CreatureStatId.OwnLandHealthIncreasePerSecond));
+    }
+
+    [Fact]
+    public void TheLevelledCurveAppliesToTheShippedCreatureRecords()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // The two stats this project actually reads, against the install rather
+        // than the fixture, because the arithmetic only means something if the
+        // shipped record is the one being scaled.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        CreatureDef goblin = db.CreatureById(7);
+        CreatureDef imp = db.CreatureByName("Imp")!;
+
+        Assert.Equal(1500, goblin.Hp);
+        Assert.Equal(1500, CreatureLevelRules.MaxHealth(db, goblin, 1));
+        Assert.Equal(9000, CreatureLevelRules.MaxHealth(db, goblin, 10));
+
+        // The owner's remark, in raw fixed-point units: 1.84 tiles a second
+        // becomes 1.93 at level 2, and 4.6 at level 10.
+        Assert.Equal(7536, imp.Speed.Raw);
+        Assert.Equal(7536, CreatureLevelRules.SpeedRaw(db, imp, 1));
+        Assert.Equal(7912, CreatureLevelRules.SpeedRaw(db, imp, 2));
+        Assert.Equal(18840, CreatureLevelRules.SpeedRaw(db, imp, 10));
+
+        // Which is what makes Q118's water arithmetic level-dependent: the
+        // ShuffleSpeed hypothesis has no stat row, so if water runs a creature
+        // at shuffle speed the slowdown deepens as it levels. At level 1 an
+        // imp in water would be 45.7% slower; at level 2, 48.2%; at level 10,
+        // 78%. The owner eyeballed 50-60% on a level-2 imp.
+        Assert.Equal(4096, imp.ShuffleSpeed.Raw);
+        Assert.True(imp.ShuffleSpeed.Raw * 100 / CreatureLevelRules.SpeedRaw(db, imp, 2) == 51);
+        Assert.True(imp.ShuffleSpeed.Raw * 100 / CreatureLevelRules.SpeedRaw(db, imp, 10) == 21);
+    }
+
+    /// <summary>One stat's percentages for levels 2 to 10, in order.</summary>
+    private static int[] Levels(GameDatabase db, CreatureStatId stat) =>
+        Enumerable.Range(2, 9).Select(l => db.StatPercent(stat, l)).ToArray();
 
     // ---- anger, against the owner's two measurements ----------------------
 

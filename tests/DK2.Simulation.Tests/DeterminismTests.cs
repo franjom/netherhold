@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -107,16 +107,19 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // Bumped with HashVersion 13 -> 14 (ADR-0053): CreatureState gained
-        // Anger and AngryChoice, because the owner measured the anger ceiling
-        // (Q106/Q114: 32767). The fixture spawns imps, which need no bed and so
-        // are never charged AngerNoLair, so both fields hold their initial
-        // values here and only the composition changed. Snapshot FormatVersion
-        // went 13 -> 14 in the same commit.
-        // Previous values: 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
-        // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
-        // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x5DB64D0C91D99368UL, sim.StateHash());
+        // Bumped with HashVersion 14 -> 15 (Q119): CreatureState gained Level,
+        // because the owner mentioned that "imps gain speed as they gain more
+        // levels" and the shipped 32-stat by 9-level percentage table turned out
+        // to have been parsed and read by nothing. Every creature here is level
+        // 1, so the field holds its initial value and only the composition
+        // changed -- but movement now reads the level's speed rather than the
+        // record's, so this pin also guards the arithmetic that makes a level-1
+        // creature come out at exactly 100%. Snapshot FormatVersion went
+        // 14 -> 15 in the same commit.
+        // Previous values: 0x5DB64D0C91D99368 (14), 0xAEAF871CC4814DA1 (13),
+        // 0x9D2695B2F62707D2 (12), 0x12E4F45E48ACEB9B (11),
+        // 0x06F71648486D0FEC (10), 0x4F824667CDA7EF25 (9).
+        Assert.Equal(0x38CCE7E988729817UL, sim.StateHash());
     }
 
     [Fact]

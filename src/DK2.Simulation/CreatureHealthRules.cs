@@ -67,18 +67,32 @@ public static class CreatureHealthRules
     /// </summary>
     public const int Never = short.MaxValue;
 
-    /// <summary>Maximum health, which is the record's <c>Hp</c> until levels exist.</summary>
-    public static int MaxHealth(CreatureDef creature) => creature.Hp;
+    /// <summary>
+    /// Maximum health: the record's <c>Hp</c> <b>scaled by the creature's
+    /// level</b>.
+    ///
+    /// <para>This method used to return <c>creature.Hp</c> flat, with a comment
+    /// saying "until levels exist". Levels exist now — as a stat multiplier, at
+    /// least (<see cref="CreatureLevelRules"/>) — so it takes the state and the
+    /// database. The old signature was deliberately removed rather than kept as
+    /// an overload: a call that forgot the level would silently cap a level-10
+    /// Goblin at 1500 health instead of 9000, and that is precisely the class of
+    /// bug this project keeps finding in its own six-month-old assumptions.</para>
+    /// </summary>
+    public static int MaxHealth(
+        GameDatabase database, CreatureDef creature, CreatureState state) =>
+        CreatureLevelRules.MaxHealth(database, creature, state.Level);
 
     /// <summary>
     /// Applies a health change and clamps it. Positive heals, negative hurts.
     /// Returns the amount that actually landed, which is less than asked for at
     /// either end.
     /// </summary>
-    public static int Apply(CreatureDef creature, CreatureState state, int delta)
+    public static int Apply(
+        GameDatabase database, CreatureDef creature, CreatureState state, int delta)
     {
         int before = state.Health;
-        int max = MaxHealth(creature);
+        int max = MaxHealth(database, creature, state);
         state.Health = Math.Clamp(before + delta, 0, max);
         return state.Health - before;
     }
@@ -94,7 +108,8 @@ public static class CreatureHealthRules
     public static bool IsCriticallyHurt(
         GameDatabase database, CreatureDef creature, CreatureState state) =>
         state.Health * 100
-            <= MaxHealth(creature) * database[VariableTypeId.CreatureCriticalHealthPercentageOfMax];
+            <= MaxHealth(database, creature, state)
+               * database[VariableTypeId.CreatureCriticalHealthPercentageOfMax];
 
     /// <summary>
     /// Whether this creature is hurt enough that DK2 sends it to bed —
@@ -108,7 +123,8 @@ public static class CreatureHealthRules
     public static bool ShouldSleepFromWounds(
         GameDatabase database, CreatureDef creature, CreatureState state) =>
         state.Health * 100
-            < MaxHealth(creature) * database[VariableTypeId.CreatureSleepsWhenBelowPercentHealth];
+            < MaxHealth(database, creature, state)
+              * database[VariableTypeId.CreatureSleepsWhenBelowPercentHealth];
 
     /// <summary>
     /// Health per second for a creature standing on land its own keeper owns —
@@ -312,13 +328,13 @@ public static class CreatureHealthRules
     /// blind. Note <c>HpFromChicken</c> is <b>0 for the Firefly</b> even though
     /// it eats two, so a chicken is not guaranteed to heal.</para>
     /// </summary>
-    public static void Eat(CreatureDef creature, CreatureState state)
+    public static void Eat(GameDatabase database, CreatureDef creature, CreatureState state)
     {
         if (state.ChickensNeeded <= 0) return;
 
         state.ChickensNeeded--;
         if (state.ChickensNeeded == 0) state.HungerTicks = 0;
 
-        Apply(creature, state, creature.HpFromChicken);
+        Apply(database, creature, state, creature.HpFromChicken);
     }
 }
