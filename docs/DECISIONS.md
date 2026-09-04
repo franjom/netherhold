@@ -3223,3 +3223,92 @@ the shipped data with both properties, so the test asserts he is the only one.
 testing instant death. That is the **third** transcription error the drift guard
 has caught in this one record, after the Imp's hunger rate (wrong by 4096) and
 its own-land healing (transcribed as 0).
+
+---
+
+## ADR-0052 — Only a keeper is staffed, and the test suite stops calling the hero side "Keeper"
+
+**Status:** Accepted (2026-09-04)
+**Confidence:** Confirmed (structural — `PlayerIds`, ADR-0043)
+**Closes:** the implementation half of Q91
+
+### Context
+
+`PlayerIds` (ADR-0043) established that **0 is unowned, 1 is the hero side, 2 is
+neutral and 3–7 are keepers**. `PortalSystem` was written afterwards and gates on
+`PlayerIds.IsKeeper`. `ImpSupplySystem` was written before, and did not: it
+looped every player in the world and would hand free imps to 0, 1 and 2, and
+would let any of them cast Create Imp.
+
+This had been recorded as "harmless on shipped data, because none of those three
+has a dungeon heart" — `Spawn` returned null and the clock simply ran again.
+
+**That reasoning was wrong in a way worth naming**, and it is the exact shape
+this project has a memory entry about: *a claim nothing checks may already be
+false*. The rule held because of a fact about the shipped levels, not because
+anything checked it. Two consequences:
+
+1. **A level that gave the hero side a dungeon heart would have quietly staffed
+   it with imps.** Nothing in the code said otherwise.
+2. **It was not even harmless.** `PlayerState.FreeImpCountdownTicks` is hashed
+   state, and it was counting down and resetting every interval for players 0, 1
+   and 2 on every level. So a non-keeper's imp clock was **inside the
+   determinism hash** — which is why seven scenario hashes moved when the gate
+   went in, on scenarios where no imp was ever produced.
+
+### Decision
+
+**1. `ImpSupplySystem` gates on `PlayerIds.IsKeeper`** in both paths: the free
+top-up skips non-keepers (and holds their countdown at zero rather than running
+it), and `Buy` refuses with `reason=not_a_keeper` **before the cost is looked
+up**, so no mana moves.
+
+The refusal is distinct from `reason=no_such_player` deliberately: Neutral
+*exists* and owns real terrain — 167 of the campaign's portals — and still may
+not have imps.
+
+**2. The test suite stops using non-keeper ids as keepers.** Fifteen files
+declared `Keeper = 1` and `Rival = 2`. They are now `PlayerIds.FirstKeeper` and
+4, and the worlds they build carry `PlayerIds.Neutral` where they previously
+carried a bare `(byte)2` standing in for a rival.
+
+**3. `Dk2TerrainFixture.Map()`'s starting room now belongs to the first
+keeper.** It belonged to **player 1** — so every test treating it as "my
+dungeon" was giving a keeper's home ground to the hero side.
+
+**4. Seven scenarios are re-keyed**, including one that used **`id: 0`** — the
+*unowned* player — as its keeper.
+
+### Consequences
+
+Seven scenario hashes moved, and every one is the `FreeImpCountdownTicks`
+pollution above rather than a behaviour change. Verified by re-running one
+scenario with the ids stashed: the event log is identical byte-for-byte apart
+from the player number.
+
+Four new tests, and the shape of them is the point: **a non-keeper is given a
+dungeon heart and the whole starting room, and still gets nothing** — because
+testing the gate on a player who could not have produced imps anyway would
+prove nothing. `AKeeperWithTheSameHeartIsStaffed_WhichIsWhatMakesTheGateAGate`
+is the control, since a guard that refuses everybody is not a guard.
+
+### Why the fixture bug hid for so long
+
+Two errors that agreed with each other. The suite called player 1 "Keeper", and
+the fixture map gave player 1 the starting room. Each made the other look
+correct, and the tests passed. Re-keying the constant alone produced **38
+failures** — territory that would not spread, claim jobs that were never
+queued, a rival's treasury that could not be taken — every one of them the map
+still handing the room to id 1.
+
+That is the second time this pairing has bitten: `PlayerIds` itself (ADR-0043)
+was written because ownership ids were being guessed from context rather than
+read.
+
+### Not done
+
+`ManaSystem` still runs for every player. Unlike imps this is not obviously
+wrong — mana comes from owned terrain, and non-keepers do own terrain — and
+"only keepers accrue mana" is a claim with no source behind it. Left alone
+rather than changed on aesthetics; noted here so it is a decision and not an
+oversight.

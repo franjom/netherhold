@@ -23,7 +23,7 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class ManaUpkeepTests
 {
-    private const byte Keeper = 1;
+    private const byte Keeper = PlayerIds.FirstKeeper;
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events, GameDatabase Db)
     {
@@ -51,7 +51,7 @@ public class ManaUpkeepTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, (byte)2]);
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         ref TileState tile = ref world.Tile(2, 2);
         tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;

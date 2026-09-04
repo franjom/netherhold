@@ -23,8 +23,8 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class RoomSellTests
 {
-    private const byte Keeper = 1;
-    private const byte Rival = 2;
+    private const byte Keeper = PlayerIds.FirstKeeper;
+    private const byte Rival = 4;
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {
@@ -40,7 +40,7 @@ public class RoomSellTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, Rival]);
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
 
         var sim = new GameSimulation(database, world, seed, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();

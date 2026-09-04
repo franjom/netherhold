@@ -25,7 +25,7 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class ImpSupplyTests
 {
-    private const byte Keeper = 1;
+    private const byte Keeper = PlayerIds.FirstKeeper;
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events, GameDatabase Db)
     {
@@ -54,7 +54,7 @@ public class ImpSupplyTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, (byte)2]);
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         if (heart)
         {
@@ -293,5 +293,94 @@ public class ImpSupplyTests
             restored.Tick();
             Assert.Equal(run.Sim.StateHash(), restored.StateHash());
         }
+    }
+
+    // ---- only a keeper is staffed (Q91) -----------------------------------
+
+    /// <summary>
+    /// The same dungeon, but the heart and the land belong to whichever id is
+    /// asked for — so a non-keeper can be given everything a keeper has and
+    /// still get nothing.
+    /// </summary>
+    private static Run WithAHeartFor(byte owner, int mana = 0)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(
+            database, Dk2TerrainFixture.Map(), [PlayerIds.Unowned, PlayerIds.Good,
+                                                PlayerIds.Neutral, Keeper]);
+
+        // Hand the whole starting room over, then put a heart in it.
+        for (int y = 1; y <= 3; y++)
+            for (int x = 1; x <= 3; x++)
+                world.Tile(x, y).OwnerPlayerId = owner;
+
+        ref TileState tile = ref world.Tile(2, 2);
+        tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+        tile.Health = database.TerrainById(tile.TerrainId).StartingHealth;
+        tile.OwnerPlayerId = owner;
+
+        world.Player(owner).Mana = mana;
+
+        var sim = new GameSimulation(database, world, 5, Dk2TerrainFixture.DefaultSystems());
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+        return new Run(sim, sink, database);
+    }
+
+    [Theory]
+    [InlineData(PlayerIds.Unowned)]
+    [InlineData(PlayerIds.Good)]
+    [InlineData(PlayerIds.Neutral)]
+    public void ANonKeeperIsNeverGivenFreeImpsEvenWithAHeartOfItsOwn(byte notAKeeper)
+    {
+        // The defect Q91 named. ImpSupplySystem looped every player, and 0, 1
+        // and 2 are all real ids that own real terrain — 167 of the campaign's
+        // portals belong to Neutral. It was harmless only because no shipped
+        // level gives any of them a dungeon heart, so Spawn returned null and
+        // the clock ran again: the rule held because of a fact about the levels
+        // rather than because anything checked it.
+        //
+        // So this test gives them the heart. Before the gate, the hero side
+        // quietly staffed itself with imps.
+        Run run = WithAHeartFor(notAKeeper);
+        int interval = ImpSupplyRules.FreeImpIntervalTicks(run.Db);
+
+        run.Ticks(interval * (ImpSupplyRules.MinimumImps(run.Db) + 2));
+
+        Assert.Empty(run.World.Creatures);
+        Assert.Empty(run.Of("imp_generated"));
+    }
+
+    [Fact]
+    public void AKeeperWithTheSameHeartIsStaffed_WhichIsWhatMakesTheGateAGate()
+    {
+        // The control. A guard that refuses everybody proves nothing, so the
+        // identical world with a keeper's id on it must still produce imps.
+        Run run = WithAHeartFor(Keeper);
+        int interval = ImpSupplyRules.FreeImpIntervalTicks(run.Db);
+
+        run.Ticks(interval * ImpSupplyRules.MinimumImps(run.Db) + 1);
+
+        Assert.Equal(ImpSupplyRules.MinimumImps(run.Db), run.Imps);
+    }
+
+    [Theory]
+    [InlineData(PlayerIds.Good)]
+    [InlineData(PlayerIds.Neutral)]
+    public void ANonKeeperCannotCastCreateImpHoweverMuchManaItHolds(byte notAKeeper)
+    {
+        // Refused *distinctly* from "no such player": these ids exist and own
+        // terrain. They simply may not have imps.
+        Run run = WithAHeartFor(notAKeeper, mana: 100_000);
+
+        run.Tick(new CreateImpCommand(notAKeeper));
+
+        Assert.Empty(run.World.Creatures);
+        Assert.Contains(run.Of("create_imp_refused"),
+            e => e.Detail.Contains("reason=not_a_keeper"));
+
+        // And the mana is untouched, because the refusal happens before the
+        // cost is even looked up.
+        Assert.Equal(100_000, run.World.Player(notAKeeper).Mana);
     }
 }

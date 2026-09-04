@@ -419,7 +419,15 @@ internal static class Dk2TerrainFixture
 
     /// <summary>
     /// A small dungeon: impenetrable border, a rock body, a claimed-path room
-    /// owned by player 1 at the top-left, one gold seam and one gem face.
+    /// owned by the first keeper at the top-left, one gold seam and one gem
+    /// face.
+    ///
+    /// <para><b>The room used to belong to player 1</b>, which
+    /// <see cref="PlayerIds"/> settled is the <i>hero side</i> — so every test
+    /// that treated it as "my dungeon" was quietly giving a keeper's home
+    /// ground to the enemy. It went unnoticed because the suite also called
+    /// player 1 "Keeper", so the two errors agreed with each other and the
+    /// tests passed. Q91.</para>
     /// </summary>
     public static LevelMap Map(int width = 16, int height = 12)
     {
@@ -432,7 +440,7 @@ internal static class Dk2TerrainFixture
                 bool room = x is >= 1 and <= 3 && y is >= 1 and <= 3;
 
                 byte terrain = border ? ImpenetrableRock : room ? ClaimedPath : Rock;
-                byte owner = (byte)(room ? 1 : 0);
+                byte owner = room ? PlayerIds.FirstKeeper : PlayerIds.Unowned;
                 tiles[(y * width) + x] = new MapTile(terrain, owner, 0, 0);
             }
         }

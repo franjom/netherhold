@@ -18,8 +18,8 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class ManaTests
 {
-    private const byte Keeper = 1;
-    private const byte Rival = 2;
+    private const byte Keeper = PlayerIds.FirstKeeper;
+    private const byte Rival = 4;
     private const int ClaimedTilesOnTheFixtureMap = 9;
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
@@ -38,7 +38,7 @@ public class ManaTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, Rival]);
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
 
         var sim = new GameSimulation(database, world, seed, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();
@@ -338,7 +338,7 @@ public class ManaTests
 
         List<SimEvent> gained = [.. run.Of("mana_gained")];
         Assert.Equal(3, gained.Count);
-        Assert.All(gained, e => Assert.Contains("player=1 amount=9 rate=9/s", e.Detail));
+        Assert.All(gained, e => Assert.Contains($"player={Keeper} amount=9 rate=9/s", e.Detail));
     }
 
     /// <summary>A keeper earning nothing does not fill the log with saying so.</summary>
@@ -348,7 +348,7 @@ public class ManaTests
         Run run = Start();
         run.Seconds(3);
 
-        Assert.All(run.Of("mana_gained"), e => Assert.Contains("player=1", e.Detail));
+        Assert.All(run.Of("mana_gained"), e => Assert.Contains($"player={Keeper}", e.Detail));
     }
 
     [Fact]

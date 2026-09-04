@@ -31,8 +31,8 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class GoldCarryingTests
 {
-    private const byte Keeper = 1;
-    private const byte Rival = 2;
+    private const byte Keeper = PlayerIds.FirstKeeper;
+    private const byte Rival = 4;
 
     /// <summary>What an imp is holding when it breaks off: five swings' worth.</summary>
     private const int FullLoad = 1363;
@@ -68,7 +68,7 @@ public class GoldCarryingTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, Rival]);
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt ?? new TilePos(2, 2));
 
         foreach (TilePos p in new[] { new TilePos(4, 3), new TilePos(4, 4), new TilePos(4, 5) })

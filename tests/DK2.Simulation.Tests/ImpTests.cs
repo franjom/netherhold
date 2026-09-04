@@ -22,7 +22,7 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class ImpTests
 {
-    private const byte Keeper = 1;
+    private const byte Keeper = PlayerIds.FirstKeeper;
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {
@@ -45,7 +45,7 @@ public class ImpTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, (byte)2]);
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < imps; i++)
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt);

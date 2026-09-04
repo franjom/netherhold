@@ -75,6 +75,23 @@ public sealed class ImpSupplySystem : ISimulationSystem
             ref PlayerState player = ref world.PlayerAtIndex(i);
             byte playerId = player.PlayerId;
 
+            // Only a keeper is topped up (Q91). Nobody, the hero side and the
+            // neutral player are all real player ids that own real terrain —
+            // 167 of the campaign's portals belong to Neutral — and none of
+            // them keeps a dungeon reinforced by imps.
+            //
+            // This was harmless on shipped data because none of the three has a
+            // dungeon heart, so Spawn returned null and the clock simply ran
+            // again. Harmless-by-accident is the shape of defect this project
+            // has been bitten by before: the rule holds because of a fact about
+            // the levels rather than because anything checks it, and a level
+            // that gave the hero side a heart would have quietly staffed it.
+            if (!PlayerIds.IsKeeper(playerId))
+            {
+                player.FreeImpCountdownTicks = 0;
+                continue;
+            }
+
             if (ImpSupplyRules.ImpCount(world, database, playerId) >= minimum)
             {
                 player.FreeImpCountdownTicks = 0;
@@ -116,6 +133,17 @@ public sealed class ImpSupplySystem : ISimulationSystem
         {
             context.Emit(SystemName, "create_imp_refused",
                 $"player={playerId} reason=no_such_player");
+            return;
+        }
+
+        // Create Imp is a keeper spell, so a non-keeper cannot cast it however
+        // much mana the id happens to be holding (Q91). Refused before the cost
+        // is even looked up, and refused *distinctly* from "no such player":
+        // Neutral exists, owns terrain, and still may not have imps.
+        if (!PlayerIds.IsKeeper(playerId))
+        {
+            context.Emit(SystemName, "create_imp_refused",
+                $"player={playerId} reason=not_a_keeper");
             return;
         }
 

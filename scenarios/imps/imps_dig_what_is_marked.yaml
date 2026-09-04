@@ -23,16 +23,16 @@ seed: 11
 duration_ticks: 200
 setup:
   players:
-    - { id: 0, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
   creatures:
     # The chamber of chamber_21x17 is the 3x3 around (10, 8).
-    - { type: Imp, at: [10, 8], player: 0 }
-    - { type: Imp, at: [9, 8], player: 0 }
+    - { type: Imp, at: [10, 8], player: 3 }
+    - { type: Imp, at: [9, 8], player: 3 }
 commands:
   # A corridor east out of the chamber, marked in one go. The imps take the
   # near end first; the far tiles only become reachable once the near ones are
   # gone, which is the point of marking all four at once.
-  - { at_tick: 0, player: 0, tag: [[12, 8], [13, 8], [14, 8], [15, 8]] }
+  - { at_tick: 0, player: 3, tag: [[12, 8], [13, 8], [14, 8], [15, 8]] }
 observe:
   - state_hash
   - events

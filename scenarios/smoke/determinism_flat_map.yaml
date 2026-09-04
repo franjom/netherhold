@@ -15,8 +15,8 @@ setup:
     # No gold: a keeper with no treasury has nowhere to keep any, and the run
     # would spend a line of its report saying so. Mana is a player-level pool
     # and needs no room.
-    - { id: 1, gold: 0, mana: 1000 }
-    - { id: 2, gold: 0, mana: 1000 }
+    - { id: 3, gold: 0, mana: 1000 }
+    - { id: 4, gold: 0, mana: 1000 }
 observe:
   - state_hash
   - events

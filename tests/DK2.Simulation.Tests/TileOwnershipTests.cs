@@ -42,13 +42,13 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class TileOwnershipTests
 {
-    private const byte Keeper = 1;
-    private const byte Rival = 2;
+    private const byte Keeper = PlayerIds.FirstKeeper;
+    private const byte Rival = 4;
 
     private static readonly GameDatabase Db = Dk2TerrainFixture.Database();
 
     private static WorldState World() =>
-        WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, Keeper, Rival]);
+        WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
 
     private static void Set(WorldState world, TilePos at, byte terrainId, byte owner)
     {

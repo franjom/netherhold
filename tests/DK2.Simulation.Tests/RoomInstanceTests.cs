@@ -21,14 +21,14 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class RoomInstanceTests
 {
-    private const byte Keeper = 1;
-    private const byte Rival = 2;
+    private const byte Keeper = PlayerIds.FirstKeeper;
+    private const byte Rival = 4;
 
     private static readonly GameDatabase Db = Dk2TerrainFixture.Database();
 
     /// <summary>A world with nothing but the fixture's claimed room, so painting is unambiguous.</summary>
     private static WorldState World() =>
-        WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, Keeper, Rival]);
+        WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
 
     /// <summary>Paints a solid rectangle of room terrain, the way a keeper building it would.</summary>
     private static void Paint(

@@ -28,13 +28,13 @@ seed: 11
 duration_ticks: 24
 setup:
   players:
-    - { id: 1, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
 work:
   # A gold seam. Eleven applications take it from 660 to nothing (Q47).
-  - { at_tick: 0, until_tick: 12, player: 1, kind: MineGold, at: [22, 4] }
+  - { at_tick: 0, until_tick: 12, player: 3, kind: MineGold, at: [22, 4] }
   # A gem face. Twenty applications, ten collapses at two swings each, ten times
   # 25 gold, and the tile is still gems at the end.
-  - { at_tick: 0, until_tick: 19, player: 1, kind: MineGold, at: [8, 75] }
+  - { at_tick: 0, until_tick: 19, player: 3, kind: MineGold, at: [8, 75] }
 observe:
   - state_hash
   - events

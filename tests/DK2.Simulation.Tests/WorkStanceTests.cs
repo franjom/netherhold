@@ -18,8 +18,8 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class WorkStanceTests
 {
-    private const byte Keeper = 1;
-    private const byte Rival = 2;
+    private const byte Keeper = PlayerIds.FirstKeeper;
+    private const byte Rival = 4;
 
     private static (GameDatabase Database, WorldState World, IPathGrid Grid) Setup()
     {

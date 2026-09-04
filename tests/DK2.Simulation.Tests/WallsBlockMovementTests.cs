@@ -31,7 +31,7 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class WallsBlockMovementTests
 {
-    private const byte Keeper = 1;
+    private const byte Keeper = PlayerIds.FirstKeeper;
 
     /// <summary>Every tile of the fixture map a keeper could ever mark for work.</summary>
     private static TilePos[] EverythingDiggable(WorldState world, GameDatabase database)
@@ -64,7 +64,7 @@ public class WallsBlockMovementTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, (byte)2]);
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < 4; i++)
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
@@ -105,7 +105,7 @@ public class WallsBlockMovementTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, (byte)2]);
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < 4; i++)
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
@@ -145,7 +145,7 @@ public class WallsBlockMovementTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, (byte)2]);
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         // A corridor of claimed floor from the starting room out along row 2.
         for (int x = 4; x <= 10; x++)
@@ -197,7 +197,7 @@ public class WallsBlockMovementTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, Keeper, (byte)2]);
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         CreatureDef walker = Dk2TerrainFixture.Imp() with
         {

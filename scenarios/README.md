@@ -31,20 +31,20 @@ seed: 12345                      # simulation RNG seed
 duration_ticks: 600              # required, positive
 setup:
   players:
-    - { id: 1, gold: 20000, mana: 1000 }
+    - { id: 3, gold: 20000, mana: 1000 }
   rooms:                         # laid down before tick 0 — see below
-    - { type: Treasury, at: [4, 4], size: [3, 3], player: 1 }
+    - { type: Treasury, at: [4, 4], size: [3, 3], player: 3 }
   creatures:                     # placed before tick 0 — see below
-    - { type: Imp, at: [6, 6], player: 1 }
+    - { type: Imp, at: [6, 6], player: 3 }
 commands:                        # real player input, scheduled by tick
-  - { at_tick: 0, player: 1, tag: [[5, 5], [6, 5]] }
-  - { at_tick: 4, player: 1, untag: [[6, 5]] }
+  - { at_tick: 0, player: 3, tag: [[5, 5], [6, 5]] }
+  - { at_tick: 4, player: 3, untag: [[6, 5]] }
   - at_tick: 6                   # builds and pays, through the ground rules
-    player: 1
+    player: 3
     build: { type: Lair, tiles: [[7, 7], [8, 7]] }
 work:                            # harness-injected tile work — see below
-  - { at_tick: 8, player: 1, kind: Dig, at: [5, 5] }
-  - { at_tick: 12, until_tick: 25, player: 1, kind: Reinforce, at: [5, 4], repeat: 1 }
+  - { at_tick: 8, player: 3, kind: Dig, at: [5, 5] }
+  - { at_tick: 12, until_tick: 25, player: 3, kind: Reinforce, at: [5, 4], repeat: 1 }
 observe:
   - state_hash
   - events

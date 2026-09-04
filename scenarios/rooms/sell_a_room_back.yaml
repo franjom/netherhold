@@ -39,27 +39,27 @@ seed: 9
 duration_ticks: 12
 setup:
   players:
-    - { id: 1, gold: 1500, mana: 0 }
+    - { id: 3, gold: 1500, mana: 0 }
   rooms:
     # A heart, so there is a store the refunds can land in that is not itself
     # being sold - and so the run can show a heart being refused.
-    - { type: Dungeon Heart, at: [2, 2], player: 1 }
-    - { type: Treasury, at: [5, 5], player: 1 }
-    - { type: Treasury, at: [6, 5], player: 1 }
-    - { type: Lair, at: [7, 5], player: 1 }
-    - { type: Lair, at: [8, 5], player: 1 }
+    - { type: Dungeon Heart, at: [2, 2], player: 3 }
+    - { type: Treasury, at: [5, 5], player: 3 }
+    - { type: Treasury, at: [6, 5], player: 3 }
+    - { type: Lair, at: [7, 5], player: 3 }
+    - { type: Lair, at: [8, 5], player: 3 }
 commands:
   # Two lair tiles at 300 apiece: 150 back from each. The heart is already full
   # at MaxGoldPerDungeonHeartTile, so the 300 lands in the treasury instead -
   # which is what makes the second command below interesting. The heart tile is
   # in the same selection and must be refused, not sold.
   - at_tick: 2
-    player: 1
+    player: 3
     sell: [[7, 5], [8, 5], [2, 2]]
 
   # Now the treasury tile, which is holding gold put there by the setup above.
   - at_tick: 6
-    player: 1
+    player: 3
     sell: [[5, 5]]
 observe:
   - state_hash

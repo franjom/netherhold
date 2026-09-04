@@ -39,26 +39,26 @@ seed: 5
 duration_ticks: 100
 setup:
   players:
-    - { id: 1, gold: 600, mana: 0 }
+    - { id: 3, gold: 600, mana: 0 }
   rooms:
     # Somewhere to keep the 600 gold the treasury below is paid for with, and
     # the source of the flat 30 a second in every payment below. The tile itself
     # generates nothing - the 30 belongs to the keeper who owns a heart.
-    - { type: Dungeon Heart, at: [2, 2], player: 1 }
+    - { type: Dungeon Heart, at: [2, 2], player: 3 }
 work:
-  # Eight tiles of floor claimed for player 1, one application each.
-  - { at_tick: 0, player: 1, kind: Claim, at: [5, 5] }
-  - { at_tick: 0, player: 1, kind: Claim, at: [6, 5] }
-  - { at_tick: 0, player: 1, kind: Claim, at: [7, 5] }
-  - { at_tick: 0, player: 1, kind: Claim, at: [8, 5] }
-  - { at_tick: 0, player: 1, kind: Claim, at: [5, 6] }
-  - { at_tick: 0, player: 1, kind: Claim, at: [6, 6] }
-  - { at_tick: 0, player: 1, kind: Claim, at: [7, 6] }
-  - { at_tick: 0, player: 1, kind: Claim, at: [8, 6] }
+  # Eight tiles of floor claimed for the keeper, one application each.
+  - { at_tick: 0, player: 3, kind: Claim, at: [5, 5] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [6, 5] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [7, 5] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [8, 5] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [5, 6] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [6, 6] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [7, 6] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [8, 6] }
 commands:
   # Three seconds in, after the third payment: pave three of the eight.
   - at_tick: 60
-    player: 1
+    player: 3
     build:
       type: Treasury
       tiles: [[5, 5], [6, 5], [7, 5]]

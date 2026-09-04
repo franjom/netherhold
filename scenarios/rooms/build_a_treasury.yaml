@@ -29,24 +29,24 @@ seed: 5
 duration_ticks: 20
 setup:
   players:
-    - { id: 1, gold: 1000, mana: 0 }
+    - { id: 3, gold: 1000, mana: 0 }
   rooms:
     # One heart tile, which holds exactly MaxGoldPerDungeonHeartTile. The
     # thousand gold above fits in it with nothing to spare, which is why the
     # sixth treasury tile below cannot be paid for.
-    - { type: Dungeon Heart, at: [2, 2], player: 1 }
+    - { type: Dungeon Heart, at: [2, 2], player: 3 }
 work:
-  # Six tiles of floor claimed for player 1. ClaimTileHealth is large enough
+  # Six tiles of floor claimed for the keeper. ClaimTileHealth is large enough
   # that one application takes a dirt path tile all the way to claimed.
-  - { at_tick: 0, player: 1, kind: Claim, at: [5, 5] }
-  - { at_tick: 0, player: 1, kind: Claim, at: [6, 5] }
-  - { at_tick: 0, player: 1, kind: Claim, at: [7, 5] }
-  - { at_tick: 0, player: 1, kind: Claim, at: [5, 6] }
-  - { at_tick: 0, player: 1, kind: Claim, at: [6, 6] }
-  - { at_tick: 0, player: 1, kind: Claim, at: [7, 6] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [5, 5] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [6, 5] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [7, 5] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [5, 6] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [6, 6] }
+  - { at_tick: 0, player: 3, kind: Claim, at: [7, 6] }
 commands:
   - at_tick: 2
-    player: 1
+    player: 3
     build:
       type: Treasury
       tiles: [[5, 5], [6, 5], [7, 5], [5, 6], [6, 6], [7, 6]]
