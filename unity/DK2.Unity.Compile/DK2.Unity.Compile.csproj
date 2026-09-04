@@ -69,6 +69,17 @@
       <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.PhysicsModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+
+    <!-- Editor-only code (Assets/DK2/Editor) needs these. Same module rule as
+         above: never the top-level UnityEditor.dll, which would collide. -->
+    <Reference Include="UnityEditor.CoreModule">
+      <HintPath>$(UnityManagedDir)\UnityEngine\UnityEditor.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEditor.SceneTemplateModule">
+      <HintPath>$(UnityManagedDir)\UnityEngine\UnityEditor.SceneTemplateModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <!-- The adapter's actual source, compiled from where Unity keeps it. One copy

@@ -1757,3 +1757,35 @@ unparsed until M6; the harness scenarios place their own.
 test proves the objects exist, not that the camera points at them or that the
 scale and colours read as a dungeon. That needs a person, and it is the one
 remaining step.
+
+### ADR-0036 third amendment, 2026-09-04 — it renders, and the screenshot found a bug
+
+The owner pressed Play and got campaign level 1 — recognisably the starting
+dungeon — on the first attempt. The diagnostics line in that screenshot
+cross-checked three claims that had until then only been asserted:
+
+- **`1140 tile objects`** — 30 × 38, matching the headless smoke test exactly.
+- **`pushed 0 tiles / 0 creatures this frame`** — the diffing works. A settled
+  dungeon costs nothing to keep on screen, which is the property `ScenePresenter`
+  exists for and which no amount of unit testing makes as convincing as watching
+  the number sit at zero.
+- **`2 creatures` at tick 203** — and this is the pleasing one. The map places
+  nobody, because creatures live in the unparsed THINGS record. Those two imps
+  were produced by `ImpSupplySystem` from the dungeon heart (ADR-0021), at
+  roughly the five-second cadence the data specifies. **A mechanic built from the
+  owner's own measurements, running in an engine, visible as two boxes.**
+- The asset count closes too: 1178 at tick 20, 1182 with two creatures at four
+  assets between them.
+
+**And it found a bug nothing else could have.** `LookAt` framed the level using
+`world.Width` for the camera height. Level 1 is 30 wide and **38 deep**, so the
+near end of the dungeon fell off the bottom of the screen. Now derived by fitting
+the level's bounding sphere to the vertical field of view, so the framing cannot
+depend on which dimension happens to be larger; `cameraPitch` became a slider.
+
+**The general point, and it is the counterweight to everything else in this
+document.** This project has pushed as much as possible behind tests, and that
+was right — the smoke test proves 1140 objects exist. *It cannot prove a camera
+points at them.* Framing, scale, colour and legibility need a person and a
+screenshot. That is not a gap in the test suite; it is the boundary of what a
+test suite is, and the honest thing is to know which side of it a claim sits on.

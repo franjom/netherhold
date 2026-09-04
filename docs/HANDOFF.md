@@ -53,8 +53,19 @@ clean tree. (Core 14, Simulation 254, Data 55, Behavior 77, Assets 60, Presentat
 > 20 ticks, present again, and it fails unless there is one object per tile. Both
 > commands are in `unity/README.md`.
 >
-> **Still unverified: what it looks like.** Nobody has pressed Play. The smoke
-> test proves the objects exist, not that the camera, scale or colours are right.
+> **AND IT RENDERS.** The owner pressed Play on 2026-09-04 and got campaign
+> level 1, recognisably the starting dungeon, first attempt. The diagnostics line
+> in that screenshot cross-checked three claims at once: 1140 tile objects (30x38,
+> matching the smoke test), `pushed 0 tiles / 0 creatures this frame` (the diffing
+> works — a settled dungeon costs nothing to keep on screen), and **2 creatures at
+> tick 203**, which the map does not place and which therefore came from
+> `ImpSupplySystem` (ADR-0021) — the imp economy running in Unity.
+>
+> **It also found a bug no test could have.** The camera framed the level using
+> `world.Width` for its height, so on a level 30 wide and 38 deep the near end
+> fell off the bottom of the screen. Now fitted from the bounding sphere, so the
+> framing cannot depend on which dimension is larger. **A smoke test proves 1140
+> objects exist; it cannot prove a camera points at them.**
 >
 > **Zero creatures on a campaign level is correct**, not a bug: creatures live in
 > the THINGS record, unparsed until M6. The harness scenarios place their own.
@@ -442,15 +453,18 @@ it is worth doing:
    `Tick`, then `ScenePresenter.Present(world)`. Positions arrive in `Fp32` tile
    units; divide by `Fp32.One` **in Unity, never in the simulation** (ADR-0001).
 
-   **DONE as of 2026-09-04, except for being LOOKED AT.** `unity/DK2.Unity/`
-   holds `DungeonScene`, `DungeonRunner`, an editor `DungeonSetup` and a
-   committed `Dungeon.unity` scene. Unity 6 LTS `6000.6.0f1` is installed and
-   activated, and two headless commands pass: Unity compiles the adapter, and
-   `DungeonSetup.SmokeTest` runs the full pipeline against campaign level 1 —
-   1140 tile objects, 1178 placeholder assets, 20 ticks. **The remaining step is
-   opening `Assets/DK2/Scenes/Dungeon.unity` and pressing Play**, because nothing
-   yet checks how it looks: camera, scale and colours are unverified. See
-   `unity/README.md` for every command, including `sync-assemblies.ps1`.
+   **DONE 2026-09-04 — the dungeon renders.** `unity/DK2.Unity/` holds
+   `DungeonScene`, `DungeonRunner`, an editor `DungeonSetup` and a committed
+   `Dungeon.unity` scene. Unity 6 LTS `6000.6.0f1` is installed and activated;
+   two headless commands pass (Unity compiles the adapter; `DungeonSetup.SmokeTest`
+   runs the full pipeline), and **the owner pressed Play and got campaign level 1
+   first attempt** — see `unity/README.md`, which records what that screenshot
+   confirmed and the camera bug it found.
+
+   **What is left is not the view but the game:** no input (nothing builds an
+   `InputFrame` yet, so you can watch a dungeon and not touch it), no art loading
+   (there is no converter — plan §7.1), and boxes rather than DK2's actual walls
+   (Q71).
 
    **Read `TextRenderer` before writing the adapter.** It is the same job against
    a character grid, it runs in CI, and a disagreement between the two is a bug

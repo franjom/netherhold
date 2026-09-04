@@ -42,6 +42,11 @@ namespace DK2.Unity
         [SerializeField] private float speed = 1f;
         [SerializeField] private bool showDiagnostics = true;
 
+        [Header("Camera")]
+        [Tooltip("Degrees below horizontal. 90 is straight down; 55 gives enough tilt to read wall heights.")]
+        [Range(20f, 90f)]
+        [SerializeField] private float cameraPitch = 55f;
+
         private GameSimulation _simulation;
         private ScenePresenter _presenter;
         private DungeonScene _scene;
@@ -122,17 +127,45 @@ namespace DK2.Unity
             _presenter.Present(_simulation.World);
         }
 
-        /// <summary>Puts the camera above the middle of the level, looking down.</summary>
+        /// <summary>
+        /// Frames the whole level, whatever shape it is.
+        ///
+        /// <para><b>The first version of this was wrong, and a screenshot is the
+        /// only thing that could have found it.</b> It put the camera at a
+        /// height of <c>world.Width * 0.75</c> — derived from the width alone —
+        /// so on campaign level 1, which is 30 wide and <b>38 deep</b>, the near
+        /// end of the dungeon fell off the bottom of the screen. No test could
+        /// have caught it: the smoke test proves 1140 objects exist, not that a
+        /// camera points at them.</para>
+        ///
+        /// <para>Derived now rather than guessed: fit the level's bounding
+        /// sphere inside the vertical field of view. Using the half-diagonal
+        /// means the framing cannot depend on which dimension happens to be
+        /// larger, which was the whole of the original bug.</para>
+        /// </summary>
         private void LookAt(WorldState world)
         {
             Camera camera = Camera.main;
             if (camera == null) return;
 
-            float centreX = world.Width / 2f;
-            float centreY = world.Height / 2f;
+            var centre = new Vector3(world.Width / 2f, 0f, world.Height / 2f);
 
-            camera.transform.position = new Vector3(centreX, world.Width * 0.75f, centreY - world.Height * 0.35f);
-            camera.transform.rotation = Quaternion.Euler(55f, 0f, 0f);
+            float radius = 0.5f * Mathf.Sqrt(
+                (world.Width * (float)world.Width) + (world.Height * (float)world.Height));
+
+            // Unity's fieldOfView is the vertical one. A wide game view has a
+            // wider horizontal field, so fitting the sphere vertically always
+            // fits it horizontally too.
+            float halfFov = camera.fieldOfView * 0.5f * Mathf.Deg2Rad;
+            float distance = radius / Mathf.Max(0.01f, Mathf.Sin(halfFov));
+
+            Quaternion rotation = Quaternion.Euler(cameraPitch, 0f, 0f);
+            camera.transform.rotation = rotation;
+            camera.transform.position = centre - (rotation * Vector3.forward * distance);
+
+            // A level far enough away to fit needs the far plane to match, or it
+            // is clipped away rather than drawn small.
+            camera.farClipPlane = Mathf.Max(camera.farClipPlane, distance * 3f);
         }
 
         private static byte[] PlayersOf(LevelMap map)

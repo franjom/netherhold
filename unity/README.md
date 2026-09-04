@@ -128,3 +128,28 @@ scenario file, not by the map.
 
 It skips cleanly with exit 0 when there is no DK2 install, exactly as the
 install-gated tests do.
+
+## What the first Play established (2026-09-04)
+
+It rendered campaign level 1 on the first attempt, and the screenshot's own
+diagnostics line cross-checked three claims that had until then only been
+asserted:
+
+| on screen | what it confirms |
+|---|---|
+| `1140 tile objects` | 30 × 38. Every tile got an object, matching the smoke test exactly |
+| `2 creatures` at tick 203 | **the imp economy ran.** The map itself places nobody — creatures live in the unparsed THINGS record — so those two imps were produced by `ImpSupplySystem` from the dungeon heart (ADR-0021), at roughly the 5-second cadence the data specifies |
+| `pushed 0 tiles / 0 creatures this frame` | **the diffing works.** A settled dungeon costs nothing to keep on screen, which is the property `ScenePresenter` exists for |
+| `1182 assets resolved: 1182 from placeholder` | 1178 at tick 20 plus 4 for two creatures (a mesh and an animation each). The arithmetic closes |
+
+**And it found one real bug that no test could have.** The camera framed the
+level using `world.Width` for its height, so on a level 30 wide and **38 deep**
+the near end of the dungeon fell off the bottom of the screen. Fixed by fitting
+the level's bounding sphere to the vertical field of view, so the framing no
+longer depends on which dimension happens to be larger. `cameraPitch` is now a
+slider on the component.
+
+**The lesson worth keeping:** the smoke test proves 1140 objects exist; it cannot
+prove a camera points at them. Everything about appearance — framing, scale,
+colour, legibility — needs a person and a screenshot, and that is not a gap in
+the test suite so much as the boundary of what a test suite is.
