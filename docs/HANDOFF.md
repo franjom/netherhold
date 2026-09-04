@@ -1,4 +1,4 @@
-# Handoff notes
+﻿# Handoff notes
 
 Working knowledge that would otherwise live only in chat history, per
 `AGENTS.md` ("Do not leave important knowledge only inside chat history").
@@ -13,9 +13,9 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **622 tests green**
-with and without a DK2 install; thirteen scenarios run, each drawing a picture of
-its finished world; clean tree. (Core 17, Simulation 341, Data 63, Behavior 115,
+**every** record type's on-disk size is now known and pinned. **674 tests green**
+with and without a DK2 install; **15 scenarios** run, each drawing a picture of
+its finished world; clean tree. (Core 17, Simulation 376, Data 63, Behavior 132,
 Assets 60, Presentation 26.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
@@ -26,10 +26,24 @@ non-worker creature has ever had**, so a goblin out of a portal no longer stands
 on the hole forever. It claims a bed on arrival, walks to it when tired or hurt,
 sleeps, heals only while asleep in its own bed, and wakes up.
 
-What a creature still has no notion of is **mood, anger, experience or a job**,
-and it cannot be picked up or dropped. It gets hungry and cannot eat, because
-chickens are objects (M6). **Anger is the next one that matters** — it is what
-both hunger and having no bed actually cost.
+**Anger landed on 2026-09-04 (ADR-0053)**, unblocked by two owner measurements
+that between them fixed both the ceiling and the cadence: **32767** with the
+ladder driven once a game second. A creature now goes Content → Unhappy → Angry
+and **walks out of the dungeon**, and a bed both prevents and cures it (−550 a
+second asleep in your own bed against +100 for having nowhere to sleep). Only the
+two anger sources a player can actually turn off are applied; see the seventeenth
+sitting.
+
+**Death is a process, not an event** (ADR-0051): zero health is a 60-second
+window on the floor, an imp can carry the creature back to its bed, and only then
+does it die — except for the eight creatures that leave no body, which die on the
+spot. And **hazard terrain acts on creatures that cannot cross it** — which for
+water is the two Vampires and nobody else (Q117/Q118).
+
+What a creature still has no notion of is **experience, levels or a job**, and it
+cannot be picked up or dropped. It gets hungry and cannot eat, because chickens
+are objects (M6). **Combat and jobs are what M4 still owes**, and combat is the
+first thing that will subtract health per *tick* rather than per second.
 
 **The first room whose behaviour exists is the portal** (2026-09-04, ADR-0042):
 a claimed portal produces its level's own creatures, and **level 1 produces
@@ -2367,3 +2381,159 @@ has no source. ADR-0052 records it as a decision.
   9, 10 and 11), twice on commands with no purpose at all, and occurrence 10
   swallowed the output of the real command chained after it. There is no safe
   way to "just check" — do not type it.
+
+---
+
+# Where to pick up, 2026-09-04 (seventeenth sitting) — anger has a ceiling, and water has almost no victims
+
+Three commits on top of the sixteenth sitting. **674 tests green** with and
+without an install (Core 17, Data 63, Assets 60, Presentation 26, Behavior 132,
+Simulation 376), clean Release build, **15 scenarios** run.
+
+| | |
+|---|---|
+| `451f01f` | Brought the handoff current |
+| `42e01e1` | **Anger's ceiling is 32767, and the owner measured it twice** |
+| `eb30cd9` | Water is crossable, and crossing it was free |
+| `7614dab` | **Crossing water is free, and only vampires drown** |
+
+`HashVersion` 13 → 14, snapshot `FormatVersion` 13 → 14 (`CreatureState.Anger`,
+`AngryChoice`). Pinned hash `0x5DB64D0C91D99368`.
+
+## Anger is implemented, and how it got unblocked is the method
+
+Q106 had blocked the most of anything in the project and was confirmed from
+three unrelated causes before it could be built. **Two owner measurements closed
+it, and it took both** — either alone is ambiguous.
+
+1. **The stopwatch.** A lairless Goblin, `AngerNoLair` = 100: *"it became unhappy
+   after approx 02:45ish minutes and angry after approx 05:30ish minutes"*.
+   That gives 165 s and 330 s, so **16500 and 33000**, and a ratio of **exactly
+   2** — which pins linearity, pins the angry threshold at 100%, and proves
+   `UnhappyThreshold` (50) is a *percentage*.
+2. **The slap count.** *"exactly 6 slaps made a creature (salamander) unhappy,
+   and after that 5 slaps made it angry."* `AngerSlap` is 3000 on both the
+   Salamander and the Goblin (asserted, because the observation would otherwise
+   say nothing about a Goblin), so 6 and 11 slaps **bracket the ceiling into
+   (30000, 33000]**.
+
+**A rate measurement alone could not have settled it** — 100/s into 32767 and
+200/s into 65535 are indistinguishable on a stopwatch (the Q47 trap). A discrete
+delta scales with the ceiling where a rate does not, so the slap count excludes
+65535 and 10000 outright and thereby fixes the *cadence* at once per second too.
+One meaningful number survives in that window: **32767**, `short.MaxValue`, the
+same saturated 16-bit value the creature record uses for "never" (ADR-0053).
+
+`CreatureAngerRules` + `CreatureAngerSystem`, per second, `Content / Unhappy /
+Angry`. **Only two anger sources are applied**, under one rule worth keeping:
+*a source is applied when the player's own choices can turn it off.* No lair
+(+100) and asleep in your own bed (−550) qualify; no food, no pay and no work do
+not, because nothing can currently satisfy them and anger would become a
+countdown no dungeon survives.
+
+The angry choice is a **weighted draw over `AngryJobs`, drawn once and kept**.
+On the fixture Goblin that is Leave 50 / Rebel 50, and on seed 5 the scenario
+goblin draws **Rebel** — which is not implemented, so it stands there fuming.
+That is the honest outcome and is why the draw is kept rather than re-rolled.
+
+## Water: four findings from one screenshot, and one of them was mine to fix
+
+The owner marked a gem tile on an island cut off by water, no bridge, and
+**imps waded across, mined it and carried the gold home**.
+
+1. **Passability was already right.** `WorldPathGrid` reads `CanWalkOnWater`.
+   STRONGLY INFERRED → **CONFIRMED** with no code change. And the original
+   states the rule in its own tile tooltip, which is the closest thing to a
+   specification this project has found in the game's own text:
+   *"Water. Impassable to some, others are merely hindered by it."*
+   The distinction that makes it work: water carries **Impenetrable** ("cannot be
+   tunnelled through") and **not Solid**. Read the wrong flag and every imp is
+   stranded at the water's edge.
+2. **The cost was missing.** `TerrainDef.Damage` = 100 for Water and Lava, parsed
+   for months, read by nothing but `AssetCatalogue`. Now applied per second.
+3. **`Damage` is not damage.** Written as "non-zero on Water and Lava alone" —
+   wrong. **Hero Lair carries −67**, so the field is a **signed health delta**;
+   the hero side's lair heals what stands on it. Three of 41 terrains, the same
+   shape as mana (three of 41) and own-land regeneration (two of 46), and the
+   third time this project has claimed a column was simpler than it is.
+4. **Then the owner refuted (2).** *"no creature that can traverse through water
+   looses health."* Charging everything in water would have drowned in five
+   seconds the exact imp whose behaviour prompted implementing the field. The
+   crossing flag now gates the cost, per hazard.
+
+### The vampires are the whole story, and the owner named them from memory
+
+Volunteered in a parenthesis, unasked: *"(I think vampires can't cross through
+water, they need bridges)"*.
+
+**`CanWalkOnWater` is on 44 of the 46 creatures. The two without it are the
+Vampire and the Unique Vampire.** A two-element set out of 46, named from play,
+in a record whose flag layout this project *reconstructed* rather than read
+anywhere — the strongest single confirmation that bit has had.
+
+And it closes a loop that was already open: the DK2 wiki's warning that water may
+leave a creature *"damaged, resurrect, and even die"* sits on the **Vampire
+page**. Three sources that never met — play memory, the shipped `Creatures.kwd`,
+and the wiki — agreeing about exactly one creature.
+
+So **water is a hindrance with two exceptions, not a barrier with exceptions**,
+which is how the game words its own tooltip: *impassable to some* is the
+vampires, literally. **Lava is where the damage rule earns its keep** — seven
+creatures cross it, so 39 burn — and the Imp is the clean pair: free in water,
+dead in lava in five seconds.
+
+### The fixture has a Vampire now, and it caught a fourth missing flag
+
+It is the only creature a water test can honestly use. Its three **absent** flags
+are each a mechanic: no `CanWalkOnWater` (water charges it), no
+`GenerateDeadBody` (it reincarnates, Q113), and no `AvailableViaPortal` — a
+vampire is not recruited but arrives from a **Graveyard**, which its own
+attraction slot asks for by room id 14, and its `LairObjectId` is 26, its coffin.
+
+Adding it caught **the Goblin missing `CanWalkOnWater`**, above a comment that
+claimed "the real Goblin's flags are exactly these two". Fourth flag the drift
+guard has found absent from that one record. The argument for asserting the whole
+flag set rather than the flags a mechanic happens to read today is now four
+incidents long.
+
+## The rule this sitting adds to the previous one's
+
+The sixteenth sitting's rule was *guard on the condition, not the bookkeeping*.
+This one adds: **a permission flag is usually a cost gate too.** `CanWalkOnWater`
+answers "may it enter?" and "does entering hurt?", and implementing only the
+first is what left crossing free. When a flag decides access, ask what access
+*costs* before deciding the flag is fully read.
+
+## Owner questions, in priority order
+
+| | |
+|---|---|
+| **Q118** | **How much does water slow a creature?** CONFIRMED to happen (*"water visibly slows imps and other creatures"*), no variable in any of the 214. Hypothesis: the unread `ShuffleSpeed` (Imp 4096 vs its 7536 walk = 0.54×, Vampire 1638 vs 2867 = 0.57× — not a constant ratio, so per-creature). **Time an imp over a known run of water and the same run of floor**; ≈0.54 implicates it, anything else rules it out |
+| **Q118b** | **Is hazard damage per second or per tick?** The answer removed the cheap check — nothing the owner can walk into water is charged. Needs a **Vampire dropped in a lake**: 25 s to die means per second, 1.25 s means per tick |
+| **Q113** | Vampire reincarnates at its sarcophagus or in the Graveyard? Two good sources disagree |
+| **Q115** | Does anger have a floor at zero, or can it go negative and bank goodwill? |
+| **Q116** | A deserter's routing — the portal it came from, or the nearest exit? |
+| **Q97** | Big lair vs tiny lair — does arrival pace change? |
+| **Q103** | Does a Goblin really sleep every ~240 s for ~9 s? |
+| **Q112** | Do Skeleton and Stone Knight really vanish on the spot? |
+| **Q107** | Can a creature whose bed is sold while it lies dying be rescued? |
+| **Q100** | Does a wounded imp heal while digging? |
+| **Q86** | Two arrival gaps with goblins counted — the interval slope |
+
+## Known and not done (carried forward, still true)
+
+- **No `README.md`.**
+- **Q98**: portal capacity sums hero portals and counts portals that cannot produce.
+- **`ManaSystem` runs for every player** — deliberate (ADR-0052); "only keepers
+  accrue mana" has no source.
+- **Rebel is not implemented**, so half the fixture Goblin's angry table is a
+  no-op that leaves the creature standing still.
+- **Next Ghidra target: read the vtables** — would name all ~25 `*State.cpp`
+  handlers at once. Addresses are in the fifteenth sitting's notes.
+- `AGENTS.md` carries the owner's own uncommitted edit and is excluded from every
+  commit with `git add -A -- . ':!AGENTS.md'`.
+- **The `python - <<EOF` gotcha bit again** (occurrence 12), this time failing as
+  a bash parse error on a heredoc that had worked twice in the same session.
+  **The mitigation that works:** write the script to the scratchpad with the
+  `Write` tool and run `python <path>`. Multi-line edits went through cleanly
+  every time after switching. Do not type the heredoc form at all.
