@@ -210,16 +210,17 @@ What is *built* rather than known, against the long-term goals:
 
 ## Unsolved (research required before implementing)
 - **How a creature decides to go and get a lair, and which tile it takes.**
-  ← **contradicted, documented, deliberately not built**
-  (`docs/research/lair-acquisition.md`). Owner recordings show a happy bedless
-  creature going off to *train* while a free lair tile sat there, and only
-  looking for a lair when its mood turned Unhappy (**Q150**); and show claiming
-  to be a **journey with a test at the end** — creatures crossing a lair, walking
-  up to occupied tiles, rejecting them and moving on. Ours claims a bed on the
-  first tick one is free, from anywhere. Half the replacement is read out of the
-  binary (room chosen by distance to its centre; tile search is own tile → a
-  fixed neighbour table → a chained walk of the room) and half is not (the
-  trigger, and the test that makes one lair room preferred — **Q151**).
+  ← **fully read as of 2026-09-05; not yet built** (`docs/research/lair-acquisition.md`).
+  An idle bedless creature tries for a lair *first*, whatever its mood (Q150 —
+  the mood gate the first recording suggested was a coincidence; the owner's
+  correction that four creature types always bedded down first is what sent the
+  read the right way); the room is the nearest reachable lair with a free slot,
+  preferring one with no bed of the other alignment (Q151 — and creature flag
+  bit 8 is thereby `IsGood`); the tile is found on arrival, own tile → fixed
+  neighbour table → a walk of the room; a failed attempt falls through to a job
+  and retries at the next idle decision; a sleep need every `TimeAwake` is a
+  second way in. Ours still claims a bed on the first tick one is free, from
+  anywhere. Only the lair's slot count per tile is unread (Q156).
 - **What a room does.** ← being worked on. **Done: the portal, the lair, the
   treasury; the hatchery is researched and half built** (everything but its
   clock). Much less of a blank sheet than it was. The ROOMS record carries art, size and cost and says

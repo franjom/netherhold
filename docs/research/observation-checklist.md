@@ -145,7 +145,7 @@ tests agreed with the wrong rule.
 |---|---|
 | **Q56** | **The free-imp clock is a DEADLINE, not a countdown.** Thirty seconds at exactly four imps, one sacrificed, and the replacement arrived in **~1.4 seconds** — then ~5s for each further one. Ours waited a fresh five seconds every time. Fixed, ADR-0057 |
 | Q100 | **Regeneration does not care that a creature is working.** A wounded imp healed while digging and while running. Which is what ours already did — by omission, and now by observation |
-| Q150 | **A happy bedless creature does not claim a lair.** It went to the Training Room instead, and only looked for a lair when its mood turned Unhappy over not having one. **Ours claims a bed the first tick one is free** |
+| Q150 | ~~A happy bedless creature does not claim a lair~~ — **corrected by the owner and then read**: Goblin, Salamander, Warlock and Firefly *always* bedded down first; Bile Demon and Troll sometimes trained first and sometimes did not. The binary: an idle bedless creature tries for a lair first, whatever its mood, and does a job only when the attempt fails (no reachable lair with a free slot). **Ours claims a bed the first tick one is free**, still — now buildable properly |
 | — | **Claiming a lair is a journey.** Creatures crossed a lair, walked up to occupied tiles, rejected them and moved on. A 1×5 lair filled 1, 3, 5, 4 |
 | — | Imps held in the Hand of Evil are **not** in the imp portrait's count |
 
@@ -166,20 +166,18 @@ It also agrees with what the binary said independently: the tally the supply
 reads is moved only when a thing gains or loses an **owner**, and picking a
 creature up does not change whose it is.
 
-### Q150 — what makes a creature go and get a lair? — *added 2026-09-05, and it contradicts shipped behaviour*
+### ~~Q150 — what makes a creature go and get a lair?~~ — *ANSWERED 2026-09-05 from the binary, after the owner corrected the recording*
 
-The observation is already made and is not in doubt. What would sharpen it:
+Being idle without one. The idle state tries for a lair before any job; the
+unhappy and angry choosers do too; a sleep need every `TimeAwake` is the second
+way in. The "trained first" cases are the attempt *failing* — no reachable lair
+with a free slot at that moment. `lair-acquisition.md` §5.
 
-1. drop a **fresh, happy, bedless** creature into a dungeon with a free lair
-   tile. Time how long before it goes for the lair, and watch what it does
-   meanwhile;
-2. do it again with a creature whose anger is already part-way up;
-3. if there is a moment where the mood flips and the creature turns on its heel,
-   that timing against `AngerNoLair` is the whole answer.
-
-**Why it matters:** ours claims a bed on the first tick one exists, from
-anywhere, so a creature that should be training is asleep instead, and beds are
-taken in an order the original would never produce.
+**One observation would still be worth thirty seconds:** build a large, empty
+lair before the portal delivers anything, and watch a Troll or Bile Demon
+arrive. The read predicts it beds down first, every time. If it ever trains
+first with a big empty lair in reach, Q156 (how a lair's slots are counted) is
+where the difference lives.
 
 ### Q87 — is a level's creature pool a standing limit or a draining quota? — *promoted 2026-09-05, and it had been sitting where nobody would look*
 

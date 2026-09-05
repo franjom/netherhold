@@ -246,11 +246,12 @@ Do not invent DK2 behaviour: if the footage does not show it, it is UNKNOWN.
 
 These are the open observations, and the first is the one that blocks real work:
 
-- **Q150 — what makes a creature go and get a lair.** Drop a fresh, happy,
-  bedless creature into a dungeon with a free lair tile. Time how long before it
-  goes for the lair and watch what it does meanwhile; repeat with a creature
-  whose anger is already part-way up. **This blocks the lair rework**, which is
-  documented and deliberately unbuilt (`docs/research/lair-acquisition.md`).
+- ~~**Q150 — what makes a creature go and get a lair.**~~ **Done 2026-09-05**
+  without a second recording: the owner corrected the first one from memory
+  (four creature types *always* bedded down first) and the decompiler did the
+  rest. Worth keeping as the other model — a remembered observation that
+  contradicts a recording is a finding, not noise. What remains is a prediction
+  to break: a big empty lair, and a Troll that beds down before it trains.
 - ~~**Q147 — is imp job priority global, or a tie-break within one position.**~~
   **Done 2026-09-05** — the owner played it (*"walls over gold, in both cases"*)
   and the decompiler finished it: two tiers, ADR-0058. Kept here as the model of
@@ -260,9 +261,9 @@ These are the open observations, and the first is the one that blocks real work:
   game: an imp regenerates 67 a second.
 - **Q149 — is the ~1.4s before a free imp appears simulation or animation.**
   Low stakes; nothing in the simulation depends on it.
-- **Q151 — which of two lair rooms a creature prefers.** Two lairs, equidistant,
-  differing in what is standing in them. The binary has a preference test whose
-  meaning is unread.
+- ~~**Q151 — which of two lair rooms a creature prefers.**~~ **Done 2026-09-05**
+  from the binary: alignment — a creature avoids a lair holding a bed of the
+  other side. Only observable with converted heroes, late in the campaign.
 
 ### And what this brief must never become
 

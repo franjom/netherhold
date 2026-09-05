@@ -267,11 +267,11 @@ read out of the binary rather than chosen (ADR-0054, `docs/research/objects.md`)
   creature's own kind, releasing it destroys it — so occupancy needs no
   bookkeeping at all. CONFIRMED by the owner: a lair tile is bare until somebody
   moves in. **⚠ The relation is right and the way a creature reaches it is not**
-  — owner recordings (2026-09-05) show a lair being *acquired* by walking to a
-  room and testing tiles on arrival, and only once a creature is unhappy about
-  having no lair. `CreatureSleepSystem` claims a bed on the first tick one is
-  free, from anywhere. Documented rather than rebuilt, because half the
-  replacement rule is unread: `docs/research/lair-acquisition.md`, Q150/Q151.
+  — the original *acquires* a lair by walking to the nearest reachable one with
+  a free slot and testing tiles on arrival, tried first by any idle bedless
+  creature whatever its mood. `CreatureSleepSystem` claims a bed on the first
+  tick one is free, from anywhere. The replacement rule is now fully read and
+  awaits building: `docs/research/lair-acquisition.md`.
 - **Rules ask the definition's type flag, not the id**, because the original's
   own dispatch does and gets more from it: one `TypeLair` branch serves all
   twelve bed objects. The exception is where DK2 itself names an id — the Chicken

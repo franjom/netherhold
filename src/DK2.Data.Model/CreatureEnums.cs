@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -54,7 +54,18 @@ public enum CreatureFlags : uint
     CanWalkOnLava = 1u << 5,
     CanDisarmTraps = 1u << 6,
     IsEvil = 1u << 7,
-    Unk8 = 1u << 8,
+
+    /// <summary>
+    /// The hero side. Named on 2026-09-05 from two directions at once: across all
+    /// 46 shipped creatures this bit is the exact complement of
+    /// <see cref="IsEvil"/> (every hero, Prince to Royal Guard, and nothing
+    /// evil), and the original's lair-preference test reads the pair as
+    /// alignment — a creature avoids a lair holding a bed whose owner is of the
+    /// other side (Q151, docs/research/lair-acquisition.md §4). STRONGLY
+    /// INFERRED as a name; the complement is CONFIRMED by
+    /// <c>LairPreferenceOnRealDataTests</c>.
+    /// </summary>
+    IsGood = 1u << 8,
     IsImmuneToTurncoat = 1u << 9,
     AvailableViaPortal = 1u << 10,
     Unk11 = 1u << 11,
