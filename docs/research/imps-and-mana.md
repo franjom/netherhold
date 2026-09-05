@@ -26,6 +26,7 @@ Implemented by `DK2.Simulation.ImpSupplyRules`,
 | Possession drains 25 a second | **DISPUTED** (Q58) — the data says 25, `ManaCostInFirstPersonPerSecond` says 5, and the owner saw no drain at all |
 | **The free-imp clock is a deadline, not a countdown** | **CONFIRMED** (Q56) — owner recording, then the binary. A keeper at full strength is never owed one, their deadline goes stale, and the next loss is replaced **on the spot**. Ours said the opposite for three weeks |
 | A free imp costs no mana and ignores availability | **CONFIRMED** — the free flag makes the original skip the availability check, the affordability check and the deduction |
+| An imp held in the Hand of Evil still counts towards the four | **CONFIRMED** (Q148) — owner: holding one of four produces no fifth. The imp portrait's figure is a *different* count and excludes them |
 
 ---
 
@@ -146,13 +147,20 @@ a keeper *below* the floor still pays the base price and never less.
 
 ### What is still open about it
 
-**Whether an imp held in the Hand of Evil counts.** The count the supply reads
-is a per-creature-type tally kept on the keeper, and that tally moves only when
-a thing's **owner** changes — nothing in the pick-up path obviously changes an
-owner. So the reading that fits the code is that a **held imp still counts**, and
-the portrait's figure, which visibly excludes it, is a different count. That is
-STRONGLY INFERRED and it is cheap to settle by watching: hold one of exactly four
-imps in the hand for ten seconds and see whether a fifth appears. **Q148.**
+**~~Whether an imp held in the Hand of Evil counts.~~ Answered the same day: it
+does.** CONFIRMED by the owner — holding one of exactly four imps produces **no
+fifth imp**. The count the supply reads is a per-creature-type tally kept on the
+keeper, moved in exactly two places: when a thing gains an owner, and when it
+loses one. Picking a creature up does not change whose it is, so the tally never
+notices. **The behaviour is confirmed and the mechanism is strongly inferred**,
+and the two were arrived at independently, which is the only kind of agreement
+worth much.
+
+So **DK2 keeps two counts of a keeper's imps for two purposes**: this one, which
+includes held imps, and the imp portrait's figure, which visibly excludes them.
+Worth writing down now rather than when the Hand of Evil is built, because
+reusing the visible count would be the obvious thing to do and would be wrong —
+you could hold an imp indefinitely and farm a fifth. **Q148 closed.**
 
 **Whether the 1.3–1.5 seconds is simulation or animation.** The original casts a
 keeper power, and a keeper power plays a creation effect. The deadline is set at

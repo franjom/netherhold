@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -54,7 +54,26 @@ public static class ImpSupplyRules
         SimulationTiming.TicksFromSeconds(
             database[VariableTypeId.TimeBeforeFreeImpGeneratedSeconds]);
 
-    /// <summary>How many imps this player has right now.</summary>
+    /// <summary>
+    /// How many imps this player has right now.
+    ///
+    /// <para><b>A creature held in the Hand of Evil still counts, and this is
+    /// the line that will be got wrong.</b> CONFIRMED by the owner
+    /// (2026-09-05): holding one of exactly four imps produces <i>no</i> fifth
+    /// imp. The original agrees for a readable reason — the tally its free
+    /// supply consults is moved in exactly two places, when a thing gains an
+    /// owner and when it loses one, and picking a creature up does not change
+    /// whose it is.</para>
+    ///
+    /// <para><b>DK2 keeps two counts of a keeper's imps</b>: this one, and the
+    /// imp portrait's figure, which visibly <i>excludes</i> held imps. When the
+    /// Hand of Evil is built, the natural thing to do is reuse the count the
+    /// interface shows — and that would let a player hold one imp indefinitely
+    /// and farm a fifth out of the dungeon heart. Nothing enforces this today
+    /// because nothing can be picked up, which is exactly the shape of claim
+    /// this project has been bitten by: true because of a fact about the
+    /// features that exist, not because anything checks it. <b>Q148.</b></para>
+    /// </summary>
     public static int ImpCount(WorldState world, GameDatabase database, byte playerId)
     {
         int count = 0;

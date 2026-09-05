@@ -3547,8 +3547,12 @@ touches it.
 
 ### Owner questions after this sitting
 
-**Q148** does an imp in the Hand of Evil count towards the four — *ten seconds,
-same setup as the sacrifice test* · **Q150** what makes a creature go for a lair
+**~~Q148~~ answered in the same exchange: an imp in the Hand of Evil
+DOES count towards the four** — hold one of exactly four and no fifth appears,
+which is what the binary's owner-change tally implied. The imp portrait's figure
+is a *different* count and excludes them, so **do not reuse it when the Hand of
+Evil is built**; the rule is written at `ImpSupplyRules.ImpCount`, which is the
+code that would break. · **Q150** what makes a creature go for a lair
 · **Q152** does regeneration continue in combat · **Q149** is the ~1.4s
 simulation or animation · and **Q147 is still first in line**, because it may
 retire Q146 entirely.

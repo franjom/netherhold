@@ -149,17 +149,22 @@ tests agreed with the wrong rule.
 | — | **Claiming a lair is a journey.** Creatures crossed a lair, walked up to occupied tiles, rejected them and moved on. A 1×5 lair filled 1, 3, 5, 4 |
 | — | Imps held in the Hand of Evil are **not** in the imp portrait's count |
 
-### Q148 — does an imp in the Hand of Evil count towards the four? — *ten seconds, and it is the cheapest thing on this page*
+### Q148 — does an imp in the Hand of Evil count towards the four? — **ANSWERED the same hour, and the answer was yes**
 
-**Pick up one of exactly four imps and hold it.** Wait fifteen seconds.
+Asked and answered inside one exchange: hold one of exactly four imps, wait, and
+**no fifth imp appears**. So the free supply's count **includes** a held imp,
+and the imp portrait's figure — which visibly excludes them — is a different
+count kept for a different purpose.
 
-- **A fifth imp appears** → the supply's count excludes held imps, and this
-  project's reading of the binary is wrong.
-- **Nothing happens** → the held imp still counts, and the portrait's figure is a
-  different count for a different purpose — which is what the code suggests, the
-  tally moving only when a thing changes owner.
+**Why it was worth asking before the Hand of Evil exists.** When somebody builds
+picking creatures up, the natural thing to reuse is the count the interface
+shows, and that would let you hold an imp indefinitely and farm a fifth one out
+of the dungeon heart. The rule is now written at
+`ImpSupplyRules.ImpCount`, which is the code that would have broken.
 
-Worth doing at the same time as the sacrifice test, since the setup is identical.
+It also agrees with what the binary said independently: the tally the supply
+reads is moved only when a thing gains or loses an **owner**, and picking a
+creature up does not change whose it is.
 
 ### Q150 — what makes a creature go and get a lair? — *added 2026-09-05, and it contradicts shipped behaviour*
 
