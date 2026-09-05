@@ -111,15 +111,34 @@ apart.** The routine that writes `0x3b3` (`FUN_00488930`) builds the bonus from
 counter held on another object the creature points at. Both owner measurements
 land exactly on that grid:
 
-| Measured | Implied bonus | Model |
-|---|---|---|
-| Slapped imp **reinforcing: ~11.9 s** (against 13.3-13.4 unslapped) | **+0.10** | 11.87 s |
-| Slapped imp **mining: 341 gold a swing** | **+0.20** | 340.9 gold |
+**MEASURED, same day, fresh game, level-1 imp: a slap is +0.1, and it does not
+stack.** The owner slapped repeatedly and the reading never moved past the first
+step. Which also fixes the per-application rounding, because the first step does
+not land on a whole number:
 
-so the two runs differed by **one source**. The open question is what that
-source was - **most likely how many times the imp was slapped**, which nobody
-recorded. The prediction, and it needs no timing: **one slap should read 307
-gold a swing and two should read 341.**
+| | Work rate | Health an application | Gold | Observed |
+|---|---|---|---|---|
+| normal | 0.80 | 60.0 exact | 272.7 | **272-273** |
+| slapped | 0.90 | 67.5 -> **68** | 309.1 | **309-310** |
+| the 2026-09-05 mining run | 1.00 | 75.0 exact | 340.9 | 341 |
+
+**So the health delta of one application is rounded to a whole number** rather
+than carried as a fraction: 67.5 becomes 68, which is the whole of the 3-gold
+gap between the 307 this section first predicted and the 309-310 the game shows.
+Our own `delta / 5` is identical to `delta x 0.8 / 4` at the base rate, so
+everything unslapped was already right.
+
+Slapped reinforce times (11.9 s in one run, 11.5-11.6 s in another, against
+13.3-13.4 unslapped) bracket the 11.75 s that +0.1 predicts and are consistent
+with it; a 13-second job timed by hand resolves about ten times worse than the
+gold counter and settles nothing on its own.
+
+**The open question is the earlier mining run that read 341**, which needs a
+second +0.1 from a source that is not a second slap. The bonus routine tests
+**two** independent flags at 0.1 each, so a second player action is the
+candidate - **picking the imp up and dropping it** is the obvious one, and the
+test is to drop an imp on a seam without slapping it and see whether it reads
+309-310 by itself.
 
 `IncreasedWorkRatePecentageFromSlapping` = 50 is **not** what produces either
 number, and is either orphaned or means something other than a percentage of the
@@ -159,10 +178,9 @@ re-derives it from the same two numbers.
   Q1 needs the game loop traced, not another stopwatch. `FUN_00517490` is the
   "now" the gates read and it is a bare field load,
   `*(*(this + 4) + 4)`; whoever increments that field answers Q1.
-- **How many slaps each 2026-09-05 measurement had.** The reinforce run implies
-  one 0.1 increment and the mining run implies two, and the difference is
-  unrecorded. **One slap should read 307 gold a swing, two should read 341** -
-  and a slapped reinforce at +0.2 should take 10.7 s rather than 11.9.
+- **What the second +0.1 source is.** Slapping gives one and does not stack, so
+  the run that read 341 had another. Drop an imp on a seam without slapping it:
+  309-310 would name the hand as the second source.
 - **What the two bonus flags are**, and what the 0.05-per-unit counter counts.
 - **Where a per-swing gold number appears on screen.** The owner reads it
   directly and this repo has never recorded *where* - see the note in
