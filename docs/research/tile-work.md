@@ -133,43 +133,45 @@ Slapped reinforce times (11.9 s in one run, 11.5-11.6 s in another, against
 with it; a 13-second job timed by hand resolves about ten times worse than the
 gold counter and settles nothing on its own.
 
-**The bonus scales with level even though the base does not** - measured the
-same day, and it is the last piece:
+**WITHDRAWN, same day, by the owner's own control test.** This section briefly
+claimed that the slap bonus scales with level, on the strength of a level-1 imp
+reading 309-310 slapped and a level-2 imp reading 341. **A level-3 imp then read
+309-310 UNSLAPPED, and a freshly created level-1 imp read 309-310 as well.** A
+brand-new imp cannot have levelled, so the number is not a property of the imp
+at all: **something dungeon-wide moved between the start of that session and its
+end**, and every level comparison taken across that gap is confounded.
 
-| Imp | Unslapped | Slapped | Implied bonus |
-|---|---|---|---|
-| level 1 | **273** | **309-310** | +0.1 |
-| level 2 | **273** | **341** | +0.2 |
+What the six readings actually are, in the order taken:
 
-So a levelled imp does not work faster, but a levelled imp *responds to a slap*
-twice as much. Which settles the run that read 341 on 2026-09-05: **it was a
-level-2 imp**, not a second bonus source. The earlier argument here - that a
-levelled imp would have reverted to a higher baseline when the minute expired -
-was wrong, because the baseline does not move with level either.
+| # | Imp | Baseline | Slapped | Implied base rate |
+|---|---|---|---|---|
+| 1 | level 1, fresh game | 273 | 309-310 | 0.80 |
+| 2 | level 2, same game | 273 | 341 | 0.80 |
+| 3 | level 3, later | **309-310** | 341 | **0.90** |
+| 4 | **new level-1 imp**, same moment as 3 | **309-310** | - | **0.90** |
 
-It also matches the routine's arithmetic to four figures: the bonus is
-`0x199` = 409 for a flag **plus 205 per unit of a counter**, and
-409 + 205 x 2 = 819 = **0.19995**. What the counter counts is not identified;
-two units at level 2 and none at level 1 is what the numbers require.
+Reading 4 is the one that decides it. **The slap is most likely +0.1 throughout**
+(0.8 -> 0.9 in reading 1, 0.9 -> 1.0 in reading 3) and the base moved under
+everything else.
 
-**What is not known is the shape past level 2.** Three candidates, well
-separated, and one slapped level-3 imp mining a seam tells them apart:
+**What moved is not identified.** Three candidates, and they are not all about
+the work rate:
 
-| Rule | Level-3 bonus | Gold a swing |
-|---|---|---|
-| +0.1 a level | +0.3 | **373-377** |
-| capped at +0.2 | +0.2 | **341** |
-| the stat table's 125/175 shape | +0.175 | **332** |
+- **Something dungeon-wide raises the base**, in a step of 0.05 or 0.1. The
+  bonus routine's own census term is *not* it: the counter at `+0x1094` is
+  decremented for creature type `0x10`, which is **id 16, the Wizard**, and this
+  dungeon has none.
+- **The reading is not a full swing.** An imp's hands hold 1400 and a swing at
+  0.8 frees 272.7, so a load is five swings (1363.6). If a partial last swing is
+  being read, `1400 - 4 x 272.7` = **309.1** - which is exactly the number in
+  question, and would mean nothing changed at all.
+- **A different seam**, if a level can vary a gold tile's value.
 
-`IncreasedWorkRatePecentageFromSlapping` = 50 is **not** what produces either
-number, and is either orphaned or means something other than a percentage of the
-base - the same shape as variable 19, which has no VARIABLES record either and
-is written from the level header instead.
-
-**Which of the two flags is the slap is not identified** (`creature[0x4d7]`, a
-word, and `creature[0x2eb]`, a byte), nor what the 0.05-per-unit counter counts;
-`IncreasedWorkRatePercentageOfPlayersTorturedCreatureTypes` is the obvious
-candidate for a per-player tally, and is unverified.
+**The diagnostic, and it needs no timing:** count the swings in one full load
+before the imp runs to the treasury. **Five** swings means the rate is 0.8 and
+309-310 was a remainder; **four** means the rate really is 0.9 or 1.0. And read
+several consecutive swings rather than one: a rate repeats, a remainder does
+not.
 
 ### The work rate does NOT change with level — a refuted prediction
 
@@ -199,9 +201,9 @@ re-derives it from the same two numbers.
   Q1 needs the game loop traced, not another stopwatch. `FUN_00517490` is the
   "now" the gates read and it is a bare field load,
   `*(*(this + 4) + 4)`; whoever increments that field answers Q1.
-- **How the slap bonus scales past level 2**, and what the 205-per-unit counter
-  counts. A slapped level-3 imp mining a seam separates the three candidates:
-  373-377, 341 or 332.
+- **What moved the base rate mid-session** - see the withdrawn claim above.
+  Until that is known, no reading taken across it can be compared with another,
+  and the level question is open again rather than answered either way.
 - **What the two bonus flags are**, and what the 0.05-per-unit counter counts.
 - **Where a per-swing gold number appears on screen.** The owner reads it
   directly and this repo has never recorded *where* - see the note in
