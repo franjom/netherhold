@@ -11,14 +11,22 @@ namespace DK2.Simulation.Tests;
 
 /// <summary>
 /// An imp fetching gold off the floor — the half of carrying that ADR-0055 left
-/// open, and the one the owner settled by watching (Q141, 2026-09-05).
+/// open.
 ///
-/// <para><i>"If there is gold on the ground an imp will first take from that
-/// gold pile and take it to a treasury, until all of it is gone"</i> — reported
-/// from a dungeon where a marked gem tile sat right beside the gold and
-/// <b>nobody was mining it</b>. That is the strong form of the answer, and
-/// <see cref="FetchingComesBeforeMining"/> is the test that holds this project
-/// to it.</para>
+/// <para><b>These tests were written asserting the opposite of what they assert
+/// now</b>, and the day between the two is the most useful thing in this file.
+/// The owner reported <i>"if there is gold on the ground an imp will first take
+/// from that gold pile and take it to a treasury"</i> (Q141), watched with a
+/// marked gem tile beside the gold and nobody mining it; this project read that
+/// as fetching outranking marked excavation and built it that way. The owner
+/// then <b>doubted their own reading</b> and asked for the binary — and the
+/// binary disagrees: DK2 tries digging and mining first and floor gold sixth of
+/// nine. See <c>docs/research/imp-task-priority.md</c>.</para>
+///
+/// <para>So <see cref="MiningComesBeforeFetching"/> now holds the project to the
+/// opposite of what its predecessor did, and
+/// <see cref="GoldOnGroundTheKeeperDoesNotOwnIsNotFetched"/> holds it to a rule
+/// that was found in the same read and explains the owner's own correction.</para>
 /// </summary>
 public class ImpFetchesGoldTests
 {
@@ -91,58 +99,57 @@ public class ImpFetchesGoldTests
     }
 
     /// <summary>
-    /// <b>The load-bearing test.</b> A marked gold seam and a pile on the floor,
-    /// both reachable: the imp goes for the gold and does not swing at the seam
-    /// until the floor is clear.
+    /// <b>The load-bearing test, and it asserts the reverse of what it used
+    /// to.</b> A marked wall and a pile of gold, both a step away and both there
+    /// before the imp ever looks: it goes for the wall.
     ///
-    /// <para>Marked excavation had been the top of the priority order since
-    /// ADR-0018 and is CONFIRMED (Q24). This is the observation that put
-    /// something above it, so the test asserts the <i>ordering</i> — not that
-    /// fetching happens, but that mining does not happen first.</para>
+    /// <para>Read out of the binary rather than watched: DK2 keeps a keeper-wide
+    /// task list whose entries carry a kind, and one function tries the kinds in
+    /// a fixed order and returns on the first that takes. Digging and mining a
+    /// marked tile are its <b>first two</b> kinds; a floor object flagged
+    /// <c>TypeGold</c> is its <b>sixth of nine</b>.</para>
+    ///
+    /// <para>The mark is set on the tile directly rather than through a command,
+    /// deliberately: a command applies in the tile system's slot in the tick,
+    /// which is <i>after</i> the imp has already chosen a job, and a test whose
+    /// result depends on that is testing the system order and not the
+    /// priority.</para>
     /// </summary>
     [Fact]
-    public void FetchingComesBeforeMining()
+    public void MiningComesBeforeFetching()
     {
         Run run = Start(new TilePos(1, 1));
         Treasury(run, new TilePos(3, 3));
 
-        // A pile the imp is standing next to, and a wall beside it to mine.
+        // Both available before the first tick.
         FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(2, 2)), 400);
-        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 2)));
+        run.World.Tile(4, 2).SetTaggedBy(Keeper, true);
 
-        run.Ticks(60);
+        run.Ticks(1);
 
-        // The ordering, asserted as an ordering: the fetch is taken before any
-        // tile job is, and no swing lands before the gold is off the floor.
-        var log = run.Events.Events.ToList();
-        int fetch = log.FindIndex(e => e.Kind == "fetch_taken");
-        int job = log.FindIndex(e => e.Kind == "job_taken");
-        int pickedUp = log.FindIndex(e => e.Kind == "gold_picked_up");
-        int swing = log.FindIndex(e => e.Kind == "work_applied");
-
-        Assert.True(fetch >= 0, "the imp never went for the gold");
-        Assert.True(job < 0 || fetch < job, "it took a tile job before the gold");
-        Assert.True(pickedUp >= 0, "it never picked the gold up");
-        Assert.True(swing < 0 || pickedUp < swing, "it swung at the wall before clearing the floor");
+        Assert.Equal(CreatureActivity.MovingToJob, run.Imp.Activity);
+        Assert.Contains(run.Of("job_taken"), e => e.Detail.Contains("MarkedExcavation"));
+        Assert.Empty(run.Of("fetch_taken"));
     }
 
     /// <summary>
-    /// And once the floor is clear it goes back to the seam — the ordering is an
-    /// ordering, not a permanent preference.
+    /// And the gold still gets fetched — the ordering is an ordering, not a
+    /// refusal. Given long enough, the marked wall goes and so does the pile.
     /// </summary>
     [Fact]
-    public void AndMinesAgainOnceTheFloorIsClear()
+    public void TheGoldIsStillFetchedOnceTheDiggingIsDone()
     {
         Run run = Start(new TilePos(1, 1));
         Treasury(run, new TilePos(3, 3));
 
         FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(2, 2)), 400);
-        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 2)));
+        run.World.Tile(4, 2).SetTaggedBy(Keeper, true);
 
         run.Ticks(400);
 
-        Assert.Equal(0, FloorGold.Total(run.World, run.Db));
         Assert.NotEmpty(run.Of("job_taken"));
+        Assert.Equal(0, FloorGold.Total(run.World, run.Db));
+        Assert.Equal(400, GoldStore.Total(run.World, Keeper));
     }
 
     /// <summary>
@@ -192,40 +199,71 @@ public class ImpFetchesGoldTests
     // ---- the owner's correction -------------------------------------------
 
     /// <summary>
-    /// <b>The correction, reproduced.</b> The owner marked a gem tile that was
-    /// not connected to their dungeon and whose surrounding tiles were not
-    /// claimed; imps mined it and <b>never carried any gold home</b>
+    /// <b>The owner's correction, and the rule behind it.</b> They marked a gem
+    /// tile that was neither connected to their dungeon by bridge nor surrounded
+    /// by claimed tiles; imps mined it and <b>never carried any gold home</b>
     /// (2026-09-05).
     ///
-    /// <para>Nothing in <c>ImpTaskSystem</c> codes that. It falls out of two
-    /// searches that both walk — an imp cannot reach a pile it cannot walk to,
-    /// and it cannot reach a store either — so gold piles up where it was mined.
-    /// This test pins the outcome rather than the mechanism, because
-    /// <b>which</b> of the two rules the original uses is Q144: connectivity and
-    /// claimed ground were both absent in what was watched.</para>
+    /// <para>This project first reproduced that <i>by accident</i>: both
+    /// searches have to walk, so a stranded imp could not reach a store. The
+    /// binary says the real rule is simpler and quite different — <b>the
+    /// original's gold task refuses a tile that is neither water nor owned by
+    /// the worker's own player, before it looks at what is standing on
+    /// it.</b> Unclaimed ground was enough on its own; the bridge never came
+    /// into it.</para>
+    ///
+    /// <para>So this test puts the gold one step away on ground the keeper does
+    /// not own, with a treasury in easy reach and nothing else to do. The
+    /// accident would have collected it.</para>
     /// </summary>
     [Fact]
-    public void AnImpThatCannotReachAStoreLeavesTheGoldWhereItIs()
+    public void GoldOnGroundTheKeeperDoesNotOwnIsNotFetched()
     {
-        // The imp is sealed in an unowned pocket with the gold; the keeper's
-        // treasury is on the far side of solid rock.
-        Run run = Start(new TilePos(5, 2));
-        Treasury(run, new TilePos(3, 3));
+        Run run = Start(new TilePos(3, 3));
+        Treasury(run, new TilePos(2, 2));
 
-        ref TileState pocket = ref run.World.Tile(5, 2);
-        pocket.TerrainId = Dk2TerrainFixture.DirtPath;
-        pocket.Health = run.Db.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
+        // (4,3) is rock; open it into unowned dirt path next to the keeper's
+        // room, so the imp can walk onto it and simply will not take the gold.
+        ref TileState outside = ref run.World.Tile(4, 3);
+        outside.TerrainId = Dk2TerrainFixture.DirtPath;
+        outside.Health = run.Db.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
+        outside.OwnerPlayerId = PlayerIds.Unowned;
 
-        int tile = Index(run.World, new TilePos(5, 2));
-        FloorGold.Drop(run.World, run.Db, tile, 500);
+        FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(4, 3)), 500);
 
-        run.Ticks(400);
+        // A short window on purpose. Left to run, the imp CLAIMS that tile --
+        // it is unowned ground touching the keeper's, which is a job of its own
+        // -- and the gold becomes fetchable a moment later. That is worth
+        // knowing and is probably what DK2 does too, but it would hide the rule
+        // this test is about, which is what happens at the moment of choosing.
+        run.Ticks(3);
 
-        // It has the gold in its hands or the gold is still on the floor, but it
-        // is emphatically not in the treasury.
-        Assert.Equal(0, GoldStore.Total(run.World, Keeper));
-        Assert.Equal(500, FloorGold.Total(run.World, run.Db) + run.Imp.GoldHeld);
-        Assert.Contains(run.Of("delivery_blocked"), e => e.Detail.Contains("reason=no_room"));
+        Assert.Equal(500, FloorGold.OnTile(run.World, run.Db, Index(run.World, new TilePos(4, 3))));
+        Assert.NotEqual(CreatureActivity.FetchingGold, run.Imp.Activity);
+        Assert.Empty(run.Of("fetch_taken"));
+    }
+
+    /// <summary>
+    /// And the same tile, once the keeper owns it, is collected — so the refusal
+    /// above is the ownership rule and not the imp being unable to get there.
+    /// </summary>
+    [Fact]
+    public void TheSameGoldIsFetchedOnceTheKeeperOwnsTheGround()
+    {
+        Run run = Start(new TilePos(3, 3));
+        Treasury(run, new TilePos(2, 2));
+
+        ref TileState outside = ref run.World.Tile(4, 3);
+        outside.TerrainId = Dk2TerrainFixture.DirtPath;
+        outside.Health = run.Db.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
+        outside.OwnerPlayerId = Keeper;
+
+        FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(4, 3)), 500);
+
+        run.Ticks(200);
+
+        Assert.Equal(0, FloorGold.Total(run.World, run.Db));
+        Assert.Equal(500, GoldStore.Total(run.World, Keeper));
     }
 
     // ---- crowding ----------------------------------------------------------

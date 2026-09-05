@@ -187,9 +187,14 @@ is written **once, at level load**, from a field of the level structure, and
 read from 165 places.
 
 **Which player id it is has not been read out — Q136.** Ours uses
-`PlayerIds.Neutral` and says so in the code, because nothing yet reads a floor
-pile's owner and the day something does — an imp deciding whether it may fetch a
-rival keeper's dropped gold — the question has to be answered first.
+`PlayerIds.Neutral` and says so in the code.
+
+**Both ends of it now agree, which is new.** The original's gold-fetching task
+requires the object's own owner to equal that same global before an imp will
+take it (`imp-task-priority.md` §4), so the id that creates a pile and the id
+that is looked for when collecting one are the same field. That does not say
+*which* id it is; it does say the two halves are consistent, which is what the
+question was really about.
 
 ## 9. What is built, and what it waits on
 
@@ -220,9 +225,17 @@ leaving by portal drops gold, as dying does), Q138 (whether mined gold an imp
 cannot hold falls on the floor), Q139 (which tile an overflowing refund uses),
 Q140 (whether an imp with a full treasury puts its load down).
 
-**And three more from building the imp that collects it:** Q142 (topping up a
+**And more from building the imp that collects it:** Q142 (topping up a
 part-load), Q143 (whether the pick-up costs time), Q145 (whether fetching
-interrupts a swing in progress). Plus **Q144**, which came from the owner
-correcting their own report: gold mined on ground that was neither connected nor
-claimed **never came home**, and one bridge would say which of the two conditions
-is the real one.
+interrupts a swing in progress), Q146 (where fetching sits below digging).
+
+**Q144 is answered, and not the way this document first guessed.** The owner
+corrected their own report — gold mined on ground that was neither connected nor
+claimed never came home — and this document offered "reachability or ownership,
+one bridge separates them". It is **ownership**: the original refuses a tile that
+is neither water nor the worker's own before it looks at what is on it. Ours
+reproduced the outcome by accident, through both searches having to walk.
+
+**And Q147 is the one that matters most**, because it may mean this project's
+whole job-selection shape is wrong: DK2 evaluates its task-kind order *per
+position*, from inside a scan. See `imp-task-priority.md` §5.

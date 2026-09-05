@@ -3878,3 +3878,48 @@ implement is exactly the error this project keeps finding in its own history.
 - **Carrying is no longer the largest gap.** What is left of it is the
   creature-carrying task: a corpse to a graveyard, an unconscious body to a
   prison or a bed.
+
+### Amendment, 2026-09-05, the same day: the priority was wrong, and the owner caught it
+
+**ADR-0056 as first written put fetching above marked excavation. That is
+wrong.** It stood for a few hours, and what ended it was the owner reading their
+own report back and saying they were not sure — then asking for a Ghidra pass
+rather than for the change to be kept.
+
+**What the binary says** (`docs/research/imp-task-priority.md`): DK2 keeps a
+keeper-wide **task list** whose entries carry a kind, and one function tries the
+kinds in a fixed order, returning on the first that takes. **Digging and mining
+a marked tile are kinds 1 and 2, the first two tried. Gold on the floor is kind
+7, the sixth of nine.** Kinds 1 and 2 are pinned hard: they are raised by the
+tile-marking code, which chooses between them on whether the terrain's
+`GoldValue` is zero — our own parsed field selecting the task type.
+
+So **Q24 stands exactly as it was**, and the August observation that put marked
+excavation at the top of the order was right all along.
+
+**What changed here:**
+
+- fetching moved to **second**, below marked excavation. Only "below excavation"
+  is read; above claiming and reinforcing is **ours** (Q146), chosen because
+  putting it last would make the mechanic *dead* — an imp can nearly always find
+  a wall to reinforce — which is flatly contrary to what the owner watched;
+- **an imp will not take gold that is not on its keeper's own ground** (or on
+  water). Read out of the same function, and it **answers Q144**;
+- the ADR's claim that our reachability accident reproduced the correction is
+  withdrawn. It reproduced the *outcome*. The rule was ownership.
+
+### Two things worth keeping from being wrong
+
+**The outcome matched while the rule was wrong.** That is the exact shape of the
+three multi-month defects in this project's history, and it happened again inside
+a single day — with a test suite that passed, a scenario that looked right, and
+an ADR that said CONFIRMED.
+
+**And the deeper reading may make the priority question moot — Q147.** The
+original's kind chain is a **callback**, invoked from a scan, and every handler
+takes a position and looks around it. So DK2's primary key is *where* and the
+kind order breaks ties *within* a position, where this project runs one
+whole-map search per priority. Under that shape, an imp standing in spilled gold
+takes the gold **because it is underfoot**, not because gold outranks mining —
+which explains the owner's observation with no priority claim at all. Not acted
+on: it changes how every job is chosen, and it wants the owner's eyes first.

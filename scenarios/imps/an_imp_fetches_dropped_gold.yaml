@@ -1,51 +1,58 @@
 # The other end of carrying: gold that is already on the floor.
 #
-# CONFIRMED (Q141, owner observation of the original, 2026-09-05): "if there is
-# gold on the ground an imp will first take from that gold pile and take it to a
-# treasury, until all of it is gone" - reported from a dungeon where a marked
-# gem tile sat right beside the gold and NOBODY WAS MINING IT. So fetching is
-# not merely in the imp's priority order, it is ABOVE marked excavation, which
-# had been the top of that order since ADR-0018.
+# THIS SCENARIO ASSERTED THE OPPOSITE FOR ONE DAY, and the day is worth keeping.
+# The owner reported (Q141): "if there is gold on the ground an imp will first
+# take from that gold pile and take it to a treasury, until all of it is gone" -
+# watched with a marked gem tile beside the gold and nobody mining it. This
+# project read that as fetching OUTRANKING marked excavation, built it, and
+# wrote a scenario whose headline was an imp walking past two still-marked walls
+# to reach a pile. The owner then read their own report back, said they were not
+# sure, and asked for a Ghidra pass rather than letting it stand.
 #
-# This run makes floor gold the only way this project can today - by selling the
-# treasury out from under it (ADR-0055) - and then watches an imp put it back.
+# THE BINARY DISAGREES. DK2 keeps a keeper-wide task list whose entries carry a
+# kind, and one function tries the kinds in a fixed order, returning on the first
+# that takes. Digging and mining a marked tile are kinds 1 and 2 - the FIRST two.
+# A floor object flagged TypeGold is kind 7, the SIXTH OF NINE. Kinds 1 and 2 are
+# pinned hard: the tile-marking code raises kind 1 when the terrain's GoldValue
+# is zero and kind 2 when it is not, which is our own parsed field choosing the
+# task type. See docs/research/imp-task-priority.md.
 #
-# What the event log actually shows, and it is the whole answer in fifteen lines:
-#   t24, t35   the imp is digging the walls marked at tick 2, one after another.
-#              MarkedExcavation, which is where the priority order used to start.
+# So marked excavation is first, exactly as Q24 and ADR-0018 have had it since
+# August, and this run now shows that.
+#
+# What the event log shows:
+#   t24, t35   the imp digs the walls marked at tick 2. MarkedExcavation.
 #   t40        the treasury tile is sold and its 2000 stays on that tile as a
 #              floor pile, off the keeper's books. gold_displaced.
-#   t52        it finishes the wall it was already swinging at.
-#   t53        and then goes for the gold - fetch_taken, priority
-#              FetchFloorGold - WALKING PAST TWO WALLS THAT ARE STILL MARKED.
-#              That is the line this scenario exists for.
-#   t65-t69    1400 in its hands, delivered; back for the remaining 600.
+#   t53, t74   IT KEEPS DIGGING. Two more marked walls, with 2000 in gold lying
+#              four tiles away. That is the line this scenario now exists for.
+#   t95        only when nothing is marked any more does it go for the gold.
+#   t128-      1400 in its hands, delivered; back for the remaining 600.
 #              "Until all of it is gone."
-#   t70        only now does it return to (12,6) and carry on digging.
 #
-# ONE NUANCE THAT IS OURS, and the log shows it at t52: the imp finishes the
-# wall it is already working on before it turns round. Fetching outranks
-# excavation at the moment a job is CHOSEN; whether the original also interrupts
-# a swing in progress is Q145, and the owner's own observation cannot settle it,
-# because a gem tile is infinite - an imp re-chooses after every completion
-# either way, so both rules look identical from outside.
+# WHERE GOLD SITS BELOW DIGGING IS OURS (Q146). Only "below marked excavation"
+# is read. It is placed above claiming and reinforcing because putting it last
+# would make the mechanic dead - an imp can nearly always find a wall to
+# reinforce, so gold would never be collected at all, which is flatly contrary to
+# what the owner watched.
 #
-# What this run does NOT establish, and the report says so: whether an imp with
-# a part-load tops up from a pile it walks past (Q142), whether the original
-# animates a pause while picking up (Q143), and whether an enemy keeper's imp
-# would take this gold (Q136 - a floor pile's owner is a level-wide player id
-# and nobody has read which).
+# AND THE BIGGER QUESTION IS Q147, which may make all of the above moot. The
+# original's kind chain is a CALLBACK, invoked from a scan, and every handler
+# takes a position and looks around it - so DK2's primary key is WHERE and the
+# kind order breaks ties WITHIN a position, where this project runs one whole-map
+# search per priority. Under that shape an imp standing in spilled gold takes the
+# gold because it is underfoot, not because gold outranks mining, which would
+# explain the owner's observation with no priority claim at all. Not built: it
+# changes how every job is chosen.
 #
-# The owner also supplied the negative, and it is reproduced in
-# ImpFetchesGoldTests rather than here because it needs a stranded imp: imps put
-# onto a marked gem tile NOT connected to the dungeon mined it happily and never
-# carried any gold home. Nothing codes that - an imp cannot walk to a store it
-# cannot walk to, so the gold simply piles up where it was mined. Whether the
-# original's rule is reachability or claimed ground is Q144.
+# One rule here IS read and is applied: an imp will not take gold that is not on
+# its keeper's own ground (or on water). That answers Q144, and it is why the
+# owner's disconnected gem tile never sent any gold home - not because the imps
+# could not walk back, which is what this project first assumed.
 id: imps-fetch-dropped-gold-001
 question: >
-  Does a worker pick gold up off the floor and carry it to a treasury, and does
-  it do that before touching a wall its keeper has marked for digging?
+  Does a worker pick gold up off the floor and carry it to a treasury - and does
+  it finish the walls its keeper marked first?
 map: chamber_16x12
 seed: 5
 duration_ticks: 900
@@ -67,10 +74,9 @@ setup:
     # job rather than anything to do with gold.
     - { type: Imp, at: [9, 6], player: 3 }
 commands:
-  # Four walls marked for digging BEFORE the gold exists, so the imp is busy
-  # with the job that had been top of the priority order, and so there is still
-  # marked work left over when the gold appears. Two of these are untouched at
-  # t53 and the imp walks past them anyway.
+  # Four walls marked for digging BEFORE the gold exists, so there is still
+  # marked work left over when it appears. Two of them are untouched at t40 and
+  # the imp digs them anyway.
   - at_tick: 2
     player: 3
     tag: [[10, 6], [11, 6], [12, 6], [13, 6]]

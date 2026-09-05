@@ -122,22 +122,44 @@ public sealed class ImpTaskSystem : ISimulationSystem
         [JobPriority.MarkedExcavation, JobPriority.Claim, JobPriority.Reinforce];
 
     /// <summary>
-    /// <b>Gold on the floor comes before all three of them</b>, and it is not in
+    /// Gold on the floor, which is <b>last</b> here and is not in
     /// <see cref="JobPriority"/> because it is not a tile-work job — there is no
     /// <see cref="TileWorkKind"/> for "pick that up", nothing is damaged and
-    /// nothing converts. It is searched for first and the enum's order follows.
+    /// nothing converts.
     ///
-    /// <para><b>CONFIRMED by the owner</b> (2026-09-05, Q141): <i>"if there is
-    /// gold on the ground an imp will first take from that gold pile and take it
-    /// to a treasury, until all of it is gone"</i> — reported from a dungeon
-    /// where a marked gem tile sat right beside the gold and <i>nobody was
-    /// mining it</i>. That is the strong form: not "an imp will get round to
-    /// it", but fetching <b>preempting</b> the job that had been top of the
-    /// order since ADR-0018.</para>
+    /// <para><b>It was first for one day, and that was wrong.</b> The owner
+    /// reported (Q141) <i>"if there is gold on the ground an imp will first take
+    /// from that gold pile and take it to a treasury"</i>, watched with a marked
+    /// gem tile right beside the gold and nobody mining it, and this project
+    /// read that as fetching outranking marked excavation. <b>The owner then
+    /// doubted their own reading and asked for the binary, and the binary
+    /// disagrees</b> — see <c>docs/research/imp-task-priority.md</c>.</para>
     ///
-    /// <para>Above claiming and reinforcing by transitivity rather than by a
-    /// second observation: excavation already outranks both (Q24, CONFIRMED),
-    /// and this outranks excavation.</para>
+    /// <para>DK2 keeps a keeper-wide <b>task list</b> whose entries carry a
+    /// kind, and one function tries the kinds in a fixed order, returning on the
+    /// first that takes. <b>Digging and mining a marked tile are the first two
+    /// kinds it tries; gold on the floor is the sixth of nine.</b> So marked
+    /// excavation outranks fetching, exactly as Q24 and ADR-0018 already
+    /// had it.</para>
+    ///
+    /// <para><b>Where it sits below digging is ours.</b> Only "below marked
+    /// excavation" is read; which of the original's nine kinds our Claim and
+    /// Reinforce are has not been established, so its position relative to those
+    /// two is a choice. It is placed <i>above</i> them for two reasons, both
+    /// stated rather than hidden: the chain puts gold above the kind that looks
+    /// most like claiming (the one that tests for unowned ground), and putting
+    /// it last would make the mechanic <b>dead</b> — a keeper's imp can almost
+    /// always find a wall to reinforce, so gold would never be collected at all,
+    /// which is flatly contrary to what the owner watched. <b>Q146.</b></para>
+    ///
+    /// <para><b>And the deeper question this exposed is Q147.</b> The original
+    /// evaluates its kind order <i>per candidate position</i>, from inside a
+    /// scan, where this project runs one whole-map search per priority. Under
+    /// the original's shape an imp standing in spilled gold takes the gold
+    /// because it is underfoot, not because gold outranks digging — which would
+    /// explain the owner's observation without any priority claim at all. That
+    /// is a change to how every job is chosen, not to this one, so it is
+    /// written down rather than made.</para>
     /// </summary>
     private const string FetchPriority = "FetchFloorGold";
 
@@ -383,7 +405,10 @@ public sealed class ImpTaskSystem : ISimulationSystem
         WorldState world = context.World;
 
         if (!_pathfinder.TryFindNearest(
-                grid, creature.Tile, at => CanFetchFrom(context, at, creature.Id), _route))
+                grid,
+                creature.Tile,
+                at => CanFetchFrom(context, at, creature.OwnerPlayerId, creature.Id),
+                _route))
         {
             return false;
         }
@@ -408,17 +433,39 @@ public sealed class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Whether a worker standing here would be standing on gold somebody could
+    /// Whether a worker standing here would be standing on gold it is allowed to
     /// pick up. The pile is worked from the tile itself, so this tests the tile
     /// underfoot and no neighbours — unlike a wall, which is worked from beside
     /// it.
+    ///
+    /// <para><b>The ground has to be the keeper's own</b>, or water. That is
+    /// read straight out of the original's own gold-fetching task: before it
+    /// looks at anything on the tile it refuses a tile that is neither water nor
+    /// owned by the worker's player. <b>It is also the answer to the owner's own
+    /// correction</b> (Q144) — imps that mined a gem tile whose surroundings
+    /// were unclaimed never carried any of the gold home, and this is why. Not
+    /// because they could not walk there, which is what this project first
+    /// assumed and happened to reproduce by accident.</para>
+    ///
+    /// <para>Why water is exempt is <b>UNKNOWN</b>, and it is recorded rather
+    /// than explained: water is never owned by anybody, so without the exception
+    /// gold that fell in would be unrecoverable for good.</para>
     /// </summary>
-    private static bool CanFetchFrom(SimulationContext context, TilePos at, int askingCreatureId)
+    private static bool CanFetchFrom(
+        SimulationContext context, TilePos at, byte playerId, int askingCreatureId)
     {
         WorldState world = context.World;
         if (!world.Contains(at)) return false;
 
         int index = (at.Y * world.Width) + at.X;
+        ref TileState tile = ref world.TileAtIndex(index);
+
+        if (tile.OwnerPlayerId != playerId
+            && !context.Database.TerrainById(tile.TerrainId).IsWater)
+        {
+            return false;
+        }
+
         if (FloorGold.OnTile(world, context.Database, index) <= 0) return false;
 
         return !ImpCrowding.FaceIsFull(
@@ -434,16 +481,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// swing would be inventing a duration. If the original animates a pause
     /// here it is Q143, and that is worth a stopwatch rather than a guess.</para>
     ///
-    /// <para><b>This is also where the owner's correction lands</b>
-    /// (2026-09-05): imps put onto a marked gem tile that was <i>not</i>
-    /// connected to the keeper's dungeon mined it happily and <b>never carried
-    /// any gold home</b>. Nothing here codes that. It falls out of two searches
-    /// that both walk — an imp cannot reach a pile it cannot walk to, and
-    /// <see cref="TryRouteToSomewhereItFits"/> cannot find a store across water —
-    /// so a stranded imp picks the gold up, finds nowhere to put it, and stands
-    /// there while the pile grows around it. <b>Whether the original's rule is
-    /// really reachability</b> or whether it is about the ground being claimed
-    /// is Q144: both fit, because the tile in question was neither.</para>
+    /// <para><b>The owner's correction is handled in
+    /// <see cref="CanFetchFrom"/>, not here</b> — an imp will not take gold that
+    /// is not on its keeper's own ground, which is what stopped the gold from a
+    /// disconnected gem tile ever coming home (Q144). This project first
+    /// reproduced that outcome <i>by accident</i>, through both searches having
+    /// to walk, and the accident is worth remembering: the outcome matched while
+    /// the rule was wrong.</para>
     /// </summary>
     private void UpdateFetching(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
@@ -500,7 +544,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         context.Emit(SystemName, "delivery_blocked",
             $"imp={creature.Id} player={creature.OwnerPlayerId} gold={creature.GoldHeld} " +
-            "reason=no_room after=fetch (Q144: the owner has watched exactly this)");
+            "reason=no_room after=fetch");
         GoIdle(creature);
         creature.TimerTicks = IdleDelayTicks(context.Database);
     }
@@ -667,15 +711,20 @@ public sealed class ImpTaskSystem : ISimulationSystem
     private bool TryTakeJob(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
-        // Gold on the floor first, above every tile job -- see FetchPriority.
+        // Strict priority: the whole map is searched for excavation before a
+        // single claimable tile is considered, and so on. One search per
+        // priority, not one scored search over a mixed candidate list — because
+        // the order is an ordering, not a weighting.
+        //
+        // Gold on the floor sits BELOW marked excavation and above the other
+        // two. Only the first half of that is read out of the binary; see
+        // FetchPriority.
+        if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
         if (TryFetchGold(context, creature, definition, grid)) return true;
 
-        // Strict priority: the whole map is searched for excavation before a
-        // single claimable tile is considered, and so on. Three searches, not
-        // one scored search over a mixed candidate list — because the order is
-        // an ordering, not a weighting.
         foreach (JobPriority priority in Priorities)
         {
+            if (priority == JobPriority.MarkedExcavation) continue;
             if (TryTakeJobAt(context, creature, grid, priority)) return true;
         }
 

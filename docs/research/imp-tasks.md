@@ -18,7 +18,7 @@ Implemented by `DK2.Simulation.Systems.ImpTaskSystem`,
 | An idle worker re-evaluates every `ImpIdleDelayBeforeReevaluationSeconds` (5) | **CONFIRMED** — the variable names exactly this |
 | Creature `speed` is in tiles per second | **STRONGLY INFERRED** — see below |
 | Walkability follows `CanWalkOnWater` / `CanWalkOnLava` | **STRONGLY INFERRED** — the flags exist for nothing else |
-| **Job priority: gold off the floor, then marked excavation, then claiming, then reinforcing** | **CONFIRMED** — owner observation of the original, in two sittings: the last three in 2026-08 (Q24, ADR-0018) and **fetching above all of them** on 2026-09-05 (Q141, ADR-0056) |
+| **Job priority: marked excavation, then gold off the floor, then claiming, then reinforcing** | **Marked excavation first is CONFIRMED twice** — the owner watching in 2026-08 (Q24, ADR-0018) and the binary's own task-kind chain in 2026-09 (`imp-task-priority.md`). **Where gold sits below it is ours** (Q146), and whether DK2's order is global at all is Q147 |
 | A **wall** is worked from an orthogonal neighbour | **CONFIRMED** — twelve imps a block at three a face is four faces (Q27) |
 | **Floor is worked standing on the tile itself** | **CONFIRMED** for claiming (Q44) — *"imps claim tiles by jumping on them"*; ADR-0028 |
 | Repairing and attacking floor use the same stance as claiming | **STRONGLY INFERRED** (Q49) — identical geometry, and no observation distinguishes them |
@@ -264,14 +264,17 @@ and the priority order is CONFIRMED (ADR-0018). What is still absent:
   **fleeing a fight.** Neither has a trigger anybody has stated, and neither has
   anything to act on: there is no combat, no unconsciousness and no prison.
 - ~~**Picking up gold somebody else dropped.**~~ **Done** (2026-09-05,
-  ADR-0056). The owner supplied the trigger the day after the pile became real:
-  *"if there is gold on the ground an imp will first take from that gold pile
-  and take it to a treasury, until all of it is gone"* — watched with a marked
-  gem tile standing right there and nobody mining it. So fetching sits **above**
-  marked excavation, which had been the top of the order since ADR-0018. What
-  is still open about it is small and named: Q142 (topping up a part-load),
-  Q143 (whether the pick-up costs time), Q145 (whether it interrupts a swing in
-  progress).
+  ADR-0056 as amended). The owner supplied the trigger the day after the pile
+  became real — *"if there is gold on the ground an imp will first take from
+  that gold pile and take it to a treasury, until all of it is gone"* — and this
+  project read it as fetching outranking marked excavation, built it that way,
+  and **had it wrong for a day**. The owner doubted their own reading, asked for
+  a Ghidra pass, and the binary put digging and mining first and gold sixth of
+  nine (`imp-task-priority.md`). **An imp also refuses gold that is not on its
+  keeper's own ground**, which is the same read and answers Q144. Still open and
+  named: Q142 (topping up a part-load), Q143 (whether the pick-up costs time),
+  Q145 (whether it interrupts a swing), Q146 (where it sits below digging),
+  **Q147 (whether DK2's priority is global at all)**.
 - **The floor lump an imp leaves when there is nowhere to unload.** The
   *decision* is DK2's and is implemented — an imp with nowhere to put gold keeps
   mining rather than standing still — but what it cannot hold is reported as

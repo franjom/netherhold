@@ -136,41 +136,55 @@ within minutes of the second screenshot arriving. See `imps-and-mana.md`
 
 ## 1. Still open, and blocking
 
-### Q141 — where does "fetch that gold" sit in an imp's job priority? — **ANSWERED the same day, by the owner**
+### Q141 — where does "fetch that gold" sit in an imp's job priority? — **ANSWERED, and the owner's doubt was the valuable part**
+
+The owner reported:
 
 > *"If there is gold on the ground an imp will first take from that gold pile
 > and take it to a treasury, until all of it is gone."*
 
-Reported from a dungeon where a marked **gem** tile sat right beside the gold
-and **nobody was mining it** — which is the strong form of the answer. Not "an
-imp gets round to it": fetching **displaces** marked excavation, which had been
-the top of the priority order since ADR-0018. Built the same day (ADR-0056), and
-the scenario `imps-fetch-dropped-gold-001` shows an imp walk past two
-still-marked walls to reach a pile.
+This project read that as fetching **outranking marked excavation** and built it
+that way. The owner then read their own report back, said they were not sure, and
+**asked for the binary instead of letting it stand.**
 
-**Two follow-ups came out of it, and both are one glance each.**
+**The binary disagrees.** DK2 keeps a keeper-wide task list whose entries carry a
+kind, and one function tries the kinds in a fixed order: digging and mining a
+marked tile are kinds 1 and 2, the **first two**; floor gold is kind 7, the
+**sixth of nine**. Q24's August answer was right all along.
+`docs/research/imp-task-priority.md` has the whole chain.
 
-### Q144 — does gold mined on unclaimed ground come home, if there is a bridge? — *added 2026-09-05*
+**What is left to watch is Q147 below**, and it may make the priority question
+disappear entirely.
 
-**The owner corrected their own earlier report**, which is the most valuable
-thing on this page: a gem tile marked while it was **not connected** to the
-dungeon by bridge, with the tiles around it unclaimed, **was** mined by imps —
-and **no gold ever reached a treasury or the dungeon heart**.
+### Q147 — is the priority global, or a tie-break within one position? — *added 2026-09-05, and it is now the most valuable thing on this page*
 
-Ours already reproduces that outcome without a rule for it: an imp cannot walk
-to a store it cannot walk to, so a stranded imp picks the gold up and stands
-there while the pile grows. **But two different rules fit what was watched**,
-because the tile was neither connected *nor* claimed:
+**The chain that orders DK2's task kinds is a callback**, invoked from a scan,
+and every handler takes a position and looks around it. So the original's primary
+key is **where** and the kind order breaks ties **within** a position. This
+project does the opposite — one whole-map search per priority — so the kind is
+primary and distance breaks ties.
 
-- **(a) reachability** — the imp simply cannot get home. Ours.
-- **(b) ownership** — an imp will not fetch gold that is not on its keeper's own
-  ground.
+**That difference explains the Q141 observation with no priority claim at all.**
+Imps had just mined a gem tile; gold was lying on every tile around them; so the
+nearest position with any task was a gold position, and every imp fetched while
+the gem tile stood marked and untouched. Not because gold outranks mining —
+because it was underfoot.
 
-**The experiment separates them in one step.** Build a **bridge** to a gem or
-gold tile, mark it, but leave the tiles around it **unclaimed**. If the gold
-comes home, the rule is reachability and this project is already right. If it
-does not, there is an ownership condition nothing here models — and it would
-apply to every pile, not just to gold on an island.
+**The experiment, and it is two minutes.** Take one imp with nothing else to do:
+
+1. mark a wall **far away**, and drop gold **at the imp's feet** (sell a treasury
+   tile under it, or drop a pile from the hand). Which does it go to?
+2. now mark a wall **right beside the same imp**, with gold still on the floor a
+   few tiles off. Which does it go to?
+
+**If the far wall wins the first**, priority is global and ours is the right
+shape. **If the gold wins the first and the near wall wins the second**, DK2
+picks the nearest position and only then decides what to do there — and this
+project's whole job-selection model is wrong in a way that has nothing to do with
+gold.
+
+Worth doing before anything else in the imp code, because it decides whether
+Q146 is a real question or an artefact.
 
 ### Q145 — does fetching interrupt a swing already in progress? — *added 2026-09-05*
 
