@@ -13,9 +13,9 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **795 tests green**
+**every** record type's on-disk size is now known and pinned. **796 tests green**
 with and without a DK2 install; **16 scenarios** run, each drawing a picture of
-its finished world; **completely clean tree**. (Core 17, Simulation 465, Data 64,
+its finished world; **completely clean tree**. (Core 17, Simulation 466, Data 64,
 Behavior 151, Assets 61, Presentation 37.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
@@ -3253,7 +3253,14 @@ refund uses (ours) · **Q140** what a blocked imp does with its load ·
 in any pinned run has ever met floor gold, so nothing that was already being
 measured changed.
 
-### The answer, and it was the strong form
+### The answer was not the strong form, and the owner caught that the same day
+
+**Read the next section before this one.** What follows is what this project
+believed for a few hours, and the section after it is what the binary says. The
+sequence is kept rather than tidied away, because the way the wrong version got
+in is more instructive than the right version.
+
+### What was believed first
 
 > *"If there is gold on the ground an imp will first take from that gold pile and
 > take it to a treasury, until all of it is gone."*
@@ -3322,3 +3329,109 @@ hash-moving correction, and the **graveyard** itself.
 pick-up cost time · **Q144** reachability or claimed ground — **the one to ask
 first, and it is one bridge** · **Q145** does fetching interrupt a swing already
 in progress.
+
+## Twentieth sitting, reopened: the owner doubted their own report, and was right to
+
+| | |
+|---|---|
+| `572923e` | **The priority was wrong, and the owner caught it** — ADR-0056 amended, Q141 and Q144 re-answered from the binary |
+
+**796 tests green**, 16 scenarios, zero warnings, hashes unmoved.
+
+### What happened
+
+`bcca5f3` shipped fetching gold **above** marked excavation, labelled CONFIRMED,
+on the strength of the owner's *"if there is gold on the ground an imp will first
+take from that gold pile"*. Hours later the owner read their own report back,
+said they were **not sure**, and asked for a Ghidra pass rather than letting it
+stand.
+
+**The binary disagrees, and it is not close.**
+
+### DK2's imp task list, which is the real find
+
+The creature dump prints an **`ImpJobData`** block — `ScanningJob`,
+`DroppedTask`, **`LastTaskType`**, `ImpTaskID`, `ImpTaskSlot` — and the player
+dump prints **`TaskStack`**, `TaskListHead`, `NumberInTaskList`,
+`NumberOfFreeTasks`. So a keeper accumulates **tasks with kinds**, and an imp
+claims one. Three functions carry it: claim-a-task-of-kind-K-near-here,
+raise-a-task-of-kind-K-here, and a `switch` on the kind to its handler.
+
+**One function tries the kinds in a fixed order and returns on the first that
+takes:**
+
+| # | kind(s) | what |
+|---|---|---|
+| **1** | **1, 2** | **dig a marked tile / mine a marked gold-bearing tile** |
+| 2 | 3 | unidentified — tests Lava and Water on owned ground, so a bridge |
+| 3 | 9, 10 | unidentified |
+| 4 | 13 | unidentified, and the biggest handler |
+| 5 | 6, 16 | unidentified — tests Solid, so walls |
+| **6** | **7** | **pick up a floor object flagged `TypeGold`** |
+| 7 | 8 | unidentified — reads the whole object flags word |
+| 8 | 12 | unidentified — tests for unowned ground |
+| 9 | 11 | unidentified — tests Solid |
+
+**Kinds 1 and 2 are pinned hard**, not inferred: every other kind is raised by
+the handler that consumes it, but 1 and 2 are raised by the **tile-marking
+code**, which picks kind 1 when the terrain's `GoldValue` is zero and kind 2 when
+it is not. Our own parsed field selecting the task type.
+
+So **Q24 stands exactly as ADR-0018 has had it since August.**
+`docs/research/imp-task-priority.md` is new and holds all of it.
+
+### And the same read answered the owner's other correction — differently
+
+Their disconnected gem tile sent no gold home because the gold task **refuses a
+tile that is neither water nor owned by the worker's own player**, before it
+looks at anything standing on it. **Unclaimed ground was enough on its own; the
+bridge never came into it.**
+
+This project had reproduced that outcome **by accident** — both its searches have
+to walk, so a stranded imp could not reach a store — and had written the question
+down as "reachability or ownership, one bridge separates them". **The outcome
+matched while the rule was wrong.** That is the exact shape of the three
+multi-month defects in this project's history, and it happened again inside a
+single day, with a green suite, a scenario that looked right, and an ADR that
+said CONFIRMED. Q144 is closed as **ownership**, and `CanFetchFrom` tests it.
+
+### THE THING TO READ NEXT: Q147
+
+**DK2's kind chain is a callback**, registered in a table and invoked from a
+scan, and every handler takes a position and looks around it. So the original's
+primary key is **where**, and the kind order breaks ties **within** a position.
+This project does the opposite — one whole-map search per priority.
+
+**That explains the owner's observation with no priority claim at all.** Gold was
+lying on every tile around the imps, so the nearest position with any task was a
+gold position; every imp fetched while the gem tile stood marked and untouched.
+Not because gold outranks mining — because it was underfoot.
+
+**Not built.** It changes how *every* job is chosen. The experiment is on the
+observation checklist and takes two minutes: mark a wall far from one idle imp
+and drop gold at its feet; then mark a wall right beside the same imp with gold a
+few tiles off. If the far wall wins the first, our shape is right. If the gold
+wins the first and the near wall the second, this project's whole job-selection
+model is wrong in a way that has nothing to do with gold.
+
+### Where the code stands
+
+- **marked excavation first** — CONFIRMED twice now, by the owner and by the
+  binary;
+- **gold second**, above claiming and reinforcing. Only "below excavation" is
+  read; the rest is **ours** (Q146), chosen because putting gold last makes the
+  mechanic dead — an imp can nearly always find a wall to reinforce;
+- **an imp will not take gold off ground its keeper does not own**;
+- the scenario now shows an imp **carrying on digging with 2000 in gold four
+  tiles away**, and `MiningComesBeforeFetching` is the test that holds it there.
+
+### Owner questions after this sitting
+
+**Q147** is the priority global or positional — **ask this one first, and it may
+retire Q146 entirely** · **Q146** where fetching sits below digging (ours) ·
+**Q145** does fetching interrupt a swing in progress · **Q142** topping up a
+part-load · **Q143** does the pick-up cost time · **Q136** which player id a
+floor pile carries — both ends of it now agree, only the value is unread.
+
+**Q141 and Q144 are closed from the binary.** **Q132 still blocks the hatchery
+clock.**
