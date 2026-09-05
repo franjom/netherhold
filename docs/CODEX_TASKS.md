@@ -251,10 +251,10 @@ These are the open observations, and the first is the one that blocks real work:
   goes for the lair and watch what it does meanwhile; repeat with a creature
   whose anger is already part-way up. **This blocks the lair rework**, which is
   documented and deliberately unbuilt (`docs/research/lair-acquisition.md`).
-- **Q147 — is imp job priority global, or a tie-break within one position.**
-  Mark a wall far from one idle imp and drop gold at its feet; then mark a wall
-  right beside the same imp with gold a few tiles off. **This one can invalidate
-  the whole job-selection model**, quite apart from gold.
+- ~~**Q147 — is imp job priority global, or a tie-break within one position.**~~
+  **Done 2026-09-05** — the owner played it (*"walls over gold, in both cases"*)
+  and the decompiler finished it: two tiers, ADR-0058. Kept here as the model of
+  what a two-minute recording can settle.
 - **Q152 — does regeneration continue in combat, in the Hand of Evil, under
   possession.** Three ten-second looks. The combat case is the one that changes a
   game: an imp regenerates 67 a second.

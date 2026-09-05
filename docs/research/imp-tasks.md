@@ -18,7 +18,7 @@ Implemented by `DK2.Simulation.Systems.ImpTaskSystem`,
 | An idle worker re-evaluates every `ImpIdleDelayBeforeReevaluationSeconds` (5) | **CONFIRMED** — the variable names exactly this |
 | Creature `speed` is in tiles per second | **STRONGLY INFERRED** — see below |
 | Walkability follows `CanWalkOnWater` / `CanWalkOnLava` | **STRONGLY INFERRED** — the flags exist for nothing else |
-| **Job priority: marked excavation, then gold off the floor, then claiming, then reinforcing** | **Marked excavation first is CONFIRMED twice** — the owner watching in 2026-08 (Q24, ADR-0018) and the binary's own task-kind chain in 2026-09 (`imp-task-priority.md`). **Where gold sits below it is ours** (Q146), and whether DK2's order is global at all is Q147 |
+| **Job priority is two tiers: marked excavation then claiming, each whole-map; then the nearest of reinforcing and floor gold, wall first on a tie** | **READ from the binary and CONFIRMED by the owner twice** — the order in 2026-08 (Q24, ADR-0018), and that a marked wall beats gold near or far on 2026-09-05 (Q147). Gold's place is no longer ours (Q146, ADR-0058); the distance metric still is (Q25). `imp-task-priority.md` |
 | A **wall** is worked from an orthogonal neighbour | **CONFIRMED** — twelve imps a block at three a face is four faces (Q27) |
 | **Floor is worked standing on the tile itself** | **CONFIRMED** for claiming (Q44) — *"imps claim tiles by jumping on them"*; ADR-0028 |
 | Repairing and attacking floor use the same stance as claiming | **STRONGLY INFERRED** (Q49) — identical geometry, and no observation distinguishes them |

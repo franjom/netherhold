@@ -36,6 +36,16 @@ What is *built* rather than known, against the long-term goals:
 - How a tile is worked: one uniform data-driven rule for all ten work kinds, at
   **five applications a second** (Q47, measured at 273 gold a swing, ADR-0020),
   worked **from beside a wall and standing on a floor tile** (Q44/Q49, ADR-0028).
+- **How an imp chooses a job** — in two tiers, read from the binary and
+  confirmed by the owner twice (2026-09-05, ADR-0058). Tier A walks a table of
+  kinds whole-map, one at a time: claim-the-just-dug-tile, loose objects, traps
+  and doors, **dig/mine**, **claim**, carry the unconscious, corpses. Tier B,
+  only when A is empty, ring-scans from the imp trying **reinforce, then gold**
+  at every tile — so a wall beats gold on the same tile and a nearer pile beats a
+  farther wall. Thirteen task kinds identified, the job-icon table names them,
+  and the per-tile predicates for claim/reinforce/fix are read. Built: dig,
+  claim, reinforce, gold in that shape. Not built: claim-the-just-dug-tile
+  (Q154), task stealing by distance (Q155). See docs/research/imp-task-priority.md.
 - **How DK2 draws its walls** — as far as anyone outside EA knows. Solid mass
   with intersections cut into it, wall pieces chosen by the size and shape of the
   room behind them, damage as a texture swap, and runtime vertex deformation

@@ -27,6 +27,17 @@ namespace DK2.Simulation.Tests;
 /// opposite of what its predecessor did, and
 /// <see cref="GoldOnGroundTheKeeperDoesNotOwnIsNotFetched"/> holds it to a rule
 /// that was found in the same read and explains the owner's own correction.</para>
+///
+/// <para><b>And where gold sits was settled a day later still</b> (Q146, Q147,
+/// ADR-0058). It is not a rung on the ladder: the original searches its
+/// whole-map kinds first — digging, then claiming, among others — and only
+/// then sweeps outwards from the imp, trying <i>reinforce, then gold</i> at
+/// every tile. So a wall beats gold on the same tile and a nearer pile beats a
+/// farther wall. The four tests under <i>the second tier</i> pin that, and the
+/// older tests in this file pre-reinforce the room's walls so that they measure
+/// fetching and not the competition — a room ringed with bare rock is, quite
+/// correctly now, a room whose imp reinforces before it crosses the floor for
+/// gold.</para>
 /// </summary>
 public class ImpFetchesGoldTests
 {
@@ -71,6 +82,42 @@ public class ImpFetchesGoldTests
     }
 
     private static int Index(WorldState world, TilePos at) => (at.Y * world.Width) + at.X;
+
+    /// <summary>
+    /// Turns every rock tile orthogonally beside the keeper's floor into a
+    /// finished, owned reinforced wall, so that Tier B has no wall to prefer
+    /// and a test can look at gold on its own. Call it after the terrain is
+    /// set up and before the first tick.
+    /// </summary>
+    private static void WallsAlreadyReinforced(Run run)
+    {
+        WorldState world = run.World;
+        TerrainDef wall = run.Db.TerrainById(Dk2TerrainFixture.ReinforcedWall);
+        int[] dx = [0, -1, 1, 0];
+        int[] dy = [-1, 0, 0, 1];
+
+        for (int y = 0; y < world.Height; y++)
+        {
+            for (int x = 0; x < world.Width; x++)
+            {
+                ref TileState floor = ref world.Tile(x, y);
+                if (floor.OwnerPlayerId != Keeper) continue;
+                if (run.Db.TerrainById(floor.TerrainId).IsSolid) continue;
+
+                for (int i = 0; i < dx.Length; i++)
+                {
+                    var at = new TilePos(x + dx[i], y + dy[i]);
+                    if (!world.Contains(at)) continue;
+                    ref TileState rock = ref world.Tile(at);
+                    if (rock.TerrainId != Dk2TerrainFixture.Rock) continue;
+
+                    rock.TerrainId = wall.TerrainId;
+                    rock.Health = wall.MaxHealth;
+                    rock.OwnerPlayerId = Keeper;
+                }
+            }
+        }
+    }
 
     // ---- the answer itself -------------------------------------------------
 
@@ -141,11 +188,17 @@ public class ImpFetchesGoldTests
     {
         Run run = Start(new TilePos(1, 1));
         Treasury(run, new TilePos(3, 3));
+        WallsAlreadyReinforced(run);
 
         FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(2, 2)), 400);
         run.World.Tile(4, 2).SetTaggedBy(Keeper, true);
 
-        run.Ticks(400);
+        // Long enough on purpose. Digging (4,2) opens three faces of bare rock
+        // around the new floor, and the imp -- standing on it to claim it --
+        // finds them at distance zero and reinforces all three before it
+        // crosses the room for the pile. That is the second tier working as the
+        // original does, not a slow test.
+        run.Ticks(2400);
 
         Assert.NotEmpty(run.Of("job_taken"));
         Assert.Equal(0, FloorGold.Total(run.World, run.Db));
@@ -194,6 +247,95 @@ public class ImpFetchesGoldTests
 
         Assert.Equal(0, FloorGold.Total(run.World, run.Db));
         Assert.Equal(600, GoldStore.Total(run.World, Keeper));
+    }
+
+    // ---- the second tier (Q146, Q147, ADR-0058) ----------------------------
+
+    /// <summary>
+    /// <b>Claiming is a whole-map kind and gold is not.</b> Gold under the imp's
+    /// feet, unowned floor two tiles off: it goes and claims. This is the line
+    /// that moved on 2026-09-05 — the day before, gold sat above claiming.
+    /// </summary>
+    [Fact]
+    public void ClaimingComesBeforeFetching()
+    {
+        Run run = Start(new TilePos(2, 2));
+        Treasury(run, new TilePos(1, 1));
+
+        ref TileState outside = ref run.World.Tile(4, 2);
+        outside.TerrainId = Dk2TerrainFixture.DirtPath;
+        outside.Health = run.Db.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
+        outside.OwnerPlayerId = PlayerIds.Unowned;
+
+        FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(2, 2)), 400);
+
+        run.Ticks(1);
+
+        SimEvent taken = Assert.Single(run.Of("job_taken"));
+        Assert.Contains("priority=Claim", taken.Detail);
+        Assert.Contains("(4,2)", taken.Detail);
+        Assert.Empty(run.Of("fetch_taken"));
+    }
+
+    /// <summary>
+    /// <b>Inside the sweep, distance is the key.</b> Gold under the imp's feet
+    /// in the middle of the room; bare rock one step away on every side. The
+    /// pile is nearer, so the pile wins — which is what makes gold collectable
+    /// at all in a dungeon that always has a wall somewhere.
+    /// </summary>
+    [Fact]
+    public void ANearerPileBeatsAFartherWall()
+    {
+        Run run = Start(new TilePos(2, 2));
+        Treasury(run, new TilePos(1, 1));
+
+        FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(2, 2)), 400);
+
+        run.Ticks(1);
+
+        Assert.Single(run.Of("fetch_taken"));
+        Assert.Empty(run.Of("job_taken"));
+        Assert.Equal(CreatureActivity.FetchingGold, run.Imp.Activity);
+    }
+
+    /// <summary>
+    /// <b>And at the same distance, the wall wins.</b> The imp stands on gold at
+    /// the room's edge with bare rock beside it: both jobs are at distance zero,
+    /// and the original's per-tile order puts reinforcing before gold.
+    /// </summary>
+    [Fact]
+    public void AWallBeatsGoldOnTheSameTile()
+    {
+        Run run = Start(new TilePos(3, 2));
+        Treasury(run, new TilePos(1, 1));
+
+        FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(3, 2)), 400);
+
+        run.Ticks(1);
+
+        SimEvent taken = Assert.Single(run.Of("job_taken"));
+        Assert.Contains("priority=Reinforce", taken.Detail);
+        Assert.Contains("(4,2)", taken.Detail);
+        Assert.Empty(run.Of("fetch_taken"));
+    }
+
+    /// <summary>
+    /// The mirror of <see cref="ANearerPileBeatsAFartherWall"/>: bare rock beside
+    /// the imp and the pile across the room. The wall is nearer, so the wall wins.
+    /// </summary>
+    [Fact]
+    public void ANearerWallBeatsAFartherPile()
+    {
+        Run run = Start(new TilePos(3, 1));
+        Treasury(run, new TilePos(2, 2));
+
+        FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(1, 3)), 400);
+
+        run.Ticks(1);
+
+        SimEvent taken = Assert.Single(run.Of("job_taken"));
+        Assert.Contains("priority=Reinforce", taken.Detail);
+        Assert.Empty(run.Of("fetch_taken"));
     }
 
     // ---- the owner's correction -------------------------------------------
@@ -257,6 +399,7 @@ public class ImpFetchesGoldTests
         outside.TerrainId = Dk2TerrainFixture.DirtPath;
         outside.Health = run.Db.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
         outside.OwnerPlayerId = Keeper;
+        WallsAlreadyReinforced(run);
 
         FloorGold.Drop(run.World, run.Db, Index(run.World, new TilePos(4, 3)), 500);
 
@@ -301,6 +444,7 @@ public class ImpFetchesGoldTests
     {
         Run run = Start(new TilePos(1, 1));
         Treasury(run, new TilePos(3, 3));
+        WallsAlreadyReinforced(run);
 
         int tile = Index(run.World, new TilePos(3, 1));
         ObjectState pile = FloorGold.Drop(run.World, run.Db, tile, 300)!;

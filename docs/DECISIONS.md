@@ -4020,3 +4020,89 @@ A claim nothing checks may already be false. Q56 was recorded as UNKNOWN with
 was shipped behaviour that had been wrong since the day it was written. **What
 made it findable was the owner watching the game**, which is the only oracle this
 project has for a question the data cannot answer.
+
+## ADR-0058 — An imp chooses in two tiers, and gold is near rather than last
+
+**Date:** 2026-09-05 · **Status:** Accepted · **Supersedes** the gold placement
+in ADR-0056; **amends** ADR-0018 (the order stands; what it is *part of* changed).
+
+### The decision
+
+`ImpTaskSystem` chooses a job in two tiers, because that is what the original
+does (`docs/research/imp-task-priority.md`):
+
+1. **Tier A — kind first, whole map:** marked excavation, then claiming. One
+   search per kind; any marked tile anywhere beats any claimable tile anywhere.
+2. **Tier B — position first, only when Tier A is empty:** one nearest-first
+   search that asks, at every standing tile, *is there a wall to reinforce from
+   here?* and then *is there gold under my feet?* A wall beats gold on the same
+   tile; a nearer pile beats a farther wall.
+
+Gold on the floor therefore sits **below claiming** and is **not ordered
+against reinforcing at all** — it is decided by distance.
+
+### What it replaces, and why the replaced argument was wrong
+
+ADR-0056 placed gold second, above claiming and reinforcing, as an explicit
+choice (Q146) with this argument: *putting gold last would make the mechanic
+dead — an imp can nearly always find a wall to reinforce, so gold would never
+be collected.* The argument assumed the order was a ladder. It is not. In the
+original, reinforcing and gold are both in the positional tier, so a pile is
+collected the moment it is nearer than the nearest bare wall — which in a
+settled dungeon is nearly always. **The argument's premise ("an imp can nearly
+always find a wall") is true and its conclusion is false, because distance is
+the key.** That is the kind of reasoning error worth naming: a correct fact
+about the world fed into the wrong model of the rule.
+
+### How it was settled
+
+The first binary read (morning) found a nine-step chain and called it the
+priority. It also noticed the chain was a *callback taking a position* and
+raised Q147 — global or positional? — with a two-minute experiment. **The owner
+ran it:** a far wall beats gold underfoot, and a near wall beats gold a few
+tiles off. Walls, both times.
+
+That single observation was consistent with "global" and inconsistent with
+"positional", and the second read explained why both had been half right: the
+nine-step chain is the per-tile callback of a **two-tile scan that runs only
+after an imp has been dropped**; the real routine walks a **byte table of
+kinds** (`0e 08 09 01 03 0d 0c`) whole-map first, and only then ring-scans with
+a **four-step** per-tile chain. Reinforce and gold are in the four, not the
+table.
+
+### Consequences
+
+- `ImpTaskSystem.TryTakeJob` is Tier A; `TrySweep` is Tier B and is a single
+  pathfinder search with a two-part predicate. `JobPriority.Reinforce` is no
+  longer in any ordered list.
+- **Three tests changed meaning rather than being repaired**: with bare rock
+  beside an imp, the wall now correctly wins over gold two tiles away, so the
+  gold-fetching tests pre-reinforce the room's walls to measure fetching alone.
+  Four new tests pin the competition itself.
+- The floor-gold scenario's timeline changed and its header was rewritten;
+  its duration doubled so the second trip is in the log.
+- The determinism pin **did not move** — no pinned scenario reaches Tier B with
+  gold on the floor.
+- **The distance metric is ours** (steps, Q25) where the original uses rings.
+  It is the one respect in which Tier B is not the original's search, and it
+  is written at the top of `TrySweep`.
+
+### What the same read found and did NOT build
+
+- **Kind 14 — claim the tile you have just dug, before anything else**, once no
+  neighbour of it still carries a dig task. It is *first* in the original's
+  table. Ours digs every mark before claiming any; **Q154**, designed in the
+  research note, not built, because it needs per-tile state and a decision on
+  its own.
+- **Task stealing by distance** — a nearer imp takes a task from a farther one
+  in every handler. **Q155**, not built.
+- Kinds 8, 9/10, 12, 13 (objects, traps and doors, corpses, carrying creatures)
+  are identified and wait on the mechanics they carry.
+
+### The rule this is an instance of
+
+"Its observations are oracle, its inferences are reasoning about our repo"
+(Codex Brief 4) cut the other way here: the first *read* was an inference too.
+A fixed-order chain is not a priority list until you know who calls it and how
+often — and the same day's hedge audit clause applies: the first read's
+hypothesis named its own experiment, and the experiment took two minutes.

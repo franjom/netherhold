@@ -1,143 +1,277 @@
-# The imp's task list, and the order it tries kinds in
+# How an imp chooses a job: two tiers, read from the binary
 
-**Source:** `DKII.EXE`, the `ImpUtils.cpp` and `ImpState.cpp` translation units
-plus the tile-marking code, read on 2026-09-05. Facts in our own words;
-ADR-0046 governs the boundary.
+**Source:** `DKII.EXE` v1.70 — the `ImpState.cpp` and `ImpUtils.cpp`
+translation units, the tile-marking code, the per-player alliance table and
+the job-icon name table, read 2026-09-05. Facts in our own words; ADR-0046
+governs the boundary. **Owner observations:** 2026-08-29 (Q24), 2026-09-05
+(Q141, later doubted), and 2026-09-05 again (Q147 — *"imps prioritise walls
+over gold on the floor, in both cases"*).
 
-**Why this exists:** the owner reported (Q141) that an imp goes for gold on the
-floor before mining, this project believed it and built it, and **the owner then
-doubted their own reading and asked for the binary.** The binary disagrees. This
-document is what the binary says, and it is worth more than the one answer,
-because it also gives DK2's task-kind list and the shape of how an imp chooses.
+**Why this exists.** It was written twice before it was right. The owner
+reported that imps fetch floor gold before mining (Q141); this project built
+that; the owner doubted it and asked for the binary; the binary put digging
+first and this project moved gold to second place on an argument (Q146). The
+first read also produced a hypothesis — that DK2's order is a tie-break within
+a position rather than a global ranking (Q147) — and named the two-minute
+experiment that would decide it. The owner ran it. Then the rest was read.
 
-## 1. DK2 has a keeper-wide task list
+---
+
+## 1. The answer in one paragraph
+
+An idle imp searches for work in **two tiers**. **Tier A is kind-first and
+whole-map:** a fixed table of task kinds, each searched across the entire map
+before the next is looked at — *claim the tile you just dug, carry loose
+objects, build placed traps and doors, dig and mine marked tiles, claim floor,
+carry the unconscious, carry corpses.* **Tier B is position-first and runs only
+when Tier A is empty:** a ring scan outwards from the imp that, at every tile,
+tries *reinforce or repair a wall, pick up gold, carry a loose object,* and one
+unidentified kind. So a marked wall beats gold anywhere on the map; a wall to
+reinforce beats gold **on the same tile**; and a nearer pile beats a farther
+wall. That is the owner's Q24 order, the owner's Q147 observation, and the
+reason the Q146 argument ("gold last would never be collected") was wrong all
+at once: gold is not *last*, it is *near*.
+
+---
+
+## 2. The machinery
+
+### 2.1 A keeper-wide task list
 
 The creature debug dump prints an **`ImpJobData`** block — `ScanningJob`,
 `LastEvaluate`, `DroppedTask`, `JustDropped`, **`LastTaskType`**, `ImpTaskSlot`,
-`ImpTaskSurface`, `ImpTaskPositionX/Y`, `ImpTaskID` — and the player dump prints
-a **task list**: `TaskStack`, `TaskListHead`, `NumberInTaskList`,
-`NumberOfFreeTasks`. So a keeper accumulates **tasks**, each with a **type**, and
-an imp claims one.
+`ImpTaskSurface`, `ImpTaskPositionX/Y`, `ImpTaskID` — and the player dump
+prints a **task list**: `TaskStack`, `TaskListHead`, `NumberInTaskList`,
+`NumberOfFreeTasks`. A keeper accumulates tasks, each with a **kind** and a
+tile, and an imp claims one.
 
-Three functions carry the machinery, and they are used the same way everywhere:
+Three functions carry the list and are used identically everywhere:
 
-| | |
-|---|---|
-| **claim** | *"is there a task of this kind at/near here that I may take"* |
-| **create** | *"raise a task of this kind here"* |
-| **dispatch** | a `switch` on the kind, to the handler for it |
-
-The dispatch switch is the enumeration of kinds, and it has **ten arms covering
-task types 1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14 and 16**.
-
-## 2. The order, which is the answer to Q141
-
-One function tries the kinds in sequence and returns on the first that takes —
-the plainest possible priority chain, nine calls each guarded by
-*"if that worked, stop"*:
-
-| # | Task kind(s) | What it is |
+| | address | what it answers |
 |---|---|---|
-| **1** | **1 and 2** | **dig a marked tile / mine a marked gold-bearing tile** |
-| 2 | 3 | *unidentified* — tests the **Lava** and **Water** terrain flags on owned ground, so a bridge |
-| 3 | 9 and 10 | *unidentified* — room-typed; the same pair `ImpState.cpp` raises for things that are neither creatures nor objects |
-| 4 | 13 | *unidentified*, and the largest handler of the lot |
-| 5 | 6 and 16 | *unidentified* — tests the **Solid** flag, so walls |
-| **6** | **7** | **pick up an object flagged `TypeGold` from the floor** |
-| 7 | 8 | *unidentified* — reads the object definition's whole flags word, so other carryable objects |
-| 8 | 12 | *unidentified* — tests for **unowned** ground |
-| 9 | 11 | *unidentified* — tests the **Solid** flag |
+| **find at** | `00508200` | *is there a task of kind K at this tile?* |
+| **raise** | `00507bb0` | *make a task of kind K at this tile* |
+| **find any** | `00507e40` / next `00507e90` | *walk every task of kind K* |
 
-**So marked digging and mining are the first two kinds tried, and gold on the
-floor is the sixth of nine.** Fetching does **not** outrank excavation, and
-Q24's order — the owner watching, in August — stands exactly as ADR-0018 had it.
+Most kinds are raised by the very handler that consumes them — the handler
+scans, finds work, raises the task, takes it. **Kinds 1, 2 and 14 are raised
+from outside the imp code**, which is what makes them identifiable (§3).
 
-### How kinds 1 and 2 were identified
+### 2.2 Two ways to search for one kind
 
-Every other kind is created by the very handler that consumes it: the handler
-scans, finds work, and raises the task. **Kinds 1 and 2 are the exception** —
-they are raised from outside the imp code entirely, by the routine that runs when
-a tile is marked:
+`FUN_00468520(kind, radius)` is *"find me a job of this kind within this
+distance"*, and it has two shapes:
 
-- if the terrain is not **Taggable**, no task at all;
-- if the terrain's **`GoldValue` is 0** → task kind **1**;
-- if its `GoldValue` is not 0 → task kind **2**.
+- **kinds 1 and 2** walk the task list (`FUN_00469af0`) and test each task's
+  squared straight-line distance against the radius;
+- **kinds 3, 6/16, 7, 8** run a **ring scan** (`FUN_00468d10`) outwards from
+  the imp, calling the kind's handler on each tile in turn; kinds 9/10, 11,
+  12, 13 have scanners of their own over the things or rooms they concern.
 
-That is dig-a-wall and mine-a-seam, in as many words, and it is the strongest
-kind of identification available: the *data field* our own parse calls
-`GoldValue` selecting between two task types.
+The ring scan walks concentric squares — the imp's own tile first, then the
+ring at distance 1, then 2 — and skips a tile unless a flag bit (`tile+0xb &
+0x20`, unread) is set or the tile carries a dig task. Within a ring the order
+is fixed by the scan, not by distance.
 
-Two tile predicates the kind-1/2 handler uses corroborate it: one accepts
-**Solid and not Impenetrable** (a diggable wall), the other **Solid with a
-non-zero `GoldValue`** (a seam).
+### 2.3 The dispatch, and the two per-tile chains
 
-### How kind 7 was identified
+`FUN_004687c0` is a `switch` on the kind to its handler and enumerates every
+kind the imp knows: **1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16.**
 
-Its handler walks the things standing on a tile and takes the first that is an
-**object** whose **definition's flags have bit 0x40 — `TypeGold`** — set. That
-bit is the one objects.md §7 already confirmed from the original's own object
-dump.
+Two *chains* call handlers in a fixed order and stop at the first that takes:
 
-## 3. An imp only fetches gold from its keeper's own ground
+- **`FUN_00469240`, nine steps:** dig/mine (1,2) → claim (3) → traps/doors
+  (9,10) → carry creature (13) → reinforce/fix (6,16) → **gold (7)** → objects
+  (8) → corpse (12) → kind 11. This is what the first read found and called
+  "the order". It is a per-tile callback and it is used exactly once — see
+  §4(b).
+- **`FUN_00469580`, four steps:** reinforce/fix (6,16) → **gold (7)** →
+  objects (8) → kind 11. This is Tier B's per-tile order.
 
-Before the gold handler looks at anything on the tile, it **refuses a tile that
-is neither water nor owned by the worker's own player**.
+---
 
-**This is the answer to Q144, and it is not the answer this project guessed.**
-The owner corrected their own earlier report: a gem tile marked while it was not
-connected to their dungeon by bridge, with the tiles around it unclaimed, *was*
-mined and **none of the gold ever came home**. This project reproduced that
-outcome by accident — both of its searches have to walk, so a stranded imp could
-not reach a store — and wrote down "reachability or ownership, one bridge
-separates them". It is **ownership**, and the bridge never came into it.
+## 3. The kinds, identified
 
-The accident is the part worth remembering: **the outcome matched while the rule
-was wrong**, which is precisely the shape of defect this project keeps finding in
-its own history.
+| kind | job | state | how it was identified |
+|---|---|---|---|
+| **1** | dig a marked wall | `0xd` | raised by the **tile-marking code** when the terrain's `GoldValue` is 0; handler requires Solid, not Impenetrable |
+| **2** | mine a marked seam | `0x19` | same raiser when `GoldValue` ≠ 0; handler requires Solid with `GoldValue` ≠ 0, owner nobody |
+| **3** | **claim floor** | `0xf` / `0x13` / `0x11` | tile **not** the imp's, **not** Solid/Water/Lava, owner nobody **or not allied** (alliance table `FUN_004bf3d0`), no room structure on it, and **orthogonally adjacent to the imp's own floor** (`FUN_00453b30`). Three states: plain unowned path; enemy floor (flag Attackable); enemy room tile |
+| **6** | **reinforce a wall** | `0x15` | worked from an adjacent tile that is **not Solid and owned by the imp** — the wall-stance. Target: Solid, not Impenetrable, `GoldValue` 0, Ownable; either the imp's own with tile health below **half** a per-terrain ceiling, or nobody's, below half, and adjacent to own floor |
+| **16** | **fix (repair) a wall** | `0x17` | same stance; target owned by the imp, Solid, not Impenetrable, `GoldValue` 0, tile health **≠** the ceiling, adjacent to own floor |
+| **7** | **gold off the floor** | `0x1b` | object with definition flag `TypeGold` (0x40), owner = the level-wide floor-gold id; tile must be the imp's own **or water** (Q144) |
+| 8 | carry a loose object to its room | `0x1e` | objects owned by nobody on own floor or water; the room is looked up from the object's definition (Library, Workshop…) |
+| 9 / 10 | build a placed **trap** / **door** — fetch its crate from the **Workshop** | `0x22` / `0x24` | thing types 3 and 4 with an "unbuilt" flag; the player's rooms of type 10 are searched for the matching crate |
+| 11 | *dig-like, unidentified* | `0x26` | requires a pre-existing kind-11 task and the tile's **tagged** bit (`tile+0xb & 1`); records itself as kind 1 with a flag. **No immediate-operand raise of kind 11 exists** among the 27 raise sites — it is raised some other way, unread |
+| 12 | carry a **corpse** to the **Graveyard** | `0x28` | thing type 6, owner = the floor-gold id, on own floor; room type **14**; interface messages when there is no graveyard or it is full |
+| 13 | carry an **unconscious creature** — own → **Lair**, enemy → **Prison** | `0x2a` | rooms **2** and **11**; a companion routine walks the keeper's own creature list for those flagged as needing carrying |
+| **14** | **claim the tile you have just dug** | `0xf` | tile is plain unowned path adjacent to own floor (`FUN_00453fc0` + `FUN_00453b30`); a kind-14 task exists there; **none of the 8 neighbours carries a dig task**; then it raises kind 3 at the tile and takes it. Raised from `ImpState.cpp` (`00465774`, `00465b57`) for a tile passing the same two predicates |
 
-Why **water** is exempt is UNKNOWN. Water is never owned by anybody, so without
-the exception gold that fell in would be unrecoverable for good.
+The **state** column is the second argument the handler passes to "send the
+imp to do this" (`FUN_004651a0`). Two families, odd `0xd`–`0x1b` and even
+`0x1e`–`0x2a`.
 
-## 4. And it also settles who owns a floor pile
+**The job-icon table corroborates the identifications by name.** A string
+table at `006be500` lists the interface's job sprites in one block:
+`SJ-Dig, SJ-Claim, SJ-Reinforce, SJ-Fix, SJ-Take_Gold, SJ-Take_Crate,
+SJ-Library, SJ-Graveyard, SJ-Prison, SJ-Temple, Imprison`. Every job above has
+an icon; **"Fix" is the name of kind 16's icon**, which is why 6 and 16 are
+called reinforce and fix here rather than "reinforce, first half / second
+half". Which of the two is which is **STRONGLY INFERRED** from the order the
+switch and the table share; the *pair* is CONFIRMED from the code.
 
-The gold handler additionally requires the **object's** own owner to equal the
-same global that every gold-creating path uses as the new pile's owner
-(`gold-on-the-floor.md` §8). So floor gold carries a fixed level-wide player id
-and imps look for exactly that id — the two ends agree, which is what Q136 was
-missing. Which id it is is still unread.
+### The terrain flag word, as the binary reads it
 
-## 5. The shape this exposed, which is bigger than the answer — Q147
+Every tile predicate reads the terrain record's flags at `terrain+0x17b`, and
+the bits agree with our own `TerrainFlags` exactly: `0x1` Solid, `0x2`
+Impenetrable, `0x4` Ownable, `0x8` Taggable, `0x10` Room, `0x20` Attackable,
+`0x80` Water, `0x100` Lava. `terrain+0x185` is `GoldValue`. Both sit at a
+constant −0x15 from their file offsets (`0x190`, `0x19a`).
 
-**The chain above is not called once per imp. It is a callback**, registered in a
-table and invoked from a scan, and every handler takes a position and looks
-around it.
+**The ceiling the reinforce predicates compare tile health against is
+`terrain+0x1ad`.** At the same shift that is file offset **`0x1c2`**, which
+falls inside the sixteen shorts neither this project nor OpenKeeper has named
+(`unk1ae`). It is *not* `MaxHealth` (file `0x1ff`) by that arithmetic. Either
+the in-memory record is repacked past `0x19a`, or reinforcement has its own
+ceiling in the record. **UNKNOWN** (Q153); the identification of kinds 6/16
+does not rest on it.
 
-So the original's structure is: **walk over candidate positions; at each one, try
-the task kinds in the order above.** The primary key is *where*, and the kind
-order is the tie-break *within* a position.
+---
 
-This project does the opposite: one whole-map search per priority, so the primary
-key is the *kind* and distance breaks ties within it (ADR-0018).
+## 4. The selection routine (`ImpState.cpp`, `00463e00`–`00464170`)
 
-**That difference explains the owner's observation without any priority claim at
-all.** In a dungeon where imps had just mined a gem tile, gold was lying on every
-tile around them — so the nearest position with any task was a gold position, and
-every imp fetched, while the gem tile stood marked and untouched. Not because
-gold outranks mining. Because it was underfoot.
+The routine is not a Ghidra-defined function — it was read from the
+disassembly. In order:
 
-**Q147**, and it is a change to how *every* job is chosen rather than to this
-one, so it is written down rather than made. The cheap test is in the checklist:
-mark a wall far away, drop gold at an imp's feet, and see which it does — then
-mark a wall right beside the same imp and repeat.
+**(a) A first block, keyed on an argument.** If the caller passed a kind, and
+it differs from the imp's `LastTaskType` (`imp+0x9d`), a 36-byte record for
+that kind (table at `006986a0`) is consulted flag by flag, and for each set flag
+one kind is searched whole-map: 14, 13, 12, 9, 1, then the passed kind itself,
+then kind 15 for kinds 1/2. **Not read further.** It reads as "an imp told to
+do X also considers these"; where the argument comes from was not chased.
 
-## 6. What this project does now
+**(b) The `JustDropped` scan.** If `imp+0x99` is non-zero it is cleared and a
+**ring scan of radius 2 tiles** (`0x2000` in 12-bit fixed point) runs with the
+**nine-step chain** as its per-tile callback. This is the one use of that
+chain. The flag's name is STRONGLY INFERRED from the dump's `JustDropped`; the
+behaviour it produces is the familiar one — *drop an imp beside something and
+it works on it.*
 
-- **Marked excavation first**, unchanged, CONFIRMED twice over — by the owner in
-  August and by the binary now.
-- **Gold on the floor second**, above claiming and reinforcing. Only "below
-  excavation" is read; the rest is a choice, and it is made this way because
-  putting gold last would make the mechanic *dead* — an imp can nearly always
-  find a wall to reinforce, so gold would never be collected, which is flatly
-  contrary to what the owner watched. **Q146.**
-- **An imp will not take gold that is not on its keeper's ground**, which is §3
-  and is read.
+**(c) Tier A.** A byte table at `00698658` reads `0e 08 09 01 03 0d 0c ff`.
+For each kind, whole-map (`radius = 0x7fffffff`), stop at the first that takes:
+
+    14  claim the tile just dug (once nothing beside it is still marked)
+     8  carry a loose object to its room
+     9  build a placed trap / door        (10 via the same scanner)
+     1  dig a marked wall                  (2, mine, via the same walk)
+     3  claim floor
+    13  carry an unconscious creature
+    12  carry a corpse to the graveyard
+
+**(d) Tier B.** A **whole-map ring scan** from the imp with the **four-step
+chain** as its per-tile callback: reinforce/fix → gold → objects → kind 11.
+
+**(e) Otherwise** the imp enters its idle/wander state (12).
+
+**What is *not* in Tier A is the finding.** Reinforcing and gold are never
+searched whole-map by kind. They are found by distance, and only after every
+whole-map kind has come up empty.
+
+---
+
+## 5. Gold, read end to end
+
+- **Where it sits:** Tier B, second per tile, behind reinforce/fix. A pile two
+  tiles away loses to bare rock beside the imp; a pile underfoot beats a wall
+  across the room.
+- **Whose ground:** the tile must be the imp's own or water (Q144), and the
+  pile's owner must be the level-wide floor-gold id (Q136 — the two ends agree,
+  the value is still unread).
+- **When to stop fetching (Q142, read):** before the gold kind is even
+  searched, `FUN_00464360(1)` tests the hands. An imp holding at least a
+  **level-scaled share of `MaxGoldHeld`** (level 1: all of it; higher levels
+  through a percentage table) less a global slack goes to **deposit**
+  (`FUN_00464400`) instead. So an imp *does* top up a part-load, until its hands
+  are nearly full.
+- **Where it deposits:** `FUN_00464400` walks the keeper's rooms of type
+  **Treasury (1)** or **Dungeon Heart (5)** with room left, reachable, and picks
+  the **nearest**. That confirms `GoldStore.DepositInto`'s carrier route.
+- **Kind 15** exists only in the first block: "deposit what you hold" after a
+  dig/mine kind.
+
+---
+
+## 6. Claiming, read end to end
+
+- **Kind 3** claims a tile that is not the imp's, not Solid/Water/Lava, carries
+  no room structure, whose owner is nobody or a player the imp's keeper is
+  **not allied with**, and which is orthogonally adjacent to the keeper's own
+  floor. **Imps claim enemy floor**, in three flavours the state id records:
+  plain path, enemy floor, enemy room tile.
+- **Kind 14** is claiming's fast lane and is **first of everything**: the tile
+  the imp has just dug is claimed as soon as **none of its eight neighbours
+  still carries a dig task** — so a corridor is dug through and then claimed
+  behind the digging front, which is the rhythm the original visibly has. Our
+  imps dig every mark on the map before claiming any of it, and that is now a
+  known difference (**Q154 — designed, not built**).
+
+---
+
+## 7. Task stealing, which this project does not have
+
+Every handler, having found a task, asks who holds it (`FUN_00508110`). If
+somebody does, and that somebody is a creature in a stealable state, the
+handler compares **squared straight-line distance** — mine to the task versus
+theirs to the task — and **takes the task if it is nearer**, re-assigning the
+holder. The gold and reinforce handlers, the claim handler and the dig handler
+all do it. Ours never re-assigns a job once taken (`ImpCrowding` refuses the
+face instead). Recorded, not built (**Q155**).
+
+---
+
+## 8. What this project does, as of ADR-0058
+
+| | DK2 | ours |
+|---|---|---|
+| Tier A | 14, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **marked excavation**, then **claim** — whole map each |
+| Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold** |
+| distance | rings, squared straight-line | steps along the walkable grid (Q25) |
+| kind 14 | claim the just-dug tile first | not built (Q154) |
+| stealing | nearer imp takes the task | not built (Q155) |
+| just-dropped scan | radius 2, nine-step chain | no Hand of Evil yet; nothing to drop |
+
+`ImpTaskSystem.TryTakeJob` is Tier A and `TrySweep` is Tier B, and the
+`ImpFetchesGoldTests` "second tier" section pins the four cases: claim beats
+gold underfoot; a nearer pile beats a farther wall; a wall beats gold on the
+same tile; a nearer wall beats a farther pile.
+
+---
+
+## 9. What the first read got wrong, kept on purpose
+
+The first version of this document (2026-09-05, morning) read the nine-step
+chain as *the* priority, put gold "sixth of nine", guessed kind 12 was claiming
+("tests for unowned ground" — it tests for *owned* ground and carries corpses),
+guessed kind 3 was a bridge ("tests Lava and Water" — it tests for their
+*absence*, and is claiming), and framed Q147 as "global *or* positional". The
+truth was *both, in tiers*, and the chain it had found was the per-tile
+callback of a two-tile scan that runs only after an imp has been dropped.
+
+Two lessons worth more than the facts. **A fixed-order chain is not a priority
+list until you know who calls it and how often.** And **"this kind tests
+flag F" is not an identification until the polarity is checked** — three of
+the four mis-identifications were the right flag read the wrong way round.
+
+---
+
+## 10. Open, in one place
+
+- **Q153** — the reinforce ceiling at `terrain+0x1ad` (file `0x1c2`): which
+  field is it?
+- **Q154** — kind 14, claim-the-just-dug-tile: designed above, not built.
+- **Q155** — task stealing by distance: not built.
+- **Q25** — the dig search walks the task list within a radius; whether it
+  takes the *nearest* qualifying task or the *first in list order* was not read.
+  The owner's answer (nearest by walking distance) stands as the observation.
+- kind 11's identity and raiser; the `tile+0xb & 0x20` scan pre-filter; the
+  first block's argument and its per-kind record table.

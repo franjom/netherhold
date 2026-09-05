@@ -236,6 +236,8 @@ one bridge separates them". It is **ownership**: the original refuses a tile tha
 is neither water nor the worker's own before it looks at what is on it. Ours
 reproduced the outcome by accident, through both searches having to walk.
 
-**And Q147 is the one that matters most**, because it may mean this project's
-whole job-selection shape is wrong: DK2 evaluates its task-kind order *per
-position*, from inside a scan. See `imp-task-priority.md` §5.
+**And Q147 was answered the same day, by the owner and then the binary:** DK2
+chooses in two tiers — digging and claiming whole-map by kind, and only then a
+ring scan in which reinforcing beats gold on the same tile and a nearer pile
+beats a farther wall. So gold sits **below claiming**, and against reinforcing
+it is decided by **distance**, not order. `imp-task-priority.md` and ADR-0058.

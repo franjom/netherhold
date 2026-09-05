@@ -1,49 +1,46 @@
-# The other end of carrying: gold that is already on the floor.
+﻿# The other end of carrying: gold that is already on the floor.
 #
-# THIS SCENARIO ASSERTED THE OPPOSITE FOR ONE DAY, and the day is worth keeping.
-# The owner reported (Q141): "if there is gold on the ground an imp will first
-# take from that gold pile and take it to a treasury, until all of it is gone" -
-# watched with a marked gem tile beside the gold and nobody mining it. This
-# project read that as fetching OUTRANKING marked excavation, built it, and
-# wrote a scenario whose headline was an imp walking past two still-marked walls
-# to reach a pile. The owner then read their own report back, said they were not
-# sure, and asked for a Ghidra pass rather than letting it stand.
+# THIS SCENARIO HAS ASSERTED THREE DIFFERENT ORDERS IN THREE DAYS, and the three
+# are worth keeping. The owner reported (Q141) that an imp goes for a pile before
+# a marked gem tile; this project built gold FIRST. The owner doubted their own
+# report and asked for the binary, which put digging first; this project put gold
+# SECOND, above claiming and reinforcing, on the argument that gold placed last
+# would never be collected because an imp can nearly always find a wall (Q146).
+# Then the owner ran the two-minute experiment the first read proposed (Q147):
+# "imps prioritise walls over gold on the floor, in both cases". And the rest of
+# the selection routine was read.
 #
-# THE BINARY DISAGREES. DK2 keeps a keeper-wide task list whose entries carry a
-# kind, and one function tries the kinds in a fixed order, returning on the first
-# that takes. Digging and mining a marked tile are kinds 1 and 2 - the FIRST two.
-# A floor object flagged TypeGold is kind 7, the SIXTH OF NINE. Kinds 1 and 2 are
-# pinned hard: the tile-marking code raises kind 1 when the terrain's GoldValue
-# is zero and kind 2 when it is not, which is our own parsed field choosing the
-# task type. See docs/research/imp-task-priority.md.
+# THE ORIGINAL CHOOSES IN TWO TIERS (docs/research/imp-task-priority.md, ADR-0058).
+# Tier A is kind-first and whole-map: claim the tile just dug, carry objects,
+# build traps and doors, DIG AND MINE MARKED TILES, CLAIM FLOOR, carry the
+# unconscious, carry corpses -- each searched over the entire map before the
+# next. Tier B runs only when Tier A is empty and is position-first: a ring scan
+# out from the imp that at every tile tries REINFORCE, then GOLD, then objects.
+# So a wall beats gold on the same tile, and a nearer pile beats a farther wall.
+# Gold is not last; it is near.
 #
-# So marked excavation is first, exactly as Q24 and ADR-0018 have had it since
-# August, and this run now shows that.
-#
-# What the event log shows:
-#   t24, t35   the imp digs the walls marked at tick 2. MarkedExcavation.
+# What the event log shows, and every line of it is one of those rules:
+#   t0-t23     the imps claim the unowned floor around the room. Claim is a
+#              whole-map kind and there is nothing marked yet.
+#   t24-t93    four marked walls dug, one after another. MarkedExcavation.
 #   t40        the treasury tile is sold and its 2000 stays on that tile as a
 #              floor pile, off the keeper's books. gold_displaced.
-#   t53, t74   IT KEEPS DIGGING. Two more marked walls, with 2000 in gold lying
-#              four tiles away. That is the line this scenario now exists for.
-#   t95        only when nothing is marked any more does it go for the gold.
-#   t128-      1400 in its hands, delivered; back for the remaining 600.
-#              "Until all of it is gone."
+#   t53, t74   THEY KEEP DIGGING with 2000 in gold lying a few tiles away. Tier A
+#              over Tier B: the line the owner's experiment confirmed.
+#   t95-t241   THEY CLAIM THE CORRIDOR THEY DUG, and still nobody touches the
+#              gold. Claiming is a whole-map kind too, and gold is not.
+#   t151-      Tier B begins: every imp reinforces the bare rock BESIDE it,
+#              because a wall at distance zero beats a pile at distance two.
+#   t417       the first imp to finish a wall that leaves it nearer the pile
+#              than any other wall goes and fetches. 1400 in its hands,
+#              delivered at t432; 600 left on the floor.
+#   t1132      and the rest, on the same terms, once a wall runs out nearer the
+#              pile than the next one. "Until all of it is gone" -- just not
+#              first.
 #
-# WHERE GOLD SITS BELOW DIGGING IS OURS (Q146). Only "below marked excavation"
-# is read. It is placed above claiming and reinforcing because putting it last
-# would make the mechanic dead - an imp can nearly always find a wall to
-# reinforce, so gold would never be collected at all, which is flatly contrary to
-# what the owner watched.
-#
-# AND THE BIGGER QUESTION IS Q147, which may make all of the above moot. The
-# original's kind chain is a CALLBACK, invoked from a scan, and every handler
-# takes a position and looks around it - so DK2's primary key is WHERE and the
-# kind order breaks ties WITHIN a position, where this project runs one whole-map
-# search per priority. Under that shape an imp standing in spilled gold takes the
-# gold because it is underfoot, not because gold outranks mining, which would
-# explain the owner's observation with no priority claim at all. Not built: it
-# changes how every job is chosen.
+# WHAT IS OURS HERE IS THE DISTANCE. The original measures Tier B in rings of
+# straight-line distance; this project measures it in steps along the walkable
+# grid (Q25). Everything about the ORDER is read.
 #
 # One rule here IS read and is applied: an imp will not take gold that is not on
 # its keeper's own ground (or on water). That answers Q144, and it is why the
@@ -55,7 +52,7 @@ question: >
   it finish the walls its keeper marked first?
 map: chamber_16x12
 seed: 5
-duration_ticks: 900
+duration_ticks: 1800
 setup:
   players:
     # 3000, which the setup spreads in tile order: 1000 fills the heart tile and

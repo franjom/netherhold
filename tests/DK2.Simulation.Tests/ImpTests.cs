@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -107,8 +107,8 @@ public class ImpTests
 
     /// <summary>
     /// <b>Nothing marked is not nothing to do.</b> An imp standing in its
-    /// keeper's room with no orders reinforces the walls around it — third in
-    /// the priority order, and the last thing before it gives up.
+    /// keeper's room with no orders reinforces the walls around it — the second
+    /// tier (ADR-0058), and the last thing before it gives up.
     /// </summary>
     [Fact]
     public void AnImpWithNothingMarked_ReinforcesTheWallsAroundIt()

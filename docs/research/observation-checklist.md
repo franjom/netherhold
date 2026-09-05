@@ -236,38 +236,26 @@ marked tile are kinds 1 and 2, the **first two**; floor gold is kind 7, the
 **sixth of nine**. Q24's August answer was right all along.
 `docs/research/imp-task-priority.md` has the whole chain.
 
-**What is left to watch is Q147 below**, and it may make the priority question
-disappear entirely.
+**Q147 was watched the same day, and the answer is below.**
 
-### Q147 — is the priority global, or a tie-break within one position? — *added 2026-09-05, and it is now the most valuable thing on this page*
+### ~~Q147 — is the priority global, or a tie-break within one position?~~ — *ANSWERED 2026-09-05*
 
-**The chain that orders DK2's task kinds is a callback**, invoked from a scan,
-and every handler takes a position and looks around it. So the original's primary
-key is **where** and the kind order breaks ties **within** a position. This
-project does the opposite — one whole-map search per priority — so the kind is
-primary and distance breaks ties.
+**The owner ran the experiment:** *"imps prioritise walls over gold on the
+floor, in both cases."* A far wall beat gold underfoot; a near wall beat gold a
+few tiles off. That ruled out "positional" on its own and sent the read back to
+the binary, which found **both, in tiers**: digging and claiming are searched
+**whole-map, one kind at a time**; reinforcing and gold are found only
+afterwards, by a **ring scan** in which a wall beats gold on the same tile and
+a nearer pile beats a farther wall. The nine-step chain the first read had
+called "the order" was the per-tile callback of a two-tile scan that runs once
+after an imp is dropped. `imp-task-priority.md` §4, ADR-0058.
 
-**That difference explains the Q141 observation with no priority claim at all.**
-Imps had just mined a gem tile; gold was lying on every tile around them; so the
-nearest position with any task was a gold position, and every imp fetched while
-the gem tile stood marked and untouched. Not because gold outranks mining —
-because it was underfoot.
-
-**The experiment, and it is two minutes.** Take one imp with nothing else to do:
-
-1. mark a wall **far away**, and drop gold **at the imp's feet** (sell a treasury
-   tile under it, or drop a pile from the hand). Which does it go to?
-2. now mark a wall **right beside the same imp**, with gold still on the floor a
-   few tiles off. Which does it go to?
-
-**If the far wall wins the first**, priority is global and ours is the right
-shape. **If the gold wins the first and the near wall wins the second**, DK2
-picks the nearest position and only then decides what to do there — and this
-project's whole job-selection model is wrong in a way that has nothing to do with
-gold.
-
-Worth doing before anything else in the imp code, because it decides whether
-Q146 is a real question or an artefact.
+**What the experiment could not see, and what it settled anyway:** it never
+tested reinforce against gold, but the same read fixed that pair too. Nothing
+is left to watch on priority. Two things it opened are decompiler questions,
+not observations: whether an imp claims the tile it has just dug before the
+next dig (Q154 — *read*, yes, once nothing beside it is still marked; not
+built) and task stealing by distance (Q155).
 
 ### Q145 — does fetching interrupt a swing already in progress? — *added 2026-09-05*
 

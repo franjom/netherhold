@@ -17,20 +17,36 @@ namespace DK2.Simulation.Systems;
 /// <see cref="TileWorkRules"/> and is data; everything about <i>who</i> does it
 /// and <i>when</i> lives here, and much of that is not.</para>
 ///
-/// <para><b>The order an imp prefers its jobs in is CONFIRMED</b> (owner
-/// observation of the original, 2026-08-29) and is the whole of
-/// <see cref="JobPriority"/>:</para>
+/// <para><b>An imp chooses in two tiers, and the tiers are read out of the
+/// original</b> (2026-09-05, <c>docs/research/imp-task-priority.md</c>). The
+/// owner's observation of 2026-08-29 — <i>"first do what is designated for
+/// excavation, after that comes claiming, after that reinforcing"</i> — turned
+/// out to be exactly the visible half of it, and a second observation on
+/// 2026-09-05 (a marked wall beats gold on the floor whether the wall is near or
+/// far) settled which half is which (Q147).</para>
 /// <list type="number">
-/// <item><b>Marked excavation</b> — whatever the keeper has tagged, rock or gold
-/// alike.</item>
-/// <item><b>Claiming floor.</b></item>
-/// <item><b>Reinforcing walls.</b></item>
+/// <item><b>Tier A — kind first, whole map.</b> DK2 walks a fixed table of task
+/// kinds and searches the <i>entire</i> map for each before moving to the next:
+/// claim the tile you have just dug, carry loose objects, build placed traps and
+/// doors, <b>dig and mine marked tiles</b>, <b>claim floor</b>, carry the
+/// unconscious, carry corpses. Of those this project has the two in bold, in
+/// that order — <see cref="JobPriority.MarkedExcavation"/> then
+/// <see cref="JobPriority.Claim"/> — and each is one whole-map search, because
+/// the order is an ordering and not a weighting: <i>any</i> reachable marked
+/// tile beats <i>every</i> claimable one however far away.</item>
+/// <item><b>Tier B — position first, only when Tier A is empty.</b> DK2 then
+/// scans outwards from the imp in rings and, at each tile, tries a second fixed
+/// order: <b>reinforce or repair a wall</b>, <b>pick up gold off the floor</b>,
+/// carry a loose object, one unidentified kind. So a wall beats gold <i>on the
+/// same tile</i>, but a nearer pile beats a farther wall. Here that is one
+/// nearest-first search whose test asks both questions at every standing tile,
+/// reinforcing first — <see cref="TrySweep"/>.</item>
 /// </list>
-/// <para>The order is strict, not weighted: <i>any</i> reachable marked tile
-/// beats <i>every</i> claimable one however far away, and so on down. That is
-/// what "first do what is designated for excavation, after that comes claiming,
-/// after that reinforcing" says, and it is why this is three searches rather
-/// than one scored one.</para>
+/// <para>What that corrects: this class shipped gold <i>above</i> claiming for
+/// one day, and reinforcing <i>below</i> gold as a strict order, on the honest
+/// argument that gold placed last would never be collected because an imp can
+/// nearly always find a wall. The binary's answer to that argument is the
+/// second tier — gold is not last, it is <i>near</i>. ADR-0058.</para>
 ///
 /// <para><b>What an imp does when all three come up empty is NOT implemented.</b>
 /// In the original it wanders the dungeon and interacts with the environment and
@@ -107,9 +123,10 @@ public sealed class ImpTaskSystem : ISimulationSystem
     private const string SystemName = "ImpTask";
 
     /// <summary>
-    /// What an imp looks for, in the order it looks. CONFIRMED — see the type
-    /// comment. Strictly ordered: nothing at a later priority is considered
-    /// while anything at an earlier one is reachable.
+    /// The tile-work jobs an imp looks for. The first two are Tier A and are
+    /// searched over the whole map in this order; <see cref="Reinforce"/> is
+    /// Tier B and is only ever found by the nearest-first sweep, alongside gold
+    /// on the floor. See the type comment.
     /// </summary>
     private enum JobPriority
     {
@@ -118,48 +135,32 @@ public sealed class ImpTaskSystem : ISimulationSystem
         Reinforce = 2,
     }
 
-    private static readonly JobPriority[] Priorities =
-        [JobPriority.MarkedExcavation, JobPriority.Claim, JobPriority.Reinforce];
-
     /// <summary>
-    /// Gold on the floor, which is <b>last</b> here and is not in
-    /// <see cref="JobPriority"/> because it is not a tile-work job — there is no
-    /// <see cref="TileWorkKind"/> for "pick that up", nothing is damaged and
-    /// nothing converts.
+    /// The label gold on the floor is taken under. It is not in
+    /// <see cref="JobPriority"/> because it is not tile work — nothing is damaged
+    /// and nothing converts — but it <i>is</i> a job an idle imp chooses, and
+    /// where it sits is now read rather than chosen.
     ///
-    /// <para><b>It was first for one day, and that was wrong.</b> The owner
-    /// reported (Q141) <i>"if there is gold on the ground an imp will first take
-    /// from that gold pile and take it to a treasury"</i>, watched with a marked
-    /// gem tile right beside the gold and nobody mining it, and this project
-    /// read that as fetching outranking marked excavation. <b>The owner then
-    /// doubted their own reading and asked for the binary, and the binary
-    /// disagrees</b> — see <c>docs/research/imp-task-priority.md</c>.</para>
+    /// <para><b>It was first for one day, second for another, and both were
+    /// wrong.</b> The owner reported (Q141) that an imp goes for a pile before a
+    /// marked gem tile; this project built that, the owner doubted their own
+    /// reading, and the binary put digging first. This project then put gold
+    /// <i>second</i> — above claiming and reinforcing — on the argument that
+    /// gold placed last would never be collected, since an imp can nearly always
+    /// find a wall to reinforce (Q146). The owner's second observation and the
+    /// rest of the read settled it: <b>gold is in Tier B</b>, below every
+    /// whole-map kind including claiming, and inside Tier B it is decided by
+    /// <i>distance</i> — a wall beats gold on the same tile, a nearer pile
+    /// beats a farther wall. That is why the argument was wrong: gold is not
+    /// last, it is near. See the type comment and <see cref="TrySweep"/>.</para>
     ///
-    /// <para>DK2 keeps a keeper-wide <b>task list</b> whose entries carry a
-    /// kind, and one function tries the kinds in a fixed order, returning on the
-    /// first that takes. <b>Digging and mining a marked tile are the first two
-    /// kinds it tries; gold on the floor is the sixth of nine.</b> So marked
-    /// excavation outranks fetching, exactly as Q24 and ADR-0018 already
-    /// had it.</para>
-    ///
-    /// <para><b>Where it sits below digging is ours.</b> Only "below marked
-    /// excavation" is read; which of the original's nine kinds our Claim and
-    /// Reinforce are has not been established, so its position relative to those
-    /// two is a choice. It is placed <i>above</i> them for two reasons, both
-    /// stated rather than hidden: the chain puts gold above the kind that looks
-    /// most like claiming (the one that tests for unowned ground), and putting
-    /// it last would make the mechanic <b>dead</b> — a keeper's imp can almost
-    /// always find a wall to reinforce, so gold would never be collected at all,
-    /// which is flatly contrary to what the owner watched. <b>Q146.</b></para>
-    ///
-    /// <para><b>And the deeper question this exposed is Q147.</b> The original
-    /// evaluates its kind order <i>per candidate position</i>, from inside a
-    /// scan, where this project runs one whole-map search per priority. Under
-    /// the original's shape an imp standing in spilled gold takes the gold
-    /// because it is underfoot, not because gold outranks digging — which would
-    /// explain the owner's observation without any priority claim at all. That
-    /// is a change to how every job is chosen, not to this one, so it is
-    /// written down rather than made.</para>
+    /// <para><b>Only with room in its hands.</b> A worker already carrying its
+    /// limit is going to a treasury, not to another pile. The original refuses
+    /// the gold kind once the hands hold a level-scaled share of
+    /// <c>MaxGoldHeld</c> and sends the imp to deposit instead (Q142, read);
+    /// an imp of ours with gold in its hands is already delivering before job
+    /// selection is reached, so the same outcome falls out without the
+    /// threshold.</para>
     /// </summary>
     private const string FetchPriority = "FetchFloorGold";
 
@@ -375,45 +376,18 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// that was just planned.
     /// </summary>
     /// <summary>
-    /// Looks for the nearest reachable tile with gold lying on it and sets off,
-    /// if this worker has a hand free.
-    ///
-    /// <para>Same search as every other job, for the same three reasons: it
-    /// gives the nearest pile in steps, the route to it, and rules out every
-    /// unreachable pile without ever building a list. <b>The third is what
-    /// reproduces the owner's own correction</b> — see
-    /// <see cref="UpdateFetching"/>.</para>
+    /// Commits a worker to picking up the gold on <paramref name="standing"/>,
+    /// along the route the last search planned.
     ///
     /// <para><b>One imp to a pile tile</b>, the same cap a floor job gets
     /// (<see cref="ImpCrowding"/>: one for a tile a worker stands on). Gold is on
     /// the floor and an imp stands on it to pick it up, so the stance decides the
     /// number and nothing new is invented. Whether the original crowds a pile
     /// differently is UNKNOWN and nobody has watched it.</para>
-    ///
-    /// <para><b>Only with room in its hands.</b> A worker already carrying its
-    /// limit is going to a treasury, not to another pile — and the case of a
-    /// part-loaded imp topping up from a pile it passes is Q142, deliberately
-    /// not decided here: an imp of ours with gold in its hands is already in
-    /// <see cref="CreatureActivity.DeliveringGold"/> before job selection is
-    /// reached, so the question does not arise until something changes that.</para>
     /// </summary>
-    private bool TryFetchGold(
-        SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
+    private void CommitFetch(SimulationContext context, CreatureState creature, TilePos standing)
     {
-        if (creature.GoldHeld >= definition.MaxGoldHeld) return false;
-
         WorldState world = context.World;
-
-        if (!_pathfinder.TryFindNearest(
-                grid,
-                creature.Tile,
-                at => CanFetchFrom(context, at, creature.OwnerPlayerId, creature.Id),
-                _route))
-        {
-            return false;
-        }
-
-        TilePos standing = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
         int tileIndex = (standing.Y * world.Width) + standing.X;
 
         creature.TargetTileIndex = tileIndex;
@@ -429,7 +403,6 @@ public sealed class ImpTaskSystem : ISimulationSystem
             $"{Describe(world, tileIndex)} " +
             $"gold={FloorGold.OnTile(world, context.Database, tileIndex)} " +
             $"priority={FetchPriority} steps={_route.Count}");
-        return true;
     }
 
     /// <summary>
@@ -699,33 +672,76 @@ public sealed class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Looks for the nearest tile this keeper has marked that this creature can
-    /// work, and takes it.
+    /// Chooses a job, in the two tiers the type comment describes.
     ///
-    /// One search answers both halves of the question. Walking outwards from the
-    /// creature and stopping at the first tile a job can be worked from gives
-    /// the nearest job measured in steps, and gives the route to it, and rules
-    /// out everything unreachable, all without ever building a list of
-    /// candidates to sort.
+    /// <para>Tier A is one whole-map search per kind, marked excavation then
+    /// claiming: walking outwards from the creature and stopping at the first
+    /// tile a job can be worked from gives the nearest job measured in steps,
+    /// the route to it, and rules out everything unreachable, without ever
+    /// building a list of candidates to sort. Tier B is a single search that
+    /// asks two questions at every tile — <see cref="TrySweep"/>.</para>
     /// </summary>
     private bool TryTakeJob(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
-        // Strict priority: the whole map is searched for excavation before a
-        // single claimable tile is considered, and so on. One search per
-        // priority, not one scored search over a mixed candidate list — because
-        // the order is an ordering, not a weighting.
-        //
-        // Gold on the floor sits BELOW marked excavation and above the other
-        // two. Only the first half of that is read out of the binary; see
-        // FetchPriority.
+        // Tier A: kind first. The whole map is searched for excavation before
+        // a single claimable tile is considered — one search per kind, not one
+        // scored search over a mixed list, because the order is an ordering.
         if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
-        if (TryFetchGold(context, creature, definition, grid)) return true;
+        if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
 
-        foreach (JobPriority priority in Priorities)
+        // Tier B: position first.
+        return TrySweep(context, creature, definition, grid);
+    }
+
+    /// <summary>
+    /// The second tier: the nearest tile at which there is <i>either</i> a wall
+    /// to reinforce <i>or</i> gold to pick up, and at that tile the wall wins.
+    ///
+    /// <para>This is the shape of the original's last resort, read on
+    /// 2026-09-05: once every whole-map kind has come up empty it scans outwards
+    /// from the imp in rings and at each tile tries reinforce-or-repair, then
+    /// floor gold, then loose objects, then one kind not yet identified. Two of
+    /// the four exist here. The ring is measured in steps rather than in
+    /// straight-line rings (Q25), which is the one respect in which this is not
+    /// the original's search.</para>
+    ///
+    /// <para><b>Why one search and not two.</b> Two searches — the nearest wall,
+    /// then the nearest pile — would put a wall across the dungeon above a pile
+    /// at the imp's feet, which is precisely the strict order the binary does
+    /// not have. Asking both questions at every standing tile is what makes
+    /// distance the primary key and kind the tie-break.</para>
+    /// </summary>
+    private bool TrySweep(
+        SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
+    {
+        byte player = creature.OwnerPlayerId;
+        bool handsFree = creature.GoldHeld < definition.MaxGoldHeld;
+
+        bool found = _pathfinder.TryFindNearest(
+            grid,
+            creature.Tile,
+            stand => TryJobFrom(context, grid, stand, player, JobPriority.Reinforce, creature.Id, out _, out _)
+                     || (handsFree && CanFetchFrom(context, stand, player, creature.Id)),
+            _route);
+
+        if (!found) return false;
+
+        TilePos standing = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
+
+        // Reinforce first at the tile the search stopped on — the per-tile
+        // order — and only then the gold underfoot.
+        if (TryJobFrom(context, grid, standing, player, JobPriority.Reinforce, creature.Id,
+                       out int tileIndex, out TileWorkKind kind))
         {
-            if (priority == JobPriority.MarkedExcavation) continue;
-            if (TryTakeJobAt(context, creature, grid, priority)) return true;
+            CommitJob(context, creature, tileIndex, kind, JobPriority.Reinforce);
+            return true;
+        }
+
+        if (handsFree && CanFetchFrom(context, standing, player, creature.Id))
+        {
+            CommitFetch(context, creature, standing);
+            return true;
         }
 
         return false;
@@ -734,7 +750,6 @@ public sealed class ImpTaskSystem : ISimulationSystem
     private bool TryTakeJobAt(
         SimulationContext context, CreatureState creature, WorldPathGrid grid, JobPriority priority)
     {
-        WorldState world = context.World;
         byte player = creature.OwnerPlayerId;
 
         bool found = _pathfinder.TryFindNearest(
@@ -749,6 +764,16 @@ public sealed class ImpTaskSystem : ISimulationSystem
         if (!TryJobFrom(context, grid, standing, player, priority, creature.Id, out int tileIndex, out TileWorkKind kind))
             return false;
 
+        CommitJob(context, creature, tileIndex, kind, priority);
+        return true;
+    }
+
+    /// <summary>
+    /// Commits a worker to tile work along the route the last search planned.
+    /// </summary>
+    private void CommitJob(
+        SimulationContext context, CreatureState creature, int tileIndex, TileWorkKind kind, JobPriority priority)
+    {
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = kind;
         creature.Path.Clear();
@@ -766,9 +791,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
         }
 
         context.Emit(SystemName, "job_taken",
-            $"imp={creature.Id} player={player} " +
-            $"{Describe(world, tileIndex)} {kind} priority={priority} steps={_route.Count}");
-        return true;
+            $"imp={creature.Id} player={creature.OwnerPlayerId} " +
+            $"{Describe(context.World, tileIndex)} {kind} priority={priority} steps={_route.Count}");
     }
 
     /// <summary>
