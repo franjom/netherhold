@@ -80,3 +80,34 @@ No offline glTF validator is installed in the development environment. Tests
 therefore independently reload the GLB container and verify its JSON, chunk
 alignment, buffer ranges, accessors, transformed vertex bytes, indices, and
 external image URIs.
+
+## Catalogue conversion
+
+`DK2.Tools convert --out converted-assets/` loads the same game database used
+by `AssetCatalogue.ForDatabase` and reports one result for every key in that
+catalogue. The key's dot-separated segments become directories exactly as
+`FileAssetProvider` expects. Material images shared by GLBs are stored below
+`_textures`; they are dependencies of catalogue assets, not additional logical
+keys.
+
+The KWD art-resource slots used here are fixed-format fields: solid terrain uses
+its side mesh (falling back to complete when absent), walkable terrain uses the
+first material texture of its complete mesh, rooms use their complete resource,
+and objects use their primary mesh. Creature mappings are `IDLE_1` for idle and
+the display mesh, `WALK` for movement-like activities, `SLEEPING` for sleeping,
+`DIE` for dying, and `MANUFACTURING` for working. The Imp is the measured
+exception: its melee slot is named `Imp_Dig` and supplies working. A blank slot
+is reported missing rather than replaced with an unrelated animation.
+
+Where a complete floor resource names a numbered mesh collection rather than a
+single KMF, texture conversion reads the first numbered member's declared
+material. This does not infer how the members are placed. In particular, the
+Imp's nominal sleeping slot contains `Imp_Claim1(Land)` and is reported missing
+rather than mislabeled as sleep.
+
+KMF group placement and group material inheritance remain **UNKNOWN**. A
+catalogue key whose selected resource is a group is therefore reported missing
+instead of flattening the group by guesswork. Effect conversion is also
+**UNKNOWN**. Finally, animated KMF output currently contains frame-zero mesh
+geometry, not a glTF animation track; the command identifies that limitation in
+each produced animation result.

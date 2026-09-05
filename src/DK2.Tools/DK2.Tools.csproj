@@ -6,6 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../DK2.Assets/DK2.Assets.csproj" />
+    <ProjectReference Include="../DK2.Convert/DK2.Convert.csproj" />
     <ProjectReference Include="../DK2.Core/DK2.Core.csproj" />
     <ProjectReference Include="../DK2.Data/DK2.Data.csproj" />
     <ProjectReference Include="../DK2.Data.Model/DK2.Data.Model.csproj" />
