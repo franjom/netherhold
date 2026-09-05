@@ -13,10 +13,10 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **809 tests green**
+**every** record type's on-disk size is now known and pinned. **811 tests green**
 with and without a DK2 install; **16 scenarios** run, each drawing a picture of
 its finished world; **completely clean tree**. (Core 17, Simulation 479, Data 64,
-Behavior 151, Assets 61, Presentation 37.)
+Behavior 153, Assets 61, Presentation 37.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
 creatures (ADR-0042, ADR-0047); a creature has **health and a hunger clock**
@@ -3743,9 +3743,9 @@ observation checklist (Q147 struck); Codex Brief 4's film list (Q147 done).
 
 **Nothing is half-done.** In order of value:
 
-1. **Q150 — the lair trigger.** Still the largest known fidelity gap in creature
-   behaviour, design written, needs one recording. **Unchanged from last time
-   and still first.**
+1. ~~**Q150 — the lair trigger.**~~ **Read the same day — see the section
+   below.** What is first now is **building the lair rework**, every line of
+   which is read (`lair-acquisition.md` §7).
 2. **Q132 — variable 19's value** still blocks the hatchery clock.
 3. **Treasury deposit order** (`gold-on-the-floor.md` §5) remains the
    self-contained hash-moving correction needing no new research — and this
@@ -3765,3 +3765,79 @@ quota (any level where the pool exceeds the portal cap) · **Q66** does
 because the just-dug claim tests eight neighbours for marks while our
 ownership-adjacency test is orthogonal, and the original's claim handler
 (`FUN_00453b30`) is orthogonal too, so the two are at least consistent.
+
+## Twenty-second sitting, continued: the owner corrected a recording from memory, and Q150 fell
+
+| | |
+|---|---|
+| `8a89d78` | **What sends a creature to get a lair is being idle without one** — Q150 and Q151 closed, `Unk8` → `IsGood`, Q156 opened |
+
+**811 tests green**, 16 scenarios, zero warnings, clean tree, quarantine holding.
+
+### What happened
+
+Asked what was needed for Q150, the owner said *before I do anything* — and
+then that Salamander, Goblin, Warlock and Firefly **always** went for the lair
+first, that the creature in the earlier recording which trained first was a
+**Troll** and not a Goblin, and that Bile Demon and Troll were **not consistent**
+about it. A remembered observation contradicting a recording's reading. The
+binary was asked to arbitrate and sided with the memory.
+
+### The read (`lair-acquisition.md` §5, §8)
+
+- **No mood gate.** The creature's decision routine runs its state's update,
+  then **needs** (hunger, then sleep), then — only if unhappy or angry — that
+  mood's job chooser. The **idle state's first act for a bedless creature is to
+  try for a lair**; the unhappy and angry choosers do the same before rolling;
+  and a **sleep need every `TimeAwake`** (EA's own field names from the debug
+  dump: `LastSleptTime`, `SleepNeeded`, `LastAttemptedSleep`) is a second way
+  into the same attempt.
+- **The attempt fails when no reachable lair has a free slot**, and the
+  creature then does a job — the happy roll over `HappyJobs`, or the fallbacks
+  (train if a training room exists, casino, combat pit, wander to the heart) —
+  and retries at its next idle decision. That is the Troll training first.
+- **Q151 is alignment.** The room finder keeps the nearest reachable lair with
+  a free slot and, preferred, the nearest such lair holding **no bed whose owner
+  is of the other side**, read through creature flags 7 and 8. Bit 8 is the
+  exact complement of `IsEvil` across all 46 creatures: **`Unk8` is `IsGood`**,
+  and `LairPreferenceOnRealDataTests` holds the complement.
+- **The job tables are live code.** The three choosers are the runtime of our
+  parsed `HappyJobs` / `UnhappyJobs` / `AngryJobs`: cumulative chances,
+  `rand(100)`, fall through in list order, a five-second re-roll gate. Job ids
+  match the record — **1 Sleep, 2 Eat, 3 Research, 4 Train, 5 Manufacture** …
+
+### What was wrong, and the shape of it
+
+The first reading saw the lair search begin as the mood turned Unhappy and
+called the mood the trigger. Both halves were real — the unhappy chooser *does*
+try the lair first — and the inference was still wrong, because the creature's
+earlier attempt had failed for a reason the camera could not see. **A
+coincidence between a visible state change and a behaviour is not the trigger
+until the behaviour is shown to be absent without it.** The owner's four other
+creature types were that absence.
+
+### Where the code stands
+
+`CreatureSleepSystem` still claims a bed on the first tick one is free, from
+anywhere — unchanged, and its header now says the whole replacement is read and
+awaits building rather than that half of it is unknown.
+
+### Where the next session should start
+
+1. **Build the lair rework.** Every line is read: an idle bedless creature
+   attempts a lair first; the room is the nearest reachable lair with a free
+   slot, preferring one with no beds of the other alignment; the tile is found
+   on arrival (own tile → fixed neighbour table → a walk of the room); a failed
+   attempt falls through to a job and retries at the next idle decision; a
+   sleep need every `TimeAwake` is the second way in. Mark as ours: one bed per
+   tile (Q156), the idle re-decision cadence, the neighbour table's contents.
+   It is a new creature state and deserves its own sitting.
+2. **Q132**, the treasury deposit order, **Q153**, **Q155** — as before.
+
+### Owner questions after this sitting
+
+**Prediction to break:** with a large, empty, reachable lair built before the
+portal delivers anything, *every* creature — Troll and Bile Demon included —
+beds down before its first job. If one ever trains first, Q156 is where the
+difference lives. · **Q152** regeneration in combat · **Q87** pool limit or
+quota.
