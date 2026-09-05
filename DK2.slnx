@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/DK2.AI/DK2.AI.csproj" />
     <Project Path="src/DK2.Assets/DK2.Assets.csproj" />
+    <Project Path="src/DK2.Convert/DK2.Convert.csproj" />
     <Project Path="src/DK2.Core/DK2.Core.csproj" />
     <Project Path="src/DK2.Data.Model/DK2.Data.Model.csproj" />
     <Project Path="src/DK2.Data/DK2.Data.csproj" />
@@ -14,6 +15,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/DK2.Assets.Tests/DK2.Assets.Tests.csproj" />
     <Project Path="tests/DK2.Behavior.Tests/DK2.Behavior.Tests.csproj" />
+    <Project Path="tests/DK2.Convert.Tests/DK2.Convert.Tests.csproj" />
     <Project Path="tests/DK2.Core.Tests/DK2.Core.Tests.csproj" />
     <Project Path="tests/DK2.Data.Tests/DK2.Data.Tests.csproj" />
     <Project Path="tests/DK2.Presentation.Tests/DK2.Presentation.Tests.csproj" />

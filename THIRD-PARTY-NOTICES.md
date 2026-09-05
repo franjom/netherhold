@@ -14,6 +14,12 @@ comments do.
 ## OpenKeeper
 - https://github.com/tonihele/OpenKeeper — GNU GPL version 3 or later,
   Copyright (C) 2014–2016 OpenKeeper, Toni Helenius and contributors.
+- **KMF format research (facts only, no code copied):** chunk hierarchy,
+  material strings and numeric fields, static and animated vertex layouts,
+  detail-level triangle lists, packed animation geometry, UV scaling, and the
+  frame-zero `ITAB`/`VGEO` lookup were consulted in OpenKeeper's
+  `toniarts.openkeeper.tools.convert.kmf.KmfFile` and `KmfModelLoader`, then
+  reimplemented in `src/DK2.Convert` in this project's own structure and idiom.
 - **Format research (facts only, no code copied):** KWD/KLD record layouts,
   field offsets and enumerated value meanings, used as documentation and
   cross-checked against the shipped files.
