@@ -129,6 +129,53 @@ public readonly struct CreatureView
 }
 
 /// <summary>
+/// One object standing on a tile, as a renderer needs it: a bed, a chicken coop,
+/// an egg, a pile of gold.
+///
+/// <para><b>A tile and not a position</b>, because that is all the simulation
+/// has. DK2 gives an object a sub-tile position and every one of the three
+/// gold-dropping paths picks a different point within the tile
+/// (gold-on-the-floor.md §7), so a faithful renderer will want more than this —
+/// but inventing a position here would be inventing behaviour, and the field
+/// arrives with the first mechanic that moves an object.</para>
+/// </summary>
+public readonly struct ObjectView
+{
+    public ObjectView(int id, byte objectTypeId, byte ownerPlayerId, TilePos tile, AssetRef mesh, int goldHeld)
+    {
+        Id = id;
+        ObjectTypeId = objectTypeId;
+        OwnerPlayerId = ownerPlayerId;
+        Tile = tile;
+        Mesh = mesh;
+        GoldHeld = goldHeld;
+    }
+
+    /// <summary>The simulation's object id, stable for the object's whole life.</summary>
+    public int Id { get; }
+
+    /// <summary>Which of the 145 definitions this is.</summary>
+    public byte ObjectTypeId { get; }
+
+    /// <summary>Whose it is. A bed belongs to its sleeper's keeper; a floor pile to nobody.</summary>
+    public byte OwnerPlayerId { get; }
+
+    /// <summary>The tile it stands on.</summary>
+    public TilePos Tile { get; }
+
+    public AssetRef Mesh { get; }
+
+    /// <summary>
+    /// How much gold, when this object is a pile — the object union's
+    /// <c>Gold</c> member. Zero for everything else, and a renderer that wants
+    /// to know whether it means anything should ask whether the definition is
+    /// gold rather than whether this is non-zero: an emptied pile is destroyed,
+    /// but a bed's zero is not an empty pile.
+    /// </summary>
+    public int GoldHeld { get; }
+}
+
+/// <summary>
 /// Turns simulation state into asset-keyed descriptions a renderer can draw —
 /// the whole of the presentation boundary the plan draws in §4.7, and the only
 /// place where "what the game is doing" becomes "what to put on screen".
@@ -169,6 +216,8 @@ public sealed class WorldView
     private readonly Dictionary<byte, bool> _terrainSolid = [];
     private readonly Dictionary<byte, AssetRef> _roomFurniture = [];
     private readonly Dictionary<byte, AssetRef> _creatureMeshes = [];
+    private readonly Dictionary<byte, AssetRef> _objectMeshes = [];
+
     public WorldView(GameDatabase database)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
@@ -190,6 +239,9 @@ public sealed class WorldView
 
         foreach (KeyValuePair<byte, CreatureDef> entry in database.Creatures)
             _creatureMeshes[entry.Key] = AssetRef.ForCreature(entry.Value.Name, AssetKind.Mesh);
+
+        foreach (KeyValuePair<byte, ObjectDef> entry in database.Objects)
+            _objectMeshes[entry.Key] = AssetRef.ForObject(entry.Value.Name, AssetKind.Mesh);
     }
 
     /// <summary>Every tile, in row order.</summary>
@@ -245,6 +297,32 @@ public sealed class WorldView
                 mesh,
                 AnimationFor(creature),
                 creature.GoldHeld);
+        }
+    }
+
+    /// <summary>
+    /// Every object, in the simulation's own order (which is spawn order).
+    ///
+    /// <para>Spawn order rather than tile order, deliberately and for the same
+    /// reason creatures are: it is the order the simulation holds them in, so a
+    /// renderer that diffs two frames sees a stable sequence, and an object that
+    /// moves does not jump position in the list.</para>
+    /// </summary>
+    public IEnumerable<ObjectView> Objects(WorldState world)
+    {
+        if (world is null) throw new ArgumentNullException(nameof(world));
+
+        foreach (ObjectState instance in world.Objects)
+        {
+            _objectMeshes.TryGetValue(instance.ObjectTypeId, out AssetRef mesh);
+
+            yield return new ObjectView(
+                instance.Id,
+                instance.ObjectTypeId,
+                instance.OwnerPlayerId,
+                new TilePos(instance.TileIndex % world.Width, instance.TileIndex / world.Width),
+                mesh,
+                instance.GoldHeld);
         }
     }
 

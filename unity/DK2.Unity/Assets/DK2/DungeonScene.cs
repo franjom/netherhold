@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -36,6 +36,7 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
+        private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private readonly int _worldWidth;
 
@@ -47,6 +48,7 @@ namespace DK2.Unity
         /// </summary>
         public int TileObjects => _tiles.Count;
         public int CreatureObjects => _creatures.Count;
+        public int ObjectObjects => _objects.Count;
 
         /// <summary>
         /// Set when a provider handed back a real file. Nothing loads one yet
@@ -123,6 +125,34 @@ namespace DK2.Unity
             _creatures.Remove(creatureId);
         }
 
+        public void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
+        {
+            GameObject go = Instantiate(mesh, $"object {objectId}");
+            if (go == null) return;
+
+            _objects[objectId] = go;
+            PositionObject(go, instance, mesh.Look);
+        }
+
+        public void UpdateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
+        {
+            if (!_objects.TryGetValue(objectId, out GameObject go) || go == null)
+            {
+                CreateObject(objectId, instance, mesh);
+                return;
+            }
+
+            PositionObject(go, instance, mesh.Look);
+        }
+
+        public void RemoveObject(int objectId)
+        {
+            if (_objects.TryGetValue(objectId, out GameObject go) && go != null)
+                Object.Destroy(go);
+
+            _objects.Remove(objectId);
+        }
+
         /// <summary>
         /// Nothing to do: this target draws one object per thing rather than
         /// batching. A combined-mesh target would rebuild here, which is why the
@@ -138,10 +168,12 @@ namespace DK2.Unity
             foreach (GameObject go in _tiles.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _furniture.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _creatures.Values) if (go != null) Object.Destroy(go);
+            foreach (GameObject go in _objects.Values) if (go != null) Object.Destroy(go);
 
             _tiles.Clear();
             _furniture.Clear();
             _creatures.Clear();
+            _objects.Clear();
         }
 
         private void ApplyFurniture(int tileIndex, in TileView tile, in ResolvedAsset furniture)
@@ -239,6 +271,27 @@ namespace DK2.Unity
                 creature.PosX / (float)Fp32.One,
                 height / 2f,
                 creature.PosY / (float)Fp32.One);
+        }
+
+        /// <summary>
+        /// An object sits at the centre of its tile, small and low.
+        ///
+        /// <para>The centre because that is all the simulation knows: an
+        /// <see cref="ObjectView"/> carries a tile and not a position, and DK2's
+        /// own sub-tile placement is recorded but not modelled
+        /// (gold-on-the-floor.md section 7). Small and low so a bed reads as
+        /// furniture on a floor rather than as another creature standing on
+        /// it.</para>
+        /// </summary>
+        private void PositionObject(GameObject go, in ObjectView instance, in PlaceholderLook look)
+        {
+            float height = look.HeightPermille / 1000f;
+            if (height <= 0f) height = 0.25f;
+            height *= 0.5f;
+
+            go.transform.localScale = new Vector3(0.5f, height, 0.5f);
+            go.transform.position = new Vector3(
+                instance.Tile.X + 0.5f, height / 2f, instance.Tile.Y + 0.5f);
         }
 
         private static Color ColourOf(in PlaceholderLook look) =>

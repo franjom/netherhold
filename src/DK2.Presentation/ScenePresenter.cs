@@ -1,10 +1,11 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using System;
 using System.Collections.Generic;
 using DK2.Assets;
+using DK2.Core;
 using DK2.Simulation;
 
 namespace DK2.Presentation;
@@ -120,6 +121,33 @@ public sealed class ScenePresenter
             Mesh, Animation, PosX, PosY, OwnerPlayerId, GoldHeld);
     }
 
+    /// <summary>The part of an object a renderer can see.</summary>
+    private readonly struct ObjectVisual : IEquatable<ObjectVisual>
+    {
+        public ObjectVisual(in ObjectView instance)
+        {
+            Mesh = instance.Mesh;
+            Tile = instance.Tile;
+            OwnerPlayerId = instance.OwnerPlayerId;
+            GoldHeld = instance.GoldHeld;
+        }
+
+        public AssetRef Mesh { get; }
+        public TilePos Tile { get; }
+        public byte OwnerPlayerId { get; }
+        public int GoldHeld { get; }
+
+        public bool Equals(ObjectVisual other) =>
+            Mesh == other.Mesh
+            && Tile.Equals(other.Tile)
+            && OwnerPlayerId == other.OwnerPlayerId
+            && GoldHeld == other.GoldHeld;
+
+        public override bool Equals(object? obj) => obj is ObjectVisual other && Equals(other);
+
+        public override int GetHashCode() => HashCode.Combine(Mesh, Tile, OwnerPlayerId, GoldHeld);
+    }
+
     private readonly WorldView _view;
     private readonly IAssetProvider _assets;
     private readonly IRenderTarget _target;
@@ -129,6 +157,9 @@ public sealed class ScenePresenter
     private readonly Dictionary<int, CreatureVisual> _lastCreatures = [];
     private readonly List<int> _goneCreatures = [];
     private readonly HashSet<int> _seenCreatures = [];
+    private readonly Dictionary<int, ObjectVisual> _lastObjects = [];
+    private readonly List<int> _goneObjects = [];
+    private readonly HashSet<int> _seenObjects = [];
 
     public ScenePresenter(WorldView view, IAssetProvider assets, IRenderTarget target)
     {
@@ -143,6 +174,9 @@ public sealed class ScenePresenter
     /// <summary>How many creatures were pushed by the most recent <see cref="Present"/>.</summary>
     public int CreaturesPushed { get; private set; }
 
+    /// <summary>How many objects were pushed by the most recent <see cref="Present"/>.</summary>
+    public int ObjectsPushed { get; private set; }
+
     /// <summary>
     /// Forgets everything, so the next <see cref="Present"/> creates the whole
     /// scene again. For a target that discarded what it drew — a Unity scene
@@ -153,6 +187,7 @@ public sealed class ScenePresenter
         _lastTiles = [];
         _tileCreated = [];
         _lastCreatures.Clear();
+        _lastObjects.Clear();
     }
 
     /// <summary>
@@ -169,6 +204,7 @@ public sealed class ScenePresenter
 
         TilesPushed = 0;
         CreaturesPushed = 0;
+        ObjectsPushed = 0;
 
         if (_lastTiles.Length != world.TileCount)
         {
@@ -177,6 +213,11 @@ public sealed class ScenePresenter
         }
 
         PresentTiles(world);
+
+        // Objects before creatures, because a creature stands on an object and
+        // the text renderer draws them in that precedence -- one order, decided
+        // here, so two renderers cannot disagree about what occludes what.
+        PresentObjects(world);
         PresentCreatures(world);
 
         _target.Flush();
@@ -246,6 +287,45 @@ public sealed class ScenePresenter
         {
             _target.RemoveCreature(id);
             _lastCreatures.Remove(id);
+        }
+    }
+
+    private void PresentObjects(WorldState world)
+    {
+        _seenObjects.Clear();
+
+        foreach (ObjectView instance in _view.Objects(world))
+        {
+            _seenObjects.Add(instance.Id);
+            var visual = new ObjectVisual(instance);
+
+            bool known = _lastObjects.TryGetValue(instance.Id, out ObjectVisual last);
+            if (known && last.Equals(visual)) continue;
+
+            ResolvedAsset mesh = Resolve(instance.Mesh);
+
+            if (known)
+                _target.UpdateObject(instance.Id, instance, mesh);
+            else
+                _target.CreateObject(instance.Id, instance, mesh);
+
+            _lastObjects[instance.Id] = visual;
+            ObjectsPushed++;
+        }
+
+        // Same rule as creatures: anything we knew about and did not see is
+        // gone, collected first and removed in ascending id order so the call
+        // sequence is reproducible.
+        _goneObjects.Clear();
+        foreach (int id in _lastObjects.Keys)
+            if (!_seenObjects.Contains(id)) _goneObjects.Add(id);
+
+        _goneObjects.Sort();
+
+        foreach (int id in _goneObjects)
+        {
+            _target.RemoveObject(id);
+            _lastObjects.Remove(id);
         }
     }
 

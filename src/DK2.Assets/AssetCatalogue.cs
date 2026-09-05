@@ -67,6 +67,7 @@ public static class AssetCatalogue
         foreach (AssetRef reference in ForTerrain(database)) yield return reference;
         foreach (AssetRef reference in ForRooms(database)) yield return reference;
         foreach (AssetRef reference in ForCreatures(database)) yield return reference;
+        foreach (AssetRef reference in ForObjects(database)) yield return reference;
     }
 
     /// <summary>
@@ -153,6 +154,28 @@ public static class AssetCatalogue
             foreach (string animation in CreatureAnimations)
                 yield return AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation);
         }
+    }
+
+    /// <summary>
+    /// One mesh per object definition — a bed, a coop, an egg, a pile of gold,
+    /// and the hundred-odd pillars and arches that are the rest of the record.
+    ///
+    /// <para><b>A mesh and nothing else</b>, for now. DK2 gives an object a
+    /// state machine (<c>StateId</c> and <c>StateAge</c>, objects.md §7) and a
+    /// <c>MoveTo</c> block, so a chicken pecks and a boulder rolls and both will
+    /// want animations — but this project cannot yet distinguish one object
+    /// state from another, and a variant list invented here would put keys in a
+    /// converter's work list that correspond to nothing. The same restraint the
+    /// wall variants get.</para>
+    ///
+    /// <para>Every object, not only the four the simulation places, for the
+    /// reason <see cref="ForCreatures"/> gives: the converter's job is what the
+    /// database defines.</para>
+    /// </summary>
+    public static IEnumerable<AssetRef> ForObjects(GameDatabase database)
+    {
+        foreach (byte id in Sorted(database.Objects.Keys))
+            yield return AssetRef.ForObject(database.Objects[id].Name, AssetKind.Mesh);
     }
 
     private static List<byte> Sorted(IEnumerable<byte> ids)

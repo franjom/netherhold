@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -65,6 +65,19 @@ public sealed class TextRenderer
     public const char UnknownPlayerGlyph = '?';
 
     /// <summary>
+    /// A thing standing on a tile — a bed, a coop, an egg. Lowercase so it
+    /// reads as smaller than a room's capital, which is what it is: furniture on
+    /// a floor rather than the floor itself.
+    ///
+    /// <para>A <b>pile of gold</b> deliberately does not use this. It draws as
+    /// <see cref="GoldGlyph"/>, the same character a treasury tile uses, because
+    /// the two mean the same thing to a reader — gold is here — and the
+    /// difference between "in a store" and "on the floor" is not something a
+    /// character cell should be asked to carry.</para>
+    /// </summary>
+    public const char ObjectGlyph = 'o';
+
+    /// <summary>
     /// Wall symbols, one per solid terrain type, picked by the asset key's
     /// stable hash. Punctuation only, so walls never collide with the reserved
     /// glyphs or with a room's letter.
@@ -87,11 +100,17 @@ public sealed class TextRenderer
     /// <summary>
     /// Renders a rectangle of the world, clipped to it.
     ///
-    /// <para>Precedence, highest first: a creature, then a dig mark, then gold,
-    /// then the terrain. That order is the same judgement a real renderer makes
-    /// about what occludes what — a creature standing on a marked tile hides the
-    /// mark, not the reverse — and putting it here rather than in each renderer
-    /// is the point of the shared view.</para>
+    /// <para>Precedence, highest first: a creature, then an object, then a dig
+    /// mark, then gold, then the terrain. That order is the same judgement a
+    /// real renderer makes about what occludes what — a creature standing on a
+    /// marked tile hides the mark, not the reverse — and putting it here rather
+    /// than in each renderer is the point of the shared view.</para>
+    ///
+    /// <para>Objects sit below creatures and above everything else because they
+    /// stand <i>on</i> the ground and a creature stands on them. Where two
+    /// objects share a tile the later one wins, the same rule creatures use, and
+    /// a tile holding several piles of gold therefore reads as one — which is a
+    /// limit of a character cell rather than a claim about the world.</para>
     /// </summary>
     public string Render(WorldState world, int originX, int originY, int width, int height)
     {
@@ -108,6 +127,13 @@ public sealed class TextRenderer
             creatures[(at.Y * world.Width) + at.X] = creature;
         }
 
+        var objects = new Dictionary<int, ObjectView>();
+        foreach (ObjectView instance in _view.Objects(world))
+        {
+            if (!world.Contains(instance.Tile)) continue;
+            objects[(instance.Tile.Y * world.Width) + instance.Tile.X] = instance;
+        }
+
         var sb = new StringBuilder();
 
         for (int y = originY; y < originY + height; y++)
@@ -122,6 +148,16 @@ public sealed class TextRenderer
                     continue;
                 }
 
+                if (objects.TryGetValue((y * world.Width) + x, out ObjectView instance))
+                {
+                    // Resolved even though the glyph does not use the result,
+                    // for the reason GlyphFor gives: a renderer that skips
+                    // resolution when it can guess stops reporting missing art.
+                    _assets.TryResolve(instance.Mesh, out _);
+                    sb.Append(GlyphFor(instance));
+                    continue;
+                }
+
                 sb.Append(GlyphFor(_view.TileAt(world, x, y)));
             }
 
@@ -130,6 +166,13 @@ public sealed class TextRenderer
 
         return sb.ToString();
     }
+
+    /// <summary>
+    /// The glyph for one object: gold draws as gold, and everything else draws
+    /// as furniture.
+    /// </summary>
+    public char GlyphFor(ObjectView instance) =>
+        instance.GoldHeld > 0 ? GoldGlyph : ObjectGlyph;
 
     /// <summary>
     /// The glyph for one tile.
@@ -186,7 +229,9 @@ public sealed class TextRenderer
     public static string Legend() =>
         $"'{OutsideGlyph}' outside   '{UnownedFloorGlyph}' unowned floor   " +
         $"1-9 floor owned by that keeper   '{TaggedGlyph}' marked for digging   " +
-        $"'{GoldGlyph}' gold stored here   '{CreatureGlyph}' creature   " +
+        $"'{GoldGlyph}' gold (stored in the tile, or a pile on it)   " +
+        $"'{ObjectGlyph}' an object standing here (a bed, a coop, an egg)   " +
+        $"'{CreatureGlyph}' creature   " +
         $"'{CarryingCreatureGlyph}' creature carrying gold   " +
         $"{WallAlphabet} walls (one per terrain type)   " +
         $"A-Z room furniture (one per room type). " +

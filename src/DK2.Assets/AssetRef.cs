@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -58,10 +58,24 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     public const string TerrainCategory = "terrain";
     public const string RoomCategory = "room";
     public const string CreatureCategory = "creature";
+
+    /// <summary>
+    /// A thing standing on a tile: a bed, a chicken coop, a pile of gold. One of
+    /// the 145 <c>Objects.kwd</c> records — and it is a category of its own
+    /// rather than part of <see cref="RoomCategory"/> because an object outlives
+    /// the room it was placed for. A bed belongs to the creature that dropped
+    /// it, not to the lair, and a pile of gold on bare floor belongs to no room
+    /// at all.
+    /// </summary>
+    public const string ObjectCategory = "object";
+
     public const string UiCategory = "ui";
 
     private static readonly HashSet<string> Categories =
-        new(StringComparer.Ordinal) { TerrainCategory, RoomCategory, CreatureCategory, UiCategory };
+        new(StringComparer.Ordinal)
+        {
+            TerrainCategory, RoomCategory, CreatureCategory, ObjectCategory, UiCategory,
+        };
 
     private readonly string? _key;
 
@@ -118,6 +132,10 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     /// <summary>The art belonging to a creature type.</summary>
     public static AssetRef ForCreature(string creatureName, AssetKind kind, string? variant = null) =>
         Create(CreatureCategory, creatureName, kind, variant);
+
+    /// <summary>The art belonging to an object type.</summary>
+    public static AssetRef ForObject(string objectName, AssetKind kind, string? variant = null) =>
+        Create(ObjectCategory, objectName, kind, variant);
 
     /// <summary>
     /// The role segment for a kind. Deliberately a total function over the enum,

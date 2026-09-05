@@ -48,12 +48,20 @@ DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding  │
 ## Presentation (M3, done 2026-09-04)
 
 **A renderer never reads `WorldState` directly.** `DK2.Presentation.WorldView`
-turns it into `TileView` / `CreatureView` — readonly structs carrying asset keys,
-fixed-point positions and the few state bits a player can see — and every
-renderer consumes those. Three decisions live there and nowhere else: which asset
-key a terrain implies, which animation an activity implies, and how a room's
-floor differs from its furniture. Two renderers disagreeing about any of them
-would look exactly like a simulation bug (ADR-0035).
+turns it into `TileView` / `CreatureView` / `ObjectView` — readonly structs
+carrying asset keys, fixed-point positions and the few state bits a player can
+see — and every renderer consumes those. Four decisions live there and nowhere
+else: which asset key a terrain implies, which animation an activity implies,
+how a room's floor differs from its furniture, and what occludes what. Two
+renderers disagreeing about any of them would look exactly like a simulation bug
+(ADR-0035).
+
+**Objects joined on 2026-09-05**, and it closed a hole rather than adding a
+feature: beds, coops, eggs and piles of gold had been in the world since
+ADR-0054 and every renderer drew bare floor where one stood, so a scenario
+picture of a sold treasury showed the gold vanishing. An object crosses as a
+tile, a mesh key and its gold amount — no sub-tile position, because the
+simulation has none.
 
 ```
 WorldState ──► WorldView ──► ScenePresenter ──► IRenderTarget
@@ -64,9 +72,11 @@ WorldState ──► WorldView ──► ScenePresenter ──► IRenderTarget
 ```
 
 - **`ScenePresenter` diffs** and pushes only what changed, in a fixed order
-  (tiles row-major, creatures in spawn order, removals ascending) so a recorded
-  call sequence is reproducible. An unchanged world pushes nothing.
-- **`IRenderTarget` is six methods with no logic in them.** Everything an
+  (tiles row-major, then objects, then creatures — both in spawn order,
+  removals ascending) so a recorded call sequence is reproducible. An unchanged
+  world pushes nothing. Objects go before creatures because a creature stands on
+  one.
+- **`IRenderTarget` is nine methods with no logic in them.** Everything an
   engine adapter could get wrong is upstream of it and tested.
 - **`TextRenderer` is the second renderer**, and the one that runs in CI. It
   redraws everything, because a character grid is free — deliberately the

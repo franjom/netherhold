@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -32,6 +32,7 @@ public class ScenePresenterTests
     {
         public readonly List<string> Calls = [];
         public int Creates, Updates, CreatureCreates, CreatureUpdates, Removes, Flushes;
+        public int ObjectCreates, ObjectUpdates, ObjectRemoves;
         public readonly List<ResolvedAsset> Grounds = [];
 
         public void CreateTile(int i, in TileView t, in ResolvedAsset g, in ResolvedAsset f)
@@ -65,6 +66,24 @@ public class ScenePresenterTests
             Removes++;
         }
 
+        public void CreateObject(int id, in ObjectView o, in ResolvedAsset m)
+        {
+            Calls.Add($"create-object {id} {m.Reference}");
+            ObjectCreates++;
+        }
+
+        public void UpdateObject(int id, in ObjectView o, in ResolvedAsset m)
+        {
+            Calls.Add($"update-object {id} {m.Reference}");
+            ObjectUpdates++;
+        }
+
+        public void RemoveObject(int id)
+        {
+            Calls.Add($"remove-object {id}");
+            ObjectRemoves++;
+        }
+
         public void Flush()
         {
             Calls.Add("flush");
@@ -75,6 +94,7 @@ public class ScenePresenterTests
         {
             Calls.Clear();
             Creates = Updates = CreatureCreates = CreatureUpdates = Removes = Flushes = 0;
+            ObjectCreates = ObjectUpdates = ObjectRemoves = 0;
             Grounds.Clear();
         }
     }
@@ -362,5 +382,91 @@ public class ScenePresenterTests
                     return new TilePos(x, y);
 
         throw new InvalidOperationException("the level has no walkable tile.");
+    }
+    // ---- objects -----------------------------------------------------------
+
+    /// <summary>
+    /// An object appears, changes, and goes — the same create/update/remove
+    /// lifecycle a creature gets, and the reason the presenter had to learn one:
+    /// objects have been in the world since ADR-0054 and nothing drew them.
+    /// </summary>
+    [Fact]
+    public void AnObjectIsCreatedThenUpdatedThenRemoved()
+    {
+        if (BuildRig() is not { } rig) return; // skipped: no install
+
+        rig.Presenter.Present(rig.Simulation.World);
+        rig.Target.Clear();
+
+        ObjectState pile = FloorGold.Drop(
+            rig.Simulation.World, rig.Database, 40, 500)!;
+
+        rig.Presenter.Present(rig.Simulation.World);
+        Assert.Equal(1, rig.Target.ObjectCreates);
+        Assert.Equal(1, rig.Presenter.ObjectsPushed);
+        Assert.Contains(rig.Target.Calls, c => c.StartsWith("create-object", StringComparison.Ordinal));
+
+        // Nothing changed: nothing is pushed. That is the whole point of the diff.
+        rig.Target.Clear();
+        rig.Presenter.Present(rig.Simulation.World);
+        Assert.Equal(0, rig.Target.ObjectCreates);
+        Assert.Equal(0, rig.Target.ObjectUpdates);
+
+        // The pile shrinks, so it is pushed again as an update.
+        FloorGold.Take(rig.Simulation.World, rig.Database, pile, 200);
+        rig.Presenter.Present(rig.Simulation.World);
+        Assert.Equal(1, rig.Target.ObjectUpdates);
+        Assert.Equal(0, rig.Target.ObjectCreates);
+
+        // Emptied, so destroyed, so removed.
+        rig.Target.Clear();
+        FloorGold.Take(rig.Simulation.World, rig.Database, pile, 1000);
+        rig.Presenter.Present(rig.Simulation.World);
+        Assert.Equal(1, rig.Target.ObjectRemoves);
+        Assert.Contains(rig.Target.Calls, c => c == $"remove-object {pile.Id}");
+    }
+
+    /// <summary>
+    /// Objects are pushed before creatures, because a creature stands on an
+    /// object. One order, decided in the presenter, so the Unity target and the
+    /// text renderer cannot disagree about what occludes what.
+    /// </summary>
+    [Fact]
+    public void ObjectsArePushedBeforeCreatures()
+    {
+        if (BuildRig() is not { } rig) return; // skipped: no install
+
+        FloorGold.Drop(rig.Simulation.World, rig.Database, 40, 500);
+        rig.Simulation.World.SpawnCreature(
+            rig.Database, rig.Database.Creatures.Keys.First(), 1, new TilePos(1, 1));
+
+        rig.Presenter.Present(rig.Simulation.World);
+
+        int objectAt = rig.Target.Calls.FindIndex(
+            c => c.StartsWith("create-object", StringComparison.Ordinal));
+        int creatureAt = rig.Target.Calls.FindIndex(
+            c => c.StartsWith("create-creature", StringComparison.Ordinal));
+
+        Assert.True(objectAt >= 0 && creatureAt >= 0);
+        Assert.True(objectAt < creatureAt, "objects should be pushed before creatures");
+    }
+
+    /// <summary>
+    /// A resync forgets objects too, or a target that threw everything away
+    /// would be left with holes where the beds were.
+    /// </summary>
+    [Fact]
+    public void AResyncCreatesTheObjectsAgain()
+    {
+        if (BuildRig() is not { } rig) return; // skipped: no install
+
+        FloorGold.Drop(rig.Simulation.World, rig.Database, 40, 500);
+        rig.Presenter.Present(rig.Simulation.World);
+
+        rig.Target.Clear();
+        rig.Presenter.Resync();
+        rig.Presenter.Present(rig.Simulation.World);
+
+        Assert.Equal(1, rig.Target.ObjectCreates);
     }
 }

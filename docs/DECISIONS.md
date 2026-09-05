@@ -1709,6 +1709,39 @@ project does not commit code it has not built. What is done is everything the
 Unity view needs to be thin: the boundary, the asset layer, and a working second
 renderer proving both.
 
+### Amendment, 2026-09-05: objects cross the boundary too
+
+`ObjectView` joins `TileView` and `CreatureView`, `AssetRef` gains an
+**`object`** category with one mesh per definition, `IRenderTarget` gains
+create/update/remove for objects, and both renderers draw them.
+
+**This was a hole rather than an omission.** Objects have been in the world
+since ADR-0054 — beds, coops, eggs, and since ADR-0055 piles of gold — and every
+renderer drew bare floor where one stood. A scenario picture of a sold treasury
+showed the gold vanishing; the Unity view of a claimed lair showed no beds. The
+tools this project uses to check its own work were silently lying about a whole
+category of state.
+
+Three decisions inside it:
+
+- **an object is a category of its own, not part of `room`.** An object outlives
+  the room it was placed for: a bed belongs to the creature that dropped it, and
+  a pile of gold on bare floor belongs to no room at all;
+- **a mesh and no variants.** DK2 gives an object a state machine and a
+  `MoveTo` block, so a pecking chicken and a rolling boulder will want
+  animations — but nothing here can distinguish one object state from another
+  yet, and a variant list invented now would put keys in a converter's work list
+  that correspond to nothing. The same restraint the wall pieces get (Q71);
+- **objects are pushed before creatures, and drawn under them.** A creature
+  stands on an object. The order lives in `ScenePresenter` so the Unity target
+  and the text renderer cannot disagree about what occludes what.
+
+An object still has no sub-tile position, because the simulation has none —
+`ObjectView` carries a tile. DK2 places a pile at one of eight fixed points
+around a tile centre and a dying creature's gold anywhere in its tile
+(`gold-on-the-floor.md` §7); reproducing that needs the field, and the field
+arrives with the first mechanic that moves an object.
+
 ---
 
 ## ADR-0036 — Unity 6 LTS, and the adapter is six methods
@@ -1746,7 +1779,9 @@ remove — and is tested against a real campaign level. `IRenderTarget` is six
 methods with no logic in them: make a tile, update a tile, make a creature,
 update a creature, forget a creature, flush.
 
-So the remaining Unity work is *one class implementing six methods*, and the
+So the remaining Unity work is *one class implementing the target interface*
+— six methods when this was written, nine since objects joined the boundary on
+2026-09-05 (ADR-0035's amendment) — and the
 things it must not do are already impossible: it never sees a `WorldState`, it
 never resolves an asset, it never decides an order, and it gets positions in
 `Fp32` tile units so the conversion has to happen on its side (ADR-0001).

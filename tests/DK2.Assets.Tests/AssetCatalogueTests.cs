@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -242,5 +242,33 @@ public class AssetCatalogueTests
         Assert.Equal(database.Rooms.Count * 2, keys.Count);
         Assert.Equal(database.Rooms.Count, keys.Count(k => k.Kind == AssetKind.Texture));
         Assert.Equal(database.Rooms.Count, keys.Count(k => k.Kind == AssetKind.Mesh));
+    }
+    /// <summary>
+    /// Every object definition gets a mesh, and only a mesh.
+    ///
+    /// <para>Only a mesh <i>for now</i>: DK2 gives an object its own state
+    /// machine and a <c>MoveTo</c> block, so a chicken pecking and a boulder
+    /// rolling will want animation variants. This project cannot yet tell one
+    /// object state from another, and a variant list invented here would put
+    /// keys in a converter's work list that correspond to nothing — the same
+    /// restraint the wall variants get.</para>
+    /// </summary>
+    [Fact]
+    public void EveryObjectInTheDatabaseGetsAMeshAndNothingElse()
+    {
+        GameDatabase? database = RealDatabase();
+        if (database is null) return;
+
+        var keys = AssetCatalogue.ForObjects(database).ToList();
+
+        Assert.Equal(database.Objects.Count, keys.Count);
+        Assert.Equal(145, keys.Count);
+        Assert.All(keys, k => Assert.Equal(AssetKind.Mesh, k.Kind));
+
+        // And they are in the whole-database listing, or a converter would
+        // never be asked to produce one.
+        var all = new HashSet<string>(
+            AssetCatalogue.ForDatabase(database).Select(k => k.Key), StringComparer.Ordinal);
+        Assert.All(keys, k => Assert.Contains(k.Key, all));
     }
 }

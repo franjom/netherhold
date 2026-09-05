@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -62,6 +62,23 @@ public interface IRenderTarget
 
     /// <summary>A creature is gone. The target should forget whatever it drew for it.</summary>
     void RemoveCreature(int creatureId);
+
+    /// <summary>
+    /// An object has appeared: a bed dropped by a creature claiming a lair tile,
+    /// a coop placed by a hatchery, an egg, a pile of gold.
+    /// </summary>
+    void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh);
+
+    /// <summary>
+    /// An object has changed — today that means a pile of gold grew or shrank,
+    /// or a bed changed hands. Objects do not move yet: the simulation has no
+    /// sub-tile position for one (<see cref="ObjectView"/>), so an object that
+    /// walks in DK2 stands still here.
+    /// </summary>
+    void UpdateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh);
+
+    /// <summary>An object is gone: a bed sold, an egg hatched, a pile emptied.</summary>
+    void RemoveObject(int objectId);
 
     /// <summary>
     /// Every push is finished. A target that batches — one combined mesh per

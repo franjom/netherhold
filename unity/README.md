@@ -1,4 +1,4 @@
-# The Unity project
+﻿# The Unity project
 
 Presentation only. It holds no game state, decides no rule and stores no
 balance number — see `docs/DECISIONS.md` ADR-0002, ADR-0035 and ADR-0036.
@@ -72,7 +72,7 @@ Pass `-p:UnityManagedDir=...` if the editor is not in `Program Files`.
 Almost nothing is in this folder, deliberately. `ScenePresenter`
 (`src/DK2.Presentation`) decides what changed, in what order, which asset each
 thing needs, and create-versus-update-versus-remove — all of it tested against a
-real campaign level. `DungeonScene` implements six methods with no judgement in
+real campaign level. `DungeonScene` implements nine methods with no judgement in
 them beyond "file or placeholder".
 
 **Read `src/DK2.Presentation/TextRenderer.cs` before changing anything here.**

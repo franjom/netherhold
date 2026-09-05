@@ -136,6 +136,39 @@ within minutes of the second screenshot arriving. See `imps-and-mana.md`
 
 ## 1. Still open, and blocking
 
+### Q141 — where does "fetch that gold" sit in an imp's job priority? — *added 2026-09-05, and it blocks carrying*
+
+**The single cheapest thing on this list, and it unblocks the biggest gap.**
+
+Gold on the floor is now real (ADR-0055): sell a treasury and the gold stays on
+the tile as a pile the keeper no longer owns. What no imp does is **go and get
+it**, and the reason is not the mechanism — that is mostly the mining tail,
+already built — but the **trigger**. The owner supplied the priority order once
+already, from watching: *marked excavation, then claiming, then reinforcing*
+(Q24, CONFIRMED, ADR-0018). Fetching gold is not in it, and where it goes
+decides whether an imp abandons a half-dug wall to collect.
+
+The binary was searched for the answer on 2026-09-05 and it is not cheap there:
+an imp's job selection is part of the runtime-registered state machine (Q125),
+not a visible priority list. So this is a looking question.
+
+**The experiment.** Mark a wall for digging somewhere an imp can reach. Drop
+gold on the floor nearby — selling a treasury tile with gold in it is the
+easiest way, or drop a pile from the hand. Then watch **one** imp:
+
+- does it finish the wall first, or turn round and fetch the gold?
+- with **nothing** marked, does it fetch the gold at all, or ignore it?
+- does an imp already carrying a part-load top up from a floor pile, or walk
+  past it to the treasury?
+- and does an **enemy** keeper's imp take gold you dropped? (That is Q136 —
+  whose a pile is — and one glance settles it.)
+
+**What each answer buys.** The first two place fetching in the order and finish
+carrying's first half. The third decides whether the pile is a source like a
+gold seam or a job of its own. The fourth is the only thing standing between
+`FloorGold` and knowing whose gold it is.
+
+
 ### Q101 — the lair — **ANSWERED the same day, by the owner**
 
 > *"A lair is a room with tiles, on each tile only one bed/chair/whatever per

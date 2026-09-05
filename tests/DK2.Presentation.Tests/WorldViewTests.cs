@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -273,6 +273,7 @@ public class WorldViewTests
             TextRenderer.CreatureGlyph,
             TextRenderer.CarryingCreatureGlyph,
             TextRenderer.UnknownPlayerGlyph,
+            TextRenderer.ObjectGlyph,
         ];
 
         // The reserved glyphs are distinct from each other.
@@ -347,6 +348,7 @@ public class WorldViewTests
         Assert.Contains(TextRenderer.GoldGlyph, legend);
         Assert.Contains(TextRenderer.CreatureGlyph, legend);
         Assert.Contains(TextRenderer.CarryingCreatureGlyph, legend);
+        Assert.Contains(TextRenderer.ObjectGlyph, legend);
         Assert.Contains(TextRenderer.WallAlphabet, legend);
     }
 

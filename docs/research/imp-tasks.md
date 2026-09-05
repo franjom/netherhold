@@ -1,4 +1,4 @@
-# The first worker: how an imp finds work and gets to it
+﻿# The first worker: how an imp finds work and gets to it
 
 Milestone M3. Who does the tile work that `tile-work.md` describes, and how they
 come to be doing it.
@@ -264,14 +264,25 @@ and the priority order is CONFIRMED (ADR-0018). What is still absent:
   **fleeing a fight.** Neither has a trigger anybody has stated, and neither has
   anything to act on: there is no combat, no unconsciousness and no prison.
 - **Picking up gold somebody else dropped.** Carrying gold an imp mined itself is
-  implemented as the tail of a mining job; a pile already on the floor needs a
-  trigger of its own and is not in the priority order the owner gave.
+  implemented as the tail of a mining job. **The pile now exists** (ADR-0055) —
+  selling a treasury or killing a creature leaves real gold on the floor — so
+  what is missing is only the trigger, and the trigger is the problem: fetching
+  is **not in the priority order the owner gave**, and where it sits decides
+  whether an imp abandons a marked wall to go and collect. The binary was
+  searched for it and the answer is not cheap to read: the imp's job selection
+  is part of the runtime-registered state machine (Q125), not a visible
+  priority list. **So this is an owner question rather than a research one**,
+  and it is on the observation checklist. Guessing the priority would be
+  inventing behaviour in the one place the owner has already supplied it once.
 - **The floor lump an imp leaves when there is nowhere to unload.** The
   *decision* is DK2's and is implemented — an imp with nowhere to put gold keeps
   mining rather than standing still — but what it cannot hold is reported as
-  `gold_uncollected` and lost, where the original grows a lump up to
-  `MaxGoldPileOutsideTreasury` (2000) that somebody can come back for. A lump is
-  an OBJECT and the OBJECTS record is not parsed until M6. Q31.
+  `gold_uncollected` and lost. **The lump is now representable** and is still not
+  made, because whether the original leaves one there was not established:
+  `MaxGoldPileOutsideTreasury` turned out to govern **which spot an imp puts a
+  load down in**, not how big a lump grows (ADR-0055), so the sentence this
+  bullet used to end with was resting on a misread variable. Q138 for the mined
+  surplus, Q140 for an imp that cannot deliver.
 - **Building rooms.** In DK2 an imp walks to a marked room tile and constructs
   it; here `RoomBuildSystem` lays the terrain down instantly and no worker is
   involved. That is a fourth thing an imp does and it is not in the priority
