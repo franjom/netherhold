@@ -89,29 +89,59 @@ creatures is the exact complement of `IsEvil` and is now named **`IsGood`**.
 the creature does something else. If the keeper can build lairs it also raises
 an interface message: *no lair* when the keeper has none, *lair unreachable*
 when every lair fails the reach test, and *lair full* once a full lair has been
-full for a grace period. How a lair's slot count is derived from its tiles is
-**unread** (Q156); one bed per tile is the obvious reading.
+full for a grace period. **A lair's slot count is its tile count** (Q156, read
+2026-09-05): the room's capacity routine is a switch on room type, and for a
+lair it copies the room's tile counter — a word that is incremented when a tile
+joins the room and summed when two rooms merge — straight into the capacity
+field. The free-slot test is `used + 1 ≤ tiles`. One bed per tile, exactly.
+**The finder tests nothing else** — not the room's size against
+`RecommendedSize`, not whether it is "functional"; ownership is implicit in
+walking the keeper's own room list.
 
-**The tile is chosen on arrival, and starts underfoot.** A second routine takes
-the creature's current position and tries, in order:
+**The tile is chosen on arrival, and starts underfoot.** The lair-seeking
+state lives in EA's `LairState.cpp`. When the creature reaches the room, the
+state's entry test requires the tile underfoot to be **the keeper's own lair
+tile** and the record's `TimeSleep` to be non-zero; then, if the creature's
+existing bed is already in this room, it goes straight to sleeping; otherwise a
+room routine takes the creature's position and tries, in order (all read
+2026-09-05):
 
 1. **the tile the creature is standing on**;
-2. a short **fixed table of neighbouring offsets** around it;
-3. failing both, a **chained walk** from a starting tile through the room, one
-   tile handing on to the next, stopping when it finds a free one or arrives back
-   where it began — in which case the creature gets nothing this time.
+2. its **eight neighbours in a fixed order**: (−1,−1), (−1,0), (−1,+1), (0,+1),
+   (+1,+1), (+1,0), (+1,−1), (0,−1) — a ring from the north-west corner down the
+   west side, along the south, up the east, ending due north;
+3. failing both, a **chained walk through the room** starting at a **random tile**
+   — the room's random draws `rand(tileCount)` and steps that far along the
+   room's own tile chain from its bounding-box origin — following the chain until
+   a candidate passes or the walk arrives back where it began, in which case the
+   creature gets nothing this time.
 
-Each candidate is put through a single predicate that decides whether this
-creature may put its bed there. So the **search is local first and exhaustive
+Each candidate is put through one predicate: *the keeper's lair tile, with no bed
+object of any kind on it*. So the **search is local first and exhaustive
 second**, which is precisely the behaviour that was filmed: a creature that walks
 into a lair looks where it is standing, then next door, and only wanders if both
 fail.
 
-**And then the answer is jittered.** The chosen tile's centre is offset by a
-**random angle**, taken from the engine's seeded random source and turned into a
-displacement through sine and cosine tables. That is where "appears random" comes
-from, and it is *within* a tile rather than between tiles — so it explains where a
-bed sits on its tile, not which tile it lands on.
+**The random offset is on the walk, not the bed.** Having found a tile, the
+creature walks to that tile's centre **displaced by about a third of a tile in a
+random direction** (the engine's seeded random through its sine and cosine
+tables), still in the lair-seeking state — which is what makes two creatures
+entering from the same door stop in visibly different places. On arrival the
+tile underfoot is tested *again*: if it still passes, the bed is created **at the
+exact centre of the tile** with a **random facing** (0–2047 of a full turn) and
+registered in the room, so the room's used-slot count rises by one; if somebody
+took it during the walk, the search runs again from where the creature now
+stands; if the search finds nothing, the whole attempt restarts through the
+finder — possibly at another lair — and if that fails too the state ends and the
+creature is idle again. **The earlier reading of this paragraph had the jitter
+on the bed's position; it is on the walk target, and the bed sits centred.**
+
+**Two more things the state does.** If the creature already owned a bed in a
+*different* room when the search found a tile, the old bed is destroyed there
+and then — a creature moves house. And after making its bed the creature goes
+to sleep **only if its health is below `CreatureSleepsWhenBelowPercentHealth`**
+(balance variable 88, shipped 50); otherwise the state simply ends. The sleep
+need is not consulted here — it has its own way back in (§5).
 
 The spread between the two Salamanders is therefore explained by step 1: they
 entered from the same side but were standing in different places by the time the
@@ -139,8 +169,15 @@ training room is available, then casino, combat pit, wander to the heart);
 otherwise wander for 12 ticks.
 
 **The attempt (`FUN_0046f390`) succeeds when:** the creature is not held and not
-dying; it is not already in the lair-seeking state; its record names a bed
-(`LairObjectId` ≠ 0); and the finder of §4 returns a room. It then enters the
+dying; its record's **`TimeSleep` is non-zero**; it is not already in the
+lair-seeking state; it has no bed yet; its record names a bed (`LairObjectId` ≠
+0); and the finder of §4 returns a room. **The `TimeSleep` gate is the half our
+`LairRules.NeedsBed` lacks**, and it answers Q104: the Dwarf and the Stone Knight
+carry `LairObjectId` 6 but `TimeSleep` 0 (with `TimeAwake` 32767), so the
+original never sends them for a bed at all — the two fields together, not the
+one, decide who sleeps. The gate excludes exactly: Imp, Skeleton, Unique
+Skeleton, Horny, Dwarf, Stone Knight (by `TimeSleep`), and the seven
+`LairObjectId`-0 heroes (the princes, King Reginald, Lord of the Land, Jack). It then enters the
 lair-seeking state (`0x50`), which is the journey and the on-arrival tile test
 §4 describes. **It fails when no reachable lair has a free slot**, and the
 creature falls through to a job — to try again at its next idle decision.
@@ -197,9 +234,32 @@ without a guess: an idle bedless creature attempts a lair first; the room is the
 nearest reachable lair with a free slot, preferring one with no beds of the
 other alignment; the tile is found on arrival; failure falls through to a job
 and is retried at the next idle decision; a sleep need every `TimeAwake` is the
-second way in. What is still unread and must be marked as ours when built: how
-a lair's slot count derives from its tiles (Q156), the exact idle re-decision
-cadence, and the neighbour-offset table's contents.
+second way in. What is still unread and must be marked as ours when built: the
+exact idle re-decision cadence (the idle state's own fallback is a 12-tick
+wander, after which it decides again), and **which tile of the chosen room the
+travel-to-room step aims at** — the arrival test only requires *some* tile of
+the keeper's lair underfoot (Q157). Q156 (one bed per tile) and the
+neighbour-offset table are now read (§4), and so is the gate: `TimeSleep ≠ 0` as
+well as `LairObjectId ≠ 0`, which our `NeedsBed` must gain (Q104).
+
+**Checked against a third party's plan, 2026-09-05.** An implementation plan
+drawn from this note by another tool matched the binary on every point it made
+from the note, and added one clause the binary does not have: it would also have
+required the lair to be *"valid/functional according to the applicable lair
+rules"*. The finder tests room type, reachability, a free slot, distance and the
+alignment of existing beds — nothing about size or function. The rework must
+not add that test.
+
+## 7a. How OpenKeeper does it, for the record
+
+OpenKeeper's `RoomLairControl` holds one bed per tile (`getObjectsPerTile` = 1)
+— the same capacity rule, arrived at by guess. Everything else differs from the
+binary: its `TaskManager` picks the room *and the tile* centrally before the
+creature moves and reserves it as a task; there is no on-arrival search, no
+neighbour ring, no random start to a room walk, no alignment preference, no
+moving house, and no health threshold deciding whether to sleep afterwards. Its
+outcome — creature walks in, bed appears — is right; its mechanism is not
+evidence for anything above.
 
 ## 8. The job choosers, read on the way
 

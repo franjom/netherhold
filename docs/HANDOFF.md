@@ -3864,3 +3864,37 @@ comment. The runtime ↔ file table is now in `kwd-terrain-rooms.md` so the next
 binary read does not repeat the arithmetic.
 
 Docs only; tests unchanged at 811.
+
+## Twenty-second sitting, second coda: a plan from elsewhere, checked against the binary
+
+The owner brought an implementation plan for the lair rework written by another
+tool from `lair-acquisition.md`, and asked for it to be verified. It was checked
+point by point against the binary, and the three "unknowns" it listed were
+taken to Ghidra. Two of the three fell, and a fourth thing fell with them.
+
+- **Q156 closed: one bed per tile.** The lair's capacity is the room's tile
+  counter, copied straight in; the free-slot test is `used + 1 ≤ tiles`.
+- **The neighbour table is read**: underfoot, then (−1,−1), (−1,0), (−1,+1),
+  (0,+1), (+1,+1), (+1,0), (+1,−1), (0,−1), then a chained walk of the room
+  from a **random** starting tile.
+- **Q104 closed on the way: the gate is `TimeSleep ≠ 0` as well as
+  `LairObjectId ≠ 0`.** The Dwarf and Stone Knight have `TimeSleep` 0 and never
+  go for a bed; our `NeedsBed` tests only the bed id and must gain the second
+  half in the rework.
+- **One correction to the note**: the random offset is on the *walk target*
+  (about a third of a tile), not the bed — the bed is created at the exact tile
+  centre with a random facing. Also new: a creature that finds a tile while
+  owning a bed in another room destroys the old bed (moves house), and after
+  making its bed it sleeps only if health is below variable 88
+  (`CreatureSleepsWhenBelowPercentHealth`, 50).
+- **The plan added one clause the binary lacks** — a "valid/functional"
+  test on the candidate lair. The finder has no such test. Everything else in
+  it matched. Q157 opened: which tile of the room the travel step aims at.
+
+Docs only; no code changed; 811 tests.
+
+### Where the next session should start
+
+**Build the lair rework** — it is now read to the tile, and the plan the owner
+brought is a fair checklist once the "functional" clause is struck and the
+`TimeSleep` gate is added.
