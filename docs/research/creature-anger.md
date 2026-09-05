@@ -163,6 +163,18 @@ silence; when a hatchery can feed a creature, `AngerNoFood` goes in the same day
 against +100 without one, which is why a keeper who builds a lair late still
 recovers.
 
+**Where the −550 is applied in the original (binary, 2026-09-05; Q123).** Both
+in-lair modifiers — health (75) and anger (76) — are read by **one routine**,
+which heals up to the level-scaled maximum and then applies the anger modifier.
+That routine is called only from the per-tick handlers of **three creature
+states**, each gated to `tick % variable 19 == 0` (once a game second, Q1), and
+nothing on the way tests the tile underfoot. So the cooling is a property of
+being in one of those states, not of standing on lair terrain; one of the three
+handlers also counts a per-creature timer down while the state is `0x53`, which
+has the shape of the sleep countdown. The states are not yet named, so the
+current `AsleepInOwnBed` rule is STRONGLY INFERRED rather than confirmed: exact
+if all three are sleeping states, undercooling if one is an awake-in-lair state.
+
 ### The consequences
 
 **What an angry creature does comes from its own record**, not from a rule of

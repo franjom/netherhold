@@ -987,11 +987,16 @@ fade once the cause is fixed?
 Do not spend time on these at the keyboard — they need instrumentation,
 measurement tooling, or disassembly, and are scheduled accordingly:
 
-- **Q1 — the exact tick rate.** Fixed, but internal. Needs the M5 oracle probe.
-  (Stopwatch counts on long repeated actions give an approximation, which is why
-  several entries above ask for seconds.) **Note what Q47 did NOT settle**: it
-  fixed the ratio between a swing and a per-second delta, not the tick rate. The
-  swing count a tile takes is now measured; the wall-clock time it takes is not.
+- **Q1 — the exact tick rate.** ~~Fixed, but internal. Needs the M5 oracle probe.~~
+  **Read from the binary and the level files on 2026-09-05: four ticks a game
+  second** (variable 19, set from the level header, 4 in all 66 levels). What a
+  keyboard can still add: whether a game second is a wall-clock second at normal
+  speed — time something with a known seconds value, such as the first free imp
+  (`TimeBeforeFreeImpGeneratedSeconds`), against a stopwatch. **Note what Q47
+  did NOT settle**: it fixed the ratio between a swing and a per-second delta,
+  not the tick rate — and its five-a-second now sits against a four-tick second,
+  so the swing cadence is worth timing too: count the four swings of a Dirt Path
+  claim against a stopwatch.
 - ~~**Q19 - what the health deltas are per.**~~ **ANSWERED (2026-08-30)** and not
   by playing directly: the 273-gold measurement fixed it. They are per second, and
   an application is a fifth of one. What is left is only how long a second is,

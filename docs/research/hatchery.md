@@ -102,7 +102,10 @@ The interval is computed from the room's tile count, and the formula is exact:
   **0.315477776**;
 - the truncation to integer happens **before** the multiply, so the multiplier
   scales an already-rounded number of whole units;
-- **`V19` is variable 19, and nothing in the game's data supplies it.**
+- **`V19` is variable 19, the engine's ticks per game second — 4 on every
+  shipped level** (Q1/Q132, answered 2026-09-05 from the level header; see
+  `balance-variables-in-the-binary.md`). So the game-second interval the table
+  below gives becomes a tick count by multiplying by four.
 
 **So a bigger hatchery lays faster**, on a curve rather than linearly. With the
 shipped 16:

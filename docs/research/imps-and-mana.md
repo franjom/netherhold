@@ -124,11 +124,13 @@ original skip the spell-availability check, skip the mana check and skip the
 deduction. The free four cannot be starved out by a poor keeper.
 
 **`TimeBeforeFreeImpGeneratedSeconds` is multiplied by variable 19** — the
-223-reader global that no shipped file supplies, and the biggest open question
-in the data (Q132). Seconds go in and engine time comes out. This is the
-clearest single use of it found so far, in eight instructions with nothing else
-going on, and it says plainly what the multiplier is *for*. It does not say what
-the value is.
+223-reader global that is the engine's ticks per game second, **4** on every
+shipped level (Q1, Q132, answered 2026-09-05: the level loader sets it from the
+LEVEL record's `ticksPerSec` field). Seconds go in and ticks come out. When it
+was found this was the clearest single use of the variable, eight instructions
+with nothing else going on, and it said what the multiplier was *for* a day
+before the level header said what it was. So the deadline is the shipped
+seconds times four, in ticks.
 
 ### And the price of a bought imp is now read rather than reported
 

@@ -58,18 +58,21 @@ starts from, so a routine walking the globals block as an array would pile
 references onto whichever id sits at the base. Where a count is load-bearing
 below, it has been checked instruction by instruction.
 
-## Variable 19: read everywhere, shipped by nothing
+## Variable 19: read everywhere, shipped by the level header
 
-**This is the one result here that matters on its own**, and it is a negative.
+**This is the one result here that matters on its own.** It was recorded as a
+negative on 2026-09-04 and **answered on 2026-09-05** — the resolution is below.
+The original table is kept with its two wrong rows struck, because the way it
+went wrong is worth keeping.
 
 | | |
 |---|---|
 | Global | `0x006F2590` — the slot immediately after `ChickenGenerationTimePerHatchery` |
 | Read by | **223 instructions**, across the whole binary. 225 of the 226 raw occurrences of that address in `.text` are **direct absolute operands**, so there is no array-indexing inflation: it really is read from 223 places |
 | Used as | a **multiplier 28 times** and a **divisor 22 times** (`IMUL`, `DIV`, `IDIV`); the rest load it into a register first |
-| Written by | **exactly one instruction in the whole of `.text`** — its own dispatch stub |
+| Written by | ~~exactly one instruction in the whole of `.text` — its own dispatch stub~~ **Two.** Its dispatch stub, and one store in the **level loader** (2026-09-05). The raw `.text` scan behind this table listed both stores; the row counted one |
 | Lives in | the **uninitialised** part of `.data`, so the image carries no default: it is zero until something writes it |
-| Supplied by | **nothing.** Not `GlobalVariables.kwd`, not any of the 66 `*Variables.kld`, not any file in the install |
+| Supplied by | ~~nothing~~ **The LEVEL record of every level file**, not a VARIABLES record — which is why the id-19 file scan below found nothing, and was right about what it looked for |
 
 That last row was checked by scanning **all 1236 files** in the install for a
 variables record with id 19, with a scanner first validated against ids we know
@@ -81,6 +84,32 @@ writes carries only `BuildTypeCode`, `language` and the version.
 **Twenty-two sites divide by it.** A zero there faults, and the game does not.
 So either those paths never execute, or something outside every file we have
 supplies the value. **Q132**, and it must not be guessed.
+
+### Resolved, 2026-09-05: it is ticks per game second, and it is 4
+
+The second store is in the routine that installs a loaded level: it copies a
+**16-bit field of the LEVEL record** straight into the global. The field is the
+one two bytes after the level's trigger id, and the layout around it pins the
+identification without needing a name: trigger id, this field, a 520-byte block,
+then the 0x5000-byte message block, then the level flags — the LEVEL chunk's own
+order, byte for byte (`kwd-container.md`; OpenKeeper reads the same field as
+`ticksPerSec`). **All 66 shipped level files carry 4 in it**, checked directly on
+2026-09-05 with each file's name cross-checked against the record it opens with.
+
+Three uses already read agree on the unit: the free-imp deadline is
+`now + seconds × var19` (below), the job re-roll gate is `5 × var19`
+(`lair-acquisition.md` §8), and the lair heal/anger routine runs when
+`tick % var19 == 0` — once a game second (`creature-anger.md`). So **a game
+second is four ticks**, and every "Seconds" in the balance table converts by
+four. What this does *not* say is how a tick relates to wall-clock time; the
+counter those gates read has not been followed to its incrementer. Q1, Q132.
+
+**How the wrong row happened, kept for the method.** The raw instruction scan of
+`.text` that produced the reader count listed both stores — the stub's
+`MOV [0x006F2590],EAX` and the loader's `MOV dword ptr [0x006F2590],ECX` — and
+the write-up said one. How the second was dropped is not recorded. A "one
+writer" claim is a claim about the whole binary: grep the raw scan for stores
+before writing it, and follow every store to its source.
 
 ### One use of it, read end to end (2026-09-05)
 

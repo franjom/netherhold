@@ -3935,3 +3935,48 @@ whether the newcomer goes to the tile north-west of it first.
 2. **Q157** and the idle cadence are readable in the binary
    (`FUN_00471a70` and the idle state's fallback block), if a sitting wants
    to strike two "ours" marks.
+
+## Twenty-second sitting, third coda: a second tool's audit, checked against the binary
+
+The owner had another tool audit `open-questions.md` against OpenKeeper and the
+binary and asked for its findings to be verified. Every claim was re-read against
+Ghidra (three headless passes), the shipped level files and OpenKeeper before a
+row moved.
+
+- **Q1 and Q132 fell together: a game second is four ticks.** Variable 19's
+  global has **two** writers — `balance-variables-in-the-binary.md` said one —
+  and the second is the level loader copying the LEVEL record's 16-bit field
+  after the trigger id (OpenKeeper's `ticksPerSec`). All 66 level files carry
+  **4**, scanned directly. Three uses already read (`seconds × var19`,
+  `5 × var19`, `tick % var19 == 0`) agree on the unit. STRONGLY INFERRED.
+- **Not adopted in code.** `SimulationTiming.TicksPerSecond` stays 20: Q47's
+  five work applications a second cannot be scheduled in four ticks
+  (`WorkApplicationPeriodTicks` would be 0). The conflict is written into Q1
+  rather than resolved by fiat.
+- **Q122 answered: the angry job is re-rolled** — a fresh `rand(100)` per
+  allowed selection, a five-game-second gate, fall-through in list order.
+  ADR-0053's draw-once is wrong in shape; amended, code change scheduled after
+  the lair rework.
+- **Q123 narrowed to STRONGLY INFERRED:** one routine applies both in-lair
+  modifiers and is reached only from three state handlers once a game second —
+  state-gated, not terrain-gated. The three states are not yet named.
+- **Q35 deposit half read:** the room is the nearest reachable treasury or heart
+  with capacity; the tile is the first free one along the room's chain, not the
+  nearest tile. Withdrawal still open.
+- **Q83 narrowed:** 340 is a slack subtracted from a level-scaled record field
+  in the imp's gold code, not a rate. Still open.
+- **Q2, Q12, Q77, Q98 were stale** against research already in the repo;
+  rewritten to point at it.
+- **Judged not evidence and left alone:** OpenKeeper on Q1 (its `1363 / value`
+  transform of `GameTicks`), Q97, Q123, Q127, Q136, Q140 — its systems there
+  are stubs, or its own comments call the behaviour remembered.
+
+Docs only; no code changed; the lair rework was live in `src/` throughout.
+
+### Where the next session should start
+
+The lair rework landed as `f785cb6` while this was being read. Next: **re-roll
+the angry job on its five-second gate**
+(Q122), and **resolve four ticks against five swings** (Q1 against Q47) before
+`TicksPerSecond` is flipped — trace the tick counter's incrementer, or time a
+Dirt Path claim against a stopwatch.

@@ -3541,6 +3541,17 @@ simulation's RNG so it is part of the deterministic stream, and drawn **once and
 kept**. Kept because re-rolling every second would eventually draw `Leave` by
 luck and desert — reporting the unimplemented outcome as the implemented one.
 
+**Amendment, 2026-09-05 (Q122, from the binary).** The draw-once-and-keep rule
+is wrong in shape. DK2's angry chooser rolls afresh on every allowed selection
+and falls through the list in order when the chosen job fails; a new selection
+is allowed only after five game seconds (5 × variable 19 = 20 ticks), and
+`LastGameTickSuccessfullyChoseAngryJob` is the timestamp that gate reads. The
+concern above — that re-rolling would make a Goblin leave by luck — describes
+DK2: with `Leave(50%)` it does. The correction is to re-roll on the five-second
+gate and keep reporting `Leave`/`Rebel` as unbuilt; it is scheduled after the
+lair rework, which was live in the tree when this was read. See
+`lair-acquisition.md` §8 and Q122.
+
 **Only two of DK2's anger sources are applied, and the rule is one sentence: a
 source is applied when the player's own choices can turn it off.**
 

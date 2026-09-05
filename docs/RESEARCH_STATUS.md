@@ -28,6 +28,13 @@ What is *built* rather than known, against the long-term goals:
   ownable non-room ones. The ceiling is a flat 200000 for every keeper, and a
   keeper has exactly one heart whose loss is defeat (both observed in the
   original). See docs/research/mana.md.
+- **A game second is four ticks (Q1, Q132 — STRONGLY INFERRED, binary plus all
+  66 level files, 2026-09-05).** Balance variable 19, the 223-reader
+  seconds-to-ticks multiplier, is written by the level loader from the LEVEL
+  record's `ticksPerSec` field, which is 4 in every shipped level. Not yet
+  adopted in `SimulationTiming` (still 20): Q47's five work applications a
+  second do not fit in four ticks, and that conflict is recorded rather than
+  smoothed. See docs/research/balance-variables-in-the-binary.md.
 
 - Where mined gold goes: seam → the imp's hands → a treasury tile, and what
   happens when there is nowhere to put it. Q31, ADR-0018/0019, from the owner's
@@ -261,15 +268,12 @@ What is *built* rather than known, against the long-term goals:
   keeper here can build any buildable room on any level.
 - Pathfinding (biggest risk), creature moods/anger, combat resolution,
   job-selection priority order, computer-player AI, audio event semantics.
-- **The one number that would unlock timing, and nothing supplies it (Q132).**
-  Balance variable **19** is read from **223 instructions** — more than any other
-  — as a multiplier 28 times and a divisor 22 times, is written by **exactly one
-  instruction in the whole binary**, and appears in **no shipped file**, checked
-  across all 1236 in the install. Multiply-and-divide is the signature of a unit
-  conversion; the table is in seconds and the engine counts ticks. **Strongest
-  candidate yet for Q1, the tick rate.** It blocks the hatchery's laying interval
-  and, if it is what it looks like, all timing fidelity. Note the contrast:
-  `GameTicks` (id 74) is 340 in every level file and its global is read *twice*.
+- **The tick rate is read (Q1) but not yet adopted, and one measurement fights
+  it.** Variable 19 is 4 — a game second is four ticks — but Q47 derived *five*
+  work applications a second from 273 gold a swing, and five does not divide
+  four. Either the swing cadence is not tick-locked or the 273 has another
+  explanation; `SimulationTiming.TicksPerSecond` stays at 20 until that is
+  settled, because `WorkApplicationPeriodTicks` would be 4 / 5 = 0.
 - **Eating.** Everything it was blocked on is gone — the Chicken is object 9,
   the world has an object list, the hatchery knows its coops and its flock — and
   what is left is the clock (Q132) plus the creature side: how a hungry creature
