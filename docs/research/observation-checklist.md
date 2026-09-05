@@ -579,14 +579,22 @@ When there is nowhere to store gold, a lump grows in front of the mining imp
 candidate. Fill the treasury, keep mining, and see how much piles up before the
 imp stops.
 
-### The gold-per-swing readout itself — **UNRECORDED, and everything rests on it**
-Four documents cite "273 gold a swing" and **not one says where that number
-appears on screen.** The owner reads it directly while an imp mines - the
-2026-09-05 slap measurement (341, reverting to 272-273 after a minute) was taken
-the same way - so the readout exists; this repo simply never wrote down which
-panel it is. Write it down the next time it is used: it is the single
-observation the whole tile-work granularity depends on, and the one a future
-session cannot reproduce from these notes.
+### The gold-per-swing readout — **RECORDED at last, 2026-09-05**
+It is **the gold seam's own remaining value**, watched as an imp mines it. Four
+documents had cited "273 gold a swing" without one of them saying where the
+number appears, which made the single observation the whole tile-work
+granularity rests on unreproducible from these notes.
+
+**Read consecutive decrements, not one.** The owner's 2026-09-05 sequence -
+3000, 2690, 2381, 2072, 1763 - is exactly what **68 health a swing** produces
+(68 x 3000/660 = 309.0909, truncated cumulatively) and it matches to the last
+digit four times running. That also confirms two things nothing else had:
+**gold really is released in proportion to health removed**, and the running
+total is **truncated, not rounded**.
+
+One swing is not enough, because a partial last swing looks like a rate: an
+imp's hands hold 1400 and four swings at 272.7 leave exactly 309.1 to fill
+them.
 
 ### Q47 — the tile-work rates — **ANSWERED, and the answer was 273**
 Left here as the record of what one number was worth. Every rate used to be too

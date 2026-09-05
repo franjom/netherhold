@@ -167,11 +167,21 @@ the work rate:
   question, and would mean nothing changed at all.
 - **A different seam**, if a level can vary a gold tile's value.
 
-**The diagnostic, and it needs no timing:** count the swings in one full load
-before the imp runs to the treasury. **Five** swings means the rate is 0.8 and
-309-310 was a remainder; **four** means the rate really is 0.9 or 1.0. And read
-several consecutive swings rather than one: a rate repeats, a remainder does
-not.
+**MEASURED, and it is a rate.** The owner read four consecutive decrements off
+the seam: **3000, 2690, 2381, 2072, 1763**. That is exactly **68 health a
+swing** (68 x 3000/660 = 309.0909, truncated cumulatively) and it matches to the
+last digit four times, so the remainder reading is out.
+
+**So a swing took 60 health early in that game and 68 later, for a
+newly-created imp** - a factor of 1.1333, player-wide, cause unknown. Ruled out:
+the imp's level (a new imp has it), the Wizard census (that dungeon has none)
+and a display artefact.
+
+**The experiment that would name it** is one variable at a time from a fresh
+game: read the seam immediately (expect 3000 -> 2727, 60 health), then change
+exactly one thing and re-read the same seam - create an imp, claim or reinforce
+some tiles, let an imp level, or slap and let it wear off. Whichever moves 2727
+to 2690 is the cause.
 
 ### The work rate does NOT change with level — a refuted prediction
 
