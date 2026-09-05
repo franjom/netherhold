@@ -133,12 +133,33 @@ Slapped reinforce times (11.9 s in one run, 11.5-11.6 s in another, against
 with it; a 13-second job timed by hand resolves about ten times worse than the
 gold counter and settles nothing on its own.
 
-**The open question is the earlier mining run that read 341**, which needs a
-second +0.1 from a source that is not a second slap. The bonus routine tests
-**two** independent flags at 0.1 each, so a second player action is the
-candidate - **picking the imp up and dropping it** is the obvious one, and the
-test is to drop an imp on a seam without slapping it and see whether it reads
-309-310 by itself.
+**The bonus scales with level even though the base does not** - measured the
+same day, and it is the last piece:
+
+| Imp | Unslapped | Slapped | Implied bonus |
+|---|---|---|---|
+| level 1 | **273** | **309-310** | +0.1 |
+| level 2 | **273** | **341** | +0.2 |
+
+So a levelled imp does not work faster, but a levelled imp *responds to a slap*
+twice as much. Which settles the run that read 341 on 2026-09-05: **it was a
+level-2 imp**, not a second bonus source. The earlier argument here - that a
+levelled imp would have reverted to a higher baseline when the minute expired -
+was wrong, because the baseline does not move with level either.
+
+It also matches the routine's arithmetic to four figures: the bonus is
+`0x199` = 409 for a flag **plus 205 per unit of a counter**, and
+409 + 205 x 2 = 819 = **0.19995**. What the counter counts is not identified;
+two units at level 2 and none at level 1 is what the numbers require.
+
+**What is not known is the shape past level 2.** Three candidates, well
+separated, and one slapped level-3 imp mining a seam tells them apart:
+
+| Rule | Level-3 bonus | Gold a swing |
+|---|---|---|
+| +0.1 a level | +0.3 | **373-377** |
+| capped at +0.2 | +0.2 | **341** |
+| the stat table's 125/175 shape | +0.175 | **332** |
 
 `IncreasedWorkRatePecentageFromSlapping` = 50 is **not** what produces either
 number, and is either orphaned or means something other than a percentage of the
@@ -178,9 +199,9 @@ re-derives it from the same two numbers.
   Q1 needs the game loop traced, not another stopwatch. `FUN_00517490` is the
   "now" the gates read and it is a bare field load,
   `*(*(this + 4) + 4)`; whoever increments that field answers Q1.
-- **What the second +0.1 source is.** Slapping gives one and does not stack, so
-  the run that read 341 had another. Drop an imp on a seam without slapping it:
-  309-310 would name the hand as the second source.
+- **How the slap bonus scales past level 2**, and what the 205-per-unit counter
+  counts. A slapped level-3 imp mining a seam separates the three candidates:
+  373-377, 341 or 332.
 - **What the two bonus flags are**, and what the 0.05-per-unit counter counts.
 - **Where a per-swing gold number appears on screen.** The owner reads it
   directly and this repo has never recorded *where* - see the note in
