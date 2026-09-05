@@ -3247,7 +3247,7 @@ refund uses (ours) · **Q140** what a blocked imp does with its load ·
 
 | | |
 |---|---|
-| `??????` | **Gold on the floor is the first thing an imp does** — ADR-0056, Q141 |
+| `bcca5f3` | **Gold on the floor is the first thing an imp does** — ADR-0056, Q141 |
 
 **795 tests green**, **16 scenarios**, zero warnings, **hashes unmoved** — no imp
 in any pinned run has ever met floor gold, so nothing that was already being
