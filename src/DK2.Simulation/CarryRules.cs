@@ -50,6 +50,7 @@ public static class CarryRules
     public static bool IsCarryable(CreatureState body) =>
         !body.InHand
         && body.CarriedByCreatureId < 0
+        && !PrisonRules.IsImprisoned(body)
         && (CreatureDeathRules.IsDying(body) || CreatureDeathRules.IsCorpse(body));
 
     /// <summary>
@@ -81,8 +82,11 @@ public static class CarryRules
     /// is a placed object that belongs to this creature and it kept that bed
     /// through the collapse precisely so this walk would have a destination
     /// (<see cref="CreatureDeathRules.Collapse"/>).</item>
-    /// <item><b>Collapsed, somebody else's</b> — to a <b>Prison</b>, which does
-    /// not exist here. Returns -1, and the worker leaves it lying (Q163).</item>
+    /// <item><b>Collapsed, somebody else's</b> — to a free tile in the
+    /// worker's keeper's nearest <b>Prison</b> (ADR-0064). -1 when every prison
+    /// is full and -1 when there is none, which is the manual's own rule: imps
+    /// try the next nearest prison with space and stop collecting prisoners
+    /// altogether when there is nowhere to put one.</item>
     /// <item><b>A corpse</b> — to the nearest reachable tile of one of the
     /// keeper's <b>Graveyards</b>.</item>
     /// </list>
@@ -93,11 +97,13 @@ public static class CarryRules
         if (CreatureDeathRules.IsCorpse(body))
             return NearestGraveyardTile(world, database, worker);
 
-        // A collapsed enemy belongs in a prison, and there are none. DK2 has an
-        // imp task for it (kind 13's other branch, room 11) and this project has
-        // no prison at all, so an enemy left on the floor here simply dies where
-        // it fell rather than being quietly rescued into the wrong dungeon.
-        if (body.OwnerPlayerId != worker.OwnerPlayerId) return -1;
+        // A collapsed enemy belongs in a prison - kind 13's other branch, room
+        // 11 - and the worker's keeper's prison is the one it goes to, not the
+        // body's. A keeper with no prison, or with every cell taken, leaves it
+        // lying where it fell.
+        if (body.OwnerPlayerId != worker.OwnerPlayerId)
+            return PrisonRules.FreeTileIn(
+                world, database, worker.OwnerPlayerId, worker.Tile);
 
         return LairRules.BedTileIndex(world, database, body);
     }

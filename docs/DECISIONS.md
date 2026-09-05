@@ -4629,3 +4629,117 @@ different thing that can fail in different ways.
 - **Kind 8**, carry a loose object to its room, which is the third carrying task
   and needs object instances that go somewhere.
 - **What a graveyard does when it fills**, which is where vampires come from.
+
+## ADR-0064 — The Prison: capture, and the half of carrying that was missing
+
+**Status:** Accepted (2026-09-05). Completes DK2's imp task kind 13, which
+ADR-0063 could only build one branch of. Research: `docs/research/prison.md`,
+`docs/research/imp-task-priority.md` §4, `manual-1999.md` §Prison.
+
+### Context
+
+ADR-0063 built carrying and stopped at a deliberate line: an imp carried its
+keeper's own unconscious creatures to a bed and corpses to a graveyard, and left
+an enemy lying where it fell, because DK2's kind 13 sends that one to a **Prison
+(room 11)** and there was none. Q163 recorded it as a stop rather than a gap.
+
+The owner then corrected the whole verb (2026-09-05):
+
+> *"a corpse can not be picked up by hand of evil and dropped to a graveyard,
+> only an imp can carry it to its grave, also an injured creature, lying on the
+> floor bleeding out, can't be picked up by hand of evil and dropped to its lair,
+> only an imp can carry it to its bed to recover, likewise only an imp can drag
+> an enemy creature to prison, a hand of evil can then pick up that creature from
+> prison and drop it around the dungeon, back in prison, or onto a torture rack
+> in the torture chamber."*
+
+**Two rules, and the first of them contradicted ADR-0062.** That decision had
+recorded *"DK2 lets the hand take a collapsed creature"* and refused one anyway,
+calling the refusal a narrowing invented to excuse a missing mechanic. It was
+DK2's rule all along: the pick-up handler refuses bit `0x200000` of the first
+state-flag word, and DK2's own creature dump names that bit **`CreatureDying`**.
+The bit had been read and not named. Fourth instance of a claim nothing checked.
+
+### Decision
+
+`PrisonRules`, `PrisonSystem`, `CreatureActivity.Imprisoned`,
+`CreatureState.PrisonOwnerPlayerId`, and the enemy branch of
+`CarryRules.TryDestinationFor`.
+
+**Capture is an imp's job, and only an imp's.** `HandRules.CanPickUp` refuses
+anything that is down, full stop — no corpse, no dying creature, its keeper's own
+or anybody's. The hand's entire role in this mechanic is moving a prisoner that
+an imp has already taken.
+
+**`PrisonOwner` is a second owner, not a change of owner.** DK2 keeps it as its
+own creature field at offset `0x3cb` and this keeps it as
+`PrisonOwnerPlayerId`. A prisoner is still its keeper's creature; it is merely
+somebody else's problem to feed. That is what makes the hand's one ownership
+exception a field test rather than a search of every prison, and it is what
+survives a creature being lifted out of a cell — so dropping it back in a prison
+re-imprisons it and dropping it anywhere else frees it.
+
+**The cell is chosen before the walk starts**, as a bed and a graveyard tile
+already are. Full prison, or no prison, means no imp sets off — which is the
+manual's *"imps stop collecting prisoners"* falling out of a rule that was
+already there rather than being written a second time.
+
+**One system settles a prisoner's second.** `CreatureHealthSystem` skips
+prisoners entirely and `PrisonSystem` runs immediately after it, on the same
+cadence and phase, doing three things in order: free anybody whose cell is no
+longer a cell, roll an overcrowded prison's jail break, then wither everybody
+left by `PrisonModifyCreatureHealthPerSecond` (-3). A prisoner that runs out is
+replaced where it stands by the Prison's `CreatedCreatureId` — **9, the
+Skeleton** — belonging to the **jailer**. No collapse, no rescue window, no
+corpse: dying in a prison is not the ordinary death, and that is what the room is
+for.
+
+**Selling a prison and losing one are the same rule here.** `PrisonSystem` asks
+each second whether a prisoner still stands on a tile of a prison belonging to
+the keeper who imprisoned it. That covers the sale, the tile being dug away, a
+rival claiming it, and the room being destroyed, without hooking any of those
+paths — the same choice `RoomInstance` makes, because derived state cannot
+drift.
+
+### What is ours rather than DK2's, stated
+
+- **One prisoner per tile** (Q166), and the weakest inference here. DK2 *stores*
+  `TotalCapacity`/`UsedCapacity` on the room rather than deriving them, and how
+  it derives them has not been read. The owner can settle it by counting.
+- **A captured creature wakes at full health** (Q167). Something has to decide,
+  and the prison is a countdown a keeper interrupts with chickens; one that woke
+  at nothing would be a skeleton before the keeper could reach for one.
+- **The jail break is rolled once a game second** (Q168). The variable names a
+  percentage per extra creature and says nothing about how often.
+- **Freed where they stand.** DK2's `prison.cpp` releases at the room's
+  `DoorTileX`/`DoorTileY`; there is no door here.
+- **No keeper-set door bar**, though `SafeCreatureCapacity` is a real field. So
+  overcrowding is only ever a keeper dropping a prisoner into a full prison.
+- **A prisoner is not slappable**, and nothing observed says either way.
+
+### Consequences
+
+- **The hand's refusal of a body is now a rule with a reason**, and two tests
+  assert it directly. Q161 is answered against what this project believed.
+- `HashVersion` and the snapshot `FormatVersion` go 23 -> 24.
+- The fixture gained the **Prison** (terrain 20, room 11, 750 to build) and the
+  **Skeleton** (creature 9) — the creature with no needs at all, which makes it
+  the control against the Goblin, which has every need there is. `RoomDef.R()`
+  now transcribes `CreatedCreatureId`, so the Graveyard's Vampire is in the
+  fixture too even though nothing makes one.
+- `PrisonSystem` reads its balance variable inside the prisoner loop rather than
+  once per tick, so a level with no prison does not demand a variable only a
+  prison needs. The synthetic databases the harness runs on carry exactly what a
+  registered system reads, and the first draft broke every one of them.
+- 20 tests in `PrisonTests`, one real-data test pinning the two variables and
+  the Skeleton against the shipped files, and
+  `an_imp_drags_an_enemy_to_prison` runs the whole thing: captured at t1209 with
+  ten ticks of the rescue window left, a Skeleton at t11199.
+
+### Still open
+
+- **Torture and conversion**, which the prison is the door to and which have had
+  per-creature fields parsed and unread for months.
+- **Chickens**, which are how a keeper keeps a prisoner alive. A chicken is an
+  object and nothing can pick one up — kind 8.
+- **Combat.** Everything here begins after a fight, and there is no fight.

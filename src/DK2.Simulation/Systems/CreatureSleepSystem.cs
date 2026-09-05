@@ -150,6 +150,10 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             // A creature in the keeper's hand is out of the dungeon: it does
             // not act until it is put down (HandRules.IsHeld, ADR-0062).
             if (HandRules.IsHeld(creature)) continue;
+
+            // Nor does a prisoner: it stands in its cell and withers, and its
+            // whole second belongs to PrisonSystem (ADR-0064).
+            if (PrisonRules.IsImprisoned(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
 
             // A creature walking out of the dungeon does not stop for a nap,

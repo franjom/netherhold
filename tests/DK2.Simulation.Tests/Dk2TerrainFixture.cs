@@ -41,6 +41,7 @@ internal static class Dk2TerrainFixture
     public const byte DungeonHeartTerrain = 14;
     public const byte WoodenBridgeTerrain = 17;
     public const byte GraveyardTerrain = 23;
+    public const byte PrisonTerrain = 20;
     public const byte ManaVaultTerrain = 31;
     public const byte ClaimedVaultTerrain = 32;
 
@@ -70,6 +71,11 @@ internal static class Dk2TerrainFixture
             // install has it.
             T(GraveyardTerrain, "Graveyard",
               TerrainFlags.Ownable, 10000, 10000, GraveyardTerrain, ClaimedPath),
+
+            // The prison, terrain 20 in the shipped table, with the same
+            // 10000/10000 health every room terrain carries.
+            T(PrisonTerrain, "Prison",
+              TerrainFlags.Ownable, 10000, 10000, PrisonTerrain, ClaimedPath),
             T(ClaimedPath, "Claimed Path",
               TerrainFlags.Ownable | TerrainFlags.Attackable | TerrainFlags.FillInable,
               660, 660, Rock, DirtPath, manaGain: 1),
@@ -127,9 +133,17 @@ internal static class Dk2TerrainFixture
             // besides the Portal whose CreatedCreatureId is set -- 8, the
             // Vampire. Nothing here creates one and doing so would be premature
             // (creature-death.md), but the corpse has somewhere to go.
-            R(RoomTypeId.Graveyard, "Graveyard", 2000, GraveyardTerrain, 0x128Cu, 3, 3),
+            R(RoomTypeId.Graveyard, "Graveyard", 2000, GraveyardTerrain, 0x128Cu, 3, 3,
+              createdCreatureId: VampireCreatureId),
+
+            // The prison: 750 to build, 5x5 recommended, and the *other* room
+            // in the shipped table whose CreatedCreatureId is set -- 9, the
+            // Skeleton. Unlike the graveyard's vampire, this one is built: a
+            // prisoner that withers away rises as one (ADR-0064).
+            R(RoomTypeId.Prison, "Prison", 750, PrisonTerrain, 0x13ACu, 5, 5,
+              createdCreatureId: SkeletonCreatureId),
         ],
-        creatures: [Imp(), Goblin(), Vampire(), .. extraCreatures],
+        creatures: [Imp(), Goblin(), Vampire(), Skeleton(), .. extraCreatures],
         variables: Variables(),
         keeperSpells: KeeperSpells(),
         objects: Objects());
@@ -641,6 +655,76 @@ internal static class Dk2TerrainFixture
         InitialGoldHeld = 500,
     };
 
+    public const byte SkeletonCreatureId = 9;
+
+    /// <summary>
+    /// The Skeleton — what a prisoner becomes, and the only creature in this
+    /// fixture that a room makes rather than a portal.
+    ///
+    /// <para><b>The creature with no needs at all.</b> Its shipped record is a
+    /// row of sentinels and zeroes: <c>hungerRate</c> 32767 and
+    /// <c>awake</c> 32767 (never eats, never sleeps), <c>sleep</c> 0,
+    /// <c>LairObjectId</c> 0 (no bed, so nothing to want), <c>pay</c> <b>0</b>
+    /// and every anger rate zero. It works for nothing and complains about
+    /// nothing, which is exactly what a raised prisoner ought to be — and it
+    /// makes the Skeleton the fixture's control against the Goblin, which has
+    /// every need there is.</para>
+    ///
+    /// <para><c>fear</c> is <b>30000</b>, not the Goblin's 50: the shipped
+    /// table's way of writing "does not run away" on a creature that is also
+    /// flagged <c>IsFearless</c>.</para>
+    ///
+    /// <para>It does <b>not</b> carry <c>GenerateDeadBody</c>, so a skeleton
+    /// that runs out of health leaves nothing behind — no second corpse from a
+    /// creature that already died once.</para>
+    /// </summary>
+    public static CreatureDef Skeleton() => Goblin() with
+    {
+        Name = "Skeleton",
+        CreatureId = SkeletonCreatureId,
+
+        Flags = CreatureFlags.IsEvil | CreatureFlags.IsFearless
+                | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped,
+
+        Hp = 1500,
+        MeleeDamage = 280,
+        Pay = 0,
+        Fear = 30000,
+        Threat = 60,
+        Speed = new Fp32(2867),
+        RunSpeed = new Fp32(3686),
+        JobClass = JobClass.Fighter,
+        FightStyle = FightStyle.Flanker,
+
+        // Never eats, never sleeps, never wants a bed. The three sentinels the
+        // shipped record uses to say so.
+        HungerRate = Imp().HungerRate,
+        HungerFill = 0,
+        HpFromChicken = 0,
+        TimeAwake = 32767,
+        TimeSleep = 0,
+        LairObjectId = 0,
+        DecomposeValue = 0,
+
+        // Attracted by a Prison, which is the room that makes it.
+        Attractions =
+        [
+            new CreatureAttraction(1, (byte)RoomTypeId.Prison, 0),
+            new CreatureAttraction(0, 0, 0),
+        ],
+
+        // Every anger rate is zero in the shipped record. A skeleton has
+        // nothing to be angry about.
+        AngerNoLair = 0,
+        AngerNoFood = 0,
+        AngerNoPay = 0,
+        AngerNoWork = 0,
+
+        HappyJobs = [new(JobType.Train, 0, 0, 100)],
+        UnhappyJobs = [new(JobType.Guard, 0, 0, 100)],
+        AngryJobs = [new(JobType.Rebel, 0, 0, 100)],
+    };
+
     /// <summary>The ten tile-work health deltas, the gems yield, the imp idle delay,
     /// the three gold-per-tile limits, the three mana rates and the three
     /// portal numbers, as shipped.</summary>
@@ -691,6 +775,13 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.MaxFreeRangeChickensPerPlayer, 12);
         // How many things one keeper may hold at once (HandRules.Capacity).
         Set(vars, VariableTypeId.MaxNumberOfThingsInHand, 64);
+
+        // The prison, as shipped: three health a second off every prisoner,
+        // and fifty percent per extra creature that an overcrowded one breaks
+        // out (ADR-0064).
+        Set(vars, VariableTypeId.PrisonModifyCreatureHealthPerSecond, -3);
+        Set(vars, VariableTypeId.OvercrowdingJailBreakPercentagePerExtraCreature, 50);
+        Set(vars, VariableTypeId.MotionlessInPrisonSeconds, 8);
         Set(vars, VariableTypeId.MinimumImpThreshold, 4);
         Set(vars, VariableTypeId.TimeBeforeFreeImpGeneratedSeconds, 5);
         Set(vars, VariableTypeId.MaxGoldPerTreasuryTile, 3000);
@@ -778,7 +869,8 @@ internal static class Dk2TerrainFixture
     private static RoomDef R(
         RoomTypeId id, string name, ushort cost, byte terrainId, uint flags,
         byte sizeX = 1, byte sizeY = 1,
-        TileConstruction construction = TileConstruction.Normal) => new()
+        TileConstruction construction = TileConstruction.Normal,
+        byte createdCreatureId = 0) => new()
     {
         Name = name,
         RoomId = (byte)id,
@@ -796,8 +888,12 @@ internal static class Dk2TerrainFixture
         // that ThreeByThree picks out exactly the two portals.
         Construction = construction,
 
+        // Transcribed for the two rooms that set it -- Graveyard 8 (Vampire)
+        // and Prison 9 (Skeleton) -- because PrisonSystem reads it to decide
+        // what a withered prisoner rises as.
+        CreatedCreatureId = createdCreatureId,
+
         // Not transcribed. Present because the record requires them.
-        CreatedCreatureId = 0,
         ObjectIds = [],
         HealthGain = 0,
         CeilingHeight = new Fp32(0),

@@ -59,6 +59,7 @@ public sealed class LairSeeker
     {
         if (!LairRules.NeedsBed(definition)) return false;
         if (HandRules.IsHeld(creature)) return false;
+        if (PrisonRules.IsImprisoned(creature)) return false;
         if (CreatureDeathRules.IsDown(creature)) return false;
         if (creature.Activity is CreatureActivity.SeekingLair
             or CreatureActivity.Leaving) return false;

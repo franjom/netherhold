@@ -125,6 +125,25 @@ public sealed class HandSystem : ISimulationSystem
         creature.MoveRemainder = 0;
         creature.ClearJob();
 
+        // A creature lifted out of a cell is still that keeper's prisoner while
+        // it is in the hand, and where it lands decides whether it stays one:
+        // back onto a tile of one of the keeper's prisons and it is imprisoned
+        // again, anywhere else and it is loose in the dungeon (ADR-0064). The
+        // third destination the owner named - a torture rack - needs the
+        // Torture Chamber, which is not built.
+        if (PrisonRules.IsImprisoned(creature))
+        {
+            if (DropIntoACell(context, command, creature)) return;
+
+            context.Emit(SystemName, "prisoner_freed",
+                $"player={command.PlayerId} creature={creature.Id} " +
+                $"owner={creature.OwnerPlayerId} " +
+                $"tile={command.Tile.X},{command.Tile.Y} reason=dropped_outside " +
+                $"held={hand.Count}");
+
+            PrisonRules.Release(creature);
+        }
+
         // The keeper's 12.5%: a worker put down next to work its keeper has
         // marked takes the job faster than one that found it. Only a worker,
         // and only next to marked work - CONFIRMED by the owner, who checked
@@ -137,6 +156,41 @@ public sealed class HandSystem : ISimulationSystem
             $"player={command.PlayerId} creature={creature.Id} " +
             $"tile={command.Tile.X},{command.Tile.Y} " +
             $"aimed={(aimed ? "yes" : "no")} held={hand.Count}");
+    }
+
+    /// <summary>
+    /// Puts a prisoner back in a cell if it was dropped on a tile of one of the
+    /// dropper's own prisons, and says whether it took.
+    ///
+    /// <para><b>The tile need not be free.</b> A keeper who drops a prisoner
+    /// into a prison that is already full has overcrowded it on purpose, which
+    /// is exactly the manual's <i>"manual overcrowding"</i> and is what
+    /// <see cref="PrisonSystem"/> rolls a jail break on. An imp will not do
+    /// this; only a keeper can.</para>
+    /// </summary>
+    private static bool DropIntoACell(
+        SimulationContext context, DropCreatureCommand command, CreatureState creature)
+    {
+        WorldState world = context.World;
+        int here = (command.Tile.Y * world.Width) + command.Tile.X;
+
+        foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
+        {
+            if (!PrisonRules.IsPrisonOf(room, command.PlayerId)) continue;
+            if (!room.TileIndices.Contains(here)) continue;
+
+            PrisonRules.Imprison(world, context.Database, creature, command.PlayerId, here);
+
+            int held = PrisonRules.PrisonerCount(world, room);
+            context.Emit(SystemName, "prisoner_returned",
+                $"player={command.PlayerId} creature={creature.Id} " +
+                $"owner={creature.OwnerPlayerId} " +
+                $"tile={command.Tile.X},{command.Tile.Y} " +
+                $"held={held} capacity={PrisonRules.Capacity(room)}");
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>

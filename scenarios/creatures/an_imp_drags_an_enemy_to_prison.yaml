@@ -1,0 +1,128 @@
+# Capture: the other branch of DK2's imp task kind 13, and the half of carrying
+# that ADR-0063 had to stop short of.
+#
+# The owner described both halves in one breath (Q99, 2026-09-04):
+#
+#   "… it remains lying on the ground for a period of time, that gives imps an
+#    opportunity to return a creature to its bed in the lair for healing, **or to
+#    prison if it is an enemy creature**."
+#
+# and drew the line between the verbs a day later (2026-09-05):
+#
+#   "only an imp can drag an enemy creature to prison, a hand of evil can then
+#    pick up that creature from prison and drop it around the dungeon, back in
+#    prison, or onto a torture rack in the torture chamber."
+#
+# So capture is an imp's job and only an imp's job. The keeper's hand cannot
+# take a body off the floor at all - not a corpse, not somebody bleeding out,
+# not an enemy - and the binary agrees: the pick-up handler refuses the state
+# flag at bit 0x200000, which DK2's own creature dump names `CreatureDying`
+# (Q161, and ADR-0062 had this backwards for a day).
+#
+# One goblin belonging to player 1, at no health, in player 3's dungeon. Two
+# prison tiles and one imp.
+#
+# What the event log shows, in order:
+#
+#   t19      `creature_collapsed … rescue_window=60s bed=-1`
+#            The rival's goblin, on the first game second. `bed=-1` matters
+#            less here than in the burial run: an enemy would not be taken to a
+#            bed whatever beds it had.
+#
+#   t1111    `body_claimed … kind=unconscious`
+#            **Not at t20**, and the delay is the original's own ordering
+#            rather than sloth. DK2's Tier A job table is `14, 8, 9, 1, 3, 13,
+#            12` and claiming comes *before* both carrying kinds
+#            (`imp-task-priority.md` §4), so an imp captures nobody while there
+#            is unclaimed ground. The whole 9x8 floor takes it eleven hundred
+#            ticks.
+#
+#   t1163    `body_picked_up … to=(6,5)`
+#            The cell is chosen here, before the walk, exactly as a bed or a
+#            graveyard tile is. A keeper with no prison - or with every cell
+#            taken - has an imp that never sets off, which is the manual's
+#            *"imps stop collecting prisoners"* falling out of the same rule
+#            rather than being written twice.
+#
+#   t1209    `creature_imprisoned … owner=1 (6,5) health=1500`
+#            **Ten ticks before it would have died.** The rescue window ran
+#            from t19 to t1219 and the capture landed inside it with half a
+#            game second to spare, which is the whole tension of the mechanic:
+#            a prison too far from the fighting collects corpses instead of
+#            prisoners (Q164).
+#
+#            `owner=1` is the part worth reading twice. **A prisoner changes
+#            jailers, not keepers** - it is still player 1's goblin, and DK2
+#            keeps the two apart in its own record too, where `PrisonOwner`
+#            sits at creature offset 0x3cb next to the ordinary owner field.
+#
+#            `health=1500` is a full Goblin, and it is **ours** (Q167). The
+#            creature arrived unconscious because that is the only way it could
+#            arrive, and something has to decide what it wakes with. Full,
+#            because the prison is a countdown that a keeper interrupts by
+#            dropping chickens on the prisoner, and one that woke at nothing
+#            would be a skeleton before the keeper could reach for one. One
+#            look at a freshly captured prisoner's health bar settles it.
+#
+#   t11199   `prisoner_perished … raised=Skeleton as=3`
+#            1500 health at `PrisonModifyCreatureHealthPerSecond` = -3 a second
+#            is 500 game seconds, and 1209 + 9990 = 11199 exactly. The manual
+#            says the ending in its own words: *"any creatures that perish in
+#            Prison will rise as Skeletons under your control"*, and the
+#            Prison's `CreatedCreatureId` is **9** - one of only two rooms in
+#            the shipped table that names a creature at all. The skeleton is
+#            **player 3's**, standing where the goblin stood.
+#
+# **What this run does NOT establish**, recorded rather than implied:
+#
+#   * **Nothing stops the clock.** Chickens are what a keeper feeds a prisoner
+#     with and a chicken is an object that cannot yet be picked up, so every
+#     prisoner in this project runs its 500 seconds out. That is the mechanic
+#     working, not the mechanic finished.
+#
+#   * **The torture chamber**, which is the third place the owner said a lifted
+#     prisoner may be dropped. Not built - a prisoner dropped anywhere that is
+#     not a prison tile simply goes free.
+#
+#   * **The jail break.** `OvercrowdingJailBreakPercentagePerExtraCreature` = 50
+#     is implemented and rolled once a game second, but a prison can only
+#     become overcrowded by a keeper dropping a prisoner into a full one by
+#     hand, and this run issues no commands. `PrisonTests` covers it directly.
+#     How often the original rolls it is ours (Q168).
+#
+#   * **How many prisoners a prison holds.** One per tile here, which is what
+#     every other occupancy rule in this project uses and is the weakest
+#     inference in `PrisonRules` (Q166). DK2 stores `TotalCapacity` and
+#     `UsedCapacity` on the room and how it derives them has not been read.
+#
+#   * **Nothing fights.** The goblin was placed at zero health rather than
+#     beaten down, because there is no combat. Capture in the original begins
+#     with a fight, and this run begins after one.
+id: creatures-an-imp-drags-an-enemy-to-prison-001
+question: >
+  When an enemy creature is beaten down in your dungeon, does an imp drag it to
+  your prison - and what happens to it once it is in there?
+# Long enough to run the prisoner's whole 500 seconds out, and on the same small
+# map the burial scenario uses for the same reason: claiming outranks carrying,
+# so a big map is still being claimed when the interesting part should start.
+map: flat_9x8
+seed: 5
+duration_ticks: 12000
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 0 }
+    - { id: 1, gold: 0, mana: 0 }
+  rooms:
+    # Two cells, which is one more than this run needs and enough to show that
+    # the nearer is chosen.
+    - { type: Prison, at: [6, 5], player: 3 }
+    - { type: Prison, at: [7, 5], player: 3 }
+  creatures:
+    # Somebody else's goblin, at no health, lying in player 3's dungeon.
+    - { type: Goblin, at: [2, 2], player: 1, health: 0 }
+    # The jailer.
+    - { type: Imp, at: [1, 1], player: 3 }
+commands: []
+observe:
+  - state_hash
+  - events

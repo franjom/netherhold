@@ -217,6 +217,10 @@ public sealed class ImpTaskSystem : ISimulationSystem
             // A creature in the keeper's hand is out of the dungeon: it does
             // not act until it is put down (HandRules.IsHeld, ADR-0062).
             if (HandRules.IsHeld(creature)) continue;
+
+            // Nor does a prisoner: it stands in its cell and withers, and its
+            // whole second belongs to PrisonSystem (ADR-0064).
+            if (PrisonRules.IsImprisoned(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
 
             Update(context, creature, definition);
@@ -1316,7 +1320,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Arrival: a corpse into the graveyard, a collapsed creature into its bed.
+    /// Arrival: a corpse into the graveyard, the keeper's own collapsed
+    /// creature into its bed, an enemy's into a cell.
     /// </summary>
     private static void Deliver(
         SimulationContext context, CreatureState creature, CreatureState body)
@@ -1339,6 +1344,33 @@ public sealed class ImpTaskSystem : ISimulationSystem
         }
 
         CarryRules.PutDown(creature, body);
+
+        // Somebody else's creature goes into a cell rather than a bed - kind
+        // 13's other branch, and the only route into a prison there is
+        // (ADR-0064). The cell was chosen before the walk began, so all that is
+        // left is to check nobody took it in the meantime.
+        if (body.OwnerPlayerId != creature.OwnerPlayerId)
+        {
+            int cell = creature.TargetTileIndex;
+            if (PrisonRules.PrisonerOn(world, cell) is null
+                && PrisonRules.Imprison(
+                    world, context.Database, body, creature.OwnerPlayerId, cell))
+            {
+                context.Emit(SystemName, "creature_imprisoned",
+                    $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
+                    $"type={definition.Name} owner={body.OwnerPlayerId} " +
+                    $"{Describe(world, cell)} health={body.Health}");
+            }
+            else
+            {
+                context.Emit(SystemName, "body_dropped",
+                    $"imp={creature.Id} body={body.Id} " +
+                    $"at=({creature.Tile.X},{creature.Tile.Y}) reason=cell_taken");
+            }
+
+            GoIdle(creature);
+            return;
+        }
 
         if (CreatureDeathRules.Rescue(world, context.Database, body))
         {

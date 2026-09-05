@@ -110,7 +110,9 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             // A creature in the hand still minds - the ladder above ran, and
             // AngerInHand rides the same clock in HandSystem - but it can act
             // on none of it while it is off the ground. It rolls when it lands.
-            if (after == CreatureMood.Angry && !HandRules.IsHeld(state))
+            if (after == CreatureMood.Angry
+                && !HandRules.IsHeld(state)
+                && !PrisonRules.IsImprisoned(state))
                 Decide(context, creature, state);
         }
     }

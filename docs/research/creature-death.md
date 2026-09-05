@@ -250,7 +250,7 @@ released at death.
 |---|---|
 | **The corpse** | **Not an object** — see the correction above; none of the 145 is a corpse. It is a creature in a state, with a `DecomposeValue` a graveyard counts 1000 of. What is missing is an imp that can carry one |
 | **Rescue** | Nothing can be carried. `CreatureDeathRules.Rescue` is written and tested and has no caller |
-| **Prison for enemies** | No prison, no capture. `MotionlessInPrisonSeconds` (8) and `PrisonModifyCreatureHealthPerSecond` (−3) are parsed and unread |
+| **Prison for enemies** | **Built** (ADR-0064, `docs/research/prison.md`): an imp drags an unconscious enemy to a cell, it withers at `PrisonModifyCreatureHealthPerSecond` (−3) a game second, and at nothing it rises as a **Skeleton for the jailer**. `MotionlessInPrisonSeconds` (8) is still parsed and unread |
 | **The Vampire** | Downstream of the corpse. Nothing accumulates, so no Vampire can be made |
 | **The petals** | Whether the flower above a creature's head is the anger meter or a separate indicator is UNKNOWN |
 

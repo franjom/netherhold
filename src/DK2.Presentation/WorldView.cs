@@ -365,6 +365,7 @@ public sealed class WorldView
         CreatureActivity.Dead => "dead",
         CreatureActivity.FetchingBody => "fetching_body",
         CreatureActivity.CarryingBody => "carrying_body",
+        CreatureActivity.Imprisoned => "imprisoned",
         _ => throw new ArgumentOutOfRangeException(
             nameof(activity), activity, "No animation key for this activity."),
     };

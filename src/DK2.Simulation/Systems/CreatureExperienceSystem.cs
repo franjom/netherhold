@@ -79,6 +79,7 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
             // Nothing is earned in the keeper's hand: experience is paid for
             // a second worked, and a held creature worked none (ADR-0062).
             if (HandRules.IsHeld(state)) continue;
+            if (PrisonRules.IsImprisoned(state)) continue;
             if (CreatureDeathRules.IsDown(state)) continue;
             if (state.Activity == CreatureActivity.Leaving) continue;
 

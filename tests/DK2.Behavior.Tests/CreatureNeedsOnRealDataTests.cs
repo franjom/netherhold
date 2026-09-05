@@ -436,6 +436,44 @@ public class CreatureNeedsOnRealDataTests
     }
 
     [Fact]
+    public void ThePrisonsOwnBalanceVariablesAndItsSkeletonAreWhatPrisonRulesReads()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        // The wither, which the 1999 manual states in words - "whilst in
+        // Prison, creatures gradually lose health as they wither away" - and
+        // which the variable is named for.
+        Assert.Equal(-3, db[VariableTypeId.PrisonModifyCreatureHealthPerSecond]);
+        Assert.Equal(-3, PrisonRules.WitherPerSecond(db));
+
+        // The jail break, per extra creature over capacity.
+        Assert.Equal(50, db[VariableTypeId.OvercrowdingJailBreakPercentagePerExtraCreature]);
+        Assert.Equal(100, PrisonRules.JailBreakPercent(db, over: 2));
+        Assert.Equal(0, PrisonRules.JailBreakPercent(db, over: 0));
+
+        // And the ending, which is a room field rather than a variable: the
+        // Prison's CreatedCreatureId is the Skeleton. Only two rooms in the
+        // whole shipped table name a creature, and this is the one that is
+        // built - the Graveyard's Vampire is not.
+        RoomDef prison = db.Room(RoomTypeId.Prison);
+        Assert.Equal(9, prison.CreatedCreatureId);
+        Assert.Equal("Skeleton", db.CreatureById(prison.CreatedCreatureId).Name);
+
+        // The Skeleton is the creature with no needs at all, and PrisonSystem
+        // relies on it: a raised prisoner that wanted a bed, a chicken and a
+        // wage would be a strange reward for a jailer.
+        CreatureDef skeleton = db.CreatureById(prison.CreatedCreatureId);
+        Assert.Equal(0, skeleton.Pay);
+        Assert.Equal(0, skeleton.LairObjectId);
+
+        // Parsed and read by nothing: how long a prisoner stands still for.
+        Assert.Equal(8, db[VariableTypeId.MotionlessInPrisonSeconds]);
+    }
+
+    [Fact]
     public void TheAngerFieldsAreSignedAndTheLastTwoAreWhy()
     {
         string? install = Install();

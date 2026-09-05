@@ -80,6 +80,10 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             // A creature in the keeper's hand is out of the dungeon: it does
             // not act until it is put down (HandRules.IsHeld, ADR-0062).
             if (HandRules.IsHeld(creature)) continue;
+
+            // Nor does a prisoner: it stands in its cell and withers, and its
+            // whole second belongs to PrisonSystem (ADR-0064).
+            if (PrisonRules.IsImprisoned(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
 
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);

@@ -153,6 +153,26 @@ public enum CreatureActivity
     /// depends on which clock it is.</para>
     /// </summary>
     CarryingBody = 12,
+
+    /// <summary>
+    /// Standing in somebody else's prison, losing health.
+    ///
+    /// <para>The far end of DK2's imp task <b>kind 13</b>: an imp carries its
+    /// keeper's own unconscious creatures to a Lair and an enemy's to a Prison,
+    /// and this is what the enemy becomes. <b>Only an imp puts a creature
+    /// here</b> — CONFIRMED by the owner (2026-09-05) — but once it is here the
+    /// keeper's hand may lift it out again, which is the one case in which the
+    /// Hand of Evil touches a creature its keeper does not own
+    /// (<see cref="HandRules.CanPickUp"/>).</para>
+    ///
+    /// <para>A prisoner does nothing: it does not walk, work, sleep, eat or
+    /// choose a job. <c>PrisonModifyCreatureHealthPerSecond</c> takes three
+    /// health off it every game second, and at zero it rises as a Skeleton for
+    /// the keeper whose prison it stood in — the Prison's
+    /// <c>CreatedCreatureId</c> is <b>9</b>, and it is one of only two rooms in
+    /// the shipped table that names a creature at all.</para>
+    /// </summary>
+    Imprisoned = 13,
 }
 
 /// <summary>
@@ -473,6 +493,25 @@ public sealed class CreatureState
     /// </summary>
     public int TargetBodyId = -1;
 
+    /// <summary>
+    /// The keeper whose prison holds this creature, or
+    /// <see cref="PrisonRules.NoPrison"/> for none.
+    ///
+    /// <para><b>Not the same thing as <see cref="OwnerPlayerId"/></b>, and DK2
+    /// keeps both for the same reason: a prisoner is still its own keeper's
+    /// creature, it is merely somebody else's problem to feed. The original's
+    /// creature dump names this field <c>PrisonOwner</c> and puts it at offset
+    /// <c>0x3cb</c>, four fields along from <c>DraggingId</c> and
+    /// <c>BeingDragged</c> — which is the imp that put it there (facts about
+    /// the binary in our own words, ADR-0046).</para>
+    ///
+    /// <para>It survives being picked up, because the keeper who lifts a
+    /// prisoner out of a cell has not freed it yet: dropping it back on a prison
+    /// tile puts it straight back, and only dropping it anywhere else lets it
+    /// go (<see cref="PrisonRules.Release"/>).</para>
+    /// </summary>
+    public int PrisonOwnerPlayerId = PrisonRules.NoPrison;
+
     public CreatureActivity Activity;
 
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
@@ -549,6 +588,7 @@ public sealed class CreatureState
         hash.Add(CarriedCreatureId);
         hash.Add(CarriedByCreatureId);
         hash.Add(TargetBodyId);
+        hash.Add(PrisonOwnerPlayerId);
         hash.Add((int)Activity);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);

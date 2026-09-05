@@ -59,6 +59,10 @@ namespace DK2.Simulation.Systems;
 /// movement walks on the following tick — and <i>before</i> the health system,
 /// so a creature that falls asleep this tick is healed on the same second
 /// rather than a second late.</item>
+/// <item><see cref="PrisonSystem"/> — immediately after the health system, on
+/// the same cadence: it frees prisoners whose cell has been sold or taken,
+/// rolls an overcrowded prison's jail break, and withers everybody left until
+/// they rise as Skeletons.</item>
 /// <item><see cref="CreatureHealthSystem"/> — last, so a creature that arrives
 /// on tick N is not regenerated or aged on the tick it arrives, and its hunger
 /// clock starts from a whole second. It also means anything that damages a
@@ -94,6 +98,13 @@ public static class SimulationSystems
         new PortalSystem(),
         new CreatureSleepSystem(),
         new CreatureHealthSystem(),
+
+        // Straight after it, on the same second and the same phase: a
+        // prisoner's health is the prison's business alone, and the health
+        // system skips them so that exactly one system settles their second
+        // (ADR-0064).
+        new PrisonSystem(),
+
         new CreatureAngerSystem(),
 
         // Experience last of all: a creature is paid for a second it actually

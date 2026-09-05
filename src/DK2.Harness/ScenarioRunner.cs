@@ -368,12 +368,20 @@ public sealed class ScenarioRunner
             "setup.rooms lays room terrain down directly: nothing is charged for it and no imp " +
             "builds it. Most rooms still do nothing a room does beyond being terrain its owner " +
             "holds - a treasury stores gold because a variable says how much per tile, and a " +
-            "library and a training room are inert. Two now do more: a portal " +
-            "produces creatures, and a lair both attracts them and holds one bed per tile that " +
-            "a creature walks to, puts its bed on, sleeps in and is healed by (ADR-0060). What a " +
-            "lair still cannot do is " +
-            "anger the creature it turns away (Q106) or take back a creature an imp carried to " +
-            "it, because nothing can be carried");
+            "library and a training room are inert. Four now do more: a portal produces " +
+            "creatures; a lair attracts them and holds one bed per tile that a creature walks " +
+            "to, puts its bed on, sleeps in and is healed by, and that an imp can carry a " +
+            "collapsed creature back to (ADR-0060, ADR-0063); a graveyard takes the corpses an " +
+            "imp brings it; and a prison holds the enemies an imp drags in, withers them and " +
+            "raises them as Skeletons (ADR-0064). What a lair still cannot do is anger the " +
+            "creature it turns away (Q106)");
+        unsupported.Add(
+            "a prison in a run cannot be fed. DK2 keeps a prisoner alive by having its keeper " +
+            "drop chickens on it, a chicken is an object nothing can pick up yet, and there is " +
+            "no torture chamber to move one to - so every prisoner here runs its whole " +
+            "PrisonModifyCreatureHealthPerSecond countdown out and becomes a Skeleton. How many " +
+            "prisoners a prison holds is one per tile and is ours (Q166), and what health a " +
+            "captured creature wakes with is ours too (Q167)");
         unsupported.Add(
             "a hatchery is inert IN A RUN, but not for want of research: HatcheryRules knows how " +
             "many coops a room of this size gets, where they may stand, that the room lays an EGG " +

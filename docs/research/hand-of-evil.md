@@ -93,25 +93,45 @@ between two verbs that nobody would have guessed.
 
 ---
 
-## 3. What refuses a pick-up, and what this project does instead
+## 3. What refuses a pick-up
 
-The original's four creature-specific refusals are two states, one state flag
-and one ownership test. **Three of the four name states this project does not
-have**, so `HandRules.CanPickUp` reproduces what it can and says so:
+**CORRECTED 2026-09-05 (ADR-0064), and the correction is the interesting part.**
+
+The original's four creature-specific refusals are one ownership test, one state
+flag and two creature states:
 
 | Original | Here |
 |---|---|
 | already in a hand | same |
 | hand full | same |
 | record lacks `CanBePickedUp` | same |
-| enemy creature, under a condition | **stricter**: only the keeper's own creatures, always |
-| two creature states, one state flag | **absent** — the states do not exist |
-| — | **added**: a collapsed creature is refused (Q161) |
+| an ownership test — **unread**, see below | the keeper's own creatures, **plus any creature whose `PrisonOwner` is the keeper** |
+| state flag `0x200000` = **`CreatureDying`** | **same** — a creature that is down is refused |
+| creature states `0x33` and `0x34` | **absent** — unidentified, and the states do not exist here |
 
-The last row is ours and is a *narrowing*, recorded rather than hidden: DK2 lets
-the hand take a collapsed creature, which is half of what the dying window is
-for. Ours cannot, because what it would then do with one — carry it to a bed or
-a prison — is the mechanic after this one.
+**The `CreatureDying` row used to be recorded the other way round**, and it was
+wrong for a day. The first draft of this section read the handler, wrote the
+refusal down as *"two creature states and one state flag, none of which this
+project has yet"* — **without naming the flag** — and then concluded that DK2
+lets the hand take a collapsed creature and that ours refusing one was a
+narrowing invented to excuse a missing mechanic. Bit `0x200000` is bit 21 of the
+first state-flag word, and the creature dump's own bit list gives bit 21 as
+`CreatureDying`. The rule was in the binary the whole time.
+
+The owner settled it independently the same day: *"a corpse can not be picked up
+by hand of evil … also an injured creature, lying on the floor bleeding out,
+can't be picked up by hand of evil"* (Q161). **The hand never touches a body.
+Carrying one is an imp's job and only an imp's.**
+
+**The ownership test is genuinely unread.** The handler's test is
+`if (SneakingAs != 0 && owner != me) refuse`, and `SneakingAs` (`0x4a3`) is the
+creature type a creature is disguised as — so read literally it refuses an enemy
+only while it is disguised, which cannot be the whole rule. The real gate is
+most likely the virtual call the handler makes before any of this
+(`vtable + 0x28`). Recorded as unread rather than guessed at. What this project
+does instead is the owner's description: **own creatures, plus prisoners in the
+keeper's own prison**, which is the one exception there is
+(`docs/research/prison.md` §2).
 
 ---
 

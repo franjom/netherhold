@@ -68,6 +68,13 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState state = world.Creatures[i];
+
+            // A prisoner's second belongs to PrisonSystem alone: it withers at
+            // PrisonModifyCreatureHealthPerSecond and dies into a Skeleton
+            // rather than into a collapse, so nothing here may touch its health,
+            // its hunger or its dying clock (ADR-0064).
+            if (PrisonRules.IsImprisoned(state)) continue;
+
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
             // Terrain first, and it applies to the dying as well as the
