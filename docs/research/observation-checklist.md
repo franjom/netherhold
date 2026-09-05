@@ -181,6 +181,28 @@ The observation is already made and is not in doubt. What would sharpen it:
 anywhere, so a creature that should be training is asleep instead, and beds are
 taken in an order the original would never produce.
 
+### Q87 — is a level's creature pool a standing limit or a draining quota? — *promoted 2026-09-05, and it had been sitting where nobody would look*
+
+**Found by applying the new review clause to this project's own comments** (see
+`GOAL_ALIGNMENT.md`, 2026-09-05): a hedge that names the observation which would
+settle it is not a defence, it is an experiment nobody has run.
+`PortalRules.PoolLimit` says *"on level 1 the two are indistinguishable, because
+the pool and the first portal's cap are both 15"* — which is a statement about
+**level 1**, and the campaign has 65 other levels.
+
+**The experiment.** Play any level whose pool for some creature type is larger
+than the portal capacity that gates it, take the full complement of that type,
+then **sack or kill one** and wait.
+
+- **another one arrives** → standing limit, which is what we implement;
+- **nothing arrives, ever** → draining quota, and every long level in the
+  campaign eventually starves in a way ours never will.
+
+Ours is a standing limit on three arguments (OpenKeeper compares against the
+current count, the 1999 manual says a sacked creature *"[is] replaced by a new
+creature"*, and the file has nowhere to record depletion). It is a good case. It
+is not an observation.
+
 ### Q152 — does regeneration continue in combat, in the hand, or under possession? — *added 2026-09-05*
 
 Three separate ten-second looks, and the first is the one that changes a game:

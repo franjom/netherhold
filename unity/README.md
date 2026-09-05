@@ -138,7 +138,7 @@ asserted:
 | on screen | what it confirms |
 |---|---|
 | `1140 tile objects` | 30 × 38. Every tile got an object, matching the smoke test exactly |
-| `2 creatures` at tick 203 | **the imp economy ran.** The map itself places nobody — creatures live in the unparsed THINGS record — so those two imps were produced by `ImpSupplySystem` from the dungeon heart (ADR-0021), at roughly the 5-second cadence the data specifies |
+| `2 creatures` at tick 203 | **the imp economy ran.** The map itself places nobody — creatures live in the unparsed THINGS record — so those two imps were produced by `ImpSupplySystem` from the dungeon heart (ADR-0021), at roughly the 5-second cadence the data specifies. **Since ADR-0057 the *first* one arrives on tick zero rather than five seconds in** — the original keeps a deadline, not a countdown — so a rerun shows the same two imps a little earlier |
 | `pushed 0 tiles / 0 creatures this frame` | **the diffing works.** A settled dungeon costs nothing to keep on screen, which is the property `ScenePresenter` exists for |
 | `1182 assets resolved: 1182 from placeholder` | 1178 at tick 20 plus 4 for two creatures (a mesh and an animation each). The arithmetic closes |
 

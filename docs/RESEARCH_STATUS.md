@@ -179,7 +179,36 @@ What is *built* rather than known, against the long-term goals:
   214 variables and several community names already proved wrong, this is a
   research multiplier rather than a finding.
 
+- **What the original's own source-file names are, and how to reach code by
+  them** (2026-09-05, `docs/research/source-file-map.md`). Every assert carries
+  its `__FILE__`, so the executable lists DK2's **72 translation units** by name
+  — and DK2's creature AI turns out to be **one file per state**
+  (`LairState.cpp`, `HungerState.cpp`, `TrainState.cpp`, …). It also retired a
+  recorded negative result: state-machine code reached only through vtables was
+  written off on 2026-09-04 after four failed approaches, and the route that
+  works is to **scan memory for the assert string's own address and decompile the
+  neighbourhood** rather than asking Ghidra which function owns the instruction.
+- **Where free imps come from, exactly** (ADR-0057). The keeper holds a
+  **deadline**, not a countdown, written only when an imp is made — so the first
+  replacement after a spell at full strength is **immediate** and only the ones
+  after it are five seconds apart. Ours had the opposite for three weeks, and the
+  owner's recording is what caught it. The same read confirmed Create Imp's price
+  formula from the binary (Q54, twice-confirmed now) and showed
+  `TimeBeforeFreeImpGeneratedSeconds` being **multiplied by variable 19**, which
+  is the clearest evidence yet for what Q132's phantom variable is *for*.
+
 ## Unsolved (research required before implementing)
+- **How a creature decides to go and get a lair, and which tile it takes.**
+  ← **contradicted, documented, deliberately not built**
+  (`docs/research/lair-acquisition.md`). Owner recordings show a happy bedless
+  creature going off to *train* while a free lair tile sat there, and only
+  looking for a lair when its mood turned Unhappy (**Q150**); and show claiming
+  to be a **journey with a test at the end** — creatures crossing a lair, walking
+  up to occupied tiles, rejecting them and moving on. Ours claims a bed on the
+  first tick one is free, from anywhere. Half the replacement is read out of the
+  binary (room chosen by distance to its centre; tile search is own tile → a
+  fixed neighbour table → a chained walk of the room) and half is not (the
+  trigger, and the test that makes one lair room preferred — **Q151**).
 - **What a room does.** ← being worked on. **Done: the portal, the lair, the
   treasury; the hatchery is researched and half built** (everything but its
   clock). Much less of a blank sheet than it was. The ROOMS record carries art, size and cost and says
@@ -260,6 +289,14 @@ pace, the slowdown is draining eligibility and the implemented interval scaling
 is the wrong cause for the right symptom; if it does not, the interval really
 does stretch. Followed by the slope itself — two consecutive gaps *with the
 goblins counted*, which the formula says differ by exactly `base ÷ 2`.
+
+**A recording is now a second route into this list, and it is the strongest one
+yet.** On 2026-09-05 the owner filmed the game and had a second assistant turn
+the footage into a numbered question list; it reversed **shipped behaviour three
+weeks old** (Q56, the free-imp clock), answered Q100 and Q148 outright, and
+produced the two lair findings above. **No test could have caught the free-imp
+defect** — every test agreed with the wrong rule. `docs/CODEX_TASKS.md` Brief 4
+is the pipeline written down.
 
 **Four more were answered on 2026-09-04/05 and are worth listing as evidence that
 this route works**: Q131 (a lair tile is bare until claimed), Q133 (a hatchery

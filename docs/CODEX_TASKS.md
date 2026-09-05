@@ -5,10 +5,16 @@ worth giving it, phrased so they can be pasted directly.
 
 ## The division that makes sense
 
-**Codex: verification, breadth, and second opinions.** Read-only auditing, data
-sweeps over the 1236 shipped files, and independent re-derivation of something
-already derived — that last one is the only thing a second *model* does that a
-second pass by the same model cannot.
+**Codex: verification, breadth, second opinions — and now footage.** Read-only
+auditing, data sweeps over the 1236 shipped files, independent re-derivation of
+something already derived, and **turning a recording of the running game into a
+question list**. The last of those was added on 2026-09-05 after it worked
+better than anything else has: see Brief 4, which is the highest-value entry in
+this file.
+
+**Ranked by what they have actually produced:** Brief 4 (reversed shipped
+behaviour three weeks old), Brief 1 (the characteristic-defect audit), Brief 3
+(corroboration), Brief 2 (still open).
 
 **Not Codex: prose in `docs/research/`, the `reverse-engineering/` quarantine,
 the determinism hash, and commits.** The first degrades an evidence discipline
@@ -158,3 +164,110 @@ Good candidates, both derived on 2026-09-04:
 the one that needs the quarantine rule stated explicitly and its output checked
 before anything is written down: facts in our own words may cross, decompiler
 output may not.
+
+---
+
+## Brief 4 — turn a recording into a question list (the highest-value brief here)
+
+**Added 2026-09-05, because it worked.** The owner recorded DK2 playing, Codex
+analysed the footage, and the resulting document **reversed behaviour this
+project had shipped for three weeks**. No test could have caught it: every test
+agreed with the wrong rule. The running game is the only oracle for that class of
+defect, and this is how its evidence gets in.
+
+### What made the output good, and should be kept
+
+The document that worked had four things in it, and each earned its place:
+
+1. **CONFIRMED observations** — what was seen, with timings, separated from any
+   interpretation. *"Waited ~30 seconds at exactly 4 Imps; the replacement
+   appeared ~1.3–1.5 seconds after the sacrifice; subsequent ones ~5 seconds
+   apart."*
+2. **An explicit CONTRADICTION against our code**, naming the method and quoting
+   the line. *"`ImpSupplySystem.TopUp` sets `FreeImpCountdownTicks = 0` … that
+   cannot reproduce the observed first replacement."* This is the part with the
+   highest value per word, and the part a model that only reads the repo cannot
+   produce.
+3. **A confidence ladder over the inferences**, using this project's own rungs:
+   CONFIRMED / STRONGLY INFERRED / UNKNOWN. Keeping the unknowns *labelled*
+   rather than smoothed over is what made them safe to act on.
+4. **Numbered questions addressed to the decompiler**, ordered, with a closing
+   sentence naming which one mattered most. That ordering was correct and saved
+   an hour.
+
+### The rule for reading it back
+
+**Its observations are oracle. Its inferences are reasoning about our repo.**
+Treat the two differently: act on a CONFIRMED observation the way you would act
+on the owner speaking, and check an inference before building on it. In the
+2026-09-05 document one inference was wrong in a harmless direction —
+`TimeBetweenReattemptingSleepSeconds` was offered as a possible retry interval,
+and it turns out to be read by **zero instructions in the whole executable**.
+
+### The prompt
+
+````text
+You are analysing recordings of Dungeon Keeper 2 (1999, v1.70) for a project
+that reimplements it in C# as a behaviourally faithful clean-room
+reimplementation. The original game is the oracle: the goal is not working code,
+it is code that behaves like DK2.
+
+You will be given one or more screen recordings, and read access to the repo.
+
+Produce a document with these four parts, in this order:
+
+1. CONFIRMED OBSERVATIONS. Only what is visible. Give timings as measured, with
+   the uncertainty ("approximately 1.3-1.5 seconds", not "1.4 seconds"). Say
+   what was on screen, not what it means. Include negative observations - what
+   did NOT happen is evidence.
+
+2. CONTRADICTIONS WITH THE IMPLEMENTATION. For each observation, find the code
+   that claims to implement it and say whether it can produce what was seen.
+   Name the file and method and quote the line. If it cannot, say so plainly.
+   THIS IS THE MOST VALUABLE SECTION - a contradiction here is worth more than
+   ten observations, because it is the only thing that catches a defect the
+   test suite agrees with.
+
+3. WHAT IS ESTABLISHED, on this project's own confidence ladder:
+   CONFIRMED (seen), STRONGLY INFERRED (the only reading that fits),
+   HYPOTHESIS (fits, others also fit), UNKNOWN (say so; do not smooth it over).
+   An UNKNOWN left labelled is useful. An UNKNOWN dressed as an inference is a
+   future defect.
+
+4. QUESTIONS FOR THE DECOMPILER, numbered, ordered by what they unblock, and
+   phrased so someone with Ghidra open can answer them one at a time. End with
+   one sentence naming which question matters most and why.
+
+DO NOT edit any file. DO NOT commit. DO NOT open a pull request.
+Do not invent DK2 behaviour: if the footage does not show it, it is UNKNOWN.
+````
+
+### What to record next, if there is another session
+
+These are the open observations, and the first is the one that blocks real work:
+
+- **Q150 — what makes a creature go and get a lair.** Drop a fresh, happy,
+  bedless creature into a dungeon with a free lair tile. Time how long before it
+  goes for the lair and watch what it does meanwhile; repeat with a creature
+  whose anger is already part-way up. **This blocks the lair rework**, which is
+  documented and deliberately unbuilt (`docs/research/lair-acquisition.md`).
+- **Q147 — is imp job priority global, or a tie-break within one position.**
+  Mark a wall far from one idle imp and drop gold at its feet; then mark a wall
+  right beside the same imp with gold a few tiles off. **This one can invalidate
+  the whole job-selection model**, quite apart from gold.
+- **Q152 — does regeneration continue in combat, in the Hand of Evil, under
+  possession.** Three ten-second looks. The combat case is the one that changes a
+  game: an imp regenerates 67 a second.
+- **Q149 — is the ~1.4s before a free imp appears simulation or animation.**
+  Low stakes; nothing in the simulation depends on it.
+- **Q151 — which of two lair rooms a creature prefers.** Two lairs, equidistant,
+  differing in what is standing in them. The binary has a preference test whose
+  meaning is unread.
+
+### And what this brief must never become
+
+Codex analysing footage produces **research input**, not research prose.
+`docs/research/` stays off limits (see "The division that makes sense" above) —
+the write-up is where the confidence ladder is enforced and where the evidence
+rank is recorded, and that discipline is the thing this project has that most
+reimplementations do not.

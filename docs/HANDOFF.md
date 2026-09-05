@@ -3556,3 +3556,105 @@ code that would break. · **Q150** what makes a creature go for a lair
 · **Q152** does regeneration continue in combat · **Q149** is the ~1.4s
 simulation or animation · and **Q147 is still first in line**, because it may
 retire Q146 entirely.
+
+## Twenty-first sitting, closed: the docs caught up, and the new rule found something
+
+| | |
+|---|---|
+| `7b58f3c` | **An imp in the hand still counts** — Q148 answered by the owner, and written where it will break |
+| *(this)* | **The docs, the Codex brief, and a review clause that paid on its first run** |
+
+**799 tests green**, 16 scenarios, zero warnings, clean tree, quarantine holding.
+
+### Q148: an imp in the Hand of Evil counts towards the four
+
+The owner held one of exactly four imps and **no fifth appeared**. Two lines of
+evidence arrived separately and agree: the tally the original's free supply reads
+is moved in exactly two places, when a thing gains an owner and when it loses
+one, and picking a creature up does not change whose it is.
+
+**The useful part is what it prevents.** DK2 keeps **two** counts of a keeper's
+imps — this one, and the imp portrait's figure, which visibly *excludes* held
+imps. When the Hand of Evil is built, the obvious thing to reuse is the count the
+interface shows, and that would let a player hold one imp indefinitely and farm a
+fifth out of the dungeon heart. Nothing enforces it today because nothing can be
+picked up, so the rule lives in `ImpSupplyRules.ImpCount` — **on the code that
+would break it**, not only in a research note.
+
+### The fourth review clause, and it found one the same day
+
+`GOAL_ALIGNMENT.md` now carries a fourth standing question, and it exists because
+of how the free-imp defect survived three weeks:
+
+> **when a comment says a difference is unobservable, does it name the
+> observation that would settle it? If it does, that is not a defence — it is an
+> experiment nobody has run.**
+
+`ImpSupplySystem`'s doc-comment had described the exact experiment that refuted
+it, in the sentence defending it. So: **grep the codebase for hedges** —
+*indistinguishable*, *differs only in*, *not observed*, *makes no difference*.
+
+**Seventeen hits, one promotion.** Most are honest — "indistinguishable **on the
+shipped data**" is a limit of the evidence, and `RoomRules.RefundPerTile` is
+squarely that. But `PortalRules.PoolLimit` hedges with *"on level 1 the two are
+indistinguishable"*, and the campaign has 65 other levels. **Q87** — is a
+creature pool a standing limit or a draining quota — is decidable by playing any
+level where the pool exceeds the portal capacity gating it, and in four months
+nobody had put it on the observation checklist. It is on it now.
+
+Third kind, named so it is not re-audited: `WorkStance`'s Q49 linger really *is*
+invisible from outside, so it is a decompiler question rather than an observation
+one — same shape as Q149.
+
+### A negative result expired, and the method matters more than the fact
+
+On 2026-09-04 this project recorded that the creature state machine **could not
+be reached** in the binary: four approaches, all failed, vtables named as the next
+thing to try. That is now marked superseded in both `creature-needs.md` §6 and
+ADR-0048.
+
+**The route that worked was already half-present in the failed method.** Scan
+initialised memory for the assert string's own address (`ScanForAddr.py`), then
+**decompile the neighbourhood** rather than trying to make Ghidra own the exact
+instruction. `LairState.cpp` shows zero referring functions by Ghidra's reference
+database and one by the raw scan, and that one hit lands inside the
+lair-acquisition code. Ten minutes, no vtables.
+
+**The general lesson:** a recorded negative result is a snapshot of what was
+tried, not a property of the binary. Prefer questions that widen ("what is
+compiled either side of this?") over ones that narrow ("which function owns this
+instruction?").
+
+### Docs updated this sitting
+
+- **`docs/CODEX_TASKS.md` — Brief 4 is new and is the highest-value entry in
+  that file.** It writes down the pipeline that produced this whole sitting:
+  owner records the game → Codex turns footage into a four-part document → the
+  decompiler answers the numbered questions. The prompt is pasteable. It carries
+  the reading rule (**its observations are oracle, its inferences are reasoning
+  about our repo**) and the list of what to film next, headed by **Q150** and
+  **Q147**.
+- `RESEARCH_STATUS.md` — two new solved entries (the source-file map, the free-imp
+  deadline) and a new unsolved one (lair acquisition, contradicted and
+  deliberately unbuilt).
+- `GOAL_ALIGNMENT.md` — a 2026-09-05 review: why this defect was the first that
+  **no internal review could have caught**, the fourth clause, and the hedge audit.
+- `ARCHITECTURE.md` — the bed-is-an-object passage now says the *relation* is
+  right and the way a creature reaches it is not.
+- `unity/README.md` — the level-1 walkthrough's imp timing.
+- ADR-0021 amended (free-imp line), ADR-0048's "what the binary could not say"
+  marked solved.
+
+### Where the next session should start
+
+**Nothing is half-done and nothing is blocked on me.** In order of value:
+
+1. **Q150 — the lair trigger.** The design is written
+   (`lair-acquisition.md`), half of it is read, and it is the largest known
+   fidelity gap in creature behaviour. Needs one recording.
+2. **Q147 — is imp job priority global or positional.** Two minutes of play, and
+   it can invalidate the whole job-selection model.
+3. **Q132 still blocks the hatchery clock**, and this sitting added weight to
+   what variable 19 is *for* without touching what it *is*.
+4. **Treasury deposit order** (`gold-on-the-floor.md` §5) is still the
+   self-contained hash-moving correction available with no new research.

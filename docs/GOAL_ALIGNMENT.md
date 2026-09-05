@@ -1,4 +1,4 @@
-# Goal alignment review
+﻿# Goal alignment review
 
 Where the project actually stands against the twelve long-term goals in
 `AGENTS.md`.
@@ -621,3 +621,101 @@ both are being adopted rather than merely noted:
    it closes.** "UNKNOWN, so we keep the byte" is a decision with no exit; "we
    keep the byte until Q17 says which id means nobody, and then we clear it" is
    the same decision with a trigger.
+
+---
+
+## Review — 2026-09-05: the fourth clause, and the first defect no test could have caught
+
+### What happened
+
+The owner recorded DK2 playing and had a second assistant turn the footage into a
+numbered question list. It reversed behaviour this project had shipped for three
+weeks: the free-imp supply ran a **countdown** reset at full strength, and the
+original keeps a **deadline** that only moves when an imp is made — so the first
+replacement after a spell at four imps is immediate, not five seconds away
+(ADR-0057).
+
+### Why this one is different from the previous four
+
+The last four instances of this project's characteristic defect were all
+findable, in principle, by reading the repository: a fact stated in a place that
+does not run, a check that could pass while the thing it checked was wrong, a
+justification that rotted on an answered question. Somebody could have caught any
+of them by looking hard enough.
+
+**This one could not.** The rule was implemented in exactly one place, that place
+was tested, and the tests passed — because the tests were written from the same
+wrong belief. There is no internal review that finds a defect the whole codebase
+agrees about. **The only oracle was the running game.**
+
+And the belief had a defence written into it. `ImpSupplySystem`'s doc-comment
+said the alternative "is indistinguishable in the steady state and differs only in
+how fast the first replacement arrives after a long spell at full strength". Both
+clauses were wrong in one sentence, and the second one **named the exact
+experiment that would have refuted it** — three weeks before anybody ran it.
+
+### The fourth clause
+
+The standing review question is now four:
+
+> what would fail if this claim stopped being true? · does anything read this fact
+> at all? · could this check pass while the thing it checks is wrong? · is this
+> justification still true, and would anybody notice? — and now:
+>
+> **when a comment says a difference is unobservable, does it name the
+> observation that would settle it? If it does, that is not a defence. It is an
+> experiment nobody has run.**
+
+The habit that follows is cheap: **grep the codebase for hedges** —
+"indistinguishable", "differs only in", "not observed", "makes no difference" —
+and check whether each names a test that exists. A hedge that describes its own
+refutation is a task, not a justification.
+
+**It was run the same day, and it found one.** Seventeen hits, of which most are
+honest — "indistinguishable **on the shipped data**" is a limit of the evidence,
+not an unrun experiment, and `RoomRules.RefundPerTile` is squarely that. But
+`PortalRules.PoolLimit` says *"on level 1 the two are indistinguishable, because
+the pool and the first portal's cap are both 15"*, which is a statement about
+**one level out of 66**. Whether a creature pool is a standing limit or a
+draining quota (Q87) is decidable by playing any level where the two numbers
+differ, and in four months nobody had put it on the observation checklist. It is
+on it now. One hedge, one promotion, ten minutes — which is the right ratio for a
+habit worth keeping.
+
+`WorkStance`'s Q49 hedge is the third kind and is worth naming so it is not
+re-audited: whether an imp's half-second linger is a cooldown or an animation
+really is invisible from outside, so it is **not** an observation question — it
+is a decompiler question, the same shape as Q149.
+
+### Goal 1 (behavioural fidelity) — what actually moved
+
+| | |
+|---|---|
+| behaviours corrected against the original | **1, and it was shipped** — the free-imp deadline (Q56) |
+| newly CONFIRMED from the running game | 3 — regeneration ignores what a creature is doing (Q100), an imp in the Hand of Evil still counts (Q148), a happy bedless creature does not claim a lair (Q150) |
+| behaviours confirmed a **second** time, from the binary | Create Imp's price formula including its clamp (Q54) |
+| behaviours **contradicted** and deliberately not rebuilt | lair acquisition, on two counts — because half the replacement rule is unread |
+| new questions | Q149–Q152 |
+
+**Goal 5 (research before implementation) was tested rather than followed**, and
+it held. The lair is contradicted, the design is written
+(`docs/research/lair-acquisition.md`), and it was **not built**, because the
+trigger (Q150) and the room-preference test (Q151) are unread and guessing them
+would produce the right outcome from the wrong rule — which is precisely the
+failure ADR-0056 had recorded three days earlier. The contradiction is written
+into `CreatureSleepSystem`'s own doc-comment instead, so the code says what is
+wrong with it rather than hiding it.
+
+### A negative result expired, and that is worth its own line
+
+On 2026-09-04 this project recorded that the creature state machine could not be
+reached in the binary — four approaches, all failed, with the vtables named as
+the next thing to try. **The route that worked was none of them**, and it was
+already half-present in step 2 of the failed method: scan memory for the assert
+string's own address, then decompile the *neighbourhood* rather than trying to
+make the decompiler own the exact instruction.
+
+A recorded negative result is a snapshot of what was tried, not a property of the
+binary. **Re-read the method before trusting the conclusion** — and prefer
+methods that widen the question ("what is compiled either side of this?") over
+ones that narrow it ("which function owns this instruction?").

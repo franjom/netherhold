@@ -223,7 +223,31 @@ would lean on `TicksPerSecond`, still a placeholder (Q1).
 | **Levels** | `Hp` is the maximum because `CreatureStats` scales stats by level and levels do not exist. When they do, the maximum becomes a function of level and `Health` stays the current value |
 | **Bodies, graveyards, the Vampire** | Dying itself is now implemented (Q99 ANSWERED, ADR-0051): a creature collapses for 60 seconds before it dies. What is still missing is what comes *after* — a corpse is an OBJECT (M6), so nothing lies on the floor to be carried and nothing accumulates toward a graveyard |
 
-## 6. What the binary was asked, and refused to say
+## 6. What the binary was asked, refused to say, and then said anyway
+
+**⚠ READ THE UPDATE FIRST.** The section below is the 2026-09-04 record of four
+failed approaches, kept because the *method* is still useful. **It stopped being
+true on 2026-09-05.**
+
+### The update: step 2 was already the answer
+
+The scan in step 2 found the lair's load site at `0x0046f5d7` and the section
+concluded that "Ghidra has no function covering it" was a dead end. It is not a
+dead end — **it is a starting address.** Decompiling the *neighbourhood* of that
+address, rather than trying to make Ghidra own the exact instruction, gives the
+lair acquisition code, the tile search, the room choice and the creature-to-bed
+link. All of it is written up in `lair-acquisition.md`.
+
+**The vtable route named as "the next thing to try" was never needed**, and the
+one that worked cost about ten minutes. What made the difference was not a new
+tool but a different question: instead of *"which function contains this
+instruction"*, ask *"what is compiled either side of it"*.
+
+`HungerState.cpp`'s two load sites at `0x00463c6d` and `0x00463d25` have not been
+followed the same way, and by this reasoning they should be. That is the cheapest
+open lead in this document.
+
+### The original record, from 2026-09-04
 
 Under ADR-0046. `HungerState.cpp` and `LairState.cpp` both appear in the
 executable's own `__FILE__` strings — at `0x006985f8` and `0x00698cc0` — so the
@@ -247,7 +271,9 @@ the next attempt starts further along:
 hierarchy with ~25 leaves (`executable-strings.md`), so there is a table of
 function pointers somewhere, and reading it would name every state handler at
 once instead of one at a time. That is a bigger, more valuable job than hunger,
-and it is the route into the whole `*State.cpp` family.
+and it is the route into the whole `*State.cpp` family. — *Superseded: see the
+update above. Decompiling around the scan hit was enough, and
+`source-file-map.md` now indexes all 72 translation units by name.*
 
 So **nothing in this document rests on the binary.** The one thing it did
 confirm, indirectly, is that `Hatchery.cpp` exists as its own translation unit

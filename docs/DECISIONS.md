@@ -2923,16 +2923,25 @@ Put to the owner as **Q101**, with Q99 (is zero health death, or a 60-second
 unconscious window?), Q100 (does regeneration care what the creature is doing?)
 and Q102 (when does the hunger clock start?).
 
-### What the binary could not say
+### What the binary could not say — **SOLVED 2026-09-05**
 
-`HungerState.cpp` and `LairState.cpp` are both named in the executable's own
-assert strings, and four different approaches failed to reach their code: the
-creature state machine is dispatched entirely through vtables, so Ghidra's
-analysis never discovers those function bodies, and forcing them did not work
-either. The method is written down in `creature-needs.md` §6 so the next attempt
-starts further along, and the promising route is **reading the vtables**, which
-would name all ~25 state handlers at once. **Nothing in this ADR rests on the
-binary.**
+**As written on 2026-09-04:** `HungerState.cpp` and `LairState.cpp` are both
+named in the executable's own assert strings, and four different approaches
+failed to reach their code — the creature state machine is dispatched entirely
+through vtables, so Ghidra's analysis never discovers those function bodies, and
+forcing them did not work either. **Nothing in this ADR rested on the binary.**
+
+**⚠ That negative result expired.** The route that worked is neither of the two
+that were tried: **scan initialised memory for the 32-bit value of the assert
+string's own address**, rather than asking Ghidra for references to it. Ghidra
+resolves a reference only when it can reach the instruction; an address loaded as
+a raw immediate inside an undiscovered function body has none. `LairState.cpp`
+shows **zero** referring functions by the reference database and **one** by the
+raw scan — and that one hit landed in the middle of the lair-acquisition code.
+
+From there the neighbourhood decompiles normally, and `lair-acquisition.md` is
+what came out. The vtable route was never needed. `ScanForAddr.py` is the tool
+and `source-file-map.md` is the index of which name to scan for.
 
 ---
 
