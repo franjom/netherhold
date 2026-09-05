@@ -66,7 +66,8 @@ public sealed class TileWorkSystem : ISimulationSystem
             byte before = tile.TerrainId;
 
             TileWorkResult result = TileWorkRules.Apply(
-                context.Database, ref tile, order.Kind, order.PlayerId);
+                context.Database, ref tile, order.Kind, order.PlayerId,
+                EfficiencyOf(context, order.WorkerCreatureId));
 
             if (convertingRoom is not null && result.Outcome == TileWorkOutcome.Transformed)
                 SpreadTakeover(context, order, convertingRoom);
@@ -83,6 +84,25 @@ public sealed class TileWorkSystem : ISimulationSystem
         }
 
         world.RawPendingWork.RemoveRange(0, count);
+    }
+
+    /// <summary>
+    /// The Efficiency of whoever swung, or the default 80% when nothing did.
+    ///
+    /// <para>Work queued by a test or by the harness has no worker
+    /// (<see cref="TileWorkOrder.WorkerCreatureId"/> of -1) and gets the rate
+    /// every worker is born at, so every measurement this project took before
+    /// Efficiency existed still holds exactly.</para>
+    /// </summary>
+    private static int EfficiencyOf(SimulationContext context, int workerCreatureId)
+    {
+        if (workerCreatureId < 0) return EfficiencyRules.BasePercent;
+
+        CreatureState? worker = context.World.CreatureById(workerCreatureId);
+        if (worker is null) return EfficiencyRules.BasePercent;
+
+        return EfficiencyRules.Percent(
+            worker, context.Database.CreatureById(worker.CreatureTypeId));
     }
 
     /// <summary>

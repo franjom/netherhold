@@ -477,18 +477,37 @@ public static class TileWorkRules
     /// by work that takes ownership (claiming, reinforcing); see
     /// <see cref="Convert"/> for why it is never cleared.
     /// </summary>
+    /// <param name="efficiencyPercent">
+    /// The worker's Efficiency, as a whole percent — <b>80 when nobody says
+    /// otherwise</b>, which is what every worker in DK2 is born at and what
+    /// every measurement in docs/research/tile-work.md was taken at.
+    ///
+    /// <para>A slap or a well-aimed drop raises it to 90 and the two together
+    /// to 100, so a keeper who handles their imps digs a quarter faster than
+    /// one who does not. Work queued by a test or by the harness has no worker
+    /// and takes the default, which is why every number this project measured
+    /// before Efficiency existed is untouched by its arrival — see
+    /// <see cref="EfficiencyRules.Scale"/>.</para>
+    /// </param>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/tile-work.md")]
     public static TileWorkResult Apply(
         GameDatabase database,
         ref TileState tile,
         TileWorkKind kind,
-        byte playerId)
+        byte playerId,
+        int efficiencyPercent = EfficiencyRules.BasePercent)
     {
         if (!Applies(database, tile, kind, playerId))
             return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
-        int delta = PerApplication(database, kind, ref tile.WorkRemainder);
+
+        // The tabled fraction first, with its remainder carried, and the
+        // worker's own Efficiency on top of that. The order matters: the carry
+        // keeps the per-second rate exactly what the table says, and scaling
+        // afterwards leaves the 80% case bit-for-bit what it always was.
+        int delta = EfficiencyRules.Scale(
+            PerApplication(database, kind, ref tile.WorkRemainder), efficiencyPercent);
 
         if (delta < 0)
         {

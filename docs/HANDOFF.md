@@ -4141,3 +4141,74 @@ ADR-0020 carries the amendment.
    counter, and whoever increments that field settles it.
 2. **Carrying** is still the largest unbuilt blocker, and the hand is what
    Efficiency now waits on.
+
+## Twenty-fifth sitting: the Hand of Evil, and DK2 telling us its own field names
+
+The keeper can now pick a creature up, put it down and slap it, and Efficiency
+stopped being a constant and became a number a keeper can move (ADR-0062,
+`docs/research/hand-of-evil.md`).
+
+**The find that made the day cheap.** DK2 ships its debug dumps, and they are
+`printf` calls with the field name in the format string and the field itself as
+the argument. Reading the creature dump gives **a name for 162 creature fields,
+keyed by offset, from the developers**: `WorkModifier` and `WorkEnhancement` for
+the two halves of Efficiency, `WorkFasterTimer` for the slap's clock, `InHand`,
+`PickupTick`, `LastSlapTick`, `ImpJobData.JustDropped`. Yesterday's session
+inferred those from arithmetic; today they had names. **Whoever needs a creature
+field next should read `FUN_00490240` before searching for anything.**
+
+**What went in:**
+
+- Three commands and a `HandSystem` that runs before every system that makes a
+  creature act. The hand is an array on the keeper, 64 things,
+  **last in first out** - the original's drop handler reads back the slot it is
+  about to free, and the drop takes a position and no id because the hand
+  chooses.
+- **Efficiency in whole percents**, not DK2's 4096ths, because its constants are
+  approximations and the percentages are not: `0xccc + 0x199` gives 67.47 health
+  a swing at 90%, which rounds to 67 by every rule and would have read 304 gold.
+  The owner read 309, which is 68. `EfficiencyRules.Scale` returns its input at
+  80%, so 529 existing tests and every scenario hash survived untouched.
+- `AngerInHand` is **a rate**: once a game second, from twenty seconds after the
+  pick-up. Moving a creature costs nothing; parking one calms it.
+
+**Three defects this mechanic exposed, all of the same shape** - a value nothing
+read:
+
+1. **The fixture said an Imp's `SlapDamage` was 0.** It is **100** against 500
+   health, so five slaps kill an imp. Parsed for weeks, read by nothing, wrong.
+2. **The fixture's Goblin had neither `CanBePickedUp` nor `CanBeSlapped`**, which
+   the real record has. Two hand tests passed the wrong path silently before
+   this was found.
+3. **A claim built and withdrawn inside the hour.** The first draft read the
+   original's `now < LastSlapTick + var19` as a one-second cooldown on the whole
+   slap. Its test failed, the handler was re-read, and that window guards **only
+   the knock-back impulse**. There is no slap cooldown: a keeper who clicks fast
+   angers a creature fast, and Q114's six countable slaps were six because a
+   hand is slow.
+
+**And one conflict left open on purpose (Q159).** The slap's work bonus is a
+hardcoded 100 ticks = **25 game seconds**, matching `SlapWorkFasterDurationSeconds`
+exactly - and contradicting the owner's *"after a minute"* and the
+`IncreasedWorkRateDurationFromSlappingSeconds` of 60 that this project wrote down
+yesterday. Built as 25. **The test is now one look**: slap an imp, keep it
+selected, watch the status bar fall from 90% back to 80%. `observation-checklist.md`
+has it, with two more free observations beside it.
+
+**Q158 closed itself.** The definition flag `0x4000` that ADR-0061 left
+unidentified is `IsHorny` - the slap handler tests the same bit first and
+diverts the same way, and the enum has carried the name at bit 14 since
+`creatures_struct.bt` was transcribed. Both halves were in the repository and
+nothing had put them together.
+
+### Where the next session should start
+
+1. **Carrying**, which the owner has already asked for and which is what the
+   hand is really for: gold, chickens, corpses to a graveyard, and an
+   unconscious creature to a lair or a prison. Four half-built mechanics name
+   it, and Q161 (the hand refusing a collapsed creature) goes away with it.
+2. **Q1 is still the blocker under `TicksPerSecond`.** Today added a second
+   independent confirmation that variable 19 is *ticks per game second* - the
+   hardcoded 100 and the named 25 agree only at four - but the wall-clock length
+   of a tick is still untouched, and the way in is still whoever increments the
+   counter `FUN_00517490` reads.

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -141,6 +141,26 @@ public sealed class ScenarioCommand
     /// one.
     /// </summary>
     public bool CreateImp { get; set; }
+
+    /// <summary>
+    /// The id of a creature to pick up into this player's hand, or 0 for none.
+    ///
+    /// <para>Creature ids are assigned in the order <c>setup.creatures</c> lists
+    /// them, starting at 1, so a scenario can name one without knowing anything
+    /// about the world it is about to build.</para>
+    /// </summary>
+    public int PickUp { get; set; }
+
+    /// <summary>The id of a creature to slap, or 0 for none.</summary>
+    public int Slap { get; set; }
+
+    /// <summary>
+    /// Where to put down whatever the hand is holding, as <c>[x, y]</c>.
+    ///
+    /// <para>No creature is named because the hand chooses: DK2 puts down what
+    /// it picked up last, and letting a scenario name one would hide that.</para>
+    /// </summary>
+    public List<int> Drop { get; set; } = [];
 }
 
 /// <summary>A room a player asks to build, at a tick, and pays for.</summary>

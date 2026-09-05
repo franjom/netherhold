@@ -363,7 +363,14 @@ internal static class Dk2TerrainFixture
         HungerFill = 0,
         OwnLandHealthIncreasePerSecond = 67,
         DecomposeValue = 0,
-        SlapDamage = 0,
+
+        // The Imp's real slapDamage, transcribed as 0 until 2026-09-05 and
+        // corrected when the hand arrived and something finally read it. 100
+        // against the Imp's 500 health means **five slaps kill an imp**, which
+        // is a piece of DK2 anyone who has played it knows and which this
+        // fixture had been quietly denying. Checked against the install by
+        // CreatureNeedsOnRealDataTests.
+        SlapDamage = 100,
         StunDuration = new Fp32(0),
         Resistances = [],
         Spells = [],
@@ -424,6 +431,7 @@ internal static class Dk2TerrainFixture
     {
         Name = "Goblin",
         CreatureId = 7,
+        SlapDamage = 115,
 
         // Four of the real Goblin's flags, and every one of them is
         // load-bearing rather than decorative:
@@ -446,8 +454,14 @@ internal static class Dk2TerrainFixture
         // This is the fourth flag the drift guard has caught missing from this
         // one record, which is the argument for asserting the whole set rather
         // than the flags a mechanic happens to read today.
+        //   CanBePickedUp,      the real Goblin carries both and nothing read
+        //   CanBeSlapped        them until the hand arrived (ADR-0062). Without
+        //                       them a fixture Goblin cannot be handled at all,
+        //                       and every hand test written on one silently
+        //                       tests the refusal path instead.
         Flags = CreatureFlags.IsEvil | CreatureFlags.AvailableViaPortal
-                | CreatureFlags.GenerateDeadBody | CreatureFlags.CanWalkOnWater,
+                | CreatureFlags.GenerateDeadBody | CreatureFlags.CanWalkOnWater
+                | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped,
 
         Hp = 1500,
         MeleeDamage = 170,
@@ -569,6 +583,7 @@ internal static class Dk2TerrainFixture
     {
         Name = "Vampire",
         CreatureId = VampireCreatureId,
+        SlapDamage = 125,
 
         Flags = CreatureFlags.IsEvil | CreatureFlags.IsFearless
                 | CreatureFlags.CanBeResurrected | CreatureFlags.NeedBodyForFightIdle,
@@ -662,6 +677,8 @@ internal static class Dk2TerrainFixture
         // is multiplied by a variable no shipped file supplies (Q132).
         Set(vars, VariableTypeId.ChickenGenerationTimePerHatchery, 16);
         Set(vars, VariableTypeId.MaxFreeRangeChickensPerPlayer, 12);
+        // How many things one keeper may hold at once (HandRules.Capacity).
+        Set(vars, VariableTypeId.MaxNumberOfThingsInHand, 64);
         Set(vars, VariableTypeId.MinimumImpThreshold, 4);
         Set(vars, VariableTypeId.TimeBeforeFreeImpGeneratedSeconds, 5);
         Set(vars, VariableTypeId.MaxGoldPerTreasuryTile, 3000);

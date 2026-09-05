@@ -147,6 +147,9 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             // bed is sold while it lies dying can no longer be carried anywhere
             // — Q107, and it costs nothing today because carrying does not
             // exist.
+            // A creature in the keeper's hand is out of the dungeon: it does
+            // not act until it is put down (HandRules.IsHeld, ADR-0062).
+            if (HandRules.IsHeld(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
 
             // A creature walking out of the dungeon does not stop for a nap,

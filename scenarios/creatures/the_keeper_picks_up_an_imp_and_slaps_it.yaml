@@ -1,0 +1,130 @@
+﻿# The Hand of Evil, end to end, and the 12.5% a keeper earns by using it.
+#
+# Two imps and one marked corridor. Both dig it; one of them is slapped, picked
+# up and put down on the work first. The corridor falls five ticks sooner than
+# it does when nobody touches them, and that is the whole mechanic in one run.
+#
+# **Efficiency is a stat DK2 prints on its own status bar** — *"Imp. Name:
+# Snipe. Job: idle. Efficiency: 80%. Mood: Happy."* — and the owner read all
+# three of its values off the game on 2026-09-05 (Q47, ADR-0062):
+#
+#   | Efficiency | health a swing | gold a swing | owner read |
+#   |---|---|---|---|
+#   | 80% base                       | 60   | 272.7 | 272-273 |
+#   | 90% slapped, or aimed          | 67.5 -> 68 | 309.1 | 309-310 |
+#   | 100% both                      | 75   | 340.9 | 341     |
+#
+# Ten points for a slap, ten for being **dropped next to work the keeper has
+# marked** — and nothing at all for being dropped on empty ground, which is what
+# makes it the job and not the drop:
+#
+#   "after I mark a tile for excavation and drop an imp adjacent to it its
+#    efficiency jumps to 90%. But if I drop it on a random tile where there is
+#    nothing marked by me its efficiency remains at 80%."
+#
+# **This run has a control, and it is another scenario.**
+# `imps_dig_what_is_marked` is the same map, the same seed, the same two imps in
+# the same two places and the same four marks — everything but the hand. Put the
+# two event logs side by side and the whole mechanic is four numbers:
+#
+#   | tile   | nobody touched them | one imp slapped and aimed |
+#   |--------|--------------------|---------------------------|
+#   | (12,8) | t14                | **t11**                   |
+#   | (13,8) | t33                | **t27**                   |
+#   | (14,8) | t50                | **t45**                   |
+#   | (15,8) | t67                | **t62**                   |
+#
+# A corridor that took 67 ticks takes 62. That is the keeper's whole reward for
+# using their hand, and it is what DK2 has been quietly paying attentive players
+# since 1999.
+#
+# What the event log shows, in order:
+#
+#   t0    `tagged`, then `job_taken` twice — the corridor is marked and **both**
+#         imps go for (12,8) at once, one step away and two. Nothing here is
+#         about the hand yet.
+#
+#   t1    `slapped ... health=400 damage=100 anger=1 (+1) efficiency=90%`
+#         The slap does three things and the line names all of them:
+#         `SlapDamage` takes **100 of the imp's 500**, so five slaps would kill
+#         it; `AngerSlap` adds **1**, which is a hundredth of a Goblin's and is
+#         how the shipped data says "imps never get angry" without a special
+#         case; and `WorkFasterTimer` starts, which is the ten points.
+#
+#   t2    `picked_up ... held=1` — the imp leaves the dungeon without leaving
+#         the level. From here it does not walk, work, sleep or look for a lair.
+#         Note what is *not* in the log at t2: the imp had a job at t0 and the
+#         pick-up dropped it, because an imp lifted off its work has stopped
+#         working.
+#
+#   t3    `dropped ... tile=11,8 aimed=yes held=0`, and `job_taken ... steps=0`
+#         on the same tick. **`aimed=yes` is the second ten points** and
+#         `steps=0` is why it is worth having: the imp was put down where the
+#         work is and starts on it without walking anywhere. With the slap still
+#         running this imp is at **100% Efficiency** and takes 75 health off a
+#         wall where its colleague takes 60.
+#
+#   t11   `destroyed: (12,8)` — three ticks ahead of the control run.
+#
+#   t12   `job_abandoned ... reason=gone`, and **this is where the aiming bonus
+#         ends.** It is worth one job, not the rest of the imp's life — the
+#         owner watched exactly that, a dropped imp mining its first seam at 90%
+#         and the next at 80%.
+#
+#   t27+  the gap does not close, because the *slap* is still running: 25 game
+#         seconds of it, against a run that is over in three. Both imps dig
+#         every remaining tile together and the handled one is worth 12.5% more
+#         on every swing it takes.
+#
+# **What the run does NOT establish**, recorded rather than implied:
+#
+#   * **How long the slap really lasts.** The original's slap handler writes a
+#     hardcoded 100 into `WorkFasterTimer` and decrements it once a tick, which
+#     at variable 19's four ticks a game second is 25 seconds — and the balance
+#     table's `SlapWorkFasterDurationSeconds` is exactly 25, so the two agree.
+#     But the owner watched a slapped imp revert *"after a minute"*, and there
+#     is an `IncreasedWorkRateDurationFromSlappingSeconds` of 60 sitting right
+#     there. **Q159**, and it is now a cheap test: select a slapped imp and
+#     watch the percentage on the status bar drop back to 80.
+#
+#   * **The knock-back.** A slap in DK2 also throws the creature, and the
+#     `LastSlapTick` window this project records is the thing that gates it —
+#     not the slap. There is no cooldown on the anger or the damage: a keeper
+#     who clicks fast angers a creature fast (`HandRules.KnockBackWindowSeconds`).
+#
+#   * **Carrying.** The hand can hold 64 things and this project can put only
+#     creatures in it. Gold, chickens and an unconscious body on its way to a
+#     lair are the next mechanic, and they are what the hand is really for.
+#
+#   * **Horny.** Slapping a creature flagged `IsHorny` runs a different routine
+#     in the original and never reaches the work bonus. Named here because that
+#     flag was one of two unnamed bits in this project's enum until the slap
+#     handler identified it (Q158); nothing on this map is Horny.
+id: creatures-the-keeper-picks-up-an-imp-and-slaps-it-001
+question: >
+  Does a slapped imp dropped onto marked work dig faster than an imp left to
+  find the same work by itself - and is the difference the 12.5% + 12.5% the
+  owner read off DK2's status bar?
+map: chamber_21x17
+seed: 11
+duration_ticks: 400
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 0 }
+  creatures:
+    # Creature 1: handled. Slapped, lifted and aimed at the corridor.
+    - { type: Imp, at: [10, 8], player: 3 }
+    # Creature 2: left alone, and the control. It finds the same work by
+    # itself and works it at the 80% every creature is born at.
+    - { type: Imp, at: [9, 8], player: 3 }
+commands:
+  # A corridor east out of the chamber, marked in one go.
+  - { at_tick: 0, player: 3, tag: [[12, 8], [13, 8], [14, 8], [15, 8]] }
+
+  # The hand, one verb a tick, so the log reads in order.
+  - { at_tick: 1, player: 3, slap: 1 }
+  - { at_tick: 2, player: 3, pick_up: 1 }
+  - { at_tick: 3, player: 3, drop: [11, 8] }
+observe:
+  - state_hash
+  - events

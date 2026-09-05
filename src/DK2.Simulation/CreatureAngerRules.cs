@@ -224,16 +224,25 @@ public static class CreatureAngerRules
     /// A slap: <c>AngerSlap</c>, +3000 for a Goblin and <b>−5000 for Jack</b>,
     /// whose whole record runs backwards.
     ///
-    /// <para><b>Nothing calls this</b> — the hand does not exist — but it is
-    /// nonetheless the best-measured value in the mechanic, because <i>counting
-    /// slaps is how the ceiling was pinned</i>. The owner's Salamander took
+    /// <para><b>Called by <see cref="Systems.HandSystem"/> since ADR-0062</b>,
+    /// and it was the best-measured value in the mechanic long before
+    /// anything called it, because <i>counting slaps is how the ceiling was
+    /// pinned</i>. The owner's Salamander took
     /// exactly 6 to unhappy and 11 to angry, which brackets the ceiling into
     /// (30000, 33000] and rules out the 65535 reading that the timing alone
     /// could not (Q114, closed).</para>
     ///
-    /// <para>So when the hand arrives, this is already correct rather than
+    /// <para>So when the hand arrived, this was already correct rather than
     /// pending: 6 slaps make a content creature sulk and 11 make it leave, for
-    /// any of the many creatures whose <c>AngerSlap</c> is 3000.</para>
+    /// any of the many creatures whose <c>AngerSlap</c> is 3000 - which
+    /// <c>HandTests.SixSlapsMakeAGoblinSulkAndElevenMakeItLeave</c> now
+    /// asserts.</para>
+    ///
+    /// <para><b>There is no cooldown on it.</b> The original's
+    /// <c>LastSlapTick</c> window guards its knock-back impulse and nothing
+    /// else, so a keeper who clicks fast angers a creature fast; the owner's six
+    /// slaps were six because a hand is slow (docs/research/hand-of-evil.md
+    /// section 4).</para>
     /// </summary>
     public static int Slap(CreatureDef creature, CreatureState state) =>
         Apply(state, creature.AngerSlap);
@@ -241,7 +250,13 @@ public static class CreatureAngerRules
     /// <summary>
     /// Being held in the Hand of Evil: <c>AngerInHand</c>, which <b>calms</b>
     /// most creatures (−250 for a Goblin, −500 for a Warlock) and annoys Jack
-    /// (+500). Also uncalled, for the same reason.
+    /// (+500).
+    ///
+    /// <para><b>A rate, not a one-shot</b> (ADR-0062): the original applies it
+    /// <i>once a game second</i>, and not until twenty seconds after the
+    /// pick-up. So carrying a creature across the dungeon costs a keeper
+    /// nothing, and parking one in the hand is a way to calm it down — see
+    /// <see cref="HandRules.AngerDueThisTick"/>.</para>
     /// </summary>
     public static int Held(CreatureDef creature, CreatureState state) =>
         Apply(state, creature.AngerInHand);

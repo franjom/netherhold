@@ -274,11 +274,37 @@ public struct PlayerState
     /// </summary>
     public GameTick NextFreeImpTick;
 
+    /// <summary>
+    /// The Hand of Evil: the ids of the creatures this keeper is holding, in
+    /// the order they were picked up.
+    ///
+    /// <para><b>A stack, and the original says so plainly.</b> Its pick-up
+    /// handler appends at <c>NumberOfThingsInHand</c> and its drop handler
+    /// reads back from the same index before decrementing it, so a keeper who
+    /// picks up A then B puts down B first. Capacity is
+    /// <c>MaxNumberOfThingsInHand</c>, which ships at 64 — see
+    /// <see cref="HandRules"/>.</para>
+    ///
+    /// <para>On the keeper rather than on the creature because that is where
+    /// DK2 keeps it — a fixed array on the player record, with the count and
+    /// the capacity beside it — and because the ordering is the keeper's, not
+    /// any creature's. The creature's own half of the relation is
+    /// <see cref="CreatureState.InHand"/>, exactly as a bed and its sleeper
+    /// each know one thing about the other (ADR-0059).</para>
+    ///
+    /// <para>Never null: <see cref="WorldState"/> gives every keeper a list when
+    /// it creates them, so the field can be read without a check even though
+    /// <see cref="PlayerState"/> is a struct.</para>
+    /// </summary>
+    public List<int> Hand;
+
     public readonly void HashInto(ref Hash64 hash)
     {
         hash.Add(PlayerId);
         hash.Add(Mana);
         hash.Add(NextFreeImpTick);
+        hash.Add(Hand.Count);
+        foreach (int id in Hand) hash.Add(id);
     }
 }
 
@@ -304,6 +330,14 @@ public sealed class WorldState
         Height = height;
         _tiles = tiles;
         _players = players;
+
+        // One place, so that no construction path can produce a keeper without
+        // a hand. PlayerState is a struct in an array, so a caller that built
+        // one with an object initialiser could not have given it a list without
+        // knowing to; here nobody has to know.
+        for (int i = 0; i < _players.Length; i++)
+            _players[i].Hand ??= [];
+
         CurrentTick = GameTick.Zero;
     }
 

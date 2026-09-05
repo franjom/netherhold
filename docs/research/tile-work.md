@@ -54,8 +54,15 @@ divided by the tick rate.
 
 ### What moves it
 
-- **A slap: +10 points, for 60 seconds** (`IncreasedWorkRateDurationFromSlappingSeconds`),
-  and it **does not stack** - repeated slapping leaves it at 90%.
+- **A slap: +10 points, and it does not stack** - repeated slapping leaves it
+  at 90%. **How long it lasts is now in dispute and the dispute is worth having
+  (Q159, 2026-09-05):** the original's slap handler writes a hardcoded 100 into
+  a field its own debug dump calls `WorkFasterTimer`, decrements it once a tick,
+  and at variable 19's four ticks a game second that is **25 seconds** - which
+  is exactly `SlapWorkFasterDurationSeconds`. The 60 this line used to cite
+  comes from `IncreasedWorkRateDurationFromSlappingSeconds`, which nothing in
+  the binary has been found to read, and from the owner's *"after a minute"*.
+  Built as 25 (ADR-0062); settled by watching the status bar.
 - **Being dropped onto work: +10 points** - CONFIRMED by the owner the same day,
   and the condition is exact: *"after I mark a tile for excavation and drop an
   imp adjacent to it its efficiency jumps to 90%. But if I drop it on a random
@@ -147,7 +154,7 @@ reinforce is the sensitive instrument here.
 | Claim, level 1: **1.30-1.40 s**, 3 visible jumps | 660 / 165 = **4 applications** = 0.8 s, + ~0.5 s linger | 1.3 |
 | Reinforce, **fresh level-1 imp: 13.3-13.4 s** | 660 / 10 = **66 applications** | **13.2 s** |
 | Reinforce, level-3 imp: **~13.1 s** | the same 66 applications | **13.2 s** |
-| **Slapped imp mining: 341 gold a swing**, reverting to 272-273 after a minute | work rate 0.8 + **0.2**, for `IncreasedWorkRateDurationFromSlappingSeconds` = 60 s | **340.9** |
+| **Slapped imp mining: 341 gold a swing**, reverting to 272-273 after a minute | work rate 0.8 + **0.2**; the duration is Q159 - the binary says 25 s, the stopwatch said 60 | **340.9** |
 
 **Q62 is now confirmed with a level-1 imp.** The rule that an upward job needs
 the terrain's whole `maxHealth` (660 for Rock, not the 495 deficit) was measured
@@ -160,7 +167,11 @@ first draft raised is closed.
 **A slapped imp mines 341 gold a swing where an unslapped one mines 273, and it
 reverts after a minute.** Owner observation in a fresh game, so no levelling
 confound, and the minute is
-`IncreasedWorkRateDurationFromSlappingSeconds` = **60**.
+`IncreasedWorkRateDurationFromSlappingSeconds` = **60** - or so this file said
+until the slap handler was read on the same day. **It writes a hardcoded 100
+ticks = 25 game seconds**, and the owner's "after a minute" is now the loose
+half of a conflict rather than a corroboration. Q159, and
+`docs/research/hand-of-evil.md` §5.
 
 341/273 is **1.25 exactly**, which is 1.0/0.8: the work rate goes from the read
 constant **0.8** to exactly **1.0**, and 300 x 1.0 / 4 = 75 health a swing =
@@ -285,7 +296,8 @@ re-derives it from the same two numbers.
   so it is worth writing down.
 
 Confidence: **CONFIRMED** for the numbers the owner watched - 273 unslapped, 341
-slapped, reverting after 60 s, and reinforcing unchanged by level. **STRONGLY
+slapped, and reinforcing unchanged by level - though **not** the 60 s it was
+said to revert after, which the binary contradicts (Q159). **STRONGLY
 INFERRED** for the mechanism behind them: the fixed-point multiply, the 0.8
 constant and the per-tick division are read from the binary and agree with the
 observations to three significant figures, but only the observations are

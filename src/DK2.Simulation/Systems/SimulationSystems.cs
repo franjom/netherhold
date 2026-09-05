@@ -77,6 +77,11 @@ public static class SimulationSystems
 {
     public static ISimulationSystem[] Default() =>
     [
+        // The keeper's own hand first, before any creature acts of its own
+        // accord: one picked up this tick does not also take a step, and one
+        // dropped onto marked work can start on it at once (ADR-0062).
+        new HandSystem(),
+
         new TileTagSystem(),
         new RoomSellSystem(),
         new RoomBuildSystem(),

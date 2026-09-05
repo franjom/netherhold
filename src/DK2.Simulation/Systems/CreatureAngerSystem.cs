@@ -107,7 +107,11 @@ public sealed class CreatureAngerSystem : ISimulationSystem
                     $"unhappy_at={CreatureAngerRules.UnhappyAt(creature)}");
             }
 
-            if (after == CreatureMood.Angry) Decide(context, creature, state);
+            // A creature in the hand still minds - the ladder above ran, and
+            // AngerInHand rides the same clock in HandSystem - but it can act
+            // on none of it while it is off the ground. It rolls when it lands.
+            if (after == CreatureMood.Angry && !HandRules.IsHeld(state))
+                Decide(context, creature, state);
         }
     }
 

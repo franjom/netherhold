@@ -212,6 +212,9 @@ public sealed class ImpTaskSystem : ISimulationSystem
             // it dropped, so this only stops it picking a new one — but without
             // the guard a dying imp would keep mining, which is a strange thing
             // for something lying on the floor to do.
+            // A creature in the keeper's hand is out of the dungeon: it does
+            // not act until it is put down (HandRules.IsHeld, ADR-0062).
+            if (HandRules.IsHeld(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
 
             Update(context, creature, definition);

@@ -579,6 +579,31 @@ When there is nowhere to store gold, a lump grows in front of the mining imp
 candidate. Fill the treasury, keep mining, and see how much piles up before the
 imp stops.
 
+### Q159 — how long does a slap last? — **ONE LOOK, AND THE BINARY IS ON ONE SIDE**
+**Slap an imp, keep it selected, and watch the Efficiency percentage.** It goes
+to 90% on the slap; time how long before it falls back to 80%.
+
+- **25 seconds** is what the binary says: the slap handler writes a hardcoded
+  100 into `WorkFasterTimer` and the creature update decrements it once a tick,
+  which at four ticks a game second is 25 - and `SlapWorkFasterDurationSeconds`
+  is exactly 25.
+- **60 seconds** is what the 2026-09-05 session recorded, from *"after a minute
+  it reverted to 272-273 per swing"* and from
+  `IncreasedWorkRateDurationFromSlappingSeconds` = 60.
+
+25 and 60 are far enough apart that a wristwatch settles it, and the status bar
+means there is no gold arithmetic in the way. **This project has built 25**
+(ADR-0062), so a reading near 60 is a defect to fix rather than a curiosity.
+
+While the imp is selected, two more come free:
+
+- **Does dropping it beside a marked tile show 90%, and beside an unmarked one
+  80%?** Already CONFIRMED once; worth re-reading because the whole aiming bonus
+  rests on that single observation.
+- **How far does the aim reach (Q162)?** Drop the imp *two* tiles from the mark
+  rather than adjacent. The original scans a two-tile radius and this project
+  tests only the four neighbours, so 90% at two tiles is a difference to fix.
+
 ### The gold-per-swing readout — **RECORDED at last, 2026-09-05**
 It is **the gold seam's own remaining value**, watched as an imp mines it. Four
 documents had cited "273 gold a swing" without one of them saying where the

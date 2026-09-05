@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -76,6 +76,9 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
 
             // Nothing on the floor earns anything (ADR-0051), and nothing
             // walking out of the dungeon does either.
+            // Nothing is earned in the keeper's hand: experience is paid for
+            // a second worked, and a held creature worked none (ADR-0062).
+            if (HandRules.IsHeld(state)) continue;
             if (CreatureDeathRules.IsDown(state)) continue;
             if (state.Activity == CreatureActivity.Leaving) continue;
 

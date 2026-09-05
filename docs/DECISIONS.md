@@ -586,7 +586,9 @@ number of applications a job takes are exactly as measured; only the reason is
 different, and the wall-clock rate still rides on Q1 as it always did.
 
 **What it adds** is that Efficiency is a *variable*, which this ADR assumed away:
-a slap raises it to 90% for 60 seconds, dropping an imp next to a tile it has
+a slap raises it to 90% for a while - 60 seconds when this was written, 25 in
+ADR-0062 once the slap handler was read, and Q159 either way - dropping an imp
+next to a tile it has
 marked raises it to 90% as well, and both at once give 100% — measured at 273,
 309-310 and 341 gold a swing respectively. `SimulationTiming` keeps
 `WorkApplicationsPerSecond = 5` because that reproduces the default-efficiency
@@ -4395,7 +4397,125 @@ table.
 
 - **What the two flags at the top of the chooser are** (a per-creature bit, and
   the definition flag `0x4000` that diverts a creature into a state instead of a
-  choice). Neither is identified and neither is applied.
+  choice). Neither is applied. **`0x4000` was identified the next day as
+  `IsHorny`** (Q158, ADR-0062): the slap handler tests the same bit first and
+  diverts the same way, the enum had carried the name at bit 14 since
+  `creatures_struct.bt` was transcribed, and across the 46 shipped creatures it
+  is set on Horny alone. So both halves had been in the repository all along and
+  nothing had put them together. The per-creature bit is still unidentified.
 - **The unhappy chooser**, which has no jobs to run here yet, and carries a quirk
   worth keeping when it does: on a successful lair attempt it stamps the *angry*
   chooser's timestamp rather than its own.
+
+## ADR-0062 — The Hand of Evil, and Efficiency becomes a number a keeper can move
+
+**Status:** Accepted (2026-09-05). Builds the mechanic ADR-0020's 2026-09-05
+amendment said Efficiency was waiting on. Research:
+`docs/research/hand-of-evil.md`.
+
+### Context
+
+Efficiency was named the day before this and left as a constant, because the two
+things that move it are both the keeper's hand: a slap, and dropping a worker
+onto work. Neither existed. The hand was also the largest thing four other
+half-built mechanics were waiting on, and the balance table has been carrying
+`AngerSlap`, `AngerInHand`, `SlapDamage` and `MaxNumberOfThingsInHand` parsed
+and unread since the day they were parsed.
+
+### Decision
+
+Three player commands — `PickUpCreatureCommand`, `DropCreatureCommand`,
+`SlapCreatureCommand` — one `HandSystem` that runs **before every system that
+makes a creature act**, and `EfficiencyRules` feeding every work application.
+
+**What is read from the original**, in its own words (§ numbers are the research
+document):
+
+- **The hand is an array on the keeper**, capacity `MaxNumberOfThingsInHand`
+  = 64, and **dropping is last in, first out** — the drop handler reads back the
+  slot it is about to free (§2).
+- **The drop takes a position and no id.** Naming a creature would have hidden
+  the ordering, which is behaviour.
+- **`PickupTick` is written on the drop as well as the pick-up** (§2), which is
+  what makes the mood grace period work.
+- **`AngerInHand` is a rate**: once a game second, from **20 game seconds** after
+  the pick-up (§7). So moving a creature costs nothing, and parking one in the
+  hand *calms* it — a Goblin's is −250.
+- **The slap sets `WorkFasterTimer` unconditionally**, so slaps do not stack (§4)
+  — which is exactly what the owner measured.
+- **Efficiency is two independent ten-point bonuses on an 80% base** (§6), which
+  is why 100% is reachable and 110% is not.
+
+**What was corrected mid-build, and it is the entry worth keeping.** The first
+draft read the original's `now < LastSlapTick + var19` test as a one-second
+cooldown on the whole slap. Its test failed, the handler was re-read, and that
+window guards **only the knock-back impulse**: the anger, the damage and the
+raised Efficiency all land regardless. **There is no slap cooldown.** The six
+countable slaps that pinned the anger ceiling (Q114) were six because a human
+hand is slow, not because the game rationed them.
+
+### Efficiency in percents, not in 4096ths
+
+DK2 multiplies in 4096 fixed point and its constants are approximations:
+`0xccc` is 0.7998 and `0xccc + 0x199` is 0.8997. Run the owner's seam through
+them and 90% gives **67.47** health a swing, which rounds to 67 by every rule
+there is — and 67 would have shown **304** gold on the counter. It showed
+**309**, which is 68.
+
+So the **displayed percentages are the exact quantity** and the fixed-point
+constants are the game's approximation of them. `EfficiencyRules` works in whole
+percents with halves rounded away from zero, reproducing all three measured
+numbers exactly. ADR-0002: behaviour, not implementation.
+
+`EfficiencyRules.Scale` returns its input unchanged at 80%, which is the whole
+reason 529 existing tests and every scenario hash survived: **the 80% case is
+what this project already had right**, and `delta / 5` is `delta x 0.8 / 4`.
+
+### What is ours rather than DK2's, stated
+
+- **`HandSystem` runs first.** The original's system order is UNKNOWN (the
+  standing caveat on `ISimulationSystem`). This is the order that makes a hand
+  feel like a hand: a creature picked up this tick does not also take a step,
+  and one dropped onto work starts on it at once.
+- **Only the keeper's own creatures may be handled.** DK2 refuses an enemy
+  creature under one condition and this refuses it under all — a narrowing.
+- **A collapsed creature cannot be picked up** (Q161). DK2 allows it, and it is
+  half of what the dying window is for; ours cannot, because carrying one to a
+  bed or a prison is the next mechanic.
+- **The aiming test is the tile underfoot and four neighbours**, where the
+  original scans a two-tile radius (Q162).
+- **A held creature keeps climbing the anger ladder but decides nothing.** It
+  rolls when it lands.
+
+### Consequences
+
+- `HashVersion` and the snapshot `FormatVersion` go 21 -> 22: `CreatureState`
+  gained five fields and `PlayerState` gained the hand.
+- **`Dk2TerrainFixture` had the Imp's `SlapDamage` transcribed as 0.** It is
+  **100** against 500 health, so five slaps kill an imp — a piece of DK2 anyone
+  who has played it has done by accident, and the fixture had been quietly
+  denying it since the field was parsed. Corrected, and now guarded by
+  `CreatureNeedsOnRealDataTests` against the install.
+- **The fixture's Goblin was missing `CanBePickedUp` and `CanBeSlapped`.** Both
+  are on the real record. Without them every hand test written on a Goblin
+  silently tested the refusal path instead, which is what two of them did until
+  they were fixed.
+- The scenario harness gained `pick_up`, `slap` and `drop` commands, and
+  `the_keeper_picks_up_an_imp_and_slaps_it` uses `imps_dig_what_is_marked` as
+  its control: same map, same seed, same imps, same marks, and the corridor
+  falls at t62 instead of t67.
+- 27 tests in `HandTests`, two of which assert numbers the owner read off the
+  running game.
+
+### Still open
+
+- **How long the slap's bonus really lasts** — 25 seconds from the binary
+  against the owner's *"after a minute"* and an
+  `IncreasedWorkRateDurationFromSlappingSeconds` of 60 (Q159). Now a cheap test:
+  the status bar prints the percentage.
+- **What `TimeInHandBeforeCreaturesBecomeAngrySeconds` = 1000 is for** (Q160),
+  since the grace period is hardcoded at 20.
+- **The third Efficiency term**, 0.05 per unit of a counter on the keeper —
+  probably the torture tally, and unverifiable without a Torture Chamber.
+- **Everything else the hand holds**: gold, chickens, and an unconscious body on
+  its way to a lair. That is carrying, and it is next.

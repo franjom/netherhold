@@ -504,8 +504,28 @@ public sealed class ScenarioRunner
             if (c.Sell.Count > 0) list.Add(new SellRoomCommand(c.Player, ToTiles(c.Sell)));
             if (c.CreateImp) list.Add(new CreateImpCommand(c.Player));
 
+            if (c.PickUp > 0) list.Add(new PickUpCreatureCommand(c.Player, c.PickUp));
+            if (c.Slap > 0) list.Add(new SlapCreatureCommand(c.Player, c.Slap));
+
+            bool dropped = c.Drop.Count > 0;
+            if (dropped)
+            {
+                if (c.Drop.Count != 2)
+                {
+                    unsupported.Add(
+                        $"commands entry at_tick={c.AtTick} has a drop that is not [x, y]");
+                    dropped = false;
+                }
+                else
+                {
+                    list.Add(new DropCreatureCommand(
+                        c.Player, new TilePos(c.Drop[0], c.Drop[1])));
+                }
+            }
+
             if (c.Tag.Count == 0 && c.Untag.Count == 0 && !built
-                && c.Sell.Count == 0 && !c.CreateImp)
+                && c.Sell.Count == 0 && !c.CreateImp
+                && c.PickUp == 0 && c.Slap == 0 && !dropped)
                 unsupported.Add($"commands entry at_tick={c.AtTick} names nothing this build can do");
         }
 

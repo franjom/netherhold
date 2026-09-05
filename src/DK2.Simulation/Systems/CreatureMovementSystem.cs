@@ -77,6 +77,9 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             // has nothing to walk anyway (ADR-0051). The guard is here so that a
             // future mechanic which sets a path on a creature that then drops
             // cannot make a corpse-to-be keep walking.
+            // A creature in the keeper's hand is out of the dungeon: it does
+            // not act until it is put down (HandRules.IsHeld, ADR-0062).
+            if (HandRules.IsHeld(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
 
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);

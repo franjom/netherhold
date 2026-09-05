@@ -321,6 +321,75 @@ public sealed class CreatureState
     /// </summary>
     public long LastAngryChoiceTick;
 
+    /// <summary>
+    /// Whether this creature is in a keeper's hand — DK2's
+    /// <c>StateFlags1.InHand</c>, the first bit of the first flag word its own
+    /// debug dump prints.
+    ///
+    /// <para>A held creature is out of the dungeon: it does not walk, work,
+    /// sleep or look for a lair, and every system that would make it act tests
+    /// <see cref="HandRules.IsHeld"/> beside
+    /// <see cref="CreatureDeathRules.IsDown"/>. What it does keep doing is
+    /// getting hungry and minding its mood, which is how <c>AngerInHand</c>
+    /// reaches it (ADR-0062).</para>
+    /// </summary>
+    public bool InHand;
+
+    /// <summary>
+    /// The tick this creature was last picked up <b>or put down</b> — DK2's
+    /// <c>PickupTick</c>, which its drop handler writes just as its pick-up
+    /// handler does, so the name is narrower than the field.
+    ///
+    /// <para>What reads it is the hand's grip on a creature's mood: the
+    /// original waits <see cref="HandRules.AngerGraceSeconds"/> after the
+    /// pick-up before <c>AngerInHand</c> starts to apply, so a keeper who moves
+    /// a creature across the dungeon and puts it down has not touched its
+    /// temper at all.</para>
+    /// </summary>
+    public long PickupTick;
+
+    /// <summary>
+    /// The tick of the last slap that landed, or 0 for never — DK2's
+    /// <c>LastSlapTick</c>.
+    ///
+    /// <para>A cooldown, not a tally: a second slap inside
+    /// <see cref="HandRules.SlapCooldownTicks"/> is refused outright, which is
+    /// what makes slaps countable and is why the owner's Salamander took a
+    /// clean six of them to sulk (Q114).</para>
+    /// </summary>
+    public long LastSlapTick;
+
+    /// <summary>
+    /// Ticks of raised Efficiency left from a slap, counting down — DK2's
+    /// <c>WorkFasterTimer</c>, which its slap handler sets to a hardcoded 100
+    /// and its creature update decrements once a tick.
+    ///
+    /// <para>Worth <see cref="EfficiencyRules.BonusPercent"/> while it is
+    /// running, and <b>it does not stack</b>: a second slap rewrites it rather
+    /// than adding to it, so an imp slapped ten times works exactly as fast as
+    /// one slapped once. CONFIRMED by the owner, who tried
+    /// (docs/research/tile-work.md).</para>
+    /// </summary>
+    public int WorkFasterTicks;
+
+    /// <summary>
+    /// Whether this worker was put down by the keeper onto a job it then took
+    /// — DK2's <c>ImpJobData.JustDropped</c>.
+    ///
+    /// <para>Also worth <see cref="EfficiencyRules.BonusPercent"/>, and the
+    /// condition is exact (owner, 2026-09-05): <i>"after I mark a tile for
+    /// excavation and drop an imp adjacent to it its efficiency jumps to 90%.
+    /// But if I drop it on a random tile where there is nothing marked by me
+    /// its efficiency remains at 80%."</i> <b>It is the job, not the
+    /// drop.</b></para>
+    ///
+    /// <para>So DK2 pays a keeper 12.5% for aiming: marking work and placing a
+    /// worker on it beats letting the worker find it, by exactly what a slap is
+    /// worth and stacking with it to 100%. Cleared when the worker gives that
+    /// job up.</para>
+    /// </summary>
+    public bool JustDropped;
+
     public CreatureActivity Activity;
 
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
@@ -358,6 +427,11 @@ public sealed class CreatureState
     /// </summary>
     public void ClearJob()
     {
+        // And with the job goes the bonus for having been aimed at it. The
+        // keeper's 12.5% is worth one job, not the rest of the imp's life:
+        // CONFIRMED by the owner, who watched a dropped imp mine its first seam
+        // at 90% and the next one at 80% (ADR-0062).
+        JustDropped = false;
         Activity = CreatureActivity.Idle;
         TargetTileIndex = -1;
         TargetWork = default;
@@ -384,6 +458,11 @@ public sealed class CreatureState
         hash.Add(Level);
         hash.Add(ExperiencePoints);
         hash.Add(LastAngryChoiceTick);
+        hash.Add(InHand);
+        hash.Add(PickupTick);
+        hash.Add(LastSlapTick);
+        hash.Add(WorkFasterTicks);
+        hash.Add(JustDropped);
         hash.Add((int)Activity);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);

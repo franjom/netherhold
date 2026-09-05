@@ -387,6 +387,55 @@ public class CreatureNeedsOnRealDataTests
     // ---- anger, which is not implemented but is parsed ---------------------
 
     [Fact]
+    public void FiveSlapsKillAnImp_AndTheFixtureSaidZeroForAMonth()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        // slapDamage went unread from the day it was parsed until the Hand of
+        // Evil arrived (ADR-0062), and Dk2TerrainFixture had transcribed the
+        // Imp's as 0 - so the fixture quietly held that slapping an imp is
+        // free. It is not: 100 against 500 health is five slaps, which is a
+        // piece of DK2 anyone who has played it has done by accident.
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        CreatureDef imp = db.CreatureByName("Imp")!;
+        Assert.Equal(100, imp.SlapDamage);
+        Assert.Equal(500, imp.Hp);
+        Assert.Equal(5, imp.Hp / imp.SlapDamage);
+
+        // The fixture's other two handled creatures, for the same reason.
+        Assert.Equal(115, db.CreatureById(7).SlapDamage);
+        Assert.Equal(125, db.CreatureByName("Vampire")!.SlapDamage);
+
+        // And the one that says the field means what it looks like: Horny hits
+        // hardest of all, at 240.
+        Assert.Equal(240, db.CreatureByName("Horny")!.SlapDamage);
+    }
+
+    [Fact]
+    public void TheHandsOwnBalanceVariablesAreWhatHandRulesReads()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        // What the hand holds (HandRules.Capacity).
+        Assert.Equal(64, db[VariableTypeId.MaxNumberOfThingsInHand]);
+
+        // And the pair that Q159 is about: the original's slap handler writes a
+        // hardcoded 100 ticks into WorkFasterTimer, which at variable 19's four
+        // ticks a game second is exactly SlapWorkFasterDurationSeconds. The
+        // other one - 60 - is what the owner's stopwatch suggested and what
+        // nothing in the binary has been found to read.
+        Assert.Equal(25, db[VariableTypeId.SlapWorkFasterDurationSeconds]);
+        Assert.Equal(25, db[VariableTypeId.SlapSpeedUpDurationSeconds]);
+        Assert.Equal(60, db[VariableTypeId.IncreasedWorkRateDurationFromSlappingSeconds]);
+        Assert.Equal(25, EfficiencyRules.SlapBonusSeconds);
+    }
+
+    [Fact]
     public void TheAngerFieldsAreSignedAndTheLastTwoAreWhy()
     {
         string? install = Install();

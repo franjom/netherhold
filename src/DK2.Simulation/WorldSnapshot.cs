@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 21;
+    private const int FormatVersion = 22;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -73,6 +73,8 @@ public static class WorldSnapshot
             w.Write(p.PlayerId);
             w.Write(p.Mana);
             w.Write(p.NextFreeImpTick.Value);
+            w.Write(p.Hand.Count);
+            foreach (int id in p.Hand) w.Write(id);
         }
 
         // Normally empty at a tick boundary — TileWorkSystem drains it every
@@ -109,6 +111,11 @@ public static class WorldSnapshot
             w.Write(c.Level);
             w.Write(c.ExperiencePoints);
             w.Write(c.LastAngryChoiceTick);
+            w.Write(c.InHand);
+            w.Write(c.PickupTick);
+            w.Write(c.LastSlapTick);
+            w.Write(c.WorkFasterTicks);
+            w.Write(c.JustDropped);
             w.Write((int)c.Activity);
             w.Write(c.TargetTileIndex);
             w.Write((int)c.TargetWork);
@@ -200,7 +207,11 @@ public static class WorldSnapshot
                 PlayerId = r.ReadByte(),
                 Mana = r.ReadInt32(),
                 NextFreeImpTick = new GameTick(r.ReadInt64()),
+                Hand = [],
             };
+
+            int handCount = r.ReadInt32();
+            for (int h = 0; h < handCount; h++) players[i].Hand.Add(r.ReadInt32());
         }
 
         WorldState world = WorldState.FromParts(width, height, tiles, players);
@@ -236,6 +247,11 @@ public static class WorldSnapshot
                 Level = r.ReadInt32(),
                 ExperiencePoints = r.ReadInt32(),
                 LastAngryChoiceTick = r.ReadInt64(),
+                InHand = r.ReadBoolean(),
+                PickupTick = r.ReadInt64(),
+                LastSlapTick = r.ReadInt64(),
+                WorkFasterTicks = r.ReadInt32(),
+                JustDropped = r.ReadBoolean(),
                 Activity = (CreatureActivity)r.ReadInt32(),
                 TargetTileIndex = r.ReadInt32(),
                 TargetWork = (TileWorkKind)r.ReadInt32(),
