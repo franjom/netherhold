@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>DK2.Convert</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../DK2.Assets/DK2.Assets.csproj" />
+    <ProjectReference Include="../DK2.Data/DK2.Data.csproj" />
+  </ItemGroup>
+
+</Project>

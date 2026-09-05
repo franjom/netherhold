@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Assets;
+using DK2.Convert;
 using DK2.Data;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
@@ -23,6 +25,38 @@ switch (args[0])
             return 2;
         }
         Console.WriteLine(dir);
+        return 0;
+    }
+
+    case "convert":
+    {
+        int outOption = Array.IndexOf(args, "--out");
+        if (outOption < 0 || outOption + 1 >= args.Length || outOption + 2 != args.Length)
+        {
+            Console.Error.WriteLine("usage: dk2tools convert --out converted-assets/");
+            return 2;
+        }
+
+        string output = RequireConvertedOutput(args[outOption + 1]);
+        string install = Dk2Install.Require();
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        IReadOnlyList<AssetConversionResult> results =
+            AssetConverter.ConvertAll(install, database, output);
+        FileAssetProvider provider = FileAssetProvider.Converted(output);
+        foreach (AssetConversionResult result in results)
+        {
+            if (result.Produced && !provider.TryResolve(result.Reference, out _))
+                throw new InvalidOperationException(
+                    $"Converter reported '{result.Reference.Key}' but FileAssetProvider cannot resolve it.");
+            string status = result.Produced ? "PRODUCED" : "MISSING ";
+            string destination = result.OutputPath is null
+                ? result.Detail
+                : $"{Path.GetRelativePath(output, result.OutputPath)} ({result.Detail})";
+            Console.WriteLine($"{status} {result.Reference.Key} -> {destination}");
+        }
+        int produced = results.Count(result => result.Produced);
+        Console.WriteLine($"-- produced {produced}, could not produce {results.Count - produced}, " +
+                          $"catalogue total {results.Count}");
         return 0;
     }
 
@@ -854,12 +888,25 @@ static string ResolveEditor(string arg)
     return Path.Combine(root, "Data", "editor", "maps", arg);
 }
 
+static string RequireConvertedOutput(string argument)
+{
+    string path = Path.GetFullPath(argument);
+    string allowed = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, "converted-assets"));
+    string allowedPrefix = allowed.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+    if (path.Equals(allowed, StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith(allowedPrefix, StringComparison.OrdinalIgnoreCase))
+        return path;
+    throw new ArgumentException(
+        $"Conversion output must be converted-assets/ or one of its children, not '{argument}'.");
+}
+
 static int Usage()
 {
     Console.WriteLine("usage: dk2tools <command>");
     Console.WriteLine();
     Console.WriteLine("commands:");
     Console.WriteLine("  where                                  print resolved DK2 install path");
+    Console.WriteLine("  convert --out converted-assets/        convert catalogue assets to GLB and PNG");
     Console.WriteLine("  wad list <file.WAD>                    list archive entries");
     Console.WriteLine("  wad extract <file.WAD> <entry> [out]   extract one entry");
     Console.WriteLine("  kwd chunks <file.kwd|kld>              list chunks of a KWD/KLD file");
