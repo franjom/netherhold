@@ -38,8 +38,28 @@ meaning is guessed.
 
 ## Texture formats
 
-**UNKNOWN in deliverable 1.** Texture containers and compression will be
-documented when texture extraction is implemented.
+There are two unrelated stores:
+
+- `Data/EngineTextures.WAD` contains 102 ordinary PNG files, mostly interface
+  art. They need only the existing WAD decompressor and can be copied unchanged.
+- KMF material textures—including terrain and creatures—are not in a WAD. They
+  live in `DK2TextureCache/EngineTextures.dir` and `.dat`. The `TCHC` directory
+  contains NUL-terminated names and offsets. Each data entry starts with width,
+  height, stored size, two scaled dimensions, and an alpha flag, followed by a
+  compressed bitstream.
+
+The model texture codec is **CONFIRMED** against the shipped cache and
+corroborated with OpenKeeper. It predicts colour-channel DC values between 8×8
+blocks, entropy-decodes quantized coefficients, performs two integer inverse
+transforms, converts the resulting luma/chroma planes to RGBA, and optionally
+decodes an alpha plane. Names ending in `MM0` are the highest-resolution mipmap
+and are selected for an unsuffixed KMF texture name. Two shipped KMF names do
+not exist in the cache: `Goblin2` and `Goblinbak`; the explicit, corroborated
+corrections are `GoblinFront` and `GoblinBack`.
+
+The two scaled-dimension fields, coefficient codec's historical name, and the
+meaning of nonzero alpha-header bits below bit 7 are **UNKNOWN**. TGQ is used by
+movies and BF4 by fonts; neither participates in terrain or creature textures.
 
 ## GLB output
 

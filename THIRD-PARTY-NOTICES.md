@@ -20,6 +20,13 @@ comments do.
   frame-zero `ITAB`/`VGEO` lookup were consulted in OpenKeeper's
   `toniarts.openkeeper.tools.convert.kmf.KmfFile` and `KmfModelLoader`, then
   reimplemented in `src/DK2.Convert` in this project's own structure and idiom.
+- **Engine texture format research (facts only, no code copied):** the `TCHC`
+  directory and data-entry layouts, mipmap naming, coefficient decode tables,
+  8×8 block transform, luma/chroma conversion, alpha handling, and the two
+  shipped Goblin texture-name corrections were consulted in OpenKeeper's
+  `EngineTexturesFile`, `Dk2TextureDecoder`, `EngineTextureDecoder`, and
+  `KmfModelLoader`, then reimplemented in `src/DK2.Convert` in this project's
+  own structure and idiom.
 - **Format research (facts only, no code copied):** KWD/KLD record layouts,
   field offsets and enumerated value meanings, used as documentation and
   cross-checked against the shipped files.
