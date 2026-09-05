@@ -1,13 +1,16 @@
-﻿# How a creature gets a lair, and why ours does not
+﻿# How a creature gets a lair, and how ours now does
 
 **Sources:** the owner's recordings of DK2 v1.70 (2026-09-05, analysed by a
 second assistant) and `DKII.EXE` read the same day. Facts in our own words;
 ADR-0046 governs the boundary.
 
-**Read this before touching `CreatureSleepSystem`.** What this project does today
-is contradicted on two separate counts, and both are recorded here rather than
-half-fixed, because the replacement needs a candidate-selection rule that is
-still partly UNKNOWN.
+**Built 2026-09-05 (ADR-0060).** `CreatureSleepSystem` now does what §4, §5
+and §7 describe: a bedless idle creature picks the nearest reachable lair with
+a free slot (preferring one with no bed of the other side), walks to it, and
+finds its tile on arrival — underfoot, the eight neighbours in the original's
+order, then a walk of the room from a random start. §1–§2 describe what was
+watched and what the old implementation got wrong; they are kept as the record
+of why. What is still ours is listed at the end of §7.
 
 ## 1. What was watched
 
@@ -219,7 +222,11 @@ cheapest of the three to check. Do not build a retry interval on it.
 
 ## 7. What this means for the rework
 
-Not built, deliberately. The shape it has to take:
+**Built 2026-09-05 — ADR-0060.** The shape below is what was built; the list
+is kept as the specification it was. Marked as ours in the code: the idle
+retry cadence (12 ticks), the arrival tile (room centre, Q157), the order of
+the room walk (ascending tile index; the random start is kept), and no
+sub-tile jitter on the walk target. The shape it had to take:
 
 - a creature with no lair does **not** claim one until something makes it want to;
 - wanting one puts it into a state that **picks a room by distance** and walks

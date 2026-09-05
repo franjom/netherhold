@@ -116,7 +116,7 @@ public class ObjectsInWorldTests
         Paint(db, world, RoomTypeId.Lair, at, Keeper);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
-        Assert.True(LairRules.TryClaimBed(world, db, goblin));
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
 
         ObjectState bed = Assert.Single(world.Objects);
         Assert.Equal(Dk2TerrainFixture.GoblinBedObjectId, bed.ObjectTypeId);
@@ -139,7 +139,7 @@ public class ObjectsInWorldTests
         Paint(db, world, RoomTypeId.Lair, at, Keeper);
 
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, at);
-        Assert.True(LairRules.TryClaimBed(world, db, vampire));
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, vampire));
 
         Assert.Equal(
             Dk2TerrainFixture.VampireBedObjectId,
@@ -160,7 +160,7 @@ public class ObjectsInWorldTests
         CreatureState imp = world.SpawnCreature(
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, at);
 
-        Assert.False(LairRules.TryClaimBed(world, db, imp));
+        Assert.False(LairRules.TryPlaceBedInAnyLair(world, db, imp));
         Assert.Empty(world.Objects);
     }
 
@@ -175,8 +175,8 @@ public class ObjectsInWorldTests
         CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 3));
 
-        Assert.True(LairRules.TryClaimBed(world, db, first));
-        Assert.True(LairRules.TryClaimBed(world, db, second));
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, first));
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, second));
 
         Assert.Equal(2, world.Objects.Count);
         Assert.NotEqual(world.Objects[0].TileIndex, world.Objects[1].TileIndex);
@@ -193,8 +193,8 @@ public class ObjectsInWorldTests
         Paint(db, world, RoomTypeId.Lair, new TilePos(5, 4), Keeper);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
-        Assert.True(LairRules.TryClaimBed(world, db, goblin));
-        Assert.True(LairRules.TryClaimBed(world, db, goblin));
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
 
         // Two free tiles and one creature: a claim that did not notice it
         // already owned a bed would furnish both and leak the first forever.
@@ -212,7 +212,7 @@ public class ObjectsInWorldTests
         Paint(db, world, RoomTypeId.Lair, at, Keeper);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
-        Assert.True(LairRules.TryClaimBed(world, db, goblin));
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
         Assert.Single(world.Objects);
 
         goblin.Health = 0;
@@ -238,7 +238,7 @@ public class ObjectsInWorldTests
         Paint(db, world, RoomTypeId.Lair, at, Keeper);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
-        Assert.True(LairRules.TryClaimBed(world, db, goblin));
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
 
         goblin.Anger = CreatureAngerRules.Ceiling;
         goblin.AngryChoice = JobType.Leave;
@@ -259,7 +259,10 @@ public class ObjectsInWorldTests
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
         var sim = new GameSimulation(db, world, 42, [new CreatureSleepSystem()]);
-        sim.Run(1);
+
+        // Standing on the lair already: one tick to decide on it, one to test
+        // the tile underfoot and put the bed down (ADR-0060).
+        sim.Run(2);
         Assert.Single(world.Objects);
 
         RoomRules.Unmake(db, ref world.Tile(at.X, at.Y));
@@ -279,7 +282,7 @@ public class ObjectsInWorldTests
         Paint(db, world, RoomTypeId.Lair, at, Keeper);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
-        Assert.True(LairRules.TryClaimBed(world, db, goblin));
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
 
         var before = new GameSimulation(db, world, 42, [new CreatureSleepSystem()]);
         GameSimulation after = WorldSnapshot.FromBytes(

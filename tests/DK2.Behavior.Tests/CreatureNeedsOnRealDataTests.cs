@@ -297,21 +297,26 @@ public class CreatureNeedsOnRealDataTests
     // ---- beds ------------------------------------------------------------
 
     [Fact]
-    public void TenCreaturesHaveNoBedAndTheyAreTheOnesWithNowhereToLive()
+    public void TwelveCreaturesNeverGoForABedAndTheyAreTheOnesWithNowhereToLiveOrNoSleepToSleep()
     {
         string? install = Install();
         if (install is null) return;
 
+        // The gate has two halves (Q104, read from the binary 2026-09-05): a
+        // bed id, and a TimeSleep that is not zero.
+        //
         // LairObjectId is the bed object itself, and 0 means there is none.
         // The owner CONFIRMED the two interesting members: "skeleton does not
         // have a lair", and "horny is only a summonable creature, it is not in
         // a regular roster of creatures, and only on special conditions/maps
         // when conditions are met" — which is also why Horny carries no
-        // AvailableViaPortal (ADR-0047).
+        // AvailableViaPortal (ADR-0047). The other seven fall out the same
+        // way: the Imp lives nowhere, and the five hero lords plus Jack come
+        // through hero gates rather than living in anybody's dungeon.
         //
-        // The other seven fall out the same way: the Imp lives nowhere, and
-        // the five hero lords plus Jack come through hero gates rather than
-        // living in anybody's dungeon.
+        // The Dwarf and the Stone Knight are the other half: each carries the
+        // hero bed (6) and a TimeSleep of 0, and the original never sends
+        // either for a bed. See the test below.
         GameDatabase db = GameDatabaseLoader.Load(install);
 
         var bedless = db.Creatures.Values
@@ -325,32 +330,40 @@ public class CreatureNeedsOnRealDataTests
                 "Imp", "Skeleton", "Unique Skeleton", "Horny", "Jack",
                 "Prince Tristran", "King Reginald", "Prince Felix",
                 "Lord Of The Land", "Prince Balder",
+                "Dwarf", "Stone Knight",
             },
             bedless);
     }
 
     [Fact]
-    public void TwoCreaturesOwnABedTheyCanNeverSleepIn()
+    public void TheDwarfAndTheStoneKnightCarryABedIdAndAreNeverSentForOne()
     {
         string? install = Install();
         if (install is null) return;
 
-        // The Dwarf and the Stone Knight both carry a bed object *and* a
-        // TimeAwake of 32767, so by the record they occupy a lair tile and
-        // never sleep in it. Which of the two fields DK2 gates on is Q104.
-        //
-        // Nothing depends on it — a creature that never sleeps never heals in a
-        // bed either way — but it is exactly the sort of quiet contradiction
-        // that a rule written from one field would get wrong, so it is checked
-        // rather than assumed away.
+        // Both carry a bed object *and* a TimeAwake of 32767 with a TimeSleep
+        // of 0, so by the bed id alone they would each take a lair tile and
+        // never sleep on it. Q104 asked which field DK2 gates on; the binary
+        // says both — the lair attempt requires TimeSleep to be non-zero as
+        // well as a bed id — so the bed id is dead data for exactly these two,
+        // and LairRules.NeedsBed says no for them. Until 2026-09-05 it said
+        // yes, and this test documented the contradiction instead.
         GameDatabase db = GameDatabaseLoader.Load(install);
 
-        var bedButSleepless = db.Creatures.Values
-            .Where(c => LairRules.NeedsBed(c) && c.TimeAwake >= Never)
+        var bedIdButNoSleep = db.Creatures.Values
+            .Where(c => c.LairObjectId != 0 && !LairRules.NeedsBed(c))
             .Select(c => c.Name)
             .ToHashSet();
 
-        Assert.Equal(new HashSet<string> { "Dwarf", "Stone Knight" }, bedButSleepless);
+        Assert.Equal(new HashSet<string> { "Dwarf", "Stone Knight" }, bedIdButNoSleep);
+
+        foreach (string name in bedIdButNoSleep)
+        {
+            CreatureDef creature = db.Creatures.Values.Single(c => c.Name == name);
+            Assert.Equal(0, creature.TimeSleep);
+            Assert.True(creature.TimeAwake >= Never);
+            Assert.Equal(6, creature.LairObjectId);
+        }
     }
 
     [Fact]

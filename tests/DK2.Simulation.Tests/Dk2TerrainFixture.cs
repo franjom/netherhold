@@ -43,7 +43,7 @@ internal static class Dk2TerrainFixture
     public const byte ManaVaultTerrain = 31;
     public const byte ClaimedVaultTerrain = 32;
 
-    public static GameDatabase Database() => new(
+    public static GameDatabase Database(params CreatureDef[] extraCreatures) => new(
         [
             T(ImpenetrableRock, "Impenetrable Rock",
               TerrainFlags.Solid | TerrainFlags.Impenetrable, 1, 1, 1, 1),
@@ -117,7 +117,7 @@ internal static class Dk2TerrainFixture
             // exactly where its exponent gives 2 (hatchery.md section 4).
             R(RoomTypeId.Hatchery, "Hatchery", 300, HatcheryTerrain, 0x128Cu, 3, 3),
         ],
-        creatures: [Imp(), Goblin(), Vampire()],
+        creatures: [Imp(), Goblin(), Vampire(), .. extraCreatures],
         variables: Variables(),
         keeperSpells: KeeperSpells(),
         objects: Objects());
@@ -132,7 +132,7 @@ internal static class Dk2TerrainFixture
     /// The object definitions a registered system reads: the two beds, because
     /// a bed is now a thing that stands on a tile rather than an index on a
     /// creature (Q130, <c>docs/research/objects.md</c> §7). Without them
-    /// <see cref="LairRules.TryClaimBed"/> has nothing to place.
+    /// <see cref="LairRules.TryPlaceBedInAnyLair"/> has nothing to place.
     ///
     /// <para><b>Transcribed from the shipped <c>Objects.kwd</c>, not invented</b>,
     /// for the reason every number in this fixture is: a made-up value here

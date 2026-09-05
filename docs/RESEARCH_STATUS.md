@@ -112,6 +112,17 @@ What is *built* rather than known, against the long-term goals:
   **walled a level-1 keeper in permanently** (ADR-0045). One owner sentence, two
   four-month defects, neither about portals.
 
+- **A creature walks to a lair and finds its tile on arrival** (ADR-0060,
+  built 2026-09-05; `docs/research/lair-acquisition.md`). An idle bedless
+  creature tries for a lair *first*, whatever its mood (Q150); the room is the
+  nearest reachable lair with a free slot, preferring one with no bed of the
+  other alignment (Q151); the tile is the one underfoot, then eight neighbours
+  in the original's order, then a walk of the room from a random start;
+  nothing is reserved, a room found full on arrival falls through, and a
+  failed attempt is retried at the next idle decision. The bed goes down at
+  the tile centre and the creature sleeps at once only if hurt past 50%. The
+  gate is `LairObjectId ≠ 0` **and** `TimeSleep ≠ 0` (Q104). Ours, marked:
+  the retry cadence, the arrival tile (Q157), the walk order, no jitter.
 - **A creature has its own bed and sleeps in it** (ADR-0049, **CONFIRMED by the
   owner**): a lair is one bed per tile, a creature takes a free tile on arrival,
   and **it heals only while asleep in its own bed** — 100 a second. The proxy
@@ -209,18 +220,6 @@ What is *built* rather than known, against the long-term goals:
   is the clearest evidence yet for what Q132's phantom variable is *for*.
 
 ## Unsolved (research required before implementing)
-- **How a creature decides to go and get a lair, and which tile it takes.**
-  ← **fully read as of 2026-09-05; not yet built** (`docs/research/lair-acquisition.md`).
-  An idle bedless creature tries for a lair *first*, whatever its mood (Q150 —
-  the mood gate the first recording suggested was a coincidence; the owner's
-  correction that four creature types always bedded down first is what sent the
-  read the right way); the room is the nearest reachable lair with a free slot,
-  preferring one with no bed of the other alignment (Q151 — and creature flag
-  bit 8 is thereby `IsGood`); the tile is found on arrival, own tile → fixed
-  neighbour table → a walk of the room; a failed attempt falls through to a job
-  and retries at the next idle decision; a sleep need every `TimeAwake` is a
-  second way in. Ours still claims a bed on the first tick one is free, from
-  anywhere. Only the lair's slot count per tile is unread (Q156).
 - **What a room does.** ← being worked on. **Done: the portal, the lair, the
   treasury; the hatchery is researched and half built** (everything but its
   clock). Much less of a blank sheet than it was. The ROOMS record carries art, size and cost and says

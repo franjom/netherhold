@@ -368,7 +368,8 @@ public sealed class ScenarioRunner
             "holds - a treasury stores gold because a variable says how much per tile, and a " +
             "library and a training room are inert. Two now do more: a portal " +
             "produces creatures, and a lair both attracts them and holds one bed per tile that " +
-            "a creature claims, sleeps in and is healed by. What a lair still cannot do is " +
+            "a creature walks to, puts its bed on, sleeps in and is healed by (ADR-0060). What a " +
+            "lair still cannot do is " +
             "anger the creature it turns away (Q106) or take back a creature an imp carried to " +
             "it, because nothing can be carried");
         unsupported.Add(

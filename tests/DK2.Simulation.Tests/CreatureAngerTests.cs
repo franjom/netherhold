@@ -40,8 +40,16 @@ public class CreatureAngerTests
     private static GameSimulation Simulation(
         GameDatabase db, WorldState world, ListEventSink? sink = null)
     {
+        // The mover is in here too, since 2026-09-05: a bed is walked to, so a
+        // ladder test with a lair in it needs the creature to be able to get
+        // there (ADR-0060).
         var sim = new GameSimulation(db, world, seed: 42,
-            [new CreatureSleepSystem(), new CreatureHealthSystem(), new CreatureAngerSystem()]);
+        [
+            new CreatureMovementSystem(),
+            new CreatureSleepSystem(),
+            new CreatureHealthSystem(),
+            new CreatureAngerSystem(),
+        ]);
         if (sink is not null) sim.ObserveWith(sink);
         return sim;
     }
@@ -164,15 +172,22 @@ public class CreatureAngerTests
     {
         // The control. A mechanic that angers everybody is not a mechanic, and
         // this is the difference the *player* makes: one lair tile.
+        //
+        // The tile is a diagonal step away rather than under the creature's
+        // feet, because a bed is walked to (ADR-0060). The two seconds of walk
+        // cost 200 anger at AngerNoLair's 100 a second, and the first sleep at
+        // 240 s repays it fifty times over, so the run still ends at zero —
+        // and, more to the point, never gets within sight of a mood change.
         GameDatabase db = Db;
         WorldState world = World(db);
-        PaintLair(db, world, new TilePos(4, 4));
+        PaintLair(db, world, new TilePos(3, 3));
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         var events = new ListEventSink();
 
         Simulation(db, world, events).Run(Second * 400);
 
+        Assert.True(LairRules.HasBed(world, db, goblin));
         Assert.Equal(0, goblin.Anger);
         Assert.Equal(CreatureMood.Content, CreatureAngerRules.MoodOf(db.CreatureById(GoblinId), goblin));
         Assert.DoesNotContain(events.Events, e => e.Kind == "creature_mood");
@@ -317,15 +332,23 @@ public class CreatureAngerTests
         // Now the player does something about it. One tile.
         PaintLair(db, world, new TilePos(2, 3));
 
-        // Long enough for it to claim the bed, get tired (TimeAwake 240) and
-        // sleep once.
+        // It has to notice and walk there — one tile, a couple of seconds, and
+        // each of those seconds is still charged 100 (ADR-0060). The exact
+        // arithmetic below starts from the anger it had when the bed went down.
+        int waited = 0;
+        while (!LairRules.HasBed(world, db, goblin) && waited++ < Second * 20) sim.Run(1);
+        Assert.True(LairRules.HasBed(world, db, goblin), "never got its bed");
+        int atBed = goblin.Anger;
+        Assert.True(atBed >= peak);
+
+        // Long enough for it to get tired (TimeAwake 240) and sleep once.
         sim.Run(Second * 300);
 
         Assert.Equal(CreatureMood.Content, CreatureAngerRules.MoodOf(definition, goblin));
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
 
         // One sleep, and its worth is exact: nine seconds at -550.
-        Assert.Equal(peak - (9 * 550), goblin.Anger);
+        Assert.Equal(atBed - (9 * 550), goblin.Anger);
 
         // Still carrying most of the grievance, though. Not a reset.
         Assert.True(goblin.Anger > 0);
@@ -390,7 +413,7 @@ public class CreatureAngerTests
         PaintLair(db, world, bed);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, bed);
-        Assert.True(LairRules.TryClaimBed(world, db, goblin));
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
 
         goblin.Anger = 10_000;
         goblin.Activity = CreatureActivity.Sleeping;

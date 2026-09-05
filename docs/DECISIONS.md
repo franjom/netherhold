@@ -4161,3 +4161,109 @@ other than speed, and it says so.
 - Routing remains ours (Q5). What this fixes is a property of *our* mover that
   no observation of the original bears on, other than the one ADR-0025 already
   cites.
+
+## ADR-0060 — A bed is walked to: the room by distance, the tile on arrival
+
+**Date:** 2026-09-05 · **Status:** Accepted · **Extends** ADR-0049 (a creature
+has its own bed) and ADR-0054 (the bed is an object that knows whose it is).
+
+### The defect
+
+`CreatureSleepSystem` gave a creature a bed on the first tick one was free,
+from wherever it stood, with no walk — the lowest free tile index across the
+keeper's lairs. The owner filmed the original doing something else entirely
+(`docs/research/lair-acquisition.md` §1): creatures walked into a lair, up to
+an occupied tile, rejected it and carried on; in a 1×5 lair the tiles went
+1, 3, 5, 4. The binary was then read to the tile (§4, §5) and a third party's
+implementation plan checked against it (§7). This ADR is the build.
+
+### What the original does (STRONGLY INFERRED from the binary; outcome CONFIRMED by recordings)
+
+1. **The trigger is idleness without a bed**, whatever the mood (Q150), and the
+   sleep need every `TimeAwake` is a second way in. The attempt is gated on
+   `LairObjectId ≠ 0` **and `TimeSleep ≠ 0`** (Q104).
+2. **The room is chosen first**, by distance from the creature to the room's
+   centre: the nearest reachable lair with a free slot, preferring one that
+   holds no bed whose owner is of the other alignment (Q151). Capacity is the
+   tile count (Q156). Nothing about size or "function".
+3. **The tile is chosen on arrival**: the tile underfoot, then eight neighbours
+   in the order (−1,−1), (−1,0), (−1,+1), (0,+1), (+1,+1), (+1,0), (+1,−1),
+   (0,−1), then a walk of the room from a random start; each candidate must be
+   the keeper's lair tile with no bed of any kind on it. Nothing is reserved.
+4. **The bed is created at the tile's centre**, and the creature then sleeps at
+   once only if its health is below `CreatureSleepsWhenBelowPercentHealth`
+   (variable 88, 50); otherwise the state ends and it is idle.
+5. A room found full on arrival sends the creature back through the finder;
+   a failed attempt falls through and is retried at the next idle decision.
+
+### The decision
+
+- A new activity, `CreatureActivity.SeekingLair` (9), distinct from
+  `GoingToSleep`: the latter walks to a bed the creature owns, the former walks
+  to a room and decides the tile on arrival.
+- `LairRules.NeedsBed` tests both fields. The Dwarf and the Stone Knight, who
+  carry the hero bed with `TimeSleep` 0, are never sent for a bed.
+- The finder, the on-arrival search (`LairRules.TryFindFreeTile`, with the
+  neighbour table read from the binary) and the predicate
+  (`LairRules.IsFreeLairTile`) are built as read. The room preference reads the
+  `IsGood` / `IsEvil` pair both ways (`LairRules.HoldsBedOfOtherAlignment`).
+- Reach is a real route over the creature's own `WorldPathGrid`, planned in the
+  attempt and then walked by `CreatureMovementSystem`. A route that fails
+  mid-walk, a destination sold or captured mid-walk, and a room found full all
+  end the state cleanly in idle, with an event.
+- The remote claim is gone. `LairRules.TryClaimBed` is renamed
+  `TryPlaceBedInAnyLair` and documented as placement without a journey, for
+  tests and level setup; no system calls it.
+- Moving house (a creature finding a tile while owning a bed in another room
+  destroys the old one) is kept as a guarded branch with an event; no path in
+  this simulation reaches it, because a bed here is either valid or already
+  released.
+
+### What is ours, marked as such in code
+
+- **The idle retry cadence**, `LairRules.IdleRedecisionTicks` = 12: the
+  original's idle state wanders 12 of its ticks and decides again; whether its
+  tick is ours is not established. A failure event is emitted at every
+  attempt, so a bedless creature in a full dungeon is loud in the log — 530
+  lines in the 6700-tick anger scenario. That is the truth of what it does.
+- **The arrival tile** (Q157): the room tile nearest the bounding-box centre,
+  lowest index among equals (`LairRules.ArrivalTile`). The original's
+  travel-to-room routine is unread.
+- **The order of the room walk**: ascending tile index rather than the room's
+  own join order, which is not observable without the room's history. The
+  random start is kept.
+- **No sub-tile jitter** on the walk target. The original displaces it by
+  about a third of a tile; our mover walks to tile centres and the bed sits at
+  the centre either way.
+- **The unhappy and angry job choosers' lair-first line** needs no code: with
+  no job system for non-workers, every bedless non-worker is idle, and idle is
+  where the attempt already is.
+
+### Consequences
+
+- **No new persistent field**, so `HashVersion` and the snapshot
+  `FormatVersion` stay at 20 and the determinism pin did not move (the fixture
+  run is imps only). The new enum value is hashed as an int like the others.
+- **A random draw is consumed by each on-arrival room walk** that gets past the
+  neighbour ring. The anger scenario's third goblin does exactly that once, so
+  its angry draw moved from `Rebel` to `Leave` on the same seed — and with no
+  portal on that map it is blocked. Both halves of the coin end the same way
+  there; the scenario's notes say so.
+- Tests that painted a lair behind rock and expected a bed now paint it a walk
+  away and run the mover; the anger arithmetic test measures one sleep's worth
+  from the anger at the moment the bed went down, since the walk costs the
+  seconds it takes. `LairAcquisitionTests` (18) covers the checklist the
+  verified plan set out: no remote claim; unreachable rejected; nearest
+  non-full chosen; alignment preference and its fallback; occupancy on
+  arrival; the ring order and the random-start walk; two creatures one room;
+  full on arrival then retry; destination sold mid-walk; bed loss by the same
+  journey; sleep only if hurt; the two-field gate; snapshot mid-journey; same
+  seed same beds.
+- Suite: 829 tests; 16 scenarios run.
+
+### Still open
+
+- Q157 (arrival tile) and the cadence are readable and unread.
+- The owner can break the prediction in §5 of the note: with a large empty
+  reachable lair before the portal fires, every creature beds down before its
+  first job.

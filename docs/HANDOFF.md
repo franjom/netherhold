@@ -3895,6 +3895,43 @@ Docs only; no code changed; 811 tests.
 
 ### Where the next session should start
 
-**Build the lair rework** — it is now read to the tile, and the plan the owner
-brought is a fair checklist once the "functional" clause is struck and the
-`TimeSleep` gate is added.
+~~**Build the lair rework**~~ — built the same day; see the next section.
+
+## Twenty-third sitting: the lair rework, built
+
+**ADR-0060.** A bed is now walked to. `CreatureSleepSystem` lost its remote
+claim and gained a state, `SeekingLair`: an idle bedless creature picks the
+nearest reachable lair with a free slot — preferring one with no bed of the
+other side — walks to the room's centre tile, and on arrival tests the tile
+underfoot, then the eight neighbours in the original's order, then walks the
+room from a random start. Nothing is reserved. A room found full on arrival
+sends it back through the finder, a failed attempt drops it to idle and is
+retried every 12 ticks, a destination sold mid-walk ends the attempt cleanly.
+The bed goes down at the tile centre and the creature sleeps at once only if
+its health is under 50%. `NeedsBed` now tests `TimeSleep` as well as the bed id,
+so the Dwarf and the Stone Knight are never sent for one (Q104).
+
+**Ours, marked in code and in the ADR:** the 12-tick retry cadence, the
+arrival tile (room centre — Q157), the order of the room walk (ascending tile
+index; the random start is the original's), and no sub-tile jitter on the walk
+target.
+
+**What moved.** No new field, so `HashVersion`/`FormatVersion` stay at 20 and
+the determinism pin did not move. Tests that painted a lair behind rock and
+expected a bed now paint it a walk away and run the mover. The anger scenario's
+third goblin arrives at a taken tile, walks the room once — one random draw —
+and so its angry choice on seed 5 flipped from `Rebel` to `Leave`, which the
+portal-less map blocks; the scenario notes say so. `LairAcquisitionTests`
+holds the eighteen cases the verified plan asked for. 829 tests; 16 scenarios.
+
+**For the owner to watch, when there is time:** the §5 prediction — with a
+large empty reachable lair built before the portal fires, *every* creature
+beds down before its first job — and, in a lair with its centre tile taken,
+whether the newcomer goes to the tile north-west of it first.
+
+### Where the next session should start
+
+1. **Q132**, the treasury deposit order, **Q155** — as before.
+2. **Q157** and the idle cadence are readable in the binary
+   (`FUN_00471a70` and the idle state's fallback block), if a sitting wants
+   to strike two "ours" marks.

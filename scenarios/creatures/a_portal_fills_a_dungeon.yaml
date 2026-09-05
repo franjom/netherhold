@@ -24,6 +24,14 @@
 # nothing at all however long it waits. That is what makes level 1 teach lairs
 # before it gives you anything to put in them - a mechanic, not a script.
 #
+# And since the lair rework (ADR-0060) the goblins do something on arrival: the
+# first walks the eleven tiles to the one-tile lair and puts its bed down
+# (`lair_sought` t768, `bed_claimed` t1083); the second finds the lair full at
+# its first idle decision and says so every 12 ticks (`lair_attempt_failed
+# ... reason=lair_full`, 264 times in this run). That is what one lair tile
+# and a working portal look like in the log, and it is the tutorial's lesson
+# about lair size told by the simulation rather than the script.
+#
 # What to read in the event log: the `interval` column on `creature_entered`.
 # Level 1 overrides EntranceGenerationSpeedSeconds from the game-wide 25 down to
 # **18**, so arrivals are 360 ticks apart - until the fourth, which waits 540,
@@ -37,8 +45,9 @@
 # shipped files expresses it, and a stopwatch on the original settles it - Q86);
 # whether the creature pool is a standing limit or a draining quota (Q87); how
 # long claiming a portal takes in the original, since only the propagation is
-# confirmed and not the rate (Q92); and what the arriving goblins then do, which
-# is nothing, because a non-worker has no needs, no job and no moods yet.
+# confirmed and not the rate (Q92); and what the arriving goblins do once they
+# have, or cannot get, a bed — nothing, because a non-worker has no job system
+# yet, so the second goblin stands on the portal asking for a lair.
 id: creatures-a-portal-fills-a-dungeon-001
 question: >
   Given one dig order, will a keeper's imps open a route to level 1's neutral

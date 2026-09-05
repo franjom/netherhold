@@ -32,9 +32,24 @@
 #
 # What the event log shows, in order:
 #
-#   t0      `bed_claimed ... tile=(5,5)` and `tile=(6,5)`
-#           Two goblins take the two beds. **The third gets nothing**, and from
-#           this tick it is accruing 100 anger a second.
+#   t0      `lair_sought` x3 — all three set off for the two-tile lair at once.
+#           Nothing is reserved (ADR-0060): the room had two free slots when
+#           each decided, and the tile is decided on arrival.
+#
+#   t121    `bed_claimed ... tile=(5,5)` — the nearest goblin arrives at the
+#           room's centre tile and puts its bed down there.
+#
+#   t150    `lair_tile_found ... taken=(5,5) to=(6,5) how=neighbour`
+#   t178    the same, for the third goblin: both find the centre taken and both
+#           pick the same neighbour, because (6,5) is the only other lair tile.
+#   t179    `bed_claimed ... tile=(6,5)` — the second goblin gets there first.
+#
+#   t207+   `lair_attempt_failed ... reason=lair_full`, every 12 ticks, 530
+#           times in this run. **The third gets nothing**: it arrived at (6,5)
+#           to find a bed on it, walked the room (one random draw), found the
+#           room full, and asks again at every idle decision. It has been
+#           accruing 100 anger a second since tick 0 regardless — the charge is
+#           for having no bed, not for having stopped looking.
 #
 #   t3279   `creature_mood ... Content->Unhappy anger=16400/32767`
 #           163.8 seconds, which is 16383/100 rounded up to the next whole
@@ -53,17 +68,21 @@
 #           luck, which would report the unimplemented outcome as the
 #           implemented one.
 #
-#           **On seed 5 it draws `Rebel`, which is the half that does not
-#           exist** — so the run ends with an angry goblin standing in the
-#           dungeon rather than a `creature_left`. That is the honest outcome
-#           and the reason the draw is kept rather than re-rolled: turning it
-#           into a desertion would misreport an unbuilt mechanic as a built one.
-#           Desertion itself is covered by
-#           `AnAngryGoblinWalksToThePortalAndLeavesThroughIt`, which forces the
-#           other side of the coin.
+#           **On seed 5 it draws `Leave`** — it drew `Rebel` before the lair
+#           rework, and the draw moved because the goblin's failed room walk at
+#           t207 consumed one random number ahead of it (ADR-0060). Leaving is
+#           a walk to the nearest portal the keeper owns (Q116), and **this map
+#           has no portal**, so what follows is `creature_leave_blocked ...
+#           reason=no_reachable_portal` and an angry goblin still standing in
+#           the dungeon. The other half of the coin, `Rebel`, does not exist
+#           yet and would have left it standing there too; the draw is kept
+#           rather than re-rolled so that neither outcome is misreported.
+#           Desertion that actually completes is covered by
+#           `AnAngryGoblinWalksToThePortalAndLeavesThroughIt`.
 #
-# Note the other two goblins: they claimed beds on tick 0, so their anger stays
-# at **zero** for the whole run. That contrast is the point. Anger is feedback on
+# Note the other two goblins: they had beds within nine seconds, so their anger
+# never exceeds the few hundred the walk cost and is cleared by their first
+# sleep. That contrast is the point. Anger is feedback on
 # the player's choices, not a countdown every dungeon loses, and one lair tile is
 # the whole difference.
 #
@@ -105,10 +124,12 @@ setup:
     - { type: Lair, at: [5, 5], player: 3 }
     - { type: Lair, at: [6, 5], player: 3 }
   creatures:
-    # These two claim the beds on tick 0 and never anger at all.
+    # These two walk to the lair and bed down within nine seconds. Their anger
+    # never gets past the few hundred the walk costs, and the first sleep
+    # clears it.
     - { type: Goblin, at: [8, 8], player: 3 }
     - { type: Goblin, at: [9, 8], player: 3 }
-    # This one finds both taken. 100 anger a second from here on.
+    # This one arrives last and finds both tiles taken. 100 anger a second.
     - { type: Goblin, at: [10, 8], player: 3 }
     # Never eats, never sleeps, needs no bed — and so is never angered, which is
     # how the shipped data says "imps never get angry" without a special case.

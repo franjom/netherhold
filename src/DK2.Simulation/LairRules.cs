@@ -61,8 +61,9 @@ namespace DK2.Simulation;
 public static class LairRules
 {
     /// <summary>
-    /// Whether this creature has a bed at all, by
-    /// <see cref="CreatureDef.LairObjectId"/> — the object its bed <i>is</i>.
+    /// Whether this creature ever goes for a bed: its record names one
+    /// (<see cref="CreatureDef.LairObjectId"/> — the object its bed <i>is</i>)
+    /// <b>and</b> it sleeps at all (<see cref="CreatureDef.TimeSleep"/> ≠ 0).
     ///
     /// <para>22 for a Goblin, 26 for a Vampire (a coffin), 18 for a Bile Demon.
     /// <b>0 for the Imp, the Skeleton and Horny</b>, and the owner CONFIRMED
@@ -71,14 +72,18 @@ public static class LairRules
     /// particular maps when conditions are met, which is also why it carries no
     /// <see cref="CreatureFlags.AvailableViaPortal"/> (ADR-0047).</para>
     ///
-    /// <para>Read from the object id rather than from the sleep cycle because
-    /// the two disagree: the <b>Dwarf</b> and the <b>Stone Knight</b> both have
-    /// a bed object and a <c>TimeAwake</c> of 32767, so by the record they own a
-    /// bed and never sleep in it. Which of the two fields DK2 actually gates on
-    /// is Q104; nothing here depends on it, because a creature that never sleeps
-    /// never heals in a bed either way.</para>
+    /// <para><b>Both halves, read from the binary (Q104, 2026-09-05).</b> The
+    /// original's lair attempt is gated on <c>TimeSleep</c> being non-zero as
+    /// well as on the bed id, and the two disagree for exactly two creatures:
+    /// the <b>Dwarf</b> and the <b>Stone Knight</b> carry the hero bed (6) with
+    /// <c>TimeSleep</c> 0 and <c>TimeAwake</c> 32767. By the id alone they would
+    /// each take a lair tile they never sleep on; the original never sends them
+    /// for one, and neither does this. The gate excludes Imp, Skeleton, Unique
+    /// Skeleton, Horny, Dwarf and Stone Knight by <c>TimeSleep</c>, and the
+    /// seven heroes with no bed id by the id.</para>
     /// </summary>
-    public static bool NeedsBed(CreatureDef creature) => creature.LairObjectId != 0;
+    public static bool NeedsBed(CreatureDef creature) =>
+        creature.LairObjectId != 0 && creature.TimeSleep != 0;
 
     /// <summary>
     /// Whether this object is a bed.
@@ -144,29 +149,259 @@ public static class LairRules
         return taken;
     }
 
+    /// <summary>Whether this room is a lair.</summary>
+    public static bool IsLairRoom(GameDatabase database, RoomInstance room) =>
+        room.Definition.TerrainId == database.Room(RoomTypeId.Lair).TerrainId;
+
+    /// <summary>Whether this tile is lair terrain held by this keeper.</summary>
+    public static bool IsLairTileOf(
+        WorldState world, GameDatabase database, int tileIndex, byte ownerPlayerId)
+    {
+        if (tileIndex < 0 || tileIndex >= world.TileCount) return false;
+        ref TileState tile = ref world.TileAtIndex(tileIndex);
+        return tile.OwnerPlayerId == ownerPlayerId
+            && tile.TerrainId == database.Room(RoomTypeId.Lair).TerrainId;
+    }
+
     /// <summary>
-    /// Finds a free tile in any lair this creature's keeper owns and puts the
-    /// creature's own bed on it, or leaves it bedless and returns false.
+    /// The one test every candidate tile is put through: this keeper's lair
+    /// tile, with no bed of <i>any</i> kind standing on it.
     ///
-    /// <para><b>Lowest tile index wins</b>, across lairs visited in
-    /// <see cref="RoomIndex"/>'s own order, so two creatures spawning on the
-    /// same tick claim beds in creature order rather than in whatever order a
-    /// dictionary produced. Which tile DK2 picks is UNKNOWN and almost certainly
-    /// nearest-to-the-door; this is deterministic, which is the property that
-    /// cannot be given up (ADR-0001).</para>
+    /// <para>The original's predicate, read from its lair state (2026-09-05):
+    /// it asks the tile's room type and owner, then whether any object on the
+    /// tile carries the <c>TypeLair</c> flag. Not "no bed of my kind", not "no
+    /// bed of my side" — any bed. Alignment is a preference between
+    /// <i>rooms</i>, not a rule about tiles (<see cref="HoldsBedOfOtherAlignment"/>).</para>
+    /// </summary>
+    public static bool IsFreeLairTile(
+        WorldState world, GameDatabase database, int tileIndex, byte ownerPlayerId) =>
+        IsLairTileOf(world, database, tileIndex, ownerPlayerId)
+        && !BedTaken(world, database, tileIndex);
+
+    /// <summary>
+    /// Whether one more bed fits: the original's free-slot test is
+    /// <c>used + 1 ≤ capacity</c>, and for a lair the capacity is the tile
+    /// count (Q156, read from the binary).
+    /// </summary>
+    public static bool HasFreeSlot(WorldState world, GameDatabase database, RoomInstance lair) =>
+        Occupied(world, database, lair) + 1 <= Capacity(lair);
+
+    /// <summary>
+    /// Whether this lair already holds a bed whose owner is of the other side —
+    /// the test that makes a creature prefer one lair over a nearer one (Q151).
+    ///
+    /// <para>For each bed in the room the owning creature is looked up and the
+    /// pair <see cref="CreatureFlags.IsGood"/> / <see cref="CreatureFlags.IsEvil"/>
+    /// is read both ways: <i>if I am good, is it evil? if I am evil, is it
+    /// good?</i> A bed whose owner has gone (the creature id answers to nobody)
+    /// counts for nothing. A creature that is neither good nor evil by its
+    /// flags — none shipped, but a record can say so — objects to nobody.</para>
+    /// </summary>
+    public static bool HoldsBedOfOtherAlignment(
+        WorldState world, GameDatabase database, RoomInstance lair, CreatureDef me)
+    {
+        bool good = me.Flags.HasFlag(CreatureFlags.IsGood);
+        bool evil = me.Flags.HasFlag(CreatureFlags.IsEvil);
+        if (!good && !evil) return false;
+
+        IReadOnlyList<ObjectState> objects = world.Objects;
+        for (int i = 0; i < objects.Count; i++)
+        {
+            ObjectState candidate = objects[i];
+            if (!IsBed(database, candidate)) continue;
+            if (!lair.TileIndices.Contains(candidate.TileIndex)) continue;
+
+            CreatureState? owner = world.CreatureById(candidate.CreatureId);
+            if (owner is null) continue;
+
+            CreatureFlags theirs = database.CreatureById(owner.CreatureTypeId).Flags;
+            if (good && theirs.HasFlag(CreatureFlags.IsEvil)) return true;
+            if (evil && theirs.HasFlag(CreatureFlags.IsGood)) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The room's centre tile — the point the original measures a lair's
+    /// distance from a creature by.
+    ///
+    /// <para>The binary keeps a centre tile pair on the room and measures to
+    /// its centre point; how it rounds an even side is unread, so the midpoint
+    /// of the bounding box, rounded down, is <b>ours</b>. For an L-shaped room
+    /// the box's midpoint need not be a room tile; that is fine here, because
+    /// this is a point to measure to, not a place to stand — see
+    /// <see cref="ArrivalTile"/> for that.</para>
+    /// </summary>
+    public static TilePos CentreTile(RoomInstance room) =>
+        new((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
+
+    /// <summary>
+    /// Squared distance, in position units, from where this creature stands to
+    /// the centre of a room's centre tile. Squared so that it stays an integer;
+    /// only the ordering is used.
+    /// </summary>
+    public static long DistanceToCentreSquared(RoomInstance room, CreatureState creature)
+    {
+        TilePos centre = CentreTile(room);
+        long dx = creature.PosX - CreatureState.CentreOf(centre.X);
+        long dy = creature.PosY - CreatureState.CentreOf(centre.Y);
+        return (dx * dx) + (dy * dy);
+    }
+
+    /// <summary>
+    /// The tile a creature walks to when it heads for this room: the room tile
+    /// nearest the room's centre, lowest tile index among equals.
+    ///
+    /// <para><b>Ours — Q157.</b> The original hands the room to a travel-to-room
+    /// routine shared by every room-going state, and that routine is unread;
+    /// its lair state only requires <i>some</i> tile of the keeper's lair
+    /// underfoot when it begins. The centre is the obvious guess and agrees
+    /// with the finder measuring rooms by their centres. Where a creature's bed
+    /// lands relative to the door follows from this choice most of the time,
+    /// because the tile search is local-first.</para>
+    /// </summary>
+    public static int ArrivalTile(WorldState world, RoomInstance room)
+    {
+        TilePos centre = CentreTile(room);
+        int centreIndex = (centre.Y * world.Width) + centre.X;
+        if (room.TileIndices.Contains(centreIndex)) return centreIndex;
+
+        int best = room.TileIndices[0];
+        long bestDistance = long.MaxValue;
+        foreach (int index in room.TileIndices)
+        {
+            long dx = (index % world.Width) - centre.X;
+            long dy = (index / world.Width) - centre.Y;
+            long distance = (dx * dx) + (dy * dy);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = index;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>
+    /// The eight neighbours a creature tries after the tile it is standing on,
+    /// in the original's own order: (−1,−1), (−1,0), (−1,+1), (0,+1), (+1,+1),
+    /// (+1,0), (+1,−1), (0,−1) — a ring from the north-west corner down the
+    /// west side, along the south, up the east, ending due north. Read from
+    /// the binary's offset table, 2026-09-05.
+    /// </summary>
+    private static readonly int[] NeighbourDx = [-1, -1, -1, 0, 1, 1, 1, 0];
+    private static readonly int[] NeighbourDy = [-1, 0, 1, 1, 1, 0, -1, -1];
+
+    /// <summary>How a free tile was found — for the event log, not for any rule.</summary>
+    public enum TileFound
+    {
+        None,
+        Underfoot,
+        Neighbour,
+        Walk,
+    }
+
+    /// <summary>
+    /// The on-arrival tile search: the tile underfoot, then the eight
+    /// neighbours in the fixed order, then a walk through the room from a
+    /// random start, each candidate put through <see cref="IsFreeLairTile"/>.
+    /// Returns false, and <paramref name="tileIndex"/> −1, when the room has no
+    /// free tile at all.
+    ///
+    /// <para><b>The walk is the original's in shape and ours in order.</b> The
+    /// original draws <c>rand(tileCount)</c>, steps that far along the room's
+    /// own tile chain from its bounding-box origin, and follows the chain until
+    /// a candidate passes or it is back where it began. Its chain is the order
+    /// tiles joined the room; <see cref="RoomInstance.TileIndices"/> is
+    /// ascending tile order, so the same draw lands on a different tile. The
+    /// random start is the behaviour — two creatures that fail the local search
+    /// spread out rather than queueing on the same tile — and it is kept; the
+    /// chain order is not observable without the room's history and is not
+    /// reproduced.</para>
+    ///
+    /// <para>The neighbour ring is <i>not</i> confined to the room: the
+    /// predicate asks only that the tile be the keeper's lair, so a neighbour
+    /// belonging to a lair joined at a corner qualifies, exactly as in the
+    /// original.</para>
+    /// </summary>
+    public static bool TryFindFreeTile(
+        WorldState world, GameDatabase database, RoomInstance room, TilePos from,
+        byte ownerPlayerId, SimRandom rng, out int tileIndex, out TileFound how)
+    {
+        int here = (from.Y * world.Width) + from.X;
+        if (IsFreeLairTile(world, database, here, ownerPlayerId))
+        {
+            tileIndex = here;
+            how = TileFound.Underfoot;
+            return true;
+        }
+
+        for (int i = 0; i < NeighbourDx.Length; i++)
+        {
+            int nx = from.X + NeighbourDx[i];
+            int ny = from.Y + NeighbourDy[i];
+            if (!world.Contains(nx, ny)) continue;
+
+            int index = (ny * world.Width) + nx;
+            if (!IsFreeLairTile(world, database, index, ownerPlayerId)) continue;
+
+            tileIndex = index;
+            how = TileFound.Neighbour;
+            return true;
+        }
+
+        int count = room.TileIndices.Count;
+        int start = rng.NextInt(count);
+        for (int step = 0; step < count; step++)
+        {
+            int index = room.TileIndices[(start + step) % count];
+            if (!IsFreeLairTile(world, database, index, ownerPlayerId)) continue;
+
+            tileIndex = index;
+            how = TileFound.Walk;
+            return true;
+        }
+
+        tileIndex = -1;
+        how = TileFound.None;
+        return false;
+    }
+
+    /// <summary>
+    /// How long an idle, bedless creature waits between attempts to get a lair,
+    /// in ticks.
+    ///
+    /// <para><b>Ours.</b> A failed attempt in the original falls through to a
+    /// job and is retried at the creature's next idle decision; with no job
+    /// system for non-workers here, the idle state's own fallback is the only
+    /// cadence to borrow — it wanders for 12 ticks and decides again. Whether
+    /// the original's tick is this project's tick is not established, so this
+    /// is a number with the right shape rather than a measured one.</para>
+    /// </summary>
+    public const int IdleRedecisionTicks = 12;
+
+    /// <summary>
+    /// Puts this creature's own bed on the first free tile of any lair its
+    /// keeper owns, from wherever the creature happens to be — <b>with no
+    /// journey</b>.
+    ///
+    /// <para><b>Not how a creature gets a bed.</b> That is
+    /// <see cref="Systems.CreatureSleepSystem"/>, which walks the creature to a
+    /// room chosen by distance and finds the tile on arrival (ADR-0060). This is
+    /// the placement without the walk, for a test that wants a creature already
+    /// bedded and for level setup; no system calls it, and the name says
+    /// "anywhere" so that nobody mistakes it for the mechanic it used to
+    /// be.</para>
     ///
     /// <para><b>The bed placed is the creature's own kind</b>, from its record's
     /// <see cref="CreatureDef.LairObjectId"/> — which is the reason the bed has
     /// to be created here rather than shipped with the room. Twelve bed objects
     /// serve 46 creatures, and which of the twelve a tile holds cannot be known
     /// before the creature that will sleep in it is.</para>
-    ///
-    /// <para>A keeper with no lair, or a full one, leaves the creature with no
-    /// bed. In DK2 that is what <c>angerNoLair</c> is for — 100 for a Goblin,
-    /// the joint-largest anger source in its record — and
-    /// <see cref="CreatureAngerRules"/> charges it. Q105.</para>
     /// </summary>
-    public static bool TryClaimBed(
+    public static bool TryPlaceBedInAnyLair(
         WorldState world, GameDatabase database, CreatureState creature)
     {
         if (HasBed(world, database, creature)) return true;
@@ -174,12 +409,10 @@ public static class LairRules
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         if (!NeedsBed(definition)) return false;
 
-        byte lairTerrain = database.Room(RoomTypeId.Lair).TerrainId;
-
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
             if (room.OwnerPlayerId != creature.OwnerPlayerId) continue;
-            if (room.Definition.TerrainId != lairTerrain) continue;
+            if (!IsLairRoom(database, room)) continue;
 
             foreach (int index in room.TileIndices)
             {
@@ -196,8 +429,9 @@ public static class LairRules
     /// Puts this creature's own bed on a given tile and hands it over, without
     /// asking whether the tile is a lair or whether the creature wanted one.
     ///
-    /// <para>The placement half of <see cref="TryClaimBed"/>, separated because
-    /// two other callers need it without the search: <b>a level file</b>, whose
+    /// <para>The placement alone, separated because three callers need it
+    /// without a search: <see cref="Systems.CreatureSleepSystem"/> once its
+    /// creature is standing on the tile it found, <b>a level file</b>, whose
     /// objects arrive already placed (DK2 marks them <c>AutoPlaced</c>), and a
     /// test that wants a creature in a bed without walking it there.</para>
     ///

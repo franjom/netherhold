@@ -91,6 +91,27 @@ public enum CreatureActivity
     /// mechanic whatever put the gold in the hands.</para>
     /// </summary>
     FetchingGold = 8,
+
+    /// <summary>
+    /// Walking to a lair to put its bed down — a journey with a test at the
+    /// end, and the state every non-worker enters first.
+    ///
+    /// <para><b>Distinct from <see cref="GoingToSleep"/> on purpose.</b> That
+    /// state walks to a bed the creature already owns; this one walks to a
+    /// <i>room</i>, chosen by distance, and only decides which tile on
+    /// arrival — the tile underfoot, then eight neighbours in a fixed order,
+    /// then a walk of the room from a random start. Nothing is reserved: two
+    /// creatures heading for the same room is normal and one of them finding
+    /// it full on arrival is normal. Read from the original's own lair state
+    /// (<c>docs/research/lair-acquisition.md</c> §4, §5; ADR-0060).</para>
+    ///
+    /// <para>The state ends with a bed placed — and sleep at once if the
+    /// creature is hurt past <c>CreatureSleepsWhenBelowPercentHealth</c>,
+    /// idleness otherwise — or with nothing, when no reachable lair had a free
+    /// tile, in which case the creature is idle and tries again at its next
+    /// idle decision.</para>
+    /// </summary>
+    SeekingLair = 9,
 }
 
 /// <summary>

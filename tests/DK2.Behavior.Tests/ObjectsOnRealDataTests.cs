@@ -290,7 +290,7 @@ public class ObjectsOnRealDataTests
         if (install is null) return;
 
         // The simulation fixture now carries object definitions, because a bed
-        // is a thing that stands on a tile and TryClaimBed has to place one.
+        // is a thing that stands on a tile and TryPlaceBedInAnyLair has to place one.
         // Those definitions are transcribed by hand, which is how four wrong
         // fixture values have got in before -- three creature flags and a
         // fourth on the Goblin, each one asserting a behaviour the real record

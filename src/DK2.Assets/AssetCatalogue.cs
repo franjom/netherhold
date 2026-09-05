@@ -54,6 +54,7 @@ public static class AssetCatalogue
         "dying",
         "leaving",
         "fetching_gold",
+        "seeking_lair",
     ];
 
     /// <summary>
