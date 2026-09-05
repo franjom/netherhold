@@ -30,7 +30,62 @@ written into the code.
 
 ---
 
-## The work rate — READ FROM THE BINARY 2026-09-05, and it explains Q47's fifth
+## Efficiency — the work rate is a creature stat, and DK2 shows it
+
+**CONFIRMED by the owner, 2026-09-05, off the game's own status bar:**
+*"Imp. Name: Snipe. Job: idle. **Efficiency: 80%.** Mood: Happy."*
+
+**Efficiency is the work-rate multiplier this section spent a day inferring.**
+It is `creature[0x3af] + creature[0x3b3]` in 4096 fixed point, the constructor
+sets `0x3af` to `0xccc` = **exactly 0.8**, and the status bar prints it as
+**80%**. A slap raises the bar to **90%**, which is the `0x199` = 409 = 0.0999
+increment. Every gold measurement of that day falls out of it:
+
+| Efficiency | Health a swing | Gold a swing | Observed |
+|---|---|---|---|
+| **80%** | 300 x 0.8 / 4 = 60 | 272.7 | **272-273** |
+| **90%** | 67.5 -> **68** | 309.1 | **309-310** |
+| **100%** | 75 | 340.9 | **341** |
+
+**Which is what Q47's "a fifth of the tabled delta" always was**: 80%
+efficiency spread over the **4 ticks of a game second** (Q1). Not a cadence, not
+a fitted constant - a creature stat the game displays, times the tabled rate,
+divided by the tick rate.
+
+### What moves it
+
+- **A slap: +10 points, for 60 seconds** (`IncreasedWorkRateDurationFromSlappingSeconds`),
+  and it **does not stack** - repeated slapping leaves it at 90%.
+- **A second source worth another +10 points**, unidentified. A **brand-new imp
+  works its first seam at 90% and drops to 80%** once that seam is gone, and the
+  bonus routine tests **two** independent flags at 0.0999 each - so 100% is both
+  at once, which is where the 341 readings came from. The owner had imps in hand
+  during those runs, which makes **being dropped from the hand** the leading
+  candidate; a start-of-life boost that simply times out is the other.
+- **Not the creature's level.** A freshly created level-1 imp shows the same
+  number as a level-3 one; the day's apparent level effects were all this bonus
+  coming and going, and the claim built on them was withdrawn the same day.
+
+### How to read it
+
+**Off the status bar**, which is far better than the gold arithmetic this file
+used to recommend: select the creature and the percentage is printed with its
+name, job and mood. The gold decrements remain useful as a cross-check, and
+reading four consecutive ones off a seam is what pinned the health-to-gold
+proportion and the truncation.
+
+### For implementation
+
+`TileWorkRules` divides the tabled delta by 5, which is `delta x 0.8 / 4` - the
+default-efficiency case, and therefore already correct for every worker that is
+not slapped or freshly dropped. When the hand and the slap exist, efficiency
+becomes a real per-creature value and this becomes
+`delta x efficiency / ticksPerGameSecond`, with the health rounded to a whole
+number (67.5 -> 68, observed).
+
+---
+
+## The work rate in the binary — how Efficiency was found before it was seen
 
 **A work application is the tabled delta times the worker's own work rate, and a
 worker's work rate is 0.8.** Read out of the imp's claim handler
