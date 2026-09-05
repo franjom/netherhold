@@ -256,7 +256,7 @@ out to be is worth more than the gap was.
 | **Rescue** | **Built** (ADR-0063). `CreatureDeathRules.Rescue` had been written, tested and callerless for five sittings so the gap would be visible; kind 13 is its caller |
 | **Prison for enemies** | **Built** (ADR-0064, `docs/research/prison.md`): an imp drags an unconscious enemy to a cell, it withers at `PrisonModifyCreatureHealthPerSecond` (−3) a game second, and at nothing it rises as a **Skeleton for the jailer**. `MotionlessInPrisonSeconds` (8) is still parsed and unread |
 | **The Vampire** | **Still missing, and now for a reason with a number in it.** A graveyard keeps a tally — DK2's room dump gives the Graveyard case exactly one field of its own, `DecomposeValue`, a dword on the room instance — and `corpse_buried` reports what each body is worth. What is unread is the **threshold**: how much fills a graveyard and what happens at the top (Q165) |
-| **The petals** | **Still UNKNOWN.** Whether the flower above a creature's head is the anger meter or a separate indicator |
+| **The petals** | **ANSWERED, and it is health** (Q108). Petals empty as a creature is hurt and fill again when it eats, so the flower is a health readout rather than the anger meter. A petal is plausibly a tenth of maximum, which makes `CreatureCriticalHealthPercentageOfMax` = 20 the two petals a prisoner arrives at (Q167); the count itself is Q171 |
 | **Chickens for the dying** | Never built and never named here before: a keeper keeps a *prisoner* alive by dropping chickens on it, and a chicken is an object nothing can pick up. So a prisoner's countdown always runs out (ADR-0064) |
 
 **The cost, stated plainly:** the pipeline runs end to end now — collapse,

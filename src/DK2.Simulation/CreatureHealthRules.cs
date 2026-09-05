@@ -103,14 +103,34 @@ public static class CreatureHealthRules
     /// (20%) of its maximum — DK2's own threshold for "in trouble", and the one
     /// a fleeing or recuperating creature will be keyed off.
     ///
-    /// <para>Nothing reads it yet. It is here because the variable exists and
-    /// the percentage is not obvious from anywhere else.</para>
+    /// <para><see cref="PrisonRules.Imprison"/> reads the number this compares
+    /// against (<see cref="CriticalHealth"/>); nothing reads the comparison
+    /// itself yet. It is here because the variable exists and the percentage is
+    /// not obvious from anywhere else.</para>
     /// </summary>
     public static bool IsCriticallyHurt(
         GameDatabase database, CreatureDef creature, CreatureState state) =>
         state.Health * 100
             <= MaxHealth(database, creature, state)
                * database[VariableTypeId.CreatureCriticalHealthPercentageOfMax];
+
+    /// <summary>
+    /// <c>CreatureCriticalHealthPercentageOfMax</c> of this creature's maximum,
+    /// as health — <b>two petals of the flower above its head</b>.
+    ///
+    /// <para><b>What a petal is worth was settled by the owner</b> (2026-09-05,
+    /// Q167): a creature dragged into a prison arrives with <i>"two petals"</i>,
+    /// and 20 is the one shipped percentage that reads as two of ten. See
+    /// <see cref="PrisonRules.Imprison"/>, which is the only caller.</para>
+    ///
+    /// <para>At least one, because a creature brought round at nothing is a
+    /// creature that dies on the tick it wakes.</para>
+    /// </summary>
+    public static int CriticalHealth(
+        GameDatabase database, CreatureDef creature, CreatureState state) =>
+        Math.Max(1,
+            MaxHealth(database, creature, state)
+            * database[VariableTypeId.CreatureCriticalHealthPercentageOfMax] / 100);
 
     /// <summary>
     /// Whether this creature is hurt enough that DK2 sends it to bed —

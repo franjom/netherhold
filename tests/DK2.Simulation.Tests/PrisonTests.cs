@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -206,21 +206,53 @@ public class PrisonTests
     // ---- withering --------------------------------------------------------
 
     [Fact]
-    public void APrisonerWakesWithItsHealthAndLosesThreeASecond()
+    public void APrisonerWakesWithTwoPetalsAndLosesThreeHealthASecond()
     {
+        // CONFIRMED by the owner (2026-09-05, Q167): "its flower gets two
+        // petals, and then that creature starts loosing health at some standard
+        // rate". Two petals of ten is CreatureCriticalHealthPercentageOfMax,
+        // which ships at 20 - a Goblin's 1500 becomes 300.
+        //
+        // A first draft gave a prisoner FULL health on nothing better than the
+        // shape of the mechanic, which made a Goblin take 500 game seconds to
+        // wither where it should take a hundred.
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world, CellA, CellB, CellC);
         CreatureState captive = Prisoner(db, world, CellA);
 
-        // It arrived unconscious and imprisonment is what brought it round
-        // (Q167 - full health is ours, and one look at a health bar settles it).
-        Assert.Equal(db.CreatureById(GoblinId).Hp, captive.Health);
+        Assert.Equal(300, captive.Health);
+        Assert.Equal(db.CreatureById(GoblinId).Hp / 5, captive.Health);
 
         GameSimulation sim = Simulation(db, world);
         for (int i = 0; i < 10 * Second; i++) sim.Tick();
 
-        Assert.Equal(db.CreatureById(GoblinId).Hp - 30, captive.Health);
+        Assert.Equal(300 - 30, captive.Health);
+    }
+
+    [Fact]
+    public void ACapturedGoblinIsASkeletonInAHundredGameSeconds()
+    {
+        // The whole clock end to end, and the number the owner's answer moved:
+        // 300 health at -3 a second is 100 seconds, not the 500 a full-health
+        // prisoner would have taken. That is the difference between a prison
+        // being an urgent decision and a forgettable one, and it is why a
+        // keeper reaches for a chicken.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world, CellA, CellB, CellC);
+        CreatureState captive = Prisoner(db, world, CellA);
+        int captiveId = captive.Id;
+
+        GameSimulation sim = Simulation(db, world);
+        for (int i = 0; i < 99 * Second; i++) sim.Tick();
+        Assert.NotNull(world.CreatureById(captiveId));
+
+        for (int i = 0; i < 2 * Second; i++) sim.Tick();
+        Assert.Null(world.CreatureById(captiveId));
+
+        CreatureState skeleton = Assert.Single(world.Creatures);
+        Assert.Equal(SkeletonId, skeleton.CreatureTypeId);
     }
 
     [Fact]

@@ -4361,7 +4361,47 @@ constructor and its update - not the counter's writers.
    prisoner, which is the whole counterplay to the withering.
 3. **Q1's sub-object**, as above.
 4. **Three owner questions, all cheap.** Q166: build a 3x3 prison, capture until
-   the imps stop, count them. Q167: watch a freshly captured prisoner's health
-   bar. And **Q159 is still unanswered from last sitting** - slap an imp and
-   time Efficiency falling from 90% back to 80%; this project built 25 seconds
-   and the owner's stopwatch said 60.
+   the imps stop, count them. Q171: count the petals on a healthy creature.
+   And **Q159 is still unanswered from last sitting** - slap an imp and time
+   Efficiency falling from 90% back to 80%; this project built 25 seconds and
+   the owner's stopwatch said 60.
+
+### Postscript, the same evening: Q167 answered before it was asked
+
+The checklist went up and the owner answered its third entry within the hour,
+unprompted:
+
+> *"when it gets dragged to prison, its flower gets two petals, and then that
+> creature starts loosing health at some standard rate, probably from hunger. If
+> I drop a chicken in a prison with creatures in they rush toward that chicken,
+> the first one to it gets it, eats it, and its health replenishes by some
+> amount, I think it gets 2 more petals."*
+
+**This project had built full health**, on nothing better than the shape of the
+mechanic, and the ADR said so. Two petals is
+`CreatureCriticalHealthPercentageOfMax` = 20, so a Goblin arrives at 300 of 1500
+and withers to a Skeleton in **100** game seconds rather than 500 - a prison you
+have to answer rather than one you can forget. `CriticalHealth` is a new caller
+of a variable nothing read.
+
+**Two more questions fell out of one sentence, neither of them asked:**
+
+- **Q108 answered.** Petals empty with health and fill when a creature eats, so
+  the flower is a **health** readout and not the anger meter. Q106 stays a
+  stopwatch question.
+- **Q172 opened.** A prisoner *walks about its cell*, prisoners *race* for a
+  dropped chicken, and *eating* is the counterplay the withering exists for.
+  None of it is built - a chicken is an object nothing can pick up - so this
+  project's prisoners stand perfectly still, which is now a recorded narrowing
+  rather than a rule.
+
+**The methodological point, since this is the third time:** the guess was
+flagged, the experiment was named, and the number was still wrong by a factor of
+five for an afternoon. **Flagging a guess is not the same as not making one.**
+When a mechanic's whole feel depends on an invented constant, the honest move is
+to ask before building, not to build and annotate - the owner answers in
+minutes.
+
+It also moves the Hatchery up the queue. It was already the only thing that
+would put a loose object on the floor for kind 8; it is now also the only route
+to the prison's counterplay, and Q172 cannot be built without it.

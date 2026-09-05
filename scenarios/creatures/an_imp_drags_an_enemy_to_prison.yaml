@@ -1,4 +1,4 @@
-# Capture: the other branch of DK2's imp task kind 13, and the half of carrying
+﻿# Capture: the other branch of DK2's imp task kind 13, and the half of carrying
 # that ADR-0063 had to stop short of.
 #
 # The owner described both halves in one breath (Q99, 2026-09-04):
@@ -44,7 +44,7 @@
 #            *"imps stop collecting prisoners"* falling out of the same rule
 #            rather than being written twice.
 #
-#   t1209    `creature_imprisoned … owner=1 (6,5) health=1500`
+#   t1209    `creature_imprisoned … owner=1 (6,5) health=300`
 #            **Ten ticks before it would have died.** The rescue window ran
 #            from t19 to t1219 and the capture landed inside it with half a
 #            game second to spare, which is the whole tension of the mechanic:
@@ -56,29 +56,39 @@
 #            keeps the two apart in its own record too, where `PrisonOwner`
 #            sits at creature offset 0x3cb next to the ordinary owner field.
 #
-#            `health=1500` is a full Goblin, and it is **ours** (Q167). The
-#            creature arrived unconscious because that is the only way it could
-#            arrive, and something has to decide what it wakes with. Full,
-#            because the prison is a countdown that a keeper interrupts by
-#            dropping chickens on the prisoner, and one that woke at nothing
-#            would be a skeleton before the keeper could reach for one. One
-#            look at a freshly captured prisoner's health bar settles it.
+#            `health=300` is a fifth of a Goblin, and it is the owner's own
+#            answer (Q167, 2026-09-05): *"its flower gets two petals, and then
+#            that creature starts loosing health at some standard rate"*. Two
+#            petals of ten is `CreatureCriticalHealthPercentageOfMax` = **20**,
+#            and a Goblin's 1500 becomes 300.
 #
-#   t11199   `prisoner_perished … raised=Skeleton as=3`
-#            1500 health at `PrisonModifyCreatureHealthPerSecond` = -3 a second
-#            is 500 game seconds, and 1209 + 9990 = 11199 exactly. The manual
-#            says the ending in its own words: *"any creatures that perish in
-#            Prison will rise as Skeletons under your control"*, and the
-#            Prison's `CreatedCreatureId` is **9** - one of only two rooms in
-#            the shipped table that names a creature at all. The skeleton is
-#            **player 3's**, standing where the goblin stood.
+#            **This scenario shipped for one afternoon saying `health=1500`**,
+#            because the first draft gave a prisoner full health on nothing
+#            better than the shape of the mechanic. The owner corrected it the
+#            same day and the correction is worth five times what the guess was:
+#            it turns a 500-second countdown into a 100-second one, which is the
+#            difference between the prison being a slow decision and an urgent
+#            one - and is why a keeper reaches for a chicken.
+#
+#   t3199    `prisoner_perished … raised=Skeleton as=3`
+#            300 health at `PrisonModifyCreatureHealthPerSecond` = -3 a second
+#            is 100 game seconds, and 1209 + 1990 = 3199. The manual says the
+#            ending in its own words: *"any creatures that perish in Prison will
+#            rise as Skeletons under your control"*, and the Prison's
+#            `CreatedCreatureId` is **9** - one of only two rooms in the shipped
+#            table that names a creature at all. The skeleton is **player 3's**,
+#            standing where the goblin stood.
 #
 # **What this run does NOT establish**, recorded rather than implied:
 #
-#   * **Nothing stops the clock.** Chickens are what a keeper feeds a prisoner
-#     with and a chicken is an object that cannot yet be picked up, so every
-#     prisoner in this project runs its 500 seconds out. That is the mechanic
-#     working, not the mechanic finished.
+#   * **Nothing stops the clock, and nothing moves.** Chickens are what a
+#     keeper feeds a prisoner with, and a chicken is an object that cannot yet
+#     be picked up - so every prisoner here runs its hundred seconds out
+#     standing perfectly still. In the original they do neither: the owner
+#     watched prisoners *"rush toward that chicken, the first one to it gets it,
+#     eats it, and its health replenishes"*, so they walk about the cell, they
+#     compete for the bird, and they eat (Q172). That is a narrowing, not a
+#     rule, and it goes away with droppable chickens.
 #
 #   * **The torture chamber**, which is the third place the owner said a lifted
 #     prisoner may be dropped. Not built - a prisoner dropped anywhere that is
@@ -102,12 +112,12 @@ id: creatures-an-imp-drags-an-enemy-to-prison-001
 question: >
   When an enemy creature is beaten down in your dungeon, does an imp drag it to
   your prison - and what happens to it once it is in there?
-# Long enough to run the prisoner's whole 500 seconds out, and on the same small
+# Long enough to run the prisoner's whole hundred seconds out, and on the same small
 # map the burial scenario uses for the same reason: claiming outranks carrying,
 # so a big map is still being claimed when the interesting part should start.
 map: flat_9x8
 seed: 5
-duration_ticks: 12000
+duration_ticks: 4000
 setup:
   players:
     - { id: 3, gold: 0, mana: 0 }

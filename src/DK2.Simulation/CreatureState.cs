@@ -165,12 +165,22 @@ public enum CreatureActivity
     /// Hand of Evil touches a creature its keeper does not own
     /// (<see cref="HandRules.CanPickUp"/>).</para>
     ///
-    /// <para>A prisoner does nothing: it does not walk, work, sleep, eat or
-    /// choose a job. <c>PrisonModifyCreatureHealthPerSecond</c> takes three
-    /// health off it every game second, and at zero it rises as a Skeleton for
-    /// the keeper whose prison it stood in — the Prison's
+    /// <para>It arrives at <b>two petals</b> —
+    /// <see cref="CreatureHealthRules.CriticalHealth"/>, 20% of its maximum
+    /// (Q167, owner) — and <c>PrisonModifyCreatureHealthPerSecond</c> takes
+    /// three health off it every game second. At zero it rises as a Skeleton
+    /// for the keeper whose prison it stood in: the Prison's
     /// <c>CreatedCreatureId</c> is <b>9</b>, and it is one of only two rooms in
     /// the shipped table that names a creature at all.</para>
+    ///
+    /// <para><b>A prisoner here does nothing else at all — and in DK2 it
+    /// does.</b> The owner watched prisoners <i>"rush toward that chicken, the
+    /// first one to it gets it, eats it, and its health replenishes"</i>, so
+    /// they walk about their cell, they compete, and they eat. None of that can
+    /// be built until a chicken can be picked up and dropped, and
+    /// <c>MotionlessInPrisonSeconds</c> = 8 is presumably how long one stands
+    /// still between moves rather than a statement that it never moves. Q172,
+    /// and it is a narrowing, not a rule.</para>
     /// </summary>
     Imprisoned = 13,
 

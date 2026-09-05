@@ -4706,9 +4706,21 @@ drift.
 - **One prisoner per tile** (Q166), and the weakest inference here. DK2 *stores*
   `TotalCapacity`/`UsedCapacity` on the room rather than deriving them, and how
   it derives them has not been read. The owner can settle it by counting.
-- **A captured creature wakes at full health** (Q167). Something has to decide,
-  and the prison is a countdown a keeper interrupts with chickens; one that woke
-  at nothing would be a skeleton before the keeper could reach for one.
+- ~~**A captured creature wakes at full health** (Q167).~~ **Amended the same
+  evening, by the owner, unprompted:** *"its flower gets two petals, and then
+  that creature starts loosing health at some standard rate"*. A prisoner wakes
+  at `CreatureCriticalHealthPercentageOfMax` — **20%**, two petals of ten — so a
+  Goblin arrives at 300 of 1500 and becomes a Skeleton in **100** game seconds
+  rather than 500. `CreatureHealthRules.CriticalHealth` is the new caller of a
+  variable that had been read by nothing.
+
+  **This is what the guess cost, stated plainly:** the ADR named the right
+  experiment, the scenario shipped the wrong number for an afternoon, and the
+  mechanic was five times too slow — a prison you could forget about rather than
+  one you have to answer. The sentence also settled **Q108** (the flower is a
+  health readout, not the anger meter) and opened **Q172** (a prisoner walks
+  about its cell and races the other prisoners to a dropped chicken, none of
+  which is built), neither of which had been asked.
 - **The jail break is rolled once a game second** (Q168). The variable names a
   percentage per extra creature and says nothing about how often.
 - **Freed where they stand.** DK2's `prison.cpp` releases at the room's

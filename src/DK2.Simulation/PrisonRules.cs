@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -141,16 +141,28 @@ public static class PrisonRules
     /// Puts <paramref name="creature"/> in <paramref name="playerId"/>'s prison
     /// on <paramref name="tileIndex"/>, and says whether it took.
     ///
-    /// <para><b>A prisoner is alive.</b> It arrives unconscious — that is the
-    /// only way it can arrive, because only an unconscious creature can be
+    /// <para><b>A prisoner is alive, and barely.</b> It arrives unconscious —
+    /// the only way it can arrive, because only an unconscious creature can be
     /// carried — and imprisonment ends the dying window rather than continuing
-    /// it. What health it wakes with is <b>ours</b>: full, because the prison's
-    /// whole mechanic is a countdown at
-    /// <c>PrisonModifyCreatureHealthPerSecond</c> = -3 a second that a keeper
-    /// interrupts by dropping chickens on the prisoner, and a prisoner that
-    /// woke at nothing would be a skeleton before the keeper could reach for
-    /// one. Q167, and one look at a freshly captured prisoner's health bar
-    /// settles it.</para>
+    /// it. It wakes at
+    /// <see cref="CreatureHealthRules.CriticalHealth"/>: <b>20% of its maximum,
+    /// which is two petals of the ten on the flower above its head</b>.
+    ///
+    /// <para><b>CONFIRMED by the owner</b> (2026-09-05, Q167): <i>"its flower
+    /// gets two petals, and then that creature starts loosing health at some
+    /// standard rate"</i>. A first draft of this gave a prisoner <i>full</i>
+    /// health on nothing better than the shape of the mechanic, which would
+    /// have made a Goblin take 500 game seconds to wither where it should take
+    /// a hundred — the difference between the prison being a slow decision and
+    /// an urgent one.</para>
+    ///
+    /// <para>The arithmetic rests on a ten-petal flower, which is inference
+    /// rather than observation: <c>CreatureCriticalHealthPercentageOfMax</c> =
+    /// <b>20</b> is the one shipped percentage that reads as two of ten, and
+    /// <c>CreatureSleepsWhenBelowPercentHealth</c> = <b>50</b> reads as five of
+    /// ten beside it. The owner's other half corroborates it from the far side:
+    /// a chicken restores a Goblin 375 of 1500, a quarter, and they put it at
+    /// <i>"2 more petals"</i>. Q171 asks for the petal count outright.</para>
     /// </summary>
     public static bool Imprison(
         WorldState world, GameDatabase database, CreatureState creature,
@@ -164,7 +176,8 @@ public static class PrisonRules
         creature.PosX = CreatureState.CentreOf(tileIndex % world.Width);
         creature.PosY = CreatureState.CentreOf(tileIndex / world.Width);
         creature.MoveRemainder = 0;
-        creature.Health = database.CreatureById(creature.CreatureTypeId).Hp;
+        creature.Health = CreatureHealthRules.CriticalHealth(
+            database, database.CreatureById(creature.CreatureTypeId), creature);
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
         creature.AwakeTicks = 0;

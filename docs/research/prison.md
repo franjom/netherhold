@@ -1,4 +1,4 @@
-# The Prison: capture, withering, skeletons and the jail break
+﻿# The Prison: capture, withering, skeletons and the jail break
 
 Milestone M8. The other branch of DK2's imp task **kind 13**, and the half of
 carrying that `creature-death.md` and ADR-0063 had to stop short of.
@@ -22,13 +22,15 @@ binary in our own words** — no decompiler output enters this repository
 | **Only an imp captures.** The keeper's hand cannot take a body off the floor at all | **CONFIRMED** (owner, 2026-09-05) and corroborated by the binary — see §2 |
 | **The hand may lift a creature out of a prison**, even an enemy's | **CONFIRMED** (owner, 2026-09-05) |
 | A prisoner dropped back on a prison tile is imprisoned again; dropped anywhere else it goes free | **CONFIRMED** (owner) for both halves; the torture rack is the third destination and is unbuilt |
-| A prisoner loses `PrisonModifyCreatureHealthPerSecond` = **-3** a game second | **STRONGLY INFERRED** — the manual states the effect in words and the variable is named for it |
+| A prisoner loses `PrisonModifyCreatureHealthPerSecond` = **-3** a game second | **STRONGLY INFERRED** — the manual states the effect in words, the variable is named for it, and the owner watched it happen |
+| A captured creature wakes at **two petals** — 20% of its maximum | **CONFIRMED** (owner, 2026-09-05, Q167). Built as full health for one afternoon before the correction |
+| The flower above a creature's head is a **health** readout | **CONFIRMED** (owner, twice, Q108) |
+| A prisoner **walks about its cell and races the others to a dropped chicken** | **CONFIRMED** (owner, Q172) and **not built** — prisoners here are inert |
 | A prisoner that runs out **rises as a Skeleton for the jailer** | **STRONGLY INFERRED** — the manual states it, and the Prison's `CreatedCreatureId` is 9 |
 | Imps stop collecting when every prison is full | **STRONGLY INFERRED** — the manual states it; it falls out of the destination being chosen before the walk |
 | Losing a prison frees every enemy in it | **STRONGLY INFERRED** — the manual states it |
 | A jail break on overcrowding, at `OvercrowdingJailBreakPercentagePerExtraCreature` = **50** | **STRONGLY INFERRED** for the rule, **ours** for the cadence (Q168) |
 | **One prisoner per tile** | **OURS** (Q166) — the weakest inference here |
-| A captured creature wakes at **full health** | **OURS** (Q167) |
 
 ---
 
@@ -204,11 +206,15 @@ walls a creature has to come out through.
   so this is a guess shaped like the lair's one-bed-per-tile. **The owner can
   settle it in a minute**: build a 3x3 prison, capture until the imps stop, and
   count.
-- **Full health on capture** (Q167). Something has to decide what a creature
-  that arrives unconscious wakes with, and the prison's whole mechanic is a
-  countdown a keeper interrupts with chickens — one that woke at nothing would be
-  a skeleton before the keeper could reach for one. **One look at a freshly
-  captured prisoner's health bar settles it.**
+- ~~**Full health on capture.**~~ **Corrected the same day** (Q167): the owner
+  says *"its flower gets two petals"*, and two petals of ten is
+  `CreatureCriticalHealthPercentageOfMax` = 20. A Goblin arrives at 300 of 1500
+  and becomes a Skeleton in a hundred game seconds rather than five hundred.
+  What is still ours is the **petal count** the arithmetic rests on (Q171).
+- **A prisoner does nothing at all**, and in the original it does three things:
+  it moves about its cell, it races the other prisoners to a chicken dropped
+  among them, and it eats one (Q172). All three wait on the same thing — an
+  object a keeper can pick up and drop.
 - **The jail break is rolled once a game second** (Q168), on the same clock every
   other repeated chance here rides (ADR-0043). The variable names a percentage
   per extra creature and says nothing about how often.

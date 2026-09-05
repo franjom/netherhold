@@ -30,14 +30,21 @@ twenty minutes of play**. Each one has a fuller write-up further down.
 |---|---|---|---|
 | **1** | **Slap an imp, keep it selected, watch Efficiency** (Q159) | how long 90% lasts before falling back to 80% | **25 s** and this project is right; **60 s** and `EfficiencyRules.SlapBonusSeconds` is a defect to fix. The binary says 25, your stopwatch last time said 60 |
 | **2** | **Build a 3×3 prison. Beat enemies down until imps stop collecting them. Count the prisoners** (Q166) | how many fit | **9** and "one per tile" is right; anything else and `PrisonRules.Capacity` is wrong. Also worth noting whether the door-bar limit is separate |
-| **3** | **Watch a prisoner's health bar the moment an imp puts it in the cell** (Q167) | full, or a sliver | This project gives it **full health**, which is a pure guess. It decides whether a prisoner lasts 500 seconds or 5 |
+| **3** | **Count the petals on a healthy creature's flower** (Q171) | how many there are when it is unhurt | **Ten** and every health percentage in the game becomes readable by eye — and the prison's arithmetic is right. **Eight** and `PrisonRules` is wrong by a quarter |
 | **4** | **Drop an imp *two* tiles from a marked wall** (Q162) | 90% or 80% | **90%** and the aim reaches further than the four neighbours this project checks |
 
 **Nothing on this list needs a save game or a stopwatch except #1**, and #1 only
 needs a wristwatch — 25 and 60 are far enough apart.
 
-A "no" is worth as much as a "yes". If a prisoner arrives at a sliver of health,
-say so; that closes Q167 exactly as hard as "full" would.
+A "no" is worth as much as a "yes".
+
+**Q167 came off this list before it was ever asked** — the owner answered it
+unprompted the evening it went on: *"when it gets dragged to prison, its flower
+gets two petals"*. This project had built **full health**, which would have made
+a prisoner last 500 game seconds instead of 100. That is the single most
+valuable sentence anybody said this week, and it is why #3 above is now about
+counting petals: two petals is only 20% if a flower has ten of them, and the
+whole prison clock rests on that.
 
 ---
 
@@ -623,23 +630,57 @@ has not been read.
   the *cadence* is invented (Q168). Roughly how long does an overcrowded prison
   hold before it breaks?
 
-### Q167 — what health does a creature wake with when it is imprisoned? — *added 2026-09-05*
-**Watch a prisoner's health bar at the moment an imp drops it in the cell.**
+### ~~Q167 — what health does a creature wake with when it is imprisoned?~~ — **ANSWERED the same evening, unprompted**
+> *"its flower gets two petals, and then that creature starts loosing health at
+> some standard rate, probably from hunger."*
 
-A creature can only arrive unconscious — that is the only state an imp can carry
-one in — so something has to decide what imprisonment brings it round at, and
-this project decided **full health**. Nothing supports that except the shape of
-the mechanic: the prison is a countdown at −3 health a second that a keeper
-interrupts by dropping chickens on the prisoner, and one that woke at nothing
-would be a Skeleton before the keeper could reach for one.
+**Two petals, not full.** This project had built full health on nothing better
+than the shape of the mechanic, and the correction turns a **500**-game-second
+countdown into a **100**-second one — the difference between the prison being a
+slow decision and an urgent one, and the reason a keeper reaches for a chicken.
 
-**Why the answer matters more than it looks.** At full health a 1500-health
-Goblin takes **500 game seconds** to become a Skeleton. At a sliver it takes
-almost none, and the whole chicken mechanic would be pointless. So this one
-number decides whether a prison is a slow decision or an instant one.
+The shipped table supplies the number:
+`CreatureCriticalHealthPercentageOfMax` = **20**, read as two petals of ten. A
+Goblin's 1500 becomes **300**.
 
-Worth noting at the same time: **does a prisoner's health tick down visibly**,
-and roughly how long does a captured creature last before it turns?
+**The same sentence answered two more questions nobody had asked that evening:**
+
+- **Q108, the flower.** Petals empty as health goes and fill again when a
+  creature eats, so the flower is a **health** readout and not the anger meter.
+  Q106 stays a stopwatch question.
+- **Q172, what a prisoner does.** *"If I drop a chicken in a prison with
+  creatures in they rush toward that chicken, the first one to it gets it, eats
+  it, and its health replenishes."* So a prisoner **walks about its cell**, a
+  chicken is a **race** rather than a share, and eating is the counterplay the
+  withering exists for. **None of it is built** — a chicken is an object nothing
+  can pick up — and this project's prisoners stand perfectly still, which is now
+  a recorded narrowing rather than a rule.
+
+**One thing left over, and it is worth a look next time you are in a prison:**
+the owner's read was that the drain is *"probably from hunger"*. The shipped
+variable `PrisonModifyCreatureHealthPerSecond` is named for the prison
+specifically, so this project drains for that reason rather than for hunger —
+but if a prisoner also shows a **hunger** indicator, or if a well-fed prisoner
+stops losing health entirely rather than merely gaining some back, then the
+prison's -3 is the wrong mechanism and hunger damage is the right one.
+
+### Q171 — how many petals does a healthy creature's flower have? — *added 2026-09-05, and it is one glance*
+**Look at an unhurt creature and count the petals.**
+
+Everything above rests on there being **ten**. Two petals is 20% only if there
+are ten of them, and 20 is exactly what
+`CreatureCriticalHealthPercentageOfMax` ships as —
+`CreatureSleepsWhenBelowPercentHealth` = 50 reads as five of ten beside it,
+which is the second leg of the same inference.
+
+**The corroboration from the far side is good enough to be worth stating.** A
+chicken restores a Goblin **375** of its **1500**, exactly a quarter, and the
+owner put a chicken at *"I think it gets 2 more petals"*. Two and a half of ten
+is a quarter — and "I think 2" is how anybody would describe two and a half.
+
+**If the answer is eight**, two petals is 25% and `PrisonRules.Imprison` is
+wrong by a quarter. If it is ten, every percentage in the balance table becomes
+readable by eye, which is worth more than this one number.
 
 ### Q159 — how long does a slap last? — **ONE LOOK, AND THE BINARY IS ON ONE SIDE**
 **Slap an imp, keep it selected, and watch the Efficiency percentage.** It goes

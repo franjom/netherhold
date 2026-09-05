@@ -81,8 +81,11 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             // not act until it is put down (HandRules.IsHeld, ADR-0062).
             if (HandRules.IsHeld(creature)) continue;
 
-            // Nor does a prisoner: it stands in its cell and withers, and its
-            // whole second belongs to PrisonSystem (ADR-0064).
+            // Nor does a prisoner HERE, and that is a stated narrowing rather
+            // than a rule: DK2's prisoners move about their cell and rush a
+            // chicken dropped among them (Q172, owner). Nothing can drop one
+            // yet, so a prisoner stands still and its second belongs to
+            // PrisonSystem (ADR-0064).
             if (PrisonRules.IsImprisoned(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
 
