@@ -287,3 +287,11 @@ gold — dispatched by `FUN_00478800(job)`.
 **Hero and neutral creatures skip all of this** — the decision routine sends
 them to their own routines by owner id before needs are looked at.
 
+**Built 2026-09-05 — ADR-0061.** The angry chooser's half of this is now in
+`CreatureAngerSystem`: the five-second gate, the lair attempt before the roll
+(through the shared `LairSeeker`, which is this document's §4 finder), the
+cumulative ranges and the fall-through. Two arithmetic quirks that only show
+under a second reading — the ranges are inclusive at both ends, and the "sort"
+cannot reorder anything — are written out in `creature-anger.md`, "The chooser,
+read from the binary". The happy and unhappy choosers have no jobs to run yet.
+

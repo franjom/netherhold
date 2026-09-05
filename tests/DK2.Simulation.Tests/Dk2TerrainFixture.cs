@@ -511,6 +511,31 @@ internal static class Dk2TerrainFixture
         ExpPerSecond = 0,
     };
 
+    public const byte DeserterCreatureId = 44;
+
+    /// <summary>
+    /// A Goblin whose angry table is <c>Leave(100%)</c>, and nothing else about
+    /// it differs.
+    ///
+    /// <para><b>Why it exists</b>: since 2026-09-05 an angry creature rolls
+    /// afresh on every allowed selection (ADR-0061), so a test about
+    /// <i>leaving</i> written on the real Goblin's coin toss would be a test
+    /// about the seed. A creature that can only choose one thing takes the roll
+    /// out of the question and leaves the walking, the portal and the bed where
+    /// the test can see them.</para>
+    ///
+    /// <para>It is not a DK2 creature. Every other field is the Goblin's, and
+    /// the shipped roster is asserted elsewhere
+    /// (<c>CreatureNeedsOnRealDataTests</c>), so nothing here can be mistaken
+    /// for a claim about the original.</para>
+    /// </summary>
+    public static CreatureDef Deserter() => Goblin() with
+    {
+        Name = "Deserter",
+        CreatureId = DeserterCreatureId,
+        AngryJobs = [new(JobType.Leave, 0, 0, 100)],
+    };
+
     public const byte VampireCreatureId = 8;
 
     /// <summary>

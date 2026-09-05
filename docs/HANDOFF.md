@@ -13,9 +13,9 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **811 tests green**
+**every** record type's on-disk size is now known and pinned. **834 tests green**
 with and without a DK2 install; **16 scenarios** run, each drawing a picture of
-its finished world; **completely clean tree**. (Core 17, Simulation 479, Data 64,
+its finished world; **completely clean tree**. (Core 17, Simulation 502, Data 64,
 Behavior 153, Assets 61, Presentation 37.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
@@ -2450,6 +2450,9 @@ The angry choice is a **weighted draw over `AngryJobs`, drawn once and kept**.
 On the fixture Goblin that is Leave 50 / Rebel 50, and on seed 5 the scenario
 goblin draws **Rebel** — which is not implemented, so it stands there fuming.
 That is the honest outcome and is why the draw is kept rather than re-rolled.
+*(Superseded 2026-09-05: the draw is re-rolled every five game seconds, ADR-0061
+and Q122. What survives is the honesty rule — an unbuilt job ends the selection
+rather than falling through to `Leave`.)*
 
 ## Water: four findings from one screenshot, and one of them was mine to fix
 
@@ -3980,3 +3983,61 @@ the angry job on its five-second gate**
 (Q122), and **resolve four ticks against five swings** (Q1 against Q47) before
 `TicksPerSecond` is flipped — trace the tick counter's incrementer, or time a
 Dirt Path claim against a stopwatch.
+
+## Twenty-fourth sitting: the angry job is rolled again, and the lair comes first
+
+The correction the third coda scheduled, built: **ADR-0061**. Q122 said the
+angry chooser keeps nothing but a timestamp and rolls afresh every five game
+seconds; ADR-0053's draw-once-and-keep was wrong in shape, and its reason for
+existing — that re-rolling would make a Goblin desert by luck — turned out to be
+a description of DK2 rather than an argument against it.
+
+**Re-read from the binary before building**, not taken from the coda's summary,
+and the pass paid for itself four times:
+
+- **The sort is not a sort.** The chooser `qsort`s its cumulative ranges with a
+  comparator that returns 0 for less-than and 1 for everything else, never
+  negative, over an array that is already ascending. It cannot reorder anything.
+  The order is the record's, and the fall-through walks it.
+- **The ranges are inclusive at both ends** and `rand(100)` is `% 100`. So a
+  Goblin's 50/50 is really **51/49**, and the last entry's upper bound is
+  unreachable. Both reproduced, both tested.
+- **`Leave` cannot fail at selection.** Job 10's routine sets two states and
+  returns success unconditionally — the portal search is the leaving *state's*
+  problem. Which is what this project already did, arrived at from Q116.
+- **The unhappy chooser stamps the angry chooser's timestamp** on a successful
+  lair attempt (`+0x101` where its own is `+0xf9`). A copy-paste in EA's source,
+  recorded in `creature-anger.md` for whoever builds unhappy jobs.
+
+**What changed in code.** `CreatureState.AngryChoice` became
+`LastAngryChoiceTick`; `CreatureSleepSystem`'s finder moved out into
+`LairSeeker`, which both systems now call, because an angry creature tries for a
+lair *before* it rolls (§8) and two copies of "which lair, and can I get there"
+would be two answers. `HashVersion` and snapshot `FormatVersion` 20 -> 21; the
+pin is `0x6AF149EE8E20D98A`, moved by the version alone (the fixture is imps,
+whose angry table is empty).
+
+**The one deliberate stop:** an unbuilt job ends the selection where DK2 would
+have succeeded, rather than falling through to `Leave`. Otherwise every angry
+Goblin would desert, including the half of them DK2 turns into rebels. The
+fall-through is still built and still reachable — a 1% table misses on 99 rolls
+out of 100 — and there is a test that lands on it.
+
+**Visible in the scenarios**: the goblin with no lair now rolls **16 → Leave** at
+t6559 and is blocked for want of a portal, once, in silence thereafter; and the
+531st `lair_attempt_failed` in that run is the angry chooser's own, under
+`[CreatureAnger]`, one line before the roll.
+
+834 tests, 16 scenarios, clean tree.
+
+### Where the next session should start
+
+1. **Q1 against Q47** — four ticks a game second against five work applications
+   a second — is still the blocker under `TicksPerSecond`, and nothing should
+   flip it until one of them gives. A stopwatch on a Dirt Path claim would do
+   it.
+2. **Q35's withdrawal half**: the deposit tile is read (first free along the
+   room's chain); taking gold back out is not.
+3. **The two flags at the top of the angry chooser** — a per-creature bit and
+   definition flag `0x4000` — are unidentified, and the second diverts a
+   creature out of choosing entirely.

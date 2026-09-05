@@ -3548,9 +3548,9 @@ is allowed only after five game seconds (5 × variable 19 = 20 ticks), and
 `LastGameTickSuccessfullyChoseAngryJob` is the timestamp that gate reads. The
 concern above — that re-rolling would make a Goblin leave by luck — describes
 DK2: with `Leave(50%)` it does. The correction is to re-roll on the five-second
-gate and keep reporting `Leave`/`Rebel` as unbuilt; it is scheduled after the
-lair rework, which was live in the tree when this was read. See
-`lair-acquisition.md` §8 and Q122.
+gate and keep reporting `Leave`/`Rebel` as unbuilt. See `lair-acquisition.md` §8
+and Q122. **Built the same day as ADR-0061**, which supersedes the rule above
+and keeps its principle.
 
 **Only two of DK2's anger sources are applied, and the rule is one sentence: a
 source is applied when the player's own choices can turn it off.**
@@ -4278,3 +4278,101 @@ implementation plan checked against it (§7). This ADR is the build.
 - The owner can break the prediction in §5 of the note: with a large empty
   reachable lair before the portal fires, every creature beds down before its
   first job.
+
+## ADR-0061 — The angry job is rolled again, and a lair is tried before it
+
+**Date:** 2026-09-05
+**Status:** Accepted
+**Corrects:** ADR-0053 (whose 2026-09-05 amendment scheduled this)
+**Extends:** ADR-0060 (the lair attempt is now shared code)
+
+### The defect
+
+ADR-0053 gave an angry creature **one** draw from its `AngryJobs` table and kept
+it for the creature's life. The reasoning was honest and is quoted in the file:
+half a Goblin's table is `Rebel`, which is unbuilt, and a creature re-rolling
+every second would eventually draw `Leave` by luck — reporting an unimplemented
+outcome as the implemented one.
+
+Q122 read the original's chooser (`FUN_004784c0`) on 2026-09-05 and the shape is
+different. **Nothing is kept but a timestamp.** The creature rolls afresh on
+every allowed selection; a selection is allowed five game seconds after the last
+one that came to something; and the field that gates it is the one EA's own
+debug dump calls `LastGameTickSuccessfullyChoseAngryJob`. The concern ADR-0053
+raised turns out to describe DK2 rather than argue against it: with `Leave(50%)`
+re-rolled, an angry Goblin *does* walk out, after a round or two.
+
+### What the original does
+
+Read from the binary, STRONGLY INFERRED, and written out step by step in
+`docs/research/creature-anger.md` ("The chooser, read from the binary"):
+
+1. a five-game-second gate against that timestamp, checked **first**;
+2. **a lair attempt before any roll** — the same `FUN_0046f390` the idle state
+   makes (`lair-acquisition.md` §5, §8). A creature that sets off for a lair has
+   spent its selection and does not roll;
+3. cumulative ranges over the table in **record order** — the sort the original
+   applies has a comparator that never returns negative and so cannot reorder an
+   already-ascending array;
+4. `rand(100)`, which is `% 100` and therefore **0..99**;
+5. the first entry whose range holds the roll, tested **inclusively at both
+   ends**, dispatched;
+6. **fall-through in record order** when that started nothing;
+7. the timestamp stamped **only on success**.
+
+### The decision
+
+Build 1-7, with one deliberate stop. `CreatureState.AngryChoice` is gone and
+`CreatureState.LastAngryChoiceTick` replaces it; the finder that chooses a lair
+and sets off for it moves out of `CreatureSleepSystem` into `LairSeeker`, so the
+idle path and the angry path make one attempt rather than two similar ones —
+which is what the original does with one function.
+
+**The stop: an unbuilt job ends the selection.** The original's fall-through
+exists for jobs whose own start routine *fails* (no training room, no shrine).
+Ours cannot fail that way, because every angry job either starts (`Leave`) or
+does not exist (everything else). Falling through an unbuilt `Rebel` to a built
+`Leave` would turn half of every angry Goblin into a deserter DK2 would not have
+produced, so **a job this simulation has not built ends the selection where DK2
+would have succeeded**: the creature says so, stands there, and rolls again when
+its gate opens. ADR-0053's principle survives its rule.
+
+The fall-through itself is built and reachable — a table whose chances sum to
+less than 100 leaves rolls that match nothing, and 99 of 100 rolls miss a 1%
+table.
+
+### What is ours rather than the original's
+
+- **Five game seconds is five game seconds.** The original computes
+  `5 x` variable 19 and that variable is 4; ours is
+  `5 x SimulationTiming.TicksPerSecond` and that is 20. The conflict is Q1's,
+  recorded there, and not resolved by fiat here.
+- **The selection is offered once a game second**, because that is when the
+  anger ladder runs. The original offers it at every "think", whose cadence is
+  not established.
+- **`Leave` still releases the bed at the moment it starts** (Q121), and a
+  creature already leaving is carried rather than re-choosing — the original
+  gets the second of those from its state machine, which we do not have.
+
+### Consequences
+
+- An angry Goblin now leaves. Half of them used to stand in the dungeon for
+  ever, on a draw that stuck.
+- A Vampire never leaves, because its table is `Rebel(100%)` — the unbuilt
+  outcome is its only outcome, and it must stay that way.
+- `HashVersion` and the snapshot `FormatVersion` go 20 -> 21: the persistent
+  field changed shape.
+- The lair attempt now appears in the log under `[CreatureAnger]` as well as
+  `[CreatureSleep]`. The goblin scenario has exactly one of them, at the second
+  the goblin turns angry.
+- 23 tests in `CreatureAngerTests`, including the two arithmetic quirks (the
+  overlapping ranges, the fall-through) and the gate's cadence.
+
+### Still open
+
+- **What the two flags at the top of the chooser are** (a per-creature bit, and
+  the definition flag `0x4000` that diverts a creature into a state instead of a
+  choice). Neither is identified and neither is applied.
+- **The unhappy chooser**, which has no jobs to run here yet, and carries a quirk
+  worth keeping when it does: on a successful lair attempt it stamps the *angry*
+  chooser's timestamp rather than its own.

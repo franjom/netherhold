@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -232,16 +232,18 @@ public class ObjectsInWorldTests
     [Fact]
     public void ADeserterTakesItsBedWithIt()
     {
-        GameDatabase db = Db;
+        // A Deserter rather than a Goblin: the angry job is re-rolled now
+        // (ADR-0061), and this test is about the bed, not about a coin toss.
+        GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Deserter());
         WorldState world = World(db);
         var at = new TilePos(4, 4);
         Paint(db, world, RoomTypeId.Lair, at, Keeper);
 
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
+        CreatureState goblin = world.SpawnCreature(
+            db, Dk2TerrainFixture.DeserterCreatureId, Keeper, at);
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
 
         goblin.Anger = CreatureAngerRules.Ceiling;
-        goblin.AngryChoice = JobType.Leave;
 
         new GameSimulation(db, world, 42, [new CreatureAngerSystem()]).Run(Second);
 

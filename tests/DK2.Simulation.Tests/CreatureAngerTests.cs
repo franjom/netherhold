@@ -34,6 +34,18 @@ public class CreatureAngerTests
 
     private static GameDatabase Db => Dk2TerrainFixture.Database();
 
+    private const byte DeserterId = Dk2TerrainFixture.DeserterCreatureId;
+    private const byte VampireId = Dk2TerrainFixture.VampireCreatureId;
+
+    /// <summary>
+    /// The roster plus a Goblin that can only choose <c>Leave</c>. Since
+    /// ADR-0061 the angry job is re-rolled, so a test about the walk out is
+    /// written on a creature with nothing to roll — otherwise it is a test
+    /// about seed 42.
+    /// </summary>
+    private static GameDatabase DeserterDb =>
+        Dk2TerrainFixture.Database(Dk2TerrainFixture.Deserter());
+
     private static WorldState World(GameDatabase db) => WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
@@ -205,13 +217,12 @@ public class CreatureAngerTests
         // the dungeon — killable, and still on the payroll — for the length of
         // the walk. This method previously removed it on the spot and said
         // via=nowhere_in_particular in its own event.
-        GameDatabase db = Db;
+        GameDatabase db = DeserterDb;
         WorldState world = World(db);
         PaintPortal(db, world, new TilePos(3, 3));
 
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
+        CreatureState goblin = world.SpawnCreature(db, DeserterId, Keeper, new TilePos(1, 1));
         goblin.Anger = CreatureAngerRules.Ceiling;
-        goblin.AngryChoice = JobType.Leave;
         var events = new ListEventSink();
 
         GameSimulation sim = Walking(db, world, events);
@@ -246,12 +257,11 @@ public class CreatureAngerTests
         // case here and is why the assertion is worth writing down: a rule that
         // removed the creature regardless would pass every other test in this
         // file.
-        GameDatabase db = Db;
+        GameDatabase db = DeserterDb;
         WorldState world = World(db);
 
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        CreatureState goblin = world.SpawnCreature(db, DeserterId, Keeper, new TilePos(2, 2));
         goblin.Anger = CreatureAngerRules.Ceiling;
-        goblin.AngryChoice = JobType.Leave;
         var events = new ListEventSink();
 
         Walking(db, world, events).Run(Second * 60);
@@ -276,13 +286,12 @@ public class CreatureAngerTests
         // Without the guard in CreatureSleepSystem the deserter claims that
         // bed, because it is a creature with no bed standing next to a free
         // lair tile, and then walks out of the dungeon holding it.
-        GameDatabase db = Db;
+        GameDatabase db = DeserterDb;
         WorldState world = World(db);
         PaintLair(db, world, new TilePos(2, 2));
 
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        CreatureState goblin = world.SpawnCreature(db, DeserterId, Keeper, new TilePos(2, 2));
         goblin.Anger = CreatureAngerRules.Ceiling;
-        goblin.AngryChoice = JobType.Leave;
 
         Walking(db, world).Run(Second * 30);
 
@@ -359,43 +368,239 @@ public class CreatureAngerTests
     }
 
     [Fact]
-    public void AGoblinThatDrawsRebelStaysPutAndSaysSo()
+    public void AVampireThatDrawsRebelStaysPutAndSaysSo()
     {
         // The unimplemented half, tested for what it *is* rather than quietly
         // turned into desertion. Rebelling needs a creature to change sides and
         // become a hero; RebelLeavingPercentage and its two siblings have
         // nothing to act on. So the creature stays, angry, and the log says it.
+        //
+        // A Vampire, because its angry table is Rebel outright where a Goblin's
+        // is a coin toss — and since ADR-0061 a coin toss is re-tossed. This is
+        // the creature for which the unbuilt outcome is the *only* outcome, and
+        // no fall-through may turn it into a walk to the portal.
         GameDatabase db = Db;
         WorldState world = World(db);
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, new TilePos(2, 2));
 
-        goblin.Anger = CreatureAngerRules.Ceiling;
-        goblin.AngryChoice = JobType.Rebel;
+        vampire.Anger = CreatureAngerRules.Ceiling;
+        var events = new ListEventSink();
 
-        Simulation(db, world).Run(Second * 30);
+        Simulation(db, world, events).Run(Second * 30);
 
         Assert.Single(world.Creatures);
-        Assert.Equal(CreatureAngerRules.Ceiling, goblin.Anger);
+        Assert.Equal(CreatureAngerRules.Ceiling, vampire.Anger);
+        Assert.Equal(CreatureActivity.Idle, vampire.Activity);
+
+        Assert.All(
+            events.Events.Where(e => e.Kind == "creature_angry"),
+            e =>
+            {
+                Assert.Contains("chose=Rebel", e.Detail);
+                Assert.Contains("result=unbuilt", e.Detail);
+            });
     }
 
     [Fact]
-    public void TheAngryChoiceIsDrawnOnceAndKept()
+    public void TheAngryJobIsRolledAfreshEveryFiveGameSecondsAndNotOftener()
     {
-        // Re-rolling every second would eventually draw Leave by luck, which
-        // would report the unbuilt outcome as the built one. So the draw sticks.
+        // Q122, from the binary (2026-09-05): the angry chooser rolls afresh on
+        // every allowed selection, and a selection is allowed five game seconds
+        // after the last one that came to something —
+        // LastGameTickSuccessfullyChoseAngryJob is that timestamp, and it is
+        // the only thing the chooser keeps.
+        //
+        // A Vampire rolls Rebel, which is unbuilt: the selection is *made* (the
+        // original would have started the job), so it stamps, so the next one
+        // is five seconds later. Thirty seconds of anger is six rolls, not
+        // thirty.
         GameDatabase db = Db;
         WorldState world = World(db);
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, new TilePos(2, 2));
 
-        goblin.Anger = CreatureAngerRules.Ceiling;
-        goblin.AngryChoice = JobType.Rebel;
+        vampire.Anger = CreatureAngerRules.Ceiling;
         var events = new ListEventSink();
 
-        Simulation(db, world, events).Run(Second * 50);
+        Simulation(db, world, events).Run(Second * 30);
 
-        // One decision, not fifty.
+        List<SimEvent> rolls = events.Events
+            .Where(e => e.Kind == "creature_angry").ToList();
+        Assert.Equal(6, rolls.Count);
+
+        // And exactly five game seconds apart, every time.
+        for (int i = 1; i < rolls.Count; i++)
+        {
+            Assert.Equal(
+                5 * Second, rolls[i].Tick.Value - rolls[i - 1].Tick.Value);
+        }
+
+        Assert.Equal(rolls[^1].Tick.Value, vampire.LastAngryChoiceTick);
+    }
+
+    [Fact]
+    public void AGoblinLeavesInTheEndBecauseTheCoinIsTossedAgain()
+    {
+        // The behaviour ADR-0053 chose *not* to have, and the reason it gave
+        // for not having it is a fact about DK2 rather than an argument against
+        // it: with Leave(50%) re-rolled every five seconds an angry Goblin
+        // walks out — it just takes a round or two.
+        //
+        // Which is the point of the correction. The old rule drew once, so half
+        // of all angry Goblins stood in the dungeon for ever; the original's
+        // own record says a coin is tossed, and this is what tossing it
+        // repeatedly comes to.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        PaintPortal(db, world, new TilePos(3, 3));
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
+        goblin.Anger = CreatureAngerRules.Ceiling;
+        var events = new ListEventSink();
+
+        Walking(db, world, events).Run(Second * 120);
+
+        Assert.DoesNotContain(world.Creatures, c => c.Id == goblin.Id);
+        Assert.Single(events.Events, e => e.Kind == "creature_left");
+
+        // Every roll but the last was the unbuilt half of its own table, and
+        // the last one is the one it acted on.
+        List<SimEvent> rolls = events.Events
+            .Where(e => e.Kind == "creature_angry").ToList();
+        Assert.NotEmpty(rolls);
+        Assert.Contains("chose=Leave", rolls[^1].Detail);
+        Assert.All(rolls[..^1], e => Assert.Contains("chose=Rebel", e.Detail));
+    }
+
+    [Fact]
+    public void AnAngryCreatureSetsOffForALairBeforeItRollsAnythingAtAll()
+    {
+        // lair-acquisition.md §8: the unhappy and angry choosers both try for a
+        // lair before rolling — the same attempt (FUN_0046f390) the idle state
+        // makes, which is why it is one class here too (LairSeeker).
+        //
+        // The sleep system is left OUT of this simulation deliberately, so that
+        // what is asserted is the anger ladder's own attempt rather than the
+        // idle cadence's, which would fire seven ticks earlier and pass this
+        // test for the wrong reason. The cost is that the journey does not
+        // finish: arriving, testing the tile and putting the bed down are the
+        // lair state, and the lair state belongs to CreatureSleepSystem. In a
+        // dungeon with both — every real one — this creature gets its bed.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        PaintLair(db, world, new TilePos(3, 3));
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
+        goblin.Anger = CreatureAngerRules.Ceiling;
+        var events = new ListEventSink();
+
+        var sim = new GameSimulation(db, world, seed: 42,
+        [
+            new CreatureMovementSystem(),
+            new CreatureAngerSystem(),
+        ]);
+        sim.ObserveWith(events);
+        sim.Run(Second);
+
+        Assert.Equal(CreatureActivity.SeekingLair, goblin.Activity);
+        Assert.NotEmpty(goblin.Path);
+
+        // The selection was spent on the journey rather than on a roll: the
+        // attempt is reported under the anger system's own name, and no roll
+        // happened at all.
+        SimEvent sought = Assert.Single(events.Events, e => e.Kind == "lair_sought");
+        Assert.Equal("CreatureAnger", sought.System);
         Assert.DoesNotContain(events.Events, e => e.Kind == "creature_angry");
-        Assert.Equal(JobType.Rebel, goblin.AngryChoice);
+        Assert.Equal(sought.Tick.Value, goblin.LastAngryChoiceTick);
+    }
+
+    [Fact]
+    public void TheCumulativeRangesOverlapAtEveryBoundarySoTheEarlierEntryIsFavoured()
+    {
+        // The original builds each entry's range as [running, running + chance]
+        // and then tests lo <= roll <= hi — inclusive at BOTH ends, so the
+        // ranges touch and the earlier entry wins the tie.
+        //
+        // A Goblin's coin toss is therefore 51/49 rather than 50/50, and since
+        // its rand(100) stops at 99 the last entry's upper bound is unreachable
+        // as well. Both are quirks; both are reproduced rather than tidied.
+        var ranges = new List<(JobType Job, int Low, int High)>();
+        CreatureAngerRules.CumulativeRanges(
+            Db.CreatureById(GoblinId).AngryJobs, ranges);
+
+        Assert.Equal(
+            [(JobType.Leave, 0, 50), (JobType.Rebel, 50, 100)],
+            ranges);
+
+        // Which is 51 of the 100 rolls for the first entry and 49 for the
+        // second, written out so that a "fix" to exclusive bounds fails here
+        // rather than quietly re-balancing every angry creature in the game.
+        int first = Enumerable.Range(0, 100).Count(
+            roll => ranges.First(r => r.Low <= roll && roll <= r.High).Job == JobType.Leave);
+        Assert.Equal(51, first);
+    }
+
+    [Fact]
+    public void ARollOutsideEveryRangeFallsThroughToTheFirstJobInTheRecord()
+    {
+        // The original's chooser makes a second pass in record order when the
+        // first found nothing, and a table whose chances do not reach 100 is
+        // how that happens: 99 rolls out of 100 land outside a 1% table.
+        //
+        // So a creature with Leave(1%) does not stand around for 99 selections
+        // out of 100 — it leaves on the first one, by the fall-through. Without
+        // it, the roll would come to nothing, nothing would be stamped, and the
+        // creature would roll again a second later for ever.
+        CreatureDef longshot = Dk2TerrainFixture.Deserter() with
+        {
+            Name = "Longshot",
+            CreatureId = 45,
+            AngryJobs = [new(JobType.Leave, 0, 0, 1)],
+        };
+
+        GameDatabase db = Dk2TerrainFixture.Database(longshot);
+        WorldState world = World(db);
+        PaintPortal(db, world, new TilePos(3, 3));
+
+        CreatureState creature = world.SpawnCreature(db, 45, Keeper, new TilePos(1, 1));
+        creature.Anger = CreatureAngerRules.Ceiling;
+        var events = new ListEventSink();
+
+        Walking(db, world, events).Run(Second);
+
+        SimEvent chose = Assert.Single(events.Events, e => e.Kind == "creature_angry");
+        Assert.Contains("chose=Leave", chose.Detail);
+        Assert.Equal(CreatureActivity.Leaving, creature.Activity);
+
+        // And it was the fall-through that did it, not the range: the roll is
+        // in the event, and it is outside [0,1].
+        int roll = int.Parse(chose.Detail.Split("roll=")[1].Split(' ')[0]);
+        Assert.True(roll > 1, $"roll {roll} landed inside the 1% range");
+    }
+
+    [Fact]
+    public void ASelectionThatStartsNothingIsNeverStamped()
+    {
+        // The gate is on *success*: the original writes
+        // LastGameTickSuccessfullyChoseAngryJob only where its chooser reaches
+        // the stamp, which is past a started job. A creature with nothing in
+        // its table to select never gets there, so nothing latches shut behind
+        // it and a table that becomes selectable later still is.
+        //
+        // The Imp is the creature whose angry table is empty, and it is also
+        // the one that would take nine hours to anger, so its anger is set here
+        // rather than waited for.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState imp = world.SpawnCreature(db, 1, Keeper, new TilePos(2, 2));
+
+        imp.Anger = CreatureAngerRules.Ceiling;
+        var events = new ListEventSink();
+
+        Simulation(db, world, events).Run(Second * 30);
+
+        Assert.DoesNotContain(events.Events, e => e.Kind == "creature_angry");
+        Assert.Equal(0, imp.LastAngryChoiceTick);
+        Assert.Contains(world.Creatures, c => c.Id == imp.Id);
     }
 
     // ---- recovery ---------------------------------------------------------

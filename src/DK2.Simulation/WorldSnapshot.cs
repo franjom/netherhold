@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 20;
+    private const int FormatVersion = 21;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -108,7 +108,7 @@ public static class WorldSnapshot
             w.Write(c.Anger);
             w.Write(c.Level);
             w.Write(c.ExperiencePoints);
-            w.Write((int)c.AngryChoice);
+            w.Write(c.LastAngryChoiceTick);
             w.Write((int)c.Activity);
             w.Write(c.TargetTileIndex);
             w.Write((int)c.TargetWork);
@@ -235,7 +235,7 @@ public static class WorldSnapshot
                 Anger = r.ReadInt32(),
                 Level = r.ReadInt32(),
                 ExperiencePoints = r.ReadInt32(),
-                AngryChoice = (JobType)r.ReadInt32(),
+                LastAngryChoiceTick = r.ReadInt64(),
                 Activity = (CreatureActivity)r.ReadInt32(),
                 TargetTileIndex = r.ReadInt32(),
                 TargetWork = (TileWorkKind)r.ReadInt32(),

@@ -1,4 +1,4 @@
-# The owner's stopwatch, replayed (Q106).
+﻿# The owner's stopwatch, replayed (Q106).
 #
 # Three **Goblins** and a two-tile **Lair**. Two get beds; the third does not,
 # and the third is the experiment. This run exists because the number it depends
@@ -51,6 +51,12 @@
 #           accruing 100 anger a second since tick 0 regardless — the charge is
 #           for having no bed, not for having stopped looking.
 #
+#           There is a 531st, at t6559 and under `[CreatureAnger]` rather than
+#           `[CreatureSleep]`: an angry creature tries for a lair before it
+#           rolls an angry job, which is the same attempt by the same code
+#           (ADR-0061, `lair-acquisition.md` §8). It fails for the same reason,
+#           and only then does the roll happen.
+#
 #   t3279   `creature_mood ... Content->Unhappy anger=16400/32767`
 #           163.8 seconds, which is 16383/100 rounded up to the next whole
 #           second. In DK2 this is the moment it stops training and heads for
@@ -59,26 +65,34 @@
 #   t6559   `creature_mood ... Unhappy->Angry anger=32767/32767`
 #           327.7 seconds. Exactly twice, as the thresholds require.
 #
-#   t6559   `creature_angry ... chose=Rebel from=[Leave:50%,Rebel:50%]`
+#   t6559   `creature_angry ... roll=16 chose=Leave result=started
+#           from=[Leave:50%,Rebel:50%]`
 #           **Its own record decides what happens next**, not a rule of ours: a
 #           Goblin's `AngryJobs` is a coin toss between walking out and
-#           rebelling. The draw comes from the simulation's RNG so it is part of
-#           the deterministic stream, and it is drawn **once and kept** — a
-#           creature re-rolling every second would eventually draw `Leave` by
-#           luck, which would report the unimplemented outcome as the
-#           implemented one.
+#           rebelling. The roll comes from the simulation's RNG so it is part of
+#           the deterministic stream, and since ADR-0061 it is **rolled afresh
+#           on every allowed selection**, five game seconds apart — which is
+#           what the original's chooser does (Q122). A draw that stuck was this
+#           project's own invention, made for a good reason that turned out to
+#           be a fact about DK2 rather than an argument against it: with
+#           `Leave(50%)` re-rolled, a Goblin does walk out in the end.
 #
-#           **On seed 5 it draws `Leave`** — it drew `Rebel` before the lair
-#           rework, and the draw moved because the goblin's failed room walk at
-#           t207 consumed one random number ahead of it (ADR-0060). Leaving is
-#           a walk to the nearest portal the keeper owns (Q116), and **this map
-#           has no portal**, so what follows is `creature_leave_blocked ...
+#           **16 of 100, so `Leave`** — the ranges are `[0,50]` and `[50,100]`,
+#           inclusive at both ends, which is the original's own off-by-one and
+#           makes the coin toss 51/49 rather than 50/50. Leaving is a walk to
+#           the nearest portal the keeper owns (Q116), and **this map has no
+#           portal**, so what follows is `creature_leave_blocked ...
 #           reason=no_reachable_portal` and an angry goblin still standing in
-#           the dungeon. The other half of the coin, `Rebel`, does not exist
-#           yet and would have left it standing there too; the draw is kept
-#           rather than re-rolled so that neither outcome is misreported.
-#           Desertion that actually completes is covered by
-#           `AnAngryGoblinWalksToThePortalAndLeavesThroughIt`.
+#           the dungeon — for the rest of the run, because a creature in the
+#           leaving state does not choose again and simply looks for a route
+#           each second in silence. Desertion that actually completes is covered
+#           by `AnAngryGoblinWalksToThePortalAndLeavesThroughIt`.
+#
+#           Had it rolled 50 or over it would have drawn `Rebel`, which does not
+#           exist: it would have said so, stood there for five game seconds and
+#           rolled again. An unbuilt outcome ends the selection where DK2 would
+#           have succeeded rather than falling through to `Leave`, so half of
+#           every angry Goblin is never quietly turned into a deserter.
 #
 # Note the other two goblins: they had beds within nine seconds, so their anger
 # never exceeds the few hundred the walk cost and is cleared by their first
@@ -91,7 +105,9 @@
 #   * **Rebelling.** Half the table, and unimplemented: it needs a creature to
 #     change sides and become a hero. `RebelLeavingPercentage` (70),
 #     `RebelBecomeGoodPercentage` (15) and `RebelDefectPercentage` (15) have
-#     nothing to act on. A goblin that draws it stays put, angry, and says so.
+#     nothing to act on. A goblin that draws it stays put, angry, says so, and
+#     rolls again five game seconds later — so it is a delay here where in DK2
+#     it is an outcome.
 #   * **Where a deserter goes — ANSWERED and implemented since this run was
 #     written** (owner, Q116): "angry evil creature goes to the nearest available
 #     portal and leaves the dungeon. Angry converted good creature turns turncoat
@@ -100,8 +116,8 @@
 #     creature's exit, `Rebel` is the converted one's turncoat. A deserter now
 #     walks to the nearest portal its keeper owns and only goes when it arrives,
 #     which means **this map has no portal and so nobody could leave it anyway**
-#     — a second reason the run ends with a creature still standing in the
-#     dungeon, on top of the Rebel draw.
+#     — which is the whole reason the run ends with a creature still standing in
+#     the dungeon.
 #   * **The other three anger sources.** `AngerNoFood` (100), `AngerNoPay` (60)
 #     and `AngerNoWork` (50) are all in the record and none is applied, because
 #     none can be *satisfied* yet: chickens are objects (M6), there is no payday,

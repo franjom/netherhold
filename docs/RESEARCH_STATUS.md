@@ -164,7 +164,11 @@ What is *built* rather than known, against the long-term goals:
   by two independent methods and got 32767 both times** (Q106, Q114). Built: the
   ladder is content → unhappy → angry, an angry **evil** creature walks to the
   nearest portal and leaves, an angry **converted** one turns turncoat, and
-  anger cools only while a creature sleeps in its own bed.
+  anger cools only while a creature sleeps in its own bed. **What an angry
+  creature chooses was corrected on 2026-09-05** (Q122, ADR-0061): the job is
+  rolled afresh every five game seconds rather than drawn once, a lair is tried
+  before any roll, and the original's two arithmetic quirks — inclusive range
+  bounds, `rand(100)` stopping at 99 — are reproduced.
 - **What raises a creature's level** (Q119, Q124, docs/research/creature-levels.md).
   The per-level scaling table — 32 stats × 9 levels — had been parsed since
   variables were first read and **read by nothing**: health reaches 600% at level

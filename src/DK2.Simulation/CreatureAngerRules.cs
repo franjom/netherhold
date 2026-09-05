@@ -247,38 +247,67 @@ public static class CreatureAngerRules
         Apply(state, creature.AngerInHand);
 
     /// <summary>
-    /// What an angry creature decides to do, drawn from its own
-    /// <c>AngryJobs</c> table — for a Goblin, <c>Leave(50%)</c> and
-    /// <c>Rebel(50%)</c>.
+    /// How long an angry creature must wait between selections that came to
+    /// something: <b>five game seconds</b>, the original's <c>5 x</c> variable
+    /// 19 (Q122, ADR-0061).
     ///
-    /// <para>Drawn from the simulation's own RNG so the choice is part of the
-    /// deterministic stream. The table's percentages are used as weights in
-    /// record order, which is the same convention <see cref="PortalRules"/>
-    /// uses for the creature pool.</para>
-    ///
-    /// <para><b>The wiki gives a different model, and it is recorded rather
-    /// than followed</b> (Q116): its DK2 section says an angry creature heads
-    /// for the exit and rebels *"if they can't do that"* — a fallback, where the
-    /// record plainly holds a weighted table. Both cannot be right; the record
-    /// is the stronger source, and reachability is not something this
-    /// simulation can test yet anyway.</para>
+    /// <para>Variable 19 is DK2's ticks-a-game-second and is <b>4</b> in every
+    /// shipped level (Q1). Ours is <see cref="SimulationTiming.TicksPerSecond"/>
+    /// = 20 and the two disagree — a conflict recorded in Q1 and deliberately
+    /// not resolved by fiat. What the original expresses is <i>five game
+    /// seconds</i>, so that is what this is; if the tick rate is ever settled,
+    /// this constant does not change.</para>
     /// </summary>
-    public static JobType AngryChoice(
-        CreatureDef creature, SimRandom rng)
+    public const int ReselectionGateTicks = 5 * SimulationTiming.TicksPerSecond;
+
+    /// <summary>
+    /// The roll an angry creature makes: <c>rand(100)</c>, and it is
+    /// <b>0..99</b> rather than 1..100.
+    ///
+    /// <para>Read from the original's own random helper, which ends in
+    /// <c>% param</c> — so the top of the last cumulative range is unreachable
+    /// when a table's chances sum to 100. See <see cref="CumulativeRanges"/>
+    /// for the other half of that arithmetic, which is where it shows.</para>
+    /// </summary>
+    public static int RollPercent(SimRandom rng) => rng.NextInt(100);
+
+    /// <summary>
+    /// A job table as the original's choosers build it: a running total per
+    /// entry, in <b>record order</b>, with <b>inclusive</b> bounds at both ends.
+    ///
+    /// <para><b>The inclusive bounds are a quirk and are reproduced.</b> A
+    /// 50/50 table becomes <c>[0,50]</c> and <c>[50,100]</c> — the ranges
+    /// <i>overlap</i> at 50, and the caller takes the first entry whose range
+    /// holds the roll, so entry 0 gets 51 of the 100 rolls and entry 1 gets 49.
+    /// A Goblin's coin toss is not quite a coin toss; and with
+    /// <see cref="RollPercent"/> stopping at 99, the last entry's upper bound
+    /// is never reached at all.</para>
+    ///
+    /// <para><b>Record order is the order.</b> The original sorts this array by
+    /// upper bound before rolling, with a comparator that returns 0 for "less"
+    /// and 1 for everything else — never negative — applied to an array that is
+    /// already ascending by construction. It is a sort that cannot reorder
+    /// anything, so it is not one; what it leaves behind is the record's own
+    /// order, which is what this builds and what the fall-through then
+    /// walks.</para>
+    ///
+    /// <para>Entries are kept whatever their chance, zero-chance ones included
+    /// (their <c>Low == High</c> makes them reachable by exactly one roll).
+    /// Filtering here would move the boundaries and change every other entry's
+    /// odds; the original skips an entry at the moment it tests it, not when it
+    /// builds the ranges, and so does the caller.</para>
+    /// </summary>
+    public static void CumulativeRanges(
+        IReadOnlyList<CreatureJobPreference> table,
+        List<(JobType Job, int Low, int High)> into)
     {
-        IReadOnlyList<CreatureJobPreference> table = creature.AngryJobs;
-        if (table.Count == 0) return JobType.None;
-
-        int total = 0;
-        for (int i = 0; i < table.Count; i++) total += table[i].ChancePercent;
-        if (total <= 0) return table[0].Job;
-
-        int roll = rng.NextInt(total);
+        into.Clear();
+        int running = 0;
         for (int i = 0; i < table.Count; i++)
         {
-            roll -= table[i].ChancePercent;
-            if (roll < 0) return table[i].Job;
+            int high = running + table[i].ChancePercent;
+            into.Add((table[i].Job, running, high));
+            running = high;
         }
-        return table[^1].Job;
     }
 }

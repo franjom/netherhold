@@ -35,9 +35,11 @@ namespace DK2.Simulation.Systems;
 /// a creature to change sides and become a hero, and the three variables that
 /// govern the outcome (<c>RebelLeavingPercentage</c> 70,
 /// <c>RebelBecomeGoodPercentage</c> 15, <c>RebelDefectPercentage</c> 15) have
-/// nothing to act on. So a creature that draws Rebel stays angry and says so,
-/// once, rather than being quietly made to leave instead. Turning an unbuilt
-/// outcome into a built one would misreport half of every angry creature.</para>
+/// nothing to act on. So a creature that draws Rebel stays angry and says so
+/// rather than being quietly made to leave instead — and then rolls again five
+/// game seconds later, which is the original's cadence and means a Goblin does
+/// leave in the end, by the coin toss its record describes rather than by a
+/// draw that stuck (ADR-0061, Q122).</para>
 ///
 /// <para><b>Cadence and order.</b> The last tick of each game second, the phase
 /// <see cref="ManaSystem"/> and <see cref="CreatureHealthSystem"/> use, because
@@ -59,12 +61,17 @@ public sealed class CreatureAngerSystem : ISimulationSystem
     private const string SystemName = "CreatureAnger";
 
     private readonly IPathfinder _pathfinder;
+    private readonly LairSeeker _seeker;
     private readonly List<TilePos> _route = [];
+    private readonly List<(JobType Job, int Low, int High)> _ranges = [];
 
     public CreatureAngerSystem() : this(new GridPathfinder()) { }
 
-    public CreatureAngerSystem(IPathfinder pathfinder) =>
+    public CreatureAngerSystem(IPathfinder pathfinder)
+    {
         _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
+        _seeker = new LairSeeker(_pathfinder);
+    }
 
     public string Name => SystemName;
 
@@ -105,41 +112,119 @@ public sealed class CreatureAngerSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// An angry creature draws from its own angry job table and acts on it —
-    /// or reports that it cannot.
+    /// <b>A fresh roll on every allowed selection</b>, five game seconds apart,
+    /// with a lair attempt before it — the original's angry chooser
+    /// (<c>FUN_004784c0</c>), read on 2026-09-05 (Q122, ADR-0061).
     ///
-    /// <para>Drawn once on the second it <i>becomes</i> angry and then every
-    /// second it stays angry, which matters for the unimplemented half: a
-    /// creature that drew Rebel would otherwise re-roll for ever and eventually
-    /// leave by luck. So the draw is recorded on the creature and kept.</para>
+    /// <para>The order is the original's, and each line of it is a rule:</para>
+    ///
+    /// <list type="number">
+    /// <item><b>A creature already walking out does not choose again.</b> The
+    /// chooser is reached only when the creature's current state had nothing to
+    /// say, and leaving is a state (<c>lair-acquisition.md</c> §5).</item>
+    /// <item><b>The five-second gate</b>, against
+    /// <see cref="CreatureState.LastAngryChoiceTick"/> — and it is a gate on
+    /// <i>success</i>. A selection that starts nothing does not stamp it, so a
+    /// creature that cannot act on its anger tries again at every
+    /// opportunity.</item>
+    /// <item><b>No lair? Go and get one</b>, before any roll and instead of it
+    /// — the same attempt an idle creature makes, which is why it is
+    /// <see cref="LairSeeker"/> and not a copy. Setting off spends the
+    /// selection.</item>
+    /// <item><b>Roll <c>rand(100)</c></b> and take the first entry of the
+    /// table whose inclusive cumulative range holds it
+    /// (<see cref="CreatureAngerRules.CumulativeRanges"/>).</item>
+    /// <item><b>Fall through in record order</b> when the roll lands outside
+    /// every range, which a table whose chances sum to less than 100 can
+    /// do.</item>
+    /// </list>
+    ///
+    /// <para><b>ADR-0053's draw-once-and-keep was wrong in shape</b>, and the
+    /// reason it was written that way is a fact about DK2 rather than an
+    /// argument against re-rolling: with <c>Leave(50%)</c> an angry Goblin
+    /// <i>does</i> walk out within a few rolls. What was right about it is kept
+    /// — an unbuilt outcome is still never reported as a built one.</para>
+    ///
+    /// <para><b>Where ours stops short, and why it is one sentence.</b> The
+    /// original's fall-through also runs when a chosen job's own start routine
+    /// <i>fails</i> — no training room, no shrine. Ours cannot: every job in
+    /// this simulation either starts (<c>Leave</c>, which the original starts
+    /// unconditionally too — its routine sets the leaving state and returns
+    /// success, leaving the portal search to the state) or does not exist at
+    /// all. <b>A job that does not exist ends the selection where DK2 would
+    /// have succeeded</b>, rather than falling through to <c>Leave</c> and
+    /// turning half of every angry Goblin into a deserter it should not be. So
+    /// a Goblin that draws <c>Rebel</c> stands there for five seconds and rolls
+    /// again, and leaves after a couple of rounds instead of at once.</para>
     /// </summary>
     private void Decide(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
-        if (state.AngryChoice == JobType.None)
+        if (state.Activity == CreatureActivity.Leaving)
         {
-            state.AngryChoice = CreatureAngerRules.AngryChoice(creature, context.Rng);
-
-            context.Emit(SystemName, "creature_angry",
-                $"creature={state.Id} type={creature.Name} " +
-                $"player={state.OwnerPlayerId} chose={state.AngryChoice} " +
-                $"from=[{string.Join(",", creature.AngryJobs
-                    .Select(j => $"{j.Job}:{j.ChancePercent}%"))}]");
+            Leave(context, creature, state);
+            return;
         }
 
-        switch (state.AngryChoice)
+        long now = context.Tick.Value;
+        if (state.LastAngryChoiceTick != 0
+            && now - state.LastAngryChoiceTick < CreatureAngerRules.ReselectionGateTicks)
         {
-            case JobType.Leave:
-                Leave(context, creature, state);
-                break;
-
-            default:
-                // Rebel, Sulk, DestroyWalls, StealGold and the rest are real
-                // DK2 outcomes with nothing here to act on. Reported once by
-                // the event above and then left alone: the creature stays in
-                // the dungeon, angry, doing nothing. Honest, and visible.
-                break;
+            return;
         }
+
+        if (_seeker.TryGoForALair(context, SystemName, state, creature))
+        {
+            state.LastAngryChoiceTick = now;
+            return;
+        }
+
+        CreatureAngerRules.CumulativeRanges(creature.AngryJobs, _ranges);
+        int roll = CreatureAngerRules.RollPercent(context.Rng);
+
+        int picked = -1;
+        for (int i = 0; i < _ranges.Count; i++)
+        {
+            (JobType job, int low, int high) = _ranges[i];
+            if (job != JobType.None && low <= roll && roll <= high)
+            {
+                picked = i;
+                break;
+            }
+        }
+
+        if (picked < 0)
+        {
+            for (int i = 0; i < _ranges.Count; i++)
+            {
+                if (_ranges[i].Job == JobType.None) continue;
+                picked = i;
+                break;
+            }
+        }
+
+        // A table of nothing at all. No selection was made, so nothing is
+        // stamped and the creature is free to try again next second — which
+        // costs nothing, since the answer will be the same until its record
+        // changes.
+        if (picked < 0) return;
+
+        JobType chosen = _ranges[picked].Job;
+        state.LastAngryChoiceTick = now;
+
+        context.Emit(SystemName, "creature_angry",
+            $"creature={state.Id} type={creature.Name} " +
+            $"player={state.OwnerPlayerId} roll={roll} chose={chosen} " +
+            $"result={(chosen == JobType.Leave ? "started" : "unbuilt")} " +
+            $"from=[{string.Join(",", creature.AngryJobs
+                .Select(j => $"{j.Job}:{j.ChancePercent}%"))}]");
+
+        // Rebel, Sulk, DestroyWalls, StealGold and the rest are real DK2
+        // outcomes with nothing here to act on. Reported by the event above and
+        // then left alone: the creature stays in the dungeon, angry, doing
+        // nothing, until its gate opens and it rolls again. Honest, and
+        // visible.
+        if (chosen == JobType.Leave) Leave(context, creature, state);
     }
 
     /// <summary>

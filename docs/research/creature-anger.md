@@ -186,15 +186,78 @@ ours. A Goblin's three tables:
 | unhappy | `Drink(100%)` — the Casino |
 | angry | `Leave(50%)`, `Rebel(50%)` |
 
-The angry draw comes from the simulation's RNG, so it is part of the
-deterministic stream, and it is **drawn once and kept** — a creature re-rolling
-every second would eventually draw `Leave` by luck, reporting the unimplemented
-outcome as the implemented one.
+The angry roll comes from the simulation's RNG, so it is part of the
+deterministic stream, and it is **rolled afresh on every allowed selection** —
+see "The chooser, read from the binary" below, and ADR-0061. It was *drawn once
+and kept* until 2026-09-05, on the reasoning that re-rolling would eventually
+draw `Leave` by luck and report an unimplemented outcome as an implemented one.
+That reasoning describes DK2: with `Leave(50%)`, re-rolling is how an angry
+Goblin walks out.
 
 **Leaving is implemented. Rebelling is not**: it needs a creature to change sides
 and become a hero, and `RebelLeavingPercentage` (70),
 `RebelBecomeGoodPercentage` (15) and `RebelDefectPercentage` (15) have nothing to
-act on. A creature that draws it stays angry and says so, once.
+act on. A creature that draws it stays angry, says so, and rolls again five game
+seconds later.
+
+### The chooser, read from the binary — 2026-09-05 (Q122)
+
+`FUN_004784c0` is the angry chooser; `FUN_004782c0` is the unhappy one and
+`FUN_004780e0` the happy one, and the three are the same routine three times.
+What the angry one does, in order:
+
+1. **A per-creature flag aborts it** before anything else, and a definition flag
+   (`0x4000` in the record's flag dword at runtime `+0x686`) diverts the creature
+   into a state of its own instead of choosing at all. Neither is identified.
+2. **The five-game-second gate.** `if (last != 0 && now - last < 5 x var19)
+   return` — where `var19` is ticks-a-game-second (**4**, Q1) and `last` is the
+   field EA's own debug dump calls
+   **`LastGameTickSuccessfullyChoseAngryJob`**. It is the *only* thing carried
+   between selections.
+3. **No lair? Go and get one** — `FUN_0046f390`, the same attempt the idle state
+   makes (`lair-acquisition.md` §5). If it succeeds the creature does that, the
+   timestamp is stamped, and **no roll happens**. The unhappy chooser does the
+   same thing one line earlier.
+4. **Build the ranges.** For each entry of `AngryJobs` in record order, a triple
+   `{low, high, jobId}` with `high = low + chance` — a running total.
+5. **"Sort" them** with `qsort(base, count, 12, cmp)`, where `cmp` compares the
+   two entries' `high` fields and returns **0 for less-than and 1 otherwise**,
+   never a negative. Applied to an array that is already ascending by
+   construction, it cannot reorder anything. **The order is the record's.**
+6. **Roll `rand(100)`** — the helper is an LCG per player ending in `% 100`, so
+   **0..99**.
+7. **First pass:** the first entry with a non-zero job id whose range holds the
+   roll, tested `low <= roll <= high` — **inclusive at both ends**. Dispatch it
+   (`FUN_00478800`); if the job's own start routine returns 0, keep scanning.
+8. **Fall-through:** if nothing started, try **every** entry in record order.
+9. **Stamp the timestamp** if something started, and only then. A selection that
+   starts nothing leaves the gate open, so the creature tries again at its next
+   think.
+
+**Two arithmetic quirks fall out of 4-7 and both are reproduced.** The inclusive
+bounds make adjacent ranges *overlap* at their shared boundary, and the first
+match wins: a `Leave(50%)`/`Rebel(50%)` table is `[0,50]` and `[50,100]`, so the
+first entry takes 51 of the 100 rolls. And with the roll stopping at 99, the last
+entry's upper bound is unreachable — harmless when the chances sum to 100, and
+the reason a table summing to *less* than 100 reaches the fall-through at all.
+
+**`Leave` cannot fail at selection.** Job 10's routine (`FUN_00459fd0`) sets two
+states and returns success unconditionally: finding a portal is the *leaving
+state's* problem, not the chooser's. So a keeper with no portal keeps a creature
+that has decided to go — which is what this project already had, arrived at from
+the owner's answer to Q116 rather than from the binary.
+
+**A quirk not reproduced, because nothing here has an unhappy chooser yet:** the
+*unhappy* chooser, on a successful lair attempt, stamps the **angry** chooser's
+timestamp (`+0x101`) rather than its own (`+0xf9`). Its job-selection path stamps
+`+0xf9` correctly. So in DK2 an unhappy creature that goes for a lair delays its
+*angry* chooser by five seconds. It is recorded here so that whoever builds
+unhappy jobs does not tidy it away.
+
+**Job ids** are the record's own and match this project's `JobType` enum, checked
+at the dispatcher's restricted branch: when the creature's state byte is `0x16`
+only jobs **10** (`Leave`) and **0x10** (`Rebel`) may start — the two the enum
+numbers 10 and 16.
 
 ### Who is exempt, without a special case
 

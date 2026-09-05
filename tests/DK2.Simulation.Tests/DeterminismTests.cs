@@ -164,14 +164,24 @@ public class DeterminismTests
         // (ADR-0059) landed in the same commit and did NOT move this value: the
         // fixture has no off-centre diagonal leg in it.
         //
-        // Previous values: 0x12E5615E803C5796 (19), 0x55BEDDA879B4A281 (18),
+        // Bumped with HashVersion 20 -> 21 (Q122, ADR-0061): the angry chooser
+        // stopped keeping its draw and started keeping a timestamp --
+        // CreatureState.AngryChoice became LastAngryChoiceTick, because what
+        // the original keeps between selections is when the last one succeeded
+        // and nothing else. The fixture's creatures are working imps with an
+        // empty angry table, so nothing here ever rolls and the two fields are
+        // both zero for all 500 ticks: this value moved on the version alone.
+        // Snapshot FormatVersion went 20 -> 21 in the same commit.
+        //
+        // Previous values: 0x5E96E634C7E5037D (20),
+        // 0x12E5615E803C5796 (19), 0x55BEDDA879B4A281 (18),
         // 0x6B5ECAD0E9EDB2F0 (17), 0x092072D0E7C9B04E (16),
         // 0x38CCE7E988729817 (15),
         // 0x5DB64D0C91D99368 (14),
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x5E96E634C7E5037DUL, sim.StateHash());
+        Assert.Equal(0x6AF149EE8E20D98AUL, sim.StateHash());
     }
 
     [Fact]

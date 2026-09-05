@@ -304,15 +304,22 @@ public sealed class CreatureState
     public int ExperiencePoints;
 
     /// <summary>
-    /// What this creature decided to do when it became angry, drawn once from
-    /// its own <c>AngryJobs</c> table and then kept.
+    /// The tick on which this creature last <b>successfully</b> chose an angry
+    /// job, or 0 for never — DK2's own
+    /// <c>LastGameTickSuccessfullyChoseAngryJob</c>, which is the only thing
+    /// its angry chooser keeps between selections (ADR-0061, Q122).
     ///
-    /// <para>Kept rather than re-rolled because half of a Goblin's table is
-    /// <c>Rebel</c>, which is not implemented: a creature re-rolling every
-    /// second would eventually draw <c>Leave</c> by luck and desert, which
-    /// would misreport the unbuilt outcome as the built one.</para>
+    /// <para>It is a gate, not a decision: an angry creature may make a new
+    /// selection only five game seconds after the last one that came to
+    /// something. A selection that starts nothing does not stamp this, so a
+    /// creature that cannot act on its anger re-rolls at every opportunity —
+    /// which is how a portal built later becomes an escape route.</para>
+    ///
+    /// <para><b>0 means never, and tick 0 is a real tick</b> — the original
+    /// makes the same conflation, and it costs nothing here because the anger
+    /// ladder runs on the last tick of a game second and never on tick 0.</para>
     /// </summary>
-    public Data.Model.JobType AngryChoice;
+    public long LastAngryChoiceTick;
 
     public CreatureActivity Activity;
 
@@ -376,7 +383,7 @@ public sealed class CreatureState
         hash.Add(Anger);
         hash.Add(Level);
         hash.Add(ExperiencePoints);
-        hash.Add((int)AngryChoice);
+        hash.Add(LastAngryChoiceTick);
         hash.Add((int)Activity);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);

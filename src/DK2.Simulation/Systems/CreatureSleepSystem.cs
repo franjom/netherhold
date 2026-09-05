@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -88,13 +88,16 @@ public sealed class CreatureSleepSystem : ISimulationSystem
     private const string SystemName = "CreatureSleep";
 
     private readonly IPathfinder _pathfinder;
+    private readonly LairSeeker _seeker;
     private readonly List<TilePos> _route = [];
-    private readonly List<TilePos> _fallbackRoute = [];
 
     public CreatureSleepSystem() : this(new GridPathfinder()) { }
 
-    public CreatureSleepSystem(IPathfinder pathfinder) =>
+    public CreatureSleepSystem(IPathfinder pathfinder)
+    {
         _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
+        _seeker = new LairSeeker(_pathfinder);
+    }
 
     public string Name => SystemName;
 
@@ -191,123 +194,11 @@ public sealed class CreatureSleepSystem : ISimulationSystem
                     creature.TimerTicks--;
                     if (creature.TimerTicks > 0) break;
 
-                    if (!TrySetOutForALair(context, creature, definition))
+                    if (!_seeker.TryGoForALair(context, SystemName, creature, definition))
                         creature.TimerTicks = LairRules.IdleRedecisionTicks;
                     break;
             }
         }
-    }
-
-    // ---- getting a bed ----------------------------------------------------
-
-    /// <summary>
-    /// The attempt: choose a room and set off for it, or report why not.
-    ///
-    /// <para>The finder keeps two answers as it walks the keeper's lairs in
-    /// order of distance: the nearest reachable one with a free slot, and the
-    /// nearest such that also holds no bed of the other side. The second wins
-    /// when it exists. Reach is a real route over this creature's own
-    /// <see cref="WorldPathGrid"/>, planned once here and then walked, so a
-    /// lair behind water is reachable for a goblin and not for a vampire.</para>
-    ///
-    /// <para>Rooms are visited nearest first so that the path search — the
-    /// expensive part — stops at the first preferred room it can reach; the
-    /// nearest reachable room of any kind is remembered on the way as the
-    /// fallback. Equal distances fall back to the room with the lowest tile
-    /// index, which is <see cref="RoomIndex.Build"/>'s own order and is
-    /// reproducible (ADR-0001).</para>
-    ///
-    /// <para>The failure reasons are the original's three interface messages —
-    /// no lair, every lair full, every lair unreachable — and nothing here
-    /// invents a grace period for them.</para>
-    /// </summary>
-    private bool TrySetOutForALair(
-        SimulationContext context, CreatureState creature, CreatureDef definition)
-    {
-        WorldState world = context.World;
-        GameDatabase database = context.Database;
-
-        var candidates = new List<(long Distance, int FirstTile, RoomInstance Room)>();
-        int lairs = 0;
-        foreach (RoomInstance room in RoomIndex.Build(world, database))
-        {
-            if (room.OwnerPlayerId != creature.OwnerPlayerId) continue;
-            if (!LairRules.IsLairRoom(database, room)) continue;
-            lairs++;
-
-            if (!LairRules.HasFreeSlot(world, database, room)) continue;
-            candidates.Add((
-                LairRules.DistanceToCentreSquared(room, creature), room.TileIndices[0], room));
-        }
-
-        candidates.Sort((a, b) =>
-            a.Distance != b.Distance
-                ? a.Distance.CompareTo(b.Distance)
-                : a.FirstTile.CompareTo(b.FirstTile));
-
-        var grid = new WorldPathGrid(database, world, definition);
-        RoomInstance? chosen = null;
-        RoomInstance? fallback = null;
-        bool preferred = false;
-        int reachable = 0;
-
-        foreach ((_, _, RoomInstance room) in candidates)
-        {
-            int arrival = LairRules.ArrivalTile(world, room);
-            var at = new TilePos(arrival % world.Width, arrival / world.Width);
-            if (!_pathfinder.TryFindPath(grid, creature.Tile, at, _route)) continue;
-            reachable++;
-
-            if (!LairRules.HoldsBedOfOtherAlignment(world, database, room, definition))
-            {
-                chosen = room;
-                preferred = true;
-                break;
-            }
-
-            if (fallback is null)
-            {
-                fallback = room;
-                _fallbackRoute.Clear();
-                _fallbackRoute.AddRange(_route);
-            }
-        }
-
-        if (chosen is null && fallback is not null)
-        {
-            chosen = fallback;
-            _route.Clear();
-            _route.AddRange(_fallbackRoute);
-        }
-
-        if (chosen is null)
-        {
-            string reason = lairs == 0 ? "no_lair"
-                : candidates.Count == 0 ? "lair_full"
-                : "lair_unreachable";
-            context.Emit(SystemName, "lair_attempt_failed",
-                $"creature={creature.Id} type={definition.Name} " +
-                $"player={creature.OwnerPlayerId} at=({creature.Tile.X},{creature.Tile.Y}) " +
-                $"reason={reason} lairs={lairs} with_slot={candidates.Count} reachable={reachable}");
-            return false;
-        }
-
-        creature.Path.Clear();
-        creature.Path.AddRange(_route);
-        creature.PathIndex = 0;
-        creature.TimerTicks = 0;
-        creature.Activity = CreatureActivity.SeekingLair;
-
-        TilePos centre = LairRules.CentreTile(chosen);
-        int target = LairRules.ArrivalTile(world, chosen);
-        context.Emit(SystemName, "lair_sought",
-            $"creature={creature.Id} type={definition.Name} " +
-            $"player={creature.OwnerPlayerId} at=({creature.Tile.X},{creature.Tile.Y}) " +
-            $"room_centre=({centre.X},{centre.Y}) tiles={chosen.TileCount} " +
-            $"free={LairRules.Capacity(chosen) - LairRules.Occupied(world, database, chosen)} " +
-            $"to=({target % world.Width},{target / world.Width}) steps={_route.Count} " +
-            $"{(preferred ? "preferred" : "fallback")} candidates={candidates.Count}");
-        return true;
     }
 
     /// <summary>
@@ -374,7 +265,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         }
 
         // This room has nothing for it. Another lair, if there is one.
-        if (TrySetOutForALair(context, creature, definition)) return;
+        if (_seeker.TrySetOutForALair(context, SystemName, creature, definition)) return;
         GiveUp(creature);
     }
 
