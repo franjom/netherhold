@@ -56,12 +56,21 @@ divided by the tick rate.
 
 - **A slap: +10 points, for 60 seconds** (`IncreasedWorkRateDurationFromSlappingSeconds`),
   and it **does not stack** - repeated slapping leaves it at 90%.
-- **A second source worth another +10 points**, unidentified. A **brand-new imp
-  works its first seam at 90% and drops to 80%** once that seam is gone, and the
-  bonus routine tests **two** independent flags at 0.0999 each - so 100% is both
-  at once, which is where the 341 readings came from. The owner had imps in hand
-  during those runs, which makes **being dropped from the hand** the leading
-  candidate; a start-of-life boost that simply times out is the other.
+- **Being dropped onto work: +10 points** - CONFIRMED by the owner the same day,
+  and the condition is exact: *"after I mark a tile for excavation and drop an
+  imp adjacent to it its efficiency jumps to 90%. But if I drop it on a random
+  tile where there is nothing marked by me its efficiency remains at 80%."*
+  **It is the job, not the drop.** This is why a brand-new imp appeared to work
+  its first seam at 90% and fall to 80% afterwards - it had been dropped onto
+  the seam - and it is the source of every 341 reading, since the bonus routine
+  tests two independent flags at 0.0999 each and a slapped imp dropped onto work
+  carries both.
+
+  **So DK2 pays the player for handling imps.** Marking a job and placing an imp
+  on it is worth **12.5% more work** than letting the imp find it, for as long
+  as the bonus lasts - the same value a slap gives, and stackable with it to
+  100%. That is a piece of play, not bookkeeping, and nothing in this project
+  models it because the hand does not exist.
 - **Not the creature's level.** A freshly created level-1 imp shows the same
   number as a level-3 one; the day's apparent level effects were all this bonus
   coming and going, and the claim built on them was withdrawn the same day.
@@ -78,7 +87,7 @@ proportion and the truncation.
 
 `TileWorkRules` divides the tabled delta by 5, which is `delta x 0.8 / 4` - the
 default-efficiency case, and therefore already correct for every worker that is
-not slapped or freshly dropped. When the hand and the slap exist, efficiency
+neither slapped nor dropped onto its job. When the hand and the slap exist, efficiency
 becomes a real per-creature value and this becomes
 `delta x efficiency / ticksPerGameSecond`, with the health rounded to a whole
 number (67.5 -> 68, observed).
