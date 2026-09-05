@@ -609,6 +609,11 @@ owner: that is a structural validation, not a lucky hit.
 
 - `ImpSupplySystem` hands a keeper below `MinimumImpThreshold` one imp every
   `TimeBeforeFreeImpGeneratedSeconds`, at their dungeon heart, and stops.
+  **⚠ AMENDED 2026-09-05 by ADR-0057:** "every
+  `TimeBeforeFreeImpGeneratedSeconds`" is right for the second replacement
+  onwards and wrong for the first. The original keeps a **deadline** that only
+  moves when an imp is made, so a keeper who has been at full strength replaces
+  their next loss **immediately**. The owner filmed it; the binary said why.
 - `CreateImpCommand` buys one for
   `CreateImpBaseCost × (imps − minimum + 1)` — 1500 for the fifth, 3000 for the
   sixth, and so on. The owner settled the shape of that escalation in a second
@@ -616,6 +621,9 @@ owner: that is a structural validation, not a lucky hit.
   4, cost also drops to base 1500"*. **The price falls back**, so the cost is a
   function of the imps a keeper has now and not a tally of what they have bought
   — which means it needs no counter and cannot drift from the roster.
+  **CONFIRMED A SECOND TIME on 2026-09-05, from the binary** (ADR-0057): the
+  original computes the same expression, clamped to at least one step, on a
+  creature type read off the power's own record.
 - **One hardcoded balance constant is admitted**, `CreateImpBaseCost = 1500`, in
   express violation of this project's own rule. It earns the exception by being
   read back out of the real `KeeperSpells.kwd` by

@@ -13,9 +13,9 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **796 tests green**
+**every** record type's on-disk size is now known and pinned. **799 tests green**
 with and without a DK2 install; **16 scenarios** run, each drawing a picture of
-its finished world; **completely clean tree**. (Core 17, Simulation 466, Data 64,
+its finished world; **completely clean tree**. (Core 17, Simulation 469, Data 64,
 Behavior 151, Assets 61, Presentation 37.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
@@ -24,7 +24,9 @@ creatures (ADR-0042, ADR-0047); a creature has **health and a hunger clock**
 CONFIRMED by the owner) — which also gave the project **the first driver a
 non-worker creature has ever had**, so a goblin out of a portal no longer stands
 on the hole forever. It claims a bed on arrival, walks to it when tired or hurt,
-sleeps, heals only while asleep in its own bed, and wakes up.
+sleeps, heals only while asleep in its own bed, and wakes up. **⚠ The claiming
+half of that is now known to be wrong on two counts** — see the twenty-first
+sitting below and `docs/research/lair-acquisition.md`.
 
 **Anger landed on 2026-09-04 (ADR-0053)**, unblocked by two owner measurements
 that between them fixed both the ceiling and the cadence: **32767** with the
@@ -3435,3 +3437,118 @@ floor pile carries — both ends of it now agree, only the value is unread.
 
 **Q141 and Q144 are closed from the binary.** **Q132 still blocks the hatchery
 clock.**
+
+## Twenty-first sitting: the owner filmed the game, and the clock was the wrong shape
+
+| | |
+|---|---|
+| `11210d5` | **The free-imp clock was a countdown, and the game keeps a deadline** — ADR-0057, Q56 closed, Q54 confirmed a second time, Q100 answered |
+
+**799 tests green**, 16 scenarios, zero warnings, quarantine holding.
+
+### What happened, and the pipeline is the point
+
+The owner **recorded DK2 playing** and had a second assistant analyse the
+footage into a numbered list of questions for the decompiler. That list named the
+free-imp timer as the most important target, on the grounds that the running game
+**directly contradicted** what this project had shipped. It did.
+
+**No test could have caught this**, because every test agreed with the wrong rule.
+The only oracle was the game.
+
+### Q56: it is a deadline, not a countdown
+
+Ours held a countdown at zero while a keeper was up to strength and started a
+fresh full five seconds when they fell short. The doc-comment defending it said
+the alternative "is indistinguishable in the steady state and differs only in how
+fast the first replacement arrives after a long spell at full strength". **Both
+clauses were wrong in one sentence.**
+
+The recording: thirty seconds at exactly four imps → one sacrificed → replacement
+in about **1.4 seconds**, then ~5s each for the rest.
+
+The binary, in our own words — the keeper's per-frame update, eight instructions:
+
+    if (imps < MinimumImpThreshold and this keeper's nextFreeImpAt < now)
+    {
+        cast Create Imp at the heart, free;
+        nextFreeImpAt = now + TimeBeforeFreeImpGeneratedSeconds × <variable 19>;
+    }
+
+**Nothing else in the executable touches that field.** So a keeper at full
+strength carries a stale deadline and their next loss is replaced **on the spot**.
+
+### Three more facts from the same eight instructions
+
+- **the deadline advances whether or not the imp is placed** — no test of the
+  call's result — so a keeper with nowhere to put one burns the interval;
+- **a free imp is genuinely free**: the free flag skips the availability check,
+  the mana check and the deduction;
+- **`TimeBeforeFreeImpGeneratedSeconds` is multiplied by variable 19** — the
+  223-reader global no shipped file supplies. Seconds in, engine time out. The
+  clearest single use of it found so far. **It still does not give the value, and
+  Q132 still blocks the hatchery clock.**
+
+**And Create Imp's price is now read rather than reported.** The original computes
+`max(1, imps − MinimumImpThreshold + 1) × base` — our formula including the
+clamp, which the owner's play could not have shown because it only bites below
+the floor. **Q54 confirmed twice.**
+
+### What it cost
+
+`PlayerState.FreeImpCountdownTicks` → **`NextFreeImpTick`**; HashVersion and
+snapshot FormatVersion **18 → 19**. **Three tests changed meaning rather than
+being repaired**, and that is worth knowing before touching them: there is no
+longer any such thing as "the window before a keeper's first free imp" — a keeper
+with a heart and no imps is staffed on tick zero. `ManaTests` now runs **without**
+`ImpSupplySystem` so heart-income assertions measure one mechanic, and two
+`ManaUpkeepTests` are re-based on the land a keeper *starts* with.
+
+### THE THING TO READ NEXT: the lair is contradicted and NOT fixed
+
+`docs/research/lair-acquisition.md` is new and is the design. Two counts:
+
+1. **the trigger is not availability.** A free lair tile sat there while a
+   bedless Goblin and Bile Demon went to the **Training Room**; the search began
+   only when the mood turned Unhappy over having no lair (**Q150**);
+2. **claiming is a journey with a test at the end.** Creatures crossed a lair,
+   walked up to occupied tiles, **rejected them** and carried on. A controlled
+   1×5 lair filled **1, 3, 5, 4**.
+
+Ours claims a bed on the first tick one is free, from wherever the creature
+stands. `CreatureSleepSystem` now says so at the top rather than hiding it.
+
+**Half the replacement is read and half is not**, which is why it is written down
+instead of built. Read: the room is chosen by **distance to its centre**; the tile
+search on arrival is **own tile → a fixed table of neighbours → a chained walk of
+the room**; the chosen point is jittered by a random angle *within* the tile. Not
+read: the trigger (**Q150**) and the extra test that makes one lair room preferred
+over another (**Q151**).
+
+### Two smaller results
+
+**Q100 is answered and ours was right by omission.** A wounded imp healed **while
+digging** and **while running**. Combat, the Hand of Evil and possession are still
+open (**Q152**) and are ten-second looks, not decompilation jobs.
+
+**`TimeBetweenReattemptingSleepSeconds` is read by ZERO instructions.** The third
+balance variable to fail its own name, after `MaxFreeRangeChickensPerPlayer` and
+`MaxGoldPileOutsideTreasury`. Anyone building sleep retries would have reached
+straight for it. **Before building on a variable's name, look at its reader
+count** — `balance-variables-in-the-binary.md` has them all.
+
+### A new research multiplier
+
+`docs/research/source-file-map.md` — the original's **72 translation units** by
+name, which is how the lair code and the keeper update were found at all. DK2's
+creature AI is **one file per state** (`LairState.cpp`, `HungerState.cpp`,
+`TrainState.cpp`, …), which is worth knowing before designing anything that
+touches it.
+
+### Owner questions after this sitting
+
+**Q148** does an imp in the Hand of Evil count towards the four — *ten seconds,
+same setup as the sacrifice test* · **Q150** what makes a creature go for a lair
+· **Q152** does regeneration continue in combat · **Q149** is the ~1.4s
+simulation or animation · and **Q147 is still first in line**, because it may
+retire Q146 entirely.
