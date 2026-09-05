@@ -1,7 +1,10 @@
 ﻿# Dying: two timers, three states, and the half that cannot be built
 
-**Status:** the first timer is implemented and CONFIRMED. The second is a real
-number in the shipped data with nothing able to read it.
+**Status:** **both timers are implemented** (2026-09-05, ADR-0063) and the
+pipeline runs end to end: collapse, rescue-or-die, corpse, bury-or-rot. The
+second timer spent five sittings as *"a real number in the shipped data with
+nothing able to read it"*, on an explanation — *"a corpse is an object"* — that
+turned out to be false.
 
 ## The answer — CONFIRMED (owner, Q99, 2026-09-04)
 
@@ -48,8 +51,16 @@ with nothing reading either:
 
 Two independently named variables holding the same value looked like redundancy
 before this answer. They are two clocks on two different things, which is why
-`CreatureDeathRules.BodyWindowTicks` exists and is deliberately uncalled: the
-number is pinned so the second timer is missing *visibly*.
+`CreatureDeathRules.BodyWindowTicks` was defined years before it could be called:
+the number was pinned so that the second timer would be missing *visibly*. **It
+has a caller now** (ADR-0063), and the two clocks share one field —
+`CreatureState.DyingTicks` — because they never run at once, reset at the seam so
+a corpse gets a fresh sixty seconds.
+
+**What was actually blocking it** was not OBJECTS but the absence of an imp task
+that carries a creature. DK2 has two: **kind 13** for the unconscious and **kind
+12** for corpses, the last two entries of its Tier A job table
+(`imp-task-priority.md` §4). Both are built.
 
 ## Three deaths, and one flag that picks between two of them
 
@@ -335,7 +346,7 @@ slapping calms it; being held annoys it).
 
 | | |
 |---|---|
-| **Q107** | Can a creature whose bed is sold while it lies dying be rescued? We say no — a collapsed creature is not allowed to claim a replacement, because claiming is a walk and a placement in the owner's own description. Costs nothing while carrying does not exist |
+| **Q107** | Can a creature whose bed is sold while it lies dying be rescued? We say no — a collapsed creature is not allowed to claim a replacement, because claiming is a walk and a placement in the owner's own description. **This decides a real outcome now** (ADR-0063): a rescue's destination is the creature's own bed, so no bed means no imp comes |
 | **Q108** | Is the "flower petals" indicator the anger meter, or a separate health/consciousness one? Bears on Q106 |
 | **Q109** | Does an *enemy* creature collapse the same way, or go straight to a capturable state? The answer mentions prison as the imp's alternative destination, which implies the same collapse either way |
 | **Q110** | Does anything shorten the dying window — a second hit while collapsed, or a keeper's spell? |

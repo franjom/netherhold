@@ -188,7 +188,18 @@ public class DeterminismTests
         // untouched by learning what the fifth was. Snapshot FormatVersion went
         // 21 -> 22 in the same commit.
         //
-        // Previous values: 0x6AF149EE8E20D98A (21), 0x5E96E634C7E5037D (20),
+        // Bumped with HashVersion 22 -> 23 (ADR-0063): carrying. CreatureState
+        // gained CarriedCreatureId, CarriedByCreatureId and TargetBodyId, all
+        // -1 for every creature in this fixture for all 500 ticks, so this
+        // moved on the version and the three defaults alone. Snapshot
+        // FormatVersion went 22 -> 23 in the same commit.
+        //
+        // Death changed shape in the same commit and did NOT move this: a
+        // creature that leaves a body now becomes a corpse instead of being
+        // removed, and the fixture kills nobody.
+        //
+        // Previous values: 0xDFF77147B12A64C3 (22), 0x6AF149EE8E20D98A (21),
+        // 0x5E96E634C7E5037D (20),
         // 0x12E5615E803C5796 (19), 0x55BEDDA879B4A281 (18),
         // 0x6B5ECAD0E9EDB2F0 (17), 0x092072D0E7C9B04E (16),
         // 0x38CCE7E988729817 (15),
@@ -196,7 +207,7 @@ public class DeterminismTests
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0xDFF77147B12A64C3UL, sim.StateHash());
+        Assert.Equal(0x3CBA3CF1F8EA0530UL, sim.StateHash());
     }
 
     [Fact]

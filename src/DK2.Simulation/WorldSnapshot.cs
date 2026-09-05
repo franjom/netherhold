@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 22;
+    private const int FormatVersion = 23;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -116,6 +116,9 @@ public static class WorldSnapshot
             w.Write(c.LastSlapTick);
             w.Write(c.WorkFasterTicks);
             w.Write(c.JustDropped);
+            w.Write(c.CarriedCreatureId);
+            w.Write(c.CarriedByCreatureId);
+            w.Write(c.TargetBodyId);
             w.Write((int)c.Activity);
             w.Write(c.TargetTileIndex);
             w.Write((int)c.TargetWork);
@@ -252,6 +255,9 @@ public static class WorldSnapshot
                 LastSlapTick = r.ReadInt64(),
                 WorkFasterTicks = r.ReadInt32(),
                 JustDropped = r.ReadBoolean(),
+                CarriedCreatureId = r.ReadInt32(),
+                CarriedByCreatureId = r.ReadInt32(),
+                TargetBodyId = r.ReadInt32(),
                 Activity = (CreatureActivity)r.ReadInt32(),
                 TargetTileIndex = r.ReadInt32(),
                 TargetWork = (TileWorkKind)r.ReadInt32(),

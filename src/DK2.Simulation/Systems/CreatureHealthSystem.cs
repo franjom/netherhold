@@ -92,6 +92,15 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
             // A dying creature does nothing but die. No hunger clock, and above
             // all no regeneration — see the type summary for the immortal imp.
+            // A corpse counts its own clock down and does nothing else. It
+            // has no health to regenerate, no hunger to feel, and nothing left
+            // to collapse into.
+            if (CreatureDeathRules.IsCorpse(state))
+            {
+                Rotting(context, creature, state);
+                continue;
+            }
+
             if (CreatureDeathRules.IsDying(state))
             {
                 Dying(context, creature, state);
@@ -159,6 +168,49 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     }
 
     /// <summary>
+    /// Counts the corpse window down, and removes what it runs out on — the
+    /// owner's <i>"if that timer runs out and no one carries the corpse it just
+    /// disappears"</i> (Q99).
+    ///
+    /// <para><b>Even in an imp's arms.</b> A corpse being carried to a graveyard
+    /// that is too far away rots on the way, and the imp arrives holding
+    /// nothing. UNKNOWN whether the original pauses the clock for a carried body
+    /// (Q164); this does not, because the alternative is a corpse that keeps for
+    /// ever as long as somebody is walking with it.</para>
+    /// </summary>
+    private static void Rotting(
+        SimulationContext context, CreatureDef creature, CreatureState state)
+    {
+        state.DyingTicks += SimulationTiming.TicksPerSecond;
+
+        if (!CreatureDeathRules.BodyWindowElapsed(context.Database, state)) return;
+
+        context.Emit(SystemName, "corpse_rotted",
+            $"creature={state.Id} type={creature.Name} " +
+            $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
+            $"decompose_value={creature.DecomposeValue} " +
+            $"carried_by={state.CarriedByCreatureId}");
+
+        Remove(context, state);
+    }
+
+    /// <summary>
+    /// Takes a creature out of the world, and out of whatever arms were holding
+    /// it. One place, so that no removal path can leave a carrier pointing at a
+    /// creature that no longer exists.
+    /// </summary>
+    private static void Remove(SimulationContext context, CreatureState state)
+    {
+        if (state.CarriedByCreatureId >= 0)
+        {
+            CreatureState? carrier = context.World.CreatureById(state.CarriedByCreatureId);
+            if (carrier is not null) CarryRules.PutDown(carrier, state);
+        }
+
+        context.World.RemoveCreature(state.Id);
+    }
+
+    /// <summary>
     /// Drops a creature to the floor. It is still alive, still its keeper's, and
     /// still holds its bed and its gold.
     /// </summary>
@@ -179,16 +231,16 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
         // A dead creature gives up its bed, or a lair leaks a tile forever.
-        // Not on collapse — the rescue path carries it back to that bed.
+        // Not on collapse — the rescue path carries it back to that bed. A
+        // creature that goes on to be a corpse releases it here too, so a body
+        // lying on the floor is not still holding a lair tile.
         LairRules.ReleaseBed(context.World, context.Database, state);
 
-        // The body is owed and cannot be delivered. NOT because a corpse is an
-        // object -- that was this project's standing explanation for five
-        // sittings and it is wrong; none of the 145 objects is a corpse, and a
-        // corpse is a creature in a state (objects.md section 4). What is
-        // missing is an imp task that carries one. Reported so the gap is in the
-        // log rather than only in the docs, and so a graveyard has something to
-        // grep for.
+        // The body is delivered at last (ADR-0063). This used to report a debt
+        // it could not pay, on the standing explanation that a corpse is an
+        // object -- which was wrong: none of the 145 objects is a corpse, and a
+        // corpse is a creature in a state (objects.md section 4). What was
+        // missing was an imp task that carries one, and now there is one.
         bool leavesBody = CreatureDeathRules.LeavesBody(creature);
 
         // What it was carrying falls where it fell -- in one, two or three
@@ -206,6 +258,15 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             $"piles={FloorGold.PileCount(carried)} dying_for={state.DyingTicks} " +
             $"leaves_body={leavesBody}");
 
-        context.World.RemoveCreature(state.Id);
+        // A creature that leaves a body does not leave the world: it becomes a
+        // corpse and starts its second clock. Everything else is gone on the
+        // spot -- the Imp is "dead right away" and a Vampire reincarnates.
+        if (leavesBody)
+        {
+            CreatureDeathRules.BecomeCorpse(context.World, context.Database, state);
+            return;
+        }
+
+        Remove(context, state);
     }
 }

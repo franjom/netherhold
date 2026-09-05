@@ -112,6 +112,47 @@ public enum CreatureActivity
     /// idle decision.</para>
     /// </summary>
     SeekingLair = 9,
+
+    /// <summary>
+    /// Dead, and lying on the floor as a corpse — the second half of the
+    /// owner's pipeline (Q99, 2026-09-04):
+    ///
+    /// <para><i>"Once that timer runs out a creature dies and its corpse remains
+    /// there lying, that gives imps an opportunity to carry it to graveyard. If
+    /// that timer runs out and no one carries the corpse it just
+    /// disappears."</i></para>
+    ///
+    /// <para>The window is <c>DeadBodyDiesAfterSeconds</c>, which is also 60,
+    /// and it is a number this project pinned five sittings before anything
+    /// could read it. Only creatures whose record carries
+    /// <see cref="Data.Model.CreatureFlags.GenerateDeadBody"/> ever reach this
+    /// state — an Imp is <i>"dead right away"</i>, and so is a Vampire, which
+    /// reincarnates instead.</para>
+    ///
+    /// <para><b>A corpse is a creature in a state and not an object</b>, which
+    /// this project spent five sittings believing the other way round and named
+    /// as the cause of three separate gaps. None of the 145 OBJECTS records is a
+    /// corpse (docs/research/objects.md §4).</para>
+    /// </summary>
+    Dead = 10,
+
+    /// <summary>
+    /// Walking to a body — collapsed or dead — in order to pick it up. DK2's
+    /// imp task kinds 13 and 12.
+    /// </summary>
+    FetchingBody = 11,
+
+    /// <summary>
+    /// Carrying a body to where it has to go: a collapsed creature to its own
+    /// bed, a corpse to a graveyard (<see cref="CarryRules"/>).
+    ///
+    /// <para>Distinct from <see cref="DeliveringGold"/> on purpose, even though
+    /// both are "walk somewhere with something". Gold has no state of its own
+    /// and merges into one pile at the end; a body is a creature that is still
+    /// running its own clock while it is carried, and what happens on arrival
+    /// depends on which clock it is.</para>
+    /// </summary>
+    CarryingBody = 12,
 }
 
 /// <summary>
@@ -248,15 +289,23 @@ public sealed class CreatureState
     public int SleepTicks;
 
     /// <summary>
-    /// Ticks this creature has spent collapsed, counting up towards
-    /// <c>CreatureDyingStateDurationSeconds</c> (60).
+    /// Ticks spent in the current death state, counting up — <b>two clocks in
+    /// one field, because they never run at once.</b>
     ///
-    /// <para>Only meaningful while <see cref="Activity"/> is
-    /// <see cref="CreatureActivity.Dying"/>. It is the rescue window the owner
-    /// described: <i>"it remains lying on the ground for a period of time, that
-    /// gives imps an opportunity to return a creature to its bed in the lair for
-    /// healing, or to prison if it is an enemy creature"</i> — see
-    /// <see cref="CreatureDeathRules"/>.</para>
+    /// <list type="bullet">
+    /// <item>While <see cref="CreatureActivity.Dying"/>, the rescue window:
+    /// <c>CreatureDyingStateDurationSeconds</c> (60). <i>"it remains lying on
+    /// the ground for a period of time, that gives imps an opportunity to return
+    /// a creature to its bed in the lair for healing, or to prison if it is an
+    /// enemy creature"</i>.</item>
+    /// <item>While <see cref="CreatureActivity.Dead"/>, the corpse window:
+    /// <c>DeadBodyDiesAfterSeconds</c> (also 60). <i>"If that timer runs out and
+    /// no one carries the corpse it just disappears."</i></item>
+    /// </list>
+    ///
+    /// <para>Reset to zero at the transition between them, so a corpse gets its
+    /// own full sixty seconds rather than inheriting a spent clock. Both quotes
+    /// are the owner's (Q99); see <see cref="CreatureDeathRules"/>.</para>
     /// </summary>
     public int DyingTicks;
 
@@ -390,6 +439,40 @@ public sealed class CreatureState
     /// </summary>
     public bool JustDropped;
 
+    /// <summary>
+    /// The id of the body this worker is carrying, or -1 for none.
+    ///
+    /// <para><b>One slot.</b> DK2's imp carries one thing and so does this: a
+    /// worker holding a body is not offered another, and a worker holding gold
+    /// is not offered a body at all (<see cref="CarryRules.CanCarry"/>).</para>
+    /// </summary>
+    public int CarriedCreatureId = -1;
+
+    /// <summary>
+    /// The id of the worker carrying this body, or -1 for none — the other end
+    /// of <see cref="CarriedCreatureId"/>.
+    ///
+    /// <para>Both ends are stored because both are asked. The carrier needs to
+    /// know what it is holding on arrival; the body needs to know it is held so
+    /// that nobody else walks across the dungeon for a body already in
+    /// somebody's arms. Kept in step by <see cref="CarryRules.PickUp"/> and
+    /// <see cref="CarryRules.PutDown"/>, which are the only two things that
+    /// write either.</para>
+    /// </summary>
+    public int CarriedByCreatureId = -1;
+
+    /// <summary>
+    /// The id of the body this worker is walking towards, or -1 for none.
+    ///
+    /// <para>Separate from <see cref="CarriedCreatureId"/> because they are
+    /// different halves of one job and both can be wrong in different ways: the
+    /// body an imp set off for can rot, be rescued by a nearer imp, or be picked
+    /// up by the keeper before the imp arrives. Naming it at the start rather
+    /// than looking again on arrival is what stops two bodies on one tile from
+    /// being confused for each other.</para>
+    /// </summary>
+    public int TargetBodyId = -1;
+
     public CreatureActivity Activity;
 
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
@@ -463,6 +546,9 @@ public sealed class CreatureState
         hash.Add(LastSlapTick);
         hash.Add(WorkFasterTicks);
         hash.Add(JustDropped);
+        hash.Add(CarriedCreatureId);
+        hash.Add(CarriedByCreatureId);
+        hash.Add(TargetBodyId);
         hash.Add((int)Activity);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);

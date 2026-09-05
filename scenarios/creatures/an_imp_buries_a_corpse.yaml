@@ -1,0 +1,120 @@
+﻿# The second half of the owner's pipeline, and the half that could not be built
+# until an imp could pick something up.
+#
+# The owner described the whole of dying in one breath (Q99, 2026-09-04):
+#
+#   "When a creature drops … it remains lying on the ground for a period of
+#    time, that gives imps an opportunity to return a creature to its bed in the
+#    lair for healing, or to prison if it is an enemy creature. Once that timer
+#    runs out a creature dies and its corpse remains there lying, that gives
+#    imps an opportunity to carry it to graveyard. If that timer runs out and no
+#    one carries the corpse it just disappears."
+#
+# Three states and two sixty-second timers:
+#
+#     health -> 0
+#        |
+#     COLLAPSED   CreatureDyingStateDurationSeconds = 60   an imp -> its own bed
+#        |
+#     CORPSE      DeadBodyDiesAfterSeconds          = 60   an imp -> a graveyard
+#        |
+#     gone
+#
+# **Both numbers had been parsed for months with nothing able to read either**,
+# and the reason written down was *"a corpse is an object"* — which turned out to
+# be false. None of the 145 OBJECTS records is a corpse. **A corpse is a creature
+# in a state**, so what was missing was never a record: it was an imp task that
+# carries a creature (`objects.md` §4, ADR-0063).
+#
+# Two goblins, no lair, and a graveyard. Neither can be rescued — with no bed
+# there is nowhere to carry them — so both run the first timer out and become
+# corpses, which is what this run is for.
+#
+# What the event log shows, in order:
+#
+#   t19     `creature_collapsed … rescue_window=60s bed=-1`
+#           Both, on the first game second. **`bed=-1` is the whole reason
+#           nobody comes for them**: the destination of a rescue is the
+#           creature's *own bed*, decided before the walk starts, and a creature
+#           that never had one has nowhere to be taken. That is not a shortcut —
+#           it is what stops an imp crossing the dungeon to stand over a body
+#           and shrug (Q107).
+#
+#   t1219   `creature_died … leaves_body=True`
+#           Sixty seconds later. `leaves_body` is `GenerateDeadBody`, and it is
+#           what separates the three deaths: a Goblin lies there, an **Imp is
+#           gone on the spot** (*"Imps are dead right away, they don't have a
+#           lying state"*), and a Vampire reincarnates.
+#
+#   t1311   `body_claimed … body=2 kind=corpse at=(3,2) steps=3`
+#           **Not at t1220.** The imp was still claiming floor, and it finishes
+#           the tile it is on before it looks again. Carrying a corpse is DK2's
+#           imp task **kind 12**, the *last* entry of Tier A — below claiming,
+#           above everything found by distance (`imp-task-priority.md` §4). So an
+#           imp buries nobody while there is unclaimed ground, which is the
+#           original's ordering and not an obvious one; on a big map the bodies
+#           would simply rot.
+#
+#   t1352   `body_picked_up … to=(6,5) steps=3`
+#           The destination is settled here, at the pick-up, and not on arrival.
+#
+#   t1383   `corpse_buried … decompose_value=200`
+#           Into the nearer of the two graveyard tiles.
+#
+#   t1384   `body_claimed … body=1` — straight back out for the second one,
+#   t1476   and it is buried too, 93 ticks after the first. Both well inside
+#           `DeadBodyDiesAfterSeconds`; a slower walk would have lost one.
+#
+# **What this run does NOT establish**, recorded rather than implied:
+#
+#   * **The rescue**, which is the other half and the more interesting one. A
+#     scenario cannot set it up: a creature has to *walk* to a lair to get a bed
+#     and cannot do that at zero health, and nothing in the harness can hurt a
+#     creature that already has one. `CarryingTests` covers it directly — an imp
+#     carries a collapsed goblin to its own bed, and the lair heals it from zero
+#     at 100 a second because sleeping in its own bed is the only state a lair
+#     heals in (ADR-0049).
+#
+#   * **The prison.** DK2's kind 13 sends an *enemy* unconscious creature to a
+#     Prison (room 11) and this project has none, so an enemy on the floor is
+#     left there rather than quietly rescued into the wrong dungeon (Q163).
+#
+#   * **What a graveyard does with what it is fed.** Its `CreatedCreatureId` is
+#     8 — the Vampire — and it is one of only two rooms in the game that names a
+#     creature. Nothing here counts `DecomposeValue` towards anything; the event
+#     reports it so that the tally has something to be built from (Q165). Making
+#     vampires now would be premature for reasons `creature-death.md` sets out
+#     at length.
+#
+#   * **Whether the corpse clock pauses in an imp's arms.** It does not here, so
+#     a long walk to a distant graveyard can outlast the body and the imp
+#     arrives holding nothing. UNKNOWN in the original (Q164).
+id: creatures-an-imp-buries-a-corpse-001
+question: >
+  When a creature that leaves a body finally dies, does its corpse stay on the
+  floor - and does an imp carry it to a graveyard?
+# A small map on purpose. Claiming outranks burying in Tier A, so on a big one
+# the imp is still claiming when the run ends and nothing gets buried - which is
+# faithful, and useless to watch. Here the floor is claimed in about the time
+# the first timer takes, and the two mechanics arrive in the original's order.
+map: flat_9x8
+seed: 5
+duration_ticks: 2000
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 0 }
+  rooms:
+    # Somewhere for the bodies to go. No lair anywhere on this map, so nobody is
+    # rescuable and both goblins reach the second timer.
+    - { type: Graveyard, at: [6, 5], player: 3 }
+    - { type: Graveyard, at: [7, 5], player: 3 }
+  creatures:
+    # No health at all, so both collapse on the first game second.
+    - { type: Goblin, at: [2, 2], player: 3, health: 0 }
+    - { type: Goblin, at: [3, 2], player: 3, health: 0 }
+    # The gravedigger.
+    - { type: Imp, at: [1, 1], player: 3 }
+commands: []
+observe:
+  - state_hash
+  - events

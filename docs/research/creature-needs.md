@@ -221,7 +221,7 @@ would lean on `TicksPerSecond`, still a placeholder (Q1).
 | **Anywhere to sleep but a bed** | A creature with no bed stays awake indefinitely and never recovers. In DK2 that is what `angerNoLair` is for — 100 for a Goblin, joint-largest in its record — and anger does not exist yet (Q105) |
 | **Anger** | The actual consequence of hunger. Its own need, its own record fields, its own step |
 | **Levels** | `Hp` is the maximum because `CreatureStats` scales stats by level and levels do not exist. When they do, the maximum becomes a function of level and `Health` stays the current value |
-| **Bodies, graveyards, the Vampire** | Dying itself is now implemented (Q99 ANSWERED, ADR-0051): a creature collapses for 60 seconds before it dies. What is still missing is what comes *after* — a corpse is an OBJECT (M6), so nothing lies on the floor to be carried and nothing accumulates toward a graveyard |
+| **Bodies, graveyards, the Vampire** | **Built** (ADR-0051, then ADR-0063): a creature collapses for 60 seconds, dies, lies there as a corpse for 60 more, and an imp carries it to a Graveyard. The "corpse is an OBJECT" that used to be recorded here as the blocker was false — a corpse is a creature in a state. What is still missing is what a graveyard *does* with them (Q165), which is where vampires come from |
 
 ## 6. What the binary was asked, refused to say, and then said anyway
 

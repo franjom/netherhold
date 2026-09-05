@@ -1,4 +1,4 @@
-# Zero health is not death — it is a sixty-second window (Q99).
+﻿# Zero health is not death — it is a sixty-second window (Q99).
 #
 # Two **Goblins** are placed at `health: 0` beside a healthy third and a
 # two-tile **Lair**. Nothing attacks them; nothing needs to. A creature with no
@@ -64,21 +64,32 @@
 #           lair tile freed on collapse would be a tile somebody else claims
 #           while its owner lies on the floor waiting to be carried to it.
 #
-#           `leaves_body=True` is a promise this run cannot keep. A Goblin's
-#           `GenerateDeadBody` flag is set and its `DecomposeValue` is 200, but
-#           a corpse is an OBJECT and OBJECTS is unparsed (M6) — so the second
-#           timer never starts and nothing accumulates toward a graveyard or a
-#           Vampire. The flag is published in the event so the gap is in the log
-#           rather than only in the docs.
+#           `leaves_body=True` **is a promise that is now kept** (ADR-0063).
+#           When this run was written it was not: the reason recorded here was
+#           that *"a corpse is an OBJECT and OBJECTS is unparsed"*, which was
+#           checked in the end and found to be false — none of the 145 OBJECTS
+#           records is a corpse. A corpse is a creature in a state, and what was
+#           missing was an imp task that carries one.
+#
+#           So a Goblin no longer vanishes here. It becomes a **corpse** and
+#           starts its second sixty seconds, and this map has no graveyard and
+#           nobody free to carry it, so:
+#
+#   t2419   `corpse_rotted ... decompose_value=200`
+#           *"If that timer runs out and no one carries the corpse it just
+#           disappears."* Both of them, together, exactly as they collapsed and
+#           died together. Burial is `an_imp_buries_a_corpse`.
 #
 # What this run does NOT establish, all of it recorded rather than implied:
 #
-#   * **Whether an imp would have saved them.** Carrying does not exist, so the
-#     rescue window is a window onto nothing. `CreatureDeathRules.Rescue` is
-#     written and tested and has no caller — the transition is the part worth
-#     getting right, and waiting for carrying would mean writing it blind.
+#   * **Whether an imp would have saved them.** It would not have saved
+#     *these*: `bed=-1` on both, and a rescue's destination is the creature's
+#     own bed. Carrying exists since ADR-0063 and `CarryingTests` covers the
+#     rescue directly; what this run shows is the case where there is nowhere to
+#     carry anybody, which is why the window passes untouched.
 #   * **What an enemy creature's collapse does.** The owner's answer says an
-#     imp takes those to a prison instead. There is no prison and no capture.
+#     imp takes those to a prison instead. There is no prison and no capture
+#     (Q163).
 #   * **Whether the petals are the anger meter or a separate one.** The flower
 #     above a creature's head is described as exhausting when it drops; whether
 #     that is the same indicator the anger ladder drives is UNKNOWN (Q106 is
@@ -91,10 +102,13 @@ id: creatures-a-goblin-collapses-and-dies-001
 question: >
   Does a creature at zero health lie on the ground for the sixty seconds
   CreatureDyingStateDurationSeconds gives it — keeping its bed, healing nothing,
-  and doing nothing — and only then die?
+  and doing nothing — then die, lie there as a corpse for sixty more, and only
+  then disappear?
 map: flat_24x20
 seed: 5
-duration_ticks: 1400
+# Long enough for BOTH sixty-second windows plus the tick the second one ends
+# on: 1200 + 1200 + the game second the collapse is booked in.
+duration_ticks: 2500
 setup:
   players:
     - { id: 3, gold: 0, mana: 0 }

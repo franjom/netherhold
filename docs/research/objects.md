@@ -145,7 +145,7 @@ tile.
 | **Eating** | "chickens are objects" | The Chicken is object 9, `TypeFood`, decays outside a room; the Coop is 35 and the Egg is 47. Needs object *instances* in the world and a Hatchery |
 | **Gold piles** | "a pile is an object" | **DONE** (2026-09-05) — object 1 on the floor, object 3 in a treasury, `FloorGold`. And `MaxGoldPileOutsideTreasury` turned out not to be a limit at all (Q65) |
 | **Beds as things** | "a bed is an object" | Twelve bed objects, and `LairRules` already tracks which tile holds whose |
-| **Graveyard / vampires** | "a corpse is an object" | **Refuted** — see §4. It needs a creature-carrying task, not this record |
+| **Graveyard / vampires** | "a corpse is an object" | **Refuted** — see §4. It needed a creature-carrying task, not this record, and **that task now exists** (ADR-0063): a corpse is `CreatureActivity.Dead` and an imp carries it to a Graveyard. What is still missing is only what a graveyard *does* with them (Q165) |
 
 The next step is the same for the first three: **object instances in the world**.
 `WorldState` has tiles and creatures and no third list, and every one of those

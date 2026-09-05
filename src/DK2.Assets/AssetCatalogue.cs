@@ -55,6 +55,9 @@ public static class AssetCatalogue
         "leaving",
         "fetching_gold",
         "seeking_lair",
+        "dead",
+        "fetching_body",
+        "carrying_body",
     ];
 
     /// <summary>

@@ -547,8 +547,11 @@ public class CreatureNeedsTests
     }
 
     [Fact]
-    public void ACollapsedCreatureLiesThereForSixtySecondsAndThenDies()
+    public void ACollapsedCreatureLiesThereForSixtySecondsAndThenBecomesACorpseForSixtyMore()
     {
+        // Both halves of the owner's pipeline, end to end (Q99, ADR-0063).
+        // Until carrying existed the second half could not be built and this
+        // test stopped at "and then it is gone".
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
@@ -558,15 +561,27 @@ public class CreatureNeedsTests
         var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
         sim.ObserveWith(events);
 
-        // One second short of the window: still lying there, still rescuable.
+        // One second short of the rescue window: still lying there, still
+        // rescuable.
         sim.Run(Second * 60);
         Assert.Single(world.Creatures);
         Assert.Equal(CreatureActivity.Dying, goblin.Activity);
 
-        // And the second the window closes.
+        // The second the window closes it dies - and a Goblin leaves a body, so
+        // it is still on the floor, now as a corpse an imp could bury.
+        sim.Run(Second);
+        Assert.Contains(events.Events, e => e.Kind == "creature_died");
+        Assert.Single(world.Creatures);
+        Assert.Equal(CreatureActivity.Dead, goblin.Activity);
+
+        // A fresh sixty seconds, not the remains of the first: the two windows
+        // share one field and it is put back to zero at the seam.
+        sim.Run(Second * 59);
+        Assert.Single(world.Creatures);
+
         sim.Run(Second);
         Assert.Empty(world.Creatures);
-        Assert.Contains(events.Events, e => e.Kind == "creature_died");
+        Assert.Contains(events.Events, e => e.Kind == "corpse_rotted");
     }
 
     [Fact]
@@ -735,9 +750,12 @@ public class CreatureNeedsTests
         CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         Assert.False(LairRules.TryPlaceBedInAnyLair(world, db, second));
 
-        // Death is what frees it.
+        // Death is what frees it - and the body stays on the floor as a
+        // corpse for a second sixty seconds (ADR-0063), which is why this
+        // asserts the bed rather than the creature's absence.
         sim.Run(Second * 31);
-        Assert.DoesNotContain(world.Creatures, c => c.Id == first.Id);
+        Assert.Equal(CreatureActivity.Dead, first.Activity);
+        Assert.False(LairRules.HasBed(world, db, first));
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, second));
         Assert.Equal(held, LairRules.BedTileIndex(world, db, second));
     }
@@ -974,7 +992,10 @@ public class CreatureNeedsTests
         CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 3));
         sim.Run(Second * 65);
 
-        Assert.DoesNotContain(world.Creatures, c => c.Id == first.Id);
+        // Dead, and lying there as a corpse - the bed is what death frees, not
+        // the tile the body is on (ADR-0063).
+        Assert.Equal(CreatureActivity.Dead, first.Activity);
+        Assert.False(LairRules.HasBed(world, db, first));
         Assert.True(
             LairRules.HasBed(world, db, second),
             "the dead creature's bed was never freed");

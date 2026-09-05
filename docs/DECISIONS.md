@@ -3293,7 +3293,8 @@ is a summon rather than a roster creature (CONFIRMED). A graveyard counting
   from under it. The owner describes claiming as *"it goes to a lair, finds a
   free tile and occupies it with its bed"* — a walk and a placement, which
   something unconscious cannot do. Cost: such a creature can no longer be
-  rescued at all (Q107), which costs nothing while carrying does not exist. The
+  rescued at all (Q107) — which cost nothing until ADR-0063 and now decides
+  whether an imp sets off for it at all. The
   alternative costs something now: a dying creature would take the last free bed
   from a goblin that walked in on its own feet.
 
@@ -4519,3 +4520,112 @@ what this project already had right**, and `delta / 5` is `delta x 0.8 / 4`.
   probably the torture tally, and unverifiable without a Torture Chamber.
 - **Everything else the hand holds**: gold, chickens, and an unconscious body on
   its way to a lair. That is carrying, and it is next.
+
+## ADR-0063 — Carrying: an imp picks a body off the floor
+
+**Status:** Accepted (2026-09-05). Completes the dying pipeline ADR-0051 could
+only build the first half of, and pays the debt `objects.md` §4 identified.
+Research: `docs/research/creature-death.md`, `docs/research/imp-task-priority.md`
+§4.
+
+### Context
+
+The owner described dying in one breath (Q99) and it is three states with two
+sixty-second timers:
+
+```
+  health -> 0
+     |
+  COLLAPSED   CreatureDyingStateDurationSeconds = 60   an imp -> its own bed
+     |
+  CORPSE      DeadBodyDiesAfterSeconds          = 60   an imp -> a graveyard
+     |
+  gone
+```
+
+Only the first state existed. Both numbers had been parsed for months with
+nothing able to read either, and the named reason — repeated in ADR-0051, in
+`creature-death.md` and in several code comments — was **"a corpse is an
+object"**. When somebody finally read all 145 OBJECTS records, none of them was
+a corpse. **A corpse is a creature in a state**, and what was missing was never
+a record: it was an imp task that carries a creature.
+
+That is the fourth time a claim nothing checked has cost this project a
+mechanic.
+
+### Decision
+
+`CarryRules`, two creature activities (`FetchingBody`, `CarryingBody`), one
+corpse state (`Dead`), and the last two entries of DK2's own Tier A table.
+
+**Read from the original** (`imp-task-priority.md` §4): the imp job table's Tier
+A is `14, 8, 9, 1, 3, 13, 12` — whole-map, first that takes — and the last two
+are **kind 13**, carry an unconscious creature (own to a Lair, an enemy's to a
+Prison), and **kind 12**, carry a corpse to the Graveyard. So carrying sits
+**below claiming** and above everything found by distance. An imp buries nobody
+while there is unclaimed ground, which is not an obvious ordering and is visible
+in `an_imp_buries_a_corpse`: the corpses are claimable at t1219 and the imp does
+not come for one until t1311.
+
+**What happens at each end:**
+
+- **A collapsed creature goes to its own bed**, not to any free lair tile — the
+  bed it kept through the whole dying window precisely so this walk would have a
+  destination. Arrival calls `CreatureDeathRules.Rescue`, which was written and
+  tested five sittings ago with no caller.
+- **A corpse goes to the nearest Graveyard tile**, and is consumed.
+- **The destination is settled before the walk starts.** A body with nowhere to
+  go is a body nobody sets off for, which is what stops an imp crossing the
+  dungeon to stand over one and shrug.
+
+**Two clocks in one field.** `DyingTicks` counts the rescue window while
+`Dying` and the corpse window while `Dead`, because they never run at once, and
+it is reset at the seam so a corpse gets a fresh sixty seconds rather than a
+spent clock.
+
+**Both ends of the relation are stored** — `CarriedCreatureId` on the carrier
+and `CarriedByCreatureId` on the body — because both are asked: the carrier
+needs to know what it is holding on arrival, and the body needs to know it is
+held so that a second imp does not walk across the dungeon for it. A third
+field, `TargetBodyId`, is the body a worker is walking *towards*, which is a
+different thing that can fail in different ways.
+
+### What is ours rather than DK2's, stated
+
+- **No prison** (Q163). DK2's kind 13 sends an enemy's unconscious creature to
+  room 11 and there is no prison here, so an enemy on the floor is left there
+  rather than quietly rescued into the wrong dungeon.
+- **The corpse clock does not pause in an imp's arms** (Q164), so a long walk to
+  a distant graveyard can outlast the body. UNKNOWN in the original; the
+  alternative is a corpse that keeps for ever as long as somebody is walking
+  with it.
+- **A graveyard keeps no tally** (Q165). It consumes the corpse and the event
+  reports `DecomposeValue`. Its `CreatedCreatureId` is 8 — the Vampire — and
+  building that now would be premature for the reasons `creature-death.md` sets
+  out.
+- **Nearest by walking**, as everywhere else here (Q25), where the original
+  scans in straight-line rings.
+
+### Consequences
+
+- **A creature that leaves a body no longer vanishes at death.** Four tests
+  asserted that it did, and every one of them was encoding the truncated model
+  rather than the game; they now assert the corpse.
+- `HashVersion` and the snapshot `FormatVersion` go 22 -> 23.
+- `CreatureDeathRules.BodyWindowTicks` has a caller for the first time. It was
+  put there five sittings ago specifically so the missing half would be missing
+  *visibly*, and that worked.
+- The fixture gained the Graveyard — terrain 23, room 14, 2000 to build — which
+  it had never needed.
+- Three new animation keys, because `WorldView.ActivityKeySegment` is a switch
+  and adding an activity without deciding its animation does not compile.
+- 26 tests in `CarryingTests`; `an_imp_buries_a_corpse` runs the second half end
+  to end, and `a_goblin_collapses_and_dies` now runs to t2419 and shows the
+  corpse rotting where this project used to stop.
+
+### Still open
+
+- **The prison, and capture** — the other branch of kind 13.
+- **Kind 8**, carry a loose object to its room, which is the third carrying task
+  and needs object instances that go somewhere.
+- **What a graveyard does when it fills**, which is where vampires come from.

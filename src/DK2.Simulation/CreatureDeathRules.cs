@@ -169,6 +169,18 @@ public static class CreatureDeathRules
         creature.Activity == CreatureActivity.Dying;
 
     /// <summary>
+    /// Whether this creature is dead and lying on the floor as a corpse — the
+    /// second window, and the one an imp carries to a graveyard.
+    ///
+    /// <para>A corpse is not alive and is not a thing: it is a creature in a
+    /// state, which is what took five sittings to establish because this project
+    /// had written "a corpse is an object" as the reason three mechanics were
+    /// blocked and nobody had checked it (docs/research/objects.md §4).</para>
+    /// </summary>
+    public static bool IsCorpse(CreatureState creature) =>
+        creature.Activity == CreatureActivity.Dead;
+
+    /// <summary>
     /// Whether this creature is off its feet: out of health, or already in the
     /// dying window. <b>This, and not <see cref="IsDying"/>, is what every
     /// system guards on.</b>
@@ -213,12 +225,12 @@ public static class CreatureDeathRules
     /// How long a corpse lies there before it rots away —
     /// <c>DeadBodyDiesAfterSeconds</c>, which is also <b>60</b>.
     ///
-    /// <para><b>Nothing calls this, and that is the point.</b> It is the second
-    /// half of the owner's answer, it is a real number in the shipped data, and
-    /// it cannot be applied to anything until corpses exist as objects (M6). It
-    /// is defined here so that the half of the mechanic that is missing is
-    /// missing <i>visibly</i>, at the place the rest of it lives, rather than
-    /// being rediscovered from the variable table later.</para>
+    /// <para><b>Called at last</b> (ADR-0063). It sat here uncalled for five
+    /// sittings, deliberately, so that the missing half of the mechanic was
+    /// missing visibly rather than being rediscovered from the variable table —
+    /// and the thing blocking it turned out not to be OBJECTS at all but the
+    /// absence of an imp task that carries a creature. See
+    /// <see cref="CarryRules"/>.</para>
     /// </summary>
     public static int BodyWindowTicks(GameDatabase database) =>
         SimulationTiming.TicksFromSeconds(
@@ -227,6 +239,43 @@ public static class CreatureDeathRules
     /// <summary>Whether the dying window has run out and this creature is now dead.</summary>
     public static bool DyingWindowElapsed(GameDatabase database, CreatureState creature) =>
         creature.DyingTicks >= DyingWindowTicks(database);
+
+    /// <summary>Whether a corpse has lain there long enough to disappear.</summary>
+    public static bool BodyWindowElapsed(GameDatabase database, CreatureState creature) =>
+        creature.DyingTicks >= BodyWindowTicks(database);
+
+    /// <summary>
+    /// Turns a collapsed creature into a corpse: the second state of the
+    /// owner's pipeline, and the one that gives a graveyard something to be for.
+    ///
+    /// <para><b>Only for creatures that leave a body.</b> An Imp is <i>"dead
+    /// right away"</i> and a Vampire reincarnates, so both skip this and are
+    /// removed outright — the flag that decides is
+    /// <see cref="LeavesBody"/>.</para>
+    ///
+    /// <para>The bed is released here rather than on collapse, which is the
+    /// whole reason a rescue has anywhere to carry the creature <i>to</i>: a
+    /// lair tile freed the moment its owner fell would be claimed by somebody
+    /// else while the owner lay on the floor.</para>
+    /// </summary>
+    public static void BecomeCorpse(
+        WorldState world, GameDatabase database, CreatureState creature)
+    {
+        LairRules.ReleaseBed(world, database, creature);
+
+        creature.Activity = CreatureActivity.Dead;
+
+        // A fresh sixty seconds. The corpse window and the rescue window share
+        // one field because they never run at once, so the clock has to be put
+        // back to zero at the seam or a corpse would inherit a spent one.
+        creature.DyingTicks = 0;
+
+        creature.TargetTileIndex = -1;
+        creature.TargetWork = default;
+        creature.TimerTicks = 0;
+        creature.Path.Clear();
+        creature.PathIndex = 0;
+    }
 
     /// <summary>
     /// Whether this creature leaves a corpse behind —

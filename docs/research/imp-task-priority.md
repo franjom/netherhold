@@ -244,12 +244,14 @@ face instead). Recorded, not built (**Q155**).
 
 | | DK2 | ours |
 |---|---|---|
-| Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **claim the just-dug tile**, **marked excavation**, **claim** — whole map each |
+| Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **claim the just-dug tile**, **marked excavation**, **claim**, **13**, **12** — whole map each. Five of seven since ADR-0063; the two missing are kind 8 (carry an object to its room) and kind 9/10 (build a placed trap or door), neither of which has anything to act on |
 | Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold** |
 | distance | rings, squared straight-line | steps along the walkable grid (Q25) |
 | kind 14 | claim the just-dug tile first, once no 8-neighbour has a dig task | **built** — `ClaimFreshlyDug`, same rule |
 | stealing | nearer imp takes the task | not built (Q155) |
-| just-dropped scan | radius 2, nine-step chain | no Hand of Evil yet; nothing to drop |
+| just-dropped scan | radius 2, nine-step chain | **built** (ADR-0062) — the tile underfoot and its four orthogonal neighbours, which is a subset of the original's disc (Q162) |
+| kind 13 | carry an unconscious creature: own to a Lair, an enemy's to a Prison | **half built** (ADR-0063) — the rescue to its own bed; there is no prison (Q163) |
+| kind 12 | carry a corpse to the Graveyard | **built** (ADR-0063) — what a graveyard does with the corpses is not (Q165) |
 
 `ImpTaskSystem.TryTakeJob` is Tier A and `TrySweep` is Tier B, and the
 `ImpFetchesGoldTests` "second tier" section pins the four cases: claim beats

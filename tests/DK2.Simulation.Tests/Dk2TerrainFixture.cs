@@ -40,6 +40,7 @@ internal static class Dk2TerrainFixture
     public const byte HatcheryTerrain = 13;
     public const byte DungeonHeartTerrain = 14;
     public const byte WoodenBridgeTerrain = 17;
+    public const byte GraveyardTerrain = 23;
     public const byte ManaVaultTerrain = 31;
     public const byte ClaimedVaultTerrain = 32;
 
@@ -64,6 +65,11 @@ internal static class Dk2TerrainFixture
             T(Gems, "Gems",
               TerrainFlags.Solid | TerrainFlags.Impenetrable | TerrainFlags.Taggable,
               100, 100, Gems, Gems, goldValue: 3000),
+            // The graveyard, for carrying (ADR-0063). Terrain 23, 10000 health
+            // both ways and destroyed-type 8 (Claimed Path), exactly as the
+            // install has it.
+            T(GraveyardTerrain, "Graveyard",
+              TerrainFlags.Ownable, 10000, 10000, GraveyardTerrain, ClaimedPath),
             T(ClaimedPath, "Claimed Path",
               TerrainFlags.Ownable | TerrainFlags.Attackable | TerrainFlags.FillInable,
               660, 660, Rock, DirtPath, manaGain: 1),
@@ -116,6 +122,12 @@ internal static class Dk2TerrainFixture
             // number the laying curve is tuned around, since nine tiles is
             // exactly where its exponent gives 2 (hatchery.md section 4).
             R(RoomTypeId.Hatchery, "Hatchery", 300, HatcheryTerrain, 0x128Cu, 3, 3),
+
+            // The graveyard: 2000 to build, 3x3 recommended, and the only room
+            // besides the Portal whose CreatedCreatureId is set -- 8, the
+            // Vampire. Nothing here creates one and doing so would be premature
+            // (creature-death.md), but the corpse has somewhere to go.
+            R(RoomTypeId.Graveyard, "Graveyard", 2000, GraveyardTerrain, 0x128Cu, 3, 3),
         ],
         creatures: [Imp(), Goblin(), Vampire(), .. extraCreatures],
         variables: Variables(),

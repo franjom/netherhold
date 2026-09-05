@@ -29,10 +29,12 @@ namespace DK2.Simulation.Systems;
 /// kinds and searches the <i>entire</i> map for each before moving to the next:
 /// <b>claim the tile you have just dug</b>, carry loose objects, build placed
 /// traps and doors, <b>dig and mine marked tiles</b>, <b>claim floor</b>, carry
-/// the unconscious, carry corpses. Of those this project has the three in bold,
-/// in that order — <see cref="JobPriority.ClaimFreshlyDug"/>,
+/// the unconscious, carry corpses. Of those this project has the three in bold —
+/// <see cref="JobPriority.ClaimFreshlyDug"/>,
 /// <see cref="JobPriority.MarkedExcavation"/>, <see cref="JobPriority.Claim"/> —
-/// and each is one whole-map search, because the order is an ordering and not
+/// <b>and the last two, carrying</b> (ADR-0063, <see cref="CarryRules"/>): five
+/// of seven, in the original's order. Each is one whole-map search, because the
+/// order is an ordering and not
 /// a weighting: <i>any</i> reachable marked tile beats <i>every</i> claimable
 /// one however far away, and a tile the imp has just dug out beats both once
 /// nothing beside it is still marked.</item>
@@ -239,6 +241,18 @@ public sealed class ImpTaskSystem : ISimulationSystem
         if (creature.Activity == CreatureActivity.FetchingGold)
         {
             UpdateFetching(context, creature, definition, grid);
+            return;
+        }
+
+        if (creature.Activity == CreatureActivity.FetchingBody)
+        {
+            UpdateFetchingBody(context, creature, grid);
+            return;
+        }
+
+        if (creature.Activity == CreatureActivity.CarryingBody)
+        {
+            UpdateCarryingBody(context, creature, grid);
             return;
         }
 
@@ -708,6 +722,15 @@ public sealed class ImpTaskSystem : ISimulationSystem
         if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
         if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
 
+        // The last two entries of DK2's Tier A table, in its order: kind 13,
+        // carry an unconscious creature, then kind 12, carry a corpse
+        // (imp-task-priority.md section 4). Both are whole-map like everything
+        // above them, and both sit below claiming - so an imp will finish
+        // claiming the dungeon before it picks anybody up, which is the
+        // original's ordering and not an obvious one.
+        if (TryTakeBody(context, creature, definition, grid, corpses: false)) return true;
+        if (TryTakeBody(context, creature, definition, grid, corpses: true)) return true;
+
         // Tier B: position first.
         return TrySweep(context, creature, definition, grid);
     }
@@ -1095,6 +1118,263 @@ public sealed class ImpTaskSystem : ISimulationSystem
         return WorkStance.IsInPosition(
             context.Database, world, grid, creature.Tile, target, creature.TargetWork);
     }
+
+
+    // ---------------------------------------------------------------- carrying
+
+    /// <summary>
+    /// Looks for a body to carry: a collapsed creature when
+    /// <paramref name="corpses"/> is false, a corpse when it is true.
+    ///
+    /// <para>Two calls rather than one search for both, because DK2 has two
+    /// task kinds and searches them in order — an unconscious creature anywhere
+    /// on the map outranks a corpse at the imp's feet. Within a kind the nearest
+    /// by walking wins, which is this project's standing reading of "nearest"
+    /// (Q25).</para>
+    ///
+    /// <para><b>A body with nowhere to go is not taken.</b> The destination is
+    /// settled before the walk starts, not on arrival: a collapsed creature
+    /// whose bed was sold has nowhere to be carried, and an enemy has nowhere at
+    /// all until there is a prison. Deciding late would have an imp cross the
+    /// dungeon to stand over a body and shrug.</para>
+    /// </summary>
+    private bool TryTakeBody(
+        SimulationContext context, CreatureState creature, CreatureDef definition,
+        WorldPathGrid grid, bool corpses)
+    {
+        WorldState world = context.World;
+
+        if (creature.CarriedCreatureId >= 0 || creature.GoldHeld > 0) return false;
+
+        // The graveyard is found ONCE, not once per tile the search touches.
+        // CarryRules.TryDestinationFor rebuilds the room index, and calling it
+        // from inside a whole-map predicate makes the search quadratic in the
+        // map - which it was, for exactly as long as it took to notice.
+        int graveyard = corpses
+            ? CarryRules.NearestGraveyardTile(world, context.Database, creature)
+            : -1;
+
+        if (corpses && graveyard < 0) return false;
+
+        bool found = _pathfinder.TryFindNearest(
+            grid, creature.Tile,
+            at => BodyToCarryAt(context, creature, definition, at, corpses, graveyard) is not null,
+            _route);
+
+        if (!found) return false;
+
+        TilePos at = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
+        CreatureState? body = BodyToCarryAt(context, creature, definition, at, corpses, graveyard);
+        if (body is null) return false;
+
+        creature.Activity = CreatureActivity.FetchingBody;
+        creature.CarriedCreatureId = -1;
+        creature.TargetTileIndex = (at.Y * world.Width) + at.X;
+        creature.TargetWork = default;
+        creature.Path.Clear();
+        creature.Path.AddRange(_route);
+        creature.PathIndex = 0;
+        creature.TimerTicks = 0;
+
+        // Remembered so that the walk and the pick-up agree about which body
+        // this is, even if a second one falls on the same tile before the imp
+        // gets there.
+        creature.TargetBodyId = body.Id;
+
+        context.Emit(SystemName, "body_claimed",
+            $"imp={creature.Id} player={creature.OwnerPlayerId} " +
+            $"body={body.Id} kind={(corpses ? "corpse" : "unconscious")} " +
+            $"at=({at.X},{at.Y}) steps={_route.Count}");
+        return true;
+    }
+
+    /// <summary>
+    /// The body on <paramref name="at"/> this worker could carry somewhere, or
+    /// null. Ties between two bodies on one tile go to the lower creature id,
+    /// which is spawn order and is stable.
+    /// </summary>
+    private static CreatureState? BodyToCarryAt(
+        SimulationContext context, CreatureState worker, CreatureDef definition,
+        TilePos at, bool corpses, int graveyard)
+    {
+        WorldState world = context.World;
+        CreatureState? best = null;
+
+        foreach (CreatureState body in world.Creatures)
+        {
+            if (body.Tile != at) continue;
+            if (CreatureDeathRules.IsCorpse(body) != corpses) continue;
+            if (!CarryRules.CanCarry(definition, worker, body)) continue;
+
+            // A corpse goes to the graveyard already found; a collapsed
+            // creature goes to its own bed, which is a per-body question and a
+            // cheap one.
+            int destination = corpses
+                ? graveyard
+                : CarryRules.TryDestinationFor(world, context.Database, worker, body);
+
+            if (destination < 0) continue;
+            if (best is null || body.Id < best.Id) best = body;
+        }
+
+        return best;
+    }
+
+    /// <summary>Walking to a body, and picking it up on arrival.</summary>
+    private void UpdateFetchingBody(
+        SimulationContext context, CreatureState creature, WorldPathGrid grid)
+    {
+        WorldState world = context.World;
+        CreatureState? body = world.CreatureById(creature.TargetBodyId);
+
+        // Somebody else took it, it rotted, or it was rescued by another imp.
+        if (body is null || !CarryRules.IsCarryable(body))
+        {
+            context.Emit(SystemName, "body_abandoned",
+                $"imp={creature.Id} body={creature.TargetBodyId} reason=gone");
+            ForgetBody(creature);
+            GoIdle(creature);
+            return;
+        }
+
+        // Still on the road.
+        if (creature.Tile != body.Tile)
+        {
+            if (creature.PathIndex < creature.Path.Count) return;
+
+            context.Emit(SystemName, "body_abandoned",
+                $"imp={creature.Id} body={body.Id} reason=out_of_reach");
+            ForgetBody(creature);
+            GoIdle(creature);
+            return;
+        }
+
+        int destination = CarryRules.TryDestinationFor(world, context.Database, creature, body);
+        if (destination < 0 || !RouteTo(context, creature, grid, destination))
+        {
+            context.Emit(SystemName, "body_abandoned",
+                $"imp={creature.Id} body={body.Id} reason=nowhere_to_take_it");
+            ForgetBody(creature);
+            GoIdle(creature);
+            return;
+        }
+
+        ForgetBody(creature);
+        CarryRules.PickUp(creature, body);
+        creature.Activity = CreatureActivity.CarryingBody;
+        creature.TargetTileIndex = destination;
+
+        context.Emit(SystemName, "body_picked_up",
+            $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
+            $"kind={(CreatureDeathRules.IsCorpse(body) ? "corpse" : "unconscious")} " +
+            $"to={Describe(world, destination)} steps={creature.Path.Count}");
+    }
+
+    /// <summary>Carrying a body, and delivering it on arrival.</summary>
+    private void UpdateCarryingBody(
+        SimulationContext context, CreatureState creature, WorldPathGrid grid)
+    {
+        WorldState world = context.World;
+        CreatureState? body = world.CreatureById(creature.CarriedCreatureId);
+
+        // It rotted in the imp's arms, which a long walk to a distant graveyard
+        // really can do (Q164).
+        if (body is null)
+        {
+            creature.CarriedCreatureId = -1;
+            GoIdle(creature);
+            return;
+        }
+
+        // The body goes where the arms go, and this runs after the mover, so it
+        // is never a tick behind.
+        CarryRules.FollowCarrier(creature, body);
+
+        int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
+        if (here != creature.TargetTileIndex)
+        {
+            if (creature.PathIndex < creature.Path.Count) return;
+
+            // The destination moved or the route was lost. Try again from here;
+            // failing that, put the body down where it stands.
+            int destination = CarryRules.TryDestinationFor(world, context.Database, creature, body);
+            if (destination >= 0 && RouteTo(context, creature, grid, destination))
+            {
+                creature.TargetTileIndex = destination;
+                return;
+            }
+
+            context.Emit(SystemName, "body_dropped",
+                $"imp={creature.Id} body={body.Id} " +
+                $"at=({creature.Tile.X},{creature.Tile.Y}) reason=no_route");
+            CarryRules.PutDown(creature, body);
+            GoIdle(creature);
+            return;
+        }
+
+        Deliver(context, creature, body);
+    }
+
+    /// <summary>
+    /// Arrival: a corpse into the graveyard, a collapsed creature into its bed.
+    /// </summary>
+    private static void Deliver(
+        SimulationContext context, CreatureState creature, CreatureState body)
+    {
+        WorldState world = context.World;
+        CreatureDef definition = context.Database.CreatureById(body.CreatureTypeId);
+
+        if (CreatureDeathRules.IsCorpse(body))
+        {
+            context.Emit(SystemName, "corpse_buried",
+                $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
+                $"type={definition.Name} {Describe(world, creature.TargetTileIndex)} " +
+                $"decompose_value={definition.DecomposeValue} " +
+                "(Q165: what a graveyard does with its tally is unbuilt)");
+
+            CarryRules.PutDown(creature, body);
+            world.RemoveCreature(body.Id);
+            GoIdle(creature);
+            return;
+        }
+
+        CarryRules.PutDown(creature, body);
+
+        if (CreatureDeathRules.Rescue(world, context.Database, body))
+        {
+            context.Emit(SystemName, "creature_rescued",
+                $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
+                $"type={definition.Name} {Describe(world, creature.TargetTileIndex)} " +
+                $"health={body.Health} (the lair heals it from here, ADR-0049)");
+        }
+        else
+        {
+            context.Emit(SystemName, "body_dropped",
+                $"imp={creature.Id} body={body.Id} " +
+                $"at=({creature.Tile.X},{creature.Tile.Y}) reason=bed_gone");
+        }
+
+        GoIdle(creature);
+    }
+
+    /// <summary>Routes a worker to one tile by index. Returns false if there is no way.</summary>
+    private bool RouteTo(
+        SimulationContext context, CreatureState creature, WorldPathGrid grid, int tileIndex)
+    {
+        WorldState world = context.World;
+        var to = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
+
+        if (!_pathfinder.TryFindPath(grid, creature.Tile, to, _route)) return false;
+
+        creature.Path.Clear();
+        creature.Path.AddRange(_route);
+        creature.PathIndex = 0;
+        return true;
+    }
+
+    /// <summary>Clears the "body I am walking towards" note.</summary>
+    private static void ForgetBody(CreatureState creature) =>
+        creature.TargetBodyId = -1;
 
     /// <summary>
     /// Ends the current job and looks again on the next tick.

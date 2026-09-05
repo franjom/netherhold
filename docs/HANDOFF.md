@@ -4212,3 +4212,64 @@ nothing had put them together.
    hardcoded 100 and the named 25 agree only at four - but the wall-clock length
    of a tick is still untouched, and the way in is still whoever increments the
    counter `FUN_00517490` reads.
+
+## Twenty-fifth sitting, second half: carrying, and the debt a false claim was hiding
+
+The owner asked for the hand and then carrying, and both are built. Carrying is
+ADR-0063 and `docs/research/creature-death.md` is now a document about something
+that works rather than about something that cannot.
+
+**What it completes.** The owner described dying in one breath a week ago (Q99)
+and it is three states with two sixty-second timers - collapse, corpse, gone -
+with an imp task at each seam: carry the unconscious to a bed, carry a corpse to
+a graveyard. Only the first state existed. `CreatureDeathRules.BodyWindowTicks`
+had been sitting there uncalled for five sittings on purpose, so the missing half
+would be missing visibly. **That worked**, and it is worth noting because it is
+cheap: pin the number, leave the caller absent, write down why.
+
+**What was blocking it was a sentence nobody had checked.** ADR-0051,
+`creature-death.md` and several code comments all said *"a corpse is an OBJECT,
+and OBJECTS is unparsed"*. When somebody read all 145 OBJECTS records, **not one
+of them is a corpse**. A corpse is a creature in a state, and what was missing
+was an imp task. That is the **fourth** time a claim nothing checked has cost
+this project a mechanic, and the pattern is now well enough attested to be worth
+saying plainly: *ask what would fail if the rule stopped holding, and then check
+that it holds.*
+
+**What went in:**
+
+- `CarryRules`, `CreatureActivity.Dead`, and DK2's own Tier A tail. Its imp job
+  table is `14, 8, 9, 1, 3, 13, 12` and the last two are the carrying kinds, so
+  **carrying sits below claiming** - an imp buries nobody while there is
+  unclaimed ground. That is visible in the new scenario: the corpses are
+  claimable at t1219 and the imp does not come for one until t1311.
+- **Two clocks in one field.** `DyingTicks` is the rescue window while `Dying`
+  and the corpse window while `Dead`, reset at the seam, because they never run
+  at once.
+- **Both ends of the carry relation are stored**, and a third field for the body
+  a worker is walking *towards*, which is a different thing that fails in
+  different ways.
+
+**One performance bug caught in review rather than by a test**: the whole-map
+search predicate called `CarryRules.TryDestinationFor`, which rebuilds the room
+index - so the search was quadratic in the map. The graveyard is found once now.
+
+**Four tests changed their minds.** A creature that leaves a body no longer
+vanishes at death, and four assertions said it did. Every one of them was
+encoding this project's truncated model rather than the game, which is what a
+half-built mechanic does to a suite: it makes the gap look like a rule.
+
+### Where the next session should start
+
+1. **The prison and capture** - the other branch of kind 13 (Q163), and the
+   largest thing carrying still cannot do. It brings torture, conversion and
+   jail breaks with it, so it is a milestone rather than a commit.
+2. **Kind 8**, carry a loose object to its room. The third carrying task, and
+   the one that needs object instances that have somewhere to go - which is also
+   what the Hatchery's chickens need.
+3. **Q1 is still the blocker under `TicksPerSecond`.** Unmoved by either half of
+   this sitting, and the way in is still whoever increments the counter
+   `FUN_00517490` reads.
+4. **Q159 is one look at the status bar** and the owner can settle it in a
+   minute: slap an imp and watch Efficiency fall from 90% back to 80%. This
+   project has built 25 seconds; the owner's stopwatch said 60.

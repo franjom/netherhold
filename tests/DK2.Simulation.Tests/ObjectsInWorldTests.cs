@@ -220,7 +220,9 @@ public class ObjectsInWorldTests
             new CreatureSleepSystem(), new CreatureHealthSystem(),
         ]).Run(Second * 61);
 
-        Assert.DoesNotContain(world.Creatures, c => c.Id == goblin.Id);
+        // Dead, and now a corpse on the floor for a second sixty seconds
+        // (ADR-0063). The creature is still in the world; its bed is not.
+        Assert.Equal(CreatureActivity.Dead, goblin.Activity);
 
         // The old model could not get this wrong, because there was nothing to
         // leave behind: releasing a bed was clearing an integer. Now it is a
