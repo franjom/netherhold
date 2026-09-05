@@ -151,10 +151,18 @@ distinguishes from a hatchery bird. The counter's setter is a function of its
 own, called from four places outside `Hatchery.cpp`, which fits a census kept by
 the chicken's own create/destroy rather than by the room.
 
-**So what does cap it? UNKNOWN, with one good candidate — Q135.** The Chicken
-record carries `RoomCapacity` **1**, and read as one bird per room tile that
-gives 25 for a 5x5, which fits "more than 20", and **9 for a 3x3**, which is the
-measurement that would settle it.
+**So what does cap it? ANSWERED the same day — one chicken per room tile.** The
+owner counted **exactly nine in a 3x3**, which is the measurement that settles
+it, and the record had said so all along: the Chicken carries `RoomCapacity` =
+**1**, a field documented as "how many of it a room tile holds" and read by
+nothing until there was a flock to limit. `HatcheryRules.FlockCapacity` takes the
+number from the definition rather than hardcoding nine.
+
+**One sub-question survives and blocks nothing:** whether DK2 *refuses* to lay
+when full, or lays anyway and lets the surplus rot. The owner reports both
+continuous production and birds vanishing, so both are in play. Ours refuses —
+a 3x3 settling at *exactly* nine is a cap rather than the balance point of two
+rates, and refusing cannot run away.
 
 The owner also reports the flock is **stable** — chickens vanish if nothing eats
 them. That fits the record exactly: the Chicken carries
@@ -193,8 +201,10 @@ until laying happens on a clock; and the ageing that would carry an egg to
 **Blocked on Q132** (the unit): the laying interval, and therefore the room
 producing anything on its own.
 
-**Open, and measurable — Q135:** what actually caps the flock. One chicken per
-room tile is the candidate; a 3x3 settling at about nine would confirm it.
+**Q135 is closed:** one chicken per room tile, measured. `FlockCapacity`,
+`Flock`, `Birds` and `FlockIsFull` implement it, and `TryLayEgg` refuses when the
+room is full — counting eggs as well as chickens, since an egg is a chicken two
+seconds from now.
 
 **Not researched at all:** how a hungry creature chooses a hatchery and walks to
 it, what happens when two creatures want the same chicken, and whether an imp

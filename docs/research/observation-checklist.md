@@ -896,12 +896,12 @@ Three answers in one, and the second overturned something:
   `DieOverTimeIfNotInRoom` and not `DieOverTime`: a bird that wanders off the
   hatchery's tiles is no longer in a room, and rots.
 
-**One follow-up, and it is the same kind of looking (Q135): how many chickens
-does a 3x3 hatchery settle at?** The Chicken record says `RoomCapacity` 1, which
-read as one bird per room tile predicts **9** for a 3x3 and 25 for a 5x5 — and
-25 is a good fit for "more than 20". Nine would confirm it. Anything near twelve
-would send us back to the cap. Anything else means neither, and the real limit
-is still unfound.
+**The follow-up was asked and answered the same day (Q135): a 3x3 settles at
+exactly nine.** So it is **one chicken per room tile**, the Chicken record's
+`RoomCapacity` of 1 read as a per-tile limit — a field that had been parsed and
+read by nothing. Twelve is ruled out as the room's limit. `HatcheryRules` takes
+the number from the definition rather than hardcoding nine, and a test runs a 3x3
+a hundred times to prove it stops.
 
 ### Q133 (original) — does a hatchery make eggs or chickens?
 

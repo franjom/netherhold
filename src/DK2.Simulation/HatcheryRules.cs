@@ -95,6 +95,83 @@ public static class HatcheryRules
     public const int EggHatchSeconds = 2;
 
     /// <summary>
+    /// How many chickens a hatchery holds: <b>one per tile</b>.
+    ///
+    /// <para><b>CONFIRMED by the owner, by measurement</b> (2026-09-05). A 5×5
+    /// settles at more than twenty and a <b>3×3 settles at exactly nine</b> —
+    /// which is one per tile on both counts, and rules out the only other
+    /// candidate this project had.</para>
+    ///
+    /// <para><b>And the record said so all along.</b> The Chicken's OBJECTS
+    /// entry carries <c>RoomCapacity</c> = 1, a field whose doc reads "how many
+    /// of it a room tile holds". Nobody had read it as a flock limit because
+    /// nothing needed one. So the number is <b>not</b> a constant here: it is
+    /// taken from the definition, which is what makes this a rule about
+    /// <i>capacity</i> rather than a magic nine.</para>
+    ///
+    /// <para><b>It is not <c>MaxFreeRangeChickensPerPlayer</c></b>, which was
+    /// this project's assumption until the owner looked. That variable is 12,
+    /// real, and checked before laying — but 25 chickens in a 5×5 rules it out
+    /// as the room's limit, so it caps loose birds instead. See
+    /// <see cref="FreeRangeCap"/>.</para>
+    /// </summary>
+    public static int FlockCapacity(
+        GameDatabase database, RoomInstance hatchery)
+    {
+        ObjectDef? chicken = database.ObjectById(ChickenObjectId);
+        int perTile = chicken?.RoomCapacity ?? 0;
+        return hatchery.TileIndices.Count * perTile;
+    }
+
+    /// <summary>
+    /// How many chickens — hatched birds, not eggs — stand in this room.
+    ///
+    /// <para>Eggs are excluded on purpose. A room at capacity in chickens can
+    /// still hold an egg that has not hatched, and counting the egg would make
+    /// the room stop a bird early.</para>
+    /// </summary>
+    public static int Flock(WorldState world, RoomInstance hatchery)
+    {
+        int count = 0;
+        IReadOnlyList<ObjectState> objects = world.Objects;
+        for (int i = 0; i < objects.Count; i++)
+        {
+            if (objects[i].ObjectTypeId != ChickenObjectId) continue;
+            if (!hatchery.TileIndices.Contains(objects[i].TileIndex)) continue;
+            count++;
+        }
+        return count;
+    }
+
+    /// <summary>
+    /// Chickens <i>and</i> eggs in this room — everything that is or is about to
+    /// be a bird.
+    ///
+    /// <para>What the capacity is measured against, and the reason it is not
+    /// just <see cref="Flock"/>: an egg is a chicken two seconds from now, so a
+    /// room that laid while full would overshoot its own limit by however many
+    /// eggs were in the air.</para>
+    /// </summary>
+    public static int Birds(WorldState world, RoomInstance hatchery)
+    {
+        int count = 0;
+        IReadOnlyList<ObjectState> objects = world.Objects;
+        for (int i = 0; i < objects.Count; i++)
+        {
+            byte type = objects[i].ObjectTypeId;
+            if (type != ChickenObjectId && type != EggObjectId) continue;
+            if (!hatchery.TileIndices.Contains(objects[i].TileIndex)) continue;
+            count++;
+        }
+        return count;
+    }
+
+    /// <summary>Whether this hatchery is holding as many birds as it can.</summary>
+    public static bool FlockIsFull(
+        WorldState world, GameDatabase database, RoomInstance hatchery) =>
+        Birds(world, hatchery) >= FlockCapacity(database, hatchery);
+
+    /// <summary>
     /// The smallest squared distance, <b>in whole tiles</b>, that two coops may
     /// be apart: 3, so a squared distance of 0, 1 or 2 is refused.
     ///
@@ -229,6 +306,15 @@ public static class HatcheryRules
     /// generator and does not try to be — what the determinism gate needs is
     /// that the draw happens in a fixed order, and it does.</para>
     ///
+    /// <para><b>A full room lays nothing</b>, where full is
+    /// <see cref="FlockCapacity"/> — one bird per tile, measured by the owner at
+    /// nine in a 3×3. <b>The limit is confirmed; the mechanism behind it is a
+    /// reading.</b> DK2 might refuse to lay, or lay anyway and let the surplus
+    /// rot; the owner reports both continuous production and birds vanishing, so
+    /// both are in play. Refusing is what reproduces the measurement — a 3×3
+    /// settling at <i>exactly</i> nine is a cap, not the balance point of two
+    /// rates — and it is the choice that cannot run away. Q135.</para>
+    ///
     /// <para><b>Nothing calls this on a clock</b>, because the interval's unit is
     /// unresolved (see the type doc, and Q132). Nor is the per-player free-range
     /// cap applied, and <b>the owner's observation is now the reason rather than
@@ -244,6 +330,10 @@ public static class HatcheryRules
         WorldState world, GameDatabase database, RoomInstance hatchery, SimRandom rng)
     {
         if (rng is null) throw new ArgumentNullException(nameof(rng));
+
+        // A full room lays nothing. See the doc above for what "full" is and
+        // why the mechanism behind it is a reading rather than a certainty.
+        if (FlockIsFull(world, database, hatchery)) return null;
 
         var coops = new List<ObjectState>();
         Coops(world, hatchery, coops);

@@ -380,6 +380,103 @@ public class HatcheryTests
         Assert.Equal(2, HatcheryRules.EggHatchSeconds);
     }
 
+    // ---- how big the flock gets ---------------------------------------------
+
+    [Theory]
+    [InlineData(3, 3, 9)]     // the owner counted this one
+    [InlineData(5, 5, 25)]    // and reported "more than 20" for this one
+    [InlineData(4, 4, 16)]
+    public void AHatcheryHoldsOneChickenPerTile(int w, int h, int expected)
+    {
+        // MEASURED BY THE OWNER (2026-09-05): a 3x3 settles at nine and a 5x5 at
+        // more than twenty. One per tile on both counts.
+        //
+        // And the record had said so all along -- the Chicken's RoomCapacity is
+        // 1, a field documented as "how many of it a room tile holds" and read
+        // by nothing until there was a flock to limit. So the nine is NOT a
+        // constant in our code: it comes out of the definition.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        Assert.Equal(expected, HatcheryRules.FlockCapacity(db, Hatchery(db, world, 2, 2, w, h)));
+    }
+
+    [Fact]
+    public void AThreeByThreeHatcherySettlesAtExactlyNineChickens()
+    {
+        // The owner's measurement, run as a simulation: lay, hatch, repeat, far
+        // more times than nine. It has to STOP at nine.
+        //
+        // This is the test that would have caught the wrong reading. Had the
+        // free-range cap of 12 been the limit, this would settle at twelve; had
+        // there been no limit at all it would run to a hundred.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        RoomInstance room = Hatchery(db, world, 2, 2, 3, 3);
+        HatcheryRules.PlaceCoops(world, db, room);
+
+        var rng = new SimRandom(99);
+        for (int i = 0; i < 100; i++)
+        {
+            ObjectState? egg = HatcheryRules.TryLayEgg(world, db, room, rng);
+            if (egg is not null) HatcheryRules.Hatch(world, db, egg);
+        }
+
+        Assert.Equal(9, HatcheryRules.Flock(world, room));
+        Assert.True(HatcheryRules.FlockIsFull(world, db, room));
+
+        // The coop is still there and was never counted as a bird.
+        Assert.Equal(1, world.Objects.Count(o => o.ObjectTypeId == HatcheryRules.CoopObjectId));
+    }
+
+    [Fact]
+    public void AnEggInTheAirCountsAgainstTheCap()
+    {
+        // An egg is a chicken two seconds from now. A room that laid while full
+        // of eggs would overshoot its own limit by however many were in flight,
+        // which is why the cap counts both.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        RoomInstance room = Hatchery(db, world, 2, 2, 3, 3);
+        HatcheryRules.PlaceCoops(world, db, room);
+
+        var rng = new SimRandom(5);
+        for (int i = 0; i < 9; i++)
+            Assert.NotNull(HatcheryRules.TryLayEgg(world, db, room, rng));
+
+        // Nine eggs, no chickens yet, and the room is already full.
+        Assert.Equal(0, HatcheryRules.Flock(world, room));
+        Assert.Equal(9, HatcheryRules.Birds(world, room));
+        Assert.Null(HatcheryRules.TryLayEgg(world, db, room, rng));
+    }
+
+    [Fact]
+    public void EatingOneMakesRoomForAnother()
+    {
+        // The other half of an equilibrium: the room resumes the moment
+        // something takes a bird out of it. Nothing eats yet, so this stands in
+        // for it by removing the object -- which is what eating will do.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        RoomInstance room = Hatchery(db, world, 2, 2, 3, 3);
+        HatcheryRules.PlaceCoops(world, db, room);
+
+        var rng = new SimRandom(11);
+        for (int i = 0; i < 20; i++)
+        {
+            ObjectState? laid = HatcheryRules.TryLayEgg(world, db, room, rng);
+            if (laid is not null) HatcheryRules.Hatch(world, db, laid);
+        }
+        Assert.Equal(9, HatcheryRules.Flock(world, room));
+        Assert.Null(HatcheryRules.TryLayEgg(world, db, room, rng));
+
+        ObjectState eaten = world.Objects.First(
+            o => o.ObjectTypeId == HatcheryRules.ChickenObjectId);
+        Assert.True(world.RemoveObject(eaten.Id));
+
+        Assert.NotNull(HatcheryRules.TryLayEgg(world, db, room, rng));
+    }
+
     // ---- the cap we know about and do not apply -----------------------------
 
     [Fact]

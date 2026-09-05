@@ -1,4 +1,4 @@
-# Scenarios
+﻿# Scenarios
 
 A scenario is a declarative experiment. The intent (plan §6.2) is that one file
 eventually drives **both** our simulation and the original game, so that the
@@ -84,10 +84,13 @@ an imp cannot take one; re-owning is the stand-in, and the report says so as a
 shortfall rather than passing it off as setup.
 
 And note what most rooms still are not. A treasury and a heart hold gold because
-a variable says how much per tile. **Two rooms now do more**: a portal produces
-creatures and a lair attracts them (which is all a lair does — nothing sleeps in
-it, because no creature has needs). Every other room is inert terrain that
-somebody owns.
+a variable says how much per tile. **Three rooms now do more**: a **portal**
+produces creatures; a **lair** attracts them *and* holds one bed per tile, which
+a creature claims, walks to, sleeps in and is healed by; and a **hatchery** knows
+how many coops its size earns and how big a flock it holds — though it lays
+nothing on its own, because its interval is multiplied by a balance variable no
+shipped file supplies (Q132). Every other room is inert terrain that somebody
+owns.
 
 ### `commands[].build`
 
@@ -104,8 +107,10 @@ cost, and from level specials, none of which exists yet. Any run that places one
 says so, and also says what a worker still cannot do — it only performs work the
 keeper marked, and its routing is ours rather than DK2's (Q5).
 
-Only workers (the Imp and the Dwarf) do anything at all so far. Placing anything
-else is reported as inert.
+**Non-workers are no longer inert.** A creature with a lair claims a bed, walks
+to it, sleeps and heals; it gets hungry; it grows angry and, if it is evil and
+angry enough, walks to the nearest portal and leaves the dungeon. What it still
+has no notion of is a **job**, and nothing can be picked up or carried.
 
 ### `commands` vs `work`
 
@@ -179,23 +184,31 @@ What a run still cannot tell you:
   uniform cost. Travel times follow from that choice.
 - **How long anything takes.** The health deltas carry no unit (Q19), and the
   tick rate is unmeasured (Q1). Tick numbers in a report are ordering, not time.
-- **What a creature is.** It has health and a hunger clock (ADR-0048) and
-  nothing else: no mood, no anger, no experience, no job. A hungry
-  creature stays hungry forever, because chickens are objects (M6), and it takes
-  no damage for it — DK2 charges anger, which does not exist here yet.
-- **What a room does.** A treasury and a dungeon heart hold gold, a portal
-  produces creatures, and a lair attracts them and heals whatever stands on it.
-  Every other room is terrain its owner holds and nothing more; rooms have no size or shape
-  rules (Q36), cannot be sold (Q34), and are built instantly because building
-  over time is another worker job with the same unknown trigger.
+- **What a creature is.** Health, hunger, sleep in its own bed, anger with a
+  measured ceiling, and levels with experience — all built. What is missing is a
+  **job**: nothing decides what a non-worker does with its day. A hungry creature
+  still stays hungry, and takes no damage for it, because DK2 charges anger and
+  now so do we. **The reason it cannot eat has changed**: the Chicken is object 9,
+  the world has an object list, and the hatchery knows its coops — what is left is
+  the room's clock (Q132) and a creature that walks over and eats.
+- **What a room does.** A treasury and a dungeon heart hold gold; a portal
+  produces creatures; a lair attracts them and holds a bed per tile that heals
+  its owner **while asleep in it**, not whatever stands on it; a hatchery is
+  researched and half built. Every other room is terrain its owner holds and
+  nothing more; rooms cannot be sold (Q34) and are built instantly, because
+  building over time is another worker job with the same unknown trigger.
 - **What happens to gold nobody can hold.** Mined gold now reaches a treasury,
   carried there by the imp that freed it (Q31). What is missing is the other end:
-  DK2 leaves a lump on the floor when there is nowhere to unload, and a lump is
-  an object (M6). The imp keeps mining, as it does in the original, and the
-  overflow is reported as `gold_uncollected` and lost.
+  DK2 leaves a lump on the floor when there is nowhere to unload. **Gold on the
+  floor is three of the 145 objects and there is now a list to put an instance
+  in**, so what is missing is the mechanic rather than the record. The imp keeps
+  mining, as it does in the original, and the overflow is reported as
+  `gold_uncollected` and lost.
 - **What mana is for.** Nothing spends it. A mana total is what a keeper earned,
   not what they would have left.
 - **What happens when a dungeon heart falls.** Losing it is defeat in DK2; defeat
   is not implemented, so a keeper whose heart is beaten down here stops earning
   its 30 a second and plays on (Q40).
-- **Anything about spells, needs, moods or combat.**
+- **Anything about spells, jobs, carrying or combat.** Carrying is the largest
+  single gap: no corpse reaches a graveyard, no gold is lifted off the floor, no
+  unconscious creature is dragged to a prison or back to its bed.

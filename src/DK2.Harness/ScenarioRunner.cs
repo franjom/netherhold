@@ -373,8 +373,9 @@ public sealed class ScenarioRunner
             "it, because nothing can be carried");
         unsupported.Add(
             "a hatchery is inert IN A RUN, but not for want of research: HatcheryRules knows how " +
-            "many coops a room of this size gets, where they may stand, and that the room lays an " +
-            "EGG (object 47) at a randomly chosen coop. What it has no clock for is how often - " +
+            "many coops a room of this size gets, where they may stand, that the room lays an EGG " +
+            "(object 47) at a randomly chosen coop which hatches into a chicken, and that it holds " +
+            "one chicken per tile - nine in a 3x3, counted in the original. What it has no clock for is how often - " +
             "DK2 multiplies its interval by a balance variable that no shipped file supplies " +
             "(Q132), so no system is registered and nothing here gets fed. A creature that grows " +
             "hungry in this run stays hungry, and is angered for it rather than damaged");

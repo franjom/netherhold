@@ -1,4 +1,4 @@
-# Architecture
+﻿# Architecture
 
 Full rationale: `DK2_REIMPLEMENTATION_PLAN.md` §4. This file is the working summary.
 
@@ -160,9 +160,11 @@ The producer the work queue was written to wait for. Anything flagged
 `IsWorker` — the Imp and the Dwarf, never creature id 1 — looks for the nearest
 tile its keeper has marked, walks to it, and works on it.
 
-- `CreatureState` is the first mutable creature state: position in fixed point,
-  activity, target, timer and route. Only fields a mechanic actually reads are
-  there; health, mood and hunger arrive with the mechanics that read them.
+- `CreatureState` is the mutable creature state: position in fixed point,
+  activity, target, timer and route, and — since the mechanics that read them
+  arrived — health, hunger, anger, level and experience. **Only fields a mechanic
+  actually reads are there**, which is also why one has since *left*: bed
+  ownership moved to the object (see **Objects** below).
 - `ImpTaskSystem` decides. One outward search from the worker answers "which job
   is nearest", "how do I get there" and "is anything reachable at all" at once.
   It queues `TileWorkOrder`s; it never applies them.
@@ -214,15 +216,73 @@ treasury is necessarily paid for out of the dungeon heart, and a load too big fo
 one treasury tile spills into the next — because the carrier puts down what fits
 and looks again, not because anything implements spillover.
 
-What is deliberately absent: **a room does nothing.** A treasury and a heart hold
-gold because a variable says how much per tile; every other room is inert terrain
-its owner holds. Rooms have no size or shape rules (Q36), cannot be sold (Q34),
-and are built instantly — building over time is another worker job that is not in
-the priority order the owner gave (Q24). And gold an imp cannot hold is still
-lost: DK2 leaves a lump on the floor for somebody to come back for, and a lump is
-an OBJECT (M6). The imp keeps mining, which is the half that matters.
+What is still absent, and it is much less than it was: **most rooms do nothing.**
+A treasury and a heart hold gold because a variable says how much per tile. Four
+now do more — a **portal** produces creatures, a **lair** attracts them and holds
+one bed per tile, a **hatchery** knows its coops and its flock, and a **temple**
+has its rim capacity recorded if not used. Everything else is inert terrain its
+owner holds. Rooms cannot be sold (Q34) and are built instantly — building over
+time is another worker job absent from the priority order the owner gave (Q24).
+
+Gold an imp cannot hold is still lost. DK2 leaves a lump on the floor for
+somebody to come back for; gold on the floor is **three of the 145 objects** and
+there is now a list to put an instance in, so what is missing is the mechanic
+rather than the record. The imp keeps mining, which is the half that matters.
 
 Evidence and confidence: `docs/research/rooms-and-gold.md`.
+
+## Objects (M6)
+
+The third list in `WorldState`, after tiles and creatures — and the shape was
+read out of the binary rather than chosen (ADR-0054, `docs/research/objects.md`).
+
+- **DK2's object is one type with an 18-byte tagged union.** Its own debug dump
+  prints the header `Union Data:` and then one of twenty-three blocks, every one
+  reading from the same offset; the tag is the object's definition id. So a bed,
+  a chicken, a boulder and a gold pile are one kind of thing in different states,
+  not four kinds of thing.
+- **`ObjectState` mirrors the semantics and not the layout.** Fidelity is
+  required of behaviour, not of storage (brief item 5), and the behavioural
+  content of a union is that at most one kind's state is live. Ours is flat, with
+  a documented owner per field, **every field hashed unconditionally** — a
+  kind-dependent hash would let a stray write hide — and fields added only when a
+  mechanic reads them, the same rule `TileState` follows.
+- **`WorldState.Objects` is one list in placement order**, and the order is
+  behaviour for the same reason the creature list's is.
+- **A bed is an object, and the object owns the relation.** `Lair.CreatureId` is
+  how DK2 records whose bed a bed is; this project had kept the same fact on the
+  creature as a tile index, and **two copies of one fact is the shape behind
+  three of its longest-lived defects**. There is now one, on the object's end.
+  A bed exists only while owned — claiming a lair tile creates one of the
+  creature's own kind, releasing it destroys it — so occupancy needs no
+  bookkeeping at all. CONFIRMED by the owner: a lair tile is bare until somebody
+  moves in.
+- **Rules ask the definition's type flag, not the id**, because the original's
+  own dispatch does and gets more from it: one `TypeLair` branch serves all
+  twelve bed objects. The exception is where DK2 itself names an id — the Chicken
+  Coop carries no type bit at all — and `HatcheryRules` says so where it does it.
+
+## Creature needs (M4)
+
+What a creature is, beyond where it is standing. Every rate comes from the
+record or the balance table; none is in the code.
+
+- **Health** — maximum from the record scaled by level, regeneration on your own
+  land (two creatures out of 46 have any), healing at 100 a second **only while
+  asleep in its own bed**, and terrain damage gated on the crossing flags.
+- **Hunger** — a clock that fills `ChickensNeeded` and cannot yet be satisfied.
+  It costs **no health on purpose**: there is no starvation anywhere in the
+  balance table, because what going unfed costs is anger.
+- **Anger** — a measured ceiling of 32767 (the owner, twice, two methods), a
+  ladder of content → unhappy → angry, and a consequence: an angry evil creature
+  walks to the nearest portal and leaves; a converted one turns turncoat.
+- **Levels** — a per-level scaling table of 32 stats by 9 levels that had been
+  parsed and read by nothing. Imps gain experience by working; the training room
+  and combat pit caps are shipped variables.
+- **Death is a process**, not an event: collapse at zero, a rescuable window,
+  then removal. A corpse is **a creature in a state**, not an object — a
+  correction that shrank the graveyard from "parse a record" to "write a carry
+  task".
 
 ## Mana (M3)
 
