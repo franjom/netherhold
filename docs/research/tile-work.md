@@ -405,6 +405,9 @@ observed           273 gold a swing
   => swings a seam  = 660 / 60          = 11
   => MineGoldHealth = -300, and -300 / -60 = 5
   => work lands FIVE times a second, a fifth of the tabled delta each
+  (SUPERSEDED 2026-09-05: the fifth is Efficiency 80% over four ticks a
+   game second, so it is four applications a game second - see "Efficiency"
+   at the top of this file. The per-application amount is unchanged.)
 ```
 
 Two things corroborate it that were not looked for, which is what makes this

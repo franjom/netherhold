@@ -165,7 +165,8 @@ The shipped numbers are worth laying out, because one of them is a surprise:
 
 ```
 a gold seam        660 health, 3000 gold
-MineGoldHealth     -300 per SECOND, at five applications a second (Q47)
+MineGoldHealth     -300 per SECOND, at five applications a second (Q47; the
+                   fifth is Efficiency 80% over four ticks - tile-work.md)
   -> a swing takes 60 health and frees 273 gold, measured in the original
   -> a seam is 11 swings and yields exactly 3000
 Imp maxGoldHeld    1400

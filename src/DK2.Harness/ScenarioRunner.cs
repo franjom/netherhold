@@ -140,8 +140,10 @@ public sealed class ScenarioRunner
                 "who would do the work or how long it would take. Use setup.creatures and a tag " +
                 "command instead to watch a worker do it");
             unsupported.Add(
-                "how many swings a tile takes is now known (Q47: work lands five times a second, " +
-                "a fifth of the tabled delta), but how long a second is in ticks is not (Q1). " +
+                "how many swings a tile takes is now known (Q47: an application is a fifth of the " +
+                "tabled delta, which is the worker's Efficiency of 80% over the four ticks of a " +
+                "game second - a stat DK2 prints on its status bar, and one a slap or a well-aimed " +
+                "drop raises to 90%), but how long a second is in ticks is not (Q1). " +
                 "Tick counts in this run are therefore a faithful count of applications and not " +
                 "a wall-clock timing");
         }

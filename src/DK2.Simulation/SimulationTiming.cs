@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -71,6 +71,17 @@ public static class SimulationTiming
     /// the ratio between an application and a tabled per-second delta, which is
     /// what decides how much a swing does and how many swings a tile takes.
     /// How long five applications take in wall-clock terms still rides on Q1.</para>
+    ///
+    /// <para><b>Amended 2026-09-05: the fifth is Efficiency, and DK2 shows
+    /// it.</b> The game prints the stat beside a creature's name —
+    /// <i>"Efficiency: 80%"</i> — and 80% is the fixed-point multiplier the work
+    /// handlers read. An application is <c>delta x efficiency / 4</c>, the 4
+    /// being ticks a game second, so at the default 80% it is a fifth of the
+    /// delta applied <b>once a tick</b> rather than five times a second. This
+    /// constant is kept because it reproduces the default case exactly; when the
+    /// hand and the slap exist it becomes a per-creature Efficiency (a slap or a
+    /// drop onto marked work is +10 points each, 100% with both). See
+    /// <c>docs/research/tile-work.md</c>, "Efficiency".</para>
     /// </summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/open-questions.md#Q47")]
     public const int WorkApplicationsPerSecond = 5;

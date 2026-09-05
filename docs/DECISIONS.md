@@ -500,8 +500,10 @@ spawns holding gold. Nothing reads it and nothing should until somebody knows.
 
 ## ADR-0020 — Work lands five times a second, a fifth of the tabled delta at a time
 
-**Status:** Accepted (2026-08-30). Supersedes the granularity half of ADR-0011's
-placeholder status; ADR-0017's rule for `…PerSecond` variables is unaffected.
+**Status:** Accepted (2026-08-30). **Amended 2026-09-05 — the fifth is
+Efficiency; see the amendment at the end of this ADR.** Supersedes the
+granularity half of ADR-0011's placeholder status; ADR-0017's rule for
+`…PerSecond` variables is unaffected.
 
 **Context.** The ten tile-work deltas in DK2's balance table carry no unit —
 unlike their neighbours, which spell out `…PerSecond` and `…Seconds` in their
@@ -569,6 +571,27 @@ other three.
 ratio between an application and a tabled per-second delta. Q1 is untouched.
 
 ---
+
+**Amendment, 2026-09-05 (CONFIRMED by the owner, off DK2's own status bar).**
+**The fifth is not a cadence. It is the worker's Efficiency divided by the four
+ticks of a game second.** DK2 prints the stat next to a creature's name —
+*"Imp. Name: Snipe. Job: idle. Efficiency: 80%. Mood: Happy."* — and 80% is the
+`0xccc` = 0.8 fixed-point multiplier the work handlers read from
+`creature[0x3af]`. So an application is `delta x 0.8 / 4`, which is a fifth of
+the delta, and there are **four applications a game second, one a tick**, not
+five.
+
+**Nothing this ADR implemented changes.** The per-application amount and the
+number of applications a job takes are exactly as measured; only the reason is
+different, and the wall-clock rate still rides on Q1 as it always did.
+
+**What it adds** is that Efficiency is a *variable*, which this ADR assumed away:
+a slap raises it to 90% for 60 seconds, dropping an imp next to a tile it has
+marked raises it to 90% as well, and both at once give 100% — measured at 273,
+309-310 and 341 gold a swing respectively. `SimulationTiming` keeps
+`WorkApplicationsPerSecond = 5` because that reproduces the default-efficiency
+case exactly; it becomes a per-creature Efficiency when the hand and the slap
+exist. See `docs/research/tile-work.md`, "Efficiency".
 
 ## ADR-0021 — Imps come from a floor and a price, and mana finally has an outgoing
 

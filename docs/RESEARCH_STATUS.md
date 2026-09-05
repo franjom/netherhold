@@ -41,7 +41,10 @@ What is *built* rather than known, against the long-term goals:
   observation. The one loose end is the floor lump DK2 leaves when every store is
   full, which needs the OBJECTS record (M6).
 - How a tile is worked: one uniform data-driven rule for all ten work kinds, at
-  **five applications a second** (Q47, measured at 273 gold a swing, ADR-0020),
+  **five applications a second** (Q47, measured at 273 gold a swing, ADR-0020 —
+  and the fifth turned out to be the worker's **Efficiency**, a stat DK2 prints
+  on the status bar: 80% over four ticks a game second, raised to 90% by a slap
+  or by dropping an imp onto marked work),
   worked **from beside a wall and standing on a floor tile** (Q44/Q49, ADR-0028).
 - **How an imp chooses a job** — in two tiers, read from the binary and
   confirmed by the owner twice (2026-09-05, ADR-0058). Tier A walks a table of

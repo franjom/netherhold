@@ -4084,3 +4084,60 @@ after all (273 says it does not), and a **slapped level-1 imp** should show 409
 if the +50% is a percentage of the base and 443 if it is percentage points.
 
 Docs only; no code changed.
+
+## Twenty-fourth sitting, second coda: Efficiency, and a day of being wrong in public
+
+The owner timed and read the original for a whole session while this end read the
+binary. It ended with a screenshot that made the whole day redundant and correct
+at the same time.
+
+**DK2 prints the answer on its status bar.** *"Imp. Name: Snipe. Job: idle.
+**Efficiency: 80%.** Mood: Happy."* Efficiency is the work-rate multiplier -
+`creature[0x3af] + creature[0x3b3]`, whose base the constructor sets to `0xccc`
+= exactly 0.8. **Q47's "a fifth of the tabled delta", the constant every dig,
+claim, mine and reinforce timing in this project runs on, is 80% Efficiency
+spread over the four ticks of a game second.** It was never a cadence.
+
+| Efficiency | Health a swing | Gold | Owner saw |
+|---|---|---|---|
+| 80% base | 60 | 272.7 | 272-273 |
+| 90% slapped, or dropped onto marked work | 67.5 -> 68 | 309.1 | 309-310 |
+| 100% both | 75 | 340.9 | 341 |
+
+**A slap is +10 points for 60 seconds and does not stack. Dropping an imp beside
+a tile you have marked is +10 points too** - and dropping it on unmarked ground
+is worth nothing, so it is the job and not the drop. DK2 pays the player 12.5%
+for handling imps, and 25% for slapping them as well.
+
+**What this cost, and it is worth writing down.** Three claims were committed
+during the day and two were withdrawn within the hour by the owner's own control
+tests:
+
+- *"The work rate scales with level"* - built on a level-1/level-2 pair, killed
+  by a level-3 imp reading the level-1 number, and finally explained: the
+  "levels" were this bonus coming and going.
+- *"The 341 run had a second bonus source we have not found"* - it had, and it
+  was the hand.
+- The one that held: **the base is 0.8 and is not level-scaled**, which a fresh
+  imp against a level-3 imp confirmed twice.
+
+**The lesson is the cheap instrument.** A 13-second reinforce timed by hand
+resolves about 3%; four consecutive gold decrements off a seam resolve 0.3% and
+also proved the health-to-gold proportion and that the running total truncates.
+And the status bar resolves it exactly, for free. `observation-checklist.md` now
+says so; it previously cited "273 gold a swing" in four documents without one of
+them recording where the number appears.
+
+**No code changed.** `TileWorkRules`' `delta / 5` is `delta x 0.8 / 4`, so every
+worker that is neither slapped nor hand-placed is already exact. Efficiency
+becomes a real `CreatureState` field when the hand and the slap exist, and
+ADR-0020 carries the amendment.
+
+### Where the next session should start
+
+1. **Q1 is still the blocker under `TicksPerSecond`** and no stopwatch can reach
+   it - 5 ticks a second at 80% and 4 at 100% are the same wall-clock speed. The
+   way in is the game loop: `FUN_00517490` is a bare field load of the tick
+   counter, and whoever increments that field settles it.
+2. **Carrying** is still the largest unbuilt blocker, and the hand is what
+   Efficiency now waits on.

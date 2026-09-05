@@ -98,7 +98,8 @@ public struct TileState
     /// applications. Always smaller in magnitude than
     /// <see cref="SimulationTiming.WorkApplicationsPerSecond"/>.
     ///
-    /// <para>Work lands five times a second and each application moves a fifth
+    /// <para>Work lands five times a second (the fifth is Efficiency 80% over
+    /// four ticks — ADR-0020, amended) and each application moves a fifth
     /// of the tabled per-second delta (Q47). Eight of the ten deltas divide by
     /// five exactly; <c>DigEnemyWallHealth</c> (−8) and <c>RepairWallHealth</c>
     /// (22) do not, and integer division alone would quietly run them 37% and

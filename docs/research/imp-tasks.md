@@ -135,7 +135,8 @@ Once per tick, for every creature flagged `IsWorker`, in spawn order:
    it starts working. If it has walked its whole route and is still not in
    position, the job ends.
 6. If it is working, it counts down; at zero it either queues one application of
-   work - one fifth of the tabled delta, five times a second (Q47, ADR-0020) -
+   work - one fifth of the tabled delta, five times a second (Q47, ADR-0020;
+   the fifth is the imp's Efficiency of 80% over four ticks) -
    or, if that application would free more gold than it can hold and there is
    somewhere reachable to put what it already has, breaks off and carries.
 

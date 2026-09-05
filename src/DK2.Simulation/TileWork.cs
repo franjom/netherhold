@@ -188,7 +188,9 @@ public static class TileWorkRules
     ///
     /// Work lands <see cref="SimulationTiming.WorkApplicationsPerSecond"/> times
     /// a second and the balance table's deltas are per second (Q19, Q47), so an
-    /// application is a fifth of the tabled value. Eight of the ten divide
+    /// application is a fifth of the tabled value — which is the worker's
+    /// Efficiency (80%) over four ticks a game second, ADR-0020's 2026-09-05
+    /// amendment. Eight of the ten divide
     /// exactly; the other two carry their remainder into the next application so
     /// that the per-second rate stays exactly what the table says.
     ///

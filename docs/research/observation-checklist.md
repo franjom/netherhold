@@ -600,7 +600,8 @@ them.
 Left here as the record of what one number was worth. Every rate used to be too
 fast against observation and the best available reading was "twice a second, half
 the delta" — plausible, self-consistent, and wrong. The measurement of **273 gold
-a swing** put an application at a *fifth* of the tabled delta, five a second, and
+a swing** put an application at a *fifth* of the tabled delta (the fifth turned
+out on 2026-09-05 to be the worker's **Efficiency**, 80%, over four ticks), and
 two things nobody had looked for agreed: eight of the ten tabled deltas divide by
 five exactly, and claiming comes out at four swings, which is Q46's independently
 observed "2-3-4 jumps MAX".
