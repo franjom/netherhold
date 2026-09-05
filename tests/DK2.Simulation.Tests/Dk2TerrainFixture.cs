@@ -801,4 +801,18 @@ internal static class Dk2TerrainFixture
 
     /// <summary>The one declared system order — see <see cref="Systems.SimulationSystems"/>.</summary>
     public static ISimulationSystem[] DefaultSystems() => Systems.SimulationSystems.Default();
+
+    /// <summary>
+    /// The declared order with one system left out, for tests that measure one
+    /// mechanic and would otherwise be measuring two.
+    ///
+    /// <para>Use it sparingly and say why at the call site. It exists because
+    /// the free-imp supply stopped being quiet: a keeper with a dungeon heart
+    /// and no imps used to get its first one five seconds in, and now gets it on
+    /// the first tick (see <c>ImpSupplySystem</c>), so a mana-income test that
+    /// hands a keeper a heart starts paying imp upkeep immediately unless it
+    /// says otherwise.</para>
+    /// </summary>
+    public static ISimulationSystem[] SystemsWithout<T>() where T : ISimulationSystem =>
+        [.. Systems.SimulationSystems.Default().Where(s => s is not T)];
 }

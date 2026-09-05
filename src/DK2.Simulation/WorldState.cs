@@ -231,23 +231,30 @@ public struct PlayerState
     public int Mana;
 
     /// <summary>
-    /// Ticks until this keeper is handed a free imp, or 0 when they are not
-    /// owed one.
+    /// The earliest tick at which this keeper may be handed a free imp.
     ///
-    /// A keeper below <c>MinimumImpThreshold</c> (4) gets one imp every
-    /// <c>TimeBeforeFreeImpGeneratedSeconds</c> (5) until they are back up to it -
-    /// CONFIRMED, and named by both variables (see <see cref="ImpSupplyRules"/>).
-    /// The countdown runs only while they are short, which is ours: a clock that
-    /// ticked always would differ only in how fast the first replacement arrives
-    /// after a long spell at full strength (Q56).
+    /// <para><b>A deadline, not a countdown</b>, and the distinction is the
+    /// whole of Q56. DK2 keeps one field on the keeper and writes it in exactly
+    /// one place — immediately after a free imp is made, as
+    /// <c>now + TimeBeforeFreeImpGeneratedSeconds</c>. Nothing resets it, nothing
+    /// pauses it, and nothing touches it while the keeper is at full strength.
+    /// So the deadline of a keeper who has been at four imps for a minute is a
+    /// minute in the past, and the first tick they drop below
+    /// <c>MinimumImpThreshold</c> the replacement is already due: it arrives
+    /// <b>at once</b>, and only the ones after it are five seconds apart.</para>
+    ///
+    /// <para>This project had the opposite for three weeks — a countdown held at
+    /// zero while the keeper was up to strength, which made every replacement
+    /// wait a fresh five seconds. See <see cref="ImpSupplyRules"/> and
+    /// docs/research/imps-and-mana.md.</para>
     /// </summary>
-    public int FreeImpCountdownTicks;
+    public GameTick NextFreeImpTick;
 
     public readonly void HashInto(ref Hash64 hash)
     {
         hash.Add(PlayerId);
         hash.Add(Mana);
-        hash.Add(FreeImpCountdownTicks);
+        hash.Add(NextFreeImpTick);
     }
 }
 

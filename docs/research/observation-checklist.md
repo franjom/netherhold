@@ -134,6 +134,62 @@ within minutes of the second screenshot arriving. See `imps-and-mana.md`
 
 ---
 
+## Answered on 2026-09-05 — by a recording, and one of them reversed shipped behaviour
+
+The owner filmed the game and a second assistant turned the footage into a list
+of numbered questions for the decompiler. That pipeline is worth naming: **it
+found a defect three weeks old that no test could have caught**, because the
+tests agreed with the wrong rule.
+
+| Q | What was settled |
+|---|---|
+| **Q56** | **The free-imp clock is a DEADLINE, not a countdown.** Thirty seconds at exactly four imps, one sacrificed, and the replacement arrived in **~1.4 seconds** — then ~5s for each further one. Ours waited a fresh five seconds every time. Fixed, ADR-0057 |
+| Q100 | **Regeneration does not care that a creature is working.** A wounded imp healed while digging and while running. Which is what ours already did — by omission, and now by observation |
+| Q150 | **A happy bedless creature does not claim a lair.** It went to the Training Room instead, and only looked for a lair when its mood turned Unhappy over not having one. **Ours claims a bed the first tick one is free** |
+| — | **Claiming a lair is a journey.** Creatures crossed a lair, walked up to occupied tiles, rejected them and moved on. A 1×5 lair filled 1, 3, 5, 4 |
+| — | Imps held in the Hand of Evil are **not** in the imp portrait's count |
+
+### Q148 — does an imp in the Hand of Evil count towards the four? — *ten seconds, and it is the cheapest thing on this page*
+
+**Pick up one of exactly four imps and hold it.** Wait fifteen seconds.
+
+- **A fifth imp appears** → the supply's count excludes held imps, and this
+  project's reading of the binary is wrong.
+- **Nothing happens** → the held imp still counts, and the portrait's figure is a
+  different count for a different purpose — which is what the code suggests, the
+  tally moving only when a thing changes owner.
+
+Worth doing at the same time as the sacrifice test, since the setup is identical.
+
+### Q150 — what makes a creature go and get a lair? — *added 2026-09-05, and it contradicts shipped behaviour*
+
+The observation is already made and is not in doubt. What would sharpen it:
+
+1. drop a **fresh, happy, bedless** creature into a dungeon with a free lair
+   tile. Time how long before it goes for the lair, and watch what it does
+   meanwhile;
+2. do it again with a creature whose anger is already part-way up;
+3. if there is a moment where the mood flips and the creature turns on its heel,
+   that timing against `AngerNoLair` is the whole answer.
+
+**Why it matters:** ours claims a bed on the first tick one exists, from
+anywhere, so a creature that should be training is asleep instead, and beds are
+taken in an order the original would never produce.
+
+### Q152 — does regeneration continue in combat, in the hand, or under possession? — *added 2026-09-05*
+
+Three separate ten-second looks, and the first is the one that changes a game:
+an imp regenerates **67 a second**, which is meaningful inside a fight and
+irrelevant outside one.
+
+1. wound an imp, start a fight it will survive, and watch the bar;
+2. wound one and hold it in the hand;
+3. wound one and possess it.
+
+Ours regenerates in all three.
+
+---
+
 ## 1. Still open, and blocking
 
 ### Q141 — where does "fetch that gold" sit in an imp's job priority? — **ANSWERED, and the owner's doubt was the valuable part**

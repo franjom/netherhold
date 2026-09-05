@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -40,7 +40,17 @@ public class ManaTests
         WorldState world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
 
-        var sim = new GameSimulation(database, world, seed, Dk2TerrainFixture.DefaultSystems());
+        // WITHOUT THE IMP SUPPLY, and the reason is a correction rather than
+        // convenience. These tests measure what land and a dungeon heart pay a
+        // keeper, to the mana. Since 2026-09-05 the free-imp supply keeps a
+        // deadline rather than a countdown, so the moment a test hands a keeper
+        // a heart it also hands them an imp - on the same tick - and the imp's
+        // upkeep starts coming off the figure being asserted. Leaving the system
+        // in would make every heart-income expectation a statement about two
+        // mechanics at once. ManaUpkeepTests is where imps and mana meet.
+        var sim = new GameSimulation(
+            database, world, seed,
+            Dk2TerrainFixture.SystemsWithout<Systems.ImpSupplySystem>());
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
         return new Run(sim, sink);

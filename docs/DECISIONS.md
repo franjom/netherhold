@@ -3923,3 +3923,83 @@ whole-map search per priority. Under that shape, an imp standing in spilled gold
 takes the gold **because it is underfoot**, not because gold outranks mining —
 which explains the owner's observation with no priority claim at all. Not acted
 on: it changes how every job is chosen, and it wants the owner's eyes first.
+
+---
+
+## ADR-0057 — The free-imp clock is a deadline, and it was a countdown for three weeks
+
+**Date:** 2026-09-05 · **Status:** Accepted · **Supersedes the Q56 half of
+ADR-0021**
+
+### The decision
+
+`PlayerState` carries **`NextFreeImpTick`** — the earliest tick at which this
+keeper may be handed a free imp — and `ImpSupplySystem` writes it in **exactly
+one place**: immediately after it makes one, as `now + interval`. Nothing else
+touches it. A keeper at or above `MinimumImpThreshold` is skipped without their
+deadline being cleared, reset, paused or banked.
+
+The consequence, and the whole point: **a keeper who has been at full strength
+carries a deadline that is already in the past, so their next loss is replaced on
+the very next tick.** Only the second and later replacements are an interval
+apart.
+
+### What it replaces
+
+`FreeImpCountdownTicks`, held at zero while a keeper was up to strength and
+restarted from a full interval when they fell short. Its doc-comment said the
+alternative "is indistinguishable in the steady state and differs only in how
+fast the first replacement arrives after a long spell at full strength". Both
+clauses were wrong in the same sentence: it is distinguishable, and the case it
+differs on is the common one.
+
+### How it was caught, which matters more than what it was
+
+**The owner filmed it.** Thirty seconds sitting at exactly four imps, one imp
+picked up and dropped into the dungeon heart, and the replacement walking around
+about **1.4 seconds** later rather than five — then five-second gaps for the
+rest. A second assistant analysed the recording and produced a numbered list of
+questions for the decompiler, of which this was named the most important. It was.
+
+**The binary then said why**, in eight instructions in the keeper's per-frame
+update, and gave three more facts for free:
+
+- the deadline is advanced **whether or not the imp is actually placed** — the
+  write follows the call with no test of its result, so a keeper with nowhere to
+  put one burns the interval rather than retrying every frame;
+- a free imp is **genuinely free**: the free flag makes the original skip the
+  spell-availability check, the mana check and the deduction;
+- **`TimeBeforeFreeImpGeneratedSeconds` is multiplied by variable 19**, the
+  223-reader global that no shipped file supplies. Seconds in, engine time out.
+  The clearest single use of it found so far, and further weight behind Q132's
+  reading that id 19 is the seconds-to-ticks constant. It still does not give the
+  value.
+
+### What else the same read settled
+
+**Q54 is now confirmed twice.** Create Imp's price is
+`max(1, imps − MinimumImpThreshold + 1) × base`, computed in the original with
+the clamp included — which the owner's play could not have shown, because it only
+bites below the floor. The creature type counted is read off the power's own
+record rather than hardcoded.
+
+### Consequences, including the awkward ones
+
+- `HashVersion` 18 → 19 and snapshot `FormatVersion` 18 → 19.
+- **Three tests changed meaning rather than being repaired.** There is no longer
+  any such thing as "the window before a keeper's first free imp": a keeper with
+  a dungeon heart and no imps is staffed on tick zero. `ManaTests` now runs
+  without `ImpSupplySystem` so that heart-income assertions measure one mechanic
+  rather than two, and two `ManaUpkeepTests` were re-based on the land a keeper
+  *starts* with.
+- Two questions opened and neither is a decompilation job: whether an imp in the
+  Hand of Evil counts towards the threshold (**Q148**), and whether the ~1.4
+  seconds is simulation or the creation animation (**Q149**).
+
+### The rule this is the fourth instance of
+
+A claim nothing checks may already be false. Q56 was recorded as UNKNOWN with
+"nothing depends on it" in the consequences column — and the thing depending on it
+was shipped behaviour that had been wrong since the day it was written. **What
+made it findable was the owner watching the game**, which is the only oracle this
+project has for a question the data cannot answer.

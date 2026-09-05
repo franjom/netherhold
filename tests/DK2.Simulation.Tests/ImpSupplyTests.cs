@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -129,6 +129,97 @@ public class ImpSupplyTests
 
         run.Ticks(interval + 1);
         Assert.Equal(4, run.Imps);
+    }
+
+    [Fact]
+    public void AReplacementAfterALongSpellAtFullStrengthArrivesAtOnce()
+    {
+        // THE TEST THIS FILE WAS WRONG ABOUT FOR THREE WEEKS.
+        //
+        // The owner filmed it (2026-09-05): thirty seconds sitting at exactly
+        // four imps, then one imp picked up and dropped into the dungeon heart,
+        // and the replacement was walking around about 1.4 seconds later - not
+        // five. The old implementation held the countdown at zero while the
+        // keeper was up to strength and then started a fresh full interval, so
+        // it could not produce that, and the doc-comment defending it claimed
+        // the difference was unobservable. It is the observable.
+        //
+        // The original keeps a DEADLINE and writes it only when an imp is made,
+        // so a keeper who has not been owed one for half a minute has a deadline
+        // half a minute in the past, and the very next evaluation pays out.
+        Run run = WithAHeart();
+        int interval = ImpSupplyRules.FreeImpIntervalTicks(run.Db);
+        run.Ticks(interval * 4);
+        Assert.Equal(4, run.Imps);
+
+        run.Ticks(interval * 20);
+        int before = run.Of("imp_generated").Count();
+
+        run.World.RemoveCreature(run.World.Creatures[0].Id);
+        run.Tick();
+
+        Assert.Equal(4, run.Imps);
+        Assert.Equal(before + 1, run.Of("imp_generated").Count());
+    }
+
+    [Fact]
+    public void OnlyTheFirstReplacementIsFree_TheRestAreAnIntervalApart()
+    {
+        // The other half of the recording: "when several Imps were missing,
+        // subsequent replacements appeared at approximately 5-second intervals".
+        // So the deadline being stale buys exactly one immediate imp, and from
+        // there the interval governs.
+        Run run = WithAHeart();
+        int interval = ImpSupplyRules.FreeImpIntervalTicks(run.Db);
+        run.Ticks(interval * 4);
+        run.Ticks(interval * 20);
+
+        for (int i = 0; i < 3; i++) run.World.RemoveCreature(run.World.Creatures[0].Id);
+        Assert.Equal(1, run.Imps);
+
+        long from = run.Sim.CurrentTick.Value;
+        run.Ticks(interval * 3);
+
+        List<long> at = run.Of("imp_generated")
+            .Where(e => e.Tick.Value >= from)
+            .Select(e => e.Tick.Value - from)
+            .ToList();
+
+        Assert.Equal(3, at.Count);
+        Assert.Equal(0, at[0]);
+        Assert.Equal(interval, at[1]);
+        Assert.Equal(interval * 2, at[2]);
+    }
+
+    [Fact]
+    public void AKeeperWithNowhereToPutAnImpStillBurnsTheInterval()
+    {
+        // A consequence of the original advancing the deadline WITHOUT looking
+        // at whether the cast succeeded. A keeper with no heart is evaluated,
+        // fails to place anything, and still pays the interval - so when a heart
+        // finally exists the first imp is not automatically instant.
+        //
+        // STRONGLY INFERRED from the instruction order: the deadline is written
+        // unconditionally, on the line after the call, with no test of its
+        // result. Nothing observable turns on it in a shipped level, because a
+        // keeper without a heart has already lost (Q40).
+        Run run = WithAHeart(heart: false);
+        int interval = ImpSupplyRules.FreeImpIntervalTicks(run.Db);
+
+        run.Ticks(interval * 4 + 1);
+        Assert.Empty(run.Of("imp_generated"));
+
+        // Now give them somewhere to put one, one tick after a deadline was set.
+        ref TileState tile = ref run.World.Tile(2, 2);
+        tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+        tile.Health = run.Db.TerrainById(tile.TerrainId).StartingHealth;
+        tile.OwnerPlayerId = Keeper;
+
+        run.Tick();
+        Assert.Equal(0, run.Imps);
+
+        run.Ticks(interval);
+        Assert.Equal(1, run.Imps);
     }
 
     [Fact]
@@ -276,7 +367,7 @@ public class ImpSupplyTests
     // ---- the gate ---------------------------------------------------------
 
     [Fact]
-    public void AnImpCountdownSurvivesASnapshot()
+    public void AnImpDeadlineSurvivesASnapshot()
     {
         Run run = WithAHeart();
         run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) / 2);

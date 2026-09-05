@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -47,16 +47,19 @@ public class ManaUpkeepTests
                        && e.Detail.Contains($"player={Keeper} "));
     }
 
-    private static Run World(int mana = 0)
+    private static Run World(int mana = 0, bool heart = true)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
-        ref TileState tile = ref world.Tile(2, 2);
-        tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
-        tile.Health = database.TerrainById(tile.TerrainId).StartingHealth;
-        tile.OwnerPlayerId = Keeper;
+        if (heart)
+        {
+            ref TileState tile = ref world.Tile(2, 2);
+            tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+            tile.Health = database.TerrainById(tile.TerrainId).StartingHealth;
+            tile.OwnerPlayerId = Keeper;
+        }
 
         world.Player(Keeper).Mana = mana;
 
@@ -117,10 +120,14 @@ public class ManaUpkeepTests
     [Fact]
     public void AKeeperWithNoImpsPaysNothing()
     {
-        Run run = World();
+        // No heart, because there is no longer any such thing as "before the
+        // first free imp arrives". This test used to run one second and rely on
+        // the five-second gap; the free supply keeps a deadline rather than a
+        // countdown, so a keeper with a heart and no imps is staffed on the very
+        // first tick (2026-09-05, ImpSupplySystem). Nowhere to put an imp is now
+        // the only way to have a keeper with land and no workforce.
+        Run run = World(heart: false);
 
-        // Stop before the first free imp arrives, so the keeper owns land and
-        // a heart but has no workforce yet.
         run.Ticks(SimulationTiming.TicksPerSecond);
 
         Assert.Equal(0, run.Imps);
@@ -198,9 +205,19 @@ public class ManaUpkeepTests
     public void ManaNeverGoesNegative_HoweverManyImpsAKeeperHas()
     {
         Run run = World(mana: 100_000);
+
+        // The workforce is sized against the land this keeper STARTS with, not
+        // against what their free imps have already claimed by the time they are
+        // all here. That ordering used to be immaterial and stopped being so on
+        // 2026-09-05: the free supply now hands out its first imp on tick zero
+        // instead of five seconds in, so by the end of SettleWithFourImps the
+        // dungeon is measurably bigger, and sizing against it bought enough imps
+        // to outrun every unclaimed tile on the fixture map. The claim under
+        // test is that a working imp pays for itself, which needs somewhere left
+        // to work.
+        int gain = LandIncome(run);
         SettleWithFourImps(run);
 
-        int gain = LandIncome(run);
         while (run.Imps * ManaRules.ImpUpkeepPerSecond(run.Db) <= gain)
             run.Tick(new CreateImpCommand(Keeper));
 

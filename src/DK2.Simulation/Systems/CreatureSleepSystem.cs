@@ -23,12 +23,34 @@ namespace DK2.Simulation.Systems;
 /// <para>The rule it implements is CONFIRMED by the owner and lives in
 /// <see cref="LairRules"/>. What is here is the sequencing.</para>
 ///
-/// <para><b>A bed is claimed as early as possible, not when sleep is needed</b>
-/// — the owner's words were <i>"when a creature enters a dungeon through a
-/// portal it goes to a lair, finds a free tile and occupies it with its
-/// bed"</i>, so occupation happens on arrival. A creature that arrives before
-/// its keeper has a lair keeps trying every tick and takes a bed the moment one
-/// exists.</para>
+/// <para><b>⚠ HOW A BED IS CLAIMED IS CONTRADICTED BY THE ORIGINAL, on two
+/// counts, and is left standing on purpose.</b> This system claims a bed on the
+/// first tick one is free, from wherever the creature is standing, with no walk
+/// and no reason. The owner recorded DK2 doing neither of those things
+/// (2026-09-05):</para>
+///
+/// <list type="number">
+/// <item><b>The trigger is not availability.</b> A free lair tile sat there
+/// while a bedless Goblin and a bedless Bile Demon went off to the Training
+/// Room. The search began only when the creature's mood turned <i>Unhappy</i>
+/// with "no lair" as the reason — so a happy bedless creature does an ordinary
+/// job instead. <b>Q150.</b></item>
+/// <item><b>Claiming is a journey with a test at the end.</b> Creatures were
+/// watched crossing a lair, walking up to an occupied tile, rejecting it and
+/// carrying on to a free one; in a controlled 1×5 lair the tiles went 1, 3, 5,
+/// 4. Occupancy is decided <i>on arrival</i>, not when choosing.</item>
+/// </list>
+///
+/// <para><b>Why it is not fixed here.</b> Half the replacement is read out of
+/// the binary and half is not: the tile search (own tile, then a fixed table of
+/// neighbours, then a chained walk of the room) is known, and so is that the
+/// room is chosen by distance to its centre — but the trigger (Q150) and the
+/// test that makes one lair room preferred over another (Q151) are not. Building
+/// it on a guess would be the failure this project keeps repeating: the right
+/// outcome from the wrong rule. See <c>docs/research/lair-acquisition.md</c>,
+/// which is the design, and note that what is here today is still built on words
+/// the owner gave and this project only half implemented — <i>"it <b>goes</b> to
+/// a lair, finds a free tile and occupies it with its bed"</i>.</para>
 ///
 /// <para><b>A bed that stops existing is replaced, not mourned</b> — CONFIRMED
 /// by the owner (2026-09-04): <i>"if a lair tile with bed on it is sold, then

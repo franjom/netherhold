@@ -25,11 +25,15 @@ namespace DK2.Simulation.Systems;
 /// variables carry exactly those numbers and say exactly that in their names.
 /// It is rare for an observation and a variable name to meet this cleanly.</para>
 ///
-/// <para><b>What is ours:</b> that the countdown runs only while a keeper is
-/// short. The alternative — a clock that ticks always and hands out an imp the
-/// moment one is owed — is indistinguishable in the steady state and differs
-/// only in how fast the first replacement arrives after a long spell at full
-/// strength. Not observed (Q56).</para>
+/// <para><b>Nothing here is ours any more, and Q56 is why that sentence exists.</b>
+/// This class used to hold a countdown that was pinned to zero while a keeper
+/// was up to strength, on the reasoning that the alternative "differs only in
+/// how fast the first replacement arrives after a long spell at full strength".
+/// That difference is precisely what the owner filmed on 2026-09-05, and the
+/// original does the other thing: it keeps a <b>deadline</b> that only ever
+/// moves when an imp is made, so the first replacement after a long spell at
+/// four arrives with no wait at all. See <see cref="TopUp"/>, and
+/// docs/research/imps-and-mana.md for the read.</para>
 ///
 /// <para><b>Not implemented, and it is the interesting one:</b> imps cost mana
 /// to keep — about 7 a second each, which is what the red figure under a
@@ -56,12 +60,32 @@ public sealed class ImpSupplySystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Hands a short-handed keeper a free imp when their countdown runs out.
+    /// Hands a short-handed keeper a free imp when one is due.
     ///
-    /// The countdown is per player and lives on <see cref="PlayerState"/>, so it
-    /// survives a snapshot like everything else. A keeper at or above the floor
-    /// holds their countdown at zero rather than banking it, which is what makes
-    /// "only while short" a decision rather than an accident.
+    /// <para><b>The due time is a deadline, and it moves only when an imp is
+    /// made.</b> DK2 keeps one field on the keeper — read here as
+    /// <see cref="PlayerState.NextFreeImpTick"/> — and the original's keeper
+    /// update writes it in exactly one place, right after the spawn, as
+    /// <c>now + TimeBeforeFreeImpGeneratedSeconds</c>. A keeper at full strength
+    /// is never touched, so their deadline slides into the past and the next
+    /// loss is replaced <b>on the spot</b>.</para>
+    ///
+    /// <para><b>This is a correction, and it was caught by watching.</b> Q56 was
+    /// answered "ours" for three weeks: a countdown pinned to zero while the
+    /// keeper was up to strength, restarted from full when they fell short. The
+    /// owner recorded thirty seconds at exactly four imps, sacrificed one, and
+    /// the replacement appeared in about 1.4 seconds rather than 5 — and only
+    /// the further replacements came five seconds apart. The binary then said
+    /// why. Both halves of the old comment were wrong: the alternative was not
+    /// "indistinguishable in the steady state", it was the observable, and the
+    /// thing it differed on was the case the owner filmed.</para>
+    ///
+    /// <para>Two details are deliberate and both are read out of the original.
+    /// The deadline is advanced <b>whether or not the spawn succeeds</b> — the
+    /// original does not test the cast's return value — so a keeper with no
+    /// heart burns its interval rather than retrying every tick. And a free imp
+    /// is genuinely free: the free flag makes the original skip both the
+    /// spell-availability check and the mana check, and skip the deduction.</para>
     /// </summary>
     private static void TopUp(SimulationContext context)
     {
@@ -69,6 +93,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
         GameDatabase database = context.Database;
         int minimum = ImpSupplyRules.MinimumImps(database);
         int interval = ImpSupplyRules.FreeImpIntervalTicks(database);
+        GameTick now = context.Tick;
 
         for (int i = 0; i < world.PlayerCount; i++)
         {
@@ -86,32 +111,24 @@ public sealed class ImpSupplySystem : ISimulationSystem
             // has been bitten by before: the rule holds because of a fact about
             // the levels rather than because anything checks it, and a level
             // that gave the hero side a heart would have quietly staffed it.
-            if (!PlayerIds.IsKeeper(playerId))
-            {
-                player.FreeImpCountdownTicks = 0;
-                continue;
-            }
+            //
+            // The deadline is NOT cleared here, and that is the correction: the
+            // original leaves it alone for everybody it declines to serve, which
+            // is exactly why a keeper who has been at full strength replaces
+            // their next loss immediately.
+            if (!PlayerIds.IsKeeper(playerId)) continue;
 
-            if (ImpSupplyRules.ImpCount(world, database, playerId) >= minimum)
-            {
-                player.FreeImpCountdownTicks = 0;
-                continue;
-            }
+            if (ImpSupplyRules.ImpCount(world, database, playerId) >= minimum) continue;
 
-            // Start the clock and spend a tick of it in the same pass, and put
-            // it straight back on spawning. Anything else leaves a spare tick
-            // between imps, which would make the gap interval+1 rather than the
-            // interval the variable names.
-            if (player.FreeImpCountdownTicks <= 0) player.FreeImpCountdownTicks = interval;
+            if (now < player.NextFreeImpTick) continue;
 
-            player.FreeImpCountdownTicks--;
-            if (player.FreeImpCountdownTicks > 0) continue;
+            player.NextFreeImpTick = new GameTick(now.Value + interval);
 
-            player.FreeImpCountdownTicks = interval;
-
-            // No heart, nowhere to put it — so nothing happens and the clock
-            // simply runs again. A keeper without a heart has lost (Q40); what
-            // this avoids is searching the map for one on every tick.
+            // No heart, nowhere to put it — so nothing happens and the interval
+            // is burned anyway, because the original advances the deadline
+            // without looking at whether the cast worked. A keeper without a
+            // heart has lost (Q40); what this avoids is searching the map for
+            // one on every tick.
             if (Spawn(context, playerId) is not { } imp) continue;
 
             context.Emit(SystemName, "imp_generated",

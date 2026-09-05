@@ -1,4 +1,4 @@
-# Imps, and what mana is actually for
+﻿# Imps, and what mana is actually for
 
 Milestone M3. Where imps come from, what they cost to buy, and what they cost to
 keep — the last of which turns mana from a number that only goes up into an
@@ -15,16 +15,17 @@ Implemented by `DK2.Simulation.ImpSupplyRules`,
 | Claim | Status |
 |---|---|
 | A keeper always has at least 4 imps | **CONFIRMED** — owner observation, and `MinimumImpThreshold` is 4 |
-| A missing imp comes back every 5 seconds | **CONFIRMED** — owner measured it; `TimeBeforeFreeImpGeneratedSeconds` is 5 |
+| A missing imp comes back every 5 seconds | **CONFIRMED** — owner measured it; `TimeBeforeFreeImpGeneratedSeconds` is 5. But the **first** one comes back at once — see below |
 | A keeper starts a level with 4 | **CONFIRMED** — owner; falls out of the floor above without a separate rule |
 | Create Imp costs 1500 mana | **CONFIRMED** — owner, and it is the cost on DK2's own Create Imp record |
-| The cost rises by 1500 each time, and falls back when imps die | **CONFIRMED** (Q54) — the free four are free, and the price is a function of the imps a keeper has, not of what they have bought |
+| The cost rises by 1500 each time, and falls back when imps die | **CONFIRMED TWICE** (Q54) — the owner from play, and then the binary: the original computes `base × max(1, imps − MinimumImpThreshold + 1)`, which is our formula operation for operation |
 | Imps are created at the dungeon heart | **STRONGLY INFERRED** — and a keeper without one has already lost (Q40) |
 | **Imps cost 7 mana a second each to keep** | **CONFIRMED and IMPLEMENTED** (Q53) — owner measured 28 at four imps and 35 at five, and 7 is the upkeep on DK2's own Create Imp record |
 | Traps draw mana continuously | **CONFIRMED, field found, not implemented** (Q59) - five traps measured, and `Traps.kwd` offset 0x0202 reproduces all five. A trap is an object and arrives at M6 |
 | A claimed mana vault is worth +100 a second | **CONFIRMED** (Q37b) — owner, and `TerrainDef.ManaGain` for Claimed Vault is 100. Already implemented; nothing changed |
 | Possession drains 25 a second | **DISPUTED** (Q58) — the data says 25, `ManaCostInFirstPersonPerSecond` says 5, and the owner saw no drain at all |
-| Whether the free-imp clock runs while a keeper is at full strength | **UNKNOWN** (Q56) — ours runs only while short |
+| **The free-imp clock is a deadline, not a countdown** | **CONFIRMED** (Q56) — owner recording, then the binary. A keeper at full strength is never owed one, their deadline goes stale, and the next loss is replaced **on the spot**. Ours said the opposite for three weeks |
+| A free imp costs no mana and ignores availability | **CONFIRMED** — the free flag makes the original skip the availability check, the affordability check and the deduction |
 
 ---
 
@@ -68,6 +69,96 @@ The first is the interesting one, and it is a clue about the drain below: a game
 that has a period on which to re-evaluate imps *when mana is insufficient* is a
 game in which imps cost mana. The third matches the community's description of
 the Receive Imps special exactly — it grants ten.
+
+## The clock is a deadline, and the difference is visible
+
+**This section is a correction.** For three weeks this project ran a countdown
+that was held at zero while a keeper was up to strength and restarted from full
+when they fell short, and the code defending it said the alternative was
+"indistinguishable in the steady state". It is not indistinguishable. It is the
+first thing you see.
+
+### What the owner filmed
+
+Recorded 2026-09-05, analysed by a second assistant and passed here:
+
+- the keeper sat at **exactly four imps for about thirty seconds**;
+- one imp was picked up and dropped into the dungeon heart — about half a second;
+- the replacement appeared **about 1.3–1.5 seconds later**, not five;
+- with several imps missing, the ones after it came at **about five-second
+  intervals**;
+- imps held in the Hand of Evil are **not counted** in the imp portrait's figure.
+
+### What the binary says
+
+The keeper's per-frame update in `Player.cpp` holds one field for this and
+writes it in exactly one place. In our own words:
+
+    if (number of creatures of type Imp < MinimumImpThreshold
+        and this keeper's nextFreeImpAt < now)
+    {
+        cast the Create Imp power at the heart, free;
+        nextFreeImpAt = now + TimeBeforeFreeImpGeneratedSeconds × <variable 19>;
+    }
+
+**Nothing else touches `nextFreeImpAt`.** Not the count going back up, not the
+keeper being served, not the level loading. So a keeper who has been at four
+imps for thirty seconds carries a deadline thirty seconds in the past, and the
+first frame they drop below the threshold the test is *already* true: the
+replacement is immediate. Only the second and later ones wait the interval,
+because only they are measured from a deadline that was set recently.
+
+That is the recording, line for line, with no extra rule.
+
+### Three things fall out of the same eight instructions
+
+**The deadline is advanced whether or not the imp is actually made.** The write
+follows the call with no test of its result. A keeper with nowhere to put an imp
+therefore burns the interval rather than retrying every frame. Nothing
+observable turns on it in a shipped level, because a keeper without a dungeon
+heart has already lost (Q40), but it is what ours does now.
+
+**A free imp is genuinely free.** The power is cast with a flag that makes the
+original skip the spell-availability check, skip the mana check and skip the
+deduction. The free four cannot be starved out by a poor keeper.
+
+**`TimeBeforeFreeImpGeneratedSeconds` is multiplied by variable 19** — the
+223-reader global that no shipped file supplies, and the biggest open question
+in the data (Q132). Seconds go in and engine time comes out. This is the
+clearest single use of it found so far, in eight instructions with nothing else
+going on, and it says plainly what the multiplier is *for*. It does not say what
+the value is.
+
+### And the price of a bought imp is now read rather than reported
+
+The same translation unit holds Create Imp's cost, and it is our formula:
+
+    count = number of creatures of the type this power creates
+    steps = count + 1 − MinimumImpThreshold
+    if steps < 1 then steps = 1
+    cost = steps × the power's base cost
+
+The creature type is read off the power's own record rather than hardcoded,
+which is the field this project calls `CreatedCreatureId`. **Q54 was CONFIRMED
+from the owner's play; it is now confirmed from the executable as well**, and
+the two agree including the clamp, which is the part play could not have shown:
+a keeper *below* the floor still pays the base price and never less.
+
+### What is still open about it
+
+**Whether an imp held in the Hand of Evil counts.** The count the supply reads
+is a per-creature-type tally kept on the keeper, and that tally moves only when
+a thing's **owner** changes — nothing in the pick-up path obviously changes an
+owner. So the reading that fits the code is that a **held imp still counts**, and
+the portrait's figure, which visibly excludes it, is a different count. That is
+STRONGLY INFERRED and it is cheap to settle by watching: hold one of exactly four
+imps in the hand for ten seconds and see whether a fifth appears. **Q148.**
+
+**Whether the 1.3–1.5 seconds is simulation or animation.** The original casts a
+keeper power, and a keeper power plays a creation effect. The deadline is set at
+the moment of the *decision*, not the moment the imp exists, so the delay does
+not accumulate across replacements either way — but whether the simulation should
+hold a pending imp for a second is unread. Ours creates it immediately. **Q149.**
 
 ## Buying the rest
 

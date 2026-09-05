@@ -310,7 +310,25 @@ Also note what this changed about the guard here: **own-land regeneration is now
 suppressed at zero health, and lair healing is not**, because the owner's answer
 gives exactly one route off the floor and a bed is it.
 
-### Q100 — does regeneration care what the creature is doing?
+### Q100 — does regeneration care what the creature is doing? **No** (2026-09-05)
+
+**Answered by watching, and it confirms what was here by omission.** The owner
+recorded a wounded imp regenerating **while digging** and **while running through
+the dungeon**. So regeneration is not restricted to resting, idling, sleeping or
+standing still, which is exactly what this project already does.
+
+Worth being precise about what that did and did not settle. The question asked
+whether DK2 excludes a creature that is *fighting, working or being carried*;
+**working** is now answered and the other two are not. Own-land regeneration is
+67 a second on an imp — meaningful inside a fight, irrelevant outside one — so
+the combat case is the one that changes a game, and it is a ten-second
+observation rather than a decompilation job. **Q152**, along with the Hand of
+Evil and possession.
+
+The original text of the question follows, because the reasoning in it is still
+the reasoning for the part that is open.
+
+### Q100, as it was asked
 
 Implemented: own-land regeneration and lair healing **add**, and both apply
 regardless of activity.

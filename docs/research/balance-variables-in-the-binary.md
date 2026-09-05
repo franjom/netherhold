@@ -1,4 +1,4 @@
-# Where the balance variables go: the id to global map
+﻿# Where the balance variables go: the id to global map
 
 **Source:** `DKII.EXE`, read on 2026-09-04. Facts only, in our own words —
 ADR-0046 governs what may cross out of `reverse-engineering/`.
@@ -82,6 +82,17 @@ writes carries only `BuildTypeCode`, `language` and the version.
 So either those paths never execute, or something outside every file we have
 supplies the value. **Q132**, and it must not be guessed.
 
+### One use of it, read end to end (2026-09-05)
+
+The keeper's per-frame update sets the deadline for the next free imp as
+`now + TimeBeforeFreeImpGeneratedSeconds × <id 19>`. Eight instructions, nothing
+else going on in them, a balance variable that is **named in seconds** going in
+and a value comparable against the engine's own clock coming out.
+
+That does not give the value, and it must not be guessed. It does say plainly
+what the multiplier is **for**, which is the half of Q132 that was reasoning from
+shape. See `imps-and-mana.md`.
+
 **Why it is worth this much attention:** multiply-and-divide is what a **unit
 conversion** looks like — a designer-facing quantity turned into an
 engine-facing one and back. Every duration in the balance table is in seconds,
@@ -92,6 +103,22 @@ about since this project's first day.
 It also reframes Q1's other datum. `GameTicks` (id 74) is **340 in every level
 file** and its global is read by **two** instructions. Two against 223. Whatever
 340 is for, it is not the thing the engine multiplies by.
+
+## A variable with a global, a shipped value, and no readers at all
+
+**`TimeBetweenReattemptingSleepSeconds` (id 22, value 4) is read by zero
+instructions.** Its dispatch stub stores it into `0x006F259C` and nothing in the
+executable ever loads that address back.
+
+Worth stating on its own because the name invites exactly the wrong conclusion.
+Anyone building lair or sleep behaviour would reach for it as the retry interval,
+and it governs **nothing**. This is the third balance variable to fail that way,
+after `MaxFreeRangeChickensPerPlayer` and `MaxGoldPileOutsideTreasury`, and it is
+the cheapest of the three to check: the reader count is in the table.
+
+**The general lesson the map now supports:** before building on a variable's
+name, look at how many instructions read it. Zero means the name is a claim
+nobody is checking.
 
 ## The other mapped ids with no shipped value
 
