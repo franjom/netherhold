@@ -44,8 +44,9 @@ What is *built* rather than known, against the long-term goals:
   at every tile — so a wall beats gold on the same tile and a nearer pile beats a
   farther wall. Thirteen task kinds identified, the job-icon table names them,
   and the per-tile predicates for claim/reinforce/fix are read. Built: dig,
-  claim, reinforce, gold in that shape. Not built: claim-the-just-dug-tile
-  (Q154), task stealing by distance (Q155). See docs/research/imp-task-priority.md.
+  claim, reinforce, gold in that shape, **and claim-the-just-dug-tile** (Q154,
+  `TileState.FreshlyDug`). Not built: task stealing by distance (Q155). See
+  docs/research/imp-task-priority.md.
 - **How DK2 draws its walls** — as far as anyone outside EA knows. Solid mass
   with intersections cut into it, wall pieces chosen by the size and shape of the
   room behind them, damage as a texture swap, and runtime vertex deformation

@@ -4091,9 +4091,14 @@ table.
 
 - **Kind 14 — claim the tile you have just dug, before anything else**, once no
   neighbour of it still carries a dig task. It is *first* in the original's
-  table. Ours digs every mark before claiming any; **Q154**, designed in the
-  research note, not built, because it needs per-tile state and a decision on
-  its own.
+  table. **Built later the same day** (Q154, the commit after this one):
+  `TileState.FreshlyDug` stands in for the original's task — set when excavation
+  destroys a tile, cleared by the next change of terrain — and
+  `JobPriority.ClaimFreshlyDug` is Tier A's first step, with the eight-neighbour
+  test on every tagged kind but mining. HashVersion and snapshot FormatVersion
+  19 → 20. The rank and the neighbour rule are read; that the task is raised at
+  the moment the dig completes is STRONGLY INFERRED from where the raise sits.
+  Building it exposed a latent mover defect, which is ADR-0059.
 - **Task stealing by distance** — a nearer imp takes a task from a farther one
   in every handler. **Q155**, not built.
 - Kinds 8, 9/10, 12, 13 (objects, traps and doors, corpses, carrying creatures)
@@ -4106,3 +4111,53 @@ table.
 A fixed-order chain is not a priority list until you know who calls it and how
 often — and the same day's hedge audit clause applies: the first read's
 hypothesis named its own experiment, and the experiment took two minutes.
+
+## ADR-0059 — A diagonal leg is walked surplus-first, and the corner is the only point it touches
+
+**Date:** 2026-09-05 · **Status:** Accepted · **Amends** ADR-0025 (the mover's
+half of it).
+
+### The defect
+
+`WallsBlockMovementTests.NoCreatureIsEverStandingOnASolidTile` went red the
+moment imps started claiming the tiles they had just dug (Q154): on tick 440 of
+a four-imp dig-everything run, imp 4 stood inside the impenetrable gem tile at
+(6,5) for five ticks.
+
+Its route was legal — (6,4) to (5,5), a corner-cut ADR-0025 explicitly allows.
+What put it in the rock was the **mover**, not the router. A creature stops
+wherever it *crossed into* its tile, not at the centre, so this imp began the leg
+at x ≈ 6.96. The mover walked a diagonal leg **45° first, then straight**, and
+from that start the 45° phase swept through (6,5) for nearly half a tile-width.
+The invariant had held for a week by luck of routes.
+
+### The decision
+
+A leg is walked in two phases in the **other order**: the *surplus* of the longer
+axis first, straight; then both axes together at 14/10. From any point inside
+the starting tile that path runs **exactly through the corner the two tiles
+share** and touches no other tile — which is what "a creature passes diagonally
+between two solid tiles" (Q28, owner-confirmed) looks like once the creature has
+a width and slides along the wall. `LegLength` became octile for the same
+reason: a leg from an off-centre start is not square, and charging
+`max × 14/10` for it made creatures arrive late for no visible reason.
+
+One guard remains, `KeepOffTheCorner`: if a tick's budget runs out with the
+position *exactly* on the shared corner, integer division hands that point to the
+tile with the larger coordinates, which between two solid tiles is a solid one.
+One position unit — 1/4096 of a tile — toward the next waypoint is inside the
+destination. It is the only place the mover ever adjusts a position for a reason
+other than speed, and it says so.
+
+### Consequences
+
+- Both wall invariants hold again on the four-imp run, with corner-cutting still
+  allowed.
+- **The determinism pin did not move for this change** — the fixture has no
+  off-centre diagonal leg — and no other test moved either. Where a creature
+  *does* start a diagonal leg off-centre, its position over the next few ticks
+  differs from before by up to half a tile-width in one axis; arrival times are
+  unchanged to within the octile rounding.
+- Routing remains ours (Q5). What this fixes is a property of *our* mover that
+  no observation of the original bears on, other than the one ADR-0025 already
+  cites.

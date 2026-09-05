@@ -154,14 +154,24 @@ public class DeterminismTests
         // whole 500-tick run has one more imp in it for longer. Snapshot
         // FormatVersion went 18 -> 19 in the same commit.
         //
-        // Previous values: 0x55BEDDA879B4A281 (18),
+        // Bumped with HashVersion 19 -> 20 (Q154): every tile gained a
+        // FreshlyDug bit, set when excavation destroys it and cleared by the
+        // next change of terrain, so that an imp claims the tile it has just
+        // dug before it looks for the next mark -- first of everything in the
+        // original's own order. The fixture digs, so the bit is set on real
+        // tiles here and the composition moved with it. Snapshot FormatVersion
+        // went 19 -> 20 in the same commit. The mover's two-phase diagonal walk
+        // (ADR-0059) landed in the same commit and did NOT move this value: the
+        // fixture has no off-centre diagonal leg in it.
+        //
+        // Previous values: 0x12E5615E803C5796 (19), 0x55BEDDA879B4A281 (18),
         // 0x6B5ECAD0E9EDB2F0 (17), 0x092072D0E7C9B04E (16),
         // 0x38CCE7E988729817 (15),
         // 0x5DB64D0C91D99368 (14),
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x12E5615E803C5796UL, sim.StateHash());
+        Assert.Equal(0x5E96E634C7E5037DUL, sim.StateHash());
     }
 
     [Fact]

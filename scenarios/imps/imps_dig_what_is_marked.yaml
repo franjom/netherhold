@@ -8,11 +8,14 @@
 # chose, then `destroyed` events as the rock goes. The gap between an imp taking
 # a job and the tile going is travel plus one work period.
 #
-# What this run does NOT establish, and the report repeats it: how many imps a
-# keeper would have (nothing generates them), what an imp does when nothing is
-# marked (claiming, reinforcing and carrying gold are not implemented), how it
-# would route around a real dungeon (the pathfinder is ours, Q5), and how long
-# any of it takes in seconds (Q19/Q1).
+# What this run does NOT establish: how the imps would route around a real
+# dungeon (the pathfinder is ours, Q5), and how long any of it takes in seconds
+# (Q19/Q1). And one thing it deliberately does not show: the chamber's floor is
+# UNOWNED, so nothing here touches the keeper's land and the imps, once the
+# corridor is dug, have nothing to claim, reinforce or fetch and stand still.
+# The dig-then-claim rhythm the original has (Q154, ADR-0058) needs owned floor
+# behind the digging front; tiles/dig_and_claim and the imps' gold scenario show
+# it.
 id: imps-dig-what-is-marked-001
 question: >
   Given only a dig marker, does a worker find the nearest reachable marked

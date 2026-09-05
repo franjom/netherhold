@@ -71,6 +71,13 @@ public sealed class TileWorkSystem : ISimulationSystem
             if (convertingRoom is not null && result.Outcome == TileWorkOutcome.Transformed)
                 SpreadTakeover(context, order, convertingRoom);
 
+            // A tile that has just changed terrain is freshly dug exactly when
+            // the work that changed it was excavation (Q154). A claim, a
+            // conversion, an attacker breaking it, a fill-in: all of those
+            // change the terrain too, and all of them end its being fresh.
+            if (result.Outcome is TileWorkOutcome.Destroyed or TileWorkOutcome.Transformed)
+                tile.FreshlyDug = result.Outcome == TileWorkOutcome.Destroyed && IsExcavation(order.Kind);
+
             int carried = HandTo(context, order, result.GoldReleased);
             Report(context, order, result, before, world, carried);
         }
@@ -144,6 +151,20 @@ public sealed class TileWorkSystem : ISimulationSystem
         int taken = Math.Max(0, Math.Min(capacity - worker.GoldHeld, goldReleased));
         worker.GoldHeld += taken;
         return taken;
+    }
+
+    /// <summary>
+    /// Whether this kind of work can only have come from a dig marker — the
+    /// same test <see cref="ImpTaskSystem"/> makes, read off
+    /// <see cref="TileWorkRules.TaggedWork"/> so a kind added to the marker
+    /// mapping cannot fall out of it.
+    /// </summary>
+    private static bool IsExcavation(TileWorkKind kind)
+    {
+        IReadOnlyList<TileWorkKind> tagged = TileWorkRules.TaggedWork;
+        for (int i = 0; i < tagged.Count; i++)
+            if (tagged[i] == kind) return true;
+        return false;
     }
 
     private static void Report(

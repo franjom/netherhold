@@ -27,13 +27,15 @@ namespace DK2.Simulation.Systems;
 /// <list type="number">
 /// <item><b>Tier A — kind first, whole map.</b> DK2 walks a fixed table of task
 /// kinds and searches the <i>entire</i> map for each before moving to the next:
-/// claim the tile you have just dug, carry loose objects, build placed traps and
-/// doors, <b>dig and mine marked tiles</b>, <b>claim floor</b>, carry the
-/// unconscious, carry corpses. Of those this project has the two in bold, in
-/// that order — <see cref="JobPriority.MarkedExcavation"/> then
-/// <see cref="JobPriority.Claim"/> — and each is one whole-map search, because
-/// the order is an ordering and not a weighting: <i>any</i> reachable marked
-/// tile beats <i>every</i> claimable one however far away.</item>
+/// <b>claim the tile you have just dug</b>, carry loose objects, build placed
+/// traps and doors, <b>dig and mine marked tiles</b>, <b>claim floor</b>, carry
+/// the unconscious, carry corpses. Of those this project has the three in bold,
+/// in that order — <see cref="JobPriority.ClaimFreshlyDug"/>,
+/// <see cref="JobPriority.MarkedExcavation"/>, <see cref="JobPriority.Claim"/> —
+/// and each is one whole-map search, because the order is an ordering and not
+/// a weighting: <i>any</i> reachable marked tile beats <i>every</i> claimable
+/// one however far away, and a tile the imp has just dug out beats both once
+/// nothing beside it is still marked.</item>
 /// <item><b>Tier B — position first, only when Tier A is empty.</b> DK2 then
 /// scans outwards from the imp in rings and, at each tile, tries a second fixed
 /// order: <b>reinforce or repair a wall</b>, <b>pick up gold off the floor</b>,
@@ -123,16 +125,27 @@ public sealed class ImpTaskSystem : ISimulationSystem
     private const string SystemName = "ImpTask";
 
     /// <summary>
-    /// The tile-work jobs an imp looks for. The first two are Tier A and are
+    /// The tile-work jobs an imp looks for. The first three are Tier A and are
     /// searched over the whole map in this order; <see cref="Reinforce"/> is
     /// Tier B and is only ever found by the nearest-first sweep, alongside gold
     /// on the floor. See the type comment.
     /// </summary>
     private enum JobPriority
     {
-        MarkedExcavation = 0,
-        Claim = 1,
-        Reinforce = 2,
+        /// <summary>
+        /// Claim floor a worker has dug out, once none of its eight neighbours
+        /// is still marked for digging. <b>First of everything in the
+        /// original</b> (its kind 14, Q154): the task is raised when a dig
+        /// leaves plain unowned path beside the keeper's floor, and taking it
+        /// is what makes a corridor get claimed behind the digging front rather
+        /// than after the last mark on the map is gone. The work it does is an
+        /// ordinary <see cref="TileWorkKind.Claim"/>; only the eligibility and
+        /// the rank are different.
+        /// </summary>
+        ClaimFreshlyDug = 0,
+        MarkedExcavation = 1,
+        Claim = 2,
+        Reinforce = 3,
     }
 
     /// <summary>
@@ -684,9 +697,11 @@ public sealed class ImpTaskSystem : ISimulationSystem
     private bool TryTakeJob(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
-        // Tier A: kind first. The whole map is searched for excavation before
-        // a single claimable tile is considered — one search per kind, not one
-        // scored search over a mixed list, because the order is an ordering.
+        // Tier A: kind first. The whole map is searched for a just-dug tile to
+        // claim before a single mark is considered, and for marks before a
+        // single ordinary claim — one search per kind, not one scored search
+        // over a mixed list, because the order is an ordering.
+        if (TryTakeJobAt(context, creature, grid, JobPriority.ClaimFreshlyDug)) return true;
         if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
         if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
 
@@ -866,6 +881,20 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         switch (priority)
         {
+            // The just-dug tile: claimable, freshly dug, and with none of its
+            // EIGHT neighbours still carrying this keeper's dig mark. Eight and
+            // not four, and a dig mark and not a mining one, because that is
+            // what the original's handler tests — it looks up its kind-1 task
+            // (a marked tile with no GoldValue) on each of the eight tiles
+            // around it, and only kind 1 (Q154). After that it is an ordinary
+            // claim, taken standing on the tile.
+            case JobPriority.ClaimFreshlyDug:
+                if (!tile.FreshlyDug) return false;
+                if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId)) return false;
+                if (ADigIsStillMarkedAround(context, world, target, playerId)) return false;
+                kind = TileWorkKind.Claim;
+                break;
+
             case JobPriority.MarkedExcavation:
                 if (!tile.IsTaggedBy(playerId)) return false;
                 if (!TileWorkRules.TryTaggedWork(context.Database, tile, playerId, out kind)) return false;
@@ -979,6 +1008,36 @@ public sealed class ImpTaskSystem : ISimulationSystem
         {
             var neighbour = new TilePos(target.X + NeighbourDx[i], target.Y + NeighbourDy[i]);
             if (StandsOnOwnLand(context, world, neighbour, playerId)) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether any of the eight tiles around <paramref name="target"/> is
+    /// marked by this keeper for work that is <i>digging</i> — the test that
+    /// holds a just-dug tile's claim back while the corridor is still being
+    /// cut (Q154). Mining a seam next door does not hold it back: the original
+    /// looks for its dig kind only, and its dig kind is every marked tile whose
+    /// terrain has no <c>GoldValue</c> — rock and walls alike — so here it is
+    /// every tagged kind but <see cref="TileWorkKind.MineGold"/>.
+    /// </summary>
+    private static bool ADigIsStillMarkedAround(
+        SimulationContext context, WorldState world, TilePos target, byte playerId)
+    {
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                if (dx == 0 && dy == 0) continue;
+                var at = new TilePos(target.X + dx, target.Y + dy);
+                if (!world.Contains(at)) continue;
+
+                ref TileState neighbour = ref world.Tile(at);
+                if (!neighbour.IsTaggedBy(playerId)) continue;
+                if (!TileWorkRules.TryTaggedWork(context.Database, neighbour, playerId, out TileWorkKind kind)) continue;
+                if (kind != TileWorkKind.MineGold) return true;
+            }
         }
 
         return false;

@@ -254,8 +254,8 @@ after an imp is dropped. `imp-task-priority.md` §4, ADR-0058.
 tested reinforce against gold, but the same read fixed that pair too. Nothing
 is left to watch on priority. Two things it opened are decompiler questions,
 not observations: whether an imp claims the tile it has just dug before the
-next dig (Q154 — *read*, yes, once nothing beside it is still marked; not
-built) and task stealing by distance (Q155).
+next dig (Q154 — *read*, yes, once nothing beside it is still marked; **built
+the same day**) and task stealing by distance (Q155).
 
 ### Q145 — does fetching interrupt a swing already in progress? — *added 2026-09-05*
 

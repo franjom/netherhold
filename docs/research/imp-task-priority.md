@@ -1,4 +1,4 @@
-# How an imp chooses a job: two tiers, read from the binary
+﻿# How an imp chooses a job: two tiers, read from the binary
 
 **Source:** `DKII.EXE` v1.70 — the `ImpState.cpp` and `ImpUtils.cpp`
 translation units, the tile-marking code, the per-player alliance table and
@@ -210,10 +210,15 @@ whole-map kind has come up empty.
   plain path, enemy floor, enemy room tile.
 - **Kind 14** is claiming's fast lane and is **first of everything**: the tile
   the imp has just dug is claimed as soon as **none of its eight neighbours
-  still carries a dig task** — so a corridor is dug through and then claimed
-  behind the digging front, which is the rhythm the original visibly has. Our
-  imps dig every mark on the map before claiming any of it, and that is now a
-  known difference (**Q154 — designed, not built**).
+  still carries a dig task** — a kind-1 task, so a seam being mined next door
+  does not hold it back — and a corridor is dug through and then claimed behind
+  the digging front, which is the rhythm the original visibly has. **Built the
+  same day** (Q154): `TileState.FreshlyDug` stands in for the task, set when
+  excavation destroys a tile and cleared by the next change of terrain, and
+  `JobPriority.ClaimFreshlyDug` is Tier A's first step. The *rank* and the
+  eight-neighbour rule are read; the *trigger* — that the task is raised when
+  the dig completes — is STRONGLY INFERRED from where the raise sits
+  (`ImpState.cpp`, `00465774`/`00465b57`) and what it tests.
 
 ---
 
@@ -233,10 +238,10 @@ face instead). Recorded, not built (**Q155**).
 
 | | DK2 | ours |
 |---|---|---|
-| Tier A | 14, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **marked excavation**, then **claim** — whole map each |
+| Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **claim the just-dug tile**, **marked excavation**, **claim** — whole map each |
 | Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold** |
 | distance | rings, squared straight-line | steps along the walkable grid (Q25) |
-| kind 14 | claim the just-dug tile first | not built (Q154) |
+| kind 14 | claim the just-dug tile first, once no 8-neighbour has a dig task | **built** — `ClaimFreshlyDug`, same rule |
 | stealing | nearer imp takes the task | not built (Q155) |
 | just-dropped scan | radius 2, nine-step chain | no Hand of Evil yet; nothing to drop |
 
@@ -268,7 +273,7 @@ the four mis-identifications were the right flag read the wrong way round.
 
 - **Q153** — the reinforce ceiling at `terrain+0x1ad` (file `0x1c2`): which
   field is it?
-- **Q154** — kind 14, claim-the-just-dug-tile: designed above, not built.
+- ~~**Q154**~~ — kind 14, claim-the-just-dug-tile: built; the trigger's timing is inferred, not read.
 - **Q155** — task stealing by distance: not built.
 - **Q25** — the dig search walks the task list within a radius; whether it
   takes the *nearest* qualifying task or the *first in list order* was not read.

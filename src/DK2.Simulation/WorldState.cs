@@ -72,6 +72,28 @@ public struct TileState
     public ushort TaggedBy;
 
     /// <summary>
+    /// Whether this tile is floor that a worker <b>dug out</b> and nobody has
+    /// claimed since — the tile an imp goes back for before it does anything
+    /// else.
+    ///
+    /// <para><b>Read from the original, 2026-09-05</b> (Q154,
+    /// docs/research/imp-task-priority.md §6). When a dig leaves plain unowned
+    /// path beside a keeper's floor, DK2 raises a task on that tile which sits
+    /// <b>first</b> in the imp's whole-map order — ahead of digging — and is
+    /// taken as soon as none of the tile's eight neighbours still carries a dig
+    /// task. That is why a corridor in the original is dug through and then
+    /// claimed behind the digging front, rather than every mark on the map
+    /// being dug before any of it is claimed.</para>
+    ///
+    /// <para>Set by <see cref="Systems.TileWorkSystem"/> when excavation
+    /// destroys a tile; cleared by any later change of terrain, which is what a
+    /// claim is. Our representation of DK2's task — the original keeps it in
+    /// the keeper's task list, not on the tile — and explicitly not a claim
+    /// about its storage.</para>
+    /// </summary>
+    public bool FreshlyDug;
+
+    /// <summary>
     /// Health owed to this tile that was too small to apply, carried between
     /// applications. Always smaller in magnitude than
     /// <see cref="SimulationTiming.WorkApplicationsPerSecond"/>.
@@ -207,6 +229,7 @@ public struct TileState
         hash.Add(Health);
         hash.Add(GoldHeld);
         hash.Add(TaggedBy);
+        hash.Add(FreshlyDug ? (byte)1 : (byte)0);
         hash.Add(WorkRemainder);
         hash.Add(UpwardWork);
         hash.Add(BurnTicksRemaining);

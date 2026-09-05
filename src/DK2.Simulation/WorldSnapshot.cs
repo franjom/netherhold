@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 19;
+    private const int FormatVersion = 20;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -63,6 +63,7 @@ public static class WorldSnapshot
             w.Write(t.BurnTicksRemaining);
             w.Write(t.EntranceIdleTicks);
             w.Write(t.TaggedBy);
+            w.Write(t.FreshlyDug);
         }
 
         w.Write(world.PlayerCount);
@@ -186,6 +187,7 @@ public static class WorldSnapshot
                 BurnTicksRemaining = r.ReadInt32(),
                 EntranceIdleTicks = r.ReadInt32(),
                 TaggedBy = r.ReadUInt16(),
+                FreshlyDug = r.ReadBoolean(),
             };
         }
 

@@ -126,26 +126,67 @@ public sealed class CreatureMovementSystem : ISimulationSystem
                 continue;
             }
 
-            if (dx != 0 && dy != 0)
+            // A leg is walked in two phases: the SURPLUS of the longer axis
+            // first, straight, and only then both axes together at 45 degrees.
+            // The order is the whole point. A creature stops wherever it
+            // crossed into its tile, not at the centre, so a leg to a diagonal
+            // neighbour rarely starts square; walked 45 degrees first it sweeps
+            // through the side tile for most of a tile-width, and if that side
+            // tile is rock the creature is standing in rock. Walked surplus
+            // first, the 45-degree phase runs exactly through the corner the two
+            // tiles share and touches nothing else -- which is what the owner's
+            // "a creature passes diagonally between two solid tiles" (Q28,
+            // ADR-0025) looks like once a creature has a width. Routing is ours
+            // (Q5); this is the shape of it that keeps ADR-0025 and the
+            // no-creature-in-rock invariant true at the same time.
+            int ax = Math.Abs(dx);
+            int ay = Math.Abs(dy);
+            int surplus = Math.Abs(ax - ay);
+            int straight = Math.Min(step, surplus);
+            if (ax > ay) creature.PosX += Math.Sign(dx) * straight;
+            else creature.PosY += Math.Sign(dy) * straight;
+            step -= straight;
+
+            if (step > 0)
             {
-                // A diagonal leg advances both axes together, and the budget
-                // buys less of each than it would on a straight one: covering
-                // one tile of axis costs DiagonalCost/StraightCost of path.
-                int axis = step * GridPathfinder.StraightCost / GridPathfinder.DiagonalCost;
+                // Both axes together, and the budget buys less of each than it
+                // would on a straight run: one tile of axis costs
+                // DiagonalCost/StraightCost of path. Capped at what is left of
+                // the shorter axis so the snap-to-target case above stays the
+                // only way a leg ends.
+                int axis = Math.Min(
+                    step * GridPathfinder.StraightCost / GridPathfinder.DiagonalCost,
+                    Math.Min(ax, ay));
                 creature.PosX += Math.Sign(dx) * axis;
                 creature.PosY += Math.Sign(dy) * axis;
-            }
-            else if (dx != 0)
-            {
-                creature.PosX += Math.Sign(dx) * step;
-            }
-            else
-            {
-                creature.PosY += Math.Sign(dy) * step;
             }
 
             step = 0;
         }
+
+        KeepOffTheCorner(creature, grid);
+    }
+
+    /// <summary>
+    /// The one place the two-phase walk above can still leave a creature's
+    /// tile solid: the shared corner itself, when a tick's budget runs out with
+    /// the position exactly on it. A corner belongs to four tiles and integer
+    /// division hands it to the one with the larger coordinates, which between
+    /// two solid tiles is one of the solid ones. One position unit toward the
+    /// waypoint is inside the destination tile, and a unit is 1/4096 of a tile
+    /// -- below anything the game can show or the hash can care about except in
+    /// the sign of it being right.
+    /// </summary>
+    private static void KeepOffTheCorner(CreatureState creature, WorldPathGrid grid)
+    {
+        if (creature.PathIndex >= creature.Path.Count) return;
+
+        TilePos here = creature.Tile;
+        if (grid.IsWalkable(here.X, here.Y)) return;
+
+        TilePos waypoint = creature.Path[creature.PathIndex];
+        creature.PosX += Math.Sign(CreatureState.CentreOf(waypoint.X) - creature.PosX);
+        creature.PosY += Math.Sign(CreatureState.CentreOf(waypoint.Y) - creature.PosY);
     }
 
     /// <summary>
@@ -165,17 +206,21 @@ public sealed class CreatureMovementSystem : ISimulationSystem
     /// <para>Integer arithmetic throughout, on the same 14/10 stand-in for
     /// root-2 the search uses: no square root, so no floating point, so no
     /// cross-machine drift (Q48).</para>
+    ///
+    /// <para><b>Octile, not square.</b> A leg between two tile centres is
+    /// square and either axis would do; a leg from wherever a creature actually
+    /// stopped is not, and this is the length of the walk
+    /// <see cref="Advance"/> makes -- the surplus of the longer axis straight,
+    /// then the rest at 14/10. Charging <c>max x 14/10</c> for an unsquare leg
+    /// would make a creature arrive late for no reason anybody could see.</para>
     /// </summary>
     private static int LegLength(int dx, int dy)
     {
         int ax = Math.Abs(dx);
         int ay = Math.Abs(dy);
-        if (ax == 0 || ay == 0) return ax + ay;
-
-        // Legs between tile centres are square, so either axis gives the same
-        // answer; taking the larger keeps a mid-leg position (where rounding may
-        // have left the axes a unit apart) from under-charging.
-        return Math.Max(ax, ay) * GridPathfinder.DiagonalCost / GridPathfinder.StraightCost;
+        int shorter = Math.Min(ax, ay);
+        int surplus = Math.Max(ax, ay) - shorter;
+        return surplus + (shorter * GridPathfinder.DiagonalCost / GridPathfinder.StraightCost);
     }
 
     /// <summary>
