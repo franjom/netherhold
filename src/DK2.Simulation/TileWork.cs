@@ -394,6 +394,11 @@ public static class TileWorkRules
                 !terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId == playerId,
 
             // Reinforcing turns rock into a wall; the data says which rock can.
+            // The original splits this by health: its reinforce kind takes rock
+            // below half of MaxHealth (fresh Rock is 165 of 660), its fix kind
+            // takes anything not at MaxHealth, both at the same step of the
+            // imp's search. By type, this clause selects the union of the two.
+            // Q153, read from the binary 2026-09-05.
             TileWorkKind.Reinforce =>
                 terrain.IsSolid && !terrain.IsImpenetrable && !terrain.IsOwnable
                 && terrain.MaxHealthTypeTerrainId != tile.TerrainId,

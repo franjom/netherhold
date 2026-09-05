@@ -3751,8 +3751,8 @@ observation checklist (Q147 struck); Codex Brief 4's film list (Q147 done).
    self-contained hash-moving correction needing no new research — and this
    sitting confirmed the *carrier's* half of it from the binary (nearest room
    with space).
-4. **Q153 — the reinforce ceiling field** at terrain file offset `0x1c2`: a
-   ten-minute dump of `Terrain.kwd` decides whether it is health-shaped.
+4. ~~**Q153 — the reinforce ceiling field**~~ — closed the same day: it is
+   `MaxHealth`, and the file offset was wrong (see the last section).
 5. **Q155 — task stealing by distance** — not built; matters once several imps
    share a small dungeon in a scenario.
 
@@ -3832,7 +3832,7 @@ awaits building rather than that half of it is unknown.
    sleep need every `TimeAwake` is the second way in. Mark as ours: one bed per
    tile (Q156), the idle re-decision cadence, the neighbour table's contents.
    It is a new creature state and deserves its own sitting.
-2. **Q132**, the treasury deposit order, **Q153**, **Q155** — as before.
+2. **Q132**, the treasury deposit order, ~~**Q153**~~ (closed below), **Q155** — as before.
 
 ### Owner questions after this sitting
 
@@ -3841,3 +3841,26 @@ portal delivers anything, *every* creature — Troll and Bile Demon included —
 beds down before its first job. If one ever trains first, Q156 is where the
 difference lives. · **Q152** regeneration in combat · **Q87** pool limit or
 quota.
+
+## Twenty-second sitting, coda: the ten-minute dump, and why the ten minutes were needed
+
+Q153 asked which terrain field the imp's reinforce and fix predicates compare
+tile health against. The dump of `Terrain.kwd` at the predicted file offset
+`0x1c2` came back **zero for every one of the 41 terrains** — not health-shaped,
+not anything-shaped — so the prediction was wrong, and the question became *why*.
+
+The answer is that the in-memory terrain record is **not the file record with a
+constant shift**. A loader reads the 552-byte record at exactly the offsets our
+parser uses and copies each field into its own runtime slot, and the slot the
+predicates read (`+0x1ad`) is filled from file `0x1ff`: **`MaxHealth`**. The
+flags word and `GoldValue` had sat at a constant −0x15 by coincidence, and one
+coincidence was taken as a rule.
+
+So: **reinforce (kind 6) takes solid rock below half its `MaxHealth`; fix (kind
+16) takes anything not at `MaxHealth`**; the two share a step of the ring scan,
+and a wall part-way up is a *fix*. Our `Reinforce` predicate is by type and
+selects the same tiles the two do between them — **no code change**, one
+comment. The runtime ↔ file table is now in `kwd-terrain-rooms.md` so the next
+binary read does not repeat the arithmetic.
+
+Docs only; tests unchanged at 811.

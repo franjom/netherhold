@@ -129,12 +129,18 @@ Impenetrable, `0x4` Ownable, `0x8` Taggable, `0x10` Room, `0x20` Attackable,
 constant −0x15 from their file offsets (`0x190`, `0x19a`).
 
 **The ceiling the reinforce predicates compare tile health against is
-`terrain+0x1ad`.** At the same shift that is file offset **`0x1c2`**, which
-falls inside the sixteen shorts neither this project nor OpenKeeper has named
-(`unk1ae`). It is *not* `MaxHealth` (file `0x1ff`) by that arithmetic. Either
-the in-memory record is repacked past `0x19a`, or reinforcement has its own
-ceiling in the record. **UNKNOWN** (Q153); the identification of kinds 6/16
-does not rest on it.
+`terrain+0x1ad`, and it is `MaxHealth`** (Q153, read 2026-09-05). The first
+reading assumed the −0x15 shift extended to it and pointed at file `0x1c2`;
+`Terrain.kwd` at `0x1c2` is zero for all 41 terrains. The in-memory record is
+**not the file record shifted** — a loader reads the 552-byte record at the
+offsets our parser uses and copies each field into its own runtime slot, and
+the slot at `+0x1ad` is filled from file `0x1ff`. The shift held for the flags
+and `GoldValue` by coincidence. So: **kind 6 (reinforce) takes solid rock whose
+health is below half its `MaxHealth`** — fresh Rock is 165 of 660 — and **kind
+16 (fix) takes anything whose health is not `MaxHealth`**, so a wall part-way
+up is a *fix*, at the same step of the ring scan. Our `Reinforce` predicate is
+by type and takes the same tiles the two take between them; no code change.
+The runtime ↔ file offset table is in `kwd-terrain-rooms.md`.
 
 ---
 
@@ -271,8 +277,8 @@ the four mis-identifications were the right flag read the wrong way round.
 
 ## 10. Open, in one place
 
-- **Q153** — the reinforce ceiling at `terrain+0x1ad` (file `0x1c2`): which
-  field is it?
+- ~~**Q153**~~ — the reinforce ceiling at `terrain+0x1ad` is `MaxHealth`; the
+  file-offset arithmetic that said otherwise was wrong (§3).
 - ~~**Q154**~~ — kind 14, claim-the-just-dug-tile: built; the trigger's timing is inferred, not read.
 - **Q155** — task stealing by distance: not built.
 - **Q25** — the dig search walks the task list within a radius; whether it

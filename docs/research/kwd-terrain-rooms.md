@@ -1,4 +1,4 @@
-# Mechanic: TERRAIN(110), ROOMS(120) and MAP(100) records
+﻿# Mechanic: TERRAIN(110), ROOMS(120) and MAP(100) records
 
 Source(s):
 - ufdada/dk2-tools `terrains_struct.bt`, `rooms_struct.bt`, `map_struct.bt`
@@ -81,6 +81,32 @@ strings, which name them:
 
 `DK2.Data.Model.RoomTypeId` now carries the complete set. This is a small
 contribution back: our data resolves unknowns in the best existing binary RE.
+
+## Finding — the in-memory terrain record is filled field by field (2026-09-05)
+
+Read from the binary while closing Q153. The game does **not** keep the 552-byte
+file record in memory. A loader reads the file record at exactly the offsets
+this parser uses, marks each field present in a tagged intermediate, and a
+second routine copies every present field into its own slot of a smaller
+runtime record. Consequences for anyone reading `DKII.EXE`:
+
+- **Offset arithmetic between the two layouts is unsafe.** Two fields that
+  happen to sit at a constant shift (the flags word, `GoldValue`) say nothing
+  about a third. Q153 was opened on that arithmetic and closed by dumping the
+  file — the supposed field at file `0x1c2` is zero for all 41 terrains — and
+  then following the loader instead.
+- **The mapping, for the fields this project names** (runtime ← file):
+  `+0x17b` ← `0x190` Flags · `+0x17f` ← `0x188` Depth (as a short) · `+0x185`
+  ← `0x19a` GoldValue · `+0x187` ← `0x19c` ManaGain · `+0x1a9` ← `0x194`
+  Damage · `+0x181`/`+0x183` ← `0x196`/`0x198` (the two shorts after Damage,
+  unnamed here) · `+0x1ab` ← `0x1d7` StartingHealth · **`+0x1ad` ← `0x1ff`
+  MaxHealth** · `+0x1c4` ← `0x1d6` TerrainId · `+0x1c5` ← `0x1d9`
+  MaxHealthTypeTerrainId · `+0x1c6` ← `0x1da` DestroyedTypeTerrainId.
+- The four `ArtResource`s at file `0x20`, `0x74`, `0xc8`, `0x11c` (84 bytes
+  each) are copied whole into the intermediate; the runtime keeps them as
+  27-byte handles. The name (32 bytes at `0x0`) is copied as a string.
+
+Facts in our own words; no decompiler output is reproduced here (ADR-0046).
 
 ## Cross-parser validation
 
