@@ -579,6 +579,15 @@ When there is nowhere to store gold, a lump grows in front of the mining imp
 candidate. Fill the treasury, keep mining, and see how much piles up before the
 imp stops.
 
+### The gold-per-swing readout itself — **UNRECORDED, and everything rests on it**
+Four documents cite "273 gold a swing" and **not one says where that number
+appears on screen.** The owner reads it directly while an imp mines - the
+2026-09-05 slap measurement (341, reverting to 272-273 after a minute) was taken
+the same way - so the readout exists; this repo simply never wrote down which
+panel it is. Write it down the next time it is used: it is the single
+observation the whole tile-work granularity depends on, and the one a future
+session cannot reproduce from these notes.
+
 ### Q47 — the tile-work rates — **ANSWERED, and the answer was 273**
 Left here as the record of what one number was worth. Every rate used to be too
 fast against observation and the best available reading was "twice a second, half

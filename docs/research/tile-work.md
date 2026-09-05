@@ -83,12 +83,53 @@ reinforce is the sensitive instrument here.
 | Claim, level 1: **1.30-1.40 s**, 3 visible jumps | 660 / 165 = **4 applications** = 0.8 s, + ~0.5 s linger | 1.3 |
 | Reinforce, **fresh level-1 imp: 13.3-13.4 s** | 660 / 10 = **66 applications** | **13.2 s** |
 | Reinforce, level-3 imp: **~13.1 s** | the same 66 applications | **13.2 s** |
+| **Slapped imp mining: 341 gold a swing**, reverting to 272-273 after a minute | work rate 0.8 + **0.2**, for `IncreasedWorkRateDurationFromSlappingSeconds` = 60 s | **340.9** |
 
 **Q62 is now confirmed with a level-1 imp.** The rule that an upward job needs
 the terrain's whole `maxHealth` (660 for Rock, not the 495 deficit) was measured
 on an imp of unknown level in August; the fresh-imp reading reproduces it to
 within a hand-timer's reaction time, so the level confound that this section's
 first draft raised is closed.
+
+### The slap confirms the whole model, and quantises the bonus - 2026-09-05
+
+**A slapped imp mines 341 gold a swing where an unslapped one mines 273, and it
+reverts after a minute.** Owner observation in a fresh game, so no levelling
+confound, and the minute is
+`IncreasedWorkRateDurationFromSlappingSeconds` = **60**.
+
+341/273 is **1.25 exactly**, which is 1.0/0.8: the work rate goes from the read
+constant **0.8** to exactly **1.0**, and 300 x 1.0 / 4 = 75 health a swing =
+340.9 gold. So the fixed-point multiplier this section reads out of the handlers
+is not an interpretation - **it is observable in the game to three significant
+figures**, and the 0.8 it starts at is real.
+
+**The bonus comes in steps of 0.1, and the two measurements are one step
+apart.** The routine that writes `0x3b3` (`FUN_00488930`) builds the bonus from
+**hardcoded** increments rather than from the balance table: `0x199` = 409 =
+**0.0999** per source, twice over, plus `205` = **0.05** per unit of a byte
+counter held on another object the creature points at. Both owner measurements
+land exactly on that grid:
+
+| Measured | Implied bonus | Model |
+|---|---|---|
+| Slapped imp **reinforcing: ~11.9 s** (against 13.3-13.4 unslapped) | **+0.10** | 11.87 s |
+| Slapped imp **mining: 341 gold a swing** | **+0.20** | 340.9 gold |
+
+so the two runs differed by **one source**. The open question is what that
+source was - **most likely how many times the imp was slapped**, which nobody
+recorded. The prediction, and it needs no timing: **one slap should read 307
+gold a swing and two should read 341.**
+
+`IncreasedWorkRatePecentageFromSlapping` = 50 is **not** what produces either
+number, and is either orphaned or means something other than a percentage of the
+base - the same shape as variable 19, which has no VARIABLES record either and
+is written from the level header instead.
+
+**Which of the two flags is the slap is not identified** (`creature[0x4d7]`, a
+word, and `creature[0x2eb]`, a byte), nor what the 0.05-per-unit counter counts;
+`IncreasedWorkRatePercentageOfPlayersTorturedCreatureTypes` is the obvious
+candidate for a per-player tally, and is unverified.
 
 ### The work rate does NOT change with level — a refuted prediction
 
@@ -118,14 +159,22 @@ re-derives it from the same two numbers.
   Q1 needs the game loop traced, not another stopwatch. `FUN_00517490` is the
   "now" the gates read and it is a bare field load,
   `*(*(this + 4) + 4)`; whoever increments that field answers Q1.
-- **How the slap bonus combines.** `+50%` against a base of 0.8 is either 1.2
-  (a percentage of the base) or 1.3 (percentage points). One number settles it
-  with no timing at all: **a slapped imp mining a seam shows 409 gold a swing
-  under the first reading and 443 under the second**, against the unslapped 273.
+- **How many slaps each 2026-09-05 measurement had.** The reinforce run implies
+  one 0.1 increment and the mining run implies two, and the difference is
+  unrecorded. **One slap should read 307 gold a swing, two should read 341** -
+  and a slapped reinforce at +0.2 should take 10.7 s rather than 11.9.
+- **What the two bonus flags are**, and what the 0.05-per-unit counter counts.
+- **Where a per-swing gold number appears on screen.** The owner reads it
+  directly and this repo has never recorded *where* - see the note in
+  `observation-checklist.md`. Every claim in this section rests on that readout,
+  so it is worth writing down.
 
-Confidence: **STRONGLY INFERRED** — the fixed-point multiply, the two constants
-and their use by two different job handlers are read from the binary; the
-per-tick division is inferred from the gold measurement and the four timings.
+Confidence: **CONFIRMED** for the numbers the owner watched - 273 unslapped, 341
+slapped, reverting after 60 s, and reinforcing unchanged by level. **STRONGLY
+INFERRED** for the mechanism behind them: the fixed-point multiply, the 0.8
+constant and the per-tick division are read from the binary and agree with the
+observations to three significant figures, but only the observations are
+watchable.
 
 
 ---
