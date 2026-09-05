@@ -20,6 +20,27 @@ something does *not* happen closes a question just as hard.
 
 ---
 
+## READ THIS FIRST — the four for tomorrow (2026-09-06)
+
+Everything else on this page is history or is longer. These four are what the
+next sitting is actually waiting on, in order, and **all four together are about
+twenty minutes of play**. Each one has a fuller write-up further down.
+
+| # | Do this | Watch for | If the answer is... |
+|---|---|---|---|
+| **1** | **Slap an imp, keep it selected, watch Efficiency** (Q159) | how long 90% lasts before falling back to 80% | **25 s** and this project is right; **60 s** and `EfficiencyRules.SlapBonusSeconds` is a defect to fix. The binary says 25, your stopwatch last time said 60 |
+| **2** | **Build a 3×3 prison. Beat enemies down until imps stop collecting them. Count the prisoners** (Q166) | how many fit | **9** and "one per tile" is right; anything else and `PrisonRules.Capacity` is wrong. Also worth noting whether the door-bar limit is separate |
+| **3** | **Watch a prisoner's health bar the moment an imp puts it in the cell** (Q167) | full, or a sliver | This project gives it **full health**, which is a pure guess. It decides whether a prisoner lasts 500 seconds or 5 |
+| **4** | **Drop an imp *two* tiles from a marked wall** (Q162) | 90% or 80% | **90%** and the aim reaches further than the four neighbours this project checks |
+
+**Nothing on this list needs a save game or a stopwatch except #1**, and #1 only
+needs a wristwatch — 25 and 60 are far enough apart.
+
+A "no" is worth as much as a "yes". If a prisoner arrives at a sliver of health,
+say so; that closes Q167 exactly as hard as "full" would.
+
+---
+
 ## Answered so far (2026-08-29)
 
 Nineteen questions went onto this list; **fifteen came back in two sittings**.
@@ -578,6 +599,47 @@ When there is nowhere to store gold, a lump grows in front of the mining imp
 "up to a designated sum". `MaxGoldPileOutsideTreasury` is 2000 and is the
 candidate. Fill the treasury, keep mining, and see how much piles up before the
 imp stops.
+
+### Q166 — how many prisoners does a prison hold? — *added 2026-09-05, and it is the weakest guess in the prison*
+**Build a 3×3 prison, beat enemy creatures down in your dungeon until the imps
+stop collecting them, and count what is standing in there.**
+
+This project says **one per tile**, so a 3×3 should hold **9**. That is a guess
+shaped like the lair's one-bed-per-tile rule, and it is the weakest inference in
+`PrisonRules` — because DK2 does **not** derive capacity, it stores it. Its room
+debug dump prints `TotalCapacity`, `UsedCapacity` and `UsedCreatureCapacity` as
+fields, and `Rooms.kwd` has no capacity column at all, so whatever computes them
+has not been read.
+
+**Two things to watch while you are there:**
+
+- **The door bar.** The manual says a prison door has a bar that stops further
+  prisoners being delivered, and DK2's prison record carries a
+  `SafeCreatureCapacity` of its own, separate from the real capacity. If you can
+  set that limit in the interface, how — and does it stop imps at the number you
+  set rather than at the room's size?
+- **What happens if you drop one in by hand when it is already full.** This
+  project rolls a jail break at 50% per extra creature, once a game second, and
+  the *cadence* is invented (Q168). Roughly how long does an overcrowded prison
+  hold before it breaks?
+
+### Q167 — what health does a creature wake with when it is imprisoned? — *added 2026-09-05*
+**Watch a prisoner's health bar at the moment an imp drops it in the cell.**
+
+A creature can only arrive unconscious — that is the only state an imp can carry
+one in — so something has to decide what imprisonment brings it round at, and
+this project decided **full health**. Nothing supports that except the shape of
+the mechanic: the prison is a countdown at −3 health a second that a keeper
+interrupts by dropping chickens on the prisoner, and one that woke at nothing
+would be a Skeleton before the keeper could reach for one.
+
+**Why the answer matters more than it looks.** At full health a 1500-health
+Goblin takes **500 game seconds** to become a Skeleton. At a sliver it takes
+almost none, and the whole chicken mechanic would be pointless. So this one
+number decides whether a prison is a slow decision or an instant one.
+
+Worth noting at the same time: **does a prisoner's health tick down visibly**,
+and roughly how long does a captured creature last before it turns?
 
 ### Q159 — how long does a slap last? — **ONE LOOK, AND THE BINARY IS ON ONE SIDE**
 **Slap an imp, keep it selected, and watch the Efficiency percentage.** It goes

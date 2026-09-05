@@ -719,3 +719,90 @@ A recorded negative result is a snapshot of what was tried, not a property of th
 binary. **Re-read the method before trusting the conclusion** — and prefer
 methods that widen the question ("what is compiled either side of this?") over
 ones that narrow it ("which function owns this instruction?").
+
+---
+
+## 2026-09-05, second review: the fifth clause, and it is about our own reading
+
+The prison sitting (ADR-0064) turned up the **fifth** instance of "a claim
+nothing checks may already be false", and it is a new kind: **the unchecked
+claim was a piece of this project's own reverse engineering.**
+
+ADR-0062 read DK2's Hand-of-Evil pick-up handler and wrote its refusals down as:
+
+> *"two creature states and one state flag, none of which this project has
+> yet"*
+
+— **without naming the flag** — and then concluded from that unnamed flag that
+the original *permits* picking up a collapsed creature, so this project refusing
+one was "a narrowing of ours, recorded rather than hidden".
+
+Bit `0x200000` is bit 21 of the first state-flag word. DK2's own creature debug
+dump lists that word's bits in order and bit 21 is **`CreatureDying`**. The
+answer was one lookup away in a file the same session had already extracted and
+was already citing for other fields. The owner contradicted the ADR the next day
+from play, in one sentence.
+
+**Why this is worse than the previous four.** The other four were claims about
+*our* code or *our* data that nobody had tested. This was a claim about **the
+original** — the oracle — published at STRONGLY INFERRED, in an ADR and a
+research document, on evidence that had a hole in it the author had themselves
+written down in the same paragraph. A partial reading was promoted to a finding
+because the missing part was inconvenient.
+
+And it did the specific damage this project keeps warning about: it invented a
+**deviation that did not exist**. "Ours is stricter than DK2 here, and that is
+recorded" is exactly the kind of note that stops anybody looking again.
+
+### The fifth clause
+
+> what would fail if this claim stopped being true? · does anything read this
+> fact at all? · could this check pass while the thing it checks is wrong? · is
+> this justification still true, and would anybody notice? · when a comment says
+> a difference is unobservable, does it name the observation that would settle
+> it? — and now:
+>
+> **does a statement about the original rest on a reading that names its own gap?
+> "Three of these four tests refer to things we do not have" is a task, not a
+> finding. Name them before concluding anything, and never state what the
+> original does or does not permit on the strength of a test you did not
+> identify.**
+
+The habit that follows is as cheap as the last one: **grep the research
+documents for gap-naming phrases** — "unidentified", "not read", "none of which",
+"has not been named", "unread" — sitting in the same paragraph as a conclusion
+about DK2's behaviour. A gap and a conclusion in one breath is where this
+happened.
+
+**Run the same day. Two hits, and both are honest**, which is the useful
+outcome: `prison.md` §2 says the pick-up handler's *ownership* test is unread
+and explicitly declines to conclude anything from it, and `imp-task-priority.md`
+says kind 11's raise site is unread and draws no behaviour from it. Both name
+the gap **instead of** a conclusion rather than beside one. That is the shape to
+keep.
+
+### What this sitting actually moved
+
+| | |
+|---|---|
+| behaviours corrected against the original | **1** — the hand cannot pick up a body (Q161), which had been recorded backwards for a day |
+| newly CONFIRMED from the running game | 2 — only an imp carries a body; the hand may lift a prisoner and not any other enemy |
+| mechanics built | the Prison and capture (ADR-0064), imp task kind 8 (ADR-0065) |
+| latent defects found by building something else | **1** — an imp lifted while dragging a body kept hold of it, and a held creature is skipped by every system, so the body stopped being anybody's problem |
+| new questions | Q166–Q170, of which **three are the owner's** and are on the checklist |
+| questions answered from the binary | Q161, Q163, and half of Q165 |
+
+**Goal 5 (research before implementation) held**, and the room debug dump is why:
+`FUN_004e70a0` names every room field and switches on the room type, so the
+prison's `SafeCreatureCapacity`, `PrisonJailBroken` and door position were in
+hand *before* `PrisonRules` was written rather than reverse-engineered out of a
+guess. The same dump answered half of Q165 in passing — a Graveyard's
+`DecomposeValue` tally is a stored field — for a question this project had
+recorded as unknown and had already built an event to feed.
+
+**Goal 4 (quirks reproduced, not fixed) has a new example worth keeping.** Kind
+8 sits *second* in DK2's Tier A table, above marked excavation and above
+claiming, so an imp shelves a book before digging a wall the keeper marked. That
+is not what anybody would design and it is what the table says, so it is what
+this builds — with a test whose only job is to fail if somebody quietly moves it
+down the list.

@@ -261,9 +261,17 @@ and the priority order is CONFIRMED (ADR-0018). What is still absent:
   a real cooldown or the claim animation finishing is UNKNOWN, and the two are
   indistinguishable from outside the game. An imp here goes straight to the next
   job. Q49.
-- **Dragging the unconscious to a prison and the dead to a graveyard**, and
-  **fleeing a fight.** Neither has a trigger anybody has stated, and neither has
-  anything to act on: there is no combat, no unconsciousness and no prison.
+- ~~**Dragging the unconscious to a prison and the dead to a graveyard.**~~
+  **Done** (2026-09-05, ADR-0063 and ADR-0064). Both are DK2 imp tasks with
+  their own kinds — 13 for a creature, 12 for a corpse — and 13 branches on
+  ownership: its keeper's own to a Lair, an enemy's to a Prison. **Carrying a
+  loose object to its room** (kind 8) went in the same day, so six of the seven
+  Tier A kinds now exist. What still has nothing to act on is **kind 9/10**,
+  fetching a crate from the Workshop for a placed trap or door.
+- **Fleeing a fight.** No trigger anybody has stated, and nothing to act on:
+  there is no combat. Everything the two carrying tasks do begins *after* a
+  fight, and the scenarios have to place a creature at zero health because
+  nothing can put it there.
 - ~~**Picking up gold somebody else dropped.**~~ **Done** (2026-09-05,
   ADR-0056 as amended). The owner supplied the trigger the day after the pile
   became real — *"if there is gold on the ground an imp will first take from

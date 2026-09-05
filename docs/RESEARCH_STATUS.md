@@ -48,8 +48,9 @@ What is *built* rather than known, against the long-term goals:
   worked **from beside a wall and standing on a floor tile** (Q44/Q49, ADR-0028).
 - **How an imp chooses a job** — in two tiers, read from the binary and
   confirmed by the owner twice (2026-09-05, ADR-0058). Tier A walks a table of
-  kinds whole-map, one at a time: claim-the-just-dug-tile, loose objects, traps
-  and doors, **dig/mine**, **claim**, carry the unconscious, corpses. Tier B,
+  kinds whole-map, one at a time: claim-the-just-dug-tile, **loose objects**,
+  traps and doors, **dig/mine**, **claim**, **carry the unconscious**,
+  **corpses** — six of those seven are built, all but traps and doors. Tier B,
   only when A is empty, ring-scans from the imp trying **reinforce, then gold**
   at every tile — so a wall beats gold on the same tile and a nearer pile beats a
   farther wall. Thirteen task kinds identified, the job-icon table names them,
@@ -199,7 +200,18 @@ What is *built* rather than known, against the long-term goals:
   is a *creature* field, and the binary's per-creature dump carries
   `HasBeenKnockedOut` and `DieInstantly`. **A corpse is a creature in a state**,
   so the graveyard wants a creature-carrying imp task and not a record — a much
-  smaller job than five sittings of documents implied.
+  smaller job than five sittings of documents implied. **Built the next day**
+  (ADR-0063), which is how small it was.
+- **DK2's ROOM dump names every room field**, the way its creature dump names
+  162 creature fields (2026-09-05). Every room carries `TotalCapacity`,
+  `UsedCapacity`, `UsedCreatureCapacity`, `UsedObjectCapacity`,
+  `UsedDeadBodyCapacity`, `CreatureList`, `ObjectList` and `DeadBodyList`; then
+  it switches on the type. The **Prison** adds `SafeCreatureCapacity` — the
+  manual's door bar, so a keeper-set limit is a stored number — plus
+  `PrisonJailBroken` and a door position. The **Graveyard** adds exactly one
+  field, `DecomposeValue`, which answers half of Q165: the tally is real and is
+  per room instance. **Capacity is stored rather than derived**, so how DK2
+  computes it is a question of its own (Q166).
 - **The Hatchery, from the binary and the owner** (docs/research/hatchery.md).
   Coops are `min(tiles / 6, 36)`, never adjacent even diagonally, placed by
   walking the room's tiles. The room lays **object 47, the Egg** — not the
@@ -285,9 +297,20 @@ What is *built* rather than known, against the long-term goals:
   the world has an object list, the hatchery knows its coops and its flock — and
   what is left is the clock (Q132) plus the creature side: how a hungry creature
   chooses a hatchery, walks to it, and what happens when two want the same bird.
-- **Carrying.** Nothing can be picked up: not a corpse to a graveyard, not gold
-  from the floor, not an unconscious creature to a prison or a lair. It is now
-  the single largest blocker left, and several half-built mechanics name it.
+- ~~**Carrying.**~~ **Done** (2026-09-05, ADR-0063/0064/0065) — it was the
+  single largest blocker left and it is gone. All three of DK2's carrying task
+  kinds exist: **13** (an unconscious creature to its own bed, or an enemy's to
+  a **Prison**), **12** (a corpse to a Graveyard) and **8** (a loose object to
+  the room that lists it). Gold off the floor was already kind 7.
+- **Combat.** Now the largest thing missing, and everything built this week
+  begins after a fight: a rescue, a burial and a capture all need somebody to
+  have been beaten down, and nothing in the project can do that. The scenarios
+  place creatures at zero health instead.
+- **Torture and conversion.** The prison is the door to them and the door now
+  exists. `TortureHpChange`, `TortureMoodChange` and `TortureTimeToConvert` are
+  per-creature fields parsed and unread; DK2 keeps torture's state on the
+  creature (`TorturedDuration`, `TortureVoluntary`) rather than on the room,
+  whose dump carries two effect counters and nothing else.
 - What happens on defeat when a dungeon heart falls (Q40) - the rule is known,
   the consequences are not, and nothing implements it.
 - What picks a wall piece (Q71) and whether wall deformation is deterministic per

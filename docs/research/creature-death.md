@@ -246,17 +246,23 @@ released at death.
 
 ## What is NOT implemented, and why
 
-| Missing | Why |
-|---|---|
-| **The corpse** | **Not an object** — see the correction above; none of the 145 is a corpse. It is a creature in a state, with a `DecomposeValue` a graveyard counts 1000 of. What is missing is an imp that can carry one |
-| **Rescue** | Nothing can be carried. `CreatureDeathRules.Rescue` is written and tested and has no caller |
-| **Prison for enemies** | **Built** (ADR-0064, `docs/research/prison.md`): an imp drags an unconscious enemy to a cell, it withers at `PrisonModifyCreatureHealthPerSecond` (−3) a game second, and at nothing it rises as a **Skeleton for the jailer**. `MotionlessInPrisonSeconds` (8) is still parsed and unread |
-| **The Vampire** | Downstream of the corpse. Nothing accumulates, so no Vampire can be made |
-| **The petals** | Whether the flower above a creature's head is the anger meter or a separate indicator is UNKNOWN |
+**Rewritten 2026-09-05.** Three of the five rows below used to say "missing" and
+are now built; the table is kept rather than deleted because what a gap turned
+out to be is worth more than the gap was.
 
-**The cost, stated plainly:** a creature that dies vanishes instead of leaving a
-corpse for 60 more seconds. The death event publishes `leaves_body=` so the gap
-is in the log rather than only here.
+| Was missing | Now |
+|---|---|
+| **The corpse** | **Built** (ADR-0063). Not an object — none of the 145 is a corpse; it is a creature in a state, `CreatureActivity.Dead`, and it lies there for `DeadBodyDiesAfterSeconds` |
+| **Rescue** | **Built** (ADR-0063). `CreatureDeathRules.Rescue` had been written, tested and callerless for five sittings so the gap would be visible; kind 13 is its caller |
+| **Prison for enemies** | **Built** (ADR-0064, `docs/research/prison.md`): an imp drags an unconscious enemy to a cell, it withers at `PrisonModifyCreatureHealthPerSecond` (−3) a game second, and at nothing it rises as a **Skeleton for the jailer**. `MotionlessInPrisonSeconds` (8) is still parsed and unread |
+| **The Vampire** | **Still missing, and now for a reason with a number in it.** A graveyard keeps a tally — DK2's room dump gives the Graveyard case exactly one field of its own, `DecomposeValue`, a dword on the room instance — and `corpse_buried` reports what each body is worth. What is unread is the **threshold**: how much fills a graveyard and what happens at the top (Q165) |
+| **The petals** | **Still UNKNOWN.** Whether the flower above a creature's head is the anger meter or a separate indicator |
+| **Chickens for the dying** | Never built and never named here before: a keeper keeps a *prisoner* alive by dropping chickens on it, and a chicken is an object nothing can pick up. So a prisoner's countdown always runs out (ADR-0064) |
+
+**The cost, stated plainly:** the pipeline runs end to end now — collapse,
+rescue-or-die, corpse, bury-or-rot, and for an enemy a cell instead of a bed.
+What is left at the far end is what a full graveyard does, which is the only way
+to a Vampire.
 
 ## The line: a dying creature is a creature, a corpse is not
 
