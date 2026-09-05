@@ -40,3 +40,23 @@ meaning is guessed.
 
 **UNKNOWN in deliverable 1.** Texture containers and compression will be
 documented when texture extraction is implemented.
+
+## GLB output
+
+`GlbWriter` emits a glTF 2.0 binary (`.glb`) for either static KMF geometry or
+the frame-zero mesh exposed from an animated KMF. Each KMF sprite becomes one
+glTF mesh primitive using its first detail level and material. A sprite whose
+first detail level contains no triangles is preserved as a point primitive.
+
+DK2 XYZ is rotated to glTF XYZ as `(x, -z, y)`, matching the established KMF
+loader reference. KMF triangle order is reversed for glTF front-face winding.
+UVs are retained as decoded. The first named KMF texture becomes the material's
+base-colour texture; all named alternatives are also retained in material
+`extras`, along with a named environment texture when present. Texture names
+map to relative, URI-escaped `.png` names by default,
+and callers may supply the relative-path mapping needed by their output layout.
+
+No offline glTF validator is installed in the development environment. Tests
+therefore independently reload the GLB container and verify its JSON, chunk
+alignment, buffer ranges, accessors, transformed vertex bytes, indices, and
+external image URIs.
