@@ -3780,3 +3780,101 @@ a quirk is behaviour, and this one is trivially observable.
   keeper who sells a full treasury is still poorer — the loss is now a delay
   with no end rather than a hole in the world. Carrying is the next piece, and
   this is the second mechanic waiting on it.
+
+---
+
+## ADR-0056 — Gold on the floor is the first thing an imp does
+
+**Status:** Accepted (2026-09-05)
+**Confidence:** Confirmed (the priority is the owner watching the original; the
+mechanism is the mining tail that was already built)
+**Closes:** Q141. **Opens:** Q142, Q143, Q144, Q145.
+
+### Context
+
+ADR-0055 made gold on the floor real and stopped there, deliberately: nothing
+fetched it, because **where fetching sits in an imp's job priority could not be
+guessed**. The order this project has — marked excavation, then claiming, then
+reinforcing — is CONFIRMED from the owner watching the original (Q24, ADR-0018),
+and fetching was not in it. The binary was searched the same day and does not
+offer the answer cheaply: an imp's job selection is part of the
+runtime-registered state machine (Q125), not a visible list.
+
+So it went on the observation checklist as the cheapest item on it, and came
+back the same day.
+
+### What the owner watched
+
+> *"If there is gold on the ground an imp will first take from that gold pile
+> and take it to a treasury, until all of it is gone."*
+
+Reported from a dungeon where imps had mined a **gem** tile, gold was lying all
+over the floor, and **nobody was mining it** — the tile still there, still
+inexhaustible, still marked.
+
+**That is the strong form of the answer.** Not "an imp will get round to it":
+fetching **displaces** the job that had been the top of the order.
+
+### Decision
+
+**Gold on the floor is searched for before any of the three tile-work
+priorities.** `CreatureActivity.FetchingGold`; `ImpTaskSystem.TryFetchGold` runs
+ahead of the `JobPriority` loop.
+
+- **Above claiming and reinforcing by transitivity**, not by a second
+  observation: excavation already outranks both, and this outranks excavation.
+- **It is not a `JobPriority` member**, because it is not tile work — there is no
+  `TileWorkKind` for "pick that up", nothing is damaged and nothing converts.
+  The enum stays what it is and the search order carries the ordering.
+- **The pick-up is instant on arrival.** Picking gold up is not work: no health
+  delta applies and the balance table has no number for it, so charging it a
+  work period would be inventing a duration (Q143).
+- **One imp to a pile tile**, which is not a new rule — an imp stands *on* gold
+  to pick it up, and `ImpCrowding` already gives a tile a worker stands on a cap
+  of exactly one (Q44, CONFIRMED). The stance decides the number.
+- **Carrying is unchanged.** `DeliveringGold` is the same mechanic whatever put
+  the gold in the hands, so the fetch ends by handing over to it.
+- **Oldest pile first** where a tile holds several — a creature's death leaves up
+  to three (ADR-0055). Spawn order, reproducible, and marked as ours.
+
+### The correction, and why it is the more valuable half
+
+The owner also corrected **their own earlier report**:
+
+> *"When I marked that gem tile for excavating and it wasn't connected to my
+> territory via bridge and tiles around it weren't claimed, imps mined it, but
+> they didn't carry any gold to treasury/dungeon heart."*
+
+**Nothing in this project codes that, and it reproduces it anyway.** Both
+searches walk — an imp cannot reach a pile it cannot walk to, and
+`TryRouteToSomewhereItFits` cannot find a store across water — so a stranded imp
+picks the gold up, finds nowhere to put it, and stands there while the pile
+grows. That is the same shape as Q35's treasury spillover: arrived at rather
+than coded, which is the strongest kind of agreement this project gets.
+
+**But it is not evidence for the rule, only for the outcome.** The tile was
+neither connected **nor** claimed, so two conditions fit equally well:
+reachability, or an ownership test on the ground the gold is lying on. **Q144**,
+and one bridge to an unclaimed tile separates them. Recorded rather than
+resolved, because assuming reachability because it is what we happen to
+implement is exactly the error this project keeps finding in its own history.
+
+### Consequences
+
+- **Hashes unmoved.** No imp in the pinned run or in any prior scenario ever
+  meets floor gold, so nothing in them changes — and the new scenario is not on
+  the pinned map.
+- Nine new tests, and the load-bearing one asserts an *ordering*: `work_applied`
+  must not appear before `gold_picked_up`.
+- `imps-fetch-dropped-gold-001` shows the whole loop on a synthetic map — an imp
+  digging marked walls at t35, gold on the floor at t40, the wall in hand
+  finished at t52, and at t53 the imp **walking past two still-marked walls** to
+  reach the pile, all of it home by t69.
+- **One nuance is ours and is flagged:** the imp finishes the tile it is already
+  working on. Fetching outranks excavation at the moment a job is *chosen*, and
+  whether the original interrupts a swing in progress is **Q145** — which the
+  owner's observation cannot settle, because a gem tile is inexhaustible and an
+  imp re-chooses after every completion either way.
+- **Carrying is no longer the largest gap.** What is left of it is the
+  creature-carrying task: a corpse to a graveyard, an unconscious body to a
+  prison or a bed.

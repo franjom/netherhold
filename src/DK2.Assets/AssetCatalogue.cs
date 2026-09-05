@@ -53,6 +53,7 @@ public static class AssetCatalogue
         "sleeping",
         "dying",
         "leaving",
+        "fetching_gold",
     ];
 
     /// <summary>

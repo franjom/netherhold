@@ -1,4 +1,4 @@
-# Briefs for a second agent
+﻿# Briefs for a second agent
 
 The owner has OpenAI Codex available alongside Claude. This file holds the tasks
 worth giving it, phrased so they can be pasted directly.
@@ -29,7 +29,7 @@ lands:
 ```
 dotnet build DK2.slnx -c Release                          # zero warnings
 dotnet test DK2.slnx -c Release                           # all green
-dotnet run --project src/DK2.Harness -- run scenarios     # 15 scenarios
+dotnet run --project src/DK2.Harness -- run scenarios     # 16 scenarios
 ```
 
 Anything that **writes** should get its own git worktree. Read-only auditing can

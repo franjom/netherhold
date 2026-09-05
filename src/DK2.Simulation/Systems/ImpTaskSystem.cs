@@ -122,6 +122,26 @@ public sealed class ImpTaskSystem : ISimulationSystem
         [JobPriority.MarkedExcavation, JobPriority.Claim, JobPriority.Reinforce];
 
     /// <summary>
+    /// <b>Gold on the floor comes before all three of them</b>, and it is not in
+    /// <see cref="JobPriority"/> because it is not a tile-work job — there is no
+    /// <see cref="TileWorkKind"/> for "pick that up", nothing is damaged and
+    /// nothing converts. It is searched for first and the enum's order follows.
+    ///
+    /// <para><b>CONFIRMED by the owner</b> (2026-09-05, Q141): <i>"if there is
+    /// gold on the ground an imp will first take from that gold pile and take it
+    /// to a treasury, until all of it is gone"</i> — reported from a dungeon
+    /// where a marked gem tile sat right beside the gold and <i>nobody was
+    /// mining it</i>. That is the strong form: not "an imp will get round to
+    /// it", but fetching <b>preempting</b> the job that had been top of the
+    /// order since ADR-0018.</para>
+    ///
+    /// <para>Above claiming and reinforcing by transitivity rather than by a
+    /// second observation: excavation already outranks both (Q24, CONFIRMED),
+    /// and this outranks excavation.</para>
+    /// </summary>
+    private const string FetchPriority = "FetchFloorGold";
+
+    /// <summary>
     /// The neighbours a tile can be worked from, in the order they are tried.
     /// Matches the pathfinder's expansion order so that the tile an imp takes is
     /// the tile the search stopped for.
@@ -177,6 +197,12 @@ public sealed class ImpTaskSystem : ISimulationSystem
             return;
         }
 
+        if (creature.Activity == CreatureActivity.FetchingGold)
+        {
+            UpdateFetching(context, creature, definition, grid);
+            return;
+        }
+
         if (creature.TargetTileIndex >= 0 && !JobStillStands(context, creature))
         {
             context.Emit(SystemName, "job_abandoned",
@@ -202,7 +228,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         switch (creature.Activity)
         {
             case CreatureActivity.Idle:
-                UpdateIdle(context, creature, grid);
+                UpdateIdle(context, creature, definition, grid);
                 break;
 
             case CreatureActivity.MovingToJob:
@@ -219,12 +245,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
         }
     }
 
-    private void UpdateIdle(SimulationContext context, CreatureState creature, WorldPathGrid grid)
+    private void UpdateIdle(
+        SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
         creature.TimerTicks--;
         if (creature.TimerTicks > 0) return;
 
-        if (!TryTakeJob(context, creature, grid))
+        if (!TryTakeJob(context, creature, definition, grid))
             creature.TimerTicks = IdleDelayTicks(context.Database);
     }
 
@@ -325,6 +352,187 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// <see cref="CreatureState.ClearJob"/>, which would throw away the route
     /// that was just planned.
     /// </summary>
+    /// <summary>
+    /// Looks for the nearest reachable tile with gold lying on it and sets off,
+    /// if this worker has a hand free.
+    ///
+    /// <para>Same search as every other job, for the same three reasons: it
+    /// gives the nearest pile in steps, the route to it, and rules out every
+    /// unreachable pile without ever building a list. <b>The third is what
+    /// reproduces the owner's own correction</b> — see
+    /// <see cref="UpdateFetching"/>.</para>
+    ///
+    /// <para><b>One imp to a pile tile</b>, the same cap a floor job gets
+    /// (<see cref="ImpCrowding"/>: one for a tile a worker stands on). Gold is on
+    /// the floor and an imp stands on it to pick it up, so the stance decides the
+    /// number and nothing new is invented. Whether the original crowds a pile
+    /// differently is UNKNOWN and nobody has watched it.</para>
+    ///
+    /// <para><b>Only with room in its hands.</b> A worker already carrying its
+    /// limit is going to a treasury, not to another pile — and the case of a
+    /// part-loaded imp topping up from a pile it passes is Q142, deliberately
+    /// not decided here: an imp of ours with gold in its hands is already in
+    /// <see cref="CreatureActivity.DeliveringGold"/> before job selection is
+    /// reached, so the question does not arise until something changes that.</para>
+    /// </summary>
+    private bool TryFetchGold(
+        SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
+    {
+        if (creature.GoldHeld >= definition.MaxGoldHeld) return false;
+
+        WorldState world = context.World;
+
+        if (!_pathfinder.TryFindNearest(
+                grid, creature.Tile, at => CanFetchFrom(context, at, creature.Id), _route))
+        {
+            return false;
+        }
+
+        TilePos standing = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
+        int tileIndex = (standing.Y * world.Width) + standing.X;
+
+        creature.TargetTileIndex = tileIndex;
+        creature.TargetWork = default;
+        creature.Path.Clear();
+        creature.Path.AddRange(_route);
+        creature.PathIndex = 0;
+        creature.Activity = CreatureActivity.FetchingGold;
+        creature.TimerTicks = 0;
+
+        context.Emit(SystemName, "fetch_taken",
+            $"imp={creature.Id} player={creature.OwnerPlayerId} " +
+            $"{Describe(world, tileIndex)} " +
+            $"gold={FloorGold.OnTile(world, context.Database, tileIndex)} " +
+            $"priority={FetchPriority} steps={_route.Count}");
+        return true;
+    }
+
+    /// <summary>
+    /// Whether a worker standing here would be standing on gold somebody could
+    /// pick up. The pile is worked from the tile itself, so this tests the tile
+    /// underfoot and no neighbours — unlike a wall, which is worked from beside
+    /// it.
+    /// </summary>
+    private static bool CanFetchFrom(SimulationContext context, TilePos at, int askingCreatureId)
+    {
+        WorldState world = context.World;
+        if (!world.Contains(at)) return false;
+
+        int index = (at.Y * world.Width) + at.X;
+        if (FloorGold.OnTile(world, context.Database, index) <= 0) return false;
+
+        return !ImpCrowding.FaceIsFull(
+            world, context.Database, index, at, askingCreatureId, workedFromTheTile: true);
+    }
+
+    /// <summary>
+    /// One tick of going to get gold: arrive, fill your hands, become a carrier.
+    ///
+    /// <para><b>The pick-up is instant on arrival</b> rather than costing a work
+    /// period. Picking gold up is not work — nothing is damaged, no health delta
+    /// applies, and the balance table has no number for it — so charging it a
+    /// swing would be inventing a duration. If the original animates a pause
+    /// here it is Q143, and that is worth a stopwatch rather than a guess.</para>
+    ///
+    /// <para><b>This is also where the owner's correction lands</b>
+    /// (2026-09-05): imps put onto a marked gem tile that was <i>not</i>
+    /// connected to the keeper's dungeon mined it happily and <b>never carried
+    /// any gold home</b>. Nothing here codes that. It falls out of two searches
+    /// that both walk — an imp cannot reach a pile it cannot walk to, and
+    /// <see cref="TryRouteToSomewhereItFits"/> cannot find a store across water —
+    /// so a stranded imp picks the gold up, finds nowhere to put it, and stands
+    /// there while the pile grows around it. <b>Whether the original's rule is
+    /// really reachability</b> or whether it is about the ground being claimed
+    /// is Q144: both fit, because the tile in question was neither.</para>
+    /// </summary>
+    private void UpdateFetching(
+        SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
+    {
+        WorldState world = context.World;
+
+        // Somebody else emptied it, or it was never there.
+        if (creature.TargetTileIndex < 0
+            || FloorGold.OnTile(world, context.Database, creature.TargetTileIndex) <= 0)
+        {
+            context.Emit(SystemName, "fetch_abandoned",
+                $"imp={creature.Id} {Describe(world, Math.Max(0, creature.TargetTileIndex))} " +
+                "reason=gone");
+            GoIdle(creature);
+            return;
+        }
+
+        // Still on the road.
+        int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
+        if (here != creature.TargetTileIndex)
+        {
+            if (creature.PathIndex < creature.Path.Count) return;
+
+            context.Emit(SystemName, "fetch_abandoned",
+                $"imp={creature.Id} {Describe(world, creature.TargetTileIndex)} " +
+                "reason=out_of_reach");
+            GoIdle(creature);
+            return;
+        }
+
+        int room = definition.MaxGoldHeld - creature.GoldHeld;
+        int taken = TakeFromPilesOn(context, creature.TargetTileIndex, room);
+        creature.GoldHeld += taken;
+
+        context.Emit(SystemName, "gold_picked_up",
+            $"imp={creature.Id} player={creature.OwnerPlayerId} amount={taken} " +
+            $"{Describe(world, creature.TargetTileIndex)} " +
+            $"left={FloorGold.OnTile(world, context.Database, creature.TargetTileIndex)} " +
+            $"carrying={creature.GoldHeld}");
+
+        if (creature.GoldHeld <= 0)
+        {
+            GoIdle(creature);
+            return;
+        }
+
+        // Straight into the carrying half, which is the same mechanic whatever
+        // put the gold in its hands.
+        if (TryRouteToSomewhereItFits(context, creature, grid))
+        {
+            BeginDelivering(creature);
+            return;
+        }
+
+        context.Emit(SystemName, "delivery_blocked",
+            $"imp={creature.Id} player={creature.OwnerPlayerId} gold={creature.GoldHeld} " +
+            "reason=no_room after=fetch (Q144: the owner has watched exactly this)");
+        GoIdle(creature);
+        creature.TimerTicks = IdleDelayTicks(context.Database);
+    }
+
+    /// <summary>
+    /// Takes up to <paramref name="room"/> off the piles on one tile, oldest
+    /// first, and returns how much came off.
+    ///
+    /// <para>Oldest first — spawn order — for the reason everything else in this
+    /// project iterates in spawn order: it is reproducible, and a rule that
+    /// preferred the biggest or the nearest pile would be a rule nobody has
+    /// watched. It matters because a creature's death leaves up to three piles
+    /// on one tile (ADR-0055), so which one an imp empties first is a real
+    /// question, and this is an answer of ours.</para>
+    /// </summary>
+    private static int TakeFromPilesOn(SimulationContext context, int tileIndex, int room)
+    {
+        if (room <= 0) return 0;
+
+        var piles = new List<ObjectState>();
+        FloorGold.PilesOn(context.World, context.Database, tileIndex, piles);
+
+        int taken = 0;
+        foreach (ObjectState pile in piles)
+        {
+            if (taken >= room) break;
+            taken += FloorGold.Take(context.World, context.Database, pile, room - taken);
+        }
+
+        return taken;
+    }
+
     private static void BeginDelivering(CreatureState creature)
     {
         creature.TargetTileIndex = -1;
@@ -456,8 +664,12 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// out everything unreachable, all without ever building a list of
     /// candidates to sort.
     /// </summary>
-    private bool TryTakeJob(SimulationContext context, CreatureState creature, WorldPathGrid grid)
+    private bool TryTakeJob(
+        SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
+        // Gold on the floor first, above every tile job -- see FetchPriority.
+        if (TryFetchGold(context, creature, definition, grid)) return true;
+
         // Strict priority: the whole map is searched for excavation before a
         // single claimable tile is considered, and so on. Three searches, not
         // one scored search over a mixed candidate list — because the order is

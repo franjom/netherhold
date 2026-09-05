@@ -13,9 +13,9 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **786 tests green**
-with and without a DK2 install; **15 scenarios** run, each drawing a picture of
-its finished world; **completely clean tree**. (Core 17, Simulation 456, Data 64,
+**every** record type's on-disk size is now known and pinned. **795 tests green**
+with and without a DK2 install; **16 scenarios** run, each drawing a picture of
+its finished world; **completely clean tree**. (Core 17, Simulation 465, Data 64,
 Behavior 151, Assets 61, Presentation 37.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
@@ -3242,3 +3242,83 @@ After that: the **graveyard**, which wants the same creature-carrying task
 gold an imp cannot hold stay on the floor · **Q139** which tile an overflowing
 refund uses (ours) · **Q140** what a blocked imp does with its load ·
 **Q141** where fetching sits in the priority order — **the one to ask first**.
+
+## Twentieth sitting, closed: the owner answered the trigger, and corrected himself
+
+| | |
+|---|---|
+| `??????` | **Gold on the floor is the first thing an imp does** — ADR-0056, Q141 |
+
+**795 tests green**, **16 scenarios**, zero warnings, **hashes unmoved** — no imp
+in any pinned run has ever met floor gold, so nothing that was already being
+measured changed.
+
+### The answer, and it was the strong form
+
+> *"If there is gold on the ground an imp will first take from that gold pile and
+> take it to a treasury, until all of it is gone."*
+
+Reported from a dungeon where imps had mined a **gem** tile, gold was all over
+the floor, and **nobody was mining it** — the tile still there, still marked,
+still inexhaustible. So fetching does not merely belong in the priority order,
+it **displaces marked excavation**, which had been the top of that order since
+ADR-0018.
+
+Built the same day: `CreatureActivity.FetchingGold`, searched ahead of the three
+tile-work priorities. Above claiming and reinforcing by transitivity rather than
+by a second observation. Nothing else needed inventing — the pick-up hands over
+to `DeliveringGold`, which is the same mechanic whatever put the gold in the
+hands, and the one-imp-per-pile cap is the floor stance's existing cap rather
+than a new rule.
+
+`imps-fetch-dropped-gold-001` is the whole thing in fifteen log lines: digging
+at t35, gold on the floor at t40, the wall in hand finished at t52, and at t53
+**the imp walks past two still-marked walls** to reach the pile.
+
+### The correction was worth more than the answer
+
+> *"One important correction on my part, where I made a mistake: when I marked
+> that gem tile for excavating and it wasn't connected to my territory via bridge
+> and tiles around it weren't claimed, imps mined it, but they didn't carry any
+> gold to treasury/dungeon heart."*
+
+**Nothing here codes that and it reproduces it anyway.** Both searches walk, so a
+stranded imp picks the gold up, finds nowhere to put it, and stands there while
+the pile grows — the same shape as Q35's treasury spillover, arrived at rather
+than coded.
+
+**And it is evidence for the outcome, not for the rule.** The tile was neither
+connected *nor* claimed, so reachability and an ownership test on the ground both
+fit. **Q144**, and one bridge to an unclaimed tile separates them. Written down
+rather than resolved, because assuming reachability *because it is what we
+happen to implement* is exactly the error this project keeps finding in its own
+history.
+
+### One nuance that is ours, and it is flagged
+
+The imp finishes the tile it is already swinging at before it turns round.
+Fetching outranks excavation at the moment a job is **chosen**. Whether the
+original interrupts a swing in progress is **Q145** — and the owner's own
+observation cannot settle it, because a gem tile is inexhaustible: an imp
+re-chooses after every completion either way, so both rules look identical from
+outside. **A finite job separates them**: mark a long stretch of ordinary rock,
+let imps get into a tile, then drop gold beside them.
+
+### Where to pick up
+
+**Carrying is no longer the largest gap.** What is left of it is the
+**creature-carrying** task — a corpse to a graveyard, an unconscious body to a
+prison or back to a bed — which ADR-0051's correction already named and which
+needs no new research to start.
+
+Then: **treasury deposit order** (`gold-on-the-floor.md` §5) as a self-contained
+hash-moving correction, and the **graveyard** itself.
+
+**Do not build the hatchery's clock until Q132 is answered.**
+
+### Owner questions added this sitting
+
+**Q142** does a part-loaded imp top up from a pile it passes · **Q143** does the
+pick-up cost time · **Q144** reachability or claimed ground — **the one to ask
+first, and it is one bridge** · **Q145** does fetching interrupt a swing already
+in progress.

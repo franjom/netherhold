@@ -1,13 +1,13 @@
-# Gold on the floor: the fourth place a keeper's gold can be
+﻿# Gold on the floor: the fourth place a keeper's gold can be
 
 **Source:** `DKII.EXE`, the `Treasure.cpp`, `Player.cpp`, `Creature.cpp` and
 `ImpUtils.cpp` translation units, read on 2026-09-05, plus `Objects.kwd` and
 `GlobalVariables.kwd`. Facts in our own words; ADR-0046 governs the boundary.
 
-**Status: researched, and the determined parts are built.** `FloorGold`
-implements the pile, the split a dying creature makes, and the two paths that
-put gold on the floor today, with 22 tests. What is **not** built is an imp that
-picks a pile back up, which is a carrying task and not a gold rule.
+**Status: researched and built, both ends.** `FloorGold` implements the pile,
+the split a dying creature makes, and the paths that put gold on the floor;
+`ImpTaskSystem` implements the imp that picks it back up (ADR-0056, and the
+owner supplied that trigger the following day). 31 tests and a scenario.
 
 ## Why this was worth doing now
 
@@ -200,11 +200,15 @@ rival keeper's dropped gold — the question has to be answered first.
 - `MaxPile` and `AcceptsMore` **exposed and never applied as a clamp**;
 - drops wired into selling a store, destroying a store, and a creature dying.
 
+**Built the following day** (2026-09-05, ADR-0056), once the owner supplied the
+trigger: **an imp fetches a pile and carries it to a treasury, and it does that
+before it will touch a marked wall.** See `imp-tasks.md`; the drops above are
+now a delay rather than a loss.
+
 **Not built, and named:**
 
-- **an imp that picks a pile up.** This is the carrying task, and it is what
-  turns every drop above from a loss into a delay;
-- the twelve-slot merge, which arrives with that imp;
+- the twelve-slot merge, which arrives with an imp that puts a load *down*
+  rather than picking one up;
 - treasury gold as an object (§2), deliberately;
 - **objects are invisible to the renderer.** A bed, a coop, an egg and now a
   pile are all in the world and none of them is in `WorldView`, so a scenario
@@ -215,3 +219,10 @@ rival keeper's dropped gold — the question has to be answered first.
 leaving by portal drops gold, as dying does), Q138 (whether mined gold an imp
 cannot hold falls on the floor), Q139 (which tile an overflowing refund uses),
 Q140 (whether an imp with a full treasury puts its load down).
+
+**And three more from building the imp that collects it:** Q142 (topping up a
+part-load), Q143 (whether the pick-up costs time), Q145 (whether fetching
+interrupts a swing in progress). Plus **Q144**, which came from the owner
+correcting their own report: gold mined on ground that was neither connected nor
+claimed **never came home**, and one bridge would say which of the two conditions
+is the real one.

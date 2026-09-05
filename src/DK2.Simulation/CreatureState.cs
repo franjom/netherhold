@@ -75,6 +75,22 @@ public enum CreatureActivity
     /// is skipped by <see cref="Systems.CreatureSleepSystem"/> entirely.</para>
     /// </summary>
     Leaving = 7,
+
+    /// <summary>
+    /// Walking to a pile of gold lying on the floor, to pick it up.
+    ///
+    /// <para><b>CONFIRMED by the owner</b> (2026-09-05, Q141): <i>"if there is
+    /// gold on the ground an imp will first take from that gold pile and take
+    /// it to a treasury, until all of it is gone"</i> — watched with a marked
+    /// gem tile standing right there and nobody mining it. So fetching does not
+    /// merely belong in the priority order, it sits <b>above</b> marked
+    /// excavation, which had been the top of it since ADR-0018.</para>
+    ///
+    /// <para>Only the walk and the pick-up are this state. What happens next is
+    /// <see cref="DeliveringGold"/>, unchanged — carrying gold home is one
+    /// mechanic whatever put the gold in the hands.</para>
+    /// </summary>
+    FetchingGold = 8,
 }
 
 /// <summary>

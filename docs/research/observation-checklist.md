@@ -136,38 +136,53 @@ within minutes of the second screenshot arriving. See `imps-and-mana.md`
 
 ## 1. Still open, and blocking
 
-### Q141 — where does "fetch that gold" sit in an imp's job priority? — *added 2026-09-05, and it blocks carrying*
+### Q141 — where does "fetch that gold" sit in an imp's job priority? — **ANSWERED the same day, by the owner**
 
-**The single cheapest thing on this list, and it unblocks the biggest gap.**
+> *"If there is gold on the ground an imp will first take from that gold pile
+> and take it to a treasury, until all of it is gone."*
 
-Gold on the floor is now real (ADR-0055): sell a treasury and the gold stays on
-the tile as a pile the keeper no longer owns. What no imp does is **go and get
-it**, and the reason is not the mechanism — that is mostly the mining tail,
-already built — but the **trigger**. The owner supplied the priority order once
-already, from watching: *marked excavation, then claiming, then reinforcing*
-(Q24, CONFIRMED, ADR-0018). Fetching gold is not in it, and where it goes
-decides whether an imp abandons a half-dug wall to collect.
+Reported from a dungeon where a marked **gem** tile sat right beside the gold
+and **nobody was mining it** — which is the strong form of the answer. Not "an
+imp gets round to it": fetching **displaces** marked excavation, which had been
+the top of the priority order since ADR-0018. Built the same day (ADR-0056), and
+the scenario `imps-fetch-dropped-gold-001` shows an imp walk past two
+still-marked walls to reach a pile.
 
-The binary was searched for the answer on 2026-09-05 and it is not cheap there:
-an imp's job selection is part of the runtime-registered state machine (Q125),
-not a visible priority list. So this is a looking question.
+**Two follow-ups came out of it, and both are one glance each.**
 
-**The experiment.** Mark a wall for digging somewhere an imp can reach. Drop
-gold on the floor nearby — selling a treasury tile with gold in it is the
-easiest way, or drop a pile from the hand. Then watch **one** imp:
+### Q144 — does gold mined on unclaimed ground come home, if there is a bridge? — *added 2026-09-05*
 
-- does it finish the wall first, or turn round and fetch the gold?
-- with **nothing** marked, does it fetch the gold at all, or ignore it?
-- does an imp already carrying a part-load top up from a floor pile, or walk
-  past it to the treasury?
-- and does an **enemy** keeper's imp take gold you dropped? (That is Q136 —
-  whose a pile is — and one glance settles it.)
+**The owner corrected their own earlier report**, which is the most valuable
+thing on this page: a gem tile marked while it was **not connected** to the
+dungeon by bridge, with the tiles around it unclaimed, **was** mined by imps —
+and **no gold ever reached a treasury or the dungeon heart**.
 
-**What each answer buys.** The first two place fetching in the order and finish
-carrying's first half. The third decides whether the pile is a source like a
-gold seam or a job of its own. The fourth is the only thing standing between
-`FloorGold` and knowing whose gold it is.
+Ours already reproduces that outcome without a rule for it: an imp cannot walk
+to a store it cannot walk to, so a stranded imp picks the gold up and stands
+there while the pile grows. **But two different rules fit what was watched**,
+because the tile was neither connected *nor* claimed:
 
+- **(a) reachability** — the imp simply cannot get home. Ours.
+- **(b) ownership** — an imp will not fetch gold that is not on its keeper's own
+  ground.
+
+**The experiment separates them in one step.** Build a **bridge** to a gem or
+gold tile, mark it, but leave the tiles around it **unclaimed**. If the gold
+comes home, the rule is reachability and this project is already right. If it
+does not, there is an ownership condition nothing here models — and it would
+apply to every pile, not just to gold on an island.
+
+### Q145 — does fetching interrupt a swing already in progress? — *added 2026-09-05*
+
+Ours finishes the wall it is swinging at, then turns round. Q141's observation
+cannot settle this: a **gem** tile is inexhaustible, so an imp re-chooses its
+job after every completion, and "interrupt now" and "interrupt at the next
+choice" look identical from outside.
+
+**Use a finite job.** Mark a long stretch of ordinary rock, let imps get well
+into a tile, then drop gold beside them — sell a treasury tile, or drop a pile
+from the hand. Do they abandon the tile mid-swing, or finish it first? Visible
+in a second, and it is the last thing between this mechanic and CONFIRMED.
 
 ### Q101 — the lair — **ANSWERED the same day, by the owner**
 

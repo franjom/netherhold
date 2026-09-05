@@ -18,7 +18,7 @@ Implemented by `DK2.Simulation.Systems.ImpTaskSystem`,
 | An idle worker re-evaluates every `ImpIdleDelayBeforeReevaluationSeconds` (5) | **CONFIRMED** — the variable names exactly this |
 | Creature `speed` is in tiles per second | **STRONGLY INFERRED** — see below |
 | Walkability follows `CanWalkOnWater` / `CanWalkOnLava` | **STRONGLY INFERRED** — the flags exist for nothing else |
-| **Job priority: marked excavation, then claiming, then reinforcing** | **CONFIRMED** — owner observation of the original (Q24); implemented as a strict ordering, ADR-0018 |
+| **Job priority: gold off the floor, then marked excavation, then claiming, then reinforcing** | **CONFIRMED** — owner observation of the original, in two sittings: the last three in 2026-08 (Q24, ADR-0018) and **fetching above all of them** on 2026-09-05 (Q141, ADR-0056) |
 | A **wall** is worked from an orthogonal neighbour | **CONFIRMED** — twelve imps a block at three a face is four faces (Q27) |
 | **Floor is worked standing on the tile itself** | **CONFIRMED** for claiming (Q44) — *"imps claim tiles by jumping on them"*; ADR-0028 |
 | Repairing and attacking floor use the same stance as claiming | **STRONGLY INFERRED** (Q49) — identical geometry, and no observation distinguishes them |
@@ -263,17 +263,15 @@ and the priority order is CONFIRMED (ADR-0018). What is still absent:
 - **Dragging the unconscious to a prison and the dead to a graveyard**, and
   **fleeing a fight.** Neither has a trigger anybody has stated, and neither has
   anything to act on: there is no combat, no unconsciousness and no prison.
-- **Picking up gold somebody else dropped.** Carrying gold an imp mined itself is
-  implemented as the tail of a mining job. **The pile now exists** (ADR-0055) —
-  selling a treasury or killing a creature leaves real gold on the floor — so
-  what is missing is only the trigger, and the trigger is the problem: fetching
-  is **not in the priority order the owner gave**, and where it sits decides
-  whether an imp abandons a marked wall to go and collect. The binary was
-  searched for it and the answer is not cheap to read: the imp's job selection
-  is part of the runtime-registered state machine (Q125), not a visible
-  priority list. **So this is an owner question rather than a research one**,
-  and it is on the observation checklist. Guessing the priority would be
-  inventing behaviour in the one place the owner has already supplied it once.
+- ~~**Picking up gold somebody else dropped.**~~ **Done** (2026-09-05,
+  ADR-0056). The owner supplied the trigger the day after the pile became real:
+  *"if there is gold on the ground an imp will first take from that gold pile
+  and take it to a treasury, until all of it is gone"* — watched with a marked
+  gem tile standing right there and nobody mining it. So fetching sits **above**
+  marked excavation, which had been the top of the order since ADR-0018. What
+  is still open about it is small and named: Q142 (topping up a part-load),
+  Q143 (whether the pick-up costs time), Q145 (whether it interrupts a swing in
+  progress).
 - **The floor lump an imp leaves when there is nowhere to unload.** The
   *decision* is DK2's and is implemented — an imp with nowhere to put gold keeps
   mining rather than standing still — but what it cannot hold is reported as
@@ -283,6 +281,14 @@ and the priority order is CONFIRMED (ADR-0018). What is still absent:
   load down in**, not how big a lump grows (ADR-0055), so the sentence this
   bullet used to end with was resting on a misread variable. Q138 for the mined
   surplus, Q140 for an imp that cannot deliver.
+
+  **And the owner has now watched the case that matters most here**, correcting
+  their own earlier report: a gem tile marked while it was **not connected** to
+  the dungeon by bridge, with the tiles around it unclaimed, **was** mined —
+  and **none of the gold ever reached a treasury**. Ours reproduces that without
+  a rule for it: both searches walk, so a stranded imp cannot reach a store and
+  the gold piles up where it was mined. Whether the original's condition is
+  reachability or *claimed ground* is Q144, and one bridge separates them.
 - **Building rooms.** In DK2 an imp walks to a marked room tile and constructs
   it; here `RoomBuildSystem` lays the terrain down instantly and no worker is
   involved. That is a fourth thing an imp does and it is not in the priority

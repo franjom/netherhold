@@ -360,6 +360,7 @@ public sealed class WorldView
         CreatureActivity.Sleeping => "sleeping",
         CreatureActivity.Dying => "dying",
         CreatureActivity.Leaving => "leaving",
+        CreatureActivity.FetchingGold => "fetching_gold",
         _ => throw new ArgumentOutOfRangeException(
             nameof(activity), activity, "No animation key for this activity."),
     };
