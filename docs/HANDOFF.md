@@ -13,10 +13,10 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **741 tests green**
+**every** record type's on-disk size is now known and pinned. **750 tests green**
 with and without a DK2 install; **15 scenarios** run, each drawing a picture of
-its finished world; clean tree. (Core 17, Simulation 425, Data 64, Behavior 149,
-Assets 60, Presentation 26.)
+its finished world; **completely clean tree**. (Core 17, Simulation 434, Data 64,
+Behavior 149, Assets 60, Presentation 26.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
 creatures (ADR-0042, ADR-0047); a creature has **health and a hunger clock**
@@ -3055,3 +3055,90 @@ variable 19 and what supplies it (the big one) · **Q133** does a hatchery make
 eggs or chickens, and does the loose flock stop at twelve · **Q134** why the
 exponent is 0.315477776 (recorded, does not matter). Q131 and Q133 are on the
 observation checklist as things to settle **by looking**.
+
+## Nineteenth sitting, closed: the owner answered three, and the tree went clean
+
+| | |
+|---|---|
+| `d5cafd9` | **The owner watched a hatchery, and the cap was not the cap** |
+| `137fc4f` | **Nine chickens in a three by three, and three documents catch up** |
+| `806efd1` | **AGENTS.md is committed, so every agent reads the same brief** |
+
+**750 tests green**, 15 scenarios, zero warnings, **hashes unmoved**, and for the
+first time in months **`git status` is completely empty** — `AGENTS.md` is in.
+
+### Three owner answers, and one of them overturned a claim
+
+**Q131 — a lair tile is bare until claimed.** *"Only when a creature enters a
+lair and claims a tile by dropping its bed does that tile get furniture on top of
+it."* Exactly what ADR-0054 assumed; **nothing had to change**, and that ADR now
+has no open assumptions. STRONGLY INFERRED → CONFIRMED.
+
+**Q133 — a hatchery lays eggs that hatch.** About **two seconds**, then a chicken
+that roams. `HatcheryRules.Hatch` swaps object 47 for object 9;
+`EggHatchSeconds` records the two seconds **as an animation length**, which is
+what it is.
+
+**Q135 — one chicken per room tile.** The owner counted **exactly nine in a 3×3**
+and more than twenty in a 5×5. **And the record had said so all along:** the
+Chicken's `RoomCapacity` = 1, a field parsed, documented as "how many of it a
+room tile holds", and read from nowhere. `FlockCapacity` takes the number from
+the definition rather than hardcoding nine.
+
+**The one that overturned something:** `MaxFreeRangeChickensPerPlayer` (12) was
+this project's assumed flock cap. Twenty-five in a 5×5 rules it out — it caps
+*loose* birds. **The hedge is what saved it:** the cap had deliberately been
+exposed and not enforced, because what its counter counted was UNKNOWN. Enforced,
+every hatchery would sit at twelve and **every test would still have passed.**
+
+`TryLayEgg` now refuses when full, counting eggs as well as chickens. The limit
+is confirmed; the *mechanism* is a reading and says so — refuse-to-lay vs
+lay-and-let-rot both fit the owner's description, and refusing is what reproduces
+a 3×3 settling at *exactly* nine.
+
+### Three stale documents brought current
+
+Between them they carried nine claims the code had already falsified.
+
+- **`RESEARCH_STATUS.md`** said creatures had no needs, that chickens were
+  unreachable because OBJECTS was unparsed, and that anger was blocked on its
+  unit. Added anger, levels, objects, the corpse correction, the hatchery and the
+  variable map. Its unsolved list now leads with **Q132** and names **carrying**
+  as the largest single blocker left.
+- **`ARCHITECTURE.md`** predated objects entirely. Gains an **Objects** section
+  and a **Creature needs** section; its "a room does nothing" paragraph was
+  simply wrong.
+- **`scenarios/README.md`** said non-workers are inert, that a lair heals
+  whatever stands on it, and that a creature has no anger or experience.
+
+### `AGENTS.md` and the second agent
+
+Committed because **Codex reads it**, and 430 of its 494 lines existed only in
+one working tree — a fresh clone would have shown a second agent 64 lines with no
+rank-of-evidence rule, no ADR-0046 quarantine, no goals. Checked before
+committing: no decompiler output, no addresses, no third-party prose.
+
+**`docs/CODEX_TASKS.md` is new** and holds three paste-ready briefs: the
+unverified-claim audit (read-only, run first), Q132, and an independent
+re-derivation as a cross-check. It also states the division of labour — Codex for
+verification, breadth and second opinions; **not** for `docs/research/` prose,
+the `reverse-engineering/` quarantine, the determinism hash, or commits.
+
+### Where to pick up
+
+**Carrying** is now the largest gap and several half-built mechanics name it: no
+corpse reaches a graveyard, no gold is lifted off the floor, no unconscious
+creature is dragged to a prison or back to its bed. **Gold on the floor** is the
+smallest clean piece of it — three of the 145 objects, and `CreatureDeathRules`
+already reports the gold it cannot drop.
+
+**Do not build the hatchery's clock until Q132 is answered.**
+
+### Owner questions still open
+
+**Q132** what variable 19 is and what supplies it — the big one, and the
+strongest candidate yet for Q1's tick rate · **Q97** does lair size change how
+fast arrivals slow · **Q118** the water slope · **Q123** does a bed cool anger
+before the creature lies down · **Q126** what level is the oldest imp · **Q129** a
+dungeon heart's real health against a stored 34464 · plus Q103, Q112, Q107, Q100,
+Q86, Q65.
