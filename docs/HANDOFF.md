@@ -13,9 +13,9 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **799 tests green**
+**every** record type's on-disk size is now known and pinned. **809 tests green**
 with and without a DK2 install; **16 scenarios** run, each drawing a picture of
-its finished world; **completely clean tree**. (Core 17, Simulation 469, Data 64,
+its finished world; **completely clean tree**. (Core 17, Simulation 479, Data 64,
 Behavior 151, Assets 61, Presentation 37.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
@@ -3658,3 +3658,110 @@ instruction?").
    what variable 19 is *for* without touching what it *is*.
 4. **Treasury deposit order** (`gold-on-the-floor.md` §5) is still the
    self-contained hash-moving correction available with no new research.
+
+## Twenty-second sitting: one sentence from the owner, and the imp's whole job list
+
+| | |
+|---|---|
+| `0daa03c` | **An imp chooses in two tiers, and gold is near rather than last** — Q146, Q147, Q142 closed; Q153–Q155 opened; ADR-0058 |
+| `3e9d697` | **An imp claims the tile it has just dug, and the mover stops clipping corners** — Q154 built; ADR-0059; HashVersion and snapshot 19 → 20 |
+
+**809 tests green**, 16 scenarios, zero warnings, clean tree, quarantine holding.
+
+### What happened
+
+The handoff asked for two recordings. The owner answered one of them in a
+sentence instead — *"imps prioritise walls over gold on the floor, in both
+cases"* — and that sentence, run back through the decompiler, produced the
+whole of DK2's imp job selection. The research note that had said "gold is
+sixth of nine" was rewritten from the top.
+
+### How an imp chooses, read from `ImpState.cpp`
+
+**Two tiers.** A byte table at `00698658` — `0e 08 09 01 03 0d 0c ff` — is
+searched **whole-map, one kind at a time**: *claim the tile you just dug* (14),
+loose objects to their room (8), build placed traps and doors (9/10), **dig and
+mine** (1/2), **claim floor** (3), carry the unconscious to Lair or Prison (13),
+corpses to the Graveyard (12). Only when every one of those is empty does the
+imp **ring-scan outwards** trying, at each tile, **reinforce/fix (6/16) → gold
+(7)** → objects (8) → an unidentified kind 11.
+
+So a marked wall beats gold anywhere; a wall beats gold *on the same tile*; and a
+nearer pile beats a farther wall. **The nine-step chain the previous sitting
+had called "the order" is the per-tile callback of a two-tile scan that runs
+once after an imp is dropped.** A fixed-order chain is not a priority list
+until you know who calls it.
+
+**All thirteen kinds are identified**, corroborated by the interface's own icon
+table (`SJ-Dig, SJ-Claim, SJ-Reinforce, SJ-Fix, SJ-Take_Gold, SJ-Take_Crate,
+SJ-Graveyard, SJ-Prison…`). Two of the earlier identifications were the right
+flag read backwards: kind 3 tests for the *absence* of Water and Lava and is
+claiming; kind 12 tests for *owned* ground and carries corpses. Also read: imps
+claim **enemy** floor unless allied; the deposit routine picks the **nearest**
+treasury or heart with room; an imp tops up a part-load until its hands hold a
+level-scaled share of `MaxGoldHeld` (Q142).
+
+### What changed in the code
+
+- **`ImpTaskSystem.TryTakeJob` is Tier A** — claim-the-just-dug-tile, marked
+  excavation, claim, each a whole-map search. **`TrySweep` is Tier B** — one
+  nearest-first search asking *reinforce here?* then *gold underfoot?* at every
+  standing tile. Gold dropped below claiming, and against reinforcing it is
+  decided by distance. The ADR-0056 argument for gold-second ("gold last would
+  never be collected") was a true premise in the wrong model: gold is not
+  *last*, it is *near*.
+- **`TileState.FreshlyDug`** (hash and snapshot 19 → 20): set when excavation
+  destroys a tile, cleared by the next change of terrain. `ClaimFreshlyDug` is
+  taken once none of the tile's **eight** neighbours still carries a *dig* mark
+  (mining next door does not hold it back — the original checks its kind 1
+  only). This is the dig-then-claim rhythm the game visibly has; ours used to
+  dig every mark on the map before claiming any.
+- **The mover walked a diagonal leg 45° first, then straight.** From an
+  off-centre start — and creatures stop wherever they *crossed into* a tile —
+  that sweeps through the side tile, and on tick 440 of the four-imp run the
+  side tile was the gem face. Now **surplus of the longer axis first, then
+  45°**, which runs exactly through the shared corner and touches nothing else;
+  `LegLength` is octile; one guard nudges a creature a single position unit off
+  the exact corner. ADR-0025's corner-cut stands. The pin did not move for this.
+
+### Three tests changed meaning rather than being repaired
+
+With bare rock beside an imp, the wall now correctly wins over gold two tiles
+away, so the older gold-fetching tests pre-reinforce the room's walls
+(`WallsAlreadyReinforced`) to measure fetching alone. Four new tests pin the
+competition; six pin the just-dug claim (`ImpClaimsWhatItDugTests`).
+
+### Docs
+
+`imp-task-priority.md` rewritten (keep §9 — what the first read got wrong, and
+why); ADR-0058, ADR-0059; Q141/Q142/Q146/Q147 rows rewritten and Q153–Q155
+added; `imp-tasks.md` summary row; `gold-on-the-floor.md` §9; the floor-gold
+scenario's header and duration (900 → 1800, so the second trip is in the log);
+observation checklist (Q147 struck); Codex Brief 4's film list (Q147 done).
+
+### Where the next session should start
+
+**Nothing is half-done.** In order of value:
+
+1. **Q150 — the lair trigger.** Still the largest known fidelity gap in creature
+   behaviour, design written, needs one recording. **Unchanged from last time
+   and still first.**
+2. **Q132 — variable 19's value** still blocks the hatchery clock.
+3. **Treasury deposit order** (`gold-on-the-floor.md` §5) remains the
+   self-contained hash-moving correction needing no new research — and this
+   sitting confirmed the *carrier's* half of it from the binary (nearest room
+   with space).
+4. **Q153 — the reinforce ceiling field** at terrain file offset `0x1c2`: a
+   ten-minute dump of `Terrain.kwd` decides whether it is health-shaped.
+5. **Q155 — task stealing by distance** — not built; matters once several imps
+   share a small dungeon in a scenario.
+
+### Owner questions after this sitting
+
+**Q150** what makes a creature go for a lair · **Q152** does regeneration
+continue in combat · **Q87** is a creature pool a standing limit or a draining
+quota (any level where the pool exceeds the portal cap) · **Q66** does
+"adjacent to claimed ground" include diagonals — **now live in a new way**,
+because the just-dug claim tests eight neighbours for marks while our
+ownership-adjacency test is orthogonal, and the original's claim handler
+(`FUN_00453b30`) is orthogonal too, so the two are at least consistent.
