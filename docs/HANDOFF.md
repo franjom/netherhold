@@ -13,10 +13,10 @@ carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
 renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **750 tests green**
+**every** record type's on-disk size is now known and pinned. **786 tests green**
 with and without a DK2 install; **15 scenarios** run, each drawing a picture of
-its finished world; **completely clean tree**. (Core 17, Simulation 434, Data 64,
-Behavior 149, Assets 60, Presentation 26.)
+its finished world; **completely clean tree**. (Core 17, Simulation 456, Data 64,
+Behavior 151, Assets 61, Presentation 37.)
 
 **M4 has started, and three of its seven items exist.** The portal produces
 creatures (ADR-0042, ADR-0047); a creature has **health and a hunger clock**
@@ -3142,3 +3142,103 @@ fast arrivals slow · **Q118** the water slope · **Q123** does a bed cool anger
 before the creature lies down · **Q126** what level is the oldest imp · **Q129** a
 dungeon heart's real health against a stored 34464 · plus Q103, Q112, Q107, Q100,
 Q86, Q65.
+
+## Twentieth sitting: gold reaches the floor, and objects reach the screen
+
+| | |
+|---|---|
+| `dfed434` | **Gold on the floor is an object, and its limit was never a limit** — ADR-0055 |
+| `858f5d0` | **Objects cross the presentation boundary, so a bed can be seen** — ADR-0035 amended |
+
+`HashVersion` 17 → 18, snapshot `FormatVersion` 17 → 18, pinned hash
+**`0x55BEDDA879B4A281`**. **786 tests green**, 15 scenarios, zero warnings,
+clean tree. (Core 17, Simulation 456, Data 64, Behavior 151, Assets 61,
+Presentation 37.)
+
+### The finding that mattered: a cap that was never a cap
+
+`MaxGoldPileOutsideTreasury` is 2000, and this project had assumed for months
+that it capped a pile. **It does not.** Its global has exactly three readers in
+the whole binary, all three imp code choosing where to put a load down, and all
+three make one test: a candidate spot holding a pile **strictly greater** than
+the variable is not chosen. Nothing anywhere clamps.
+
+Two of the three paths that make piles routinely exceed it — a sold treasury
+tile becomes a pile of 3000.
+
+**This is the second time in one week.** `MaxFreeRangeChickensPerPlayer` was the
+first, three days earlier. Same shape: a variable named exactly right for the
+thing you want to limit, and the only limit anyone had found. The hedge that
+saved both — expose it, do not enforce it, say why in the code — is now the
+house rule for a plausible cap, and `APileMayBeBiggerThanTheLimit` is the test
+that fails if someone "fixes" it.
+
+**Q65 is answered and its premise was wrong**, which is a better outcome than
+its question being hard.
+
+### What else the binary gave up
+
+- **A treasury tile is an object in DK2** — type 3, "Gold Pile 1", one per tile,
+  created on first deposit, carrying the amount in the same union field a floor
+  pile uses. Ours keeps it in the tile (ADR-0015 unchanged) because no behaviour
+  separates the two; the difference is written down rather than acted on. The
+  record corroborates it from the other side: `RoomCapacity` = 1.
+- **A dungeon heart's capacity is `MaxGoldPerDungeonHeartTile << 4`** —
+  hardcoded, as a shift, not a count of the room's tiles. 16000, which is what
+  the owner measured (Q52), so ADR-0027's "sixteen of the 25 tiles store gold"
+  reading is confirmed from a second direction.
+- **A creature drops its gold in one, two or three piles** — one below 1000, two
+  below 3000, three above — each holding `gold / piles` with integer division,
+  **so the remainder is destroyed**. 2999 leaves two piles of 1499 and one gold
+  that ceases to exist. Reproduced.
+- **DK2 spreads a deposit evenly across a player's treasuries and heart**, room
+  by room, and only then drops the remainder on the floor. `GoldStore.Deposit`
+  works in tile-index order and already said that order was ours; **this is what
+  DK2's actually is**, and closing the gap is a separate hash-moving change.
+- **A pile is on nobody's books.** Making one out of a treasury tile subtracts
+  the amount from the player in the same breath.
+
+### Objects can now be seen
+
+`ObjectView`, an `object` asset category, three more `IRenderTarget` methods.
+**This was a hole, not a feature:** objects had been in the world since ADR-0054
+and every renderer drew bare floor where one stood — so the scenario pictures,
+which are how this project checks its own work, were silently lying about a
+whole category of state. The sell scenario's picture now shows a `$` where the
+treasury was.
+
+Objects draw **under** creatures, and the order lives in `ScenePresenter` so the
+two renderers cannot disagree. No animation variants and no sub-tile position,
+both for the same reason: the simulation cannot yet distinguish an object state
+or move an object, and inventing either would put keys in a converter's work
+list that correspond to nothing.
+
+### Where to pick up
+
+**Carrying, still — and it is now one owner question away.**
+
+`FloorGold` makes the gold; nothing fetches it. The mechanism is mostly the
+mining tail that already exists. What is missing is the **trigger**, and the
+trigger cannot be guessed: fetching is not in the priority order the owner gave
+(marked excavation → claim → reinforce, Q24 CONFIRMED), and the binary does not
+offer it cheaply — an imp's job selection is part of the runtime-registered
+state machine (Q125), not a visible list.
+
+**So Q141 is at the head of the observation checklist**, and it is the cheapest
+item on it: mark a wall, drop gold nearby, watch one imp. Four sub-questions,
+one glance each, and the fourth (does an enemy imp take your dropped gold)
+settles Q136 as a side effect.
+
+After that: the **graveyard**, which wants the same creature-carrying task
+(ADR-0051's correction), and **treasury deposit order** (§5 of
+`gold-on-the-floor.md`) as a self-contained hash-moving correction.
+
+**Do not build the hatchery's clock until Q132 is answered.**
+
+### Owner questions added this sitting
+
+**Q136** whose a floor pile is — a level-wide player id, not the room's owner ·
+**Q137** does leaving by portal drop gold, as dying does · **Q138** does mined
+gold an imp cannot hold stay on the floor · **Q139** which tile an overflowing
+refund uses (ours) · **Q140** what a blocked imp does with its load ·
+**Q141** where fetching sits in the priority order — **the one to ask first**.
