@@ -72,10 +72,27 @@ public static class HatcheryRules
     public const byte EggObjectId = 47;
 
     /// <summary>
-    /// The Chicken itself, object <b>9</b>. Nothing here creates one yet — see
-    /// <see cref="EggObjectId"/>.
+    /// The Chicken itself, object <b>9</b> — what an egg becomes, and the only
+    /// one of the three a creature can eat.
     /// </summary>
     public const byte ChickenObjectId = 9;
+
+    /// <summary>
+    /// How long an egg takes to become a chicken: about <b>two seconds</b>.
+    ///
+    /// <para><b>CONFIRMED by the owner</b> (2026-09-05), who watched one:
+    /// <i>"it produces eggs that hatch, that entire animation of eggs appearing
+    /// and hatching lasts about 2 seconds, and after that a chicken appears and
+    /// roams around the hatchery."</i></para>
+    ///
+    /// <para><b>Timed from an animation, which is the caveat.</b> Two seconds is
+    /// how long the whole appear-and-hatch sequence takes on screen; whether the
+    /// simulation holds an egg in a state for exactly that long, or the art
+    /// simply covers a shorter transition, is not settled. It is recorded as the
+    /// observation it is, and nothing yet advances a clock towards it — see
+    /// <see cref="Hatch"/>.</para>
+    /// </summary>
+    public const int EggHatchSeconds = 2;
 
     /// <summary>
     /// The smallest squared distance, <b>in whole tiles</b>, that two coops may
@@ -214,10 +231,14 @@ public static class HatcheryRules
     ///
     /// <para><b>Nothing calls this on a clock</b>, because the interval's unit is
     /// unresolved (see the type doc, and Q132). Nor is the per-player free-range
-    /// cap applied: DK2 gates the coop path on a counter it keeps on the player
-    /// against <c>MaxFreeRangeChickensPerPlayer</c> (12), and what that counter
-    /// counts — loose chickens only, or everything a hatchery has made — is
-    /// UNKNOWN. Guessing it would silently throttle a room.</para>
+    /// cap applied, and <b>the owner's observation is now the reason rather than
+    /// a hedge</b>: a 5×5 hatchery holds <i>more than twenty</i> chickens
+    /// (2026-09-05), where a cap of 12 on the room's flock would have stopped it
+    /// at twelve. So <c>MaxFreeRangeChickensPerPlayer</c> counts something
+    /// narrower than "chickens this keeper has" — loose ones, which is what its
+    /// name says and what the Chicken union's own <c>FreeRange</c> field
+    /// distinguishes. Enforcing it here would throttle a room that DK2 does not
+    /// throttle.</para>
     /// </summary>
     public static ObjectState? TryLayEgg(
         WorldState world, GameDatabase database, RoomInstance hatchery, SimRandom rng)
@@ -246,6 +267,41 @@ public static class HatcheryRules
         WorldState world, GameDatabase database, RoomInstance hatchery, int tileIndex) =>
         world.SpawnObject(database, EggObjectId, hatchery.OwnerPlayerId, tileIndex);
 
+    /// <summary>
+    /// Turns an egg into a chicken on the same tile, and hands back the chicken.
+    ///
+    /// <para><b>The transition the owner confirmed</b> and the data had only
+    /// implied: a hatchery lays object 47 and a creature eats object 9, and this
+    /// is the step between. The chicken inherits the egg's tile and owner, and
+    /// the egg ceases to exist — it is a replacement rather than a
+    /// state change, because our object carries no state machine yet (DK2's
+    /// does: every object has a <c>StateId</c> and a <c>StateAge</c>, and the
+    /// egg's start state is 0 against the chicken's 10).</para>
+    ///
+    /// <para><b>Nothing drives this on a clock</b>, for the same reason nothing
+    /// drives laying: the room's interval is unresolved (Q132). When it is, the
+    /// ageing arrives with it, and <see cref="EggHatchSeconds"/> is the delay it
+    /// will use. Until then this is a tested transition and not a mechanic, on
+    /// the precedent of <see cref="CreatureHealthRules.Eat"/>.</para>
+    ///
+    /// <para>Throws if handed something that is not an egg, because silently
+    /// hatching a bed would be worse than stopping.</para>
+    /// </summary>
+    public static ObjectState Hatch(
+        WorldState world, GameDatabase database, ObjectState egg)
+    {
+        if (egg is null) throw new ArgumentNullException(nameof(egg));
+        if (egg.ObjectTypeId != EggObjectId)
+            throw new ArgumentException(
+                $"Object {egg.Id} is type {egg.ObjectTypeId}, not an egg.", nameof(egg));
+
+        int tile = egg.TileIndex;
+        byte owner = egg.OwnerPlayerId;
+
+        world.RemoveObject(egg.Id);
+        return world.SpawnObject(database, ChickenObjectId, owner, tile);
+    }
+
     /// <summary>Whether any object at all stands on this tile.</summary>
     public static bool AnythingOn(WorldState world, int tileIndex)
     {
@@ -257,9 +313,14 @@ public static class HatcheryRules
 
     /// <summary>
     /// <c>MaxFreeRangeChickensPerPlayer</c> — <b>12</b> in the shipped table, and
-    /// the original really does check it before laying at a coop.
+    /// the original really does check it before laying at a coop: variable 86,
+    /// whose global is one byte wide and has <b>exactly one reader in the whole
+    /// binary</b>, which is that check.
     ///
-    /// <para>Exposed but not enforced; see <see cref="TryLayEgg"/> for why.</para>
+    /// <para><b>It does not cap a hatchery's flock.</b> The owner watched a 5×5
+    /// hold more than twenty chickens. Whatever the counter it is compared
+    /// against holds, it is not "chickens this keeper owns" — see
+    /// <see cref="TryLayEgg"/>. Exposed, not enforced.</para>
     /// </summary>
     public static int FreeRangeCap(GameDatabase database) =>
         database[VariableTypeId.MaxFreeRangeChickensPerPlayer];

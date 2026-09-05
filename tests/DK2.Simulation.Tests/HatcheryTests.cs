@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -320,6 +320,64 @@ public class HatcheryTests
 
         // And it really is choosing, rather than always taking the same coop.
         Assert.True(first.Distinct().Count() > 1, "every egg went to the same coop");
+    }
+
+    // ---- the egg becomes a chicken ------------------------------------------
+
+    [Fact]
+    public void AnEggHatchesIntoAChickenOnTheSameTile()
+    {
+        // CONFIRMED by the owner on 2026-09-05, watching one: "it produces eggs
+        // that hatch... after that a chicken appears and roams around the
+        // hatchery". The data had only implied the step -- the room lays 47 and
+        // a creature eats 9 -- and now it is a fact.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        RoomInstance room = Hatchery(db, world, 2, 2, 6, 6);
+        HatcheryRules.PlaceCoops(world, db, room);
+
+        ObjectState egg = HatcheryRules.TryLayEgg(world, db, room, new SimRandom(42))!;
+        int tile = egg.TileIndex;
+        int eggId = egg.Id;
+
+        ObjectState chicken = HatcheryRules.Hatch(world, db, egg);
+
+        Assert.Equal(HatcheryRules.ChickenObjectId, chicken.ObjectTypeId);
+        Assert.Equal(tile, chicken.TileIndex);
+        Assert.Equal(Keeper, chicken.OwnerPlayerId);
+
+        // The egg is gone, and gone properly: not left standing under the
+        // chicken, and not reusing its id.
+        Assert.Null(world.ObjectById(eggId));
+        Assert.NotEqual(eggId, chicken.Id);
+
+        // And the thing that appears IS food, which the egg was not.
+        Assert.True(Assert.IsType<ObjectDef>(db.ObjectById(chicken.ObjectTypeId)).IsFood);
+    }
+
+    [Fact]
+    public void HatchingRefusesAnythingThatIsNotAnEgg()
+    {
+        // A coop is the nearest thing to hand and hatching one would be absurd,
+        // which is the point: this throws rather than quietly turning furniture
+        // into poultry.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        RoomInstance room = Hatchery(db, world, 2, 2, 6, 6);
+        HatcheryRules.PlaceCoops(world, db, room);
+
+        ObjectState coop = world.Objects[0];
+        Assert.Throws<ArgumentException>(() => HatcheryRules.Hatch(world, db, coop));
+        Assert.Equal(HatcheryRules.CoopObjectId, world.Objects[0].ObjectTypeId);
+    }
+
+    [Fact]
+    public void TheHatchDelayIsTwoSeconds()
+    {
+        // Timed from an animation rather than from a counter, and recorded as
+        // such. Nothing advances a clock towards it yet -- laying has no clock
+        // either (Q132) -- so this pins the number, not a mechanic.
+        Assert.Equal(2, HatcheryRules.EggHatchSeconds);
     }
 
     // ---- the cap we know about and do not apply -----------------------------

@@ -872,7 +872,38 @@ measurement tooling, or disassembly, and are scheduled accordingly:
 - **Q37a — what `MaxManaGain` and `DungeonHeartMaxManaIncrease` are for.** Closed
   by elimination; they affect nothing a player can see.
 
-### Q133 — does a hatchery make eggs or chickens? — **new, and you can just watch**
+### Q133 — does a hatchery make eggs or chickens? — **ANSWERED: eggs, and they hatch**
+
+> *"It produces eggs that hatch, that entire animation of eggs appearing and
+> hatching lasts about 2 seconds, and after that a chicken appears and roams
+> around the hatchery. No it is not capped at 12, a 5x5 hatchery produces more
+> than 20 chickens, seems like it is continuously producing eggs and chicken,
+> however they also seem to be disappearing if no creature eats them, so the
+> total population remains stable."* — 2026-09-05
+
+Three answers in one, and the second overturned something:
+
+- **the egg-to-chicken step is real**, and takes about two seconds. Built as
+  `HatcheryRules.Hatch`, with the two seconds recorded as the animation length
+  it is;
+- **the cap of 12 is not a cap on the flock.** Twelve was the only limit this
+  project had found, and a 5x5 holding more than twenty rules it out. The
+  variable is real — one byte, one reader in the whole binary, checked before
+  laying at a coop — so it caps something narrower. Loose chickens, presumably,
+  which is what "free range" means and what the Chicken's own `FreeRange` field
+  distinguishes;
+- **the population is stable**, which fits the Chicken carrying
+  `DieOverTimeIfNotInRoom` and not `DieOverTime`: a bird that wanders off the
+  hatchery's tiles is no longer in a room, and rots.
+
+**One follow-up, and it is the same kind of looking (Q135): how many chickens
+does a 3x3 hatchery settle at?** The Chicken record says `RoomCapacity` 1, which
+read as one bird per room tile predicts **9** for a 3x3 and 25 for a 5x5 — and
+25 is a good fit for "more than 20". Nine would confirm it. Anything near twelve
+would send us back to the cap. Anything else means neither, and the real limit
+is still unfound.
+
+### Q133 (original) — does a hatchery make eggs or chickens?
 
 **Build a hatchery and look at what appears on the coops.**
 
@@ -892,7 +923,23 @@ scatter countdown — so it should peck about and bolt when disturbed. And there
 is a cap of **12 free-range chickens per player**, which is the sort of number
 that shows: if you build an enormous hatchery, does the loose flock stop growing?
 
-### Q131 — does a fresh lair tile look bare, or already furnished? — **new, and the cheapest on this list**
+### Q131 — does a fresh lair tile look bare, or already furnished? — **ANSWERED: bare**
+
+> *"Yes a lair is bare, green lair texture on the floor tile, only when a
+> creature enters a lair and claims a tile by dropping its bed does that tile get
+> furniture on top of it."* — 2026-09-05
+
+Which is exactly what ADR-0054 assumed and the only thing it had left open. The
+bed object is **created on claim**, of the claiming creature's own kind, and
+`LairRules.TryClaimBed` already did that — so the confidence moves from STRONGLY
+INFERRED to CONFIRMED and nothing had to change.
+
+The wording adds one thing worth keeping: the creature **drops** its bed, so
+placing it is an act the creature performs on arrival rather than something the
+room does. That is presentation as far as the simulation is concerned, and it is
+also why `FlagDestroyWhenDropped` sits beside `CreatureId` in the object's union.
+
+### Q131 (original) — does a fresh lair tile look bare, or already furnished?
 
 **Build a lair somewhere with no creatures near it, and look at it.**
 

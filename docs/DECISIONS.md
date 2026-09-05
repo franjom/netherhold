@@ -3637,11 +3637,19 @@ tests passed. Tests build their database directly and none of them called it.
 Two guards now exist, and the real one sweeps every record collection by
 reflection so the next record is covered the day it is added.
 
-**Q131 is what this decision assumes and nobody has watched:** that the bed
+**Q131 was what this decision assumed and nobody had watched** — that the bed
 object is *created* when a creature claims a tile rather than shipped with the
-room. Every piece of evidence points that way — a per-creature bed type cannot be
-placed before the creature is known — but the owner has not been asked whether a
-fresh lair tile looks bare until somebody moves in.
+room. **CONFIRMED by the owner the next day** (2026-09-05): *"yes a lair is bare,
+green lair texture on the floor tile, only when a creature enters a lair and
+claims a tile by dropping its bed does that tile get furniture on top of it."*
+
+Nothing had to change, which is the useful part: the code already did this, on
+the strength of a per-creature bed type being unplaceable before the creature is
+known. The confidence moves from STRONGLY INFERRED to CONFIRMED and **this ADR
+has no open assumptions left.** The wording adds one detail — the creature
+*drops* its bed, so placement is an act the creature performs on arrival — which
+is presentation rather than simulation, and is also why
+`FlagDestroyWhenDropped` sits beside `CreatureId` in the object's union.
 
 What this unblocks, in order: the **Hatchery** (a chicken is an object with a
 pecking timer and a scatter countdown, and the union says so), **gold on the

@@ -45,8 +45,14 @@ namespace DK2.Simulation;
 /// and giving the bed up destroys it. That is why occupancy needs no separate
 /// bookkeeping: <b>a lair tile is taken exactly when a bed object stands on
 /// it</b>, and a creature that dies, leaves or is removed cannot strand a bed
-/// that nothing owns, because releasing the bed is what removes the object.
-/// STRONGLY INFERRED rather than watched — Q131.</para>
+/// that nothing owns, because releasing the bed is what removes the object.</para>
+///
+/// <para><b>CONFIRMED by the owner</b> (2026-09-05), which closes Q131 and the
+/// one assumption ADR-0054 rested on: <i>"yes a lair is bare, green lair texture
+/// on the floor tile, only when a creature enters a lair and claims a tile by
+/// dropping its bed does that tile get furniture on top of it."</i> So a lair
+/// tile really is bare until it is claimed, the bed really is created at that
+/// moment, and it really is <b>that creature's</b> bed being put down.</para>
 ///
 /// <para>The cost is a scan of the object list per query, and beds are tens
 /// where tiles are tens of thousands.</para>

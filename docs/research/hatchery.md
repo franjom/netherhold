@@ -4,8 +4,9 @@
 plus `Objects.kwd`. Facts in our own words; ADR-0046 governs the boundary.
 
 **Status: researched, and the determined parts are built.** `HatcheryRules`
-implements the coop count, the spacing, the coops as objects and the egg
-placement, with 18 tests. What is *not* built is the clock: the laying interval
+implements the coop count, the spacing, the coops as objects, the egg placement
+and the hatch, with 21 tests. Q133 and the free-range question are **answered by
+the owner** (2026-09-05); Q135 replaces the latter. What is *not* built is the clock: the laying interval
 is multiplied by a balance variable no shipped file supplies, and a guessed unit
 would be inventing DK2 behaviour, which the brief forbids. See §4 and §6.
 
@@ -27,10 +28,21 @@ The routine that produces food creates **object 47**, which `Objects.kwd` names
 not.
 
 So the food chain has a step this project had not accounted for: **the hatchery
-lays an egg, and something turns the egg into a chicken.** The egg's own state
-machine is the obvious candidate — an object carries a `StartState` and a
-`StateAge` (objects.md §7) and the Egg's `StartState` would say where it begins.
-What performs the transition has not been found. **Q133.**
+lays an egg, and something turns the egg into a chicken.**
+
+**CONFIRMED by the owner** (2026-09-05), who watched one: *"it produces eggs that
+hatch, that entire animation of eggs appearing and hatching lasts about 2
+seconds, and after that a chicken appears and roams around the hatchery."* So the
+step is real and the delay is **about two seconds** — timed from the animation,
+which is the caveat: whether the simulation holds an egg in a state for exactly
+that long, or the art covers a shorter transition, is not settled and does not
+matter until something ticks it.
+
+The objects' `StartState`s corroborate the shape — 0 for the egg, 10 for the
+chicken — so both have a state machine to do it in, and DK2's object carries a
+`StateAge` to time it (objects.md §7). `HatcheryRules.Hatch` performs the
+replacement; ours has no object state machine yet, so it swaps one object for
+another rather than advancing a state. **Q133, closed.**
 
 ## 2. How many coops a hatchery has
 
@@ -126,9 +138,30 @@ one instruction, and appears in no shipped file at all — the full account is i
 
 Variable 86 is `MaxFreeRangeChickensPerPlayer`, shipped as **12**, and it is
 real: before laying, the coop path checks a **per-player counter** against a
-global limit and does nothing when the counter has reached it. There is a
-setter for that counter as its own function, so it is maintained rather than
-recomputed.
+global limit and does nothing when the counter has reached it. The variable maps
+to a **byte-wide global with exactly one reader in the whole binary**, which is
+that check — so there is no ambiguity about what the number is for.
+
+**But it does not cap a hatchery's flock**, and the owner settled that by
+looking: a **5x5 hatchery holds more than twenty chickens** (2026-09-05), where
+a limit of 12 on the room's birds would have stopped it at twelve. So the counter
+holds something narrower than "chickens this keeper owns" — loose ones, which is
+what *free range* means and what the Chicken union's own `FreeRange` field
+distinguishes from a hatchery bird. The counter's setter is a function of its
+own, called from four places outside `Hatchery.cpp`, which fits a census kept by
+the chicken's own create/destroy rather than by the room.
+
+**So what does cap it? UNKNOWN, with one good candidate — Q135.** The Chicken
+record carries `RoomCapacity` **1**, and read as one bird per room tile that
+gives 25 for a 5x5, which fits "more than 20", and **9 for a 3x3**, which is the
+measurement that would settle it.
+
+The owner also reports the flock is **stable** — chickens vanish if nothing eats
+them. That fits the record exactly: the Chicken carries
+`DieOverTimeIfNotInRoom` and **not** `DieOverTime`, so a bird is safe on the
+hatchery's tiles and rots once it wanders off them. Production against strays
+rotting is an equilibrium, and it is also, presumably, how a bird becomes free
+range in the first place.
 
 The object union corroborates the name from the other side: a `Chicken` object's
 per-kind state is **`FreeRange`, `PeckingTimer`, `StayThere`,
@@ -146,19 +179,22 @@ hatchery.
   coop always stands at a tile centre);
 - coops as real objects, placed idempotently so the call is safe to repeat;
 - the egg at a random coop, or on a random empty tile when the room has none;
-- the free-range cap **exposed but not enforced** — DK2 checks a counter it keeps
-  on the player, and what that counter counts (loose chickens only, or everything
-  the room ever made) is UNKNOWN, so applying it would silently throttle a room.
+- the **hatch**: `Hatch` swaps an egg for a chicken on the same tile, with
+  `EggHatchSeconds` (2) recorded beside it;
+- the free-range cap **exposed and deliberately not enforced** — and since
+  2026-09-05 that is a finding rather than a hedge: a 5x5 hatchery holds more
+  than twenty chickens, so a limit of 12 is not the room's limit, and applying it
+  would throttle a room DK2 does not throttle.
 
 **Not built, and named:** a room's produced-count, which has nothing to read it
-until laying happens on a clock.
+until laying happens on a clock; and the ageing that would carry an egg to
+`EggHatchSeconds`, which arrives with the same clock.
 
 **Blocked on Q132** (the unit): the laying interval, and therefore the room
-actually producing anything on a clock.
+producing anything on its own.
 
-**Blocked on Q133** (egg to chicken): what a creature eats. It eats a *chicken*
-— `HpFromChicken` is per creature, 375 for a Goblin — and the hatchery lays an
-*egg*, so the missing transition sits between them.
+**Open, and measurable — Q135:** what actually caps the flock. One chicken per
+room tile is the candidate; a 3x3 settling at about nine would confirm it.
 
 **Not researched at all:** how a hungry creature chooses a hatchery and walks to
 it, what happens when two creatures want the same chicken, and whether an imp

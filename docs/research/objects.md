@@ -1,4 +1,4 @@
-# The OBJECTS record: beds, chickens, gold — and no corpses
+﻿# The OBJECTS record: beds, chickens, gold — and no corpses
 
 `Objects.kwd`, record type **240**: **145 objects of 894 bytes**. Parsed
 2026-09-04. This is the record four half-built mechanics were recorded as blocked
@@ -294,8 +294,15 @@ fidelity:
    which is one object carrying one creature id, and not a property of the tile.
 3. **The presentation layer needs the object anyway** to draw the right bed.
 
-**STRONGLY INFERRED, not confirmed:** that the bed object is *created* when a
-creature claims a tile rather than existing with the room. The three facts above
-all point that way — a per-creature bed type cannot be placed before the
-creature is known — but nobody has watched a lair tile go from bare to furnished
-and said so. Q131.
+**CONFIRMED by the owner** (2026-09-05): the bed object *is* created when a
+creature claims a tile, rather than existing with the room. *"Yes a lair is bare,
+green lair texture on the floor tile, only when a creature enters a lair and
+claims a tile by dropping its bed does that tile get furniture on top of it."*
+The three facts above had all pointed that way — a per-creature bed type cannot
+be placed before the creature is known — and this is the observation that settles
+it. Q131, closed.
+
+One extra detail worth keeping from the wording: the creature **drops** its bed,
+so the placement is an act the creature performs on arrival. That is presentation
+rather than simulation as far as anything here is concerned, but it is also why
+`FlagDestroyWhenDropped` sits next to `CreatureId` in the object's union.
