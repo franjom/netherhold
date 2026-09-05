@@ -4041,3 +4041,46 @@ t6559 and is blocked for want of a portal, once, in silence thereafter; and the
 3. **The two flags at the top of the angry chooser** — a per-creature bit and
    definition flag `0x4000` — are unidentified, and the second diverts a
    creature out of choosing entirely.
+
+## Twenty-fourth sitting, coda: the work rate, and a prediction the owner broke
+
+Chasing Q1 against Q47 with the owner timing the original in parallel. Four
+measurements came in over one conversation and the last one refuted the middle
+two, which is the whole value of the exchange.
+
+**Found in the binary.** Both the claim handler (`FUN_004974c0`) and the
+reinforce handler compute `delta x (creature[0x3af] + creature[0x3b3])` in 4096
+fixed point. `0x3af` is `0xccc` - **exactly 0.8** - at spawn and `0x3b3` is 0.
+DK2 names the concept: `IncreasedWorkRatePercentageFromSlapping` (50),
+`...WhenCasinoBigWinOccurs` (35), `...OfPlayersTorturedCreatureTypes` (25),
+`IncreasedWorkRateDurationFromSlappingSeconds` (60). So `0x3af` is a base work
+rate and `0x3b3` is where a slap lands.
+
+**Which explains Q47's fifth**: `0.8 / 4 ticks a game second` = a fifth of the
+tabled delta per application. The number the code uses does not change; it
+stopped being a constant fitted to one gold measurement.
+
+**The prediction, and its refutation.** The level-up routine appeared to add a
+level-scaled stat to `0x3af`, so a levelled imp should work faster - at the stat
+table's level-3 percentages a 13-second reinforce should take 7.5-11 s. The
+owner measured a **level-3 imp at ~13.1 s** and then a **freshly created level-1
+imp at 13.3-13.4 s**. No level effect, on the one job long enough to show one
+unmistakably. An earlier pair of *claim* readings (1.30-1.40 s at level 1 against
+1.16-1.20 s at level 2) had looked like a level effect and is now recorded as
+unsupported: 0.17 s of hand timing against a 13-second null result.
+
+**What that bought anyway:** Q62's `maxHealth` rule is now confirmed against a
+**level-1** imp rather than an imp of unknown level, which is a confound nobody
+knew existed until this sitting.
+
+**Q1 is still open and a stopwatch cannot close it.** 5 ticks a second at rate
+0.8 and 4 ticks a second at rate 1.0 are the same wall-clock speed. The way in
+is the game loop: `FUN_00517490` is a bare field load of the tick counter, and
+whoever increments that field settles it.
+
+**Owner tests still outstanding, both discrete and neither needing a timer:**
+a **level-2 imp mining** should show 341 gold a swing if the work rate scales
+after all (273 says it does not), and a **slapped level-1 imp** should show 409
+if the +50% is a percentage of the base and 443 if it is percentage points.
+
+Docs only; no code changed.

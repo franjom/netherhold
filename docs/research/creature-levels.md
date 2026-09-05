@@ -47,6 +47,13 @@ per level, which is why levelling up and down cannot drift.
 | **Experience for next level** | 130 | 180 | 250 | 350 | 470 | 600 | 720 | 850 | **1000** |
 | Torture time to convert | 105 | 110 | 115 | 120 | 130 | 140 | 150 | 200 | 300 |
 
+**A worker's work rate is NOT one of the levelled stats** (owner, 2026-09-05):
+a level-3 imp and a freshly created level-1 imp reinforce the same wall in
+13.1 s and 13.3-13.4 s. The prediction that it *would* scale came from reading
+the level-up routine as adding a level-scaled stat to the work-rate field, and
+the stopwatch refused it on a 13-second job that could not have hidden a 25%
+change. See `tile-work.md`, "The work rate".
+
 **Ten of the 32 stats are 100% at every level** — own-land regeneration among
 them, so an Imp heals at 67 a second at level 1 and at level 10. "Levels scale
 everything" would be wrong about a third of the table, which is the same shape

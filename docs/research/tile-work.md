@@ -19,12 +19,114 @@ written into the code.
 | A gold seam releases gold in proportion to the rock removed | **CONFIRMED** (Q21) — 273 gold a swing is 60 health of a 660/3000 seam, measured in the original |
 | A gem face yields `GoldMinedFromGems` per collapse | **STRONGLY INFERRED** — see the gems argument below |
 | Tagging is per player | **STRONGLY INFERRED** |
-| **How often an application happens: five times a second, a fifth of the tabled delta** | **STRONGLY INFERRED** (Q47, ADR-0020) — from 273 gold a swing, corroborated by eight of ten deltas dividing by five and by claiming's four swings |
+| **How often an application happens: a fifth of the tabled delta each time** | **STRONGLY INFERRED** (Q47, ADR-0020) — from 273 gold a swing, corroborated by eight of ten deltas dividing by five and by claiming's four swings. **The fifth is now read rather than derived** (2026-09-05): work is `delta x workRate / 4`, the worker's work rate is **0.8** and 4 is ticks per game second — see "The work rate" below |
+| **A worker's work rate is 0.8, and it is a multiplier the handlers read** | **STRONGLY INFERRED** — read from the claim and reinforce handlers, with DK2's own `IncreasedWorkRate*` variables naming the concept |
+| **The work rate does not change with the worker's level** | **CONFIRMED** (owner, 2026-09-05) — a level-3 imp and a fresh level-1 imp reinforce the same wall in 13.1 s and 13.3-13.4 s |
 | The deltas are per second | **STRONGLY INFERRED** (Q19) — follows from the above; how long a second is in ticks is still Q1 |
 | A fully mined seam yields exactly its `goldValue` | **STRONGLY INFERRED** — gold taken from running totals, so truncation shows between swings and never as a shortfall |
 | Whether one worker applies the whole delta | **UNKNOWN** — untouched by the above, which measured one imp working alone |
 | `DigRockHealth` | **DOES NOT FIT, and is now CORRECTED rather than reproduced** (Q20, ADR-0023) - the shipped -5000 cannot produce the two swings the owner measured, so `ObservedCorrections` reads it as -500. The only such override in the project |
 | **An upward job needs the terrain's whole `maxHealth` worth of work** | **CONFIRMED and IMPLEMENTED** (Q62, ADR-0024) - the owner stopwatched reinforcing at 13.38 s, which is 66 swings, which is exactly Rock's `maxHealth` of 660 at 10 a swing. The same rule gives claiming its measured 4 swings (4 x 165 = 660 = Dirt Path's `maxHealth`). The rule it replaced fitted claiming only by luck and missed reinforcing by 16 swings |
+
+---
+
+## The work rate — READ FROM THE BINARY 2026-09-05, and it explains Q47's fifth
+
+**A work application is the tabled delta times the worker's own work rate, and a
+worker's work rate is 0.8.** Read out of the imp's claim handler
+(`FUN_004974c0`) and, in the identical shape, its reinforce handler
+(`FUN_00497ce0`-ish), both computing in 4096 fixed point:
+
+```
+work = <tabled delta> x (creature[0x3af] + creature[0x3b3])
+```
+
+`FUN_004363f0` is `(a * b) >> 12` and `FUN_0043d750` is `a + b`, so the shape is
+rate x (base + bonus), and both fields are pinned at creation:
+
+| Field | At spawn | Meaning |
+|---|---|---|
+| `0x3af` | `0xccc` = **exactly 0.8** | the **base work rate** |
+| `0x3b3` | **0** (`EBX`, the zero register, in the block that also zeroes `0x3b7`) | a **temporary bonus** |
+
+**The name is DK2's own.** The balance table carries four percentage modifiers
+of a thing it calls the work rate — `IncreasedWorkRatePercentageFromSlapping`
+(50), `IncreasedWorkRateDurationFromSlappingSeconds` (60),
+`IncreasedWorkRatePercentageWhenCasinoBigWinOccurs` (35) and
+`IncreasedWorkRatePercentageOfPlayersTorturedCreatureTypes` (25). `0x3b3` is
+where those land, which is why it starts at zero: **slapping an imp to make it
+dig faster is a work-rate bonus**, and it is the oldest mechanic in the series.
+
+### What it does to Q47
+
+Work accrues **once a tick**, at `delta x rate / 4` — the 4 being ticks per game
+second (Q1, variable 19). At a worker's 0.8 that is **a fifth of the tabled
+delta per application**, which is exactly the granularity Q47 measured from 273
+gold a swing.
+
+**So the fifth is explained rather than fitted.** Q47 got the right number from
+one measurement and had to infer "five applications a second" to justify it;
+what the binary says is *four applications a game second, one per tick, each
+0.8/4 of the delta*. The arithmetic the code performs is unchanged — a fifth of
+the delta per application — and the implementation stays correct. What changes
+is that the fifth is now a read constant instead of a derived one.
+
+### The measurements it fits
+
+Owner measurements, 2026-08-30 and 2026-09-05, wall clock by hand. Claim times
+include the post-work linger (Q49); reinforce times do not, which is why
+reinforce is the sensitive instrument here.
+
+| Measured | Model | Predicted |
+|---|---|---|
+| Mining: **273 gold a swing** | 300 x 0.2 = 60 health an application, x 3000/660 | **272.7** |
+| Claim, level 1: **1.30-1.40 s**, 3 visible jumps | 660 / 165 = **4 applications** = 0.8 s, + ~0.5 s linger | 1.3 |
+| Reinforce, **fresh level-1 imp: 13.3-13.4 s** | 660 / 10 = **66 applications** | **13.2 s** |
+| Reinforce, level-3 imp: **~13.1 s** | the same 66 applications | **13.2 s** |
+
+**Q62 is now confirmed with a level-1 imp.** The rule that an upward job needs
+the terrain's whole `maxHealth` (660 for Rock, not the 495 deficit) was measured
+on an imp of unknown level in August; the fresh-imp reading reproduces it to
+within a hand-timer's reaction time, so the level confound that this section's
+first draft raised is closed.
+
+### The work rate does NOT change with level — a refuted prediction
+
+The level-up routine `FUN_0048b120` adds a level-scaled stat to a field at
+`0x3af`, which predicted that a levelled imp works measurably faster: at the
+stat table's level-3 percentages a 13-second reinforce should finish in 7.5 to
+11 seconds. **The owner measured a level-3 imp and a freshly created level-1 imp
+reinforcing the same wall: 13.1 s against 13.3-13.4 s.** There is no level
+effect, and a 13-second job could not have hidden one.
+
+So the reading of `FUN_0048b120` is wrong somewhere — it is not the imp's path,
+or the stat it scales is zero for imps, or the field it writes is not the field
+the work handlers read. **The measurement is the fact and the decompile is the
+hypothesis.**
+
+An earlier pair of claim readings (level 1 at 1.30-1.40 s, level 2 at
+1.16-1.20 s) appeared to show a level effect. It is **not supported**: the
+difference is 0.17 s of hand timing on a job whose work phase is 0.8 s, against
+a 13-second job that shows nothing at all. Recorded here so that nobody
+re-derives it from the same two numbers.
+
+### What is still open
+
+- **The wall-clock length of a tick.** Timing cannot separate *5 ticks a second
+  at rate 0.8* from *4 ticks a second at rate 1.0* — they are the same speed —
+  and the 273 gold pins only the per-application fraction (0.2 of the delta).
+  Q1 needs the game loop traced, not another stopwatch. `FUN_00517490` is the
+  "now" the gates read and it is a bare field load,
+  `*(*(this + 4) + 4)`; whoever increments that field answers Q1.
+- **How the slap bonus combines.** `+50%` against a base of 0.8 is either 1.2
+  (a percentage of the base) or 1.3 (percentage points). One number settles it
+  with no timing at all: **a slapped imp mining a seam shows 409 gold a swing
+  under the first reading and 443 under the second**, against the unslapped 273.
+
+Confidence: **STRONGLY INFERRED** — the fixed-point multiply, the two constants
+and their use by two different job handlers are read from the binary; the
+per-tick division is inferred from the gold measurement and the four timings.
+
 
 ---
 
