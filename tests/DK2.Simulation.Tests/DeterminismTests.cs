@@ -107,6 +107,19 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
+        // Bumped with HashVersion 17 -> 18 (Q31, Q65): an object gained the
+        // union's Gold member, ObjectState.GoldHeld, because gold on the floor
+        // is an object -- type 1, "Gold", carrying its amount in the same four
+        // bytes a bed reads a creature id out of. Nothing in this run drops any:
+        // the fixture's imps mine and deliver and none of them dies, and no
+        // treasury is sold. So what moved is the composition alone, one more
+        // field hashed per object in a world that has no objects in it.
+        //
+        // That is the useful shape for a pin: a field added to a list that is
+        // empty here still changes the hash, which is what proves the hash
+        // covers the field rather than the value. Snapshot FormatVersion went
+        // 17 -> 18 in the same commit.
+        //
         // Bumped with HashVersion 16 -> 17 (Q130): the world gained an OBJECT
         // list, and a creature LOST a field. A bed is now a thing standing on a
         // tile -- an ObjectState whose CreatureId says whose it is -- where it
@@ -133,12 +146,13 @@ public class DeterminismTests
         // Version 15 was the Level field itself (Q119), whose arithmetic is a
         // proven no-op at level 1: only the hash composition moved.
         //
-        // Previous values: 0x092072D0E7C9B04E (16), 0x38CCE7E988729817 (15),
+        // Previous values: 0x6B5ECAD0E9EDB2F0 (17), 0x092072D0E7C9B04E (16),
+        // 0x38CCE7E988729817 (15),
         // 0x5DB64D0C91D99368 (14),
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x6B5ECAD0E9EDB2F0UL, sim.StateHash());
+        Assert.Equal(0x55BEDDA879B4A281UL, sim.StateHash());
     }
 
     [Fact]

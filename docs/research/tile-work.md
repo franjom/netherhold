@@ -1,4 +1,4 @@
-# Tile work: digging, mining, claiming, reinforcing
+﻿# Tile work: digging, mining, claiming, reinforcing
 
 Milestone M3. What happens to a tile when somebody works on it.
 
@@ -378,8 +378,9 @@ cannot hold is lost rather than left on the floor, because a lump is an object
 A tile can also *lose* gold. Room terrain is ownable floor, so a rival can attack
 a treasury down to nothing; when it converts to claimed path — which holds no
 gold — the amount is reported as `GoldSpilled` and emitted as `gold_spilled`. In
-the original that gold scatters as piles on the floor; piles are objects (M6), so
-here it is lost, loudly rather than quietly.
+the original that gold stays on the floor of the tile it came off, as an object
+— which is what `TileWorkSystem` now does with it (gold-on-the-floor.md §4). It
+comes off the keeper's total and stays in the world.
 
 ---
 

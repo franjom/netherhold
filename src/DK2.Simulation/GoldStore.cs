@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -20,14 +20,23 @@ namespace DK2.Simulation;
 /// integer would have made all three unenforceable, so it is not modelled that
 /// way here (ADR-0015).</para>
 ///
-/// <para><b>Three of the four places exist.</b> Treasury tiles and dungeon-heart
+/// <para><b>All four places now exist.</b> Treasury tiles and dungeon-heart
 /// tiles are here, because a variable names each and a tile can carry the
 /// amount; a creature's hands are on the creature
 /// (<see cref="CreatureState.GoldHeld"/>), because that is where DK2 puts mined
-/// gold before a treasury ever sees it (Q31). <b>Floor piles are not:</b> a pile
-/// is an OBJECT and the OBJECTS record is not parsed until M6. So gold that will
-/// not fit is <i>refused</i> here and reported by the caller, never silently
-/// dropped and never silently kept. See docs/research/rooms-and-gold.md.</para>
+/// gold before a treasury ever sees it (Q31); and <b>floor piles are objects</b>,
+/// in <see cref="FloorGold"/>, since 2026-09-05. Gold that will not fit is still
+/// <i>refused</i> here rather than dropped, because this class knows an amount
+/// and not a place — the caller knows which tile the surplus belongs on and
+/// drops it there. See docs/research/rooms-and-gold.md and
+/// docs/research/gold-on-the-floor.md.</para>
+
+/// <para><b>A treasury tile's gold is an object in the original</b> — type 3,
+/// "Gold Pile 1", created on the tile at first deposit and carrying the amount
+/// in the same union field a floor pile uses. Ours keeps it in the tile and that
+/// is ADR-0015's call, unchanged; the finding is recorded rather than acted on
+/// because no behaviour has yet been found that separates the two. The place it
+/// would show is a keeper picking a treasury pile up in the hand.</para>
 ///
 /// <para>Which tile gets filled depends on who is asking.
 /// <see cref="DepositInto"/> — the carrier's route — puts the load in the tile

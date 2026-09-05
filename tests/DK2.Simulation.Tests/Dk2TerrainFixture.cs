@@ -216,7 +216,48 @@ internal static class Dk2TerrainFixture
             NameStringId = 2547,
             TooltipStringId = 2677,
         },
+
+        // The three gold objects, all of them, because two of the three matter
+        // by NOT being used: FloorGold creates object 1 and never 2 or 3, and a
+        // test can only pin that if the other two are here to be created by
+        // mistake. All three share the TypeGold bit, so IsPile answers yes to
+        // all three -- which is the flag doing the work rather than the id, and
+        // is why the rules that pick one name it outright.
+        GoldObject(FloorGold.FloorGoldObjectId, "Gold", 0x00810140u, 0, 256, 1228),
+        GoldObject(2, "Gold Bag", 0x00810140u, 1, 585, 1228),
+        GoldObject(FloorGold.TreasuryPileObjectId, "Gold Pile 1", 0x00014140u, 1, 1085, 1068),
     ];
+
+    /// <summary>
+    /// One of the three gold records. They differ in four numbers and agree on
+    /// everything else, including a <see cref="ObjectDef.StartState"/> of 31 and
+    /// a name string shared by all three -- the game calls every one of them
+    /// "Gold" in the interface.
+    ///
+    /// <para><c>Gold Pile 1</c>'s <see cref="ObjectDef.RoomCapacity"/> of 1 is
+    /// worth noticing: it is the same field that turned out to cap a hatchery's
+    /// flock at one chicken per tile, and here it says <b>one treasury pile per
+    /// tile</b> -- which is exactly what the original's deposit does, found
+    /// independently in the binary.</para>
+    /// </summary>
+    private static ObjectDef GoldObject(
+        byte id, string name, uint flags, byte roomCapacity, int width, int height) => new()
+    {
+        Name = name,
+        ObjectId = id,
+        Flags = (ObjectFlags)flags,
+        Hp = 128,
+        ManaValue = 0,
+        RoomCapacity = roomCapacity,
+        StartState = 31,
+        PickUpPriority = 176,
+        Width = new Fp32(width),
+        Height = new Fp32(height),
+        Mass = new Fp32(16384),
+        Speed = new Fp32(0),
+        NameStringId = 292,
+        TooltipStringId = 292,
+    };
 
     private static ObjectDef Bed(byte id, string name) => new()
     {

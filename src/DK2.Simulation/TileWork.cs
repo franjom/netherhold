@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -105,10 +105,11 @@ public enum TileWorkOutcome
 /// </param>
 /// <param name="GoldSpilled">
 /// Gold that was stored on the tile and is no longer, because the tile stopped
-/// being somewhere gold can be kept. <b>Also credited to nobody.</b> In DK2 a
-/// destroyed treasury scatters its contents across the floor as gold piles;
-/// piles are objects and objects are not parsed until M6, so the amount is
-/// reported and dropped rather than quietly retained (Q31).
+/// being somewhere gold can be kept. <b>Credited to nobody, and that is the
+/// point:</b> in DK2 a destroyed treasury leaves its contents on the floor as
+/// piles that belong to whoever fetches them. The caller turns this number into
+/// a pile on the tile (<c>FloorGold</c>); this record only reports how much came
+/// loose, because the rules here take a tile and not a world.
 /// </param>
 /// <param name="NewTerrainId">The tile's terrain type after the application.</param>
 public readonly record struct TileWorkResult(

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -370,7 +370,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         context.Emit(SystemName, "delivery_blocked",
             $"imp={creature.Id} player={creature.OwnerPlayerId} gold={creature.GoldHeld} " +
-            "reason=no_room (floor piles are objects, not implemented)");
+            "reason=no_room (Q140: the original may put the load down on the floor here)");
         GoIdle(creature);
         creature.TimerTicks = IdleDelayTicks(context.Database);
     }

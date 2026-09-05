@@ -191,10 +191,19 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         // grep for.
         bool leavesBody = CreatureDeathRules.LeavesBody(creature);
 
+        // What it was carrying falls where it fell -- in one, two or three
+        // piles, and the original's integer division destroys the remainder
+        // (FloorGold.DropFrom). Reported as dropped-and-lost rather than as one
+        // number, because the two are different amounts and the difference is
+        // DK2's own quirk.
+        int carried = state.GoldHeld;
+        int dropped = FloorGold.DropFrom(context.World, context.Database, state);
+
         context.Emit(SystemName, "creature_died",
             $"creature={state.Id} type={creature.Name} " +
             $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
-            $"gold_lost={state.GoldHeld} dying_for={state.DyingTicks} " +
+            $"gold_dropped={dropped} gold_lost_to_rounding={carried - dropped} " +
+            $"piles={FloorGold.PileCount(carried)} dying_for={state.DyingTicks} " +
             $"leaves_body={leavesBody}");
 
         context.World.RemoveCreature(state.Id);

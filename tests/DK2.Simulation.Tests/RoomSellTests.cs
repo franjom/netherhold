@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -194,13 +194,23 @@ public class RoomSellTests
     // ---- what a keeper loses ---------------------------------------------
 
     /// <summary>
-    /// Gold stored on a treasury tile that is sold has nowhere to be. In DK2 it
-    /// becomes piles on the floor an imp can fetch; a pile is an OBJECT and
-    /// objects arrive at M6 (Q31), so it is <b>reported and dropped</b> rather
-    /// than quietly retained.
+    /// Gold stored on a treasury tile that is sold <b>stays on that tile, as a
+    /// pile on the floor</b>.
+    ///
+    /// <para>That is the original's own answer, and it is exact rather than
+    /// plausible: selling walks the room's gold objects and, for each, makes a
+    /// floor pile at the same tile, moves the amount across and subtracts it
+    /// from the player's total. So the keeper is poorer by 3000 and the world is
+    /// not — the gold is lying there for an imp to fetch back once there is
+    /// somewhere to put it (gold-on-the-floor.md §4).</para>
+    ///
+    /// <para><b>And the pile is over the limit.</b> A treasury tile holds 3000
+    /// and <c>MaxGoldPileOutsideTreasury</c> is 2000, and nothing clamps on the
+    /// way out — which is the finding that stopped this project from applying
+    /// that variable as an invariant.</para>
     /// </summary>
     [Fact]
-    public void GoldOnASoldTreasuryTileIsReportedRatherThanQuietlyKept()
+    public void GoldOnASoldTreasuryTileEndsUpOnTheFloorOfThatTile()
     {
         Run run = Start();
         GameDatabase database = Dk2TerrainFixture.Database();
@@ -211,40 +221,54 @@ public class RoomSellTests
 
         run.Tick(SellRoomCommand.At(Keeper, new TilePos(1, 1)));
 
-        // The store is gone, so its contents are gone with it, and the refund
-        // had nowhere to go either.
+        // Off the keeper's books entirely -- floor gold belongs to nobody until
+        // it is carried back in.
         Assert.Equal(0, GoldStore.Total(run.World, Keeper));
+
+        int tile = (1 * run.World.Width) + 1;
+        Assert.Equal(3000 + 100, FloorGold.OnTile(run.World, database, tile));
+        Assert.Equal(3000 + 100, FloorGold.Total(run.World, database));
+
         Assert.Contains(run.Of("gold_displaced"), e => e.Detail.Contains("amount=3000"));
-        Assert.Contains(run.Of("refund_lost"), e => e.Detail.Contains("amount=100"));
+        Assert.Contains(run.Of("refund_overflowed"), e => e.Detail.Contains("amount=100"));
+
+        // Over the outside-treasury limit, and left that way on purpose.
+        ObjectState biggest = run.World.Objects
+            .Where(o => FloorGold.IsPile(database, o))
+            .OrderByDescending(o => o.GoldHeld).First();
+        Assert.True(biggest.GoldHeld > FloorGold.MaxPile(database));
+        Assert.False(FloorGold.AcceptsMore(database, biggest));
     }
 
     /// <summary>
-    /// <b>Selling a keeper's whole treasury in one command loses all of it</b>,
-    /// and the chain is worth following because it is not an arithmetic bug.
+    /// <b>Selling a keeper's whole treasury moves every coin to the floor</b>,
+    /// and the chain is worth following because none of it is lost.
     ///
-    /// <para>The first tile's 100 is banked into the second, which is the only
-    /// store left. Then the second tile is sold, so that 100 is displaced along
-    /// with anything else on it, and the second tile's own refund has nowhere to
-    /// go at all. Both halves are reported.</para>
+    /// <para>The first tile's refund of 100 is banked into the second, which is
+    /// the only store left. Then the second tile is sold, so that 100 is
+    /// displaced onto the floor along with anything else on it, and the second
+    /// tile's own refund has nowhere to be banked and lands on the floor too.
+    /// The keeper's total is zero and the world still holds 200.</para>
     ///
-    /// <para>In the original none of this is lost: the gold becomes piles on the
-    /// floor, and with no treasury left they simply stay there for an imp to
-    /// fetch once the keeper builds one. A pile is an OBJECT (M6, Q31), which is
-    /// the single reason a keeper here is poorer than a keeper there.</para>
+    /// <para>This is the test that used to assert the opposite. It was the
+    /// clearest statement of the gap floor piles left, and it is now the
+    /// clearest statement that the gap is closed.</para>
     /// </summary>
     [Fact]
-    public void SellingEveryStoreLosesEveryRefund()
+    public void SellingEveryStorePutsEveryRefundOnTheFloor()
     {
         Run run = Start();
+        GameDatabase database = Dk2TerrainFixture.Database();
         Give(run, RoomTypeId.Treasury, Keeper, new TilePos(1, 1), new TilePos(2, 1));
 
         run.Tick(SellRoomCommand.Rect(Keeper, 1, 1, 2, 1));
 
         Assert.Equal(0, GoldStore.Total(run.World, Keeper));
+        Assert.Equal(200, FloorGold.Total(run.World, database));
 
         // The first refund was banked and then displaced; the second never landed.
         Assert.Contains(run.Of("gold_displaced"), e => e.Detail.Contains("amount=100"));
-        Assert.Contains(run.Of("refund_lost"), e => e.Detail.Contains("amount=100"));
+        Assert.Contains(run.Of("refund_overflowed"), e => e.Detail.Contains("amount=100"));
     }
 
     /// <summary>

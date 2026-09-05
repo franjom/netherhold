@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -264,12 +264,13 @@ public static class RoomRules
     /// to revert to yet. Reproduced as the data has it rather than special-cased,
     /// and the event says when a bridge was involved.</para>
     ///
-    /// <para><b>The displaced gold is returned rather than kept, and where it
-    /// should go is CONFIRMED</b> (owner, 2026-09-03): it drops onto this very
-    /// tile as a pile and comes off the keeper's spendable total until an imp
-    /// fetches it. The total falling out is therefore correct; the pile is not
-    /// here, because a pile is an OBJECT (M6, Q31), so the caller reports the
-    /// amount the same way a destroyed treasury already does.</para>
+    /// <para><b>The displaced gold is returned rather than kept</b>, and the
+    /// caller drops it on this very tile as a pile (<see cref="FloorGold"/>) —
+    /// CONFIRMED by the owner on 2026-09-03 and matched instruction for
+    /// instruction in the binary on 2026-09-05: the original remakes each of the
+    /// room's gold objects as a floor pile in place and takes the amount off the
+    /// keeper's total. Returned rather than dropped here because this method has
+    /// a tile by reference and no world to spawn an object into.</para>
     /// </summary>
     public static int Unmake(GameDatabase database, ref TileState tile)
     {

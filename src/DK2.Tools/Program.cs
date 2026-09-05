@@ -707,6 +707,32 @@ switch (args[0])
             return 0;
         }
 
+        // Every parsed field of one record, which is what transcribing a
+        // fixture needs: the table below prints the seven columns worth
+        // scanning, and a fixture needs all fourteen.
+        if (args.Contains("-full"))
+        {
+            foreach (ObjectDef o in objects.OrderBy(o => o.ObjectId))
+            {
+                if (args.FirstOrDefault(a => a.StartsWith("-id=")) is { } want
+                    && o.ObjectId != int.Parse(want[4..]))
+                {
+                    continue;
+                }
+
+                Console.WriteLine($"{o.ObjectId} {o.Name}");
+                Console.WriteLine($"  Flags = 0x{(uint)o.Flags:X8}  ({o.Flags})");
+                Console.WriteLine($"  Hp = {o.Hp}, ManaValue = {o.ManaValue}, " +
+                                  $"RoomCapacity = {o.RoomCapacity}, StartState = {o.StartState}, " +
+                                  $"PickUpPriority = {o.PickUpPriority}");
+                Console.WriteLine($"  Width = {o.Width.Raw}, Height = {o.Height.Raw}, " +
+                                  $"Mass = {o.Mass.Raw}, Speed = {o.Speed.Raw}");
+                Console.WriteLine($"  NameStringId = {o.NameStringId}, " +
+                                  $"TooltipStringId = {o.TooltipStringId}");
+            }
+            return 0;
+        }
+
         Console.WriteLine($"{"id",3} {"name",-26} {"hp",5} {"mana",5} {"cap",4} " +
                           $"{"state",5} {"prio",4} flags");
         foreach (ObjectDef o in objects.OrderBy(o => o.ObjectId))

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -291,11 +291,12 @@ public class RoomTests
     }
 
     [Fact]
-    public void PlainFloorKeepsNoGoldEither_BecauseGoldPilesAreNotImplemented()
+    public void PlainFloorKeepsNoGoldEither_BecauseAPileIsNotAStore()
     {
-        // MaxGoldPileOutsideTreasury is in the fixture and deliberately unread:
-        // a pile is an object, and objects are M6. Storing gold on bare floor
-        // here would be inventing the pile rather than implementing it.
+        // Still zero now that floor piles exist, and for a better reason than
+        // before: a pile is an object standing on the floor, not capacity the
+        // floor has. GoldStore answers "where can this keeper KEEP gold", and
+        // bare floor is not an answer -- FloorGold.Drop is.
         GameDatabase database = Dk2TerrainFixture.Database();
         Run run = Start();
 

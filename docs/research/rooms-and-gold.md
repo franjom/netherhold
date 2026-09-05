@@ -1,4 +1,4 @@
-# Rooms, and where a keeper's gold is
+﻿# Rooms, and where a keeper's gold is
 
 Milestone M3. What a room is, where one may be built, what it costs, and the
 consequence that turns out to matter most: **gold is not a number on a player,
@@ -111,12 +111,20 @@ nobody would guess from a spreadsheet: **a keeper's spendable total dips while
 their imps are in transit**, and it is not a rounding artefact, it is where the
 gold is.
 
-Floor piles are **not**. A pile is an OBJECT, and the OBJECTS record is not
-parsed until M6; modelling a pile as tile state instead would be inventing a
-representation, not implementing a mechanic. So gold that will not fit is
-*refused* — `GoldStore.Deposit` returns what it accepted, and every caller
-reports the shortfall. A scenario that gives a keeper gold with no treasury says
-so in its report.
+Floor piles are the fourth, and since 2026-09-05 they exist too — as objects,
+which is what they are in DK2: type 1, "Gold", carrying the amount in the
+object union's first field. `FloorGold` has the rules and
+`gold-on-the-floor.md` has the evidence.
+
+`GoldStore` still *refuses* gold that will not fit rather than dropping it, and
+that division is deliberate: this class knows an amount and not a place, and
+every caller knows which tile the surplus belongs on. `GoldStore.Deposit`
+returns what it accepted; the caller drops the rest.
+
+One thing to keep straight in the accounting: **a floor pile is on nobody's
+books.** `GoldStore.Total` counts tiles, so a pile is outside it, and that is
+the original's own arithmetic — making a floor pile out of a treasury tile
+*subtracts* the amount from the player in the same breath.
 
 The same rule catches the other end. A treasury tile that is destroyed becomes
 claimed floor, which holds nothing, so `TileWorkRules` reports the gold as
@@ -406,9 +414,11 @@ not have.
 2026-09-03): the tile reverts to claimed floor and the gold **drops onto that
 same tile as a pile**, coming off the keeper's spendable total until somebody
 fetches it. Two thirds of that is reproduced — the tile reverts, and the total
-falls by exactly that much, so the *economy* of a sale is right. The pile is
-absent because a pile is an OBJECT (M6, Q31), so a keeper here loses permanently
-what a keeper there picks back up. Reported as `gold_displaced`, never hidden.
+falls by exactly that much, so the *economy* of a sale is right. **All three thirds are now reproduced** (2026-09-05): the pile is a real object
+on that tile, still reported as `gold_displaced`. What a keeper here cannot yet
+do is get it back, because no imp fetches a pile — so the loss is a delay with
+no end rather than a permanent hole. And the pile is over
+`MaxGoldPileOutsideTreasury`, deliberately: see Q65.
 
 **Two things are deliberately still missing:**
 
@@ -521,5 +531,7 @@ pathfinder enters a mover's starting tile without testing walkability, so it can
 walk out of the lava. That rule predates anything that could turn the ground
 under a creature impassable, and this is its first real cause.
 
-**What happens to gold on the tile is UNKNOWN and not worth an observation yet** —
-a pile is an OBJECT (M6), so the answer could not be modelled either way. Q67.
+**What happens to gold on the tile is UNKNOWN**, and it is now worth asking,
+because a pile *is* modellable: everything on a burning bridge falls into the
+lava, so the question is whether the gold falls with it or a pile survives on
+whatever the tile becomes. `BridgeBurnSystem` still reports it lost. Q67.

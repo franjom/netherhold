@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 17;
+    private const int FormatVersion = 18;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -134,6 +134,7 @@ public static class WorldSnapshot
             w.Write(o.OwnerPlayerId);
             w.Write(o.TileIndex);
             w.Write(o.CreatureId);
+            w.Write(o.GoldHeld);
         }
     }
 
@@ -263,6 +264,7 @@ public static class WorldSnapshot
                 OwnerPlayerId = r.ReadByte(),
                 TileIndex = r.ReadInt32(),
                 CreatureId = r.ReadInt32(),
+                GoldHeld = r.ReadInt32(),
             });
         }
 

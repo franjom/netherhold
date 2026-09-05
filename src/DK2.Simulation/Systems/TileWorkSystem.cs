@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -197,14 +197,22 @@ public sealed class TileWorkSystem : ISimulationSystem
             context.Emit(SystemName, "gold_uncollected",
                 $"{where} amount={uncollected} " +
                 (order.WorkerCreatureId < 0
-                    ? "(nobody swung: gold piles are objects, not implemented)"
-                    : "(would not fit in the worker's hands)"));
+                    ? "(nobody swung)"
+                    : "(would not fit in the worker's hands)") +
+                " (Q138: whether the original leaves this on the floor is unread)");
         }
 
+        // A store that stopped being one keeps its contents, on the floor of the
+        // tile it stood on. That is the original's own answer and it is exact:
+        // for every treasury pile in the room it makes a floor pile on the same
+        // tile, moves the amount across, and takes it off the player's total
+        // (gold-on-the-floor.md section 4). Nothing is clamped on the way, so a
+        // tile holding 3000 becomes a pile above MaxGoldPileOutsideTreasury.
         if (result.GoldSpilled > 0)
         {
+            FloorGold.Drop(context.World, context.Database, order.TileIndex, result.GoldSpilled);
             context.Emit(SystemName, "gold_spilled",
-                $"{where} amount={result.GoldSpilled} (lost: gold piles are objects, not implemented)");
+                $"{where} amount={result.GoldSpilled} (now a pile on the floor)");
         }
     }
 }

@@ -557,4 +557,97 @@ public class ObjectsOnRealDataTests
         static int Count(object? value) =>
             value is System.Collections.IEnumerable e ? e.Cast<object>().Count() : -1;
     }
+
+    /// <summary>
+    /// The three gold records, read back out of the shipped file, because
+    /// <c>FloorGold</c> names two of the three ids outright and the simulation
+    /// fixture transcribes all three.
+    /// </summary>
+    [Fact]
+    public void TheThreeGoldObjectsAreTheRealRecords()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        ObjectDef gold = Assert.IsType<ObjectDef>(db.ObjectById(1));
+        Assert.Equal("Gold", gold.Name);
+        Assert.Equal(0x00810140u, (uint)gold.Flags);
+        Assert.Equal(128, gold.Hp);
+        Assert.Equal(0, gold.RoomCapacity);
+        Assert.Equal(31, gold.StartState);
+        Assert.Equal(256, gold.Width.Raw);
+        Assert.Equal(1228, gold.Height.Raw);
+        Assert.Equal(16384, gold.Mass.Raw);
+
+        ObjectDef bag = Assert.IsType<ObjectDef>(db.ObjectById(2));
+        Assert.Equal("Gold Bag", bag.Name);
+        Assert.Equal(0x00810140u, (uint)bag.Flags);
+        Assert.Equal(1, bag.RoomCapacity);
+        Assert.Equal(585, bag.Width.Raw);
+
+        // The treasury's pile, and the field to notice is RoomCapacity = 1.
+        // It is the same field that turned out to cap a hatchery at one chicken
+        // per tile, and here it says one gold object per treasury tile -- which
+        // is exactly what the original's deposit does, found independently in
+        // the binary rather than read off this column.
+        ObjectDef pile = Assert.IsType<ObjectDef>(db.ObjectById(3));
+        Assert.Equal("Gold Pile 1", pile.Name);
+        Assert.Equal(0x00014140u, (uint)pile.Flags);
+        Assert.Equal(1, pile.RoomCapacity);
+        Assert.Equal(1085, pile.Width.Raw);
+        Assert.Equal(1068, pile.Height.Raw);
+
+        // All three are gold, none of them is anything else, and every one can
+        // be picked up -- so the flag says "gold" and the id says "which".
+        foreach (ObjectDef o in new[] { gold, bag, pile })
+        {
+            Assert.True(o.IsGold);
+            Assert.False(o.IsLair);
+            Assert.False(o.IsFood);
+            Assert.True(o.Flags.HasFlag(ObjectFlags.CanBePickedUp));
+            Assert.Equal(292, o.NameStringId);
+            Assert.False(o.Decays, "gold on the floor does not rot away");
+        }
+
+        // And they are the only three, so naming an id is naming a record.
+        Assert.Equal(
+            new byte[] { 1, 2, 3 },
+            db.Objects.Values.Where(o => o.IsGold).Select(o => o.ObjectId).OrderBy(i => i).ToArray());
+    }
+
+    /// <summary>
+    /// The three gold limits the binary reads, checked against the shipped
+    /// table — because <c>gold-on-the-floor.md</c>'s whole point is that one of
+    /// the three is bigger than another and nothing clamps between them.
+    /// </summary>
+    [Fact]
+    public void TheGoldLimitsAreWhatTheGameShips()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        Assert.Equal(3000, db[VariableTypeId.MaxGoldPerTreasuryTile]);
+        Assert.Equal(2000, db[VariableTypeId.MaxGoldPileOutsideTreasury]);
+        Assert.Equal(1000, db[VariableTypeId.MaxGoldPerDungeonHeartTile]);
+
+        // A full treasury tile holds 1000 more than the outside-treasury limit,
+        // which is Q65: sell that tile and the pile it leaves is over the limit.
+        // ANSWERED from the binary (2026-09-05) -- the surplus is neither split
+        // nor lost, because nothing on that path looks at the limit at all.
+        Assert.True(
+            db[VariableTypeId.MaxGoldPerTreasuryTile]
+                > db[VariableTypeId.MaxGoldPileOutsideTreasury]);
+
+        // 1000 x 16 = 16000, the total the owner measured for a keeper with no
+        // treasury (Q52, ADR-0027). The binary computes a heart's capacity as
+        // this variable shifted left by four -- a HARDCODED sixteen, not a count
+        // of the room's tiles -- which is an independent confirmation both of
+        // the number and of the reading that nine of a heart's 25 tiles store
+        // nothing.
+        Assert.Equal(16000, db[VariableTypeId.MaxGoldPerDungeonHeartTile] << 4);
+    }
 }

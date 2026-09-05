@@ -3655,3 +3655,93 @@ What this unblocks, in order: the **Hatchery** (a chicken is an object with a
 pecking timer and a scatter countdown, and the union says so), **gold on the
 floor**, and the **graveyard** — which wants a creature-carrying imp task rather
 than a record, per ADR-0051's correction.
+
+---
+
+## ADR-0055 — Gold on the floor is an object, and the limit named after it is not a limit
+
+**Status:** Accepted (2026-09-05)
+**Confidence:** Strongly inferred (every rule below is read out of `DKII.EXE`;
+what is ours is which tile two of the call sites choose, and the owner of a pile)
+**Closes:** Q65. **Opens:** Q136, Q137, Q138, Q139, Q140.
+
+### Context
+
+`GoldStore` names four places a keeper's gold can be — a treasury tile, a
+dungeon-heart tile, a creature's hands, and a pile on the floor — and has
+implemented three of them since it was written. The fourth carried a standing
+reason: *"a pile is an OBJECT and the OBJECTS record is not parsed until M6."*
+
+Both halves of that reason expired. OBJECTS was parsed, and ADR-0054 gave
+objects somewhere to live. What was left was the rule — and three places in the
+simulation were throwing gold away for want of it, each of them reporting the
+loss in its own event log rather than hiding it: a sold treasury tile, a
+destroyed one, and a creature that died carrying.
+
+### Decision
+
+**A pile of gold is an object of type 1, "Gold", carrying its amount in
+`ObjectState.GoldHeld` — the object union's first field.** `FloorGold` has the
+rules; `docs/research/gold-on-the-floor.md` has the evidence.
+
+Four choices inside that, each with its reason:
+
+1. **Nothing merges.** Every path implemented here creates a *new* object rather
+   than adding to whatever stands on the tile, because that is what the original
+   does on every one of them. The single place it merges is an imp choosing a
+   slot to put a load down, which is a carrying task and does not exist yet.
+2. **Nothing is clamped**, and this is the load-bearing one — see below.
+3. **A pile is on nobody's books.** `GoldStore.Total` counts tiles, so a pile is
+   outside it. That is the original's own arithmetic: making a floor pile out of
+   a treasury tile *subtracts* the amount from the player in the same breath.
+4. **Treasury gold stays in the tile.** The original stores it as an object too
+   — type 3, one per tile — and ADR-0015's decision is unchanged, because no
+   behaviour has been found that separates the two representations. The
+   difference is written down rather than acted on.
+
+### Why the limit is not a limit
+
+`MaxGoldPileOutsideTreasury` is **2000**, and this project had assumed for
+months that it capped a pile. It does not. Its global has **exactly three
+readers in the whole binary**, all three imp code choosing where to put a load
+down, and all three make one test: a candidate spot holding a pile **strictly
+greater** than the variable is not chosen. Nothing anywhere clamps.
+
+Two of the three paths that make piles routinely exceed it. A treasury tile
+holds 3000, and selling it makes a pile of 3000.
+
+**This is the second time in one week that a plausibly named cap turned out to
+govern something else.** `MaxFreeRangeChickensPerPlayer` was the first, three
+days earlier, and the hedge that saved it — expose the variable, do not enforce
+it, say why in the code — is applied here for the same reason: enforcing a
+plausible cap is unfalsifiable once it is in, because every test then agrees
+with it.
+
+### The creature's drop, reproduced with its bug
+
+A creature destroyed while carrying gold leaves:
+
+    piles = 1 if gold < 1000, 2 if gold < 3000, else 3
+    each pile gets gold / piles      <- integer division
+
+**The remainder is destroyed.** 2999 carried leaves two piles of 1499 and one
+gold that ceases to exist. Reproduced rather than corrected, per the brief:
+a quirk is behaviour, and this one is trivially observable.
+
+### Consequences
+
+- `HashVersion` 17 → 18 and snapshot `FormatVersion` 17 → 18: an object has one
+  more field. Nothing in the pinned run drops any gold, so what moved is the
+  composition alone — which is the useful shape for a pin, because it proves the
+  hash covers the field rather than the value.
+- Three event messages stopped claiming that piles are unimplemented, and two
+  tests that asserted the gap now assert that it is closed.
+- **Q65 is answered**, and its premise was wrong rather than its question hard.
+- Five questions open, and every one of them is about a *caller* rather than
+  about a pile: who owns one (Q136), whether a portal drops one (Q137), whether
+  mining leaves one (Q138), which tile an overflowing refund uses (Q139), and
+  whether a blocked imp puts its load down (Q140).
+- **What this does not do is give the gold back.** No imp fetches a pile, so a
+  keeper who sells a full treasury is still poorer — the loss is now a delay
+  with no end rather than a hole in the world. Carrying is the next piece, and
+  this is the second mechanic waiting on it.

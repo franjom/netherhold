@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -95,6 +95,25 @@ public sealed class ObjectState
     /// </summary>
     public int CreatureId;
 
+    /// <summary>
+    /// <b>Union member: <c>Gold</c>.</b> How much gold this pile is. Zero on
+    /// every object that is not gold.
+    ///
+    /// <para>DK2's <c>Gold</c> member is a single dword at the union's first
+    /// offset — the same four bytes the <c>Lair</c> member reads a creature id
+    /// out of, which is what a union means and why a rule must ask the
+    /// definition what it is holding before it believes either field. The
+    /// game's own object dump prints this one as <c>GoldHeld</c>.</para>
+    ///
+    /// <para><b>Both a treasury's gold and a floor pile are this field.</b> The
+    /// original stores a treasury tile's contents as an object of type 3 sitting
+    /// on the tile and gold on the floor as an object of type 1; ours keeps
+    /// treasury gold in <see cref="TileState.GoldHeld"/> (ADR-0015) and only
+    /// floor piles here. See <c>docs/research/gold-on-the-floor.md</c> §2 for
+    /// the difference and why it was not worth closing.</para>
+    /// </summary>
+    public int GoldHeld;
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
@@ -102,5 +121,6 @@ public sealed class ObjectState
         hash.Add(OwnerPlayerId);
         hash.Add(TileIndex);
         hash.Add(CreatureId);
+        hash.Add(GoldHeld);
     }
 }
