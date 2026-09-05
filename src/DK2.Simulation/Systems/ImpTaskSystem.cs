@@ -260,6 +260,18 @@ public sealed class ImpTaskSystem : ISimulationSystem
             return;
         }
 
+        if (creature.Activity == CreatureActivity.FetchingObject)
+        {
+            UpdateFetchingObject(context, creature, grid);
+            return;
+        }
+
+        if (creature.Activity == CreatureActivity.CarryingObject)
+        {
+            UpdateCarryingObject(context, creature, grid);
+            return;
+        }
+
         if (creature.TargetTileIndex >= 0 && !JobStillStands(context, creature))
         {
             context.Emit(SystemName, "job_abandoned",
@@ -723,6 +735,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
         // single ordinary claim — one search per kind, not one scored search
         // over a mixed list, because the order is an ordering.
         if (TryTakeJobAt(context, creature, grid, JobPriority.ClaimFreshlyDug)) return true;
+
+        // Kind 8 - carry a loose object to its room - is SECOND in DK2's table,
+        // above marked excavation and above claiming. So an imp puts a book
+        // away before it digs a wall the keeper marked, which nobody would
+        // guess and which the table says plainly (ADR-0065).
+        if (TryTakeObject(context, creature, definition, grid)) return true;
+
         if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
         if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
 
@@ -1124,6 +1143,198 @@ public sealed class ImpTaskSystem : ISimulationSystem
     }
 
 
+
+    // ------------------------------------------------------- carrying objects
+
+    /// <summary>
+    /// DK2's imp task <b>kind 8</b>: the nearest loose object that belongs in a
+    /// room, and a walk to it.
+    ///
+    /// <para><b>Second in Tier A</b>, above marked excavation and above
+    /// claiming (<c>imp-task-priority.md</c> §4) - so an imp that finds a book
+    /// on the floor shelves it before it digs anything the keeper marked. Not
+    /// an obvious ordering, and it is the original's.</para>
+    ///
+    /// <para>Like every other carry here the destination is settled before the
+    /// walk: an object whose room the keeper has not built, or has no space
+    /// left in, is an object nobody sets off for.</para>
+    /// </summary>
+    private bool TryTakeObject(
+        SimulationContext context, CreatureState creature, CreatureDef definition,
+        WorldPathGrid grid)
+    {
+        WorldState world = context.World;
+
+        if (creature.CarriedObjectId >= 0 || creature.CarriedCreatureId >= 0) return false;
+        if (creature.GoldHeld > 0) return false;
+
+        bool found = _pathfinder.TryFindNearest(
+            grid, creature.Tile,
+            at => LooseObjectAt(context, creature, definition, at) is not null,
+            _route);
+
+        if (!found) return false;
+
+        TilePos at = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
+        ObjectState? thing = LooseObjectAt(context, creature, definition, at);
+        if (thing is null) return false;
+
+        creature.Activity = CreatureActivity.FetchingObject;
+        creature.TargetTileIndex = (at.Y * world.Width) + at.X;
+        creature.TargetWork = default;
+        creature.TargetObjectId = thing.Id;
+        creature.Path.Clear();
+        creature.Path.AddRange(_route);
+        creature.PathIndex = 0;
+        creature.TimerTicks = 0;
+
+        context.Emit(SystemName, "object_claimed",
+            $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
+            $"type={ObjectName(context, thing)} " +
+            $"at=({at.X},{at.Y}) steps={_route.Count}");
+        return true;
+    }
+
+    /// <summary>
+    /// The loose object on <paramref name="at"/> this worker could put away, or
+    /// null. Ties between two on one tile go to the lower object id.
+    /// </summary>
+    private static ObjectState? LooseObjectAt(
+        SimulationContext context, CreatureState worker, CreatureDef definition, TilePos at)
+    {
+        WorldState world = context.World;
+        int index = (at.Y * world.Width) + at.X;
+        ObjectState? best = null;
+
+        foreach (ObjectState thing in world.Objects)
+        {
+            if (thing.TileIndex != index) continue;
+            if (!ObjectCarryRules.CanCarry(context.Database, definition, worker, thing)) continue;
+
+            // The tile it is standing on has to be the imp's own. DK2's test is
+            // "own floor or water"; there is no reason here for a worker to
+            // wade for a book, so this is the narrower half of it (Q170).
+            if (world.TileAtIndex(index).OwnerPlayerId != worker.OwnerPlayerId) continue;
+
+            if (ObjectCarryRules.TryDestinationFor(world, context.Database, worker, thing) < 0)
+                continue;
+
+            if (best is null || thing.Id < best.Id) best = thing;
+        }
+
+        return best;
+    }
+
+    /// <summary>Walking to a loose object, and picking it up on arrival.</summary>
+    private void UpdateFetchingObject(
+        SimulationContext context, CreatureState creature, WorldPathGrid grid)
+    {
+        WorldState world = context.World;
+        ObjectState? thing = world.ObjectById(creature.TargetObjectId);
+
+        if (thing is null || !ObjectCarryRules.IsLoose(context.Database, thing))
+        {
+            context.Emit(SystemName, "object_abandoned",
+                $"imp={creature.Id} object={creature.TargetObjectId} reason=gone");
+            creature.TargetObjectId = -1;
+            GoIdle(creature);
+            return;
+        }
+
+        int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
+        if (here != thing.TileIndex)
+        {
+            if (creature.PathIndex < creature.Path.Count) return;
+
+            context.Emit(SystemName, "object_abandoned",
+                $"imp={creature.Id} object={thing.Id} reason=out_of_reach");
+            creature.TargetObjectId = -1;
+            GoIdle(creature);
+            return;
+        }
+
+        int destination = ObjectCarryRules.TryDestinationFor(
+            world, context.Database, creature, thing);
+
+        if (destination < 0 || !RouteTo(context, creature, grid, destination))
+        {
+            context.Emit(SystemName, "object_abandoned",
+                $"imp={creature.Id} object={thing.Id} reason=nowhere_to_take_it");
+            creature.TargetObjectId = -1;
+            GoIdle(creature);
+            return;
+        }
+
+        creature.TargetObjectId = -1;
+        ObjectCarryRules.PickUp(creature, thing);
+        creature.Activity = CreatureActivity.CarryingObject;
+        creature.TargetTileIndex = destination;
+
+        context.Emit(SystemName, "object_picked_up",
+            $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
+            $"type={ObjectName(context, thing)} " +
+            $"to={Describe(world, destination)} steps={creature.Path.Count}");
+    }
+
+    /// <summary>Carrying a loose object, and shelving it on arrival.</summary>
+    private void UpdateCarryingObject(
+        SimulationContext context, CreatureState creature, WorldPathGrid grid)
+    {
+        WorldState world = context.World;
+        ObjectState? thing = world.ObjectById(creature.CarriedObjectId);
+
+        if (thing is null)
+        {
+            creature.CarriedObjectId = -1;
+            GoIdle(creature);
+            return;
+        }
+
+        ObjectCarryRules.FollowCarrier(world, creature, thing);
+
+        int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
+        if (here != creature.TargetTileIndex)
+        {
+            if (creature.PathIndex < creature.Path.Count) return;
+
+            int destination = ObjectCarryRules.TryDestinationFor(
+                world, context.Database, creature, thing);
+
+            if (destination >= 0 && RouteTo(context, creature, grid, destination))
+            {
+                creature.TargetTileIndex = destination;
+                return;
+            }
+
+            context.Emit(SystemName, "object_dropped",
+                $"imp={creature.Id} object={thing.Id} " +
+                $"at=({creature.Tile.X},{creature.Tile.Y}) reason=no_route");
+            ObjectCarryRules.PutDown(creature, thing);
+            GoIdle(creature);
+            return;
+        }
+
+        // Somebody else shelved something here while this imp was walking.
+        if (ObjectCarryRules.ObjectOn(world, here) is { } sitting && sitting.Id != thing.Id)
+        {
+            context.Emit(SystemName, "object_dropped",
+                $"imp={creature.Id} object={thing.Id} " +
+                $"at=({creature.Tile.X},{creature.Tile.Y}) reason=tile_taken");
+            ObjectCarryRules.PutDown(creature, thing);
+            GoIdle(creature);
+            return;
+        }
+
+        ObjectCarryRules.Deliver(creature, thing, creature.OwnerPlayerId, here);
+
+        context.Emit(SystemName, "object_stored",
+            $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
+            $"type={ObjectName(context, thing)} " +
+            $"{Describe(world, here)}");
+
+        GoIdle(creature);
+    }
+
     // ---------------------------------------------------------------- carrying
 
     /// <summary>
@@ -1388,6 +1599,14 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         GoIdle(creature);
     }
+
+    /// <summary>
+    /// An object's name for an event line, or its raw type id when the record
+    /// is missing - which is a level referring to an object the OBJECTS table
+    /// does not have, and is worth seeing rather than crashing on.
+    /// </summary>
+    private static string ObjectName(SimulationContext context, ObjectState thing) =>
+        context.Database.ObjectById(thing.ObjectTypeId)?.Name ?? $"#{thing.ObjectTypeId}";
 
     /// <summary>Routes a worker to one tile by index. Returns false if there is no way.</summary>
     private bool RouteTo(

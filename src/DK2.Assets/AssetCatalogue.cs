@@ -59,6 +59,8 @@ public static class AssetCatalogue
         "fetching_body",
         "carrying_body",
         "imprisoned",
+        "fetching_object",
+        "carrying_object",
     ];
 
     /// <summary>

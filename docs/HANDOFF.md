@@ -4273,3 +4273,95 @@ half-built mechanic does to a suite: it makes the gap look like a rule.
 4. **Q159 is one look at the status bar** and the owner can settle it in a
    minute: slap an imp and watch Efficiency fall from 90% back to 80%. This
    project has built 25 seconds; the owner's stopwatch said 60.
+
+## Twenty-sixth sitting: the prison, the last carrying task, and a merge
+
+Four things were asked for and four went in: the prison and capture, kind 8, an
+attempt at Q1, and Codex's KMF converter merged.
+
+**The owner corrected the Hand of Evil, and half the correction contradicted
+this project.** The line is: *"only an imp can drag an enemy creature to prison,
+a hand of evil can then pick up that creature from prison and drop it around the
+dungeon, back in prison, or onto a torture rack"* - and, before it, *"a corpse
+can not be picked up by hand of evil ... also an injured creature, lying on the
+floor bleeding out, can't be picked up by hand of evil"*.
+
+**The hand never touches a body.** ADR-0062 had recorded the opposite, and it is
+worth being precise about how: it read the pick-up handler, wrote the refusal
+down as *"two creature states and one state flag, none of which this project has
+yet"* - **without naming the flag** - and then concluded from that unread flag
+that DK2 permits what it in fact refuses. Bit `0x200000` is bit 21 of the first
+state-flag word and DK2's own creature dump calls bit 21 `CreatureDying`. The
+rule was in the binary the whole time, one lookup away, and instead this project
+wrote down a narrowing "of ours" to excuse a mechanic it had not built.
+
+**Fourth instance, and the first where the unchecked claim was a piece of
+reverse engineering rather than a rule.** The lesson generalises: *a partial
+reading is a claim too.* "Three of these four tests name things we do not have"
+should have been a task, not a conclusion.
+
+### What went in
+
+- **ADR-0064, the prison.** `PrisonRules`, `PrisonSystem`, and DK2's own
+  `PrisonOwner` field (creature offset `0x3cb`) as a *second* owner rather than
+  a change of owner - which is what makes the hand's one ownership exception a
+  field test. A prisoner withers at -3 a game second and rises as a **Skeleton
+  for the jailer**; selling the prison, digging it away and losing it are one
+  rule, asked once a second from where the prisoner is standing.
+- **ADR-0065, kind 8** - carry a loose object to its room, the last of the three
+  carrying tasks. **Second in DK2's Tier A table**, above marked excavation and
+  above claiming, which nobody would guess. It needed no new record: the
+  room->object list has been parsed since Q120 and read by nothing.
+- **Codex's `codex/kmf-converter` merged.** Reviewed for the two things that
+  matter - no proprietary bytes, and it merges clean - and both held. Its
+  output is confined to the gitignored `converted-assets/` by the tool itself.
+
+**A latent bug from ADR-0063 fell out of kind 8**: an imp lifted by the keeper
+while dragging a body kept hold of it, and since a held creature is skipped by
+every system, the body stopped following and stopped being anybody's problem. A
+worker now puts its whole load down where it stood.
+
+**DK2's room debug dump is the find of this sitting**, the way the creature dump
+was the find of the last. `FUN_004e70a0` names every room field and then
+switches on the type: `TotalCapacity`, `UsedCreatureCapacity`,
+`UsedDeadBodyCapacity`, `CreatureList`, `DeadBodyList` on every room, and for
+the prison `SafeCreatureCapacity` (the manual's door bar), `PrisonJailBroken`,
+`DoorTileX`/`DoorTileY`. **It also answers Q165 in passing**: the Graveyard
+carries a `DecomposeValue` tally as a stored field, which this project had
+recorded as unknown and had built an event to feed.
+
+### Q1: narrowed, not closed
+
+The global every "now" reads is **`0x006e5054`**, and it has **exactly two
+writers in the whole executable** - a constructor and a teardown - so it is a
+pointer to the game object and never the counter. The counter is
+`*(*(game + 4) + 4)`.
+
+**And it is not incremented.** There are thirteen `INC`/`ADD` writes to any
+`[reg + 4]` in the binary; four are dword-sized and none of the four is the game
+loop. So the tick is advanced by a *store*, which is what a loop computing
+elapsed time from a wall clock looks like rather than one counting frames.
+
+**Where the next attempt should go:** the sub-object at `game + 4`. Find its
+constructor and its update - not the counter's writers.
+
+### Where the next session should start
+
+1. **Torture and conversion**, which the prison is the door to. The creature
+   record's `TortureHpChange`, `TortureMoodChange` and `TortureTimeToConvert`
+   have been parsed and unread for months, and the owner already named the
+   third destination for a lifted prisoner: *"onto a torture rack in the torture
+   chamber"*. The room itself keeps almost nothing - DK2's room dump gives the
+   Torture Chamber two effect counters and nothing else - so the state lives on
+   the creature, where its dump has `TorturedDuration` and `TortureVoluntary`
+   waiting.
+2. **The Hatchery's clock (Q132)**, which is now worth more than it was. It is
+   the only thing in the project that would put a loose object on the floor, so
+   it is what gives kind 8 something to carry *and* what lets a keeper feed a
+   prisoner, which is the whole counterplay to the withering.
+3. **Q1's sub-object**, as above.
+4. **Three owner questions, all cheap.** Q166: build a 3x3 prison, capture until
+   the imps stop, count them. Q167: watch a freshly captured prisoner's health
+   bar. And **Q159 is still unanswered from last sitting** - slap an imp and
+   time Efficiency falling from 90% back to 80%; this project built 25 seconds
+   and the owner's stopwatch said 60.

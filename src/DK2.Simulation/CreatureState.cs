@@ -173,6 +173,23 @@ public enum CreatureActivity
     /// the shipped table that names a creature at all.</para>
     /// </summary>
     Imprisoned = 13,
+
+    /// <summary>
+    /// Walking to a loose object in order to pick it up — DK2's imp task
+    /// <b>kind 8</b>.
+    /// </summary>
+    FetchingObject = 14,
+
+    /// <summary>
+    /// Carrying a loose object to the room it belongs in
+    /// (<see cref="ObjectCarryRules"/>).
+    ///
+    /// <para>Distinct from <see cref="CarryingBody"/> because DK2 keeps two
+    /// slots: <c>CarryingId</c> for a thing and <c>DraggingId</c> for a
+    /// creature, side by side in its creature record. A book and a body are not
+    /// the same load.</para>
+    /// </summary>
+    CarryingObject = 15,
 }
 
 /// <summary>
@@ -512,6 +529,19 @@ public sealed class CreatureState
     /// </summary>
     public int PrisonOwnerPlayerId = PrisonRules.NoPrison;
 
+    /// <summary>
+    /// The id of the object this worker is carrying, or -1 for none — DK2's
+    /// <c>CarryingId</c> at creature offset <c>0x3c3</c>.
+    ///
+    /// <para><b>A separate slot from <see cref="CarriedCreatureId"/></b>, which
+    /// is DK2's <c>DraggingId</c> two bytes along. The original distinguishes
+    /// carrying a thing from dragging a creature, and so does this.</para>
+    /// </summary>
+    public int CarriedObjectId = -1;
+
+    /// <summary>The object this worker is walking towards, or -1 for none.</summary>
+    public int TargetObjectId = -1;
+
     public CreatureActivity Activity;
 
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
@@ -589,6 +619,8 @@ public sealed class CreatureState
         hash.Add(CarriedByCreatureId);
         hash.Add(TargetBodyId);
         hash.Add(PrisonOwnerPlayerId);
+        hash.Add(CarriedObjectId);
+        hash.Add(TargetObjectId);
         hash.Add((int)Activity);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);

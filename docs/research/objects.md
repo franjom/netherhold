@@ -147,9 +147,13 @@ tile.
 | **Beds as things** | "a bed is an object" | Twelve bed objects, and `LairRules` already tracks which tile holds whose |
 | **Graveyard / vampires** | "a corpse is an object" | **Refuted** — see §4. It needed a creature-carrying task, not this record, and **that task now exists** (ADR-0063): a corpse is `CreatureActivity.Dead` and an imp carries it to a Graveyard. What is still missing is only what a graveyard *does* with them (Q165) |
 
-The next step is the same for the first three: **object instances in the world**.
-`WorldState` has tiles and creatures and no third list, and every one of those
-mechanics needs one.
+| **Putting things away** | nothing — it was never named as blocked, only as *"nothing to act on"* | **DONE** (2026-09-05, ADR-0065). DK2's imp task **kind 8** carries a loose object to the room that lists it, and the list it reads is `RoomDef.ObjectIds` — parsed since Q120 and read by nothing until now. Second in the Tier A table, above marked excavation and above claiming |
+
+`WorldState` grew its third list some time ago, so the first three are no longer
+waiting on instances: they are waiting on something that *makes* one. The
+Hatchery is the nearest — it knows how many coops a room gets and where they
+stand, and has no clock (Q132) — and the moment it lays an egg, kind 8 has
+something to carry.
 
 ## 7. The instance: one type, an 18-byte union, and the id that picks it
 

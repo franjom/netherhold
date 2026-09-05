@@ -68,6 +68,12 @@ public sealed class HandSystem : ISimulationSystem
         // The job goes before the creature does. An imp lifted off a seam has
         // stopped mining it, and leaving the target behind would have it walk
         // back to a tile it is no longer standing near the moment it lands.
+        //
+        // And so does its load. A worker lifted while carrying a book or a body
+        // leaves both on the floor where it was standing: an imp in the keeper's
+        // hand is out of the dungeon, and a body that followed it up there would
+        // be somewhere no rule could reach (ADR-0065).
+        DropLoad(context, creature);
         creature.ClearJob();
 
         creature.InHand = true;
@@ -77,6 +83,36 @@ public sealed class HandSystem : ISimulationSystem
         context.Emit(SystemName, "picked_up",
             $"player={command.PlayerId} creature={creature.Id} " +
             $"held={world.Player(command.PlayerId).Hand.Count}");
+    }
+
+    /// <summary>
+    /// Makes a worker let go of the object and the body it was carrying, where
+    /// it stands.
+    /// </summary>
+    private static void DropLoad(SimulationContext context, CreatureState creature)
+    {
+        WorldState world = context.World;
+
+        if (ObjectCarryRules.DropWhatever(world, creature))
+        {
+            context.Emit(SystemName, "object_dropped",
+                $"creature={creature.Id} at=({creature.Tile.X},{creature.Tile.Y}) " +
+                "reason=carrier_picked_up");
+        }
+
+        if (creature.CarriedCreatureId < 0) return;
+
+        CreatureState? body = world.CreatureById(creature.CarriedCreatureId);
+        if (body is null)
+        {
+            creature.CarriedCreatureId = -1;
+            return;
+        }
+
+        CarryRules.PutDown(creature, body);
+        context.Emit(SystemName, "body_dropped",
+            $"creature={creature.Id} body={body.Id} " +
+            $"at=({body.Tile.X},{body.Tile.Y}) reason=carrier_picked_up");
     }
 
     // ------------------------------------------------------------------- drop

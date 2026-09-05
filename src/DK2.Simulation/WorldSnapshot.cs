@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 24;
+    private const int FormatVersion = 25;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -120,6 +120,8 @@ public static class WorldSnapshot
             w.Write(c.CarriedByCreatureId);
             w.Write(c.TargetBodyId);
             w.Write(c.PrisonOwnerPlayerId);
+            w.Write(c.CarriedObjectId);
+            w.Write(c.TargetObjectId);
             w.Write((int)c.Activity);
             w.Write(c.TargetTileIndex);
             w.Write((int)c.TargetWork);
@@ -147,6 +149,7 @@ public static class WorldSnapshot
             w.Write(o.TileIndex);
             w.Write(o.CreatureId);
             w.Write(o.GoldHeld);
+            w.Write(o.CarriedByCreatureId);
         }
     }
 
@@ -260,6 +263,8 @@ public static class WorldSnapshot
                 CarriedByCreatureId = r.ReadInt32(),
                 TargetBodyId = r.ReadInt32(),
                 PrisonOwnerPlayerId = r.ReadInt32(),
+                CarriedObjectId = r.ReadInt32(),
+                TargetObjectId = r.ReadInt32(),
                 Activity = (CreatureActivity)r.ReadInt32(),
                 TargetTileIndex = r.ReadInt32(),
                 TargetWork = (TileWorkKind)r.ReadInt32(),
@@ -291,6 +296,7 @@ public static class WorldSnapshot
                 TileIndex = r.ReadInt32(),
                 CreatureId = r.ReadInt32(),
                 GoldHeld = r.ReadInt32(),
+                CarriedByCreatureId = r.ReadInt32(),
             });
         }
 

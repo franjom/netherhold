@@ -244,7 +244,7 @@ face instead). Recorded, not built (**Q155**).
 
 | | DK2 | ours |
 |---|---|---|
-| Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **claim the just-dug tile**, **marked excavation**, **claim**, **13** (both branches since ADR-0064), **12** — whole map each. Five of seven; the two missing are kind 8 (carry an object to its room) and kind 9/10 (build a placed trap or door), neither of which has anything to act on |
+| Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **all of it but kind 9/10**: claim the just-dug tile, **8** (ADR-0065), marked excavation, claim, **13** both branches (ADR-0063, ADR-0064), **12**. Six of seven, in the original's order. The one missing is kind 9/10 — fetch a crate for a placed trap or door — which needs traps, doors and manufacturing |
 | Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold** |
 | distance | rings, squared straight-line | steps along the walkable grid (Q25) |
 | kind 14 | claim the just-dug tile first, once no 8-neighbour has a dig task | **built** — `ClaimFreshlyDug`, same rule |

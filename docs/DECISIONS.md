@@ -4743,3 +4743,82 @@ drift.
 - **Chickens**, which are how a keeper keeps a prisoner alive. A chicken is an
   object and nothing can pick one up — kind 8.
 - **Combat.** Everything here begins after a fight, and there is no fight.
+
+## ADR-0065 — Kind 8: an imp puts a book back on the shelf
+
+**Status:** Accepted (2026-09-05). The third and last of DK2's carrying tasks,
+after ADR-0063 (kinds 13 and 12) and ADR-0064 (kind 13's other branch).
+Research: `docs/research/objects.md`, `docs/research/imp-task-priority.md` §4.
+
+### Context
+
+DK2's imp Tier A job table is `14, 8, 9, 1, 3, 13, 12`. Five of the seven were
+built; the two that were not are **kind 8**, carry a loose object to its room,
+and **kind 9/10**, fetch a crate for a placed trap or door. Kind 8 was recorded
+as *"nothing to act on"* — which was true and was also, on this project's own
+record, the exact shape of a claim worth checking. The check: an object needs a
+room to go to, a room needs a list of its objects, and `Rooms.kwd` has carried
+that list, parsed, since Q120. Nothing was missing but the task.
+
+### Decision
+
+`ObjectCarryRules`, two activities (`FetchingObject`, `CarryingObject`), and one
+new entry in the Tier A order.
+
+**It goes second, above marked excavation and above claiming.** That is the
+original's ordering and it is not the obvious one: a keeper who marks a wall and
+knocks a book onto the floor gets the book put away first. There is a test whose
+only job is to fail if somebody quietly moves it down the list.
+
+**The carry slot is not the drag slot.** DK2's creature dump names `CarryingId`
+at offset `0x3c3` and `DraggingId` at `0x3c5` — two fields side by side, an
+object *carried* and a creature *dragged* — so this has two fields too, and an
+imp cannot hold a book and a body at once.
+
+**The room→object mapping is read backwards.** Each room record lists its
+objects (Library 64 and 58, Workshop 16/15/46, Prison 49/50/51, Graveyard
+31–34), and `HomeRoomFor` walks the rooms to find the one that lists a given
+object. The original goes the other way, from the object's own definition, so
+there is presumably a room field in OBJECTS this project has not identified —
+the second time it has had to read one of DK2's pairs from the wrong end (the
+first was a bed's owner, Q130).
+
+**Delivery makes the object the keeper's.** An object owned by nobody is what
+"loose" means, so giving it an owner on arrival is what takes it out of the
+search — rather than a "shelved" flag, which would be a second copy of a fact
+the ownership field already holds.
+
+**A worker that stops being a worker puts its load down where it stands.** Picked
+up by the keeper, or killed: the object goes on the floor, still loose, and the
+next imp takes it to the same room. **That fixed a latent bug from ADR-0063 as
+well** — an imp lifted while dragging a body kept hold of it, and because a held
+creature is skipped by every system the body stopped following and stopped being
+anybody's problem.
+
+### What is ours rather than DK2's, stated
+
+- **One object per tile** (Q166's cousin). DK2 stores `UsedObjectCapacity` on
+  the room and every object definition carries a `RoomCapacity` of its own, so
+  the original's accounting is finer than this and has not been read.
+- **The first room in table order wins an ambiguous object** (Q169). Objects 49
+  and 50 are listed by both the Prison and the Combat Pit.
+- **Own floor only, not "own floor or water"** (Q170). There is no reason here
+  for a worker to wade for a book, and the narrower half is the safe one.
+
+### Consequences
+
+- `HashVersion` and the snapshot `FormatVersion` go 24 -> 25.
+- The fixture gained the **Library** (terrain 15, room 6) and object **64, the
+  Book Case** — and `R()` now transcribes `ObjectIds`, which nothing had needed
+  before.
+- 12 tests in `ObjectCarryingTests`.
+- Kind 8 has something to act on the moment anything drops a loose object,
+  which is what the Hatchery's chickens will be.
+
+### Still open
+
+- **Kind 9/10**, the last unbuilt Tier A entry: fetch a crate from the Workshop
+  for a placed trap or door. Needs traps, doors and manufacturing.
+- **Tier B's loose-object question.** The original's ring scan asks about loose
+  objects too, as its third question after reinforce-or-repair and floor gold.
+  This builds the whole-map Tier A kind only.

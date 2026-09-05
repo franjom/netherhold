@@ -114,6 +114,17 @@ public sealed class ObjectState
     /// </summary>
     public int GoldHeld;
 
+    /// <summary>
+    /// The id of the worker carrying this object, or -1 for none — the other
+    /// end of <see cref="CreatureState.CarriedObjectId"/>.
+    ///
+    /// <para>Both ends are stored for the same reason the creature-carry
+    /// relation stores both (ADR-0063): the carrier is asked what it is holding
+    /// on arrival, and the object is asked whether anybody already has it, so
+    /// that two imps do not cross the dungeon for one book.</para>
+    /// </summary>
+    public int CarriedByCreatureId = -1;
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
@@ -122,5 +133,6 @@ public sealed class ObjectState
         hash.Add(TileIndex);
         hash.Add(CreatureId);
         hash.Add(GoldHeld);
+        hash.Add(CarriedByCreatureId);
     }
 }

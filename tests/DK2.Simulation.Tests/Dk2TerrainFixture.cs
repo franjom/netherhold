@@ -42,6 +42,7 @@ internal static class Dk2TerrainFixture
     public const byte WoodenBridgeTerrain = 17;
     public const byte GraveyardTerrain = 23;
     public const byte PrisonTerrain = 20;
+    public const byte LibraryTerrain = 15;
     public const byte ManaVaultTerrain = 31;
     public const byte ClaimedVaultTerrain = 32;
 
@@ -76,6 +77,11 @@ internal static class Dk2TerrainFixture
             // 10000/10000 health every room terrain carries.
             T(PrisonTerrain, "Prison",
               TerrainFlags.Ownable, 10000, 10000, PrisonTerrain, ClaimedPath),
+
+            // The library, terrain 15. Present for one reason: it is the room
+            // that owns an object, which is what kind 8 carries things to.
+            T(LibraryTerrain, "Library",
+              TerrainFlags.Ownable, 10000, 10000, LibraryTerrain, ClaimedPath),
             T(ClaimedPath, "Claimed Path",
               TerrainFlags.Ownable | TerrainFlags.Attackable | TerrainFlags.FillInable,
               660, 660, Rock, DirtPath, manaGain: 1),
@@ -142,6 +148,14 @@ internal static class Dk2TerrainFixture
             // prisoner that withers away rises as one (ADR-0064).
             R(RoomTypeId.Prison, "Prison", 750, PrisonTerrain, 0x13ACu, 5, 5,
               createdCreatureId: SkeletonCreatureId),
+
+            // The library: 600 to build, 3x3, and the shipped ObjectIds list
+            // [64, 58] -- a book case and a research book. That list is the
+            // whole reason this room is in the fixture: ObjectCarryRules reads
+            // it backwards to find out where a loose object belongs (ADR-0065,
+            // Q120).
+            R(RoomTypeId.Library, "Library", 600, LibraryTerrain, 0x11ACu, 3, 3,
+              objectIds: [BookCaseObjectId, ResearchBookObjectId]),
         ],
         creatures: [Imp(), Goblin(), Vampire(), Skeleton(), .. extraCreatures],
         variables: Variables(),
@@ -172,10 +186,40 @@ internal static class Dk2TerrainFixture
     /// <see cref="ObjectFlags.TypeLair"/> bit, and which of the twelve it is
     /// only decides what gets drawn.</para>
     /// </summary>
+    /// <summary>Object id 64, the Library's book case — the fixture's loose object.</summary>
+    public const byte BookCaseObjectId = 64;
+
+    /// <summary>Object id 58, the Library's other object.</summary>
+    public const byte ResearchBookObjectId = 58;
+
     private static ObjectDef[] Objects() =>
     [
         Bed(GoblinBedObjectId, "Goblin Creature Bed"),
         Bed(VampireBedObjectId, "Vampire Creature Bed"),
+
+        // The Library's two, which are what an imp puts away (ADR-0065). Their
+        // ids are the shipped Rooms.kwd ObjectIds for room 6; the fields below
+        // are not transcribed from OBJECTS and nothing reads them, because kind
+        // 8 asks the ROOM which objects are its, not the object which room is
+        // its - see ObjectCarryRules.HomeRoomFor for why that is backwards from
+        // the original and what it costs.
+        new ObjectDef
+        {
+            Name = "Book Case",
+            ObjectId = BookCaseObjectId,
+            Flags = (ObjectFlags)0u,
+            Hp = 1,
+            ManaValue = 0,
+            RoomCapacity = 0,
+            StartState = 0,
+            PickUpPriority = 0,
+            Width = new Fp32(4096),
+            Height = new Fp32(4096),
+            Mass = new Fp32(4096),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        },
 
         // The hatchery's two, transcribed the same way and guarded the same
         // way. A coop carries NO type flag at all -- only Obstacle -- which is
@@ -870,7 +914,8 @@ internal static class Dk2TerrainFixture
         RoomTypeId id, string name, ushort cost, byte terrainId, uint flags,
         byte sizeX = 1, byte sizeY = 1,
         TileConstruction construction = TileConstruction.Normal,
-        byte createdCreatureId = 0) => new()
+        byte createdCreatureId = 0,
+        byte[]? objectIds = null) => new()
     {
         Name = name,
         RoomId = (byte)id,
@@ -893,8 +938,12 @@ internal static class Dk2TerrainFixture
         // what a withered prisoner rises as.
         CreatedCreatureId = createdCreatureId,
 
+        // Transcribed for the Library, because ObjectCarryRules reads the
+        // room->objects mapping backwards to decide where a loose object
+        // belongs. Ten of the shipped rooms have a list (Q120).
+        ObjectIds = objectIds ?? [],
+
         // Not transcribed. Present because the record requires them.
-        ObjectIds = [],
         HealthGain = 0,
         CeilingHeight = new Fp32(0),
         OrderInEditor = 0,

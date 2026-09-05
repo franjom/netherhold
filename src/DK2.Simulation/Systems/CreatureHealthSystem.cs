@@ -214,6 +214,15 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             if (carrier is not null) CarryRules.PutDown(carrier, state);
         }
 
+        // And whatever it was carrying goes on the floor where it fell, rather
+        // than out of the world with it (ADR-0065).
+        if (ObjectCarryRules.DropWhatever(context.World, state))
+        {
+            context.Emit(SystemName, "object_dropped",
+                $"imp={state.Id} object={state.CarriedObjectId} " +
+                $"at=({state.Tile.X},{state.Tile.Y}) reason=carrier_gone");
+        }
+
         context.World.RemoveCreature(state.Id);
     }
 
