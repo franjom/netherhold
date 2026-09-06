@@ -36,6 +36,9 @@ Against the plan's own milestones: M2 done, M1 and M3 partial, M4–M11 untouche
 
 ### Goal by goal
 
+> **Dated 2026-08-29.** Kept as written; several rows and every count below are
+> stale. The current table is *Goal by goal, 2026-09-06* at the end of this file.
+
 | # | Goal | Status | Where it stands |
 |---|---|---|---|
 | 1 | Modern DK2 engine | **~2 of 20 systems** | Digging and territory rules exist; saving/loading exists (our format). Rooms, creatures, needs, economy, combat, spells, traps, doors, heroes, enemy dungeons, scripting, objectives, campaign: none. No Unity. |
@@ -111,6 +114,15 @@ is worth doing before the shape of the loop hardens.
 | 2026-08-29 | (mana, cont.) | M3 partial | Owner answered Q37 and the one-heart rule from the original in one message. Ceiling confirmed flat; the heart's 30/s became implementable. Process gap found: "the files cannot say" had been treated as "nobody can say" - asking the owner is now step 0 of the research method. |
 | 2026-08-30 | (gold carrier) | M3 partial | Q31 built: gold moves seam - imp's hands - treasury. Goal 1 (behaviour first) gains its most visible slice yet; goal 5 holds, with the one invented decision isolated as Q50 and put on the observation checklist rather than buried. A number in the CREATURES record turned out to corroborate Q47 by accident. |
 | 2026-08-30 | (Q47) | M3 partial | One measured number - 273 gold a swing - settled the tile-work granularity for the whole game, and the answer (five a second) was NOT the plausible one that had been recorded (twice a second). Goal 5 vindicated in its hardest form: the wrong reading was self-consistent, fitted every range, and would have been built if the discipline had been weaker. Also Q32 confirmed from five room prices, and Q52 recorded as a defect we cannot yet fix. |
+| 2026-09-04 | (assets) | M3 | Gap 3 closed on the right side of its deadline: asset layer and presentation boundary built before any renderer existed. Goals 3 and 4 move. |
+| 2026-09-04 | (Unity) | M3 | The Unity view renders campaign level 1 as boxes, four hours after the previous entry said no view existed. Goal 11 gains a second renderer; goal 1 is told not to let a screenshot inflate it. |
+| 2026-09-04 | (manual) | M3/M4 | The 1999 manual admitted as corroboration only (ADR-0037). The standing question gains its second half; a fourth instance of "a claim nothing checks" found in a check that lied. |
+| 2026-09-04 | (addendum) | M4 | Third clause: a justification can rot on its own. Fifth instance, from the portal sitting. |
+| 2026-09-05 | (recording) | M4 | Fourth clause. The owner filmed DK2 and a second assistant turned it into questions; it reversed the free-imp rule shipped three weeks earlier, which no test could have caught. |
+| 2026-09-05 | (prison) | M4 | Fifth clause: the unchecked claim was our own reverse engineering (ADR-0064's 20%, later ADR-0071's one sixth). |
+| 2026-09-06 | (hatchery) | M4 | Sixth clause, the cheapest: scan a field's readers and count the hits before building on it. Two more instances in one day. |
+| 2026-09-06 | (objects) | M4 | Seventh clause: a prediction is a claim too — a correct statement with a wrong consequence attached. |
+| 2026-09-06 | `47ce875` | M4 ◐ | Reconciliation. The table below re-run after eight prose-only reviews; eleven stale statements across six documents corrected in place. Two gaps named that no document had: real-data tests pass vacuously in CI, and the presentation view has no viewing player. |
 
 ### Note on the rooms/gold review
 
@@ -941,4 +953,51 @@ The mechanical half is cheaper still and it caught this one: **when the same
 fact is stated in two places, make one of them a test.**
 `CreatureNeedsOnRealDataTests` counts the food flag now. Both documents can then
 say whatever they like; only one of them can be wrong for long.
+
+---
+
+## Review — 2026-09-06 (evening): reconciliation, and the table re-run
+
+The 2026-08-29 table was the last full pass. Eight reviews since moved rows in
+prose and each said "the table above stands". It does not: by the reviews' own
+account rows 1, 3, 4 and 11 moved, and two more carry counts that are stale by an
+order of magnitude. This is the re-run, against the tree at `47ce875`. The old
+table is left where it is as a dated artefact; this one is the current statement.
+
+The occasion was a status recap against `AGENTS.md`, which found eleven places
+across six documents where a true statement about *this project* had stopped
+being true and nothing re-read it — the seven clauses' pattern, turned on the
+project's description of itself. All eleven were corrected in place the same
+evening (list in `HANDOFF.md`, sitting of 2026-09-06 evening).
+
+### Goal by goal, 2026-09-06
+
+| # | Goal | Status | Where it stands |
+|---|---|---|---|
+| 1 | Modern DK2 engine | **About 7 of 20 systems touched, none finished** | Digging and territory; rooms as terrain plus four with a behaviour (portal, lair, hatchery, prison); gold from seam to vault with no wages; mana income with nothing to spend it on but imps; creature needs (health, hunger, sleep, anger, levels) with no job for a non-worker; the Hand; fog; a save format. **Combat, spells, traps, doors, heroes, the computer keeper, scripting, objectives, campaign: none.** `src/DK2.AI` is an empty project. The creature state machine has 7 activities against the 281 states read from the binary. |
+| 2 | Campaign compatibility | **Terrain and balance load; nothing a level places does** | Nine record types into `GameDatabase`, every campaign map builds a `WorldState`, per-level VARIABLES layered (ADR-0040). THINGS and TRIGGERS are split into tagged records and undecoded, so no starting roster, no objects, no doors or traps, no objectives. Original saves: terrain grid only (Q182). |
+| 3 | Sim/render separation | **Demonstrated, with one hole** | Two renderers over one view, the text one in CI, zero Unity references in `src/`. **The view has no viewing player**: `WorldView.TileAt` takes none and `TileView.Tagged` is any-player, so every renderer is omniscient while fog is simulation state (ADR-0076). First named in the handoff, not in `ARCHITECTURE.md`, until today. |
+| 4 | Replaceable assets | **Chain complete; art has never reached a screen** | Every key resolves to a placeholder with no install; `DK2.Convert` writes glTF and PNG and round-trips them through `FileAssetProvider`. The Unity adapter has no branch that reads either. No sound, music or video key is ever produced by the catalogue. |
+| 5 | Behavioural fidelity | **Method holding; its time base is not** | 76 ADRs, 202 catalogued questions, 53 `Dk2Behavior` tags in code (12 Confirmed, 39 StronglyInferred). Four shipped balance fields found dead, two after building on them. **Every timing figure rests on `TicksPerSecond = 20`, a placeholder the binary contradicts** (Q1 read as 4, Q47 not yet reconciled). |
+| 6 | Oracle testing | **Still the easy half, and one part of it is hollow** | 23 scenarios, none with an expectation block, none compared to a recording; `docs/experiments/` is empty. The oracle in practice is the owner's observation, transcribed. **Every real-data test returns early without an install and CI sets `DK2_DIR` to a nonexistent path, so the Behavior, Convert and Data install-backed tests are green there while asserting nothing.** |
+| 7 | Level editor | **Nothing** | Readers for nine record types; no writers. |
+| 8 | Modding framework | **Unchanged** | Hand-built `GameDatabase` path proven by every simulation test; still no external content format. |
+| 9 | Deterministic, fast | **Determinism pinned; speed still never measured** | Hash `0x2E7E116CA573398B` at `HashVersion` 30, RNG position hashed, snapshots verified by continuation. CI matrix is Ubuntu and Windows. Gap 4 stands. |
+| 10 | AI/bot interface | **Eight command types; no agent-shaped observation** | `Tick(InputFrame)` remains the only way time moves. Observation is still raw `WorldState`. |
+| 11 | Presentation modes | **Headless, text, and Unity boxes** | Three targets over one view. The Unity one takes no input and controls no camera. |
+| 12 | Preservation | **Downstream of 1–3** | Nothing to assess independently yet. |
+
+### Gaps, restated
+
+- **Gap 4 (speed) open.** Still nobody has timed a headless run.
+- **Gap 5 (one mesh per solid) open**, waiting on Q71.
+- **New — the omniscient view.** Fog is in the simulation and no renderer can
+  honour it, because the presentation boundary has no notion of who is looking.
+  Cheap now, expensive after a second keeper's view exists.
+- **New — the silent skip.** A test that returns early is indistinguishable from
+  a test that passed. Until the install-backed suites report a *skip*, "1042
+  green on CI" overstates what CI checked by well over a hundred tests.
+- **Gap 3 remains closed. Gap 6 is closed too**: `ArchitectureTests` now fails
+  the build if an assembly Unity loads is not netstandard2.1, which is the
+  enforcement ADR-0002 claimed and did not have.
 

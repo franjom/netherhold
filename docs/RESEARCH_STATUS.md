@@ -289,19 +289,21 @@ What is *built* rather than known, against the long-term goals:
   and the manual says the dungeon heart stores its gold in its "outer ring" too.
   Rooms are **no longer blocked on objects** — OBJECTS is parsed and instances
   exist — so what remains is per-room mechanics and, for a few, creature needs.
-- **What creatures then do.** ← **health, hunger, beds and sleep now exist**
-  (ADR-0048, ADR-0049), so a creature is no longer inert: it can be hurt, healed
-  and killed, it gets hungry, and it takes a bed in a lair, walks to it and
-  sleeps in it. What it still has no notion of is **mood, anger, experience or a
-  job**, and it still cannot be picked up or dropped. **Anger is the next one
-  that matters** — the owner has CONFIRMED the ladder twice (Q9 for pay, Q105 for
-  lairs: *unhappy, then angry, then it leaves the dungeon*) — but it is
-  **built** — Q106 was the blocker and the owner measured its ceiling at 32767
-  twice, by two independent methods (ADR-0053). **Levels and experience are built
-  too.** What a creature still has no notion of is a **job**, and it still cannot
-  be picked up, dropped, or carried. Fixing the signedness of the six anger
-  fields on the way in found that **slapping angers and being picked up calms** —
-  read unsigned, picking a creature up would have added 65286 to its anger.
+- **What creatures then do.** (Rewritten 2026-09-06 as one statement; the
+  bullet had been patched three times without its opening clause.) A creature
+  has **health, hunger, a bed and sleep** (ADR-0048, ADR-0049, ADR-0060), **eats**
+  in its keeper's hatchery (ADR-0067), has **anger** with a measured ceiling of
+  32767 and the ladder the owner CONFIRMED twice — *unhappy, then angry, then it
+  leaves the dungeon* (Q9, Q105, ADR-0053) — has **levels** as a stat multiplier
+  (Q119), can be **picked up, dropped and slapped** by the Hand (ADR-0062,
+  ADR-0075), can be **carried** unconscious to its bed or an enemy's prison, or
+  as a corpse to a graveyard (ADR-0063/0065), can be **imprisoned**, wither and
+  rise as a Skeleton, wander its cell and race for its bird (ADR-0064 to
+  ADR-0074), and **dies as a process** (ADR-0051). What it still has **no notion
+  of is a job** — every non-worker only sleeps, eats and gets angry — and
+  **nothing can fight it**. Fixing the signedness of the six anger fields on the
+  way in found that **slapping angers and being picked up calms** — read
+  unsigned, picking a creature up would have added 65286 to its anger.
 - **How a keeper *destroys* a room somebody else holds.** `AttackRoomHealth` =
   −1500 names it and there is no `TileWorkKind` for it. **Claiming** one is done
   (ADR-0044) — a room changes hands whole, never tile by tile, CONFIRMED by the
@@ -314,8 +316,11 @@ What is *built* rather than known, against the long-term goals:
 - **Which rooms a keeper may build on a given level.** `Availability` kind 1 says
   so, per level and per player, and `RoomRules` does not model it at all — a
   keeper here can build any buildable room on any level.
-- Pathfinding (biggest risk), creature moods/anger, combat resolution,
-  job-selection priority order, computer-player AI, audio event semantics.
+- Pathfinding (biggest risk), combat resolution, job selection **for
+  non-workers** (workers: ADR-0018/0058/0061), computer-player AI (a
+  `claude/keeper-ai` worktree has begun reading it; nothing on master), audio
+  event semantics. (Anger was listed here until 2026-09-06; it is built,
+  ADR-0053.)
 - **The tick rate is read (Q1) but not yet adopted, and one measurement fights
   it.** Variable 19 is 4 — a game second is four ticks — but Q47 derived *five*
   work applications a second from 273 gold a swing, and five does not divide
@@ -330,7 +335,8 @@ What is *built* rather than known, against the long-term goals:
   watched prisoners do (Q172). The hunger clock stopped saturating and started
   **accumulating**, which is a change of shape rather than of wording. What is
   left: how the original walks it there (Q174), the post-meal wander (Q175),
-  whether a sleeper wakes to eat (Q176), and **prisoners**, which cannot move.
+  whether a sleeper wakes to eat (Q176)~~, and **prisoners**, which cannot move~~
+  (prisoners wander and eat since ADR-0073/0074, 2026-09-06).
 - ~~**Carrying.**~~ **Done** (2026-09-05, ADR-0063/0064/0065) — it was the
   single largest blocker left and it is gone. All three of DK2's carrying task
   kinds exist: **13** (an unconscious creature to its own bed, or an enemy's to

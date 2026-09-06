@@ -51,11 +51,15 @@ Pass `-p:UnityManagedDir=...` if the editor is not in `Program Files`.
 ## What it does not do
 
 - **It does not load art.** A `ResolvedAsset` with a `FilePath` points at
-  converter output, and **there is no converter yet** (plan §7.1) — so nothing
-  has ever produced one of those files, and writing a runtime glTF loader now
-  would be writing an importer for input that does not exist. Files draw as
-  placeholders and log a warning once. `DungeonScene.Instantiate` is the method
-  that gains a branch when the converter lands.
+  converter output. ~~There is no converter yet (plan §7.1).~~ **Corrected
+  2026-09-06: the converter exists** — `src/DK2.Convert`, driven by
+  `dk2tools convert --out <dir>`, writes KMF meshes and animations as glTF
+  binary and engine textures as PNG, and round-trips every key it produces
+  through `FileAssetProvider`. **What is still missing is the other half:**
+  `DungeonScene.Instantiate` has no glTF or PNG branch, so a file-backed asset
+  draws as the same primitive a placeholder does and logs a warning once. That
+  method is where the loader goes; it needs a runtime glTF importer (Unity has
+  none built in) and a decision about which package supplies it.
 - **It does not take input.** No selecting, no digging, no building. Commands
   reach the simulation as an `InputFrame` and nothing here builds one yet.
 - **It does not claim a speed.** The tick rate comes from

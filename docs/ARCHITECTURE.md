@@ -154,8 +154,11 @@ ten health-delta variables, and none of them appears in the code.
 - The rules are written against terrain **flags**, never terrain ids. A rule
   keyed on id 2 would be a rule about the reference install rather than DK2.
 
-Gold released by mining is reported and dropped rather than credited, because
-the treasury it would go to does not exist yet.
+Gold released by mining goes into the miner's hands (ADR-0019) and is walked to
+a treasury or heart tile; what the carrier cannot hold lands on the floor as an
+object and is the first thing any imp picks up (ADR-0055, ADR-0056). (Until
+2026-09-06 this paragraph still said the gold was dropped because no treasury
+existed — true on 2026-08-29, false since ADR-0015 the same day.)
 
 Timing is the open wound: the health deltas carry no unit (Q19, tied to Q1), so
 tick counts are not seconds. Everything that relates ticks to seconds lives in
@@ -227,12 +230,17 @@ one treasury tile spills into the next — because the carrier puts down what fi
 and looks again, not because anything implements spillover.
 
 What is still absent, and it is much less than it was: **most rooms do nothing.**
-A treasury and a heart hold gold because a variable says how much per tile. Four
+A treasury and a heart hold gold because a variable says how much per tile. Five
 now do more — a **portal** produces creatures, a **lair** attracts them and holds
-one bed per tile, a **hatchery** knows its coops and its flock, and a **temple**
-has its rim capacity recorded if not used. Everything else is inert terrain its
-owner holds. Rooms cannot be sold (Q34) and are built instantly — building over
-time is another worker job absent from the priority order the owner gave (Q24).
+one bed per tile, a **hatchery** lays and feeds (ADR-0066/0067), a **prison**
+holds `interior + 1` captives, drains them by hunger and raises Skeletons
+(ADR-0064 to ADR-0074), and a **temple** has its rim capacity recorded if not
+used. The **graveyard** is a carry target only (ADR-0063); no Vampire rises.
+Library, training room, workshop, guard room, torture chamber, casino and combat
+pit are inert terrain their owner holds. Rooms **are sold back at half cost**
+(ADR-0029, `RoomSellSystem`; this paragraph said "cannot be sold (Q34)" until
+2026-09-06) and are built instantly — building over time is another worker job
+absent from the priority order the owner gave (Q24).
 
 Gold an imp cannot hold is still lost. DK2 leaves a lump on the floor for
 somebody to come back for; gold on the floor is **three of the 145 objects** and
@@ -285,9 +293,14 @@ record or the balance table; none is in the code.
 - **Health** — maximum from the record scaled by level, regeneration on your own
   land (two creatures out of 46 have any), healing at 100 a second **only while
   asleep in its own bed**, and terrain damage gated on the crossing flags.
-- **Hunger** — a clock that fills `ChickensNeeded` and cannot yet be satisfied.
-  It costs **no health on purpose**: there is no starvation anywhere in the
-  balance table, because what going unfed costs is anger.
+- **Hunger** — an accumulator, `HungerNeed`, that DK2 never caps (ADR-0067;
+  it was `ChickensNeeded` and "cannot yet be satisfied" until 2026-09-06). A
+  hungry creature walks to its keeper's nearest hatchery, picks the nearest
+  bird by squared distance and eats it for `min(HpFromChicken, missing)`;
+  nothing is reserved, so two creatures can race for one chicken and the loser
+  looks again. It costs **no health on purpose**: there is no starvation anywhere
+  in the balance table, because what going unfed costs is anger — except in a
+  prison, where the drain is gated on hunger (ADR-0068).
 - **Anger** — a measured ceiling of 32767 (the owner, twice, two methods), a
   ladder of content → unhappy → angry, and a consequence: an angry evil creature
   walks to the nearest portal and leaves; a converted one turns turncoat.
@@ -298,6 +311,45 @@ record or the balance table; none is in the code.
   then removal. A corpse is **a creature in a state**, not an object — a
   correction that shrank the graveyard from "parse a record" to "write a carry
   task".
+
+## What M4 grew after 2026-09-05 (added 2026-09-06)
+
+This file stopped at creature needs while the tree kept moving; the sections
+above were reconciled on 2026-09-06 and this one lists what had no section at
+all. One line each; the ADR is the account.
+
+- **The Hand of Evil** (ADR-0062, ADR-0075) — `PlayerState.Hand` is a list of
+  `HandItem`, creature or object; `PickUpCreature`, `PickUpObject`, `Drop` and
+  `Slap` are commands and hash into the replay like every other. Slapping
+  damages, angers and grants the worker an efficiency bonus that lasts until no
+  work of that kind can be found (ADR-0069). `Efficiency` became a number.
+- **Carrying** (ADR-0063, ADR-0065) — all three of DK2's carry kinds: an
+  unconscious creature to its bed or an enemy's prison (13), a corpse to a
+  graveyard (12), a loose object back to the room that lists it (8). Gold off the
+  floor was already 7.
+- **The prison** (ADR-0064, 0068, 0070, 0071, 0073, 0074) — capacity
+  `interior + 1`; a captive arrives at one sixth of its health, wanders one
+  orthogonal step on a 20% roll a tick, withers by hunger and rises as a Skeleton;
+  the four creatures that never eat never wither. Jailbreak is per extra captive.
+- **Hatchery and eating** (ADR-0066, ADR-0067) — see *Creature needs*.
+- **Fog of war** (ADR-0076) — per-keeper discovery bitmask on the tile, revealed
+  in a circle of `PerceptionRange` around each creature; hashed and snapshotted,
+  so it is simulation state, not presentation. Off by default.
+- **Reading the original's saves** (`Dk2SaveReader`, Q182) — terrain grid and
+  ownership only; entity sections undecoded. Used to cross-check design maps.
+- **The converter** (`DK2.Convert`, `dk2tools convert`) — KMF to glTF binary,
+  engine textures to PNG, every produced key round-tripped through
+  `FileAssetProvider`. **No renderer loads its output yet.**
+
+**Two things the architecture owes and this file did not say until today.**
+
+1. **The view has no viewer.** `WorldView.TileAt(world, x, y)` takes no player
+   and `TileView.Tagged` is "tagged by anyone", so every renderer is omniscient
+   by construction. That was harmless until ADR-0076 put fog in the simulation;
+   now the boundary cannot express the one thing fog is for. The scenario runner
+   has a `viewing_player`; the presentation layer does not.
+2. **Payday does not exist.** `PayDayFrequencySeconds` is parsed and unread;
+   nothing has ever paid a wage, so `AngerNoPay` can never fire.
 
 ## Mana (M3)
 

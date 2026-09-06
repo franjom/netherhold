@@ -202,13 +202,14 @@ namespace DK2.Unity
         /// <para><b>File-backed assets are not loaded, and that is the honest
         /// state of the project rather than a shortcut.</b> A
         /// <see cref="ResolvedAsset.FilePath"/> points at converter output —
-        /// glTF, PNG, OGG — and **no converter exists yet** (plan §7.1), so
-        /// nothing has ever produced one of those files. Writing a runtime glTF
-        /// loader now would be writing an importer for input that does not
-        /// exist. When the converter lands, this is the method that gains a
-        /// branch; until then a file resolves to the same primitive a
-        /// placeholder does, and <see cref="SawFileBackedAssets"/> records that
-        /// it happened so the runner can say so on screen.</para>
+        /// glTF binary and PNG, written by <c>DK2.Convert</c> via
+        /// <c>dk2tools convert</c> (the converter exists since 2026-09-05; this
+        /// comment said otherwise until 2026-09-06). This method has no branch
+        /// that reads either format yet: Unity ships no runtime glTF importer,
+        /// so one has to be chosen and added. Until then a file resolves to the
+        /// same primitive a placeholder does, and
+        /// <see cref="SawFileBackedAssets"/> records that it happened so the
+        /// runner can say so on screen.</para>
         /// </summary>
         private GameObject Instantiate(in ResolvedAsset asset, string name)
         {

@@ -35,7 +35,7 @@ lands:
 ```
 dotnet build DK2.slnx -c Release                          # zero warnings
 dotnet test DK2.slnx -c Release                           # all green
-dotnet run --project src/DK2.Harness -- run scenarios     # 21 scenarios
+dotnet run --project src/DK2.Harness -- run scenarios     # 23 scenarios
 ```
 
 Anything that **writes** should get its own git worktree. Read-only auditing can

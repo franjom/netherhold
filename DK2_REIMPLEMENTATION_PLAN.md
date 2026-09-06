@@ -26,8 +26,10 @@ Anything not tagged is a statement about *our* project, not about DK2.
 ## Revision 2 — what changed, 2026-09-06
 
 Revision 1 was written before a line of the simulation existed. Nine days later
-the project has **68 ADRs, 975 tests, 21 behavioural scenarios**, a deterministic
-tick at `HashVersion` 27, and **180 catalogued open questions**. This revision
+the project has **76 ADRs, 1042 tests, 23 behavioural scenarios**, a deterministic
+tick at `HashVersion` 30, and **202 catalogued open questions** (figures
+refreshed on the evening of 2026-09-06; revision 2 was written that morning at
+68 / 975 / 21 / 27 / 180, and the same day moved every one of them). This revision
 does not rewrite the plan; it corrects the claims that have since been settled
 and answers one question the plan raised and never resolved.
 
@@ -123,7 +125,9 @@ Five systems carry essentially all the risk:
 > OpenKeeper's stub was not the obstacle it looked like — the numbers were in
 > the creature records the whole time, and the ladder came out of the binary.
 > **A sixth risk has appeared that revision 1 did not name**: the creature
-> *state machine* — 239 states with category-scoped enter/update/leave hooks —
+> *state machine* — **281** states (ADR-0072; this line said 239 until
+> 2026-09-06, from a scan window that ended 0x420 bytes short) with
+> category-scoped enter/update/leave hooks —
 > which turns out to be where job selection, moods and combat all actually live.
 > It is being mapped (§2.2.1).
 
@@ -369,7 +373,9 @@ hooks are told which field to work on, which nobody here had guessed.
 **And it disagreed about something, which is a finding rather than a nuisance.**
 Flame names `g_stateEntries` at **`0x006DA8B0`, size 7025**. This project placed
 the state table's first record at **`0x006DA8C0`** with 239 records of 25 bytes
-(5,975 bytes), anchored on the installer's own literal stores — `MOV [0x006DA8F2], 2`
+(5,975 bytes) — **Flame was right and this project was wrong: 281 records,
+settled by six independent checks in ADR-0072 on 2026-09-06; the 239 came from a
+scan window that ended 0x420 bytes short** — anchored on the installer's own literal stores — `MOV [0x006DA8F2], 2`
 and `MOV [0x006DA924], 4` both put record *N* at `0x006DA8C0 + 25N`, and three
 independent anchors agree. 7,025 bytes is 281 records of 25, which is 42 more
 than the installer fills, and the two base addresses are 16 bytes apart, which
@@ -548,8 +554,8 @@ Confidence reflects *our ability to reproduce the behaviour*, not merely to pars
 | **Economy — payday/wage procedure** | | ● | | `f3E2_getPaid`, `SkipNextPayment` flag [KNOWN]; timing [UNKNOWN] |
 | **Creature stats & data** | ● | | | KWD `CREATURES(170)`, `CreatureStats` StatTypes |
 | **Creature state representation** | ● | | | Flame `creature_state.h` — 54 named flags |
-| **Creature job/destination selection** | | ● | | OpenKeeper FSM exists; **DK2's actual priority order [UNKNOWN]** |
-| **Creature moods / anger / happiness** | | | ● | OpenKeeper system is a stub; their #1 open issue |
+| **Creature job/destination selection** | | ● | | **Workers: CONFIRMED and built** (ADR-0018/0058/0061, `imp-task-priority.md`); **non-workers: [UNKNOWN]**, the 281-state table is where it lives (ADR-0072). *Row moved 2026-09-06.* |
+| **Creature moods / anger / happiness** | | ● | | **Built** (ADR-0053, `creature-anger.md`): ceiling 32767, ladder once a game second, desertion. Open: happiness sources beyond the two a player can switch off. *Row moved from Unknown 2026-09-06.* |
 | **Combat — stats** | ● | | | KWD; `MELEE_DAMAGE`, `MELEE_RECHARGE_TIME_SECONDS` |
 | **Combat — resolution & target selection** | | ● | | `f37A_isInBattleFlag`, `f37E_canLeaveBattleAt`, `FightProcessCounter` [KNOWN]; formulas [UNKNOWN] |
 | **Pathfinding** | | | ● | Flame `Follow_Path` named, **no fields**; OpenKeeper uses its own A*+steering |
@@ -954,13 +960,16 @@ is very expensive to retrofit.
 | **M10** | Campaign | Full campaign playable start to finish | after M8 |
 | **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
 
-**Status (2026-09-06, revision 2).** **975 tests, 21 scenarios, 68 ADRs, 180
-catalogued open questions**, `HashVersion` 27.
+**Status (2026-09-06 evening, revision 2 refreshed).** **1042 tests, 23
+scenarios, 76 ADRs, 202 catalogued open questions**, `HashVersion` 30.
 
 - **M0** — done except the one thing this document exists to correct: Flame has
   never been checked out (§2.2.1). OpenKeeper is on disk.
-- **M1** ◐ — every record type's on-disk size is known and pinned; the five M1
-  needed parse into `GameDatabase`.
+- **M1** ◐ — every record type's on-disk size is known and pinned; **nine**
+  parse into `GameDatabase` (TERRAIN, ROOMS, CREATURES, VARIABLES,
+  KEEPERSPELLS, OBJECTS, DOORS, TRAPS, MAP). THINGS and TRIGGERS are split into
+  tagged records with no field read (`KwdTaggedRecords`); PLAYERS, LEVEL,
+  CREATURESPELLS, SHOTS, EFFECTS, EFFECTELEMENTS and GLOBALS are not read at all.
 - **M2** ✅ — unchanged.
 - **M3** ✅ substantially — the Unity view renders campaign level 1; terrain
   work, rooms, the treasury, mana, gold and the imp are all in.
@@ -1046,14 +1055,19 @@ applied — see the correction on ADR-0002.
 What M3 still asks for and does not have: **what a room does**. Rooms exist as
 owned terrain that costs gold and can be sold back, but only the treasury and the
 heart do anything at all; every other room's behaviour is a per-room research
-question that has not been started. §7.3's converter does not exist either, which
-is why the renderer draws boxes rather than art.
+question that has not been started. ~~§7.3's converter does not exist either,
+which is why the renderer draws boxes rather than art.~~ **Corrected
+2026-09-06:** the converter exists (`DK2.Convert`, glTF and PNG); the renderer
+draws boxes because the Unity adapter has no branch that loads its output.
+(Four rooms have behaviour since this paragraph was written; see §8 M4.)
 
 M1 is marked partial deliberately. Its definition of done says "all 18 record
-types round-trip"; five are parsed (VARIABLES, CREATURES, TERRAIN, ROOMS, MAP)
-plus the WAD and KWD containers. That was enough to unblock M2 and M3 — the
-remaining record types (THINGS, TRIGGERS, PLAYERS, OBJECTS, SHOTS, ...) are
-needed at M6, when real levels have to load, and are scheduled there.
+types round-trip"; **nine** are parsed as of 2026-09-06 (VARIABLES, CREATURES,
+TERRAIN, ROOMS, MAP, KEEPERSPELLS, OBJECTS, DOORS, TRAPS — this sentence said
+five until then) plus the WAD and KWD containers. That was enough to unblock M2,
+M3 and most of M4 — the remaining record types (THINGS, TRIGGERS, PLAYERS,
+LEVEL, CREATURESPELLS, SHOTS, EFFECTS, EFFECTELEMENTS, GLOBALS) are needed at
+M6, when real levels have to load their own contents, and are scheduled there.
 
 **Deliberate ordering note:** M5 (oracle comparison) comes *before* breadth work. Building
 the comparison rig early is what prevents accumulating a large body of plausible-but-wrong
@@ -1165,6 +1179,17 @@ I have flagged rather than resolved this, per §32 of the brief.
 ---
 
 ## 11. Immediate next steps (next 1–2 weeks)
+
+> **Revision-1 text, written 2026-08-29 before the repository existed, kept
+> as the record of where the plan started. Status as of 2026-09-06:** 1 — done,
+> the GOG install is at `E:\GogGames\Dungeon Keeper 2` (`Dk2Install.Find()`);
+> 2 — resolved, GPLv3 with OpenKeeper reusable under attribution (ADR-0041,
+> §10.1); 3 — done; 4 — **not done**, Flame has never been on this machine
+> (§2.2.1, R15); 5 — **not done**, for the same reason; 6 — the 1999 *player*
+> manual was read (`manual-1999.md`, ADR-0037), the editor manual was not;
+> 7, 8, 9 — done (`DK2.Data`, nine record types, `game-database-dump.md`);
+> 10 — became `docs/research/open-questions.md`, 202 rows. For what to pick up
+> next, read `docs/HANDOFF.md`, not this section.
 
 Ordered. Items 1–3 are blocking for everything else.
 

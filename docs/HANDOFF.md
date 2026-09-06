@@ -6,19 +6,44 @@ Update this whenever a session ends or context is compacted.
 
 ---
 
-## Current state (2026-09-04)
+## Current state (reconciled 2026-09-06; narrative below written 2026-09-04)
+
+> **Reconciled 2026-09-06 (evening) against the tree at `47ce875`.** The figures
+> in the next paragraph are current. The narrative that follows it was written on
+> 2026-09-04 and is left as written, with the sentences that have since become
+> false struck through in place and corrected beside them. Where this section
+> and the sittings at the **bottom** of this file disagree, the sittings win.
+
+**1042 tests green** with and without a DK2 install (Core 17, Simulation 646,
+Data 83, Behavior 167, Assets 61, Presentation 39, Convert 29); **23 scenarios**
+run; **76 ADRs**; `HashVersion`/`FormatVersion` **30**, pin `0x2E7E116CA573398B`;
+**202 catalogued questions to Q197**, about fifty still UNKNOWN; **clean tree**.
+Milestones: M2 ✅, M3 ✅ substantially, **M4 ◐ four of seven** (portal, lair,
+sleep, hunger→hatchery; **training ✗, payday ✗**, job selection for workers only).
+Beyond the M4 list: death as a process, anger and desertion, levels, the Hand of
+Evil, all three carry kinds, the prison, eating, prisoners that walk and eat, fog
+of war, an original-save reader (terrain only, Q182), and a converter
+(`DK2.Convert`: KMF→glTF, textures→PNG) **that the Unity adapter does not yet
+load**. **Nine** KWD record types parse into `GameDatabase` (TERRAIN, ROOMS,
+CREATURES, VARIABLES, KEEPERSPELLS, OBJECTS, DOORS, TRAPS, MAP); THINGS and
+TRIGGERS are split into tagged records and not decoded, so **no level places its
+own creatures and no level has objectives**. **Still absent:** combat, a job for
+any non-worker, training, payday, every spell but Create Imp, traps and doors in
+the simulation, heroes, the computer keeper (`DK2.AI` is an empty project), level
+scripting, win and lose. Two standing caveats: the tick rate is read as **4** a
+game second but `SimulationTiming.TicksPerSecond` is still the placeholder **20**
+(Q1/Q47), and every real-data test returns early without an install, so CI runs
+the Behavior, Convert and Data install-backed tests **vacuously green**.
 
 **M3 tile mechanics, the first worker, rooms + the treasury, mana, the gold
 carrier, where imps come from, **where every other creature comes from**, the
 asset layer and the presentation boundary: complete, and each level now plays on
 its own balance numbers. M3 as a whole: substantially complete — the Unity view
-renders campaign level 1.** M2 and the five record types M1 needed are done, and
-**every** record type's on-disk size is now known and pinned. **834 tests green**
-with and without a DK2 install; **16 scenarios** run, each drawing a picture of
-its finished world; **completely clean tree**. (Core 17, Simulation 502, Data 64,
-Behavior 153, Assets 61, Presentation 37.)
+renders campaign level 1.** M2 and the record types M1 needed are done, and
+**every** record type's on-disk size is now known and pinned.
 
-**M4 has started, and three of its seven items exist.** The portal produces
+**M4 has started, and ~~three~~ four of its seven items exist** (the fourth,
+hunger→hatchery, landed 2026-09-06, ADR-0066/0067). The portal produces
 creatures (ADR-0042, ADR-0047); a creature has **health and a hunger clock**
 (ADR-0048); and it has **its own bed in a lair, and sleeps in it** (ADR-0049,
 CONFIRMED by the owner) — which also gave the project **the first driver a
@@ -55,10 +80,12 @@ amendment), at the owner's instruction. The first hour of that returned EA's own
 names for ~220 creature-instance fields and 23 object kinds, corrected two claims
 this project had committed, and answered the shape of Q98.
 
-What a creature still has no notion of is **experience or a job**, and it cannot
+~~What a creature still has no notion of is **experience or a job**, and it cannot
 be picked up or dropped. It gets hungry and cannot eat, because chickens are
-objects (M6). **Combat and jobs are what M4 still owes**, and combat is the first
-thing that will subtract health per *tick* rather than per second.
+objects (M6).~~ **Corrected 2026-09-06:** experience (Q119, same day), pick-up
+and drop (ADR-0062, ADR-0075) and eating (ADR-0067) all exist now. **Combat and a
+job for a non-worker are what M4 still owes**, and combat is the first thing
+that will subtract health per *tick* rather than per second.
 
 **The first room whose behaviour exists is the portal** (2026-09-04, ADR-0042):
 a claimed portal produces its level's own creatures, and **level 1 produces
@@ -558,11 +585,18 @@ it is worth doing:
 
    **What is left is not the view but the game**, and none of it is renderer
    work: **no input** (nothing builds an `InputFrame` yet, so you can watch a
-   dungeon and not touch it), **no art loading** (there is no converter —
-   plan §7.1), and **boxes rather than DK2's walls** (Q71).
+   dungeon and not touch it), **no art loading** (~~there is no converter —
+   plan §7.1~~ **corrected 2026-09-06:** `DK2.Convert` exists and writes glTF
+   and PNG; `DungeonScene.Instantiate` has no branch that loads them), and
+   **boxes rather than DK2's walls** (Q71).
 
-3. ← **START HERE: what rooms actually do.** This is the next item, agreed with
-   the owner on 2026-09-04.
+3. ~~← **START HERE: what rooms actually do.**~~ **Done for four rooms by
+   2026-09-06** — portal (ADR-0042/0047), lair (ADR-0049/0060), hatchery
+   (ADR-0066/0067), prison (ADR-0064 to ADR-0074) — and the graveyard is a carry
+   target (ADR-0063). Library, training room, workshop, guard room, torture,
+   casino, combat pit and temple still do nothing. The rest of this item stands
+   as the method and the table. It was the next item, agreed with the owner on
+   2026-09-04.
 
    **The machinery is finally in place.** `RoomInstance` (ADR-0027) gives a room
    its tile count, its bounding box, its rim and whether it is big enough to
@@ -601,7 +635,8 @@ it is worth doing:
    the **library** (a rate per creature and a surprising ownership rule), the
    **training room** (Q63 already measured 20 gold at a dummy and 0 at the
    target, and the manual explains the per-second keeper cost), then the
-   **hatchery** — which is **blocked on objects (M6)**, because a chicken is one.
+   **hatchery** — ~~which is **blocked on objects (M6)**, because a chicken is
+   one~~ (built 2026-09-06, ADR-0066/0067; objects arrived with ADR-0054).
 
    **Two traps worth naming before starting.** First, a room's *capacity* rule is
    not one rule: Q60 established that a temple's is its **rim**, `2(w+h) − 4`,
@@ -610,9 +645,10 @@ it is worth doing:
    weakening it**: it says the dungeon heart stores gold in its *"outer ring"*,
    so the rim is a DK2-wide idiom, and it says a lair holds **beds** — one per
    creature, placed by preference — which is a count of objects, not of tiles.
-   Second, several rooms need creatures to have needs, and **creatures currently
-   have no health, hunger, mood or experience** — `CreatureState` carries only
-   what a built mechanic reads. A room whose behaviour needs a field the
+   Second, several rooms need creatures to have needs, and ~~**creatures currently
+   have no health, hunger, mood or experience**~~ (**all four exist since
+   2026-09-04/05**: ADR-0048, ADR-0053, Q119 — struck 2026-09-06) —
+   `CreatureState` carries only what a built mechanic reads. A room whose behaviour needs a field the
    simulation does not have is blocked, and saying so is better than inventing
    the field. The manual makes it very tempting to invent them, since it names
    all four.
@@ -778,7 +814,13 @@ for this; Q47 in `open-questions.md` is the current statement.
   (ADR-0020). Measured, not chosen: 273 gold a swing at a gold seam. The rate per
   second is unchanged; the swing *count* is now the measured quantity and is
   independent of Q1. `TileState.WorkRemainder` carries the fraction for the two
-  deltas that do not divide by five.
+  deltas that do not divide by five. **Re-derived 2026-09-05/06 (Q47, Q1):** the
+  binary applies `delta × efficiency / 4` **once a tick, four ticks a game
+  second** (`SimulationTiming.OriginalTicksPerGameSecond = 4`, ADR-0074). At 80%
+  efficiency that is the same fraction by a different mechanism, and it is why
+  `TicksPerSecond` is still the placeholder 20: five applications do not fit in
+  four ticks, and nobody has reconciled the two yet. Do not quote "five a second"
+  as DK2's mechanism; quote it as the measured swing count it was.
 - **A creature's hands are the fourth place gold can be** (ADR-0019).
   `CreatureState.GoldHeld`, bounded by the creature's own `maxGoldHeld`. A
   keeper's spendable total dips while their imps are walking home, and that is
@@ -1009,7 +1051,14 @@ caught real errors so far:
 
 ## Live research questions
 
-`docs/research/open-questions.md` holds all 76 (Q1-Q72; Q51 superseded). The ones that gate progress:
+> **This section is the snapshot of 2026-08-29/30, marked as such on
+> 2026-09-06.** `docs/research/open-questions.md` now holds **202 rows to Q197**,
+> and the questions that gate progress today are in the latest sitting's *What
+> to pick up next*, at the bottom of this file. The list below is kept for the
+> method it records; where an entry has since moved, the move is in bold at its
+> end. Q1's duplicated line and the second Q7 entry were removed.
+
+`docs/research/open-questions.md` ~~holds all 76 (Q1-Q72; Q51 superseded)~~. The ones that gated progress then:
 
 - **Q53 is ANSWERED and built** (2026-08-30): 7 mana a second per imp, measured
   by the owner and read off DK2's own Create Imp spell record (ADR-0022). Left in
@@ -1019,7 +1068,9 @@ caught real errors so far:
 - **Q59 is ANSWERED and now cross-checked** (2026-08-30, 2026-09-03): a trap is a standing mana charge, and the
   field is `Traps.kwd` offset 0x0202, confirmed against five owner measurements
   across three distinct values and pinned by `TrapsOnRealDataTests`. Not
-  implemented, because a trap is an object and objects arrive at M6.
+  implemented, because a trap is an object and objects arrive at M6. **2026-09-06:
+  objects arrived (ADR-0054); traps and doors are still parsed only, with no
+  reference in `DK2.Simulation`.**
 - **Q47 is ANSWERED and built** (2026-08-30): 273 gold a swing put an application
   at a fifth of the tabled delta, five a second (ADR-0020). Left in this list
   only to say that `DigRockHealth` is now the sole thing in the tile mechanics
@@ -1027,19 +1078,25 @@ caught real errors so far:
 - **Q40 — losing your dungeon heart is defeat.** Now fully described (the
   defeated keeper's creatures leave by the nearest portal; rivals claim their
   rooms and gold) and **not implementable yet**: it needs portals, which are an
-  M6 record. Scheduled with objectives and win conditions.
+  M6 record. Scheduled with objectives and win conditions. **2026-09-06: portals
+  exist (ADR-0042); still not implementable, because defeat belongs with
+  objectives and TRIGGERS is undecoded.**
 - **Q7 — the creature mood model.** No longer a blank sheet. The four things that
   anger a creature are recorded and three of them map onto fields already parsed
   per creature (`AngerNoLair`, `AngerNoFood`, `AngerNoPay`). What is missing is
   the shape — accumulation, decay, thresholds. This was the area nobody had
-  solved; it is now the area with a starting point.
-- **Q1 — simulation tick rate.** Blocking any timing claim. Flame's `limit_tps`
+  solved; it is now the area with a starting point. **Built 2026-09-04
+  (ADR-0053): ceiling 32767, ladder once a game second, desertion. `AngerNoPay`
+  cannot fire because payday does not exist.**
 - **Q1 — simulation tick rate.** Blocking any timing claim. Flame's `limit_tps`
   patch proves it is fixed; the value is unmeasured. It is one constant,
   `SimulationTiming.TicksPerSecond`, and it must stay that way. **Do not go
   looking in the KWD data again**: id 74 `GameTicks` exists in the format's id
   space but no shipped file carries it — checked across every editor KWD and all
-  71 map KWDs. Q1 needs measurement against the running original.
+  71 map KWDs. Q1 needs measurement against the running original. **2026-09-05/06:
+  measurement can no longer settle it (`EXPERIMENTS.md`); the binary and all 66
+  level files read 4 ticks a game second, not yet adopted because Q47's five
+  applications a second do not divide it — see `RESEARCH_STATUS.md`.**
 - **Q19 — what the health deltas are *per*.** Tied to Q1. The variables table
   spells out `…PerSecond` / `…Seconds` on its other entries and not on these
   ten, which is the whole of the ambiguity.
@@ -1058,8 +1115,8 @@ caught real errors so far:
 - **Q2 — job selection.** Narrowed: candidates and weights are *data*. The
   remaining unknown is the procedure around them (re-evaluation timing, how
   mood picks which of the three tables applies, handling unavailable jobs).
-- **Q7 — creature moods.** Genuinely unsolved; OpenKeeper's system is an empty
-  stub after 12 years.
+  **2026-09-06: settled and built for workers (ADR-0018/0058/0061); for every
+  other creature still UNKNOWN, and it lives in the 281-state table (ADR-0072).**
 - **New at M2 — system update order.** DK2's own per-tick subsystem ordering is
   UNKNOWN. Ours is explicit and declared in exactly one place
   (`SimulationSystems.Default()`, ADR-0013). It starts to matter around M4;
@@ -5137,3 +5194,94 @@ The change is good — it adds a sixth, external check to §5, in which Flame's 
 independently encodes 58 of the state ids and agrees with our numbering on every
 one — and it respects the Flame boundary (our own words, not one symbol
 reproduced). **It is somebody's in-flight work and it is theirs to commit.**
+
+---
+
+# Sitting of 2026-09-06 (evening): the documents reconciled with the tree
+
+No simulation code changed; one Unity doc comment did. Tree at `47ce875`
+(another session's fog-research commit landed at 15:55 while this ran;
+`claude/keeper-ai` is one commit ahead of master and was not touched).
+**1042 tests, 23 scenarios, 76 ADRs**, `HashVersion` 30, solution and the Unity
+compile shim both build clean. **Nothing here is committed** — the owner did not
+ask for a commit, and the tree is theirs to land.
+
+## 1. What was found
+
+A status recap against `AGENTS.md` turned up eleven places across six documents
+where a statement about *this project* had stopped being true and nothing
+re-read it. None was a wrong fact about DK2. Every one was a true sentence on
+the day it was written — "there is no converter", "creatures have no health",
+"rooms cannot be sold", "holds all 76 questions", "five record types parse" —
+that the tree then moved past. `GOAL_ALIGNMENT.md` has spent the week
+collecting instances of *a claim nothing checks may already be false*; this is
+the same pattern turned on the project's description of itself, and the
+cheapest kind, because the check is `git log`.
+
+## 2. What was fixed
+
+The rule followed: **where a file is a log, strike the old text and put the
+correction beside it; where it is a status page, rewrite the sentence and say
+when.** Dated sittings were not touched.
+
+- **`HANDOFF.md`** — header re-dated and re-counted (834→1042 tests, 16→23
+  scenarios, three→four M4 items, nine record types, what is absent, the two
+  standing caveats). In the 2026-09-04 narrative, five dead sentences struck:
+  no experience / pick-up / eating; "there is no converter"; "START HERE: what
+  rooms actually do"; "hatchery blocked on objects (M6)"; "creatures currently
+  have no health, hunger, mood or experience". Conventions: ADR-0020's "five
+  times a second" now carries the Q47/Q1 re-derivation. *Live research
+  questions* marked as the 2026-08-29 snapshot it is (76→202 questions), Q1's
+  duplicated line and the second Q7 entry removed, Q2/Q7/Q40/Q59 annotated with
+  where they went.
+- **`DK2_REIMPLEMENTATION_PLAN.md`** — revision-2 counts refreshed (they were
+  a morning old and every one had moved); §1.2 and §2.2 say 281 states, not
+  239 (ADR-0072); §3 moves moods to Partial/built and splits job selection
+  into workers (built) and non-workers (unknown); §8 lists the nine parsed
+  record types and the nine unread ones; §8's "the converter does not exist"
+  corrected; §11 marked as revision-1 text with a per-item status.
+- **`RESEARCH_STATUS.md`** — the *What creatures then do* bullet rewritten as
+  one statement (it had been patched three times without its opening clause);
+  anger removed from the unknown list; prisoners no longer "cannot move".
+- **`GOAL_ALIGNMENT.md`** — the review log gains the eight entries that had
+  been appended as prose without a row, and a **re-run twelve-row table dated
+  today** beside the 2026-08-29 one, which stands as a dated artefact.
+- **`ARCHITECTURE.md`** — rooms are sold (ADR-0029); mined gold reaches a
+  treasury; hunger is an accumulator that eating satisfies; five rooms with
+  behaviour, not four; a new section for what M4 grew after the file last
+  moved (hand, carrying, prison, fog, save reader, converter); and two owed
+  things written down for the first time here (below).
+- **`unity/README.md`, `DungeonScene.cs`** — the converter exists; the adapter
+  has no branch that loads its output. **`CODEX_TASKS.md`** — 21→23 scenarios.
+
+## 3. Two gaps that no document named, now named
+
+1. **The install-backed tests pass vacuously in CI.** Every real-data test
+   returns early when `Dk2Install.Find()` is null, `ci.yml` sets
+   `DK2_DIR: /nonexistent` on purpose, and a returned test is a green test.
+   So "1042 green on CI" overstates what CI checked by well over a hundred
+   tests (the Behavior, Convert and Data suites that need shipped data). The
+   fix is a skip that shows in runner output, not a silent return. Not done
+   here — it is a test-infrastructure change, not a documentation one.
+2. **The presentation view has no viewer.** `WorldView.TileAt(world, x, y)`
+   takes no player and `TileView.Tagged` is any-player, so every renderer is
+   omniscient while fog is simulation state (ADR-0076). The handoff had said
+   this; `ARCHITECTURE.md` had not. Now it does.
+
+## 4. What was deliberately left alone
+
+`EXPERIMENTS.md` is accurate (no oracle runs; Q1 cannot be measured).
+`DECISIONS.md` is a record and was not edited. The 2026-08-29 goal table
+stands where it is. The Q1/Q47 conflict is recorded, not smoothed:
+`TicksPerSecond` is still 20 and every timing figure in every report is in
+that unit.
+
+## 5. The rule this adds
+
+**A status page is a claim with a date, and the date is the check.** The
+handoff header, the plan's status block, the goal table and the architecture
+file all carry an *as of* date; when the sittings at the bottom of this file
+outrun it by more than a day, the header is wrong somewhere. Re-run the count
+(`dotnet test`, `ls scenarios/*/ | wc -l`, `grep -c '^## ADR' DECISIONS.md`,
+`grep -c '^| Q' open-questions.md`) before quoting any figure from the top of
+a file.
