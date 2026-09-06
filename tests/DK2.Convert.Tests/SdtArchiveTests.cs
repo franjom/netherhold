@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -117,6 +117,87 @@ public class SdtArchiveTests
         Assert.Equal(new ushort[] { 22050, 44100 }, rates.OrderBy(rate => rate).ToArray());
         Assert.Equal(17, mixedRateBanks.Count);
         Assert.Equal(6, payloadRateDisagreements);
+    }
+
+    [Fact]
+    public void EveryCompressedPayloadEndsWithExactlyOneTrailingZeroByte()
+    {
+        // Found while reviewing the branch rather than while writing it: walking
+        // the MPEG frames of a payload lands one byte short of StoredSize, every
+        // time, and that byte is always zero. 7,749 out of 7,749 is too uniform
+        // to be an accident, and it is in the shipped data rather than in the
+        // extractor - which preserves the stream, so the byte comes out with it.
+        //
+        // Whether it is a terminator, an alignment pad or an off-by-one in EA's
+        // own packer is UNKNOWN. This test exists so that the day it stops being
+        // universally true, somebody finds out.
+        string? install = Dk2Install.Find();
+        if (install is null) return;
+
+        string soundRoot = Path.Combine(install, "Data", "Sound", "Sfx");
+        int compressed = 0;
+        foreach (string file in Directory.GetFiles(soundRoot, "*.sdt", SearchOption.AllDirectories))
+        {
+            SdtArchive archive = SdtArchive.Open(file);
+            foreach (SdtEntry entry in archive.Entries)
+            {
+                if (entry.Codec is not (SdtCodec.MpegLayer1 or SdtCodec.MpegLayer2)) continue;
+
+                byte[] payload = archive.Extract(entry);
+                int walked = MpegFrameBytes(payload);
+                Assert.Equal(payload.Length - 1, walked);
+                Assert.Equal(0, payload[^1]);
+                compressed++;
+            }
+        }
+
+        Assert.Equal(7749, compressed);
+    }
+
+    /// <summary>
+    /// How many bytes of this payload are complete MPEG audio frames, walking
+    /// header to header. Deliberately a second, independent implementation of
+    /// the frame arithmetic: SdtArchive reads only the FIRST header, so a test
+    /// that reused its code could not catch a payload that starts well and ends
+    /// badly.
+    /// </summary>
+    private static int MpegFrameBytes(ReadOnlySpan<byte> payload)
+    {
+        int[] rates = [44100, 48000, 32000];
+        int[] layer1V1 = [0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448];
+        int[] layer2V1 = [0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384];
+        int[] layer1V2 = [0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256];
+        int[] layer2V2 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160];
+
+        int at = 0;
+        while (at + 4 <= payload.Length)
+        {
+            uint header = BinaryPrimitives.ReadUInt32BigEndian(payload[at..]);
+            if ((header & 0xffe00000) != 0xffe00000) break;
+
+            int version = (int)((header >> 19) & 3);
+            int layer = (int)((header >> 17) & 3);
+            int bitrateIndex = (int)((header >> 12) & 0xf);
+            int rateIndex = (int)((header >> 10) & 3);
+            int padding = (int)((header >> 9) & 1);
+            if (version == 1 || layer == 0 || rateIndex == 3
+                || bitrateIndex is 0 or 15) break;
+
+            int baseRate = rates[rateIndex];
+            int sampleRate = version switch { 3 => baseRate, 2 => baseRate / 2, _ => baseRate / 4 };
+            int[] table = version == 3
+                ? layer == 3 ? layer1V1 : layer2V1
+                : layer == 3 ? layer1V2 : layer2V2;
+            int kbps = table[bitrateIndex];
+
+            int frame = layer == 3
+                ? ((12 * kbps * 1000 / sampleRate) + padding) * 4
+                : (144 * kbps * 1000 / sampleRate) + padding;
+            if (frame <= 0 || at + frame > payload.Length) break;
+            at += frame;
+        }
+
+        return at;
     }
 
     private static byte[] Bank(params Sample[] samples)

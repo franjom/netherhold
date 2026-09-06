@@ -1,4 +1,4 @@
-# DK2.Convert
+﻿# DK2.Convert
 
 Standalone conversion library for turning assets from a user's own Dungeon
 Keeper 2 installation into the open formats consumed by `FileAssetProvider`.
@@ -111,6 +111,17 @@ Six Layer I entries in the two `MiscCreatures` banks declare 22,050 Hz in the
 SDT header while their MPEG frame headers say 44,100 Hz. Both values are
 exposed (`SampleRate` and `PayloadSampleRate`) rather than silently choosing
 one; which value original DK2 uses is **UNKNOWN**.
+
+**Every compressed payload carries one trailing zero byte.** Walking the MPEG
+frames of all 7,749 compressed entries lands, in every single case, exactly one
+byte short of the entry's `StoredSize`, and that byte is always zero. So an
+extracted `.mp1` or `.mp2` ends with a byte no decoder will read as a frame —
+which is what the game stores and is therefore what is written out, since the
+contract here is to preserve the elementary stream rather than to tidy it.
+Ordinary decoders ignore it; a strict one may report a trailing-garbage warning.
+Whether it is a terminator, an alignment pad or an off-by-one in EA's own
+packer is **UNKNOWN**, and 7,749 out of 7,749 is too uniform to be an
+accident.
 
 ## GLB output
 
