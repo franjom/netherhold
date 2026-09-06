@@ -601,3 +601,179 @@ hash.
   `reverse-engineering/`; decompiler output may not**, anywhere, at all. Not in
   the report, not quoted, not paraphrased line by line.
 - Do not invent DK2 behaviour. If the binary does not show it, it is UNKNOWN.
+
+---
+
+## Brief 8 — build fog of war (write; own worktree and branch)
+
+**Added 2026-09-06.** The implementation brief. Brief 7 is its read-only sibling
+and **this brief absorbs it** — do not run both.
+
+**Branch `codex/fog-of-war`, in its own git worktree.** The house convention is
+`codex/<topic>`; `codex/doors-traps` is the precedent.
+
+### The one thing that is not decided, and the stop rule
+
+**Where fog state lives is an open question, and it decides the whole shape.**
+
+- If fog is **presentation state**, it lives beside `WorldView`, no simulation
+  assembly changes, and the determinism hash is untouched.
+- If fog is **simulation state**, it goes in `WorldState`, enters `HashInto` and
+  `WorldSnapshot`, and needs a `GameSimulation.HashVersion` bump with the pinned
+  literal in `DeterminismTests` re-pinned in the same commit.
+
+**The determinism hash is explicitly not Codex's** (see "The division that makes
+sense" at the top of this file): the bump-and-re-pin protocol makes the gate
+meaningless if it is got wrong.
+
+So: **Phase 0 below settles it. Build presentation-side unless Phase 0 shows
+otherwise. If Phase 0 shows fog is simulation state, STOP and report — do not
+bump the hash, do not touch `WorldState`.** A correct stop there is a successful
+outcome of this brief, not a failure.
+
+---
+
+### Rank of evidence — in this order, and the order is the owner's
+
+**1. Ghidra on `DKII.EXE` is the primary source and the first place to look**,
+not the last (`reverse-engineering/README.md`, ADR-0046 as amended 2026-09-04).
+It is the actual DK2; everything below is somebody's reading of it. An answer you
+would file as UNKNOWN owes a Ghidra pass first. The Ghidra project lives at
+`D:\ghidra projects\DK2_RE`; exports land in `reverse-engineering/`, which is
+gitignored except for its README.
+
+**The quarantine is absolute, and it is a licence boundary rather than a style
+one.** Facts — a number, a formula, a comparison, an order of operations, a
+description of control flow, **in your own words** — may cross. Decompiler output
+may not: not into `src/`, not into `docs/`, not into a commit message, not into a
+test fixture, not reformatted, not renamed, not "cleaned up".
+
+**2. Flame (`D:\Flame`) is the reference for structure only.** Where fog state is
+stored, how wide the field is, which struct holds it, what the vtable membership
+looks like — that is what it is measurably good at. **It is UNLICENSED: no reuse
+rights at all.** Facts only, and **never one of its identifiers pasted into this
+repository**, in any form.
+
+**3. OpenKeeper (`D:\OpenKeeper`) is the last reference.** GPLv3, so facts with
+provenance recorded in `THIRD-PARTY-NOTICES.md` if you adopt a field name. Its
+reading is its own guess and has been wrong before in this project's experience —
+use it to generate candidates, then confirm them against the binary or the
+shipped data yourself. **Do not reach for it before the two above.**
+
+The running game outranks a misread disassembly for anything a player can watch.
+The owner's confirmed observations are in `docs/research/fog-of-war.md` §3, and
+`[Dk2Behavior(Confidence.Confirmed)]` stays reserved for them.
+
+---
+
+### What is already established
+
+**Read `docs/research/fog-of-war.md` first** — it is the note for this mechanic
+and it carries the evidence, the confidence per item and the open questions. The
+short form:
+
+- **The substitution is confirmed at the UI level.** Terrain id 27 is
+  `Fog Of War`, flags `Solid, Impenetrable, Taggable`, health 1/1, and its name
+  and tooltip string ids (2472/2473) resolve to the caption the running game
+  shows over an unexplored tile. An unseen tile is *presented as terrain 27*.
+- **`RevealThroughFogOfWar` is terrain flag bit 24**, set on Impenetrable Rock,
+  Water, Lava, Gold, Gems and Edge of Map. Parsed, with **no `Is…` accessor and
+  no reader anywhere**. Those six show through fog.
+- **Fog looks like a setting with modes**, `Text.str` 348-353: `Creatures
+  Reveal`, `All Owned Reveal`, `Stay Revealed`, `Re-shroud`, `Re-fog`. Inferred
+  from strings; the campaign's confirmed behaviour is `Stay Revealed`.
+- **No sight radius exists in the 214-variable balance table.** The owner
+  estimates ~6 tiles and asks for independent confirmation.
+  `DefaultTorchLightRadiusTiles` 6144 is **1.5 tiles** (`Fp32.One` is 4096) —
+  that near-miss was checked and rejected, do not resurrect it.
+
+---
+
+### Phase 0 — settle these before writing code
+
+Answer from Ghidra first, Flame second, OpenKeeper last. **Report the answers in
+the branch README; they are the justification for everything you then build.**
+
+1. **Does anything in the simulation read fog?** Above all: does a **computer
+   keeper** consult it when deciding anything? This is the stop-rule question.
+2. **What is the reveal radius, and what does the revealing?** Confirm or refute
+   the owner's ~6 tiles with a number from the image. Which entities push the
+   boundary back — any creature, the keeper's own only, a dropped one, the
+   camera, a possessed creature?
+3. **Where does `RevealThroughFogOfWar` get tested?** That read is the clearest
+   single entry point to the whole mechanic.
+4. **Are the five modes real engine behaviour, and what selects one?** If they
+   are vestigial strings, say so — it simplifies the build considerably.
+5. **Is a tag on an undiscovered tile stored, and where?** The owner has the
+   outcome (the mark is lost on reveal if the tile is impenetrable rock, or turns
+   out to be a room); the mechanism is unread.
+
+**An UNKNOWN left labelled is a good outcome.** A guessed constant is not: if the
+radius will not come out of the image, implement it as a named, documented
+default in exactly one place and say plainly that it is ours, the way
+`IPathfinder` admits its placeholder.
+
+---
+
+### What to build, assuming Phase 0 says presentation
+
+The change fog forces is that **the presentation boundary has no viewer**.
+`WorldView.TileAt(world, x, y)` takes no player, `ScenePresenter.Present(world)`
+takes no player, and `TileView.Tagged` is `IsTaggedByAnyone`. Every renderer is
+omniscient by construction, and nothing in the architecture says so.
+
+1. **Give the presentation boundary a viewing player.** One keeper's view is what
+   a renderer draws. `TileView.Tagged` becomes *the viewer's own* mark — a defect
+   fog exposes rather than a feature it adds.
+2. **Fog by substitution, because that is what the original does.** When the
+   viewer has not discovered a tile, `WorldView` yields terrain 27's assets in
+   place of the real terrain's, keeping the tile solid and taggable. The real
+   terrain does not reach the renderer at all — which is also the test that no
+   renderer can leak it.
+3. **Honour `RevealThroughFogOfWar`**, via a new `IsRevealedThroughFog` accessor
+   on `TerrainDef` beside the other six. Rules ask flags, never ids (ADR-0016).
+4. **Discovery accumulates in view state**, one bit per tile per keeper,
+   monotonic under `Stay Revealed`. If Phase 0 establishes the modes are real,
+   make persistence and reveal-source **read configuration with `Stay Revealed`
+   as the default**, not a hardcoded rule — that serves Goal 2 and Goal 8.
+5. **Do not build Sight of Evil or Reveal Map.** They are M7 and M6. Leave the
+   seam obvious and say in the README what they will need.
+
+Every rule carries `[Dk2Behavior(confidence, "docs/research/fog-of-war.md")]`,
+with the confidence the evidence actually supports — `Confirmed` only for what
+the owner watched.
+
+---
+
+### Definition of done
+
+1. A viewer-aware presentation path, with **both** renderers working:
+   `TextRenderer` (the one that runs in CI) and Unity's `DungeonScene`.
+2. **The determinism hash is unchanged and `DeterminismTests` is green,
+   untouched.** This is the centrepiece: an unchanged pinned hash is the proof
+   that fog stayed out of the simulation. If you changed it, you were supposed to
+   have stopped.
+3. Tests that a keeper's view hides what they have not discovered, that the six
+   `RevealThroughFogOfWar` types show through, that discovery is monotonic, and
+   that **two keepers viewing the same world see different things** — the last is
+   the one that would have been impossible to write before this brief.
+4. A scenario under `scenarios/` drawing a picture of a partly explored world.
+5. A README section on the branch: what was read from the binary, in your own
+   words; what is confirmed against what is inferred; **the radius and where it
+   came from**; and an explicit UNKNOWN list. Facts, never decompiler output.
+
+### Boundaries
+
+- **Own git worktree, branch `codex/fog-of-war`. Do not commit to `master`.**
+- **Do not bump `GameSimulation.HashVersion` or re-pin the literal in
+  `DeterminismTests`.** If the work needs it, stop and report instead.
+- **Nothing in `docs/research/`** — that write-up stays with the primary agent,
+  because it is where the confidence ladder and the evidence rank are enforced.
+  Your findings go in the branch README and in the code's own XML docs.
+- **The quarantine (ADR-0046)**, exactly as stated above.
+- **No Flame identifier, ever. OpenKeeper attribution in
+  `THIRD-PARTY-NOTICES.md` if you adopt a name.**
+- Do not invent DK2 behaviour. If no source shows it, it is UNKNOWN and the code
+  says so.
+- **The gate at the top of this file, green, zero warnings, before anything
+  lands.**
