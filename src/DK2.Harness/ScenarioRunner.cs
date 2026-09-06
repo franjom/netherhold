@@ -173,7 +173,8 @@ public sealed class ScenarioRunner
             ? scenario.Setup.Players.Select(p => p.Id)
             : map.Tiles.Select(t => t.PlayerId).Distinct();
 
-        WorldState world = WorldState.FromMap(_database, map, playerIds);
+        WorldState world = WorldState.FromMap(
+            _database, map, playerIds, fogOfWarEnabled: scenario.FogOfWar);
 
         // Rooms first, gold second: gold has to be stored somewhere, and a
         // treasury is the only somewhere there is.
@@ -211,7 +212,7 @@ public sealed class ScenarioRunner
         // no assets installed, which is every run: see the summary line.
         AssetProviderChain assets = AssetProviderChain.Standard(
             replacementRoot: null, convertedRoot: ConvertedAssetRoot);
-        var renderer = new TextRenderer(new WorldView(_database), assets);
+        var renderer = new TextRenderer(new WorldView(_database, scenario.ViewingPlayer), assets);
         string picture = renderer.Render(world);
 
         return new ScenarioResult(

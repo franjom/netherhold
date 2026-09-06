@@ -5861,3 +5861,84 @@ tile — is pinned by unit test instead, because staging it in a scenario would
 mean choreographing the wander, and the choreography would be the part worth
 doubting.
 
+## ADR-0076 — Fog of war is simulation state, and it cost a hash bump
+
+Date: 2026-09-06 · Status: accepted · Q190–Q194 · Built by Codex on
+`codex/fog-of-war`, merged after independent re-derivation
+
+### The stop rule, and why it was overridden
+
+Brief 8 was written with a Phase 0 stop rule: **find out whether fog is
+per-keeper simulation state or per-client renderer state, and if it is the
+former, report and stop.** The reasoning was that in `WorldState` fog enters
+`HashInto`, `WorldSnapshot` and the pinned cross-machine literal, and beside
+`WorldView` it costs nothing — so the answer decides the shape of the whole
+mechanic and is not a decision to take by accident.
+
+Phase 0 answered **simulation**, by the exact route Q190 predicted from another
+mechanic: DK2's world-save coordinator invokes the runtime map's save operation,
+which walks every tile and writes ten contiguous bytes of the live 16-byte tile
+record — including the byte whose bit 6 gates fog rendering. **A save persists
+the simulation.** The saved-game session had already noticed three lanes of that
+10-byte tile moving between any two saves and recorded them as *"consistent with
+visibility or fog state, and still UNKNOWN"*; this is what they were.
+
+The owner reviewed that result and authorised continuing. **The stop commit is
+retained in the branch's history**, which is the right way to keep an overridden
+gate honest: the decision is visible rather than smoothed out of the record.
+
+### What was verified on merge rather than taken on trust
+
+Two counted claims, re-derived from the shipped data with a tool written for the
+purpose rather than by reading the branch's tests back to themselves:
+
+- **`PerceptionRange` is `0x6000` for all 46 creatures** — exactly six tiles at
+  4096 to the tile. Confirmed, and the useful half is the contrast: the same
+  records carry `DistanceCanSee` and `DistanceCanHear` at `0x4000`, four tiles,
+  for all 46. So there really are two different ranges and the branch took the
+  right one. This turns the owner's *"about 6 tiles"* estimate into a number.
+- **Six terrains carry `RevealThroughFogOfWar`** — Impenetrable Rock, Water,
+  Lava, Gold, Gems and Edge of Map. Exactly the six the branch named. Which is
+  why an unexplored map still shows a keeper where the gems are.
+
+`kwd creatures -s` was added to the tools for the first of those, because a
+*"they are all the same"* claim is only worth anything counted.
+
+### What is accepted
+
+Per-keeper discovery on every tile, hashed and snapshotted; a monotonic circular
+reveal read from creature data rather than frozen as a constant; a keeper-
+specific `WorldView` that leaks nothing about a hidden tile; and the
+`RevealThroughFogOfWar` exception applied through the flag rather than an id
+list.
+
+**Fog defaults to off**, as a world and scenario setting, so nothing that existed
+before this behaves differently. That is what makes a hash bump on new
+composition rather than on changed behaviour.
+
+The branch's own UNKNOWN list is kept intact in `fog-of-war.md` §8.3, and the
+most important entry is that **persistence proves the state belongs to the
+simulation but does not prove any AI reads it** — Q190's second half is open.
+
+### What the merge changed
+
+**The branch report was moved out of the repository root.** It arrived as
+`README.md`, which master did not have, so a branch report would have become the
+project's front page. Its content is now `fog-of-war.md` §8 and this ADR; the
+file is deleted.
+
+**`HashVersion` and `FormatVersion` resolve to 30, not 29.** The branch took 29
+in its worktree while ADR-0075 was taking it in the main tree — two branches
+numbering the same save format differently, which is the collision a version
+number exists to catch, and either one would have read the other's file and been
+wrong. The hand went to 30 rather than fighting over 29, so master goes 28 → 30
+across two commits with 29 spent on a branch. Numbers are cheap.
+
+### What this leaves for whoever picks fog up next
+
+Q192 is the interesting one. `All Owned Reveal`, `Re-shroud` and `Re-fog` are
+real strings, and the configuration value behind fog is **boolean** — so they
+are not one enum behind that value, and where they *are* selected is unread. The
+campaign's *Stay Revealed* is the one mode the owner has confirmed and the one
+mode that is built.
+

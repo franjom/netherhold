@@ -87,4 +87,13 @@ public sealed record TerrainDef
     public bool IsRoom => Flags.HasFlag(TerrainFlags.Room);
     public bool IsWater => Flags.HasFlag(TerrainFlags.Water);
     public bool IsLava => Flags.HasFlag(TerrainFlags.Lava);
+
+    /// <summary>
+    /// Whether the real terrain remains visible through an undiscovered tile.
+    /// DKII.EXE tests terrain flag bit 24 in the same branch as its persisted
+    /// per-tile fog bit. The six shipped users are impenetrable rock, water,
+    /// lava, gold, gems and the map edge.
+    /// </summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/fog-of-war.md")]
+    public bool IsRevealedThroughFog => Flags.HasFlag(TerrainFlags.RevealThroughFogOfWar);
 }

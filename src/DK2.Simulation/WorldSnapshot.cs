@@ -49,6 +49,7 @@ public static class WorldSnapshot
 
         w.Write(world.Width);
         w.Write(world.Height);
+        w.Write(world.FogOfWarEnabled);
         w.Write(world.TileCount);
         for (int i = 0; i < world.TileCount; i++)
         {
@@ -64,6 +65,7 @@ public static class WorldSnapshot
             w.Write(t.EntranceIdleTicks);
             w.Write(t.HatchTicks);
             w.Write(t.TaggedBy);
+            w.Write(t.DiscoveredBy);
             w.Write(t.FreshlyDug);
         }
 
@@ -191,6 +193,7 @@ public static class WorldSnapshot
 
         int width = r.ReadInt32();
         int height = r.ReadInt32();
+        bool fogOfWarEnabled = r.ReadBoolean();
         int tileCount = r.ReadInt32();
         if (tileCount != width * height)
             throw new InvalidDataException(
@@ -212,6 +215,7 @@ public static class WorldSnapshot
                 EntranceIdleTicks = r.ReadInt32(),
                 HatchTicks = r.ReadInt32(),
                 TaggedBy = r.ReadUInt16(),
+                DiscoveredBy = r.ReadUInt16(),
                 FreshlyDug = r.ReadBoolean(),
             };
         }
@@ -236,7 +240,7 @@ public static class WorldSnapshot
             }
         }
 
-        WorldState world = WorldState.FromParts(width, height, tiles, players);
+        WorldState world = WorldState.FromParts(width, height, tiles, players, fogOfWarEnabled);
         world.CurrentTick = tick;
 
         int workCount = r.ReadInt32();

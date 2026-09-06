@@ -206,6 +206,8 @@ public readonly struct ObjectView
 public sealed class WorldView
 {
     private readonly GameDatabase _database;
+    private readonly byte _viewingPlayerId;
+    private readonly TerrainDef? _fogTerrain;
 
     /// <summary>
     /// Asset keys per terrain and room id, worked out once. A dictionary rather
@@ -218,9 +220,19 @@ public sealed class WorldView
     private readonly Dictionary<byte, AssetRef> _creatureMeshes = [];
     private readonly Dictionary<byte, AssetRef> _objectMeshes = [];
 
-    public WorldView(GameDatabase database)
+    /// <summary>
+    /// Creates one keeper's view of the world. Player 1 remains the default for
+    /// existing single-player front ends; multiplayer callers must select the
+    /// keeper whose screen they are producing.
+    /// </summary>
+    public WorldView(GameDatabase database, byte viewingPlayerId = 1)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
+        if (viewingPlayerId > TileState.MaxTaggingPlayerId)
+            throw new ArgumentOutOfRangeException(nameof(viewingPlayerId));
+        _viewingPlayerId = viewingPlayerId;
+        _fogTerrain = database.Terrain.Values.FirstOrDefault(t =>
+            string.Equals(t.Name, "Fog Of War", StringComparison.OrdinalIgnoreCase));
 
         foreach (KeyValuePair<byte, TerrainDef> entry in database.Terrain)
         {
@@ -255,6 +267,7 @@ public sealed class WorldView
     }
 
     /// <summary>One tile.</summary>
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/fog-of-war.md")]
     public TileView TileAt(WorldState world, int x, int y)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
@@ -265,6 +278,26 @@ public sealed class WorldView
         TileState tile = world.Tile(x, y);
         TerrainDef terrain = _database.TerrainById(tile.TerrainId);
 
+        if (world.FogOfWarEnabled &&
+            !tile.IsDiscoveredBy(_viewingPlayerId) &&
+            !terrain.IsRevealedThroughFog)
+        {
+            TerrainDef fog = _fogTerrain ?? throw new InvalidOperationException(
+                "Fog of war is enabled but the database has no 'Fog Of War' terrain definition.");
+            _terrainAssets.TryGetValue(fog.TerrainId, out AssetRef fogGround);
+            _terrainSolid.TryGetValue(fog.TerrainId, out bool fogSolid);
+
+            return new TileView(
+                new TilePos(x, y),
+                fogGround,
+                default,
+                ownerPlayerId: 0,
+                tile.IsTaggedBy(_viewingPlayerId),
+                fogSolid,
+                goldHeld: 0,
+                HealthPermille(fog.StartingHealth, fog.MaxHealth));
+        }
+
         _terrainAssets.TryGetValue(tile.TerrainId, out AssetRef ground);
         _roomFurniture.TryGetValue(tile.TerrainId, out AssetRef furniture);
         _terrainSolid.TryGetValue(tile.TerrainId, out bool solid);
@@ -274,7 +307,7 @@ public sealed class WorldView
             ground,
             furniture,
             tile.OwnerPlayerId,
-            tile.IsTaggedByAnyone,
+            tile.IsTaggedBy(_viewingPlayerId),
             solid,
             tile.GoldHeld,
             HealthPermille(tile.Health, terrain.MaxHealth));
@@ -287,6 +320,9 @@ public sealed class WorldView
 
         foreach (CreatureState creature in world.Creatures)
         {
+            TilePos position = creature.Tile;
+            if (!IsVisible(world, position)) continue;
+
             _creatureMeshes.TryGetValue(creature.CreatureTypeId, out AssetRef mesh);
 
             yield return new CreatureView(
@@ -314,13 +350,17 @@ public sealed class WorldView
 
         foreach (ObjectState instance in world.Objects)
         {
+            var position = new TilePos(
+                instance.TileIndex % world.Width, instance.TileIndex / world.Width);
+            if (!IsVisible(world, position)) continue;
+
             _objectMeshes.TryGetValue(instance.ObjectTypeId, out AssetRef mesh);
 
             yield return new ObjectView(
                 instance.Id,
                 instance.ObjectTypeId,
                 instance.OwnerPlayerId,
-                new TilePos(instance.TileIndex % world.Width, instance.TileIndex / world.Width),
+                position,
                 mesh,
                 instance.GoldHeld);
         }
@@ -379,5 +419,11 @@ public sealed class WorldView
         if (maxHealth <= 0) return 1000;
         long permille = (long)health * 1000 / maxHealth;
         return permille < 0 ? 0 : permille > 1000 ? 1000 : (int)permille;
+    }
+
+    private bool IsVisible(WorldState world, TilePos position)
+    {
+        if (!world.FogOfWarEnabled) return true;
+        return world.Tile(position).IsDiscoveredBy(_viewingPlayerId);
     }
 }

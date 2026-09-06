@@ -1,0 +1,24 @@
+# The creature stands near the left side of a wide map. After one tick, its
+# six-tile circular footprint is discovered for keeper 1 while the far side is
+# still substituted with Fog Of War. The final world.txt is the useful output.
+#
+# This run establishes only the implemented, binary-backed geometry and the
+# campaign's observed Stay Revealed behaviour. It does not claim semantics for
+# the setup-screen Re-shroud or Re-fog labels.
+id: fog-a-creature-reveals-part-of-the-world-001
+question: >
+  Does one keeper's creature reveal a circular part of the map while distant
+  terrain remains hidden from that keeper's renderer?
+map: flat_24x15
+seed: 8
+duration_ticks: 1
+fog_of_war: true
+viewing_player: 1
+setup:
+  players:
+    - id: 1
+      mana: 0
+  creatures:
+    - type: Imp
+      at: [6, 7]
+      player: 1

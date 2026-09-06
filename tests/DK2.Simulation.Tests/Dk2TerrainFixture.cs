@@ -397,6 +397,7 @@ internal static class Dk2TerrainFixture
         Height = new Fp32(2048),
         DistanceCanSee = new Fp32(16384),
         DistanceCanHear = new Fp32(16384),
+        PerceptionRange = new Fp32(0x6000),
 
         Hp = 500,
         HungerRate = new Fp32(134213632), // 32767 in DK2's fixed point: the "never" sentinel (Q12)
@@ -423,7 +424,6 @@ internal static class Dk2TerrainFixture
 
         // Not transcribed. Present because the record requires them.
         EyeHeight = new Fp32(0),
-        PerceptionRange = new Fp32(0),
         // HpFromChicken and HungerFill really are 0 — the Imp never eats. But
         // OwnLandHealthIncreasePerSecond was transcribed as 0 and the install
         // says 67, which is one of only two non-zero values in that whole

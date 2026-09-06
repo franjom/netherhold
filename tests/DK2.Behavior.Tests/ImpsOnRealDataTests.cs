@@ -33,6 +33,17 @@ public class ImpsOnRealDataTests
     }
 
     [Fact]
+    public void EveryShippedCreatureHasSixTilePerceptionRange()
+    {
+        GameDatabase? db = RealDatabase();
+        if (db is null) return;
+
+        Assert.Equal(46, db.Creatures.Count);
+        Assert.All(db.Creatures.Values,
+            creature => Assert.Equal(0x6000, creature.PerceptionRange.Raw));
+    }
+
+    [Fact]
     public void TheImpFixture_MatchesTheInstall()
     {
         GameDatabase? db = RealDatabase();
@@ -49,6 +60,7 @@ public class ImpsOnRealDataTests
         Assert.Equal(4096, real.ShuffleSpeed.Raw);
         Assert.Equal(2048, real.Height.Raw);
         Assert.Equal(16384, real.DistanceCanSee.Raw);
+        Assert.Equal(0x6000, real.PerceptionRange.Raw);
         Assert.Equal(16384, real.DistanceCanHear.Raw);
 
         Assert.Equal(500, real.Hp);

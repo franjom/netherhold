@@ -583,6 +583,29 @@ switch (args[0])
             : Path.Combine(Dk2Install.Require(), "Data", "editor", "Creatures.kwd");
         List<CreatureDef> creatures = KwdCreatures.Parse(KwdReader.ReadFile(cpath));
 
+        // -s: the three sight/hearing ranges, with a histogram, because a
+        // "they are all the same" claim is only worth anything counted.
+        if (args.Contains("-s"))
+        {
+            Console.WriteLine($"{"id",3} {"name",-16} {"see",12} {"hear",12} {"perception",12}");
+            foreach (CreatureDef c in creatures.OrderBy(c => c.CreatureId))
+            {
+                Console.WriteLine(
+                    $"{c.CreatureId,3} {c.Name,-16} {c.DistanceCanSee.Raw,12} " +
+                    $"{c.DistanceCanHear.Raw,12} {c.PerceptionRange.Raw,12}");
+            }
+
+            Console.WriteLine();
+            foreach (var g in creatures.GroupBy(c => c.PerceptionRange.Raw).OrderBy(g => g.Key))
+            {
+                Console.WriteLine(
+                    $"perception 0x{g.Key:X} = {g.Key / 4096.0} tiles: {g.Count()} creatures");
+            }
+
+            Console.WriteLine($"-- {creatures.Count} creatures");
+            return 0;
+        }
+
         // -a: what attracts each creature to a dungeon, which is what a portal
         // reads. Its own column set, because the room ids and minimum sizes
         // have nothing to do with the combat stats above.

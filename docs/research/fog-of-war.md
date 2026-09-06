@@ -179,6 +179,74 @@ because a save persists the simulation. Two saves either side of walking one
 creature into unexplored ground would settle the architecture question without
 opening Ghidra, using a method that is already built and validated by a control.
 
-## 8. What is implemented
+## 8. What is implemented — built 2026-09-06 (ADR-0076)
 
-Nothing.
+Built by Codex on `codex/fog-of-war` against Brief 8, **after an explicit owner
+override of that brief's Phase 0 stop rule**. The stop rule said: if fog turns
+out to be simulation state, report and stop. It is, and the owner authorised
+continuing anyway, so it is in `WorldState` and cost a hash bump.
+
+### 8.1 What the branch established, and how far each goes
+
+- **Fog is simulation state — STRONGLY INFERRED.** The world-save coordinator
+  invokes the runtime map's save operation; that operation walks every tile and
+  writes ten contiguous bytes of the live 16-byte tile record, including the
+  byte whose bit 6 gates fog rendering. **A save persists the simulation**, so
+  the fog gate is not reconstructed by the renderer. That answers Q190's
+  architecture half by the exact route `sav-format.md` predicted.
+- **The reveal radius is six tiles — CONFIRMED from shipped data**, and
+  independently re-derived on merge. `CreatureDef.PerceptionRange` (CREATURES
+  offset `0x0D01`, already parsed before this work) is `0x6000` for **all 46**
+  creatures, which at 4096 to the tile is exactly 6. **It is not
+  `DistanceCanSee`**, which is `0x4000` — 4 tiles — for all 46, so the two are
+  genuinely different fields and the right one was taken. This confirms the
+  owner's visual estimate from a number rather than agreeing with it.
+- **The footprint is a strict circle — STRONGLY INFERRED.** Squared fixed-point
+  distance to tile centres, revealed only where it is **strictly less** than the
+  range squared. Equality is outside.
+- **`RevealThroughFogOfWar` is live — STRONGLY INFERRED.** Terrain flag bit 24
+  is tested in the same decision as the tile fog gate, so it is not a dead table
+  field. **Six terrains carry it**, re-derived on merge from the shipped data:
+  Impenetrable Rock, Water, Lava, Gold, Gems and Edge of Map. Which is why an
+  unexplored map still shows you where the gems are.
+- **Fog is a boolean game setting — STRONGLY INFERRED.** The configuration
+  reader and writer both handle a 32-bit `FogOfWar` value and every observed
+  caller passes a single bit. **So the five setup labels of Q192 are NOT one
+  enum behind this value**, and the branch does not pretend they are.
+
+### 8.2 What is built
+
+Per-keeper discovery on every tile, hashed and snapshotted. Each on-map,
+non-dying, non-held creature reveals its data-defined circle for its owner after
+movement, and discovery is **monotonic** — the campaign's *Stay Revealed*, which
+is the one mode the owner has confirmed.
+
+`WorldView` becomes keeper-specific: a hidden tile is substituted with the
+shipped `Fog Of War` terrain and leaks no ownership, room furniture, health,
+gold, creature or object. A keeper sees only its own speculative tag, and
+terrain carrying `RevealThroughFogOfWar` bypasses substitution **through the
+flag rather than an id list**.
+
+**Fog defaults to OFF**, as a world and scenario setting, so nothing that
+existed before this behaves differently.
+
+**The speculative tag is revalidated at reveal-time**, which is the owner's Q193
+observation reproduced by the rule that already existed: a mark on fog survives
+only if the revealed terrain is itself `Taggable`, so room ground and
+impenetrable rock discard it.
+
+### 8.3 What is still UNKNOWN, in the branch's own list
+
+- **Whether a computer keeper consults fog.** Persistence proves the state
+  belongs to the simulation; it does not prove any AI reads it. Q190's second
+  half is open.
+- **The selectors behind `All Owned Reveal`, `Re-shroud` and `Re-fog`** (Q192).
+  Not treated as one enum, because the configuration value is boolean.
+- **Whether a creature in every uncommon state reveals.** The binary excludes
+  the dying state; excluding a creature held in the Hand is ours.
+- **How DK2 packs per-keeper discovery in multiplayer.** One bit per tile per
+  keeper is our representation, not a claim about theirs.
+- **Sight of Evil and Reveal Map** (Q194), deliberately absent. They can write
+  through the same discovery seam when researched.
+- **Whether the boundary takes in diagonal neighbours** — unnumbered, because
+  Q66 asks the same of claiming.

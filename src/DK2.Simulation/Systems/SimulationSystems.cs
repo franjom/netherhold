@@ -28,6 +28,8 @@ namespace DK2.Simulation.Systems;
 /// <item><see cref="CreatureMovementSystem"/> — creatures move, so a worker that
 /// arrives beside its job is noticed on the tick it arrives rather than the
 /// next.</item>
+/// <item><see cref="FogOfWarSystem"/> — after movement, so the visible footprint
+/// follows the creature's position for this tick before any later system acts.</item>
 /// <item><see cref="ImpTaskSystem"/> — workers decide what to do, and queue the
 /// work they are in position for.</item>
 /// <item><see cref="TileWorkSystem"/> — the work queued this tick resolves this
@@ -90,6 +92,7 @@ public static class SimulationSystems
         new RoomSellSystem(),
         new RoomBuildSystem(),
         new CreatureMovementSystem(),
+        new FogOfWarSystem(),
         new ImpTaskSystem(),
         new TileWorkSystem(),
         new BridgeBurnSystem(),

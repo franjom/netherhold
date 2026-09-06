@@ -257,6 +257,22 @@ public class DeterminismTests
         // they did before. Snapshot FormatVersion went 27 -> 28 in the same
         // commit.
         //
+        // Bumped with HashVersion 29 -> 30 (fog of war, merged): every tile
+        // gained a per-keeper discovery mask and the world gained the boolean
+        // game setting that makes it active. Both are persisted simulation
+        // state in DKII.EXE - its world save writes the live tile's fog byte -
+        // so both enter the hash. This fixture leaves fog DISABLED and every
+        // discovery mask at zero, so its behaviour is unchanged and the value
+        // moved on the composition alone.
+        //
+        // 29 EXISTS ONLY ON THE FOG BRANCH. It was taken there while the hand
+        // work above was being written in the main tree, which is the collision
+        // a version number exists to catch: two branches numbering the same
+        // save format differently, either of which would read the other's file
+        // and be wrong. The hand went to 30 rather than fighting over 29, and
+        // master therefore goes 28 -> 30 across two commits with 29 spent on a
+        // branch. Cheaper than the alternative.
+        //
         // Previous values: 0x19A512BB12A71575 (28), 0x0D75C57C1848268C (27),
         // 0x154E9041172A7F7F (26),
         // 0xDFF77147B12A64C3 (22), 0x6AF149EE8E20D98A (21),
@@ -268,7 +284,7 @@ public class DeterminismTests
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x0E642E1E0EA023BBUL, sim.StateHash());
+        Assert.Equal(0x2E7E116CA573398BUL, sim.StateHash());
     }
 
     [Fact]
