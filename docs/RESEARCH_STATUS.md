@@ -44,8 +44,25 @@ What is *built* rather than known, against the long-term goals:
   **five applications a second** (Q47, measured at 273 gold a swing, ADR-0020 —
   and the fifth turned out to be the worker's **Efficiency**, a stat DK2 prints
   on the status bar: 80% over four ticks a game second, raised to 90% by a slap
-  or by dropping an imp onto marked work),
+  or by dropping an imp onto marked work — **both of those re-read on
+  2026-09-06** (ADR-0069): a slap lasts **25 s** (Q159, confirmed), the drop
+  looks **three tiles** and not one (Q162), and the drop's bonus is the *kind*
+  of work it found rather than a flag, so it lasts as long as that kind of work
+  does),
   worked **from beside a wall and standing on a floor tile** (Q44/Q49, ADR-0028).
+- **How big a prison is, and how many it holds** (Q166, ADR-0070, 2026-09-06):
+  the tiles its rim does not take, **plus one**, so DK2's smallest working
+  prison — a **3x3** — holds **two**, and anything smaller is not a
+  prison at all. Read out of the room-capacity routine's per-room-type case and
+  confirmed off the game's own status bar. `TotalCapacity` is left at -1 for a
+  prison, which is why a keeper can overcrowd one by hand.
+- **What the flower above a creature's head is**: **six** petals of health
+  (Q171, screenshot, 2026-09-06 — this project had inferred ten), plus the
+  creature's level, its current activity and its mood. Nothing in
+  `DK2.Presentation` draws one yet; when it does, that is its content.
+- **DK2's `.str` string tables**, all 92 of them, through their `MBToUni.dat`
+  code page (`src/DK2.Data/Text/Dk2StringTable.cs`). Ids are **table-local and
+  zero-based**; the header's second word is a **file id** running 1000..1091.
 - **How an imp chooses a job** — in two tiers, read from the binary and
   confirmed by the owner twice (2026-09-05, ADR-0058). Tier A walks a table of
   kinds whole-map, one at a time: claim-the-just-dug-tile, **loose objects**,

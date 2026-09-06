@@ -4631,3 +4631,116 @@ morning and came off it in the afternoon without anybody playing anything.
    Q171 (count the petals), Q162 (drop an imp two tiles out). Q176 went on that
    list and came off it the same day, answered from the binary.
 
+---
+
+## 2026-09-06, second sitting: five things the owner watched, two of them defects
+
+The whole sitting came out of the owner playing and reporting. **Four
+observations, two shipped defects, one withdrawn claim and one correction of a
+brief this project wrote.** Nothing on the standing queue was touched; this was
+better use of the time.
+
+### What changed
+
+| Commit | What |
+|---|---|
+| `ac0645b` | **The aimed work bonus was reading the wrong field.** ADR-0069 |
+| `e3691bd` | **A 3x3 prison holds two, not nine.** ADR-0070 |
+| `8551d82` | **A flower has six petals, not ten** — and the number that rested on ten survives |
+| `014effc` | Codex's `.str` string-table reader, merged |
+| `78012d1` | Brief 5 corrected: its header reading was wrong and Codex's was right |
+
+### The aimed bonus (ADR-0069)
+
+The owner watched a dropped imp keep 90% all the way to the wall and through the
+digging, lose it only when the mark was removed before it arrived, and take the
+bonus from **three tiles** rather than one.
+
+All of that is in the binary, and none of it was here. The Efficiency arithmetic
+reads `ImpJobData.DroppedTask` — a task **kind**, zero when the drop found
+nothing. `JustDropped`, which this project was reading, is four bytes earlier and
+is a one-shot ticket the next evaluation spends. **The state object is pinned at
+`creature + 0x24E`** by the creature dump's own `LEA`, so this was a plausible
+name four bytes from the right one with nothing checking it.
+
+Three consequences, all built:
+
+- the drop buys a **look**, not a bonus, and the look has **its own priority
+  order** — digging first, and claim-the-just-dug-tile absent entirely;
+- **three tiles, measured to the tile the work is on.** DK2's scan is nominally
+  *two* and reaches three because its ring loop tests the bound after scanning a
+  ring, with a strict greater-than, from a counter starting at 1. Reproduced, not
+  fixed;
+- **`DroppedTask` has exactly two writers in the whole executable.** The clear
+  runs only when a worker still on that kind of work can find no more of it
+  anywhere — so the bonus is **not worth one job**, which is what this
+  project built the day before.
+
+**Q159 closed with no code change** (25 s was right, against the owner's own
+earlier stopwatch). **Q162 closed as a defect.** **Q177 opened**: the one glance
+that would separate "lasts the kind of work" from "lasts one job".
+
+### The prison (ADR-0070)
+
+`Captives held: 0 / 2` on a 3x3, off the game's status bar. This project held
+one per tile, which is nine.
+
+DK2's room-capacity routine has a case per room type. The prison's walks its own
+tiles, counts the ones a general *"nothing is standing here"* predicate accepts,
+and **adds one when that count is non-zero**. The bars and the gate take the rim,
+so a 3x3 has one tile left and a capacity of two — and below 3x3 the count
+is zero, the "+1" never fires, and the room does nothing, which is the owner's
+*other* sentence arriving from the same arithmetic rather than being bolted on.
+
+`TotalCapacity` is left at **-1** for a prison, which is why manual overcrowding
+is possible at all — a rule this project already had, now a consequence.
+
+**Opens Q179**: the Prison's `RecommendedSize` is 5x5 and a 3x3 one works, which
+is the first room to contradict Q45's reading of that field.
+
+### Three things worth carrying
+
+**1. The state table is at `0x006DA8B0` and this project had it one record
+late.** Record N is `0x006DA8B0 + 25N` with the **update handler at +0**, the
+state id at +0x10 and the category bytes at +0x16. The earlier anchoring at
+`0x006DA8C0` put the id at +0, so every handler it named was off by one state.
+Pin it from the dispatcher — the creature update calls
+`(*(code**)(0x006da8b0 + stateId * 0x19))()` and SetState indexes
+`(&DAT_006da8c6)[stateId * 0x19]` — never from literal stores. **Flame had
+this right and this project had it wrong**, which resolves the conflict recorded
+on 2026-09-06 in Flame's favour and is worth remembering when weighing it.
+
+**2. The repo contradicted itself for five days and nothing could fail.**
+`WorldPathGrid`'s comment said imps wade across water, mine an isolated gem and
+carry the gold home. `imp-tasks.md` said, of the same experiment, that none of
+the gold ever reached a treasury. The owner has now withdrawn the second. No test
+could have caught it, because neither claim was executable. **When the same
+experiment is written down twice, one of them is already drifting.**
+
+**3. This project wrote a brief containing a wrong reading, and the agent
+following it checked.** Brief 5 said the `.str` header's `+4` is a base string
+id, from three files. It is a **file id**: the 92 run 1000, 1001, 1002 … 1091,
+and as bases the briefing tables would overlap six ids at a time. Reading all 92
+took the same minute as reading three.
+
+### What the owner is holding
+
+Three one-glance questions, top of `observation-checklist.md`:
+
+1. **Q177** — mark two blocks far apart, drop an imp on one, watch
+   Efficiency after the first falls.
+2. **Q167** — and it stopped being a counting problem: the status bar prints
+   `Health: NN%`, so read a fresh prisoner's arrival health as a number.
+3. **Q178** — time a chicken nobody eats.
+
+**Q178 is also a missing mechanic**: an uneaten chicken dies and is replaced, so
+a hatchery churns where this one fills up and stops. Every bird has an age and
+`HatcherySystem` does not know it.
+
+### The queue, unchanged
+
+1. **Prisoners moving (Q172)** — still the biggest thing blocked on one
+   missing piece, and now more so: a prison holds two rather than nine, so the
+   room is small enough that a wander and a search are cheap.
+2. **Q174** — how the original walks a hungry creature to the hatchery.
+3. **Training and payday** — the two M4 items with nothing blocking them.
