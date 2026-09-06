@@ -35,11 +35,16 @@ lands:
 ```
 dotnet build DK2.slnx -c Release                          # zero warnings
 dotnet test DK2.slnx -c Release                           # all green
-dotnet run --project src/DK2.Harness -- run scenarios     # 16 scenarios
+dotnet run --project src/DK2.Harness -- run scenarios     # 21 scenarios
 ```
 
 Anything that **writes** should get its own git worktree. Read-only auditing can
 run against the main tree any time.
+
+**Reference checkouts, both outside this repository** (2026-09-06):
+`D:\OpenKeeper` (GPLv3 — facts only, provenance in `THIRD-PARTY-NOTICES.md`) and
+`D:\Flame` (**unlicensed — facts only and never one of its identifiers**, see
+`docs/research/external-resources.md`).
 
 ---
 
@@ -276,3 +281,92 @@ Codex analysing footage produces **research input**, not research prose.
 the write-up is where the confidence ladder is enforced and where the evidence
 rank is recorded, and that discipline is the thing this project has that most
 reimplementations do not.
+
+---
+
+## Brief 5 — the `.str` string tables (write; own worktree)
+
+**Status: open, offered 2026-09-06.** Self-contained, verifiable against data
+this project already parses, and touching no file the simulation work touches.
+
+### What it is
+
+DK2 keeps its entire text — creature names, room names, tooltips, level
+briefings, objectives, speech subtitles — in **92 `.str` files** under
+`Data/Text/Default/`, 353 KB in total, and **this project reads none of it.**
+
+The consequence is concrete rather than cosmetic. Four record types already
+parse **nine `*StringId` fields** — `CreatureDef.NameStringId`,
+`TooltipStringId`, `IntroductionStringId`, and the `Name`/`Tooltip` pairs on
+`ObjectDef`, `RoomDef` and `TerrainDef` — and **every one of them currently
+points at nothing.** The names this project uses come from a debug field in the
+records, not from the game's own text.
+
+### What is already established, so you do not repeat it
+
+Measured on 2026-09-06; treat as a starting point to verify, not as gospel.
+
+- All 92 files share the magic **`BFST`**.
+- At `+4`, a u32 that behaves like a **base string id**; at `+8`, a u32 that
+  behaves like a **count**. `Text.str` is base **1091**, count **3086** → ids
+  1091–4176. `LEVEL1.str` is base 1056, count 60. Entry counts across the 92
+  files sum to 96,186.
+- At `+12`, a table of `count` u32 **absolute file offsets**, monotonically
+  non-decreasing.
+- **The payload is encoded, not plain text.** No ASCII run of six printable
+  characters exists anywhere in `Text.str`, and no UTF-16LE run either. 176
+  distinct byte values, with `0x00`, `0x0C` and `0xB0` dominant — the shape of a
+  bit-packed or dictionary scheme rather than a character encoding. Decoding it
+  is the actual work.
+- **One wrinkle worth knowing before you start**: in `Text.str` the offset table
+  ends at byte 12,356 but the smallest offset in it is 12,344 — twelve bytes
+  earlier. So either the count is not quite what it looks like, or the first few
+  entries are sentinels. Do not paper over it.
+
+### Definition of done
+
+1. A reader in `src/DK2.Data` (or `src/DK2.Convert` if it fits the converters
+   better — your call, say why) that opens a `.str` and resolves an id to a
+   string.
+2. **The verification that matters, because it uses data already in the repo:**
+   the Goblin's `NameStringId` must resolve to the Goblin's name, and the same
+   for a room, an object and a terrain. If those four come out right on the
+   shipped files, the format is read correctly; if they do not, nothing else in
+   the brief counts.
+3. A real-data test over **all 92 files** that decodes **every** entry without
+   throwing, and reports the totals — the same shape as
+   `SdtArchiveTests.EveryShippedBankHasTheConfirmedLayoutAndKnownPayloadTypes`,
+   which is the model to copy.
+4. A `dk2tools str list <file>` / `str get <file> <id>` verb.
+5. A section in the relevant README with **counts you actually measured**, and
+   every UNKNOWN named. If some entries will not decode, say how many and which,
+   rather than rounding it to "works".
+
+### A hypothesis to test, not a promise
+
+DK2's creature **state table** — 239 records, `docs/research/eating.md` §2.1 —
+has a `u16` at record `+4` that is constant across states belonging to one
+mechanic: `2630` for all five eating states, `2674` for all six prison states,
+`2670` for the utility move states. **Those values fall inside `Text.str`'s id
+range (1091–4176).** If they are text ids, decoding them **names all 239
+creature states**, which would be worth more than the rest of this brief put
+together.
+
+It may equally be a tooltip id for something else entirely. Test it, report
+either way, and do not build anything on it.
+
+### Boundaries
+
+- **Own git worktree**; do not commit to `master`.
+- **No prose in `docs/research/`** and nothing in `reverse-engineering/` — the
+  usual two.
+- **No decoded game text committed anywhere.** The format facts and the reader
+  are ours; the strings are EA's. Tests must read them from the install at run
+  time, exactly as every other real-data test does, and skip when `DK2_DIR` is
+  absent.
+- OpenKeeper (`D:\OpenKeeper`) has a `.str` reader. **Consult it for format
+  facts, with provenance in `THIRD-PARTY-NOTICES.md`, and write your own.**
+  Flame (`D:\Flame`) is unlicensed: consult, never copy, never adopt an
+  identifier.
+- The gate at the top of this file must be green.
+
