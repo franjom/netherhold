@@ -35,7 +35,9 @@ Before implementing DK2 behavior, check, in this order:
    provenance in `THIRD-PARTY-NOTICES.md`.
 5. **Flame** — cloned at `D:\Flame` (pinned `f6e2a3d`, 2026-03-01).
    **Unlicensed: no reuse rights at all**, so facts only and *never* one of its
-   identifiers pasted into this repository. Best for **structure** — struct
+   identifiers in `src/`, `tests/` or the Unity adapter, comments included
+   (`FlameIdentifierTests`); documents may *cite* a Flame name as Flame's
+   (ADR-0080). Best for **structure** — struct
    layouts, vtable membership, cross-references — and measurably weak on
    creature behaviour: it names only 34% of the symbols in the address range
    where creature state, jobs and needs live. Use it to find and to confirm, not

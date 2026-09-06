@@ -418,7 +418,14 @@ address.
    amendment with attribution in `THIRD-PARTY-NOTICES.md` — **does not transfer,
    because it rests on a licence Flame does not have.** Recommended default:
    consult freely, describe findings in our own words, and never paste a Flame
-   identifier into the repository. Flagged rather than decided.
+   identifier into the repository. ~~Flagged rather than decided.~~
+   **Decided 2026-09-06, ADR-0080:** a Flame identifier may be *cited* in a
+   document, as this section and §2.2 already do, provided the sentence makes
+   Flame the source; it never appears in `src/`, `tests/` or the Unity adapter,
+   not even in a comment. Names are not copyrightable and a citation is not a
+   copy; the source tree is the one place a copying argument could be made, so
+   that is where the rule stays absolute, and `FlameIdentifierTests` now checks
+   the shape of it.
 
 ---
 

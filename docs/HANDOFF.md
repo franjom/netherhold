@@ -5576,3 +5576,51 @@ refuted as stated); the two unread calls in payday's state 189, one of which
 halves the amount taken; Q201's real driver; Q199's pet-dungeon mana cap; Q197's
 portals through fog; and Q200's bridge room ids.
 
+
+---
+
+# The Flame name boundary is decided, and the source tree was not as clean as it said (2026-09-06, late)
+
+One ADR, no hash change: **ADR-0080**. The owner asked what to do about the
+three plan lines the keeper-AI handoff flagged, asked what was legally best,
+and ruled.
+
+## What was decided
+
+**A Flame identifier may be cited in a document, as Flame's, and never appears
+in `src/`, `tests/` or the Unity adapter — not as a member, not as a type, not
+in a comment.** Names are not copyrightable and a citation is not a copy; the
+source tree is the only place a copying argument could be made, so that is
+where the rule stays absolute. The three flagged lines in the plan stay, and are
+now compliant by rule rather than tolerated. §2.2.1 item 5 of the plan is no
+longer *"flagged rather than decided"*.
+
+## What the wider sweep found
+
+The keeper-AI check looked for one class name in one branch. Looking for the
+shape of Flame's names across the whole tree found **two Flame field names,
+offset prefix and all, in `<summary>` comments in `DK2.Core`** — `GameTick.cs`
+and `TilePos.cs`, since the first commit — while `THIRD-PARTY-NOTICES.md`,
+`AGENTS.md` and `external-resources.md` all said none existed anywhere. Both
+comments are reworded in the project's words; all three documents now say what
+is true.
+
+## What the owner added, and the ADR now carries
+
+**Flame is a reference and a secondary source, full stop.** Ghidra and its
+decompiled sources are the primary source of truth; Flame is consulted to check
+whether a finding holds. The permission to cite its names is a licensing point
+about names, not a promotion of Flame in the order of sources.
+
+## What enforces it
+
+`FlameIdentifierTests` in `DK2.Core.Tests` sweeps the same files
+`LicenseHeaderTests` does for Flame's offset-prefixed field shape and its
+serialised-data prefix. It matches a shape, not a list, because a denylist
+would itself be the thing forbidden. It is a floor, not a fence: a Flame class
+name in a comment would slip through, and review still carries that.
+Twelve tests pass in the project, one sweep and eight shape cases new.
+
+## Where the next session should start
+
+Unchanged from the previous entry: **job selection for non-workers** closes M4.

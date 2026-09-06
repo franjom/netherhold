@@ -76,8 +76,12 @@ comments do.
   only.** The write order and the field layout in
   `docs/research/sav-format.md` were read from the executable itself, and
   every offset was then confirmed against two real save files. No Flame code
-  and no Flame identifier appears anywhere in this repository — the project
-  holds no reuse rights to it at all (AGENTS.md).
+  appears anywhere in this repository, and no Flame identifier appears in the
+  source tree, its tests or the Unity adapter — the project holds no reuse
+  rights to it at all (AGENTS.md). Planning and research documents **cite**
+  Flame's names for a structure where that is the clearest way to point at the
+  source; a name is not a copyrightable work and a citation is not a copy
+  (ADR-0080). `FlameIdentifierTests` enforces the source-tree half.
 
 ## YamlDotNet
 - https://github.com/aaubry/YamlDotNet — MIT License, Copyright (c) Antoine Aubry

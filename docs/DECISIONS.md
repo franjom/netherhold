@@ -6263,3 +6263,103 @@ should be a test.
   ceiling and has already drawn Leave from its angry job table. They were
   measuring a creature that had deserted. **Anger is measured over seconds, not
   over paydays.**
+
+## ADR-0080 — A Flame name may be cited in a document, and never appears in code
+
+**Status:** accepted, 2026-09-06 (owner decision)
+**Context:** the boundary §2.2.1 of the plan left *"flagged rather than decided"*;
+the pre-existing occurrences the keeper-AI handoff found; ADR-0003, ADR-0041
+**Hash:** unchanged. No code moved; two doc comments were reworded.
+
+### What was found
+
+The keeper-AI merge swept the tree for Flame identifiers and reported the source
+tree clean and the planning document not: `DK2_REIMPLEMENTATION_PLAN.md` names
+Flame's class for the computer player at three places. That report was
+correct as far as it looked, and it did not look far enough. Widening the same
+sweep to the whole repository found:
+
+| Where | What | Count |
+|---|---|---|
+| `DK2_REIMPLEMENTATION_PLAN.md` | Flame class and global names, each cited as Flame's | about a dozen, in eighteen lines |
+| `docs/DECISIONS.md` ADR-0001 | a Flame header file name | 1 |
+| `docs/research/open-questions.md` Q4 | a Flame class name | 1 |
+| `docs/research/external-resources.md` | a Flame global, quoted *as* the example of what not to adopt | 1 |
+| `src/DK2.Core/GameTick.cs`, `TilePos.cs` | **two Flame field names, prefix and all, in `<summary>` comments** | 2 |
+| `THIRD-PARTY-NOTICES.md` | the sentence *"no Flame identifier appears anywhere in this repository"* | false since revision 1 of the plan |
+
+Three of these are the same fact: the project had a rule it stated in absolute
+terms, in three documents, and nothing checked it. **A claim nothing checks may
+already be false**, and this one was, in a source file, for the whole life of the
+repository.
+
+### Why the rule as written was stricter than the law and looser than the practice
+
+Copyright protects expression. It does not protect names, titles or short
+phrases, and in the EU the Court of Justice
+held in *SAS Institute v World Programming* (C-406/10, 2012) that a program's
+functionality, its language and its data formats are not protected expression
+either. `MyComputerPlayer` is a name. Writing *"Flame calls this class
+`MyComputerPlayer`"* in a planning document is a citation with attribution, the
+same act as naming the chapter of a book one did not license. Flame publishing
+no licence means all rights reserved on its **code**; it does not give its author
+a claim over people saying what the code is called.
+
+Where risk begins is where a reference becomes a copy: lifting Flame's headers,
+its comments, or its **set** of field names and layouts into C#, which could be
+argued as taking the selection and arrangement of the work. That argument is
+weak — the offsets are dictated by the DK2 binary, not by DiaLight — but it is
+the only argument there is, and the one place it could be made is the source
+tree.
+
+So the two halves of the old rule had different strengths. *"Never in a
+document"* forbade something lawful and useful, and the documents ignored it a
+dozen times. *"Never in code"* is the half that actually removes the exposure,
+and it was the half nobody was checking.
+
+### The decision
+
+1. **In documents, a Flame identifier may be named as a citation.** The plan,
+   the ADRs, the research notes and the handoff may write *"Flame calls this X"*
+   provided the sentence makes Flame the source. This is what those documents
+   already do, and it is now permitted rather than tolerated.
+2. **In the source tree and its tests, never — not as a member, not as a type,
+   not in a comment, not in a string.** Every name in `src/`, `tests/` and the
+   Unity adapter is this project's own choice of words. Where a comment needs to
+   say what Flame established, it says so in this project's words: *"Flame's
+   room record stamps the game tick the disco started on"*, not the field.
+3. **Offsets, sizes, vtable slots and decoded values are facts about DK2** and
+   are used freely, with provenance, as before (ADR-0003, `external-resources.md`).
+4. **No Flame code, comment, header layout or file is ever copied**, in whole or
+   in part, anywhere. Unchanged.
+5. **The commit-message clause is dropped.** A commit message is a document.
+
+`THIRD-PARTY-NOTICES.md` now says what is true: Flame is consulted and cited, and
+none of its names are adopted into code.
+
+### What enforces it
+
+`FlameIdentifierTests` in `DK2.Core.Tests` sweeps the same files
+`LicenseHeaderTests` does and fails on Flame's field-naming style — a lower-case
+`f`, two to four hex digits, an underscore — and on its `sData_` serialisation
+prefix. The test deliberately matches the **shape** of Flame's names rather
+than a list of them, because a denylist of Flame identifiers would itself be
+Flame identifiers pasted into the repository. It is a floor, not a fence: a
+Flame class name typed into a comment would slip through it. The rule still
+rests on review; the test is there so that the class of mistake
+found today cannot recur silently.
+
+### What this does not decide
+
+Whether Flame's `mapping/*.map` files may be vendored as research data (§10.1
+decision 3) is still open and still recommended against — the clone at
+`D:\Flame` is outside the repository on purpose, and nothing here changes that.
+
+**And it does not move Flame up the order of sources.** The owner restated the
+hierarchy the same day, in so many words: *the primary source of truth is Ghidra
+and its decompiled sources; Flame is there as a reference, a secondary source of
+truth, to help determine whether the findings hold. That's it.* Citing a Flame
+name in a document is permitted because a name is not a copyrightable work, not
+because Flame is authoritative. A finding is made from the binary and checked
+against Flame, never the other way round (AGENTS.md "Existing research",
+ADR-0046 amendment).

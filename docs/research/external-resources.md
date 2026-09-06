@@ -513,9 +513,12 @@ that arrangement to hang on.
 database lives outside the repository and is never distributed), confirm
 readings against it — and when writing anything down here, describe what was
 learned **in this project's own words**, with provenance, and never paste one of
-its identifiers into a source file, a document or a commit message. Where a
-plan section had to quote one to explain a finding, it is quoted *as* a quotation
-and attributed, which is a different act from adopting it.
+its identifiers into a source file — not as a member, not as a type, not in a
+comment. Where a document has to name one to explain a finding, it is named *as*
+Flame's and attributed, which is a different act from adopting it, and
+**ADR-0080 (2026-09-06) makes that the rule**: cite freely in documents, never
+in code. `FlameIdentifierTests` sweeps `src/`, `tests/` and the Unity adapter
+for the shape of Flame's field names.
 
 **What Flame is actually good for**, measured rather than assumed
 (`DK2_REIMPLEMENTATION_PLAN.md` §2.2.1): structure — struct layouts, vtable
