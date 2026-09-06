@@ -5624,3 +5624,126 @@ Twelve tests pass in the project, one sweep and eight shape cases new.
 ## Where the next session should start
 
 Unchanged from the previous entry: **job selection for non-workers** closes M4.
+
+---
+
+# M4 is closed, and the anger model underneath it was wrong (2026-09-06, later)
+
+Two commits: `372332f` (ADR-0081) and `73ef353` (ADR-0082). **M4 is seven of
+seven.** 1111 tests, 26 scenarios, 82 ADRs, hash 31 → **33**, pin
+**`0x21A7E4D24F37DF48`**.
+
+The ask was M4's last item. Reading for it turned up a correction to work
+committed the day before, so the correction went first.
+
+## The correction: anger is six counters and the mood is the largest
+
+`FUN_00487030` keeps an `int[8]` on the creature — six anger counters, the
+unhappy threshold, the mood band. It adds to **one** counter, clamps that
+counter to `[0, 65533]`, then bands the **maximum** of all six. Nothing sums
+them.
+
+**Four are certain**, because exactly one record field feeds each: food 1, lair
+2, work 3, pay 4 — the same four the need-anger routine charges. Buckets 0 and 5
+are catch-alls and the names in the code (`Company`, `Treatment`) are ours
+(Q202).
+
+**What it retires.** ADR-0079 recorded that a bed outpaces an unpaid wage nine
+to one — 550 a second against 60 — and concluded that wages alone could never
+drive a well-housed creature out. Both numbers were right; **they never meet**.
+The bed drains bucket 5, the wage fills bucket 4. A keeper who does not pay
+loses its creatures however comfortable it has made them, which is the outcome a
+player would expect and was not what this simulation did.
+
+**The shape of the mistake is the thing to carry.** Two correct numbers, a
+plausible ratio between them, and no check that the game ever puts them in the
+same place. Fourth time a claim nothing checked turned out already false.
+
+Two smaller reads in the same routine: the counters **saturate at 65533**, not
+at the angry band, so a grievance climbs on past the point of desertion; and the
+**Temple is the only source in the game that drains a bucket it did not fill**,
+applying its −275 six times, once each.
+
+## M4's last item: job selection for non-workers
+
+Three mood choosers share one dispatcher, `FUN_00478800` — a 28-way switch, and
+every handler is *(a cheap test on the keeper or creature) → (find the nearest
+room) → (enter the job's state, which can still fail)*. **That boolean is the
+whole of job availability**; the choosers never inspect a room. Q2's last open
+clause, closed.
+
+**Only the happy chooser charges `AngerNoWork`.** The unhappy and angry
+choosers have the identical tail with the call missing. So a creature that is
+*already* unhappy is never made crosser by idleness. Same shape as `AngerNoPay`
+having no treasury clause — **twice now, a plausible symmetry the game does not
+have, and both times the symmetric version was the natural thing to write.**
+
+**Sulking is going to your lair and moping in it.** Its handler is the Sleep
+handler with one digit changed — same three preconditions, same room, state
+`0x55` against sleep's `0x51`. A creature with no bed cannot sulk at all, and
+every unhappy table in the shipped game is Sulk and Drink.
+
+**Seven more dead balance variables, a whole family.** The four
+`MotionlessWhile*Seconds`, `StateCounterWhileGuarding`,
+`CasinoModifyCreatureGoldPerSecond`, `MinimumJobDurationSeconds`. Twelve now.
+The last is a cross-check rather than a curiosity: all three choosers gate on a
+hardcoded `5 ×` variable 19 while the variable that looks like it should govern
+job length sits unread — **evidence that there is no job timer**, not merely an
+absence of one.
+
+**The shipped tables are small and sharp.** Goblin: happy `Train 100%`, unhappy
+`Drink 100%`. Warlock: `Research 80 / Train 10 / Pray 10`. Troll:
+`Manufacture 100%`. So the happy side needs five rooms, and **a Goblin in a
+dungeon with no training room takes `AngerNoWork` at 50 a second**.
+
+Praying is the only job with an effect built, and deliberately: it is the one
+job whose absence leaves a hole in a mechanic that already exists.
+
+## Two corrections that fell out of testing it
+
+**The mood band is now stored on the creature**, as DK2 stores it. Anger reaches
+a creature from four places and three run before `CreatureAngerSystem` in the
+same tick, so a "mood before" read from the anger visible at the top of that
+system's pass **missed every crossing it did not cause itself**. The scenario
+found it: two Goblins crossed to Unhappy on pure `AngerNoWork` and nothing said
+so. Slapping had shared the gap.
+
+**The determinism pin spawns no creatures** (Q206). Found while checking that
+the new fields moved the hash — they do not. `TestWorld.World` places none, so
+every creature-state change this project has made has moved the pinned value
+through `HashVersion` alone, verified by hashing a constant and watching the pin
+still pass. Several hash-history notes in `DeterminismTests` describe creatures
+the fixture does not have. The pin still catches struct layout drift and
+dictionary order; for a simulation whose state is mostly creatures it is
+guarding a world that has none.
+
+## Method notes
+
+**A scenario's setup hid what it was built to show — third time.** The Vampire
+was placed as the third creature for two beds, and it was nearer the lairs than
+the Goblins, so it took a bed and one of them did not. Correct behaviour
+(nothing is reserved) and a useless run. The Goblins now start standing on the
+beds.
+
+**A per-tick decision needs a per-second log.** A failed selection stamps
+nothing, so a creature with nothing to do asks again every tick — which is the
+original's shape and is what makes building a training room take effect at once.
+It also floods the log twenty times a second. The decision stayed per tick and
+the reporting moved to the second boundary.
+
+## Where the next session should start
+
+**Q205 — what a job is worth.** Training is now *selected* and not yet *worth*
+anything, which is the one loose thread in M4. `ExpPerSecondTraining` carries
+exactly the per-second/per-minute ambiguity that made `ExpPerSecond` turn out to
+be per minute; read the training state `0x6c` and see what it divides by.
+
+Then, roughly in order of what they unlock: **Q206** (the pin's empty world, a
+change to the guard itself); **Q204** (`player+0x76 & 4` restricts a whole
+keeper's creatures to Leave and Rebel — smells like a fallen dungeon heart, and
+would be worth having before M6); **Q202** (name buckets 0 and 5, settleable by
+one owner observation: slap a creature to unhappy with a bed available and watch
+whether sleeping brings it back down); and the older open ones — Q201's dizzy
+driver, Q199's pet-dungeon mana cap, Q197's portals through fog, Q200's bridge
+room ids.
+
