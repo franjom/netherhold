@@ -382,3 +382,84 @@ machine for free.
   identifier.
 - The gate at the top of this file must be green.
 
+
+---
+
+## Brief 6 — Doors.kwd and Traps.kwd, the two shipped tables nothing reads
+
+**Added 2026-09-06.** Needs its own worktree; it writes code.
+
+### The task
+
+`GameDatabaseLoader` parses six of the twelve `Data/editor/*.kwd` files. Six are
+untouched, and two of them are worth having now:
+
+| File | Records | Stride |
+|---|---|---|
+| `Doors.kwd` | **8** | 616 |
+| `Traps.kwd` | **16** | 579 |
+
+Parse both into typed definitions in `DK2.Data.Model`, load them in
+`GameDatabaseLoader` alongside the rest, and test them. **Follow the house
+pattern exactly** — `src/DK2.Data/Kwd/KwdObjects.cs` and `KwdKeeperSpells.cs`
+are the two closest models, and `ObjectDef` shows how a definition is shaped.
+
+### What is already established, so you do not repeat it
+
+Measured on 2026-09-06 with this project's own `kwd chunks` tool. **Treat as a
+starting point to verify, not as gospel** — the last brief's "already
+established" section contained a wrong reading and the branch that followed it
+was right to check.
+
+- Both files carry a single chunk whose name matches the file, with a fixed
+  stride and a whole number of records. Content offset is `fileLength -
+  records * stride`, which for `Doors.kwd` is 56.
+- **Each record opens with a 32-byte NUL-padded name string**, as every other
+  KWD record does. `Doors.kwd`'s first three are `Wooden Door`, `Steel Door`,
+  `Braced Door`.
+- Bytes 32..56 of those three records are all zero, so the interesting fields
+  start later. Do not assume the layout matches `ObjectDef`'s.
+
+### How to find the fields without guessing
+
+The same method that pinned the creature and terrain tables, and it is the whole
+skill here:
+
+1. **The shipped values are the oracle.** A door has a health, a gold cost, and
+   a manufacture cost; a trap has those plus a shot type, a charge count and a
+   trigger radius. Dump each candidate offset as u8/u16/u32 across all 8 or 16
+   records and look for a **column that reads like a stat**: monotonic with the
+   name order, or plausibly scaled, or matching something the manual states.
+2. **Cross-check against `original-reference/Dungeon_Keeper_2_Manual.pdf`**,
+   which prices some of this outright.
+3. **`D:\OpenKeeper` has a reader for both** — facts only, with attribution in
+   `THIRD-PARTY-NOTICES.md` if you adopt a field name (ADR-0003). Its layout is
+   *its* guess and has been wrong before; use it to generate candidates and
+   confirm them against the shipped bytes yourself.
+4. **`D:\Flame` is UNLICENSED.** Consult it for structure if you like; never
+   paste one of its identifiers into this repository.
+
+### What to deliver
+
+- `src/DK2.Data/Kwd/KwdDoors.cs`, `KwdTraps.cs`, and the two definition types.
+- Loading wired into `GameDatabaseLoader`, reachable from `GameDatabase`.
+- Tests in `DK2.Data.Tests` for the format (counts, names, bounds, a corrupt
+  file rejected) and in `DK2.Behavior.Tests` for the shipped values you are
+  confident of. **A field you could not identify is left out and named in the
+  branch's own README, not guessed at.**
+- A short `src/DK2.Data/README.md` section, same shape as the STR one: what is
+  read, what is verified, and an explicit **UNKNOWN** list.
+
+### What not to do
+
+- **No behavioural rules.** This is data, not mechanics. Nothing decides how a
+  trap fires or what a door costs to open; that is a later milestone and needs
+  the binary.
+- Nothing in `docs/research/`, nothing in `reverse-engineering/`, no touching
+  the determinism hash, no commit to `master`.
+- **Report a field you could not pin rather than filling it in.** The last
+  brief's most useful output was a negative result.
+
+### The gate
+
+The three commands in Setup, green, before anything lands.
