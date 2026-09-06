@@ -874,6 +874,16 @@ It has no names for the creature-descriptor bytes the make-room step reads.
 - **Terrain flag bits used by the AI** match the repository's `TerrainFlags`
   (Solid 1, Impenetrable 2, Taggable 8, Water 0x80, Lava 0x100) read from the
   in-memory terrain descriptor at `+0x17B`.
+- **Owner observation, creature side (2026-09-06), not verified here:** the
+  Mistress is the one creature that *enjoys* torture. She voluntarily goes to the
+  torture contraptions (racks, electric chairs and the like), her health does
+  not drop while she is on them, and she joins in the torturing of other
+  creatures being tortured; whether her joining in affects the torture process
+  itself is not known to the owner. This is creature AI, out of this brief's
+  scope, recorded for the session that does creature jobs. It is consistent with
+  the keeper AI's Torture job predicate always refusing (§2.3): the keeper never
+  *places* a creature there for work, so the Mistress's torture-room visits must
+  come from her own job selection.
 - **Task lists**: the player's task stack (`0x508290`) has 15 lists of 36-byte
   entries; a tile "is tagged" when it appears in list 1 or 2, and the AI untags
   list 2 as a whole when `UntagGoldCounter` expires, so list 2 is the gold-tag
