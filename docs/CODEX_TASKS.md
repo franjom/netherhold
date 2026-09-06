@@ -466,3 +466,138 @@ skill here:
 ### The gate
 
 The three commands in Setup, green, before anything lands.
+
+---
+
+## Brief 7 — fog of war: how the original decides what a keeper has seen
+
+**Added 2026-09-06. Read-only research, no code.** This is a Brief 3 shaped task
+— independent derivation from the binary — so it is the second brief that must
+touch `reverse-engineering/`, and the quarantine rule below is not optional.
+
+### Why this one is worth giving away
+
+Fog is the rare mechanic with almost no dependencies: it needs no combat, no
+objectives, no room behaviour, no job selection. What it lacks is *facts*. There
+was no research note and no open question about it in this repo until today, and
+the balance table — normally where this project's numbers come from — **does not
+contain a sight radius at all**. So the only sources left are the ones this brief
+names, which is exactly the case where a second agent reading three codebases in
+parallel beats one agent reading them in series.
+
+### What is already established, so you do not repeat it
+
+Measured 2026-09-06. **Treat as a starting point to verify, not as gospel** —
+Brief 5's "already established" section contained a wrong reading, and the branch
+that checked it was right to.
+
+- **The substitution is CONFIRMED at the UI level.** Terrain id 27 in the shipped
+  `Terrain.kwd` is `Fog Of War`, flags `0x0000000B` = `Solid, Impenetrable,
+  Taggable`, health 1/1. Its `NameStringId` (record `+0x1A2`) is **2472** and its
+  `TooltipStringId` (`+0x1A0`) is **2473**, which resolve in `Text.str` to
+  **"Fog of War"** and **"Fog of War: this area has not yet been explored."** — and
+  an owner screenshot of the running game shows exactly that caption with the
+  cursor over blackness. So an unseen tile really is presented as terrain 27.
+  **What is NOT established is where in the binary that substitution happens.**
+- **`RevealThroughFogOfWar` is terrain flag bit 24**, set on exactly six types:
+  Impenetrable Rock, Water, Lava, Gold, Gems, Edge of Map. Nothing in this repo
+  reads it and no read of it in the binary has been found.
+- **Fog appears to be a game *setting* with modes.** `Text.str` 348-353, inside a
+  run of skirmish-setup labels, reads `Fog of War` / `Creatures Reveal` /
+  `All Owned Reveal` / `Stay Revealed` / `Re-shroud` / `Re-fog`. Read as a group
+  label plus five options, that is two reveal sources and three persistence
+  behaviours. **Inferred from strings only** — nothing has watched the engine
+  branch on them, and where the setting is stored is unknown.
+- **No sight/vision radius exists in the 214-variable balance table.** The only
+  radii are `DungeonHeartClaimScanRadiusTiles` (15, a u8 tile count) and
+  `DefaultTorchLightRadiusTiles` (6144). The second is **1.5 tiles**, not 6:
+  `Fp32.One` is 4096, and `DefaultTorchLightHeightTiles` carries the same 6144.
+  That near-miss was checked and rejected; do not resurrect it.
+- Owner observations, CONFIRMED 2026-09-06, **in the campaign as played**: once
+  revealed a region **stays** revealed; an unrevealed tile presents as a black-ish
+  solid tile that **can be tagged**; and a tag placed on fog is **lost on reveal**
+  if the revealed tile is impenetrable rock or turns out to be a room. The owner
+  estimates the reveal radius at **about 6 tiles** and explicitly asks for
+  independent confirmation — treat it as a hypothesis to test, not a given.
+
+### The claim to attack
+
+**"Fog stays revealed"** is confirmed by the owner and is also the name of
+option 351 of five. So the campaign's behaviour is probably one mode of several,
+and building it as *the* rule would be this project's characteristic defect
+again — internally consistent, contradicted by nothing, checked by nobody.
+
+**Establish whether the modes are real engine behaviour or dead strings**, and if
+they are real, what selects one. If instead the engine has exactly one fog rule
+and those strings are vestigial, that is the more valuable finding and it
+simplifies the build considerably.
+
+### The questions, ordered by what they unblock
+
+1. **Where is per-keeper discovered-ness stored, and how wide is it?** One bit
+   per tile per player, a byte, a per-tile owner mask? Is it in the same
+   structure as the tile, or a separate map?
+2. **Is it simulation state or client state?** Concretely: does a **computer
+   keeper** consult fog when it decides anything? A computer player that plays
+   with fog is the single fact that decides whether this project's `WorldState`
+   grows a field and takes a determinism-hash bump, or whether fog lives beside
+   the renderer and costs nothing. **This is the question that matters most.**
+3. **What reveals, and how far?** Which entities push the boundary back — any
+   creature, the keeper's own only, a dropped creature, the camera, a possessed
+   creature? Is the radius a constant in the image, a per-creature field, or a
+   flood over connected floor? If it is an immediate in the code rather than a
+   variable, that explains why the balance table has nothing. **The owner's
+   estimate is ~6 tiles: confirm or refute it with a number from the image.**
+4. **Are `Creatures Reveal`, `All Owned Reveal`, `Stay Revealed`, `Re-shroud` and
+   `Re-fog` real modes, and what selects one?** Level file, skirmish setup, both?
+   Does the campaign fix it? This decides whether fog is a rule or read
+   configuration, which matters for Goal 2 and Goal 8 as much as for fidelity.
+5. **Where does `RevealThroughFogOfWar` get tested?** Six terrain types set it;
+   find the read. That read is the clearest single point of entry to the whole
+   mechanic.
+6. **Is a tag on an undiscovered tile stored, and where?** The owner has the
+   outcome — lost on reveal for non-taggable terrain — but not the mechanism.
+   Does the original store a pending mark against the real tile, or against the
+   substituted one?
+7. **Sight of Evil and the Reveal Map special.** Both are known to exist and
+   neither is built. Do they write the same state a creature writes, or a
+   separate temporary layer? A temporary layer would contradict "stays revealed"
+   being the whole model.
+
+### Where to look
+
+- **Ghidra / `DKII.EXE`** is the primary source (AGENTS.md, ADR-0046). The
+  string table is the way in: this project's `docs/research/executable-strings.md`
+  method has found translation units by name before, and a `Fog`- or
+  `Reveal`-named unit is the obvious first grep.
+- **`D:\OpenKeeper`** (GPLv3): has a renderer and will have made *some* decision
+  about fog. Facts only, provenance in `THIRD-PARTY-NOTICES.md`. Its reading is
+  its guess and has been wrong before.
+- **`D:\Flame`** (**unlicensed**): best for **structure** — if discovered-ness is
+  a field on a per-player or per-tile struct, this is where the layout shows.
+  Consult, never copy, and **never paste one of its identifiers into this
+  repository**.
+- The shipped install at `E:\GogGames\Dungeon Keeper 2` settles anything about
+  file contents directly.
+
+### Output
+
+A markdown report **to stdout**, in the four-part shape Brief 4 established:
+what is established and how, contradictions with anything this repo currently
+assumes, a confidence ladder using this project's own rungs, and numbered
+follow-up questions. End with one sentence naming which finding matters most.
+
+An **UNKNOWN left labelled is a good outcome.** The radius in particular may
+simply not be findable in one pass; say so rather than offering a plausible
+number, because a guessed constant here would go straight into a determinism
+hash.
+
+### Boundaries
+
+- **Read-only. Do not edit any file, do not commit, do not open a pull request.**
+- **Nothing in `docs/research/`** — the write-up is where the confidence ladder
+  and the evidence rank are enforced, and that stays with the primary agent.
+- **The quarantine (ADR-0046): facts in your own words may leave
+  `reverse-engineering/`; decompiler output may not**, anywhere, at all. Not in
+  the report, not quoted, not paraphrased line by line.
+- Do not invent DK2 behaviour. If the binary does not show it, it is UNKNOWN.
