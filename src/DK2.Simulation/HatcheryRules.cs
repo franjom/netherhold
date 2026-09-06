@@ -19,10 +19,11 @@ namespace DK2.Simulation;
 /// laying interval is
 /// <c>(int)(ChickenGenerationTimePerHatchery / pow(tiles, 0.315477776)) × V19</c>,
 /// and <b>V19 is a balance variable that no shipped file supplies</b> — its
-/// global is read from 223 places in the binary as both multiplier and divisor,
-/// written by exactly one instruction, and absent from all 1236 files in the
-/// install. Without it the interval has a shape and no unit, so <b>there is no
-/// clock here and nothing drives laying</b>. Q132.</para>
+/// global is read from 223 places in the binary as both multiplier and divisor
+/// and is absent from all 1236 files in the install — because the <b>level
+/// header</b> supplies it, which is what Q132 turned out to be. It is <b>4</b>
+/// on every shipped level, so the interval has its unit and
+/// <see cref="Systems.HatcherySystem"/> drives the laying (ADR-0066).</para>
 ///
 /// <para>What is here is everything the binary settles outright: how many coops
 /// a room gets, where they may stand, and where an egg appears. Written now
@@ -315,9 +316,9 @@ public static class HatcheryRules
     /// settling at <i>exactly</i> nine is a cap, not the balance point of two
     /// rates — and it is the choice that cannot run away. Q135.</para>
     ///
-    /// <para><b>Nothing calls this on a clock</b>, because the interval's unit is
-    /// unresolved (see the type doc, and Q132). Nor is the per-player free-range
-    /// cap applied, and <b>the owner's observation is now the reason rather than
+    /// <para><see cref="Systems.HatcherySystem"/> calls this on the room's own
+    /// interval (ADR-0066). The per-player free-range cap is still not
+    /// applied, and <b>the owner's observation is now the reason rather than
     /// a hedge</b>: a 5×5 hatchery holds <i>more than twenty</i> chickens
     /// (2026-09-05), where a cap of 12 on the room's flock would have stopped it
     /// at twelve. So <c>MaxFreeRangeChickensPerPlayer</c> counts something
@@ -368,11 +369,10 @@ public static class HatcheryRules
     /// does: every object has a <c>StateId</c> and a <c>StateAge</c>, and the
     /// egg's start state is 0 against the chicken's 10).</para>
     ///
-    /// <para><b>Nothing drives this on a clock</b>, for the same reason nothing
-    /// drives laying: the room's interval is unresolved (Q132). When it is, the
-    /// ageing arrives with it, and <see cref="EggHatchSeconds"/> is the delay it
-    /// will use. Until then this is a tested transition and not a mechanic, on
-    /// the precedent of <see cref="CreatureHealthRules.Eat"/>.</para>
+    /// <para><see cref="Systems.HatcherySystem"/> drives this, counting
+    /// <see cref="EggHatchSeconds"/> on the egg's own
+    /// <see cref="ObjectState.TimerTicks"/> and hatching <b>before</b> it lays,
+    /// so an egg is not aged on the second it is laid (ADR-0066).</para>
     ///
     /// <para>Throws if handed something that is not an egg, because silently
     /// hatching a bed would be worse than stopping.</para>

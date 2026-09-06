@@ -4405,3 +4405,105 @@ minutes.
 It also moves the Hatchery up the queue. It was already the only thing that
 would put a loose object on the floor for kind 8; it is now also the only route
 to the prison's counterplay, and Q172 cannot be built without it.
+
+## Twenty-seventh sitting: two corrections of our own work, and a room that lays
+
+The owner was away and asked for whatever could be done without them. What got
+done was mostly **finding this project wrong**, twice, in ways that had each
+been sitting there for a while.
+
+### The variable map was wrong by a byte, and the byte mattered
+
+The owner corrected yesterday's note first: *"probably from hunger"* had been
+their speculation, not an observation, and **the decompiled source is the top
+authority**. Asking the binary meant computing a global address from
+`balance-variables-in-the-binary.md`'s rule that the per-variable globals are
+*"four bytes apart"*.
+
+They are not. The dispatch stubs store `AL`, `AX` or `EAX` and the globals are
+**packed** — measured across all 181 cached slots the stride is 1 byte 42 times,
+2 bytes 54 times, 4 bytes 72 times. The rule had been generalised from three
+consecutive `u32` variables.
+
+**What that would have cost.** `base + (id - 18) * 4` puts
+`PrisonModifyCreatureHealthPerSecond` one byte low, and **a reference search on
+the wrong address comes back empty**. Empty reads exactly like *"nothing in the
+game uses this variable"* — a confident, publishable, wrong finding about the
+original, which would then have been used to tear out a working rule. It was
+caught only because the stub disassembly happened to show the wrong operand
+widths.
+
+The map is now **read** from the dispatch table at `0x0051D740` rather than
+computed, and all 240 rows are in the document so nobody computes one again.
+
+**What it then bought, on the question actually asked:** the variable is read;
+the drain is `variable55 * 4` on a `variable19 * 4` tick cadence, so -12 every
+four game seconds, averaging exactly the -3 a second the name promises; the
+general health routine recognises the drain **by its amount**; and the drain
+comes with anger this project does not apply. **What was not established** is
+that the routine is the *prison's* — no room-type test is visible in the part
+read — so nothing was built on it (Q173). Two prison-adjacent variables turned
+out to be cached and read nowhere, and one of them is the 20% behind yesterday's
+two-petals number.
+
+### The hatchery had been unblocked for a day
+
+`HatcheryRules` knew the whole mechanism four sittings ago and could run none of
+it, on a reason written into the class, a research document and the harness's
+caveat list: the laying interval is multiplied by a variable *"no shipped file
+supplies"* (Q132). **Q132 was answered on 2026-09-05.** Nobody re-read the notes
+that named it.
+
+That is a new variant of the standing failure: not a claim that was wrong, but
+one that was **true when written and quietly expired**. Asking "what would fail
+if this stopped being true" does not help — it already had. The fix is
+mechanical and is now the sixth review clause: **when a question is answered,
+grep for everything that cites it as a blocker, the same day.**
+
+**And the first draft of that paragraph was itself wrong**, which is the best
+argument for the clause there could be: it claimed the grep found three stale
+hits, written from memory of the three the build had touched. Actually run, it
+found **nine**. Guessing the output of the command you are recommending is the
+same error one level up.
+
+Built: `LayIntervalSeconds` and `HatcherySystem` (ADR-0066). Two things worth
+carrying forward:
+
+- **A fixed-point table rather than `Math.Pow`.** The interval decides when an
+  egg appears and eggs are hashed; a 3x3 computes **7.99977** and IEEE-754 `pow`
+  is not bit-identical across runtimes, so drift in the eighth decimal place
+  would hand one machine 8 and another 7 and diverge the run. A test regenerates
+  the table from `Math.Pow` and compares. **Any constant derived from a
+  transcendental and then truncated is this hazard** and this is the first one.
+- **`hatchery.md`'s own table was wrong** where its own header said "truncated":
+  `pow(9, e)` is 2.0000566, a hair *above* two, so a 3x3 lays every **7**
+  seconds and not 8. The exponent was typed rather than derived and typed just
+  high enough to miss — one second off the most common hatchery in the game.
+
+### Also
+
+**Codex's `codex/kmf-animation` merged** — every frame of an animated KMF now
+becomes a glTF morph track, with the 30fps output rate named as an assumption.
+One fix on merge: the attribution notice covered only the *frame-zero*
+`ITAB`/`VGEO` lookup and the branch goes past frame zero, so the notice now
+names the per-128-frame indexing. Codex was given `codex/sdt-audio` next — the
+sound banks, the last unread asset family.
+
+### Where the next session should start
+
+1. **Eating**, and everything now points at it. The hatchery makes birds, kind 8
+   can carry them, hunger exists and does nothing, and it is the counterplay the
+   prison's withering exists for. **The owner has already answered the hard
+   part**: *"they rush toward that chicken, the first one to it gets it"* — a
+   race, no reservation — and the original's own search is `FUN_00473550`,
+   nearest food object by straight-line distance within the room. It is a
+   creature-side mechanic and it is the last thing between this project and a
+   creature that can look after itself.
+2. **Q173** — force a function around `0x00479f4a` (the region that loads
+   `FUN_0047b7c0` as an immediate) and read what installs it. That says whether
+   the drain routine is the prison's, and therefore whether to apply its anger.
+3. **Q1's sub-object** at `game + 4`, unmoved.
+4. **Three owner questions, all one glance**: Q159 (time a slap), Q166 (count a
+   3x3 prison's capacity), Q171 (count the petals on a healthy creature — the
+   prison's arrival health rests entirely on it now that the 20% variable turns
+   out to be read by nothing).

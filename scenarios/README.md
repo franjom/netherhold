@@ -87,10 +87,11 @@ And note what most rooms still are not. A treasury and a heart hold gold because
 a variable says how much per tile. **Three rooms now do more**: a **portal**
 produces creatures; a **lair** attracts them *and* holds one bed per tile, which
 a creature claims, walks to, sleeps in and is healed by; and a **hatchery** knows
-how many coops its size earns and how big a flock it holds — though it lays
-nothing on its own, because its interval is multiplied by a balance variable no
-shipped file supplies (Q132). Every other room is inert terrain that somebody
-owns.
+how many coops its size earns, how big a flock it holds, and — since ADR-0066 —
+**it lays on its own clock**: an egg every few seconds depending on its size, a
+chicken two seconds later, stopping at one bird per tile. A prison holds the
+enemies an imp drags in and withers them into Skeletons. Every other room is
+inert terrain that somebody owns.
 
 ### `commands[].build`
 
@@ -188,9 +189,10 @@ What a run still cannot tell you:
   measured ceiling, and levels with experience — all built. What is missing is a
   **job**: nothing decides what a non-worker does with its day. A hungry creature
   still stays hungry, and takes no damage for it, because DK2 charges anger and
-  now so do we. **The reason it cannot eat has changed**: the Chicken is object 9,
-  the world has an object list, and the hatchery knows its coops — what is left is
-  the room's clock (Q132) and a creature that walks over and eats.
+  now so do we. **The reason it cannot eat has changed again**: the Chicken is
+  object 9, the world has an object list, and the hatchery now lays and hatches
+  on its own clock (ADR-0066) — so the birds are there. What is left is only a
+  creature that walks over and eats one.
 - **What a room does.** A treasury and a dungeon heart hold gold; a portal
   produces creatures; a lair attracts them and holds a bed per tile that heals
   its owner **while asleep in it**, not whatever stands on it; a hatchery is

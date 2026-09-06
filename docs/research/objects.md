@@ -152,8 +152,9 @@ tile.
 `WorldState` grew its third list some time ago, so the first three are no longer
 waiting on instances: they are waiting on something that *makes* one. The
 Hatchery is the nearest — it knows how many coops a room gets and where they
-stand, and has no clock (Q132) — and the moment it lays an egg, kind 8 has
-something to carry.
+stand, and **since ADR-0066 it has its clock too** — so there are eggs and
+chickens on the floor, and kind 8 has something to carry. What no creature can
+do yet is eat one.
 
 ## 7. The instance: one type, an 18-byte union, and the id that picks it
 

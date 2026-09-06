@@ -130,11 +130,15 @@ anything that is about C# rather than about Dungeon Keeper 2.
 
 ---
 
-## Brief 2 — Q132, the phantom variable (open research)
+## Brief 2 — Q132, the phantom variable — **CLOSED 2026-09-05, do not pick up**
 
-Genuinely unsolved, well bounded, and everything already eliminated is written
-down in `docs/research/balance-variables-in-the-binary.md`. Fresh eyes are worth
-something here precisely because the obvious avenues are closed.
+**Answered:** variable 19 is ticks per game second and the **level header**
+supplies it, which is why it appears in no variables file. All 66 shipped levels
+carry 4. Built on 2026-09-06 (ADR-0066) — it was the hatchery clock.
+
+The brief is kept because the shape of it was right: everything eliminated was
+written down first, which is what made the answer findable when the level loader
+turned up a second writer. What follows is the brief as it stood.
 
 The question: **balance variable 19's global is read from 223 instructions in
 `DKII.EXE` — more than any other — as a multiplier 28 times and a divisor 22

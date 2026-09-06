@@ -806,3 +806,89 @@ claiming, so an imp shelves a book before digging a wall the keeper marked. That
 is not what anybody would design and it is what the table says, so it is what
 this builds — with a test whose only job is to fail if somebody quietly moves it
 down the list.
+
+---
+
+## 2026-09-06: the sixth clause, and it is the cheapest one yet
+
+Two more instances in one day, and the second is a variant worth naming
+separately because the fix is mechanical.
+
+**The fifth instance was our own arithmetic.** `balance-variables-in-the-binary.md`
+said the per-variable globals are *"four bytes apart"* — generalised from three
+consecutive `u32` variables, when the dispatch stubs store `AL`, `AX` or `EAX`
+and the globals are packed. Computing an address that way put
+`PrisonModifyCreatureHealthPerSecond` one byte off, and **a reference search on
+the wrong address comes back empty**. Empty reads exactly like *"nothing in the
+game uses this variable"*, which would have been published as a finding about
+the original and used to tear out a working rule. It was caught only because the
+stub disassembly happened to show `MOV [addr], AL` and the widths did not match
+the claim.
+
+**The sixth is a stated blocker that had already been removed.** The Hatchery had
+been recorded as blocked on Q132 in a class comment, a research document and the
+harness's caveat list. **Q132 was answered the day before**, in this project's
+own question list, by this project. Three documents went on naming a blocker
+that no longer existed, and the mechanic sat unbuilt for a day for no reason at
+all.
+
+That is different from the previous five. Those were claims that were *wrong*.
+This one was **true when written and quietly expired**, and no amount of asking
+"what would fail if this stopped being true" helps — the answer is "nothing,
+because it already has".
+
+### The sixth clause
+
+> what would fail if this claim stopped being true? · does anything read this
+> fact at all? · could this check pass while the thing it checks is wrong? · is
+> this justification still true, and would anybody notice? · when a comment says
+> a difference is unobservable, does it name the observation that would settle
+> it? · does a statement about the original rest on a reading that names its own
+> gap? — and now:
+>
+> **when a question is answered, grep for everything that cites it as a
+> blocker.** A "blocked on Qnnn" note is a claim with an expiry date and nothing
+> re-reads it.
+
+The habit is a one-liner and belongs in the same pass as writing the answer:
+
+```
+grep -rn "Qnnn" src/ docs/ scenarios/
+```
+
+Run it on **every** question that moves to ANSWERED, and read each hit for
+whether it still says something true. Run the same day, because the value of an
+answer is what it unblocks and nobody looks twice.
+
+**Run for Q132 on 2026-09-06 — and the first attempt at this paragraph was
+itself wrong**, which is the best argument for the clause there could be. It
+claimed "four hits, of which three were stale", written from memory of the three
+places the build had already touched. The actual grep returned **38 hits across
+seven files**, of which **nine were live and stale**: three doc-comments in
+`HatcheryRules` (still saying *"there is no clock here and nothing drives
+laying"* in a file that had just been given one), `hatchery.md` in two places,
+`ScenarioRunner`'s caveat, `objects.md`, `RESEARCH_STATUS.md`, and
+`scenarios/README.md` in two places. The rest were `HANDOFF.md`'s dated entries,
+which are history and stay as written.
+
+**Nine, not three — in a paragraph explaining why you must actually run the
+grep.** Guessing at the output of the command you are recommending is the same
+error one level up.
+
+### Goal 4 (quirks reproduced, not fixed) — the day's example
+
+`pow(9, 0.315477776)` is **2.0000566**, so a 3x3 hatchery lays every **7**
+seconds and not the 8 the exponent looks like it was aimed at. The exponent was
+typed rather than derived — it is not `log 2 / log 9` — and it was typed just
+high enough to miss. One second off the most common hatchery in the game, from
+the sixth decimal place, reproduced with a test that says why.
+
+**It also forced a determinism decision worth recording.** That number decides
+when an egg appears and eggs are hashed; IEEE-754 `pow` is not guaranteed
+bit-identical across runtimes, and 7.99977 is close enough to the boundary that
+drift in the eighth decimal place would hand one machine 8 and another 7 and
+diverge the run. The interval is a fixed-point table, and a test regenerates it
+from `Math.Pow` and compares — so the table is provably the formula while the
+simulation never touches a float. **Any constant derived from a transcendental
+function and then truncated is this hazard**, and this is the first one this
+project has hit.
