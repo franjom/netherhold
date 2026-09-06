@@ -920,3 +920,143 @@ PE sections map as `.rdata` VA = offset + `0x401000`, `.data` VA = offset +
 `0x401A00`, so a single delta is wrong. In Jython, iterate functions with
 `getFunctions(True)` and filter by address; the address-seeded iterator returned
 nothing here.
+
+---
+
+## 12. Phase 3 — design sketch for a `KeeperAI` in this codebase (not built)
+
+Written after Phases 0–2 landed, as the brief allows. Nothing below is
+implemented; it is the shape the implementation should take and the order to do
+it in, so the next session starts from a decision rather than a blank file.
+Names use `KeeperAI` (the owner's choice), never the reference project's.
+
+### 12.1 Where it lives, and the one decision that matters
+
+**The keeper is an input source, not a simulation system.** It reads a read-only
+view of `WorldState` after tick *N* and emits `PlayerCommand`s for its player id
+into the `InputFrame` of tick *N+1*, exactly as the human and the harness's
+scripted scenarios do. Home: `src/DK2.AI` (exists, empty, already references
+Core, Data.Model and Simulation).
+
+Why this and not an `ISimulationSystem`:
+
+- **No state-hash change.** `InputFrame.HashInto` already hashes every command,
+  so a replay with the same seeds reproduces the same game while the AI's own
+  state stays outside `GameSimulation.StateHash()`. The `HashVersion` collision
+  in force at the time of writing is untouched.
+- **It is what the original does.** §4: the AI acts only through the player hand
+  and the action handler. Every one of its effects is a command a human could
+  issue.
+- **It is testable today.** A harness `Scenario` can carry a keeper the same way
+  it carries scripted input.
+
+Cost accepted: one tick of latency (the original decides and acts inside the same
+player tick). Cost noted, not accepted blindly: the original draws its random
+numbers from the **world's** stream (§5.9). Here the keeper gets its own
+`SimRandom` seeded from (level seed, player id) so that adding or removing an AI
+player does not perturb the simulation's stream. That is a deliberate deviation
+and should be recorded as an ADR when built.
+
+### 12.2 Shape
+
+| Type | Role | Source |
+|---|---|---|
+| `KeeperAIParameters` | the 158-byte block, decoded | **done** (`DK2.Data.Model`, read by `KwdPlayers`) |
+| `KeeperAIPersonality` | the nine skirmish rows of §3.2 as typed static data, producing a `KeeperAIParameters` plus the computed `RoomList` | to do; values are in `reverse-engineering/ghidra/personality-decoded.txt` |
+| `KeeperAIState` | the runtime half of §2.3: `Task`/`NextTask`, the three counters, the dig rectangle and walker state, the 3-slot event ring, 4 gold deposits, 16×8 breaches, the flag bits | to do; serialisable as one block, as the original saves it |
+| `KeeperAI` | `IReadOnlyList<PlayerCommand> Think(IWorldView world, GameTick tick)`; runs the tick of §5.1 with `budget = TendancySpeed` | to do |
+| `ThreatEvaluator`, `AttackPlanner`, `RoomPlanner`, `SiteFinder`, `LineWalker`, `GoldScanner`, `TrapPlacer`, `BattleStep`, `Housekeeping` | §5.4, §5.5, §5.5, §5.5, §5.2, §5.5, §5.6, §5.7, §5.1 steps 3–14 — pure functions over the view, each unit-testable on a synthetic grid | to do |
+
+`IWorldView` is a read-only facade the simulation exposes (tiles with owner,
+terrain, room id and tag bits; room instances by owner and type; creatures with
+owner, level, health, job list, in-hand/fighting/working flags and last-dropped
+tick; players with mana, gold-in-treasury per ADR-0015, and the hand's
+contents). Most of it exists in `WorldState`/`RoomIndex`; what does not is in
+§12.4.
+
+### 12.3 Commands: what exists, what the keeper still needs
+
+| Original action (§4) | Command today | Gap |
+|---|---|---|
+| 40 tag / 41 untag | `TagTilesCommand` | none |
+| pick up / drop creature | `PickUpCreatureCommand`, `DropCreatureCommand` | none |
+| 62 slap | `SlapCreatureCommand` | none |
+| place room tile by tile | `BuildRoomCommand(tiles)` | none — emit one tile per budget unit, or the rectangle at once; decide when built |
+| spell 4 Create Imp | `CreateImpCommand` | none |
+| spells 1 Sight of Evil, 3 Call to Arms (+63 remove), 13 Create Gold, battle spells | — | **`CastKeeperSpellCommand(spellId, tile, target)`** |
+| place trap / door | — | **`PlaceTrapCommand`, `PlaceDoorCommand`** (Workshop mechanics land first) |
+| pick up / drop objects: chicken, minted gold for pay, 88 activate Special | — | **`PickUpObjectCommand`/`DropObjectCommand`**; the "pay a creature" path also needs the treasury-withdrawal rule |
+| claim a neutral room | digging a path to it | none — falls out of ADR-0044 once a tunnel arrives |
+
+Every row marked **bold** is a simulation change with hash impact and belongs
+after the `HashVersion` collision is resolved.
+
+### 12.4 Messages: the original's queue, and what to build instead of it
+
+The keeper's reactive half (§5.3) consumes a per-player message queue: attacked
+at a position, creature unhappy/angry, room taken over/available/needs space,
+portal events. The simulation's `SimEvent` sink is **observation only** and by
+ADR-0006 must never drive behaviour, so it is not the answer. Proposal: a typed
+`PlayerMessage` list per `PlayerState`, filled by the systems that already know
+these facts (combat, anger, room build/claim), hashed, drained by whoever reads
+the frame. That is a hash change — sequence it with §12.3's rows. Until it
+exists the keeper can run its **proactive half** (dig, build, gold, imps, slap,
+training) and simply never respond to an attack, which is honest and visible.
+
+Also missing from the world for the keeper's needs: **alliances** (the enemy/ally
+tests, §5.4), **player status** (won/lost, §7), **spell research state** per
+player, and trap/door instances. None is large; all are hash changes.
+
+### 12.5 Fidelity choices, decided here so they are not decided by accident
+
+Default: **do what the shipped game does**, including its oddities, and log each
+as a named quirk the harness can assert on.
+
+- `Flags` forced to `0xFFFF` (§6.1): ignore the file's value. Yes.
+- Byte reads of the three editor u16s (§6.5): `KwdPlayers` already does this;
+  the keeper uses the byte. Yes — Harkan and Carrion get one imp per 232 tiles.
+- The "research" step evicts a creature at a portal (§6.10): reproduce. It is
+  the shipped behaviour and owner question 9 tests it.
+- Torture never a placement target (§6.9): reproduce.
+- The off-by-one in room choice's second pass (§6.3): **do not** reproduce; it
+  has no effect in shipped data and reproducing it means reading a parameter as
+  a room id on purpose. Document as the one deliberate departure.
+- Nine dead parameters: load, expose, never read. `KeeperAIParameters` says so
+  on each.
+- Tick unit: the counters are game ticks at four per game second from the level
+  record; the simulation already runs on game ticks, so the constants (1,680;
+  240; 300; 40) transfer unchanged.
+- Stop rule: if any step of building this needs the world hash to change, stop
+  and report, per the brief.
+
+### 12.6 Tests the sketch implies
+
+1. **Unit, synthetic grids.** `SiteFinder` finds a 3×3 site north of a heart on
+   a 20×20 rock map and rejects one with more than `Openness`% of its perimeter
+   open; `LineWalker` reaches a target across diggable rock in a straight line
+   and walks around an impenetrable block on the shorter side; `ThreatEvaluator`
+   sums level-scaled threat inside 10 tiles and ignores allies.
+2. **Harness scenario.** A Level7-shaped map with Gormagon's `KeeperAIParameters`
+   from `KwdPlayers`: within a bounded number of ticks the keeper has tagged,
+   built rooms in `RoomList` order starting with a Treasury next to its heart,
+   and never holds more than 4 imps.
+3. **Determinism.** Same seeds, same scenario → identical command stream and
+   identical world hash; a different AI seed changes the commands and not the
+   simulation's own RNG consumption.
+4. **Owner predictions.** §8's ten questions become acceptance checks the first
+   time the game is watched with a keeper running.
+
+### 12.7 Order of work
+
+1. `DK2.AI`: `KeeperAIState`, `KeeperAI.Think`, `Housekeeping` (imps, slap,
+   training moves), `GoldScanner` + gold tasks via `TagTilesCommand`,
+   `RoomPlanner` + `SiteFinder` + `LineWalker` + room placement via
+   `BuildRoomCommand`. **No simulation change.** Deliverable: a keeper that digs
+   out and builds its dungeon in the shipped order.
+2. Simulation: `IWorldView` facade over existing state. No hash change.
+3. Simulation, after the collision clears: §12.3's missing commands, §12.4's
+   messages, alliances, status, spell state. Hash bumps, each with an ADR.
+4. `DK2.AI`: `ThreatEvaluator`, respond-to-attack, `AttackPlanner`, `BattleStep`,
+   Call to Arms front and removal, `TrapPlacer`, prisoners and retreat.
+5. `KeeperAIPersonality` for skirmish, with the level-name remap (§3.2) left out
+   until the owner answers question 6.
