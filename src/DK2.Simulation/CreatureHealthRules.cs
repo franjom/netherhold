@@ -119,17 +119,26 @@ public static class CreatureHealthRules
     /// as health — <b>two petals of the flower above its head</b>.
     ///
     /// <para><b>What a petal is worth was settled by the owner</b> (2026-09-05,
-    /// Q167): a creature dragged into a prison arrives with <i>"two petals"</i>,
-    /// and 20 is the one shipped percentage that reads as two of ten. See
-    /// <see cref="PrisonRules.Imprison"/>, which is the only caller.</para>
+    /// Q167): a creature dragged into a prison arrives with <i>"two petals"</i>.
+    /// See <see cref="PrisonRules.Imprison"/>, which is the only caller.</para>
     ///
-    /// <para><b>The shipped-number leg of that reading is weaker than it looks,
-    /// and was checked the next day.</b> `CreatureCriticalHealthPercentageOfMax`
-    /// is cached into a global the engine <b>never reads</b>
-    /// (<c>balance-variables-in-the-binary.md</c> §4), so 20 is not a number DK2
-    /// consults for anything. The owner's two petals is the observation and it
-    /// stands; 20% is this project's reading of it, resting on a flower having
-    /// ten petals, which is Q171 and is one glance to settle.</para>
+    /// <para><b>A flower has SIX petals</b> — CONFIRMED with a
+    /// screenshot on 2026-09-06 (Q171), against this project's inference of ten.
+    /// The inference was wrong; <b>the 20 it was used to justify survives, and
+    /// on a thinner argument than before.</b> Two petals of six is anywhere from
+    /// 16.7% to 33.3%, and 20% lands in that band only because the display must
+    /// round <i>up</i> — 1.2 petals shown as 2. It has to round up for
+    /// anything to make sense (a creature at 1% still shows a petal), and the
+    /// owner's other reading agrees: a chicken worth 25% of a Goblin is 1.5
+    /// petals and they called it <i>"2 more petals"</i>. There is <b>no shipped
+    /// percentage anywhere near 33%</b>, so 20 has no rival.</para>
+    ///
+    /// <para><b>The shipped-number leg is weak on its own.</b>
+    /// <c>CreatureCriticalHealthPercentageOfMax</c> is cached into a global the
+    /// engine <b>never reads</b> (<c>balance-variables-in-the-binary.md</c> §4),
+    /// so 20 is not a number DK2 consults for anything. <b>Q167 is now readable
+    /// as a number rather than counted</b>: DK2's status bar prints
+    /// <c>Health: NN%</c> for a selected creature.</para>
     ///
     /// <para>At least one, because a creature brought round at nothing is a
     /// creature that dies on the tick it wakes.</para>

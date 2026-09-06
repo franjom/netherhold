@@ -31,7 +31,7 @@ down.
 | # | Do this | Watch for | If the answer is... |
 |---|---|---|---|
 | **1** | **Mark two blocks of gold far apart. Drop an imp on one. Watch Efficiency after the first block falls** (Q177) | 90% or 80% on the walk to the second | **90%** and the binary is right: the aimed bonus lasts as long as that *kind* of work does, not one job. **80%** and DK2 clears it somewhere this project has not found — which would matter, because there are only two writers in the whole executable and one of them would have to be wrong |
-| **2** | **Count the petals on a healthy creature's flower** (Q171) | how many when it is unhurt | **Ten** and every health percentage in the game becomes readable by eye — and the prison's arrival health is right. **Eight** and `PrisonRules` is wrong by a quarter |
+| **2** | **Select a creature the moment an imp drops it in a prison and read `Health: NN%` off the status bar** (Q167) | the number, not the petals | **20** and `PrisonRules` is right. Anything else and a prisoner's whole clock is wrong by that ratio — a Goblin at 20% withers in 100 game seconds, at 33% in 165. **Q171 came back as SIX petals**, not the ten this project inferred, which does not move the 20 but does mean two petals is a band from 16.7% to 33.3% rather than an exact reading. The status bar prints the number, so stop counting petals |
 | **3** | **Time a chicken nobody eats** (Q178) | how long from hatch to the death animation | Any number closes it. The owner has confirmed *that* it happens; what is missing is **how long**, and whether the replacement egg comes on the room's ordinary lay interval or straight away |
 
 A "no" is worth as much as a "yes".

@@ -264,7 +264,10 @@ public class PrisonTests
     {
         // CONFIRMED by the owner (2026-09-05, Q167): "its flower gets two
         // petals, and then that creature starts loosing health at some standard
-        // rate". Two petals of ten is CreatureCriticalHealthPercentageOfMax,
+        // rate". The flower has SIX petals (Q171, screenshot 2026-09-06), so two
+        // of them is a band from 16.7% to 33.3% rather than an exact tenth -
+        // and CreatureCriticalHealthPercentageOfMax is the only shipped number
+        // in it. Q167 is now readable outright: the status bar prints Health%.
         // which ships at 20 - a Goblin's 1500 becomes 300.
         //
         // A first draft gave a prisoner FULL health on nothing better than the

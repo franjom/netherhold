@@ -171,7 +171,7 @@ public static class PrisonRules
     /// carried — and imprisonment ends the dying window rather than continuing
     /// it. It wakes at
     /// <see cref="CreatureHealthRules.CriticalHealth"/>: <b>20% of its maximum,
-    /// which is two petals of the ten on the flower above its head</b>.
+    /// which shows as two petals of the six on the flower above its head</b>.
     ///
     /// <para><b>CONFIRMED by the owner</b> (2026-09-05, Q167): <i>"its flower
     /// gets two petals, and then that creature starts loosing health at some
@@ -181,13 +181,20 @@ public static class PrisonRules
     /// a hundred — the difference between the prison being a slow decision and
     /// an urgent one.</para>
     ///
-    /// <para>The arithmetic rests on a ten-petal flower, which is inference
-    /// rather than observation: <c>CreatureCriticalHealthPercentageOfMax</c> =
-    /// <b>20</b> is the one shipped percentage that reads as two of ten, and
-    /// <c>CreatureSleepsWhenBelowPercentHealth</c> = <b>50</b> reads as five of
-    /// ten beside it. The owner's other half corroborates it from the far side:
-    /// a chicken restores a Goblin 375 of 1500, a quarter, and they put it at
-    /// <i>"2 more petals"</i>. Q171 asks for the petal count outright.</para>
+    /// <para><b>The flower has six petals, not the ten this file used to
+    /// assume</b> (Q171, screenshot, 2026-09-06). The 20 survives it and the
+    /// argument for it is now weaker and worth stating plainly: two of six is
+    /// 16.7% to 33.3%, 20% is 1.2 petals, and that reads as two only because the
+    /// display rounds up — which it must, or a creature at 1% would show
+    /// nothing. Corroborated from the far side by the owner's other reading, a
+    /// chicken worth a quarter of a Goblin called <i>"2 more petals"</i>: 1.5,
+    /// rounded up. And <b>nothing shipped is near 33%</b>, so the alternative
+    /// reading has no number behind it.</para>
+    ///
+    /// <para><b>The experiment that would settle it outright is now obvious</b>
+    /// and does not involve counting anything: DK2's status bar prints
+    /// <c>Health: NN%</c> for a selected creature. Drag one into a prison and
+    /// read it.</para>
     /// </summary>
     public static bool Imprison(
         WorldState world, GameDatabase database, CreatureState creature,
