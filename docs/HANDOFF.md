@@ -5158,7 +5158,9 @@ rather than by reading the branch's tests back to themselves:
 dangerous reading is ruled out on the way: the configuration value is **boolean**,
 so the five setup labels are not one enum behind it.
 
-**Still open and important: Q190's second half.** Persistence proves the state
+**ANSWERED LATER THE SAME DAY — see the sitting at the foot of this file.** The
+paragraph below was true when written and expired within the hour: a three-save
+series from the owner settled it. Persistence proves the state
 belongs to the simulation; it does **not** prove any computer keeper reads it,
 and no AI reader was found.
 
@@ -5285,3 +5287,86 @@ outrun it by more than a day, the header is wrong somewhere. Re-run the count
 (`dotnet test`, `ls scenarios/*/ | wc -l`, `grep -c '^## ADR' DECISIONS.md`,
 `grep -c '^| Q' open-questions.md`) before quoting any figure from the top of
 a file.
+
+---
+
+# Sitting of 2026-09-06 (evening): Q190 answered from three saves
+
+Two commits: `47ce875`, `8b13dc6`. No code changed; this was all research.
+
+## 1. The owner watched fog and confirmed two inferred readings
+
+Two screenshots from a skirmish (`fog-of-war.md` §9):
+
+- **A gem seam renders in full inside unexplored blackness**, with no explored
+  ground near it. So `RevealThroughFogOfWar` does not merely exist in the binary
+  — it produces the affordance its name claims, and Gems is one of its six
+  terrains. STRONGLY INFERRED → **CONFIRMED**.
+- **An unexplored tile prints `Fog of War` in its own tooltip**, like any other
+  terrain. So `WorldView` substituting the shipped fog terrain (ADR-0076) is
+  DK2's own model rather than a convenience of ours. The tile is markable in the
+  same shot, which is Q193's premise seen directly.
+
+**Q197 is new and unexplained:** two portals show on the minimap, dimmed, on
+ground nothing has explored. It cannot be `RevealThroughFogOfWar` — that is a
+*terrain* flag and a Portal is a **room** — and the minimap colour routine tests
+exactly one room type in its fogged branch, the Dungeon Heart. Second mechanism,
+unread.
+
+## 2. Q190 is answered: ONE bit, ONE viewpoint
+
+The owner's objection was the strongest available — *two humans cannot share
+fog, so it must be per keeper* — and it **reverses** (`fog-of-war.md` §10, §11).
+
+A three-save series (control + one straight tunnel) on a four-keeper skirmish
+map, diffed across **all 80 bit positions** of the save's tile record:
+
+- **Lane 1, bit 6 is discovery.** 36 tiles changed in the control, 306 in the
+  signal, and the changed set is **one** component **13 tiles tall** around a
+  tunnel **1 tile tall** — a six-tile radius, which is the `PerceptionRange` of
+  `0x6000` every creature record carries, arriving by an independent route.
+- **It is the local player's alone**: set on **100%** of their territory and
+  **0%** of the other three keepers'. An **exhaustive** scan found no mirror bit
+  — and the same scan *did* recover the owner id's own bits, which is what makes
+  the negative trustworthy rather than a failure to look.
+- **342 tiles went 0→1 and none went 1→0.** *Stay Revealed* confirmed from data.
+
+The binary had already said the same thing from the other end: the renderer's
+gate is `tile + 0xB` bit `0x40`, hardcoded, **no player index**. Two independent
+routes, same bit.
+
+**So DK2 stores no per-keeper fog, and the multiplayer objection resolves as
+per-MACHINE copies** — each machine's copy of that one bit means *"fogged for
+whoever is sitting here"*. Strong but not absolute on the AI half: its fog could
+live in memory unsaved, but then a computer keeper's knowledge would visibly
+change across a save/load.
+
+**What this means for ADR-0076:** the per-keeper mask is **ours**, as the branch
+honestly said. Keep it — ours is derived deterministically from creature
+positions, so it is per-keeper for free and cannot diverge — but **do not
+describe it as DK2's model**.
+
+## 3. Two corrections to the save format, worth more than the answer
+
+**The tile grid is NOT at a fixed `0x8861`.** It is at **`0x14880`** on
+TrapTime. The "fixed" reading came from two saves **of the same level**, which
+is two samples of one thing — the project's standing generalisation trap in its
+purest form. **Locate it by correlation instead**: lane 0 against the level's
+design map (`<Level>Map.kld`, chunk 102, byte 0 of each 4-byte tile) scores
+**99.7%** at the right offset on a start-of-game save.
+
+**The three "churns everywhere, UNKNOWN" lanes churn because they were read as
+whole bytes.** Bit by bit they are quiet, which is how bit 1.6 sat in plain
+sight through the whole format investigation. Lane 3's high nibble resets to
+zero wherever *any* keeper is active, in every territory at once, so it is a
+property of the tile and not of a viewer — still UNKNOWN, no longer a fog
+candidate.
+
+## 4. Method note worth keeping
+
+The save series answered in twenty minutes what two rounds of Ghidra could not,
+and the reason is the control. Without the do-nothing save there is no way to
+tell *"this bit changed because I explored"* from *"this bit changes
+constantly"* — and the lanes in question were dismissed as noise for exactly
+that reason. **A differential experiment needs its null.**
+
