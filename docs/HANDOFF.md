@@ -4907,18 +4907,31 @@ engine consults it** — scan the global and count the hits first.
    the 32 category records at `0x00699688` that `+0x17` indexes. Transition
    legality lives there, and nothing currently tests it.
 
-## 5. One coordination item, unresolved on purpose
+## 5. The coordination item, now resolved
 
 A **second Claude session** was working in this repo throughout — save-game
-parsing and Unity rendering. Its work is uncommitted: `src/DK2.Data/Save/`,
-`Dk2SaveReaderTests.cs`, `docs/research/sav-format.md`, `docs/RESEARCH_STATUS.md`,
-`THIRD-PARTY-NOTICES.md` and three Unity files. **None of it was committed here**,
-and every commit above was checked to contain only this sitting's files.
+parsing and Unity rendering. **It has since landed, in `6581ebe`.** Every
+commit above this one was checked to contain only this sitting's files, and
+that still holds.
 
-**`docs/research/open-questions.md` is the exception and is still uncommitted.**
-It holds *both* sessions' edits: their Q180–Q183 (save format) and this
-sitting's Q172, Q174, Q184–Q188. It was left alone because their rows reference
-`sav-format.md`, which is untracked — committing would put a dangling reference
-in the repo. **Consequence to know about:** ADR-0072, ADR-0073 and `prison.md`
-cite Q184–Q188, which exist on disk but are not yet in a commit. The owner has
-the decision: commit that file as-is, or wait for the save session to land.
+**The `open-questions.md` question is settled.** That file held both sessions'
+edits, and the save session committed it whole as part of `6581ebe` — so this
+sitting's Q172, Q174 and **Q184–Q188 are in the repo**, alongside their
+Q180–Q183, Q187 and Q189. The worry recorded here earlier — that committing it
+would leave a dangling reference to an untracked `sav-format.md` — went away
+when that file was committed in the same change. **ADR-0072, ADR-0073 and
+`prison.md` no longer cite anything that exists only on disk.**
+
+Two of their findings are worth knowing about here, because they correct
+assumptions rather than just adding facts:
+
+- **There is no 189-byte entity record** in a save. Entities are written as
+  typed sections whose members each serialise themselves, so records are
+  variable-size and per-class.
+- **A save's tile record carries the room instance id and the tile's health**,
+  both confirmed against sources outside the file. Their lanes 1, 3 and 9 move
+  across most of the map between any two saves and are unidentified — which is
+  **directly relevant to Brief 7**, since a save series is a cheap way to watch
+  fog state change under a known action.
+
+See `docs/research/sav-format.md`.
