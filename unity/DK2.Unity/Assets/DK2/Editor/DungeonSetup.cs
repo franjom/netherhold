@@ -3,10 +3,13 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using DK2.Assets;
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.Data.Save;
 using DK2.Presentation;
 using DK2.Simulation;
 using DK2.Simulation.Systems;
@@ -131,6 +134,97 @@ namespace DK2.Unity.Editor
             catch (Exception ex)
             {
                 Debug.LogError($"DK2 smoke test FAILED: {ex}");
+                EditorApplication.Exit(1);
+            }
+        }
+
+        /// <summary>
+        /// The same run, but starting from a DK2 saved game instead of a
+        /// campaign level:
+        ///
+        /// <code>
+        /// Unity.exe -batchmode -quit -nographics -projectPath unity/DK2.Unity \
+        ///           -executeMethod DK2.Unity.Editor.DungeonSetup.SaveSmokeTest
+        /// </code>
+        ///
+        /// <para><b>What it is actually for.</b> A misread grid does not throw —
+        /// it produces a full, plausible-looking dungeon of noise, which is the
+        /// one failure mode a "did it render" check would sail straight past. So
+        /// this asserts the read's own alignment measure as well as the object
+        /// count: a correct read of a played save leaves most of the terrain
+        /// matching the level's design map, and a wrong one leaves almost
+        /// none.</para>
+        ///
+        /// <para>Skips cleanly when there is no install and when the install has
+        /// no saves — a fresh copy of DK2 has none, and that is not a
+        /// failure.</para>
+        /// </summary>
+        public static void SaveSmokeTest()
+        {
+            try
+            {
+                string install = Dk2Install.Find();
+                if (install == null)
+                {
+                    Debug.Log("DK2 save smoke test: skipped, no Dungeon Keeper 2 installation found.");
+                    EditorApplication.Exit(0);
+                    return;
+                }
+
+                IReadOnlyList<string> saves = Dk2SaveReader.EnumerateSaves(install);
+                if (saves.Count == 0)
+                {
+                    Debug.Log("DK2 save smoke test: skipped, the installation has no saved games.");
+                    EditorApplication.Exit(0);
+                    return;
+                }
+
+                GameDatabase database = GameDatabaseLoader.Load(install);
+
+                foreach (string path in saves)
+                {
+                    SavedGame save = Dk2SaveReader.Load(install, path)
+                        ?? throw new InvalidOperationException(
+                            $"'{Path.GetFileName(path)}' names a level this install has no map for.");
+
+                    LevelMap map = save.Map;
+                    WorldState world = WorldState.FromMap(database, map, save.PlayerIds);
+
+                    var root = new GameObject($"DK2 save smoke test: {Path.GetFileName(path)}");
+                    var assets = AssetProviderChain.Standard();
+                    var scene = new DungeonScene(root.transform, world.Width);
+                    var presenter = new ScenePresenter(new WorldView(database), assets, scene);
+
+                    presenter.Present(world);
+
+                    Debug.Log(
+                        $"DK2 save smoke test: {Path.GetFileName(path)} -> " +
+                        $"level '{save.Header.LevelName}', {world.Width}x{world.Height}, " +
+                        $"{scene.TileObjects} tile objects, " +
+                        $"{save.TerrainAgreement:P1} of terrain unchanged from the design map, " +
+                        $"owners [{string.Join(",", save.PlayerIds)}], " +
+                        $"art: {assets.Summarise()}");
+
+                    if (scene.TileObjects != world.TileCount)
+                        throw new InvalidOperationException(
+                            $"expected {world.TileCount} tile objects, got {scene.TileObjects}.");
+
+                    // The check that separates a real dungeon from noise. See
+                    // Dk2SaveReader.AgreementWithDesign for why half is the line.
+                    if (save.TerrainAgreement <= 0.5)
+                        throw new InvalidOperationException(
+                            $"terrain agreed with the design map on only {save.TerrainAgreement:P1} " +
+                            "of tiles — the grid was read at the wrong offset or stride.");
+
+                    UnityEngine.Object.DestroyImmediate(root);
+                }
+
+                Debug.Log($"DK2 save smoke test: OK ({saves.Count} save(s))");
+                EditorApplication.Exit(0);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"DK2 save smoke test FAILED: {ex}");
                 EditorApplication.Exit(1);
             }
         }

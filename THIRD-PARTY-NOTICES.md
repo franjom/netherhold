@@ -69,7 +69,15 @@ comments do.
 
 ## Format research (facts only, no code copied)
 - ufdada/dk2-tools (010 Editor binary templates) — WAD/KWD container layouts.
-- DiaLight/Flame — DKII.EXE v1.70 structure and symbol research.
+- DiaLight/Flame — DKII.EXE v1.70 structure and symbol research. Used on
+  2026-09-06 to locate the saved-game code: which vtable slot the save GUI
+  dispatches through, and the addresses and owning classes of the world's
+  serialiser and its per-subsystem writers. **Addresses and structural roles
+  only.** The write order and the field layout in
+  `docs/research/sav-format.md` were read from the executable itself, and
+  every offset was then confirmed against two real save files. No Flame code
+  and no Flame identifier appears anywhere in this repository — the project
+  holds no reuse rights to it at all (AGENTS.md).
 
 ## YamlDotNet
 - https://github.com/aaubry/YamlDotNet — MIT License, Copyright (c) Antoine Aubry

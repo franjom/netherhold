@@ -262,7 +262,19 @@ What is *built* rather than known, against the long-term goals:
   `TimeBeforeFreeImpGeneratedSeconds` being **multiplied by variable 19**, which
   is the clearest evidence yet for what Q132's phantom variable is *for*.
 
-## Unsolved (research required before implementing)
+- **The saved-game format** (Q180-Q183, Q187, Q189, 2026-09-06). Readable, and
+  read from DK2's own save routine rather than guessed. A `.SAV`/`.QSAV` opens
+  with a **0x134-byte header** whose every field came off the write sequence —
+  build stamp as a version guard, level name at `0xC2`, **game tick** at
+  `0x102` — then a fixed block, then the **tile grid at `0x8861`**: row-major,
+  10 bytes a tile, with **terrain**, **owner**, **room instance id** and
+  **health** identified. Health equals the terrain's `Terrain.kwd`
+  `StartingHealth` on 91.9% of tiles; room ids resolve into solid rectangles
+  matching each room type's footprint. The player's **gold** is at `0x2dd4`.
+  **Two premises this project held were wrong and are now corrected**: the
+  opening 220 is not a header length, and there is no 189-byte entity record —
+  entities are written as typed sections whose members each serialise
+  themselves. See docs/research/sav-format.md.
 - **What a room does.** ← being worked on. **Done: the portal, the lair, the
   treasury; the hatchery is researched and half built** (everything but its
   clock). Much less of a blank sheet than it was. The ROOMS record carries art, size and cost and says

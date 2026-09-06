@@ -3,9 +3,11 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
+using System.IO;
 using DK2.Assets;
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.Data.Save;
 using DK2.Presentation;
 using DK2.Simulation;
 using DK2.Simulation.Systems;
@@ -39,6 +41,10 @@ namespace DK2.Unity
 
         [Header("What to load")]
         [SerializeField] private string levelName = "Level1";
+        [Tooltip("A .SAV or .QSAV to load instead of the campaign level. " +
+                 "Bare filename (looked up in the install's Data/Save) or a full path. " +
+                 "Loads terrain and ownership only — a save's creatures and objects are undecoded.")]
+        [SerializeField] private string saveFile = "";
         [SerializeField] private ulong seed = 1;
 
         [Header("Running")]
@@ -57,6 +63,7 @@ namespace DK2.Unity
         private AssetProviderChain _assets;
         private double _tickDebt;
         private string _failure;
+        private string _loadedFrom;
 
         /// <summary>The running simulation, or null if it could not start. Read-only by intent.</summary>
         public GameSimulation Simulation => _simulation;
@@ -90,8 +97,10 @@ namespace DK2.Unity
 
             GameDatabase database = GameDatabaseLoader.Load(install);
 
-            LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, levelName)
-                ?? throw new InvalidOperationException($"the install has no '{levelName}' map.");
+            LevelMap map = string.IsNullOrWhiteSpace(saveFile)
+                ? GameDatabaseLoader.LoadCampaignMap(install, levelName)
+                    ?? throw new InvalidOperationException($"the install has no '{levelName}' map.")
+                : LoadSave(install);
 
             WorldState world = WorldState.FromMap(database, map, PlayersOf(map));
 
@@ -172,6 +181,46 @@ namespace DK2.Unity
             camera.farClipPlane = Mathf.Max(camera.farClipPlane, distance * 3f);
         }
 
+        /// <summary>
+        /// Loads the grid out of a DK2 saved game.
+        ///
+        /// <para><b>Terrain and ownership only.</b> The entity records after the
+        /// grid are undecoded (Q182), so a save arrives with the dungeon the
+        /// player left and nobody in it. A campaign level arrives empty too, for
+        /// the unrelated reason that THINGS is unparsed, so nothing about the
+        /// scene is newly missing.</para>
+        ///
+        /// <para>The save names its own level and the reader takes the grid
+        /// dimensions from that level's design map, so <c>levelName</c> is
+        /// ignored here rather than having to agree.</para>
+        /// </summary>
+        private LevelMap LoadSave(string install)
+        {
+            string path = Path.IsPathRooted(saveFile)
+                ? saveFile
+                : Path.Combine(Dk2SaveReader.SaveDirectory(install), saveFile);
+
+            if (!File.Exists(path))
+                throw new InvalidOperationException($"no save at '{path}'.");
+
+            SavedGame save = Dk2SaveReader.Load(install, path)
+                ?? throw new InvalidOperationException(
+                    $"'{Path.GetFileName(path)}' names a level this install has no map for.");
+
+            // The read's own check, surfaced rather than swallowed. A correct
+            // read of a played save agrees with the design map on most tiles; a
+            // grid read at the wrong offset agrees on almost none. Worth seeing
+            // in the log on every load, because the failure it catches produces
+            // a plausible-looking dungeon of noise rather than an exception.
+            _loadedFrom =
+                $"{Path.GetFileName(path)} ({save.Header.LevelName}, " +
+                $"{save.TerrainAgreement:P0} of terrain unchanged from the design map)";
+
+            Debug.Log($"DK2: loaded {_loadedFrom}");
+
+            return save.Map;
+        }
+
         private static byte[] PlayersOf(LevelMap map)
         {
             // Whoever the map says owns something. The same rule the harness
@@ -206,6 +255,9 @@ namespace DK2.Unity
                 $"pushed {_presenter.TilesPushed} tiles / {_presenter.CreaturesPushed} creatures this frame");
 
             GUI.Label(new Rect(10, 30, 1200, 20), $"art: {art}");
+
+            if (_loadedFrom != null)
+                GUI.Label(new Rect(10, 70, 1200, 20), $"loaded from save: {_loadedFrom} — terrain and ownership only, no creatures or objects (Q182)");
 
             GUI.Label(
                 new Rect(10, 50, 1200, 20),
