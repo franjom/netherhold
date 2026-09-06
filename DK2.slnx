@@ -13,6 +13,7 @@
     <Project Path="src/DK2.Tools/DK2.Tools.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/DK2.AI.Tests/DK2.AI.Tests.csproj" />
     <Project Path="tests/DK2.Assets.Tests/DK2.Assets.Tests.csproj" />
     <Project Path="tests/DK2.Behavior.Tests/DK2.Behavior.Tests.csproj" />
     <Project Path="tests/DK2.Convert.Tests/DK2.Convert.Tests.csproj" />

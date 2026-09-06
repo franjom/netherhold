@@ -612,10 +612,13 @@ step signs the square uses) up to 2×side tiles past tagged or room tiles; land 
 diggable solid rock; skip `TilesLeftBetweenRooms` more solid tiles; the side×side
 square is **centred on the approach line and extends forward** from the landing
 tile; each of its tiles must be diggable rock, own floor without a room, or a
-terrain whose descriptor byte `+0x1CB` has bit 0 (§7); count the perimeter tiles
-that are already open (tagged or not solid) and reject if more than `Openness`%
-of the perimeter is open; if side² < `DefaultRoomSize`, try one extra strip;
-validate against `MaxBuildArea`. Side = ⌊√DefaultRoomSize⌋.
+terrain whose descriptor byte `+0x1CB` has bit 0 (§7); **only when
+`TilesLeftBetweenRooms` is non-zero**, count the perimeter tiles that are already
+open (tagged or not solid) and reject if more than `Openness`% of the perimeter
+is open — a keeper that builds rooms touching skips the test entirely; if side²
+< `DefaultRoomSize`, try one extra strip; validate against `MaxBuildArea`. Side =
+⌊√DefaultRoomSize⌋. The square may overlap the keeper's own empty floor, which
+is how a room ends up flush against the corridor that led to it.
 
 **Gold** (`0x4FD590`, `0x501C10`): the scan flood-fills gold-bearing tiles into
 deposits, takes each deposit's centroid, and keeps the **four nearest** to the
@@ -725,6 +728,15 @@ health (or below 50 % when flagged as in a fight) and at least
     behaviour; the shipped one frees a portal slot.
 11. Room expansion measures a room's bounding box by its smallest and largest
     x+y tiles, which is exact for rectangles and wrong for L-shapes.
+12. **`Openness` only bites when there is a gap.** The perimeter test is skipped
+    when `TilesLeftBetweenRooms` is 0 (§5.5). Seven campaign keepers combine
+    `Openness` 20 with a gap of 1–3 (Gormagon is not one; he has 20 and 0), and
+    for them a 3×3 site is accepted only when at most 3 of its 16 perimeter tiles
+    are open — a pocket in solid rock reached by a one-tile corridor. Where such
+    a keeper's heart stands in open floor, every direction is rejected and the
+    site search re-seeds from a random own room until something is enclosed
+    enough. Predicted, not observed: those keepers build slowly at first. A
+    candidate for §8.
 
 ---
 
@@ -923,11 +935,10 @@ nothing here.
 
 ---
 
-## 12. Phase 3 — design sketch for a `KeeperAI` in this codebase (not built)
+## 12. Phase 3 — design sketch for a `KeeperAI` in this codebase (step 1 built)
 
-Written after Phases 0–2 landed, as the brief allows. Nothing below is
-implemented; it is the shape the implementation should take and the order to do
-it in, so the next session starts from a decision rather than a blank file.
+Written after Phases 0–2 landed, as the brief allows. §12.1–12.7 are the design;
+§12.8 records what of it was then built on the owner's instruction (2026-09-06).
 Names use `KeeperAI` (the owner's choice), never the reference project's.
 
 ### 12.1 Where it lives, and the one decision that matters
@@ -1060,3 +1071,42 @@ as a named quirk the harness can assert on.
    Call to Arms front and removal, `TrapPlacer`, prisoners and retreat.
 5. `KeeperAIPersonality` for skirmish, with the level-name remap (§3.2) left out
    until the owner answers question 6.
+
+### 12.8 What was built — step 1, 2026-09-06
+
+`src/DK2.AI` (Unity-bound, netstandard2.1), no simulation change, world hash
+untouched:
+
+| File | Holds |
+|---|---|
+| `KeeperAI.cs` | `Think(database, world)` → commands: the budget, the 1,680-tick task timeout, the 240-tick gold untag, imp creation, slapping, and the task machine for tasks 0–7 |
+| `KeeperAIState.cs`, `KeeperTask.cs` | the runtime fields step 1 needs, named as the dump names them; the task numbers |
+| `KeeperView.cs` | the read-only look at the world (rooms via `RoomIndex`, heart, owned tiles, gold, imps, terrain predicates, reachability) — the seam a future `IWorldView` replaces |
+| `KeeperDirections.cs` | both direction tables and the creation-time defend/open rule |
+| `SiteFinder.cs` | §5.5's site search, including the gap-gated `Openness` test found while building it |
+| `LineWalker.cs` | §5.2's corridor digger with wall-hugging and the two-way trial |
+| `GoldScanner.cs`, `RoomPlanner.cs` | seams and the four nearest; room choice, ideal neighbours, directions, claimable neutral rooms |
+
+`tests/DK2.AI.Tests`: 13 tests on a synthetic 30×30 rock world — directions,
+the site finder (placement and the gap gate), the walker (straight line, and
+round an impenetrable wall), the scanner, and the keeper end to end: with imps
+stood in for by a test helper that digs whatever is tagged, it builds a 9-tile
+Treasury, Lair and Hatchery in `RoomList` order, turns to gold when it cannot
+afford a room, creates imps up to its ratio, and produces an identical command
+stream for identical seeds.
+
+Deviations and approximations, each a candidate ADR when this leaves the branch:
+
+- The keeper's own RNG stream (§12.1).
+- "Connected" is a flood fill from the heart over passable tiles and the keeper's
+  own tags; the original's connectivity test was not read in that detail.
+- Neutral-room range uses Chebyshev distance (§5.5 did not pin the metric).
+- Room placement batches up to `budget` tiles into one `BuildRoomCommand` per
+  tick instead of one command per tile.
+- Water and lava stop a corridor (task ends) because there is no bridge command;
+  the original bridges.
+- The room planner's second pass (researchable-but-unavailable rooms, the
+  `0xE5` empty-shape dig) is not reproduced: there is no research state.
+- Room availability is a caller-supplied predicate defaulting to "buildable".
+
+Not built, and not stubbed: everything §12.7 puts in steps 3–5.
