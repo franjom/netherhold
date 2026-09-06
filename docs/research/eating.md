@@ -62,24 +62,38 @@ and are not this document's business.
 
 ### 2.1 The state table, and how it was recovered
 
-DK2's creature states are a table of **239 records of 25 bytes** based at
-`0x006DA8C0`, filled at run time by a long straight run of `MOV` instructions
-between `0x0047bbe9` and `0x0047faeb` — no function contains it, which is why a
+> **Superseded — see `creature-state-table.md`.** Everything this section said
+> about the table's shape was wrong in two independent ways, and both are worth
+> reading about there rather than here: the base was one field group late
+> (`0x006DA8C0` instead of `0x006DA8B0`, which put the id at `+0` and every
+> handler one state off), and the count of **239** came from a scan window that
+> ended at `0x006DC000` while the table runs to `0x006DC420`. The table is
+> **281 records of 25 bytes at `0x006DA8B0`**, filled between `0x0047BBE3` and
+> `0x004805E4`, and all 281 are now recovered and named.
+
+DK2's creature states are a table of **281 records of 25 bytes** based at
+`0x006DA8B0`, filled at run time by a long straight run of `MOV` instructions
+between `0x0047BBE3` and `0x004805E4` — no function contains it, which is why a
 caller search finds nothing.
 
-Record layout: `+0` the id (a dword, and it equals the record's index for all
-239), `+4` a word, `+6` and `+7` two category bytes, `+8` a flag byte, then
-**four function pointers** at `+9`, `+0xd`, `+0x11` and `+0x15`. Only the first
-is used by anything read here; it is the state's update.
+Record layout: `+0x00`, `+0x04`, `+0x08` and `+0x0c` **four function pointers**
+(the first is the state's update, and it is the only one whose role has been
+read), `+0x10` the id (a dword, equal to the record's index for all 281), `+0x14`
+a `Text.str` string id, `+0x16` a group tag, `+0x17` a category, `+0x18` a flag
+byte.
 
-Recovering it is a two-step: list every write into `[0x006DA000, 0x006DC000)`,
+Recovering it is a two-step: list every write into the table's address range,
 then walk the installer's linear disassembly tracking register values, because
 the pointers are stored from `EBP`/`EDI`/`ECX` rather than as immediates. All
-239 resolve, none unknown.
+281 resolve — 2,528 of the 2,529 fields, the exception being the null state's
+fourth pointer.
 
-`FUN_00476d30(newStateId, out)` is **SetState**. It checks the two category
-bytes against a 0x40-byte-per-category table at `0x00699688`, calls that
-category's leave and enter hooks when the category changes, then writes
+`FUN_00476d30(newStateId, out)` is **SetState**. The two bytes are not the same
+kind of thing, which this section used to get wrong: `+0x16` is a **group tag**
+and is only ever compared for equality, while `+0x17` is the **category** and is
+the one that indexes the 0x40-byte-per-category table at `0x00699688`. When the
+group tags match, the move is allowed if the categories match; when they differ,
+the category tables decide, and the leave and enter hooks run. It then writes
 `CurrentStateId`, stamps `StartedAt`, and zeroes `Age` and `SuspendTime`.
 Category `2` means "utility state", which saves the previous state in
 `StateBeforeUtilityState` and the state to resume in `UtilityNewState`.

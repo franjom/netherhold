@@ -4529,8 +4529,10 @@ Read out of `HungerState.cpp`, whose name DK2 ships. The write-up is
 
 ### The find that will keep paying: the creature state table
 
-DK2's creature states are **239 records of 25 bytes at `0x006DA8C0`**, filled at
-run time by a long straight run of `MOV`s between `0x0047bbe9` and `0x0047faeb`.
+DK2's creature states are **281 records of 25 bytes at `0x006DA8B0`**, filled at
+run time by a long straight run of `MOV`s between `0x0047BBE3` and `0x004805E4`.
+(This paragraph originally said 239 records at `0x006DA8C0`; both numbers were
+wrong, independently, and `creature-state-table.md` says how.)
 No function contains that run, which is why a caller search on any state handler
 comes back with a single DATA reference and nothing else — the same shape Q173
 hit and could not explain.
@@ -4538,9 +4540,11 @@ hit and could not explain.
 Recovering it is two steps and now scripted: list every write into the table's
 address range (`TableFill.py`), then walk the installer's linear disassembly
 tracking register values, because the handlers are stored from `EBP`/`EDI`/`ECX`
-rather than as immediates. **All 239 resolved, none unknown.** Record layout is
-id, two category bytes, a flag byte, and four function pointers at +9, +0xd,
-+0x11, +0x15.
+rather than as immediates. **All 281 resolved**, and the `+0x14` word turns out
+to be a `Text.str` id, so every state now has the label the game itself shows on
+the flower. Record layout is four function pointers at `+0x00`/`+0x04`/`+0x08`/
+`+0x0c`, the id at `+0x10`, the label id at `+0x14`, a group tag at `+0x16`, a
+category at `+0x17` and a flag byte at `+0x18`.
 
 `FUN_00476d30` is **SetState**, and `SetStateSites.py` lists every call to it
 with a constant argument — 329 of them — which is a state-transition graph for
@@ -4709,6 +4713,13 @@ Pin it from the dispatcher — the creature update calls
 `(&DAT_006da8c6)[stateId * 0x19]` — never from literal stores. **Flame had
 this right and this project had it wrong**, which resolves the conflict recorded
 on 2026-09-06 in Flame's favour and is worth remembering when weighing it.
+
+**And the count was wrong too, for a different reason.** The table has **281**
+records, not 239 — Flame's number again. 239 was what fitted inside a scan
+window that stopped at `0x006DC000` while the table runs to `0x006DC420`. Fixing
+the frame did not touch it, which is why it survived a sitting that had already
+caught the other error. Re-derived and settled 2026-09-06:
+`docs/research/creature-state-table.md`.
 
 **2. The repo contradicted itself for five days and nothing could fail.**
 `WorldPathGrid`'s comment said imps wade across water, mine an isolated gem and

@@ -4938,7 +4938,9 @@ unparsed"*, then *"the Hatchery has no clock"* (Q132, removed by ADR-0066), and
 after that it was simply the creature side: nothing walked anywhere for food.
 
 The binary was read on 2026-09-06 — `HungerState.cpp`, whose name DK2 ships, and
-the 239-record creature state table that had never been recovered before.
+the creature state table that had never been recovered before. (That sitting
+recorded the table as 239 records; it has 281. See ADR-0072 — the correction
+does not touch anything this ADR decided.)
 
 ### Decision
 
@@ -5367,3 +5369,106 @@ draws a flower, not to `PrisonRules`.
 No hash change: the determinism fixture imprisons nobody. Two prison tests moved
 from 300/100 s to 250/83 s, and the scenario's prisoner now perishes at t2619
 instead of t2939.
+
+## ADR-0072 — The state table has 281 records, and the 239 was a scan window
+
+Date: 2026-09-06 · Status: accepted · Research only, no code change
+
+### The question, asked deliberately
+
+The creature state table's record count was left explicitly unsettled at the end
+of the previous sitting: *"239 was counted under the shifted frame; Flame says
+281. Don't quote 239 without re-deriving it."* This is that re-derivation.
+
+**It is 281.** Flame was right, again.
+
+### Why it was 239, and it was not the frame
+
+The frame shift — base `0x006DA8C0` instead of `0x006DA8B0`, which put every
+handler one state late — was found and fixed last sitting, and it did **not**
+move the count. The count was wrong for a second, unrelated reason.
+
+`eating.md` recorded the recovery method as *"list every write into
+`[0x006DA000, 0x006DC000)`"*. The table runs to `0x006DC420`. Under that
+sitting's frame record 238 starts at `0x006DBFFE`, inside the window, and record
+239 starts at `0x006DC017`, outside it. **The window ended `0x420` bytes before
+the table did**, and the walk stopped at a boundary belonging to the scan rather
+than to the data.
+
+What it then recorded was *"all 239 resolve, none unknown"* — true, and
+worthless. Every record the scan **saw** resolved, because resolving is what the
+scan did. A count cannot be checked by the instrument that produced it. That is
+the eleventh instance of a claim nothing checks turning out to be false, and the
+first where the check and the claim were the same act.
+
+The published code range carried the same truncation: the fill was recorded as
+ending at `0x0047FAEB`; it ends at `0x004805E4`.
+
+### What settles it
+
+Five checks, no two sharing a failure mode:
+
+1. **Offset histogram.** Every reference into the table's address range falls on
+   exactly nine offsets modulo 25, with no strays. This recovers the stride and
+   the frame without assuming either.
+2. **Exact accounting.** 2,529 writes = **281 × 9**. Every field of every record
+   written exactly once — none twice, none missing.
+3. **Contiguity.** All nine fields span records `0`–`280` with no gaps.
+4. **Self-consistency.** 277 records write their id as a literal and each equals
+   its index; the four that use a register are records 0, 1, 3 and 8, and the
+   smallest literal in the table is 2 — exactly what remains once those are
+   removed.
+5. **The labels resolve.** All 281 `+0x14` values are valid `Text.str` ids.
+
+### What came with it
+
+**Every state is now named.** The `u16` at `+0x14` is a `Text.str` string id, and
+it resolves to the activity label the game itself prints on the flower above a
+creature's head — the line the owner read as *"reinforcing walls"* (Q171). All
+281 resolve; 70 distinct labels. This was posed to Codex in Brief 5 as a long
+shot and it paid.
+
+**The two bytes are different things.** `eating.md` called `+0x16` and `+0x17`
+*"two category bytes"*. Reading `SetState`, `+0x16` is a **group tag**, only ever
+compared for equality — which is why it holds `50` and `100` without being out of
+range — and `+0x17` is the **category**, the one that indexes the 32-entry table
+at `0x00699688`. Its range across all 281 records is `0`–`31`, which is the
+32 entries exactly.
+
+**Q174 is answered, and it was the same off-by-one.** The original *does* walk a
+hungry creature to the hatchery: `FUN_004633d0` calls `SetState(0x5B)`, and state
+`0x5B`'s handler finds the room and calls `MoveTo(target, resume = 0x5C)`. Under
+the old frame that handler was filed under `0x5A`, which really is
+near-unreferenced — so a working walk looked orphaned and `0x5B` looked like a
+state that fails unless the creature is already standing in the room.
+`CreatureEatSystem` turns out to match the original's shape rather than compose
+around a gap, and ADR-0067's stated-composition caveat is withdrawn.
+
+### The decision
+
+`docs/research/creature-state-table.md` is the state table's home and carries all
+281 records. `eating.md` §2.1 keeps a superseded marker and a corrected summary,
+because that is where the reader who followed ADR-0067 will look first.
+
+No simulation code changes and no hash moves: nothing in the project ever read a
+record count.
+
+### The rule this leaves
+
+Both errors were invisible for the same reason — **the thing that would have
+caught them was the thing that produced them.** A fixed-stride table read at the
+wrong offset yields plausible values at every field; a table counted with a scan
+window yields a plausible count at whatever boundary the window has. Pin a
+table's *frame* from the code that indexes it, and its *extent* from something
+other than the scan: the next referenced global, an exact field-count identity,
+or a value that has to be valid somewhere else. All three were available here and
+none had been used.
+
+### A legal question, flagged not assumed
+
+The new document reproduces 70 short UI strings from the install's `Text.str` as
+state labels. They are research documentation — the labels are how a state is
+identified, and the code loads them at run time from the user's own install like
+every other asset, so nothing is redistributed by shipping this repo. If that is
+judged too far, the `Text.str` id column alone keeps the table usable and the
+labels can be dropped without re-deriving anything.

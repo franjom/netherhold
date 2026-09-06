@@ -348,14 +348,17 @@ Measured on 2026-09-06; treat as a starting point to verify, not as gospel.
    every UNKNOWN named. If some entries will not decode, say how many and which,
    rather than rounding it to "works".
 
-### A hypothesis to test, not a promise
+### A hypothesis that turned out to be right — CONFIRMED 2026-09-06
 
-DK2's creature **state table** — 239 records, `docs/research/eating.md` §2.1 —
-has a `u16` at record `+4` that is constant across states belonging to one
-mechanic: `2630` for all five eating states, `2674` for all six prison states,
-`2670` for the utility move states. **Those values are all valid `Text.str` ids.** If they are
-text ids, decoding them **names all 239 creature states**, which would be worth
-more than the rest of this brief put together.
+DK2's creature **state table** — 281 records, `docs/research/creature-state-table.md`
+— has a `u16` at record `+0x14` that is constant across states belonging to one
+mechanic. **It is a `Text.str` string id**, and it resolves to the activity label
+the game prints on the flower above a creature's head. All 281 resolve, none out
+of range, giving 70 distinct labels: `idle`, `reinforcing walls`, `being held
+captive`, `torturing a captive`, and so on.
+
+Nothing is left here for Codex — it is done, and it landed via `Dk2StringTable`
+from Brief 5. Noted because the brief posed it as a long shot and it paid.
 
 It may equally be a tooltip id for something else entirely. Test it, report
 either way, and do not build anything on it.
