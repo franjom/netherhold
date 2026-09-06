@@ -5370,3 +5370,35 @@ tell *"this bit changed because I explored"* from *"this bit changes
 constantly"* — and the lanes in question were dismissed as noise for exactly
 that reason. **A differential experiment needs its null.**
 
+
+## 6. Two owner observations, recorded the same evening (Q198, Q199)
+
+The owner added two things after reading the recap. Both went into
+`open-questions.md`, `hand-of-evil.md` and `mana.md`, and the second was checked
+against the shipped data before it was written down.
+
+**Q198 — only an imp may be dropped on Dirt Path.** *"Imps are the only
+creature that can be dropped onto dirt path tiles, those are tiles that are
+unclaimed by any keeper."* Every other creature goes down on the keeper's own
+ground only. **The simulation disagrees**: `HandSystem.Drop` refuses only an
+unwalkable tile, so a keeper here can put any creature anywhere it could stand.
+The gate is the input layer's, like the object rule's (Q196), and
+`hand-of-evil.md` §8's inference that the handler's owner-changing branch
+*proves* creatures may be dropped on foreign ground was overreaching: a handler
+that does not refuse is not a UI that offers. Corrected there. Small to build,
+not built tonight.
+
+**Q199 — the mana cap, and a number the model cannot produce.** Skirmish: regen
+sat at **+500**, which is `MaximumManaGainPerSecond` to the digit — and the owner
+confirms the map had more than 500 claimable tiles, so it was the clamp, *"a hard
+limit"*, not a tile count. **The pet-dungeon side is flagged for later at the
+owner's request.** Pet dungeon:
+**+1400 and more**. The obvious reading — a per-level override, as ADR-0040
+layers them — was checked and **refuted**: all 66 `*Variables.kld` files were
+parsed, and **none carries variable 235 or the threshold**. Every level
+inherits 500 and 200000. So `ManaRules` is right for skirmish and cannot
+explain the pet dungeon; the candidates (mode-specific cap, a non-territory
+source in the displayed rate, an undecoded PLAYERS/LEVEL field, or the two
+orphan numbers in `mana.md`) are listed, none chosen. **Next step is the
+binary:** find the reader of variable 235 and see what it clamps — the sixth
+clause, on a cap this project has already built on.

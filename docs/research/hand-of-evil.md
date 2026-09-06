@@ -21,6 +21,7 @@ repository (ADR-0046).
 | **Dropping is last-in-first-out** | **CONFIRMED** (owner, 2026-09-06), on top of the drop handler reading back the slot it is about to free. It holds **across kinds**: DK2 keeps one array of things, so a creature and a chicken share the slots |
 | **The hand holds objects too** — a chicken, a pile of gold, a special | **CONFIRMED** (owner, 2026-09-06): *"I can pick up a chicken and drop it in the prison, or anywhere in the dungeon, on my owned tiles"*, with a screenshot of four held at once. `CanBePickedUp` is 26 of the 145 OBJECTS records and excludes spell books, crates and beds. ADR-0075 |
 | **An object is dropped on the keeper's own ground** | **CONFIRMED** (owner, same day). Where the rule lives is **UNREAD**: the drop handler has no ownership test, so the gate is in the input layer. It is **not** `CanBeDroppedOnAnyLand`, which is set on one record and read by nothing (Q196) |
+| **A creature is dropped on the keeper's own ground — except an imp, which may also go down on Dirt Path** (unclaimed floor) | **CONFIRMED** (owner, 2026-09-06): *"imps are the only creature that can be dropped onto dirt path tiles, those are tiles that are unclaimed by any keeper"*. **NOT BUILT** — `HandSystem.Drop` refuses only an unwalkable tile. The edges of "unclaimed" are UNKNOWN (Q198) |
 | A thing already in a hand cannot be picked up again | **STRONGLY INFERRED** — an explicit scan of the array before anything else |
 | A slap raises Efficiency by ten points, and does not stack | **CONFIRMED** (owner, 2026-09-05) — *"it raises from 273 to 310 after the first slap and stays there no matter how many times i slap that imp"* |
 | **Being dropped next to work the keeper marked** raises it by ten points too, and dropping on empty ground is worth nothing | **CONFIRMED** (owner, 2026-09-05) — both halves watched |
@@ -373,10 +374,22 @@ number, which is hardcoded at 20. What variable 193 is for is **UNKNOWN**
   (`WasLastDroppedOnARoom`) and which is how a creature is put into a Library or
   a Training Room.
 - **Dropping onto enemy ground**, which the original's drop handler handles by
-  changing the creature's owner under a condition. Note what that proves: a
+  changing the creature's owner under a condition. ~~Note what that proves: a
   creature drop is *not* restricted to owned ground, or the branch would be
   unreachable. The owned-ground rule the owner described is the **object**
-  drop's.
+  drop's.~~ **Corrected 2026-09-06 (Q198).** The owner: *"imps are the only
+  creature that can be dropped onto dirt path tiles, those are tiles that are
+  unclaimed by any keeper"* — every other creature only onto the keeper's own
+  ground. So the owned-ground rule is the creature drop's too, with **one
+  exception for workers and one kind of tile**. The handler's branch proves only
+  that the *handler* does not refuse, which was already known (Q196): the gate
+  is the input layer's, and it is that layer that lets an imp go down on
+  unclaimed floor and nothing else. Whatever reaches the owner-changing branch
+  is not the ordinary drop. **Not built:** `HandSystem.Drop` refuses only an
+  unwalkable tile, so a keeper here may drop any creature anywhere it could
+  stand. The rule to write is small — own ground for everyone, plus terrain that
+  is neither `Ownable` nor a room for a worker — and the edges of "unclaimed"
+  (water, a bridge, a rival's unclaimed room floor) are UNKNOWN.
 - **A chicken dropped into somebody else's Hatchery becomes theirs** — object id
   9, a tile owned by another keeper, a room of type 4. Read, not built.
 - **A chicken or a pile of gold dropped ONTO a creature is earmarked for it**,

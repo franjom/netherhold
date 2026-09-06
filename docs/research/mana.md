@@ -32,6 +32,7 @@ the oracle is for. See §"How this was established" step 5.
 | **A keeper's mana ceiling is 200000 from the first second and never moves** | **CONFIRMED** — observed in the original (Q37, Q37a) |
 | The ceiling is soft: mana above it drains back rather than being clamped | **STRONGLY INFERRED** — `ExcessManaDecreaseRatePerSecond` only means something if mana can exceed the ceiling |
 | The gain cap is per player, not shared across the level | **HYPOTHESIS** (Q38) |
+| **The gain cap is `MaximumManaGainPerSecond` = 500 as displayed** | **CONFIRMED for skirmish** (owner, 2026-09-06: regen sat at +500) — **CONTRADICTED for My Pet Dungeon** (owner, same day: +1400 and more), and **no level's VARIABLES overrides it** (all 66 files read). Mechanism UNKNOWN; see the last section and Q199 |
 | Mana is paid once a game second rather than smoothly | **OURS, not DK2's** (ADR-0017) — invisible in totals, visible only in the shape of the counter |
 | `TerrainDef.MaxManaGain` and `DungeonHeartMaxManaIncrease` are **not** ceiling contributions | **CONFIRMED by elimination** (Q37a) — the ceiling never moves, so nothing can contribute to it. What they *are* has no candidate left; both are read by nothing |
 | What mana is *for* | **NOT IMPLEMENTED** — nothing spends it; every spender is a spell, and spells are M7 |
@@ -269,3 +270,53 @@ This is a normal outcome for a twenty-five-year-old balance table and not a sign
 that the model is wrong. It is recorded because an unexplained number is exactly
 the kind of thing a future session will find, decide must mean something, and
 wire up.
+
+---
+
+## The cap, and an observation that does not fit it (2026-09-06, Q199)
+
+**Two owner observations, same day.** On a skirmish map the mana regen read
+**+500** and would not climb. On a My Pet Dungeon level it read **+1400 and
+more**.
+
+The first is the model to the digit: `ManaRules` clamps income at
+`MaximumManaGainPerSecond` = 500, and a skirmish keeper with more than 500 paying
+tiles sees exactly that. **The owner confirms it was a clamp and not a tile
+count** (same evening): the map had more than 500 claimable tiles and the rate
+would not pass 500 — *"a hard limit"*. That upgrades the cap from a reading of
+the variable's name to **CONFIRMED** for skirmish. **The second is a number the
+model cannot produce**, so the model is wrong or incomplete for that mode, and
+the question is where. **The pet-dungeon half is flagged for later at the
+owner's request**: they are not sure of the tile count or of what fed the +1400,
+so it is an observation to re-check (checklist item 4), not yet a measurement.
+
+**The obvious explanation was checked first and it is refuted.** ADR-0040 layers
+each level's own `<name>Variables.kld` over the global table, and a per-level
+override would have explained a per-level cap in one line. So on 2026-09-06 all
+**66** shipped `*Variables.kld` files under `Data/editor/maps` were parsed with
+`KwdVariables.Parse` and asked for `MaximumManaGainPerSecond` and
+`MaximumManaThreshold`: **none carries either.** Every level — campaign, skirmish,
+secret, the seven `mpd*` pet-dungeon levels — inherits 500 and 200000 from
+`GlobalVariables.kwd`. The +1400 is not a VARIABLES value.
+
+Candidates, none chosen, ranked by how cheap they are to rule out:
+
+1. **The binary applies the cap to something other than the displayed rate, or
+   not at all in the pet-dungeon mode.** Cheapest to settle: find the reader of
+   variable 235 in `DKII.EXE` and see what it clamps and under what condition.
+   This is the sixth clause — count a field's readers — applied late, to a cap
+   the simulation has already built on.
+2. **The displayed "+N" includes a source that is not territory income.** A
+   pet-dungeon level may add mana by some route the display folds into the rate.
+   Settled by play: note the level, count claimed tiles, and watch whether the
+   +1400 falls when land is lost and by how much per tile.
+3. **The value sits in a record this project does not decode** — PLAYERS(180)
+   or LEVEL(220), both split and unread.
+4. **`MaxManaGain` (100) and `DungeonHeartMaxManaIncrease` (32000)**, the two
+   orphan numbers in the section above, are part of it. Ruled out for the
+   *ceiling*; not ruled out for the *rate*.
+
+Until one of those lands, the confidence line for the cap reads: **CONFIRMED for
+skirmish (owner), CONTRADICTED for My Pet Dungeon (owner), mechanism UNKNOWN.**
+`ManaRules` is not changed on an observation of a mode this project does not
+run; it is flagged.
