@@ -34,7 +34,7 @@ binary in our own words** — no decompiler output enters this repository
 | Imps stop collecting when every prison is full | **STRONGLY INFERRED** — the manual states it; it falls out of the destination being chosen before the walk |
 | Losing a prison frees every enemy in it | **STRONGLY INFERRED** — the manual states it |
 | A jail break on overcrowding, at `OvercrowdingJailBreakPercentagePerExtraCreature` = **50** | **STRONGLY INFERRED** for the rule, **ours** for the cadence (Q168) |
-| **One prisoner per tile** | **OURS** (Q166) — the weakest inference here |
+| **A prison holds its inner tiles plus one** — so a 3x3 holds **two**, and below 3x3 it is not a prison at all | **CONFIRMED** (owner, 2026-09-06, off DK2's status bar) and **the arithmetic is read** (ADR-0070). Was *"one prisoner per tile"*, which on a 3x3 was nine |
 
 ---
 
@@ -289,7 +289,7 @@ it, and its shipped-variable support is gone (Q171).
 
 ## 5. What is ours, stated
 
-- **One prisoner per tile** (Q166). DK2 stores capacity rather than deriving it,
+- ~~**One prisoner per tile**~~ (Q166) — **corrected 2026-09-06 to inner tiles plus one**, and the reason DK2 stores capacity rather than deriving it is now read: it derives it once, per room type, at build time. The prison's case walks the room's own tiles, counts the ones a general *"nothing is standing here"* predicate accepts — which is the tiles its bars and gate have not taken, i.e. everything but the rim — and **adds one if that count is non-zero**, into `SafeCreatureCapacity`. `TotalCapacity` is left at **-1** for a prison, which is why a keeper can overcrowd one by hand at all. Below 3x3 the count is zero, the "+1" never fires, and the room does nothing. The old note said DK2 stores capacity rather than deriving it,
   so this is a guess shaped like the lair's one-bed-per-tile. **The owner can
   settle it in a minute**: build a 3x3 prison, capture until the imps stop, and
   count.

@@ -100,10 +100,14 @@
 #     hand, and this run issues no commands. `PrisonTests` covers it directly.
 #     How often the original rolls it is ours (Q168).
 #
-#   * **How many prisoners a prison holds.** One per tile here, which is what
-#     every other occupancy rule in this project uses and is the weakest
-#     inference in `PrisonRules` (Q166). DK2 stores `TotalCapacity` and
-#     `UsedCapacity` on the room and how it derives them has not been read.
+#   * ~~**How many prisoners a prison holds.**~~ **ANSWERED and CORRECTED**
+#     (Q166, ADR-0070). It is the tiles the rim does not take, **plus one**, so
+#     the 3x3 here holds **two** - not the nine that "one per tile" gave. The
+#     owner read it off DK2's own status bar (*"Captives held: 0 / 2 ...
+#     Maximum Skeletons: 2"*) and the arithmetic is in the binary's room
+#     capacity routine, which counts free tiles into `SafeCreatureCapacity` and
+#     adds one. Below 3x3 the count is zero, the "+1" never fires, and the room
+#     is not a prison - which is the owner's other sentence.
 #
 #   * **Nothing fights.** The goblin was placed at zero health rather than
 #     beaten down, because there is no combat. Capture in the original begins
@@ -123,8 +127,16 @@ setup:
     - { id: 3, gold: 0, mana: 0 }
     - { id: 1, gold: 0, mana: 0 }
   rooms:
-    # Two cells, which is one more than this run needs and enough to show that
-    # the nearer is chosen.
+    # DK2's smallest working prison: 3x3, which holds TWO (Q166, confirmed off
+    # the game's status bar). It used to be two cells in a row here, which under
+    # the corrected rule is not a prison at all - no inner tile, no capacity.
+    - { type: Prison, at: [5, 3], player: 3 }
+    - { type: Prison, at: [6, 3], player: 3 }
+    - { type: Prison, at: [7, 3], player: 3 }
+    - { type: Prison, at: [5, 4], player: 3 }
+    - { type: Prison, at: [6, 4], player: 3 }
+    - { type: Prison, at: [7, 4], player: 3 }
+    - { type: Prison, at: [5, 5], player: 3 }
     - { type: Prison, at: [6, 5], player: 3 }
     - { type: Prison, at: [7, 5], player: 3 }
   creatures:

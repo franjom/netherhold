@@ -5205,3 +5205,90 @@ since 22 this one is not just defaults**: the determinism fixture is full of imp
 taking jobs, and every job taken now records its kind. No *behaviour* moved —
 nothing in that fixture is ever picked up, so the retry branch is never entered
 and the imps dig, claim and reinforce in the order they always did.
+
+---
+
+## ADR-0070 — A prison holds its inner tiles plus one, so a 3×3 holds two
+
+**Date:** 2026-09-06
+**Status:** Accepted
+**Closes:** Q166. **Opens:** Q179.
+
+### What the owner watched
+
+> *"about the prison, minimum usable size is 3x3 tiles, that gives capacity of 2
+> prisoners that can be held, and 2 skeletons that can be spawned. Any smaller
+> size and it doesn't render like a prison, it only occupies those tiles."*
+
+With a screenshot of DK2's own status bar: **`Captives held: 0 / 2 … Maximum
+Skeletons: 2`**.
+
+This project held **one prisoner per tile**, which on that room is **nine**. The
+error is more than four times, and everything that counts prisoners was
+downstream of it: whether an imp will deliver, whether a keeper has overcrowded
+the room, the jail-break roll, and how many Skeletons a keeper can raise.
+
+### What the binary says
+
+DK2's room-capacity routine switches on room type and the **Prison is case 8**
+(type 11 − 3). Its case is unlike the others: where a lair or a treasury walks
+the room's *object* list and counts the pieces of furniture it recognises, the
+prison walks its own **tiles** and counts the ones a general
+*"nothing is standing here"* predicate accepts — then **adds one if that count is
+non-zero** — and stores the result in the field the room debug dump calls
+`SafeCreatureCapacity`.
+
+Two consequences fall straight out, and they are the owner's two sentences:
+
+- **A prison's bars and gate take the rim.** What is left on a 3×3 is one tile,
+  so the count is 1 and the capacity is **2**.
+- **Below 3×3 there is no such tile at all.** The count is zero, the *"+1"* never
+  fires, and the room has no capacity — *"it only occupies those tiles"*.
+
+The second sentence is not a separate rule that had to be added. It is the same
+arithmetic reaching zero, which is the sort of agreement worth more than either
+half on its own.
+
+**And `TotalCapacity` is left at −1 for a prison** — the case `break`s without
+touching it, and the sentinel the function was primed with survives. So the
+generic room-occupancy check does not apply to a prison, which is *why* a keeper
+can overcrowd one by hand at all. This project already had manual overcrowding
+(ADR-0064) as a rule of its own; it turns out to be a consequence.
+
+### The decision
+
+`PrisonRules.Capacity(prison)` becomes `InteriorTileCount + 1`, and `0` when
+there is no interior. `RoomInstance` already counted the rim for the Temple
+(Q60), so this needed no new geometry.
+
+**Capacity stops being a per-tile rule and that is deliberate.** Two prisoners on
+a room with one inner tile is DK2's own arithmetic, and smoothing the *"+1"* away
+to make it tile-shaped again would be fitting our model to our habits.
+`FreeTileIn` still puts each arrival on a tile of its own, because that is where
+a body is laid down — it is not what limits the room.
+
+**The fixture had to change with it.** `PrisonTests` used a 1×3 column of cells,
+which under the corrected rule is not a prison; it is now a real 3×3 with paved
+floor around it, and the scenario's two-cell prison is a 3×3 too. That is the
+right kind of churn: the old fixture was testing a room DK2 would not have built.
+
+### What this opens
+
+**Q179.** The Prison's `RecommendedSizeX/Y` is **5×5**, and the owner has just
+built a working 3×3 one. ADR's Q45 reads that field as *"the size below which the
+room does nothing"*, on two observations that fit it exactly (a graveyard needs
+3×3 and says 3×3; a temple needs 5×5 and says 5×5). A third room now disagrees.
+Nothing depends on it — `IsFunctional` is read only by `PortalRules`, and a
+prison's capacity now comes from its own geometry — so this is recorded rather
+than resolved, per the conflict protocol.
+
+### What is still ours
+
+**Whether an L-shaped prison's rim is furnished the same way.** The rim is
+counted rather than computed from the bounding box, so an L-shape answers
+sensibly; whether it answers *correctly* is unread. For the rectangles anybody
+builds, the two agree.
+
+**Maximum Skeletons.** The status bar shows the same number, and here a Skeleton
+replaces the prisoner that died, so the two are equal without a second rule. That
+they are equal *in DK2 for the same reason* is inference.

@@ -43,17 +43,42 @@ public static class PrisonRules
     public const int NoPrison = -1;
 
     /// <summary>
-    /// How many prisoners a prison holds: <b>one per tile</b>.
+    /// How many prisoners a prison holds: <b>the tiles the rim does not take,
+    /// plus one</b> — so DK2's smallest working prison, a 3x3, holds
+    /// <b>two</b>.
     ///
-    /// <para><b>Ours, and the weakest inference in this file.</b> DK2's room
-    /// carries <c>TotalCapacity</c> and <c>UsedCapacity</c> as stored fields and
-    /// how it derives them has not been read; <c>Rooms.kwd</c> has no capacity
-    /// column at all. One per tile is what every other occupancy rule here uses
-    /// (a lair holds one bed per tile) and it is what makes a prison's size mean
-    /// something. Q166, and the owner can settle it in a minute: build a 3x3
-    /// prison, capture creatures until the imps stop, and count them.</para>
+    /// <para><b>CONFIRMED by the owner off the game's own status bar
+    /// (2026-09-06)</b> — <i>"Captives held: 0 / 2 … Maximum Skeletons: 2"</i>
+    /// on a 3x3 — together with the floor underneath it: <i>"minimum usable size
+    /// is 3x3 … any smaller size and it doesn't render like a prison, it only
+    /// occupies those tiles."</i> This project held <b>one per tile</b>, which
+    /// on that room would have been nine (Q166).</para>
+    ///
+    /// <para><b>And the shape is read rather than fitted.</b> DK2's room
+    /// capacity routine has a case per room type; the prison's walks the room's
+    /// own tiles, counts the ones a general <i>"nothing is standing here"</i>
+    /// predicate accepts, and <b>adds one if the count is non-zero</b>, into the
+    /// field its debug dump calls <c>SafeCreatureCapacity</c>. A prison's
+    /// furniture — the bars and the gate — takes the rim, which leaves a 3x3
+    /// with exactly one tile and a capacity of two. Below 3x3 there is no such
+    /// tile at all, the count is zero, the <i>"add one"</i> never fires, and the
+    /// room is not a prison: which is the owner's second sentence, arrived at
+    /// from the arithmetic rather than added to it.</para>
+    ///
+    /// <para><b>Note that it is not a per-tile rule any more.</b> Two prisoners
+    /// on a room with one inner tile is DK2's own arithmetic, and it is why the
+    /// <i>"+1"</i> is worth keeping rather than smoothing away.
+    /// <see cref="FreeTileIn"/> still puts each arrival on a tile of its own,
+    /// because that is where a body gets dropped and not what limits the
+    /// room.</para>
+    ///
+    /// <para>The rim is counted rather than computed from the bounding box
+    /// (<see cref="RoomInstance.InteriorTileCount"/>), so an L-shaped prison
+    /// answers sensibly. Whether DK2 furnishes an L-shape's rim the same way is
+    /// <b>UNKNOWN</b>; for the rectangles anybody builds the two agree.</para>
     /// </summary>
-    public static int Capacity(RoomInstance prison) => prison.TileCount;
+    public static int Capacity(RoomInstance prison) =>
+        prison.InteriorTileCount == 0 ? 0 : prison.InteriorTileCount + 1;
 
     /// <summary>Whether this creature is somebody's prisoner.</summary>
     public static bool IsImprisoned(CreatureState creature) =>

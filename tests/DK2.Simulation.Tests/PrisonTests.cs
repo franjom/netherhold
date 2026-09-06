@@ -36,13 +36,17 @@ public class PrisonTests
     private const byte SkeletonId = Dk2TerrainFixture.SkeletonCreatureId;
     private const int Second = SimulationTiming.TicksPerSecond;
 
-    // The fixture map's walkable ground is a 3x3 claimed room at (1..3, 1..3).
-    // The prison is its right-hand column, which leaves the left two columns to
-    // stand imps and bodies on.
-    private static readonly TilePos CellA = new(3, 1);
-    private static readonly TilePos CellB = new(3, 2);
-    private static readonly TilePos CellC = new(3, 3);
-    private static readonly TilePos Floor = new(1, 3);
+    // A real 3x3 prison at (4..6, 3..5) - DK2's smallest working one, and the
+    // size the owner read a capacity of TWO off the status bar (Q166). The three
+    // named cells are three of its nine tiles; the floor around it is paved so
+    // there is somewhere to stand imps and lay bodies down.
+    //
+    // It used to be a 1x3 column, which under the corrected capacity rule is not
+    // a prison at all: no inner tile, no capacity, no room.
+    private static readonly TilePos CellA = new(4, 3);
+    private static readonly TilePos CellB = new(5, 4);
+    private static readonly TilePos CellC = new(6, 5);
+    private static readonly TilePos Floor = new(2, 3);
 
     private static GameDatabase Db => Dk2TerrainFixture.Database();
 
@@ -73,9 +77,25 @@ public class PrisonTests
         RoomRules.Place(db, ref tile, db.Room(type), Keeper);
     }
 
-    private static void Prison(GameDatabase db, WorldState world, params TilePos[] cells)
+    /// <summary>
+    /// Paves the ground and paints DK2's smallest working prison on it: 3x3 at
+    /// (4..6, 3..5), which holds two.
+    /// </summary>
+    private static void Prison(GameDatabase db, WorldState world)
     {
-        foreach (TilePos cell in cells) Paint(db, world, RoomTypeId.Prison, cell);
+        for (int y = 1; y <= 8; y++)
+        {
+            for (int x = 1; x <= 8; x++)
+            {
+                ref TileState tile = ref world.Tile(x, y);
+                tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+                tile.OwnerPlayerId = Keeper;
+            }
+        }
+
+        for (int y = 3; y <= 5; y++)
+            for (int x = 4; x <= 6; x++)
+                Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
     }
 
     /// <summary>
@@ -109,7 +129,7 @@ public class PrisonTests
         // picks between them on ownership.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
 
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
         Down(enemy);
@@ -154,8 +174,11 @@ public class PrisonTests
         // there is none they stop collecting prisoners altogether.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA);
+        Prison(db, world);
+
+        // Full is TWO on a 3x3, not one per tile (Q166).
         Prisoner(db, world, CellA);
+        Prisoner(db, world, CellB);
 
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
         Down(enemy);
@@ -168,26 +191,57 @@ public class PrisonTests
     }
 
     [Fact]
-    public void APrisonHoldsOnePrisonerPerTile()
+    public void ThreeByThreeIsDk2sSmallestPrisonAndItHoldsTwo()
     {
+        // CONFIRMED off DK2's own status bar (owner, 2026-09-06):
+        // "Captives held: 0 / 2 ... Maximum Skeletons: 2" on a 3x3.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
 
         RoomInstance prison = RoomIndex.Build(world, db)
             .Single(r => r.Definition.TypeId == RoomTypeId.Prison);
-        Assert.Equal(3, PrisonRules.Capacity(prison));
+        Assert.Equal(9, prison.TileCount);
+        Assert.Equal(1, prison.InteriorTileCount);
+        Assert.Equal(2, PrisonRules.Capacity(prison));
 
         Prisoner(db, world, CellA);
+
+        // One in, one to go - and the tile it goes on is any free one, because
+        // the rim is where a body is laid down and the capacity is not per tile.
+        Assert.NotEqual(-1, PrisonRules.FreeTileIn(world, db, Keeper, Floor));
+
         Prisoner(db, world, CellB);
         Assert.Equal(2, PrisonRules.PrisonerCount(world, prison));
 
-        // The third cell is the only one a carry can still be aimed at.
-        int free = PrisonRules.FreeTileIn(world, db, Keeper, Floor);
-        Assert.Equal((CellC.Y * world.Width) + CellC.X, free);
-
-        Prisoner(db, world, CellC);
+        // Full at two, with seven empty tiles still in the room.
         Assert.Equal(-1, PrisonRules.FreeTileIn(world, db, Keeper, Floor));
+    }
+
+    [Theory]
+    [InlineData(1, 1, 0)]
+    [InlineData(2, 2, 0)]
+    [InlineData(1, 5, 0)]
+    [InlineData(3, 3, 2)]
+    [InlineData(3, 4, 3)]
+    [InlineData(4, 4, 5)]
+    [InlineData(5, 5, 10)]
+    public void APrisonHoldsItsInnerTilesPlusOne(int w, int h, int expected)
+    {
+        // The owner's other half: "any smaller size and it doesn't render like a
+        // prison, it only occupies those tiles." A room with no inner tile has
+        // no capacity, and DK2's "+1" never fires because the count is zero.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        for (int y = 3; y < 3 + h; y++)
+            for (int x = 4; x < 4 + w; x++)
+                Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+
+        RoomInstance prison = RoomIndex.Build(world, db)
+            .Single(r => r.Definition.TypeId == RoomTypeId.Prison);
+        Assert.Equal(w * h, prison.TileCount);
+        Assert.Equal(expected, PrisonRules.Capacity(prison));
     }
 
     [Fact]
@@ -197,7 +251,7 @@ public class PrisonTests
         // what stops the jailer's own imps ferrying prisoners back and forth.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
 
         Assert.False(CarryRules.IsCarryable(captive));
@@ -218,7 +272,7 @@ public class PrisonTests
         // wither where it should take a hundred.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
 
         Assert.Equal(300, captive.Health);
@@ -240,7 +294,7 @@ public class PrisonTests
         // keeper reaches for a chicken.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
         int captiveId = captive.Id;
 
@@ -264,7 +318,7 @@ public class PrisonTests
         // reads that column.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
         captive.Health = 3;
         int captiveId = captive.Id;
@@ -298,7 +352,7 @@ public class PrisonTests
         // what a prison MAKES, so the room's own product is immune to the room.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
 
         CreatureState bones = world.SpawnCreature(db, SkeletonId, Rival, CellA);
         Assert.True(PrisonRules.Imprison(
@@ -328,7 +382,7 @@ public class PrisonTests
         // rescue window and nothing for another imp to carry to a graveyard.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
         captive.Health = 1;
 
@@ -344,7 +398,7 @@ public class PrisonTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
         int hunger = captive.HungerTicks;
 
@@ -408,7 +462,7 @@ public class PrisonTests
         // pick up that creature from prison".
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
 
         GameSimulation sim = Simulation(db, world);
@@ -429,7 +483,7 @@ public class PrisonTests
         // liberty is not the keeper's to pick up, prison or no prison.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState theirs = world.SpawnCreature(db, GoblinId, Rival, Floor);
 
         GameSimulation sim = Simulation(db, world);
@@ -443,7 +497,7 @@ public class PrisonTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
         int health = captive.Health;
 
@@ -459,7 +513,7 @@ public class PrisonTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
 
         var sink = new ListEventSink();
@@ -481,7 +535,7 @@ public class PrisonTests
         // dungeon is loose in it, which is the keeper's problem now.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
 
         var sink = new ListEventSink();
@@ -505,7 +559,7 @@ public class PrisonTests
         // the tile away or a rival claiming it works the same way.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
 
         var sink = new ListEventSink();
@@ -526,9 +580,10 @@ public class PrisonTests
         // that will not survive twenty of them.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA);
+        Prison(db, world);
 
         CreatureState first = Prisoner(db, world, CellA);
+        CreatureState filler = Prisoner(db, world, CellB);
 
         // Only a keeper can do this. An imp refuses to deliver into a full
         // prison, so overcrowding is always somebody's own doing - which is
@@ -542,6 +597,7 @@ public class PrisonTests
         for (int i = 0; i < 20 * Second; i++) sim.Tick();
 
         Assert.False(PrisonRules.IsImprisoned(first));
+        Assert.False(PrisonRules.IsImprisoned(filler));
         Assert.False(PrisonRules.IsImprisoned(second));
         Assert.Contains(sink.Events, e => e.Kind == "jail_break");
     }
@@ -552,7 +608,7 @@ public class PrisonTests
         // Full is not overcrowded. A prison at exactly its capacity holds.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB);
+        Prison(db, world);
         CreatureState first = Prisoner(db, world, CellA);
         CreatureState second = Prisoner(db, world, CellB);
 
@@ -570,7 +626,7 @@ public class PrisonTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world, CellA, CellB, CellC);
+        Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
 
         GameSimulation sim = Simulation(db, world);

@@ -104,6 +104,15 @@ public sealed class RoomInstance
     /// <para>Measured against the bounding box rather than the tile count, so an
     /// L-shape wide enough in both directions counts. Which of those the original
     /// does is UNKNOWN and no observation distinguishes them.</para>
+    ///
+    /// <para><b>And a third room now disagrees (Q179, 2026-09-06).</b> The
+    /// Prison's record says <b>5x5</b>, and the owner has built a working
+    /// <b>3x3</b> one — it renders, it holds two, it raises Skeletons.
+    /// So the reading above holds for the graveyard and the temple and fails for
+    /// the prison, which means it is not yet the rule. Nothing here depends on
+    /// it: this property is read only by <c>PortalRules</c>, and a prison's
+    /// capacity comes from its own geometry
+    /// (<see cref="PrisonRules.Capacity"/>).</para>
     /// </summary>
     public bool IsFunctional =>
         Width >= Definition.RecommendedSizeX && Height >= Definition.RecommendedSizeY;
