@@ -63,6 +63,7 @@ public static class AssetCatalogue
         "carrying_object",
         "seeking_food",
         "fetching_chicken",
+        "seeking_wages",
     ];
 
     /// <summary>

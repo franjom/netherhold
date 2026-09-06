@@ -70,6 +70,10 @@ internal static class TestWorld
         Set(vars, VariableTypeId.MaximumManaThreshold, 200000);
         Set(vars, VariableTypeId.MaximumManaGainPerSecond, 500);
         Set(vars, VariableTypeId.ExcessManaDecreaseRatePerSecond, 5);
+        // Payday, as shipped: ten minutes between them, and the first one ten
+        // minutes in rather than at zero (Q9, ADR-0078).
+        Set(vars, VariableTypeId.PayDayFrequencySeconds, 600);
+        Set(vars, VariableTypeId.TimeBeforeFirstPayDaySeconds, 600);
         Set(vars, VariableTypeId.MinimumImpThreshold, 4);
         Set(vars, VariableTypeId.TimeBeforeFreeImpGeneratedSeconds, 5);
         return vars;

@@ -864,6 +864,10 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.PrisonModifyCreatureHealthPerSecond, -3);
         Set(vars, VariableTypeId.OvercrowdingJailBreakPercentagePerExtraCreature, 50);
         Set(vars, VariableTypeId.MotionlessInPrisonSeconds, 8);
+        // Payday, as shipped: ten minutes between them, and the first one ten
+        // minutes in rather than at zero (Q9, ADR-0078).
+        Set(vars, VariableTypeId.PayDayFrequencySeconds, 600);
+        Set(vars, VariableTypeId.TimeBeforeFirstPayDaySeconds, 600);
         Set(vars, VariableTypeId.MinimumImpThreshold, 4);
         Set(vars, VariableTypeId.TimeBeforeFreeImpGeneratedSeconds, 5);
         Set(vars, VariableTypeId.MaxGoldPerTreasuryTile, 3000);
@@ -895,6 +899,10 @@ internal static class Dk2TerrainFixture
         // so they cannot drift from it.
         Stat(vars, CreatureStatId.Health, [125, 150, 175, 200, 225, 250, 300, 400, 600]);
         Stat(vars, CreatureStatId.Speed, [105, 110, 115, 120, 125, 150, 175, 200, 250]);
+        // Wages, to 250% at level 10 - a veteran costs two and a half times
+        // what it did out of the portal (ADR-0078). The drift guard in
+        // DK2.Behavior.Tests re-reads this row from the real install.
+        Stat(vars, CreatureStatId.Pay, [105, 110, 115, 120, 130, 140, 150, 180, 250]);
         Stat(vars, CreatureStatId.ExperienceForNextLevel,
              [130, 180, 250, 350, 470, 600, 720, 850, 1000]);
 

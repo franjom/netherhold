@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 30;
+    private const int FormatVersion = 31;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -76,6 +76,7 @@ public static class WorldSnapshot
             w.Write(p.PlayerId);
             w.Write(p.Mana);
             w.Write(p.NextFreeImpTick.Value);
+            w.Write(p.NextPaydayTick.Value);
             w.Write(p.Hand.Count);
             foreach (HandItem held in p.Hand)
             {
@@ -116,6 +117,9 @@ public static class WorldSnapshot
             w.Write(c.SleepTicks);
             w.Write(c.DyingTicks);
             w.Write(c.Anger);
+            w.Write(c.WageOwed);
+            w.Write(c.PayAttemptsFailed);
+            w.Write(c.SkipNextPayment);
             w.Write(c.Level);
             w.Write(c.ExperiencePoints);
             w.Write(c.LastAngryChoiceTick);
@@ -229,6 +233,7 @@ public static class WorldSnapshot
                 PlayerId = r.ReadByte(),
                 Mana = r.ReadInt32(),
                 NextFreeImpTick = new GameTick(r.ReadInt64()),
+                NextPaydayTick = new GameTick(r.ReadInt64()),
                 Hand = [],
             };
 
@@ -271,6 +276,9 @@ public static class WorldSnapshot
                 SleepTicks = r.ReadInt32(),
                 DyingTicks = r.ReadInt32(),
                 Anger = r.ReadInt32(),
+                WageOwed = r.ReadInt32(),
+                PayAttemptsFailed = r.ReadInt32(),
+                SkipNextPayment = r.ReadBoolean(),
                 Level = r.ReadInt32(),
                 ExperiencePoints = r.ReadInt32(),
                 LastAngryChoiceTick = r.ReadInt64(),

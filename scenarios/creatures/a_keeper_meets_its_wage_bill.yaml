@@ -1,0 +1,103 @@
+# Payday: the wage bill falls due, and one keeper can meet it while the other
+# cannot. Q9, ADR-0078, docs/research/payday.md.
+#
+# ## What the original does
+#
+# A clock on the player (FUN_004be1a0) fires when its deadline comes round,
+# credits every creature it owns with Pay scaled by that creature's level, and
+# sends each one to collect. Collecting is three creature states: 187 finds the
+# nearest Treasury or Dungeon Heart THAT HAS GOLD IN IT, ranked by squared
+# straight-line distance, and walks there; 188 notices the arrival; 189 takes
+# the gold OFF THE TILE THE CREATURE IS STANDING ON.
+#
+# That last clause is the one worth watching. Payday is the moment where a
+# global gold counter would be most convenient, and DK2 still does it per tile -
+# which is the strongest independent confirmation this project has of ADR-0015's
+# finding that DK2 has no player gold counter at all.
+#
+# ## Two keepers, one difference
+#
+# Player 3 has a treasury with 2000 in it. Player 4 has a treasury with nothing.
+# Both own two Goblins, both Goblins are owed 500 apiece at pay=500, and the run
+# is long enough for the first payday plus the walk.
+#
+# The point of the second keeper is that "cannot pay" is not the absence of a
+# mechanic here, it is a mechanic with its own events: the search refuses to
+# walk to an empty room and says reason=treasury_empty, which is a different
+# message from the reason=no_treasury a keeper with no vault at all gets. The
+# original distinguishes the same two cases with two different messages.
+#
+# ## What to watch in the run
+#
+#   * payday, once per player, at tick 12000 - TimeBeforeFirstPayDaySeconds is
+#     600 and there are 20 ticks to the second. billed=1000 for each keeper,
+#     because two Goblins at pay=500 and level 1.
+#   * wages_sought then paid, twice, for player 3. took=500 each, and the
+#     treasury tile falls 2000 -> 1500 -> 1000.
+#   * wages_unreachable for player 4, twice per creature and then never again:
+#     the budget is two failed attempts PER PAYDAY, hardcoded in the original,
+#     and the clock refills it for everybody next time round.
+#
+# ## Two things the first draft of this scenario got wrong, kept as notes
+#
+# It had an imp per keeper, to show that the Imp's pay=0 leaves it unpaid. On an
+# open flat map two imps spend twelve thousand ticks claiming and re-claiming
+# every tile including each other's treasuries - and since gold belongs to
+# whoever owns the TILE (ADR-0015), player 4 ended the run holding player 3's
+# money. Correct behaviour, useless scenario. The imps are gone; the pay=0 rule
+# is pinned by PaydayTests instead.
+#
+# It also had no lairs, so every Goblin spent the whole run in the lair search
+# and was never idle at the moment payday fell - and the collecting decision
+# only fires on an idle creature, here and in the original, which gates on the
+# current state's category byte. Nobody collected anything. A creature has to
+# have somewhere to live before it can be paid.
+#
+# ## What is missing, and it is the important one
+#
+# Nobody gets ANGRY about not being paid. The owner has described the
+# consequence (Q9: unhappy, then angry, then leaves the dungeon - or rebels, if
+# it was converted) and the anger ladder is built (ADR-0053), but the routine
+# that connects an unpaid creature to AngerNoPay was not found in the payday
+# path and is not invented here. So player 4's Goblins stay owed and stay
+# perfectly cheerful, which is wrong - and wrong visibly, which is the point of
+# running it.
+#
+# Evidence: docs/research/payday.md. Decisions: ADR-0078. Questions: Q9.
+
+id: creatures-a-keeper-meets-its-wage-bill-001
+question: >
+  Payday falls due for two keepers, one with gold and one without. Does each
+  Goblin walk to the treasury and take exactly its wage off the tile, does the
+  broke keeper's pair give up after two attempts, and are the imps left alone?
+map: flat_16x10
+seed: 5
+duration_ticks: 12400
+setup:
+  players:
+    # 2000 for player 3, which setup deposits into its treasury tiles. Nothing
+    # for player 4 - a vault, correctly built, and empty.
+    - { id: 3, gold: 2000, mana: 0 }
+    - { id: 4, gold: 0, mana: 0 }
+  rooms:
+    # Player 3's vault, with something in it.
+    - { type: Treasury, at: [2, 2], player: 3 }
+    - { type: Treasury, at: [3, 2], player: 3 }
+    # Somewhere for its Goblins to live, so they are idle rather than searching
+    # when payday falls.
+    - { type: Lair, at: [2, 4], player: 3 }
+    - { type: Lair, at: [3, 4], player: 3 }
+    # Player 4's vault, which is where the story is: a room, correctly built,
+    # and empty.
+    - { type: Treasury, at: [12, 7], player: 4 }
+    - { type: Treasury, at: [13, 7], player: 4 }
+    - { type: Lair, at: [12, 5], player: 4 }
+    - { type: Lair, at: [13, 5], player: 4 }
+  creatures:
+    - { type: Goblin, at: [5, 2], player: 3 }
+    - { type: Goblin, at: [6, 3], player: 3 }
+    - { type: Goblin, at: [10, 7], player: 4 }
+    - { type: Goblin, at: [9, 6], player: 4 }
+observe:
+  - state_hash
+  - events

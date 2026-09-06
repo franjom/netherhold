@@ -245,6 +245,25 @@ public enum CreatureActivity
     /// one to it gets it"</i>.</para>
     /// </summary>
     FetchingChicken = 17,
+
+    /// <summary>
+    /// Walking to a treasury to collect wages, and taking them off the floor on
+    /// arrival — the original's states 187, 188 and 189 folded into one
+    /// (ADR-0078, <c>docs/research/payday.md</c>).
+    ///
+    /// <para><b>One state where DK2 has three</b>, and the split is worth
+    /// knowing about: 187 chooses a room and issues the walk, 188 notices the
+    /// arrival and re-checks the room still exists, 189 does the taking. Ours
+    /// composes them the way <see cref="SeekingFood"/> composes the hunger
+    /// walk, which produces the same observable behaviour by the shortest
+    /// honest route.</para>
+    ///
+    /// <para>A creature in this state has been <i>credited</i> already: the
+    /// money is owed from the moment the clock ran, and this walk is only the
+    /// collecting. That is why a creature that never reaches a treasury stays
+    /// owed rather than losing the wage.</para>
+    /// </summary>
+    SeekingWages = 18,
 }
 
 /// <summary>
@@ -431,6 +450,48 @@ public sealed class CreatureState
     /// <see cref="CreatureAngerRules"/>.</para>
     /// </summary>
     public int Anger;
+
+    /// <summary>
+    /// Wages this creature has been credited and has not yet collected.
+    ///
+    /// <para><b>It accumulates.</b> The original's accrual adds to the field
+    /// rather than assigning it, so a creature that misses a payday is owed
+    /// two, and a keeper who cannot pay builds a debt that compounds rather
+    /// than one that resets. DK2 clamps the sum at zero and so does
+    /// <see cref="PaydayRules"/>.</para>
+    ///
+    /// <para>Zero for an Imp for ever, and by the data rather than by a rule:
+    /// the Imp's record carries <c>pay=0</c>.</para>
+    /// </summary>
+    public int WageOwed;
+
+    /// <summary>
+    /// How many times this creature has walked to a treasury this payday and
+    /// found the tile it reached empty.
+    ///
+    /// <para>At <see cref="PaydayRules.MaxFailedAttempts"/> it stops trying
+    /// until the next payday, which resets this to zero for everybody. The
+    /// original keeps the same counter in a byte beside the wage and tests it
+    /// in the decision that sends a creature to collect.</para>
+    /// </summary>
+    public int PayAttemptsFailed;
+
+    /// <summary>
+    /// DK2's own <c>SkipNextPayment</c>: a <b>one-shot ticket that suppresses
+    /// exactly one payday</b>.
+    ///
+    /// <para>The original's clock consumes it whether or not it was needed — a
+    /// creature holding it is not credited a wage at all, and the flag is
+    /// cleared in the same breath. So it is not "paid early and skipped"; the
+    /// payday simply does not happen for that creature, once.</para>
+    ///
+    /// <para><b>Nothing sets it yet.</b> The thing that should is a treat — the
+    /// manual (§7.6.2.2) describes one as buying off <i>"wages on the next
+    /// Payday"</i>, which is exactly a prepayment and exactly this field.
+    /// Keeper spells do not exist, so the field is carried, hashed and read by
+    /// the clock, and written by tests only.</para>
+    /// </summary>
+    public bool SkipNextPayment;
 
     /// <summary>
     /// Experience level, 1 to <see cref="CreatureLevelRules.MaxLevel"/>.
@@ -728,6 +789,9 @@ public sealed class CreatureState
         hash.Add(SleepTicks);
         hash.Add(DyingTicks);
         hash.Add(Anger);
+        hash.Add(WageOwed);
+        hash.Add(PayAttemptsFailed);
+        hash.Add(SkipNextPayment);
         hash.Add(Level);
         hash.Add(ExperiencePoints);
         hash.Add(LastAngryChoiceTick);

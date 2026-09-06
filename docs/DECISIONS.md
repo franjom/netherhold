@@ -6039,3 +6039,125 @@ ground, and a refused drop does not free the captive.
 - No hash change. Nothing about the state layout moved; a rule got stricter.
 - `hand-of-evil.md` §8 and `HandRules.CanDropObjectOn`'s doc comment are
   corrected in place, with the old argument struck through rather than deleted.
+
+## ADR-0078 — Payday is a journey, and the money comes off the tile underfoot
+
+**Status:** accepted, 2026-09-06
+**Context:** Q9, `docs/research/payday.md`, ADR-0015, ADR-0053
+**Hash:** `HashVersion` and `FormatVersion` 30 → **31**, pin `0xC026542547419606`
+
+### What was built
+
+The last of M4's original seven items. A keeper's wage bill falls due every
+`PayDayFrequencySeconds`; every creature it owns is credited `Pay` scaled by its
+level; and each one then **walks to a treasury and lifts its own wages off the
+floor**.
+
+- `PaydayRules` — the interval, the first payday, the wage, the paying-room test,
+  and the single-tile withdrawal.
+- `PaydaySystem` — the clock and the collecting, registered after the needs
+  systems and before `CreatureAngerSystem`.
+- `CreatureState.WageOwed` / `PayAttemptsFailed` / `SkipNextPayment`,
+  `PlayerState.NextPaydayTick`, `CreatureActivity.SeekingWages`.
+
+### The three things worth deciding, and why they went the way they did
+
+**1. Payday is a journey, not a transaction — and that is the original's shape,
+not a flourish of ours.** DK2 gives collecting *three creature states*: one finds
+the room and issues the walk, one notices the arrival, one takes the money. It
+would have been far easier to credit the treasury and debit it in the same tick.
+The reason not to is that the journey is where the behaviour lives: a creature
+can fail to arrive, arrive to find the tile empty, or be interrupted, and each of
+those is something a player sees.
+
+**2. The gold comes off the one tile the creature is standing on.** The
+original's collecting state passes the creature's own coordinates to the
+withdrawal — not the room, not the player. **This is the strongest independent
+confirmation this project has of ADR-0015's finding that DK2 has no player gold
+counter.** Payday is precisely the moment where a global balance would be most
+convenient, and the engine still reaches for a tile. A rule that was inferred
+from four capacity limits a year of work ago now has a second, unrelated witness.
+
+**3. Wages accumulate.** The accrual *adds* to the field rather than assigning
+it, so a creature that misses a payday is owed two and a keeper who cannot pay
+builds a debt that compounds. This is what makes payday a mechanic rather than a
+tick: it is a keeper's running failure, and it is visible in the numbers before
+it is visible in the creatures.
+
+### What falls out of the data rather than out of a rule
+
+**An imp is unpaid because its record says `pay=0`.** Nothing in `PaydayRules`
+names the Imp. Its wage computes to zero, so it is never owed anything and never
+goes to collect — the same shape as the Casino's fifteen states falling out of a
+flag byte rather than out of a list. A special case avoided is a special case
+that cannot drift.
+
+**`SkipNextPayment` is a one-shot ticket, spent whether or not it was needed.**
+Q9 had the name from Flame's symbol map and guessed it was *"a mood input rather
+than an accounting flag"*. It is neither. A creature holding it is **not credited
+a wage at all** and the flag is cleared in the same breath, which is exactly the
+manual's account of a treat (§7.6.2.2) buying off *"wages on the next Payday"*.
+Nothing sets it yet — keeper spells do not exist — so it is carried, hashed, and
+written by tests only.
+
+**The level scale is the shipped table's `Pay` row**, to **250%** at level 10.
+That row has been parsed since variables were first read and looked at by nothing
+(Q119); this is its first consumer.
+
+### Divergences, each stated
+
+- **Three states folded into one activity** (`SeekingWages`), the way
+  `SeekingFood` folds the hunger walk. Same observable behaviour, shortest honest
+  route.
+- **The arrival tile is the room's gold-bearing tile nearest the creature.** The
+  original walks to a tile and then searches that tile's *object list* for a gold
+  pile, which needs an object model for gold this project does not have — gold is
+  a field on the tile (ADR-0015). Ours makes the empty-tile case rarer than the
+  original's; it does not remove it, because somebody else can empty the tile
+  during the walk, and that is the case worth having.
+- **The Dungeon Heart is admitted unconditionally.** The original tests one
+  undecoded flag bit beside the type test. The wider reading, and the heart
+  matters: a keeper's first treasury is bought out of the heart, so a keeper who
+  has not dug a vault still has somewhere for wages to come from.
+- **`NextPaydayTick == 0` means "not scheduled yet"**, and the system seeds it.
+  The original seeds it in an initialiser and reads zero as *never*. Ours has
+  nowhere to seed it — `WorldState.FromMap` has no `GameDatabase` — and nothing
+  that needs *never*: a player slot with no creatures bills nobody. If a hero or
+  front-end player ever needs suppressing it wants a flag, not this sentinel.
+- **A prisoner is not on the payroll.** The original's loop walks the player's
+  own creature chain and a captive has been moved off it; this project has no
+  equivalent, so the skip is explicit.
+
+### What is NOT built, and it is the important one
+
+**Nothing charges `AngerNoPay`.** Both ends exist — the owner has described the
+consequence (Q9: unhappy, then angry, then leaves the dungeon, or rebels if it
+was converted) and the anger ladder is built (ADR-0053) — and the routine that
+connects them **was not found in the payday path**. It is not invented here.
+
+So an unpaid creature stays owed and stays perfectly cheerful, which is wrong.
+It is wrong **visibly**: `wages_unreachable` fires twice per creature per payday
+and the scenario's own header says nobody gets angry about it. The standing
+hypothesis is the needs routine, in `AngerNoFood`'s shape. That is the next thing
+to read, and until it is read this mechanic is half a mechanic.
+
+**Also not read: `PayDayCutOffTimeSeconds`.** Q9 guessed it was the window a
+creature has to reach the treasury. It is live — three references — but **neither
+reader is in the payday path**, which is evidence against that reading. Left
+UNKNOWN rather than built on.
+
+### Consequences
+
+- 13 tests in `PaydayTests`, and
+  `scenarios/creatures/a_keeper_meets_its_wage_bill.yaml` — two keepers, one with
+  gold and one without.
+- **The scenario's first draft taught two things and its header keeps them.** It
+  had an imp per keeper; on an open map two imps spend twelve thousand ticks
+  re-claiming every tile including each other's treasuries, and since gold
+  belongs to whoever owns the *tile*, the broke keeper ended the run holding the
+  other's money. Correct behaviour, useless scenario. It also had no lairs, so
+  every Goblin spent the run in the lair search and was never idle when payday
+  fell — **a creature has to have somewhere to live before it can be paid**,
+  because the collecting decision only fires on an idle creature, here and in the
+  original.
+- Hash 30 → 31 on the composition: three creature fields and one player field.

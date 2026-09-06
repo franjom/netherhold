@@ -1,6 +1,6 @@
 # Payday
 
-**Status:** read from the binary, 2026-09-06. **Nothing is implemented.**
+**Status:** read from the binary and **BUILT**, 2026-09-06 (ADR-0078).
 Questions: Q9 (answered), Q201 (new).
 
 Payday is the last unbuilt item of M4's original seven, and it turns out to be
@@ -196,6 +196,10 @@ conspicuous and has no candidate.
 | `AngerNoPay` firing on an unpaid creature | **NOT read** — the anger ladder exists (ADR-0053) but nothing here was seen charging it |
 | `PayDayCutOffTimeSeconds` | **UNKNOWN**, and its readers are not in the payday path |
 | `FUN_0048ae70(taken/2)`, `FUN_00486f80(4)` | **UNKNOWN** |
+
+**Built on 2026-09-06 (ADR-0078):** `PaydayRules`, `PaydaySystem`,
+`CreatureActivity.SeekingWages`, three fields on the creature and one on the
+player, 13 tests and one scenario. Hash 30 -> 31.
 
 The gap that matters is the first UNKNOWN: **where the anger comes from.** The
 owner has already described the consequence (Q9: unhappy, then angry, then

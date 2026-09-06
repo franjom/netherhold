@@ -465,6 +465,14 @@ public class ScenarioTests
                      // a claim on this map's neutral floor reaches the rate
                      // lookup where it used to be rejected before getting there.
                      VariableTypeId.ClaimTileHealth,
+
+                     // Needed since ADR-0078: PaydaySystem runs on every tick
+                     // of every scenario and schedules the first payday from
+                     // this. The value here is 1 like the rest of this block,
+                     // so payday fires almost immediately - which is fine,
+                     // because no scenario in this file owns a paid creature.
+                     VariableTypeId.PayDayFrequencySeconds,
+                     VariableTypeId.TimeBeforeFirstPayDaySeconds,
                  })
         {
             vars.Misc[id] = new MiscVariable(id, 1, 0, 0);

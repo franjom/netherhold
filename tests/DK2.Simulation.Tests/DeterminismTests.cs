@@ -273,7 +273,14 @@ public class DeterminismTests
         // master therefore goes 28 -> 30 across two commits with 29 spent on a
         // branch. Cheaper than the alternative.
         //
-        // Previous values: 0x19A512BB12A71575 (28), 0x0D75C57C1848268C (27),
+        // 31 is payday (ADR-0078): three fields on the creature - the wage
+        // owed, the failed-attempt counter and SkipNextPayment - and the next
+        // payday deadline on the player. The pinned world has no treasury and
+        // its creatures are level 1, so the value moved on the composition
+        // rather than on anything happening.
+        //
+        // Previous values: 0x2E7E116CA573398B (30),
+        // 0x19A512BB12A71575 (28), 0x0D75C57C1848268C (27),
         // 0x154E9041172A7F7F (26),
         // 0xDFF77147B12A64C3 (22), 0x6AF149EE8E20D98A (21),
         // 0x5E96E634C7E5037D (20),
@@ -284,7 +291,7 @@ public class DeterminismTests
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x2E7E116CA573398BUL, sim.StateHash());
+        Assert.Equal(0xC026542547419606UL, sim.StateHash());
     }
 
     [Fact]

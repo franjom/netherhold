@@ -128,6 +128,16 @@ public static class SimulationSystems
         new PrisonerEatSystem(),
         new PrisonerWanderSystem(),
 
+        // Payday after the needs and before anger, and the order is the
+        // original's: its needs routine asks about hunger, then sleep, then
+        // pay. A creature that is hungry AND owed money eats first.
+        //
+        // Before CreatureAngerSystem because the anger this ought to charge -
+        // AngerNoPay - is not built (the routine that connects an unpaid
+        // creature to the ladder was not found), and when it is, it will want
+        // to be charged before the ladder is walked rather than after.
+        new PaydaySystem(),
+
         new CreatureAngerSystem(),
 
         // Experience last of all: a creature is paid for a second it actually

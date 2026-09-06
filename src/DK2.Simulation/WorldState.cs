@@ -319,6 +319,26 @@ public struct PlayerState
     public GameTick NextFreeImpTick;
 
     /// <summary>
+    /// The tick this keeper's next payday falls due.
+    ///
+    /// <para><b>A deadline, like <see cref="NextFreeImpTick"/></b>, and the
+    /// original keeps it the same way: one field on the player, compared
+    /// against now, rewritten as <c>now + PayDayFrequencySeconds x
+    /// ticksPerSecond</c> the moment it fires. The first one is seeded from
+    /// <c>TimeBeforeFirstPayDaySeconds</c> rather than from zero, so a level
+    /// does not open with the whole dungeon owed money.</para>
+    ///
+    /// <para><b>Zero means "not scheduled yet"</b>, and
+    /// <see cref="Systems.PaydaySystem"/> seeds it the first tick it sees one —
+    /// a divergence, because the original reads zero as <i>never</i> and seeds
+    /// the field in an initialiser instead. Ours has nowhere to seed it
+    /// (<see cref="FromMap"/> has no <c>GameDatabase</c>) and nothing that needs
+    /// <i>never</i>: a player slot with no creatures bills nobody. ADR-0078
+    /// records it.</para>
+    /// </summary>
+    public GameTick NextPaydayTick;
+
+    /// <summary>
     /// The Hand of Evil: the <b>things</b> this keeper is holding, in the order
     /// they were picked up.
 
@@ -354,6 +374,7 @@ public struct PlayerState
         hash.Add(PlayerId);
         hash.Add(Mana);
         hash.Add(NextFreeImpTick);
+        hash.Add(NextPaydayTick);
         hash.Add(Hand.Count);
         foreach (HandItem held in Hand)
         {
