@@ -376,19 +376,25 @@ public sealed class ScenarioRunner
             "raises them as Skeletons (ADR-0064). What a lair still cannot do is anger the " +
             "creature it turns away (Q106)");
         unsupported.Add(
-            "a prison in a run cannot be fed. DK2 keeps a prisoner alive by having its keeper " +
-            "drop chickens on it, a chicken is an object nothing can pick up yet, and there is " +
-            "no torture chamber to move one to - so every prisoner here runs its whole " +
+            "a prison in a run cannot be fed, and the reason has narrowed to one thing. DK2 " +
+            "keeps a prisoner alive by having its keeper drop chickens on it; chickens now exist " +
+            "and free creatures now eat them (ADR-0067), so what is left is that a PRISONER " +
+            "cannot move - it has no wander and no search, and its eating state in the original " +
+            "is a different one that pays off the whole of HungerFill from a single bird " +
+            "(EatingRules.EatInPrison, Q172). So every prisoner here runs its whole " +
             "PrisonModifyCreatureHealthPerSecond countdown out and becomes a Skeleton. How many " +
             "prisoners a prison holds is one per tile and is ours (Q166), and what health a " +
             "captured creature wakes with is ours too (Q167)");
         unsupported.Add(
-            "a hatchery LAYS in a run and nothing EATS. HatcherySystem places the coops, lays an " +
-            "EGG (object 47) at a randomly chosen coop on the interval the room's size implies, " +
-            "and hatches it into a chicken two seconds later, stopping at one bird per tile " +
-            "(ADR-0066). What no creature can do is go and eat one: a hungry creature in this run " +
-            "stays hungry and is angered for it rather than damaged, and a prisoner cannot be fed " +
-            "at all, which is the counterplay its withering exists for (Q172)");
+            "a hatchery LAYS and free creatures EAT (ADR-0066, ADR-0067): coops go down, an EGG " +
+            "(object 47) is laid at a randomly chosen coop on the interval the room size implies " +
+            "and hatches two seconds later, one bird per tile; a hungry creature walks to the " +
+            "nearest hatchery of its own keeper, picks the nearest chicken once it is inside, " +
+            "eats it for min(HpFromChicken, missing health) and pays off one helping of hunger. " +
+            "What is NOT here: how the original walks it there (state 0x5A has one caller and " +
+            "this composes two states, Q174), the post-meal wander around the room (Q175), " +
+            "whether a sleeping creature wakes to eat (Q176, ours says no), and a prisoner - " +
+            "which cannot move and so cannot be fed (Q172)");
     }
 
     /// <summary>
@@ -465,8 +471,10 @@ public sealed class ScenarioRunner
         if (workers == 0)
         {
             unsupported.Add(
-                "none of the placed creatures is a worker, and only workers do anything at all " +
-                "yet: no creature has needs, moods, combat or a job of its own");
+                "none of the placed creatures is a worker, so nothing digs, claims, carries or " +
+                "builds in this run. Non-workers are no longer inert - they take a bed and sleep " +
+                "in it, grow hungry and walk to a hatchery to eat, get angry and walk out - but " +
+                "they still have no combat and no job of their own");
             return;
         }
 

@@ -176,8 +176,13 @@ public enum CreatureActivity
     /// <para><b>A prisoner here does nothing else at all — and in DK2 it
     /// does.</b> The owner watched prisoners <i>"rush toward that chicken, the
     /// first one to it gets it, eats it, and its health replenishes"</i>, so
-    /// they walk about their cell, they compete, and they eat. None of that can
-    /// be built until a chicken can be picked up and dropped, and
+    /// they walk about their cell, they compete, and they eat. <b>The chicken
+    /// stopped being the blocker on 2026-09-06</b> — a hatchery lays one, an imp
+    /// can carry one, and a free creature eats one (ADR-0066, ADR-0067) — so
+    /// what is left is the movement: a prisoner has no wander and no search.
+    /// The prison's own eating number is already written down in
+    /// <see cref="EatingRules.EatInPrison"/>, because <b>one bird pays off the
+    /// whole of <c>HungerFill</c></b> there where a hatchery bird pays off one.
     /// <c>MotionlessInPrisonSeconds</c> = 8 is presumably how long one stands
     /// still between moves rather than a statement that it never moves. Q172,
     /// and it is a narrowing, not a rule.</para>
@@ -200,6 +205,33 @@ public enum CreatureActivity
     /// the same load.</para>
     /// </summary>
     CarryingObject = 15,
+
+    /// <summary>
+    /// Walking to a hatchery, because it is hungry — the creature half of the
+    /// room, and the first thing a non-worker does for a reason other than
+    /// sleep.
+    ///
+    /// <para><b>A walk to a room, not to a bird.</b> The original chooses the
+    /// nearest reachable hatchery of the creature's own keeper and only looks
+    /// for a chicken once it is standing in it (<c>HungerState.cpp</c>; see
+    /// <see cref="EatingRules"/>). Arriving is therefore not the end of
+    /// anything: an empty hatchery leaves the creature standing in it, hungry,
+    /// asking again a second later.</para>
+    /// </summary>
+    SeekingFood = 16,
+
+    /// <summary>
+    /// Walking to one particular chicken it has picked out, inside the hatchery
+    /// it is standing in.
+    ///
+    /// <para><b>Nothing is reserved</b>, which is the whole character of this
+    /// state. The chosen bird's id lives on the creature and nowhere else, so
+    /// two hungry creatures may pick the same one and the one that gets there
+    /// second finds it gone and looks again — which is exactly what the owner
+    /// watched in a prison (Q172): <i>"they rush toward that chicken, the first
+    /// one to it gets it"</i>.</para>
+    /// </summary>
+    FetchingChicken = 17,
 }
 
 /// <summary>
@@ -286,31 +318,51 @@ public sealed class CreatureState
     public int Health;
 
     /// <summary>
-    /// Ticks since this creature last ate, counting up. Compared against the
-    /// record's <c>HungerRate</c> in seconds.
+    /// Ticks since the hunger clock last ticked over, counting up. Compared
+    /// against the record's <c>HungerRate</c> in seconds.
     ///
-    /// <para>Counts from spawn, so a creature arrives fed. It keeps counting
-    /// while hungry — <see cref="ChickensNeeded"/> is what says "hungry", not
-    /// this — because DK2 only resets the clock when a creature is
-    /// <i>fully</i> sated, not on each chicken.</para>
+    /// <para>This is DK2's <c>LastAteTime</c> read as an age instead of a
+    /// stamp, and it is reset by <b>both</b> of the things that reset that:
+    /// each helping of hunger the clock adds, and each chicken swallowed. So a
+    /// creature part-way through a Bile Demon's five birds is not also
+    /// accumulating a sixth.</para>
+    ///
+    /// <para>Counts from spawn, so a creature arrives fed.</para>
     /// </summary>
     public int HungerTicks;
 
     /// <summary>
-    /// How many chickens this creature still needs to be full, or 0 when it is
-    /// not hungry. Set to the record's <c>HungerFill</c> the moment hunger
-    /// arrives.
+    /// How much hunger this creature has stored up — DK2's own
+    /// <c>HungerNeed</c>, by the name its debug dump prints.
     ///
-    /// <para><b>Nothing can bring this back down yet.</b> Eating needs a
-    /// chicken; the Chicken is object 9 and nothing lays one, because a Hatchery
-    /// is a room this simulation does not have. So a
-    /// creature here becomes hungry and stays hungry — which is honest rather
-    /// than harmless, and it is why hunger costs no health: in DK2 the price of
-    /// going unfed is <i>anger</i> (the record's own <c>angerNoFood</c>), and
-    /// there is no variable anywhere in the balance table that turns hunger into
-    /// damage.</para>
+    /// <para><b>An accumulator, not a countdown from a fixed start</b>, and the
+    /// difference is observable. Every <c>HungerRate</c> seconds the original
+    /// <i>adds</i> <c>HungerFill</c> to this and nothing caps it; a creature is
+    /// hungry once it holds <c>HungerFill</c> or more, and each chicken pays off
+    /// exactly one. So a creature that goes unfed for three periods owes three
+    /// times as many birds, and eats them all when a hatchery finally
+    /// appears. Until 2026-09-06 this field was called <c>ChickensNeeded</c>
+    /// and was <i>set</i> to <c>HungerFill</c>, which saturates instead of
+    /// accumulating (<c>docs/research/eating.md</c>).</para>
+    ///
+    /// <para>Going unfed still costs no health: the price is <i>anger</i> (the
+    /// record's own <c>angerNoFood</c>), and there is no variable anywhere in
+    /// the balance table that turns hunger into damage.</para>
     /// </summary>
-    public int ChickensNeeded;
+    public int HungerNeed;
+
+    /// <summary>
+    /// Countdown to the next attempt to go and eat — DK2's
+    /// <c>LastAttemptedHunger</c> read as a countdown instead of a stamp.
+    ///
+    /// <para>A hungry creature that cannot find a hatchery does not search
+    /// again until this runs out, which is <see cref="EatingRules.RetryTicks"/>
+    /// — one game second, the original's four game ticks. It is a separate
+    /// countdown from <see cref="TimerTicks"/> on purpose: that one is the idle
+    /// re-decision an imp shares, and a creature must be able to be waiting on
+    /// both at once.</para>
+    /// </summary>
+    public int FoodAttemptTicks;
 
     // Where LairTileIndex used to be.
     //
@@ -612,7 +664,8 @@ public sealed class CreatureState
         hash.Add(GoldHeld);
         hash.Add(Health);
         hash.Add(HungerTicks);
-        hash.Add(ChickensNeeded);
+        hash.Add(HungerNeed);
+        hash.Add(FoodAttemptTicks);
         hash.Add(AwakeTicks);
         hash.Add(SleepTicks);
         hash.Add(DyingTicks);

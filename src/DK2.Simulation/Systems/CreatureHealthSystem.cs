@@ -154,13 +154,16 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
         state.HungerTicks += SimulationTiming.TicksPerSecond;
 
-        if (!CreatureHealthRules.HungerHasArrived(creature, state)) return;
-        if (!CreatureHealthRules.MakeHungry(creature, state)) return;
+        // The clock ADDS a helping and restarts; it does not raise a flag. A
+        // creature with nowhere to eat therefore accumulates, and owes every
+        // helping it missed (EatingRules.Tick, docs/research/eating.md).
+        int rate = EatingRules.HungerRateSeconds(creature);
+        if (!EatingRules.Tick(context.Database, creature, state)) return;
 
         context.Emit(SystemName, "creature_hungry",
             $"creature={state.Id} type={creature.Name} " +
-            $"player={state.OwnerPlayerId} chickens={state.ChickensNeeded} " +
-            $"after={state.HungerTicks / SimulationTiming.TicksPerSecond}s");
+            $"player={state.OwnerPlayerId} need={state.HungerNeed} " +
+            $"after={rate}s");
     }
 
     /// <summary>Counts the rescue window down, and kills what it runs out on.</summary>

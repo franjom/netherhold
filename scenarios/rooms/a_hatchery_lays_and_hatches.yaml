@@ -1,4 +1,4 @@
-# The Hatchery's clock, and the first thing in this project that puts an object
+﻿# The Hatchery's clock, and the first thing in this project that puts an object
 # on the floor without a keeper or a creature doing it.
 #
 # `HatcheryRules` has known the whole mechanism for four sittings - how many
@@ -51,11 +51,12 @@
 #
 # **What this run does NOT establish**, recorded rather than implied:
 #
-#   * **Nothing eats.** A hungry creature does not walk to a hatchery, choose a
-#     bird, or race another creature for one, and a prisoner cannot be fed -
-#     which the owner has watched happen and which is the counterplay the
-#     prison's withering exists for (Q172). This is the laying half; eating is a
-#     creature-side mechanic and is next.
+#   * **Nothing eats IN THIS RUN**, because there is no creature in it. Eating
+#     was built the same week (ADR-0067) and has a run of its own,
+#     `a_goblin_eats_a_chicken` - which also shows what this run cannot: a full
+#     hatchery starts laying again once something takes birds out of it. What is
+#     still not built is a **prisoner** eating, because a prisoner cannot move
+#     (Q172).
 #
 #   * **Every egg lands on the same tile here**, because a 3x3 has exactly one
 #     coop and the coop is chosen at random from one. A bigger room would spread

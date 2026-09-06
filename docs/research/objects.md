@@ -133,10 +133,25 @@ but that correction was proved from behaviour first, and nobody has done that
 here.
 
 **`TypeFood` falls on the Torture Pendulum** (65) as well as the Chicken (Q128).
-Either a data-entry accident or a broader meaning for the bit. Two members is too
-small a set to argue from, and nothing depends on it: the rule that will matter
-asks whether a creature can eat the thing, and a pendulum is not on a hatchery
-tile.
+Either a data-entry accident or a broader meaning for the bit.
+
+**UPDATED 2026-09-06: something does depend on it, and this paragraph used to say
+nothing did.** The sentence here was *"the rule that will matter asks whether a
+creature can eat the thing, and a pendulum is not on a hatchery tile"*. Half
+right. The original has **two** food searches and they do not use the same
+predicate (`eating.md` §6):
+
+- the **hatchery** search matches the object **id 9**, so a pendulum in a
+  hatchery is indeed not lunch — the prediction holds for the case it was
+  thought about;
+- the **prison** search matches `flags & 0x80`, which is this bit, so a pendulum
+  standing in a prison *is* food to a prisoner.
+
+Whether one can ever get there is a different question and the answer is
+probably no: the pendulum's home room is the Torture Chamber. The lesson is not
+about pendulums. **A prediction that "nothing depends on this" is a claim about
+code nobody has read yet**, and the honest form of it names the search it was
+checked against.
 
 ## 6. What this unblocks
 

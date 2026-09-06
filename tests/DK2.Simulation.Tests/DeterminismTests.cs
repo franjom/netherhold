@@ -198,7 +198,24 @@ public class DeterminismTests
         // creature that leaves a body now becomes a corpse instead of being
         // removed, and the fixture kills nobody.
         //
-        // Previous values: 0xDFF77147B12A64C3 (22), 0x6AF149EE8E20D98A (21),
+        // Bumped with HashVersion 26 -> 27 (ADR-0067): eating. The hunger
+        // clock stopped saturating and started accumulating - ChickensNeeded
+        // became HungerNeed and the periodic tick ADDS HungerFill rather than
+        // setting it - and CreatureState gained FoodAttemptTicks. The fixture's
+        // creatures are imps, which never get hungry at all, so both fields are
+        // zero for all 500 ticks and this value moved on the version and the
+        // new field's default alone. Snapshot FormatVersion went 26 -> 27 in
+        // the same commit.
+        //
+        // What did NOT move it is the point: CreatureEatSystem was registered
+        // ABOVE CreatureSleepSystem in the same commit, which changes the order
+        // every creature is offered its needs in, and the 500 ticks are
+        // identical. Imps neither eat nor sleep, so the fixture cannot see it -
+        // and saying so is worth more than the green tick, because the next
+        // fixture with a goblin in it will.
+        //
+        // Previous values: 0x154E9041172A7F7F (26),
+        // 0xDFF77147B12A64C3 (22), 0x6AF149EE8E20D98A (21),
         // 0x5E96E634C7E5037D (20),
         // 0x12E5615E803C5796 (19), 0x55BEDDA879B4A281 (18),
         // 0x6B5ECAD0E9EDB2F0 (17), 0x092072D0E7C9B04E (16),
@@ -207,7 +224,7 @@ public class DeterminismTests
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x154E9041172A7F7FUL, sim.StateHash());
+        Assert.Equal(0x0D75C57C1848268CUL, sim.StateHash());
     }
 
     [Fact]

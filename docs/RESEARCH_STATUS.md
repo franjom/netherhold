@@ -293,15 +293,15 @@ What is *built* rather than known, against the long-term goals:
   four. Either the swing cadence is not tick-locked or the 273 has another
   explanation; `SimulationTiming.TicksPerSecond` stays at 20 until that is
   settled, because `WorkApplicationPeriodTicks` would be 4 / 5 = 0.
-- **Eating.** Everything on the *room* side is now done — the Chicken is object
-  9, the world has an object list, and since ADR-0066 a hatchery lays and hatches
-  on its own clock, so there are birds on the floor. What is left is entirely the
-  creature side: how a hungry creature chooses a hatchery, walks to it, and what
-  happens when two want the same bird. **The owner has answered the last of
-  those** for prisoners at least — *"they rush toward that chicken, the first one
-  to it gets it"* — so it is a race with no reservation (Q172), and the
-  original's own search is `FUN_00473550`: nearest food object by straight-line
-  distance, within the room.
+- ~~**Eating.**~~ **BUILT 2026-09-06 (ADR-0067)**, read from the original's own
+  `HungerState.cpp` (`eating.md`). A hungry creature walks to the nearest
+  hatchery of its own keeper, chooses the nearest chicken by straight-line
+  squared distance once it is inside, and eats it for
+  `min(HpFromChicken, missing)`. Nothing is reserved, which is what the owner
+  watched prisoners do (Q172). The hunger clock stopped saturating and started
+  **accumulating**, which is a change of shape rather than of wording. What is
+  left: how the original walks it there (Q174), the post-meal wander (Q175),
+  whether a sleeper wakes to eat (Q176), and **prisoners**, which cannot move.
 - ~~**Carrying.**~~ **Done** (2026-09-05, ADR-0063/0064/0065) — it was the
   single largest blocker left and it is gone. All three of DK2's carrying task
   kinds exist: **13** (an unconscious creature to its own bed, or an enemy's to

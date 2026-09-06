@@ -4507,3 +4507,108 @@ sound banks, the last unread asset family.
    3x3 prison's capacity), Q171 (count the petals on a healthy creature — the
    prison's arrival health rests entirely on it now that the 20% variable turns
    out to be read by nothing).
+
+## Twenty-eighth sitting: a creature eats, and the 239-state table
+
+| | |
+|---|---|
+| (this commit) | **A goblin walks to the hatchery and eats a chicken** — ADR-0067; Q174–Q176 opened; HashVersion and snapshot 26 → 27 |
+
+**969 tests green**, 21 scenarios, zero warnings, clean tree, quarantine holding.
+
+### What happened
+
+The oldest "cannot" in the project closed. A creature has had a hunger clock
+since ADR-0048 and there has never been anything it could do about it — the
+reason moved from *"chickens are objects and OBJECTS is unparsed"* to *"the
+Hatchery has no clock"* to, since ADR-0066, nothing at all except that no
+creature walked anywhere for food.
+
+Read out of `HungerState.cpp`, whose name DK2 ships. The write-up is
+`docs/research/eating.md`.
+
+### The find that will keep paying: the creature state table
+
+DK2's creature states are **239 records of 25 bytes at `0x006DA8C0`**, filled at
+run time by a long straight run of `MOV`s between `0x0047bbe9` and `0x0047faeb`.
+No function contains that run, which is why a caller search on any state handler
+comes back with a single DATA reference and nothing else — the same shape Q173
+hit and could not explain.
+
+Recovering it is two steps and now scripted: list every write into the table's
+address range (`TableFill.py`), then walk the installer's linear disassembly
+tracking register values, because the handlers are stored from `EBP`/`EDI`/`ECX`
+rather than as immediates. **All 239 resolved, none unknown.** Record layout is
+id, two category bytes, a flag byte, and four function pointers at +9, +0xd,
++0x11, +0x15.
+
+`FUN_00476d30` is **SetState**, and `SetStateSites.py` lists every call to it
+with a constant argument — 329 of them — which is a state-transition graph for
+whatever mechanic comes next.
+
+**And `FUN_00479200` is the creature state object's own debug dump**, naming
+`HungerNeed`, `LastAttemptedHunger`, `LastAteTime`, `SleepNeeded`,
+`CurrentlyDoingJobId`, the whole `ImpJobData` block and the lair and prison
+sub-blocks. Third dump function this project has found, after the creature dump
+and the room dump. **Look for the dump before reading the offsets.**
+
+### What the mechanic turned out to be
+
+- **The hunger clock accumulates rather than saturates.** `HungerNeed +=
+  HungerFill` every period, capped by nothing. Ours *set* it. A creature with
+  nowhere to eat owes every helping it missed — observable, and now tested.
+- **Two tests, not one**: setting out needs `HungerNeed >= HungerFill`, carrying
+  on eating needs only `> 0`. That hysteresis is what makes `HungerFill` mean
+  *chickens needed to be full* when each bird pays off one.
+- **One bird fills a prisoner** where five fill a free Bile Demon: the prison
+  path passes the level-scaled `HungerFill` to the same subtract the hatchery
+  path passes a literal 1 to.
+- **Nothing is reserved.** The chosen bird's id lives on the creature and nowhere
+  else, which is the owner's *"the first one to it gets it"* exactly.
+- **Hunger is asked before sleep**, because the needs routine asks it first and
+  returns early on success.
+- Three fields pinned through the loader rather than by eye: `HungerFill` at
+  `def+0x66d`, `Hp` at `+0x692`, `HpFromChicken` at `+0x694` — and the loader's
+  own `× V19` and `>> 12` corroborate Q132 for free.
+
+### The stale-claim instance, and it is a new shape
+
+`HatcheryRules` said *"only the Chicken carries `ObjectFlags.TypeFood`"*.
+`objects.md` had said the opposite for weeks — the **Torture Pendulum** carries
+it too — and had added *"nothing depends on it: a pendulum is not on a hatchery
+tile"*.
+
+Both halves matter, and the research note was half wrong in a way worth naming.
+The original has **two** food searches with **different predicates**: the
+hatchery matches the object id 9, the prison matches the flag. So the prediction
+held for the search it had thought about and failed for the one it had not.
+**"Nothing depends on this" is a claim about code nobody has read yet**, and the
+honest form of it names the search it was checked against.
+
+### An interaction nobody wrote
+
+A hatchery stops laying at one bird per tile. A creature eating takes a bird out.
+So a full hatchery **starts laying again** — visible in the new scenario at
+t3919, after two goblins ate at t3782 and t3811. First place in this project
+where two mechanics feed each other without being told to.
+
+### Where the next session should start
+
+1. **Prisoners moving** (Q172). Everything else it waited on is gone: the
+   chicken exists, an imp can carry one, a free creature eats one, and the
+   prison's own eating number is already written down in
+   `EatingRules.EatInPrison`. What is missing is a wander and a search, and
+   `PrisonState.cpp`'s states are 0x72–0x77 in the table above with their
+   handlers already named.
+2. **Q174** — decode the state records' category bytes (+6, +7) and the
+   0x40-byte-per-category table at `0x00699688`, whose entries carry leave and
+   enter hooks. That answers how a hungry creature walks to the hatchery, and it
+   is the same table `SetState`'s legality check reads, so it pays for itself
+   across every future mechanic.
+3. **Q173**, unchanged, and now cheaper: the table-recovery scripts above are
+   exactly what it needed.
+4. **Five owner questions, all one glance**, at the top of
+   `observation-checklist.md`: Q159 (time a slap), Q166 (count a 3x3 prison),
+   Q171 (count the petals), Q162 (drop an imp two tiles out), and new — **Q176**
+   (does a sleeping creature get up to eat?).
+

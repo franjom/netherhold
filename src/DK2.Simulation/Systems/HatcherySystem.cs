@@ -25,11 +25,13 @@ namespace DK2.Simulation.Systems;
 /// blocker had been gone for a day while three documents still named it. Fifth
 /// instance of a claim nothing checks (ADR-0066).</para>
 ///
-/// <para><b>What this does not do.</b> Nothing eats. A hungry creature does not
-/// walk to a hatchery, choose a bird, or race another creature for it, and a
-/// prisoner cannot be fed — all of which the owner has watched and none of which
-/// is built (Q172). This lays and hatches; the eating half is the next
-/// mechanic, and it is a creature-side job rather than a room-side one.</para>
+/// <para><b>The eating half arrived the same week</b>
+/// (<see cref="CreatureEatSystem"/>, ADR-0067): a hungry creature walks here,
+/// picks the nearest bird once it is inside and eats it — which also means a
+/// hatchery that had stopped at its one-bird-per-tile ceiling starts laying
+/// again, because something is taking birds out of it. Nobody wrote that
+/// interaction. What is still missing is a <b>prisoner</b>, which cannot move
+/// and so cannot be fed (Q172).</para>
 ///
 /// <para>Registered after <see cref="PortalSystem"/>, which is the other system
 /// that makes something out of a room, and on the same once-a-game-second

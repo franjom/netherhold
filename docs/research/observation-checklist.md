@@ -20,11 +20,12 @@ something does *not* happen closes a question just as hard.
 
 ---
 
-## READ THIS FIRST — the four for tomorrow (2026-09-06)
+## READ THIS FIRST — the five for tomorrow (2026-09-06)
 
-Everything else on this page is history or is longer. These four are what the
-next sitting is actually waiting on, in order, and **all four together are about
-twenty minutes of play**. Each one has a fuller write-up further down.
+Everything else on this page is history or is longer. These five are what the
+next sitting is actually waiting on, in order, and **all of them together are
+about twenty-five minutes of play**. Each one has a fuller write-up further
+down.
 
 | # | Do this | Watch for | If the answer is... |
 |---|---|---|---|
@@ -32,9 +33,13 @@ twenty minutes of play**. Each one has a fuller write-up further down.
 | **2** | **Build a 3×3 prison. Beat enemies down until imps stop collecting them. Count the prisoners** (Q166) | how many fit | **9** and "one per tile" is right; anything else and `PrisonRules.Capacity` is wrong. Also worth noting whether the door-bar limit is separate |
 | **3** | **Count the petals on a healthy creature's flower** (Q171) | how many there are when it is unhurt | **Ten** and every health percentage in the game becomes readable by eye — and the prison's arithmetic is right. **Eight** and `PrisonRules` is wrong by a quarter |
 | **4** | **Drop an imp *two* tiles from a marked wall** (Q162) | 90% or 80% | **90%** and the aim reaches further than the four neighbours this project checks |
+| **5** | **Let a creature fall asleep, then wait for its hunger** (Q176) | does it get up and walk to the hatchery, or sleep through it? | **Gets up** and `CreatureEatSystem` should stop skipping sleepers; **sleeps through** and the narrowing it already has is right. New with eating (ADR-0067), and it decides whether hunger can interrupt the heal that sleep is for |
 
 **Nothing on this list needs a save game or a stopwatch except #1**, and #1 only
-needs a wristwatch — 25 and 60 are far enough apart.
+needs a wristwatch — 25 and 60 are far enough apart. #5 wants a hatchery, a lair
+and enough patience for a creature's `HungerRate` (180 seconds for a Goblin) to
+come round while it is asleep; a wounded creature makes it easier, since it will
+go to bed on its own.
 
 A "no" is worth as much as a "yes".
 

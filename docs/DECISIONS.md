@@ -4921,3 +4921,103 @@ draft did and what a test caught.
 - **Free-range chickens.** `MaxFreeRangeChickensPerPlayer` (12) caps birds
   outside a room in the original; nothing here takes a chicken out of one, so the
   cap has nothing to count.
+
+## ADR-0067 — A creature eats, and the hunger clock stops saturating
+
+**Status:** Accepted (2026-09-06). Research: `docs/research/eating.md`. Scenario:
+`a_goblin_eats_a_chicken`. Questions opened: Q174, Q175, Q176.
+
+### Context
+
+The oldest "cannot" in the project. A creature has had a hunger clock since
+ADR-0048 and there has never been anything it could do about it: the scenario
+`a_goblin_gets_hungry` ends with *"and then nothing"*, three times over.
+
+The reason moved twice. It was *"chickens are objects and OBJECTS is
+unparsed"*, then *"the Hatchery has no clock"* (Q132, removed by ADR-0066), and
+after that it was simply the creature side: nothing walked anywhere for food.
+
+The binary was read on 2026-09-06 — `HungerState.cpp`, whose name DK2 ships, and
+the 239-record creature state table that had never been recovered before.
+
+### Decision
+
+`EatingRules` + `CreatureEatSystem`, following the original's states one for one:
+walk to the room, choose the bird on arrival, walk to the bird, eat it.
+
+**The hunger clock accumulates.** This is the part that changed shape rather
+than grew. `CreatureState.ChickensNeeded` was *set* to `HungerFill` when the
+period elapsed; DK2 keeps an accumulator its own dump calls **`HungerNeed`** and
+does `HungerNeed += HungerFill` every period, capping nothing. So a creature with
+nowhere to eat owes every helping it missed, and eats them all when a hatchery
+finally appears. The field is renamed and a test states the difference.
+
+**Two tests, not one.** Setting out needs `HungerNeed >= HungerFill`; carrying on
+eating needs only `HungerNeed > 0`. That hysteresis is the original's — it
+computes `HungerNeed != 0` the instant a bird goes down and branches on it — and
+it is what makes `HungerFill` mean *chickens needed to be full* even though each
+bird pays off exactly one.
+
+**One bird fills a prisoner.** The hatchery path passes a literal 1 to the
+subtract; the prison path passes the level-scaled `HungerFill`. So a caged Bile
+Demon is filled by one chicken where a free one eats five.
+`EatingRules.EatInPrison` carries the number and nothing calls it yet, because a
+prisoner still cannot move (Q172) — written down where the mechanic will need it
+rather than guessed at then.
+
+**Nothing is reserved.** The chosen bird's id lives on the creature and nowhere
+else. Two hungry creatures may pick the same one and the loser searches again —
+which is exactly what the owner watched prisoners do (Q172): *"they rush toward
+that chicken, the first one to it gets it"*.
+
+**Hunger is asked before sleep**, because the original's needs routine asks it
+first and returns early on success. `CreatureEatSystem` is registered above
+`CreatureSleepSystem` for that reason, and the determinism fixture — all imps —
+cannot see the difference, which the pin's comment says out loud.
+
+### Consequences
+
+- `HashVersion` and snapshot `FormatVersion` 26 → 27.
+- `CreatureState` gains `HungerNeed` (renamed) and `FoodAttemptTicks`; two
+  activities, `SeekingFood` and `FetchingChicken`.
+- `CreatureStatId` gains `HungerFill = 9`, which is 100% at every level in the
+  shipped table — applied anyway, with a real-data test asserting the row is
+  flat so that the day it stops being flat is a data change and not a surprise.
+- The fixture gains a **Bile Demon**, for one number: `HungerFill` 5 is the only
+  value in the game that tells the two ways of paying off hunger apart.
+- 20 tests in `EatingTests`, 4 in `CreatureNeedsOnRealDataTests`.
+- **A hatchery that had stopped laying starts again**, because eating takes birds
+  out of a room with a one-per-tile ceiling. Nobody wrote that; it is the first
+  place two mechanics in this project feed each other without being told to, and
+  the scenario shows it at t3919.
+
+### Two documents in one repository that disagreed
+
+`HatcheryRules` said *"only the Chicken carries `ObjectFlags.TypeFood`"*.
+`objects.md` had said the opposite since the OBJECTS record was first read —
+*"`TypeFood` falls on the Torture Pendulum (65) as well as the Chicken (Q128) …
+nothing depends on it: the rule that will matter asks whether a creature can eat
+the thing, and a pendulum is not on a hatchery tile."*
+
+Both halves of that turn out to matter. The research note was right about the
+count and right about the hatchery — the hatchery search matches the object
+**id** 9, so a pendulum in a hatchery is not lunch. It was wrong about "nothing
+depends on it": **the prison search matches the flag**, and a pendulum standing
+in a prison is food to a prisoner by the original's own predicate.
+
+Which is the interesting failure mode rather than the ordinary one. Nobody
+asserted anything false out of carelessness; a code comment generalised a true
+statement about three objects into a false one about 145, and a research note
+predicted the consequence would never arise from the one search it had thought
+about. A real-data test counts the flag now, and `eating.md` §6 states both
+predicates side by side.
+
+### Still open
+
+- **How the original walks a hungry creature to the hatchery** (Q174). Its
+  in-room search state fails outright when the creature is not already in one,
+  and the state that does the walk has one caller, a fallback for a particular
+  player id. This composes the two.
+- **The post-meal wander** (Q175) and **whether a sleeper wakes to eat** (Q176).
+- **Prisoners still cannot eat**, because they cannot move.
+

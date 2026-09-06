@@ -62,9 +62,15 @@ public static class HatcheryRules
     /// <summary>
     /// What a hatchery lays: <b>47, the Egg</b> — and <i>not</i> 9, the Chicken.
     ///
-    /// <para>Two different objects. Only the Chicken carries
+    /// <para>Two different objects. Of the three a hatchery deals in — coop, egg
+    /// and chicken — only the Chicken carries
     /// <see cref="ObjectFlags.TypeFood"/>, and only the Chicken has a creature's
-    /// <c>HpFromChicken</c> against it (375 for a Goblin). So something turns an
+    /// <c>HpFromChicken</c> against it (375 for a Goblin). <b>It is not the only
+    /// object in the game with that flag</b>, which this comment said until
+    /// 2026-09-06: the <b>Torture Pendulum</b> (65) carries it too, and the
+    /// difference matters because the original's prison food search matches the
+    /// flag where its hatchery search matches the id
+    /// (<c>docs/research/eating.md</c> §6). So something turns an
     /// egg into a chicken and this project had never accounted for it; the
     /// objects' differing <c>StartState</c> — 0 for the egg, 10 for the
     /// chicken — says both have a state machine to do it in. <b>Q133</b>, and
@@ -75,6 +81,10 @@ public static class HatcheryRules
     /// <summary>
     /// The Chicken itself, object <b>9</b> — what an egg becomes, and the only
     /// one of the three a creature can eat.
+    ///
+    /// <para><b>The id, not the flag</b>, is what the original's hatchery search
+    /// matches on (<see cref="EatingRules.IsEdibleChicken"/>). Its prison search
+    /// matches the flag instead, and the two are not the same set.</para>
     /// </summary>
     public const byte ChickenObjectId = 9;
 

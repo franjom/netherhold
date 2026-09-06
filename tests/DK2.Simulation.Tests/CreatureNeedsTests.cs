@@ -301,10 +301,10 @@ public class CreatureNeedsTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Run(Second * 179);
-        Assert.Equal(0, goblin.ChickensNeeded);
+        Assert.Equal(0, goblin.HungerNeed);
 
         sim.Run(Second);
-        Assert.Equal(1, goblin.ChickensNeeded);
+        Assert.Equal(1, goblin.HungerNeed);
     }
 
     [Fact]
@@ -317,7 +317,7 @@ public class CreatureNeedsTests
 
         Simulation(db, world).Run(Second * 600);
 
-        Assert.Equal(0, imp.ChickensNeeded);
+        Assert.Equal(0, imp.HungerNeed);
         Assert.Equal(0, imp.HungerTicks);   // the clock does not even run
     }
 
@@ -335,30 +335,53 @@ public class CreatureNeedsTests
 
         Simulation(db, world).Run(Second * 600);
 
-        Assert.Equal(1, goblin.ChickensNeeded);     // hungry, and stays hungry
+        // 600 seconds is three helpings of a Goblin's 180-second rate, and the
+        // need ACCUMULATES: DK2 adds HungerFill each time and caps nothing, so
+        // a creature with nowhere to eat owes every helping it missed
+        // (docs/research/eating.md). It was 1 here until 2026-09-06, when the
+        // clock stopped being a flag.
+        Assert.Equal(3, goblin.HungerNeed);
         Assert.Equal(1500, goblin.Health);          // and entirely unharmed
     }
 
     [Fact]
-    public void EatingCountsDownAndOnlyTheLastChickenResetsTheClock()
+    public void TheHungerClockAccumulatesRatherThanSaturating()
+    {
+        // The whole of what changed on 2026-09-06, stated as a difference
+        // rather than as a number: two periods owe twice as much as one.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Run(Second * 180);
+        Assert.Equal(1, goblin.HungerNeed);
+
+        sim.Run(Second * 180);
+        Assert.Equal(2, goblin.HungerNeed);
+    }
+
+    [Fact]
+    public void EachChickenPaysOffOneAndRestartsTheClock()
     {
         GameDatabase db = Db;
         CreatureDef goblin = db.CreatureById(GoblinId);
         WorldState world = World(db);
         CreatureState state = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
 
-        state.ChickensNeeded = 2;           // as a Warlock would be
+        state.HungerNeed = 2;               // two helpings owed
         state.HungerTicks = 999;
         state.Health = 500;
 
         CreatureHealthRules.Eat(db, goblin, state);
-        Assert.Equal(1, state.ChickensNeeded);
-        Assert.Equal(999, state.HungerTicks);       // still hungry, clock runs on
+        Assert.Equal(1, state.HungerNeed);
+        Assert.Equal(0, state.HungerTicks);         // EVERY chicken restarts it
         Assert.Equal(875, state.Health);            // 375 from the chicken
 
+        state.HungerTicks = 999;
         CreatureHealthRules.Eat(db, goblin, state);
-        Assert.Equal(0, state.ChickensNeeded);
-        Assert.Equal(0, state.HungerTicks);         // full: the clock restarts
+        Assert.Equal(0, state.HungerNeed);
+        Assert.Equal(0, state.HungerTicks);
     }
 
     // ---- terrain health deltas --------------------------------------------
@@ -675,7 +698,7 @@ public class CreatureNeedsTests
         // ticked. From then on the clock is frozen: a creature lying on the
         // floor is not working towards its next meal.
         Assert.Equal(Second, goblin.HungerTicks);
-        Assert.Equal(0, goblin.ChickensNeeded);
+        Assert.Equal(0, goblin.HungerNeed);
     }
 
     [Fact]

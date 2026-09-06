@@ -157,7 +157,7 @@ internal static class Dk2TerrainFixture
             R(RoomTypeId.Library, "Library", 600, LibraryTerrain, 0x11ACu, 3, 3,
               objectIds: [BookCaseObjectId, ResearchBookObjectId]),
         ],
-        creatures: [Imp(), Goblin(), Vampire(), Skeleton(), .. extraCreatures],
+        creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), .. extraCreatures],
         variables: Variables(),
         keeperSpells: KeeperSpells(),
         objects: Objects());
@@ -767,6 +767,44 @@ internal static class Dk2TerrainFixture
         HappyJobs = [new(JobType.Train, 0, 0, 100)],
         UnhappyJobs = [new(JobType.Guard, 0, 0, 100)],
         AngryJobs = [new(JobType.Rebel, 0, 0, 100)],
+    };
+
+    public const byte BileDemonCreatureId = 3;
+
+    /// <summary>
+    /// The Bile Demon, and it is in this fixture for exactly one number:
+    /// <c>hungerFill</c> is <b>5</b> where every other creature here is 1 or 0.
+    ///
+    /// <para>That number is the difference between the two ways DK2 pays off
+    /// hunger. A chicken eaten in a <b>hatchery</b> pays off one, so a Bile
+    /// Demon's meal is five birds; a chicken eaten in a <b>prison</b> pays off
+    /// the whole of <c>HungerFill</c>, so a caged one is filled by a single
+    /// bird (<c>docs/research/eating.md</c>, ADR-0067). With only
+    /// <c>hungerFill</c> 1 in the fixture the two rules are indistinguishable,
+    /// which is the whole reason this creature exists here.</para>
+    ///
+    /// <para>Its hunger and sleep numbers are the shipped record's — 6000
+    /// health, 220 seconds between meals, five chickens to fill, 200 health a
+    /// chicken, 270 awake and 9 asleep — and the rest is the Goblin's, because
+    /// nothing here reads the rest.</para>
+    /// </summary>
+    public static CreatureDef BileDemon() => Goblin() with
+    {
+        Name = "Bile Demon",
+        CreatureId = BileDemonCreatureId,
+
+        Hp = 6000,
+        MeleeDamage = 525,
+        Pay = 600,
+        Fear = 300,
+        Threat = 120,
+
+        HungerRate = Fp32.FromDouble(220),
+        HungerFill = 5,
+        HpFromChicken = 200,
+        TimeAwake = 270,
+        TimeSleep = 9,
+        LairObjectId = 18,
     };
 
     /// <summary>The ten tile-work health deltas, the gems yield, the imp idle delay,

@@ -273,8 +273,13 @@ it, and its shipped-variable support is gone (Q171).
   What is still ours is the **petal count** the arithmetic rests on (Q171).
 - **A prisoner does nothing at all**, and in the original it does three things:
   it moves about its cell, it races the other prisoners to a chicken dropped
-  among them, and it eats one (Q172). All three wait on the same thing — an
-  object a keeper can pick up and drop. **The original's own search is
+  among them, and it eats one (Q172). **They no longer wait on the same thing.**
+  The chicken exists (ADR-0066), an imp can carry one (ADR-0065), and a free
+  creature eats one (ADR-0067) — so what a prisoner is missing is only the
+  **movement**: it has no wander and no search. Its own eating number is already
+  written down in `EatingRules.EatInPrison`, because **one bird pays off the
+  whole of `HungerFill`** in a prison where a hatchery bird pays off one, which
+  is in the binary and not a simplification. **The original's own search is
   `FUN_00473550`**: it walks the prison's slabs for the nearest *object* whose
   definition carries flag `0x80`, picks the nearest by straight-line distance,
   and **when there is none it applies the creature's `AngerNoFood`** — so a

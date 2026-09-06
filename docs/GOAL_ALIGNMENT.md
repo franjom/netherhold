@@ -892,3 +892,53 @@ from `Math.Pow` and compares — so the table is provably the formula while the
 simulation never touches a float. **Any constant derived from a transcendental
 function and then truncated is this hazard**, and this is the first one this
 project has hit.
+
+---
+
+## 2026-09-06, later: the seventh clause — a prediction is a claim too
+
+An eighth instance, and it is not a wrong statement. It is a **correct statement
+with a wrong consequence attached**.
+
+`objects.md` recorded, correctly, that `TypeFood` falls on the **Torture
+Pendulum** (65) as well as the Chicken (9) — and then added:
+
+> Two members is too small a set to argue from, and **nothing depends on it**:
+> the rule that will matter asks whether a creature can eat the thing, and a
+> pendulum is not on a hatchery tile.
+
+Meanwhile `HatcheryRules`, in the same repository, asserted the flat opposite of
+the fact — *"only the Chicken carries `ObjectFlags.TypeFood`"* — and nothing
+noticed the two documents disagreeing.
+
+Reading the original's eating states settled both. There are **two** food
+searches and they do not use the same predicate: the **hatchery** search matches
+the object **id 9**, the **prison** search matches the **flag**. So the
+prediction was right about the search it had thought about and wrong about the
+one it had not — a pendulum in a prison is food to a prisoner by the original's
+own test.
+
+Nothing broke, because a pendulum's home room is the Torture Chamber and it will
+never be in a prison. That is luck, not design, and luck is not a review
+standard.
+
+### The seventh clause
+
+> what would fail if this claim stopped being true? · does anything read this
+> fact at all? · could this check pass while the thing it checks is wrong? · is
+> this justification still true, and would anybody notice? · when a comment says
+> a difference is unobservable, does it name the observation that would settle
+> it? · does a statement about the original rest on a reading that names its own
+> gap? · when a question is answered, grep for everything that cites it as a
+> blocker — and now:
+>
+> **"nothing depends on this" is a claim about code nobody has read yet.** Write
+> it in the form that can be checked: *nothing in `<the routine you actually
+> read>` depends on this*. A dismissal with no scope is indistinguishable from a
+> dismissal that is wrong.
+
+The mechanical half is cheaper still and it caught this one: **when the same
+fact is stated in two places, make one of them a test.**
+`CreatureNeedsOnRealDataTests` counts the food flag now. Both documents can then
+say whatever they like; only one of them can be wrong for long.
+

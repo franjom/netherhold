@@ -89,9 +89,10 @@ produces creatures; a **lair** attracts them *and* holds one bed per tile, which
 a creature claims, walks to, sleeps in and is healed by; and a **hatchery** knows
 how many coops its size earns, how big a flock it holds, and — since ADR-0066 —
 **it lays on its own clock**: an egg every few seconds depending on its size, a
-chicken two seconds later, stopping at one bird per tile. A prison holds the
-enemies an imp drags in and withers them into Skeletons. Every other room is
-inert terrain that somebody owns.
+chicken two seconds later, stopping at one bird per tile — and **since ADR-0067
+hungry creatures come and eat those birds**, which starts a full hatchery laying
+again. A prison holds the enemies an imp drags in and withers them into
+Skeletons. Every other room is inert terrain that somebody owns.
 
 ### `commands[].build`
 
@@ -187,12 +188,12 @@ What a run still cannot tell you:
   tick rate is unmeasured (Q1). Tick numbers in a report are ordering, not time.
 - **What a creature is.** Health, hunger, sleep in its own bed, anger with a
   measured ceiling, and levels with experience — all built. What is missing is a
-  **job**: nothing decides what a non-worker does with its day. A hungry creature
-  still stays hungry, and takes no damage for it, because DK2 charges anger and
-  now so do we. **The reason it cannot eat has changed again**: the Chicken is
-  object 9, the world has an object list, and the hatchery now lays and hatches
-  on its own clock (ADR-0066) — so the birds are there. What is left is only a
-  creature that walks over and eats one.
+  **job**: nothing decides what a non-worker does with its day. **Eating is no
+  longer on this list** (ADR-0067): a hungry creature walks to the nearest
+  hatchery of its own keeper, picks the nearest chicken once it is inside, and
+  eats it for `min(HpFromChicken, missing)`. Going unfed still costs no health,
+  because DK2 charges anger and now so do we. What eating still cannot do:
+  a **prisoner** cannot be fed, because a prisoner cannot move (Q172).
 - **What a room does.** A treasury and a dungeon heart hold gold; a portal
   produces creatures; a lair attracts them and holds a bed per tile that heals
   its owner **while asleep in it**, not whatever stands on it; a hatchery is

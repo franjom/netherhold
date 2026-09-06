@@ -1,4 +1,4 @@
-# Creatures with needs, next to one that has none.
+﻿# Creatures with needs, next to one that has none.
 #
 # Three **Goblins** and an **Imp** are placed and nothing else happens. A goblin
 # gets hungry every 180 seconds, sleeps every 240, and has a bed of its own
@@ -21,17 +21,23 @@
 #           yet, so the only visible consequence is that it never sleeps and
 #           would never recover from a wound. Q105.
 #
-#   t3599   `creature_hungry ... chickens=1 after=180s`  — all three
-#           Exactly the record's HungerRate, and one chicken, which is its
-#           HungerFill. A Bile Demon would say five. t3599 and not t3600 because
-#           the health system runs on the *last* tick of each game second, the
-#           same phase ManaSystem uses; 3599 is 20x180 - 1.
+#   t3599   `creature_hungry ... need=1 after=180s`  — all three
+#           Exactly the record's HungerRate, and one helping of hunger, which is
+#           its HungerFill. A Bile Demon would say five. t3599 and not t3600
+#           because the health system runs on the *last* tick of each game
+#           second, the same phase ManaSystem uses; 3599 is 20x180 - 1.
 #
-#           And then nothing. **They stay hungry for the rest of the run**,
-#           because eating needs chickens, chickens are objects, and OBJECTS is
-#           unparsed (M6). It costs them no health, and that is a finding rather
+#           `need=`, not `chickens=`, since ADR-0067: DK2 keeps an accumulator
+#           it calls HungerNeed and *adds* HungerFill to it every period rather
+#           than raising a flag, so a creature with nowhere to eat owes every
+#           helping it missed. **Which is exactly what happens here** - there is
+#           no hatchery on this map, so they go on owing more of it for the rest
+#           of the run. It costs them no health, and that is a finding rather
 #           than mercy: 21 health variables and nine anger ones were searched and
 #           there is no starvation. DK2 charges anger for going unfed.
+#
+#           What a hungry creature does when there IS a hatchery is
+#           `a_goblin_eats_a_chicken`.
 #
 #   t4799   `going_to_sleep ... to=(5,5) steps=3 health=1500/1500`
 #           240 seconds awake, which is TimeAwake. Note it walks — three tiles —

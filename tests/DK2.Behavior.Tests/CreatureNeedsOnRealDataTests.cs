@@ -286,12 +286,90 @@ public class CreatureNeedsOnRealDataTests
             CreatureTypeId = jack.CreatureId,
             OwnerPlayerId = 3,
             Health = 1,
-            ChickensNeeded = 2,
+            HungerNeed = 2,
         };
 
         CreatureHealthRules.Eat(db, jack, state);
 
         Assert.Equal(240, state.Health);
+    }
+
+    // ---- eating (ADR-0067) ------------------------------------------------
+
+    [Fact]
+    public void TheBileDemonsHungerNumbersAreWhatTheFixtureSaysTheyAre()
+    {
+        // The fixture grew a Bile Demon for one number: hungerFill 5, the only
+        // value in the game that tells the two ways of paying off hunger apart.
+        string? install = Install();
+        if (install is null) return;
+
+        CreatureDef demon = GameDatabaseLoader.Load(install).CreatureByName("Bile Demon")!;
+
+        Assert.Equal(3, demon.CreatureId);
+        Assert.Equal(6000, demon.Hp);
+        Assert.Equal(200, demon.HpFromChicken);
+        Assert.Equal(5, demon.HungerFill);
+        Assert.Equal(220, Seconds(demon.HungerRate));
+        Assert.Equal(270, demon.TimeAwake);
+        Assert.Equal(9, demon.TimeSleep);
+    }
+
+    [Fact]
+    public void HungerFillIsOneForNearlyEverybodyAndFiveIsTheOutlier()
+    {
+        // What makes the accumulate-and-pay-one rule visible at all. If every
+        // creature needed one chicken, "each bird pays off one" and "each bird
+        // fills you up" would be the same sentence and the prison's difference
+        // would be unobservable.
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        var fills = db.Creatures.Values
+            .Where(c => c.HungerFill > 0)
+            .GroupBy(c => (int)c.HungerFill)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        Assert.True(fills.ContainsKey(5), "no creature needs five chickens");
+        Assert.True(fills.Keys.Max() >= 2, "no creature needs more than one chicken");
+    }
+
+    [Fact]
+    public void CreatureStatRowNineNeverScalesAnythingInTheShippedTable()
+    {
+        // EatingRules puts HungerFill through stat row 9 because the original
+        // does. This is the test that says the scaling is invisible in the
+        // shipped data — so if it ever stops being invisible, it is because
+        // somebody changed the table and not because we invented a curve.
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        for (int level = 1; level <= CreatureLevelRules.MaxLevel; level++)
+        {
+            Assert.Equal(
+                100, CreatureLevelRules.Percent(db, CreatureStatId.HungerFill, level));
+        }
+    }
+
+    [Fact]
+    public void TwoObjectsCarryTheFoodFlagAndOnlyOneOfThemIsTheChicken()
+    {
+        // The original's two food searches do not agree on their test: the
+        // hatchery matches the object id 9, the prison matches TypeFood. That
+        // is only a difference if more than one object carries the flag — and
+        // this is where the repo said "only the Chicken carries TypeFood" until
+        // 2026-09-06, when somebody counted.
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        var food = db.Objects.Values.Where(o => o.IsFood).ToList();
+
+        Assert.Equal(2, food.Count);
+        Assert.Contains(food, o => o.ObjectId == HatcheryRules.ChickenObjectId);
+        Assert.Contains(food, o => o.Name.Contains("Pendulum"));
     }
 
     // ---- beds ------------------------------------------------------------

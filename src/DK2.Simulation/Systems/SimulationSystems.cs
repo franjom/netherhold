@@ -100,6 +100,11 @@ public static class SimulationSystems
         // The other room that makes something. Coops, eggs and chickens, once a
         // game second - the laying half of eating (ADR-0066). Nothing eats yet.
         new HatcherySystem(),
+        // Hunger is asked BEFORE tiredness, which is the order the original's
+        // own needs routine has: its hunger block short-circuits and returns
+        // before the sleep block is reached (docs/research/eating.md).
+        new CreatureEatSystem(),
+
         new CreatureSleepSystem(),
         new CreatureHealthSystem(),
 

@@ -61,6 +61,8 @@ public static class AssetCatalogue
         "imprisoned",
         "fetching_object",
         "carrying_object",
+        "seeking_food",
+        "fetching_chicken",
     ];
 
     /// <summary>

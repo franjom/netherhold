@@ -315,55 +315,34 @@ public static class CreatureHealthRules
     public static bool CanGetHungry(CreatureDef creature) => creature.HungerFill > 0;
 
     /// <summary>
-    /// Whether enough time has passed since this creature last ate.
+    /// Whether this creature owes chickens — <c>HungerNeed &gt;= HungerFill</c>,
+    /// the original's own test, delegated to <see cref="EatingRules.IsHungry"/>
+    /// so that there is one copy of it.
     ///
-    /// <para><c>HungerRate</c> is in <b>seconds</b> — 180 for a Goblin, 220 for
-    /// a Bile Demon — and is compared against time since the last full meal, not
-    /// since the last chicken. A creature part-way through its chickens is
-    /// already hungry and stays so; the clock only resets when it is
-    /// <i>full</i>.</para>
+    /// <para><b>This used to be a stopwatch and is now a level.</b> It read
+    /// "has <c>HungerRate</c> elapsed, or is a meal already outstanding"; DK2
+    /// asks only the second question, because its clock <i>adds</i> to
+    /// <c>HungerNeed</c> rather than raising a flag
+    /// (<see cref="EatingRules.Tick"/>, <c>docs/research/eating.md</c>).</para>
     /// </summary>
-    public static bool HungerHasArrived(CreatureDef creature, CreatureState state)
-    {
-        if (!CanGetHungry(creature)) return false;
-        if (state.ChickensNeeded > 0) return true;
-
-        int rate = creature.HungerRate.Raw / Fp32.One;
-        return rate > 0 && rate < Never
-            && state.HungerTicks >= SimulationTiming.TicksFromSeconds(rate);
-    }
+    public static bool HungerHasArrived(
+        GameDatabase database, CreatureDef creature, CreatureState state) =>
+        CanGetHungry(creature) && EatingRules.IsHungry(database, creature, state);
 
     /// <summary>
-    /// Marks a creature hungry: it now needs <c>HungerFill</c> chickens. Returns
-    /// false if it was already hungry or never gets hungry.
-    /// </summary>
-    public static bool MakeHungry(CreatureDef creature, CreatureState state)
-    {
-        if (!CanGetHungry(creature) || state.ChickensNeeded > 0) return false;
-
-        state.ChickensNeeded = creature.HungerFill;
-        return true;
-    }
-
-    /// <summary>
-    /// One chicken eaten: it counts down the hunger and restores
-    /// <c>HpFromChicken</c>. When the last one goes down the creature is full
-    /// and its clock restarts.
+    /// One chicken eaten in a hatchery: it pays off one of the
+    /// <c>HungerNeed</c>, restarts the hunger clock and restores
+    /// <c>HpFromChicken</c> — capped, as always, at the level-scaled maximum.
     ///
-    /// <para><b>Nothing calls this yet</b> — there are no chickens to eat (M6) —
-    /// and it exists for the same reason <see cref="WorldState.RemoveCreature"/>
-    /// does: the counting rule is the part worth getting right and it can be
-    /// tested now, whereas waiting for the hatchery would mean writing it
-    /// blind. Note <c>HpFromChicken</c> is <b>0 for the Firefly</b> even though
-    /// it eats two, so a chicken is not guaranteed to heal.</para>
+    /// <para>Note <c>HpFromChicken</c> is <b>0 for the Firefly</b> even though
+    /// it eats two, so a chicken is not guaranteed to heal, and <b>250 for
+    /// Jack</b>, whose whole maximum is 240 — which is what makes the clamp
+    /// load-bearing rather than defensive.</para>
     /// </summary>
     public static void Eat(GameDatabase database, CreatureDef creature, CreatureState state)
     {
-        if (state.ChickensNeeded <= 0) return;
+        if (!EatingRules.StillOwesFood(state)) return;
 
-        state.ChickensNeeded--;
-        if (state.ChickensNeeded == 0) state.HungerTicks = 0;
-
-        Apply(database, creature, state, creature.HpFromChicken);
+        EatingRules.Eat(database, creature, state);
     }
 }

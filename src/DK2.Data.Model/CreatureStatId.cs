@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -44,6 +44,16 @@ public enum CreatureStatId
     Pay = 5,
 
     MaxGoldHeld = 6,
+
+    /// <summary>
+    /// How many chickens fill this creature up — and, in the original, both the
+    /// amount one hunger period adds to <c>HungerNeed</c> and the level at which
+    /// a creature goes looking for a bird. <b>100% at every level in the shipped
+    /// table</b>, so it scales nothing; named because <c>EatingRules</c> applies
+    /// it, and applying it is what the original's hunger routine does
+    /// (<c>docs/research/eating.md</c>).
+    /// </summary>
+    HungerFill = 9,
 
     /// <summary>
     /// Experience needed for the next level: 130% at level 2 rising to

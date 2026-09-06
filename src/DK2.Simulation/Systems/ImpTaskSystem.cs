@@ -220,9 +220,10 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
             // Nor does a prisoner HERE, and that is a stated narrowing rather
             // than a rule: DK2's prisoners move about their cell and rush a
-            // chicken dropped among them (Q172, owner). Nothing can drop one
-            // yet, so a prisoner stands still and its second belongs to
-            // PrisonSystem (ADR-0064).
+            // chicken dropped among them (Q172, owner). The chicken exists now
+            // and free creatures eat it (ADR-0067); what a prisoner still has
+            // is no wander and no search, so it stands still and its second
+            // belongs to PrisonSystem (ADR-0064).
             if (PrisonRules.IsImprisoned(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
 
