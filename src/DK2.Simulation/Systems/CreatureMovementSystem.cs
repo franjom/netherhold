@@ -81,13 +81,13 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             // not act until it is put down (HandRules.IsHeld, ADR-0062).
             if (HandRules.IsHeld(creature)) continue;
 
-            // Nor does a prisoner HERE, and that is a stated narrowing rather
-            // than a rule: DK2's prisoners move about their cell and rush a
-            // chicken dropped among them (Q172, owner). The chicken exists now
-            // and free creatures eat it (ADR-0067); what a prisoner still has
-            // is no wander and no search, so it stands still and its second
-            // belongs to PrisonSystem (ADR-0064).
-            if (PrisonRules.IsImprisoned(creature)) continue;
+            // A prisoner DOES walk, as of ADR-0073. This used to refuse to
+            // move one at all, which was a stated narrowing against Q172 - and
+            // the narrowing is gone rather than loosened: the only thing that
+            // ever gives a prisoner a path is PrisonerWanderSystem, and every
+            // path it gives is a single step onto a tile of the prisoner's own
+            // cell. There is deliberately no "prisoners may not leave" test
+            // here, because a step out of the cell is never chosen.
             if (CreatureDeathRules.IsDown(creature)) continue;
 
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);

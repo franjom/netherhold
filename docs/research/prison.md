@@ -26,9 +26,10 @@ binary in our own words** — no decompiler output enters this repository
 | The drain also applies **anger** | **CONFIRMED from the binary** (§4b) and **not built** |
 | That the routine applying it is the *prison's* | **CONFIRMED from the binary** (§4b, 2026-09-06): it is the prison state category's own update hook, which is why it needs no room-type test. Q173 answered |
 | The drain applies **only to creatures that can get hungry** | **CONFIRMED from the binary** (§4b) and **built**: a Skeleton in a cell never withers, and a Skeleton is what a prison makes |
-| A captured creature wakes at **two petals** — 20% of its maximum | **CONFIRMED** (owner, 2026-09-05, Q167). Built as full health for one afternoon before the correction |
+| A captured creature wakes at **a sixth of its maximum** | **CONFIRMED from the binary** (Q167, ADR-0071): DK2's `ModifyHealth` writes `max / 6` when it takes a creature below zero. It was 20% for a day, from a variable nothing reads and a petal count that was wrong |
 | The flower above a creature's head is a **health** readout | **CONFIRMED** (owner, twice, Q108) |
-| A prisoner **walks about its cell and races the others to a dropped chicken** | **CONFIRMED** (owner, Q172) and **not built** — prisoners here are inert. Everything it waited on is gone since ADR-0067 except the movement itself |
+| A prisoner **walks about its cell** | **CONFIRMED** (owner, Q172) and **BUILT** (ADR-0073): one tile at a time, orthogonally, never out of the room, with a 20-in-100 roll per tick deciding the pause between steps. Read out of DK2's states 114-116 |
+| A prisoner **races the others to a dropped chicken** | **CONFIRMED** (owner, Q172) and **not built** — the last piece of Q172. It used to wait on movement; since ADR-0073 it waits only on a keeper being able to drop a bird into a cell |
 | A chicken eaten in a prison pays off **the whole of `HungerFill`**, not one | **CONFIRMED from the binary** (`eating.md` §7) — `EatingRules.EatInPrison` carries the number and nothing calls it |
 | A prisoner that runs out **rises as a Skeleton for the jailer** | **STRONGLY INFERRED** — the manual states it, and the Prison's `CreatedCreatureId` is 9 |
 | Imps stop collecting when every prison is full | **STRONGLY INFERRED** — the manual states it; it falls out of the destination being chosen before the walk |
@@ -289,25 +290,29 @@ it, and its shipped-variable support is gone (Q171).
 
 ## 5. What is ours, stated
 
-- ~~**One prisoner per tile**~~ (Q166) — **corrected 2026-09-06 to inner tiles plus one**, and the reason DK2 stores capacity rather than deriving it is now read: it derives it once, per room type, at build time. The prison's case walks the room's own tiles, counts the ones a general *"nothing is standing here"* predicate accepts — which is the tiles its bars and gate have not taken, i.e. everything but the rim — and **adds one if that count is non-zero**, into `SafeCreatureCapacity`. `TotalCapacity` is left at **-1** for a prison, which is why a keeper can overcrowd one by hand at all. Below 3x3 the count is zero, the "+1" never fires, and the room does nothing. The old note said DK2 stores capacity rather than deriving it,
-  so this is a guess shaped like the lair's one-bed-per-tile. **The owner can
-  settle it in a minute**: build a 3x3 prison, capture until the imps stop, and
-  count.
-- ~~**Full health on capture.**~~ **Corrected the same day** (Q167): the owner
-  says *"its flower gets two petals"*, and two petals of ten is
-  `CreatureCriticalHealthPercentageOfMax` = 20. A Goblin arrives at 300 of 1500
-  and becomes a Skeleton in a hundred game seconds rather than five hundred.
-  What is still ours is the **petal count** the arithmetic rests on (Q171).
-- **A prisoner does nothing at all**, and in the original it does three things:
-  it moves about its cell, it races the other prisoners to a chicken dropped
-  among them, and it eats one (Q172). **They no longer wait on the same thing.**
-  The chicken exists (ADR-0066), an imp can carry one (ADR-0065), and a free
-  creature eats one (ADR-0067) — so what a prisoner is missing is only the
-  **movement**: it has no wander and no search. Its own eating number is already
-  written down in `EatingRules.EatInPrison`, because **one bird pays off the
-  whole of `HungerFill`** in a prison where a hatchery bird pays off one, which
-  is in the binary and not a simplification. **The original's own search is
-  `FUN_00473550`**: it walks the prison's slabs for the nearest *object* whose
+- ~~**One prisoner per tile**~~ (Q166) — **corrected 2026-09-06 to inner tiles plus one**, and the reason DK2 stores capacity rather than deriving it is now read: it derives it once, per room type, at build time. The prison's case walks the room's own tiles, counts the ones a general *"nothing is standing here"* predicate accepts — which is the tiles its bars and gate have not taken, i.e. everything but the rim — and **adds one if that count is non-zero**, into `SafeCreatureCapacity`. `TotalCapacity` is left at **-1** for a prison, which is why a keeper can overcrowd one by hand at all. Below 3x3 the count is zero, the "+1" never fires, and the room does nothing.
+  **The owner ran exactly the experiment this bullet used to ask for** — build a
+  3x3, capture until the imps stop, count — and read **two** off the status bar,
+  which is what the routine computes. Nothing here is ours any more.
+- ~~**Full health on capture**, then ~~20% of maximum~~.~~ **Both gone**
+  (Q167, ADR-0071). The 20 came from
+  `CreatureCriticalHealthPercentageOfMax` read as *"two petals of ten"*, and
+  both halves failed on 2026-09-06: the flower has **six** petals (Q171,
+  screenshot), and a raw `.text` scan finds one reference to that variable's
+  global — the loader writing it. The number is now **read** rather than fitted:
+  DK2's `ModifyHealth` writes `max / 6` when a creature goes below zero, so a
+  Goblin arrives at **250** of 1500 and turns to bone in **83** game seconds.
+- ~~**A prisoner does nothing at all.**~~ **It wanders, as of ADR-0073**, and
+  that half is no longer ours: one tile at a time, orthogonally, never out of
+  the room, with the pause between steps set by a **20-in-100 roll per tick**
+  read out of the original's state 116. See §6.
+  **What is still missing is the bird**: nothing drops a chicken into a cell and
+  nothing races for it. Its own eating number is already written down in
+  `EatingRules.EatInPrison`, because **one bird pays off the whole of
+  `HungerFill`** in a prison where a hatchery bird pays off one, which is in the
+  binary and not a simplification. **The original's own search is
+  `FUN_00473550`** — state **117**, the one the hunger check jumps to instead of
+  wandering —: it walks the prison's slabs for the nearest *object* whose
   definition carries flag `0x80`, picks the nearest by straight-line distance,
   and **when there is none it applies the creature's `AngerNoFood`** — so a
   prisoner with nothing to eat gets angry by the same rule a hungry creature
@@ -345,3 +350,63 @@ without it:
 - **Combat**, from the other end: everything here begins after a fight, and there
   is no fight. `an_imp_drags_an_enemy_to_prison` places its goblin at zero health
   because nothing can put it there.
+
+## 6. What a prisoner does between arriving and dying — CONFIRMED
+
+Read out of `DKII.EXE` on 2026-09-06, under the corrected state-table frame
+(`creature-state-table.md`). The prison occupies **states 114–126**, all of
+category **14**; torture is 127–136, category 15.
+
+Three of them are the loop:
+
+| State | Label | What it does |
+|---|---|---|
+| **114** (`0x72`) | `being held captive` | Arrival. Finds the room of type `0xb`, checks it with `FUN_00454110` — the same tile predicate the capacity routine counts with — records the jailer, enters 115 |
+| **115** (`0x73`) | `being held captive` | The decision. Hungry enough *and* past a cooldown → state **117** and eat where it stands. Otherwise ask for a neighbouring tile, issue a move to it, enter 116 |
+| **116** (`0x74`) | `being held captive` | The walk, and the pause after it. Each tick, `random(100) < 20` → back to 115 |
+
+### 6.1 The step
+
+`Room.cpp:1717` picks it, and the decompiler garbles that function badly enough
+that this was read from the instructions instead. It takes a neighbour **count**,
+draws `random(count)` as a **starting index**, and scans `(start + i) % count`
+forwards through a table of offset pairs — the **four orthogonal** offsets at
+`0x006BC350` when the count is 4, the eight at `0x006BC370` otherwise. The
+prison passes **4**. The first candidate that passes wins, and a candidate must:
+
+1. have a non-zero room id;
+2. belong to the **same room instance** the creature is standing in;
+3. have a terrain flag at `TerrainTable[terrain] + 0x17b` clear.
+
+Rule 2 is what keeps a prisoner in its cell, and it is why nothing needs a
+separate *"do not leave the prison"* test: a step out of the room is never a
+candidate. Nothing checks whether another prisoner is already on the tile, so
+**two prisoners may share one** — which costs nothing, because capacity is the
+inner tiles plus one and never was one-per-tile.
+
+The table order is **north, east, south, west**, and it is not cosmetic: it
+decides which way a prisoner goes when its drawn direction is a wall.
+
+### 6.2 `MotionlessInPrisonSeconds` is a dead variable
+
+This project guessed that the shipped `MotionlessInPrisonSeconds` = 8 was *"how
+long one stands still between moves"*. It is not: a raw scan of `.text` for its
+global `0x006F25E9` returns **exactly one hit**, and disassembling it gives
+`MOV [0x006f25e9],EAX` — the setter stub writing it. **Nothing in DK2 reads it.**
+
+That makes it the **third** shipped balance variable found dead, after
+`CreatureCriticalHealthPercentageOfMax` — which cost this project a wrong
+prisoner clock for a day (ADR-0071) — and `CriticalHealthPercentageForHeroLair`.
+The real pause is the 20-in-100 roll in state 116, which is code rather than a
+table entry.
+
+### 6.3 What is not modelled
+
+- State 116 also plays idle flourishes on a second roll and turns to look at
+  something in the room on a ten-tick cadence. Both are cosmetic and both are
+  gated on an animation slot (`creature+0x3a9`) with no counterpart here.
+- A **narrower variant of the step roll** takes rolls 10..19 instead of 0..19
+  when a per-creature flag is set, halving the rate to 10 in 100. The flag has
+  not been read. Q188.
+- The three unread function pointers in every state record, and the 32 category
+  records the prison's category 14 indexes (Q184, Q186).

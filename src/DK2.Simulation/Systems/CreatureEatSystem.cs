@@ -63,10 +63,14 @@ namespace DK2.Simulation.Systems;
 /// to eat. This system skips <see cref="CreatureActivity.Sleeping"/> and
 /// <see cref="CreatureActivity.GoingToSleep"/>, and a test pins it.</para>
 ///
-/// <para><b>Prisoners are skipped here too.</b> They eat by a different state
-/// in the original — one bird pays off the whole of <c>HungerFill</c> rather
-/// than one (<see cref="EatingRules.EatInPrison"/>) — and they cannot move yet
-/// (Q172), so their second still belongs to <see cref="PrisonSystem"/>.</para>
+/// <para><b>Prisoners are skipped here too</b>, and the reason has changed.
+/// They eat by a different state in the original — one bird pays off the whole
+/// of <c>HungerFill</c> rather than one
+/// (<see cref="EatingRules.EatInPrison"/>) — and a prisoner walking to a
+/// hatchery is not a thing that happens: it is fed where it stands, by a keeper
+/// dropping a bird into the cell. This used to say <i>"they cannot move
+/// yet"</i>, which stopped being true at ADR-0073. What is missing is the
+/// racing-for-the-bird half of Q172, not movement.</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/eating.md")]
 public sealed class CreatureEatSystem : ISimulationSystem

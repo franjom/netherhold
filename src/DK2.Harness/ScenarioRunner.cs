@@ -378,13 +378,16 @@ public sealed class ScenarioRunner
         unsupported.Add(
             "a prison in a run cannot be fed, and the reason has narrowed to one thing. DK2 " +
             "keeps a prisoner alive by having its keeper drop chickens on it; chickens now exist " +
-            "and free creatures now eat them (ADR-0067), so what is left is that a PRISONER " +
-            "cannot move - it has no wander and no search, and its eating state in the original " +
-            "is a different one that pays off the whole of HungerFill from a single bird " +
-            "(EatingRules.EatInPrison, Q172). So every prisoner here runs its whole " +
-            "PrisonModifyCreatureHealthPerSecond countdown out and becomes a Skeleton. How many " +
-            "prisoners a prison holds is one per tile and is ours (Q166), and what health a " +
-            "captured creature wakes with is ours too (Q167)");
+            "and free creatures now eat them (ADR-0067). A prisoner now WANDERS its cell as " +
+            "the original's does - one tile at a time, orthogonally, never out of the room " +
+            "(ADR-0073) - so what is left of Q172 is the bird: nothing drops one into a cell " +
+            "and nothing races for it. Its eating state in the original is a different one " +
+            "that pays off the whole of HungerFill from a single bird " +
+            "(EatingRules.EatInPrison). So every prisoner here still runs its whole " +
+            "PrisonModifyCreatureHealthPerSecond countdown out and becomes a Skeleton. How " +
+            "many prisoners a prison holds is now the original's own rule - its inner tiles " +
+            "plus one, so a 3x3 holds two (Q166, ADR-0070) - and what health a captured " +
+            "creature wakes with is read from DK2's damage path (Q167, ADR-0071)");
         unsupported.Add(
             "a hatchery LAYS and free creatures EAT (ADR-0066, ADR-0067): coops go down, an EGG " +
             "(object 47) is laid at a randomly chosen coop on the interval the room size implies " +
@@ -394,7 +397,8 @@ public sealed class ScenarioRunner
             "What is NOT here: how the original walks it there (state 0x5A has one caller and " +
             "this composes two states, Q174), the post-meal wander around the room (Q175), " +
             "whether a sleeping creature wakes to eat (Q176, ours says no), and a prisoner - " +
-            "which cannot move and so cannot be fed (Q172)");
+            "which now moves (ADR-0073) but still cannot be fed, because nothing drops a bird " +
+            "into a cell (the remaining half of Q172)");
     }
 
     /// <summary>

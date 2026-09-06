@@ -5472,3 +5472,114 @@ identified, and the code loads them at run time from the user's own install like
 every other asset, so nothing is redistributed by shipping this repo. If that is
 judged too far, the `Text.str` id column alone keeps the table usable and the
 labels can be dropped without re-deriving anything.
+
+## ADR-0073 — A prisoner shuffles about its cell, one orthogonal tile at a time
+
+Date: 2026-09-06 · Status: accepted · Q172, half of it
+
+### The question, and how long it had been open
+
+The owner watched a prison on 2026-09-05 and reported three things: a prisoner
+*moves about its cell*, prisoners *race* each other to a chicken dropped among
+them, and one of them *eats it*. That became Q172, and for a day the project's
+answer was to do none of it. `CreatureMovementSystem`, `CreatureSleepSystem` and
+`ImpTaskSystem` each carried the same paragraph saying so, and the harness
+declared it unsupported in two places.
+
+This ADR builds the first of the three. It is the one everything else was
+waiting on.
+
+### What the original does, read state by state
+
+Under the state-table frame corrected by ADR-0072 — without which none of this
+could have been read, because every handler was filed one state early — the
+prison is **states 114–126**, all of category **14**. Three of them are the loop:
+
+- **114** (`0x72`) — arrival. Finds the room of type `0xb`, checks it with
+  `FUN_00454110` (the same tile predicate the capacity routine counts with),
+  records the jailer, and enters 115.
+- **115** (`0x73`) — the decision. If hunger clears a threshold *and* a cooldown
+  has elapsed it goes to state **117** and eats where it stands. Otherwise it
+  asks `Room.cpp:1717` for a neighbouring tile, issues a move to it, and enters
+  116.
+- **116** (`0x74`) — the walk, and the pause after it. Each tick it rolls
+  `random(100)` and returns to 115 when the roll is under **20**.
+
+### The step, read from instructions rather than decompilation
+
+Ghidra garbles `Room.cpp:1717` badly — it types the random result as a struct
+pointer — so this one was read from the disassembly. It takes a neighbour
+**count**, draws `random(count)` as a **starting index**, and then scans
+`(start + i) % count` forwards through a table of offset pairs: the **four
+orthogonal** offsets at `0x006BC350` when the count is 4, the eight at
+`0x006BC370` otherwise. The prison passes 4. **The first candidate that passes
+wins**, and a candidate must have a non-zero room id, belong to the **same room
+instance** the creature is standing in, and have a terrain flag clear.
+
+Two things follow that shaped the implementation:
+
+**The room-instance test is the containment.** Nothing anywhere says *"a
+prisoner may not leave the prison"* — a tile outside the cell is simply never a
+candidate. That is a better guarantee than a guard in the mover, and it is why
+`CreatureMovementSystem`'s refusal is **deleted** rather than narrowed.
+
+**The table order is behaviour.** North, east, south, west. It decides which way
+a prisoner goes when its drawn direction is a wall, and getting it backwards
+would be invisible except in the walk it produces — so a theory pins it from the
+cell's north-west corner, where two of the four directions are outside the room
+and the scan has to wrap.
+
+### `MotionlessInPrisonSeconds` is dead, and the guess built on it is gone
+
+`CreatureState` used to say, of the shipped `MotionlessInPrisonSeconds` = 8,
+that it was *"presumably how long one stands still between moves"*. A raw
+`.text` scan for its global `0x006F25E9` returns **one hit**, and disassembling
+it gives `MOV [0x006f25e9],EAX` — the setter stub. **Nothing in DK2 reads it.**
+
+That is the **third** shipped balance variable found dead here, and the second
+to have had a mechanic built on it: `CreatureCriticalHealthPercentageOfMax` gave
+this project a wrong prisoner clock for a day (ADR-0071), and
+`CriticalHealthPercentageForHeroLair` is the third. **A named variable in the
+table is not evidence that the engine consults it**, and the check costs one
+scan.
+
+### The decision
+
+`PrisonRules.TryWanderStep` carries the rule — the four offsets in DK2's order,
+the wrap, and the same-room test — and `PrisonerWanderSystem` runs it every
+tick: a prisoner that is standing still rolls
+`WanderPercentPerTick` = 20, and on a hit takes one step. The two draws happen
+in the original's order, the hundred before the direction, so the random stream
+is consumed the same way round.
+
+Registered **after** `PrisonSystem`, so a prisoner freed or turned to bone this
+second is not handed a step it will never take.
+
+### What this cost, and what it did not
+
+**No hash change.** The determinism fixture imprisons nobody, and the system
+draws no randomness when there is no eligible prisoner.
+
+**Two tests changed, and both were asserting the gap rather than a rule.**
+`APrisonerDoesNotWalkWorkSleepOrGrowHungry` asserted that a prisoner never left
+its arrival tile and never held a path; those two lines are gone and the name
+lost its *Walk*. `APrisonerThatWithersAwayRisesAsASkeletonForItsJailer` asserted
+the skeleton rises on the tile the prisoner went in on — it now tracks where the
+prisoner actually stood, which is what *"replaced where it stands"* always
+meant and what the test had been getting for free.
+
+The scenario shows it: between imprisonment at t959 and perishing at t2619 the
+Goblin takes **50 steps** and stands on **all nine** tiles of the 3×3, never
+leaving, and rises as a Skeleton at (7,5) rather than the (5,3) it arrived on.
+The clock is untouched.
+
+### What is left of Q172
+
+**The bird**, now tracked as Q187. It used to wait on movement; it now waits
+only on a keeper being able to drop a chicken into a cell. Every other piece
+exists, including the prison's own eating number
+(`EatingRules.EatInPrison` — one bird pays off the whole of `HungerFill`) and
+the original's search, which is state 117's `FUN_00473550`.
+
+Q188 records the one thing in the loop that is not read: a second path in state
+116 that halves the step roll to 10 in 100 when a per-creature flag is set.

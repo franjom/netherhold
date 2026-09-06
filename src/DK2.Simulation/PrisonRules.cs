@@ -43,6 +43,102 @@ public static class PrisonRules
     public const int NoPrison = -1;
 
     /// <summary>
+    /// The chance, <b>per tick</b>, that a prisoner standing still takes
+    /// another step — <b>20 in 100</b>.
+    ///
+    /// <para>Read out of DK2's state 116 (<c>0x74</c>), the prisoner's
+    /// walking state: it rolls <c>random(100)</c> and calls
+    /// <c>SetState(115)</c> — the decision state — when the roll is under 20.
+    /// A second, narrower path takes rolls 10..19 instead when a per-creature
+    /// flag is set, which halves it to 10 in 100; that flag has not been read,
+    /// so the plain 20 is what is modelled and the narrower case is Q188.</para>
+    ///
+    /// <para>Twenty per cent a tick sounds enormous and is not: it only rolls
+    /// while the prisoner is <i>not already walking</i>, so it is the length of
+    /// the pause between steps, about five ticks on average.</para>
+    /// </summary>
+    public const int WanderPercentPerTick = 20;
+
+    /// <summary>
+    /// The four orthogonal steps <b>in DK2's own table order</b> — north, east,
+    /// south, west — as stored at <c>0x006BC350</c>. The order is not cosmetic:
+    /// the original picks a random starting index and then walks this table
+    /// forwards, so the order decides which way a prisoner goes when its first
+    /// choice is a wall.
+    /// </summary>
+    private static readonly (int Dx, int Dy)[] Orthogonal =
+        [(0, -1), (1, 0), (0, 1), (-1, 0)];
+
+    /// <summary>How many directions a prisoner considers. DK2 passes 4.</summary>
+    public const int WanderDirections = 4;
+
+    /// <summary>
+    /// Where a prisoner shuffles to next: <b>one tile, orthogonally, and never
+    /// out of its own cell</b>.
+    ///
+    /// <para><b>Read from the original's instructions rather than its
+    /// decompilation</b>, because the decompiler garbles this one. DK2's
+    /// <c>Room.cpp:1717</c> takes a neighbour count, draws
+    /// <c>random(count)</c> as a starting index, and then scans
+    /// <c>(start + i) % count</c> forwards through a table of offset pairs —
+    /// the four orthogonal ones at <c>0x006BC350</c> when the count is 4, the
+    /// eight at <c>0x006BC370</c> otherwise. <b>The first candidate that
+    /// passes wins.</b> A candidate must have a non-zero room id, must belong
+    /// to the <i>same room instance</i> the creature is standing in, and must
+    /// have a terrain flag clear.</para>
+    ///
+    /// <para>The room-instance test is what keeps a prisoner in its cell, and
+    /// it is why nothing here needs a separate "do not leave the prison" rule:
+    /// a step out of the room is never a candidate in the first place. The
+    /// terrain flag has no counterpart here because every tile of a room
+    /// instance is already a floor tile of that room.</para>
+    ///
+    /// <para><b>Two prisoners may stand on one tile</b>, and that is the
+    /// original's behaviour rather than an oversight of ours: the scan tests
+    /// the room, not who is on the tile. It costs nothing, because a prison's
+    /// capacity is its inner tiles plus one (<see cref="Capacity"/>) and never
+    /// was one-per-tile; <see cref="FreeTileIn"/> avoids occupied tiles only
+    /// when placing a new arrival.</para>
+    /// </summary>
+    /// <param name="startDirection">
+    /// The drawn starting index into the table, <c>0</c>..<c>3</c>.
+    /// </param>
+    public static bool TryWanderStep(
+        WorldState world,
+        GameDatabase database,
+        CreatureState creature,
+        int startDirection,
+        out TilePos step)
+    {
+        step = default;
+
+        TilePos here = creature.Tile;
+        RoomInstance? cell =
+            RoomIndex.RoomAt(world, database, (here.Y * world.Width) + here.X);
+
+        // A prisoner whose cell has stopped being a cell has bigger problems,
+        // and PrisonSystem frees it on the same second.
+        if (cell is null) return false;
+
+        for (int i = 0; i < Orthogonal.Length; i++)
+        {
+            (int dx, int dy) = Orthogonal[
+                ((startDirection % Orthogonal.Length) + Orthogonal.Length + i) % Orthogonal.Length];
+
+            int x = here.X + dx;
+            int y = here.Y + dy;
+            if (x < 0 || y < 0 || x >= world.Width || y >= world.Height) continue;
+
+            if (!cell.TileIndices.Contains((y * world.Width) + x)) continue;
+
+            step = new TilePos(x, y);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// How many prisoners a prison holds: <b>the tiles the rim does not take,
     /// plus one</b> — so DK2's smallest working prison, a 3x3, holds
     /// <b>two</b>.

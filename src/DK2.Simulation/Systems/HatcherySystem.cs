@@ -30,8 +30,10 @@ namespace DK2.Simulation.Systems;
 /// picks the nearest bird once it is inside and eats it — which also means a
 /// hatchery that had stopped at its one-bird-per-tile ceiling starts laying
 /// again, because something is taking birds out of it. Nobody wrote that
-/// interaction. What is still missing is a <b>prisoner</b>, which cannot move
-/// and so cannot be fed (Q172).</para>
+/// interaction. What is still missing is a <b>prisoner</b> being fed - no
+/// longer because it cannot move (it does, ADR-0073), but because nothing drops
+/// a bird into a cell and nothing races for it (the remaining half of
+/// Q172).</para>
 ///
 /// <para>Registered after <see cref="PortalSystem"/>, which is the other system
 /// that makes something out of a room, and on the same once-a-game-second

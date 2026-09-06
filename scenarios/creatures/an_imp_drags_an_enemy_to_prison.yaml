@@ -81,18 +81,23 @@
 #            rise as Skeletons under your control"*, and the Prison's
 #            `CreatedCreatureId` is **9** - one of only two rooms in the shipped
 #            table that names a creature at all. The skeleton is **player 3's**,
-#            standing where the goblin stood.
+#            standing where the goblin stood - which since ADR-0073 is **(7,5)**
+#            rather than the (5,3) it went in on, because it spent those 83
+#            seconds walking.
 #
 # **What this run does NOT establish**, recorded rather than implied:
 #
-#   * **Nothing stops the clock, and nothing moves.** Chickens are what a
-#     keeper feeds a prisoner with, and a chicken is an object that cannot yet
-#     be picked up - so every prisoner here runs its hundred seconds out
-#     standing perfectly still. In the original they do neither: the owner
-#     watched prisoners *"rush toward that chicken, the first one to it gets it,
-#     eats it, and its health replenishes"*, so they walk about the cell, they
-#     compete for the bird, and they eat (Q172). That is a narrowing, not a
-#     rule, and it goes away with droppable chickens.
+#   * **Nothing stops the clock.** Chickens are what a keeper feeds a prisoner
+#     with, and a keeper cannot yet drop one - so every prisoner here runs its
+#     83 seconds out. The owner watched prisoners *"rush toward that chicken,
+#     the first one to it gets it, eats it, and its health replenishes"*: they
+#     walk about the cell, they compete for the bird, and they eat (Q172).
+#
+#     **The walking half is built** (ADR-0073) and this run shows it: the goblin
+#     takes **50 steps** between t959 and t2619, stands on **all nine** tiles of
+#     the 3x3, and never once leaves the room. What is left is the bird (Q187),
+#     and it no longer waits on movement - only on a keeper being able to drop
+#     one.
 #
 #   * **The torture chamber**, which is the third place the owner said a lifted
 #     prisoner may be dropped. Not built - a prisoner dropped anywhere that is

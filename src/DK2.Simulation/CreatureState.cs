@@ -184,9 +184,21 @@ public enum CreatureActivity
     /// The prison's own eating number is already written down in
     /// <see cref="EatingRules.EatInPrison"/>, because <b>one bird pays off the
     /// whole of <c>HungerFill</c></b> there where a hatchery bird pays off one.
-    /// <c>MotionlessInPrisonSeconds</c> = 8 is presumably how long one stands
-    /// still between moves rather than a statement that it never moves. Q172,
-    /// and it is a narrowing, not a rule.</para>
+    /// <para><b>It wanders</b> since ADR-0073 - one tile at a time,
+    /// orthogonally, never out of the cell
+    /// (<see cref="PrisonRules.TryWanderStep"/>). The pause between steps is a
+    /// <b>20-in-100 roll per tick</b>, read out of the original's state 116.
+    /// </para>
+    ///
+    /// <para><b>It is NOT <c>MotionlessInPrisonSeconds</c>, and that variable
+    /// is a trap.</b> This file used to guess that its 8 was <i>"presumably how
+    /// long one stands still between moves"</i>. A raw scan of <c>.text</c> for
+    /// its global (<c>0x006F25E9</c>) finds <b>exactly one</b> hit - the setter
+    /// stub writing it. Nothing in DK2 reads it, which makes it the third
+    /// shipped balance variable found dead, after
+    /// <c>CreatureCriticalHealthPercentageOfMax</c> (which cost this project a
+    /// wrong prisoner clock) and <c>CriticalHealthPercentageForHeroLair</c>.
+    /// </para>
     /// </summary>
     Imprisoned = 13,
 

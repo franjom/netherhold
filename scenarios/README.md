@@ -193,7 +193,9 @@ What a run still cannot tell you:
   hatchery of its own keeper, picks the nearest chicken once it is inside, and
   eats it for `min(HpFromChicken, missing)`. Going unfed still costs no health,
   because DK2 charges anger and now so do we. What eating still cannot do:
-  a **prisoner** cannot be fed, because a prisoner cannot move (Q172).
+  a **prisoner** cannot be fed - not because it cannot move (it wanders its cell
+  as of ADR-0073), but because nothing drops a bird into a cell and nothing
+  races for it (Q172's remaining half).
 - **What a room does.** A treasury and a dungeon heart hold gold; a portal
   produces creatures; a lair attracts them and holds a bed per tile that heals
   its owner **while asleep in it**, not whatever stands on it; a hatchery is

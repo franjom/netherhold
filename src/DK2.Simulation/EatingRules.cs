@@ -313,9 +313,12 @@ public static class EatingRules
     /// <para>Not a tidier version of <see cref="Eat"/> — the original's prison
     /// state passes the level-scaled <c>HungerFill</c> where its hatchery state
     /// passes a literal 1, and the consequence is that one bird dropped into a
-    /// cell fills whatever is in there. Nothing calls this yet: a prisoner
-    /// cannot move (Q172), and this exists so that the number is written down
-    /// where the mechanic will need it rather than guessed at then.</para>
+    /// cell fills whatever is in there. Nothing calls this yet - and the reason has
+    /// changed, because the old one has expired. It used to be that a prisoner
+    /// <i>could not move</i>; since ADR-0073 it does. What is missing now is
+    /// only the drop: a keeper putting a bird into a cell, and the prisoners
+    /// racing it. That is the remaining half of Q172 and nothing blocks
+    /// it.</para>
     /// </summary>
     public static int EatInPrison(
         GameDatabase database, CreatureDef creature, CreatureState state) =>

@@ -151,12 +151,12 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             // not act until it is put down (HandRules.IsHeld, ADR-0062).
             if (HandRules.IsHeld(creature)) continue;
 
-            // Nor does a prisoner HERE, and that is a stated narrowing rather
-            // than a rule: DK2's prisoners move about their cell and rush a
-            // chicken dropped among them (Q172, owner). The chicken exists now
-            // and free creatures eat it (ADR-0067); what a prisoner still has
-            // is no wander and no search, so it stands still and its second
-            // belongs to PrisonSystem (ADR-0064).
+            // A prisoner is skipped HERE, and since ADR-0073 that is a rule
+            // rather than a gap: its cell IS what it does. It wanders (that is
+            // PrisonerWanderSystem's, every tick) and its health is the
+            // prison's (PrisonSystem's, every second). What is still a stated
+            // narrowing is the OTHER half of Q172 - racing for a chicken
+            // dropped among them - and that half no longer waits on movement.
             if (PrisonRules.IsImprisoned(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
 

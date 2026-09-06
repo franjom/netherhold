@@ -114,6 +114,12 @@ public static class SimulationSystems
         // (ADR-0064).
         new PrisonSystem(),
 
+        // And the other half of being a prisoner, every tick rather than every
+        // second: shuffling about the cell (ADR-0073). After PrisonSystem, so
+        // that a prisoner freed or turned to bone this second is not given a
+        // step it will never take.
+        new PrisonerWanderSystem(),
+
         new CreatureAngerSystem(),
 
         // Experience last of all: a creature is paid for a second it actually

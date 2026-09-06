@@ -65,6 +65,7 @@ public class PrisonTests
             new CreatureSleepSystem(),
             new CreatureHealthSystem(),
             new PrisonSystem(),
+            new PrisonerWanderSystem(),
         ]);
         if (sink is not null) sim.ObserveWith(sink);
         return sim;
@@ -339,7 +340,19 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 2 * Second; i++) sim.Tick();
+
+        // Where it STOOD, not where it went in. Since ADR-0073 a prisoner
+        // shuffles about its cell, so the tile it dies on is whichever one it
+        // had wandered to - and "replaced where it stands" is the actual rule,
+        // which this used to assert only by accident of the creature never
+        // moving.
+        TilePos died = captive.Tile;
+        for (int i = 0; i < 2 * Second; i++)
+        {
+            sim.Tick();
+            if (world.CreatureById(captiveId) is null) break;
+            died = captive.Tile;
+        }
 
         Assert.Null(world.CreatureById(captiveId));
 
@@ -348,7 +361,9 @@ public class PrisonTests
 
         // The jailer's, not the rival's. That is the whole point of the room.
         Assert.Equal(Keeper, skeleton.OwnerPlayerId);
-        Assert.Equal(CellA, skeleton.Tile);
+        Assert.Equal(died, skeleton.Tile);
+        Assert.InRange(skeleton.Tile.X, 4, 6);
+        Assert.InRange(skeleton.Tile.Y, 3, 5);
         Assert.Equal(db.CreatureById(SkeletonId).Hp, skeleton.Health);
         Assert.Contains(sink.Events, e => e.Kind == "prisoner_perished");
     }
@@ -407,8 +422,16 @@ public class PrisonTests
         Assert.DoesNotContain(world.Creatures, CreatureDeathRules.IsDying);
     }
 
+    /// <summary>
+    /// A prisoner does not work, sleep or grow hungry. <b>It used to not walk
+    /// either, and that half is gone</b> (ADR-0073): the two assertions this
+    /// test lost - that the creature never left its arrival tile and never held
+    /// a path - were the stated narrowing Q172 was raised against, and DK2's
+    /// prisoners shuffle about their cell. What survives is everything that was
+    /// a rule rather than a gap.
+    /// </summary>
     [Fact]
-    public void APrisonerDoesNotWalkWorkSleepOrGrowHungry()
+    public void APrisonerDoesNotWorkSleepOrGrowHungry()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -419,9 +442,13 @@ public class PrisonTests
         GameSimulation sim = Simulation(db, world);
         for (int i = 0; i < 20 * Second; i++) sim.Tick();
 
+        // Wandering is not a change of activity: the original stays in its
+        // prison states throughout, and so does this.
         Assert.Equal(CreatureActivity.Imprisoned, captive.Activity);
-        Assert.Equal(CellA, captive.Tile);
-        Assert.Empty(captive.Path);
+
+        // It moved, but only ever inside the cell.
+        Assert.InRange(captive.Tile.X, 4, 6);
+        Assert.InRange(captive.Tile.Y, 3, 5);
 
         // Its whole second belongs to PrisonSystem - the health system does not
         // get a look at it, so nothing else moves its hunger clock either.
@@ -656,5 +683,151 @@ public class PrisonTests
         Assert.NotNull(back);
         Assert.Equal(Keeper, back!.PrisonOwnerPlayerId);
         Assert.Equal(CreatureActivity.Imprisoned, back.Activity);
+    }
+
+    // ---- wandering the cell (Q172, ADR-0073) ------------------------------
+
+    /// <summary>
+    /// <b>A prisoner moves</b>, which it did not before ADR-0073. The mover
+    /// used to refuse to walk one at all, and that refusal was written down as
+    /// a stated narrowing against this very question.
+    /// </summary>
+    [Fact]
+    public void APrisonerShufflesAboutItsCell()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = Prisoner(db, world, CellB);
+
+        TilePos start = captive.Tile;
+        GameSimulation sim = Simulation(db, world);
+
+        bool moved = false;
+        for (int i = 0; i < 5 * Second && !moved; i++)
+        {
+            sim.Tick();
+            moved = captive.Tile != start;
+        }
+
+        Assert.True(moved, "a prisoner stood still for five game seconds");
+    }
+
+    /// <summary>
+    /// <b>And never leaves.</b> The guarantee is not a rule in the mover — it
+    /// is that a tile outside the cell is never offered as a candidate, because
+    /// the original's scan tests each one against the room instance the
+    /// creature is standing in. Run long enough that a random walk would have
+    /// escaped a 3x3 many times over if anything let it.
+    /// </summary>
+    [Fact]
+    public void APrisonerNeverWandersOutOfItsCell()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = Prisoner(db, world, CellB);
+
+        GameSimulation sim = Simulation(db, world);
+        var visited = new HashSet<TilePos>();
+
+        // Eighty seconds is nearly the whole of a Goblin's clock, so this also
+        // says it wanders right up until the moment it does not.
+        for (int i = 0; i < 80 * Second; i++)
+        {
+            sim.Tick();
+            if (world.CreatureById(captive.Id) is null) break;
+
+            visited.Add(captive.Tile);
+            Assert.InRange(captive.Tile.X, 4, 6);
+            Assert.InRange(captive.Tile.Y, 3, 5);
+        }
+
+        // It should have got about, not jittered between two tiles.
+        Assert.True(visited.Count >= 4,
+            $"a prisoner only ever stood on {visited.Count} tiles of nine");
+    }
+
+    /// <summary>
+    /// <b>The scan order is the original's, and it is not cosmetic.</b> DK2
+    /// draws a starting index and then walks its table of offset pairs
+    /// forwards, wrapping — north, east, south, west, as stored at
+    /// <c>0x006BC350</c>. So the direction a prisoner takes when its first
+    /// choice is a wall is decided by that order, and getting it backwards
+    /// would be invisible except in the walk it produces.
+    ///
+    /// <para>The prisoner stands in the cell's north-west corner (4,3): north
+    /// and west are outside the room, so a start of 0 (north) has to wrap all
+    /// the way to east, and a start of 3 (west) wraps to north, then east.</para>
+    /// </summary>
+    [Theory]
+    [InlineData(0, 5, 3)]  // north is outside -> east
+    [InlineData(1, 5, 3)]  // east
+    [InlineData(2, 4, 4)]  // south
+    [InlineData(3, 5, 3)]  // west is outside -> wraps past north -> east
+    public void ThePrisonersStepFollowsDk2sOwnDirectionOrder(int start, int x, int y)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = Prisoner(db, world, new TilePos(4, 3));
+
+        Assert.True(PrisonRules.TryWanderStep(world, db, captive, start, out TilePos step));
+        Assert.Equal(new TilePos(x, y), step);
+    }
+
+    /// <summary>
+    /// A prisoner with nowhere to go stands still rather than walking out.
+    /// There is no such prison in DK2 — a room this small is not a prison at
+    /// all (Q166) — but the scan returning nothing is a case the original
+    /// handles and so does this.
+    /// </summary>
+    [Fact]
+    public void APrisonerWithNoNeighbouringCellTileStandsStill()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        for (int y = 1; y <= 8; y++)
+            for (int x = 1; x <= 8; x++)
+            {
+                ref TileState tile = ref world.Tile(x, y);
+                tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+                tile.OwnerPlayerId = Keeper;
+            }
+
+        var only = new TilePos(4, 4);
+        Paint(db, world, RoomTypeId.Prison, only);
+
+        CreatureState captive = world.SpawnCreature(db, GoblinId, Rival, only);
+        captive.PrisonOwnerPlayerId = Keeper;
+        captive.Activity = CreatureActivity.Imprisoned;
+
+        for (int start = 0; start < PrisonRules.WanderDirections; start++)
+            Assert.False(PrisonRules.TryWanderStep(world, db, captive, start, out _));
+    }
+
+    /// <summary>
+    /// <b>Wandering does not buy a prisoner time.</b> The clock is
+    /// PrisonSystem's and runs on the second whatever the creature is doing, so
+    /// a Goblin that spends its whole sentence walking still turns to bone at
+    /// eighty-three seconds. Worth pinning because the two systems now touch
+    /// the same creature on the same tick.
+    /// </summary>
+    [Fact]
+    public void AWanderingPrisonerKeepsTheSameEightyThreeSecondClock()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = Prisoner(db, world, CellB);
+        int captiveId = captive.Id;
+
+        GameSimulation sim = Simulation(db, world);
+        for (int i = 0; i < 82 * Second; i++) sim.Tick();
+        Assert.NotNull(world.CreatureById(captiveId));
+
+        for (int i = 0; i < 2 * Second; i++) sim.Tick();
+        Assert.Null(world.CreatureById(captiveId));
     }
 }
