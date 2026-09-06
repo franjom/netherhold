@@ -178,9 +178,13 @@ public static class CreatureAngerRules
     /// <item><term><c>AngerNoWork</c> +50</term><description><b>NOT applied.</b>
     /// Non-workers have no job system yet, so "no work available" is a fact
     /// about this simulation rather than about the dungeon.</description></item>
-    /// <item><term><c>AngerNoPay</c> +60</term><description><b>NOT applied.</b>
-    /// There is no payday: <c>PayDayFrequencySeconds</c> (600) is parsed and
-    /// unread, and nothing has ever paid a wage.</description></item>
+    /// <item><term><c>AngerNoPay</c> +60</term><description><b>APPLIED since
+    /// ADR-0079.</b> Payday exists (ADR-0078) and a keeper decides whether it
+    /// can meet the bill, so this is exactly the kind of source this list is
+    /// for. <b>Being owed is the whole trigger</b> — the original tests the
+    /// outstanding wage against zero and nothing else, with no treasury test
+    /// and no "did it fail to collect" test
+    /// (<see cref="PaydayRules.IsOwedWages"/>).</description></item>
     /// <item><term><c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> +150</term>
     /// <description><b>NOT applied.</b> Needs the hated-creature relation, which
     /// is parsed but unused.</description></item>
@@ -194,18 +198,48 @@ public static class CreatureAngerRules
         WorldState world,
         GameDatabase database, CreatureDef creature, CreatureState state)
     {
-        // A creature asleep in its own bed calms, and calming wins: it cannot
-        // be simultaneously bedless and in its bed, so these never both fire.
+        // A CAPTIVE TAKES NO NEED-ANGER AT ALL, and this is the original's
+        // rule read from its state table rather than a kindness of ours: the
+        // need-anger routine refuses outright when the current state carries
+        // bit 1 of the state record's flag byte, and all ELEVEN "being held
+        // captive" states carry it. A captive's anger is the prison's business
+        // alone - it charges AngerNoFood per failed search for a bird in the
+        // cell, and nothing else (ADR-0064, ADR-0074).
+        //
+        // Corrected 2026-09-06 (ADR-0079). Until then a prisoner took
+        // AngerNoLair every second like anybody else, on the reasoning that it
+        // had no bed - which is true, and is not what DK2 does with it.
+        if (PrisonRules.IsImprisoned(state)) return 0;
+
+        // ADDITIVE since ADR-0079, and that is the original's shape: its
+        // need-anger routine (FUN_00478d00) tests lair, food and pay one after
+        // another and charges each independently, so a bedless unpaid creature
+        // takes both. This used to be an early-return chain, which was right
+        // while there was only ever one source to return.
+        int anger = 0;
+
+        // A creature asleep in its own bed calms, and calming wins over the
+        // bedless charge: it cannot be simultaneously bedless and in its bed,
+        // so these two never both fire.
         if (LairRules.AsleepInOwnBed(world, database, state))
-            return database[VariableTypeId.ModifyAngerOfCreatureInLairPerSecond];
+        {
+            anger += database[VariableTypeId.ModifyAngerOfCreatureInLairPerSecond];
+        }
+        else if (LairRules.NeedsBed(creature) && !LairRules.HasBed(world, database, state))
+        {
+            // No bed, and it wanted one. A creature whose record gives it no
+            // lair object at all — the Imp, the Skeleton, Horny — is not owed
+            // one and is not angered by its absence.
+            anger += creature.AngerNoLair;
+        }
 
-        // No bed, and it wanted one. A creature whose record gives it no lair
-        // object at all — the Imp, the Skeleton, Horny — is not owed one and is
-        // not angered by its absence.
-        if (LairRules.NeedsBed(creature) && !LairRules.HasBed(world, database, state))
-            return creature.AngerNoLair;
+        // Owed wages it has not collected.
+        if (PaydayRules.IsOwedWages(database, creature, state))
+        {
+            anger += creature.AngerNoPay;
+        }
 
-        return 0;
+        return anger;
     }
 
     /// <summary>

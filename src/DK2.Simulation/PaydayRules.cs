@@ -102,6 +102,29 @@ public static class PaydayRules
         && room.Definition.TypeId is RoomTypeId.Treasury or RoomTypeId.DungeonHeart;
 
     /// <summary>
+    /// Whether this creature is owed wages it has not collected — the test DK2
+    /// charges <c>AngerNoPay</c> on.
+    ///
+    /// <para><b>Being owed is the whole trigger.</b> The original's need-anger
+    /// routine tests the outstanding wage against zero and the creature's own
+    /// level-scaled <c>Pay</c> against zero, and that is all: <b>there is no
+    /// treasury test and no "did it fail to collect" test.</b> A keeper with no
+    /// vault at all and a keeper whose creature simply has not walked over yet
+    /// are charged identically, from the moment the clock runs until the money
+    /// is in hand.</para>
+    ///
+    /// <para>Which is why the wage accumulating matters twice over: the debt is
+    /// the anger source, and it persists.</para>
+    ///
+    /// <para>The second test excludes an Imp even if something contrived put a
+    /// wage on one — the same <c>pay=0</c> that keeps it off the payroll keeps
+    /// it from resenting the payroll.</para>
+    /// </summary>
+    public static bool IsOwedWages(
+        GameDatabase database, CreatureDef creature, CreatureState state) =>
+        state.WageOwed > 0 && Wage(database, creature, state.Level) > 0;
+
+    /// <summary>
     /// How much gold this room is holding across all its tiles.
     ///
     /// <para><b>The original will not walk to an empty one.</b> Its search tests

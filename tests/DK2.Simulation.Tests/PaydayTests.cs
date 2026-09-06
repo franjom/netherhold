@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -324,5 +324,135 @@ public class PaydayTests
         Assert.Equal(1, back.PayAttemptsFailed);
         Assert.True(back.SkipNextPayment);
         Assert.Equal(12345, restored.Player(Keeper).NextPaydayTick.Value);
+    }
+
+    // ---- and the anger it causes (ADR-0079) --------------------------------
+
+    /// <summary>Payday, movement and anger — the three that make a wage bite.</summary>
+    private static GameSimulation WithAnger(
+        GameDatabase db, WorldState world, ListEventSink? sink = null)
+    {
+        var sim = new GameSimulation(db, world, seed: 42,
+            [new CreatureMovementSystem(), new PaydaySystem(), new CreatureAngerSystem()]);
+        if (sink is not null) sim.ObserveWith(sink);
+        return sim;
+    }
+
+    /// <summary>
+    /// Sets the debt directly and runs a short window.
+    ///
+    /// <para>The first draft of these ran the full ten minutes to the real
+    /// payday, and every one of them failed for the same reason: a Goblin with
+    /// no bed takes AngerNoLair at 100 a second, so after six hundred seconds it
+    /// is pinned at the 32767 ceiling and has already drawn Leave from its angry
+    /// job table. The measurement was of a creature that had deserted. Anger is
+    /// measured over seconds, not over paydays.</para>
+    /// </summary>
+    private const int AngerWindowSeconds = 10;
+
+    [Fact]
+    public void AnUnpaidCreatureGetsAngryAndBeingOwedIsTheWholeTrigger()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.WageOwed = 500;
+
+        GameSimulation sim = WithAnger(db, world);
+        int before = goblin.Anger;
+        for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
+            sim.Tick(InputFrame.Empty);
+
+        // Being owed is the whole trigger: the original tests the outstanding
+        // wage against zero and nothing else. There is no treasury on this map
+        // and no attempt has failed, and it is angry anyway.
+        //
+        // Both charges land, because a Goblin on this map has no bed either -
+        // which is exactly what the additive sum is for.
+        CreatureDef def = db.CreatureById(GoblinId);
+        Assert.Equal(
+            before + (AngerWindowSeconds * (def.AngerNoLair + def.AngerNoPay)), goblin.Anger);
+    }
+
+    [Fact]
+    public void PayingItStopsThatHalfOfTheAngerAtOnce()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        GameSimulation sim = WithAnger(db, world);
+
+        CreatureDef def = db.CreatureById(GoblinId);
+
+        goblin.WageOwed = 500;
+        int before = goblin.Anger;
+        for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
+            sim.Tick(InputFrame.Empty);
+        int owing = goblin.Anger - before;
+
+        // Debt cleared by hand, standing in for a treasury it reached.
+        goblin.WageOwed = 0;
+        int settled = goblin.Anger;
+        for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
+            sim.Tick(InputFrame.Empty);
+        int paid = goblin.Anger - settled;
+
+        // The lair charge continues either way; the wage charge stops with the
+        // debt, and the difference between the two windows is exactly it.
+        Assert.Equal(AngerWindowSeconds * (def.AngerNoLair + def.AngerNoPay), owing);
+        Assert.Equal(AngerWindowSeconds * def.AngerNoLair, paid);
+    }
+
+    [Fact]
+    public void APrisonerTakesNoNeedAngerAtAll()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState captive = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+
+        // Owed from before it was taken, which is the only way a captive can
+        // carry a debt: the payday clock skips prisoners entirely.
+        captive.WageOwed = 500;
+        PrisonRules.Imprison(world, db, captive, Keeper, (Floor.Y * world.Width) + Floor.X);
+        int before = captive.Anger;
+
+        GameSimulation sim = WithAnger(db, world);
+        for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
+            sim.Tick(InputFrame.Empty);
+
+        // Not the wage, and NOT the missing bed either. The original's
+        // need-anger routine refuses outright on bit 1 of the state record's
+        // flag byte, and all eleven "being held captive" states carry it - so a
+        // captive's anger is the prison's business alone. This test used to
+        // pass a weaker claim and caught the difference (ADR-0079).
+        Assert.Equal(500, captive.WageOwed);
+        Assert.Equal(before, captive.Anger);
+    }
+
+    [Fact]
+    public void ABedOutpacesAnUnpaidWageNineToOne()
+    {
+        GameDatabase db = Db;
+        CreatureDef def = db.CreatureById(GoblinId);
+
+        // Not a simulation run: the two shipped numbers, side by side, because
+        // this is the fact the wage-bill scenario turned up and prose is not
+        // where it belongs.
+        //
+        // A creature asleep in its own bed calms at ModifyAngerOfCreatureInLair-
+        // PerSecond, which ships at -550. Being owed a wage costs it
+        // AngerNoPay, 60 for a Goblin. So a well-housed creature sleeps off
+        // unpaid resentment about NINE TIMES faster than it accrues it, and
+        // wages alone will never drive one out of a dungeon that has beds.
+        //
+        // That is why the wage-bill scenario shows no mood change at all: the
+        // lairs it needs to make the Goblins idle enough to collect are also
+        // what keeps them calm. Failing to pay is not on its own a way to lose
+        // a creature - it has to be one of several things going wrong, which is
+        // what the anger ladder is for.
+        int calm = -db[VariableTypeId.ModifyAngerOfCreatureInLairPerSecond];
+        Assert.Equal(550, calm);
+        Assert.Equal(60, def.AngerNoPay);
+        Assert.True(calm > 9 * def.AngerNoPay);
     }
 }

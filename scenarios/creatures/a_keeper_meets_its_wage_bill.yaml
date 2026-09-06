@@ -72,7 +72,7 @@ question: >
   broke keeper's pair give up after two attempts, and are the imps left alone?
 map: flat_16x10
 seed: 5
-duration_ticks: 12400
+duration_ticks: 18200
 setup:
   players:
     # 2000 for player 3, which setup deposits into its treasury tiles. Nothing

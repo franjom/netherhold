@@ -6161,3 +6161,105 @@ UNKNOWN rather than built on.
   because the collecting decision only fires on an idle creature, here and in the
   original.
 - Hash 30 → 31 on the composition: three creature fields and one player field.
+
+## ADR-0079 — Being owed is the whole trigger, and a captive is charged nothing
+
+**Status:** accepted, 2026-09-06
+**Context:** the hole ADR-0078 left open; Q9, Q185
+**Hash:** unchanged. No field moved; behaviour did.
+
+### What was found
+
+`FUN_00478d00`, reached from the creature update immediately **before** the needs
+routine, is DK2's need-anger routine. It charges all three of the standing
+sources one after another and **independently**:
+
+| Source | Condition |
+|---|---|
+| `AngerNoLair` (`def+0x6c1`) | no bed **and** the room type is available |
+| `AngerNoFood` (`def+0x6c3`) | `HungerNeed` has reached the level-scaled `HungerFill` **and** a hatchery is available |
+| **`AngerNoPay` (`def+0x6c5`)** | **`WageOwed != 0`, and the creature's own level-scaled `Pay` is non-zero** |
+
+`def+0x6c5` was pinned the same way `Pay` was: the loader's anger block at
+`0x00493964` stores five fields in a row from consecutive frame offsets, and at
+the established `0x3F0` frame-to-record delta they land exactly on
+`0x0F28..0x0F30` — `angerNoLair`, `angerNoFood`, `angerNoPay`, `angerNoWork`,
+`angerSlap`. **A side finding worth keeping: the first four are divided by
+ticks-per-second and `angerSlap` is not** — which is the per-tick/per-event
+distinction ADR-0074 inferred for the prison, visible directly in the loader.
+
+### The decision that matters, and it is a subtraction
+
+**`AngerNoPay` has no treasury clause.** Its two siblings each test that the
+*room* exists — a creature is not angered for having no bed on a map with no
+lairs, nor for hunger on a map with no hatcheries. The pay charge tests
+**nothing but the debt**. A keeper with no vault at all, and a keeper whose
+creature simply has not walked over yet, are charged identically, from the moment
+the clock runs until the money is in hand.
+
+That asymmetry is the finding. It would have been very natural to write the
+sibling rule here — *only charge if there is a treasury to have been paid from* —
+and it would have been wrong. **You cannot excuse yourself by having no
+treasury.** And it is why the wage accumulating (ADR-0078) matters twice over:
+the debt is the anger source, and it persists.
+
+### Two corrections to what was already built
+
+**`CreatureAngerRules.PerSecond` is now additive.** It was an early-return chain,
+which was right while there was only ever one source to return; the original
+charges each independently, so a bedless unpaid creature now takes both.
+
+**A prisoner takes no need-anger at all**, and this is a behaviour change on
+work that predates payday. Until now a captive accrued `AngerNoLair` every second
+like anybody else, on the reasoning that it had no bed — true, and not what DK2
+does with it. **The need-anger routine refuses outright when the current state
+carries bit 1 of the state record's flag byte, and all ELEVEN "being held
+captive" states carry it.** A captive's anger is the prison's business alone: it
+charges `AngerNoFood` per failed search for a bird and nothing else (ADR-0064,
+ADR-0074), which is now consistent rather than accidentally so.
+
+**This advances Q185.** Bit 1 of the state flag byte is *"do not charge
+need-anger in this state"*, and its 43 states read as one idea: **being held
+captive** (11), **stunned** (6), **joining your dungeon** (4), **fleeing** (4),
+**idle** (3), **torturing** (3), **freeing comrades**, **being tortured**, **in
+battle**, **responding to a threat**, **reporting danger**, **celebrating** (2
+each). A creature busy with something urgent, or not properly yours yet, does not
+stop to be resentful. Bits 3 and 4 were the Casino (ADR-0074); this is the third
+bit named.
+
+### What the scenario turned up, and it is now arithmetic rather than prose
+
+`a_keeper_meets_its_wage_bill.yaml` shows **no mood change on either side**, and
+the reason is worth more than the demonstration would have been: **a bed outpaces
+an unpaid wage nine to one.** `ModifyAngerOfCreatureInLairPerSecond` is −550 and
+a Goblin's `AngerNoPay` is 60, so a creature asleep in its own bed sleeps off
+resentment far faster than being owed accrues it. **Wages alone will never drive
+a well-housed creature out of a dungeon** — failing to pay has to be one of
+several things going wrong, which is what the ladder is for.
+
+The lairs that scenario needs to make its Goblins idle enough to collect are the
+same lairs that keep them calm about not being paid. Pinned by
+`PaydayTests.ABedOutpacesAnUnpaidWageNineToOne` rather than left in a comment,
+on the standing rule that when the same fact is stated in two places one of them
+should be a test.
+
+### What is still not built
+
+- **`AngerNoWork`** — non-workers have no job system, so "no work available" is
+  a fact about this simulation rather than about the dungeon.
+- **`AngerNoFood` in the general case** — still charged only by the prison. The
+  original's clause needs a hatchery-availability test this has not been given.
+- The routine's remaining guards: `creature[0x482]`, `creature[0x3cb]`,
+  three bits of `creature[0x3e6]`, `def[0x686] & 0x4000`, and state category 22
+  (fleeing, battle, threat-response, celebrating). None is modelled; each is a
+  narrowing that would only ever charge *less*.
+
+### Consequences
+
+- Four tests in `PaydayTests`; 1083 green.
+- **The tests caught their own first draft.** All four ran the full ten minutes
+  to a real payday, and every one failed the same way: a Goblin with no bed takes
+  `AngerNoLair` at 100 a second, so after 600 seconds it is pinned at the 32767
+  ceiling and has already drawn Leave from its angry job table. They were
+  measuring a creature that had deserted. **Anger is measured over seconds, not
+  over paydays.**

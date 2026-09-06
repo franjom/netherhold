@@ -193,7 +193,7 @@ conspicuous and has no candidate.
 | Take gold from the tile underfoot | **read**, and it confirms ADR-0015 |
 | Two failed attempts per payday, then stop | **read** |
 | Two distinct "cannot pay" messages | **read** |
-| `AngerNoPay` firing on an unpaid creature | **NOT read** — the anger ladder exists (ADR-0053) but nothing here was seen charging it |
+| `AngerNoPay` firing on an unpaid creature | **READ AND BUILT** the same day (ADR-0079) — see §6 |
 | `PayDayCutOffTimeSeconds` | **UNKNOWN**, and its readers are not in the payday path |
 | `FUN_0048ae70(taken/2)`, `FUN_00486f80(4)` | **UNKNOWN** |
 
@@ -201,9 +201,79 @@ conspicuous and has no candidate.
 `CreatureActivity.SeekingWages`, three fields on the creature and one on the
 player, 13 tests and one scenario. Hash 30 -> 31.
 
-The gap that matters is the first UNKNOWN: **where the anger comes from.** The
+**The anger gap closed the same day** — §6. What is left is `PayDayCutOffTimeSeconds` and the two unread calls in state 189.
+
+~~The gap that matters is the first UNKNOWN: **where the anger comes from.**~~ The
 owner has already described the consequence (Q9: unhappy, then angry, then
 leaves — or rebels, if converted), and `AngerNoPay` is +60/s in the table, so
 the mechanism exists at both ends and the middle has not been found. It is
 probably charged from the needs routine rather than the payday states, in the
 same shape as `AngerNoFood`. That is the next thing to read.
+
+---
+
+## 6. Where the anger comes from — `FUN_00478d00` (2026-09-06, ADR-0079)
+
+Reached from the creature update **immediately before the needs routine**, and
+it charges all three standing sources one after another, **independently**:
+
+| Source | Field | Condition |
+|---|---|---|
+| `AngerNoLair` | `def+0x6c1` | no bed **and** the room type is available |
+| `AngerNoFood` | `def+0x6c3` | `HungerNeed` >= level-scaled `HungerFill` **and** a hatchery is available |
+| **`AngerNoPay`** | **`def+0x6c5`** | **`WageOwed != 0`, and level-scaled `Pay` != 0** |
+
+### 6.1 The pay clause has no treasury test, and that is the finding
+
+Both siblings test that the **room** exists. The pay charge tests **nothing but
+the debt**: no treasury clause, no "did it try and fail" clause. A keeper with no
+vault at all and a keeper whose creature has not walked over yet are charged
+identically, from the moment the clock runs until the money is in hand.
+
+Writing the sibling rule here would have been very natural and would have been
+wrong. **You cannot excuse yourself by having no treasury.**
+
+### 6.2 The fields were pinned, not guessed
+
+The loader's anger block at `0x00493964` stores five fields from consecutive
+frame offsets `0x1318`–`0x1320`; at the established `0x3F0` frame-to-record delta
+those land exactly on `0x0F28`–`0x0F30`, which `kwd-creatures.md` lists as
+`angerNoLair / angerNoFood / angerNoPay / angerNoWork / angerSlap`.
+
+**And the first four are divided by ticks-per-second while `angerSlap` is not** —
+the per-tick versus per-event distinction ADR-0074 *inferred* for the prison,
+here visible directly in the instruction stream.
+
+### 6.3 A captive is charged nothing at all, and it names a flag bit
+
+The routine refuses outright when the current state carries **bit 1 of the state
+record's flag byte**, and **all eleven "being held captive" states carry it**.
+
+That advances **Q185**: bit 1 is *"do not charge need-anger in this state"*, and
+its **43** states read as one idea — being held captive (11), stunned (6),
+joining your dungeon (4), fleeing (4), idle (3), torturing a captive (3), freeing
+comrades, being tortured, engaging in battle, responding to a threat, reporting
+danger, celebrating (2 each). **A creature busy with something urgent, or not
+properly yours yet, does not stop to be resentful.** Bits 3 and 4 were the Casino
+(ADR-0074); this is the third bit named.
+
+### 6.4 What a bed does to all of this
+
+`ModifyAngerOfCreatureInLairPerSecond` is **−550** and a Goblin's `AngerNoPay` is
+**60**, so a creature asleep in its own bed sleeps off unpaid resentment **nine
+times faster than being owed accrues it**. Wages alone will never drive a
+well-housed creature out of a dungeon; failing to pay has to be one of several
+things going wrong, which is what the ladder is for.
+
+This is why `a_keeper_meets_its_wage_bill.yaml` shows no mood change on either
+side — the lairs it needs to make its Goblins idle enough to collect are the same
+lairs that keep them calm. Pinned as arithmetic in
+`PaydayTests.ABedOutpacesAnUnpaidWageNineToOne`.
+
+### 6.5 Guards still unmodelled
+
+`creature[0x482]`, `creature[0x3cb]`, three bits of `creature[0x3e6]`,
+`def[0x686] & 0x4000`, and state **category 22** (fleeing, battle,
+threat-response, celebrating). Each is a narrowing that would only ever charge
+*less*, so leaving them out is the wider reading and is safe in that direction.
+
