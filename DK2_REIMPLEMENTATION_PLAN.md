@@ -279,9 +279,23 @@ out locally alongside OpenKeeper, and would it help with Ghidra?
 
 **The short answer: yes, get it — but for structure and navigation, not for
 answers, and expect it to be weakest exactly where this project is strongest.**
+**It is now cloned; see "Current state" immediately below for the path and the
+pinned commit.**
 
-**Current state.** `D:\OpenKeeper` is a git clone and has been used. **Flame has
-never been on this machine**, which is why §5's first six steps have never run.
+**Current state — updated 2026-09-06, later the same day: it is here.** The
+owner cloned it. Both reference checkouts now live **outside** the repository,
+which is better than what risk R15 proposed (vendoring `mapping/` into
+`original-reference/research/`): a clone on another path cannot be staged by
+accident at all.
+
+| What | Where | Pinned at |
+|---|---|---|
+| **Flame** | `D:\Flame` | `f6e2a3d385bf2e6e95dc70cab88aa387bb7659d9`, committed 2026-03-01 |
+| **OpenKeeper** | `D:\OpenKeeper` | tracks `origin/master` |
+
+All three map files are present — `sgmap` 3.2 MB, `refmap` 3.9 MB, `espmap`
+3.8 MB — and **the absence of any licence file was re-confirmed against the
+clone itself** rather than against the GitHub API alone.
 
 **Licence, re-checked today rather than quoted from revision 1:** the GitHub API
 still reports `"license": null`, and there is no `LICENSE`, `COPYING` or
@@ -338,6 +352,36 @@ is named with zero named fields: the DiaLight work has concentrated on the
 executable's shell — loader, rendering, netcode, the parts you must understand
 to recompile and run — while creature AI is the part you can leave as a black
 box and still ship a working patched game. It is the opposite of our priority.
+
+#### First use of the clone, the same hour it arrived
+
+Two results, and both are the kind this section predicted.
+
+**It confirmed a reading and extended it.** The category record whose layout was
+derived by hand from store spacing is `MyStateGroup`, `size=64`, and its fields
+line up with what was inferred: a mask at `+0`, an **enter** function at `+4`, a
+second function at `+0x14`, an **exit** function at `+0x24`. An independent
+source agreeing with a reading taken from raw stores is worth having. It also
+supplies two meanings that were blank: `+8` and `+0x18` are **field offsets into
+the creature state object**, paired with the two function pointers — so those
+hooks are told which field to work on, which nobody here had guessed.
+
+**And it disagreed about something, which is a finding rather than a nuisance.**
+Flame names `g_stateEntries` at **`0x006DA8B0`, size 7025**. This project placed
+the state table's first record at **`0x006DA8C0`** with 239 records of 25 bytes
+(5,975 bytes), anchored on the installer's own literal stores — `MOV [0x006DA8F2], 2`
+and `MOV [0x006DA924], 4` both put record *N* at `0x006DA8C0 + 25N`, and three
+independent anchors agree. 7,025 bytes is 281 records of 25, which is 42 more
+than the installer fills, and the two base addresses are 16 bytes apart, which
+is not a multiple of the record size.
+
+**Not resolved here, deliberately.** Both readings could be right — the array may
+simply be larger than the installed range, and Flame's symbol may begin at a
+container rather than at element zero. §5's conflict protocol says to record both
+positions and design an experiment rather than silently pick one, and this is the
+first time that protocol has had anything to run on. **It costs nothing today**:
+the state table is research, and no line of the simulation depends on its base
+address.
 
 #### Recommendation
 
@@ -711,13 +755,17 @@ possible (§10.2).
 
 ## 5. Reverse-engineering workflow
 
-> **Revision 2, 2026-09-06 — read this before the flowchart.** Steps 1–4 of the
-> workflow below **have never been performed**: Flame has never been checked out
-> on this machine, so every reverse-engineering session this project has run
-> started at step 7 with a bare Ghidra database. §2.2.1 measures what that cost,
-> and the answer is *less than this section assumes* — Flame names only 34% of
-> the symbols in the address range where creature behaviour lives, and none of
-> the four routines whose behaviour drove the last week's work.
+> **Revision 2, 2026-09-06 — read this before the flowchart.** Until today,
+> steps 1–4 of the workflow below had **never been performed**: Flame was not
+> checked out, so every reverse-engineering session this project ran started at
+> step 7 with a bare Ghidra database. **Flame is now cloned at `D:\Flame`**
+> (§2.2.1), so steps 1–4 are available for the first time.
+>
+> They are still not the *first* thing to try. §2.2.1 measures why: Flame names
+> only 34% of the symbols in the address range where creature behaviour lives,
+> and none of the four routines whose behaviour drove the last week's work. Its
+> value is structure — struct layouts, vtable membership, cross-references — and
+> confirming a reading reached independently.
 >
 > **Two steps are missing from the flowchart and are what has actually been
 > working**, in this order, before anything else:

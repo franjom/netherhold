@@ -1,4 +1,4 @@
-# External resources, and what we may legally take from each
+﻿# External resources, and what we may legally take from each
 
 Written 2026-09-03, after the owner asked for OpenKeeper to be used as much as
 possible. It is an invaluable resource and it is also **GPLv3**, so "as much as
@@ -24,7 +24,7 @@ file is that they now disagree.**
 | source | licence | what the *licence* permits | what this project *does* |
 |---|---|---|---|
 | **OpenKeeper** | **GPLv3** | code may be combined with a GPLv3 work, with attribution and notices retained | **facts only, with provenance — still no code.** A project choice now, not a legal limit. See below |
-| Flame | unlicensed | **nothing** | facts only, with provenance |
+| Flame | unlicensed (re-checked 2026-09-06 against both the GitHub API and the clone: no `LICENSE`, `COPYING` or equivalent anywhere in the tree) | **nothing** | facts only, with provenance — **and never one of its identifiers**, see below |
 | GLKeeper | MIT | inclusion in a GPLv3 work is fine (MIT is one-way compatible) | adapted once, for the WAD decompressor, attributed in `THIRD-PARTY-NOTICES.md` |
 | YamlDotNet | MIT | same | referenced as a package, attributed |
 | KeeperKlan / editor manual / format write-ups | third-party documentation | facts freely, cite the source | same |
@@ -477,3 +477,51 @@ could be closed*, ours said *whether any tile is*.
 `ALTER_TERRAIN_TYPE` the explanation and file Q74 as answered; it is not the
 explanation, because it needs no rate. Two of three candidates eliminated, one
 left, and the remaining one named (the level editor).
+
+---
+
+## Where the reference checkouts live (2026-09-06)
+
+Both are **outside this repository**, on purpose. Risk R15 in
+`DK2_REIMPLEMENTATION_PLAN.md` originally proposed vendoring Flame's `mapping/`
+into `original-reference/research/`; a clone on a separate path is strictly
+better, because it cannot be staged by accident at all.
+
+| What | Where | Pinned at | Licence |
+|---|---|---|---|
+| **Flame** | `D:\Flame` | `f6e2a3d385bf2e6e95dc70cab88aa387bb7659d9` (2026-03-01) | **none** |
+| **OpenKeeper** | `D:\OpenKeeper` | tracks `origin/master` | GPLv3 |
+| DK2 v1.70 | `E:\GogGames\Dungeon Keeper 2` | GOG 1207658959 | EA proprietary |
+
+### The identifier line, which is Flame-specific
+
+The boundary this file already draws — facts yes, code no — needs one extra
+clause for Flame, because Flame is the only source here that grants *nothing*.
+
+**A field offset is a fact about DK2. A name is somebody's authorship.** That
+`+0x3B9` on the creature holds a room id is a fact, freely usable. That DiaLight
+chose to call the state-category array `g_stateEntries` is an editorial act by an
+author who has published no licence permitting its reuse.
+
+**The OpenKeeper precedent does not transfer.** This project does use
+OpenKeeper's names — `CreatureStatId`'s members, for one — under ADR-0003's
+second amendment, with attribution in `THIRD-PARTY-NOTICES.md`. That rests on
+OpenKeeper being GPLv3 and this project being GPLv3. Flame has no licence for
+that arrangement to hang on.
+
+**So, in practice:** consult it freely, navigate a Ghidra database with it (that
+database lives outside the repository and is never distributed), confirm
+readings against it — and when writing anything down here, describe what was
+learned **in this project's own words**, with provenance, and never paste one of
+its identifiers into a source file, a document or a commit message. Where a
+plan section had to quote one to explain a finding, it is quoted *as* a quotation
+and attributed, which is a different act from adopting it.
+
+**What Flame is actually good for**, measured rather than assumed
+(`DK2_REIMPLEMENTATION_PLAN.md` §2.2.1): structure — struct layouts, vtable
+membership, cross-references — and confirming an identification reached
+independently. It names only **34%** of the symbols in the address range where
+creature state, jobs and needs live, so it will not answer behavioural questions.
+For those the order in `AGENTS.md` still holds: the binary, then the shipped
+data, then the owner watching the game.
+

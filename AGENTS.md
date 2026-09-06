@@ -31,8 +31,16 @@ Before implementing DK2 behavior, check, in this order:
 2. **The shipped data files** — also the actual DK2, and cheaper to read.
 3. **Original game experiments** — the running install is the oracle for
    anything observable, and it outranks a misread disassembly.
-4. OpenKeeper
-5. Flame
+4. **OpenKeeper** — cloned at `D:\OpenKeeper`. GPLv3: facts only, with
+   provenance in `THIRD-PARTY-NOTICES.md`.
+5. **Flame** — cloned at `D:\Flame` (pinned `f6e2a3d`, 2026-03-01).
+   **Unlicensed: no reuse rights at all**, so facts only and *never* one of its
+   identifiers pasted into this repository. Best for **structure** — struct
+   layouts, vtable membership, cross-references — and measurably weak on
+   creature behaviour: it names only 34% of the symbols in the address range
+   where creature state, jobs and needs live. Use it to find and to confirm, not
+   to answer. `DK2_REIMPLEMENTATION_PLAN.md` §2.2.1 has the measurements and the
+   working recipe.
 6. Ember
 7. DK2 reverse-engineering documentation, and the DK2 wiki (CC BY-SA: facts in
    our own words with citations, never its prose)
