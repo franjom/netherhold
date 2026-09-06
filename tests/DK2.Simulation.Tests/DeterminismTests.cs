@@ -214,6 +214,32 @@ public class DeterminismTests
         // and saying so is worth more than the green tick, because the next
         // fixture with a goblin in it will.
         //
+        // Bumped with HashVersion 28 -> 30 (ADR-0075, Q196), skipping 29: the
+        // Hand of Evil
+        // stopped holding creature ids and started holding THINGS. The owner
+        // confirmed a keeper can pick up a chicken - with a screenshot of four
+        // held at once - so a hand slot now carries a kind beside its id, and
+        // an object carries ObjectState.InHand the way a creature carries
+        // CreatureState.InHand.
+        //
+        // Both are composition, not behaviour. This fixture's keeper never
+        // picks anything up: every hand is empty for all 500 ticks, so the
+        // per-slot kind byte is never written, and the world holds no objects,
+        // so InHand is never hashed for one either. What moved is the version
+        // and the shape - the useful case for a pin, because a field added to
+        // an empty list still has to change the hash.
+        //
+        // The prisoner eating of ADR-0074 landed one commit earlier and moved
+        // NOTHING: the fixture imprisons nobody, and PrisonerEatSystem draws no
+        // randomness. Snapshot FormatVersion went 28 -> 30 with this bump.
+        //
+        // 29 IS DELIBERATELY SKIPPED. Codex's fog-of-war branch claimed it in
+        // its own worktree while this was being written, and two branches
+        // holding one version number is exactly the failure a version number
+        // exists to catch: a save written by either would be readable by the
+        // other and wrong. Numbers are cheap; a silent format collision is
+        // not.
+        //
         // Bumped with HashVersion 27 -> 28 (ADR-0069): the aimed bonus turned
         // out to be two fields rather than one. JustDropped is now only a
         // one-shot ticket for the drop scan; the Efficiency bonus is the new
@@ -231,7 +257,8 @@ public class DeterminismTests
         // they did before. Snapshot FormatVersion went 27 -> 28 in the same
         // commit.
         //
-        // Previous values: 0x0D75C57C1848268C (27), 0x154E9041172A7F7F (26),
+        // Previous values: 0x19A512BB12A71575 (28), 0x0D75C57C1848268C (27),
+        // 0x154E9041172A7F7F (26),
         // 0xDFF77147B12A64C3 (22), 0x6AF149EE8E20D98A (21),
         // 0x5E96E634C7E5037D (20),
         // 0x12E5615E803C5796 (19), 0x55BEDDA879B4A281 (18),
@@ -241,7 +268,7 @@ public class DeterminismTests
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x19A512BB12A71575UL, sim.StateHash());
+        Assert.Equal(0x0E642E1E0EA023BBUL, sim.StateHash());
     }
 
     [Fact]

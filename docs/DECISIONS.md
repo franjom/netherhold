@@ -4425,7 +4425,7 @@ and unread since the day they were parsed.
 
 ### Decision
 
-Three player commands — `PickUpCreatureCommand`, `DropCreatureCommand`,
+Three player commands — `PickUpCreatureCommand`, `DropCommand`,
 `SlapCreatureCommand` — one `HandSystem` that runs **before every system that
 makes a creature act**, and `EfficiencyRules` feeding every work application.
 
@@ -5406,7 +5406,8 @@ ending at `0x0047FAEB`; it ends at `0x004805E4`.
 
 ### What settles it
 
-Five checks, no two sharing a failure mode:
+Six checks, no two sharing a failure mode. The first five are internal to this
+reading; the sixth arrived later and is not:
 
 1. **Offset histogram.** Every reference into the table's address range falls on
    exactly nine offsets modulo 25, with no strays. This recovers the stride and
@@ -5419,6 +5420,16 @@ Five checks, no two sharing a failure mode:
    smallest literal in the table is 2 — exactly what remains once those are
    removed.
 5. **The labels resolve.** All 281 `+0x14` values are valid `Text.str` ids.
+6. **An outside reading agrees on the numbering, 58 times out of 58** (added
+   2026-09-06). Flame's map names 58 of the 264 handlers in a form that carries
+   the state's decimal id, and every one equals our record index; none
+   disagrees. §5.2 above records that Flame's base address was right where ours
+   was wrong, and the rule taken from that was to re-derive on disagreement —
+   this is the converse being run, per record rather than per base address, with
+   nothing to re-derive. It raises confidence rather than adding a new kind of
+   evidence: Flame is a reading of the binary, not the binary. Detail, coverage
+   and the ADR-0046 boundary are in
+   `docs/research/creature-state-table.md` §5.4.
 
 ### What came with it
 
@@ -5714,4 +5725,139 @@ draws no randomness at all.
 never moved; it now asserts that it does, as `APrisonerDoesGrowHungry`, and
 carries the arithmetic explaining why no prisoner ever reaches a full helping
 inside a cell.
+
+## ADR-0075 — The Hand of Evil holds a thing, not only a creature
+
+Date: 2026-09-06 · Status: accepted · Q196
+
+### Why now
+
+ADR-0074 gave a prisoner the hunger, the hunt and the meal, and left the
+mechanic **complete and unreachable in play**: a chicken only gets into a cell
+because a keeper puts it there, and `PlayerState.Hand` held creature ids.
+
+The owner settled it the same day, unprompted: *"I can pick up a chicken and
+drop it in the prison, or anywhere in the dungeon, on my owned tiles"* — with a
+screenshot of **four chickens held at once**, as four separate slots, and the
+drop offered on a Claimed Path whose tooltip reads *"Your territory"*.
+
+### What DK2 does
+
+Its hand is one array of **thing ids** on the player record, with a count and a
+capacity beside it, and both handlers branch on the thing's kind. Creatures and
+objects share the table, so four chickens and a goblin go into the same slots.
+Ours are separate id spaces, so a slot carries which kind it is — `HandItem`.
+
+**Last in, first out**, and this is now an observation rather than an inference:
+the owner confirmed it, and the drop handler reads back the slot it is about to
+free. It holds **across kinds**, because there is one array.
+
+**What may be lifted is `CanBePickedUp`** — 26 of the 145 OBJECTS records: the
+three golds, the Chicken, Call To Arms, all fifteen specials and six odds and
+ends. Note what is absent: **spell books, crates and creature beds**. A keeper
+does not hand-carry a finished trap to a workshop; an imp does.
+
+That flag has **exactly one reader in the executable**, and it is not the
+pick-up handler — it is the cursor's target search, which is worth a paragraph
+because it is a rule rather than a ray-cast. It sweeps the 3x3 tiles around the
+point, measures with an **octagonal approximation** (`max + min/2`) rather than a
+true distance, allows an object within a **quarter tile** where a creature gets
+**half**, admits the **Dungeon Heart** by id regardless of the flag, and
+**returns a creature in preference to an object** whenever both are in reach.
+None of it is here, because none of it is simulation.
+
+### The near miss, and it is the fourth of its shape
+
+`CanBeDroppedOnAnyLand` is set on **exactly one** record — Call To Arms — which
+is precisely the object you would expect to be exempt from an owned-ground rule,
+and its name is a perfect fit for the behaviour the owner described. It was one
+edit away from being the drop rule.
+
+**It is tested nowhere in the executable.** A raw scan for the mask against the
+definition's flag dword returns nothing at all. The name is OpenKeeper's reading
+of a bit, which is their guess and not evidence; the fit is a coincidence of
+naming.
+
+That makes it the **fourth dead data field** found here, after
+`CreatureCriticalHealthPercentageOfMax` (ADR-0071, which cost a wrong prisoner
+clock for a day), `CriticalHealthPercentageForHeroLair` and
+`MotionlessInPrisonSeconds` (ADR-0073). The rule that catches all four is one
+line long — **scan the field and count its readers before building on it** — and
+it cost thirty seconds here.
+
+So the owned-ground rule is reproduced **as an observation**, and where it lives
+in the original is stated as unread: the drop handler contains no ownership test
+at all, which puts the gate in the input layer that draws the marker the
+screenshot shows.
+
+**And it is the object drop's rule, not the hand's.** A creature can certainly
+be put down on somebody else's ground — the drop handler has a branch that
+*changes the creature's owner* when the tile belongs to neither the creature's
+keeper nor the dropping one, which would be unreachable if the drop were
+refused.
+
+### Two branches read and deliberately not built
+
+Both need a target this project's drop has no way to name, and both are recorded
+rather than guessed at:
+
+- **A chicken dropped into somebody else's Hatchery becomes theirs.** The
+  handler tests object id 9 against a tile owned by another keeper, in a room of
+  type 4, and reassigns the bird.
+- **A chicken or a pile of gold dropped ONTO a creature is earmarked for it** —
+  the handler writes that creature's id into a field on the object when the
+  creature's level-scaled `HungerFill` (or `MaxGoldHeld`) is non-zero. **That is
+  a reservation**, and it is the one case where a bird is not up for grabs. The
+  prison search of ADR-0074 does not consult the field, so a race for an
+  earmarked bird would still be a race; whether anything else does is unread.
+
+### The decision
+
+`PlayerState.Hand` becomes `List<HandItem>`; `ObjectState` gains `InHand`, the
+object half of `CreatureState.InHand`, and a held object is out of the dungeon —
+nothing may find, eat or decay it. `DropCreatureCommand` becomes
+**`DropCommand`**, because DK2 has one drop that branches on what it read back
+and a name that says "creature" would be a lie. `PickUpObjectCommand` joins it.
+
+The scenario harness gains `setup.objects` and `setup.creatures.hunger`, both
+named as shortcuts in the run report. The second is not a convenience: a
+prisoner never gets hungry *in* a cell — a Goblin's `HungerRate` is 180 game
+seconds and the drain turns it to bone in 83 — so stating the hunger a creature
+accumulated *before* capture is the only way a scenario can reach the mechanic
+at all.
+
+### What it cost
+
+**`HashVersion` 28 → 30, skipping 29, and `FormatVersion` with it.** Both are
+composition rather than behaviour: the determinism fixture's keeper never picks
+anything up, so no slot's kind byte is ever written, and the world holds no
+objects, so `InHand` is never hashed for one. A field added to an empty list
+still has to change the hash, which is the useful shape for a pin.
+
+**29 is skipped on purpose.** Codex's fog-of-war branch claimed it in its own
+worktree while this was being written, and two branches holding one version
+number is exactly the failure a version number exists to catch — a save written
+by either would be readable by the other and wrong. Numbers are cheap.
+
+**One test found a real gap rather than confirming one.**
+`AMixedHandSurvivesASnapshot` failed because `ObjectState.InHand` was hashed and
+not snapshotted, which is precisely the restore-and-continue invariant the
+snapshot tests exist for.
+
+### The scenario shows the clock, not the race
+
+`a_keeper_drops_a_chicken_in_a_prison` runs the whole loop: two goblins dragged
+in by imps, angering at 25 a second in an empty cell, then a keeper lifting a
+bird off its own floor and putting it in the cell, and one prisoner eating for
++375.
+
+**The second prisoner does not lose a race there. It loses a clock.** The two
+were captured 50 ticks apart, so their once-a-second looks are ten ticks out of
+phase; the bird lands at 1401, the first looks at 1409 and eats it, and the
+second's next look is 1419. That is a real consequence of
+`TimeBetweenReattemptingHungerSeconds` and is narrated rather than engineered
+away. The contested case — both choosing the same bird, one arriving at an empty
+tile — is pinned by unit test instead, because staging it in a scenario would
+mean choreographing the wander, and the choreography would be the part worth
+doubting.
 

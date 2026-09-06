@@ -62,6 +62,13 @@ public enum ObjectFlags : uint
     /// <summary>The dungeon's level gem, which a level's objective may name.</summary>
     TypeLevelGem = 1u << 12,
 
+    /// <summary>
+    /// <b>Dead.</b> Set on exactly one record — Call To Arms — and <b>tested
+    /// nowhere in the executable</b> (raw scan for the mask against the
+    /// definition's flag dword, 2026-09-06). The name is OpenKeeper's reading
+    /// of the bit, and it is a plausible one; what it is not is evidence about
+    /// where a keeper may put a thing down. Q196.
+    /// </summary>
     CanBeDroppedOnAnyLand = 1u << 13,
     Obstacle = 1u << 14,
     Bounce = 1u << 15,
@@ -152,6 +159,23 @@ public sealed record ObjectDef
 
     /// <summary>A level special box.</summary>
     public bool IsSpecial => Flags.HasFlag(ObjectFlags.TypeSpecial);
+
+    /// <summary>
+    /// Whether the Hand of Evil may lift this — <b>26 of the 145 records</b>:
+    /// the three golds, the Chicken, Call To Arms, all fifteen specials, and
+    /// six odds and ends (the Casino Pay Out Adjuster, two Hero Gate tables,
+    /// the Frontend 3D Arrow, the Prison Door Bar, the MPD Level Indicator).
+    ///
+    /// <para><b>The flag has exactly one reader in the whole binary</b> and it
+    /// is the cursor's target search, which also lets the <b>Dungeon Heart</b>
+    /// through by id regardless of the flag — a targeting special case rather
+    /// than a lifting one, so it is not reproduced here.</para>
+    ///
+    /// <para>Note what is <i>not</i> in the set: <b>spell books, crates and
+    /// creature beds</b>. A keeper does not hand-carry a finished trap or a
+    /// book to a library; an imp does.</para>
+    /// </summary>
+    public bool CanBePickedUp => Flags.HasFlag(ObjectFlags.CanBePickedUp);
 
     /// <summary>Decays on its own, with or without a room to keep it.</summary>
     public bool Decays =>

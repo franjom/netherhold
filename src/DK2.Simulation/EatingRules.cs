@@ -175,7 +175,8 @@ public static class EatingRules
     /// </summary>
     public static bool IsEdibleChicken(ObjectState thing) =>
         thing.ObjectTypeId == HatcheryRules.ChickenObjectId
-        && thing.CarriedByCreatureId < 0;
+        && thing.CarriedByCreatureId < 0
+        && !thing.InHand;
 
     /// <summary>
     /// The hatchery this creature is standing in, or null. The original's test
@@ -279,6 +280,7 @@ public static class EatingRules
         for (int i = 0; i < objects.Count; i++)
         {
             ObjectState thing = objects[i];
+            if (thing.InHand) continue;
             if (thing.CarriedByCreatureId >= 0) continue;
             if (!IsFood(database, thing)) continue;
             if (!Contains(room, thing.TileIndex)) continue;

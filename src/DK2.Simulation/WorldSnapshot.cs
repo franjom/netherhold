@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 28;
+    private const int FormatVersion = 30;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -75,7 +75,11 @@ public static class WorldSnapshot
             w.Write(p.Mana);
             w.Write(p.NextFreeImpTick.Value);
             w.Write(p.Hand.Count);
-            foreach (int id in p.Hand) w.Write(id);
+            foreach (HandItem held in p.Hand)
+            {
+                w.Write((byte)held.Kind);
+                w.Write(held.Id);
+            }
         }
 
         // Normally empty at a tick boundary — TileWorkSystem drains it every
@@ -155,6 +159,7 @@ public static class WorldSnapshot
             w.Write(o.GoldHeld);
             w.Write(o.CarriedByCreatureId);
             w.Write(o.TimerTicks);
+            w.Write(o.InHand);
         }
     }
 
@@ -224,7 +229,11 @@ public static class WorldSnapshot
             };
 
             int handCount = r.ReadInt32();
-            for (int h = 0; h < handCount; h++) players[i].Hand.Add(r.ReadInt32());
+            for (int h = 0; h < handCount; h++)
+            {
+                var kind = (HandItemKind)r.ReadByte();
+                players[i].Hand.Add(new HandItem(kind, r.ReadInt32()));
+            }
         }
 
         WorldState world = WorldState.FromParts(width, height, tiles, players);
@@ -307,6 +316,7 @@ public static class WorldSnapshot
                 GoldHeld = r.ReadInt32(),
                 CarriedByCreatureId = r.ReadInt32(),
                 TimerTicks = r.ReadInt32(),
+                InHand = r.ReadBoolean(),
             });
         }
 

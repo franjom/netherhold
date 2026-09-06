@@ -810,6 +810,12 @@ switch (args[0])
                 ("crate", o => o.Flags.HasFlag(ObjectFlags.TypeCrate)),
                 ("level gem", o => o.Flags.HasFlag(ObjectFlags.TypeLevelGem)),
                 ("decays", o => o.Decays),
+
+                // The Hand of Evil's two: what it may lift, and where it may
+                // put it down (Q196).
+                ("pick up", o => o.Flags.HasFlag(ObjectFlags.CanBePickedUp)),
+                ("any land", o => o.Flags.HasFlag(ObjectFlags.CanBeDroppedOnAnyLand)),
+                ("slappable", o => o.Flags.HasFlag(ObjectFlags.CanBeSlapped)),
             })
             {
                 var hits = objects.Where(pick).OrderBy(o => o.ObjectId).ToList();

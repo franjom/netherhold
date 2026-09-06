@@ -43,7 +43,8 @@ public sealed class HandSystem : ISimulationSystem
             switch (command)
             {
                 case PickUpCreatureCommand pick: PickUp(context, pick); break;
-                case DropCreatureCommand drop: Drop(context, drop); break;
+                case PickUpObjectCommand lift: PickUpObject(context, lift); break;
+                case DropCommand drop: Drop(context, drop); break;
                 case SlapCreatureCommand slap: Slap(context, slap); break;
             }
         }
@@ -78,10 +79,42 @@ public sealed class HandSystem : ISimulationSystem
 
         creature.InHand = true;
         creature.PickupTick = context.Tick.Value;
-        world.Player(command.PlayerId).Hand.Add(creature.Id);
+        world.Player(command.PlayerId).Hand.Add(HandItem.Of(creature));
 
         context.Emit(SystemName, "picked_up",
             $"player={command.PlayerId} creature={creature.Id} " +
+            $"held={world.Player(command.PlayerId).Hand.Count}");
+    }
+
+    /// <summary>
+    /// Lifts a loose object into the hand — a chicken out of a hatchery, a pile
+    /// of gold off the floor, a special.
+    ///
+    /// <para>CONFIRMED by the owner (2026-09-06). Until ADR-0075 the hand held
+    /// creature ids only, which left the prison eating of ADR-0074 complete and
+    /// unreachable in play.</para>
+    /// </summary>
+    private static void PickUpObject(SimulationContext context, PickUpObjectCommand command)
+    {
+        WorldState world = context.World;
+        ObjectState? thing = world.ObjectById(command.ObjectId);
+        if (thing is null) return;
+
+        if (!HandRules.CanPickUpObject(world, context.Database, thing, command.PlayerId))
+        {
+            context.Emit(SystemName, "object_pickup_refused",
+                $"player={command.PlayerId} object={command.ObjectId} " +
+                $"held={world.Player(command.PlayerId).Hand.Count}");
+            return;
+        }
+
+        thing.InHand = true;
+        world.Player(command.PlayerId).Hand.Add(HandItem.Of(thing));
+
+        context.Emit(SystemName, "object_picked_up",
+            $"player={command.PlayerId} object={thing.Id} " +
+            $"type={thing.ObjectTypeId} " +
+            $"from=({thing.TileIndex % world.Width},{thing.TileIndex / world.Width}) " +
             $"held={world.Player(command.PlayerId).Hand.Count}");
     }
 
@@ -117,10 +150,10 @@ public sealed class HandSystem : ISimulationSystem
 
     // ------------------------------------------------------------------- drop
 
-    private static void Drop(SimulationContext context, DropCreatureCommand command)
+    private static void Drop(SimulationContext context, DropCommand command)
     {
         WorldState world = context.World;
-        List<int> hand = world.Player(command.PlayerId).Hand;
+        List<HandItem> hand = world.Player(command.PlayerId).Hand;
         if (hand.Count == 0) return;
 
         if (!world.Contains(command.Tile))
@@ -130,10 +163,17 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
-        // Last in, first out - the original reads back the slot it is about to
-        // free. A keeper holding three creatures and dropping twice puts down
-        // the third and then the second.
-        int creatureId = hand[^1];
+        // Last in, first out - CONFIRMED by the owner, and the original reads
+        // back the slot it is about to free. A keeper holding three things and
+        // dropping twice puts down the third and then the second.
+        HandItem held = hand[^1];
+        if (held.IsObject)
+        {
+            DropObject(context, command, held);
+            return;
+        }
+
+        int creatureId = held.Id;
         CreatureState? creature = world.CreatureById(creatureId);
         if (creature is null)
         {
@@ -214,7 +254,7 @@ public sealed class HandSystem : ISimulationSystem
     /// this; only a keeper can.</para>
     /// </summary>
     private static bool DropIntoACell(
-        SimulationContext context, DropCreatureCommand command, CreatureState creature)
+        SimulationContext context, DropCommand command, CreatureState creature)
     {
         WorldState world = context.World;
         int here = (command.Tile.Y * world.Width) + command.Tile.X;
@@ -238,6 +278,64 @@ public sealed class HandSystem : ISimulationSystem
         return false;
     }
 
+
+    /// <summary>
+    /// Puts an object down on a tile the keeper owns.
+    ///
+    /// <para><b>Owned ground, CONFIRMED by the owner</b> (2026-09-06) — and
+    /// <b>not</b> <c>CanBeDroppedOnAnyLand</c>, which is set on one record and
+    /// read by nothing (<see cref="HandRules.CanDropObjectOn"/>).</para>
+    ///
+    /// <para><b>Two branches of the original's are read and not built</b>, both
+    /// because they need a target this project's drop has no way to name:</para>
+    ///
+    /// <list type="bullet">
+    /// <item><b>A chicken dropped into somebody else's Hatchery becomes
+    /// theirs.</b> The handler tests object id 9 against a tile owned by another
+    /// keeper, in a room of type 4, and reassigns the bird. Unreachable here
+    /// while the drop is owned-tiles-only, and unreachable in the original for
+    /// the same reason as far as anyone has watched.</item>
+    /// <item><b>A chicken or a pile of gold dropped ONTO a creature is
+    /// earmarked for it</b> — the handler writes that creature's id into a field
+    /// on the object when the creature's level-scaled <c>HungerFill</c> (or
+    /// <c>MaxGoldHeld</c>) is non-zero. That is a reservation, and it is the one
+    /// case where a bird is <i>not</i> up for grabs. The prison search of
+    /// ADR-0074 does not consult the field, so a race for an earmarked bird
+    /// would still be a race; whether something else does is unread.</item>
+    /// </list>
+    /// </summary>
+    private static void DropObject(
+        SimulationContext context, DropCommand command, HandItem held)
+    {
+        WorldState world = context.World;
+        List<HandItem> hand = world.Player(command.PlayerId).Hand;
+
+        ObjectState? thing = world.ObjectById(held.Id);
+        if (thing is null)
+        {
+            // The thing in the hand stopped existing. The slot is freed rather
+            // than wedged, exactly as for a creature.
+            hand.RemoveAt(hand.Count - 1);
+            return;
+        }
+
+        if (!HandRules.CanDropObjectOn(world, command.Tile, command.PlayerId))
+        {
+            context.Emit(SystemName, "drop_refused",
+                $"player={command.PlayerId} object={thing.Id} " +
+                $"tile={command.Tile.X},{command.Tile.Y} not_owned");
+            return;
+        }
+
+        hand.RemoveAt(hand.Count - 1);
+        thing.InHand = false;
+        thing.TileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
+
+        context.Emit(SystemName, "object_dropped",
+            $"player={command.PlayerId} object={thing.Id} " +
+            $"type={thing.ObjectTypeId} " +
+            $"tile={command.Tile.X},{command.Tile.Y} held={hand.Count}");
+    }
 
     // ------------------------------------------------------------------- slap
 

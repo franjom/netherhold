@@ -1,0 +1,147 @@
+﻿# The rest of Q172, and the two ends of it were built a commit apart.
+#
+# The owner watched a prison on 2026-09-05 and said three things about it. Two
+# sittings closed the first - a prisoner moves about its cell (ADR-0073) - and
+# this scenario is the other two:
+#
+#   "they rush toward that chicken, the first one to reach it eats it, and its
+#    health replenishes."
+#
+# ## What the original does, and the first sentence of it was a correction
+#
+# Under the state-table frame corrected by ADR-0072, the prison is states
+# 114-126 and three of them are the meal:
+#
+#   115  hungry, and past TimeBetweenReattemptingHungerSeconds? -> 117
+#   117  walk the prison's OWN tile chain, then each tile's object list; keep
+#        every object carrying the food flag; rank by straight-line squared
+#        distance; ISSUE A MOVE to the nearest, resuming in 118. Nothing found
+#        -> AngerNoFood, and back to wandering
+#   118  a food-flagged object underfoot: destroy it and pay off the WHOLE of
+#        HungerFill. Still owing -> 117. Nothing there -> ALSO 117
+#
+# ADR-0073 recorded 117 as "eat where it stands". It is a hunt, and the meal is
+# 118 - an error that came from reading the transition without opening the
+# handler.
+#
+# ## The race is the absence of a reservation
+#
+# Nothing marks the chosen bird. Both prisoners here pick the same chicken and
+# one of them arrives at an empty tile, whereupon 118's loop drops it back into
+# 117 and it looks again. That is the whole of the owner's sentence, and it
+# needs no mechanism beyond leaving one out.
+#
+# ## What to watch in the run
+#
+#   * prisoner_no_food, once a game second, while the cell is empty. What lands
+#     is 25 and not the tabled 100: DK2's creature loader divides every angerNo*
+#     field by its four ticks a game second, so the engine holds anger PER TICK,
+#     and state 117 adds one of those per attempt rather than per tick. A hungry
+#     prisoner in an unstocked cell therefore angers at a quarter of the rate a
+#     bedless creature does.
+#   * object_picked_up / object_dropped. The keeper lifts the bird off its own
+#     floor at tick 1400 and puts it at one end of the cell at 1401. Both go
+#     through the same rules play does: CanBePickedUp is 26 of the 145 OBJECTS
+#     records, and a drop only lands on ground the keeper owns.
+#   * prisoner_ate, exactly once, for +375 health - HpFromChicken, capped at
+#     the missing health.
+#
+# ## The second prisoner never even sees the bird, and that is the mechanic
+#
+# In this run the loser does not lose a race. It loses a CLOCK. Both prisoners
+# look for food at most once a game second, and the two were captured 50 ticks
+# apart, so their looks are ten ticks out of phase. The bird lands at 1401;
+# creature 1 looks at 1409 and eats it; creature 2's next look is 1419, by which
+# time there is nothing there and it takes another 25 anger instead.
+#
+# That is a real consequence of TimeBetweenReattemptingHungerSeconds and worth
+# watching, but it is not the contested case. The contested case - both
+# prisoners choosing the same bird, one arriving to an empty tile and going
+# round again - is pinned by unit tests
+# (PrisonTests.ARaceForOneChickenAndOnlyOnePrisonerEats), where both captives
+# start hungry on the same tick and their looks coincide. A scenario cannot
+# stage that without choreographing the wander, and choreographing it would be
+# the part worth doubting.
+#
+# ## What this scenario shortcuts, and it is one thing
+#
+# `setup.objects` lays the chicken on the floor, which nothing in the game does
+# - a hatchery lays them on its own schedule. Everything after that is the
+# mechanic: the hand still has to lift it and put it down, and the prisoners
+# still have to find it.
+#
+# ## The prisoners arrive already hungry, and that is not a contrivance
+#
+# It is the only way this can happen at all. A prisoner never gets hungry IN a
+# cell: a Goblin's HungerRate is 180 game seconds and the prison's drain turns
+# it to bone in 83. What makes the mechanic reachable in the game is that
+# HungerNeed accumulates over a creature's WHOLE LIFE and is paid off only by
+# eating - so anything the imps drag in after a few minutes on the map is hungry
+# when it lands. `setup.creatures.hunger` states that history rather than
+# simulating three minutes of it.
+#
+# Getting them into the cell is NOT shortcut: they go down on the floor and two
+# imps drag them in, which is the only way a creature is ever imprisoned
+# (ADR-0064, and CONFIRMED by the owner - "only an imp can drag an enemy
+# creature to prison").
+#
+# Evidence: docs/research/prison.md section 7, docs/research/eating.md.
+# Decisions: ADR-0074 (the prisoner's end), ADR-0075 (the keeper's).
+# Questions: Q195, Q196.
+
+id: creatures-a-keeper-drops-a-chicken-in-a-prison-001
+question: >
+  A keeper drops a chicken into a prison holding two hungry captives. Do they
+  race for it, does exactly one of them eat, and is it the nearer?
+map: flat_9x8
+seed: 11
+duration_ticks: 2400
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 0 }
+    - { id: 1, gold: 0, mana: 0 }
+  rooms:
+    # A 5x3 prison rather than the smallest working 3x3, and the size is the
+    # point: two prisoners shuffling about nine tiles are usually standing on
+    # the same one when the bird lands, and a race you win without moving is not
+    # a race. Fifteen tiles puts distance between them. Capacity is the inner
+    # tiles plus one, so this one holds four (Q166, ADR-0070).
+    - { type: Prison, at: [3, 3], player: 3 }
+    - { type: Prison, at: [4, 3], player: 3 }
+    - { type: Prison, at: [5, 3], player: 3 }
+    - { type: Prison, at: [6, 3], player: 3 }
+    - { type: Prison, at: [7, 3], player: 3 }
+    - { type: Prison, at: [3, 4], player: 3 }
+    - { type: Prison, at: [4, 4], player: 3 }
+    - { type: Prison, at: [5, 4], player: 3 }
+    - { type: Prison, at: [6, 4], player: 3 }
+    - { type: Prison, at: [7, 4], player: 3 }
+    - { type: Prison, at: [3, 5], player: 3 }
+    - { type: Prison, at: [4, 5], player: 3 }
+    - { type: Prison, at: [5, 5], player: 3 }
+    - { type: Prison, at: [6, 5], player: 3 }
+    - { type: Prison, at: [7, 5], player: 3 }
+  creatures:
+    # Two of somebody else's goblins, down on the floor of player 3's dungeon,
+    # each owing one helping of food. Health 0 puts them in the collapsed state
+    # an imp will pick up; hunger 1 is a life spent on the map before capture.
+    - { type: Goblin, at: [1, 1], player: 1, health: 0, hunger: 1 }
+    - { type: Goblin, at: [1, 6], player: 1, health: 0, hunger: 1 }
+    # Two jailers.
+    - { type: Imp, at: [2, 1], player: 3 }
+    - { type: Imp, at: [2, 6], player: 3 }
+  objects:
+    # On the keeper's floor OUTSIDE the cell, where the prison search cannot see
+    # it: 117 walks the room's own tiles and nothing else.
+    - { type: Chicken, at: [1, 3], player: 3 }
+commands:
+  # Both captures are done well before this. Object ids start at 1, so the
+  # chicken is 1.
+  - { at_tick: 1400, player: 3, pick_up_object: 1 }
+  # One end of the cell. Where the prisoners happen to be shuffling when it
+  # lands is the run's business, not the author's - which is the honest way to
+  # stage a race.
+  - { at_tick: 1401, player: 3, drop: [7, 4] }
+observe:
+  - state_hash
+  - events

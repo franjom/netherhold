@@ -89,6 +89,23 @@ public sealed class ScenarioCreature
     /// did instead of collapsing.</para>
     /// </summary>
     public int? Health { get; set; }
+
+    /// <summary>
+    /// Helpings of food owed, for the same reason <see cref="Health"/> exists:
+    /// nothing in a scenario can make a creature hungry in a reasonable number
+    /// of ticks.
+    ///
+    /// <para><b>And for the prison it is the only way.</b> A Goblin's
+    /// <c>HungerRate</c> is 180 game seconds and a cell turns it to bone in 83,
+    /// so no prisoner ever gets hungry <i>in</i> a prison. What makes the
+    /// mechanic reachable in the game is that <c>HungerNeed</c> accumulates over
+    /// a creature's whole life and is paid off only by eating — anything the
+    /// imps drag in after a few minutes on the map is already hungry. This field
+    /// is that history, stated rather than simulated.</para>
+    ///
+    /// <para>Null says "not hungry", which is what a fresh creature is.</para>
+    /// </summary>
+    public int? Hunger { get; set; }
 }
 
 /// <summary>
@@ -96,6 +113,26 @@ public sealed class ScenarioCreature
 /// mana, then creatures. Rooms come first because gold needs a treasury to go
 /// into.
 /// </summary>
+/// <summary>
+/// One object placed on the map before tick 0 — a chicken, a pile of gold.
+///
+/// <para>Here because a keeper's hand can now hold one (ADR-0075) but nothing
+/// in a scenario can lay one: a hatchery lays chickens on its own schedule, and
+/// waiting for one is not the thing under test when the thing under test is
+/// what happens after it is dropped.</para>
+/// </summary>
+public sealed class ScenarioObject
+{
+    /// <summary>An OBJECTS record name, e.g. <c>Chicken</c>.</summary>
+    public string Type { get; set; } = "";
+
+    /// <summary>Where, as <c>[x, y]</c>.</summary>
+    public List<int> At { get; set; } = [];
+
+    /// <summary>Whose it is.</summary>
+    public byte Player { get; set; }
+}
+
 public sealed class ScenarioSetup
 {
     public List<ScenarioPlayer> Players { get; set; } = [];
@@ -105,6 +142,9 @@ public sealed class ScenarioSetup
 
     /// <summary>Creatures to place before tick 0.</summary>
     public List<ScenarioCreature> Creatures { get; set; } = [];
+
+    /// <summary>Objects on the floor before tick 0.</summary>
+    public List<ScenarioObject> Objects { get; set; } = [];
 }
 
 /// <summary>
@@ -150,6 +190,9 @@ public sealed class ScenarioCommand
     /// about the world it is about to build.</para>
     /// </summary>
     public int PickUp { get; set; }
+
+    /// <summary>An object id for the keeper's hand to lift (ADR-0075).</summary>
+    public int PickUpObject { get; set; }
 
     /// <summary>The id of a creature to slap, or 0 for none.</summary>
     public int Slap { get; set; }

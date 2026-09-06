@@ -65,7 +65,14 @@ public class HandTests
         return sim;
     }
 
-    private static List<int> HandOf(WorldState world) => world.Player(Keeper).Hand;
+    private static List<HandItem> HandOf(WorldState world) => world.Player(Keeper).Hand;
+
+    /// <summary>
+    /// Just the ids, for the assertions that predate the hand holding anything
+    /// but creatures (ADR-0075).
+    /// </summary>
+    private static List<int> HandIdsOf(WorldState world) =>
+        [.. HandOf(world).Select(h => h.Id)];
 
     // ---- picking up -------------------------------------------------------
 
@@ -80,7 +87,7 @@ public class HandTests
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
 
         Assert.True(imp.InHand);
-        Assert.Equal([imp.Id], HandOf(world));
+        Assert.Equal([imp.Id], HandIdsOf(world));
 
         // Still a creature in the world's list — the hand is a place, not a
         // deletion, which is what lets the drop put it back.
@@ -132,7 +139,7 @@ public class HandTests
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
 
-        Assert.Equal([imp.Id], HandOf(world));
+        Assert.Equal([imp.Id], HandIdsOf(world));
     }
 
     [Fact]
@@ -170,11 +177,11 @@ public class HandTests
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, first.Id)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, second.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, new TilePos(3, 3))));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(3, 3))));
 
         Assert.False(second.InHand);
         Assert.True(first.InHand);
-        Assert.Equal([first.Id], HandOf(world));
+        Assert.Equal([first.Id], HandIdsOf(world));
     }
 
     [Fact]
@@ -186,7 +193,7 @@ public class HandTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, new TilePos(1, 3))));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(1, 3))));
 
         Assert.False(imp.InHand);
         Assert.Equal(new TilePos(1, 3), imp.Tile);
@@ -202,11 +209,11 @@ public class HandTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, new TilePos(8, 8))));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(8, 8))));
 
         // Refused, and the imp is still in the hand rather than lost in a wall.
         Assert.True(imp.InHand);
-        Assert.Equal([imp.Id], HandOf(world));
+        Assert.Equal([imp.Id], HandIdsOf(world));
     }
 
     // ---- Efficiency: the three numbers the owner read ---------------------
@@ -378,7 +385,7 @@ public class HandTests
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, Beside)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Beside)));
 
         // The drop only buys the look; the look happens in the same tick,
         // because the job system runs after the hand and the timer was zeroed
@@ -420,7 +427,7 @@ public class HandTests
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, mark)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, new TilePos(4, 5))));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(4, 5))));
 
         Assert.Equal(expected, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
         Assert.Equal(
@@ -447,7 +454,7 @@ public class HandTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, new TilePos(5, 5))));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(5, 5))));
         sim.Tick();
 
         Assert.Equal(ImpTaskKind.None, imp.DroppedTask);
@@ -479,7 +486,7 @@ public class HandTests
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));
         sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, Beside)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Beside)));
         sim.Tick();
 
         Assert.Equal(100, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
@@ -497,7 +504,7 @@ public class HandTests
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, Beside)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Beside)));
         sim.Tick();
 
         Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
@@ -541,7 +548,7 @@ public class HandTests
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, near, far)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, new TilePos(4, 5))));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(4, 5))));
 
         Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
 
@@ -577,7 +584,7 @@ public class HandTests
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, Beside)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Beside)));
         sim.Tick();
 
         Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
@@ -768,7 +775,7 @@ public class HandTests
         GameSimulation restored = WorldSnapshot.FromBytes(
             WorldSnapshot.ToBytes(sim), db, SimulationSystems.Default());
 
-        Assert.Equal([imp.Id], restored.World.Player(Keeper).Hand);
+        Assert.Equal([HandItem.Of(imp)], restored.World.Player(Keeper).Hand);
 
         CreatureState back = restored.World.CreatureById(imp.Id)!;
         Assert.True(back.InHand);
@@ -777,4 +784,161 @@ public class HandTests
         Assert.Equal(imp.WorkFasterTicks, back.WorkFasterTicks);
         Assert.Equal(sim.StateHash(), restored.StateHash());
     }
+
+    // ---- the hand holds things, not only creatures (ADR-0075, Q196) -------
+
+    /// <summary>
+    /// CONFIRMED by the owner, 2026-09-06: <i>"I can pick up a chicken and drop
+    /// it in the prison, or anywhere in the dungeon, on my owned tiles"</i>,
+    /// with a screenshot of four held at once.
+    /// </summary>
+    [Fact]
+    public void TheHandLiftsAChickenAndPutsItDownAgain()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        ObjectState bird = world.SpawnObject(
+            db, HatcheryRules.ChickenObjectId, Keeper, Index(world, Floor));
+
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, bird.Id)));
+
+        Assert.True(bird.InHand);
+        Assert.Equal([HandItem.Of(bird)], HandOf(world));
+
+        var landing = new TilePos(3, 3);
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, landing)));
+
+        Assert.False(bird.InHand);
+        Assert.Empty(HandOf(world));
+        Assert.Equal(Index(world, landing), bird.TileIndex);
+    }
+
+    [Fact]
+    public void TheHandWillNotLiftAThingThatIsNotLiftable()
+    {
+        // CanBePickedUp is 26 of the 145 records, and a Book Case is not one of
+        // them - nor is any spell book, crate or bed. A keeper does not
+        // hand-carry a finished trap to a workshop; an imp does.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        ObjectState shelf = world.SpawnObject(
+            db, Dk2TerrainFixture.BookCaseObjectId, Keeper, Index(world, Floor));
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, shelf.Id)));
+
+        Assert.False(shelf.InHand);
+        Assert.Empty(HandOf(world));
+        Assert.Contains(sink.Events, e => e.Kind == "object_pickup_refused");
+    }
+
+    [Fact]
+    public void AChickenMayOnlyBeDroppedOnTheKeepersOwnGround()
+    {
+        // CONFIRMED by the owner - "on my owned tiles". Where the rule lives in
+        // the original is unread: its drop handler has no ownership test at all,
+        // so the gate is in the input layer that draws the marker the
+        // screenshot shows. And it is NOT CanBeDroppedOnAnyLand, which is set on
+        // one record and read by nothing in the executable.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 3, 3);
+        ObjectState bird = world.SpawnObject(
+            db, HatcheryRules.ChickenObjectId, Keeper, Index(world, Floor));
+
+        // An unowned patch of floor beside the keeper's.
+        ref TileState loose = ref world.Tile(6, 6);
+        loose.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        loose.OwnerPlayerId = PlayerIds.Neutral;
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, bird.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(6, 6))));
+
+        // Refused, and still in the hand rather than dropped anywhere else.
+        Assert.True(bird.InHand);
+        Assert.Single(HandOf(world));
+        Assert.Contains(sink.Events, e =>
+            e.Kind == "drop_refused" && e.Detail.Contains("not_owned"));
+
+        // The keeper's own ground takes it.
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(2, 2))));
+        Assert.False(bird.InHand);
+    }
+
+    [Fact]
+    public void TheHandPutsDownTheLastThingItLiftedWhateverKindItIs()
+    {
+        // Last in, first out, CONFIRMED by the owner - and it holds ACROSS
+        // kinds, because DK2 keeps one array of things rather than one per
+        // kind. Creature first, chicken second, so the chicken lands first.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        ObjectState bird = world.SpawnObject(
+            db, HatcheryRules.ChickenObjectId, Keeper, Index(world, Floor));
+
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, bird.Id)));
+
+        Assert.Equal([HandItem.Of(imp), HandItem.Of(bird)], HandOf(world));
+
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(3, 3))));
+
+        Assert.False(bird.InHand);
+        Assert.True(imp.InHand);
+        Assert.Equal([HandItem.Of(imp)], HandOf(world));
+    }
+
+    [Fact]
+    public void AChickenInTheKeepersHandIsNotFood()
+    {
+        // A held object is out of the dungeon, exactly as a held creature is.
+        // Nothing may find it, eat it or decay it while it is up there.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        ObjectState bird = world.SpawnObject(
+            db, HatcheryRules.ChickenObjectId, Keeper, Index(world, Floor));
+
+        Assert.True(EatingRules.IsEdibleChicken(bird));
+
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, bird.Id)));
+
+        Assert.False(EatingRules.IsEdibleChicken(bird));
+        Assert.False(EatingRules.IsFood(db, bird) && !bird.InHand);
+    }
+
+    [Fact]
+    public void AMixedHandSurvivesASnapshot()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 4, 4);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        ObjectState bird = world.SpawnObject(
+            db, HatcheryRules.ChickenObjectId, Keeper, Index(world, Floor));
+
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, bird.Id)));
+
+        GameSimulation restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(sim), db, SimulationSystems.Default());
+
+        Assert.Equal(
+            [HandItem.Of(imp), HandItem.Of(bird)], restored.World.Player(Keeper).Hand);
+        Assert.True(restored.World.ObjectById(bird.Id)!.InHand);
+        Assert.Equal(sim.StateHash(), restored.StateHash());
+    }
+
+    private static int Index(WorldState world, TilePos at) => (at.Y * world.Width) + at.X;
 }

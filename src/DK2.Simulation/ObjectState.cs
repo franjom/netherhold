@@ -137,6 +137,22 @@ public sealed class ObjectState
     /// </summary>
     public int TimerTicks;
 
+    /// <summary>
+    /// In a keeper's hand, and therefore out of the dungeon — the object half
+    /// of <see cref="CreatureState.InHand"/>.
+    ///
+    /// <para>Distinct from <see cref="CarriedByCreatureId"/> on purpose: an imp
+    /// carrying a chicken is walking through the dungeon with it, and a keeper
+    /// holding one has removed it from the world. Nothing may find, eat or
+    /// decay a held object; which keeper holds it is on the keeper, in
+    /// <see cref="PlayerState.Hand"/>, exactly as for a creature.</para>
+    ///
+    /// <para><see cref="TileIndex"/> is left where the object was lifted from
+    /// and is meaningless until it lands. Every search that could see it tests
+    /// this first.</para>
+    /// </summary>
+    public bool InHand;
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
@@ -147,5 +163,6 @@ public sealed class ObjectState
         hash.Add(GoldHeld);
         hash.Add(CarriedByCreatureId);
         hash.Add(TimerTicks);
+        hash.Add(InHand);
     }
 }

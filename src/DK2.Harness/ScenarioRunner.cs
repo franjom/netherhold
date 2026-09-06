@@ -377,15 +377,17 @@ public sealed class ScenarioRunner
             "creature it turns away (Q106)");
         unsupported.Add(
             "a prison in a run cannot be fed, and the reason has narrowed to one thing. DK2 " +
-            "keeps a prisoner alive by having its keeper drop chickens on it; chickens now exist " +
-            "and free creatures now eat them (ADR-0067). A prisoner now WANDERS its cell as " +
-            "the original's does - one tile at a time, orthogonally, never out of the room " +
-            "(ADR-0073) - so what is left of Q172 is the bird: nothing drops one into a cell " +
-            "and nothing races for it. Its eating state in the original is a different one " +
-            "that pays off the whole of HungerFill from a single bird " +
-            "(EatingRules.EatInPrison). So every prisoner here still runs its whole " +
+            "keeps a prisoner alive by having its keeper drop chickens on it, and that whole " +
+            "loop now exists. A prisoner WANDERS its cell (ADR-0073), gets hungry, hunts the " +
+            "room's own tiles for anything carrying the food flag, walks to the nearest by " +
+            "straight-line distance and eats it - paying off the WHOLE of HungerFill from one " +
+            "bird where a hatchery bird pays one (ADR-0074) - and a keeper can lift a chicken " +
+            "and put it in the cell (ADR-0075). Nothing reserves the bird, so two hungry " +
+            "prisoners race for it and the loser looks again. What is still NOT here: the " +
+            "prison's anger is charged only for a failed search for food, never for the " +
+            "company a prisoner keeps; and a prisoner nobody feeds still runs its whole " +
             "PrisonModifyCreatureHealthPerSecond countdown out and becomes a Skeleton. How " +
-            "many prisoners a prison holds is now the original's own rule - its inner tiles " +
+            "many prisoners a prison holds is the original's own rule - its inner tiles " +
             "plus one, so a 3x3 holds two (Q166, ADR-0070) - and what health a captured " +
             "creature wakes with is read from DK2's damage path (Q167, ADR-0071)");
         unsupported.Add(
@@ -394,11 +396,14 @@ public sealed class ScenarioRunner
             "and hatches two seconds later, one bird per tile; a hungry creature walks to the " +
             "nearest hatchery of its own keeper, picks the nearest chicken once it is inside, " +
             "eats it for min(HpFromChicken, missing health) and pays off one helping of hunger. " +
-            "What is NOT here: how the original walks it there (state 0x5A has one caller and " +
-            "this composes two states, Q174), the post-meal wander around the room (Q175), " +
-            "whether a sleeping creature wakes to eat (Q176, ours says no), and a prisoner - " +
-            "which now moves (ADR-0073) but still cannot be fed, because nothing drops a bird " +
-            "into a cell (the remaining half of Q172)");
+            "What is NOT here: how the original walks it there (Q174 is answered - state 0x5B " +
+            "under the frame ADR-0072 corrected - but this still composes two states rather " +
+            "than running them), and the post-meal wander around the room (Q175). A sleeping " +
+            "creature does not wake to eat (Q176), and the answer is right for a better reason " +
+            "than this project used to give: DK2 skips the needs routine for the fourteen " +
+            "states that ARE a need, sleeping among them. A PRISONER eats by a different route " +
+            "entirely and now does - fed where it stands, by a keeper dropping a bird into the " +
+            "cell (ADR-0074, ADR-0075)");
     }
 
     /// <summary>
@@ -422,6 +427,46 @@ public sealed class ScenarioRunner
                 "DK2 would drop the rest on the floor as gold piles, which are objects and are not " +
                 "implemented (Q31). Give the player a treasury in setup.rooms to hold it");
         }
+    }
+
+    /// <summary>
+    /// Places the scenario's objects, and says what placing one by hand costs
+    /// in honesty.
+    /// </summary>
+    private void SpawnObjects(Scenario scenario, WorldState world, List<string> unsupported)
+    {
+        foreach (ScenarioObject o in scenario.Setup.Objects)
+        {
+            ObjectDef? definition = _database.Objects.Values
+                .FirstOrDefault(d => string.Equals(
+                    d.Name, o.Type, StringComparison.OrdinalIgnoreCase));
+
+            if (definition is null)
+            {
+                unsupported.Add($"setup.objects entry '{o.Type}' is not an object in the database");
+                continue;
+            }
+
+            if (o.At.Count != 2 || !world.Contains(o.At[0], o.At[1]))
+            {
+                unsupported.Add(
+                    $"setup.objects entry '{o.Type}' at [{string.Join(",", o.At)}] is not a tile on this map");
+                continue;
+            }
+
+            world.SpawnObject(
+                _database, definition.ObjectId, o.Player,
+                (o.At[1] * world.Width) + o.At[0]);
+        }
+
+        if (scenario.Setup.Objects.Count == 0) return;
+
+        unsupported.Add(
+            "setup.objects lays an object on the floor directly, which nothing in the game does. " +
+            "A hatchery lays chickens on its own schedule and an imp carries the rest home, so a " +
+            "scenario that wanted a bird in a particular place at a particular tick had no way to " +
+            "ask for one. What is NOT shortcut is anything after that: the keeper still has to " +
+            "lift it and put it down, and both go through the same rules play does");
     }
 
     /// <summary>
@@ -460,8 +505,15 @@ public sealed class ScenarioRunner
                     Math.Clamp(health, 0, CreatureHealthRules.MaxHealth(_database, definition, placed));
             }
 
+            // Hungry on purpose, and for the prison it is the only way: see
+            // ScenarioCreature.Hunger. Clamped at zero so a typo cannot make a
+            // creature owe negative food.
+            if (c.Hunger is int hunger) placed.HungerNeed = Math.Max(0, hunger);
+
             if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) workers++;
         }
+
+        SpawnObjects(scenario, world, unsupported);
 
         if (scenario.Setup.Creatures.Count == 0) return;
 
@@ -524,6 +576,8 @@ public sealed class ScenarioRunner
             if (c.CreateImp) list.Add(new CreateImpCommand(c.Player));
 
             if (c.PickUp > 0) list.Add(new PickUpCreatureCommand(c.Player, c.PickUp));
+            if (c.PickUpObject > 0)
+                list.Add(new PickUpObjectCommand(c.Player, c.PickUpObject));
             if (c.Slap > 0) list.Add(new SlapCreatureCommand(c.Player, c.Slap));
 
             bool dropped = c.Drop.Count > 0;
@@ -537,14 +591,14 @@ public sealed class ScenarioRunner
                 }
                 else
                 {
-                    list.Add(new DropCreatureCommand(
+                    list.Add(new DropCommand(
                         c.Player, new TilePos(c.Drop[0], c.Drop[1])));
                 }
             }
 
             if (c.Tag.Count == 0 && c.Untag.Count == 0 && !built
                 && c.Sell.Count == 0 && !c.CreateImp
-                && c.PickUp == 0 && c.Slap == 0 && !dropped)
+                && c.PickUp == 0 && c.PickUpObject == 0 && c.Slap == 0 && !dropped)
                 unsupported.Add($"commands entry at_tick={c.AtTick} names nothing this build can do");
         }
 

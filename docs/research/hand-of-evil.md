@@ -18,7 +18,9 @@ repository (ADR-0046).
 | Claim | Status |
 |---|---|
 | The hand is an array on the keeper, capacity `MaxNumberOfThingsInHand` = 64 | **STRONGLY INFERRED** — read from the pick-up handler and from DK2's own debug dump, which prints `NumberOfThingsInHand` and `MaxNumberOfThingsInHand` side by side |
-| **Dropping is last-in-first-out** | **STRONGLY INFERRED** — the drop handler reads back the slot it is about to free |
+| **Dropping is last-in-first-out** | **CONFIRMED** (owner, 2026-09-06), on top of the drop handler reading back the slot it is about to free. It holds **across kinds**: DK2 keeps one array of things, so a creature and a chicken share the slots |
+| **The hand holds objects too** — a chicken, a pile of gold, a special | **CONFIRMED** (owner, 2026-09-06): *"I can pick up a chicken and drop it in the prison, or anywhere in the dungeon, on my owned tiles"*, with a screenshot of four held at once. `CanBePickedUp` is 26 of the 145 OBJECTS records and excludes spell books, crates and beds. ADR-0075 |
+| **An object is dropped on the keeper's own ground** | **CONFIRMED** (owner, same day). Where the rule lives is **UNREAD**: the drop handler has no ownership test, so the gate is in the input layer. It is **not** `CanBeDroppedOnAnyLand`, which is set on one record and read by nothing (Q196) |
 | A thing already in a hand cannot be picked up again | **STRONGLY INFERRED** — an explicit scan of the array before anything else |
 | A slap raises Efficiency by ten points, and does not stack | **CONFIRMED** (owner, 2026-09-05) — *"it raises from 273 to 310 after the first slap and stays there no matter how many times i slap that imp"* |
 | **Being dropped next to work the keeper marked** raises it by ten points too, and dropping on empty ground is worth nothing | **CONFIRMED** (owner, 2026-09-05) — both halves watched |
@@ -371,5 +373,21 @@ number, which is hardcoded at 20. What variable 193 is for is **UNKNOWN**
   (`WasLastDroppedOnARoom`) and which is how a creature is put into a Library or
   a Training Room.
 - **Dropping onto enemy ground**, which the original's drop handler handles by
-  changing the creature's owner under a condition.
+  changing the creature's owner under a condition. Note what that proves: a
+  creature drop is *not* restricted to owned ground, or the branch would be
+  unreachable. The owned-ground rule the owner described is the **object**
+  drop's.
+- **A chicken dropped into somebody else's Hatchery becomes theirs** — object id
+  9, a tile owned by another keeper, a room of type 4. Read, not built.
+- **A chicken or a pile of gold dropped ONTO a creature is earmarked for it**,
+  by the creature's id written into a field on the object. That is a
+  reservation, and it is the one case where a bird is not up for grabs. The
+  prison search does not consult it (ADR-0074); whether anything else does is
+  unread.
+- **The cursor's target search** (`FUN_0044dec0`), which is a rule rather than a
+  ray-cast: a 3x3 sweep, an **octagonal** distance (`max + min/2`), a quarter
+  tile for an object against half a tile for a creature, the Dungeon Heart
+  admitted by id, and **a creature preferred over an object** whenever both are
+  in reach. Presentation, so not built — but worth having written down before
+  somebody invents a worse one.
 - **Possession**, the other thing a keeper does to one creature at a time.

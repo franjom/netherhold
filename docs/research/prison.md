@@ -307,9 +307,11 @@ it, and its shipped-variable support is gone (Q171).
   the room, paced by a 20-in-100 roll per tick out of state 116 (§6) — and it
   **eats** as of ADR-0074: it gets hungry, searches its cell, walks to the
   nearest food-flagged object, and races the other prisoners for it (§7). What
-  is left of the mechanic is not the prisoner's end at all but the **keeper's**:
-  the hand holds creature ids and cannot yet carry a chicken, which the owner
-  has confirmed it does in DK2 (Q196).
+  is left of the mechanic is nothing: ADR-0075 gave the keeper's hand a way to
+  carry a chicken and put it in the cell, which the owner confirmed it does in
+  DK2 (Q196). The scenario
+  `scenarios/creatures/a_keeper_drops_a_chicken_in_a_prison.yaml` runs the whole
+  loop.
 - **The drain is applied in single seconds rather than four-second lumps**
   (§4b), and **without the anger that accompanies it in the original.**
 - **The jail break is rolled once a game second** (Q168), on the same clock every

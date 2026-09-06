@@ -192,10 +192,12 @@ What a run still cannot tell you:
   longer on this list** (ADR-0067): a hungry creature walks to the nearest
   hatchery of its own keeper, picks the nearest chicken once it is inside, and
   eats it for `min(HpFromChicken, missing)`. Going unfed still costs no health,
-  because DK2 charges anger and now so do we. What eating still cannot do:
-  a **prisoner** cannot be fed - not because it cannot move (it wanders its cell
-  as of ADR-0073), but because nothing drops a bird into a cell and nothing
-  races for it (Q172's remaining half).
+  because DK2 charges anger and now so do we. **A prisoner is off this list too**
+  (ADR-0074, ADR-0075): it wanders its cell, gets hungry, hunts the room's own
+  tiles for anything carrying the food flag, walks to the nearest and eats it -
+  one bird paying off the whole of `HungerFill` where a hatchery bird pays one -
+  and a keeper can lift a chicken and put it in the cell. Nothing reserves the
+  bird, so two hungry prisoners race for it and the loser looks again.
 - **What a room does.** A treasury and a dungeon heart hold gold; a portal
   produces creatures; a lair attracts them and holds a bed per tile that heals
   its owner **while asleep in it**, not whatever stands on it; a hatchery is

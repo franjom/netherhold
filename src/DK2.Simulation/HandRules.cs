@@ -128,6 +128,78 @@ public static class HandRules
         return world.Player(playerId).Hand.Count < Capacity(database);
     }
 
+    /// <summary>Whether this object is in somebody's hand.</summary>
+    public static bool IsHeld(ObjectState thing) => thing.InHand;
+
+    /// <summary>
+    /// Whether <paramref name="thing"/> may be lifted by
+    /// <paramref name="playerId"/> right now.
+    ///
+    /// <para><b>The mechanic is CONFIRMED by the owner</b> (2026-09-06):
+    /// <i>"I can pick up a chicken and drop it in the prison, or anywhere in
+    /// the dungeon, on my owned tiles"</i>. Q196.</para>
+    ///
+    /// <para><b>The eligible set is read.</b>
+    /// <see cref="ObjectDef.CanBePickedUp"/> is 26 of the 145 records — the
+    /// three golds, the Chicken, Call To Arms, all fifteen specials and six odds
+    /// and ends — and its <b>only reader in the whole executable</b> is the
+    /// cursor's target search. That search also admits the <b>Dungeon Heart</b>
+    /// by id regardless of the flag, which is a targeting special case and not a
+    /// lifting one; the Heart is not liftable and nothing here pretends
+    /// otherwise.</para>
+    ///
+    /// <para><b>Ownership is not tested.</b> Neither the original's pick-up
+    /// handler nor the cursor search asks who owns the object, and the owner's
+    /// account concerns where a thing may be <i>put down</i> rather than what
+    /// may be lifted. Left out rather than guessed at.</para>
+    ///
+    /// <para><b>An object in an imp's arms is refused</b>, which is ours in form
+    /// and the original's in effect — DK2 takes a carried object off its tile
+    /// entirely, so the cursor search cannot find it.</para>
+    /// </summary>
+    public static bool CanPickUpObject(
+        WorldState world, GameDatabase database, ObjectState thing, byte playerId)
+    {
+        ObjectDef? definition = database.ObjectById(thing.ObjectTypeId);
+        if (definition is null || !definition.CanBePickedUp) return false;
+        if (thing.InHand) return false;
+        if (thing.CarriedByCreatureId >= 0) return false;
+
+        return world.Player(playerId).Hand.Count < Capacity(database);
+    }
+
+    /// <summary>
+    /// Where a keeper may put an <b>object</b> down: <b>a tile it owns</b>.
+
+    /// <para><b>Objects only, and the original says why.</b> A creature can
+    /// certainly be dropped on somebody else's ground — DK2's drop handler has
+    /// a branch that <i>changes the creature's owner</i> when the tile belongs
+    /// to neither the creature's keeper nor the dropping one, which would be
+    /// unreachable if the drop were refused. So this rule is not the hand's; it
+    /// is the object drop's, which is the one the owner watched.</para>
+    ///
+    /// <para><b>CONFIRMED by the owner</b> (2026-09-06) — <i>"drop it in the
+    /// prison, or anywhere in the dungeon, on my owned tiles"</i> — and by the
+    /// screenshot beside it, where the drop is offered on a Claimed Path with
+    /// the tile's own tooltip reading <i>"Your territory"</i>.</para>
+    ///
+    /// <para><b>Where the rule lives in the original is UNREAD</b>, and saying
+    /// so matters. Its drop handler (<c>FUN_004bc710</c>) contains no ownership
+    /// test at all; it assumes the drop is already legal, which puts the gate in
+    /// the input layer that draws the marker the screenshot shows. So this
+    /// reproduces an observation, not a routine.</para>
+    ///
+    /// <para><b>And it is emphatically NOT <c>CanBeDroppedOnAnyLand</c>.</b>
+    /// That flag is set on exactly one record, Call To Arms, and a raw scan of
+    /// the executable finds <b>no reader for it anywhere</b> — a fourth dead
+    /// data field, after three dead balance variables. Its name is OpenKeeper's
+    /// reading of a bit, it fits this rule beautifully, and building on it would
+    /// have been this project's standing mistake for the fourth time. The check
+    /// cost one scan.</para>
+    /// </summary>
+    public static bool CanDropObjectOn(WorldState world, TilePos tile, byte playerId) =>
+        world.Contains(tile) && world.Tile(tile.X, tile.Y).OwnerPlayerId == playerId;
+
     /// <summary>
     /// Whether <paramref name="creature"/> may be slapped by
     /// <paramref name="playerId"/> on tick <paramref name="now"/>.

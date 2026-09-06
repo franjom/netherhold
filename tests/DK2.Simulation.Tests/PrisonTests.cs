@@ -545,7 +545,7 @@ public class PrisonTests
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
 
         Assert.True(captive.InHand);
-        Assert.Equal([captive.Id], world.Player(Keeper).Hand);
+        Assert.Equal([HandItem.Of(captive)], world.Player(Keeper).Hand);
 
         // Lifting one out is not freeing one. It is still the keeper's prisoner
         // while it is in the hand, which is what lets the drop put it back.
@@ -595,7 +595,7 @@ public class PrisonTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, CellC)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, CellC)));
 
         Assert.False(captive.InHand);
         Assert.Equal(CreatureActivity.Imprisoned, captive.Activity);
@@ -617,7 +617,7 @@ public class PrisonTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, Floor)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
 
         Assert.False(PrisonRules.IsImprisoned(captive));
         Assert.Equal(Rival, captive.OwnerPlayerId);
@@ -1080,5 +1080,49 @@ public class PrisonTests
         Assert.Null(world.CreatureById(captiveId));
         Assert.Contains(world.Creatures, c =>
             c.CreatureTypeId == SkeletonId && c.OwnerPlayerId == Keeper);
+    }
+    [Fact]
+    public void AKeeperStocksACellAndThePrisonersRaceForIt()
+    {
+        // The whole mechanic end to end, and the two halves were built a commit
+        // apart: ADR-0074 gave a prisoner the hunger, the hunt and the meal,
+        // and ADR-0075 gave the keeper a way to put a bird within reach. Until
+        // the second, the first was complete and unreachable in play.
+        //
+        // CONFIRMED by the owner at both ends - "I can pick up a chicken and
+        // drop it in the prison" and "they rush toward that chicken, the first
+        // one to reach it eats it".
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState near = HungryPrisoner(db, world, CellB);
+        CreatureState far = HungryPrisoner(db, world, CellA);
+
+        // A bird on the keeper's floor outside the cell, where no prisoner can
+        // see it: the prison search walks the room's own tiles only.
+        ObjectState bird = Chicken(db, world, Floor);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int i = 0; i < 3 * Second; i++) sim.Tick();
+
+        Assert.True(near.HungerNeed > 0);
+        Assert.NotNull(world.ObjectById(bird.Id));
+
+        // The keeper lifts it and puts it down in the far corner of the cell.
+        sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, bird.Id)));
+        Assert.True(bird.InHand);
+
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, CellC)));
+        Assert.False(bird.InHand);
+        Assert.Equal((CellC.Y * world.Width) + CellC.X, bird.TileIndex);
+
+        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+
+        // One bird, two hungry prisoners, one meal - and it went to the nearer.
+        Assert.Null(world.ObjectById(bird.Id));
+        Assert.Single(sink.Events, e => e.Kind == "prisoner_ate");
+        Assert.Equal(0, near.HungerNeed);
+        Assert.True(far.HungerNeed > 0);
     }
 }

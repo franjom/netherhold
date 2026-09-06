@@ -297,8 +297,15 @@ public struct PlayerState
     public GameTick NextFreeImpTick;
 
     /// <summary>
-    /// The Hand of Evil: the ids of the creatures this keeper is holding, in
-    /// the order they were picked up.
+    /// The Hand of Evil: the <b>things</b> this keeper is holding, in the order
+    /// they were picked up.
+
+    /// <para><b>Things, not creatures</b>, since ADR-0075. DK2 keeps one array
+    /// of thing ids on the player record and its pick-up handler branches on
+    /// the thing's kind — a creature and a chicken go into the same slots, and
+    /// the owner has watched four chickens held at once. Our creature and
+    /// object ids are separate spaces, so each slot carries which it
+    /// is.</para>
     ///
     /// <para><b>A stack, and the original says so plainly.</b> Its pick-up
     /// handler appends at <c>NumberOfThingsInHand</c> and its drop handler
@@ -318,7 +325,7 @@ public struct PlayerState
     /// it creates them, so the field can be read without a check even though
     /// <see cref="PlayerState"/> is a struct.</para>
     /// </summary>
-    public List<int> Hand;
+    public List<HandItem> Hand;
 
     public readonly void HashInto(ref Hash64 hash)
     {
@@ -326,8 +333,42 @@ public struct PlayerState
         hash.Add(Mana);
         hash.Add(NextFreeImpTick);
         hash.Add(Hand.Count);
-        foreach (int id in Hand) hash.Add(id);
+        foreach (HandItem held in Hand)
+        {
+            hash.Add((byte)held.Kind);
+            hash.Add(held.Id);
+        }
     }
+}
+
+/// <summary>What kind of thing a hand slot holds.</summary>
+public enum HandItemKind : byte
+{
+    /// <summary>A creature — <see cref="CreatureState.InHand"/>.</summary>
+    Creature = 0,
+
+    /// <summary>A loose object — <see cref="ObjectState.InHand"/>.</summary>
+    Object = 1,
+}
+
+/// <summary>
+/// One slot of the Hand of Evil.
+///
+/// <para>DK2 needs no discriminator: creatures and objects share one thing
+/// table and one id space, and its handlers branch on a kind field inside the
+/// thing. Ours are separate lists with independent ids, so the kind rides on
+/// the slot.</para>
+/// </summary>
+public readonly record struct HandItem(HandItemKind Kind, int Id)
+{
+    public static HandItem Of(CreatureState creature) =>
+        new(HandItemKind.Creature, creature.Id);
+
+    public static HandItem Of(ObjectState thing) => new(HandItemKind.Object, thing.Id);
+
+    public bool IsCreature => Kind == HandItemKind.Creature;
+
+    public bool IsObject => Kind == HandItemKind.Object;
 }
 
 /// <summary>
