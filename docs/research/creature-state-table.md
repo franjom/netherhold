@@ -4,6 +4,8 @@ Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-06
 - The reference install's own `Data/Text/Default/Text.str`, decoded with
   `DK2.Data`'s `Dk2StringTable`
+- Flame's v1.70 symbol map, for the cross-check in §5.4 only — consulted, never
+  quoted (ADR-0046; plan §2.2.1)
 
 Original version: DK2 v1.70 (GOG)
 
@@ -495,7 +497,7 @@ with Flame is a reason to re-derive, not a reason to prefer this reading.
 
 ### 5.3 What settles it now
 
-Five checks, each independent of the others:
+Six checks, each independent of the others:
 
 1. **Offset histogram.** Every reference into the table's address range falls on
    exactly nine offsets modulo 25 — `+0`, `+4`, `+8`, `+0xc`, `+0x10`, `+0x14`,
@@ -509,8 +511,58 @@ Five checks, each independent of the others:
    records 0, 1, 3 and 8 — and the smallest literal anywhere in the table is 2,
    which is exactly what is left when those four are removed.
 5. **The labels resolve.** All 281 `+0x14` values are valid `Text.str` ids.
+6. **Flame numbers 58 of the handlers, and agrees on every one** (added
+   2026-09-06 — see below).
 
 **281 records. This agrees with Flame.**
+
+### 5.4 The sixth check: Flame's own numbering, and it does not disagree once
+
+The five checks above are all internal to this reading. The sixth is not, and it
+was found after the table was published.
+
+Flame's map does not merely list the handler addresses — for some of them its
+symbol **encodes the state's display label together with its decimal state id**,
+the same two facts this project recovered separately from the `MOV` walk and
+from `Text.str`. That makes the map an *independent statement of the numbering*,
+not just of the addresses, and it can be checked row by row.
+
+| | |
+|---|---:|
+| Distinct non-null handler addresses in §4 | 264 |
+| …present as symbols in Flame's map | **264** |
+| …whose symbol carries a decimal state id | 58 |
+| …where that id **equals** our record index | **58** |
+| …where it disagrees | **0** |
+
+Fifty-eight of 281 is a fifth of the table, spread across imp work, the
+Call-To-Arms states, the good-creature states, the keeper states and the leaving
+states rather than clustered in one region — so it exercises the frame at many
+points, not one.
+
+**Why this is worth more than the other five.** §5.2 records that the previous
+frame was wrong and **Flame's base address was right**, and the rule taken from
+that was *a disagreement with Flame is a reason to re-derive*. The converse had
+never been run. It has now, at the level of individual records rather than of
+the base address, and there is nothing to re-derive.
+
+**What it does not settle.** Flame is a reading of the binary like ours, not the
+binary, so this raises confidence rather than adding evidence of a new kind; two
+readings can share a mistake. It says nothing about `+0x04`–`+0x0c`, the flag
+byte, or the categories, which stay open in §6.
+
+**Coverage, so the check is not mistaken for a shortcut.** Of the 264 handlers,
+**160 carry an auto-generated placeholder name** in Flame and 38 carry only the
+translation unit they were compiled from. So the map confirms the numbering for
+a fifth of the table and names the *behaviour* of none of it — which is §2.2.1's
+measurement showing up again at this specific table. Reading what a handler does
+is still a Ghidra job.
+
+**Boundary.** Per ADR-0046 and the plan's §2.2.1, Flame is unlicensed: the
+scheme is described here in our own words and **not one of its symbols is
+reproduced**. Nothing was needed from it beyond the numbers in the table above,
+because the labels in §3 were resolved independently from the install's own
+`Text.str`.
 
 ## 6. What is still open
 
