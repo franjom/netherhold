@@ -5806,7 +5806,7 @@ rather than guessed at:
   type 4, and reassigns the bird.
 - **A chicken or a pile of gold dropped ONTO a creature is earmarked for it** —
   the handler writes that creature's id into a field on the object when the
-  creature's level-scaled `HungerFill` (or `MaxGoldHeld`) is non-zero. **That is
+  creature's level-scaled `HungerFill` (or ~~`MaxGoldHeld`~~ **`Pay`** — corrected 2026-09-06: the field is `def + 0x69a`, which the loader fills from record `0x0F1C`, and `kwd-creatures.md` calls that `u16 pay`; the same field and the same level-percentage table drive the wage in `payday.md` §3) is non-zero. **That is
   a reservation**, and it is the one case where a bird is not up for grabs. The
   prison search of ADR-0074 does not consult the field, so a race for an
   earmarked bird would still be a race; whether anything else does is unread.

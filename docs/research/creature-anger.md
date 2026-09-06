@@ -151,7 +151,7 @@ applied when the player's own choices can turn it off.**
 | `ModifyAngerOfCreatureInLairPerSecond` | −550/s | **Yes** — sleep works, so recovery is real |
 | `AngerNoFood` | +100/s | **In the prison only** (ADR-0074) — a keeper can stock a cell, so that source is one the player can turn off. Not applied generally: the ordinary hungry creature walks to a hatchery, and charging it would anger everybody on a map with no hatchery |
 | `AngerNoWork` | +50/s | No — non-workers have no job system; "no work" is a fact about us |
-| `AngerNoPay` | +60/s | No — there is no payday |
+| `AngerNoPay` | +60/s | No — there is no payday. **Payday itself is now read** (`payday.md`), but *what charges this* was not found in it: the gap is between an unpaid creature and the ladder |
 | hated company | +150/s | No — the relation is parsed and unused |
 
 Otherwise anger stops being feedback and becomes a countdown no dungeon
