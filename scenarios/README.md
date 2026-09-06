@@ -27,6 +27,8 @@ id: job-selection-001            # required, unique — names the output directo
 question: >                      # what this experiment is trying to find out
   Prose, for humans. Never parsed.
 map: rock_24x20                  # required: flat_WxH, rock_WxH, chamber_WxH, campaign:<level>
+fog_of_war: false               # optional: enable per-keeper discovery
+viewing_player: 1               # optional: keeper used for world.txt
 seed: 12345                      # simulation RNG seed
 duration_ticks: 600              # required, positive
 setup:

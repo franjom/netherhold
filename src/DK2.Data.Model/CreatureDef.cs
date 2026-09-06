@@ -43,6 +43,11 @@ public sealed record CreatureDef
     public required Fp32 EyeHeight { get; init; }
     public required Fp32 DistanceCanSee { get; init; }
     public required Fp32 DistanceCanHear { get; init; }
+    /// <summary>
+    /// Radius used to reveal fog, in fixed-point tile units. All 46 shipped
+    /// creatures carry <c>0x6000</c>, exactly six tiles; DKII.EXE reads the
+    /// field and compares squared distance to tile centres.
+    /// </summary>
     public required Fp32 PerceptionRange { get; init; }
 
     // Vitals / needs

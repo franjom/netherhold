@@ -227,6 +227,12 @@ public sealed class Scenario
 
     public int DurationTicks { get; set; }
 
+    /// <summary>Enables DK2's player-specific explored-tile state.</summary>
+    public bool FogOfWar { get; set; }
+
+    /// <summary>The keeper whose final text view is rendered.</summary>
+    public byte ViewingPlayer { get; set; } = 1;
+
     public ScenarioSetup Setup { get; set; } = new();
 
     /// <summary>Player commands, scheduled by tick.</summary>
@@ -246,7 +252,7 @@ public sealed class Scenario
     public string SourcePath { get; private set; } = "";
 
     private static readonly string[] KnownKeys =
-        ["id", "question", "map", "seed", "duration_ticks", "setup", "commands", "work", "observe"];
+        ["id", "question", "map", "seed", "duration_ticks", "fog_of_war", "viewing_player", "setup", "commands", "work", "observe"];
 
     public static Scenario Load(string path)
     {

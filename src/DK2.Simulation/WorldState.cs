@@ -72,6 +72,14 @@ public struct TileState
     public ushort TaggedBy;
 
     /// <summary>
+    /// Keepers that have discovered this tile: bit <c>n</c> belongs to player
+    /// id <c>n</c>. This is our per-keeper representation, not a claim about
+    /// DK2's packing. DK2 persists its live tile fog bit in saved games, so the
+    /// information is simulation state and must be hashed and snapshotted.
+    /// </summary>
+    public ushort DiscoveredBy;
+
+    /// <summary>
     /// Whether this tile is floor that a worker <b>dug out</b> and nobody has
     /// claimed since — the tile an imp goes back for before it does anything
     /// else.
@@ -232,6 +240,19 @@ public struct TileState
 
     public readonly bool IsTaggedByAnyone => TaggedBy != 0;
 
+    public readonly bool IsDiscoveredBy(byte playerId) =>
+        playerId <= MaxTaggingPlayerId && (DiscoveredBy & (ushort)(1 << playerId)) != 0;
+
+    public void SetDiscoveredBy(byte playerId)
+    {
+        if (playerId > MaxTaggingPlayerId)
+            throw new ArgumentOutOfRangeException(
+                nameof(playerId), playerId,
+                $"Tile discovery only tracks player ids 0..{MaxTaggingPlayerId}.");
+
+        DiscoveredBy |= (ushort)(1 << playerId);
+    }
+
     public void SetTaggedBy(byte playerId, bool tagged)
     {
         if (playerId > MaxTaggingPlayerId)
@@ -251,6 +272,7 @@ public struct TileState
         hash.Add(Health);
         hash.Add(GoldHeld);
         hash.Add(TaggedBy);
+        hash.Add(DiscoveredBy);
         hash.Add(FreshlyDug ? (byte)1 : (byte)0);
         hash.Add(WorkRemainder);
         hash.Add(UpwardWork);
@@ -346,12 +368,14 @@ public sealed class WorldState
     private int _nextCreatureId = 1;
     private int _nextObjectId = 1;
 
-    private WorldState(int width, int height, TileState[] tiles, PlayerState[] players)
+    private WorldState(
+        int width, int height, TileState[] tiles, PlayerState[] players, bool fogOfWarEnabled)
     {
         Width = width;
         Height = height;
         _tiles = tiles;
         _players = players;
+        FogOfWarEnabled = fogOfWarEnabled;
 
         // One place, so that no construction path can produce a keeper without
         // a hand. PlayerState is a struct in an array, so a caller that built
@@ -365,6 +389,13 @@ public sealed class WorldState
 
     public int Width { get; }
     public int Height { get; }
+
+    /// <summary>
+    /// Whether player-specific discovery gates observation of this world.
+    /// DKII.EXE stores this as a boolean game configuration value. The other
+    /// setup-screen fog labels have not yet been tied to proven engine state.
+    /// </summary>
+    public bool FogOfWarEnabled { get; }
 
     /// <summary>The tick the world is currently *at*; the next Tick() executes this one.</summary>
     public GameTick CurrentTick { get; internal set; }
@@ -607,7 +638,11 @@ public sealed class WorldState
     /// real: a caller places it with <see cref="GoldStore.Deposit"/>, which will
     /// refuse it outright if the player owns no treasury.
     /// </summary>
-    public static WorldState FromMap(GameDatabase database, LevelMap map, IEnumerable<byte> playerIds)
+    public static WorldState FromMap(
+        GameDatabase database,
+        LevelMap map,
+        IEnumerable<byte> playerIds,
+        bool fogOfWarEnabled = false)
     {
         var tiles = new TileState[map.Width * map.Height];
         for (int y = 0; y < map.Height; y++)
@@ -632,12 +667,13 @@ public sealed class WorldState
             .Select(id => new PlayerState { PlayerId = id })
             .ToArray();
 
-        return new WorldState(map.Width, map.Height, tiles, players);
+        return new WorldState(map.Width, map.Height, tiles, players, fogOfWarEnabled);
     }
 
     /// <summary>Reconstructs a world from a snapshot. Used only by <see cref="WorldSnapshot"/>.</summary>
-    internal static WorldState FromParts(int width, int height, TileState[] tiles, PlayerState[] players)
-        => new(width, height, tiles, players);
+    internal static WorldState FromParts(
+        int width, int height, TileState[] tiles, PlayerState[] players, bool fogOfWarEnabled)
+        => new(width, height, tiles, players, fogOfWarEnabled);
 
     internal TileState[] RawTiles => _tiles;
     internal PlayerState[] RawPlayers => _players;
@@ -664,6 +700,7 @@ public sealed class WorldState
         hash.Add(CurrentTick);
         hash.Add(Width);
         hash.Add(Height);
+        hash.Add(FogOfWarEnabled ? (byte)1 : (byte)0);
         hash.Add(_tiles.Length);
         foreach (TileState t in _tiles) t.HashInto(ref hash);
         hash.Add(_players.Length);

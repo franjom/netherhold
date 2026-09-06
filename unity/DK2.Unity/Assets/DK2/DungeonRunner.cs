@@ -46,6 +46,9 @@ namespace DK2.Unity
                  "Loads terrain and ownership only — a save's creatures and objects are undecoded.")]
         [SerializeField] private string saveFile = "";
         [SerializeField] private ulong seed = 1;
+        [SerializeField] private bool fogOfWar;
+        [Range(0, TileState.MaxTaggingPlayerId)]
+        [SerializeField] private int viewingPlayerId = 1;
 
         [Header("Running")]
         [Tooltip("Multiplies the simulation's own tick rate. 0 pauses; 1 is the placeholder rate (Q1).")]
@@ -102,7 +105,8 @@ namespace DK2.Unity
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' map.")
                 : LoadSave(install);
 
-            WorldState world = WorldState.FromMap(database, map, PlayersOf(map));
+            WorldState world = WorldState.FromMap(
+                database, map, PlayersOf(map), fogOfWarEnabled: fogOfWar);
 
             _simulation = new GameSimulation(database, world, seed, SimulationSystems.Default());
 
@@ -114,7 +118,8 @@ namespace DK2.Unity
                 convertedRoot: "build/converted");
 
             _scene = new DungeonScene(transform, world.Width);
-            _presenter = new ScenePresenter(new WorldView(database), _assets, _scene);
+            _presenter = new ScenePresenter(
+                new WorldView(database, (byte)viewingPlayerId), _assets, _scene);
 
             _presenter.Present(world);
             LookAt(world);

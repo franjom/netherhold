@@ -22,6 +22,7 @@ namespace DK2.Simulation.Systems;
 /// gems, reinforced walls and fog — never on floor.
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/tile-work.md")]
+[Dk2Behavior(Confidence.Confirmed, "docs/research/fog-of-war.md")]
 public sealed class TileTagSystem : ISimulationSystem
 {
     private const string SystemName = "TileTag";
@@ -56,7 +57,8 @@ public sealed class TileTagSystem : ISimulationSystem
 
             // Untagging is always allowed: terrain can change under a tag, and a
             // player must be able to clear a marker that is no longer diggable.
-            if (command.Tagged && !terrain.IsTaggable)
+            bool hiddenByFog = world.FogOfWarEnabled && !tile.IsDiscoveredBy(command.PlayerId);
+            if (command.Tagged && !hiddenByFog && !terrain.IsTaggable)
             {
                 rejected++;
                 continue;

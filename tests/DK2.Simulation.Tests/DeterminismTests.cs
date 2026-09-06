@@ -231,6 +231,14 @@ public class DeterminismTests
         // they did before. Snapshot FormatVersion went 27 -> 28 in the same
         // commit.
         //
+        // Bumped with HashVersion 28 -> 29 (fog of war): every tile gained a
+        // per-keeper discovery mask and the world gained the boolean game
+        // setting that makes it active. Both are persisted simulation state in
+        // DKII.EXE, so both enter the hash and Snapshot FormatVersion moved
+        // 28 -> 29 in the same commit. This fixture leaves fog disabled and
+        // every discovery mask at zero; its behaviour is unchanged and the
+        // value moved only on the version and new default state.
+        //
         // Previous values: 0x0D75C57C1848268C (27), 0x154E9041172A7F7F (26),
         // 0xDFF77147B12A64C3 (22), 0x6AF149EE8E20D98A (21),
         // 0x5E96E634C7E5037D (20),
@@ -241,7 +249,7 @@ public class DeterminismTests
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x19A512BB12A71575UL, sim.StateHash());
+        Assert.Equal(0x7FC454C82A2547F4UL, sim.StateHash());
     }
 
     [Fact]
