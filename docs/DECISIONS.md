@@ -5942,3 +5942,100 @@ are not one enum behind that value, and where they *are* selected is unread. The
 campaign's *Stay Revealed* is the one mode the owner has confirmed and the one
 mode that is built.
 
+
+## ADR-0077 — A creature goes down on the keeper's own ground, and only a worker may go anywhere else
+
+**Status:** accepted, 2026-09-06
+**Context:** Q198, `docs/research/hand-of-evil.md` §8, ADR-0075
+**Supersedes in part:** a paragraph of ADR-0075's reasoning, not its decision
+
+### The observation
+
+The owner, 2026-09-06:
+
+> *"imps are the only creature that can be dropped onto dirt path tiles, those
+> are tiles that are unclaimed by any keeper"*
+
+CONFIRMED, watched in the original.
+
+### What the simulation did instead
+
+`HandSystem.Drop` refused exactly one thing: a tile the creature could not have
+stood on. So a keeper could put a Goblin down on unclaimed dirt, on a rival's
+claimed floor, in the middle of somebody else's dungeon — anywhere it could
+stand. That is not a missing feature but a **wrong rule**, and it had been wrong
+since the hand was built (ADR-0062).
+
+### The inference that let it stand, and why it was wrong
+
+ADR-0075 and `hand-of-evil.md` §8 both argued the drop was *not* restricted to
+owned ground, and gave a reason that reads well:
+
+> DK2's drop handler has a branch that changes the creature's owner when the
+> tile belongs to neither keeper, which would be unreachable if the drop were
+> refused.
+
+**It proves only that the handler does not refuse.** That was already known and
+already written down for the *object* rule three paragraphs away: `FUN_004bc710`
+contains no ownership test at all, so the gate is in the input layer that draws
+the drop marker. **A handler that does not refuse is not a UI that offers.**
+Whatever reaches the owner-changing branch is not the ordinary drop.
+
+This is the project's standing failure pattern in a new costume — a claim
+nothing checked, resting on a reading of one function — and it is the **14th**
+recorded instance. It differs from the usual shape in one way worth noting: the
+inference was not lazy. It was a real argument from the binary that happened to
+answer a different question than the one asked.
+
+### Decision
+
+`HandRules.CanDropCreatureOn(world, database, tile, playerId, mover)`:
+
+1. the tile is on the map, and
+2. **its owner is the dropping keeper**, or
+3. the creature carries `IsWorker` **and** the terrain is *unclaimed floor*.
+
+`HandRules.IsUnclaimedFloor` is structural: not `Solid`, not `Ownable`, not
+`Room`, and neither `Water` nor `Lava`. In the shipped table of 41 terrains that
+is **Dirt Path and the Mana Vault**, which carry the identical flag word
+`0x10008000`, and whose claimed counterparts — Claimed Path and Claimed Vault —
+are `Ownable`. That pair is what makes "unclaimed" mean something.
+
+The walkability gate stays and runs first, so the two refusals stay
+distinguishable in the event log: `not_walkable` and `not_owned`.
+
+### Three things this decides deliberately, and says so
+
+**Keyed on `IsWorker`, which is wider than what was watched.** The owner said
+*imps*; the flag falls on exactly two creatures, the Imp and the **Dwarf**. This
+project has twice decided to key worker behaviour on the flag rather than the id
+(`imp-tasks.md`, `portals.md`), and a hero keeper dropping a Dwarf is not
+something anything here can do yet — so the widening costs nothing today. It is
+recorded rather than hidden.
+
+**Water and lava are excluded by name, and that is a stop rather than a
+reading.** Both are unownable non-solid floor and would qualify structurally,
+and **44 of the 46 creatures can wade** — so without the clause a keeper here
+could drop an imp into the middle of a lake. Whether the original offers that is
+**UNKNOWN**; it is item 5 on the observation checklist, with a bridge and a
+rival's *unclaimed* room floor. Refusing invents least, and the test that pins it
+says in as many words that it is the narrower reading and what would change it.
+
+**A prisoner is not a way round the rule.** `CanPickUp` makes one ownership
+exception, for lifting a captive out of a cell (ADR-0064). It does not extend to
+putting one down: a keeper cannot use a prisoner to plant somebody on unclaimed
+ground, and a refused drop does not free the captive.
+
+### Consequences
+
+- Six tests in `HandTests`, one of which exists only to prove the imp's water
+  refusal comes from *this* rule and not from the walkability gate above it.
+- `scenarios/creatures/a_keeper_drops_a_warlock_and_an_imp_on_open_ground.yaml`
+  — a Goblin refused on unclaimed dirt, the same Goblin landing on its own lair,
+  and an Imp landing on the very tile the Goblin was turned away from. The middle
+  drop is what makes the first mean anything.
+- The run turned up the reason DK2 has the exception at all: the dropped imp
+  takes a **Claim** job on the tile it lands on, in the same tick.
+- No hash change. Nothing about the state layout moved; a rule got stricter.
+- `hand-of-evil.md` §8 and `HandRules.CanDropObjectOn`'s doc comment are
+  corrected in place, with the old argument struck through rather than deleted.

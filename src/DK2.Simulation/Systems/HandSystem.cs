@@ -193,6 +193,18 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
+        // Standing somewhere is not the same as being allowed to be put there.
+        // Own ground for everybody, plus unclaimed floor for a worker - Q198,
+        // CONFIRMED by the owner, and this test is the whole of ADR-0077.
+        if (!HandRules.CanDropCreatureOn(
+                world, context.Database, command.Tile, command.PlayerId, definition))
+        {
+            context.Emit(SystemName, "drop_refused",
+                $"player={command.PlayerId} creature={creature.Id} " +
+                $"tile={command.Tile.X},{command.Tile.Y} not_owned");
+            return;
+        }
+
         hand.RemoveAt(hand.Count - 1);
         creature.InHand = false;
         creature.PickupTick = context.Tick.Value;

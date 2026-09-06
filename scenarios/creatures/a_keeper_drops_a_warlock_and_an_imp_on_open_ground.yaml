@@ -1,0 +1,90 @@
+# Q198: who may be dropped where, and the answer has exactly one exception.
+#
+# The owner, 2026-09-06:
+#
+#   "imps are the only creature that can be dropped onto dirt path tiles, those
+#    are tiles that are unclaimed by any keeper"
+#
+# ## What this is worth watching
+#
+# Until ADR-0077 the simulation refused a drop on ONE ground: a tile the
+# creature could not have stood on. A keeper could therefore put a Goblin down
+# on unclaimed dirt, on a rival's floor, anywhere at all - which is not a
+# missing feature but a wrong rule, since the original offers the drop marker
+# on neither.
+#
+# The map is the argument. `flat_` builds a dungeon of unowned Dirt Path inside
+# an impenetrable border, so almost every tile here is the case in question, and
+# the only owned ground in the level is the five-tile lair player 3 starts with.
+#
+# ## The three drops
+#
+#   tick 20   a Goblin onto unclaimed dirt      -> REFUSED, stays in the hand
+#   tick 40   the same Goblin onto its own lair -> lands
+#   tick 60   an Imp onto the same unclaimed dirt tile -> lands
+#
+# The middle one is what makes the first mean something. Without it, "refused"
+# could be a hand that does not work rather than a rule about ground, and the
+# Goblin would have been refused everywhere for some other reason.
+#
+# The third is the exception itself, on the very tile the Goblin was turned away
+# from, so nothing about the tile can explain the difference. What differs is
+# one flag on the creature record.
+#
+# ## What is deliberately narrower here than what is known
+#
+# The rule admits a worker onto floor that is not Solid, not Ownable and not a
+# Room - which in the shipped table of 41 terrains is Dirt Path and the Mana
+# Vault, and nothing else. Water and lava are unownable non-solid floor too, and
+# 44 of the 46 creatures can wade, so they are excluded by name rather than by
+# structure: whether DK2 lets a keeper drop an imp into a lake is UNKNOWN, and
+# it is item 5 on the observation checklist along with a bridge and a rival's
+# unclaimed room floor. Refusing invents least.
+#
+# ## Where the rule lives in the original is UNREAD
+#
+# FUN_004bc710 has no ownership test at all - it assumes the drop is already
+# legal - so the gate is in the input layer that draws the drop marker, exactly
+# as it is for objects (Q196). This scenario reproduces an observation, not a
+# routine, and hand-of-evil.md section 8 says so.
+#
+# Evidence: docs/research/hand-of-evil.md section 8. Decisions: ADR-0077.
+# Questions: Q198.
+
+id: creatures-a-keeper-drops-a-warlock-and-an-imp-on-open-ground-001
+question: >
+  A keeper drops a Goblin and an Imp onto the same unclaimed Dirt Path tile.
+  Is the Goblin refused, is the Imp allowed, and does the Goblin still go down
+  on the keeper's own floor?
+map: flat_12x9
+seed: 7
+duration_ticks: 120
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 0 }
+  rooms:
+    # The only owned ground on the level. Everything else is unclaimed dirt.
+    - { type: Lair, at: [2, 2], player: 3 }
+    - { type: Lair, at: [3, 2], player: 3 }
+    - { type: Lair, at: [2, 3], player: 3 }
+    - { type: Lair, at: [3, 3], player: 3 }
+  creatures:
+    # Creature 1: a non-worker of the keeper's own, so ownership of the CREATURE
+    # is never in question and only the ground is.
+    - { type: Goblin, at: [2, 2], player: 3 }
+    # Creature 2: the exception.
+    - { type: Imp, at: [3, 3], player: 3 }
+commands:
+  - { at_tick: 10, player: 3, pick_up: 1 }
+  # Unclaimed Dirt Path, well clear of the lair. Expect drop_refused/not_owned
+  # and the Goblin still held.
+  - { at_tick: 20, player: 3, drop: [8, 6] }
+  # Its own floor. Expect it to land - which is what proves the refusal above
+  # was about the tile.
+  - { at_tick: 40, player: 3, drop: [3, 2] }
+  - { at_tick: 50, player: 3, pick_up: 2 }
+  # The SAME tile the Goblin was refused. Expect it to land.
+  - { at_tick: 60, player: 3, drop: [8, 6] }
+observe:
+  - state_hash
+  - events

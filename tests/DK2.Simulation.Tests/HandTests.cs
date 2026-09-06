@@ -941,4 +941,172 @@ public class HandTests
     }
 
     private static int Index(WorldState world, TilePos at) => (at.Y * world.Width) + at.X;
+
+    // ---- where a creature may be put down (Q198, ADR-0077) ----------------
+
+    /// <summary>
+    /// Carves one tile to a terrain and an owner, and hands back its position.
+    ///
+    /// <para>The fixture map is a claimed 3x3 room in solid rock, so every test
+    /// below has to make the ground it is about to argue over.</para>
+    /// </summary>
+    private static TilePos Carve(
+        WorldState world, TilePos at, byte terrain, byte owner = PlayerIds.Unowned)
+    {
+        // ref, because TileState is a struct behind a ref return - a plain
+        // local would carve a copy and leave the map alone.
+        ref TileState tile = ref world.Tile(at.X, at.Y);
+        tile.TerrainId = terrain;
+        tile.OwnerPlayerId = owner;
+        return at;
+    }
+
+    /// <summary>Picks a creature up and tries to put it down on one tile.</summary>
+    private static void PickUpAndDrop(
+        GameSimulation sim, CreatureState creature, TilePos onto)
+    {
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, onto)));
+    }
+
+    [Fact]
+    public void AWarlockMayNotBeDroppedOnUnclaimedDirtPath()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        TilePos dirt = Carve(world, new TilePos(4, 2), Dk2TerrainFixture.DirtPath);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        PickUpAndDrop(sim, goblin, dirt);
+
+        // CONFIRMED by the owner: everything but a worker goes down on the
+        // keeper's own ground. The bird stays in the hand rather than falling
+        // through it.
+        Assert.True(goblin.InHand);
+        Assert.Equal([goblin.Id], HandIdsOf(world));
+        Assert.Contains(sink.Events, e =>
+            e.Kind == "drop_refused" && e.Detail.Contains("not_owned"));
+    }
+
+    [Fact]
+    public void AnImpMayBeDroppedOnUnclaimedDirtPath()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        TilePos dirt = Carve(world, new TilePos(4, 2), Dk2TerrainFixture.DirtPath);
+
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        GameSimulation sim = Simulation(db, world);
+
+        PickUpAndDrop(sim, imp, dirt);
+
+        // The whole of the owner's observation: "imps are the only creature
+        // that can be dropped onto dirt path tiles".
+        Assert.False(imp.InHand);
+        Assert.Empty(HandIdsOf(world));
+        Assert.Equal(dirt, imp.Tile);
+    }
+
+    [Fact]
+    public void TheImpExceptionIsNotAboutDirtPathInParticular()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        // The Mana Vault carries the identical flag word to Dirt Path -
+        // FillInable and TerrainLight, nothing else - and is the only other
+        // terrain of the 41 that no keeper can have claimed. If the rule were
+        // written against terrain 3 rather than against what makes terrain 3
+        // unclaimable, this would refuse.
+        TilePos vault = Carve(world, new TilePos(4, 2), Dk2TerrainFixture.ManaVaultTerrain);
+
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        GameSimulation sim = Simulation(db, world);
+
+        PickUpAndDrop(sim, imp, vault);
+
+        Assert.False(imp.InHand);
+        Assert.Equal(vault, imp.Tile);
+    }
+
+    [Fact]
+    public void NotEvenAnImpMayBeDroppedOnARivalsGround()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        // Claimed by somebody else: Ownable terrain with another keeper's id,
+        // which is the case the owner's "unclaimed by any keeper" excludes.
+        TilePos theirs = Carve(
+            world, new TilePos(4, 2), Dk2TerrainFixture.ClaimedPath, PlayerIds.Neutral);
+
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        PickUpAndDrop(sim, imp, theirs);
+
+        Assert.True(imp.InHand);
+        Assert.Contains(sink.Events, e =>
+            e.Kind == "drop_refused" && e.Detail.Contains("not_owned"));
+    }
+
+    [Fact]
+    public void AnImpIsRefusedOpenWaterEvenThoughItCouldStandThere()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        TilePos pond = Carve(world, new TilePos(4, 2), Dk2TerrainFixture.Water);
+
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        // The Imp carries CanWalkOnWater, so the walkability gate lets this
+        // through and the refusal below is the ownership rule's - which is the
+        // only reason this test says anything.
+        Assert.True(
+            new WorldPathGrid(db, world, db.CreatureById(ImpId)).IsWalkable(pond.X, pond.Y),
+            "the imp cannot wade, so this test is measuring the wrong refusal.");
+
+        PickUpAndDrop(sim, imp, pond);
+
+        // DELIBERATELY NARROWER THAN WHAT IS KNOWN. Water is unownable
+        // non-solid terrain and would qualify as "unclaimed floor" on the
+        // structural reading, and 44 of the 46 creatures can wade - so without
+        // an explicit stop a keeper here could drop an imp in the middle of a
+        // lake. Whether the original offers that is UNKNOWN and is item 5 on
+        // the observation checklist. Refusing invents least; if the owner
+        // watches it and the answer is yes, this test is what changes.
+        Assert.True(imp.InHand);
+        Assert.Contains(sink.Events, e =>
+            e.Kind == "drop_refused" && e.Detail.Contains("not_owned"));
+    }
+
+    [Fact]
+    public void APrisonerCarriedOutOfItsCellStillLandsOnOwnedGround()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        TilePos dirt = Carve(world, new TilePos(4, 2), Dk2TerrainFixture.DirtPath);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, PlayerIds.Neutral, Floor);
+        PrisonRules.Imprison(world, db, goblin, Keeper, (Floor.Y * world.Width) + Floor.X);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        PickUpAndDrop(sim, goblin, dirt);
+
+        // The ownership exception CanPickUp makes for a prisoner is about
+        // LIFTING one out of a cell (ADR-0064). It does not extend to putting
+        // it down anywhere - so a keeper cannot use a captive to plant somebody
+        // on unclaimed ground, and the creature is not freed by the attempt.
+        Assert.True(goblin.InHand);
+        Assert.True(PrisonRules.IsImprisoned(goblin));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "prisoner_freed");
+    }
 }

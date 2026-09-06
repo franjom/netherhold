@@ -171,12 +171,16 @@ public static class HandRules
     /// <summary>
     /// Where a keeper may put an <b>object</b> down: <b>a tile it owns</b>.
 
-    /// <para><b>Objects only, and the original says why.</b> A creature can
-    /// certainly be dropped on somebody else's ground — DK2's drop handler has
-    /// a branch that <i>changes the creature's owner</i> when the tile belongs
-    /// to neither the creature's keeper nor the dropping one, which would be
-    /// unreachable if the drop were refused. So this rule is not the hand's; it
-    /// is the object drop's, which is the one the owner watched.</para>
+    /// <para><b>Not objects only — see <see cref="CanDropCreatureOn"/>.</b> This
+    /// comment argued for a day that a creature <i>can</i> be dropped on
+    /// somebody else's ground, on the grounds that DK2's drop handler has a
+    /// branch changing the creature's owner when the tile belongs to neither
+    /// keeper, and that the branch would otherwise be unreachable. <b>The
+    /// inference was wrong</b> (Q198, owner 2026-09-06): it shows only that the
+    /// <i>handler</i> does not refuse, which was already known of the ownership
+    /// rule here too — the gate is in the input layer that offers the drop. A
+    /// handler that does not refuse is not a UI that offers. Whatever reaches
+    /// the owner-changing branch is not the ordinary drop.</para>
     ///
     /// <para><b>CONFIRMED by the owner</b> (2026-09-06) — <i>"drop it in the
     /// prison, or anywhere in the dungeon, on my owned tiles"</i> — and by the
@@ -199,6 +203,67 @@ public static class HandRules
     /// </summary>
     public static bool CanDropObjectOn(WorldState world, TilePos tile, byte playerId) =>
         world.Contains(tile) && world.Tile(tile.X, tile.Y).OwnerPlayerId == playerId;
+
+    /// <summary>
+    /// Where a keeper may put a <b>creature</b> down: <b>a tile it owns</b> —
+    /// and, for a worker only, <b>unclaimed floor</b>.
+    ///
+    /// <para><b>CONFIRMED by the owner</b> (2026-09-06, Q198): <i>"imps are the
+    /// only creature that can be dropped onto dirt path tiles, those are tiles
+    /// that are unclaimed by any keeper"</i>. Everything else goes down on the
+    /// keeper's own ground, which is the same rule
+    /// <see cref="CanDropObjectOn"/> already had for objects — so the hand has
+    /// one ownership rule with one exception, not two rules.</para>
+    ///
+    /// <para><b>Keyed on <see cref="CreatureFlags.IsWorker"/>, which is a
+    /// deliberate widening of what was watched.</b> The owner said <i>imps</i>;
+    /// the flag falls on exactly two creatures, the Imp and the <b>Dwarf</b>,
+    /// and this project has decided twice already to key worker behaviour on the
+    /// flag rather than on the id (docs/research/imp-tasks.md, portals.md). A
+    /// hero keeper dropping a Dwarf is not a thing anything here can do yet, so
+    /// the widening costs nothing today and is recorded rather than hidden.</para>
+    ///
+    /// <para><b>Where the rule lives in the original is UNREAD</b>, exactly as
+    /// for objects: <c>FUN_004bc710</c> has no ownership test at all, so the
+    /// gate is in the input layer that draws the drop marker, and the imp
+    /// exception lives there too. This reproduces an observation, not a
+    /// routine.</para>
+    /// </summary>
+    public static bool CanDropCreatureOn(
+        WorldState world, GameDatabase database, TilePos tile, byte playerId,
+        CreatureDef mover)
+    {
+        if (!world.Contains(tile)) return false;
+        if (world.Tile(tile.X, tile.Y).OwnerPlayerId == playerId) return true;
+        if (!mover.Flags.HasFlag(CreatureFlags.IsWorker)) return false;
+
+        return IsUnclaimedFloor(database.TerrainById(world.Tile(tile.X, tile.Y).TerrainId));
+    }
+
+    /// <summary>
+    /// Floor that no keeper can have claimed: <b>Dirt Path</b> and the
+    /// <b>Mana Vault</b>, and nothing else in the shipped table of 41.
+    ///
+    /// <para>Structural rather than by id — not <see cref="TerrainFlags.Solid"/>
+    /// so it is floor, not <see cref="TerrainFlags.Ownable"/> and not
+    /// <see cref="TerrainFlags.Room"/> so no keeper's name can be on it. Dirt
+    /// Path and Mana Vault carry the identical flag word <c>0x10008000</c>
+    /// (<c>FillInable, TerrainLight</c>), and their claimed counterparts —
+    /// Claimed Path and Claimed Vault — are `Ownable`, which is the pair that
+    /// makes "unclaimed" mean something.</para>
+    ///
+    /// <para><b>Water and lava are excluded on purpose, and that is a stop
+    /// rather than a reading.</b> Both are unownable non-solid terrain and would
+    /// otherwise qualify, and 44 of the 46 creatures can wade — so without this
+    /// clause a keeper here could drop an imp in the middle of a lake. Whether
+    /// the original offers that is <b>UNKNOWN</b> and is on the observation
+    /// checklist (item 5), together with a bridge and a rival's <i>unclaimed</i>
+    /// room floor. Refusing is the narrower reading of <i>"unclaimed by any
+    /// keeper"</i> and the one that invents least.</para>
+    /// </summary>
+    public static bool IsUnclaimedFloor(TerrainDef terrain) =>
+        !terrain.IsSolid && !terrain.IsOwnable && !terrain.IsRoom
+        && !terrain.IsWater && !terrain.IsLava;
 
     /// <summary>
     /// Whether <paramref name="creature"/> may be slapped by
