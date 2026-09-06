@@ -93,6 +93,20 @@ public static class GameDatabaseLoader
     }
 
     /// <summary>
+    /// Reads one level's player slots — <c>&lt;name&gt;Players.kld</c> — or null
+    /// when the level has no such file. Every shipped level has one, holding the
+    /// good and neutral rows plus the human and any computer keepers; the
+    /// keepers' tuning blocks are what <c>KEEPER_AI.md</c> documents.
+    /// </summary>
+    public static List<PlayerDef>? LoadCampaignPlayers(string installDir, string levelName)
+    {
+        string file = Path.Combine(
+            installDir, "Data", EditorDir, "maps", levelName + "Players.kld");
+
+        return File.Exists(file) ? KwdPlayers.Parse(KwdReader.ReadFile(file)) : null;
+    }
+
+    /// <summary>
     /// The database as one campaign level plays it: the install's definitions
     /// with that level's VARIABLES applied over the global table.
     ///

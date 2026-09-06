@@ -66,3 +66,22 @@ typed definitions:
   effect ids, string ids, sound categories, trigger modes, editor ordering,
   shot offsets, per-shot mana field, and unexplained bytes in both records are
   not read. Their external labels are hypotheses until independently anchored.
+
+## Player slots
+
+`KwdPlayers` reads the PLAYERS(180) record in each level's `<name>Players.kld`:
+205-byte records, one per player slot, 66 files that all divide exactly (274
+slots, 121 with the AI flag, of which 23 are computer keepers on 10 levels; the
+other 98 are the good and neutral rows every level carries and the game's player
+tick skips). Each slot exposes the id, name, starting gold, trigger id, camera,
+the AI flag, and the decoded 158-byte AI tuning block as `KeeperAIParameters`.
+`GameDatabaseLoader.LoadCampaignPlayers` loads one level's file.
+
+The block's field names are the retail executable's own debug labels; the field
+boundaries are the ones its loader applies, so three fields the editor stored as
+16-bit values are read as the single byte the game consumes. The map, the
+consumers of every field at runtime, the shipped ranges and the parameters the
+game never reads are in `KEEPER_AI.md` on the `claude/keeper-ai` branch
+(STRONGLY INFERRED from the binary; the record stride is CONFIRMED from data).
+OpenKeeper's parser agrees on every field boundary and was used as a cross-check
+only; its identifiers were not adopted.
