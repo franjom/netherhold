@@ -1,7 +1,7 @@
-# Dungeon Keeper 2 — Modern C#/Unity Reimplementation Plan
+﻿# Dungeon Keeper 2 — Modern C#/Unity Reimplementation Plan
 
-**Document status:** Phase 0 research deliverable, revision 1
-**Date:** 2026-08-29
+**Document status:** Phase 0 research deliverable, **revision 2**
+**Date:** 2026-08-29, revised 2026-09-06
 **Target original version:** Dungeon Keeper 2 **v1.70** (with the 3 bonus packs)
 **Author:** Technical lead / research architect (AI-assisted)
 
@@ -20,6 +20,38 @@ throughout the document and should be carried into all future project documentat
 | **[UNKNOWN]** | We genuinely do not know. Requires an experiment or new RE work. |
 
 Anything not tagged is a statement about *our* project, not about DK2.
+
+---
+
+## Revision 2 — what changed, 2026-09-06
+
+Revision 1 was written before a line of the simulation existed. Nine days later
+the project has **68 ADRs, 975 tests, 21 behavioural scenarios**, a deterministic
+tick at `HashVersion` 27, and **180 catalogued open questions**. This revision
+does not rewrite the plan; it corrects the claims that have since been settled
+and answers one question the plan raised and never resolved.
+
+**Three of the plan's five "hard systems" have moved** — see §1.2, annotated in
+place.
+
+**The single largest correction is to §5.** That section opens *"Never start
+from raw disassembly. Flame has already done the expensive part"* and lays out a
+ten-step workflow whose first six steps are free. **Steps 1–4 have never been
+performed, because Flame has never been on this machine.** Every
+reverse-engineering session this project has run — and there have been many —
+started at step 7 with a bare Ghidra database. The new §2.2.1 measures what that
+has cost and what it would cost to fix, because the answer turned out to be less
+one-sided than §5 assumes.
+
+**The method that actually emerged** is not in revision 1 at all, and it is
+worth stating because it is what has been working: **DK2 ships its own debug
+dumps.** The retail executable retains `printf` calls with the field name in the
+format string, so a single function names an entire structure in EA's own words.
+Three have been found — the creature instance, the room, and the creature *state*
+object — and each turned an afternoon of offset archaeology into a lookup. This
+is a better first move than the disassembler and, as §2.2.1 shows, better than
+Flame's map in the areas that matter most to us. See
+`ghidra-is-the-primary-source` in the project's working notes and ADR-0046.
 
 ---
 
@@ -80,6 +112,21 @@ Five systems carry essentially all the risk:
 5. **Computer-player (AI Keeper) behaviour** — partially reconstructed in Flame, otherwise
    opaque.
 
+> **Revision 2 status of the five.** Risks 1, 4 and 5 stand unchanged.
+> **Risk 2 is largely settled** (ADR-0058): an imp's job priority is a byte
+> table at `0x00698658` searched whole-map one kind at a time, then a
+> nearest-first ring scan — found because the owner said one sentence about
+> what he had watched, and confirmed against the binary. It is settled *for
+> workers*; what a non-worker does with its day is still open.
+> **Risk 3 is built** (ADR-0053): the anger ladder runs on a measured ceiling of
+> 32767 once a game second, and an angry creature walks out of the dungeon.
+> OpenKeeper's stub was not the obstacle it looked like — the numbers were in
+> the creature records the whole time, and the ladder came out of the binary.
+> **A sixth risk has appeared that revision 1 did not name**: the creature
+> *state machine* — 239 states with category-scoped enter/update/leave hooks —
+> which turns out to be where job selection, moods and combat all actually live.
+> It is being mapped (§2.2.1).
+
 Everything else is, in engineering terms, *transcription work* — large, tedious, and highly
 suitable for AI-assisted implementation, but not research-risky.
 
@@ -117,7 +164,7 @@ distinction determines the entire working method and must be settled first.
 | Project | Language | Stars | Last activity | Status | Value to us |
 |---|---|---:|---|---|---|
 | [OpenKeeper](https://github.com/tonihele/OpenKeeper) | Java / jMonkeyEngine | 494 | 2026-08-23 | Active | **Highest** — file formats, game logic corpus |
-| [Flame](https://github.com/DiaLight/Flame) | C++ | 119 | 2026-02-28 | Active | **Highest** — v1.70 binary ground truth |
+| [Flame](https://github.com/DiaLight/Flame) | C++ | 119 | 2026-02-28 | **Quiet six months** (re-checked 2026-09-06: unchanged, still unlicensed) | **High, with a measured caveat** — see §2.2.1 |
 | [Ember](https://github.com/DiaLight/Ember) | C++ | — | Superseded | Closed | Historical; superseded by Flame |
 | [GLKeeper](https://github.com/codenamecpp/GLKeeper) | C++ | 40 | 2026-08-13 | Active, "not playable yet" | Low–medium; second opinion on formats |
 | [dk2-tools](https://github.com/ufdada/dk2-tools) | 010 Editor templates | 13 | — | Reference | **High** — independent format specs |
@@ -224,6 +271,106 @@ creature type IDs with an evil/good flag, 22 object type IDs).
    therefore matches the original architecture rather than fighting it.
 3. `Follow_Path` is named — but has **zero named fields**. [KNOWN] Pathfinding is the
    conspicuous hole in the best RE work that exists. See §9, risk R1.
+
+### 2.2.1 Flame on disk — measured, not assumed (2026-09-06)
+
+**The question, asked by the owner:** would it be useful to have Flame checked
+out locally alongside OpenKeeper, and would it help with Ghidra?
+
+**The short answer: yes, get it — but for structure and navigation, not for
+answers, and expect it to be weakest exactly where this project is strongest.**
+
+**Current state.** `D:\OpenKeeper` is a git clone and has been used. **Flame has
+never been on this machine**, which is why §5's first six steps have never run.
+
+**Licence, re-checked today rather than quoted from revision 1:** the GitHub API
+still reports `"license": null`, and there is no `LICENSE`, `COPYING` or
+equivalent file anywhere in the repository tree. Last push **2026-02-28** — six
+months quiet, so revision 1's "Active" is retired above. **Unlicensed means no
+reuse rights**, unchanged by this project being GPLv3, and §10.1's boundary
+stands exactly as written.
+
+#### What was measured
+
+The `sgmap` (3.1 MB, 86,706 lines) was fetched and searched for the specific
+addresses this project reconstructed by hand while building eating and closing
+Q173. The results are mixed, and the mixture is the finding.
+
+**What Flame would have given us:**
+
+| Address | Ours, by hand | Flame |
+|---|---|---|
+| `0x00699688` | "a 32-record table of 0x40 bytes, categories with enter/update/leave hooks" | **`g_stateGroups`, `size=2048`, struct `MyStateGroup`, `size=64`** |
+| `0x00476D30` | "this is SetState" | **`setCurrentState_476D30`** |
+| `0x00479200`, `0x004E70A0` | "the creature-state dump", "the room dump" | **both named `dump`** |
+| every state handler read | free functions | **all members of `vtbl_0066D404`** |
+
+Three of those are worth having. `g_stateGroups` independently confirms the
+0x40 record size derived from store spacing. `setCurrentState_476D30` confirms
+an identification made from behaviour. And **the vtable membership is structural
+information this project did not have at all** — the state handlers are virtual
+methods on a class, which reframes the whole state machine.
+
+**What Flame would *not* have given us.** Every function whose *behaviour* was
+the question comes back as an auto-generated placeholder:
+
+```
+0x00463500  sub_463500     the hatchery's chicken search
+0x00463760  sub_463760     eating
+0x00477C20  fun_477C20     the needs routine that drives hunger, sleep and pay
+0x0047B7C0  sub_47B7C0     the prison drain — the whole of Q173
+```
+
+Nor is the creature *state* table at `0x006DA8C0` present, nor are the balance
+variable globals (`0x006F2621`, `0x006F2590`) this project mapped through the
+dispatch table.
+
+#### The number that decides it
+
+| Region | Symbols | Meaningfully named |
+|---|---:|---:|
+| Whole `sgmap` | 10,548 | **58%** |
+| `0x00450000`–`0x00520000` — creature state, jobs, needs, prison | 2,798 | **34%** |
+
+**Flame's naming is thinnest precisely where this project's remaining risk
+lives.** That is consistent with revision 1's own observation that `Follow_Path`
+is named with zero named fields: the DiaLight work has concentrated on the
+executable's shell — loader, rendering, netcode, the parts you must understand
+to recompile and run — while creature AI is the part you can leave as a black
+box and still ship a working patched game. It is the opposite of our priority.
+
+#### Recommendation
+
+1. **Clone it** to `original-reference/Flame/` at a pinned commit, recorded in
+   `original-reference/README.md`. That path is already gitignored except its
+   README, so nothing enters the repository. Risk R15 has prescribed exactly
+   this since revision 1 and it has simply never been done.
+2. **Use it for four things**: the vtable and struct layout that give a
+   function its *context*; confirming an identification made independently;
+   the `refmap` (3.8 MB of cross-references) when Ghidra's own analysis misses
+   a computed reference; and `espmap` if a stack question ever arises.
+3. **Do not expect it to answer behavioural questions.** On the evidence above
+   the answer to *"what does this do"* will keep coming from the binary itself,
+   from DK2's shipped debug dumps, and from the owner watching the game.
+4. **Ghidra, not IDA.** Flame ships `mapping/ida/*.py` and no Ghidra equivalent,
+   so importing the `sgmap` means writing a Ghidra script against its text
+   format. That format has a reference parser in the repo
+   (`mapping/sgmap/*.cpp`) which may be **read for format facts only**. A
+   one-evening job at most, and it is the difference between doing this once and
+   doing it never.
+5. **One boundary the owner must rule on before any of it lands in a document.**
+   Cloning for reference, and using the map to navigate a Ghidra database that
+   lives outside the repository, are plainly inside §10.1. **Adopting Flame's
+   identifiers into `docs/research/` or into C# is a different act**: a field
+   offset is a fact about DK2, but `g_stateGroups` is DiaLight's editorial
+   choice of words, and Flame has no licence with which to permit its reuse.
+   The precedent that exists — OpenKeeper's names, used under ADR-0003's second
+   amendment with attribution in `THIRD-PARTY-NOTICES.md` — **does not transfer,
+   because it rests on a licence Flame does not have.** Recommended default:
+   consult freely, describe findings in our own words, and never paste a Flame
+   identifier into the repository. Flagged rather than decided.
+
+---
 
 ### 2.3 OpenKeeper — the solved-problems corpus
 
@@ -564,6 +711,31 @@ possible (§10.2).
 
 ## 5. Reverse-engineering workflow
 
+> **Revision 2, 2026-09-06 — read this before the flowchart.** Steps 1–4 of the
+> workflow below **have never been performed**: Flame has never been checked out
+> on this machine, so every reverse-engineering session this project has run
+> started at step 7 with a bare Ghidra database. §2.2.1 measures what that cost,
+> and the answer is *less than this section assumes* — Flame names only 34% of
+> the symbols in the address range where creature behaviour lives, and none of
+> the four routines whose behaviour drove the last week's work.
+>
+> **Two steps are missing from the flowchart and are what has actually been
+> working**, in this order, before anything else:
+>
+> **0a. Look for DK2's own debug dump of the structure.** The retail build kept
+> its `printf` format strings, so one function names an entire struct in EA's own
+> words. Three found so far: the creature instance, the room, and the creature
+> *state* object.
+>
+> **0b. Ask the owner, if a player could see it.** The oracle is installed and
+> the owner has played the game. Several questions have been filed as UNKNOWN
+> that a sentence settled — and one, the health a captured creature wakes with,
+> was *built wrong* for an afternoon because nobody asked.
+>
+> Get Flame anyway (§2.2.1 recommends it), but for structure and cross-references
+> rather than for answers. This section's opening sentence was written before
+> anybody had measured it.
+
 **Never start from raw disassembly.** Flame has already done the expensive part.
 
 ```
@@ -734,11 +906,29 @@ is very expensive to retrofit.
 | **M10** | Campaign | Full campaign playable start to finish | after M8 |
 | **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
 
-**Status (2026-08-29).** M2 is done: the loop, the state hash, save/load and the
-scenario harness all exist and are covered by passing tests (198 now), run with
-and without a DK2 install. The CI workflow is written and its steps verified
-locally on Windows; it has not yet been exercised on GitHub-hosted Linux, which
-is the run that turns the pinned hash into a genuine cross-platform claim.
+**Status (2026-09-06, revision 2).** **975 tests, 21 scenarios, 68 ADRs, 180
+catalogued open questions**, `HashVersion` 27.
+
+- **M0** — done except the one thing this document exists to correct: Flame has
+  never been checked out (§2.2.1). OpenKeeper is on disk.
+- **M1** ◐ — every record type's on-disk size is known and pinned; the five M1
+  needed parse into `GameDatabase`.
+- **M2** ✅ — unchanged.
+- **M3** ✅ substantially — the Unity view renders campaign level 1; terrain
+  work, rooms, the treasury, mana, gold and the imp are all in.
+- **M4** ◐ — **four of its seven items exist.** Portal spawn ✅ (ADR-0042/0047),
+  lair claim ✅ (ADR-0049/0060), sleep ✅, **hunger→hatchery ✅ (ADR-0066/0067,
+  2026-09-06)**. Training ✗, payday ✗, and job selection with logged reasons is
+  done **for workers only** (ADR-0058) — a non-worker still has no job.
+  Beyond the original list, M4 has also grown death and corpses (ADR-0051/0063),
+  anger and desertion (ADR-0053), levels (Q119), the Hand of Evil (ADR-0062),
+  carrying (ADR-0063/0065) and the prison (ADR-0064/0068).
+- **M5** — not started, and its definition of done depends on Flame, which is
+  the second reason §2.2.1 matters.
+
+The CI workflow is written and its steps verified locally on Windows; it has not
+yet been exercised on GitHub-hosted Linux, which is the run that turns the pinned
+hash into a genuine cross-platform claim.
 
 M3 has started and is marked partial. Its terrain half is done: dig, mine,
 claim, reinforce, repair, attack and fill-in are implemented as one uniform
@@ -843,7 +1033,7 @@ Severity: **C**ritical / **H**igh / **M**edium / **L**ow. Probability: as given.
 | R12 | **Computer-player AI opaque**; single-player levels feel wrong without it. | M | High | Flame's `MyComputerPlayer` + `drop_condition` is the best lead in existence. Defer to post-M8; heroes matter more for the campaign. |
 | R13 | **Save format divergence** — our saves can't be validated against DK2's. | L | High | Accept. Our save format is our own. Use `save_struct.bt` only as a checklist of *what state exists*. |
 | R14 | **Audio event semantics unknown** (40% understood). | L | High | Cosmetic. Defer entirely. |
-| R15 | **Upstream projects change or disappear.** | M | Low | Vendor a pinned snapshot of Flame's `mapping/` and the dk2-tools templates into `original-reference/` (research data, not code) with recorded commit hashes. |
+| R15 | **Upstream projects change or disappear.** | M | Low | Vendor a pinned snapshot of Flame's `mapping/` and the dk2-tools templates into `original-reference/` (research data, not code) with recorded commit hashes. **Still not done as of 2026-09-06, and Flame has now been quiet six months** (§2.2.1) — the risk this row describes is the one that has actually been running. |
 | R16 | **AI-generated code silently invents mechanics.** | **H** | Medium | Confidence tags are mandatory in docs and in code comments. Any simulation constant not traceable to parsed data or a cited source fails review. |
 | R17 | **Regression corpus becomes unmaintainable** as systems change. | M | Medium | Scenarios are declarative data, not code. Comparison tolerances explicit and versioned. |
 | R18 | **Performance** — hundreds of creatures + pathfinding on a fixed tick. | M | Medium | Headless harness makes profiling easy and early. Fixed-point is cheap. Defer optimisation until a real level runs. |
