@@ -4744,3 +4744,53 @@ a hatchery churns where this one fills up and stops. Every bird has an age and
    room is small enough that a wander and a search are cheap.
 2. **Q174** — how the original walks a hungry creature to the hatchery.
 3. **Training and payday** — the two M4 items with nothing blocking them.
+
+### Later the same day: two more, and one of them undoes a number this project trusted
+
+**`97e225c` — a knocked-out creature has exactly one sixth of its health**
+(ADR-0071, Q167). The owner answered Q167 by counting petals again — *"a fresh
+prisoner has 2 petals"* — which cannot settle it, because two of six is a band
+from 16.7% to 33.3%. So it went to the binary. DK2's `ModifyHealth`, on taking a
+creature below zero when it is not already dying, writes `maxHealth / 6` and
+raises the `CreatureDying` flag; it computes the sixth as `100 * max / 6 / 100`,
+and a flower has six petals. Imprisonment touches no health at all — the prison's
+category-enter hook sets the drain countdown and nothing else.
+
+**That replaced a 20% this project had invented twice over.** It came from
+`CreatureCriticalHealthPercentageOfMax` read as *"two petals of ten"* — and the
+flower has six petals, and **a raw scan of `.text` finds exactly one reference to
+that variable's cached global: the loader writing it.** Nothing in DK2 reads it.
+Two independent errors that cancelled into something plausible, looking confirmed
+from both sides and resting on nothing. A Goblin's prison clock has now been 500
+seconds, then 100, and is 83.
+
+**One loose end, and it is a display question.** A sixth is exactly *one* petal
+of six and the owner counts two. Either the flower is not a plain proportion, or
+something adds a little between the knockout and the cell. It does not move the
+health number, which is read. When something eventually draws a flower, that is
+where the question belongs.
+
+**Q178 withdrawn within the hour of being recorded.** The owner reported that an
+uneaten chicken dies and is replaced; on looking again, *"the flying feathers"*
+are the **coop laying**, not a bird dying — the two animations share them — and a
+chicken followed for four minutes did not die. Nothing had been built on it, and
+what was described is what `HatcherySystem` already does (ADR-0066). **A
+retraction that arrives before the code does is worth as much as an answer**, and
+it is the reason the observation checklist exists in the shape it does.
+
+### One thing left open that a future sitting should not assume away
+
+**The state table's record COUNT is not settled.** The base is: `0x006DA8B0`,
+25-byte records, handler at `+0`, pinned from the dispatcher
+(`(*(code**)(0x006DA8B0 + stateId * 0x19))()`). Flame says 281 records; this
+project's fill-run count said **239**, made under the shifted frame and never
+re-derived. Do not quote 239 without checking it.
+
+**And the method lesson is worth more than the fix.** The old frame was 16 bytes
+early, which on a fixed-stride table is invisible: every field still lands at a
+constant offset, every record still parses, the ids still count 0, 1, 2. The id,
+word, category and flag offsets were all *right*; only the four function pointers
+were read from past the record's end, which at a 25-byte stride is the **next
+record's**. So every handler was filed one state early, and nothing could catch
+it. **Pin a table's frame from the code that indexes it, never from the data that
+fills it.**
