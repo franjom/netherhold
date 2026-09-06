@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -66,10 +66,13 @@ public class Dk2SaveReaderTests
         Assert.Equal(design.Width, loaded.Map.Width);
         Assert.Equal(design.Height, loaded.Map.Height);
 
-        // The measured floor. The sample save sits at 73% and its earlier
-        // quicksave at 85%; half is well below both and far above what a
-        // misread grid could reach, so it separates the two cases without
-        // pinning a number that legitimately moves as the player plays.
+        // The measured floor. Across the fourteen saves in the reference
+        // install the located offset scores between 72.9% and 100%, and one
+        // tile record either side scores 59% to 91% - so half is below every
+        // real read and above most misreads, without pinning a number that
+        // legitimately moves as the player plays. The neighbouring offsets
+        // score as high as they do because a map has long runs of one terrain;
+        // that is why the byte-level control below is the sharper one.
         Assert.True(
             loaded.TerrainAgreement > 0.5,
             $"terrain agreed with the design map on only {loaded.TerrainAgreement:P1} of tiles, " +
@@ -86,19 +89,36 @@ public class Dk2SaveReaderTests
 
         byte[] bytes = File.ReadAllBytes(save);
 
-        // The negative control the previous test needs to mean anything: shift
-        // the grid by one tile record and the agreement has to collapse. If it
-        // does not, the test above is passing on something other than a correct
-        // read.
-        var shifted = new byte[bytes.Length];
-        Array.Copy(bytes, Dk2SaveReader.TileRecordSize, shifted, 0, bytes.Length - Dk2SaveReader.TileRecordSize);
-        Array.Copy(bytes, 0, shifted, 0, Dk2SaveReader.GridOffset);
+        // The negative control the previous test needs to mean anything: read
+        // the grid one tile record further on and the agreement has to collapse.
+        // If it does not, the test above is passing on something other than a
+        // correct read - and since the offset is now searched for rather than
+        // fixed, this is also the check that the search found a peak and not a
+        // plateau.
+        LevelMap offByATile = Dk2SaveReader.ReadGrid(
+            bytes,
+            loaded.GridOffset + Dk2SaveReader.TileRecordSize,
+            design.Width,
+            design.Height);
 
-        LevelMap wrong = Dk2SaveReader.ReadGrid(shifted, design.Width, design.Height);
-
+        double tile = Dk2SaveReader.AgreementWithDesign(offByATile, design);
         Assert.True(
-            Dk2SaveReader.AgreementWithDesign(wrong, design) < loaded.TerrainAgreement - 0.1,
-            "shifting the grid by one tile did not reduce agreement, so agreement is not measuring alignment.");
+            tile < loaded.TerrainAgreement - 0.05,
+            $"reading one tile record on agreed {tile:P1} against {loaded.TerrainAgreement:P1} at the " +
+            "located offset, so agreement is not measuring alignment.");
+
+        // And the sharper half of the control: one BYTE on, which breaks the
+        // ten-byte stride rather than the tile index. Measured at 0.0% on every
+        // save in the reference install - a shifted lane is reading a different
+        // field of a different tile and cannot agree with anything.
+        LevelMap offByAByte = Dk2SaveReader.ReadGrid(
+            bytes, loaded.GridOffset + 1, design.Width, design.Height);
+
+        double one = Dk2SaveReader.AgreementWithDesign(offByAByte, design);
+        Assert.True(
+            one < 0.05,
+            $"reading one byte on still agreed on {one:P1} of tiles, so lane 0 and the " +
+            $"{Dk2SaveReader.TileRecordSize}-byte stride are not what this reader takes them for.");
     }
 
     [Fact]
@@ -253,9 +273,22 @@ public class Dk2SaveReaderTests
                 $"room {room} covers {cells.Count} tiles but spans a {maxX - minX + 1}x{maxY - minY + 1} " +
                 "box, so lane 2 does not group tiles into solid rooms.");
 
-            // No room in DK2 is a single tile, and none of the shipped ones is
-            // larger than its footprint allows.
-            Assert.InRange(cells.Count, 4, 25 * 25);
+            // A room may be ONE tile, and the four-tile floor this used to
+            // assert was read off a single purpose-built save (mpd1) whose
+            // smallest room happened to be four. Two things refute it:
+            //
+            //   Terrain 37 is "Hero Gate [ 3x1 ]", a SHIPPED 3x1 room whose own
+            //   name gives its shape, and TrapTime has two of them.
+            //
+            //   The owner's own save carries two 1x1 rooms, on the row where
+            //   they built two stone-bridge tiles across lava. What is odd is
+            //   which tiles hold the ids: the bridge tiles themselves read
+            //   terrain 26 with room id 0, and the CLAIMED PATH beside each
+            //   carries the id. Recorded as Q200 rather than asserted away.
+            //
+            // The rectangle check above is the real test of lane 2; size is a
+            // sanity bound and is treated as one.
+            Assert.InRange(cells.Count, 1, 25 * 25);
         }
     }
 }

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -63,13 +63,39 @@ public static class Dk2SaveReader
     private const uint ExpectedFormatWord = 220;
 
     /// <summary>
-    /// Where the tile grid starts. CONFIRMED fixed: both sample saves put it
-    /// here despite differing by 94 KB in total size, so everything ahead of it
-    /// — the 0x134-byte header plus a block that is not yet decoded (Q183) — is
-    /// fixed-size. Note it is odd, so DK2's writer is byte-oriented rather than
-    /// dumping a packed struct.
+    /// Where the tile grid started in the first two sample saves — and
+    /// <b>it is not a constant</b>, which is the correction this field exists to
+    /// carry.
+    ///
+    /// <para>It was recorded as CONFIRMED fixed on the strength of two files
+    /// that put the grid here despite differing by 94 KB in total size. Both
+    /// files were saves <b>of the same level</b>, so two samples were one
+    /// sample. On <b>TrapTime</b>, a 110x80 skirmish map, the grid is at
+    /// <c>0x14880</c>. What varies is the undecoded block above it (Q183),
+    /// which is sized by something about the level.</para>
+    ///
+    /// <para>Kept only as the search's starting guess and as the record of the
+    /// mistake. Nothing reads the grid at it — see
+    /// <see cref="FindGridOffset"/>.</para>
     /// </summary>
-    public const int GridOffset = 0x8861;
+    public const int FirstSampleGridOffset = 0x8861;
+
+    /// <summary>Where the header ends and the undecoded block begins (Q183).</summary>
+    private const int HeaderLength = 0x134;
+
+    /// <summary>
+    /// How many tiles the coarse pass compares at each candidate offset. Spread
+    /// across the whole grid rather than taken from the front, because a level's
+    /// first rows are border rock and match almost anywhere.
+    /// </summary>
+    private const int SampleTiles = 512;
+
+    /// <summary>
+    /// How many of the best-sampling offsets are then scored against the whole
+    /// grid. More than one because the sample can rank a near neighbour first —
+    /// one record either side of the true offset still scores highly.
+    /// </summary>
+    private const int FinalistOffsets = 32;
 
     /// <summary>
     /// Bytes per tile in the *runtime* grid, wider than the 4-byte design tile
@@ -126,9 +152,9 @@ public static class Dk2SaveReader
     /// </summary>
     public static Dk2SaveHeader ReadHeader(ReadOnlySpan<byte> save)
     {
-        if (save.Length < GridOffset)
+        if (save.Length < HeaderLength)
             throw new InvalidDataException(
-                $"a save is at least {GridOffset} bytes before its grid; this file is {save.Length}.");
+                $"a save's header is {HeaderLength} bytes; this file is {save.Length}.");
 
         uint formatWord = BinaryPrimitives.ReadUInt32LittleEndian(save);
         uint version = BinaryPrimitives.ReadUInt32LittleEndian(save[4..]);
@@ -164,15 +190,114 @@ public static class Dk2SaveReader
     }
 
     /// <summary>
-    /// Reads the grid at the given dimensions, which come from the level's own
-    /// design map — the save does not restate them anywhere yet found.
+    /// Finds where the tile grid starts, by correlating the save's terrain lane
+    /// against the level's own design map.
+    ///
+    /// <para><b>Why a search rather than a constant.</b> The offset was recorded
+    /// as fixed at <see cref="FirstSampleGridOffset"/> from two saves of one
+    /// level; a save of a different level puts the grid somewhere else entirely,
+    /// because the undecoded block between the header and the grid (Q183) is
+    /// sized by something about the level. See
+    /// docs/research/sav-format.md and fog-of-war.md §11.5.</para>
+    ///
+    /// <para><b>Why correlation works.</b> A played save differs from its design
+    /// map only where somebody dug, claimed or built, so the true offset scores
+    /// very high — <b>99.7%</b> on a save taken at the start of a game — while a
+    /// misaligned read agrees at chance against a 41-value enum. The peak is
+    /// sharp: one record either side scores 91% or less.</para>
+    ///
+    /// <para>Two passes. The first scores a spread sample of
+    /// <see cref="SampleTiles"/> tiles at every possible offset; the second
+    /// scores the <see cref="FinalistOffsets"/> best of those against the whole
+    /// grid and returns the winner. The sample alone is not trusted to rank a
+    /// near neighbour below the real thing.</para>
     /// </summary>
-    public static LevelMap ReadGrid(ReadOnlySpan<byte> save, int width, int height)
+    /// <exception cref="InvalidDataException">
+    /// The file is too small to hold the grid, or nothing in it correlates with
+    /// the design map — which means the save is not of this level, or the record
+    /// stride is not what this reader believes.
+    /// </exception>
+    public static int FindGridOffset(ReadOnlySpan<byte> save, LevelMap design)
+    {
+        if (design is null) throw new ArgumentNullException(nameof(design));
+
+        int tiles = design.Width * design.Height;
+        int span = tiles * TileRecordSize;
+        int lastOffset = save.Length - span;
+        if (lastOffset < HeaderLength)
+            throw new InvalidDataException(
+                $"a {design.Width}x{design.Height} grid needs {span} bytes after the header; " +
+                $"the save is {save.Length}.");
+
+        // The sample. Every stride'th tile, so it crosses the whole map instead
+        // of sitting in the border rock the first rows are made of.
+        int stride = Math.Max(1, tiles / SampleTiles);
+        int sampled = 0;
+        for (int i = 0; i < tiles; i += stride) sampled++;
+
+        // The finalists, kept sorted best-first. A plain array rather than a
+        // heap: this target is netstandard2.1, the list is 32 long, and an
+        // insertion only happens when an offset beats the worst of them.
+        var offsets = new int[FinalistOffsets];
+        var scores = new int[FinalistOffsets];
+        int held = 0;
+
+        for (int offset = HeaderLength; offset <= lastOffset; offset++)
+        {
+            int hits = 0;
+            for (int i = 0; i < tiles; i += stride)
+                if (save[offset + (i * TileRecordSize)] == design.Tiles[i].TerrainId) hits++;
+
+            if (held == FinalistOffsets && hits <= scores[held - 1]) continue;
+
+            int at = held < FinalistOffsets ? held++ : FinalistOffsets - 1;
+            while (at > 0 && scores[at - 1] < hits)
+            {
+                scores[at] = scores[at - 1];
+                offsets[at] = offsets[at - 1];
+                at--;
+            }
+            scores[at] = hits;
+            offsets[at] = offset;
+        }
+
+        int winner = -1;
+        int winningScore = -1;
+        for (int n = 0; n < held; n++)
+        {
+            // Nothing that failed the sample outright can win the full grid, and
+            // scoring it would only cost time.
+            if (scores[n] * 2 < sampled) continue;
+
+            int hits = 0;
+            for (int i = 0; i < tiles; i++)
+                if (save[offsets[n] + (i * TileRecordSize)] == design.Tiles[i].TerrainId) hits++;
+
+            if (hits <= winningScore) continue;
+            winningScore = hits;
+            winner = offsets[n];
+        }
+
+        if (winner < 0)
+            throw new InvalidDataException(
+                $"no offset in the save correlates with {design.Width}x{design.Height} of " +
+                "the level's design map; the save may not be of this level.");
+
+        return winner;
+    }
+
+    /// <summary>
+    /// Reads the grid at the given dimensions, which come from the level's own
+    /// design map — the save does not restate them anywhere yet found — and at
+    /// the offset <see cref="FindGridOffset"/> located.
+    /// </summary>
+    public static LevelMap ReadGrid(
+        ReadOnlySpan<byte> save, int gridOffset, int width, int height)
     {
         if (width <= 0 || height <= 0)
             throw new ArgumentOutOfRangeException(nameof(width), "grid dimensions must be positive.");
 
-        int needed = GridOffset + (width * height * TileRecordSize);
+        int needed = gridOffset + (width * height * TileRecordSize);
         if (save.Length < needed)
             throw new InvalidDataException(
                 $"a {width}x{height} grid needs {needed} bytes; the save is {save.Length}.");
@@ -180,7 +305,7 @@ public static class Dk2SaveReader
         var tiles = new MapTile[width * height];
         for (int i = 0; i < tiles.Length; i++)
         {
-            int o = GridOffset + (i * TileRecordSize);
+            int o = gridOffset + (i * TileRecordSize);
 
             // Flags is left at zero rather than guessed. Eight of the ten lanes
             // are undecoded (Q181) and none of them matched the design map's
@@ -203,9 +328,9 @@ public static class Dk2SaveReader
     /// Reads the grid as the fuller <see cref="SavedTile"/>, keeping the lanes
     /// that <see cref="LevelMap"/> has nowhere to put.
     /// </summary>
-    public static SavedTile[] ReadTiles(byte[] save, int width, int height)
+    public static SavedTile[] ReadTiles(byte[] save, int gridOffset, int width, int height)
     {
-        int needed = GridOffset + (width * height * TileRecordSize);
+        int needed = gridOffset + (width * height * TileRecordSize);
         if (save.Length < needed)
             throw new InvalidDataException(
                 $"a {width}x{height} grid needs {needed} bytes; the save is {save.Length}.");
@@ -213,7 +338,7 @@ public static class Dk2SaveReader
         var tiles = new SavedTile[width * height];
         for (int i = 0; i < tiles.Length; i++)
         {
-            int o = GridOffset + (i * TileRecordSize);
+            int o = gridOffset + (i * TileRecordSize);
             tiles[i] = new SavedTile(
                 TerrainId: save[o + LaneTerrain],
                 OwnerPlayerId: save[o + LaneOwner],
@@ -245,13 +370,15 @@ public static class Dk2SaveReader
         LevelMap? design = GameDatabaseLoader.LoadCampaignMap(installDir, header.LevelName);
         if (design is null) return null;
 
-        LevelMap map = ReadGrid(bytes, design.Width, design.Height);
+        int gridOffset = FindGridOffset(bytes, design);
+        LevelMap map = ReadGrid(bytes, gridOffset, design.Width, design.Height);
 
         return new SavedGame(
             header,
             map,
-            ReadTiles(bytes, design.Width, design.Height),
-            AgreementWithDesign(map, design));
+            ReadTiles(bytes, gridOffset, design.Width, design.Height),
+            AgreementWithDesign(map, design),
+            gridOffset);
     }
 
     /// <summary>

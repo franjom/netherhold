@@ -32,6 +32,21 @@ skirmish map, the grid is at **`0x14880`**. What varies is the global/player
 block above it, which is sized by something about the level rather than being
 constant.
 
+**A third level settles it beyond argument (2026-09-06, later).** With the
+reader changed to search rather than assume, every save in the reference install
+loads, and they land on **three different offsets**:
+
+| Level | Grid | Offset | Saves |
+|---|---:|---:|---:|
+| `mpd1` | 61x61 | `0x8861` | 10 |
+| `TrapTime` | 110x80 | `0x14880` | 3 |
+| `Caverns` | 101x101 | `0x19e0f` | 1 |
+
+And it is **not a function of the tile count** — the three offsets divided by
+their tile counts give 9.38, 9.56 and 10.39 bytes a tile, and no linear fit
+passes through all three. So the undecoded block above the grid is sized by
+something else about the level, which keeps Q183 open rather than closing it.
+
 **Find it by correlation instead.** Lane 0 against the level's own design map
 (`<Level>Map.kld`, chunk 102, byte 0 of each 4-byte design tile) locates the
 grid unambiguously: **99.7%** agreement at the correct offset on a save taken at
@@ -274,3 +289,38 @@ renders one. A save reader that fills a `LevelMap` from lanes 0 and 8 needs no
 Unity-side change at all. Entities need the 189-byte record decoded first.
 
 Writing saves back is not attempted and is not planned.
+
+---
+
+## The grid is located, not assumed (2026-09-06)
+
+`Dk2SaveReader.FindGridOffset` searches for the grid instead of reading it at a
+constant, and the constant is kept only as `FirstSampleGridOffset` with the
+mistake written on it. The method is the one this file already prescribed —
+correlate lane 0 against the level's design map — in two passes: score a spread
+sample of 512 tiles at every candidate offset, then score the 32 best against
+the whole grid and take the winner. A near neighbour can win the sample, so the
+sample alone is not trusted.
+
+**The peak is sharp, and both controls are now measured across all fourteen
+saves in the install:**
+
+| Read at | Agreement |
+|---|---:|
+| the located offset | **72.9% - 100%** |
+| one tile record either side | 59.1% - 91.3% |
+| **one byte** on | **0.000%**, every save |
+
+The one-byte control is the strong one and it is new. Shifting by a whole record
+still agrees at up to 91% because a map has long runs of a single terrain, so a
+tile mostly resembles its neighbour — which is exactly why the old "one record
+off collapses" control was a weaker claim than it looked, and why on TrapTime it
+would not have separated the cases at the 10-point threshold it used. Breaking
+the **stride** instead puts every lane against the wrong field of the wrong
+tile, and that agrees with nothing at all. It pins the 10-byte record as firmly
+as the offset.
+
+**What the search cost.** Every offset from the end of the header to the last
+that could hold a grid, at 512 comparisons each, then 32 full passes: a few
+hundred milliseconds on the largest save here. Paid once per load.
+
