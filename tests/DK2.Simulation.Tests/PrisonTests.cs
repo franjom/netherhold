@@ -260,41 +260,52 @@ public class PrisonTests
     // ---- withering --------------------------------------------------------
 
     [Fact]
-    public void APrisonerWakesWithTwoPetalsAndLosesThreeHealthASecond()
+    public void APrisonerWakesAtOneSixthAndLosesThreeHealthASecond()
     {
         // CONFIRMED by the owner (2026-09-05, Q167): "its flower gets two
         // petals, and then that creature starts loosing health at some standard
-        // rate". The flower has SIX petals (Q171, screenshot 2026-09-06), so two
-        // of them is a band from 16.7% to 33.3% rather than an exact tenth -
-        // and CreatureCriticalHealthPercentageOfMax is the only shipped number
-        // in it. Q167 is now readable outright: the status bar prints Health%.
-        // which ships at 20 - a Goblin's 1500 becomes 300.
+        // rate".
         //
-        // A first draft gave a prisoner FULL health on nothing better than the
-        // shape of the mechanic, which made a Goblin take 500 game seconds to
-        // wither where it should take a hundred.
+        // The NUMBER is now read rather than fitted (2026-09-06). DK2's
+        // ModifyHealth, on taking a creature below zero, sets its health to
+        // maxHealth / 6 and flags it dying - computed the long way, as
+        // 100 * max / 6 / 100, which is the arithmetic of "a sixth expressed as
+        // a percentage". A flower has six petals. Those are the same decision.
+        //
+        // What this replaced was 20%, which was ours twice over: it came from
+        // CreatureCriticalHealthPercentageOfMax read as "two petals of ten", and
+        // the flower has six petals AND a raw scan of .text finds exactly one
+        // reference to that variable's global - the loader writing it. Nothing
+        // in the game reads it.
+        //
+        // A Goblin's 1500 becomes 250, not 300. An earlier draft gave a
+        // prisoner FULL health on nothing better than the shape of the
+        // mechanic, which made it take 500 game seconds to wither.
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
 
-        Assert.Equal(300, captive.Health);
-        Assert.Equal(db.CreatureById(GoblinId).Hp / 5, captive.Health);
+        Assert.Equal(250, captive.Health);
+        Assert.Equal(
+            db.CreatureById(GoblinId).Hp / CreatureHealthRules.KnockoutFraction,
+            captive.Health);
 
         GameSimulation sim = Simulation(db, world);
         for (int i = 0; i < 10 * Second; i++) sim.Tick();
 
-        Assert.Equal(300 - 30, captive.Health);
+        Assert.Equal(250 - 30, captive.Health);
     }
 
     [Fact]
-    public void ACapturedGoblinIsASkeletonInAHundredGameSeconds()
+    public void ACapturedGoblinIsASkeletonInEightyThreeGameSeconds()
     {
-        // The whole clock end to end, and the number the owner's answer moved:
-        // 300 health at -3 a second is 100 seconds, not the 500 a full-health
-        // prisoner would have taken. That is the difference between a prison
-        // being an urgent decision and a forgettable one, and it is why a
-        // keeper reaches for a chicken.
+        // The whole clock end to end. A Goblin knocked out sits at 1500/6 = 250,
+        // and PrisonModifyCreatureHealthPerSecond is -3, so it has 83 seconds -
+        // not the 100 this test asserted while the arrival health was a guessed
+        // 20%, and not the 500 a full-health prisoner would have had. That is
+        // the difference between a prison being an urgent decision and a
+        // forgettable one, and it is why a keeper reaches for a chicken.
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
@@ -302,7 +313,7 @@ public class PrisonTests
         int captiveId = captive.Id;
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 99 * Second; i++) sim.Tick();
+        for (int i = 0; i < 82 * Second; i++) sim.Tick();
         Assert.NotNull(world.CreatureById(captiveId));
 
         for (int i = 0; i < 2 * Second; i++) sim.Tick();

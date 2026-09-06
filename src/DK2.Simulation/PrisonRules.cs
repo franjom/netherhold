@@ -170,8 +170,9 @@ public static class PrisonRules
     /// the only way it can arrive, because only an unconscious creature can be
     /// carried — and imprisonment ends the dying window rather than continuing
     /// it. It wakes at
-    /// <see cref="CreatureHealthRules.CriticalHealth"/>: <b>20% of its maximum,
-    /// which shows as two petals of the six on the flower above its head</b>.
+    /// <see cref="CreatureHealthRules.KnockoutHealth"/>: <b>a sixth of its
+    /// maximum</b>, which is what DK2's damage path writes at the moment of the
+    /// knockout rather than anything the prison does at the door.
     ///
     /// <para><b>CONFIRMED by the owner</b> (2026-09-05, Q167): <i>"its flower
     /// gets two petals, and then that creature starts loosing health at some
@@ -181,20 +182,21 @@ public static class PrisonRules
     /// a hundred — the difference between the prison being a slow decision and
     /// an urgent one.</para>
     ///
-    /// <para><b>The flower has six petals, not the ten this file used to
-    /// assume</b> (Q171, screenshot, 2026-09-06). The 20 survives it and the
-    /// argument for it is now weaker and worth stating plainly: two of six is
-    /// 16.7% to 33.3%, 20% is 1.2 petals, and that reads as two only because the
-    /// display rounds up — which it must, or a creature at 1% would show
-    /// nothing. Corroborated from the far side by the owner's other reading, a
-    /// chicken worth a quarter of a Goblin called <i>"2 more petals"</i>: 1.5,
-    /// rounded up. And <b>nothing shipped is near 33%</b>, so the alternative
-    /// reading has no number behind it.</para>
+    /// <para><b>The number is read, and it replaced one this project invented.</b>
+    /// It used to be <c>CreatureCriticalHealthPercentageOfMax</c> = 20, on the
+    /// reading <i>"two petals of ten"</i>. Both halves failed on 2026-09-06: the
+    /// flower has <b>six</b> petals (Q171, screenshot), and a raw scan of
+    /// <c>.text</c> finds <b>one</b> reference to that variable's global, the
+    /// loader writing it. DK2's own damage path is unambiguous instead —
+    /// below zero and not already dying means <c>max / 6</c> and the
+    /// <c>CreatureDying</c> flag — so a Goblin arrives at 250 of 1500 and
+    /// lasts <b>83</b> game seconds, not the 100 this file used to claim.</para>
     ///
-    /// <para><b>The experiment that would settle it outright is now obvious</b>
-    /// and does not involve counting anything: DK2's status bar prints
-    /// <c>Health: NN%</c> for a selected creature. Drag one into a prison and
-    /// read it.</para>
+    /// <para><b>One loose end, and it is a display question.</b> A sixth is
+    /// exactly <i>one</i> petal of six, and the owner counts <i>two</i> on a
+    /// creature an imp has just dragged in (Q167). So either the flower is not a
+    /// plain proportion, or something between the knockout and the cell adds a
+    /// little. Neither moves the health number, which is read.</para>
     /// </summary>
     public static bool Imprison(
         WorldState world, GameDatabase database, CreatureState creature,
@@ -208,7 +210,7 @@ public static class PrisonRules
         creature.PosX = CreatureState.CentreOf(tileIndex % world.Width);
         creature.PosY = CreatureState.CentreOf(tileIndex / world.Width);
         creature.MoveRemainder = 0;
-        creature.Health = CreatureHealthRules.CriticalHealth(
+        creature.Health = CreatureHealthRules.KnockoutHealth(
             database, database.CreatureById(creature.CreatureTypeId), creature);
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;

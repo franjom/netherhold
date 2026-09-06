@@ -103,10 +103,14 @@ public static class CreatureHealthRules
     /// (20%) of its maximum — DK2's own threshold for "in trouble", and the one
     /// a fleeing or recuperating creature will be keyed off.
     ///
-    /// <para><see cref="PrisonRules.Imprison"/> reads the number this compares
-    /// against (<see cref="CriticalHealth"/>); nothing reads the comparison
-    /// itself yet. It is here because the variable exists and the percentage is
-    /// not obvious from anywhere else.</para>
+    /// <para><b>Nothing reads this, and that now looks deliberate rather than
+    /// unfinished.</b> A raw scan of <c>.text</c> for this variable's cached
+    /// global finds exactly one reference — the loader writing it — so
+    /// DK2 itself never consults it either. It is kept because the variable is
+    /// shipped and named, not because anything is keyed off it; the number a
+    /// knocked-out creature actually gets is
+    /// <see cref="KnockoutHealth"/>, which is a sixth and is read from the
+    /// damage path.</para>
     /// </summary>
     public static bool IsCriticallyHurt(
         GameDatabase database, CreatureDef creature, CreatureState state) =>
@@ -115,39 +119,55 @@ public static class CreatureHealthRules
                * database[VariableTypeId.CreatureCriticalHealthPercentageOfMax];
 
     /// <summary>
-    /// <c>CreatureCriticalHealthPercentageOfMax</c> of this creature's maximum,
-    /// as health — <b>two petals of the flower above its head</b>.
+    /// The sixth in <see cref="KnockoutHealth"/> — and the number of petals on
+    /// the flower above a creature's head, which is not a coincidence.
+    /// </summary>
+    public const int KnockoutFraction = 6;
+
+    /// <summary>
+    /// What a creature has left the moment it is knocked out: <b>exactly one
+    /// sixth of its maximum</b>, and a flower has exactly six petals.
+    ///
+    /// <para><b>Read out of the binary on 2026-09-06</b>, which is what this
+    /// used to be a guess about. DK2's <c>ModifyHealth</c> applies the delta and
+    /// then, if the result went below zero and the creature is not already
+    /// dying, sets health to <c>maxHealth / 6</c> and raises the
+    /// <c>CreatureDying</c> flag. It computes it the long way round —
+    /// <c>100 * max / 6 / 100</c>, as two magic-number divides — which is the
+    /// arithmetic of <i>"a sixth expressed as a percentage"</i> and is the
+    /// clearest sign that the sixths and the six petals are the same design
+    /// decision. Damage taken <i>while</i> dying is not caught by that branch,
+    /// so it goes negative and kills.</para>
     ///
     /// <para><b>What a petal is worth was settled by the owner</b> (2026-09-05,
     /// Q167): a creature dragged into a prison arrives with <i>"two petals"</i>.
     /// See <see cref="PrisonRules.Imprison"/>, which is the only caller.</para>
     ///
-    /// <para><b>A flower has SIX petals</b> — CONFIRMED with a
-    /// screenshot on 2026-09-06 (Q171), against this project's inference of ten.
-    /// The inference was wrong; <b>the 20 it was used to justify survives, and
-    /// on a thinner argument than before.</b> Two petals of six is anywhere from
-    /// 16.7% to 33.3%, and 20% lands in that band only because the display must
-    /// round <i>up</i> — 1.2 petals shown as 2. It has to round up for
-    /// anything to make sense (a creature at 1% still shows a petal), and the
-    /// owner's other reading agrees: a chicken worth 25% of a Goblin is 1.5
-    /// petals and they called it <i>"2 more petals"</i>. There is <b>no shipped
-    /// percentage anywhere near 33%</b>, so 20 has no rival.</para>
+    /// <para><b>This replaced 20%, which was ours and was never DK2's.</b> That
+    /// number came from <c>CreatureCriticalHealthPercentageOfMax</c>, read as
+    /// <i>"two petals of ten"</i> — and both halves failed on the same day. The
+    /// flower has <b>six</b> petals, not ten (Q171, screenshot); and a raw scan
+    /// of <c>.text</c> for that variable's cached global finds <b>exactly one
+    /// hit, the loader writing it</b>. Nothing in the game reads it. So the
+    /// project had built a prisoner's whole clock on a number the engine
+    /// ignores, justified by a petal count that was wrong.</para>
     ///
-    /// <para><b>The shipped-number leg is weak on its own.</b>
-    /// <c>CreatureCriticalHealthPercentageOfMax</c> is cached into a global the
-    /// engine <b>never reads</b> (<c>balance-variables-in-the-binary.md</c> §4),
-    /// so 20 is not a number DK2 consults for anything. <b>Q167 is now readable
-    /// as a number rather than counted</b>: DK2's status bar prints
-    /// <c>Health: NN%</c> for a selected creature.</para>
+    /// <para><b>One sixth is 16.67%, and the owner counts two petals</b> on a
+    /// creature an imp has just dragged into a cell (Q167). One sixth is exactly
+    /// <i>one</i> petal, so either the flower is not a plain proportion of six,
+    /// or something between the knockout and the cell adds a little. That
+    /// residue is a <b>display</b> question and is recorded as one; the health
+    /// number itself is now read rather than fitted, which is the half that
+    /// decides how long a prisoner lasts.</para>
     ///
     /// <para>At least one, because a creature brought round at nothing is a
     /// creature that dies on the tick it wakes.</para>
     /// </summary>
-    public static int CriticalHealth(
+    public static int KnockoutHealth(
         GameDatabase database, CreatureDef creature, CreatureState state) =>
-        Math.Max(1,
-            MaxHealth(database, creature, state)
-            * database[VariableTypeId.CreatureCriticalHealthPercentageOfMax] / 100);
+        // DK2: 100 * max / 6 / 100. At least one, because a creature brought
+        // round at nothing is a creature that dies on the tick it wakes.
+        Math.Max(1, MaxHealth(database, creature, state) / KnockoutFraction);
 
     /// <summary>
     /// Whether this creature is hurt enough that DK2 sends it to bed —

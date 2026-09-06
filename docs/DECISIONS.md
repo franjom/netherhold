@@ -5292,3 +5292,78 @@ builds, the two agree.
 **Maximum Skeletons.** The status bar shows the same number, and here a Skeleton
 replaces the prisoner that died, so the two are equal without a second rule. That
 they are equal *in DK2 for the same reason* is inference.
+
+---
+
+## ADR-0071 — A knocked-out creature has exactly one sixth of its health, and DK2 says so
+
+**Date:** 2026-09-06
+**Status:** Accepted
+**Closes:** Q167 (the health half). **Supersedes:** the 20% in ADR-0064.
+
+### What this replaces, and how it went wrong
+
+A prisoner's arrival health has been guessed three times.
+
+1. **Full health** — the first draft, on nothing but the shape of the mechanic.
+   A Goblin took 500 game seconds to wither.
+2. **20% of maximum** — after the owner said *"its flower gets two petals"*.
+   `CreatureCriticalHealthPercentageOfMax` ships at 20, and two petals of ten is
+   20%, so the observation and the shipped number appeared to meet. 100 seconds.
+3. **A sixth of maximum**, read out of the binary. **83 seconds.**
+
+**Both legs of the second reading failed on the same day.** The flower has
+**six** petals, not ten (Q171, owner screenshot). And a raw scan of `.text` for
+that variable's cached global finds **exactly one reference — the loader writing
+it**. Nothing in DK2 reads it, so the project had built a prisoner's whole clock
+on a number the engine ignores, justified by a petal count that was wrong.
+
+That the two errors cancelled to something plausible is the uncomfortable part.
+20% sits inside the 2-petals-of-six band, so the guess looked confirmed from
+both sides while resting on nothing.
+
+### What the binary says
+
+DK2's `ModifyHealth` applies the delta, then:
+
+```
+if flags & CreatureDying:  return health          # already down: this can kill
+if health < 0:
+    health = maxHealth / 6                         # level-scaled maximum
+    KnockOut()                                     # sets the CreatureDying flag
+```
+
+The sixth is computed the long way round — `100 * max / 6 / 100`, as two
+magic-number divides — which is the arithmetic of *"a sixth expressed as a
+percentage"*, and is the clearest sign that the sixths and the six petals are
+one decision. Some creature types are destroyed outright instead, which is the
+`DieInstantly` flag this project already reads.
+
+**And imprisonment does not touch health at all.** The prison's category-enter
+hook sets the drain countdown and nothing else. A prisoner arrives carrying
+whatever the knockout left it.
+
+### The decision
+
+`CreatureHealthRules.CriticalHealth` becomes `KnockoutHealth` = `MaxHealth / 6`,
+with `KnockoutFraction = 6` named next to it. `PrisonRules.Imprison` is the only
+caller and keeps calling it — DK2 puts the value there at the moment of the
+collapse rather than at the prison door, and for the only path DK2 allows into a
+cell the two are the same.
+
+`IsCriticallyHurt` keeps reading the shipped variable and keeps having no
+callers, now with a note saying that DK2 does not read it either.
+
+### The loose end, and it is a display question
+
+**A sixth is exactly one petal of six, and the owner counts two** on a creature
+an imp has just dragged in. So either the flower is not a plain proportion of
+six, or something between the knockout and the cell adds a little. Neither moves
+the health number, which is read; and the residue belongs to whatever eventually
+draws a flower, not to `PrisonRules`.
+
+### The cost
+
+No hash change: the determinism fixture imprisons nobody. Two prison tests moved
+from 300/100 s to 250/83 s, and the scenario's prisoner now perishes at t2619
+instead of t2939.

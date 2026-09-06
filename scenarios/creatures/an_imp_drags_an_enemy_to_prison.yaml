@@ -44,35 +44,39 @@
 #            *"imps stop collecting prisoners"* falling out of the same rule
 #            rather than being written twice.
 #
-#   t1209    `creature_imprisoned … owner=1 (6,5) health=300`
-#            **Ten ticks before it would have died.** The rescue window ran
-#            from t19 to t1219 and the capture landed inside it with half a
-#            game second to spare, which is the whole tension of the mechanic:
-#            a prison too far from the fighting collects corpses instead of
-#            prisoners (Q164).
+#   t959     `creature_imprisoned … owner=1 (5,3) health=250`
+#            **Inside the rescue window**, which ran from t19 to t1219 — the
+#            whole tension of the mechanic: a prison too far from the fighting
+#            collects corpses instead of prisoners (Q164). The tick moved when
+#            the prison became a real 3x3 (ADR-0070); it used to be two cells
+#            in a row, which DK2 would not have called a prison at all.
 #
 #            `owner=1` is the part worth reading twice. **A prisoner changes
 #            jailers, not keepers** - it is still player 1's goblin, and DK2
 #            keeps the two apart in its own record too, where `PrisonOwner`
 #            sits at creature offset 0x3cb next to the ordinary owner field.
 #
-#            `health=300` is a fifth of a Goblin, and it is the owner's own
-#            answer (Q167, 2026-09-05): *"its flower gets two petals, and then
-#            that creature starts loosing health at some standard rate"*. Two
-#            petals of ten is `CreatureCriticalHealthPercentageOfMax` = **20**,
-#            and a Goblin's 1500 becomes 300.
+#            `health=250` is **a sixth of a Goblin**, and it is read from DK2's
+#            damage path rather than fitted: taking a creature below zero, when
+#            it is not already dying, writes `maxHealth / 6` and raises the
+#            `CreatureDying` flag. A flower has **six** petals. Those are the
+#            same design decision, and the arithmetic in the binary says so —
+#            it computes the sixth as `100 * max / 6 / 100`.
 #
-#            **This scenario shipped for one afternoon saying `health=1500`**,
-#            because the first draft gave a prisoner full health on nothing
-#            better than the shape of the mechanic. The owner corrected it the
-#            same day and the correction is worth five times what the guess was:
-#            it turns a 500-second countdown into a 100-second one, which is the
-#            difference between the prison being a slow decision and an urgent
-#            one - and is why a keeper reaches for a chicken.
+#            **This number has been wrong twice and the second time is the
+#            instructive one.** The first draft gave a prisoner *full* health on
+#            nothing better than the shape of the mechanic; the owner corrected
+#            it to *"two petals"*, and this project read that as 20% of maximum
+#            because `CreatureCriticalHealthPercentageOfMax` ships at 20 and
+#            two-of-ten is 20%. Both halves of that reading failed on
+#            2026-09-06: **a flower has six petals, not ten** (Q171), and a raw
+#            scan of `.text` finds **one** reference to that variable's global —
+#            the loader writing it. Nothing in DK2 reads it. So the countdown
+#            went 500 seconds, then 100, and is now **83**.
 #
-#   t3199    `prisoner_perished … raised=Skeleton as=3`
-#            300 health at `PrisonModifyCreatureHealthPerSecond` = -3 a second
-#            is 100 game seconds, and 1209 + 1990 = 3199. The manual says the
+#   t2619    `prisoner_perished … raised=Skeleton as=3`
+#            250 health at `PrisonModifyCreatureHealthPerSecond` = -3 a second
+#            is 83 game seconds, and 959 + 1660 = 2619. The manual says the
 #            ending in its own words: *"any creatures that perish in Prison will
 #            rise as Skeletons under your control"*, and the Prison's
 #            `CreatedCreatureId` is **9** - one of only two rooms in the shipped

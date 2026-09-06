@@ -165,9 +165,10 @@ public enum CreatureActivity
     /// Hand of Evil touches a creature its keeper does not own
     /// (<see cref="HandRules.CanPickUp"/>).</para>
     ///
-    /// <para>It arrives at <b>two petals</b> —
-    /// <see cref="CreatureHealthRules.CriticalHealth"/>, 20% of its maximum
-    /// (Q167, owner) — and <c>PrisonModifyCreatureHealthPerSecond</c> takes
+    /// <para>It arrives at <b>a sixth of its maximum</b> —
+    /// <see cref="CreatureHealthRules.KnockoutHealth"/>, which is what DK2's
+    /// damage path writes when it takes a creature below zero (Q167) — and
+    /// <c>PrisonModifyCreatureHealthPerSecond</c> takes
     /// three health off it every game second. At zero it rises as a Skeleton
     /// for the keeper whose prison it stood in: the Prison's
     /// <c>CreatedCreatureId</c> is <b>9</b>, and it is one of only two rooms in
