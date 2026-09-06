@@ -34,6 +34,11 @@ comments do.
   values, and proposed type names were consulted in OpenKeeper's `SdtFile` and
   `SdtFileEntry`, checked against every shipped SDT and its MPEG frame headers,
   then independently implemented in `src/DK2.Convert`.
+- **STR format research (facts only, no code copied):** the 12-byte header,
+  header-relative offset origin, typed entry chunks, parameter numbering, and
+  `MBToUni.dat` variable-width character indexing were consulted in
+  OpenKeeper's `StrFile` and `MbToUniFile`, checked against all shipped English
+  string tables, then independently implemented in `src/DK2.Data`.
 - **Format research (facts only, no code copied):** KWD/KLD record layouts,
   field offsets and enumerated value meanings, used as documentation and
   cross-checked against the shipped files.
