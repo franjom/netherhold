@@ -4805,3 +4805,120 @@ were read from past the record's end, which at a 25-byte stride is the **next
 record's**. So every handler was filed one state early, and nothing could catch
 it. **Pin a table's frame from the code that indexes it, never from the data that
 fills it.**
+
+---
+
+# Sitting of 2026-09-06 (later): the state table settled, Brief 6 merged, prisoners walk
+
+Five commits: `5cdd08e`, `6be8a85`, `73fb2e8`, `b0c0af1`, `0549079`.
+**1020 tests, 21 scenarios, 73 ADRs, zero warnings, hash unchanged.**
+
+## 1. The state table has 281 records, and every state has a name (ADR-0072)
+
+**The previous sitting's open item is closed, and 239 was wrong for a reason
+nobody had guessed.** It was not the frame shift. It was a **hand-chosen scan
+window** `[0x006DA000, 0x006DC000)`; the table ends at `0x006DC420`. Record 238
+starts inside the window, record 239 at `0x006DC017` — outside. The sitting then
+recorded *"all 239 resolve, none unknown"*, which was true and worthless: every
+record the scan **saw** resolved, because resolving is what the scan did.
+
+**Two independent errors in one artefact**, and fixing the frame did not touch
+the count — which is exactly why it survived a sitting that had already caught
+the other one.
+
+Settled five ways, no two sharing a failure mode: the reference histogram lands
+on exactly nine offsets mod 25 with no strays; 2,529 writes = **281 × 9**, every
+field written once; all nine fields span records 0–280 with no gaps; 277 records
+write their id as a literal and each equals its index; and all 281 labels resolve
+inside `Text.str`.
+
+**The `u16` at `+0x14` is a `Text.str` string id** — the activity line the game
+prints on the flower. All 281 resolve into 70 labels. Brief 5 posed this as a
+long shot and it paid.
+
+Also corrected: `+0x16` is a **group tag** (equality only), `+0x17` is the
+**category** (0–31, indexes the 32-entry table at `0x00699688`) — they had been
+recorded as two of a kind. And **Q174 was answered by the same off-by-one**: the
+original *does* walk a hungry creature to the hatchery, in state `0x5B` resuming
+in `0x5C`. The old frame filed that handler under `0x5A`, which is genuinely
+near-unreferenced, so a working walk looked orphaned.
+
+Everything is in `docs/research/creature-state-table.md`, all 281 rows.
+
+**Method rule this leaves:** get a table's **extent** from something other than
+the scan. Three cheap independent checks were available and none had been used —
+where the next referenced global starts, an exact `writes == records × fields`
+identity, and a field that must be valid somewhere else.
+
+## 2. Brief 6 merged after an independent re-derivation
+
+`Doors.kwd` (8 × 616) and `Traps.kwd` (16 × 579) are typed definitions loaded
+into `GameDatabase`. Reviewed by re-deriving every counted claim rather than
+reading the branch's tests back to itself: an independent parser reproduced every
+value, **the manual was decompressed and searched directly** (all 17 printed
+prices match, zero mismatches), and OpenKeeper's reader settled the 516→579
+correction — it calls `checkOffset` against the header's item size, so the number
+*this project* had published was the wrong one.
+
+**One real trap found and fixed** (`b0c0af1`): `SHOTS` carries its **own 1-based
+id at `+0xBE`** — the only offset whose value is row+1 for all 65 rows — so a
+trap's `ShotTypeId` is a record id, not a row index. Index by row and Gas Trap
+fires *Lightning Trap Shot*: plausible, wrong, and nothing would have failed.
+Now asserted by a test, because SHOTS has no parser until M6.
+
+Also: the data README still said 239/63 labels, and `THIRD-PARTY-NOTICES.md` was
+missing the attribution the branch owed for OpenKeeper's field order.
+
+## 3. Prisoners walk (ADR-0073) — Q172's first third
+
+DK2 gives a prisoner a three-state loop, all category 14: **114** arrives,
+**115** decides, **116** walks and pauses. 115 picks the step through
+`Room.cpp:1717`, which draws `random(4)` as a starting index and scans
+`(start + i) % 4` forwards through the **four orthogonal** offsets at
+`0x006BC350` — north, east, south, west — taking the first candidate that is a
+tile of the **same room instance**. 116 rolls `random(100) < 20` each tick to go
+back to 115. **None of this was readable before ADR-0072.**
+
+`Room.cpp:1717` had to be read from **instructions**, not decompilation — Ghidra
+types the random result as a struct pointer.
+
+Two things shaped the code. **The room-instance test is the containment**, so
+`CreatureMovementSystem`'s refusal to walk a prisoner is *deleted* rather than
+narrowed and there is no "prisoners may not leave" rule anywhere. And **the table
+order is behaviour** — it decides which way a prisoner goes when its drawn
+direction is a wall.
+
+**`MotionlessInPrisonSeconds` = 8 is dead**, and this project had built a guess
+on it. A raw `.text` scan of `0x006F25E9` returns one hit, `MOV [...],EAX`, the
+setter stub. Third dead balance variable found here, second to have had a
+mechanic hung on it. **A named variable in the balance table is not evidence the
+engine consults it** — scan the global and count the hits first.
+
+## 4. What to pick up next
+
+1. **Q187 — the bird.** The rest of Q172. Nothing drops a chicken into a cell and
+   nothing races for it. It used to wait on movement and no longer does; every
+   other piece exists, including `EatingRules.EatInPrison` (one bird pays off the
+   whole of `HungerFill`) and the original's search, state **117**'s
+   `FUN_00473550` — walks the prison's slabs for the nearest object with flag
+   `0x80`, applies `AngerNoFood` when there is none.
+2. **Training and payday**, the two M4 items with nothing blocking them.
+3. **Q184/Q186** — the three unread function pointers in every state record, and
+   the 32 category records at `0x00699688` that `+0x17` indexes. Transition
+   legality lives there, and nothing currently tests it.
+
+## 5. One coordination item, unresolved on purpose
+
+A **second Claude session** was working in this repo throughout — save-game
+parsing and Unity rendering. Its work is uncommitted: `src/DK2.Data/Save/`,
+`Dk2SaveReaderTests.cs`, `docs/research/sav-format.md`, `docs/RESEARCH_STATUS.md`,
+`THIRD-PARTY-NOTICES.md` and three Unity files. **None of it was committed here**,
+and every commit above was checked to contain only this sitting's files.
+
+**`docs/research/open-questions.md` is the exception and is still uncommitted.**
+It holds *both* sessions' edits: their Q180–Q183 (save format) and this
+sitting's Q172, Q174, Q184–Q188. It was left alone because their rows reference
+`sav-format.md`, which is untracked — committing would put a dangling reference
+in the repo. **Consequence to know about:** ADR-0072, ADR-0073 and `prison.md`
+cite Q184–Q188, which exist on disk but are not yet in a commit. The owner has
+the decision: commit that file as-is, or wait for the save session to land.
