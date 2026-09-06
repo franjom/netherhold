@@ -5461,3 +5461,118 @@ out of there. Left in place and flagged for the owner rather than edited: it is 
 licensing question about their own planning document, and the standing
 instruction is to raise those rather than act on them.
 
+---
+
+# Payday, and the anger it causes (2026-09-06, late)
+
+Two commits: `35463c9` (ADR-0078) and `41c0bbf` (ADR-0079). **M4 is now six of
+seven** — only job selection for non-workers is left.
+
+## What is built
+
+A keeper's wage bill falls due every `PayDayFrequencySeconds`; every creature it
+owns is credited `Pay` scaled by its level; each then **walks to a treasury and
+lifts its own wages off the floor**. Being owed anything at all charges
+`AngerNoPay`. `PaydayRules`, `PaydaySystem`, `CreatureActivity.SeekingWages`,
+three fields on the creature and one on the player. Hash 30 → **31**, pin
+**`0xC026542547419606`**.
+
+## The four things worth carrying forward
+
+**Payday is a journey, not a transaction, and that is the original's shape.** DK2
+gives collecting three creature states. Crediting and debiting in one tick would
+have been far easier; the reason not to is that the journey is where the
+behaviour lives.
+
+**The gold comes off the one tile the creature is standing on.** The original
+passes the creature's own coordinates to the withdrawal — not the room, not the
+player. Payday is precisely where a global gold counter would be most convenient
+and the engine still reaches for a tile. **ADR-0015 inferred "DK2 has no player
+gold counter" from four capacity limits; it now has a second, unrelated
+witness.**
+
+**Wages accumulate**, so a keeper who cannot pay builds a debt that compounds —
+and since being owed is what charges anger, the debt is the anger source and it
+persists.
+
+**`AngerNoPay` has no treasury clause**, unlike both its siblings, which each
+test that the room exists. **You cannot excuse yourself by having no treasury.**
+Writing the sibling rule there would have been the natural thing to do and would
+have been wrong.
+
+## Two things that were already built and were wrong
+
+`CreatureAngerRules.PerSecond` was an early-return chain — right while there was
+one source, wrong once there were two. It is additive now.
+
+**A prisoner used to accrue `AngerNoLair` every second** because it had no bed.
+True, and not what DK2 does: the need-anger routine refuses outright on bit 1 of
+the state record's flag byte and all eleven captive states carry it. A captive's
+anger is the prison's business alone, which makes it *consistent* with ADR-0074
+rather than accidentally so.
+
+## Three bits of the state flag byte are now named (Q185)
+
+Bits 3 and 4 were the Casino (ADR-0074). **Bit 1 is "do not charge need-anger in
+this state"**, and its 43 states read as one idea: captive, stunned, joining your
+dungeon, fleeing, idle, torturing, being tortured, in battle, responding to a
+threat, reporting danger, celebrating. A creature busy with something urgent, or
+not properly yours yet, does not stop to be resentful.
+
+## Method notes worth keeping
+
+**Anger is measured over seconds, not over paydays.** All four anger tests failed
+their first draft the same way: they ran the full ten minutes to a real payday,
+by which time a bedless Goblin was pinned at the 32767 ceiling and had already
+drawn Leave from its angry job table. They were measuring a creature that had
+deserted.
+
+**A scenario's own setup can mask the thing it was built to show.** The wage-bill
+scenario shows no mood change on either side, because a bed calms at 550 a second
+against the wage's 60 — and the lairs it needs to make its Goblins idle enough to
+collect are the same lairs that keep them calm. That turned out to be worth more
+than the demonstration: **wages alone will never drive a well-housed creature out
+of a dungeon.** Pinned as arithmetic in `PaydayTests` rather than left as prose.
+
+**And its first draft taught two more.** It had an imp per keeper; on an open map
+two imps spend twelve thousand ticks re-claiming every tile including each
+other's treasuries, and since gold belongs to whoever owns the *tile*, the broke
+keeper ended the run holding the other's money. Correct behaviour, useless
+scenario. It also had no lairs, so no Goblin was ever idle when payday fell and
+nobody collected anything — **a creature has to have somewhere to live before it
+can be paid.**
+
+## Also this sitting
+
+**Q198 built** (ADR-0077): only a worker goes down on unclaimed floor. The
+correction was worth more than the rule — `hand-of-evil.md` §8 had argued from
+the drop handler's owner-changing branch that creatures may be dropped anywhere,
+which proves only that the *handler* does not refuse. **A handler that does not
+refuse is not a UI that offers.**
+
+**The save reader stopped assuming where the grid is** (`e6e6403`). The owner's
+new saves turned the `0x8861` correction into eight red tests; `FindGridOffset`
+now locates the grid by correlating lane 0 against the design map. Three levels,
+three offsets — mpd1 `0x8861`, TrapTime `0x14880`, Caverns `0x19e0f`. One byte
+off scores **0.000%** on every save, which pins the ten-byte stride as hard as
+the offset.
+
+**Q201 opened**: the owner's dizzy-drop observation. The numbers match to the
+digit (`CreatureStunnedTimeSeconds` 2, `StunnedDamageIncreasePercentage` 100 —
+double damage while stunned) but **the variable is dead**: one reference in the
+whole executable, the setter stub, address confirmed by disassembling it. The
+likelier driver is the per-creature `fp32 stunDuration` at record `0x0ED0`, which
+would also explain the owner's exemption list. **Fifth dead balance variable, and
+the first found by hunting a mechanic rather than auditing one.**
+
+## Where the next session should start
+
+**Job selection for non-workers** closes M4. It also unlocks `AngerNoWork`, the
+last standing anger source with no consumer.
+
+Smaller, all open and none blocking: `PayDayCutOffTimeSeconds` (live, three
+references, and **neither reader is in the payday path** — Q9's guess about it is
+refuted as stated); the two unread calls in payday's state 189, one of which
+halves the amount taken; Q201's real driver; Q199's pet-dungeon mana cap; Q197's
+portals through fog; and Q200's bridge room ids.
+
