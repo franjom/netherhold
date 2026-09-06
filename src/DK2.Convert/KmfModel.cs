@@ -20,5 +20,14 @@ public sealed record KmfPrimitive(uint MaterialIndex, float DetailFactor,
 public sealed record KmfMesh(string Name, Vector3 Origin, float BoundsScale,
     IReadOnlyList<KmfPrimitive> Primitives);
 
+public sealed record KmfAnimation(uint FrameCount, IReadOnlyList<KmfMesh> Frames,
+    string? DecodeFailure = null)
+{
+    public bool IsComplete => DecodeFailure is null && Frames.Count == FrameCount;
+}
+
 public sealed record KmfModel(uint Version, KmfKind Kind,
-    IReadOnlyList<KmfMaterial> Materials, KmfMesh? Mesh, uint FrameCount = 0);
+    IReadOnlyList<KmfMaterial> Materials, KmfMesh? Mesh, KmfAnimation? Animation = null)
+{
+    public uint FrameCount => Animation?.FrameCount ?? 0;
+}

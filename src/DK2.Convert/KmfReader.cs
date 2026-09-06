@@ -8,7 +8,7 @@ using System.Text;
 
 namespace DK2.Convert.Kmf;
 
-/// <summary>Reads static KMF meshes and frame-zero geometry from animated KMFs.</summary>
+/// <summary>Reads static KMF meshes and every decodable frame of animated KMFs.</summary>
 public static class KmfReader
 {
     public static KmfModel Read(Stream stream)
@@ -101,6 +101,7 @@ public static class KmfReader
         string name = reader.NullTerminatedAscii();
         uint primitiveCount = reader.Count("animation primitive");
         uint frameCount = reader.Count("animation frame");
+        if (frameCount == 0) throw reader.Invalid("Animation has no frames.");
         uint indexTableCount = reader.Count("animation index table");
         uint geometryCount = reader.Count("animation geometry");
         uint frameMode = reader.UInt32();
@@ -114,13 +115,13 @@ public static class KmfReader
 
         reader.Expect("ITAB"); reader.SkipSectionSize();
         uint tableChunkCount = checked((frameCount + 127) / 128);
-        var firstChunkTable = new uint[(int)indexTableCount];
+        var indexTables = new uint[(int)tableChunkCount][];
         for (uint chunk = 0; chunk < tableChunkCount; chunk++)
-            for (int i = 0; i < firstChunkTable.Length; i++)
-            {
-                uint value = reader.UInt32();
-                if (chunk == 0) firstChunkTable[i] = value;
-            }
+        {
+            var table = new uint[(int)indexTableCount];
+            for (int i = 0; i < table.Length; i++) table[i] = reader.UInt32();
+            indexTables[(int)chunk] = table;
+        }
 
         reader.Expect("GEOM"); reader.SkipSectionSize();
         var positions = new Vector3[(int)geometryCount];
@@ -134,39 +135,64 @@ public static class KmfReader
                 (xBits - 512) / 511f,
                 (yBits - 512) / 511f,
                 (zBits - 512) / 511f) * geometryScale;
-            _ = reader.Byte(); // key-frame base, not needed for frame zero.
+            _ = reader.Byte(); // Key-frame metadata; its interpolation semantics are UNKNOWN.
         }
 
         reader.Expect("VGEO"); reader.SkipSectionSize();
-        var frameZeroOffsets = new byte[(int)indexTableCount];
-        for (int index = 0; index < frameZeroOffsets.Length; index++)
+        var frameOffsets = new byte[(int)indexTableCount, (int)frameCount];
+        for (int index = 0; index < (int)indexTableCount; index++)
             for (uint frame = 0; frame < frameCount; frame++)
-            {
-                byte value = reader.Byte();
-                if (frame == 0) frameZeroOffsets[index] = value;
-            }
+                frameOffsets[index, (int)frame] = reader.Byte();
 
-        var primitives = new List<KmfPrimitive>(sprites.Count);
-        foreach (SpriteData sprite in sprites)
+        foreach (SpriteData sprite in sprites) ValidateSprite(ref reader, sprite, materials.Count);
+        KmfMesh frameZero = BuildFrame(0);
+        var frames = new List<KmfMesh>(checked((int)frameCount)) { frameZero };
+        string? decodeFailure = null;
+        try
         {
-            ValidateSprite(ref reader, sprite, materials.Count);
-            var vertices = new KmfVertex[sprite.Vertices.Count];
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                RawVertex vertex = sprite.Vertices[i];
-                if (vertex.GeometryIndex >= firstChunkTable.Length)
-                    throw reader.Invalid($"Animation table index {vertex.GeometryIndex} is out of range.");
-                uint geometryIndex = checked(firstChunkTable[vertex.GeometryIndex]
-                    + frameZeroOffsets[vertex.GeometryIndex]);
-                if (geometryIndex >= positions.Length)
-                    throw reader.Invalid($"Animation geometry index {geometryIndex} is out of range.");
-                vertices[i] = new KmfVertex(positions[(int)geometryIndex], vertex.Normal, vertex.Uv);
-            }
-            primitives.Add(new KmfPrimitive(sprite.MaterialIndex, sprite.DetailFactor,
-                vertices, sprite.Indices));
+            for (int frame = 1; frame < (int)frameCount; frame++) frames.Add(BuildFrame(frame));
+        }
+        catch (InvalidDataException exception)
+        {
+            decodeFailure = exception.Message;
         }
         return new KmfModel(version, KmfKind.Animation, materials,
-            new KmfMesh(name, origin, boundsScale, primitives), frameCount);
+            frameZero, new KmfAnimation(frameCount, frames, decodeFailure));
+
+        KmfMesh BuildFrame(int frame)
+        {
+            var primitives = new List<KmfPrimitive>(sprites.Count);
+            foreach (SpriteData sprite in sprites)
+            {
+                var vertices = new KmfVertex[sprite.Vertices.Count];
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    RawVertex vertex = sprite.Vertices[i];
+                    if ((uint)vertex.GeometryIndex >= indexTableCount)
+                        throw Invalid($"Animation table index {vertex.GeometryIndex} is out of range.");
+                    uint geometryIndex;
+                    try
+                    {
+                        geometryIndex = checked(indexTables[frame / 128][vertex.GeometryIndex]
+                            + frameOffsets[vertex.GeometryIndex, frame]);
+                    }
+                    catch (OverflowException exception)
+                    {
+                        throw Invalid($"Animation geometry index overflow at frame {frame}.", exception);
+                    }
+                    if (geometryIndex >= positions.Length)
+                        throw Invalid(
+                            $"Animation geometry index {geometryIndex} is out of range at frame {frame}.");
+                    vertices[i] = new KmfVertex(positions[(int)geometryIndex], vertex.Normal, vertex.Uv);
+                }
+                primitives.Add(new KmfPrimitive(sprite.MaterialIndex, sprite.DetailFactor,
+                    vertices, sprite.Indices));
+            }
+            return new KmfMesh(name, origin, boundsScale, primitives);
+        }
+
+        InvalidDataException Invalid(string message, Exception? innerException = null) =>
+            new($"Invalid KMF animation: {message}", innerException);
     }
 
     private static void SkipControls(ref SpanReader reader)
@@ -306,8 +332,8 @@ public static class KmfReader
         }
         public void SkipSectionSize() => _ = UInt32();
         public void Skip(int count) { Require(count); _position += count; }
-        public InvalidDataException Invalid(string message) =>
-            new($"Invalid KMF at byte 0x{_position:x}: {message}");
+        public InvalidDataException Invalid(string message, Exception? innerException = null) =>
+            new($"Invalid KMF at byte 0x{_position:x}: {message}", innerException);
         private void Require(int count)
         {
             if (count < 0 || _position > _data.Length - count)

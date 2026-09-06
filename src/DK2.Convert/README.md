@@ -27,13 +27,16 @@ Static vertices contain a 16-bit index into a `GEOM` array of float XYZ
 positions. Animated vertices instead index `ITAB`; a per-index, per-frame byte
 in `VGEO` is added to that base to select a `GEOM` entry. Animated positions
 pack signed 10-bit X, Y, and Z components into a 32-bit word and multiply the
-normalized result by the animation geometry scale. The reader currently emits
-frame-zero geometry; animation tracks are not part of the first deliverable.
+normalized result by the animation geometry scale. `ITAB` supplies one base
+table per block of 128 frames; frame `n` uses table `n / 128` and its own
+`VGEO` byte. `KmfReader` exposes every decoded frame through `KmfAnimation`,
+while `KmfModel.Mesh` remains the frame-zero mesh for existing callers and as a
+fallback if a later frame has an invalid geometry lookup.
 
 `CTRL` values, section-size meanings, the static-header unknown field, material
 flag meanings, sprite detail-factor semantics, animation interpolation/key-frame
 semantics, and group (`GROP`) semantics are **UNKNOWN** here. They are retained,
-identified, or skipped only where they cannot affect frame-zero geometry; no
+identified, or skipped only where they cannot affect decoded geometry; no
 meaning is guessed.
 
 ## Texture formats
@@ -63,10 +66,24 @@ movies and BF4 by fonts; neither participates in terrain or creature textures.
 
 ## GLB output
 
-`GlbWriter` emits a glTF 2.0 binary (`.glb`) for either static KMF geometry or
-the frame-zero mesh exposed from an animated KMF. Each KMF sprite becomes one
-glTF mesh primitive using its first detail level and material. A sprite whose
-first detail level contains no triangles is preserved as a point primitive.
+`GlbWriter` emits a glTF 2.0 binary (`.glb`) for static and animated KMF
+geometry. Each KMF sprite becomes one glTF mesh primitive using its first
+detail level and material. A sprite whose first detail level contains no
+triangles is preserved as a point primitive.
+
+Animated positions are emitted as glTF morph targets with a `WEIGHTS`
+animation channel. This is the closer reading of KMF because its sprite
+topology, material, UVs, and normals remain fixed while the per-frame lookup
+changes only each vertex position. Frame zero is the base mesh and every later
+frame is a position-delta target. Keys select those poses with `STEP`
+interpolation because KMF's interpolation and key-frame metadata remain
+**UNKNOWN**; interpolating between them would invent behaviour.
+
+The output rate is **30 frames per second**. It is not read from KMF and is an
+assumed value, therefore **UNKNOWN** with respect to original DK2 behaviour.
+If any later frame cannot be decoded, or an externally constructed animation
+does not match the frame-zero topology, `GlbWriter` deliberately emits the
+valid frame-zero mesh without an animation channel.
 
 DK2 XYZ is rotated to glTF XYZ as `(x, -z, y)`, matching the established KMF
 loader reference. KMF triangle order is reversed for glTF front-face winding.
@@ -108,6 +125,4 @@ rather than mislabeled as sleep.
 KMF group placement and group material inheritance remain **UNKNOWN**. A
 catalogue key whose selected resource is a group is therefore reported missing
 instead of flattening the group by guesswork. Effect conversion is also
-**UNKNOWN**. Finally, animated KMF output currently contains frame-zero mesh
-geometry, not a glTF animation track; the command identifies that limitation in
-each produced animation result.
+**UNKNOWN**.

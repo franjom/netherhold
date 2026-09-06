@@ -13,6 +13,8 @@ namespace DK2.Convert.Gltf;
 /// <summary>Writes one parsed KMF mesh as a glTF 2.0 binary container.</summary>
 public static class GlbWriter
 {
+    public const float AssumedAnimationFramesPerSecond = 30f;
+
     private const uint GlbMagic = 0x46546c67;
     private const uint JsonChunk = 0x4e4f534a;
     private const uint BinaryChunk = 0x004e4942;
@@ -35,13 +37,17 @@ public static class GlbWriter
             $"KMF kind {model.Kind} does not contain directly writable mesh geometry.");
         textureUri ??= DefaultTextureUri;
 
+        IReadOnlyList<KmfMesh>? animationFrames = CompleteAnimationFrames(model, mesh);
         var binary = new BinaryBuilder();
         var primitives = new List<PrimitiveLayout>(mesh.Primitives.Count);
-        foreach (KmfPrimitive primitive in mesh.Primitives)
-            primitives.Add(binary.Add(primitive));
+        for (int i = 0; i < mesh.Primitives.Count; i++)
+            primitives.Add(binary.Add(mesh.Primitives[i], animationFrames?.Skip(1)
+                .Select(frame => frame.Primitives[i]).ToArray() ?? []));
+        AnimationLayout? animation = animationFrames is null
+            ? null : binary.AddAnimation(animationFrames.Count, animationFrames.Count - 1);
 
         TextureLayout textures = TextureLayout.Create(model.Materials, textureUri);
-        byte[] json = BuildJson(model, mesh, primitives, binary.ByteLength, textures);
+        byte[] json = BuildJson(model, mesh, primitives, animation, binary.ByteLength, textures);
         byte[] bin = binary.ToArray();
         int jsonLength = Align4(json.Length);
         int binLength = Align4(bin.Length);
@@ -57,7 +63,8 @@ public static class GlbWriter
     }
 
     private static byte[] BuildJson(KmfModel model, KmfMesh mesh,
-        IReadOnlyList<PrimitiveLayout> primitives, int binaryLength, TextureLayout textures)
+        IReadOnlyList<PrimitiveLayout> primitives, AnimationLayout? animation,
+        int binaryLength, TextureLayout textures)
     {
         using var json = new MemoryStream();
         using (var writer = new Utf8JsonWriter(json))
@@ -85,13 +92,20 @@ public static class GlbWriter
             writer.WriteStartArray("primitives");
             foreach (PrimitiveLayout primitive in primitives) WritePrimitive(writer, primitive);
             writer.WriteEndArray();
+            if (animation is not null)
+            {
+                writer.WriteStartArray("weights");
+                for (int i = 0; i < animation.TargetCount; i++) writer.WriteNumberValue(0);
+                writer.WriteEndArray();
+            }
             writer.WriteEndObject();
             writer.WriteEndArray();
+            WriteAnimation(writer, animation);
             writer.WriteStartArray("buffers");
             writer.WriteStartObject(); writer.WriteNumber("byteLength", binaryLength); writer.WriteEndObject();
             writer.WriteEndArray();
-            WriteBufferViews(writer, primitives);
-            WriteAccessors(writer, primitives);
+            WriteBufferViews(writer, primitives, animation);
+            WriteAccessors(writer, primitives, animation);
             writer.WriteEndObject();
         }
         return json.ToArray();
@@ -162,11 +176,43 @@ public static class GlbWriter
         else
             writer.WriteNumber("mode", 0); // No triangles in LOD 0: preserve it as points.
         writer.WriteNumber("material", primitive.MaterialIndex);
+        if (primitive.TargetAccessors.Count > 0)
+        {
+            writer.WriteStartArray("targets");
+            foreach (int accessor in primitive.TargetAccessors)
+            {
+                writer.WriteStartObject(); writer.WriteNumber("POSITION", accessor); writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        }
         writer.WriteEndObject();
     }
 
+    private static void WriteAnimation(Utf8JsonWriter writer, AnimationLayout? animation)
+    {
+        if (animation is null) return;
+        writer.WriteStartArray("animations");
+        writer.WriteStartObject();
+        writer.WriteString("name", "KMF frames");
+        writer.WriteStartArray("samplers");
+        writer.WriteStartObject();
+        writer.WriteNumber("input", animation.TimeAccessor);
+        writer.WriteNumber("output", animation.WeightAccessor);
+        writer.WriteString("interpolation", "STEP");
+        writer.WriteEndObject();
+        writer.WriteEndArray();
+        writer.WriteStartArray("channels");
+        writer.WriteStartObject(); writer.WriteNumber("sampler", 0);
+        writer.WriteStartObject("target"); writer.WriteNumber("node", 0);
+        writer.WriteString("path", "weights"); writer.WriteEndObject();
+        writer.WriteEndObject();
+        writer.WriteEndArray();
+        writer.WriteEndObject();
+        writer.WriteEndArray();
+    }
+
     private static void WriteBufferViews(Utf8JsonWriter writer,
-        IReadOnlyList<PrimitiveLayout> primitives)
+        IReadOnlyList<PrimitiveLayout> primitives, AnimationLayout? animation)
     {
         writer.WriteStartArray("bufferViews");
         foreach (PrimitiveLayout primitive in primitives)
@@ -175,18 +221,25 @@ public static class GlbWriter
             View(primitive.NormalView, 34962);
             View(primitive.UvView, 34962);
             if (primitive.IndexView is BufferView indices) View(indices, 34963);
+            foreach (BufferView target in primitive.TargetViews) View(target, 34962);
+        }
+        if (animation is not null)
+        {
+            View(animation.TimeView, null);
+            View(animation.WeightView, null);
         }
         writer.WriteEndArray();
-        void View(BufferView view, int target)
+        void View(BufferView view, int? target)
         {
             writer.WriteStartObject(); writer.WriteNumber("buffer", 0);
             writer.WriteNumber("byteOffset", view.Offset); writer.WriteNumber("byteLength", view.Length);
-            writer.WriteNumber("target", target); writer.WriteEndObject();
+            if (target is int value) writer.WriteNumber("target", value);
+            writer.WriteEndObject();
         }
     }
 
     private static void WriteAccessors(Utf8JsonWriter writer,
-        IReadOnlyList<PrimitiveLayout> primitives)
+        IReadOnlyList<PrimitiveLayout> primitives, AnimationLayout? animation)
     {
         writer.WriteStartArray("accessors");
         foreach (PrimitiveLayout primitive in primitives)
@@ -197,16 +250,30 @@ public static class GlbWriter
             Accessor(primitive.UvViewIndex, 5126, primitive.VertexCount, "VEC2");
             if (primitive.IndexViewIndex is int indexView)
                 Accessor(indexView, 5121, primitive.IndexCount, "SCALAR");
+            foreach (int targetView in primitive.TargetViewIndices)
+                Accessor(targetView, 5126, primitive.VertexCount, "VEC3");
+        }
+        if (animation is not null)
+        {
+            Accessor(animation.TimeViewIndex, 5126, animation.FrameCount, "SCALAR",
+                scalarMinimum: 0, scalarMaximum: animation.Duration);
+            Accessor(animation.WeightViewIndex, 5126,
+                checked(animation.FrameCount * animation.TargetCount), "SCALAR");
         }
         writer.WriteEndArray();
         void Accessor(int view, int componentType, int count, string type,
-            Vector3? minimum = null, Vector3? maximum = null)
+            Vector3? minimum = null, Vector3? maximum = null,
+            float? scalarMinimum = null, float? scalarMaximum = null)
         {
             writer.WriteStartObject(); writer.WriteNumber("bufferView", view);
             writer.WriteNumber("componentType", componentType); writer.WriteNumber("count", count);
             writer.WriteString("type", type);
             if (minimum is Vector3 min) WriteVector("min", min);
             if (maximum is Vector3 max) WriteVector("max", max);
+            if (scalarMinimum is float scalarMin)
+            { writer.WriteStartArray("min"); writer.WriteNumberValue(scalarMin); writer.WriteEndArray(); }
+            if (scalarMaximum is float scalarMax)
+            { writer.WriteStartArray("max"); writer.WriteNumberValue(scalarMax); writer.WriteEndArray(); }
             writer.WriteEndObject();
         }
         void WriteVector(string name, Vector3 value)
@@ -237,6 +304,20 @@ public static class GlbWriter
 
     private static int Align4(int value) => checked((value + 3) & ~3);
 
+    private static IReadOnlyList<KmfMesh>? CompleteAnimationFrames(KmfModel model, KmfMesh mesh)
+    {
+        KmfAnimation? animation = model.Animation;
+        if (animation is null || !animation.IsComplete || animation.Frames.Count < 2
+            || animation.Frames.Any(frame => frame.Primitives.Count != mesh.Primitives.Count))
+            return null;
+        for (int frame = 1; frame < animation.Frames.Count; frame++)
+            for (int primitive = 0; primitive < mesh.Primitives.Count; primitive++)
+                if (animation.Frames[frame].Primitives[primitive].Vertices.Count
+                    != mesh.Primitives[primitive].Vertices.Count)
+                    return null;
+        return animation.Frames;
+    }
+
     private sealed class BinaryBuilder
     {
         private readonly MemoryStream _stream = new();
@@ -247,7 +328,8 @@ public static class GlbWriter
         public int ByteLength => checked((int)_stream.Length);
         public byte[] ToArray() => _stream.ToArray();
 
-        public PrimitiveLayout Add(KmfPrimitive primitive)
+        public PrimitiveLayout Add(KmfPrimitive primitive,
+            IReadOnlyList<KmfPrimitive> targets)
         {
             if (primitive.Vertices.Count == 0)
                 throw new InvalidDataException("A glTF primitive cannot have no vertices.");
@@ -289,10 +371,44 @@ public static class GlbWriter
                 });
                 indexView = _viewCount++; indexAccessor = _accessorCount++;
             }
+            var targetViews = new List<BufferView>(targets.Count);
+            var targetViewIndices = new List<int>(targets.Count);
+            var targetAccessors = new List<int>(targets.Count);
+            foreach (KmfPrimitive target in targets)
+            {
+                BufferView targetView = AddView(() =>
+                {
+                    for (int i = 0; i < primitive.Vertices.Count; i++)
+                        Write(ToGltf(target.Vertices[i].Position - primitive.Vertices[i].Position));
+                });
+                targetViews.Add(targetView);
+                targetViewIndices.Add(_viewCount++);
+                targetAccessors.Add(_accessorCount++);
+            }
             return new PrimitiveLayout((int)primitive.MaterialIndex, primitive.Vertices.Count,
                 sourceIndices.Count, positions, normals, uvs, indices, positionView, normalView,
                 uvView, indexView, positionAccessor, normalAccessor, uvAccessor, indexAccessor,
-                minimum, maximum);
+                minimum, maximum, targetViews, targetViewIndices, targetAccessors);
+        }
+
+        public AnimationLayout AddAnimation(int frameCount, int targetCount)
+        {
+            BufferView times = AddView(() =>
+            {
+                for (int frame = 0; frame < frameCount; frame++)
+                    _writer.Write(frame / AssumedAnimationFramesPerSecond);
+            });
+            int timeView = _viewCount++; int timeAccessor = _accessorCount++;
+            BufferView weights = AddView(() =>
+            {
+                for (int frame = 0; frame < frameCount; frame++)
+                    for (int target = 0; target < targetCount; target++)
+                        _writer.Write(frame == target + 1 ? 1f : 0f);
+            });
+            int weightView = _viewCount++; int weightAccessor = _accessorCount++;
+            return new AnimationLayout(frameCount, targetCount,
+                (frameCount - 1) / AssumedAnimationFramesPerSecond,
+                times, weights, timeView, weightView, timeAccessor, weightAccessor);
         }
 
         private BufferView AddView(Action write)
@@ -311,7 +427,12 @@ public static class GlbWriter
         BufferView PositionView, BufferView NormalView, BufferView UvView, BufferView? IndexView,
         int PositionViewIndex, int NormalViewIndex, int UvViewIndex, int? IndexViewIndex,
         int PositionAccessor, int NormalAccessor, int UvAccessor, int? IndexAccessor,
-        Vector3 Minimum, Vector3 Maximum);
+        Vector3 Minimum, Vector3 Maximum, IReadOnlyList<BufferView> TargetViews,
+        IReadOnlyList<int> TargetViewIndices, IReadOnlyList<int> TargetAccessors);
+
+    private sealed record AnimationLayout(int FrameCount, int TargetCount, float Duration,
+        BufferView TimeView, BufferView WeightView, int TimeViewIndex, int WeightViewIndex,
+        int TimeAccessor, int WeightAccessor);
 
     private sealed record TextureLayout(IReadOnlyList<string> Uris,
         IReadOnlyList<IReadOnlyList<int>> TextureIndexByMaterial,

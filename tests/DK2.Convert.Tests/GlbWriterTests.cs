@@ -34,6 +34,46 @@ public class GlbWriterTests
         Assert.Equal([2, 1, 0], glb.Bytes(indexAccessor));
     }
 
+    [Fact]
+    public void AnimationFramesBecomeDistinctMorphTargetsAndStepWeightKeys()
+    {
+        KmfModel source = KmfReader.Read(AnimatedKmfFixture.TwoFrames());
+        using GlbDocument glb = GlbDocument.Load(GlbWriter.Write(source));
+
+        JsonElement root = glb.Json.RootElement;
+        JsonElement primitive = root.GetProperty("meshes")[0].GetProperty("primitives")[0];
+        int targetAccessor = primitive.GetProperty("targets")[0].GetProperty("POSITION").GetInt32();
+        Assert.Equal(new Vector3(2, 0, 0), glb.Vector3(targetAccessor, 0));
+
+        JsonElement animation = Assert.Single(root.GetProperty("animations").EnumerateArray());
+        JsonElement sampler = animation.GetProperty("samplers")[0];
+        Assert.Equal("STEP", sampler.GetProperty("interpolation").GetString());
+        Assert.Equal([0f, 1f / GlbWriter.AssumedAnimationFramesPerSecond],
+            glb.Floats(sampler.GetProperty("input").GetInt32()));
+        Assert.Equal([0f, 1f], glb.Floats(sampler.GetProperty("output").GetInt32()));
+        Assert.Equal("weights", animation.GetProperty("channels")[0]
+            .GetProperty("target").GetProperty("path").GetString());
+    }
+
+    [Fact]
+    public void LaterFrameDecodeFailureStillWritesFrameZeroGlb()
+    {
+        KmfModel source = KmfReader.Read(AnimatedKmfFixture.TwoFrames(corruptSecondFrame: true));
+        KmfAnimation animation = Assert.IsType<KmfAnimation>(source.Animation);
+        Assert.False(animation.IsComplete);
+        Assert.Single(animation.Frames);
+        Assert.NotNull(animation.DecodeFailure);
+
+        using GlbDocument glb = GlbDocument.Load(GlbWriter.Write(source));
+
+        Assert.False(glb.Json.RootElement.TryGetProperty("animations", out _));
+        JsonElement primitive = glb.Json.RootElement.GetProperty("meshes")[0]
+            .GetProperty("primitives")[0];
+        Assert.False(primitive.TryGetProperty("targets", out _));
+        int positionAccessor = primitive.GetProperty("attributes").GetProperty("POSITION").GetInt32();
+        Assert.Equal(Vector3.Zero, glb.Vector3(positionAccessor, 0));
+    }
+
     [Theory]
     [InlineData("Imp-PoseFrame.kmf")]
     [InlineData("Gob-PoseFrame.kmf")]
@@ -127,6 +167,17 @@ public class GlbWriterTests
             (JsonElement accessor, int offset) = Accessor(accessorIndex);
             Assert.Equal(5121, accessor.GetProperty("componentType").GetInt32());
             return _binary.AsSpan(offset, accessor.GetProperty("count").GetInt32()).ToArray();
+        }
+
+        public float[] Floats(int accessorIndex)
+        {
+            (JsonElement accessor, int offset) = Accessor(accessorIndex);
+            Assert.Equal(5126, accessor.GetProperty("componentType").GetInt32());
+            Assert.Equal("SCALAR", accessor.GetProperty("type").GetString());
+            int count = accessor.GetProperty("count").GetInt32();
+            var result = new float[count];
+            for (int i = 0; i < count; i++) result[i] = F32(_binary, offset + i * 4);
+            return result;
         }
 
         public void Dispose() => Json.Dispose();

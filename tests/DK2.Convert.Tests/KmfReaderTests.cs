@@ -42,7 +42,7 @@ public class KmfReaderTests
     }
 
     [Fact]
-    public void AnimatedCreatureModelReadsFrameZeroGeometry()
+    public void AnimatedCreatureModelReadsEveryFrame()
     {
         string? install = Dk2Install.Find();
         if (install is null) return;
@@ -51,6 +51,28 @@ public class KmfReaderTests
         Assert.True(model.FrameCount > 1);
         Assert.NotNull(model.Mesh);
         Assert.All(model.Mesh.Primitives, AssertCompletePrimitive);
+        KmfAnimation animation = Assert.IsType<KmfAnimation>(model.Animation);
+        Assert.True(animation.IsComplete, animation.DecodeFailure);
+        Assert.Equal((int)animation.FrameCount, animation.Frames.Count);
+        Assert.All(animation.Frames.SelectMany(frame => frame.Primitives), AssertCompletePrimitive);
+    }
+
+    [Fact]
+    public void AnimatedGeometryExposesDistinctPositionsForEveryFrame()
+    {
+        KmfModel model = KmfReader.Read(AnimatedKmfFixture.TwoFrames());
+
+        KmfAnimation animation = Assert.IsType<KmfAnimation>(model.Animation);
+        Assert.True(animation.IsComplete);
+        Assert.Equal(2u, animation.FrameCount);
+        Assert.Equal(2, animation.Frames.Count);
+        IReadOnlyList<KmfVertex> first = Assert.Single(animation.Frames[0].Primitives).Vertices;
+        IReadOnlyList<KmfVertex> second = Assert.Single(animation.Frames[1].Primitives).Vertices;
+        Assert.Equal(Vector3.Zero, first[0].Position);
+        Assert.Equal(new Vector3(2, 0, 0), second[0].Position);
+        Assert.False(first.Select(vertex => vertex.Position)
+            .SequenceEqual(second.Select(vertex => vertex.Position)));
+        Assert.Same(model.Mesh, animation.Frames[0]);
     }
 
     [Fact]

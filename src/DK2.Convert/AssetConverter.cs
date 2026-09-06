@@ -68,7 +68,7 @@ public static class AssetConverter
         {
             IReadOnlyList<Dk2ArtResource> resources = art.Creatures[creature.CreatureId];
             ConvertKmf(AssetRef.ForCreature(creature.Name, AssetKind.Mesh),
-                resources[CreatureIdle], "idle animation frame zero");
+                resources[CreatureIdle], "idle model");
             foreach (string animation in AssetCatalogue.CreatureAnimations)
             {
                 Dk2ArtResource source = animation switch
@@ -84,7 +84,7 @@ public static class AssetConverter
                     _ => resources[CreatureWalk],
                 };
                 ConvertKmf(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation),
-                    source, "animation KMF frame zero");
+                    source, "animation KMF");
             }
         }
 
