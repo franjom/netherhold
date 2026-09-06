@@ -22,7 +22,9 @@ binary in our own words** — no decompiler output enters this repository
 | **Only an imp captures.** The keeper's hand cannot take a body off the floor at all | **CONFIRMED** (owner, 2026-09-05) and corroborated by the binary — see §2 |
 | **The hand may lift a creature out of a prison**, even an enemy's | **CONFIRMED** (owner, 2026-09-05) |
 | A prisoner dropped back on a prison tile is imprisoned again; dropped anywhere else it goes free | **CONFIRMED** (owner) for both halves; the torture rack is the third destination and is unbuilt |
-| A prisoner loses `PrisonModifyCreatureHealthPerSecond` = **-3** a game second | **STRONGLY INFERRED** — the manual states the effect in words, the variable is named for it, and the owner watched it happen |
+| A prisoner loses `PrisonModifyCreatureHealthPerSecond` = **-3** a game second | **CONFIRMED from the binary** (§4b): the variable is read, and applied as **-12 every four game seconds**, which averages to -3 a second. This project applies -3 a second, which is the same average at a finer grain |
+| The drain also applies **anger** | **CONFIRMED from the binary** (§4b) and **not built** |
+| That the routine applying it is the *prison's* | **INFERRED, and the gap is named** — no room-type test was found in the part read (Q173) |
 | A captured creature wakes at **two petals** — 20% of its maximum | **CONFIRMED** (owner, 2026-09-05, Q167). Built as full health for one afternoon before the correction |
 | The flower above a creature's head is a **health** readout | **CONFIRMED** (owner, twice, Q108) |
 | A prisoner **walks about its cell and races the others to a dropped chicken** | **CONFIRMED** (owner, Q172) and **not built** — prisoners here are inert |
@@ -177,7 +179,7 @@ From the manual (p.23) and the shipped variables:
 | Jail break on overcrowding | `OvercrowdingJailBreakPercentagePerExtraCreature` = **50** | yes; the cadence is ours (Q168) |
 | Jail break on selling part of a prison in use | manual | yes, by a different route — see below |
 | Losing a prison frees every enemy, and keeps every friendly | manual | yes |
-| *"Motionless in prison"* | `MotionlessInPrisonSeconds` = 8 | no — parsed, unread |
+| *"Motionless in prison"* | `MotionlessInPrisonSeconds` = 8 | no — and **the engine does not read it either** (§4b), so it is dead in v1.70 rather than merely unread here |
 
 **Selling and losing are one rule here, not two.** `PrisonSystem` asks each game
 second whether a prisoner is still standing on a tile of a prison belonging to
@@ -200,6 +202,64 @@ walls a creature has to come out through.
 
 ---
 
+## 4b. The drain, read on 2026-09-06
+
+The owner's read was that a prisoner loses health *"probably from hunger"* and
+they were explicit that it was speculation. The binary was asked instead, and
+answers most of it.
+
+**`PrisonModifyCreatureHealthPerSecond` is real and is read.** Its global is
+`0x006F2621`, a **signed 16-bit** slot, and two places read it:
+
+- **`FUN_0047b7c0`**, which applies it, and
+- **`FUN_004b2ce0`**, the engine's general "change this thing's health by N",
+  which tests `delta == variable55 * 4` in order to **recognise the prison
+  drain by its amount** and suppress the ordinary hurt reaction. Using the
+  magnitude as an identifier is a quirk worth knowing about: it means no other
+  effect in the game may deal exactly that number.
+
+**The applier's cadence is in its own prologue:**
+
+```
+  if (counter != 0) return           ; counter at state + 0xab
+  counter = variable19 * 4           ; 4 ticks a game second, so 16 ticks
+  ...
+  health -= variable55 * 4           ; -3 * 4 = -12
+  anger  += variable78, reason 9
+```
+
+So the original applies **-12 every 16 ticks**, which at four ticks a game
+second is **-12 every four game seconds** — an average of exactly the **-3 a
+second** the variable's name promises. **This project applies -3 every game
+second**: the same average, four times finer, and a prisoner here dies at the
+same moment rather than in the same steps. Recorded as a deliberate difference
+rather than a defect, because the only way to tell them apart is to watch a
+health bar tick.
+
+**The drain comes with anger, and this project has none.** The same routine
+applies `ModifyAngerInCompanyOfHatedCreaturesPerSecond` (variable 78, 150) with
+reason 9 immediately after the health. Not built.
+
+**What is NOT established, and it is the important half.** The gate on that
+routine is a per-creature-definition byte scaled by a per-level percentage, and
+then a check that the creature is in a room whose owner is not the neutral
+player — **no room-type test is visible in what was read**, so *"this routine is
+the prison's"* is an inference from the variable it uses and not a fact yet
+(Q173). The routine is entered from an undefined region Ghidra had not made a
+function of, and its callers are unread.
+
+**`MotionlessInPrisonSeconds` is cached and dead.** Its global `0x006F25E9` is
+written by its dispatch stub and read nowhere in the executable. Parsed, named,
+and unused in v1.70.
+
+**And a caution about this project's own Q167 arithmetic**: the 20% a captured
+creature wakes at comes from `CreatureCriticalHealthPercentageOfMax`, whose
+global `0x006F294A` is **also written and never read**. The owner's *"two
+petals"* is an observation and stands; the number 20 is now only a reading of
+it, and its shipped-variable support is gone (Q171).
+
+---
+
 ## 5. What is ours, stated
 
 - **One prisoner per tile** (Q166). DK2 stores capacity rather than deriving it,
@@ -214,7 +274,14 @@ walls a creature has to come out through.
 - **A prisoner does nothing at all**, and in the original it does three things:
   it moves about its cell, it races the other prisoners to a chicken dropped
   among them, and it eats one (Q172). All three wait on the same thing — an
-  object a keeper can pick up and drop.
+  object a keeper can pick up and drop. **The original's own search is
+  `FUN_00473550`**: it walks the prison's slabs for the nearest *object* whose
+  definition carries flag `0x80`, picks the nearest by straight-line distance,
+  and **when there is none it applies the creature's `AngerNoFood`** — so a
+  prisoner with nothing to eat gets angry by the same rule a hungry creature
+  anywhere does. That is the mechanism behind what the owner watched.
+- **The drain is applied in single seconds rather than four-second lumps**
+  (§4b), and **without the anger that accompanies it in the original.**
 - **The jail break is rolled once a game second** (Q168), on the same clock every
   other repeated chance here rides (ADR-0043). The variable names a percentage
   per extra creature and says nothing about how often.

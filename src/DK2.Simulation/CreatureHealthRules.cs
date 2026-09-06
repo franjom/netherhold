@@ -123,6 +123,14 @@ public static class CreatureHealthRules
     /// and 20 is the one shipped percentage that reads as two of ten. See
     /// <see cref="PrisonRules.Imprison"/>, which is the only caller.</para>
     ///
+    /// <para><b>The shipped-number leg of that reading is weaker than it looks,
+    /// and was checked the next day.</b> `CreatureCriticalHealthPercentageOfMax`
+    /// is cached into a global the engine <b>never reads</b>
+    /// (<c>balance-variables-in-the-binary.md</c> §4), so 20 is not a number DK2
+    /// consults for anything. The owner's two petals is the observation and it
+    /// stands; 20% is this project's reading of it, resting on a flower having
+    /// ten petals, which is Q171 and is one glance to settle.</para>
+    ///
     /// <para>At least one, because a creature brought round at nothing is a
     /// creature that dies on the tick it wakes.</para>
     /// </summary>
