@@ -5127,8 +5127,11 @@ branches.** There are three worktrees, not two — `codex/fog-of-war` and
 
 ## 5. One file left uncommitted on purpose
 
-`docs/research/creature-state-table.md` is modified in the working tree and was
-**excluded from all three commits**. It was not touched by this session: its
+~~`docs/research/creature-state-table.md` is modified in the working tree and was
+**excluded from all three commits**.~~ **Committed as `b9b33f3` on the owner's
+instruction once that session had ended**; the tree is clean. Its one counted
+claim was verified first — §5.4 leans on *"264 distinct non-null handlers"* and
+§4's own table gives 265 distinct values of which one is state 0's null. It was not touched by this session: its
 mtime moved mid-sitting while the owner had said no other session was running.
 The change is good — it adds a sixth, external check to §5, in which Flame's map
 independently encodes 58 of the state ids and agrees with our numbering on every
