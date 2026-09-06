@@ -5021,3 +5021,69 @@ predicates side by side.
 - **The post-meal wander** (Q175) and **whether a sleeper wakes to eat** (Q176).
 - **Prisoners still cannot eat**, because they cannot move.
 
+## ADR-0068 — The prison drain is hunger, and a Skeleton never withers
+
+**Status:** Accepted (2026-09-06). Research: `docs/research/prison.md` §4b,
+`docs/research/eating.md` §10. Closes Q173.
+
+### Context
+
+ADR-0064 built the prison's withering from `PrisonModifyCreatureHealthPerSecond`
+and recorded an honest gap: the routine that applies it, `FUN_0047b7c0`, had
+**no callers anywhere** — its only reference was a `MOV` immediate inside a long
+run of stores filling a table. So *"this routine is the prison's"* was an
+inference from the variable it happened to use, and Q173 named the probe.
+
+The probe was run for a different reason. Reading `HungerState.cpp` for eating
+turned up **the creature state table** and, behind it, a table of **32 state
+categories at `0x00699688`**, each with an enter hook, an update hook and a
+leave hook. That is the table the run of stores was filling.
+
+### Decision
+
+**`FUN_0047b7c0` is category 14's update hook, and category 14 is exactly the
+six states of `PrisonState.cpp`.** It needs no room-type test because it only
+runs on a creature that is in a prison state. Q173 answered.
+
+**And its gate is `HungerFill`.** The "per-creature byte scaled by a per-level
+percentage" the earlier reading could not name is the same field eating uses,
+through the same stat row. The drain fires only when it is non-zero.
+
+So: **the prison drain is hunger**, and the four creatures that never eat never
+wither. `PrisonRules.WitherPerSecond` now takes the creature and returns 0 for
+one that cannot get hungry.
+
+**The Skeleton is one of them**, which is the consequence worth stating: a
+prison turns a starved prisoner into a Skeleton, and the Skeleton is then immune
+to the room that made it. A cell full of skeletons is stable for ever.
+
+**The owner guessed this and said he did not know.** 2026-09-05: *"then that
+creature starts loosing health at some standard rate, probably from hunger"*,
+followed the next day by *"that was my speculation, I don't know which mechanic
+causes a prisoner to start loosing health, decompiled source is the top
+authority"*. The decompiled source says the speculation was right.
+
+### Consequences
+
+- One new test in `PrisonTests` with both halves on one map and one clock: a
+  Skeleton that sits at its arrival health for sixty seconds, and a Goblin that
+  does not.
+- `CreatureNeedsOnRealDataTests` counts the never-withering creatures against
+  the install's own `HungerFill == 0` set, so the two cannot drift apart.
+- **No hash change.** Every prisoner in every existing test and scenario is a
+  Goblin, which does get hungry — so this moves nothing that was already
+  measured, and saying so is the point rather than the relief.
+
+### Still not built, and now precisely
+
+- **The four-second lump.** The original reloads a counter with
+  `ticksPerSecond << 2` and applies `PrisonModifyCreatureHealthPerSecond << 2`:
+  -12 every four game seconds against our -3 every one. Same average, four times
+  finer here.
+- **The anger.** The same routine applies
+  `ModifyAngerInCompanyOfHatedCreaturesPerSecond` (150) under reason 9 in the
+  same breath. Not built, and the reason channel is unmodelled.
+- **A prisoner cannot move**, so it cannot eat and cannot be saved from the
+  drain — which is now known to be the counterplay the drain exists for, since
+  the drain *is* hunger (Q172).
+

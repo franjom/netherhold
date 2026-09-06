@@ -286,6 +286,42 @@ public class PrisonTests
     }
 
     [Fact]
+    public void ASkeletonInACellDoesNotWitherAtAllBecauseItNeverEats()
+    {
+        // Q173, read from the binary on 2026-09-06 once the prison state
+        // category's own update hook was identified: the routine that applies
+        // PrisonModifyCreatureHealthPerSecond takes the health off ONLY when the
+        // creature's HungerFill is non-zero. The wither is HUNGER, which the
+        // owner had guessed and said he did not know.
+        //
+        // Which makes a Skeleton stable in a cell for ever - and a Skeleton is
+        // what a prison MAKES, so the room's own product is immune to the room.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world, CellA, CellB, CellC);
+
+        CreatureState bones = world.SpawnCreature(db, SkeletonId, Rival, CellA);
+        Assert.True(PrisonRules.Imprison(
+            world, db, bones, Keeper, (CellA.Y * world.Width) + CellA.X));
+
+        // Whatever the arrival health is - two petals, like anybody else - it
+        // stays there.
+        int arrived = bones.Health;
+
+        GameSimulation sim = Simulation(db, world);
+        for (int i = 0; i < 60 * Second; i++) sim.Tick();
+
+        Assert.Equal(arrived, bones.Health);
+        Assert.True(PrisonRules.IsImprisoned(bones));
+
+        // And the control, on the same map and the same clock: a Goblin does.
+        CreatureState goblin = Prisoner(db, world, CellB);
+        int before = goblin.Health;
+        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+        Assert.True(goblin.Health < before);
+    }
+
+    [Fact]
     public void APrisonerLeavesNoBodyAndNoCorpseBehindIt()
     {
         // Dying in a prison is not the ordinary death: there is no collapse, no

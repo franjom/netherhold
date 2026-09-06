@@ -240,6 +240,35 @@ public static class EatingRules
         return best;
     }
 
+    /// <summary>
+    /// Whether this room holds <b>any</b> object at all — the original's own
+    /// gate on setting out for a hatchery, and a weaker test than "has a bird".
+    ///
+    /// <para><c>FUN_004ded00</c> walks the keeper's hatcheries and keeps only
+    /// those whose <c>ObjectList</c> head is non-zero. <b>The room dump names
+    /// that field</b>, and it is every object in the room rather than the food
+    /// in it — so a <b>Chicken Coop</b> counts. Any hatchery of six tiles or
+    /// more earns a coop and therefore passes this test for ever, which makes
+    /// the gate nearly always true and exactly one thing false: a hatchery too
+    /// small to earn a coop can never lay, so its object list stays empty and
+    /// nobody walks to it. That is the case the test is for, and reproducing it
+    /// costs one predicate.</para>
+    ///
+    /// <para>When it excludes every hatchery the original says so in its own
+    /// words — three separate interface messages for "no hatchery", "hatchery
+    /// unreachable" and "hatchery empty".</para>
+    /// </summary>
+    public static bool HoldsAnyObject(WorldState world, RoomInstance room)
+    {
+        IReadOnlyList<ObjectState> objects = world.Objects;
+        for (int i = 0; i < objects.Count; i++)
+        {
+            if (Contains(room, objects[i].TileIndex)) return true;
+        }
+
+        return false;
+    }
+
     /// <summary>Whether a tile index belongs to this room.</summary>
     public static bool Contains(RoomInstance room, int tileIndex)
     {

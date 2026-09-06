@@ -1,4 +1,4 @@
-# Eating: hunger, the chicken, and the two ways of paying it off
+﻿# Eating: hunger, the chicken, and the two ways of paying it off
 
 What a hungry creature does about it, read from the original's own
 `HungerState.cpp` on **2026-09-06**. Everything here is from the binary unless
@@ -289,18 +289,29 @@ arguments.
 ## 8. What is UNKNOWN
 
 - **How a hungry creature that is not already standing in a hatchery gets
-  there.** `FUN_004633d0` tests that a hatchery exists (via `FUN_004ded00`,
-  which finds the nearest reachable one) and then enters `0x5B` — whose handler
-  fails outright when the creature is not in one. State `0x5A` does exactly the
-  missing walk, and the only reference to it found is a fallback for one
-  particular player id at `0x004775ac`. Either a category-enter hook does it or
-  something not yet read does. **Q174.** The observable behaviour is not in
-  doubt; the route to it is.
+  there.** `FUN_004633d0` tests that a suitable hatchery exists and then enters
+  `0x5B` — whose handler fails outright when the creature is not in one. State
+  `0x5A` does exactly the missing walk, and the only reference to it found is a
+  fallback for one particular player id at `0x004775ac`. **Q174**, and two
+  hypotheses are now dead rather than untested:
+  - **not a category-enter hook.** The category table (§10) gives category 8 —
+    the eating group — no enter hook at all. Categories 4, 5, 9, 12, 13, 14, 15,
+    16, 17, 22, 25 and 31 have one; 8 does not.
+  - **and a failing handler does not stall.** The creature update
+    (`FUN_00476fc0`) calls the state's own handler and, when it returns 0,
+    **`SetState(1)`** — so a creature whose `0x5B` fails is dropped to state 1
+    and asks again a second later. It does not get stuck; it simply does not
+    walk. Which leaves `FUN_004ded00`'s discarded out-parameter as the last
+    unexplained thing in the attempt.
 - **What object flag `0x4000` means** — the per-tile skip in the hatchery search.
-- **Whether a sleeping creature wakes to eat.** The whole needs routine is gated
-  on `stateTable[state].byte6 == 7` and the increment separately on
-  `byte8 & 8`; neither category byte has been decoded. **Q176**, and one glance
-  at the running game settles it.
+- ~~**Whether a sleeping creature wakes to eat.**~~ **ANSWERED, and the answer
+  is no** (Q176). The needs routine's first line is
+  `if (stateTable[CurrentStateId].byte6 == 7) return 0`, and the sleep states
+  `0x52`–`0x54` carry byte6 = 7. Corroborated by the sleep block's own
+  `category != 9` refusal, 9 being exactly those three states' category: the
+  routine does not re-ask a question you are already answering. What is still
+  undecoded is `byte8 & 8`, which suppresses the *increment* rather than the
+  attempt.
 - **Whether hunger really outranks sleep in play.** It does in the routine's
   source order; whether a player would ever see the difference depends on
   category gating that is not decoded.
@@ -319,3 +330,61 @@ What is **ours** and said so in the code: composing states `0x5A` and `0x5B` int
 one walk-then-search (Q174 above); driving the retry from the eat system rather
 than from a needs routine shared with sleep; leaving a sleeper asleep (Q176); and
 no post-meal wander (Q175).
+
+---
+
+## 10. The state category table — `0x00699688`
+
+Found while chasing Q174, and it answers **Q173** on the way past, so it is
+recorded here rather than left in a scratchpad.
+
+Every state record carries two category bytes. **Byte 7 is the group** — the
+mechanic the state belongs to — and there are 32 of them, described by a table
+of **32 records of 0x40 bytes based at `0x00699688`**, filled by the same kind of
+run of `MOV`s as the state table (`0x004798f4`–`0x0047a773`, no function).
+
+| Offset | What it is |
+|---|---|
+| `+0x00` | `1 << category` — the group's own bit |
+| `+0x04` | **enter** hook, called by `SetState` when the category changes |
+| `+0x14` | **update** hook, called by the creature update each tick |
+| `+0x24` | **leave** hook |
+| `+0x34` | a mask of categories this one may be left for |
+| `+0x38` | the category's own id |
+| `+0x3c` | a small integer, meaning not established |
+
+**Byte 6 looks like a priority** — 0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 50,
+100, with the idle state at 100 — and **7 is the value the needs routine treats
+as "do not ask"**.
+
+Groups relevant here:
+
+| Category | States | Enter | Update | Leave |
+|---|---|---|---|---|
+| 2 | 6, 7, 8, 9, 0x58 | — | — | — | the **utility** move states; `SetState` special-cases this number |
+| 8 | 0x5B–0x5F | **none** | `FUN_004b4c20` | — | **eating** |
+| 9 | 0x52–0x54 | `FUN_004b4c20` | `FUN_0047ac00` | `FUN_0047ab90` | **sleeping** |
+| 14 | 0x72–0x77 | `FUN_0047b740` | **`FUN_0047b7c0`** | `FUN_0047b920` | **the prison** |
+
+**That last row is Q173.** `FUN_0047b7c0` — the routine that applies
+`PrisonModifyCreatureHealthPerSecond` and had no callers anywhere — is
+category 14's per-tick update hook, and category 14 is exactly the six states of
+`PrisonState.cpp`. The "long run of stores at `0x00699990` alongside four sibling
+handlers, each with a small integer" that Q173 recorded was this table being
+filled, and the small integers were category indices.
+
+**And the dispatcher, from `FUN_00476fc0`:**
+
+```c
+Age++;
+... category enter/update hooks ...
+if (CurrentStateId != 0 && stateTable[CurrentStateId].handler() == 0)
+    SetState(1);            // a handler that returns 0 drops the creature to idle
+GameTickLastUpdated = now;
+```
+
+So **returning 0 from a state handler is "I could not"**, and the answer is
+always the same: back to state 1. That is why the eating states re-enter
+themselves rather than returning 0 when they merely have nothing to do this
+tick.
+

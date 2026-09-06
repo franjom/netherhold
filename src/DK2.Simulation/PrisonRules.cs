@@ -213,9 +213,32 @@ public static class PrisonRules
     /// gradually lose health as they wither away"</i> — and the variable is
     /// named for exactly this, which is the fourth time on this project that an
     /// owner-facing sentence and a shipped variable name have met.</para>
+    ///
+    /// <para><b>And it is hunger</b> (Q173, read 2026-09-06). The routine that
+    /// applies it — <c>FUN_0047b7c0</c>, now known to be the prison state
+    /// category's own per-tick hook and therefore the prison's beyond doubt —
+    /// takes the health off <b>only when the creature's <c>HungerFill</c> is
+    /// non-zero</b>. So the four creatures that never eat never wither: a
+    /// <b>Skeleton</b> in a cell is stable for ever, which matters because a
+    /// Skeleton is what a prison <i>makes</i>. The owner guessed this
+    /// (2026-09-05: <i>"probably from hunger"</i>) and said he did not know; the
+    /// binary says he was right.</para>
+    ///
+    /// <para><b>What is still ours is the cadence.</b> The original reloads a
+    /// counter with <c>ticksPerSecond &lt;&lt; 2</c> and applies
+    /// <c>PrisonModifyCreatureHealthPerSecond &lt;&lt; 2</c> — <b>-12 every four
+    /// game seconds</b> rather than -3 every one. The average is identical and
+    /// the granularity is not: a prisoner at 10 health survives three more
+    /// seconds here and none there. It also applies
+    /// <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> (150) under anger
+    /// reason 9 in the same breath, which this project does not
+    /// (<c>prison.md</c> §4b).</para>
     /// </summary>
-    public static int WitherPerSecond(GameDatabase database) =>
-        database[VariableTypeId.PrisonModifyCreatureHealthPerSecond];
+    public static int WitherPerSecond(
+        GameDatabase database, CreatureDef creature) =>
+        CreatureHealthRules.CanGetHungry(creature)
+            ? database[VariableTypeId.PrisonModifyCreatureHealthPerSecond]
+            : 0;
 
     /// <summary>
     /// The chance in percent that an overcrowded prison breaks out this game

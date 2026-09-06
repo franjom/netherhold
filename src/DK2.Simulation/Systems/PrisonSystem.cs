@@ -161,7 +161,13 @@ public sealed class PrisonSystem : ISimulationSystem
             // databases the harness runs on carry only what a registered system
             // actually reads, and a system that reads on an empty loop makes
             // every one of them carry the whole table.
-            creature.Health += PrisonRules.WitherPerSecond(context.Database);
+            CreatureDef definition =
+                context.Database.CreatureById(creature.CreatureTypeId);
+
+            int wither = PrisonRules.WitherPerSecond(context.Database, definition);
+            if (wither == 0) continue;   // never eats, never withers - Q173
+
+            creature.Health += wither;
             if (creature.Health > 0) continue;
 
             Raise(context, creature);

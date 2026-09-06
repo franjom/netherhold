@@ -24,10 +24,12 @@ binary in our own words** — no decompiler output enters this repository
 | A prisoner dropped back on a prison tile is imprisoned again; dropped anywhere else it goes free | **CONFIRMED** (owner) for both halves; the torture rack is the third destination and is unbuilt |
 | A prisoner loses `PrisonModifyCreatureHealthPerSecond` = **-3** a game second | **CONFIRMED from the binary** (§4b): the variable is read, and applied as **-12 every four game seconds**, which averages to -3 a second. This project applies -3 a second, which is the same average at a finer grain |
 | The drain also applies **anger** | **CONFIRMED from the binary** (§4b) and **not built** |
-| That the routine applying it is the *prison's* | **INFERRED, and the gap is named** — no room-type test was found in the part read (Q173) |
+| That the routine applying it is the *prison's* | **CONFIRMED from the binary** (§4b, 2026-09-06): it is the prison state category's own update hook, which is why it needs no room-type test. Q173 answered |
+| The drain applies **only to creatures that can get hungry** | **CONFIRMED from the binary** (§4b) and **built**: a Skeleton in a cell never withers, and a Skeleton is what a prison makes |
 | A captured creature wakes at **two petals** — 20% of its maximum | **CONFIRMED** (owner, 2026-09-05, Q167). Built as full health for one afternoon before the correction |
 | The flower above a creature's head is a **health** readout | **CONFIRMED** (owner, twice, Q108) |
-| A prisoner **walks about its cell and races the others to a dropped chicken** | **CONFIRMED** (owner, Q172) and **not built** — prisoners here are inert |
+| A prisoner **walks about its cell and races the others to a dropped chicken** | **CONFIRMED** (owner, Q172) and **not built** — prisoners here are inert. Everything it waited on is gone since ADR-0067 except the movement itself |
+| A chicken eaten in a prison pays off **the whole of `HungerFill`**, not one | **CONFIRMED from the binary** (`eating.md` §7) — `EatingRules.EatInPrison` carries the number and nothing calls it |
 | A prisoner that runs out **rises as a Skeleton for the jailer** | **STRONGLY INFERRED** — the manual states it, and the Prison's `CreatedCreatureId` is 9 |
 | Imps stop collecting when every prison is full | **STRONGLY INFERRED** — the manual states it; it falls out of the destination being chosen before the walk |
 | Losing a prison frees every enemy in it | **STRONGLY INFERRED** — the manual states it |
@@ -240,13 +242,38 @@ health bar tick.
 applies `ModifyAngerInCompanyOfHatedCreaturesPerSecond` (variable 78, 150) with
 reason 9 immediately after the health. Not built.
 
-**What is NOT established, and it is the important half.** The gate on that
-routine is a per-creature-definition byte scaled by a per-level percentage, and
-then a check that the creature is in a room whose owner is not the neutral
-player — **no room-type test is visible in what was read**, so *"this routine is
-the prison's"* is an inference from the variable it uses and not a fact yet
-(Q173). The routine is entered from an undefined region Ghidra had not made a
-function of, and its callers are unread.
+### It is the prison's, and it is hunger — settled the same day, from eating
+
+The gap this section named is closed, and it closed sideways: reading
+`HungerState.cpp` turned up the table that explains it (`eating.md` §10).
+
+**Every creature state carries a category byte, and there is a table of 32
+categories at `0x00699688`** — 0x40 bytes each, with an **enter** hook, an
+**update** hook and a **leave** hook. **`FUN_0047b7c0` is category 14's update
+hook**, and category 14 is *exactly* the six states of `PrisonState.cpp`
+(0x72–0x77). So it is the prison's beyond argument: it runs on a creature
+because that creature is in a prison state, which is why it needs no room-type
+test of its own. Its siblings are the category's enter hook `FUN_0047b740` and
+leave hook `FUN_0047b920`. **Q173 answered.**
+
+**And the "per-creature-definition byte scaled by a per-level percentage" is
+`HungerFill`** — creature stat row 9, the same pair `eating.md` §4 pins. So the
+gate reads:
+
+```c
+if (HungerFill != 0 && creature.IsInARoom) { health -= var55 * 4; anger += var78, reason 9; }
+```
+
+**The drain is hunger.** A creature that never eats never withers — the Imp, the
+Vampire, the Skeleton and Horny — and the **Skeleton** is what a prison
+*makes*, so the room's own product is immune to the room. The owner guessed this
+on 2026-09-05 (*"probably from hunger"*) and said explicitly that it was
+speculation; the binary says the speculation was right.
+
+**Built 2026-09-06**: `PrisonRules.WitherPerSecond` now takes the creature and
+returns 0 for one that cannot get hungry, and `PrisonTests` has both halves —
+a Skeleton that sits at its arrival health for sixty seconds and a Goblin on the
+same map and the same clock that does not.
 
 **`MotionlessInPrisonSeconds` is cached and dead.** Its global `0x006F25E9` is
 written by its dispatch stub and read nowhere in the executable. Parsed, named,

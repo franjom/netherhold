@@ -4592,6 +4592,26 @@ So a full hatchery **starts laying again** — visible in the new scenario at
 t3919, after two goblins ate at t3782 and t3811. First place in this project
 where two mechanics feed each other without being told to.
 
+### And then the table paid for itself twice
+
+**Q173 answered** (ADR-0068). `FUN_0047b7c0`, the routine that applies the
+prison drain and had **no callers anywhere**, is **category 14's update hook**,
+and category 14 is exactly the six states of `PrisonState.cpp`. The "long run of
+stores with small integers" that Q173 had recorded was this table being filled
+and the integers were category indices. It needs no room-type test because it
+only runs on a creature that is in a prison state.
+
+**And the gate on it is `HungerFill`. The prison drain is hunger.** So the four
+creatures that never eat never wither — including the **Skeleton**, which is
+what a prison *makes*, so the room's own product is immune to the room. The
+owner guessed exactly this on 2026-09-05 and then said, explicitly, that it was
+speculation and that the decompiled source was the authority. It was right.
+
+**Q176 answered too, from the same table.** The needs routine refuses outright
+when the state's category byte is 7, and the sleep states carry 7: **a hungry
+creature does not get up to eat.** It went onto the observation checklist in the
+morning and came off it in the afternoon without anybody playing anything.
+
 ### Where the next session should start
 
 1. **Prisoners moving** (Q172). Everything else it waited on is gone: the
@@ -4600,15 +4620,14 @@ where two mechanics feed each other without being told to.
    `EatingRules.EatInPrison`. What is missing is a wander and a search, and
    `PrisonState.cpp`'s states are 0x72–0x77 in the table above with their
    handlers already named.
-2. **Q174** — decode the state records' category bytes (+6, +7) and the
-   0x40-byte-per-category table at `0x00699688`, whose entries carry leave and
-   enter hooks. That answers how a hungry creature walks to the hatchery, and it
-   is the same table `SetState`'s legality check reads, so it pays for itself
-   across every future mechanic.
-3. **Q173**, unchanged, and now cheaper: the table-recovery scripts above are
-   exactly what it needed.
-4. **Five owner questions, all one glance**, at the top of
+2. **Q174**, and it is the only thing eating left open. Two hypotheses are now
+   dead rather than untested: the eating category has **no enter hook**, and a
+   state handler that returns 0 simply drops the creature to state 1 rather than
+   stalling it. What is left unexplained is `FUN_004ded00`'s discarded
+   out-parameter in the hunger attempt — it finds the room and throws it away.
+3. ~~**Q173**~~ — answered, see above.
+4. **Four owner questions, all one glance**, at the top of
    `observation-checklist.md`: Q159 (time a slap), Q166 (count a 3x3 prison),
-   Q171 (count the petals), Q162 (drop an imp two tiles out), and new — **Q176**
-   (does a sleeping creature get up to eat?).
+   Q171 (count the petals), Q162 (drop an imp two tiles out). Q176 went on that
+   list and came off it the same day, answered from the binary.
 

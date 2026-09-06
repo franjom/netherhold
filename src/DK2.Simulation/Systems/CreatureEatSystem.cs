@@ -55,14 +55,13 @@ namespace DK2.Simulation.Systems;
 /// state 0x5F, which picks a random adjacent tile — cosmetic here, and Q175).
 /// </para>
 ///
-/// <para><b>A sleeping creature is left asleep.</b> The original's needs
-/// routine is gated on a state-category byte this project has not decoded, so
-/// whether a hungry creature wakes up to eat is <b>UNKNOWN</b> — the
-/// observation that would settle it is one glance at a creature that falls
-/// asleep just before its hunger lands. Until then this system skips
-/// <see cref="CreatureActivity.Sleeping"/> and
-/// <see cref="CreatureActivity.GoingToSleep"/>, and a test pins that choice so
-/// that changing it is a decision rather than a drift.</para>
+/// <para><b>A sleeping creature is left asleep, and that is the original's rule
+/// rather than a guess</b> (Q176). Its needs routine refuses outright when the
+/// current state's category byte is 7, and the three sleep states carry 7 —
+/// corroborated by the sleep block's own refusal to fire when the creature is
+/// already in the sleeping category. So a hungry creature does <b>not</b> get up
+/// to eat. This system skips <see cref="CreatureActivity.Sleeping"/> and
+/// <see cref="CreatureActivity.GoingToSleep"/>, and a test pins it.</para>
 ///
 /// <para><b>Prisoners are skipped here too.</b> They eat by a different state
 /// in the original — one bird pays off the whole of <c>HungerFill</c> rather
@@ -115,7 +114,9 @@ public sealed class CreatureEatSystem : ISimulationSystem
                     break;
 
                 default:
-                    // Asleep is left asleep — see the type summary, and Q176.
+                    // Asleep is left asleep: the original's needs routine
+                    // refuses outright while the creature is in the sleeping
+                    // state category (Q176, read from the binary).
                     if (creature.Activity is CreatureActivity.Sleeping
                         or CreatureActivity.GoingToSleep) break;
 
@@ -159,10 +160,12 @@ public sealed class CreatureEatSystem : ISimulationSystem
     /// <see cref="RoomIndex.Build"/>'s own order and is reproducible
     /// (ADR-0001).</para>
     ///
-    /// <para><b>A hatchery with no birds in it is still a hatchery.</b> The
-    /// finder does not look at the flock: the original's does not either, and it
-    /// should not — the room lays, so an empty one is a room that will have a
-    /// chicken shortly.</para>
+    /// <para><b>A hatchery with no birds in it is still a hatchery</b>, and the
+    /// finder does not look at the flock — the room lays, so an empty one will
+    /// have a chicken shortly. What the original <i>does</i> test is whether the
+    /// room holds any object at all (<see cref="EatingRules.HoldsAnyObject"/>),
+    /// which a coop satisfies; the one thing it rules out is a hatchery too
+    /// small to earn a coop, and therefore too small ever to lay.</para>
     /// </summary>
     private bool TrySetOutForAHatchery(
         SimulationContext context, CreatureState creature, CreatureDef definition)
@@ -171,10 +174,18 @@ public sealed class CreatureEatSystem : ISimulationSystem
         GameDatabase database = context.Database;
 
         var candidates = new List<(long Distance, int FirstTile, RoomInstance Room)>();
+        int hatcheries = 0;
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
             if (!EatingRules.IsHatcheryOf(room, creature.OwnerPlayerId)) continue;
             if (room.TileIndices.Count == 0) continue;
+            hatcheries++;
+
+            // The original's own gate: a hatchery with nothing in it is not
+            // walked to. Its object list, not its flock - a coop counts - so
+            // this excludes exactly one thing, a room too small to earn a coop
+            // and therefore too small ever to lay (EatingRules.HoldsAnyObject).
+            if (!EatingRules.HoldsAnyObject(world, room)) continue;
 
             candidates.Add((
                 EatingRules.DistanceSquared(world, creature.Tile, CentreTileIndex(world, room)),
@@ -207,8 +218,9 @@ public sealed class CreatureEatSystem : ISimulationSystem
                 $"creature={creature.Id} type={definition.Name} " +
                 $"player={creature.OwnerPlayerId} at=({creature.Tile.X},{creature.Tile.Y}) " +
                 $"need={creature.HungerNeed} " +
-                $"reason={(candidates.Count == 0 ? "no_hatchery" : "unreachable")} " +
-                $"hatcheries={candidates.Count}");
+                $"reason={(hatcheries == 0 ? "no_hatchery"
+                    : candidates.Count == 0 ? "hatchery_empty" : "unreachable")} " +
+                $"hatcheries={hatcheries} with_objects={candidates.Count}");
             return false;
         }
 

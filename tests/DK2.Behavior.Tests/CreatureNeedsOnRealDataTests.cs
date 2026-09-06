@@ -525,7 +525,25 @@ public class CreatureNeedsOnRealDataTests
         // Prison, creatures gradually lose health as they wither away" - and
         // which the variable is named for.
         Assert.Equal(-3, db[VariableTypeId.PrisonModifyCreatureHealthPerSecond]);
-        Assert.Equal(-3, PrisonRules.WitherPerSecond(db));
+        Assert.Equal(-3, PrisonRules.WitherPerSecond(db, db.CreatureByName("Goblin")!));
+
+        // And it is HUNGER (Q173): the original takes the health off only when
+        // the creature's HungerFill is non-zero, so the four creatures that
+        // never eat never wither. The Skeleton is one of them - which is what a
+        // prison MAKES, so a cell full of skeletons is stable for ever.
+        CreatureDef bones = db.CreatureByName("Skeleton")!;
+        Assert.Equal(0, bones.HungerFill);
+        Assert.Equal(0, PrisonRules.WitherPerSecond(db, bones));
+
+        var neverWithers = db.Creatures.Values
+            .Where(c => PrisonRules.WitherPerSecond(db, c) == 0)
+            .Select(c => c.Name)
+            .OrderBy(n => n)
+            .ToList();
+        Assert.Equal(
+            db.Creatures.Values.Count(c => c.HungerFill == 0), neverWithers.Count);
+        Assert.Contains("Skeleton", neverWithers);
+        Assert.Contains("Imp", neverWithers);
 
         // The jail break, per extra creature over capacity.
         Assert.Equal(50, db[VariableTypeId.OvercrowdingJailBreakPercentagePerExtraCreature]);

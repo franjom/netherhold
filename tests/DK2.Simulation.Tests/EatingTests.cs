@@ -182,6 +182,12 @@ public class EatingTests
         Floor(world, 1, 1, 10, 10);
         Hatchery(db, world, 6, 6, 3, 3, Keeper);
 
+        // A coop, because the original will not set out for a hatchery whose
+        // object list is empty and a coop is what normally fills it. Birdless,
+        // not empty - see TheGoblinWillNotWalkToAHatcheryThatHoldsNothingAtAll.
+        world.SpawnObject(
+            db, HatcheryRules.CoopObjectId, Keeper, (6 * world.Width) + 6);
+
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         MakeHungry(goblin);
 
@@ -197,6 +203,34 @@ public class EatingTests
         Chicken(db, world, 8, 8);
         sim.Run(Second * 5);
         Assert.Equal(0, goblin.HungerNeed);
+    }
+
+    [Fact]
+    public void TheGoblinWillNotWalkToAHatcheryThatHoldsNothingAtAll()
+    {
+        // The original's gate is the room's OBJECT LIST rather than its flock,
+        // and the room dump names that field. A coop satisfies it, so this rules
+        // out exactly one thing: a hatchery too small to earn a coop, which can
+        // therefore never lay. Walking to one would be walking somewhere food
+        // will never appear.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Floor(world, 1, 1, 10, 10);
+        Hatchery(db, world, 6, 6, 3, 3, Keeper);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        MakeHungry(goblin);
+
+        var sink = new ListEventSink();
+        Simulation(db, world, sink).Run(Second * 5);
+
+        Assert.Equal(CreatureActivity.Idle, goblin.Activity);
+        Assert.Equal(1, goblin.HungerNeed);
+        Assert.Contains(
+            sink.Events,
+            e => e.Kind == "food_attempt_failed"
+                 && e.Detail.Contains("reason=hatchery_empty")
+                 && e.Detail.Contains("hatcheries=1"));
     }
 
     [Fact]
@@ -439,12 +473,12 @@ public class EatingTests
     [Fact]
     public void ASleepingGoblinIsLeftAsleepEvenWhenItIsHungry()
     {
-        // A STATED narrowing, not a rule. The original's needs routine is gated
-        // on a state-category byte this project has not decoded, so whether a
-        // sleeping creature gets up to eat is UNKNOWN (Q176). This test pins the
-        // choice so that changing it is a decision rather than a drift, and the
-        // observation that would settle it is one glance at a creature that
-        // falls asleep just before its hunger lands.
+        // The ORIGINAL'S rule, and not a narrowing (Q176, read from the binary
+        // 2026-09-06). Its needs routine's first line refuses outright when the
+        // current state's category byte is 7, and the three sleep states carry
+        // 7 - corroborated by the sleep block separately refusing to fire while
+        // the creature is already in the sleeping category. A hungry creature
+        // does not get up to eat.
         GameDatabase db = Db;
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);
