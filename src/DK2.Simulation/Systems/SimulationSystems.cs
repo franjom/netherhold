@@ -138,6 +138,18 @@ public static class SimulationSystems
         // to be charged before the ladder is walked rather than after.
         new PaydaySystem(),
 
+        // What a creature that is not a worker does with the rest of its day,
+        // and the last of M4's seven items (ADR-0082). After the needs and
+        // before the anger, which is the original's own sequence: its decision
+        // routine runs the current state, then hunger, sleep and pay, then the
+        // mood's job chooser.
+        //
+        // Before CreatureAngerSystem for a concrete reason as well as a
+        // faithful one: a creature that found no work this second takes
+        // AngerNoWork for it in the same second it looked, so the ladder below
+        // sees the charge on the tick it was earned rather than one later.
+        new CreatureJobSystem(),
+
         new CreatureAngerSystem(),
 
         // Experience last of all: a creature is paid for a second it actually

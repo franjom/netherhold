@@ -6475,3 +6475,111 @@ the routine's own `CMP`/`JLE`. Below the resolution of any observation, and free
   and it had the standing shape: a single number that every mechanic wrote into,
   never questioned because it had been right for the one mechanic that existed
   when it was written.
+
+## ADR-0082 — A creature that is not a worker now has a day, and M4 is closed
+
+**Status:** accepted, 2026-09-06
+**Context:** M4's seventh and last item; Q2 (closed), ADR-0061, ADR-0081
+**Hash:** 32 → **33**. `CurrentJob`, `JobTileIndex`, two choice timestamps and
+the stored mood band.
+
+### What was found
+
+`docs/research/job-selection.md` has the read in full. The shape:
+
+**Three choosers, one per mood** — happy `FUN_004780e0`, unhappy `FUN_004782c0`,
+angry `FUN_004784c0` (built since ADR-0061). Each gates on **five game seconds**
+against **its own timestamp** — the creature carries three side by side — builds
+cumulative ranges from that mood's table, rolls `rand(100)`, tries the job whose
+range holds the roll, and on failure tries every job in the table in record
+order. A failed selection stamps nothing.
+
+**One dispatcher, `FUN_00478800`** — a 28-way switch to that job's handler, and
+every handler is *(a cheap test on the keeper or creature) → (find the nearest
+room) → (enter the job's state, which can still fail)*. **That boolean is the
+whole of job availability**, which closes the clause Q2 had open since 2026-09-05:
+what makes Research or Train *fail* so the list falls through.
+
+### Three findings worth the sitting on their own
+
+**Only the happy chooser charges `AngerNoWork`.** Its tail, when every job has
+failed, charges `def+0x6c7`; the unhappy chooser's identical tail is a bare
+return, and so is the angry one's. **A creature that is already unhappy is never
+made crosser by idleness** — the grievance belongs to the creature that was fine
+until its keeper ran out of work for it. The same shape as ADR-0079's finding
+that `AngerNoPay` has no treasury clause where both its siblings test for the
+room. Twice now: a plausible symmetry the game does not have, and both times the
+symmetric version would have been the natural thing to write.
+
+**Sulking is going to your lair and moping in it.** `FUN_00482ef0` is the Sleep
+handler with one digit changed — same three preconditions, same room, state
+`0x55` where sleep uses `0x51`. **A creature with no bed cannot sulk at all**,
+and every unhappy table in the shipped game is Sulk and Drink.
+
+**Seven more dead balance variables, and this time a whole family.**
+`MotionlessWhileResearching/Manufacturing/Praying/TrainingSeconds`,
+`StateCounterWhileGuarding`, `CasinoModifyCreatureGoldPerSecond` and
+`MinimumJobDurationSeconds` are each written by the loader stub and read by
+nothing — taking the count from five to twelve. The last is a cross-check
+rather than a curiosity: all three choosers gate on a hardcoded `5 × variable
+19` while the shipped variable that looks like it should govern job length sits
+unread, which is **evidence that there is no job timer**, not merely an absence
+of one.
+
+### The one job with an effect, and why it is that one
+
+Praying. Since ADR-0081 the Temple is **the only source in DK2 that drains an
+anger bucket it did not fill** — every other calm in the game reaches bucket 5
+alone, so a month of unpaid wages in bucket 4 has exactly one cure. `-275` from
+all six buckets and `+33` health, once a game second, both numbers verified live
+against the seven dead ones beside them.
+
+Research, Train, Guard and Drink are chosen, walked to and stood in, and logged
+`effect=unbuilt`. That is not a stub: **every second a creature spends at a job
+is a second it is not idle and not taking `AngerNoWork`**, which is the half of
+each job the choosers actually depend on. What is missing is production, and
+training's rate carries the same per-second/per-minute ambiguity that made
+`ExpPerSecond` turn out to be per minute — so it is left for its own read (Q205)
+rather than guessed.
+
+### A correction that fell out of testing it
+
+**The mood band is now stored on the creature**, as DK2 stores it in slot 7 of
+its anger object and rewrites it on every add. Anger reaches a creature from
+four places and three of them run before `CreatureAngerSystem` in the same tick
+— a slap, the prison, and now having no work — so a "mood before" worked out
+from the anger visible at the top of that system's own pass **missed every
+crossing it did not cause itself**. The scenario found it: two Goblins went from
+content to unhappy on pure `AngerNoWork` and nothing said so. A pre-existing gap
+that slapping shared, and it is closed.
+
+### And the determinism pin cannot see any of this (Q206)
+
+Discovered while checking that the new fields moved the hash: **they do not**.
+`TestWorld.World` spawns no creatures at all, so every creature-state change
+this project has made has moved the pinned value through `HashVersion` alone and
+never through the field itself. The pin still catches what it was built for —
+struct layout drift, dictionary order, string hashing — but for a simulation
+whose state is mostly creatures it is guarding a world that has none. Several of
+the hash-history notes in `DeterminismTests` describe creatures the fixture does
+not have. Recorded rather than fixed here: widening it is a change to the guard
+itself and deserves its own sitting.
+
+### Consequences
+
+- **M4 is seven of seven.** Portal spawn, lair claim, hunger→hatchery, sleep,
+  payday, job selection with logged reasons — and training, which is the one
+  item that is *selected* but not yet *worth* anything.
+- 19 tests in `CreatureJobTests`, 1111 green, 26 scenarios, zero warnings. Pin
+  `0x21A7E4D24F37DF48`.
+- `two_keepers_find_work_for_a_goblin.yaml`, whose log is the mechanic in five
+  lines: one keeper's Goblins take Train and go; the other's are refused, take
+  50 a second, cross to Unhappy at 5m28s with `worst=Work` naming the bucket,
+  and are then **never charged again** because the unhappy chooser does not
+  charge it.
+- **Its first draft inverted its own demonstration.** The Vampire was placed to
+  be the third creature for two beds, and it was nearer the lairs than the
+  Goblins were — so it got a bed and one of them did not. Correct behaviour
+  (nothing is reserved, ADR-0060) and a useless run. The Goblins now start
+  standing on the beds. Third time a scenario's setup has hidden the thing it
+  was built to show.

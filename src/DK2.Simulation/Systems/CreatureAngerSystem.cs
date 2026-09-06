@@ -91,12 +91,20 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             if (CreatureDeathRules.IsDown(state)) continue;
             if (!CreatureAngerRules.CanBeAngered(creature)) continue;
 
-            CreatureMood before = CreatureAngerRules.MoodOf(creature, state);
+            // The band this creature was LAST REPORTED IN, not the one it was
+            // in at the top of this pass. Anger reaches a creature from four
+            // places and three of them run earlier in the same tick - a slap,
+            // the prison, and having no work (ADR-0082) - so a "before" read
+            // from the anger visible here would miss every crossing it did not
+            // cause itself. DK2 keeps the band in its anger object and rewrites
+            // it on every add; this keeps the same value and reports against it.
+            CreatureMood before = state.Mood;
 
             CreatureAnger delta = CreatureAngerRules.PerSecond(world, database, creature, state);
             CreatureAngerRules.Apply(state, delta);
 
             CreatureMood after = CreatureAngerRules.MoodOf(creature, state);
+            state.Mood = after;
 
             if (after != before)
             {

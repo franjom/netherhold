@@ -279,15 +279,32 @@ public class DeterminismTests
         // its creatures are level 1, so the value moved on the composition
         // rather than on anything happening.
         //
-        // 32 IS THE ANGER SPLIT (ADR-0080), and it is one int becoming six.
+        // 32 IS THE ANGER SPLIT (ADR-0081), and it is one int becoming six.
         // DK2 keeps a creature's anger in an int[6] indexed by grievance and
         // bands the LARGEST of them; this simulation kept one pooled counter.
-        // The pinned world's creatures are calm, so all six are zero and the
-        // value moved on the composition alone - but the behaviour it stands
-        // for did not: two half-grievances no longer add up to desertion, and
-        // a kindness in one bucket no longer pays off a grievance in another.
+        // Two half-grievances no longer add up to desertion, and a kindness in
+        // one bucket no longer pays off a grievance in another.
         //
-        // Previous values: 0xC026542547419606 (31), 0x2E7E116CA573398B (30),
+        // 33 is job selection for non-workers (ADR-0082): CurrentJob,
+        // JobTileIndex, a choice timestamp per mood, and the mood band itself,
+        // which DK2 stores rather than recomputing and which this now stores
+        // for the same reason - anger reaches a creature from four places and
+        // three of them run before the anger system in the same tick.
+        //
+        // AND HERE IS A THING THIS TEST CANNOT DO, found on the way (Q206).
+        // Neither 32 nor 33 moved on any of those fields. TestWorld.World
+        // SPAWNS NO CREATURES, so a creature-state change reaches this value
+        // only through HashVersion - verified by hashing a constant in
+        // CreatureState.HashInto and watching the pin still pass. Every note
+        // above that explains a move by what the fixture's creatures were doing
+        // is describing creatures that are not there; what actually moved the
+        // value each time was the version bump beside the change. The pin still
+        // catches what it was built for - struct layout drift, dictionary
+        // order, string hashing - and for a simulation whose state is mostly
+        // creatures it is guarding a world that has none.
+        //
+        // Previous values: 0x30722F6054924CC5 (32),
+        // 0xC026542547419606 (31), 0x2E7E116CA573398B (30),
         // 0x19A512BB12A71575 (28), 0x0D75C57C1848268C (27),
         // 0x154E9041172A7F7F (26),
         // 0xDFF77147B12A64C3 (22), 0x6AF149EE8E20D98A (21),
@@ -299,7 +316,7 @@ public class DeterminismTests
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x30722F6054924CC5UL, sim.StateHash());
+        Assert.Equal(0x21A7E4D24F37DF48UL, sim.StateHash());
     }
 
     [Fact]

@@ -150,7 +150,7 @@ applied when the player's own choices can turn it off.**
 | `AngerNoLair` | +100/s | **Yes** — lairs are built, sold and filled |
 | `ModifyAngerOfCreatureInLairPerSecond` | −550/s | **Yes** — sleep works, so recovery is real |
 | `AngerNoFood` | +100/s | **In the prison only** (ADR-0074) — a keeper can stock a cell, so that source is one the player can turn off. Not applied generally: the ordinary hungry creature walks to a hatchery, and charging it would anger everybody on a map with no hatchery |
-| `AngerNoWork` | +50/s | No — non-workers have no job system; "no work" is a fact about us |
+| `AngerNoWork` | +50/s | **YES, since ADR-0082** - the happy chooser charges it when every job in the creature's happy table has failed. **And only the happy one**: the unhappy and angry choosers have the identical tail with the call missing, so a creature that is already unhappy is never made crosser by idleness. `job-selection.md` |
 | `AngerNoPay` | +60/s | **YES, since ADR-0079** — `FUN_00478d00`, the need-anger routine, reached just before the needs routine. **Being owed is the whole trigger**: unlike its two siblings it has *no room-availability clause*, so a keeper cannot excuse itself by having no treasury. Charged additively with `AngerNoLair`, and **not at all to a captive** — bit 1 of the state flag byte suppresses the whole routine and all eleven captive states carry it. `payday.md` §6 |
 | hated company | +150/s | No — the relation is parsed and unused |
 

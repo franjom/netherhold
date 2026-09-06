@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
@@ -264,6 +265,36 @@ public enum CreatureActivity
     /// owed rather than losing the wage.</para>
     /// </summary>
     SeekingWages = 18,
+
+    /// <summary>
+    /// Walking to the room a job is done in — the non-worker's equivalent of
+    /// <see cref="MovingToJob"/>, which belongs to the tile-work loop and to
+    /// workers (ADR-0082).
+    ///
+    /// <para>Which room is <see cref="JobRules.RoomFor"/>, and the walk is the
+    /// hatchery walk exactly: nearest room of that type belonging to this
+    /// creature's own keeper, first reachable one wins.</para>
+    /// </summary>
+    GoingToJob = 19,
+
+    /// <summary>
+    /// Standing in the room, doing the job in
+    /// <see cref="CreatureState.CurrentJob"/>.
+    ///
+    /// <para><b>One state where DK2 has one per job</b> — 0x35 research, 0x3f
+    /// the workshop, 0x61 guarding, 0x65 the temple, 0x6c training, 0x91 the
+    /// casino, 0x55 sulking in a lair. Ours composes them the way
+    /// <see cref="SeekingWages"/> composes payday's three, which produces the
+    /// same observable behaviour by the shortest honest route.</para>
+    ///
+    /// <para><b>Only Praying does anything here yet</b>, and that is the
+    /// deliberate order rather than the easy one: since ADR-0081 the Temple is
+    /// the only thing in the game that drains an anger bucket it did not fill.
+    /// A creature at any other job stands in the room, and every second of it
+    /// is a second it is not idle and not taking <c>AngerNoWork</c> — which is
+    /// the half of a job the choosers actually depend on.</para>
+    /// </summary>
+    AtWork = 20,
 }
 
 /// <summary>
@@ -451,6 +482,69 @@ public sealed class CreatureState
     /// and 32767 to within a percent (Q106).</para>
     /// </summary>
     public CreatureAnger Anger;
+
+    /// <summary>
+    /// The mood band this creature was last <i>reported</i> in — DK2's own
+    /// <c>this[7]</c>, the eighth slot of the anger object, which its anger-add
+    /// routine rewrites on every single add (ADR-0081).
+    ///
+    /// <para><b>Stored rather than recomputed, and that is what makes the
+    /// report honest.</b> Anger is applied from four places now — the needs
+    /// ladder, a slap, the prison, and having no work — and three of them run
+    /// before <see cref="Systems.CreatureAngerSystem"/> in the same tick. A
+    /// system that worked out "the mood before" from the anger it could see at
+    /// the top of its own pass would find the change had already happened and
+    /// say nothing about it. Keeping the last reported band means a creature
+    /// pushed over the line by a slap, or by a keeper with no work for it, is
+    /// reported in the second it crossed, by whichever system runs next.</para>
+    ///
+    /// <para>The band is still <i>derived</i> — <see cref="CreatureAngerRules.MoodOf"/>
+    /// is the truth at any instant. This is a record of what was last said out
+    /// loud.</para>
+    /// </summary>
+    public CreatureMood Mood;
+
+    /// <summary>
+    /// The job this creature is currently doing, or
+    /// <see cref="Data.Model.JobType.None"/>.
+    ///
+    /// <para>DK2's own field, at <c>creature+0x64</c>: its job dispatcher
+    /// writes the job id there the moment a handler accepts, and nowhere else
+    /// (ADR-0082). Meaningful only while the activity is
+    /// <see cref="CreatureActivity.GoingToJob"/> or
+    /// <see cref="CreatureActivity.AtWork"/>.</para>
+    /// </summary>
+    public JobType CurrentJob;
+
+    /// <summary>The tile of the room this creature is walking to for its job, or -1.</summary>
+    public int JobTileIndex = -1;
+
+    /// <summary>
+    /// When this creature last chose a job while <b>content</b>, and the gate
+    /// on choosing another: five game seconds
+    /// (<see cref="JobRules.ReselectionGateTicks"/>).
+    ///
+    /// <para><b>Three timestamps, not one</b>, which is the original's own
+    /// layout — <c>creature+0xfd</c> happy, <c>+0xf9</c> unhappy, <c>+0x101</c>
+    /// angry, side by side. So a creature that has just rolled while content is
+    /// free to roll again the moment it turns unhappy, and the gate never
+    /// silences a mood change.</para>
+    ///
+    /// <para><b>Zero means "never", and tick zero therefore reads as never</b>
+    /// — the same sentinel <see cref="LastAngryChoiceTick"/> has carried since
+    /// ADR-0061, and the same one-tick collision. It is unreachable in
+    /// practice: only a selection that <i>succeeded</i> stamps anything, and a
+    /// creature whose selection succeeded is no longer idle, so it is not asked
+    /// again on the following tick. The original's counter is game time rather
+    /// than a tick index and is never zero when a creature chooses.</para>
+    /// </summary>
+    public long LastHappyChoiceTick;
+
+    /// <summary>
+    /// When this creature last chose a job while <b>unhappy</b>. See
+    /// <see cref="LastHappyChoiceTick"/> for why there are three.
+    /// </summary>
+    public long LastUnhappyChoiceTick;
 
     /// <summary>
     /// Wages this creature has been credited and has not yet collected.
@@ -795,7 +889,12 @@ public sealed class CreatureState
         hash.Add(SkipNextPayment);
         hash.Add(Level);
         hash.Add(ExperiencePoints);
+        hash.Add((int)Mood);
         hash.Add(LastAngryChoiceTick);
+        hash.Add(LastHappyChoiceTick);
+        hash.Add(LastUnhappyChoiceTick);
+        hash.Add((int)CurrentJob);
+        hash.Add(JobTileIndex);
         hash.Add(InHand);
         hash.Add(PickupTick);
         hash.Add(LastSlapTick);

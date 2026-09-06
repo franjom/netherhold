@@ -980,7 +980,9 @@ scenarios, 76 ADRs, 202 catalogued open questions**, `HashVersion` 30.
 - **M2** ✅ — unchanged.
 - **M3** ✅ substantially — the Unity view renders campaign level 1; terrain
   work, rooms, the treasury, mana, gold and the imp are all in.
-- **M4** ◐ — **five of its seven items exist.** Portal spawn ✅ (ADR-0042/0047),
+- **M4** ✅ — **all seven items exist**, the last of them job selection with logged reasons (ADR-0082, 2026-09-06). What is *selected* and not yet *worth* anything is training (Q205).
+
+- **M4 (superseded paragraph)** ◐ — ~~five of its seven items exist.~~ Portal spawn ✅ (ADR-0042/0047),
   lair claim ✅ (ADR-0049/0060), sleep ✅, **hunger→hatchery ✅ (ADR-0066/0067,
   2026-09-06)**. Training ✗, payday ✗, and job selection with logged reasons is
   done **for workers only** (ADR-0058) — a non-worker still has no job.

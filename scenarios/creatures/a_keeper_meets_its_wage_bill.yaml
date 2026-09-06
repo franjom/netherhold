@@ -53,15 +53,19 @@
 # current state's category byte. Nobody collected anything. A creature has to
 # have somewhere to live before it can be paid.
 #
-# ## What is missing, and it is the important one
+# ## What was missing when this was written, and is not any more
 #
-# Nobody gets ANGRY about not being paid. The owner has described the
-# consequence (Q9: unhappy, then angry, then leaves the dungeon - or rebels, if
-# it was converted) and the anger ladder is built (ADR-0053), but the routine
-# that connects an unpaid creature to AngerNoPay was not found in the payday
-# path and is not invented here. So player 4's Goblins stay owed and stay
-# perfectly cheerful, which is wrong - and wrong visibly, which is the point of
-# running it.
+# This scenario used to end by saying that nobody got ANGRY about not being paid
+# - that the routine connecting an unpaid creature to AngerNoPay had not been
+# found. It was found the same day (ADR-0079): being owed anything at all is the
+# whole trigger, with no treasury clause. Player 4's Goblins are charged from
+# the moment the clock runs.
+#
+# And what they are charged is its OWN COUNTER (ADR-0081). DK2 keeps six, one
+# per grievance, and bands the largest rather than their sum - so the beds these
+# Goblins sleep in do not pay off a single point of the wage they are owed. This
+# scenario's own first reading concluded the opposite, from two correct numbers
+# that never meet.
 #
 # Evidence: docs/research/payday.md. Decisions: ADR-0078. Questions: Q9.
 

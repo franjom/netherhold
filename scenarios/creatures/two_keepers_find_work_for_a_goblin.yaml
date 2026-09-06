@@ -1,0 +1,123 @@
+# Job selection for creatures that are not workers - M4's seventh and last
+# item. Q2, ADR-0082, docs/research/job-selection.md.
+#
+# ## What the original does
+#
+# Three routines roll a creature's job for its mood: FUN_004780e0 happy,
+# FUN_004782c0 unhappy, FUN_004784c0 angry (the last of which has been built
+# since ADR-0061 and is where leaving the dungeon lives). Each builds cumulative
+# ranges from its table's chances, rolls rand(100), tries the job whose range
+# holds the roll, and on failure tries every job in the table in record order.
+# A re-roll is allowed only after five game seconds, per mood.
+#
+# What "tries" means is one shared dispatcher, FUN_00478800: a 28-way switch
+# from job id to that job's handler. Every handler has the same three parts - a
+# cheap test on the keeper or the creature, a search for the nearest suitable
+# room, and entering the job's state, which can still fail. That boolean is the
+# whole of job availability.
+#
+# ## Two keepers, one difference, and the difference is a room
+#
+# The shipped Goblin's HappyJobs is Train at 100% and nothing else. So a Goblin
+# with a training room trains, and a Goblin without one has an empty table -
+# which is what AngerNoWork is for.
+#
+# Player 3 has a training room and a temple. Player 4 has neither. Both have
+# lairs, because a creature has to have somewhere to live before it does
+# anything else (Q150) and because the first draft of the wage-bill scenario
+# learned that the hard way.
+#
+# ## The asymmetry worth watching for
+#
+# ONLY A HAPPY CREATURE IS ANGERED BY HAVING NOTHING TO DO. The happy chooser
+# ends, when every job in the table has failed, with a call charging angerNoWork
+# (def+0x6c7). The unhappy chooser's identical tail is a bare return, and so is
+# the angry one's. A creature that is already unhappy is never made crosser by
+# idleness - the grievance belongs to the creature that was fine until its
+# keeper ran out of work for it.
+#
+# The same shape as AngerNoPay having no treasury clause where both its siblings
+# test for the room (ADR-0079). Twice now, a plausible symmetry the game does
+# not have.
+#
+# ## What to watch in the run
+#
+#   * job_taken job=Train for player 3's Goblins, within a few seconds, then
+#     job_started when they arrive. effect=unbuilt: they stand in the room and
+#     nothing happens to them, because what training is WORTH has an open unit
+#     question of its own and is not invented here.
+#   * job_refused job=Train reason=no_room for player 4's, five game seconds
+#     apart - the reselection gate - and no_work between them at 50 a second.
+#   * creature_mood for player 4's pair at about 5m30s, Content->Unhappy, with
+#     worst=Work naming which of the six anger buckets did it (ADR-0081). That
+#     is the whole mechanic in one line: the keeper who built no training room
+#     is told which grievance is about to cost it a creature.
+#   * and then NOTHING more from no_work for that pair, because they are unhappy
+#     now and the unhappy chooser does not charge it.
+#   * prayed, once a second, for player 3's Vampire. It is there to be the third
+#     creature in a dungeon with two beds, so it never gets one - and its
+#     happy table is Research 80% / Praying 20% with no library built, so it
+#     falls through to the Temple whatever it rolls. Watch the arithmetic: the
+#     Lair bucket takes +100 a second from having no bed and -275 from praying,
+#     netting -175. THE TEMPLE OUT-DRAINS A GRIEVANCE THAT IS STILL ACCRUING,
+#     and it is the only thing in the game that can touch that bucket at all.
+#
+# ## What is missing
+#
+# Only Praying has an effect built. A creature that takes Train, Research, Guard
+# or Drink walks to the room and stands in it, and every second of that is a
+# second it is not idle and not accruing AngerNoWork - which is behaviour, and
+# is the half of each job the choosers actually depend on. But nothing is
+# researched, manufactured, guarded or won.
+#
+# Praying is built because since ADR-0081 the Temple is the only thing in DK2
+# that drains an anger bucket it did not fill: -275 a second from all six, plus
+# 33 health. Player 3 has one so that the run shows it working.
+#
+# How long a creature keeps a job is ours, and there is evidence that it is not
+# a timer: DK2 ships MotionlessWhileResearching/Manufacturing/Praying/Training
+# Seconds, StateCounterWhileGuarding and MinimumJobDurationSeconds, and every
+# one of the six is read by nothing at all.
+#
+# Evidence: docs/research/job-selection.md. Decisions: ADR-0082, ADR-0081.
+# Questions: Q2, Q203.
+
+id: creatures-two-keepers-find-work-for-a-goblin-001
+question: >
+  A Goblin's whole happy table is Train. Does the keeper that built a training
+  room get a Goblin who walks to it and stays there, does the keeper that built
+  none get one that takes AngerNoWork at 50 a second until it turns unhappy,
+  and does the charge stop the moment it does?
+map: flat_16x10
+seed: 11
+duration_ticks: 12000
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 0 }
+    - { id: 4, gold: 0, mana: 0 }
+  rooms:
+    # Player 3: somewhere to live, somewhere to train, somewhere to pray.
+    - { type: Lair, at: [2, 2], player: 3 }
+    - { type: Lair, at: [3, 2], player: 3 }
+    - { type: Training Room, at: [2, 5], size: [2, 2], player: 3 }
+    - { type: Temple, at: [5, 2], size: [2, 2], player: 3 }
+    # Player 4: somewhere to live, and nothing to do.
+    - { type: Lair, at: [12, 6], player: 4 }
+    - { type: Lair, at: [13, 6], player: 4 }
+  creatures:
+    # Two Goblins standing ON the two lair tiles, so they bed on the first tick
+    # and the beds are gone before anything else can walk over. The first draft
+    # put them across the map and the Vampire nearer, and the Vampire got a bed
+    # - which is correct behaviour (nothing is reserved, ADR-0060) and ruined
+    # the demonstration. Both then go and train.
+    - { type: Goblin, at: [2, 2], player: 3 }
+    - { type: Goblin, at: [3, 2], player: 3 }
+    # A third creature for two beds, which is what makes the Temple worth
+    # watching: the Vampire never gets one, so its Lair bucket climbs at 100 a
+    # second, and praying is the only thing in DK2 that can take it back out.
+    - { type: Vampire, at: [7, 3], player: 3 }
+    - { type: Goblin, at: [10, 3], player: 4 }
+    - { type: Goblin, at: [11, 3], player: 4 }
+observe:
+  - state_hash
+  - events

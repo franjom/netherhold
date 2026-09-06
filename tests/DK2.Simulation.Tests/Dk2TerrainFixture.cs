@@ -43,6 +43,15 @@ internal static class Dk2TerrainFixture
     public const byte GraveyardTerrain = 23;
     public const byte PrisonTerrain = 20;
     public const byte LibraryTerrain = 15;
+
+    /// <summary>Terrain 16, and the room a content Goblin walks to (ADR-0082).</summary>
+    public const byte TrainingRoomTerrain = 16;
+
+    /// <summary>Terrain 22. The one room that takes anger back (ADR-0081).</summary>
+    public const byte TempleTerrain = 22;
+
+    /// <summary>Terrain 24, and where every unhappy creature in the game goes.</summary>
+    public const byte CasinoTerrain = 24;
     public const byte ManaVaultTerrain = 31;
     public const byte ClaimedVaultTerrain = 32;
 
@@ -82,6 +91,18 @@ internal static class Dk2TerrainFixture
             // that owns an object, which is what kind 8 carries things to.
             T(LibraryTerrain, "Library",
               TerrainFlags.Ownable, 10000, 10000, LibraryTerrain, ClaimedPath),
+
+            // The three rooms the job choosers walk to, transcribed from the
+            // shipped table (docs/research/terrain-room-dump.md). A Goblin
+            // trains, a Warlock researches or prays, and every unhappy creature
+            // in the game drinks - so between them and the Library these four
+            // cover every happy and unhappy table the fixture has.
+            T(TrainingRoomTerrain, "Training Room",
+              TerrainFlags.Ownable, 10000, 10000, TrainingRoomTerrain, ClaimedPath),
+            T(TempleTerrain, "Temple",
+              TerrainFlags.Ownable, 10000, 10000, TempleTerrain, ClaimedPath),
+            T(CasinoTerrain, "Casino",
+              TerrainFlags.Ownable, 10000, 10000, CasinoTerrain, ClaimedPath),
             T(ClaimedPath, "Claimed Path",
               TerrainFlags.Ownable | TerrainFlags.Attackable | TerrainFlags.FillInable,
               660, 660, Rock, DirtPath, manaGain: 1),
@@ -156,6 +177,14 @@ internal static class Dk2TerrainFixture
             // Q120).
             R(RoomTypeId.Library, "Library", 600, LibraryTerrain, 0x11ACu, 3, 3,
               objectIds: [BookCaseObjectId, ResearchBookObjectId]),
+
+            // Costs, sizes and flags from the shipped table. The Temple's 5x5
+            // DoubleQuad is transcribed rather than rounded off, because it is
+            // the most expensive room in the game and the size is part of why.
+            R(RoomTypeId.TrainingRoom, "Training Room", 500, TrainingRoomTerrain, 0x13ACu, 3, 3),
+            R(RoomTypeId.Temple, "Temple", 3000, TempleTerrain, 0x108Cu, 5, 5,
+              construction: TileConstruction.DoubleQuad),
+            R(RoomTypeId.Casino, "Casino", 750, CasinoTerrain, 0x13ACu, 3, 3),
         ],
         creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), .. extraCreatures],
         variables: Variables(),
@@ -836,6 +865,18 @@ internal static class Dk2TerrainFixture
         // against AngerNoLair (+100), so a bed undoes in one second what five
         // and a half seconds without one did (ADR-0053).
         Set(vars, VariableTypeId.ModifyAngerOfCreatureInLairPerSecond, -550);
+
+        // Praying, and both numbers are shipped and both are LIVE - checked,
+        // because seven of their neighbours in the same block turned out to be
+        // read by nothing at all (ADR-0082). The Temple is the only source in
+        // DK2 that drains an anger bucket it did not fill (ADR-0081), and it
+        // applies the -275 six times, once per bucket.
+        Set(vars, VariableTypeId.ModifyCreatureAngerWhilePrayingPerSecond, -275);
+        Set(vars, VariableTypeId.ModifyCreatureHealthWhilePrayingPerSecond, 33);
+
+        // The training cap the job dispatcher tests a creature's level against
+        // before it will look for a training room.
+        Set(vars, VariableTypeId.TrainingRoomMaxExperienceLevel, 4);
 
         Set(vars, VariableTypeId.CreatureDyingStateDurationSeconds, 60);
 

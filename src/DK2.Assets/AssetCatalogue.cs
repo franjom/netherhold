@@ -64,6 +64,8 @@ public static class AssetCatalogue
         "seeking_food",
         "fetching_chicken",
         "seeking_wages",
+        "going_to_job",
+        "at_work",
     ];
 
     /// <summary>
