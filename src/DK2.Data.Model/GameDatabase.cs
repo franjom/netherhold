@@ -25,7 +25,9 @@ public sealed class GameDatabase
         IEnumerable<CreatureDef> creatures,
         GlobalVariables variables,
         IEnumerable<KeeperSpellDef>? keeperSpells = null,
-        IEnumerable<ObjectDef>? objects = null)
+        IEnumerable<ObjectDef>? objects = null,
+        IEnumerable<DoorDef>? doors = null,
+        IEnumerable<TrapDef>? traps = null)
     {
         Terrain = terrain.ToDictionary(t => t.TerrainId);
         Rooms = rooms.ToDictionary(r => r.RoomId);
@@ -38,6 +40,8 @@ public sealed class GameDatabase
         // refers to one: a creature names its bed by id, a room names its
         // furniture by id.
         Objects = (objects ?? []).ToDictionary(o => o.ObjectId);
+        Doors = (doors ?? []).ToDictionary(d => d.DoorId);
+        Traps = (traps ?? []).ToDictionary(t => t.TrapId);
 
         // Lowest room id wins a shared terrain id. In the shipped data no two
         // rooms share one — RoomsOnRealDataTests asserts that — so the tie-break
@@ -142,6 +146,12 @@ public sealed class GameDatabase
     /// </summary>
     public IReadOnlyDictionary<byte, ObjectDef> Objects { get; }
 
+    /// <summary>The eight door definitions, keyed by their data-file id.</summary>
+    public IReadOnlyDictionary<byte, DoorDef> Doors { get; }
+
+    /// <summary>The sixteen trap definitions, keyed by their data-file id.</summary>
+    public IReadOnlyDictionary<byte, TrapDef> Traps { get; }
+
     /// <summary>The object with this id, or null. Id 0 means "none" throughout the data.</summary>
     public ObjectDef? ObjectById(byte id) =>
         Objects.TryGetValue(id, out ObjectDef? o) ? o : null;
@@ -150,6 +160,15 @@ public sealed class GameDatabase
     public ObjectDef? ObjectByName(string name) =>
         Objects.Values.FirstOrDefault(
             o => string.Equals(o.Name, name, StringComparison.OrdinalIgnoreCase));
+
+    public DoorDef DoorById(byte id) => Doors.TryGetValue(id, out DoorDef? door)
+        ? door
+        : throw new KeyNotFoundException($"No DOORS definition with id {id}.");
+
+    public TrapDef TrapById(byte id) => Traps.TryGetValue(id, out TrapDef? trap)
+        ? trap
+        : throw new KeyNotFoundException($"No TRAPS definition with id {id}.");
+
     public GlobalVariables Variables { get; }
 
     /// <summary>
@@ -222,7 +241,9 @@ public sealed class GameDatabase
                 Creatures.Values,
                 Variables.MergedWith(levelVariables),
                 KeeperSpells.Values,
-                Objects.Values);
+                Objects.Values,
+                Doors.Values,
+                Traps.Values);
 
     public TerrainDef TerrainById(byte id) => Terrain.TryGetValue(id, out TerrainDef? t)
         ? t

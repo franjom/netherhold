@@ -36,8 +36,13 @@ public static class GameDatabaseLoader
             KwdReader.ReadFile(Path.Combine(editor, "KeeperSpells.kwd")));
         List<ObjectDef> objects = KwdObjects.Parse(
             KwdReader.ReadFile(Path.Combine(editor, "Objects.kwd")));
+        List<DoorDef> doors = KwdDoors.Parse(
+            KwdReader.ReadFile(Path.Combine(editor, "Doors.kwd")));
+        List<TrapDef> traps = KwdTraps.Parse(
+            KwdReader.ReadFile(Path.Combine(editor, "Traps.kwd")));
 
-        return new GameDatabase(terrain, rooms, creatures, variables, keeperSpells, objects);
+        return new GameDatabase(
+            terrain, rooms, creatures, variables, keeperSpells, objects, doors, traps);
     }
 
     /// <summary>

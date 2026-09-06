@@ -49,8 +49,8 @@ public class KwdRecordLayoutTests
         { "Rooms.kwd",          KwdRecordType.Rooms,           26, 1055 },  // parsed
         { "Creatures.kwd",      KwdRecordType.Creatures,       46, 5449 },  // parsed
         { "KeeperSpells.kwd",   KwdRecordType.KeeperSpells,    13,  406 },  // two fields read
-        { "Traps.kwd",          KwdRecordType.Traps,           16,  579 },  // one field read (Q59)
-        { "Doors.kwd",          KwdRecordType.Doors,            8,  616 },  // unparsed, M6
+        { "Traps.kwd",          KwdRecordType.Traps,           16,  579 },  // parsed fields
+        { "Doors.kwd",          KwdRecordType.Doors,            8,  616 },  // parsed fields
         { "Objects.kwd",        KwdRecordType.Objects,        145,  894 },  // unparsed, M6
         { "Shots.kwd",          KwdRecordType.Shots,           65,  239 },  // unparsed, M6
         { "CreatureSpells.kwd", KwdRecordType.CreatureSpells,  41,  266 },  // unparsed, M7
