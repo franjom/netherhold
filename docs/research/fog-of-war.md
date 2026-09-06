@@ -164,27 +164,20 @@ simulation state. **Not decided here; both are for the binary.**
 
 ## 7. Open questions
 
-Not yet numbered into `docs/research/open-questions.md` — another session was
-editing that file at the time of writing.
+**Q190-Q194** in `docs/research/open-questions.md`, where the full status of each
+is kept: fog's home (Q190), the radius and what reveals (Q191), whether the five
+modes are real (Q192), the speculative tag (Q193), and the two reveal spells
+(Q194). One more is unnumbered because Q66 already asks it of claiming: whether
+the fog boundary takes in diagonal neighbours.
 
-1. **What is the reveal radius, and what does the revealing?** `Creatures Reveal`
-   and `All Owned Reveal` name two sources; neither is quantified. The owner's
-   ~6 tiles needs independent confirmation and matches nothing in the data.
-2. **Is fog per keeper in the simulation, or per client in the renderer?** The
-   answer decides whether `WorldState` grows a field and takes a hash bump. A
-   computer keeper that consults fog is the strongest evidence for the first.
-3. **Where is the fog mode stored, and what are its real values?** §2 is inferred
-   from a strings block. Is it in the level file, the skirmish setup, or both?
-4. **Does the campaign fix the mode, or do levels differ?** Goal 2 needs this.
-5. **Is a tag on an undiscovered tile stored, and where?** The owner has the
-   outcome; the mechanism is unread.
-6. **Do Sight of Evil and Reveal Map write the same state a creature writes?**
-   Their tooltips differ in a way that may matter — Sight of Evil is *"for spying
-   into unexplored areas"* (2220), Reveal Map *"to expose the secrets of the
-   entire realm"* (2255). Under `Stay Revealed`, a temporary spell that writes
-   the permanent layer is not temporary at all.
-7. **Does the fog boundary sit on tile centres or edges, and is a diagonal
-   neighbour revealed?** Q66 asks the same of claiming and is still open there.
+**Q190 has a cheap experiment, and it came from another mechanic.** The
+saved-game work found three lanes of the 10-byte runtime tile — 1, 3 and 9 —
+that move across most of the map between any two saves, recorded in
+`sav-format.md` as *"consistent with visibility or fog state, and they are still
+UNKNOWN"*. **If fog is in the save, it is game state rather than client state**,
+because a save persists the simulation. Two saves either side of walking one
+creature into unexplored ground would settle the architecture question without
+opening Ghidra, using a method that is already built and validated by a control.
 
 ## 8. What is implemented
 

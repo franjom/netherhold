@@ -4935,3 +4935,74 @@ assumptions rather than just adding facts:
   fog state change under a known action.
 
 See `docs/research/sav-format.md`.
+
+## 6. Fog of war opened, and it is further along than "not started"
+
+**2026-09-06, this sitting.** Fog had **no research note and no open question**
+anywhere in the repo — a sweep for "fog", "sight", "vision" and "visibility"
+across `docs/`, `src/` and `unity/` returned five incidental hits and no
+mechanic. It now has `docs/research/fog-of-war.md`, **Q190–Q194**, and two
+briefs. Nothing is implemented.
+
+**The finding that matters most is a correction that has not been made yet.**
+The owner CONFIRMED that a revealed region stays revealed — and `Text.str`
+348–353 turn out to read `Fog of War` / `Creatures Reveal` / `All Owned Reveal` /
+`Stay Revealed` / `Re-shroud` / `Re-fog`, inside a run of skirmish-setup labels.
+So **"stays revealed" is the name of option 351 of five**, and the campaign's
+behaviour is probably one mode of an engine that ships several. Writing it down
+as *the* rule would have been the characteristic defect again: consistent with
+everything available, right about the campaign, wrong about the engine. Q192
+carries it.
+
+**Confirmed on the way through:** an unseen tile really is *presented as terrain
+27*. Record 27 is `Fog Of War`, flags `Solid, Impenetrable, Taggable`, and its
+`NameStringId` 2472 / `TooltipStringId` 2473 resolve to "Fog of War" and "Fog of
+War: this area has not yet been explored" — which is exactly the caption in the
+owner's screenshot of the running game, with the blue selection quad sitting on a
+fog tile in open blackness. DK2 does not hide a tile, it substitutes one. Read
+via `Dk2StringTable`, which Brief 5 built for something else.
+
+**A near-miss checked and rejected, recorded so nobody re-runs it.** The owner
+estimates the reveal radius at ~6 tiles and `DefaultTorchLightRadiusTiles` is
+6144 — but `Fp32.One` is 4096, so that variable is **1.5 tiles**, and
+`DefaultTorchLightHeightTiles` carries the same number. There is **no sight
+radius anywhere in the 214-variable balance table**, so if it is 6 it is an
+immediate in the image. Q191.
+
+### The architectural fact this turned up, which is not about fog
+
+**The presentation boundary has no viewer.** `WorldView.TileAt(world, x, y)`
+takes no player, `ScenePresenter.Present(world)` takes no player, and
+`TileView.Tagged` is `IsTaggedByAnyone` — every renderer is omniscient by
+construction, both of them depend on it, and `ARCHITECTURE.md` lists four
+decisions at that boundary without mentioning this one. It is the characteristic
+defect sitting in the architecture rather than in a rule.
+
+Fog is not the only customer for a fix: `Text.str` 2471 is *"This room is owned
+by another power. Its details are unknown."* — a **second partial-knowledge rule,
+on already-revealed ground**. The boundary needs a viewing player whether or not
+fog is ever built.
+
+### Where it stands, and the one thing not decided
+
+**Q190 is the stop rule: is fog simulation state or presentation state?** In
+`WorldState` it enters `HashInto`, `WorldSnapshot` and the pinned literal and
+costs a `HashVersion` bump; beside `WorldView` it costs nothing.
+
+**The save-format session left the cheap way to settle it, without knowing it
+had.** Lanes 1, 3 and 9 of the runtime tile move across most of the map between
+any two saves — *"consistent with visibility or fog state"*. **If fog is in the
+save it is game state, because a save persists the simulation.** Two saves either
+side of walking one creature into unexplored ground would answer it in minutes,
+using a method already built and validated by a control. Both briefs now say so.
+
+**Brief 7** (read-only research) and **Brief 8** (build it, own worktree and
+branch `codex/fog-of-war`) are in `CODEX_TASKS.md`; Brief 8 absorbs Brief 7, so
+run one or the other. Brief 8 is shaped around the stop rule — presentation-side
+by default, and a finding of "simulation state" is a **stop and report**, not a
+licence to bump the hash, since the determinism hash is not Codex's. Its
+definition of done leans on one property worth keeping: **an unchanged pinned
+hash is the proof that fog stayed out of the simulation.**
+
+The test to want back is two keepers viewing the same world and seeing different
+things. Nothing in this project can express that today.

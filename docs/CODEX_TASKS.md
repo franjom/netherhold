@@ -695,7 +695,20 @@ Answer from Ghidra first, Flame second, OpenKeeper last. **Report the answers in
 the branch README; they are the justification for everything you then build.**
 
 1. **Does anything in the simulation read fog?** Above all: does a **computer
-   keeper** consult it when deciding anything? This is the stop-rule question.
+   keeper** consult it when deciding anything? This is the stop-rule question
+   (Q190).
+
+   **Try the cheap route before Ghidra on this one.** The saved-game session
+   found that a save's 10-byte runtime tile has three lanes — **1, 3 and 9** —
+   that move across most of the map between *any* two saves, which
+   `docs/research/sav-format.md` records as "consistent with visibility or fog
+   state, and still UNKNOWN". **If fog state is written into a save, it is game
+   state and not client state**, because a save persists the simulation. Two
+   saves taken either side of walking one creature into unexplored ground, with
+   nothing else changed, would settle the stop rule in minutes — and that method
+   is already built and validated by a control (an imp created, zero tiles
+   changed in the other seven lanes). A negative there is not proof of the
+   opposite; go to Ghidra either way, but go knowing which answer to expect.
 2. **What is the reveal radius, and what does the revealing?** Confirm or refute
    the owner's ~6 tiles with a number from the image. Which entities push the
    boundary back — any creature, the keeper's own only, a dropped one, the
