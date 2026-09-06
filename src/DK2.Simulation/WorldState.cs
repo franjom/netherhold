@@ -203,6 +203,27 @@ public struct TileState
     /// </summary>
     public int EntranceIdleTicks;
 
+    /// <summary>
+    /// A hatchery's clock towards its next egg, on the room's lowest tile index
+    /// and zero everywhere else.
+    ///
+    /// <para><b>DK2 keeps this on the room</b> — its room debug dump prints
+    /// <c>GameTickLastGenerated</c>, <c>GenerationSpeed</c> and
+    /// <c>ChickensGenerated</c> for the Hatchery case — and rooms here are
+    /// derived rather than stored (<see cref="RoomInstance"/>), so the clock has
+    /// to live on something that is. A tile is what
+    /// <see cref="EntranceIdleTicks"/> already uses for the portal's clock, and
+    /// the lowest tile index is stable because <c>RoomInstance.TileIndices</c>
+    /// is kept in ascending order.</para>
+    ///
+    /// <para><b>Consequence, stated:</b> a hatchery that grows or is cut so that
+    /// its lowest tile changes starts its clock again. That is a real
+    /// difference from the original, where the clock belongs to the room object
+    /// and survives; it costs at most one laying interval and only when a
+    /// keeper is building.</para>
+    /// </summary>
+    public int HatchTicks;
+
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = 15;
 
@@ -235,6 +256,7 @@ public struct TileState
         hash.Add(UpwardWork);
         hash.Add(BurnTicksRemaining);
         hash.Add(EntranceIdleTicks);
+        hash.Add(HatchTicks);
     }
 }
 

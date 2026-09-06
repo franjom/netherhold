@@ -4834,3 +4834,90 @@ anybody's problem.
 - **Tier B's loose-object question.** The original's ring scan asks about loose
   objects too, as its third question after reinforce-or-repair and floor gold.
   This builds the whole-map Tier A kind only.
+
+## ADR-0066 — The Hatchery lays, and the blocker had already been removed
+
+**Status:** Accepted (2026-09-06). Research: `docs/research/hatchery.md` §4,
+Q132, Q134. Scenario: `a_hatchery_lays_and_hatches`.
+
+### Context
+
+`HatcheryRules` was written four sittings ago and could run none of itself. It
+knew how many coops a room of a given size gets (`floor(tiles / 6)`, capped at
+36), where they may stand (never two within a squared distance of 3), that the
+room lays an **Egg** (object 47) at a randomly chosen coop, that the egg becomes
+a **Chicken** (object 9) after two seconds, and that a room holds one bird per
+tile. What it did not have was the clock, and the reason was written into the
+class, into `hatchery.md`, and into the harness's own caveat list:
+
+> DK2 multiplies its laying interval by a balance variable **that no shipped
+> file supplies** (Q132).
+
+**Q132 was answered on 2026-09-05** — the multiplier is variable 19, ticks per
+game second, the **level header** supplies it rather than any variables file,
+and all 66 shipped levels carry 4. The blocker had been gone for a day while
+three documents still named it, and the answer was written in this project's own
+question list.
+
+**Fifth instance of a claim nothing checks**, and a new variant: not a stated
+rule, not a stated blocker, but a **stated blocker that had already been
+removed**. Nothing re-reads a "blocked on Qnnn" note when Qnnn is answered.
+
+### Decision
+
+`HatcheryRules.LayIntervalSeconds`, `HatcherySystem`, and two fields of state.
+
+**The interval, read from the original:**
+
+```
+  interval = (int)( ChickenGenerationTimePerHatchery / pow(tiles, 0.315477776) ) * V19
+```
+
+Returned in **whole game seconds**, with the caller converting to ticks — the
+truncation happens before the multiply, and returning ticks would bake the
+still-placeholder `TicksPerSecond` into the arithmetic (Q1).
+
+**A fixed-point table rather than `Math.Pow`.** This number decides when an egg
+appears and eggs are hashed; IEEE-754 `pow` is not guaranteed bit-identical
+across runtimes, and the truncation sits on a knife edge. `HatcheryClockTests`
+regenerates all 256 entries from `Math.Pow` and compares, so the table is
+provably the formula while the simulation never touches a float.
+
+**The 3x3 quirk is reproduced.** `pow(9, e)` is **2.0000566**, a hair above two,
+so `16 / 2.0000566` is 7.99977 and the truncation takes **7**. A designer
+deciding *"nine tiles should be exactly half of one"* would have got 8 — the
+exponent is typed rather than derived and was typed just high enough to miss.
+`hatchery.md`'s own table said 8 while its own header said "truncated"; it says 7
+now. One second off every 3x3 hatchery in the game, from the sixth decimal place.
+
+**Two fields of state, because a room here cannot hold any.** Rooms are derived
+(`RoomInstance`), and DK2 keeps `GameTickLastGenerated` on the room object. So
+the laying clock goes on the room's **lowest tile index**
+(`TileState.HatchTicks`, following `EntranceIdleTicks`), and each egg's own
+countdown goes on the object (`ObjectState.TimerTicks`, where DK2 keeps it in
+the object's union). **Stated consequence:** a hatchery that grows or is cut so
+its lowest tile changes restarts its clock, costing at most one interval.
+
+**Hatching runs before laying**, so an egg is not aged on the second it is laid.
+The other order gives a two-second egg a one-second life, which is what the first
+draft did and what a test caught.
+
+### Consequences
+
+- **Kind 8 has something to carry.** ADR-0065 shipped the loose-object task with
+  nothing in the world to act on; a chicken is an object, and this is the first
+  thing in the project that puts one on the floor without a keeper or a creature
+  doing it.
+- `HashVersion` and the snapshot `FormatVersion` go 25 -> 26.
+- 8 tests in `HatcheryClockTests`; the scenario runs a 3x3 from empty to full and
+  then shows it refusing, twice.
+
+### Still open
+
+- **Nothing eats.** A hungry creature does not walk to a hatchery, choose a bird
+  or race another creature for one, and a prisoner cannot be fed — which is the
+  counterplay the prison's withering exists for (Q172). The eating half is a
+  creature-side mechanic and is the next one.
+- **Free-range chickens.** `MaxFreeRangeChickensPerPlayer` (12) caps birds
+  outside a room in the original; nothing here takes a chicken out of one, so the
+  cap has nothing to count.

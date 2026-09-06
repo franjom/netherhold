@@ -114,28 +114,46 @@ shipped 16:
 |---|---|---|
 | 1 | 1.00 | 16 |
 | 4 | 1.55 | 10 |
-| 9 | 2.00 | 8 |
+| 9 | 2.00006 | **7** |
 | 16 | 2.40 | 6 |
 | 25 | 2.76 | 5 |
 | 36 | 3.10 | 5 |
 | 64 | 3.71 | 4 |
 | 100 | 4.28 | 3 |
 
-**The exponent is chosen so that nine tiles gives exactly 2.** `pow(9, e)` is
-2.0001, and a 3x3 room is the smallest a room can be — so the designers appear
-to have picked the curve by deciding that the smallest hatchery should be half
-the speed of a one-tile one. That reading is suggestive and no more: the exact
-value is not `log 2 / log 9` (which is 0.31546), so it was typed rather than
-derived, and **why that number is UNKNOWN** (Q134). It does not matter for
-fidelity — the constant is what it is — but it matters for confidence that we
-have read it correctly, and the 9-to-2 landing is the check that we have.
+**CORRECTED 2026-09-06: the nine-tile row said 8 and is 7.** The header of that
+table says *"truncated"* and the row had been rounded. `pow(9, e)` is
+**2.0000566**, a hair *above* two, so `16 / 2.0000566` is **7.99977** and a C
+cast takes **7**. The error mattered more than a row usually would, because 3x3
+is the smallest room the game allows and therefore the most common hatchery
+there is.
 
-**What is missing is only the unit.** If `V19` is the engine's ticks-per-second
-then a 3x3 hatchery lays every 8 seconds and a 6x6 every 5, which are plausible
-game numbers. If it is something else they are not. `V19` is read from **223
-places** in the binary as both a multiplier and a divisor, is written by exactly
-one instruction, and appears in no shipped file at all — the full account is in
-`balance-variables-in-the-binary.md`, and it is **Q132**.
+**The exponent was chosen so that nine tiles gives <i>almost</i> exactly 2**, and
+the almost is the quirk. The value is not `log 2 / log 9` (0.3154648), so it was
+typed rather than derived — and it was typed **just high enough to miss**. A
+designer deciding *"the smallest hatchery should be half the speed of a one-tile
+one"* would have got 8; the shipped constant gives 7. **That is a difference of
+one second on every 3x3 hatchery in the game, caused by the sixth decimal
+place**, and it is reproduced rather than rounded away (Q134).
+
+It is also why `HatcheryRules` uses a **fixed-point table rather than
+`Math.Pow`**: the number decides when an egg appears, eggs are hashed, and
+IEEE-754 `pow` is not guaranteed bit-identical across runtimes. A difference in
+the eighth decimal place would hand one machine 8 and another 7 and diverge the
+run. `HatcheryClockTests` regenerates the table from `Math.Pow` and compares, so
+the table is provably the formula while the simulation never touches a float.
+
+**The unit was the last thing missing and it is answered.** `V19` is the
+engine's ticks per game second, supplied by the **level header** rather than by
+any variables file, and all 66 shipped levels carry **4** (Q1/Q132, 2026-09-05).
+So a 3x3 hatchery lays every 7 game seconds and a 6x6 every 5, which are
+plausible game numbers.
+
+**Built on 2026-09-06** (ADR-0066): `HatcheryRules.LayIntervalSeconds` and
+`HatcherySystem`. The interval is returned in **whole game seconds** and the
+caller converts, because the truncation happens before the multiply and because
+`SimulationTiming.TicksPerSecond` is still a placeholder (Q1) — returning ticks
+would bake the placeholder into the arithmetic.
 
 ## 5. Free-range chickens
 
@@ -201,7 +219,8 @@ hatchery.
 until laying happens on a clock; and the ageing that would carry an egg to
 `EggHatchSeconds`, which arrives with the same clock.
 
-**Blocked on Q132** (the unit): the laying interval, and therefore the room
+**No longer blocked** — Q132 answered 2026-09-05, built 2026-09-06 (ADR-0066).
+What follows is the note as it stood: the laying interval, and therefore the room
 producing anything on its own.
 
 **Q135 is closed:** one chicken per room tile, measured. `FlockCapacity`,

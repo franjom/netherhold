@@ -207,7 +207,7 @@ public class DeterminismTests
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x7CE9F32AE31A3976UL, sim.StateHash());
+        Assert.Equal(0x154E9041172A7F7FUL, sim.StateHash());
     }
 
     [Fact]

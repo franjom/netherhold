@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 25;
+    private const int FormatVersion = 26;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -62,6 +62,7 @@ public static class WorldSnapshot
             w.Write(t.UpwardWork);
             w.Write(t.BurnTicksRemaining);
             w.Write(t.EntranceIdleTicks);
+            w.Write(t.HatchTicks);
             w.Write(t.TaggedBy);
             w.Write(t.FreshlyDug);
         }
@@ -150,6 +151,7 @@ public static class WorldSnapshot
             w.Write(o.CreatureId);
             w.Write(o.GoldHeld);
             w.Write(o.CarriedByCreatureId);
+            w.Write(o.TimerTicks);
         }
     }
 
@@ -200,6 +202,7 @@ public static class WorldSnapshot
                 UpwardWork = r.ReadInt32(),
                 BurnTicksRemaining = r.ReadInt32(),
                 EntranceIdleTicks = r.ReadInt32(),
+                HatchTicks = r.ReadInt32(),
                 TaggedBy = r.ReadUInt16(),
                 FreshlyDug = r.ReadBoolean(),
             };
@@ -297,6 +300,7 @@ public static class WorldSnapshot
                 CreatureId = r.ReadInt32(),
                 GoldHeld = r.ReadInt32(),
                 CarriedByCreatureId = r.ReadInt32(),
+                TimerTicks = r.ReadInt32(),
             });
         }
 

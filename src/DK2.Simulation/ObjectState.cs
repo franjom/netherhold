@@ -125,6 +125,18 @@ public sealed class ObjectState
     /// </summary>
     public int CarriedByCreatureId = -1;
 
+    /// <summary>
+    /// A per-object countdown, in ticks. Today only an <b>egg</b> uses it, to
+    /// count the two seconds before it hatches.
+    ///
+    /// <para><b>DK2 keeps this in the object's union</b>, which is where a
+    /// per-kind timer belongs (<c>objects.md</c> §7) — the same eighteen bytes
+    /// that hold a bed's creature id and a pile's gold. This project spends a
+    /// field on it instead, because a union member read by the wrong rule is
+    /// the mistake that union is best at causing.</para>
+    /// </summary>
+    public int TimerTicks;
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
@@ -134,5 +146,6 @@ public sealed class ObjectState
         hash.Add(CreatureId);
         hash.Add(GoldHeld);
         hash.Add(CarriedByCreatureId);
+        hash.Add(TimerTicks);
     }
 }

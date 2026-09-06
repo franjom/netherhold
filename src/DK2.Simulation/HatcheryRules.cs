@@ -412,6 +412,107 @@ public static class HatcheryRules
     /// against holds, it is not "chickens this keeper owns" — see
     /// <see cref="TryLayEgg"/>. Exposed, not enforced.</para>
     /// </summary>
+    /// <summary>
+    /// The largest tile count the interval table covers. A hatchery bigger than
+    /// this lays at the same rate as one exactly this big.
+    ///
+    /// <para>Not an arbitrary ceiling: <see cref="MaxCoops"/> is 36 and
+    /// <see cref="TilesPerCoop"/> is 6, so a room stops gaining coops at 216
+    /// tiles and there is nothing above that for a faster clock to feed.</para>
+    /// </summary>
+    public const int MaxTilesForInterval = 256;
+
+    // pow(n, 0.315477776) for n = 1..256, scaled by 2^24 and rounded.
+    //
+    // A TABLE RATHER THAN Math.Pow, because this number decides when an egg
+    // appears and eggs are hashed. IEEE-754 pow is not guaranteed bit-identical
+    // across runtimes, and the truncation below sits on a knife edge: a 3x3
+    // hatchery computes 7.99977 and takes 7, so a difference in the eighth
+    // decimal place would hand one machine 8 and another 7 and diverge the run.
+    // HatcheryTests regenerates this from Math.Pow and compares, so the table is
+    // provably the formula while the simulation never touches a float.
+    private static readonly int[] PowScaled =
+    [
+        16777216, 20877965, 23726903, 25981035, 27875932, 29526320, 30997705, 32331415,
+        33555383, 34689471, 35748362, 36743252, 37682896, 38574279, 39423080, 40233979,
+        41010889, 41757114, 42475474, 43168399, 43837997, 44486109, 45114356, 45724174,
+        46316838, 46893488, 47455150, 48002747, 48537116, 49059015, 49569138, 50068118,
+        50556534, 51034922, 51503773, 51963542, 52414650, 52857487, 53292417, 53719779,
+        54139889, 54553042, 54959515, 55359568, 55753444, 56141374, 56523573, 56900246,
+        57271584, 57637771, 57998978, 58355368, 58707098, 59054314, 59397155, 59735756,
+        60070243, 60400737, 60727353, 61050201, 61369386, 61685010, 61997168, 62305952,
+        62611451, 62913750, 63212929, 63509067, 63802239, 64092516, 64379969, 64664663,
+        64946664, 65226032, 65502828, 65777110, 66048931, 66318347, 66585409, 66850166,
+        67112668, 67372961, 67631090, 67887098, 68141029, 68392923, 68642820, 68890758,
+        69136775, 69380908, 69623190, 69863657, 70102341, 70339274, 70574489, 70808014,
+        71039881, 71270117, 71498750, 71725808, 71951317, 72175302, 72397790, 72618803,
+        72838367, 73056504, 73273237, 73488587, 73702578, 73915228, 74126559, 74336591,
+        74545343, 74752834, 74959083, 75164109, 75367927, 75570557, 75772015, 75972317,
+        76171480, 76369519, 76566450, 76762288, 76957049, 77150745, 77343392, 77535003,
+        77725593, 77915174, 78103759, 78291361, 78477993, 78663667, 78848395, 79032188,
+        79215059, 79397018, 79578077, 79758246, 79937537, 80115959, 80293523, 80470240,
+        80646118, 80821168, 80995399, 81168821, 81341442, 81513272, 81684320, 81854594,
+        82024103, 82192855, 82360859, 82528123, 82694654, 82860461, 83025551, 83189931,
+        83353610, 83516595, 83678892, 83840509, 84001453, 84161731, 84321349, 84480314,
+        84638633, 84796311, 84953357, 85109774, 85265571, 85420752, 85575324, 85729292,
+        85882663, 86035442, 86187634, 86339246, 86490282, 86640748, 86790649, 86939990,
+        87088777, 87237014, 87384707, 87531860, 87678478, 87824566, 87970129, 88115171,
+        88259697, 88403711, 88547218, 88690222, 88832728, 88974739, 89116260, 89257295,
+        89397848, 89537924, 89677525, 89816657, 89955322, 90093525, 90231270, 90368560,
+        90505399, 90641790, 90777738, 90913245, 91048315, 91182952, 91317160, 91450940,
+        91584297, 91717234, 91849755, 91981861, 92113558, 92244847, 92375732, 92506215,
+        92636301, 92765992, 92895290, 93024199, 93152721, 93280860, 93408618, 93535998,
+        93663003, 93789635, 93915897, 94041792, 94167323, 94292491, 94417300, 94541752,
+        94665849, 94789595, 94912991, 95036039, 95158743, 95281105, 95403127, 95524811,
+        95646160, 95767175, 95887860, 96008216, 96128245, 96247950, 96367333, 96486396,
+    ];
+
+    /// <summary>
+    /// How long this hatchery waits between eggs, in <b>game seconds</b>.
+    ///
+    /// <para>Read from the original (<c>hatchery.md</c> §4), and the formula is
+    /// exact:</para>
+    ///
+    /// <code>
+    ///   interval = (int)( ChickenGenerationTimePerHatchery / pow(tiles, 0.315477776) ) * V19
+    /// </code>
+    ///
+    /// <para>The truncation happens <b>before</b> the multiply by ticks-per-game-second,
+    /// so this returns the truncated whole seconds and the caller converts —
+    /// which is what keeps the arithmetic right while
+    /// <see cref="SimulationTiming.TicksPerSecond"/> is still a placeholder
+    /// (Q1).</para>
+    ///
+    /// <para><b>A bigger hatchery lays faster, on a curve.</b> With the shipped
+    /// 16: one tile every 16 seconds, 3x3 every <b>7</b>, 5x5 every 5, 8x8 every
+    /// 4.</para>
+    ///
+    /// <para><b>The 3x3 case is a quirk to reproduce rather than round away.</b>
+    /// The exponent is typed rather than derived — it is not
+    /// <c>log 2 / log 9</c> — and it lands at <c>pow(9, e) = 2.00006</c>, a hair
+    /// <i>above</i> two. So 16/2.00006 is 7.99977 and the truncation takes
+    /// <b>7</b>, where a designer thinking "nine tiles should be exactly half of
+    /// one" would have expected 8. The smallest hatchery is one second faster
+    /// than the round number, for ever, because of the sixth decimal place
+    /// (Q134). <c>hatchery.md</c> §4's table said 8 for a day; its own header
+    /// said "truncated".</para>
+    /// </summary>
+    public static int LayIntervalSeconds(GameDatabase database, RoomInstance hatchery) =>
+        LayIntervalSecondsForTiles(database, hatchery.TileCount);
+
+    /// <summary>
+    /// <see cref="LayIntervalSeconds"/> by tile count alone — the room is only
+    /// ever consulted for its size, and a rule that takes the number it uses is
+    /// a rule a test can drive across the whole table.
+    /// </summary>
+    public static int LayIntervalSecondsForTiles(GameDatabase database, int tiles)
+    {
+        int clamped = Math.Clamp(tiles, 1, MaxTilesForInterval);
+        int seconds = database[VariableTypeId.ChickenGenerationTimePerHatchery];
+
+        return (int)(((long)seconds << 24) / PowScaled[clamped - 1]);
+    }
+
     public static int FreeRangeCap(GameDatabase database) =>
         database[VariableTypeId.MaxFreeRangeChickensPerPlayer];
 }
