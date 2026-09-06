@@ -250,3 +250,120 @@ impenetrable rock discard it.
   through the same discovery seam when researched.
 - **Whether the boundary takes in diagonal neighbours** — unnumbered, because
   Q66 asks the same of claiming.
+
+## 9. Watched in play — CONFIRMED by the owner, 2026-09-06 (two screenshots)
+
+Taken in a skirmish while Q190's second half was open. Two of §8's STRONGLY
+INFERRED readings are now owner-confirmed, and one thing turned up that nothing
+had predicted.
+
+### 9.1 `RevealThroughFogOfWar` does exactly what it says — CONFIRMED
+
+A **gem seam is visible inside unexplored blackness**, lit and rendered in full,
+with no explored ground anywhere near it. Gems is one of the six terrains
+carrying the flag (with Impenetrable Rock, Water, Lava, Gold and Edge of Map).
+
+So the flag is not merely *live* — which is all the binary showed, by being
+tested in the same decision as the tile fog gate — it produces the visible
+behaviour its name claims. **This is why a keeper can plan for gold and gems
+before exploring**, and it is a real gameplay affordance rather than a rendering
+detail.
+
+### 9.2 An undiscovered tile reports itself as terrain "Fog Of War" — CONFIRMED
+
+Hovering an unexplored tile prints **`Fog of War`** in the status bar and in the
+tile tooltip, exactly as any other terrain prints its own name. So the
+substitution is the game's own model and not a presentation convenience of ours:
+`WorldView` replacing a hidden tile with the shipped `Fog Of War` terrain
+(ADR-0076) is what DK2 is doing too.
+
+**And the tile is markable**: the screenshot has the dig cursor over it with the
+selection outline drawn. That is Q193's premise seen directly.
+
+### 9.3 The minimap shows only the viewer's own exploration — CONFIRMED
+
+*"It shows only what my creatures have explored."* Which settles that fog is
+**not a union** across keepers — you never see a rival's sight line.
+
+**Note carefully what this does NOT settle.** It is a statement about the
+viewer's own view, and all three candidate architectures produce it: shared fog
+is ruled out, but *per-keeper fog* and *one viewpoint plus an omniscient AI* both
+look exactly like this from the keeper's chair. Q190's second half is untouched
+by it.
+
+### 9.4 Two portals show through the fog, dimmed — and nothing explains this yet
+
+The owner's minimap carries **two portals in a darkened tint**, on ground no
+creature of theirs has explored.
+
+**This cannot be `RevealThroughFogOfWar`.** That is a *terrain* flag and a Portal
+is a **room** (type 3). Nothing read so far accounts for a room being visible
+through fog, and the minimap colour routine that was read (`FUN_00451c90`) tests
+exactly one room type in its fogged branch and it is the **Dungeon Heart**
+(type 5), not the Portal.
+
+So there is a second mechanism. The dimming suggests an *overlay* — icons drawn
+on top of the minimap for strategically essential rooms — rather than a tile
+colour, but that is a hypothesis and not a reading. **Q197.**
+
+## 10. The multiplayer argument, and why it points the other way
+
+The owner's objection (2026-09-06) is the strongest one available and deserves
+answering in full:
+
+> *"I can accept that an AI keeper can see the entire map, but what about a
+> multiplayer match between two human players? They can't have shared fog of
+> war, it must be per keeper."*
+
+**Two humans certainly cannot share fog.** But that does not require a
+per-keeper mask in the tile, because of where the copies live.
+
+DK2's tile record carries **one** fog bit — `tile + 0xB`, bit `0x40`, a
+hardcoded bit with no player index anywhere in the expression, read that way by
+the map renderer in at least two routines. In a peer-to-peer game each machine
+runs its own copy of the world, and that one bit means *"fogged for the player
+sitting at this machine"*. Player A's machine holds A's fog in it; player B's
+machine holds B's fog in the same byte. Neither ever sees the other's, and no
+per-keeper mask exists anywhere. **Two humans, no shared fog, one bit.**
+
+So the observation is satisfied by both architectures and separates neither.
+
+### 10.1 And now the argument reverses
+
+If each machine's fog bit holds a *different* value — which is exactly what
+"per-machine local fog" means — then **any simulation logic that read that bit
+would produce a different result on each machine.** In a lockstep game that is a
+desync. So under this reading, the fact that DK2's multiplayer works at all is
+evidence that **nothing in the simulation reads fog**.
+
+That inverts the intuition the objection starts from: multiplayer does not argue
+for fog being simulation state, it argues against fog being *consulted* by the
+simulation. Q190's two halves come apart here as sharply as anywhere.
+
+**The argument rests on an assumption worth naming**: that DK2's multiplayer is
+deterministic lockstep rather than state-synchronised from an authority. That is
+the norm for RTS of the period and it is **not established here**. If DK2 syncs
+state instead, the argument does not run.
+
+### 10.2 The experiment that settles it, using machinery that already exists
+
+The owner's own save is enough, and `Dk2SaveReader` plus the lane analysis in
+`sav-format.md` is already built and validated by a control:
+
+1. Play a skirmish far enough to explore a **distinctively shaped** region, and
+   note it off the minimap — which §9.3 confirms shows exactly the viewer's own
+   exploration.
+2. Save.
+3. Dump lanes **1, 3 and 9** bit by bit as a per-tile bitmap.
+4. Find the bit whose set-region matches the explored shape. That is fog, and it
+   identifies which of the three unknown lanes carries it — worth having on its
+   own.
+5. **Then the actual question:** is any *other* bit in those lanes set over a
+   *different* region — one belonging to another keeper's exploration?
+
+**Yes → per-keeper discovery, stored, and Q190's second half is answerable.
+No → one viewpoint, and this project's per-keeper mask is ours alone.**
+
+Either way it also closes the three UNKNOWN lanes that `sav-format.md` has been
+carrying since the format work began.
+
