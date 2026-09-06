@@ -22,9 +22,22 @@ Three regions. The first two are fixed-size; only the third varies.
 | Tile grid | `0x8861` | `width*height*10` | the dungeon |
 | Entity records | `0x119bb` | rest of file | 189-byte records |
 
-The grid begins at `0x8861` in **both** sample files even though they are
+~~The grid begins at `0x8861` in **both** sample files even though they are
 264,374 and 170,058 bytes — so everything before the entity list is at a fixed
-offset. The whole 94 KB size difference between the two saves is in the entity
+offset.~~
+
+**CORRECTED 2026-09-06: the offset is NOT fixed.** Both sample files are saves
+of *the same level*, so two samples were one sample. On **TrapTime**, a 110x80
+skirmish map, the grid is at **`0x14880`**. What varies is the global/player
+block above it, which is sized by something about the level rather than being
+constant.
+
+**Find it by correlation instead.** Lane 0 against the level's own design map
+(`<Level>Map.kld`, chunk 102, byte 0 of each 4-byte design tile) locates the
+grid unambiguously: **99.7%** agreement at the correct offset on a save taken at
+the start of a game, against 91% or less one record either side. A mid-game save
+scores lower simply because the dungeon has been dug — which is what the 73-85%
+figures below are, and why they should not be read as parser error. The whole 94 KB size difference between the two saves is in the entity
 region.
 
 Note `0x8861` is odd, so the writer is a byte-oriented serialiser, not a
@@ -114,6 +127,17 @@ tiles changed** in lanes 0, 2, 4, 5, 6, 7 and 8 — which both validated the
 method and showed that lanes 1, 3 and 9 are noise for this purpose: those three
 move across most of the map between *any* two saves, consistent with visibility
 or fog state, and they are still UNKNOWN.
+
+**Partly closed 2026-09-06, and the trick was to stop reading them as bytes.**
+Bit by bit those three lanes are quiet. **Lane 1, bit 6 is the local player's
+discovery bit** — set on 100% of the owner's own territory and 0% of the other
+three keepers', monotonic with zero reversals across three saves, and clearing
+in a band **13 tiles tall around a 1-tile tunnel**, which is the six-tile
+`PerceptionRange` every creature record carries. `fog-of-war.md` §11 has the
+whole derivation and what it settles. Lane 3's high nibble resets to zero
+wherever *any* keeper is active, in every territory at once, so it is a property
+of the tile rather than of a viewer — still UNKNOWN, no longer a fog
+candidate.
 
 Mining one gold tile and claiming one wall changed exactly **three** slots:
 terrain 6 (Gold) became 8 (Claimed Path) on the mined tile, the claimed tile's

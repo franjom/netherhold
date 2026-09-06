@@ -367,3 +367,95 @@ No → one viewpoint, and this project's per-keeper mask is ours alone.**
 Either way it also closes the three UNKNOWN lanes that `sav-format.md` has been
 carrying since the format work began.
 
+## 11. Q190 answered from the save data — ONE bit, ONE viewpoint
+
+The owner made the three-save series of §10.2 on **TrapTime**, a 110x80 skirmish
+map with four keepers on it. The answer came out cleanly, and it is not the one
+the multiplayer intuition predicts.
+
+### 11.1 The fog bit is lane 1, bit 6
+
+Diffing all **80 bit positions** of the 10-byte save tile record across the
+three saves, exactly one bit has the fingerprint §10.2 predicted: quiet in the
+control, loud in the signal, and **changing over a band far wider than the
+tunnel that caused it**.
+
+| | |
+|---|---:|
+| Tiles where it changed, control (nothing done) | 36 |
+| Tiles where it changed, signal (one tunnel, 2m30s) | 306 |
+| Shape of the changed set | **one** component, 26 wide x **13 tall** |
+| Tunnel that caused it | 25 tiles long, **1 tall**, centred in that band |
+
+Thirteen tiles tall, centred on the tunnel row, is a **six-tile radius** — the
+`PerceptionRange` of `0x6000` that all 46 creature records carry (§8.1),
+arriving by a completely independent route.
+
+### 11.2 It belongs to exactly one keeper, and there is no second one
+
+The save's owner lane gives four territories. Bit 1.6 in the final save:
+
+| Keeper | Tiles owned | Bit 1.6 set |
+|---|---:|---:|
+| **player 3** (the owner's own) | 81 | **100%** |
+| player 1 | 412 | **0%** |
+| player 4 | 104 | **0%** |
+| player 5 | 49 | **0%** |
+
+**All 80 bit positions were then checked for a mirror** — a bit that is set over
+another keeper's territory the way 1.6 is set over player 3's. There is none.
+The only other bits that discriminate between territories are lane 8's own bits
+0, 1 and 2, which *are* the owner id: player 3 is `0b011`, player 4 is `0b100`,
+player 5 is `0b101`, and the table reproduces exactly that. **That the owner id
+falls out of the same scan is what makes the negative result trustworthy** — the
+method can find a per-territory bit when one exists.
+
+### 11.3 Monotonic, with zero reversals
+
+Across all three saves, **342 tiles went 0 to 1 and not one went 1 to 0.** So
+*Stay Revealed* is confirmed from the data as well as from play, and DK2's
+campaign fog really is an accumulate-only discovery set.
+
+### 11.4 What this settles, and what it does not
+
+**Settled: DK2 does not store per-keeper fog.** The save carries one discovery
+bit and it is the local player's. This is the same conclusion the binary
+reached from the other end — the renderer's gate is `tile + 0xB` bit `0x40`,
+a hardcoded bit with no player index — and the two routes agree on the **bit
+number** as well as the architecture, which is worth more than either alone.
+
+**So the multiplayer objection resolves as §10 predicted.** Two humans do not
+share fog because each machine keeps its own copy of the world and that one bit
+means *"fogged for whoever is sitting here"*. Per-machine, not per-keeper.
+
+**Strong, not absolute, on the AI half.** An AI keeper's fog could in principle
+live in memory and never be saved — but then loading a game would hand every
+computer keeper a blank or omniscient slate, and its behaviour would visibly
+change across a save/load. Nothing here forces that conclusion; everything here
+points away from it. **Q190's second half is answered to the standard of "no
+evidence for, and the storage that would be needed is absent".**
+
+**What is ours, restated.** ADR-0076's per-keeper discovery mask is this
+project's representation, as the branch said. It is worth keeping — ours is
+derived deterministically from creature positions, so it is per-keeper for free
+and cannot diverge — but it should not be described as DK2's model, because DK2
+tracks one viewpoint.
+
+### 11.5 Two corrections to the save format, both worth more than the answer
+
+**The tile grid is NOT at a fixed `0x8861`.** In these saves it is at
+**`0x14880`**. `sav-format.md` recorded the offset as fixed on the strength of
+two saves *of the same level*, which is the project's standing generalisation
+trap in its purest form: two samples of one thing are one sample. The grid is
+found reliably by correlating lane 0 against the level's design map — 99.7%
+agreement on a save taken at the start, which is a far sharper signal than the
+73-85% the original series reported from mid-game saves.
+
+**Lane 1 bit 6 is discovery**, which retires part of the *"lanes 1, 3 and 9 move
+across most of the map between any two saves and are still UNKNOWN"* entry. They
+churn because they were read as whole bytes; **bit by bit they are quiet**, and
+the churn is in their other bits. Lane 3's high nibble is a separate matter: it
+resets to zero from many different values wherever *any* keeper is active, in
+both territories at once, so whatever it is it is a property of the tile and not
+of a viewer. Still UNKNOWN, and no longer a fog candidate.
+
