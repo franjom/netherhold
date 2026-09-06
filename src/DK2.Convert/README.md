@@ -61,6 +61,54 @@ The two scaled-dimension fields, coefficient codec's historical name, and the
 meaning of nonzero alpha-header bits below bit 7 are **UNKNOWN**. TGQ is used by
 movies and BF4 by fonts; neither participates in terrain or creature textures.
 
+## SDT sound banks
+
+Confidence is **CONFIRMED** against all 142 SDT files in the shipped v1.70
+installation (8,959 entries) and corroborated, for format facts only, with
+OpenKeeper's SDT reader. They agree on the container layout and the channel
+interpretation of every type that occurs; the payload codec label is narrower
+below because the shipped frame headers are the authority.
+
+An SDT starts with a little-endian 32-bit entry count followed by that many
+32-bit absolute entry offsets. Every shipped entry has a 40-byte header:
+header size, stored-data length, a fixed 16-byte ASCII name, 16-bit sample
+rate, 8-bit sample depth, 8-bit sound type, a zero field, a 32-bit field
+OpenKeeper names sample count, and another zero field. The payload follows the
+header. The offset and length ranges account for every byte in every shipped
+bank. The exact semantics of the proposed sample-count field are **UNKNOWN**;
+all shipped PCM entries store zero there, so `SdtArchive` exposes it without
+using it to construct the WAV.
+
+The shipped sound types are:
+
+- type 0: an empty placeholder (999 entries);
+- type 2: mono PCM, wrapped in a standard RIFF/WAVE PCM container on extraction
+  (211 entries);
+- type 36: mono MPEG audio (7,461 entries);
+- type 37: stereo MPEG audio (288 entries).
+
+OpenKeeper calls types 36 and 37 MP2, but the shipped payloads disagree with
+that narrower label: their MPEG frame headers identify 4,004 Layer I streams
+and 3,745 Layer II streams. The converter follows the payload, reports the
+actual layer, and preserves each compressed elementary stream unchanged as
+`.mp1` or `.mp2` rather than claiming to produce PCM. An unrecognized payload
+or type is preserved as `.bin` and reported as undecoded; it is never wrapped
+in a misleading WAV. OpenKeeper names type 3 as stereo PCM but marks that
+reading doubtful, and no shipped bank contains type 3, so its meaning is
+**UNKNOWN** here.
+
+There are 8,938 entries declared at 22,050 Hz and 21 at 44,100 Hz. Seventeen
+shipped banks contain both rates. `SdtArchive` exposes the rate on every entry,
+and extraction writes every nonempty entry separately; it never selects one
+rate as preferred. Names occupy only 16 bytes and are often truncated or
+duplicated, so output names begin with the stable entry index to prevent one
+variant overwriting another.
+
+Six Layer I entries in the two `MiscCreatures` banks declare 22,050 Hz in the
+SDT header while their MPEG frame headers say 44,100 Hz. Both values are
+exposed (`SampleRate` and `PayloadSampleRate`) rather than silently choosing
+one; which value original DK2 uses is **UNKNOWN**.
+
 ## GLB output
 
 `GlbWriter` emits a glTF 2.0 binary (`.glb`) for either static KMF geometry or
