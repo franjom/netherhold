@@ -6,7 +6,7 @@ namespace DK2.AI;
 
 /// <summary>
 /// The computer keeper's task machine, numbered as the original numbers it
-/// (KEEPER_AI.md §5.2). The numbers are kept because the original's debug dump
+/// (docs/KEEPER_AI.md §5.2). The numbers are kept because the original's debug dump
 /// prints them and a reader of both should not have to translate.
 /// </summary>
 public enum KeeperTask : byte

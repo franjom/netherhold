@@ -11,7 +11,7 @@ namespace DK2.AI;
 /// <summary>
 /// One keeper's read-only look at the world for one tick. Everything the keeper
 /// asks about tiles, rooms and its own holdings goes through here, so the
-/// eventual <c>IWorldView</c> facade (KEEPER_AI.md §12.2) has one place to
+/// eventual <c>IWorldView</c> facade (docs/KEEPER_AI.md §12.2) has one place to
 /// replace. Nothing in this type writes to the world.
 /// </summary>
 public sealed class KeeperView

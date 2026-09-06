@@ -317,10 +317,11 @@ What is *built* rather than known, against the long-term goals:
   so, per level and per player, and `RoomRules` does not model it at all — a
   keeper here can build any buildable room on any level.
 - Pathfinding (biggest risk), combat resolution, job selection **for
-  non-workers** (workers: ADR-0018/0058/0061), computer-player AI (a
-  `claude/keeper-ai` worktree has begun reading it; nothing on master), audio
-  event semantics. (Anger was listed here until 2026-09-06; it is built,
-  ADR-0053.)
+  non-workers** (workers: ADR-0018/0058/0061), audio event semantics.
+  (Two things were listed here until 2026-09-06 and are not any more: anger,
+  which is built (ADR-0053), and computer-player AI, which is **read**
+  (`docs/KEEPER_AI.md`) with step 1 **built** as an input source that changes
+  no simulation surface.)
 - **The tick rate is read (Q1) but not yet adopted, and one measurement fights
   it.** Variable 19 is 4 — a game second is four ticks — but Q47 derived *five*
   work applications a second from 273 gold a swing, and five does not divide

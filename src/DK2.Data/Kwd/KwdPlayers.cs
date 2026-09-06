@@ -18,8 +18,7 @@ namespace DK2.Data.Kwd;
 /// loader that unpacks this record: gold at 0, the AI flag at 4, the 158-byte
 /// parameter block at 8, then trigger id, player id, camera and a 32-byte name.
 /// The block's byte→field map is the one the loader applies, listed with
-/// consumers and shipped ranges in <c>KEEPER_AI.md</c> §2.2 on the
-/// <c>claude/keeper-ai</c> branch.</para>
+/// consumers and shipped ranges in <c>docs/KEEPER_AI.md</c> §2.2.</para>
 ///
 /// <para><b>Reads the way the game reads.</b> Where the editor wrote a 16-bit
 /// value and the game consumes one byte, this parser takes the byte; where the

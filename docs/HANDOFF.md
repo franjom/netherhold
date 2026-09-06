@@ -5453,9 +5453,11 @@ in `src/DK2.AI` or its tests. The branch was checked clean and re-checked on
 merge.
 
 **One pre-existing violation of that rule was found by the same check, and it is
-NOT from this branch.** `DK2_REIMPLEMENTATION_PLAN.md` carries the Flame symbol
-`MyComputerPlayer` at lines 211, 568 and 1095, dating from revision 1 of that
-document. Left in place and flagged for the owner rather than edited, because it
-is a licensing question about their own planning document and the standing
+NOT from this branch.** `DK2_REIMPLEMENTATION_PLAN.md` names a Flame class symbol
+for the AI keeper at three places - lines 211, 568 and 1095 - dating from
+revision 1 of that document, when it was citing Flame as a lead rather than
+quoting it. It is not repeated here, for the same reason it should probably come
+out of there. Left in place and flagged for the owner rather than edited: it is a
+licensing question about their own planning document, and the standing
 instruction is to raise those rather than act on them.
 

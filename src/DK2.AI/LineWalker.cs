@@ -27,7 +27,7 @@ public enum WalkOutcome
 public readonly record struct WalkStep(WalkOutcome Outcome, TilePos Tile);
 
 /// <summary>
-/// The original's corridor digger (KEEPER_AI.md §5.2, "the line walker"),
+/// The original's corridor digger (docs/KEEPER_AI.md §5.2, "the line walker"),
 /// STRONGLY INFERRED. From <see cref="KeeperAIState.DigRoomAtCurrent"/> step
 /// one tile at a time along whichever axis is further from
 /// <see cref="KeeperAIState.DigRoomAt"/>. The first solid, water or lava tile

@@ -10,7 +10,7 @@ namespace DK2.AI;
 
 /// <summary>
 /// Which room next, next to what, and in which direction — the original's room
-/// planner (KEEPER_AI.md §5.5), STRONGLY INFERRED. Pure functions over the view.
+/// planner (docs/KEEPER_AI.md §5.5), STRONGLY INFERRED. Pure functions over the view.
 /// </summary>
 public static class RoomPlanner
 {

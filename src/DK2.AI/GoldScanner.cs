@@ -8,7 +8,7 @@ using DK2.Simulation;
 namespace DK2.AI;
 
 /// <summary>
-/// The original's gold scan (KEEPER_AI.md §5.5): flood-fill gold-bearing rock
+/// The original's gold scan (docs/KEEPER_AI.md §5.5): flood-fill gold-bearing rock
 /// into seams, take each seam's centroid, and keep the four nearest to the
 /// keeper's rooms. STRONGLY INFERRED.
 /// </summary>

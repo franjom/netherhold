@@ -96,7 +96,7 @@ public static class GameDatabaseLoader
     /// Reads one level's player slots — <c>&lt;name&gt;Players.kld</c> — or null
     /// when the level has no such file. Every shipped level has one, holding the
     /// good and neutral rows plus the human and any computer keepers; the
-    /// keepers' tuning blocks are what <c>KEEPER_AI.md</c> documents.
+    /// keepers' tuning blocks are what <c>docs/KEEPER_AI.md</c> documents.
     /// </summary>
     public static List<PlayerDef>? LoadCampaignPlayers(string installDir, string levelName)
     {

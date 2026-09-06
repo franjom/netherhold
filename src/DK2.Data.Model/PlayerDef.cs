@@ -10,8 +10,8 @@ namespace DK2.Data.Model;
 /// personality block that drives it.
 ///
 /// <para><b>Layout CONFIRMED, semantics STRONGLY INFERRED</b> from the retail
-/// loader that consumes this record (<c>KEEPER_AI.md</c> §3.1 on the
-/// <c>claude/keeper-ai</c> branch): all 66 shipped <c>*Players.kld</c> files
+/// loader that consumes this record (<c>docs/KEEPER_AI.md</c> §3.1): all 66
+/// shipped <c>*Players.kld</c> files
 /// divide exactly into 205-byte records, and the loader's reads pin the gold,
 /// the AI flag, the 158-byte block, the trigger id, the player id, the camera
 /// and the name. OpenKeeper's independent parser (GPLv3) agrees on every field

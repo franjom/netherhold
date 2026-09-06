@@ -1,6 +1,7 @@
 # The computer keeper — what `DKII.EXE` does when it plays against you
 
-**Branch `claude/keeper-ai`, 2026-09-06.** Research write-up for the AI keeper:
+**Merged to master 2026-09-06, written on `claude/keeper-ai`.** Research
+write-up for the AI keeper:
 where it lives in the binary, every parameter it carries and where each comes
 from, and the decision loop, read to the depth stated in §5. Nothing here is
 decompiler output and nothing here is a Flame identifier; every function is
@@ -689,7 +690,7 @@ health (or below 50 % when flagged as in a fight) and at least
 | 3 tiles | traps and doors | minimum spacing from own traps and doors |
 | 24 | line walker | turns tried per side when choosing which way round an obstacle |
 | 15 + 5×(portals − 1) | make-room step | portal creature cap: balance variable 73 (`0x006F28B4`, 15 in shipped data) plus the adjacent byte per extra portal, whose id is HYPOTHESIS (OpenKeeper lists variable 177 = 5 by that name) |
-| 4 ticks | everything | one game second (the LEVEL record's ticks-per-second field, 4 in all 66 shipped levels — `docs/research/balance-variables-in-the-binary.md`). So 1,680 ticks = 7 game minutes, 240 = 1 minute, 300 = 75 s, 40 = 10 s. Wall-clock per tick is still the main loop's question |
+| 4 ticks | everything | one game second (the LEVEL record's ticks-per-second field, 4 in all 66 shipped levels — `research/balance-variables-in-the-binary.md`). So 1,680 ticks = 7 game minutes, 240 = 1 minute, 300 = 75 s, 40 = 10 s. Wall-clock per tick is still the main loop's question |
 | `seed = seed × 0x19660D + 0x3C6EF35F`, `rotl(seed, 19) mod n` | RNG | every `random(n)` here draws from the **world's** stream (seed at world `+0x15A0`), so the AI is deterministic given the world state |
 
 ---

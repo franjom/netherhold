@@ -12,8 +12,8 @@ namespace DK2.Data.Model;
 /// the retail executable prints in its own debug dump of this structure; they
 /// are Bullfrog's spellings (<c>TendancyMoney</c>, <c>Reseached</c>) and are kept
 /// verbatim so the dump, the editor and this type agree. See
-/// <c>KEEPER_AI.md</c> §2.2 on the <c>claude/keeper-ai</c> branch for the
-/// offset→field map, the consumers, and the ranges across shipped levels.</para>
+/// <c>docs/KEEPER_AI.md</c> §2.2 for the offset→field map, the consumers,
+/// and the ranges across shipped levels.</para>
 ///
 /// <para><b>Read the way the game reads it, not the way the editor wrote it.</b>
 /// Three fields the editor stores as 16-bit values — <see cref="TilesPerImpRatio"/>,

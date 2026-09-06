@@ -81,7 +81,7 @@ The block's field names are the retail executable's own debug labels; the field
 boundaries are the ones its loader applies, so three fields the editor stored as
 16-bit values are read as the single byte the game consumes. The map, the
 consumers of every field at runtime, the shipped ranges and the parameters the
-game never reads are in `KEEPER_AI.md` on the `claude/keeper-ai` branch
-(STRONGLY INFERRED from the binary; the record stride is CONFIRMED from data).
+game never reads are in `docs/KEEPER_AI.md` (STRONGLY INFERRED from the
+binary; the record stride is CONFIRMED from data).
 OpenKeeper's parser agrees on every field boundary and was used as a cross-check
 only; its identifiers were not adopted.

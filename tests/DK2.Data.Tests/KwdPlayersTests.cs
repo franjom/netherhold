@@ -10,7 +10,7 @@ namespace DK2.Data.Tests;
 /// <summary>
 /// The PLAYERS(180) reader against the shipped install. The counts here were
 /// measured independently by a raw Python sweep of the same 66 files before this
-/// parser existed (KEEPER_AI.md §3.1); the parser has to reproduce them.
+/// parser existed (docs/KEEPER_AI.md §3.1); the parser has to reproduce them.
 /// </summary>
 public class KwdPlayersTests
 {

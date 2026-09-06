@@ -30,7 +30,7 @@ public readonly record struct BuildArea(int MinX, int MinY, int MaxX, int MaxY)
 }
 
 /// <summary>
-/// Where to dig the next room: the original's site search (KEEPER_AI.md §5.5),
+/// Where to dig the next room: the original's site search (docs/KEEPER_AI.md §5.5),
 /// STRONGLY INFERRED from the binary. From an origin, walk in a direction past
 /// anything already tagged or already a room, skip <c>TilesLeftBetweenRooms</c>
 /// more tiles, then lay a side×side square centred on the approach line and

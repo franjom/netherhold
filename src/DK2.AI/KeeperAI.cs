@@ -11,7 +11,7 @@ namespace DK2.AI;
 
 /// <summary>
 /// A computer keeper: the original's <c>ComputerPlayer.cpp</c> read back into
-/// this codebase (KEEPER_AI.md §5), as an <b>input source</b>. Once per tick
+/// this codebase (docs/KEEPER_AI.md §5), as an <b>input source</b>. Once per tick
 /// <see cref="Think"/> looks at the world and returns the commands the keeper
 /// would issue with its own hand; the host feeds them into the next
 /// <see cref="InputFrame"/>. The simulation never sees this type, so the world

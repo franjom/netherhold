@@ -8,7 +8,7 @@ namespace DK2.AI;
 
 /// <summary>
 /// The runtime half of a computer keeper: what the original keeps in its
-/// 1,273-byte struct besides the tuning parameters (KEEPER_AI.md §2.3). Field
+/// 1,273-byte struct besides the tuning parameters (docs/KEEPER_AI.md §2.3). Field
 /// names follow the original's debug-dump labels so the two can be read side by
 /// side. Lives outside the simulation's state hash by design (§12.1); the
 /// keeper's decisions reach the simulation only as hashed commands.

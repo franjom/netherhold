@@ -8,7 +8,7 @@ namespace DK2.AI;
 
 /// <summary>
 /// The two direction tables the original's keeper uses, and the rule that fixes
-/// a keeper's build directions when it is created (KEEPER_AI.md §5.5).
+/// a keeper's build directions when it is created (docs/KEEPER_AI.md §5.5).
 /// </summary>
 public static class KeeperDirections
 {
