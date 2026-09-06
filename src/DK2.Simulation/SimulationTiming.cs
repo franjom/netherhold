@@ -44,6 +44,33 @@ public static class SimulationTiming
     public static int TicksFromSeconds(int seconds) => seconds * TicksPerSecond;
 
     /// <summary>
+    /// <b>DK2's own</b> ticks per game second: <b>four</b>. Not ours, and not a
+    /// placeholder.
+    ///
+    /// <para><b>Read, not chosen</b> (Q1/Q132). The original's variable 19 is
+    /// the seconds-to-ticks multiplier its whole engine divides and multiplies
+    /// by, the level loader copies it out of the LEVEL chunk field OpenKeeper
+    /// names <c>ticksPerSec</c>, and <b>all 66 shipped level files carry
+    /// 4</b>.</para>
+    ///
+    /// <para><b>What it is for, and it is not <see cref="TicksPerSecond"/>.</b>
+    /// Some quantities are not stored in the shipped data in the unit the
+    /// mechanic uses them in: DK2's creature loader divides the four
+    /// <c>angerNo*</c> fields by this number as it loads them, so what the
+    /// engine actually adds is <i>anger per DK2 tick</i>, and a routine that
+    /// applies one such unit per game second applies a <b>quarter</b> of the
+    /// tabled figure. Reproducing that needs the original's rate, whatever ours
+    /// turns out to be — using <see cref="TicksPerSecond"/> there would make the
+    /// number an artefact of our placeholder instead of a fact about DK2.</para>
+    ///
+    /// <para>So: <see cref="TicksPerSecond"/> is how often <i>we</i> step;
+    /// this is a constant of the original, in the same class as a tabled
+    /// balance variable.</para>
+    /// </summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/open-questions.md#Q132")]
+    public const int OriginalTicksPerGameSecond = 4;
+
+    /// <summary>
     /// How many times a second a worker applies work to a tile. <b>Five —
     /// STRONGLY INFERRED, and measured rather than chosen</b> (Q47).
     ///

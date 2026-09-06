@@ -149,7 +149,7 @@ applied when the player's own choices can turn it off.**
 |---|---|---|
 | `AngerNoLair` | +100/s | **Yes** — lairs are built, sold and filled |
 | `ModifyAngerOfCreatureInLairPerSecond` | −550/s | **Yes** — sleep works, so recovery is real |
-| `AngerNoFood` | +100/s | No — the Chicken is object 9 but no Hatchery lays one; *no* dungeon can feed anybody |
+| `AngerNoFood` | +100/s | **In the prison only** (ADR-0074) — a keeper can stock a cell, so that source is one the player can turn off. Not applied generally: the ordinary hungry creature walks to a hatchery, and charging it would anger everybody on a map with no hatchery |
 | `AngerNoWork` | +50/s | No — non-workers have no job system; "no work" is a fact about us |
 | `AngerNoPay` | +60/s | No — there is no payday |
 | hated company | +150/s | No — the relation is parsed and unused |
@@ -158,6 +158,21 @@ Otherwise anger stops being feedback and becomes a countdown no dungeon
 survives — which would say nothing about DK2 and would end every long scenario
 in mass desertion. **Each omission is a line in the scenario reports**, not a
 silence; when a hatchery can feed a creature, `AngerNoFood` goes in the same day.
+
+**The tabled figures are per second and the loaded ones are per tick, and the
+difference is four** (read 2026-09-06). DK2's creature loader divides each of
+the four `angerNo*` fields by the level's ticks-per-second as it loads them —
+the same register it multiplies `TimeAwake` and `TimeSleep` by two dozen
+instructions earlier — so what the engine holds is **anger per DK2 tick**, and a
+routine adding one per tick delivers the tabled figure per second. The quotient
+is floored at 1 whenever the source is non-zero, which is how the Imp, the Dwarf
+and Horny keep their 1.
+
+**That matters wherever a routine applies one unit less often than every tick.**
+The prison's is such a routine: state 117 adds one on each failed search for
+food, and searches are gated to at most one a game second, so **a hungry
+prisoner in an unstocked cell angers at 25 a second where a bedless creature
+angers at 100** (`prison.md` §7.4). A quirk, reproduced rather than tidied.
 
 **Recovery is 5.5× faster than accrual.** −550 a second asleep in one's own bed
 against +100 without one, which is why a keeper who builds a lair late still

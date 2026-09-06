@@ -241,6 +241,64 @@ public static class EatingRules
     }
 
     /// <summary>
+    /// The nearest <b>food-flagged</b> object in this room — the <i>prison</i>
+    /// search, and a different question from <see cref="NearestChickenIn"/>.
+    ///
+    /// <para>DK2's state 117 walks the prison's own tile chain, and on each
+    /// tile walks that tile's object list, keeping every object whose kind is
+    /// <c>2</c> and whose definition carries the food flag
+    /// (<see cref="ObjectFlags.TypeFood"/>). It ranks them by <b>straight-line
+    /// squared distance</b> in its fixed point and takes the smallest, and the
+    /// comparison is strict — so at equal distance the <i>first</i> it meets
+    /// wins, walking the room in the room's own order.</para>
+    ///
+    /// <para><b>The flag, not the id.</b> Two of the 145 OBJECTS records carry
+    /// it, the Chicken and the Torture Pendulum, so a pendulum standing in a
+    /// prison is food to a prisoner where one standing in a hatchery is not.
+    /// That asymmetry is the original's and is reproduced rather than
+    /// tidied.</para>
+    ///
+    /// <para><b>Ties go to the lowest object id here</b>, which is spawn order,
+    /// for the reason <see cref="NearestChickenIn"/> gives: the original's
+    /// answer depends on the order its room happens to hold its tiles in, and
+    /// ours may not (ADR-0001).</para>
+    ///
+    /// <para><b>A carried bird is not a candidate</b>, which is ours in form and
+    /// the original's in effect: DK2 takes an object out of its tile's list
+    /// while it is carried, so it is not on any tile to be found. Ours keeps a
+    /// carried object's tile following its carrier, so the test has to be
+    /// written down.</para>
+    /// </summary>
+    public static ObjectState? NearestFoodIn(
+        WorldState world, GameDatabase database, RoomInstance room, TilePos from)
+    {
+        ObjectState? best = null;
+        long bestDistance = long.MaxValue;
+
+        IReadOnlyList<ObjectState> objects = world.Objects;
+        for (int i = 0; i < objects.Count; i++)
+        {
+            ObjectState thing = objects[i];
+            if (thing.CarriedByCreatureId >= 0) continue;
+            if (!IsFood(database, thing)) continue;
+            if (!Contains(room, thing.TileIndex)) continue;
+
+            long distance = DistanceSquared(world, from, thing.TileIndex);
+            if (best is not null
+                && (distance > bestDistance
+                    || (distance == bestDistance && thing.Id >= best.Id)))
+            {
+                continue;
+            }
+
+            best = thing;
+            bestDistance = distance;
+        }
+
+        return best;
+    }
+
+    /// <summary>
     /// Whether this room holds <b>any</b> object at all — the original's own
     /// gate on setting out for a hatchery, and a weaker test than "has a bird".
     ///

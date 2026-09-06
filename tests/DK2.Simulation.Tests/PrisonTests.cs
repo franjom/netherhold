@@ -65,6 +65,7 @@ public class PrisonTests
             new CreatureSleepSystem(),
             new CreatureHealthSystem(),
             new PrisonSystem(),
+            new PrisonerEatSystem(),
             new PrisonerWanderSystem(),
         ]);
         if (sink is not null) sim.ObserveWith(sink);
@@ -431,28 +432,62 @@ public class PrisonTests
     /// a rule rather than a gap.
     /// </summary>
     [Fact]
-    public void APrisonerDoesNotWorkSleepOrGrowHungry()
+    public void APrisonerDoesNotWorkOrSleep()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
-        int hunger = captive.HungerTicks;
 
         GameSimulation sim = Simulation(db, world);
         for (int i = 0; i < 20 * Second; i++) sim.Tick();
 
         // Wandering is not a change of activity: the original stays in its
-        // prison states throughout, and so does this.
+        // prison states throughout, and so does this. Nor is walking to a
+        // chicken - the same three labels cover all six prison states.
         Assert.Equal(CreatureActivity.Imprisoned, captive.Activity);
 
         // It moved, but only ever inside the cell.
         Assert.InRange(captive.Tile.X, 4, 6);
         Assert.InRange(captive.Tile.Y, 3, 5);
+    }
 
-        // Its whole second belongs to PrisonSystem - the health system does not
-        // get a look at it, so nothing else moves its hunger clock either.
-        Assert.Equal(hunger, captive.HungerTicks);
+    [Fact]
+    public void APrisonerDoesGrowHungry()
+    {
+        // This test used to say the opposite, and the opposite was a side
+        // effect: the health system skipped prisoners entirely so that exactly
+        // one system settled their second (ADR-0064), and their hunger clock
+        // went with their health. DK2 suppresses the hunger clock on a bit of
+        // the state record's flag byte, and the fifteen states that set it are
+        // drinking, gambling and dancing - the Casino, not the Prison
+        // (ADR-0074).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = Prisoner(db, world, CellA);
+        CreatureDef goblin = db.CreatureById(GoblinId);
+
+        Assert.Equal(0, captive.HungerTicks);
+
+        GameSimulation sim = Simulation(db, world);
+        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+
+        Assert.Equal(10 * Second, captive.HungerTicks);
+
+        // Ten seconds is as far as this can be taken: a Goblin's HungerRate is
+        // 180 game seconds and PrisonModifyCreatureHealthPerSecond turns it to
+        // bone in 83, so no prisoner ever gets hungry IN a cell.
+        //
+        // That is not an argument that the mechanic is unreachable, and the
+        // reason is the clock's shape rather than its rate. HungerNeed
+        // accumulates over a creature's whole life and is paid off only by
+        // eating (EatingRules.Tick), so a creature that has been running about
+        // the map for three minutes is ALREADY hungry when the imps take it -
+        // and looks for food the moment it is put down. That is the case the
+        // owner watched, and ARaceForOneChickenInACell sets it up the same way.
+        Assert.True(captive.Health > 0);
+        Assert.Equal(CreatureActivity.Imprisoned, captive.Activity);
     }
 
     // ---- the hand ---------------------------------------------------------
@@ -829,5 +864,221 @@ public class PrisonTests
 
         for (int i = 0; i < 2 * Second; i++) sim.Tick();
         Assert.Null(world.CreatureById(captiveId));
+    }
+
+    // ---- the bird (ADR-0074, Q195) ----------------------------------------
+
+    /// <summary>
+    /// Makes a prisoner that arrives already hungry, which is the ordinary case
+    /// and not a contrivance: <c>HungerNeed</c> accumulates over a creature's
+    /// whole life and is paid off only by eating, so anything the imps drag in
+    /// after three minutes on the map is hungry before it lands. It has to be
+    /// set up rather than waited for, because a Goblin's HungerRate is 180 game
+    /// seconds and a cell turns it to bone in 83.
+    /// </summary>
+    private static CreatureState HungryPrisoner(
+        GameDatabase db, WorldState world, TilePos cell)
+    {
+        CreatureState captive = Prisoner(db, world, cell);
+        captive.HungerNeed = EatingRules.HungerFill(db, db.CreatureById(GoblinId), captive.Level);
+        return captive;
+    }
+
+    private static ObjectState Chicken(GameDatabase db, WorldState world, TilePos at) =>
+        world.SpawnObject(
+            db, HatcheryRules.ChickenObjectId, Keeper, (at.Y * world.Width) + at.X);
+
+    [Fact]
+    public void AHungryPrisonerWalksToAChickenAndEatsIt()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = HungryPrisoner(db, world, CellA);
+        ObjectState bird = Chicken(db, world, CellC);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+
+        // The bird is gone, the hunger is paid off, and the Goblin is
+        // HpFromChicken better for it - capped at the missing health, and a
+        // captive starts at a sixth of its maximum so there is room for all.
+        //
+        // The gain is read off the meal rather than off the clock, because the
+        // prison keeps draining the whole time: eating buys health, it does not
+        // pause the countdown (ADR-0064).
+        Assert.Null(world.ObjectById(bird.Id));
+        Assert.Equal(0, captive.HungerNeed);
+        Assert.Contains(sink.Events, e =>
+            e.Kind == "prisoner_ate"
+            && e.Detail.Contains("gained=" + db.CreatureById(GoblinId).HpFromChicken));
+
+        // It walked to the bird rather than eating from where it stood - read
+        // off the meal again, because a fed prisoner goes straight back to
+        // shuffling and will not be standing there when the run ends.
+        Assert.Contains(sink.Events, e =>
+            e.Kind == "prisoner_ate" && e.Detail.Contains("at=(6,5)"));
+        Assert.Contains(sink.Events, e => e.Kind == "prisoner_food_chosen");
+
+        // And it is still a prisoner in a prison state throughout: 117, 118 and
+        // 119 carry the same label, group tag and category as 114, 115 and 116.
+        Assert.Equal(CreatureActivity.Imprisoned, captive.Activity);
+        Assert.True(PrisonRules.IsImprisoned(captive));
+        Assert.InRange(captive.Tile.X, 4, 6);
+        Assert.InRange(captive.Tile.Y, 3, 5);
+    }
+
+    [Fact]
+    public void OneBirdPaysOffTheWholeOfHungerFillInACell()
+    {
+        // The prison's own number, written down two sittings before anything
+        // could call it: DK2's state 118 passes the level-scaled HungerFill to
+        // the routine its hatchery state passes a literal 1 to. A prisoner that
+        // has gone four helpings without eating is filled by one chicken.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureDef goblin = db.CreatureById(GoblinId);
+        int fill = EatingRules.HungerFill(db, goblin, 1);
+
+        CreatureState captive = Prisoner(db, world, CellA);
+        captive.HungerNeed = 4 * fill;
+        Chicken(db, world, CellA);
+
+        GameSimulation sim = Simulation(db, world);
+        for (int i = 0; i < 4 * Second; i++) sim.Tick();
+
+        Assert.Equal(3 * fill, captive.HungerNeed);
+    }
+
+    [Fact]
+    public void ARaceForOneChickenAndOnlyOnePrisonerEats()
+    {
+        // The owner watched exactly this (Q172): "they rush toward that chicken,
+        // the first one to reach it eats it". Nothing reserves the bird in the
+        // original and nothing reserves it here - the loser arrives, finds its
+        // tile empty, and goes back to looking.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState near = HungryPrisoner(db, world, CellB);
+        CreatureState far = HungryPrisoner(db, world, CellA);
+        ObjectState bird = Chicken(db, world, CellC);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+
+        Assert.Null(world.ObjectById(bird.Id));
+
+        // Exactly one meal was served.
+        Assert.Single(sink.Events, e => e.Kind == "prisoner_ate");
+
+        // And it was the nearer of the two: (5,4) is one step from (6,5), (4,3)
+        // is two. Straight-line squared distance, which is the original's
+        // ranking and not a path length.
+        Assert.Equal(0, near.HungerNeed);
+        Assert.True(far.HungerNeed > 0);
+
+        // The loser noticed, rather than standing over an empty tile for ever.
+        Assert.Contains(sink.Events, e =>
+            e.Kind == "prisoner_food_lost" && e.Detail.Contains("creature=" + far.Id));
+    }
+
+    [Fact]
+    public void AHungryPrisonerWithNothingToEatGrowsAngry()
+    {
+        // AngerNoFood is 100 for a Goblin and what lands is 25. The creature
+        // loader divides every angerNo* field by DK2's four ticks a game second
+        // as it loads it, so what the engine holds is anger per TICK - and the
+        // prison adds one of those per failed search rather than one per tick.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = HungryPrisoner(db, world, CellA);
+
+        Assert.Equal(25, PrisonRules.AngerPerFailedFoodSearch(db.CreatureById(GoblinId)));
+        Assert.Equal(0, captive.Anger);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int i = 0; i < 5 * Second; i++) sim.Tick();
+
+        // One attempt a game second, five seconds, five helpings of 25.
+        Assert.Equal(5, sink.Events.Count(e => e.Kind == "prisoner_no_food"));
+        Assert.Equal(5 * 25, captive.Anger);
+    }
+
+    [Fact]
+    public void AChickenOutsideTheCellIsNotFood()
+    {
+        // The containment ADR-0073 found in the wander applies to the search as
+        // well, and for the same reason: the original walks the room's own tile
+        // chain, so a tile outside the room is never a candidate in the first
+        // place. A bird on the corridor is not a bird a prisoner can see.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = HungryPrisoner(db, world, CellA);
+        ObjectState bird = Chicken(db, world, Floor);
+
+        GameSimulation sim = Simulation(db, world);
+        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+
+        Assert.NotNull(world.ObjectById(bird.Id));
+        Assert.True(captive.HungerNeed > 0);
+        Assert.InRange(captive.Tile.X, 4, 6);
+        Assert.InRange(captive.Tile.Y, 3, 5);
+    }
+
+    [Fact]
+    public void APrisonerOnItsWayToAChickenDoesNotAlsoShuffle()
+    {
+        // The original asks about hunger FIRST and wanders only when the answer
+        // is no - one handler, in that order - so the walk to the bird is never
+        // interrupted by a random sideways step.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        HungryPrisoner(db, world, CellA);
+        Chicken(db, world, CellC);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+
+        List<SimEvent> events = [.. sink.Events];
+        int chosen = events.FindIndex(e => e.Kind == "prisoner_food_chosen");
+        int ate = events.FindIndex(e => e.Kind == "prisoner_ate");
+        Assert.True(chosen >= 0 && ate > chosen);
+
+        Assert.DoesNotContain(
+            events.GetRange(chosen, ate - chosen),
+            e => e.Kind == "prisoner_stepped");
+    }
+
+    [Fact]
+    public void AFedPrisonerStillWithersAndStillTurnsToBone()
+    {
+        // A chicken buys time and nothing else. The prison's drain is untouched
+        // by eating, so the extra health is extra seconds and then the same
+        // Skeleton (ADR-0064, ADR-0071).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = HungryPrisoner(db, world, CellA);
+        Chicken(db, world, CellA);
+        int captiveId = captive.Id;
+
+        GameSimulation sim = Simulation(db, world);
+        for (int i = 0; i < 5 * Second; i++) sim.Tick();
+        Assert.Equal(0, captive.HungerNeed);
+
+        for (int i = 0; i < 400 * Second; i++) sim.Tick();
+
+        Assert.Null(world.CreatureById(captiveId));
+        Assert.Contains(world.Creatures, c =>
+            c.CreatureTypeId == SkeletonId && c.OwnerPlayerId == Keeper);
     }
 }

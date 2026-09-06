@@ -95,7 +95,7 @@
 #
 #     **The walking half is built** (ADR-0073) and this run shows it: the goblin
 #     takes **50 steps** between t959 and t2619, stands on **all nine** tiles of
-#     the 3x3, and never once leaves the room. What is left is the bird (Q187),
+#     the 3x3, and never once leaves the room. What is left is the bird (Q195),
 #     and it no longer waits on movement - only on a keeper being able to drop
 #     one.
 #

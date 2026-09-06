@@ -69,11 +69,24 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         {
             CreatureState state = world.Creatures[i];
 
-            // A prisoner's second belongs to PrisonSystem alone: it withers at
+            // A prisoner's HEALTH belongs to PrisonSystem alone: it withers at
             // PrisonModifyCreatureHealthPerSecond and dies into a Skeleton
-            // rather than into a collapse, so nothing here may touch its health,
-            // its hunger or its dying clock (ADR-0064).
-            if (PrisonRules.IsImprisoned(state)) continue;
+            // rather than into a collapse, so nothing here may touch its health
+            // or its dying clock (ADR-0064).
+            //
+            // Its HUNGER is another matter, and this line used to stop that too.
+            // DK2's needs routine suppresses the hunger clock on a bit of the
+            // state record's flag byte - and the fifteen states that set it are
+            // exactly drinking, gambling and dancing, so it is the Casino and
+            // not the Prison. Every prison state has the bit clear, which is
+            // what makes state 115's own hunger test reachable at all: a
+            // prisoner gets hungry, and if nobody drops it a chicken it grows
+            // angry about it (ADR-0074).
+            if (PrisonRules.IsImprisoned(state))
+            {
+                Hunger(context, database.CreatureById(state.CreatureTypeId), state);
+                continue;
+            }
 
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 

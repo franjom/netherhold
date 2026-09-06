@@ -114,10 +114,15 @@ public static class SimulationSystems
         // (ADR-0064).
         new PrisonSystem(),
 
-        // And the other half of being a prisoner, every tick rather than every
-        // second: shuffling about the cell (ADR-0073). After PrisonSystem, so
-        // that a prisoner freed or turned to bone this second is not given a
-        // step it will never take.
+        // And the rest of being a prisoner, every tick rather than every
+        // second. Both are after PrisonSystem, so that a prisoner freed or
+        // turned to bone this second is not given a step it will never take.
+        //
+        // Eating BEFORE wandering, because the original's decision state asks
+        // about hunger first and only wanders when the answer is no - one
+        // handler, in that order, so a prisoner that sets off for a chicken
+        // does not also shuffle sideways on the way (ADR-0074, ADR-0073).
+        new PrisonerEatSystem(),
         new PrisonerWanderSystem(),
 
         new CreatureAngerSystem(),

@@ -139,6 +139,45 @@ public static class PrisonRules
     }
 
     /// <summary>
+    /// How much anger a prisoner takes each time it looks round its cell for
+    /// food and finds none: <b><c>AngerNoFood</c> divided by four</b>.
+    ///
+    /// <para><b>The divide is the original's and it is in the loader, not the
+    /// mechanic.</b> DK2's creature loader stores each of the four
+    /// <c>angerNo*</c> fields as <c>file value / ticks per game second</c> — the
+    /// same statement its neighbours make about <c>TimeAwake</c> and
+    /// <c>TimeSleep</c>, which are multiplied by the identical register — so
+    /// what the engine holds is <b>anger per DK2 tick</b>. A routine that adds
+    /// one of those per tick therefore delivers the tabled figure a second,
+    /// which is what the lair's anger does and what the owner measured. This
+    /// one is not per tick: state 117 adds a single unit each time its search
+    /// comes up empty, and that search is gated to at most one a game second.
+    /// So a hungry prisoner in an unstocked cell angers at a <b>quarter</b> of
+    /// the rate a bedless creature does. <see cref="SimulationTiming.OriginalTicksPerGameSecond"/>
+    /// carries the four.</para>
+    ///
+    /// <para>The loader floors the result at 1 whenever the file value is
+    /// non-zero, so a creature that can be angered at all is never quietly
+    /// rounded down to nothing — the Imp, the Dwarf and Horny carry 1 and keep
+    /// it. Reproduced here.</para>
+    ///
+    /// <para><b>The gate is not quite ours.</b> DK2 refuses the whole anger call
+    /// on a bit of a creature-definition flag byte that has not been mapped;
+    /// this uses <see cref="CreatureAngerRules.CanBeAngered"/>, which asks
+    /// whether all four <c>angerNo*</c> fields are zero. Different tests with
+    /// the same intent, and on the shipped data the only creature either
+    /// excludes is the Skeleton.</para>
+    /// </summary>
+    public static int AngerPerFailedFoodSearch(CreatureDef creature)
+    {
+        if (!CreatureAngerRules.CanBeAngered(creature)) return 0;
+        if (creature.AngerNoFood == 0) return 0;
+
+        int perTick = creature.AngerNoFood / SimulationTiming.OriginalTicksPerGameSecond;
+        return perTick != 0 ? perTick : 1;
+    }
+
+    /// <summary>
     /// How many prisoners a prison holds: <b>the tiles the rim does not take,
     /// plus one</b> — so DK2's smallest working prison, a 3x3, holds
     /// <b>two</b>.

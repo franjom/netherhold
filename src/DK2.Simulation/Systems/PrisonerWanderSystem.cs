@@ -17,9 +17,11 @@ namespace DK2.Simulation.Systems;
 /// checks it with the same tile predicate the prison's capacity uses, records
 /// the keeper whose prison it is, and enters 115.</item>
 /// <item><b>115</b> (<c>0x73</c>) — the decision. If hunger clears a threshold
-/// <i>and</i> a cooldown has elapsed it goes to state <b>117</b> and eats where
-/// it stands. Otherwise it asks <c>Room.cpp:1717</c> for a neighbouring tile of
-/// the same room, issues a move to it, and enters 116.</item>
+/// <i>and</i> a cooldown has elapsed it goes to state <b>117</b>, which is the
+/// hunt for a chicken and not a meal on the spot
+/// (<see cref="PrisonerEatSystem"/>, ADR-0074). Otherwise it asks
+/// <c>Room.cpp:1717</c> for a neighbouring tile of the same room, issues a move
+/// to it, and enters 116.</item>
 /// <item><b>116</b> (<c>0x74</c>) — the walk, and the pause after it. Each tick
 /// it rolls <c>random(100)</c> and returns to 115 when the roll is under 20.
 /// </item>
@@ -72,6 +74,12 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
             // Already walking. The original rolls in state 116 only once the
             // walk it was given has finished, and this is that condition.
             if (creature.PathIndex < creature.Path.Count) continue;
+
+            // On its way to a chicken, or standing over one. That is states 117
+            // and 118 rather than 116, and they do not roll for a step: the
+            // original's decision state asks about hunger FIRST and wanders
+            // only when the answer is no (PrisonerEatSystem, ADR-0074).
+            if (creature.TargetObjectId >= 0) continue;
 
             if (context.Rng.NextInt(100) >= PrisonRules.WanderPercentPerTick) continue;
 

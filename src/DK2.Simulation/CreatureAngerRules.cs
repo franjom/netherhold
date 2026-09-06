@@ -165,12 +165,16 @@ public static class CreatureAngerRules
     /// <item><term><c>ModifyAngerOfCreatureInLairPerSecond</c> −550</term>
     /// <description><b>APPLIED.</b> Sleeping in one's own bed is implemented, so
     /// recovery is real — and 5.5× faster than the accrual it undoes.</description></item>
-    /// <item><term><c>AngerNoFood</c> +100</term><description><b>NOT applied.</b>
-    /// The Chicken is object 9 and there is no Hatchery to lay one, so
-    /// <i>no</i> dungeon can feed anybody. Charging it would anger every
-    /// creature in every level regardless of play. The record was the old
-    /// reason and it is parsed now; what is left to build is the room and the
-    /// eating.</description></item>
+    /// <item><term><c>AngerNoFood</c> +100</term><description><b>Applied, but
+    /// not here.</b> The prison charges it — one quarter of it, per failed
+    /// search for food in the cell — because a keeper can stock a cell and so
+    /// the source is one the player can turn off
+    /// (<see cref="PrisonRules.AngerPerFailedFoodSearch"/>, ADR-0074). It is
+    /// still <b>not</b> in this per-second sum, which is the general case: a
+    /// hungry creature that is free walks to a hatchery, and charging every
+    /// creature on a map that has no hatchery yet would be the countdown this
+    /// list exists to avoid. The old reason - <i>no dungeon can feed
+    /// anybody</i> - expired at ADR-0066.</description></item>
     /// <item><term><c>AngerNoWork</c> +50</term><description><b>NOT applied.</b>
     /// Non-workers have no job system yet, so "no work available" is a fact
     /// about this simulation rather than about the dungeon.</description></item>

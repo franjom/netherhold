@@ -5499,7 +5499,9 @@ prison is **states 114–126**, all of category **14**. Three of them are the lo
   `FUN_00454110` (the same tile predicate the capacity routine counts with),
   records the jailer, and enters 115.
 - **115** (`0x73`) — the decision. If hunger clears a threshold *and* a cooldown
-  has elapsed it goes to state **117** and eats where it stands. Otherwise it
+  has elapsed it goes to state **117**. ~~and eats where it stands~~ —
+  **corrected by ADR-0074**: 117 is a *search and a walk*, and the eating is
+  118. The error came from reading only as far as the transition. Otherwise it
   asks `Room.cpp:1717` for a neighbouring tile, issues a move to it, and enters
   116.
 - **116** (`0x74`) — the walk, and the pause after it. Each tick it rolls
@@ -5575,7 +5577,9 @@ The clock is untouched.
 
 ### What is left of Q172
 
-**The bird**, now tracked as Q187. It used to wait on movement; it now waits
+**The bird**, tracked as ~~Q187~~ **Q195** — the number collided with the
+save-format session's, which was allocating from the committed file while this
+one was not. It used to wait on movement; it now waits
 only on a keeper being able to drop a chicken into a cell. Every other piece
 exists, including the prison's own eating number
 (`EatingRules.EatInPrison` — one bird pays off the whole of `HungerFill`) and
@@ -5583,3 +5587,131 @@ the original's search, which is state 117's `FUN_00473550`.
 
 Q188 records the one thing in the loop that is not read: a second path in state
 116 that halves the step roll to 10 in 100 when a per-creature flag is set.
+
+## ADR-0074 — A prisoner gets hungry, hunts the cell, and races the others to the bird
+
+Date: 2026-09-06 · Status: accepted · Q195, and the rest of Q172
+
+### The question
+
+The owner watched a prison on 2026-09-05 and reported three things. ADR-0073
+built the first — a prisoner moves about its cell. This is the other two:
+*"they rush toward that chicken, the first one to reach it eats it, and its
+health replenishes."*
+
+### What the original does, and the first sentence of it is a correction
+
+**ADR-0073 said state 117 was where a prisoner "eats where it stands". It is
+not.** That sentence was written from the transition alone; reading the handler
+gives something else entirely, and something better:
+
+| State | What it does |
+|---|---|
+| **115** | Hungry **and** past `TimeBetweenReattemptingHungerSeconds` → stamp the clock, go to 117. Otherwise wander |
+| **117** | Walk the prison's own tile chain, then each tile's object list. Keep every object of kind 2 whose definition carries flag `0x80`. Rank by **straight-line squared distance**, take the smallest, and **issue a move to it** resuming in 118. Found none → apply `AngerNoFood`, tell the interface, drop back to 116 |
+| **118** | A food-flagged object underfoot: destroy it, pay off **the whole of `HungerFill`**. Still owing → 117. **Nothing there → also 117** |
+
+**The race is the absence of a reservation.** Nothing marks the chosen bird —
+the chooser writes it on itself and on nothing else — so two hungry prisoners
+pick the same chicken and the loser arrives at an empty tile, falls through
+118's loop into 117, and looks again. The owner's sentence needs no mechanism
+beyond leaving one out, which is why this project had already written the same
+absence into the hatchery path (ADR-0067).
+
+`prison.md` §7 carries the full read.
+
+### Three numbers, none of them chosen
+
+**One bird fills a prisoner.** 118 passes the level-scaled `HungerFill` where
+the hatchery's state passes a literal 1, so a caged Bile Demon that owes five
+helpings is filled by one chicken. `EatingRules.EatInPrison` had this written
+down two sittings before anything could call it, and it was right.
+
+**The anger is a quarter of the tabled figure.** The creature loader divides
+every `angerNo*` field by the level's ticks per second as it loads it — pinned
+by the identical register multiplying `TimeAwake` and `TimeSleep` into ticks two
+dozen instructions earlier — so the engine holds **anger per DK2 tick**. A
+routine adding one per tick delivers the tabled figure a second, which is the
+lair's and is what the owner measured. **117 adds one per attempt**, and
+attempts are gated to one a game second. A hungry prisoner in an unstocked cell
+therefore angers at **25 a second where a bedless creature angers at 100**.
+
+This is why `SimulationTiming.OriginalTicksPerGameSecond` now exists. Four is a
+constant of DK2, in the same class as a balance variable; using our own
+placeholder `TicksPerSecond` there would have made the number an artefact of a
+guess we have not settled (Q1).
+
+**A prisoner does get hungry**, and the bit that says so answers part of Q185.
+The needs routine suppresses the hunger clock on `flags & 8` of the state
+record's byte at `+0x18`, and bit `0x10` beside it suppresses tiredness. **The
+fifteen states that set them are exactly drinking, gambling and dancing** — the
+Casino, not the Prison. Every prison state has both clear.
+
+### The gap this leaves, and it is not a gap in the prisoner
+
+A prisoner never gets hungry *in* a cell: a Goblin's `HungerRate` is 180 game
+seconds and the prison's drain turns it to bone in 83. The mechanic is
+reachable anyway, because `HungerNeed` accumulates over a creature's **whole
+life** and is paid off only by eating — so anything dragged in after a few
+minutes on the map is hungry when it lands. The tests set that up rather than
+waiting for it, and say why in the test.
+
+### What this corrects besides ADR-0073
+
+**`eating.md` §2.2 was still on the pre-ADR-0072 frame** and every state id in
+it read one too low; the handler addresses were right all along. The five
+hatchery states are `eating` and the six prison ones are `being held captive`,
+which is now the cheapest check that the frame is straight.
+
+**The needs routine's first gate is the group tag, not the category.** Group 7
+is exactly the fourteen states that *are* a need — lair-seeking, sleeping,
+eating, pay — so the rule reads *a creature already attending to a need does not
+reconsider its needs*. **Q176's conclusion survives and its explanation does
+not**: a hungry creature still does not get out of bed, because sleeping is one
+of the fourteen.
+
+**`FUN_004633d0` routes on the room, not on imprisonment.** The general "go and
+eat" attempt asks which room the creature is standing in and jumps to the prison
+search when it is type `0xb`, without asking whether the creature is a prisoner.
+So in DK2 *any* hungry creature standing in a prison eats off the floor rather
+than walking to a hatchery. Ours is prisoner-specific. Nothing observable turns
+on it — only prisoners loiter in prisons — and it is named rather than smoothed
+over.
+
+### The decision
+
+`PrisonerEatSystem` runs the three states, registered **before**
+`PrisonerWanderSystem` because the original's single handler asks about hunger
+first. `EatingRules.NearestFoodIn` is the flag-based search, kept separate from
+the hatchery's id-9 one because the two are genuinely different sets — a Torture
+Pendulum is food in a prison and not in a hatchery.
+
+A prisoner **stays in `CreatureActivity.Imprisoned` throughout**, marked only by
+`TargetObjectId`, because 117, 118 and 119 carry the same label, group tag and
+category as 114, 115 and 116. That is not tidiness: it is why `PrisonSystem`
+keeps draining a prisoner walking to its dinner, and why a keeper can still lift
+one out mid-stride.
+
+`CreatureHealthSystem`'s blanket skip of prisoners is narrowed to health. It
+used to take their hunger clock with it, which was a side effect of ADR-0064
+rather than a rule.
+
+### What is ours
+
+**The route to the bird is restricted to the cell's own tiles.** DK2 issues an
+ordinary move and relies on the bird being in the room the prisoner stands in;
+ours would happily route an L-shaped prison's corner through the corridor
+outside, which would look exactly like an escape. The containment ADR-0073 found
+in the wander, applied to the walk.
+
+### What it cost
+
+**No hash change.** The determinism fixture imprisons nobody, and the system
+draws no randomness at all.
+
+**One test changed its answer and one changed its name.**
+`APrisonerDoesNotWorkSleepOrGrowHungry` asserted that a prisoner's hunger clock
+never moved; it now asserts that it does, as `APrisonerDoesGrowHungry`, and
+carries the arithmetic explaining why no prisoner ever reaches a full helping
+inside a cell.
+

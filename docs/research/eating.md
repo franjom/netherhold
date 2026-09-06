@@ -100,18 +100,28 @@ Category `2` means "utility state", which saves the previous state in
 
 ### 2.2 The states this mechanic uses
 
-| Id | Handler | What it does |
-|---|---|---|
-| `0x5A` | `FUN_004634b0` | find a hatchery, MoveToRoom, resume in `0x5C` |
-| `0x5B` | `FUN_00463500` | **in the hatchery**: find the nearest chicken, walk to it, resume in `0x5D` |
-| `0x5C` | `FUN_00463760` | **eat** the chosen chicken if within a tile |
-| `0x5D` | `FUN_00463720` | arriving at the chicken; when `HungerNeed != 0` go to `0x5C` |
-| `0x5E` | `FUN_00458680` | wait out the eating animation |
-| `0x5F` | `FUN_00463be0` | wander to a random adjacent tile in the hatchery |
-| `0x72` | `FUN_004731f0` | the prison's copy of the hunger test |
-| `0x74` | `FUN_00473550` | **in the prison**: find the nearest *food-flagged* object |
-| `0x75` | `FUN_00473750` | eat it |
-| `0x76` | `FUN_00473730` | arriving |
+**Corrected 2026-09-06 — every id in this table used to read one too low.**
+It was written under the frame ADR-0072 replaced, which filed each handler at
+the state below its own. The handler addresses were right all along; the ids
+were not. The five hatchery states are `eating` and the six prison ones are
+`being held captive`, which is the cheapest way to check the frame is now
+straight.
+
+| Id | Handler | Label | What it does |
+|---|---|---|---|
+| `0x5B` (91) | `FUN_004634b0` | eating | find a hatchery, MoveToRoom, resume in `0x5C` |
+| `0x5C` (92) | `FUN_00463500` | eating | **in the hatchery**: find the nearest chicken, walk to it, resume in `0x5E` |
+| `0x5D` (93) | `FUN_00463760` | eating | **eat** the chosen chicken if within a tile |
+| `0x5E` (94) | `FUN_00463720` | eating | arriving at the chicken; when `HungerNeed != 0` go to `0x5D` |
+| `0x5F` (95) | `FUN_00458680` | eating | wait out the eating animation |
+| `0x73` (115) | `FUN_004731f0` | being held captive | the prison's copy of the hunger test |
+| `0x75` (117) | `FUN_00473550` | being held captive | **in the prison**: find the nearest *food-flagged* object **and walk to it**, resuming in `0x76` |
+| `0x76` (118) | `FUN_00473750` | being held captive | eat it |
+| `0x77` (119) | `FUN_00473730` | being held captive | arriving |
+
+The old row for `0x5F` — *"wander to a random adjacent tile in the hatchery"* —
+belonged to a handler this table no longer lists, and the post-meal wander is
+Q175 either way.
 
 `FUN_004633d0` is not a state; it is the attempt, called from the needs routine.
 
@@ -123,18 +133,23 @@ One routine drives hunger, sleep and pay, in that order, and each block returns
 early on success. So **hunger is asked before tiredness**, and a creature that
 sets off to eat does not also consider its bed this tick.
 
+**Re-read 2026-09-06 against the corrected record layout**, and two of the
+three gates were misnamed. The suppressing byte is the **group tag** at `+0x16`,
+not the category at `+0x17`; and the two bit tests are on the **flag byte** at
+`+0x18`, which nothing had been read to consume at all (Q185).
+
 ```c
-if (stateTable[CurrentStateId].byte6 == 7) return 0;     // a category that suppresses needs
+if (stateTable[CurrentStateId].groupTag == 7) return 0;  // already attending to a need
 
 fill = levelScale(def.HungerFill, statRow9);
 if (fill != 0) {
     if (now >= LastAteTime + def.HungerRateTicks
-        && (stateTable[CurrentStateId].byte8 & 8) == 0) {
+        && (stateTable[CurrentStateId].flags & 8) == 0) {   // 8 = the Casino
         LastAteTime = now;
         HungerNeed += fill;                              // ADDS. Nothing caps it.
     }
     if (HungerNeed >= fill
-        && category != 8
+        && category != 8                                    // 8 = already eating
         && now >= LastAttemptedHunger + 4) {
         LastAttemptedHunger = now;
         if (FUN_004633d0()) return 1;                    // go and eat
@@ -142,6 +157,23 @@ if (fill != 0) {
 }
 // ... then the sleep block, then pay
 ```
+
+**Group tag 7 is exactly the fourteen states that ARE a need** — lair-seeking
+(79-81), sleeping (82-84), eating (91-95) and pay (187-189). So the first line
+says *a creature already attending to a need does not reconsider its needs*,
+which is a better rule than the "sleeping suppresses needs" this document used
+to record. **Q176's conclusion survives and its explanation does not**: a hungry
+creature still does not get up out of bed, because sleeping is one of the
+fourteen.
+
+**Flag bit 8 suppresses the hunger clock and bit `0x10` the tiredness clock**,
+and the fifteen states that carry them are exactly **drinking, gambling and
+dancing**. So the Casino makes a creature neither hungry nor tired, and that is
+the first thing anything has been read to do with the flag byte. The categories
+8 and 9 the attempt gates exclude are the eating states and the sleeping states
+respectively — belt and braces beside the group check, except through the
+utility indirection two lines above them, which resolves a category-2 state to
+the state it will resume into.
 
 **Three things worth stating separately.**
 
@@ -238,11 +270,19 @@ health and a chicken worth **250**, and the **Firefly** eats two chickens for
 6. A chicken: remember **its thing id on the creature** (`+0xaf`) and route to
    it, resuming in `0x5D`.
 
-### In a prison — `FUN_00473550` (state `0x74`)
+### In a prison — `FUN_00473550` (state `0x75`, 117)
 
 Same shape, same ranking, but the test is `objectDef.flags & 0x80` —
-`ObjectFlags.TypeFood` — rather than the id. And when it finds nothing it applies
-the creature's `AngerNoFood`.
+`ObjectFlags.TypeFood` — rather than the id. **And it is a walk**: the handler
+issues a move to the chosen object resuming in `0x76`, which is the state that
+eats. When it finds nothing it applies the creature's `AngerNoFood` — divided by
+four, because the loader stores every `angerNo*` field per DK2 tick
+(`prison.md` §7.4).
+
+**Read in full 2026-09-06 (ADR-0074).** `prison.md` §7 carries the whole of it:
+the race, the one-bird-fills-you asymmetry, the quarter-rate anger, and the fact
+that the general attempt routes *any* creature standing in a prison to this
+search rather than to a hatchery.
 
 ### The difference is real
 
