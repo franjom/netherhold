@@ -999,7 +999,7 @@ public class PrisonTests
         CreatureState captive = HungryPrisoner(db, world, CellA);
 
         Assert.Equal(25, PrisonRules.AngerPerFailedFoodSearch(db.CreatureById(GoblinId)));
-        Assert.Equal(0, captive.Anger);
+        Assert.True(captive.Anger.IsCalm);
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
@@ -1007,7 +1007,7 @@ public class PrisonTests
 
         // One attempt a game second, five seconds, five helpings of 25.
         Assert.Equal(5, sink.Events.Count(e => e.Kind == "prisoner_no_food"));
-        Assert.Equal(5 * 25, captive.Anger);
+        Assert.Equal(5 * 25, captive.Anger.Hunger);
     }
 
     [Fact]

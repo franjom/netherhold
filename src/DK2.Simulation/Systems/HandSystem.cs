@@ -378,7 +378,7 @@ public sealed class HandSystem : ISimulationSystem
 
         context.Emit(SystemName, "slapped",
             $"player={command.PlayerId} creature={creature.Id} " +
-            $"health={creature.Health} damage={-hurt} anger={creature.Anger} (+{anger}) " +
+            $"health={creature.Health} damage={-hurt} anger={creature.Anger.Max} (+{anger}) " +
             $"efficiency={EfficiencyRules.Percent(creature, definition)}%");
 
         // A slap can be the last one. Collapsing is CreatureHealthSystem's to

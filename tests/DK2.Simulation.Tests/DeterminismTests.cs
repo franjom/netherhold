@@ -279,7 +279,15 @@ public class DeterminismTests
         // its creatures are level 1, so the value moved on the composition
         // rather than on anything happening.
         //
-        // Previous values: 0x2E7E116CA573398B (30),
+        // 32 IS THE ANGER SPLIT (ADR-0080), and it is one int becoming six.
+        // DK2 keeps a creature's anger in an int[6] indexed by grievance and
+        // bands the LARGEST of them; this simulation kept one pooled counter.
+        // The pinned world's creatures are calm, so all six are zero and the
+        // value moved on the composition alone - but the behaviour it stands
+        // for did not: two half-grievances no longer add up to desertion, and
+        // a kindness in one bucket no longer pays off a grievance in another.
+        //
+        // Previous values: 0xC026542547419606 (31), 0x2E7E116CA573398B (30),
         // 0x19A512BB12A71575 (28), 0x0D75C57C1848268C (27),
         // 0x154E9041172A7F7F (26),
         // 0xDFF77147B12A64C3 (22), 0x6AF149EE8E20D98A (21),
@@ -291,7 +299,7 @@ public class DeterminismTests
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0xC026542547419606UL, sim.StateHash());
+        Assert.Equal(0x30722F6054924CC5UL, sim.StateHash());
     }
 
     [Fact]

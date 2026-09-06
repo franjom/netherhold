@@ -257,7 +257,18 @@ danger, celebrating (2 each). **A creature busy with something urgent, or not
 properly yours yet, does not stop to be resentful.** Bits 3 and 4 were the Casino
 (ADR-0074); this is the third bit named.
 
-### 6.4 What a bed does to all of this
+### 6.4 What a bed does to all of this — ~~and the answer below is wrong~~
+
+**Corrected the same day by ADR-0081.** Everything in this subsection is
+arithmetic on two shipped numbers that never meet: `AngerNoPay` fills anger
+bucket 4 and `ModifyAngerOfCreatureInLairPerSecond` drains bucket 5, and DK2
+bands the *largest* bucket rather than a pooled total. **A bed does nothing
+whatever about an unpaid wage.** Kept below rather than deleted, because the
+shape of the mistake is worth more than the paragraph: two correct numbers, a
+plausible ratio between them, and no check that the game ever puts them in the
+same place. See `creature-anger.md`, "Anger is six counters, not one".
+
+### 6.4 (retired) What a bed does to all of this
 
 `ModifyAngerOfCreatureInLairPerSecond` is **−550** and a Goblin's `AngerNoPay` is
 **60**, so a creature asleep in its own bed sleeps off unpaid resentment **nine

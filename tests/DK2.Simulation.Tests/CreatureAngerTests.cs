@@ -187,9 +187,11 @@ public class CreatureAngerTests
         //
         // The tile is a diagonal step away rather than under the creature's
         // feet, because a bed is walked to (ADR-0060). The two seconds of walk
-        // cost 200 anger at AngerNoLair's 100 a second, and the first sleep at
-        // 240 s repays it fifty times over, so the run still ends at zero —
-        // and, more to the point, never gets within sight of a mood change.
+        // cost 200 anger at AngerNoLair's 100 a second, and THAT 200 IS NEVER
+        // REPAID — the bed drains a different counter (ADR-0080), so what a
+        // keeper who builds late buys is the bleeding stopping, not the wound
+        // healing. 200 out of a 16383 unhappy band is nothing, which is the
+        // real claim here: the run never gets within sight of a mood change.
         GameDatabase db = Db;
         WorldState world = World(db);
         PaintLair(db, world, new TilePos(3, 3));
@@ -200,8 +202,11 @@ public class CreatureAngerTests
         Simulation(db, world, events).Run(Second * 400);
 
         Assert.True(LairRules.HasBed(world, db, goblin));
-        Assert.Equal(0, goblin.Anger);
         Assert.Equal(CreatureMood.Content, CreatureAngerRules.MoodOf(db.CreatureById(GoblinId), goblin));
+
+        // Two seconds of walking to it, and not one point more in four hundred.
+        Assert.InRange(goblin.Anger.Lair, 1, 400);
+        Assert.Equal(goblin.Anger.Lair, goblin.Anger.Max);
         Assert.DoesNotContain(events.Events, e => e.Kind == "creature_mood");
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
     }
@@ -222,7 +227,7 @@ public class CreatureAngerTests
         PaintPortal(db, world, new TilePos(3, 3));
 
         CreatureState goblin = world.SpawnCreature(db, DeserterId, Keeper, new TilePos(1, 1));
-        goblin.Anger = CreatureAngerRules.Ceiling;
+        goblin.Anger.Lair = CreatureAngerRules.Ceiling + 1;
         var events = new ListEventSink();
 
         GameSimulation sim = Walking(db, world, events);
@@ -261,7 +266,7 @@ public class CreatureAngerTests
         WorldState world = World(db);
 
         CreatureState goblin = world.SpawnCreature(db, DeserterId, Keeper, new TilePos(2, 2));
-        goblin.Anger = CreatureAngerRules.Ceiling;
+        goblin.Anger.Lair = CreatureAngerRules.Ceiling + 1;
         var events = new ListEventSink();
 
         Walking(db, world, events).Run(Second * 60);
@@ -291,7 +296,7 @@ public class CreatureAngerTests
         PaintLair(db, world, new TilePos(2, 2));
 
         CreatureState goblin = world.SpawnCreature(db, DeserterId, Keeper, new TilePos(2, 2));
-        goblin.Anger = CreatureAngerRules.Ceiling;
+        goblin.Anger.Lair = CreatureAngerRules.Ceiling + 1;
 
         Walking(db, world).Run(Second * 30);
 
@@ -336,7 +341,7 @@ public class CreatureAngerTests
         // 170 s of no lair at 100 a second: past the 16383 halfway mark.
         sim.Run(Second * 170);
         Assert.Equal(CreatureMood.Unhappy, CreatureAngerRules.MoodOf(definition, goblin));
-        int peak = goblin.Anger;
+        int peak = goblin.Anger.Lair;
 
         // Now the player does something about it. One tile.
         PaintLair(db, world, new TilePos(2, 3));
@@ -347,23 +352,34 @@ public class CreatureAngerTests
         int waited = 0;
         while (!LairRules.HasBed(world, db, goblin) && waited++ < Second * 20) sim.Run(1);
         Assert.True(LairRules.HasBed(world, db, goblin), "never got its bed");
-        int atBed = goblin.Anger;
+        int atBed = goblin.Anger.Lair;
         Assert.True(atBed >= peak);
 
         // Long enough for it to get tired (TimeAwake 240) and sleep once.
         sim.Run(Second * 300);
 
-        Assert.Equal(CreatureMood.Content, CreatureAngerRules.MoodOf(definition, goblin));
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
 
-        // One sleep, and its worth is exact: nine seconds at -550.
-        Assert.Equal(atBed - (9 * 550), goblin.Anger);
+        // AND HERE IS THE CORRECTION (ADR-0080). This test used to assert that
+        // the creature came back to Content, nine seconds of sleep at -550
+        // apiece having undone the lairless grievance. It does not, because
+        // DK2 does not keep one anger counter: the lairless charge went into
+        // bucket 2 and ModifyAngerOfCreatureInLairPerSecond drains bucket 5.
+        //
+        // So a bed STOPS THE BLEEDING AND DOES NOT HEAL THE WOUND. The Lair
+        // bucket is frozen exactly where the bed found it - not one point of it
+        // is repaid - and the creature stays unhappy about the four minutes it
+        // spent without one.
+        Assert.Equal(atBed, goblin.Anger.Lair);
+        Assert.Equal(CreatureMood.Unhappy, CreatureAngerRules.MoodOf(definition, goblin));
 
-        // Still carrying most of the grievance, though. Not a reset.
-        Assert.True(goblin.Anger > 0);
+        // The sleep did run and its calm did land; it landed in a bucket that
+        // was already empty, so it bought nothing. What that -550 is FOR is a
+        // slap, which is the one thing that fills the bucket it drains.
+        Assert.Equal(0, goblin.Anger.Treatment);
 
-        // And the log shows the ladder going back down, not just the value.
-        Assert.Contains(events.Events, e =>
+        // And the ladder never came back down, so the log has no such line.
+        Assert.DoesNotContain(events.Events, e =>
             e.Kind == "creature_mood" && e.Detail.Contains("Unhappy->Content"));
     }
 
@@ -383,14 +399,20 @@ public class CreatureAngerTests
         WorldState world = World(db);
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, new TilePos(2, 2));
 
-        vampire.Anger = CreatureAngerRules.Ceiling;
+        vampire.Anger.Lair = CreatureAngerRules.Ceiling + 1;
         var events = new ListEventSink();
 
         Simulation(db, world, events).Run(Second * 30);
 
         Assert.Single(world.Creatures);
-        Assert.Equal(CreatureAngerRules.Ceiling, vampire.Anger);
         Assert.Equal(CreatureActivity.Idle, vampire.Activity);
+
+        // Still angry, and CROSSER than it started — which it could not have
+        // been before ADR-0080, when a counter stopped dead at the angry band.
+        // It saturates at 65533 instead, so thirty more seconds of having no
+        // bed cost it three thousand more it will have to pray off.
+        Assert.Equal(CreatureMood.Angry, CreatureAngerRules.MoodOf(db.CreatureById(VampireId), vampire));
+        Assert.Equal(CreatureAngerRules.Ceiling + 1 + (30 * 100), vampire.Anger.Lair);
 
         Assert.All(
             events.Events.Where(e => e.Kind == "creature_angry"),
@@ -418,7 +440,7 @@ public class CreatureAngerTests
         WorldState world = World(db);
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, new TilePos(2, 2));
 
-        vampire.Anger = CreatureAngerRules.Ceiling;
+        vampire.Anger.Lair = CreatureAngerRules.Ceiling + 1;
         var events = new ListEventSink();
 
         Simulation(db, world, events).Run(Second * 30);
@@ -454,7 +476,7 @@ public class CreatureAngerTests
         PaintPortal(db, world, new TilePos(3, 3));
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
-        goblin.Anger = CreatureAngerRules.Ceiling;
+        goblin.Anger.Lair = CreatureAngerRules.Ceiling + 1;
         var events = new ListEventSink();
 
         Walking(db, world, events).Run(Second * 120);
@@ -490,7 +512,7 @@ public class CreatureAngerTests
         PaintLair(db, world, new TilePos(3, 3));
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
-        goblin.Anger = CreatureAngerRules.Ceiling;
+        goblin.Anger.Lair = CreatureAngerRules.Ceiling + 1;
         var events = new ListEventSink();
 
         var sim = new GameSimulation(db, world, seed: 42,
@@ -562,7 +584,7 @@ public class CreatureAngerTests
         PaintPortal(db, world, new TilePos(3, 3));
 
         CreatureState creature = world.SpawnCreature(db, 45, Keeper, new TilePos(1, 1));
-        creature.Anger = CreatureAngerRules.Ceiling;
+        creature.Anger.Lair = CreatureAngerRules.Ceiling + 1;
         var events = new ListEventSink();
 
         Walking(db, world, events).Run(Second);
@@ -593,7 +615,7 @@ public class CreatureAngerTests
         WorldState world = World(db);
         CreatureState imp = world.SpawnCreature(db, 1, Keeper, new TilePos(2, 2));
 
-        imp.Anger = CreatureAngerRules.Ceiling;
+        imp.Anger.Lair = CreatureAngerRules.Ceiling + 1;
         var events = new ListEventSink();
 
         Simulation(db, world, events).Run(Second * 30);
@@ -620,12 +642,16 @@ public class CreatureAngerTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, bed);
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
 
-        goblin.Anger = 10_000;
+        // Seeded in the bucket the bed actually drains - Treatment, which is
+        // where a slap and the Hand of Evil land (ADR-0080). Seeding the Lair
+        // bucket instead would show nothing happening at all, which is the
+        // point of ABedStopsTheGrievanceGrowingButDoesNotUndoIt.
+        goblin.Anger.Treatment = 10_000;
         goblin.Activity = CreatureActivity.Sleeping;
 
         Simulation(db, world).Run(Second);
 
-        Assert.Equal(10_000 - 550, goblin.Anger);
+        Assert.Equal(10_000 - 550, goblin.Anger.Treatment);
         Assert.Equal(-550, db[VariableTypeId.ModifyAngerOfCreatureInLairPerSecond]);
         Assert.Equal(100, db.CreatureById(GoblinId).AngerNoLair);
     }
@@ -640,9 +666,9 @@ public class CreatureAngerTests
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
 
-        goblin.Anger = 100;
-        Assert.Equal(-100, CreatureAngerRules.Apply(goblin, -5000));
-        Assert.Equal(0, goblin.Anger);
+        goblin.Anger.Treatment = 100;
+        Assert.Equal(-100, CreatureAngerRules.Apply(goblin, AngerBucket.Treatment, -5000));
+        Assert.True(goblin.Anger.IsCalm);
     }
 
     [Fact]
@@ -652,9 +678,15 @@ public class CreatureAngerTests
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
 
-        goblin.Anger = CreatureAngerRules.Ceiling - 10;
-        Assert.Equal(10, CreatureAngerRules.Apply(goblin, 5000));
-        Assert.Equal(CreatureAngerRules.Ceiling, goblin.Anger);
+        // AT 65533, NOT AT THE ANGRY BAND. The original clamps each bucket to
+        // [0, 0xFFFD] and only then compares the largest of them against the
+        // bands, so a grievance goes on climbing for a second ceiling's worth
+        // after the creature has already turned angry (ADR-0080).
+        goblin.Anger.Lair = CreatureAngerRules.Saturation - 10;
+        Assert.Equal(10, CreatureAngerRules.Apply(goblin, AngerBucket.Lair, 5000));
+        Assert.Equal(CreatureAngerRules.Saturation, goblin.Anger.Lair);
+        Assert.Equal(65533, CreatureAngerRules.Saturation);
+        Assert.True(CreatureAngerRules.Saturation > CreatureAngerRules.Ceiling);
     }
 
     // ---- the discrete deltas, which Q114 has not settled ------------------
@@ -745,11 +777,11 @@ public class CreatureAngerTests
         CreatureDef def = db.CreatureById(GoblinId);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
 
-        goblin.Anger = 1000;
+        goblin.Anger.Treatment = 1000;
         CreatureAngerRules.Held(def, goblin);
 
         Assert.Equal(-250, def.AngerInHand);
-        Assert.Equal(750, goblin.Anger);
+        Assert.Equal(750, goblin.Anger.Treatment);
     }
 
     // ---- who is exempt ----------------------------------------------------
@@ -769,7 +801,7 @@ public class CreatureAngerTests
 
         Simulation(db, world).Run(Second * 400);
 
-        Assert.Equal(0, imp.Anger);
+        Assert.True(imp.Anger.IsCalm);
         Assert.Equal(1, db.CreatureById(Dk2TerrainFixture.ImpCreatureId).AngerNoLair);
     }
 
@@ -787,6 +819,6 @@ public class CreatureAngerTests
         Simulation(db, world).Run(Second * 30);
 
         Assert.Equal(CreatureActivity.Dying, goblin.Activity);
-        Assert.Equal(0, goblin.Anger);
+        Assert.True(goblin.Anger.IsCalm);
     }
 }

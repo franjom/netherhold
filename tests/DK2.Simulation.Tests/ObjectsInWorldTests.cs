@@ -245,7 +245,7 @@ public class ObjectsInWorldTests
             db, Dk2TerrainFixture.DeserterCreatureId, Keeper, at);
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
 
-        goblin.Anger = CreatureAngerRules.Ceiling;
+        goblin.Anger.Lair = CreatureAngerRules.Ceiling + 1;
 
         new GameSimulation(db, world, 42, [new CreatureAngerSystem()]).Run(Second);
 

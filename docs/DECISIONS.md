@@ -6363,3 +6363,115 @@ name in a document is permitted because a name is not a copyrightable work, not
 because Flame is authoritative. A finding is made from the binary and checked
 against Flame, never the other way round (AGENTS.md "Existing research",
 ADR-0046 amendment).
+
+## ADR-0081 — Anger is six counters and the mood is the largest, not the sum
+
+**Status:** accepted, 2026-09-06
+**Context:** found while reading the job choosers for M4's last item; ADR-0050,
+ADR-0053, ADR-0079; Q106, Q114, Q185, Q202 (new)
+**Hash:** 31 → **32**. One `int` on the creature became six.
+
+### What was found
+
+`FUN_00487030` is DK2's anger-add, reached through the wrapper `FUN_00478b80`
+that every one of the sixty anger sites in the executable calls. Its arguments
+are **(bucket index, amount, message id)** and its receiver is an `int[8]` living
+at `creature+0x26e`:
+
+- `[0..5]` are **six independent anger counters**.
+- `[6]` is the creature's unhappy threshold.
+- `[7]` is the mood band it writes back.
+
+The routine adds the amount to **one** counter, clamps that counter to
+`[0, 0xFFFD]`, then walks all six to find the **maximum** and bands *that one
+value*: below `[6]` is content, above `0x7FFF` is angry, between is unhappy.
+**Nothing anywhere sums them.**
+
+### The decision, and it is a correction to three years of this file's own work
+
+This simulation kept one pooled `CreatureState.Anger`. That is wrong in both
+directions at once, and neither error is small:
+
+- **Two half-grievances do not add up to desertion.** A creature at 20 000
+  hungry and 20 000 unpaid is *unhappy* in DK2 and was *angry* here.
+- **A kindness in one bucket does not pay off a grievance in another.** This is
+  the one that matters, because it retires a finding from the day before.
+  **ADR-0079 recorded that a bed outpaces an unpaid wage nine to one** — 550 a
+  second of `ModifyAngerOfCreatureInLairPerSecond` against a Goblin's 60 of
+  `AngerNoPay` — and concluded that wages alone could never drive a well-housed
+  creature out of a dungeon. Both numbers were right. **The conclusion was
+  wrong**: the bed drains bucket 5 and the wage fills bucket 4, and the maximum
+  never sees the trade. A keeper who does not pay loses its creatures however
+  comfortable it has made them.
+
+That second correction is the more interesting one, because the old model made
+the game *easier* in a way no player would recognise: it let a keeper buy off
+every grievance with the cheapest one to fix.
+
+### Four of the six are certain, and two names are ours (Q202)
+
+Exactly one creature-record field feeds each of four buckets, and the field names
+them: `angerNoFood` → **1**, `angerNoLair` → **2**, `angerNoWork` → **3**,
+`angerNoPay` → **4**. Those four are the needs, and they are precisely the four
+the need-anger routine of ADR-0079 charges — so the taxonomy and the routine
+agree without being told to.
+
+The other two are catch-alls and the division between them is **UNKNOWN**. What
+is read is which sources reach which:
+
+| Bucket | Reached by |
+|---|---|
+| **5**, called `Treatment` here | `angerSlap`, `angerInHand`, `ModifyAngerOfCreatureInLairPerSecond`, `ModifyAngerOfCombatPitVictor`, both `Gambling…Anger…PerSecond`, and the torture sites |
+| **0**, called `Company` here | `ModifyAngerInCompanyOfHatedCreaturesPerSecond`, a share of the casino and of pit spectating, and — not fitting the name — `angerNoWork` at one site inside the combat pit |
+
+Bucket 5 is coherent as *what is done to you, and resting it off*: slapping,
+carrying, torture and the pit fill it, and a bed drains it. That makes the
+"sleep it off" mechanic specifically the answer to **slapping**, which is the
+loop a DK2 player actually plays. Bucket 0 is less coherent and the name is
+flagged as ours, on the same footing `Unk8` → `IsGood` was.
+
+**The Temple reaches all six.** `ModifyCreatureAngerWhilePrayingPerSecond` (−275)
+is applied in six consecutive calls, one per bucket. Praying is the only thing in
+the game that takes back a grievance it did not cause — which is what a Temple is
+*for*, and is now a mechanical fact rather than a flavour one.
+
+### Two more numbers, one new and one unchanged
+
+**The counters saturate at 65 533, not at the angry band.** Each clamps to
+`0xFFFD` and only the maximum is compared against `0x7FFF`, so a grievance keeps
+climbing for a second full ceiling's worth after the creature has already turned
+angry. A long-neglected creature therefore does not calm the moment a keeper does
+one thing right, and `CreatureAngerRules.Saturation` is now distinct from
+`Ceiling`.
+
+**Nothing about the owner's stopwatch moves.** Q106 measured the *band* a
+creature crosses — 16 383 unhappy, 32 767 angry — and that is still exactly what
+`Ceiling` and `UnhappyAt` express. The saturation above it is invisible to any
+stopwatch, which is why five sittings of measurement could not have found it and
+the binary could.
+
+The one hair-splitting change: angry is `> 32767` where this was `>= 32767`, from
+the routine's own `CMP`/`JLE`. Below the resolution of any observation, and free.
+
+### Consequences
+
+- `CreatureAnger` (new), `AngerBucket` (new); `CreatureAngerRules.Apply` takes a
+  bucket; `PerSecond` returns per-bucket deltas; `WorldSnapshot` writes six.
+- **Three tests changed their claim rather than their spelling**, and each is
+  worth naming because each had been asserting something DK2 does not do:
+  `ABedOutpacesAnUnpaidWageNineToOne` is replaced by
+  `ABedDoesNotPayOffAWageBecauseTheyAreDifferentCounters`;
+  `ABedFixesItInInstalmentsAndNotAtOnce` no longer ends Content, because the
+  Lair bucket is frozen where the bed found it and not one point of it is
+  repaid; and the Vampire that draws Rebel is now *crosser* after thirty
+  seconds than it was, where before it sat pinned at the band.
+- **The hand tests got simpler, which is a good sign.** Two of them existed to
+  cancel out the lairless ladder that a held creature was climbing at the same
+  time as the hand's own delta — one of them by spawning a twin Goblin to
+  subtract. The two effects are different counters now, so the arithmetic is
+  gone and the twin stays only to demonstrate the separation.
+- 1092 green, 25 scenarios, zero warnings. Pin `0x30722F6054924CC5`.
+- **This is the fourth time a claim nothing checked turned out already false**,
+  and it had the standing shape: a single number that every mechanic wrote into,
+  never questioned because it had been right for the one mechanic that existed
+  when it was written.

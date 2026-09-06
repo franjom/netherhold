@@ -320,7 +320,7 @@ public class HandTests
         for (int i = 0; i < 5; i++)
             sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, goblin.Id)));
 
-        Assert.Equal(5 * slap, goblin.Anger);
+        Assert.Equal(5 * slap, goblin.Anger.Treatment);
     }
 
     [Fact]
@@ -701,18 +701,23 @@ public class HandTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
-        goblin.Anger = 10_000;
+        goblin.Anger.Lair = 10_000;
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
-        int before = goblin.Anger;
+        int before = goblin.Anger.Lair;
 
         for (int i = 0; i < HandRules.AngerGraceTicks; i++) sim.Tick();
 
         // The lairless ladder keeps running - a creature in the hand still
         // knows it has no bed - so what "none the wiser" means precisely is
         // that AngerInHand has not landed once. +100 a second and nothing else.
-        Assert.Equal(before + (HandRules.AngerGraceSeconds * 100), goblin.Anger);
+        //
+        // Since ADR-0080 that is a cleaner statement than it was: the two
+        // grievances are separate counters, so "the hand has not charged it"
+        // is simply an empty Treatment bucket, with no arithmetic in the way.
+        Assert.Equal(before + (HandRules.AngerGraceSeconds * 100), goblin.Anger.Lair);
+        Assert.Equal(0, goblin.Anger.Treatment);
     }
 
     [Fact]
@@ -724,23 +729,27 @@ public class HandTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
-        goblin.Anger = 20_000;
+        goblin.Anger.Treatment = 20_000;
         GameSimulation sim = Simulation(db, world);
 
         Assert.Equal(-250, db.CreatureById(GoblinId).AngerInHand);
 
-        // A second Goblin, left standing, so the lairless ladder that both of
-        // them are climbing cancels out and only the hand's own delta is left.
+        // A second Goblin, left standing. It used to be here to cancel out the
+        // lairless ladder both of them were climbing; since ADR-0080 that
+        // ladder is a different counter and cannot interfere, and the twin
+        // stays because it now demonstrates the separation instead - its
+        // Treatment bucket does not move at all while the held one's drains.
         CreatureState standing = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
-        standing.Anger = 20_000;
+        standing.Anger.Treatment = 20_000;
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
         for (int i = 0; i < HandRules.AngerGraceTicks + (10 * Second); i++) sim.Tick();
 
         // Ten game seconds past the grace period is ten applications of -250,
         // and the held Goblin is exactly that much calmer than its twin.
-        Assert.True(goblin.Anger < standing.Anger);
-        Assert.Equal(10 * -250, goblin.Anger - standing.Anger);
+        Assert.True(goblin.Anger.Treatment < standing.Anger.Treatment);
+        Assert.Equal(10 * -250, goblin.Anger.Treatment - standing.Anger.Treatment);
+        Assert.Equal(20_000, standing.Anger.Treatment);
     }
 
     [Fact]
@@ -749,7 +758,7 @@ public class HandTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
-        goblin.Anger = CreatureAngerRules.Ceiling;
+        goblin.Anger.Lair = CreatureAngerRules.Ceiling + 1;
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));

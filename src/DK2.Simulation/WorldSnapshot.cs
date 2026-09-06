@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 31;
+    private const int FormatVersion = 32;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -116,7 +116,12 @@ public static class WorldSnapshot
             w.Write(c.AwakeTicks);
             w.Write(c.SleepTicks);
             w.Write(c.DyingTicks);
-            w.Write(c.Anger);
+            w.Write(c.Anger.Company);
+            w.Write(c.Anger.Hunger);
+            w.Write(c.Anger.Lair);
+            w.Write(c.Anger.Work);
+            w.Write(c.Anger.Pay);
+            w.Write(c.Anger.Treatment);
             w.Write(c.WageOwed);
             w.Write(c.PayAttemptsFailed);
             w.Write(c.SkipNextPayment);
@@ -275,7 +280,15 @@ public static class WorldSnapshot
                 AwakeTicks = r.ReadInt32(),
                 SleepTicks = r.ReadInt32(),
                 DyingTicks = r.ReadInt32(),
-                Anger = r.ReadInt32(),
+                Anger = new CreatureAnger
+                {
+                    Company = r.ReadInt32(),
+                    Hunger = r.ReadInt32(),
+                    Lair = r.ReadInt32(),
+                    Work = r.ReadInt32(),
+                    Pay = r.ReadInt32(),
+                    Treatment = r.ReadInt32(),
+                },
                 WageOwed = r.ReadInt32(),
                 PayAttemptsFailed = r.ReadInt32(),
                 SkipNextPayment = r.ReadBoolean(),

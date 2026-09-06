@@ -290,3 +290,81 @@ numbers 10 and 16.
 | **Q115** | The zero floor is **ours**. Nothing in the data states it, and without it a combat-pit victor (−16400) would be immune to every grievance for three minutes |
 | **Q116** | **Where a deserter goes.** DK2 sends it to a portal, so a keeper with no portal keeps a creature that wanted to leave. The wiki's DK2 section describes rebellion as the *fallback* when the exit is unreachable, where the record plainly holds a weighted table — both cannot be right, and the record is the stronger source |
 | — | Rebellion itself, and the three percentages that govern its outcome |
+
+---
+
+## Anger is six counters, not one (2026-09-06, ADR-0081)
+
+Every anger site in DKII.EXE goes through one wrapper, `FUN_00478b80`, into one
+adder, `FUN_00487030`. The adder's receiver is an `int[8]` at `creature+0x26e`:
+**six counters**, then the unhappy threshold, then the mood band.
+
+```
+add amount to counter[index]
+clamp counter[index] to [0, 0xFFFD]
+worst = max(counter[0..5])
+band  = worst < counter[6] ? content : worst > 0x7FFF ? angry : unhappy
+```
+
+**Nothing sums them.** The mood is the largest single grievance.
+
+### The four that are certain
+
+Exactly one creature-record field feeds each, and every one of the sixty call
+sites agrees:
+
+| Bucket | Field | Offset |
+|---|---|---|
+| 1 | `angerNoFood` | `def+0x6c3` |
+| 2 | `angerNoLair` | `def+0x6c1` |
+| 3 | `angerNoWork` | `def+0x6c7` |
+| 4 | `angerNoPay` | `def+0x6c5` |
+
+Those are exactly the four the need-anger routine charges (`payday.md` §6), so
+the bucket taxonomy and the routine agree without being made to.
+
+### The two that are not (Q202)
+
+| Bucket | What reaches it |
+|---|---|
+| **5** | `angerSlap`, `angerInHand`, `ModifyAngerOfCreatureInLairPerSecond`, `ModifyAngerOfCombatPitVictor`, `GamblingModifyCreatureAngerMoney/Smiles`, the torture sites |
+| **0** | `ModifyAngerInCompanyOfHatedCreaturesPerSecond`, a share of the casino and of pit spectating, and `angerNoWork` at one site inside the combat pit |
+
+Bucket 5 reads as *what is done to you, and resting it off* — slapping, carrying,
+torture and the pit fill it, and a bed drains it. **Which makes "sleep it off"
+the specific answer to slapping**, and explains why the shipped calm (−550) is so
+much larger than any need charge: it is undoing 3000-point slaps, not 100-point
+grievances. Bucket 0 is less coherent and its name here is ours.
+
+### What the split changes
+
+**A bed does not pay off a wage.** The wage fills bucket 4 and the bed drains
+bucket 5; the maximum never sees the trade. This retires the arithmetic
+ADR-0079 recorded — *a bed outpaces an unpaid wage nine to one* — which was
+right about both numbers and wrong about what they do to each other.
+
+**A keeper cannot buy off every grievance with the cheapest one to fix**, which
+is what the old pooled counter allowed and what no player would recognise.
+
+**Only a Temple gives anything back.** `ModifyCreatureAngerWhilePrayingPerSecond`
+(−275) is applied in six consecutive calls, one per bucket, and it is the only
+source in the game that drains a grievance it did not cause.
+
+### And a number above the ceiling
+
+Each counter saturates at **65533**, not at the angry band, and only the maximum
+is banded. So a grievance goes on climbing for a second full ceiling's worth
+after the creature has already turned angry, and a long-neglected creature does
+not calm the moment a keeper does one thing right.
+
+The owner's stopwatch is untouched by this: Q106 measured the *band*, which is
+still 16383 and 32767. The saturation above it is invisible to any observation,
+which is why measurement could not have found it. Angry is `> 32767` rather than
+`>= 32767`, from the routine's own comparison.
+
+### The whole-routine guard
+
+The add is skipped entirely — the mood still recomputed — when
+`DAT_006dc424 + 0x72a1 & 1` is clear. A global option, unidentified, presumably
+"creatures never get angry". Not modelled; Q202 carries it.
+

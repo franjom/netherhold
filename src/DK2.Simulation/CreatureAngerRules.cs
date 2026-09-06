@@ -110,12 +110,50 @@ public static class CreatureAngerRules
     public const int Ceiling = short.MaxValue;
 
     /// <summary>
+    /// Where a counter actually stops: <b>65533</b>, and it is <i>not</i>
+    /// <see cref="Ceiling"/>.
+    ///
+    /// <para>Read from the original's anger-add routine on 2026-09-06
+    /// (ADR-0080), which clamps each bucket to <c>[0, 0xFFFD]</c> and only then
+    /// compares the largest of them against the bands. So a grievance keeps
+    /// climbing for a second full ceiling's worth <i>after</i> the creature has
+    /// already turned angry — which is why a long-neglected creature does not
+    /// calm down the moment a keeper does one thing right.</para>
+    ///
+    /// <para>Nothing about this touches the owner's stopwatch. That measured
+    /// the <i>band</i> a creature crosses, which is still
+    /// <see cref="Ceiling"/>; this is the saturation above it, which no
+    /// observation could have separated from a clamp at the band.</para>
+    /// </summary>
+    public const int Saturation = 0xFFFD;
+
+    /// <summary>
     /// Anger at which a creature becomes unhappy — <c>UnhappyThreshold</c>
     /// percent of <see cref="Ceiling"/>, which is <b>16383</b> for every
     /// creature in the game, all 46 of which carry 50.
     /// </summary>
     public static int UnhappyAt(CreatureDef creature) =>
         Ceiling * creature.UnhappyThreshold / 100;
+
+    /// <summary>
+    /// Applies a change to one bucket and clamps it to
+    /// <c>[0, <see cref="Saturation"/>]</c>. Returns what actually landed.
+    ///
+    /// <para><b>Per bucket, because DK2's is.</b> Its routine subscripts an
+    /// <c>int[6]</c> with the caller's first argument and clamps that one slot;
+    /// nothing pools them. See <see cref="CreatureAnger"/> for what the six are
+    /// and what the split changes.</para>
+    ///
+    /// <para>Clamped at zero rather than allowed negative: a creature cannot be
+    /// <i>better</i> than content, and the original clamps the same way — the
+    /// negative branch masks the value to zero rather than keeping it.</para>
+    /// </summary>
+    public static int Apply(CreatureState state, AngerBucket bucket, int delta)
+    {
+        int before = state.Anger[bucket];
+        state.Anger[bucket] = Math.Clamp(before + delta, 0, Saturation);
+        return state.Anger[bucket] - before;
+    }
 
     /// <summary>
     /// Anger at which a creature becomes angry: <b>the ceiling itself</b>.
@@ -126,10 +164,15 @@ public static class CreatureAngerRules
     public static int AngryAt(CreatureDef creature) => Ceiling;
 
     /// <summary>Where this creature sits on the ladder right now.</summary>
+    /// <para><b>From the largest bucket, never from their sum</b> (ADR-0080).
+    /// The original finds the maximum of its six counters and bands that one
+    /// value, so two half-grievances leave a creature unhappy where a single
+    /// pooled counter would have made it angry.</para>
     public static CreatureMood MoodOf(CreatureDef creature, CreatureState state)
     {
-        if (state.Anger >= AngryAt(creature)) return CreatureMood.Angry;
-        if (state.Anger >= UnhappyAt(creature)) return CreatureMood.Unhappy;
+        int worst = state.Anger.Max;
+        if (worst > AngryAt(creature)) return CreatureMood.Angry;
+        if (worst >= UnhappyAt(creature)) return CreatureMood.Unhappy;
         return CreatureMood.Content;
     }
 
@@ -142,12 +185,7 @@ public static class CreatureAngerRules
     /// creature that had won a combat pit an hour of immunity to everything.
     /// The floor is ours; nothing in the data states it (Q115).</para>
     /// </summary>
-    public static int Apply(CreatureState state, int delta)
-    {
-        int before = state.Anger;
-        state.Anger = Math.Clamp(before + delta, 0, Ceiling);
-        return state.Anger - before;
-    }
+
 
     /// <summary>
     /// The per-second anger change from unmet needs and from a bed.
@@ -194,7 +232,7 @@ public static class CreatureAngerRules
     /// silence. When a hatchery can feed a creature, <c>AngerNoFood</c> goes in
     /// the same day.</para>
     /// </summary>
-    public static int PerSecond(
+    public static CreatureAnger PerSecond(
         WorldState world,
         GameDatabase database, CreatureDef creature, CreatureState state)
     {
@@ -209,37 +247,48 @@ public static class CreatureAngerRules
         // Corrected 2026-09-06 (ADR-0079). Until then a prisoner took
         // AngerNoLair every second like anybody else, on the reasoning that it
         // had no bed - which is true, and is not what DK2 does with it.
-        if (PrisonRules.IsImprisoned(state)) return 0;
+        CreatureAnger delta = default;
+        if (PrisonRules.IsImprisoned(state)) return delta;
 
-        // ADDITIVE since ADR-0079, and that is the original's shape: its
-        // need-anger routine (FUN_00478d00) tests lair, food and pay one after
-        // another and charges each independently, so a bedless unpaid creature
-        // takes both. This used to be an early-return chain, which was right
-        // while there was only ever one source to return.
-        int anger = 0;
-
-        // A creature asleep in its own bed calms, and calming wins over the
-        // bedless charge: it cannot be simultaneously bedless and in its bed,
-        // so these two never both fire.
-        if (LairRules.AsleepInOwnBed(world, database, state))
-        {
-            anger += database[VariableTypeId.ModifyAngerOfCreatureInLairPerSecond];
-        }
-        else if (LairRules.NeedsBed(creature) && !LairRules.HasBed(world, database, state))
+        // ADDITIVE since ADR-0079, and PER BUCKET since ADR-0080. The
+        // original's need-anger routine (FUN_00478d00) tests lair, food and pay
+        // one after another and charges each into its own counter, so a bedless
+        // unpaid creature takes both and neither can pay off the other.
+        if (LairRules.NeedsBed(creature) && !LairRules.HasBed(world, database, state))
         {
             // No bed, and it wanted one. A creature whose record gives it no
             // lair object at all — the Imp, the Skeleton, Horny — is not owed
             // one and is not angered by its absence.
-            anger += creature.AngerNoLair;
+            delta.Lair += creature.AngerNoLair;
         }
 
         // Owed wages it has not collected.
         if (PaydayRules.IsOwedWages(database, creature, state))
         {
-            anger += creature.AngerNoPay;
+            delta.Pay += creature.AngerNoPay;
         }
 
-        return anger;
+        // AND A BED DOES NOT PAY OFF EITHER OF THEM, which is the correction
+        // ADR-0080 is for. `ModifyAngerOfCreatureInLairPerSecond` reaches
+        // bucket 5 and nothing else; the two charges above are buckets 2 and 4.
+        // Sleeping it off used to cancel them here at 550 a second against 160,
+        // and in DK2 it does not touch them at all.
+        if (LairRules.AsleepInOwnBed(world, database, state))
+        {
+            delta.Treatment += database[VariableTypeId.ModifyAngerOfCreatureInLairPerSecond];
+        }
+
+        return delta;
+    }
+
+    /// <summary>Applies a whole tick's worth of per-bucket change.</summary>
+    public static void Apply(CreatureState state, CreatureAnger delta)
+    {
+        for (int i = 0; i < CreatureAnger.Count; i++)
+        {
+            var bucket = (AngerBucket)i;
+            if (delta[bucket] != 0) Apply(state, bucket, delta[bucket]);
+        }
     }
 
     /// <summary>
@@ -283,7 +332,7 @@ public static class CreatureAngerRules
     /// section 4).</para>
     /// </summary>
     public static int Slap(CreatureDef creature, CreatureState state) =>
-        Apply(state, creature.AngerSlap);
+        Apply(state, AngerBucket.Treatment, creature.AngerSlap);
 
     /// <summary>
     /// Being held in the Hand of Evil: <c>AngerInHand</c>, which <b>calms</b>
@@ -297,7 +346,7 @@ public static class CreatureAngerRules
     /// <see cref="HandRules.AngerDueThisTick"/>.</para>
     /// </summary>
     public static int Held(CreatureDef creature, CreatureState state) =>
-        Apply(state, creature.AngerInHand);
+        Apply(state, AngerBucket.Treatment, creature.AngerInHand);
 
     /// <summary>
     /// How long an angry creature must wait between selections that came to

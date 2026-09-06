@@ -441,15 +441,16 @@ public sealed class CreatureState
     public int DyingTicks;
 
     /// <summary>
-    /// How cross this creature is, from 0 to <see cref="CreatureAngerRules.Ceiling"/>
-    /// (32767).
+    /// How cross this creature is — <b>six counters, one per grievance</b>, each
+    /// running from 0 to <see cref="CreatureAngerRules.Saturation"/> (65533).
     ///
-    /// <para>The ceiling is the owner's stopwatch, not a guess: a lairless
-    /// Goblin accruing 100 a second became unhappy at 2:45 and angry at 5:30,
-    /// which is 32767/2 and 32767 to within a percent (Q106). See
-    /// <see cref="CreatureAngerRules"/>.</para>
+    /// <para>The band it sits in comes from the <i>largest</i> of the six and
+    /// never from their sum (ADR-0080, <see cref="CreatureAnger"/>). The band
+    /// itself is the owner's stopwatch, not a guess: a lairless Goblin accruing
+    /// 100 a second became unhappy at 2:45 and angry at 5:30, which is 32767/2
+    /// and 32767 to within a percent (Q106).</para>
     /// </summary>
-    public int Anger;
+    public CreatureAnger Anger;
 
     /// <summary>
     /// Wages this creature has been credited and has not yet collected.
@@ -788,7 +789,7 @@ public sealed class CreatureState
         hash.Add(AwakeTicks);
         hash.Add(SleepTicks);
         hash.Add(DyingTicks);
-        hash.Add(Anger);
+        Anger.Hash(ref hash);
         hash.Add(WageOwed);
         hash.Add(PayAttemptsFailed);
         hash.Add(SkipNextPayment);

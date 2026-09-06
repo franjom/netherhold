@@ -93,8 +93,8 @@ public sealed class CreatureAngerSystem : ISimulationSystem
 
             CreatureMood before = CreatureAngerRules.MoodOf(creature, state);
 
-            int delta = CreatureAngerRules.PerSecond(world, database, creature, state);
-            if (delta != 0) CreatureAngerRules.Apply(state, delta);
+            CreatureAnger delta = CreatureAngerRules.PerSecond(world, database, creature, state);
+            CreatureAngerRules.Apply(state, delta);
 
             CreatureMood after = CreatureAngerRules.MoodOf(creature, state);
 
@@ -103,8 +103,10 @@ public sealed class CreatureAngerSystem : ISimulationSystem
                 context.Emit(SystemName, "creature_mood",
                     $"creature={state.Id} type={creature.Name} " +
                     $"player={state.OwnerPlayerId} {before}->{after} " +
-                    $"anger={state.Anger}/{CreatureAngerRules.Ceiling} " +
-                    $"unhappy_at={CreatureAngerRules.UnhappyAt(creature)}");
+                    $"anger={state.Anger.Max}/{CreatureAngerRules.Ceiling} " +
+                    $"worst={state.Anger.Worst} " +
+                    $"unhappy_at={CreatureAngerRules.UnhappyAt(creature)} " +
+                    $"[{state.Anger}]");
             }
 
             // A creature in the hand still minds - the ladder above ran, and

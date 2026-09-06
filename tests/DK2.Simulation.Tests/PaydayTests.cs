@@ -359,7 +359,6 @@ public class PaydayTests
         goblin.WageOwed = 500;
 
         GameSimulation sim = WithAnger(db, world);
-        int before = goblin.Anger;
         for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
             sim.Tick(InputFrame.Empty);
 
@@ -367,11 +366,16 @@ public class PaydayTests
         // wage against zero and nothing else. There is no treasury on this map
         // and no attempt has failed, and it is angry anyway.
         //
-        // Both charges land, because a Goblin on this map has no bed either -
-        // which is exactly what the additive sum is for.
+        // Both charges land, and since ADR-0080 they land in DIFFERENT
+        // COUNTERS - the Goblin on this map has no bed either, and the two
+        // grievances neither add up nor pay each other off.
         CreatureDef def = db.CreatureById(GoblinId);
-        Assert.Equal(
-            before + (AngerWindowSeconds * (def.AngerNoLair + def.AngerNoPay)), goblin.Anger);
+        Assert.Equal(AngerWindowSeconds * def.AngerNoPay, goblin.Anger.Pay);
+        Assert.Equal(AngerWindowSeconds * def.AngerNoLair, goblin.Anger.Lair);
+
+        // And the mood comes off the larger of them alone, not their sum.
+        Assert.Equal(goblin.Anger.Lair, goblin.Anger.Max);
+        Assert.Equal(AngerBucket.Lair, goblin.Anger.Worst);
     }
 
     [Fact]
@@ -385,22 +389,23 @@ public class PaydayTests
         CreatureDef def = db.CreatureById(GoblinId);
 
         goblin.WageOwed = 500;
-        int before = goblin.Anger;
         for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
             sim.Tick(InputFrame.Empty);
-        int owing = goblin.Anger - before;
+        int owing = goblin.Anger.Pay;
 
         // Debt cleared by hand, standing in for a treasury it reached.
         goblin.WageOwed = 0;
-        int settled = goblin.Anger;
+        int settled = goblin.Anger.Lair;
         for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
             sim.Tick(InputFrame.Empty);
-        int paid = goblin.Anger - settled;
 
-        // The lair charge continues either way; the wage charge stops with the
-        // debt, and the difference between the two windows is exactly it.
-        Assert.Equal(AngerWindowSeconds * (def.AngerNoLair + def.AngerNoPay), owing);
-        Assert.Equal(AngerWindowSeconds * def.AngerNoLair, paid);
+        // The lair charge continues either way; the wage charge stops dead with
+        // the debt. What paying does NOT do is give back what was already
+        // charged - the Pay bucket is frozen where the payment found it, and
+        // only a Temple takes anything back out of it (ADR-0080).
+        Assert.Equal(AngerWindowSeconds * def.AngerNoPay, owing);
+        Assert.Equal(owing, goblin.Anger.Pay);
+        Assert.Equal(settled + (AngerWindowSeconds * def.AngerNoLair), goblin.Anger.Lair);
     }
 
     [Fact]
@@ -414,7 +419,7 @@ public class PaydayTests
         // carry a debt: the payday clock skips prisoners entirely.
         captive.WageOwed = 500;
         PrisonRules.Imprison(world, db, captive, Keeper, (Floor.Y * world.Width) + Floor.X);
-        int before = captive.Anger;
+        CreatureAnger before = captive.Anger;
 
         GameSimulation sim = WithAnger(db, world);
         for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
@@ -427,32 +432,52 @@ public class PaydayTests
         // pass a weaker claim and caught the difference (ADR-0079).
         Assert.Equal(500, captive.WageOwed);
         Assert.Equal(before, captive.Anger);
+        Assert.True(captive.Anger.IsCalm);
     }
 
     [Fact]
-    public void ABedOutpacesAnUnpaidWageNineToOne()
+    public void ABedDoesNotPayOffAWageBecauseTheyAreDifferentCounters()
     {
+        // THIS TEST REPLACES ONE THAT ASSERTED THE OPPOSITE, and the correction
+        // is ADR-0080. Its predecessor put the two shipped numbers side by side
+        // - a bed calms at 550 a second, an unpaid Goblin wage costs 60 - and
+        // concluded that a well-housed creature sleeps off unpaid resentment
+        // nine times faster than it accrues, so wages alone could never drive
+        // one out of a dungeon that had beds.
+        //
+        // Both numbers were right. The conclusion was wrong, because DK2 does
+        // not keep one anger counter for them to compete in:
+        // ModifyAngerOfCreatureInLairPerSecond reaches bucket 5 and AngerNoPay
+        // fills bucket 4, the mood is read off the LARGEST bucket, and a bed
+        // therefore does nothing whatever about a wage. A keeper that never
+        // pays loses its creatures however comfortable it has made them - which
+        // is the outcome a player would expect, and was not what this
+        // simulation did until the buckets were read.
         GameDatabase db = Db;
+        WorldState world = World(db);
         CreatureDef def = db.CreatureById(GoblinId);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
 
-        // Not a simulation run: the two shipped numbers, side by side, because
-        // this is the fact the wage-bill scenario turned up and prose is not
-        // where it belongs.
-        //
-        // A creature asleep in its own bed calms at ModifyAngerOfCreatureInLair-
-        // PerSecond, which ships at -550. Being owed a wage costs it
-        // AngerNoPay, 60 for a Goblin. So a well-housed creature sleeps off
-        // unpaid resentment about NINE TIMES faster than it accrues it, and
-        // wages alone will never drive one out of a dungeon that has beds.
-        //
-        // That is why the wage-bill scenario shows no mood change at all: the
-        // lairs it needs to make the Goblins idle enough to collect are also
-        // what keeps them calm. Failing to pay is not on its own a way to lose
-        // a creature - it has to be one of several things going wrong, which is
-        // what the anger ladder is for.
-        int calm = -db[VariableTypeId.ModifyAngerOfCreatureInLairPerSecond];
-        Assert.Equal(550, calm);
+        // Asleep in its own bed - every kindness this simulation can give.
+        // The bed is placed by hand rather than walked to, so that the ten
+        // seconds measured below are ten seconds of sleeping and nothing else.
+        LairRules.PlaceBed(world, db, goblin, (Floor.Y * world.Width) + Floor.X);
+        goblin.Anger.Treatment = 30_000;
+        goblin.Anger.Pay = 30_000;
+        goblin.Activity = CreatureActivity.Sleeping;
+        goblin.WageOwed = 500;
+
+        WithAnger(db, world).Run(SimulationTiming.TicksPerSecond * 10);
+
+        Assert.Equal(550, -db[VariableTypeId.ModifyAngerOfCreatureInLairPerSecond]);
         Assert.Equal(60, def.AngerNoPay);
-        Assert.True(calm > 9 * def.AngerNoPay);
+
+        // Ten seconds of sleeping: 5500 off what the bed can reach, and the
+        // wage climbing 600 in the same window, untouched by any of it.
+        Assert.Equal(30_000 - (10 * 550), goblin.Anger.Treatment);
+        Assert.Equal(30_000 + (10 * 60), goblin.Anger.Pay);
+
+        // And it is the wage the mood is now coming off.
+        Assert.Equal(AngerBucket.Pay, goblin.Anger.Worst);
     }
 }

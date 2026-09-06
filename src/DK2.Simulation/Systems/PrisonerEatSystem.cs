@@ -161,13 +161,13 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             int anger = PrisonRules.AngerPerFailedFoodSearch(definition);
             if (anger != 0)
             {
-                CreatureAngerRules.Apply(creature, anger);
+                CreatureAngerRules.Apply(creature, AngerBucket.Hunger, anger);
                 context.Emit(SystemName, "prisoner_no_food",
                     $"creature={creature.Id} type={definition.Name} " +
                     $"player={creature.OwnerPlayerId} " +
                     $"at=({creature.Tile.X},{creature.Tile.Y}) " +
                     $"need={creature.HungerNeed} anger=+{anger} " +
-                    $"total={creature.Anger}");
+                    $"total={creature.Anger.Hunger}");
             }
 
             return;
