@@ -1,4 +1,4 @@
-# Third-party notices
+﻿# Third-party notices
 
 This project is licensed under the GNU GPL version 3 (see LICENSE, ADR-0041).
 Everything listed below is GPL-compatible and keeps its own licence and
@@ -17,7 +17,9 @@ comments do.
 - **KMF format research (facts only, no code copied):** chunk hierarchy,
   material strings and numeric fields, static and animated vertex layouts,
   detail-level triangle lists, packed animation geometry, UV scaling, and the
-  frame-zero `ITAB`/`VGEO` lookup were consulted in OpenKeeper's
+  `ITAB`/`VGEO` per-frame lookup — including its indexing of one base table per
+  block of 128 frames, which reaches every frame rather than only frame zero —
+  were consulted in OpenKeeper's
   `toniarts.openkeeper.tools.convert.kmf.KmfFile` and `KmfModelLoader`, then
   reimplemented in `src/DK2.Convert` in this project's own structure and idiom.
 - **Engine texture format research (facts only, no code copied):** the `TCHC`
