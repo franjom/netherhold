@@ -5006,3 +5006,131 @@ hash is the proof that fog stayed out of the simulation.**
 
 The test to want back is two keepers viewing the same world and seeing different
 things. Nothing in this project can express that today.
+
+---
+
+# Sitting of 2026-09-06 (afternoon): Q172 closed at both ends, and fog merged
+
+Three commits: `84c5add`, `8c238e2`, `d02d18f` (a merge).
+**1042 tests, 23 scenarios, 76 ADRs, zero warnings.**
+**`HashVersion` and `FormatVersion` are now 30**, pin `0x2E7E116CA573398B`.
+
+## 1. A prisoner eats, and 117 was never "eat where it stands" (ADR-0074)
+
+The owner's third sentence about a prison — *"they rush toward that chicken, the
+first one to reach it eats it"* — needs **no racing mechanism at all**. Nothing
+in DK2 reserves the chosen bird, so the loser arrives at an empty tile and looks
+again. Absence, not machinery.
+
+Reading the handler also **corrected ADR-0073**, which had recorded state 117 as
+*"eat where it stands"* from the transition alone. It is a search of the prison's
+own tile chain, a ranking by straight-line squared distance, and a **move order**
+resuming in 118 — which is the meal. Opening the function was the whole fix.
+
+Three numbers, none chosen:
+
+- **One bird fills a prisoner.** 118 passes the level-scaled `HungerFill` where
+  the hatchery state passes a literal 1. `EatingRules.EatInPrison` had written
+  this down two sittings early and was right.
+- **The anger is a QUARTER of the tabled figure.** The creature loader divides
+  every `angerNo*` field by DK2's four ticks a game second — pinned by the same
+  register multiplying `TimeAwake`/`TimeSleep` into ticks two dozen instructions
+  earlier — so the engine holds **anger per tick**, and 117 adds one per
+  *attempt*. `SimulationTiming.OriginalTicksPerGameSecond` now carries that 4, so
+  the figure is a fact about DK2 and not about our placeholder rate.
+- **A prisoner does get hungry.** The needs routine suppresses the hunger clock
+  on a flag bit whose fifteen states are exactly drinking, gambling and dancing.
+
+**Q185 is therefore half answered and it is the Casino.** Bit 3 of the state
+record's `+0x18` suppresses hunger, bit 4 suppresses tiredness, and the witness
+set has no strays. First thing anything has been read to do with that byte.
+
+**Two older errors fell out of the same read.** `eating.md` §2.2 was still on the
+pre-ADR-0072 frame and every state id in it was one too low. And the needs
+routine's first gate is the **group tag**, not the category: group 7 is exactly
+the fourteen states that *are* a need, so the rule is *a creature already
+attending to a need does not reconsider its needs*. **Q176's answer survives and
+its explanation did not.**
+
+## 2. The Hand of Evil holds a thing (ADR-0075)
+
+ADR-0074 left the mechanic complete and **unreachable**: a chicken only reaches a
+cell because a keeper puts it there. The owner settled it the same day, with a
+screenshot of **four chickens held at once**, and confirmed **LIFO** — which
+upgrades an inference to an observation, and it holds *across kinds* because DK2
+keeps one array of things.
+
+**The near miss is the finding.** `CanBeDroppedOnAnyLand` is set on exactly one
+record — Call To Arms, precisely the object you would expect to be exempt from an
+owned-ground rule — and its name fits the owner's account perfectly. **It is
+tested nowhere in the executable.** Fourth dead field found here, and the first
+that is not a balance variable.
+
+**So the rule widens: before building on ANY named field in the shipped data —
+balance variable, object or terrain flag, record column — scan for its reader and
+count the hits.** A name that fits *too well* is a reason to check harder, since
+it is exactly the case where nobody looks.
+
+Read and deliberately **not** built, both needing a target our drop cannot name:
+a chicken dropped into an **enemy Hatchery** becomes theirs, and a chicken or
+gold dropped **onto a creature** is earmarked for it — which is the one case
+where a bird is not up for grabs.
+
+## 3. Fog of war merged (ADR-0076)
+
+Brief 8's Phase 0 stop rule **fired**, and the owner overrode it. The stop commit
+stays in the branch history rather than being smoothed out.
+
+Phase 0's answer was **simulation**, by the exact route Q190 predicted from
+another mechanic: DK2's world save walks every tile and writes ten bytes of the
+live 16-byte record, **including the byte whose bit 6 gates fog**. Those are the
+moving lanes `sav-format.md` had flagged as *"consistent with visibility or fog
+state"*.
+
+**Two counted claims re-derived on merge**, with a tool written for the purpose
+rather than by reading the branch's tests back to themselves:
+
+- `PerceptionRange` is `0x6000` — six tiles — for **all 46** creatures, and the
+  useful half is the contrast: `DistanceCanSee`/`Hear` are `0x4000` on the same
+  46. Two genuinely different ranges, and the right one taken.
+- **Six** terrains carry `RevealThroughFogOfWar`: Impenetrable Rock, Water, Lava,
+  Gold, Gems, Edge of Map. Which is why an unexplored map still shows a keeper
+  where the gems are.
+
+**Fog defaults off**, so nothing that existed before behaves differently. Q192's
+dangerous reading is ruled out on the way: the configuration value is **boolean**,
+so the five setup labels are not one enum behind it.
+
+**Still open and important: Q190's second half.** Persistence proves the state
+belongs to the simulation; it does **not** prove any computer keeper reads it,
+and no AI reader was found.
+
+Two things changed on merge: the branch report arrived as `README.md` (master had
+none, so a branch report would have become the project's front page) and is now
+`fog-of-war.md` §8 plus ADR-0076; and the version numbers resolved to **30**.
+
+## 4. Numbers collide across worktrees, twice in one day
+
+**Q187 was taken twice.** "The bird" sat as Q187 in an uncommitted working copy
+while the save-format session allocated Q187 from the committed file and landed
+first. Renumbered to **Q195** across an ADR, a research doc, a scenario, a test
+and a commit message. The hand is **Q196**.
+
+**`HashVersion` 29 was taken twice**, by Codex's fog branch and by the hand work,
+in different worktrees. Resolved by the hand going to **30** rather than fighting
+for 29, so master goes 28 → 30 across two commits with 29 spent on a branch. The
+pin comment says so, in case the gap ever looks like an error.
+
+**Before taking either kind of number: `git worktree list`, then check the
+branches.** There are three worktrees, not two — `codex/fog-of-war` and
+`claude/keeper-ai` beside master.
+
+## 5. One file left uncommitted on purpose
+
+`docs/research/creature-state-table.md` is modified in the working tree and was
+**excluded from all three commits**. It was not touched by this session: its
+mtime moved mid-sitting while the owner had said no other session was running.
+The change is good — it adds a sixth, external check to §5, in which Flame's map
+independently encodes 58 of the state ids and agrees with our numbering on every
+one — and it respects the Flame boundary (our own words, not one symbol
+reproduced). **It is somebody's in-flight work and it is theirs to commit.**
