@@ -8,6 +8,7 @@ using DK2.Convert.Audio;
 using DK2.Data;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.Data.Text;
 using DK2.Data.Wad;
 
 // DK2.Tools — command-line utilities for inspecting original game data.
@@ -134,6 +135,32 @@ switch (args[0])
             produced++;
         }
         Console.WriteLine($"-- extracted {produced}, skipped {sdt.Entries.Count - produced}");
+        return 0;
+    }
+
+    case "str" when args.Length == 3 && args[1] == "list":
+    {
+        Dk2StringTable table = Dk2StringTable.Open(ResolveText(args[2]));
+        foreach (Dk2StringEntry entry in table.Entries)
+            Console.WriteLine($"{entry.Id,6} {EscapeForOneLine(entry.Value)}");
+        Console.WriteLine($"-- {table.Entries.Count} entries, file id {table.FileId}");
+        return 0;
+    }
+
+    case "str" when args.Length == 4 && args[1] == "get":
+    {
+        if (!uint.TryParse(args[3], out uint id))
+        {
+            Console.Error.WriteLine($"invalid string id: '{args[3]}'");
+            return 2;
+        }
+        Dk2StringTable table = Dk2StringTable.Open(ResolveText(args[2]));
+        if (!table.TryResolve(id, out string value))
+        {
+            Console.Error.WriteLine($"string id {id} is not in this table");
+            return 2;
+        }
+        Console.WriteLine(value);
         return 0;
     }
 
@@ -936,6 +963,14 @@ switch (args[0])
 static string ResolveData(string arg) =>
     File.Exists(arg) ? arg : Path.Combine(Dk2Install.Require(), "Data", arg);
 
+static string ResolveText(string arg) =>
+    File.Exists(arg)
+        ? arg
+        : Path.Combine(Dk2Install.Require(), "Data", "Text", "Default", arg);
+
+static string EscapeForOneLine(string value) =>
+    value.Replace("\\", "\\\\").Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
+
 static string ResolveEditor(string arg)
 {
     if (File.Exists(arg)) return arg;
@@ -969,6 +1004,8 @@ static int Usage()
     Console.WriteLine("  sdt list <file.sdt>                    list sound-bank entries and formats");
     Console.WriteLine("  sdt extract <file.sdt> [--out converted-assets/audio]");
     Console.WriteLine("                                         extract PCM as WAV, compressed audio raw");
+    Console.WriteLine("  str list <file.str>                    list decoded string ids and values");
+    Console.WriteLine("  str get <file.str> <id>                resolve one table-local string id");
     Console.WriteLine("  kwd chunks <file.kwd|kld>              list chunks of a KWD/KLD file");
     Console.WriteLine("  kwd vars [file.kwd]                    dump the global balance table");
     Console.WriteLine("  kwd alterterrain [-v]                  every ALTER_TERRAIN_TYPE trigger in every shipped");
