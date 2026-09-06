@@ -29,6 +29,11 @@ comments do.
   `EngineTexturesFile`, `Dk2TextureDecoder`, `EngineTextureDecoder`, and
   `KmfModelLoader`, then reimplemented in `src/DK2.Convert` in this project's
   own structure and idiom.
+- **SDT format research (facts only, no code copied):** the count and offset
+  table, 40-byte entry layout, fixed name field, sample metadata, sound-type
+  values, and proposed type names were consulted in OpenKeeper's `SdtFile` and
+  `SdtFileEntry`, checked against every shipped SDT and its MPEG frame headers,
+  then independently implemented in `src/DK2.Convert`.
 - **Format research (facts only, no code copied):** KWD/KLD record layouts,
   field offsets and enumerated value meanings, used as documentation and
   cross-checked against the shipped files.

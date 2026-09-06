@@ -4,6 +4,7 @@
 
 using DK2.Assets;
 using DK2.Convert;
+using DK2.Convert.Audio;
 using DK2.Data;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
@@ -77,6 +78,62 @@ switch (args[0])
         byte[] data = wad.Extract(entryName);
         File.WriteAllBytes(outPath, data);
         Console.WriteLine($"{entryName} -> {outPath} ({data.Length} bytes)");
+        return 0;
+    }
+
+    case "sdt" when args.Length == 3 && args[1] == "list":
+    {
+        SdtArchive sdt = SdtArchive.Open(ResolveData(args[2]));
+        foreach (SdtEntry entry in sdt.Entries)
+        {
+            string channels = entry.ChannelCount is int count ? $"{count}ch" : "?ch";
+            string rate = entry.PayloadSampleRate is ushort payloadRate
+                && payloadRate != entry.SampleRate
+                ? $"{entry.SampleRate}Hz(stream {payloadRate}Hz)"
+                : $"{entry.SampleRate}Hz";
+            Console.WriteLine($"{entry.Index,4} {entry.StoredSize,10} {rate,-23} " +
+                              $"{entry.BitsPerSample,2}bit {channels,-3} {entry.Codec,-11} {entry.Name}");
+        }
+        Console.WriteLine($"-- {sdt.Entries.Count} entries");
+        return 0;
+    }
+
+    case "sdt" when args.Length is 3 or 5 && args[1] == "extract":
+    {
+        if (args.Length == 5 && args[3] != "--out")
+        {
+            Console.Error.WriteLine(
+                "usage: dk2tools sdt extract <file.sdt> [--out converted-assets/audio]");
+            return 2;
+        }
+        string output = RequireConvertedOutput(args.Length == 5
+            ? args[4] : Path.Combine("converted-assets", "audio"));
+        Directory.CreateDirectory(output);
+        SdtArchive sdt = SdtArchive.Open(ResolveData(args[2]));
+        int produced = 0;
+        foreach (SdtEntry entry in sdt.Entries)
+        {
+            if (entry.Codec == SdtCodec.Empty)
+            {
+                Console.WriteLine($"SKIPPED  {entry.Index,4} {entry.Name} (empty placeholder)");
+                continue;
+            }
+            string destination = Path.Combine(output, sdt.OutputFileName(entry));
+            byte[] bytes = sdt.Extract(entry);
+            File.WriteAllBytes(destination, bytes);
+            string format = entry.Codec switch
+            {
+                SdtCodec.Pcm => "PCM in WAV",
+                SdtCodec.MpegLayer1 => "raw MPEG Audio Layer I stream",
+                SdtCodec.MpegLayer2 => "raw MPEG Audio Layer II stream",
+                SdtCodec.MpegLayer3 => "raw MPEG Audio Layer III stream",
+                _ => $"raw undecoded type {entry.Type}",
+            };
+            Console.WriteLine($"EXTRACTED {entry.Index,4} {entry.Name} -> " +
+                              $"{Path.GetRelativePath(output, destination)} ({format}, {bytes.Length} bytes)");
+            produced++;
+        }
+        Console.WriteLine($"-- extracted {produced}, skipped {sdt.Entries.Count - produced}");
         return 0;
     }
 
@@ -909,6 +966,9 @@ static int Usage()
     Console.WriteLine("  convert --out converted-assets/        convert catalogue assets to GLB and PNG");
     Console.WriteLine("  wad list <file.WAD>                    list archive entries");
     Console.WriteLine("  wad extract <file.WAD> <entry> [out]   extract one entry");
+    Console.WriteLine("  sdt list <file.sdt>                    list sound-bank entries and formats");
+    Console.WriteLine("  sdt extract <file.sdt> [--out converted-assets/audio]");
+    Console.WriteLine("                                         extract PCM as WAV, compressed audio raw");
     Console.WriteLine("  kwd chunks <file.kwd|kld>              list chunks of a KWD/KLD file");
     Console.WriteLine("  kwd vars [file.kwd]                    dump the global balance table");
     Console.WriteLine("  kwd alterterrain [-v]                  every ALTER_TERRAIN_TYPE trigger in every shipped");
