@@ -57,6 +57,15 @@ comments do.
   docs/research/portals.md for what each inference rests on.
 - `PlayerIds` corroborates its four reserved ids against OpenKeeper's
   `toniarts.openkeeper.tools.convert.map.Player` constants.
+- `src/DK2.Data/Kwd/KwdDoors.cs` and `KwdTraps.cs`, and the `DoorDef` and
+  `TrapDef` field names, used the **field order and widths** of OpenKeeper's
+  `toniarts.openkeeper.tools.convert.map.KwdFile.readDoors`/`readTraps` and the
+  `Door`/`Trap` classes to generate candidate offsets — including reading
+  `trapId` and `shotTypeId` as adjacent unsigned bytes. Every candidate was then
+  confirmed against the shipped bytes and, for all seventeen prices, against the
+  original manual; where the two disagreed the shipped bytes won. No code was
+  copied. Recorded because GPLv3 attribution is an obligation rather than a
+  courtesy — see ADR-0003 (second amendment).
 
 ## Format research (facts only, no code copied)
 - ufdada/dk2-tools (010 Editor binary templates) — WAD/KWD container layouts.

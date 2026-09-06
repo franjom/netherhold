@@ -28,10 +28,13 @@ text is read only from a user's installation and is never stored in this
 repository.
 
 The creature-state-table hypothesis was also tested without adding a dependency
-on that internal table. Every one of its 239 values at record offset `+4` is a
-valid `Text.str` id, but they resolve to only 63 distinct shared status labels.
-They describe state families rather than uniquely naming all 239 internal
-states, so no implementation depends on them.
+on that internal table. **Settled 2026-09-06** (ADR-0072): the table has **281**
+records, not the 239 counted here, and the `u16` is at record `+0x14`. Every one
+of the 281 values is a valid `Text.str` id — they resolve to **70** distinct
+labels, which are the activity lines the game prints on the flower above a
+creature's head. They name state *families* rather than uniquely naming all 281
+internal states, so no implementation depends on them. The full table is in
+`docs/research/creature-state-table.md`.
 
 ## Door and trap definitions
 

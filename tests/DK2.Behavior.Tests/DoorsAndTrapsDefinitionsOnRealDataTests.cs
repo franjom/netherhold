@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Text;
 using DK2.Data;
+using DK2.Data.Kwd;
 using DK2.Data.Model;
 
 namespace DK2.Behavior.Tests;
@@ -64,12 +66,14 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
     {
         if (Database() is not { } database) return;
 
+        // The numbers are SHOTS *record ids*, not row indices - see
+        // ATrapsShotIdIsAShotsRecordIdAndNotItsRowIndex below.
         var expected = new Dictionary<string, byte>
         {
-            ["Gas Trap"] = 58,       // SHOTS 58 is Gas Trap Cloud
-            ["Boulder Trap"] = 26,   // SHOTS 26 is Boulder
-            ["Sentry Trap"] = 44,    // SHOTS 44 is Cannon Ball
-            ["Alarm Trap"] = 13,     // SHOTS 13 is Alarm
+            ["Gas Trap"] = 58,       // SHOTS id 58 is Gas Trap Cloud
+            ["Boulder Trap"] = 26,   // SHOTS id 26 is Boulder
+            ["Sentry Trap"] = 44,    // SHOTS id 44 is Cannon Ball
+            ["Alarm Trap"] = 13,     // SHOTS id 13 is Alarm
             ["Fireburst Trap"] = 14,
             ["Lightning Trap"] = 59,
             ["Freeze Trap"] = 45,
@@ -102,5 +106,79 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
                 1500, 6000, 1500, 9000, 24000, 1500, 1500, 20000,
             },
             database.Traps.OrderBy(e => e.Key).Select(e => e.Value.ManufactureRequired));
+    }
+
+    /// <summary>
+    /// <b>A trap's shot id is a SHOTS record id, not a row index</b>, and the
+    /// two differ by one.
+    ///
+    /// <para>SHOTS carries its own id byte at <c>+0xBE</c> — the only offset in
+    /// the 239-byte record whose value equals the row number plus one for all
+    /// 65 rows — and every trap's <c>ShotTypeId</c> resolves through it. Read
+    /// the table by row instead and Gas Trap fires <i>Lightning Trap Shot</i>,
+    /// Boulder Trap fires <i>Spike</i>, and Sentry Trap fires
+    /// <i>Freeze Trap Shot</i>: all plausible, all wrong, and nothing would have
+    /// failed.</para>
+    ///
+    /// <para>Nothing parses SHOTS yet — it arrives at M6 — so this walks the
+    /// bytes the way <c>TrapsOnRealDataTests</c> did before TRAPS had a parser.
+    /// It is here because a convention that lives only in a comment is one that
+    /// gets broken by the first person to index an array with it.</para>
+    /// </summary>
+    [Fact]
+    public void ATrapsShotIdIsAShotsRecordIdAndNotItsRowIndex()
+    {
+        if (Database() is not { } database) return;
+        string install = Dk2Install.Find()!;
+
+        const int recordSize = 239;
+        const int offsetShotId = 0xBE;
+
+        KwdChunk shots = KwdReader
+            .ReadFile(Path.Combine(install, "Data", "editor", "Shots.kwd"))
+            .Single(c => c.Type == KwdRecordType.Shots);
+
+        Assert.Equal(0, shots.Content.Length % recordSize);
+
+        var nameById = new Dictionary<byte, string>();
+        for (int row = 0; row < shots.ItemCount; row++)
+        {
+            int at = row * recordSize;
+            ReadOnlySpan<byte> name = shots.Content.AsSpan(at, 32);
+            int end = name.IndexOf((byte)0);
+
+            byte id = shots.Content[at + offsetShotId];
+
+            // The id is the row plus one. Stated as an assertion because it is
+            // the whole point of the test.
+            Assert.Equal(row + 1, id);
+
+            nameById[id] = Encoding.ASCII.GetString(end < 0 ? name : name[..end]).Trim();
+        }
+
+        var expected = new Dictionary<string, string>
+        {
+            ["Gas Trap"] = "Gas Trap Cloud",
+            ["Boulder Trap"] = "Boulder",
+            ["Sentry Trap"] = "Cannon Ball",
+            ["Alarm Trap"] = "Alarm",
+            ["Fireburst Trap"] = "Fireburst",
+            ["Lightning Trap"] = "Lightning Trap Shot",
+            ["Freeze Trap"] = "Freeze Trap Shot",
+            ["Fear Trap"] = "Fear",
+            ["Trigger Trap"] = "Trigger Trap",
+            ["Spike Trap"] = "Spike",
+            ["Jack In The Box"] = "Jack In The Box",
+        };
+
+        foreach ((string trapName, string shotName) in expected)
+        {
+            TrapDef trap = database.Traps.Values.Single(t => t.Name == trapName);
+            Assert.Equal(shotName, nameById[trap.ShotTypeId]);
+        }
+
+        // Guard Post is the one that fires nothing, and zero is not an id.
+        Assert.Equal(0, database.Traps.Values.Single(t => t.Name == "Guard Post").ShotTypeId);
+        Assert.DoesNotContain((byte)0, nameById.Keys);
     }
 }
