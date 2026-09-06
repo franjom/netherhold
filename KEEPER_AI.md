@@ -30,7 +30,7 @@ read from that dump's format strings, not anyone's reconstruction.
 | | |
 |---|---|
 | Translation unit | `ComputerPlayer.cpp`; its `__FILE__` string is the full path `D:\Dev\DK2\Projects\Source\Game\ComputerPlayer.cpp` at `0x006A3348` |
-| Code range | `0x004F8150` – `0x00504D5F`. 58 Ghidra functions; 14 of them carry the assert string (30 references, found identically by Ghidra's reference model and by a raw scan for the address word), spanning `0x004F9B90`–`0x00503690` |
+| Code range | `0x004F8150` – `0x00504D5F`. 58 Ghidra functions; 14 of them carry the assert string (30 references, found identically by Ghidra's reference model and by a raw scan for the address word), spanning `0x004F9B90`–`0x00503690`. Plus **three code blocks Ghidra never made functions of**: a 338-byte static initialiser at `0x004F8180` that fills the job→room table (§2.3), and two tiny predicates at `0x00502E90`/`0x00502EF0` reached only through that table. Flame lists all three as functions, so its member count for the unit is 53 |
 | Neighbours | Below: `Workshop.cpp` (last of the room files, references to `0x004F4F9F`). Above: the task-stack and world-dump code, then `World.cpp` from `0x0050B5B0`. So the **alphabetical-bracketing rule does not hold across the binary**: the room files are one block, the creature states another, and `ComputerPlayer.cpp` sits between the rooms and `World.cpp`. Note the two path spellings — room files are `...\source\game\`, this one is `...\Source\Game\` — which is the build's object-list order, not the alphabet |
 | Class shape | **Not polymorphic.** RTTI names `CPlayer` and the interface classes; there is no computer-player class name. The AI object is a plain 1,273-byte struct owned by each `CPlayer` through a pointer at `CPlayer+0x1101`, next to a one-byte `computer player on` switch at `CPlayer+0x10FA` |
 | Source size | The RNG helper is called with `__FILE__`/`__LINE__`; the largest line number seen is 7,543 (`0x1D77`), so the unit was at least that long |
@@ -215,6 +215,23 @@ HYPOTHESIS-dead.
 | `+0x09F` | `EnemyBreaches[16]` | per enemy: 8 stored tunnels (start, end) and `TunnelsLeft`; 65 bytes each |
 | `+0x4EF`/`+0x4F3`/`+0x4F7` | `CallToArmsCounter`, `CannotAttackCounter`, `UntagGoldCounter` | countdowns, decremented once per tick |
 
+Two things the dump prints that are **not** in the struct:
+
+- **`JobRooms[10]`** is a **global** table at `0x006ED490`, ten 17-byte entries
+  indexed by creature job type, filled once by a function-less initialiser
+  (`0x004F8180`): `{ u8 roomId; fn* mayPlace; u32; u32; i32 unused = −1 }`. Only
+  four jobs map to a room — **3 Research → Library (6)**, **4 Train → Training
+  Room (7)**, **5 Manufacture → Workshop (10)**, **7 Torture → Torture Chamber
+  (12)** (job ids CONFIRMED against the repository's `JobType`). The predicates:
+  Research runs the make-room-for-a-researcher step (§5.1 step 12) and returns
+  true, Train returns "army not ready to attack", Manufacture always true,
+  **Torture always false** — so the AI never drops a creature into the Torture
+  Chamber for work. Sleep, Eat, Guard, Pray and Drink have no room. Consumers:
+  job placement (`0x503690`) and the "make happy" grievance 3 path (`0x4F9710`).
+- The whole 1,273-byte struct is **saved and loaded as one block** (`0x4F8710`
+  writes it, `0x4F86B0` reads it and then restores the two pointers at `+0x0A`
+  and `+0x0E`), which the save-format session may want to know.
+
 ---
 
 ## 3. Data sources
@@ -380,9 +397,11 @@ mask on enemy creatures (§5.4).
 ## 5. The decision loop
 
 Depth reached: the tick, the message handler, the threat evaluation, all nine
-task states and all maintenance steps have been read; of the 58 functions, 46
-have been read in full, 12 small helpers only by role (§7). Everything in this
-section is STRONGLY INFERRED unless marked.
+task states and all maintenance steps have been read; **all 58 functions and the
+three function-less blocks have been read in full**, plus 26 of the helpers the
+unit calls outside itself (pick up, drop, hand test, room finder, enemy/ally
+tests, RNG, task-list lookups, portal capacity, the tile predicates). Everything
+in this section is STRONGLY INFERRED unless marked.
 
 ### 5.1 One tick (`0x00500C20`)
 
@@ -418,11 +437,20 @@ the tick is skipped (the counters still run).
     Imp is available, cast it at the heart ± a random ±2-tile offset (budget −1).
     If `FightGoingOn`: the **battle step** instead (`0x503060`, §5.7).
 12. If `random(3) ≥ ProbabilityOfMovingCreatureForResearch` and budget and `Flags`
-    bit 2: if any keeper spell is in the "researchable" state and a Library (6)
-    exists → **research move** (`0x4FA8D0`, §7 caveat). Then, unless an event task
-    is pending, **job placement** (`0x503690`): drop what the hand holds into a
-    room matching one of the creature's jobs; at 10 % pick up a working creature
-    for the same.
+    bit 2: if any keeper spell is in state 2 (read as "not yet researched") and a
+    Library (6) exists → **make room for a researcher** (`0x4FA8D0`). This is
+    *not* a move into the library. It counts own creatures whose descriptor job
+    list contains Research (job 3); if **fewer than two** can research, it takes
+    the non-researcher with the lowest value of an unnamed descriptor byte
+    (`+0x787`, §7) and — only when the dungeon is **at its portal creature cap**
+    (`first-portal count + (portals − 1) × per-extra-portal count` ≤ creatures
+    flagged as counting) and the creature is not in hand, not in a handful of
+    states, and not picked up within the last 300 ticks — picks it up and **drops
+    it at a Portal or Hero Portal**, so it leaves and frees a slot for a creature
+    that can research. Then, unless an event task is pending, **job placement**
+    (`0x503690`): drop what the hand holds into a room matching one of the
+    creature's jobs through the `JobRooms` table (§2.3); at 10 % pick up a working
+    creature for the same.
 13. If budget and `Flags` bit 5: **slap** (`0x502F00`): a working creature above
     half health, not recently slapped, 1 % per creature per tick (action 62).
 14. If budget: **prisoners** (`0x5006D0`, §5.8); if that returned budget and
@@ -441,7 +469,19 @@ the tick is skipped (the counters still run).
 | **4** | (inline) | **Done**: budget −1, gold check as in Task 0, reset to Task 0 |
 | **5** | `0x4FD660` | **Route to gold**: `DigRoomAtCurrent ←` nearest own room to the deposit (or the heart); `Task ← 7`, `NextTask ← 6` |
 | **6** | `0x4FD750` | **Mine the seam**: tag gold-bearing solid tiles in an expanding square spiral around the deposit until radius > 6, then Task 0 |
-| **7** | `0x4FDC50` | **Dig a path** from `DigRoomAtCurrent` to `DigRoomAt`: step toward the target (`0x502230`, the wall-hugging line walker); solid tiles are tagged (action 40, `UntagGoldCounter ← 240`, needs > 51 free task entries); water gets a Wooden Bridge (8), lava a Stone Bridge (17) if available; when the path becomes walkable → `Task ← NextTask`; if it reaches **enemy-owned** land during an attack, the remainder is stored in that enemy's breach slots and the task ends; outside `MaxBuildArea` → Task 4 |
+| **7** | `0x4FDC50` | **Dig a path** from `DigRoomAtCurrent` to `DigRoomAt`: step toward the target (`0x502230`, the line walker below); tiles it returns are tagged (action 40, `UntagGoldCounter ← 240`, needs > 51 free task entries); water gets a Wooden Bridge (8), lava a Stone Bridge (17) if available; when the path becomes walkable → `Task ← NextTask`; if it reaches **enemy-owned** land (any of the 8 neighbours or the tile itself owned by an enemy, `0x4FDB90`) during an attack, the remainder is stored in that enemy's breach slots and the task ends; outside `MaxBuildArea` → Task 4 |
+
+**The line walker** (`0x502230`, `0x5027D0`): from `DigRoomAtCurrent` step one
+tile at a time along whichever axis is further from `DigRoomAt`. The first tile
+met that is solid, water or lava is returned to the caller when it is **diggable**
+(terrain Solid and not Impenetrable, `0x453D10`), water or lava. An **undiggable**
+obstacle is walked around: the straight line is continued through it to find the
+exit tile (`WallHugEnd`), both hugging directions are trial-walked (up to 24
+turns each, `0x5027D0`) and the one that gets closer to the target wins
+(`WallHugLeft`); then, in `WallHug` mode, the walker follows the obstacle's edge
+using a clockwise N/E/S/W table (`0x0069A070`), returning any diggable rock it
+meets (so it digs through where it can) until it reaches the exit tile and
+resumes the straight walk; arriving back at `WallHugStart` fails the task.
 | **8** | — | stop for this tick |
 | 9–15 | — | invalid: reset to Task 4 |
 
@@ -460,8 +500,14 @@ words at `+0x1F` and `+0x23`, a handled bit at `+0x28`):
 | 32 | room taken over: if the room was a Portal (3) or Hero Portal (25) and `AutomaticallyBuildBiggerLairWhenPortalTakenOver` → schedule a **Lair (2)**, expanding an existing one when `BuildNewRoomWhenMoreSpaceRequired` = 0, a new one when 1, nothing when 2 |
 | 35 | (portal-related; clears a pending Portal build) then re-run room choice |
 | 41 | room became available: schedule it as `NextRoomToBuild` |
-| 42 | room needs more space: apply `BuildNewRoomWhenMoreSpaceRequired` — except for the Treasury (1) |
+| 42 | room needs more space: apply `BuildNewRoomWhenMoreSpaceRequired`. For the **Treasury (1)** the AI first **untags every gold-dig tag** (task list 2, action 41, `0x4FA7C0`) and only goes on to expand when all of them came off |
 | anything else | marked handled |
+
+Only three parameter bit-fields are read here (`UnhappyCreaturesHappy`,
+`AngryCreaturesHappy`, `AngryCreaturesDisposeOf`). The instruction-level scan had
+also credited `UnwantedCreatureDisposeOf` and `LightningInWater` to this
+function; the decompiled data flow does not read them, so treat both as **probably
+dead** (§7).
 
 **Make happy** reads the creature's grievance code: 0/4/5 → **pay it directly**
 (its level-scaled wage is taken from the treasury, minted as a gold object and
@@ -492,8 +538,12 @@ at a Portal/Hero Portal (the creature leaves).
   (or the nearest own tile found by a spiral search), subtracting each one's
   threat until ≤ 0; negative → pick own creatures within 10 tiles of the fight
   and drop them beside the heart, adding their threat until ≥ 0. No candidate →
-  the event is dropped. Creature threat = descriptor threat × a per-level
-  percentage table.
+  the event is dropped. Creature threat (`0x4FBDB0`) = the descriptor's threat
+  value at level 1, otherwise threat × a global per-level percentage table
+  (`i16[level]` at `+0x105` of the table pointed to by `0x006E4154`) / 100.
+- **Enemy** (`0x4BF390`) means not this player and the alliance byte for that
+  player is 0; **ally** (`0x4BF3D0`, Flame's name) is the complement. Players 1
+  and 2 are skipped by the attack planner, not by these tests.
 
 ### 5.5 Planning: attack, rooms, gold
 
@@ -540,14 +590,32 @@ at a Portal/Hero Portal (the creature leaves).
   (Portal, Bridges, Guard Room, Heart) use a random own room, avoiding bridges.
 - If `NextRoomToBuild` has the `0x80` "expand" bit but the room cannot be
   expanded (`0x4FBE00`), the bit is cleared and a new room is built.
+- **Expanding** (`0x4FBE00`): the room's tiles are walked to find its bounding
+  box (using the tiles with the smallest and largest x+y as corners); the four
+  one-tile strips just outside it are tested — every tile diggable rock or own
+  empty floor, at most one gap, the tile beyond it in bounds — and a qualifying
+  strip becomes the dig rectangle (`Task 2`, then `Task 3` places the room), so a
+  room grows by one row or column at a time. Which strip wins when several
+  qualify was not resolved.
+- "The Lair", "a Portal", "the Temple" etc. throughout this section mean **a
+  random own room of that type** (`0x4C6460` picks uniformly among unflagged rooms
+  of the type with the world RNG), not the nearest or the first.
+- **Directions** are fixed at creation (`0x4F85F0`): take the heart's offset from
+  the map centre along its dominant axis; `DefendDirection` points from the centre
+  toward the heart (0 north, 1 west, 2 south, 3 east — the site finder's table
+  order), `OpenDirection` is the opposite. So core rooms (id < 6) are sited
+  **behind** the heart, toward the map edge, everything else toward the centre.
 
-**Site finder** (`0x5012A0`): walk from the origin in the direction (a 4-entry
-delta table at `0x006A32A8`) up to 2×side tiles past tagged or room tiles; land on
-solid diggable rock; skip `TilesLeftBetweenRooms` more solid tiles; the side×side
-square must be all solid, diggable, unowned rock; count the perimeter tiles that
-are already open (tagged or clear) and reject if more than `Openness`% of the
-perimeter is open; if side² < `DefaultRoomSize`, try one extra strip; validate
-against `MaxBuildArea`. Side = ⌊√DefaultRoomSize⌋.
+**Site finder** (`0x5012A0`): walk from the origin in the direction (the 4-entry
+table at `0x006A32A8`: N (0,−1), W (−1,0), S (0,+1), E (+1,0), each with the two
+step signs the square uses) up to 2×side tiles past tagged or room tiles; land on
+diggable solid rock; skip `TilesLeftBetweenRooms` more solid tiles; the side×side
+square is **centred on the approach line and extends forward** from the landing
+tile; each of its tiles must be diggable rock, own floor without a room, or a
+terrain whose descriptor byte `+0x1CB` has bit 0 (§7); count the perimeter tiles
+that are already open (tagged or not solid) and reject if more than `Openness`%
+of the perimeter is open; if side² < `DefaultRoomSize`, try one extra strip;
+validate against `MaxBuildArea`. Side = ⌊√DefaultRoomSize⌋.
 
 **Gold** (`0x4FD590`, `0x501C10`): the scan flood-fills gold-bearing tiles into
 deposits, takes each deposit's centroid, and keeps the **four nearest** to the
@@ -559,8 +627,10 @@ tile off the heart.
 
 Needs a Workshop (10) and `random(100) < TrapAndDoorUsage`. The bounding box of
 all own rooms is grown by `random(10) − 2` tiles, clamped to the map, and its
-four edges are walked; each valid site (`0x4FFA50`, `0x4FFC40` — unread, role from
-call graph) gets one placement per budget unit. Placement: `random(4) <
+four edges are walked; each valid site gets one placement per budget unit. A
+**valid site** (`0x4FFA50`) is a passable tile, not on the map border, with solid
+tiles on two opposite sides and open, untagged tiles on the other two — a
+corridor tile — and (`0x4FFC40`) **no own trap or door within 3 tiles**. Placement: `random(4) <
 TrapVsDoorPreference` → a **door**: iterate door types available (skipping a
 flagged kind); `DoorPreference` 0 = keep scanning to the best, 1 = stop at the
 first (worst), 2 = 50 % stop each. Otherwise a **trap**: type 2 is the boulder —
@@ -613,6 +683,11 @@ health (or below 50 % when flagged as in a fight) and at least
 | 8 × 16 | breaches | stored tunnels per enemy × enemies |
 | 4 | gold | deposits remembered |
 | 20 / 51 | task stack | minimum free task entries before tagging (room / corridor) |
+| 3 tiles | traps and doors | minimum spacing from own traps and doors |
+| 24 | line walker | turns tried per side when choosing which way round an obstacle |
+| 15 + 5×(portals − 1) | make-room step | portal creature cap: balance variable 73 (`0x006F28B4`, 15 in shipped data) plus the adjacent byte per extra portal, whose id is HYPOTHESIS (OpenKeeper lists variable 177 = 5 by that name) |
+| 4 ticks | everything | one game second (the LEVEL record's ticks-per-second field, 4 in all 66 shipped levels — `docs/research/balance-variables-in-the-binary.md`). So 1,680 ticks = 7 game minutes, 240 = 1 minute, 300 = 75 s, 40 = 10 s. Wall-clock per tick is still the main loop's question |
+| `seed = seed × 0x19660D + 0x3C6EF35F`, `rotl(seed, 19) mod n` | RNG | every `random(n)` here draws from the **world's** stream (seed at world `+0x15A0`), so the AI is deterministic given the world state |
 
 ---
 
@@ -639,34 +714,57 @@ health (or below 50 % when flagged as in a fight) and at least
    the same fields in the same order — a campaign keeper with a given block and a
    skirmish personality with the same values behave identically except for
    `RoomList` (computed vs listed) and `MaxBuildArea` (whole map vs record).
+9. **Torture is a job with a room but a predicate that always refuses** (§2.3), so
+   the job-placement step never uses the Torture Chamber; only the prisoner step
+   does. Sleep, Eat, Pray, Guard and Drink have no room mapping at all, so an
+   unhappy creature's "drop it in a room for one of its jobs" only ever finds a
+   Library, Training Room or Workshop.
+10. **The "research" step throws a creature away** rather than moving one to the
+    library (§5.1 step 12). An implementation that wants the editor's promise
+    ("probability of moving a creature for research") would be inventing
+    behaviour; the shipped one frees a portal slot.
+11. Room expansion measures a room's bounding box by its smallest and largest
+    x+y tiles, which is exact for rectangles and wrong for L-shapes.
 
 ---
 
 ## 7. UNKNOWN — explicitly
 
-- **What a "player tick" is in wall-clock or game-tick terms** for these counters
-  (1,680; 240; 300; 40). The project's Q1 on the main loop owns this.
-- **Player status values 1 and 3** — which is won, which is lost, and whether
-  there are others.
+Resolved since the first commit (details in §5): the tick unit (a player tick is
+a game tick, four to a game second; wall-clock still Q1's), the player status
+codes, the "research move", the job→room table, and all twelve role-only helpers.
+Still open:
+
+- **Wall-clock length of a tick.** The main loop's question (Q1).
+- **Player status codes** are now read as 0 playing, **1 lost** (heart destroyed
+  by another keeper; the destroyer's id is at `CPlayer+0x132`), **2 won** (the last
+  active player, or all mutually allied survivors), **3 lost otherwise** (heart
+  destroyed by the neutral/hero side, or because another keeper won). The AI bails
+  on 1 and 3 and **keeps ticking after a win**. What the two trigger-script
+  callers of the setter pass is unread.
 - **Message type meanings** beyond what the AI does with them (1, 6, 12, 34, 47
   are combat-shaped; 17/18 unhappy/angry; 32/35/41/42 room events). The senders
   are outside this unit.
-- **The research move** (`0x4FA8D0`): it requires fewer than two creatures already
-  researching, picks a non-researching creature with the *lowest* value of a
-  descriptor byte, requires a Portal or Hero Portal, compares two Entrance-file
-  functions, and drops the creature **at the portal room's position**. Whether
-  that is how research is started in DK2 (the creature then walks to the library)
-  or a misread of which room pointer is used is UNKNOWN.
-- **The job→room table** (`JobRooms` in the dump): it lives in zero-initialised
-  `.data` at `0x006ED490` and is built at runtime; its contents were not read.
-- **12 helper functions read by role only**: `0x4F8150`, `0x4F85F0`, `0x4F86B0`,
-  `0x4F8710` (small; the last is called from `Player.cpp`), `0x4FA7C0` (room-full
-  test), `0x4FADF0` (own room furthest from heart), `0x4FBD80`/`0x4FBDB0`,
-  `0x4FBE00` (can a room expand), `0x4FC3B0` (own tile within range), `0x4FDB90`
-  (enemy-land test), `0x4FFA50`/`0x4FFC40` (trap-site validity), `0x502230`/
-  `0x5027D0` (the wall-hugging line walker), `0x5039F0` (checksum).
+- **Which creature stat the make-room step minimises** — the descriptor byte at
+  `+0x787` of the in-memory creature descriptor (Flame names neither it nor the job
+  count next to it at `+0x78B`). The candidate ordering is therefore known in
+  form, not in meaning.
+- **Which creatures "count" toward the portal cap** — those with bit 1 of the
+  creature's state-flags word (`+0x3E6`) set; the meaning of that bit is the
+  creature side's.
+- **Spell state 2** is read as "not yet researched" from how both callers use it;
+  the keeper-spell state enumeration itself was not read.
+- **Terrain descriptor byte `+0x1CB` bit 0**, which the site finder and the
+  expansion test accept as buildable alongside diggable rock and own floor.
+- **Room-expansion side priority** when more than one strip qualifies.
+- **What `0x4F8150` does** — a 41-byte routine in the unit, referenced by nothing
+  the AI calls, that hands a word at `+0x66` to a pair of stream helpers.
 - **Why the skirmish maps remap personalities** (§3.2).
-- **Whether the four "no consumer" bit-fields are truly dead** (weaker method).
+- **Whether the six "no consumer" bit-fields are truly dead**: the four found by
+  the instruction scan (`SellRecentlyTakenOverRoom`, `CorridorStyle`,
+  `BoulderTrapOnBreachRoute`, `BreachAtXPoints`) plus `UnwantedCreatureDisposeOf`
+  and `LightningInWater`, which the scan credited to the message handler and the
+  decompiled data flow does not read (§5.3).
 - **The garbage-byte bug's effect in play**: whether Harkan/Carrion visibly starve
   for imps on Level17.
 - **Everything the creature side does with the "imprison me" mask** and with
@@ -694,8 +792,12 @@ health (or below 50 % when flagged as in a fight) and at least
    steps? (Predicted for `CallToArmsUsage` 0.)
 8. Have you seen an AI keeper build a bridge across water or lava while tunnelling
    toward you?
-9. Does an AI keeper pick up and re-drop its creatures in the library when a spell
-   is left to research? (Settles the §7 research-move question.)
+9. When an AI keeper's dungeon is full (its portal cap reached) and it has a
+   Library but no researchers, have you seen it pick up a creature and drop it
+   at its own portal so the creature leaves? (Predicted: yes — that is what the
+   "research" step does. It never carries a creature *into* the library.)
+10. Have you ever seen an AI keeper drop a creature into its Torture Chamber to
+    work there, as opposed to dropping a prisoner in? (Predicted: never.)
 
 ---
 
@@ -721,6 +823,16 @@ correction: the parameter *names* came from the binary's own strings, which are
 better than Flame's (`TendancyMoney` is EA's spelling; Flame has it too) and can be
 used in the repository.
 
+**Second consult, for the deepening:** asked about the 26 outbound helpers by
+address, Flame named 13 usefully (pick up / drop / hand test, the room finder,
+the ally test, the heart position, the RNG, the action-handler dispatcher, the
+task-list head lookup, the two stream read/write helpers, the level and
+last-dropped fields on the creature, the status field on the player) and left
+the rest as numbered stubs — including the portal-capacity pair, the enemy test,
+the "diggable rock" predicate and the job-list accessor, all of which had to be
+read. It did know the three code blocks Ghidra had not made functions of (§1.1).
+It has no names for the creature-descriptor bytes the make-room step reads.
+
 ---
 
 ## 10. Side findings for other sessions (facts only; nothing written in `docs/research/`)
@@ -743,6 +855,29 @@ used in the repository.
   like a leftover.
 - The PLAYERS record parses cleanly at 205 bytes and nothing in the repo reads it
   yet; a `KwdPlayers` reader would be a small, validated addition.
+- **The game RNG** (`0x5558D0`) is a 32-bit LCG, `seed × 0x19660D + 0x3C6EF35F`,
+  output `rotl(seed, 19) mod n`, with the seed pointer passed by the caller; the
+  world's stream lives at world `+0x15A0` and the AI, room finder and heart code
+  all draw from it. Called with `__FILE__`/`__LINE__` and optionally logs each
+  draw between two tick bounds — a built-in replay-debugging aid.
+- **Player status** (`CPlayer+0x19A`, i32): 0 playing, 1 lost to a keeper, 2 won,
+  3 lost otherwise; set only once per player (`0x4BE630`), which also snapshots the
+  end-of-level statistics. The heart-destroyed handler is `0x4BB2A0`, called from
+  the player tick.
+- **Time-remaining announcements** (`0x4B9740`) fire at 1,800 / 1,200 / 600 / 300 /
+  240 / 180 / 120 / 60 / 10 … game seconds left, each multiplied by the
+  ticks-per-second global — an independent confirmation that that global is the
+  seconds-to-ticks factor.
+- **Portal creature cap** (`0x4DC760`) = variable 73 for the first Portal or Hero
+  Portal plus the byte after it per additional one; creatures counted by state
+  flag bit 1 (`0x4DCCE0`).
+- **Terrain flag bits used by the AI** match the repository's `TerrainFlags`
+  (Solid 1, Impenetrable 2, Taggable 8, Water 0x80, Lava 0x100) read from the
+  in-memory terrain descriptor at `+0x17B`.
+- **Task lists**: the player's task stack (`0x508290`) has 15 lists of 36-byte
+  entries; a tile "is tagged" when it appears in list 1 or 2, and the AI untags
+  list 2 as a whole when `UntagGoldCounter` expires, so list 2 is the gold-tag
+  list.
 
 ---
 
@@ -753,9 +888,20 @@ folder while the worktree exists: `ghidra/phase0*.txt` (the assert-string map,
 region function list, coverage gaps, displacement scan, call graph),
 `ghidra/decomp/*.c` (the 66 exported functions, quarantined), `ghidra/dump-*.txt`
 (the offset→label map extracted from the dump routine), `ghidra/personality-*.txt`,
-`players-sweep.txt`, and `ghidra/scripts/` (the four Jython scripts and the
-Python sweeps). The Ghidra copy is paired to this worktree and is removed by its
-`TEARDOWN.ps1`.
+`players-sweep.txt`, and `ghidra/scripts/` (the Jython scripts `phase0*.py` and
+`phase2*.py`, and the Python sweeps). The deepening pass added
+`ghidra/phase2*.txt` (the whole-program scan for the status field and the
+job-table references, the orphan-code listing, the helper decompiles). The Ghidra
+copy is paired to this worktree and is removed by its `TEARDOWN.ps1`.
+
+One more method note from the deepening: **Ghidra's function list is not the
+code.** The job→room initialiser (338 bytes) and two predicates in this unit had
+no function record, so a per-function scan misses them; the reference manager
+reported their stores as coming from "no function", which is the tell. When a
+global's writers all come back as `?`, list the instructions in that range,
+create a temporary function on the first orphan instruction and decompile it
+(`phase2b.py`). And prefer the decompiler's data flow over an instruction-pattern
+scan for "is this bit-field read": the scan produced two false consumers here.
 
 Two environment facts that cost time: in this Git Bash, `grep -b` and `dd` report
 file offsets **0x100 higher** than the real ones for `DKII.EXE` (text-mode
