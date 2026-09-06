@@ -307,12 +307,18 @@ records, not from the game's own text.
 Measured on 2026-09-06; treat as a starting point to verify, not as gospel.
 
 - All 92 files share the magic **`BFST`**.
-- At `+4`, a u32 that behaves like a **base string id**; at `+8`, a u32 that
-  behaves like a **count**. `Text.str` is base **1091**, count **3086** → ids
-  1091–4176. `LEVEL1.str` is base 1056, count 60. Entry counts across the 92
-  files sum to 96,186.
-- At `+12`, a table of `count` u32 **absolute file offsets**, monotonically
-  non-decreasing.
+- ~~At `+4`, a u32 that behaves like a **base string id**~~ — **WRONG,
+  and corrected by the branch this brief produced (2026-09-06).** `+4` is a
+  **file id**: the 92 files carry 1000, 1001, 1002 … 1091, one each, in a fixed
+  order. Read as bases they would overlap — `LEVEL1_BRIEFING` would own
+  1000–1005 and `LEVEL2_BRIEFING` 1001–1006 — which is the check this
+  brief did not make. **String ids are table-local and zero-based.** `+8` is the
+  count and that part was right; the 92 counts sum to **7,024**, not the 96,186
+  this line claimed.
+- At `+12`, a table of `count` u32 offsets, monotonically non-decreasing —
+  and **relative to byte 12**, not absolute. `Text.str`'s first stored value is
+  12,344, which resolves to byte 12,356, exactly where its own 3,086-entry
+  offset table ends.
 - **The payload is encoded, not plain text.** No ASCII run of six printable
   characters exists anywhere in `Text.str`, and no UTF-16LE run either. 176
   distinct byte values, with `0x00`, `0x0C` and `0xB0` dominant — the shape of a
@@ -347,13 +353,19 @@ Measured on 2026-09-06; treat as a starting point to verify, not as gospel.
 DK2's creature **state table** — 239 records, `docs/research/eating.md` §2.1 —
 has a `u16` at record `+4` that is constant across states belonging to one
 mechanic: `2630` for all five eating states, `2674` for all six prison states,
-`2670` for the utility move states. **Those values fall inside `Text.str`'s id
-range (1091–4176).** If they are text ids, decoding them **names all 239
-creature states**, which would be worth more than the rest of this brief put
-together.
+`2670` for the utility move states. **Those values are all valid `Text.str` ids.** If they are
+text ids, decoding them **names all 239 creature states**, which would be worth
+more than the rest of this brief put together.
 
 It may equally be a tooltip id for something else entirely. Test it, report
 either way, and do not build anything on it.
+
+**ANSWERED, and it is a qualified no** (2026-09-06). Every one of the 239 values
+resolves, but they resolve to only **63 distinct labels** — shared status
+text describing state *families* rather than naming states one by one. So the
+prize is not there, nothing was built on it, and the negative is worth having:
+it closes a line of enquiry that looked like it would name the whole state
+machine for free.
 
 ### Boundaries
 
