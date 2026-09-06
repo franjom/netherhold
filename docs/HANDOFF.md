@@ -5402,3 +5402,60 @@ source in the displayed rate, an undecoded PLAYERS/LEVEL field, or the two
 orphan numbers in `mana.md`) are listed, none chosen. **Next step is the
 binary:** find the reader of variable 235 and see what it clamps — the sixth
 clause, on a cap this project has already built on.
+
+---
+
+# The computer keeper lands on master (2026-09-06)
+
+`claude/keeper-ai` merged as `53263c6`. Six commits: five of research, one of
+code.
+
+**Where the research is: `docs/KEEPER_AI.md`.** It moved out of the repository
+root on merge, and deliberately **not** into `docs/research/` — that folder has
+its own confidence-ladder conventions and this file follows the ones its own
+header states. Every reference in `src/DK2.AI`, `src/DK2.Data`,
+`src/DK2.Data.Model` and the tests points at the new path, and the
+*"on the `claude/keeper-ai` branch"* phrasing is gone from all of them; the only
+branch mention left is the provenance line in the file's own header, which is a
+record of where the work happened rather than a pointer to go and look there.
+
+**What is built: step 1 of §12.7, and nothing else.** `src/DK2.AI` is an
+**input source**, not a system. A `KeeperAI` emits `PlayerCommand`s exactly as a
+human keeper's input frame does, so **no simulation surface changed and
+`HashVersion` did not move** — which is what made this safe to merge while a
+`HashVersion` collision was live elsewhere. It digs toward gold, finds sites,
+walks corridors and places rooms in the shipped order, and 13 tests on a
+synthetic 30x30 rock world exercise it end to end.
+
+Also new, and it is one more of the eighteen record types (M1): the **PLAYERS
+record** is read — `KwdPlayers`, `PlayerDef`, `KeeperAIParameters` — giving each
+level its player slots and the 158-byte keeper tuning block behind them.
+
+**What is open, and none of it has an ADR yet — these are candidates, listed
+rather than decided:**
+
+- §12.7 **step 2**: an `IWorldView` facade over existing state. No hash change.
+- §12.7 **step 3**: §12.3's missing commands, §12.4's messages, alliances,
+  status and spell state. **Each bumps the hash and each wants its own ADR**, so
+  step 3 is the one that must wait for the `HashVersion` collision to clear.
+- §12.7 **steps 4 and 5**: threat evaluation, attack planning, Call to Arms,
+  traps, prisoners and retreat; then `KeeperAIPersonality` for skirmish.
+- §12.8's **deviations**, four of which are worth an ADR apiece if they survive:
+  the keeper's **own RNG stream**; **flood-fill connectivity** from the heart,
+  where the original's test was not read to that depth; **Chebyshev** range for
+  neutral rooms, where §5.5 did not pin the metric; and **batched room
+  placement**, one `BuildRoomCommand` a tick instead of one a tile. The rest of
+  §12.8's list is missing-mechanic rather than divergence — no bridge command,
+  no research state.
+
+**The rule that held and should keep holding:** no Flame identifier is anywhere
+in `src/DK2.AI` or its tests. The branch was checked clean and re-checked on
+merge.
+
+**One pre-existing violation of that rule was found by the same check, and it is
+NOT from this branch.** `DK2_REIMPLEMENTATION_PLAN.md` carries the Flame symbol
+`MyComputerPlayer` at lines 211, 568 and 1095, dating from revision 1 of that
+document. Left in place and flagged for the owner rather than edited, because it
+is a licensing question about their own planning document and the standing
+instruction is to raise those rather than act on them.
+
