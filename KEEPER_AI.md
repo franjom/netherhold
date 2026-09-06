@@ -97,7 +97,7 @@ and the 16 runtime bits of the first flags word.
 instruction-level scan of memory-operand displacements across the whole region
 (the loaders, the dump and the checksum excluded); for bit-fields the consumer was
 found by matching the mask in the decompiled text, a weaker method. *Range* is
-across the **22 real AI keepers** in the 66 shipped levels (§3.1); the
+across the **23 real AI keepers** in the 66 shipped levels (§3.1); the
 Good/Neutral rows are excluded because the player tick never reaches the AI for
 them.
 
@@ -242,7 +242,7 @@ Lives in `Data/editor/maps/<Level>Players.kld`, one chunk per level. **All 66
 files divide exactly: `contentSize / itemCount = 205` in every one** (item counts
 3–7). 274 players, 121 with the AI flag set — 99 of those are the `Good Player`
 and `Neutral Player` rows every level carries, which the player tick skips before
-the AI runs, leaving **22 real AI keepers on 12 levels**.
+the AI runs, leaving **23 real AI keepers on 10 levels** (the first commit said 22 on 12; the `KwdPlayers` reader recounted).
 
 Record layout (205 bytes), framing as the binary's loader reads it; this agrees
 with OpenKeeper's parser (GPLv3, `KwdFile.readPlayers`, cited as a cross-check —
@@ -268,7 +268,7 @@ either; in the campaign it takes values 0, 2, 4, 5, 6, 8, so it is editor metada
 that the retail game ignores (STRONGLY INFERRED). Block `0x8A` (i32, always 100)
 is added to the player's **mana** at load.
 
-The 22 keepers, with the parameters that separate them (full table in the
+The 23 keepers, with the parameters that separate them (full table in the
 research working file; all CONFIRMED from data):
 
 | Level | Keeper | Gold | Speed | Room size | Imps / tiles-per-imp | Min army / level / threat % | Never / only-attackers | Money | Prisoners |
