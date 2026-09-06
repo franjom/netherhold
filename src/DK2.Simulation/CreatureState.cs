@@ -521,22 +521,67 @@ public sealed class CreatureState
     public int WorkFasterTicks;
 
     /// <summary>
-    /// Whether this worker was put down by the keeper onto a job it then took
-    /// — DK2's <c>ImpJobData.JustDropped</c>.
+    /// A one-shot ticket, set the moment the keeper puts this worker down and
+    /// spent by its very next job evaluation — DK2's
+    /// <c>ImpJobData.JustDropped</c>.
     ///
-    /// <para>Also worth <see cref="EfficiencyRules.BonusPercent"/>, and the
-    /// condition is exact (owner, 2026-09-05): <i>"after I mark a tile for
-    /// excavation and drop an imp adjacent to it its efficiency jumps to 90%.
-    /// But if I drop it on a random tile where there is nothing marked by me
-    /// its efficiency remains at 80%."</i> <b>It is the job, not the
-    /// drop.</b></para>
+    /// <para><b>This is not the Efficiency bonus.</b> It only says <i>"look
+    /// around where you landed before you look anywhere else"</i>: it skips the
+    /// idle throttle so a dropped worker evaluates on the spot, and it turns the
+    /// first evaluation into the seven-by-seven drop scan around where it landed
+    /// (<c>ImpTaskSystem.TryTakeDroppedJob</c>). The bonus is
+    /// <see cref="DroppedTask"/>, and it is set only if that scan actually finds
+    /// something.</para>
+    ///
+    /// <para>The distinction is DK2's, not ours: its job chooser clears this
+    /// field unconditionally the first time it runs, whether the scan succeeds
+    /// or fails, and the field the Efficiency arithmetic reads is a different
+    /// one four bytes further on. Reading them as one thing is what this project
+    /// did until 2026-09-06, and it is why the aimed bonus used to be worth
+    /// exactly one job.</para>
+    /// </summary>
+    public bool JustDropped;
+
+    /// <summary>
+    /// The kind of task this worker was <b>dropped onto and is still doing</b>,
+    /// or <see cref="ImpTaskKind.None"/> — DK2's <c>ImpJobData.DroppedTask</c>,
+    /// and <b>the field its Efficiency arithmetic actually reads</b>
+    /// (<see cref="EfficiencyRules.Percent"/>).
+    ///
+    /// <para>Worth <see cref="EfficiencyRules.BonusPercent"/>, and the condition
+    /// is exact (owner, 2026-09-05): <i>"after I mark a tile for excavation and
+    /// drop an imp adjacent to it its efficiency jumps to 90%. But if I drop it
+    /// on a random tile where there is nothing marked by me its efficiency
+    /// remains at 80%."</i> <b>It is the job, not the drop.</b></para>
+    ///
+    /// <para><b>It is set once and cleared once, and nothing else in DK2 touches
+    /// it</b> — the whole binary has exactly two writers, both inside the job
+    /// chooser. It is set to the kind the drop scan took; it is cleared only at
+    /// a later evaluation where this kind still matches
+    /// <see cref="LastTaskKind"/> and no more work of that kind exists anywhere
+    /// on the map. So it survives the walk, survives the digging, and survives
+    /// finishing the tile — which is what the owner watched on 2026-09-06:
+    /// <i>"it stays at 90% until it gets to that marked tile and starts
+    /// excavating, it doesn't revert to 80%."</i></para>
     ///
     /// <para>So DK2 pays a keeper 12.5% for aiming: marking work and placing a
     /// worker on it beats letting the worker find it, by exactly what a slap is
-    /// worth and stacking with it to 100%. Cleared when the worker gives that
-    /// job up.</para>
+    /// worth and stacking with it to 100% — and it keeps paying for as long as
+    /// that worker stays on that kind of work.</para>
     /// </summary>
-    public bool JustDropped;
+    public ImpTaskKind DroppedTask;
+
+    /// <summary>
+    /// The kind of the task this worker most recently took — DK2's
+    /// <c>ImpJobData.LastTaskType</c>, which every one of its task-accepting
+    /// routines writes on the way in.
+    ///
+    /// <para>Here for one reason: it is the guard on
+    /// <see cref="DroppedTask"/>'s only clear. A worker that has wandered onto
+    /// some other kind of work keeps the aimed bonus rather than losing it,
+    /// because the comparison fails and DK2 falls straight through.</para>
+    /// </summary>
+    public ImpTaskKind LastTaskKind;
 
     /// <summary>
     /// The id of the body this worker is carrying, or -1 for none.
@@ -641,11 +686,11 @@ public sealed class CreatureState
     /// </summary>
     public void ClearJob()
     {
-        // And with the job goes the bonus for having been aimed at it. The
-        // keeper's 12.5% is worth one job, not the rest of the imp's life:
-        // CONFIRMED by the owner, who watched a dropped imp mine its first seam
-        // at 90% and the next one at 80% (ADR-0062).
-        JustDropped = false;
+        // DroppedTask deliberately survives this. The aimed bonus is not worth
+        // one job: DK2 clears it in exactly one place - a later evaluation that
+        // cannot find more work of the same kind - and giving a job up is not
+        // that place (ADR-0069). JustDropped is not cleared here either; it is
+        // spent by the drop scan itself, which is the only thing that reads it.
         Activity = CreatureActivity.Idle;
         TargetTileIndex = -1;
         TargetWork = default;
@@ -678,6 +723,8 @@ public sealed class CreatureState
         hash.Add(LastSlapTick);
         hash.Add(WorkFasterTicks);
         hash.Add(JustDropped);
+        hash.Add((byte)DroppedTask);
+        hash.Add((byte)LastTaskKind);
         hash.Add(CarriedCreatureId);
         hash.Add(CarriedByCreatureId);
         hash.Add(TargetBodyId);

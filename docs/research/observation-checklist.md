@@ -20,34 +20,51 @@ something does *not* happen closes a question just as hard.
 
 ---
 
-## READ THIS FIRST — the five for tomorrow (2026-09-06)
+## READ THIS FIRST — the three for tomorrow (2026-09-07)
 
-Everything else on this page is history or is longer. These five are what the
-next sitting is actually waiting on, in order, and **all of them together are
-about twenty-five minutes of play**. Each one has a fuller write-up further
+Everything else on this page is history or is longer. **Four of yesterday's five
+came back the same day**, and two of them cost this project real defects (see
+the block below). These three are what the next sitting is waiting on, and
+together they are about ten minutes of play. Each has a fuller write-up further
 down.
 
 | # | Do this | Watch for | If the answer is... |
 |---|---|---|---|
-| **1** | **Slap an imp, keep it selected, watch Efficiency** (Q159) | how long 90% lasts before falling back to 80% | **25 s** and this project is right; **60 s** and `EfficiencyRules.SlapBonusSeconds` is a defect to fix. The binary says 25, your stopwatch last time said 60 |
-| **2** | **Build a 3×3 prison. Beat enemies down until imps stop collecting them. Count the prisoners** (Q166) | how many fit | **9** and "one per tile" is right; anything else and `PrisonRules.Capacity` is wrong. Also worth noting whether the door-bar limit is separate |
-| **3** | **Count the petals on a healthy creature's flower** (Q171) | how many there are when it is unhurt | **Ten** and every health percentage in the game becomes readable by eye — and the prison's arithmetic is right. **Eight** and `PrisonRules` is wrong by a quarter |
-| **4** | **Drop an imp *two* tiles from a marked wall** (Q162) | 90% or 80% | **90%** and the aim reaches further than the four neighbours this project checks |
-| **5** | ~~Let a creature fall asleep, then wait for its hunger~~ (Q176) | — | **ANSWERED FROM THE BINARY the same day, and the answer is no**: the needs routine refuses outright when the current state's category byte is 7, and the sleep states carry 7. Left here only because a category byte is a mechanism and a glance is an observation, and the two have disagreed before |
-
-**Nothing on this list needs a save game or a stopwatch except #1**, and #1 only
-needs a wristwatch — 25 and 60 are far enough apart. #5 is already answered and
-is a confirmation rather than a question.
+| **1** | **Mark two blocks of gold far apart. Drop an imp on one. Watch Efficiency after the first block falls** (Q177) | 90% or 80% on the walk to the second | **90%** and the binary is right: the aimed bonus lasts as long as that *kind* of work does, not one job. **80%** and DK2 clears it somewhere this project has not found — which would matter, because there are only two writers in the whole executable and one of them would have to be wrong |
+| **2** | **Count the petals on a healthy creature's flower** (Q171) | how many when it is unhurt | **Ten** and every health percentage in the game becomes readable by eye — and the prison's arrival health is right. **Eight** and `PrisonRules` is wrong by a quarter |
+| **3** | **Time a chicken nobody eats** (Q178) | how long from hatch to the death animation | Any number closes it. The owner has confirmed *that* it happens; what is missing is **how long**, and whether the replacement egg comes on the room's ordinary lay interval or straight away |
 
 A "no" is worth as much as a "yes".
 
-**Q167 came off this list before it was ever asked** — the owner answered it
-unprompted the evening it went on: *"when it gets dragged to prison, its flower
-gets two petals"*. This project had built **full health**, which would have made
-a prisoner last 500 game seconds instead of 100. That is the single most
-valuable sentence anybody said this week, and it is why #3 above is now about
-counting petals: two petals is only 20% if a flower has ten of them, and the
-whole prison clock rests on that.
+---
+
+## What yesterday's five bought (2026-09-06)
+
+Kept because the ratio is the argument for this whole page: **five questions, four
+answers, two defects, in about twenty minutes of somebody's evening.**
+
+| Q | What playing settled | What it cost |
+|---|---|---|
+| **Q159** | A slap's bonus lasts **25 s**, not 60 | Nothing — 25 was built. It closed a conflict *against the owner's own earlier stopwatch*, which is the useful direction: the binary said 25, a hand-timed reading said 60, and the binary won |
+| **Q162** | The drop looks **three tiles**, not one, and the fourth pays nothing | **A defect.** This project checked the tile underfoot and its four neighbours. And it turned three into a finding about DK2 rather than a number: its scan is nominally *two* tiles and reaches three through an off-by-one in its own ring loop (ADR-0069) |
+| **Q166** | A 3x3 prison holds **2 captives** and raises at most **2 skeletons** — and 3x3 is the **minimum size that is a prison at all** | **A defect, still open.** This project holds one per tile, which is nine. Everything that counts prisoners is downstream: overcrowding, the jail-break roll, and how many Skeletons a keeper gets |
+| **Q178** | An uneaten chicken **dies and is replaced**, with a new egg a couple of seconds later | **A missing mechanic.** A hatchery here fills up and stops; in DK2 it churns, and every bird has an age |
+| Q176 | (answered from the binary the same day: a sleeping creature is never asked whether it is hungry) | — |
+
+**And one correction, which is worth more than any of them.** The owner withdrew
+an earlier report:
+
+> *"I tagged a gem tile that was isolated from my territory by water ... imps are
+> mining it and carrying the gold it drops to treasury ... so I was wrong
+> before."*
+
+This project had **both versions written down at once** —
+`WorldPathGrid`'s comment said the imps waded across and carried the gold home,
+`imp-tasks.md` said none of it ever reached a treasury, and nothing tested
+either. Water is not isolation: 44 of 46 creatures can wade, and mined gold goes
+into an imp's hands rather than onto the floor, so it walks home like any other
+load. See [[a-claim-nothing-checks-may-already-be-false]] — this is
+the ninth instance and the first where the repo contradicted *itself*.
 
 ---
 

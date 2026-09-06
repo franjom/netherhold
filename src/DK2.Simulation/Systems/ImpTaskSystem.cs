@@ -127,6 +127,33 @@ public sealed class ImpTaskSystem : ISimulationSystem
     private const string SystemName = "ImpTask";
 
     /// <summary>
+    /// How far a worker the keeper has just put down looks around itself before
+    /// it looks anywhere else: <b>three tiles</b>, Chebyshev — a seven by seven
+    /// box centred on where it landed, its own tile first and then in rings.
+    ///
+    /// <para><b>Three is DK2's number and DK2 gets it by accident.</b> Its scan
+    /// takes a radius in world units and is handed <c>0x2000</c>, which at
+    /// <c>0x1000</c> units to the tile is <b>two</b>. But the loop tests its
+    /// bound <i>after</i> scanning a ring and with a strict greater-than, and
+    /// its ring counter starts at one — so it scans ring 1, ring 2, and then
+    /// ring 3 before deciding it has gone too far. A nominal radius of two
+    /// reaches three tiles (<c>ImpUtils.cpp</c>, docs/research/hand-of-evil.md).
+    /// The owner counted it on screen (2026-09-06): three tiles boost, the
+    /// fourth does not.</para>
+    ///
+    /// <para>Reproduced rather than corrected, per ADR-0002: an off-by-one in
+    /// the original is a rule of the original.</para>
+    /// </summary>
+    private const int DropScanTiles = 3;
+
+    /// <summary>
+    /// While set, every job search below is confined to
+    /// <see cref="DropScanTiles"/> of this tile. Non-null only inside
+    /// <see cref="TryTakeDroppedJob"/>, which is the one search DK2 bounds.
+    /// </summary>
+    private TilePos? _within;
+
+    /// <summary>
     /// The tile-work jobs an imp looks for. The first three are Tier A and are
     /// searched over the whole map in this order; <see cref="Reinforce"/> is
     /// Tier B and is only ever found by the nearest-first sweep, alongside gold
@@ -447,6 +474,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         creature.PathIndex = 0;
         creature.Activity = CreatureActivity.FetchingGold;
         creature.TimerTicks = 0;
+        creature.LastTaskKind = ImpTaskKind.FetchGold;
 
         context.Emit(SystemName, "fetch_taken",
             $"imp={creature.Id} player={creature.OwnerPlayerId} " +
@@ -734,6 +762,47 @@ public sealed class ImpTaskSystem : ISimulationSystem
     private bool TryTakeJob(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
+        // Before any of it: the two things the keeper's hand does to this
+        // choice. Both come from DK2's job chooser, which asks them in this
+        // order and ahead of its own priority chain (ADR-0069).
+        if (creature.JustDropped)
+        {
+            // The ticket is spent whether or not the look finds anything - DK2
+            // clears it unconditionally, one instruction before the scan.
+            creature.JustDropped = false;
+
+            if (TryTakeDroppedJob(context, creature, definition, grid))
+            {
+                creature.DroppedTask = creature.LastTaskKind;
+                context.Emit(SystemName, "dropped_onto_work",
+                    $"imp={creature.Id} player={creature.OwnerPlayerId} " +
+                    $"task={creature.DroppedTask} within={DropScanTiles}");
+                return true;
+            }
+
+            context.Emit(SystemName, "dropped_onto_nothing",
+                $"imp={creature.Id} player={creature.OwnerPlayerId} " +
+                $"at=({creature.Tile.X},{creature.Tile.Y}) within={DropScanTiles}");
+
+            // And on through the ordinary chain. A worker dropped in an empty
+            // corridor still finds work - it just does not get paid extra for
+            // it, because DroppedTask stays None.
+        }
+        else if (creature.DroppedTask != ImpTaskKind.None
+                 && creature.DroppedTask == creature.LastTaskKind)
+        {
+            // Still on the kind it was aimed at, and its last job has ended.
+            // More of that kind anywhere on the map and the aimed bonus carries
+            // over; none and this is the one place in DK2 that clears it.
+            if (TryTakeJobOfKind(context, creature, definition, grid, creature.DroppedTask))
+                return true;
+
+            context.Emit(SystemName, "aim_spent",
+                $"imp={creature.Id} player={creature.OwnerPlayerId} " +
+                $"task={creature.DroppedTask} reason=no_more_of_that_kind");
+            creature.DroppedTask = ImpTaskKind.None;
+        }
+
         // Tier A: kind first. The whole map is searched for a just-dug tile to
         // claim before a single mark is considered, and for marks before a
         // single ordinary claim — one search per kind, not one scored search
@@ -759,8 +828,139 @@ public sealed class ImpTaskSystem : ISimulationSystem
         if (TryTakeBody(context, creature, definition, grid, corpses: true)) return true;
 
         // Tier B: position first.
-        return TrySweep(context, creature, definition, grid);
+        if (TrySweep(context, creature, definition, grid)) return true;
+
+        // Nothing anywhere. DK2 zeroes LastTaskType at exactly this point, and
+        // it matters: with no kind to match, the DroppedTask comparison above
+        // can never fire again, so an aimed worker that runs out of work keeps
+        // its bonus rather than losing it on the next idle tick. That is the
+        // original's arithmetic, not a choice made here.
+        creature.LastTaskKind = ImpTaskKind.None;
+        return false;
     }
+
+    /// <summary>
+    /// What a worker the keeper has just put down looks for, and where.
+    ///
+    /// <para><b>A different order from <see cref="TryTakeJob"/>'s</b>, and that
+    /// is the point. DK2's drop scan is a single composite predicate that tries
+    /// nine task kinds per tile, and its order is not the priority chain's:
+    /// excavation first, then claiming, then carrying a body, reinforcing,
+    /// gold, objects, corpses. So a worker dropped beside a marked wall digs it
+    /// rather than putting a book away, even though putting the book away is
+    /// second in the ordinary chain (ADR-0065). Two of the nine are absent here
+    /// because this project has no traps or doors to fetch crates for, and one
+    /// is unidentified.</para>
+    ///
+    /// <para><b>And claiming the just-dug tile is absent on purpose.</b> DK2's
+    /// kind 14 is not one of the nine; a dropped worker takes the ordinary
+    /// claim.</para>
+    ///
+    /// <para>All of it inside <see cref="DropScanTiles"/> of where the worker
+    /// landed, measured to <b>the tile the work is at</b> and not to the tile
+    /// the worker would stand on. That distinction is a whole tile for a wall
+    /// job and the owner's count settles it: a marked wall <i>four</i> tiles
+    /// away is reachable from a floor tile three away, and it does not pay. DK2
+    /// agrees in shape - a dig task is raised on the marked tile itself, which
+    /// is what its scan's own pre-filter looks for before it calls any
+    /// predicate.</para>
+    /// </summary>
+    private bool TryTakeDroppedJob(
+        SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
+    {
+        _within = creature.Tile;
+        try
+        {
+            if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
+            if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
+            if (TryTakeBody(context, creature, definition, grid, corpses: false)) return true;
+            if (TryTakeJobAt(context, creature, grid, JobPriority.Reinforce)) return true;
+            if (TryTakeFloorGold(context, creature, definition, grid)) return true;
+            if (TryTakeObject(context, creature, definition, grid)) return true;
+            return TryTakeBody(context, creature, definition, grid, corpses: true);
+        }
+        finally
+        {
+            _within = null;
+        }
+    }
+
+    /// <summary>
+    /// One kind, whole map - DK2's <c>TakeJob(kind, 0x7fffffff)</c>, the retry
+    /// that decides whether an aimed worker keeps its bonus.
+    ///
+    /// <para><see cref="ImpTaskKind.ClaimFreshlyDug"/> cannot arrive here:
+    /// <see cref="KindOf"/> records kind 14's work as an ordinary
+    /// <see cref="ImpTaskKind.Claim"/>, which is what DK2 stores.</para>
+    /// </summary>
+    private bool TryTakeJobOfKind(
+        SimulationContext context, CreatureState creature, CreatureDef definition,
+        WorldPathGrid grid, ImpTaskKind kind) => kind switch
+    {
+        ImpTaskKind.Excavate => TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation),
+        ImpTaskKind.Claim => TryTakeJobAt(context, creature, grid, JobPriority.Claim),
+        ImpTaskKind.Reinforce => TryTakeJobAt(context, creature, grid, JobPriority.Reinforce),
+        ImpTaskKind.FetchGold => TryTakeFloorGold(context, creature, definition, grid),
+        ImpTaskKind.CarryObject => TryTakeObject(context, creature, definition, grid),
+        ImpTaskKind.CarryCorpse => TryTakeBody(context, creature, definition, grid, corpses: true),
+        ImpTaskKind.CarryUnconscious => TryTakeBody(context, creature, definition, grid, corpses: false),
+        _ => false,
+    };
+
+    /// <summary>
+    /// The nearest pile of floor gold this worker may pick up, on its own.
+    ///
+    /// <para><see cref="TrySweep"/> asks this question and the reinforce
+    /// question at the same tile, because in Tier B distance is the primary key.
+    /// Here it is asked alone, which is what the drop scan and the same-kind
+    /// retry both need - DK2 has a per-kind entry point for exactly this.</para>
+    /// </summary>
+    private bool TryTakeFloorGold(
+        SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
+    {
+        if (creature.GoldHeld >= definition.MaxGoldHeld) return false;
+
+        byte player = creature.OwnerPlayerId;
+
+        if (!_pathfinder.TryFindNearest(
+                grid, creature.Tile,
+                at => InScanRange(at) && CanFetchFrom(context, at, player, creature.Id),
+                _route))
+            return false;
+
+        TilePos standing = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
+        if (!CanFetchFrom(context, standing, player, creature.Id)) return false;
+
+        CommitFetch(context, creature, standing);
+        return true;
+    }
+
+    /// <summary>
+    /// Whether a search may stop here - always, unless a drop scan is running.
+    /// </summary>
+    private bool InScanRange(TilePos at) =>
+        _within is not TilePos centre
+        || (Math.Abs(at.X - centre.X) <= DropScanTiles
+            && Math.Abs(at.Y - centre.Y) <= DropScanTiles);
+
+    /// <summary>The same test, for a search that names its work by tile index.</summary>
+    private bool InScanRange(WorldState world, int tileIndex) =>
+        _within is null
+        || InScanRange(new TilePos(tileIndex % world.Width, tileIndex / world.Width));
+
+    /// <summary>
+    /// The task kind DK2 records for a job of this priority.
+    ///
+    /// <para><see cref="JobPriority.ClaimFreshlyDug"/> maps to
+    /// <see cref="ImpTaskKind.Claim"/> because the original's kind 14 raises a
+    /// kind 3 at the tile and takes that; the byte it leaves behind is a 3.</para>
+    /// </summary>
+    private static ImpTaskKind KindOf(JobPriority priority) => priority switch
+    {
+        JobPriority.MarkedExcavation => ImpTaskKind.Excavate,
+        JobPriority.Reinforce => ImpTaskKind.Reinforce,
+        _ => ImpTaskKind.Claim,
+    };
 
     /// <summary>
     /// The second tier: the nearest tile at which there is <i>either</i> a wall
@@ -823,7 +1023,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
         bool found = _pathfinder.TryFindNearest(
             grid,
             creature.Tile,
-            stand => TryJobFrom(context, grid, stand, player, priority, creature.Id, out _, out _),
+            stand => TryJobFrom(context, grid, stand, player, priority, creature.Id, out int found, out _)
+                     && InScanRange(context.World, found),
             _route);
 
         if (!found) return false;
@@ -857,6 +1058,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
         {
             creature.Activity = CreatureActivity.MovingToJob;
         }
+
+        creature.LastTaskKind = KindOf(priority);
 
         context.Emit(SystemName, "job_taken",
             $"imp={creature.Id} player={creature.OwnerPlayerId} " +
@@ -1174,7 +1377,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         bool found = _pathfinder.TryFindNearest(
             grid, creature.Tile,
-            at => LooseObjectAt(context, creature, definition, at) is not null,
+            at => InScanRange(at) && LooseObjectAt(context, creature, definition, at) is not null,
             _route);
 
         if (!found) return false;
@@ -1191,6 +1394,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         creature.Path.AddRange(_route);
         creature.PathIndex = 0;
         creature.TimerTicks = 0;
+        creature.LastTaskKind = ImpTaskKind.CarryObject;
 
         context.Emit(SystemName, "object_claimed",
             $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
@@ -1377,7 +1581,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         bool found = _pathfinder.TryFindNearest(
             grid, creature.Tile,
-            at => BodyToCarryAt(context, creature, definition, at, corpses, graveyard) is not null,
+            at => InScanRange(at)
+                  && BodyToCarryAt(context, creature, definition, at, corpses, graveyard) is not null,
             _route);
 
         if (!found) return false;
@@ -1394,6 +1599,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         creature.Path.AddRange(_route);
         creature.PathIndex = 0;
         creature.TimerTicks = 0;
+        creature.LastTaskKind = corpses ? ImpTaskKind.CarryCorpse : ImpTaskKind.CarryUnconscious;
 
         // Remembered so that the walk and the pick-up agree about which body
         // this is, even if a second one falls on the same tile before the imp

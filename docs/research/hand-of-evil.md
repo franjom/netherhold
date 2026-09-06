@@ -25,7 +25,9 @@ repository (ADR-0046).
 | **There is no cooldown on a slap** | **STRONGLY INFERRED** — the `LastSlapTick` window guards the knock-back impulse and nothing else. See §4 |
 | A slap costs `SlapDamage` health — 100 of an Imp's 500 | **CONFIRMED** by the shipped data; **UNVERIFIED** that the original applies it on the same path |
 | `AngerInHand` applies **once a game second, from 20 game seconds after the pick-up** | **STRONGLY INFERRED** — read from the creature update |
-| The slap's work bonus lasts **25 game seconds** | **STRONGLY INFERRED and in conflict with the owner's stopwatch** — see Q159, §5 |
+| The slap's work bonus lasts **25 game seconds** | **CONFIRMED** (owner, 2026-09-06) — *"timeout for efficiency to return back to 80% after slap is 25s, not 60s"*. Q159 closed, against the owner's own earlier *"after a minute"* |
+| **The aimed bonus is a task kind, not a flag** — and it lasts as long as that kind of work does | **STRONGLY INFERRED** (2026-09-06; two writers in the whole binary) — see section 6 and ADR-0069 |
+| **The drop looks three tiles** | **CONFIRMED** (owner, 2026-09-06) — and DK2 reaches three from a nominal two by an off-by-one in its own loop. Q162 closed |
 | Creature definition flag `0x4000` is **Horny**, and slapping him runs a different routine | **STRONGLY INFERRED** — Q158 |
 
 ---
@@ -48,7 +50,9 @@ straight from the developers. The ones this mechanic needed:
 | `0x4bb` | **`LastSlapTick`** | when the last slap landed |
 | `0x4bf` | **`PickupTick`** | written on pick-up **and on drop** |
 | `0x4d7` | **`WorkFasterTimer`** | the slap's work bonus, counts down |
-| `0x2eb` | **`ImpJobData.JustDropped`** | the aiming bonus |
+| `0x2e7` | `ImpJobData.JustDropped` | a one-shot ticket for the drop scan |
+| `0x2eb` | **`ImpJobData.DroppedTask`** | **the aiming bonus** — the task kind, or 0 |
+| `0x2bc` | `DroppedToDoJobId` | the same idea for a **non-worker** |
 
 `Efficiency`, the word on the status bar, does not appear in the binary's
 strings — it is the UI's name for `WorkModifier + WorkEnhancement`. The dumps
@@ -196,18 +200,18 @@ project moves a creature faster for being slapped.
 
 ---
 
-## 6. Efficiency, and the two flags that raise it
+## 6. Efficiency, and the two things that raise it
 
 The creature update rebuilds `WorkEnhancement` from scratch each tick:
 
 ```
 bonus = 0
 if IsWorker:                        # definition flag bit 0
-    if WorkFasterTimer != 0:  bonus += 0x199      # 409 = 0.0999
-    if JustDropped != 0:      bonus += 0x199
+    if WorkFasterTimer  != 0: bonus += 0x199      # 409 = 0.0999
+    if DroppedTask      != 0: bonus += 0x199      # a task KIND, not a flag
 else:
-    if WorkFasterTimer != 0:  bonus += 0x199
-    if <another field>  != 0: bonus += 0x199
+    if WorkFasterTimer  != 0: bonus += 0x199
+    if DroppedToDoJobId != 0: bonus += 0x199
 if counter > 0:               bonus += counter * 0xcd     # 205 = 0.05 each
 WorkEnhancement = bonus
 ```
@@ -216,13 +220,23 @@ Three things to take from it:
 
 - **The two bonuses are independent and equal**, ten points each, which is why
   100% is reachable and 110% is not.
-- **Workers and non-workers read different second flags.** Only workers do tile
-  work in this project, so only the worker's branch is built; the other is
-  recorded here rather than guessed.
+- **The non-worker branch is no longer a shrug.** It reads `DroppedToDoJobId`,
+  the generic creature state's *"the job I was dropped to do"* — the same
+  sentence as `ImpJobData.DroppedTask` one struct up, in a different struct
+  because imps keep their job bookkeeping separately. Only workers do tile work
+  in this project, so only the worker's branch is built.
 - **A third term exists** — 0.05 per unit of a byte counter held on an object
   the creature points at. `IncreasedWorkRatePersentageOfPlayersTorturedCreatureTypes`
   is the obvious candidate and is **UNVERIFIED**; it needs a Torture Chamber to
   be non-zero and this project has none.
+
+**And the offsets are now pinned rather than fitted.** The creature's whole state
+object sits at **creature + 0x24E**, which is not guesswork: the creature debug
+dump hands `creature + 0x24E` to the state dump, and two independent reads in the
+update — `CurrentStateId` at `+0x25E` and `UtilityNewState` at `+0x32D` — land
+exactly where that base puts them. From there, `+0x2EB` is `DroppedTask` and
+`+0x2E7` is `JustDropped`, four bytes apart, which is how the two came to be read
+as one thing for a day.
 
 ### Why this project counts in percents and not in 4096ths
 
@@ -237,21 +251,89 @@ constants are the game's approximation of them. `EfficiencyRules` works in whole
 percents with halves rounded away from zero, which reproduces all three measured
 numbers exactly (ADR-0002: behaviour, not implementation).
 
-### `JustDropped`, and how long it lasts
+### The aimed bonus: two fields, one look, and one clear
 
-Set to 1 when a dropped imp enters the dropped-work job, alongside a **local
-scan** of radius `0x2000` — two tiles in the original's fixed point — for
-something to do near where it landed. Cleared at a later job evaluation.
+Read out on 2026-09-06, in `ImpState.cpp` and `ImpUtils.cpp`, after the owner
+watched a dropped imp keep 90% all the way to the wall. **This section replaced a
+shorter one that was wrong in three ways**, and the shape of the error is worth
+as much as the answer: a plausible field name four bytes from the right one, and
+nothing checking.
 
-This project's `HandSystem` tests the tile underfoot and its four orthogonal
-neighbours, which is what *"drop an imp adjacent to it"* describes; the
-difference from DK2's two-tile radius shows only for a drop two tiles away
-(Q162). The flag is cleared by `CreatureState.ClearJob`, so the bonus is worth
-one job — which is exactly what the owner watched:
+**The drop.** Putting a worker down sets `JustDropped = 1`, zeroes
+`LastTaskType`, and moves it to the job-evaluation state. That is all it does —
+it decides nothing about the bonus.
 
-> *"an imp excavating its first seam has its efficiency at 90%, hits for 309-310
-> per swing, once it excavates its first gold tile its rate drops to 273 per
-> swing, 80% efficiency."*
+**The look.** The job chooser (state 10's handler) runs on the next update. Two
+things happen because `JustDropped` is set: the *"don't re-evaluate for 0x28
+ticks"* throttle is skipped, so a dropped worker thinks on the spot; and after
+the ordinary priority chain is skipped — it is skipped, because `LastTaskType` is
+zero — it **clears `JustDropped` unconditionally** and runs a spiral scan around
+where the worker landed. The predicate is a composite of nine task kinds and its
+order is *not* the priority chain's:
+
+> excavation (1/2) → claim (3) → crate for a trap or door (9/10) → carry an
+> unconscious creature (13) → reinforce or fix (6/16) → floor gold (7) → loose
+> object (8) → corpse (12) → one unidentified
+
+So **a worker dropped beside a marked wall digs it** rather than putting a book
+away, even though the book is second in the ordinary chain (ADR-0065). And
+**kind 14, claim-the-just-dug-tile, is not in the list at all**: a dropped worker
+takes the ordinary claim.
+
+**The bonus.** If and only if the scan takes something, `DroppedTask` is set to
+that task's kind. If the scan finds nothing, the worker falls through to the
+whole-map chain and finds work anyway — with `DroppedTask` still zero and no
+bonus. That is the owner's *"drop it on a random tile and it remains at 80%."*
+
+**The three tiles, and why they are an off-by-one.** The scan is
+`ImpUtils.cpp`'s ring walk. It tests the tile underfoot, refuses to look further
+if the radius is under `0x1000`, converts the radius to whole tiles, and then
+walks rings — but it tests its bound **after** scanning a ring, with a strict
+greater-than, and its ring counter starts at 1. So with the `0x2000` it is
+handed — nominally **two** tiles at `0x1000` a tile — it scans ring 1, ring 2 and
+**ring 3** before stopping. The owner counted exactly that on screen: three tiles
+pay, the fourth does not (Q162). Reproduced rather than fixed, per ADR-0002.
+
+The bound is measured to **the tile the work is on**, not to the tile the worker
+would stand on: a marked wall four tiles away is reachable from a floor tile
+three away and still does not pay. DK2 agrees in shape — its scan's own
+pre-filter asks whether there is a dig task *on the scanned tile* before it calls
+any predicate.
+
+**The clear — and there is only one.** `DroppedTask` has exactly **two writers in
+the entire binary**, both inside the job chooser: the set above, and
+
+```
+if DroppedTask == LastTaskType:
+    if TakeJob(LastTaskType, radius = 0x7fffffff): return   # bonus survives
+    DroppedTask = 0                                         # the only clear
+```
+
+which runs at the *top* of a later evaluation. So the bonus survives the walk, it
+survives the digging, and it survives finishing the tile: a worker that finishes
+one marked wall and finds another anywhere on the map **keeps its 90%**. It is
+lost only when a worker that still calls itself an excavator can find nothing
+left to excavate. Note also that the whole thing is guarded on
+`DroppedTask == LastTaskType`: a worker that has drifted onto some other kind of
+work does not lose the bonus, because the comparison fails and DK2 falls straight
+through.
+
+The owner's 2026-09-06 report is this mechanism end to end:
+
+> *"it stays at 90% until it gets to that marked tile and starts excavating, it
+> doesn't revert to 80%, however … I unmark it before an imp gets to it, it gets
+> to that tile, "sees" it is unmarked and it drops back to 80%."*
+
+The unmark case is the clear, arrived at from the other side: the job is
+invalidated, the worker re-evaluates, it is still an excavator, and there is
+nothing left marked.
+
+**What this replaced.** *"The flag is cleared by `ClearJob`, so the bonus is
+worth one job"* — which fitted an older owner report (a dropped imp mining its
+first seam at 90% and the next at 80%) and is consistent with it only if that
+seam was the last marked work on the map. Q177 is the observation that would
+separate them and it is one glance: mark two seams far apart, drop an imp on one,
+and watch the percentage after the first block falls.
 
 ---
 

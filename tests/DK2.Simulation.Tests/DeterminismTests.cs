@@ -214,7 +214,24 @@ public class DeterminismTests
         // and saying so is worth more than the green tick, because the next
         // fixture with a goblin in it will.
         //
-        // Previous values: 0x154E9041172A7F7F (26),
+        // Bumped with HashVersion 27 -> 28 (ADR-0069): the aimed bonus turned
+        // out to be two fields rather than one. JustDropped is now only a
+        // one-shot ticket for the drop scan; the Efficiency bonus is the new
+        // DroppedTask, which holds the KIND of work the drop found and which
+        // DK2 clears in exactly one place. CreatureState also gained
+        // LastTaskKind, and unlike every bump above it this one is not a
+        // default: the fixture is full of imps taking jobs, and every job taken
+        // now writes its kind. So this value moved on the version, on the new
+        // enum defaults, and on that bookkeeping.
+        //
+        // What did NOT move is the behaviour. Nothing in this fixture is ever
+        // picked up, so DroppedTask is None for all 500 ticks, so the retry
+        // branch that decides whether an aimed worker keeps its bonus is never
+        // entered - and the imps dig, claim and reinforce in exactly the order
+        // they did before. Snapshot FormatVersion went 27 -> 28 in the same
+        // commit.
+        //
+        // Previous values: 0x0D75C57C1848268C (27), 0x154E9041172A7F7F (26),
         // 0xDFF77147B12A64C3 (22), 0x6AF149EE8E20D98A (21),
         // 0x5E96E634C7E5037D (20),
         // 0x12E5615E803C5796 (19), 0x55BEDDA879B4A281 (18),
@@ -224,7 +241,7 @@ public class DeterminismTests
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x0D75C57C1848268CUL, sim.StateHash());
+        Assert.Equal(0x19A512BB12A71575UL, sim.StateHash());
     }
 
     [Fact]

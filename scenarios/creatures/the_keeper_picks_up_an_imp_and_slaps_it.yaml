@@ -14,13 +14,19 @@
 #   | 90% slapped, or aimed          | 67.5 -> 68 | 309.1 | 309-310 |
 #   | 100% both                      | 75   | 340.9 | 341     |
 #
-# Ten points for a slap, ten for being **dropped next to work the keeper has
-# marked** — and nothing at all for being dropped on empty ground, which is what
-# makes it the job and not the drop:
+# Ten points for a slap, ten for **still doing the job it was dropped onto** —
+# and nothing at all for being dropped on empty ground, which is what makes it
+# the job and not the drop:
 #
 #   "after I mark a tile for excavation and drop an imp adjacent to it its
 #    efficiency jumps to 90%. But if I drop it on a random tile where there is
 #    nothing marked by me its efficiency remains at 80%."
+#
+# **The second bonus was re-read on 2026-09-06 and changed shape** (ADR-0069).
+# It is not a "was dropped" flag: DK2 stores the *kind* of work the drop found,
+# looks **three tiles** rather than one, and clears it in exactly one place —
+# a later evaluation where the worker is still on that kind and no more of that
+# kind exists anywhere. So the bonus outlives the tile.
 #
 # **This run has a control, and it is another scenario.**
 # `imps_dig_what_is_marked` is the same map, the same seed, the same two imps in
@@ -57,35 +63,45 @@
 #         pick-up dropped it, because an imp lifted off its work has stopped
 #         working.
 #
-#   t3    `dropped ... tile=11,8 aimed=yes held=0`, and `job_taken ... steps=0`
-#         on the same tick. **`aimed=yes` is the second ten points** and
-#         `steps=0` is why it is worth having: the imp was put down where the
-#         work is and starts on it without walking anywhere. With the slap still
-#         running this imp is at **100% Efficiency** and takes 75 health off a
-#         wall where its colleague takes 60.
+#   t3    `dropped ... tile=11,8 worker=yes held=0`, then `job_taken ... steps=0`
+#         and `dropped_onto_work ... task=Excavate within=3`, all on the same
+#         tick. **The drop buys the look and the look buys the ten points** —
+#         `worker=yes` only says this creature is eligible; `dropped_onto_work`
+#         is the bonus actually turning on, and it names what the imp found and
+#         how far it looked. `steps=0` is why it is worth having: the imp was
+#         put down where the work is and starts on it without walking anywhere.
+#         With the slap still running this imp is at **100% Efficiency** and
+#         takes 75 health off a wall where its colleague takes 60.
 #
 #   t11   `destroyed: (12,8)` — three ticks ahead of the control run.
 #
-#   t12   `job_abandoned ... reason=gone`, and **this is where the aiming bonus
-#         ends.** It is worth one job, not the rest of the imp's life — the
-#         owner watched exactly that, a dropped imp mining its first seam at 90%
-#         and the next at 80%.
+#   t12   `job_abandoned ... reason=gone`, and **the aiming bonus does not end
+#         here.** There are three more marked tiles, the imp is still an
+#         excavator, so DK2's one clear does not fire and the 100% carries
+#         straight through to (13,8). There is no `aim_spent` line in this run
+#         at all: the corridor runs out before the bonus does.
 #
-#   t27+  the gap does not close, because the *slap* is still running: 25 game
-#         seconds of it, against a run that is over in three. Both imps dig
-#         every remaining tile together and the handled one is worth 12.5% more
-#         on every swing it takes.
+#   t27+  the gap does not close, because both bonuses are still running: 25
+#         game seconds of slap against a run that is over in three, and an aim
+#         that lasts as long as there is digging left. Both imps dig every
+#         remaining tile together and the handled one is worth 25% more on every
+#         swing it takes.
+#
+#         **And the corridor still falls at t11, t27, t45 and t62** — the
+#         same four ticks as before ADR-0069, when the aim was worth only the
+#         first tile. Two imps sharing one wall, a delta of 500 and a whole
+#         number of applications: the extra ten points on tiles two to four
+#         round away. Worth saying rather than hiding, because it means this
+#         run is **not** the test of the new rule — `HandTests`
+#         `TheAimingBonusCarriesOnToTheNextTileOfTheSameKind` is, and Q177 is
+#         the observation.
 #
 # **What the run does NOT establish**, recorded rather than implied:
 #
-#   * **How long the slap really lasts.** The original's slap handler writes a
-#     hardcoded 100 into `WorkFasterTimer` and decrements it once a tick, which
-#     at variable 19's four ticks a game second is 25 seconds — and the balance
-#     table's `SlapWorkFasterDurationSeconds` is exactly 25, so the two agree.
-#     But the owner watched a slapped imp revert *"after a minute"*, and there
-#     is an `IncreasedWorkRateDurationFromSlappingSeconds` of 60 sitting right
-#     there. **Q159**, and it is now a cheap test: select a slapped imp and
-#     watch the percentage on the status bar drop back to 80.
+#   * **Whether the aim really outlives the tile.** Not this run, which runs
+#     out of corridor first, and not anything the owner has watched: **Q177**,
+#     and it is one glance. Mark two blocks far apart, drop an imp on one, and
+#     watch the status bar after the first falls.
 #
 #   * **The knock-back.** A slap in DK2 also throws the creature, and the
 #     `LastSlapTick` window this project records is the thing that gates it —

@@ -380,8 +380,51 @@ public class HandTests
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, Beside)));
 
-        Assert.True(imp.JustDropped);
+        // The drop only buys the look; the look happens in the same tick,
+        // because the job system runs after the hand and the timer was zeroed
+        // on the way down (ADR-0069). So the ticket is already spent.
+        Assert.False(imp.JustDropped);
+        Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
         Assert.Equal(90, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
+    }
+
+    [Theory]
+    [InlineData(1, 90)]
+    [InlineData(2, 90)]
+    [InlineData(3, 90)]
+    [InlineData(4, 80)]
+    public void TheDropLooksThreeTilesAndNotAFourth(int gap, int expected)
+    {
+        // CONFIRMED by the owner off the status bar (2026-09-06), counting
+        // marked tiles up a corridor: three tiles boost, the fourth does not.
+        //
+        // DK2's own scan is nominally TWO tiles - it is handed 0x2000 against a
+        // 0x1000 tile - and reaches three because its loop tests the bound
+        // after scanning a ring and with a strict greater-than. An off-by-one
+        // in the original is a rule of the original (ADR-0002), so three is
+        // what is built and this is the test that pins it.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        // The whole interior paved and claimed, so that nothing else - no wall
+        // to reinforce, no floor to claim - is in range to muddy the reading.
+        // Then one block of rock, marked, at the distance under test.
+        Pave(world, 1, 1, 14, 10);
+        var mark = new TilePos(4 + gap, 5);
+        ref TileState wall = ref world.Tile(mark.X, mark.Y);
+        wall.TerrainId = Dk2TerrainFixture.Rock;
+        wall.OwnerPlayerId = PlayerIds.Neutral;
+
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, mark)));
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, new TilePos(4, 5))));
+
+        Assert.Equal(expected, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
+        Assert.Equal(
+            expected == 90 ? ImpTaskKind.Excavate : ImpTaskKind.None, imp.DroppedTask);
     }
 
     [Fact]
@@ -390,16 +433,39 @@ public class HandTests
         // The other half of the same observation, and the half that makes it a
         // rule rather than a coincidence: "but if I drop it on a random tile
         // where there is nothing marked by me its efficiency remains at 80%."
+        //
+        // "Empty" has to mean empty of every kind the drop scan tries, not just
+        // of marks - reinforcing is one of the nine, so a drop three tiles from
+        // any of the keeper's own rock would pay after all. Hence the wide
+        // claimed floor: this is a worker put down in the middle of a finished
+        // dungeon, which is what the owner's "random tile" was.
         GameDatabase db = Db;
         WorldState world = World(db);
+        Pave(world, 1, 1, 9, 9);
+
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
-        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, new TilePos(1, 1))));
+        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, new TilePos(5, 5))));
+        sim.Tick();
 
-        Assert.False(imp.JustDropped);
+        Assert.Equal(ImpTaskKind.None, imp.DroppedTask);
         Assert.Equal(80, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
+    }
+
+    /// <summary>Paves w-by-h of the keeper's own claimed floor at (x,y).</summary>
+    private static void Pave(WorldState world, int x, int y, int w, int h)
+    {
+        for (int j = y; j < y + h; j++)
+        {
+            for (int i = x; i < x + w; i++)
+            {
+                ref TileState tile = ref world.Tile(i, j);
+                tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+                tile.OwnerPlayerId = Keeper;
+            }
+        }
     }
 
     [Fact]
@@ -414,15 +480,16 @@ public class HandTests
         sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, Beside)));
+        sim.Tick();
 
         Assert.Equal(100, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
     }
 
     [Fact]
-    public void TheAimingBonusIsWorthOneJobAndNotAnImpsWholeLife()
+    public void TheAimingBonusSurvivesTheWalkAndTheDigging()
     {
-        // The owner watched exactly this: a dropped imp mined its first seam at
-        // 90% and fell to 80% once that seam was gone.
+        // CONFIRMED by the owner (2026-09-06): "it stays at 90% until it gets
+        // to that marked tile and starts excavating, it doesn't revert to 80%."
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
@@ -431,12 +498,96 @@ public class HandTests
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, Beside)));
-        Assert.True(imp.JustDropped);
+        sim.Tick();
 
-        // Let it mine the seam out and go looking for the next thing.
-        for (int i = 0; i < 120 * Second && imp.JustDropped; i++) sim.Tick();
+        Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
 
-        Assert.False(imp.JustDropped);
+        // Every tick from here to the moment the wall falls, at ninety.
+        for (int i = 0; i < 60 * Second; i++)
+        {
+            sim.Tick();
+            if (world.Tile(Marked.X, Marked.Y).TerrainId != Dk2TerrainFixture.Rock) break;
+            Assert.Equal(90, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
+        }
+
+        Assert.NotEqual(Dk2TerrainFixture.Rock, world.Tile(Marked.X, Marked.Y).TerrainId);
+    }
+
+    [Fact]
+    public void TheAimingBonusCarriesOnToTheNextTileOfTheSameKind()
+    {
+        // The half the owner has not watched and the binary is plain about: the
+        // bonus is not spent by finishing the tile. DK2 keeps DroppedTask
+        // through a job ending and only clears it when a later evaluation - one
+        // where the worker is still an excavator - cannot find another
+        // excavation anywhere. So a keeper who drops an imp on a marked seam
+        // pays for the whole seam, not the first block of it (ADR-0069, Q177).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Pave(world, 1, 1, 14, 10);
+
+        // Two marked blocks, one in range of the drop and one far away.
+        var near = new TilePos(6, 5);
+        var far = new TilePos(13, 9);
+        foreach (TilePos at in new[] { near, far })
+        {
+            ref TileState rock = ref world.Tile(at.X, at.Y);
+            rock.TerrainId = Dk2TerrainFixture.Rock;
+            rock.OwnerPlayerId = PlayerIds.Neutral;
+        }
+
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, near, far)));
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, new TilePos(4, 5))));
+
+        Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
+
+        // The near block falls; the far one - never in range of the drop - is
+        // what the worker walks to next, and it walks there still at 90%.
+        for (int i = 0; i < 240 * Second; i++)
+        {
+            sim.Tick();
+            if (world.Tile(near.X, near.Y).TerrainId != Dk2TerrainFixture.Rock) break;
+        }
+
+        Assert.NotEqual(Dk2TerrainFixture.Rock, world.Tile(near.X, near.Y).TerrainId);
+
+        // Past the abandon and the re-evaluation.
+        for (int i = 0; i < 4 * Second; i++) sim.Tick();
+
+        Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
+        Assert.Equal(90, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
+    }
+
+    [Fact]
+    public void TheAimingBonusIsSpentWhenThereIsNoMoreWorkOfThatKind()
+    {
+        // DK2 clears DroppedTask in exactly one place: a later evaluation where
+        // the worker is still on the kind it was aimed at and no more of that
+        // kind can be found anywhere on the map. So the bonus is not "worth one
+        // job" - which is what this project built for a day - it is worth the
+        // rest of that kind of work (ADR-0069).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new DropCreatureCommand(Keeper, Beside)));
+        sim.Tick();
+
+        Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
+
+        // The one marked tile falls, there is no other, and the next evaluation
+        // that still calls itself an excavator finds nothing to excavate.
+        for (int i = 0; i < 240 * Second && imp.DroppedTask != ImpTaskKind.None; i++)
+            sim.Tick();
+
+        Assert.Equal(ImpTaskKind.None, imp.DroppedTask);
         Assert.Equal(80, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
     }
 

@@ -67,13 +67,16 @@ public static class EfficiencyRules
     /// pair is a second independent confirmation that variable 19 is ticks per
     /// game second.</para>
     ///
-    /// <para><b>This contradicts what the owner measured</b>, who watched a
-    /// slapped imp revert <i>"after a minute"</i> — and the table also carries
-    /// an <c>IncreasedWorkRateDurationFromSlappingSeconds</c> of 60, which is
-    /// where that minute would come from. The binary is unambiguous and the
-    /// stopwatch was loose, so 25 is what is built here; Q159 records the
-    /// conflict and names the test that settles it, which is now a cheap one
-    /// because the status bar shows the percentage directly.</para>
+    /// <para><b>CONFIRMED by the owner off the status bar (2026-09-06)</b> —
+    /// <i>"timeout for efficiency to return back to 80% after slap is 25s, not
+    /// 60s"</i>. That closes Q159, and it closes it in the binary's favour
+    /// against the owner's own earlier stopwatch: a slapped imp was reported to
+    /// revert <i>"after a minute"</i>, and the table's
+    /// <c>IncreasedWorkRateDurationFromSlappingSeconds</c> of 60 sat there
+    /// looking like the reason. It is not read by anything. <b>A hand-timed
+    /// minute lost to a hardcoded 100 ticks</b>, and the pair is now a third
+    /// independent confirmation that variable 19 is four ticks a game
+    /// second.</para>
     /// </summary>
     public const int SlapBonusSeconds = 25;
 
@@ -84,16 +87,24 @@ public static class EfficiencyRules
     /// This creature's Efficiency, as a whole percent.
     ///
     /// <para>Two independent bonuses, ten points each, exactly as DK2 builds
-    /// <c>WorkEnhancement</c>: a slap that has not yet run out, and having been
-    /// dropped onto work by the keeper.</para>
+    /// <c>WorkEnhancement</c>: a slap that has not yet run out, and <b>still
+    /// doing the job it was dropped onto</b>.</para>
     ///
-    /// <para><b>Two of DK2's contributions are deliberately absent</b> and both
-    /// are named in docs/research/hand-of-evil.md: the bonus a <i>non-worker</i>
-    /// gets (DK2 reads a different field for creatures without
-    /// <see cref="CreatureFlags.IsWorker"/>, and nothing in this project makes a
-    /// non-worker do tile work yet), and a third term of 0.05 per unit of a
-    /// counter held on the keeper — the torture tally, most likely, which needs
-    /// a Torture Chamber to be non-zero.</para>
+    /// <para><b>The second one is not "was dropped".</b> The field DK2 reads
+    /// here is <c>ImpJobData.DroppedTask</c> — the <i>kind</i> of task the drop
+    /// found, zero when there was none — and the whole binary writes it in two
+    /// places, both inside the job chooser. See
+    /// <see cref="CreatureState.DroppedTask"/> for the life cycle and ADR-0069
+    /// for how long this project had it as a bare "just dropped" flag.</para>
+    ///
+    /// <para><b>DK2's non-worker branch is now identified and still absent.</b>
+    /// For a creature without <see cref="CreatureFlags.IsWorker"/> the same
+    /// arithmetic reads <c>DroppedToDoJobId</c> instead — the generic
+    /// "job I was dropped to do", the same idea one struct up. Nothing in this
+    /// project makes a non-worker do tile work yet, so only the worker's field
+    /// exists. The third term is unchanged and still absent: 0.05 per unit of a
+    /// counter held on the keeper, most likely the torture tally, which needs a
+    /// Torture Chamber to be non-zero.</para>
     /// </summary>
     public static int Percent(CreatureState creature, CreatureDef definition)
     {
@@ -102,10 +113,8 @@ public static class EfficiencyRules
         if (creature.WorkFasterTicks > 0)
             percent += BonusPercent;
 
-        // DK2 branches here on IsWorker and reads a different field for
-        // non-workers. Only workers do tile work in this project, so only the
-        // worker's field exists; the branch is recorded rather than guessed.
-        if (definition.Flags.HasFlag(CreatureFlags.IsWorker) && creature.JustDropped)
+        if (definition.Flags.HasFlag(CreatureFlags.IsWorker)
+            && creature.DroppedTask != ImpTaskKind.None)
             percent += BonusPercent;
 
         return percent;

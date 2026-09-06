@@ -180,18 +180,27 @@ public sealed class HandSystem : ISimulationSystem
             PrisonRules.Release(creature);
         }
 
-        // The keeper's 12.5%: a worker put down next to work its keeper has
-        // marked takes the job faster than one that found it. Only a worker,
-        // and only next to marked work - CONFIRMED by the owner, who checked
-        // both halves (ADR-0062, EfficiencyRules).
-        bool aimed = definition.Flags.HasFlag(CreatureFlags.IsWorker)
-            && MarkedWorkNextTo(context, command.Tile, command.PlayerId);
-        creature.JustDropped = aimed;
+        // The keeper's 12.5% starts here but is not decided here. Dropping a
+        // worker sets a one-shot ticket and nothing else: the next evaluation
+        // spends it by looking around where the worker landed, and the bonus
+        // turns on only if that look finds something (ADR-0069). Deciding it
+        // here - "is there marked work beside this tile?" - is what this system
+        // used to do, and it was wrong twice over: the box is bigger than the
+        // four neighbours, and marked tile work is not the only thing a dropped
+        // worker will take.
+        //
+        // The timer goes to zero with it, because DK2's chooser skips its own
+        // idle throttle while the ticket is unspent: a dropped worker evaluates
+        // on the spot rather than on the next scheduled think.
+        bool worker = definition.Flags.HasFlag(CreatureFlags.IsWorker);
+        creature.JustDropped = worker;
+        creature.DroppedTask = ImpTaskKind.None;
+        if (worker) creature.TimerTicks = 0;
 
         context.Emit(SystemName, "dropped",
             $"player={command.PlayerId} creature={creature.Id} " +
             $"tile={command.Tile.X},{command.Tile.Y} " +
-            $"aimed={(aimed ? "yes" : "no")} held={hand.Count}");
+            $"worker={(worker ? "yes" : "no")} held={hand.Count}");
     }
 
     /// <summary>
@@ -229,50 +238,6 @@ public sealed class HandSystem : ISimulationSystem
         return false;
     }
 
-    /// <summary>
-    /// Whether the keeper has marked work on or beside <paramref name="tile"/>.
-    ///
-    /// <para>The tile underfoot and its four orthogonal neighbours, which is
-    /// what the owner's <i>"drop an imp adjacent to it"</i> describes and what
-    /// a worker can reach without walking. DK2 scans a radius of two tiles from
-    /// where the creature lands, in its own units; the difference shows only
-    /// for a drop two tiles away, and Q162 records it rather than splitting it.</para>
-    /// </summary>
-    private static bool MarkedWorkNextTo(SimulationContext context, TilePos tile, byte playerId)
-    {
-        WorldState world = context.World;
-
-        if (IsMarkedWork(context, tile, playerId)) return true;
-
-        foreach (TilePos step in Neighbours(tile))
-            if (world.Contains(step) && IsMarkedWork(context, step, playerId))
-                return true;
-
-        return false;
-    }
-
-    private static IEnumerable<TilePos> Neighbours(TilePos tile)
-    {
-        yield return new TilePos(tile.X, tile.Y - 1);
-        yield return new TilePos(tile.X + 1, tile.Y);
-        yield return new TilePos(tile.X, tile.Y + 1);
-        yield return new TilePos(tile.X - 1, tile.Y);
-    }
-
-    private static bool IsMarkedWork(SimulationContext context, TilePos pos, byte playerId)
-    {
-        ref TileState tile = ref context.World.Tile(pos);
-        if (!tile.IsTaggedBy(playerId)) return false;
-
-        // Marked is not enough on its own: a marker that no work kind applies to
-        // is a marker nobody can act on, and aiming a worker at it should be
-        // worth nothing.
-        foreach (TileWorkKind kind in TileWorkRules.TaggedWork)
-            if (TileWorkRules.Applies(context.Database, in tile, kind, playerId))
-                return true;
-
-        return false;
-    }
 
     // ------------------------------------------------------------------- slap
 

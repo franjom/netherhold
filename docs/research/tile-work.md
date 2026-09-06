@@ -55,29 +55,39 @@ divided by the tick rate.
 ### What moves it
 
 - **A slap: +10 points, and it does not stack** - repeated slapping leaves it
-  at 90%. **How long it lasts is now in dispute and the dispute is worth having
-  (Q159, 2026-09-05):** the original's slap handler writes a hardcoded 100 into
-  a field its own debug dump calls `WorkFasterTimer`, decrements it once a tick,
-  and at variable 19's four ticks a game second that is **25 seconds** - which
-  is exactly `SlapWorkFasterDurationSeconds`. The 60 this line used to cite
-  comes from `IncreasedWorkRateDurationFromSlappingSeconds`, which nothing in
-  the binary has been found to read, and from the owner's *"after a minute"*.
-  Built as 25 (ADR-0062); settled by watching the status bar.
-- **Being dropped onto work: +10 points** - CONFIRMED by the owner the same day,
-  and the condition is exact: *"after I mark a tile for excavation and drop an
-  imp adjacent to it its efficiency jumps to 90%. But if I drop it on a random
-  tile where there is nothing marked by me its efficiency remains at 80%."*
-  **It is the job, not the drop.** This is why a brand-new imp appeared to work
-  its first seam at 90% and fall to 80% afterwards - it had been dropped onto
-  the seam - and it is the source of every 341 reading, since the bonus routine
-  tests two independent flags at 0.0999 each and a slapped imp dropped onto work
-  carries both.
+  at 90%. **It lasts 25 game seconds, CONFIRMED (owner, 2026-09-06):**
+  *"timeout for efficiency to return back to 80% after slap is 25s, not 60s."*
+  The original's slap handler writes a hardcoded 100 into a field its own debug
+  dump calls `WorkFasterTimer` and decrements it once a tick, which at variable
+  19's four ticks a game second is exactly the `SlapWorkFasterDurationSeconds`
+  of 25. **Q159 is closed in the binary's favour against the owner's own earlier
+  stopwatch** - a hand-timed *"after a minute"*, and an
+  `IncreasedWorkRateDurationFromSlappingSeconds` of 60 sitting in the table that
+  nothing reads. Third independent confirmation that variable 19 is four ticks a
+  game second.
+- **Still doing the job it was dropped onto: +10 points.** CONFIRMED by the
+  owner: *"after I mark a tile for excavation and drop an imp adjacent to it its
+  efficiency jumps to 90%. But if I drop it on a random tile where there is
+  nothing marked by me its efficiency remains at 80%."* **It is the job, not the
+  drop** - and, read properly on 2026-09-06, it is not even *"was dropped onto a
+  job"*. See `hand-of-evil.md` section 6 and ADR-0069; three things changed:
 
-  **So DK2 pays the player for handling imps.** Marking a job and placing an imp
-  on it is worth **12.5% more work** than letting the imp find it, for as long
-  as the bonus lasts - the same value a slap gives, and stackable with it to
-  100%. That is a piece of play, not bookkeeping, and nothing in this project
-  models it because the hand does not exist.
+  - the field the Efficiency arithmetic reads is **`ImpJobData.DroppedTask`**,
+    which holds the *kind* of work the drop found and is zero when it found
+    none. `JustDropped`, which this project had been reading, is a different
+    field four bytes earlier and is a one-shot ticket that the very next
+    evaluation spends;
+  - **the look is three tiles, not one** (Q162, and the owner counted it on
+    screen: three boost, the fourth does not);
+  - **the bonus is not worth one job.** It survives the walk, the digging and
+    finishing the tile, and is cleared in exactly one place in the whole binary:
+    a later evaluation where the worker is still on that kind and no more of
+    that kind exists anywhere on the map.
+
+  **So DK2 pays the player for handling imps**, and pays for longer than this
+  project thought. Marking work and placing an imp on it is worth **12.5% more
+  work** than letting the imp find it, for as long as that kind of work lasts -
+  the same value a slap gives, and stackable with it to 100%.
 - **Not the creature's level.** A freshly created level-1 imp shows the same
   number as a level-3 one; the day's apparent level effects were all this bonus
   coming and going, and the claim built on them was withdrawn the same day.
@@ -154,7 +164,7 @@ reinforce is the sensitive instrument here.
 | Claim, level 1: **1.30-1.40 s**, 3 visible jumps | 660 / 165 = **4 applications** = 0.8 s, + ~0.5 s linger | 1.3 |
 | Reinforce, **fresh level-1 imp: 13.3-13.4 s** | 660 / 10 = **66 applications** | **13.2 s** |
 | Reinforce, level-3 imp: **~13.1 s** | the same 66 applications | **13.2 s** |
-| **Slapped imp mining: 341 gold a swing**, reverting to 272-273 after a minute | work rate 0.8 + **0.2**; the duration is Q159 - the binary says 25 s, the stopwatch said 60 | **340.9** |
+| **Slapped imp mining: 341 gold a swing**, reverting to 272-273 after **25 s** (Q159, CONFIRMED 2026-09-06) | work rate 0.8 + **0.2** | **340.9** |
 
 **Q62 is now confirmed with a level-1 imp.** The rule that an upward job needs
 the terrain's whole `maxHealth` (660 for Rock, not the 495 deficit) was measured
@@ -165,13 +175,12 @@ first draft raised is closed.
 ### The slap confirms the whole model, and quantises the bonus - 2026-09-05
 
 **A slapped imp mines 341 gold a swing where an unslapped one mines 273, and it
-reverts after a minute.** Owner observation in a fresh game, so no levelling
-confound, and the minute is
-`IncreasedWorkRateDurationFromSlappingSeconds` = **60** - or so this file said
-until the slap handler was read on the same day. **It writes a hardcoded 100
-ticks = 25 game seconds**, and the owner's "after a minute" is now the loose
-half of a conflict rather than a corroboration. Q159, and
-`docs/research/hand-of-evil.md` §5.
+reverts after 25 seconds.** Owner observation in a fresh game, so no levelling
+confound. The minute this file used to cite was a hand-timed reading and an
+`IncreasedWorkRateDurationFromSlappingSeconds` of 60 that nothing in the binary
+reads; the slap handler writes a hardcoded **100 ticks = 25 game seconds**, and
+the owner re-timed it off the status bar on 2026-09-06 and got 25. **Q159
+closed**, and `docs/research/hand-of-evil.md` section 5.
 
 341/273 is **1.25 exactly**, which is 1.0/0.8: the work rate goes from the read
 constant **0.8** to exactly **1.0**, and 300 x 1.0 / 4 = 75 health a swing =
@@ -296,8 +305,8 @@ re-derives it from the same two numbers.
   so it is worth writing down.
 
 Confidence: **CONFIRMED** for the numbers the owner watched - 273 unslapped, 341
-slapped, and reinforcing unchanged by level - though **not** the 60 s it was
-said to revert after, which the binary contradicts (Q159). **STRONGLY
+slapped, reinforcing unchanged by level, and now the 25 s the slap lasts
+(Q159, closed). **STRONGLY
 INFERRED** for the mechanism behind them: the fixed-point multiply, the 0.8
 constant and the per-tick division are read from the binary and agree with the
 observations to three significant figures, but only the observations are

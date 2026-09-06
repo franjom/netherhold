@@ -5087,3 +5087,121 @@ authority"*. The decompiled source says the speculation was right.
   drain — which is now known to be the counterplay the drain exists for, since
   the drain *is* hunger (Q172).
 
+
+---
+
+## ADR-0069 — The aimed bonus is a task kind, and it lasts as long as that kind of work
+
+**Date:** 2026-09-06
+**Status:** Accepted
+**Closes:** Q159, Q162. **Opens:** Q177.
+
+### What the owner watched
+
+Three sentences, off DK2's own status bar, and each one contradicts something
+this project had built:
+
+> *"seems an imp gets that 10% boost up to 3 tiles from marked gold tile, and
+> funny thing is it stays at 90% until it gets to that marked tile and starts
+> excavating, it doesn't revert to 80%, however if I drop an imp, it gets to
+> 90%, goes to marked tile, I unmark it before an imp gets to it, it gets to
+> that tile, "sees" it is unmarked and it drops back to 80%"*
+
+> *"timeout for efficiency to return back to 80% after slap is 25s, not 60s"*
+
+The second one closes **Q159** with no code change: 25 is what ADR-0062 built,
+from a hardcoded 100 ticks in the slap handler, against the owner's own earlier
+hand-timed *"after a minute"* and an
+`IncreasedWorkRateDurationFromSlappingSeconds` of 60 that nothing in the binary
+reads. **A stopwatch is an instrument with error bars and the binary is not.**
+
+The first one costs three changes.
+
+### What the binary says
+
+Read out of `ImpState.cpp` and `ImpUtils.cpp`, with `docs/research/hand-of-evil.md`
+section 6 carrying the detail.
+
+**The Efficiency arithmetic reads the wrong field.** DK2's worker branch adds its
+ten points on `ImpJobData.DroppedTask` — a **task kind**, zero when there is
+none. `ImpJobData.JustDropped`, which this project had been reading, is a
+different field **four bytes earlier**, and is a one-shot ticket that the next
+job evaluation spends unconditionally. Both are in the creature's state object,
+which is pinned at **creature + 0x24E** — the creature debug dump hands that
+address to the state dump, and two independent reads in the creature update land
+where that base puts them. So this was not a guess that went wrong; it was a
+plausible name four bytes from the right one, with nothing checking.
+
+**The look is a bounded scan with its own priority order.** A drop sets the
+ticket; the next evaluation clears it, skips its own idle throttle, skips the
+ordinary priority chain, and runs a ring scan around where the worker landed. The
+predicate is a composite of nine task kinds in an order that is **not** the
+priority chain's — excavation, claim, crate, unconscious body, reinforce, gold,
+object, corpse — so a worker dropped beside a marked wall digs it rather than
+putting a book away, even though the book is second in the ordinary chain
+(ADR-0065). Kind 14, claim-the-just-dug-tile, is not in the list at all.
+`DroppedTask` is set only if that scan takes something.
+
+**Three tiles, and it is DK2's own off-by-one.** The scan is handed `0x2000`,
+which against a `0x1000` tile is a radius of **two**. Its ring walk tests the
+bound *after* scanning a ring, with a strict greater-than, from a counter that
+starts at 1 — so rings 1, 2 and **3** are all scanned. Which is exactly what the
+owner counted: three tiles pay, the fourth does not. Reproduced rather than
+fixed, per ADR-0002. The bound is measured to the tile the **work** is on, not to
+the tile the worker would stand on, which the owner's fourth tile settles: a wall
+four away is reachable from a floor tile three away and still does not pay.
+
+**And there is exactly one clear, in the whole binary.** At the top of a later
+evaluation:
+
+```
+if DroppedTask == LastTaskType:
+    if TakeJob(LastTaskType, radius = unlimited): return   # bonus survives
+    DroppedTask = 0                                        # the only clear
+```
+
+So the bonus survives the walk, the digging, and finishing the tile. It is lost
+only when a worker that still calls itself an excavator can find nothing left to
+excavate anywhere on the map — which is the owner's unmark case, arrived at from
+the other side. It is *not* worth one job, which is what this project built on
+2026-09-05.
+
+### The decision
+
+Build all of it.
+
+- `CreatureState.DroppedTask` (an `ImpTaskKind`, DK2's own numbering) is the
+  Efficiency bonus; `JustDropped` stays, demoted to the one-shot ticket it is;
+  `LastTaskKind` is added because the clear is guarded on it.
+- `HandSystem` no longer decides anything about the bonus. It sets the ticket for
+  a worker and zeroes the idle timer, and that is all. The *"is there marked work
+  beside this tile"* test it used to run is gone — it was wrong about the
+  distance and wrong about which kinds of work count.
+- `ImpTaskSystem` gains `TryTakeDroppedJob` (the drop scan, in DK2's drop order,
+  bounded to three tiles of the work), `TryTakeJobOfKind` (the same-kind retry at
+  unlimited range), and the clear.
+- `ClearJob` no longer clears the bonus. Giving a job up is not the clear.
+
+### What this does not settle
+
+**Q177**, and it is one glance: mark two blocks far apart, drop an imp on one,
+and watch the status bar after the first falls. The binary says 90%; the older
+owner report (*"mines its first seam at 90% and the next at 80%"*) is consistent
+with that only if the seam was the last marked work on the map.
+
+**Whether reinforcing really is in the drop scan.** It is one of the nine and it
+was read, but it is also the one kind that is available almost everywhere a
+keeper's dungeon meets rock — so if it counted freely, *"drop it on a random tile
+and it remains at 80%"* would be hard to arrange. The reconciliation this ADR
+assumes is that a drop in the middle of a finished dungeon has no rock within
+three tiles, which is true and is what the test fixture now models. If the owner
+ever sees 90% from a drop next to a plain unmarked wall, this is the line that
+was wrong.
+
+### The cost
+
+`HashVersion` 27 → 28 and snapshot `FormatVersion` 27 → 28. **Unlike every bump
+since 22 this one is not just defaults**: the determinism fixture is full of imps
+taking jobs, and every job taken now records its kind. No *behaviour* moved —
+nothing in that fixture is ever picked up, so the retry branch is never entered
+and the imps dig, claim and reinforce in the order they always did.

@@ -294,13 +294,29 @@ and the priority order is CONFIRMED (ADR-0018). What is still absent:
   bullet used to end with was resting on a misread variable. Q138 for the mined
   surplus, Q140 for an imp that cannot deliver.
 
-  **And the owner has now watched the case that matters most here**, correcting
-  their own earlier report: a gem tile marked while it was **not connected** to
-  the dungeon by bridge, with the tiles around it unclaimed, **was** mined —
-  and **none of the gold ever reached a treasury**. Ours reproduces that without
-  a rule for it: both searches walk, so a stranded imp cannot reach a store and
-  the gold piles up where it was mined. Whether the original's condition is
-  reachability or *claimed ground* is Q144, and one bridge separates them.
+  **CORRECTED BY THE OWNER, 2026-09-06** — and this file had the
+  contradiction sitting in it the whole time. It used to say that a gem tile
+  marked while it was **not connected** to the dungeon, with the tiles around it
+  unclaimed, was mined and that **none of the gold ever reached a treasury**.
+  The owner has now watched the same setup again and says the opposite:
+
+  > *"I tagged a gem tile that was isolated from my territory by water, it was
+  > not directly connected to my dungeon's floor tile in any way, imps are
+  > mining it and carrying the gold it drops to treasury... so I was wrong
+  > before."*
+
+  **Water is not isolation.** `CanWalkOnWater` is on 44 of the 46 creatures, so
+  an imp wades: the gem is reachable, it gets mined, and mined gold goes into the
+  imp's hands rather than onto the floor, so it walks home like any other load.
+  Nothing needed changing here `WorldPathGrid`'s own comment has recorded the
+  wading version, with the same experiment, since 2026-09-04 while this
+  paragraph recorded the opposite. **Two records of one experiment disagreeing,
+  and nothing testing either.**
+
+  What survives is **Q144's rule, which never rested on this observation**: the
+  original's floor-gold task refuses a tile that is neither water nor owned by
+  the worker's own player, and that was read out of the binary. It governs
+  picking loose piles *up*, which is not what mining a seam does.
 - **Building rooms.** In DK2 an imp walks to a marked room tile and constructs
   it; here `RoomBuildSystem` lays the terrain down instantly and no worker is
   involved. That is a fourth thing an imp does and it is not in the priority
