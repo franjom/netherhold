@@ -32,3 +32,34 @@ on that internal table. Every one of its 239 values at record offset `+4` is a
 valid `Text.str` id, but they resolve to only 63 distinct shared status labels.
 They describe state families rather than uniquely naming all 239 internal
 states, so no implementation depends on them.
+
+## Door and trap definitions
+
+`KwdDoors` reads the 8 fixed-size, 616-byte records in `Doors.kwd`; `KwdTraps`
+reads the 16 fixed-size, 579-byte records in `Traps.kwd`. Both expose the
+32-byte editor name, contiguous byte id, health, gold price, and workshop
+manufacture requirement. Traps additionally expose their shot-record id and
+the already measured standing mana upkeep.
+
+The gold columns are the strongest semantic anchors: `Doors.kwd +0x22E`
+matches all six keeper-door prices printed in the original manual, and
+`Traps.kwd +0x1F2` matches all eleven trap/guard-post prices there. The ids are
+permutations of 1..8 and 1..16. Trap shot ids at `+0x20D` independently resolve
+to matching `Shots.kwd` names (Gas Trap to Gas Trap Cloud, Boulder Trap to
+Boulder, Alarm Trap to Alarm, and so on). OpenKeeper's proposed field order was
+used to locate candidates, then checked against these shipped-byte invariants;
+its code was not copied.
+
+The following remain **UNKNOWN** and are deliberately not properties of the
+typed definitions:
+
+- Trap `+0x20A` is proposed externally as the number of shots when armed. It is
+  not established as a finite charge count: the shipped column includes 48 for
+  both Alarm rows, 4 for most traps, and 1 for Boulder and Jack In The Box.
+- Trap `+0x1DC` contains small values from 1 through 9 and is a plausible
+  trigger range, but neither the shipped bytes nor the manual pin that meaning
+  or its unit.
+- The remaining art resources, timing and height values, flags, materials,
+  effect ids, string ids, sound categories, trigger modes, editor ordering,
+  shot offsets, per-shot mana field, and unexplained bytes in both records are
+  not read. Their external labels are hypotheses until independently anchored.

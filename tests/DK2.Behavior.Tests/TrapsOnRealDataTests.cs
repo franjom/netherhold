@@ -2,26 +2,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
-using System.Buffers.Binary;
-using System.Text;
 using DK2.Data;
-using DK2.Data.Kwd;
 using DK2.Data.Model;
 
 namespace DK2.Behavior.Tests;
 
 /// <summary>
-/// One field of TRAPS, found from measurements and pinned before anything reads
-/// it.
+/// The standing-mana field of TRAPS, found from measurements and pinned before
+/// the full record parser existed.
 ///
 /// <para><b>Nothing in the simulation uses this yet</b>, and that is the point of
 /// the test. A trap is an object, and objects arrive at M6 — but the number was
 /// established now, by the owner measuring five traps in the original, and a
-/// finding that is not asserted anywhere is a finding that quietly rots. There
-/// is deliberately <b>no <c>KwdTraps</c> parser</b>: parsing a 579-byte record
-/// on the strength of one understood field would be parsing it badly. This reads
-/// the bytes directly, the way <c>KeeperSpellsOnRealDataTests</c> did before
-/// spells needed a real parser.</para>
+/// finding that is not asserted anywhere is a finding that quietly rots. It is
+/// now read through the typed definition.</para>
 ///
 /// <para>Skips when no installation is configured (DK2_DIR). See Q59 and
 /// docs/research/imps-and-mana.md.</para>
@@ -29,7 +23,6 @@ namespace DK2.Behavior.Tests;
 public class TrapsOnRealDataTests
 {
     /// <summary>16 traps over 9264 bytes of content — exactly 579 each.</summary>
-    private const int RecordSize = 579;
 
     /// <summary>
     /// Mana per second a built trap costs its keeper.
@@ -41,7 +34,7 @@ public class TrapsOnRealDataTests
     /// <para><b>And now confirmed a second way, from the other direction</b>
     /// (2026-09-03). OpenKeeper parses this record in full, and its field order
     /// puts <c>manaUsage</c> — an unsigned short — at exactly <b>0x0202</b>, with
-    /// a record size of 516 to match. Its own offset comments elsewhere in the
+    /// a record size of 579 to match. Its own offset comments elsewhere in the
     /// same reader act as checkpoints on that arithmetic. The offset here was
     /// found by scanning for a measured value; the name and width came from a
     /// source that never saw our measurements. See
@@ -53,35 +46,15 @@ public class TrapsOnRealDataTests
     /// standing upkeep that rose as traps were built, which is this one. Nothing
     /// reads the per-shot cost yet.</para>
     /// </summary>
-    private const int OffsetManaUpkeepPerSecond = 0x0202;
-
     private static IReadOnlyDictionary<string, int>? UpkeepByName()
     {
         string? install = Dk2Install.Find();
         if (install is null) return null; // skipped: no DK2 install
 
-        string path = Path.Combine(install, "Data", "editor", "Traps.kwd");
-        if (!File.Exists(path)) return null;
-
-        KwdChunk chunk = KwdReader.ReadFile(path).Single(c => c.Type == KwdRecordType.Traps);
-
-        // The stride has to divide the content exactly, or the offset below is
-        // being read from the wrong place in every record after the first.
-        Assert.Equal(0, chunk.Content.Length % chunk.ItemCount);
-        Assert.Equal(RecordSize, chunk.Content.Length / chunk.ItemCount);
-
-        var byName = new Dictionary<string, int>();
-        for (int i = 0; i < chunk.ItemCount; i++)
-        {
-            int at = i * RecordSize;
-            ReadOnlySpan<byte> name = chunk.Content.AsSpan(at, 32);
-            int end = name.IndexOf((byte)0);
-
-            byName[Encoding.ASCII.GetString(end < 0 ? name : name[..end])] =
-                BinaryPrimitives.ReadUInt16LittleEndian(
-                    chunk.Content.AsSpan(at + OffsetManaUpkeepPerSecond));
-        }
-        return byName;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        return database.Traps.Values.ToDictionary(
+            trap => trap.Name,
+            trap => (int)trap.ManaUpkeepPerSecond);
     }
 
     [Fact]

@@ -26,6 +26,8 @@ public class GameDatabaseTests
         Assert.Equal(41, db.Terrain.Count);
         Assert.Equal(26, db.Rooms.Count);
         Assert.Equal(46, db.Creatures.Count);
+        Assert.Equal(8, db.Doors.Count);
+        Assert.Equal(16, db.Traps.Count);
         Assert.NotEmpty(db.Variables.Misc);
     }
 
