@@ -5929,3 +5929,133 @@ cheapest:
 5. **Q90** — the portal's per-type weighting, binary-only because the owner
    confirmed it is not player-perceptible. Entry points are the two variables
    that both read 33.
+
+---
+
+# Sitting: the whole queue, and three of our own numbers turned out wrong
+
+**2026-09-07, third sitting, run unattended. Commits `d3a1376`, `526d33a`,
+`2964514`, `991efdb`. 1146 tests, 26 scenarios, 85 ADRs, 43 research docs,
+209 questions (59 fully open). `HashVersion` 33, pin unchanged.**
+
+Five queued items, all five done. **Two produced features; three produced
+corrections to things this project had already built and believed.** That ratio
+is the story of the sitting.
+
+## What was built
+
+**Q88 — a portal has a hole in it** (ADR-0084). A portal blocks its single
+centre tile, a dungeon heart its centre 3x3, and **dropping a creature into the
+hole removes it from the dungeon with its gold** — a keeper power nothing here
+had, which the owner mentioned in passing while answering a question about
+pathing. Q137's parenthesis (*"a creature leaving (being thrown) through
+portal"*) turned out to be this mechanic.
+
+Three things the build taught, all of them about ordering:
+
+- **The hole is the one unwalkable tile a keeper may drop onto.** The two halves
+  of the owner's single sentence contradict each other if asked in the wrong
+  order, and did for about a minute.
+- **A room with no middle has no structure.** The first version walled off a
+  deserter, because the anger tests paint a 1x1 portal. Two failing tests, both
+  right to fail.
+- **Arriving on the hole works by luck**: `GridPathfinder` tests the destination
+  and every neighbour but never the *start*, and `KeepOffTheCorner` already
+  nudges a creature standing somewhere unwalkable. Both written for other
+  reasons; now asserted so the luck cannot quietly run out.
+
+## What was corrected, and this is the part worth reading
+
+**Q207 — I was wrong yesterday, by reasoning rather than by measurement.** The
+row said *"our `RoomSellSystem` and `RoomBuildSystem` would allow both on a
+claimed heart"*. Neither does, and `ADungeonHeartCannotBeSold` had been passing
+since the sell rules were written. A defeated heart stays a Dungeon Heart room,
+and both prohibitions fall out of general rules: `CanSell` refuses any room
+without `Buildable` (the shipped heart has none) and `CanBuild` refuses any tile
+whose terrain is a room. **The real gap is one missing condition**:
+`TileWorkRules.Applies` excludes the heart from `ConvertRoom` unconditionally,
+and a *fallen* heart should be claimable. The comment already in that code
+anticipated exactly that.
+
+**Q86 — our portal slowdown was OpenKeeper's guess and the slope is wrong.**
+DK2 computes `(n² + EntranceGenerationSpeedSeconds)` game seconds; we had
+`max(base, base × n / 2)`. On level 1 the two agree at **n = 3 and nowhere
+else** — and n = 3 is exactly where the scenario log had been read. Worse, `n`
+is a **per-room count of creatures generated**, not the keeper's living
+creatures, so ours speeds a portal back up when a creature dies and DK2's does
+not.
+
+**Deliberately not fixed**, and the reason is the useful part: the counter's
+reset is reached only through a vtable, so *whether a portal ever recovers* is
+unread, and shipping the confirmed formula against an unknown reset risks a
+portal that grinds to a halt where the original's recovers. **That is worse than
+a wrong slope.** `SpawnIntervalTicks` now says so at the call site.
+
+**Q79's cadence was an inference and is now a chain.** Yesterday's factor of
+four rested on `tile-work.md`; the chain is `FUN_00496AA0` → `FUN_00488930` →
+`FUN_00476FC0`, and the last is per-tick from three independent facts. The
+change stands on its own evidence now. One correction fell out: I had called
+`FUN_00485880` *"a per-second hook"* **from its variable's name**, one day after
+being caught doing exactly that.
+
+## Two audits, and one of them was mine being wrong about itself
+
+**The dead-variable audit, re-run backwards** (ADR-0085). Every "dead variable"
+here came from scanning a global for readers and finding only the setter. That
+scan cannot see the opposite shape — a real reader with a value that makes the
+mechanism a no-op. So: list every variable shipped as **zero**, then scan those.
+**Twelve are zero. Two are cut. Ten have live readers.** Three are whole
+features with the switch off:
+
+- **Walls decay over time** — two variables, one routine, complete and inert.
+- **A creature that cannot sleep takes damage** — and the reader is the *needs
+  routine* itself, which explains a clause of Q106.
+- **Torture can kill on conversion** — category 15's own hook, at zero.
+
+Also `PercentageOfManaGainedBySacrificing` is 0, so **sacrificing yields no mana
+in v1.70**.
+
+**Nothing was built and that is the finding.** It names ten mechanics a
+reimplementation might helpfully add, every one of which would diverge. **Wall
+deterioration is the trap**: it looks exactly like an oversight. And "dead" now
+needs two words — no reader means **cut**, a reader with a no-op value means
+**disabled**, and only the second still has its mechanism.
+
+**Q184 — the three unread pointers are nothing.** Written once by the static
+initialiser, read nowhere, `+0x10` included. My pointer-to-member hypothesis
+from earlier the same day was wrong. Settling it also handed Q185 two more flag
+bits with named readers, and left **bit 0** as the oddity: 147 of 281 states
+carry it and none of the seven readers tests it.
+
+## Three notes for whoever picks this up
+
+- **A test that pins a guess makes it harder to see, not easier.** Q86's slope
+  had a doc comment admitting it was ours and naming the probe — and it still
+  shipped, got tested, and sat there for weeks. The honest flag did not travel
+  to the place where it mattered. Q56's countdown, Q127's two readings, Q79's
+  rate and Q86's slope are all this shape.
+- **A zero is a reason to look harder, not a reason to stop.** And **the same
+  audit has never been run on the creature or object record fields**, where the
+  shape will exist too.
+- **Reading a mechanism is not the same as being able to build it.** Q88's
+  behaviour is confirmed and its mechanism (Q209) is not; the obvious
+  object-flag rule is *refuted* by the shipped data, because `Obstacle` is on
+  every creature bed. Building the two tiles narrowly was right; guessing a rule
+  would have silently decided thirteen more.
+
+## Where the next session should start
+
+1. **Q209** — DK2's actual tile-walkability predicate. It gates the workshop's
+   anvil, the library's bookcases, the casino's tables and the graveyard's
+   tombstones, all of which block tiles in DK2 and none of which does here, and
+   every one of those rooms is coming. Cheapest from the pathfinder side, not
+   the object side.
+2. **The portal recovery observation** — the cheapest item on the checklist and
+   it unblocks a formula that is otherwise fully read. Two minutes of play.
+3. **Run the zero-value audit on the creature and object records.** The balance
+   table gave ten disabled mechanisms out of twelve candidates; nobody has
+   looked at the other two record types.
+4. **Defeat**, which is now the named blocker for Q207's remaining half and for
+   Q93. A fallen heart needs a state for `ConvertRoom` to test.
+5. **Q185 bit 0** — 147 states carry it and nothing reads it, which makes it
+   either the most important flag in the record or not a flag at all.
