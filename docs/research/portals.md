@@ -460,13 +460,55 @@ So the counter **only climbs or is zeroed wholesale**, and three things follow:
 3. **This project's formula is wrong in a second way** — it counts *living*
    non-workers, so ours accelerates on every death and the original's does not.
 
-**The experiment worth running is about the room, not the creatures**: get a
-portal slow, then **sell and rebuild it**, or lose and re-claim it. The two
-zero-stores are reached only through a vtable, which is the shape of a room's
-`OnBuilt` / `OnClaimed`. And keep the test **below the 15-creature cap**, because
-a portal at capacity stops generating altogether — *"visibly slow"* at a dozen
-creatures may be *"stopped because full"*, a different mechanism answering a
-different question.
+**And the experiment is about the room, not the creatures.** Keep any test
+**below the 15-creature cap**, because a portal at capacity stops generating
+altogether — *"visibly slow"* at a dozen creatures may be *"stopped because
+full"*, a different mechanism answering a different question.
+
+### The experiment worth running, third version
+
+**The owner, immediately: a portal cannot be sold or rebuilt.** *"it is a
+'resource', a 'room' on a map that a player has to claim. it can be taken over by
+a rival keeper, but that's about it."*
+
+Which the shipped data states outright, and which this document had already used
+two hours earlier for a different question: **Portal (3), Dungeon Heart (5) and
+Hero Portal (25) are the only rooms with cost 0 and no flags at all** — no
+`buildable`, no `walls`. `RoomRules.CanBuild` returns `NotBuildable` and
+`CanSell` returns `NotSellable` for all three. Q207's whole answer rests on that
+flag being absent from the heart. So the sell-and-rebuild experiment was
+impossible, and impossible from a table already read.
+
+**The good experiment needs no rival and no skirmish, and it discriminates our
+model from DK2's directly:**
+
+> Play a level with **two claimable portals**. Claim the first, let it fill your
+> dungeon until it is visibly slow — ten creatures is plenty, and stay under the
+> 15 cap. **Then claim the second portal and compare the two.**
+>
+> - **The new portal runs at the base interval** (18–25 s) while the old one
+>   crawls → the tally is **per room**, exactly as the binary reads, and a fresh
+>   portal is fast no matter how full the dungeon is.
+> - **Both are slow** → the slowdown is **keeper-wide** after all, our
+>   population-based formula has the right shape, and `room[0x4D]` is not what
+>   drives it.
+
+**Why this is the right test.** It is the sharpest possible split between the two
+models and it happens in ordinary play:
+
+| | ours today | DK2, as read |
+|---|---|---|
+| what `n` counts | the keeper's living non-workers | that **room's** own tally of creatures generated |
+| a newly claimed second portal | **just as slow** as the first | **base speed**, independent of the first |
+| a creature dying | speeds every portal up | changes nothing |
+
+The difference is unmissable — one portal producing a creature every 20 seconds
+beside one producing every two minutes — so a single glance settles it.
+
+**The reset question survives, and only a rival can answer it:** lose a slow
+portal to a rival keeper and take it back. If it returns to base speed the reset
+is an ownership change, which is what a vtable-only zero-store looks like. That
+is the only room event a portal has, now that selling is ruled out.
 
 ### One smaller thing, read on the way past
 
