@@ -6809,3 +6809,69 @@ casino's tables and the graveyard's tombstones; every one of those rooms is
 coming, and guessing a rule now would silently decide the other thirteen. When
 the real predicate is found, `StructureBlocks` should be **deleted** and the path
 grid should learn about objects.
+
+---
+
+## ADR-0085 — Ten mechanics DK2 built and switched off, and the audit that could not see them
+
+**Date:** 2026-09-07
+**Status:** accepted
+**Questions:** Q203 (a second kind of inert), Q106 (a clause explained)
+**Evidence:** `docs/research/balance-variables-in-the-binary.md`, final section
+
+### Context
+
+This project retires DK2 balance variables as *dead* by one method: take the
+cached global, raw-scan `.text` for readers, find only the loader's setter stub,
+and retire it. Twelve have gone that way and all twelve are genuinely cut.
+
+**The method has a blind spot, and it was found by accident.** While reading
+training (Q205, ADR-0083), `EPLossSecondWhileNotTraining` turned out to have a
+real per-second reader — a hook that drains a creature's experience unless its
+state category is the training one — and a shipped value of **0**. A reader-scan
+can never surface that, because the reader is there.
+
+### Decision
+
+**Run the audit the other way round**: list every balance variable whose shipped
+value is zero, then scan those globals for readers. Twelve are zero. **Two are
+dead outright. Ten have live readers.**
+
+**And record the distinction in two words rather than one.** A variable with no
+reader was **cut**; a variable with a reader and a no-op value was **disabled**.
+The second still has its mechanism, and a mod that sets the rate would work.
+
+### Consequences
+
+**Nothing is built, and that is the finding.** A rate of zero faithfully
+reproduced *is* the absence of the effect, which is what this project already
+has. The value runs the other way: it names **ten mechanics a reimplementation
+might "helpfully" add**, every one of which would be a divergence from DK2.
+
+Three are whole features with the switch at zero:
+
+- **Walls decay over time.** `NumberOfRandomWallDeteriorationsPerSecond` and
+  `WallDeteriorationDamage` are read by *one* routine, `FUN_004BB6D0` — a count
+  of deteriorations a second and a damage per deterioration. Complete, and
+  inert. **This is the obvious trap**: it looks exactly like an oversight, and
+  building it would be the kind of plausible addition nobody would question.
+- **A creature that cannot sleep takes damage**, and the reader is the **needs
+  routine** `FUN_00477C20` that this project has already read twice (Q185,
+  ADR-0074). So the punishment for a bedless creature was meant to be health as
+  well as anger, and only the anger shipped. **That explains a clause of Q106**:
+  a lair that turns a creature away was supposed to hurt it too.
+- **Torture can kill on conversion**, rolled inside category 15's own per-tick
+  hook at a chance of zero.
+
+The other seven: `CannotLeaveModifyCreatureHealthPerSecond`,
+`PercentageOfManaGainedBySacrificing` (so **sacrificing yields no mana in
+v1.70**), `HypnotismManaDrainPerSecond`, `EPLossSecondWhileNotTraining`,
+`BackOffMinimumDurationSeconds`, `TimeBeforeDungeonHeartConstructionBegins`,
+`TortureChanceOfDyingWhenConverted`.
+
+### The method note, which is the part worth keeping
+
+**A zero is a reason to look harder, not a reason to stop.** Two of the twelve
+are cut and ten are not, and nothing about the value distinguishes them — only
+the scan does. The same shape will exist for the *creature* and *object* record
+fields, where no equivalent audit has ever been run.

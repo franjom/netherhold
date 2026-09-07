@@ -505,3 +505,78 @@ consults it.
 | 240 | `BoulderSlapDamage` | 400 | `0x006F29F8` (u16) |
 | 241 | `?` | ? | `0x006F29FA` (u32) |
 | 242 | `?` | ? | `0x006F29FE` (u32) |
+
+---
+
+## Twelve variables ship as zero, and ten of them are live mechanics
+
+Read 2026-09-07 (Q203, ADR-0085). **The audit that found this was a correction to
+the audit this document had been running.**
+
+### The blind spot
+
+Every "dead variable" finding here was reached the same way: take the cached
+global, raw-scan `.text` for readers, find only the loader stub, retire the
+variable. Twelve have gone that way and all twelve are genuinely cut.
+
+**But that scan cannot see the opposite shape** — a variable with a real reader
+whose *shipped value* makes the mechanism a no-op. It was found by accident:
+`EPLossSecondWhileNotTraining` turned up while reading training (Q205), has a
+live per-second hook, and ships as **0**.
+
+So the audit was run the other way round: **list every balance variable whose
+shipped value is zero, then scan those globals for readers.** Twelve are zero.
+
+### Two are dead outright
+
+| id | Variable | Global | Readers |
+|---|---|---|---|
+| 67 | `DefaultCellingHeightTiles` | `0x006F28A7` | **none** — setter only |
+| 71 | `CasinoBigWinKeeperLossPercentage` | `0x006F28B3` | **none** — setter only |
+
+### Ten are switched off, not cut
+
+| id | Variable | Global | Read by |
+|---|---|---|---|
+| 82 | `CannotSleepModifyCreatureHealthPerSecond` | `0x006F28C2` | **`FUN_00477C20` — the needs routine** |
+| 83 | `CannotLeaveModifyCreatureHealthPerSecond` | `0x006F28C4` | `FUN_00488930` |
+| 112 | `PercentageOfManaGainedBySacrificing` | `0x006F28F0` | `0x0047BB4E`, in the state-category hook block |
+| 116 | `HypnotismManaDrainPerSecond` | `0x006F28F8` | `FUN_004C10E0`, `FUN_004C17A0` |
+| 132 | `EPLossSecondWhileNotTraining` | `0x006F2904` | `FUN_00485880`, per second unless the state's category is 13 |
+| 145 | `NumberOfRandomWallDeteriorationsPerSecond` | `0x006F2919` | **`FUN_004BB6D0`** |
+| 146 | `WallDeteriorationDamage` | `0x006F291A` | **`FUN_004BB6D0` — the same routine** |
+| 211 | `BackOffMinimumDurationSeconds` | `0x006F29B1` | `FUN_0045F030`, `FUN_00470E30` |
+| 218 | `TimeBeforeDungeonHeartConstructionBegins` | `0x006F29C1` | `0x004D9A77` |
+| 234 | `TortureChanceOfDyingWhenConverted` | `0x006F29ED` | `0x0047B6FF`, inside **category 15's update hook** — torture |
+
+**Three of these are whole mechanics with the switch at zero:**
+
+- **Walls decay over time.** 145 and 146 are read by *one* routine,
+  `FUN_004BB6D0` — a count of deteriorations a second and a damage per
+  deterioration. A complete feature, shipped inert. Nothing in DK2 as played
+  erodes a wall.
+- **A creature that cannot sleep takes damage**, and the reader is the **needs
+  routine** this project has already read twice (Q185, ADR-0074). So the
+  punishment for a bedless creature was meant to be health as well as anger, and
+  only the anger survives. Direct bearing on Q106.
+- **Torture can kill on conversion**, rolled in category 15's own per-tick hook,
+  at a chance of zero.
+
+### What this changes here, and it is mostly a protection
+
+**Nothing to build.** A rate of zero faithfully reproduced *is* the absence of
+the effect, which is what this project already has. The value of the finding is
+the other way round: **it names ten mechanics a reimplementation might
+"helpfully" add, every one of which would be a divergence from DK2.** Wall
+deterioration is the obvious trap — it is the sort of thing that looks like an
+oversight.
+
+Two smaller consequences:
+
+- **A zero is a reason to look harder, not a reason to stop.** Two of the twelve
+  really are cut and the other ten are not, and nothing about the value
+  distinguishes them.
+- **"Dead" needs two words.** A variable with no reader was **cut**; a variable
+  with a reader and a no-op value was **disabled**. The mechanism is intact in
+  the second case and a mod that sets the rate would work, so the two facts
+  belong in different columns.
