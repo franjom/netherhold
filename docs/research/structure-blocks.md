@@ -142,7 +142,32 @@ So the honest position is: **DK2 blocks these tiles with objects, the object
 flags are mapped, and the predicate that turns an object into an impassable tile
 has not been found.** Q209.
 
-### 5.1 Which corrects what Q88 used to say
+### 5.1 Pathfinder-side timebox (2026-09-07)
+
+**MOVED, not closed.** Starting from the navigation system found a second object
+enumerator at `0x004D1170`, distinct from the already-mapped collision enumerator
+at `0x004D12B0`. Navigation initialisation registers four world callbacks:
+
+- `0x004D1170` walks the tiles overlapped by a query radius, follows each tile's
+  thing list, and forwards **every object** (thing type 0) to a supplied callback.
+  It performs no object-definition flag test itself.
+- `0x004D12B0` remains the flags-and-radius collision enumerator already ruled
+  out as the tile predicate.
+- `0x004D15E0` walks the same object lists and sums one signed field from each
+  object instance.
+- `0x004D16B0` returns the navigation byte for one world tile, or 8 outside the
+  map.
+
+This narrows the missing predicate to the **consumer callback downstream of
+`0x004D1170`**, not the world scan and not the navigation grid itself. The
+pathfinder receives raw object instances and decides later which ones affect a
+route. The timebox ended while tracing that indirect callback through the
+36-byte path-following object; no comparison against object id, flags, room
+role, size, or state was established. The next probe is precise: recover the
+callback passed through the first registered navigation slot and enumerate its
+object-definition and object-instance field reads.
+
+### 5.2 Which corrects what Q88 used to say
 
 The old note read: *"Fixing it means teaching the path grid about rooms, which
 is a bigger change than the fact justifies today."* Wrong on the mechanism.
