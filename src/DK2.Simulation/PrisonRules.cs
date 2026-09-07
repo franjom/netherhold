@@ -167,10 +167,12 @@ public static class PrisonRules
     ///
     /// <para><b>The gate is not quite ours.</b> DK2 refuses the whole anger call
     /// on a bit of a creature-definition flag byte that has not been mapped;
-    /// this uses <see cref="CreatureAngerRules.CanBeAngered"/>, which asks
-    /// whether all four <c>angerNo*</c> fields are zero. Different tests with
-    /// the same intent, and on the shipped data the only creature either
-    /// excludes is the Skeleton.</para>
+    /// this uses <see cref="CreatureAngerRules.CanBeAngered"/>, which reads the
+    /// record's <see cref="CreatureFlags2.NeverAngered"/> flag. Different tests
+    /// with the same intent, and on the shipped data they exclude the
+    /// <b>Skeleton</b> and <b>Jack</b>. (Until Q210 this predicate asked whether
+    /// all four <c>angerNo*</c> fields were zero, which excluded only the
+    /// Skeleton — Jack's four are populated and DK2 reads none of them.)</para>
     /// </summary>
     public static int AngerPerFailedFoodSearch(CreatureDef creature)
     {

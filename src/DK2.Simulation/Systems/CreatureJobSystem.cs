@@ -220,7 +220,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
         if (definition.AngerNoWork == 0) return;
         if (!report) return;
 
-        CreatureAngerRules.Apply(creature, AngerBucket.Work, definition.AngerNoWork);
+        CreatureAngerRules.Apply(definition, creature, AngerBucket.Work, definition.AngerNoWork);
 
         context.Emit(SystemName, "no_work",
             $"creature={creature.Id} type={definition.Name} " +
@@ -409,7 +409,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
         // bucket, at -275 each; then 33 health, clamped by the health rules to
         // what is actually missing.
         CreatureAnger before = creature.Anger;
-        CreatureAngerRules.Apply(creature, JobRules.PrayingCalm(database));
+        CreatureAngerRules.Apply(definition, creature, JobRules.PrayingCalm(database));
         int healed = CreatureHealthRules.Apply(
             database, definition, creature, JobRules.PrayingHeal(database));
 

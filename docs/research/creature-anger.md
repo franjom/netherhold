@@ -386,3 +386,40 @@ The add is skipped entirely — the mood still recomputed — when
 `DAT_006dc424 + 0x72a1 & 1` is clear. A global option, unidentified, presumably
 "creatures never get angry". Not modelled; Q202 carries it.
 
+
+---
+
+## Two creatures have no anger at all, and it is a flag (2026-09-07, Q210)
+
+**Bit 2 of the creature record's second flag field** (`0x1545`, runtime
+`def+0x68a`) means *never becomes angry*. **Skeleton and Jack** carry it.
+
+The wrapper this document already identifies as the single entry point —
+`FUN_00478b80`, 60 call sites, confirmed by a scan of both executable blocks —
+opens with `if ((def[0x68a] & 4) == 0)` and wraps **everything** in it: the call
+to the adder, the comparison of the mood band before and after, and the two
+messages fired as the band crosses 1 and 2. Three other readers gate the same
+follow-on work the same way. So for a flagged creature nothing accrues from any
+bucket and no warning is ever raised.
+
+**Jack's anger values are a decoy, and they caught us.** This project's
+`CanBeAngered` was inferred from the data — *"the Skeleton is the only creature
+whose four `angerNo*` fields are all zero"* — which is true, and true by
+accident of that one record.
+
+| field | Jack | Skeleton |
+|---|---|---|
+| `angerNoLair` / `angerNoFood` / `angerNoPay` / `angerNoWork` | **120 / 110 / 60 / 50** | 0 / 0 / 0 / 0 |
+| `angerInHand` | **+500** | 0 |
+| `angerSlap` | **−5000** | 0 |
+
+Six populated fields, none of them read. Before this was found, our Jack took
+anger on the two paths that did not consult the predicate, and his negative slap
+meant **a keeper could calm him by slapping him** — an effect DK2 cannot produce
+because it never reaches the adder. `CanBeAngered` now reads the flag and the
+gate sits in the adder itself, which is where the original puts it.
+
+**The Imp is a separate mechanism** and is unchanged: not flagged, and carrying
+**1** rather than 0, so *"Imps never get angry"* holds in practice through a
+small number rather than a switch. Three ways of saying "no anger" — a flag, a
+rate of zero, and a rate too small to matter — and only the first is a rule.

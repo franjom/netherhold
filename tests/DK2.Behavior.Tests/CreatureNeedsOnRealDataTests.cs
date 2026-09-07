@@ -1237,8 +1237,17 @@ public class CreatureNeedsOnRealDataTests
         Assert.False(LairRules.NeedsBed(imp));
     }
 
+    /// <summary>
+    /// The Skeleton and Jack, and the two are unangerable for the same reason
+    /// but look nothing alike in the data — which is why this used to be wrong.
+    ///
+    /// <para>The predicate reads the record flag DK2 reads. Jack would fail
+    /// every value-based test: his four <c>angerNo*</c> fields are populated,
+    /// his <c>AngerInHand</c> is positive and his <c>AngerSlap</c> is negative.
+    /// Q210.</para>
+    /// </summary>
     [Fact]
-    public void OnlyTheSkeletonCannotBeAngeredAtAll()
+    public void TheSkeletonAndJackCannotBeAngeredAndOnlyTheFlagSaysSoAboutJack()
     {
         string? install = Install();
         if (install is null) return;
@@ -1250,7 +1259,25 @@ public class CreatureNeedsOnRealDataTests
             .Select(c => c.Name)
             .ToHashSet();
 
-        Assert.Equal(new HashSet<string> { "Skeleton" }, unangerable);
+        Assert.Equal(new HashSet<string> { "Skeleton", "Jack" }, unangerable);
+
+        // The old rule, kept as the discriminator rather than deleted: it is
+        // still true of the Skeleton and it is why Jack was missed.
+        var allFourZero = db.Creatures.Values
+            .Where(c => c.AngerNoLair == 0 && c.AngerNoFood == 0
+                        && c.AngerNoPay == 0 && c.AngerNoWork == 0)
+            .Select(c => c.Name)
+            .ToHashSet();
+
+        Assert.Equal(new HashSet<string> { "Skeleton" }, allFourZero);
+
+        CreatureDef jack = db.Creatures.Values.Single(c => c.Name == "Jack");
+        Assert.True(jack.Flags2.HasFlag(CreatureFlags2.NeverAngered));
+        Assert.NotEqual(0, jack.AngerNoLair);
+        Assert.NotEqual(0, jack.AngerNoFood);
+        Assert.NotEqual(0, jack.AngerNoPay);
+        Assert.NotEqual(0, jack.AngerNoWork);
+        Assert.True(jack.AngerSlap < 0, "Jack's slap runs backwards, and is never read");
     }
 
     // ---- the vampire, cross-checked against the DK2 wiki ------------------

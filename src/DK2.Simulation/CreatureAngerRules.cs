@@ -148,8 +148,11 @@ public static class CreatureAngerRules
     /// <i>better</i> than content, and the original clamps the same way — the
     /// negative branch masks the value to zero rather than keeping it.</para>
     /// </summary>
-    public static int Apply(CreatureState state, AngerBucket bucket, int delta)
+    public static int Apply(
+        CreatureDef creature, CreatureState state, AngerBucket bucket, int delta)
     {
+        if (!CanBeAngered(creature)) return 0;
+
         int before = state.Anger[bucket];
         state.Anger[bucket] = Math.Clamp(before + delta, 0, Saturation);
         return state.Anger[bucket] - before;
@@ -282,30 +285,49 @@ public static class CreatureAngerRules
     }
 
     /// <summary>Applies a whole tick's worth of per-bucket change.</summary>
-    public static void Apply(CreatureState state, CreatureAnger delta)
+    public static void Apply(CreatureDef creature, CreatureState state, CreatureAnger delta)
     {
         for (int i = 0; i < CreatureAnger.Count; i++)
         {
             var bucket = (AngerBucket)i;
-            if (delta[bucket] != 0) Apply(state, bucket, delta[bucket]);
+            if (delta[bucket] != 0) Apply(creature, state, bucket, delta[bucket]);
         }
     }
 
     /// <summary>
-    /// Whether this creature can be angered at all. False for the
-    /// <b>Skeleton</b>, the only creature in the game whose four
-    /// <c>angerNo*</c> fields are all zero.
+    /// Whether this creature can be angered at all — <b>one flag, read from the
+    /// record</b>. False for the <b>Skeleton</b> and for <b>Jack</b>, the two
+    /// creatures carrying <see cref="CreatureFlags2.NeverAngered"/>.
     ///
-    /// <para>The Imp, the Dwarf and Horny carry <b>1</b> — not zero, but a
-    /// hundredth of a Goblin's 100, so at 32767 a lairless Imp would take
-    /// <b>nine hours</b> to become angry. Present so that something can happen;
-    /// small enough that nothing does. The DK2 wiki states flatly that
-    /// <i>"Imps never get angry"</i>, and 1 a second is how the shipped data
-    /// says the same thing without a special case.</para>
+    /// <para><b>This used to be inferred from the anger values, and the
+    /// inference was wrong about Jack</b> (Q210). It read: <i>"false for the
+    /// Skeleton, the only creature whose four <c>angerNo*</c> fields are all
+    /// zero"</i> — true of the Skeleton, and true only by accident of its
+    /// record. Jack's four fields are <b>120, 110, 60 and 50</b>, his
+    /// <c>AngerInHand</c> is +500 and his <c>AngerSlap</c> is <b>−5000</b>; DK2
+    /// reads none of them, because the wrapper every anger site goes through
+    /// tests the flag and returns first. So our Jack accumulated anger on two
+    /// unguarded paths and was <i>calmed</i> by slapping. Populated, plausible
+    /// fields are not evidence of a live mechanism.</para>
+    ///
+    /// <para><b>The gate now sits in <see cref="Apply(CreatureDef,
+    /// CreatureState, AngerBucket, int)"/></b>, the one adder, which is where
+    /// DK2 puts it: a single wrapper guards a single adder, so no source can
+    /// bypass it. The remaining callers keep their own checks only to skip work
+    /// they would otherwise do for nothing.</para>
+    ///
+    /// <para>The Imp, the Dwarf and Horny are <i>not</i> flagged and can be
+    /// angered in principle. They carry <b>1</b> — not zero, but a hundredth of
+    /// a Goblin's 100, so at 32767 a lairless Imp would take <b>nine hours</b>
+    /// to become angry. Present so that something can happen; small enough that
+    /// nothing does. The DK2 wiki states flatly that <i>"Imps never get
+    /// angry"</i>, and 1 a second is how the shipped data says the same thing
+    /// without a special case — which is a different mechanism from the
+    /// Skeleton's and Jack's, and worth keeping distinct.</para>
     /// </summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-anger.md")]
     public static bool CanBeAngered(CreatureDef creature) =>
-        creature.AngerNoLair != 0 || creature.AngerNoFood != 0
-        || creature.AngerNoPay != 0 || creature.AngerNoWork != 0;
+        !creature.Flags2.HasFlag(CreatureFlags2.NeverAngered);
 
     /// <summary>
     /// A slap: <c>AngerSlap</c>, +3000 for a Goblin and <b>−5000 for Jack</b>,
@@ -332,7 +354,7 @@ public static class CreatureAngerRules
     /// section 4).</para>
     /// </summary>
     public static int Slap(CreatureDef creature, CreatureState state) =>
-        Apply(state, AngerBucket.Treatment, creature.AngerSlap);
+        Apply(creature, state, AngerBucket.Treatment, creature.AngerSlap);
 
     /// <summary>
     /// Being held in the Hand of Evil: <c>AngerInHand</c>, which <b>calms</b>
@@ -346,7 +368,7 @@ public static class CreatureAngerRules
     /// <see cref="HandRules.AngerDueThisTick"/>.</para>
     /// </summary>
     public static int Held(CreatureDef creature, CreatureState state) =>
-        Apply(state, AngerBucket.Treatment, creature.AngerInHand);
+        Apply(creature, state, AngerBucket.Treatment, creature.AngerInHand);
 
     /// <summary>
     /// How long an angry creature must wait between selections that came to

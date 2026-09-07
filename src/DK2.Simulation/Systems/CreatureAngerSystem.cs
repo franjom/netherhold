@@ -101,7 +101,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             CreatureMood before = state.Mood;
 
             CreatureAnger delta = CreatureAngerRules.PerSecond(world, database, creature, state);
-            CreatureAngerRules.Apply(state, delta);
+            CreatureAngerRules.Apply(creature, state, delta);
 
             CreatureMood after = CreatureAngerRules.MoodOf(creature, state);
             state.Mood = after;

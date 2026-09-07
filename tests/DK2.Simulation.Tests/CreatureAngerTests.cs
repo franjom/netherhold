@@ -667,7 +667,7 @@ public class CreatureAngerTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
 
         goblin.Anger.Treatment = 100;
-        Assert.Equal(-100, CreatureAngerRules.Apply(goblin, AngerBucket.Treatment, -5000));
+        Assert.Equal(-100, CreatureAngerRules.Apply(db.CreatureById(GoblinId), goblin, AngerBucket.Treatment, -5000));
         Assert.True(goblin.Anger.IsCalm);
     }
 
@@ -683,7 +683,7 @@ public class CreatureAngerTests
         // bands, so a grievance goes on climbing for a second ceiling's worth
         // after the creature has already turned angry (ADR-0080).
         goblin.Anger.Lair = CreatureAngerRules.Saturation - 10;
-        Assert.Equal(10, CreatureAngerRules.Apply(goblin, AngerBucket.Lair, 5000));
+        Assert.Equal(10, CreatureAngerRules.Apply(db.CreatureById(GoblinId), goblin, AngerBucket.Lair, 5000));
         Assert.Equal(CreatureAngerRules.Saturation, goblin.Anger.Lair);
         Assert.Equal(65533, CreatureAngerRules.Saturation);
         Assert.True(CreatureAngerRules.Saturation > CreatureAngerRules.Ceiling);
@@ -820,5 +820,130 @@ public class CreatureAngerTests
 
         Assert.Equal(CreatureActivity.Dying, goblin.Activity);
         Assert.True(goblin.Anger.IsCalm);
+    }
+
+    // ---- the never-angered flag (Q210) ------------------------------------
+    //
+    // DK2 puts one test at the top of the one wrapper every anger site calls,
+    // so a flagged creature takes nothing from anywhere. The gate lives in
+    // CreatureAngerRules.Apply for the same reason: there is no second door.
+
+    /// <summary>
+    /// A flagged creature takes no anger from any bucket, whatever the delta —
+    /// and the deltas here are the ones that used to reach it.
+    /// </summary>
+    [Fact]
+    public void NoBucketMovesOnACreatureCarryingTheNeverAngeredFlag()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureDef skeleton = db.CreatureById(Dk2TerrainFixture.SkeletonCreatureId);
+        CreatureState state = world.SpawnCreature(
+            db, Dk2TerrainFixture.SkeletonCreatureId, Keeper, new TilePos(2, 2));
+
+        Assert.False(CreatureAngerRules.CanBeAngered(skeleton));
+
+        for (int i = 0; i < CreatureAnger.Count; i++)
+        {
+            var bucket = (AngerBucket)i;
+            Assert.Equal(0, CreatureAngerRules.Apply(skeleton, state, bucket, 5000));
+            Assert.Equal(0, state.Anger[bucket]);
+        }
+
+        Assert.True(state.Anger.IsCalm);
+    }
+
+    /// <summary>
+    /// The flag beats the values, which is the whole point of it: a creature
+    /// with populated anger rates and a positive slap still takes nothing.
+    ///
+    /// <para>This is Jack, synthesised — the fixture has no Jack, and the real
+    /// record is asserted in
+    /// <c>CreatureNeedsOnRealDataTests.TheSkeletonAndJackCannotBeAngeredAndOnlyTheFlagSaysSoAboutJack</c>.
+    /// Every value here would move the needle if the values were the rule.</para>
+    /// </summary>
+    [Fact]
+    public void PopulatedAngerRatesDoNotOverrideTheFlag()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState state = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+
+        CreatureDef jackish = db.CreatureById(GoblinId) with
+        {
+            Name = "Jackish",
+            Flags2 = CreatureFlags2.NeverAngered,
+            AngerNoLair = 120,
+            AngerNoFood = 110,
+            AngerNoPay = 60,
+            AngerNoWork = 50,
+            AngerInHand = 500,
+            AngerSlap = -5000,
+        };
+
+        Assert.False(CreatureAngerRules.CanBeAngered(jackish));
+
+        // Every discrete source, including the two that reached anger without
+        // asking CanBeAngered before Q210.
+        Assert.Equal(0, CreatureAngerRules.Slap(jackish, state));
+        Assert.Equal(0, CreatureAngerRules.Held(jackish, state));
+        Assert.Equal(0, CreatureAngerRules.Apply(
+            jackish, state, AngerBucket.Work, jackish.AngerNoWork));
+        Assert.True(state.Anger.IsCalm);
+
+        // And a whole tick's worth at once.
+        CreatureAngerRules.Apply(jackish, state, CreatureAngerRules.PerSecond(
+            world, db, jackish, state));
+        Assert.True(state.Anger.IsCalm);
+        Assert.Equal(CreatureMood.Content, CreatureAngerRules.MoodOf(jackish, state));
+    }
+
+    /// <summary>
+    /// A negative delta is refused as firmly as a positive one. Jack's slap is
+    /// −5000, so the pre-Q210 code let a keeper <i>calm</i> him by slapping;
+    /// DK2 never reaches the adder at all, so there is nothing to calm.
+    /// </summary>
+    [Fact]
+    public void SlappingAFlaggedCreatureNeitherAngersNorCalmsIt()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState state = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+
+        CreatureDef calmedBySlaps = db.CreatureById(GoblinId) with
+        {
+            Flags2 = CreatureFlags2.NeverAngered,
+            AngerSlap = -5000,
+        };
+
+        state.Anger.Treatment = 10000;
+        Assert.Equal(0, CreatureAngerRules.Slap(calmedBySlaps, state));
+        Assert.Equal(10000, state.Anger.Treatment);
+    }
+
+    /// <summary>
+    /// The flag is what is read, not the zero rates — so a creature with all
+    /// four rates zero and <b>no</b> flag can still be angered by a slap. That
+    /// is the case the old value-based predicate got wrong in the other
+    /// direction, and nothing in the shipped data exercises it.
+    /// </summary>
+    [Fact]
+    public void ZeroRatesWithoutTheFlagStillAllowAnger()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState state = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+
+        CreatureDef unflagged = db.CreatureById(GoblinId) with
+        {
+            AngerNoLair = 0,
+            AngerNoFood = 0,
+            AngerNoPay = 0,
+            AngerNoWork = 0,
+            AngerSlap = 3000,
+        };
+
+        Assert.True(CreatureAngerRules.CanBeAngered(unflagged));
+        Assert.Equal(3000, CreatureAngerRules.Slap(unflagged, state));
     }
 }

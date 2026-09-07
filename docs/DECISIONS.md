@@ -7157,3 +7157,73 @@ existing note and loses its caveat. The capacity routine read for this work also
 counts **room type 3 and room type `0x19` and adds them**, which is ADR-0086
 amendment 2's central choice read straight off the instructions instead of
 inferred from the byte-identical handler records.
+
+## ADR-0087 — A creature that never gets angry says so with a flag, and Jack's anger values are a decoy
+
+**2026-09-07, Q210.** The second creature flag field's **bit 2** means *this
+creature never becomes angry*. Skeleton and Jack carry it. DK2 tests it in the
+**one wrapper every anger site in the game calls** (`FUN_00478b80`, 60 call
+sites) and returns immediately, so a flagged creature takes nothing from any
+source — no hunger, no lair, no wage, no slap, no hand — and neither of the two
+unhappiness messages ever fires for it.
+
+**Decision.** `CreatureAngerRules.CanBeAngered` reads
+`CreatureFlags2.NeverAngered`, and **the gate moved into
+`CreatureAngerRules.Apply`**, the single adder, because that is where DK2 puts
+it: one wrapper in front of one adder means there is no second door. The four
+callers that already asked `CanBeAngered` keep their checks, now only to skip
+work they would otherwise do for nothing.
+
+**What was wrong, and it is the same shape as yesterday's portal bug.** The
+predicate used to be inferred from the data: *"false for the Skeleton, the only
+creature in the game whose four `angerNo*` fields are all zero"*. That is a true
+sentence, it gives the right answer for the Skeleton, and it gives the **wrong
+answer for Jack**, whose fields are:
+
+| field | Jack | Skeleton |
+|---|---|---|
+| `angerNoLair` | **120** | 0 |
+| `angerNoFood` | **110** | 0 |
+| `angerNoPay` | **60** | 0 |
+| `angerNoWork` | **50** | 0 |
+| `angerInHand` | **+500** | 0 |
+| `angerSlap` | **−5000** | 0 |
+
+**Not one of those six is ever read.** They are a fully populated, entirely
+plausible decoy, and the flag on the same record is what decides. Our Jack
+accumulated anger on the two paths that did not consult `CanBeAngered`
+(`CreatureJobSystem`'s no-work charge and the praying calm), and — because his
+slap is **negative** — a keeper could *calm* him by slapping him, which DK2
+cannot do because it never reaches the adder.
+
+**This is the mirror of the trap in ADR-0086 amendment 2.** There the lesson was
+that *an available, named, plausible flag is not evidence*; here it is that **an
+available, populated, plausible set of values is not evidence of a live
+mechanism either**. Both times the giveaway was the same: the rule was inferred
+from what the data made convenient rather than read from what the code tests.
+
+**The Imp is a third mechanism and stays as it was.** The Imp, the Dwarf and
+Horny are **not** flagged. They carry **1** in their anger rates — a hundredth
+of a Goblin's 100, so a lairless Imp would need nine hours to turn angry. *"Imps
+never get angry"* is true in practice and is expressed by a small number rather
+than by a flag, which is a different design decision and is worth keeping
+distinct in the code.
+
+**Consequences.** Six behaviour tests added; the real-data test that asserted
+*"only the Skeleton"* now asserts *"the Skeleton and Jack"* **and keeps the old
+value-based query as the discriminator**, so the thing that was wrong is
+asserted to be wrong rather than deleted. The fixture Skeleton now carries the
+flag as well as the zeros, because the fixture's job is to reproduce the record
+and not the inference. **`HashVersion` unchanged and the determinism pin holds:**
+no shipped scenario contains a Skeleton or a Jack, and every other creature's
+answer is the same under both rules.
+
+**Still open in Q210:** bit 0 (King Reginald, Stone Knight, Jack) makes its
+carrier **immune to whatever the impact routine at `0x004af1e0` applies** — that
+routine damages a creature and **doubles the damage** when the target's tile
+carries terrain flag `+0x17b & 0x80`. Which attack it is has *not* been
+established; the routine is installed into a table rather than called, and
+guessing from "damage that doubles on one terrain" is exactly the move that made
+bit 30 look right. Bit 1 (Stone Knight alone) is now a **bounded** negative: no
+instruction in *either* executable block tests it, and none reads a wider field
+at `+0x687`, `+0x688` or `+0x689` that would cover the byte without naming it.

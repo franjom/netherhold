@@ -806,8 +806,15 @@ internal static class Dk2TerrainFixture
             new CreatureAttraction(0, 0, 0),
         ],
 
-        // Every anger rate is zero in the shipped record. A skeleton has
-        // nothing to be angry about.
+        // A skeleton has nothing to be angry about, and the shipped record says
+        // so TWICE: every anger rate is zero, AND the record carries the
+        // never-angered flag. The flag is the rule DK2 reads - it tests the bit
+        // in the one wrapper every anger site goes through - and the zero rates
+        // are a coincidence of this particular creature. Jack carries the same
+        // flag with all four rates populated, which is how the value-based
+        // reading was caught being wrong (Q210). Both are kept here so the
+        // fixture reproduces the record rather than the inference.
+        Flags2 = CreatureFlags2.NeverAngered,
         AngerNoLair = 0,
         AngerNoFood = 0,
         AngerNoPay = 0,

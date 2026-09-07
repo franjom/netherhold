@@ -118,17 +118,52 @@ public enum CreatureFlags : uint
 [Flags]
 public enum CreatureFlags2 : uint
 {
-    /// <summary>King Reginald, Stone Knight and Jack. Read at <c>0x004af1e0</c>. Q210.</summary>
+    /// <summary>
+    /// King Reginald, Stone Knight and Jack — <b>immune to whatever the impact
+    /// routine at <c>0x004af1e0</c> applies</b>, which is its only reader. That
+    /// routine deals damage to a target creature and <b>doubles it</b> when the
+    /// target's tile carries terrain flag <c>+0x17b &amp; 0x80</c>; this bit
+    /// makes the routine skip the target entirely.
+    ///
+    /// <para>Which attack it is has <b>not</b> been established — the routine is
+    /// installed into a table rather than called, so naming it means reading the
+    /// table. Do not assume: a damage source that doubles on one terrain is
+    /// suggestive, and suggestive is what bit 30 was. Q210.</para>
+    /// </summary>
     Unk0 = 1u << 0,
 
-    /// <summary>Stone Knight alone, and no reader found. Q210.</summary>
+    /// <summary>
+    /// Stone Knight alone, and <b>nothing reads it</b>. Now a bounded negative
+    /// rather than a failed search: no instruction in <i>either</i> executable
+    /// block tests this byte's bit 1, and no instruction reads a wider field at
+    /// <c>+0x687</c>, <c>+0x688</c> or <c>+0x689</c> that would cover the byte
+    /// without naming it. It is a flag rather than a rate, so there is no
+    /// shipped-value-makes-it-inert reading available either. Q210.
+    /// </summary>
     Unk1 = 1u << 1,
 
     /// <summary>
-    /// Skeleton and Jack. Four readers, all of them gating one behaviour off
-    /// (<c>0x00478b80</c> and three siblings). Q210.
+    /// <b>This creature never becomes angry.</b> Skeleton and Jack. DK2 funnels
+    /// every anger change in the game through one wrapper, and that wrapper's
+    /// first act is to test this bit and return — so a creature carrying it
+    /// takes no anger from any source: not from hunger, not from a missing lair,
+    /// not from a missing wage, not from a slap, not from the hand.
+    ///
+    /// <para><b>This replaced an inference that was right about the Skeleton and
+    /// wrong about Jack.</b> The rule used to be read off the data — the
+    /// Skeleton is the only creature whose four <c>angerNo*</c> fields are all
+    /// zero — which gives the correct answer for the Skeleton by an accident of
+    /// its record. <b>Jack's four fields are 120, 110, 60 and 50</b>, with an
+    /// <c>AngerInHand</c> of +500 and an <c>AngerSlap</c> of <b>−5000</b>, and
+    /// not one of them is ever read. The values are a decoy; the flag is the
+    /// rule.</para>
+    ///
+    /// <para>Three other readers gate on it besides the wrapper, each skipping
+    /// the same follow-on work — the two unhappiness messages
+    /// (<c>0x11</c> and <c>0x12</c>, fired as the mood band crosses 1 and 2) and
+    /// the event the second one raises.</para>
     /// </summary>
-    Unk2 = 1u << 2,
+    NeverAngered = 1u << 2,
 
     /// <summary>
     /// <b>A Hero Portal may generate this creature.</b> The hero side's
