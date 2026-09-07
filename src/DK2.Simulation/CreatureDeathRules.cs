@@ -45,11 +45,12 @@ namespace DK2.Simulation;
 /// <i>object</i>: it carries a <c>DecomposeValue</c> (200 for most, 0 for the
 /// undead), imps haul it the way they haul gold, and a graveyard counts
 /// <c>DecomposeValueNeededForVampire</c> (1000) of them to make a Vampire.
-/// OBJECTS is unparsed (M6), so the corpse cannot be modelled yet — and
-/// modelling it as a fake creature would put a thing with no needs into the
-/// creature list, where every present and future system would have to remember
-/// to skip it. So the second timer is recorded and not implemented, and the
-/// death event names whether a body was owed.</para>    ///
+/// The THINGS DeadBody payload now has a typed format, but no shipped instance
+/// corroborates it and M6 has not projected things into the world. Modelling a
+/// corpse as a fake creature would put a thing with no needs into the creature
+/// list, where every present and future system would have to remember to skip
+/// it. So the second timer is recorded and not implemented, and the death event
+/// names whether a body was owed.</para>
     /// <para><b>CORRECTED 2026-09-04: a corpse is NOT an object.</b> The
     /// sentence above — and ADR-0051, and <c>creature-death.md</c> — gave
     /// "a corpse is an OBJECT, and OBJECTS is unparsed (M6)" as the cause of

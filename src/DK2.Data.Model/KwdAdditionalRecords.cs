@@ -26,9 +26,9 @@ public sealed record KwdArtResource(
     uint Flags,
     ReadOnlyMemory<byte> Unknown_0044,
     byte Type,
-    byte Data_0051,
-    byte Data_0052,
-    byte Data_0053);
+    byte Unknown_0051,
+    byte Unknown_0052,
+    byte Unknown_0053);
 
 /// <summary>A 24-byte light descriptor embedded in SHOTS and EFFECTS.</summary>
 public sealed record KwdLight(
@@ -70,8 +70,8 @@ public sealed class ShotDef : KwdRoundTripRecord
     public int AirFriction { get; init; }
     public int Mass { get; init; }
     public int Speed { get; init; }
-    public uint Data1 { get; init; }
-    public uint Data2 { get; init; }
+    public uint Unknown_0098 { get; init; }
+    public uint Unknown_009C { get; init; }
     public uint ShotProcessFlags { get; init; }
     public int Radius { get; init; }
     public uint Flags { get; init; }
@@ -118,7 +118,7 @@ public sealed class EffectDef : KwdRoundTripRecord
     public ushort SpriteSpinRateRange { get; init; } public ushort WhirlpoolRate { get; init; }
     public ushort DirectionalSpread { get; init; } public ushort CircularPathRate { get; init; }
     public ushort InnerOriginRange { get; init; } public ushort GenerateRandomness { get; init; }
-    public ushort Misc2 { get; init; } public ushort Misc3 { get; init; }
+    public ushort Unknown_00EE { get; init; } public ushort Unknown_00F0 { get; init; }
     public byte GenerationType { get; init; }
     public byte ElementsPerTurn { get; init; }
     public ushort Unknown_00F4 { get; init; }
@@ -320,7 +320,7 @@ public sealed class LevelDef : KwdRoundTripRecord
     public required ReadOnlyMemory<byte> IntroductionOverrideObjects { get; init; }
     public required IReadOnlyList<ushort> IntroductionOverrideTextIds { get; init; }
     public required string TerrainPath { get; init; }
-    public required ReadOnlyMemory<byte> Optional_6403 { get; init; }
+    public required ReadOnlyMemory<byte> Unknown_6403 { get; init; }
     public required IReadOnlyList<KwdLevelFilePath> Paths { get; init; }
     public required IReadOnlyList<uint> UnknownPathTail { get; init; }
 }

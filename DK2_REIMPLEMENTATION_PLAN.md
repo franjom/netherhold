@@ -981,7 +981,7 @@ is very expensive to retrofit.
 | # | Milestone | Definition of done | Est. |
 |---|---|---|---|
 | **M0** ✅ | Research baseline | This document; repo skeleton; DK2 v1.70 installed; Flame + OpenKeeper building locally | 1–2 wk |
-| **M1** ✅ | Formats readable | `DK2.Tools extract` dumps WAD contents; KWD parses to `GameDatabase`; all 18 record types parse with byte-exact/full-length coverage; unit tests over the shipped campaign maps | complete 2026-09-07 |
+| **M1** ✅ | Formats readable | `DK2.Tools extract` dumps WAD contents; KWD parses to `GameDatabase`; all 18 record types round-trip; unit tests over the shipped campaign maps | complete 2026-09-07 |
 | **M2** ✅ | Deterministic skeleton | `GameSimulation.Tick()` exists; `StateHash()` stable; save/load round-trips; CI determinism gate green; headless harness runs a scenario file | 3–4 wk |
 | **M3** ✅ | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold. Unity view renders it with placeholder art — **the view is done (2026-09-04); what a room *does* is not** | 8–12 wk |
 | **M4** ✅ | First creature loop | Portal spawn; lair claim; hunger→hatchery; sleep; training; payday; job selection with logged reasons | 8–12 wk |
@@ -993,10 +993,10 @@ is very expensive to retrofit.
 | **M10** | Campaign | Full campaign playable start to finish | after M8 |
 | **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
 
-**Status (2026-09-07, revision 9).** **1171 tests** (of which **266 need the
-game data and now SKIP without it** — ADR-0100), 26 scenarios, **91 ADRs**
-(ADR-0001 … ADR-0090 plus ADR-0100; 0091–0099 are reserved for the M1
-branch), 46 research docs, 215 open-question rows running to Q219,
+**Status (2026-09-07, revision 10).** **1192 tests** (of which **267 need the
+game data and now SKIP without it** — ADR-0100), 26 scenarios, **92 ADRs**
+(ADR-0001 … ADR-0091 plus ADR-0100; 0092–0099 remain reserved), 47 research
+docs, 221 open-question rows running to Q221,
 `HashVersion` **36**, pin `0xD893704FB5D00309`.
 
 > **This line went stale twice in one day** — revision 6 was wrong by six
@@ -1038,8 +1038,8 @@ branch), 46 research docs, 215 open-question rows running to Q219,
   running under Flame — is M5's first step, not M0's.
 - **M1** ✅ — closed 2026-09-07 (ADR-0091). All 18 record-type ids have typed
   readers. The corpus audit covers 408 KWD/KLD files, all 66 LEVEL records,
-  6,318 THINGS and 9,161 TRIGGERS, and byte-round-trips every newly decoded
-  record. GLOBALS is the honest zero: v1.70 ships no type-0 chunk or LEVEL path
+  6,318 THINGS and 9,161 TRIGGERS, and byte-round-trips every record image.
+  GLOBALS is the honest zero: v1.70 ships no type-0 chunk or LEVEL path
   row, so its LEVEL-reference representation has a synthetic round-trip (Q220).
 - **M2** ✅ — unchanged.
 - **M3** ✅ substantially — the Unity view renders campaign level 1; terrain

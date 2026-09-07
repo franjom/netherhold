@@ -17,8 +17,9 @@ layout, not gameplay behaviour.
 ## Re-checking
 
 `dk2tools kwd corpus` parses all 408 KWD/KLD files and reports the count for
-each of the 18 record-type ids. For every newly decoded record it also compares
-the retained source image byte-for-byte. `dk2tools kwd records <file>` prints
+each of the 18 record-type ids. For every old and new record it also compares
+the retained source image byte-for-byte through `KwdRecordRoundTrip`.
+`dk2tools kwd records <file>` prints
 decoded ids/types and consumed lengths. The corpus on 2026-09-07 contained:
 
 | type | records |
@@ -43,12 +44,13 @@ does not decide their gameplay unit.
 - **CREATURE_SPELLS (266):** name[32], two ArtResources, two shot-data `u32`s,
   range, flags, seven `u16` combat/sound/text ids, four byte ids, recharge,
   alternative-shot byte, and `Unknown_00EF[27]`.
-- **SHOTS (239):** name, ArtResource, Light, air friction, mass, speed, two data
+- **SHOTS (239):** name, ArtResource, Light, air friction, mass, speed, two unknown
   words, process flags, radius, flags, eight effect ids, health, eleven byte
   ids/categories, sound category[32], threat and burn duration.
 - **EFFECTS (246):** name, ArtResource, Light, ten motion/scale values, flags,
   nine lifecycle ids/values, eight generated ids, twelve generation values,
-  generation type, elements per turn and `Unknown_00F4`.
+  generation type, elements per turn and `Unknown_00EE`, `Unknown_00F0`,
+  `Unknown_00F4`.
 - **EFFECT_ELEMENTS (182):** name, ArtResource, ten motion/scale values, flags,
   seven ids/health values, RGB, random/table colour indices, fade percentage and
   next-effect id.
@@ -107,7 +109,7 @@ The level metadata contains the UTF-16 name, description, author, email and
 information fields; trigger id; the `ticksPerSecond` field already used by the
 timing research; a 520-byte `Unknown_1184`; 512 UTF-16 message slots; flags,
 sound/reward/text fields, introduction overrides and terrain path. The optional
-80-byte extension is retained as `Optional_6403` because its internal semantic
+80-byte extension is retained as `Unknown_6403` because its internal semantic
 names have not been independently corroborated.
 
 The inner section starts with check value 222 and a byte count, followed by

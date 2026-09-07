@@ -310,9 +310,10 @@ What is *built* rather than known, against the long-term goals:
   owner — but beating one down is a different job at a different rate and is not
   built. Two rules inside claiming are still ours: whether a dungeon heart is
   exempt (Q93) and whether a long bridge really goes whole (Q94).
-- **A level's own starting creatures.** THINGS is unparsed, so no level's roster
-  loads and every creature in a run either came from a portal, from
-  `ImpSupplySystem`, or from a scenario file saying so.
+- **A level's own starting creatures.** THINGS parses into typed records, but M6
+  has not projected those records into `WorldState`, so no level's roster loads
+  and every creature in a run either came from a portal, from `ImpSupplySystem`,
+  or from a scenario file saying so.
 - **Which rooms a keeper may build on a given level.** `Availability` kind 1 says
   so, per level and per player, and `RoomRules` does not model it at all — a
   keeper here can build any buildable room on any level.

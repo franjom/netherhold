@@ -5,11 +5,46 @@
 using System.Buffers.Binary;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Data.Tests;
 
 public class KwdAdditionalRecordTests
 {
+    [InstallFact]
+    public void ShippedCorpus_ParsesAllEighteenTypes_WithPinnedCountsAndRoundTrips()
+    {
+        KwdCorpusAudit.Result audit = KwdCorpusAudit.Run(Dk2InstallGate.Path);
+        Assert.Equal(408, audit.Files);
+        Assert.Equal(18, audit.ParsedTypes.Count);
+
+        var expected = new Dictionary<KwdRecordType, int>
+        {
+            [KwdRecordType.Globals] = 0,
+            [KwdRecordType.Map] = 345694,
+            [KwdRecordType.Terrain] = 41,
+            [KwdRecordType.Rooms] = 26,
+            [KwdRecordType.Traps] = 16,
+            [KwdRecordType.Doors] = 8,
+            [KwdRecordType.KeeperSpells] = 13,
+            [KwdRecordType.CreatureSpells] = 41,
+            [KwdRecordType.Creatures] = 46,
+            [KwdRecordType.Players] = 274,
+            [KwdRecordType.Things] = 6318,
+            [KwdRecordType.Triggers] = 9161,
+            [KwdRecordType.Level] = 66,
+            [KwdRecordType.Variables] = 8246,
+            [KwdRecordType.Objects] = 145,
+            [KwdRecordType.EffectElements] = 596,
+            [KwdRecordType.Shots] = 65,
+            [KwdRecordType.Effects] = 370,
+        };
+
+        Assert.Equal(expected.Count, audit.RecordCounts.Count);
+        foreach ((KwdRecordType type, int count) in expected)
+            Assert.Equal(count, audit.RecordCounts[type]);
+    }
+
     [Theory]
     [InlineData(KwdRecordType.CreatureSpells, KwdAdditionalRecords.CreatureSpellSize)]
     [InlineData(KwdRecordType.Shots, KwdAdditionalRecords.ShotSize)]

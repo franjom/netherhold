@@ -524,8 +524,9 @@ public sealed class ScenarioRunner
             "setup.creatures places creatures directly, which is no longer the only way one can " +
             "exist: imps come from a dungeon heart and from the Create Imp spell at a mana cost " +
             "(ImpSupplySystem) and everything else comes out of a portal (PortalSystem). What is " +
-            "still missing is a level's own starting roster - THINGS is unparsed - so a creature " +
-            "placed here stands in for one the level file would have put there");
+            "still missing is a level's own starting roster - THINGS now parses, but M6 has not " +
+            "projected those level records into WorldState - so a creature placed here stands in " +
+            "for one the level file would have put there");
 
         if (workers == 0)
         {

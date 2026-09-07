@@ -38,7 +38,9 @@ type-specific header (general: u32 itemCount, u32 unk, 2 x 10-byte timestamp),
 then u32 checkTwo (sig+2 or sig+3), u32 contentSize, then records. Chunks
 repeat until EOF (GlobalVariables.kwd = VARIABLES + THINGS chunks).
 Timestamps are 10 bytes: u16 year, u8 month, u8 day, 2 unk, u8 h, u8 m, u8 s, pad.
-Full corpus parses: 13 editor KWDs, 71 map KWDs, 330 KLDs.
+Full shipped v1.70 corpus parses: 12 editor KWDs, 66 map KWDs, 330 KLDs
+(408 files total). These counts are pinned by `dk2tools kwd corpus` and its
+install-gated regression test.
 
 ## Update 2026-09-04 (every record type's size, and two that have none)
 
@@ -50,7 +52,7 @@ boundary), and check the total against `contentSize / itemCount` from the
 shipped files. Two independent routes to one number, and the number is either
 the same or it is not.
 
-**Eleven record types have a fixed stride, and it is now pinned by a test**
+**Twelve record types have a fixed stride, and it is now pinned by a test**
 (`DK2.Data.Tests.KwdRecordLayoutTests`, install-gated):
 
 | type | file | items | stride | field list agrees | read by us |

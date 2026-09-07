@@ -121,10 +121,10 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
     /// <i>Freeze Trap Shot</i>: all plausible, all wrong, and nothing would have
     /// failed.</para>
     ///
-    /// <para>Nothing parses SHOTS yet — it arrives at M6 — so this walks the
-    /// bytes the way <c>TrapsOnRealDataTests</c> did before TRAPS had a parser.
-    /// It is here because a convention that lives only in a comment is one that
-    /// gets broken by the first person to index an array with it.</para>
+    /// <para>SHOTS now parses, but this preserves the direct on-disk check used
+    /// before that parser existed. It is here because a convention that lives
+    /// only in a comment is one that gets broken by the first person to index
+    /// an array with it.</para>
     /// </summary>
     [InstallFact]
     public void ATrapsShotIdIsAShotsRecordIdAndNotItsRowIndex()

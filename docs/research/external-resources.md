@@ -169,9 +169,9 @@ onto milestones we have not reached:
 
 | section | bears on |
 |---|---|
-| §8.2 **Triggers** — attribute, event, player and flag triggers | the TRIGGERS record, unparsed. **M6** |
+| §8.2 **Triggers** — attribute, event, player and flag triggers | TRIGGERS parses; execution remains **M6** |
 | §7.7 **Computer Players** | the AI keeper. A long-term goal, unscheduled |
-| §7.1 Setting Creature Properties, §7.4 Hero Parties | THINGS and PLAYERS records. **M6** |
+| §7.1 Setting Creature Properties, §7.4 Hero Parties | THINGS and PLAYERS parse; world placement remains **M6** |
 | §2.5 Creature Pool, Availability/Researchability | already parsed (`GlobalVariables.CreaturePool`, `Availabilities`), read by nothing |
 | §2.6, §3.4 Imps | M3, and the owner has already answered more precisely than a manual would |
 

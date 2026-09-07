@@ -69,7 +69,7 @@ public static class KwdAdditionalRecords
     {
         Name = Ascii(r, 0, 32), MeshResource = Art(r, 32), Light = Light(r, 116),
         AirFriction = I32(r, 140), Mass = I32(r, 144), Speed = I32(r, 148),
-        Data1 = U32(r, 152), Data2 = U32(r, 156), ShotProcessFlags = U32(r, 160),
+        Unknown_0098 = U32(r, 152), Unknown_009C = U32(r, 156), ShotProcessFlags = U32(r, 160),
         Radius = I32(r, 164), Flags = U32(r, 168),
         GeneralEffectId = U16(r, 172), CreationEffectId = U16(r, 174),
         DeathEffectId = U16(r, 176), TimedEffectId = U16(r, 178),
@@ -94,7 +94,8 @@ public static class KwdAdditionalRecords
         GenerateIds = U16s(r, 202, 8), OuterOriginRange = U16(r, 218), LowerHeightLimit = U16(r, 220),
         UpperHeightLimit = U16(r, 222), OrientationRange = U16(r, 224), SpriteSpinRateRange = U16(r, 226),
         WhirlpoolRate = U16(r, 228), DirectionalSpread = U16(r, 230), CircularPathRate = U16(r, 232),
-        InnerOriginRange = U16(r, 234), GenerateRandomness = U16(r, 236), Misc2 = U16(r, 238), Misc3 = U16(r, 240),
+        InnerOriginRange = U16(r, 234), GenerateRandomness = U16(r, 236),
+        Unknown_00EE = U16(r, 238), Unknown_00F0 = U16(r, 240),
         GenerationType = r[242],
         ElementsPerTurn = r[243], Unknown_00F4 = U16(r, 244),
     };
@@ -344,7 +345,7 @@ public static class KwdLevel
             SubObjective3TextId = KwdAdditionalRecords.U16(r, 25543), SpecialLevelIndex = KwdAdditionalRecords.U16(r, 25545),
             IntroductionOverrideObjects = r.AsMemory(25547, 8),
             IntroductionOverrideTextIds = KwdAdditionalRecords.U16s(r, 25555, 8), TerrainPath = KwdAdditionalRecords.Ascii(r, 25571, 32),
-            Optional_6403 = r.AsMemory(BaseMetadataSize, metadata - BaseMetadataSize), Paths = paths, UnknownPathTail = tail,
+            Unknown_6403 = r.AsMemory(BaseMetadataSize, metadata - BaseMetadataSize), Paths = paths, UnknownPathTail = tail,
         };
     }
 

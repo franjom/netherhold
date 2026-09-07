@@ -7746,7 +7746,9 @@ audit re-runs that claim over the whole shipped corpus.
   definitions on `GameDatabase`.
 - PLAYERS, THINGS, TRIGGERS and LEVEL are level-scoped loader results. Parsing
   them does not place anything or execute a trigger; that boundary remains M6.
-- Each new record retains its exact source image. `ToBytes()` is intentionally
+- Each new typed record retains its exact source image, and
+  `KwdRecordRoundTrip` supplies the same byte promise for the parsers that
+  predate this ADR. `ToBytes()` is intentionally
   conservative: it preserves unknown fields and editor padding rather than
   manufacturing a canonical encoding DK2 never promised.
 - THINGS has one typed class per tag 194–205. TRIGGERS exposes the common tail,
@@ -7759,7 +7761,8 @@ audit re-runs that claim over the whole shipped corpus.
   that zero stays visible in the audit and Q220 carries the unknown custom-map
   form. A synthetic byte-round-trip covers the known row representation.
 - `dk2tools kwd corpus` is the status source: on the reference install it reads
-  408 files, including 66 LEVEL, 6,318 THINGS and 9,161 TRIGGERS records.
+  408 files, including 66 LEVEL, 6,318 THINGS and 9,161 TRIGGERS records, and
+  byte-round-trips every record image from all 17 record types it encounters.
 
 Field order, widths and semantic labels were transcribed from OpenKeeper's
 GPLv3 reader under ADR-0003, then checked independently against shipped strides
