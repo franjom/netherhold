@@ -302,7 +302,7 @@ consults it.
 | 37 | `StateCounterWhileGuarding` | 10 | `0x006F25E1` (u32) |
 | 38 | `MotionlessWhilePrayingSeconds` | 30 | `0x006F25E5` (u32) |
 | 39 | `MotionlessInPrisonSeconds` | 8 | `0x006F25E9` (u32) |
-| 40 | `MotionlessWhileTrainingSeconds` | 5 | `0x006F25ED` (u32) |
+| 40 | `MotionlessWhileTrainingSeconds` | 5 | `0x006F25ED` (u32) — **DEAD**, setter only (Q203, ADR-0082) |
 | 41 | `MotionlessInCasinoSeconds` | 13 | `0x006F25F1` (u32) |
 | 42 | `ExcessManaDecreaseRatePerSecond` | 5 | `0x006F25F5` (u32) |
 | 43 | `?` | ? | — |
@@ -394,7 +394,7 @@ consults it.
 | 129 | `RubberBandAreaLimit` | 8 | `0x006F2900` (u8) |
 | 130 | `GravityConstant` | 240 | `0x006F2901` (u8) |
 | 131 | `DungeonHeartHealthRegenerationPerSecond` | 25 | `0x006F2902` (u16) |
-| 132 | `EPLossSecondWhileNotTraining` | 0 | `0x006F2904` (u16) |
+| 132 | `EPLossSecondWhileNotTraining` | 0 | `0x006F2904` (u16) — **has a reader and ships as zero**: a per-second hook drains experience from any creature whose state category is not 13 (training). Disabled, not cut (Q203, 2026-09-07) |
 | 133 | `ModifyAngerWhileSolitaryInPitPerSecond` | 275 | `0x006F2906` (u16) |
 | 134 | `ModifyAngerOfCombatPitVictor` | -16400 | `0x006F2908` (u16) |
 | 135 | `ModifyAngerOfPitSpectatorPerSecond` | -275 | `0x006F290A` (u16) |
@@ -411,7 +411,7 @@ consults it.
 | 146 | `WallDeteriorationDamage` | 0 | `0x006F291A` (u8) |
 | 147 | `WallDamageFromShot` | -10 | `0x006F291B` (u8) |
 | 148 | `PercentageChanceOfKillingCreatureInPit` | 10 | `0x006F291C` (u8) |
-| 149 | `ModifyPlayerColdWhileTrainingPerSecond` | -5 | `0x006F291D` (u16) |
+| 149 | `ModifyPlayerColdWhileTrainingPerSecond` | -5 | `0x006F291D` (u16) — **live, and "Cold" is gold**: five a game second per creature in a training room, and a keeper who cannot pay loses the job (Q205, ADR-0083) |
 | 150 | `SkeletonArmyDurationSeconds` | 30 | `0x006F291F` (u8) |
 | 151 | `OvercrowdingJailBreakPercentagePerExtraCreature` | 50 | `0x006F2920` (u8) |
 | 152 | `MaxTimeInGuardRoomBeforeWanderingToGuardPostSeconds` | 60 | `0x006F2921` (u8) |

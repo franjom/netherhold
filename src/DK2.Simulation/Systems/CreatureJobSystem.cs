@@ -238,7 +238,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
         SimulationContext context, CreatureState creature, CreatureDef definition,
         JobType job, int roll, string how, bool report)
     {
-        string? refused = JobRules.Refused(context.Database, definition, creature, job);
+        string? refused = JobRules.Refused(context.World, context.Database, definition, creature, job);
         RoomTypeId? wants = JobRules.RoomFor(job);
 
         if (refused is null && wants is null)
@@ -370,14 +370,17 @@ public sealed class CreatureJobSystem : ISimulationSystem
     private void Working(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (!OnTheSecond(context)) return;
+        bool second = OnTheSecond(context);
+        bool originalTick = SimulationTiming.OnOriginalTick(context.Tick.Value);
+        if (!second && !originalTick) return;
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
         JobType job = creature.CurrentJob;
         RoomTypeId? wants = JobRules.RoomFor(job);
 
-        if (wants is null || !StandingInOneOfIts(world, database, creature, wants.Value))
+        if (second && (wants is null
+                       || !StandingInOneOfIts(world, database, creature, wants.Value)))
         {
             context.Emit(SystemName, "job_lost",
                 $"creature={creature.Id} type={definition.Name} " +
@@ -387,7 +390,19 @@ public sealed class CreatureJobSystem : ISimulationSystem
             return;
         }
 
-        if (job != JobType.Praying) return;
+        // TRAINING IS THE ONE JOB PAID ON THE ORIGINAL'S OWN CADENCE, four
+        // times a game second rather than once (Q205). Not a flourish: DK2
+        // discards the overshoot when a creature levels, so the size of an
+        // award decides how much is thrown away and collapsing four into one
+        // would leave a different balance behind.
+        if (job == JobType.Train)
+        {
+            if (originalTick) Train(context, world, database, creature, definition);
+            if (second) ChargeForTraining(context, world, database, creature, definition);
+            return;
+        }
+
+        if (!second || job != JobType.Praying) return;
 
         // THE ONLY JOB WITH AN EFFECT, and the only source in the game that
         // drains an anger bucket it did not fill (ADR-0081). Six calls, one per
@@ -404,6 +419,81 @@ public sealed class CreatureJobSystem : ISimulationSystem
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} calm={JobRules.PrayingCalm(database).Lair} " +
             $"health=+{healed} anger={creature.Anger.Max} [{creature.Anger}]");
+    }
+
+    /// <summary>
+    /// One of the original's ticks of training: experience, and a promotion if
+    /// it lands on the threshold.
+    ///
+    /// <para>A creature that has reached <c>TrainingRoomMaxExperienceLevel</c>
+    /// earns nothing and <b>keeps the job</b>, which is the original's shape at
+    /// this point rather than an oversight — the cap ejects a creature through
+    /// four of the training <i>state</i> handlers, which this project does not
+    /// have, so here it simply stops paying. The creature will re-choose at its
+    /// next gate and the job handler will refuse it then
+    /// (<see cref="JobRules.Refused"/>), so it does leave, one gate late.</para>
+    /// </summary>
+    private void Train(
+        SimulationContext context, WorldState world, GameDatabase database,
+        CreatureState creature, CreatureDef definition)
+    {
+        int amount = TrainingRules.ExperiencePerOriginalTick(database, definition, creature);
+        if (amount <= 0) return;
+
+        int before = creature.ExperiencePoints;
+        int level = creature.Level;
+        bool promoted = CreatureLevelRules.Grant(database, definition, creature, amount);
+
+        if (!promoted)
+        {
+            // Every original tick would be four lines a second in a log that is
+            // read by eye. The gain is reported on the second only.
+            if (!OnTheSecond(context)) return;
+
+            context.Emit(SystemName, "trained",
+                $"creature={creature.Id} type={definition.Name} " +
+                $"player={creature.OwnerPlayerId} level={level} " +
+                $"exp={creature.ExperiencePoints} gain={amount} " +
+                $"needed={CreatureLevelRules.ExperienceForNextLevel(database, definition, level)}");
+            return;
+        }
+
+        context.Emit(SystemName, "level_up",
+            $"creature={creature.Id} type={definition.Name} " +
+            $"player={creature.OwnerPlayerId} {level}->{creature.Level} " +
+            $"via=training discarded={before + amount - CreatureLevelRules.ExperienceForNextLevel(database, definition, level)} " +
+            $"cap={TrainingRules.LevelCap(database)}");
+    }
+
+    /// <summary>
+    /// A game second of training billed to the keeper, and the job lost if the
+    /// keeper cannot pay.
+    ///
+    /// <para><b>Training is the only job a keeper can be evicted from by being
+    /// poor</b> (Q205). The original charges
+    /// <c>ModifyPlayerColdWhileTrainingPerSecond</c> once a game second on a
+    /// countdown reloaded from variable 19, tests the keeper's gold before every
+    /// charge, and returns failure from the category hook when the test fails —
+    /// which the state dispatcher turns into "back to idle".</para>
+    ///
+    /// <para>Charged <i>after</i> the tick's experience, because that is the
+    /// order the original's hook uses: a creature is paid for the tick it just
+    /// trained even if that is the tick the money runs out on.</para>
+    /// </summary>
+    private void ChargeForTraining(
+        SimulationContext context, WorldState world, GameDatabase database,
+        CreatureState creature, CreatureDef definition)
+    {
+        int cost = TrainingRules.GoldPerSecond(database);
+        if (cost <= 0) return;
+
+        if (GoldStore.TryWithdraw(world, creature.OwnerPlayerId, cost)) return;
+
+        context.Emit(SystemName, "job_lost",
+            $"creature={creature.Id} type={definition.Name} " +
+            $"player={creature.OwnerPlayerId} job={creature.CurrentJob} " +
+            $"at=({creature.Tile.X},{creature.Tile.Y}) reason=cannot_pay cost={cost}");
+        Stop(creature);
     }
 
     /// <summary>Gives up the job and goes idle.</summary>

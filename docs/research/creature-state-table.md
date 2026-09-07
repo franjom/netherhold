@@ -574,5 +574,16 @@ because the labels in §3 were resolved independently from the install's own
   `0x40` and `0x1c` groups, but nothing has been read that consumes it.
 - **The group tag's meaning.** Its role in `SetState` is known exactly; what the
   groups *are* is not.
+- **The 32 categories — NOW DECODED, 2026-09-07.** All 32 records are read in
+  `training.md` §2 (ADR-0083): `+0x00` the category's own bit, `+0x04` enter
+  hook, **`+0x14` update hook, called every tick by `FUN_00476FC0` immediately
+  before the state's own handler**, `+0x24` leave hook, `+0x34` an
+  allowed-category mask, `+0x38` the category's own index. Five categories are
+  named by what their hooks do: **4 research, 5 manufacture, 13 training, 14
+  prison, 22 combat**. Nineteen have no hooks at all. That per-tick update hook
+  is where several mechanics this project had been looking for in *state*
+  handlers actually live — the prison drain and the training award both. `+0x3c`
+  is still unread.
+
 - **The 32 categories.** `+0x17` indexes them, and the table at `0x00699688` has
   not been decoded.

@@ -71,6 +71,84 @@ public static class SimulationTiming
     public const int OriginalTicksPerGameSecond = 4;
 
     /// <summary>
+    /// How many of <i>our</i> ticks make one of the original's — five, at the
+    /// placeholder rate.
+    ///
+    /// <para><b>Why anything needs this.</b> Most per-second work can be done
+    /// once a game second and nothing can tell the difference. Some cannot:
+    /// where DK2 acts four times a second <i>and</i> the action is not additive,
+    /// collapsing it into one application a second changes the outcome rather
+    /// than the schedule. Training experience is the case that forced this
+    /// constant — DK2 promotes a creature and <b>zeroes</b> the remainder
+    /// (<see cref="CreatureLevelRules.Grant"/>), so four awards of seven and one
+    /// award of twenty-eight leave a different number behind.</para>
+    ///
+    /// <para>Prefer once a game second wherever the mechanic is additive. Reach
+    /// for this only when the original's own cadence is load-bearing, and say
+    /// why at the call site.</para>
+    /// </summary>
+    public const int OriginalTickPeriodTicks = TicksPerSecond / OriginalTicksPerGameSecond;
+
+    /// <summary>
+    /// Whether this tick is one of the original's ticks.
+    ///
+    /// <para>Phased on the <i>last</i> of each group, like every per-second
+    /// system here, so that the fourth original tick of a game second and that
+    /// second's own boundary are the same tick. A system that does per-tick and
+    /// per-second work therefore does both in one pass at the end of a second,
+    /// in the order the original's dispatcher uses.</para>
+    /// </summary>
+    public static bool OnOriginalTick(long tick) =>
+        (tick + 1) % OriginalTickPeriodTicks == 0;
+
+    /// <summary>
+    /// The original's own load-time conversion of a per-second rate in the
+    /// shipped data into the per-tick rate its engine actually adds:
+    /// <b>integer divide by <see cref="OriginalTicksPerGameSecond"/>, floored at
+    /// one whenever the file value was non-zero</b>.
+    ///
+    /// <para><b>This is a fact about DK2's creature loader, not a convenience.</b>
+    /// Ten record fields are known to go through it — the four <c>angerNo*</c>
+    /// fields, <c>TimeAwake</c> and <c>TimeSleep</c> (multiplied by the same
+    /// register), and the four rates <c>ExpPerSecond</c>,
+    /// <c>ExpPerSecondTraining</c>, <c>ResearchPerSecond</c> and
+    /// <c>ManufacturePerSecond</c>, whose stores sit in one run in
+    /// <c>FUN_00492320</c> reading five consecutive frame slots. Its immediate
+    /// neighbour <c>ExpForNextLevel</c> is stored <b>raw</b>, and that is the
+    /// tell that the divide means something: a threshold is not a rate.</para>
+    ///
+    /// <para><b>The floor is not rounding hygiene, it is reachable.</b> The Imp,
+    /// the Dwarf and Horny carry an <c>angerNo*</c> of 1 and keep it; without
+    /// the floor a creature that can be angered at all would silently stop being
+    /// angerable. The truncation on the other side is reachable too and is
+    /// <i>not</i> corrected: an <c>ExpPerSecondTraining</c> of 30 becomes 7 a
+    /// tick and therefore <b>28 a game second, not 30</b>. Every rate that is
+    /// not a multiple of four loses up to three of itself a second, and that is
+    /// reproduced rather than rounded away.</para>
+    ///
+    /// <para>Rates that are added once a game second should be multiplied back
+    /// up by <see cref="OriginalTicksPerGameSecond"/> so the loss survives;
+    /// rates whose cadence matters should be added on
+    /// <see cref="OnOriginalTick"/>.</para>
+    ///
+    /// <para><b>The floor is DK2's literal <c>1</c>, sign and all</b>, so a
+    /// field of −1 to −3 would come back as <c>+1</c> and change direction. That
+    /// is what the original's store does and it is left alone because <b>no
+    /// shipped field reaches it</b>: every one of the ten is either zero or at
+    /// least four, and the two negative anger fields (−5000 slap, −250 in hand)
+    /// are stored raw by a different part of the loader. If a field ever does
+    /// land there, this is the line to look at first.</para>
+    /// </summary>
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
+    public static int LoaderRatePerTick(int fileValue)
+    {
+        if (fileValue == 0) return 0;
+
+        int perTick = fileValue / OriginalTicksPerGameSecond;
+        return perTick != 0 ? perTick : 1;
+    }
+
+    /// <summary>
     /// How many times a second a worker applies work to a tile. <b>Five —
     /// STRONGLY INFERRED, and measured rather than chosen</b> (Q47).
     ///

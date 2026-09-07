@@ -567,6 +567,16 @@ internal static class Dk2TerrainFixture
         Pay = 500,
         Fear = 50,
         Threat = 37,
+
+        // THE GOBLIN'S OWN EXPERIENCE RATES, which it had been inheriting from
+        // the Imp (30 and 1200). Both matter now that training pays (Q205): 40
+        // divides by variable 19 exactly, so a Goblin loses nothing to the
+        // loader's truncation where a Vampire's 30 loses two a second. And 200
+        // is its COMBAT rate - across every shipped creature the combat rate is
+        // exactly five times the training rate, which is a designer
+        // relationship and not a coincidence in one record.
+        ExpPerSecond = 200,
+        ExpPerSecondTraining = 40,
         Speed = new Fp32(2867),
         RunSpeed = new Fp32(2867),
         JobClass = JobClass.Fighter,
@@ -618,10 +628,11 @@ internal static class Dk2TerrainFixture
         UnhappyJobs = [new(JobType.Drink, 0, 0, 100)],
         AngryJobs = [new(JobType.Leave, 0, 0, 50), new(JobType.Rebel, 0, 0, 50)],
 
-        // Imp facts, cleared rather than inherited.
+        // Imp facts, cleared rather than inherited. ExpPerSecond used to be
+        // zeroed here on the reasoning that a Goblin has no combat rate; it has
+        // one, 200, and it is set above with its training rate (Q205).
         MaxGoldHeld = 0,
         InitialGoldHeld = 0,
-        ExpPerSecond = 0,
     };
 
     public const byte DeserterCreatureId = 44;
@@ -682,6 +693,15 @@ internal static class Dk2TerrainFixture
     {
         Name = "Vampire",
         CreatureId = VampireCreatureId,
+
+        // 30 and 150, its own. 30 is the value that DOES lose to the loader's
+        // divide - 30 / 4 = 7, so a Vampire trains at 28 a game second and not
+        // 30 - which makes it the fixture's witness for that quirk. Eighteen of
+        // the forty-six shipped creatures carry 30, and 26 of the 46 lose
+        // something to the truncation.
+        ExpPerSecond = 150,
+        ExpPerSecondTraining = 30,
+        ResearchPerSecond = 5,
         SlapDamage = 125,
 
         Flags = CreatureFlags.IsEvil | CreatureFlags.IsFearless
@@ -877,6 +897,14 @@ internal static class Dk2TerrainFixture
         // The training cap the job dispatcher tests a creature's level against
         // before it will look for a training room.
         Set(vars, VariableTypeId.TrainingRoomMaxExperienceLevel, 4);
+
+        // Training's two other shipped numbers (Q205). "Cold" is the shipped
+        // name and it means gold; the table's figure is negative and the
+        // original negates it, so this is a charge of 5 a game second. The
+        // second one is DK2's per-second experience DRAIN for creatures that are
+        // not training - a real mechanism shipped with the rate set to zero.
+        Set(vars, VariableTypeId.ModifyPlayerColdWhileTrainingPerSecond, -5);
+        Set(vars, VariableTypeId.EPLossSecondWhileNotTraining, 0);
 
         Set(vars, VariableTypeId.CreatureDyingStateDurationSeconds, 60);
 

@@ -62,6 +62,44 @@ public enum CreatureStatId
     /// </summary>
     ExperienceForNextLevel = 13,
 
+    /// <summary>
+    /// Scales the record's <c>ExpPerSecond</c> — <b>combat</b> experience, the
+    /// rate a creature earns while fighting.
+    ///
+    /// <para><b>The name here is ours, and it is read off the binary by
+    /// position rather than guessed.</b> DK2's per-tick hook for state category
+    /// <b>22</b> — battle, fleeing, responding to a threat — reads the creature
+    /// record's <c>ExpPerSecond</c> and scales it by the stat column at
+    /// <c>+0x1dd</c>, and the four columns <c>0x1dd</c>, <c>0x1ef</c>,
+    /// <c>0x201</c>, <c>0x213</c> are stats <b>15, 16, 17, 18</b> against a
+    /// nine-level stride of 18 bytes. The far end of that run is the check:
+    /// <c>0x201</c> and <c>0x213</c> are the two OpenKeeper already names
+    /// <see cref="ResearchPerSecond"/> and <see cref="ManufacturePerSecond"/>,
+    /// and the binary's hooks for categories 4 and 5 read exactly the record
+    /// fields those names predict. So the two unnamed columns are pinned from
+    /// both sides.</para>
+    ///
+    /// <para><b>And the shipped table corroborates the pairing a fifth time.</b>
+    /// These four columns are two matched pairs: 15 and 16 are <b>100% at every
+    /// level</b>, while 17 and 18 carry the <i>same</i> curve as each other
+    /// (125% at level 2 to 700% at 10). Two experience rates that do not scale,
+    /// two production rates that scale identically — which is what the binary
+    /// says they are, arrived at from the other direction.</para>
+    ///
+    /// <para>Unused: nothing in this simulation fights (Q205).</para>
+    /// </summary>
+    ExpPerSecond = 15,
+
+    /// <summary>
+    /// Scales the record's <c>ExpPerSecondTraining</c> — the training room's
+    /// rate. See <see cref="ExpPerSecond"/> for how the two names were pinned.
+    ///
+    /// <para><b>100% at every level in the shipped table</b>, so it scales
+    /// nothing today; applied anyway, because the original applies it and a
+    /// column of hundreds is data rather than an absence.</para>
+    /// </summary>
+    ExpPerSecondTraining = 16,
+
     ResearchPerSecond = 17,
     ManufacturePerSecond = 18,
     DecomposeValue = 19,

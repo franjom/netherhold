@@ -192,12 +192,21 @@ effect. `JobRules`, `CreatureJobSystem`, `CreatureActivity.GoingToJob` and
   composes payday's three.
 - **How long a creature keeps a job** — until the room stops being its keeper's,
   or a need takes it away. §4 is the evidence that this is not a timer.
-- **Train's gold clause is not modelled.** The handler tests the keeper's gold
-  against the training cost; this project has no player gold total (ADR-0015 —
-  gold is on tiles), so only the level cap is tested. A narrowing that would
-  only ever refuse *more*.
-- **Nothing is produced by any job but praying.** Research points, manufacture
-  points and training experience all have shipped per-creature rates, and
-  training's has a live unit ambiguity of exactly the shape that made
-  `ExpPerSecond` turn out to be per *minute* (`creature-levels.md`). Not
-  invented; see Q205.
+- ~~**Train's gold clause is not modelled.**~~ **BUILT 2026-09-07 (ADR-0083).**
+  It is modelled, and the reasoning here for skipping it was wrong twice over:
+  `GoldStore.Total` has always been able to sum a keeper's tiles, and the clause
+  turned out not to be a narrowing at all but **the order the two tests are
+  made in** — the original tests gold *first*, so a broke keeper's level-9
+  creature is refused for poverty rather than for being too good. And a keeper
+  who runs out mid-job **loses the creature's job**, which no other job in DK2
+  does.
+- ~~**Nothing is produced by any job but praying.**~~ **TRAINING IS, since
+  ADR-0083 (`training.md`).** And the "live unit ambiguity of exactly the shape
+  that made `ExpPerSecond` turn out to be per minute" was the wrong worry: the
+  shape was there, but **`ExpPerSecond` is not per minute** — the loader divides
+  all four of these rates by variable 19 as it stores them, so the names are
+  right, and the 1200 that suggested otherwise belongs to a different mechanic
+  (combat, category 22) on the one creature that breaks the family's own 5:1
+  convention. **Research and manufacture are still not produced**, and it is no
+  longer the rate that stops them: their hooks pay the *player*, and no keeper
+  here has anything to research or make.

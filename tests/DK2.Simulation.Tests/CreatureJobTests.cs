@@ -52,6 +52,19 @@ public sealed class CreatureJobTests
         RoomRules.Place(db, ref tile, db.Room(type), owner);
     }
 
+    /// <summary>
+    /// Gold under the keeper, because <b>training is billed per game second</b>
+    /// (Q205) and a keeper who cannot pay is refused the job outright. Every
+    /// test that expects a Goblin to reach the training room has to fund it
+    /// first, which is itself the mechanic.
+    /// </summary>
+    private static void Fund(WorldState world, int amount, byte owner = Keeper)
+    {
+        ref TileState tile = ref world.Tile(2, 3);
+        tile.OwnerPlayerId = owner;
+        tile.GoldHeld = amount;
+    }
+
     // ---- choosing ---------------------------------------------------------
 
     [Fact]
@@ -64,6 +77,7 @@ public sealed class CreatureJobTests
         GameDatabase db = Db;
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
+        Fund(world, 10_000);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         var events = new ListEventSink();
@@ -88,6 +102,12 @@ public sealed class CreatureJobTests
         // table has failed, the creature that was fine is made cross about it.
         GameDatabase db = Db;
         WorldState world = World(db);
+
+        // Funded, so that the refusal is about the ROOM and not about the
+        // money. A broke keeper is refused earlier and for a different reason
+        // (ABrokeKeeperIsRefusedTheTrainingRoomBeforeAnyoneWalksAnywhere).
+        Fund(world, 10_000);
+
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         var events = new ListEventSink();
 
@@ -115,6 +135,7 @@ public sealed class CreatureJobTests
         // only a Temple does that (ADR-0081).
         GameDatabase db = Db;
         WorldState world = World(db);
+        Fund(world, 10_000);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         GameSimulation sim = Simulation(db, world);
 
@@ -270,6 +291,7 @@ public sealed class CreatureJobTests
         GameDatabase db = Db;
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
+        Fund(world, 10_000);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         var events = new ListEventSink();
@@ -299,6 +321,7 @@ public sealed class CreatureJobTests
         GameDatabase db = Db;
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3), owner: 0);
+        Fund(world, 10_000);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         var events = new ListEventSink();
@@ -388,6 +411,7 @@ public sealed class CreatureJobTests
         GameDatabase db = Db;
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.Casino, new TilePos(1, 1));
+        Fund(world, 10_000);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         GameSimulation sim = Simulation(db, world);
@@ -427,7 +451,8 @@ public sealed class CreatureJobTests
         var state = new CreatureState { Level = 1 };
 
         Assert.Equal(
-            "nothing_queued", JobRules.Refused(db, bile, state, JobType.Manufacture));
+            "nothing_queued",
+            JobRules.Refused(World(db), db, bile, state, JobType.Manufacture));
     }
 
     [Fact]
@@ -436,11 +461,46 @@ public sealed class CreatureJobTests
         GameDatabase db = Db;
         CreatureDef goblin = db.CreatureById(GoblinId);
 
+        WorldState world = World(db);
+        Fund(world, 1000);
+
         Assert.Equal(4, db[VariableTypeId.TrainingRoomMaxExperienceLevel]);
-        Assert.Null(JobRules.Refused(db, goblin, new CreatureState { Level = 3 }, JobType.Train));
+        Assert.Null(JobRules.Refused(
+            world, db, goblin,
+            new CreatureState { Level = 3, OwnerPlayerId = Keeper }, JobType.Train));
         Assert.Equal(
             "at_training_cap",
-            JobRules.Refused(db, goblin, new CreatureState { Level = 4 }, JobType.Train));
+            JobRules.Refused(
+                world, db, goblin,
+                new CreatureState { Level = 4, OwnerPlayerId = Keeper }, JobType.Train));
+    }
+
+    [Fact]
+    public void ABrokeKeeperIsRefusedTheTrainingRoomBeforeAnyoneWalksAnywhere()
+    {
+        // The original's training handler tests the keeper's gold against the
+        // per-second cost BEFORE it looks for a room, so poverty refuses the
+        // job rather than interrupting it. This project had only the level half
+        // of that test until Q205.
+        GameDatabase db = Db;
+        CreatureDef goblin = db.CreatureById(GoblinId);
+        WorldState world = World(db);
+        var state = new CreatureState { Level = 1, OwnerPlayerId = Keeper };
+
+        Assert.Equal(5, TrainingRules.GoldPerSecond(db));
+
+        // Nothing in the treasury: refused, and the reason names the keeper.
+        Assert.Equal(
+            "keeper_cannot_pay", JobRules.Refused(world, db, goblin, state, JobType.Train));
+
+        // One short of the second is still short - the test is >=, not >.
+        Fund(world, 4);
+        Assert.Equal(
+            "keeper_cannot_pay", JobRules.Refused(world, db, goblin, state, JobType.Train));
+
+        // Exactly the price passes.
+        Fund(world, 5);
+        Assert.Null(JobRules.Refused(world, db, goblin, state, JobType.Train));
     }
 
     [Fact]
@@ -459,7 +519,7 @@ public sealed class CreatureJobTests
         Assert.Equal(
             "needs_no_bed",
             JobRules.Refused(
-                db, db.CreatureById(Dk2TerrainFixture.ImpCreatureId),
+                World(db), db, db.CreatureById(Dk2TerrainFixture.ImpCreatureId),
                 new CreatureState(), JobType.Sulk));
     }
 

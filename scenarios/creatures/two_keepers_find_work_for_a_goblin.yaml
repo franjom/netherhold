@@ -16,7 +16,7 @@
 # room, and entering the job's state, which can still fail. That boolean is the
 # whole of job availability.
 #
-# ## Two keepers, one difference, and the difference is a room
+# ## Two keepers, one difference, and the difference is a room - then money
 #
 # The shipped Goblin's HappyJobs is Train at 100% and nothing else. So a Goblin
 # with a training room trains, and a Goblin without one has an empty table -
@@ -26,6 +26,15 @@
 # lairs, because a creature has to have somewhere to live before it does
 # anything else (Q150) and because the first draft of the wage-bill scenario
 # learned that the hard way.
+#
+# BOTH ALSO HAVE A TREASURY WITH GOLD IN IT, and since Q205 that is load-bearing
+# rather than scenery. Training bills the keeper five gold a game second per
+# creature and the original's handler tests the keeper's gold before it looks
+# for a room, so a keeper with nothing in the bank is refused the job for
+# poverty and never gets as far as finding out whether it built the room. Player
+# 3 is given 1200 - enough for about 120 seconds of two Goblins and no more, so
+# that the run shows both the training and the end of it. Player 4 is given 500
+# and never spends a coin, because it has nowhere to train.
 #
 # ## The asymmetry worth watching for
 #
@@ -42,18 +51,32 @@
 #
 # ## What to watch in the run
 #
-#   * job_taken job=Train for player 3's Goblins, within a few seconds, then
-#     job_started when they arrive. effect=unbuilt: they stand in the room and
-#     nothing happens to them, because what training is WORTH has an open unit
-#     question of its own and is not invented here.
-#   * job_refused job=Train reason=no_room for player 4's, five game seconds
-#     apart - the reselection gate - and no_work between them at 50 a second.
-#   * creature_mood for player 4's pair at about 5m30s, Content->Unhappy, with
-#     worst=Work naming which of the six anger buckets did it (ADR-0081). That
-#     is the whole mechanic in one line: the keeper who built no training room
-#     is told which grievance is about to cost it a creature.
-#   * and then NOTHING more from no_work for that pair, because they are unhappy
-#     now and the unhappy chooser does not charge it.
+#   * job_taken job=Train effect=built for player 3's Goblins at t1 and t58,
+#     then trained every game second: gain=10 a tick, four ticks, 40 a game
+#     second. The Goblin's ExpPerSecondTraining is 40 and it divides by variable
+#     19 exactly, so this creature loses nothing to the loader's truncation - a
+#     Vampire's 30 would deliver 28.
+#   * level_up 1->2 at t1584 and t1654, discarded=0. Zero because 3000 is a
+#     whole number of awards and not because nothing is ever discarded: DK2
+#     ZEROES the balance on promotion and throws the overshoot away, which is
+#     why the award's size and cadence are behaviour rather than schedule.
+#   * job_lost reason=cannot_pay cost=5 at t2519 and t2539. THE MONEY RUNS OUT.
+#     Player 3 was given 1200 gold, two Goblins cost 5 a game second each, and
+#     at about t2500 the treasury is empty and both lose the job on the spot.
+#     Training is the only job in DK2 a keeper can be evicted from by being poor.
+#   * job_refused job=Train reason=no_room for player 4's pair, five game
+#     seconds apart - the reselection gate - and no_work between them at 50 a
+#     second. Player 4 is FUNDED on purpose: the original's training handler
+#     tests the keeper's gold before it looks for a room, so a broke player 4
+#     would be refused for poverty and this contrast would vanish.
+#   * creature_mood four times, and the pairing is the point. Player 4's Goblins
+#     turn Content->Unhappy at t6839/t6879 with worst=Work at 16400 against an
+#     unhappy_at of 16383. Player 3's turn at t9339/t9359 with the same numbers -
+#     2500 ticks later, because they spent that long training. TWO KEEPERS
+#     ARRIVE AT THE SAME UNHAPPY GOBLIN BY DIFFERENT ROUTES: one never built the
+#     room, the other could not keep paying for it.
+#   * and then nothing more from no_work for any of the four, because they are
+#     unhappy now and the unhappy chooser does not charge it.
 #   * prayed, once a second, for player 3's Vampire. It is there to be the third
 #     creature in a dungeon with two beds, so it never gets one - and its
 #     happy table is Research 80% / Praying 20% with no library built, so it
@@ -64,46 +87,70 @@
 #
 # ## What is missing
 #
-# Only Praying has an effect built. A creature that takes Train, Research, Guard
-# or Drink walks to the room and stands in it, and every second of that is a
-# second it is not idle and not accruing AngerNoWork - which is behaviour, and
-# is the half of each job the choosers actually depend on. But nothing is
-# researched, manufactured, guarded or won.
+# Two of the nine jobs have an effect: Praying and Training. A creature that
+# takes Research, Guard, Drink or Manufacture walks to the room and stands in
+# it, and every second of that is a second it is not idle and not accruing
+# AngerNoWork - which is behaviour, and is the half of each job the choosers
+# actually depend on. But nothing is researched, manufactured, guarded or won.
 #
-# Praying is built because since ADR-0081 the Temple is the only thing in DK2
-# that drains an anger bucket it did not fill: -275 a second from all six, plus
-# 33 health. Player 3 has one so that the run shows it working.
+# Research and Manufacture are the nearest to buildable and it is not the rate
+# that stops them: ResearchPerSecond and ManufacturePerSecond sit in the same
+# four-field family as training's rate, go through the same loader divide, and
+# their category hooks (4 and 5) add the result to the PLAYER rather than to the
+# creature. What is missing is a keeper with anything to research or make.
+#
+# The combat rate is read too and cannot be used: ExpPerSecond belongs to
+# category 22 - battle, fleeing, responding to a threat - and nothing here
+# fights. Across every shipped creature it is exactly five times the training
+# rate, which is a designer relationship rather than a coincidence in one
+# record.
 #
 # How long a creature keeps a job is ours, and there is evidence that it is not
 # a timer: DK2 ships MotionlessWhileResearching/Manufacturing/Praying/Training
 # Seconds, StateCounterWhileGuarding and MinimumJobDurationSeconds, and every
-# one of the six is read by nothing at all.
+# one of the seven is read by nothing at all - re-confirmed when training was
+# read (Q205), along with one variable of a different kind:
+# EPLossSecondWhileNotTraining HAS a reader and ships as zero, so DK2 was built
+# to make experience decay unless you kept your creatures training and the
+# feature was turned off rather than cut.
 #
-# Evidence: docs/research/job-selection.md. Decisions: ADR-0082, ADR-0081.
-# Questions: Q2, Q203.
+# Evidence: docs/research/job-selection.md, docs/research/training.md.
+# Decisions: ADR-0082, ADR-0081, ADR-0083. Questions: Q2, Q203, Q205.
 
 id: creatures-two-keepers-find-work-for-a-goblin-001
 question: >
   A Goblin's whole happy table is Train. Does the keeper that built a training
-  room get a Goblin who walks to it and stays there, does the keeper that built
-  none get one that takes AngerNoWork at 50 a second until it turns unhappy,
-  and does the charge stop the moment it does?
+  room get a Goblin who walks to it, is paid 40 experience a game second for
+  standing there and reaches level 2 - and then loses the job the second the
+  keeper's gold runs out? Does the keeper that built no room get one that takes
+  AngerNoWork at 50 a second until it turns unhappy, and do both keepers end up
+  with the same unhappy Goblin by different routes?
 map: flat_16x10
 seed: 11
 duration_ticks: 12000
 setup:
   players:
-    - { id: 3, gold: 0, mana: 0 }
-    - { id: 4, gold: 0, mana: 0 }
+    # 1200 gold, which is 120 game seconds of two Goblins training at 5 a
+    # second each. Deliberately not enough for the whole run.
+    - { id: 3, gold: 1200, mana: 0 }
+    # Player 4 is funded on purpose. Training's handler tests the keeper's
+    # gold BEFORE it looks for a room, so a broke player 4 would be refused
+    # for poverty and the run would never show what this scenario is about.
+    # It never spends a coin, because it has nowhere to train.
+    - { id: 4, gold: 500, mana: 0 }
   rooms:
     # Player 3: somewhere to live, somewhere to train, somewhere to pray.
     - { type: Lair, at: [2, 2], player: 3 }
     - { type: Lair, at: [3, 2], player: 3 }
     - { type: Training Room, at: [2, 5], size: [2, 2], player: 3 }
     - { type: Temple, at: [5, 2], size: [2, 2], player: 3 }
+    # Somewhere to keep the money, because training is billed to the keeper
+    # and a keeper's gold lives in treasury tiles or nowhere.
+    - { type: Treasury, at: [8, 6], player: 3 }
     # Player 4: somewhere to live, and nothing to do.
     - { type: Lair, at: [12, 6], player: 4 }
     - { type: Lair, at: [13, 6], player: 4 }
+    - { type: Treasury, at: [10, 6], player: 4 }
   creatures:
     # Two Goblins standing ON the two lair tiles, so they bed on the first tick
     # and the beds are gone before anything else can walk over. The first draft

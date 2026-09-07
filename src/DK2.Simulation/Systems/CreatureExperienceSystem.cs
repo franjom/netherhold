@@ -65,7 +65,12 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
+        // ON THE ORIGINAL'S TICK, not ours, and not once a game second. DK2
+        // awards a worker its 20 once per original tick, and DK2 throws away the
+        // overshoot when a creature levels (Q79/Q205,
+        // CreatureLevelRules.Grant), so four awards of 20 and one award of 80
+        // leave different balances behind. The cadence is behaviour here.
+        if (!SimulationTiming.OnOriginalTick(context.Tick.Value)) return;
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -83,18 +88,22 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
             if (CreatureDeathRules.IsDown(state)) continue;
             if (state.Activity == CreatureActivity.Leaving) continue;
 
-            int gained = CreatureLevelRules.ExperiencePerSecond(database, creature, state);
+            int gained = CreatureLevelRules.WorkExperiencePerOriginalTick(
+                database, creature, state);
             if (gained == 0) continue;
 
-            state.ExperiencePoints += gained;
-
             int before = state.Level;
-            if (!CreatureLevelRules.TryLevelUp(database, creature, state)) continue;
+            int needed = CreatureLevelRules.ExperienceForNextLevel(database, creature, before);
+            int banked = state.ExperiencePoints;
+            if (!CreatureLevelRules.Grant(database, creature, state, gained)) continue;
 
+            // "discarded", not "spare": DK2 zeroes the balance on promotion and
+            // the overshoot is gone (Q127, corrected 2026-09-07). The number is
+            // logged because it is the thing this project used to carry.
             context.Emit(SystemName, "creature_level_up",
                 $"creature={state.Id} type={creature.Name} " +
                 $"player={state.OwnerPlayerId} {before}->{state.Level} " +
-                $"spare_xp={state.ExperiencePoints} " +
+                $"discarded={banked + gained - needed} " +
                 $"next_at={CreatureLevelRules.ExperienceForNextLevel(database, creature, state.Level)} " +
                 $"health={state.Health}/{CreatureHealthRules.MaxHealth(database, creature, state)} " +
                 $"speed={CreatureLevelRules.SpeedRaw(database, creature, state.Level)}");

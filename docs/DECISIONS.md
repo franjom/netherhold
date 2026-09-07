@@ -6583,3 +6583,129 @@ itself and deserves its own sitting.
   (nothing is reserved, ADR-0060) and a useless run. The Goblins now start
   standing on the beds. Third time a scenario's setup has hidden the thing it
   was built to show.
+
+---
+
+## ADR-0083 — Training pays, and the experience model underneath it was wrong in three places
+
+**Date:** 2026-09-07
+**Status:** accepted
+**Questions:** Q205 (answered), Q79 (answered), Q127 (both readings corrected),
+Q124 (one clause promoted from choice to fact), Q186 (advanced), Q203 (two more)
+**Evidence:** `docs/research/training.md`
+
+### Context
+
+ADR-0082 gave a non-worker a day: a Goblin rolls Train, walks to the training
+room and stands in it. **What that was worth was unread**, and it was the one
+loose thread left in M4.
+
+The rate had been sitting in the creature record under the name
+`ExpPerSecondTraining` and was not used because the name could not be trusted.
+The neighbouring `ExpPerSecond` reads **1200** for an Imp against a balance-table
+`ImpExperienceGainPerSecond` of **20**; 20 × 60 = 1200; and this project had
+written that down as **STRONGLY INFERRED evidence that the record's rates are per
+minute** — two independent fields agreeing on one creature's rate.
+
+### Decision
+
+Build training, and correct the experience model it landed on.
+
+**1. The rate is per second and the loader is what says so.** DK2's creature
+loader stores `ExpPerSecondTraining` as `file value / variable 19`, flooring at 1
+when the source is non-zero. Three siblings go through the same divide —
+`ExpPerSecond`, `ResearchPerSecond`, `ManufacturePerSecond` — and their immediate
+neighbour `ExpForNextLevel` is stored **raw**, which is the tell: a threshold is
+not a rate. `SimulationTiming.LoaderRatePerTick` is now the one definition of
+that conversion, and `PrisonRules` uses it instead of its own copy. The known
+membership of that loader idiom goes from six fields to ten.
+
+**2. The 1200 was a coincidence between two unrelated mechanics.**
+`ExpPerSecond` belongs to state **category 22** — battle, fleeing,
+threat-response — so it is **combat** experience, which is the owner's own *"to
+get to level 10 they need to fight actual fights"* (Q124). The per-minute reading
+is withdrawn. Third instance in this project of two correct numbers that never
+meet.
+
+**3. The payment hangs off the state's category, not the state.** None of the six
+training states awards anything. The 32 category records at `0x00699688` each
+carry an enter hook at `+0x04`, an update hook at `+0x14` and a leave hook at
+`+0x24`, and the per-tick dispatcher calls the current category's update hook
+before the state's own handler. Category 13 is training; its update hook is the
+payment. All 32 records are now decoded (Q186).
+
+**4. Training bills the keeper five gold a game second, and poverty ends the
+job.** `ModifyPlayerColdWhileTrainingPerSecond` is −5 and "Cold" is the shipped
+spelling of gold. The original tests the keeper's gold before entering the state
+and before every charge, and returning failure from a category update hook makes
+the dispatcher put the creature back to idle. **Training is the only job in DK2 a
+keeper can be evicted from by being poor.** `JobRules.Refused` now makes that
+test too, and *before* the level test, because that is the order in the handler.
+
+**5. `CreatureLevelRules.TryLevelUp` is replaced by `Grant`, and Q127's two
+readings were both wrong.** DK2 promotes **once** and **zeroes** the balance —
+the overshoot is discarded, not carried, and a large award cannot buy two levels.
+A negative award larger than the balance is a **no-op**, not a clamp. A
+`ExpForNextLevel` of zero refuses everything, losses included.
+
+**6. Q79: imp experience is per tick of work, not per job.** The owner leaned
+*"per job done"* and named exactly the right activities.
+`ImpExperienceGainPerSecond` is read at nine sites, all in the imp's task unit,
+all awarding the **raw 20** with no divide, each guarded by a predicate that
+decompiles to *"is this tile still a valid target"* rather than *"the job
+finished"*. It is **the one rate in the family that is not divided by variable
+19**, so its name is wrong by a factor of four in the opposite direction to
+everything around it: **80 a game second**, and an imp reaches level 2 in about
+**37 seconds** of work rather than the 150 this project had asserted in a test
+name for three weeks.
+
+**7. Both awards are paid on the original's tick, not once a game second.**
+`SimulationTiming.OnOriginalTick`. Not a flourish — because the promotion
+**zeroes** the balance, four awards of ten and one award of forty leave different
+numbers behind on any second that crosses a threshold. The cadence is behaviour.
+
+### Consequences
+
+- **`TrainingRules`** and the `Train` branch of `CreatureJobSystem.Working`.
+  `JobRules.EffectIsBuilt` now names two jobs.
+- **The truncation is reproduced, not rounded away.** 30 / 4 = 7 gives 28 a
+  second, and **26 of the 46 shipped creatures lose something** — the heroes'
+  lords and Horny lose a fifth. So does the **floor**, which is reachable: the
+  Skeleton's `ResearchPerSecond` of 1 and the Dark Angel's 3 both become 4 a
+  second.
+- **A fixture drift, caught by needing the number.** The fixture Goblin had been
+  inheriting the Imp's 30 and 1200; its own are 40 and 200.
+- **One more inert balance variable (Q203), and it is a new KIND of inert.**
+  `EPLossSecondWhileNotTraining` **has a real reader and ships as zero**: a
+  per-second hook that drains experience from any creature whose state category
+  is not 13. DK2 was built to make experience decay unless you kept your
+  creatures training, and the feature was **turned off rather than cut** — which
+  is worth distinguishing from the twelve that have no reader at all, because
+  the mechanism is intact and a mod that sets the rate would work.
+  (`MotionlessWhileTrainingSeconds` is dead too and this dig re-confirmed it,
+  but ADR-0082 had already found it; it is not a new one.)
+- **41 of 46 creatures have `ExpPerSecond` exactly 5 × `ExpPerSecondTraining`**,
+  which argues the two are the same kind of quantity without reading any code.
+  The exceptions are three uniques whose combat rate was raised without the
+  training column following, the Maiden Of The Nest, and **the Imp at forty
+  times** — the one creature that neither trains nor fights, and the source of
+  the number that misled us.
+- The scenario now shows the whole arc: two Goblins train, both reach level 2,
+  the treasury empties at about t2500 and both lose the job on the spot, and
+  2500 ticks later they are the same unhappy Goblin the keeper who built no room
+  has. **Two keepers arrive at the same creature by different routes.** Player 4
+  had to be *given* gold for its refusal to still say `no_room`.
+- **1130 tests**, 26 scenarios. `HashVersion` unchanged at 33 — no hashed field
+  changed shape — but hashed *values* move wherever experience is earned.
+
+### What is ours, and flagged
+
+- A capped creature keeps the job for up to one five-second gate instead of being
+  ejected by a state handler, because we have one working state where DK2 has
+  six.
+- The gold comes out of the keeper's tiles rather than the tile underfoot.
+- No floating "−20", no message `0x37`, no combat-pit fallback for a creature
+  that has outgrown the training room.
+- **Q79's factor of four rests on `tile-work.md`'s per-tick accrual** rather than
+  on a caller read. The probe is named in the research doc: find what iterates
+  the imp task table at `0x006E4198`.

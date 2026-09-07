@@ -68,13 +68,22 @@ public static class JobRules
     /// Whether this job's <i>effect</i> is built, as opposed to merely its
     /// choosing and its walk.
     ///
-    /// <para>Only Praying is, and that is a deliberate order rather than an
-    /// accident of what was easiest. Since ADR-0081 the Temple is <b>the only
-    /// thing in the game that takes back a grievance it did not cause</b>, so
-    /// it is the one job whose absence leaves a hole in a mechanic that already
-    /// exists. The rest are walked to and stood in, and say so in the log.</para>
+    /// <para><b>Two are: Praying and Training.</b> Praying came first because
+    /// since ADR-0081 the Temple is the only thing in the game that takes back a
+    /// grievance it did not cause, so it was the one job whose absence left a
+    /// hole in a mechanic that already existed. Training came second because it
+    /// is the one job whose <i>worth</i> could be read (Q205) — experience per
+    /// original tick, a level cap, and a bill to the keeper.</para>
+    ///
+    /// <para>Research, Guard, Drink, Manufacture and the rest are walked to and
+    /// stood in, and say so in the log. Research and Manufacture are the nearest
+    /// to buildable: their rates sit in the same four-field family as training's
+    /// and go through the same loader divide, and their category hooks add the
+    /// result to the <i>player</i> rather than to the creature. What is missing
+    /// is a keeper who has anything to research or manufacture.</para>
     /// </summary>
-    public static bool EffectIsBuilt(JobType job) => job == JobType.Praying;
+    public static bool EffectIsBuilt(JobType job) =>
+        job is JobType.Praying or JobType.Train;
 
     /// <summary>
     /// The keeper-or-creature test each handler makes before it looks for a
@@ -87,15 +96,27 @@ public static class JobRules
     /// each is read rather than supposed.</para>
     /// </summary>
     public static string? Refused(
-        GameDatabase database, CreatureDef creature, CreatureState state, JobType job)
+        WorldState world, GameDatabase database, CreatureDef creature,
+        CreatureState state, JobType job)
     {
         switch (job)
         {
             case JobType.Train:
-                // "level < TrainingRoomMaxExperienceLevel", the original's own
-                // comparison against the shipped 4. Above it, its handler falls
+                // Its handler makes TWO tests and this project long had only
+                // one of them. THE GOLD TEST COMES FIRST - the original's
+                // condition is `gold >= cost && level < cap`, in that order, so
+                // a broke keeper's level-9 creature is refused for poverty
+                // rather than for being too good. Cheap to get right and
+                // impossible to notice later, because only the logged reason
+                // differs (Q205).
+                if (!TrainingRules.CanAfford(world, database, state.OwnerPlayerId))
+                    return "keeper_cannot_pay";
+
+                // "level < TrainingRoomMaxExperienceLevel", the original's
+                // comparison against the shipped 4. Above it, the handler falls
                 // through to a second call that is the combat pit's - unbuilt
-                // here, and the reason a level-4 creature simply stops training.
+                // here, and the reason a level-4 creature simply stops
+                // training.
                 return state.Level < database[VariableTypeId.TrainingRoomMaxExperienceLevel]
                     ? null
                     : "at_training_cap";

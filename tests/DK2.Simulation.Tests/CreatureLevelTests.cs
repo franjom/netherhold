@@ -210,19 +210,30 @@ public class CreatureLevelTests
 
         new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]).Run(Second * 10);
 
-        Assert.Equal(200, worker.ExperiencePoints);      // 20 a second, as shipped
+        // 20 A TICK, NOT A SECOND, and DK2's tick rather than ours. The shipped
+        // name is ImpExperienceGainPerSecond and it is wrong by a factor of four
+        // (Q79, 2026-09-07): the variable is read at nine sites in the imp's
+        // task unit, every one of them awards it raw with no divide by variable
+        // 19, and every one sits beside a work accrual that happens once an
+        // original tick. So ten game seconds is forty awards, not ten.
+        Assert.Equal(10 * 20 * SimulationTiming.OriginalTicksPerGameSecond,
+                     worker.ExperiencePoints);
+        Assert.Equal(800, worker.ExperiencePoints);
         Assert.Equal(0, idler.ExperiencePoints);
-        Assert.Equal(1, worker.Level);                   // 3000 buys the level, not 200
+        Assert.Equal(1, worker.Level);                   // 3000 buys the level, not 800
     }
 
     [Fact]
-    public void AnImpThatWorksForOneHundredAndFiftySecondsReachesLevelTwoAndSpeedsUp()
+    public void AnImpThatWorksForThirtySevenAndAHalfSecondsReachesLevelTwoAndSpeedsUp()
     {
-        // The arithmetic the owner's answer makes checkable: 20 a second against
-        // the record's ExpForNextLevel of 3000 is 150 seconds of work for the
-        // second level. And the level is not bookkeeping -- it moves the
-        // creature faster, which is the thing the owner noticed in the first
-        // place ("imps gain speed as they gain more levels").
+        // THIS TEST SAID 150 SECONDS FOR THREE WEEKS AND THE ANSWER IS 37.5.
+        // The old arithmetic was 20 a second against the record's
+        // ExpForNextLevel of 3000. The rate is 20 an ORIGINAL TICK (Q79), which
+        // is 80 a game second, so the second level costs 3000 / 80 = 37.5
+        // seconds of work and lands mid-second - the 150th award falls on sim
+        // tick 749. And the level is not bookkeeping: it moves the creature
+        // faster, which is the thing the owner noticed in the first place
+        // ("imps gain speed as they gain more levels").
         GameDatabase db = Db;
         CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
         WorldState world = World(db);
@@ -235,17 +246,22 @@ public class CreatureLevelTests
         var sim = new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]);
         sim.ObserveWith(events);
 
-        // One second short, and it is still level 1 with the record's speed.
-        sim.Run(Second * 149);
+        // Thirty-seven seconds is 148 awards - two short - and it is still
+        // level 1 with the record's speed.
+        sim.Run(Second * 37);
         Assert.Equal(1, state.Level);
+        Assert.Equal(148 * 20, state.ExperiencePoints);
         Assert.Equal(7536, CreatureLevelRules.SpeedRaw(db, imp, state.Level));
 
-        sim.Run(Second);
+        // Ten more ticks carries the last two awards, and the 150th lands
+        // exactly on 3000.
+        sim.Run(10);
         Assert.Equal(2, state.Level);
         Assert.Equal(7912, CreatureLevelRules.SpeedRaw(db, imp, state.Level));
 
-        // The threshold is spent, not banked as a lifetime total (Q127), so it
-        // starts the next level from nothing.
+        // Zero because the balance is ZEROED on promotion, not because 3000
+        // came off a total of exactly 3000 - and here the two happen to agree,
+        // which is why the discard needed its own test.
         Assert.Equal(0, state.ExperiencePoints);
 
         // And the event says what it cost and what the next one costs, so a
@@ -304,23 +320,102 @@ public class CreatureLevelTests
     }
 
     [Fact]
-    public void EnoughExperienceInOneGoBuysTwoLevelsRatherThanDiscardingOne()
+    public void EnoughExperienceInOneGoBuysONELevelAndThrowsTheRestAway()
     {
-        // Nothing generates a rate this high today, but the loop is what makes
-        // the rule independent of the rate -- and a single-step version would
-        // silently drop the second level the day combat pays out in lumps.
+        // THIS TEST USED TO ASSERT THE OPPOSITE, and the opposite was wrong.
+        // Until Q205 this project looped the promotion and carried the
+        // remainder, on the reasoning that a single-step version "would silently
+        // drop the second level the day combat pays out in lumps". DK2 drops it.
+        // Its adder promotes once, sets the balance to zero, and returns - so
+        // the overshoot is gone and two levels in one award are not possible.
         GameDatabase db = Db;
         CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
         WorldState world = World(db);
         CreatureState state = world.SpawnCreature(
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
 
-        // 3000 for level 2 and 3900 for level 3, so 6900 buys both exactly.
-        state.ExperiencePoints = 6900;
+        // 3000 buys level 2 and 3900 would buy level 3, so 6900 was the number
+        // that "bought both exactly" under the old reading.
+        Assert.True(CreatureLevelRules.Grant(db, imp, state, 6900));
 
-        Assert.True(CreatureLevelRules.TryLevelUp(db, imp, state));
-        Assert.Equal(3, state.Level);
+        Assert.Equal(2, state.Level);
         Assert.Equal(0, state.ExperiencePoints);
+
+        // And the discarded 3900 is really gone: the next level costs its full
+        // price all over again.
+        Assert.Equal(3900, CreatureLevelRules.ExperienceForNextLevel(db, imp, 2));
+    }
+
+    [Fact]
+    public void LandingExactlyOnTheThresholdPromotes()
+    {
+        // The original's comparison is "balance < needed -> stop", so equality
+        // promotes. One off either way is the whole difference between a
+        // creature that levels on the second it earns its last point and one
+        // that levels a tick later.
+        GameDatabase db = Db;
+        CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
+        WorldState world = World(db);
+        CreatureState state = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+
+        state.ExperiencePoints = 2999;
+        Assert.False(CreatureLevelRules.Grant(db, imp, state, 0));
+        Assert.Equal(1, state.Level);
+
+        Assert.True(CreatureLevelRules.Grant(db, imp, state, 1));
+        Assert.Equal(2, state.Level);
+        Assert.Equal(0, state.ExperiencePoints);
+    }
+
+    [Fact]
+    public void ALossBiggerThanTheBalanceIsRefusedRatherThanClamped()
+    {
+        // DK2 subtracts only when the magnitude fits, so experience floors at
+        // zero by DECLINING the subtraction. A creature on ten points handed
+        // minus fifty keeps its ten - it does not drop to zero. The distinction
+        // exists because DK2 ships a per-second experience drain
+        // (EPLossSecondWhileNotTraining) whose rate happens to be zero, and if a
+        // mod ever turns it on this is the arithmetic it will use.
+        GameDatabase db = Db;
+        CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
+        WorldState world = World(db);
+        CreatureState state = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+
+        state.ExperiencePoints = 10;
+
+        Assert.False(CreatureLevelRules.Grant(db, imp, state, -50));
+        Assert.Equal(10, state.ExperiencePoints);
+
+        // A loss that fits is taken in full.
+        Assert.False(CreatureLevelRules.Grant(db, imp, state, -10));
+        Assert.Equal(0, state.ExperiencePoints);
+
+        // And the shipped drain is zero, which is why none of this is visible
+        // in a normal game.
+        Assert.Equal(0, TrainingRules.ExperienceLostPerSecondWhileNotTraining(db));
+    }
+
+    [Fact]
+    public void AThresholdOfZeroRefusesEverythingIncludingLosses()
+    {
+        // The original computes the level's threshold FIRST and returns without
+        // touching the balance when it is zero. So ExpForNextLevel is not merely
+        // the price of a level, it is the switch that makes a creature capable
+        // of having experience at all.
+        GameDatabase db = Db;
+        CreatureDef zero = db.CreatureById(Dk2TerrainFixture.ImpCreatureId)
+            with { ExpForNextLevel = 0 };
+        var state = new CreatureState { Level = 1, ExperiencePoints = 500 };
+
+        Assert.Equal(0, zero.ExpForNextLevel);
+        Assert.False(CreatureLevelRules.Grant(db, zero, state, 10_000));
+        Assert.Equal(500, state.ExperiencePoints);
+        Assert.Equal(1, state.Level);
+
+        Assert.False(CreatureLevelRules.Grant(db, zero, state, -100));
+        Assert.Equal(500, state.ExperiencePoints);
     }
 
     [Fact]

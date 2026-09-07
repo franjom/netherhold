@@ -993,8 +993,8 @@ is very expensive to retrofit.
 | **M10** | Campaign | Full campaign playable start to finish | after M8 |
 | **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
 
-**Status (2026-09-06 late, revision 3).** **1111 tests, 26 scenarios, 82 ADRs,
-206 catalogued questions** (72 fully open, 30 partly answered, 84 closed),
+**Status (2026-09-07, revision 4).** **1130 tests, 26 scenarios, 83 ADRs,
+208 catalogued questions** (62 fully open, 43 partly answered, 85 closed),
 `HashVersion` **33**, pin `0x21A7E4D24F37DF48`.
 
 - **M0** ✅ — ~~done except the one thing this document exists to correct: Flame has
@@ -1016,8 +1016,13 @@ is very expensive to retrofit.
 - **M4** ✅ — **all seven items exist**, closed 2026-09-06. Portal spawn
   (ADR-0042/0047), lair claim (ADR-0049/0060), sleep, hunger→hatchery
   (ADR-0066/0067), payday (ADR-0078/0079), and job selection with logged
-  reasons (ADR-0082). **Training is the loose thread**: a creature now *chooses*
-  it and walks to the room, and what a second of it is worth is unread (Q205).
+  reasons (ADR-0082). **The loose thread is tied**: training pays, at the
+  record's rate per original tick, capped at level 4 and billed to the keeper at
+  five gold a game second — and a keeper who cannot pay loses the creature's job
+  (ADR-0083, Q205). That dig also corrected the experience model underneath it:
+  a promotion **zeroes** the remainder rather than carrying it, an imp earns
+  **four times** what this project thought, and `ExpPerSecond` turned out to be
+  combat rather than "per minute" (Q79, Q127).
   Beyond the original list M4 also grew death and corpses (ADR-0051/0063), anger
   and desertion (ADR-0053/0081), levels (Q119), the Hand of Evil (ADR-0062),
   carrying (ADR-0063/0065) and the prison (ADR-0064/0068).

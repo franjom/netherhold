@@ -159,7 +159,11 @@ public static class PrisonRules
     /// <para>The loader floors the result at 1 whenever the file value is
     /// non-zero, so a creature that can be angered at all is never quietly
     /// rounded down to nothing — the Imp, the Dwarf and Horny carry 1 and keep
-    /// it. Reproduced here.</para>
+    /// it. Reproduced here, and since ADR-0083 by the shared
+    /// <see cref="SimulationTiming.LoaderRatePerTick"/> rather than by a second
+    /// copy of the arithmetic: the same loader idiom turned out to cover the
+    /// four experience and production rates as well, so there are ten known
+    /// fields going through it and one place that says what it does.</para>
     ///
     /// <para><b>The gate is not quite ours.</b> DK2 refuses the whole anger call
     /// on a bit of a creature-definition flag byte that has not been mapped;
@@ -171,10 +175,8 @@ public static class PrisonRules
     public static int AngerPerFailedFoodSearch(CreatureDef creature)
     {
         if (!CreatureAngerRules.CanBeAngered(creature)) return 0;
-        if (creature.AngerNoFood == 0) return 0;
 
-        int perTick = creature.AngerNoFood / SimulationTiming.OriginalTicksPerGameSecond;
-        return perTick != 0 ? perTick : 1;
+        return SimulationTiming.LoaderRatePerTick(creature.AngerNoFood);
     }
 
     /// <summary>

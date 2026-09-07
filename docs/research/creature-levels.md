@@ -120,35 +120,63 @@ and it is why the third clause — level 10 needs real fights — is taken as re
 the two claims that *could* be checked both checked out, and the two variables
 had been sitting unread with nothing to say what they capped.
 
-### It also resolved the unit, from the other direction
+### And it looked like it resolved the unit. IT DID NOT — RETRACTED 2026-09-07
 
-The problem was that the creature record's field this project calls
-`ExpPerSecond` reads **1200** for an Imp against a balance-table
-`ImpExperienceGainPerSecond` of **20**, and 20 x 60 = 1200, so one of the two had
-to be per minute with no way to tell which.
+**What this section said for three days, and it was wrong:**
 
-The owner's answer says imps earn **by working**, which is what the *global*
-variable is for — a rate that applies to a job, not to existing. So the global's
-20 a second is the imp's real rate, and the record's 1200 is **the same rate
-expressed per minute**. Two independent fields agreeing on one creature's rate
-promotes that from a coincidence to a reading (STRONGLY INFERRED), and on it a
-Goblin's 200 becomes 3.33 a second — fifteen minutes a level, plausible for a
-fighter, and unused here because nothing makes a Goblin fight.
+> The problem was that the creature record's field this project calls
+> `ExpPerSecond` reads **1200** for an Imp against a balance-table
+> `ImpExperienceGainPerSecond` of **20**, and 20 x 60 = 1200, so one of the two
+> had to be per minute with no way to tell which. [...] the record's 1200 is
+> **the same rate expressed per minute**. Two independent fields agreeing on one
+> creature's rate promotes that from a coincidence to a reading (STRONGLY
+> INFERRED).
+
+**Both fields are per second, the 1200 was a coincidence, and the two numbers
+are not about the same mechanic at all** (Q205, `training.md`):
+
+- **`ExpPerSecond` is COMBAT experience.** Its only reader is the per-tick update
+  hook of state **category 22** — battle, fleeing, responding to a threat. Which
+  is the owner's own third clause, *"to get to level 10 they need to fight actual
+  fights"*, in the code. Nothing puts a **worker** into a category-22 state, so
+  the Imp's 1200 is **unreachable**.
+- **The loader divides it by variable 19 as it stores it**, flooring at 1 — the
+  same conversion `angerNoLair` and its siblings go through. That is what a
+  per-second number becoming a per-tick one looks like, and it is the positive
+  evidence the per-minute reading never had.
+- **`ImpExperienceGainPerSecond` is not divided** and is not per second either:
+  it is added **per tick of work**, so 80 a game second (Q79).
+- And **41 of the 46 shipped creatures have `ExpPerSecond` exactly 5 ×
+  `ExpPerSecondTraining`** — the Imp is one of the five that do not, at forty
+  times. So the record whose number started this was the wrong record to reason
+  from twice over.
+
+**Why the mistake was tempting, and the lesson.** "Two independent fields
+agreeing on one creature's rate" is a good argument when the fields are about the
+same thing. These were not: one is a global rate for working, the other a record
+rate for fighting, and 60 is a plausible-looking factor between any two rates.
+**Before treating two matching numbers as corroboration, check that the engine
+ever puts them in the same place** — the standing note this project already
+keeps, earning its keep for the third time.
 
 ### What is implemented
 
 `CreatureExperienceSystem`, once a game second, registered last so a creature is
 paid for a second it actually worked:
 
-- **A worker earns `ImpExperienceGainPerSecond` (20) while its activity is
-  `Working`** — digging, claiming, reinforcing, mining. An **idle imp earns
-  nothing**, which is the half of the owner's sentence that makes it a rule.
-- **150 seconds of work buys level 2** (3000 / 20), and about **114 minutes of
-  continuous work** buys level 10.
-- **Everything that is not a worker earns nothing**, because training and
-  fighting do not exist. A Goblin stays level 1 for ever, and a test asserts that
-  rather than leaving it implicit — the tempting fix is to give everything the
-  imp's rate and call it progression.
+- **A worker earns `ImpExperienceGainPerSecond` (20) per ORIGINAL TICK while its
+  activity is `Working`** — digging, claiming, reinforcing, mining — so **80 a
+  game second** (Q79, corrected 2026-09-07; this said "a second" and therefore
+  ran at a quarter speed). An **idle imp earns nothing**, which is the half of
+  the owner's sentence that makes it a rule.
+- **About 37 seconds of work buys level 2** (3000 / 80), and roughly **29 minutes
+  of continuous work** buys level 10. Both numbers were four times too large
+  here until the rate was read.
+- **A creature that is not a worker earns by TRAINING** (ADR-0083): its record's
+  `ExpPerSecondTraining` divided by variable 19, per original tick, capped at
+  `TrainingRoomMaxExperienceLevel` and billed to the keeper at five gold a game
+  second. **Fighting still does not exist**, so nothing reaches level 5 and a
+  test asserts the ceiling rather than leaving it implicit.
 - Levelling **stops at 10**, because the stat table stops there. The owner's two
   room caps are lower and belong to the *rooms*, so they arrive with the rooms.
 
@@ -157,19 +185,33 @@ paid for a second it actually worked:
 in the pinned determinism run: the fixture's working imps bank 20 a second, so
 500 ticks is 500 experience — not enough for a level, enough to move the hash.
 
-### Two readings that had to be chosen (Q127)
+### Two readings that had to be chosen (Q127) — AND BOTH WERE WRONG
 
-1. **The threshold is spent, not accumulated.** `ExperiencePoints` holds progress
-   towards the *next* level, so it drops to the remainder on promotion. DK2 keeps
-   a field its debug dump calls `ExperiencePoints` and nothing says which of the
-   two it is. Spending keeps the number small and makes the curve additive; the
-   alternative is one comparison away.
-2. **A promotion loops.** Enough experience in one go buys two levels rather than
-   discarding the second. Nothing generates a rate that high today, and a
-   single-step version would silently drop levels the day combat pays out in
-   lumps.
+Read out of DK2's adder on 2026-09-07 (`training.md` §7). What this section
+chose, against what the original does:
 
-## 5. One reading we had to choose
+| Chosen here | DK2 |
+|---|---|
+| **The threshold is spent**, so the balance drops to the remainder | **The balance is ZEROED.** The overshoot is discarded |
+| **A promotion loops**, so a big award buys two levels | **One level per call**, however large the award |
+
+The argument written down for the second one was that *"a single-step version
+would silently drop levels the day combat pays out in lumps."* It does drop them.
+That is the game.
+
+Two clauses that were never guessed at and are now known:
+
+- **`ExpForNextLevel` of zero refuses everything**, losses included. The field is
+  not merely the price of a level, it is the switch that makes a creature capable
+  of having experience.
+- **A loss larger than the balance is a no-op**, not a clamp to zero.
+
+**And the discard makes the cadence load-bearing**, which is why both awards are
+now paid on the original's four-a-second tick rather than once a game second:
+four awards of ten and one of forty leave different numbers behind on any second
+that crosses a threshold.
+
+## 5. One reading we had to choose — and it was right (CONFIRMED 2026-09-07)
 
 `ExperienceForNextLevel` is indexed by the creature's **current** level. Under
 that reading level 1 gets the implicit 100% and the first level costs exactly
@@ -177,9 +219,13 @@ the record's 3000, which is the natural meaning of a field called *experience fo
 next level*. Indexed by the **target** level instead, the first level would cost
 3900 and the record's own number would appear nowhere.
 
-Nothing reads it yet, so the choice costs nothing today. It is asserted in a test
-so that whoever implements levelling knows a choice was made rather than
-inheriting it silently.
+**DK2's adder settles it**: it indexes the column with the creature's current
+level byte and uses the record's raw value when that level is 1. So this is now
+a fact rather than a choice — the one of the three Q124/Q127 readings this
+project got right, against two it got wrong. Worth keeping the reasoning that
+led here, because the reasoning was the same in all three cases and only the
+answer differed: **a plausible reading is not evidence, and the only way to tell
+which of your plausible readings are the good ones is to read the code.**
 
 ## 6. What this unblocks
 
