@@ -675,6 +675,107 @@ call is unread**. Nothing about the reset depends on it — that rests on
 `FUN_004E5650`, which is decompiled — but the table above should be read as *the
 slots we have resolved*, not as the table's full set of callers. Q210.
 
+##### RESOLVED, 2026-09-07 (Q210): all twelve callers, and the last slot is a job id
+
+Every indexing site now has its slot, read off the load that follows the `LEA`.
+The addressing is always the same three instructions — bounds-check the type
+byte at `room+0x18` against `0 < id <= 26`, `LEA ECX,[EAX + EAX*4]` for `id*5`,
+then `LEA EAX,[EAX + ECX*8 + 0x6a1e9f]` for `id*41 + base` — so the record base
+is computed identically everywhere and **the displacement on the next load is
+the slot**.
+
+| slot | caller(s) | what it is |
+|---|---|---|
+| `+0x01` | `FUN_004E3800` | **the room constructor** |
+| `+0x05` | `FUN_004E39C0` | null for portals |
+| `+0x09` | `FUN_004E4480` | a tile/effect pass |
+| `+0x0d` | `FUN_004E5650` | **the room ownership change** — fires the reset |
+| `+0x11` | `FUN_004E3DD0` | null for portals |
+| `+0x15` | **`FUN_004E4B00`** | **the per-tick handler**, `0x004DBBE0` for a portal |
+| `+0x19` | `FUN_004E6C90` (accessor), `FUN_004E8DA0` | integer, **UNKNOWN** |
+| `+0x1d` | `FUN_004E6D10` (accessor) | integer, **UNKNOWN** |
+| `+0x21` | `FUN_004E6CD0` (accessor) | integer, **UNKNOWN** |
+| `+0x25` | `FUN_004E8DA0` (twice) | **the job this room offers** |
+
+`FUN_004E4B00` is the one that was worth naming: the table above used to say
+*"per-tick"* with no caller, and this is it. It reads `+0x15`, calls it
+`thiscall` on the room, and **treats the return as a gate** — a zero return ends
+the routine, a non-zero return (or a null slot) continues into a tick stamp at
+`room+0x73` and further work. The three accessors are trivial getters:
+bounds-check, load one integer, return it, and return 0 when the id is out of
+range.
+
+**`+0x25` is a `JobType`, and eight rooms prove it at once.** `FUN_004E8DA0`
+loads the slot, passes it to a check taking the *creature definition*
+(`creature+0x370`), and on the other path writes it into **`creature+0x2bc`** —
+so it is a job the room hands to a creature after asking the creature's record
+whether it may do it.
+
+| room | `+0x25` | `JobType` |
+|---|---|---|
+| Hatchery (4) | 2 | `Eat` |
+| Library (6) | 3 | `Research` |
+| Training Room (7) | 4 | `Train` |
+| Workshop (10) | 5 | `Manufacture` |
+| Guard Room (9) | 6 | `Guard` |
+| Torture Chamber (12) | 7 | `Torture` |
+| Temple (13) | 8 | `Praying` |
+| Casino (15) | 9 | `Drink` |
+| **Prison (11)** | **22** | **`Wait`** |
+
+Every one matches `JobType` as this project already had it, **including the two
+that are not sequential** — `Drink` is 9 and `Wait` is 22. Eight agreements from
+a table opened for an unrelated reason is what turns `JobRules.RoomFor` from
+strongly inferred into confirmed, and the Prison row is a ninth entry we did not
+have. It is inert today: no creature's job tables list `Wait`.
+
+**What the table does not say.** The **Lair** and **Combat Pit** records carry
+**no** job id, so `Sleep`, `Sulk` and `CombatPitSpectate` are reached some other
+way and are neither confirmed nor contradicted here. A room with no job slot is
+not a room with no purpose.
+
+**The three unidentified integers, tabulated so nobody has to dump it again.**
+Read from `0x006a1e9f` on 2026-09-07; every record's leading type byte equals
+its own id, which re-confirms the base and the 41-byte stride independently of
+how they were found.
+
+| id | room | `+0x19` | `+0x1d` | `+0x21` | `+0x25` |
+|---|---|---|---|---|---|
+| 1 | Treasury | 188 | — | 5 | — |
+| 2 | Lair | 79 | — | — | — |
+| 3 | **Portal** | **197** | **197** | **52** | — |
+| 4 | Hatchery | 92 | — | 6 | 2 |
+| 5 | Dungeon Heart | 71 | 71 | 5 | — |
+| 6 | Library | 53 | — | — | 3 |
+| 7 | Training Room | 108 | — | — | 4 |
+| 8 | Wooden Bridge | — | — | — | — |
+| 9 | Guard Room | 97 | — | — | 6 |
+| 10 | Workshop | 63 | — | — | 5 |
+| 11 | Prison | 114 | 114 | 3 | 22 |
+| 12 | Torture Chamber | 130 | 130 | — | 7 |
+| 13 | Temple | 101 | 101 | 4 | 8 |
+| 14 | Graveyard | — | — | — | — |
+| 15 | Casino | 145 | — | — | 9 |
+| 16 | Combat Pit | 137 | 137 | — | — |
+| 17 | Stone Bridge | — | — | — | — |
+| 18–24 | the hero gates, Mercenary Gate | — | — | — | — |
+| 21 | Hero Gate Front End | — | — | — | — |
+| **25** | **Hero Portal** | **197** | **197** | **52** | — |
+| 26 | Crypt | 274 | — | — | — |
+
+Two patterns worth recording without a reading attached. **`+0x1d`, wherever it
+is non-zero, is an exact copy of `+0x19`** — six rooms (Portal, Dungeon Heart,
+Prison, Torture Chamber, Temple, Combat Pit, plus Hero Portal as Portal's twin).
+And `+0x21` is small (3–6) everywhere except the two portals, which carry **52**.
+Both are **UNKNOWN**, and guessing from the shape of a number is the move that
+made bit 30 of the creature flags look right. The accessors are the way in:
+whoever calls `FUN_004E6C90`, `FUN_004E6CD0` and `FUN_004E6D10` will say what
+each integer is for.
+
+**Rows 18–24 being empty is consistent with the shipped data** rather than a
+gap in the dump: those are the hero gates and the Mercenary Gate, two of which
+the data itself marks *"not used"*.
+
 For a portal, `+0x01` and `+0x0d` are the two reset routines. Both stamp
 `room[0x49] = now` and zero `room[0x4D]`; the constructor's also sets one flag.
 

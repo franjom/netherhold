@@ -7227,3 +7227,40 @@ guessing from "damage that doubles on one terrain" is exactly the move that made
 bit 30 look right. Bit 1 (Stone Knight alone) is now a **bounded** negative: no
 instruction in *either* executable block tests it, and none reads a wider field
 at `+0x687`, `+0x688` or `+0x689` that would cover the byte without naming it.
+
+### ADR-0088 — The room → job map is confirmed, and `JobRules` stops being an inference
+
+**2026-09-07, Q210.** DK2's per-room-type handler table (`0x006a1e9f`, 41 bytes
+a record, ids 1..26) ends each record with a **job id**. `FUN_004E8DA0` loads
+it, asks the creature's own definition whether that creature may take the job,
+and writes it into `creature+0x2bc`.
+
+**Decision.** `JobRules.RoomFor` is now `Confidence.Confirmed`. Reading all 26
+records gives Hatchery 2, Library 3, Training Room 4, Workshop 5, Guard Room 6,
+Torture Chamber 7, Temple 8, Casino 9 — **eight rows matching this project's
+`JobType` exactly, including both values that are not sequential** (`Drink` is 9
+and not 10). Eight independent agreements, off a table opened while chasing a
+portal reset, is better evidence than the *"which finder does each handler
+call"* reasoning it replaces, where only Guard was certain.
+
+**One row added, and it is inert.** Prison → `JobType.Wait` (22). No creature's
+job tables list `Wait` and nothing in this project asks for it, so the mapping
+changes no behaviour; it is present because the table states it and **a missing
+row is harder to notice than an unused one.** `HashVersion` unchanged.
+
+**Two rows deliberately not touched.** The **Lair** and **Combat Pit** records
+carry *no* job id, so `Sleep`, `Sulk` and `CombatPitSpectate` are reached by
+another route. They keep the evidence they had — Sulk's Lair requirement still
+rests on its own handler — and this table is recorded as **one dispatch path
+rather than the whole map**. A room with no job slot is not a room with no
+purpose, and reading the empty slots as "no job" would have been the same
+over-reading that a zero rate invites.
+
+**Also resolved, with nothing to build.** All twelve of the table's indexing
+sites now have their slot. `FUN_004E4B00` is the **per-tick caller** — the slot
+map had that row with no caller against it — and it treats the handler's return
+as a gate, ending the routine on zero. Three trivial accessors cover the
+integers at `+0x19`, `+0x1d` and `+0x21`, which remain **UNKNOWN** and are
+tabulated for all 26 rooms in `portals.md` rather than guessed at: `+0x1d`
+copies `+0x19` wherever it is set, and `+0x21` is 3–6 everywhere except the two
+portals, which carry 52.

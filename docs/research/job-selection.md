@@ -210,3 +210,46 @@ effect. `JobRules`, `CreatureJobSystem`, `CreatureActivity.GoingToJob` and
   convention. **Research and manufacture are still not produced**, and it is no
   longer the rate that stops them: their hooks pay the *player*, and no keeper
   here has anything to research or make.
+
+---
+
+## The room → job map is confirmed, from a table found for another reason (2026-09-07, Q210)
+
+`JobRules.RoomFor` was **strongly inferred**: only Guard was certain, because
+its handler passes the literal `9` to its room search. The rest followed from
+which finder each handler calls — *"the obvious ones"*, which is exactly the
+kind of reasoning that has been wrong here before.
+
+**DK2's per-room-type handler table settles eight of them at once.** Each of its
+26 records ends with a **job id** (`portals.md`, slot `+0x25`), and
+`FUN_004E8DA0` loads it, asks the *creature's definition* whether that creature
+may do the job, and writes it into `creature+0x2bc`.
+
+| room | id | `JobType` |
+|---|---|---|
+| Hatchery | 2 | `Eat` |
+| Library | 3 | `Research` |
+| Training Room | 4 | `Train` |
+| Workshop | 5 | `Manufacture` |
+| Guard Room | 6 | `Guard` |
+| Torture Chamber | 7 | `Torture` |
+| Temple | 8 | `Praying` |
+| Casino | 9 | `Drink` |
+| **Prison** | **22** | **`Wait`** |
+
+Every row matches the `JobType` numbering this project already had, **including
+both non-sequential values** — `Drink` is 9 rather than 10, and `Wait` is 22.
+Eight independent agreements, from a table opened while chasing a portal reset,
+is stronger evidence than the handler-shape reasoning it replaces, so
+`JobRules` is now **CONFIRMED**.
+
+**One row we did not have: Prison → `Wait`.** Added, and **inert**: no
+creature's job tables list `Wait` and nothing in this project asks for it. It is
+in the map because the table states it, and a missing row is harder to notice
+than an unused one.
+
+**Two rows the table cannot speak to.** The **Lair** and **Combat Pit** records
+carry *no* job id, so `Sleep`, `Sulk` and `CombatPitSpectate` are reached by some
+other route and are neither confirmed nor contradicted. Sulk needing a Lair —
+the finding at the top of this document — rests on its handler as before. A room
+with no job slot is not a room with no purpose.

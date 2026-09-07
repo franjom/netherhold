@@ -29,12 +29,27 @@ namespace DK2.Simulation;
 /// does, the job has failed and the chooser moves on.</item>
 /// </list>
 ///
-/// <para><b>One room type is confirmed outright rather than inferred</b>: the
+/// <para><b>One room type was confirmed outright rather than inferred</b>: the
 /// Guard handler passes the literal <c>9</c> to its room search, and 9 is
-/// <see cref="RoomTypeId.GuardRoom"/>. The others follow from which finder each
-/// handler calls, and they are the obvious ones.</para>
+/// <see cref="RoomTypeId.GuardRoom"/>. The others followed from which finder
+/// each handler calls, and they are the obvious ones.</para>
+///
+/// <para><b>Eight are now confirmed from the other direction (Q210).</b> DK2's
+/// per-room-type handler table carries a <b>job id</b> in its last slot, and
+/// reading all 26 records gives Hatchery→2, Library→3, Training→4, Workshop→5,
+/// Guard→6, Torture→7, Temple→8, Casino→9 — every one matching
+/// <see cref="JobType"/> and this map, including the two odd numbers
+/// (Drink is 9, not 10). Eight independent agreements read off a table found
+/// for an unrelated reason, so the mapping is no longer an inference from
+/// handler shape. It also adds a ninth row, Prison→<see cref="JobType.Wait"/>.
+///
+/// <para>The table is <i>one</i> dispatch path and not the whole map: the Lair
+/// and Combat Pit records carry <b>no</b> job id, so <see cref="JobType.Sleep"/>,
+/// <see cref="JobType.Sulk"/> and <see cref="JobType.CombatPitSpectate"/> are
+/// neither confirmed nor contradicted by it — they are reached another way.</para>
+/// </para>
 /// </summary>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/job-selection.md")]
+[Dk2Behavior(Confidence.Confirmed, "docs/research/job-selection.md")]
 public static class JobRules
 {
     /// <summary>
@@ -61,6 +76,13 @@ public static class JobRules
         JobType.Praying => RoomTypeId.Temple,
         JobType.Drink => RoomTypeId.Casino,
         JobType.CombatPitSpectate => RoomTypeId.CombatPit,
+
+        // From DK2's own room -> job table (Q210), and unreachable today: no
+        // creature's job tables list Wait, and nothing in this project asks for
+        // it. Present because the table states it and a missing row is harder
+        // to notice than an unused one.
+        JobType.Wait => RoomTypeId.Prison,
+
         _ => null,
     };
 
