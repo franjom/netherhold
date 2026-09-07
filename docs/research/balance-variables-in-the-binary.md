@@ -279,23 +279,52 @@ is built on one: `CreatureCriticalHealthPercentageOfMax` is the 20% this project
 uses for a captured creature's arrival health (Q167), and the engine never
 consults it.
 
+### The tile-work rates, mapped to the handlers that read them (Q219, 2026-09-07)
+
+Every rate global in the `0x006F2554`–`0x006F2588` block scanned across all
+thirteen initialised blocks, and each reader placed in the task-handler table at
+`0x006E4198` (29 bytes a record, slot `+0x00` is the work handler):
+
+| task record | handler | rate it reads |
+|---|---|---|
+| 1 | `FUN_00496E00` | `DigRockHealth` (8), `DigOwnWallHealth` (9), `DigEnemyWallHealth` (10), `RepairRoomHealth` (16) |
+| 2 | `LAB_004971D0` | `MineGoldHealth` (7) |
+| 4 | `FUN_004974C0` | `ClaimTileHealth` (4) |
+| 5, 6 | `FUN_00497670`, `FUN_004977F0` | `AttackTileHealth` (5) |
+| 7 | `LAB_00497960` | `ReinforceWallHealth` (12) |
+| **8** | `LAB_00497AC0` | **`RepairWallHealth` (13)** |
+| 10 | `LAB_00497BF0` | `ConvertRoomHealth` (14), `Unknown_17` (17) |
+| 11 | `LAB_00497DF0` | `AttackRoomHealth` (15) |
+| 12 | `LAB_00498120` | `RepairRoomHealth` (16) |
+
+**Two of the block's rates have no reader at all: `RepairTileHealth` (6) and
+`FillInHealth` (11).** Both are cut.
+
+> **A derived offset formula is not a mapping.** This was nearly got wrong from
+> the other direction: from three known pairs (ids 4, 5 and 12) the block looks
+> like `0x006F2554 + (id − 4) × 4`, which fits all three and is **wrong** — ids 9
+> and 10 sit above id 16, at `0x006F2584` and `0x006F2588`. The table below was
+> derived from the setter stubs and is the authority; the arithmetic was a
+> coincidence over a short run. Positive control for any re-scan: id 18's
+> `0x006F258C` must return **three** readers.
+
 | id | name | shipped | global |
 |---|---|---|---|
 | 3 | `EntranceGenerationSpeedSeconds` | 25 | `0x006F2550` (u32) |
 | 4 | `ClaimTileHealth` | 825 | `0x006F2554` (u32; load-time `/ 4`) |
 | 5 | `AttackTileHealth` | -140 | `0x006F2558` (u32; load-time `/ 4`) — two live hostile-floor work readers (Q69) |
-| 6 | `RepairTileHealth` | 125 | `0x006F255C` (u32; load-time `/ 4`) |
+| 6 | `RepairTileHealth` | 125 | `0x006F255C` (u32; load-time `/ 4`) — **no reader; CUT** (Q219, 2026-09-07). The setter store is its only occurrence in any initialised block. So **repairing a floor tile is not a mechanism DK2 has**; the live repair rate is id 13 |
 | 7 | `MineGoldHealth` | -300 | `0x006F2560` (u32; load-time `/ 4`) |
 | 8 | `DigRockHealth` | -5000 | `0x006F2564` (u32; load-time `/ 4`) |
 | 9 | `DigOwnWallHealth` | -130 | `0x006F2584` (u32; load-time `/ 4`) |
 | 10 | `DigEnemyWallHealth` | -8 | `0x006F2588` (u32; load-time `/ 4`) |
-| 11 | `FillInHealth` | 5 | `0x006F2568` (u32; load-time `/ 4`) |
+| 11 | `FillInHealth` | 5 | `0x006F2568` (u32; load-time `/ 4`) — **no reader; CUT** (Q219, 2026-09-07), and the *name* is OpenKeeper's: **"fill in" appears nowhere in DKII.EXE** (one bare `fill` in 2.9 MB) **nor in any of 507 shipped data files**. There is no fill-in task, handler or UI |
 | 12 | `ReinforceWallHealth` | 50 | `0x006F256C` (u32; load-time `/ 4`) |
-| 13 | `RepairWallHealth` | 22 | `0x006F2570` (u32; load-time `/ 4`) |
+| 13 | `RepairWallHealth` | 22 | `0x006F2570` (u32; load-time `/ 4`) — **LIVE**, read at `0x00497B37` by task record **8**, whose gate `FUN_004540D0` is *"the tile is mine AND its health is below its terrain's maximum"* (Q219) |
 | 14 | `ConvertRoomHealth` | -4000 | `0x006F2574` (u32; load-time `/ 4`) |
 | 15 | `AttackRoomHealth` | -1500 | `0x006F2578` (u32; load-time `/ 4`) |
 | 16 | `RepairRoomHealth` | 20000 | `0x006F2580` (u32; load-time `/ 4`) |
-| 17 | `Unknown_17` | 3 | — |
+| 17 | `Unknown_17` | 3 | `0x006F257C` (u32) — **found 2026-09-07 (Q219) and it HAS a reader**, at `0x00497C89`, in the same task-record-10 handler that reads `ConvertRoomHealth`. So it is a tile-work rate used by the room-conversion path, and the dash here was "not looked for" rather than "absent" |
 | 18 | `ChickenGenerationTimePerHatchery` | 16 | `0x006F258C` (u32) |
 | 19 | `?` | ? | `0x006F2590` (u32) |
 | 20 | `GoldMinedFromGems` | 25 | `0x006F2594` (u32) |

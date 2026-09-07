@@ -177,7 +177,6 @@ public class TileWorkOnRealDataTests
         {
             TileState tile = Tile(db, t.TerrainId, owner: 1);
             byte before = tile.TerrainId;
-            TileWorkRules.Apply(db, ref tile, TileWorkKind.RepairTile, 1);
             TileWorkRules.Apply(db, ref tile, TileWorkKind.RepairWall, 1);
             Assert.Equal(before, tile.TerrainId);
         }

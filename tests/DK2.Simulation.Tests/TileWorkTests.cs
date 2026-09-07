@@ -178,18 +178,6 @@ public class TileWorkTests
     }
 
     [Fact]
-    public void RepairingAFullTile_ChangesNothing()
-    {
-        TileState tile = TileOf(Dk2TerrainFixture.ClaimedPath, owner: 1);
-
-        TileWorkResult result = TileWorkRules.Apply(Db, ref tile, TileWorkKind.RepairTile, 1);
-
-        Assert.Equal(TileWorkOutcome.NoChange, result.Outcome);
-        Assert.Equal(Dk2TerrainFixture.ClaimedPath, tile.TerrainId);
-        Assert.Equal(660, tile.Health);
-    }
-
-    [Fact]
     public void AttackingEnemyFloor_DestroysItAfterTwentyFourApplications()
     {
         // Claimed Path 660 at AttackTileHealth -140 a second, 28 a swing (Q47):

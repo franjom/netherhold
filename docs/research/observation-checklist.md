@@ -67,26 +67,25 @@ delta is **positive**. So it is not about ownership at all, which is the second
 reason the hypothesis does not fit: an unowned dirt path has no owner to take it
 from. It really does read as "turn an excavated corridor back into rock".
 
-### THE REPLACEMENT QUESTION — Q219, and it needs no timing
+### Q219 — ANSWERED FROM THE BINARY, and no play was needed
 
-| Do this | Watch for |
-|---|---|
-| Look at DK2's own interface. **Is there any way to turn a floor tile back into rock?** Any tool, mode, right-click option, or keeper spell that fills in, blocks off or un-excavates a corridor — on your own claimed path *or* on unowned dirt path | Only whether it exists. If it does, its name and how it is invoked |
+**There is no fill-in mechanism in DK2.** The owner was right from the first
+sentence. Settled 2026-09-07 without a stopwatch, a recording or a play session:
 
-- **No such action** → `FillInHealth` and the `FillInable` flag are a **cut or
-  editor-only feature**, and belong with the ADR-0085 family of mechanisms DK2
-  built and did not expose. `TileWorkKind.FillIn` then stays as an inert path,
-  documented as unreachable rather than quietly carrying invented behaviour.
-- **There is one** → say what it is called, and Q214 comes back with a real
-  experiment behind it.
+1. **`FillInHealth` has no reader.** Its global `0x006F2568` occurs exactly once
+   in all thirteen initialised blocks — the setter store. **Cut.**
+2. **"Fill in" is not DK2's word.** One bare `fill` in 2.9 MB of executable,
+   and **zero** hits for any spelling of it across **507** shipped data files.
+   The name is **OpenKeeper's**, inherited here and never checked against
+   anything.
+3. **There is no fill-in task.** The handler that looked like one — task record
+   8, `LAB_00497AC0` — reads **`RepairWallHealth` (22)**, and its gate is
+   *"the tile is mine AND its health is below its maximum"*: a repair.
 
-**Do NOT settle this from a scan.** `varmap.tsv` lists `FillInHealth` as having
-**zero readers** — and lists `ClaimTileHealth` and `ReinforceWallHealth` exactly
-the same way, both of which were read out of the binary on 2026-09-07. Three ids
-share one setter stub with no global recorded, so the zero is a **scan
-artefact**. This is the trap in `a-live-mechanism-with-a-zero-rate-is-not-dead`
-and `a-scan-proves-nothing-outside-its-range`, and it was one sentence away from
-producing a confident wrong answer about a cut feature.
+**So the question a player could have answered was answered by the owner's first
+reply**, and the binary only confirmed it. What the trip through the binary
+bought instead was two cut variables, a corrected rate-to-handler map, and a
+reader for `Unknown_17` — see `balance-variables-in-the-binary.md`.
 
 ### While there — the reinforce discrepancy is real and unresolved
 

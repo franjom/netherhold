@@ -35,9 +35,6 @@ public enum TileWorkKind
     /// <summary>Damage another player's claimed floor. <c>AttackTileHealth</c>.</summary>
     AttackTile = 5,
 
-    /// <summary>Restore damaged claimed floor. <c>RepairTileHealth</c>.</summary>
-    RepairTile = 6,
-
     /// <summary>Turn rock into a reinforced wall. <c>ReinforceWallHealth</c>.</summary>
     Reinforce = 7,
 
@@ -168,7 +165,6 @@ public static class TileWorkRules
         TileWorkKind.DigEnemyWall => VariableTypeId.DigEnemyWallHealth,
         TileWorkKind.Claim => VariableTypeId.ClaimTileHealth,
         TileWorkKind.AttackTile => VariableTypeId.AttackTileHealth,
-        TileWorkKind.RepairTile => VariableTypeId.RepairTileHealth,
         TileWorkKind.Reinforce => VariableTypeId.ReinforceWallHealth,
         TileWorkKind.RepairWall => VariableTypeId.RepairWallHealth,
         TileWorkKind.ConvertRoom => VariableTypeId.ConvertRoomHealth,
@@ -414,9 +410,6 @@ public static class TileWorkRules
 
             TileWorkKind.AttackTile =>
                 !terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId != playerId,
-
-            TileWorkKind.RepairTile =>
-                !terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId == playerId,
 
             // Reinforcing turns rock into a wall; the data says which rock can.
             // The original splits this by health: its reinforce kind takes rock

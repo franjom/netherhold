@@ -55,13 +55,12 @@ public class WorkStanceTests
     }
 
     [Fact]
-    public void RepairingAndAttackingFloorAreDoneStandingOnTheTile()
+    public void AttackingEnemyFloorIsDoneStandingOnTheTile()
     {
+        // This used to assert the same for TileWorkKind.RepairTile, which was
+        // removed on 2026-09-07: DK2 never reads RepairTileHealth, so repairing
+        // a floor tile is not a mechanism the game has (Q219).
         (GameDatabase database, WorldState world, IPathGrid grid) = Setup();
-
-        var mine = new TilePos(5, 2);
-        Put(world, database, mine, Dk2TerrainFixture.ClaimedPath, Keeper);
-        Assert.True(WorkStance.IsOnTheTile(database, world, grid, mine, TileWorkKind.RepairTile));
 
         var theirs = new TilePos(6, 2);
         Put(world, database, theirs, Dk2TerrainFixture.ClaimedPath, Rival);
