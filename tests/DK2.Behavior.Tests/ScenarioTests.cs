@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -81,11 +81,15 @@ public class ScenarioTests
 
             Assert.Contains(result.Unsupported,
                 u => u.Contains("injected by the harness", StringComparison.Ordinal));
-            // Q47 turned this caveat from "the rate is unknown" into the
-            // narrower and now-true "the swing count is known, the wall clock
-            // is not". The assertion tracks the surviving half, Q1.
+            // This caveat has narrowed twice. Q47 turned it from "the rate is
+            // unknown" into "the swing count is known, the wall clock is not";
+            // Q1 (ADR-0089) then settled the wall clock too, so what survives
+            // is a single named unknown - fill-in, whose cost DK2's own compare
+            // makes one application and which nobody has watched (Q22, Q214).
+            // The assertion tracks whatever is still disclaimed, so that
+            // shrinking the caveat has to be a deliberate edit here as well.
             Assert.Contains(result.Unsupported,
-                u => u.Contains("how long a second is in ticks is not", StringComparison.Ordinal));
+                u => u.Contains("What is not settled is fill-in", StringComparison.Ordinal));
         }
         finally
         {
