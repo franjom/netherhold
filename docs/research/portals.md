@@ -729,12 +729,23 @@ Two more things the read settles:
 - **`CreaturesSupportedPerAdditionalPortal` nearly went on the dead list.** A
   raw scan for `0x006F28B5` finds **one hit, the loader's setter** — the exact
   signature this project has used fourteen times to call a variable cut. It is
-  live. Its byte sits immediately after `CreaturesSupportedByFirstPortal`'s, and
-  the compiler loads a **word** at `0x006F28B4` and takes the high half with
-  `>> 8 & 0xff`, so the second variable's address never appears in any
-  instruction. **Any variable whose global is adjacent to another's can be read
-  this way and will scan as dead.** That is a third kind of false negative, after
-  ADR-0085's disabled-not-cut and the `.text`-only scan above.
+  live. Its byte sits immediately after `CreaturesSupportedByFirstPortal`'s and
+  is loaded with it, so the second variable's address never appears in any
+  instruction. **Any byte or word variable whose global is adjacent to another's
+  can be read this way and will scan as dead.** That is a third kind of false
+  negative, after ADR-0085's disabled-not-cut and the `.text`-only scan above.
+
+  > **Read directly, 2026-09-07** (`balance-variables-in-the-binary.md`, last
+  > section). The load is a **dword**, not a word, and the extraction is
+  > `MOV DL,CH`; the arithmetic and the conclusion are unchanged. Two things
+  > worth having from the same six instructions. **The routine counts room type
+  > `3` and room type `0x19` and adds them** before applying
+  > `(n − 1) × 5 + 15` — so *"a claimed Hero Portal raises the keeper's cap"* is
+  > now read off the instructions rather than inferred from the byte-identical
+  > handler records. And **the trap is bounded**: a folded load reaches four
+  > bytes, so a dword variable can never be carried by a neighbour's load, and
+  > sweeping all 57 zero-reader globals for the shape leaves **this case and no
+  > other**. The exposure this bullet opened is closed.
 
 ### One smaller thing, read on the way past
 

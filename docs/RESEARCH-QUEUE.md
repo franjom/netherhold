@@ -51,7 +51,8 @@ Helper scripts are copied into
 
 | Script | What it does |
 |---|---|
-| `ScanAddr.py <out> <addrHex>...` | raw `.text` scan for the little-endian bytes of an address — **the workhorse**, and it sees indexed reads that Ghidra's reference analysis misses |
+| `ScanAll.py <out> <addrHex>...` | **use this one.** Raw scan of **every initialised block** for the little-endian bytes of an address, naming the block on each hit; sees indexed reads that Ghidra's reference analysis misses |
+| ~~`ScanAddr.py`~~ | **superseded 2026-09-07.** Same scan, but hardcoded to `0x401000`–`0x652c00`, which is `.text` **only** — it never saw `cseg`, the image's *second executable block* (`0x653000`–`0x66bfff`, 100 KB of code). Every reader count in this project taken before that date is a claim about `.text` |
 | `MaskScan.py <out> <hexConst>...` | every instruction whose text mentions a constant, **with the containing function name**. Pass the digits **without** `0x` — the script prepends it |
 | `CallScan.py <out> <addrHex>...` | every `E8`/`E9` rel32 whose target is the address, plus absolute occurrences — finds callers in unanalysed regions and vtable installs |
 | `ForceAt.py <out> <addrHex>...` | force a function at exactly this address and decompile |
@@ -77,6 +78,28 @@ Helper scripts are copied into
   callers nothing had recorded. **A scanner that reports zero rather than
   failing is the most expensive kind of bug there is** — check any zero-hit run
   against a constant you know is present before believing it.
+
+- **A scan bounded to `.text` misses 100 KB of code.** The image has **two
+  executable blocks** — `.text` and **`cseg` at `0x00653000`–`0x0066BFFF`**.
+  `ScanAddr.py` covered only the first, so every reader count taken before
+  2026-09-07 is a claim about `.text` alone. Use `ScanAll.py`, which walks all
+  thirteen initialised blocks and names the block on each hit. (Re-run over the
+  cut list, `cseg` contributed **zero** hits — the conclusions held. That is the
+  outcome, not the reason to skip the check.)
+- **Always put a positive control in the same run.** Cheapest one here is
+  variable 19's global `0x006F2590`: it must return **226** hits. A run where
+  the control comes back low or empty is a broken harness, and you find that out
+  in the same output rather than three conclusions later.
+
+### The cut list is re-checked, and it holds (2026-09-07)
+
+The item that stood at the head of this queue — *re-check the fourteen variables
+declared cut, because every scan-based negative is suspect* — **is done**. All
+fourteen hold; the sweep was widened to all **57** zero-reader globals rather
+than the fourteen; and it returned three findings of its own, including `cseg`
+above and a zero-shipped percentage that is **not** inert. See
+`balance-variables-in-the-binary.md`, last section, and ADR-0085 amendment 1.
+Leftover: **Q212**.
 
 ### Two facts about the executable worth knowing up front
 

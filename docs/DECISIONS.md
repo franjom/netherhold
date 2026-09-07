@@ -7094,3 +7094,66 @@ searching the record for the roster instead — one byte in 5449 has a bit
 selecting exactly the nine, it is bit 3 as the binary tests, and Frosty's Castle
 pools those same nine while omitting the Dwarf. **An available, named, plausible
 flag is not evidence; the roster is.** Rule 3.
+
+### ADR-0085, amendment 1 — a zero percentage can be fully live, and the scan range was never the whole image
+
+**2026-09-07.** The cut list was re-derived rather than re-read, because the
+reader-count test behind it had failed in four distinct ways and a negative
+reached with a broken instrument is not a finding.
+`docs/research/balance-variables-in-the-binary.md`, last section, carries the
+work. **The list holds in full.** Three things changed around it.
+
+**1. `ADD reg,0x64` makes a zero percentage active.** ADR-0085 concluded there
+was *"nothing to build"* because a zero rate reproduced faithfully is the
+absence of the effect. That holds for nine of its ten variables and **fails for
+`PercentageOfManaGainedBySacrificing` (id 112)**, whose only reader computes
+`x += x * (pct + 100) / 100`. The variable is a **delta on top of 100%**, so its
+shipped zero doubles the amount. Reading it as "no bonus" would diverge, and
+dropping the term would diverge further. The other nine were re-read and none
+has the shape.
+
+**Decision:** *"the shipped value makes this inert"* now requires the reader's
+**arithmetic**, not merely the reader's existence. This is a fifth kind of false
+negative and the only one that is about a value rather than a scan. Nothing to
+build today — sacrifice mana is not implemented — so this is recorded as a trap
+rather than a change. **Q212** carries what the routine belongs to, which is
+less certain than its arithmetic.
+
+**2. Scans must cover every initialised block, not `.text`.** `ScanAddr.py`
+hardcodes `0x00401000`–`0x00652C00`. The image has **two executable blocks**:
+`.text`, and **`cseg` at `0x00653000`–`0x0066BFFF`** — 102,400 bytes of code no
+reader count in this project had ever covered. Every *"no reader in `.text`"*
+sentence was true of `.text` and silent about 100 KB of executable image, which
+is the same shape as the vtable error that cost a day.
+
+**Decision:** `ScanAll.py` replaces `ScanAddr.py` and walks all thirteen
+initialised blocks, naming the block on every hit. Re-run over the cut list it
+returns **one hit each, all setters, and zero hits in `cseg` for any query** —
+so the conclusions stand and the instrument no longer has to be trusted on
+faith. The block names around `cseg` (`idct_dat`, `lbmpeg_d`, `uva_data`) say it
+is the video decoder, which is why guessing would have been right; the guess is
+still not the evidence.
+
+**3. The folded-neighbour trap is bounded, and now swept.** A wider load at a
+neighbour's address can only carry a variable if the whole variable fits inside
+it, and 32-bit integer loads reach four bytes. **A dword variable therefore
+cannot be read through another variable's load** — seven of the fourteen are
+immune by construction. For the rest, all **57** zero-reader globals in the map
+were swept rather than the fourteen: 13 have a covering neighbour load, and
+reading every one of them leaves **exactly one live case, the one that found the
+trap** (`CreaturesSupportedPerAdditionalPortal`, extracted with `MOV DL,CH`).
+Twelve follow the wide load with `AND …,0xff` or `AND …,0xffff`, discarding the
+neighbour's bytes.
+
+**Decision:** the discriminator is the **extraction, not the load width**. A
+dword load at a byte variable's address means nothing on its own; what matters
+is whether any instruction afterwards touches bits above that variable's width,
+and both are visible in one disassembly window.
+
+**Consequences for what is built:** none, and that is the result.
+`CreatureCriticalHealthPercentageOfMax` is confirmed cut against the whole image
+rather than against `.text`, so `CreatureHealthRules.IsCriticallyHurt` keeps its
+existing note and loses its caveat. The capacity routine read for this work also
+counts **room type 3 and room type `0x19` and adds them**, which is ADR-0086
+amendment 2's central choice read straight off the instructions instead of
+inferred from the byte-identical handler records.

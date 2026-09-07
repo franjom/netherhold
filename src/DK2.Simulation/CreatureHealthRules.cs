@@ -104,9 +104,12 @@ public static class CreatureHealthRules
     /// a fleeing or recuperating creature will be keyed off.
     ///
     /// <para><b>Nothing reads this, and that now looks deliberate rather than
-    /// unfinished.</b> A raw scan of <c>.text</c> for this variable's cached
-    /// global finds exactly one reference — the loader writing it — so
-    /// DK2 itself never consults it either. It is kept because the variable is
+    /// unfinished.</b> A raw scan of <b>every initialised block of the image</b>
+    /// for this variable's cached global finds exactly one reference — the
+    /// loader writing it — so DK2 itself never consults it either. (Re-checked
+    /// 2026-09-07 against all four ways such a scan can lie: the earlier version
+    /// of this note said <c>.text</c>, which is one of two executable blocks,
+    /// and the wider scan agrees with it.) It is kept because the variable is
     /// shipped and named, not because anything is keyed off it; the number a
     /// knocked-out creature actually gets is
     /// <see cref="KnockoutHealth"/>, which is a sixth and is read from the

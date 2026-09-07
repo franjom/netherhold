@@ -167,9 +167,18 @@ executable ever loads that address back.
 
 Worth stating on its own because the name invites exactly the wrong conclusion.
 Anyone building lair or sleep behaviour would reach for it as the retry interval,
-and it governs **nothing**. This is the third balance variable to fail that way,
-after `MaxFreeRangeChickensPerPlayer` and `MaxGoldPileOutsideTreasury`, and it is
-the cheapest of the three to check: the reader count is in the table.
+and it governs **nothing**. It is the cheapest kind of claim to check: the reader
+count is in the table.
+
+> **CORRECTION, 2026-09-07.** This paragraph used to call it *"the third balance
+> variable to fail that way, after `MaxFreeRangeChickensPerPlayer` and
+> `MaxGoldPileOutsideTreasury`"*. **Those two are not zero-reader variables** —
+> they have **3** and **1** readers and both are live. They failed a *different*
+> way: the name invited a conclusion the code does not support, and
+> `MaxGoldPileOutsideTreasury` in particular picks **which spot** an imp puts
+> gold in rather than capping a pile (`imp-tasks.md`). *"The name is wrong"* and
+> *"nothing reads it"* are separate findings and want separate sentences; only
+> variable 22 belongs in this one.
 
 **The general lesson the map now supports:** before building on a variable's
 name, look at how many instructions read it. Zero means the name is a claim
@@ -571,8 +580,16 @@ shipped value is zero, then scan those globals for readers.** Twelve are zero.
 
 ### What this changes here, and it is mostly a protection
 
-**Nothing to build.** A rate of zero faithfully reproduced *is* the absence of
-the effect, which is what this project already has. The value of the finding is
+> **AMENDED, 2026-09-07 (ADR-0085 amendment 1).** *"A rate of zero faithfully
+> reproduced is the absence of the effect"* is true of nine of the ten and
+> **false for id 112**: its reader computes `x += x * (pct + 100) / 100`, so the
+> shipped zero means **double**, not nothing. The audit asked whether anything
+> read each zero; it did not ask what the reader *does* with it. See the last
+> section — the other nine were re-read and none has that shape.
+
+**Nothing to build** — for nine of the ten. A rate of zero faithfully reproduced
+*is* the absence of the effect, which is what this project already has, wherever
+the reader uses the value as a plain rate. The value of the finding is
 the other way round: **it names ten mechanics a reimplementation might
 "helpfully" add, every one of which would be a divergence from DK2.** Wall
 deterioration is the obvious trap — it is the sort of thing that looks like an
@@ -622,5 +639,199 @@ compiler will fold two adjacent bytes into one load whenever it can. Two-byte an
 four-byte neighbours are equally affected, and the whole balance table is packed,
 so the shape is available almost everywhere.
 
-**The fourteen already on the cut list have not been re-checked against this.**
+> **RE-CHECKED, 2026-09-07 — see the last section of this document.** All
+> fourteen hold. Seven are dword-wide and **cannot** be reached by a folded load
+> at all, and the remaining shape was swept across all 57 zero-reader globals
+> rather than the fourteen: it fires exactly once in the whole table, on the case
+> below that found it. The re-check also turned up a **second executable block**
+> (`cseg`) that no reader count here had ever covered, and a zero-shipped
+> percentage that is **not** inert.
 
+
+---
+
+## The cut list re-checked against every false negative (2026-09-07)
+
+**Why this was run.** The reader-count test behind every "cut" finding in this
+document had failed in four distinct ways by the end of 2026-09-07, the last of
+them a scanner that reported zero instead of erroring. A negative reached with a
+broken instrument is not a finding, so the whole list was re-derived rather than
+re-read. **The list survives in full**, and the re-check produced three results
+that are worth more than the confirmation.
+
+### Result 1: there is a second executable block, and no scan had ever seen it
+
+`ScanAddr.py` — the workhorse behind every reader count here — hardcodes
+`0x00401000`–`0x00652C00`. That is exactly `.text`. The image has **thirteen
+initialised blocks and two of them are executable**:
+
+| block | range | flags |
+|---|---|---|
+| `.text` | `00401000`–`00652bff` | r-x |
+| **`cseg`** | **`00653000`–`0066bfff`** | **r-x** |
+| `.rdata` | `0066c000`–`0068d5ff` | r-- |
+| `.data` | `0068e000`–`006ccbff` | rw- (initialised) |
+| `.data` | `006ccc00`–`007a6dcf` | rw- (**un**initialised) |
+| `grpoly_d`, `uva_data`, `idct_dat`, `tqia_dat`, `dseg`, `lbmpeg_d` | `007a7000`–`007b23ff` | rw- |
+| `.rsrc`, `tdb`, headers | — | r-- |
+
+**`cseg` is 102,400 bytes of code that no reader count in this document has ever
+covered.** Every "no reader in `.text`" sentence was therefore true of `.text`
+and silent about 100 KB of executable image — the same shape as the vtable
+error, which was a claim about `.text` while the answer sat in `.data`.
+
+`ScanAll.py` replaces `ScanAddr.py` and walks **every initialised block**,
+reporting the block name with each hit and flagging a hit that lands in an
+executable block with no instruction disassembled at it.
+
+**What the wider scan found: nothing, and that is the point.** Re-run over every
+cut-list global, **`cseg` contributes zero hits to any query**, and each global
+still shows exactly one occurrence in the whole image — its own loader store.
+The neighbouring block names (`idct_dat`, `lbmpeg_d`, `uva_data`) say `cseg` is
+the video decoder, which is why guessing would have got the right answer. The
+guess is still not the evidence.
+
+### Result 2: the folded-neighbour trap can only bite a byte or a word
+
+`CreaturesSupportedPerAdditionalPortal` was found live despite having only a
+setter because a **wider load at its neighbour's address** covers its byte. Read
+directly, the capacity routine is:
+
+```
+004dbe57  PUSH 0x3                       ; count rooms of type 3   (Portal)
+004dbe5b  CALL 0x004dce30
+004dbe60  PUSH 0x19                      ; count rooms of type 25  (Hero Portal)
+004dbe66  CALL 0x004dce30
+004dbe6b  ADD  ESI,EAX                   ; n = portals + hero portals
+004dbe6f  MOV  ECX,dword ptr [0x006f28b4]
+004dbe77  LEA  EAX,[ESI + -0x1]          ; n - 1
+004dbe7a  MOV  DL,CH                     ; <- the byte at 0x006f28b5
+004dbe7c  IMUL EAX,EDX                   ; (n - 1) * perAdditional
+004dbe7f  AND  ECX,0xff                  ; byFirstPortal
+004dbe85  ADD  EAX,ECX
+```
+
+> **Correction to the section above.** It says the routine *"loads a **word** at
+> `0x006F28B4` and takes the two halves — the low byte as the first portal's
+> allowance, the high byte with `>> 8 & 0xff`"*. The load is a **dword** and the
+> extraction is `MOV DL,CH`. The arithmetic and the conclusion are unchanged.
+
+**The structural consequence.** A folded load can only reach a neighbour if the
+whole neighbour fits inside it, and the widest integer load 32-bit code uses is
+four bytes. So a **dword** variable can never be read through another
+variable's load: you would need an eight-byte load. **Every dword-wide entry on
+the cut list is immune to this trap by construction**, which is seven of the
+fourteen at a stroke, before any scanning.
+
+### The whole table swept for the shape, not just the cut list
+
+**57 of the 181 globals in this map have zero readers** — far more than the
+fourteen ever written up. All 57 were tested mechanically: for each, is there
+another variable whose *observed* load width covers this variable's full extent?
+
+- **13 have a covering neighbour load.** (The candidate list is larger if you
+  assume load widths; it collapses to 13 once the actual instructions are read,
+  because most neighbours are loaded a byte or a word at a time and stop short.)
+- **Reading all 13 leaves exactly one.** Twelve follow their wide load with
+  `AND …,0xff` or `AND …,0xffff`, which throws the neighbour's bytes away —
+  the wide load is the compiler's choice of encoding and carries no meaning. One
+  extracts the upper bytes: `MOV DL,CH`, `CreaturesSupportedPerAdditionalPortal`,
+  the case already known.
+
+| id | variable | neighbour's load | verdict |
+|---|---|---|---|
+| **177** | `CreaturesSupportedPerAdditionalPortal` | dword @ `28b4`, then **`MOV DL,CH`** | **LIVE** (already known) |
+| 113 | `PossessionFriendlyStatIncreasePercentage` | dword @ `28f0`, then `AND ECX,0xffff` | cut |
+| 139 | `CasinoBigWinnerIncreasedHappinessPersentage` | dword @ `290c`, then `AND EAX,0xffff` | cut |
+| 154 | `AmountOfGoldStolenInFirstPerson` | dword @ `2920`, then `AND ECX,0xff` | cut |
+| 163 | `DrunkChancePercentagePerDrink` | dword @ `2934`, then `AND …,0xffff` | cut |
+| 184 | `DwarfDiggingMultiplier` | dword @ `2964` ×3, each then `AND …,0xff` | cut |
+| 225 | `CombatPitMeleeDamageModifierPercentage` | dword @ `29d0` ×2, each then `AND …,0xff` | cut |
+| 105, 106 | door/trap sell percentages | neighbours load **byte only** | cut |
+| 133 | `ModifyAngerWhileSolitaryInPitPerSecond` | neighbour loads **word only** | cut |
+| 144 | `ImpPopCountdownTimeSeconds` | neighbour loads **word only** | cut |
+| 148 | `PercentageChanceOfKillingCreatureInPit` | neighbours load **byte only** | cut |
+| 166 | `DungeonHeartMaxManaIncrease` | neighbour loads **word only** | cut |
+
+**So the trap fired once in the entire balance table, and it had already been
+caught.** That is the useful form of this result: the mechanism is real, it is
+now swept exhaustively rather than spot-checked, and the exposure is closed.
+
+**The test is the extraction, not the load width.** A dword load at a byte
+variable's address means nothing on its own; what matters is whether any
+instruction afterwards touches bits above that variable's own width. Both live
+in one disassembly window, so this is a cheap check and not a project.
+
+### Result 3: a percentage of zero is not always a no-op
+
+The zero-value audit (ADR-0085) split twelve zero-shipped variables into two
+cut and ten *"switched off, not cut"*, and concluded there was **nothing to
+build** because a zero rate faithfully reproduced is the absence of the effect.
+**That conclusion is wrong for one of the ten.** The single reader of
+`PercentageOfManaGainedBySacrificing` (id 112, shipped **0**) is:
+
+```
+0047bb42  TEST byte ptr [EBX + 0x3ea],0x10   ; creature flag bit 4
+0047bb4c  JZ   0x0047bb73                    ; skip the bonus
+0047bb4e  MOV  ECX,dword ptr [0x006f28f0]
+0047bb59  AND  ECX,0xffff                    ; the variable
+0047bb5f  ADD  ECX,0x64                      ; <- plus 100
+0047bb62  IMUL ECX,EDI
+0047bb65  IMUL ECX                           ; x 0x51eb851f
+0047bb67  SAR  EDX,0x5                       ; ... / 100
+0047bb71  ADD  EDI,EDX                       ; EDI += EDI * (pct + 100) / 100
+```
+
+**The variable is a delta on top of 100%, so its zero means "double", not
+"nothing".** A reimplementation that read the shipped 0 as "no bonus" would
+diverge; one that dropped the term entirely would diverge further.
+
+The other nine were checked for the same shape and **none of them has it** — no
+`ADD reg,0x64` anywhere in their readers' windows — so ADR-0085's conclusion
+stands for the rest.
+
+**This is a fifth kind of false negative, and it is about values rather than
+scans:** *a percentage folded into `100 + pct` is fully active at zero.* The
+audit that produced the ten looked for a zero and asked whether anything read
+it; it did not ask **what the reader does with it**. Any "the shipped value
+makes this inert" claim needs the reader's arithmetic, not just its existence.
+
+What the routine belongs to is **less certain than the arithmetic**. The gate is
+creature flag byte `+0x3ea` bit 4, the amount is clamped to signed 16-bit before
+the bonus, and the result accumulates into a player field at **`+0x10ee`**,
+which this project has not identified. The attribution to sacrificing is
+inherited from ADR-0085 and is consistent with the variable's name; the
+`(pct + 100) / 100` arithmetic is read directly and is certain. **Q212.**
+
+### What the four checks actually returned
+
+| false negative | how it was tested | result |
+|---|---|---|
+| **range** | re-scanned every cut-list global across all 13 initialised blocks, `cseg` included | **holds** — 1 hit each, all setters; `cseg` contributes nothing |
+| **adjacency** | swept all 57 zero-reader globals for a covering neighbour load, then read every candidate | **holds** — the one live case was already known; dwords immune by construction |
+| **the query never ran** | positive control in the same run: variable 19's global | **passes** — 226 hits, matching this document's own figure exactly |
+| **disabled, not cut** | ADR-0085's audit, plus a re-read of all ten readers' arithmetic | **holds for nine; fails for id 112**, which doubles at zero |
+
+**Two smaller corrections fell out.**
+
+- The section above lists `TimeBetweenReattemptingSleepSeconds` as *"the third
+  balance variable to fail that way, after `MaxFreeRangeChickensPerPlayer` and
+  `MaxGoldPileOutsideTreasury`"*. Those two are **not** zero-reader variables —
+  they have **3** and **1** readers respectively and both are live. They failed
+  a different way: the *name* invited a conclusion the code does not support
+  (`MaxGoldPileOutsideTreasury` picks *which spot* an imp uses rather than
+  capping a pile). **"The name is wrong" and "nothing reads it" are different
+  findings** and belong in different sentences; only variable 22 belongs in that
+  one.
+- `CreatureCriticalHealthPercentageOfMax` (id 173) is **confirmed cut against
+  the whole image**, not just `.text`. `CreatureHealthRules.IsCriticallyHurt`
+  already says so in its own words and can now say it without the `.text`
+  caveat.
+
+**Two incidental corroborations, recorded because they were free.** The capacity
+routine above counts room type **3 and room type `0x19`** and adds them, which
+is exactly the Hero-Portal capacity rule adopted the same day (ADR-0086
+amendment 2) — read off the instructions rather than inferred from the handler
+table. And `BoulderFearRange` is loaded and immediately `SHL …,0xc` before use,
+which is this project's 4096-per-tile fixed point appearing in a routine chosen
+for an unrelated reason.
