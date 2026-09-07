@@ -222,3 +222,40 @@ otherwise fully read (Q86).
 
 **Combat (Q8) is deliberately absent.** It is the largest unread mechanic in the
 game and an M7 milestone, not a research errand.
+
+### The record sweeps, and which of them are done
+
+| record | scalar fields | swept | result |
+|---|---|---|---|
+| balance variables (240 ids) | — | **yes**, 2026-09-06/07 | 12 zero-shipped: 2 cut, 10 disabled; ADR-0085, amended (id 112 is live at zero) |
+| **CREATURES** (46 records) | 56 | **yes**, 2026-09-07 | 2 zero everywhere, 4 constant, 3 fields **CUT** with no consumer; `record-field-sweep.md` |
+| **OBJECTS** (145 records) | 21 | **data yes, binary no** | `ManaValue` zero in all 145; consumer unknown, needs the objects loader (**Q213**) |
+| ROOMS | — | no | — |
+| TERRAIN | — | no | — |
+| DOORS, TRAPS, SHOTS, SPELLS, EFFECTS | — | no | — |
+
+`dk2tools kwd fieldsweep <creatures|objects>` does the data half in one command
+and takes a new record type in about ten lines. **The remaining rows are cheap**
+and the same two questions apply to each: which fields never vary, and does the
+engine read them.
+
+**How to take a field from a file offset to a runtime offset**, which is what
+the binary half needs and what used to be guesswork:
+
+1. the creature loader is `FUN_00492320`, and **source offset = file offset +
+   `0x3F0`** (confirmed on two fields at opposite ends of the record);
+2. `ReadsAt.py <out> <sourceOffsetHex>` finds the loader's read;
+3. the **store** on the next line or two gives the runtime offset;
+4. `ReadsAt.py` on *that* offset lists every reference — and three of them are
+   never consumers: the initialiser `FUN_00491DC0`, the loader itself, and the
+   definition-copy routine `FUN_0051F3B0`.
+
+Each record type has its own source delta. The objects one is not `0x3F0` and is
+unknown; find it the way the creature one was found — scan for stores to a
+runtime offset you can identify at both ends, then read the source offset copied
+into it.
+
+**And a trap in step 4:** `ReadsAt.py` matches instruction text, so it hits
+**stack** offsets too. `+0x758` returned a `[ESP + 0x758]` local from an
+unrelated routine. Check the base register before counting a hit — this one
+inflates a count, where every other scanning trap here deflates it.

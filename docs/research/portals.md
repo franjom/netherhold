@@ -1081,3 +1081,67 @@ good creatures"* stays exactly true of the campaign, and these three maps are th
 designed exception rather than a leak. It also means **the observation is a fresh
 one for the owner too**, so Q211 is a real test and not a memory check. Not MPD,
 incidentally: `mpd1`..`mpd7` are separate maps.
+
+---
+
+## It is called the **Mercenary Portal** in the game, and that settles the framing
+
+**2026-09-07, owner screenshot from Frosty's Castle recon.** Hovering an
+unclaimed portal on that map shows the tooltip **"Mercenary Portal"** and the
+message *"This room is owned by another power. Its details are unknown."*
+
+**There is no "Hero Portal" string in the game at all.** Checked against the
+global text bank (`Data/Text/Default/Text.str`): zero matches for *"Hero
+Portal"*, and five for *"Mercenary"* as a room name:
+
+| string id | value |
+|---|---|
+| 3080 | `Mercenary Portal` |
+| 3081 | `Zoom To Mercenary Portal` |
+| 3082 | `MercenaryPortal` |
+| 3084 | `Mercenary Portal` |
+| 3085 | `Mercenary Portal.  Health: %37%.  Portals owned: %44.  Up to %43 creatures may enter through them.` |
+
+So **"Hero Portal" is the editor's internal label**, which is what `Rooms.kwd`
+record 25 carries and what this project's `RoomTypeId.HeroPortal` and
+`CreatureFlags2.AvailableViaHeroPortal` are named from. The identifiers stay as
+they are — they match the shipped record this documentation cites throughout —
+but **every player-facing reference should say Mercenary Portal**, and anyone
+searching the game's own text for "Hero Portal" will find nothing.
+
+### The info string is a third confirmation of the capacity rule
+
+Compare the two portals' info-panel strings. They are **word for word identical
+apart from the name**:
+
+```
+2790  Portal.            Health: %37%.  Portals owned: %44.  Up to %43 creatures may enter through them.
+3085  Mercenary Portal.  Health: %37%.  Portals owned: %44.  Up to %43 creatures may enter through them.
+```
+
+**DK2 displays a Mercenary Portal as contributing to "Portals owned" and to the
+creature cap**, in its own tooltip, to the player. That is the rule adopted in
+ADR-0086 amendment 2 and read off the instructions the same day
+(`PUSH 3` / `PUSH 0x19` / `ADD ESI,EAX` before `(n − 1) × 5 + 15`) — now
+confirmed a third time, from the shipped UI text, which is the one source a
+player could have checked all along.
+
+A fourth string is worth noting for later: **2433** is a *different* Portal info
+line — `Portal.  Health: %37%.  Creatures attracted: %42 / %43.  Portals owned: %44.`
+Two info strings exist for the same room, one reporting *attracted / max* and one
+reporting *up to N may enter*. Which is shown when is unread.
+
+### Why this makes the skirmish design coherent
+
+The owner's rule — *"an evil keeper cannot summon good creatures"* — held, and
+the three Frosty maps looked like an exception that needed explaining. They do
+not. A keeper who claims one of these is not summoning heroes; it is **hiring
+mercenaries**, which is a different fiction and a normal one for a skirmish map.
+The nine creatures behind `CreatureFlags2.AvailableViaHeroPortal` are the
+**mercenary roster**, and the Dwarf's absence from it reads better under that
+name too: you can hire a Knight, not somebody's workman.
+
+**This does not answer Q211.** The screenshot is of an **unclaimed** portal —
+*"owned by another power, its details are unknown"* is what an unowned room
+shows — so nothing has come out of it. Q211 asks what a keeper receives **after
+claiming** one, and that still needs one play session.

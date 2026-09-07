@@ -980,6 +980,110 @@ switch (args[0])
     // to select, and searching for the roster finds the bit. Reasoning from the
     // layout instead had already produced one wrong answer (file 0xF00, which
     // turned out to be a 3000/2800 value, not flags).
+    // A field that is the same for every record cannot discriminate between
+    // records, so any rule this project keys on one is either dead code or a
+    // rule we invented. The balance-table equivalent of this sweep (ADR-0085)
+    // found ten live mechanisms shipped switched off; the creature and object
+    // records had never been swept at all. Q213.
+    case "kwd" when args.Length >= 2 && args[1] == "fieldsweep":
+    {
+        string which = args.Length > 2 && !args[2].StartsWith('-') ? args[2] : "creatures";
+        string root = Path.Combine(Dk2Install.Require(), "Data", "editor");
+
+        var rows = new List<(string Name, object? Value)>();
+        var records = new List<(string Label, object Record)>();
+
+        switch (which.ToLowerInvariant())
+        {
+            case "creatures":
+                foreach (CreatureDef c in KwdCreatures.Parse(
+                             KwdReader.ReadFile(Path.Combine(root, "Creatures.kwd"))))
+                {
+                    records.Add((c.Name, c));
+                }
+
+                break;
+
+            case "objects":
+                foreach (ObjectDef o in KwdObjects.Parse(
+                             KwdReader.ReadFile(Path.Combine(root, "Objects.kwd"))))
+                {
+                    records.Add((o.Name, o));
+                }
+
+                break;
+
+            default:
+                Console.Error.WriteLine("fieldsweep: expected 'creatures' or 'objects'");
+                return 2;
+        }
+
+        if (records.Count == 0)
+        {
+            Console.Error.WriteLine("fieldsweep: no records parsed");
+            return 2;
+        }
+
+        Console.WriteLine($"{which}: {records.Count} records");
+        Console.WriteLine();
+
+        System.Reflection.PropertyInfo[] props = records[0].Record.GetType()
+            .GetProperties(System.Reflection.BindingFlags.Public
+                           | System.Reflection.BindingFlags.Instance);
+
+        var alwaysZero = new List<string>();
+        var constant = new List<(string Field, string Value)>();
+        var varying = new List<(string Field, int Distinct)>();
+
+        foreach (System.Reflection.PropertyInfo p in props)
+        {
+            // Collections say nothing useful to a distinct-value count; the
+            // per-slot tables have their own sweeps.
+            if (p.PropertyType != typeof(string)
+                && typeof(System.Collections.IEnumerable).IsAssignableFrom(p.PropertyType))
+            {
+                continue;
+            }
+
+            var seen = new List<string>();
+            foreach ((string _, object rec) in records)
+            {
+                string v = p.GetValue(rec)?.ToString() ?? "<null>";
+                if (!seen.Contains(v)) seen.Add(v);
+            }
+
+            if (seen.Count == 1)
+            {
+                string only = seen[0];
+                bool zeroish = only is "0" or "0.00" or "False" or "None" or "";
+                if (zeroish) alwaysZero.Add(p.Name);
+                else constant.Add((p.Name, only));
+            }
+            else
+            {
+                varying.Add((p.Name, seen.Count));
+            }
+        }
+
+        Console.WriteLine($"ZERO FOR EVERY RECORD ({alwaysZero.Count}) "
+                          + "- carries no information in v1.70:");
+        foreach (string f in alwaysZero) Console.WriteLine($"   {f}");
+        Console.WriteLine();
+
+        Console.WriteLine($"THE SAME NON-ZERO VALUE FOR EVERY RECORD ({constant.Count}) "
+                          + "- cannot discriminate:");
+        foreach ((string f, string v) in constant) Console.WriteLine($"   {f,-38} = {v}");
+        Console.WriteLine();
+
+        Console.WriteLine($"VARIES ({varying.Count}):");
+        foreach ((string f, int n) in varying.OrderBy(x => x.Distinct))
+        {
+            Console.WriteLine($"   {f,-38} {n} distinct");
+        }
+
+        return 0;
+    }
+
     case "kwd" when args.Length >= 3 && args[1] == "creaturebits":
     {
         string[] names = args[2].Split(
