@@ -7719,3 +7719,57 @@ projects. **Rejected: leaving CI to fail loudly without the install.** Tempting
 — it makes the gap impossible to ignore — but it would make the repository
 un-buildable for anyone who does not own the game, and the project's own goal
 review lists "runs without the original" as a property worth keeping.
+
+---
+
+## ADR-0091 — M1 closes on readable records, byte accountability and an executable corpus audit
+
+**Status:** accepted (2026-09-07). `HashVersion` and snapshot `FormatVersion`
+remain **36**: this changes static-data readers only and adds no simulation state.
+**Evidence:** `docs/research/kwd-record-fields.md`; Q220–Q221.
+
+### Context
+
+M1's table promised all 18 KWD/KLD record types. Nine editor/level types were
+already read, PLAYERS had landed without the table noticing, and THINGS and
+TRIGGERS were only split at their self-describing boundary. The remaining fixed
+layouts had already been measured against the v1.70 install but had no typed
+readers. Two status tables had therefore become false in different directions.
+
+### Decision
+
+M1 is closed when each record-type id has a typed parsing surface, every newly
+decoded record accounts for its entire measured payload, and one executable
+audit re-runs that claim over the whole shipped corpus.
+
+- CREATURE_SPELLS, SHOTS, EFFECTS and EFFECT_ELEMENTS are immutable editor
+  definitions on `GameDatabase`.
+- PLAYERS, THINGS, TRIGGERS and LEVEL are level-scoped loader results. Parsing
+  them does not place anything or execute a trigger; that boundary remains M6.
+- Each new record retains its exact source image. `ToBytes()` is intentionally
+  conservative: it preserves unknown fields and editor padding rather than
+  manufacturing a canonical encoding DK2 never promised.
+- THINGS has one typed class per tag 194–205. TRIGGERS exposes the common tail,
+  the complete eight-byte union and type-aware parameter views. A semantic gap
+  is named `Unknown_<offset>` instead of becoming an omitted byte.
+- LEVEL's existing ticks-per-second datum is now a property of the full parser;
+  there is one source field, not a second timing parser.
+- GLOBALS(0) is supported as the record-type discriminator in a LEVEL path row.
+  The shipped corpus contains zero such rows and zero standalone type-0 chunks;
+  that zero stays visible in the audit and Q220 carries the unknown custom-map
+  form. A synthetic byte-round-trip covers the known row representation.
+- `dk2tools kwd corpus` is the status source: on the reference install it reads
+  408 files, including 66 LEVEL, 6,318 THINGS and 9,161 TRIGGERS records.
+
+Field order, widths and semantic labels were transcribed from OpenKeeper's
+GPLv3 reader under ADR-0003, then checked independently against shipped strides
+and full-corpus consumption. No external implementation was copied. DeadBody's
+16-byte payload remains a hypothesis because no shipped file contains tag 202
+(Q221).
+
+### Consequences
+
+The milestone table can now say M1 complete without implying that M6 behaviour
+exists. Future format changes have three guards: the measured-stride tests,
+install-independent byte round-trips, and the install-gated corpus audit. The
+audit owns the counts so the prose no longer has to be trusted on its own.

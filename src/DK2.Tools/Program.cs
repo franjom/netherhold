@@ -453,6 +453,68 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length >= 3 && args[1] == "records":
+    {
+        // Re-checkable field-level counterpart to `kwd chunks` and `kwd tagged`.
+        // It deliberately prints ids/types and consumed lengths rather than a
+        // wall of presentation data; ToBytes() is covered byte-for-byte by the
+        // round-trip tests.
+        List<KwdChunk> chunks = KwdReader.ReadFile(ResolveEditor(args[2]));
+        foreach (KwdChunk chunk in chunks)
+        {
+            switch (chunk.Type)
+            {
+                case KwdRecordType.CreatureSpells:
+                    foreach (CreatureSpellDef record in KwdAdditionalRecords.ParseCreatureSpells([chunk]))
+                        Console.WriteLine($"CREATURE_SPELL id={record.CreatureSpellId,3} name={record.Name,-28} bytes={record.ConsumedLength}");
+                    break;
+                case KwdRecordType.Shots:
+                    foreach (ShotDef record in KwdAdditionalRecords.ParseShots([chunk]))
+                        Console.WriteLine($"SHOT id={record.ShotId,3} name={record.Name,-28} bytes={record.ConsumedLength}");
+                    break;
+                case KwdRecordType.Effects:
+                    foreach (EffectDef record in KwdAdditionalRecords.ParseEffects([chunk]))
+                        Console.WriteLine($"EFFECT id={record.EffectId,3} name={record.Name,-28} bytes={record.ConsumedLength}");
+                    break;
+                case KwdRecordType.EffectElements:
+                    foreach (EffectElementDef record in KwdAdditionalRecords.ParseEffectElements([chunk]))
+                        Console.WriteLine($"EFFECT_ELEMENT id={record.EffectElementId,3} name={record.Name,-28} bytes={record.ConsumedLength}");
+                    break;
+                case KwdRecordType.Things:
+                    foreach (ThingRecord record in KwdThings.Parse([chunk]))
+                        Console.WriteLine($"THING tag={record.Tag} type={record.GetType().Name,-28} bytes={record.ConsumedLength}");
+                    break;
+                case KwdRecordType.Triggers:
+                    foreach (TriggerRecord record in KwdTriggers.Parse([chunk]))
+                        Console.WriteLine($"TRIGGER tag={record.Tag} id={record.TriggerId,4} type={record.Type,2} repeat={record.RepeatCount,3} bytes={record.ConsumedLength}");
+                    break;
+                case KwdRecordType.Level:
+                    LevelDef level = KwdLevel.Parse([chunk])
+                        ?? throw new InvalidDataException("LEVEL chunk did not produce a level.");
+                    Console.WriteLine($"LEVEL name={level.Name} ticksPerSecond={level.TicksPerSecond} paths={level.Paths.Count} bytes={level.ConsumedLength}");
+                    foreach (KwdLevelFilePath path in level.Paths)
+                        Console.WriteLine($"  {path.RecordType,-16} {path.Path}");
+                    break;
+                default:
+                    Console.WriteLine($"{chunk.Type}: use its existing typed dump; {chunk.ItemCount} records");
+                    break;
+            }
+        }
+        return 0;
+    }
+
+    case "kwd" when args.Length == 2 && args[1] == "corpus":
+    {
+        KwdCorpusAudit.Result audit = KwdCorpusAudit.Run(Dk2Install.Require());
+        Console.WriteLine($"{audit.Files} KWD/KLD files; {audit.ParsedTypes.Count}/18 record types parsed");
+        foreach (KwdRecordType type in Enum.GetValues<KwdRecordType>())
+        {
+            audit.RecordCounts.TryGetValue(type, out int count);
+            Console.WriteLine($"  {type,-16} {count,7} records  {(audit.ParsedTypes.Contains(type) ? "parsed" : "MISSING")}");
+        }
+        return audit.ParsedTypes.Count == 18 ? 0 : 1;
+    }
+
     case "kwd" when args.Length >= 2 && args[1] == "terrain":
     {
         List<TerrainDef> terrains = KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(
@@ -1540,6 +1602,8 @@ static int Usage()
     Console.WriteLine();
     Console.WriteLine("offset hunting in records we do not parse:");
     Console.WriteLine("  kwd recscan <file.kwd> <value> [rec]   offsets holding a measured value, with the column");
+    Console.WriteLine("  kwd records <file.kwd|kld>            dump decoded ids/types and consumed lengths");
+    Console.WriteLine("  kwd corpus                             parse and round-trip the shipped KWD/KLD corpus");
     Console.WriteLine("  kwd creaturescan <name> <value>        the same, anchored on one creature");
     Console.WriteLine("  kwd creaturehex <offsetHex> <count>    raw byte window across every creature");
     Console.WriteLine("  kwd objecthex <offsetHex> <count> [-w]  the same across every object; -w reads u16s");

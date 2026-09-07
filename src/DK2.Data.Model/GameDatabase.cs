@@ -27,7 +27,11 @@ public sealed class GameDatabase
         IEnumerable<KeeperSpellDef>? keeperSpells = null,
         IEnumerable<ObjectDef>? objects = null,
         IEnumerable<DoorDef>? doors = null,
-        IEnumerable<TrapDef>? traps = null)
+        IEnumerable<TrapDef>? traps = null,
+        IEnumerable<CreatureSpellDef>? creatureSpells = null,
+        IEnumerable<ShotDef>? shots = null,
+        IEnumerable<EffectDef>? effects = null,
+        IEnumerable<EffectElementDef>? effectElements = null)
     {
         Terrain = terrain.ToDictionary(t => t.TerrainId);
         Rooms = rooms.ToDictionary(r => r.RoomId);
@@ -42,6 +46,10 @@ public sealed class GameDatabase
         Objects = (objects ?? []).ToDictionary(o => o.ObjectId);
         Doors = (doors ?? []).ToDictionary(d => d.DoorId);
         Traps = (traps ?? []).ToDictionary(t => t.TrapId);
+        CreatureSpells = (creatureSpells ?? []).ToDictionary(s => s.CreatureSpellId);
+        Shots = (shots ?? []).ToDictionary(s => s.ShotId);
+        Effects = (effects ?? []).ToDictionary(e => e.EffectId);
+        EffectElements = (effectElements ?? []).ToDictionary(e => e.EffectElementId);
 
         // Lowest room id wins a shared terrain id. In the shipped data no two
         // rooms share one — RoomsOnRealDataTests asserts that — so the tie-break
@@ -152,6 +160,18 @@ public sealed class GameDatabase
     /// <summary>The sixteen trap definitions, keyed by their data-file id.</summary>
     public IReadOnlyDictionary<byte, TrapDef> Traps { get; }
 
+    /// <summary>The forty-one creature-spell definitions, keyed by file id.</summary>
+    public IReadOnlyDictionary<byte, CreatureSpellDef> CreatureSpells { get; }
+
+    /// <summary>The sixty-five projectile definitions, keyed by file id.</summary>
+    public IReadOnlyDictionary<byte, ShotDef> Shots { get; }
+
+    /// <summary>The effect definitions, keyed by file id.</summary>
+    public IReadOnlyDictionary<ushort, EffectDef> Effects { get; }
+
+    /// <summary>The effect-element definitions, keyed by file id.</summary>
+    public IReadOnlyDictionary<ushort, EffectElementDef> EffectElements { get; }
+
     /// <summary>The object with this id, or null. Id 0 means "none" throughout the data.</summary>
     public ObjectDef? ObjectById(byte id) =>
         Objects.TryGetValue(id, out ObjectDef? o) ? o : null;
@@ -230,7 +250,11 @@ public sealed class GameDatabase
                 KeeperSpells.Values,
                 Objects.Values,
                 Doors.Values,
-                Traps.Values);
+                Traps.Values,
+                CreatureSpells.Values,
+                Shots.Values,
+                Effects.Values,
+                EffectElements.Values);
 
     public TerrainDef TerrainById(byte id) => Terrain.TryGetValue(id, out TerrainDef? t)
         ? t

@@ -40,9 +40,18 @@ public static class GameDatabaseLoader
             KwdReader.ReadFile(Path.Combine(editor, "Doors.kwd")));
         List<TrapDef> traps = KwdTraps.Parse(
             KwdReader.ReadFile(Path.Combine(editor, "Traps.kwd")));
+        List<CreatureSpellDef> creatureSpells = KwdAdditionalRecords.ParseCreatureSpells(
+            KwdReader.ReadFile(Path.Combine(editor, "CreatureSpells.kwd")));
+        List<ShotDef> shots = KwdAdditionalRecords.ParseShots(
+            KwdReader.ReadFile(Path.Combine(editor, "Shots.kwd")));
+        List<EffectDef> effects = KwdAdditionalRecords.ParseEffects(
+            KwdReader.ReadFile(Path.Combine(editor, "Effects.kwd")));
+        List<EffectElementDef> effectElements = KwdAdditionalRecords.ParseEffectElements(
+            KwdReader.ReadFile(Path.Combine(editor, "EffectElements.kwd")));
 
         return new GameDatabase(
-            terrain, rooms, creatures, variables, keeperSpells, objects, doors, traps);
+            terrain, rooms, creatures, variables, keeperSpells, objects, doors, traps,
+            creatureSpells, shots, effects, effectElements);
     }
 
     /// <summary>
@@ -104,6 +113,30 @@ public static class GameDatabaseLoader
             installDir, "Data", EditorDir, "maps", levelName + "Players.kld");
 
         return File.Exists(file) ? KwdPlayers.Parse(KwdReader.ReadFile(file)) : null;
+    }
+
+    /// <summary>Reads and decodes every placed THINGS record for one level.</summary>
+    public static List<ThingRecord>? LoadCampaignThings(string installDir, string levelName)
+    {
+        string file = Path.Combine(
+            installDir, "Data", EditorDir, "maps", levelName + "Things.kld");
+        return File.Exists(file) ? KwdThings.Parse(KwdReader.ReadFile(file)) : null;
+    }
+
+    /// <summary>Reads and decodes every TRIGGERS record for one level.</summary>
+    public static List<TriggerRecord>? LoadCampaignTriggers(string installDir, string levelName)
+    {
+        string file = Path.Combine(
+            installDir, "Data", EditorDir, "maps", levelName + "Triggers.kld");
+        return File.Exists(file) ? KwdTriggers.Parse(KwdReader.ReadFile(file)) : null;
+    }
+
+    /// <summary>Reads a level KWD's metadata and typed file-reference table.</summary>
+    public static LevelDef? LoadCampaignLevel(string installDir, string levelName)
+    {
+        string file = Path.Combine(
+            installDir, "Data", EditorDir, "maps", levelName + ".kwd");
+        return File.Exists(file) ? KwdLevel.Parse(KwdReader.ReadFile(file)) : null;
     }
 
     /// <summary>

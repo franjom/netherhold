@@ -12,8 +12,7 @@ namespace DK2.Data.Tests;
 /// Pins the on-disk record size of every KWD record type against the reference
 /// install, and pins the shape of the two types that have no fixed size.
 ///
-/// <para><b>Why this file exists.</b> Five record types are parsed; thirteen are
-/// not, and they are needed at M6. Their sizes were derived on 2026-09-04 by
+/// <para><b>Why this file exists.</b> Before M1 closed, these sizes were derived on 2026-09-04 by
 /// summing OpenKeeper's field lists (facts only — GPLv3; see
 /// <c>docs/research/external-resources.md</c>) and then checking each total
 /// against <c>contentSize / itemCount</c> from the shipped files. <b>Eight new

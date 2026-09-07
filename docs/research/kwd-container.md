@@ -58,15 +58,15 @@ the same or it is not.
 | TERRAIN | `Terrain.kwd` | 41 | **552** | ✓ | parsed |
 | ROOMS | `Rooms.kwd` | 26 | **1055** | ✓ | parsed |
 | CREATURES | `Creatures.kwd` | 46 | **5449** | **✗ — see below** | parsed |
-| KEEPER_SPELLS | `KeeperSpells.kwd` | 13 | **406** | ✓ | two fields |
-| TRAPS | `Traps.kwd` | 16 | **579** | ✓ | one field (Q59) |
-| DOORS | `Doors.kwd` | 8 | **616** | ✓ | — M6 |
-| OBJECTS | `Objects.kwd` | 145 | **894** | ✓ | — M6 |
-| SHOTS | `Shots.kwd` | 65 | **239** | ✓ | — M6 |
-| PLAYERS | `<level>Players.kld` | 4 | **205** | ✓ | — M6 |
-| CREATURE_SPELLS | `CreatureSpells.kwd` | 41 | **266** | ✓ | — M7 |
-| EFFECTS | `Effects.kwd` | 370 | **246** | ✓ | — M7 |
-| EFFECT_ELEMENTS | `EffectElements.kwd` | 596 | **182** | ✓ | — M7 |
+| KEEPER_SPELLS | `KeeperSpells.kwd` | 13 | **406** | ✓ | parsed (gameplay fields) |
+| TRAPS | `Traps.kwd` | 16 | **579** | ✓ | parsed (gameplay fields) |
+| DOORS | `Doors.kwd` | 8 | **616** | ✓ | parsed (gameplay fields) |
+| OBJECTS | `Objects.kwd` | 145 | **894** | ✓ | parsed (gameplay fields) |
+| SHOTS | `Shots.kwd` | 65 | **239** | ✓ | parsed, byte-exact |
+| PLAYERS | `<level>Players.kld` | 4 | **205** | ✓ | parsed, level-scoped |
+| CREATURE_SPELLS | `CreatureSpells.kwd` | 41 | **266** | ✓ | parsed, byte-exact |
+| EFFECTS | `Effects.kwd` | 370 | **246** | ✓ | parsed, byte-exact |
+| EFFECT_ELEMENTS | `EffectElements.kwd` | 596 | **182** | ✓ | parsed, byte-exact |
 
 **Eight of those sizes are new** (TRAPS, DOORS, OBJECTS, SHOTS, PLAYERS,
 CREATURE_SPELLS, EFFECTS, EFFECT_ELEMENTS) and every one matched to the byte on
@@ -98,8 +98,9 @@ Validated the way everything else is — structurally, over the whole corpus.
 Across all 133 tagged chunks the install ships (two per campaign level plus one
 in `GlobalVariables.kwd`), walking `itemCount` records consumes each chunk **to
 the byte**: 6,318 THINGS records and 9,161 TRIGGERS records, none left over and
-none short. Implemented as `DK2.Data.Kwd.KwdTaggedRecords`, which deliberately
-stops at the tag and the payload bytes; decoding a payload's fields is M6 work.
+none short. The structural split remains `DK2.Data.Kwd.KwdTaggedRecords`; M1
+now layers `KwdThings` and `KwdTriggers` over it to decode payload fields while
+retaining every byte for exact round-trip. Executing these records remains M6.
 
 And the payloads are **fixed-size per tag**, campaign-wide — so THINGS is really
 eleven fixed-size record types multiplexed, which is precisely why a stride check
@@ -126,8 +127,8 @@ body is unconfirmed, because **no shipped file places one**; its 16 bytes rest o
 OpenKeeper's field list alone and are marked as such in the code.
 
 TRIGGERS carries two tags, `Generic` (213) and `Action` (214), and both are 16
-bytes everywhere. A generic trigger's payload is a tagged union of its own inside
-those 16 bytes, so the size does not describe it — that is M6's problem.
+bytes everywhere. Both now expose the eight-byte type-dependent body, common
+ids/type/repeat fields and type-aware parameter views. Execution remains M6.
 
 **Two traps found the hard way, both worth keeping:**
 
@@ -169,7 +170,8 @@ the ninth would have been believed without the cross-check.
 Confidence: **CONFIRMED** (all twelve strides, the tagged-record shape, eleven of
 twelve THINGS payload sizes) / **HYPOTHESIS** (dead-body payload 16, unobserved).
 
-Implementation: `DK2.Data.Kwd.KwdTaggedRecords`, `dk2tools kwd chunks` (now
-prints the stride) and `dk2tools kwd tagged`.
+Implementation: `DK2.Data.Kwd.KwdTaggedRecords`, `KwdThings`, `KwdTriggers`,
+`KwdAdditionalRecords`, `KwdLevel`; `dk2tools kwd chunks`, `kwd tagged`,
+`kwd records` and `kwd corpus`. Full fields: `kwd-record-fields.md`.
 
 Tests: `DK2.Data.Tests.KwdRecordLayoutTests`.

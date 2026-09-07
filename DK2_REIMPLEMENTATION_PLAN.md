@@ -981,7 +981,7 @@ is very expensive to retrofit.
 | # | Milestone | Definition of done | Est. |
 |---|---|---|---|
 | **M0** ✅ | Research baseline | This document; repo skeleton; DK2 v1.70 installed; Flame + OpenKeeper building locally | 1–2 wk |
-| **M1** ◐ | Formats readable | `DK2.Tools extract` dumps WAD contents; KWD parses to `GameDatabase`; all 18 record types round-trip; unit tests over the shipped campaign maps | 3–5 wk |
+| **M1** ✅ | Formats readable | `DK2.Tools extract` dumps WAD contents; KWD parses to `GameDatabase`; all 18 record types parse with byte-exact/full-length coverage; unit tests over the shipped campaign maps | complete 2026-09-07 |
 | **M2** ✅ | Deterministic skeleton | `GameSimulation.Tick()` exists; `StateHash()` stable; save/load round-trips; CI determinism gate green; headless harness runs a scenario file | 3–4 wk |
 | **M3** ✅ | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold. Unity view renders it with placeholder art — **the view is done (2026-09-04); what a room *does* is not** | 8–12 wk |
 | **M4** ✅ | First creature loop | Portal spawn; lair claim; hunger→hatchery; sleep; training; payday; job selection with logged reasons | 8–12 wk |
@@ -1036,11 +1036,11 @@ branch), 46 research docs, 215 open-question rows running to Q219,
   and **M0 is closed, 2026-09-07**; the recipe for both is in
   `original-reference/README.md`. What neither build is yet *used* for — DK2
   running under Flame — is M5's first step, not M0's.
-- **M1** ◐ — every record type's on-disk size is known and pinned; **nine**
-  parse into `GameDatabase` (TERRAIN, ROOMS, CREATURES, VARIABLES,
-  KEEPERSPELLS, OBJECTS, DOORS, TRAPS, MAP). THINGS and TRIGGERS are split into
-  tagged records with no field read (`KwdTaggedRecords`); PLAYERS, LEVEL,
-  CREATURESPELLS, SHOTS, EFFECTS, EFFECTELEMENTS and GLOBALS are not read at all.
+- **M1** ✅ — closed 2026-09-07 (ADR-0091). All 18 record-type ids have typed
+  readers. The corpus audit covers 408 KWD/KLD files, all 66 LEVEL records,
+  6,318 THINGS and 9,161 TRIGGERS, and byte-round-trips every newly decoded
+  record. GLOBALS is the honest zero: v1.70 ships no type-0 chunk or LEVEL path
+  row, so its LEVEL-reference representation has a synthetic round-trip (Q220).
 - **M2** ✅ — unchanged.
 - **M3** ✅ substantially — the Unity view renders campaign level 1; terrain
   work, rooms, the treasury, mana, gold and the imp are all in.
@@ -1138,13 +1138,10 @@ which is why the renderer draws boxes rather than art.~~ **Corrected
 draws boxes because the Unity adapter has no branch that loads its output.
 (Four rooms have behaviour since this paragraph was written; see §8 M4.)
 
-M1 is marked partial deliberately. Its definition of done says "all 18 record
-types round-trip"; **nine** are parsed as of 2026-09-06 (VARIABLES, CREATURES,
-TERRAIN, ROOMS, MAP, KEEPERSPELLS, OBJECTS, DOORS, TRAPS — this sentence said
-five until then) plus the WAD and KWD containers. That was enough to unblock M2,
-M3 and most of M4 — the remaining record types (THINGS, TRIGGERS, PLAYERS,
-LEVEL, CREATURESPELLS, SHOTS, EFFECTS, EFFECTELEMENTS, GLOBALS) are needed at
-M6, when real levels have to load their own contents, and are scheduled there.
+M1 is closed. All 18 record-type ids parse; editor definition tables are on
+`GameDatabase`, while PLAYERS, THINGS, TRIGGERS and LEVEL remain level-scoped.
+The format work does not place things or execute triggers: those behavioural
+steps remain M6. `dk2tools kwd corpus` makes this status re-checkable (ADR-0091).
 
 **Deliberate ordering note:** M5 (oracle comparison) comes *before* breadth work. Building
 the comparison rig early is what prevents accumulating a large body of plausible-but-wrong
@@ -1268,7 +1265,7 @@ I have flagged rather than resolved this, per §32 of the brief.
 > `sgmap` has been on disk since 2026-09-06 and the tool has simply not been
 > written; 6 — the 1999 *player*
 > manual was read (`manual-1999.md`, ADR-0037), the editor manual was not;
-> 7, 8, 9 — done (`DK2.Data`, nine record types, `game-database-dump.md`);
+> 7, 8, 9 — done (`DK2.Data`, all 18 record-type ids, `kwd-record-fields.md`);
 > 10 — became `docs/research/open-questions.md`, 202 rows. For what to pick up
 > next, read `docs/HANDOFF.md`, not this section.
 
