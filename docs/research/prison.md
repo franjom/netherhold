@@ -34,7 +34,7 @@ binary in our own words** — no decompiler output enters this repository
 | A prisoner that runs out **rises as a Skeleton for the jailer** | **STRONGLY INFERRED** — the manual states it, and the Prison's `CreatedCreatureId` is 9 |
 | Imps stop collecting when every prison is full | **STRONGLY INFERRED** — the manual states it; it falls out of the destination being chosen before the walk |
 | Losing a prison frees every enemy in it | **STRONGLY INFERRED** — the manual states it |
-| A jail break on overcrowding, at `OvercrowdingJailBreakPercentagePerExtraCreature` = **50** | **STRONGLY INFERRED** for the rule, **ours** for the cadence (Q168) |
+| A jail break on overcrowding, at `OvercrowdingJailBreakPercentagePerExtraCreature` = **50** | **CONFIRMED from the binary**: one roll when a creature is added above safe capacity, not a periodic roll (Q168) |
 | **A prison holds its inner tiles plus one** — so a 3x3 holds **two**, and below 3x3 it is not a prison at all | **CONFIRMED** (owner, 2026-09-06, off DK2's status bar) and **the arithmetic is read** (ADR-0070). Was *"one prisoner per tile"*, which on a 3x3 was nine |
 
 ---
@@ -179,7 +179,7 @@ From the manual (p.23) and the shipped variables:
 | Chickens dropped on a prisoner keep it alive | `manual-1999.md` §Hatchery | **no** — a chicken is an object nothing can pick up |
 | The door bar stops further deliveries | `SafeCreatureCapacity` on the room | **no** — there is no keeper-set limit here |
 | Full prison → next nearest with space → none → stop collecting | manual | yes, via the destination test |
-| Jail break on overcrowding | `OvercrowdingJailBreakPercentagePerExtraCreature` = **50** | yes; the cadence is ours (Q168) |
+| Jail break on overcrowding | `OvercrowdingJailBreakPercentagePerExtraCreature` = **50** | the rule is built, but its once-per-second cadence contradicts DK2's one roll per over-capacity insertion (Q168) |
 | Jail break on selling part of a prison in use | manual | yes, by a different route — see below |
 | Losing a prison frees every enemy, and keeps every friendly | manual | yes |
 | *"Motionless in prison"* | `MotionlessInPrisonSeconds` = 8 | no — and **the engine does not read it either** (§4b), so it is dead in v1.70 rather than merely unread here |
@@ -314,9 +314,13 @@ it, and its shipped-variable support is gone (Q171).
   loop.
 - **The drain is applied in single seconds rather than four-second lumps**
   (§4b), and **without the anger that accompanies it in the original.**
-- **The jail break is rolled once a game second** (Q168), on the same clock every
-  other repeated chance here rides (ADR-0043). The variable names a percentage
-  per extra creature and says nothing about how often.
+- **The jail break is rolled once a game second here, and that is wrong**
+  (Q168). DK2 rolls only in the room-insertion path, after a creature has joined
+  a Prison whose occupancy now exceeds its safe capacity. It draws once for that
+  insertion and compares `random(100)` with `extra creatures × 50`; there is no
+  periodic re-roll while occupancy remains unchanged. One extra creature gets
+  one 50% chance, while two or more make that insertion's break certain. No code
+  was changed in the docs-only reader-scan tranche.
 - **No keeper-set door bar.** `SafeCreatureCapacity` is a real stored field and
   there is no interface here to set it, so overcrowding is only ever a keeper
   dropping a prisoner into a full prison by hand.

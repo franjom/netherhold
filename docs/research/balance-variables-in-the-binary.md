@@ -254,7 +254,7 @@ all of them prison-adjacent:
 | Variable | Global | Readers |
 |---|---|---|
 | `PrisonModifyCreatureHealthPerSecond` (55) | `0x006F2621` | **2** — the drain applier and the general health routine, which recognises the drain *by its amount* |
-| `OvercrowdingJailBreakPercentagePerExtraCreature` (151) | `0x006F2920` | **1** |
+| `OvercrowdingJailBreakPercentagePerExtraCreature` (151) | `0x006F2920` | **1** — room insertion rolls once when the new occupancy exceeds a prison's safe capacity (Q168) |
 | `MotionlessInPrisonSeconds` (39) | `0x006F25E9` | **none** — written by its stub and read nowhere |
 | `CreatureCriticalHealthPercentageOfMax` (173) | `0x006F294A` | **none** |
 
@@ -413,7 +413,7 @@ consults it.
 | 148 | `PercentageChanceOfKillingCreatureInPit` | 10 | `0x006F291C` (u8) |
 | 149 | `ModifyPlayerColdWhileTrainingPerSecond` | -5 | `0x006F291D` (u16) — **live, and "Cold" is gold**: five a game second per creature in a training room, and a keeper who cannot pay loses the job (Q205, ADR-0083) |
 | 150 | `SkeletonArmyDurationSeconds` | 30 | `0x006F291F` (u8) |
-| 151 | `OvercrowdingJailBreakPercentagePerExtraCreature` | 50 | `0x006F2920` (u8) |
+| 151 | `OvercrowdingJailBreakPercentagePerExtraCreature` | 50 | `0x006F2920` (u8) — one roll per creature inserted above a prison's safe capacity, chance `extra × 50%` (Q168) |
 | 152 | `MaxTimeInGuardRoomBeforeWanderingToGuardPostSeconds` | 60 | `0x006F2921` (u8) |
 | 153 | `?` | ? | — |
 | 154 | `AmountOfGoldStolenInFirstPerson` | 100 | `0x006F2922` (u16) |
