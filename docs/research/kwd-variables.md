@@ -80,6 +80,21 @@ tidy:
 | `Level6b` | `PrisonModifyCreatureHealthPerSecond` = −5 | −3 |
 | `level2`, `level8` | `TimeBeforeDungeonHeartConstructionBegins` = 15 / 16 | 0 |
 | `level1` | payday 600 → **1200**, first payday 600 → **1200**, `EntranceGenerationSpeedSeconds` 25 → 18, hated-roommate anger 150 → 100, `DungeonHeartReportingDistanceTiles` 4 → 6, gambling anger −2000 → −1000 | — |
+| `level2`, `level3`, `Level10`, `Secret1` | **`EntranceGenerationSpeedSeconds` 20, 22, 30 and 10000** | 25 |
+
+**The portal-interval row was incomplete for months, and this is the second
+kind of gap worth naming.** The list of 26 overridden *ids* was swept correctly
+from all 66 files; the table of *which level overrides what* was written from
+level 1 only, because level 1 was the level being worked on. So
+`EntranceGenerationSpeedSeconds` appeared in the id list and "18 on level 1"
+propagated into `portals.md`, `PortalRules`, two tests and a sentence told to the
+owner as *"the only one of 66"*. A sweep for that one id, 2026-09-07, finds
+**five** levels: 18, 20, 22, 30, and Secret1's **10000** — a portal that produces
+nothing in any real session, the same disabled-not-cut shape as ADR-0085. And
+levels 1 to 3 at 18, 20, 22 with 25 from level 4 on is a **deliberate tutorial
+ramp** that was invisible while only one of the three was known.
+`LevelVariablesOnRealDataTests.FiveLevelsOverrideThePortalInterval_NotOnlyLevelOne`
+pins all five, and `dk2tools kwd portals` prints each level's own base.
 
 `MinimumImpThreshold` = 0 means a keeper on those levels gets **no free imps at
 all**, which is exactly right for fixed-roster puzzle levels — and

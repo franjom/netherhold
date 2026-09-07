@@ -22,7 +22,7 @@ none of which exists.
 | A portal is 3x3, costs 0, and is **not buildable** | `Rooms.kwd` id 3: flags `0x1004` = PlaceableOnLand + HasFlame, and nothing else. No Buildable, no Attackable, no HasWalls |
 | Its construction is `ThreeByThree` | and it and Hero Portal (25) are the **only two** rooms in the game that are |
 | Its terrain is 12, `ownable, room`, 10000 health | `Terrain.kwd` |
-| A creature arrives every `EntranceGenerationSpeedSeconds` | 25 game-wide, **18 on level 1** — one of the 26 ids a level overrides (ADR-0040) |
+| A creature arrives every `EntranceGenerationSpeedSeconds` | 25 game-wide, and **five levels override it** — one of the 26 ids a level may (ADR-0040). level1 **18**, level2 **20**, level3 **22**, Level10 **30**, Secret1 **10000**. The first three ramp; Secret1's portal is switched off |
 | One portal supports 15 creatures, each extra one 5 more | `CreaturesSupportedByFirstPortal` = 15, `CreaturesSupportedPerAdditionalPortal` = 5. The 1999 manual states the same rule in prose (p.22) |
 | Who may enter is per level and per player | `CreaturePool` — level 1's entire pool is `creature 7 = 15, player 3` |
 | Whether they are unlocked is per level and per player | `Availability` kind 2 (CREATURE) — level 1 unlocks exactly one creature |
@@ -379,7 +379,7 @@ creature is due is six instructions:
 
 ```
 n        = room[0x4D]                            -- a per-ROOM counter
-base     = EntranceGenerationSpeedSeconds        -- 25 game-wide, 18 on level 1
+base     = EntranceGenerationSpeedSeconds        -- 25 on 61 levels, 18/20/22/30/10000 on five
 dueTicks = (n * n + base) * variable19 + room[0x49]
 if (now >= dueTicks) <generate>
 ```

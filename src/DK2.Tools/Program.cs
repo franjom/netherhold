@@ -198,6 +198,126 @@ switch (args[0])
     // two nulls, posX(u16), posY(u16). Verified here by whether every decoded
     // action type lands inside the enumerated range and every terrain id names a
     // terrain the database has.
+    case "kwd" when args.Length >= 2 && args[1] == "portals":
+    {
+        // Which shipped levels have more than one portal, and who starts with
+        // them. Written for Q86: the per-room / keeper-wide tally question needs
+        // a level where a keeper can hold two portals at once, and hunting for
+        // one by playing is far more expensive than reading 66 grids.
+        string root = Dk2Install.Require();
+        string mapsDir = Path.Combine(root, "Data", "editor", "maps");
+        GameDatabase db = GameDatabaseLoader.Load(root);
+
+        // Portal terrains from the ROOMS table rather than hardcoded, so a
+        // renumbered id cannot make this quietly print nothing.
+        var portalTerrain = new Dictionary<byte, string>();
+        foreach (RoomDef room in db.Rooms.Values)
+        {
+            if (room.Name.Contains("Portal", StringComparison.OrdinalIgnoreCase))
+                portalTerrain[room.TerrainId] = room.Name;
+        }
+        if (portalTerrain.Count == 0)
+        {
+            Console.Error.WriteLine("no room named *Portal* in the ROOMS table.");
+            return 1;
+        }
+        Console.WriteLine("portal terrains: " + string.Join(", ",
+            portalTerrain.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key}={kv.Value}")));
+        Console.WriteLine();
+
+        int baseGlobal = db[VariableTypeId.EntranceGenerationSpeedSeconds];
+        var interesting = new List<string>();
+
+        foreach (string file in Directory.GetFiles(mapsDir, "*Map.kld").OrderBy(f => f))
+        {
+            string level = Path.GetFileName(file)[..^"Map.kld".Length];
+            LevelMap? grid = MapGrid.Parse(KwdReader.ReadFile(file));
+            if (grid is null) continue;
+
+            // Flood fill each portal terrain into 4-connected regions; one
+            // region is one portal, whatever its shape.
+            var seen = new bool[grid.Width * grid.Height];
+            var regions = new List<(string Room, byte Owner, int Tiles, int X, int Y)>();
+            var stack = new Stack<int>();
+
+            for (int start = 0; start < seen.Length; start++)
+            {
+                if (seen[start]) continue;
+                MapTile t0 = grid.Tiles[start];
+                if (!portalTerrain.TryGetValue(t0.TerrainId, out string? name)) continue;
+
+                seen[start] = true;
+                stack.Push(start);
+                int tiles = 0, sx = 0, sy = 0;
+                byte owner = t0.PlayerId;
+
+                while (stack.Count > 0)
+                {
+                    int i = stack.Pop();
+                    tiles++;
+                    int x = i % grid.Width, y = i / grid.Width;
+                    sx += x; sy += y;
+                    // A region takes the highest player id it touches, so a
+                    // portal half-owned in the file still reports an owner.
+                    if (grid.Tiles[i].PlayerId > owner) owner = grid.Tiles[i].PlayerId;
+
+                    foreach ((int dx, int dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+                    {
+                        int nx = x + dx, ny = y + dy;
+                        if (!grid.Contains(nx, ny)) continue;
+                        int n = ny * grid.Width + nx;
+                        if (seen[n]) continue;
+                        if (grid.Tiles[n].TerrainId != t0.TerrainId) continue;
+                        seen[n] = true;
+                        stack.Push(n);
+                    }
+                }
+                regions.Add((name, owner, tiles, sx / tiles, sy / tiles));
+            }
+
+            if (regions.Count == 0) continue;
+
+            // The level's own base, because level 1 is not the only one allowed
+            // to override it even if it is the only one that does.
+            // Read the level's own VARIABLES rather than asking the campaign
+            // loader, which accepts only campaign level names and would
+            // silently hand back the global 25 for the rest — printing "base
+            // 25" for levels that plainly override it. Five levels do.
+            int levelBase = baseGlobal;
+            string varsFile = file[..^"Map.kld".Length] + "Variables.kld";
+            if (File.Exists(varsFile))
+            {
+                GlobalVariables? own = KwdVariables.Parse(KwdReader.ReadFile(varsFile));
+                if (own is not null &&
+                    own.TryGet(VariableTypeId.EntranceGenerationSpeedSeconds, out int v))
+                {
+                    levelBase = v;
+                }
+            }
+
+            // Player 2 is the unowned marker, not 0: level 1's portal — which
+            // the tutorial has you claim — is owner 2, and level 1's keeper is
+            // player 3. Player 7 is the Heroes.
+            const byte Unowned = 2;
+            int claimable = regions.Count(r => r.Owner == Unowned && r.Room == "Portal");
+            string mark = claimable >= 2 ? " <== TWO CLAIMABLE" : "";
+            Console.WriteLine($"{level,-22} base={levelBase,3}s  portals={regions.Count}{mark}");
+            foreach ((string room, byte owner, int tiles, int x, int y) in
+                     regions.OrderBy(r => r.X).ThenBy(r => r.Y))
+            {
+                Console.WriteLine(
+                    $"    {room,-12} owner={owner} tiles={tiles,2} at ({x},{y})");
+            }
+            if (claimable >= 2) interesting.Add($"{level} (base {levelBase}s, {claimable} claimable)");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("levels with two or more unowned Portals — candidates for the Q86 timing:");
+        if (interesting.Count == 0) Console.WriteLine("    none");
+        foreach (string s in interesting) Console.WriteLine("    " + s);
+        return 0;
+    }
+
     case "kwd" when args.Length >= 2 && args[1] == "alterterrain":
     {
         string root = Dk2Install.Require();
@@ -1079,6 +1199,8 @@ static int Usage()
     Console.WriteLine("  kwd vars [file.kwd]                    dump the global balance table");
     Console.WriteLine("  kwd alterterrain [-v]                  every ALTER_TERRAIN_TYPE trigger in every shipped");
     Console.WriteLine("                                         map, with what each target tile starts as (Q74)");
+    Console.WriteLine("  kwd portals                            every portal in every shipped map, its owner and");
+    Console.WriteLine("                                         size, flagging levels with two claimable ones (Q86)");
     Console.WriteLine();
     Console.WriteLine("offset hunting in records we do not parse:");
     Console.WriteLine("  kwd recscan <file.kwd> <value> [rec]   offsets holding a measured value, with the column");

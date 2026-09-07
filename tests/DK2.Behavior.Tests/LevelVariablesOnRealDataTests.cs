@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
+using DK2.Data.Kwd;
 using DK2.Data.Model;
 
 namespace DK2.Behavior.Tests;
@@ -242,4 +243,64 @@ public class LevelVariablesOnRealDataTests
         Assert.Equal(pooled.CreatureId, offered.TypeId);
         Assert.Equal(pooled.PlayerId, offered.PlayerId);
     }
+
+    /// <summary>
+    /// Every level that overrides the portal's base interval, and there are
+    /// <b>five</b> — not the one this project had recorded.
+    ///
+    /// <para>Found 2026-09-07 while looking for a level with two claimable
+    /// portals for the Q86 timing. `kwd-variables.md` listed level 1's 18 in its
+    /// table of live overrides and nobody had swept the other 65 files for the
+    /// same id, so "25 game-wide, 18 on level 1" had been repeated in four
+    /// places and asserted to the owner as *"the only one of 66"*. It is not.
+    /// </para>
+    ///
+    /// <para><b>The first three levels ramp</b> — 18, 20, 22, then the global 25
+    /// from level 4 on. That is a deliberate difficulty gradient across the
+    /// tutorial levels and it was invisible while only level 1 was known.</para>
+    ///
+    /// <para><b>And Secret1's portal is switched off, not slowed</b>: 10000
+    /// seconds is two hours and forty-seven minutes, so no creature arrives in
+    /// any real play session. Secret1 also sets `MinimumImpThreshold` to 0
+    /// (ADR-0040), so it is a level with a fixed roster and no way to add to it —
+    /// the same "disabled rather than cut" shape as ADR-0085's ten mechanisms,
+    /// this time in a per-level file rather than the global table.</para>
+    /// </summary>
+    [Fact]
+    public void FiveLevelsOverrideThePortalInterval_NotOnlyLevelOne()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        string maps = Path.Combine(install, "Data", "editor", "maps");
+        var found = new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string file in Directory.GetFiles(maps, "*Variables.kld"))
+        {
+            GlobalVariables own = KwdVariables.Parse(KwdReader.ReadFile(file));
+            if (own.TryGet(VariableTypeId.EntranceGenerationSpeedSeconds, out int seconds))
+            {
+                found[Path.GetFileName(file)[..^"Variables.kld".Length]] = seconds;
+            }
+        }
+
+        Assert.Equal(
+            new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["level1"] = 18,
+                ["level2"] = 20,
+                ["level3"] = 22,
+                ["Level10"] = 30,
+                ["Secret1"] = 10000,
+            },
+            found);
+
+        // 61 of the 66 shipped levels take the global value, so a level with
+        // base 25 is any of them — which is what identifies the level behind an
+        // observed 25-second first gap, and it is not "not level 1".
+        Assert.Equal(66, Directory.GetFiles(maps, "*Variables.kld").Length);
+        Assert.Equal(25, GameDatabaseLoader.Load(install)
+            [VariableTypeId.EntranceGenerationSpeedSeconds]);
+    }
+
 }

@@ -198,8 +198,17 @@ public static class PortalRules
     /// How long this keeper's next creature takes to arrive, in ticks.
     ///
     /// <para><b>The base is the data's:</b>
-    /// <c>EntranceGenerationSpeedSeconds</c> — 25 game-wide, and <b>18 on level
-    /// 1</b>, which is one of the 26 ids a level overrides (ADR-0040).</para>
+    /// <c>EntranceGenerationSpeedSeconds</c> — 25 on 61 of the 66 shipped
+    /// levels, and one of the 26 ids a level may override (ADR-0040).
+    /// <b>Five do</b>, which is four more than this comment used to say:
+    /// level1 <b>18</b>, level2 <b>20</b>, level3 <b>22</b>, Level10 <b>30</b>,
+    /// and Secret1 <b>10000</b> — two hours and forty-seven minutes, so that
+    /// level's portal is switched off rather than slowed, matching its
+    /// <c>MinimumImpThreshold</c> of 0. The first three levels ramping 18, 20,
+    /// 22 to the global 25 is a tutorial gradient that was invisible while only
+    /// level 1's override was known. Nothing here needs changing for it — the
+    /// value is read from the merged database — but "18 on level 1" had
+    /// propagated into four documents and a claim made to the owner.</para>
     ///
     /// <para><b>That the wait grows at all is CONFIRMED</b> (owner, 2026-09-04:
     /// the gap "seems to be prolonging after each goblin arrives"). That matters

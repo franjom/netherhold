@@ -1554,3 +1554,124 @@ rival: **lose a slow portal to an enemy keeper and take it back.** Both reset
 routines are reached only through a vtable, which is the shape of an ownership
 change, and an ownership change is the only room event a portal has now that
 selling and rebuilding are ruled out.
+
+---
+
+## Q86, the protocol — written before the measurement, on purpose
+
+**The owner is re-running the portal timing to settle it. This section is a
+pre-registration:** the predictions below are recorded *before* the data exists,
+so the result is a test rather than a fit. Both previous portal numbers in this
+project were fits — a slope taken from OpenKeeper that agreed with the one
+scenario log anybody looked at, and a base value that was right for level 1 and
+repeated as if it were right everywhere.
+
+### The level: `mpd3`
+
+Found with `dk2tools kwd portals`, added the same day for this question. It
+walks all 66 shipped maps, floods each portal terrain into connected regions and
+reports each portal's owner and size. `mpd3` wins on four counts:
+
+- **Exactly two portals**, both unowned (`owner=2`), at (31,14) and (31,44) — so
+  there is no third one to confuse the tally and nothing to hunt for.
+- **My Pet Dungeon, so no enemy keeper.** Nothing interrupts the clock, nothing
+  takes a portal off you mid-run, and no combat.
+- **`base` = 25**, the global value, because `mpd3` is one of the 61 levels that
+  does not override it.
+- **Symmetric and 30 tiles apart** vertically, so both are reachable and
+  distinguishable at a glance.
+
+Fallbacks if MPD turns out to have portal rules of its own — which is a real
+risk and worth watching for: the skirmish maps `The Deep End`, `Siege` and
+`U Turn` each have exactly two claimable portals at base 25, at the cost of an
+enemy keeper.
+
+**A level with base 25 is not "any level but level 1".** Five levels override:
+level1 = 18, level2 = 20, level3 = 22, Level10 = 30 and **Secret1 = 10000**,
+which is a portal switched off rather than slowed.
+
+### Method
+
+The two things that cost accuracy last time were reaction time and one unrecorded
+moment, and both are fixable:
+
+1. **Screen-record instead of using a stopwatch.** `Win+Alt+R` (Windows Game
+   Bar) or OBS. Read the timestamps off the video afterwards. That removes
+   reaction time entirely and removes *"caught me off guard"* — the eighth
+   arrival last time was the most interesting one and the least well timed.
+2. **Build the lair first, generously, before claiming anything.** A portal that
+   comes due with nobody eligible waits and stamps its clock at the *actual*
+   arrival, which shifts every later reading. That is the best explanation of
+   the single six-second residual in the previous run, and it is avoidable
+   rather than something to correct for.
+3. **Claim portal 1. That frame is t = 0.**
+4. Let it run to about six arrivals — roughly 3.5 minutes.
+5. **Claim portal 2, and write down the time.** ← *this is the datum that was
+   missing last time, and it is the whole experiment.* Portal 2's first gap is
+   unreadable without it.
+6. Time the next four or five arrivals **from each portal, labelled**.
+7. **Stay under 20 creatures** (15 for the first portal plus 5 for the second): a
+   portal at capacity stops generating, which looks like a very slow portal and
+   is a different mechanism.
+8. **Do not pause, save, load, or change game speed**, and do not slap or kill
+   anything. The counter cannot go down (129 `+0x4D` references, no `DEC` or
+   `SUB`), but a clean run needs no argument about it.
+
+Imps do not count — they are not portal-generated.
+
+### Prediction 1: portal 1's own series, base 25
+
+Recorded in advance. If the quadratic is right these are the arrival times from
+the claim, and the tolerance is a second or two per gap:
+
+| n | gap | at | | n | gap | at |
+|---|---|---|---|---|---|---|
+| 0 | 25 | 0:25 | | 7 | 74 | 5:40 |
+| 1 | 26 | 0:51 | | 8 | 89 | 7:09 |
+| 2 | 29 | 1:20 | | 9 | 106 | 8:55 |
+| 3 | 34 | 1:54 | | 10 | 125 | 11:00 |
+| 4 | 41 | 2:35 | | 11 | 146 | 13:26 |
+| 5 | 50 | 3:25 | | 12 | 169 | 16:15 |
+| 6 | 61 | 4:26 | | | | |
+
+**What this project's shipped formula predicts instead**, so the two are on the
+page together: 25, 25, 25, 37, 50, 62, 75, 87, 100, 112, 125, 137, 150. It is
+flat for three arrivals where the quadratic climbs, and by n = 6 it is 14
+seconds long.
+
+### Prediction 2: the discriminator, and it is portal 2's first gap
+
+**Say portal 2 is claimed at time `T`, with the keeper's total arrivals so far
+at 6.** The two readings of `n` then say completely different things about
+portal 2's *first* creature:
+
+| | portal 2's first gap | second | third |
+|---|---|---|---|
+| **tally per room** (what the binary reads) | **25 s** | 26 s | 29 s |
+| **tally keeper-wide** | **61 s** | 74 s | 89 s |
+
+**25 against 61 on a single measurement.** Nothing else in this question is that
+cheap. And it is not a fine judgement — under the per-room reading a freshly
+claimed portal is at *full speed* however worn out its neighbour is, which is
+visible without a clock at all.
+
+Portal 1's own series is the control: under the per-room reading it carries on
+through 74, 89, 106 exactly as though portal 2 did not exist. Under the
+keeper-wide reading portal 1's gaps jump by two steps every time portal 2
+delivers.
+
+### What each outcome means for the code
+
+| result | consequence |
+|---|---|
+| portal 1 matches the table, portal 2's first gap ≈ 25 | `SpawnIntervalTicks` becomes `n² + base` with `n` a **per-room generation count** — a new field on `RoomInstance`, and `PortalRules.CreatureCount` stops being the input. The `HashVersion` moves, so it wants coordinating |
+| portal 1 matches, portal 2's first gap ≈ 61 | the quadratic is right and the tally is the **keeper's**, which is closer to what we already compute — but on generations, not on living creatures, so it still never falls |
+| portal 1 does **not** match the table | the six instructions were misread, and that is the more valuable answer. Re-read `0x004DBBE0` before touching `src/` |
+
+### Still not answered by any of this
+
+**Whether `room[0x4D]` ever returns to zero.** Both reset routines are reached
+only through a vtable, and the only room event a portal has — now that selling
+and rebuilding are ruled out — is an ownership change. **That needs a rival:**
+lose a slow portal to an enemy keeper and take it back. `mpd3` cannot answer it,
+which is the one thing the skirmish fallbacks are better at.
