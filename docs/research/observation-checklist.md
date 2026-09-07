@@ -1332,3 +1332,59 @@ your colour to theirs?** One tile, one look, no timing.
 
 Nothing waits on the answer — hostile expansion is unbuilt and unscheduled — so
 this is for whenever you happen to be in a skirmish.
+
+---
+
+## Answered from memory, 2026-09-07
+
+Twelve questions in one sitting, put to the owner as a list rather than as
+experiments. Worth recording as a method note: **asking for a batch of remembered
+answers is cheaper than designing a batch of experiments**, and eight of the
+twelve closed outright.
+
+| Q | Answer | What it cost us |
+|---|---|---|
+| **Q66** | Adjacency is orthogonal, not diagonal | Nothing — already right |
+| **Q88** | Portal centre **and heart centre** are unwalkable; the portal centre is the arriving animation *and* the Hand of Evil's way of removing a creature | An unbuilt mechanic and a walkability bug |
+| **Q93** | A defeated keeper's heart turns to **ruin**: claimable, never sellable, never built over | Q207, and two systems that would allow both |
+| **Q94** | A bridge is claimed whole, like a room | Nothing — already right |
+| **Q107** | Bed sold mid-carry: the imp **drops** the body and the dying clock runs out | Nothing — already right, and by luck |
+| **Q109** | An enemy collapses identically; the dying window is the imps' chance to reach a prison | Nothing — and it named the window's *purpose* |
+| **Q126** | Level cap **10**, imps included; Horny has no visible level at all | Nothing — already right |
+| **Q137** | A creature leaving through a portal keeps its gold | Nothing — already right |
+| **Q87** | Capacity is **per claimed portal**: 15 for the first, +5 for each after | A conflated pair of fifteens |
+| **Q103** | 240 s awake and ~9 s asleep both survive a stopwatch | Nothing, and it does not close |
+| **Q79** | Imp experience is *probably* per job done | Nothing; goes to the binary |
+| **Q57** | Imps take no wage — **and the owner now says no mana upkeep either** | A live conflict, see below |
+
+### Two of these were worth more than an experiment would have been
+
+**Q87 was the wrong question, and the owner said so.** It asked whether a
+level's creature pool was a standing limit or a draining quota. The answer is
+that the pool is not the limit at all: **capacity comes from claimed portals**,
+15 for the first and 5 for each additional one — and both numbers are shipped
+variables that name themselves, `CreaturesSupportedByFirstPortal` and
+`CreaturesSupportedPerAdditionalPortal`. The row had welded together *level 1's
+pool entry of 15* and *the first portal's capacity of 15*, **two different
+fifteens**, and no experiment aimed at the wrong mechanic would ever have
+untangled them. A badly posed question survives measurement.
+
+**Q88 answered more than it was asked.** The question was whether a portal's
+centre tile is walkable. The answer is no — and neither is a dungeon heart's —
+and the centre is reserved for two things, one of which nobody here knew about:
+**dropping a creature into a portal removes it from the dungeon.** A yes/no
+question about pathing turned up a keeper power.
+
+### And one is a conflict with the owner's own earlier measurement
+
+On **Q57** the owner said imps *"cost mana and have no upkeep AFAIK"*. On
+2026-08-30, answering Q53, the same owner **photographed the mana orb** with four
+imps (−28) and again with five (−35) — seven a second, each — and that rate is
+corroborated by `KeeperSpells.kwd+0x00E2`, which reads 7 for Create Imp and is
+non-zero for exactly the five spells whose result persists.
+
+The measurement stands over the recollection, and `ManaRules.ImpUpkeepPerSecond`
+stays until the owner says otherwise. Recorded here rather than resolved
+silently, because **the standing rule is that the owner arbitrates** — and when
+the owner disagrees with the owner, the one with a photograph wins.
+
