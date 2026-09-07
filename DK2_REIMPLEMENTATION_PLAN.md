@@ -967,8 +967,9 @@ is very expensive to retrofit.
 | **M10** | Campaign | Full campaign playable start to finish | after M8 |
 | **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
 
-**Status (2026-09-06 evening, revision 2 refreshed).** **1042 tests, 23
-scenarios, 76 ADRs, 202 catalogued open questions**, `HashVersion` 30.
+**Status (2026-09-06 late, revision 3).** **1111 tests, 26 scenarios, 82 ADRs,
+206 catalogued questions** (72 fully open, 30 partly answered, 84 closed),
+`HashVersion` **33**, pin `0x21A7E4D24F37DF48`.
 
 - **M0** — done except the one thing this document exists to correct: Flame has
   never been checked out (§2.2.1). OpenKeeper is on disk.
@@ -980,14 +981,13 @@ scenarios, 76 ADRs, 202 catalogued open questions**, `HashVersion` 30.
 - **M2** ✅ — unchanged.
 - **M3** ✅ substantially — the Unity view renders campaign level 1; terrain
   work, rooms, the treasury, mana, gold and the imp are all in.
-- **M4** ✅ — **all seven items exist**, the last of them job selection with logged reasons (ADR-0082, 2026-09-06). What is *selected* and not yet *worth* anything is training (Q205).
-
-- **M4 (superseded paragraph)** ◐ — ~~five of its seven items exist.~~ Portal spawn ✅ (ADR-0042/0047),
-  lair claim ✅ (ADR-0049/0060), sleep ✅, **hunger→hatchery ✅ (ADR-0066/0067,
-  2026-09-06)**. Training ✗, payday ✗, and job selection with logged reasons is
-  done **for workers only** (ADR-0058) — a non-worker still has no job.
-  Beyond the original list, M4 has also grown death and corpses (ADR-0051/0063),
-  anger and desertion (ADR-0053), levels (Q119), the Hand of Evil (ADR-0062),
+- **M4** ✅ — **all seven items exist**, closed 2026-09-06. Portal spawn
+  (ADR-0042/0047), lair claim (ADR-0049/0060), sleep, hunger→hatchery
+  (ADR-0066/0067), payday (ADR-0078/0079), and job selection with logged
+  reasons (ADR-0082). **Training is the loose thread**: a creature now *chooses*
+  it and walks to the room, and what a second of it is worth is unread (Q205).
+  Beyond the original list M4 also grew death and corpses (ADR-0051/0063), anger
+  and desertion (ADR-0053/0081), levels (Q119), the Hand of Evil (ADR-0062),
   carrying (ADR-0063/0065) and the prison (ADR-0064/0068).
 - **M5** — not started, and its definition of done depends on Flame, which is
   the second reason §2.2.1 matters.
