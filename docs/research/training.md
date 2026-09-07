@@ -264,12 +264,35 @@ one is a global, is read raw, and is added raw. **20 a tick is 80 a game
 second**, so an imp reaches level 2 in about **37 seconds** of continuous work
 and not the 150 this project believed for three weeks.
 
-### 6.2 What is not established
+### 6.2 The cadence — CONFIRMED, and the chain is closed
 
-Whether the imp task handlers are dispatched exactly once a tick was taken from
-`tile-work.md` rather than read here. If that turns out to be wrong the factor of
-four moves with it, and this is the paragraph to come back to. **The probe:**
-find what iterates the task table at `0x006E4198`.
+This section first said the factor of four was taken from `tile-work.md` rather
+than read, and named the probe: *find what iterates the task table at
+`0x006E4198`*. Done the same day.
+
+| Link | Routine |
+|---|---|
+| the task records | `0x006E4198`, stride `0x1D`, filled by `FUN_004950C0` |
+| indexed by the creature's current task kind, `creature+0x3A9` | `FUN_00496DC0` returns `base + kind * 0x1D` |
+| the dispatcher that calls the handler at `+0x00` | **`FUN_00496AA0`** |
+| its **only** caller | **`FUN_00488930`** (`+0x1138`) |
+| which also calls the creature **state** dispatcher | **`FUN_00476FC0`** (`+0x1700`) |
+
+And `FUN_00476FC0` runs **every tick**, from three independent facts already
+established here: the prison drain's 16-tick countdown (Q173), the slap timer's
+100 decrements over 25 game seconds (Q159, CONFIRMED by the owner off the status
+bar), and the ticks-in-state counter it increments once per call.
+
+So `FUN_00488930` is the **per-tick creature update**, the task handler runs once
+a tick, and **20 a tick is 80 a game second**. Q79 moves from STRONGLY INFERRED
+to CONFIRMED.
+
+**One correction falls out.** §8 calls `FUN_00485880` — the
+`EPLossSecondWhileNotTraining` hook — *"a per-second hook"*. It is not: it is
+called from `FUN_00488930` at `+0xC54`, so it is **per tick** like everything
+else there. The name said "Second" and this document repeated it, which is the
+same misnaming `ImpExperienceGainPerSecond` carries. If that variable were ever
+non-zero it would drain **four times** its named rate.
 
 ---
 

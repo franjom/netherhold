@@ -34,14 +34,24 @@ disassembly tracking register values rather than reading bytes out of a section.
 | Offset | Size | Field | Status |
 |---|---|---|---|
 | `+0x00` | 4 | **update handler** — the per-tick function | CONFIRMED |
-| `+0x04` | 4 | second function pointer | present; role unread |
-| `+0x08` | 4 | third function pointer | present; role unread |
-| `+0x0c` | 4 | fourth function pointer | present; role unread |
-| `+0x10` | 4 | **state id**, always equal to the record index | CONFIRMED |
+| `+0x04` | 4 | **written and never read** | CONFIRMED dead (Q184) |
+| `+0x08` | 4 | **written and never read** | CONFIRMED dead (Q184) |
+| `+0x0c` | 4 | **written and never read** | CONFIRMED dead (Q184) |
+| `+0x10` | 4 | state id, equal to the record index — and **also never read** | CONFIRMED dead (Q184) |
 | `+0x14` | 2 | **`Text.str` string id** — the state's display label | CONFIRMED |
 | `+0x16` | 1 | **group tag**, compared for equality by `SetState` | CONFIRMED |
 | `+0x17` | 1 | **category**, index into the 32-entry table at `0x00699688` | CONFIRMED |
 | `+0x18` | 1 | flag byte | UNKNOWN |
+
+**Four of those nine fields are dead** (Q184, 2026-09-07). A raw address scan of
+every slot of record 0 settles it, because the stride of 25 compiles to
+`[EAX + EAX*4 + base]` with `EAX` pre-multiplied by 5 — so every indexed read in
+the executable carries the base constant and is visible to a scan. `+0x04`,
+`+0x08`, `+0x0c` and `+0x10` have **one store each and zero reads**, all four
+stores inside the fill run. The three "unread function pointers" are not enter,
+leave or message hooks and not part of one wide pointer: the static initialiser
+writes them and nothing looks at them. The state id at `+0x10` goes the same way
+— the dispatcher takes the id from the **creature**, not from the record.
 
 The frame is pinned from the code that *indexes* the table, never from the data
 that fills it. The dispatcher `FUN_00476FC0` dereferences

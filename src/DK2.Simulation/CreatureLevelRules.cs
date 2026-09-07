@@ -34,8 +34,8 @@ namespace DK2.Simulation;
 /// regeneration among them — an Imp heals at 67 a second for ever.</item>
 /// </list>
 ///
-/// <para><b>Gaining a level is implemented for workers only</b>, and the owner
-/// settled the rule (Q124): <i>"imps get experience by working, while they do
+/// <para><b>Gaining a level is implemented for workers and for training</b>, and
+/// the owner settled the rule (Q124): <i>"imps get experience by working, while they do
 /// their usual things around the dungeon, digging, reinforcing walls, mining
 /// gold, etc. they get exp and passively their level raises. creatures also gain
 /// levels through experience, mostly training and fighting. creatures can get up
@@ -45,18 +45,26 @@ namespace DK2.Simulation;
 /// <para><b>Two of those caps are shipped variables to the number</b> —
 /// <c>TrainingRoomMaxExperienceLevel</c> 4 and
 /// <c>CombatPitMaxExperienceLevel</c> 8 — which is the third time an owner
-/// statement has landed on a variable name outright. So an imp works and levels
-/// here; nothing else earns anything, because training and fighting do not
-/// exist. See <see cref="Systems.CreatureExperienceSystem"/>.</para>
+/// statement has landed on a variable name outright. An imp works and levels,
+/// and since ADR-0083 a creature that is not a worker <b>trains</b>.</para>
 ///
-/// <para><b>And the owner's answer resolved a unit that looked unresolvable.</b>
-/// The record's field this project calls <c>ExpPerSecond</c> reads <b>1200</b>
-/// for an Imp, which is absurd per second — level 2 in two and a half seconds.
-/// But <b>1200 / 60 = 20</b>, exactly the global
-/// <c>ImpExperienceGainPerSecond</c>, so the record's field is <b>per
-/// minute</b>: two independent fields agreeing on one creature's rate. That
-/// makes a Goblin's 200 into 3.33 a second, or fifteen minutes a level —
-/// plausible, and unused here because nothing makes a Goblin fight.</para>
+/// <para><b>This summary used to claim the record's rates were per MINUTE.
+/// RETRACTED 2026-09-07 (Q205).</b> The argument was that <c>ExpPerSecond</c>
+/// reads 1200 for an Imp, that <c>ImpExperienceGainPerSecond</c> is 20, and that
+/// 1200 / 60 = 20 — <i>"two independent fields agreeing on one creature's
+/// rate"</i>. They were never about the same mechanic. <c>ExpPerSecond</c> is
+/// <b>combat</b> experience, read only by the per-tick hook of state category 22
+/// (battle, fleeing, threat-response), which is the owner's own <i>"to get to
+/// level 10 they need to fight actual fights"</i>; and the loader divides it by
+/// variable 19 as it stores it, which is what a per-second number becoming a
+/// per-tick one looks like. The Imp is also the one creature in 46 whose combat
+/// rate is not 5x its training rate, and the one creature that never fights, so
+/// its 1200 is unreachable (Q208).</para>
+///
+/// <para><b>Training and work are both built and both pay per original
+/// tick</b> — see <see cref="TrainingRules"/> and
+/// <see cref="Systems.CreatureExperienceSystem"/>. Fighting still does not
+/// exist, so nothing here reaches level 5.</para>
 ///
 /// <para>Integer arithmetic throughout, on the same 100-based percentages the
 /// file uses. A percentage is applied to the <i>record's</i> value rather than
@@ -137,11 +145,22 @@ public static class CreatureLevelRules
     /// The three distinct predicates were read and they are all tile
     /// <i>properties</i> — "is this claimable", "is this a diggable wall", "is
     /// this reinforceable" — so the guard means <b>"is this still a valid
-    /// target"</b> and not "the job just finished". The award sits on the same
-    /// cadence as the work accrual beside it, which
-    /// <c>docs/research/tile-work.md</c> established is once an original tick.
-    /// The owner's <i>"per job done"</i> named exactly the right activities and
-    /// the granularity turned out finer.</para>
+    /// target"</b> and not "the job just finished". The owner's <i>"per job
+    /// done"</i> named exactly the right activities and the granularity turned
+    /// out finer.</para>
+    ///
+    /// <para><b>And the cadence is CONFIRMED by a closed chain rather than
+    /// inferred from the work beside it</b> (2026-09-07, second pass). The imp
+    /// task records live at <c>0x006E4198</c>, stride <c>0x1D</c>; the
+    /// dispatcher <c>FUN_00496AA0</c> indexes one by the creature's current task
+    /// kind (<c>creature+0x3A9</c>) and calls its handler at <c>+0x00</c>; its
+    /// <b>only</b> caller is <c>FUN_00488930</c>; and <c>FUN_00488930</c> also
+    /// calls <c>FUN_00476FC0</c>, the creature <b>state</b> dispatcher, which is
+    /// known to run every tick from three independent facts — the prison drain's
+    /// 16-tick countdown, the slap timer's 100 decrements over 25 game seconds
+    /// (Q159, owner-confirmed), and the ticks-in-state counter it increments
+    /// once per call. So the task handler runs once a tick, and <b>20 a tick is
+    /// 80 a game second</b>.</para>
     ///
     /// <para><b>The one rate in the family that is NOT divided by four.</b> Its
     /// four siblings on the creature record go through
