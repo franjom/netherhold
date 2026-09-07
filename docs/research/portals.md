@@ -107,11 +107,16 @@ does by the `IsWorker` flag.
 **Read from the binary and then confirmed by stopwatch, both on 2026-09-07.**
 The interval is `(n² + base)` game seconds, not `max(base, base × n ÷ 2)`, and
 `n` counts *creatures this room has generated* rather than the keeper's living
-creatures. `max(base, base × n ÷ 2)` is still what
-`PortalRules.SpawnIntervalTicks` computes; it is **known wrong at the call
-site** and left in place only until the counter's reset is settled. The whole
-account, the seven timed gaps and the two formulas side by side are further down
-this page under *"The generation interval is quadratic"*.
+creatures. The whole account, the seven timed gaps and the two formulas side by
+side are further down this page under *"The generation interval is quadratic"*.
+
+**`PortalRules.SpawnIntervalTicks` computes `n² + base` as of ADR-0086**, and the
+tally's reset is settled too (an ownership change). This paragraph said the
+opposite — *"still what SpawnIntervalTicks computes... known wrong at the call
+site"* — for the few hours between reading the formula and shipping it, and was
+left standing for a day afterwards. Everything above §1's heading is the
+**pre-2026-09-07 account, kept for the lesson in it**; the sections at the bottom
+of this page are current.
 
 What that section replaces, and worth keeping visible as a lesson: this
 subsection used to say the falsifiable claim was *"exactly nine more per
@@ -954,5 +959,13 @@ rule is the flags, not the alignment.
 a keeper on Frosty's Castle really does receive Knights from a claimed Hero
 Portal. Everything above is read from files and the binary, and the owner has
 played the game — this is a five-minute confirmation of a chain that is otherwise
-only very well supported. *Not* MPD, incidentally: `mpd1`..`mpd7` are separate
-maps, and the Frosty three are their own thing.
+only very well supported.
+
+**It is a skirmish map** (owner, 2026-09-07: *"frosty's castle is a skirmish map
+which I didn't play"*), which resolves the last oddity rather than weakening any
+of the above. A skirmish map is free to hand keepers the hero roster because
+there is no campaign narrative to contradict — so *"an evil keeper cannot summon
+good creatures"* stays exactly true of the campaign, and these three maps are the
+designed exception rather than a leak. It also means **the observation is a fresh
+one for the owner too**, so Q211 is a real test and not a memory check. Not MPD,
+incidentally: `mpd1`..`mpd7` are separate maps.
