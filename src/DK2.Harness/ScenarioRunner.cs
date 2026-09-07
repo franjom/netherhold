@@ -140,12 +140,13 @@ public sealed class ScenarioRunner
                 "who would do the work or how long it would take. Use setup.creatures and a tag " +
                 "command instead to watch a worker do it");
             unsupported.Add(
-                "how many swings a tile takes is now known (Q47: an application is a fifth of the " +
-                "tabled delta, which is the worker's Efficiency of 80% over the four ticks of a " +
-                "game second - a stat DK2 prints on its status bar, and one a slap or a well-aimed " +
-                "drop raises to 90%), but how long a second is in ticks is not (Q1). " +
-                "Tick counts in this run are therefore a faithful count of applications and not " +
-                "a wall-clock timing");
+                "how many swings a tile takes and how long they take are both known now (Q47, " +
+                "Q1): an application is a fifth of the tabled delta - the worker's Efficiency of " +
+                "80% over the four ticks of a game second, a stat DK2 prints on its status bar " +
+                "and one a slap or a well-aimed drop raises to 90% - and one lands every tick, " +
+                "four a second, a second being a real second. So a tick count here IS a wall-clock " +
+                "timing at 250 ms a tick. What is not settled is fill-in, whose cost DK2's own " +
+                "compare makes one application and which nobody has watched (Q22)");
         }
 
         // A run that used a number the game's own files do not contain has to
@@ -251,8 +252,9 @@ public sealed class ScenarioRunner
             "mana traps draw, which is reported and uninvestigated. A mana total in this run is " +
             "close to what a keeper would have, and short of every outgoing but one");
         unsupported.Add(
-            "mana is paid once a game second and a game second is TicksPerSecond ticks, which is a " +
-            "placeholder (Q1). The totals are right; the wall-clock rate they imply is not a claim");
+            "mana is paid once a game second, and a game second is four ticks of 250 ms - read " +
+            "from the binary and stopwatched by the owner, so Q1 is settled and the wall-clock " +
+            "rate these totals imply is now a claim this project stands behind");
 
         byte? heartTerrain = ManaRules.DungeonHeartTerrainId(_database);
         if (heartTerrain is null) return;

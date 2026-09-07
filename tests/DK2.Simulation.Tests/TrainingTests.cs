@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -120,22 +120,24 @@ public sealed class TrainingTests
         GameSimulation sim = Simulation(db, world);
 
         Assert.Equal(4, SimulationTiming.OriginalTicksPerGameSecond);
-        Assert.Equal(5, SimulationTiming.OriginalTickPeriodTicks);
 
-        // The award falls on the last tick of each group of five, so four ticks
-        // in there is nothing yet and the fifth pays.
-        sim.Run(4);
-        Assert.Equal(0, goblin.ExperiencePoints);
+        // One of our ticks IS one of the original's, now that Q1 is settled
+        // (2026-09-07): the award falls every tick. The cadence still has to be
+        // stated, because it is what decides how much a promotion throws away -
+        // it is the period that collapsed to 1, not the requirement.
+        Assert.Equal(1, SimulationTiming.OriginalTickPeriodTicks);
 
         sim.Run(1);
         Assert.Equal(10, goblin.ExperiencePoints);
 
-        // And it accrues in tens, not in one lump at the second boundary.
-        sim.Run(5);
+        // And it accrues in tens, one per tick, not in one lump of forty at the
+        // second boundary. That is the whole point of the test and it survives
+        // the tick rate changing: what changed is that a group is one tick wide.
+        sim.Run(1);
         Assert.Equal(20, goblin.ExperiencePoints);
-        sim.Run(5);
+        sim.Run(1);
         Assert.Equal(30, goblin.ExperiencePoints);
-        sim.Run(5);
+        sim.Run(1);
         Assert.Equal(40, goblin.ExperiencePoints);
     }
 

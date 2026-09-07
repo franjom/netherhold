@@ -489,9 +489,9 @@ public static class HatcheryRules
     ///
     /// <para>The truncation happens <b>before</b> the multiply by ticks-per-game-second,
     /// so this returns the truncated whole seconds and the caller converts —
-    /// which is what keeps the arithmetic right while
-    /// <see cref="SimulationTiming.TicksPerSecond"/> is still a placeholder
-    /// (Q1).</para>
+    /// which is what kept the arithmetic right while
+    /// <see cref="SimulationTiming.TicksPerSecond"/> was a placeholder, and what
+    /// keeps it right now that it is four (Q1, settled 2026-09-07).</para>
     ///
     /// <para><b>A bigger hatchery lays faster, on a curve.</b> With the shipped
     /// 16: one tile every 16 seconds, 3x3 every <b>7</b>, 5x5 every 5, 8x8 every

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -126,7 +126,7 @@ public class GoldCarryingTests
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        run.Ticks(120);
+        run.Ticks(24);
 
         SimEvent leaving = run.Of("delivering").First();
         Assert.Contains($"gold={FullLoad}", leaving.Detail);
@@ -381,7 +381,7 @@ public class GoldCarryingTests
         Run run = AtTheSeam();
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        run.Ticks(90);
+        run.Ticks(12);
 
         Assert.True(run.Imp.GoldHeld > 0, "the imp should be mid-delivery");
 

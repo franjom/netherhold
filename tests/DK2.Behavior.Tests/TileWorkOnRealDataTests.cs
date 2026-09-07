@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -136,18 +136,22 @@ public class TileWorkOnRealDataTests
         }
         Assert.Equal(IdOf(db, "Reinforced Wall"), wall.TerrainId);
 
-        // FIFTY swings: Rock 165 -> its maxHealth 660 is 495 health at 10 a
-        // swing (ReinforceWallHealth 50, a fifth each). At five a second that
-        // is 10.0 seconds of work.
+        // FIFTY swings, on the real shipped data: Rock's 165 up to its
+        // maxHealth of 660 is 495 health at 10 a swing (ReinforceWallHealth 50
+        // over the base-Efficiency divisor of five). At the four applications a
+        // second the creature update actually runs at, that is 12.5 seconds.
         //
-        // **The owner measured 14-15 seconds in the original (Q62)**, so this
-        // is pinned as the model's prediction rather than as a confirmed
-        // behaviour. Some of the gap is walking up and animating - claiming
-        // takes 4 swings (0.8s) and was observed at "about 2 seconds", so
-        // roughly 1.2s of overhead - but not 4.5s of it. The number is here so
-        // that whichever way Q62 resolves, this test has to be edited
-        // deliberately.
-        Assert.Equal(66, swings);
+        // The owner stopwatched 13.3-13.4 s with a fresh level-1 imp and
+        // 13.38/13.77 s earlier, all of which carry their own reaction time and
+        // all of which sit 0.4-1.3 s ABOVE this - the direction a hand timer
+        // errs in. This assertion was 66 between 2026-08-30 and 2026-09-07,
+        // when ADR-0024 charged an upward job the whole maxHealth to make 66
+        // swings fit those seconds at a guessed five a second. Both halves were
+        // wrong and they cancelled; see Q47 and Q62.
+        //
+        // If it has to change again, change it from the applier's instructions
+        // (FUN_00452f60) and not from a stopwatch.
+        Assert.Equal(50, swings);
     }
 
     [Fact]

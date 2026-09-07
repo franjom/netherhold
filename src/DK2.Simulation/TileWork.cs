@@ -183,16 +183,35 @@ public static class TileWorkRules
     };
 
     /// <summary>
+    /// The ceiling DK2's tile applier clamps a tile's health to: <b>32000</b>.
+    ///
+    /// <para>Read straight off <c>FUN_00452f60</c> — <c>CMP EBX,0x7d00</c>, and
+    /// a positive delta that would carry the health past it stores 32000
+    /// instead. The tile's health is a 16-bit field and 32000 is a round
+    /// decimal short of its range, so this is the engine's own guard rather
+    /// than a type limit. Nothing shipped reaches it: the largest terrain
+    /// maximum is a room's 10000.</para>
+    /// </summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/tile-work.md")]
+    public const int MaxTileHealth = 32000;
+
+    /// <summary>
     /// The health one application of <paramref name="kind"/> moves, and the
     /// fraction it leaves behind in <paramref name="remainder"/>.
     ///
-    /// Work lands <see cref="SimulationTiming.WorkApplicationsPerSecond"/> times
-    /// a second and the balance table's deltas are per second (Q19, Q47), so an
-    /// application is a fifth of the tabled value — which is the worker's
-    /// Efficiency (80%) over four ticks a game second, ADR-0020's 2026-09-05
-    /// amendment. Eight of the ten divide
-    /// exactly; the other two carry their remainder into the next application so
-    /// that the per-second rate stays exactly what the table says.
+    /// The balance table's deltas are per game second, and one application is
+    /// the delta over <see cref="SimulationTiming.BaseApplicationDivisor"/> —
+    /// the worker's Efficiency (80%) over the four ticks of a game second, so a
+    /// fifth (Q19, Q47). Eight of the ten divide exactly; the other two carry
+    /// their remainder into the next application so that the rate stays exactly
+    /// what the table says.
+    ///
+    /// <para><b>The divisor is not the cadence.</b> Work lands
+    /// <see cref="SimulationTiming.WorkApplicationsPerSecond"/> times a second
+    /// — four, once a tick — and it is a coincidence of the default Efficiency
+    /// that four applications of a fifth deliver 80% of the tabled rate rather
+    /// than all of it. Conflating the two is what put this project's tick rate
+    /// at 20 for a month; see <see cref="SimulationTiming.BaseApplicationDivisor"/>.</para>
     ///
     /// <para>Mutates the remainder, which is why it takes it by reference and
     /// why <see cref="PeekPerApplication"/> exists for callers that only want to
@@ -205,7 +224,7 @@ public static class TileWorkRules
         // shows, and this is the single seam where that correction enters the
         // simulation. See ADR-0023 and Q20.
         int perSecond = ObservedCorrections.TileWorkPerSecond(database, Variable(kind));
-        int rate = SimulationTiming.WorkApplicationsPerSecond;
+        int rate = SimulationTiming.BaseApplicationDivisor;
 
         int whole = perSecond / rate;
         int carry = remainder + (perSecond % rate);
@@ -548,25 +567,32 @@ public static class TileWorkRules
             return new TileWorkResult(TileWorkOutcome.Destroyed, applied, gold, spilled, tile.TerrainId);
         }
 
-        // A conversion job accumulates toward the terrain's whole MaxHealth and
-        // leaves the tile's health alone; a repair job restores health and stops
-        // at the maximum. The two used to share one path, and sharing it was the
-        // bug: it made reinforcing cost the GAP from a wall's starting health
-        // (495, so 50 swings) where the original charges the whole MaxHealth
-        // (660, so 66). See ADR-0024, Q62 and TileState.UpwardWork.
+        // Upward work and repair are ONE path, because in DK2 they are one
+        // store. Its tile applier (FUN_00452f60) adds the delta straight into
+        // the tile's own health word, clamps at 32000, and converts the moment
+        // health reaches the terrain record's MaxHealth. So a conversion job
+        // costs the DEFICIT, not the whole maximum: reinforcing Rock is
+        // 660 - 165 = 495, which is 50 applications and not 66. See ADR-0024's
+        // reversal, Q62 and Q47 - and note that the tile's health rising is
+        // also what drives the original's visual stages, which is what the
+        // "2-3-4 jumps" of Q46 were counting.
         if (CompletesUpward(kind))
         {
-            tile.UpwardWork += delta;
-            if (tile.UpwardWork < terrain.MaxHealth)
+            // DK2 adds the whole delta and clamps at 32000; it does not stop at
+            // MaxHealth. The overshoot is invisible because Convert resets the
+            // health from the destination terrain's record, but reproducing it
+            // keeps the reported amount honest.
+            tile.Health = Math.Min(tile.Health + delta, MaxTileHealth);
+            if (tile.Health < terrain.MaxHealth)
             {
                 return new TileWorkResult(
                     delta == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed,
                     delta, 0, 0, tile.TerrainId);
             }
 
-            int lost = Convert(
+            int converted = Convert(
                 database, ref tile, UpwardDestination(terrain, kind), playerId, takeOwnership: true);
-            return new TileWorkResult(TileWorkOutcome.Transformed, delta, 0, lost, tile.TerrainId);
+            return new TileWorkResult(TileWorkOutcome.Transformed, delta, 0, converted, tile.TerrainId);
         }
 
         int room = terrain.MaxHealth - tile.Health;
@@ -700,7 +726,6 @@ public static class TileWorkRules
 
         // The work was toward a conversion that has now happened; whatever the
         // tile becomes starts its own upward job from nothing.
-        tile.UpwardWork = 0;
         tile.WorkRemainder = 0;
 
         // Only when the tile actually became something else. A rival claiming a

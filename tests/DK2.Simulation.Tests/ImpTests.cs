@@ -528,11 +528,11 @@ public class ImpTests
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 3)));
 
-        // Three ticks: long enough for the jobs to be handed out, short enough
-        // that no swing has landed. A plain wall falls in two swings and a swing
-        // is four ticks (ADR-0023, ADR-0020), so waiting longer would leave
-        // nothing to be crowded around.
-        run.Ticks(3);
+        // ONE tick: long enough for the jobs to be handed out, short enough that
+        // no swing has landed. A swing is one tick now that Q1 is settled
+        // (ADR-0089), and a plain wall falls in a single swing, so waiting any
+        // longer leaves nothing to be crowded around.
+        run.Ticks(1);
 
         List<CreatureState> onThatFace = run.World.Creatures
             .Where(c => c.TargetTileIndex == marked && ImpCrowding.FaceOf(run.World, c) == face)
@@ -562,11 +562,11 @@ public class ImpTests
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 3)));
 
-        // Three ticks: long enough for the jobs to be handed out, short enough
-        // that no swing has landed. A plain wall falls in two swings and a swing
-        // is four ticks (ADR-0023, ADR-0020), so waiting longer would leave
-        // nothing to be crowded around.
-        run.Ticks(3);
+        // ONE tick: long enough for the jobs to be handed out, short enough that
+        // no swing has landed. A swing is one tick now that Q1 is settled
+        // (ADR-0089), and a plain wall falls in a single swing, so waiting any
+        // longer leaves nothing to be crowded around.
+        run.Ticks(1);
 
         // The face they are on is full...
         Assert.True(ImpCrowding.FaceIsFull(
@@ -598,11 +598,11 @@ public class ImpTests
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 3)));
 
-        // Three ticks: long enough for the jobs to be handed out, short enough
-        // that no swing has landed. A plain wall falls in two swings and a swing
-        // is four ticks (ADR-0023, ADR-0020), so waiting longer would leave
-        // nothing to be crowded around.
-        run.Ticks(3);
+        // ONE tick: long enough for the jobs to be handed out, short enough that
+        // no swing has landed. A swing is one tick now that Q1 is settled
+        // (ADR-0089), and a plain wall falls in a single swing, so waiting any
+        // longer leaves nothing to be crowded around.
+        run.Ticks(1);
 
         CreatureState[] working = [.. run.World.Creatures.Where(c => c.TargetTileIndex == marked)];
         Assert.Equal(3, working.Length);
@@ -711,9 +711,16 @@ public class ImpTests
 
         // 14/10 is the integer stand-in for root-2 that both the mover and the
         // search use, so the ratio lands on it rather than on 1.41421...
-        Assert.Equal(
-            straight * GridPathfinder.DiagonalCost / GridPathfinder.StraightCost,
-            bias);
+        //
+        // Within one tick, and the slack is not sloppiness. A tick is 250 ms now
+        // that Q1 is settled, this walk is four tiles, and a four-tile walk is
+        // nine ticks straight against thirteen on the bias - so a whole tick is
+        // 11% of the answer and the exact ratio cannot survive the rounding.
+        // DK2 steps at the same rate and therefore has the same quantisation:
+        // asserting equality here would be asserting a resolution the original
+        // does not have.
+        int predicted = straight * GridPathfinder.DiagonalCost / GridPathfinder.StraightCost;
+        Assert.InRange(bias, predicted - 1, predicted + 1);
 
         // Stated again as the property, because the numbers above would also be
         // satisfied by two coincidences: the bias walk is strictly slower than
@@ -832,7 +839,7 @@ public class ImpTests
         Run wall = Start(new TilePos(3, 3), imps: 3);
         target = (3 * wall.World.Width) + 4;
         wall.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 3)));
-        wall.Ticks(2);
+        wall.Ticks(1);   // one tick: a swing is one tick now, and one swing ends a wall
         Assert.Equal(3, wall.World.Creatures.Count(c => c.TargetTileIndex == target));
 
         // The same tile as floor: one.

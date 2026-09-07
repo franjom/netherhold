@@ -279,7 +279,6 @@ public static class RoomRules
 
         tile.TerrainId = revertsTo;
         tile.Health = next.StartingHealth;
-        tile.UpwardWork = 0;
         tile.WorkRemainder = 0;
         tile.BurnTicksRemaining = 0;
         if (!next.IsTaggable) tile.TaggedBy = 0;

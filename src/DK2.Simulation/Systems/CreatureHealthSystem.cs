@@ -13,10 +13,10 @@ namespace DK2.Simulation.Systems;
 /// <para>Runs on the same cadence and the same phase as <see cref="ManaSystem"/>:
 /// the last tick of each game second, so a level does not begin by paying out a
 /// second that has not elapsed. Per-second rather than per-tick because every
-/// number it applies is written <i>per second</i> in the data, and dividing them
-/// by twenty would invent precision the files do not have — and would depend on
-/// <see cref="SimulationTiming.TicksPerSecond"/>, which is still a placeholder
-/// (Q1).</para>
+/// number it applies is written <i>per second</i> in the data, and splitting
+/// them across the four ticks of a second would invent precision the files do
+/// not have. That reason survived Q1 being settled: the rate is now known to be
+/// DK2's own four a second, and these numbers are still per second.</para>
 ///
 /// <para><b>Healing sources add.</b> A creature on its own land in a lair gets
 /// both, because nothing in the data or in OpenKeeper suggests they are

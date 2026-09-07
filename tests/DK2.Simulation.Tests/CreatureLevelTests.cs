@@ -253,9 +253,9 @@ public class CreatureLevelTests
         Assert.Equal(148 * 20, state.ExperiencePoints);
         Assert.Equal(7536, CreatureLevelRules.SpeedRaw(db, imp, state.Level));
 
-        // Ten more ticks carries the last two awards, and the 150th lands
-        // exactly on 3000.
-        sim.Run(10);
+        // Two more ticks carries the last two awards - one an award, now that
+        // a tick is one of the original's - and the 150th lands exactly on 3000.
+        sim.Run(2);
         Assert.Equal(2, state.Level);
         Assert.Equal(7912, CreatureLevelRules.SpeedRaw(db, imp, state.Level));
 

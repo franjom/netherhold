@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -570,7 +570,7 @@ public class LairAcquisitionTests
         world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 2));
         GameSimulation live = Walking(db, world);
 
-        live.Run(30);
+        live.Run(6);
         Assert.Equal(CreatureActivity.SeekingLair, first.Activity);
         Assert.Empty(world.Objects);
 

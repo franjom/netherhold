@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -82,7 +82,6 @@ public sealed class BridgeBurnSystem : ISimulationSystem
 
             tile.TerrainId = becomes;
             tile.Health = next.StartingHealth;
-            tile.UpwardWork = 0;
             tile.WorkRemainder = 0;
             tile.Flags = BridgeRules.SpansWater;
             if (!next.IsTaggable) tile.TaggedBy = 0;
