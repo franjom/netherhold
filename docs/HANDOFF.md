@@ -6059,3 +6059,104 @@ carry it and none of the seven readers tests it.
    Q93. A fallen heart needs a state for `ConvertRoom` to test.
 5. **Q185 bit 0** — 147 states carry it and nothing reads it, which makes it
    either the most important flag in the record or not a flag at all.
+
+---
+
+# Sitting: the portal, settled by stopwatch, and a defect in how we sweep
+
+**2026-09-07, fourth sitting. Commits `b866a80`, `af4038d`, `9c1f710`. 1150
+tests, 26 scenarios, 86 ADRs, 43 research docs, 209 questions. `HashVersion` and
+`FormatVersion` **34**, pin `0x46FAACC93F8323FF`.**
+
+One question closed properly, one feature rebuilt on confirmed evidence, and one
+class of defect found that this project had not named before.
+
+## Q86 is answered, and the order it happened in is the point
+
+The formula was **read from the binary first** (six instructions at
+`0x004DBBE0`), the **predictions were committed before the measurement**
+(`af4038d`), and the owner's hand-timed runs then matched them. That is the
+first time a number here has gone in that order, and it is why the result is a
+test rather than a fit.
+
+`(n² + EntranceGenerationSpeedSeconds)` game seconds, where `n` is **this
+portal's own tally of creatures generated** — `TileState.EntranceCreaturesGenerated`,
+on the centre tile beside the clock. It rises once per arrival and nothing lowers
+it. ADR-0086.
+
+**The measurement that settled the last open half**: portal 2, claimed after
+portal 1 had produced five creatures, gave gaps of 27, 30, 31, 33 s. Per-room
+predicts 25, 26, 29, 34 (mean error 2.3 s); keeper-wide predicts 50, 61, 74, 89
+(38.3 s); what we shipped predicted 62, 75, 87, 100 (50.8 s). **The tally is per
+portal**, so a freshly claimed portal runs at full speed beside a worn one.
+
+The old formula was wrong three ways at once — the shape (a multiple of the base,
+not an addition to it), the slope, and the counter (living creatures, so a portal
+sped up on every death). It had a doc comment naming itself a guess and naming
+the experiment, and it survived weeks of green tests anyway.
+
+## What is left of it, and it needs a rival
+
+**Whether the tally is ever zeroed.** Both zero-stores are vtable-only, which has
+the shape of an ownership change — the only room event a portal has, since a
+portal cannot be sold or rebuilt. A *freshly claimed* portal at zero is observed;
+a **worn** portal lost and re-claimed is not. That wants a skirmish map with two
+claimable portals (`The Deep End`, `Siege`, `U Turn`) rather than MPD.
+
+Also open and cheap: **portal 1's arrivals after 03:18 are missing from the
+owner's second run** and they were the control. Per-room puts them at 03:28,
+04:29 and 05:43. Almost certainly the owner just followed the new portal, but if
+portal 1 genuinely stopped that is unexplained.
+
+## The defect worth carrying forward: a sweep of keys is not a sweep of values
+
+`kwd-variables.md` swept all 66 level files correctly for **which variable ids a
+level overrides** — 26, right. Then the table of *which level overrides what* was
+written from `level1` alone, because level 1 was the level being built. So
+"`EntranceGenerationSpeedSeconds` 25 game-wide, 18 on level 1" propagated into
+four documents, `PortalRules`, two tests, and a sentence told to the owner as
+*"the only one of 66"*.
+
+**Five levels override it**: level1 **18**, level2 **20**, level3 **22**, Level10
+**30**, Secret1 **10000**. Two things follow that nobody could see:
+
+- **Levels 1 to 3 ramp 18, 20, 22 to the global 25** — a deliberate tutorial
+  gradient.
+- **Secret1's portal is switched off, not slowed.** 10000 seconds is two hours
+  and forty-seven minutes, and that level also sets `MinimumImpThreshold` to 0.
+  Same disabled-not-cut shape as ADR-0085's ten mechanisms, this time in a
+  per-level file.
+
+Pinned by `FiveLevelsOverrideThePortalInterval_NotOnlyLevelOne`.
+
+**And a warning about method:** a first pass at that sweep used a brute-force
+byte scan for `u32 == id` and claimed **47** levels. Forty-two were false
+positives. The real parser says five. The byte scan looked convincing.
+
+## New tool
+
+**`dk2tools kwd portals`** — walks all 66 shipped maps, floods each portal
+terrain into connected regions, and prints every portal's owner, tile count and
+position plus the level's own base interval, flagging levels with two claimable
+portals. Written because hunting for such a level by playing costs far more than
+reading 66 grids. Player **2 is the unowned marker**, not 0; player 7 is the
+Heroes.
+
+## Where the next sitting should start
+
+1. **The Library and research accrual** — still the recommended next feature, and
+   unchanged by any of this. `ResearchPerSecond`, category 4's hooks
+   `FUN_0047AFB0` / `0x0047B000`, which pay the *player*. **Scope it to the
+   accrual, not the research tree.** The Warlock already walks to the room and
+   stands in it.
+2. **Run the zero-value audit on the creature and object records.** ADR-0085 got
+   ten disabled mechanisms out of twelve candidates in the balance table;
+   nobody has looked at the other two record types. Secret1's 10000 says the
+   same shape exists in per-level files too.
+3. **The key-versus-value sweep, applied generally.** Any sentence of the form
+   *"X globally, Y on the level I happen to be working on"* is unverified until
+   one field has been swept across the whole corpus. Q84 and Q85 are both this
+   shape and both still open.
+4. **Q209** — DK2's tile-walkability predicate, which gates the workshop's anvil,
+   the library's bookcases, the casino's tables and the graveyard's tombstones.
+   Cheapest from the pathfinder side, not the object side.
