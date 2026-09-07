@@ -174,21 +174,39 @@ food, and searches are gated to at most one a game second, so **a hungry
 prisoner in an unstocked cell angers at 25 a second where a bedless creature
 angers at 100** (`prison.md` §7.4). A quirk, reproduced rather than tidied.
 
-**Recovery is 5.5× faster than accrual.** −550 a second asleep in one's own bed
-against +100 without one, which is why a keeper who builds a lair late still
-recovers.
+**Recovery is 5.5× faster than accrual.** The −550 instalment is applied once a
+game second in all seven states listed below, against +100 a second for having
+no lair. Sleeping is only three of those states.
 
-**Where the −550 is applied in the original (binary, 2026-09-05; Q123).** Both
-in-lair modifiers — health (75) and anger (76) — are read by **one routine**,
-which heals up to the level-scaled maximum and then applies the anger modifier.
-That routine is called only from the per-tick handlers of **three creature
-states**, each gated to `tick % variable 19 == 0` (once a game second, Q1), and
-nothing on the way tests the tile underfoot. So the cooling is a property of
-being in one of those states, not of standing on lair terrain; one of the three
-handlers also counts a per-creature timer down while the state is `0x53`, which
-has the shape of the sleep countdown. The states are not yet named, so the
-current `AsleepInOwnBed` rule is STRONGLY INFERRED rather than confirmed: exact
-if all three are sleeping states, undercooling if one is an awake-in-lair state.
+**Where the −550 is applied in the original (binary, completed 2026-09-07;
+Q123).** Both in-lair modifiers — health (75) and anger (76) — are read by one
+shared routine, which heals up to the level-scaled maximum and then applies the
+anger modifier. Its three direct callers are the per-tick **category update
+hooks** for categories 6, 9 and 10, not three individual state handlers. Each
+calls it when `tick % variable 19 == 0` (once a game second, Q1), with no terrain
+or state-id test around the call. The complete state table maps those categories
+to:
+
+- category 6: looking for the Lair (`0x4f`), making a home (`0x50`) and going to
+  bed (`0x51`);
+- category 9: the three sleeping states (`0x52`–`0x54`);
+- category 10: sulking (`0x55`).
+
+This is **CONFIRMED from the binary**. Cooling is state-category-gated rather
+than simply terrain-gated, but it is not restricted to sleeping or to occupying
+one's own bed. In particular, sulking is an awake-in-lair state, and the three
+category-6 states begin before sleep. The current `AsleepInOwnBed` rule therefore
+undercools. The healing branch is reached from the same seven states, but its
+per-creature virtual predicate is still unread; whether awake states actually
+receive health therefore remains **UNKNOWN** and is not established by Q123.
+
+**Independently re-read on 2026-09-07, from the raw address scan up, and
+confirmed.** The three callers are at `0x0047AC00`, `0x0047AC40` and
+`0x0047AC70`; the fill run for the category table stores them at offset `+0x14`
+(the per-tick update hook, `eating.md`) of records 9, 6 and 10. Two details that
+do not affect cooling: the category-9 hook does one extra thing when the state
+id is `0x53`, and the category-10 hook returns the result of a bucket-5 anger
+query.
 
 ### The consequences
 

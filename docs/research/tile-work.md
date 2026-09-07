@@ -138,6 +138,18 @@ of a thing it calls the work rate — `IncreasedWorkRatePercentageFromSlapping`
 where those land, which is why it starts at zero: **slapping an imp to make it
 dig faster is a work-rate bonus**, and it is the oldest mechanic in the series.
 
+**Correction from Q81 (binary, 2026-09-07): the torture variable does not land
+there.** Its cached global has one live reader, in the keeper-side routine that
+credits a creature's research contribution. Once per game second that path
+walks the keeper's tortured-creature-type list; when it finds the researcher's
+type, it adds the torture bonus directly to research progress. The creature's
+general work-enhancement field is untouched. The arithmetic has a v1.70 quirk:
+it adds variable 19 (four ticks per game second) to the nominal 25 before taking
+the percentage. Across four ordinary per-tick contributions, this produces a
+**29% net research increase before integer truncation**, not 25%. The other
+three variables' uses do not establish this one's use; the shared naming had
+grouped unlike mechanisms.
+
 ### What it does to Q47
 
 Work accrues **once a tick**, at `delta x rate / 4` — the 4 being ticks per game
@@ -351,6 +363,44 @@ was the whole of Q19, and it is now answered from the other end: **they are per
 second, and an application is a fifth of one.** See "How much one swing does"
 below - the answer came from a measurement in the original rather than from the
 names, which is why it took until 2026-08-30.
+
+### Q69: attacking hostile floor is live; the vault rates are cut
+
+**CONFIRMED from the binary (2026-09-07).** `AttackTileHealth` is installed at
+`0x006F2558` after division by the four ticks per game second, so the shipped
+−140 becomes −35. It has two live readers, the work handlers at `0x00497670`
+and `0x004977F0`. Both require a tile owned by somebody else whose terrain is
+`Ownable|Attackable`, non-solid and not a room, scale the cached rate by the
+worker's Efficiency, and apply the negative result to tile health. At the
+ordinary 80% Efficiency that is **−28 health each tick**. One path ends when the
+hostile-floor predicate becomes false; the other also removes trap and door
+things left on the tile when it falls.
+
+**Re-read independently on 2026-09-07 and confirmed.** The predicate requires
+`Ownable` and `Attackable` set with `Solid` and `Room` clear and a tile owner
+other than the worker's; the amount is the cached −35 times the same
+`0x3af + 0x3b3` sum as every other work handler; traps are thing type 3 and
+doors type 4. One addition: the first handler switches to a different amount
+when creature state-flag bit 7 (`0x3e6 & 0x80`) is set, built from two
+creature-definition fields and a per-creature field at `+0x5c6`. What that flag
+marks is unknown; the ordinary path is unaffected.
+
+This is the missing user Q68 guessed away: `AttackTileHealth` belongs to the
+hostile-ground work phase, alongside the imp states labelled **claiming
+territory**, not to an unobserved non-imp invasion behaviour. The binary still
+has both a neutral-claim phase using `ClaimTileHealth` and a hostile-floor phase
+using `AttackTileHealth`. The owner's observation that a bridge changes owner
+without a visible neutral pause therefore does not mean both phases use the
+same rate.
+
+The two mana-vault values are a different result. A second variable dispatcher,
+missed by the original global map, does cache them: 4 becomes 1 at
+`0x006F294F`, and 20 becomes 5 at `0x006F2953`. A complete `.text` address scan
+finds only those two stores and **no readers**. They are **CUT**, not disabled:
+the values are non-zero, but no mechanism consumes them in v1.70. They do not
+prove any vault-specific claim timing. A neutral Mana Vault goes through the
+ordinary neutral-floor claim predicate; hostile attackable ground goes through
+the ordinary hostile-floor predicate.
 
 ## The rule
 
