@@ -477,6 +477,13 @@ public class PortalTests
     /// id and nothing else, so re-labelling the Portal exercises exactly the
     /// branch under test. <c>PortalOnRealDataTests</c> does the same against the
     /// shipped Hero Portal.</para>
+    ///
+    /// <para><b>The room type really is the discriminator, confirmed in play</b>
+    /// (owner, 2026-09-07, Q211): a keeper who claims one on Frosty's Castle
+    /// receives the mercenary roster as its own units. Had the gate been the
+    /// <i>owner</i> — the intuitive reading, and the one this test would have
+    /// passed just as happily under — that portal would have produced nothing.
+    /// </para>
     /// </summary>
     [Fact]
     public void TheTwoPortalsAdmitDisjointCreaturesBecauseTheRoomTypePicksTheFlag()

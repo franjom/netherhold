@@ -551,6 +551,13 @@ public class PortalOnRealDataTests
     /// <para>Pinned because the whole hero-portal rule leans on it, and because
     /// it is the sort of claim about the shipped data that nothing would
     /// otherwise notice going stale.</para>
+    ///
+    /// <para><b>CONFIRMED IN PLAY (owner, 2026-09-07, Q211):</b> claiming one on
+    /// this map really does give a keeper the mercenary roster, and <b>no Dwarf
+    /// arrives</b> — so this test's two assertions are now backed by the running
+    /// game and not only by the file. The room is called <b>"Mercenary
+    /// Portal"</b> in game; <i>"Hero Portal"</i> is the editor's label in
+    /// <c>Rooms.kwd</c>, which is what these identifiers are named from.</para>
     /// </summary>
     [Fact]
     public void FrostysCastleHasOnlyHeroPortalsAndPoolsExactlyTheirNineCreatures()

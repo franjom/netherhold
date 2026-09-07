@@ -1732,6 +1732,27 @@ slow portal to an enemy and take it back. `mpd3` cannot answer it, which is the
 one thing the skirmish maps (`The Deep End`, `Siege`, `U Turn` — two claimable
 portals each at base 25) are better at.
 
+## The Mercenary Portal, 2026-09-07 — **ANSWERED, and the prediction held**
+
+> **CONFIRMED by the owner, 2026-09-07:** *"hero units (in this case mercenary
+> units) arrive through the portal and they are keeper's units, no dwarf comes."*
+>
+> **Both pre-registered failure modes stayed away.** Creatures came out, so the
+> gate is the **room type** and not the owner, and ADR-0086 amendment 2 is right
+> in its central choice. **No Dwarf**, so `CreatureFlags2.AvailableViaHeroPortal`
+> is pointed at the right bit — bit 3 of the record's last dword and *not* bit
+> 30 of the first flag dword, which selects the same nine **plus** the Dwarf and
+> was the available, named, plausible alternative. And the arrivals are the
+> **keeper's own units**, not a rival faction's, which is what `PortalSystem`
+> already does by giving each arrival the portal's owner.
+>
+> The room is called **"Mercenary Portal"** in game, which the owner also
+> confirmed from the same session; *"Hero Portal"* is only the editor's label.
+> See `portals.md`.
+
+The item below is kept as written, because it was written before looking and
+naming the two ways it could fail is the reason the result means anything.
+
 ## The Hero Portal, 2026-09-07 — one thing left, and it is five minutes
 
 Everything about the Hero Portal is now read from the binary and the shipped

@@ -7079,6 +7079,24 @@ on a map whose only entrances are Hero Portals.
    produces **hero creatures**. Q211 asks the owner to confirm in play; the data
    is unambiguous.
 
+> **CONFIRMED IN PLAY, 2026-09-07** (owner, Frosty's Castle): *"hero units (in
+> this case mercenary units) arrive through the portal and they are keeper's
+> units, no dwarf comes."* **Both pre-registered failure modes stayed away.**
+> Creatures arrive, so the gate is the **room type** and not the owner — this
+> amendment's central choice, and the one place it could have been wrong in a way
+> no file would reveal. **No Dwarf**, so the flag is on the right bit rather than
+> on bit 30 of the first dword, which selects the same nine *plus* the Dwarf and
+> was the available, named, plausible alternative. And the room is called
+> **"Mercenary Portal"** in game — *"Hero Portal"* is only the editor's label, so
+> the identifiers here name the record and not the game's own word for it
+> (`portals.md`). Q211 closed.
+>
+> One process note kept deliberately: `PortalRules.CanComeFromPortal` was marked
+> `Confidence.Confirmed` when it was written, on the strength of the binary read.
+> **That was premature by this project's own convention**, which reserves
+> CONFIRMED for owner observation. The annotation is accurate now, and it is the
+> one thing in this change that nothing would have caught.
+
 **What needed no decision.** "Cannot be sold, cannot be repurposed,
 indestructible" all fall out of flags already parsed — no `Buildable` on either
 portal record, `CanBuild` refusing room terrain, and no room-level `Attackable`.

@@ -1145,3 +1145,40 @@ name too: you can hire a Knight, not somebody's workman.
 *"owned by another power, its details are unknown"* is what an unowned room
 shows — so nothing has come out of it. Q211 asks what a keeper receives **after
 claiming** one, and that still needs one play session.
+
+### Q211 answered: a keeper really does get mercenaries, and the bit is right
+
+> **CONFIRMED by the owner, 2026-09-07**, after claiming one on Frosty's Castle:
+> *"hero units (in this case mercenary units) arrive through the portal and they
+> are keeper's units, no dwarf comes."*
+
+Three claims in one sentence, and each one closes something that could not have
+been settled from the files:
+
+1. **Creatures come out at all**, so the gate is the **room type** and not the
+   owner. That was ADR-0086 amendment 2's central choice and the single place
+   this work could have been wrong in a way no file would reveal — the intuitive
+   reading of *"a keeper cannot use a hero portal"* is a prohibition on the
+   owner, and it would have produced a dead room here.
+2. **No Dwarf**, so `CreatureFlags2.AvailableViaHeroPortal` is on the right bit.
+   Bit 30 of the *first* flag dword selects the same nine **plus** the Dwarf, was
+   already parsed, and already carried a plausible name from OpenKeeper; using it
+   would have had a Mercenary Portal emitting the heroes' workman. This is the
+   observation that separates the two.
+3. **They are the keeper's own units**, not a rival faction's — which is what
+   `PortalSystem` already does by giving each arrival the portal's owner, and is
+   worth having stated rather than assumed.
+
+**Four independent lines now agree**: the binary's one-condition gate keyed on
+room type; the roster search, where exactly one byte in 5449 has a bit selecting
+those nine and no other; the level's own `CreaturePool`, which lists exactly
+those nine for each of keepers 3–6 with the Dwarf pointedly absent; and the
+running game.
+
+Before this fix our simulation produced **nothing at all** on the three Frosty
+maps, so the change was not cosmetic. `PortalRules.CanComeFromPortal` was marked
+`Confidence.Confirmed` when it was written, on the strength of the binary read —
+**that was premature by this project's own convention**, which reserves
+CONFIRMED for owner observation. It is now accurate rather than optimistic, and
+the gap is recorded because the annotation was the one thing here that nothing
+would have caught.
