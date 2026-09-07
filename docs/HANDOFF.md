@@ -5747,3 +5747,76 @@ whether sleeping brings it back down); and the older open ones — Q201's dizzy
 driver, Q199's pet-dungeon mana cap, Q197's portals through fog, Q200's bridge
 room ids.
 
+
+---
+
+# M0 is closed: both reference projects build here (2026-09-07)
+
+No code, no hash change, no new ADR. The ask was the one open item on M0's line
+in the plan: *"Flame has never been checked out."* It had been false for a day.
+
+## What was found
+
+The plan disagreed with itself. §2.2.1 and the §5 revision note said Flame was
+cloned at `D:\Flame` on the afternoon of 2026-09-06, and `original-reference/
+README.md` recorded the pin. The revision-2 preamble, the M0 status bullet,
+risk R15 and the §11 status note all still said it had never been on this
+machine. Four stale statements, all written the morning before the clone
+arrived, none revisited when it did — the section they pointed at was updated
+and the sentences pointing at it were not.
+
+M0's definition of done also never said "checked out". It says **"Flame +
+OpenKeeper building locally"**, and neither had ever been built. The status
+bullet had quietly read "building" as "on disk" for OpenKeeper.
+
+## What was done
+
+**Flame built from source.** Debug, Ninja, the 32-bit `v14.51` toolset from
+Visual Studio 18 Community (the readme names 2022; nothing needed patching).
+287 objects, nine warnings, no errors, under three minutes including the
+Python venv the configure step creates. Installed to `D:\Flame\install`:
+`PATCH.dll`, `flame\Flame.dll`, `flame\DKII.dll`. **Nothing was copied into
+the game directory** and `-DDK2_DIR` was not passed: Flame's install step
+replaces the game's `PATCH.dll`, which changes the oracle, and that is M5's
+first step to take deliberately with a backup — not a side effect of a
+compile check.
+
+**OpenKeeper compiled.** `gradlew compileJava`, Gradle 9.6.1, and a Java 25
+toolchain Gradle fetched for itself through the foojay resolver because only
+JDK 26 is installed. 62 deprecation warnings, no errors, 1m 52s. Only
+`compileJava`; the test suite and the application were not run.
+
+Both recipes, with the gotchas (run from `cmd`, call `gradlew.bat` by full
+path, the file-watcher error is noise), are in `original-reference/README.md`.
+
+**The plan is reconciled**: M0 ✅ in the table and the status bullet; the four
+stale sentences struck through with the correction beside them; §2.2.1's
+recommendation 1 marked done-differently (a clone outside the repository beats
+vendoring `mapping/`); R15 closed the same way, with the dk2-tools templates
+noted as still not vendored; §11 item 5 (the `sgmap` query tool) corrected to
+"not written", which is now the true reason rather than "no file to read".
+§2.2.1's *"Not resolved here, deliberately"* paragraph about the state-table
+base and count gained the ADR-0072 resolution above it, since the sentence
+inserted before it already said Flame had been right and the paragraph still
+said the question was open.
+
+## Method notes
+
+- **The twelfth instance of a claim nothing checks.** "Flame has never been
+  checked out" was true when written, became false six hours later, and
+  survived a full day because the fix landed in the section being cited rather
+  than in the sentences citing it. A status line that names a gap should name
+  the thing that would close it, so the closing edit finds it — here, the
+  `D:\Flame` path would have done.
+- **A definition of done is a claim too.** "Building locally" had been read as
+  "on disk" for a week. It took about five minutes of machine time to make it
+  true as written, so the cheap move was to do it rather than reinterpret it.
+- **Compiling a reference grants nothing.** A `Flame.dll` on disk changes no
+  boundary: ADR-0080 and `FlameIdentifierTests` stand exactly as before.
+
+## Where the next session should start
+
+Unchanged: **Q205**, then the list in the previous sitting. Two things this
+sitting unlocked, for whoever picks up M5: DK2 can now run under a Flame we
+built (back up `PATCH.dll` first), and §2.2.1 item 4 — a Ghidra import for the
+`sgmap` — and §11 item 5 — the `sgmap` query tool — no longer wait on anything.

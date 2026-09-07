@@ -38,11 +38,14 @@ place.
 
 **The single largest correction is to §5.** That section opens *"Never start
 from raw disassembly. Flame has already done the expensive part"* and lays out a
-ten-step workflow whose first six steps are free. **Steps 1–4 have never been
-performed, because Flame has never been on this machine.** Every
-reverse-engineering session this project has run — and there have been many —
+ten-step workflow whose first six steps are free. ~~**Steps 1–4 have never been
+performed, because Flame has never been on this machine.**~~ **Steps 1–4 had
+never been performed when this was written on the morning of 2026-09-06, because
+Flame had never been on this machine. It was cloned that afternoon and built
+from source here on 2026-09-07 (§2.2.1, "Current state").** Every
+reverse-engineering session this project had run — and there have been many —
 started at step 7 with a bare Ghidra database. The new §2.2.1 measures what that
-has cost and what it would cost to fix, because the answer turned out to be less
+cost and what it would cost to fix, because the answer turned out to be less
 one-sided than §5 assumes.
 
 **The method that actually emerged** is not in revision 1 at all, and it is
@@ -301,6 +304,21 @@ All three map files are present — `sgmap` 3.2 MB, `refmap` 3.9 MB, `espmap`
 3.8 MB — and **the absence of any licence file was re-confirmed against the
 clone itself** rather than against the GitHub API alone.
 
+**Built from source on 2026-09-07**, which is what M0's definition of done
+actually asks for and what nobody had tried. Debug configuration, Ninja, the
+32-bit MSVC toolset that ships with Visual Studio 18 (Flame's readme names 2022;
+the `v14.51` toolset compiled all 287 objects unpatched, nine warnings, no
+errors), installed to `D:\Flame\install`: `PATCH.dll`, `flame\Flame.dll`,
+`flame\DKII.dll` and their `.pdb`s. **Nothing was copied into the game
+directory.** Running DK2 under Flame is M5's business, its install step
+overwrites the game's `PATCH.dll`, and that is a step to take deliberately with
+a backup, not as a side effect of checking that the code compiles. The recipe
+that worked is in `original-reference/README.md`. **OpenKeeper compiles too**
+(`gradlew compileJava`, Gradle 9.6.1, a Java 25 toolchain that Gradle fetched
+for itself because only JDK 26 is installed; 62 deprecation warnings, no errors,
+under two minutes). Both halves of M0's last clause are now true, and **M0 is
+closed as of 2026-09-07**.
+
 **Licence, re-checked today rather than quoted from revision 1:** the GitHub API
 still reports `"license": null`, and there is no `LICENSE`, `COPYING` or
 equivalent file anywhere in the repository tree. Last push **2026-02-28** — six
@@ -381,7 +399,14 @@ independent anchors agree. 7,025 bytes is 281 records of 25, which is 42 more
 than the installer fills, and the two base addresses are 16 bytes apart, which
 is not a multiple of the record size.
 
-**Not resolved here, deliberately.** Both readings could be right — the array may
+**Resolved since, in Flame's favour — ADR-0072, 2026-09-06.** The base is
+`0x006DA8B0` with the update handler at `+0` (this project's `0x006DA8C0` had
+every handler one state late), and the count is 281: the 239 came from a scan
+window that ended `0x420` bytes before the table did. The paragraph below is
+kept as the record of what the conflict protocol's first run looked like before
+the answer came in, and of the fact that Flame was right on both counts.
+
+~~**Not resolved here, deliberately.**~~ Both readings could be right — the array may
 simply be larger than the installed range, and Flame's symbol may begin at a
 container rather than at element zero. §5's conflict protocol says to record both
 positions and design an experiment rather than silently pick one, and this is the
@@ -391,10 +416,11 @@ address.
 
 #### Recommendation
 
-1. **Clone it** to `original-reference/Flame/` at a pinned commit, recorded in
-   `original-reference/README.md`. That path is already gitignored except its
-   README, so nothing enters the repository. Risk R15 has prescribed exactly
-   this since revision 1 and it has simply never been done.
+1. ~~**Clone it** to `original-reference/Flame/` at a pinned commit, recorded in
+   `original-reference/README.md`.~~ **Done 2026-09-06, at `D:\Flame` instead,
+   pinned at `f6e2a3d` and recorded in `original-reference/README.md`; built
+   2026-09-07.** A clone outside the repository is a better answer to R15 than
+   the vendoring it prescribed, because it cannot be staged by accident at all.
 2. **Use it for four things**: the vtable and struct layout that give a
    function its *context*; confirming an identification made independently;
    the `refmap` (3.8 MB of cross-references) when Ghidra's own analysis misses
@@ -954,7 +980,7 @@ is very expensive to retrofit.
 
 | # | Milestone | Definition of done | Est. |
 |---|---|---|---|
-| **M0** | Research baseline | This document; repo skeleton; DK2 v1.70 installed; Flame + OpenKeeper building locally | 1–2 wk |
+| **M0** ✅ | Research baseline | This document; repo skeleton; DK2 v1.70 installed; Flame + OpenKeeper building locally | 1–2 wk |
 | **M1** ◐ | Formats readable | `DK2.Tools extract` dumps WAD contents; KWD parses to `GameDatabase`; all 18 record types round-trip; unit tests over the shipped campaign maps | 3–5 wk |
 | **M2** ✅ | Deterministic skeleton | `GameSimulation.Tick()` exists; `StateHash()` stable; save/load round-trips; CI determinism gate green; headless harness runs a scenario file | 3–4 wk |
 | **M3** ◐ | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold. Unity view renders it with placeholder art — **the view is done (2026-09-04); what a room *does* is not** | 8–12 wk |
@@ -971,8 +997,14 @@ is very expensive to retrofit.
 206 catalogued questions** (72 fully open, 30 partly answered, 84 closed),
 `HashVersion` **33**, pin `0x21A7E4D24F37DF48`.
 
-- **M0** — done except the one thing this document exists to correct: Flame has
-  never been checked out (§2.2.1). OpenKeeper is on disk.
+- **M0** ✅ — ~~done except the one thing this document exists to correct: Flame has
+  never been checked out (§2.2.1). OpenKeeper is on disk.~~ Flame was cloned on
+  2026-09-06 and **built from source on 2026-09-07**, the first time either
+  half of "building locally" had been attempted (§2.2.1, "Current state").
+  OpenKeeper compiled the same morning. The definition of done is met as written
+  and **M0 is closed, 2026-09-07**; the recipe for both is in
+  `original-reference/README.md`. What neither build is yet *used* for — DK2
+  running under Flame — is M5's first step, not M0's.
 - **M1** ◐ — every record type's on-disk size is known and pinned; **nine**
   parse into `GameDatabase` (TERRAIN, ROOMS, CREATURES, VARIABLES,
   KEEPERSPELLS, OBJECTS, DOORS, TRAPS, MAP). THINGS and TRIGGERS are split into
@@ -1104,7 +1136,7 @@ Severity: **C**ritical / **H**igh / **M**edium / **L**ow. Probability: as given.
 | R12 | **Computer-player AI opaque**; single-player levels feel wrong without it. | M | High | Flame's `MyComputerPlayer` + `drop_condition` is the best lead in existence. Defer to post-M8; heroes matter more for the campaign. |
 | R13 | **Save format divergence** — our saves can't be validated against DK2's. | L | High | Accept. Our save format is our own. Use `save_struct.bt` only as a checklist of *what state exists*. |
 | R14 | **Audio event semantics unknown** (40% understood). | L | High | Cosmetic. Defer entirely. |
-| R15 | **Upstream projects change or disappear.** | M | Low | Vendor a pinned snapshot of Flame's `mapping/` and the dk2-tools templates into `original-reference/` (research data, not code) with recorded commit hashes. **Still not done as of 2026-09-06, and Flame has now been quiet six months** (§2.2.1) — the risk this row describes is the one that has actually been running. |
+| R15 | **Upstream projects change or disappear.** | M | Low | Vendor a pinned snapshot of Flame's `mapping/` and the dk2-tools templates into `original-reference/` (research data, not code) with recorded commit hashes. ~~**Still not done as of 2026-09-06, and Flame has now been quiet six months** (§2.2.1) — the risk this row describes is the one that has actually been running.~~ **Closed differently, 2026-09-06/07:** the whole Flame repository is cloned at `D:\Flame`, pinned at `f6e2a3d` and recorded in `original-reference/README.md`, and it builds here — so the maps, the source and a working toolchain all survive the upstream disappearing. Flame has been quiet six months; the pin is what makes that a fact rather than a risk. The dk2-tools templates are still not vendored. |
 | R16 | **AI-generated code silently invents mechanics.** | **H** | Medium | Confidence tags are mandatory in docs and in code comments. Any simulation constant not traceable to parsed data or a cited source fails review. |
 | R17 | **Regression corpus becomes unmaintainable** as systems change. | M | Medium | Scenarios are declarative data, not code. Comparison tolerances explicit and versioned. |
 | R18 | **Performance** — hundreds of creatures + pathfinding on a fixed tick. | M | Medium | Headless harness makes profiling easy and early. Fixed-point is cheap. Defer optimisation until a real level runs. |
@@ -1193,8 +1225,12 @@ I have flagged rather than resolved this, per §32 of the brief.
 > as the record of where the plan started. Status as of 2026-09-06:** 1 — done,
 > the GOG install is at `E:\GogGames\Dungeon Keeper 2` (`Dk2Install.Find()`);
 > 2 — resolved, GPLv3 with OpenKeeper reusable under attribution (ADR-0041,
-> §10.1); 3 — done; 4 — **not done**, Flame has never been on this machine
-> (§2.2.1, R15); 5 — **not done**, for the same reason; 6 — the 1999 *player*
+> §10.1); 3 — done; 4 — ~~**not done**, Flame has never been on this machine
+> (§2.2.1, R15)~~ **done differently on 2026-09-06/07**: Flame is cloned and
+> pinned at `D:\Flame` and builds there, which keeps the maps *and* their source
+> (§2.2.1, R15); 5 — **not done**, and no longer for want of the file: the
+> `sgmap` has been on disk since 2026-09-06 and the tool has simply not been
+> written; 6 — the 1999 *player*
 > manual was read (`manual-1999.md`, ADR-0037), the editor manual was not;
 > 7, 8, 9 — done (`DK2.Data`, nine record types, `game-database-dump.md`);
 > 10 — became `docs/research/open-questions.md`, 202 rows. For what to pick up
