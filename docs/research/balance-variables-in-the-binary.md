@@ -455,7 +455,7 @@ consults it.
 | 190 | `GuardRoomReportingDistanceTiles` | 7 | `0x006F2974` (u8) |
 | 191 | `GuardPostReportingDistanceTiles` | 7 | `0x006F2975` (u8) |
 | 192 | `CombatPitMaxExperienceLevel` | 8 | `0x006F2976` (u8) |
-| 193 | `TimeInHandBeforeCreaturesBecomeAngrySeconds` | 1000 | `0x006F2977` (u32) |
+| 193 | `TimeInHandBeforeCreaturesBecomeAngrySeconds` | 1000 | `0x006F2977` (u32) — **CUT**: the loader store is its only `.text` occurrence; no reader (Q160, 2026-09-07) |
 | 194 | `SlapWorkFasterDurationSeconds` | 25 | `0x006F297B` (u16) |
 | 195 | `SlapSpeedUpDurationSeconds` | 25 | `0x006F297D` (u16) |
 | 196 | `TortureSpeedUpDurationSeconds` | 40 | `0x006F297F` (u16) |

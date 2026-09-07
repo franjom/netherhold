@@ -358,8 +358,10 @@ Goblin's `AngerInHand` is **−250** and a Warlock's −500. Jack is the excepti
 this as in everything — **+500**, and slapping it calms it (−5000).
 
 `TimeInHandBeforeCreaturesBecomeAngrySeconds` is **1000** and is **not** this
-number, which is hardcoded at 20. What variable 193 is for is **UNKNOWN**
-(Q160).
+number, which is hardcoded at 20. A raw address scan of its cached global in
+`DKII.EXE` v1.70 finds exactly one occurrence: the loader store. There is no
+reader anywhere in `.text`, so variable 193 is **CUT**, not a duration in ticks
+and not a disabled mechanism (Q160, binary, 2026-09-07).
 
 ---
 
