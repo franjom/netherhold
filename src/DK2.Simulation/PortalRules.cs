@@ -195,94 +195,71 @@ public static class PortalRules
         && portal.TileIndices.Contains(EntranceTileIndex(world, portal));
 
     /// <summary>
-    /// How long this keeper's next creature takes to arrive, in ticks.
+    /// How long this portal's next creature takes to arrive, in ticks:
+    /// <c>(n² + EntranceGenerationSpeedSeconds)</c> game seconds, where
+    /// <c>n</c> is how many creatures <b>this portal</b> has already generated.
     ///
-    /// <para><b>The base is the data's:</b>
-    /// <c>EntranceGenerationSpeedSeconds</c> — 25 on 61 of the 66 shipped
-    /// levels, and one of the 26 ids a level may override (ADR-0040).
-    /// <b>Five do</b>, which is four more than this comment used to say:
-    /// level1 <b>18</b>, level2 <b>20</b>, level3 <b>22</b>, Level10 <b>30</b>,
-    /// and Secret1 <b>10000</b> — two hours and forty-seven minutes, so that
-    /// level's portal is switched off rather than slowed, matching its
-    /// <c>MinimumImpThreshold</c> of 0. The first three levels ramping 18, 20,
-    /// 22 to the global 25 is a tutorial gradient that was invisible while only
-    /// level 1's override was known. Nothing here needs changing for it — the
-    /// value is read from the merged database — but "18 on level 1" had
-    /// propagated into four documents and a claim made to the owner.</para>
+    /// <para><b>CONFIRMED, from the binary and then twice by stopwatch.</b> DK2's
+    /// portal unit computes the due time in six instructions at
+    /// <c>0x004DBBE0</c> — <c>(n * n + base) * variable19 + room[0x49]</c> —
+    /// where <c>room[0x4D]</c> is the per-room tally incremented once per
+    /// creature generated and <c>room[0x49]</c> is the tick of the last
+    /// generation. So the interval is an <b>addition of n² seconds</b> to the
+    /// base, not a multiple of it.</para>
     ///
-    /// <para><b>That the wait grows at all is CONFIRMED</b> (owner, 2026-09-04:
-    /// the gap "seems to be prolonging after each goblin arrives"). That matters
-    /// more than it looks. Nothing in the balance table expresses a slowdown —
-    /// there is no "generation slowdown" variable — so this was
-    /// <b>unfalsifiable from the files</b> and rested entirely on OpenKeeper,
-    /// whose <c>CreatureSpawnSystem</c> has it as settled behaviour. It is the
-    /// difference between fifteen goblins in four and a half minutes and fifteen
-    /// in fifteen, and the owner watching the game says the slowdown is
-    /// there.</para>
+    /// <para><b>The base</b> is <c>EntranceGenerationSpeedSeconds</c>: 25 on 61
+    /// of the 66 shipped levels, with level1 18, level2 20, level3 22, Level10
+    /// 30 and Secret1 10000 — that last being a portal switched off rather than
+    /// slowed. Levels 1 to 3 ramping to the global 25 is a tutorial gradient.
+    /// Pinned by
+    /// <c>LevelVariablesOnRealDataTests.FiveLevelsOverrideThePortalInterval_NotOnlyLevelOne</c>.
+    /// </para>
     ///
-    /// <para><b>The step is still ours.</b> <c>max(base, base x creatures / 2)</c>
-    /// is a specific slope, and observing "it gets slower" does not measure it:
-    /// on level 1 it predicts gaps of 18, 18, 27, 36, 45 seconds — <b>exactly
-    /// nine seconds more per goblin</b>, which is base/2 and is the falsifiable
-    /// part. The owner's earlier ~30-second measurement is consistent with it
-    /// rather than evidence for it: 30 sits between the n=3 and n=4 predictions,
-    /// which is corroboration of the shape and no constraint on the slope. Q86
-    /// is now one question — is the step base/2? — and the cheap route to it is
-    /// two consecutive gaps with the goblins counted, or `Entrance.cpp` in the
-    /// binary (ADR-0046).</para>
+    /// <para><b>The two measurements</b> (owner, 2026-09-07, base 25). Portal 1
+    /// gave gaps of <c>25, 26, 32, 33, 42</c> seconds against a predicted
+    /// <c>25, 26, 29, 34, 41</c> — mean absolute error <b>1.0 s</b>. An earlier
+    /// run gave <c>25, 26, 30, 40, 41, 51, 59</c> against <c>25, 26, 29, 34, 41,
+    /// 50, 61</c> — mean absolute error <b>1.4 s</b>. Recovering the base from
+    /// the first run's gaps by subtracting n² gives 25, 25, 28, 24, 26: mean
+    /// 25.6 against a shipped 25.</para>
     ///
-    /// <para><b>Counted excluding workers</b>, which is a second inference
-    /// riding on the first — see <see cref="CreatureCount"/>. OpenKeeper's
-    /// counter is documented "excluding imps" and excludes the imp <i>type</i>;
-    /// ours excludes anything flagged <see cref="CreatureFlags.IsWorker"/>,
-    /// which in the shipped data is the Imp and the heroes' Dwarf. The two
-    /// differ only for a keeper somehow holding a Dwarf, and no rule here can
-    /// tell them apart today.</para>
+    /// <para><b>And <c>n</c> is per portal, which was Q86's last open half.</b>
+    /// A second portal claimed after the first had produced five creatures
+    /// started its own series again: gaps of <c>27, 30, 31, 33</c> seconds where
+    /// a per-room tally predicts <c>25, 26, 29, 34</c>, a keeper-wide tally
+    /// predicts <c>50, 61, 74, 89</c>, and the formula this replaced predicted
+    /// <c>62, 75, 87, 100</c>. Mean absolute error <b>2.3 s</b> against 38.3 s
+    /// and 50.8 s. So a freshly claimed portal runs at full speed however worn
+    /// out its neighbour is.</para>
     ///
-    /// <para>Integer arithmetic throughout, and exactly so: the base in ticks is
-    /// always <c>seconds x 20</c> and therefore even, so halving the product
-    /// never rounds.</para>
+    /// <para><b>What this replaced, and why it is worth remembering.</b> The old
+    /// requirement was <c>max(base, base × living non-worker creatures ÷ 2)</c>,
+    /// taken from OpenKeeper's <c>CreatureSpawnSystem</c> and flagged in its own
+    /// doc comment as *"the step is still ours"*. It shipped, was pinned by a
+    /// passing test, and sat for weeks. It was wrong three ways at once: the
+    /// shape (a multiple, not an addition), the slope, and the counter — it read
+    /// the keeper's <i>living</i> creatures, so it sped a portal back up on every
+    /// death. DK2's tally cannot fall: 129 references to a <c>+0x4D</c> field
+    /// across the executable and not one is a <c>DEC</c> or a <c>SUB</c>.</para>
     ///
-    /// <para><b>THIS FORMULA IS NOW KNOWN TO BE WRONG, 2026-09-07 (Q86,
-    /// `portals.md`), and is left in place on purpose.</b> The paragraphs above
-    /// called their own shot — <i>"the step is still ours [...] the cheap route
-    /// to it is two consecutive gaps with the goblins counted, or
-    /// `Entrance.cpp` in the binary"</i> — and the binary route was taken. DK2's
-    /// portal computes <c>(n * n + EntranceGenerationSpeedSeconds)</c> game
-    /// seconds: an <b>addition of n² seconds</b>, not a multiple of the base.
-    /// The two agree at <c>n = 3</c> and nowhere else, which is where the
-    /// scenario log happened to be read.</para>
+    /// <para><b>Integer seconds throughout</b>, so this is exact — no rounding
+    /// anywhere, unlike the halving the old formula needed.</para>
     ///
-    /// <para><b>And <c>n</c> is not this either.</b> DK2's counter lives on the
-    /// <i>room</i> (<c>room+0x4D</c>) and is incremented <b>once per creature
-    /// generated</b>; this counts the keeper's living non-workers. So ours
-    /// speeds a portal back up when a creature dies and a generation counter
-    /// only climbs.</para>
-    ///
-    /// <para><b>Why it is not fixed yet.</b> The counter is reset to zero by two
-    /// routines that have no direct caller and no absolute reference in
-    /// <c>.text</c> — both reached through a vtable — so <b>whether a portal
-    /// ever recovers is unread</b>. Replacing this with the confirmed formula
-    /// against an unknown reset risks a portal that grinds to a halt where the
-    /// original's recovers, which is worse than a wrong slope. The question is
-    /// observable and only a rival keeper can answer it: lose a slow portal and
-    /// take it back, because a vtable-only zero-store has the shape of an
-    /// ownership change and selling a portal is impossible.</para>
-    ///
-    /// <para><b>And the owner has now timed it, 2026-09-07, so this is refuted
-    /// by observation and not only by a read.</b> Seven consecutive gaps from
-    /// one portal — <c>25, 26, 30, 40, 41, 51, 59</c> seconds — against
-    /// <c>n² + 25</c> (25, 26, 29, 34, 41, 50, 61) and against this formula
-    /// (25, 25, 25, 37, 50, 62, 75). Mean absolute error <b>1.4 s for the
-    /// quadratic, 6.4 s for this one, and this one diverges</b>. The cleanest
-    /// discrimination is at the low end, where this formula's <c>Math.Max</c>
-    /// floor predicts <b>no change at all</b> for the second and third arrivals
-    /// and the owner measured 26 then 30 seconds.</para>
-    public static int SpawnIntervalTicks(GameDatabase database, int creatureCount)
+    /// <para><b>UNKNOWN, and the only part still open:</b> whether the tally is
+    /// ever zeroed. Two routines store a literal zero into <c>room[0x4D]</c> and
+    /// both are reached only through a vtable. See
+    /// <see cref="TileState.EntranceCreaturesGenerated"/>.</para>
+    /// </summary>
+    public static int SpawnIntervalTicks(GameDatabase database, int creaturesGenerated)
     {
-        int baseTicks = SimulationTiming.TicksFromSeconds(
-            database[VariableTypeId.EntranceGenerationSpeedSeconds]);
-        return Math.Max(baseTicks, baseTicks * Math.Max(0, creatureCount) / 2);
+        int n = Math.Max(0, creaturesGenerated);
+
+        // n * n in seconds before converting, exactly as the original does it:
+        // it forms (n * n + base) and then multiplies the sum by the ticks in a
+        // game second. Squaring the tick count instead would be wrong by a
+        // factor of variable19.
+        return SimulationTiming.TicksFromSeconds(
+            (n * n) + database[VariableTypeId.EntranceGenerationSpeedSeconds]);
     }
 
     /// <summary>

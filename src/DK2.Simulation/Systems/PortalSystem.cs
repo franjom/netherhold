@@ -101,7 +101,6 @@ public sealed class PortalSystem : ISimulationSystem
         // the quirk in the type doc — this is the line that reproduces it.
         int held = PortalRules.CreatureCount(world, database, playerId);
         int capacity = PortalRules.CreatureCapacity(database, keeperPortals);
-        int required = PortalRules.SpawnIntervalTicks(database, held);
 
         // RoomIndex.Build returns rooms in ascending order of their lowest tile
         // index, so two ripe portals are always visited in the same order and
@@ -116,6 +115,16 @@ public sealed class PortalSystem : ISimulationSystem
             // the obstacle goes.
             centre.EntranceIdleTicks++;
 
+            // Per portal, from this portal's own tally — not the keeper's
+            // creature count, and not shared between a keeper's portals. That
+            // is the observed behaviour: a portal claimed after another had
+            // produced five creatures started again at 25 seconds and not 50
+            // (Q86, and TileState.EntranceCreaturesGenerated for the numbers).
+            // So the requirement is computed inside the loop now, and the
+            // once-per-tick read above is only the capacity check.
+            int required = PortalRules.SpawnIntervalTicks(
+                database, centre.EntranceCreaturesGenerated);
+
             if (held >= capacity) continue;
             if (centre.EntranceIdleTicks < required) continue;
 
@@ -128,10 +137,16 @@ public sealed class PortalSystem : ISimulationSystem
 
             centre.EntranceIdleTicks = 0;
 
+            // Once per creature generated, and it only ever climbs — nothing
+            // here decrements it, matching the original, where 129 references
+            // to the field include no DEC and no SUB. A portal wears out.
+            centre.EntranceCreaturesGenerated++;
+
             context.Emit(SystemName, "creature_entered",
                 $"player={playerId} creature={spawned.Id} type={arriving.Name} " +
                 $"at=({spawned.Tile.X},{spawned.Tile.Y}) portal_tile={entranceTile} " +
-                $"held={held} capacity={capacity} interval={required}");
+                $"held={held} capacity={capacity} interval={required} " +
+                $"generated={centre.EntranceCreaturesGenerated}");
         }
     }
 

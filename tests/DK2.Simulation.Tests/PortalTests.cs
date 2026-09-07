@@ -137,39 +137,155 @@ public class PortalTests
         Assert.Equal(new TilePos(6, 6), goblin.Tile);
     }
 
+    /// <summary>
+    /// The interval is <c>(n² + base)</c> game seconds against this portal's own
+    /// generation tally — read from the binary, then measured twice.
+    ///
+    /// <para>This replaces <c>TheWaitGrowsWithTheNumberOfCreaturesHeld</c>,
+    /// which pinned <c>max(base, base × n ÷ 2)</c> and had been green for weeks
+    /// with a comment admitting the slope was ours. It broke on the first line
+    /// when the real formula went in, which is what it was renamed to do.</para>
+    /// </summary>
     [Fact]
-    public void TheWaitGrowsWithTheNumberOfCreaturesHeld_AndThisSlopeIsRefutedByQ86()
+    public void TheWaitIsTheSquareOfThisPortalsOwnTallyPlusTheBase()
     {
         GameDatabase db = Database();
+        int second = SimulationTiming.TicksPerSecond;
 
-        // max(base, base * held / 2), so the scaling only bites past two.
-        //
-        // THIS TEST PINS A NUMBER WE KNOW IS WRONG, deliberately, and the name
-        // says so because a doc comment did not travel far enough last time.
-        //
-        // That the wait grows is CONFIRMED (owner, 2026-09-04). The step of
-        // base/2 is REFUTED twice over: DK2 computes (n*n + base) game seconds
-        // (binary, 2026-09-07), and the owner timed seven gaps of 25, 26, 30,
-        // 40, 41, 51, 59 seconds against this formula's 25, 25, 25, 37, 50, 62,
-        // 75. The first three rows below are the clearest failure — this
-        // formula's floor says nothing changes for three arrivals and the real
-        // game slows by a second, then four.
-        //
-        // It stays until the counter's reset is known (see SpawnIntervalTicks),
-        // because shipping the right slope against an unknown reset can stop a
-        // portal that the original recovers. These rows exist to break loudly
-        // when that lands, not to assert that any of it is DK2.
-        int baseTicks = 25 * SimulationTiming.TicksPerSecond;
-        Assert.Equal(baseTicks, PortalRules.SpawnIntervalTicks(db, 0));
-        Assert.Equal(baseTicks, PortalRules.SpawnIntervalTicks(db, 1));
-        Assert.Equal(baseTicks, PortalRules.SpawnIntervalTicks(db, 2));
-        Assert.Equal(baseTicks * 2, PortalRules.SpawnIntervalTicks(db, 4));
-        Assert.Equal(baseTicks * 15 / 2, PortalRules.SpawnIntervalTicks(db, 15));
+        // n^2 + 25 seconds, and the base is an addition rather than a factor.
+        Assert.Equal(25 * second, PortalRules.SpawnIntervalTicks(db, 0));
+        Assert.Equal(26 * second, PortalRules.SpawnIntervalTicks(db, 1));
+        Assert.Equal(29 * second, PortalRules.SpawnIntervalTicks(db, 2));
+        Assert.Equal(34 * second, PortalRules.SpawnIntervalTicks(db, 3));
+        Assert.Equal(41 * second, PortalRules.SpawnIntervalTicks(db, 4));
+        Assert.Equal(50 * second, PortalRules.SpawnIntervalTicks(db, 5));
 
-        // Halving never rounds, because a whole number of seconds at 20 ticks a
-        // second is always even. If TicksPerSecond ever becomes odd this fails
-        // rather than quietly drifting.
-        Assert.Equal(0, baseTicks % 2);
+        // Where the old formula's Math.Max floor said nothing changed for three
+        // arrivals: it gave 25, 25, 25 for n = 0, 1, 2. The owner measured
+        // 25, 26, 32 and 25, 26, 30 on two separate runs, so the low end is
+        // where the two formulas differ most visibly and where the old one was
+        // furthest from the game.
+        Assert.NotEqual(
+            PortalRules.SpawnIntervalTicks(db, 0),
+            PortalRules.SpawnIntervalTicks(db, 1));
+
+        // A worn-out portal, and it is a big number on purpose: at n = 15 a
+        // level-25 portal takes four minutes. Nothing lowers the tally, so this
+        // is a portal that has genuinely worn out rather than one that is busy.
+        Assert.Equal(250 * second, PortalRules.SpawnIntervalTicks(db, 15));
+
+        // No rounding anywhere: integer seconds squared and added, then
+        // converted once. The old formula needed a halving and an argument
+        // about why it never rounded.
+        Assert.Equal(0, PortalRules.SpawnIntervalTicks(db, 7) % second);
+
+        // A negative tally cannot arise, but the clamp is what makes that true
+        // rather than a hope.
+        Assert.Equal(25 * second, PortalRules.SpawnIntervalTicks(db, -3));
+    }
+
+    /// <summary>
+    /// The owner's two timing runs, as data. Base 25, gaps in seconds, measured
+    /// by hand off a claimed portal on 2026-09-07 (Q86,
+    /// <c>observation-checklist.md</c>).
+    ///
+    /// <para>The tolerance is <b>4 seconds a gap</b>, and it is not slack: these
+    /// were read off a wall clock by a human watching a game, and the owner said
+    /// so both times — <i>"not completely precise"</i>, <i>"I am still measuring
+    /// by hand"</i>. What the test is for is the <b>shape</b>: the old formula
+    /// misses run 1's third gap by 7 seconds and its sixth by 11, and no
+    /// tolerance that admits the quadratic admits that too.</para>
+    ///
+    /// <para><b>Run 1 has one gap outside the tolerance and it is named in the
+    /// data rather than absorbed by a wider one.</b> Its fourth gap is 40
+    /// seconds against a predicted 34, and every gap after it is back inside
+    /// tolerance — so the cumulative error steps once and stays flat instead of
+    /// wandering, which is what a one-off block looks like: the portal came due,
+    /// nothing was eligible, it waited, and the clock was stamped at the actual
+    /// arrival. Widening the tolerance to 7 seconds would have hidden it and
+    /// would also have let the old formula through on three of the six gaps.
+    /// HYPOTHESIS — a single mistimed reading explains it equally well, and the
+    /// owner's own caveat allows for that.</para>
+    /// </summary>
+    [Theory]
+    // run 1, 2026-09-07: seven arrivals, the run that first broke the old slope.
+    // Index 3 is the 40-second gap discussed above.
+    [InlineData(new[] { 25, 26, 30, 40, 41, 51, 59 }, 3)]
+    // run 2, same day, re-run deliberately to settle the per-portal question.
+    // Every gap inside tolerance, so no exception is allowed.
+    [InlineData(new[] { 25, 26, 32, 33, 42 }, -1)]
+    public void ThePredictedGapsMatchTheOwnersStopwatch(
+        int[] observedSeconds, int knownAnomalyIndex)
+    {
+        GameDatabase db = Database();
+        const int Tolerance = 4;
+
+        int outside = 0;
+        for (int n = 0; n < observedSeconds.Length; n++)
+        {
+            int predicted =
+                PortalRules.SpawnIntervalTicks(db, n) / SimulationTiming.TicksPerSecond;
+            int error = Math.Abs(observedSeconds[n] - predicted);
+
+            if (error <= Tolerance) continue;
+
+            outside++;
+            Assert.Equal(knownAnomalyIndex, n);
+
+            // Even the anomaly is bounded: a block long enough to matter would
+            // not look like this, and 10 seconds is well inside what a single
+            // missed arrival would cost.
+            Assert.InRange(error, Tolerance + 1, 10);
+        }
+
+        // Exactly as many outliers as the data declares — so a future change
+        // that starts missing a second gap fails rather than passing quietly
+        // under the first one's licence.
+        Assert.Equal(knownAnomalyIndex >= 0 ? 1 : 0, outside);
+    }
+
+    /// <summary>
+    /// <b>The measurement that settled Q86's last open half.</b> A second portal
+    /// claimed after the first had produced five creatures started its own
+    /// series again — the owner measured gaps of 27, 30, 31, 33 seconds from the
+    /// claim.
+    ///
+    /// <para>Three formulas, one measurement. A per-room tally predicts 25, 26,
+    /// 29, 34 (mean absolute error 2.3 s). A keeper-wide tally predicts 50, 61,
+    /// 74, 89 (38.3 s). The formula this project shipped for weeks predicted
+    /// 62, 75, 87, 100 (50.8 s). It is not a close call, and the visible
+    /// version needs no clock at all: <b>a freshly claimed portal runs at full
+    /// speed however worn out its neighbour is.</b></para>
+    /// </summary>
+    [Fact]
+    public void ASecondPortalRunsItsOwnTallyAndNotTheKeepersFifth()
+    {
+        GameDatabase db = Database();
+        int second = SimulationTiming.TicksPerSecond;
+
+        int[] observed = { 27, 30, 31, 33 };
+        const int FirstPortalHadProduced = 5;
+
+        for (int n = 0; n < observed.Length; n++)
+        {
+            int perRoom = PortalRules.SpawnIntervalTicks(db, n) / second;
+            int keeperWide =
+                PortalRules.SpawnIntervalTicks(db, FirstPortalHadProduced + n) / second;
+
+            // The per-room reading is what the code computes and what was
+            // measured; the keeper-wide reading is more than twice as far out on
+            // the very first gap and diverges from there.
+            Assert.InRange(observed[n], perRoom - 4, perRoom + 4);
+            Assert.True(
+                Math.Abs(observed[n] - perRoom) < Math.Abs(observed[n] - keeperWide),
+                $"gap {n}: observed {observed[n]}s is nearer per-room {perRoom}s " +
+                $"than keeper-wide {keeperWide}s");
+        }
+
+        // And the headline, without the arithmetic: a brand new portal beside a
+        // worn one is not slowed by it.
+        Assert.Equal(25 * second, PortalRules.SpawnIntervalTicks(db, 0));
+        Assert.Equal(250 * second, PortalRules.SpawnIntervalTicks(db, 15));
     }
 
     // ---- gate 0: the creature's own flags --------------------------------

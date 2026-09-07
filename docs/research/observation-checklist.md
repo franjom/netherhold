@@ -1675,3 +1675,59 @@ only through a vtable, and the only room event a portal has — now that selling
 and rebuilding are ruled out — is an ownership change. **That needs a rival:**
 lose a slow portal to an enemy keeper and take it back. `mpd3` cannot answer it,
 which is the one thing the skirmish fallbacks are better at.
+
+---
+
+## Q86 — the re-run, and the result
+
+**Owner, 2026-09-07, measured by hand against the predictions pre-registered
+above.** Portal 1 claimed at t = 0; portal 2 claimed at **03:18**, after portal 1
+had produced five creatures.
+
+| | arrivals | gaps |
+|---|---|---|
+| **portal 1** | 0:25, 0:51, 1:23, 1:56, 2:38 | 25, 26, **32**, 33, 42 |
+| **portal 2** | 3:45, 4:15, 4:46, 5:19 | 27, 30, 31, 33 *(from its claim)* |
+
+### Portal 1 — the quadratic holds
+
+Predicted 25, 26, 29, 34, 41. **Mean absolute error 1.0 s.** Recovering the base
+by subtracting n² from each gap gives 25, 25, 28, 24, 26 — mean **25.6** against
+a shipped 25, which is about as well as a hand-held clock can do. The old
+formula predicted 25, 25, 25, 37, 50, for 4.0 s.
+
+### Portal 2 — the tally is per portal, and it is not close
+
+| | first gap | second | third | fourth | mean error |
+|---|---|---|---|---|---|
+| **observed** | **27** | 30 | 31 | 33 | — |
+| per-room tally, `n` restarts at 0 | 25 | 26 | 29 | 34 | **2.3 s** |
+| keeper-wide tally, `n` continues from 5 | 50 | 61 | 74 | 89 | 38.3 s |
+| what this project shipped | 62 | 75 | 87 | 100 | 50.8 s |
+
+**A second portal claimed mid-game starts again at the base interval.** The
+prediction was 25 against 61 and the measurement came in at 27. Q86's last open
+half is answered, and the formula is built — ADR-0086.
+
+Portal 2's gaps sit about 2 s high across the board (implied base 27, 29, 27,
+24). The most likely cause is the claim moment: the recorded 03:18 is when the
+imp was seen to finish, and DK2 stamps the clock when the room's own reset fires.
+Not worth chasing — it is inside hand-timing error and it does not touch the
+shape.
+
+### The one thing the re-run did not carry
+
+**Portal 1's arrivals after 03:18 are missing**, and they are the control. If
+portal 1 kept producing, the per-room reading puts its sixth at **03:28**, its
+seventh at **04:29** and its eighth at **05:43** — interleaved with portal 2's
+list and absent from it. Almost certainly the owner simply followed the new
+portal after claiming it, which costs nothing now that portal 2 has settled the
+question. **But if portal 1 genuinely stopped, that is a new and unexplained
+behaviour** and worth a sentence.
+
+### And the reset is still the only thing left
+
+Whether `room[0x4D]` ever returns to zero. **This needs a rival keeper:** lose a
+slow portal to an enemy and take it back. `mpd3` cannot answer it, which is the
+one thing the skirmish maps (`The Deep End`, `Siege`, `U Turn` — two claimable
+portals each at base 25) are better at.

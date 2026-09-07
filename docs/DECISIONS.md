@@ -6875,3 +6875,97 @@ v1.70**), `HypnotismManaDrainPerSecond`, `EPLossSecondWhileNotTraining`,
 are cut and ten are not, and nothing about the value distinguishes them — only
 the scan does. The same shape will exist for the *creature* and *object* record
 fields, where no equivalent audit has ever been run.
+
+## ADR-0086 — A portal's arrival interval is the square of its own tally
+
+**Status:** accepted, 2026-09-07. Supersedes the interval half of ADR-0042.
+**Moves `HashVersion` and `FormatVersion` 33 → 34.**
+
+### The decision
+
+`PortalRules.SpawnIntervalTicks` computes `(n² + EntranceGenerationSpeedSeconds)`
+game seconds, where **`n` is how many creatures this portal has already
+generated** — a new `TileState.EntranceCreaturesGenerated` on the portal's centre
+tile, beside the clock that was already there. It is incremented once per
+arrival and **nothing decrements it**.
+
+It replaces `max(base, base × the keeper's living non-worker creatures ÷ 2)`.
+
+### Why, and the evidence is unusually good for this project
+
+Three independent sources, and they were taken in the right order for once — the
+formula was read first, the prediction was written down, and the measurement came
+after.
+
+1. **The binary.** The portal's per-tick routine at `0x004DBBE0` forms the due
+   time in six instructions: `(n * n + base) * variable19 + room[0x49]`, with
+   `room[0x4D]` the per-room tally incremented once per generation
+   (`FUN_004DBF90`) and `room[0x49]` the tick of the last one.
+2. **Two hand-timed runs on the original** (owner, 2026-09-07, base 25). Gaps of
+   `25, 26, 30, 40, 41, 51, 59` and `25, 26, 32, 33, 42` seconds against a
+   predicted `25, 26, 29, 34, 41, 50, 61` — mean absolute error **1.4 s** and
+   **1.0 s**. The old formula gave 6.4 s and 4.0 s, and diverged.
+3. **A second portal, which settled the last open half.** Claimed after the
+   first had produced five creatures, it started its own series again: gaps of
+   `27, 30, 31, 33` seconds. A per-room tally predicts `25, 26, 29, 34` (error
+   **2.3 s**); a keeper-wide tally predicts `50, 61, 74, 89` (**38.3 s**); the
+   old formula predicted `62, 75, 87, 100` (**50.8 s**).
+
+The old formula was wrong in three separate ways at once: the **shape** (a
+multiple of the base rather than an addition to it), the **slope**, and the
+**counter** — it read *living* creatures, so a portal sped back up whenever one
+died. DK2's tally cannot fall: 129 references to a `+0x4D` field across the whole
+executable and not one is a `DEC` or a `SUB`.
+
+### What changes for a player
+
+**A portal wears out.** On a base-25 level the fifteenth creature takes 250
+seconds where the old formula said 187, and the second and third arrive a second
+and four seconds later than they used to instead of on the base interval. And a
+**freshly claimed portal runs at full speed however worn out its neighbour is**,
+which the old formula could not express at all because its counter was the
+keeper's.
+
+The requirement is now computed **inside** the per-portal loop rather than once
+per tick. The once-per-tick read that remains is the capacity check, which is
+where ADR-0042's deliberate quirk lives, so that quirk is unaffected: two
+portals ripe on the same tick still both produce.
+
+### What is still UNKNOWN, and it is one branch
+
+**Whether the tally is ever zeroed.** Two routines store a literal zero into
+`room[0x4D]` and both are reached only through a vtable — the shape of an
+ownership change, which is the only room event a portal has, since a portal
+cannot be sold or rebuilt (owner: *"it is a 'resource', a 'room' on a map that a
+player has to claim"*). A **freshly claimed** portal starting at zero is
+observed. A **worn** portal lost to a rival and re-claimed is not, and only a
+rival keeper can answer it.
+
+So zero-on-claim is ours rather than read, and
+`TileState.EntranceCreaturesGenerated` says so in prose while the tests say so in
+their names. Shipping the confirmed formula against that one unknown was held
+back for a day on the grounds that a portal grinding to a halt is worse than a
+wrong slope — but the old formula is now refuted in every regime that has been
+measured, including the low end, so continuing to ship it was the worse of the
+two risks.
+
+### The process note, which is the reason this ADR is long
+
+The old slope had a doc comment that named itself as a guess and named the
+experiment that would settle it. It shipped, was pinned by a passing test called
+`TheWaitGrowsWithTheNumberOfCreaturesHeld`, and sat for weeks. The scenario log
+that was checked happened to be the one arrival where the two formulas agree.
+
+Three things changed here and are worth keeping:
+
+- **The predictions were committed before the measurement** (`af4038d`), so the
+  result is a test and not a fit.
+- **The refuted test was renamed to say so** before it was deleted —
+  `...AndThisSlopeIsRefutedByQ86` — and it broke on its first line when the real
+  formula went in, which is what the rename was for.
+- **The one gap outside tolerance is named in the test data** rather than
+  absorbed by a wider tolerance. Run 1's fourth gap is 40 s against a predicted
+  34, and every gap after it is back inside tolerance, so the cumulative error
+  steps once and stays flat — the signature of a one-off block with nothing
+  eligible, not of a wrong slope. Widening the tolerance to admit it would also
+  have admitted the old formula on three of six gaps.

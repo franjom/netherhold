@@ -180,23 +180,33 @@ public struct TileState
     /// Ticks this portal has waited since it last produced a creature, or 0 on
     /// every tile that is not a portal's centre.
     ///
-    /// <para><b>The clock has to be per portal</b>, because two portals produce
-    /// on their own schedules and the cap rises with the second one
-    /// (<see cref="PortalRules.CreatureCapacity"/>). It cannot live on
+    /// <para><b>The clock is per portal — CONFIRMED by observation</b> (owner,
+    /// 2026-09-07): a second portal produced 8 seconds after the first at a
+    /// point where the interval was about 60 seconds, and one clock cannot emit
+    /// twice in 8 seconds while it is waiting 60. It also has to be, because two
+    /// portals produce on their own schedules and the cap rises with the second
+    /// one (<see cref="PortalRules.CreatureCapacity"/>). It cannot live on
     /// <see cref="PlayerState"/> for that reason, and it cannot live on
     /// <see cref="RoomInstance"/> because a room instance is derived fresh from
     /// the tiles every time it is asked for and remembers nothing. So it lives
     /// on the one tile that identifies a portal — the hole in its middle, which
     /// <see cref="PortalRules.CanProduce"/> guarantees the portal owns.</para>
     ///
-    /// <para><b>Counted up rather than down, on purpose.</b> The interval a
-    /// portal is waiting for is not fixed — it grows with the keeper's creature
-    /// count (Q86) — so a countdown set at the last spawn would freeze a
-    /// requirement that has since changed. Counting elapsed time and comparing
-    /// it against a requirement recomputed each tick means a creature dying
-    /// shortens the wait, which is the behaviour OpenKeeper has and the only one
-    /// that makes the scaling coherent. It also means a portal blocked for want
-    /// of a lair banks its wait and produces the moment the lair is built.</para>
+    /// <para><b>Counted up rather than down</b>, which matches how DK2 does it:
+    /// the original stores the tick of the last generation
+    /// (<c>room+0x49</c>) and compares <c>now</c> against it, so elapsed time is
+    /// the thing that exists and the interval is recomputed. One consequence
+    /// survives that reasoning and is worth keeping in view: <b>a portal blocked
+    /// for want of a lair banks its wait and produces the moment the lair is
+    /// built.</b></para>
+    ///
+    /// <para><b>The other consequence used to be wrong and is now gone.</b> This
+    /// paragraph said counting up means "a creature dying shortens the wait,
+    /// which is the behaviour OpenKeeper has and the only one that makes the
+    /// scaling coherent". It does not: the interval depends on
+    /// <see cref="EntranceCreaturesGenerated"/>, which never falls, so a death
+    /// changes nothing. The old sentence was true only of the formula it was
+    /// written beside, and that formula was OpenKeeper's guess.</para>
     ///
     /// <para><b>Only while owned.</b> An unclaimed portal is not waiting for
     /// anything, so its clock does not run and a keeper who claims one waits a
@@ -210,6 +220,48 @@ public struct TileState
     /// other tile the value is meaningless and nothing reads it.</para>
     /// </summary>
     public int EntranceIdleTicks;
+
+    /// <summary>
+    /// How many creatures this portal has generated, on the same tile as
+    /// <see cref="EntranceIdleTicks"/> and zero everywhere else. <b>It is the
+    /// <c>n</c> in the arrival interval, and it only ever climbs.</b>
+    ///
+    /// <para><b>CONFIRMED three ways</b> (Q86, <c>portals.md</c>). DK2 keeps this
+    /// on the room at <c>room+0x4D</c> and increments it once per creature
+    /// generated; the interval is <c>(n² + EntranceGenerationSpeedSeconds)</c>
+    /// game seconds, read off six instructions at <c>0x004DBBE0</c>. Then the
+    /// owner timed it twice: portal 1's gaps of 25, 26, 32, 33, 42 seconds
+    /// against a predicted 25, 26, 29, 34, 41 (mean error 1.0 s), and — the
+    /// measurement that settled which counter it is — <b>a second portal
+    /// claimed after five arrivals started again at 25, not at 50</b>.</para>
+    ///
+    /// <para><b>Per portal, not per keeper.</b> That was the open half of Q86
+    /// and the observed gaps do not leave it open: portal 2's first four gaps
+    /// were 27, 30, 31, 33 seconds where a keeper-wide tally predicts 50, 61,
+    /// 74, 89 and this project's previous formula predicted 62, 75, 87, 100.
+    /// Mean absolute error 2.3 s against 38.3 s and 50.8 s.</para>
+    ///
+    /// <para><b>It never falls, and that is read rather than inferred.</b> There
+    /// are 129 references to a <c>+0x4D</c> field across the whole executable
+    /// and not one is a <c>DEC</c> or a <c>SUB</c>. So a portal does not speed
+    /// up when creatures die, desert, or are thrown back into it — which is why
+    /// this counts generations and not the keeper's living creatures, as the
+    /// formula it replaces did.</para>
+    ///
+    /// <para><b>What is still UNKNOWN is whether it is ever zeroed.</b> Two
+    /// routines store a literal zero here and both are reached only through a
+    /// vtable, which has the shape of an ownership change — the only room event
+    /// a portal has, since a portal cannot be sold or rebuilt (owner). A freshly
+    /// claimed portal starting at zero is observed; a <i>worn</i> portal lost to
+    /// a rival and re-claimed is not, and only a rival can answer it. Zero here
+    /// on claim is therefore ours: <c>APortalStartsItsTallyAtZeroWhenClaimed</c>
+    /// says so in its name.</para>
+    ///
+    /// <para>Shares the portal centre tile with the clock, so the two are lost
+    /// and restored together. Managed entirely by
+    /// <see cref="Systems.PortalSystem"/>.</para>
+    /// </summary>
+    public int EntranceCreaturesGenerated;
 
     /// <summary>
     /// A hatchery's clock towards its next egg, on the room's lowest tile index
@@ -278,6 +330,7 @@ public struct TileState
         hash.Add(UpwardWork);
         hash.Add(BurnTicksRemaining);
         hash.Add(EntranceIdleTicks);
+        hash.Add(EntranceCreaturesGenerated);
         hash.Add(HatchTicks);
     }
 }

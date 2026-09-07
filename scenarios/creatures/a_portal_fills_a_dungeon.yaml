@@ -32,17 +32,23 @@
 # and a working portal look like in the log, and it is the tutorial's lesson
 # about lair size told by the simulation rather than the script.
 #
-# What to read in the event log: the `interval` column on `creature_entered`.
-# Level 1 overrides EntranceGenerationSpeedSeconds from the game-wide 25 down to
-# **18**, so arrivals are 360 ticks apart - until the fourth, which waits 540,
-# because the requirement grows with the keeper's creature count. Fifteen is
-# where it would stop: level 1's pool is fifteen Goblins and one portal supports
-# fifteen creatures, so the two limits coincide here and a longer run cannot
-# tell them apart.
+# What to read in the event log: the `interval` and `generated` columns on
+# `creature_entered`. Level 1 overrides EntranceGenerationSpeedSeconds from the
+# game-wide 25 down to **18** - one of five levels that override it - so the
+# intervals run 360, 380, 440, 540 ticks: **18, 19, 22, 27 game seconds**, which
+# is `n^2 + 18` against this portal's own tally of creatures generated. Fifteen
+# is where it would stop: level 1's pool is fifteen Goblins and one portal
+# supports fifteen creatures, so the two limits coincide here and a longer run
+# cannot tell them apart.
 #
-# What this run does NOT establish, and the report repeats it: whether the
-# interval scaling is real at all (it comes from OpenKeeper, nothing in the
-# shipped files expresses it, and a stopwatch on the original settles it - Q86);
+# **This log used to read 360, 360, 360, 540 and it was wrong.** The old formula
+# was `max(base, base x living creatures / 2)`, taken from OpenKeeper. It agrees
+# with the real one at n = 3 and nowhere else - and n = 3, the fourth arrival, is
+# the one line of this log anybody had checked. Q86 is now CONFIRMED three ways:
+# six instructions at 0x004DBBE0, and two hand-timed runs on the original whose
+# gaps match `n^2 + base` to about a second. See ADR-0086.
+#
+# What this run does NOT establish, and the report repeats it:
 # whether the creature pool is a standing limit or a draining quota (Q87); how
 # long claiming a portal takes in the original, since only the propagation is
 # confirmed and not the rate (Q92); and what the arriving goblins do once they
