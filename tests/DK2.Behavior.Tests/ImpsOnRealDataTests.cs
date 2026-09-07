@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -8,6 +8,7 @@ using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -21,33 +22,28 @@ namespace DK2.Behavior.Tests;
 /// second is to run the real thing — imps digging a real campaign level — where
 /// assumptions the synthetic map happens to satisfy get to fail.
 ///
-/// Skips when no installation is configured (DK2_DIR), so CI stays green
+/// Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing
 /// without proprietary assets.
 /// </summary>
 public class ImpsOnRealDataTests
 {
-    private static GameDatabase? RealDatabase()
-    {
-        string? install = Dk2Install.Find();
-        return install is null ? null : GameDatabaseLoader.Load(install);
-    }
+    private static GameDatabase RealDatabase() =>
+        GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
-    [Fact]
+    [InstallFact]
     public void EveryShippedCreatureHasSixTilePerceptionRange()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         Assert.Equal(46, db.Creatures.Count);
         Assert.All(db.Creatures.Values,
             creature => Assert.Equal(0x6000, creature.PerceptionRange.Raw));
     }
 
-    [Fact]
+    [InstallFact]
     public void TheImpFixture_MatchesTheInstall()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return; // skipped: no DK2 install
+        GameDatabase db = RealDatabase();
 
         CreatureDef real = db.CreatureByName("Imp")
             ?? throw new InvalidOperationException("The install has no creature named Imp.");
@@ -91,11 +87,10 @@ public class ImpsOnRealDataTests
         Assert.Equal(FightStyle.NonFighter, real.FightStyle);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheWorkerFlag_FallsOnExactlyTheImpAndTheDwarf()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         // ImpTaskSystem keys on the flag rather than on creature id 1, for the
         // same reason the tile rules never name terrain id 2. This is what makes
@@ -110,11 +105,10 @@ public class ImpsOnRealDataTests
         Assert.Equal(["Dwarf", "Imp"], workers);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheImpsOwnBalanceVariables_AreAllInTheGlobalTable()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         // Only the first is read today. The rest are named here because they are
         // what the unimplemented half of imp behaviour will be built from, and
@@ -127,11 +121,10 @@ public class ImpsOnRealDataTests
         Assert.Equal(20, db[VariableTypeId.ImpExperienceGainPerSecond]);
     }
 
-    [Fact]
+    [InstallFact]
     public void NoTerrainInTheGame_AdmitsTwoKindsOfMarkedWork()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         foreach (TerrainDef terrain in db.Terrain.Values)
         {
@@ -153,11 +146,10 @@ public class ImpsOnRealDataTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void ImpsDigOutMarkedRock_OnARealCampaignLevel()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level1")!;

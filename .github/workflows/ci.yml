@@ -57,4 +57,17 @@ jobs:
           --filter "FullyQualifiedName~DeterminismTests|FullyQualifiedName~SnapshotTests"
 
       - name: Test
+        # EXPECT SKIPS HERE, and read the count. This runner has no Dungeon
+        # Keeper 2 installation, so every [InstallFact] / [InstallTheory] test
+        # reports as Skipped — 266 of them at the time of writing (ADR-0100).
+        #
+        # Until 2026-09-07 those tests used `if (install is null) return;` and
+        # reported as PASSED, which meant roughly a quarter of a green suite was
+        # asserting nothing. If the skip count here ever drops to zero, this
+        # runner has somehow acquired the game data; if it climbs sharply,
+        # somebody has gated a test that did not need gating.
+        #
+        # On a machine that IS supposed to have the data, set
+        # DK2_REQUIRE_INSTALL=1 to turn a missing install into a failure
+        # instead of a skip.
         run: dotnet test DK2.slnx --no-build --configuration Release

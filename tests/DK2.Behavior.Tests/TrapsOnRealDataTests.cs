@@ -1,9 +1,10 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -17,7 +18,7 @@ namespace DK2.Behavior.Tests;
 /// finding that is not asserted anywhere is a finding that quietly rots. It is
 /// now read through the typed definition.</para>
 ///
-/// <para>Skips when no installation is configured (DK2_DIR). See Q59 and
+/// <para>Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing. See Q59 and
 /// docs/research/imps-and-mana.md.</para>
 /// </summary>
 public class TrapsOnRealDataTests
@@ -48,7 +49,7 @@ public class TrapsOnRealDataTests
     /// </summary>
     private static IReadOnlyDictionary<string, int>? UpkeepByName()
     {
-        string? install = Dk2Install.Find();
+        string install = Dk2InstallGate.Path;
         if (install is null) return null; // skipped: no DK2 install
 
         GameDatabase database = GameDatabaseLoader.Load(install);
@@ -57,7 +58,7 @@ public class TrapsOnRealDataTests
             trap => (int)trap.ManaUpkeepPerSecond);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheTrapRecordDividesExactly_AndNamesSixteenTraps()
     {
         if (UpkeepByName() is not { } upkeep) return;
@@ -81,7 +82,7 @@ public class TrapsOnRealDataTests
     /// separate a real column from a coincidence. The three-valued spread is
     /// what makes this an identification rather than a fit.
     /// </summary>
-    [Theory]
+    [InstallTheory]
     [InlineData("Spike Trap", 5)]
     [InlineData("Sentry Trap", 5)]
     [InlineData("Fireburst Trap", 10)]
@@ -108,7 +109,7 @@ public class TrapsOnRealDataTests
     /// game is 250 a second. The five values that matter are all traps and all
     /// measured. See Q59.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void AGuardPostIsTheOnlyFreeEntry_BecauseItIsNotATrap()
     {
         if (UpkeepByName() is not { } upkeep) return;
@@ -126,7 +127,7 @@ public class TrapsOnRealDataTests
     /// zero, so a u8 reading agrees and the width is not actually pinned by the
     /// data — noted rather than hidden.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheWholeUpkeepColumnIsPlausible()
     {
         if (UpkeepByName() is not { } upkeep) return;

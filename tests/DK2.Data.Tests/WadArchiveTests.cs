@@ -1,8 +1,9 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data.Wad;
+using DK2.TestSupport;
 
 namespace DK2.Data.Tests;
 
@@ -12,10 +13,11 @@ namespace DK2.Data.Tests;
 /// </summary>
 public class WadArchiveTests
 {
-    private static string? DataDir()
+    private static string DataDir()
     {
-        string dir = Dk2Install.Find() ?? "";
-        return File.Exists(Path.Combine(dir, "DKII.EXE")) ? Path.Combine(dir, "Data") : null;
+        string dir = Dk2InstallGate.Path;
+        Assert.True(File.Exists(Path.Combine(dir, "DKII.EXE")), "the install has no DKII.EXE");
+        return Path.Combine(dir, "Data");
     }
 
     public static TheoryData<string> AllWads => new()
@@ -23,12 +25,11 @@ public class WadArchiveTests
         "EngineTextures.WAD", "FrontEnd.WAD", "Meshes.WAD", "Paths.WAD", "Sprite.WAD",
     };
 
-    [Theory]
+    [InstallTheory]
     [MemberData(nameof(AllWads))]
     public void EveryWad_Parses_WithSaneEntries(string wadName)
     {
-        string? data = DataDir();
-        if (data is null) return; // no install on this machine
+        string data = DataDir();
 
         using var wad = WadArchive.Open(Path.Combine(data, wadName));
 
@@ -42,12 +43,11 @@ public class WadArchiveTests
         }
     }
 
-    [Theory]
+    [InstallTheory]
     [MemberData(nameof(AllWads))]
     public void EveryEntry_Extracts_ToDeclaredSize(string wadName)
     {
-        string? data = DataDir();
-        if (data is null) return;
+        string data = DataDir();
 
         using var wad = WadArchive.Open(Path.Combine(data, wadName));
 
@@ -60,11 +60,10 @@ public class WadArchiveTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void MeshesWad_Entries_AreKmfFiles()
     {
-        string? data = DataDir();
-        if (data is null) return;
+        string data = DataDir();
 
         using var wad = WadArchive.Open(Path.Combine(data, "Meshes.WAD"));
         WadEntry kmf = wad.Entries.First(e => e.Name.EndsWith(".kmf", StringComparison.OrdinalIgnoreCase));

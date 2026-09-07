@@ -6,6 +6,7 @@ using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -26,11 +27,11 @@ namespace DK2.Behavior.Tests;
 /// real but almost unused. Each is checked here, because a claim nothing checks
 /// may already be false.</para>
 ///
-/// <para>Skips when no installation is configured (DK2_DIR).</para>
+/// <para>Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing.</para>
 /// </summary>
 public class CreatureNeedsOnRealDataTests
 {
-    private static string? Install() => Dk2Install.Find();
+    private static string Install() => Dk2InstallGate.Path;
 
     private const int Never = CreatureHealthRules.Never;
 
@@ -38,11 +39,10 @@ public class CreatureNeedsOnRealDataTests
 
     // ---- the drift guard --------------------------------------------------
 
-    [Fact]
+    [InstallFact]
     public void TheImpsNeedsAreWhatTheFixtureSaysTheyAre()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         CreatureDef imp = GameDatabaseLoader.Load(install).CreatureByName("Imp")!;
 
@@ -57,11 +57,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(67, imp.OwnLandHealthIncreasePerSecond);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheGoblinsNeedsAreWhatTheFixtureSaysTheyAre()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         CreatureDef goblin = GameDatabaseLoader.Load(install).CreatureById(7);
 
@@ -75,11 +74,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(0, goblin.OwnLandHealthIncreasePerSecond);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheFourNeedsVariablesAreWhatTheFixtureSaysTheyAre()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 
@@ -91,11 +89,10 @@ public class CreatureNeedsOnRealDataTests
 
     // ---- claims about all 46 creatures ------------------------------------
 
-    [Fact]
+    [InstallFact]
     public void EveryCreatureHasHealth()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The invariant behind WorldState.SpawnCreature taking the database: a
         // creature seeded from a zero Hp would die on the tick it arrived. If
@@ -107,11 +104,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.All(db.Creatures.Values, c => Assert.True(c.Hp > 0, $"{c.Name} has {c.Hp} hp"));
     }
 
-    [Fact]
+    [InstallFact]
     public void EightCreaturesNeverGetHungryAndTheyAreTheUndeadTheConstructsAndTheWorker()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The undead (Vampire, Skeleton and their uniques), the constructs
         // (Stone Knight, Horny), the worker (Imp) — and the Unique Firefly,
@@ -134,11 +130,10 @@ public class CreatureNeedsOnRealDataTests
             never);
     }
 
-    [Fact]
+    [InstallFact]
     public void HungerAndSleepAreSwitchedOffIndependentlyAndBothDirectionsOccur()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // This is what proves 32767 is a per-need sentinel rather than one
         // "undead" switch, and it is the answer to an open question that had
@@ -171,11 +166,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.Contains("Vampire", starveless.Except(sleepless));
     }
 
-    [Fact]
+    [InstallFact]
     public void TheTwoEncodingsOfNeverHungryAgreeOnEveryCreature()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // CreatureHealthRules.CanGetHungry tests HungerFill > 0. The record also
         // says "never" a second way, by setting HungerRate to 32767. Nothing
@@ -190,11 +184,10 @@ public class CreatureNeedsOnRealDataTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void TheVampireSleepsButNeverEats()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The single record that proves 32767 is a per-need sentinel rather than
         // one "undead" switch, which is what closed the old open question about
@@ -212,11 +205,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(Never, skeleton.TimeAwake);
     }
 
-    [Fact]
+    [InstallFact]
     public void OnlyTwoCreaturesInTheGameHealOnTheirOwnLand()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The zeroes are the finding, the same shape as mana's three terrain
         // types out of 41 (ADR-0017). Own-land regeneration is a real
@@ -233,11 +225,10 @@ public class CreatureNeedsOnRealDataTests
             healers);
     }
 
-    [Fact]
+    [InstallFact]
     public void AChickenDoesNotHaveToHealTheCreatureThatEatsIt()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The Firefly eats two chickens and gains nothing from either. So
         // HpFromChicken cannot be treated as "the reason a creature eats", and
@@ -251,11 +242,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.True(CreatureHealthRules.CanGetHungry(firefly));
     }
 
-    [Fact]
+    [InstallFact]
     public void OneCreatureIsHealedByMoreThanItsWholeHealthByASingleChicken()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Jack: 240 health, and one chicken is worth 250 of it. This test was
         // written the other way round — asserting that no creature could be
@@ -296,13 +286,12 @@ public class CreatureNeedsOnRealDataTests
 
     // ---- eating (ADR-0067) ------------------------------------------------
 
-    [Fact]
+    [InstallFact]
     public void TheBileDemonsHungerNumbersAreWhatTheFixtureSaysTheyAre()
     {
         // The fixture grew a Bile Demon for one number: hungerFill 5, the only
         // value in the game that tells the two ways of paying off hunger apart.
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         CreatureDef demon = GameDatabaseLoader.Load(install).CreatureByName("Bile Demon")!;
 
@@ -315,15 +304,14 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(9, demon.TimeSleep);
     }
 
-    [Fact]
+    [InstallFact]
     public void HungerFillIsOneForNearlyEverybodyAndFiveIsTheOutlier()
     {
         // What makes the accumulate-and-pay-one rule visible at all. If every
         // creature needed one chicken, "each bird pays off one" and "each bird
         // fills you up" would be the same sentence and the prison's difference
         // would be unobservable.
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         var fills = db.Creatures.Values
@@ -335,15 +323,14 @@ public class CreatureNeedsOnRealDataTests
         Assert.True(fills.Keys.Max() >= 2, "no creature needs more than one chicken");
     }
 
-    [Fact]
+    [InstallFact]
     public void CreatureStatRowNineNeverScalesAnythingInTheShippedTable()
     {
         // EatingRules puts HungerFill through stat row 9 because the original
         // does. This is the test that says the scaling is invisible in the
         // shipped data — so if it ever stops being invisible, it is because
         // somebody changed the table and not because we invented a curve.
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         for (int level = 1; level <= CreatureLevelRules.MaxLevel; level++)
@@ -353,7 +340,7 @@ public class CreatureNeedsOnRealDataTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void TwoObjectsCarryTheFoodFlagAndOnlyOneOfThemIsTheChicken()
     {
         // The original's two food searches do not agree on their test: the
@@ -361,8 +348,7 @@ public class CreatureNeedsOnRealDataTests
         // is only a difference if more than one object carries the flag — and
         // this is where the repo said "only the Chicken carries TypeFood" until
         // 2026-09-06, when somebody counted.
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         var food = db.Objects.Values.Where(o => o.IsFood).ToList();
@@ -374,11 +360,10 @@ public class CreatureNeedsOnRealDataTests
 
     // ---- beds ------------------------------------------------------------
 
-    [Fact]
+    [InstallFact]
     public void TwelveCreaturesNeverGoForABedAndTheyAreTheOnesWithNowhereToLiveOrNoSleepToSleep()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The gate has two halves (Q104, read from the binary 2026-09-05): a
         // bed id, and a TimeSleep that is not zero.
@@ -413,11 +398,10 @@ public class CreatureNeedsOnRealDataTests
             bedless);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheDwarfAndTheStoneKnightCarryABedIdAndAreNeverSentForOne()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Both carry a bed object *and* a TimeAwake of 32767 with a TimeSleep
         // of 0, so by the bed id alone they would each take a lair tile and
@@ -444,11 +428,10 @@ public class CreatureNeedsOnRealDataTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void TheGoblinsBedIsObjectTwentyTwoAndTheVampiresIsACoffin()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The fixture's Goblin carries 22, so this is its drift guard. The
         // Vampire's 26 is here because it is the one that makes the field
@@ -464,11 +447,10 @@ public class CreatureNeedsOnRealDataTests
 
     // ---- anger, which is not implemented but is parsed ---------------------
 
-    [Fact]
+    [InstallFact]
     public void FiveSlapsKillAnImp_AndTheFixtureSaidZeroForAMonth()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // slapDamage went unread from the day it was parsed until the Hand of
         // Evil arrived (ADR-0062), and Dk2TerrainFixture had transcribed the
@@ -491,11 +473,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(240, db.CreatureByName("Horny")!.SlapDamage);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheHandsOwnBalanceVariablesAreWhatHandRulesReads()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 
@@ -513,11 +494,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(25, EfficiencyRules.SlapBonusSeconds);
     }
 
-    [Fact]
+    [InstallFact]
     public void ThePrisonsOwnBalanceVariablesAndItsSkeletonAreWhatPrisonRulesReads()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 
@@ -569,11 +549,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(8, db[VariableTypeId.MotionlessInPrisonSeconds]);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheAngerFieldsAreSignedAndTheLastTwoAreWhy()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Read as u16 — which is how the parser and kwd-creatures.md both had
         // them until 2026-09-04 — a Goblin's angerInHand comes back as 65286
@@ -612,11 +591,10 @@ public class CreatureNeedsOnRealDataTests
         });
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryCreatureBecomesUnhappyAtFiftyPercentOfWhateverAngerIs()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // All 46 creatures share an UnhappyThreshold of 50, which is what makes
         // it read as a percentage rather than an absolute. What it is 50% *of*
@@ -628,11 +606,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.All(db.Creatures.Values, c => Assert.Equal(50, c.UnhappyThreshold));
     }
 
-    [Fact]
+    [InstallFact]
     public void OnlyTheSkeletonCannotBeAngeredByAnUnmetNeed()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The plain Skeleton is the *only* creature with 0 in all four
         // need-based anger fields — it has no lair, never eats, is not paid and
@@ -664,11 +641,10 @@ public class CreatureNeedsOnRealDataTests
 
     // ---- dying (Q99) ------------------------------------------------------
 
-    [Fact]
+    [InstallFact]
     public void BothDyingTimersAreSixtySecondsAndTheyAreTwoDifferentClocks()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The owner's answer to Q99 describes two windows: a collapsed creature
         // lying rescuable, and then its corpse lying carryable. Both variables
@@ -685,11 +661,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(60, db[VariableTypeId.DeadBodyDiesAfterSeconds]);
     }
 
-    [Fact]
+    [InstallFact]
     public void EightCreaturesLeaveNoBodyAndThatSetIsNotTheNeverHungryOne()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The third near-miss grouping in this record, and the third time the
         // tempting shortcut — "these are the undead, one flag would do" — is
@@ -732,11 +707,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(["Unique Firefly"], neverEats.Except(noBody).ToHashSet());
     }
 
-    [Fact]
+    [InstallFact]
     public void ADecomposingBodyIsWorthTwoHundredAndTheUndeadAreWorthNothing()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Why the body flag matters beyond cosmetics: bodies accumulate toward
         // a Vampire. Nothing implements that (M6), so this pins the numbers the
@@ -782,11 +756,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(new HashSet<string> { "Horny", "Jack" }, deadData);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheEightCreaturesThatLeaveNoBodyAreExactlyTheOnesWithNoLyingState()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // CONFIRMED from two directions that never met. The owner: "imps are
         // dead right away, they don't have a lying state." OpenKeeper's
@@ -812,11 +785,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.True(CreatureDeathRules.HasDyingState(db.CreatureById(7)));   // Goblin
     }
 
-    [Fact]
+    [InstallFact]
     public void OnlyTheTwoVampiresCanBeResurrectedAndTheirBedIsWhereTheyComeBack()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The owner's rule: "vampires also don't drop a body, they reincarnate
         // at their sarcophagus and sleep to recover, but they lose a level once
@@ -855,11 +827,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.NotNull(db.CreatureByName("Monk"));
     }
 
-    [Fact]
+    [InstallFact]
     public void KingReginaldIsTheCreatureTheDownGuardNowProtectsAgainst()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Own-land regeneration is suppressed at zero health so a collapsed
         // creature cannot heal itself off the floor. That guard was written for
@@ -885,11 +856,10 @@ public class CreatureNeedsOnRealDataTests
 
     // ---- terrain health deltas (the water observation) --------------------
 
-    [Fact]
+    [InstallFact]
     public void ThreeTerrainsCarryAHealthDeltaAndOneOfThemHeals()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The claim written first was that TerrainDef.Damage is non-zero on
         // Water and Lava alone. **It is not**, and this test is what caught it:
@@ -917,11 +887,10 @@ public class CreatureNeedsOnRealDataTests
             deltas);
     }
 
-    [Fact]
+    [InstallFact]
     public void WaterIsImpenetrableButNotSolid_WhichIsWhyImpsCanWadeIt()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // CONFIRMED by the owner: a gem tile on an island cut off by water,
         // no bridge, and imps waded over, mined it and carried the gold home.
@@ -941,11 +910,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.False(water.IsSolid);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheTwoVampiresAreTheOnlyCreaturesWaterStops()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The owner named this from play, before the column had been read:
         // "I think vampires can't cross through water, they need bridges".
@@ -987,11 +955,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.False(db.CreatureByName("Imp")!.Flags.HasFlag(CreatureFlags.CanWalkOnLava));
     }
 
-    [Fact]
+    [InstallFact]
     public void TheFixtureVampireIsTheShippedVampire()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The drift guard for the fixture's third creature, added because the
         // Vampire is the only one water can kill and so the only one a hazard
@@ -1073,11 +1040,10 @@ public class CreatureNeedsOnRealDataTests
 
     // ---- levels (Q119) ----------------------------------------------------
 
-    [Fact]
+    [InstallFact]
     public void ThePerLevelStatTableIsInTheShippedFileAndTheFixtureCopiesItExactly()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The owner, in passing, while trying to time an imp through water:
         // "imps gain speed as they gain more levels". This is the table that
@@ -1124,11 +1090,10 @@ public class CreatureNeedsOnRealDataTests
             Levels(db, CreatureStatId.OwnLandHealthIncreasePerSecond));
     }
 
-    [Fact]
+    [InstallFact]
     public void TheLevelledCurveAppliesToTheShippedCreatureRecords()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The two stats this project actually reads, against the install rather
         // than the fixture, because the arithmetic only means something if the
@@ -1164,11 +1129,10 @@ public class CreatureNeedsOnRealDataTests
 
     // ---- anger, against the owner's two measurements ----------------------
 
-    [Fact]
+    [InstallFact]
     public void TheOwnersMeasurementsReproduceOnTheShippedRecord()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Both Q106 measurements, replayed against the install rather than the
         // fixture, because the arithmetic is only meaningful if the *shipped*
@@ -1196,11 +1160,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.True(11 * 3000 >= CreatureAngerRules.AngryAt(salamander));
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryCreatureSharesTheSameCeilingBecauseEveryOneSharesTheThreshold()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The ceiling is global, and this is what makes it so: all 46 carry
         // UnhappyThreshold = 50, so UnhappyAt is 16383 for every creature in
@@ -1215,11 +1178,10 @@ public class CreatureNeedsOnRealDataTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void ALairlessImpWouldTakeNineHoursToGetAngry()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Why "Imps never get angry" needs no special case. Its AngerNoLair is
         // 1, not 0 — present so something *can* happen — and against a ceiling
@@ -1246,11 +1208,10 @@ public class CreatureNeedsOnRealDataTests
     /// his <c>AngerInHand</c> is positive and his <c>AngerSlap</c> is negative.
     /// Q210.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheSkeletonAndJackCannotBeAngeredAndOnlyTheFlagSaysSoAboutJack()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 
@@ -1288,11 +1249,10 @@ public class CreatureNeedsOnRealDataTests
     // Read through the MediaWiki API; see docs/research/wiki-as-a-source.md for
     // why no wiki prose is copied into this repository.
 
-    [Fact]
+    [InstallFact]
     public void FiveCorpsesMakeAVampire_WhichIsTwoNumbersAgreeingFromTwoSources()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The DK2 wiki: "When five or more corpses rot in the Graveyard (DK2)"
         // and "When five or more corpses rot in your Graveyard a Vampire
@@ -1318,11 +1278,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(0, needed % perCorpse);        // a whole number of corpses
     }
 
-    [Fact]
+    [InstallFact]
     public void TwoBlackKnightsSacrificedMakeAVampire()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The DK2 wiki gives the Vampire's sacrifice recipe as "Black Knight
         // x2 (DK2)". The shipped temple table has it, and this is the first
@@ -1341,11 +1300,10 @@ public class CreatureNeedsOnRealDataTests
             s.RewardType == 1 && s.RewardValue == vampire);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheVampiresOwnNumbersMatchTheWikisDk2Column()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Four numbers the wiki states for DK2 specifically, checked against
         // the install. Cheap, and it is what earns the right to trust the

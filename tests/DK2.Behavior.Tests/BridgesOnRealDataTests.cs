@@ -1,10 +1,11 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -22,14 +23,14 @@ namespace DK2.Behavior.Tests;
 /// check on purpose: the whole strength of the inference is that the partition
 /// holds across all 66 maps and all three bridge types without a single
 /// crossing, and a test on one level would not notice if that stopped being
-/// true. Skips when no installation is configured (DK2_DIR).</para>
+/// true. Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing.</para>
 /// </summary>
 public class BridgesOnRealDataTests
 {
     private static readonly int[] NeighbourDx = [0, -1, 1, 0];
     private static readonly int[] NeighbourDy = [-1, 0, 0, 1];
 
-    private static string? Install() => Dk2Install.Find();
+    private static string Install() => Dk2InstallGate.Path;
 
     /// <summary>Every map file the install ships, by level name.</summary>
     private static IEnumerable<string> LevelNames(string install)
@@ -52,11 +53,10 @@ public class BridgesOnRealDataTests
     /// all while carrying bridges over lava. Asking what each tile <i>borders</i>
     /// is what makes the split visible.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheBridgeMarkerPartitionsWaterFromLavaAcrossEveryShippedMap()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         byte water = db.WaterTerrain!.TerrainId;
@@ -68,6 +68,7 @@ public class BridgesOnRealDataTests
         foreach (string level in LevelNames(install))
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
+            Assert.NotNull(map);
             if (map is null) continue;
 
             for (int y = 0; y < map.Height; y++)
@@ -117,11 +118,10 @@ public class BridgesOnRealDataTests
     /// exclusivity is why the byte can be read as a bridge marker at all rather
     /// than as something general we happen to be seeing on bridges.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheMarkerIsTwoOnlyOnBridges()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         var values = new SortedSet<byte>();
@@ -130,6 +130,7 @@ public class BridgesOnRealDataTests
         foreach (string level in LevelNames(install))
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
+            Assert.NotNull(map);
             if (map is null) continue;
 
             foreach (MapTile tile in map.Tiles)
@@ -153,11 +154,10 @@ public class BridgesOnRealDataTests
     /// its terrain record claims. This is the assertion that would fail if
     /// <see cref="BridgeRules"/> were bypassed again.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void EveryShippedBridgeTileRevertsToAHazardRatherThanToFloor()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         int checked_ = 0;
@@ -165,6 +165,7 @@ public class BridgesOnRealDataTests
         foreach (string level in LevelNames(install))
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
+            Assert.NotNull(map);
             if (map is null) continue;
 
             foreach (MapTile source in map.Tiles)
@@ -190,11 +191,10 @@ public class BridgesOnRealDataTests
     /// them by flag instead of by id. A second of either would need a rule nobody
     /// has evidence for.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheInstallHasExactlyOneWaterAndOneLavaTerrain()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 
@@ -220,11 +220,10 @@ public class BridgesOnRealDataTests
     /// would fit a one-sided test just as well: the Imp, which is what walks over
     /// a keeper's bridges, is <b>not</b> immune.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheLavaImmuneCreaturesAreTheOnesTheOwnerNamedAndFourMore()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 
@@ -247,11 +246,10 @@ public class BridgesOnRealDataTests
     /// makes the rule need a room type at all: <b>the two bridges are
     /// indistinguishable in the terrain table</b>.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void OnlyTheWoodenBridgeBurns_AndTheTerrainTableCannotTellThemApart()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         Assert.Equal(30, db[VariableTypeId.WoodBridgeLifeOnLavaSeconds]);

@@ -9,6 +9,7 @@ using DK2.Data;
 using DK2.Data.Model;
 using DK2.Presentation;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Presentation.Tests;
 
@@ -107,7 +108,7 @@ public class ScenePresenterTests
 
     private static Rig? BuildRig()
     {
-        string? dir = Dk2Install.Find();
+        string dir = Dk2InstallGate.Path;
         if (dir is null) return null;
 
         GameDatabase database = GameDatabaseLoader.Load(dir);
@@ -128,7 +129,7 @@ public class ScenePresenterTests
     /// The first push creates every tile exactly once, in row order, and every
     /// tile resolves — with no DK2 art installed, so all of it is placeholders.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheFirstPresentCreatesEveryTileOnceInRowOrder()
     {
         if (BuildRig() is not { } rig) return; // skipped: no install
@@ -160,7 +161,7 @@ public class ScenePresenterTests
     /// objects per frame would be unusable, and this is what makes sure it never
     /// has to.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void PresentingAnUnchangedWorldPushesNothing()
     {
         if (BuildRig() is not { } rig) return;
@@ -186,7 +187,7 @@ public class ScenePresenterTests
     /// One tile changing pushes one tile — an update, not a create, because the
     /// target already has an object for it.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ChangingOneTilePushesExactlyThatTile()
     {
         if (BuildRig() is not { } rig) return;
@@ -214,7 +215,7 @@ public class ScenePresenterTests
     /// A creature appears, then moves, then goes — create, update, remove, in
     /// that order and with nothing spurious in between.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ACreatureIsCreatedThenUpdatedThenRemoved()
     {
         if (BuildRig() is not { } rig) return;
@@ -261,7 +262,7 @@ public class ScenePresenterTests
     /// renderer has to swap the animation. Cheap to get wrong by diffing on
     /// position alone.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ChangingOnlyTheActivityStillPushesTheCreature()
     {
         if (BuildRig() is not { } rig) return;
@@ -287,7 +288,7 @@ public class ScenePresenterTests
     /// <see cref="ScenePresenter.Resync"/> is how a target that threw its scene
     /// away asks to be filled in again.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ResyncMakesTheNextPresentRebuildEverything()
     {
         if (BuildRig() is not { } rig) return;
@@ -308,7 +309,7 @@ public class ScenePresenterTests
     /// The determinism gate pointed at the presentation layer, over a run rather
     /// than a single frame.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void PresentingEveryTickOfARunChangesNothingAndPushesLittle()
     {
         if (BuildRig() is not { } rig) return;
@@ -348,7 +349,7 @@ public class ScenePresenterTests
     /// loudly rather than pushing a half-built scene — a missing asset is a
     /// configuration bug, not a missing file, once the placeholder exists.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void AChainWithoutAPlaceholderFailsLoudly()
     {
         if (BuildRig() is not { } rig) return;
@@ -361,7 +362,7 @@ public class ScenePresenterTests
         Assert.Throws<InvalidOperationException>(() => presenter.Present(rig.Simulation.World));
     }
 
-    [Fact]
+    [InstallFact]
     public void ThePresenterRefusesNullsAtConstruction()
     {
         if (BuildRig() is not { } rig) return;
@@ -390,7 +391,7 @@ public class ScenePresenterTests
     /// lifecycle a creature gets, and the reason the presenter had to learn one:
     /// objects have been in the world since ADR-0054 and nothing drew them.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void AnObjectIsCreatedThenUpdatedThenRemoved()
     {
         if (BuildRig() is not { } rig) return; // skipped: no install
@@ -431,7 +432,7 @@ public class ScenePresenterTests
     /// object. One order, decided in the presenter, so the Unity target and the
     /// text renderer cannot disagree about what occludes what.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ObjectsArePushedBeforeCreatures()
     {
         if (BuildRig() is not { } rig) return; // skipped: no install
@@ -455,7 +456,7 @@ public class ScenePresenterTests
     /// A resync forgets objects too, or a target that threw everything away
     /// would be left with holes where the beds were.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void AResyncCreatesTheObjectsAgain()
     {
         if (BuildRig() is not { } rig) return; // skipped: no install

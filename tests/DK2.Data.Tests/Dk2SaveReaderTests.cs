@@ -4,6 +4,7 @@
 
 using DK2.Data.Model;
 using DK2.Data.Save;
+using DK2.TestSupport;
 
 namespace DK2.Data.Tests;
 
@@ -20,18 +21,18 @@ namespace DK2.Data.Tests;
 /// </summary>
 public class Dk2SaveReaderTests
 {
-    private static string? FindInstall() => Dk2Install.Find();
+    private static string FindInstall() => Dk2InstallGate.Path;
 
     private static (string Install, string Save)? FirstSave()
     {
-        string? install = FindInstall();
+        string install = FindInstall();
         if (install is null) return null;
 
         IReadOnlyList<string> saves = Dk2SaveReader.EnumerateSaves(install);
         return saves.Count == 0 ? null : (install, saves[0]);
     }
 
-    [Fact]
+    [InstallFact]
     public void Header_NamesALevelTheInstallHas_AndTheSupportedBuild()
     {
         if (FirstSave() is not var (install, save)) return; // skipped: no install or no saves
@@ -55,7 +56,7 @@ public class Dk2SaveReaderTests
         Assert.NotNull(GameDatabaseLoader.LoadCampaignMap(install, loaded.Header.LevelName));
     }
 
-    [Fact]
+    [InstallFact]
     public void Grid_MatchesTheLevelsDesignMap_OnMostTiles()
     {
         if (FirstSave() is not var (install, save)) return; // skipped
@@ -79,7 +80,7 @@ public class Dk2SaveReaderTests
             "which suggests the grid was read at the wrong offset or stride rather than a busy player.");
     }
 
-    [Fact]
+    [InstallFact]
     public void Grid_ReadAtTheWrongOffset_DoesNotAgree()
     {
         if (FirstSave() is not var (install, save)) return; // skipped
@@ -121,7 +122,7 @@ public class Dk2SaveReaderTests
             $"{Dk2SaveReader.TileRecordSize}-byte stride are not what this reader takes them for.");
     }
 
-    [Fact]
+    [InstallFact]
     public void Owner_IsAlwaysAReservedPlayerId()
     {
         if (FirstSave() is not var (install, save)) return; // skipped
@@ -136,7 +137,7 @@ public class Dk2SaveReaderTests
             Assert.InRange(tile.PlayerId, PlayerIds.Unowned, (byte)7);
     }
 
-    [Fact]
+    [InstallFact]
     public void Owner_MayIncludeIdsTheDesignMapDoesNot()
     {
         if (FirstSave() is not var (install, save)) return; // skipped
@@ -159,7 +160,7 @@ public class Dk2SaveReaderTests
             Assert.Equal(PlayerIds.Unowned, extra);
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryTerrainId_IsOneTheDatabaseDefines()
     {
         if (FirstSave() is not var (install, save)) return; // skipped
@@ -173,11 +174,10 @@ public class Dk2SaveReaderTests
             Assert.NotNull(database.TerrainById(tile.TerrainId));
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryInstalledSave_Loads()
     {
-        string? install = FindInstall();
-        if (install is null) return; // skipped
+        string install = FindInstall();
 
         foreach (string save in Dk2SaveReader.EnumerateSaves(install))
         {
@@ -189,7 +189,7 @@ public class Dk2SaveReaderTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void Health_MatchesTheTerrainTablesStartingHealth_OnUndamagedTiles()
     {
         if (FirstSave() is not var (install, save)) return; // skipped
@@ -228,7 +228,7 @@ public class Dk2SaveReaderTests
             "so lanes 6-7 are not the health field this reader takes them for.");
     }
 
-    [Fact]
+    [InstallFact]
     public void RoomId_GroupsTilesIntoContiguousRoomsOfTheRightSize()
     {
         if (FirstSave() is not var (install, save)) return; // skipped

@@ -1,10 +1,11 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -18,18 +19,15 @@ namespace DK2.Behavior.Tests;
 /// training paid, the fixture would have been quietly testing a Goblin that does
 /// not exist. That is the fourth field this guard has caught.</para>
 ///
-/// <para>Skips when no installation is configured (DK2_DIR), so CI stays
+/// <para>Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing, so CI stays
 /// green without proprietary assets.</para>
 /// </summary>
 public sealed class TrainingOnRealDataTests
 {
-    private static GameDatabase? RealDatabase()
-    {
-        string? install = Dk2Install.Find();
-        return install is null ? null : GameDatabaseLoader.Load(install);
-    }
+    private static GameDatabase RealDatabase() =>
+        GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
-    [Fact]
+    [InstallFact]
     public void TheTrainingRateColumnTakesFiveValuesAndMostOfThemTruncate()
     {
         // THE QUIRK, stated over the whole shipped table rather than one
@@ -37,8 +35,7 @@ public sealed class TrainingOnRealDataTests
         // so any value that is not a multiple of four loses up to three of
         // itself a game second - and most of the table is not a multiple of
         // four.
-        GameDatabase? maybe = RealDatabase();
-        if (maybe is null) return; // skipped: no DK2 install
+        GameDatabase maybe = RealDatabase();
         GameDatabase db = maybe;
 
         var byRate = db.Creatures.Values
@@ -60,7 +57,7 @@ public sealed class TrainingOnRealDataTests
         Assert.Equal(10, SimulationTiming.LoaderRatePerTick(40));
     }
 
-    [Fact]
+    [InstallFact]
     public void TheLoadersFloorIsReachableAndTheSkeletonIsWhereItShows()
     {
         // The loader writes 1 whenever the file value is non-zero and the
@@ -68,8 +65,7 @@ public sealed class TrainingOnRealDataTests
         // ResearchPerSecond is 1 and the Dark Angel's is 3, and both become 4 a
         // game second - four times and a third more than their records say. The
         // floor is what makes those two able to research at all.
-        GameDatabase? maybe = RealDatabase();
-        if (maybe is null) return; // skipped: no DK2 install
+        GameDatabase maybe = RealDatabase();
         GameDatabase db = maybe;
 
         foreach (CreatureDef c in db.Creatures.Values)
@@ -85,7 +81,7 @@ public sealed class TrainingOnRealDataTests
         Assert.Equal(1, SimulationTiming.LoaderRatePerTick(skeleton.ResearchPerSecond));
     }
 
-    [Fact]
+    [InstallFact]
     public void CombatExperienceIsFiveTimesTrainingInFortyOneOfTheFortySixRecords()
     {
         // Read off the data before any code was, and it is the argument that the
@@ -94,8 +90,7 @@ public sealed class TrainingOnRealDataTests
         // than smoothed over - three uniques whose combat rate was raised
         // without the training column following, the Maiden Of The Nest, and the
         // Imp at forty times (Q208).
-        GameDatabase? maybe = RealDatabase();
-        if (maybe is null) return; // skipped: no DK2 install
+        GameDatabase maybe = RealDatabase();
         GameDatabase db = maybe;
 
         var exceptions = db.Creatures.Values
@@ -117,12 +112,11 @@ public sealed class TrainingOnRealDataTests
         Assert.True(imp.Flags.HasFlag(CreatureFlags.IsWorker));
     }
 
-    [Fact]
+    [InstallFact]
     public void TheGoblinsOwnRatesAreFortyAndTwoHundred()
     {
         // The transcription the fixture got wrong, asserted where a drift shows.
-        GameDatabase? maybe = RealDatabase();
-        if (maybe is null) return; // skipped: no DK2 install
+        GameDatabase maybe = RealDatabase();
         GameDatabase db = maybe;
         CreatureDef goblin = db.Creatures.Values.Single(c => c.Name == "Goblin");
 
@@ -138,11 +132,10 @@ public sealed class TrainingOnRealDataTests
             * SimulationTiming.OriginalTicksPerGameSecond);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheTwoRoomCapsAndTheTrainingBillAreTheShippedNumbers()
     {
-        GameDatabase? maybe = RealDatabase();
-        if (maybe is null) return; // skipped: no DK2 install
+        GameDatabase maybe = RealDatabase();
         GameDatabase db = maybe;
 
         Assert.Equal(4, db[VariableTypeId.TrainingRoomMaxExperienceLevel]);
@@ -157,15 +150,14 @@ public sealed class TrainingOnRealDataTests
         Assert.Equal(0, TrainingRules.ExperienceLostPerSecondWhileNotTraining(db));
     }
 
-    [Fact]
+    [InstallFact]
     public void TheTwoExperienceStatColumnsAreFlatAndTheProductionPairIsNot()
     {
         // How stats 15 and 16 were named: the four columns the four rate hooks
         // scale by are two matched pairs, and OpenKeeper already had names for
         // the far pair that the binary's hooks confirm. So the near pair is
         // pinned by position with an anchor on each side.
-        GameDatabase? maybe = RealDatabase();
-        if (maybe is null) return; // skipped: no DK2 install
+        GameDatabase maybe = RealDatabase();
         GameDatabase db = maybe;
 
         for (int level = 2; level <= 10; level++)

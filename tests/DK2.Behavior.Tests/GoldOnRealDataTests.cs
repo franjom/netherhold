@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -8,6 +8,7 @@ using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -22,8 +23,7 @@ namespace DK2.Behavior.Tests;
 /// them is written down here; they are read out of the install and the
 /// arithmetic is asserted against what they imply.
 ///
-/// Skips when no installation is configured (DK2_DIR), so CI stays green without
-/// proprietary assets.
+/// Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing.
 /// </summary>
 public class GoldOnRealDataTests
 {
@@ -52,7 +52,7 @@ public class GoldOnRealDataTests
     /// <summary>Loads level 1 and puts one of player 3's imps on their own path beside the seam.</summary>
     private static Level? Level1()
     {
-        string? install = Dk2Install.Find();
+        string install = Dk2InstallGate.Path;
         if (install is null) return null; // skipped: no DK2 install
 
         GameDatabase db = GameDatabaseLoader.Load(install);
@@ -76,11 +76,11 @@ public class GoldOnRealDataTests
         return new Level(sim, db, sink);
     }
 
-    [Fact]
+    [InstallFact]
     public void AnImpMinesARealSeamAndCarriesItIntoTheDungeonHeart()
     {
         Level? level = Level1();
-        if (level is null) return;
+        Assert.NotNull(level);
 
         int before = GoldStore.Total(level.World, Keeper);
         int seamValue = level.Db.TerrainById(level.World.Tile(Seam).TerrainId).GoldValue;
@@ -109,11 +109,11 @@ public class GoldOnRealDataTests
     /// swings; so an application is a fifth of <c>MineGoldHealth</c>'s −300, and
     /// work lands five times a second.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ASwingAtARealSeamFreesTheGoldTheOriginalFrees()
     {
         Level? level = Level1();
-        if (level is null) return;
+        Assert.NotNull(level);
 
         var swings = new List<int>();
         ref TileState seam = ref level.World.Tile(Seam);
@@ -130,7 +130,7 @@ public class GoldOnRealDataTests
         Assert.Equal(3000, swings.Sum());
     }
 
-    [Fact]
+    [InstallFact]
     public void ItTakesMoreThanOneTripBecauseAnImpsHandsAreSmallerThanASeam()
     {
         // The interesting relationship in the shipped numbers: one swing frees
@@ -139,7 +139,7 @@ public class GoldOnRealDataTests
         // it is asserted rather than described so that a data change would show
         // up as a failure.
         Level? level = Level1();
-        if (level is null) return;
+        Assert.NotNull(level);
 
         int maxHeld = level.Db.CreatureByName("Imp")!.MaxGoldHeld;
         int seamValue = level.Db.TerrainById(level.World.Tile(Seam).TerrainId).GoldValue;
@@ -155,14 +155,14 @@ public class GoldOnRealDataTests
                 $"a load of {Amount(e)} is more than an imp can carry ({maxHeld})"));
     }
 
-    [Fact]
+    [InstallFact]
     public void ALoadTooBigForOneHeartTileSpillsIntoTheNext()
     {
         // MaxGoldPerDungeonHeartTile is 1000 against a first load of 1363, so the
         // first trip alone has to touch two tiles. Which two is decided by where
         // the imp walked, which is as close to Q35 as observation has got.
         Level? level = Level1();
-        if (level is null) return;
+        Assert.NotNull(level);
 
         int perTile = level.Db[VariableTypeId.MaxGoldPerDungeonHeartTile];
         level.Sim.Run(400);
@@ -196,11 +196,11 @@ public class GoldOnRealDataTests
     /// rather than as "9 tiles are excluded", because the total is the thing the
     /// owner actually measured.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void AKeepersHeartHoldsExactlySixteenThousand()
     {
         Level? level = Level1();
-        if (level is null) return;
+        Assert.NotNull(level);
 
         int perTile = level.Db[VariableTypeId.MaxGoldPerDungeonHeartTile];
         int heartTiles = 0;
@@ -231,11 +231,11 @@ public class GoldOnRealDataTests
     /// flood fill ever split it — a neighbouring tile changing owner would do
     /// it — the capacity test above would still pass for the wrong reason.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheHeartOnTheRealMapIsOneFiveByFiveInstance()
     {
         Level? level = Level1();
-        if (level is null) return;
+        Assert.NotNull(level);
 
         List<RoomInstance> hearts = RoomIndex.Build(level.World, level.Db)
             .Where(r => r.Definition.TypeId == RoomTypeId.DungeonHeart
@@ -262,11 +262,10 @@ public class GoldOnRealDataTests
     /// OBJECTS and the OBJECTS record is not parsed until M6 — and this test
     /// exists so that stays deliberate rather than forgotten (Q31).
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheFloorPileLimitIsInTheDataAndIsReadByNothing()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         Assert.Equal(2000, db[VariableTypeId.MaxGoldPileOutsideTreasury]);

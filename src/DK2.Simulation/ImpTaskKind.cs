@@ -5,21 +5,17 @@
 namespace DK2.Simulation;
 
 /// <summary>
-/// What a worker is doing, by <b>DK2's own task-kind numbers</b>.
+/// What a worker is doing, by DK2's own task-kind numbers.
 ///
-/// <para>The original keeps this as a byte its debug dump calls
-/// <c>ImpJobData.LastTaskType</c>, and every one of its task-accepting routines
-/// writes its own number into it the moment it takes the task — which is how
-/// the numbers below were read rather than assigned
-/// (docs/research/imp-task-priority.md has the full table of sixteen; these are
-/// the eight this project builds).</para>
+/// <para>DK2 stores this as the byte <c>ImpJobData.LastTaskType</c>, written by
+/// each task-accepting routine when it takes the task; the values below were
+/// read from those writes (docs/research/imp-task-priority.md has the full table
+/// of sixteen; these are the eight this project builds).</para>
 ///
-/// <para><b>The values are the original's and are load-bearing in exactly one
-/// place</b>: <see cref="CreatureState.DroppedTask"/> is compared against
-/// <see cref="CreatureState.LastTaskKind"/>, and DK2 compares the raw bytes. A
-/// gap in the numbering is a kind this project has not built, not a mistake —
-/// 9/10 (fetch a crate for a trap or door) and 11 (unidentified) are the ones
-/// missing.</para>
+/// <para>The values are load-bearing in one place: <see cref="CreatureState.DroppedTask"/>
+/// is compared against <see cref="CreatureState.LastTaskKind"/> as raw bytes, as
+/// DK2 does. Gaps are kinds not built here: 9/10 (fetch a crate for a trap or
+/// door) and 11 (unidentified).</para>
 /// </summary>
 public enum ImpTaskKind : byte
 {
@@ -27,9 +23,8 @@ public enum ImpTaskKind : byte
     None = 0,
 
     /// <summary>
-    /// Dig or mine a tile the keeper marked — DK2's kinds <b>1 and 2</b>, which
-    /// its own chain always raises and takes as a pair. One byte here because
-    /// nothing this project does distinguishes them.
+    /// Dig or mine a tile the keeper marked — DK2's kinds <b>1 and 2</b>, always
+    /// raised and taken as a pair; one value here because nothing distinguishes them.
     /// </summary>
     Excavate = 1,
 

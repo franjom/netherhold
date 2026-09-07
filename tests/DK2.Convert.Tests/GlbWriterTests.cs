@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -9,6 +9,7 @@ using DK2.Convert.Gltf;
 using DK2.Convert.Kmf;
 using DK2.Data;
 using DK2.Data.Wad;
+using DK2.TestSupport;
 
 namespace DK2.Convert.Tests;
 
@@ -74,15 +75,14 @@ public class GlbWriterTests
         Assert.Equal(Vector3.Zero, glb.Vector3(positionAccessor, 0));
     }
 
-    [Theory]
+    [InstallTheory]
     [InlineData("Imp-PoseFrame.kmf")]
     [InlineData("Gob-PoseFrame.kmf")]
     [InlineData("ROCK WALL.kmf")]
     [InlineData("Imp-Idle2.kmf")]
     public void ShippedModelsProduceRoundTripLoadableGlb(string entryName)
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
         using var wad = WadArchive.Open(Path.Combine(install, "Data", "Meshes.WAD"));
         KmfModel source = KmfReader.Read(wad.Extract(entryName));
 
@@ -92,11 +92,10 @@ public class GlbWriterTests
             glb.Json.RootElement.GetProperty("meshes")[0].GetProperty("primitives").GetArrayLength());
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryShippedMeshProducesARoundTripLoadableGlb()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
         using var wad = WadArchive.Open(Path.Combine(install, "Data", "Meshes.WAD"));
         foreach (WadEntry entry in wad.Entries.Where(entry =>
             entry.Name.EndsWith(".kmf", StringComparison.OrdinalIgnoreCase)))

@@ -6,6 +6,7 @@ using DK2.Assets;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Assets.Tests;
 
@@ -19,7 +20,7 @@ public class AssetCatalogueTests
 {
     private static GameDatabase? RealDatabase()
     {
-        string? dir = Dk2Install.Find();
+        string dir = Dk2InstallGate.Path;
         return dir is null ? null : GameDatabaseLoader.Load(dir);
     }
 
@@ -29,11 +30,11 @@ public class AssetCatalogueTests
     /// who owns no copy of DK2 can still run the game as boxes, which is the
     /// property that keeps goal 4 honest rather than aspirational.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void EveryKeyTheRealDatabaseImpliesResolvesWithNoAssetsInstalled()
     {
         GameDatabase? database = RealDatabase();
-        if (database is null) return; // skipped: no DK2 install on this machine (e.g. CI)
+        Assert.NotNull(database);
 
         AssetProviderChain chain = AssetProviderChain.Standard();
         var keys = AssetCatalogue.ForDatabase(database).ToList();
@@ -62,11 +63,11 @@ public class AssetCatalogueTests
     /// lesson is the project's usual one from a new angle: <b>a character set is
     /// a claim about the data, and the data was right there.</b></para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void EveryNameInTheShippedDatabaseNormalises()
     {
         GameDatabase? database = RealDatabase();
-        if (database is null) return;
+        Assert.NotNull(database);
 
         var names = database.Terrain.Values.Select(t => t.Name)
             .Concat(database.Rooms.Values.Select(r => r.Name))
@@ -92,11 +93,11 @@ public class AssetCatalogueTests
     /// appearance — which in a box view is indistinguishable from a bug in the
     /// simulation.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheCatalogueHasNoDuplicateKeys()
     {
         GameDatabase? database = RealDatabase();
-        if (database is null) return;
+        Assert.NotNull(database);
 
         var keys = AssetCatalogue.ForDatabase(database).ToList();
         var distinct = keys.Distinct().ToList();
@@ -109,11 +110,11 @@ public class AssetCatalogueTests
     /// not — the same reasoning that keeps the work queue unsorted and the
     /// system order declared once.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheCatalogueIsInTheSameOrderEveryTime()
     {
         GameDatabase? database = RealDatabase();
-        if (database is null) return;
+        Assert.NotNull(database);
 
         Assert.Equal(
             AssetCatalogue.ForDatabase(database).Select(k => k.Key).ToList(),
@@ -124,11 +125,11 @@ public class AssetCatalogueTests
     /// A wall is a volume and a floor is a surface, and the flag decides which —
     /// not the terrain's id, so a mod-authored terrain comes out right too.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ASolidTerrainAsksForAMeshAndAWalkableOneForATexture()
     {
         GameDatabase? database = RealDatabase();
-        if (database is null) return;
+        Assert.NotNull(database);
 
         var byName = AssetCatalogue.ForTerrain(database).ToList();
         int checkedSolid = 0, checkedWalkable = 0;
@@ -153,11 +154,11 @@ public class AssetCatalogueTests
     /// Lava is the terrain a player must see is dangerous, so it gets an effect
     /// key; plain rock does not.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ATerrainThatHurtsWhatStandsOnItAsksForAnEffect()
     {
         GameDatabase? database = RealDatabase();
-        if (database is null) return;
+        Assert.NotNull(database);
 
         var keys = AssetCatalogue.ForTerrain(database).ToList();
 
@@ -213,11 +214,11 @@ public class AssetCatalogueTests
     /// Every creature in the database, not only the two that get spawned: a
     /// converter's job is to produce what the database defines.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void EveryCreatureInTheDatabaseGetsAMesh()
     {
         GameDatabase? database = RealDatabase();
-        if (database is null) return;
+        Assert.NotNull(database);
 
         var meshes = AssetCatalogue.ForCreatures(database)
             .Where(k => k.Kind == AssetKind.Mesh)
@@ -231,11 +232,11 @@ public class AssetCatalogueTests
     /// A room is paved ground and the furniture on it, and selling takes the
     /// second without the first (ADR-0029) — so they are two assets.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void EveryRoomGetsBothAFloorAndAMesh()
     {
         GameDatabase? database = RealDatabase();
-        if (database is null) return;
+        Assert.NotNull(database);
 
         var keys = AssetCatalogue.ForRooms(database).ToList();
 
@@ -253,11 +254,11 @@ public class AssetCatalogueTests
     /// keys in a converter's work list that correspond to nothing — the same
     /// restraint the wall variants get.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void EveryObjectInTheDatabaseGetsAMeshAndNothingElse()
     {
         GameDatabase? database = RealDatabase();
-        if (database is null) return;
+        Assert.NotNull(database);
 
         var keys = AssetCatalogue.ForObjects(database).ToList();
 

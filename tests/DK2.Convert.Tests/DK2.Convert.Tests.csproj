@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -15,6 +15,10 @@
   </ItemGroup>
 
   <ItemGroup><Using Include="Xunit" /></ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DK2.TestSupport\DK2.TestSupport.csproj" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/DK2.Convert/DK2.Convert.csproj" />

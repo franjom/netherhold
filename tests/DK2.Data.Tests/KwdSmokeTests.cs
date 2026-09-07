@@ -1,8 +1,9 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Data.Tests;
 
@@ -12,15 +13,14 @@ namespace DK2.Data.Tests;
 /// </summary>
 public class KwdSmokeTests
 {
-    private static string? FindInstall() => Dk2Install.Find();
+    private static string FindInstall() => Dk2InstallGate.Path;
 
     public static bool InstallPresent => FindInstall() is not null;
 
-    [Fact]
+    [InstallFact]
     public void EditorDatabaseFiles_StartWithExpectedRecordType()
     {
-        string? dir = FindInstall();
-        if (dir is null) return; // skipped: no DK2 install on this machine (e.g. CI)
+        string dir = FindInstall();
 
         // First 4 bytes of each editor KWD are the record-type id (little endian).
         // Verified by direct inspection on 2026-08-29; see docs/research/kwd-container.md.

@@ -6,6 +6,7 @@ using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -18,16 +19,13 @@ namespace DK2.Behavior.Tests;
 /// the fixture in the simulation tests ever drifts from the install, these fail
 /// and that one does not — which is the point of having both.
 ///
-/// Skips when no installation is configured (DK2_DIR), so CI stays green
+/// Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing
 /// without proprietary assets.
 /// </summary>
 public class TileWorkOnRealDataTests
 {
-    private static GameDatabase? RealDatabase()
-    {
-        string? install = Dk2Install.Find();
-        return install is null ? null : GameDatabaseLoader.Load(install);
-    }
+    private static GameDatabase RealDatabase() =>
+        GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
     /// <summary>A tile of terrain <paramref name="id"/> at its shipped starting health.</summary>
     private static TileState Tile(GameDatabase db, byte id, byte owner = 0) => new()
@@ -40,11 +38,10 @@ public class TileWorkOnRealDataTests
     private static byte IdOf(GameDatabase db, string name) =>
         db.Terrain.Values.Single(t => t.Name == name).TerrainId;
 
-    [Fact]
+    [InstallFact]
     public void TheTerrainNamesTheRulesRelyOn_AreAllPresent()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return; // skipped: no DK2 install
+        GameDatabase db = RealDatabase();
 
         foreach (string name in new[]
                  {
@@ -56,11 +53,10 @@ public class TileWorkOnRealDataTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void TheFixtureNumbers_MatchTheInstall()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         void Check(string name, ushort start, ushort max, byte toMax, byte toDead, ushort gold)
         {
@@ -93,11 +89,10 @@ public class TileWorkOnRealDataTests
         Assert.Equal(25, db[VariableTypeId.GoldMinedFromGems]);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheDigClaimReinforceCycle_WorksOnRealData()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         byte rock = IdOf(db, "Rock");
         TileState tile = Tile(db, rock);
@@ -154,11 +149,10 @@ public class TileWorkOnRealDataTests
         Assert.Equal(50, swings);
     }
 
-    [Fact]
+    [InstallFact]
     public void NoTerrainInTheGame_UpgradesItselfOutOfExistenceAtRest()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         // Six terrain types ship at maximum health with a max-health type that
         // is something else. Every one of them would mutate on the first tick
@@ -182,11 +176,10 @@ public class TileWorkOnRealDataTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryTerrainTransitionTargetInTheGame_Resolves()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         foreach (TerrainDef t in db.Terrain.Values)
         {
@@ -197,13 +190,12 @@ public class TileWorkOnRealDataTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void DiggingOutARealCampaignLevel_LeavesOnlyFloorAndImpenetrableRock()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
-        string install = Dk2Install.Find()!;
+        string install = Dk2InstallGate.Path;
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level1")!;
         WorldState world = WorldState.FromMap(
             db, map, map.Tiles.Select(t => t.PlayerId).Distinct());
@@ -281,11 +273,10 @@ public class TileWorkOnRealDataTests
     /// terrains that behave this way, so "two categories" is the whole list for
     /// anything a keeper meets while digging.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ImpenetrableRockIsUnmarkableAndGemsAreInexhaustible()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         TerrainDef rock = db.TerrainById(IdOf(db, "Impenetrable Rock"));
         Assert.True(rock.IsSolid);
@@ -332,15 +323,14 @@ public class TileWorkOnRealDataTests
     /// that made it fatal is a fact about level 1's layout and not about the
     /// rule.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ALevelOneKeeperCanClaimTheGroundUnderTheirOwnWall()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level1");
         LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, "Level1");
-        if (map is null) return;
+        Assert.NotNull(map);
 
         var world = WorldState.FromMap(db, map, [(byte)0, (byte)3]);
         var wall = new TilePos(18, 28);

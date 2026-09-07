@@ -1,26 +1,26 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Data.Tests;
 
 public class KwdReaderTests
 {
-    private static string? EditorDir()
+    private static string EditorDir()
     {
-        string dir = Dk2Install.Find() ?? "";
-        string editor = Path.Combine(dir, "Data", "editor");
-        return Directory.Exists(editor) ? editor : null;
+        string editor = Path.Combine(Dk2InstallGate.Path, "Data", "editor");
+        Assert.True(Directory.Exists(editor), $"the install has no {editor}");
+        return editor;
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryEditorKwd_ParsesToChunks_WithConsistentSizes()
     {
-        string? editor = EditorDir();
-        if (editor is null) return;
+        string editor = EditorDir();
 
         foreach (string file in Directory.GetFiles(editor, "*.kwd"))
         {
@@ -29,11 +29,10 @@ public class KwdReaderTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryCampaignMap_ParsesToChunks()
     {
-        string? editor = EditorDir();
-        if (editor is null) return;
+        string editor = EditorDir();
 
         string maps = Path.Combine(editor, "maps");
         int parsed = 0;
@@ -46,11 +45,10 @@ public class KwdReaderTests
         Assert.True(parsed > 50, $"expected all campaign/skirmish maps, parsed {parsed}");
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryKldFile_ParsesToChunks()
     {
-        string? editor = EditorDir();
-        if (editor is null) return;
+        string editor = EditorDir();
 
         int parsed = 0;
         foreach (string file in Directory.GetFiles(Path.Combine(editor, "maps"), "*.kld"))
@@ -62,11 +60,10 @@ public class KwdReaderTests
         Assert.True(parsed > 300, $"expected ~330 KLD files, parsed {parsed}");
     }
 
-    [Fact]
+    [InstallFact]
     public void GlobalVariables_ParsesToBalanceTable_WithDocumentedValues()
     {
-        string? editor = EditorDir();
-        if (editor is null) return;
+        string editor = EditorDir();
 
         List<KwdChunk> chunks = KwdReader.ReadFile(Path.Combine(editor, "GlobalVariables.kwd"));
         GlobalVariables vars = KwdVariables.Parse(chunks);

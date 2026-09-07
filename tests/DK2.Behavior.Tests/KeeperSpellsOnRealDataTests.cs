@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -6,6 +6,7 @@ using DK2.Data;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -27,7 +28,7 @@ namespace DK2.Behavior.Tests;
 /// precisely the five spells whose effect persists and zero for all eight
 /// instants, which is a shape a coincidence does not have.</para>
 ///
-/// <para>Skips when no installation is configured (DK2_DIR), so CI stays green
+/// <para>Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing
 /// without the game. See docs/research/imps-and-mana.md, Q53 and Q55.</para>
 /// </summary>
 public class KeeperSpellsOnRealDataTests
@@ -37,7 +38,7 @@ public class KeeperSpellsOnRealDataTests
 
     private static IReadOnlyList<KeeperSpellDef>? Spells()
     {
-        string? install = Dk2Install.Find();
+        string install = Dk2InstallGate.Path;
         if (install is null) return null; // skipped: no DK2 install
 
         string path = Path.Combine(install, "Data", "editor", "KeeperSpells.kwd");
@@ -55,8 +56,8 @@ public class KeeperSpellsOnRealDataTests
         return KwdKeeperSpells.Parse(chunks);
     }
 
-    private static GameDatabase? Database() =>
-        Dk2Install.Find() is { } dir ? GameDatabaseLoader.Load(dir) : null;
+    private static GameDatabase Database() =>
+        GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
     // ---- the cast cost ----------------------------------------------------
 
@@ -66,7 +67,7 @@ public class KeeperSpellsOnRealDataTests
     /// guard a hardcoded 1500; it now guards a parser, which is a better thing
     /// to be guarding.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void CreateImpCostsWhatTheSimulationChargesForIt()
     {
         if (Database() is not { } database) return;
@@ -80,7 +81,7 @@ public class KeeperSpellsOnRealDataTests
     /// cheapest thing a keeper does and summoning the Horned Reaper the dearest.
     /// One value being right could be luck; thirteen cannot be.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void EverySpellHasAPlausibleManaCostAtTheSameOffset()
     {
         if (Spells() is not { } spells) return;
@@ -112,7 +113,7 @@ public class KeeperSpellsOnRealDataTests
     /// ushort it comes back 34464, which is the kind of quiet wrongness that
     /// would have survived a long time — every other spell fits in 16 bits.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheManaCostIsThirtyTwoBitsWide_AndSummonHornyProvesIt()
     {
         if (Spells() is not { } spells) return;
@@ -128,7 +129,7 @@ public class KeeperSpellsOnRealDataTests
     /// imps drained 28 mana a second in the original and five drained 35; the
     /// Create Imp record says 7.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void AnImpCostsSevenManaASecond_WhichIsWhatTheOwnerMeasured()
     {
         if (Database() is not { } database) return;
@@ -150,7 +151,7 @@ public class KeeperSpellsOnRealDataTests
     /// CREATURES record is why this mechanic went a whole session unimplemented.
     /// It was on the spell all along.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void OnlySpellsWithSomethingToKeepHaveAnUpkeep()
     {
         if (Spells() is not { } spells) return;
@@ -191,7 +192,7 @@ public class KeeperSpellsOnRealDataTests
     /// worth asserting because "I have found a second copy of a field I already
     /// have" is the most likely way an offset hunt goes wrong.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheUpkeepIsNotTheCastCostInDisguise()
     {
         if (Spells() is not { } spells) return;

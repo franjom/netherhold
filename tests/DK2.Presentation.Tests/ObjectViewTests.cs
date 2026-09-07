@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -7,6 +7,7 @@ using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Presentation.Tests;
 
@@ -27,7 +28,7 @@ public class ObjectViewTests
 {
     private static (GameDatabase Database, WorldState World)? RealLevel()
     {
-        string? dir = Dk2Install.Find();
+        string dir = Dk2InstallGate.Path;
         if (dir is null) return null;
 
         GameDatabase database = GameDatabaseLoader.Load(dir);
@@ -41,7 +42,7 @@ public class ObjectViewTests
     /// catalogue lists — the agreement that stops a view inventing keys no
     /// converter will ever produce.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void EveryObjectAsksForAKeyTheCatalogueLists()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -75,7 +76,7 @@ public class ObjectViewTests
     /// this project — a name survives a mod and a re-extract where an id does
     /// not (the reasoning in <see cref="AssetRef"/>).
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void AKeyIsBuiltFromTheObjectsName()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -91,7 +92,7 @@ public class ObjectViewTests
     /// else carries zero. A renderer needs the amount: DK2 draws a bigger heap
     /// for more gold.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void OnlyGoldCrossesWithAnAmount()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -108,7 +109,7 @@ public class ObjectViewTests
     }
 
     /// <summary>The view reports the tile the object stands on, in world coordinates.</summary>
-    [Fact]
+    [InstallFact]
     public void AnObjectReportsItsTile()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -123,7 +124,7 @@ public class ObjectViewTests
     /// Spawn order, matching creatures, so a renderer diffing two frames sees a
     /// stable sequence.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ObjectsComeOutInSpawnOrder()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -143,7 +144,7 @@ public class ObjectViewTests
     /// Gold draws as gold whether it is in a store or on the floor, and every
     /// other object draws as furniture.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void GoldDrawsAsGoldAndEverythingElseAsFurniture()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -166,7 +167,7 @@ public class ObjectViewTests
     /// drawn there. This is the test that would have failed before this work —
     /// the picture showed bare floor where a bed stood.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void AnObjectChangesTheCharacterDrawnForItsTile()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -199,7 +200,7 @@ public class ObjectViewTests
     /// the precedence the shared view owns so that two renderers cannot
     /// disagree about it.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ACreatureStandingOnAnObjectHidesIt()
     {
         if (RealLevel() is not var (database, world)) return;

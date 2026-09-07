@@ -1,9 +1,10 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Data.Tests;
 
@@ -30,7 +31,7 @@ namespace DK2.Data.Tests;
 /// </summary>
 public class KwdRecordLayoutTests
 {
-    private static string? FindInstall() => Dk2Install.Find();
+    private static string FindInstall() => Dk2InstallGate.Path;
 
     private static string Editor(string dir, string file) =>
         Path.Combine(dir, "Data", "editor", file);
@@ -58,13 +59,12 @@ public class KwdRecordLayoutTests
         { "EffectElements.kwd", KwdRecordType.EffectElements, 596,  182 },  // unparsed, M7
     };
 
-    [Theory]
+    [InstallTheory]
     [MemberData(nameof(FixedStrides))]
     public void AFixedStrideRecordTypeHasTheSizeItsFieldListPredicts(
         string file, KwdRecordType type, int expectedItems, int expectedSize)
     {
-        string? dir = FindInstall();
-        if (dir is null) return; // skipped: no DK2 install on this machine (e.g. CI)
+        string dir = FindInstall();
 
         KwdChunk chunk = KwdReader.ReadFile(Editor(dir, file)).Single(c => c.Type == type);
 
@@ -79,11 +79,10 @@ public class KwdRecordLayoutTests
     /// being every branch of the union added together) and the install gives the
     /// truth. A reminder that the method needs the cross-check, not the reverse.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void AVariableIsSixteenBytesWhicheverKindItIs()
     {
-        string? dir = FindInstall();
-        if (dir is null) return;
+        string dir = FindInstall();
 
         List<KwdChunk> chunks = KwdReader.ReadFile(Editor(dir, "GlobalVariables.kwd"));
         KwdChunk variables = chunks.Single(c => c.Type == KwdRecordType.Variables);
@@ -97,11 +96,10 @@ public class KwdRecordLayoutTests
     /// lives in a level's own <c>*Players.kld</c> rather than in the editor
     /// database, so it had to be measured against a campaign level.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void APlayerRecordIsTwoHundredAndFiveBytes()
     {
-        string? dir = FindInstall();
-        if (dir is null) return;
+        string dir = FindInstall();
 
         string[] files = Directory.GetFiles(
             Path.Combine(dir, "Data", "editor", "maps"), "*Players.kld");
@@ -125,11 +123,10 @@ public class KwdRecordLayoutTests
     /// <c>itemCount</c> records and precisely the whole chunk, 133 times over,
     /// cannot be a coincidence of alignment.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void EveryThingsAndTriggersChunkSplitsExactly()
     {
-        string? dir = FindInstall();
-        if (dir is null) return;
+        string dir = FindInstall();
 
         string editor = Path.Combine(dir, "Data", "editor");
         string maps = Path.Combine(editor, "maps");

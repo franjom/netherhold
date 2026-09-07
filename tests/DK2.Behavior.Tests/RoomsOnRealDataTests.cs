@@ -1,10 +1,11 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -19,15 +20,12 @@ namespace DK2.Behavior.Tests;
 /// record's own flags without ever naming a room, which is only worth anything
 /// if the shipped flags really do partition the rooms the way the code assumes.
 ///
-/// Skips when no installation is configured (DK2_DIR).
+/// Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing.
 /// </summary>
 public class RoomsOnRealDataTests
 {
-    private static GameDatabase? RealDatabase()
-    {
-        string? install = Dk2Install.Find();
-        return install is null ? null : GameDatabaseLoader.Load(install);
-    }
+    private static GameDatabase RealDatabase() =>
+        GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
     /// <summary>
     /// <b>`RecommendedSizeX/Y` is the size below which a room does nothing</b>,
@@ -50,11 +48,10 @@ public class RoomsOnRealDataTests
     /// every room needs to be big would fit the two observations equally
     /// well.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheRecommendedSizesAreTheFunctionalMinimumsTheOwnerObserved()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         void Size(string name, int x, int y)
         {
@@ -77,11 +74,10 @@ public class RoomsOnRealDataTests
         Size("Library", 3, 3);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheRoomFixture_MatchesTheInstall()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return; // skipped: no DK2 install
+        GameDatabase db = RealDatabase();
 
         void Check(
             RoomTypeId id, string name, ushort cost, byte terrain, uint flags,
@@ -123,11 +119,10 @@ public class RoomsOnRealDataTests
     /// reading more than a guess. Asserted in both directions, so that "it is
     /// always 100" could not fit the same evidence.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ReturnPercentageIsZeroForExactlyTheRoomsAKeeperCannotSell()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         RoomDef[] zero = [.. db.Rooms.Values.Where(r => r.ReturnPercentage == 0)];
         RoomDef[] hundred = [.. db.Rooms.Values.Where(r => r.ReturnPercentage == 100)];
@@ -150,11 +145,10 @@ public class RoomsOnRealDataTests
         Assert.Equal(1500, RoomRules.RefundPerTile(db, db.Room(RoomTypeId.Temple)));
     }
 
-    [Fact]
+    [InstallFact]
     public void TheRoomTerrainFixture_MatchesTheInstall()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         void Check(byte id, string name, ushort start, byte toDead)
         {
@@ -177,14 +171,13 @@ public class RoomsOnRealDataTests
         Assert.True(water.IsWater);
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryRoomOwnsItsOwnTerrain()
     {
         // GameDatabase.RoomsByTerrain is a dictionary keyed on terrain id, and
         // the room rules read "which room is this tile part of" through it. That
         // only answers a question if the mapping is one-to-one.
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         List<byte> terrainIds = db.Rooms.Values.Select(r => r.TerrainId).ToList();
 
@@ -192,27 +185,25 @@ public class RoomsOnRealDataTests
         Assert.Equal(db.Rooms.Count, db.RoomsByTerrain.Count);
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryRoomsTerrainIsFlaggedAsARoom()
     {
         // The reverse link. If a room named terrain that was not flagged Room,
         // RoomRules.IsSuitableGround would let a keeper build on top of it.
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         foreach (RoomDef room in db.Rooms.Values)
             Assert.True(db.TerrainById(room.TerrainId).IsRoom, $"{room.Name} terrain is not flagged Room");
     }
 
-    [Fact]
+    [InstallFact]
     public void OnlyBridgesGoOverWaterAndLava()
     {
         // The claim RoomRules rests on: the placeable-on flags carry the whole
         // rule, so no code has to know what a bridge is. If a future data set
         // gave a third room water placement, this fails rather than the rules
         // quietly doing something nobody chose.
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         string[] overWater = db.Rooms.Values
             .Where(r => r.PlaceableOnWater || r.PlaceableOnLava)
@@ -226,14 +217,13 @@ public class RoomsOnRealDataTests
             Assert.False(bridge.PlaceableOnLand, $"{bridge.Name} is placeable on land as well as water");
     }
 
-    [Fact]
+    [InstallFact]
     public void NoRoomIsBuildableWithoutSomewhereToBuildIt()
     {
         // A Buildable room with no placeable-on flag at all would be one a
         // keeper could select and never place — a shape the rules do not handle
         // and the data does not contain.
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         foreach (RoomDef room in db.Rooms.Values.Where(r => r.IsBuildable))
         {
@@ -243,14 +233,13 @@ public class RoomsOnRealDataTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void OnlyTheTreasuryAndTheHeartHoldGold()
     {
         // GoldStore keys capacity on the room type because the two variables are
         // named for those two rooms. This asserts the consequence against the
         // real table: every other room tile in the game holds nothing.
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         string[] holders = db.Rooms.Values
             .Where(r => GoldStore.Capacity(db, new TileState { TerrainId = r.TerrainId }) > 0)
@@ -261,14 +250,13 @@ public class RoomsOnRealDataTests
         Assert.Equal(["Dungeon Heart", "Treasury"], holders);
     }
 
-    [Fact]
+    [InstallFact]
     public void ARoomTileFallsBackToClaimedFloor_SoItsGoldCannotStayWhereItWas()
     {
         // The spill rule, on the shipped numbers: a treasury beaten down becomes
         // terrain 8, which holds nothing, so the gold in it has to go somewhere
         // and there is nowhere yet (Q31).
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         RoomDef treasury = db.Room(RoomTypeId.Treasury);
         TerrainDef terrain = db.TerrainById(treasury.TerrainId);
@@ -278,18 +266,17 @@ public class RoomsOnRealDataTests
         Assert.Equal(0, GoldStore.Capacity(db, new TileState { TerrainId = fallback.TerrainId }));
     }
 
-    [Fact]
+    [InstallFact]
     public void ARoomCanBeBuiltOnClaimedFloorOnARealCampaignLevel()
     {
         // The whole rule against a shipped map: find a tile the level gives a
         // player as claimed floor, and check the ground rules let its owner
         // build there and let nobody else.
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, "level1");
-        if (map is null) return;
+        Assert.NotNull(map);
 
         WorldState world = WorldState.FromMap(db, map, map.Tiles.Select(t => t.PlayerId).Distinct());
         RoomDef lair = db.Room(RoomTypeId.Lair);
@@ -318,7 +305,7 @@ public class RoomsOnRealDataTests
     /// scaled, or a base a room's size modified, and none of those would have
     /// shown up until somebody built a big room.</para>
     /// </summary>
-    [Theory]
+    [InstallTheory]
     [InlineData(RoomTypeId.Treasury, 200)]
     [InlineData(RoomTypeId.Lair, 300)]
     [InlineData(RoomTypeId.Hatchery, 300)]
@@ -326,8 +313,7 @@ public class RoomsOnRealDataTests
     [InlineData(RoomTypeId.TrainingRoom, 500)]
     public void ARoomCostsWhatTheOriginalChargesForIt_PerTile(RoomTypeId room, int goldPerTile)
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return; // skipped: no DK2 install
+        GameDatabase db = RealDatabase();
 
         Assert.Equal(goldPerTile, db.Room(room).Cost);
         Assert.Equal(goldPerTile, RoomRules.CostPerTile(db.Room(room)));

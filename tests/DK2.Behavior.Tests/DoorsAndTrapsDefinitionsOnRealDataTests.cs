@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -6,6 +6,7 @@ using System.Text;
 using DK2.Data;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -15,10 +16,10 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class DoorsAndTrapsDefinitionsOnRealDataTests
 {
-    private static GameDatabase? Database() =>
-        Dk2Install.Find() is { } install ? GameDatabaseLoader.Load(install) : null;
+    private static GameDatabase Database() =>
+        GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
-    [Fact]
+    [InstallFact]
     public void EveryKeeperDoorPriceMatchesTheOriginalManual()
     {
         if (Database() is not { } database) return;
@@ -37,7 +38,7 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
             Assert.Equal(price, database.Doors.Values.Single(d => d.Name == name).GoldCost);
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryManualTrapPriceMatchesTheShippedColumn()
     {
         if (Database() is not { } database) return;
@@ -61,7 +62,7 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
             Assert.Equal(price, database.Traps.Values.Single(t => t.Name == name).GoldCost);
     }
 
-    [Fact]
+    [InstallFact]
     public void TrapShotIdsNameTheEffectEachTrapEmits()
     {
         if (Database() is not { } database) return;
@@ -87,7 +88,7 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
             Assert.Equal(shotId, database.Traps.Values.Single(t => t.Name == name).ShotTypeId);
     }
 
-    [Fact]
+    [InstallFact]
     public void HealthAndManufactureColumnsArePlausibleAcrossEveryRecord()
     {
         if (Database() is not { } database) return;
@@ -125,11 +126,11 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
     /// It is here because a convention that lives only in a comment is one that
     /// gets broken by the first person to index an array with it.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ATrapsShotIdIsAShotsRecordIdAndNotItsRowIndex()
     {
         if (Database() is not { } database) return;
-        string install = Dk2Install.Find()!;
+        string install = Dk2InstallGate.Path;
 
         const int recordSize = 239;
         const int offsetShotId = 0xBE;

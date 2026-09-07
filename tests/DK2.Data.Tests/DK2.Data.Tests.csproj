@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DK2.TestSupport\DK2.TestSupport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\DK2.Data\DK2.Data.csproj" />
     <ProjectReference Include="..\..\src\DK2.Data.Model\DK2.Data.Model.csproj" />
   </ItemGroup>

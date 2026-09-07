@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -26,15 +27,14 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class ObjectsOnRealDataTests
 {
-    private static string? Install() => Dk2Install.Find();
+    private static string Install() => Dk2InstallGate.Path;
 
     // ---- the parse is right -----------------------------------------------
 
-    [Fact]
+    [InstallFact]
     public void OneHundredAndFortyFiveObjectsWithIdsOneToOneHundredAndFortyFive()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The strongest check on a stride and an offset at once. A wrong stride
         // would scramble the id column; a wrong offset would not produce a
@@ -47,11 +47,10 @@ public class ObjectsOnRealDataTests
             db.Objects.Keys.OrderBy(k => k).ToArray());
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryObjectHasAReadableName()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // 0x00 is a 32-byte name, as it is in every other record type. If the
         // stride or the base were wrong this column would come back as mojibake
@@ -65,11 +64,10 @@ public class ObjectsOnRealDataTests
         });
     }
 
-    [Fact]
+    [InstallFact]
     public void TheAnchorsFromOtherRecordsAllLand()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Four independent records point into this one, and every pointer hits
         // the thing its own name implies. This is what makes the layout
@@ -97,11 +95,10 @@ public class ObjectsOnRealDataTests
         Assert.Equal("Training Target", db.ObjectById(29)!.Name);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheFlagsCoverExactlyTheBitsTheDataUses()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // 0x07F7F7FF: bits 11 and 19 are never set, and neither is anything
         // above 26. So ObjectFlags names every bit the shipped data uses and no
@@ -119,11 +116,10 @@ public class ObjectsOnRealDataTests
 
     // ---- what it says about the blocked mechanics -------------------------
 
-    [Fact]
+    [InstallFact]
     public void TheresNoCorpseObject_SoADeadBodyIsNotAnObject()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // **THE CORRECTION.** This project has written "a corpse is an OBJECT
         // (M6)" as the named cause of three gaps -- no graveyard, no vampire,
@@ -164,11 +160,10 @@ public class ObjectsOnRealDataTests
         Assert.Equal("Bone", db.ObjectById(50)!.Name);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheChickenIsFoodAndItRotsUnlessItIsInARoom()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Hunger's other half, and it unblocks eating: object 9 is the Chicken,
         // it carries TypeFood, and it decays unless kept in a room -- which is
@@ -194,11 +189,10 @@ public class ObjectsOnRealDataTests
         Assert.Equal(2, food.Count);
     }
 
-    [Fact]
+    [InstallFact]
     public void GoldOnTheFloorIsThreeObjectsAndABedIsTwelve()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The other two unblocked mechanics, and the bed count is the surprise:
         // **twelve bed objects for 46 creatures**, so beds are shared rather
@@ -225,11 +219,10 @@ public class ObjectsOnRealDataTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void TheDungeonHeartsHealthLooksLikeATruncatedHundredThousand()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Recorded because it is suspicious rather than because it is settled.
         // The Dungeon Heart's Hp reads **34464**, and 34464 is exactly
@@ -250,11 +243,10 @@ public class ObjectsOnRealDataTests
         Assert.Equal(34464, 100000 - 65536);
     }
 
-    [Fact]
+    [InstallFact]
     public void RoomFurnitureIsWhatMostOfTheRecordIs()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Perspective on what the record is for, and it is mostly not gameplay:
         // of 145 objects only 33 carry any type flag at all. The rest are
@@ -283,11 +275,10 @@ public class ObjectsOnRealDataTests
 
     // ---- the fixture cannot drift from the file ---------------------------
 
-    [Fact]
+    [InstallFact]
     public void TheTwoBedsTheSimulationFixtureTranscribesAreTheRealRecords()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The simulation fixture now carries object definitions, because a bed
         // is a thing that stands on a tile and TryPlaceBedInAnyLair has to place one.
@@ -338,11 +329,10 @@ public class ObjectsOnRealDataTests
             vampireBed with { Name = "", ObjectId = 0 });
     }
 
-    [Fact]
+    [InstallFact]
     public void TheObjectIdsTheBinaryHardcodesNameTheObjectsWeThinkTheyDo()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Read out of DKII.EXE on 2026-09-04: the routine that dumps an object
         // switches on a single byte -- the object's own id -- with hardcoded
@@ -387,11 +377,10 @@ public class ObjectsOnRealDataTests
             Assert.Equal(name, db.ObjectById(id)?.Name);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheTypeFlagsTheBinaryDispatchesOnAreTheOnesWeNamed()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The rest of that same dispatch does not use the id: it tests bits of
         // the loaded definition's flags word. Five of the seven type bits are
@@ -420,11 +409,10 @@ public class ObjectsOnRealDataTests
         Assert.True(db.ObjectById(26)?.IsLair);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheHatcherysThreeObjectsAreTheRealRecords()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The simulation fixture transcribes these three because HatcheryRules
         // needs them, and the same guard applies as to the beds: literals here,
@@ -481,11 +469,10 @@ public class ObjectsOnRealDataTests
         Assert.True(egg.Flags.HasFlag(ObjectFlags.DieWhenSlapped));
     }
 
-    [Fact]
+    [InstallFact]
     public void TheHatcherysOwnNumbersAreWhatTheGameShips()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 
@@ -510,11 +497,10 @@ public class ObjectsOnRealDataTests
         Assert.Equal(12, db[VariableTypeId.MaxFreeRangeChickensPerPlayer]);
     }
 
-    [Fact]
+    [InstallFact]
     public void ForLevelKeepsEveryRecordCollection()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // A regression guard with a real defect behind it.
         // GameDatabase.ForLevel rebuilds the database from parts, and it
@@ -563,11 +549,10 @@ public class ObjectsOnRealDataTests
     /// <c>FloorGold</c> names two of the three ids outright and the simulation
     /// fixture transcribes all three.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheThreeGoldObjectsAreTheRealRecords()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 
@@ -622,11 +607,10 @@ public class ObjectsOnRealDataTests
     /// table — because <c>gold-on-the-floor.md</c>'s whole point is that one of
     /// the three is bigger than another and nothing clamps between them.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheGoldLimitsAreWhatTheGameShips()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 

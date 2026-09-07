@@ -4,6 +4,7 @@
 
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -16,11 +17,10 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class LairPreferenceOnRealDataTests
 {
-    [Fact]
+    [InstallFact]
     public void EveryCreatureIsExactlyOneOfEvilAndGood()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         foreach (CreatureDef c in db.Creatures.Values)
@@ -32,11 +32,10 @@ public class LairPreferenceOnRealDataTests
     }
 
     /// <summary>The named heroes are the good side, and the portal never delivers one.</summary>
-    [Fact]
+    [InstallFact]
     public void TheHeroesAreGoodAndNotAvailableViaPortal()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         foreach (string name in new[] { "Knight", "Dwarf", "Giant", "Wizard", "Elven Archer", "Thief", "Monk", "Fairy", "Guard" })

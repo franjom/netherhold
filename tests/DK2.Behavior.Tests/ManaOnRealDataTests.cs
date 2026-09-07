@@ -1,10 +1,11 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -19,21 +20,17 @@ namespace DK2.Behavior.Tests;
 /// built on. That claim is worth nothing unless the shipped table really does
 /// partition that way, so it is asserted here by exhaustion rather than assumed.
 ///
-/// Skips when no installation is configured (DK2_DIR).
+/// Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing.
 /// </summary>
 public class ManaOnRealDataTests
 {
-    private static GameDatabase? RealDatabase()
-    {
-        string? install = Dk2Install.Find();
-        return install is null ? null : GameDatabaseLoader.Load(install);
-    }
+    private static GameDatabase RealDatabase() =>
+        GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
-    [Fact]
+    [InstallFact]
     public void TheManaVariablesFixture_MatchesTheInstall()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return; // skipped: no DK2 install
+        GameDatabase db = RealDatabase();
 
         Assert.Equal(200000, db[VariableTypeId.MaximumManaThreshold]);
         Assert.Equal(500, db[VariableTypeId.MaximumManaGainPerSecond]);
@@ -54,11 +51,10 @@ public class ManaOnRealDataTests
     /// exactly the tabled number is what makes "the unit is per second" more than
     /// an inference (Q39).</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheVaultTerrainFixture_MatchesTheInstall()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         TerrainDef vault = db.TerrainById(31);
         Assert.Equal("Mana Vault", vault.Name);
@@ -83,11 +79,10 @@ public class ManaOnRealDataTests
     /// none of them is a room, and between them they are every kind of ground a
     /// keeper can hold without building on it — floor, wall and vault.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void OnlyHeldGroundGeneratesMana()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         string[] paying = [.. db.Terrain.Values
             .Where(t => t.ManaGain > 0)
@@ -112,11 +107,10 @@ public class ManaOnRealDataTests
     /// That is what licenses `ManaRules` to count the heart's 30 a second once
     /// per keeper rather than once per heart, without a room-instance concept.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ADungeonHeartCannotBeBuilt_WhichIsWhyAKeeperOnlyEverHasOne()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         Assert.False(heart.IsBuildable);
@@ -130,11 +124,10 @@ public class ManaOnRealDataTests
     }
 
     /// <summary>No room in the game generates mana, which is why building costs income.</summary>
-    [Fact]
+    [InstallFact]
     public void NoRoomGeneratesMana()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         foreach (RoomDef room in db.Rooms.Values)
             Assert.Equal(0, db.TerrainById(room.TerrainId).ManaGain);
@@ -151,11 +144,10 @@ public class ManaOnRealDataTests
     /// more to say than the shipped one does and the question is worth
     /// reopening — on that evidence, not on the field's name.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void MaxManaGainIsSetOnExactlyOneTerrain_WhichIsWhyNothingReadsIt()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         TerrainDef[] set = [.. db.Terrain.Values.Where(t => t.MaxManaGain > 0)];
 
@@ -172,19 +164,18 @@ public class ManaOnRealDataTests
     /// right order of magnitude: a per-tick reading would put the cap somewhere
     /// nobody could ever reach.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheGainCapIsReachableOnAShippedMap()
     {
-        GameDatabase? db = RealDatabase();
-        if (db is null) return;
+        GameDatabase db = RealDatabase();
 
         int cap = db[VariableTypeId.MaximumManaGainPerSecond];
         int perClaimedTile = db.TerrainById(8).ManaGain;
         int tilesToReachIt = cap / perClaimedTile;
 
-        string? install = Dk2Install.Find();
+        string install = Dk2InstallGate.Path;
         LevelMap? map = install is null ? null : GameDatabaseLoader.LoadCampaignMap(install, "level1");
-        if (map is null) return;
+        Assert.NotNull(map);
 
         Assert.True(
             map.Width * map.Height > tilesToReachIt,
@@ -198,15 +189,14 @@ public class ManaOnRealDataTests
     /// number DK2 would print — it asserts the rule reaches the real map at all,
     /// and that a level which starts a keeper with land starts them with income.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void AKeepersIncomeOnARealCampaignLevelIsTheirClaimedLand()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, "level1");
-        if (map is null) return;
+        Assert.NotNull(map);
 
         byte[] players = [.. map.Tiles.Select(t => t.PlayerId).Distinct().OrderBy(id => id)];
         WorldState world = WorldState.FromMap(db, map, players);

@@ -7620,3 +7620,102 @@ keys creatures by name has the same bug waiting.
 testable; the tree needs the research-item table, the per-keeper unlock state and
 the UI's ordering, none of which has been read. Shipping the accrual alone keeps
 every claim in this ADR falsifiable.
+
+---
+
+## ADR-0100 — A test that needs the game data must skip without it, not pass
+
+**Status:** accepted (2026-09-07). No `HashVersion` change — nothing about the
+simulation moved. **ADR-0091 … ADR-0099 are reserved** for the M1 record-types
+branch being worked in the `DungeonKeeperRemake-codex` worktree; this took 0100
+so the two could not collide.
+
+**Context.** Every test that reads the shipped Dungeon Keeper 2 files opened
+with some variant of:
+
+```csharp
+[Fact]
+public void SomethingOnRealData()
+{
+    string? install = Dk2Install.Find();
+    if (install is null) return;      // <- the defect
+    ...
+}
+```
+
+**That makes the test pass when the install is absent.** It does not skip. And
+fourteen file headers said, in words, *"Skips when no installation is configured
+(DK2_DIR), so CI stays green"* — true in its conclusion and false in its verb.
+
+**Measured, by hiding the install (`DK2_DIR=/nonexistent`): 266 of 1169 tests —
+23% of the suite — needed the data, and every one of them was reporting
+PASSED without it.** CI has no installation, so that was CI's steady state.
+
+Worse than the count is *which* tests. The real-data suites are this project's
+only defence against a reading drifting away from the shipped files. The one
+part of the suite that most needed to be honest about not having run was the
+part quietly claiming to have run — and it had been that way for months, while
+the same period produced six documented claims that turned out to be false.
+
+**Decision.** `tests/DK2.TestSupport` (a library, not a test project) provides:
+
+- **`[InstallFact]` / `[InstallTheory]`** — `FactAttribute` / `TheoryAttribute`
+  subclasses that set xUnit's `Skip` when no install is found, so the runner
+  reports **Skipped**. xUnit here is 2.9.3, which has no `Assert.Skip`; setting
+  `Skip` from the attribute's constructor needs no extra package.
+- **`Dk2InstallGate.Path`** — the install root, non-null. A gated test's body
+  uses it directly and contains **no null check**, because the early return is
+  the bug being removed.
+- **`DK2_REQUIRE_INSTALL=1`** — inverts the gate: a missing install becomes a
+  **failure** rather than a skip. For a developer box or a CI runner that is
+  supposed to have the data, so that quietly losing it cannot go green with two
+  hundred skips.
+
+Converted across all five affected suites — Behavior, Data, Assets, Convert and
+Presentation. Verified in three directions:
+
+| run | result |
+|---|---|
+| install present | **1171 passed, 0 skipped** |
+| `DK2_DIR=/nonexistent` | **266 skipped, 871 passed, 0 failed** |
+| `DK2_REQUIRE_INSTALL=1` with no install | **fails**, 0 skipped |
+
+**`InstallGateTests` is what stops it returning.** The only way back to the old
+pattern is to look the install up inside a test, so the invariant is: *no test
+source outside `DK2.TestSupport` may mention `Dk2Install.`* A second test
+asserts the gate's own decision in all three states, so the guard cannot itself
+go vacuous.
+
+### Three things this got wrong on the way, kept because they are the lesson
+
+1. **A method-level sweep missed the transitive cases.** Converting every test
+   whose *own body* held the gate left 63 failures when the install was hidden:
+   tests gated through a *helper* (`Level1()`, `RealDatabase()`) that kept
+   `[Fact]`. Found only by hiding the install and reading the failures — which
+   is now the standing way to check this.
+2. **The guard flagged itself**, because its doc comment names the old pattern
+   in prose. Doc comments are stripped before scanning.
+3. **`Dk2Install` is a prefix of `Dk2InstallGate`**, so a bare substring search
+   flagged all 39 files that use the *replacement* correctly. The needle now
+   carries its dot and is assembled at runtime so this file does not contain it
+   verbatim. **A guard that fires on the right answer is worse than no guard.**
+
+### Consequences
+
+- **A green CI run now means less than it appeared to, and that is the point.**
+  It is honest about the 266 it did not run. The skip count is documented in
+  `ci.yml` with what a change in it would mean.
+- **A missing data file inside a present install is now a failure.** Helpers
+  that returned null when, say, `Creatures.kwd` was absent now `Assert.True` on
+  its existence — because an install that has lost a file is a broken install,
+  not a reason to skip.
+- **Nullable loader results are asserted, not tolerated.** `LoadCampaignMap`
+  returning null used to end the test quietly; it is now `Assert.NotNull`.
+- Fourteen file headers corrected to say what the code does.
+
+**Rejected: `Xunit.SkippableFact`.** It works, but it is a package for something
+a five-line attribute does, and it would have to be added to five test
+projects. **Rejected: leaving CI to fail loudly without the install.** Tempting
+— it makes the gap impossible to ignore — but it would make the repository
+un-buildable for anyone who does not own the game, and the project's own goal
+review lists "runs without the original" as a property worth keeping.

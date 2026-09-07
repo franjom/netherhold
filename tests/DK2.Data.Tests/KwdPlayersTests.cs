@@ -1,9 +1,10 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Data.Tests;
 
@@ -14,19 +15,17 @@ namespace DK2.Data.Tests;
 /// </summary>
 public class KwdPlayersTests
 {
-    private static string? Maps()
+    private static string Maps()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return null;
-        string maps = Path.Combine(install, "Data", "editor", "maps");
-        return Directory.Exists(maps) ? maps : null;
+        string maps = Path.Combine(Dk2InstallGate.Path, "Data", "editor", "maps");
+        Assert.True(Directory.Exists(maps), $"the install has no {maps}");
+        return maps;
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryShippedPlayersFileDividesInto205ByteRecords()
     {
-        string? maps = Maps();
-        if (maps is null) return;
+        string maps = Maps();
 
         string[] files = Directory.GetFiles(maps, "*Players.kld");
         Assert.Equal(66, files.Length);
@@ -56,11 +55,10 @@ public class KwdPlayersTests
         Assert.Equal(23, keepers);
     }
 
-    [Fact]
+    [InstallFact]
     public void AiRowsCarryTheConstantsTheSweepFound()
     {
-        string? maps = Maps();
-        if (maps is null) return;
+        string maps = Maps();
 
         var ai = Directory.GetFiles(maps, "*Players.kld")
             .SelectMany(f => KwdPlayers.Parse(KwdReader.ReadFile(f)))
@@ -80,11 +78,10 @@ public class KwdPlayersTests
             ai.Select(p => p.Ai.EditorAiType).Distinct().OrderBy(v => v));
     }
 
-    [Fact]
+    [InstallFact]
     public void GormagonAndAsmodeusReadAsTheBinaryLoadsThem()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         PlayerDef gormagon = Assert.Single(
             GameDatabaseLoader.LoadCampaignPlayers(install, "level7")!,
@@ -116,11 +113,10 @@ public class KwdPlayersTests
         Assert.False(asmodeus.Ai.NeverAttack);
     }
 
-    [Fact]
+    [InstallFact]
     public void Level17KeepersCarryTheGarbageHighByteAsTheGameSeesIt()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         var keepers = GameDatabaseLoader.LoadCampaignPlayers(install, "Level17")!
             .Where(p => p.IsComputerKeeper)

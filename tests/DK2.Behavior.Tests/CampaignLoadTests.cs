@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -6,6 +6,7 @@ using DK2.Data;
 using DK2.Data.Model;
 using DK2.Harness;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -17,11 +18,10 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class CampaignLoadTests
 {
-    [Fact]
+    [InstallFact]
     public void FirstCampaignLevel_LoadsIntoWorldState()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return; // skipped: no DK2 install
+        string install = Dk2InstallGate.Path;
 
         GameDatabase database = GameDatabaseLoader.Load(install);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level1")!;
@@ -42,11 +42,10 @@ public class CampaignLoadTests
             }
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryCampaignLevel_BuildsAWorld()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         GameDatabase database = GameDatabaseLoader.Load(install);
         string maps = Path.Combine(install, "Data", "editor", "maps");
@@ -58,6 +57,8 @@ public class CampaignLoadTests
             level = level[..^"Map".Length];
 
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
+
+            Assert.NotNull(map);
             if (map is null) continue;
 
             // Throws if any tile references a terrain type the database lacks.
@@ -69,11 +70,10 @@ public class CampaignLoadTests
         Assert.True(built > 50, $"expected many campaign levels, built {built}");
     }
 
-    [Fact]
+    [InstallFact]
     public void CampaignScenario_RunsDeterministically()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         GameDatabase database = GameDatabaseLoader.Load(install);
         var runner = new ScenarioRunner(database, install);

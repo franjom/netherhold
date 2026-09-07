@@ -1,9 +1,10 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Data.Tests;
 
@@ -15,13 +16,13 @@ namespace DK2.Data.Tests;
 /// </summary>
 public class GameDatabaseTests
 {
-    private static GameDatabase? Database() => GameDatabaseLoader.LoadFromInstall();
+    private static GameDatabase Database() =>
+        GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
-    [Fact]
+    [InstallFact]
     public void Load_ReadsEveryDefinitionTable()
     {
-        GameDatabase? db = Database();
-        if (db is null) return; // skipped: no DK2 install
+        GameDatabase db = Database();
 
         Assert.Equal(41, db.Terrain.Count);
         Assert.Equal(26, db.Rooms.Count);
@@ -31,11 +32,10 @@ public class GameDatabaseTests
         Assert.NotEmpty(db.Variables.Misc);
     }
 
-    [Fact]
+    [InstallFact]
     public void Definitions_CrossReferenceCorrectly()
     {
-        GameDatabase? db = Database();
-        if (db is null) return;
+        GameDatabase db = Database();
 
         // Every room lays down a terrain type that exists, and the room that
         // spawns skeletons is the Prison. Both facts already hold at the parser
@@ -48,11 +48,10 @@ public class GameDatabaseTests
         Assert.Equal("Skeleton", db.CreatureById(prison.CreatedCreatureId).Name);
     }
 
-    [Fact]
+    [InstallFact]
     public void BalanceNumbers_AreReachableByName()
     {
-        GameDatabase? db = Database();
-        if (db is null) return;
+        GameDatabase db = Database();
 
         // The digging and claiming deltas the M3 mechanics will read. Values
         // CONFIRMED in docs/research/kwd-variables.md; the point of the test is
@@ -63,57 +62,54 @@ public class GameDatabaseTests
         Assert.Equal(50, db[VariableTypeId.ReinforceWallHealth]);
     }
 
-    [Fact]
+    [InstallFact]
     public void MissingVariable_FailsLoudly()
     {
-        GameDatabase? db = Database();
-        if (db is null) return;
+        GameDatabase db = Database();
 
         // Silently returning 0 for an absent balance number would be a very
         // quiet way to invent DK2 behaviour.
         Assert.Throws<KeyNotFoundException>(() => db[(VariableTypeId)9999]);
     }
 
-    [Fact]
+    [InstallFact]
     public void LookupByName_FindsKnownDefinitions()
     {
-        GameDatabase? db = Database();
-        if (db is null) return;
+        GameDatabase db = Database();
 
         Assert.NotNull(db.CreatureByName("Imp"));
         Assert.NotNull(db.RoomByName("Treasury"));
         Assert.Null(db.CreatureByName("Nonexistent Creature"));
     }
 
-    [Fact]
+    [InstallFact]
     public void UnknownIds_ThrowRatherThanReturningNull()
     {
-        GameDatabase? db = Database();
-        if (db is null) return;
+        GameDatabase db = Database();
 
         Assert.Throws<KeyNotFoundException>(() => db.TerrainById(200));
         Assert.Throws<KeyNotFoundException>(() => db.RoomById(200));
         Assert.Throws<KeyNotFoundException>(() => db.CreatureById(200));
     }
 
-    [Fact]
+    [InstallFact]
     public void LoadCampaignMap_ReadsTheFirstLevel()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, "level1");
+
+        Assert.NotNull(map);
         Assert.NotNull(map);
         Assert.Equal(30, map.Width);
         Assert.Equal(38, map.Height);
         Assert.Equal(30 * 38, map.Tiles.Count);
     }
 
-    [Fact]
+    [InstallFact]
     public void LoadCampaignMap_ReturnsNullForAnUnknownLevel()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         Assert.Null(GameDatabaseLoader.LoadCampaignMap(install, "no_such_level"));
     }

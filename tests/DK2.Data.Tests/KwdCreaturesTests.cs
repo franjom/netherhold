@@ -1,9 +1,10 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Data.Tests;
 
@@ -14,21 +15,20 @@ namespace DK2.Data.Tests;
 /// </summary>
 public class KwdCreaturesTests
 {
-    private static List<CreatureDef>? Load()
+    private static List<CreatureDef> Load()
     {
-        string dir = Dk2Install.Find() ?? "";
-        string path = Path.Combine(dir, "Data", "editor", "Creatures.kwd");
-        return File.Exists(path) ? KwdCreatures.Parse(KwdReader.ReadFile(path)) : null;
+        string path = Path.Combine(Dk2InstallGate.Path, "Data", "editor", "Creatures.kwd");
+        Assert.True(File.Exists(path), $"the install has no {path}");
+        return KwdCreatures.Parse(KwdReader.ReadFile(path));
     }
 
     private static CreatureDef By(List<CreatureDef> all, string name) =>
         all.Single(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
-    [Fact]
+    [InstallFact]
     public void AllCreatures_Parse_WithContiguousIds()
     {
-        List<CreatureDef>? all = Load();
-        if (all is null) return;
+        List<CreatureDef> all = Load();
 
         Assert.Equal(46, all.Count);
         // Ids are 1..46 with no gaps or duplicates.
@@ -38,11 +38,10 @@ public class KwdCreaturesTests
         Assert.All(all, c => Assert.False(string.IsNullOrWhiteSpace(c.Name)));
     }
 
-    [Fact]
+    [InstallFact]
     public void CreatureIds_MatchFlameIndependentReverseEngineering()
     {
-        List<CreatureDef>? all = Load();
-        if (all is null) return;
+        List<CreatureDef> all = Load();
 
         // Cross-source check: these id->name mappings come from Flame's
         // src/dk2/entities/entities_type.h, derived by disassembling DKII.EXE
@@ -57,11 +56,10 @@ public class KwdCreaturesTests
         Assert.Equal(27, By(all, "Horny").CreatureId);
     }
 
-    [Fact]
+    [InstallFact]
     public void Imp_HasWorkerSemantics()
     {
-        List<CreatureDef>? all = Load();
-        if (all is null) return;
+        List<CreatureDef> all = Load();
 
         CreatureDef imp = By(all, "Imp");
         Assert.True(imp.Flags.HasFlag(CreatureFlags.IsWorker));
@@ -74,11 +72,10 @@ public class KwdCreaturesTests
         Assert.Equal(JobClass.Scout, imp.JobClass);
     }
 
-    [Fact]
+    [InstallFact]
     public void JobPreferences_MatchKnownCreatureRoles()
     {
-        List<CreatureDef>? all = Load();
-        if (all is null) return;
+        List<CreatureDef> all = Load();
 
         // Troll is the workshop creature: manufactures when happy, hates research.
         CreatureDef troll = By(all, "Troll");
@@ -97,11 +94,10 @@ public class KwdCreaturesTests
         Assert.Equal(0, warlock.ManufacturePerSecond);
     }
 
-    [Fact]
+    [InstallFact]
     public void HappyJobChances_SumTo100_WhereJobsExist()
     {
-        List<CreatureDef>? all = Load();
-        if (all is null) return;
+        List<CreatureDef> all = Load();
 
         // A strong structural check on the JobPreference offsets: DK2 authors
         // these as percentage tables, so populated tables should total 100.
@@ -113,22 +109,20 @@ public class KwdCreaturesTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void Attractions_PointAtTheCreaturesOwnRoom()
     {
-        List<CreatureDef>? all = Load();
-        if (all is null) return;
+        List<CreatureDef> all = Load();
 
         // Room ids per Flame's room_type.h (independent source): Library=6, Workshop=10.
         Assert.Contains(By(all, "Warlock").Attractions, a => a.RoomId == (int)RoomTypeId.Library);
         Assert.Contains(By(all, "Troll").Attractions, a => a.RoomId == (int)RoomTypeId.Workshop);
     }
 
-    [Fact]
+    [InstallFact]
     public void StatRanges_AreSane()
     {
-        List<CreatureDef>? all = Load();
-        if (all is null) return;
+        List<CreatureDef> all = Load();
 
         foreach (CreatureDef c in all)
         {

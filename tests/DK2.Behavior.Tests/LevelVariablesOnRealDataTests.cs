@@ -1,10 +1,11 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -26,22 +27,21 @@ namespace DK2.Behavior.Tests;
 /// and without an install in
 /// <c>DK2.Data.Tests.GlobalVariablesMergeTests</c>.</para>
 ///
-/// <para>Skips when no installation is configured (DK2_DIR), so CI stays green
+/// <para>Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing
 /// without proprietary assets.</para>
 /// </summary>
 public class LevelVariablesOnRealDataTests
 {
-    private static string? Install() => Dk2Install.Find();
+    private static string Install() => Dk2InstallGate.Path;
 
     /// <summary>
     /// The defect this work exists to fix, stated as the two numbers that
     /// differ: four free imps globally, none on a secret level.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheSecretLevelsGiveAKeeperNoFreeImps()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase global = GameDatabaseLoader.Load(install);
         Assert.Equal(4, global[VariableTypeId.MinimumImpThreshold]);
@@ -64,11 +64,10 @@ public class LevelVariablesOnRealDataTests
     /// Level 1 overrides values, adds ids the global table does not have at all,
     /// and leaves the rest alone — all three halves of the merge, on one level.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void LevelOneOverridesReplacesAddsAndKeeps()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase global = GameDatabaseLoader.Load(install);
         GameDatabase level1 = GameDatabaseLoader.LoadForCampaignLevel(install, "level1");
@@ -123,11 +122,10 @@ public class LevelVariablesOnRealDataTests
     /// pinned here is only that the number exists, is the same everywhere, and
     /// is therefore a candidate rather than a coincidence.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void EveryLevelCarriesGameTicksAndTheyAllAgree()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         string maps = Path.Combine(install, "Data", "editor", "maps");
         int levels = 0;
@@ -166,11 +164,10 @@ public class LevelVariablesOnRealDataTests
     /// agrees with what the counts imply here — eleven traps, six doors,
     /// thirteen spells — and that agreement was reached from the data first.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ALevelsAvailabilitySetReplacesTheGlobalTemplate()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase global = GameDatabaseLoader.Load(install);
         GameDatabase level1 = GameDatabaseLoader.LoadForCampaignLevel(install, "level1");
@@ -203,11 +200,10 @@ public class LevelVariablesOnRealDataTests
     /// none" has to mean "keep the global set". Pinned because the opposite
     /// reading would silently empty two tables nothing reads yet.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void GameWideListsSurviveALevelThatCarriesNone()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase global = GameDatabaseLoader.Load(install);
         GameDatabase level1 = GameDatabaseLoader.LoadForCampaignLevel(install, "level1");
@@ -225,11 +221,10 @@ public class LevelVariablesOnRealDataTests
     /// The two halves of "which creatures may enter" agreeing on one level is
     /// what makes either readable, and it is the data a portal will need.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void LevelOnesCreaturePoolAndAvailabilityAgree()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase level1 = GameDatabaseLoader.LoadForCampaignLevel(install, "level1");
 
@@ -266,11 +261,10 @@ public class LevelVariablesOnRealDataTests
     /// the same "disabled rather than cut" shape as ADR-0085's ten mechanisms,
     /// this time in a per-level file rather than the global table.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void FiveLevelsOverrideThePortalInterval_NotOnlyLevelOne()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         string maps = Path.Combine(install, "Data", "editor", "maps");
         var found = new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase);

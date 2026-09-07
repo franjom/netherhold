@@ -1,27 +1,26 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Data.Tests;
 
 public class KwdDoorsTrapsTests
 {
-    private static string? Editor()
+    private static string Editor()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return null;
-        string editor = Path.Combine(install, "Data", "editor");
-        return Directory.Exists(editor) ? editor : null;
+        string editor = Path.Combine(Dk2InstallGate.Path, "Data", "editor");
+        Assert.True(Directory.Exists(editor), $"the install has no {editor}");
+        return editor;
     }
 
-    [Fact]
+    [InstallFact]
     public void DoorsHaveEightReadableRecordsWithContiguousIds()
     {
-        string? editor = Editor();
-        if (editor is null) return;
+        string editor = Editor();
 
         List<DoorDef> doors = KwdDoors.Parse(
             KwdReader.ReadFile(Path.Combine(editor, "Doors.kwd")));
@@ -41,11 +40,10 @@ public class KwdDoorsTrapsTests
         });
     }
 
-    [Fact]
+    [InstallFact]
     public void TrapsHaveSixteenReadableRecordsWithContiguousIds()
     {
-        string? editor = Editor();
-        if (editor is null) return;
+        string editor = Editor();
 
         List<TrapDef> traps = KwdTraps.Parse(
             KwdReader.ReadFile(Path.Combine(editor, "Traps.kwd")));

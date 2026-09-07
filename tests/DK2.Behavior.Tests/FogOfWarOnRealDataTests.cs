@@ -1,19 +1,19 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
 public sealed class FogOfWarOnRealDataTests
 {
-    [Fact]
+    [InstallFact]
     public void ExactlySixShippedTerrainsRevealThroughFog()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         string[] actual = GameDatabaseLoader.Load(install).Terrain.Values
             .Where(t => t.IsRevealedThroughFog)

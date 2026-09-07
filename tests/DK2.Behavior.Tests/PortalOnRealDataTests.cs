@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -6,6 +6,7 @@ using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.Simulation.Systems;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -26,13 +27,13 @@ namespace DK2.Behavior.Tests;
 /// against all 66 levels — because a claim nothing checks may already be
 /// false.</para>
 ///
-/// <para>Skips when no installation is configured (DK2_DIR).</para>
+/// <para>Gated with [InstallFact], so it reports SKIPPED without an installation rather than passing.</para>
 /// </summary>
 public class PortalOnRealDataTests
 {
     private const byte GoblinId = 7;
 
-    private static string? Install() => Dk2Install.Find();
+    private static string Install() => Dk2InstallGate.Path;
 
     private static IEnumerable<string> CampaignLevels(string install)
     {
@@ -46,11 +47,10 @@ public class PortalOnRealDataTests
 
     // ---- the drift guard --------------------------------------------------
 
-    [Fact]
+    [InstallFact]
     public void ThePortalRecordIsWhatTheFixtureSaysItIs()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         RoomDef portal = GameDatabaseLoader.Load(install).Room(RoomTypeId.Portal);
 
@@ -67,11 +67,10 @@ public class PortalOnRealDataTests
         Assert.Equal(0, portal.Cost);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheGoblinRecordIsWhatTheFixtureSaysItIs()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         CreatureDef goblin = GameDatabaseLoader.Load(install).CreatureById(GoblinId);
 
@@ -101,11 +100,10 @@ public class PortalOnRealDataTests
 
     // ---- level 1, end to end ---------------------------------------------
 
-    [Fact]
+    [InstallFact]
     public void LevelOneUnlocksOneCreatureAndFifteenOfIt()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level1");
 
@@ -125,11 +123,10 @@ public class PortalOnRealDataTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void LevelOnesPortalRunsAtEighteenSecondsAndNotTwentyFive()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The per-level override is the reason this work needed ADR-0040 first.
         Assert.Equal(
@@ -152,15 +149,14 @@ public class PortalOnRealDataTests
     /// it is the one that would have caught the per-level-variables defect on
     /// its own.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void LevelOnesOwnPortalProducesAGoblinOnceThereIsALair()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level1");
         LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, "Level1");
-        if (map is null) return;
+        Assert.NotNull(map);
 
         var world = WorldState.FromMap(db, map, [(byte)0, (byte)3, (byte)4, (byte)5, (byte)6]);
 
@@ -199,11 +195,10 @@ public class PortalOnRealDataTests
 
     // ---- the claims the rules rest on, across all 66 levels ---------------
 
-    [Fact]
+    [InstallFact]
     public void ThreeByThreeIsExactlyThePortalAndTheHeroPortal()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         string[] names = GameDatabaseLoader.Load(install).Rooms.Values
             .Where(r => r.Construction == TileConstruction.ThreeByThree)
@@ -215,11 +210,10 @@ public class PortalOnRealDataTests
         Assert.Equal(["Portal", "Hero Portal"], names);
     }
 
-    [Fact]
+    [InstallFact]
     public void NoLevelEverMakesACreatureMerelyResearchable()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // PortalRules.IsUnlocked accepts RESEARCHABLE as well as AVAILABLE,
         // following OpenKeeper. If no level uses it, the two readings can never
@@ -245,11 +239,10 @@ public class PortalOnRealDataTests
         Assert.True(checkedLevels > 50, $"expected the whole campaign, read {checkedLevels}");
     }
 
-    [Fact]
+    [InstallFact]
     public void NoLevelListsTheSameCreatureTwiceInItsPool()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // PortalRules.PoolLimit takes the last matching entry. Nothing should
         // ever depend on that, and this is why it does not.
@@ -288,11 +281,10 @@ public class PortalOnRealDataTests
     /// are ever dealt a creature pool or creature availability — and OpenKeeper's
     /// <c>Player</c> constants agree from the other direction.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheReservedPlayerIdsAreWhatTheCampaignSays()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         byte heartTerrain = db.Room(RoomTypeId.DungeonHeart).TerrainId;
@@ -327,6 +319,8 @@ public class PortalOnRealDataTests
             }
 
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
+
+            Assert.NotNull(map);
             if (map is null) continue;
             levelsRead++;
 
@@ -374,11 +368,10 @@ public class PortalOnRealDataTests
     /// the room record's flags. If some level ships a portal already owned, the
     /// claiming path is not the only way a keeper gets one.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void EveryShippedPortalIsThreeByThreeTerrain()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         byte portalTerrain = db.Room(RoomTypeId.Portal).TerrainId;
@@ -388,6 +381,7 @@ public class PortalOnRealDataTests
         foreach (string level in CampaignLevels(install))
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
+            Assert.NotNull(map);
             if (map is null) continue;
 
             var world = WorldState.FromMap(db, map, [(byte)0]);
@@ -416,11 +410,10 @@ public class PortalOnRealDataTests
 
     // ---- gate 0: the creature flags, across the whole campaign ------------
 
-    [Fact]
+    [InstallFact]
     public void TheCampaignUnlocksNineCreaturesOnlyTheFlagGateKeepsOut()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // PortalRules.CanComeFromPortal exists because of these nine. On the
         // three Frosty levels every keeper from 3 to 6 has the hero roster both
@@ -484,11 +477,10 @@ public class PortalOnRealDataTests
     /// OpenKeeper; gating a Hero Portal on it would have it emitting the heroes'
     /// worker. Each side's portal excludes its own worker.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void NineCreaturesCarryTheHeroPortalFlagAndTheyAreTheNineThePortalRefuses()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         RoomDef portal = db.Room(RoomTypeId.Portal);
@@ -559,11 +551,10 @@ public class PortalOnRealDataTests
     /// Portal"</b> in game; <i>"Hero Portal"</i> is the editor's label in
     /// <c>Rooms.kwd</c>, which is what these identifiers are named from.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void FrostysCastleHasOnlyHeroPortalsAndPoolsExactlyTheirNineCreatures()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         const string Level = "Frosty's Castle";
 
@@ -572,6 +563,8 @@ public class PortalOnRealDataTests
         byte heroTerrain = db.Room(RoomTypeId.HeroPortal).TerrainId;
 
         LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, Level);
+
+        Assert.NotNull(map);
         Assert.NotNull(map);
 
         int heroTiles = 0;
@@ -621,11 +614,10 @@ public class PortalOnRealDataTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void NoShippedLevelEverPoolsOrUnlocksAUniqueCreature()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // Which is why the IsUnique half of the flag gate never fires on
         // shipped data, and is therefore unfalsifiable from the files: it rests
@@ -661,11 +653,10 @@ public class PortalOnRealDataTests
         Assert.True(checkedLevels > 50, $"expected the whole campaign, read {checkedLevels}");
     }
 
-    [Fact]
+    [InstallFact]
     public void TheThirteenUniqueCreaturesAllCarryThePortalFlag()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         // The premise of the paragraph above, checked. If uniques did not carry
         // the portal flag, DK2 would not have needed a second test and neither
@@ -692,11 +683,10 @@ public class PortalOnRealDataTests
     /// <para>Both are the only two <c>ThreeByThree</c> rooms in the game, and
     /// their terrains are 12 and 40.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void AHeroPortalCountsTowardTheCapJustLikeAPortal()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 

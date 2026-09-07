@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -7,6 +7,7 @@ using DK2.Data;
 using DK2.Data.Wad;
 using System.Numerics;
 using System.Text;
+using DK2.TestSupport;
 
 namespace DK2.Convert.Tests;
 
@@ -25,13 +26,12 @@ public class KmfReaderTests
         Assert.Equal([0, 1, 2], Assert.Single(primitive.IndicesByDetailLevel));
     }
 
-    [Theory]
+    [InstallTheory]
     [InlineData("Imp-PoseFrame.kmf")]
     [InlineData("Gob-PoseFrame.kmf")]
     public void CreatureModelReadsGeometryAndTextures(string entryName)
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
         KmfModel model = ReadFromInstall(install, entryName);
         Assert.Equal(KmfKind.Mesh, model.Kind);
         Assert.NotNull(model.Mesh);
@@ -41,11 +41,10 @@ public class KmfReaderTests
         Assert.All(model.Mesh.Primitives, AssertCompletePrimitive);
     }
 
-    [Fact]
+    [InstallFact]
     public void AnimatedCreatureModelReadsEveryFrame()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
         KmfModel model = ReadFromInstall(install, "Imp-Idle2.kmf");
         Assert.Equal(KmfKind.Animation, model.Kind);
         Assert.True(model.FrameCount > 1);
@@ -75,11 +74,10 @@ public class KmfReaderTests
         Assert.Same(model.Mesh, animation.Frames[0]);
     }
 
-    [Fact]
+    [InstallFact]
     public void TerrainWallReadsGeometryAndTextures()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
         KmfModel model = ReadFromInstall(install, "ROCK WALL.kmf");
         Assert.Equal(KmfKind.Mesh, model.Kind);
         Assert.NotNull(model.Mesh);
@@ -96,11 +94,10 @@ public class KmfReaderTests
         Assert.Contains("KMSH", error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryShippedKmfHasARecognizedStructure()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
         using var wad = WadArchive.Open(Path.Combine(install, "Data", "Meshes.WAD"));
         foreach (WadEntry entry in wad.Entries.Where(entry =>
             entry.Name.EndsWith(".kmf", StringComparison.OrdinalIgnoreCase)))

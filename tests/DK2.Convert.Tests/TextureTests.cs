@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -8,6 +8,7 @@ using DK2.Convert.Kmf;
 using DK2.Convert.Textures;
 using DK2.Data;
 using DK2.Data.Wad;
+using DK2.TestSupport;
 
 namespace DK2.Convert.Tests;
 
@@ -30,14 +31,13 @@ public class TextureTests
         Assert.Equal(pixels, decoded);
     }
 
-    [Theory]
+    [InstallTheory]
     [InlineData("Imp-PoseFrame.kmf")]
     [InlineData("Gob-PoseFrame.kmf")]
     [InlineData("ROCK WALL.kmf")]
     public void CreatureAndTerrainMaterialTexturesDecodeToPng(string modelName)
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
         using var meshes = WadArchive.Open(Path.Combine(install, "Data", "Meshes.WAD"));
         KmfModel model = KmfReader.Read(meshes.Extract(modelName));
         string textureName = model.Materials.SelectMany(material => material.TextureNames).First();
@@ -52,11 +52,10 @@ public class TextureTests
         Assert.True(image.Pixels.Distinct().Count() > 16, $"{textureName} decoded as nearly constant data");
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryModelTextureNameResolvesToTheCache()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
         using var meshes = WadArchive.Open(Path.Combine(install, "Data", "Meshes.WAD"));
         using EngineTextureArchive textures = EngineTextureArchive.OpenInstall(install);
         var missing = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -73,22 +72,20 @@ public class TextureTests
         Assert.Empty(missing);
     }
 
-    [Fact]
+    [InstallFact]
     public void EngineTexturesWadContainsReadyPngImages()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
         using var wad = WadArchive.Open(Path.Combine(install, "Data", "EngineTextures.WAD"));
         Assert.All(wad.Entries, entry => Assert.Equal(
             new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 },
             wad.Extract(entry).AsSpan(0, 8).ToArray()));
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryEngineTextureCacheEntryDecodes()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
         using EngineTextureArchive textures = EngineTextureArchive.OpenInstall(install);
         Assert.True(textures.Entries.Count > 5_000);
         foreach (EngineTextureEntry entry in textures.Entries)
@@ -98,11 +95,10 @@ public class TextureTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void AlphaTexturePreservesNonOpaquePixels()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
         using EngineTextureArchive textures = EngineTextureArchive.OpenInstall(install);
         EngineTextureEntry entry = textures.Entries.First(entry => entry.HasAlpha);
         RgbaImage image = textures.Decode(entry);

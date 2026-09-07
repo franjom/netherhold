@@ -1,38 +1,34 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.TestSupport;
 
 namespace DK2.Data.Tests;
 
 public class KwdTerrainRoomsTests
 {
-    private static string? EditorDir()
+    private static string EditorDir()
     {
-        string dir = Dk2Install.Find() ?? "";
-        string editor = Path.Combine(dir, "Data", "editor");
-        return Directory.Exists(editor) ? editor : null;
+        string editor = Path.Combine(Dk2InstallGate.Path, "Data", "editor");
+        Assert.True(Directory.Exists(editor), $"the install has no {editor}");
+        return editor;
     }
 
-    private static List<TerrainDef>? Terrain() =>
-        EditorDir() is { } d
-            ? KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(Path.Combine(d, "Terrain.kwd")))
-            : null;
+    private static List<TerrainDef> Terrain() =>
+        KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(Path.Combine(EditorDir(), "Terrain.kwd")));
 
-    private static List<RoomDef>? Rooms() =>
-        EditorDir() is { } d
-            ? KwdTerrainRooms.ParseRooms(KwdReader.ReadFile(Path.Combine(d, "Rooms.kwd")))
-            : null;
+    private static List<RoomDef> Rooms() =>
+        KwdTerrainRooms.ParseRooms(KwdReader.ReadFile(Path.Combine(EditorDir(), "Rooms.kwd")));
 
     // ---------------- Terrain ----------------
 
-    [Fact]
+    [InstallFact]
     public void Terrain_ParsesAllTypes_WithContiguousIds()
     {
-        List<TerrainDef>? t = Terrain();
-        if (t is null) return;
+        List<TerrainDef> t = Terrain();
 
         Assert.Equal(41, t.Count);
         Assert.Equal(Enumerable.Range(1, 41).ToList(),
@@ -40,11 +36,10 @@ public class KwdTerrainRoomsTests
         Assert.All(t, x => Assert.False(string.IsNullOrWhiteSpace(x.Name)));
     }
 
-    [Fact]
+    [InstallFact]
     public void Terrain_CoreTypes_HaveExpectedProperties()
     {
-        List<TerrainDef>? all = Terrain();
-        if (all is null) return;
+        List<TerrainDef> all = Terrain();
         TerrainDef T(byte id) => all.Single(x => x.TerrainId == id);
 
         TerrainDef rock = T(2);
@@ -70,11 +65,10 @@ public class KwdTerrainRoomsTests
         Assert.True(T(5).IsLava);
     }
 
-    [Fact]
+    [InstallFact]
     public void Terrain_TransitionGraph_EncodesDigAndClaimRules()
     {
-        List<TerrainDef>? all = Terrain();
-        if (all is null) return;
+        List<TerrainDef> all = Terrain();
         TerrainDef T(byte id) => all.Single(x => x.TerrainId == id);
 
         // Rock, when dug out, becomes Dirt Path.
@@ -92,11 +86,10 @@ public class KwdTerrainRoomsTests
         Assert.Equal("Claimed Path", T(T(3).MaxHealthTypeTerrainId).Name);
     }
 
-    [Fact]
+    [InstallFact]
     public void Terrain_HeroLair_HealsRatherThanDamages()
     {
-        List<TerrainDef>? all = Terrain();
-        if (all is null) return;
+        List<TerrainDef> all = Terrain();
 
         // Damage is signed: Hero Lair stores -67 (heals). Reading it unsigned
         // would give 65469, which is how the field's signedness was discovered.
@@ -110,22 +103,20 @@ public class KwdTerrainRoomsTests
 
     // ---------------- Rooms ----------------
 
-    [Fact]
+    [InstallFact]
     public void Rooms_ParseAllTypes_WithContiguousIds()
     {
-        List<RoomDef>? r = Rooms();
-        if (r is null) return;
+        List<RoomDef> r = Rooms();
 
         Assert.Equal(26, r.Count);
         Assert.Equal(Enumerable.Range(1, 26).ToList(),
                      r.Select(x => (int)x.RoomId).OrderBy(i => i).ToList());
     }
 
-    [Fact]
+    [InstallFact]
     public void RoomIds_MatchAndExtendFlameNaming()
     {
-        List<RoomDef>? all = Rooms();
-        if (all is null) return;
+        List<RoomDef> all = Rooms();
         RoomDef R(RoomTypeId id) => all.Single(x => x.RoomId == (byte)id);
 
         // Ids Flame already knew.
@@ -141,12 +132,11 @@ public class KwdTerrainRoomsTests
         Assert.Equal("Hero Stone Bridge", R(RoomTypeId.HeroStoneBridge).Name);
     }
 
-    [Fact]
+    [InstallFact]
     public void Rooms_TerrainIds_ResolveAgainstTerrainTable()
     {
-        List<RoomDef>? rooms = Rooms();
-        List<TerrainDef>? terrain = Terrain();
-        if (rooms is null || terrain is null) return;
+        List<RoomDef> rooms = Rooms();
+        List<TerrainDef> terrain = Terrain();
 
         // Every room lays down a real terrain type, and that terrain is flagged
         // as a room tile. Cross-parser consistency check.
@@ -158,13 +148,12 @@ public class KwdTerrainRoomsTests
         }
     }
 
-    [Fact]
+    [InstallFact]
     public void Rooms_SpawningRooms_ReferenceCorrectCreatures()
     {
-        List<RoomDef>? rooms = Rooms();
-        if (rooms is null) return;
+        List<RoomDef> rooms = Rooms();
 
-        string dir = Dk2Install.Find() ?? "";
+        string dir = Dk2InstallGate.Path;
         List<CreatureDef> creatures = KwdCreatures.Parse(
             KwdReader.ReadFile(Path.Combine(dir, "Data", "editor", "Creatures.kwd")));
 
@@ -177,11 +166,10 @@ public class KwdTerrainRoomsTests
         Assert.Equal("Vampire", creatures.Single(c => c.CreatureId == graveyard.CreatedCreatureId).Name);
     }
 
-    [Fact]
+    [InstallFact]
     public void Rooms_Costs_AreSane()
     {
-        List<RoomDef>? all = Rooms();
-        if (all is null) return;
+        List<RoomDef> all = Rooms();
 
         RoomDef R(RoomTypeId id) => all.Single(x => x.RoomId == (byte)id);
         Assert.Equal(200, R(RoomTypeId.Treasury).Cost);
@@ -198,11 +186,10 @@ public class KwdTerrainRoomsTests
 
     // ---------------- Map grid ----------------
 
-    [Fact]
+    [InstallFact]
     public void EveryCampaignMap_HasParsableGrid_WithValidTerrainIds()
     {
-        string? editor = EditorDir();
-        if (editor is null) return;
+        string editor = EditorDir();
 
         List<TerrainDef> terrain = KwdTerrainRooms.ParseTerrain(
             KwdReader.ReadFile(Path.Combine(editor, "Terrain.kwd")));
@@ -213,6 +200,7 @@ public class KwdTerrainRoomsTests
                                          .Where(f => f.EndsWith("Map.kld", StringComparison.OrdinalIgnoreCase)))
         {
             LevelMap? grid = MapGrid.Parse(KwdReader.ReadFile(file));
+            Assert.NotNull(grid);
             if (grid is null) continue;
             gridsFound++;
 

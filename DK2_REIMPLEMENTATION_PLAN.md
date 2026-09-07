@@ -993,10 +993,11 @@ is very expensive to retrofit.
 | **M10** | Campaign | Full campaign playable start to finish | after M8 |
 | **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
 
-**Status (2026-09-07, revision 8).** **1169 tests, 26 scenarios, 90 ADRs
-(ADR-0001 … ADR-0090, all present), 46 research docs, 215 open-question rows
-running to Q219**, `HashVersion` **36**, pin `0xD893704FB5D00309`.
-33,503 lines across 154 files in `src/`.
+**Status (2026-09-07, revision 9).** **1171 tests** (of which **266 need the
+game data and now SKIP without it** — ADR-0100), 26 scenarios, **91 ADRs**
+(ADR-0001 … ADR-0090 plus ADR-0100; 0091–0099 are reserved for the M1
+branch), 46 research docs, 215 open-question rows running to Q219,
+`HashVersion` **36**, pin `0xD893704FB5D00309`.
 
 > **This line went stale twice in one day** — revision 6 was wrong by six
 > commits, revision 7 by three. Editing it by hand does not work, and the note

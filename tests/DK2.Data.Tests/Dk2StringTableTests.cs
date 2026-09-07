@@ -1,10 +1,11 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using System.Buffers.Binary;
 using DK2.Data.Model;
 using DK2.Data.Text;
+using DK2.TestSupport;
 
 namespace DK2.Data.Tests;
 
@@ -64,11 +65,10 @@ public class Dk2StringTableTests
             Dk2StringTable.Read(noEnd, CodePage('A'), "no-end.str"));
     }
 
-    [Fact]
+    [InstallFact]
     public void ShippedDefinitionStringIdsResolveToTheirNames()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         GameDatabase database = GameDatabaseLoader.Load(install);
         Dk2StringTable text = Dk2StringTable.Open(
@@ -89,11 +89,10 @@ public class Dk2StringTableTests
         Assert.Equal(terrain.Name, text.Resolve(terrain.NameStringId));
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryShippedTableDecodesEveryEntryAndHasTheConfirmedTotals()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         string textRoot = Path.Combine(install, "Data", "Text", "Default");
         string[] files = Directory.GetFiles(textRoot, "*.str", SearchOption.TopDirectoryOnly);

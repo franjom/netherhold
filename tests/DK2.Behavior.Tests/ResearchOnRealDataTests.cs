@@ -5,6 +5,7 @@
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -14,13 +15,12 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class ResearchOnRealDataTests
 {
-    private static string? Install() => Dk2Install.Find();
+    private static string Install() => Dk2InstallGate.Path;
 
-    [Fact]
+    [InstallFact]
     public void ElevenCreaturesCanResearchAndTheWizardIsTheBestOfThem()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         CreatureDef[] researchers =
@@ -50,11 +50,10 @@ public class ResearchOnRealDataTests
         Assert.Equal(10, db.CreatureByName("Wizard")!.ResearchPerSecond);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheLoadersFloorMAKESTheSkeletonResearchFourTimesFasterThanItsRecordSays()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 
@@ -98,11 +97,10 @@ public class ResearchOnRealDataTests
                         * SimulationTiming.OriginalTicksPerGameSecond);
     }
 
-    [Fact]
+    [InstallFact]
     public void TheResearchLevelCurveIsTheSteepestProductionCurveInTheGame()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 
@@ -124,11 +122,10 @@ public class ResearchOnRealDataTests
         Assert.Equal(7, ResearchRules.PerOriginalTick(db, warlock, state));
     }
 
-    [Fact]
+    [InstallFact]
     public void TheSlapsResearchWindowIsSixtySecondsInTheShippedTable()
     {
-        string? install = Install();
-        if (install is null) return;
+        string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
 

@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Text;
 using DK2.Convert.Audio;
 using DK2.Data;
+using DK2.TestSupport;
 
 namespace DK2.Convert.Tests;
 
@@ -74,11 +75,10 @@ public class SdtArchiveTests
         Assert.Contains("beyond", error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryShippedBankHasTheConfirmedLayoutAndKnownPayloadTypes()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
         string soundRoot = Path.Combine(install, "Data", "Sound", "Sfx");
         string[] files = Directory.GetFiles(soundRoot, "*.sdt", SearchOption.AllDirectories);
         Assert.Equal(142, files.Length);
@@ -119,7 +119,7 @@ public class SdtArchiveTests
         Assert.Equal(6, payloadRateDisagreements);
     }
 
-    [Fact]
+    [InstallFact]
     public void EveryCompressedPayloadEndsWithExactlyOneTrailingZeroByte()
     {
         // Found while reviewing the branch rather than while writing it: walking
@@ -131,8 +131,7 @@ public class SdtArchiveTests
         // Whether it is a terminator, an alignment pad or an off-by-one in EA's
         // own packer is UNKNOWN. This test exists so that the day it stops being
         // universally true, somebody finds out.
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         string soundRoot = Path.Combine(install, "Data", "Sound", "Sfx");
         int compressed = 0;

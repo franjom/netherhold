@@ -8,6 +8,7 @@ using DK2.Data;
 using DK2.Data.Model;
 using DK2.Presentation;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Presentation.Tests;
 
@@ -24,7 +25,7 @@ public class WorldViewTests
 {
     private static (GameDatabase Database, WorldState World)? RealLevel()
     {
-        string? dir = Dk2Install.Find();
+        string dir = Dk2InstallGate.Path;
         if (dir is null) return null;
 
         GameDatabase database = GameDatabaseLoader.Load(dir);
@@ -41,7 +42,7 @@ public class WorldViewTests
     /// catalogue never enumerates is a key no converter produces, so a view that
     /// invented its own would render as boxes forever with no error anywhere.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void EveryTileOfAShippedLevelAsksForAKeyTheCatalogueLists()
     {
         if (RealLevel() is not var (database, world)) return; // skipped: no install
@@ -67,7 +68,7 @@ public class WorldViewTests
     /// split the catalogue makes, and it has to agree tile by tile rather than
     /// merely in aggregate.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void AWallAsksForAMeshAndAFloorForATexture()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -89,7 +90,7 @@ public class WorldViewTests
     /// carries only ground. Selling a room takes the furniture and leaves the
     /// floor (ADR-0029), which is why they are two assets rather than one.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void OnlyARoomTileHasFurniture()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -119,7 +120,7 @@ public class WorldViewTests
             .First(t => AssetRef.ForTerrain(t.Name, t.IsSolid ? AssetKind.Mesh : AssetKind.Texture) == tile.Ground)
             .TerrainId;
 
-    [Fact]
+    [InstallFact]
     public void HealthIsReportedAsAFractionSoARendererNeedsNoTerrainTable()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -134,7 +135,7 @@ public class WorldViewTests
     /// Every creature in a running world gets a mesh and an animation, and both
     /// are keys the catalogue lists.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void ACreatureGetsAMeshAndAnAnimationForItsCurrentActivity()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -164,7 +165,7 @@ public class WorldViewTests
     /// throw away the sub-tile position a renderer needs to interpolate, and
     /// ADR-0001 puts that conversion on the renderer.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void APositionCrossesTheBoundaryInFixedPointTileUnits()
     {
         if (RealLevel() is not var (database, world)) return;
@@ -191,11 +192,10 @@ public class WorldViewTests
     /// and enumerating all of it must leave the state hash untouched — the same
     /// gate the determinism tests use, pointed at the presentation layer.
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void BuildingAViewDoesNotChangeTheWorld()
     {
-        string? dir = Dk2Install.Find();
-        if (dir is null) return;
+        string dir = Dk2InstallGate.Path;
 
         GameDatabase database = GameDatabaseLoader.Load(dir);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "Level1")
@@ -314,7 +314,7 @@ public class WorldViewTests
     /// Claim Scan — are either rare or not really terrain, and a collision
     /// between them costs nothing.</para>
     /// </summary>
-    [Fact]
+    [InstallFact]
     public void TheFourWallsThatMatterAreDistinguishable()
     {
         if (RealLevel() is not var (database, _)) return;

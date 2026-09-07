@@ -1,19 +1,19 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Convert;
 using DK2.Data;
+using DK2.TestSupport;
 
 namespace DK2.Convert.Tests;
 
 public class ArtCatalogueTests
 {
-    [Fact]
+    [InstallFact]
     public void ShippedArtRecordsMatchGameplayDefinitionCounts()
     {
-        string? install = Dk2Install.Find();
-        if (install is null) return;
+        string install = Dk2InstallGate.Path;
 
         Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
         var database = GameDatabaseLoader.Load(install);
