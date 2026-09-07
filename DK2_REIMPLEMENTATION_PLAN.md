@@ -993,9 +993,15 @@ is very expensive to retrofit.
 | **M10** | Campaign | Full campaign playable start to finish | after M8 |
 | **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
 
-**Status (2026-09-07 late, revision 5).** **1146 tests, 26 scenarios, 85 ADRs,
-43 research docs, 209 catalogued questions** (59 fully open, 46 partly answered,
-86 closed), `HashVersion` **33**, pin `0x21A7E4D24F37DF48`.
+**Status (2026-09-07 late, revision 6).** **1161 tests, 26 scenarios, 87 ADRs
++ 8 amendments, 45 research docs, 213 catalogued questions**, `HashVersion`
+**34**, pin `0x46FAACC93F8323FF`.
+
+> Revision 5's line read *1146 tests, 85 ADRs, 43 research docs, 209 questions,
+> `HashVersion` 33, pin `0x21A7E4D24F37DF48`* and was stale by six commits. Same
+> defect class as the eleven the 2026-09-06 review caught: a true statement about
+> this project that nothing re-reads. **Recount before editing this line, don't
+> increment it.**
 
 - **M0** ✅ — ~~done except the one thing this document exists to correct: Flame has
   never been checked out (§2.2.1). OpenKeeper is on disk.~~ Flame was cloned on

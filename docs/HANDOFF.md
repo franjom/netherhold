@@ -6160,3 +6160,160 @@ Heroes.
 4. **Q209** — DK2's tile-walkability predicate, which gates the workshop's anvil,
    the library's bookcases, the casino's tables and the graveyard's tombstones.
    Cheapest from the pathfinder side, not the object side.
+
+---
+
+# The sitting of 2026-09-07 (late) — the research pass, and five live divergences
+
+**Six commits, `8a4255f` to `fb8cce8`.** No feature was built. The session was
+the research queue, worked in the order agreed, and it found **five divergences
+between this project and DK2** that no test could have caught — because every one
+of them was a rule inferred from what the data made convenient rather than read
+from what the code tests.
+
+**Status:** 1161 tests across 8 suites, 26 scenarios, **87 ADRs + 8
+amendments**, 45 research docs, **213 catalogued questions**, `HashVersion`
+**34**, pin `0x46FAACC93F8323FF`. Milestones unchanged: M0/M2/M3/M4 closed, M1
+partial at 9 of 18 record types, M5 not started.
+
+## What was wrong, in order of how much it mattered
+
+1. **`CanComeFromPortal` asked the Portal's question about every entrance**, so a
+   keeper's claimed Mercenary Portal produced evil creatures — and on the three
+   Frosty maps ours produced **nothing at all**. Fixed, and **confirmed in play**
+   (Q211): a keeper really does receive mercenaries, and **no Dwarf comes**, so
+   the flag is on the right bit.
+2. **Jack accumulated anger and could be *calmed by slapping*.** `CanBeAngered`
+   was inferred from *"the Skeleton is the only creature whose four `angerNo*`
+   fields are all zero"* — true, right about the Skeleton by accident, and wrong
+   about Jack, whose six anger fields are populated and **never read**. DK2
+   tests one flag in the single wrapper all 60 anger sites call. The gate now
+   lives in the one adder, so nothing can bypass it (ADR-0087).
+3. **Portal capacity counted only portals that could produce.** DK2's counter
+   tests the room type and nothing else, so a broken portal and a dead claimed
+   Mercenary Portal both raise the cap. Read off the instructions this session:
+   `PUSH 3` / `PUSH 0x19` / `ADD`, then `(n − 1) × 5 + 15`.
+4. **`ScanAddr.py` had never seen 100 KB of code.** It scanned
+   `0x401000`–`0x652c00`, which is `.text`, and the image has **two executable
+   blocks** — `cseg` at `0x653000`–`0x66bfff` is 102,400 bytes of disassembled
+   code. Every reader count taken before today is a claim about `.text` alone.
+   `ScanAll.py` replaces it. Re-run over the cut list, `cseg` contributed **zero**
+   hits, so the conclusions held; that is the outcome, not a reason to skip it.
+5. **ADR-0085's conclusion was wrong twice.** *"A zero rate faithfully
+   reproduced is the absence of the effect"* fails for `PercentageOfManaGainedBySacrificing`,
+   whose reader computes `x += x * (pct + 100) / 100` — the shipped 0 **doubles**
+   (amendment 1); and **a level file can override a global zero**, so id 218's
+   mechanism runs on `level2` and `level8` and nowhere else (amendment 2).
+
+## What closed
+
+**Q84, Q85, Q210, Q211, Q212, Q213**, plus the queue's head item (the cut list
+re-check) and the fourteen cut variables, which **all hold**.
+
+Highlights worth carrying:
+
+- **The room table's last slot is a `JobType`** — Hatchery 2 `Eat`, Library 3
+  `Research`, Training 4, Workshop 5, Guard 6, Torture 7, Temple 8, Casino 9,
+  Prison 22 `Wait`. Every row matches our numbering **including both
+  non-sequential values**, which turns `JobRules.RoomFor` from strongly inferred
+  into **Confirmed** (ADR-0088). Lair and Combat Pit carry no job id, so `Sleep`,
+  `Sulk` and `CombatPitSpectate` are reached another way and are untouched.
+- **It is called the "Mercenary Portal"** in game. There is **no "Hero Portal"
+  string in the executable's text bank at all** — that is the editor's label in
+  `Rooms.kwd` 25, which is what our identifiers are named from. The two portals'
+  info strings are word-for-word identical apart from the name, both showing
+  *"Portals owned … Up to %43 creatures may enter"* — a third confirmation of the
+  capacity rule, from the one source a player could have checked all along.
+- **Q212 is the Temple's prayer hook**, not sacrifice. `player + 0x10EE` is mana.
+  Category 12's per-second hook calms all six anger buckets, heals `min(33,
+  missing)`, and grants level-scaled prayer mana **doubled** when creature state
+  flag `+0x3EA` bit 4 is set. **What that bit marks is UNKNOWN**, and bit 7 of
+  the same byte is already UNKNOWN from Q69 — that byte wants a pass.
+- **The level-scaling model is confirmed from the binary**: level 1 uses the
+  record value raw, other levels compute `table[level] × record ÷ 100`, applied
+  to the record's value and not compounded, exactly as built.
+- **Three creature fields are CUT** — `GuardDuration`, `IdleDuration` and
+  `SlapFearlessDuration`, the last of which **takes two distinct values** and is
+  still never read. Varying data looks live in a way zeroed data does not.
+- **`ObjectDef.ManaValue` is CUT**, and **id 66 is the level's player count**
+  (54 exact agreements out of 57, with `Level17` named as a real counterexample).
+
+## New tools, all reusable
+
+| tool | what it does |
+|---|---|
+| `ScanAll.py` | address scan over **all thirteen initialised blocks**, naming the block per hit — replaces `ScanAddr.py` |
+| `CallScanAll.py` | the same for call sites, **per block** (a contiguous read across the block gap truncates silently) |
+| `CopyPairs.py` | dumps **every** record loader's source→destination pairs in one run, so finding a loader is an offset-alignment problem |
+| `RoomTable.py`, `Funcs.py`, `Bytes.py`, `Windows.py` | table dump, function list in a range, word dump, disassembly windows around addresses |
+| `dk2tools kwd fieldsweep <creatures\|objects>` | which record fields never vary — the data half of the zero-value audit |
+| `dk2tools kwd varsweep` | every VARIABLES record in the corpus: per-level overrides, value spread, the `(unk1, unk2)` distribution |
+
+**The file→runtime offset problem is retired as a method.** Every KWD loader
+copies each field behind a per-field presence flag, and **source offset = file
+offset + a constant per record type** — `0x3F0` for creatures, `0x80` for
+objects. Add the delta, find the read, take the store on the next line. Three
+references are never consumers: the initialiser, the loader, and the
+definition-copy routine.
+
+## Traps learned, and one of them points the other way
+
+- **Put a positive control in every scan run.** Variable 19's global must return
+  **226** hits. This caught a `MaskScan` query returning 0 where `ScanAll` found
+  172, purely because the operand renders with leading zeros (`0x006e4154`, not
+  `0x6e4154`).
+- **`ReadsAt.py` matches instruction text, so it hits stack offsets.** `+0x758`
+  returned a `[ESP + 0x758]` local. That **inflates** a count where every other
+  scanning bug here deflates one, and it would have turned "cut" into "has a
+  reader". Check the base register.
+- **Judge a folded load by the extraction, not the width.** A dword load at a
+  byte field's address means nothing; twelve of thirteen candidates follow it
+  with `AND …,0xff`. Only `MOV DL,CH` is a read.
+- **"Grep the whole corpus" means the corpus.** Only **one** variable id is
+  present in all 66 level files with a single value, so *"the level files agree
+  on this"* is almost never true.
+
+## Where the next sitting starts, and it is agreed
+
+**1. Gap 1 — settle the time base.** `SimulationTiming.TicksPerSecond = 20` is a
+placeholder the binary contradicts, and it just became closeable. Q1 reads a
+game second as **4 ticks** (all 66 levels carry 4 in the LEVEL record), and Q1's
+own stated blocker was *how a tick relates to wall-clock time* — which the
+owner's portal stopwatch answered on the way past: **one game second is one real
+second at normal speed**. So DK2 ticks 4× a second and we tick 20×.
+
+Two things stand in the way, both tractable:
+
+- **The tick counter's incrementer.** `FUN_00517490` returns
+  `*(*(game + 4) + 4)`, where the game object comes from global `0x006E5054`
+  (exactly two writers, a constructor and a teardown). The counter is the second
+  field of a sub-object at `game + 4`; find what increments it.
+- **Q47's five work-applications a second**, which cannot be scheduled inside
+  four ticks (`WorkApplicationPeriodTicks` would be `4 / 5 = 0`). Five-a-second
+  was inferred from 273 gold a swing and never timed; four-a-second is read from
+  the binary. **This is a contradiction between two of our own readings and must
+  be settled before the constant moves.**
+
+Every timing figure in the project rests on the placeholder, and the cost rises
+with each rate added — payday, anger, training, portals and hunger all now carry
+per-tick constants derived against 20. Move it once, bump `HashVersion` once.
+
+**2. The Library and research accrual**, after the time base. `ResearchPerSecond`,
+category 4's hooks, which pay the *player*. Scope it to the accrual, not the
+research tree; the Warlock already walks to the room and stands in it. Note
+that category 12's prayer hook read this session is the **template** for it —
+same shape, same once-a-game-second countdown at `creature+0xAF`.
+
+## Still open and worth naming
+
+- **Q47 vs Q1**, above — the blocking contradiction.
+- **`creature+0x3EA`**, bits 4 and 7 both UNKNOWN and both gate real behaviour.
+- **Q210's leftovers**: creature flag bit 0's attack is unidentified (the
+  routine is installed into a table rather than called), bit 1 has no reader in
+  either executable block, and the room table's three integers at `+0x19`,
+  `+0x1d`, `+0x21` are UNKNOWN with all 26 rooms tabulated.
+- **Q84's `Level17`** — id 66 = 2 against a pool reaching player 5. The PLAYERS
+  record settles it and is unparsed.
+- **The three standing gaps** from the goal review: CI's silent skip (install-backed
+  suites are green while asserting nothing), the omniscient view (`WorldView.TileAt`
+  takes no viewing player), and simulation speed, never measured.

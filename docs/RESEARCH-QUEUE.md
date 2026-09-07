@@ -5,8 +5,19 @@
 stopwatch, no play session. These can be worked independently and in parallel
 with feature work, because none of them touches `src/`.
 
-Maintained as questions move. Last reviewed **2026-09-07** against 209
-catalogued questions (57 fully open).
+Maintained as questions move. Last reviewed **2026-09-07 (late)** against 213
+catalogued questions.
+
+**The queue's head is clear.** Everything agreed for this pass is done: the cut
+list re-check (all fourteen hold), **Q210**, **Q212**, **Q213**, **Q84** and
+**Q85**. The next sitting is **not** a queue item — it is *Gap 1, settle the time
+base*, then the Library's research accrual. See the end of `HANDOFF.md`.
+
+**Two queue items are now blocked on each other and that is the real work:**
+**Q1** reads a game second as 4 ticks and **Q47** needs five work applications a
+second, which cannot be scheduled inside four. One of the two readings is wrong,
+both are ours, and `SimulationTiming.TicksPerSecond = 20` cannot move until it
+is settled.
 
 ---
 
