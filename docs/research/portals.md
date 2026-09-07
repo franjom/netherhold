@@ -438,6 +438,36 @@ formula against an unknown reset risks a portal that grinds to a halt where the
 original's recovers. The `n² + base` half is CONFIRMED and recorded; the counter's
 lifetime is not.
 
+### One scan later, the experiment above is the wrong one
+
+The owner asked whether **throwing creatures back into the portal** (Q88's keeper
+power) would serve instead of letting them die. Answering it took one scan, which
+should have been run before the paragraph above was written.
+
+**Nothing in the executable decrements `room[0x4D]`.** There are **129**
+references to a `+0x4D` field across every structure in the binary and **not one
+is a `DEC` or a `SUB`**. The portal's own unit holds exactly two increments (both
+on the generate path), two stores of literal zero, and two reads.
+
+So the counter **only climbs or is zeroed wholesale**, and three things follow:
+
+1. **Throwing a creature back and killing it are exactly equivalent** — both
+   remove a creature, and neither can lower `n` because no path exists to lower
+   it. There is no asymmetry to exploit.
+2. **A portal does not speed up when the population falls.** Predicted rather
+   than observed, but the prediction is strong: the only route to a faster portal
+   is whatever calls the two reset routines.
+3. **This project's formula is wrong in a second way** — it counts *living*
+   non-workers, so ours accelerates on every death and the original's does not.
+
+**The experiment worth running is about the room, not the creatures**: get a
+portal slow, then **sell and rebuild it**, or lose and re-claim it. The two
+zero-stores are reached only through a vtable, which is the shape of a room's
+`OnBuilt` / `OnClaimed`. And keep the test **below the 15-creature cap**, because
+a portal at capacity stops generating altogether — *"visibly slow"* at a dozen
+creatures may be *"stopped because full"*, a different mechanism answering a
+different question.
+
 ### One smaller thing, read on the way past
 
 Three game seconds before the creature is due, the same routine computes a

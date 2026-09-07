@@ -1400,7 +1400,7 @@ things.
 
 ---
 
-## One new item, 2026-09-07: does a slowed portal recover?
+## One new item, 2026-09-07: does a slowed portal recover? — REFRAMED THE SAME DAY
 
 **The cheapest observation on this list, and it blocks a formula that is
 otherwise fully read.**
@@ -1429,4 +1429,55 @@ one bit of information the game will state in two minutes of play. And the answe
 decides the shape of the fix, not just a number: this project currently counts
 *living creatures* and so speeds a portal back up automatically, which is right
 under one answer and wrong under the other.
+
+### Except the binary already answers it, and the item above should not have been written
+
+The owner asked whether **throwing creatures back into the portal** would do
+instead of letting them die — and answering that took one scan which should have
+been run before any of this was written down.
+
+**Nothing in the executable ever decrements `room[0x4D]`.** There are **129**
+references to a `+0x4D` field across every structure in the binary and **not one
+is a `DEC` or a `SUB`**. In the portal's own unit there are exactly two
+increments (both on the generate path), two stores of literal zero (the
+vtable-only resets), and two reads. So the counter **only ever climbs or is
+zeroed wholesale**.
+
+Which settles the owner's question and the experiment together:
+
+- **Throwing a creature back is exactly as good as killing it** — both remove a
+  creature and *neither can lower `n`*. There is no asymmetry to exploit,
+  because there is no decrement for either path to reach.
+- **So a portal does not speed up when the population falls.** Predicted from
+  the binary, not observed, but it is a strong prediction: the only route to a
+  faster portal is whatever calls the two reset routines.
+- **This project's formula is therefore wrong in a second way.** It counts
+  *living non-workers*, so ours accelerates on every death; the original's does
+  not.
+
+### The experiment worth running instead
+
+The two zero-stores are reached only through a vtable, which is the shape of a
+room's `OnBuilt` / `OnClaimed`. So the question is not what a *creature* does,
+it is what a *room* event does:
+
+> Get a portal visibly slow, then **sell it and rebuild it** — or let a rival
+> take it and claim it back.
+>
+> - **Speed returns to the base interval** → the reset is a room event, a
+>   portal's slowdown is per-tenure, and rebuilding one is a real tactic.
+> - **It stays slow** → the reset fires on something else again (level load?),
+>   and a portal is a resource that wears out permanently.
+
+**And keep the test below the creature cap.** With one portal the capacity is 15,
+and a portal at capacity stops generating altogether — so *"visibly slow"* at a
+dozen-plus creatures may be *"stopped because full"*, which is a different
+mechanism and would answer the wrong question. Ten creatures is plenty: at n = 10
+the interval on level 1 is already 118 seconds against a base of 18.
+
+**The method note.** The scan that settled this is the same one used a dozen
+times today and it cost a minute. It was not run because the checklist item felt
+like an observation question, and observation questions do not get scanned. That
+is a fifth variant of the standing review question: **before writing something
+down as unobservable-from-the-binary, spend the minute confirming it.**
 
