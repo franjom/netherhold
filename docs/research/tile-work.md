@@ -364,6 +364,35 @@ second, and an application is a fifth of one.** See "How much one swing does"
 below - the answer came from a measurement in the original rather than from the
 names, which is why it took until 2026-08-30.
 
+### Q69: attacking hostile floor is live; the vault rates are cut
+
+**CONFIRMED from the binary (2026-09-07).** `AttackTileHealth` is installed at
+`0x006F2558` after division by the four ticks per game second, so the shipped
+−140 becomes −35. It has two live readers, the work handlers at `0x00497670`
+and `0x004977F0`. Both require a tile owned by somebody else whose terrain is
+`Ownable|Attackable`, non-solid and not a room, scale the cached rate by the
+worker's Efficiency, and apply the negative result to tile health. At the
+ordinary 80% Efficiency that is **−28 health each tick**. One path ends when the
+hostile-floor predicate becomes false; the other also removes trap and door
+things left on the tile when it falls.
+
+This is the missing user Q68 guessed away: `AttackTileHealth` belongs to the
+hostile-ground work phase, alongside the imp states labelled **claiming
+territory**, not to an unobserved non-imp invasion behaviour. The binary still
+has both a neutral-claim phase using `ClaimTileHealth` and a hostile-floor phase
+using `AttackTileHealth`. The owner's observation that a bridge changes owner
+without a visible neutral pause therefore does not mean both phases use the
+same rate.
+
+The two mana-vault values are a different result. A second variable dispatcher,
+missed by the original global map, does cache them: 4 becomes 1 at
+`0x006F294F`, and 20 becomes 5 at `0x006F2953`. A complete `.text` address scan
+finds only those two stores and **no readers**. They are **CUT**, not disabled:
+the values are non-zero, but no mechanism consumes them in v1.70. They do not
+prove any vault-specific claim timing. A neutral Mana Vault goes through the
+ordinary neutral-floor claim predicate; hostile attackable ground goes through
+the ordinary hostile-floor predicate.
+
 ## The rule
 
 One application of work:

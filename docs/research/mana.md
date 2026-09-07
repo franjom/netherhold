@@ -209,10 +209,13 @@ Read this before adding to `ManaRules`.
   depends on it. `MaxManaGainIsSetOnExactlyOneTerrain_-`
   `WhichIsWhyNothingReadsIt` pins the negative result so that a future data set
   which contradicts it fails loudly.
-- **A mana vault cannot be claimed by anything.** The terrain pair and the two
-  `Claim…ManaVaultHealth` variables are all present, but claiming is a job an imp
-  starts by itself and that trigger is Q24. The mana rules would pay for a
-  claimed vault the moment something produced one.
+- **Mana-vault claiming is not special-cased by its two named rates** (Q69,
+  binary, 2026-09-07). `ClaimNeutralManaVaultHealth` and
+  `ClaimEnemyManaVaultHealth` are loaded into globals after conversion to
+  per-tick values, but neither global is ever read: both variables were CUT.
+  The ordinary neutral-floor and hostile-floor work predicates admit the vault
+  terrain pair, so their generic rates govern it. The mana rules pay for a
+  claimed vault the moment claiming produces one.
 - **No low-mana warning.** `LowManaWarningThreshold` (100) is interface, not
   simulation.
 

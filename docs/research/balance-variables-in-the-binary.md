@@ -25,12 +25,20 @@ return 1. So a variable the engine cares about has a **dedicated global
 address**, and every place that reads that address is a place that uses that
 variable.
 
-**181 of the 240 slots have a global.** The 59 that do not jump to a shared
-do-nothing stub, and the interesting thing is *which* they are: **ids 4 to 17
-are the whole tile-work health block** — `ClaimTileHealth`, `DigRockHealth`,
-`ReinforceWallHealth` and the rest. Those are not cached individually because
-the work code reads them as a set, indexed by job. That is a coherent story
-rather than a gap, and it is the first check on this map.
+**181 of the 240 slots in that setter have a global.** The other 59 jump to a
+shared do-nothing stub.
+
+> **CORRECTION, Q69, 2026-09-07: this is only one of two variable-install
+> paths.** A second dispatcher takes a complete VARIABLES record and explicitly
+> handles seventeen ids which are no-ops in the first table: 4–16, 136 and
+> 174–176. Every one has a fixed global after all. Except for
+> `DungeonHeartObjectHealth` (174), that dispatcher divides the shipped value by
+> variable 19 before storing it. Thus the tile-work values are cached per tick,
+> not read as an indexed set: for example `AttackTileHealth` −140 becomes −35
+> at `0x006F2558`. The two mana-vault rates likewise become 1 and 5 at
+> `0x006F294F` and `0x006F2953`, but neither global has a reader. Across both
+> paths **198 ids have storage; 42 do not**. The original 181/59 count remains
+> correct only for the first dispatch table.
 
 ## How the map is believed
 
@@ -239,13 +247,12 @@ addresses. The method, so it can be repeated:
    `MOV [global], AL|AX|EAX ; MOV EAX,1 ; RET 4` — the register names the width.
 3. The 59 uncached ids point at a shared stub that stores nothing.
 
-**181 cached, 59 not**, which reproduces the counts this document already
-carried from the other direction.
-
-**"Not cached" does not mean "unused".** Ids 4–17 are the tile-work health block
-and the work code reads them as a set; that is the pattern to expect wherever a
-group of variables is consumed together. It *does* mean there is no global to
-search, so the question "what reads variable N" has no cheap answer for those 59.
+**181 cached by this setter, 59 not**, which reproduces its own table counts.
+Q69 subsequently found the second, record-based dispatcher described above. It
+caches seventeen members of this setter's apparent no-op set, making the
+combined count **198 cached and 42 genuinely without storage**. Consequently,
+"shared no-op in this table" alone is not proof that a variable was cut: check
+the record dispatcher too.
 
 **A cached global with no reader is a different and stronger fact**, and it is
 worth checking before building on a variable. Four examples found the same day,
@@ -266,19 +273,19 @@ consults it.
 | id | name | shipped | global |
 |---|---|---|---|
 | 3 | `EntranceGenerationSpeedSeconds` | 25 | `0x006F2550` (u32) |
-| 4 | `ClaimTileHealth` | 825 | — |
-| 5 | `AttackTileHealth` | -140 | — |
-| 6 | `RepairTileHealth` | 125 | — |
-| 7 | `MineGoldHealth` | -300 | — |
-| 8 | `DigRockHealth` | -5000 | — |
-| 9 | `DigOwnWallHealth` | -130 | — |
-| 10 | `DigEnemyWallHealth` | -8 | — |
-| 11 | `FillInHealth` | 5 | — |
-| 12 | `ReinforceWallHealth` | 50 | — |
-| 13 | `RepairWallHealth` | 22 | — |
-| 14 | `ConvertRoomHealth` | -4000 | — |
-| 15 | `AttackRoomHealth` | -1500 | — |
-| 16 | `RepairRoomHealth` | 20000 | — |
+| 4 | `ClaimTileHealth` | 825 | `0x006F2554` (u32; load-time `/ 4`) |
+| 5 | `AttackTileHealth` | -140 | `0x006F2558` (u32; load-time `/ 4`) — two live hostile-floor work readers (Q69) |
+| 6 | `RepairTileHealth` | 125 | `0x006F255C` (u32; load-time `/ 4`) |
+| 7 | `MineGoldHealth` | -300 | `0x006F2560` (u32; load-time `/ 4`) |
+| 8 | `DigRockHealth` | -5000 | `0x006F2564` (u32; load-time `/ 4`) |
+| 9 | `DigOwnWallHealth` | -130 | `0x006F2584` (u32; load-time `/ 4`) |
+| 10 | `DigEnemyWallHealth` | -8 | `0x006F2588` (u32; load-time `/ 4`) |
+| 11 | `FillInHealth` | 5 | `0x006F2568` (u32; load-time `/ 4`) |
+| 12 | `ReinforceWallHealth` | 50 | `0x006F256C` (u32; load-time `/ 4`) |
+| 13 | `RepairWallHealth` | 22 | `0x006F2570` (u32; load-time `/ 4`) |
+| 14 | `ConvertRoomHealth` | -4000 | `0x006F2574` (u32; load-time `/ 4`) |
+| 15 | `AttackRoomHealth` | -1500 | `0x006F2578` (u32; load-time `/ 4`) |
+| 16 | `RepairRoomHealth` | 20000 | `0x006F2580` (u32; load-time `/ 4`) |
 | 17 | `Unknown_17` | 3 | — |
 | 18 | `ChickenGenerationTimePerHatchery` | 16 | `0x006F258C` (u32) |
 | 19 | `?` | ? | `0x006F2590` (u32) |
@@ -398,7 +405,7 @@ consults it.
 | 133 | `ModifyAngerWhileSolitaryInPitPerSecond` | 275 | `0x006F2906` (u16) |
 | 134 | `ModifyAngerOfCombatPitVictor` | -16400 | `0x006F2908` (u16) |
 | 135 | `ModifyAngerOfPitSpectatorPerSecond` | -275 | `0x006F290A` (u16) |
-| 136 | `ConvertNeutralRoomHealth` | -20000 | — |
+| 136 | `ConvertNeutralRoomHealth` | -20000 | `0x006F257C` (u32; load-time `/ 4`) |
 | 137 | `?` | ? | — |
 | 138 | `ManufacturePointLossWhileNoWorkersPerSecond` | 1 | `0x006F290C` (u16) |
 | 139 | `CasinoBigWinnerIncreasedHappinessPersentage` | 100 | `0x006F290E` (u16) |
@@ -436,9 +443,9 @@ consults it.
 | 171 | `?` | ? | — |
 | 172 | `?` | ? | — |
 | 173 | `CreatureCriticalHealthPercentageOfMax` | 20 | `0x006F294A` (u8) |
-| 174 | `DungeonHeartObjectHealth` | 100000 | — |
-| 175 | `ClaimNeutralManaVaultHealth` | 4 | — |
-| 176 | `ClaimEnemyManaVaultHealth` | 20 | — |
+| 174 | `DungeonHeartObjectHealth` | 100000 | `0x006F294B` (u32; stored raw) |
+| 175 | `ClaimNeutralManaVaultHealth` | 4 | `0x006F294F` (u32; load-time `/ 4`) — **no reader; CUT** (Q69) |
+| 176 | `ClaimEnemyManaVaultHealth` | 20 | `0x006F2953` (u32; load-time `/ 4`) — **no reader; CUT** (Q69) |
 | 177 | `CreaturesSupportedPerAdditionalPortal` | 5 | `0x006F28B5` (u8) |
 | 178 | `MaxGoldPerDungeonHeartTile` | 1000 | `0x006F25A8` (u32) |
 | 179 | `ImpExperienceGainPerSecond` | 20 | `0x006F295E` (u16) |
