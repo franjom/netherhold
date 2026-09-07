@@ -1355,7 +1355,9 @@ twelve closed outright.
 | **Q87** | Capacity is **per claimed portal**: 15 for the first, +5 for each after | A conflated pair of fifteens |
 | **Q103** | 240 s awake and ~9 s asleep both survive a stopwatch | Nothing, and it does not close |
 | **Q79** | Imp experience is *probably* per job done | Nothing; goes to the binary |
-| **Q57** | Imps take no wage — **and the owner now says no mana upkeep either** | A live conflict, see below |
+| **Q57** | Imps take no wage and **no gold upkeep**; the mana upkeep stands | Nothing — see the note below |
+| **Q178** | A chicken **does** die, and selling the hatchery is what did it | Nothing — the data already knew |
+| **Q90** | *"I have no idea"* — and that is an answer | Rules observation out; binary only |
 
 ### Two of these were worth more than an experiment would have been
 
@@ -1375,16 +1377,24 @@ and the centre is reserved for two things, one of which nobody here knew about:
 **dropping a creature into a portal removes it from the dungeon.** A yes/no
 question about pathing turned up a keeper power.
 
-### And one is a conflict with the owner's own earlier measurement
+### And one looked like a conflict and was my misreading
 
-On **Q57** the owner said imps *"cost mana and have no upkeep AFAIK"*. On
-2026-08-30, answering Q53, the same owner **photographed the mana orb** with four
-imps (−28) and again with five (−35) — seven a second, each — and that rate is
-corroborated by `KeeperSpells.kwd+0x00E2`, which reads 7 for Create Imp and is
-non-zero for exactly the five spells whose result persists.
+On **Q57** the owner said imps *"cost mana and have no upkeep AFAIK"*, and this
+file first recorded that as contradicting Q53 — where the same owner had
+**photographed the mana orb** with four imps (−28) and five (−35), seven a second
+each, corroborated by `KeeperSpells.kwd+0x00E2` reading 7 for Create Imp.
 
-The measurement stands over the recollection, and `ManaRules.ImpUpkeepPerSecond`
-stays until the owner says otherwise. Recorded here rather than resolved
-silently, because **the standing rule is that the owner arbitrates** — and when
-the owner disagrees with the owner, the one with a photograph wins.
+The owner corrected it within the hour: *"I meant no upkeep in GOLD, imps cost
+mana, yes, that still stands."* **Both statements were always true.** An imp
+costs mana every second and gold never — no wage at payday and no gold upkeep —
+and the two economies sit side by side in this project without either being the
+default.
+
+**The lesson is about the question, not the answer.** "Upkeep" names a rate
+without naming its unit, and I supplied the unit I had been working in.
+Worth remembering the next time an owner answer looks like it overturns a
+measurement: **check first whether the two are even talking about the same
+quantity.** Same shape as Q87's two fifteens, one step earlier — there it was
+two numbers that happened to be equal, here a word that happened to fit two
+things.
 
