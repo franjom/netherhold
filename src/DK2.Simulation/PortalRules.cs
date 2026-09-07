@@ -233,6 +233,31 @@ public static class PortalRules
     /// <para>Integer arithmetic throughout, and exactly so: the base in ticks is
     /// always <c>seconds x 20</c> and therefore even, so halving the product
     /// never rounds.</para>
+    ///
+    /// <para><b>THIS FORMULA IS NOW KNOWN TO BE WRONG, 2026-09-07 (Q86,
+    /// `portals.md`), and is left in place on purpose.</b> The paragraphs above
+    /// called their own shot — <i>"the step is still ours [...] the cheap route
+    /// to it is two consecutive gaps with the goblins counted, or
+    /// `Entrance.cpp` in the binary"</i> — and the binary route was taken. DK2's
+    /// portal computes <c>(n * n + EntranceGenerationSpeedSeconds)</c> game
+    /// seconds: an <b>addition of n² seconds</b>, not a multiple of the base.
+    /// The two agree at <c>n = 3</c> and nowhere else, which is where the
+    /// scenario log happened to be read.</para>
+    ///
+    /// <para><b>And <c>n</c> is not this either.</b> DK2's counter lives on the
+    /// <i>room</i> (<c>room+0x4D</c>) and is incremented <b>once per creature
+    /// generated</b>; this counts the keeper's living non-workers. So ours
+    /// speeds a portal back up when a creature dies and a generation counter
+    /// only climbs.</para>
+    ///
+    /// <para><b>Why it is not fixed yet.</b> The counter is reset to zero by two
+    /// routines that have no direct caller and no absolute reference in
+    /// <c>.text</c> — both reached through a vtable — so <b>whether a portal
+    /// ever recovers is unread</b>. Replacing this with the confirmed formula
+    /// against an unknown reset risks a portal that grinds to a halt where the
+    /// original's recovers, which is worse than a wrong slope. The question is
+    /// observable and is on the checklist: fill a dungeon until the portal is
+    /// visibly slow, let creatures die, and see whether it speeds back up.</para>
     /// </summary>
     public static int SpawnIntervalTicks(GameDatabase database, int creatureCount)
     {

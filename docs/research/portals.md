@@ -355,3 +355,105 @@ review clause.
   consequence to draw from a sentence about portals. Pinned as behaviour so it is
   one line to change.
 - **The rate.** Only the propagation is confirmed.
+
+---
+
+## The generation interval is quadratic, and our slope was OpenKeeper's guess
+
+Read out of DKII.EXE v1.70 on 2026-09-07 (Q86, Q90). The portal's per-tick
+routine begins at `0x004DBBE0`, and the arithmetic that decides when the next
+creature is due is six instructions:
+
+```
+n        = room[0x4D]                            -- a per-ROOM counter
+base     = EntranceGenerationSpeedSeconds        -- 25 game-wide, 18 on level 1
+dueTicks = (n * n + base) * variable19 + room[0x49]
+if (now >= dueTicks) <generate>
+```
+
+**So the interval is `(n² + base)` game seconds.** Not a multiple of the base —
+an *addition* of n² seconds to it.
+
+| n | DK2, level 1 | What this project had |
+|---|---|---|
+| 0 | 18 s | 18 s |
+| 1 | 19 s | 18 s |
+| 2 | 22 s | 18 s |
+| 3 | **27 s** | **27 s** |
+| 4 | 34 s | 36 s |
+| 5 | 43 s | 45 s |
+| 10 | 118 s | 90 s |
+
+**The two agree at n = 3 and nowhere else**, which is worth knowing because that
+is where the `a_portal_fills_a_dungeon` scenario happened to be looked at: it
+logged `interval=360` three times and then `interval=540`, and 540 ticks is 27
+seconds. A coincidence at exactly the point of inspection.
+
+### What our formula was, and where it came from
+
+`PortalRules.SpawnIntervalTicks` is `max(base, base × n / 2)`. Its own
+documentation is candid about the provenance and is worth quoting, because it
+called its own shot:
+
+> *"Nothing in the balance table expresses a slowdown — there is no 'generation
+> slowdown' variable — so this was **unfalsifiable from the files** and rested
+> entirely on OpenKeeper [...] **The step is still ours.** [...] Q86 is now one
+> question — is the step base/2? — and the cheap route to it is two consecutive
+> gaps with the goblins counted, or `Entrance.cpp` in the binary."*
+
+The binary route was taken and the answer is **no**. The slowdown is real — the
+owner watched it and OpenKeeper was right that it exists — and the slope is
+wrong.
+
+### And `n` is not what we count either, which is the bigger difference
+
+Ours counts **the keeper's non-worker creatures**. DK2's `room[0x4D]` is a
+**per-room counter incremented once per creature generated** (`FUN_004DBF90`,
+`INC dword ptr [EDI + 0x4D]` at `0x004DC5E3`).
+
+Those differ in a way a player would feel: **ours speeds a portal back up when a
+creature dies or deserts, and a generation counter only goes up.**
+
+### Which is exactly what is NOT established — and it is observable
+
+`room[0x4D]` is reset to zero by two routines, `FUN_004DBB90` and
+`FUN_004DBBC0` (the second also stamps `room[0x49] = now`). **Neither has a
+single direct caller or an absolute reference in `.text`**, so both are reached
+through a vtable — the shape of a room's virtual `OnBuilt` / `OnClaimed` /
+`Reset`. Plausible and unread.
+
+**So the open question is whether a portal ever recovers**, and it is a question
+for the game rather than the binary:
+
+> Fill a dungeon until the portal is visibly slow, then let several creatures
+> die or desert. **Does the portal speed back up?**
+>
+> - **Yes** → the counter tracks the population, and something resets or
+>   decrements it that has not been found.
+> - **No** → the counter only climbs, a portal is a resource that wears out, and
+>   at n = 15 the interval is 243 seconds on level 1.
+
+Nothing is built until that is answered, because implementing the confirmed
+formula against an unknown reset risks a portal that grinds to a halt where the
+original's recovers. The `n² + base` half is CONFIRMED and recorded; the counter's
+lifetime is not.
+
+### One smaller thing, read on the way past
+
+Three game seconds before the creature is due, the same routine computes a
+second threshold — `EDI -= variable19 * 3` at `0x004DBC9E`. The shape of a
+pre-warning: the animation or sound that plays before a creature appears.
+Unbuilt, and it costs nothing to know.
+
+### And Q90's two variables are dead
+
+`DecreaseEntrancePersentageOfLastSackedCreatureType` (`0x006F2910`) and
+`IncreaseEntrancePersentageOfNewCreatureTypes` (`0x006F2912`) were the named
+entry point to the portal's per-type weighting. A raw scan finds **one hit each,
+both the loader's setter**. Nothing reads either.
+
+So the mechanism those two names describe **is not in v1.70**, and Q90's answer
+is either that the weighting is hardcoded somewhere in the portal unit or that
+there is no weighting at all. That also explains why the owner could not
+perceive it: *"I have no idea"* is what a cut feature looks like from the
+outside. Two more for the cut list, which makes **fourteen**.

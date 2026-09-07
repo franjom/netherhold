@@ -1398,3 +1398,35 @@ quantity.** Same shape as Q87's two fifteens, one step earlier — there it was
 two numbers that happened to be equal, here a word that happened to fit two
 things.
 
+---
+
+## One new item, 2026-09-07: does a slowed portal recover?
+
+**The cheapest observation on this list, and it blocks a formula that is
+otherwise fully read.**
+
+DK2's portal computes its next arrival as `(n² + EntranceGenerationSpeedSeconds)`
+game seconds, where `n` is a counter on the *room* incremented **once per
+creature generated** (Q86, `portals.md`). Confirmed from the binary. What is not
+read is the counter's lifetime: it is zeroed by two routines that are reached
+only through a vtable, so nothing says when.
+
+**The experiment:**
+
+1. Play until a portal is visibly slow — a dozen creatures in, the gap should be
+   well over a minute and a half.
+2. Let several creatures **die or desert**, or sack them.
+3. Watch the next few arrivals.
+
+| What happens | What it means |
+|---|---|
+| the portal **speeds back up** | the counter tracks the living population, and something resets or decrements it that has not been found — keep looking |
+| the gap **stays long** | the counter only climbs. **A portal is a resource that wears out**, and at n = 15 the interval is 243 seconds on level 1 |
+
+**Why it is worth doing rather than digging:** the reset is virtual, so finding
+it means reading vtables to identify which room event fires it — a long dig for
+one bit of information the game will state in two minutes of play. And the answer
+decides the shape of the fix, not just a number: this project currently counts
+*living creatures* and so speeds a portal back up automatically, which is right
+under one answer and wrong under the other.
+
