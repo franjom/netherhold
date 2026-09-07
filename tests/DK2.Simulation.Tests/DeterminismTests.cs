@@ -303,6 +303,9 @@ public class DeterminismTests
         // order, string hashing - and for a simulation whose state is mostly
         // creatures it is guarding a world that has none.
         //
+        // 36 adds PlayerState.ResearchPoints, the Library's accrual. A new
+        // player field moves this by itself.
+        //
         // 35 settles Q1 - SimulationTiming.TicksPerSecond goes 20 to FOUR, DK2's
         // own rate - and REMOVES TileState.UpwardWork, because DK2 accumulates
         // an upward job in the tile's own health and converts at the terrain's
@@ -311,7 +314,7 @@ public class DeterminismTests
         // one drops a field out of the tile hash, the other re-times every
         // scheduled system.
         //
-        // Previous values: 0x46FAACC93F8323FF (34), 0x21A7E4D24F37DF48 (33), 0x30722F6054924CC5 (32),
+        // Previous values: 0x368FDF9DF3D0A6EA (35), 0x46FAACC93F8323FF (34), 0x21A7E4D24F37DF48 (33), 0x30722F6054924CC5 (32),
         // 0xC026542547419606 (31), 0x2E7E116CA573398B (30),
         // 0x19A512BB12A71575 (28), 0x0D75C57C1848268C (27),
         // 0x154E9041172A7F7F (26),
@@ -324,7 +327,7 @@ public class DeterminismTests
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x368FDF9DF3D0A6EAUL, sim.StateHash());
+        Assert.Equal(0xD893704FB5D00309UL, sim.StateHash());
     }
 
     [Fact]

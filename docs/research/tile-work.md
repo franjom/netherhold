@@ -62,10 +62,18 @@ divided by the tick rate.
   dump calls `WorkFasterTimer` and decrements it once a tick, which at variable
   19's four ticks a game second is exactly the `SlapWorkFasterDurationSeconds`
   of 25. **Q159 is closed in the binary's favour against the owner's own earlier
-  stopwatch** - a hand-timed *"after a minute"*, and an
-  `IncreasedWorkRateDurationFromSlappingSeconds` of 60 sitting in the table that
-  nothing reads. Third independent confirmation that variable 19 is four ticks a
-  game second.
+  stopwatch** - a hand-timed *"after a minute"*. Third independent confirmation
+  that variable 19 is four ticks a game second.
+
+  > **CORRECTION, 2026-09-07 (ADR-0090): the 60 is not dead.** This bullet used
+  > to end *"and an `IncreasedWorkRateDurationFromSlappingSeconds` of 60 sitting
+  > in the table that nothing reads"*. It is read - by the keeper's **research**
+  > adder, and only there - as the window on a research bonus. So a slap does
+  > two unrelated things: **Efficiency +10 for 25 seconds** (this bullet, from a
+  > hardcoded 100 ticks) and **research +200% for 60 seconds**, both stamped
+  > from the same handler's `LastSlapTick`. Q159's conclusion is unchanged;
+  > **the owner's "after a minute" was measuring a real minute-long effect**,
+  > just not this one. See `library-and-research.md` section 4.
 - **Still doing the job it was dropped onto: +10 points.** CONFIRMED by the
   owner: *"after I mark a tile for excavation and drop an imp adjacent to it its
   efficiency jumps to 90%. But if I drop it on a random tile where there is

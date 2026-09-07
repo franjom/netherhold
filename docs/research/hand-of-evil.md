@@ -196,6 +196,20 @@ both be about this timer. **Q159**, and the test is now cheap and needs no
 stopwatch precision at all: slap an imp, select it, and watch the status bar's
 percentage fall back to 80 — 25 seconds and 60 seconds are not close.
 
+> **RESOLVED 2026-09-07, and NEITHER of the two was wrong** (ADR-0090,
+> `library-and-research.md` §4). The premise was: they cannot both be about this
+> timer. Correct — and they are not. **The 60 is read**, by the keeper's
+> **research** adder and nowhere else, as the window on a research bonus worth
+> +200%. So one slap starts two clocks from the same `LastSlapTick` stamp: the
+> work-rate bonus for **25** game seconds and the research bonus for **60**.
+>
+> The owner's *"after a minute"* was a real minute-long slap effect. The status
+> bar reads Efficiency, so the 25 is what a slapped **imp** shows and Q159's
+> answer stands; the minute belongs to a mechanism the status bar does not
+> print. **The careful phrasing above — "has been found to read" rather than
+> "does not read" — is why this correction is an addition and not a
+> retraction.** `tile-work.md` used the unhedged form and needed one.
+
 A second loose end in the same handler: `SpeedChangeTimer` is set to
 `var19 * 100` = 400 ticks = **100 game seconds**, where
 `SlapSpeedUpDurationSeconds` is 25. Recorded, not resolved; nothing in this

@@ -911,6 +911,14 @@ internal static class Dk2TerrainFixture
         // second one is DK2's per-second experience DRAIN for creatures that are
         // not training - a real mechanism shipped with the rate set to zero.
         Set(vars, VariableTypeId.ModifyPlayerColdWhileTrainingPerSecond, -5);
+
+        // The Library's two, at their shipped values. Both are read only by the
+        // keeper's research adder, which is the correction that put them here:
+        // the duration was written up across this project as a variable that
+        // NOTHING reads, on the strength of the slap's work bonus using a
+        // hardcoded 100 ticks instead (Q159). Two mechanisms, one name.
+        Set(vars, VariableTypeId.IncreasedWorkRatePecentageFromSlapping, 50);
+        Set(vars, VariableTypeId.IncreasedWorkRateDurationFromSlappingSeconds, 60);
         Set(vars, VariableTypeId.EPLossSecondWhileNotTraining, 0);
 
         Set(vars, VariableTypeId.CreatureDyingStateDurationSeconds, 60);

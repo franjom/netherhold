@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -402,6 +402,18 @@ public sealed class CreatureJobSystem : ISimulationSystem
             return;
         }
 
+        // RESEARCH IS PAID EVERY TICK, and the bonuses once a game second.
+        // That split is the original's: its adder credits the base amount
+        // unconditionally and computes the bonuses only inside a
+        // `tick % variable19 == 0` guard (FUN_004c2dc0). So the tabled
+        // ResearchPerSecond arrives in four instalments and a slap's bonus
+        // arrives in one lump.
+        if (job == JobType.Research)
+        {
+            if (originalTick) Research(context, world, database, creature, definition, second);
+            return;
+        }
+
         if (!second || job != JobType.Praying) return;
 
         // THE ONLY JOB WITH AN EFFECT, and the only source in the game that
@@ -463,6 +475,45 @@ public sealed class CreatureJobSystem : ISimulationSystem
             $"player={creature.OwnerPlayerId} {level}->{creature.Level} " +
             $"via=training discarded={before + amount - CreatureLevelRules.ExperienceForNextLevel(database, definition, level)} " +
             $"cap={TrainingRules.LevelCap(database)}");
+    }
+
+    /// <summary>
+    /// One of the original's ticks of research, credited to the researcher's
+    /// keeper.
+    ///
+    /// <para><b>The keeper, not the creature</b> — DK2's hook ends
+    /// <c>MOV ECX,[ESI + 0x2A]</c>, the creature's player pointer, and calls
+    /// the keeper's adder. Research is the only job so far whose entire effect
+    /// lands on the player rather than on the worker.</para>
+    ///
+    /// <para><b>Nothing charges for it.</b> Training bills the keeper once a
+    /// game second and can evict a creature for poverty; the research hook has
+    /// no cost path at all, which is worth stating because the two rooms look
+    /// symmetrical from the outside and are not.</para>
+    ///
+    /// <para>Reported on the second only, like training: four lines a second in
+    /// a log read by eye is worse than one.</para>
+    /// </summary>
+    private void Research(
+        SimulationContext context, WorldState world, GameDatabase database,
+        CreatureState creature, CreatureDef definition, bool second)
+    {
+        int amount = ResearchRules.PerOriginalTick(database, definition, creature);
+        if (amount <= 0) return;
+
+        int bonus = second
+            ? ResearchRules.SlapBonus(database, creature, amount, context.Tick.Value)
+            : 0;
+
+        ref PlayerState keeper = ref world.Player(creature.OwnerPlayerId);
+        keeper.ResearchPoints += amount + bonus;
+
+        if (!second) return;
+
+        context.Emit(SystemName, "researched",
+            $"creature={creature.Id} type={definition.Name} " +
+            $"player={creature.OwnerPlayerId} level={creature.Level} " +
+            $"gain={amount} bonus={bonus} points={keeper.ResearchPoints}");
     }
 
     /// <summary>

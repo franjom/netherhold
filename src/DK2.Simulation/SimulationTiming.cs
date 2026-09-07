@@ -146,14 +146,24 @@ public static class SimulationTiming
     /// neighbour <c>ExpForNextLevel</c> is stored <b>raw</b>, and that is the
     /// tell that the divide means something: a threshold is not a rate.</para>
     ///
-    /// <para><b>The floor is not rounding hygiene, it is reachable.</b> The Imp,
-    /// the Dwarf and Horny carry an <c>angerNo*</c> of 1 and keep it; without
-    /// the floor a creature that can be angered at all would silently stop being
-    /// angerable. The truncation on the other side is reachable too and is
-    /// <i>not</i> corrected: an <c>ExpPerSecondTraining</c> of 30 becomes 7 a
-    /// tick and therefore <b>28 a game second, not 30</b>. Every rate that is
-    /// not a multiple of four loses up to three of itself a second, and that is
-    /// reproduced rather than rounded away.</para>
+    /// <para><b>The floor is not rounding hygiene, it is reachable, and it runs
+    /// in BOTH directions.</b> The Imp, the Dwarf and Horny carry an
+    /// <c>angerNo*</c> of 1 and keep it; without the floor a creature that can
+    /// be angered at all would silently stop being angerable. The truncation on
+    /// the other side is reachable too and is <i>not</i> corrected: an
+    /// <c>ExpPerSecondTraining</c> of 30 becomes 7 a tick and therefore
+    /// <b>28 a game second, not 30</b>. Every rate that is not a multiple of
+    /// four loses up to three of itself a second, and that is reproduced rather
+    /// than rounded away.</para>
+    ///
+    /// <para><b>And a rate below four does not shrink — it GROWS.</b> Found
+    /// 2026-09-07 while building the Library (<see cref="ResearchRules"/>).
+    /// The <b>Skeleton's</b> <c>ResearchPerSecond</c> is <b>1</b>, which the
+    /// floor turns into 1 a tick and therefore <b>4 a game second — four times
+    /// what its record says</b>; the Monk's and the Dark Angel's 3 become 4 the
+    /// same way. So this line inflates three creatures as surely as it
+    /// truncates twenty-six others, and it is load-bearing in a direction
+    /// nobody had looked.</para>
     ///
     /// <para>Rates that are added once a game second should be multiplied back
     /// up by <see cref="OriginalTicksPerGameSecond"/> so the loss survives;
@@ -161,12 +171,19 @@ public static class SimulationTiming
     /// <see cref="OnOriginalTick"/>.</para>
     ///
     /// <para><b>The floor is DK2's literal <c>1</c>, sign and all</b>, so a
-    /// field of −1 to −3 would come back as <c>+1</c> and change direction. That
-    /// is what the original's store does and it is left alone because <b>no
-    /// shipped field reaches it</b>: every one of the ten is either zero or at
-    /// least four, and the two negative anger fields (−5000 slap, −250 in hand)
-    /// are stored raw by a different part of the loader. If a field ever does
-    /// land there, this is the line to look at first.</para>
+    /// field of −1 to −3 would come back as <c>+1</c> and change direction. No
+    /// shipped field is negative in this range — the two negative anger fields
+    /// (−5000 slap, −250 in hand) are stored raw by a different part of the
+    /// loader — so the sign flip cannot occur, and the line is left alone.</para>
+    ///
+    /// <para><b>The reason first given for that was false and is worth keeping
+    /// visible.</b> It read: <i>"no shipped field reaches it: every one of the
+    /// ten is either zero or at least four"</i>. Three creatures carry 1 or 3
+    /// in <c>ResearchPerSecond</c>, so fields <i>do</i> reach the floor — they
+    /// simply reach it from the positive side, where the consequence is
+    /// inflation rather than a sign flip. The conclusion survives; the evidence
+    /// offered for it did not, and nothing checked it for a month
+    /// (<c>ResearchOnRealDataTests</c> checks it now).</para>
     /// </summary>
     [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
     public static int LoaderRatePerTick(int fileValue)

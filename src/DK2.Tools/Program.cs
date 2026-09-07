@@ -695,6 +695,51 @@ switch (args[0])
         return 0;
     }
 
+    // The Library's rates, and what the loader's divide by variable 19 does to
+    // each of them. Written for the research accrual (ADR-0090): the tabled
+    // figure is not what the engine adds, because ResearchPerSecond is one of
+    // the ten record fields divided at load time.
+    case "kwd" when args.Length >= 2 && args[1] == "research":
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2Install.Require());
+
+        // This tool has no dependency on DK2.Simulation, deliberately - it is a
+        // data dump, not a second implementation. So the loader's divide is
+        // inlined here: integer divide by variable 19's four, floored at one
+        // for any non-zero file value. It mirrors
+        // SimulationTiming.LoaderRatePerTick, which is the authority.
+        const int TicksPerGameSecond = 4;
+        static int PerTick(int tabled) =>
+            tabled == 0 ? 0 : Math.Max(tabled / TicksPerGameSecond, 1);
+
+        Console.WriteLine(" id name                 tabled  perTick  perSecond  lost  lvl10");
+        int researchers = 0;
+        foreach (CreatureDef c in db.Creatures.Values.OrderBy(c => c.CreatureId))
+        {
+            if (c.ResearchPerSecond == 0) continue;
+            researchers++;
+            int perTick = PerTick(c.ResearchPerSecond);
+            int perSecond = perTick * TicksPerGameSecond;
+            int atTen = perTick
+                * db.StatPercent(CreatureStatId.ResearchPerSecond, 10) / 100
+                * TicksPerGameSecond;
+            Console.WriteLine(
+                $"{c.CreatureId,3} {c.Name,-20} {c.ResearchPerSecond,6} {perTick,8} "
+                + $"{perSecond,10} {c.ResearchPerSecond - perSecond,5} {atTen,6}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"{researchers} creatures can research.");
+        Console.WriteLine("Level curve for the Research row (stat 17):");
+        for (int level = 1; level <= 10; level++)
+        {
+            Console.Write(
+                $"   L{level}={db.StatPercent(CreatureStatId.ResearchPerSecond, level)}%");
+        }
+        Console.WriteLine();
+        return 0;
+    }
+
     case "kwd" when args.Length >= 2 && args[1] == "creatures":
     {
         string? carg = args.Skip(2).FirstOrDefault(a => !a.StartsWith('-'));

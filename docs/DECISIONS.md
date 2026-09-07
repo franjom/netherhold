@@ -7489,3 +7489,118 @@ existing number and the accidental 13.2 s reinforce. But the reinforce fit was
 the product of two errors, the substrate would have preserved a cadence the
 binary contradicts, and "our tick is not the game's tick" is a permanent tax on
 every later reading. The rate is DK2's or it is a guess.
+
+---
+
+## ADR-0090 — The Library accrues research to the keeper, and three bonuses are not what their names say
+
+**Status:** accepted (2026-09-07). `HashVersion` and the snapshot format both
+**35 → 36**, pin `0xD893704FB5D00309`. Corrects a claim in
+**ADR-0062**/Q159's reasoning and one in `SimulationTiming`.
+
+**Context.** The Library was the last room a creature could walk into and stand
+in with no effect. `JobRules.RoomFor(JobType.Research)` was confirmed against
+the room handler table (ADR-0088), the job chooser already sent a Warlock there,
+and nothing happened when it arrived.
+
+**Decision.** Build the **accrual** and not the tree, from DK2's per-tick hook
+for state category 4 (`sub_0047b000`) and the keeper-side adder it calls
+(`FUN_004c2dc0`). `docs/research/library-and-research.md` has the full read.
+
+### What the accrual is
+
+`ResearchPerSecond` (runtime `def+0x6BB`, identified exactly by the loader pair
+`src=0x12F8 → dst=0x6BB` against file offset `0xF08 + 0x3F0`), divided by
+variable 19 at load time, scaled by the level table's row at `+0x201`, and
+credited **to the keeper** — the hook ends `MOV ECX,[ESI + 0x2A]`, the
+creature's player pointer. Every tick. Nothing charges for it.
+
+`PlayerState.ResearchPoints` is the accumulator (`player+0x20F`). It is only
+ever added to: the original keeps a *current target* beside it and completes
+that target when the points reach its cost, and **the points are credited
+whether or not a target is selected**, so the accrual is faithful on its own.
+
+**Research is the first job whose entire effect lands on the player.** Training
+and praying both change the worker; this changes only the keeper. Worth stating
+because the Library and the Training Room look symmetrical from outside and are
+not — training also *bills* the keeper once a game second and can evict a
+creature for poverty, and the research hook has no cost path at all.
+
+### The three bonuses, and why they are reproduced
+
+Read from the adder, all three added **once a game second** on top of a base of
+four per-tick amounts:
+
+| bonus | variable | tabled | in the code | effective |
+|---|---|---|---|---|
+| casino big win | 143 | 35% | `4 × 35 × 4 / 100` | **+140%** |
+| tortured type | 142 | 25% | `(4 + 25) × 4 / 100` | **+29%** |
+| slapped, within 60 s | 164 | 50% | `4 × 50 × 4 / 100` | **+200%** |
+
+**Two different slips in three adjacent lines.** The casino and slap lines
+multiply by `variable19` twice — one factor more than "a percentage of the
+per-second rate" needs — while the tortured-type line **adds** where the others
+multiply (`ADD ECX,EAX` against `IMUL ECX,EAX` in the same position), so its 25
+behaves as 29. Two of three siblings wrong in unrelated ways is the strongest
+argument that none of it is deliberate.
+
+Reproduced, not corrected: ADR-0002 says a quirk is reproduced, and these are in
+the shipped v1.70 *instructions* rather than in a shipped number, so ADR-0023's
+"disbelieve one shipped value" machinery does not apply and should not be
+stretched to cover them.
+
+**Only the slap bonus is built.** The other two need a Casino and a Torture
+Chamber; their formulas are recorded as constants with the arithmetic in the
+doc comment so that building them later is transcription rather than
+re-derivation.
+
+### The correction: a variable that was not dead
+
+`IncreasedWorkRateDurationFromSlappingSeconds` (60) was written up in
+`tile-work.md` and in Q159's reasoning as **a variable nothing reads**. It is
+read here, and the reason it looked dead is that it was looked for in the wrong
+mechanism. **A slap does two unrelated things:**
+
+- **Efficiency +10 points for 25 game seconds**, from a *hardcoded* 100 ticks in
+  the slap handler. Q159, CONFIRMED by the owner off the status bar.
+- **Research +200% for 60 game seconds**, this, gated on the same handler's
+  `LastSlapTick` stamp at `creature+0x4BB`.
+
+**This partly rescues a measurement that had been written off.** Q159 closed
+against the owner's own hand-timed *"after a minute"* in favour of the binary's
+25 seconds, and the 60 was called a red herring. Q159's conclusion is unchanged
+and correct — but **there really is a minute-long slap effect**, and dismissing
+the variable was wrong. A shipped number with no reader should be recorded as
+*"no reader found"*, never as *"no reader"*, and that is now the standing form.
+
+### A second correction, from the shipped data
+
+`dk2tools kwd research` (new) dumps the column, and **the loader's floor at 1
+runs upward as well as down**: the Skeleton's tabled `ResearchPerSecond` of 1
+becomes 4 a game second — **four times its record** — and the Monk's and Dark
+Angel's 3 become 4. `SimulationTiming.LoaderRatePerTick` had justified leaving
+the floor's sign-flip case alone with *"every one of the ten is either zero or at
+least four"*. Three creatures carry 1 or 3. The conclusion survives (no shipped
+field is negative in that range, so no sign flip) but the evidence for it was
+false and nothing had checked it for a month.
+
+Also pinned on the way past: **"Dark Angel " ships with a trailing space** in
+its name field, so a lookup by name silently returns null for it. Anything that
+keys creatures by name has the same bug waiting.
+
+### Consequences
+
+- A keeper with a Library and a researcher now accumulates a number that nothing
+  spends. That is a visible loose end and it is the intended shape: the tree is
+  a separate decision, and building half a tree would be worse than none.
+- **Eleven creatures can research and the Warlock is not the best of them** —
+  the Wizard, a hero, is twice as fast. Any later balance work that assumes the
+  Library is the Warlock's room should read the table first.
+- The level curve is the steepest production curve in the game (100% to **700%**
+  at level 10, identical to Manufacture), so a Warlock's level matters more here
+  than anywhere else a creature works.
+
+**Rejected: building the tree at the same time.** The accrual is read and
+testable; the tree needs the research-item table, the per-keeper unlock state and
+the UI's ordering, none of which has been read. Shipping the accrual alone keeps
+every claim in this ADR falsifiable.

@@ -323,6 +323,25 @@ public struct PlayerState
     public int Mana;
 
     /// <summary>
+    /// Research points banked by this keeper, DK2's <c>player+0x20F</c>.
+    ///
+    /// <para><b>Only ever added to, and never spent here.</b> The original keeps
+    /// this beside a <i>current target</i> at <c>player+0x213</c> and, when a
+    /// target is set and the points reach its cost, completes it. This project
+    /// has the accrual and not the tree (<see cref="ResearchRules"/>), so the
+    /// points bank indefinitely — which is faithful for the case that matters,
+    /// because the original credits them <b>whether or not a target is
+    /// selected</b>: the field is written before the target is even looked
+    /// at.</para>
+    ///
+    /// <para>Reduced by nothing in this simulation. The original's adder does
+    /// have a subtract path — a negative credit is clamp-subtracted rather than
+    /// allowed to go below zero — but nothing has been found that passes it a
+    /// negative amount, so what it is for is UNKNOWN (Q218).</para>
+    /// </summary>
+    public int ResearchPoints;
+
+    /// <summary>
     /// The earliest tick at which this keeper may be handed a free imp.
     ///
     /// <para><b>A deadline, not a countdown</b>, and the distinction is the
@@ -397,6 +416,7 @@ public struct PlayerState
     {
         hash.Add(PlayerId);
         hash.Add(Mana);
+        hash.Add(ResearchPoints);
         hash.Add(NextFreeImpTick);
         hash.Add(NextPaydayTick);
         hash.Add(Hand.Count);

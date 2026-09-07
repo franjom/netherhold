@@ -27,9 +27,21 @@ except where noted: **Q215** (what guards DK2's "health reached MaxHealth"
 conversion — disassemble `0x00453058` onward rather than trusting the decompile)
 and **Q214** (one minute of play; it is on the observation checklist instead).
 
-**Next sitting: the Library and research accrual**, as agreed — `ResearchPerSecond`,
-state category 4's hooks, scoped to the accrual and not the research tree.
-Category 12's prayer hook is the template.
+~~**Next sitting: the Library and research accrual**~~ — **BUILT 2026-09-07**
+(ADR-0090, `HashVersion` 36). Category 12's prayer hook was indeed the template.
+Three new questions came out of it, all in this queue's remit: **Q217** (who
+sets the keeper's casino flag at `player+0x20D` — scan for stores to
+`[reg + 0x20D]`), **Q218** (who passes the research adder a negative amount —
+`CallScanAll.py` on `0x004c2dc0`, and remember that a `.text`-only scan is how
+ADR-0086's "reached only through a vtable" went wrong), and **Q216**, which
+needs the research tree rather than this queue.
+
+**The standing lesson from that sitting**, because it cost a documented claim:
+record a shipped variable as **"no reader found"**, never as **"no reader"**.
+`IncreasedWorkRateDurationFromSlappingSeconds` was written up as read by nothing
+and turned out to govern a second slap effect in a mechanism nobody had looked
+at. `hand-of-evil.md` used the hedged form and needed only an addition;
+`tile-work.md` used the flat form and needed a correction.
 
 ---
 
@@ -89,6 +101,7 @@ Helper scripts are copied into
 | `CallSlot.py <out> <slotHex> <globalHex>` | indirect calls through a vtable slot offset, flagged by whether the caller also touches a global. Note that an empty result is weak evidence — the dispatcher may reach its list through a member rather than a global |
 | `TickWriter.py <out> <globalHex>` | dword stores into `[reg + 4]` across the image, flagged by whether the containing function touches a global. Built for the tick counter; found only linked-list `next` pointers, which was the useful negative |
 | `Imports.py <out> <needle>...` | imported symbols matching a needle, with every reference site. `timeGetTime`, `QueryPerformanceCounter` and `GetTickCount` in one run locate the platform clock |
+| `dk2tools kwd research` | every creature that can research, with what the loader's divide by variable 19 does to its rate, and the level curve. Found that the floor at 1 **inflates** three creatures - the Skeleton's tabled 1 becomes 4 a second |
 
 **Two traps that have each cost this project time twice:**
 
