@@ -288,7 +288,7 @@ consults it.
 | 23 | `DeadBodyDiesAfterSeconds` | 60 | `0x006F25A0` (u32) |
 | 24 | `MaxGoldPerTreasuryTile` | 3000 | `0x006F25A4` (u32) |
 | 25 | `DecomposeValueNeededForVampire` | 1000 | `0x006F25AC` (u32) |
-| 26 | `CreatureDyingStateDurationSeconds` | 60 | `0x006F25B0` (u32) |
+| 26 | `CreatureDyingStateDurationSeconds` | 60 | `0x006F25B0` (u32); one live reader in the common creature-health routine — seeds an exact `60 * 4` dying countdown (Q110) |
 | 27 | `SpecialIncreaseGoldAmount` | 10000 | `0x006F25B4` (u32) |
 | 28 | `SpecialIncreaseManaAmount` | 50000 | `0x006F25B8` (u32) |
 | 29 | `?` | ? | `0x006F25C1` (u32) |

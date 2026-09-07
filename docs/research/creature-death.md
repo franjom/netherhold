@@ -348,6 +348,28 @@ slapping calms it; being held annoys it).
 **The flag governs.** A graveyard counting `DecomposeValue` instead of asking
 `LeavesBody` would be fed by two corpses that never exist.
 
+## The collapse window rejects further damage
+
+**CONFIRMED from the binary (Q110, 2026-09-07).** The cached
+`CreatureDyingStateDurationSeconds` value has one live reader, in the common
+creature-health routine. On the first blow that puts an eligible creature down,
+that routine loads `60 * 4` into the creature's health/countdown field and sets
+the `CreatureDying` flag. The two dying-state handlers are states `0xd8` and
+`0xd9`; `0xd9` advances that countdown by calling the same health routine with
+`-1` in its explicit dying-countdown mode.
+
+The same routine has an early return for a creature already flagged
+`CreatureDying` when that mode is absent. The ordinary combat, spell and
+environmental-damage callers all use the ordinary mode. Therefore a second hit
+or a keeper spell does **not** finish a collapsed creature early: the 60-second
+rescue window is inviolable to further gameplay damage.
+
+The exceptional callers are bookkeeping, not extra attacks: the dying-state
+countdown itself, another state handler that also decrements by one, a trigger
+action that adjusts a spawned creature to a requested health value, and loading
+paths. No gameplay damage caller bypasses the guard. Rescue/healing remains the
+intended way out before the countdown expires.
+
 ## Open
 
 | | |
@@ -355,4 +377,4 @@ slapping calms it; being held annoys it).
 | **Q107** | Can a creature whose bed is sold while it lies dying be rescued? We say no — a collapsed creature is not allowed to claim a replacement, because claiming is a walk and a placement in the owner's own description. **This decides a real outcome now** (ADR-0063): a rescue's destination is the creature's own bed, so no bed means no imp comes |
 | **Q108** | Is the "flower petals" indicator the anger meter, or a separate health/consciousness one? Bears on Q106 |
 | **Q109** | Does an *enemy* creature collapse the same way, or go straight to a capturable state? The answer mentions prison as the imp's alternative destination, which implies the same collapse either way |
-| **Q110** | Does anything shorten the dying window — a second hit while collapsed, or a keeper's spell? |
+| **Q110** | **CLOSED.** No. The common health routine rejects ordinary damage once `CreatureDying` is set. Only the dying-state countdown and bookkeeping/loading paths use its explicit bypass mode |
