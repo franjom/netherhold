@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -20,9 +20,6 @@ public static class KeeperSpellName
 {
     /// <summary>Buys an imp, and every imp alive charges its keeper upkeep.</summary>
     public const string CreateImp = "Create Imp";
-
-    /// <summary>Summons a Horned Reaper, the most expensive thing a keeper can keep.</summary>
-    public const string SummonHorny = "Summon Horny";
 
     /// <summary>Take a creature over in first person.</summary>
     public const string Possession = "Possession";

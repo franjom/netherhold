@@ -347,21 +347,6 @@ public static class CreatureHealthRules
     public static bool CanGetHungry(CreatureDef creature) => creature.HungerFill > 0;
 
     /// <summary>
-    /// Whether this creature owes chickens — <c>HungerNeed &gt;= HungerFill</c>,
-    /// the original's own test, delegated to <see cref="EatingRules.IsHungry"/>
-    /// so that there is one copy of it.
-    ///
-    /// <para><b>This used to be a stopwatch and is now a level.</b> It read
-    /// "has <c>HungerRate</c> elapsed, or is a meal already outstanding"; DK2
-    /// asks only the second question, because its clock <i>adds</i> to
-    /// <c>HungerNeed</c> rather than raising a flag
-    /// (<see cref="EatingRules.Tick"/>, <c>docs/research/eating.md</c>).</para>
-    /// </summary>
-    public static bool HungerHasArrived(
-        GameDatabase database, CreatureDef creature, CreatureState state) =>
-        CanGetHungry(creature) && EatingRules.IsHungry(database, creature, state);
-
-    /// <summary>
     /// One chicken eaten in a hatchery: it pays off one of the
     /// <c>HungerNeed</c>, restarts the hunger clock and restores
     /// <c>HpFromChicken</c> — capped, as always, at the level-scaled maximum.

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -31,9 +31,12 @@ namespace DK2.Simulation;
 /// (<see cref="SimulationTiming.LoaderRatePerTick"/>), and the hook credits the
 /// divided figure **every tick**. So the tabled figure is delivered once a game
 /// second in four instalments, and every rate that is not a multiple of four
-/// loses up to three of itself a second to the loader's truncation. The Warlock
-/// ships at 10, which becomes 2 a tick and therefore <b>8 a second, not
-/// 10</b>.</para>
+/// loses up to three of itself a second to the loader's truncation. The
+/// <b>Wizard</b> ships at 10, which becomes 2 a tick and therefore <b>8 a
+/// second, not 10</b>; the Warlock's 5 becomes 1 a tick and delivers <b>4</b>.
+/// And a rate below four does not shrink but <i>grows</i> — see
+/// <see cref="SimulationTiming.LoaderRatePerTick"/>, where the Skeleton's
+/// tabled 1 becomes 4 a second.</para>
 /// </summary>
 public static class ResearchRules
 {
@@ -138,10 +141,15 @@ public static class ResearchRules
     /// "a percentage of the per-second rate", which would need one factor and
     /// not two — but ADR-0002 is explicit that a quirk is reproduced, and this
     /// one is in the shipped v1.70 instructions rather than in a shipped
-    /// number. Its sibling bonuses in the same function are wrong in **two
-    /// different ways** (see <see cref="TorturedTypeBonusPercent"/>), which is
-    /// what a hand-edited run of three lines looks like and is the strongest
-    /// argument that none of it is intentional.</para>
+    /// number. Its two sibling bonuses in the same function are wrong in
+    /// <b>two different ways</b> — the casino line repeats the same doubled
+    /// <c>variable19</c>, while the tortured-type line <i>adds</i> where these
+    /// multiply, turning a tabled 25 into an effective 29 — which is what a
+    /// hand-edited run of three lines looks like, and is the strongest argument
+    /// that none of it is intentional. Neither sibling is built (no Casino, no
+    /// Torture Chamber); both formulas are in
+    /// <c>docs/research/library-and-research.md</c> section 3 rather than in
+    /// unused constants here.</para>
     ///
     /// <para><b>UNKNOWN: whether a player would notice.</b> A Warlock earns 2 a
     /// tick, so slapping takes it from 8 a second to 24 — a threefold change in
@@ -163,41 +171,4 @@ public static class ResearchRules
              * perTickAmount / 100;
     }
 
-    /// <summary>
-    /// <b>NOT BUILT, and the formula is here so that it is built correctly.</b>
-    /// A researcher whose creature type appears in its keeper's tortured-types
-    /// list earns a bonus, once a game second:
-    ///
-    /// <code>
-    /// bonus = (variable19 + IncreasedWorkRatePercentageOfPlayersTorturedCreatureTypes)
-    ///         * variable19 * perTickAmount / 100
-    /// </code>
-    ///
-    /// <para><b>Note the <c>+</c>.</b> Where the slap and casino bonuses
-    /// multiply by the percentage, this one <i>adds</i> variable 19 to it —
-    /// <c>ADD ECX,EAX</c> where the others have <c>IMUL ECX,EAX</c>. So the
-    /// shipped 25 behaves as <b>29</b>, and the effective bonus is +29% rather
-    /// than the +25% the name promises. That is Q81's finding, and it is a
-    /// *different* slip from the slap bonus's extra factor.</para>
-    ///
-    /// <para>Unbuildable today: it needs a Torture Chamber and a per-keeper
-    /// list of the creature types tortured there, neither of which exists.</para>
-    /// </summary>
-    public const int TorturedTypeBonusPercent = 25;
-
-    /// <summary>
-    /// <b>NOT BUILT.</b> The third bonus in the same adder, gated on a
-    /// per-keeper flag at <c>player+0x20D</c> that this project reads as "a
-    /// casino big win has occurred" from
-    /// <c>IncreasedWorkRatePercentageWhenCasinoBigWinOccurs</c>. Same shape as
-    /// the slap bonus, including the doubled variable 19, so the shipped 35
-    /// behaves as <b>+140%</b>.
-    ///
-    /// <para><b>What the flag actually means is UNKNOWN</b> (Q217) — it is a
-    /// 16-bit field beside the research accumulator, tested for non-zero, and
-    /// nothing in the read of this function says who sets it. The variable's
-    /// name is the only evidence, and a name is not a reader. Needs a
-    /// Casino.</para>
-    /// </summary>
-    public const int CasinoBigWinBonusPercent = 35;
 }

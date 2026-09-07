@@ -125,10 +125,6 @@ public static class CreatureLevelRules
     public static int SpeedRaw(GameDatabase database, CreatureDef creature, int level) =>
         Scale(creature.Speed.Raw, Percent(database, CreatureStatId.Speed, level));
 
-    /// <summary>Running speed, which scales by its own row — identical to walking's in the shipped table.</summary>
-    public static int RunSpeedRaw(GameDatabase database, CreatureDef creature, int level) =>
-        Scale(creature.RunSpeed.Raw, Percent(database, CreatureStatId.RunSpeed, level));
-
     /// <summary>
     /// What a worker earns for one of the original's ticks of work — the raw
     /// <c>ImpExperienceGainPerSecond</c> of <b>20</b>, undivided.

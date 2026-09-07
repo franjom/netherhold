@@ -20,74 +20,93 @@ something does *not* happen closes a question just as hard.
 
 ---
 
-## READ THIS FIRST — the one from 2026-09-07 (late), and it costs a minute
+## READ THIS FIRST — Q214 IS WITHDRAWN, and its replacement takes ten seconds (2026-09-07)
 
-**NEW AND TOP OF THE LIST: time an imp filling in ONE tile (Q214).**
+**"Filling in" is a name this project invented, and it may not be a DK2 action
+at all.** Owner, asked to time it: *"an excavated tile can not be filled in, it
+leaves a 'dirt path' tile behind ... otherwise I don't know what you mean by
+'filling in'."*
 
-| Do this | Watch for | If the answer is... |
-|---|---|---|
-| Excavate a corridor so you have your own claimed path. Mark **one** tile of it to be **filled in**. Drop an imp beside it. **Time the work**, not the walk | how long the imp works once it is standing there, and whether the tile visibly changes in stages | **Effectively instant** (a single swing, ~250 ms) and the rule read out of DK2's applier is right as it stands. **Seconds of grinding** and DK2's conversion compare has a guard this project has **not** read (Q215), and the fill-in path needs a rule of its own. Either way it settles an assertion that has now held **three different answers** — instant, then 132 seconds, now instant again — **without anybody ever having watched it** |
+**Where the name came from, so nobody re-invents it.** The shipped data has a
+`FillInHealth` balance variable (id 11, **+5**) and a `FillInable` terrain flag
+(bit 15), and Claimed Path's `maxHealthTypeTerrainId` is **Rock**. Three pieces
+of data that fit together as *"a floor tile can be turned back into rock"*. That
+is a shape in the **data**; nothing ever established it was a shape in the
+**game**.
 
-Why it is worth a minute: fill-in is the only upward job with no measurement
-behind it, the two candidate rules differ by a factor of **500**, and the same
-unread guard is the one weak point in ADR-0089. It is also the cheapest thing
-on this page.
+**It is unreachable in this project too.** `TileWorkKind.FillIn` is not in
+`TileWorkRules.TaggedWork` and nothing else requests it, so no imp in this
+simulation can perform one. The only caller is a unit test that invokes it
+directly. The two rules the withdrawn Q214 tried to distinguish therefore govern
+**a code path nothing can reach**.
 
-### FIRST OBSERVATION IN, 2026-09-07, and it settles the big half
+### The owner's hypothesis, and the data refutes it
 
-**Owner:** *"I can't time it precisely, it 'feels' to me like 2 seconds, it is
-really fast."*
+Owner: *"a claimed path can be 'attacked' by opposing players' imps, they can
+take over my territory once our claimed tiles touch, maybe that is what that
+FillInHealth relates to?"*
 
-**That kills ADR-0024's reading dead.** The rule this project shipped until
-today predicted **660 applications, about 165 seconds**. "Really fast" is not
-165 seconds by any reading of anybody's stopwatch, so the deficit rule is
-confirmed from a second direction — one that has nothing to do with reinforcing.
+**No — territory takeover has its own flag and its own variable, and both sit on
+the same tile as `FillInable`:**
 
-**What it does not settle is 1 against ~4**, because the overhead swamps the
-difference:
+| terrain | flags |
+|---|---|
+| Dirt Path | `FillInable`, `TerrainLight` |
+| **Claimed Path** | `Ownable`, **`Attackable`**, `PlayerColouredPath`, `ConstructionTypeQuad`, `FillInable`, `TerrainLight` |
+| Claimed Vault | `Ownable`, **`Attackable`**, `FillInable`, `TerrainLight` |
+| Mana Vault, Hero Lair | `FillInable` (+ others) |
 
-| applications | work at 250 ms each | + drop, walk and the ~0.35 s linger |
-|---|---|---|
-| **1** — what the applier's compare predicts | 0.25 s | **~0.6 s** |
-| **4** — the same as claiming a tile | 1.0 s | **~1.35 s** |
-| 8 | 2.0 s | ~2.35 s |
+So they are two mechanisms, not one. **The takeover is `AttackTileHealth`
+(−140)** against the `Attackable` flag: an enemy imp runs the tile's health
+*down*, and at zero the data says Claimed Path becomes **Dirt Path** — after
+which they claim it normally. That is exactly the two-step the owner describes,
+and `TileWorkKind.AttackTile` already models it.
 
-**And there is a reason to suspect 4 rather than 1.** The owner's word for
-*claiming* a tile was also **"about 2 seconds"** (Q46), and claiming is four
-applications. Two subjective judgements of the same duration for two jobs is
-weak evidence that the two jobs take the same number of swings — which would
-mean the read rule is incomplete and **Q215's unread guard is doing something**.
+**`FillInable` is on every floor terrain including UNOWNED Dirt Path**, and its
+delta is **positive**. So it is not about ownership at all, which is the second
+reason the hypothesis does not fit: an unowned dirt path has no owner to take it
+from. It really does read as "turn an excavated corridor back into rock".
 
-### The protocol, PRE-REGISTERED before the measurement
+### THE REPLACEMENT QUESTION — Q219, and it needs no timing
 
-Written down first, deliberately, because both previous numbers on this question
-were fits.
+| Do this | Watch for |
+|---|---|
+| Look at DK2's own interface. **Is there any way to turn a floor tile back into rock?** Any tool, mode, right-click option, or keeper spell that fills in, blocks off or un-excavates a corridor — on your own claimed path *or* on unowned dirt path | Only whether it exists. If it does, its name and how it is invoked |
 
-**Preferred — race them, and time nothing.** Mark one Dirt Path tile for
-claiming and one of the keeper's own claimed-path tiles for filling in, side by
-side. Drop two imps at the same instant. Watch only **which finishes first**:
+- **No such action** → `FillInHealth` and the `FillInable` flag are a **cut or
+  editor-only feature**, and belong with the ADR-0085 family of mechanisms DK2
+  built and did not expose. `TileWorkKind.FillIn` then stays as an inert path,
+  documented as unreachable rather than quietly carrying invented behaviour.
+- **There is one** → say what it is called, and Q214 comes back with a real
+  experiment behind it.
 
-- **Fill-in wins clearly** → one application; the applier's compare is the whole
-  rule and ADR-0089 stands as written.
-- **They finish together** → about four; there is a rule in DK2's conversion
-  path that this project has not read, and fill-in needs its own.
+**Do NOT settle this from a scan.** `varmap.tsv` lists `FillInHealth` as having
+**zero readers** — and lists `ClaimTileHealth` and `ReinforceWallHealth` exactly
+the same way, both of which were read out of the binary on 2026-09-07. Three ids
+share one setter stub with no global recorded, so the zero is a **scan
+artefact**. This is the trap in `a-live-mechanism-with-a-zero-rate-is-not-dead`
+and `a-scan-proves-nothing-outside-its-range`, and it was one sentence away from
+producing a confident wrong answer about a cut feature.
 
-Reaction time cancels, because both jobs carry the same drop-walk-linger
-overhead and the comparison is relative.
+### While there — the reinforce discrepancy is real and unresolved
 
-**Backup — count the swings, do not time them.** A swing is one animation loop,
-four a game second (ADR-0089). Select the imp and count its work animations
-before the tile turns to rock. One against four is easy by eye, and a discrete
-count beats a duration — the same reason the gold counter beat the stopwatch for
-Q47.
+Owner's recollection, 2026-09-07: *"about 14-15 seconds, I timed it before"*.
+The **recorded** readings are 13.38 and 13.77 (2026-08-30), then 13.3-13.4 with
+a fresh level-1 imp and ~13.1 with a level-3 one (2026-09-05). **ADR-0089's
+model predicts 12.5 s** — 50 applications at four a second.
 
-**If a number is wanted — record it.** `Win+Alt+R` captures at 30–60 fps. One
-tick is 250 ms, so at 60 fps one application is **15 frames** and the two
-candidates are 45 frames apart.
+**12.5 s is below every recorded reading**, by 0.6 s against the fastest and
+1.3 s against the slowest, and by 1.5-2.5 s against the recollection. That was
+written up as a hand timer's over-read, which is the right *direction* — but it
+is also exactly what a per-application amount of **9** rather than 10 would look
+like: 495 / 9 = 55 applications = **13.75 s**, the middle of the recorded range.
 
-**Either answer is worth having**, and a "they finish together" is worth more
-than a "fill-in wins": it would send Q215 to the top of the research queue with
-a known shape.
+**What decides it is a count, not a clock.** 50 jumps against 55 is 10%, which
+no stopwatch separates, but a 60 fps recording does. The arithmetic at stake is
+whether DK2 truncates twice (`50/4 = 12`, then `12 x 0.8 = 9.6 -> 9`) or rounds
+the second step to 10. The slapped-mining measurement says that step **rounds**
+(67.5 gave 68 health, not 67), which argues for 10 and leaves the seconds
+unexplained. **Recorded as open rather than resolved in the model's favour.**
 
 ---
 

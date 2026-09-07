@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -139,16 +139,4 @@ public sealed class PlaceholderProvider : IAssetProvider
         return (int)(reference.StableHash() % (ulong)count);
     }
 
-    /// <summary>
-    /// Proof that this provider's derivation is what the project's hash says it
-    /// is, rather than something that drifted. Bumping this is a signal that
-    /// every placeholder colour changed, which is a visual change and should be
-    /// a deliberate one.
-    /// </summary>
-    public static ulong DerivationVersion()
-    {
-        Hash64 hash = Hash64.Start();
-        hash.Add("PlaceholderProvider/1");
-        return hash.Value;
-    }
 }

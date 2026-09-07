@@ -236,50 +236,6 @@ public class TileWorkTests
         Assert.Equal(Dk2TerrainFixture.Rock, tile.TerrainId);
     }
 
-    [Fact]
-    public void FillingInAClaimedPath_CompletesInOneApplication_WHICH_NOBODY_HAS_WATCHED()
-    {
-        // THE NAME CARRIES THE DOUBT ON PURPOSE. This is the one upward job with
-        // no measurement behind it, and the rule that is read from the binary
-        // gives it a result that looks wrong.
-        //
-        // What is read: DK2's applier adds the delta into the tile's own health
-        // and converts the moment the health reaches the terrain record's
-        // MaxHealth. Claimed Path SHIPS at 660 of a 660 maximum, so it is
-        // already there, and the first application of FillInHealth (+5, so +1)
-        // converts it to Claimed Path's max-health type - which is Rock. One
-        // application is 250 ms.
-        //
-        // Why that is suspicious: the same unguarded compare would turn a
-        // damaged claimed path into Rock as soon as anything healed it, which
-        // cannot be the game's behaviour. So there is a guard in DK2 that this
-        // project has NOT read - the decompiler dropped that branch's body, and
-        // the guard is UNKNOWN. Our own CompletesUpward gate stands in for it
-        // and is the reason repair does not convert here.
-        //
-        // Why the code is left on the read rule anyway: a special case for
-        // fill-in would be an invented rule, which is worse than a faithful one
-        // that is flagged. The history is instructive - this test has now
-        // asserted THREE different answers (instant, then ADR-0024's 660
-        // applications and 132 seconds, now instant again), and not one of the
-        // three was ever watched in the game.
-        //
-        // ONE MINUTE OF PLAY SETTLES IT: mark an excavated claimed path to be
-        // filled in and time the imp. Q22, and it is on the observation
-        // checklist.
-        TileState tile = TileOf(Dk2TerrainFixture.ClaimedPath, owner: 1);
-        TerrainDef claimed = Db.TerrainById(Dk2TerrainFixture.ClaimedPath);
-
-        // The premise, asserted rather than assumed: it starts at its maximum.
-        Assert.Equal(claimed.MaxHealth, tile.Health);
-        Assert.Equal(660, claimed.MaxHealth);
-
-        TileWorkResult result = TileWorkRules.Apply(Db, ref tile, TileWorkKind.FillIn, 1);
-
-        Assert.Equal(TileWorkOutcome.Transformed, result.Outcome);
-        Assert.Equal(Dk2TerrainFixture.Rock, tile.TerrainId);
-    }
-
     // ---- gold ------------------------------------------------------------
 
     [Fact]

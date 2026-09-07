@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -37,12 +37,18 @@ namespace DK2.Simulation.Tests;
 /// bit that Dirt Path, Claimed Path and both mana vaults set, and Claimed Path's
 /// <see cref="TerrainDef.MaxHealthTypeTerrainId"/> is <b>Rock</b> — three fields
 /// that together describe filling a floor tile back in (Q18, Q22). The owner has
-/// played the game and says no keeper can do it. Both can be true if the engine
-/// carries the concept and the shipped game exposes no way to reach it, which is
-/// what <see cref="TileWorkKind.FillIn"/> now is here: a work kind the rules can
-/// resolve and <b>no imp ever chooses</b>. These tests pin the second half — that
-/// nothing in a running simulation ever closes a tile — so that adding a job
-/// priority for it later would fail loudly rather than quietly.</para>
+/// played the game and says no keeper can do it.
+///
+/// <para><b>So the work kind is gone, 2026-09-07.</b> This file used to describe
+/// a <c>TileWorkKind.FillIn</c> that the rules could resolve and no imp ever
+/// chose. An unreachable path that carries inferred behaviour is worse than no
+/// path — it invited a whole afternoon of trying to time an action nobody has
+/// seen — so it was removed. <b>What this file still guards is the property, not
+/// the enum member:</b> nothing a running simulation does ever turns a walkable
+/// tile solid, and the assertion below is now over the whole set of kinds an imp
+/// can choose rather than over one named exception. Q219 asks whether DK2
+/// exposes fill-in at all; if it does, the kind returns with an experiment
+/// behind it.</para>
 ///
 /// <para><b>Scope, and it matters for M6.</b> These are statements about
 /// <i>workers</i>, not about the engine. DK2's level script has an
@@ -229,7 +235,16 @@ public class DugOutTilesStayDugOutTests
         for (int tick = 0; tick < 4000; tick++) sim.Tick(InputFrame.Empty);
 
         Assert.True(spy.Seen.Count > 0, "no work was queued at all, so this proved nothing");
-        Assert.DoesNotContain(TileWorkKind.FillIn, spy.Seen);
+
+        // Every kind an imp chose, and NOTHING ELSE. Stronger than the old
+        // "does not contain FillIn": a new work kind that closed a tile would
+        // fail here even if nobody thought to name it.
+        Assert.All(spy.Seen, kind => Assert.Contains(kind, new[]
+        {
+            TileWorkKind.Dig, TileWorkKind.MineGold, TileWorkKind.DigOwnWall,
+            TileWorkKind.DigEnemyWall, TileWorkKind.Claim, TileWorkKind.ConvertRoom,
+            TileWorkKind.Reinforce,
+        }));
 
         // Non-vacuous the other way too: the kinds an imp does choose did show up.
         Assert.Contains(TileWorkKind.Dig, spy.Seen);

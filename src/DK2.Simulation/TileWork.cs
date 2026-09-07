@@ -44,9 +44,6 @@ public enum TileWorkKind
     /// <summary>Restore a damaged reinforced wall. <c>RepairWallHealth</c>.</summary>
     RepairWall = 8,
 
-    /// <summary>Fill a floor tile back in. <c>FillInHealth</c>.</summary>
-    FillIn = 9,
-
     /// <summary>
     /// Take a room that belongs to somebody else — a rival's or a neutral one.
     /// <c>ConvertRoomHealth</c>.
@@ -119,9 +116,6 @@ public readonly record struct TileWorkResult(
     int GoldSpilled,
     byte NewTerrainId)
 {
-    public bool Changed => Outcome is TileWorkOutcome.Progressed
-        or TileWorkOutcome.Destroyed
-        or TileWorkOutcome.Transformed;
 }
 
 /// <summary>
@@ -177,7 +171,6 @@ public static class TileWorkRules
         TileWorkKind.RepairTile => VariableTypeId.RepairTileHealth,
         TileWorkKind.Reinforce => VariableTypeId.ReinforceWallHealth,
         TileWorkKind.RepairWall => VariableTypeId.RepairWallHealth,
-        TileWorkKind.FillIn => VariableTypeId.FillInHealth,
         TileWorkKind.ConvertRoom => VariableTypeId.ConvertRoomHealth,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown tile work kind."),
     };
@@ -257,11 +250,22 @@ public static class TileWorkRules
     /// first tick. Making the conversion a property of the *work* rather than of
     /// the health level resolves that, and gives each of the three upward jobs
     /// exactly the destination the data records:
-    /// Rock --Reinforce--&gt; Reinforced Wall, Dirt Path --Claim--&gt; Claimed Path,
-    /// Claimed Path --FillIn--&gt; Rock. See docs/research/tile-work.md and Q18.
+    /// Rock --Reinforce--&gt; Reinforced Wall and Dirt Path --Claim--&gt; Claimed
+    /// Path. See docs/research/tile-work.md and Q18.
+    ///
+    /// <para><b>There were three of these until 2026-09-07.</b> A third kind,
+    /// <c>FillIn</c>, turned a floor tile back into rock — inferred from a
+    /// <c>FillInHealth</c> variable, a <c>FillInable</c> terrain flag and
+    /// Claimed Path's max-health type being Rock. It was <b>removed</b>: nothing
+    /// in this simulation ever requested one, and the owner — who has played the
+    /// game — does not recognise filling in as a DK2 action at all. The data
+    /// shape is real and is recorded in <c>library-and-research.md</c>'s
+    /// neighbour, <c>tile-work.md</c>; Q219 asks whether the game exposes it. If
+    /// the answer is yes, this comes back with an experiment behind it instead
+    /// of an inference.</para>
     /// </summary>
     public static bool CompletesUpward(TileWorkKind kind) =>
-        kind is TileWorkKind.Claim or TileWorkKind.Reinforce or TileWorkKind.FillIn;
+        kind is TileWorkKind.Claim or TileWorkKind.Reinforce;
 
     /// <summary>
     /// Whether this kind of work ends by <b>taking the tile over</b> rather than
@@ -426,10 +430,6 @@ public static class TileWorkRules
 
             TileWorkKind.RepairWall =>
                 terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId == playerId,
-
-            TileWorkKind.FillIn =>
-                terrain.Flags.HasFlag(TerrainFlags.FillInable)
-                && terrain.MaxHealthTypeTerrainId != tile.TerrainId,
 
             _ => false,
         };

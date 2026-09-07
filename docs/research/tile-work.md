@@ -812,21 +812,34 @@ and it lands **once a tick**. The 273 gold a swing measures the fifth and
 always did. Q1 is settled at **250 ms a tick**; see ADR-0089 for the three
 readings.
 
-### 3. The "jumps" a player counts are damage stages, not swings
+### 3. A tile has visual damage stages, and they are NOT what a player counts
 
 `terrain+0x1c3` is a **count of visual stages**, and the applier fires a redraw
 when `(oldHealth − 1) ÷ stageSize` differs from `(newHealth − 1) ÷ stageSize`,
-with `stageSize = MaxHealth ÷ stages`.
+with `stageSize = MaxHealth ÷ stages`. That mechanism was not known before and
+is a real finding.
 
-So Q46's *"2-3-4 jumps MAX"* for claiming was counting **stage crossings**. It
-had been recorded in this file as independent corroboration of the four-swing
-count, and it is not evidence about swings at all. Both numbers happen to be
-four for Dirt Path, which is how it passed unnoticed.
+> **A claim written here on 2026-09-07 is withdrawn the same day.** This section
+> first said that Q46's *"2-3-4 jumps MAX"* had therefore been counting stage
+> crossings rather than swings, and was "not evidence about swings at all".
+> **The owner's own description settles it the other way:** *"an imp will go to
+> it, jump a few times on it and claim it"* — the **imp** jumps, once per
+> application. Four applications, two-to-four visible jumps, and Q46 is
+> corroboration of the swing count exactly as it was first recorded.
+>
+> **The evidence against the withdrawn reading was already in this file**, forty
+> lines further up: *"Q46, measured by watching an imp jump"*. So the mistake
+> was not a gap in the record — it was reinterpreting an observation to dissolve
+> an inconsistency, without re-reading what the file already said about it or
+> asking the owner what they had watched. See ADR-0089.
 
-A useful consequence in the other direction: **a half-reinforced wall is a
-tougher wall and looks it**, because the progress is real health. That is a
-behaviour a player can see, and it is one this project could not have produced
-while progress lived in a field of its own.
+A useful consequence of the health-as-progress reading, in the other direction:
+**a half-reinforced wall is a tougher wall and looks it**, because the progress
+is real health. That is a behaviour a player can see, and one this project could
+not have produced while progress lived in a field of its own. The stage count
+makes it sharper and gives something separate to check: a tile's *appearance*
+should step `terrain+0x1c3` times as it is worked, which need not equal the
+number of swings.
 
 ### The one weak point, named
 

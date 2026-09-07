@@ -156,19 +156,6 @@ public sealed class GameDatabase
     public ObjectDef? ObjectById(byte id) =>
         Objects.TryGetValue(id, out ObjectDef? o) ? o : null;
 
-    /// <summary>The object with this name, or null. Case-insensitive.</summary>
-    public ObjectDef? ObjectByName(string name) =>
-        Objects.Values.FirstOrDefault(
-            o => string.Equals(o.Name, name, StringComparison.OrdinalIgnoreCase));
-
-    public DoorDef DoorById(byte id) => Doors.TryGetValue(id, out DoorDef? door)
-        ? door
-        : throw new KeyNotFoundException($"No DOORS definition with id {id}.");
-
-    public TrapDef TrapById(byte id) => Traps.TryGetValue(id, out TrapDef? trap)
-        ? trap
-        : throw new KeyNotFoundException($"No TRAPS definition with id {id}.");
-
     public GlobalVariables Variables { get; }
 
     /// <summary>

@@ -7437,13 +7437,29 @@ All three over-read by under a second, which is what a hand timer does. Under
 ADR-0024's rule the slapped reinforce required 12.0 s against 11.5–11.9
 observed — an *under*-read, which reaction time cannot produce.
 
-**`TileState.UpwardWork` is deleted.** The progress *is* the tile's health,
-which also explains something this project had mis-attributed: the applier
-compares `(oldHealth − 1) ÷ stageSize` against `(newHealth − 1) ÷ stageSize`,
-where `stageSize` is `MaxHealth ÷ terrain+0x1c3` and `+0x1c3` is a count of
-**visual stages**. So the owner's *"2-3-4 jumps MAX"* for claiming (Q46) was
-counting **stage crossings**, not swings, and never constrained the swing count
-at all. A half-reinforced wall is a tougher wall, and it looks it.
+**`TileState.UpwardWork` is deleted.** The progress *is* the tile's health, so
+a half-reinforced wall is a tougher wall — and it *looks* it, because the
+applier compares `(oldHealth − 1) ÷ stageSize` against
+`(newHealth − 1) ÷ stageSize`, where `stageSize` is `MaxHealth ÷ terrain+0x1c3`
+and `+0x1c3` is a count of **visual stages**.
+
+> **A claim made here on 2026-09-07 is WITHDRAWN the same day, and the error is
+> mine.** This paragraph went on to say that the owner's *"2-3-4 jumps MAX"* for
+> claiming (Q46) had therefore been counting **stage crossings, not swings**,
+> and "never constrained the swing count at all". The owner's own description
+> settles it the other way: *"an imp will go to it, **jump a few times on it**
+> and claim it"* — the **imp** jumps, once per application. Four applications,
+> two-to-four visible jumps: Q46 corroborated the swing count exactly as it was
+> originally recorded.
+>
+> **Nothing else in this ADR moves.** The deficit rule is read from the
+> applier's instructions and never rested on the jumps; the stage mechanism is a
+> real finding and stays. What moves is a process point worth more than the
+> fact: **I reinterpreted an owner observation in order to dissolve an
+> inconsistency, rather than asking what they meant by it** — against a standing
+> instruction to ask. The stage count predicts something separate and
+> checkable instead: a tile's *appearance* steps `terrain+0x1c3` times as it is
+> worked, which need not equal the number of swings.
 
 ### What got worse, stated rather than hidden
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -85,30 +85,6 @@ public class WorkStanceTests
     }
 
     // ---- the second clause, which only fill-in needs ---------------------
-
-    /// <summary>
-    /// <b>Filling in is the case that makes this a rule rather than a list.</b>
-    /// The tile is walkable floor right up until the job completes, at which
-    /// point it is rock (Q18) — so a worker standing on it would be sealed
-    /// inside its own work. Only the "standable when it finishes" clause rules
-    /// that out, and nothing else in the ten work kinds needs it.
-    /// </summary>
-    [Fact]
-    public void FillingInIsWorkedFromBeside_BecauseTheTileBecomesRock()
-    {
-        (GameDatabase database, WorldState world, IPathGrid grid) = Setup();
-        var at = new TilePos(5, 2);
-        Put(world, database, at, Dk2TerrainFixture.ClaimedPath, Keeper);
-
-        // Walkable now...
-        Assert.True(grid.IsWalkable(at.X, at.Y));
-        // ...and solid when the job is done, which is what decides it.
-        Assert.Equal(
-            Dk2TerrainFixture.Rock,
-            TileWorkRules.OutcomeTerrainId(database, world.Tile(at), TileWorkKind.FillIn));
-
-        Assert.False(WorkStance.IsOnTheTile(database, world, grid, at, TileWorkKind.FillIn));
-    }
 
     /// <summary>
     /// The mirror of the fill-in case, and the reason the second clause cannot

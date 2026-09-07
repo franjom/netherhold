@@ -69,10 +69,6 @@ public static class HandRules
     /// </summary>
     public const int KnockBackWindowSeconds = 1;
 
-    /// <summary>The knock-back window in our ticks. Nothing reads it yet.</summary>
-    public const int KnockBackWindowTicks =
-        KnockBackWindowSeconds * SimulationTiming.TicksPerSecond;
-
     /// <summary>
     /// Whether this creature is in somebody's hand — DK2's
     /// <c>StateFlags1.InHand</c>, bit 0 of the flag word its dump prints first.

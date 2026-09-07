@@ -453,8 +453,6 @@ public readonly record struct HandItem(HandItemKind Kind, int Id)
 
     public static HandItem Of(ObjectState thing) => new(HandItemKind.Object, thing.Id);
 
-    public bool IsCreature => Kind == HandItemKind.Creature;
-
     public bool IsObject => Kind == HandItemKind.Object;
 }
 

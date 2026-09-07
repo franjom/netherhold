@@ -62,24 +62,6 @@ public static class Dk2SaveReader
     /// </summary>
     private const uint ExpectedFormatWord = 220;
 
-    /// <summary>
-    /// Where the tile grid started in the first two sample saves — and
-    /// <b>it is not a constant</b>, which is the correction this field exists to
-    /// carry.
-    ///
-    /// <para>It was recorded as CONFIRMED fixed on the strength of two files
-    /// that put the grid here despite differing by 94 KB in total size. Both
-    /// files were saves <b>of the same level</b>, so two samples were one
-    /// sample. On <b>TrapTime</b>, a 110x80 skirmish map, the grid is at
-    /// <c>0x14880</c>. What varies is the undecoded block above it (Q183),
-    /// which is sized by something about the level.</para>
-    ///
-    /// <para>Kept only as the search's starting guess and as the record of the
-    /// mistake. Nothing reads the grid at it — see
-    /// <see cref="FindGridOffset"/>.</para>
-    /// </summary>
-    public const int FirstSampleGridOffset = 0x8861;
-
     /// <summary>Where the header ends and the undecoded block begins (Q183).</summary>
     private const int HeaderLength = 0x134;
 

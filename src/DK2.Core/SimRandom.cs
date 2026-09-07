@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -75,8 +75,6 @@ public sealed class SimRandom
         if (maxInclusive < min) throw new ArgumentOutOfRangeException(nameof(maxInclusive));
         return min + NextInt(maxInclusive - min + 1);
     }
-
-    public bool NextBool() => (NextUInt64() & 1) != 0;
 
     /// <summary>Captures the full generator state for save/load.</summary>
     public (ulong S0, ulong S1, ulong S2, ulong S3) SaveState() => (_s0, _s1, _s2, _s3);
