@@ -7282,3 +7282,38 @@ integers at `+0x19`, `+0x1d` and `+0x21`, which remain **UNKNOWN** and are
 tabulated for all 26 rooms in `portals.md` rather than guessed at: `+0x1d`
 copies `+0x19` wherever it is set, and `+0x21` is 3–6 everywhere except the two
 portals, which carry 52.
+
+### ADR-0085, amendment 2 — a level override can switch a disabled mechanism back on
+
+**2026-09-07, Q84/Q85 sweep** (`variables-corpus-sweep.md`). ADR-0085 listed ten
+variables shipped as **0** with live readers and concluded there was *"nothing to
+build — a rate of zero faithfully reproduced is the absence of the effect"*. That
+sentence was about **`GlobalVariables.kwd`** and was read as being about the
+game. It is not: **the 66 level files override these ids too, in both
+directions.**
+
+| id | variable | global | per level |
+|---|---|---|---|
+| **218** | `TimeBeforeDungeonHeartConstructionBegins` | **0** — ADR-0085's "disabled" | **`level2` = 15, `level8` = 16** |
+| **94** | `MinimumImpThreshold` | **4**, ten readers | **0** on five levels |
+| 55 | `PrisonModifyCreatureHealthPerSecond` | live | `Level6b` = −5 |
+
+**Decision.** *"Shipped as zero"* is now an incomplete claim, and the form that
+can be checked is *"zero globally, and not overridden in any of the 66 level
+files"*. `dk2tools kwd varsweep` answers the second half in one command, so
+there is no excuse for the short version. ADR-0085's other nine survive the
+sweep — none is overridden anywhere — but its **conclusion** rested on a sweep
+it had not run.
+
+**Consequence for what is built:** nothing today, because neither id 218 nor the
+prison drain is implemented, and `MinimumImpThreshold` already reads through
+`GameDatabase` with per-level layering (ADR-0040), so the five levels that zero
+it are already handled. The value of the amendment is the **method**: this is the
+third time this month a true statement about one file was generalised to the
+game, after the `(13,1)` reading withdrawn in the same sweep and the
+`MaxGoldPileOutsideTreasury` name confusion. The pattern is always the same shape
+and always cheap to check.
+
+**And it retires "low priority" as a reason not to sweep.** Q84 and Q85 were both
+catalogued low priority. The sweep that answered them found this, which is worth
+more than either.

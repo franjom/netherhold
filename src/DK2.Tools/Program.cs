@@ -1237,6 +1237,112 @@ switch (args[0])
         return 0;
     }
 
+    // Q84/Q85: sweep every VARIABLES record in the corpus, not just the level
+    // that happens to be open. Reports the (unk1, unk2) pair distribution, and
+    // for each id how many distinct values it takes across the 66 level files -
+    // which is the "a sweep of keys is not a sweep of values" check.
+    case "kwd" when args.Length >= 2 && args[1] == "varsweep":
+    {
+        string root = Dk2Install.Require();
+        string mapsDir = Path.Combine(root, "Data", "editor", "maps");
+
+        var perId = new Dictionary<int, List<(string Level, int Value, int U1, int U2)>>();
+        var pairs = new Dictionary<(int, int), int>();
+        int files = 0;
+
+        foreach (string file in Directory.GetFiles(mapsDir, "*Variables.kld").OrderBy(f => f))
+        {
+            string level = Path.GetFileName(file)[..^"Variables.kld".Length];
+            GlobalVariables v;
+            try { v = KwdVariables.Parse(KwdReader.ReadFile(file)); }
+            catch (Exception e) { Console.Error.WriteLine($"{level}: {e.Message}"); continue; }
+            files++;
+            foreach (MiscVariable m in v.Misc.Values)
+            {
+                int id = (int)m.Id;
+                if (!perId.TryGetValue(id, out List<(string, int, int, int)>? list))
+                {
+                    list = [];
+                    perId[id] = list;
+                }
+                list.Add((level, m.Value, m.Unk1, m.Unk2));
+                var key = (m.Unk1, m.Unk2);
+                pairs[key] = pairs.GetValueOrDefault(key) + 1;
+            }
+        }
+
+        Console.WriteLine($"{files} level VARIABLES files, {perId.Count} distinct ids");
+        Console.WriteLine();
+        Console.WriteLine("(unk1, unk2) pairs, by how many records carry them:");
+        foreach (((int u1, int u2), int n) in pairs.OrderByDescending(kv => kv.Value))
+            Console.WriteLine($"   unk1={u1,-6} unk2={u2,-6} {n} records");
+        Console.WriteLine();
+
+        Console.WriteLine("ids whose VALUE differs between levels (the key/value trap):");
+        foreach ((int id, List<(string Level, int Value, int U1, int U2)> list)
+                 in perId.OrderBy(kv => kv.Key))
+        {
+            var vals = list.Select(e => e.Value).Distinct().OrderBy(x => x).ToList();
+            if (vals.Count <= 1) continue;
+            string name = Enum.IsDefined(typeof(VariableTypeId), id)
+                ? ((VariableTypeId)id).ToString() : $"Unknown_{id}";
+            Console.WriteLine($"   {id,4} {name,-52} {vals.Count} values: "
+                              + string.Join(", ", vals.Take(8))
+                              + (vals.Count > 8 ? " ..." : "")
+                              + $"   in {list.Count} levels");
+        }
+        Console.WriteLine();
+
+        Console.WriteLine("ids present in EVERY level file with one value (constants):");
+        int constants = 0;
+        foreach ((int id, List<(string Level, int Value, int U1, int U2)> list)
+                 in perId.OrderBy(kv => kv.Key))
+        {
+            if (list.Count == files && list.Select(e => e.Value).Distinct().Count() == 1)
+                constants++;
+        }
+        Console.WriteLine($"   {constants}");
+        Console.WriteLine();
+
+        // Q84: id 66 looks like a player count. Test it against the one
+        // per-level source that names players outright - the creature pool's
+        // player ids - rather than against a hunch.
+        Console.WriteLine("id 66 against the highest player id in the level's creature pool:");
+        int agree = 0, disagree = 0, nopool = 0;
+        var mismatches = new List<string>();
+        foreach (string file in Directory.GetFiles(mapsDir, "*Variables.kld").OrderBy(f => f))
+        {
+            string level = Path.GetFileName(file)[..^"Variables.kld".Length];
+            GlobalVariables v;
+            try { v = KwdVariables.Parse(KwdReader.ReadFile(file)); }
+            catch { continue; }
+            if (!v.Misc.TryGetValue((VariableTypeId)66, out MiscVariable? m)) continue;
+            if (v.CreaturePool.Count == 0) { nopool++; continue; }
+            int maxPlayer = v.CreaturePool.Max(e => e.PlayerId);
+            if (maxPlayer == m.Value) agree++;
+            else { disagree++; mismatches.Add($"{level}: id66={m.Value} maxPoolPlayer={maxPlayer}"); }
+        }
+        Console.WriteLine($"   agree={agree} disagree={disagree} (levels with no pool: {nopool})");
+        foreach (string s2 in mismatches.Take(12)) Console.WriteLine($"      {s2}");
+        Console.WriteLine();
+
+        Console.WriteLine("ids present in only SOME level files:");
+        foreach ((int id, List<(string Level, int Value, int U1, int U2)> list)
+                 in perId.OrderBy(kv => kv.Key))
+        {
+            if (list.Count == files) continue;
+            string name = Enum.IsDefined(typeof(VariableTypeId), id)
+                ? ((VariableTypeId)id).ToString() : $"Unknown_{id}";
+            var shown = list.Take(6).Select(e => $"{e.Level}={e.Value}");
+            Console.WriteLine($"   {id,4} {name,-46} in {list.Count,2}/{files}: "
+                              + string.Join(" ", shown) + (list.Count > 6 ? " ..." : ""));
+            Console.WriteLine($"        unk1/unk2: " + string.Join(" ",
+                list.Select(e => $"({e.U1},{e.U2})").Distinct()));
+        }
+
+        return 0;
+    }
+
     case "kwd" when args.Length >= 2 && args[1] == "vars":
     {
         string? named = args.Skip(2).FirstOrDefault(a => !a.StartsWith("-"));

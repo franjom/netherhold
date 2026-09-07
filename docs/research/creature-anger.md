@@ -423,3 +423,80 @@ gate sits in the adder itself, which is where the original puts it.
 **1** rather than 0, so *"Imps never get angry"* holds in practice through a
 small number rather than a switch. Three ways of saying "no anger" — a flag, a
 rate of zero, and a rate too small to matter — and only the first is a rule.
+
+---
+
+## Q212 answered: it is the Temple's prayer hook, and the field is mana
+
+**2026-09-07.** The routine that reads `PercentageOfManaGainedBySacrificing`
+(id 112, shipped **0**) is **category 12's per-second update hook**, and
+category 12 is **praying**. Read whole rather than through the window that
+raised the question.
+
+**How the category was pinned.** The state-category table (`0x00699688`, 32
+records of `0x40`) gives category 12 a `+0x14` update hook at `0x0047B970`, and
+`0x0047BB4E` lies inside it with no other function start between. The hook's
+first act settles what it is: **six calls to the anger wrapper, one per bucket,
+each passing `ModifyCreatureAngerWhilePrayingPerSecond`** — which is exactly
+what `JobRules.PrayingCalm` already does, arrived at independently. Category 15's
+hook (`0x0047B590`) contains the torture read, so ADR-0085's attribution there
+was right too.
+
+**`player + 0x10EE` is the player's mana.** Fifteen references, and the
+corroboration is that one of them is `FUN_004C10E0` — the routine ADR-0085
+identified as the reader of `HypnotismManaDrainPerSecond`. A field that a mana
+drain decrements and a prayer increments is mana.
+
+### What the hook does, once a game second
+
+The cadence is a per-creature countdown at `creature+0xAF`, reloaded with
+variable 19, so the whole block runs **once a game second**:
+
+1. **Calm all six anger buckets** by `ModifyCreatureAngerWhilePrayingPerSecond`.
+2. **Heal**, by `min(ModifyCreatureHealthWhilePrayingPerSecond, missing health)`
+   — id 115, shipped **33**, which is the number this project already uses. The
+   ceiling it measures "missing" against is the creature's **level-scaled** max
+   Hp, not the record's.
+3. **Grant mana** to the creature's player: `ManaGeneratedByPrayerPerSecond`,
+   level-scaled, clamped to signed 16-bit, **then doubled** when creature state
+   flag `+0x3EA` bit 4 is set — `x += x * (pct + 100) / 100` with `pct = 0`.
+
+**So the arithmetic stands and the name does not.** A variable called
+`PercentageOfManaGainedBySacrificing` is read in the **praying** path, and the
+only thing gating it is a creature state flag whose meaning is **UNKNOWN**. What
+is certain: for a creature carrying that flag, praying pays **double** mana, and
+a reimplementation reading the shipped 0 as "no bonus" would halve it. Nothing
+is built on it here — prayer mana is not implemented, only prayer's calm and
+heal — so this is a trap laid for whoever builds it, not a defect.
+
+**What remains open** is narrower than Q212 was: what does `creature+0x3EA`
+bit 4 mark? It is a *state* flag rather than a definition flag, so it is set by
+something the creature does. Bit 7 of the same byte is already noted as UNKNOWN
+in Q69's answer, which makes this byte worth a pass of its own.
+
+### Two things the same read confirmed, for free
+
+**The level-scaling model is right, from the binary side** (Q119,
+`CreatureLevelRules`). Both scaled values in this hook take the same shape:
+`level == 1` uses the record's value **raw**, and any other level computes
+`table[level] × record ÷ 100`. That is precisely this project's implementation —
+*"a percentage applied to the record's value rather than compounded per level"* —
+and it was reasoned from the file, not read from the code. The table is reached
+through a pointer at global `0x006E4154` and is read from **83 distinct
+functions at 172 sites**, so the scaling is applied at each point of use rather
+than to a cached copy.
+
+**Two of the 32 stat rows are now located** in that structure: `+0xE1` scales
+the field at runtime `+0x692` and `+0x183` scales runtime `+0x6A2`. Run through
+the loader (source = file + `0x3F0`), those are file `0xF0C` and `0xF18` —
+**`Hp`** and **`ManaGeneratedByPrayerPerSecond`**. Their offsets differ by
+`0xA2`, which is nine 18-byte rows, so the rows are one stat apart per 18 bytes
+and the two stats sit nine apart in the table's own order.
+
+That last check was worth running for its own sake: the doc comment on
+`CreatureLevelRules` says **ten of the 32 stats never scale, own-land
+regeneration among them**, and a hook that scales a heal looked like it
+contradicted that. It does not — the field being scaled is max **Hp**, and
+health is one of the stats that does scale. **The apparent contradiction was
+mine, and identifying the field settled it in two commands** rather than leaving
+a doubt in the record.

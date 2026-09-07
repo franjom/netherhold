@@ -131,3 +131,44 @@ offsets as well as struct fields**. The scan for `+0x758` returned a fourth hit,
 not a definition field. Every other false result today was a false *negative*;
 this one inflates a count, which would have turned "cut" into "has a reader".
 **Check the base register before counting a hit.**
+
+---
+
+## Q213 answered: `ObjectDef.ManaValue` is CUT
+
+**2026-09-07.** The objects loader is **`FUN_0049DD60`**, and its source delta is
+**`file + 0x80`** — found by aligning our thirteen known object file offsets
+against every loader's source offsets in the binary at once (`CopyPairs.py`
+harvests every `[EBP + imm]` load followed by a store to a struct field, which is
+the shape every KWD record loader uses). The match is **13 of 13 on one delta**,
+and the destination offsets are a genuine rearrangement rather than a constant
+shift, which is what distinguishes a loader from a block copy:
+
+| file | source | runtime |
+|---|---|---|
+| `0x32C` `Width` | `0x3AC` | `+0x0F8` |
+| `0x330` `Height` | `0x3B0` | `+0x0FA` |
+| `0x344` `Flags` | `0x3C4` | **`+0x010`** |
+| `0x348` `Hp` | `0x3C8` | `+0x104` |
+| **`0x34E` `ManaValue`** | `0x3CE` | **`+0x108`** |
+| `0x350` `TooltipStringId` | `0x3D0` | `+0x10A` |
+| `0x35A` `ObjectId` | `0x3DA` | `+0x113` |
+
+**`ManaValue` is never read.** Every access to `+0x108` at **word** width in the
+whole executable is a **store**: the object-definition initialiser
+(`FUN_0049DC80`), this loader, and one unrelated struct in the video region.
+**Zero word-sized reads.** Together with the data — zero in all 145 shipped
+records — that makes it **CUT**, not disabled.
+
+**The one caveat, stated and bounded.** There are dword reads of `+0x108` in the
+binary, and a dword there would cover `ManaValue` in its low half and
+`TooltipStringId` (`+0x10A`) in its high half — so a folded reader at that offset
+would be after the *tooltip id*, not the mana value. And since all 145 records
+ship zero, the mechanism is inert whichever way that falls. The bases of those
+dword reads have not been typed, which is why this is a caveat rather than a
+proof.
+
+**Method note.** `CopyPairs.py` is the reusable half: it dumps every loader's
+source→destination pairs in one Ghidra run, so identifying *any* record type's
+loader is now an offset-alignment problem rather than a hunt. The creature delta
+is `0x3F0` and the object delta is `0x80`; each record type has its own.
