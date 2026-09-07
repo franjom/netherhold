@@ -7038,3 +7038,59 @@ its global is adjacent to another's - that table lists the addresses, so it is
 one look - and if it is, read the neighbour's reader.
 **The fourteen already on the cut list have not been re-checked against this.**
 
+
+### ADR-0086, amendment 2 — the two portals are one implementation with two rosters
+
+**2026-09-07.** The owner, on the Hero Portal: *"hero portal IS AN ENTRANCE, but
+for goodly heroes (rival faction), until it is destroyed by evil keepers by
+digging and claiming tiles around it"*; *"'hero portal' is not something a keeper
+can use, nor can an 'evil' keeper summon 'good' creatures"*; and *"they have
+different textures."*
+
+**Decision.** Model both portal types with the one code path DK2 uses, and put
+the whole distinction in the creature gate, keyed on **room type**:
+
+- `PortalRules.CanComeFromPortal` now takes the portal's `RoomDef`. Room type 25
+  requires the new `CreatureFlags2.AvailableViaHeroPortal`; anything else
+  requires `CreatureFlags.AvailableViaPortal`. The `IsUnique` refusal stays
+  common to both, because in the original it sits outside the or.
+- `CreatureDef.Flags2` parses the record's **last dword** (`0x1545`), four bits
+  wide.
+- `PortalSystem` counts a portal toward the creature cap **before** testing
+  whether it can produce, because DK2's counter tests the room type and nothing
+  else.
+
+**Why room type and not owner.** The binary decides it in one condition —
+`(def+0x686 & 0x400 && room+0x18 == 3) || (def+0x68a & 8 && room+0x18 == 0x19)`
+— and the handler records for room 3 and room 25 are byte-identical across all
+ten slots. So there is no hero-portal *implementation* to write; there is a
+roster. Keying on the owner would have been the intuitive reading of the owner's
+sentence and would break Frosty's Castle, where keepers are given the hero roster
+on a map whose only entrances are Hero Portals.
+
+**Consequences, all reproduced deliberately.**
+
+1. A keeper's claimed Hero Portal produces **nothing** on any normal level, which
+   is the "dead room" the owner describes — reached through the data rather than
+   through a special case.
+2. **Claiming a dead Hero Portal still raises the keeper's creature cap**, and a
+   portal a rival has cut in two counts twice. Fidelity priority 4.
+3. On Frosty's Castle, Frosty's Lair and Frosty's Realm a keeper's Hero Portal
+   produces **hero creatures**. Q211 asks the owner to confirm in play; the data
+   is unambiguous.
+
+**What needed no decision.** "Cannot be sold, cannot be repurposed,
+indestructible" all fall out of flags already parsed — no `Buildable` on either
+portal record, `CanBuild` refusing room terrain, and no room-level `Attackable`.
+The same three rules already covered the Dungeon Heart (Q207), which is the
+second time this month a room-specific prohibition turned out to be a general
+rule already in place.
+
+**The bit that was nearly wrong, and why it is recorded.** Bit 30 of the *first*
+flag dword selects the nine hero-portal creatures **plus the Dwarf** and was
+already parsed and already named (`MpdRandomInvader`, from OpenKeeper). Using it
+would have had a Hero Portal emitting the heroes' worker. What rejected it was
+searching the record for the roster instead — one byte in 5449 has a bit
+selecting exactly the nine, it is bit 3 as the binary tests, and Frosty's Castle
+pools those same nine while omitting the Dwarf. **An available, named, plausible
+flag is not evidence; the roster is.** Rule 3.

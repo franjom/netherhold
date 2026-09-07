@@ -970,6 +970,87 @@ switch (args[0])
         return 0;
     }
 
+    // Which (offset, bit) in the CREATURES record selects exactly this set of
+    // creatures? The twin of creaturescan, for flags rather than values.
+    //
+    // Added 2026-09-07 hunting the hero portal's creature flag. The binary reads
+    // it as `byte ptr [def + 0x68a] & 8`, and the loader does not preserve file
+    // offsets into the runtime record — so the runtime offset says nothing about
+    // where the bit lives in the file. What *is* known is the roster the flag has
+    // to select, and searching for the roster finds the bit. Reasoning from the
+    // layout instead had already produced one wrong answer (file 0xF00, which
+    // turned out to be a 3000/2800 value, not flags).
+    case "kwd" when args.Length >= 3 && args[1] == "creaturebits":
+    {
+        string[] names = args[2].Split(
+            ',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        string bpath = args.Length > 3
+            ? ResolveEditor(args[3])
+            : Path.Combine(Dk2Install.Require(), "Data", "editor", "Creatures.kwd");
+
+        var recs = new List<(string Name, byte[] Bytes)>();
+        foreach (KwdChunk chunk in KwdReader.ReadFile(bpath))
+        {
+            if (chunk.Type != KwdRecordType.Creatures) continue;
+            int size = chunk.Content.Length / chunk.ItemCount;
+            for (int i = 0; i < chunk.ItemCount; i++)
+            {
+                byte[] rec = chunk.Content[(i * size)..((i + 1) * size)];
+                int end = Array.IndexOf(rec, (byte)0, 0, 32);
+                recs.Add((
+                    System.Text.Encoding.ASCII.GetString(rec, 0, end < 0 ? 32 : end),
+                    rec));
+            }
+            break;
+        }
+
+        var target = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string n in names)
+        {
+            if (!recs.Any(r => r.Name.Equals(n, StringComparison.OrdinalIgnoreCase)))
+            {
+                Console.Error.WriteLine($"no creature named '{n}' in {recs.Count} records");
+                return 2;
+            }
+            target.Add(n);
+        }
+
+        int blen = recs[0].Bytes.Length;
+        Console.WriteLine($"{recs.Count} records of {blen} bytes; " +
+                          $"target set has {target.Count} creatures");
+
+        int pairs = 0;
+        for (int off = 0; off < blen; off++)
+        {
+            for (int bit = 0; bit < 8; bit++)
+            {
+                List<string> set = recs
+                    .Where(r => (r.Bytes[off] & (1 << bit)) != 0)
+                    .Select(r => r.Name)
+                    .ToList();
+
+                if (set.Count == 0) continue;
+
+                int inTarget = set.Count(target.Contains);
+                int wrong = (target.Count - inTarget) + (set.Count - inTarget);
+
+                // Within two of the target, so a near miss is visible rather
+                // than silently filtered — a flag that is the right idea with
+                // one creature added or dropped is the interesting case.
+                if (wrong > 2) continue;
+
+                pairs++;
+                Console.WriteLine(
+                    $"0x{off:X4} bit{bit} {(wrong == 0 ? "EXACT" : $"off-by-{wrong}"),-9} " +
+                    $"n={set.Count} : {string.Join(" ", set)}");
+            }
+        }
+
+        Console.WriteLine($"-- {pairs} offset/bit pairs within 2 of the target");
+        return 0;
+    }
+
     // The OBJECTS record (M6): 145 objects of 894 bytes. Only the gameplay
     // tail is parsed; the first 812 bytes are art. -t groups by type flag,
     // which is what identifies a bed, a chicken or a gold pile.

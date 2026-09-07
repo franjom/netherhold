@@ -640,7 +640,7 @@ All 26 records are present and in id order. **Portal (3) and Hero Portal (25)
 carry byte-identical handler sets**, which is why each of the two reset routines
 turned up in the table exactly twice.
 
-Six of the twelve references to the table resolve the slots:
+Six references resolve the slots:
 
 | slot | called from | what that function is |
 |---|---|---|
@@ -650,6 +650,25 @@ Six of the twelve references to the table resolve the slots:
 | `+0x0d` | `FUN_004E5650` | **the room ownership change** |
 | `+0x11` | `FUN_004E3DD0` | null for portals |
 | `+0x15` | per-tick | `0x004DBBE0`, the interval arithmetic |
+
+**Corrected 2026-09-07 (later the same day): the table has more users than six.**
+A `MaskScan` for the base constant, run with the argument in the form the script
+actually wants, returns **thirteen** indexing sites in seven more functions than
+the table above names:
+
+```
+004e3993 FUN_004e3800    004e39ea FUN_004e39c0    004e3e00 FUN_004e3dd0
+004e44be FUN_004e4480    004e4b23 FUN_004e4b00    004e585a FUN_004e5650
+004e6cac FUN_004e6c90    004e6cec FUN_004e6cd0    004e6d2c FUN_004e6d10
+004e8f48 FUN_004e8da0    004e9003 FUN_004e8da0    004e905d FUN_004e8da0
+```
+
+All of them compile the record address as `[EAX + ECX*0x8 + 0x6a1e9f]`. So
+`FUN_004E4B00`, `FUN_004E6C90`, `FUN_004E6CD0`, `FUN_004E6D10` and
+`FUN_004E8DA0` (three sites) dispatch through this table and **which slots they
+call is unread**. Nothing about the reset depends on it — that rests on
+`FUN_004E5650`, which is decompiled — but the table above should be read as *the
+slots we have resolved*, not as the table's full set of callers. Q210.
 
 For a portal, `+0x01` and `+0x0d` are the two reset routines. Both stamp
 `room[0x49] = now` and zero `room[0x4D]`; the constructor's also sets one flag.
@@ -731,3 +750,209 @@ is either that the weighting is hardcoded somewhere in the portal unit or that
 there is no weighting at all. That also explains why the owner could not
 perceive it: *"I have no idea"* is what a cut feature looks like from the
 outside. Two more for the cut list, which makes **fourteen**.
+
+---
+
+## The Hero Portal is an entrance too, and one implementation serves both
+
+**2026-09-07. CONFIRMED by the owner, then read in the binary.** The owner's
+words, which set the question:
+
+> *"hero portal IS AN ENTRANCE, but for goodly heroes (rival faction), until it
+> is destroyed by evil keepers by digging and claiming tiles around it, if
+> possible."*
+>
+> *"'hero portal' is not something a keeper can use, nor can an 'evil' keeper
+> summon 'good' creatures. If a keeper claims a hero portal room that means that
+> it is already destroyed by claiming all its adjacent tiles, and it just becomes
+> an indestructable dead room that can't be sold or repurposed."*
+>
+> *"hero portal and evil portal don't look the same, they have different
+> textures."*
+
+### The data draws no distinction at all
+
+| | Portal | Hero Portal |
+|---|---|---|
+| room id | 3 | 25 |
+| room flags | `0x00001004` | `0x00001004` |
+| terrain id | 12 | 40 |
+| terrain flags | `0x20000034` | `0x20000034` |
+| handler record | `006a1f1a` | `006a22a0` |
+
+**Both flag words are byte-identical**, and so is the whole 41-byte handler
+record: `FUN_004dbb90 | - | FUN_004dcd20 | FUN_004dbbc0 | - | code:004dbbe0 |
+197 | 197 | 52 | -`. Same constructor, same ownership-change reset, same
+per-tick unit, same three integers. **DK2 ships one portal implementation and
+runs it for both room types**, which is exactly what "a hero portal is an
+entrance for the other side" predicts.
+
+Being separate *terrains* rather than one terrain with an owner-dependent skin is
+what the owner's texture observation reports from the outside, and it carries a
+consequence: **claiming a Hero Portal tile does not turn it into a Portal.** The
+terrain stays 40 and the room stays type 25, which is what makes the next section
+bite.
+
+### What separates the sides is the room type, inside the shared code
+
+The candidate builder `FUN_004dbf90`, per creature type, in one condition:
+
+```
+(def+0x686 & 0x8000000) == 0                          // not unique
+&& ( ((def+0x686 & 0x400) && room+0x18 == 3)          // portal flag, room type 3
+   || ((def+0x68a & 8)    && room+0x18 == 0x19) )     // hero flag,   room type 25
+```
+
+`room+0x18` is the room type id. **The room type selects which creature flag is
+required, and the two are exclusive.** A Portal can never emit a hero and a Hero
+Portal can never emit an evil creature — **by room type, not by owner**, so it
+holds however the room changed hands. The uniqueness test sits outside the or and
+therefore refuses both sides.
+
+That is the mechanism behind *"not something a keeper can use"*. It is not a
+hardcoded prohibition on keepers; it is that a keeper's claimed Hero Portal is
+still room type 25, so the only creatures it may emit are ones the keeper does
+not have.
+
+### The hero flag: a second flag field, and how it was located
+
+The binary reads `byte ptr [def + 0x68a] & 8`. **The runtime offset is no guide
+to the file offset** — the loader does not preserve record layout — and reasoning
+from adjacency gave a wrong answer first: file `0xF00`, four bytes after the
+known flag dword at `0xEFC`, holds a 3000/2800 value and not flags.
+
+What located it was the **roster**. The flag has to select the creatures a Hero
+Portal generates, so `dk2tools kwd creaturebits` (added for this) searched all
+5449 bytes x 8 bits of the CREATURES record for a matching set:
+
+```
+0x0EFF bit6 EXACT     n=10 : Knight Dwarf Giant Wizard Elven Archer Thief Monk Fairy Guard Royal Guard
+0x1545 bit3 off-by-1  n=9  : Knight Giant Wizard Elven Archer Thief Monk Fairy Guard Royal Guard
+```
+
+**`0x1545` bit 3 is the flag.** It is bit 3 of a *byte*, which is the shape the
+binary tests; `0x1545` is the record's **last dword**, inside the 72-byte tail
+Q70 says nobody had accounted for; and only the low four bits are ever set across
+all 46 creatures, the upper three bytes being zero everywhere.
+
+**The Dwarf is the discriminator, and it saved a wrong implementation.** Bit 30
+of the *first* flag dword (`0x0EFF` bit 6) selects those nine **plus the Dwarf**
+and is named `MpdRandomInvader` in our enum, from OpenKeeper. Gating on it —
+which was the tempting move, the bit being already parsed and already named —
+would give a Hero Portal the heroes' **worker**. Each side's portal excludes its
+own worker: the Imp likewise lacks `AvailableViaPortal`. Rule 3 in practice.
+
+**The cross-check that makes it trustworthy.** The nine are *exactly* the nine
+that `PortalOnRealDataTests.TheCampaignUnlocksNineCreaturesOnlyTheFlagGateKeepsOut`
+arrived at from the opposite direction weeks earlier — the creatures the campaign
+makes AVAILABLE and pooled to keepers that only the Portal's flag gate keeps out.
+**The two flags partition the portal-generated roster between the sides**, and
+two independent reads of the shipped data meeting on the same nine names is the
+evidence, not the roster match alone. Corroborating the file-to-runtime mapping
+separately: bits 0 and 2 of the same byte have readers at the same runtime offset
+with masks 1 and 4, and the def pointer is `creature+0x370`.
+
+### The dead room, and it needs no new rule
+
+Everything the owner describes about a claimed Hero Portal falls out of flags
+already parsed:
+
+- **Cannot be sold.** `RoomRules.CanSell` refuses any room without `Buildable`,
+  and `0x00001004` has none. Same reason a Portal and a Dungeon Heart cannot be
+  sold (Q207).
+- **Cannot be repurposed.** `RoomRules.CanBuild` refuses any tile whose terrain
+  is a room. Repurposing means selling first, and it cannot be sold.
+- **Indestructible.** The room flags carry no `Attackable`, unlike a Lair or a
+  Treasury. The *terrain* is `Attackable`, which is tile-level and is how an imp
+  claims it.
+- **"Already destroyed by claiming the tiles around it."** A `RoomInstance` is
+  tiles of one terrain with **one owner**, so claiming the ring leaves the hero
+  side the centre and the keeper a ring that fails `CanProduce` — it does not
+  hold the tile a creature climbs out of.
+
+**None of this needed a change.** What did need a change is below.
+
+### Two divergences this found, both now fixed
+
+**1. A keeper's claimed Hero Portal was producing the keeper's evil creatures.**
+`CanComeFromPortal` took a creature and no room, so it answered the Portal's
+question about every entrance. The doc comment sitting on it had *predicted the
+bug and dismissed it* — *"a hero portal has its own flag in a second flag word
+this project does not parse. It costs nothing today"* — which was true only while
+no keeper could own one, and a keeper can. This is the
+`a-claim-nothing-checks-may-already-be-false` shape with the claim written down
+and reasoned about.
+
+**2. Capacity counted only portals that could produce.** DK2's counter
+(`FUN_004dce30`) walks the owner's room list and tests `room[0x18] == type` and
+**nothing else** — no size, no centre tile, no notion of the room working:
+
+```
+for (room = player->rooms; room; room = room->next)
+    if (room->type == wanted) count++;
+```
+
+So a broken portal still pays into the cap. Two consequences to expect rather
+than treat as bugs, both reproduced under fidelity priority 4:
+
+- **Claiming a dead Hero Portal raises a keeper's creature limit** by
+  `CreaturesSupportedPerAdditionalPortal` (5), or sets it to
+  `CreaturesSupportedByFirstPortal` (15) if it is their only one — while the room
+  emits nothing.
+- **A portal cut into two rooms by a rival taking its middle counts twice.**
+
+The count was wrong twice in one day, in two different directions: first counting
+only room type 3, then counting only portals that pass `CanProduce`.
+
+### Frosty's Castle: a map where keepers are *meant* to use Hero Portals
+
+The gate is the room type and the creature's flag — **not the owner's
+alignment**. So a keeper holding a Hero Portal with a hero creature available and
+pooled should receive it. **The shipped data says three maps are built on exactly
+that, and it is not a corner case.**
+
+`dk2tools kwd portals` on **Frosty's Castle**:
+
+```
+Frosty's Castle        base= 25s  portals=4
+    Hero Portal  owner=2 tiles= 9 at (4,80)
+    Hero Portal  owner=2 tiles= 9 at (17,3)
+    Hero Portal  owner=2 tiles= 9 at (80,93)
+    Hero Portal  owner=2 tiles= 9 at (93,16)
+```
+
+**Four Hero Portals, no Portal, and every one unowned** (player 2) and therefore
+claimable. And the level's own VARIABLES pool, for each of keepers 3, 4, 5 and 6:
+
+```
+creature13 creature15 creature16 creature17 creature18 creature19 creature20 creature25 creature30
+= Knight Giant Wizard Elven Archer Thief Monk Fairy Guard Royal Guard
+```
+
+**Those are precisely the nine `AvailableViaHeroPortal` carriers, and creature 14
+— the Dwarf — is pointedly absent.** The map has no other creature source, so a
+keeper there *must* claim a Hero Portal, and it hands them Knights.
+
+This is the **third independent line of evidence** for the flag, and the
+strongest, because it is a level designer's intent rather than a coincidence of
+bits: the binary's gate shape says a byte's bit 3, the roster search finds exactly
+one such byte, the campaign's blocked-by-the-Portal set is the same nine, and a
+level built around Hero Portals pools the same nine while excluding the one
+creature the rejected candidate bit would have added.
+
+**It also means this fix was not cosmetic.** Before it, our `Pick` applied the
+Portal's flag gate to every entrance, so on Frosty's Castle a keeper's claimed
+Hero Portal produced **nothing at all** — the nine lack `AvailableViaPortal`.
+Now it produces them, and only them.
+
+**Not contradicting the owner.** *"An evil keeper cannot summon good creatures"*
+is true of the campaign and is carried entirely by the flags plus availability;
+these three maps switch its effect off deliberately by granting the roster. The
+rule is the flags, not the alignment.
+
+**Still worth one look in the running game** (Q211, observation checklist): that
+a keeper on Frosty's Castle really does receive Knights from a claimed Hero
+Portal. Everything above is read from files and the binary, and the owner has
+played the game — this is a five-minute confirmation of a chain that is otherwise
+only very well supported. *Not* MPD, incidentally: `mpd1`..`mpd7` are separate
+maps, and the Frosty three are their own thing.

@@ -127,6 +127,11 @@ public static class KwdCreatures
             CreatureId = U8(0xF4B),
             Flags = (CreatureFlags)U32(0xEFC),
 
+            // The record's last four bytes, and part of the 72-byte tail Q70
+            // says nobody had accounted for. See CreatureFlags2 for how it was
+            // located: by the roster its bit 3 has to select, not by layout.
+            Flags2 = (CreatureFlags2)U32(0x1545),
+
             Speed = Fp(0xEB4),
             RunSpeed = Fp(0xEB8),
             ShuffleSpeed = Fp(0xD37),

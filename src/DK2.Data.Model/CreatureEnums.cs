@@ -90,3 +90,65 @@ public enum CreatureFlags : uint
     MpdRandomInvader = 1u << 30,
     IsMale = 1u << 31,
 }
+
+/// <summary>
+/// The <b>second</b> creature flag field: one byte at record offset 0x1545, of
+/// which only the low four bits are ever set across the 46 shipped creatures.
+/// Read as a dword because 0x1545..0x1548 are the record's last four bytes and
+/// the upper three are zero on every creature — so nothing is lost and a fifth
+/// bit appearing would be visible.
+///
+/// <para><b>Why there is a second flag field at all, and how it was found</b>
+/// (2026-09-07, Q86 amendment 2). DK2's portal candidate builder tests two
+/// different creature flags depending on the room type — bit 10 of the first
+/// dword for a Portal, and <c>byte ptr [def + 0x68a] &amp; 8</c> for a Hero
+/// Portal. The runtime offset is no guide to the file offset: the loader does
+/// not preserve record layout, and reasoning from adjacency produced one wrong
+/// answer (file 0xF00, which holds a 3000/2800 value and not flags).</para>
+///
+/// <para>What located it was the <i>roster</i>. The flag has to select the
+/// creatures a Hero Portal generates, and <c>dk2tools kwd creaturebits</c>
+/// searched all 5449 bytes x 8 bits for a set matching: exactly one byte's bit 3
+/// does, and it is a byte tested with mask 8, as the binary tests it.</para>
+///
+/// <para>Bits 0 and 2 have named readers at the same runtime offset and the same
+/// masks, which corroborates the mapping; what they mean is Q210. Bit 1 is set on
+/// one creature and nothing was found reading it.</para>
+/// </summary>
+[Flags]
+public enum CreatureFlags2 : uint
+{
+    /// <summary>King Reginald, Stone Knight and Jack. Read at <c>0x004af1e0</c>. Q210.</summary>
+    Unk0 = 1u << 0,
+
+    /// <summary>Stone Knight alone, and no reader found. Q210.</summary>
+    Unk1 = 1u << 1,
+
+    /// <summary>
+    /// Skeleton and Jack. Four readers, all of them gating one behaviour off
+    /// (<c>0x00478b80</c> and three siblings). Q210.
+    /// </summary>
+    Unk2 = 1u << 2,
+
+    /// <summary>
+    /// <b>A Hero Portal may generate this creature.</b> The hero side's
+    /// counterpart to <see cref="CreatureFlags.AvailableViaPortal"/>, and the
+    /// two are exclusive by room type rather than by owner: DK2 requires this
+    /// bit when the room is type 25 and requires <c>AvailableViaPortal</c> when
+    /// it is type 3, so neither portal can ever emit the other's creatures.
+    ///
+    /// <para>Nine creatures carry it: Knight, Giant, Wizard, Elven Archer,
+    /// Thief, Monk, Fairy, Guard and Royal Guard. That is <i>exactly</i> the set
+    /// <c>PortalOnRealDataTests.TheCampaignUnlocksNineCreaturesOnlyTheFlagGateKeepsOut</c>
+    /// found from the other direction — the creatures the campaign makes
+    /// available to keepers that only the Portal's flag gate keeps out. The two
+    /// flags partition the portal-generated roster between the sides.</para>
+    ///
+    /// <para><b>The Dwarf is excluded</b>, and that is the detail that makes the
+    /// bit trustworthy. A neighbouring flag (bit 30 of the first dword) selects
+    /// these nine <i>plus</i> the Dwarf; gating on that would have a Hero Portal
+    /// emitting the heroes' worker. Each side's portal excludes its own worker —
+    /// the Imp likewise lacks <c>AvailableViaPortal</c>.</para>
+    /// </summary>
+    AvailableViaHeroPortal = 1u << 3,
+}

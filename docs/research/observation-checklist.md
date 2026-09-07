@@ -1731,3 +1731,25 @@ Whether `room[0x4D]` ever returns to zero. **This needs a rival keeper:** lose a
 slow portal to an enemy and take it back. `mpd3` cannot answer it, which is the
 one thing the skirmish maps (`The Deep End`, `Siege`, `U Turn` — two claimable
 portals each at base 25) are better at.
+
+## The Hero Portal, 2026-09-07 — one thing left, and it is five minutes
+
+Everything about the Hero Portal is now read from the binary and the shipped
+files (`portals.md`, and Q211). **One item wants the running game.**
+
+**Q211 — does a keeper on Frosty's Castle receive Knights from a claimed Hero
+Portal?** Start Frosty's Castle as any keeper from 3 to 6. The map has **four
+unowned Hero Portals and no Portal at all**, so claiming one is the only way to
+get a creature. Claim one and watch what comes out.
+
+- **Predicted:** hero creatures, from Knight, Giant, Wizard, Elven Archer, Thief,
+  Monk, Fairy, Guard, Royal Guard — and **never a Dwarf**, which is the whole
+  point of the prediction.
+- **If nothing comes out at all**, the gate is the *owner* and not the room type,
+  and ADR-0086 amendment 2 is wrong in its central choice. That is the outcome
+  worth knowing.
+- **If a Dwarf comes out**, the flag is bit 30 of the first flag dword after all
+  and `CreatureFlags2.AvailableViaHeroPortal` is pointed at the wrong bit.
+
+Written before looking, on purpose, and both failure modes are named so the
+result cannot be read as confirmation whatever it is.

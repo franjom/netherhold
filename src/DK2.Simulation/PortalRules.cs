@@ -71,9 +71,13 @@ public static class PortalRules
     /// are the only ThreeByThree rooms, so the coincidence cannot rot
     /// silently.</para>
     ///
-    /// <para>Both count as entrances; only the Portal proper counts toward the
-    /// cap (see <see cref="CreatureCapacity"/>), which is what the two variable
-    /// names say.</para>
+    /// <para><b>Both count as entrances and both count toward the cap</b>
+    /// (<see cref="CreatureCapacity"/>). DK2 runs one portal implementation for
+    /// the two of them: the per-room-type handler table's records for id 3 and
+    /// id 25 are byte-identical across all ten slots — same constructor, same
+    /// ownership-change reset, same per-tick unit, same three integers. What
+    /// differs is which creatures each may emit, and that is decided inside the
+    /// shared code by room type (<see cref="CanComeFromPortal"/>).</para>
     /// </summary>
     public static bool IsEntrance(RoomDef room) =>
         room.RoomId is (byte)RoomTypeId.Portal or (byte)RoomTypeId.HeroPortal;
@@ -296,10 +300,10 @@ public static class PortalRules
     /// <para><b>Integer seconds throughout</b>, so this is exact — no rounding
     /// anywhere, unlike the halving the old formula needed.</para>
     ///
-    /// <para><b>UNKNOWN, and the only part still open:</b> whether the tally is
-    /// ever zeroed. Two routines store a literal zero into <c>room[0x4D]</c> and
-    /// both are reached only through a vtable. See
-    /// <see cref="TileState.EntranceCreaturesGenerated"/>.</para>
+    /// <para><b>The tally's reset is now read too</b>, which was the last open
+    /// part: it is an ownership change, and the two zero-stores are the room
+    /// type's constructor and ownership-change handlers rather than anything
+    /// reached through a vtable. See <see cref="OnOwnerChanged"/>.</para>
     /// </summary>
     public static int SpawnIntervalTicks(GameDatabase database, int creaturesGenerated)
     {
@@ -341,6 +345,17 @@ public static class PortalRules
     /// a portal to a rival keeps every creature and simply stops receiving,
     /// which is CONFIRMED by the owner: <i>"creatures don't disappear if that
     /// happens"</i>.</para>
+    ///
+    /// <para><b>A portal counts however broken it is</b>, and this is the part
+    /// that is easy to get wrong. DK2's counter walks the owner's room list and
+    /// tests only <c>room[0x18] == type</c> — no size test, no functionality
+    /// test, nothing about holding its own centre tile. So a portal dug down
+    /// below 3x3, or split in two by a rival taking its middle, or a Hero Portal
+    /// claimed by a keeper and unable to emit anything at all, still pays into
+    /// the cap. Two consequences worth expecting rather than treating as bugs:
+    /// <b>claiming a dead Hero Portal raises a keeper's creature limit</b>, and
+    /// <b>a portal cut into two rooms counts twice</b>. Reproduced under fidelity
+    /// priority 4.</para>
     /// </summary>
     public static int CreatureCapacity(GameDatabase database, int keeperPortalCount) =>
         keeperPortalCount <= 0
@@ -438,15 +453,36 @@ public static class PortalRules
     /// is exactly why DK2 needs the second test: without it, a level that pooled
     /// a Unique Dark Angel would get one out of a portal.</para>
     ///
-    /// <para>A hero portal has its own flag in a second flag word this project
-    /// does not parse. It costs nothing today — <see cref="PortalSystem"/> only
-    /// produces for keepers — and is noted so that whoever teaches the hero side
-    /// to use its gates knows the rule is a different bit, not this one.</para>
+    /// <para><b>Which flag is required depends on the room type, and that was a
+    /// live defect until 2026-09-07.</b> The note that used to sit here said a
+    /// hero portal "has its own flag in a second flag word this project does not
+    /// parse", and that it "costs nothing today". It cost something: a keeper who
+    /// claims a Hero Portal owns a room of type 25, and this method — asked
+    /// without a room — answered the Portal's question about it, so a claimed
+    /// Hero Portal produced the keeper's evil creatures. DK2 will not do that.
+    /// The candidate builder reads</para>
+    /// <code>
+    /// (def+0x686 &amp; 0x8000000) == 0                        // not unique
+    /// &amp;&amp; ( ((def+0x686 &amp; 0x400) &amp;&amp; room+0x18 == 3)     // portal flag, Portal
+    ///    || ((def+0x68a &amp; 8)     &amp;&amp; room+0x18 == 0x19) ) // hero flag,   Hero Portal
+    /// </code>
+    /// <para>so the two flags are <b>exclusive by room type, not by owner</b>.
+    /// Neither portal can ever emit the other's creatures, whoever holds it.
+    /// CONFIRMED by the owner: a keeper cannot use a Hero Portal, and an evil
+    /// keeper cannot summon good creatures.</para>
+    ///
+    /// <para><b>The uniqueness test is common to both</b> — it sits outside the
+    /// or — which is why it stays unconditional here.</para>
     /// </summary>
-    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/binary-entrance.md")]
-    public static bool CanComeFromPortal(CreatureDef creature) =>
-        creature.Flags.HasFlag(CreatureFlags.AvailableViaPortal)
-        && !creature.Flags.HasFlag(CreatureFlags.IsUnique);
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/portals.md")]
+    public static bool CanComeFromPortal(CreatureDef creature, RoomDef portal)
+    {
+        if (creature.Flags.HasFlag(CreatureFlags.IsUnique)) return false;
+
+        return portal.RoomId == (byte)RoomTypeId.HeroPortal
+            ? creature.Flags2.HasFlag(CreatureFlags2.AvailableViaHeroPortal)
+            : creature.Flags.HasFlag(CreatureFlags.AvailableViaPortal);
+    }
 
     public static bool IsUnlocked(GameDatabase database, byte playerId, byte creatureTypeId)
     {

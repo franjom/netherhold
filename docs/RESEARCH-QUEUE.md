@@ -52,7 +52,7 @@ Helper scripts are copied into
 | Script | What it does |
 |---|---|
 | `ScanAddr.py <out> <addrHex>...` | raw `.text` scan for the little-endian bytes of an address — **the workhorse**, and it sees indexed reads that Ghidra's reference analysis misses |
-| `MaskScan.py <out> <hexConst>...` | every instruction whose text mentions a constant, **with the containing function name** |
+| `MaskScan.py <out> <hexConst>...` | every instruction whose text mentions a constant, **with the containing function name**. Pass the digits **without** `0x` — the script prepends it |
 | `CallScan.py <out> <addrHex>...` | every `E8`/`E9` rel32 whose target is the address, plus absolute occurrences — finds callers in unanalysed regions and vtable installs |
 | `ForceAt.py <out> <addrHex>...` | force a function at exactly this address and decompile |
 | `ForceFunc.py <out> <addrHex>...` | walk back to the MSVC prologue, force a function, decompile |
@@ -68,6 +68,15 @@ Helper scripts are copied into
 - `MaskScan` matches constants as **substrings**: searching `0x2000000` also
   matches `0x20000000`. Filter the output, or you will read one bit's answer as
   another's.
+- **`MaskScan` prepends `0x` to its argument.** Pass `68a`, not `0x68a` — the
+  latter searches for `0x0x68a`, matches nothing, and **reports zero hits rather
+  than an error**. This cost real time on 2026-09-07: a zero-hit run was taken
+  as evidence that the room-manager region was unanalysed and had to be scanned
+  raw, and the conclusion *"reached only through a vtable"* was built on top of
+  it. Re-run correctly, the same query returned 114 hits including twelve
+  callers nothing had recorded. **A scanner that reports zero rather than
+  failing is the most expensive kind of bug there is** — check any zero-hit run
+  against a constant you know is present before believing it.
 
 ### Two facts about the executable worth knowing up front
 

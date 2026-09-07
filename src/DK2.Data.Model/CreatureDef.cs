@@ -35,6 +35,16 @@ public sealed record CreatureDef
     public required byte CreatureId { get; init; }
     public required CreatureFlags Flags { get; init; }
 
+    /// <summary>
+    /// The second flag field (record offset 0x1545). Not <c>required</c>: it
+    /// carries four bits, three of them unidentified, and the only one that
+    /// decides behaviour today —
+    /// <see cref="CreatureFlags2.AvailableViaHeroPortal"/> — is correct to
+    /// default off, since a test fixture's invented creature is not something a
+    /// Hero Portal generates.
+    /// </summary>
+    public CreatureFlags2 Flags2 { get; init; }
+
     // Movement / perception
     public required Fp32 Speed { get; init; }
     public required Fp32 RunSpeed { get; init; }

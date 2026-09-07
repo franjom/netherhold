@@ -311,3 +311,49 @@ another power. Its details are unknown."* — a non-owner sees no capacity or
 occupants where the owned-room tooltip prints both. That is a **second
 partial-knowledge rule operating on already-revealed ground**, and it means the
 presentation layer needs a viewing player whether or not fog is ever built.
+
+---
+
+## The Hero Portal, 2026-09-07 — Q86's last amendment, and two new questions
+
+**Q86 closed further, not reopened.** The owner: *"hero portal IS AN ENTRANCE,
+but for goodly heroes (rival faction)"*, and *"a keeper claims a hero portal
+room... it just becomes an indestructable dead room that can't be sold or
+repurposed."* Both CONFIRMED, and both were partly divergent here. See
+`portals.md`, "The Hero Portal is an entrance too".
+
+The short version: Portal (3) and Hero Portal (25) have **byte-identical** room
+flags, terrain flags and 41-byte handler records, so DK2 runs **one**
+implementation for both. What separates them is a single condition in the
+candidate builder — `def+0x686 & 0x400` when the room is type 3,
+`def+0x68a & 8` when it is type 0x19 — so the two rosters are **exclusive by
+room type, not by owner**. The dead-room properties need no new rule: no
+`Buildable` flag means `CanSell` refuses it and nothing can be built over it, and
+the absence of the room-level `Attackable` flag is the "indestructible".
+
+**Two divergences found and fixed.** (a) `CanComeFromPortal` took no room, so a
+keeper's claimed Hero Portal produced the keeper's *evil* creatures — the doc
+comment on that method had predicted the bug and dismissed it as costing nothing.
+(b) Capacity counted only portals that could produce; DK2's counter tests the
+room type and nothing else, so a broken portal and a dead claimed Hero Portal
+both still raise the cap.
+
+| Q | Question | What is known | Blocked on |
+|---|---|---|---|
+| **Q210** | **What are the other three bits of the second creature flag field, and which slots do the seven unrecorded room-table callers use?** Two loose ends from the hero-portal work, both cheap. (a) The byte at CREATURES `0x1545` uses four bits; bit 3 is `AvailableViaHeroPortal`. **Bit 0** is set on King Reginald, Stone Knight and Jack and read at `0x004af1e0`; **bit 2** on Skeleton and Jack, with four readers all gating one behaviour off (`0x00478b80` and three siblings, which adjust a field at `creature+0x3c` and send messages 0x11/0x12 at thresholds 1 and 2); **bit 1** on Stone Knight alone, with no reader found. (b) The room handler table at `0x006a1e9f` is indexed from **seven** functions the slot table does not name: `FUN_004E4B00`, `FUN_004E6C90`, `FUN_004E6CD0`, `FUN_004E6D10` and `FUN_004E8DA0` (three sites) | The bits' rosters and their readers' addresses; the extra callers' addresses. Nothing about the portal depends on either — the reset rests on `FUN_004E5650`, which is decompiled | Nothing. Decompile the four bit readers and the seven table users. **Bit 1 is a candidate for the `a-live-mechanism-with-a-zero-rate-is-not-dead` treatment**: one creature carries it and the reader scan came back empty, which is the exact signature that has been wrong three times |
+| **Q211** | **Does a keeper on Frosty's Castle really receive Knights from a claimed Hero Portal?** The rule says yes and it is not a corner case: the map's only entrances are **four unowned Hero Portals and no Portal**, and the level pools, for each of keepers 3 to 6, exactly the nine creatures carrying `AvailableViaHeroPortal` — Knight, Giant, Wizard, Elven Archer, Thief, Monk, Fairy, Guard, Royal Guard — with the **Dwarf pointedly absent** | **Everything except the observation.** Pinned by `PortalOnRealDataTests.FrostysCastleHasOnlyHeroPortalsAndPoolsExactlyTheirNineCreatures`. Three independent lines agree: the binary's gate shape, the unique roster match across all 5449 record bytes, and the level's own pool. Before this fix our simulation produced **nothing at all** on that map | **The owner, five minutes.** Everything here is read from files and the binary, and the owner has played the game. It also tests the framing: *"an evil keeper cannot summon good creatures"* is true of the campaign and carried entirely by the flags, and these three maps switch its effect off deliberately. Not MPD — `mpd1`..`mpd7` are separate maps |
+
+**Q70 partly answered.** The record's **last dword, `0x1545`**, is the second
+flag field. That is 4 of the 72 unaccounted tail bytes, and it establishes that
+the tail is not padding.
+
+**A method correction that matters more than either question.** The zero-hit
+`MaskScan` run that produced *"reached only through a vtable"* was not a coverage
+limit — the script prepends `0x` to its argument and was handed `0x006a1e9f`, so
+it searched for `0x0x006a1e9f` and **reported zero hits rather than an error**.
+Re-run correctly it returns 114 hits. See `RESEARCH-QUEUE.md`. A second instance
+of the same shape landed the same day: reasoning from record layout put the hero
+flag at file `0xF00`, which holds a 3000/2800 value. Both were fixed by
+**searching for the roster the mechanism must select** rather than for the place
+it ought to live — `dk2tools kwd creaturebits` does that, and is the reusable
+half of this.

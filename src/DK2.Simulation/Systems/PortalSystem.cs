@@ -89,18 +89,22 @@ public sealed class PortalSystem : ISimulationSystem
             owned.Add(room);
 
             if (!PortalRules.IsEntrance(room.Definition)) continue;
+
+            // Counted before the functional test, and deliberately. DK2's
+            // capacity routine walks the owner's room list and tests the room
+            // type and nothing else — not size, not whether the room still has
+            // its centre. So a broken portal, or a Hero Portal a keeper has
+            // claimed and cannot use, still raises the cap. Both portal types
+            // count; this used to count only type 3.
+            //
+            // Two orderings were wrong here in one day: first counting only
+            // Portals, then counting only portals that can produce. See
+            // PortalRules.CreatureCapacity for what the routine actually reads.
+            portalsHeld++;
+
             if (!PortalRules.CanProduce(world, room)) continue;
 
             entrances.Add(room);
-
-            // Both portal types raise the cap, and that is read rather than
-            // guessed: DK2's capacity routine walks the player's room list
-            // twice, once counting room type 3 (Portal) and once counting type
-            // 0x19 (Hero Portal), and adds the two before applying the
-            // per-additional rate. This used to count only type 3, so a keeper
-            // who took a Hero Portal got its arrivals but not its five extra
-            // places. Q86.
-            portalsHeld++;
         }
 
         if (entrances.Count == 0) return;
@@ -136,7 +140,10 @@ public sealed class PortalSystem : ISimulationSystem
             if (held >= capacity) continue;
             if (centre.EntranceIdleTicks < required) continue;
 
-            CreatureDef? arriving = Pick(context, owned, playerId);
+            // The portal is passed in because the flag gate depends on the room
+            // type: a Hero Portal admits a different nine creatures, and a
+            // keeper's claimed one admits none of them.
+            CreatureDef? arriving = Pick(context, owned, playerId, portal.Definition);
             if (arriving is null) continue;
 
             CreatureState spawned = world.SpawnCreature(
@@ -179,7 +186,8 @@ public sealed class PortalSystem : ISimulationSystem
     /// would then diverge forever.</para>
     /// </summary>
     private static CreatureDef? Pick(
-        SimulationContext context, List<RoomInstance> ownedRooms, byte playerId)
+        SimulationContext context, List<RoomInstance> ownedRooms, byte playerId,
+        RoomDef portal)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -189,7 +197,7 @@ public sealed class PortalSystem : ISimulationSystem
         {
             // Cheapest gate and the most fundamental: two creature flags, and
             // the only one of the four that does not consult the level at all.
-            if (!PortalRules.CanComeFromPortal(creature)) continue;
+            if (!PortalRules.CanComeFromPortal(creature, portal)) continue;
 
             if (!PortalRules.IsUnlocked(database, playerId, creature.CreatureId)) continue;
 

@@ -444,16 +444,118 @@ public class PortalTests
     public void TheFlagGateIsTheTwoFlagsAndNothingElse()
     {
         CreatureDef goblin = Dk2TerrainFixture.Goblin();
+        RoomDef portal = Dk2TerrainFixture.Database().Room(RoomTypeId.Portal);
 
-        Assert.True(PortalRules.CanComeFromPortal(goblin));
+        Assert.True(PortalRules.CanComeFromPortal(goblin, portal));
         Assert.False(PortalRules.CanComeFromPortal(
-            goblin with { Flags = goblin.Flags & ~CreatureFlags.AvailableViaPortal }));
+            goblin with { Flags = goblin.Flags & ~CreatureFlags.AvailableViaPortal }, portal));
         Assert.False(PortalRules.CanComeFromPortal(
-            goblin with { Flags = goblin.Flags | CreatureFlags.IsUnique }));
+            goblin with { Flags = goblin.Flags | CreatureFlags.IsUnique }, portal));
 
         // A worker is excluded by the same gate rather than by a special case:
         // the Imp carries no portal flag, so nothing has to know it is an imp.
-        Assert.False(PortalRules.CanComeFromPortal(Dk2TerrainFixture.Imp()));
+        Assert.False(PortalRules.CanComeFromPortal(Dk2TerrainFixture.Imp(), portal));
+    }
+
+    // ---- the two portals are not interchangeable --------------------------
+
+    /// <summary>
+    /// The room type picks the creature flag, so the two portals admit disjoint
+    /// rosters — and a keeper who claims a Hero Portal gets a room that will not
+    /// emit any creature the keeper has.
+    ///
+    /// <para>CONFIRMED by the owner 2026-09-07: <i>"hero portal is not something
+    /// a keeper can use, nor can an evil keeper summon good creatures"</i>, and
+    /// <i>"hero portal IS AN ENTRANCE, but for goodly heroes"</i>. And in the
+    /// binary, in one condition: the candidate builder requires
+    /// <c>def+0x686 &amp; 0x400</c> when <c>room+0x18 == 3</c> and
+    /// <c>def+0x68a &amp; 8</c> when <c>room+0x18 == 0x19</c>.</para>
+    ///
+    /// <para>The Hero Portal room def is synthesised from the Portal's here
+    /// because the fixture defines no room 25 — asking the fixture for it by id
+    /// once broke sixty unrelated tests. What the rule reads off the room is its
+    /// id and nothing else, so re-labelling the Portal exercises exactly the
+    /// branch under test. <c>PortalOnRealDataTests</c> does the same against the
+    /// shipped Hero Portal.</para>
+    /// </summary>
+    [Fact]
+    public void TheTwoPortalsAdmitDisjointCreaturesBecauseTheRoomTypePicksTheFlag()
+    {
+        GameDatabase db = Database();
+        RoomDef portal = db.Room(RoomTypeId.Portal);
+        RoomDef heroPortal = portal with { RoomId = (byte)RoomTypeId.HeroPortal };
+
+        CreatureDef goblin = Dk2TerrainFixture.Goblin();
+
+        // The keeper's own creature: fine out of a Portal, refused by a Hero
+        // Portal however the keeper came to own one.
+        Assert.True(PortalRules.CanComeFromPortal(goblin, portal));
+        Assert.False(PortalRules.CanComeFromPortal(goblin, heroPortal));
+
+        // And the mirror image. The nine real creatures shaped like this carry
+        // AvailableViaHeroPortal and not AvailableViaPortal, which is why a
+        // keeper's portal cannot produce a Knight even on the Frosty levels
+        // where the level unlocks and pools one.
+        CreatureDef heroSide = goblin with
+        {
+            Flags = goblin.Flags & ~CreatureFlags.AvailableViaPortal,
+            Flags2 = CreatureFlags2.AvailableViaHeroPortal,
+        };
+
+        Assert.True(PortalRules.CanComeFromPortal(heroSide, heroPortal));
+        Assert.False(PortalRules.CanComeFromPortal(heroSide, portal));
+
+        // The uniqueness test sits outside the or in the original, so it refuses
+        // both sides rather than only the keeper's.
+        Assert.False(PortalRules.CanComeFromPortal(
+            heroSide with { Flags = heroSide.Flags | CreatureFlags.IsUnique }, heroPortal));
+        Assert.False(PortalRules.CanComeFromPortal(
+            goblin with { Flags = goblin.Flags | CreatureFlags.IsUnique }, portal));
+    }
+
+    /// <summary>
+    /// A portal too broken to produce anything still raises the creature cap.
+    ///
+    /// <para>DK2's capacity routine walks the owner's room list and tests
+    /// <c>room[0x18] == type</c> and nothing else — no size, no centre tile, no
+    /// notion of the room working. So the keeper here holds one working portal
+    /// and one ring whose middle a rival has taken, and is capped at 20 rather
+    /// than 15.</para>
+    ///
+    /// <para>This is the same rule that makes <b>claiming a dead Hero Portal
+    /// raise a keeper's creature limit</b>, which cannot be tested here for want
+    /// of a room 25 in the fixture.</para>
+    /// </summary>
+    [Fact]
+    public void APortalTooBrokenToProduceStillRaisesTheCap()
+    {
+        GameDatabase db = Database();
+        WorldState world = World(db);
+
+        Portal(db, world, 5, 5);
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+
+        // A second portal, then a rival takes its middle. The keeper keeps a
+        // 4-connected ring: still one room, still a portal, no longer able to
+        // produce because it does not hold the tile a creature climbs out of.
+        Portal(db, world, 10, 6);
+        Paint(db, world, RoomTypeId.Portal, 11, 7, 1, 1, Rival);
+
+        var sim = new GameSimulation(db, world, seed: 99, [new PortalSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+        sim.Run(LongEnough);
+
+        List<SimEvent> arrivals =
+            sink.Events.Where(e => e.Kind == "creature_entered").ToList();
+
+        Assert.NotEmpty(arrivals);
+        Assert.Contains("capacity=20", arrivals[0].Detail);
+
+        // And the broken one really is broken: every arrival came out of the
+        // working portal's hole.
+        int workingHole = (6 * world.Width) + 6;
+        Assert.All(arrivals, e => Assert.Contains($"portal_tile={workingHole}", e.Detail));
     }
 
     // ---- gate 1: attraction ----------------------------------------------

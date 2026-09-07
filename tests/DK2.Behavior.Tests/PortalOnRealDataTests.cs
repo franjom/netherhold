@@ -88,7 +88,8 @@ public class PortalOnRealDataTests
         // to carry them or it never comes out of a portal at all.
         Assert.True(goblin.Flags.HasFlag(CreatureFlags.AvailableViaPortal));
         Assert.False(goblin.Flags.HasFlag(CreatureFlags.IsUnique));
-        Assert.True(PortalRules.CanComeFromPortal(goblin));
+        Assert.True(PortalRules.CanComeFromPortal(
+            goblin, GameDatabaseLoader.Load(install!).Room(RoomTypeId.Portal)));
 
         // One slot, wanting a Lair of any size. This is the fact that makes
         // level 1 produce nothing until its keeper builds a lair.
@@ -432,6 +433,7 @@ public class PortalOnRealDataTests
         // campaign that changed and it should be read again rather than
         // absorbed.
         GameDatabase db = GameDatabaseLoader.Load(install);
+        RoomDef keeperPortal = db.Room(RoomTypeId.Portal);
         var blocked = new SortedSet<string>();
         int checkedLevels = 0;
 
@@ -447,7 +449,7 @@ public class PortalOnRealDataTests
                 if (!PlayerIds.IsKeeper((byte)entry.PlayerId)) continue;
 
                 CreatureDef creature = db.CreatureById((byte)entry.TypeId);
-                if (!PortalRules.CanComeFromPortal(creature))
+                if (!PortalRules.CanComeFromPortal(creature, keeperPortal))
                     blocked.Add(creature.Name);
             }
         }
@@ -460,6 +462,156 @@ public class PortalOnRealDataTests
                 "Monk", "Royal Guard", "Thief", "Wizard",
             },
             blocked);
+    }
+
+    /// <summary>
+    /// The Hero Portal's own creature flag, on the shipped records — and the
+    /// claim that makes it trustworthy: <b>the two flags partition the
+    /// portal-generated roster.</b>
+    ///
+    /// <para>The nine creatures carrying <c>AvailableViaHeroPortal</c> are
+    /// exactly the nine that
+    /// <see cref="TheCampaignUnlocksNineCreaturesOnlyTheFlagGateKeepsOut"/>
+    /// arrives at from the opposite direction — the creatures the campaign makes
+    /// available to keepers that only the Portal's flag gate keeps out. Two
+    /// independent reads of the shipped data meeting on the same nine names is
+    /// the evidence that bit 3 of the second flag field is what the binary's
+    /// <c>def+0x68a &amp; 8</c> tests.</para>
+    ///
+    /// <para><b>And the Dwarf is not among them</b>, which is the detail that
+    /// rejected the near miss. Bit 30 of the <i>first</i> flag dword selects
+    /// these nine plus the Dwarf and is named <c>MpdRandomInvader</c> from
+    /// OpenKeeper; gating a Hero Portal on it would have it emitting the heroes'
+    /// worker. Each side's portal excludes its own worker.</para>
+    /// </summary>
+    [Fact]
+    public void NineCreaturesCarryTheHeroPortalFlagAndTheyAreTheNineThePortalRefuses()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        RoomDef portal = db.Room(RoomTypeId.Portal);
+        RoomDef heroPortal = db.Room(RoomTypeId.HeroPortal);
+
+        var heroSide = new SortedSet<string>();
+        foreach (CreatureDef creature in db.Creatures.Values)
+        {
+            if (creature.Flags2.HasFlag(CreatureFlags2.AvailableViaHeroPortal))
+                heroSide.Add(creature.Name);
+        }
+
+        Assert.Equal(
+            new SortedSet<string>
+            {
+                "Elven Archer", "Fairy", "Giant", "Guard", "Knight",
+                "Monk", "Royal Guard", "Thief", "Wizard",
+            },
+            heroSide);
+
+        // The heroes' worker is excluded, exactly as the Imp is on the other
+        // side. This is the assertion that fails if anyone re-points the flag at
+        // the neighbouring bit 30.
+        Assert.False(db.Creatures.Values
+            .Single(c => c.Name == "Dwarf")
+            .Flags2.HasFlag(CreatureFlags2.AvailableViaHeroPortal));
+
+        // Disjoint in both directions, and by room type rather than by owner —
+        // so this holds whoever happens to hold the room.
+        foreach (CreatureDef creature in db.Creatures.Values)
+        {
+            bool fromPortal = PortalRules.CanComeFromPortal(creature, portal);
+            bool fromHeroPortal = PortalRules.CanComeFromPortal(creature, heroPortal);
+
+            Assert.False(
+                fromPortal && fromHeroPortal,
+                $"{creature.Name} may come out of both portals");
+        }
+
+        // Nothing else in the record's last dword is set: four bits in use, and
+        // the top three bytes zero on all 46. A fifth bit appearing is a fact
+        // about the data that changed and wants reading rather than absorbing.
+        foreach (CreatureDef creature in db.Creatures.Values)
+        {
+            Assert.Equal(0u, (uint)creature.Flags2 & ~0xFu);
+        }
+    }
+
+    /// <summary>
+    /// Frosty's Castle is built around keepers using Hero Portals, and that is
+    /// the strongest evidence for <see cref="CreatureFlags2.AvailableViaHeroPortal"/>
+    /// — a level designer's intent rather than a coincidence of bits.
+    ///
+    /// <para>The map's only entrances are <b>four unowned Hero Portals</b>, and
+    /// the level pools, for every keeper from 3 to 6, exactly the nine creatures
+    /// carrying the flag. <b>The Dwarf (14) is absent</b>, which is the creature
+    /// the rejected candidate bit (bit 30 of the first flag dword, our
+    /// <c>MpdRandomInvader</c>) would have added.</para>
+    ///
+    /// <para>Pinned because the whole hero-portal rule leans on it, and because
+    /// it is the sort of claim about the shipped data that nothing would
+    /// otherwise notice going stale.</para>
+    /// </summary>
+    [Fact]
+    public void FrostysCastleHasOnlyHeroPortalsAndPoolsExactlyTheirNineCreatures()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        const string Level = "Frosty's Castle";
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        byte portalTerrain = db.Room(RoomTypeId.Portal).TerrainId;
+        byte heroTerrain = db.Room(RoomTypeId.HeroPortal).TerrainId;
+
+        LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, Level);
+        Assert.NotNull(map);
+
+        int heroTiles = 0;
+        int keeperPortalTiles = 0;
+        foreach (MapTile tile in map!.Tiles)
+        {
+            if (tile.TerrainId == heroTerrain) heroTiles++;
+            if (tile.TerrainId == portalTerrain) keeperPortalTiles++;
+        }
+
+        // Four 3x3 Hero Portals and not one Portal, so a keeper here has no
+        // other way to obtain a creature.
+        Assert.Equal(36, heroTiles);
+        Assert.Equal(0, keeperPortalTiles);
+
+        GlobalVariables? vars = GameDatabaseLoader.LoadCampaignVariables(install, Level);
+        Assert.NotNull(vars);
+
+        // Every keeper's pool, and they are all the same nine.
+        foreach (byte keeper in new byte[] { 3, 4, 5, 6 })
+        {
+            var pooled = new SortedSet<string>();
+            foreach (CreaturePoolEntry entry in vars!.CreaturePool)
+            {
+                if (entry.PlayerId != keeper) continue;
+                pooled.Add(db.CreatureById((byte)entry.CreatureId).Name);
+            }
+
+            Assert.Equal(
+                new SortedSet<string>
+                {
+                    "Elven Archer", "Fairy", "Giant", "Guard", "Knight",
+                    "Monk", "Royal Guard", "Thief", "Wizard",
+                },
+                pooled);
+
+            // The same nine the flag selects, and the Dwarf in neither.
+            foreach (string name in pooled)
+            {
+                CreatureDef creature = db.Creatures.Values.Single(c => c.Name == name);
+                Assert.True(
+                    creature.Flags2.HasFlag(CreatureFlags2.AvailableViaHeroPortal),
+                    $"{name} is pooled on {Level} but carries no hero portal flag");
+            }
+
+            Assert.DoesNotContain("Dwarf", pooled);
+        }
     }
 
     [Fact]
