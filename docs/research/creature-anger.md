@@ -200,6 +200,14 @@ undercools. The healing branch is reached from the same seven states, but its
 per-creature virtual predicate is still unread; whether awake states actually
 receive health therefore remains **UNKNOWN** and is not established by Q123.
 
+**Independently re-read on 2026-09-07, from the raw address scan up, and
+confirmed.** The three callers are at `0x0047AC00`, `0x0047AC40` and
+`0x0047AC70`; the fill run for the category table stores them at offset `+0x14`
+(the per-tick update hook, `eating.md`) of records 9, 6 and 10. Two details that
+do not affect cooling: the category-9 hook does one extra thing when the state
+id is `0x53`, and the category-10 hook returns the result of a bucket-5 anger
+query.
+
 ### The consequences
 
 **What an angry creature does comes from its own record**, not from a rule of

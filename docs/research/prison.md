@@ -321,6 +321,12 @@ it, and its shipped-variable support is gone (Q171).
   periodic re-roll while occupancy remains unchanged. One extra creature gets
   one 50% chance, while two or more make that insertion's break certain. No code
   was changed in the docs-only reader-scan tranche.
+- **Re-read independently on 2026-09-07 and confirmed**, with two nuances. The
+  room's occupancy counters grow by a per-creature-type byte from the creature
+  definition (runtime `+0x672`), not by one, so the formula's 'extra' is in
+  those units; which shipped field that byte is remains unknown. And an
+  overcrowding event is raised on every over-capacity insertion regardless of
+  the roll.
 - **No keeper-set door bar.** `SafeCreatureCapacity` is a real stored field and
   there is no interface here to set it, so overcrowding is only ever a keeper
   dropping a prisoner into a full prison by hand.

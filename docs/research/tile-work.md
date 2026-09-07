@@ -376,6 +376,15 @@ ordinary 80% Efficiency that is **−28 health each tick**. One path ends when t
 hostile-floor predicate becomes false; the other also removes trap and door
 things left on the tile when it falls.
 
+**Re-read independently on 2026-09-07 and confirmed.** The predicate requires
+`Ownable` and `Attackable` set with `Solid` and `Room` clear and a tile owner
+other than the worker's; the amount is the cached −35 times the same
+`0x3af + 0x3b3` sum as every other work handler; traps are thing type 3 and
+doors type 4. One addition: the first handler switches to a different amount
+when creature state-flag bit 7 (`0x3e6 & 0x80`) is set, built from two
+creature-definition fields and a per-creature field at `+0x5c6`. What that flag
+marks is unknown; the ordinary path is unaffected.
+
 This is the missing user Q68 guessed away: `AttackTileHealth` belongs to the
 hostile-ground work phase, alongside the imp states labelled **claiming
 territory**, not to an unobserved non-imp invasion behaviour. The binary still
