@@ -746,6 +746,46 @@ switch (args[0])
         return 0;
     }
 
+    // The object-record twin of creaturehex. Added 2026-09-07 while hunting the
+    // obstacle radius the binary reads at objDef+0xf8 (Q88): the loader's frame
+    // slot named a file offset, and the only way to check a frame-to-record
+    // delta is to look at the column and see whether the numbers behave.
+    case "kwd" when args.Length >= 4 && args[1] == "objecthex":
+    {
+        int start = Convert.ToInt32(args[2], 16);
+        int count = int.Parse(args[3]);
+        int width = args.Length > 4 && args[4] == "-w" ? 2 : 1;
+        string opath = Path.Combine(
+            Dk2Install.Require(), "Data", "editor", "Objects.kwd");
+
+        foreach (KwdChunk chunk in KwdReader.ReadFile(opath))
+        {
+            if (chunk.Type != KwdRecordType.Objects) continue;
+            int size = chunk.Content.Length / chunk.ItemCount;
+            Console.Write($"{"object",-28}");
+            for (int o = start; o < start + count; o += width) Console.Write($" {o:X4}");
+            Console.WriteLine();
+            for (int i = 0; i < chunk.ItemCount; i++)
+            {
+                byte[] rec = chunk.Content[(i * size)..((i + 1) * size)];
+                int end = Array.IndexOf(rec, (byte)0, 0, 32);
+                string name = System.Text.Encoding.ASCII.GetString(rec, 0, end < 0 ? 32 : end);
+                Console.Write($"{name,-28}");
+                for (int o = start; o < start + count; o += width)
+                {
+                    int v = width == 2
+                        ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
+                            rec.AsSpan(o))
+                        : rec[o];
+                    Console.Write($" {v,4}");
+                }
+                Console.WriteLine();
+            }
+            break;
+        }
+        return 0;
+    }
+
     case "kwd" when args.Length >= 4 && args[1] == "creaturescan":
     {
         string wanted = args[2];
@@ -1044,5 +1084,6 @@ static int Usage()
     Console.WriteLine("  kwd recscan <file.kwd> <value> [rec]   offsets holding a measured value, with the column");
     Console.WriteLine("  kwd creaturescan <name> <value>        the same, anchored on one creature");
     Console.WriteLine("  kwd creaturehex <offsetHex> <count>    raw byte window across every creature");
+    Console.WriteLine("  kwd objecthex <offsetHex> <count> [-w]  the same across every object; -w reads u16s");
     return 1;
 }

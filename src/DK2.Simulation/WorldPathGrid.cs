@@ -89,24 +89,47 @@ namespace DK2.Simulation;
 /// from a map, this grid says a lava tile is impassable to a creature that
 /// cannot cross lava whether or not the original would have a bridge there.</para>
 ///
+/// <para><b>And a room's own structure blocks its tiles</b> (Q88, CONFIRMED by
+/// the owner 2026-09-07): a portal's centre tile and a dungeon heart's centre
+/// 3x3 are not walkable, because there is a hole in one and a heart standing on
+/// the other. That is <see cref="StructureBlocks"/>, and it is the one part of
+/// walkability here that is <i>not</i> derived from terrain flags — which is why
+/// it lives in its own type with its own account of what is known and what is
+/// not. This paragraph used to say the opposite, and said it in
+/// <see cref="PortalRules.EntranceTileIndex"/> too.</para>
+///
 /// <para>Immutable, and cheap to construct: one instance answers for one
 /// creature type against one snapshot of the world, which is what makes it safe
-/// to hand to a search that must not see the world change under it.</para>
+/// to hand to a search that must not see the world change under it. The
+/// structure mask is the one thing that costs a pass over the tiles, so a caller
+/// building many grids for one tick should build the mask once and pass it in.</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/imp-tasks.md")]
 public sealed class WorldPathGrid : IPathGrid
 {
     private readonly GameDatabase _database;
     private readonly WorldState _world;
+    private readonly StructureBlocks _structures;
     private readonly bool _canCrossWater;
     private readonly bool _canCrossLava;
 
     public WorldPathGrid(GameDatabase database, WorldState world, CreatureDef mover)
+        : this(database, world, mover, null) { }
+
+    /// <param name="structures">
+    /// A structure mask already computed for this world, or null to compute one.
+    /// Pass one in when several grids are built for the same tick: the mask does
+    /// not depend on the mover.
+    /// </param>
+    public WorldPathGrid(
+        GameDatabase database, WorldState world, CreatureDef mover,
+        StructureBlocks? structures)
     {
         if (mover is null) throw new ArgumentNullException(nameof(mover));
 
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _world = world ?? throw new ArgumentNullException(nameof(world));
+        _structures = structures ?? StructureBlocks.For(database: database, world: world);
         _canCrossWater = mover.Flags.HasFlag(CreatureFlags.CanWalkOnWater);
         _canCrossLava = mover.Flags.HasFlag(CreatureFlags.CanWalkOnLava);
     }
@@ -123,6 +146,9 @@ public sealed class WorldPathGrid : IPathGrid
         if (terrain.IsSolid) return false;
         if (terrain.IsWater && !_canCrossWater) return false;
         if (terrain.IsLava && !_canCrossLava) return false;
-        return true;
+
+        // A hole in a portal and a heart on its platform. Not a terrain flag,
+        // because all nine tiles of a portal are one terrain (Q88).
+        return !_structures.Blocks((y * _world.Width) + x);
     }
 }

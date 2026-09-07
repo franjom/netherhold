@@ -184,8 +184,25 @@ public sealed class HandSystem : ISimulationSystem
         }
 
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+
+        // THE HOLE IS THE ONE UNWALKABLE TILE A KEEPER MAY DROP ONTO, and that
+        // is not an exception bolted on - it is what the tile is for. The owner
+        // gave both halves of Q88 in one sentence: the portal's centre is "not
+        // walkable" AND is "for hand of evil to throw creatures in". So the
+        // walkability refusal has to be asked second, or the two halves of one
+        // answer contradict each other. They did, for about a minute.
+        // A PRISONER IS NOT POSTED HOME, and is refused the tile rather than
+        // freed onto it. Whether DK2 lets a keeper drop an enemy captive into
+        // its own portal is UNKNOWN; both "eject it" and "free it into the
+        // dungeon" invent something, and the third option - the hole simply is
+        // not a legal drop for a captive - invents least and leaves the
+        // prisoner rules (ADR-0064) untouched.
+        bool intoTheHole = !PrisonRules.IsImprisoned(creature)
+            && PortalRules.IsHoleTile(
+                world, context.Database, command.Tile, command.PlayerId);
+
         var grid = new WorldPathGrid(context.Database, world, definition);
-        if (!grid.IsWalkable(command.Tile.X, command.Tile.Y))
+        if (!intoTheHole && !grid.IsWalkable(command.Tile.X, command.Tile.Y))
         {
             context.Emit(SystemName, "drop_refused",
                 $"player={command.PlayerId} creature={creature.Id} " +
@@ -212,6 +229,29 @@ public sealed class HandSystem : ISimulationSystem
         creature.PosY = CreatureState.CentreOf(command.Tile.Y);
         creature.MoveRemainder = 0;
         creature.ClearJob();
+
+        // THROWN INTO THE PORTAL, which is how a keeper gets rid of a creature
+        // (Q88, CONFIRMED by the owner 2026-09-07: the portal's centre is
+        // "for hand of evil to throw creatures in, removing them from
+        // dungeon"). The same removal a deserter reaching a portal gets, by the
+        // same event kind, because it is the same thing happening for a
+        // different reason - and the gold goes with it rather than spilling,
+        // which is Q137 answered in the owner's own parenthesis: "a creature
+        // leaving (BEING THROWN) through portal does not drop its gold".
+        //
+        // A captive never gets here: see intoTheHole above.
+        if (intoTheHole)
+        {
+            context.Emit(SystemName, "creature_left",
+                $"creature={creature.Id} type={definition.Name} " +
+                $"player={creature.OwnerPlayerId} " +
+                $"at=({command.Tile.X},{command.Tile.Y}) " +
+                $"gold_lost={creature.GoldHeld} via=thrown_in " +
+                $"by={command.PlayerId} held={hand.Count}");
+
+            world.RemoveCreature(creature.Id);
+            return;
+        }
 
         // A creature lifted out of a cell is still that keeper's prisoner while
         // it is in the hand, and where it lands decides whether it stays one:

@@ -114,21 +114,63 @@ public static class PortalRules
     }
 
     /// <summary>
+    /// Whether this tile is the <b>hole</b> — the centre of a portal this player
+    /// owns, which is a different and much smaller thing than
+    /// <see cref="IsExitTile"/>.
+    ///
+    /// <para><b>The hole has two jobs and this is the second</b> (Q88, CONFIRMED
+    /// by the owner 2026-09-07): <i>"portal's center is reserved for creature's
+    /// 'arriving' animation and for hand of evil to throw creatures in, removing
+    /// them from dungeon"</i>. So <b>dropping a creature into it is how a keeper
+    /// gets rid of one</b> — a keeper power this project did not have, and the
+    /// counterpart to the arrival <see cref="EntranceTileIndex"/> already
+    /// modelled.</para>
+    ///
+    /// <para><b>Requires a middle to speak of</b>, the same guard
+    /// <see cref="StructureBlocks"/> and <see cref="RoomInstance.IsCentrePlatform"/>
+    /// make: a portal dug down below 3x3 is a broken portal and has no hole. It
+    /// deliberately does <i>not</i> require <see cref="CanProduce"/>, for the
+    /// reason <see cref="IsExitTile"/> gives — a hole in the floor is a hole
+    /// whether or not anything can still come out of it.</para>
+    /// </summary>
+    public static bool IsHoleTile(
+        WorldState world, GameDatabase database, TilePos at, byte playerId)
+    {
+        if (!IsExitTile(world, database, at, playerId)) return false;
+
+        int index = (at.Y * world.Width) + at.X;
+        RoomInstance? portal = RoomIndex.RoomAt(world, database, index);
+
+        return portal is not null
+            && portal.Definition.TypeId == RoomTypeId.Portal
+            && portal.Width >= 3 && portal.Height >= 3
+            && EntranceTileIndex(world, portal) == index;
+    }
+
+    /// <summary>
     /// The tile a creature appears on: the centre of the portal's bounding box.
     ///
     /// <para>STRONGLY INFERRED, and the same tile OpenKeeper uses. It is the
     /// hole in the middle of the 3x3, which is where the original's animation
     /// puts them.</para>
     ///
-    /// <para><b>A loose end worth knowing about.</b> In the original that centre
-    /// tile is <i>not walkable</i> — a creature crossing a portal walks around
-    /// the hole rather than over it, and OpenKeeper models that as a per-room
-    /// accessibility override. Nothing here does: portal terrain is
-    /// <c>ownable, room</c> and not <see cref="TerrainFlags.Solid"/>, so
-    /// <see cref="WorldPathGrid"/> lets anything stand on all nine tiles. That
-    /// makes spawning on the centre harmless here and would not be in the
-    /// original. Recorded as Q88 rather than fixed, because fixing it means
-    /// teaching the path grid about rooms.</para>
+    /// <para><b>That loose end is tied, and the owner named a second purpose for
+    /// the same tile</b> (Q88, CONFIRMED 2026-09-07): <i>"portal's center is
+    /// reserved for creature's 'arriving' animation and for hand of evil to
+    /// throw creatures in, removing them from dungeon"</i>. So the centre is
+    /// <b>not walkable</b> — <see cref="StructureBlocks"/> now says so and
+    /// <see cref="WorldPathGrid"/> honours it — and this spawn is the arriving
+    /// animation the owner is describing, which promotes it from
+    /// STRONGLY INFERRED to the tile's actual job.</para>
+    ///
+    /// <para><b>Arriving on an unwalkable tile works, and by accident of good
+    /// design rather than by a special case.</b> <see cref="Pathfinding.GridPathfinder"/>
+    /// tests the destination and every neighbour it expands but never the
+    /// <i>start</i>, so a creature standing on the hole can route off it while
+    /// nothing can route onto it; and
+    /// <c>CreatureMovementSystem.KeepOffTheCorner</c> already nudges a creature
+    /// that finds itself somewhere unwalkable. Both were written for other
+    /// reasons.</para>
     /// </summary>
     public static int EntranceTileIndex(WorldState world, RoomInstance portal)
     {

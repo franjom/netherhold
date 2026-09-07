@@ -69,6 +69,13 @@ public sealed class CreatureMovementSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
+        // ONE MASK FOR THE WHOLE TICK. The structure mask (Q88 - a portal's
+        // centre and a heart's platform) does not depend on the mover, and this
+        // is the one place that builds a grid per creature per tick, so
+        // computing it here rather than in the constructor keeps the cost at one
+        // pass over the tiles a tick instead of one per creature.
+        StructureBlocks structures = StructureBlocks.For(context.World, context.Database);
+
         foreach (CreatureState creature in context.World.Creatures)
         {
             if (creature.PathIndex >= creature.Path.Count) continue;
@@ -92,7 +99,7 @@ public sealed class CreatureMovementSystem : ISimulationSystem
 
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             Advance(context.Database, creature, definition,
-                new WorldPathGrid(context.Database, context.World, definition));
+                new WorldPathGrid(context.Database, context.World, definition, structures));
         }
     }
 

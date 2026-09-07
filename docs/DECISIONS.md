@@ -6709,3 +6709,103 @@ numbers behind on any second that crosses a threshold. The cadence is behaviour.
 - **Q79's factor of four rests on `tile-work.md`'s per-tick accrual** rather than
   on a caller read. The probe is named in the research doc: find what iterates
   the imp task table at `0x006E4198`.
+
+---
+
+## ADR-0084 — A portal has a hole in it, and dropping a creature into it is how a keeper gets rid of one
+
+**Date:** 2026-09-07
+**Status:** accepted
+**Questions:** Q88 (closed), Q209 (new), Q137 (a clause confirmed), Q52 (reused
+as evidence)
+**Evidence:** `docs/research/structure-blocks.md`
+
+### Context
+
+Q88 asked one thing — is a portal's centre tile walkable — and the owner's
+answer contained three, two of which nobody had asked for:
+
+> *"no it is not walkable, dungeon heart's center is also not walkable. portal's
+> center is reserved for creature's 'arriving' animation and for hand of evil to
+> throw creatures in, removing them from dungeon"*
+
+The third is a **keeper power this project did not have**. The old note in the
+row said fixing the first would mean "teaching the path grid about rooms, which
+is a bigger change than the fact justifies today", and left it.
+
+### Decision
+
+**1. A portal blocks its single centre tile; a dungeon heart blocks its centre
+3x3.** `StructureBlocks`, consulted by `WorldPathGrid.IsWalkable` — the one part
+of walkability here that is not derived from terrain flags, which is why it
+lives in its own type.
+
+**The heart's nine is borrowed evidence, and that is what makes it solid.** Q52
+established from the gold counter that 16 of a heart's 25 tiles store gold
+against `MaxGoldPerDungeonHeartTile` of 1000, so nine are structure.
+`RoomInstance.IsCentrePlatform` is the same predicate the gold rules use, so
+"16 storable" and "16 walkable" are one fact.
+
+**2. A room with no middle has no structure.** Both cases refuse a room narrower
+than 3. That is `IsCentrePlatform`'s own guard for the heart, and for the portal
+it was added because **the first version of this change walled off a deserter** —
+the anger tests paint a 1x1 portal and blocking its only tile left nothing to
+walk to.
+
+**3. Dropping a creature onto the hole removes it from the dungeon**, with its
+gold, reusing the deserter's `creature_left` event with `via=thrown_in`.
+**Q137's parenthesis was this mechanic all along** — *"a creature leaving (being
+thrown) through portal does not drop its gold"*.
+
+**4. The hole is the one unwalkable tile a keeper may drop onto**, tested before
+the walkability refusal rather than after it. The two halves of the owner's
+sentence contradict each other in the wrong order, and did for about a minute:
+making the hole unwalkable made it undroppable, which is the opposite of what
+the tile is for.
+
+**5. A captive is refused the tile.** Whether DK2 lets a keeper post an enemy
+prisoner home is UNKNOWN; ejecting it and freeing it onto an unwalkable tile both
+invent something, and refusing invents nothing — the prisoner stays in the hand,
+still a prisoner, and ADR-0064 is untouched.
+
+### Consequences
+
+- **Arriving on the hole still works, and by luck rather than design.**
+  `GridPathfinder` tests the destination and every neighbour it expands but never
+  the **start**, so a creature spawned on the hole routes off it while nothing
+  routes onto it; and `KeepOffTheCorner` already nudges a creature standing
+  somewhere unwalkable. Both were written for other reasons. Asserted by a test
+  rather than left to luck.
+- **Two tests failed and both were right to.** The deserter tests use a 1x1
+  portal, which is how the missing minimum-size guard was found.
+- **Verified on real geometry.** `a_portal_fills_a_dungeon` runs campaign level 1
+  — a genuine 5x5 heart and 3x3 portal — and imps dig, claim the portal and four
+  Goblins arrive with no route failure and nothing stuck.
+- **10 tests**, `StructureBlocksTests`. 1140 total.
+- `dk2tools` gains **`kwd objecthex`**, the object twin of `creaturehex`, which
+  is what read the candidate radius column.
+
+### And the mechanism is NOT this (Q209)
+
+Worth recording because the dig got a long way and its shape is reusable.
+**DK2 has no room-level walkability override; it has an obstacle system driven by
+the object table**, and the table says so out loud — object **100 is named
+"Dungeon Heart Obstacle"**. Established: `objDef+0xf4` is the flags word,
+`objDef+0xf8` a 4096-fixed size used as `size >> 1`, that size's file offset is
+**`0x32C`** (from the loader's frame slot at a `0x80` frame-to-record delta),
+**15** objects carry `SolidObstacle` and all fifteen are room furniture, and
+**58** carry `Obstacle`.
+
+**Both obvious candidate rules are refuted by the shipped data**, which is why
+nothing data-driven was built: `Obstacle && size > 0` would block **every
+creature bed**, and `SolidObstacle` alone would **not** block a portal's centre
+because the Portal Crystal carries `Obstacle` without it. `FUN_004D12B0` is a
+collision *enumerator* feeding a callback, gated on `Obstacle` and consulting
+`FirstPersonObstacle` behind a mode flag — not tile pathing.
+
+So this covers **two tiles and no more**, deliberately. The fifteen
+`SolidObstacle` objects are the workshop's anvil, the library's bookcases, the
+casino's tables and the graveyard's tombstones; every one of those rooms is
+coming, and guessing a rule now would silently decide the other thirteen. When
+the real predicate is found, `StructureBlocks` should be **deleted** and the path
+grid should learn about objects.
