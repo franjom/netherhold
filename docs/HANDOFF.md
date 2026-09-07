@@ -5820,3 +5820,112 @@ Unchanged: **Q205**, then the list in the previous sitting. Two things this
 sitting unlocked, for whoever picks up M5: DK2 can now run under a Flame we
 built (back up `PATCH.dll` first), and §2.2.1 item 4 — a Ghidra import for the
 `sgmap` — and §11 item 5 — the `sgmap` query tool — no longer wait on anything.
+
+---
+
+# Sitting: training pays, and the experience model under it was wrong
+
+**2026-09-07, second sitting. Commit `d0d9c4c`. 1130 tests, 26 scenarios, 83
+ADRs, 208 questions (62 fully open). `HashVersion` 33, pin unchanged.**
+
+Q205 was "what does `ExpPerSecondTraining` divide by". It divides by nothing at
+the point of use, because **the loader already divided it** — `file value /
+variable 19`, floored at 1, exactly as it does the four `angerNo*` fields. Three
+siblings go through the same store and their neighbour `ExpForNextLevel` is
+stored **raw**, which is the tell: a threshold is not a rate.
+
+## The four things that were not the question
+
+**1. The payment was in the wrong table.** None of the six training states
+awards anything. It hangs off the state's **category**: the 32 records at
+`0x00699688` carry an enter hook at `+0x04`, an **update hook at `+0x14` called
+every tick by the state dispatcher**, and a leave hook at `+0x24`. Category 13 is
+training. All 32 are now decoded (Q186), and **that update hook is where several
+mechanics this project has hunted for in *state* handlers actually live** — the
+prison drain (category 14) was the first, training the second, research and
+manufacture are categories 4 and 5. If a mechanic seems to have no state that
+does it, look at its category.
+
+**2. `ExpPerSecond` is combat, and the 1200 was a coincidence.** This project had
+recorded "20 × 60 = 1200, so the record's rates are per minute" as STRONGLY
+INFERRED, on the strength of *two independent fields agreeing on one creature's
+rate*. They were never about the same mechanic: the global is a rate for
+**working**, the record field is read only by category 22 — **battle, fleeing,
+threat-response** — and 60 is a plausible factor between any two rates. Third
+instance of that trap here, and the standing note about it is now updated with
+the pattern that makes it recognisable in advance.
+
+**3. Q127's two readings were both wrong.** DK2's adder promotes **once** and
+**zeroes** the balance. We spent the threshold and carried the remainder, and
+looped so a big award could buy two levels — the argument written down was that
+a single-step version *"would silently drop levels the day combat pays out in
+lumps"*. It does drop them. Two clauses nobody had guessed at: an
+`ExpForNextLevel` of zero refuses everything including losses, and a loss larger
+than the balance is a **no-op** rather than a clamp.
+
+**4. Q79 rode along and moved a built number by 4×.** Imp experience is per
+**tick of work** — nine sites, all in the imp task unit, all awarding the raw 20
+with **no divide**, each guarded by a predicate that was decompiled specifically
+to check whether it meant "the job finished". It does not: all three guards are
+terrain-flag tests meaning *"is this tile still a valid target"*. So 80 a game
+second, and an imp reaches level 2 in **37 seconds** rather than the 150 a test
+*name* had been asserting for three weeks.
+
+## Three things worth carrying forward
+
+- **The cadence of an award is behaviour, not scheduling.** Because a promotion
+  zeroes, four awards of ten and one award of forty leave different numbers
+  behind on any second that crosses a threshold. That is why
+  `SimulationTiming.OnOriginalTick` now exists and why both experience systems
+  use it. Default to once a game second; reach for the original's tick only when
+  the mechanic is **not additive**, and say why at the call site.
+
+- **A variable with a reader and a zero is a feature that was DISABLED, not
+  cut** — and this project's dead-variable audit cannot see the difference.
+  `EPLossSecondWhileNotTraining` has a live per-second hook that drains
+  experience from any creature not in a training-category state, and ships as
+  **0**. Twelve variables have been retired here by "scan for readers, find
+  none"; **none of them was checked for the opposite shape**, a live mechanism
+  with a zero rate. Cheap to re-audit and nobody has.
+
+- **A drift guard earns its keep by being needed.** The fixture Goblin had been
+  inheriting the Imp's `ExpPerSecondTraining` and `ExpPerSecond`. Nothing noticed
+  while nothing read them; the moment training paid, every training test would
+  have been about a Goblin that does not exist. Fourth field this guard has
+  caught, and the new `TrainingOnRealDataTests` covers the rest of the family.
+
+## What is ours, and where it will bite
+
+- **A capped creature keeps the job for up to one five-second gate** instead of
+  being ejected — DK2 ejects it through four of its six training *state*
+  handlers, and we have one working state where it has six. It leaves one gate
+  late.
+- **Q79's factor of four rests on `tile-work.md`'s per-tick accrual**, not on a
+  caller read. The probe is named: find what iterates the imp task table at
+  `0x006E4198` (stride `0x1D`, filled by `FUN_004950C0`). If that is wrong, the
+  4× moves with it.
+- No floating "−20", no message `0x37`, and **no combat-pit fallback** for a
+  creature that has outgrown the training room — the original hands it to the
+  pit's finder rather than refusing it.
+
+## Where the next session should start
+
+M4 is closed with nothing loose. The queue, in the order the evidence is
+cheapest:
+
+1. **Q88's two unbuilt halves**, both owner-confirmed and both small: a portal's
+   and a dungeon heart's **centre tile must be unwalkable** in `WorldPathGrid`,
+   and **dropping a creature onto a portal centre removes it from the dungeon**
+   — a keeper power nothing here has.
+2. **Q207**, where a ruined dungeon heart's "cannot sell, cannot build over"
+   lives. It gates defeat, which is the first thing M5/M6 needs, and the terrain
+   table has already ruled itself out.
+3. **Q184**, now that the category table gives it a shape: the prediction is
+   that a state record's `+0x04`/`+0x08`/`+0x0c` are **not three hooks** but the
+   rest of one MSVC pointer-to-member whose function word is `+0x00`. One scan
+   settles it either way.
+4. **Re-audit the twelve dead variables for the disabled-not-cut shape**, per
+   the note above.
+5. **Q90** — the portal's per-type weighting, binary-only because the owner
+   confirmed it is not player-perceptible. Entry points are the two variables
+   that both read 33.
