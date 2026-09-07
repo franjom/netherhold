@@ -580,3 +580,40 @@ Two smaller consequences:
   with a reader and a no-op value was **disabled**. The mechanism is intact in
   the second case and a mod that sets the rate would work, so the two facts
   belong in different columns.
+
+---
+
+## A third kind of false negative: an adjacent global read as a word
+
+**2026-09-07, found while confirming the portal capacity rule (Q86).** This
+document's dead-variable list is built by scanning for a variable's cached global
+and finding only the loader's setter. That test has now failed in **three**
+distinct ways, and the newest is the most dangerous because it is invisible.
+
+| kind | what it looks like | how it was found |
+|---|---|---|
+| **cut** | one hit, the setter, and no reader exists | the original scan — still valid |
+| **disabled** | live readers, shipped value makes the mechanism a no-op | ADR-0085, by listing every variable shipped as zero |
+| **read as a neighbour** | one hit, the setter, **and a real reader that never names the address** | below |
+
+**`CreaturesSupportedPerAdditionalPortal`** (`0x006F28B5`, value 5) has exactly
+one reference in the whole executable: the loader's setter. By this document's
+own rule it is cut, and it would have been the fifteenth entry on the list. It is
+**live, and it is the rule the 1999 manual states in prose.**
+
+Its byte sits immediately after `CreaturesSupportedByFirstPortal`'s
+(`0x006F28B4`, value 15). The capacity routine loads a **word** at `0x006F28B4`
+and takes the two halves — the low byte as the first portal's allowance, the high
+byte with `>> 8 & 0xff` as the per-additional rate. **The second variable's
+address is never assembled into any instruction**, so no scan for it can ever
+find a reader, however wide.
+
+**What to do about it.** Before recording a variable as cut, check whether its
+global is **adjacent to another variable's** — this table lists the addresses, so
+it is one look. If it is, scan the *neighbour* and read that routine, because a
+compiler will fold two adjacent bytes into one load whenever it can. Two-byte and
+four-byte neighbours are equally affected, and the whole balance table is packed,
+so the shape is available almost everywhere.
+
+**The fourteen already on the cut list have not been re-checked against this.**
+

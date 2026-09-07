@@ -81,7 +81,7 @@ public sealed class PortalSystem : ISimulationSystem
 
         var owned = new List<RoomInstance>();
         var entrances = new List<RoomInstance>();
-        int keeperPortals = 0;
+        int portalsHeld = 0;
 
         foreach (RoomInstance room in rooms)
         {
@@ -92,7 +92,15 @@ public sealed class PortalSystem : ISimulationSystem
             if (!PortalRules.CanProduce(world, room)) continue;
 
             entrances.Add(room);
-            if (PortalRules.IsKeeperPortal(room.Definition)) keeperPortals++;
+
+            // Both portal types raise the cap, and that is read rather than
+            // guessed: DK2's capacity routine walks the player's room list
+            // twice, once counting room type 3 (Portal) and once counting type
+            // 0x19 (Hero Portal), and adds the two before applying the
+            // per-additional rate. This used to count only type 3, so a keeper
+            // who took a Hero Portal got its arrivals but not its five extra
+            // places. Q86.
+            portalsHeld++;
         }
 
         if (entrances.Count == 0) return;
@@ -100,7 +108,7 @@ public sealed class PortalSystem : ISimulationSystem
         // Read once, used for every one of this keeper's portals this tick. See
         // the quirk in the type doc — this is the line that reproduces it.
         int held = PortalRules.CreatureCount(world, database, playerId);
-        int capacity = PortalRules.CreatureCapacity(database, keeperPortals);
+        int capacity = PortalRules.CreatureCapacity(database, portalsHeld);
 
         // RoomIndex.Build returns rooms in ascending order of their lowest tile
         // index, so two ripe portals are always visited in the same order and

@@ -148,6 +148,57 @@ public static class PortalRules
     }
 
     /// <summary>
+    /// Whether this terrain id is a portal's, either kind — 12 for Portal and
+    /// 40 for Hero Portal in the shipped data.
+    ///
+    /// <para>Read from whichever portal ROOMS records the database actually
+    /// has rather than hardcoded, so a renumbered terrain cannot make a caller
+    /// quietly stop matching — and so a test fixture that defines a Portal but
+    /// no Hero Portal does not throw. Asking for room 25 by id was the first
+    /// version and it broke sixty tests, none of them about portals.</para>
+    /// </summary>
+    public static bool IsPortalTerrain(GameDatabase database, byte terrainId)
+    {
+        foreach (RoomDef room in database.Rooms.Values)
+        {
+            if (IsEntrance(room) && room.TerrainId == terrainId) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// A portal changing hands restarts it: the new owner gets a portal at the
+    /// base interval however worn out the old owner left it.
+    ///
+    /// <para><b>CONFIRMED both ways, 2026-09-07.</b> The owner, asked what
+    /// happens when a rival takes a portal: <i>"yes, it resets to zero for that
+    /// portal and that keeper"</i>. And in the binary: DK2 keeps a table of
+    /// per-room-type handler records, and the room-ownership-change routine
+    /// fires the type's fourth slot after re-linking the room to its new owner.
+    /// For both portal types that slot stamps the room's clock and zeros its
+    /// tally. The room <i>constructor</i> fires a different slot that does the
+    /// same two things plus sets one flag, which is why a portal built or
+    /// created fresh also starts at zero.</para>
+    ///
+    /// <para>That closes the last part of Q86. The reset was known to exist and
+    /// its trigger was not: both zero-stores had been recorded here as
+    /// <i>"reached only through a vtable"</i>, which was itself wrong — an
+    /// earlier scan looked for their addresses in <c>.text</c> only, and a
+    /// handler table lives in <c>.data</c>. The silence of that scan meant
+    /// nothing and was read as evidence.</para>
+    ///
+    /// <para>Applied to the portal's centre tile, which is where both the clock
+    /// and the tally live (<see cref="TileState.EntranceCreaturesGenerated"/>).
+    /// The clock is zeroed with the tally, so a rival cannot inherit a portal
+    /// that is already most of the way to its next creature.</para>
+    /// </summary>
+    public static void OnOwnerChanged(ref TileState tile)
+    {
+        tile.EntranceCreaturesGenerated = 0;
+        tile.EntranceIdleTicks = 0;
+    }
+
+    /// <summary>
     /// The tile a creature appears on: the centre of the portal's bounding box.
     ///
     /// <para>STRONGLY INFERRED, and the same tile OpenKeeper uses. It is the
@@ -267,15 +318,29 @@ public static class PortalRules
     /// <c>CreaturesSupportedByFirstPortal</c> (15) for the first, plus
     /// <c>CreaturesSupportedPerAdditionalPortal</c> (5) for each one after.
     ///
-    /// <para><b>CONFIRMED, twice over.</b> The two variables say it in their own
-    /// names, and the 1999 manual states it as a rule: the cap is per portal,
-    /// not per keeper. No portals means no capacity at all, which needs no extra
-    /// clause — a keeper with no portal gets no creatures for want of anywhere
-    /// to put them.</para>
+    /// <para><b>CONFIRMED from the binary, 2026-09-07</b>, having been CONFIRMED
+    /// twice from the data before that (the two variables say it in their own
+    /// names, and the 1999 manual states it as a rule). DK2's routine walks the
+    /// player's own room list <b>twice</b> — once counting room type 3 (Portal)
+    /// and once counting type <c>0x19</c> (Hero Portal) — and returns
+    /// <c>first + (total - 1) * perAdditional</c>, or 0 with no portals. Same
+    /// shape, and the count includes <b>both</b> portal types.</para>
     ///
-    /// <para>Counts keeper portals only. A hero portal is an entrance but it is
-    /// not a portal for this purpose, which is what the variable names say and
-    /// what OpenKeeper does.</para>
+    /// <para><b>The second variable nearly read as dead, and the reason is worth
+    /// keeping.</b> A raw scan for <c>0x006F28B5</c> finds one hit, the loader's
+    /// setter, which is the exact signature this project has used fourteen times
+    /// to call a variable cut. It is not: the two are adjacent bytes, and the
+    /// compiler loads a <i>word</i> at <c>0x006F28B4</c> and takes the high half
+    /// with <c>&gt;&gt; 8 &amp; 0xff</c>. So the address of the second byte never
+    /// appears in any instruction. <b>Any variable whose global sits immediately
+    /// after another's can be read this way and will scan as dead.</b></para>
+    ///
+    /// <para><b>The comparison is strict.</b> Attraction proceeds only while the
+    /// keeper's creature count is <i>less than</i> this, so at or above capacity
+    /// nothing arrives — and nothing culls creatures either. A keeper who loses
+    /// a portal to a rival keeps every creature and simply stops receiving,
+    /// which is CONFIRMED by the owner: <i>"creatures don't disappear if that
+    /// happens"</i>.</para>
     /// </summary>
     public static int CreatureCapacity(GameDatabase database, int keeperPortalCount) =>
         keeperPortalCount <= 0

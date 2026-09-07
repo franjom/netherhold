@@ -709,7 +709,22 @@ public static class TileWorkRules
         if (terrainChanged) tile.BurnTicksRemaining = 0;
         if (!next.IsTaggable) tile.TaggedBy = 0;
 
+        byte ownerBefore = tile.OwnerPlayerId;
         if (takeOwnership && next.IsOwnable) tile.OwnerPlayerId = playerId;
+
+        // A portal changing hands restarts it. DK2's room-ownership-change
+        // routine fires the room type's own handler after re-linking the room,
+        // and for both portal types that handler stamps the clock and zeros the
+        // generation tally — so a rival who takes a worn-out portal gets it at
+        // the base interval, which the owner confirmed independently. Tested
+        // against the terrain rather than a room lookup because this runs for
+        // every converted tile and a room index here would cost a map sweep.
+        // PortalRules.OnOwnerChanged carries the evidence.
+        if (tile.OwnerPlayerId != ownerBefore
+            && PortalRules.IsPortalTerrain(database, tile.TerrainId))
+        {
+            PortalRules.OnOwnerChanged(ref tile);
+        }
 
         // A tile that cannot be owned does not carry an owner. This used to keep
         // the byte, on a reason that has since expired twice over — it said

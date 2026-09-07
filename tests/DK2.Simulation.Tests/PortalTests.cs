@@ -288,6 +288,98 @@ public class PortalTests
         Assert.Equal(250 * second, PortalRules.SpawnIntervalTicks(db, 15));
     }
 
+    /// <summary>
+    /// A rival taking a worn-out portal gets it at the base interval — the
+    /// tally and the clock both go back to zero.
+    ///
+    /// <para><b>CONFIRMED both ways, 2026-09-07.</b> The owner, unprompted:
+    /// <i>"if an enemy keeper takes one of the portals from me [...] then yes,
+    /// it resets to zero for that portal and that keeper"</i>. And in the
+    /// binary: DK2's room-ownership-change routine fires the room type's own
+    /// handler after re-linking the room to its new owner, and for both portal
+    /// types that handler stamps the clock and zeros the tally.</para>
+    ///
+    /// <para>This was the last open part of Q86 and the reason the formula sat
+    /// unbuilt for a day — a tally that never reset risked a portal that grinds
+    /// to a halt where the original's recovers.</para>
+    /// </summary>
+    [Fact]
+    public void ARivalTakingAWornPortalGetsItAtTheBaseInterval()
+    {
+        GameDatabase db = Database();
+        WorldState world = World(db);
+
+        // A portal owned by the keeper, worn down to a four-minute wait.
+        ref TileState centre = ref world.Tile(1, 1);
+        centre.TerrainId = db.Room(RoomTypeId.Portal).TerrainId;
+        centre.OwnerPlayerId = Keeper;
+        centre.Health = db.TerrainById(centre.TerrainId).StartingHealth;
+        centre.EntranceCreaturesGenerated = 15;
+        centre.EntranceIdleTicks = 200;
+
+        Assert.Equal(
+            250 * SimulationTiming.TicksPerSecond,
+            PortalRules.SpawnIntervalTicks(db, centre.EntranceCreaturesGenerated));
+
+        // The rival takes the tile. ConvertRoom is the takeover work, and it is
+        // the same path an imp drives.
+        while (world.Tile(1, 1).OwnerPlayerId == Keeper)
+        {
+            TileWorkResult result = TileWorkRules.Apply(
+                db, ref world.Tile(1, 1), TileWorkKind.ConvertRoom, Rival);
+            Assert.NotEqual(TileWorkOutcome.Rejected, result.Outcome);
+        }
+
+        ref TileState taken = ref world.Tile(1, 1);
+        Assert.Equal(Rival, taken.OwnerPlayerId);
+
+        // Both, and the clock matters as much as the tally: without it a rival
+        // could inherit a portal already most of the way to its next creature.
+        Assert.Equal(0, taken.EntranceCreaturesGenerated);
+        Assert.Equal(0, taken.EntranceIdleTicks);
+        Assert.Equal(
+            25 * SimulationTiming.TicksPerSecond,
+            PortalRules.SpawnIntervalTicks(db, taken.EntranceCreaturesGenerated));
+    }
+
+    /// <summary>
+    /// Both portal types raise the creature cap, and neither the count nor the
+    /// rate is ours.
+    ///
+    /// <para><b>CONFIRMED from the binary, 2026-09-07.</b> DK2's capacity
+    /// routine walks the player's own room list twice — once counting room type
+    /// 3 (Portal) and once type <c>0x19</c> (Hero Portal) — then returns
+    /// <c>first + (total - 1) * perAdditional</c>. This project counted only
+    /// type 3, so a keeper who took a Hero Portal received its arrivals but not
+    /// its five extra places.</para>
+    ///
+    /// <para>The second variable is the interesting half. A raw scan for its
+    /// global finds <b>one hit, the loader's setter</b> — the exact signature
+    /// this project has used fourteen times to call a variable cut. It is live:
+    /// its byte sits immediately after the first variable's, and the compiler
+    /// loads a <i>word</i> and takes the high half, so the second address never
+    /// appears in any instruction at all.</para>
+    /// </summary>
+    [Fact]
+    public void BothPortalTypesRaiseTheCapAndTheRateIsRead()
+    {
+        GameDatabase db = Database();
+
+        Assert.Equal(0, PortalRules.CreatureCapacity(db, 0));
+        Assert.Equal(15, PortalRules.CreatureCapacity(db, 1));
+        Assert.Equal(20, PortalRules.CreatureCapacity(db, 2));
+        Assert.Equal(35, PortalRules.CreatureCapacity(db, 5));
+
+        // A Portal's terrain is a portal's and ordinary floor is not, which is
+        // what the ownership reset tests on every converted tile. The Hero
+        // Portal half is asserted on the shipped data instead, in
+        // PortalOnRealDataTests — this fixture defines no room 25, and asking
+        // for one by id here threw rather than answering.
+        Assert.True(PortalRules.IsEntrance(db.Room(RoomTypeId.Portal)));
+        Assert.True(PortalRules.IsPortalTerrain(db, db.Room(RoomTypeId.Portal).TerrainId));
+        Assert.False(PortalRules.IsPortalTerrain(db, Dk2TerrainFixture.ClaimedPath));
+    }
+
     // ---- gate 0: the creature's own flags --------------------------------
 
     /// <summary>

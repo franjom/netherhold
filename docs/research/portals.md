@@ -618,6 +618,100 @@ every later arrival by six seconds without corrupting a single later gap. §4's
 one mistimed reading, which the owner's own caveat allows for.
 
 
+### The reset is an ownership change, and Q86 is now closed
+
+**CONFIRMED both ways, 2026-09-07.** The owner, answering the last open part:
+
+> *"if an enemy keeper takes one of the portals from me, and if they have the
+> room to attract more creatures, then yes, it resets to zero for that portal
+> and that keeper."*
+
+And then in the binary, which had been recorded here as unreachable.
+
+#### The room handler table
+
+DK2 keeps a table of **per-room-type handler records** in initialised `.data`,
+base `0x006a1e9f`, **41 bytes per record**, addressed as
+`base + roomTypeId * 41` and guarded by `id != 0 && id <= 26`. Each record is a
+type-id byte followed by ten packed unaligned dwords: six function pointers and
+four small integers, three of which have their own accessor functions.
+
+All 26 records are present and in id order. **Portal (3) and Hero Portal (25)
+carry byte-identical handler sets**, which is why each of the two reset routines
+turned up in the table exactly twice.
+
+Six of the twelve references to the table resolve the slots:
+
+| slot | called from | what that function is |
+|---|---|---|
+| `+0x01` | `FUN_004E3800` | **the room constructor** — zeroes the struct field by field, writes the type id, links the room into its owner's list |
+| `+0x05` | `FUN_004E39C0` | null for portals |
+| `+0x09` | `FUN_004E4480` | a tile/effect pass |
+| `+0x0d` | `FUN_004E5650` | **the room ownership change** |
+| `+0x11` | `FUN_004E3DD0` | null for portals |
+| `+0x15` | per-tick | `0x004DBBE0`, the interval arithmetic |
+
+For a portal, `+0x01` and `+0x0d` are the two reset routines. Both stamp
+`room[0x49] = now` and zero `room[0x4D]`; the constructor's also sets one flag.
+
+#### What the ownership-change routine does, in order
+
+`FUN_004E5650` takes a room and a new owner id, and: decrements a counter on the
+old owner, re-links the room from one player's room list to the other's, **writes
+the new owner into `room[0x1d]`**, increments the same counter on the new owner,
+re-skins it, walks its tiles updating the map, ejects every object in it, **then
+fires the type's `+0x0d` handler** — the reset. Afterwards it credits the new
+owner with a room count (excluding three room types) and with a value
+proportional to tiles, and sends **two different notifications**, one to the old
+owner and one to the new, choosing between two message ids by comparing against
+what is almost certainly the local player.
+
+So a rival taking a worn portal gets it at the base interval, and so does the
+first keeper to claim a neutral one — which is why the owner's second portal
+started at 25 seconds rather than inheriting anything.
+
+#### And the "vtable only" claim was mine and was wrong
+
+This document said for a day that both zero-stores were *"reached only through a
+vtable"*, with **no direct caller or absolute reference in `.text`**. The second
+half was true and the conclusion did not follow: **the scan covered `.text`
+alone**, and a handler table lives in `.data`. A scan over every initialised
+block finds both addresses immediately. The silence of a scan that could not
+have found the thing was read as evidence about the thing.
+
+### The capacity rule, read at last — and both portal types count
+
+`FUN_004DC760` is the capacity routine. It walks the **player's own** room list
+twice, counting room type 3 and then room type `0x19`, and returns:
+
+```
+total = portals + heroPortals
+capacity = total == 0 ? 0
+         : first + (total - 1) * perAdditional
+```
+
+Same shape this project had, with one difference: **we counted only type 3**, so
+a keeper holding a Hero Portal got its arrivals and not its five extra places.
+Fixed.
+
+Two more things the read settles:
+
+- **The comparison is strict.** Attraction proceeds only while the keeper's
+  creature count is *less than* capacity, and **nothing anywhere culls
+  creatures**. So a keeper who loses a portal keeps every creature, drops below
+  their new cap, and simply receives nothing until they are under it again —
+  the owner's second point, and their *"creatures don't disappear if that
+  happens"* is what the absence of a cull looks like from the inside.
+- **`CreaturesSupportedPerAdditionalPortal` nearly went on the dead list.** A
+  raw scan for `0x006F28B5` finds **one hit, the loader's setter** — the exact
+  signature this project has used fourteen times to call a variable cut. It is
+  live. Its byte sits immediately after `CreaturesSupportedByFirstPortal`'s, and
+  the compiler loads a **word** at `0x006F28B4` and takes the high half with
+  `>> 8 & 0xff`, so the second variable's address never appears in any
+  instruction. **Any variable whose global is adjacent to another's can be read
+  this way and will scan as dead.** That is a third kind of false negative, after
+  ADR-0085's disabled-not-cut and the `.text`-only scan above.
+
 ### One smaller thing, read on the way past
 
 Three game seconds before the creature is due, the same routine computes a

@@ -519,4 +519,54 @@ public class PortalOnRealDataTests
         Assert.All(uniques, c =>
             Assert.True(c.Flags.HasFlag(CreatureFlags.AvailableViaPortal), c.Name));
     }
+
+    /// <summary>
+    /// Both portal types raise the creature cap, on the shipped data.
+    ///
+    /// <para><b>CONFIRMED from the binary, 2026-09-07.</b> DK2's capacity
+    /// routine walks the player's own room list twice — once counting room type
+    /// 3 (Portal), once type <c>0x19</c> (Hero Portal) — and adds the two before
+    /// applying the per-additional rate. This project counted only type 3, so a
+    /// keeper holding a Hero Portal received its arrivals but not its five extra
+    /// places.</para>
+    ///
+    /// <para>Both are the only two <c>ThreeByThree</c> rooms in the game, and
+    /// their terrains are 12 and 40.</para>
+    /// </summary>
+    [Fact]
+    public void AHeroPortalCountsTowardTheCapJustLikeAPortal()
+    {
+        string? install = Install();
+        if (install is null) return;
+
+        GameDatabase db = GameDatabaseLoader.Load(install);
+
+        RoomDef portal = db.Room(RoomTypeId.Portal);
+        RoomDef heroPortal = db.Room(RoomTypeId.HeroPortal);
+
+        Assert.True(PortalRules.IsEntrance(portal));
+        Assert.True(PortalRules.IsEntrance(heroPortal));
+
+        // The two terrains the ownership reset tests against.
+        Assert.Equal(12, portal.TerrainId);
+        Assert.Equal(40, heroPortal.TerrainId);
+        Assert.True(PortalRules.IsPortalTerrain(db, portal.TerrainId));
+        Assert.True(PortalRules.IsPortalTerrain(db, heroPortal.TerrainId));
+
+        // And no other room shares either terrain, which is what makes a
+        // terrain test a safe stand-in for a room lookup on the hot path.
+        int entrances = 0;
+        foreach (RoomDef room in db.Rooms.Values)
+        {
+            if (PortalRules.IsPortalTerrain(db, room.TerrainId)) entrances++;
+        }
+        Assert.Equal(2, entrances);
+
+        // 15 for the first and 5 for each after, counting both types together.
+        Assert.Equal(15, db[VariableTypeId.CreaturesSupportedByFirstPortal]);
+        Assert.Equal(5, db[VariableTypeId.CreaturesSupportedPerAdditionalPortal]);
+        Assert.Equal(0, PortalRules.CreatureCapacity(db, 0));
+        Assert.Equal(15, PortalRules.CreatureCapacity(db, 1));
+        Assert.Equal(20, PortalRules.CreatureCapacity(db, 2));
+    }
 }

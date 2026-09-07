@@ -6969,3 +6969,72 @@ Three things changed here and are worth keeping:
   steps once and stays flat — the signature of a one-off block with nothing
   eligible, not of a wrong slope. Widening the tolerance to admit it would also
   have admitted the old formula on three of six gaps.
+
+### ADR-0086, amendment 1 - the reset is an ownership change, and both portal types count
+
+**2026-09-07, same day.** ADR-0086 shipped with one branch open - *"whether the
+tally is ever zeroed"* - and named it the reason the formula had been held back
+for a day. **It is closed, CONFIRMED both ways, and two things change in code.**
+
+**The owner, asked directly:** *"if an enemy keeper takes one of the portals from
+me, and if they have the room to attract more creatures, then yes, it resets to
+zero for that portal and that keeper."*
+
+**And in the binary.** DK2 keeps a table of per-room-type handler records in
+initialised `.data` - base `0x006a1e9f`, **41 bytes per record**, addressed
+`base + roomTypeId * 41` and valid for ids 1 to 26, all 26 present and in order.
+Each record is a type-id byte then ten packed unaligned dwords. **Portal (3) and
+Hero Portal (25) hold identical handler sets.** The room *constructor*
+(`FUN_004E3800`) calls slot `+0x01`; the room *ownership change*
+(`FUN_004E5650`) calls slot `+0x0d`. For a portal both slots stamp the room's
+clock and zero its tally.
+
+`FUN_004E5650` re-links the room between the two players' lists, writes the new
+owner into `room[0x1d]`, re-skins it, ejects its objects, **fires the reset**,
+then credits the new owner and sends two different notifications - one to each
+side. So a rival taking a worn portal, and the first keeper to claim a neutral
+one, both get it at the base interval.
+
+**Built:** `PortalRules.OnOwnerChanged` zeroes the tally **and the clock**, called
+from `TileWorkRules.Convert` whenever a portal-terrain tile changes hands. The
+clock matters as much as the tally - without it a rival could inherit a portal
+already most of the way to its next creature.
+
+**Second change: both portal types raise the creature cap.** `FUN_004DC760` walks
+the player's own room list twice, counting room type 3 and then type `0x19`, and
+returns `first + (total - 1) * perAdditional`. This project counted only type 3,
+so a keeper holding a Hero Portal received its arrivals and not its five extra
+places. The comparison at the attraction site is **strict**, and **nothing
+anywhere culls creatures** - so losing a portal drops the cap while the creatures
+stay, and the keeper receives nothing until they are under it again. The owner's
+second point, and their *"creatures do not disappear if that happens"* is what
+the absence of a cull looks like from the inside.
+
+#### Two corrections to this project's own method, and they matter more than the fix
+
+**1. "Reached only through a vtable" was wrong, and it was mine.** Both
+zero-stores were recorded as having no direct caller and no absolute reference in
+`.text`, and *"reached through a vtable"* was inferred from that silence. The
+premise was true and the conclusion did not follow: **the scan covered `.text`
+alone**, and a handler table lives in `.data`. A scan over every initialised
+block finds both addresses at once. A scan that could not have found the thing
+was read as evidence about the thing - and it cost a day of holding back a
+confirmed formula.
+
+**2. A variable adjacent to another can be read as a word and will scan as
+dead.** `CreaturesSupportedPerAdditionalPortal` (`0x006F28B5`, value 5) has
+exactly one reference in the executable: the loader's setter. By this project's
+own dead-variable rule it is cut, and it would have become the fifteenth entry on
+that list. It is live, and it is the rule the 1999 manual states in prose - its
+byte sits immediately after `CreaturesSupportedByFirstPortal`'s, and the capacity
+routine loads a **word** at `0x006F28B4` and takes the high half with
+`>> 8 & 0xff`. **The second variable's address is never assembled into any
+instruction**, so no scan for it can ever find a reader.
+
+That is a **third** kind of false negative, after ADR-0085's disabled-not-cut and
+the `.text`-only scan above. The balance table is packed, so the shape is
+available almost everywhere. Before recording a variable as cut, check whether
+its global is adjacent to another's - that table lists the addresses, so it is
+one look - and if it is, read the neighbour's reader.
+**The fourteen already on the cut list have not been re-checked against this.**
+
