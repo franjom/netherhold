@@ -983,8 +983,8 @@ is very expensive to retrofit.
 | **M0** ✅ | Research baseline | This document; repo skeleton; DK2 v1.70 installed; Flame + OpenKeeper building locally | 1–2 wk |
 | **M1** ◐ | Formats readable | `DK2.Tools extract` dumps WAD contents; KWD parses to `GameDatabase`; all 18 record types round-trip; unit tests over the shipped campaign maps | 3–5 wk |
 | **M2** ✅ | Deterministic skeleton | `GameSimulation.Tick()` exists; `StateHash()` stable; save/load round-trips; CI determinism gate green; headless harness runs a scenario file | 3–4 wk |
-| **M3** ◐ | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold. Unity view renders it with placeholder art — **the view is done (2026-09-04); what a room *does* is not** | 8–12 wk |
-| **M4** | First creature loop | Portal spawn; lair claim; hunger→hatchery; sleep; training; payday; job selection with logged reasons | 8–12 wk |
+| **M3** ✅ | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold. Unity view renders it with placeholder art — **the view is done (2026-09-04); what a room *does* is not** | 8–12 wk |
+| **M4** ✅ | First creature loop | Portal spawn; lair claim; hunger→hatchery; sleep; training; payday; job selection with logged reasons | 8–12 wk |
 | **M5** | First oracle comparison | Memory-reading oracle probe working against DK2 under Flame; 20+ scenarios captured from both sides; first divergence report | 4–6 wk |
 | **M6** | Real level loads | A stock campaign level loads, terrain and things place correctly, triggers/objectives fire, level is winnable | 6–10 wk |
 | **M7** | Combat & heroes | Combat resolution, hero parties, hero gates, traps, doors | 3–5 mo |
@@ -993,9 +993,18 @@ is very expensive to retrofit.
 | **M10** | Campaign | Full campaign playable start to finish | after M8 |
 | **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
 
-**Status (2026-09-07 later still, revision 7).** **1161 tests, 26 scenarios,
-89 ADRs (ADR-0001 … ADR-0089, all present), 45 research docs, 210 open-question
-rows running to Q215**, `HashVersion` **35**, pin `0x368FDF9DF3D0A6EA`.
+**Status (2026-09-07, revision 8).** **1169 tests, 26 scenarios, 90 ADRs
+(ADR-0001 … ADR-0090, all present), 46 research docs, 215 open-question rows
+running to Q219**, `HashVersion` **36**, pin `0xD893704FB5D00309`.
+33,503 lines across 154 files in `src/`.
+
+> **This line went stale twice in one day** — revision 6 was wrong by six
+> commits, revision 7 by three. Editing it by hand does not work, and the note
+> below ("recount, don't increment") has now failed to prevent the same defect
+> twice. **The fix is to stop writing it by hand:** every number here is a
+> one-line shell command, so it should be a `dk2tools status` subcommand that
+> prints this paragraph, with the doc saying "regenerate, do not edit". Until
+> that exists, treat these figures as a claim nothing checks.
 
 > Two of those counts are stated differently on purpose. Revision 6 said "87
 > ADRs + 8 amendments" and "213 catalogued questions", and neither number could
