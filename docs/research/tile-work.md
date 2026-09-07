@@ -138,6 +138,18 @@ of a thing it calls the work rate — `IncreasedWorkRatePercentageFromSlapping`
 where those land, which is why it starts at zero: **slapping an imp to make it
 dig faster is a work-rate bonus**, and it is the oldest mechanic in the series.
 
+**Correction from Q81 (binary, 2026-09-07): the torture variable does not land
+there.** Its cached global has one live reader, in the keeper-side routine that
+credits a creature's research contribution. Once per game second that path
+walks the keeper's tortured-creature-type list; when it finds the researcher's
+type, it adds the torture bonus directly to research progress. The creature's
+general work-enhancement field is untouched. The arithmetic has a v1.70 quirk:
+it adds variable 19 (four ticks per game second) to the nominal 25 before taking
+the percentage. Across four ordinary per-tick contributions, this produces a
+**29% net research increase before integer truncation**, not 25%. The other
+three variables' uses do not establish this one's use; the shared naming had
+grouped unlike mechanisms.
+
 ### What it does to Q47
 
 Work accrues **once a tick**, at `delta x rate / 4` — the 4 being ticks per game

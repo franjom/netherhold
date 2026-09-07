@@ -404,7 +404,7 @@ consults it.
 | 139 | `CasinoBigWinnerIncreasedHappinessPersentage` | 100 | `0x006F290E` (u16) |
 | 140 | `DecreaseEntrancePersentageOfLastSackedCreatureType` | 33 | `0x006F2910` (u16) |
 | 141 | `IncreaseEntrancePersentageOfNewCreatureTypes` | 33 | `0x006F2912` (u16) |
-| 142 | `IncreasedWorkRatePersentageOfPlayersTorturedCreatureTypes` | 25 | `0x006F2914` (u16) |
+| 142 | `IncreasedWorkRatePersentageOfPlayersTorturedCreatureTypes` | 25 | `0x006F2914` (u16) — live only in research crediting; matching a researcher's type against the keeper's torture list yields a 29% net uplift because the arithmetic adds variable 19 to the nominal percentage (Q81) |
 | 143 | `IncreasedWorkRatePersentageWhenCasinoBigWinOccurs` | 35 | `0x006F2916` (u16) |
 | 144 | `ImpPopCountdownTimeSeconds` | 10 | `0x006F2918` (u8) |
 | 145 | `NumberOfRandomWallDeteriorationsPerSecond` | 0 | `0x006F2919` (u8) |
