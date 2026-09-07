@@ -33,6 +33,62 @@ behind it, the two candidate rules differ by a factor of **500**, and the same
 unread guard is the one weak point in ADR-0089. It is also the cheapest thing
 on this page.
 
+### FIRST OBSERVATION IN, 2026-09-07, and it settles the big half
+
+**Owner:** *"I can't time it precisely, it 'feels' to me like 2 seconds, it is
+really fast."*
+
+**That kills ADR-0024's reading dead.** The rule this project shipped until
+today predicted **660 applications, about 165 seconds**. "Really fast" is not
+165 seconds by any reading of anybody's stopwatch, so the deficit rule is
+confirmed from a second direction — one that has nothing to do with reinforcing.
+
+**What it does not settle is 1 against ~4**, because the overhead swamps the
+difference:
+
+| applications | work at 250 ms each | + drop, walk and the ~0.35 s linger |
+|---|---|---|
+| **1** — what the applier's compare predicts | 0.25 s | **~0.6 s** |
+| **4** — the same as claiming a tile | 1.0 s | **~1.35 s** |
+| 8 | 2.0 s | ~2.35 s |
+
+**And there is a reason to suspect 4 rather than 1.** The owner's word for
+*claiming* a tile was also **"about 2 seconds"** (Q46), and claiming is four
+applications. Two subjective judgements of the same duration for two jobs is
+weak evidence that the two jobs take the same number of swings — which would
+mean the read rule is incomplete and **Q215's unread guard is doing something**.
+
+### The protocol, PRE-REGISTERED before the measurement
+
+Written down first, deliberately, because both previous numbers on this question
+were fits.
+
+**Preferred — race them, and time nothing.** Mark one Dirt Path tile for
+claiming and one of the keeper's own claimed-path tiles for filling in, side by
+side. Drop two imps at the same instant. Watch only **which finishes first**:
+
+- **Fill-in wins clearly** → one application; the applier's compare is the whole
+  rule and ADR-0089 stands as written.
+- **They finish together** → about four; there is a rule in DK2's conversion
+  path that this project has not read, and fill-in needs its own.
+
+Reaction time cancels, because both jobs carry the same drop-walk-linger
+overhead and the comparison is relative.
+
+**Backup — count the swings, do not time them.** A swing is one animation loop,
+four a game second (ADR-0089). Select the imp and count its work animations
+before the tile turns to rock. One against four is easy by eye, and a discrete
+count beats a duration — the same reason the gold counter beat the stopwatch for
+Q47.
+
+**If a number is wanted — record it.** `Win+Alt+R` captures at 30–60 fps. One
+tick is 250 ms, so at 60 fps one application is **15 frames** and the two
+candidates are 45 frames apart.
+
+**Either answer is worth having**, and a "they finish together" is worth more
+than a "fill-in wins": it would send Q215 to the top of the research queue with
+a known shape.
+
 ---
 
 ## The three from earlier on 2026-09-07
