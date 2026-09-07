@@ -1512,3 +1512,45 @@ like an observation question, and observation questions do not get scanned. That
 is a fifth variant of the standing review question: **before writing something
 down as unobservable-from-the-binary, spend the minute confirming it.**
 
+
+---
+
+## The portal item, 2026-09-07: mostly answered, and the remainder is two minutes
+
+**The item above ("does a slowed portal recover?") has been overtaken by a
+better observation the owner ran unprompted**, and what is left of it is much
+smaller than what it started as.
+
+The owner timed seven arrivals from one claimed portal and then a second
+portal's first arrival: **25, 26, 30, 40, 41, 51, 59 seconds**, then portal 2
+producing **8 seconds after** portal 1. Full account and both formulas side by
+side in `portals.md`. Three things closed:
+
+- **The quadratic is right.** `n² + 25` predicts those gaps to a mean 1.4 s;
+  this project's `max(25, 25n/2)` misses by 6.4 s and diverges.
+- **The clock is per portal**, proved rather than inferred — one clock waiting
+  60 seconds cannot emit twice in 8.
+- **One game second is one real second** at normal speed.
+
+### What is left, and it is one measurement
+
+**Time portal 2's next two arrivals.** Nothing else. That distinguishes a tally
+kept per room from one kept per keeper, and the split is not subtle:
+
+| | per-room tally | keeper-wide tally |
+|---|---|---|
+| portal 2, next arrival | **~26 s** | **~89 s** |
+| the one after | **~29 s** | **~106 s** |
+
+Half a minute against a minute and a half, so a rough count is enough. Under the
+per-room reading a freshly claimed portal is fast no matter how worn out its
+neighbour is, which is also why the "claim a second portal and compare"
+experiment is no longer needed — the owner has already claimed the second portal.
+
+### And the reset question is unchanged
+
+Whether `room[0x4D]` ever returns to zero is still unread and still needs a
+rival: **lose a slow portal to an enemy keeper and take it back.** Both reset
+routines are reached only through a vtable, which is the shape of an ownership
+change, and an ownership change is the only room event a portal has now that
+selling and rebuilding are ruled out.

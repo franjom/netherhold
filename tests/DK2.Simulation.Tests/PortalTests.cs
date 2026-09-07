@@ -138,16 +138,27 @@ public class PortalTests
     }
 
     [Fact]
-    public void TheWaitGrowsWithTheNumberOfCreaturesHeld()
+    public void TheWaitGrowsWithTheNumberOfCreaturesHeld_AndThisSlopeIsRefutedByQ86()
     {
         GameDatabase db = Database();
 
         // max(base, base * held / 2), so the scaling only bites past two.
         //
+        // THIS TEST PINS A NUMBER WE KNOW IS WRONG, deliberately, and the name
+        // says so because a doc comment did not travel far enough last time.
+        //
         // That the wait grows is CONFIRMED (owner, 2026-09-04). The step of
-        // base/2 is not: it is the part of Q86 still open, and it is what the
-        // n=4 and n=15 rows below pin. If the real slope turns out to be
-        // different, those two rows are what fails.
+        // base/2 is REFUTED twice over: DK2 computes (n*n + base) game seconds
+        // (binary, 2026-09-07), and the owner timed seven gaps of 25, 26, 30,
+        // 40, 41, 51, 59 seconds against this formula's 25, 25, 25, 37, 50, 62,
+        // 75. The first three rows below are the clearest failure — this
+        // formula's floor says nothing changes for three arrivals and the real
+        // game slows by a second, then four.
+        //
+        // It stays until the counter's reset is known (see SpawnIntervalTicks),
+        // because shipping the right slope against an unknown reset can stop a
+        // portal that the original recovers. These rows exist to break loudly
+        // when that lands, not to assert that any of it is DK2.
         int baseTicks = 25 * SimulationTiming.TicksPerSecond;
         Assert.Equal(baseTicks, PortalRules.SpawnIntervalTicks(db, 0));
         Assert.Equal(baseTicks, PortalRules.SpawnIntervalTicks(db, 1));

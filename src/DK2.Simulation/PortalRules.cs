@@ -256,9 +256,19 @@ public static class PortalRules
     /// ever recovers is unread</b>. Replacing this with the confirmed formula
     /// against an unknown reset risks a portal that grinds to a halt where the
     /// original's recovers, which is worse than a wrong slope. The question is
-    /// observable and is on the checklist: fill a dungeon until the portal is
-    /// visibly slow, let creatures die, and see whether it speeds back up.</para>
-    /// </summary>
+    /// observable and only a rival keeper can answer it: lose a slow portal and
+    /// take it back, because a vtable-only zero-store has the shape of an
+    /// ownership change and selling a portal is impossible.</para>
+    ///
+    /// <para><b>And the owner has now timed it, 2026-09-07, so this is refuted
+    /// by observation and not only by a read.</b> Seven consecutive gaps from
+    /// one portal — <c>25, 26, 30, 40, 41, 51, 59</c> seconds — against
+    /// <c>n² + 25</c> (25, 26, 29, 34, 41, 50, 61) and against this formula
+    /// (25, 25, 25, 37, 50, 62, 75). Mean absolute error <b>1.4 s for the
+    /// quadratic, 6.4 s for this one, and this one diverges</b>. The cleanest
+    /// discrimination is at the low end, where this formula's <c>Math.Max</c>
+    /// floor predicts <b>no change at all</b> for the second and third arrivals
+    /// and the owner measured 26 then 30 seconds.</para>
     public static int SpawnIntervalTicks(GameDatabase database, int creatureCount)
     {
         int baseTicks = SimulationTiming.TicksFromSeconds(

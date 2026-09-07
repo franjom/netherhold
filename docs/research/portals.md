@@ -102,17 +102,24 @@ timeSinceLastSpawn >= Math.max(entranceCooldownTime,
 creature count. Excluding imps."*, which is what `PortalRules.CreatureCount`
 does by the `IsWorker` flag.
 
-#### What is left of Q86 is the slope, and it is sharp
+#### The slope was the open half of Q86, and it is now closed — against us
 
-"It gets slower" does not measure `÷ 2`. On level 1 (base 18) the formula
-predicts consecutive gaps of **18, 18, 27, 36, 45 seconds — exactly nine more
-per goblin**, and nine is `base ÷ 2`. That is the falsifiable claim.
+**Read from the binary and then confirmed by stopwatch, both on 2026-09-07.**
+The interval is `(n² + base)` game seconds, not `max(base, base × n ÷ 2)`, and
+`n` counts *creatures this room has generated* rather than the keeper's living
+creatures. `max(base, base × n ÷ 2)` is still what
+`PortalRules.SpawnIntervalTicks` computes; it is **known wrong at the call
+site** and left in place only until the counter's reset is settled. The whole
+account, the seven timed gaps and the two formulas side by side are further down
+this page under *"The generation interval is quadratic"*.
 
-The owner's earlier ~30-second measurement is **consistent with the formula
-rather than evidence for it**: 30 sits between the n=3 (27s) and n=4 (36s)
-predictions. Two independent observations now agree with the shape, and neither
-constrains the slope. What does: two consecutive gaps *with the goblins
-counted*, or `Entrance.cpp` in the binary (ADR-0046).
+What that section replaces, and worth keeping visible as a lesson: this
+subsection used to say the falsifiable claim was *"exactly nine more per
+goblin"* on level 1, and cited the owner's earlier ~30-second measurement as
+*"consistent with the formula rather than evidence for it"*. Both sentences were
+honest and neither helped — the guess had already shipped and been pinned by a
+passing test, and the timing that eventually broke it was volunteered as a side
+note rather than run as the named experiment.
 
 ### 2. The pool is a standing limit, not a draining quota
 
@@ -150,9 +157,15 @@ resolved.
 
 ### 4. The clock is per portal, counts up, and runs only while owned
 
-Per portal because two portals produce on their own schedules and the second
-raises the cap; OpenKeeper's class comment calls it *confirmed original
-behaviour* that two portals with equal counters produce simultaneously.
+**Per portal is CONFIRMED by observation** (owner, 2026-09-07): a second portal
+produced its first creature **8 seconds after** the first portal produced, at a
+point where the required interval was about 60 seconds. One shared clock cannot
+emit twice in 8 seconds while it is waiting 60. Before that it was inferred, from
+two portals producing on their own schedules and the second raising the cap;
+OpenKeeper's class comment calls it *confirmed original behaviour* that two
+portals with equal counters produce simultaneously. **What is still not observed
+is whether the per-room *tally* is per portal too** — see the discriminator
+table further down.
 
 **Counted up rather than down**, because the interval it is waiting for is not
 fixed: a countdown set at the last spawn would freeze a requirement that has
@@ -509,6 +522,101 @@ beside one producing every two minutes — so a single glance settles it.
 portal to a rival keeper and take it back. If it returns to base speed the reset
 is an ownership change, which is what a vtable-only zero-store looks like. That
 is the only room event a portal has, now that selling is ruled out.
+
+### CONFIRMED BY STOPWATCH, 2026-09-07 — the quadratic is right and the clock is per portal
+
+**The owner timed seven consecutive arrivals from a claimed portal, then a
+second portal's first arrival.** Volunteered as a side note, and it settles two
+things this document had left open and rules out a third.
+
+| arrival | stopwatch | gap |
+|---|---|---|
+| 1 | 0:25 | 25 s |
+| 2 | 0:51 | 26 s |
+| 3 | 1:21 | 30 s |
+| 4 | 2:01 | 40 s |
+| 5 | 2:42 | 41 s |
+| 6 | 3:33 | 51 s |
+| 7 (portal 1) | 4:32 | 59 s |
+| 8 (**portal 2**) | 4:40 | **8 s after portal 1's** |
+
+The owner's caveat: *"not completely precise, but could maybe be 99% close
+enough"*, and the eighth *"caught me off guard"*.
+
+**`base` is 25, so this was not level 1** — level 1 is the *only* one of the 66
+shipped levels that overrides `EntranceGenerationSpeedSeconds` (18), so every
+other level uses the global 25. That was not stated and did not need to be; the
+first gap gives it away.
+
+#### The quadratic against ours, gap by gap
+
+| n | observed | `n² + 25` (binary) | `max(25, 25n/2)` (ours) |
+|---|---|---|---|
+| 0 | 25 | **25** | 25 |
+| 1 | 26 | **26** | 25 |
+| 2 | 30 | **29** | 25 |
+| 3 | 40 | 34 | 37 |
+| 4 | 41 | **41** | 50 |
+| 5 | 51 | **50** | 62 |
+| 6 | 59 | **61** | 75 |
+
+Mean absolute error per gap: **1.4 s for the binary formula, 6.4 s for ours**,
+and ours *diverges* — by the seventh gap it is 16 seconds long and getting
+worse, because `base × n / 2` grows by 12.5 s per creature where `n²` grows by
+`2n + 1`. Two gaps discriminate on their own: at n = 1 and n = 2 ours predicts
+**no change at all** (both floored at the base) and the owner measured 26 then
+30 against the quadratic's 26 and 29.
+
+**So Q86's slope is no longer read-only.** It was CONFIRMED from six
+instructions; it is now confirmed independently by observation, and the formula
+this project ships is refuted by the same data. Note also what the fit
+incidentally pins: **one game second is one real second** at normal speed, which
+`variable19` and `OriginalTicksPerGameSecond` had only ever been assumed to
+compose into.
+
+#### The clock is per portal, and that is the owner's actual question
+
+*"Is it possible that each portal has a timer for itself?"* — **yes, and this
+data proves it rather than inferring it.** Portal 2 produced 8 seconds after
+portal 1 did. At that point the required interval was ~60 seconds. **One shared
+clock cannot emit twice in 8 seconds when it is waiting 60**, whatever formula
+sits on top of it. Two independent clocks is the only shape that fits.
+
+That was already in §4 above as STRONGLY INFERRED, on OpenKeeper's class comment
+plus the fact that a second portal raises the cap. It is now observed.
+
+#### What it does NOT settle: whether the *tally* is shared
+
+The clock being per portal and the counter `n` being per portal are two claims,
+and only the first is now observed. Portal 1's seventh gap (59 s) fits n = 6
+either way, because portal 2 had generated nothing yet at that point.
+
+**The discriminator is portal 2's next two arrivals, and the split is enormous:**
+
+| | per-room tally (the binary's reading) | keeper-wide tally |
+|---|---|---|
+| portal 2, arrival 2 | `1 + 25` = **26 s** | `8² + 25` = **89 s** |
+| portal 2, arrival 3 | `4 + 25` = **29 s** | `9² + 25` = **106 s** |
+| portal 1, arrival 8 | `7² + 25` = **74 s** | `8² + 25` = **89 s** |
+
+Half a minute against a minute and a half. **Time portal 2's next two arrivals
+and the question closes** — no need to re-run the whole sequence, and no need
+for the "claim a second portal and compare" experiment described above, which
+this observation has already half-performed.
+
+#### The one residual, and it has a shape
+
+Gap 4 is 40 seconds where the quadratic says 34, and **every gap after it is
+correct again** (41/41, 51/50, 59/61). The cumulative residual steps once, from
++1 s to +7 s, and then stays flat.
+
+That is not noise — noise would wander. It is the signature of a **one-off block
+of about six seconds**: the portal came due, no creature was eligible, it waited,
+and `room[0x49]` was stamped at the *actual* generation, so the delay shifted
+every later arrival by six seconds without corrupting a single later gap. §4's
+"banks its wait" paragraph predicts exactly this. HYPOTHESIS — the alternative is
+one mistimed reading, which the owner's own caveat allows for.
+
 
 ### One smaller thing, read on the way past
 
