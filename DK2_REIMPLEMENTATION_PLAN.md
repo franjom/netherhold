@@ -993,9 +993,24 @@ is very expensive to retrofit.
 | **M10** | Campaign | Full campaign playable start to finish | after M8 |
 | **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
 
-**Status (2026-09-07 late, revision 6).** **1161 tests, 26 scenarios, 87 ADRs
-+ 8 amendments, 45 research docs, 213 catalogued questions**, `HashVersion`
-**34**, pin `0x46FAACC93F8323FF`.
+**Status (2026-09-07 later still, revision 7).** **1161 tests, 26 scenarios,
+89 ADRs (ADR-0001 … ADR-0089, all present), 45 research docs, 210 open-question
+rows running to Q215**, `HashVersion` **35**, pin `0x368FDF9DF3D0A6EA`.
+
+> Two of those counts are stated differently on purpose. Revision 6 said "87
+> ADRs + 8 amendments" and "213 catalogued questions", and neither number could
+> be reproduced from the files: ADRs were being counted by top-level heading
+> while some ADRs are recorded as sub-headings, and the question count was the
+> **highest id** rather than the number of rows, of which there are fewer
+> because ids get retired. So: 89 distinct ADR ids, and 210 rows whose highest
+> id is Q215. Both are `grep`-able, which is the point.
+
+> **Q1 is closed and the placeholder is gone.** `SimulationTiming.TicksPerSecond`
+> was 20 from the project's first week and is now **4** — a tick is **250 ms**,
+> which is DK2's own rate (ADR-0089). Every duration here is a wall-clock claim
+> for the first time. The same pass reversed **ADR-0024**: an upward job costs a
+> tile's health **deficit**, not its whole maximum. Test count is unchanged
+> because the work was correcting assertions, not adding them.
 
 > Revision 5's line read *1146 tests, 85 ADRs, 43 research docs, 209 questions,
 > `HashVersion` 33, pin `0x21A7E4D24F37DF48`* and was stale by six commits. Same

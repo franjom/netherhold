@@ -6317,3 +6317,175 @@ same shape, same once-a-game-second countdown at `creature+0xAF`.
 - **The three standing gaps** from the goal review: CI's silent skip (install-backed
   suites are green while asserting nothing), the omniscient view (`WorldView.TileAt`
   takes no viewing player), and simulation speed, never measured.
+
+---
+
+# The sitting of 2026-09-07 (later still) — Gap 1 is closed, and it took ADR-0024 with it
+
+**Two commits.** The task was the one agreed before the compact: *settle the time
+base*. It is settled, and settling it exposed a second live divergence that had
+been hiding behind it.
+
+**Status:** 1161 tests across 8 suites, 26 scenarios, **89 ADRs**, 45 research
+docs, 210 question rows running to **Q215**, `HashVersion` **35**, pin
+`0x368FDF9DF3D0A6EA`. `reverse-engineering/` quarantine 0. Milestones unchanged.
+
+## What the answer is
+
+**A tick is 250 ms. `SimulationTiming.TicksPerSecond` is 4.** It had been the
+placeholder **20** since the project's first week.
+
+Three readings meet, and the third is the one that had been missing:
+
+1. **Four ticks a game second** — variable 19, and all 66 shipped levels carry 4.
+   Already had this.
+2. **A game second is a real second** — the owner's portal stopwatch, seven gaps
+   against `(n² + base) × variable 19` ticks, mean error 1.0 s out to 59 s.
+   Already had this too, as a side note in Q86.
+3. **The creature update runs exactly variable-19 times a game second.**
+   `FUN_00488930` is the creature's per-tick virtual method (vtable
+   `0x0066d524`, slot `+0x14`), and it **sets two effect timers to
+   `variable 19 × 10` and decrements each once per call** while a visual effect
+   plays. A counter set to 40 and decremented once a call is a ten-second effect
+   *if and only if* the call happens four times a second. Two instances, one
+   function, watchable effects attached.
+
+**The tick counter's writer was never found, and did not need to be.** The last
+handoff named it as the blocker: `FUN_00517490` returns `*(*(game + 4) + 4)` and
+the sub-object at `game+4` was to be explored. That thread was followed —
+`0x006e5054` has two writers, the millisecond clock is
+`QueryPerformanceCounter`-based at `FUN_005b5e00`, and exactly **one** function
+both touches the game object and calls it (`FUN_004b9ec0`, which turns out to be
+the *player* update timing the keeper AI into a profiler). None of that was
+needed. **The answer came from the consumer, not the producer**, and that is the
+transferable lesson: when a counter's writer will not be found, look for
+something that sets a timer in units of it and decrements it on a known cadence.
+
+## Q47's five was never a cadence
+
+This is why the deadlock was a deadlock: five applications a second cannot be
+scheduled inside four ticks.
+
+**The fifth is the size of an application, not its rate.** DK2's work handlers
+read their rate global *already divided* by variable 19 (the loader does that at
+load time) and then multiply by the worker's Efficiency in 4096ths. So one
+application is `tabled ÷ 4 × 0.8` = `tabled ÷ 5`, which is exactly what the
+owner's **273 gold a swing** measured — and it lands **once a tick, four a
+second**.
+
+ADR-0020's 2026-09-05 amendment had *already* worked out that the fifth was
+Efficiency over four ticks. What it did not do was follow that through to the
+schedule, so the file kept saying "five times a second" in the same breath. Now
+split into two constants that cannot be conflated again:
+`BaseApplicationDivisor` (5, sizes) and `WorkApplicationsPerSecond` (4,
+schedules).
+
+**The shape of the mistake, worth naming:** a measured quantity was extended
+into a claim about a *different* quantity. One measurement of how much a swing
+does became a claim about how often swings happen.
+
+## And ADR-0024 is reversed — the second divergence
+
+**`FUN_00452f60` is DK2's tile-work applier.** It adds the delta straight into
+the tile's **own health word** at `tile+6`, clamps a positive result at 32000,
+and converts the tile the moment its health reaches the terrain record's
+`MaxHealth` at `+0x1ad`. There is no separate accumulator.
+
+So **an upward job costs the deficit**: reinforcing Rock is 660 − 165 = **495**,
+which is **50** applications, not 66. `TileState.UpwardWork` is deleted.
+
+ADR-0024 charged the whole `MaxHealth` on the strength of the owner's reinforce
+stopwatch — 66 applications fits 13.3 s *if* work lands five times a second.
+**Both halves were wrong and they cancelled.** That is why no test caught either,
+and why more stopwatching could never have helped: 66 at five a second (13.2 s)
+and 50 at four a second (12.5 s) are indistinguishable at hand-timer precision.
+
+**What does distinguish them is the sign of the residual.** A hand timer
+over-reads and cannot under-read:
+
+| measured | read model | ADR-0024's model |
+|---|---|---|
+| reinforce unslapped **13.3–13.4 s** | 12.5 s (+0.85) | 13.2 s (+0.15) |
+| reinforce slapped **11.5–11.9 s** | 11.25 s (+0.4) | 12.0 s (**−0.3**) |
+| claim **1.30–1.40 s** | 1.0 s + linger | 0.8 s + linger |
+
+## A third correction, free on the way past
+
+**`terrain+0x1c3` is a count of visual damage stages**, and the applier fires a
+redraw when `(oldHealth − 1) ÷ stageSize` differs from `(newHealth − 1) ÷
+stageSize`. So Q46's *"2-3-4 jumps MAX"* for claiming was counting **stage
+crossings, not swings** — and it had been recorded as independent corroboration
+of Q47's swing count. It is not evidence about swings at all. Both numbers
+happen to be four for Dirt Path, which is how it passed.
+
+The good half: **a half-reinforced wall is now a tougher wall and looks it**,
+because the progress is real health. That is a behaviour a player can see, and
+one this project could not produce while progress lived in its own field.
+
+## The one thing that got worse, and it is flagged not hidden
+
+**Filling in a claimed path now completes in one application.** Claimed Path
+ships at **660 of a 660 maximum**, so the compare is already satisfied and the
+first `+1` trips it.
+
+The same unguarded compare would turn a *healed* claimed path into Rock —
+Claimed Path's max-health type **is** Rock — which cannot be the game's
+behaviour. So **DK2 has a guard here that has not been read**: the decompiler
+dropped that branch's body and only the compare survived. `Q215` is the read
+(disassemble `0x00453058` onward rather than trusting the decompile — the same
+trap as the empty `if` bodies that hid the health store).
+
+The code stays on the read rule, because a special case for fill-in would be an
+invented rule. The test carries the doubt in its name, and the reason is worth
+keeping: **that assertion has now held three different answers — instant, then
+660 applications and 132 seconds, now instant again — and not one of the three
+was ever watched in the game.** `Q214` is on top of the observation checklist
+and costs a minute.
+
+## What a reader should know before touching timing
+
+- **Every duration in the project is now a wall-clock claim.** Tick counts in
+  scenario logs are timings at 250 ms a tick. Two harness caveats that used to
+  disclaim this have been rewritten to assert it.
+- **Resolution is coarser and that is faithful.** A four-tile walk is 9 ticks
+  straight against 13 on the bias, so the exact 14/10 diagonal ratio no longer
+  survives rounding. `WalkingOnTheBias` now asserts within one tick and says
+  why: DK2 steps at the same rate and has the same quantisation, so asserting
+  equality would assert a precision the original does not have.
+- **`TicksPerSecond` and `OriginalTicksPerGameSecond` stay separate** despite
+  being equal. One is ours and free to be refined; the other is a fact about
+  DK2. Collapsing them would make facts depend on a choice.
+- **Scenario tick budgets now cover five times as much game time.** Nothing
+  breaks and every hash is stable, but several runs are far longer than their
+  author intended and could be trimmed.
+
+## New RE tools
+
+| tool | what it does |
+|---|---|
+| `AtAndCallers.py` | decompiles the function containing an address **and lists its callers** — the workhorse for walking a cadence up a call chain |
+| `Up.py` | walks the caller tree upward breadth-first to a given depth |
+| `Intersect.py` | functions that reference a global **and** call a given function — narrowed 102 × 94 candidates to **one** |
+| `CallSlot.py` | indirect calls through a vtable slot offset, flagged by whether the caller also touches a given global |
+| `TickWriter.py` | dword stores into `[reg + 4]`, flagged by whether the function touches a given global |
+| `Imports.py` | imported symbols matching a needle, with every reference site |
+
+## Where the next sitting starts
+
+**The Library and research accrual**, as agreed before the compact and unchanged
+by any of the above: `ResearchPerSecond`, state category 4's hooks, which pay
+the *player*. Scope it to the accrual, not the research tree; the Warlock
+already walks to the room and stands in it. **Category 12's prayer hook is the
+template** — same shape, same once-a-game-second countdown at `creature+0xAF`
+— and it is now worth noting that "once a game second" is four ticks and no
+longer a placeholder, so a rate written today is a rate.
+
+**Two cheap items came out of this sitting** and neither blocks that: **Q214**
+(one minute of play, top of the observation checklist) and **Q215** (one
+disassembly window).
+
+**Still open and unchanged:** `creature+0x3EA` bits 4 and 7, Q210's leftovers
+(creature flag bit 0's attack, bit 1's absent reader, the room table's three
+unknown integers), Q84's `Level17`, and the three standing gaps from the goal
+review — CI's silent skip, the omniscient `WorldView.TileAt`, and simulation
+speed, still never measured.

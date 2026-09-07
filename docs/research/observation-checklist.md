@@ -20,7 +20,22 @@ something does *not* happen closes a question just as hard.
 
 ---
 
-## READ THIS FIRST — the three for tomorrow (2026-09-07)
+## READ THIS FIRST — the one from 2026-09-07 (late), and it costs a minute
+
+**NEW AND TOP OF THE LIST: time an imp filling in ONE tile (Q214).**
+
+| Do this | Watch for | If the answer is... |
+|---|---|---|
+| Excavate a corridor so you have your own claimed path. Mark **one** tile of it to be **filled in**. Drop an imp beside it. **Time the work**, not the walk | how long the imp works once it is standing there, and whether the tile visibly changes in stages | **Effectively instant** (a single swing, ~250 ms) and the rule read out of DK2's applier is right as it stands. **Seconds of grinding** and DK2's conversion compare has a guard this project has **not** read (Q215), and the fill-in path needs a rule of its own. Either way it settles an assertion that has now held **three different answers** — instant, then 132 seconds, now instant again — **without anybody ever having watched it** |
+
+Why it is worth a minute: fill-in is the only upward job with no measurement
+behind it, the two candidate rules differ by a factor of **500**, and the same
+unread guard is the one weak point in ADR-0089. It is also the cheapest thing
+on this page.
+
+---
+
+## The three from earlier on 2026-09-07
 
 Everything else on this page is history or is longer. **Four of yesterday's five
 came back the same day**, and two of them cost this project real defects (see

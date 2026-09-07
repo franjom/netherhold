@@ -19,14 +19,15 @@ written into the code.
 | A gold seam releases gold in proportion to the rock removed | **CONFIRMED** (Q21) — 273 gold a swing is 60 health of a 660/3000 seam, measured in the original |
 | A gem face yields `GoldMinedFromGems` per collapse | **STRONGLY INFERRED** — see the gems argument below |
 | Tagging is per player | **STRONGLY INFERRED** |
-| **How often an application happens: a fifth of the tabled delta each time** | **STRONGLY INFERRED** (Q47, ADR-0020) — from 273 gold a swing, corroborated by eight of ten deltas dividing by five and by claiming's four swings. **The fifth is now read rather than derived** (2026-09-05): work is `delta x workRate / 4`, the worker's work rate is **0.8** and 4 is ticks per game second — see "The work rate" below |
+| **How much one application does: a fifth of the tabled delta** | **STRONGLY INFERRED** (Q47, ADR-0020) - `tabled / 4 x 0.8`, read off the handlers, measured at 273 gold a swing |
+| **How OFTEN an application happens: four times a second, once a tick** | **CORRECTED 2026-09-07** (ADR-0089) - it was recorded here as five a second, which conflated the size of an application with its cadence. A tick is 250 ms (Q1, settled) |
 | **A worker's work rate is 0.8, and it is a multiplier the handlers read** | **STRONGLY INFERRED** — read from the claim and reinforce handlers, with DK2's own `IncreasedWorkRate*` variables naming the concept |
 | **The work rate does not change with the worker's level** | **CONFIRMED** (owner, 2026-09-05) — a level-3 imp and a fresh level-1 imp reinforce the same wall in 13.1 s and 13.3-13.4 s |
-| The deltas are per second | **STRONGLY INFERRED** (Q19) — follows from the above; how long a second is in ticks is still Q1 |
+| The deltas are per second | **STRONGLY INFERRED** (Q19) - and how long a second is in ticks is **settled**: four ticks of 250 ms (Q1, ADR-0089) |
 | A fully mined seam yields exactly its `goldValue` | **STRONGLY INFERRED** — gold taken from running totals, so truncation shows between swings and never as a shortfall |
 | Whether one worker applies the whole delta | **UNKNOWN** — untouched by the above, which measured one imp working alone |
 | `DigRockHealth` | **DOES NOT FIT, and is now CORRECTED rather than reproduced** (Q20, ADR-0023) - the shipped -5000 cannot produce the two swings the owner measured, so `ObservedCorrections` reads it as -500. The only such override in the project |
-| **An upward job needs the terrain's whole `maxHealth` worth of work** | **CONFIRMED and IMPLEMENTED** (Q62, ADR-0024) - the owner stopwatched reinforcing at 13.38 s, which is 66 swings, which is exactly Rock's `maxHealth` of 660 at 10 a swing. The same rule gives claiming its measured 4 swings (4 x 165 = 660 = Dirt Path's `maxHealth`). The rule it replaced fitted claiming only by luck and missed reinforcing by 16 swings |
+| ~~An upward job needs the terrain's whole `maxHealth` worth of work~~ **An upward job costs the DEFICIT** | **READ FROM THE BINARY, 2026-09-07** (ADR-0089, reversing ADR-0024) - the applier `FUN_00452f60` adds the delta into the tile's own health and converts at the terrain's `MaxHealth`, so reinforcing Rock is 660 - 165 = 495, i.e. **50** applications and not 66. The old rule was fitted to a stopwatch under a cadence that was also wrong; see "The applier, read at last" below |
 
 ---
 
@@ -301,12 +302,14 @@ re-derives it from the same two numbers.
 
 ### What is still open
 
-- **The wall-clock length of a tick.** Timing cannot separate *5 ticks a second
-  at rate 0.8* from *4 ticks a second at rate 1.0* — they are the same speed —
-  and the 273 gold pins only the per-application fraction (0.2 of the delta).
-  Q1 needs the game loop traced, not another stopwatch. `FUN_00517490` is the
-  "now" the gates read and it is a bare field load,
-  `*(*(this + 4) + 4)`; whoever increments that field answers Q1.
+- ~~**The wall-clock length of a tick.**~~ **ANSWERED 2026-09-07: 250 ms**
+  (Q1, ADR-0089), and not by tracing the game loop. `FUN_00517490`'s writer was
+  never found and turned out not to be needed: the creature update itself sets
+  effect timers to `variable 19 x 10` and decrements them once per call, which
+  fixes its own rate at four a game second, and the owner's portal stopwatch
+  fixes a game second at a real second. **The answer came from the consumer,
+  not the producer** - worth remembering the next time a counter's writer
+  refuses to be found.
 - **What moved the base rate mid-session** - see the withdrawn claim above.
   Until that is known, no reading taken across it can be compared with another,
   and the level question is open again rather than answered either way.
@@ -740,3 +743,94 @@ Everything here came from the data, in the order the research method prescribes
   about DK2; `DK2.Behavior.Tests.TileWorkOnRealDataTests` re-runs the rules
   against the real database to keep that honest, and asserts that the terrain
   transition graph terminates for every tile of a real campaign level.
+
+---
+
+## The applier, read at last — and two of this file's rules were wrong (2026-09-07)
+
+**`FUN_00452f60` is DK2's tile-work applier**, the function every work handler
+ends up calling, and reading it settles both halves of what this file had been
+inferring from stopwatches. See ADR-0089.
+
+```
+delta < 0:   if (-delta >= health) health = 0
+             else                  health -= -delta
+delta >= 0:  if (health + delta > 32000) health = 32000
+             else                        health += delta
+
+then:  health == 0            -> become terrain[+0x1c6]   (destroyedType)
+       health >= terrain+0x1ad -> become terrain[+0x1c9]   (maxHealthType)
+```
+
+Three things fall out, and the first two are corrections.
+
+### 1. The tile's health IS the accumulator, so an upward job costs the deficit
+
+There is no separate progress field. `ADD`/`SUB` straight into the tile's health
+word at `tile+6`, and the conversion compare is against the terrain record's
+`MaxHealth` at `+0x1ad`.
+
+| job | terrain | from → to | cost | applications |
+|---|---|---|---|---|
+| reinforce | Rock | 165 → 660 | **495** | **50** at 10 each |
+| claim | Dirt Path | 1 → 660 | 659 | **4** at 165 each |
+
+**ADR-0024 is reversed.** It charged the whole `MaxHealth` — 660, so 66
+applications — and that rule was fitted to the owner's reinforce stopwatch under
+Q47's five-a-second cadence. Both were wrong and they cancelled: 66 at five a
+second is 13.2 s, 50 at four a second is 12.5 s, and a hand-timed 13.3–13.4 s
+cannot tell those apart.
+
+**What does tell them apart is the sign of the residual.** A hand timer
+over-reads; it cannot under-read.
+
+| measured | read model | ADR-0024's model |
+|---|---|---|
+| reinforce unslapped **13.3–13.4 s** | 12.5 s (+0.85) | 13.2 s (+0.15) |
+| reinforce slapped **11.5–11.9 s** | 11.25 s (+0.4) | 12.0 s (**−0.3**) |
+| claim **1.30–1.40 s** | 1.0 s + linger | 0.8 s + linger |
+
+The read model is late everywhere by well under a second. ADR-0024's is *early*
+on the slapped run, which reaction time cannot explain.
+
+### 2. Work lands four times a second, not five
+
+`SimulationTiming.TicksPerSecond` was the placeholder 20 precisely because
+"five a second" and "four ticks a game second" could not both be scheduled.
+They never had to be: **the fifth is the size of an application, not its rate.**
+The handlers read the rate global already divided by variable 19 and then
+multiply by Efficiency, so an application is `tabled ÷ 4 × 0.8` = `tabled ÷ 5`,
+and it lands **once a tick**. The 273 gold a swing measures the fifth and
+always did. Q1 is settled at **250 ms a tick**; see ADR-0089 for the three
+readings.
+
+### 3. The "jumps" a player counts are damage stages, not swings
+
+`terrain+0x1c3` is a **count of visual stages**, and the applier fires a redraw
+when `(oldHealth − 1) ÷ stageSize` differs from `(newHealth − 1) ÷ stageSize`,
+with `stageSize = MaxHealth ÷ stages`.
+
+So Q46's *"2-3-4 jumps MAX"* for claiming was counting **stage crossings**. It
+had been recorded in this file as independent corroboration of the four-swing
+count, and it is not evidence about swings at all. Both numbers happen to be
+four for Dirt Path, which is how it passed unnoticed.
+
+A useful consequence in the other direction: **a half-reinforced wall is a
+tougher wall and looks it**, because the progress is real health. That is a
+behaviour a player can see, and it is one this project could not have produced
+while progress lived in a field of its own.
+
+### The one weak point, named
+
+The conversion compare has **no visible test of which kind of work raised the
+health**. Taken literally, healing a damaged Claimed Path back to full would
+turn it into Rock — Claimed Path's max-health type *is* Rock — which cannot be
+the game's behaviour. So a guard exists and was **not read**: the decompiler
+dropped that branch's body and only the compare survived, which is the same
+trap as the empty `if` bodies that hid the health store until the disassembly
+was read directly.
+
+`TileWorkRules.CompletesUpward` stands in for that guard and is explicitly
+ours. **Q215** is the read; **Q214** is the one-minute experiment that would
+tell us whether it matters, because the same gap is why filling in a tile now
+completes in a single application.

@@ -500,8 +500,16 @@ spawns holding gold. Nothing reads it and nothing should until somebody knows.
 
 ## ADR-0020 — Work lands five times a second, a fifth of the tabled delta at a time
 
+> **THE TITLE IS HALF WRONG. See ADR-0089 (2026-09-07).** The *fifth* is
+> right and is the sharpest number in the project. The *five times a second*
+> is not: work lands **four** times a second, once a tick, and the fifth is
+> the **size** of one application (`tabled ÷ 4 × 0.8`, the Efficiency over
+> the four ticks of a game second) rather than its cadence. Everything below
+> about the amount stands; every sentence about the rate is superseded.
+
 **Status:** Accepted (2026-08-30). **Amended 2026-09-05 — the fifth is
-Efficiency; see the amendment at the end of this ADR.** Supersedes the
+Efficiency; see the amendment at the end of this ADR.** **Superseded in part
+2026-09-07 by ADR-0089.** Supersedes the
 granularity half of ADR-0011's placeholder status; ADR-0017's rule for
 `…PerSecond` variables is unaffected.
 
@@ -834,7 +842,18 @@ Everything that could make this a misreading was checked and came back negative:
 
 ## ADR-0024 — An upward job costs the terrain's whole MaxHealth
 
-**Date.** 2026-08-30. **Status.** Accepted. **Amends** ADR-0020 and the rule
+> **REVERSED 2026-09-07 by ADR-0089. This decision was wrong.** DK2's tile
+> applier (`FUN_00452f60`) adds the delta into the tile's **own health word**
+> and converts when that health reaches the terrain record's `MaxHealth`, so
+> an upward job costs the **deficit** — reinforcing Rock is 660 − 165 = 495,
+> which is **50** applications and not 66. The rule below was fitted to a
+> stopwatch under Q47's mistaken five-a-second cadence; the two errors
+> cancelled in wall-clock terms, which is why no test caught either.
+> `TileState.UpwardWork` no longer exists. **Read ADR-0089 before citing
+> anything here.**
+
+**Date.** 2026-08-30. **Status.** **Reversed** (2026-09-07, ADR-0089).
+Accepted 2026-08-30. **Amends** ADR-0020 and the rule
 recorded against Q18.
 
 **Context.** Claiming, reinforcing and filling in convert a tile to its
@@ -7317,3 +7336,156 @@ and always cheap to check.
 **And it retires "low priority" as a reason not to sweep.** Q84 and Q85 were both
 catalogued low priority. The sweep that answered them found this, which is worth
 more than either.
+
+---
+
+## ADR-0089 — A tick is 250 ms, and Q47's fifth was never a cadence
+
+**Status:** accepted (2026-09-07). Reverses **ADR-0024** and amends **ADR-0020**.
+`HashVersion` and the snapshot format both **34 → 35**, pin
+`0x368FDF9DF3D0A6EA`.
+
+**Context.** `SimulationTiming.TicksPerSecond` had been the placeholder **20**
+since the project's first week. It could not move, because two of this
+project's own readings contradicted each other and each was load-bearing:
+
+- **Q1** read a game second as **four** ticks — variable 19, the engine's
+  seconds-to-ticks multiplier, which the level loader copies out of the LEVEL
+  chunk and which **all 66 shipped levels carry 4** in.
+- **Q47** read work as landing **five times a second**, from the owner's
+  measurement of **273 gold a swing** on a gold seam.
+
+Five applications cannot be scheduled inside four ticks —
+`WorkApplicationPeriodTicks` would have been `4 / 5 = 0` — so the queue recorded
+the pair as mutually blocking. 20 was chosen because it is the least common
+multiple and could host both.
+
+**The contradiction was ours, and both halves are now read rather than
+inferred.**
+
+### The tick is 250 ms, from three independent readings
+
+1. **Four ticks a game second**, as Q1 already had it: variable 19, 4 in every
+   shipped level.
+2. **A game second is a real second.** CONFIRMED by the owner's portal
+   stopwatch (Q86, ADR-0086) — seven consecutive arrival gaps against
+   `(n² + base) × variable 19` ticks, mean absolute error **1.0 s** across a
+   series running out to 59 s. A game second of 0.8 or 1.25 real seconds would
+   have shown as an error growing with the series, and did not.
+3. **The creature update runs exactly variable-19 times a game second.** This is
+   the reading that was missing, and it comes from inside the update itself.
+   `FUN_00488930` is the creature's own per-tick virtual method (vtable
+   `0x0066d524`, slot `+0x14`). It sets two effect timers to
+   `variable 19 × 10` and decrements **each of them once per call** while a
+   visual effect plays. *A counter initialised to 40 and decremented once per
+   call is a ten-game-second effect if and only if the call happens four times a
+   game second.* Two instances, in one function, with a watchable effect
+   attached. Independently, the same function gates work on
+   `tick % variable 19 == 0` and on `(tick + id × 2) & 7`, and neither gate is
+   correct at more than one call per tick value.
+
+So **one tick is 250 ms**, `TicksPerSecond` is **4**, and
+`OriginalTickPeriodTicks` collapses to **1**.
+
+### Q47's five is the size of an application, not its rate
+
+The work handlers read their rate global **already divided** by variable 19 —
+the loader does that division at load time — and then multiply by the worker's
+Efficiency in 4096 fixed point (`0xccc` = 0.8 at spawn). So one application is
+
+> `tabled ÷ 4 × 0.8` = **`tabled ÷ 5`**
+
+and the 273 gold a swing measures **that fifth**, to three significant figures,
+exactly as ADR-0020's 2026-09-05 amendment already said. What the amendment did
+not do was follow the consequence through to the schedule: the fifth is the
+*amount*, and the *rate* is once a tick, **four a second**.
+
+The two are now separate constants that cannot be confused again —
+`SimulationTiming.BaseApplicationDivisor` (5, sizes an application) and
+`SimulationTiming.WorkApplicationsPerSecond` (4, schedules it).
+
+### And ADR-0024 is reversed — an upward job costs the deficit
+
+This is what made the wrong cadence look right for a week, and it is the live
+divergence the time base was hiding.
+
+**DK2's tile applier is `FUN_00452f60`.** It adds the delta straight into the
+tile's own health word at `tile+6`, clamps a positive result at **32000**
+(`CMP EBX,0x7d00`), and converts the tile the moment its health reaches the
+terrain record's `MaxHealth` at `terrain+0x1ad`. There is no separate
+accumulator. So an upward job costs the **deficit**:
+
+| job | terrain | cost | applications |
+|---|---|---|---|
+| reinforce | Rock, 165 of 660 | **495** | 495 ÷ 10 = **50** |
+| claim | Dirt Path, 1 of 660 | 659 | 659 ÷ 165 = **4** |
+
+ADR-0024 charged an upward job the terrain's **whole** `MaxHealth` — 660 for
+Rock, so 66 applications — on the strength of a stopwatch: 66 applications fits
+the owner's 13.3–13.4 s if work lands five times a second. **Both halves were
+wrong and they cancelled**, which is exactly why no test caught either and why
+the wall clock could not separate them. Re-checked against every timed
+measurement, the read model wins on the *direction* of the residual:
+
+| measured | read model predicts | residual |
+|---|---|---|
+| reinforce, unslapped, **13.3–13.4 s** | 50 applications, 12.5 s | +0.85 s |
+| reinforce, slapped, **11.5–11.9 s** | 45 applications, 11.25 s | +0.25–0.65 s |
+| claim, **1.30–1.40 s** | 4 applications, 1.0 s + linger | +0.3–0.4 s |
+
+All three over-read by under a second, which is what a hand timer does. Under
+ADR-0024's rule the slapped reinforce required 12.0 s against 11.5–11.9
+observed — an *under*-read, which reaction time cannot produce.
+
+**`TileState.UpwardWork` is deleted.** The progress *is* the tile's health,
+which also explains something this project had mis-attributed: the applier
+compares `(oldHealth − 1) ÷ stageSize` against `(newHealth − 1) ÷ stageSize`,
+where `stageSize` is `MaxHealth ÷ terrain+0x1c3` and `+0x1c3` is a count of
+**visual stages**. So the owner's *"2-3-4 jumps MAX"* for claiming (Q46) was
+counting **stage crossings**, not swings, and never constrained the swing count
+at all. A half-reinforced wall is a tougher wall, and it looks it.
+
+### What got worse, stated rather than hidden
+
+**Filling in a claimed path now completes in one application.** Claimed Path
+ships at **660 of a 660 maximum**, so it is already at the compare's threshold,
+and `FillInHealth` (+5, so +1 an application) trips it immediately. The same
+unguarded compare would turn a *healed* claimed path into Rock, which cannot be
+the game's behaviour — so **DK2 has a guard here that this project has not
+read**; the decompiler dropped that branch's body and the guard is UNKNOWN
+(**Q215**). Our own `CompletesUpward` gate stands in for it, and is why repair
+does not convert.
+
+The code stays on the read rule, because a special case for fill-in would be an
+invented rule and this project prefers a faithful rule that is flagged. The test
+now carries the doubt in its name
+(`FillingInAClaimedPath_CompletesInOneApplication_WHICH_NOBODY_HAS_WATCHED`),
+because that assertion has now held **three** different answers — instant, then
+ADR-0024's 660 applications and 132 seconds, now instant again — and **not one
+of the three was ever watched in the game**. One minute of play settles it
+(**Q22**, **Q214**).
+
+### Consequences
+
+- Every duration in the project is now a wall-clock claim. A tick is 250 ms;
+  scenario logs in ticks are timings.
+- **Resolution is coarser and that is faithful.** Four steps a second makes
+  movement quantisation visible — a four-tile walk is 9 ticks straight against
+  13 on the bias, so the exact 14/10 diagonal ratio no longer survives the
+  rounding. `ImpTests.WalkingOnTheBias_TakesRootTwoTimesAsLong` asserts within
+  one tick and says why: DK2 steps at the same rate and has the same
+  quantisation, so asserting equality would assert a precision the original does
+  not have.
+- Scenario tick budgets now cover **five times** as much game time as they did.
+  Nothing breaks and every hash is stable, but several are longer than their
+  author intended and could be trimmed.
+- `TicksPerSecond` and `OriginalTicksPerGameSecond` stay separate constants
+  despite being equal. One is our step rate, free to be refined; the other is a
+  fact about DK2, in the same class as a tabled balance variable. Collapsing
+  them would make facts about the original depend on a choice of ours.
+
+**Rejected: keeping 20 as a sub-tick substrate.** It would have kept every
+existing number and the accidental 13.2 s reinforce. But the reinforce fit was
+the product of two errors, the substrate would have preserved a cadence the
+binary contradicts, and "our tick is not the game's tick" is a permanent tax on
+every later reading. The rate is DK2's or it is a guess.

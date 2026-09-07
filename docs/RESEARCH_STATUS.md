@@ -322,12 +322,17 @@ What is *built* rather than known, against the long-term goals:
   which is built (ADR-0053), and computer-player AI, which is **read**
   (`docs/KEEPER_AI.md`) with step 1 **built** as an input source that changes
   no simulation surface.)
-- **The tick rate is read (Q1) but not yet adopted, and one measurement fights
-  it.** Variable 19 is 4 — a game second is four ticks — but Q47 derived *five*
-  work applications a second from 273 gold a swing, and five does not divide
-  four. Either the swing cadence is not tick-locked or the 273 has another
-  explanation; `SimulationTiming.TicksPerSecond` stays at 20 until that is
-  settled, because `WorkApplicationPeriodTicks` would be 4 / 5 = 0.
+- ~~**The tick rate is read but not yet adopted.**~~ **ADOPTED 2026-09-07
+  (ADR-0089).** `SimulationTiming.TicksPerSecond` is **4** and a tick is
+  **250 ms**: variable 19 is four ticks a game second, the owner's portal
+  stopwatch pins a game second to a real second, and the creature update fixes
+  its own rate from the inside by setting effect timers to `variable 19 × 10`
+  and decrementing them once per call. The Q47 conflict was not a conflict —
+  **five was the size of an application, never its cadence** — and following it
+  through also reversed **ADR-0024**: an upward job costs the terrain's health
+  **deficit**, not its whole maximum, so reinforcing Rock is 50 applications and
+  not 66. `HashVersion` 35. Every duration in the project is now a wall-clock
+  claim.
 - ~~**Eating.**~~ **BUILT 2026-09-06 (ADR-0067)**, read from the original's own
   `HungerState.cpp` (`eating.md`). A hungry creature walks to the nearest
   hatchery of its own keeper, chooses the nearest chicken by straight-line

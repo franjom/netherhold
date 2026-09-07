@@ -1,23 +1,35 @@
-# Research queue: questions answerable without the running game
+﻿# Research queue: questions answerable without the running game
 
 **Purpose.** A standing list of open questions that need only the **binary**, the
 **shipped data files**, **Flame** or **OpenKeeper** — no owner observation, no
 stopwatch, no play session. These can be worked independently and in parallel
 with feature work, because none of them touches `src/`.
 
-Maintained as questions move. Last reviewed **2026-09-07 (late)** against 213
-catalogued questions.
+Maintained as questions move. Last reviewed **2026-09-07 (later still)**
+against 215 catalogued questions.
 
-**The queue's head is clear.** Everything agreed for this pass is done: the cut
-list re-check (all fourteen hold), **Q210**, **Q212**, **Q213**, **Q84** and
-**Q85**. The next sitting is **not** a queue item — it is *Gap 1, settle the time
-base*, then the Library's research accrual. See the end of `HANDOFF.md`.
+**The queue's head is clear, and the blocker at its head is gone.** Everything
+agreed for the previous pass is done (the cut-list re-check, **Q210**, **Q212**,
+**Q213**, **Q84**, **Q85**), and then **Gap 1 was settled**: `TicksPerSecond` is
+**4**, a tick is **250 ms**, `HashVersion` is **35** (ADR-0089).
 
-**Two queue items are now blocked on each other and that is the real work:**
-**Q1** reads a game second as 4 ticks and **Q47** needs five work applications a
-second, which cannot be scheduled inside four. One of the two readings is wrong,
-both are ours, and `SimulationTiming.TicksPerSecond = 20` cannot move until it
-is settled.
+**The Q1/Q47 deadlock dissolved rather than being resolved.** It was recorded
+here as "one of the two readings is wrong". Both were, in a way neither row
+predicted: **Q1 was right about four ticks and never needed the tick counter's
+writer** — the creature update fixes its own rate by setting effect timers to
+`variable 19 × 10` and decrementing them once per call — and **Q47's five was
+never a cadence at all**, only the size of an application. Deriving a *schedule*
+from an *amount* is the shape of the mistake, and it is worth recognising again:
+a measured quantity was extended into a claim about a different quantity.
+
+**Two new items came out of it**, both cheap and both in this queue's remit
+except where noted: **Q215** (what guards DK2's "health reached MaxHealth"
+conversion — disassemble `0x00453058` onward rather than trusting the decompile)
+and **Q214** (one minute of play; it is on the observation checklist instead).
+
+**Next sitting: the Library and research accrual**, as agreed — `ResearchPerSecond`,
+state category 4's hooks, scoped to the accrual and not the research tree.
+Category 12's prayer hook is the template.
 
 ---
 
@@ -71,6 +83,12 @@ Helper scripts are copied into
 | `Disasm.py <start> <end> <out>` | plain disassembly of a range — **use this when the decompiler garbles**, which it does around register-tracked table fills |
 | `PreCall.py <out> <targetHex>` | the 12 instructions before every reference to a target, for reading pushed arguments |
 | `CatTable.py <out> [start end]` | reconstructs a run-time-filled table by walking a straight-line `MOV` run and tracking registers |
+| `AtAndCallers.py <out> <addrHex>...` | decompiles the function containing each address **and lists its callers**. The workhorse for a cadence question: how often something happens is a property of who calls it |
+| `Up.py <out> <addrHex> <depth>` | walks the caller tree upward breadth-first. Stops dead on a vtable method (0 callers), which is itself the finding — scan the address next |
+| `Intersect.py <out> <globalHex> <calleeHex>` | functions that reference a global **and** call a given function. Narrowed 102 x 94 candidates to **one** on 2026-09-07; the sharpest instrument here when you can name two things the answer must touch |
+| `CallSlot.py <out> <slotHex> <globalHex>` | indirect calls through a vtable slot offset, flagged by whether the caller also touches a global. Note that an empty result is weak evidence — the dispatcher may reach its list through a member rather than a global |
+| `TickWriter.py <out> <globalHex>` | dword stores into `[reg + 4]` across the image, flagged by whether the containing function touches a global. Built for the tick counter; found only linked-list `next` pointers, which was the useful negative |
+| `Imports.py <out> <needle>...` | imported symbols matching a needle, with every reference site. `timeGetTime`, `QueryPerformanceCounter` and `GetTickCount` in one run locate the platform clock |
 
 **Two traps that have each cost this project time twice:**
 
