@@ -5,16 +5,10 @@ worth giving it, phrased so they can be pasted directly.
 
 ## The division that makes sense
 
-**Codex: verification, breadth, second opinions — and now footage.** Read-only
-auditing, data sweeps over the 1236 shipped files, independent re-derivation of
-something already derived, and **turning a recording of the running game into a
-question list**. The last of those was added on 2026-09-05 after it worked
-better than anything else has: see Brief 4, which is the highest-value entry in
-this file.
-
-**Ranked by what they have actually produced:** Brief 4 (reversed shipped
-behaviour three weeks old), Brief 1 (the characteristic-defect audit), Brief 3
-(corroboration), Brief 2 (still open).
+**Codex: verification, breadth, second opinions, and footage.** Read-only
+auditing, data sweeps over the 1,236 shipped files, independent re-derivation of
+something already derived, and turning a recording of the running game into a
+question list.
 
 **Not Codex: prose in `docs/research/`, the `reverse-engineering/` quarantine,
 the determinism hash, and commits.** The first degrades an evidence discipline
@@ -22,38 +16,188 @@ that took months to build; the second is a licence boundary rather than a style
 one; the third has a bump-and-re-pin protocol that makes the gate meaningless if
 got wrong; the fourth has conventions no prompt reliably conveys.
 
+**Ranked by what they have actually produced:** Brief 4 (reversed shipped
+behaviour three weeks old), Brief 1 (the characteristic-defect audit), Brief 8
+(fog of war, via its own stop rule), Brief 6 and Brief 5 (two shipped tables
+nothing read), Brief 3 (corroboration).
+
 ## Setup
 
-Codex reads `AGENTS.md`, which is why that file was committed on 2026-09-05 —
-until then 430 of its 494 lines lived only in one working tree, so any fresh
-clone would have shown a second agent 64 lines with none of the rank-of-evidence
-rule, the ADR-0046 quarantine, or the twelve goals.
+Codex reads `AGENTS.md`: the rank of evidence, the ADR-0046 quarantine, the
+recording budgets and the twelve goals are all there.
 
 The gate is the same for work from any source, and must be green before anything
 lands:
 
 ```
-dotnet build DK2.slnx -c Release                          # zero warnings
-dotnet test DK2.slnx -c Release                           # all green
-dotnet run --project src/DK2.Harness -- run scenarios     # 23 scenarios
+dotnet build DK2.slnx -c Release                            # zero warnings
+dotnet test  DK2.slnx -c Release                            # green; expect skips
+dotnet run --project src/DK2.Harness -- run scenarios       # every scenario
 ```
 
-Anything that **writes** should get its own git worktree. Read-only auditing can
-run against the main tree any time.
+Expect **skips** in the test run: every `[InstallFact]`/`[InstallTheory]` test
+skips without a DK2 install (ADR-0100). A skip count of zero means the runner
+found game data it should not have.
 
-**Reference checkouts, both outside this repository** (2026-09-06):
-`D:\OpenKeeper` (GPLv3 — facts only, provenance in `THIRD-PARTY-NOTICES.md`) and
-`D:\Flame` (**unlicensed — facts only and never one of its identifiers**, see
-`docs/research/external-resources.md`).
+Anything that **writes** gets its own git worktree on a `codex/<topic>` branch.
+Read-only auditing can run against the main tree any time. Check
+`git worktree list` before taking an ADR or question number: two worktrees pick
+the same next number, which is why `docs/DECISIONS.md` is not in numeric order.
+
+**Reference checkouts, both outside this repository:** `D:\OpenKeeper` (GPLv3 —
+facts only, provenance in `THIRD-PARTY-NOTICES.md`) and `D:\Flame`
+(**unlicensed — facts only, and never one of its identifiers in `src/`, `tests/`
+or `unity/`**). See `docs/research/external-resources.md`.
+
+## Boundaries that apply to every brief
+
+- **The quarantine is absolute, and it is a licence boundary rather than a style
+  one** (ADR-0046). Facts — a number, a formula, a comparison, an order of
+  operations, a description of control flow, **in your own words** — may cross.
+  Decompiler output may not: not into `src/`, not into `docs/`, not into a commit
+  message, not into a test fixture, not reformatted, not renamed, not "cleaned
+  up".
+- **Rank of evidence, in this order** (AGENTS.md): Ghidra on `DKII.EXE` first —
+  it is the actual DK2 and everything else is somebody's reading of it; the
+  shipped data files; the running game, which outranks a misread disassembly for
+  anything a player can watch; then Flame for **structure only**; then
+  OpenKeeper, whose reading is its own guess and has been wrong here before.
+- **Nothing in `docs/research/`.** Findings go in the branch README and in the
+  code's own XML docs; the research write-up is where the confidence ladder and
+  the evidence rank are enforced.
+- **Do not bump `GameSimulation.HashVersion` or re-pin the determinism literal.**
+  If the work needs it, stop and report. A correct stop is a successful outcome.
+- **Do not invent DK2 behaviour.** If no source shows it, it is UNKNOWN and the
+  code says so. **Report a field you could not pin rather than filling it in** —
+  the most useful output any of these briefs has produced was a negative result.
+- **No decoded game text or converted asset committed anywhere.** The format
+  facts and the readers are ours; the content is EA's. Tests read it from the
+  install at run time and skip when `DK2_DIR` is absent.
+
+---
+
+## Brief status
+
+| Brief | Task | Deliverable in the tree | Status |
+|---|---|---|---|
+| 1 | The unverified-claim audit (read-only) | a ranked findings report to stdout; no artefact | **Standing** — re-runnable, and the highest-value read-only use |
+| 2 | Q132, the phantom balance variable | answered from the binary and the level files; built as the hatchery clock (ADR-0066) | **Closed 2026-09-05** |
+| 3 | Independent re-derivation (cross-check) | corroborated the hatchery laying exponent and the balance-variable dispatch table | **Standing** |
+| 4 | Turn a recording into a question list | the 2026-09-05 document, which reversed the free-imp rule (Q56) | **Standing** — the highest-value brief here |
+| 5 | The `.str` string tables | `src/DK2.Data/Text/Dk2StringTable.cs`, `Dk2StringTableTests`, `dk2tools str list` / `str get`, `src/DK2.Data/README.md` §STR | **Done 2026-09-06** |
+| 6 | `Doors.kwd` and `Traps.kwd` | `KwdDoors.cs`, `KwdTraps.cs`, `DoorDef`, `TrapDef`, loaded by `GameDatabaseLoader`; `DoorsAndTrapsDefinitionsOnRealDataTests`, `TrapsOnRealDataTests`, `src/DK2.Data/README.md` §"Door and trap definitions" | **Done** |
+| 7 | Fog of war — read-only research | absorbed by Brief 8; `docs/research/fog-of-war.md` | **Done** |
+| 8 | Build fog of war | its stop rule fired: fog is **simulation** state (Q190 answered, ADR-0076). `FogOfWarSystem`, a discovery bit per keeper on `TileState`, hashed and snapshotted, the viewer-aware presentation boundary, `scenarios/fog/`, `FogOfWarOnRealDataTests` | **Done** |
+
+Merged Codex branches: `codex/doors-traps`, `codex/fog-of-war`,
+`codex/m1-record-types` (all 18 KWD record types, ADR-0091),
+`codex/trigger-semantics` (trigger parameter reads verified against DKII.EXE,
+ADR-0092) and `codex/action-points` (action points as ordered world state,
+ADR-0103).
+
+---
+
+## Closed briefs — kept for the method, not the task
+
+### Brief 2 — Q132, the phantom variable — CLOSED, do not pick up
+
+Balance variable 19 is **ticks per game second**, and the **level header**
+supplies it, which is why it appears in no variables file; all 66 shipped levels
+carry 4. The shape of the brief was right, and it is why the answer was findable:
+everything eliminated had been written down first — 223 reading instructions,
+exactly one apparent writer, uninitialised memory with no image default, and no
+shipped file supplying id 19 across all 1,236 files with a scanner validated
+against ids 3, 18 and 74. Give a brief like this **the question and the
+eliminations**, never the write-up.
+
+### Brief 5 — the `.str` string tables — DONE
+
+92 files under `Data/Text/Default/`, 353 KB, all sharing the magic **`BFST`**.
+`+4` is a **file id** — the 92 files carry 1000 … 1091, one each, in a fixed
+order — and **string ids are table-local and zero-based**; reading `+4` as a
+string *base* was the brief's own wrong "already established" line, and the
+branch was right to check it. `+8` is the count, and the 92 counts sum to
+**7,024**. At `+12`, a table of `count` u32 offsets, monotonically
+non-decreasing and **relative to byte 12**. The payload is encoded rather than
+plain text: no ASCII or UTF-16LE run of six printable characters exists anywhere
+in `Text.str`, and 176 distinct byte values with `0x00`, `0x0C` and `0xB0`
+dominant is the shape of a bit-packed or dictionary scheme. `dk2tools str get`
+resolves a `NameStringId` from a creature, room, object or terrain record to the
+game's own name, which is the verification that mattered.
+
+A long shot in that brief paid off in the negative direction, which is worth
+keeping: the `u16` at record `+0x14` of DK2's 281-record creature **state table**
+*is* a `Text.str` id and all 281 resolve — but to only **63 distinct labels**,
+shared status text describing state *families* rather than naming states one by
+one (`docs/research/creature-state-table.md`). It closes a line of enquiry that
+looked like it would name the whole state machine for free.
+
+### Brief 6 — Doors.kwd and Traps.kwd — DONE
+
+`Doors.kwd`: 8 records, stride 616. `Traps.kwd`: 16 records, stride 579. Both
+carry a single chunk whose name matches the file; content offset is
+`fileLength − records × stride`, which for `Doors.kwd` is 56. Each record opens
+with a 32-byte NUL-padded name (`Wooden Door`, `Steel Door`, `Braced Door`), and
+bytes 32..56 are zero.
+
+The method is the reusable part: **the shipped values are the oracle.** Dump each
+candidate offset as u8/u16/u32 across all 8 or 16 records and look for a column
+that reads like a stat — monotonic with the name order, plausibly scaled, or
+matching something the manual prices outright. Generate candidates from
+OpenKeeper if you like; confirm them against the shipped bytes yourself. **No
+behavioural rules** came out of it: this was data, and how a trap fires needs the
+binary.
+
+### Brief 7 — fog of war research — DONE, absorbed by Brief 8
+
+`docs/research/fog-of-war.md` is the note.
+
+### Brief 8 — build fog of war — DONE, by the other branch of its own stop rule
+
+The brief said: build presentation-side unless Phase 0 shows fog is simulation
+state, and if it does, **stop and report rather than bumping the hash**. Phase 0
+showed exactly that. Q190 was answered from a three-save series on a four-keeper
+skirmish map: DK2 persists discovery in the save, so it is game state, and
+diffing all 80 bit positions of the save's tile record puts it at **lane 1 bit
+6**, clearing in a band 13 tiles tall around a one-tile tunnel — the six-tile
+`PerceptionRange` arriving independently. **DK2 stores one bit for one
+viewpoint**; the per-keeper mask here is ours (`fog-of-war.md` §§10–11).
+
+What the brief got right and is worth reusing:
+
+- **The stop rule.** It fired, and the work landed correctly on the other side of
+  it (ADR-0076) instead of being built in the wrong place and moved.
+- **The cheap route before Ghidra.** "If fog state is written into a save, it is
+  game state, because a save persists the simulation" — two saves either side of
+  walking one creature into unexplored ground, with a control that changed
+  nothing else. Minutes, against an afternoon of disassembly.
+- **Fog by substitution**, because that is what the original does: an
+  undiscovered tile is *presented as* terrain 27 (`Fog Of War`, flags
+  `Solid, Impenetrable, Taggable`, health 1/1), the real terrain never reaching
+  the renderer — which is also the test that no renderer can leak it. The six
+  terrain types flagged `RevealThroughFogOfWar` (terrain flag bit 24:
+  Impenetrable Rock, Water, Lava, Gold, Gems, Edge of Map) show through.
+- **The gap the brief exposed was not fog.** `WorldView` had no viewing player
+  and `TileView.Tagged` meant "tagged by anyone", so every renderer was
+  omniscient by construction. Fog made that visible; the fix was a defect
+  repair, not a feature.
+
+Still open from it: the five fog modes in `Text.str` 348–353 (`Creatures Reveal`,
+`All Owned Reveal`, `Stay Revealed`, `Re-shroud`, `Re-fog`) are inferred from
+strings, with `Stay Revealed` the campaign's confirmed behaviour and no known
+selector; and whether a tag on an undiscovered tile is stored, and where. Sight
+of Evil and Reveal Map are M7 and M6. No sight radius exists in the balance
+table — `DefaultTorchLightRadiusTiles` 6144 is **1.5 tiles** (`Fp32.One` is
+4096), a near-miss that was checked and rejected; do not resurrect it.
 
 ---
 
 ## Brief 1 — the unverified-claim audit (read-only, run this first)
 
-The highest-value use, because it targets this project's characteristic defect:
-a claim everything is consistent with that nobody ever checked. Three real
-instances are given as calibration, because the pattern matters more than the
-instruction.
+The highest-value read-only use, because it targets this project's characteristic
+defect: a claim everything is consistent with that nobody ever checked. Three
+real instances are given as calibration, because the pattern matters more than
+the instruction.
 
 Expect some false positives on claims that *are* checked but not near the text
 making them — the drift guards live in `DK2.Behavior.Tests` with no project
@@ -135,58 +279,30 @@ anything that is about C# rather than about Dungeon Keeper 2.
 
 ---
 
-## Brief 2 — Q132, the phantom variable — **CLOSED 2026-09-05, do not pick up**
-
-**Answered:** variable 19 is ticks per game second and the **level header**
-supplies it, which is why it appears in no variables file. All 66 shipped levels
-carry 4. Built on 2026-09-06 (ADR-0066) — it was the hatchery clock.
-
-The brief is kept because the shape of it was right: everything eliminated was
-written down first, which is what made the answer findable when the level loader
-turned up a second writer. What follows is the brief as it stood.
-
-The question: **balance variable 19's global is read from 223 instructions in
-`DKII.EXE` — more than any other — as a multiplier 28 times and a divisor 22
-times. Exactly one instruction writes it. It lives in uninitialised memory, so
-the image carries no default. And no shipped file supplies id 19**, checked
-across all 1236 files in the install with a scanner validated against ids 3, 18
-and 74. Twenty-two sites divide by it and the game does not crash.
-
-Give Codex the *question and the eliminations*, not the write-up, and let it
-work out where else a value could come from.
-
----
-
 ## Brief 3 — independent re-derivation (cross-check)
 
 Point it at a specific decompiled function and ask it to derive a formula
-**without** reading the project's write-up of that formula. Agreement is real
+**without** reading this project's write-up of that formula. Agreement is real
 corroboration from an independent reading; disagreement is a finding either way.
+Two candidates that worked: the hatchery's laying interval and its exponent
+(`docs/research/hatchery.md` §4 is the answer to withhold), and the
+balance-variable dispatch table with its id-to-global mapping.
 
-Good candidates, both derived on 2026-09-04:
-
-- the hatchery's laying interval and its exponent (`docs/research/hatchery.md` §4
-  is the answer to withhold);
-- the balance-variable dispatch table and the id-to-global mapping.
-
-**This is the one brief that must touch `reverse-engineering/`**, so it is also
-the one that needs the quarantine rule stated explicitly and its output checked
-before anything is written down: facts in our own words may cross, decompiler
-output may not.
+**This is the brief that must touch `reverse-engineering/`**, so it is also the
+one whose output is checked before anything is written down: facts in our own
+words may cross, decompiler output may not.
 
 ---
 
 ## Brief 4 — turn a recording into a question list (the highest-value brief here)
 
-**Added 2026-09-05, because it worked.** The owner recorded DK2 playing, Codex
-analysed the footage, and the resulting document **reversed behaviour this
-project had shipped for three weeks**. No test could have caught it: every test
-agreed with the wrong rule. The running game is the only oracle for that class of
-defect, and this is how its evidence gets in.
+The owner records DK2 playing, Codex analyses the footage, and the resulting
+document is read back into the project. The first run **reversed behaviour this
+project had shipped for three weeks** (Q56) — no test could have caught it,
+because every test agreed with the wrong rule. The running game is the only
+oracle for that class of defect.
 
 ### What made the output good, and should be kept
-
-The document that worked had four things in it, and each earned its place:
 
 1. **CONFIRMED observations** — what was seen, with timings, separated from any
    interpretation. *"Waited ~30 seconds at exactly 4 Imps; the replacement
@@ -194,24 +310,27 @@ The document that worked had four things in it, and each earned its place:
    apart."*
 2. **An explicit CONTRADICTION against our code**, naming the method and quoting
    the line. *"`ImpSupplySystem.TopUp` sets `FreeImpCountdownTicks = 0` … that
-   cannot reproduce the observed first replacement."* This is the part with the
-   highest value per word, and the part a model that only reads the repo cannot
-   produce.
-3. **A confidence ladder over the inferences**, using this project's own rungs:
-   CONFIRMED / STRONGLY INFERRED / UNKNOWN. Keeping the unknowns *labelled*
-   rather than smoothed over is what made them safe to act on.
+   cannot reproduce the observed first replacement."* The highest value per word,
+   and the part a model that only reads the repo cannot produce.
+3. **A confidence ladder over the inferences**, on this project's own rungs.
+   Keeping the unknowns *labelled* rather than smoothed over is what made them
+   safe to act on.
 4. **Numbered questions addressed to the decompiler**, ordered, with a closing
-   sentence naming which one mattered most. That ordering was correct and saved
-   an hour.
+   sentence naming which one mattered most.
 
 ### The rule for reading it back
 
-**Its observations are oracle. Its inferences are reasoning about our repo.**
-Treat the two differently: act on a CONFIRMED observation the way you would act
-on the owner speaking, and check an inference before building on it. In the
-2026-09-05 document one inference was wrong in a harmless direction —
-`TimeBetweenReattemptingSleepSeconds` was offered as a possible retry interval,
-and it turns out to be read by **zero instructions in the whole executable**.
+**Its observations are oracle. Its inferences are reasoning about our repo.** Act
+on a CONFIRMED observation the way you would act on the owner speaking; check an
+inference before building on it. In the 2026-09-05 document one inference was
+wrong in a harmless direction — `TimeBetweenReattemptingSleepSeconds` was offered
+as a possible retry interval, and it is read by **zero instructions in the whole
+executable**.
+
+A remembered observation that contradicts a recording is also a finding rather
+than noise: Q150 was settled without a second recording because the owner
+corrected the first one from memory (four creature types *always* bed down
+first), and the decompiler did the rest.
 
 ### The prompt
 
@@ -251,542 +370,21 @@ DO NOT edit any file. DO NOT commit. DO NOT open a pull request.
 Do not invent DK2 behaviour: if the footage does not show it, it is UNKNOWN.
 ````
 
-### What to record next, if there is another session
+### What to record next
 
-These are the open observations, and the first is the one that blocks real work:
-
-- ~~**Q150 — what makes a creature go and get a lair.**~~ **Done 2026-09-05**
-  without a second recording: the owner corrected the first one from memory
-  (four creature types *always* bedded down first) and the decompiler did the
-  rest. Worth keeping as the other model — a remembered observation that
-  contradicts a recording is a finding, not noise. What remains is a prediction
-  to break: a big empty lair, and a Troll that beds down before it trains.
-- ~~**Q147 — is imp job priority global, or a tie-break within one position.**~~
-  **Done 2026-09-05** — the owner played it (*"walls over gold, in both cases"*)
-  and the decompiler finished it: two tiers, ADR-0058. Kept here as the model of
-  what a two-minute recording can settle.
 - **Q152 — does regeneration continue in combat, in the Hand of Evil, under
-  possession.** Three ten-second looks. The combat case is the one that changes a
+  possession?** Three ten-second looks. The combat case is the one that changes a
   game: an imp regenerates 67 a second.
-- **Q149 — is the ~1.4s before a free imp appears simulation or animation.**
-  Low stakes; nothing in the simulation depends on it.
-- ~~**Q151 — which of two lair rooms a creature prefers.**~~ **Done 2026-09-05**
-  from the binary: alignment — a creature avoids a lair holding a bed of the
-  other side. Only observable with converted heroes, late in the campaign.
+- **Q149 — is the ~1.4 s before a free imp appears simulation or animation?** Low
+  stakes; nothing in the simulation depends on it.
+- **A prediction to break**, from Q150: a big empty lair, and a Troll that beds
+  down before it trains.
+
+`docs/research/observation-checklist.md` is the standing list of everything else
+the owner can settle by playing.
 
 ### And what this brief must never become
 
 Codex analysing footage produces **research input**, not research prose.
-`docs/research/` stays off limits (see "The division that makes sense" above) —
-the write-up is where the confidence ladder is enforced and where the evidence
-rank is recorded, and that discipline is the thing this project has that most
-reimplementations do not.
-
----
-
-## Brief 5 — the `.str` string tables (write; own worktree)
-
-**Status: open, offered 2026-09-06.** Self-contained, verifiable against data
-this project already parses, and touching no file the simulation work touches.
-
-### What it is
-
-DK2 keeps its entire text — creature names, room names, tooltips, level
-briefings, objectives, speech subtitles — in **92 `.str` files** under
-`Data/Text/Default/`, 353 KB in total, and **this project reads none of it.**
-
-The consequence is concrete rather than cosmetic. Four record types already
-parse **nine `*StringId` fields** — `CreatureDef.NameStringId`,
-`TooltipStringId`, `IntroductionStringId`, and the `Name`/`Tooltip` pairs on
-`ObjectDef`, `RoomDef` and `TerrainDef` — and **every one of them currently
-points at nothing.** The names this project uses come from a debug field in the
-records, not from the game's own text.
-
-### What is already established, so you do not repeat it
-
-Measured on 2026-09-06; treat as a starting point to verify, not as gospel.
-
-- All 92 files share the magic **`BFST`**.
-- ~~At `+4`, a u32 that behaves like a **base string id**~~ — **WRONG,
-  and corrected by the branch this brief produced (2026-09-06).** `+4` is a
-  **file id**: the 92 files carry 1000, 1001, 1002 … 1091, one each, in a fixed
-  order. Read as bases they would overlap — `LEVEL1_BRIEFING` would own
-  1000–1005 and `LEVEL2_BRIEFING` 1001–1006 — which is the check this
-  brief did not make. **String ids are table-local and zero-based.** `+8` is the
-  count and that part was right; the 92 counts sum to **7,024**, not the 96,186
-  this line claimed.
-- At `+12`, a table of `count` u32 offsets, monotonically non-decreasing —
-  and **relative to byte 12**, not absolute. `Text.str`'s first stored value is
-  12,344, which resolves to byte 12,356, exactly where its own 3,086-entry
-  offset table ends.
-- **The payload is encoded, not plain text.** No ASCII run of six printable
-  characters exists anywhere in `Text.str`, and no UTF-16LE run either. 176
-  distinct byte values, with `0x00`, `0x0C` and `0xB0` dominant — the shape of a
-  bit-packed or dictionary scheme rather than a character encoding. Decoding it
-  is the actual work.
-- **One wrinkle worth knowing before you start**: in `Text.str` the offset table
-  ends at byte 12,356 but the smallest offset in it is 12,344 — twelve bytes
-  earlier. So either the count is not quite what it looks like, or the first few
-  entries are sentinels. Do not paper over it.
-
-### Definition of done
-
-1. A reader in `src/DK2.Data` (or `src/DK2.Convert` if it fits the converters
-   better — your call, say why) that opens a `.str` and resolves an id to a
-   string.
-2. **The verification that matters, because it uses data already in the repo:**
-   the Goblin's `NameStringId` must resolve to the Goblin's name, and the same
-   for a room, an object and a terrain. If those four come out right on the
-   shipped files, the format is read correctly; if they do not, nothing else in
-   the brief counts.
-3. A real-data test over **all 92 files** that decodes **every** entry without
-   throwing, and reports the totals — the same shape as
-   `SdtArchiveTests.EveryShippedBankHasTheConfirmedLayoutAndKnownPayloadTypes`,
-   which is the model to copy.
-4. A `dk2tools str list <file>` / `str get <file> <id>` verb.
-5. A section in the relevant README with **counts you actually measured**, and
-   every UNKNOWN named. If some entries will not decode, say how many and which,
-   rather than rounding it to "works".
-
-### A hypothesis that turned out to be right — CONFIRMED 2026-09-06
-
-DK2's creature **state table** — 281 records, `docs/research/creature-state-table.md`
-— has a `u16` at record `+0x14` that is constant across states belonging to one
-mechanic. **It is a `Text.str` string id**, and it resolves to the activity label
-the game prints on the flower above a creature's head. All 281 resolve, none out
-of range, giving 70 distinct labels: `idle`, `reinforcing walls`, `being held
-captive`, `torturing a captive`, and so on.
-
-Nothing is left here for Codex — it is done, and it landed via `Dk2StringTable`
-from Brief 5. Noted because the brief posed it as a long shot and it paid.
-
-It may equally be a tooltip id for something else entirely. Test it, report
-either way, and do not build anything on it.
-
-**ANSWERED, and it is a qualified no** (2026-09-06). Every one of the 239 values
-resolves, but they resolve to only **63 distinct labels** — shared status
-text describing state *families* rather than naming states one by one. So the
-prize is not there, nothing was built on it, and the negative is worth having:
-it closes a line of enquiry that looked like it would name the whole state
-machine for free.
-
-### Boundaries
-
-- **Own git worktree**; do not commit to `master`.
-- **No prose in `docs/research/`** and nothing in `reverse-engineering/` — the
-  usual two.
-- **No decoded game text committed anywhere.** The format facts and the reader
-  are ours; the strings are EA's. Tests must read them from the install at run
-  time, exactly as every other real-data test does, and skip when `DK2_DIR` is
-  absent.
-- OpenKeeper (`D:\OpenKeeper`) has a `.str` reader. **Consult it for format
-  facts, with provenance in `THIRD-PARTY-NOTICES.md`, and write your own.**
-  Flame (`D:\Flame`) is unlicensed: consult, never copy, never adopt an
-  identifier.
-- The gate at the top of this file must be green.
-
-
----
-
-## Brief 6 — Doors.kwd and Traps.kwd, the two shipped tables nothing reads
-
-**Added 2026-09-06.** Needs its own worktree; it writes code.
-
-### The task
-
-`GameDatabaseLoader` parses six of the twelve `Data/editor/*.kwd` files. Six are
-untouched, and two of them are worth having now:
-
-| File | Records | Stride |
-|---|---|---|
-| `Doors.kwd` | **8** | 616 |
-| `Traps.kwd` | **16** | 579 |
-
-Parse both into typed definitions in `DK2.Data.Model`, load them in
-`GameDatabaseLoader` alongside the rest, and test them. **Follow the house
-pattern exactly** — `src/DK2.Data/Kwd/KwdObjects.cs` and `KwdKeeperSpells.cs`
-are the two closest models, and `ObjectDef` shows how a definition is shaped.
-
-### What is already established, so you do not repeat it
-
-Measured on 2026-09-06 with this project's own `kwd chunks` tool. **Treat as a
-starting point to verify, not as gospel** — the last brief's "already
-established" section contained a wrong reading and the branch that followed it
-was right to check.
-
-- Both files carry a single chunk whose name matches the file, with a fixed
-  stride and a whole number of records. Content offset is `fileLength -
-  records * stride`, which for `Doors.kwd` is 56.
-- **Each record opens with a 32-byte NUL-padded name string**, as every other
-  KWD record does. `Doors.kwd`'s first three are `Wooden Door`, `Steel Door`,
-  `Braced Door`.
-- Bytes 32..56 of those three records are all zero, so the interesting fields
-  start later. Do not assume the layout matches `ObjectDef`'s.
-
-### How to find the fields without guessing
-
-The same method that pinned the creature and terrain tables, and it is the whole
-skill here:
-
-1. **The shipped values are the oracle.** A door has a health, a gold cost, and
-   a manufacture cost; a trap has those plus a shot type, a charge count and a
-   trigger radius. Dump each candidate offset as u8/u16/u32 across all 8 or 16
-   records and look for a **column that reads like a stat**: monotonic with the
-   name order, or plausibly scaled, or matching something the manual states.
-2. **Cross-check against `original-reference/Dungeon_Keeper_2_Manual.pdf`**,
-   which prices some of this outright.
-3. **`D:\OpenKeeper` has a reader for both** — facts only, with attribution in
-   `THIRD-PARTY-NOTICES.md` if you adopt a field name (ADR-0003). Its layout is
-   *its* guess and has been wrong before; use it to generate candidates and
-   confirm them against the shipped bytes yourself.
-4. **`D:\Flame` is UNLICENSED.** Consult it for structure if you like; never
-   paste one of its identifiers into this repository.
-
-### What to deliver
-
-- `src/DK2.Data/Kwd/KwdDoors.cs`, `KwdTraps.cs`, and the two definition types.
-- Loading wired into `GameDatabaseLoader`, reachable from `GameDatabase`.
-- Tests in `DK2.Data.Tests` for the format (counts, names, bounds, a corrupt
-  file rejected) and in `DK2.Behavior.Tests` for the shipped values you are
-  confident of. **A field you could not identify is left out and named in the
-  branch's own README, not guessed at.**
-- A short `src/DK2.Data/README.md` section, same shape as the STR one: what is
-  read, what is verified, and an explicit **UNKNOWN** list.
-
-### What not to do
-
-- **No behavioural rules.** This is data, not mechanics. Nothing decides how a
-  trap fires or what a door costs to open; that is a later milestone and needs
-  the binary.
-- Nothing in `docs/research/`, nothing in `reverse-engineering/`, no touching
-  the determinism hash, no commit to `master`.
-- **Report a field you could not pin rather than filling it in.** The last
-  brief's most useful output was a negative result.
-
-### The gate
-
-The three commands in Setup, green, before anything lands.
-
----
-
-## Brief 7 — fog of war: how the original decides what a keeper has seen
-
-**Added 2026-09-06. Read-only research, no code.** This is a Brief 3 shaped task
-— independent derivation from the binary — so it is the second brief that must
-touch `reverse-engineering/`, and the quarantine rule below is not optional.
-
-### Why this one is worth giving away
-
-Fog is the rare mechanic with almost no dependencies: it needs no combat, no
-objectives, no room behaviour, no job selection. What it lacks is *facts*. There
-was no research note and no open question about it in this repo until today, and
-the balance table — normally where this project's numbers come from — **does not
-contain a sight radius at all**. So the only sources left are the ones this brief
-names, which is exactly the case where a second agent reading three codebases in
-parallel beats one agent reading them in series.
-
-### What is already established, so you do not repeat it
-
-Measured 2026-09-06. **Treat as a starting point to verify, not as gospel** —
-Brief 5's "already established" section contained a wrong reading, and the branch
-that checked it was right to.
-
-- **The substitution is CONFIRMED at the UI level.** Terrain id 27 in the shipped
-  `Terrain.kwd` is `Fog Of War`, flags `0x0000000B` = `Solid, Impenetrable,
-  Taggable`, health 1/1. Its `NameStringId` (record `+0x1A2`) is **2472** and its
-  `TooltipStringId` (`+0x1A0`) is **2473**, which resolve in `Text.str` to
-  **"Fog of War"** and **"Fog of War: this area has not yet been explored."** — and
-  an owner screenshot of the running game shows exactly that caption with the
-  cursor over blackness. So an unseen tile really is presented as terrain 27.
-  **What is NOT established is where in the binary that substitution happens.**
-- **`RevealThroughFogOfWar` is terrain flag bit 24**, set on exactly six types:
-  Impenetrable Rock, Water, Lava, Gold, Gems, Edge of Map. Nothing in this repo
-  reads it and no read of it in the binary has been found.
-- **Fog appears to be a game *setting* with modes.** `Text.str` 348-353, inside a
-  run of skirmish-setup labels, reads `Fog of War` / `Creatures Reveal` /
-  `All Owned Reveal` / `Stay Revealed` / `Re-shroud` / `Re-fog`. Read as a group
-  label plus five options, that is two reveal sources and three persistence
-  behaviours. **Inferred from strings only** — nothing has watched the engine
-  branch on them, and where the setting is stored is unknown.
-- **No sight/vision radius exists in the 214-variable balance table.** The only
-  radii are `DungeonHeartClaimScanRadiusTiles` (15, a u8 tile count) and
-  `DefaultTorchLightRadiusTiles` (6144). The second is **1.5 tiles**, not 6:
-  `Fp32.One` is 4096, and `DefaultTorchLightHeightTiles` carries the same 6144.
-  That near-miss was checked and rejected; do not resurrect it.
-- Owner observations, CONFIRMED 2026-09-06, **in the campaign as played**: once
-  revealed a region **stays** revealed; an unrevealed tile presents as a black-ish
-  solid tile that **can be tagged**; and a tag placed on fog is **lost on reveal**
-  if the revealed tile is impenetrable rock or turns out to be a room. The owner
-  estimates the reveal radius at **about 6 tiles** and explicitly asks for
-  independent confirmation — treat it as a hypothesis to test, not a given.
-
-### The claim to attack
-
-**"Fog stays revealed"** is confirmed by the owner and is also the name of
-option 351 of five. So the campaign's behaviour is probably one mode of several,
-and building it as *the* rule would be this project's characteristic defect
-again — internally consistent, contradicted by nothing, checked by nobody.
-
-**Establish whether the modes are real engine behaviour or dead strings**, and if
-they are real, what selects one. If instead the engine has exactly one fog rule
-and those strings are vestigial, that is the more valuable finding and it
-simplifies the build considerably.
-
-### The questions, ordered by what they unblock
-
-1. **Where is per-keeper discovered-ness stored, and how wide is it?** One bit
-   per tile per player, a byte, a per-tile owner mask? Is it in the same
-   structure as the tile, or a separate map?
-2. **Is it simulation state or client state?** Concretely: does a **computer
-   keeper** consult fog when it decides anything? A computer player that plays
-   with fog is the single fact that decides whether this project's `WorldState`
-   grows a field and takes a determinism-hash bump, or whether fog lives beside
-   the renderer and costs nothing. **This is the question that matters most.**
-3. **What reveals, and how far?** Which entities push the boundary back — any
-   creature, the keeper's own only, a dropped creature, the camera, a possessed
-   creature? Is the radius a constant in the image, a per-creature field, or a
-   flood over connected floor? If it is an immediate in the code rather than a
-   variable, that explains why the balance table has nothing. **The owner's
-   estimate is ~6 tiles: confirm or refute it with a number from the image.**
-4. **Are `Creatures Reveal`, `All Owned Reveal`, `Stay Revealed`, `Re-shroud` and
-   `Re-fog` real modes, and what selects one?** Level file, skirmish setup, both?
-   Does the campaign fix it? This decides whether fog is a rule or read
-   configuration, which matters for Goal 2 and Goal 8 as much as for fidelity.
-5. **Where does `RevealThroughFogOfWar` get tested?** Six terrain types set it;
-   find the read. That read is the clearest single point of entry to the whole
-   mechanic.
-6. **Is a tag on an undiscovered tile stored, and where?** The owner has the
-   outcome — lost on reveal for non-taggable terrain — but not the mechanism.
-   Does the original store a pending mark against the real tile, or against the
-   substituted one?
-7. **Sight of Evil and the Reveal Map special.** Both are known to exist and
-   neither is built. Do they write the same state a creature writes, or a
-   separate temporary layer? A temporary layer would contradict "stays revealed"
-   being the whole model.
-
-### Where to look
-
-- **Ghidra / `DKII.EXE`** is the primary source (AGENTS.md, ADR-0046). The
-  string table is the way in: this project's `docs/research/executable-strings.md`
-  method has found translation units by name before, and a `Fog`- or
-  `Reveal`-named unit is the obvious first grep.
-- **`D:\OpenKeeper`** (GPLv3): has a renderer and will have made *some* decision
-  about fog. Facts only, provenance in `THIRD-PARTY-NOTICES.md`. Its reading is
-  its guess and has been wrong before.
-- **`D:\Flame`** (**unlicensed**): best for **structure** — if discovered-ness is
-  a field on a per-player or per-tile struct, this is where the layout shows.
-  Consult, never copy, and **never paste one of its identifiers into this
-  repository**.
-- The shipped install at `E:\GogGames\Dungeon Keeper 2` settles anything about
-  file contents directly.
-
-### Output
-
-A markdown report **to stdout**, in the four-part shape Brief 4 established:
-what is established and how, contradictions with anything this repo currently
-assumes, a confidence ladder using this project's own rungs, and numbered
-follow-up questions. End with one sentence naming which finding matters most.
-
-An **UNKNOWN left labelled is a good outcome.** The radius in particular may
-simply not be findable in one pass; say so rather than offering a plausible
-number, because a guessed constant here would go straight into a determinism
-hash.
-
-### Boundaries
-
-- **Read-only. Do not edit any file, do not commit, do not open a pull request.**
-- **Nothing in `docs/research/`** — the write-up is where the confidence ladder
-  and the evidence rank are enforced, and that stays with the primary agent.
-- **The quarantine (ADR-0046): facts in your own words may leave
-  `reverse-engineering/`; decompiler output may not**, anywhere, at all. Not in
-  the report, not quoted, not paraphrased line by line.
-- Do not invent DK2 behaviour. If the binary does not show it, it is UNKNOWN.
-
----
-
-## Brief 8 — build fog of war (write; own worktree and branch)
-
-**Added 2026-09-06.** The implementation brief. Brief 7 is its read-only sibling
-and **this brief absorbs it** — do not run both.
-
-**Branch `codex/fog-of-war`, in its own git worktree.** The house convention is
-`codex/<topic>`; `codex/doors-traps` is the precedent.
-
-### The one thing that is not decided, and the stop rule
-
-**Where fog state lives is an open question, and it decides the whole shape.**
-
-- If fog is **presentation state**, it lives beside `WorldView`, no simulation
-  assembly changes, and the determinism hash is untouched.
-- If fog is **simulation state**, it goes in `WorldState`, enters `HashInto` and
-  `WorldSnapshot`, and needs a `GameSimulation.HashVersion` bump with the pinned
-  literal in `DeterminismTests` re-pinned in the same commit.
-
-**The determinism hash is explicitly not Codex's** (see "The division that makes
-sense" at the top of this file): the bump-and-re-pin protocol makes the gate
-meaningless if it is got wrong.
-
-So: **Phase 0 below settles it. Build presentation-side unless Phase 0 shows
-otherwise. If Phase 0 shows fog is simulation state, STOP and report — do not
-bump the hash, do not touch `WorldState`.** A correct stop there is a successful
-outcome of this brief, not a failure.
-
----
-
-### Rank of evidence — in this order, and the order is the owner's
-
-**1. Ghidra on `DKII.EXE` is the primary source and the first place to look**,
-not the last (`reverse-engineering/README.md`, ADR-0046 as amended 2026-09-04).
-It is the actual DK2; everything below is somebody's reading of it. An answer you
-would file as UNKNOWN owes a Ghidra pass first. The Ghidra project lives at
-`D:\ghidra projects\DK2_RE`; exports land in `reverse-engineering/`, which is
-gitignored except for its README.
-
-**The quarantine is absolute, and it is a licence boundary rather than a style
-one.** Facts — a number, a formula, a comparison, an order of operations, a
-description of control flow, **in your own words** — may cross. Decompiler output
-may not: not into `src/`, not into `docs/`, not into a commit message, not into a
-test fixture, not reformatted, not renamed, not "cleaned up".
-
-**2. Flame (`D:\Flame`) is the reference for structure only.** Where fog state is
-stored, how wide the field is, which struct holds it, what the vtable membership
-looks like — that is what it is measurably good at. **It is UNLICENSED: no reuse
-rights at all.** Facts only, and **never one of its identifiers pasted into this
-repository**, in any form.
-
-**3. OpenKeeper (`D:\OpenKeeper`) is the last reference.** GPLv3, so facts with
-provenance recorded in `THIRD-PARTY-NOTICES.md` if you adopt a field name. Its
-reading is its own guess and has been wrong before in this project's experience —
-use it to generate candidates, then confirm them against the binary or the
-shipped data yourself. **Do not reach for it before the two above.**
-
-The running game outranks a misread disassembly for anything a player can watch.
-The owner's confirmed observations are in `docs/research/fog-of-war.md` §3, and
-`[Dk2Behavior(Confidence.Confirmed)]` stays reserved for them.
-
----
-
-### What is already established
-
-**Read `docs/research/fog-of-war.md` first** — it is the note for this mechanic
-and it carries the evidence, the confidence per item and the open questions. The
-short form:
-
-- **The substitution is confirmed at the UI level.** Terrain id 27 is
-  `Fog Of War`, flags `Solid, Impenetrable, Taggable`, health 1/1, and its name
-  and tooltip string ids (2472/2473) resolve to the caption the running game
-  shows over an unexplored tile. An unseen tile is *presented as terrain 27*.
-- **`RevealThroughFogOfWar` is terrain flag bit 24**, set on Impenetrable Rock,
-  Water, Lava, Gold, Gems and Edge of Map. Parsed, with **no `Is…` accessor and
-  no reader anywhere**. Those six show through fog.
-- **Fog looks like a setting with modes**, `Text.str` 348-353: `Creatures
-  Reveal`, `All Owned Reveal`, `Stay Revealed`, `Re-shroud`, `Re-fog`. Inferred
-  from strings; the campaign's confirmed behaviour is `Stay Revealed`.
-- **No sight radius exists in the 214-variable balance table.** The owner
-  estimates ~6 tiles and asks for independent confirmation.
-  `DefaultTorchLightRadiusTiles` 6144 is **1.5 tiles** (`Fp32.One` is 4096) —
-  that near-miss was checked and rejected, do not resurrect it.
-
----
-
-### Phase 0 — settle these before writing code
-
-Answer from Ghidra first, Flame second, OpenKeeper last. **Report the answers in
-the branch README; they are the justification for everything you then build.**
-
-1. **Does anything in the simulation read fog?** Above all: does a **computer
-   keeper** consult it when deciding anything? This is the stop-rule question
-   (Q190).
-
-   **Try the cheap route before Ghidra on this one.** The saved-game session
-   found that a save's 10-byte runtime tile has three lanes — **1, 3 and 9** —
-   that move across most of the map between *any* two saves, which
-   `docs/research/sav-format.md` records as "consistent with visibility or fog
-   state, and still UNKNOWN". **If fog state is written into a save, it is game
-   state and not client state**, because a save persists the simulation. Two
-   saves taken either side of walking one creature into unexplored ground, with
-   nothing else changed, would settle the stop rule in minutes — and that method
-   is already built and validated by a control (an imp created, zero tiles
-   changed in the other seven lanes). A negative there is not proof of the
-   opposite; go to Ghidra either way, but go knowing which answer to expect.
-2. **What is the reveal radius, and what does the revealing?** Confirm or refute
-   the owner's ~6 tiles with a number from the image. Which entities push the
-   boundary back — any creature, the keeper's own only, a dropped one, the
-   camera, a possessed creature?
-3. **Where does `RevealThroughFogOfWar` get tested?** That read is the clearest
-   single entry point to the whole mechanic.
-4. **Are the five modes real engine behaviour, and what selects one?** If they
-   are vestigial strings, say so — it simplifies the build considerably.
-5. **Is a tag on an undiscovered tile stored, and where?** The owner has the
-   outcome (the mark is lost on reveal if the tile is impenetrable rock, or turns
-   out to be a room); the mechanism is unread.
-
-**An UNKNOWN left labelled is a good outcome.** A guessed constant is not: if the
-radius will not come out of the image, implement it as a named, documented
-default in exactly one place and say plainly that it is ours, the way
-`IPathfinder` admits its placeholder.
-
----
-
-### What to build, assuming Phase 0 says presentation
-
-The change fog forces is that **the presentation boundary has no viewer**.
-`WorldView.TileAt(world, x, y)` takes no player, `ScenePresenter.Present(world)`
-takes no player, and `TileView.Tagged` is `IsTaggedByAnyone`. Every renderer is
-omniscient by construction, and nothing in the architecture says so.
-
-1. **Give the presentation boundary a viewing player.** One keeper's view is what
-   a renderer draws. `TileView.Tagged` becomes *the viewer's own* mark — a defect
-   fog exposes rather than a feature it adds.
-2. **Fog by substitution, because that is what the original does.** When the
-   viewer has not discovered a tile, `WorldView` yields terrain 27's assets in
-   place of the real terrain's, keeping the tile solid and taggable. The real
-   terrain does not reach the renderer at all — which is also the test that no
-   renderer can leak it.
-3. **Honour `RevealThroughFogOfWar`**, via a new `IsRevealedThroughFog` accessor
-   on `TerrainDef` beside the other six. Rules ask flags, never ids (ADR-0016).
-4. **Discovery accumulates in view state**, one bit per tile per keeper,
-   monotonic under `Stay Revealed`. If Phase 0 establishes the modes are real,
-   make persistence and reveal-source **read configuration with `Stay Revealed`
-   as the default**, not a hardcoded rule — that serves Goal 2 and Goal 8.
-5. **Do not build Sight of Evil or Reveal Map.** They are M7 and M6. Leave the
-   seam obvious and say in the README what they will need.
-
-Every rule carries `[Dk2Behavior(confidence, "docs/research/fog-of-war.md")]`,
-with the confidence the evidence actually supports — `Confirmed` only for what
-the owner watched.
-
----
-
-### Definition of done
-
-1. A viewer-aware presentation path, with **both** renderers working:
-   `TextRenderer` (the one that runs in CI) and Unity's `DungeonScene`.
-2. **The determinism hash is unchanged and `DeterminismTests` is green,
-   untouched.** This is the centrepiece: an unchanged pinned hash is the proof
-   that fog stayed out of the simulation. If you changed it, you were supposed to
-   have stopped.
-3. Tests that a keeper's view hides what they have not discovered, that the six
-   `RevealThroughFogOfWar` types show through, that discovery is monotonic, and
-   that **two keepers viewing the same world see different things** — the last is
-   the one that would have been impossible to write before this brief.
-4. A scenario under `scenarios/` drawing a picture of a partly explored world.
-5. A README section on the branch: what was read from the binary, in your own
-   words; what is confirmed against what is inferred; **the radius and where it
-   came from**; and an explicit UNKNOWN list. Facts, never decompiler output.
-
-### Boundaries
-
-- **Own git worktree, branch `codex/fog-of-war`. Do not commit to `master`.**
-- **Do not bump `GameSimulation.HashVersion` or re-pin the literal in
-  `DeterminismTests`.** If the work needs it, stop and report instead.
-- **Nothing in `docs/research/`** — that write-up stays with the primary agent,
-  because it is where the confidence ladder and the evidence rank are enforced.
-  Your findings go in the branch README and in the code's own XML docs.
-- **The quarantine (ADR-0046)**, exactly as stated above.
-- **No Flame identifier, ever. OpenKeeper attribution in
-  `THIRD-PARTY-NOTICES.md` if you adopt a name.**
-- Do not invent DK2 behaviour. If no source shows it, it is UNKNOWN and the code
-  says so.
-- **The gate at the top of this file, green, zero warnings, before anything
-  lands.**
+`docs/research/` stays off limits: the write-up is where the confidence ladder is
+enforced and where the evidence rank is recorded.

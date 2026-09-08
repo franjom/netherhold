@@ -1,9 +1,16 @@
 ﻿# Dungeon Keeper 2 — Modern C#/Unity Reimplementation Plan
 
-**Document status:** Phase 0 research deliverable, **revision 2**
-**Date:** 2026-08-29, revised 2026-09-06
+**Document status:** Phase 0 research deliverable, and the reference for the
+project's strategy, architecture rationale and milestones
 **Target original version:** Dungeon Keeper 2 **v1.70** (with the 3 bonus packs)
-**Author:** Technical lead / research architect (AI-assisted)
+**Reference install:** `E:\GogGames\Dungeon Keeper 2` (GOG), resolved by
+`DK2.Data.Dk2Install`; `DK2_DIR` is authoritative when set
+
+Current state, decisions and next work are **not** here: `docs/HANDOFF.md` holds
+what is true today, `docs/DECISIONS.md` holds every decision and its reason, and
+`docs/research/open-questions.md` holds the open unknowns. This document holds the
+research findings that set the strategy, the architecture rationale, and the
+milestone ladder.
 
 ---
 
@@ -19,44 +26,9 @@ throughout the document and should be carried into all future project documentat
 | **[HYPOTHESIS]** | Plausible, untested. Must not be implemented as fact without an experiment. |
 | **[UNKNOWN]** | We genuinely do not know. Requires an experiment or new RE work. |
 
-Anything not tagged is a statement about *our* project, not about DK2.
-
----
-
-## Revision 2 — what changed, 2026-09-06
-
-Revision 1 was written before a line of the simulation existed. Nine days later
-the project has **76 ADRs, 1042 tests, 23 behavioural scenarios**, a deterministic
-tick at `HashVersion` 30, and **202 catalogued open questions** (figures
-refreshed on the evening of 2026-09-06; revision 2 was written that morning at
-68 / 975 / 21 / 27 / 180, and the same day moved every one of them). This revision
-does not rewrite the plan; it corrects the claims that have since been settled
-and answers one question the plan raised and never resolved.
-
-**Three of the plan's five "hard systems" have moved** — see §1.2, annotated in
-place.
-
-**The single largest correction is to §5.** That section opens *"Never start
-from raw disassembly. Flame has already done the expensive part"* and lays out a
-ten-step workflow whose first six steps are free. ~~**Steps 1–4 have never been
-performed, because Flame has never been on this machine.**~~ **Steps 1–4 had
-never been performed when this was written on the morning of 2026-09-06, because
-Flame had never been on this machine. It was cloned that afternoon and built
-from source here on 2026-09-07 (§2.2.1, "Current state").** Every
-reverse-engineering session this project had run — and there have been many —
-started at step 7 with a bare Ghidra database. The new §2.2.1 measures what that
-cost and what it would cost to fix, because the answer turned out to be less
-one-sided than §5 assumes.
-
-**The method that actually emerged** is not in revision 1 at all, and it is
-worth stating because it is what has been working: **DK2 ships its own debug
-dumps.** The retail executable retains `printf` calls with the field name in the
-format string, so a single function names an entire structure in EA's own words.
-Three have been found — the creature instance, the room, and the creature *state*
-object — and each turned an afternoon of offset archaeology into a lookup. This
-is a better first move than the disassembler and, as §2.2.1 shows, better than
-Flame's map in the areas that matter most to us. See
-`ghidra-is-the-primary-source` in the project's working notes and ADR-0046.
+Anything not tagged is a statement about *our* project, not about DK2. The code and
+`docs/research/` use the project's own four rungs — CONFIRMED / STRONGLY INFERRED /
+HYPOTHESIS / UNKNOWN — where CONFIRMED is reserved for the running game.
 
 ---
 
@@ -64,16 +36,16 @@ Flame's map in the areas that matter most to us. See
 
 ### 1.1 Verdict
 
-**Yes — this project is technically realistic for a solo developer with heavy AI assistance,
-but only under a specific strategy.** The naive strategy ("reverse engineer DK2 from
-scratch") is not realistic. The viable strategy is:
+**This project is technically realistic for a solo developer with heavy AI assistance,
+but only under a specific strategy.** Reverse engineering DK2 from scratch is not
+realistic. The viable strategy is:
 
 > **Treat DK2's own data files as the primary specification, treat Flame's v1.70 symbol
 > map as the structural ground truth, treat OpenKeeper as a corpus of solved problems, and
 > reserve original reverse-engineering effort exclusively for the ~6 systems that nobody
 > has solved yet.**
 
-The single most important discovery of this research phase is this:
+The single most important finding of the research phase:
 
 > **A very large fraction of what people call "DK2's game rules" is not code at all — it is
 > data, sitting in the `.kwd` files, in a format that is already ~90% reverse engineered
@@ -84,7 +56,7 @@ health values, research times, spell costs, torture conversion times, possession
 drain — these are `VARIABLES` and `CREATURES` records in the level data, not hardcoded
 constants in `DKII.EXE`. We do not need to reverse engineer them. We need to *parse* them.
 
-Concretely, values like these are already recovered and named: [KNOWN]
+Values already recovered and named: [KNOWN]
 
 ```
 ENTRANCE_GENERATION_SPEED_SECONDS      = 25
@@ -100,39 +72,24 @@ TIME_BETWEEN_REATTEMPTING_HUNGER_SECONDS = 4
 TIME_BETWEEN_REATTEMPTING_SLEEP_SECONDS  = 4
 ```
 
-This reframes the entire project. The work is **not** "discover the numbers." The work is
-**"discover the procedures that consume the numbers."**
+The work is **not** "discover the numbers". The work is **"discover the procedures that
+consume the numbers"**. One qualification the corpus sweep since added: a shipped
+variable with a zero value and a live reader is a *disabled* mechanism, not an absent
+one (ADR-0085).
 
 ### 1.2 What is actually hard
 
-Five systems carry essentially all the risk:
+Six systems carry essentially all the risk. Five were named in revision 1; the sixth was
+not, and turns out to be where three of the other five actually live.
 
-1. **Pathfinding and movement** — the least-understood system in the entire ecosystem. No
-   project has reproduced DK2's actual pathfinder. This is risk #1.
-2. **Creature job/destination selection** — the priority ordering is [UNKNOWN].
-3. **Creature mood / anger / happiness** — genuinely unsolved. OpenKeeper's mood system is
-   a stub with an empty `processTick()`, and "Research and implement creature moods" is a
-   live open issue on that project. [KNOWN]
-4. **Combat resolution** — stats are known, the resolution procedure is not.
-5. **Computer-player (AI Keeper) behaviour** — partially reconstructed in Flame, otherwise
-   opaque.
-
-> **Revision 2 status of the five.** Risks 1, 4 and 5 stand unchanged.
-> **Risk 2 is largely settled** (ADR-0058): an imp's job priority is a byte
-> table at `0x00698658` searched whole-map one kind at a time, then a
-> nearest-first ring scan — found because the owner said one sentence about
-> what he had watched, and confirmed against the binary. It is settled *for
-> workers*; what a non-worker does with its day is still open.
-> **Risk 3 is built** (ADR-0053): the anger ladder runs on a measured ceiling of
-> 32767 once a game second, and an angry creature walks out of the dungeon.
-> OpenKeeper's stub was not the obstacle it looked like — the numbers were in
-> the creature records the whole time, and the ladder came out of the binary.
-> **A sixth risk has appeared that revision 1 did not name**: the creature
-> *state machine* — **281** states (ADR-0072; this line said 239 until
-> 2026-09-06, from a scan window that ended 0x420 bytes short) with
-> category-scoped enter/update/leave hooks —
-> which turns out to be where job selection, moods and combat all actually live.
-> It is being mapped (§2.2.1).
+| | Risk | Status |
+|---|---|---|
+| 1 | **Pathfinding and movement** — the least-understood system in the ecosystem. No project has reproduced DK2's actual pathfinder. | Open, risk #1. `IPathfinder` holds an admitted placeholder (ADR-0012, Q5). |
+| 2 | **Creature job/destination selection** | **Settled for workers** (ADR-0058): a byte priority table at `0x00698658`, searched whole-map one kind at a time, then a nearest-first ring scan. Non-workers have a job system (ADR-0082) built on three mood choosers and one 28-way dispatcher `FUN_00478800`. |
+| 3 | **Creature mood / anger / happiness** | **Built** (ADR-0053, ADR-0081): six counters, mood banded on the largest, once a game second, with desertion. OpenKeeper's empty `processTick()` was not the obstacle it looked like — the numbers were in the creature records and the ladder came out of the binary. |
+| 4 | **Combat resolution** — stats are known, the resolution procedure is not. | Open (Q8). Nothing is built. |
+| 5 | **Computer-player (AI Keeper) behaviour** — partially reconstructed in Flame, otherwise opaque. | Open. `DK2.AI.KeeperAI` is ours, an input source, not a reading of DK2's. |
+| 6 | **The creature state machine** — **281** states with category-scoped enter/update/leave hooks (ADR-0072), which is where job selection, moods and combat all actually live. | Being mapped (§2.2.1, `docs/research/creature-state-table.md`). Ours has 21 activities. |
 
 Everything else is, in engineering terms, *transcription work* — large, tedious, and highly
 suitable for AI-assisted implementation, but not research-risky.
@@ -152,15 +109,14 @@ suitable for AI-assisted implementation, but not research-risky.
 | 8 | Modern presentation | after the above |
 
 **A playable, faithful-feeling first level is a 12–18 month goal, not a 3 month goal.**
-That is the honest number. It is achievable because the data-driven insight above removes
-most of the guesswork.
+It is achievable because the data-driven insight above removes most of the guesswork.
 
 ### 1.4 The one thing that must be decided before writing code
 
-**Licensing.** See §10.1. Flame publishes **no license at all** (`"license": null` on the
-GitHub API) and OpenKeeper is **GPLv3**. [KNOWN] Neither can have its *code* copied into a
-permissively-licensed C# project. Both can be used as *research references*. This
-distinction determines the entire working method and must be settled first.
+**Licensing — resolved.** The project is GPL-3.0-or-later with a clean-room policy
+(ADR-0041, amending ADR-0003). Flame publishes **no licence at all**
+(`"license": null` on the GitHub API) and OpenKeeper is GPLv3 [KNOWN]; neither has its
+*code* copied here, and both are used as research references. §10.1 has the boundary.
 
 ---
 
@@ -171,7 +127,7 @@ distinction determines the entire working method and must be settled first.
 | Project | Language | Stars | Last activity | Status | Value to us |
 |---|---|---:|---|---|---|
 | [OpenKeeper](https://github.com/tonihele/OpenKeeper) | Java / jMonkeyEngine | 494 | 2026-08-23 | Active | **Highest** — file formats, game logic corpus |
-| [Flame](https://github.com/DiaLight/Flame) | C++ | 119 | 2026-02-28 | **Quiet six months** (re-checked 2026-09-06: unchanged, still unlicensed) | **High, with a measured caveat** — see §2.2.1 |
+| [Flame](https://github.com/DiaLight/Flame) | C++ | 119 | 2026-02-28 | Quiet six months; unlicensed (re-checked 2026-09-06 against the clone) | **High, with a measured caveat** — see §2.2.1 |
 | [Ember](https://github.com/DiaLight/Ember) | C++ | — | Superseded | Closed | Historical; superseded by Flame |
 | [GLKeeper](https://github.com/codenamecpp/GLKeeper) | C++ | 40 | 2026-08-13 | Active, "not playable yet" | Low–medium; second opinion on formats |
 | [dk2-tools](https://github.com/ufdada/dk2-tools) | 010 Editor templates | 13 | — | Reference | **High** — independent format specs |
@@ -183,13 +139,11 @@ distinction determines the entire working method and must be settled first.
 
 > https://github.com/DiaLight/Flame — *"Dungeon Keeper II partial recompilation with bug fixes"*
 
-**This is the most valuable single resource for this project, and it is not close.**
-
 Flame's approach: DK2 is loaded as `dk2.dll` (rebuilt with a relocation table derived from
 a full cross-reference map), individual functions are reimplemented in C++, and the loader
-swaps the original function pointers for the new ones at runtime. This means Flame's
-authors have had to understand real DK2 structures precisely enough that recompiled code
-runs against live game memory.
+swaps the original function pointers for the new ones at runtime. Its authors have had to
+understand real DK2 structures precisely enough that recompiled code runs against live game
+memory.
 
 **Measured coverage of `mapping/DKII_EXE_v170.sgmap`:** [KNOWN]
 
@@ -216,8 +170,7 @@ Follow_Path                                             (pathfinding — see bel
 GameAction, GameActionArray                             (command/lockstep layer)
 ```
 
-**Sample of what "understood" means here.** `CCreature` is a 1343-byte structure with
-semantically named fields: [KNOWN]
+`CCreature` is a 1343-byte structure with semantically named fields: [KNOWN]
 
 ```
 f24E_cstate                       (creature state sub-object)
@@ -242,7 +195,7 @@ f3E6_stateFlags / f3EA_stateFlags2
 f3EE_nextPossessionInfluenceTick
 ```
 
-And `CRoom` (169 bytes) exposes the capacity model directly: [KNOWN]
+`CRoom` (169 bytes) exposes the capacity model directly: [KNOWN]
 
 ```
 f67_totalCapacity, f69_totalFighterCapacity,
@@ -271,66 +224,48 @@ creature type IDs with an evil/good flag, 22 object type IDs).
 
 1. `f45_sData_DiscoModeStartedOnGameTick` and the `limit_tps` / `scheduler` patches confirm
    DK2 runs its simulation on a **fixed integer game tick**, not on variable delta time.
-   [KNOWN] This is enormously good news for determinism and for our tick-based design.
-2. The presence of `GameAction` / `GameActionArray` alongside `CNetworkCommunication`
-   strongly implies DK2's multiplayer is **command-based lockstep**, which in turn implies
-   **the original simulation is deterministic by design**. [INFERRED] Our determinism goal
-   therefore matches the original architecture rather than fighting it.
+   [KNOWN] Good news for determinism and for our tick-based design.
+2. `GameAction` / `GameActionArray` alongside `CNetworkCommunication` strongly implies
+   DK2's multiplayer is **command-based lockstep**, which in turn implies **the original
+   simulation is deterministic by design**. [INFERRED] Our determinism goal therefore
+   matches the original architecture rather than fighting it.
 3. `Follow_Path` is named — but has **zero named fields**. [KNOWN] Pathfinding is the
    conspicuous hole in the best RE work that exists. See §9, risk R1.
 
-### 2.2.1 Flame on disk — measured, not assumed (2026-09-06)
+### 2.2.1 Flame on disk — measured, not assumed
 
-**The question, asked by the owner:** would it be useful to have Flame checked
-out locally alongside OpenKeeper, and would it help with Ghidra?
-
-**The short answer: yes, get it — but for structure and navigation, not for
-answers, and expect it to be weakest exactly where this project is strongest.**
-**It is now cloned; see "Current state" immediately below for the path and the
-pinned commit.**
-
-**Current state — updated 2026-09-06, later the same day: it is here.** The
-owner cloned it. Both reference checkouts now live **outside** the repository,
-which is better than what risk R15 proposed (vendoring `mapping/` into
-`original-reference/research/`): a clone on another path cannot be staged by
-accident at all.
+**Use it for structure and navigation, not for answers, and expect it to be weakest
+exactly where this project is strongest.**
 
 | What | Where | Pinned at |
 |---|---|---|
 | **Flame** | `D:\Flame` | `f6e2a3d385bf2e6e95dc70cab88aa387bb7659d9`, committed 2026-03-01 |
 | **OpenKeeper** | `D:\OpenKeeper` | tracks `origin/master` |
 
-All three map files are present — `sgmap` 3.2 MB, `refmap` 3.9 MB, `espmap`
-3.8 MB — and **the absence of any licence file was re-confirmed against the
-clone itself** rather than against the GitHub API alone.
+Both reference checkouts live **outside** the repository, which is a better answer to risk
+R15 than vendoring `mapping/` would have been: a clone on another path cannot be staged by
+accident at all. All three map files are present — `sgmap` 3.2 MB, `refmap` 3.9 MB,
+`espmap` 3.8 MB.
 
-**Built from source on 2026-09-07**, which is what M0's definition of done
-actually asks for and what nobody had tried. Debug configuration, Ninja, the
-32-bit MSVC toolset that ships with Visual Studio 18 (Flame's readme names 2022;
-the `v14.51` toolset compiled all 287 objects unpatched, nine warnings, no
-errors), installed to `D:\Flame\install`: `PATCH.dll`, `flame\Flame.dll`,
-`flame\DKII.dll` and their `.pdb`s. **Nothing was copied into the game
-directory.** Running DK2 under Flame is M5's business, its install step
-overwrites the game's `PATCH.dll`, and that is a step to take deliberately with
-a backup, not as a side effect of checking that the code compiles. The recipe
-that worked is in `original-reference/README.md`. **OpenKeeper compiles too**
-(`gradlew compileJava`, Gradle 9.6.1, a Java 25 toolchain that Gradle fetched
-for itself because only JDK 26 is installed; 62 deprecation warnings, no errors,
-under two minutes). Both halves of M0's last clause are now true, and **M0 is
-closed as of 2026-09-07**.
+**Both build from source here** (2026-09-07), which is what M0's definition of done asks
+for. Flame: Debug, Ninja, the 32-bit MSVC toolset shipping with Visual Studio 18 (its
+readme names 2022; `v14.51` compiled all 287 objects unpatched, nine warnings, no errors),
+installed to `D:\Flame\install` — `PATCH.dll`, `flame\Flame.dll`, `flame\DKII.dll` and
+their `.pdb`s. **Nothing was copied into the game directory**: Flame's install step
+overwrites the game's `PATCH.dll`, which is a step to take deliberately with a backup.
+OpenKeeper: `gradlew compileJava`, Gradle 9.6.1, a Java 25 toolchain Gradle fetched
+itself, 62 deprecation warnings, no errors. Recipes for both:
+`original-reference/README.md`. Running DK2 *under* Flame is M5's business.
 
-**Licence, re-checked today rather than quoted from revision 1:** the GitHub API
-still reports `"license": null`, and there is no `LICENSE`, `COPYING` or
-equivalent file anywhere in the repository tree. Last push **2026-02-28** — six
-months quiet, so revision 1's "Active" is retired above. **Unlicensed means no
-reuse rights**, unchanged by this project being GPLv3, and §10.1's boundary
-stands exactly as written.
+**Licence** (re-checked against the clone, not quoted from the GitHub API alone): still
+`"license": null`, and there is no `LICENSE`, `COPYING` or equivalent anywhere in the
+repository tree. Last push 2026-02-28. **Unlicensed means no reuse rights**, unchanged by
+this project being GPLv3.
 
 #### What was measured
 
-The `sgmap` (3.1 MB, 86,706 lines) was fetched and searched for the specific
-addresses this project reconstructed by hand while building eating and closing
-Q173. The results are mixed, and the mixture is the finding.
+The `sgmap` was searched for the specific addresses this project had reconstructed by hand
+while building eating and closing Q173. The mixture is the finding.
 
 **What Flame would have given us:**
 
@@ -341,14 +276,18 @@ Q173. The results are mixed, and the mixture is the finding.
 | `0x00479200`, `0x004E70A0` | "the creature-state dump", "the room dump" | **both named `dump`** |
 | every state handler read | free functions | **all members of `vtbl_0066D404`** |
 
-Three of those are worth having. `g_stateGroups` independently confirms the
-0x40 record size derived from store spacing. `setCurrentState_476D30` confirms
-an identification made from behaviour. And **the vtable membership is structural
-information this project did not have at all** — the state handlers are virtual
-methods on a class, which reframes the whole state machine.
+Three of those are worth having. `g_stateGroups` independently confirms the 0x40 record
+size derived from store spacing, and its fields line up with what was inferred by hand: a
+mask at `+0`, an **enter** function at `+4`, a second function at `+0x14`, an **exit**
+function at `+0x24` — plus two meanings nobody here had guessed, `+8` and `+0x18` being
+**field offsets into the creature state object**, paired with the two function pointers, so
+those hooks are told which field to work on. `setCurrentState_476D30` confirms an
+identification made from behaviour. And **the vtable membership is structural information
+this project did not have at all** — the state handlers are virtual methods on a class,
+which reframes the whole state machine.
 
-**What Flame would *not* have given us.** Every function whose *behaviour* was
-the question comes back as an auto-generated placeholder:
+**What Flame would *not* have given us.** Every function whose *behaviour* was the question
+comes back as an auto-generated placeholder:
 
 ```
 0x00463500  sub_463500     the hatchery's chicken search
@@ -357,9 +296,16 @@ the question comes back as an auto-generated placeholder:
 0x0047B7C0  sub_47B7C0     the prison drain — the whole of Q173
 ```
 
-Nor is the creature *state* table at `0x006DA8C0` present, nor are the balance
-variable globals (`0x006F2621`, `0x006F2590`) this project mapped through the
-dispatch table.
+Nor is the creature *state* table at `0x006DA8B0` present, nor are the balance variable
+globals (`0x006F2621`, `0x006F2590`) this project mapped through the dispatch table.
+
+**Where the two disagreed, Flame was right.** It names `g_stateEntries` at
+**`0x006DA8B0`, size 7025**; this project had placed the first record at `0x006DA8C0` with
+239 records of 25 bytes. The base is `0x006DA8B0` with the update handler at `+0` — so
+every handler here had been read one state late — and the count is **281**: 7,025 bytes is
+281 records of 25, and the 239 came from a scan window that ended `0x420` bytes short.
+Settled by six independent checks, ADR-0072. The conflict was recorded with both positions
+before the answer came in, which is §5's conflict protocol working as written.
 
 #### The number that decides it
 
@@ -368,90 +314,35 @@ dispatch table.
 | Whole `sgmap` | 10,548 | **58%** |
 | `0x00450000`–`0x00520000` — creature state, jobs, needs, prison | 2,798 | **34%** |
 
-**Flame's naming is thinnest precisely where this project's remaining risk
-lives.** That is consistent with revision 1's own observation that `Follow_Path`
-is named with zero named fields: the DiaLight work has concentrated on the
-executable's shell — loader, rendering, netcode, the parts you must understand
-to recompile and run — while creature AI is the part you can leave as a black
+**Flame's naming is thinnest precisely where this project's remaining risk lives.** That is
+consistent with `Follow_Path` being named with zero named fields: the DiaLight work has
+concentrated on the executable's shell — loader, rendering, netcode, the parts you must
+understand to recompile and run — while creature AI is the part you can leave as a black
 box and still ship a working patched game. It is the opposite of our priority.
-
-#### First use of the clone, the same hour it arrived
-
-Two results, and both are the kind this section predicted.
-
-**It confirmed a reading and extended it.** The category record whose layout was
-derived by hand from store spacing is `MyStateGroup`, `size=64`, and its fields
-line up with what was inferred: a mask at `+0`, an **enter** function at `+4`, a
-second function at `+0x14`, an **exit** function at `+0x24`. An independent
-source agreeing with a reading taken from raw stores is worth having. It also
-supplies two meanings that were blank: `+8` and `+0x18` are **field offsets into
-the creature state object**, paired with the two function pointers — so those
-hooks are told which field to work on, which nobody here had guessed.
-
-**And it disagreed about something, which is a finding rather than a nuisance.**
-Flame names `g_stateEntries` at **`0x006DA8B0`, size 7025**. This project placed
-the state table's first record at **`0x006DA8C0`** with 239 records of 25 bytes
-(5,975 bytes) — **Flame was right and this project was wrong: 281 records,
-settled by six independent checks in ADR-0072 on 2026-09-06; the 239 came from a
-scan window that ended 0x420 bytes short** — anchored on the installer's own literal stores — `MOV [0x006DA8F2], 2`
-and `MOV [0x006DA924], 4` both put record *N* at `0x006DA8C0 + 25N`, and three
-independent anchors agree. 7,025 bytes is 281 records of 25, which is 42 more
-than the installer fills, and the two base addresses are 16 bytes apart, which
-is not a multiple of the record size.
-
-**Resolved since, in Flame's favour — ADR-0072, 2026-09-06.** The base is
-`0x006DA8B0` with the update handler at `+0` (this project's `0x006DA8C0` had
-every handler one state late), and the count is 281: the 239 came from a scan
-window that ended `0x420` bytes before the table did. The paragraph below is
-kept as the record of what the conflict protocol's first run looked like before
-the answer came in, and of the fact that Flame was right on both counts.
-
-~~**Not resolved here, deliberately.**~~ Both readings could be right — the array may
-simply be larger than the installed range, and Flame's symbol may begin at a
-container rather than at element zero. §5's conflict protocol says to record both
-positions and design an experiment rather than silently pick one, and this is the
-first time that protocol has had anything to run on. **It costs nothing today**:
-the state table is research, and no line of the simulation depends on its base
-address.
 
 #### Recommendation
 
-1. ~~**Clone it** to `original-reference/Flame/` at a pinned commit, recorded in
-   `original-reference/README.md`.~~ **Done 2026-09-06, at `D:\Flame` instead,
-   pinned at `f6e2a3d` and recorded in `original-reference/README.md`; built
-   2026-09-07.** A clone outside the repository is a better answer to R15 than
-   the vendoring it prescribed, because it cannot be staged by accident at all.
-2. **Use it for four things**: the vtable and struct layout that give a
-   function its *context*; confirming an identification made independently;
-   the `refmap` (3.8 MB of cross-references) when Ghidra's own analysis misses
-   a computed reference; and `espmap` if a stack question ever arises.
-3. **Do not expect it to answer behavioural questions.** On the evidence above
-   the answer to *"what does this do"* will keep coming from the binary itself,
-   from DK2's shipped debug dumps, and from the owner watching the game.
-4. **Ghidra, not IDA.** Flame ships `mapping/ida/*.py` and no Ghidra equivalent,
-   so importing the `sgmap` means writing a Ghidra script against its text
-   format. That format has a reference parser in the repo
-   (`mapping/sgmap/*.cpp`) which may be **read for format facts only**. A
-   one-evening job at most, and it is the difference between doing this once and
-   doing it never.
-5. **One boundary the owner must rule on before any of it lands in a document.**
-   Cloning for reference, and using the map to navigate a Ghidra database that
-   lives outside the repository, are plainly inside §10.1. **Adopting Flame's
-   identifiers into `docs/research/` or into C# is a different act**: a field
-   offset is a fact about DK2, but `g_stateGroups` is DiaLight's editorial
-   choice of words, and Flame has no licence with which to permit its reuse.
-   The precedent that exists — OpenKeeper's names, used under ADR-0003's second
-   amendment with attribution in `THIRD-PARTY-NOTICES.md` — **does not transfer,
-   because it rests on a licence Flame does not have.** Recommended default:
-   consult freely, describe findings in our own words, and never paste a Flame
-   identifier into the repository. ~~Flagged rather than decided.~~
-   **Decided 2026-09-06, ADR-0080:** a Flame identifier may be *cited* in a
-   document, as this section and §2.2 already do, provided the sentence makes
-   Flame the source; it never appears in `src/`, `tests/` or the Unity adapter,
-   not even in a comment. Names are not copyrightable and a citation is not a
-   copy; the source tree is the one place a copying argument could be made, so
-   that is where the rule stays absolute, and `FlameIdentifierTests` now checks
-   the shape of it.
+1. **Cloned and pinned** at `D:\Flame` (`f6e2a3d`), recorded in
+   `original-reference/README.md`, and built there. A clone outside the repository is a
+   better answer to R15 than vendoring, because it cannot be staged by accident.
+2. **Use it for four things**: the vtable and struct layout that give a function its
+   *context*; confirming an identification made independently; the `refmap` when Ghidra's
+   own analysis misses a computed reference; and `espmap` if a stack question arises.
+3. **Do not expect it to answer behavioural questions.** On the evidence above, *"what does
+   this do"* keeps coming from the binary itself, from DK2's shipped debug dumps, and from
+   the owner watching the game.
+4. **Ghidra, not IDA.** Flame ships `mapping/ida/*.py` and no Ghidra equivalent, so
+   importing the `sgmap` means writing a Ghidra script against its text format. That format
+   has a reference parser in Flame's repo (`mapping/sgmap/*.cpp`) which may be **read for
+   format facts only**. Not written; it is item 5 of §11.
+5. **The identifier boundary is decided — ADR-0080.** A Flame identifier may be *cited* in
+   a document, as §2.2 and this section do, provided the sentence makes Flame the source;
+   it never appears in `src/`, `tests/` or the Unity adapter, not even in a comment. Names
+   are not copyrightable and a citation is not a copy; the source tree is the one place a
+   copying argument could be made, so that is where the rule is absolute, and
+   `FlameIdentifierTests` checks the shape of it. OpenKeeper's precedent — names used with
+   attribution in `THIRD-PARTY-NOTICES.md` — does not transfer, because it rests on a
+   licence Flame does not have.
 
 ---
 
@@ -492,6 +383,9 @@ THINGS(190)  TRIGGERS(210)  LEVEL(220)  VARIABLES(230)  OBJECTS(240)
 EFFECT_ELEMENTS(250)  SHOTS(260)  EFFECTS(270)
 ```
 
+All 18 now have typed readers here and every record image round-trips byte for byte
+(ADR-0091); per-field layout is in `docs/research/kwd-record-fields.md`.
+
 **The level scripting language is fully enumerated** — 51 `TriggerAction` types: [KNOWN]
 
 ```
@@ -509,16 +403,21 @@ SET_SYSTEM_MESSAGES(45) DISPLAY_SLAB_OWNER(46) DISPLAY_NEXT_ROOM_TYPE(47)
 TOGGLE_EFFECT_GENERATOR(48) CHANGE_ROOM_OWNER(49) SET_SLAPS_LIMIT(50) SET_TIMER_SPEECH(51)
 ```
 
+Enumerating the actions is a *format* fact. **Parameter meanings are not**: the offsets,
+widths and signedness of a trigger's parameters were re-derived from DKII.EXE reads rather
+than from editor labels, and three transcribed meanings were wrong (ADR-0092,
+`docs/research/trigger-semantics.md`).
+
 **OpenKeeper's architecture** is an ECS (Simsilica Zay-ES) with a clean split between
 `game/controller/*` (authority), `game/logic/*` (systems), `game/task/*` (worker tasks),
-`game/navigation/*`, and `game/trigger/*`. Notably it already separates simulation from
-jMonkeyEngine reasonably well — which is direct evidence that the simulation/presentation
-split we want is achievable for this game.
+`game/navigation/*`, and `game/trigger/*`. It already separates simulation from
+jMonkeyEngine reasonably well — direct evidence that the simulation/presentation split we
+want is achievable for this game.
 
 **Where OpenKeeper is explicitly weak** — from their own open issue tracker (98 open
 issues): [KNOWN]
 
-- `Research and implement creature moods` — and `CreatureMoodSystem.processTick()` is
+- `Research and implement creature moods` — `CreatureMoodSystem.processTick()` is
   literally empty in the current source
 - `Improve AI and makes states more transparent`, `Fix issues in AI`
 - `Match DKII room and bridge placement rules`, `Add better room building rules`
@@ -526,9 +425,8 @@ issues): [KNOWN]
 - `level 10 imp "runs into" walls`, `Optimize steering behaviour`, `Implement movement prediction`
 - `Campaign progress`, `MPD Level Progress`
 
-**Read this list carefully — it is a map of the frontier.** Those are precisely the systems
-where a 12-year-old project with a working game still does not match DK2. We should expect
-to spend our research budget there and nowhere else.
+**That list is a map of the frontier.** Those are precisely the systems where a 12-year-old
+project with a working game still does not match DK2, and where our research budget goes.
 
 ### 2.4 Ember — historical
 
@@ -537,36 +435,37 @@ to spend our research budget there and nowhere else.
 Its own README states: *"The project was closed due to development complexity and is no
 longer maintained. Development of Ember patches continues in the Flame project."* [KNOWN]
 
-Still worth reading once for methodology. Ember established the techniques Flame inherited:
-`mappings/v170.map` (function/data symbols), `mappings/references.map` (chunk
-cross-references — used to synthesise a relocation table so DK2 can be a DLL), and
-`mappings/stack.map` (ESP modification sites, because `DKII.EXE` does not use EBP as a
-frame pointer, so stack walking requires a precomputed map). [KNOWN]
+Ember established the techniques Flame inherited: `mappings/v170.map` (function/data
+symbols), `mappings/references.map` (chunk cross-references — used to synthesise a
+relocation table so DK2 can be a DLL), and `mappings/stack.map` (ESP modification sites,
+because `DKII.EXE` does not use EBP as a frame pointer, so stack walking requires a
+precomputed map). [KNOWN]
 
-**Recommendation:** read Ember's README for context, then use Flame exclusively. Do not
-spend time diffing the two mapping sets.
+**Use Flame exclusively. Do not diff the two mapping sets.**
 
 ### 2.5 Secondary resources
 
 - **[ufdada/dk2-tools](https://github.com/ufdada/dk2-tools)** — 010 Editor binary templates
   for ~30 formats, including a per-record breakdown of KWD (`creatures_struct.bt`,
   `rooms_struct.bt`, `terrains_struct.bt`, `triggers_struct.bt`, `variables_struct.bt`,
-  `things_struct.bt`, …) **and `Formats/Save/save_struct.bt`** — the save-game format. This
-  is an *independent* derivation of the formats and is therefore extremely useful as a
-  cross-check against OpenKeeper. Where the two disagree, we have found a real question.
+  `things_struct.bt`, …) **and `Formats/Save/save_struct.bt`** — the save-game format. An
+  *independent* derivation of the formats, and therefore a cross-check against OpenKeeper.
+  Where the two disagree, we have found a real question.
 - **[DK2 Official Editor Manual](http://keeper.lubiki.pl/dk2_docs/dk2_editor_manual.htm)** —
-  live (HTTP 200), alongside `dk2_mapper_manual.htm`. This is *EA's own documentation of
-  how the game is supposed to behave*, written for level designers. It is the single best
-  natural-language source of intended semantics and should be read cover to cover early.
+  live (HTTP 200), alongside `dk2_mapper_manual.htm`. *EA's own documentation of how the
+  game is supposed to behave*, written for level designers: the best natural-language
+  source of intended semantics. Not yet read — §11 item 6.
 - **[DK2 walls write-up](http://simonschreibt.de/gat/dungeon-keeper-2-walls/)** — live;
   explains DK2's wall/terrain rendering trick.
 - **keeperklan.com** — the historical forum (incl. thread 4623, *Reversal of DKII Binary
   File Formats*). Returns HTTP 403 to automated clients; reachable in a normal browser, and
   the `lubiki.keeperklan.com` mirror serves the docs.
 - **[GLKeeper](https://github.com/codenamecpp/GLKeeper)** — C++ reimplementation, active but
-  self-described as "not playable yet." Useful only as a third opinion on asset loading.
+  self-described as "not playable yet". A third opinion on asset loading.
 - **[DK2MapMaker](https://github.com/Nateonus/DK2MapMaker)** — C#. Small, but the only C#
   precedent for reading/writing DK2 map data.
+- **The 1999 player manual** (`original-reference/`, `docs/research/manual-1999.md`) — admitted
+  as corroboration only, ADR-0037.
 
 ---
 
@@ -576,92 +475,100 @@ Confidence reflects *our ability to reproduce the behaviour*, not merely to pars
 
 | System | Known | Partial | Unknown | Primary source |
 |---|:--:|:--:|:--:|---|
-| **File formats (WAD/KMF/STR/textures/video)** | ● | | | OpenKeeper converters; dk2-tools templates |
-| **Map & level data (KWD/KLD)** | ● | | | OpenKeeper `KwdFile` (~90%); dk2-tools `.bt` |
+| **File formats (WAD/KMF/STR/textures/video)** | ● | | | OpenKeeper converters; dk2-tools templates; ours: `WadArchive`, `KmfReader`, `Dk2StringTable` |
+| **Map & level data (KWD/KLD)** | ● | | | All 18 record types parse and round-trip (ADR-0091); `kwd-record-fields.md` |
 | **Terrain data model** | ● | | | KWD `TERRAIN(110)` |
 | **Terrain runtime behaviour** | | ● | | Flame `CMapEntry` (11 bytes, **fields unnamed**) |
-| **Digging / claiming** | | ● | | Tile-health constants [KNOWN]; imp task assignment [PARTIAL]; multi-imp stacking [UNKNOWN] |
+| **Digging / claiming** | ● | | | One data-driven rule (ADR-0009/0089); crowding cap built (ADR-0026/0030); "fill in" is not a DK2 action (Q219) |
 | **Rooms — definitions, types, capacity** | ● | | | Flame `CRoom` + `room_type.h`; KWD `ROOMS(120)` |
-| **Rooms — placement/merge/bridge rules** | | ● | | OpenKeeper open issues admit mismatch |
-| **Economy — parameters** | ● | | | KWD `VARIABLES(230)` MiscVariables |
-| **Economy — payday/wage procedure** | | ● | | `f3E2_getPaid`, `SkipNextPayment` flag [KNOWN]; timing [UNKNOWN] |
+| **Rooms — placement/merge/bridge rules** | | ● | | Placement from placeable-on flags (ADR-0016); bridges ADR-0031/0032; OpenKeeper's open issues admit mismatch |
+| **Economy — parameters** | ● | | | KWD `VARIABLES(230)` MiscVariables; `game-database-dump.md` |
+| **Economy — payday/wage procedure** | ● | | | Built as a journey (ADR-0078/0079); `f3E2_getPaid`, `SkipNextPayment` |
 | **Creature stats & data** | ● | | | KWD `CREATURES(170)`, `CreatureStats` StatTypes |
 | **Creature state representation** | ● | | | Flame `creature_state.h` — 54 named flags |
-| **Creature job/destination selection** | | ● | | **Workers: CONFIRMED and built** (ADR-0018/0058/0061, `imp-task-priority.md`); **non-workers: [UNKNOWN]**, the 281-state table is where it lives (ADR-0072). *Row moved 2026-09-06.* |
-| **Creature moods / anger / happiness** | | ● | | **Built** (ADR-0053, `creature-anger.md`): ceiling 32767, ladder once a game second, desertion. Open: happiness sources beyond the two a player can switch off. *Row moved from Unknown 2026-09-06.* |
+| **Creature job/destination selection** | | ● | | **Workers: CONFIRMED and built** (ADR-0018/0058/0061, `imp-task-priority.md`); **non-workers: built from the mood choosers and the 28-way dispatcher `FUN_00478800`** (ADR-0082), against the 281-state table (ADR-0072) that is still being mapped |
+| **Creature moods / anger / happiness** | | ● | | **Built** (ADR-0053/0081, `creature-anger.md`): six counters saturating at 65533, mood banded on the largest, measured ceiling 32767, once a game second, desertion. Open: happiness sources beyond the two a player can switch off |
 | **Combat — stats** | ● | | | KWD; `MELEE_DAMAGE`, `MELEE_RECHARGE_TIME_SECONDS` |
-| **Combat — resolution & target selection** | | ● | | `f37A_isInBattleFlag`, `f37E_canLeaveBattleAt`, `FightProcessCounter` [KNOWN]; formulas [UNKNOWN] |
-| **Pathfinding** | | | ● | Flame `Follow_Path` named, **no fields**; OpenKeeper uses its own A*+steering |
+| **Combat — resolution & target selection** | | ● | | `f37A_isInBattleFlag`, `f37E_canLeaveBattleAt`, `FightProcessCounter` [KNOWN]; formulas [UNKNOWN], nothing built (Q8) |
+| **Pathfinding** | | | ● | Flame `Follow_Path` named, **no fields**; OpenKeeper uses its own A*+steering; ours is an admitted placeholder (ADR-0012) |
 | **Possession** | | ● | | `Possessed` flags, `f3EE_nextPossessionInfluenceTick`, `POSSESSION_MANA_COST_PER_SECOND` [KNOWN]; control model [PARTIAL] |
-| **Spells (keeper & creature)** | | ● | | KWD `KEEPER_SPELLS(150)`, `CREATURE_SPELLS(160)`, `SHOTS(260)` |
-| **Traps & doors** | | ● | | KWD `TRAPS(130)`, `DOORS(140)` |
-| **Heroes & parties** | | ● | | `CREATE_HERO_PARTY` trigger; `f3DF_myLeadersId`, `f3E1_positionInParty` |
-| **Level scripting / triggers** | ● | | | 51 `TriggerAction` types fully enumerated |
+| **Spells (keeper & creature)** | | ● | | KWD `KEEPER_SPELLS(150)`, `CREATURE_SPELLS(160)`, `SHOTS(260)`; only Create Imp built (ADR-0021/0022) |
+| **Traps & doors** | | ● | | KWD `TRAPS(130)`, `DOORS(140)` parse into `TrapDef`/`DoorDef`; no simulation state holds one (Q224) |
+| **Heroes & parties** | | ● | | `CREATE_HERO_PARTY` trigger; `f3DF_myLeadersId`, `f3E1_positionInParty`; not projected (Q224) |
+| **Level scripting / triggers** | | ● | | 51 action types enumerated [KNOWN]; parameter views verified against DKII.EXE (ADR-0092); flag and timer banks are level state (ADR-0102); action points are world state (ADR-0103). **Nothing evaluates a condition or runs an action** (Q228) |
 | **Campaign progression** | | ● | | OpenKeeper open issue "Campaign progress" |
-| **Computer player (AI keeper)** | | ● | | Flame `MyComputerPlayer`, `computer_player_flags`, `drop_condition` |
+| **Computer player (AI keeper)** | | ● | | Flame `MyComputerPlayer`, `computer_player_flags`, `drop_condition`; `DK2.AI.KeeperAI` is ours, not a reading of DK2's |
 | **Multiplayer** | | ● | | `GameAction`, Flame `protocol_dump`, `network/protocol.h` |
-| **Save system** | | ● | | dk2-tools `save_struct.bt`; Flame `sData_*` field prefixes |
-| **Rendering** | ● | | | KMF 95%, EngineTextures 100% |
+| **Save system** | | ● | | dk2-tools `save_struct.bt`; Flame `sData_*` prefixes; `Dk2SaveReader` reads the tile grid only (Q182) |
+| **Rendering** | ● | | | KMF 95%, EngineTextures 100%; `DK2.Convert` writes glTF/GLB and PNG |
 | **Audio — formats** | ● | | | SDT/BANK/SFX parsed |
 | **Audio — event semantics** | | | ● | OpenKeeper: BANK/SFX usage 40% |
 
-**Summary:** *data* is largely solved; *procedure* is largely not. The six red cells —
-pathfinding, moods, combat resolution, job selection, audio event semantics, and the
-computer player — are where original research is required.
+**Summary:** *data* is largely solved; *procedure* is largely not. The remaining red and
+thin cells — pathfinding, combat resolution, trigger execution, the computer player and
+audio event semantics — are where original research is required. `docs/RESEARCH_STATUS.md`
+tracks the same ground per mechanic.
 
 ---
 
 ## 4. Proposed C#/Unity architecture
 
+The rationale for the shape. **What the tree actually contains is
+`docs/ARCHITECTURE.md`**; where the two differ, the tree is right and the
+difference is noted here.
+
 ### 4.1 Guiding constraints
 
-1. `DK2.Simulation` must have **zero** reference to `UnityEngine`. Enforced by CI.
+1. `DK2.Simulation` must have **zero** reference to `UnityEngine`. Asserted from the built
+   assemblies by `ArchitectureTests`.
 2. The simulation is a **fixed-tick, deterministic state machine**, matching the original's
    design. [INFERRED, §2.2]
 3. All randomness flows through an explicit, seeded, serialisable RNG.
 4. All balance values come from parsed DK2 data. **A magic number in simulation code is a
-   bug.** Enforced by review and by an analyser where practical.
+   bug.** `GameDatabase[VariableTypeId.X]` throws rather than defaulting, so a system
+   reading a new variable fails loudly on every synthetic database until the variable is
+   added.
 5. Rendering observes the simulation; it never mutates it.
 
 ### 4.2 Repository layout
 
 ```
 /DungeonKeeperRemake
-├── DK2.sln
+├── DK2.slnx
 ├── DK2_REIMPLEMENTATION_PLAN.md          ← this file
 ├── src/
-│   ├── DK2.Core/                 primitives: fixed-point, TilePos, RNG, event bus, IDs
-│   ├── DK2.Data/                 format parsers: WAD, KWD/KLD, KMF, STR, KCS, SDT, BF4
-│   ├── DK2.Data.Model/           parsed, immutable game database (POCOs)
+│   ├── DK2.Core/                 primitives: fixed-point, TilePos, RNG, hashing, IDs
+│   ├── DK2.Data/                 format parsers: WAD, KWD/KLD, STR, SDT, SAV
+│   ├── DK2.Data.Model/           parsed, immutable game database
 │   ├── DK2.Simulation/           the game. no Unity, no rendering, no I/O.
-│   │   ├── World/                grid, tiles, terrain, ownership, rooms
-│   │   ├── Entities/             creatures, objects, doors, traps, shots
-│   │   ├── Rooms/                room instances + per-type behaviour
-│   │   ├── Economy/              gold, mana, payday, research
-│   │   ├── Combat/
-│   │   ├── Jobs/                 task generation, claiming, assignment
-│   │   ├── Scripting/            triggers, objectives, campaign
-│   │   └── Snapshot/             save/load, state hashing
-│   ├── DK2.AI/                   creature decision-making, computer player
+│   ├── DK2.AI/                   the computer keeper, as an input source
 │   ├── DK2.Pathfinding/          isolated on purpose — highest-churn subsystem
-│   ├── DK2.Assets/               IAssetProvider abstraction + DK2-backed implementation
-│   ├── DK2.Harness/              headless runner, scenario DSL, event-log recorder
-│   └── DK2.Tools/                CLI: extract, inspect, diff, convert, replay
+│   ├── DK2.Assets/               IAssetProvider abstraction + resolution chain
+│   ├── DK2.Presentation/         world → drawable, renderer-independent
+│   ├── DK2.Convert/              original art → glTF/GLB and PNG
+│   ├── DK2.Harness/              headless scenario runner
+│   ├── DK2.Tools/                the dk2tools CLI
+│   └── Shared/                   UnityBound.props, netstandard2.1 polyfills
 ├── unity/DK2.Unity/              Unity project — presentation only
-├── tests/
-│   ├── DK2.Data.Tests/
-│   ├── DK2.Simulation.Tests/
-│   ├── DK2.AI.Tests/
-│   ├── DK2.Pathfinding.Tests/
-│   └── DK2.Behavior.Tests/       ← the regression corpus (grows forever)
+├── unity/DK2.Unity.Compile/      compiles the adapter against Unity's modules
+├── tests/                        Core, Data, Simulation, Behavior, Assets,
+│                                 Presentation, Convert, AI, TestSupport
 ├── docs/
-│   ├── research/                 one file per mechanic, using the §7 template
-│   ├── reverse-engineering/      notes keyed to Flame symbol names & addresses
-│   ├── experiments/              experiment definitions + recorded oracle results
-│   └── architecture/             ADRs
-├── scenarios/                    declarative test-scenario files (see §6.2)
-└── original-reference/           .gitignored — local DK2 install, never committed
+│   ├── research/                 one file per mechanic, on the Appendix B template
+│   ├── architecture/             the simulation loop
+│   └── experiments/              recorded oracle results (empty)
+├── scenarios/                    declarative scenario files (see §6.2)
+├── reverse-engineering/          .gitignored except its README (ADR-0046)
+└── original-reference/           .gitignored — reference material, never committed
 ```
+
+Divergences from the revision-1 proposal, all deliberate: the solution is `DK2.slnx`;
+`DK2.Simulation` is flat rather than split into `World/ Entities/ Rooms/ Economy/ Combat/
+Jobs/ Scripting/ Snapshot/` subfolders, with one file per rule type and `Systems/` and
+`Commands/` the only subfolders; ADRs live in `docs/DECISIONS.md` rather than under
+`docs/architecture/`; there is no `DK2.Pathfinding.Tests` project; and `DK2.AI` holds the
+*computer keeper* only — creature decision-making is simulation and lives in
+`DK2.Simulation`.
 
 ### 4.3 Simulation core
 
@@ -687,68 +594,54 @@ public sealed class GameSimulation
 public readonly record struct GameTick(long Value);
 ```
 
-**On tick rate:** DK2's exact simulation tick rate is [UNKNOWN] but must be determined
-early — Flame's `limit_tps` patch implies it is both fixed and discoverable. Until measured,
-`TicksPerSecond` is a single named constant in one place, flagged `[UNVERIFIED]`.
+**On tick rate:** answered. DK2's rate is **4 ticks a game second**, a tick being 250 ms —
+read from the binary and since observed at 3.94 ticks/s on a running instance (ADR-0089,
+ADR-0102 amendment). `SimulationTiming` is the only place ticks relate to seconds, and it
+keeps `TicksPerSecond` (ours, refinable) separate from `OriginalTicksPerGameSecond` (DK2's,
+a fact) even though they are equal.
 
 **On fixed-point arithmetic:** the original is a 1999 x86 game using a mix of integers and
 x87 floats (Flame ships an `fpu_control.h`). Reproducing float behaviour bit-exactly across
-modern hardware is not tractable. **Decision: use integer/fixed-point for all
-gameplay-affecting quantities**; reserve `float` for presentation only. This trades exact
-float reproduction (unachievable) for cross-platform determinism (achievable and more
-valuable). Recorded as ADR-0001.
+modern hardware is not tractable. **Decision: integer/fixed-point for all
+gameplay-affecting quantities**; `float` reserved for presentation. This trades exact float
+reproduction (unachievable) for cross-platform determinism (achievable and more valuable).
+ADR-0001; the format is Q32.32, `long`-backed (`Fp32`).
 
 ### 4.4 Data layer
 
-The parsed DK2 database is loaded once and is immutable:
+The parsed DK2 database is loaded once and is immutable. As built, `GameDatabase` exposes
+`Creatures`, `Rooms`, `RoomsByTerrain`, `Terrain`, `Objects`, `Doors`, `Traps`,
+`KeeperSpells`, `CreatureSpells`, `Players` and the additional record types, plus an
+indexer `this[VariableTypeId]` over the balance table and `ForLevel` for per-level
+overrides. Simulation code reads `database[VariableTypeId.MineGoldHealth]`, never `-300`.
 
-```csharp
-public sealed class GameDatabase
-{
-    IReadOnlyDictionary<CreatureTypeId, CreatureDef> Creatures { get; }
-    IReadOnlyDictionary<RoomTypeId,     RoomDef>     Rooms     { get; }
-    IReadOnlyDictionary<TerrainTypeId,  TerrainDef>  Terrain   { get; }
-    IReadOnlyDictionary<MiscType,       int>         MiscVars  { get; }  // §1.1 values
-    /* traps, doors, objects, shots, effects, keeper spells, creature spells */
-}
-```
+Two data-layer facts that were not obvious from the format work:
 
-Simulation code reads `MiscVars[MiscType.MineGoldHealth]`, never `-300`.
+- **Levels play on their own VARIABLES**, layered over the global table (ADR-0040). A
+  campaign run that reads only the global table uses the wrong numbers wherever a level
+  disagrees, and 26 variable ids disagree on at least one level.
+- **`GameDatabase` is DK2-shaped** — records mirror KWD layout field for field, including
+  string-table ids. Correct for fidelity; goal 8's mod author would express content in
+  DK2's record shape, which is a question for M6 and not before.
 
 ### 4.5 AI architecture
 
-**Do not pick an AI paradigm yet.** DK2's real structure is [UNKNOWN], and committing to
-behaviour trees or utility AI before knowing would be exactly the mistake §33 of the brief
-warns about.
-
-What the evidence *does* support: DK2 stores creature state as **two 32-bit flag words plus
-a `cstate` sub-object** [KNOWN], and Flame names a `FightProcessCounter` occupying 4 bits.
+**Do not pick an AI paradigm.** DK2 stores creature state as **two 32-bit flag words plus a
+`cstate` sub-object** [KNOWN], and Flame names a `FightProcessCounter` occupying 4 bits.
 That is the signature of a **hand-written state machine with flag-based modifiers**, not of
-a planner or a utility system. [INFERRED]
+a planner or a utility system. [INFERRED] The 281-record state table with category-scoped
+enter/update/leave hooks (ADR-0072) confirms it.
 
-Therefore the interim design is a **flag-augmented FSM with an explicit, ordered decision
-list**, where the ordering is a *declared, testable hypothesis*:
+The design that followed is an **ordered decision list whose ordering is a declared,
+testable hypothesis**, and every decision returns **why** it fired so the harness can diff
+*reasons* rather than only outcomes:
 
-```csharp
-public interface ICreatureDecision
-{
-    /// Ordered probes. First match wins — mirroring an if/else chain,
-    /// which is what the original most likely is. [HYPOTHESIS]
-    DecisionResult? Evaluate(CreatureContext ctx);
-}
-```
+> **An implementation that reaches the right destination for the wrong reason is not
+> correct, and we must be able to see that.**
 
-Every decision returns **why** it fired, so the harness can diff *reasons*, not just
-outcomes:
-
-```csharp
-public readonly record struct DecisionResult(
-    JobKind Job, TilePos Destination, string ReasonTag);
-```
-
-This is the single most important design decision for fidelity work: **an implementation
-that reaches the right destination for the wrong reason is not correct, and we must be able
-to see that.**
+As built: `ImpTaskSystem` for workers on the priority table read from the binary
+(ADR-0058), and `CreatureJobSystem`'s three mood choosers for everybody else (ADR-0082),
+each recording a reason through `ISimulationEventSink`.
 
 ### 4.6 Pathfinding — deliberately isolated
 
@@ -763,22 +656,29 @@ public interface IPathfinder
 }
 ```
 
-Ship `AStarPathfinder` as a **known-wrong placeholder**, explicitly labelled as such, so
-that no downstream code accidentally assumes it is faithful. Fidelity work happens later,
-against recorded oracle traces.
+`GridPathfinder` is a **known-wrong placeholder, explicitly labelled as such**, so no
+downstream code assumes it is faithful: eight-connected, 10 for a straight step and 14 for
+a diagonal (ADR-0025, Q48), deterministically tie-broken. What "walkable" means is not its
+business — `WorldPathGrid` answers that for one particular mover, from terrain flags and
+that creature's own flags. Fidelity work happens later, against recorded oracle traces
+(Q5).
 
 ### 4.7 Presentation boundary
 
 ```
-GameSimulation ──emits──> SimulationEvent stream ──> Unity presentation layer
+GameSimulation ──emits──> SimulationEvent stream ──> presentation layer
        ▲                                                      │
        └──────────────── InputFrame (commands only) ──────────┘
 ```
 
-Unity's job: render, animate, play audio, take input, draw UI. It holds **no** authoritative
-state. A `GameObject` is a view of an entity id; deleting every `GameObject` must not change
-the simulation. This also means the harness can run the game at 10,000× speed with no
+Unity's job: render, animate, play audio, take input, draw UI. It holds **no**
+authoritative state. A `GameObject` is a view of an entity id; deleting every `GameObject`
+must not change the simulation. This also means the harness can run the game with no
 renderer at all.
+
+As built the boundary is a *view* rather than an event stream: `WorldView` produces
+readonly view structs for one viewing keeper, `ScenePresenter` diffs them and pushes
+through `IRenderTarget` (ADR-0035). Events remain, and are write-only.
 
 ### 4.8 Asset abstraction
 
@@ -788,42 +688,29 @@ CreatureDef ──> AssetRef("creature.imp.mesh") ──> IAssetProvider ──>
 ```
 
 No filename literals outside `DK2.Assets`. This is what keeps a redistributable build
-possible (§10.2).
+possible (§10.2). ADR-0034; the chain ends in a **total** placeholder provider, so the game
+runs with no DK2 install and no art pack.
 
 ---
 
 ## 5. Reverse-engineering workflow
 
-> **Revision 2, 2026-09-06 — read this before the flowchart.** Until today,
-> steps 1–4 of the workflow below had **never been performed**: Flame was not
-> checked out, so every reverse-engineering session this project ran started at
-> step 7 with a bare Ghidra database. **Flame is now cloned at `D:\Flame`**
-> (§2.2.1), so steps 1–4 are available for the first time.
->
-> They are still not the *first* thing to try. §2.2.1 measures why: Flame names
-> only 34% of the symbols in the address range where creature behaviour lives,
-> and none of the four routines whose behaviour drove the last week's work. Its
-> value is structure — struct layouts, vtable membership, cross-references — and
-> confirming a reading reached independently.
->
-> **Two steps are missing from the flowchart and are what has actually been
-> working**, in this order, before anything else:
->
-> **0a. Look for DK2's own debug dump of the structure.** The retail build kept
-> its `printf` format strings, so one function names an entire struct in EA's own
-> words. Three found so far: the creature instance, the room, and the creature
-> *state* object.
->
-> **0b. Ask the owner, if a player could see it.** The oracle is installed and
-> the owner has played the game. Several questions have been filed as UNKNOWN
-> that a sentence settled — and one, the health a captured creature wakes with,
-> was *built wrong* for an afternoon because nobody asked.
->
-> Get Flame anyway (§2.2.1 recommends it), but for structure and cross-references
-> rather than for answers. This section's opening sentence was written before
-> anybody had measured it.
+**The binary is the primary source.** `DKII.EXE` is the actual DK2; every other written
+source is somebody's reading of it, so when a question is open, decompile before you infer
+(AGENTS.md, ADR-0046 as amended). Two steps come before the flowchart below, and they are
+what has actually been working:
 
-**Never start from raw disassembly.** Flame has already done the expensive part.
+**0a. Look for DK2's own debug dump of the structure.** The retail build kept its `printf`
+format strings, so one function names an entire struct in EA's own words. Three found so
+far: the creature instance, the room, and the creature *state* object. This is a better
+first move than the disassembler.
+
+**0b. Ask the owner, if a player could see it.** The oracle is installed and the owner has
+played the game. Questions filed as UNKNOWN have been settled by a sentence, and one — the
+health a captured creature wakes with — was *built wrong* because nobody asked.
+`docs/research/observation-checklist.md` is the standing list.
+
+Then, cheap to expensive:
 
 ```
 1. Name the question             "When does a creature decide to go eat?"
@@ -840,24 +727,28 @@ possible (§10.2).
         ↓
 6. Check the KWD data            is the value simply sitting in VARIABLES?
         ↓
-7. Only now: IDA/Ghidra          load DKII.exe v1.70, apply Flame's IDA scripts
-                                 (mapping/ida/*.py), navigate to the named function
+7. Ghidra                        DKII.EXE v1.70; the headless command is in
+                                 docs/RESEARCH-QUEUE.md
         ↓
-8. Validate on the running game  Flame's logging/inspect_tools, or a debugger
+8. Validate on the running game  a live-memory reader, or a stopwatch
         ↓
-9. Write docs/research/<x>.md    using the §7 template, with a confidence tag
+9. Write docs/research/<x>.md    on the Appendix B template, with a confidence tag
         ↓
 10. Implement + regression test
 ```
 
-**Steps 1–6 are free and cover most questions. Step 7 is the expensive one and should be
-rare.** Flame ships `mapping/ida/espmap_ida.py`, `sgmap_ida.py` and the `refmap_ida`
-package to import its symbol data directly into IDA — use them rather than hand-annotating.
+**Steps 2–4 are structure, not answers.** §2.2.1 measures why: Flame names only 34% of the
+symbols in the address range where creature behaviour lives, and none of the four routines
+whose behaviour drove the eating and prison work. Use it for struct layout, vtable
+membership and cross-references, and to confirm a reading reached independently. Flame
+ships `mapping/ida/espmap_ida.py`, `sgmap_ida.py` and the `refmap_ida` package for IDA;
+there is no Ghidra equivalent, so importing the `sgmap` needs a script (§11 item 5).
 
 **Conflict protocol.** When OpenKeeper and Flame disagree, or either disagrees with the
-editor manual, this is a *finding*, not a nuisance. Record it in
-`docs/reverse-engineering/conflicts.md` with both positions, design an experiment against
-the original game, and record the verdict. **Never silently pick one.**
+editor manual, this is a *finding*, not a nuisance. Record both positions, design an
+experiment against the original game, and record the verdict. **Never silently pick one.**
+Its first run was the `g_stateEntries` base address, where Flame turned out to be right on
+both counts (§2.2.1, ADR-0072).
 
 ---
 
@@ -865,9 +756,19 @@ the original game, and record the verdict. **Never silently pick one.**
 
 ### 6.1 The oracle
 
-The installed original DK2 v1.70 is the reference implementation. Where possible, run it
-under Flame, which provides logging and inspection hooks and a TPS limiter — making
-observation and frame-stepping far easier than with the stock executable.
+The installed original DK2 v1.70 is the reference implementation, and it outranks a misread
+disassembly for anything observable. Three ways in, in the order they have proved useful:
+
+1. **The owner playing**, answering a question by name.
+   `docs/research/observation-checklist.md` is what to ask for.
+2. **A live-memory reader** attached to a running `DKII-dx.EXE` or `DKII.EXE` with
+   `PROCESS_VM_READ` only, sampling world pointers, balance variable 19, record counts,
+   the trigger flag and timer banks and the tick counter into a CSV. It lives in
+   `reverse-engineering/` (gitignored); its invocation is in `docs/HANDOFF.md`. It has
+   settled the tick rate and read level 1's condition array out of the running game.
+3. **Flame**, which provides logging and inspection hooks and a TPS limiter, making
+   frame-stepping easier than with the stock executable. Not yet used for this — running
+   DK2 under Flame is M5's first step.
 
 ### 6.2 Scenario definition — one file, two runners
 
@@ -899,19 +800,22 @@ observe:
 duration_ticks: 600
 ```
 
+The runner reports every part of a scenario it could not honour — unknown keys, unapplied
+setup, observations nothing produces yet — so a run can never look more complete than it is.
+
 ### 6.3 Capture protocol
 
 | | Original DK2 | Our simulation |
 |---|---|---|
-| Setup | generated custom level + trigger script | `ScenarioLoader` |
+| Setup | generated custom level + trigger script | `ScenarioRunner` |
 | Stepping | Flame TPS limit; frame-step | `sim.Tick()` |
 | Observation | screen capture + memory inspection at known `CCreature` offsets | direct state read |
 | Output | `docs/experiments/<id>/oracle.json` | `<id>/ours.json` |
 
 Reading the oracle's state directly from memory is feasible *because Flame gives us the
 field offsets* — e.g. `f3B9_roomId` at `+0x3B9`, `f3E6_stateFlags` at `+0x3E6`. This
-converts "watch the screen and guess" into "read the actual variable." **This is the
-highest-leverage tooling investment in the project.**
+converts "watch the screen and guess" into "read the actual variable", and the live-memory
+reader in §6.1 is the first working instance of it.
 
 ### 6.4 Comparison and regression
 
@@ -921,15 +825,20 @@ oracle.json ──┐
 ours.json ────┘
 ```
 
-Every scenario becomes a test in `DK2.Behavior.Tests`. Divergences are triaged as:
-*our bug* → fix; *unknown mechanic* → new research doc; *acceptable* → record with an
-explicit written justification. The corpus only ever grows.
+Every scenario becomes a test in `DK2.Behavior.Tests` (`ScenarioTests` runs every YAML).
+Divergences are triaged as: *our bug* → fix; *unknown mechanic* → new research doc;
+*acceptable* → record with an explicit written justification. The corpus only ever grows.
+**Not yet built:** no scenario carries an expectation block, `docs/experiments/` is empty,
+and there is no comparer — that is M5.
 
 ### 6.5 Determinism gate
 
-Independent of the oracle, CI asserts: same seed + same inputs ⇒ identical `StateHash()` at
-every tick, across OS and CPU. If this ever fails, all fidelity results are meaningless
-until it is fixed. This runs on every commit from day one.
+Independent of the oracle: same seed + same inputs ⇒ identical `StateHash()` at every tick,
+across OS and CPU. If this ever fails, all fidelity results are meaningless until it is
+fixed. It is asserted by `DeterminismTests` with one pinned literal, and
+`.github/workflows/ci.yml` declares the Linux + Windows matrix that would make the
+cross-machine claim real. **No CI is running**, so the pin rests on local runs and the
+commit-msg hook (`git config core.hooksPath .githooks`) is the only automatic gate.
 
 ---
 
@@ -942,10 +851,10 @@ original-reference/DK2/          (local only, .gitignored, never committed)
         │
         ├── *.WAD ──> DK2.Data.Wad ──────> raw members
         ├── *.KWD/KLD ──> DK2.Data.Kwd ──> GameDatabase  ← the specification
-        ├── Meshes.WAD/*.KMF ──> converter ──> glTF/mesh + animation clips
-        ├── EngineTextures.dat ──> converter ──> PNG/DDS
-        ├── *.SDT / Sounds ──> converter ──> WAV/OGG
-        └── *.STR ──> converter ──> localisation tables
+        ├── Meshes.WAD/*.KMF ──> DK2.Convert ──> glTF/GLB
+        ├── EngineTextures.dat ──> DK2.Convert ──> PNG
+        ├── *.SDT / Sounds ──> DK2.Convert ──> WAV
+        └── *.STR ──> Dk2StringTable ──> localisation tables
                               │
                               ▼
               build/converted/   (also .gitignored)
@@ -955,24 +864,27 @@ original-reference/DK2/          (local only, .gitignored, never committed)
 ```
 
 The converter is a **build step the user runs against their own legally-owned copy**,
-exactly as OpenKeeper does. No converted asset is ever committed or distributed.
+exactly as OpenKeeper does (`dk2tools convert`). No converted asset is ever committed or
+distributed, and no decoded game text is either — the format facts and the reader are ours;
+the strings are EA's.
 
 ### 7.2 Keeping replacement possible
 
 `AssetRef` is a logical key (`"creature.imp.mesh"`), resolved at runtime by a provider
-chain: `FanMadeProvider → ConvertedDk2Provider → PlaceholderProvider`. Adding a
-free-asset pack later is then a data change, not a code change. `PlaceholderProvider` must
-always be complete enough that the game *runs* (as untextured boxes) with no DK2 install —
-this keeps the "shippable without proprietary assets" property honest and continuously
-tested, rather than aspirational.
+chain: replacement → converted → placeholder. Adding a free-asset pack later is a data
+change, not a code change. `PlaceholderProvider` must always be complete enough that the
+game *runs* (as untextured boxes) with no DK2 install — `AssetCatalogueTests` proves it is
+total over the whole shipped database, so the property is continuously tested rather than
+aspirational.
 
 ### 7.3 Data vs. assets — an important distinction
 
 The KWD *balance data* is not an art asset; it is the game's rule specification, and we
-cannot ship it either. Mitigation: define our own open `GameDatabase` schema (JSON) plus a
+cannot ship it either. Mitigation: define our own open `GameDatabase` schema plus a
 converter from KWD. Development uses the converted original; a future standalone release
-would ship a hand-authored database. Design for this now — it costs almost nothing now and
-is very expensive to retrofit.
+would ship a hand-authored database. Every simulation test already builds a `GameDatabase`
+by hand with no DK2 install, so that path is proven; what does not exist is an external
+content format.
 
 ---
 
@@ -982,11 +894,11 @@ is very expensive to retrofit.
 |---|---|---|---|
 | **M0** ✅ | Research baseline | This document; repo skeleton; DK2 v1.70 installed; Flame + OpenKeeper building locally | 1–2 wk |
 | **M1** ✅ | Formats readable | `DK2.Tools extract` dumps WAD contents; KWD parses to `GameDatabase`; all 18 record types round-trip; unit tests over the shipped campaign maps | complete 2026-09-07 |
-| **M2** ✅ | Deterministic skeleton | `GameSimulation.Tick()` exists; `StateHash()` stable; save/load round-trips; CI determinism gate green; headless harness runs a scenario file | 3–4 wk |
-| **M3** ✅ | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold. Unity view renders it with placeholder art — **the view is done (2026-09-04); what a room *does* is not** | 8–12 wk |
+| **M2** ✅ | Deterministic skeleton | `GameSimulation.Tick()` exists; `StateHash()` stable; save/load round-trips; determinism gate green; headless harness runs a scenario file | 3–4 wk |
+| **M3** ✅ | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold; Unity view renders it with placeholder art | 8–12 wk |
 | **M4** ✅ | First creature loop | Portal spawn; lair claim; hunger→hatchery; sleep; training; payday; job selection with logged reasons | 8–12 wk |
-| **M5** | First oracle comparison | Memory-reading oracle probe working against DK2 under Flame; 20+ scenarios captured from both sides; first divergence report | 4–6 wk |
-| **M6** | Real level loads | A stock campaign level loads, terrain and things place correctly, triggers/objectives fire, level is winnable | 6–10 wk |
+| **M5** ◐ | First oracle comparison | Memory-reading oracle probe working against DK2; 20+ scenarios captured from both sides; first divergence report | 4–6 wk |
+| **M6** ◐ | Real level loads | A stock campaign level loads, terrain and things place correctly, triggers/objectives fire, level is winnable | 6–10 wk |
 | **M7** | Combat & heroes | Combat resolution, hero parties, hero gates, traps, doors | 3–5 mo |
 | **M8** | Breadth | All rooms, all creatures, all keeper spells, research, possession, prison/torture/graveyard/temple | 6–12 mo |
 | **M9** | Fidelity | 500+ behavioural regression scenarios green; documented divergence list; pathfinding rewritten against oracle traces | continuous |
@@ -1002,169 +914,92 @@ which **313 need the game data and SKIP without it** — ADR-0100), 27 scenarios
 51 research docs, 238 open-question rows running to Q238, `HashVersion` **40**,
 pin `0x6445940E0B0F23A9`.
 
-> **The subcommand this note asked for now exists** (2026-09-08). The line had
-> gone stale a third time — revision 10 was wrong on every figure by the end of
-> the following session — so `dk2tools status` prints this paragraph from the
-> tree, and `dk2tools status --check` exits 1 with a list of what disagrees.
-> Nothing above is typed by hand any more. Not yet wired into CI.
->
-> **Writing it found that two of the hand-counts that replaced revision 10 were
-> also wrong, in opposite directions**, which is the argument for the tool in
-> one sentence:
->
-> - **ADRs are 95, not 94.** `ADR-0088` is recorded as a `###` sub-heading, so
->   counting top-level headings misses it — the very failure the note below
->   already described. The tool takes distinct ids across both heading levels,
->   which also stops amendment sub-headings double-counting.
-> - **Open-question rows are 234.** "Lines starting with `| Q`" gives 237,
->   because the file carries three table headers reading `| Q | Question |`; a
->   strict `| Q<digits> |` gives 230, because `Q37a`, `Q37b`, `Q55x` and
->   `Q118c` are real rows split off from an original question. Both counts were
->   wrong.
->
-> The test figure comes from `dotnet test --list-tests`, which agrees with the
-> runner exactly rather than approximating it by counting `[Fact]` attributes —
-> a `[Theory]` with two `[InlineData]` rows makes that wrong.
+> **Regenerate that paragraph; never edit it.** `dk2tools status --check` exits 1
+> with a list of what disagrees. Three of its figures are not obtainable by the
+> obvious command: ADRs must be counted as distinct ids across `##` *and* `###`
+> headings, because `ADR-0088` is recorded as a sub-heading and amendments are
+> sub-headings too; question rows need `^\| Q<digits>[a-z]? \|`, because three
+> table headers read `| Q | Question |` and `Q37a`, `Q37b`, `Q55x` and `Q118c`
+> are real rows split off from an original; and the test figure comes from
+> `dotnet test --list-tests`, which agrees with the runner exactly, where
+> counting `[Fact]` attributes does not. Not wired into CI, because there is
+> none — the commit-msg hook notes a stale line rather than blocking on it.
 
-> Two of those counts are stated differently on purpose. Revision 6 said "87
-> ADRs + 8 amendments" and "213 catalogued questions", and neither number could
-> be reproduced from the files: ADRs were being counted by top-level heading
-> while some ADRs are recorded as sub-headings, and the question count was the
-> **highest id** rather than the number of rows, of which there are fewer
-> because ids get retired. So: 89 distinct ADR ids, and 210 rows whose highest
-> id is Q215. Both are `grep`-able, which is the point.
+**M0 — closed 2026-09-07.** Flame (`D:\Flame`, pinned `f6e2a3d`) and OpenKeeper
+(`D:\OpenKeeper`) both build locally; recipes in `original-reference/README.md`. Running DK2
+*under* Flame is M5's first step, not M0's.
 
-> **Q1 is closed and the placeholder is gone.** `SimulationTiming.TicksPerSecond`
-> was 20 from the project's first week and is now **4** — a tick is **250 ms**,
-> which is DK2's own rate (ADR-0089). Every duration here is a wall-clock claim
-> for the first time. The same pass reversed **ADR-0024**: an upward job costs a
-> tile's health **deficit**, not its whole maximum. Test count is unchanged
-> because the work was correcting assertions, not adding them.
+**M1 — closed 2026-09-07, ADR-0091.** All 18 record-type ids have typed readers. Editor
+definition tables sit on `GameDatabase`; PLAYERS, THINGS, TRIGGERS and LEVEL are
+level-scoped. The corpus audit covers 408 KWD/KLD files, all 66 LEVEL records, 6,318 THINGS
+and 9,161 TRIGGERS, and byte-round-trips every record image (`KwdRecordRoundTrip`,
+`KwdCorpusAudit`; re-checkable with `dk2tools kwd corpus`). GLOBALS is the honest zero:
+v1.70 ships no type-0 chunk or LEVEL path row, so its LEVEL-reference representation has a
+synthetic round-trip (Q220). The format work neither places things nor executes triggers;
+those are M6.
 
-> Revision 5's line read *1146 tests, 85 ADRs, 43 research docs, 209 questions,
-> `HashVersion` 33, pin `0x21A7E4D24F37DF48`* and was stale by six commits. Same
-> defect class as the eleven the 2026-09-06 review caught: a true statement about
-> this project that nothing re-reads. **Recount before editing this line, don't
-> increment it.**
+**M2 — closed.** `GameSimulation.Tick()`, `StateHash()`, `WorldSnapshot`, the harness, and
+the pinned literal. §6.5 has the caveat that no CI runs it.
 
-- **M0** ✅ — ~~done except the one thing this document exists to correct: Flame has
-  never been checked out (§2.2.1). OpenKeeper is on disk.~~ Flame was cloned on
-  2026-09-06 and **built from source on 2026-09-07**, the first time either
-  half of "building locally" had been attempted (§2.2.1, "Current state").
-  OpenKeeper compiled the same morning. The definition of done is met as written
-  and **M0 is closed, 2026-09-07**; the recipe for both is in
-  `original-reference/README.md`. What neither build is yet *used* for — DK2
-  running under Flame — is M5's first step, not M0's.
-- **M1** ✅ — closed 2026-09-07 (ADR-0091). All 18 record-type ids have typed
-  readers. The corpus audit covers 408 KWD/KLD files, all 66 LEVEL records,
-  6,318 THINGS and 9,161 TRIGGERS, and byte-round-trips every record image.
-  GLOBALS is the honest zero: v1.70 ships no type-0 chunk or LEVEL path
-  row, so its LEVEL-reference representation has a synthetic round-trip (Q220).
-- **M2** ✅ — unchanged.
-- **M3** ✅ substantially — the Unity view renders campaign level 1; terrain
-  work, rooms, the treasury, mana, gold and the imp are all in.
-- **M4** ✅ — **all seven items exist**, closed 2026-09-06. Portal spawn
-  (ADR-0042/0047), lair claim (ADR-0049/0060), sleep, hunger→hatchery
-  (ADR-0066/0067), payday (ADR-0078/0079), and job selection with logged
-  reasons (ADR-0082). **The loose thread is tied**: training pays, at the
-  record's rate per original tick, capped at level 4 and billed to the keeper at
-  five gold a game second — and a keeper who cannot pay loses the creature's job
-  (ADR-0083, Q205). That dig also corrected the experience model underneath it:
-  a promotion **zeroes** the remainder rather than carrying it, an imp earns
-  **four times** what this project thought, and `ExpPerSecond` turned out to be
-  combat rather than "per minute" (Q79, Q127).
-  Beyond the original list M4 also grew death and corpses (ADR-0051/0063), anger
-  and desertion (ADR-0053/0081), levels (Q119), the Hand of Evil (ADR-0062),
-  carrying (ADR-0063/0065) and the prison (ADR-0064/0068).
-- **M5** — not started, and its definition of done depends on Flame, which is
-  the second reason §2.2.1 matters.
+**M3 — closed 2026-09-04.** Terrain work is one uniform data-driven rule — dig, mine,
+claim, reinforce, repair, attack and take over a rival's room — exercised against the real
+game's data, with markers and the first player command (`docs/research/tile-work.md`). An
+imp finds the nearest job its keeper can reach, walks at the speed its own record gives and
+works, on the priority order read from the binary (Q24, ADR-0018/0058); mined gold is
+carried as the tail of a mining job rather than a fourth job (Q31, ADR-0019), and the
+crowding cap of three imps to a wall face is built (ADR-0026/0030). Rooms, the treasury,
+gold and mana are in. Unity 6 LTS renders campaign level 1 as coloured boxes through an
+asset abstraction that resolves every key with no DK2 art installed (ADR-0034/0035/0036).
 
-The CI workflow is written and its steps verified locally on Windows; it has not
-yet been exercised on GitHub-hosted Linux, which is the run that turns the pinned
-hash into a genuine cross-platform claim.
+Three findings from M3 that changed the design rather than filling it in:
 
-M3 has started and is marked partial. Its terrain half is done: dig, mine,
-claim, reinforce, repair and attack are implemented as one uniform
-data-driven rule, along with dig markers and the first real player command, and
-they are exercised against the real game's data. Evidence and the three
-anomalies the data throws up: `docs/research/tile-work.md`.
+- **DK2 has no player gold counter.** The balance table sets four limits on gold and every
+  one of them is per place — treasury tile, dungeon-heart tile, floor pile, creature's
+  hands. So gold moved onto tiles and `PlayerState.Gold` was removed (ADR-0015), and three
+  behaviours stopped being special cases: a keeper with no treasury cannot keep gold,
+  destroying a treasury takes the gold with it, and a keeper's first treasury is necessarily
+  paid for out of the dungeon heart.
+- **Where a room may go is read from the room record's own placeable-on flags**, so nothing
+  in the rules knows what a bridge is (ADR-0016).
+- **Mana income is territory.** Three terrain types out of 41 generate any mana at all, and
+  they are exactly the ownable non-room ones — so claiming ground raises income, losing it
+  lowers it, and building a room on your own floor takes that floor off the payroll, none of
+  which is written anywhere (ADR-0017). Two things the files could not settle came from the
+  owner playing: the mana ceiling is a flat 200000 for every keeper and does not grow with
+  the dungeon, and **a keeper has at most one dungeon heart, whose loss is defeat** — which
+  turned the heart's flat 30 from unimplementable into a boolean. Defeat itself belongs with
+  objectives at M6 (Q40).
 
-The first worker followed. An imp finds the nearest marked tile its keeper can
-reach, walks to it at the speed its own record gives, and digs or mines it —
-driven by a tag command and nothing else. That closes the "one imp doing tasks"
-half of M3's definition of done. The order it prefers its jobs in was UNKNOWN
-when that was written and is now CONFIRMED from the original — marked excavation,
-then claiming, then reinforcing (Q24, ADR-0018) — and carrying mined gold is
-built as the tail of a mining job rather than a fourth job (Q31, ADR-0019). What
-remains stated in every scenario run that places a worker: an imp that runs out
-of all three stands still where DK2 would have it wander (Q41); the crowding cap
-of three imps a face is not implemented (Q43); and its routing is ours rather
-than DK2's (Q5) — an admitted four-connected placeholder behind an interface,
-which Q28 has since shown to be the wrong connectivity. Evidence:
-`docs/research/imp-tasks.md`.
+**M4 — closed 2026-09-06, ADR-0082.** All seven items: portal spawn (ADR-0042/0047), lair
+claim (ADR-0049/0060), sleep, hunger→hatchery (ADR-0066/0067), training (ADR-0083), payday
+(ADR-0078/0079) and job selection with logged reasons (ADR-0082). Training pays at the
+record's rate per original tick, caps at level 4, bills the keeper five gold a game second,
+and a keeper who cannot pay loses the creature's job (Q205). That work also corrected the
+experience model underneath it: a promotion **zeroes** the remainder rather than carrying
+it, an imp earns four times what this project thought, and `ExpPerSecond` is *combat*
+experience rather than a per-minute rate (Q79, Q127). Beyond the original list, M4 grew
+death and corpses (ADR-0051/0063), anger and desertion (ADR-0053/0081), levels (Q119), the
+Hand of Evil (ADR-0062), carrying (ADR-0063/0065), the prison (ADR-0064/0068) and fog of
+war (ADR-0076).
 
-Rooms and the treasury came next, and turned up the milestone's most structural
-finding: **DK2 has no player gold counter.** The balance table sets four limits
-on gold and every one of them is per place — treasury tile, dungeon-heart tile,
-floor pile, creature's hands. So gold was moved onto tiles and `PlayerState.Gold`
-was removed (ADR-0015), and three behaviours stopped being special cases: a
-keeper with no treasury cannot keep gold, destroying a treasury takes the gold
-with it, and a keeper's first treasury is necessarily paid for out of the
-dungeon heart. Where a room may go is read from the room record's own
-placeable-on flags, so nothing in the rules knows what a bridge is (ADR-0016).
-Evidence: `docs/research/rooms-and-gold.md`.
+**M5 — started, and one-sided.** The memory probe exists and works: a reader attached to a
+running DK2 clocked the tick rate at 3.94/s over two runs with balance variable 19 read live
+as 4, and read level 1's whole condition array out of the running game, which is what
+settled Q233 (ADR-0102 amendments). It is not yet under Flame, and the rest of the milestone
+is untouched: **no scenario has been captured from both sides, there is no comparer and no
+divergence report**, and `docs/experiments/` is empty (`docs/EXPERIMENTS.md`).
 
-Mana came last, and it is the first thing in the simulation that changes because
-time passed. A keeper's income is the sum of `ManaGain` over the tiles they own
-plus a flat 30 for their dungeon heart, capped by `MaximumManaGainPerSecond` and
-paid once a game second (ADR-0017). The finding worth keeping is again in the
-zeroes: three terrain types out of 41 generate any mana at all, and they are
-exactly the ownable non-room ones — so claiming ground raises income, losing it
-lowers it, and building a room on your own floor takes that floor off the
-payroll, none of which is written anywhere.
+**M6 — partial.** Records parse (M1); a level's placed creatures and objects reach the world
+(ADR-0101), the trigger flag and timer banks are world state (ADR-0102), and action points
+are ordered world state (ADR-0103 — level 1 projects 27, and across 66 levels 1,152 enter
+the world, dropping the unprojected THINGS count from 3,272 to 2,120). **Still missing:
+trigger execution** — nothing evaluates a condition or runs an action, and Q228 has no
+answer for the cadence — plus door, trap, hero-party and effect-generator storage, and
+objectives. **No level is winnable.**
 
-Two things the files could not settle came from the owner playing the original,
-which is what the oracle is for: the mana ceiling is a flat 200000 for every
-keeper and does not grow with the dungeon, and **a keeper has at most one dungeon
-heart, whose loss is defeat.** The first closed a question that three
-plausible-looking variables would otherwise have been guessed into
-(`MaxManaGain`, `DungeonHeartMaxManaIncrease`); the second turned the heart's
-"30 per heart" from unimplementable — a heart is a room instance and rooms here
-are terrain — into a boolean. Defeat itself is not implemented and belongs with
-objectives at M6 (Q40). Evidence: `docs/research/mana.md`.
-
-**Gold now reaches a player** (2026-08-30, Q31, ADR-0019): an imp mines into its
-own hands up to `maxGoldHeld` and carries the load to the nearest treasury or
-dungeon-heart tile with room in it. On shipped level 1 a 3000-gold seam arrives
-in the shipped dungeon heart, 1000 to a tile, across as many trips as an imp's
-hands need. What is left of that mechanic is the floor lump DK2 leaves when there
-is nowhere to unload, which needs the OBJECTS record (M6).
-
-**Update 2026-09-04: the Unity view is done.** M3's definition of done asked for
-"Unity view renders it with placeholder art", and it does — Unity 6 LTS renders
-campaign level 1 as coloured boxes through an asset abstraction that resolves
-every key with no DK2 art installed (ADR-0034, ADR-0035, ADR-0036). Getting there
-also closed `GOAL_ALIGNMENT.md` gap 3 on the right side of its deadline, and
-uncovered that the netstandard2.1 target this plan assumes had never actually
-applied — see the correction on ADR-0002.
-
-What M3 still asks for and does not have: **what a room does**. Rooms exist as
-owned terrain that costs gold and can be sold back, but only the treasury and the
-heart do anything at all; every other room's behaviour is a per-room research
-question that has not been started. ~~§7.3's converter does not exist either,
-which is why the renderer draws boxes rather than art.~~ **Corrected
-2026-09-06:** the converter exists (`DK2.Convert`, glTF and PNG); the renderer
-draws boxes because the Unity adapter has no branch that loads its output.
-(Four rooms have behaviour since this paragraph was written; see §8 M4.)
-
-M1 is closed. All 18 record-type ids parse; editor definition tables are on
-`GameDatabase`, while PLAYERS, THINGS, TRIGGERS and LEVEL remain level-scoped.
-The format work does not place things or execute triggers: those behavioural
-steps remain M6. `dk2tools kwd corpus` makes this status re-checkable (ADR-0091).
-
-**Deliberate ordering note:** M5 (oracle comparison) comes *before* breadth work. Building
-the comparison rig early is what prevents accumulating a large body of plausible-but-wrong
-behaviour that is expensive to unwind later.
+**Deliberate ordering note:** M5 comes *before* breadth work. Building the comparison rig
+early is what prevents accumulating a large body of plausible-but-wrong behaviour that is
+expensive to unwind later.
 
 ---
 
@@ -1172,66 +1007,63 @@ behaviour that is expensive to unwind later.
 
 Severity: **C**ritical / **H**igh / **M**edium / **L**ow. Probability: as given.
 
-| # | Risk | Sev | Prob | Mitigation |
+| # | Risk | Sev | Prob | Mitigation / status |
 |---|---|:--:|:--:|---|
-| R1 | **Pathfinding cannot be reproduced.** No project has solved it; `Follow_Path` has no named fields. Movement feel is a large part of "is this DK2?" | **C** | High | Isolate behind `IPathfinder` from day one. Ship honest A* placeholder. Dedicate a research spike after M5, driven by recorded oracle traces rather than by reading disassembly. Accept "close enough, documented" as a possible terminal state. |
-| R2 | **Creature moods/anger unsolved.** OpenKeeper's is an empty stub after 12 years. | **H** | High | Treat as a first-class research project, not a feature. `SET_CREATURE_MOODS` trigger + `MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND` are entry points. Design targeted experiments (isolate one anger source at a time). |
-| R3 | **Licence contamination.** Flame has *no* licence; OpenKeeper is GPLv3. Copying either taints the project. | **C** | Medium | §10.1. Written policy, enforced in review. Use as *fact sources*, never as code sources. Record provenance per mechanic. |
+| R1 | **Pathfinding cannot be reproduced.** No project has solved it; `Follow_Path` has no named fields. Movement feel is a large part of "is this DK2?" | **C** | High | Isolated behind `IPathfinder` from day one, with an honest placeholder. Research spike after M5, driven by recorded oracle traces rather than by reading disassembly. Accept "close enough, documented" as a possible terminal state. |
+| R2 | **Creature moods/anger unsolved.** OpenKeeper's is an empty stub after 12 years. | **H** | High | **Largely retired**: built from the binary and one measured ceiling (ADR-0053/0081). Remaining: happiness sources beyond the two a player can switch off. |
+| R3 | **Licence contamination.** Flame has *no* licence; OpenKeeper is GPLv3. | **C** | Medium | §10.1, ADR-0041/0080. Fact sources, never code sources; provenance per mechanic; `FlameIdentifierTests` and `LicenseHeaderTests` enforce the shape. |
 | R4 | **Scope collapse.** DK2 is enormous; motivation fails before the game is playable. | **H** | High | Milestones deliver something runnable early (M3). Vertical slices over horizontal breadth. Accept that M10 may never arrive and that M3–M6 is still a worthwhile artifact. |
-| R5 | **Float non-determinism.** | **H** | Medium | Fixed-point for all gameplay maths. CI determinism gate from day one (M2). |
-| R6 | **The oracle is hard to instrument.** Reading DK2 memory may be fiddlier than hoped. | **H** | Medium | Prototype the memory probe at M5 against *one* field (`f3E6_stateFlags`) before committing to the approach. Fall back to video capture + manual annotation if needed. |
-| R7 | **KWD's unknown 10%** hides something load-bearing. | M | Medium | Cross-check OpenKeeper against dk2-tools `.bt` templates; log every unparsed byte range rather than skipping silently. |
-| R8 | **Tick rate / timing model wrong**, invalidating all timing fidelity. | **H** | Medium | Determine empirically at M5 before building timing-sensitive systems. Keep it a single named constant until measured. |
-| R9 | **Combat formulas unknown**; guessing produces a game that feels wrong. | **H** | High | Isolated 1v1 experiments with fixed seeds; derive damage/interval empirically before implementing. |
-| R10 | **Unity leaks into the simulation** over time. | **H** | Medium | Automated CI check: `DK2.Simulation` must not reference `UnityEngine`. Fails the build. |
-| R11 | **Original assets unavailable to future contributors** (DK2 is not always easy to buy). | M | Medium | `PlaceholderProvider` must always keep the game runnable without assets. |
-| R12 | **Computer-player AI opaque**; single-player levels feel wrong without it. | M | High | Flame's `MyComputerPlayer` + `drop_condition` is the best lead in existence. Defer to post-M8; heroes matter more for the campaign. |
-| R13 | **Save format divergence** — our saves can't be validated against DK2's. | L | High | Accept. Our save format is our own. Use `save_struct.bt` only as a checklist of *what state exists*. |
+| R5 | **Float non-determinism.** | **H** | Medium | Fixed-point for all gameplay maths (ADR-0001); pinned state hash from M2. |
+| R6 | **The oracle is hard to instrument.** | **H** | Medium | **Retired**: a `PROCESS_VM_READ` probe against the running game works and has produced two findings (§6.1). |
+| R7 | **KWD's unknown 10%** hides something load-bearing. | M | Medium | Every record image round-trips byte for byte and the corpus audit logs unconsumed ranges (ADR-0091). Cross-check OpenKeeper against dk2-tools `.bt` templates. |
+| R8 | **Tick rate / timing model wrong**, invalidating all timing fidelity. | **H** | Medium | **Retired**: 4 ticks a second, read from the binary and observed live (ADR-0089, ADR-0102). Every relation between ticks and seconds is in `SimulationTiming` alone. |
+| R9 | **Combat formulas unknown**; guessing produces a game that feels wrong. | **H** | High | Isolated 1v1 experiments with fixed seeds; derive damage and interval empirically before implementing. Nothing built yet (Q8). |
+| R10 | **Unity leaks into the simulation** over time. | **H** | Medium | `ArchitectureTests` reads the built assemblies' `TargetFrameworkAttribute` and references, so a Unity reference or a wrong target fails the build. |
+| R11 | **Original assets unavailable to future contributors.** | M | Medium | `PlaceholderProvider` is total, and `AssetCatalogueTests` keeps it so. |
+| R12 | **Computer-player AI opaque.** | M | High | Flame's `MyComputerPlayer` + `drop_condition` is the best lead in existence. `DK2.AI.KeeperAI` is ours and is labelled as ours. Defer fidelity to post-M8. |
+| R13 | **Save format divergence** — our saves cannot be validated against DK2's. | L | High | Accept. Our save format is our own. `Dk2SaveReader` reads DK2's tile grid to cross-check design maps (Q182); `save_struct.bt` is a checklist of *what state exists*. |
 | R14 | **Audio event semantics unknown** (40% understood). | L | High | Cosmetic. Defer entirely. |
-| R15 | **Upstream projects change or disappear.** | M | Low | Vendor a pinned snapshot of Flame's `mapping/` and the dk2-tools templates into `original-reference/` (research data, not code) with recorded commit hashes. ~~**Still not done as of 2026-09-06, and Flame has now been quiet six months** (§2.2.1) — the risk this row describes is the one that has actually been running.~~ **Closed differently, 2026-09-06/07:** the whole Flame repository is cloned at `D:\Flame`, pinned at `f6e2a3d` and recorded in `original-reference/README.md`, and it builds here — so the maps, the source and a working toolchain all survive the upstream disappearing. Flame has been quiet six months; the pin is what makes that a fact rather than a risk. The dk2-tools templates are still not vendored. |
-| R16 | **AI-generated code silently invents mechanics.** | **H** | Medium | Confidence tags are mandatory in docs and in code comments. Any simulation constant not traceable to parsed data or a cited source fails review. |
+| R15 | **Upstream projects change or disappear.** | M | Low | **Closed**: the whole Flame repository is cloned at `D:\Flame`, pinned at `f6e2a3d`, recorded in `original-reference/README.md`, and builds here — so the maps, the source and a working toolchain all survive upstream disappearing. The dk2-tools templates are still not vendored. |
+| R16 | **AI-generated code silently invents mechanics.** | **H** | Medium | Confidence tags mandatory in docs and code comments; `[Dk2Behavior]` on the rule type. Any simulation constant not traceable to parsed data or a cited source fails review. |
 | R17 | **Regression corpus becomes unmaintainable** as systems change. | M | Medium | Scenarios are declarative data, not code. Comparison tolerances explicit and versioned. |
-| R18 | **Performance** — hundreds of creatures + pathfinding on a fixed tick. | M | Medium | Headless harness makes profiling easy and early. Fixed-point is cheap. Defer optimisation until a real level runs. |
-| R19 | **Unity as the wrong long-term choice** (licensing/business changes). | M | Low | The simulation is engine-agnostic by construction. Swapping presentation is weeks, not years. This risk is already mitigated by the architecture. |
-| R20 | **Multiplayer expectations** creep in early and distort the architecture. | M | Low | Explicitly out of scope until post-M10. Determinism work happens to make it feasible later; that is a side effect, not a goal. |
+| R18 | **Performance** — hundreds of creatures + pathfinding on a fixed tick. | M | Medium | Headless harness makes profiling easy. Fixed-point is cheap. **Never measured** (goal 9). |
+| R19 | **Unity as the wrong long-term choice.** | M | Low | The simulation is engine-agnostic by construction; swapping presentation is weeks, not years. |
+| R20 | **Multiplayer expectations** creep in early and distort the architecture. | M | Low | Out of scope until post-M10. Determinism happens to make it feasible later; that is a side effect, not a goal. |
 
-**The two that actually decide the project's fate: R1 (pathfinding) and R4 (scope).**
-Everything else is manageable.
+**The two that decide the project's fate: R1 (pathfinding) and R4 (scope).**
 
 ---
 
 ## 10. Decisions required before implementation
 
-### 10.1 Licensing policy — **RESOLVED: GPL-3.0-or-later + clean-room (ADR-0041, amending ADR-0003)**
+Every decision this section asked for has been made. The rows below record which ADR made
+it; the ADR carries the reason.
 
-> **Owner decision 2026-09-04: the project is GNU GPL version 3 or later**, to
-> match OpenKeeper. It was MIT from 2026-08-29 until then (ADR-0003). Every
-> source file carries `SPDX-License-Identifier: GPL-3.0-or-later`, enforced by
-> `LicenseHeaderTests` rather than by an analyser (ADR-0041 records why).
->
-> **The clean-room policy below stays in force, and its basis changed.** Under
-> MIT it was a licence consequence; under GPLv3 copying OpenKeeper's code would
-> be lawful, and it is still not done — because the brief asks for clean-room
-> behavioural reimplementation and the owner's instruction is to *"reference it
-> and compare with our own findings, not copy it"*. **Flame is unchanged:**
-> unlicensed means no reuse rights regardless of our licence. Facts from either,
-> always with provenance. Full boundary table:
-> `docs/research/external-resources.md`.
->
-> Reference install: `E:\GogGames\Dungeon Keeper 2` (GOG). Original analysis kept
-> below for the record — note that its conclusion "copying OpenKeeper's code
-> obliges us to license the whole project GPLv3" is now moot, because the whole
-> project *is* GPLv3.
+| Decision | Settled by |
+|---|---|
+| Project licence | **GPL-3.0-or-later** (ADR-0041, amending ADR-0003). Every source file carries `SPDX-License-Identifier: GPL-3.0-or-later`, enforced by `LicenseHeaderTests` rather than an analyser. |
+| Clean-room policy | **In force** (ADR-0041). Under GPLv3 copying OpenKeeper's code would be lawful; it is still not done, because the brief asks for clean-room behavioural reimplementation. |
+| Flame identifiers in the repository | **May be cited in a document, never in `src/`, `tests/` or `unity/`**, comments included (ADR-0080, `FlameIdentifierTests`). |
+| Vendoring Flame's `mapping/*.map` as research data | **Not vendored, and better than vendored**: the whole repository is cloned outside the tree at a pinned commit (R15, §2.2.1). |
+| Decompiler output | **Never enters the repository, anywhere** (ADR-0046). `reverse-engineering/` is gitignored except its README. |
+| .NET version | net10.0 for tools, harness and tests; **netstandard2.1** for the eight Unity-loadable assemblies, from `src/Shared/UnityBound.props` (ADR-0002 as corrected, ADR-0036). |
+| Unity version | **Unity 6 LTS `6000.6.0f1`** (ADR-0036). |
+| Fixed-point format | **Q32.32, `long`-backed** (`Fp32`, ADR-0001). |
+| Test framework | **xUnit**, with scenario tests generated from YAML (`ScenarioTests`). |
+| Determinism gate | **Enabled from the first commit that had a `Tick()`** (ADR-0006). |
+| Scenario file format | **YAML via YamlDotNet** rather than a hand-rolled subset (§6.2). |
+
+### 10.1 Licensing policy — RESOLVED: GPL-3.0-or-later + clean-room (ADR-0041, amending ADR-0003)
 
 Established facts: [KNOWN]
 
-- **Flame** publishes **no licence** (GitHub API reports `"license": null`). Default
-  copyright applies: **no reuse rights whatsoever**.
-- **OpenKeeper** is **GPLv3**. Copying its code obliges us to license the whole project
-  GPLv3.
+- **Flame** publishes **no licence** (GitHub API reports `"license": null`, re-confirmed
+  against the clone). Default copyright applies: **no reuse rights whatsoever**, unchanged
+  by this project being GPLv3.
+- **OpenKeeper** is **GPLv3**.
 - DK2 itself is EA-owned proprietary software.
 
-The workable position — and the one I recommend:
+The position in force:
 
 > **Facts about DK2 may be used. Code from any project may not be copied.**
 >
@@ -1247,96 +1079,43 @@ manual's description of intended behaviour.
 **What this forbids:** transliterating an OpenKeeper Java method into C#; copying Flame's
 reconstructed C++ function bodies; vendoring either project's source into `src/`.
 
-**Decisions needed from you:**
-1. Confirm the clean-room policy above (or choose GPLv3, which would permit direct
-   OpenKeeper porting and would substantially accelerate M1–M4 — a real and legitimate
-   option worth considering).
-2. Choose the project's own licence.
-3. Confirm we may vendor Flame's `mapping/*.map` files as *research data*. (My reading is
-   that these are functional descriptions of a third-party binary rather than creative
-   work, but they are unlicensed, so this is worth a deliberate decision rather than a
-   default.)
-
-I have flagged rather than resolved this, per §32 of the brief.
+Full boundary table: `docs/research/external-resources.md`. Attribution for adopted
+OpenKeeper names: `THIRD-PARTY-NOTICES.md`.
 
 ### 10.2 Smaller decisions
 
-| Decision | Recommendation |
-|---|---|
-| .NET version | .NET 9 for libraries/tools; netstandard2.1-compatible surface for the Unity assembly |
-| Unity version | **Decided 2026-09-04 (ADR-0036): Unity 6 LTS `6000.6.0f1`.** 2022.3 LTS is the fallback; nothing depends on either |
-| Fixed-point format | Q32.32 (`long`-backed). Revisit if profiling demands |
-| Test framework | xUnit + FluentAssertions; scenario tests generated from YAML |
-| Determinism gate | Enabled from the first commit that has a `Tick()` |
+Folded into the table above.
 
 ---
 
-## 11. Immediate next steps (next 1–2 weeks)
+## 11. Immediate next steps
 
-> **Revision-1 text, written 2026-08-29 before the repository existed, kept
-> as the record of where the plan started. Status as of 2026-09-06:** 1 — done,
-> the GOG install is at `E:\GogGames\Dungeon Keeper 2` (`Dk2Install.Find()`);
-> 2 — resolved, GPLv3 with OpenKeeper reusable under attribution (ADR-0041,
-> §10.1); 3 — done; 4 — ~~**not done**, Flame has never been on this machine
-> (§2.2.1, R15)~~ **done differently on 2026-09-06/07**: Flame is cloned and
-> pinned at `D:\Flame` and builds there, which keeps the maps *and* their source
-> (§2.2.1, R15); 5 — **not done**, and no longer for want of the file: the
-> `sgmap` has been on disk since 2026-09-06 and the tool has simply not been
-> written; 6 — the 1999 *player*
-> manual was read (`manual-1999.md`, ADR-0037), the editor manual was not;
-> 7, 8, 9 — done (`DK2.Data`, all 18 record-type ids, `kwd-record-fields.md`);
-> 10 — became `docs/research/open-questions.md`, 202 rows. For what to pick up
-> next, read `docs/HANDOFF.md`, not this section.
+Two items from the original list remain open; the rest are done. **For what to pick up
+next, read `docs/HANDOFF.md` §"Next steps", not this section** — it holds the current
+queue, and `docs/RESEARCH-QUEUE.md` holds what the binary can settle without playing.
 
-Ordered. Items 1–3 are blocking for everything else.
+**Open — write a Flame symbol-map query tool.** Parse the 86,706-line `sgmap` and answer
+`sgmap struct CCreature`, `sgmap find lair`, `sgmap global 0x6...`. Small, high-leverage,
+and needed constantly; the map has been on disk since 2026-09-06 and the tool has simply
+not been written. Flame ships IDA importers and no Ghidra equivalent, so this is also what
+would get the symbols into the Ghidra database. Estimated half a day.
 
-**1. Install Dungeon Keeper 2 v1.70. [BLOCKING — needs you]**
-I checked this machine: there is no DK2 installation under `C:\Program Files (x86)`,
-`C:\GOG Games`, `D:\Games`, or the Steam common folder. Without the original we have no
-oracle and no assets, and roughly half the plan is inert. GOG's release is the usual route;
-it needs the official 1.7 patch level. Put it in `original-reference/` (already gitignored).
-
-**2. Settle the licensing question (§10.1). [BLOCKING — needs you]**
-Everything downstream depends on whether we may port OpenKeeper code.
-
-**3. Initialise the repository.**
-`git init`; create the §4.2 skeleton; `.gitignore` covering `original-reference/` and
-`build/converted/`; solution + empty projects; CI running build + tests on push.
-
-**4. Vendor the research corpus** (pending decision 10.1c).
-Pin and record commit hashes for Flame's `mapping/DKII_EXE_v170.{sgmap,refmap,espmap}` and
-the dk2-tools `Formats/**/*.bt` templates into `original-reference/research/`.
-
-**5. Write `DK2.Tools sgmap` — a Flame symbol-map query tool.**
-Small, high-leverage, and needed constantly: parse the 86,706-line sgmap and answer
-`sgmap struct CCreature`, `sgmap find lair`, `sgmap global 0x6...`. Turns the single best
-research asset into something queryable in seconds. Estimated half a day; will be used
-hundreds of times.
-
-**6. Read the DK2 Official Editor Manual end to end** and write
+**Open — read the DK2 Official Editor Manual end to end** and write
 `docs/research/editor-manual-notes.md`. This is EA's own statement of intended behaviour and
-is the cheapest high-quality source we have. Expect it to answer a dozen questions that
-would otherwise cost days each.
+the cheapest high-quality source available. The 1999 *player* manual was read (ADR-0037,
+`docs/research/manual-1999.md`); the editor manual was not.
 
-**7. Implement the WAD reader** (`DK2.Data.Wad`) with tests against the real archives.
-Simplest format, 100% understood, unblocks everything else.
+Done: the GOG install (`Dk2Install.Find()`); the licensing question (ADR-0041, §10.1); the
+repository; the Flame clone, pinned and building (§2.2.1); the WAD reader; the KWD/KLD
+reader, all 18 record types (ADR-0091); `docs/research/game-database-dump.md`; and the
+conflict register, which became `docs/research/open-questions.md`.
 
-**8. Implement the KWD/KLD reader** (`DK2.Data.Kwd`) — start with `VARIABLES(230)`,
-`CREATURES(170)`, `ROOMS(120)`, `TERRAIN(110)`. Log every byte range not consumed, so the
-unknown 10% is visible rather than silently skipped.
-
-**9. Produce `docs/research/game-database-dump.md`** — the full, actual balance table
-extracted from a real level. This is the first genuinely new artifact this project creates,
-and it is the specification that the whole simulation will be written against.
-
-**10. Open `docs/reverse-engineering/conflicts.md`** and seed it with the questions this
-research already raised:
-- What is DK2's simulation tick rate? [UNKNOWN]
-- Is `CMapEntry` (11 bytes) the whole per-tile runtime state, or a cache over the KWD map? [UNKNOWN]
-- Exact semantics of `f3AF_workModifier` vs `f3B3_workEnhancement`? [UNKNOWN]
-- What does `Follow_Path` (36 bytes) actually contain? [UNKNOWN]
-- Job-selection priority order — is OpenKeeper's ordering (lair → sleep → eat → work) DK2's
-  actual ordering, or its own invention? [HYPOTHESIS, must be tested]
+The five questions that list was seeded with, for the record: DK2's tick rate is **4 a
+second** (ADR-0089); `CMapEntry`'s 11 bytes are still [UNKNOWN] against the KWD map;
+`f3AF_workModifier` versus `f3B3_workEnhancement` is still [UNKNOWN];
+`Follow_Path`'s 36 bytes are still [UNKNOWN] (Q5); and the job-selection order is
+**confirmed for workers from the binary's own priority table** and is not OpenKeeper's
+lair → sleep → eat → work (ADR-0058).
 
 ---
 
@@ -1360,7 +1139,7 @@ research already raised:
 
 ## Appendix B — Research note template
 
-Every mechanic gets one file in `docs/research/`:
+Every mechanic gets one file in `docs/research/`, budget 400 lines:
 
 ```markdown
 # Mechanic: <name>
