@@ -136,8 +136,11 @@ a commit body, for a commit-msg hook. Budgets live in one place,
 `DocBudgets` in `src/DK2.Tools/Program.cs`; changing one there without changing
 this table is a bug.
 
-Install the commit hook once per clone: `git config core.hooksPath .githooks`.
-CI runs the same check on every push and pull request.
+**Install the hook once per clone:** `git config core.hooksPath .githooks`.
+There is no CI, so the hook is the only gate. It **blocks** on a budget
+violation and merely **notes** a stale status line — almost every commit changes
+one of that line’s numbers, and blocking each one would teach everybody to pass
+`--no-verify`, which would switch off the budget check too.
 
 ### What is worth recording
 
