@@ -50,6 +50,26 @@ project of this binary contains the binary).
 Exports land here as `<subject>.c` / `<subject>.txt`, one file per question,
 named after the question they were opened for.
 
+## One capability worth knowing about: the binary carries RTTI
+
+`DKII.EXE` ships MSVC run-time type information, so **any vtable can be traced
+to the class it belongs to** — the dword immediately before a vtable is a
+complete object locator, which gives both the base's offset within the object
+(0 for the primary vtable, non-zero for a secondary base under multiple
+inheritance) and a type descriptor holding the decorated class name. `Rtti.py`
+walks it, and accepts either a vtable base or any code pointer stored inside
+one, so it can be pointed straight at a "1 absolute reference, in .rdata" scan
+result.
+
+**What may leave this folder from it:** the addresses, the base offset, and
+whether two vtables share a class — all facts, all useful. **The decorated
+names should stay here.** They are the original's own internal identifiers, and
+they buy nothing a scan consumes: every script in this folder is driven by
+addresses, offsets and globals, never by a class name. A whole-binary class map
+would be a genuinely useful local asset and a large import of somebody else's
+naming; generate it here if it is wanted, and let only addresses cross.
+
 ## Contents
 
-_(nothing committed, by design — `git status` should never show a file here)_
+_(nothing committed but this README, by design — `git status --short
+reverse-engineering/` must show no other file before any commit)_
