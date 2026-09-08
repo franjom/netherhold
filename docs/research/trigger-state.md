@@ -264,14 +264,36 @@ window, so the "69 entries" it suggested is an artefact. The vtable is certainly
 larger — code elsewhere calls slots `+0x340`, `+0x34C` and `+0x370` on this same
 object. The **base** is what the slot index depends on, and that is solid.
 
-**Still UNKNOWN: who invokes this slot, and how often** — which is
-the rate the whole question is about. **97** call sites in the executable go
-through a vtable slot `0x18`, so the next step is to narrow them to the ones
-that load this object (globals `0x006E5050` / `0x006E5054`). `FUN_00521BA0` is
-worth trying first: it holds three of the 97, and the `0x521xxx` region writes
-this object's own trigger array at `+0x730C`.
+### The object is a static, and the update is driven through an interface
 
-Also still UNKNOWN: what the 24 slots at `+0x4030` are. Q228 keeps both.
+**The object is a global static at `0x006F2A08`.** Its constructor
+(`FUN_00508A10`, which installs the vtable at `0x0066E3EC`) is called once from
+the CRT's static-initialiser list at `0x005089D5`, with the destructor
+registered through `atexit`. So it is not allocated and not owned by a manager,
+and its address is a constant — a far better handle than the two globals that
+merely cache a pointer to it.
+
+Across the whole executable it is referenced 90 times: **87 `MOV ECX`** (direct,
+non-virtual method calls), **two `PUSH`** — at `0x00525537` and `0x00525A90`,
+the only places it is handed to anything else — and one `MOV EAX`.
+
+**Still UNKNOWN: who invokes slot `0x18`, and how often.** That is the rate the
+whole question is about, and this round did not close it. What it did was rule
+out the obvious techniques, which is worth recording so they are not retried:
+
+| ruled out | how |
+|---|---|
+| Correlating slot-`0x18` call sites with nearby loads of the object | **Zero** of the 97 sites has a reference to `0x006F2A08`, `0x006E5050` or `0x006E5054` anywhere in the preceding **2 KB** |
+| `FUN_00521BA0`, the best-looking candidate | Holds three of the 97 sites but references none of the world globals; its slot `0x18` belongs to a different class |
+| Slot-`0x18` callers that also use the clock and variable 19 | Exactly one, `FUN_0043CC30`, and it references the world nowhere either |
+
+What those three share is the useful part: **the update is invoked through an
+abstract interface, by code that never names the world.** So the thread to pull
+is not the call site but the *registration*. `0x00525537` passes the world to
+`FUN_00527090` on an object held at `[EBP+0x10]`, gated on a flag at
+`0x0075AEAB`; `0x00525A90` is the other hand-off. Start there.
+
+Also still UNKNOWN: what the 24 slots at `+0x4030` are. Q228 keeps all of it.
 
 **A method note that cost time here.** `0x00518150` appeared to have exactly one
 caller — itself — and a byte scan of every block for its address returned **0
