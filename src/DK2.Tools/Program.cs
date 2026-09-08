@@ -503,6 +503,60 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length >= 2 && args[1] == "things":
+    {
+        // The placed-entity dump. `kwd records` prints one line per THINGS
+        // record saying only its type and length; this prints the fields the
+        // projection into WorldState actually reads, so a claim about where
+        // level 1's heart is can be re-checked from the shipped file.
+        //
+        // With a file argument it dumps that level. With none it sweeps every
+        // <name>Things.kld in the install and prints the corpus distribution,
+        // which is what bounds "how much of a level is a THING".
+        if (args.Length == 2)
+        {
+            string maps = Path.Combine(Dk2Install.Require(), "Data", "editor", "maps");
+            var totals = new SortedDictionary<string, int>(StringComparer.Ordinal);
+            int files = 0, maxX = 0, maxY = 0, maxW = 0, maxH = 0, outOfRange = 0;
+            foreach (string file in Directory.EnumerateFiles(maps, "*Things.kld").Order(StringComparer.OrdinalIgnoreCase))
+            {
+                files++;
+
+                // The level's own grid, so "in range" is checked against the map
+                // it belongs to rather than against the largest map in the game.
+                string level = Path.GetFileName(file);
+                level = level[..^"Things.kld".Length];
+                LevelMap? grid = GameDatabaseLoader.LoadCampaignMap(Dk2Install.Require(), level);
+                if (grid is not null) { maxW = Math.Max(maxW, grid.Width); maxH = Math.Max(maxH, grid.Height); }
+
+                foreach (ThingRecord record in KwdThings.Parse(KwdReader.ReadFile(file)))
+                {
+                    string key = $"{record.Tag} {record.GetType().Name}";
+                    totals[key] = totals.TryGetValue(key, out int n) ? n + 1 : 1;
+
+                    foreach ((int x, int y) in ThingTiles(record))
+                    {
+                        maxX = Math.Max(maxX, x);
+                        maxY = Math.Max(maxY, y);
+                        if (grid is not null && (x < 0 || y < 0 || x >= grid.Width || y >= grid.Height))
+                            outOfRange++;
+                    }
+                }
+            }
+            Console.WriteLine($"{files} THINGS files, {totals.Values.Sum()} top-level records");
+            foreach ((string key, int count) in totals.OrderByDescending(kv => kv.Value))
+                Console.WriteLine($"  {key,-32} {count,6}");
+            Console.WriteLine(
+                $"coordinate range x 0..{maxX}, y 0..{maxY}; largest map {maxW}x{maxH}; "
+                + $"{outOfRange} placed things outside their own level's grid");
+            return outOfRange == 0 ? 0 : 1;
+        }
+
+        foreach (ThingRecord record in KwdThings.Parse(KwdReader.ReadFile(ResolveEditor(args[2]))))
+            Console.WriteLine(DescribeThing(record));
+        return 0;
+    }
+
     case "kwd" when args.Length == 2 && args[1] == "corpus":
     {
         KwdCorpusAudit.Result audit = KwdCorpusAudit.Run(Dk2Install.Require());
@@ -1604,8 +1658,92 @@ static int Usage()
     Console.WriteLine("  kwd recscan <file.kwd> <value> [rec]   offsets holding a measured value, with the column");
     Console.WriteLine("  kwd records <file.kwd|kld>            dump decoded ids/types and consumed lengths");
     Console.WriteLine("  kwd corpus                             parse and round-trip the shipped KWD/KLD corpus");
+    Console.WriteLine("  kwd things [file.kld]                  placed entities of one level, or the corpus");
     Console.WriteLine("  kwd creaturescan <name> <value>        the same, anchored on one creature");
     Console.WriteLine("  kwd creaturehex <offsetHex> <count>    raw byte window across every creature");
     Console.WriteLine("  kwd objecthex <offsetHex> <count> [-w]  the same across every object; -w reads u16s");
     return 1;
+}
+
+/// <summary>
+/// One line per placed THING, showing the fields the world projection reads.
+///
+/// <para>Coordinates print as bare tile indices because that is what they are.
+/// This was worth checking rather than assuming: the simulation carries
+/// positions in fixed-point subtile units (4096 to the tile), and a THING's X
+/// and Y are 32-bit ints, so the natural guess is that they are the same units.
+/// They are not. Every coordinate in the shipped corpus is below the level's
+/// width and height, and `kwd things` with no argument is what re-checks
+/// it.</para>
+/// </summary>
+static string DescribeThing(ThingRecord record)
+{
+    static string Pos(int x, int y) => $"({x,3},{y,3})";
+
+    return record switch
+    {
+        ObjectThing t =>
+            $"OBJECT       {Pos(t.X, t.Y)} objectId={t.ObjectId,3} player={t.PlayerId,2} "
+            + $"gold={t.MoneyAmount,6} spell={t.KeeperSpellId,3} trigger={t.TriggerId}",
+        TrapThing t =>
+            $"TRAP         {Pos(t.X, t.Y)} trapId={t.TrapId,3} player={t.PlayerId,2} shots={t.NumberOfShots}",
+        DoorThing t =>
+            $"DOOR         {Pos(t.X, t.Y)} doorId={t.DoorId,3} player={t.PlayerId,2} flags=0x{t.Flags:X2} trigger={t.TriggerId}",
+        ActionPointThing t =>
+            $"ACTION_POINT {Pos(t.StartX, t.StartY)}..{Pos(t.EndX, t.EndY)} id={t.ActionPointId,3} "
+            + $"next={t.NextWaypointId,3} wait={t.WaitDelay,5} flags=0x{t.Flags:X4} trigger={t.TriggerId,4} name={t.Name}",
+        KeeperCreatureThing t =>
+            $"KEEPER_CREAT {Pos(t.X, t.Y)} z={t.Z,7} creatureId={t.CreatureId,3} player={t.PlayerId,2} "
+            + $"level={t.Level,2} hp={t.InitialHealth,6} gold={t.GoldHeld,5} flags=0x{t.Flags:X2} trigger={t.TriggerId}",
+        NeutralCreatureThing t =>
+            $"NEUTRAL_CREAT{Pos(t.X, t.Y)} z={t.Z,7} creatureId={t.CreatureId,3} "
+            + $"level={t.Level,2} hp={t.InitialHealth,6} gold={t.GoldHeld,5} flags=0x{t.Flags:X2} trigger={t.TriggerId}",
+        GoodCreatureThing t =>
+            $"GOOD_CREAT   {Pos(t.X, t.Y)} z={t.Z,7} creatureId={t.CreatureId,3} "
+            + $"level={t.Level,2} hp={t.InitialHealth,6} gold={t.GoldHeld,5} objective={t.Objective,3} "
+            + $"targetAp={t.ObjectiveTargetActionPointId,3} targetPlayer={t.ObjectiveTargetPlayerId,2} trigger={t.TriggerId}",
+        HeroPartyThing t =>
+            $"HERO_PARTY   partyId={t.PartyId,3} trigger={t.TriggerId,4} name={t.Name}"
+            + string.Concat(t.Members
+                .Where(m => m.CreatureId != 0)
+                .Select(m => Environment.NewLine + "    member   " + DescribeThing(m))),
+        RoomThing t =>
+            $"ROOM         {Pos(t.X, t.Y)} roomType={t.RoomType,3} player={t.PlayerId,2} "
+            + $"direction={t.Direction,3} hp={t.InitialHealth,6}",
+        EffectGeneratorThing t =>
+            $"EFFECT_GEN   {Pos(t.X, t.Y)} generatorId={t.GeneratorId,3} frequency={t.Frequency,3} "
+            + $"effects=[{string.Join(",", t.EffectIds)}]",
+        DeadBodyThing t =>
+            $"DEAD_BODY    {Pos(t.X, t.Y)} creatureId={t.CreatureId,3} player={t.PlayerId,2} gold={t.GoldHeld}",
+        CameraThing t =>
+            $"CAMERA       {Pos(t.X, t.Y)} z={t.Z,7} cameraId={t.CameraId,3}",
+        _ => $"THING tag={record.Tag} {record.GetType().Name}",
+    };
+}
+
+/// <summary>
+/// The tile a placed THING occupies, or nothing for the records that carry no
+/// position. Deliberately independent of the world projection in
+/// <c>DK2.Simulation</c>: this is the auditor, and an auditor that shares the
+/// thing it audits proves nothing.
+///
+/// <para>HERO_PARTY members are excluded because their X and Y are zero in
+/// every shipped record — a party is placed by the trigger that spawns it at an
+/// action point, not by coordinates in the file.</para>
+/// </summary>
+static IEnumerable<(int X, int Y)> ThingTiles(ThingRecord record)
+{
+    switch (record)
+    {
+        case ObjectThing t: yield return (t.X, t.Y); break;
+        case TrapThing t: yield return (t.X, t.Y); break;
+        case DoorThing t: yield return (t.X, t.Y); break;
+        case ActionPointThing t: yield return (t.StartX, t.StartY); yield return (t.EndX, t.EndY); break;
+        case CreatureThing t: yield return (t.X, t.Y); break;
+        case RoomThing t: yield return (t.X, t.Y); break;
+        case EffectGeneratorThing t: yield return (t.X, t.Y); break;
+        case DeadBodyThing t: yield return (t.X, t.Y); break;
+        case CameraThing: break;
+        case HeroPartyThing: break;
+    }
 }
