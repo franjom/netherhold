@@ -20,17 +20,20 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 40;
+    private const ulong HashVersion = 41;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationContext _context;
+    private readonly TriggerExecutor _triggers;
+    private TriggerTurnCsvEmitter? _triggerEmitter;
 
     public GameSimulation(
         GameDatabase database,
         WorldState world,
         ulong seed,
-        IEnumerable<ISimulationSystem>? systems = null)
-        : this(database, world, new SimRandom(seed), systems)
+        IEnumerable<ISimulationSystem>? systems = null,
+        TriggerTree? triggers = null)
+        : this(database, world, new SimRandom(seed), systems, triggers)
     {
     }
 
@@ -38,13 +41,17 @@ public sealed class GameSimulation
         GameDatabase database,
         WorldState world,
         SimRandom rng,
-        IEnumerable<ISimulationSystem>? systems = null)
+        IEnumerable<ISimulationSystem>? systems = null,
+        TriggerTree? triggers = null)
     {
         Database = database;
         World = world;
         Rng = rng;
         _systems = systems is null ? [] : [.. systems];
         _context = new SimulationContext(database, world, rng, NullEventSink.Instance);
+        _triggers = triggers is null
+            ? new TriggerExecutor(world.Triggers)
+            : new TriggerExecutor(triggers, world.Triggers);
     }
 
     public GameDatabase Database { get; }
@@ -58,12 +65,15 @@ public sealed class GameSimulation
     public ISimulationEventSink Events => _context.Events;
 
     public IReadOnlyList<ISimulationSystem> Systems => _systems;
+    public TriggerRunResult? LastTriggerRun { get; private set; }
 
     /// <summary>The next tick to be executed.</summary>
     public GameTick CurrentTick => World.CurrentTick;
 
     /// <summary>Starts sending observation events to <paramref name="events"/>. Behaviour-neutral.</summary>
     public void ObserveWith(ISimulationEventSink events) => _context.Events = events;
+
+    public void EmitTriggerTurnsTo(TextWriter writer) => _triggerEmitter = new TriggerTurnCsvEmitter(writer);
 
     /// <summary>
     /// Advances exactly one game tick. The ONLY way simulation time moves.
@@ -77,8 +87,14 @@ public sealed class GameSimulation
         _context.Tick = World.CurrentTick;
         _context.Input = input;
 
+        // DK2's first game turn is 1; our next-tick clock starts at 0.
+        int dk2Turn = unchecked((int)(World.CurrentTick.Value + 1));
+        LastTriggerRun = _triggers.Run(dk2Turn);
+
         foreach (ISimulationSystem system in _systems)
             system.Execute(_context);
+
+        _triggerEmitter?.Emit(dk2Turn, World.Triggers, _triggers.Tree);
 
         World.CurrentTick = World.CurrentTick.Next;
     }
