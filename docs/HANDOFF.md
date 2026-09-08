@@ -6489,3 +6489,30 @@ disassembly window).
 unknown integers), Q84's `Level17`, and the three standing gaps from the goal
 review — CI's silent skip, the omniscient `WorldView.TileAt`, and simulation
 speed, still never measured.
+
+---
+
+## 2026-09-08 — action points enter the world (ADR-0103)
+
+Branch `codex/action-points` was fast-forwarded to master `eaec15f` before the
+work. Binary research refuted Q222 and ADR-0102's shared-availability claim:
+actions 16, 17, 27 and 31 do not write an action point, and the runtime object
+has no `Available` field. Full findings and addresses are in
+`docs/research/action-points.md`.
+
+`WorldState.ActionPoints` now retains all 1,152 shipped points in THINGS-file
+order. It carries the low-word inclusive rectangle, ids/link, the five flag
+bits the loader copies (`0x3D`), and the saved passage-counter/wait-timer words.
+The latter starts at authored `WaitDelay × 4`; no action-point behaviour or
+trigger evaluation was added. Q235–Q238 hold the unknown flag meanings,
+timer/counter consumers, rectangle cadence and waypoint traversal.
+
+Master had independently taken version 39 while 38 was reserved for this
+branch, so integration uses `HashVersion`/snapshot `FormatVersion` **40**. The
+new pin is `0x6445940E0B0F23A9`. Level 1's unprojected count is **2**, the corpus
+count **2,120**, and every one of the **1,152** projected field sets is checked
+against its source transform by an install-gated test.
+
+Verification at the worktree stage: Release build has 0 warnings; all **1,226
+tests** pass; all **27 scenarios** run. Re-run after any merge that changes hash
+content and take the higher version/pin.

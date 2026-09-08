@@ -240,12 +240,11 @@ public class PlacedThingsOnRealDataTests
 
         Assert.Equal(4, result.Creatures);
         Assert.Equal(1, result.Objects);
+        Assert.Equal(27, result.ActionPoints);
         Assert.Equal(2, result.RoomsAlreadyInTheGrid);
 
-        // 27 action points and 2 hero parties. The count is asserted rather
-        // than ignored so that teaching the projection one of them fails here
-        // and has to be looked at.
-        Assert.Equal(29, result.NotYetProjected);
+        Assert.Equal(2, result.NotYetProjected); // the two hero parties
+        Assert.Equal(27, world.ActionPoints.Count);
 
         // Every one an Imp, every one the human keeper's, every one standing on
         // a dungeon-heart tile that keeper already owns.
@@ -280,7 +279,7 @@ public class PlacedThingsOnRealDataTests
         string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
-        int levels = 0, creatures = 0, objects = 0, rooms = 0, notYet = 0;
+        int levels = 0, creatures = 0, objects = 0, actionPoints = 0, rooms = 0, notYet = 0;
 
         foreach (string level in LevelNames(install))
         {
@@ -298,22 +297,45 @@ public class PlacedThingsOnRealDataTests
             levels++;
             creatures += result.Creatures;
             objects += result.Objects;
+            actionPoints += result.ActionPoints;
             rooms += result.RoomsAlreadyInTheGrid;
             notYet += result.NotYetProjected;
 
             Assert.Equal(result.Creatures, world.Creatures.Count);
             Assert.Equal(result.Objects, world.Objects.Count);
+            Assert.Equal(result.ActionPoints, world.ActionPoints.Count);
+
+            ActionPointThing[] authored = things.OfType<ActionPointThing>().ToArray();
+            for (int i = 0; i < authored.Length; i++)
+            {
+                ActionPointThing source = authored[i];
+                ActionPointState projected = world.ActionPoints[i];
+                Assert.Equal(source.ActionPointId, projected.Id);
+                Assert.Equal(unchecked((ushort)source.StartX), projected.StartX);
+                Assert.Equal(unchecked((ushort)source.StartY), projected.StartY);
+                Assert.Equal(unchecked((ushort)source.EndX), projected.EndX);
+                Assert.Equal(unchecked((ushort)source.EndY), projected.EndY);
+                Assert.Equal(source.TriggerId, projected.TriggerId);
+                Assert.Equal(source.NextWaypointId, projected.NextWaypointId);
+                Assert.Equal((byte)(source.Flags & ActionPointState.LoadedFlagMask),
+                             projected.Flags);
+                Assert.Equal((ushort)0, projected.PassageCount);
+                Assert.Equal(unchecked((ushort)(source.WaitDelay
+                                 * SimulationTiming.OriginalTicksPerGameSecond)),
+                             projected.WaitTimerTicks);
+            }
         }
 
         Assert.Equal(66, levels);
         Assert.Equal(1944, creatures);
         Assert.Equal(788, objects);
+        Assert.Equal(1152, actionPoints);
         Assert.Equal(275, rooms);
 
-        // What is still unread: 1152 action points, 959 traps, 940 doors, 220
-        // hero parties and one effect generator. A number rather than a shrug,
-        // so that teaching the projection any of them has to change it.
-        Assert.Equal(3272, notYet);
+        // What is still unread: 959 traps, 940 doors, 220 hero parties and one
+        // effect generator. A number rather than a shrug, so teaching the
+        // projection any of them has to change it.
+        Assert.Equal(2120, notYet);
 
         static IEnumerable<byte> Keepers() =>
             Enumerable.Range(PlayerIds.FirstKeeper, 5).Select(i => (byte)i);
@@ -343,5 +365,59 @@ public class PlacedThingsOnRealDataTests
         // health up, so level 1 is the worst case.
         Assert.True(weakest * 5 / ThingProjection.FullHealthPercent > 0);
         Assert.Equal(12, weakest * 5 / ThingProjection.FullHealthPercent);
+    }
+
+    /// <summary>
+    /// <b>The loader keeps five flag bits and discards the rest</b>, and the
+    /// shipped corpus carries at least one bit it discards — which is what
+    /// makes the mask testable at all.
+    ///
+    /// <para><b>Why this exists.</b> Every other assertion about the mask
+    /// compares a projected value against
+    /// <see cref="ActionPointState.LoadedFlagMask"/> itself, so the constant is
+    /// checked against itself and any value would pass. The mask is the one
+    /// number in the action-point projection that is read from the binary
+    /// rather than copied from the file, so it is the one that most needs a
+    /// test that can fail. The loader at <c>0x00521244</c>–<c>0x0052128C</c>
+    /// extracts bits 2, 3, 4, 0 and 5 in that order and calls one setter each;
+    /// bits 1, 6 and 7 are never copied.</para>
+    /// </summary>
+    [InstallFact]
+    public void TheLoaderFlagMaskKeepsFiveBitsAndDropsWhatShipsOutsideThem()
+    {
+        // Named bit by bit, so changing it means disagreeing with the
+        // disassembly rather than editing one hex digit.
+        const int kept = (1 << 0) | (1 << 2) | (1 << 3) | (1 << 4) | (1 << 5);
+        Assert.Equal(0x3D, kept);
+        Assert.Equal(kept, ActionPointState.LoadedFlagMask);
+
+        string install = Install();
+
+        int sourceBits = 0, points = 0;
+        foreach (string level in LevelNames(install))
+        {
+            foreach (ThingRecord record in
+                     GameDatabaseLoader.LoadCampaignThings(install, level) ?? [])
+            {
+                if (record is not ActionPointThing point) continue;
+                sourceBits |= point.Flags;
+                points++;
+            }
+        }
+
+        Assert.Equal(1152, points);
+
+        // Discovered from the corpus and then pinned, so that a level file the
+        // reader starts decoding differently shows up here. 0x7D is bits 0, 2,
+        // 3, 4, 5 and 6: every bit the loader keeps, plus bit 6, which ships
+        // and is discarded. Bits 1 and 7 are never authored at all, so the
+        // loader ignoring bit 1 is untestable from data and rests on the
+        // disassembly alone.
+        Assert.Equal(0x7D, sourceBits);
+
+        // The point of the test: something outside the mask is actually
+        // present to be dropped. Without this the mask could be 0xFF and
+        // nothing would notice.
+        Assert.NotEqual(0, sourceBits & ~kept);
     }
 }

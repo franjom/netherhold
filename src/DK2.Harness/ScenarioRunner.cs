@@ -724,13 +724,13 @@ public sealed class ScenarioRunner
 
         ThingProjectionResult result = ThingProjection.Place(world, _database, things);
 
-        // Reported, not swallowed. Action points, doors, traps and hero parties
-        // have nowhere to go yet, and a scenario built on a level that is a
-        // third unread should say so in its own output.
+        // Reported, not swallowed. Doors, traps, hero parties and effect
+        // generators have nowhere to go yet, so a scenario built on a level
+        // with any of them says so in its own output.
         if (result.NotYetProjected > 0)
             unsupported.Add(
                 $"{level}: {result.NotYetProjected} placed things this build cannot project yet "
-                + "(action points, doors, traps, hero parties, effect generators)");
+                + "(doors, traps, hero parties, effect generators)");
     }
 
     private LevelMap ResolveMap(string spec)

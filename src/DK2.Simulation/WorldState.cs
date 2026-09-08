@@ -457,6 +457,68 @@ public readonly record struct HandItem(HandItemKind Kind, int Id)
 }
 
 /// <summary>
+/// One action point as DK2 constructs it from a placed THING.
+///
+/// <para>The rectangle, ids and flags are level-authored data. The passage
+/// count and wait timer are runtime fields and therefore remain mutable even
+/// though their consumers have not yet been identified. There is deliberately
+/// no <c>Available</c> field: the four trigger actions previously thought to
+/// write one instead use their byte as input to separate operations and never
+/// write the action-point object (ADR-0103).</para>
+/// </summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/action-points.md")]
+public sealed class ActionPointState
+{
+    /// <summary>The five source flag bits DK2's loader copies: 0, 2, 3, 4 and 5.</summary>
+    public const byte LoadedFlagMask = 0x3D;
+
+    public byte Id { get; init; }
+    public ushort StartX { get; init; }
+    public ushort StartY { get; init; }
+    public ushort EndX { get; init; }
+    public ushort EndY { get; init; }
+    public ushort TriggerId { get; init; }
+    public byte NextWaypointId { get; init; }
+    public byte Flags { get; init; }
+
+    /// <summary>Runtime counter initialised to zero. Its modifying path remains Q236.</summary>
+    public ushort PassageCount { get; set; }
+
+    /// <summary>
+    /// The authored wait delay multiplied by DK2's four-Hz tick rate at load.
+    ///
+    /// <para><b>This scales by the ORIGINAL rate while the trigger threshold
+    /// beside it scales by ours — deliberately, and the two are equal
+    /// today.</b> Both reproduce the same loader idiom, a single multiply by
+    /// variable 19 at load time, but they are consumed differently. This is a
+    /// stored field mirroring the original's own saved block, so it keeps the
+    /// original's number whatever our step rate becomes.
+    /// <see cref="TriggerState.HasElapsed"/> builds a deadline compared
+    /// against <i>our</i> clock, so it must scale by
+    /// <see cref="SimulationTiming.TicksPerSecond"/>.</para>
+    ///
+    /// <para>If <c>TicksPerSecond</c> ever stops being 4, do not make one
+    /// match the other: whatever eventually decrements this counter has to
+    /// say which clock it counts in.</para>
+    /// </summary>
+    public ushort WaitTimerTicks { get; set; }
+
+    public void HashInto(ref Hash64 hash)
+    {
+        hash.Add(Id);
+        hash.Add(StartX);
+        hash.Add(StartY);
+        hash.Add(EndX);
+        hash.Add(EndY);
+        hash.Add(TriggerId);
+        hash.Add(NextWaypointId);
+        hash.Add(Flags);
+        hash.Add(PassageCount);
+        hash.Add(WaitTimerTicks);
+    }
+}
+
+/// <summary>
 /// All mutable simulation state for one level. Owns no behaviour — systems act
 /// on it. Everything reachable from here is hashed and snapshotted; anything
 /// not reachable from here does not exist as far as determinism is concerned,
@@ -469,6 +531,7 @@ public sealed class WorldState
     private readonly List<TileWorkOrder> _pendingWork = [];
     private readonly List<CreatureState> _creatures = [];
     private readonly List<ObjectState> _objects = [];
+    private readonly List<ActionPointState> _actionPoints = [];
     private int _nextCreatureId = 1;
     private int _nextObjectId = 1;
 
@@ -731,6 +794,14 @@ public sealed class WorldState
         return null;
     }
 
+    /// <summary>
+    /// The level's action points in THINGS-file order. The original walks its
+    /// collection linearly for several queries, so this is never sorted by id.
+    /// </summary>
+    public IReadOnlyList<ActionPointState> ActionPoints => _actionPoints;
+
+    internal void AddActionPoint(ActionPointState actionPoint) => _actionPoints.Add(actionPoint);
+
     public bool HasPlayer(byte playerId)
     {
         foreach (PlayerState p in _players)
@@ -791,6 +862,7 @@ public sealed class WorldState
     internal List<TileWorkOrder> RawPendingWork => _pendingWork;
     internal List<CreatureState> RawCreatures => _creatures;
     internal List<ObjectState> RawObjects => _objects;
+    internal List<ActionPointState> RawActionPoints => _actionPoints;
 
     /// <summary>Restores the id counter after a snapshot, so ids stay unique across a save.</summary>
     internal int NextCreatureId
@@ -830,6 +902,9 @@ public sealed class WorldState
         hash.Add(_objects.Count);
         hash.Add(_nextObjectId);
         foreach (ObjectState o in _objects) o.HashInto(ref hash);
+
+        hash.Add(_actionPoints.Count);
+        foreach (ActionPointState actionPoint in _actionPoints) actionPoint.HashInto(ref hash);
 
         // The trigger banks are level state, not level data: an action record
         // writes a flag and a later condition reads it, so two worlds that

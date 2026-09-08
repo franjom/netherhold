@@ -7857,6 +7857,8 @@ against the binary rather than trusting the same source.
   the projection and reported as a scenario caveat, because a projection that
   silently ignores two thirds of a file looks identical to one that works.
   Q222–Q224 carry what each needs.
+  **Superseded for action points by ADR-0103:** the current total is 2,120;
+  this paragraph records ADR-0101's boundary when it was accepted.
 - **No floor on placed health**, and that is a decision rather than an
   oversight: the clamp could never fire (smallest `Hp` 240, smallest percentage
   5, curve only scales up), and this project has just spent a session deleting
@@ -7996,9 +7998,9 @@ a tick — which also means this adds no per-tick work to the simulation.
   behind every timer is a two-hop accessor whose unit is not established. That
   is a cadence question, the class that produced the Q1/Q47 deadlock, and it
   deserves its own pass rather than a guess.
-- Action points, the other mutable trigger state, are still unmodelled (Q222 is
-  now answered — they *are* mutable, since action types 16, 17, 27 and 31 write
-  an `Available` byte — so the storage is the next step, not the question).
+- Action points were still unmodelled here. The claim that actions 16, 17, 27
+  and 31 write an `Available` byte was later refuted by their complete binary
+  paths; see ADR-0103.
 
 ### Amendment, 2026-09-08 — an authored timer threshold is in seconds, and this ADR said ticks
 
@@ -8114,3 +8116,44 @@ requirement, since nothing evaluates conditions yet.
 everything after is flat; worst single interval in 300 s was 335 ms. The few ms
 above 250 track the host, so the simulation keeps 250 ms exactly and ADR-0089
 stands on three independent measurements.
+
+---
+
+## ADR-0103 — Action points are ordered world state, without an availability field
+
+**Status:** accepted (2026-09-08). **Integrated `HashVersion` 39 → 40** and
+snapshot `FormatVersion` 39 → 40. Version 38 was reserved for this branch before
+39 landed independently; integration takes the higher number. Pinned hash moves
+from `0x81D58B966898BEC8` to `0x6445940E0B0F23A9`. **Evidence:**
+`docs/research/action-points.md`.
+
+**Context.** All 1,152 shipped action points were parsed but discarded by the
+THINGS projection. ADR-0102 also stated that trigger actions 16, 17, 27 and 31
+write an action-point `Available` byte. That conclusion came from a repeated
+transcribed parameter name, not from following the stores.
+
+**Binary correction.** None of those four paths writes the action-point object.
+Type 16 updates a separate four-slot world area bank; type 17 selects an area
+operation; type 27 builds a camera/event command from the rectangle centre,
+angle and time; type 31 builds a path command and optionally marks its path id.
+The runtime action-point layout contains no availability field.
+
+**Decision.** `WorldState.ActionPoints` preserves THINGS-file order. Each entry
+carries the low-word rectangle, action-point id, trigger id, next-waypoint id,
+the five flag bits the original loader actually copies (`0x3D`), and its saved
+runtime passage counter and wait timer. `WaitDelay` is multiplied by the
+level's four-Hz original tick rate once at projection, matching the loader.
+There is deliberately no `Available` property.
+
+The whole list is hashed and snapshotted in file order. The name is omitted:
+it is not in the runtime tail used by these mechanics and does not affect the
+simulation. Trigger repeat count is also omitted for now because the original
+derives it by resolving the trigger record, while this projection has no
+trigger-record input. It must enter with trigger-tree projection, not as an
+invented default.
+
+**Consequences.** Campaign level 1 now projects 27 action points and leaves only
+its two hero parties unread. Across all 66 levels, 1,152 points enter the world
+and the unprojected count falls from 3,272 to 2,120. No action-point behaviour
+runs yet: flag meanings, timer/counter consumers, exact rectangle-entry cadence
+and waypoint traversal remain Q235–Q238.

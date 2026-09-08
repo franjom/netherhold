@@ -303,6 +303,13 @@ public class DeterminismTests
         // order, string hashing - and for a simulation whose state is mostly
         // creatures it is guarding a world that has none.
         //
+        // 40 adds the level's action points in THINGS-file order: their
+        // rectangles, ids, loader-filtered flags, passage counters and wait
+        // timers. Even this fixture's empty list adds its count to the hash.
+        // Snapshot FormatVersion moved with it. Version 38 remains the number
+        // reserved by the action-point branch before 39 landed on master; the
+        // merged result takes the next higher number rather than reusing it.
+        //
         // 39 corrects the TIMER BANK from 256 slots to SIXTEEN, which is 240
         // fewer dwords in the hash. Two readings agree on sixteen: the next
         // field on the owning object sits 0x40 bytes after the bank, and the
@@ -328,7 +335,7 @@ public class DeterminismTests
         // one drops a field out of the tile hash, the other re-times every
         // scheduled system.
         //
-        // Previous values: 0xD17C2E424DDE0AF2 (37), 0xD893704FB5D00309 (36), 0x368FDF9DF3D0A6EA (35), 0x46FAACC93F8323FF (34), 0x21A7E4D24F37DF48 (33), 0x30722F6054924CC5 (32),
+        // Previous values: 0x81D58B966898BEC8 (39), 0xD17C2E424DDE0AF2 (37), 0xD893704FB5D00309 (36), 0x368FDF9DF3D0A6EA (35), 0x46FAACC93F8323FF (34), 0x21A7E4D24F37DF48 (33), 0x30722F6054924CC5 (32),
         // 0xC026542547419606 (31), 0x2E7E116CA573398B (30),
         // 0x19A512BB12A71575 (28), 0x0D75C57C1848268C (27),
         // 0x154E9041172A7F7F (26),
@@ -341,7 +348,7 @@ public class DeterminismTests
         // 0xAEAF871CC4814DA1 (13), 0x9D2695B2F62707D2 (12),
         // 0x12E4F45E48ACEB9B (11), 0x06F71648486D0FEC (10),
         // 0x4F824667CDA7EF25 (9).
-        Assert.Equal(0x81D58B966898BEC8UL, sim.StateHash());
+        Assert.Equal(0x6445940E0B0F23A9UL, sim.StateHash());
     }
 
     [Fact]

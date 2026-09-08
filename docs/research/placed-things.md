@@ -135,10 +135,11 @@ claim in §3 look false, because an empty slot's `InitialHealth` is 0.
 
 ## 6. What the projection places, and what it does not
 
-`ThingProjection.Place` places creatures and objects, counts rooms as
-already-in-the-grid, and counts everything else as not-yet-projected. Over the
-whole corpus that is **1944 creatures and 788 objects placed**, 275 rooms
-recognised, and **3272 records it cannot project yet**.
+`ThingProjection.Place` places creatures, objects and action points, counts
+rooms as already-in-the-grid, and counts everything else as
+not-yet-projected. Over the whole corpus that is **1944 creatures, 788 objects
+and 1152 action points placed**, 275 rooms recognised, and **2120 records it
+cannot project yet**.
 
 | record | status |
 |---|---|
@@ -147,7 +148,7 @@ recognised, and **3272 records it cannot project yet**.
 | GoodCreatureThing | placed as `PlayerIds.Good` — likewise |
 | ObjectThing | placed, `MoneyAmount` becoming the object's gold |
 | RoomThing | recognised, not placed (§4) |
-| ActionPointThing | **not yet** — the world has nowhere to put one (Q222) |
+| ActionPointThing | placed as hashed level state (ADR-0103) |
 | DoorThing, TrapThing | **not yet** — no door or trap state exists (Q224) |
 | HeroPartyThing | **not yet** — spawned by a trigger, which is M6 |
 | EffectGeneratorThing | **not yet** — presentation, and there is exactly one |
@@ -156,7 +157,8 @@ The count is returned rather than logged, because a projection that silently
 ignores two thirds of a file looks identical to one that works. "This level has
 no doors" and "this build cannot see doors" are the same output without it.
 
-Nothing here adds state to the world hash, so this changes no `HashVersion`.
+Action points add hashed and snapshotted state, so this changes `HashVersion`
+and snapshot `FormatVersion` (ADR-0103).
 
 ## Summary of confidence
 

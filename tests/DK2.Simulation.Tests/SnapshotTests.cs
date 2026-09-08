@@ -53,6 +53,40 @@ public class SnapshotTests
     }
 
     [Fact]
+    public void RoundTrip_CarriesActionPointRuntimeState()
+    {
+        GameDatabase database = TestWorld.Database();
+        GameSimulation original = TestWorld.Simulation();
+        ThingProjection.Place(original.World, database,
+        [
+            new ActionPointThing(new byte[56])
+            {
+                StartX = 2, StartY = 3, EndX = 7, EndY = 8,
+                WaitDelay = 5, Flags = 0x7D, TriggerId = 44,
+                ActionPointId = 9, NextWaypointId = 10, Name = "snapshot",
+            },
+        ]);
+        original.World.ActionPoints[0].PassageCount = 12;
+        original.World.ActionPoints[0].WaitTimerTicks = 17;
+
+        GameSimulation restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(original), database, [new ChaosSystem()]);
+
+        ActionPointState point = Assert.Single(restored.World.ActionPoints);
+        Assert.Equal((byte)9, point.Id);
+        Assert.Equal((ushort)2, point.StartX);
+        Assert.Equal((ushort)3, point.StartY);
+        Assert.Equal((ushort)7, point.EndX);
+        Assert.Equal((ushort)8, point.EndY);
+        Assert.Equal((ushort)44, point.TriggerId);
+        Assert.Equal((byte)10, point.NextWaypointId);
+        Assert.Equal(ActionPointState.LoadedFlagMask, point.Flags);
+        Assert.Equal((ushort)12, point.PassageCount);
+        Assert.Equal((ushort)17, point.WaitTimerTicks);
+        Assert.Equal(original.StateHash(), restored.StateHash());
+    }
+
+    [Fact]
     public void RestoredRun_ContinuesIdentically()
     {
         // The real invariant. Equal hashes at the moment of restore only prove

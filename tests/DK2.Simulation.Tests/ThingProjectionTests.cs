@@ -165,10 +165,69 @@ public class ThingProjectionTests
             new ActionPointThing(new byte[56]) { StartX = 6, StartY = 4, ActionPointId = 1, Name = "" },
         ]);
 
-        Assert.Equal(3, result.NotYetProjected);
-        Assert.Equal(0, result.Placed);
+        Assert.Equal(2, result.NotYetProjected);
+        Assert.Equal(1, result.Placed);
         Assert.Empty(world.Creatures);
         Assert.Empty(world.Objects);
+        Assert.Single(world.ActionPoints);
+    }
+
+    [Fact]
+    public void AnActionPointCarriesTheRuntimeFieldsTheBinaryLoads()
+    {
+        GameDatabase database = Database();
+        WorldState world = World(database);
+
+        ThingProjectionResult result = ThingProjection.Place(world, database,
+        [
+            new ActionPointThing(new byte[56])
+            {
+                StartX = 3, StartY = 4, EndX = 8, EndY = 9,
+                WaitDelay = 19, Flags = 0x7F, TriggerId = 321,
+                ActionPointId = 7, NextWaypointId = 11, Name = "fixture",
+            },
+        ]);
+
+        ActionPointState point = Assert.Single(world.ActionPoints);
+        Assert.Equal(1, result.ActionPoints);
+        Assert.Equal((byte)7, point.Id);
+        Assert.Equal((ushort)3, point.StartX);
+        Assert.Equal((ushort)4, point.StartY);
+        Assert.Equal((ushort)8, point.EndX);
+        Assert.Equal((ushort)9, point.EndY);
+        Assert.Equal((ushort)321, point.TriggerId);
+        Assert.Equal((byte)11, point.NextWaypointId);
+
+        // Bits 0,2,3,4,5 are copied. Source bits 1 and 6 are not, and no one
+        // of these bits is reinterpreted as an invented Available field.
+        Assert.Equal(ActionPointState.LoadedFlagMask, point.Flags);
+        Assert.Equal((ushort)0, point.PassageCount);
+        Assert.Equal((ushort)(19 * SimulationTiming.OriginalTicksPerGameSecond),
+                     point.WaitTimerTicks);
+    }
+
+    [Fact]
+    public void ActionPointRuntimeFieldsParticipateInTheWorldHash()
+    {
+        GameDatabase database = Database();
+        WorldState one = World(database);
+        WorldState two = World(database);
+        var thing = new ActionPointThing(new byte[56])
+        {
+            StartX = 3, StartY = 4, EndX = 8, EndY = 9,
+            WaitDelay = 2, Flags = 0x10, TriggerId = 1,
+            ActionPointId = 7, NextWaypointId = 0, Name = "fixture",
+        };
+        ThingProjection.Place(one, database, [thing]);
+        ThingProjection.Place(two, database, [thing]);
+
+        Hash64 before = Hash64.Start();
+        one.HashInto(ref before);
+        two.ActionPoints[0].WaitTimerTicks--;
+        Hash64 after = Hash64.Start();
+        two.HashInto(ref after);
+
+        Assert.NotEqual(before.Value, after.Value);
     }
 
     [Fact]
