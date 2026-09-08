@@ -8,10 +8,11 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>
-/// One kind of work a worker can apply to a tile. A 1:1 reading of the ten
-/// health-delta variables DK2's global balance table carries for tile work (ids
-/// 4–13 of <see cref="VariableTypeId"/>); anything DK2 has no variable for is not
-/// in this enum.
+/// One kind of work a worker can apply to a tile. Each names one of the tile-work
+/// health-delta variables in DK2's balance table (ids 4–16 of <see cref="VariableTypeId"/>,
+/// mapped by <see cref="TileWorkRules.Variable"/>); what DK2 has no variable for is
+/// not here. Members' values are not variable ids, and 6 and 9 are vacant because
+/// <c>RepairTile</c> and <c>FillIn</c> have no reader in the binary (Q219).
 /// </summary>
 public enum TileWorkKind
 {
@@ -41,26 +42,12 @@ public enum TileWorkKind
 
     /// <summary>
     /// Take a room that belongs to somebody else — a rival's or a neutral one.
-    /// <c>ConvertRoomHealth</c>.
-    ///
-    /// <para><b>The one kind of work whose outcome is not confined to the tile
-    /// it is applied to.</b> CONFIRMED (owner, 2026-09-04): <i>"once an imp
-    /// claims a portal then the entire portal gets claimed, all tiles that are
-    /// assigned to that portal are immediately claimed … rooms are instantly
-    /// claimed by imps, not tile by tile."</i> So one tile is worked and the
-    /// whole room instance changes hands at once. <see cref="Apply"/> converts
-    /// the worked tile; <see cref="Systems.TileWorkSystem"/> spreads it to the
-    /// rest, because "the rest of the room" needs the world and these rules are
-    /// pure.</para>
-    ///
-    /// <para><b>This is a fix, not a new feature.</b>
-    /// <see cref="TileWorkKind.Claim"/> already applied to room terrain — room
-    /// terrain is <c>Ownable</c> and not <c>Solid</c>, which is all the claim
-    /// rule asked for — so rooms had been converting tile by tile since rooms
-    /// existed, at <c>ClaimTileHealth</c>'s rate, and nothing checked it. The
-    /// <c>Claim</c> rule now excludes room terrain and this kind takes it over,
-    /// which is also what makes <c>ConvertRoomHealth</c> mean something: it had
-    /// been in <see cref="VariableTypeId"/> unused. Q92.</para>
+    /// <c>ConvertRoomHealth</c>, −4000, thirteen applications.
+    /// <para>The only kind whose outcome is not confined to its own tile: one tile
+    /// is worked and the whole room instance changes hands at once — CONFIRMED
+    /// (owner, 2026-09-04) "rooms are instantly claimed by imps, not tile by tile".
+    /// <see cref="TileWorkRules.Apply"/> converts the worked tile and
+    /// <see cref="Systems.TileWorkSystem"/> spreads it (Q92, ADR-0044).</para>
     /// </summary>
     ConvertRoom = 10,
 }
@@ -87,22 +74,10 @@ public enum TileWorkOutcome
 /// <summary>The result of one work application.</summary>
 /// <param name="Outcome">What happened.</param>
 /// <param name="HealthDelta">Health actually applied, after clamping.</param>
-/// <param name="GoldReleased">
-/// Gold freed from the rock by this application.
-///
-/// <b>Credited to nobody here.</b> The rules are pure: who ends up holding this
-/// is <see cref="Systems.TileWorkSystem"/>'s business, and it puts it into the
-/// hands of the creature named on the order — or reports it as uncollected when
-/// no creature swung. See docs/research/tile-work.md and Q31.
-/// </param>
-/// <param name="GoldSpilled">
-/// Gold that was stored on the tile and is no longer, because the tile stopped
-/// being somewhere gold can be kept. <b>Credited to nobody, and that is the
-/// point:</b> in DK2 a destroyed treasury leaves its contents on the floor as
-/// piles that belong to whoever fetches them. The caller turns this number into
-/// a pile on the tile (<c>FloorGold</c>); this record only reports how much came
-/// loose, because the rules here take a tile and not a world.
-/// </param>
+/// <param name="GoldReleased">Gold freed from the rock, credited to nobody here —
+/// <see cref="Systems.TileWorkSystem"/> hands it to the order's creature or reports it uncollected (Q31).</param>
+/// <param name="GoldSpilled">Gold the tile can no longer keep, also credited to nobody:
+/// a destroyed DK2 treasury leaves it on the floor as piles (<see cref="FloorGold"/>).</param>
 /// <param name="NewTerrainId">The tile's terrain type after the application.</param>
 public readonly record struct TileWorkResult(
     TileWorkOutcome Outcome,
@@ -114,21 +89,12 @@ public readonly record struct TileWorkResult(
 }
 
 /// <summary>
-/// A queued unit of work: "player P applies one application of kind K to tile I".
-///
-/// Produced by whatever is doing the work — a worker creature, a test, or the
-/// scenario harness — and consumed by <see cref="Systems.TileWorkSystem"/> in
-/// queue order.
+/// A queued unit of work: "player P applies one application of kind K to tile I",
+/// consumed by <see cref="Systems.TileWorkSystem"/> in queue order.
 /// </summary>
-/// <param name="WorkerCreatureId">
-/// The creature that swung, or -1 when nothing did.
-///
-/// Carried because gold has to go <i>into someone's hands</i>: in DK2 the imp
-/// that freed gold from the rock is the imp that picks it up and carries it away
-/// (Q31), so the resolver needs to know which one that was. Work queued by a
-/// test or by the harness has no worker, and its gold is reported and dropped
-/// exactly as before.
-/// </param>
+/// <param name="WorkerCreatureId">The creature that swung, or -1 when nothing
+/// did: in DK2 the imp that freed the gold is the imp that carries it away
+/// (Q31). Work with no worker has its gold reported and dropped.</param>
 public readonly record struct TileWorkOrder(
     int TileIndex, TileWorkKind Kind, byte PlayerId, int WorkerCreatureId = -1)
 {
@@ -143,18 +109,14 @@ public readonly record struct TileWorkOrder(
 
 /// <summary>
 /// The tile-work rules: how much health an application moves, and what a tile
-/// becomes when its health reaches a bound.
-///
-/// Pure and static on purpose — no world, no RNG, no time. Every number is read
-/// from <see cref="GameDatabase"/>; none is written here. Evidence and
-/// confidence for each rule: docs/research/tile-work.md.
+/// becomes when its health reaches a bound. Pure and static — no world, no RNG,
+/// no time; numbers read from <see cref="GameDatabase"/>, never written.
+/// Evidence and confidence per rule: docs/research/tile-work.md.
 /// </summary>
 public static class TileWorkRules
 {
-    /// <summary>
-    /// The global-variable each work kind draws its per-application health
-    /// delta from. CONFIRMED — these are DK2's own variable names.
-    /// </summary>
+    /// <summary>The global variable each kind draws its per-application health
+    /// delta from. CONFIRMED — these are DK2's own variable names.</summary>
     public static VariableTypeId Variable(TileWorkKind kind) => kind switch
     {
         TileWorkKind.Dig => VariableTypeId.DigRockHealth,
@@ -171,13 +133,9 @@ public static class TileWorkRules
 
     /// <summary>
     /// The ceiling DK2's tile applier clamps a tile's health to: <b>32000</b>.
-    ///
-    /// <para>Read straight off <c>FUN_00452f60</c> — <c>CMP EBX,0x7d00</c>, and
-    /// a positive delta that would carry the health past it stores 32000
-    /// instead. The tile's health is a 16-bit field and 32000 is a round
-    /// decimal short of its range, so this is the engine's own guard rather
-    /// than a type limit. Nothing shipped reaches it: the largest terrain
-    /// maximum is a room's 10000.</para>
+    /// <para><c>FUN_00452f60</c>, <c>CMP EBX,0x7d00</c> — the engine's own guard,
+    /// not a type limit (health is a 16-bit word). Nothing shipped reaches it:
+    /// the largest terrain maximum is a room's 10000.</para>
     /// </summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/tile-work.md")]
     public const int MaxTileHealth = 32000;
@@ -185,31 +143,18 @@ public static class TileWorkRules
     /// <summary>
     /// The health one application of <paramref name="kind"/> moves, and the
     /// fraction it leaves behind in <paramref name="remainder"/>.
-    ///
-    /// The balance table's deltas are per game second, and one application is
-    /// the delta over <see cref="SimulationTiming.BaseApplicationDivisor"/> —
-    /// the worker's Efficiency (80%) over the four ticks of a game second, so a
-    /// fifth (Q19, Q47). Eight of the ten divide exactly; the other two carry
-    /// their remainder into the next application so that the rate stays exactly
-    /// what the table says.
-    ///
-    /// <para><b>The divisor is not the cadence.</b> Work lands
-    /// <see cref="SimulationTiming.WorkApplicationsPerSecond"/> times a second
-    /// — four, once a tick — and it is a coincidence of the default Efficiency
-    /// that four applications of a fifth deliver 80% of the tabled rate rather
-    /// than all of it. Conflating the two is what put this project's tick rate
-    /// at 20 for a month; see <see cref="SimulationTiming.BaseApplicationDivisor"/>.</para>
-    ///
-    /// <para>Mutates the remainder, which is why it takes it by reference and
-    /// why <see cref="PeekPerApplication"/> exists for callers that only want to
-    /// know what would happen.</para>
+    /// <para>The table's deltas are per game second; one application is the delta
+    /// over <see cref="SimulationTiming.BaseApplicationDivisor"/> (5 — Efficiency
+    /// 80% over the four ticks of a game second, Q19, Q47). Eight of the ten deltas
+    /// divide exactly; the rest carry the remainder on, so the per-second rate
+    /// holds. The divisor is not the cadence: see
+    /// <see cref="SimulationTiming.WorkApplicationsPerSecond"/>.</para>
     /// </summary>
     public static int PerApplication(GameDatabase database, TileWorkKind kind, ref sbyte remainder)
     {
-        // Through ObservedCorrections, not straight off the database: exactly
-        // one variable in the table does not produce the behaviour the original
-        // shows, and this is the single seam where that correction enters the
-        // simulation. See ADR-0023 and Q20.
+        // Through ObservedCorrections: one variable in the table does not produce
+        // the behaviour the original shows, and this is the single seam where
+        // that correction enters the simulation (ADR-0023, Q20).
         int perSecond = ObservedCorrections.TileWorkPerSecond(database, Variable(kind));
         int rate = SimulationTiming.BaseApplicationDivisor;
 
@@ -236,109 +181,60 @@ public static class TileWorkRules
     /// <summary>
     /// Whether reaching maximum health under this kind of work converts the tile
     /// to its <see cref="TerrainDef.MaxHealthTypeTerrainId"/>.
-    ///
-    /// STRONGLY INFERRED. The alternative reading — "any tile at full health
-    /// becomes its max-health type" — is contradicted by the data: Claimed Path
-    /// ships at 660/660 with a max-health type of Rock, so a level-triggered
-    /// rule would turn every claimed floor tile in every level into rock on the
-    /// first tick. Making the conversion a property of the *work* rather than of
-    /// the health level resolves that, and gives each of the three upward jobs
-    /// exactly the destination the data records:
-    /// Rock --Reinforce--&gt; Reinforced Wall and Dirt Path --Claim--&gt; Claimed
-    /// Path. See docs/research/tile-work.md and Q18.
-    ///
-    /// <para><b>There were three of these until 2026-09-07.</b> A third kind,
-    /// <c>FillIn</c>, turned a floor tile back into rock — inferred from a
-    /// <c>FillInHealth</c> variable, a <c>FillInable</c> terrain flag and
-    /// Claimed Path's max-health type being Rock. It was <b>removed</b>: nothing
-    /// in this simulation ever requested one, and the owner — who has played the
-    /// game — does not recognise filling in as a DK2 action at all. The data
-    /// shape is real and is recorded in <c>library-and-research.md</c>'s
-    /// neighbour, <c>tile-work.md</c>; Q219 asks whether the game exposes it. If
-    /// the answer is yes, this comes back with an experiment behind it instead
-    /// of an inference.</para>
+    /// <para>A property of the work, not of the health level: Claimed Path ships
+    /// at 660/660 with a max-health type of Rock, so a level-triggered rule would
+    /// turn every claimed floor tile in every level to rock on the first tick.
+    /// STRONGLY INFERRED (Q18, docs/research/tile-work.md).</para>
     /// </summary>
     public static bool CompletesUpward(TileWorkKind kind) =>
         kind is TileWorkKind.Claim or TileWorkKind.Reinforce;
 
     /// <summary>
-    /// Whether this kind of work ends by <b>taking the tile over</b> rather than
-    /// by destroying it, despite running its health <i>down</i> to zero.
-    ///
-    /// <para>Exactly one kind does: <see cref="TileWorkKind.ConvertRoom"/>. And
-    /// the mixed direction is the data's, not a choice —
-    /// <c>ClaimTileHealth</c> is <b>+825</b> and builds a floor tile up to its
-    /// maximum, while <c>ConvertRoomHealth</c> is <b>−4000</b> and beats a room
-    /// down. Two jobs that both end in "this is mine now", from opposite
-    /// directions, because the balance table gives them opposite signs.</para>
-    ///
-    /// <para>Without this, the downward path would send a converted room to its
-    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/> — every room terrain in
-    /// the data claims to leave Claimed Path — so claiming a rival's treasury
-    /// would demolish it. That is <c>AttackRoomHealth</c>'s job (−1500), and it
-    /// is a separate work kind that does not exist yet.</para>
-    /// </summary>
+    /// Whether the work ends by taking the tile over rather than destroying it,
+    /// despite running its health <i>down</i> to zero. Only
+    /// <see cref="TileWorkKind.ConvertRoom"/> does; the mixed direction is the
+    /// data's (<c>ClaimTileHealth</c> +825 up, <c>ConvertRoomHealth</c> −4000
+    /// down). Without it a converted room would follow its
+    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/> — Claimed Path for every
+    /// room terrain — and claiming a treasury would demolish it. Not
+    /// implemented: <c>AttackRoomHealth</c> (−1500).</summary>
     public static bool CompletesAsTakeover(TileWorkKind kind) =>
         kind is TileWorkKind.ConvertRoom;
 
-    /// <summary>
-    /// The per-second health delta the balance table gives this kind of work,
-    /// after <see cref="ObservedCorrections"/>.
-    ///
-    /// The sign is the interesting part and is what callers outside the
-    /// application loop want: negative work takes a tile apart and ends at its
-    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/>, positive work builds it
-    /// up. <see cref="PerApplication"/> is the per-swing figure and carries a
-    /// remainder; this one is the raw rate and carries nothing.
-    /// </summary>
+    /// <summary>The per-second health delta the balance table gives this kind of
+    /// work, after <see cref="ObservedCorrections"/>: the raw rate, no remainder
+    /// carried (<see cref="PerApplication"/> carries one). The sign is what callers
+    /// outside the application loop want — negative work ends at the terrain's
+    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/>.</summary>
     public static int PerSecond(GameDatabase database, TileWorkKind kind) =>
         ObservedCorrections.TileWorkPerSecond(database, Variable(kind));
 
-    /// <summary>
-    /// The terrain this tile will be once <paramref name="kind"/> has run to
-    /// completion on it — which for a repair job is the terrain it already is.
-    ///
-    /// <para>Exists so that a caller can ask what a job <i>leads to</i> without
-    /// simulating it. <see cref="WorkStance"/> is the one that needs it: whether
-    /// a worker may stand on the tile it is working depends on the tile it will
-    /// be standing on when the job finishes, not only on the tile it is now, and
-    /// filling a floor tile back in is the case where those two differ (Q49).</para>
-    ///
-    /// <para>Says nothing about whether the job applies — ask
-    /// <see cref="Applies"/> for that.</para>
-    /// </summary>
+    /// <summary>The terrain this tile will be once <paramref name="kind"/> has run
+    /// to completion — for a repair job, the terrain it already is. Answers what a
+    /// job leads to without simulating it, which <see cref="WorkStance"/> needs:
+    /// standing on a worked tile depends on the tile at completion, not only the
+    /// tile now (Q49, ADR-0028). Not whether the job applies — <see cref="Applies"/>.</summary>
     public static byte OutcomeTerrainId(GameDatabase database, in TileState tile, TileWorkKind kind)
     {
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
 
         if (CompletesUpward(kind)) return UpwardDestination(terrain, kind);
 
-        // A takeover leaves the terrain exactly as it found it and changes only
-        // who holds it, so the tile a worker will be standing on when the job
-        // finishes is the tile it is standing on now. That is what puts an imp
-        // *inside* a rival's room to claim it, which is where the original puts
-        // one.
+        // A takeover changes only who holds the tile, so the tile at completion
+        // is the tile now — which is what puts an imp inside a rival's room to
+        // claim it, where the original puts one.
         if (CompletesAsTakeover(kind)) return tile.TerrainId;
 
         if (PerSecond(database, kind) < 0) return terrain.DestroyedTypeTerrainId;
         return tile.TerrainId;
     }
 
-    /// <summary>
-    /// The terrain an upward job converts a tile into.
-    ///
-    /// <para>Normally the terrain's own <see cref="TerrainDef.MaxHealthTypeTerrainId"/>
-    /// — Rock becomes a Reinforced Wall, Dirt Path becomes Claimed Path. The one
-    /// exception is <b>claiming ground that is already the claimable kind</b>:
-    /// taking a rival's Claimed Path must not follow that field, because Claimed
-    /// Path's max-health type is <i>Rock</i> (it is the fill-in destination, Q18)
-    /// and a claim would turn their floor into a wall.</para>
-    ///
-    /// <para>So for a claim the terrain stays put and only the owner changes,
-    /// which is what taking somebody's ground means. Decided by the terrain's own
-    /// <c>Ownable</c> flag rather than by comparing owners, so the rule reads the
-    /// same for a rival's floor, a rival's bridge and a rival's room.</para>
-    /// </summary>
+    /// <summary>The terrain an upward job converts a tile into: normally the
+    /// terrain's own <see cref="TerrainDef.MaxHealthTypeTerrainId"/>, but on a claim
+    /// of ground already of the claimable kind the terrain stays and only the owner
+    /// changes — following the field there would turn a rival's Claimed Path into
+    /// Rock, an inert transition nothing in DK2 triggers (Q18, Q219). Keyed on
+    /// <c>Ownable</c>, so floor, bridge and room read alike.</summary>
     private static byte UpwardDestination(TerrainDef terrain, TileWorkKind kind) =>
         kind == TileWorkKind.Claim && terrain.IsOwnable
             ? terrain.TerrainId
@@ -346,10 +242,9 @@ public static class TileWorkRules
 
     /// <summary>
     /// Whether <paramref name="kind"/> can be applied to this tile at all.
-    ///
-    /// Deliberately structural — it asks the terrain's own flags and the tile's
-    /// ownership, never a hardcoded terrain id. A rule written against terrain
-    /// id 2 would be a rule about the reference install, not about DK2.
+    /// Structural on purpose: it asks the terrain's flags and the tile's owner,
+    /// never a terrain id — a rule written against terrain id 2 would be a rule
+    /// about the reference install, not about DK2.
     /// </summary>
     public static bool Applies(GameDatabase database, in TileState tile, TileWorkKind kind, byte playerId)
     {
@@ -372,34 +267,20 @@ public static class TileWorkRules
             TileWorkKind.DigEnemyWall =>
                 terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId != playerId,
 
-            // Claiming targets unowned floor that has somewhere to become.
-            // Claiming takes ground that is not already yours — neutral OR a
-            // rival's. CONFIRMED (Q68, owner 2026-09-03): a rival keeper's imp
-            // claims your tile **directly**, with no neutral step in between,
-            // which is what this replaces. Two clauses, and the second is the
-            // "nowhere to go" guard: either the terrain is already the claimable
-            // kind and only the owner changes, or it converts into something.
-            // A room is NOT claimed this way: it is converted whole
-            // (TileWorkKind.ConvertRoom), at its own rate, and this rule used to
-            // take rooms tile by tile because room terrain satisfies every other
-            // clause here. Q92.
+            // Claiming takes non-solid ground not already yours — neutral or a
+            // rival's, directly, with no neutral step. CONFIRMED (owner,
+            // 2026-09-03; Q68). The last clause is the "nowhere to go" guard;
+            // rooms go to TileWorkKind.ConvertRoom at their own rate (Q92).
             TileWorkKind.Claim =>
                 !terrain.IsSolid
                 && !terrain.IsRoom
                 && tile.OwnerPlayerId != playerId
                 && (terrain.IsOwnable || terrain.MaxHealthTypeTerrainId != tile.TerrainId),
 
-            // Somebody else's room — a rival's or a neutral one, which is what
-            // an unclaimed portal is (PlayerIds.Neutral, ADR-0043).
-            //
-            // The dungeon heart is the one exception, and it is STRONGLY
-            // INFERRED rather than observed: a heart is beaten down, not taken,
-            // and Q40's defeat rule — "rivals claim the rooms and gold" — is
-            // what happens *after* it falls. Letting this apply to a heart would
-            // send imps to steal one, which is visibly not DK2. By room identity
-            // rather than by a flag because nothing in the record distinguishes
-            // a heart from a portal: both are `ownable, room` terrain, and the
-            // room flags differ only in Attackable and HasFlame. Q93.
+            // Somebody else's room — a rival's, or a neutral one, which is what
+            // an unclaimed portal is (PlayerIds.Neutral, ADR-0043). A live
+            // dungeon heart is excluded by terrain identity, because nothing in
+            // the record separates a heart from a portal (Q40, Q93).
             TileWorkKind.ConvertRoom =>
                 !terrain.IsSolid
                 && terrain.IsRoom
@@ -410,11 +291,10 @@ public static class TileWorkRules
                 !terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId != playerId,
 
             // Reinforcing turns rock into a wall; the data says which rock can.
-            // The original splits this by health: its reinforce kind takes rock
-            // below half of MaxHealth (fresh Rock is 165 of 660), its fix kind
-            // takes anything not at MaxHealth, both at the same step of the
-            // imp's search. By type, this clause selects the union of the two.
-            // Q153, read from the binary 2026-09-05.
+            // The original splits it by health — reinforce below half MaxHealth
+            // (fresh Rock is 165 of 660), fix anything not at MaxHealth, both at
+            // the same step of the imp's search. This clause is their union.
+            // Q153, binary, 2026-09-05.
             TileWorkKind.Reinforce =>
                 terrain.IsSolid && !terrain.IsImpenetrable && !terrain.IsOwnable
                 && terrain.MaxHealthTypeTerrainId != tile.TerrainId,
@@ -427,15 +307,12 @@ public static class TileWorkRules
     }
 
     /// <summary>
-    /// The kinds of work a dig marker can be asking for.
-    ///
-    /// The order is not a priority. The four are mutually exclusive on the
-    /// shipped data — <see cref="TileWorkKind.Dig"/> demands unowned rock worth
-    /// no gold, <see cref="TileWorkKind.MineGold"/> demands gold, and the two
-    /// wall jobs demand ownable terrain — so at most one of them ever applies to
-    /// a tile. <c>DK2.Behavior.Tests</c> asserts that against the real terrain
-    /// table, so that a data change which broke the exclusivity would show up as
-    /// a failing test rather than as a silent priority rule nobody chose.
+    /// The kinds of work a dig marker can be asking for. The order is not a
+    /// priority: on the shipped data the four are mutually exclusive — dig wants
+    /// unowned rock worth no gold, mine wants gold, the wall jobs want ownable
+    /// terrain — so at most one applies to a tile, asserted by
+    /// <c>ImpsOnRealDataTests.NoTerrainInTheGame_AdmitsTwoKindsOfMarkedWork</c>
+    /// so a data change cannot make it a silent priority rule.
     /// </summary>
     private static readonly TileWorkKind[] TaggedWorkKinds =
     [
@@ -448,15 +325,10 @@ public static class TileWorkRules
     /// <summary>Every kind of work a dig marker can call for. Order carries no meaning.</summary>
     public static IReadOnlyList<TileWorkKind> TaggedWork => TaggedWorkKinds;
 
-    /// <summary>
-    /// What work a tile marked by <paramref name="playerId"/> is asking for.
-    ///
-    /// This is the whole of the mapping from "the keeper marked this" to "an imp
-    /// does that": marked rock is dug, marked gold is mined, a marked wall is
-    /// dug through at one rate if it is yours and another if it is not. Which
-    /// applies follows from the terrain's flags and the tile's owner, never from
-    /// a terrain id.
-    /// </summary>
+    /// <summary>What work a tile marked by <paramref name="playerId"/> is asking
+    /// for — the whole mapping from "the keeper marked this" to "an imp does that":
+    /// marked rock is dug, marked gold mined, a marked wall dug through at one rate
+    /// if it is yours and another if it is not, all from flags and owner.</summary>
     public static bool TryTaggedWork(
         GameDatabase database, in TileState tile, byte playerId, out TileWorkKind kind)
     {
@@ -472,33 +344,16 @@ public static class TileWorkRules
     }
 
     /// <summary>
-    /// Applies exactly one application of work to <paramref name="tile"/>.
-    ///
-    /// The rule is uniform and entirely data-driven:
-    /// <list type="number">
-    /// <item>add the kind's health delta;</item>
-    /// <item>at or below zero the tile becomes its
-    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/>;</item>
-    /// <item>at or above maximum it clamps, and — for upward work only — becomes
-    /// its <see cref="TerrainDef.MaxHealthTypeTerrainId"/>;</item>
-    /// <item>the new tile starts at its own terrain's starting health.</item>
-    /// </list>
-    /// A tile that converts loses its dig tags. Ownership is only ever written
-    /// by work that takes ownership (claiming, reinforcing); see
-    /// <see cref="Convert"/> for why it is never cleared.
+    /// Applies one application of work to <paramref name="tile"/>: add the delta,
+    /// and at or below zero the tile becomes its
+    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/>, at or above the terrain's
+    /// maximum (upward work only) its <see cref="TerrainDef.MaxHealthTypeTerrainId"/>
+    /// — both at that type's starting health, without dig tags (<see cref="Convert"/>).
     /// </summary>
-    /// <param name="efficiencyPercent">
-    /// The worker's Efficiency, as a whole percent — <b>80 when nobody says
-    /// otherwise</b>, which is what every worker in DK2 is born at and what
-    /// every measurement in docs/research/tile-work.md was taken at.
-    ///
-    /// <para>A slap or a well-aimed drop raises it to 90 and the two together
-    /// to 100, so a keeper who handles their imps digs a quarter faster than
-    /// one who does not. Work queued by a test or by the harness has no worker
-    /// and takes the default, which is why every number this project measured
-    /// before Efficiency existed is untouched by its arrival — see
-    /// <see cref="EfficiencyRules.Scale"/>.</para>
-    /// </param>
+    /// <param name="efficiencyPercent">Worker Efficiency as a whole percent; 80 is
+    /// DK2's birth value and what docs/research/tile-work.md measured at. A slap,
+    /// or a drop beside the marked tile, gives 90; both 100
+    /// (<see cref="EfficiencyRules.Scale"/>, Q159).</param>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/tile-work.md")]
     public static TileWorkResult Apply(
         GameDatabase database,
@@ -512,10 +367,9 @@ public static class TileWorkRules
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
 
-        // The tabled fraction first, with its remainder carried, and the
-        // worker's own Efficiency on top of that. The order matters: the carry
-        // keeps the per-second rate exactly what the table says, and scaling
-        // afterwards leaves the 80% case bit-for-bit what it always was.
+        // The tabled fraction with its remainder carried first, Efficiency on
+        // top. The order matters: the carry keeps the per-second rate exactly
+        // what the table says, and scaling after leaves the 80% case unchanged.
         int delta = EfficiencyRules.Scale(
             PerApplication(database, kind, ref tile.WorkRemainder), efficiencyPercent);
 
@@ -534,11 +388,10 @@ public static class TileWorkRules
                     applied, gold, 0, tile.TerrainId);
             }
 
-            // A takeover ran the same way down and means the opposite: the
-            // terrain stays exactly what it was and only the owner changes.
-            // Converting to the tile's own terrain is what resets its health,
-            // its accumulated work and its remainder, and keeps a burning
-            // bridge burning (Q67, Q68) because the terrain did not change.
+            // A takeover ran down but means the opposite: the terrain stays and
+            // only the owner changes. Converting to the tile's own terrain resets
+            // health and remainder while keeping a burning bridge burning, since
+            // the terrain did not change (Q67, Q68).
             if (CompletesAsTakeover(kind))
             {
                 int kept = Convert(
@@ -548,25 +401,21 @@ public static class TileWorkRules
             }
 
             // Through BridgeRules, not straight to the destroyed-type field: a
-            // bridge beaten down leaves the water or lava it spanned, and every
-            // room terrain in the data claims to leave Claimed Path (Q64). One
-            // place decides that, so selling a bridge and destroying one cannot
-            // disagree.
+            // bridge beaten down leaves the water or lava it spanned, though
+            // every room terrain in the data claims to leave Claimed Path (Q64).
+            // One place decides, so selling and destroying cannot disagree.
             int spilled = Convert(
                 database, ref tile, BridgeRules.RevertsTo(database, tile), playerId,
                 takeOwnership: false);
             return new TileWorkResult(TileWorkOutcome.Destroyed, applied, gold, spilled, tile.TerrainId);
         }
 
-        // Upward work and repair are ONE path, because in DK2 they are one
-        // store. Its tile applier (FUN_00452f60) adds the delta straight into
-        // the tile's own health word, clamps at 32000, and converts the moment
-        // health reaches the terrain record's MaxHealth. So a conversion job
-        // costs the DEFICIT, not the whole maximum: reinforcing Rock is
-        // 660 - 165 = 495, which is 50 applications and not 66. See ADR-0024's
-        // reversal, Q62 and Q47 - and note that the tile's health rising is
-        // also what drives the original's visual stages, which is what the
-        // "2-3-4 jumps" of Q46 were counting.
+        // Upward work and repair are one path because in DK2 they are one store:
+        // the tile applier (FUN_00452f60) adds the delta into the tile's own
+        // health word, clamps at 32000, and converts the moment health reaches
+        // the terrain record's MaxHealth. A conversion job therefore costs the
+        // DEFICIT, not the whole maximum: reinforcing Rock is 660 - 165 = 495,
+        // fifty applications and not sixty-six. Q62, ADR-0089.
         if (CompletesUpward(kind))
         {
             // DK2 adds the whole delta and clamps at 32000; it does not stop at
@@ -599,13 +448,10 @@ public static class TileWorkRules
 
     /// <summary>
     /// How much gold one more application of <paramref name="kind"/> would free
-    /// from this tile — without applying it.
-    ///
-    /// Exists so that a worker can decide whether its hands have room for
-    /// another swing before it takes one (Q31). It has to be this function and
-    /// not an estimate: an imp that guessed would either overfill its hands or
-    /// walk away from gold it could have carried, and both are visible
-    /// behaviour. Nothing here mutates anything.
+    /// from this tile, without applying it. Lets a worker decide whether its
+    /// hands have room for another swing before taking one (Q31); an estimate
+    /// would either overfill its hands or leave gold it could have carried, both
+    /// visible. Mutates nothing.
     /// </summary>
     public static int GoldYield(GameDatabase database, in TileState tile, TileWorkKind kind, byte playerId)
     {
@@ -622,24 +468,15 @@ public static class TileWorkRules
     }
 
     /// <summary>
-    /// Gold freed by taking a tile from <paramref name="healthBefore"/> down to
-    /// <paramref name="healthAfter"/>.
-    ///
-    /// Two different rules because the data forces it:
+    /// Gold freed by taking a tile from <paramref name="healthBefore"/> to
+    /// <paramref name="healthAfter"/>. Two rules (Q21, docs/research/tile-work.md):
     /// <list type="bullet">
-    /// <item>A gold seam is finite, and gold comes out <b>in proportion to the
-    /// rock removed</b> — CONFIRMED (2026-08-30). It carries <c>goldValue</c>
-    /// 3000 over 660 health and is mined 60 health at a time, and the owner
-    /// measured 273 gold a swing in the original: 273 × 660 / 3000 = 60.06,
-    /// which is the proportional rule stated backwards. See
-    /// <see cref="ExtractedBy"/> for why the sum is taken from running totals
-    /// rather than per swing.</item>
-    /// <item>A gem face is infinite: it is impenetrable and its destroyed type
-    /// is itself, so it collapses and immediately reappears at full health. The
-    /// separate <c>GoldMinedFromGems</c> variable (25) is what each of those
-    /// cycles yields. This is why gems are endless but slow.</item>
-    /// </list>
-    /// See docs/research/tile-work.md and Q21.
+    /// <item>A seam is finite and yields in proportion to the rock removed —
+    /// CONFIRMED (owner, 2026-08-30): <c>goldValue</c> 3000 over 660 health, mined
+    /// 60 a time, 273 a swing; summed from running totals (<see cref="ExtractedBy"/>).</item>
+    /// <item>A gem face is infinite — impenetrable, destroyed type itself — so it
+    /// collapses, reappears at full health and yields <c>GoldMinedFromGems</c> (25)
+    /// each cycle. Endless but slow.</item></list>
     /// </summary>
     private static int GoldFor(
         GameDatabase database,
@@ -660,46 +497,24 @@ public static class TileWorkRules
 
     /// <summary>
     /// How much of a seam's gold has come out by the time it is down to
-    /// <paramref name="health"/>.
-    ///
-    /// Gold is computed from where the seam has got to, not from how much the
-    /// last swing removed, and the difference is not pedantry: truncating each
-    /// swing independently loses a coin per swing and a seam ends up worth less
-    /// than the data says it is. Taking the difference of two running totals
-    /// makes a fully mined seam yield exactly its <c>goldValue</c>, and it needs
-    /// no state to do it, because the running total is a function of health.
-    ///
-    /// <para>It also reproduces the measurement. On the shipped seam — 3000 gold
-    /// over 660 health, mined 60 health at a time (Q47) — this yields 273 on
-    /// eight of the eleven swings and 272 on the other three, totalling 3000.
-    /// The owner observed 273 (2026-08-30).</para>
+    /// <paramref name="health"/>. From where the seam has got to, not from the
+    /// last swing: truncating each swing loses a coin a swing. Differencing two
+    /// running totals yields exactly <c>goldValue</c> over a full seam, stateless.
+    /// On the shipped seam (3000 gold over 660 health, 60 a swing, Q47) that is
+    /// 273 on eight of eleven swings and 272 on three — the owner saw 273.
     /// </summary>
     private static int ExtractedBy(TerrainDef terrain, int health) =>
         (int)((long)terrain.GoldValue * Math.Max(0, terrain.MaxHealth - health) / terrain.MaxHealth);
 
     /// <summary>
     /// Turns a tile into another terrain type at that type's starting health.
-    ///
-    /// Dig markers survive only if the new terrain can still carry one. Rock
-    /// that becomes floor loses its mark, because floor cannot be marked; a gem
-    /// face, whose destroyed type is itself, keeps it. STRONGLY INFERRED, and
-    /// the reason it is not merely "always clear the mark": marking a gem face
-    /// once in the original sets imps mining it indefinitely, which a rule that
-    /// cleared the mark on every collapse would turn into a single application.
-    ///
-    /// Ownership is written only when the new terrain is ownable and the work
-    /// was the kind that takes ownership. It is never <i>cleared</i>, and that
-    /// is deliberate: DK2's map data gives every tile an owner id including
-    /// solid rock, and which id means "nobody" is UNKNOWN (Q17). Leaving the
-    /// byte alone lets whatever the level file says is neutral propagate through
-    /// a dug-out tile on its own, instead of us inventing a neutral id.
-    ///
-    /// Gold stored on the tile leaves with the tile if the new terrain cannot
-    /// keep any — a treasury beaten down to claimed floor does not carry on
-    /// holding three thousand gold in a tile with no capacity for it. The amount
-    /// is returned so the caller can report it; the alternative, leaving the
-    /// number in place, would make <see cref="GoldStore.Total"/> count gold that
-    /// nothing can reach.
+    /// <para>A dig mark survives only if the new terrain can carry one: rock that
+    /// becomes floor loses it, a gem face (destroyed type itself) keeps it, which
+    /// is why marking one sets imps mining indefinitely — STRONGLY INFERRED.
+    /// Ownership is written only when the new terrain is ownable and the work took
+    /// it, else cleared to <c>PlayerIds.Unowned</c> (Q17, Q95, ADR-0045). Gold the
+    /// terrain cannot hold comes loose, so <see cref="GoldStore.Total"/> counts
+    /// nothing unreachable.</para>
     /// </summary>
     /// <returns>Gold that was on the tile and could not stay.</returns>
     private static int Convert(
@@ -715,51 +530,34 @@ public static class TileWorkRules
         tile.TerrainId = newTerrainId;
         tile.Health = next.StartingHealth;
 
-        // The work was toward a conversion that has now happened; whatever the
-        // tile becomes starts its own upward job from nothing.
+        // Whatever the tile becomes starts its own upward job from nothing.
         tile.WorkRemainder = 0;
 
-        // Only when the tile actually became something else. A rival claiming a
-        // burning wooden bridge takes the bridge, fire and all — putting the fire
-        // out by taking the tile would be a reward for it (Q67, Q68).
+        // Only when the tile actually became something else: a rival claiming a
+        // burning wooden bridge takes it fire and all, because putting the fire
+        // out by taking the tile would reward the claim (Q67, Q68).
         if (terrainChanged) tile.BurnTicksRemaining = 0;
         if (!next.IsTaggable) tile.TaggedBy = 0;
 
         byte ownerBefore = tile.OwnerPlayerId;
         if (takeOwnership && next.IsOwnable) tile.OwnerPlayerId = playerId;
 
-        // A portal changing hands restarts it. DK2's room-ownership-change
-        // routine fires the room type's own handler after re-linking the room,
-        // and for both portal types that handler stamps the clock and zeros the
-        // generation tally — so a rival who takes a worn-out portal gets it at
-        // the base interval, which the owner confirmed independently. Tested
-        // against the terrain rather than a room lookup because this runs for
-        // every converted tile and a room index here would cost a map sweep.
-        // PortalRules.OnOwnerChanged carries the evidence.
+        // A portal changing hands restarts it: for both portal types DK2's
+        // ownership-change handler stamps the clock and zeros the generation
+        // tally, so a rival taking a worn-out portal gets the base interval
+        // (evidence in PortalRules.OnOwnerChanged). Keyed on terrain rather than
+        // a room lookup because this runs for every converted tile.
         if (tile.OwnerPlayerId != ownerBefore
             && PortalRules.IsPortalTerrain(database, tile.TerrainId))
         {
             PortalRules.OnOwnerChanged(ref tile);
         }
 
-        // A tile that cannot be owned does not carry an owner. This used to keep
-        // the byte, on a reason that has since expired twice over — it said
-        // "which owner id means nobody is UNKNOWN (Q17), and every rule that
-        // cares asks IsOwnable first, so a stale byte on unownable terrain is
-        // inert."
-        //
-        // <b>Q17 is answered</b> (ADR-0043): 0 is unowned, confirmed three ways
-        // across all 66 shipped levels. <b>And the byte was never inert.</b>
-        // TileWorkKind.Claim asks `OwnerPlayerId != playerId` and does NOT ask
-        // IsOwnable first, so a keeper who dug through their own reinforced wall
-        // was left with Dirt Path still stamped with their id — which is neither
-        // claimable by them (the owner matches) nor their own land (the terrain
-        // is not ownable). Their territory could not grow through it, ever. On
-        // level 1 that walls a keeper in permanently, because the only route out
-        // of its dungeon heart is through the keeper's own reinforced wall.
-        //
-        // Found 2026-09-04 by a scenario that dug from level 1's heart toward
-        // its portal and did nothing at all for 130 seconds. Q95, ADR-0045.
+        // A tile that cannot be owned does not carry an owner: 0 is unowned,
+        // confirmed three ways across all 66 shipped levels (Q17, ADR-0043).
+        // Keeping the byte was a four-month defect — TileWorkKind.Claim tests
+        // `OwnerPlayerId != playerId` and never asks IsOwnable, so dug-out own
+        // wall stayed stamped and unclaimable, walling level 1 in. Q95.
         if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Unowned;
 
         int spilled = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));

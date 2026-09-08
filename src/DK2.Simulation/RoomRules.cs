@@ -47,35 +47,20 @@ public enum RoomSale
     /// <summary>The room is somebody else's.</summary>
     NotYourRoom = 3,
 
-    /// <summary>
-    /// A room a keeper never bought and cannot sell: a portal, a dungeon heart,
-    /// a hero gate. The same <c>Buildable</c> flag that gates building gates
-    /// this, so the two can never disagree.
-    /// </summary>
+    /// <summary>A room a keeper never bought and cannot sell: a portal, a dungeon
+    /// heart, a hero gate. Gated by the same <c>Buildable</c> flag as building.</summary>
     NotSellable = 4,
 }
 
-/// <summary>
-/// Where a room may go, what it costs, and what it does to the tile it lands on.
-///
-/// Pure and static, like <see cref="TileWorkRules"/>: no world, no RNG, no time,
-/// and every number read from <see cref="GameDatabase"/>. Evidence and
-/// confidence per rule: docs/research/rooms-and-gold.md.
-///
-/// <para><b>What is data.</b> Which ground a room may sit on is the ROOMS
-/// record's own <c>PlaceableOnLand</c> / <c>PlaceableOnWater</c> /
-/// <c>PlaceableOnLava</c> flags — which is why the two bridges are the only
-/// rooms that go on water and lava, and why nothing else does, without a line of
-/// code naming a bridge. Whether a player may build it at all is the
-/// <c>Buildable</c> flag. The terrain it lays down and what it costs are the
-/// record's own <c>TerrainId</c> and <c>Cost</c>.</para>
-///
-/// <para><b>What is not implemented, and is not guessed at.</b> Room size and
-/// shape rules, the walls a room grows around itself, the objects a room places
-/// on its tiles, and any effect a room has beyond being terrain a player owns.
-/// A treasury holds gold because a variable says how much; a library does
-/// nothing, because nothing here knows what a library is.</para>
-/// </summary>
+/// <summary>Where a room may go, what it costs, and what it does to the tile it
+/// lands on. Pure and static like <see cref="TileWorkRules"/> — no world, no RNG, no
+/// time, every number from <see cref="GameDatabase"/> (docs/research/rooms-and-gold.md).
+/// <para>All from the ROOMS record: <c>PlaceableOnLand</c>/<c>OnWater</c>/<c>OnLava</c>
+/// decide the ground, which is why the two bridges are the only rooms over water and
+/// lava with no code naming a bridge; <c>Buildable</c> decides what a player may put
+/// down; <c>TerrainId</c> and <c>Cost</c> the rest. Not implemented, and not guessed
+/// at: room size and shape rules, the walls a room grows, the objects it places, and
+/// any effect beyond being owned terrain — a library does nothing.</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public static class RoomRules
 {
@@ -83,15 +68,10 @@ public static class RoomRules
     public static RoomDef? RoomOn(GameDatabase database, in TileState tile) =>
         database.RoomByTerrain(tile.TerrainId);
 
-    /// <summary>
-    /// Whether this terrain is ground the room may sit on, ignoring ownership,
-    /// cost and whether a player is allowed to build it.
-    ///
-    /// Reads the room's own placement flags against the terrain's own
-    /// water/lava/solid flags. CONFIRMED at the level of the data: the flags
-    /// exist for exactly this question, and they partition the shipped rooms
-    /// into "the two bridges" and "everything else" without any help.
-    /// </summary>
+    /// <summary>Whether this terrain is ground the room may sit on, ignoring
+    /// ownership, cost and buildability: the room's placement flags against the
+    /// terrain's water/lava/solid flags. CONFIRMED at the level of the data — the flags
+    /// exist for this question and partition the shipped rooms unaided.</summary>
     public static bool IsSuitableGround(GameDatabase database, in TileState tile, RoomDef room)
     {
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
@@ -104,25 +84,15 @@ public static class RoomRules
         return room.PlaceableOnLand && !terrain.IsSolid && !terrain.IsRoom;
     }
 
-    /// <summary>
-    /// Whether <paramref name="playerId"/> may build <paramref name="room"/>
-    /// here, and if not, why.
-    ///
-    /// <para>The land rule — <b>you build on ground you already own</b> — is
-    /// STRONGLY INFERRED. It is how the original visibly plays: a keeper claims
-    /// floor with imps and only then can put a room on it. What makes it more
-    /// than an observation is that the data has no other candidate: nothing in
-    /// the ROOMS record says anything about ownership, so the rule has to come
-    /// from the tile, and <c>Ownable</c> plus an owner id is the only thing the
-    /// tile carries. Water and lava are exempt because bridges are built out
-    /// over ground nobody can own — the terrain is not <c>Ownable</c> at
-    /// all.</para>
-    ///
-    /// <para><b>Not checked, and UNKNOWN (Q33):</b> whether the original also
-    /// requires the new tile to touch something the player already has. Every
-    /// tile it would reject is one this rule rejects anyway on owned-land
-    /// grounds, except for bridges, so the gap is visible only there.</para>
-    /// </summary>
+    /// <summary>Whether <paramref name="playerId"/> may build
+    /// <paramref name="room"/> here, and if not, why. The land rule — <b>you build on
+    /// ground you already own</b> — is STRONGLY INFERRED: nothing in the ROOMS record
+    /// mentions ownership, so it has to come from the tile, and <c>Ownable</c> plus an
+    /// owner id is all the tile carries. Water and lava are exempt because a bridge is
+    /// built out over ground nobody can own.
+    /// <para>Not implemented: the adjacency rule, that a new room tile must touch land
+    /// the keeper already holds (Q33, ANSWERED yes — owner, 2026-08-29). Every tile it
+    /// would reject is rejected here anyway except a bridge.</para></summary>
     public static RoomPlacement CanBuild(
         GameDatabase database, in TileState tile, RoomDef room, byte playerId)
     {
@@ -140,36 +110,27 @@ public static class RoomRules
             : RoomPlacement.NotYourLand;
     }
 
-    /// <summary>
-    /// Gold this room costs per tile.
-    ///
-    /// CONFIRMED (Q32): the owner priced five rooms in the original and every one
-    /// matched the record's <c>Cost</c> charged per tile. DK2 charges as the keeper
-    /// paints, and a per-room reading would have made a 5x5 temple cost the same as
-    /// a single tile of one.
-    /// </summary>
+    /// <summary>Gold this room costs per tile. CONFIRMED (Q32): the owner priced five
+    /// rooms in the original and each matched the record's <c>Cost</c> charged per
+    /// tile — DK2 charges as the keeper paints. Pinned by
+    /// <c>RoomsOnRealDataTests.ARoomCostsWhatTheOriginalChargesForIt_PerTile</c>.</summary>
     public static int CostPerTile(RoomDef room) => room.Cost;
 
-    /// <summary>
-    /// Turns a tile into part of <paramref name="room"/>, owned by
-    /// <paramref name="playerId"/>.
-    ///
-    /// The tile takes the room's terrain and that terrain's starting health —
-    /// the same conversion rule <see cref="TileWorkRules"/> uses, for the same
-    /// reason: a tile's health belongs to what it now is, not to what it was.
-    /// Dig markers are dropped, because room terrain is not taggable.
-    /// </summary>
+    /// <summary>Turns a tile into part of <paramref name="room"/>, owned by
+    /// <paramref name="playerId"/>. The tile takes the room's terrain and that
+    /// terrain's starting health, the conversion rule <see cref="TileWorkRules"/> uses:
+    /// a tile's health belongs to what it now is. Dig markers go, room terrain not
+    /// being taggable.</summary>
     public static void Place(
         GameDatabase database, ref TileState tile, RoomDef room, byte playerId)
     {
         TerrainDef covered = database.TerrainById(tile.TerrainId);
         TerrainDef terrain = database.TerrainById(room.TerrainId);
 
-        // A bridge records the hazard it is being laid over, because that is
-        // what it must revert to when it goes (Q64) and the terrain table's
-        // destroyed-type field says Claimed Path for every room alike. The level
-        // file carries this byte for bridges it shipped with; a bridge a player
-        // builds has to write its own. See BridgeRules.
+        // A bridge records the hazard it is laid over, because that is what it
+        // reverts to when it goes (Q64, ADR-0031) and the terrain table says Claimed
+        // Path for every room alike. The level file carries this byte for shipped
+        // bridges; a bridge a player builds writes its own. See BridgeRules.
         if (BridgeRules.IsBridge(room) && (covered.IsWater || covered.IsLava))
         {
             tile.Flags = BridgeRules.MarkerFor(covered);
@@ -185,19 +146,12 @@ public static class RoomRules
         if (terrain.IsOwnable) tile.OwnerPlayerId = playerId;
     }
 
-    /// <summary>
-    /// Whether <paramref name="playerId"/> may sell the room on this tile, and
-    /// if not, why.
-    ///
-    /// <para>Sellable means <c>Buildable</c> — the same flag that decides what a
-    /// keeper may put down decides what they may take up, so the two can never
-    /// disagree and nothing here names a portal or a dungeon heart. In the
-    /// shipped data that admits the 17 rooms a keeper builds and refuses the
-    /// portals, the two hearts and the hero gates.</para>
-    ///
-    /// <para>A room on unownable ground — a bridge over water or lava — carries
-    /// no owner, so ownership cannot be asked of it and is not.</para>
-    /// </summary>
+    /// <summary>Whether <paramref name="playerId"/> may sell the room on this tile,
+    /// and if not, why. Sellable means <c>Buildable</c>, so what a keeper may put down
+    /// and take up can never disagree and nothing here names a portal or a heart: on
+    /// shipped data that admits the 17 rooms a keeper builds and refuses the portals,
+    /// hearts and hero gates. A bridge over water or lava carries no owner, so
+    /// ownership is not asked.</summary>
     public static RoomSale CanSell(
         GameDatabase database, in TileState tile, byte playerId, out RoomDef? room)
     {
@@ -211,33 +165,15 @@ public static class RoomRules
         return tile.OwnerPlayerId == playerId ? RoomSale.Allowed : RoomSale.NotYourRoom;
     }
 
-    /// <summary>
-    /// Gold returned for selling one tile of <paramref name="room"/>: <b>half
-    /// what it cost</b>.
-    ///
-    /// <para><b>CONFIRMED, and entirely from the data</b> (Q34). The owner
-    /// observed a 50% refund per tile in the original, and
-    /// <c>RoomSellValuePercentageOfCost</c> is <b>50</b>. This project spent four
-    /// sessions recording that variable as 100 and concluding the refund was "in
-    /// no field we read"; our own extracted dump said 50 throughout. There is no
-    /// override here and none is needed.</para>
-    ///
-    /// <para><b><c>RoomDef.ReturnPercentage</c> is not a rival reading of the
-    /// same number</b> — it is a per-room gate on top of the global rate: 100 for
-    /// every buildable room and <b>0 for exactly the hero gates</b>, which a
-    /// keeper cannot sell. That the zero rows are precisely the unsellable rooms
-    /// is what makes the reading more than a guess. Whether the two multiply or
-    /// the per-room value overrides the global is <b>indistinguishable on the
-    /// shipped data</b>, because no room carries anything but 100 or 0; they are
-    /// multiplied here, which is the reading that would still behave sensibly if
-    /// some other data set used a middle value.</para>
-    ///
-    /// <para>Integer arithmetic, and the truncation order is fixed: the per-room
-    /// gate is applied first, then the global rate. Every shipped room divides
-    /// exactly either way — a treasury refunds 100 of its 200, a temple 1500 of
-    /// its 3000 — so the order is a decision about data we do not have rather
-    /// than about DK2.</para>
-    /// </summary>
+    /// <summary>Gold returned for selling one tile of <paramref name="room"/>:
+    /// <b>half what it cost</b>. CONFIRMED from the data and the owner (Q34, ADR-0029)
+    /// — <c>RoomSellValuePercentageOfCost</c> is <b>50</b>, matching an observed 50%
+    /// refund per tile. <c>RoomDef.ReturnPercentage</c> is a per-room gate on top of
+    /// that rate, not a rival reading of it: 100 for every buildable room and <b>0 for
+    /// exactly the hero gates</b>, which a keeper cannot sell. Whether they multiply or
+    /// the per-room value overrides is indistinguishable on shipped data, where no room
+    /// carries anything but 100 or 0; multiplied here, per-room gate first, and every
+    /// shipped room divides exactly either way.</summary>
     public static int RefundPerTile(GameDatabase database, RoomDef room)
     {
         int standardRate = database[VariableTypeId.RoomSellValuePercentageOfCost];
@@ -245,33 +181,16 @@ public static class RoomRules
         return afterRoomGate * standardRate / 100;
     }
 
-    /// <summary>
-    /// Takes a room tile back to what it was, and says how much stored gold the
-    /// tile can no longer hold.
-    ///
-    /// <para>Where it goes is the terrain's own
-    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/> — for every room terrain
-    /// in the shipped data that is Claimed Path, so a keeper who sells a treasury
-    /// keeps the floor it stood on. Ownership is deliberately not cleared for the
-    /// same reason <see cref="TileWorkRules"/> never clears it: selling your own
-    /// room does not hand the ground to nobody.</para>
-    ///
-    /// <para><b>Known wrong for bridges, and it is the data that says so</b>
-    /// (Q64). A wooden bridge's destroyed type is Claimed Path like everything
-    /// else, so selling a bridge over water leaves walkable floor where there
-    /// should be water. The tile does not record what was underneath it — the MAP
-    /// record's byte 3 is bridge-related and unparsed (Q16) — so there is nothing
-    /// to revert to yet. Reproduced as the data has it rather than special-cased,
-    /// and the event says when a bridge was involved.</para>
-    ///
-    /// <para><b>The displaced gold is returned rather than kept</b>, and the
-    /// caller drops it on this very tile as a pile (<see cref="FloorGold"/>) —
-    /// CONFIRMED by the owner on 2026-09-03 and matched instruction for
-    /// instruction in the binary on 2026-09-05: the original remakes each of the
-    /// room's gold objects as a floor pile in place and takes the amount off the
-    /// keeper's total. Returned rather than dropped here because this method has
-    /// a tile by reference and no world to spawn an object into.</para>
-    /// </summary>
+    /// <summary>Takes a room tile back to what it was, and says how much stored gold
+    /// the tile can no longer hold. The destination comes from
+    /// <c>BridgeRules.RevertsTo</c>, not straight from
+    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/>: every room terrain in the
+    /// shipped data claims Claimed Path, but a sold bridge reverts to the water or lava
+    /// it spanned (Q64, ADR-0031).
+    /// <para>Displaced gold is returned rather than kept, for the caller to drop on
+    /// this tile as a pile (<see cref="FloorGold"/>) — CONFIRMED (owner 2026-09-03;
+    /// binary 2026-09-05), the original remaking each gold object as a floor pile in
+    /// place and taking the amount off the keeper's total.</para></summary>
     public static int Unmake(GameDatabase database, ref TileState tile)
     {
         byte revertsTo = BridgeRules.RevertsTo(database, tile);
@@ -283,19 +202,10 @@ public static class RoomRules
         tile.BurnTicksRemaining = 0;
         if (!next.IsTaggable) tile.TaggedBy = 0;
 
-        // The owner survives a revert to ownable ground and is cleared when the
-        // ground cannot be owned — so selling your own treasury keeps the floor
-        // it stood on, and selling a bridge over water does not leave you owning
-        // the water.
-        //
-        // This used to keep the byte unconditionally, on the grounds that
-        // "which owner id means nobody is UNKNOWN (Q17)" and that a stale byte
-        // was inert. Both expired: Q17 is answered (ADR-0043, 0 is unowned) and
-        // the byte was never inert — see the account in TileWorkRules.Convert
-        // and ADR-0045.
-        //
-        // The bridge marker does go back to its default, because the bridge that
-        // recorded which hazard this was no longer exists.
+        // Unownable ground carries no owner: 0 is unowned (Q17, ADR-0043), and
+        // keeping a stale byte was a four-month defect (Q95, ADR-0045 —
+        // TileWorkRules.Convert). The bridge marker returns to its default, because
+        // the bridge that recorded which hazard this was no longer exists.
         if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Unowned;
         tile.Flags = BridgeRules.SpansWater;
 
