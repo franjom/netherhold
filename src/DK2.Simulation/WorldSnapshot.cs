@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 40;
+    private const int FormatVersion = 41;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -201,6 +201,16 @@ public static class WorldSnapshot
         for (int i = 0; i < TriggerState.TimerCount; i++) w.Write(world.Triggers.RawTimers[i]);
         w.Write(world.Triggers.SpecialValue);
         w.Write(world.Triggers.SpecialValueWritten);
+        KeyValuePair<(int Tag, ushort Id), TriggerRecordState>[] triggerRecords =
+            world.Triggers.RawRecords.ToArray();
+        w.Write(triggerRecords.Length);
+        foreach (((int tag, ushort id), TriggerRecordState record) in triggerRecords)
+        {
+            w.Write(tag);
+            w.Write(id);
+            w.Write(record.Active);
+            w.Write(record.Repeat);
+        }
     }
 
     public static byte[] ToBytes(GameSimulation simulation)
@@ -213,7 +223,8 @@ public static class WorldSnapshot
     public static GameSimulation Read(
         Stream stream,
         GameDatabase database,
-        IEnumerable<ISimulationSystem>? systems = null)
+        IEnumerable<ISimulationSystem>? systems = null,
+        TriggerTree? triggers = null)
     {
         using var r = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
 
@@ -407,16 +418,20 @@ public static class WorldSnapshot
         for (int i = 0; i < TriggerState.TimerCount; i++) world.Triggers.RawTimers[i] = r.ReadInt32();
         world.Triggers.SpecialValue = r.ReadInt32();
         world.Triggers.SpecialValueWritten = r.ReadBoolean();
+        int triggerRecordCount = r.ReadInt32();
+        for (int i = 0; i < triggerRecordCount; i++)
+            world.Triggers.RestoreRecord(r.ReadInt32(), r.ReadUInt16(), r.ReadBoolean(), r.ReadByte());
 
-        return new GameSimulation(database, world, rng, systems);
+        return new GameSimulation(database, world, rng, systems, triggers);
     }
 
     public static GameSimulation FromBytes(
         byte[] bytes,
         GameDatabase database,
-        IEnumerable<ISimulationSystem>? systems = null)
+        IEnumerable<ISimulationSystem>? systems = null,
+        TriggerTree? triggers = null)
     {
         using var ms = new MemoryStream(bytes, writable: false);
-        return Read(ms, database, systems);
+        return Read(ms, database, systems, triggers);
     }
 }

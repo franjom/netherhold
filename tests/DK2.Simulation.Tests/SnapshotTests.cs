@@ -53,6 +53,31 @@ public class SnapshotTests
     }
 
     [Fact]
+    public void RoundTrip_CarriesRetiredTriggerRecords()
+    {
+        GameDatabase database = TestWorld.Database();
+        TriggerRecord action = new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = 0xFFFF, Type = 7,
+            Parameters = new Dictionary<string, long>
+            {
+                ["FlagId"] = 3, ["Flag"] = 0x12, ["Value"] = 1,
+            },
+        };
+        var tree = new TriggerTree([action], 0xFFFF, rootRepeat: 1);
+        var original = new GameSimulation(database, TestWorld.World(database), 1, triggers: tree);
+        original.Tick();
+
+        GameSimulation restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(original), database, triggers: tree);
+        original.Tick();
+        restored.Tick();
+
+        Assert.Equal(1, restored.World.Triggers.Read(3));
+        Assert.Equal(original.StateHash(), restored.StateHash());
+    }
+
+    [Fact]
     public void RoundTrip_CarriesActionPointRuntimeState()
     {
         GameDatabase database = TestWorld.Database();

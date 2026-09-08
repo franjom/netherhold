@@ -119,6 +119,7 @@ public sealed class TriggerState
 
     private readonly byte[] _flags = new byte[FlagCount];
     private readonly int[] _timers = new int[TimerCount];
+    private readonly Dictionary<(int Tag, ushort Id), TriggerRecordState> _records = [];
 
     /// <summary>
     /// The value written when an action names <see cref="SpecialFlagId"/>.
@@ -308,6 +309,36 @@ public sealed class TriggerState
 
     internal byte[] RawFlags => _flags;
     internal int[] RawTimers => _timers;
+    internal IEnumerable<KeyValuePair<(int Tag, ushort Id), TriggerRecordState>> RawRecords =>
+        _records.OrderBy(p => p.Key.Tag).ThenBy(p => p.Key.Id);
+
+    internal void InitializeRecords(IEnumerable<DK2.Data.Model.TriggerRecord> records)
+    {
+        foreach (DK2.Data.Model.TriggerRecord record in records)
+            _records.TryAdd(
+                (record.Tag, record.TriggerId),
+                new TriggerRecordState(record.Tag == 214 || record.RepeatCount != 0, record.RepeatCount));
+    }
+
+    internal bool IsRecordActive(DK2.Data.Model.TriggerRecord record) =>
+        _records[(record.Tag, record.TriggerId)].Active;
+
+    internal byte RecordRepeat(DK2.Data.Model.TriggerRecord record) =>
+        _records[(record.Tag, record.TriggerId)].Repeat;
+
+    internal void SetRecordActive(
+        DK2.Data.Model.TriggerRecord record, bool active, bool rearmCondition)
+    {
+        TriggerRecordState value = _records[(record.Tag, record.TriggerId)];
+        _records[(record.Tag, record.TriggerId)] = value with
+        {
+            Active = active,
+            Repeat = rearmCondition ? (byte)1 : value.Repeat,
+        };
+    }
+
+    internal void RestoreRecord(int tag, ushort id, bool active, byte repeat) =>
+        _records[(tag, id)] = new TriggerRecordState(active, repeat);
 
     public void HashInto(ref Hash64 hash)
     {
@@ -315,5 +346,15 @@ public sealed class TriggerState
         foreach (int t in _timers) hash.Add(t);
         hash.Add(SpecialValue);
         hash.Add(SpecialValueWritten ? (byte)1 : (byte)0);
+        hash.Add(_records.Count);
+        foreach (((int tag, ushort id), TriggerRecordState record) in RawRecords)
+        {
+            hash.Add(tag);
+            hash.Add(id);
+            hash.Add(record.Active ? (byte)1 : (byte)0);
+            hash.Add(record.Repeat);
+        }
     }
 }
+
+internal readonly record struct TriggerRecordState(bool Active, byte Repeat);

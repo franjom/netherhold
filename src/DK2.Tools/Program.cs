@@ -12,6 +12,7 @@ using DK2.Data.Kwd;
 using DK2.Data.Model;
 using DK2.Data.Text;
 using DK2.Data.Wad;
+using DK2.Simulation;
 
 // DK2.Tools — command-line utilities for inspecting original game data.
 
@@ -20,6 +21,9 @@ if (args.Length == 0)
 
 switch (args[0])
 {
+    case "trigger-diff" when args.Length == 3:
+        return DiffTriggerCsv(args[1], args[2]);
+
     case "where":
     {
         string? dir = Dk2Install.Find();
@@ -2148,6 +2152,7 @@ static int Usage()
     Console.WriteLine("       [--message <file>]                also check a commit message body");
     Console.WriteLine("  status [--fast] [--check]              regenerate the plan's status paragraph;");
     Console.WriteLine("                                         --check exits 1 if the plan is stale");
+    Console.WriteLine("  trigger-diff <left.csv> <right.csv>   first divergent turn/column and column totals");
     Console.WriteLine("  wad extract <file.WAD> <entry> [out]   extract one entry");
     Console.WriteLine("  sdt list <file.sdt>                    list sound-bank entries and formats");
     Console.WriteLine("  sdt extract <file.sdt> [--out converted-assets/audio]");
@@ -2173,6 +2178,71 @@ static int Usage()
     Console.WriteLine("  kwd creaturehex <offsetHex> <count>    raw byte window across every creature");
     Console.WriteLine("  kwd objecthex <offsetHex> <count> [-w]  the same across every object; -w reads u16s");
     return 1;
+}
+
+static int DiffTriggerCsv(string leftPath, string rightPath)
+{
+    string[][] ReadRows(string path)
+    {
+        string[] lines = File.ReadAllLines(path);
+        if (lines.Length == 0 || lines[0] != TriggerTurnCsvEmitter.Header)
+            throw new InvalidDataException($"'{path}' does not have the live trigger-probe header.");
+        return lines.Skip(1).Where(l => l.Length != 0).Select(l => l.Split(',')).ToArray();
+    }
+
+    try
+    {
+        string[][] left = ReadRows(leftPath);
+        string[][] right = ReadRows(rightPath);
+        string[] columns = TriggerTurnCsvEmitter.Header.Split(',');
+        var compared = new int[columns.Length];
+        var unknown = new int[columns.Length];
+        var different = new int[columns.Length];
+        (string Turn, string Column, string Left, string Right)? first = null;
+        int rows = Math.Max(left.Length, right.Length);
+
+        for (int row = 0; row < rows; row++)
+        {
+            string[]? a = row < left.Length ? left[row] : null;
+            string[]? b = row < right.Length ? right[row] : null;
+            if (a is not null && a.Length != columns.Length)
+                throw new InvalidDataException($"'{leftPath}' row {row + 2} has {a.Length} columns; expected {columns.Length}.");
+            if (b is not null && b.Length != columns.Length)
+                throw new InvalidDataException($"'{rightPath}' row {row + 2} has {b.Length} columns; expected {columns.Length}.");
+
+            string turn = a?[1] ?? b?[1] ?? row.ToString();
+            for (int col = 0; col < columns.Length; col++)
+            {
+                string av = a?[col] ?? "<missing row>";
+                string bv = b?[col] ?? "<missing row>";
+                if (a is not null && b is not null && (av.Length == 0 || bv.Length == 0))
+                {
+                    unknown[col]++;
+                    continue;
+                }
+
+                compared[col]++;
+                if (av == bv) continue;
+                different[col]++;
+                first ??= (turn, columns[col], av, bv);
+            }
+        }
+
+        if (first is { } f)
+            Console.WriteLine($"first divergence: turn {f.Turn}, column {f.Column}: left='{f.Left}' right='{f.Right}'");
+        else
+            Console.WriteLine("no comparable values diverged");
+
+        Console.WriteLine("per-column summary (different/compared, unknown):");
+        for (int col = 0; col < columns.Length; col++)
+            Console.WriteLine($"  {columns[col],-16} {different[col]}/{compared[col]}, {unknown[col]} unknown");
+        return first is null ? 0 : 1;
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 2;
+    }
 }
 
 /// <summary>

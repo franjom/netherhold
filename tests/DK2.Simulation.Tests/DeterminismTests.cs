@@ -101,12 +101,12 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 40: the level's action points enter the hash in
-        // THINGS-file order, and even this fixture's empty list adds its count.
+        // HashVersion 41: mutable trigger-record activation enters the hash;
+        // this fixture has no trigger tree, so its stable contribution is zero.
         // The pinned world spawns no creatures (Q206), so a CreatureState field
         // left out of HashInto will not fail this pin. Per-version reasons and
         // the superseded literals: docs/research/hash-versions.md.
-        Assert.Equal(0x6445940E0B0F23A9UL, sim.StateHash());
+        Assert.Equal(0xDEF9B4B1985D90DEUL, sim.StateHash());
     }
 
     [Fact]

@@ -33,7 +33,11 @@ beside it.
 
 ## Versions
 
-**40** — `0x6445940E0B0F23A9` (current). The level's action points, in
+**41** — `0xDEF9B4B1985D90DE` (current). Trigger-record active and repeat state,
+including one-shot action retirement, enters the hash and snapshot. The fixture
+has no trigger tree, so its record count remains zero.
+
+**40** — `0x6445940E0B0F23A9`. The level's action points, in
 THINGS-file order: rectangles, ids, loader-filtered flags, passage counters and
 wait timers. Even this fixture's empty list adds its count to the hash.
 `docs/research/action-points.md`.
