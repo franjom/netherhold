@@ -153,6 +153,8 @@ The smoke test loads campaign level 1 (30x38) through Unity's Mono runtime, pres
 
 **Ghidra** (headless, project `D:\ghidra projects\DK2_RE`, outside the repo): the command is in `docs/RESEARCH-QUEUE.md` §"How the binary work is done here"; the rule is `reverse-engineering/README.md` and ADR-0046. The scripts (`ScanAll.py`, `CallScanAll.py`, `CopyPairs.py`, `AtAndCallers.py`, `Up.py`, `Intersect.py`, `CallSlot.py`, `ReadsAt.py`, `MaskScan.py`, …) and every export live in `reverse-engineering/` **on this machine only** — `.gitignore` excludes `reverse-engineering/**`, and only its `README.md` is tracked. `git status --short reverse-engineering/` must be empty before every commit.
 
+**Live memory reader** (same directory, same gitignore): `python reverse-engineering/dk2watch.py --seconds 300 --csv D:\run.csv`. Attaches to `DKII-dx.EXE` **or** `DKII.EXE` with `PROCESS_VM_READ` only — the two exes differ in 1126 of 2,987,568 bytes and none is in `.text`, `cseg` or `.data`, so every address is valid for both. It prints the cached world pointers, variable 19, the record counts and every type-2 timer threshold, then samples the flag bank, timer bank, tick counter and root trigger id at the tick rate into a 150-column CSV. **Load the level first**; it waits for a real level, because the front end is itself one (1 condition, 1 action) and a non-null pointer is not proof. It accumulates the tick counter across a level load, which resets it. Fullscreen is fine — DK2 has no windowed switch and DDrawCompat's borderless mode crashed level load here.
+
 ---
 
 ## Next steps
