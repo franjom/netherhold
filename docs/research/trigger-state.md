@@ -239,8 +239,32 @@ Inside it, in order:
    bytes) starting at `+0x4030`**, evaluating each slot's trigger id, when
    non-zero, with argument `1`.
 
-**Still UNKNOWN:** the vtable slot's index, hence who invokes it and at what
-rate; and what the 24 slots are. Q228 keeps both, with the method.
+### The slot, and the class
+
+The vtable slot is **`0x18`** — index 6. Its base is `0x0066E3EC`, found by
+walking back from `0x0066E404` to the first dword that is not a code pointer;
+that dword is `0x0067DD40`, an RTTI complete object locator whose `offset` field
+is **0**, so this is the class's *primary* vtable, the one at `[this]`.
+
+**The class is `CWorld`**, read from the type descriptor at `0x006A49D0` that the
+locator points to (`.?AVCWorld@@`). That is the retail binary's **own RTTI
+data**, not an external project's guess — recorded here as a fact with its
+provenance, and deliberately **not** used as an identifier anywhere in this
+reimplementation, which has its own `WorldState`.
+
+*Not* measured: the vtable's extent. The forward walk was truncated by the dump
+window, so the "69 entries" it suggested is an artefact. The vtable is certainly
+larger — code elsewhere calls slots `+0x340`, `+0x34C` and `+0x370` on this same
+object. The **base** is what the slot index depends on, and that is solid.
+
+**Still UNKNOWN: who invokes `CWorld` slot `0x18`, and how often** — which is
+the rate the whole question is about. **97** call sites in the executable go
+through a vtable slot `0x18`, so the next step is to narrow them to the ones
+that load `CWorld` (globals `0x006E5050` / `0x006E5054`). `FUN_00521BA0` is
+worth trying first: it holds three of the 97, and the `0x521xxx` region writes
+`CWorld`'s own trigger array at `+0x730C`.
+
+Also still UNKNOWN: what the 24 slots at `+0x4030` are. Q228 keeps both.
 
 **A method note that cost time here.** `0x00518150` appeared to have exactly one
 caller — itself — and a byte scan of every block for its address returned **0
