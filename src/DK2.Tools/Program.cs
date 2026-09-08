@@ -518,6 +518,7 @@ switch (args[0])
             string maps = Path.Combine(Dk2Install.Require(), "Data", "editor", "maps");
             var totals = new SortedDictionary<string, int>(StringComparer.Ordinal);
             int files = 0, maxX = 0, maxY = 0, maxW = 0, maxH = 0, outOfRange = 0;
+            int rooms = 0, roomsWrongTerrain = 0, roomsWrongOwner = 0;
             foreach (string file in Directory.EnumerateFiles(maps, "*Things.kld").Order(StringComparer.OrdinalIgnoreCase))
             {
                 files++;
@@ -541,6 +542,18 @@ switch (args[0])
                         if (grid is not null && (x < 0 || y < 0 || x >= grid.Width || y >= grid.Height))
                             outOfRange++;
                     }
+
+                    // Whether a ROOM record places a room or annotates one the
+                    // MAP already holds. If every one of them agrees with the
+                    // grid underneath it, projecting it as a placement would
+                    // build the room twice.
+                    if (record is RoomThing room && grid is not null && grid.Contains(room.X, room.Y))
+                    {
+                        rooms++;
+                        MapTile tile = grid[room.X, room.Y];
+                        if (tile.TerrainId != room.RoomType) roomsWrongTerrain++;
+                        if (tile.PlayerId != room.PlayerId) roomsWrongOwner++;
+                    }
                 }
             }
             Console.WriteLine($"{files} THINGS files, {totals.Values.Sum()} top-level records");
@@ -549,11 +562,31 @@ switch (args[0])
             Console.WriteLine(
                 $"coordinate range x 0..{maxX}, y 0..{maxY}; largest map {maxW}x{maxH}; "
                 + $"{outOfRange} placed things outside their own level's grid");
+            Console.WriteLine(
+                $"{rooms} ROOM records checked against the grid under them; "
+                + $"{roomsWrongTerrain} disagree on terrain id, {roomsWrongOwner} on owner");
             return outOfRange == 0 ? 0 : 1;
         }
 
-        foreach (ThingRecord record in KwdThings.Parse(KwdReader.ReadFile(ResolveEditor(args[2]))))
-            Console.WriteLine(DescribeThing(record));
+        string thingsPath = ResolveEditor(args[2]);
+
+        // The level's own grid, when the file is named the shipped way, so each
+        // line can say what terrain is already under the thing. That is the
+        // question a projection has to answer first: whether a placed record
+        // duplicates the map or annotates it.
+        LevelMap? under = null;
+        string stem = Path.GetFileNameWithoutExtension(thingsPath);
+        if (stem.EndsWith("Things", StringComparison.OrdinalIgnoreCase))
+            under = GameDatabaseLoader.LoadCampaignMap(Dk2Install.Require(), stem[..^"Things".Length]);
+
+        foreach (ThingRecord record in KwdThings.Parse(KwdReader.ReadFile(thingsPath)))
+        {
+            string line = DescribeThing(record);
+            if (under is not null && ThingTiles(record).FirstOrDefault() is var (tx, ty)
+                && under.Contains(tx, ty))
+                line += $"  [map terrain {under[tx, ty].TerrainId}, owner {under[tx, ty].PlayerId}]";
+            Console.WriteLine(line);
+        }
         return 0;
     }
 
