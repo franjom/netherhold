@@ -487,8 +487,9 @@ flag bytes, 16 timer dwords, one opaque special value. Hashed and snapshotted.
 - Parameter offsets, widths and signedness come from DKII.EXE reads, not editor
   labels (ADR-0092, `docs/research/trigger-semantics.md`). Pinned by
   `TriggerStateOnRealDataTests`.
-- **Trigger execution is not built.** Nothing evaluates a condition or runs an
-  action, and Q228 has no answer for the cadence.
+- **Trigger execution is not built.** Flag and ordinary timer conditions can be
+  evaluated singly. Q228 fixes the cadence and `trigger-tree.md` fixes traversal
+  and repeat semantics; the executor and actions remain absent.
 
 ## Absences with architectural weight
 

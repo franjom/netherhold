@@ -134,9 +134,9 @@ costs no per-tick work.
 tick 0 is not a usable stamp and an unstarted timer's condition is not merely
 "a very long time ago".
 
-There is also an **indirect mode**: at `0x005185C1` the id in byte `03` selects
-a *second* timer and the comparison runs against that timer's stored stamp
-rather than against a literal.
+There is also an **indirect mode**: at `0x005185C1`, `timers[byte 03]` is
+compared to `timers[byte 01]`, with the indirect stamp on the left and no clock
+or arithmetic. None of the 303 shipped type-2 records uses this branch.
 
 ### The clock is the game's tick counter
 
