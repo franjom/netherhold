@@ -145,6 +145,16 @@ public sealed class ScenarioSetup
 
     /// <summary>Objects on the floor before tick 0.</summary>
     public List<ScenarioObject> Objects { get; set; } = [];
+
+    /// <summary>
+    /// Places the level's own THINGS records — the creatures, objects and rooms
+    /// the shipped map actually carries — before tick 0.
+    ///
+    /// <para>Opt-in, and off by default, because turning it on for an existing
+    /// scenario changes what that scenario is measuring. Only meaningful with a
+    /// <c>campaign:</c> map; a synthetic map has no THINGS file.</para>
+    /// </summary>
+    public bool PlacedThings { get; set; }
 }
 
 /// <summary>

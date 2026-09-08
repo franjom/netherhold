@@ -145,8 +145,7 @@ public sealed class ScenarioRunner
                 "80% over the four ticks of a game second, a stat DK2 prints on its status bar " +
                 "and one a slap or a well-aimed drop raises to 90% - and one lands every tick, " +
                 "four a second, a second being a real second. So a tick count here IS a wall-clock " +
-                "timing at 250 ms a tick. What is not settled is fill-in, whose cost DK2's own " +
-                "compare makes one application and which nobody has watched (Q22)");
+                "timing at 250 ms a tick");
         }
 
         // A run that used a number the game's own files do not contain has to
@@ -176,6 +175,10 @@ public sealed class ScenarioRunner
 
         WorldState world = WorldState.FromMap(
             _database, map, playerIds, fogOfWarEnabled: scenario.FogOfWar);
+
+        // The level's own contents before the scenario's, so a scenario that
+        // asks for both is adding to the shipped level rather than racing it.
+        PlaceShippedThings(scenario, world, unsupported);
 
         // Rooms first, gold second: gold has to be stored somewhere, and a
         // treasury is the only somewhere there is.
@@ -691,6 +694,45 @@ public sealed class ScenarioRunner
     /// needs, since a worker has to stand somewhere. All three are testing
     /// conveniences and none is a DK2 layout.
     /// </summary>
+    /// <summary>
+    /// Places the level's own THINGS, when the scenario asks for them.
+    ///
+    /// <para>Refused rather than ignored on a synthetic map: a scenario that
+    /// says <c>placed_things: true</c> over <c>flat_24x20</c> is asking for
+    /// something that does not exist, and silently giving it an empty level
+    /// would make the scenario look like it had run.</para>
+    /// </summary>
+    private void PlaceShippedThings(Scenario scenario, WorldState world, List<string> unsupported)
+    {
+        if (!scenario.Setup.PlacedThings) return;
+
+        if (!scenario.Map.StartsWith(CampaignPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            unsupported.Add(
+                $"setup.placed_things needs a '{CampaignPrefix}' map; '{scenario.Map}' has no THINGS file");
+            return;
+        }
+
+        string level = scenario.Map[CampaignPrefix.Length..].Trim();
+        if (_installDir is null)
+            throw new InvalidOperationException(
+                $"Scenario needs the placed things of '{level}' but no DK2 installation was found. Set DK2_DIR.");
+
+        List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(_installDir, level)
+            ?? throw new InvalidOperationException(
+                $"No THINGS file for campaign level '{level}' under Data/editor/maps.");
+
+        ThingProjectionResult result = ThingProjection.Place(world, _database, things);
+
+        // Reported, not swallowed. Action points, doors, traps and hero parties
+        // have nowhere to go yet, and a scenario built on a level that is a
+        // third unread should say so in its own output.
+        if (result.NotYetProjected > 0)
+            unsupported.Add(
+                $"{level}: {result.NotYetProjected} placed things this build cannot project yet "
+                + "(action points, doors, traps, hero parties, effect generators)");
+    }
+
     private LevelMap ResolveMap(string spec)
     {
         const string campaign = CampaignPrefix;

@@ -117,7 +117,7 @@ like 19/20; type 26 like 24/25/68; type 35 as comparison, creature id and
 signed value; types 37, 49 and 67 as comparison and signed value; type 45 like
 44/64; and type 74 as comparison, creature id and signed value. Types 33, 43,
 59 and 61 have no body read on their event paths. These are binary readings but
-have **no shipped-data corroboration**; Q222 keeps custom-map verification open.
+have **no shipped-data corroboration**; Q225 keeps custom-map verification open.
 
 ### Action records, tag 214
 
@@ -157,7 +157,7 @@ only `Available:u8@00`; types 39/40 read an unknown byte at `00`, player id at
 `01`, and two coordinates at `04/06`; type 41 reads an unknown word at `00`
 and the coordinates; type 46 reads availability and the coordinates; type 48
 reads generator id and availability. These cases are binary-read but lack a
-retail corpus example; Q222 records the verification method.
+retail corpus example; Q225 records the verification method.
 
 ## Corrections to the previous reader
 

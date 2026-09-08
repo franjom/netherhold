@@ -81,15 +81,21 @@ public class ScenarioTests
 
             Assert.Contains(result.Unsupported,
                 u => u.Contains("injected by the harness", StringComparison.Ordinal));
-            // This caveat has narrowed twice. Q47 turned it from "the rate is
-            // unknown" into "the swing count is known, the wall clock is not";
-            // Q1 (ADR-0089) then settled the wall clock too, so what survives
-            // is a single named unknown - fill-in, whose cost DK2's own compare
-            // makes one application and which nobody has watched (Q22, Q214).
-            // The assertion tracks whatever is still disclaimed, so that
-            // shrinking the caveat has to be a deliberate edit here as well.
+            // This caveat has narrowed three times, and the third time it ran
+            // out of unknowns. Q47 turned "the rate is unknown" into "the swing
+            // count is known, the wall clock is not"; Q1 (ADR-0089) settled the
+            // wall clock; and Q219 removed the last named unknown by
+            // establishing that DK2 HAS NO FILL-IN AT ALL - FillInHealth has no
+            // reader anywhere in the executable, and TileWorkKind.FillIn was
+            // deleted. So the caveat must NOT still disclaim it, and this
+            // asserts the absence: a stale disclaimer is a false statement
+            // printed on every run, which is worse than a missing one.
+            Assert.DoesNotContain(result.Unsupported,
+                u => u.Contains("fill-in", StringComparison.OrdinalIgnoreCase));
+
+            // Still non-vacuous about what the caveat does say.
             Assert.Contains(result.Unsupported,
-                u => u.Contains("What is not settled is fill-in", StringComparison.Ordinal));
+                u => u.Contains("250 ms a tick", StringComparison.Ordinal));
         }
         finally
         {

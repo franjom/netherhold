@@ -1,0 +1,24 @@
+# Loads campaign level 1 with the entities the shipped level actually carries,
+# rather than with hand-placed test furniture.
+#
+# What it proves: the level's own THINGS file reaches the simulation. Four imps
+# belonging to the human keeper stand on his dungeon heart, one object stands on
+# the map, and the two ROOM records are correctly NOT placed - the grid already
+# holds their terrain, and placing them would build the heart and the hero gate
+# twice.
+#
+# What it does not prove: that the level is playable. Twenty-seven action points
+# and two hero parties have nowhere to go yet, and the run reports that count as
+# a caveat rather than passing over it. See ADR-0101 and
+# docs/research/placed-things.md.
+id: smoke-campaign-level1-things-001
+question: >
+  Do campaign level 1's own placed creatures and objects reach WorldState, and
+  does the simulation stay deterministic once they are in it?
+map: campaign:level1
+seed: 1
+duration_ticks: 60
+setup:
+  placed_things: true
+observe:
+  - state_hash

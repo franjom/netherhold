@@ -7783,12 +7783,101 @@ audit owns the counts so the prose no longer has to be trusted on its own.
 
 ---
 
+## ADR-0101 — A level's placed THINGS become world contents, and three transcribed field meanings were wrong
+
+**Status:** accepted (2026-09-08). **No `HashVersion` change** — nothing added
+state to the world hash. **No `FormatVersion` change** — nothing was added to a
+snapshot. ADR-0092…ADR-0099 remain reserved for the `codex/trigger-semantics`
+branch.
+
+**Context.** M1 taught the reader every KWD record type, including the ten
+THINGS tags, so a level's placed entities were readable but nothing read them.
+Campaign level 1 loaded as a tile grid and then had test furniture placed on it
+by hand — `scenarios/smoke/campaign_level1_load.yaml` proved that terrain ids
+resolve and nothing else. The level's own four imps, its object and its two
+structures were sitting in `level1Things.kld`, unused.
+
+**Decision.** `ThingProjection.Place(world, database, things)` in
+`DK2.Simulation`, taking `IReadOnlyList<ThingRecord>` from `DK2.Data.Model`, so
+the simulation gains no dependency on file IO. It places creatures and objects,
+recognises rooms as already-in-the-grid, and **counts** everything it cannot
+place yet. Scenarios opt in with `setup.placed_things: true`, off by default
+because turning it on for an existing scenario changes what that scenario
+measures. `docs/research/placed-things.md` carries the readings.
+
+### Three field meanings that came from the external reader and were wrong
+
+**1. Coordinates are tile indices, not the simulation's subtile units.** The
+fields are 32-bit ints and the simulation carries positions at 4096 units to the
+tile, so reading them as subtile units type-checks, runs, and puts every entity
+in the level inside tile (0,0). Settled by the corpus in one line: coordinates
+run x 0..118 and y 0..102 against a largest map of 121x105, and **not one of the
+6279 records lands outside its own level's grid**, where under the subtile
+reading every one would. This was the first thing written and the first thing
+corrected.
+
+**2. `InitialHealth` is a percentage of the maximum, not a hit-point count.** Of
+2891 placed creatures **2851 carry exactly 100**, the rest carry round
+percentages between 5 and 80, and **nothing anywhere exceeds 100**. The absolute
+reading is dangerous precisely because it is plausible — it would spawn every
+creature in the game at 100 health, which for a Goblin looks like a slightly
+weak Goblin rather than like a defect.
+
+**3. `RoomThing.RoomType` is a terrain id, and a ROOM record is not a
+placement.** Only four values occur — 14, 33, 34, 37 — and they are the terrain
+ids of the Dungeon Heart and the three Hero Gates. Read as room ids, 14 would be
+the Graveyard and the other three would not exist, the room table stopping at 26.
+**All 275 ROOM records agree with the terrain the MAP already holds under them**,
+so the record annotates the grid rather than placing anything; projecting one as
+a placement would build every heart and hero gate in the campaign twice.
+
+That is three for three on the THINGS field names this projection had to rely
+on, which is the same result the `FillInHealth` episode produced (Q219) and the
+reason `codex/trigger-semantics` was sent to check the TRIGGERS parameter names
+against the binary rather than trusting the same source.
+
+### Two smaller readings
+
+- **A hero party is a fixed array of sixteen member slots**, an empty slot being
+  creature id 0. Counting the empty ones is what first made the percentage claim
+  above look false, because an empty slot's `InitialHealth` is 0.
+- **Health must be applied after the level**, since maximum health is the
+  record's `Hp` scaled by the level curve. The wrong order leaves a level-10
+  creature at a level-1 maximum, which reads as a wounded creature rather than
+  as an ordering bug, so it is pinned by its own test.
+
+### Consequences
+
+- **1944 creatures and 788 objects** across the corpus now project, and **every
+  one of the 66 levels projects without the database refusing an id** — which is
+  the sweep that would catch a creature or object id this reading got wrong,
+  since both spawns refuse an unknown id rather than placing a nameless entity.
+- **3272 records still have nowhere to go**: 1152 action points, 959 traps, 940
+  doors, 220 hero parties and one effect generator. The count is *returned* from
+  the projection and reported as a scenario caveat, because a projection that
+  silently ignores two thirds of a file looks identical to one that works.
+  Q222–Q224 carry what each needs.
+- **No floor on placed health**, and that is a decision rather than an
+  oversight: the clamp could never fire (smallest `Hp` 240, smallest percentage
+  5, curve only scales up), and this project has just spent a session deleting
+  branches nothing could reach. The guarantee is asserted in a test instead.
+- `dk2tools kwd things` keeps every count above re-checkable, and returns
+  non-zero if a coordinate ever falls outside its level.
+
+**Also corrected here:** the scenario runner printed, on every tile-work run,
+*"What is not settled is fill-in, whose cost DK2's own compare makes one
+application and which nobody has watched (Q22)"*. Q219 established that **DK2
+has no fill-in mechanism at all** — `FillInHealth` has no reader in the
+executable — and `TileWorkKind.FillIn` was deleted the same day. The caveat has
+been dropped rather than reworded: there is nothing left unsettled about it.
+---
+
 ## ADR-0092 — Trigger parameter views follow DKII.EXE reads, not editor labels
 
 **Status:** accepted (2026-09-08). `HashVersion` and snapshot `FormatVersion`
 remain **36**: this changes static-data views and audit tooling only. Trigger
 execution remains out of scope.
-**Evidence:** `docs/research/trigger-semantics.md`; Q222–Q224.
+**Evidence:** `docs/research/trigger-semantics.md`; Q225–Q227.
 
 ### Context
 
