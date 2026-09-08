@@ -7,22 +7,17 @@ using DK2.Data.Model;
 
 namespace DK2.Data.Kwd;
 
-/// <summary>
-/// Chunk-level reader for KWD/KLD files.
-///
-/// Layout (CONFIRMED against the reference install; docs/research/kwd-container.md):
-///   u32 signature (KwdRecordType)     u32 byteSize (== 4)
-///   u32 chunkEndOffset                u32 checkOne (== signature + 1)
-///   u32 headerBlockSize
-///   u8[headerBlockSize] type-specific header:
-///       general:  u32 itemCount, u32 unk, timestamp[10] created, timestamp[10] modified
-///       TRIGGERS: u32 itemCount0, u32 itemCount1, ... (count = count0 + count1)
-///       MAP:      u32 width, u32 height
-///       LEVEL:    u16 itemCount, u16 height, ...
-///   u32 checkTwo (== signature + 2 or + 3)
-///   u32 contentSize
-///   u8[contentSize] records
-/// Chunks repeat until end of file.
+/// <summary>Chunk-level reader for KWD/KLD files. Layout CONFIRMED against the
+/// reference install (docs/research/kwd-container.md); chunks repeat to end of file.
+/// <code>
+/// u32 signature (KwdRecordType); u32 byteSize (== 4); u32 chunkEndOffset;
+/// u32 checkOne (== signature + 1); u32 headerBlockSize;
+/// u8[headerBlockSize] type-specific header:
+///     general:  u32 itemCount, u32 unk, timestamp[10] created, timestamp[10] modified
+///     TRIGGERS: u32 itemCount0, u32 itemCount1, ... (count = count0 + count1)
+///     MAP: u32 width, u32 height;  LEVEL: u16 itemCount, u16 height, ...
+/// u32 checkTwo (== signature + 2 or + 3); u32 contentSize; u8[contentSize] records
+/// </code>
 /// </summary>
 public static class KwdReader
 {

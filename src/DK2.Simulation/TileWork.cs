@@ -8,12 +8,10 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>
-/// One kind of work a worker can apply to a tile.
-///
-/// The list is not invented: it is a 1:1 reading of the ten health-delta
-/// variables that DK2's own global balance table carries for tile work
-/// (ids 4–13 of <see cref="VariableTypeId"/>). Anything DK2 has no variable for
-/// is not in this enum.
+/// One kind of work a worker can apply to a tile. A 1:1 reading of the ten
+/// health-delta variables DK2's global balance table carries for tile work (ids
+/// 4–13 of <see cref="VariableTypeId"/>); anything DK2 has no variable for is not
+/// in this enum.
 /// </summary>
 public enum TileWorkKind
 {

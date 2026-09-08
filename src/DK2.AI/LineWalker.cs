@@ -26,19 +26,18 @@ public enum WalkOutcome
 
 public readonly record struct WalkStep(WalkOutcome Outcome, TilePos Tile);
 
-/// <summary>
-/// The original's corridor digger (docs/KEEPER_AI.md §5.2, "the line walker"),
-/// STRONGLY INFERRED. From <see cref="KeeperAIState.DigRoomAtCurrent"/> step
-/// one tile at a time along whichever axis is further from
-/// <see cref="KeeperAIState.DigRoomAt"/>. The first solid, water or lava tile
-/// met is handed back when it is diggable rock or a hazard. An undiggable
-/// obstacle is walked around: the straight line is continued through it to find
-/// the far side, both ways round are trial-walked and the one that gets closer
-/// to the target wins, then the walker follows the obstacle's edge — clockwise
-/// table, turning toward the wall — digging through any diggable rock it meets,
-/// until it reaches the far side and the straight walk resumes. Coming back to
-/// where the hug began fails the task.
-/// </summary>
+/// <summary>The original's corridor digger — STRONGLY INFERRED, docs/KEEPER_AI.md §5.2.</summary>
+/// <remarks>
+/// <para>From <see cref="KeeperAIState.DigRoomAtCurrent"/>, step one tile at a time
+/// along whichever axis is further from <see cref="KeeperAIState.DigRoomAt"/>. The
+/// first solid, water or lava tile met is handed back if it is diggable rock or a
+/// hazard.</para>
+/// <para>An undiggable obstacle is walked around: continue the straight line through
+/// it to find the far side, trial-walk both ways round and take the one that gets
+/// closer to the target, then follow the obstacle's edge (clockwise table, turning
+/// toward the wall), digging any diggable rock met, until the far side is reached and
+/// the straight walk resumes. Returning to where the hug began fails the task.</para>
+/// </remarks>
 public static class LineWalker
 {
     /// <summary>Segments each trial walk may run before giving up, as in the original.</summary>

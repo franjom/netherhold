@@ -7,39 +7,18 @@ using DK2.Data.Model;
 
 namespace DK2.Data.Kwd;
 
-/// <summary>
-/// Walks the two KWD record types that are not a fixed stride: THINGS and
-/// TRIGGERS.
-///
-/// <para><b>CONFIRMED</b> (2026-09-04): both are self-describing. Each record is
-/// <c>u32 tag; u32 payloadSize; u8[payloadSize]</c>, so the whole chunk can be
-/// split into records <b>without knowing a single payload layout</b>. That is
-/// the fact that de-risks these two types: every other record type had to have
-/// its stride derived before anything could be read, and these two need
-/// nothing.</para>
-///
-/// <para><b>Validated structurally, not on trust</b> — the same bar every other
-/// offset in this project had to clear. Across every tagged chunk the install
-/// ships (133 of them: two per campaign level plus the camera chunk in
-/// <c>GlobalVariables.kwd</c>, holding 6,318 THINGS and 9,161 TRIGGERS records),
-/// walking <c>itemCount</c> records this way consumes each chunk <b>to the
-/// byte</b>, with none left over and none short. See
-/// <c>docs/research/kwd-container.md</c> §"THINGS and TRIGGERS are
-/// self-describing".</para>
-///
-/// <para>And the payloads turn out to be fixed-size <i>per tag</i>: across the
-/// whole campaign every tag carries exactly one payload size (see
-/// <see cref="ThingPayloadSizes"/>). So THINGS is not really a variable-length
-/// format at all — it is eleven fixed-size record types multiplexed into one
-/// chunk, which is why a stride check could never have found it. (One chunk does
-/// have a whole stride, and it is a trap for exactly this reason:
-/// <c>GlobalVariables.kwd</c>'s THINGS chunk is 39 cameras of 92 bytes each, so
-/// it divides perfectly and still is not a fixed-stride record type.)</para>
-///
-/// <para>This type deliberately stops at the tag and the payload bytes. M1's
-/// field readers are layered separately in <see cref="KwdThings"/> and
-/// <see cref="KwdTriggers"/>. Executing those records remains M6 work.</para>
-/// </summary>
+/// <summary>Walks the two KWD record types that are not a fixed stride: THINGS and
+/// TRIGGERS. Both are self-describing — <c>u32 tag; u32 payloadSize; u8[payloadSize]</c>
+/// — so a chunk splits into records with no payload layout known. CONFIRMED 2026-09-04.</summary>
+/// <remarks><para>Validated structurally: over all 133 tagged chunks the install ships
+/// (two per campaign level plus <c>GlobalVariables.kwd</c>'s camera chunk; 6,318 THINGS
+/// and 9,161 TRIGGERS records), walking <c>itemCount</c> records consumes each chunk to
+/// the byte — docs/research/kwd-container.md §"THINGS and TRIGGERS are self-describing".</para>
+/// <para>Payloads are fixed-size <i>per tag</i> (<see cref="ThingPayloadSizes"/>), so
+/// THINGS is eleven fixed-size types multiplexed into one chunk and a stride check
+/// could never have found it. The trap: that camera chunk is 39 records of 92 bytes,
+/// divides perfectly, and is still not fixed-stride. This type stops at the tag and
+/// payload; field readers live in <see cref="KwdThings"/>, <see cref="KwdTriggers"/>.</para></remarks>
 public static class KwdTaggedRecords
 {
     /// <summary>Bytes of header ahead of every payload: the tag and its size.</summary>
@@ -97,19 +76,14 @@ public static class KwdTaggedRecords
         return records;
     }
 
-    /// <summary>
-    /// The THINGS tags, and the payload size each one carries.
-    ///
-    /// <para>The tag values and names are OpenKeeper's (GPLv3, facts only —
-    /// <c>docs/research/external-resources.md</c>); the <b>sizes are this
-    /// project's own measurement</b> over the shipped data, and the two agree on
+    /// <summary>The THINGS tags and the payload size each carries. Tag values and names
+    /// are OpenKeeper's (facts only — docs/research/external-resources.md); the sizes
+    /// are this project's own measurement over the shipped data, and the two agree on
     /// all eleven tags that occur, including the Hero Party's peculiar 555.
-    /// <c>InShippedData</c> is false for tag 202 alone: a dead body is a thing
-    /// OpenKeeper parses that no shipped file places, so its 16 bytes rest on
-    /// their field list and nothing else. The camera (205) very nearly joined
-    /// it — it appears in no campaign map, and turned up only because the
-    /// sweep was widened to the editor database.</para>
-    /// </summary>
+    /// <c>InShippedData</c> is false for tag 202 alone: no shipped file places a dead
+    /// body, so its 16 bytes rest on OpenKeeper's field list and nothing else. The
+    /// camera (205) appears in no campaign map either and was found only by widening
+    /// the sweep to the editor database.</summary>
     public static readonly IReadOnlyDictionary<int, (string Name, int PayloadSize, bool InShippedData)>
         ThingPayloadSizes = new Dictionary<int, (string, int, bool)>
         {

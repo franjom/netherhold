@@ -8,53 +8,16 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Systems;
 
 /// <summary>
-/// Experience, and the levels it buys — once a game second.
-///
-/// <para><b>CONFIRMED by the owner</b> (2026-09-04, Q124), who answered the
-/// question this system existed to be blocked on:</para>
-///
-/// <para><i>"imps get experience by working, while they do their usual things
-/// around the dungeon, digging, reinforcing walls, mining gold, etc. they get
-/// exp and passively their level raises. creatures also gain levels through
-/// experience, mostly training and fighting. creatures can get up to level 4
-/// using the training room, up to level 8 using the combat pit, and to get to
-/// level 10 they need to fight actual fights."</i></para>
-///
-/// <para><b>Two of those caps are shipped variables, to the number</b> —
-/// <c>TrainingRoomMaxExperienceLevel</c> is <b>4</b> and
-/// <c>CombatPitMaxExperienceLevel</c> is <b>8</b>. That is the third time an
-/// owner statement and a variable name have met outright, and it is why the
-/// third clause (level 10 needs real fights) is taken as read: the two numbers
-/// that could be checked both checked out.</para>
-///
-/// <para><b>Only the imp half is implemented</b>, and that is not a shortcut —
-/// it is the only half that has anything to act on. Working exists;
-/// <see cref="CreatureActivity.Working"/> is what an imp is doing while it digs,
-/// claims, reinforces and mines. Training and fighting do not exist at all, so a
-/// Goblin here earns nothing and stays at level 1 for ever, which is honest and
-/// is asserted by a test rather than papered over.</para>
-///
-/// <para><b>The rate is DK2's own and it is per second in its own name:</b>
-/// <c>ImpExperienceGainPerSecond</c> = <b>20</b>. So an imp needs its record's
-/// <c>ExpForNextLevel</c> of 3000 divided by 20 — <b>150 seconds of work</b> — to
-/// reach level 2, and about 114 minutes of continuous work to reach level 10.
-/// The owner's dungeon had level-2 imps early, which fits.</para>
-///
-/// <para><b>The 1200 mystery is resolved by that number, and it resolves the
-/// other way too.</b> The creature record carries a field this project calls
-/// <c>ExpPerSecond</c> reading <b>1200</b> for an Imp, which is absurd per
-/// second — level 2 in two and a half seconds. But <b>1200 / 60 = 20</b>, which
-/// is the global variable exactly. So the record's field is almost certainly
-/// <b>per minute</b>, and two independent fields agreeing on the imp's rate is
-/// what promotes that from a coincidence to a reading (STRONGLY INFERRED). On
-/// that reading a Goblin's 200 is 3.33 a second, or fifteen minutes a level —
-/// plausible for a fighter, and unused here because nothing makes a Goblin
-/// fight.</para>
-///
-/// <para>Registered <b>after</b> <see cref="TileWorkSystem"/> so a creature is
-/// paid for a second it actually worked, and after
-/// <see cref="CreatureHealthSystem"/> so nothing that died this second is
-/// promoted on its way out.</para>
+/// Awards work experience and the levels it buys, on the original's tick.
+/// <para>CONFIRMED (owner, 2026-09-04, Q124): imps gain by working; others by
+/// training and fighting, capped at 4 in the training room and 8 in the combat
+/// pit — the shipped <c>TrainingRoomMaxExperienceLevel</c> and
+/// <c>CombatPitMaxExperienceLevel</c> — with level 10 needing real fights.</para>
+/// <para>Only the working half is here: training pays through the Train job
+/// (ADR-0083) and nothing fights, so a Goblin earns nothing here. A working imp
+/// gains 80 a game second, so its second level costs 3000 / 80 = 37.5 seconds
+/// (ADR-0083 item 6, <c>CreatureLevelTests</c>). Trap: the rate variable
+/// <c>ImpExperienceGainPerSecond</c> is 20 per <i>original tick</i>.</para>
 /// </summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
 public sealed class CreatureExperienceSystem : ISimulationSystem
@@ -65,11 +28,10 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        // ON THE ORIGINAL'S TICK, not ours, and not once a game second. DK2
-        // awards a worker its 20 once per original tick, and DK2 throws away the
-        // overshoot when a creature levels (Q79/Q205,
-        // CreatureLevelRules.Grant), so four awards of 20 and one award of 80
-        // leave different balances behind. The cadence is behaviour here.
+        // On the original's tick, not once a game second: DK2 awards the raw 20
+        // once per original tick and throws away the overshoot on promotion
+        // (CreatureLevelRules.Grant), so four awards of 20 and one award of 80
+        // leave different balances behind. The cadence is behaviour (Q79/Q205).
         if (!SimulationTiming.OnOriginalTick(context.Tick.Value)) return;
 
         WorldState world = context.World;
@@ -79,10 +41,9 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
         {
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
-            // Nothing on the floor earns anything (ADR-0051), and nothing
-            // walking out of the dungeon does either.
-            // Nothing is earned in the keeper's hand: experience is paid for
-            // a second worked, and a held creature worked none (ADR-0062).
+            // Nothing earns while held in the hand (a held creature worked
+            // none, ADR-0062), imprisoned, down on the floor (ADR-0051), or
+            // walking out of the dungeon.
             if (HandRules.IsHeld(state)) continue;
             if (PrisonRules.IsImprisoned(state)) continue;
             if (CreatureDeathRules.IsDown(state)) continue;
@@ -97,9 +58,8 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
             int banked = state.ExperiencePoints;
             if (!CreatureLevelRules.Grant(database, creature, state, gained)) continue;
 
-            // "discarded", not "spare": DK2 zeroes the balance on promotion and
-            // the overshoot is gone (Q127, corrected 2026-09-07). The number is
-            // logged because it is the thing this project used to carry.
+            // "discarded", not "spare": DK2 zeroes the balance on promotion, so
+            // the overshoot is gone rather than carried (Q127).
             context.Emit(SystemName, "creature_level_up",
                 $"creature={state.Id} type={creature.Name} " +
                 $"player={state.OwnerPlayerId} {before}->{state.Level} " +

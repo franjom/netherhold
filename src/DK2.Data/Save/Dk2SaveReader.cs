@@ -8,25 +8,17 @@ using DK2.Data.Model;
 
 namespace DK2.Data.Save;
 
-/// <summary>
-/// Reads the tile grid out of a Dungeon Keeper 2 saved game — <c>.SAV</c> or
-/// <c>.QSAV</c> — into the same <see cref="LevelMap"/> the KWD loader produces.
-///
-/// <para><b>Terrain and ownership only.</b> What follows the grid is a run of
-/// typed sections — an 8-byte {kind, count} head, then that many entities, each
-/// of which serialises itself through its own virtual method — so there is no
-/// flat record array to walk and entities are not read yet (Q182). A save loads
-/// with the dungeon as the player left it and no occupants, which is the same
-/// shape a campaign level currently loads in: THINGS parses, but M6 has not
-/// projected those records into the simulation.</para>
-///
-/// <para>Layout CONFIRMED against the reference install's own two saves and
-/// cross-validated against the level's design map — see
-/// docs/research/sav-format.md. The load is deliberately self-checking:
-/// <see cref="AgreementWithDesign"/> compares the terrain lane against the
-/// level's <c>Map.kld</c>, and a correct read of a played save agrees on most
-/// tiles while a wrong offset agrees on almost none.</para>
-/// </summary>
+/// <summary>Reads the tile grid out of a DK2 saved game — <c>.SAV</c> or
+/// <c>.QSAV</c> — into the same <see cref="LevelMap"/> the KWD loader produces. Layout
+/// STRONGLY INFERRED from DK2's own save routine, cross-checked against every save in
+/// the reference install (docs/research/sav-format.md).</summary>
+/// <remarks>
+/// Not implemented: entities (Q182). The typed sections after the grid are an 8-byte
+/// {kind, count} head then that many entities each serialising itself through its own
+/// virtual method, so there is no flat record array to walk and a save loads with no
+/// occupants. The load is self-checking: <see cref="AgreementWithDesign"/> compares
+/// the terrain lane against <c>Map.kld</c>.
+/// </remarks>
 public static class Dk2SaveReader
 {
     /// <summary>
@@ -37,13 +29,11 @@ public static class Dk2SaveReader
     public const string SupportedBuildStamp = "May 12 200012:28:22";
 
     /// <summary>
-    /// The build stamp is a <b>64-byte</b> field, but DK2 fills only the 19
-    /// characters of <c>__DATE__</c> and <c>__TIME__</c> plus a terminator. The
-    /// writer builds it in a 64-byte stack buffer with a copy and a concatenate
-    /// and never clears it, so <b>every save leaks about 44 bytes of DK2's
-    /// stack</b> into the file. See docs/research/sav-format.md; it is why the
-    /// addresses visible at 0x20 and 0x28 are garbage rather than a serialised
-    /// object graph (Q180).
+    /// Offset 8, a 64-byte field of which DK2 fills only 19 characters
+    /// (<c>__DATE__</c> plus <c>__TIME__</c>) and a terminator. The writer never
+    /// clears its 64-byte stack buffer, so every save leaks about 44 bytes of DK2's
+    /// stack — which is why the addresses at 0x20 and 0x28 are garbage and not a
+    /// serialised object graph (Q180, docs/research/sav-format.md).
     /// </summary>
     private const int BuildStampOffset = 8;
     private const int BuildStampField = 64;
@@ -142,10 +132,7 @@ public static class Dk2SaveReader
         uint formatWord = BinaryPrimitives.ReadUInt32LittleEndian(save);
         uint version = BinaryPrimitives.ReadUInt32LittleEndian(save[4..]);
 
-        // 220 is a constant the writer emits, NOT a length: the header runs to
-        // 0x134. This reader treated it as a size until the save routine was
-        // read, which happened to work only because the level name sits inside
-        // the first 220 bytes.
+        // 220 is a constant the writer emits, not a length: the header runs to 0x134.
         if (formatWord != ExpectedFormatWord)
             throw new InvalidDataException(
                 $"the save opens with {formatWord}, not the expected {ExpectedFormatWord}.");
@@ -172,34 +159,18 @@ public static class Dk2SaveReader
         return Encoding.ASCII.GetString(field[..end]);
     }
 
-    /// <summary>
-    /// Finds where the tile grid starts, by correlating the save's terrain lane
-    /// against the level's own design map.
-    ///
-    /// <para><b>Why a search rather than a constant.</b> The offset was recorded
-    /// as fixed at <see cref="FirstSampleGridOffset"/> from two saves of one
-    /// level; a save of a different level puts the grid somewhere else entirely,
-    /// because the undecoded block between the header and the grid (Q183) is
-    /// sized by something about the level. See
-    /// docs/research/sav-format.md and fog-of-war.md §11.5.</para>
-    ///
-    /// <para><b>Why correlation works.</b> A played save differs from its design
-    /// map only where somebody dug, claimed or built, so the true offset scores
-    /// very high — <b>99.7%</b> on a save taken at the start of a game — while a
-    /// misaligned read agrees at chance against a 41-value enum. The peak is
-    /// sharp: one record either side scores 91% or less.</para>
-    ///
-    /// <para>Two passes. The first scores a spread sample of
-    /// <see cref="SampleTiles"/> tiles at every possible offset; the second
-    /// scores the <see cref="FinalistOffsets"/> best of those against the whole
-    /// grid and returns the winner. The sample alone is not trusted to rank a
-    /// near neighbour below the real thing.</para>
-    /// </summary>
-    /// <exception cref="InvalidDataException">
-    /// The file is too small to hold the grid, or nothing in it correlates with
-    /// the design map — which means the save is not of this level, or the record
-    /// stride is not what this reader believes.
-    /// </exception>
+    /// <summary>Finds where the tile grid starts, by correlating the save's terrain
+    /// lane against the level's design map — a search, not a constant, because the
+    /// undecoded block before the grid (Q183) is sized by something about the level.
+    /// Two passes: score a spread sample of <see cref="SampleTiles"/> tiles at every
+    /// candidate offset, then score the <see cref="FinalistOffsets"/> best against the
+    /// whole grid (the sample alone can rank a near neighbour first).</summary>
+    /// <remarks>Measured over all fourteen saves in the install: the located offset
+    /// agrees 72.9–100%, one tile record either side 59.1–91.3%, one byte off 0.000%
+    /// (docs/research/sav-format.md, fog-of-war.md §11.5).</remarks>
+    /// <exception cref="InvalidDataException">The file is too small for the grid, or
+    /// nothing correlates with the design map: the save is not of this level, or the
+    /// stride is not what this reader believes.</exception>
     public static int FindGridOffset(ReadOnlySpan<byte> save, LevelMap design)
     {
         if (design is null) throw new ArgumentNullException(nameof(design));
@@ -290,13 +261,10 @@ public static class Dk2SaveReader
         {
             int o = gridOffset + (i * TileRecordSize);
 
-            // Flags is left at zero rather than guessed. Eight of the ten lanes
-            // are undecoded (Q181) and none of them matched the design map's
-            // flag byte on better than chance, so there is nothing to copy here
-            // that beats an honest zero. The one consequence to know about:
-            // BridgeRules reads TileState.Flags to tell a bridge over lava from
-            // one over water, so a bridge in a loaded save reads as spanning
-            // water until Q181 is settled.
+            // Flags stays zero: eight of the ten lanes are undecoded (Q181) and none
+            // beat chance against the design map's flag byte. Consequence: BridgeRules
+            // reads TileState.Flags to tell a bridge over lava from one over water, so
+            // a bridge in a loaded save reads as spanning water until Q181 closes.
             tiles[i] = new MapTile(
                 TerrainId: save[o + LaneTerrain],
                 PlayerId: save[o + LaneOwner],
@@ -365,15 +333,10 @@ public static class Dk2SaveReader
     }
 
     /// <summary>
-    /// The share of tiles whose terrain still matches the level's design map.
-    ///
-    /// <para><b>This is the load's own correctness check, not a statistic.</b> A
-    /// played save differs from its design map only where the player dug,
-    /// claimed or built — 73% agreement on the sample save and 85% on an earlier
-    /// quicksave of the same level. A grid read at the wrong offset or the wrong
-    /// stride agrees at chance, which for a 41-value enum is nowhere near
-    /// either. Treat a low number as a failed read rather than as a busy
-    /// player.</para>
+    /// The share of tiles whose terrain still matches the level's design map — the
+    /// load's own correctness check, not a statistic. Shipped saves agree 72.9–100%
+    /// (docs/research/sav-format.md); a wrong offset or stride agrees at chance
+    /// against a 41-value enum. Treat a low number as a failed read, not a busy player.
     /// </summary>
     public static double AgreementWithDesign(LevelMap saved, LevelMap design)
     {

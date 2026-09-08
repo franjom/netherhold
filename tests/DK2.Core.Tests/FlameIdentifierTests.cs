@@ -6,27 +6,18 @@ using System.Text.RegularExpressions;
 
 namespace DK2.Core.Tests;
 
-/// <summary>
-/// Flame — DiaLight's partial recompilation of DK2 v1.70 — publishes no licence,
-/// so this project holds no reuse rights to it at all. ADR-0080 draws the line:
-/// a Flame name may be <i>cited</i> in a document, and never appears in the
-/// source tree, not as a member, not as a type, not in a comment.
-///
-/// <para><b>Why a test, when the rule had been stated in three documents for a
-/// week.</b> Because nothing checked it, and two doc comments in
-/// <c>DK2.Core</c> had carried Flame field names, prefix and all, since the
-/// first commit. A claim nothing checks may already be false.</para>
-///
-/// <para><b>Why the test matches a shape and not a list.</b> A denylist of Flame
-/// identifiers would itself be Flame identifiers pasted into the repository.
-/// So this matches the two things that are distinctively <i>Flame's</i> way of
-/// naming rather than any one name: fields prefixed with their hex offset
-/// (<c>f</c>, two to four hex digits, underscore), and the serialised-data
-/// prefix its save-format work uses. It is a floor, not a fence — a Flame class
-/// name typed into a comment would slip through — and the rule still rests on
-/// review. The test is here so the class of mistake found on 2026-09-06 cannot
-/// recur silently.</para>
+/// <summary>Flame — DiaLight's partial recompilation of DK2 v1.70 — publishes
+/// no licence, so this project holds no reuse rights to it at all. ADR-0080: a
+/// Flame name may be <i>cited</i> in a document, and never appears in the
+/// source tree — not as a member, not as a type, not in a comment.
 /// </summary>
+/// <remarks>
+/// It matches a shape, not a list: a denylist would itself be Flame names
+/// pasted into the repository. The shapes are Flame's hex-offset field prefix
+/// (<c>f</c>, two to four hex digits, underscore) and the serialised-data
+/// prefix its save-format work uses. A floor, not a fence: a Flame class name
+/// in a comment slips through, and the rule still rests on review.
+/// </remarks>
 public class FlameIdentifierTests
 {
     /// <summary>

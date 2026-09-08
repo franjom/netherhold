@@ -9,19 +9,15 @@ namespace DK2.Simulation.Systems;
 
 /// <summary>
 /// Pays every keeper the mana their land generated, once a second.
-///
-/// <para><b>Once a second, not once a tick</b>, because the rate the data gives
-/// is per second and Q1 (the tick rate) is unmeasured. Scheduling it as one
-/// application every <see cref="SimulationTiming.TicksPerSecond"/> ticks keeps
-/// the arithmetic exact in integers and keeps the state hash independent of a
-/// constant nobody has measured — the same rule
-/// <see cref="SimulationTiming.WorkApplicationPeriodTicks"/> exists for. Whether
-/// the original accrues smoothly or in whole seconds is UNKNOWN and it is
-/// visible only as the shape of the counter, never as a total.</para>
-///
+/// <para><b>Once a second, not once a tick</b>: the rate the data gives is per
+/// second and the original's tick rate is unmeasured (Q1). One application every
+/// <see cref="SimulationTiming.TicksPerSecond"/> ticks keeps the arithmetic
+/// exact in integers and the state hash independent of an unmeasured constant
+/// (ADR-0017). Whether the original accrues smoothly or in whole seconds is
+/// UNKNOWN, and shows only in the shape of the counter, never in a total.</para>
 /// <para>The first payment lands at the end of the first second rather than on
-/// tick zero, so a level does not begin by handing out a second of mana that has
-/// not elapsed.</para>
+/// tick zero, so a level does not begin by handing out a second that has not
+/// elapsed.</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/mana.md")]
 public sealed class ManaSystem : ISimulationSystem

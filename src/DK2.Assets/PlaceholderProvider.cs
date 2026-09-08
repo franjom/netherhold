@@ -6,30 +6,18 @@ using DK2.Core;
 
 namespace DK2.Assets;
 
-/// <summary>
-/// Answers every asset key, always, with a coloured box.
-///
-/// <para><b>This is the load-bearing provider, not the fallback.</b> The plan
-/// (§7.2) requires that the game <i>runs</i> with no DK2 install and no art
-/// pack — "as untextured boxes" — so that the "shippable without proprietary
-/// assets" property is continuously tested rather than aspirational. That
-/// promise is only true if this provider is total, which
-/// <c>PlaceholderProviderTests</c> checks over every key the whole shipped game
-/// database implies.</para>
-///
-/// <para><b>Colours are derived, not chosen.</b> A key's
-/// <see cref="AssetRef.StableHash"/> picks the hue, so rock is the same colour
-/// in every run, on every machine and in every renderer — which is the
-/// difference between a box view you can read and one you cannot. It also means
-/// a new terrain type gets a distinct colour with no table to maintain, and a
-/// mod-authored one gets one for free.</para>
-///
-/// <para>Two deliberate exceptions to "derive everything": the <b>shape</b>
-/// follows the asset's kind and category, because a creature drawn as a
-/// ground-flat slab is not legible; and colours are pushed into the mid range
-/// rather than used raw, because a hash produces near-blacks and near-whites
-/// often enough to matter.</para>
-/// </summary>
+/// <summary>Answers every asset key, always, with a coloured box.</summary>
+/// <remarks>
+/// <para>Total, not a fallback: the game must run with no DK2 install and no art pack
+/// (plan §7.2, ADR-0034), and that only holds if this provider answers everything.
+/// <c>ProviderTests</c> checks it over every key the shipped database implies.</para>
+/// <para>Colour is derived from the key's <see cref="AssetRef.StableHash"/>, never
+/// chosen, so a terrain is the same colour in every run, machine and renderer, and a
+/// new or mod-authored terrain gets a distinct one with no table to maintain.</para>
+/// <para>Two things are not derived: shape follows the asset's kind and category (a
+/// creature drawn as a ground-flat slab is unreadable), and colours are pushed into
+/// the mid range because a hash yields near-black and near-white too often.</para>
+/// </remarks>
 public sealed class PlaceholderProvider : IAssetProvider
 {
     /// <summary>The single instance. Stateless, so sharing one is free.</summary>
@@ -89,15 +77,12 @@ public sealed class PlaceholderProvider : IAssetProvider
     }
 
     /// <summary>
-    /// What shape stands in for a kind of asset.
-    ///
-    /// <para>Kind decides first, then category, because a terrain's
-    /// <i>texture</i> is a slab whatever the terrain is, while a terrain's
-    /// <i>mesh</i> depends on whether the terrain fills its tile — and this
-    /// assembly cannot ask, since it does not know the terrain's flags.
-    /// <see cref="AssetCatalogue"/> is where that knowledge lives; it requests
-    /// the mesh of a solid terrain and the texture of a walkable one, so the
-    /// shapes come out right without this method needing the game database.</para>
+    /// What shape stands in for a kind of asset: kind decides first, then category.
+    /// A terrain's texture is a slab whatever the terrain, while its mesh depends on
+    /// whether the terrain fills its tile — a flag this assembly cannot read.
+    /// <see cref="AssetCatalogue"/> holds that knowledge and asks for the mesh of a
+    /// solid terrain and the texture of a walkable one, so the shapes come out right
+    /// without a game database here.
     /// </summary>
     public static PlaceholderShape ShapeFor(AssetRef reference) => reference.Kind switch
     {
@@ -123,15 +108,11 @@ public sealed class PlaceholderProvider : IAssetProvider
     private static byte MidRange(byte raw) => (byte)(64 + (raw * 160 / 256));
 
     /// <summary>
-    /// A stable index in <c>0..count-1</c> for an asset key — the same
-    /// derivation <see cref="LookFor"/> uses for colour, for renderers that need
-    /// to pick from a small set instead (a character, a material, a debug hue).
-    ///
-    /// <para>Kept here rather than in each renderer so that every view agrees
-    /// about which terrain is "the first one": the text view and a Unity debug
-    /// view showing different things for the same tile would hide which of them
-    /// was wrong. <b>Choosing the set is the renderer's business; being stable
-    /// about it is this method's.</b></para>
+    /// A stable index in <c>0..count-1</c> for an asset key, from the same hash
+    /// <see cref="LookFor"/> uses, for renderers picking from a small set (a
+    /// character, a material, a debug hue). Kept here so every view agrees which
+    /// terrain is "the first one" — choosing the set is the renderer's business,
+    /// being stable about it is this method's.
     /// </summary>
     public static int SymbolIndex(AssetRef reference, int count)
     {

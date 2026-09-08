@@ -8,20 +8,13 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>
-/// The mutable per-tile simulation state.
-///
-/// Distinct from <see cref="MapTile"/>, which is the immutable file view. Every
-/// field is justified by a mechanic that reads it today:
-/// <list type="bullet">
-/// <item>terrain, owner and flags come straight from the MAP record (CONFIRMED);</item>
-/// <item>health is seeded from <see cref="TerrainDef.StartingHealth"/> and is what
-/// digging, claiming and reinforcing modify (CONFIRMED — see
-/// docs/research/kwd-terrain-rooms.md);</item>
-/// <item>gold held is where a keeper's gold actually is, because every limit DK2
-/// sets on gold is per tile (see <see cref="GoldStore"/>).</item>
-/// </list>
-/// Anything else a tile needs (room membership beyond its terrain, gold left in
-/// a seam) arrives with the mechanic that reads it, not before.
+/// The mutable per-tile simulation state, distinct from <see cref="MapTile"/>,
+/// which is the immutable file view. Terrain, owner and flags come straight from
+/// the MAP record (CONFIRMED); health is seeded from
+/// <see cref="TerrainDef.StartingHealth"/> and is what digging, claiming and
+/// reinforcing modify (CONFIRMED, docs/research/kwd-terrain-rooms.md); gold held
+/// is where a keeper's gold actually is, because every limit DK2 sets on gold is
+/// per tile (<see cref="GoldStore"/>).
 /// </summary>
 public struct TileState
 {
@@ -30,19 +23,15 @@ public struct TileState
 
     /// <summary>
     /// The MAP record's third byte per tile, preserved verbatim — and, for a
-    /// bridge, <b>the hazard the bridge spans</b>: 2 for lava, 1 for water.
-    ///
-    /// <para>Carried since M2 with the meaning UNKNOWN (Q16). It was worked out
-    /// on 2026-09-03, when the owner confirmed that a sold bridge reverts to the
-    /// water or lava underneath it rather than to floor: the byte is 1 on every
-    /// tile of all 66 shipped maps except bridge tiles over lava, where it is 2,
-    /// and the two sets never cross. See <see cref="BridgeRules"/> for the
-    /// evidence and the confidence, and Q64.</para>
-    ///
+    /// bridge, <b>the hazard the bridge spans</b>: 2 for lava, 1 for water. The
+    /// byte is 1 on every tile of all 66 shipped maps except bridge tiles over
+    /// lava, where it is 2, and the two sets never cross; a sold bridge reverts to
+    /// the water or lava under it rather than to floor (owner, 2026-09-03). Q16,
+    /// Q64; <see cref="BridgeRules"/> carries the evidence and the confidence.
     /// <para>Written by <see cref="RoomRules.Place"/> when a player builds a
     /// bridge, since the level file only speaks for bridges it shipped with.
-    /// Whether the byte carries other meanings on other terrain is still
-    /// UNKNOWN; nothing reads it except the bridge rules.</para>
+    /// Whether the byte carries other meanings on other terrain is UNKNOWN;
+    /// nothing reads it except the bridge rules.</para>
     /// </summary>
     public byte Flags;
 
@@ -50,22 +39,19 @@ public struct TileState
     public int Health;
 
     /// <summary>
-    /// Gold physically stored on this tile.
-    ///
-    /// Non-zero only where <see cref="GoldStore.Capacity"/> is — a treasury or
-    /// dungeon-heart tile. A player's spendable gold is the sum of this over the
-    /// tiles they own; there is no player-level gold counter, on purpose
-    /// (ADR-0015, <see cref="GoldStore"/>).
+    /// Gold physically stored on this tile. Non-zero only where
+    /// <see cref="GoldStore.Capacity"/> is — a treasury or dungeon-heart tile. A
+    /// player's spendable gold is the sum of this over the tiles they own; there
+    /// is no player-level gold counter, on purpose (ADR-0015,
+    /// <see cref="GoldStore"/>).
     /// </summary>
     public int GoldHeld;
 
     /// <summary>
     /// Which players have this tile tagged for digging: bit <c>n</c> is set for
-    /// player id <c>n</c>.
-    ///
-    /// STRONGLY INFERRED that tagging is per player rather than global: DK2 is a
-    /// multiplayer game in which each keeper marks and sees their own dig
-    /// orders, and the terrain table carries a per-type <c>Taggable</c> flag
+    /// player id <c>n</c>. STRONGLY INFERRED that tagging is per player rather
+    /// than global — DK2 is multiplayer and each keeper marks and sees their own
+    /// dig orders, and the terrain table carries a per-type <c>Taggable</c> flag
     /// rather than a shared tag list. The bitmask is our representation, not a
     /// claim about the original's storage.
     /// </summary>
@@ -81,178 +67,85 @@ public struct TileState
 
     /// <summary>
     /// Whether this tile is floor that a worker <b>dug out</b> and nobody has
-    /// claimed since — the tile an imp goes back for before it does anything
-    /// else.
-    ///
-    /// <para><b>Read from the original, 2026-09-05</b> (Q154,
-    /// docs/research/imp-task-priority.md §6). When a dig leaves plain unowned
-    /// path beside a keeper's floor, DK2 raises a task on that tile which sits
-    /// <b>first</b> in the imp's whole-map order — ahead of digging — and is
-    /// taken as soon as none of the tile's eight neighbours still carries a dig
-    /// task. That is why a corridor in the original is dug through and then
-    /// claimed behind the digging front, rather than every mark on the map
-    /// being dug before any of it is claimed.</para>
-    ///
-    /// <para>Set by <see cref="Systems.TileWorkSystem"/> when excavation
-    /// destroys a tile; cleared by any later change of terrain, which is what a
-    /// claim is. Our representation of DK2's task — the original keeps it in
-    /// the keeper's task list, not on the tile — and explicitly not a claim
-    /// about its storage.</para>
-    /// </summary>
+    /// claimed since — the tile an imp goes back for before anything else.
+    /// <para>A dig leaving plain unowned path beside a keeper's floor raises a
+    /// task that sits <b>first</b> in the imp's whole-map order, ahead of digging,
+    /// and is taken as soon as none of the tile's eight neighbours still carries a
+    /// dig task; so a corridor is dug through and claimed behind the digging
+    /// front. STRONGLY INFERRED (Q154, docs/research/imp-task-priority.md §6 —
+    /// rank and the eight-neighbour rule read, the trigger inferred).</para>
+    /// <para>Set by <see cref="Systems.TileWorkSystem"/> when excavation destroys
+    /// a tile; cleared by any later change of terrain, which is what a claim is.
+    /// Our representation: the original keeps the task in the keeper's list.</para></summary>
     public bool FreshlyDug;
 
     /// <summary>
     /// Health owed to this tile that was too small to apply, carried between
-    /// applications. Always smaller in magnitude than
-    /// <see cref="SimulationTiming.WorkApplicationsPerSecond"/>.
-    ///
-    /// <para>Work lands five times a second (the fifth is Efficiency 80% over
-    /// four ticks — ADR-0020, amended) and each application moves a fifth
-    /// of the tabled per-second delta (Q47). Eight of the ten deltas divide by
-    /// five exactly; <c>DigEnemyWallHealth</c> (−8) and <c>RepairWallHealth</c>
-    /// (22) do not, and integer division alone would quietly run them 37% and
-    /// 10% slow forever. Carrying the remainder makes every rate exactly what
-    /// the table says over any whole second while keeping the arithmetic in
-    /// integers — the same device <see cref="CreatureState.MoveRemainder"/> uses
-    /// for the same reason (ADR-0001).</para>
-    ///
-    /// <para>On the tile rather than on the worker, because the fraction belongs
-    /// to the wearing-down of this tile: two imps on one wall should between
-    /// them remove what the table says per second, which is what a shared
-    /// accumulator gives and two private ones would not. Shared across work
-    /// kinds too, which is a simplification with no observable consequence —
-    /// only the two wall jobs above ever leave a remainder, and a tile that
-    /// changes terrain starts again at zero.</para>
-    /// </summary>
+    /// applications; always smaller in magnitude than
+    /// <see cref="SimulationTiming.BaseApplicationDivisor"/> — the five a tabled
+    /// per-second delta is divided by (Q47, ADR-0020). Eight of the ten deltas divide
+    /// by five exactly; <c>DigEnemyWallHealth</c> (−8) and <c>RepairWallHealth</c> (22)
+    /// do not, and integer division alone would run them 37% and 10% slow forever
+    /// (<see cref="CreatureState.MoveRemainder"/> is the same device, ADR-0001).
+    /// <para>On the tile rather than the worker: two imps on one wall should between
+    /// them remove what the table says per second, which a shared accumulator gives
+    /// and two private ones would not. Shared across work kinds too — only those two
+    /// jobs leave a remainder, and changing terrain restarts it at zero.</para></summary>
     public sbyte WorkRemainder;
 
     /// <summary>
     /// Ticks left before this tile burns away, or 0 when nothing is burning.
-    ///
-    /// <para><b>A wooden bridge over lava does not last</b>
-    /// (<c>WoodBridgeLifeOnLavaSeconds</c> = 30, a variable that names its own
-    /// mechanic). CONFIRMED by the owner (2026-09-03), including the detail that
-    /// decides the shape: <b>the clock starts when the bridge is built</b> — not
-    /// when a creature steps on it, and not as damage to the tile's health.
-    /// Q67.</para>
-    ///
-    /// <para>A separate countdown rather than health decay, because health is
-    /// already what a rival attacking the bridge reduces, and a bridge over
-    /// water has exactly the same 2000 health and never burns. Conflating the
-    /// two would make combat damage and fire the same quantity, which they are
-    /// not.</para>
-    ///
-    /// <para>Set by <see cref="RoomRules.Place"/> and spent by
-    /// <see cref="Systems.BridgeBurnSystem"/>. Reset to zero the moment the tile
-    /// stops being that bridge, however it stops.</para>
+    /// <para>A wooden bridge over lava does not last
+    /// (<c>WoodBridgeLifeOnLavaSeconds</c> = 30) and <b>the clock starts when the
+    /// bridge is built</b> — not when a creature steps on it, and not as damage to
+    /// the tile's health. CONFIRMED (owner, 2026-09-03; Q67).</para>
+    /// <para>A separate countdown rather than health decay, because health is what
+    /// a rival attacking the bridge reduces and a bridge over water has the same
+    /// 2000 health and never burns. Set by <see cref="RoomRules.Place"/>, spent by
+    /// <see cref="Systems.BridgeBurnSystem"/>, and reset to zero the moment the
+    /// tile stops being that bridge, however it stops.</para>
     /// </summary>
     public int BurnTicksRemaining;
 
     /// <summary>
-    /// Ticks this portal has waited since it last produced a creature, or 0 on
-    /// every tile that is not a portal's centre.
-    ///
-    /// <para><b>The clock is per portal — CONFIRMED by observation</b> (owner,
-    /// 2026-09-07): a second portal produced 8 seconds after the first at a
-    /// point where the interval was about 60 seconds, and one clock cannot emit
-    /// twice in 8 seconds while it is waiting 60. It also has to be, because two
-    /// portals produce on their own schedules and the cap rises with the second
-    /// one (<see cref="PortalRules.CreatureCapacity"/>). It cannot live on
-    /// <see cref="PlayerState"/> for that reason, and it cannot live on
-    /// <see cref="RoomInstance"/> because a room instance is derived fresh from
-    /// the tiles every time it is asked for and remembers nothing. So it lives
-    /// on the one tile that identifies a portal — the hole in its middle, which
-    /// <see cref="PortalRules.CanProduce"/> guarantees the portal owns.</para>
-    ///
-    /// <para><b>Counted up rather than down</b>, which matches how DK2 does it:
-    /// the original stores the tick of the last generation
-    /// (<c>room+0x49</c>) and compares <c>now</c> against it, so elapsed time is
-    /// the thing that exists and the interval is recomputed. One consequence
-    /// survives that reasoning and is worth keeping in view: <b>a portal blocked
-    /// for want of a lair banks its wait and produces the moment the lair is
-    /// built.</b></para>
-    ///
-    /// <para><b>The other consequence used to be wrong and is now gone.</b> This
-    /// paragraph said counting up means "a creature dying shortens the wait,
-    /// which is the behaviour OpenKeeper has and the only one that makes the
-    /// scaling coherent". It does not: the interval depends on
-    /// <see cref="EntranceCreaturesGenerated"/>, which never falls, so a death
-    /// changes nothing. The old sentence was true only of the formula it was
-    /// written beside, and that formula was OpenKeeper's guess.</para>
-    ///
-    /// <para><b>Only while owned.</b> An unclaimed portal is not waiting for
-    /// anything, so its clock does not run and a keeper who claims one waits a
-    /// full interval for the first arrival. UNKNOWN, and the alternative — that
-    /// claiming a portal that has stood idle hands you a creature at once — is
-    /// what OpenKeeper does, though by accident rather than by design (it resets
-    /// to Java's <c>Double.MIN_VALUE</c>, which is the smallest <i>positive</i>
-    /// double and not the sentinel it reads as). Q86.</para>
-    ///
-    /// <para>Managed entirely by <see cref="Systems.PortalSystem"/>. On any
-    /// other tile the value is meaningless and nothing reads it.</para>
-    /// </summary>
+    /// Ticks this portal has waited since it last produced a creature, or 0 on every
+    /// tile that is not a portal's centre. Managed by <see cref="Systems.PortalSystem"/>.
+    /// <para><b>Per portal</b>, CONFIRMED (owner, 2026-09-07): a second portal produced
+    /// 8 seconds after the first where the interval was about 60, and one clock cannot
+    /// emit twice in 8 s while waiting 60. It sits on the portal's centre tile, which
+    /// <see cref="PortalRules.CanProduce"/> guarantees the portal owns, because
+    /// <see cref="RoomInstance"/> is derived fresh from the tiles and remembers nothing.</para>
+    /// <para><b>Counted up</b>, as DK2 does (<c>room+0x49</c> holds the tick of the last
+    /// generation), so a portal blocked for want of a lair banks its wait and produces
+    /// the moment the lair is built. It runs only while owned, so claiming an idle
+    /// portal costs a full interval — UNKNOWN, Q86.</para></summary>
     public int EntranceIdleTicks;
 
     /// <summary>
     /// How many creatures this portal has generated, on the same tile as
-    /// <see cref="EntranceIdleTicks"/> and zero everywhere else. <b>It is the
-    /// <c>n</c> in the arrival interval, and it only ever climbs.</b>
-    ///
-    /// <para><b>CONFIRMED three ways</b> (Q86, <c>portals.md</c>). DK2 keeps this
-    /// on the room at <c>room+0x4D</c> and increments it once per creature
-    /// generated; the interval is <c>(n² + EntranceGenerationSpeedSeconds)</c>
-    /// game seconds, read off six instructions at <c>0x004DBBE0</c>. Then the
-    /// owner timed it twice: portal 1's gaps of 25, 26, 32, 33, 42 seconds
-    /// against a predicted 25, 26, 29, 34, 41 (mean error 1.0 s), and — the
-    /// measurement that settled which counter it is — <b>a second portal
-    /// claimed after five arrivals started again at 25, not at 50</b>.</para>
-    ///
-    /// <para><b>Per portal, not per keeper.</b> That was the open half of Q86
-    /// and the observed gaps do not leave it open: portal 2's first four gaps
-    /// were 27, 30, 31, 33 seconds where a keeper-wide tally predicts 50, 61,
-    /// 74, 89 and this project's previous formula predicted 62, 75, 87, 100.
-    /// Mean absolute error 2.3 s against 38.3 s and 50.8 s.</para>
-    ///
-    /// <para><b>It never falls, and that is read rather than inferred.</b> There
-    /// are 129 references to a <c>+0x4D</c> field across the whole executable
-    /// and not one is a <c>DEC</c> or a <c>SUB</c>. So a portal does not speed
-    /// up when creatures die, desert, or are thrown back into it — which is why
-    /// this counts generations and not the keeper's living creatures, as the
-    /// formula it replaces did.</para>
-    ///
-    /// <para><b>What is still UNKNOWN is whether it is ever zeroed.</b> Two
-    /// routines store a literal zero here and both are reached only through a
-    /// vtable, which has the shape of an ownership change — the only room event
-    /// a portal has, since a portal cannot be sold or rebuilt (owner). A freshly
-    /// claimed portal starting at zero is observed; a <i>worn</i> portal lost to
-    /// a rival and re-claimed is not, and only a rival can answer it. Zero here
-    /// on claim is therefore ours: <c>APortalStartsItsTallyAtZeroWhenClaimed</c>
-    /// says so in its name.</para>
-    ///
-    /// <para>Shares the portal centre tile with the clock, so the two are lost
-    /// and restored together. Managed entirely by
-    /// <see cref="Systems.PortalSystem"/>.</para>
-    /// </summary>
+    /// <see cref="EntranceIdleTicks"/> and zero elsewhere: the <c>n</c> in the arrival
+    /// interval, climbing while the owner holds it. CONFIRMED (Q86, docs/research/portals.md).
+    /// <para>DK2 keeps it at <c>room+0x4D</c>, increments it once per creature generated,
+    /// and computes <c>(n² + EntranceGenerationSpeedSeconds)</c> game seconds at
+    /// <c>0x004DBBE0</c>. Per portal, not per keeper: a second portal claimed after five
+    /// arrivals started again at 25 s, not 50 (owner, 2026-09-07). It never decrements —
+    /// of 129 references to a <c>+0x4D</c> field, none is a <c>DEC</c> or <c>SUB</c>, so
+    /// a portal does not speed up when creatures die. An ownership change is the one
+    /// thing that resets it: the room type's handler stamps the clock and zeros the tally
+    /// (<c>ARivalTakingAWornPortalGetsItAtTheBaseInterval</c>).</para></summary>
     public int EntranceCreaturesGenerated;
 
     /// <summary>
     /// A hatchery's clock towards its next egg, on the room's lowest tile index
-    /// and zero everywhere else.
-    ///
-    /// <para><b>DK2 keeps this on the room</b> — its room debug dump prints
-    /// <c>GameTickLastGenerated</c>, <c>GenerationSpeed</c> and
-    /// <c>ChickensGenerated</c> for the Hatchery case — and rooms here are
-    /// derived rather than stored (<see cref="RoomInstance"/>), so the clock has
-    /// to live on something that is. A tile is what
-    /// <see cref="EntranceIdleTicks"/> already uses for the portal's clock, and
-    /// the lowest tile index is stable because <c>RoomInstance.TileIndices</c>
-    /// is kept in ascending order.</para>
-    ///
-    /// <para><b>Consequence, stated:</b> a hatchery that grows or is cut so that
-    /// its lowest tile changes starts its clock again. That is a real
-    /// difference from the original, where the clock belongs to the room object
-    /// and survives; it costs at most one laying interval and only when a
-    /// keeper is building.</para>
+    /// and zero everywhere else. DK2 keeps it on the room — its room debug dump
+    /// prints <c>GameTickLastGenerated</c>, <c>GenerationSpeed</c> and
+    /// <c>ChickensGenerated</c> for the Hatchery case — but rooms here are derived
+    /// rather than stored (<see cref="RoomInstance"/>), and the lowest tile index
+    /// is stable because <c>RoomInstance.TileIndices</c> is kept ascending.
+    /// <para>Deviation: a hatchery that grows or is cut so that its lowest tile
+    /// changes starts its clock again, where the original's clock belongs to the
+    /// room object and survives. Costs at most one laying interval, and only while
+    /// a keeper is building.</para>
     /// </summary>
     public int HatchTicks;
 
@@ -307,15 +200,13 @@ public struct TileState
 }
 
 /// <summary>
-/// Per-player simulation state.
-///
-/// <para><b>Mana is here and gold is not</b>, and the asymmetry is the data's.
-/// Mana in DK2 is generated by owned land and spent from a single pool
-/// (<c>MaximumManaThreshold</c>, <c>ExcessManaDecreaseRatePerSecond</c>) — a
-/// player-level number with no location. Gold is always in a place, and every
-/// limit the balance table sets on it is per tile, so it lives on tiles instead;
-/// see <see cref="GoldStore"/> and ADR-0015. Research, spells, creature rosters
-/// and the rest arrive with the mechanics that need them.</para>
+/// Per-player simulation state. <b>Mana is here and gold is not</b>, and the
+/// asymmetry is the data's: mana is generated by owned land and spent from a
+/// single pool (<c>MaximumManaThreshold</c>,
+/// <c>ExcessManaDecreaseRatePerSecond</c>) — a player-level number with no
+/// location — while gold is always in a place and every limit the balance table
+/// sets on it is per tile, so it lives on tiles (<see cref="GoldStore"/>,
+/// ADR-0015).
 /// </summary>
 public struct PlayerState
 {
@@ -323,93 +214,59 @@ public struct PlayerState
     public int Mana;
 
     /// <summary>
-    /// Research points banked by this keeper, DK2's <c>player+0x20F</c>.
-    ///
-    /// <para><b>Only ever added to, and never spent here.</b> The original keeps
-    /// this beside a <i>current target</i> at <c>player+0x213</c> and, when a
-    /// target is set and the points reach its cost, completes it. This project
-    /// has the accrual and not the tree (<see cref="ResearchRules"/>), so the
-    /// points bank indefinitely — which is faithful for the case that matters,
-    /// because the original credits them <b>whether or not a target is
-    /// selected</b>: the field is written before the target is even looked
-    /// at.</para>
-    ///
-    /// <para>Reduced by nothing in this simulation. The original's adder does
-    /// have a subtract path — a negative credit is clamp-subtracted rather than
-    /// allowed to go below zero — but nothing has been found that passes it a
-    /// negative amount, so what it is for is UNKNOWN (Q218).</para>
-    /// </summary>
+    /// Research points banked by this keeper, DK2's <c>player+0x20F</c>. Only ever
+    /// added to: the original keeps a <i>current target</i> beside it at
+    /// <c>player+0x213</c> and completes the target when the points reach its cost,
+    /// but this project has the accrual and not the tree
+    /// (<see cref="ResearchRules"/>), so points bank indefinitely. Faithful for the
+    /// case that matters, since the original credits them whether or not a target
+    /// is selected — the field is written before the target is looked at.
+    /// <para>Not implemented: spending. The original's adder has a subtract path
+    /// (a negative credit is clamp-subtracted rather than allowed below zero) but
+    /// nothing has been found that passes it a negative amount, so what that path
+    /// is for is UNKNOWN (Q218).</para></summary>
     public int ResearchPoints;
 
     /// <summary>
     /// The earliest tick at which this keeper may be handed a free imp.
-    ///
-    /// <para><b>A deadline, not a countdown</b>, and the distinction is the
-    /// whole of Q56. DK2 keeps one field on the keeper and writes it in exactly
-    /// one place — immediately after a free imp is made, as
-    /// <c>now + TimeBeforeFreeImpGeneratedSeconds</c>. Nothing resets it, nothing
-    /// pauses it, and nothing touches it while the keeper is at full strength.
-    /// So the deadline of a keeper who has been at four imps for a minute is a
-    /// minute in the past, and the first tick they drop below
-    /// <c>MinimumImpThreshold</c> the replacement is already due: it arrives
-    /// <b>at once</b>, and only the ones after it are five seconds apart.</para>
-    ///
-    /// <para>This project had the opposite for three weeks — a countdown held at
-    /// zero while the keeper was up to strength, which made every replacement
-    /// wait a fresh five seconds. See <see cref="ImpSupplyRules"/> and
+    /// <para><b>A deadline, not a countdown</b> — the whole of Q56. DK2 keeps one
+    /// field on the keeper and writes it in exactly one place, immediately after a
+    /// free imp is made, as <c>now + TimeBeforeFreeImpGeneratedSeconds</c>. Nothing
+    /// resets it, pauses it, or touches it while the keeper is at full strength, so
+    /// a keeper who has been at four imps for a minute has a deadline a minute in
+    /// the past: the first tick they drop below <c>MinimumImpThreshold</c> the
+    /// replacement arrives <b>at once</b>, and only the ones after it are five
+    /// seconds apart. See <see cref="ImpSupplyRules"/> and
     /// docs/research/imps-and-mana.md.</para>
     /// </summary>
     public GameTick NextFreeImpTick;
 
     /// <summary>
-    /// The tick this keeper's next payday falls due.
-    ///
-    /// <para><b>A deadline, like <see cref="NextFreeImpTick"/></b>, and the
-    /// original keeps it the same way: one field on the player, compared
-    /// against now, rewritten as <c>now + PayDayFrequencySeconds x
-    /// ticksPerSecond</c> the moment it fires. The first one is seeded from
-    /// <c>TimeBeforeFirstPayDaySeconds</c> rather than from zero, so a level
-    /// does not open with the whole dungeon owed money.</para>
-    ///
-    /// <para><b>Zero means "not scheduled yet"</b>, and
-    /// <see cref="Systems.PaydaySystem"/> seeds it the first tick it sees one —
-    /// a divergence, because the original reads zero as <i>never</i> and seeds
-    /// the field in an initialiser instead. Ours has nowhere to seed it
-    /// (<see cref="FromMap"/> has no <c>GameDatabase</c>) and nothing that needs
-    /// <i>never</i>: a player slot with no creatures bills nobody. ADR-0078
-    /// records it.</para>
-    /// </summary>
+    /// The tick this keeper's next payday falls due. A deadline, like
+    /// <see cref="NextFreeImpTick"/>, and the original keeps it the same way: one
+    /// field on the player, compared against now, rewritten as
+    /// <c>now + PayDayFrequencySeconds × ticksPerSecond</c> the moment it fires.
+    /// The first is seeded from <c>TimeBeforeFirstPayDaySeconds</c> rather than
+    /// zero, so a level does not open with the whole dungeon owed money.
+    /// <para>Deviation (ADR-0078): zero means "not scheduled yet" and
+    /// <see cref="Systems.PaydaySystem"/> seeds it the first tick it sees one,
+    /// where the original reads zero as <i>never</i> and seeds in an initialiser.
+    /// <see cref="FromMap"/> has no <c>GameDatabase</c> to seed from, and a player
+    /// slot with no creatures bills nobody.</para></summary>
     public GameTick NextPaydayTick;
 
     /// <summary>
-    /// The Hand of Evil: the <b>things</b> this keeper is holding, in the order
-    /// they were picked up.
-
-    /// <para><b>Things, not creatures</b>, since ADR-0075. DK2 keeps one array
-    /// of thing ids on the player record and its pick-up handler branches on
-    /// the thing's kind — a creature and a chicken go into the same slots, and
-    /// the owner has watched four chickens held at once. Our creature and
-    /// object ids are separate spaces, so each slot carries which it
-    /// is.</para>
-    ///
-    /// <para><b>A stack, and the original says so plainly.</b> Its pick-up
-    /// handler appends at <c>NumberOfThingsInHand</c> and its drop handler
-    /// reads back from the same index before decrementing it, so a keeper who
-    /// picks up A then B puts down B first. Capacity is
-    /// <c>MaxNumberOfThingsInHand</c>, which ships at 64 — see
-    /// <see cref="HandRules"/>.</para>
-    ///
-    /// <para>On the keeper rather than on the creature because that is where
-    /// DK2 keeps it — a fixed array on the player record, with the count and
-    /// the capacity beside it — and because the ordering is the keeper's, not
-    /// any creature's. The creature's own half of the relation is
-    /// <see cref="CreatureState.InHand"/>, exactly as a bed and its sleeper
-    /// each know one thing about the other (ADR-0059).</para>
-    ///
-    /// <para>Never null: <see cref="WorldState"/> gives every keeper a list when
-    /// it creates them, so the field can be read without a check even though
-    /// <see cref="PlayerState"/> is a struct.</para>
-    /// </summary>
+    /// The Hand of Evil: the <b>things</b> this keeper is holding, in pick-up order.
+    /// Things, not creatures (ADR-0075) — DK2 keeps one array of thing ids on the
+    /// player record and branches on the thing's kind, so a creature and a chicken
+    /// share the slots (the owner has watched four chickens held at once); our ids
+    /// are separate spaces, so each slot carries which it is.
+    /// <para><b>A stack</b>: the original appends at <c>NumberOfThingsInHand</c> and
+    /// its drop handler reads back from the same index before decrementing, so A
+    /// then B puts down B first. Capacity is <c>MaxNumberOfThingsInHand</c>, shipped
+    /// at 64 (<see cref="HandRules"/>); the creature's half of the relation is
+    /// <see cref="CreatureState.InHand"/> (ADR-0059). Never null —
+    /// <see cref="WorldState"/> gives every keeper a list on creation.</para></summary>
     public List<HandItem> Hand;
 
     public readonly void HashInto(ref Hash64 hash)
@@ -439,12 +296,10 @@ public enum HandItemKind : byte
 }
 
 /// <summary>
-/// One slot of the Hand of Evil.
-///
-/// <para>DK2 needs no discriminator: creatures and objects share one thing
-/// table and one id space, and its handlers branch on a kind field inside the
-/// thing. Ours are separate lists with independent ids, so the kind rides on
-/// the slot.</para>
+/// One slot of the Hand of Evil. DK2 needs no discriminator — creatures and
+/// objects share one thing table and one id space, and its handlers branch on a
+/// kind field inside the thing — but ours are separate lists with independent
+/// ids, so the kind rides on the slot.
 /// </summary>
 public readonly record struct HandItem(HandItemKind Kind, int Id)
 {
@@ -457,14 +312,12 @@ public readonly record struct HandItem(HandItemKind Kind, int Id)
 }
 
 /// <summary>
-/// One action point as DK2 constructs it from a placed THING.
-///
-/// <para>The rectangle, ids and flags are level-authored data. The passage
-/// count and wait timer are runtime fields and therefore remain mutable even
-/// though their consumers have not yet been identified. There is deliberately
-/// no <c>Available</c> field: the four trigger actions previously thought to
-/// write one instead use their byte as input to separate operations and never
-/// write the action-point object (ADR-0103).</para>
+/// One action point as DK2 constructs it from a placed THING. The rectangle, ids
+/// and flags are level-authored data; the passage count and wait timer are
+/// runtime fields and stay mutable even though their consumers are not yet
+/// identified. There is deliberately no <c>Available</c> field — the four trigger
+/// actions once thought to write one use their byte as input to separate
+/// operations and never write the action-point object (ADR-0103).
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/action-points.md")]
 public sealed class ActionPointState
@@ -486,20 +339,15 @@ public sealed class ActionPointState
 
     /// <summary>
     /// The authored wait delay multiplied by DK2's four-Hz tick rate at load.
-    ///
-    /// <para><b>This scales by the ORIGINAL rate while the trigger threshold
-    /// beside it scales by ours — deliberately, and the two are equal
-    /// today.</b> Both reproduce the same loader idiom, a single multiply by
-    /// variable 19 at load time, but they are consumed differently. This is a
-    /// stored field mirroring the original's own saved block, so it keeps the
-    /// original's number whatever our step rate becomes.
-    /// <see cref="TriggerState.HasElapsed"/> builds a deadline compared
-    /// against <i>our</i> clock, so it must scale by
-    /// <see cref="SimulationTiming.TicksPerSecond"/>.</para>
-    ///
-    /// <para>If <c>TicksPerSecond</c> ever stops being 4, do not make one
-    /// match the other: whatever eventually decrements this counter has to
-    /// say which clock it counts in.</para>
+    /// <para>Scales by the <b>original</b> rate while the trigger threshold beside
+    /// it scales by ours; the two are equal today. Both reproduce the same loader
+    /// idiom — one multiply by variable 19 at load — but this is a stored field
+    /// mirroring the original's saved block, so it keeps the original's number
+    /// whatever our step rate becomes, while
+    /// <see cref="TriggerState.HasElapsed"/> builds a deadline against <i>our</i>
+    /// clock and must scale by <see cref="SimulationTiming.TicksPerSecond"/>. If
+    /// <c>TicksPerSecond</c> ever stops being 4, do not make one match the other:
+    /// whatever decrements this counter has to say which clock it counts in.</para>
     /// </summary>
     public ushort WaitTimerTicks { get; set; }
 
@@ -544,10 +392,9 @@ public sealed class WorldState
         _players = players;
         FogOfWarEnabled = fogOfWarEnabled;
 
-        // One place, so that no construction path can produce a keeper without
-        // a hand. PlayerState is a struct in an array, so a caller that built
-        // one with an object initialiser could not have given it a list without
-        // knowing to; here nobody has to know.
+        // One place, so no construction path can produce a keeper without a hand:
+        // PlayerState is a struct in an array, and a caller using an object
+        // initialiser would have had to know to supply the list.
         for (int i = 0; i < _players.Length; i++)
             _players[i].Hand ??= [];
 
@@ -598,24 +445,21 @@ public sealed class WorldState
     }
 
     /// <summary>
-    /// Work applications waiting to be resolved by
-    /// <see cref="Systems.TileWorkSystem"/>, in the order they were queued.
-    ///
-    /// A list, not a set or a dictionary: order is behaviour. Two imps working
-    /// the same seam in a different order can end up carrying different amounts
-    /// of gold, so the queue is FIFO and never sorted or deduplicated.
-    ///
-    /// In DK2 the producer is a working creature. That creature does not exist
-    /// yet, so for now tests and the scenario harness queue work directly and
-    /// say so in their reports.
-    /// </summary>
-    /// <summary>
     /// The level's trigger flags and timers. One bank per level, never per
     /// player — see <see cref="TriggerState"/> for the four readings behind
     /// that.
     /// </summary>
     public TriggerState Triggers { get; } = new();
 
+    /// <summary>
+    /// Work applications waiting to be resolved by
+    /// <see cref="Systems.TileWorkSystem"/>, in the order they were queued. A
+    /// list, not a set or a dictionary: order is behaviour (ADR-0010). Two imps
+    /// working the same seam in a different order can end up carrying different
+    /// amounts of gold, so the queue is FIFO and never sorted or deduplicated.
+    /// Produced by <see cref="Systems.ImpTaskSystem"/>; the scenario harness and
+    /// tests may also queue directly, and say so in their reports.
+    /// </summary>
     public IReadOnlyList<TileWorkOrder> PendingWork => _pendingWork;
 
     public void QueueWork(TileWorkOrder order)
@@ -636,25 +480,20 @@ public sealed class WorldState
     internal void ClearPendingWork() => _pendingWork.Clear();
 
     /// <summary>
-    /// Every creature in the level, in spawn order.
-    ///
-    /// The order is behaviour, not bookkeeping: creatures are updated in it, so
-    /// two imps that reach for the same job get it in this order. Never sorted,
-    /// never reordered — removing a creature must preserve the order of the
-    /// rest.
+    /// Every creature in the level, in spawn order. The order is behaviour, not
+    /// bookkeeping (ADR-0010): creatures are updated in it, so two imps reaching
+    /// for the same job get it in this order. Never sorted, never reordered —
+    /// removing a creature must preserve the order of the rest.
     /// </summary>
     public IReadOnlyList<CreatureState> Creatures => _creatures;
 
     /// <summary>
-    /// Puts a creature on the map, at the centre of the given tile.
-    ///
-    /// <b>This is not how DK2 makes creatures.</b> The original's imps come from
-    /// a dungeon heart, from the Create Imp spell at a mana cost, and from
-    /// specials — governed by <c>TimeBeforeFreeImpGeneratedSeconds</c>,
-    /// <c>MinimumImpThreshold</c> and <c>ImpPopCountdownTimeSeconds</c>, none of
-    /// which can run without rooms and mana. Until they exist, something outside
-    /// the simulation (a test, a scenario file) places creatures directly, and
-    /// says so.
+    /// Puts a creature on the map, at the centre of the given tile. Every
+    /// in-simulation producer goes through here —
+    /// <see cref="Systems.PortalSystem"/>, <see cref="Systems.ImpSupplySystem"/>,
+    /// <see cref="Systems.PrisonSystem"/> and <see cref="ThingProjection"/> — and
+    /// so do tests and scenario files, which place creatures directly and say so
+    /// in their reports.
     /// </summary>
     public CreatureState SpawnCreature(
         GameDatabase database, byte creatureTypeId, byte ownerPlayerId, TilePos at)
@@ -671,10 +510,9 @@ public sealed class WorldState
             PosY = CreatureState.CentreOf(at.Y),
             Activity = CreatureActivity.Idle,
 
-            // The database is a parameter for this one line. A creature spawned
-            // at zero health is a creature that dies on the tick it arrives, so
-            // there must be no way to make one — which means no overload that
-            // leaves health out.
+            // The database is a parameter for this one line: a creature spawned at
+            // zero health dies on the tick it arrives, so there is deliberately no
+            // overload that leaves health out.
             Health = database.CreatureById(creatureTypeId).Hp,
         };
 
@@ -684,23 +522,16 @@ public sealed class WorldState
 
     /// <summary>
     /// Takes a creature out of the world, and says whether it was there.
-    ///
-    /// <para><b>Not death — the end of it.</b> Dying in DK2 is a process: a
-    /// creature collapses at zero health, lies there rescuable for
+    /// <para>Not death but the end of it: dying in DK2 is a process — a creature
+    /// collapses at zero health, lies rescuable for
     /// <c>CreatureDyingStateDurationSeconds</c>, and only then dies (Q99,
-    /// CONFIRMED, ADR-0051). <see cref="Systems.CreatureHealthSystem"/> runs
-    /// that process and calls this at the end of it. What is still missing is
-    /// what happens <i>after</i> — the corpse — so this removal currently stands
-    /// in for "and then the body rots away too". A corpse is <b>not</b> an
-    /// object, which is what this note used to say: it is a creature in a state,
-    /// and what it waits on is an imp that can carry one
-    /// (<c>docs/research/objects.md</c> §4).</para>
-    ///
-    /// <para>The creature's id is <b>not</b> reused: <c>_nextCreatureId</c> only
-    /// ever goes up, so a level that has had creatures die cannot hand out an id
-    /// it has already used, and a snapshot restores the counter rather than
-    /// deriving it.</para>
-    /// </summary>
+    /// CONFIRMED, ADR-0051). <see cref="Systems.CreatureHealthSystem"/> runs that
+    /// process and calls this at the end of it. Not implemented: the corpse, which
+    /// is a creature in a state waiting on an imp that can carry one and not an
+    /// object (docs/research/objects.md §4) — so this removal stands in for the
+    /// body rotting away too.</para>
+    /// <para>Ids are never reused: <c>_nextCreatureId</c> only climbs and a
+    /// snapshot restores the counter rather than deriving it.</para></summary>
     public bool RemoveCreature(int id)
     {
         for (int i = 0; i < _creatures.Count; i++)
@@ -720,30 +551,21 @@ public sealed class WorldState
     }
 
     /// <summary>
-    /// Every object standing in the level, in the order it was placed.
-    ///
-    /// <para><b>One list for every kind</b>, because DK2's object is one type
-    /// with a tagged union rather than a family of types — see
-    /// <see cref="ObjectState"/> and <c>docs/research/objects.md</c> §7. A list
-    /// per kind would have been easier to iterate and would have made "the
-    /// gold pile that is also a bed" unrepresentable, which sounds like a gain
-    /// until a mechanic needs to ask what is on a tile without knowing what it
-    /// is looking for — an imp choosing by <c>PickUpPriority</c> does exactly
-    /// that.</para>
-    ///
-    /// <para>Order is behaviour, for the same reason it is on
-    /// <see cref="Creatures"/>: two beds free on one tick are claimed in this
-    /// order. Never sorted, never reordered.</para>
+    /// Every object standing in the level, in the order it was placed. One list
+    /// for every kind, because DK2's object is one type with a tagged union rather
+    /// than a family of types (<see cref="ObjectState"/>, ADR-0054,
+    /// docs/research/objects.md §7): a mechanic often has to ask what is on a tile
+    /// without knowing what it is looking for, as an imp choosing by
+    /// <c>PickUpPriority</c> does.
+    /// <para>Order is behaviour, as on <see cref="Creatures"/> — two beds freed on
+    /// one tick are claimed in this order. Never sorted, never reordered.</para>
     /// </summary>
     public IReadOnlyList<ObjectState> Objects => _objects;
 
     /// <summary>
-    /// Puts an object on a tile.
-    ///
-    /// <para>Takes a definition id rather than a definition so that a caller
-    /// cannot place something the database has never heard of: the lookup is the
-    /// validation, and it throws rather than placing a nameless object that
-    /// every later rule would have to tolerate.</para>
+    /// Puts an object on a tile. Takes a definition id rather than a definition so
+    /// the lookup is the validation: it throws rather than placing a nameless
+    /// object every later rule would have to tolerate.
     /// </summary>
     public ObjectState SpawnObject(
         GameDatabase database, byte objectTypeId, byte ownerPlayerId, int tileIndex)
@@ -752,10 +574,9 @@ public sealed class WorldState
             throw new ArgumentOutOfRangeException(
                 nameof(tileIndex), tileIndex, "Object tile is outside the map.");
 
-        // Refused rather than placed. An object the database has never heard
-        // of would be treated as "not a bed, not gold, not food" by every rule
-        // that asks a type flag, which is a silent wrong answer rather than a
-        // loud one.
+        // Refused rather than placed: an unknown object would answer "not a bed,
+        // not gold, not food" to every rule that asks a type flag, which is a
+        // silent wrong answer rather than a loud one.
         if (database.ObjectById(objectTypeId) is null)
             throw new KeyNotFoundException(
                 $"No object definition with id {objectTypeId}.");
@@ -810,15 +631,15 @@ public sealed class WorldState
     }
 
     /// <summary>
-    /// Builds the initial world for a level: every tile takes its terrain,
-    /// owner and flags from the MAP record and its health from that terrain
-    /// type's <see cref="TerrainDef.StartingHealth"/>.
-    ///
-    /// Starting gold and mana are NOT set here — those come from the level's
-    /// PLAYERS record, which is not parsed yet (M6). Callers that need them set
-    /// them explicitly, and scenarios say so out loud. Gold has to go somewhere
-    /// real: a caller places it with <see cref="GoldStore.Deposit"/>, which will
-    /// refuse it outright if the player owns no treasury.
+    /// Builds the initial world for a level: every tile takes its terrain, owner
+    /// and flags from the MAP record and its health from that terrain type's
+    /// <see cref="TerrainDef.StartingHealth"/>.
+    /// <para>Not implemented: starting gold and mana. The level's PLAYERS record
+    /// carries them and the parser reads them, but nothing wires them into a world
+    /// yet, so callers that need them set them explicitly and scenarios say so.
+    /// Gold has to go somewhere real — a caller deposits it with
+    /// <see cref="GoldStore.Deposit"/>, which refuses outright if the player owns
+    /// no treasury.</para>
     /// </summary>
     public static WorldState FromMap(
         GameDatabase database,
@@ -891,10 +712,8 @@ public sealed class WorldState
         hash.Add(_pendingWork.Count);
         foreach (TileWorkOrder o in _pendingWork) o.HashInto(ref hash);
 
-        // The id counter is hashed too: two worlds holding identical creatures
-        // but disagreeing about the next id will diverge the moment either one
-        // spawns, which is exactly the kind of late divergence the gate exists
-        // to catch early.
+        // The id counter is hashed too: two worlds holding identical creatures but
+        // disagreeing about the next id diverge the moment either one spawns.
         hash.Add(_creatures.Count);
         hash.Add(_nextCreatureId);
         foreach (CreatureState c in _creatures) c.HashInto(ref hash);
@@ -908,8 +727,7 @@ public sealed class WorldState
 
         // The trigger banks are level state, not level data: an action record
         // writes a flag and a later condition reads it, so two worlds that
-        // disagree about a flag will diverge as soon as that condition is
-        // evaluated. See TriggerState for why they are level-global.
+        // disagree about a flag diverge as soon as that condition is evaluated.
         Triggers.HashInto(ref hash);
     }
 }

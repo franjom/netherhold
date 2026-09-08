@@ -9,29 +9,17 @@ using System.IO;
 namespace DK2.Assets;
 
 /// <summary>
-/// Resolves asset keys to files under one root directory, and answers only for
-/// files that are actually there.
-///
-/// <para><b>This is the only type in the project that turns a key into a
-/// path</b> (plan §4.8: "no filename literals outside <c>DK2.Assets</c>"). The
-/// mapping is mechanical — <c>creature.imp.mesh</c> becomes
-/// <c>creature/imp/mesh.&lt;ext&gt;</c> — so an art pack's layout is knowable
-/// from the key alone, with no manifest to write and none to fall out of
-/// date.</para>
-///
-/// <para>Two roles, one class, distinguished only by the root and the
-/// <see cref="AssetSource"/> it reports: the converter's output
-/// (<c>build/converted</c>, built by the user from their own copy) and a
-/// replacement art pack. They behave identically, so giving them separate
-/// classes would have been ceremony — the chain's order is what expresses the
-/// precedence (see <see cref="AssetProviderChain"/>).</para>
-///
-/// <para><b>Nothing here reads a DK2 file.</b> Converting original art is a
-/// build step the user runs against their own install (plan §7.1); this provider
-/// only sees what came out of it. That is what keeps the promise that no
-/// converted asset is ever committed or distributed — this code could not
-/// distribute one, because it does not know how to make one.</para>
+/// Resolves asset keys to files under one root, answering only for files that exist.
+/// The only type that turns a key into a path (plan §4.8: no filename literals outside
+/// <c>DK2.Assets</c>), mechanically — <c>creature.imp.mesh</c> →
+/// <c>creature/imp/mesh.&lt;ext&gt;</c> — so an art pack's layout follows from the key.
 /// </summary>
+/// <remarks>
+/// Two roles, one class, differing only in root and reported
+/// <see cref="AssetSource"/>: the converter's output (<c>build/converted</c>) and a
+/// replacement pack; precedence is the chain's order (<see cref="AssetProviderChain"/>).
+/// Nothing here reads a DK2 file: converting art is the user's build step (plan §7.1).
+/// </remarks>
 public sealed class FileAssetProvider : IAssetProvider
 {
     private readonly string _root;
@@ -96,26 +84,20 @@ public sealed class FileAssetProvider : IAssetProvider
     }
 
     /// <summary>
-    /// The key's path form, without an extension:
-    /// <c>creature.imp.mesh</c> → <c>creature/imp/mesh</c>.
-    ///
-    /// <para>A key's segments are already validated to <c>[a-z0-9_]</c>
-    /// (<see cref="AssetRef"/>), which is what makes this safe to do by
-    /// substitution: no segment can be <c>..</c>, absolute, or contain a
-    /// separator, so a key cannot address anything outside the root. The
-    /// validation in <c>AssetRef</c> is therefore not tidiness — it is what
-    /// stops a key being a path traversal.</para>
+    /// The key's path form, without an extension: <c>creature.imp.mesh</c> →
+    /// <c>creature/imp/mesh</c>. Plain substitution is safe only because a key's
+    /// segments are validated to <c>[a-z0-9_]</c> (<see cref="AssetRef"/>): no
+    /// segment can be <c>..</c>, absolute, or hold a separator, so no key addresses
+    /// anything outside the root. That validation is the traversal guard.
     /// </summary>
     public static string RelativePathWithoutExtension(AssetRef reference) =>
         reference.Key.Replace('.', Path.DirectorySeparatorChar);
 
     /// <summary>
-    /// The extensions tried for a kind, in order of preference.
-    ///
-    /// <para>Open formats only, and that is the point: the converter's job is to
-    /// turn proprietary formats into these, so nothing downstream of it knows
-    /// what a KMF is. Order is preference — glTF binary before glTF text
-    /// because it loads faster, OGG before WAV because it is smaller.</para>
+    /// The extensions tried for a kind, in order of preference. Open formats only:
+    /// the converter turns proprietary formats into these, so nothing downstream of
+    /// it knows what a KMF is. Order is preference — glTF binary before glTF text,
+    /// OGG before WAV.
     /// </summary>
     public static IReadOnlyList<string> ExtensionsFor(AssetKind kind) => kind switch
     {

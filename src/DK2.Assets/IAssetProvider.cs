@@ -6,9 +6,7 @@ using System;
 
 namespace DK2.Assets;
 
-/// <summary>
-/// Where a resolved asset actually comes from.
-/// </summary>
+/// <summary>Where a resolved asset actually comes from.</summary>
 public enum AssetSource
 {
     /// <summary>A file on disk, produced by the converter from the user's own copy.</summary>
@@ -22,14 +20,10 @@ public enum AssetSource
 }
 
 /// <summary>
-/// What a provider hands back: enough for a renderer to load the thing, and
-/// nothing that assumes an engine.
-///
-/// <para><b>Deliberately not a Unity object.</b> This assembly is loadable by
-/// Unity and must not depend on it (ADR-0002), so the seam is a description —
-/// a file path, or the shape and colour of a placeholder — and turning that into
-/// a mesh is the renderer's job. The same handle drives a Unity view, the text
-/// view in the harness, and any future renderer.</para>
+/// What a provider hands back: a description a renderer can act on — a file path, or
+/// a placeholder's shape and colour — and never an engine object. This assembly is
+/// loaded by Unity and must not depend on it (ADR-0002), so turning the description
+/// into a mesh is the renderer's job.
 /// </summary>
 public readonly struct ResolvedAsset
 {
@@ -49,9 +43,9 @@ public readonly struct ResolvedAsset
     public AssetSource Source { get; }
 
     /// <summary>
-    /// The file to load, for a file-backed source; null for a placeholder.
-    /// <b>The only place in the project where an asset path exists at all</b> —
-    /// producing one is a provider's job and no caller may construct one.
+    /// The file to load, for a file-backed source; null for a placeholder. The only
+    /// asset path in the project: producing one is a provider's job, and no caller
+    /// may construct one.
     /// </summary>
     public string? FilePath { get; }
 
@@ -71,12 +65,10 @@ public readonly struct ResolvedAsset
 }
 
 /// <summary>
-/// How to draw an asset nobody has supplied: a shape, a size and a colour.
-///
-/// <para>Enough to make a dungeon legible as boxes and no more. The colour is
-/// derived from the asset key rather than chosen, so a terrain is the same
-/// colour every run and on every machine — see
-/// <see cref="PlaceholderProvider"/>.</para>
+/// How to draw an asset nobody supplied: a shape, a size and a colour — enough to
+/// make a dungeon legible as boxes. The colour is derived from the asset key, so a
+/// terrain is the same colour every run and on every machine
+/// (<see cref="PlaceholderProvider"/>).
 /// </summary>
 public readonly struct PlaceholderLook
 {
@@ -95,8 +87,8 @@ public readonly struct PlaceholderLook
     public byte Blue { get; }
 
     /// <summary>
-    /// Height in thousandths of a tile width. An integer on purpose: this
-    /// assembly follows ADR-0001 like the rest, and a renderer converts.
+    /// Height in thousandths of a tile width — an integer on purpose (ADR-0001);
+    /// the renderer converts.
     /// </summary>
     public ushort HeightPermille { get; }
 
@@ -121,12 +113,10 @@ public enum PlaceholderShape
 }
 
 /// <summary>
-/// The <c>Asset Provider</c> arrow of goal 4. One rule: given a key, either
-/// answer or say you cannot, and never throw for a key you do not have.
-///
-/// <para>Implementations are chained (see <see cref="AssetProviderChain"/>), so
-/// "cannot" is an ordinary answer and the last link in the chain is
-/// <see cref="PlaceholderProvider"/>, which always answers.</para>
+/// Goal 4's <c>Asset Provider</c> arrow. One rule: given a key, either answer or say
+/// you cannot, and never throw for a key you do not have. Implementations are chained
+/// (<see cref="AssetProviderChain"/>), so "cannot" is an ordinary answer and the last
+/// link is <see cref="PlaceholderProvider"/>, which always answers.
 /// </summary>
 public interface IAssetProvider
 {
@@ -134,9 +124,8 @@ public interface IAssetProvider
     string Name { get; }
 
     /// <summary>
-    /// Resolves a key, or returns false. Must not throw for an unknown key —
-    /// a missing asset is a normal condition in a project that has to run
-    /// without any assets at all.
+    /// Resolves a key, or returns false. Must not throw for an unknown key: a missing
+    /// asset is normal in a project that has to run with no assets at all.
     /// </summary>
     bool TryResolve(AssetRef reference, out ResolvedAsset asset);
 }

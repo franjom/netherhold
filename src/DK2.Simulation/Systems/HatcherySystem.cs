@@ -8,36 +8,16 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Systems;
 
 /// <summary>
-/// The Hatchery: coops, eggs, and chickens — once a game second.
-///
-/// <para><b>The last thing standing between this project and food.</b>
-/// <see cref="HatcheryRules"/> has known how many coops a room of a given size
-/// gets, where they may stand, that the room lays an <b>Egg</b> (object 47) at a
-/// randomly chosen coop, that the egg becomes a <b>Chicken</b> (object 9) after
-/// two seconds, and that a room holds one bird per tile — for four sittings,
-/// with nothing to run any of it. What was missing was the clock, and the reason
-/// written down was that DK2 multiplies its laying interval by a balance
-/// variable <i>"no shipped file supplies"</i> (Q132).</para>
-///
-/// <para><b>That reason stopped being true and nobody noticed.</b> Q132 was
-/// answered on 2026-09-05: the multiplier is variable 19, ticks per game second,
-/// and the <b>level header</b> supplies it — all 66 shipped levels carry 4. The
-/// blocker had been gone for a day while three documents still named it. Fifth
-/// instance of a claim nothing checks (ADR-0066).</para>
-///
-/// <para><b>The eating half arrived the same week</b>
-/// (<see cref="CreatureEatSystem"/>, ADR-0067): a hungry creature walks here,
-/// picks the nearest bird once it is inside and eats it — which also means a
-/// hatchery that had stopped at its one-bird-per-tile ceiling starts laying
-/// again, because something is taking birds out of it. Nobody wrote that
-/// interaction. What is still missing is a <b>prisoner</b> being fed - no
-/// longer because it cannot move (it does, ADR-0073), but because nothing drops
-/// a bird into a cell and nothing races for it (the remaining half of
-/// Q172).</para>
-///
-/// <para>Registered after <see cref="PortalSystem"/>, which is the other system
-/// that makes something out of a room, and on the same once-a-game-second
-/// cadence as the health and mana systems.</para>
+/// The Hatchery: coops, eggs and chickens, once a game second.
+/// <para>The rules are <see cref="HatcheryRules"/> — how many coops a room of a
+/// given size gets and where they may stand, an <b>Egg</b> (object 47) laid at a
+/// randomly chosen coop, becoming a <b>Chicken</b> (object 9) after two seconds,
+/// and one bird per tile as the ceiling. STRONGLY INFERRED
+/// (docs/research/hatchery.md, ADR-0066). The laying interval is multiplied by
+/// variable 19, ticks per game second, which the <b>level header</b> supplies:
+/// all 66 shipped levels carry 4 (Q132).</para>
+/// <para>Not implemented: feeding a prisoner — nothing drops a bird into a cell
+/// and nothing races for it (the remaining half of Q172).</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery.md")]
 public sealed class HatcherySystem : ISimulationSystem
@@ -51,10 +31,9 @@ public sealed class HatcherySystem : ISimulationSystem
         if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
 
         // Hatching BEFORE laying, so an egg is not aged on the second it is
-        // laid. Same reasoning as CreatureHealthSystem running last: a thing
-        // that arrives this second has not yet spent one. The other order gives
-        // a two-second egg a one-second life, which is what the first draft
-        // did and what AnEggBecomesAChickenTwoSecondsAfterItIsLaid caught.
+        // laid: a thing that arrives this second has not yet spent one. The
+        // other order gives a two-second egg a one-second life
+        // (HatcheryClockTests.AnEggBecomesAChickenTwoSecondsAfterItIsLaid).
         Hatch(context);
         Lay(context);
     }

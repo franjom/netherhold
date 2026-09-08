@@ -9,41 +9,16 @@ using DK2.Simulation.Commands;
 namespace DK2.Simulation.Systems;
 
 /// <summary>
-/// Applies this tick's <see cref="SellRoomCommand"/>s: takes a room tile back to
-/// the floor it stood on and pays the keeper half of what it cost.
-///
-/// <para>The mirror of <see cref="RoomBuildSystem"/>, and it carries no policy of
-/// its own for the same reason: what may be sold and what it is worth are
-/// <see cref="RoomRules"/>, and where the gold goes is <see cref="GoldStore"/>.
-/// All that happens here is the per-tile loop and the reporting.</para>
-///
-/// <para><b>A tile at a time, and each refund banked before the next tile goes.</b>
-/// That ordering is not arbitrary. Selling a treasury shrinks the very store the
-/// refund has to go into, so a keeper selling their whole treasury will run out
-/// of somewhere to put the money partway through — and this way the run says
-/// exactly when, instead of the answer depending on which order the loop
-/// happened to use.</para>
-///
-/// <para><b>A bridge is the one sale whose outcome is not the destroyed-type
-/// field.</b> It goes back to the water or lava it spanned (Q64, CONFIRMED), and
-/// <see cref="BridgeRules"/> is what knows which; the event log names it when a
-/// sale involved one.</para>
-///
-/// <para><b>Selling is instant, and the imp that should do it is missing.</b> In
-/// DK2 an imp walks over and dismantles the tile, the same worker job that builds
-/// it (Q24). Nothing here pretends to time that. What is not in doubt is the part
-/// this does: the keeper asked, the room was theirs, and the gold came back.</para>
-///
-/// <para><b>What happens to gold stored on a sold treasury tile is CONFIRMED</b>
-/// (owner, 2026-09-03): the tile reverts to claimed floor and <b>the gold drops
-/// onto that same tile as a pile</b>, coming off the keeper's spendable total
-/// until somebody fetches it. Two of those three things are reproduced here — the
-/// tile reverts, and the total falls by exactly that much, so the <i>economy</i>
-/// of a sale is right. What is missing is the pile itself, because a pile is an
-/// OBJECT and objects arrive at M6 (Q31), so a keeper here loses permanently what
-/// a keeper there could pick back up. Same for a refund with nowhere to go. Both
-/// are reported rather than hidden, which is the honest way round: the decision
-/// is DK2's and the recovery is what we lack.</para>
+/// Applies this tick's <see cref="SellRoomCommand"/>s: a room tile back to the
+/// floor it stood on, and half its cost back to the keeper. What may be sold and
+/// what it is worth are <see cref="RoomRules"/>; where the gold goes is
+/// <see cref="GoldStore"/>.
+/// <para><b>A tile at a time, each refund banked before the next tile goes</b>:
+/// selling a treasury shrinks the store the refund has to go into, so a keeper
+/// selling the lot runs out of somewhere to put the money partway through, and
+/// the run says exactly when. <b>Deliberate deviation: selling is instant</b> —
+/// in DK2 an imp walks over and dismantles the tile, and no task kind for that
+/// has been identified (imp-task-priority.md §3).</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public sealed class RoomSellSystem : ISimulationSystem
@@ -92,9 +67,9 @@ public sealed class RoomSellSystem : ISimulationSystem
             int refund = RoomRules.RefundPerTile(context.Database, room);
 
             // A bridge goes back to the water or lava it spanned rather than to
-            // the Claimed Path its terrain record names (Q64, BridgeRules).
-            // Counted so the run says when one was involved, because it is the
-            // only sale whose outcome is not the destroyed-type field.
+            // the Claimed Path its terrain record names (CONFIRMED, Q64;
+            // BridgeRules). The only sale whose outcome is not the
+            // destroyed-type field, so it is counted and reported.
             if (BridgeRules.IsBridge(room)) bridges++;
 
             // Unmake first, then bank. The other order would let a refund land on

@@ -8,26 +8,17 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// Levels, which multiply a creature's stats by percentages the shipped data
-/// states outright.
-///
-/// <para>The mechanic exists because of a remark rather than a question. The
-/// owner, while trying to time an imp through water: <i>"imps gain speed as they
-/// gain more levels, I will try to time one but I have only level 2 as the
-/// lowest level imps now in the game"</i>. That sent this project looking, and
-/// <c>GlobalVariables.kwd</c>'s 32-stat by 9-level table had been parsed into
-/// <c>GlobalVariables.CreatureStats</c> since variables were first read and
-/// examined by nothing (Q119).</para>
-///
-/// <para><b>Earning a level came an hour later</b>, when the owner answered
-/// what raises one (Q124): <i>"imps get experience by working... they get exp
-/// and passively their level raises. creatures also gain levels through
-/// experience, mostly training and fighting."</i> So an imp levels here and
-/// nothing else does, because training and fighting do not exist — and the
-/// tests below assert that zero as deliberately as they assert the imp's
-/// curve.</para>
+/// <summary>Levels multiply a creature's stats by percentages the shipped data
+/// states outright: <c>GlobalVariables.kwd</c>'s 32-stat by 9-level table, read
+/// into <c>GlobalVariables.CreatureStats</c> (Q119).
 /// </summary>
+/// <remarks>
+/// Only an imp levels here. What raises a level is CONFIRMED (owner,
+/// 2026-09-04, Q124): imps earn experience by working, and other creatures
+/// level "mostly through training and fighting", neither of which this
+/// simulation has. The tests below assert that zero as deliberately as they
+/// assert the imp's curve.
+/// </remarks>
 public class CreatureLevelTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -112,10 +103,8 @@ public class CreatureLevelTests
     [Fact]
     public void HealingCannotExceedTheLevelledMaximumRatherThanTheRecordsOne()
     {
-        // The consequence that would have been a bug: the clamp in Apply reads
-        // the levelled maximum, so a level-10 goblin can be healed past 1500.
-        // Before this change MaxHealth returned the record's Hp flat and the
-        // clamp would have pinned it there.
+        // The clamp in Apply reads the LEVELLED maximum, so a level-10 goblin
+        // can be healed past the record's 1500.
         GameDatabase db = Db;
         CreatureDef goblin = db.CreatureById(GoblinId);
         WorldState world = World(db);
@@ -131,14 +120,11 @@ public class CreatureLevelTests
     [Fact]
     public void TheOwnersRemark_ALevelTwoImpIsVisiblyFasterThanALevelOneImp()
     {
-        // OWNER (2026-09-04): "imps gain speed as they gain more levels."
-        //
-        // The Speed row is 105% at level 2, so an imp's 7536 raw units a second
-        // becomes 7912 — 1.84 tiles a second against 1.93. This is the
-        // assertion that makes the owner's remark true in the simulation rather
-        // than only in a document, and it is measured through the mover rather
-        // than off the rule, so a movement system that ignored the level would
-        // fail it.
+        // CONFIRMED (owner, 2026-09-04): "imps gain speed as they gain more
+        // levels." The Speed row is 105% at level 2, so an imp's 7536 raw units
+        // a second becomes 7912 — 1.84 tiles a second against 1.93. Measured
+        // through the mover rather than off the rule, so a movement system that
+        // ignored the level would fail this.
         GameDatabase db = Db;
         CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
 
@@ -146,9 +132,9 @@ public class CreatureLevelTests
         Assert.Equal(7536, CreatureLevelRules.SpeedRaw(db, imp, 1));
         Assert.Equal(7912, CreatureLevelRules.SpeedRaw(db, imp, 2));
 
-        // Through the mover: two imps, same route, one a level higher. The
-        // fixture's walkable room is (1,1)-(3,3), so the walk is short and the
-        // faster one must be strictly further along after the same ticks.
+        // Two imps, same route, one a level higher. The fixture's walkable room
+        // is (1,1)-(3,3), so the walk is short and the faster one must be
+        // strictly further along after the same ticks.
         WorldState world = World(db);
         CreatureState slow = world.SpawnCreature(
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
@@ -173,12 +159,11 @@ public class CreatureLevelTests
     [Fact]
     public void TheExperienceThresholdIsTheRecordsOwnNumberAtLevelOne()
     {
-        // Our reading of an ambiguity, asserted so the choice is visible: the
-        // table is indexed by the creature's CURRENT level, which makes the
+        // Our reading of an ambiguity, asserted so the choice stays visible:
+        // the table is indexed by the creature's CURRENT level, which makes the
         // first level cost exactly the record's 3000. Indexed by the target
         // level it would cost 3900 and the record's own number would appear
-        // nowhere. CreatureExperienceSystem depends on this reading now, so it
-        // is a live choice rather than a dormant one.
+        // nowhere. CreatureExperienceSystem depends on this reading.
         GameDatabase db = Db;
         CreatureDef goblin = db.CreatureById(GoblinId);
 
@@ -191,12 +176,10 @@ public class CreatureLevelTests
     [Fact]
     public void TheOwnersRule_AnImpEarnsExperienceOnlyWhileItIsWorking()
     {
-        // OWNER (2026-09-04, Q124): "imps get experience by working, while they
-        // do their usual things around the dungeon, digging, reinforcing walls,
-        // mining gold, etc. they get exp and passively their level raises."
-        //
-        // Both halves are asserted, and the second is the one that makes it a
-        // rule rather than a trickle: an idle imp earns nothing at all.
+        // CONFIRMED (owner, 2026-09-04, Q124): "imps get experience by working,
+        // while they do their usual things around the dungeon, digging,
+        // reinforcing walls, mining gold, etc. they get exp and passively their
+        // level raises." Both halves are asserted: an idle imp earns nothing.
         GameDatabase db = Db;
         WorldState world = World(db);
 
@@ -210,12 +193,11 @@ public class CreatureLevelTests
 
         new GameSimulation(db, world, 42, [new CreatureExperienceSystem()]).Run(Second * 10);
 
-        // 20 A TICK, NOT A SECOND, and DK2's tick rather than ours. The shipped
-        // name is ImpExperienceGainPerSecond and it is wrong by a factor of four
-        // (Q79, 2026-09-07): the variable is read at nine sites in the imp's
-        // task unit, every one of them awards it raw with no divide by variable
-        // 19, and every one sits beside a work accrual that happens once an
-        // original tick. So ten game seconds is forty awards, not ten.
+        // 20 A TICK, NOT A SECOND, and DK2's original tick rather than ours:
+        // ImpExperienceGainPerSecond is misnamed by a factor of four (Q79). All
+        // nine read sites in the imp's task unit award it raw with no divide by
+        // variable 19, each beside a work accrual that happens once an original
+        // tick. So ten game seconds is forty awards, not ten.
         Assert.Equal(10 * 20 * SimulationTiming.OriginalTicksPerGameSecond,
                      worker.ExperiencePoints);
         Assert.Equal(800, worker.ExperiencePoints);
@@ -226,14 +208,10 @@ public class CreatureLevelTests
     [Fact]
     public void AnImpThatWorksForThirtySevenAndAHalfSecondsReachesLevelTwoAndSpeedsUp()
     {
-        // THIS TEST SAID 150 SECONDS FOR THREE WEEKS AND THE ANSWER IS 37.5.
-        // The old arithmetic was 20 a second against the record's
-        // ExpForNextLevel of 3000. The rate is 20 an ORIGINAL TICK (Q79), which
-        // is 80 a game second, so the second level costs 3000 / 80 = 37.5
-        // seconds of work and lands mid-second - the 150th award falls on sim
-        // tick 749. And the level is not bookkeeping: it moves the creature
-        // faster, which is the thing the owner noticed in the first place
-        // ("imps gain speed as they gain more levels").
+        // The rate is 20 an ORIGINAL TICK (Q79), so 80 a game second, and the
+        // second level costs 3000 / 80 = 37.5 seconds of work, landing
+        // mid-second: the 150th award falls on sim tick 749. The trap is
+        // ImpExperienceGainPerSecond's name — read as 20 a second it gives 150.
         GameDatabase db = Db;
         CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
         WorldState world = World(db);
@@ -260,8 +238,7 @@ public class CreatureLevelTests
         Assert.Equal(7912, CreatureLevelRules.SpeedRaw(db, imp, state.Level));
 
         // Zero because the balance is ZEROED on promotion, not because 3000
-        // came off a total of exactly 3000 - and here the two happen to agree,
-        // which is why the discard needed its own test.
+        // came off a total of exactly 3000; here the two happen to agree.
         Assert.Equal(0, state.ExperiencePoints);
 
         // And the event says what it cost and what the next one costs, so a
@@ -274,13 +251,11 @@ public class CreatureLevelTests
     [Fact]
     public void ACreatureThatCannotTrainOrFightNeverLevelsAtAll()
     {
-        // The honest zero. The owner: creatures "gain levels through experience,
-        // mostly training and fighting" -- and this simulation has neither, so a
-        // Goblin stays at level 1 for ever however long it stands there.
-        //
-        // Asserted rather than left implicit, because the tempting fix is to
-        // give everything the imp's rate and call it progression, which would
-        // invent a curve DK2 does not grant for existing.
+        // The honest zero. Creatures "gain levels through experience, mostly
+        // training and fighting" (owner, Q124) and this simulation has neither,
+        // so a Goblin stays at level 1 for ever. Asserted rather than left
+        // implicit: giving everything the imp's rate would invent a curve DK2
+        // does not grant for merely existing.
         GameDatabase db = Db;
         WorldState world = World(db);
 
@@ -296,12 +271,11 @@ public class CreatureLevelTests
     [Fact]
     public void LevellingStopsAtTenBecauseTheTableStopsThere()
     {
-        // The cap, and the reason it is ten: the shipped stat table has no rows
-        // past level 10. The owner's own caps are lower and belong to rooms
-        // rather than to the creature -- training to 4, the combat pit to 8, and
-        // "to get to level 10 they need to fight actual fights" -- and both room
-        // numbers are shipped variables (Q124). Neither room exists here, so
-        // this asserts the outer ceiling only.
+        // The cap is ten because the shipped stat table has no rows past level
+        // 10. The owner's caps are lower and belong to rooms rather than to the
+        // creature -- training to 4, the combat pit to 8, "to get to level 10
+        // they need to fight actual fights" -- and both room numbers are
+        // shipped variables (Q124). Neither room exists here.
         GameDatabase db = Db;
         WorldState world = World(db);
 
@@ -322,12 +296,10 @@ public class CreatureLevelTests
     [Fact]
     public void EnoughExperienceInOneGoBuysONELevelAndThrowsTheRestAway()
     {
-        // THIS TEST USED TO ASSERT THE OPPOSITE, and the opposite was wrong.
-        // Until Q205 this project looped the promotion and carried the
-        // remainder, on the reasoning that a single-step version "would silently
-        // drop the second level the day combat pays out in lumps". DK2 drops it.
-        // Its adder promotes once, sets the balance to zero, and returns - so
-        // the overshoot is gone and two levels in one award are not possible.
+        // DK2's adder promotes ONCE, sets the balance to zero and returns, so
+        // the overshoot is discarded and two levels in one award are not
+        // possible (Q205). The tempting reading -- loop and carry the remainder
+        // -- is what this test asserted before Q205 settled it.
         GameDatabase db = Db;
         CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
         WorldState world = World(db);
@@ -350,9 +322,8 @@ public class CreatureLevelTests
     public void LandingExactlyOnTheThresholdPromotes()
     {
         // The original's comparison is "balance < needed -> stop", so equality
-        // promotes. One off either way is the whole difference between a
-        // creature that levels on the second it earns its last point and one
-        // that levels a tick later.
+        // promotes: one off either way decides whether a creature levels on the
+        // tick it earns its last point or a tick later.
         GameDatabase db = Db;
         CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
         WorldState world = World(db);

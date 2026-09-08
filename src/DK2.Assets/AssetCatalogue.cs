@@ -8,40 +8,26 @@ using DK2.Data.Model;
 namespace DK2.Assets;
 
 /// <summary>
-/// Every asset key a game database implies: the
-/// <c>Game Definition → Asset Reference</c> arrow of goal 4, made enumerable.
-///
-/// <para>Two things need this. A <b>converter</b> needs the list of what to
-/// produce, and it should come from the database rather than a hand-kept
-/// manifest that can fall behind it. And the <b>"runs with no assets" promise</b>
-/// (plan §7.2) is only testable if the set of keys is knowable — which is what
-/// <c>PlaceholderProviderTests</c> uses to check the placeholder answers for
-/// every last one.</para>
-///
-/// <para><b>The catalogue claims only what the game asks for.</b> DK2's records
-/// carry far more art than this: a creature record alone names about thirty
-/// animations. Enumerating all of them would produce a list of keys nothing
-/// requests, and the placeholder-completeness test would then be checking
-/// coverage of an invention. So the rule here is the same one
-/// <c>TileState</c> and <c>CreatureState</c> follow — <b>a key appears when a
-/// mechanic or a renderer needs it</b>, and the rest arrive with the mechanics
-/// that read them.</para>
+/// Every asset key a game database implies — goal 4's <c>Game Definition → Asset
+/// Reference</c> arrow, made enumerable (ADR-0034). It feeds the converter its work
+/// list and makes the "runs with no assets" promise (plan §7.2) testable:
+/// <c>ProviderTests</c> and <c>AssetCatalogueTests</c> resolve every key against the
+/// placeholder.
 /// </summary>
+/// <remarks>
+/// A key appears only when a mechanic or a renderer needs it. DK2's records name far
+/// more art (about thirty animations in a creature record alone); enumerating those
+/// would list keys nothing requests, making placeholder completeness an invention.
+/// </remarks>
 public static class AssetCatalogue
 {
     /// <summary>
-    /// The creature animation variants the project can currently distinguish.
-    ///
-    /// <para><b>This mirrors <c>DK2.Simulation.CreatureActivity</c> exactly</b>,
-    /// and it has to: a renderer picks an animation from a creature's activity,
-    /// so an activity with no key would be undrawable and a key with no activity
-    /// would be an asset nobody can ever ask for. It is a copy rather than a
-    /// reference because this assembly sits beside the simulation, not above it —
-    /// a renderer depends on both. <c>AssetCatalogueTests</c> asserts the two
-    /// lists agree, so the copy cannot drift.</para>
-    ///
-    /// <para>Six names is not DK2's animation set; it is ours, and it grows as
-    /// the simulation learns states.</para>
+    /// The creature animation variants the project can currently distinguish: 21
+    /// names mirroring <c>DK2.Simulation.CreatureActivity</c> one for one, so no
+    /// activity is undrawable and no key is unaskable. Deliberately a copy, not a
+    /// reference — this assembly sits beside the simulation, not above it; the
+    /// copy cannot drift because <c>AssetCatalogueTests</c> asserts the two agree.
+    /// This is not DK2's animation set; it grows as the simulation learns states.
     /// </summary>
     public static readonly string[] CreatureAnimations =
     [
@@ -69,11 +55,8 @@ public static class AssetCatalogue
     ];
 
     /// <summary>
-    /// Every key the database implies, in a stable order.
-    ///
-    /// <para>Order is by record id within each category, so two runs produce the
-    /// same list and a converter's output is reproducible — the same reason the
-    /// simulation never sorts its work queue on the fly.</para>
+    /// Every key the database implies, ordered by record id within each category so
+    /// that two runs produce the same list and a converter's output is reproducible.
     /// </summary>
     public static IEnumerable<AssetRef> ForDatabase(GameDatabase database)
     {
@@ -83,36 +66,18 @@ public static class AssetCatalogue
         foreach (AssetRef reference in ForObjects(database)) yield return reference;
     }
 
-    /// <summary>
-    /// One visual per terrain type, and which visual depends on whether the
-    /// terrain fills its tile.
-    ///
-    /// <para><b>A solid terrain gets a mesh; a walkable one gets a texture.</b>
-    /// That is not a rendering preference, it is what the two are: a wall is a
-    /// volume you cannot enter and a floor is a surface you stand on. Asking the
-    /// terrain's <c>IsSolid</c> flag rather than its id keeps this correct for a
-    /// mod-authored terrain, the same rule the tile work rules follow.</para>
-    ///
-    /// <para>A terrain that damages what stands on it (lava) also gets an
-    /// effect key, because its hazard is the thing a player must see. Nothing
-    /// draws it yet, which is why the placeholder for an effect is honestly
-    /// nothing at all rather than a box.</para>
-    ///
-    /// <para><b>One mesh per solid terrain is a known simplification, not the
-    /// truth.</b> DK2 draws a wall from a <i>set</i> of pieces chosen by the
-    /// size and shape of the room behind it, and gives walls separate textures
-    /// per damage state — both CONFIRMED by Simon Schreibt's wireframe and
-    /// mesh-extraction work (see <c>docs/research/wall-rendering.md</c>). So a
-    /// faithful renderer will need variants here.</para>
-    ///
-    /// <para>They are not enumerated <i>yet</i> for the reason this file exists:
-    /// <see cref="AssetRef"/> already carries a variant segment, so the shape is
-    /// right and only the list is missing — and the list is missing because
-    /// nobody has established what the pieces are. "Depends on the size of the
-    /// room" is an observation, not a rule (Q71). Inventing a variant set to
-    /// look complete would put keys in a converter's work list that correspond
-    /// to nothing.</para>
-    /// </summary>
+    /// <summary>One visual per terrain type; a hazard terrain also gets an effect key.</summary>
+    /// <remarks>
+    /// <para>Solid terrain gets a mesh, walkable terrain a texture, keyed on the
+    /// terrain's <c>IsSolid</c> flag and never its id, so a mod-authored terrain
+    /// stays correct. <c>Damage != 0</c> (lava) adds an effect key; nothing draws it
+    /// yet, so the placeholder for an effect is nothing rather than a box.</para>
+    /// <para>Deviates: one mesh per solid terrain. DK2 builds a wall from a set of
+    /// pieces chosen by the room behind it and textures walls per damage state —
+    /// CONFIRMED (docs/research/wall-rendering.md). <see cref="AssetRef"/> already
+    /// carries a variant segment, but which pieces exist is open (Q71), so no
+    /// variant list is invented here.</para>
+    /// </remarks>
     public static IEnumerable<AssetRef> ForTerrain(GameDatabase database)
     {
         foreach (byte id in Sorted(database.Terrain.Keys))
@@ -129,13 +94,9 @@ public static class AssetCatalogue
     }
 
     /// <summary>
-    /// A floor texture and a mesh per room type.
-    ///
-    /// <para>Both, for every room, because a room is both things in DK2: paved
-    /// ground you walk on and furniture standing on it. A treasury's floor and
-    /// its gold piles are not one asset, and a keeper who sells the room keeps
-    /// the floor (ADR-0029), so the two have different lifetimes as well as
-    /// different shapes.</para>
+    /// A floor texture and a mesh per room type — both for every room, because a DK2
+    /// room is paved ground plus furniture standing on it, and the two have different
+    /// lifetimes: selling a room keeps the floor (ADR-0029).
     /// </summary>
     public static IEnumerable<AssetRef> ForRooms(GameDatabase database)
     {
@@ -148,14 +109,10 @@ public static class AssetCatalogue
     }
 
     /// <summary>
-    /// A mesh and one animation per implemented activity, for every creature.
-    ///
-    /// <para>Every creature, not only the two the simulation spawns: a keeper
-    /// database defines 46 and the converter's job is to produce what the
-    /// database defines, not what today's mechanics happen to place. The
-    /// animation <i>variants</i>, by contrast, are exactly what today's
-    /// mechanics can distinguish — see
-    /// <see cref="CreatureAnimations"/>.</para>
+    /// A mesh and one animation per implemented activity, for every creature the
+    /// database defines (46 in the shipped data) and not only the ones the simulation
+    /// spawns. The animation variants are what today's mechanics can distinguish —
+    /// see <see cref="CreatureAnimations"/>.
     /// </summary>
     public static IEnumerable<AssetRef> ForCreatures(GameDatabase database)
     {
@@ -170,21 +127,16 @@ public static class AssetCatalogue
     }
 
     /// <summary>
-    /// One mesh per object definition — a bed, a coop, an egg, a pile of gold,
-    /// and the hundred-odd pillars and arches that are the rest of the record.
-    ///
-    /// <para><b>A mesh and nothing else</b>, for now. DK2 gives an object a
-    /// state machine (<c>StateId</c> and <c>StateAge</c>, objects.md §7) and a
-    /// <c>MoveTo</c> block, so a chicken pecks and a boulder rolls and both will
-    /// want animations — but this project cannot yet distinguish one object
-    /// state from another, and a variant list invented here would put keys in a
-    /// converter's work list that correspond to nothing. The same restraint the
-    /// wall variants get.</para>
-    ///
-    /// <para>Every object, not only the four the simulation places, for the
-    /// reason <see cref="ForCreatures"/> gives: the converter's job is what the
-    /// database defines.</para>
+    /// One mesh per object definition — a bed, a coop, an egg, a pile of gold, and
+    /// the hundred-odd pillars and arches that are the rest of the record. Every
+    /// object, not only the four the simulation places (<see cref="ForCreatures"/>).
     /// </summary>
+    /// <remarks>
+    /// Not implemented: object animations. DK2 gives an object a state machine
+    /// (<c>StateId</c>, <c>StateAge</c> — docs/research/objects.md §7) and a
+    /// <c>MoveTo</c> block, but nothing here can tell one object state from another
+    /// yet, so no variant list is invented.
+    /// </remarks>
     public static IEnumerable<AssetRef> ForObjects(GameDatabase database)
     {
         foreach (byte id in Sorted(database.Objects.Keys))

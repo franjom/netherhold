@@ -29,29 +29,17 @@ public enum AssetKind
 }
 
 /// <summary>
-/// A logical asset key: the middle arrow of goal 4's
-/// <c>Game Definition → Asset Reference → Asset Provider → Actual Asset</c>.
-///
-/// <para><b>The whole point is that this is not a filename.</b> A key names what
-/// the game needs — "the imp's mesh" — and a provider decides where that comes
-/// from. That is what lets original art, fan-made art and coloured boxes be
-/// swapped without touching a line of simulation or renderer code, and it is
-/// what keeps a redistributable build possible: no path to a proprietary file
-/// exists anywhere except inside a provider.</para>
-///
-/// <para><b>Shape:</b> <c>category.subject.role</c>, all lowercase, dot
-/// separated, with <c>[a-z0-9_]</c> in each segment — <c>creature.imp.mesh</c>,
-/// <c>terrain.gold_seam.texture</c>, <c>creature.imp.animation.walk</c>. The
-/// segments are validated rather than trusted, because a mistyped key that
-/// silently resolves to a placeholder is exactly the bug this design would
-/// otherwise invite: the game would keep running and quietly show a box.</para>
-///
-/// <para><b>Why keys are built from a record's name, not its id.</b> An id is a
-/// fact about the reference install's data files; a name survives a mod, a
-/// re-extract and a hand-authored database. The same reasoning that keeps
-/// gameplay rules off terrain ids (see <c>TileWorkRules</c>) keeps asset keys
-/// off them.</para>
+/// A logical asset key — not a filename: it names what the game needs ("the imp's
+/// mesh") and a provider decides where that comes from, so no path to a proprietary
+/// file exists outside a provider (ADR-0034).
 /// </summary>
+/// <remarks>
+/// <para>Shape: <c>category.subject.role[.variant]</c>, lowercase, dot separated,
+/// <c>[a-z0-9_]</c> per segment — <c>creature.imp.animation.walk</c>. Segments are
+/// validated, not trusted: a mistyped key would else resolve to a placeholder.</para>
+/// <para>Keys come from a record's <b>name</b>, never its id (an id is a fact about
+/// the reference install). Same rule as <c>TileWorkRules</c>.</para>
+/// </remarks>
 public readonly struct AssetRef : IEquatable<AssetRef>
 {
     /// <summary>The categories in use. Kept closed so a typo cannot invent one.</summary>
@@ -154,42 +142,30 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     };
 
     /// <summary>
-    /// The characters that shipped record names use as punctuation, all of which
-    /// become a single underscore.
-    ///
-    /// <para><b>This set is measured, not guessed.</b> Sweeping the reference
-    /// install's 41 terrain, 26 room and 46 creature names for anything outside
-    /// <c>[A-Za-z0-9 ]</c> returns exactly <c>&lt; &gt; [ ]</c> — from editor
-    /// annotations like <c>Hero Gate [ Final ]</c> and
-    /// <c>Mercenary Gate [&lt;not used&gt;]</c>. Dash and apostrophe are here
-    /// too, for names a mod or a later record type may carry; they cost nothing
-    /// and are unambiguously punctuation.</para>
-    ///
-    /// <para>The first version of this method allowed only space, dash and
-    /// apostrophe and it was <i>wrong about the real data</i> — the shipped
-    /// terrain table refuted it immediately. Pinned by
-    /// <c>AssetCatalogueTests</c>, which normalises every name in the install.</para>
+    /// The punctuation shipped record names use, each mapping to one underscore.
     /// </summary>
+    /// <remarks>
+    /// Measured: sweeping the reference install's 41 terrain, 26 room and 46 creature
+    /// names for anything outside <c>[A-Za-z0-9 ]</c> returns exactly
+    /// <c>&lt; &gt; [ ]</c>, from editor annotations such as <c>Hero Gate [ Final ]</c>
+    /// and <c>Mercenary Gate [&lt;not used&gt;]</c>. Dash and apostrophe are included
+    /// for names a mod or a later record type may carry. Pinned by
+    /// <c>AssetCatalogueTests</c>, which normalises every name in the install.
+    /// </remarks>
     private const string Separators = " -'[]<>";
 
     /// <summary>
-    /// Turns a record's name into a key segment: lowercase, punctuation to a
-    /// single underscore, and <b>everything else refused</b>.
-    ///
-    /// <para>Refusing rather than stripping is the deliberate part, and it is
-    /// load-bearing twice over. A name carrying <c>.</c>, <c>/</c>, <c>\</c> or a
-    /// control character did not come from a record — it came from a truncated
-    /// string, a byte read at the wrong offset, or a path — and sanitising that
-    /// would mint a believable key for the wrong thing. It is also what makes
-    /// <see cref="FileAssetProvider"/>'s dot-to-separator mapping safe: a segment
-    /// that cannot contain a separator or a dot cannot escape the asset root.</para>
-    ///
-    /// <para>Runs of punctuation collapse and the edges are trimmed, so
-    /// <c>Hero Gate [ Final ]</c> is <c>hero_gate_final</c> rather than
-    /// <c>hero_gate___final_</c>. Collapsing could in principle make two names
-    /// share a key; <c>AssetCatalogueTests</c> asserts the shipped database
-    /// produces none.</para>
-    /// </summary>
+    /// Turns a record's name into a key segment: lowercase, punctuation to one
+    /// underscore, runs collapsed, edges trimmed (<c>Hero Gate [ Final ]</c> →
+    /// <c>hero_gate_final</c>); everything else refused.</summary>
+    /// <remarks>
+    /// Refusing rather than stripping is load-bearing twice: a name carrying <c>.</c>,
+    /// <c>/</c>, <c>\</c> or a control character did not come from a record, so
+    /// sanitising it would mint a believable key for the wrong thing; and it makes
+    /// <see cref="FileAssetProvider"/>'s dot-to-separator mapping safe (no separator or
+    /// dot in a segment, so no escape from the asset root). <c>AssetCatalogueTests</c>
+    /// asserts collapsing collides no two shipped names.
+    /// </remarks>
     public static string NormaliseSubject(string subject)
     {
         if (string.IsNullOrWhiteSpace(subject))

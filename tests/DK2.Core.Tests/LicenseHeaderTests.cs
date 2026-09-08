@@ -6,47 +6,27 @@ using System.Text.RegularExpressions;
 
 namespace DK2.Core.Tests;
 
-/// <summary>
-/// The licence is written down in two places, for two different readers, and
-/// nothing but these tests connects them:
-///
-/// <list type="bullet">
-/// <item><c>LICENSE</c> — the GNU GPL version 3, verbatim, for humans and for
-/// GitHub's repository sidebar.</item>
-/// <item><c>license.txt</c> — the three-line per-file notice, as a FreeMarker
-/// header template. IDEs that stamp a notice into new files read it; this is
-/// the shape OpenKeeper uses, and the reason a lower-case <c>license.txt</c>
-/// sits next to an upper-case <c>LICENSE</c> at all.</item>
-/// </list>
-///
-/// <para><b>The short notice carries the whole grant, so it has to be exactly
-/// right.</b> Until 2026-09-04 each file repeated the GPL's own <i>How to Apply
-/// These Terms</i> boilerplate, which spells out "either version 3 of the
-/// License, or (at your option) any later version" in prose. The short form
-/// says the same thing in one token — <c>GPL-3.0-or-later</c> — and if that
-/// token is wrong, or drifts out of step with the licence file it points at,
-/// there is no prose left to fall back on. Hence
-/// <see cref="TheNotice_DeclaresGpl3OrLater"/> and
-/// <see cref="TheLicenceFile_IsTheVersionTheNoticeClaims"/>.</para>
-///
-/// <para><b>These tests are also the only thing enforcing the notice on the
-/// source files themselves.</b> The natural mechanism — IDE0073 with
-/// <c>file_header_template</c> in <c>.editorconfig</c> — is deliberately not
-/// used, for reasons <c>.editorconfig</c> records in full: it is blind to the
-/// Unity adapter, and it truncates a template at the first <c>;</c> without
-/// saying so, which silently mutilated the long notice while the build stayed
-/// green.</para>
+/// <summary>Connects the licence's two written forms, which nothing else does:
+/// <c>LICENSE</c> (the GNU GPL version 3, verbatim, for humans and GitHub's
+/// sidebar) and <c>license.txt</c> (the three-line per-file notice, as the
+/// FreeMarker header template a stamping IDE reads — OpenKeeper's shape, and
+/// why a lower-case <c>license.txt</c> sits beside an upper-case
+/// <c>LICENSE</c>). The notice carries the whole grant in one token, so a wrong
+/// or drifted SPDX identifier leaves no prose to fall back on. These tests are
+/// also the only enforcement of the notice on source files: IDE0073 with
+/// <c>file_header_template</c> is deliberately unused — it is blind to the
+/// Unity adapter and truncates a template at the first <c>;</c> in silence
+/// (<c>.editorconfig</c> records why).
 /// </summary>
 public class LicenseHeaderTests
 {
     /// <summary>
-    /// Every source file starts with the notice — the assertion that makes
-    /// <c>LICENSE</c> apply to the code rather than merely sit beside it.
-    ///
-    /// <para>Covers the three files under <c>unity/DK2.Unity/Assets</c> too.
-    /// No project in <c>DK2.slnx</c> compiles those — only
-    /// <c>unity/DK2.Unity.Compile</c> does, and that needs an installed Unity
-    /// editor — so any build-time analyser is structurally blind to them.</para>
+    /// Every source file starts with the notice — what makes <c>LICENSE</c>
+    /// apply to the code rather than merely sit beside it. Covers the three
+    /// files under <c>unity/DK2.Unity/Assets</c>, which no project in
+    /// <c>DK2.slnx</c> compiles — only <c>unity/DK2.Unity.Compile</c> does, and
+    /// that needs an installed Unity editor — so a build-time analyser is
+    /// structurally blind to them.
     /// </summary>
     [Fact]
     public void EverySourceFile_StartsWithTheNotice()
@@ -58,10 +38,9 @@ public class LicenseHeaderTests
 
         List<string> files = SourceFiles(root).ToList();
 
-        // A sweep that finds nothing passes, which would make this test a
-        // decoration rather than a check. The tree held 134 files when this was
-        // written; the floor is deliberately well below that, to catch a broken
-        // search rather than to track the count.
+        // A sweep that finds nothing would pass, which would make this test a
+        // decoration rather than a check. The floor sits deliberately far below
+        // the real file count: it catches a broken search, and is not a count.
         Assert.True(files.Count > 100,
             $"Only {files.Count} source files found under src, tests and the Unity " +
             "adapter. The sweep is not looking where the code is.");
@@ -80,12 +59,9 @@ public class LicenseHeaderTests
 
     /// <summary>
     /// The notice grants GPL version 3 <i>or later</i>, under a copyright line,
-    /// and says where the full text is.
-    ///
-    /// <para>The "or later" half is the part worth asserting. Dropping it —
-    /// <c>GPL-3.0-only</c>, or a bare <c>GPL-3.0</c> — is a narrower grant than
-    /// this project made when the notice was the GPL's prose boilerplate, and it
-    /// is a one-word edit that nothing else would notice.</para>
+    /// and says where the full text is. The "or later" half is the part worth
+    /// asserting: <c>GPL-3.0-only</c>, or a bare <c>GPL-3.0</c>, is a narrower
+    /// grant than this project made, and a one-word edit nothing else notices.
     /// </summary>
     [Fact]
     public void TheNotice_DeclaresGpl3OrLater()
@@ -99,12 +75,10 @@ public class LicenseHeaderTests
 
     /// <summary>
     /// ...and the licence file it points at is really the version the notice
-    /// claims.
-    ///
-    /// <para>This is the assertion that would catch <c>LICENSE</c> being
-    /// swapped for a different GPL — v2, say — while all 134 files went on
-    /// declaring <c>GPL-3.0-or-later</c>. Under a short notice that mismatch is
-    /// invisible: the files no longer quote the licence, they only name it.</para>
+    /// claims. Catches <c>LICENSE</c> being swapped for a different GPL — v2,
+    /// say — while every source file goes on declaring
+    /// <c>GPL-3.0-or-later</c>. Under a short notice that mismatch is
+    /// invisible: the files no longer quote the licence, they only name it.
     /// </summary>
     [Fact]
     public void TheLicenceFile_IsTheVersionTheNoticeClaims()
@@ -172,13 +146,11 @@ public class LicenseHeaderTests
     }
 
     /// <summary>
-    /// Every first-party C# file in the repository.
-    ///
-    /// <para><c>obj</c> and <c>bin</c> are excluded because the SDK writes
-    /// generated sources there — <c>*.GlobalUsings.g.cs</c> and friends — which
-    /// are not ours to licence. Unity's <c>Library/PackageCache</c> is outside
-    /// the roots listed here for the same reason, and is gitignored
-    /// besides.</para>
+    /// Every first-party C# file in the repository. <c>obj</c> and <c>bin</c>
+    /// are excluded because the SDK writes generated sources there
+    /// (<c>*.GlobalUsings.g.cs</c> and friends), which are not ours to licence;
+    /// Unity's <c>Library/PackageCache</c> is outside these roots for the same
+    /// reason, and is gitignored besides.
     /// </summary>
     private static IEnumerable<string> SourceFiles(string root)
     {

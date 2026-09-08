@@ -9,26 +9,18 @@ using DK2.Simulation.Commands;
 
 namespace DK2.AI;
 
-/// <summary>
-/// A computer keeper: the original's <c>ComputerPlayer.cpp</c> read back into
-/// this codebase (docs/KEEPER_AI.md §5), as an <b>input source</b>. Once per tick
-/// <see cref="Think"/> looks at the world and returns the commands the keeper
-/// would issue with its own hand; the host feeds them into the next
-/// <see cref="InputFrame"/>. The simulation never sees this type, so the world
-/// hash is untouched (§12.1).
-///
-/// <para><b>Step 1 of §12.7 only.</b> Present: the per-tick action budget, the
-/// task timeout, the gold-tag timeout, imp creation, slapping, the gold scan and
-/// mining tasks, room choice, the site finder, the corridor digger and room
-/// placement. Absent, and honestly so: threat evaluation and responding to an
-/// attack, the attack planner, battle spells and Call to Arms, traps and doors,
-/// prisoners, retreat, training moves, the make-room-for-a-researcher step, the
-/// message handler, and every reaction to creature mood. Those need simulation
-/// surfaces that do not exist yet (§12.3, §12.4).</para>
-///
-/// <para>Randomness comes from the keeper's own <see cref="SimRandom"/>, not the
-/// world's (§12.1, a recorded deviation from the original).</para>
-/// </summary>
+/// <summary>A computer keeper, as an input source, not part of the simulation.</summary>
+/// <remarks>
+/// <para>Once per tick <see cref="Think"/> returns the commands this keeper would
+/// issue by hand, for the host to put in the next <see cref="InputFrame"/>. Nothing
+/// in the simulation sees this type, so the world hash is untouched. Source: the
+/// original's <c>ComputerPlayer.cpp</c> (docs/KEEPER_AI.md §5, §12.1).</para>
+/// <para>Step 1 of §12.7 only. Not implemented: threat response, the attack planner,
+/// battle spells and Call to Arms, traps and doors, prisoners, retreat, training
+/// moves, make-room-for-a-researcher, messages, creature mood (§12.3, §12.4).</para>
+/// <para>Deviates: randomness is the keeper's own <see cref="SimRandom"/>, not the
+/// world's stream (§12.1).</para>
+/// </remarks>
 public sealed class KeeperAI
 {
     /// <summary>Ticks before an unfinished task is abandoned (§5.9).</summary>
@@ -37,7 +29,12 @@ public sealed class KeeperAI
     /// <summary>Ticks after tagging before every gold tag is removed (§5.9).</summary>
     public const int UntagGoldAfterTicks = 240;
 
-    /// <summary>A creature is not slapped again within this many ticks (§5.9).</summary>
+    /// <summary>
+    /// This keeper does not slap the same creature again within 300 ticks (75 game
+    /// seconds) — pacing for the computer player's own hand (§5.9), not a DK2 rule
+    /// about slapping: a human keeper has no such cooldown, and no simulation
+    /// system may read it.
+    /// </summary>
     public const int SlapCooldownTicks = 300;
 
     /// <summary>The gold seam is mined in an expanding square until this radius (§5.2, task 6).</summary>

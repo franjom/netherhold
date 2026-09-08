@@ -7,22 +7,18 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// The fourteen terrain types, four rooms, eighteen variables and one creature
-/// that the M3 mechanics touch, transcribed from the reference install so they
-/// can be tested where no Dungeon Keeper 2 installation exists — CI included.
-///
+/// <summary>The terrain types, rooms, objects, variables and creatures the
+/// built mechanics touch, transcribed from the reference install so they can be
+/// tested where no Dungeon Keeper 2 installation exists — CI included.
+/// </summary>
+/// <remarks>
 /// Unlike <see cref="TestWorld"/>, nothing here is invented: every number is
 /// DK2's own, extracted by <c>dk2tools</c> and recorded in
-/// docs/research/terrain-room-dump.md, game-database-dump.md and imp-tasks.md.
-/// That makes the fixture a liability as well as a convenience — a
-/// transcription can drift from the game it claims to copy — so
-/// <c>DK2.Behavior.Tests.TileWorkOnRealDataTests</c> and
-/// <c>ImpsOnRealDataTests</c> re-run the same assertions against the real
-/// install whenever one is present. That guard has already earned its keep: the
-/// Imp's hunger rate was first transcribed from a lossy decimal and was wrong by
-/// a factor of 4096.
-/// </summary>
+/// <c>docs/research/terrain-room-dump.md</c>, <c>game-database-dump.md</c> and
+/// <c>imp-tasks.md</c>. A transcription can drift from the game it claims to
+/// copy, so the <c>*OnRealDataTests</c> in <c>DK2.Behavior.Tests</c> re-run the
+/// same assertions against a real install whenever one is present.
+/// </remarks>
 internal static class Dk2TerrainFixture
 {
     public const byte ImpenetrableRock = 1;
@@ -76,9 +72,8 @@ internal static class Dk2TerrainFixture
             T(Gems, "Gems",
               TerrainFlags.Solid | TerrainFlags.Impenetrable | TerrainFlags.Taggable,
               100, 100, Gems, Gems, goldValue: 3000),
-            // The graveyard, for carrying (ADR-0063). Terrain 23, 10000 health
-            // both ways and destroyed-type 8 (Claimed Path), exactly as the
-            // install has it.
+            // The graveyard, for carrying (ADR-0063): terrain 23, 10000 health
+            // both ways, destroyed-type 8 (Claimed Path), as the install has it.
             T(GraveyardTerrain, "Graveyard",
               TerrainFlags.Ownable, 10000, 10000, GraveyardTerrain, ClaimedPath),
 
@@ -92,11 +87,10 @@ internal static class Dk2TerrainFixture
             T(LibraryTerrain, "Library",
               TerrainFlags.Ownable, 10000, 10000, LibraryTerrain, ClaimedPath),
 
-            // The three rooms the job choosers walk to, transcribed from the
-            // shipped table (docs/research/terrain-room-dump.md). A Goblin
-            // trains, a Warlock researches or prays, and every unhappy creature
-            // in the game drinks - so between them and the Library these four
-            // cover every happy and unhappy table the fixture has.
+            // The three rooms the job choosers walk to (Training Room, Temple,
+            // Casino), from the shipped table (terrain-room-dump.md). With the
+            // Library they cover every happy and unhappy job table the fixture's
+            // creatures carry.
             T(TrainingRoomTerrain, "Training Room",
               TerrainFlags.Ownable, 10000, 10000, TrainingRoomTerrain, ClaimedPath),
             T(TempleTerrain, "Temple",
@@ -197,30 +191,23 @@ internal static class Dk2TerrainFixture
     /// <summary>Object id 26, the Vampire's coffin.</summary>
     public const byte VampireBedObjectId = 26;
 
-    /// <summary>
-    /// The object definitions a registered system reads: the two beds, because
-    /// a bed is now a thing that stands on a tile rather than an index on a
-    /// creature (Q130, <c>docs/research/objects.md</c> §7). Without them
-    /// <see cref="LairRules.TryPlaceBedInAnyLair"/> has nothing to place.
-    ///
-    /// <para><b>Transcribed from the shipped <c>Objects.kwd</c>, not invented</b>,
-    /// for the reason every number in this fixture is: a made-up value here
-    /// would be a made-up value inside a determinism hash.
-    /// <c>ObjectsOnRealDataTests</c> reads both records back out of the real
-    /// file, so these cannot drift from it — which has caught four wrong
-    /// fixture values so far.</para>
-    ///
-    /// <para>The two are byte-for-byte identical apart from the name, which is
-    /// the record saying what §3 says: a bed is a bed by its
-    /// <see cref="ObjectFlags.TypeLair"/> bit, and which of the twelve it is
-    /// only decides what gets drawn.</para>
-    /// </summary>
     /// <summary>Object id 64, the Library's book case — the fixture's loose object.</summary>
     public const byte BookCaseObjectId = 64;
 
     /// <summary>Object id 58, the Library's other object.</summary>
     public const byte ResearchBookObjectId = 58;
 
+    /// <summary>The object definitions a registered system reads.</summary>
+    /// <remarks>
+    /// The two beds are here because a bed is a thing standing on a tile rather
+    /// than an index on a creature (Q130, <c>docs/research/objects.md</c> §7);
+    /// without them <see cref="LairRules.TryPlaceBedInAnyLair"/> has nothing to
+    /// place. They are byte-for-byte identical apart from the name: a bed is a
+    /// bed by its <see cref="ObjectFlags.TypeLair"/> bit (§3), and which of the
+    /// twelve it is only decides what gets drawn. Every record here is
+    /// transcribed from the shipped <c>Objects.kwd</c> and read back by
+    /// <c>ObjectsOnRealDataTests</c>, so none can drift from it.
+    /// </remarks>
     private static ObjectDef[] Objects() =>
     [
         Bed(GoblinBedObjectId, "Goblin Creature Bed"),
@@ -228,10 +215,9 @@ internal static class Dk2TerrainFixture
 
         // The Library's two, which are what an imp puts away (ADR-0065). Their
         // ids are the shipped Rooms.kwd ObjectIds for room 6; the fields below
-        // are not transcribed from OBJECTS and nothing reads them, because kind
-        // 8 asks the ROOM which objects are its, not the object which room is
-        // its - see ObjectCarryRules.HomeRoomFor for why that is backwards from
-        // the original and what it costs.
+        // are NOT transcribed and nothing reads them, because kind 8 asks the
+        // ROOM which objects are its, not the object which room is its - see
+        // ObjectCarryRules.HomeRoomFor for what that reversal costs.
         new ObjectDef
         {
             Name = "Book Case",
@@ -453,22 +439,17 @@ internal static class Dk2TerrainFixture
 
         // Not transcribed. Present because the record requires them.
         EyeHeight = new Fp32(0),
-        // HpFromChicken and HungerFill really are 0 — the Imp never eats. But
-        // OwnLandHealthIncreasePerSecond was transcribed as 0 and the install
-        // says 67, which is one of only two non-zero values in that whole
-        // column (the other is King Reginald at 400). Corrected 2026-09-04 and
-        // now checked by CreatureNeedsOnRealDataTests.
+        // HpFromChicken and HungerFill really are 0 — the Imp never eats.
+        // OwnLandHealthIncreasePerSecond is 67, one of only two non-zero values
+        // in that whole column (the other is King Reginald at 400). Checked
+        // against the install by CreatureNeedsOnRealDataTests.
         HpFromChicken = 0,
         HungerFill = 0,
         OwnLandHealthIncreasePerSecond = 67,
         DecomposeValue = 0,
 
-        // The Imp's real slapDamage, transcribed as 0 until 2026-09-05 and
-        // corrected when the hand arrived and something finally read it. 100
-        // against the Imp's 500 health means **five slaps kill an imp**, which
-        // is a piece of DK2 anyone who has played it knows and which this
-        // fixture had been quietly denying. Checked against the install by
-        // CreatureNeedsOnRealDataTests.
+        // 100 against the Imp's 500 health means five slaps kill an imp.
+        // Checked against the install by CreatureNeedsOnRealDataTests.
         SlapDamage = 100,
         StunDuration = new Fp32(0),
         Resistances = [],
@@ -506,58 +487,30 @@ internal static class Dk2TerrainFixture
         IntroductionStringId = 0,
     };
 
-    /// <summary>
-    /// The Goblin — level 1's whole creature pool, and the first non-worker the
-    /// simulation can produce.
-    ///
-    /// <para>Written as a delta on <see cref="Imp"/> so the hundred fields no
-    /// mechanic reads stay in one place. <b>Every field the portal reads is
-    /// overridden here and is the Goblin's own</b>, taken from
-    /// <c>dk2tools kwd creatures</c> and <c>kwd creatures -a</c>: creature id 7,
-    /// evil and not a worker, 1500 hp, 170 melee, 500 pay, speed 2867 in DK2's
-    /// fixed point (0.7 tiles a second), and one attraction slot wanting a Lair
-    /// of any size.</para>
-    ///
-    /// <para><b>What is deliberately zeroed</b> is everything Imp-specific that
-    /// would otherwise be inherited and silently wrong: an imp's 1400 gold
-    /// capacity, its 500 starting gold and its "never hungry" sentinel are all
-    /// facts about imps. The fields left inherited are the ones
-    /// <see cref="Imp"/> itself marks as untranscribed, and no mechanic reads
-    /// any of them. <c>PortalOnRealDataTests</c> re-reads the overridden values
-    /// out of the shipped <c>Creatures.kwd</c> so this cannot drift from it.</para>
-    /// </summary>
+    /// <summary>The Goblin — level 1's whole creature pool, and the first
+    /// non-worker the simulation can produce.</summary>
+    /// <remarks>A delta on <see cref="Imp"/>, so the hundred fields no mechanic
+    /// reads stay in one place. Every field the portal reads is overridden here
+    /// and is the Goblin's own: creature id 7, evil and not a worker, 1500 hp, 170
+    /// melee, 500 pay, speed 2867 in DK2's fixed point (0.7 tiles a second),
+    /// one attraction slot wanting a Lair of any size. Imp-specific fields are
+    /// zeroed rather than inherited — 1400 gold capacity, 500 starting gold and
+    /// the "never hungry" sentinel are facts about imps.
+    /// <c>PortalOnRealDataTests</c> re-reads the overrides out of the shipped
+    /// <c>Creatures.kwd</c>, so this cannot drift from it.
+    /// </remarks>
     public static CreatureDef Goblin() => Imp() with
     {
         Name = "Goblin",
         CreatureId = 7,
         SlapDamage = 115,
 
-        // Four of the real Goblin's flags, and every one of them is
-        // load-bearing rather than decorative:
-        //
-        //   AvailableViaPortal  PortalRules.CanComeFromPortal requires it, so a
-        //                       fixture Goblin without it never comes out of a
-        //                       portal at all.
-        //   GenerateDeadBody    decides whether running out of health puts a
-        //                       creature on the floor for sixty seconds or ends
-        //                       it on the spot (Q99). The fixture had this
-        //                       missing, so every collapse test would have been
-        //                       testing instant death instead.
-        //   CanWalkOnWater      decides both whether water may be crossed and
-        //                       whether crossing it costs health (Q118). Also
-        //                       missing, and for the same reason: the comment
-        //                       here used to say "exactly these two" and was a
-        //                       claim about the shipped record that nothing
-        //                       checked. 44 of the 46 creatures carry it.
-        //
-        // This is the fourth flag the drift guard has caught missing from this
-        // one record, which is the argument for asserting the whole set rather
-        // than the flags a mechanic happens to read today.
-        //   CanBePickedUp,      the real Goblin carries both and nothing read
-        //   CanBeSlapped        them until the hand arrived (ADR-0062). Without
-        //                       them a fixture Goblin cannot be handled at all,
-        //                       and every hand test written on one silently
-        //                       tests the refusal path instead.
+        // The real Goblin's flags, all load-bearing. AvailableViaPortal is what
+        // PortalRules.CanComeFromPortal requires; GenerateDeadBody decides
+        // whether death leaves a corpse (Q99); CanWalkOnWater decides both
+        // whether water may be crossed and whether crossing costs health (Q118,
+        // and 44 of 46 creatures carry it); CanBePickedUp and CanBeSlapped are
+        // what let the hand handle it at all (ADR-0062).
         Flags = CreatureFlags.IsEvil | CreatureFlags.AvailableViaPortal
                 | CreatureFlags.GenerateDeadBody | CreatureFlags.CanWalkOnWater
                 | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped,
@@ -568,13 +521,11 @@ internal static class Dk2TerrainFixture
         Fear = 50,
         Threat = 37,
 
-        // THE GOBLIN'S OWN EXPERIENCE RATES, which it had been inheriting from
-        // the Imp (30 and 1200). Both matter now that training pays (Q205): 40
-        // divides by variable 19 exactly, so a Goblin loses nothing to the
-        // loader's truncation where a Vampire's 30 loses two a second. And 200
-        // is its COMBAT rate - across every shipped creature the combat rate is
-        // exactly five times the training rate, which is a designer
-        // relationship and not a coincidence in one record.
+        // The Goblin's own experience rates, both live now that training pays
+        // (Q205). 40 divides by variable 19 exactly, so a Goblin loses nothing
+        // to the loader's truncation where a Vampire's 30 loses two a second.
+        // 200 is its COMBAT rate: across every shipped creature the combat rate
+        // is exactly five times the training rate.
         ExpPerSecond = 200,
         ExpPerSecondTraining = 40,
         Speed = new Fp32(2867),
@@ -628,31 +579,23 @@ internal static class Dk2TerrainFixture
         UnhappyJobs = [new(JobType.Drink, 0, 0, 100)],
         AngryJobs = [new(JobType.Leave, 0, 0, 50), new(JobType.Rebel, 0, 0, 50)],
 
-        // Imp facts, cleared rather than inherited. ExpPerSecond used to be
-        // zeroed here on the reasoning that a Goblin has no combat rate; it has
-        // one, 200, and it is set above with its training rate (Q205).
+        // Imp facts, cleared rather than inherited.
         MaxGoldHeld = 0,
         InitialGoldHeld = 0,
     };
 
     public const byte DeserterCreatureId = 44;
 
-    /// <summary>
-    /// A Goblin whose angry table is <c>Leave(100%)</c>, and nothing else about
-    /// it differs.
-    ///
-    /// <para><b>Why it exists</b>: since 2026-09-05 an angry creature rolls
-    /// afresh on every allowed selection (ADR-0061), so a test about
-    /// <i>leaving</i> written on the real Goblin's coin toss would be a test
-    /// about the seed. A creature that can only choose one thing takes the roll
-    /// out of the question and leaves the walking, the portal and the bed where
-    /// the test can see them.</para>
-    ///
-    /// <para>It is not a DK2 creature. Every other field is the Goblin's, and
-    /// the shipped roster is asserted elsewhere
-    /// (<c>CreatureNeedsOnRealDataTests</c>), so nothing here can be mistaken
-    /// for a claim about the original.</para>
-    /// </summary>
+    /// <summary>A Goblin whose angry table is <c>Leave(100%)</c>; nothing else
+    /// differs.</summary>
+    /// <remarks>
+    /// <b>Not a DK2 creature.</b> An angry creature rolls afresh on every
+    /// allowed selection (ADR-0061), so a test about <i>leaving</i> written on
+    /// the real Goblin's coin toss would be a test about the seed. One choice
+    /// takes the roll out of the question. The shipped roster is asserted in
+    /// <c>CreatureNeedsOnRealDataTests</c>, so this cannot be mistaken for a
+    /// claim about the original.
+    /// </remarks>
     public static CreatureDef Deserter() => Goblin() with
     {
         Name = "Deserter",
@@ -662,43 +605,27 @@ internal static class Dk2TerrainFixture
 
     public const byte VampireCreatureId = 8;
 
-    /// <summary>
-    /// The Vampire: the one creature in the roster that water can kill.
-    ///
-    /// <para><b>Why it is in the fixture at all.</b> Hazard terrain charges only
-    /// a creature that cannot cross the hazard (CONFIRMED, see
-    /// <c>CreatureHealthRules.TerrainHealthPerSecond</c>), and
-    /// <see cref="CreatureFlags.CanWalkOnWater"/> is on <b>44 of the 46</b>
-    /// creatures. The two without it are the Vampire and the Unique Vampire, so
-    /// without a Vampire here there is no way to test water's cost against a
-    /// creature the original would actually charge — and the previous water
-    /// tests were charging a Goblin, which in the shipped record wades.</para>
-    ///
-    /// <para>The owner named this from play, before the column was read:
-    /// <i>"I think vampires can't cross through water, they need bridges"</i>.
-    /// It is right, and it is right about exactly two records out of 46.</para>
-    ///
-    /// <para><b>Three flags it does not have</b> are as much of the record as
-    /// the ones it does. No <c>CanWalkOnWater</c>; no <c>GenerateDeadBody</c>,
-    /// because a vampire leaves no corpse but reincarnates (owner, Q113); and
-    /// no <c>AvailableViaPortal</c>, because a vampire is not recruited but
-    /// arrives from a Graveyard — its single attraction slot asks for room 14
-    /// and its <c>LairObjectId</c> is 26, its coffin.</para>
-    ///
-    /// <para>Everything overridden here is the shipped record's, from
-    /// <c>dk2tools kwd creature Vampire</c>. <c>CreatureNeedsOnRealDataTests</c>
-    /// reads them back out of the install, so this cannot drift from it.</para>
-    /// </summary>
+    /// <summary>The Vampire: the one creature in the roster that water can
+    /// kill. CONFIRMED (owner, from play): "vampires can't cross through water,
+    /// they need bridges".</summary>
+    /// <remarks>Hazard terrain charges only a creature that cannot cross it
+    /// (<c>CreatureHealthRules.TerrainHealthPerSecond</c>), and
+    /// <see cref="CreatureFlags.CanWalkOnWater"/> is on 44 of the 46 creatures
+    /// — the two Vampires are the exceptions, so without one here water's cost
+    /// cannot be tested. Two absent flags matter as much: no
+    /// <c>GenerateDeadBody</c> (it reincarnates rather than leaving a corpse,
+    /// owner, Q113) and no <c>AvailableViaPortal</c> (it arrives from a
+    /// Graveyard — attraction room 14, <c>LairObjectId</c> 26, its coffin).
+    /// <c>CreatureNeedsOnRealDataTests</c> guards the overrides.</remarks>
     public static CreatureDef Vampire() => Goblin() with
     {
         Name = "Vampire",
         CreatureId = VampireCreatureId,
 
-        // 30 and 150, its own. 30 is the value that DOES lose to the loader's
-        // divide - 30 / 4 = 7, so a Vampire trains at 28 a game second and not
-        // 30 - which makes it the fixture's witness for that quirk. Eighteen of
-        // the forty-six shipped creatures carry 30, and 26 of the 46 lose
-        // something to the truncation.
+        // 30 is the value that DOES lose to the loader's divide - 30 / 4 = 7,
+        // so a Vampire trains at 28 a game second, not 30 - which makes it the
+        // fixture's witness for that quirk. Eighteen of the 46 shipped
+        // creatures carry 30, and 26 of the 46 lose something to truncation.
         ExpPerSecond = 150,
         ExpPerSecondTraining = 30,
         ResearchPerSecond = 5,
@@ -750,27 +677,16 @@ internal static class Dk2TerrainFixture
 
     public const byte SkeletonCreatureId = 9;
 
-    /// <summary>
-    /// The Skeleton — what a prisoner becomes, and the only creature in this
-    /// fixture that a room makes rather than a portal.
-    ///
-    /// <para><b>The creature with no needs at all.</b> Its shipped record is a
-    /// row of sentinels and zeroes: <c>hungerRate</c> 32767 and
-    /// <c>awake</c> 32767 (never eats, never sleeps), <c>sleep</c> 0,
-    /// <c>LairObjectId</c> 0 (no bed, so nothing to want), <c>pay</c> <b>0</b>
-    /// and every anger rate zero. It works for nothing and complains about
-    /// nothing, which is exactly what a raised prisoner ought to be — and it
-    /// makes the Skeleton the fixture's control against the Goblin, which has
-    /// every need there is.</para>
-    ///
-    /// <para><c>fear</c> is <b>30000</b>, not the Goblin's 50: the shipped
-    /// table's way of writing "does not run away" on a creature that is also
-    /// flagged <c>IsFearless</c>.</para>
-    ///
-    /// <para>It does <b>not</b> carry <c>GenerateDeadBody</c>, so a skeleton
-    /// that runs out of health leaves nothing behind — no second corpse from a
-    /// creature that already died once.</para>
-    /// </summary>
+    /// <summary>The Skeleton — what a prisoner becomes, and the only creature
+    /// in this fixture that a room makes rather than a portal.</summary>
+    /// <remarks>The creature with no needs at all, and so the fixture's control
+    /// against the Goblin: <c>hungerRate</c> 32767 and <c>awake</c> 32767
+    /// (never eats, never sleeps), <c>sleep</c> 0, <c>LairObjectId</c> 0 (no
+    /// bed, so nothing to want), <c>pay</c> 0 and every anger rate zero.
+    /// <c>fear</c> is 30000, not the Goblin's 50 — the shipped table's way of
+    /// writing "does not run away" on a creature also flagged
+    /// <c>IsFearless</c>. It does <b>not</b> carry <c>GenerateDeadBody</c>, so
+    /// a skeleton that runs out of health leaves nothing behind.</remarks>
     public static CreatureDef Skeleton() => Goblin() with
     {
         Name = "Skeleton",
@@ -806,13 +722,11 @@ internal static class Dk2TerrainFixture
             new CreatureAttraction(0, 0, 0),
         ],
 
-        // A skeleton has nothing to be angry about, and the shipped record says
-        // so TWICE: every anger rate is zero, AND the record carries the
-        // never-angered flag. The flag is the rule DK2 reads - it tests the bit
-        // in the one wrapper every anger site goes through - and the zero rates
-        // are a coincidence of this particular creature. Jack carries the same
-        // flag with all four rates populated, which is how the value-based
-        // reading was caught being wrong (Q210). Both are kept here so the
+        // The shipped record says "never angry" TWICE: every anger rate is
+        // zero, AND it carries the never-angered flag. The FLAG is the rule DK2
+        // reads (tested in the one wrapper every anger site goes through); the
+        // zero rates are a coincidence of this creature - Jack carries the same
+        // flag with all four rates populated (Q210). Both are kept, so the
         // fixture reproduces the record rather than the inference.
         Flags2 = CreatureFlags2.NeverAngered,
         AngerNoLair = 0,
@@ -827,23 +741,17 @@ internal static class Dk2TerrainFixture
 
     public const byte BileDemonCreatureId = 3;
 
-    /// <summary>
-    /// The Bile Demon, and it is in this fixture for exactly one number:
-    /// <c>hungerFill</c> is <b>5</b> where every other creature here is 1 or 0.
-    ///
-    /// <para>That number is the difference between the two ways DK2 pays off
-    /// hunger. A chicken eaten in a <b>hatchery</b> pays off one, so a Bile
-    /// Demon's meal is five birds; a chicken eaten in a <b>prison</b> pays off
-    /// the whole of <c>HungerFill</c>, so a caged one is filled by a single
-    /// bird (<c>docs/research/eating.md</c>, ADR-0067). With only
-    /// <c>hungerFill</c> 1 in the fixture the two rules are indistinguishable,
-    /// which is the whole reason this creature exists here.</para>
-    ///
-    /// <para>Its hunger and sleep numbers are the shipped record's — 6000
-    /// health, 220 seconds between meals, five chickens to fill, 200 health a
-    /// chicken, 270 awake and 9 asleep — and the rest is the Goblin's, because
-    /// nothing here reads the rest.</para>
-    /// </summary>
+    /// <summary>The Bile Demon, here for one number: <c>hungerFill</c> is
+    /// <b>5</b> where every other creature in the fixture is 1 or 0.</summary>
+    /// <remarks>That number separates DK2's two ways of paying off hunger. A
+    /// chicken eaten in a <b>hatchery</b> pays off one, so a Bile Demon's meal
+    /// is five birds; a chicken eaten in a <b>prison</b> pays off the whole of
+    /// <c>HungerFill</c>, so a caged one is filled by a single bird
+    /// (<c>docs/research/eating.md</c>, ADR-0067). At <c>hungerFill</c> 1 the
+    /// two rules are indistinguishable. Its hunger and sleep numbers are the
+    /// shipped record's — 6000 health, 220 seconds between meals, five chickens
+    /// to fill, 200 health a chicken, 270 awake, 9 asleep — and the rest is the
+    /// Goblin's, because nothing reads the rest.</remarks>
     public static CreatureDef BileDemon() => Goblin() with
     {
         Name = "Bile Demon",
@@ -863,9 +771,8 @@ internal static class Dk2TerrainFixture
         LairObjectId = 18,
     };
 
-    /// <summary>The ten tile-work health deltas, the gems yield, the imp idle delay,
-    /// the three gold-per-tile limits, the three mana rates and the three
-    /// portal numbers, as shipped.</summary>
+    /// <summary>Every global variable a built mechanic reads, at its shipped
+    /// value, plus four rows of the per-level stat table.</summary>
     public static GlobalVariables Variables()
     {
         var vars = new GlobalVariables();
@@ -929,9 +836,10 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.DeadBodyDiesAfterSeconds, 60);
         Set(vars, VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds, 5);
 
-        // What an imp earns for a second of work (Q124, CONFIRMED by the
-        // owner: "imps get experience by working... they get exp and passively
-        // their level raises"). 3000 to level 2, so 150 seconds of digging.
+        // What an imp earns for working (Q124, CONFIRMED by the owner: "imps
+        // get experience by working... they get exp and passively their level
+        // raises"). The name lies: 20 is per ORIGINAL TICK, so 80 a game second
+        // (Q79), and the 3000 to level 2 is 37.5 seconds of digging.
         Set(vars, VariableTypeId.ImpExperienceGainPerSecond, 20);
 
         // The hatchery's two shipped numbers. The generation time is here for
@@ -972,15 +880,11 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.CreaturesSupportedByFirstPortal, 15);
         Set(vars, VariableTypeId.CreaturesSupportedPerAdditionalPortal, 5);
 
-        // Three rows of the per-level stat table, as shipped (Q119). The full
-        // table is 32 stats x 9 levels; these are the three stats anything here
+        // Four rows of the per-level stat table, as shipped (Q119). The full
+        // table is 32 stats x 9 levels; these are the stats anything here
         // reads, and a stat with no rows correctly scales by 100% at every
-        // level -- which is why the fixture worked at all before these were
-        // added, and why the first version of CreatureLevelTests passed
-        // nothing.
-        //
-        // CreatureNeedsOnRealDataTests reads all three back out of the install,
-        // so they cannot drift from it.
+        // level. CreatureNeedsOnRealDataTests reads them back out of the
+        // install, so they cannot drift from it.
         Stat(vars, CreatureStatId.Health, [125, 150, 175, 200, 225, 250, 300, 400, 600]);
         Stat(vars, CreatureStatId.Speed, [105, 110, 115, 120, 125, 150, 175, 200, 250]);
         // Wages, to 250% at level 10 - a veteran costs two and a half times
@@ -1081,18 +985,12 @@ internal static class Dk2TerrainFixture
         TooltipStringId = 0,
     };
 
-    /// <summary>
-    /// A small dungeon: impenetrable border, a rock body, a claimed-path room
-    /// owned by the first keeper at the top-left, one gold seam and one gem
-    /// face.
-    ///
-    /// <para><b>The room used to belong to player 1</b>, which
-    /// <see cref="PlayerIds"/> settled is the <i>hero side</i> — so every test
-    /// that treated it as "my dungeon" was quietly giving a keeper's home
-    /// ground to the enemy. It went unnoticed because the suite also called
-    /// player 1 "Keeper", so the two errors agreed with each other and the
-    /// tests passed. Q91.</para>
-    /// </summary>
+    /// <summary>A small dungeon: impenetrable border, a rock body, a
+    /// claimed-path room at the top-left owned by
+    /// <see cref="PlayerIds.FirstKeeper"/>, one gold seam and one gem face. The
+    /// room's owner is load-bearing: player 1 is the <i>hero</i> side (Q91,
+    /// <see cref="PlayerIds"/>), so a test world that gives it player 1 is
+    /// testing the enemy's home ground.</summary>
     public static LevelMap Map(int width = 16, int height = 12)
     {
         var tiles = new MapTile[width * height];
@@ -1131,17 +1029,12 @@ internal static class Dk2TerrainFixture
     /// <summary>The one declared system order — see <see cref="Systems.SimulationSystems"/>.</summary>
     public static ISimulationSystem[] DefaultSystems() => Systems.SimulationSystems.Default();
 
-    /// <summary>
-    /// The declared order with one system left out, for tests that measure one
-    /// mechanic and would otherwise be measuring two.
-    ///
-    /// <para>Use it sparingly and say why at the call site. It exists because
-    /// the free-imp supply stopped being quiet: a keeper with a dungeon heart
-    /// and no imps used to get its first one five seconds in, and now gets it on
-    /// the first tick (see <c>ImpSupplySystem</c>), so a mana-income test that
-    /// hands a keeper a heart starts paying imp upkeep immediately unless it
-    /// says otherwise.</para>
-    /// </summary>
+    /// <summary>The declared order with one system left out, for tests that
+    /// measure one mechanic and would otherwise be measuring two. Use it
+    /// sparingly and say why at the call site: a keeper with a dungeon heart and
+    /// no imps is staffed on the first tick (<c>ImpSupplySystem</c>), so a
+    /// mana-income test that hands a keeper a heart starts paying imp upkeep
+    /// immediately unless it excludes that system.</summary>
     public static ISimulationSystem[] SystemsWithout<T>() where T : ISimulationSystem =>
         [.. Systems.SimulationSystems.Default().Where(s => s is not T)];
 }

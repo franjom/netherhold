@@ -10,26 +10,15 @@ namespace DK2.Simulation.Systems;
 
 /// <summary>
 /// Applies this tick's <see cref="BuildRoomCommand"/>s: turns the player's own
-/// floor into room tiles and takes the gold out of their treasury.
-///
-/// <para>Like <see cref="TileTagSystem"/>, this system carries no policy of its
-/// own. Where a room may go and what it costs are <see cref="RoomRules"/>; where
-/// the gold comes from is <see cref="GoldStore"/>. All that happens here is the
-/// per-tile loop and the reporting.</para>
-///
-/// <para><b>A tile at a time, in the order the command gives.</b> A keeper who
+/// floor into room tiles and takes the gold out of their treasury. Where a room
+/// may go and what it costs are <see cref="RoomRules"/>; where the gold comes
+/// from is <see cref="GoldStore"/>.
+/// <para><b>A tile at a time, in the order the command gives</b>: a keeper who
 /// can afford four tiles of a six-tile treasury gets four, and the run says
-/// which two were refused and why. The alternative — all or nothing per command
-/// — would be equally easy to write and neither is measured against the
-/// original, but this one cannot silently lose a partly-paid room, and it makes
-/// the refusal reasons visible one tile at a time.</para>
-///
-/// <para><b>Building is instant.</b> In DK2 an imp walks over and constructs the
-/// tile, and the room appears as it works. That is another worker job, and its
-/// trigger and priority are the same UNKNOWN as every other unprompted imp job
-/// (Q24), so nothing here pretends to time it. What this system does honour is
-/// the part that is not in doubt: the keeper asked, the ground allows it, and
-/// the gold is gone.</para>
+/// which two were refused and why. Ours — neither ordering is measured.</para>
+/// <para><b>Deliberate deviation: building is instant.</b> In DK2 an imp walks
+/// over and constructs the tile; no imp task kind for room construction has been
+/// identified (imp-task-priority.md §3), so nothing here times it.</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public sealed class RoomBuildSystem : ISimulationSystem

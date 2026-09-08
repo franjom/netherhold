@@ -8,26 +8,17 @@ using System.Linq;
 
 namespace DK2.Assets;
 
-/// <summary>
-/// Asks each provider in turn and takes the first answer.
-///
-/// <para>The order <i>is</i> the policy the plan describes (§7.2):
-/// <c>replacement → converted → placeholder</c>. A replacement pack overrides
-/// original art; original art overrides a box; and because
-/// <see cref="PlaceholderProvider"/> always answers, the chain is total and the
-/// game always runs.</para>
-///
-/// <para><b>Why "first answer wins" rather than "best answer".</b> A ranking
-/// rule would need to know which of two files is better, which is a judgement no
-/// code here can make, and it would make the result depend on what happens to be
-/// installed. First-answer-wins makes the outcome a function of the declared
-/// order alone — the same reasoning that puts system order in one declared list
-/// (ADR-0013).</para>
-///
-/// <para>The chain counts what it hands out, which is how the harness reports
-/// "this run drew N of M assets as boxes". Missing art is then a visible fact
-/// about a run rather than something a viewer has to notice.</para>
-/// </summary>
+/// <summary>Asks each provider in turn and takes the first answer.</summary>
+/// <remarks>
+/// <para>Order is the policy (ADR-0034, plan §7.2):
+/// <c>replacement → converted → placeholder</c>. Because
+/// <see cref="PlaceholderProvider"/> always answers, the chain is total.</para>
+/// <para>First answer wins, not best answer: ranking two files needs a judgement no
+/// code here can make, and would make the result depend on what happens to be
+/// installed. The declared order alone decides (ADR-0013's reasoning).</para>
+/// <para>The chain counts what it hands out, so the harness can report how much of a
+/// run was drawn as boxes.</para>
+/// </remarks>
 public sealed class AssetProviderChain : IAssetProvider
 {
     private readonly IAssetProvider[] _providers;
@@ -100,9 +91,8 @@ public sealed class AssetProviderChain : IAssetProvider
     public void ResetCounts() => _resolvedByProvider.Clear();
 
     /// <summary>
-    /// One line saying what this run's art actually came from. Written for the
-    /// harness's "what this run could not do" report, where an honest
-    /// "everything was a box" belongs.
+    /// One line saying where this run's art came from, for the harness's "what this
+    /// run could not do" report.
     /// </summary>
     public string Summarise()
     {

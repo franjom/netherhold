@@ -6,29 +6,18 @@ using DK2.Assets;
 
 namespace DK2.Presentation;
 
-/// <summary>
-/// What a renderer has to be able to do, expressed without naming an engine.
-///
-/// <para><b>Why this interface exists at all.</b> The Unity adapter is the one
-/// piece of this project that cannot be compiled or tested here, so the design
-/// goal is to make it <i>small and stupid</i>: no diffing, no asset resolution,
-/// no coordinate policy, no ordering decisions. All of that is
-/// <see cref="ScenePresenter"/>'s job and is tested. What is left for Unity is
-/// "make a thing", "move a thing", "forget a thing" — six methods with no logic
-/// in them.</para>
-///
-/// <para>The methods take <see cref="ResolvedAsset"/> rather than a path,
-/// because a target must handle both a file and a placeholder and choosing
-/// between them is the whole point of the asset layer (ADR-0034). A target that
-/// looked only at <see cref="ResolvedAsset.FilePath"/> would draw nothing when
-/// no art is installed, which is exactly the case that must keep working.</para>
-///
-/// <para><b>Ids, not objects.</b> A tile is identified by its index and a
-/// creature by the simulation's own creature id, so a target holds a map from id
-/// to whatever it drew and nothing else. That is what makes "deleting every
-/// GameObject must not change the simulation" (plan §4.7) true by construction:
-/// the presenter never receives anything back.</para>
-/// </summary>
+/// <summary>What a renderer has to be able to do, without naming an engine.</summary>
+/// <remarks>
+/// <para>Nine methods with no logic in them (ADR-0036). Diffing, asset resolution,
+/// coordinate policy and push order are all <see cref="ScenePresenter"/>'s and are
+/// tested here; the adapter cannot be.</para>
+/// <para>Arguments are <see cref="ResolvedAsset"/>, not a path: a target must draw
+/// both a file and a placeholder, so one reading only
+/// <see cref="ResolvedAsset.FilePath"/> draws nothing with no art (ADR-0034).</para>
+/// <para>Things are named by id — tile index, simulation creature id, object id —
+/// and nothing is returned, so deleting every GameObject cannot change the
+/// simulation (plan §4.7).</para>
+/// </remarks>
 public interface IRenderTarget
 {
     /// <summary>
@@ -38,16 +27,14 @@ public interface IRenderTarget
     void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture);
 
     /// <summary>
-    /// A tile that has already been created looks different now — its terrain
-    /// changed, or its owner, its dig mark, its gold or its damage.
-    ///
-    /// <para>Called for any visible change, including small ones: a wall losing
-    /// health a swing at a time produces a call per swing. That is deliberate —
-    /// coalescing is a rendering judgement (DK2 shows damage as a handful of
-    /// discrete texture states, and how many is UNKNOWN, see
-    /// <c>wall-rendering.md</c>) and the presenter refuses to invent the number.
-    /// A target that only draws three damage states simply ignores the rest.</para>
+    /// A created tile looks different now — terrain, owner, dig mark, gold or damage.
     /// </summary>
+    /// <remarks>
+    /// Called for every visible change, so a wall losing health a swing at a time
+    /// produces one call per swing; coalescing is the target's judgement. How many
+    /// discrete damage states DK2 draws is UNKNOWN (<c>docs/research/wall-rendering.md</c>),
+    /// so the presenter does not pick a number.
+    /// </remarks>
     void UpdateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture);
 
     /// <summary>A creature has appeared.</summary>
@@ -70,10 +57,9 @@ public interface IRenderTarget
     void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh);
 
     /// <summary>
-    /// An object has changed — today that means a pile of gold grew or shrank,
-    /// or a bed changed hands. Objects do not move yet: the simulation has no
-    /// sub-tile position for one (<see cref="ObjectView"/>), so an object that
-    /// walks in DK2 stands still here.
+    /// An object changed: a gold pile grew or shrank, or a bed changed hands.
+    /// Not implemented: object movement — <see cref="ObjectView"/> carries no
+    /// sub-tile position, so an object that walks in DK2 stands still here.
     /// </summary>
     void UpdateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh);
 

@@ -9,26 +9,26 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>
-/// Binary save/load for the simulation.
-///
-/// The format is entirely our own. DK2's save layout is not a target
-/// (ADR/plan risk R13): reproducing it buys nothing behavioural, and our state
-/// is not shaped like the original's anyway. What matters is the round-trip
-/// invariant:
-/// <para>
-/// <b>Snapshot a run, restore it into a fresh simulation, and both continue to
-/// produce identical state hashes forever after.</b>
-/// </para>
-/// That is a stronger check than "the bytes match": it proves the snapshot
-/// captures everything the simulation actually depends on, RNG position
-/// included. Asserted by <c>SnapshotTests</c>.
-///
-/// The static <see cref="GameDatabase"/> is deliberately NOT stored — it is
-/// derived from the original game's files and is supplied on restore.
-/// </summary>
+/// Binary save/load for the simulation. The format is entirely our own: DK2's
+/// save layout is not a target (plan risk R13), because reproducing it buys
+/// nothing behavioural and our state is not shaped like the original's.
+/// <para>The invariant is <b>snapshot a run, restore it into a fresh simulation,
+/// and both continue to produce identical state hashes forever after</b> —
+/// stronger than "the bytes match", because it proves the snapshot captures
+/// everything the simulation depends on, RNG position included
+/// (<c>SnapshotTests</c>). Anything reachable from <see cref="WorldState"/> must
+/// survive the round trip.</para>
+/// <para>The static <see cref="GameDatabase"/> is deliberately NOT stored: it is
+/// derived from the original game's files and is supplied on restore.</para></summary>
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
+    /// <summary>
+    /// Kept equal to <c>GameSimulation.HashVersion</c>. Changing simulation state
+    /// breaks the pinned hash by design: bump both and update the literal in
+    /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
+    /// same commit, and never loosen that assertion.
+    /// </summary>
     private const int FormatVersion = 40;
 
     public static void Write(Stream stream, GameSimulation simulation)

@@ -9,17 +9,15 @@ namespace DK2.Simulation.Systems;
 
 /// <summary>
 /// Accumulates the tiles each keeper's creatures have explored.
-///
 /// <para>DKII.EXE compares squared fixed-point distances from the creature to
 /// tile centres and reveals only when the distance is strictly less than the
-/// creature definition's range squared. The shipped definition table contains
-/// <c>0x6000</c> (six tiles) in that field for all 46 creatures. The range is
-/// nevertheless read from data here rather than frozen as a constant.</para>
-///
-/// <para>This implements the campaign's observed <em>Stay Revealed</em>
-/// behaviour. The setup labels <em>Re-shroud</em> and <em>Re-fog</em> are real
-/// strings, but their selectors and transition rules remain UNKNOWN, so this
-/// system does not invent them.</para>
+/// definition's range squared (STRONGLY INFERRED). The shipped table holds
+/// <c>0x6000</c> — six tiles — in that field for all 46 creatures; the range is
+/// read from data here rather than frozen as a constant.</para>
+/// <para>Implements the campaign's observed <em>Stay Revealed</em> behaviour.
+/// <em>Re-shroud</em> and <em>Re-fog</em> are real setup strings, but their
+/// selectors and transition rules are UNKNOWN, so this system does not invent
+/// them (Q192).</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/fog-of-war.md")]
 public sealed class FogOfWarSystem : ISimulationSystem

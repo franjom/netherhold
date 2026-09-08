@@ -9,117 +9,16 @@ using DK2.Pathfinding;
 namespace DK2.Simulation.Systems;
 
 /// <summary>
-/// Gives workers something to do: find the nearest tile their keeper has marked,
-/// walk to it, and work on it until it is gone.
-///
-/// <para>This is the producer <see cref="TileWorkSystem"/> was written to wait
-/// for. Everything about <i>what</i> work does to a tile lives in
-/// <see cref="TileWorkRules"/> and is data; everything about <i>who</i> does it
-/// and <i>when</i> lives here, and much of that is not.</para>
-///
-/// <para><b>An imp chooses in two tiers, and the tiers are read out of the
-/// original</b> (2026-09-05, <c>docs/research/imp-task-priority.md</c>). The
-/// owner's observation of 2026-08-29 — <i>"first do what is designated for
-/// excavation, after that comes claiming, after that reinforcing"</i> — turned
-/// out to be exactly the visible half of it, and a second observation on
-/// 2026-09-05 (a marked wall beats gold on the floor whether the wall is near or
-/// far) settled which half is which (Q147).</para>
-/// <list type="number">
-/// <item><b>Tier A — kind first, whole map.</b> DK2 walks a fixed table of task
-/// kinds and searches the <i>entire</i> map for each before moving to the next:
-/// <b>claim the tile you have just dug</b>, carry loose objects, build placed
-/// traps and doors, <b>dig and mine marked tiles</b>, <b>claim floor</b>, carry
-/// the unconscious, carry corpses. Of those this project has the three in bold —
-/// <see cref="JobPriority.ClaimFreshlyDug"/>,
-/// <see cref="JobPriority.MarkedExcavation"/>, <see cref="JobPriority.Claim"/> —
-/// <b>and the last two, carrying</b> (ADR-0063, <see cref="CarryRules"/>): five
-/// of seven, in the original's order. Each is one whole-map search, because the
-/// order is an ordering and not
-/// a weighting: <i>any</i> reachable marked tile beats <i>every</i> claimable
-/// one however far away, and a tile the imp has just dug out beats both once
-/// nothing beside it is still marked.</item>
-/// <item><b>Tier B — position first, only when Tier A is empty.</b> DK2 then
-/// scans outwards from the imp in rings and, at each tile, tries a second fixed
-/// order: <b>reinforce or repair a wall</b>, <b>pick up gold off the floor</b>,
-/// carry a loose object, one unidentified kind. So a wall beats gold <i>on the
-/// same tile</i>, but a nearer pile beats a farther wall. Here that is one
-/// nearest-first search whose test asks both questions at every standing tile,
-/// reinforcing first — <see cref="TrySweep"/>.</item>
-/// </list>
-/// <para>What that corrects: this class shipped gold <i>above</i> claiming for
-/// one day, and reinforcing <i>below</i> gold as a strict order, on the honest
-/// argument that gold placed last would never be collected because an imp can
-/// nearly always find a wall. The binary's answer to that argument is the
-/// second tier — gold is not last, it is <i>near</i>. ADR-0058.</para>
-///
-/// <para><b>What an imp does when all three come up empty is NOT implemented.</b>
-/// In the original it wanders the dungeon and interacts with the environment and
-/// with creatures; here it stands still and looks again after
-/// <c>ImpIdleDelayBeforeReevaluationSeconds</c>. Wandering is visible behaviour
-/// with no simulation consequence we model yet, and inventing a walk would put
-/// imps in places DK2 would not (Q41).</para>
-///
-/// <para><b>Carrying mined gold is here</b>, and deliberately not in that list.
-/// An imp mines into its own hands and, when the next swing would not fit, runs
-/// to the nearest place its keeper can keep gold and puts the load down
-/// (CONFIRMED, Q31). That makes it the tail of a mining job rather than a job an
-/// imp chooses, which is why <see cref="JobPriority"/> has no entry for it
-/// (ADR-0018).</para>
-///
-/// <para>An imp with nowhere to unload <b>keeps mining</b>, which is also what
-/// the original does — but the gold it can no longer hold is reported as
-/// uncollected and dropped, where DK2 would grow a lump on the floor in front of
-/// it that somebody can come back for. A lump is an OBJECT and the OBJECTS record
-/// is not parsed until M6. So the <i>decision</i> is DK2's and the <i>fallback
-/// store</i> is missing, which is the honest way round: a keeper with no treasury
-/// still mines here, and simply loses what a keeper in the original would keep.
-/// See Q31.</para>
-///
-/// <para><b>Still absent:</b> dragging the unconscious to a prison, fleeing a
-/// fight, and picking up gold somebody else dropped.
-/// See docs/research/imp-tasks.md.</para>
-///
-/// <para>What is inferred rather than known, with nothing hidden:</para>
-/// <list type="bullet">
-/// <item><b>Nearest first.</b> Within one priority, an imp takes the tile fewest
-/// steps away, and unreachable ones are not considered at all — which falls out
-/// of searching outwards from the imp rather than being a rule applied
-/// afterwards. HYPOTHESIS: it matches how the original's imps visibly behave,
-/// but "nearest" could as easily mean straight-line distance, or the order the
-/// tiles were marked in (Q25).</item>
-/// <item><b>Claiming and reinforcing spread from ground the keeper already
-/// holds.</b> An imp will only take one of those jobs where the tile touches its
-/// keeper's territory, which is what makes a dungeon grow outwards rather than
-/// appear in islands across the map. CONFIRMED (Q42); the alternative — any
-/// reachable floor, anywhere — is refuted. Marked work carries no such
-/// condition: a keeper may tag a wall anywhere.</item>
-/// <item><b>Three workers to a face of a wall, and exactly one to a floor tile
-/// somebody is standing on to claim it</b> — the surplus goes and finds other
-/// work rather than queueing (Q43, CONFIRMED both ways). The cap is per job
-/// rather than per tile, which is observed and not derivable; see
-/// <see cref="ImpCrowding"/>.</item>
-/// <item><b>A wall is worked from beside it and floor is worked from on top of
-/// it.</b> CONFIRMED both ways: a gold block takes three imps a side and twelve
-/// in all, which is four sides of three (Q27), and an imp claims a floor tile by
-/// jumping onto it (Q44). Which stance a job uses is derived rather than listed —
-/// see <see cref="WorkStance"/>.</item>
-/// <item><b>One application per work period.</b> Work lands every
-/// <see cref="SimulationTiming.WorkApplicationPeriodTicks"/> ticks, starting one
-/// period after the imp arrives — the period being the Q19 reading that the
-/// health deltas are per second. Whether a single imp contributes the whole
-/// delta is the other half of Q20 and is UNKNOWN; this contributes all of
-/// it.</item>
-/// <item><b>Idle re-evaluation.</b> An imp that looks for work and finds none
-/// waits <c>ImpIdleDelayBeforeReevaluationSeconds</c> before looking again. The
-/// variable's name says what it is for, which makes the delay CONFIRMED. An imp
-/// whose wall has just fallen is not idle and does not wait — in the original it
-/// moves straight to the next marked tile — and a freshly placed one looks
-/// immediately; both of those are ours.</item>
-/// </list>
-///
-/// <para>Applies to any creature flagged <see cref="CreatureFlags.IsWorker"/>,
-/// which in the shipped data is the Imp and the Dwarf — never to creature id 1,
-/// for the same reason tile rules never name terrain id 2.</para>
+/// Gives a worker — <see cref="CreatureFlags.IsWorker"/>, the Imp and the Dwarf
+/// — a job: find a tile, walk to it, work it until it is gone.
+/// <para><b>Two tiers</b>, STRONGLY INFERRED (ADR-0058,
+/// <c>docs/research/imp-task-priority.md</c> §4). Tier A: one whole-map search
+/// per kind, in the original's kind order — <see cref="TryTakeJob"/>. Tier B,
+/// only once every Tier A kind is empty: one nearest-first sweep asking several
+/// kinds at each tile — <see cref="TrySweep"/>. Carrying mined gold is in
+/// neither; it is the tail of a mining job, not a job an imp chooses (Q31,
+/// ADR-0018). Not implemented: idle wandering (Q41), dragging the unconscious
+/// to a prison, fleeing a fight, gold somebody else dropped (imp-tasks.md).</para>
 /// </summary>
 [Dk2Behavior(Confidence.Hypothesis, "docs/research/imp-tasks.md")]
 public sealed class ImpTaskSystem : ISimulationSystem
@@ -130,19 +29,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// How far a worker the keeper has just put down looks around itself before
     /// it looks anywhere else: <b>three tiles</b>, Chebyshev — a seven by seven
     /// box centred on where it landed, its own tile first and then in rings.
-    ///
-    /// <para><b>Three is DK2's number and DK2 gets it by accident.</b> Its scan
-    /// takes a radius in world units and is handed <c>0x2000</c>, which at
-    /// <c>0x1000</c> units to the tile is <b>two</b>. But the loop tests its
-    /// bound <i>after</i> scanning a ring and with a strict greater-than, and
-    /// its ring counter starts at one — so it scans ring 1, ring 2, and then
-    /// ring 3 before deciding it has gone too far. A nominal radius of two
-    /// reaches three tiles (<c>ImpUtils.cpp</c>, docs/research/hand-of-evil.md).
-    /// The owner counted it on screen (2026-09-06): three tiles boost, the
-    /// fourth does not.</para>
-    ///
-    /// <para>Reproduced rather than corrected, per ADR-0002: an off-by-one in
-    /// the original is a rule of the original.</para>
+    /// <para>Three is DK2's number and DK2 reaches it by accident: its scan is
+    /// handed a radius of <c>0x2000</c>, two tiles at <c>0x1000</c> to the tile,
+    /// but the loop tests its bound <i>after</i> scanning a ring, with a strict
+    /// greater-than, from a ring counter starting at one — so it scans rings 1,
+    /// 2 and 3 (<c>ImpUtils.cpp</c>, docs/research/hand-of-evil.md). CONFIRMED:
+    /// the owner counted it on screen (2026-09-06) — three tiles boost, the
+    /// fourth does not. Reproduced rather than corrected (ADR-0002).</para>
     /// </summary>
     private const int DropScanTiles = 3;
 
@@ -178,31 +71,16 @@ public sealed class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// The label gold on the floor is taken under. It is not in
+    /// The label gold on the floor is taken under. Not in
     /// <see cref="JobPriority"/> because it is not tile work — nothing is damaged
-    /// and nothing converts — but it <i>is</i> a job an idle imp chooses, and
-    /// where it sits is now read rather than chosen.
-    ///
-    /// <para><b>It was first for one day, second for another, and both were
-    /// wrong.</b> The owner reported (Q141) that an imp goes for a pile before a
-    /// marked gem tile; this project built that, the owner doubted their own
-    /// reading, and the binary put digging first. This project then put gold
-    /// <i>second</i> — above claiming and reinforcing — on the argument that
-    /// gold placed last would never be collected, since an imp can nearly always
-    /// find a wall to reinforce (Q146). The owner's second observation and the
-    /// rest of the read settled it: <b>gold is in Tier B</b>, below every
-    /// whole-map kind including claiming, and inside Tier B it is decided by
-    /// <i>distance</i> — a wall beats gold on the same tile, a nearer pile
-    /// beats a farther wall. That is why the argument was wrong: gold is not
-    /// last, it is near. See the type comment and <see cref="TrySweep"/>.</para>
-    ///
-    /// <para><b>Only with room in its hands.</b> A worker already carrying its
-    /// limit is going to a treasury, not to another pile. The original refuses
-    /// the gold kind once the hands hold a level-scaled share of
-    /// <c>MaxGoldHeld</c> and sends the imp to deposit instead (Q142, read);
-    /// an imp of ours with gold in its hands is already delivering before job
-    /// selection is reached, so the same outcome falls out without the
-    /// threshold.</para>
+    /// and nothing converts — but it <i>is</i> a job an imp chooses, in Tier B,
+    /// where distance is the primary key: a wall beats gold on the same tile, a
+    /// nearer pile beats a farther wall (<see cref="TrySweep"/>, ADR-0058).
+    /// <para><b>Only with room in its hands.</b> The original refuses the gold
+    /// kind once the hands hold a level-scaled share of <c>MaxGoldHeld</c> and
+    /// sends the imp to deposit instead (Q142, read); here an imp with gold in
+    /// its hands is already delivering before job selection is reached, so the
+    /// same outcome falls out without the threshold.</para>
     /// </summary>
     private const string FetchPriority = "FetchFloorGold";
 
@@ -237,20 +115,17 @@ public sealed class ImpTaskSystem : ISimulationSystem
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
 
-            // A collapsed imp does not work (ADR-0051). Its job was cleared when
-            // it dropped, so this only stops it picking a new one — but without
-            // the guard a dying imp would keep mining, which is a strange thing
-            // for something lying on the floor to do.
             // A creature in the keeper's hand is out of the dungeon: it does
-            // not act until it is put down (HandRules.IsHeld, ADR-0062).
+            // not act until it is put down (ADR-0062). A collapsed worker is
+            // skipped below for the same reason (ADR-0051) — its job was cleared
+            // when it dropped, so the guard only stops it taking a new one.
             if (HandRules.IsHeld(creature)) continue;
 
-            // A prisoner is skipped HERE, and since ADR-0073 that is a rule
-            // rather than a gap: its cell IS what it does. It wanders (that is
-            // PrisonerWanderSystem's, every tick) and its health is the
-            // prison's (PrisonSystem's, every second). What is still a stated
-            // narrowing is the OTHER half of Q172 - racing for a chicken
-            // dropped among them - and that half no longer waits on movement.
+            // A prisoner is skipped here as a rule, not a gap: its cell is what
+            // it does — wandering is PrisonerWanderSystem's, every tick, and its
+            // health is PrisonSystem's, every second (ADR-0073). Still a stated
+            // narrowing: the other half of Q172, racing for a chicken dropped
+            // among them.
             if (PrisonRules.IsImprisoned(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
 
@@ -387,8 +262,11 @@ public sealed class ImpTaskSystem : ISimulationSystem
         }
 
         // Decrement first, then act on zero: setting the timer to N and spending
-        // one tick each time makes applications exactly N ticks apart, which is
-        // what "one application per work period" has to mean.
+        // one tick each time makes applications exactly N ticks apart, starting
+        // one period after the imp arrives. The period is
+        // SimulationTiming.WorkApplicationPeriodTicks, from the Q19 reading that
+        // the tabled health deltas are per second. UNKNOWN (Q20): whether a
+        // single imp contributes the whole delta — here it does.
         creature.TimerTicks--;
         if (creature.TimerTicks > 0) return;
 
@@ -410,27 +288,16 @@ public sealed class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Whether one more swing would free more gold than this worker can hold.
-    ///
-    /// This is where an imp decides to break off and carry, and the rule is the
-    /// only stopping point that neither wastes gold nor overfills a pair of
-    /// hands. The obvious alternative — swing until the hands are exactly full —
-    /// has to throw the overflow away, and with the shipped numbers that is most
-    /// of a seam: <c>MineGoldHealth</c> is −300 against a seam's 660 health and
-    /// 3000 gold, so one swing frees 1363 where the Imp's <c>maxGoldHeld</c> is
-    /// 1400.
-    ///
-    /// <para>That near-miss is worth noticing rather than smoothing over. 1400 is
-    /// almost exactly <i>two</i> swings' worth under the Q47 reading that an
-    /// application lands twice a second and applies half the tabled delta
-    /// (2 × 681 = 1362) — independent support for that reading, from a number
-    /// nothing else in the tile mechanics touches. Nothing here depends on it:
-    /// at the whole-delta granularity we currently run, an imp makes one trip per
-    /// swing instead of one per two.</para>
-    ///
-    /// <para>Says nothing about whether there is anywhere to take the load. That
-    /// is the caller's second question, and the answer decides whether the imp
-    /// leaves or keeps mining.</para>
+    /// Whether one more swing would free more gold than this worker can hold —
+    /// the point at which an imp breaks off to carry.
+    /// <para>Stopping before the swing is the only rule that neither wastes gold
+    /// nor overfills a pair of hands: <c>MineGoldHealth</c> is −300 against a
+    /// seam's 660 health and 3000 gold, so one swing frees 1363 where the Imp's
+    /// <c>maxGoldHeld</c> is 1400 — almost exactly two swings' worth under Q47's
+    /// reading (2 × 681 = 1362), independent support for it. Nothing here
+    /// depends on that; at the whole-delta granularity we run, an imp makes one
+    /// trip per swing. Whether there is anywhere to take the load is the
+    /// caller's second question.</para>
     /// </summary>
     private static bool WouldOverfillItsHands(
         SimulationContext context, CreatureState creature, CreatureDef definition)
@@ -445,22 +312,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Commits a worker to the road, once a route to somewhere its load fits has
-    /// already been planned by <see cref="TryRouteToSomewhereItFits"/>.
-    ///
-    /// Sets the fields by hand rather than calling
-    /// <see cref="CreatureState.ClearJob"/>, which would throw away the route
-    /// that was just planned.
-    /// </summary>
-    /// <summary>
     /// Commits a worker to picking up the gold on <paramref name="standing"/>,
     /// along the route the last search planned.
-    ///
     /// <para><b>One imp to a pile tile</b>, the same cap a floor job gets
-    /// (<see cref="ImpCrowding"/>: one for a tile a worker stands on). Gold is on
-    /// the floor and an imp stands on it to pick it up, so the stance decides the
-    /// number and nothing new is invented. Whether the original crowds a pile
-    /// differently is UNKNOWN and nobody has watched it.</para>
+    /// (<see cref="ImpCrowding"/>: one for a tile a worker stands on). Gold is
+    /// on the floor and an imp stands on it to pick it up, so the stance decides
+    /// the number. Whether the original crowds a pile differently is
+    /// UNKNOWN.</para>
     /// </summary>
     private void CommitFetch(SimulationContext context, CreatureState creature, TilePos standing)
     {
@@ -484,23 +342,16 @@ public sealed class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Whether a worker standing here would be standing on gold it is allowed to
-    /// pick up. The pile is worked from the tile itself, so this tests the tile
-    /// underfoot and no neighbours — unlike a wall, which is worked from beside
-    /// it.
-    ///
-    /// <para><b>The ground has to be the keeper's own</b>, or water. That is
-    /// read straight out of the original's own gold-fetching task: before it
-    /// looks at anything on the tile it refuses a tile that is neither water nor
-    /// owned by the worker's player. <b>It is also the answer to the owner's own
-    /// correction</b> (Q144) — imps that mined a gem tile whose surroundings
-    /// were unclaimed never carried any of the gold home, and this is why. Not
-    /// because they could not walk there, which is what this project first
-    /// assumed and happened to reproduce by accident.</para>
-    ///
-    /// <para>Why water is exempt is <b>UNKNOWN</b>, and it is recorded rather
-    /// than explained: water is never owned by anybody, so without the exception
-    /// gold that fell in would be unrecoverable for good.</para>
+    /// Whether a worker standing here would be standing on gold it may pick up.
+    /// A pile is worked from the tile itself, so this tests the tile underfoot
+    /// and no neighbours — unlike a wall, worked from beside it.
+    /// <para><b>The ground has to be the keeper's own, or water.</b> Read from
+    /// the original's gold-fetching task, which refuses a tile that is neither
+    /// water nor owned by the worker's player before it looks at anything on it.
+    /// That is also why imps that mined a gem tile with unclaimed surroundings
+    /// never carried the gold home (Q144) — not because they could not walk
+    /// there. Why water is exempt is UNKNOWN; without the exception, gold that
+    /// fell in would be unrecoverable for good.</para>
     /// </summary>
     private static bool CanFetchFrom(
         SimulationContext context, TilePos at, byte playerId, int askingCreatureId)
@@ -525,20 +376,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
     /// <summary>
     /// One tick of going to get gold: arrive, fill your hands, become a carrier.
-    ///
     /// <para><b>The pick-up is instant on arrival</b> rather than costing a work
     /// period. Picking gold up is not work — nothing is damaged, no health delta
     /// applies, and the balance table has no number for it — so charging it a
-    /// swing would be inventing a duration. If the original animates a pause
-    /// here it is Q143, and that is worth a stopwatch rather than a guess.</para>
-    ///
-    /// <para><b>The owner's correction is handled in
-    /// <see cref="CanFetchFrom"/>, not here</b> — an imp will not take gold that
-    /// is not on its keeper's own ground, which is what stopped the gold from a
-    /// disconnected gem tile ever coming home (Q144). This project first
-    /// reproduced that outcome <i>by accident</i>, through both searches having
-    /// to walk, and the accident is worth remembering: the outcome matched while
-    /// the rule was wrong.</para>
+    /// swing would be inventing a duration. Whether the original animates a
+    /// pause here is UNKNOWN (Q143), and wants a stopwatch.</para>
+    /// <para>The rule that an imp will not take gold off ground that is not its
+    /// keeper's own is in <see cref="CanFetchFrom"/>, not here (Q144).</para>
     /// </summary>
     private void UpdateFetching(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
@@ -604,12 +448,10 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// Takes up to <paramref name="room"/> off the piles on one tile, oldest
     /// first, and returns how much came off.
     ///
-    /// <para>Oldest first — spawn order — for the reason everything else in this
-    /// project iterates in spawn order: it is reproducible, and a rule that
-    /// preferred the biggest or the nearest pile would be a rule nobody has
-    /// watched. It matters because a creature's death leaves up to three piles
-    /// on one tile (ADR-0055), so which one an imp empties first is a real
-    /// question, and this is an answer of ours.</para>
+    /// <para>Oldest first — spawn order, as everything else in this project
+    /// iterates, because it is reproducible. Ours: a creature's death leaves up
+    /// to three piles on one tile (ADR-0055), so which one an imp empties first
+    /// is a real question that nobody has watched.</para>
     /// </summary>
     private static int TakeFromPilesOn(SimulationContext context, int tileIndex, int room)
     {
@@ -628,6 +470,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
         return taken;
     }
 
+    /// <summary>
+    /// Commits a worker to the road, once
+    /// <see cref="TryRouteToSomewhereItFits"/> has planned a route to somewhere
+    /// its load fits. Sets the fields by hand rather than calling
+    /// <see cref="CreatureState.ClearJob"/>, which would throw away the route
+    /// that was just planned.
+    /// </summary>
     private static void BeginDelivering(CreatureState creature)
     {
         creature.TargetTileIndex = -1;
@@ -639,23 +488,14 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// <summary>
     /// One tick of carrying: put the load down if this is somewhere it can go,
     /// otherwise keep walking, otherwise look for somewhere else.
-    ///
-    /// <para>The put-down test runs every tick rather than only on arrival, so an
-    /// imp that walks over a treasury tile with room in it uses that one. Ours:
-    /// what the original does when a nearer store appears mid-journey is
-    /// UNKNOWN, and the alternative — march to whatever was nearest when the
-    /// journey started — would have an imp walk past an empty treasury.</para>
-    ///
-    /// <para>Re-routing on arrival is what makes a load spill from one treasury
-    /// tile into the next: the imp fills the tile it is standing on, finds it
-    /// still has gold, and looks for the nearest tile with room left. That is
-    /// Q35's spillover, arrived at rather than coded.</para>
-    ///
-    /// <para>A worker whose destination filled up while it walked, and which can
-    /// then find nowhere else, gives up and goes back to looking for work still
-    /// holding its load. It does not stand there: "goes and finds other work" is
-    /// what the original's imps do when they cannot get at what they wanted
-    /// (Q43), and the gold stays in its hands until somewhere opens up.</para>
+    /// <para>The put-down test runs every tick rather than only on arrival, so
+    /// an imp that walks over a treasury tile with room uses that one; ours,
+    /// because what the original does when a nearer store appears mid-journey is
+    /// UNKNOWN. Re-routing on arrival is also what makes a load spill from one
+    /// treasury tile into the next: Q35's spillover, arrived at rather than
+    /// coded.</para>
+    /// <para>A worker that can then find nowhere else goes back to looking for
+    /// work still holding its load, as the original's imps do (Q43).</para>
     /// </summary>
     private void UpdateDelivering(
         SimulationContext context, CreatureState creature, WorldPathGrid grid)
@@ -681,12 +521,10 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// <summary>
     /// Puts as much of the load as will fit into the tile the worker is standing
     /// on, and says whether any of it went in.
-    ///
-    /// Deposits into <i>this</i> tile rather than through
+    /// <para>Deposits into <i>this</i> tile rather than through
     /// <see cref="GoldStore.Deposit"/>, because a carrier's gold lands where the
     /// carrier is. Which tile of a multi-tile treasury that turns out to be is
-    /// therefore decided by the walk, which is the closest thing to Q35's answer
-    /// that does not require guessing.
+    /// therefore decided by the walk (Q35).</para>
     /// </summary>
     private static bool TryPutDown(SimulationContext context, CreatureState creature)
     {
@@ -750,14 +588,16 @@ public sealed class ImpTaskSystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Chooses a job, in the two tiers the type comment describes.
-    ///
-    /// <para>Tier A is one whole-map search per kind, marked excavation then
-    /// claiming: walking outwards from the creature and stopping at the first
-    /// tile a job can be worked from gives the nearest job measured in steps,
-    /// the route to it, and rules out everything unreachable, without ever
-    /// building a list of candidates to sort. Tier B is a single search that
-    /// asks two questions at every tile — <see cref="TrySweep"/>.</para>
+    /// Chooses a job, in the two tiers of the type comment.
+    /// <para><b>Tier A — kind first, one whole-map search per kind</b>, in DK2's
+    /// table order: claim the tile just dug (kind 14), carry a loose object (8),
+    /// build placed traps and doors (absent here), dig and mine marked tiles
+    /// (1), claim floor (3), carry the unconscious (13), carry a corpse (12) —
+    /// <c>imp-task-priority.md</c> §4, ADR-0058/0063/0065. Walking outwards and
+    /// stopping at the first tile a job can be worked from gives the nearest job
+    /// in steps, its route, and rules out the unreachable without sorting a
+    /// candidate list. <b>Tier B — position first</b>, only once all of that is
+    /// empty: <see cref="TrySweep"/>.</para>
     /// </summary>
     private bool TryTakeJob(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
@@ -803,27 +643,22 @@ public sealed class ImpTaskSystem : ISimulationSystem
             creature.DroppedTask = ImpTaskKind.None;
         }
 
-        // Tier A: kind first. The whole map is searched for a just-dug tile to
-        // claim before a single mark is considered, and for marks before a
-        // single ordinary claim — one search per kind, not one scored search
-        // over a mixed list, because the order is an ordering.
+        // Tier A: kind first. One search per kind over the whole map, not one
+        // scored search over a mixed list, because the order is an ordering.
         if (TryTakeJobAt(context, creature, grid, JobPriority.ClaimFreshlyDug)) return true;
 
         // Kind 8 - carry a loose object to its room - is SECOND in DK2's table,
-        // above marked excavation and above claiming. So an imp puts a book
-        // away before it digs a wall the keeper marked, which nobody would
-        // guess and which the table says plainly (ADR-0065).
+        // above marked excavation and above claiming, so an imp puts a book away
+        // before it digs a wall the keeper marked (ADR-0065).
         if (TryTakeObject(context, creature, definition, grid)) return true;
 
         if (TryTakeJobAt(context, creature, grid, JobPriority.MarkedExcavation)) return true;
         if (TryTakeJobAt(context, creature, grid, JobPriority.Claim)) return true;
 
         // The last two entries of DK2's Tier A table, in its order: kind 13,
-        // carry an unconscious creature, then kind 12, carry a corpse
-        // (imp-task-priority.md section 4). Both are whole-map like everything
-        // above them, and both sit below claiming - so an imp will finish
-        // claiming the dungeon before it picks anybody up, which is the
-        // original's ordering and not an obvious one.
+        // carry an unconscious creature, then kind 12, a corpse. Both below
+        // claiming, so an imp finishes claiming the dungeon before it picks
+        // anybody up - the original's ordering, and not an obvious one.
         if (TryTakeBody(context, creature, definition, grid, corpses: false)) return true;
         if (TryTakeBody(context, creature, definition, grid, corpses: true)) return true;
 
@@ -831,39 +666,24 @@ public sealed class ImpTaskSystem : ISimulationSystem
         if (TrySweep(context, creature, definition, grid)) return true;
 
         // Nothing anywhere. DK2 zeroes LastTaskType at exactly this point, and
-        // it matters: with no kind to match, the DroppedTask comparison above
-        // can never fire again, so an aimed worker that runs out of work keeps
-        // its bonus rather than losing it on the next idle tick. That is the
-        // original's arithmetic, not a choice made here.
+        // it matters: with no kind to match, the DroppedTask comparison above can
+        // never fire again, so an aimed worker that runs out of work keeps its
+        // bonus rather than losing it. The original's arithmetic, not a choice.
         creature.LastTaskKind = ImpTaskKind.None;
         return false;
     }
 
     /// <summary>
     /// What a worker the keeper has just put down looks for, and where.
-    ///
-    /// <para><b>A different order from <see cref="TryTakeJob"/>'s</b>, and that
-    /// is the point. DK2's drop scan is a single composite predicate that tries
-    /// nine task kinds per tile, and its order is not the priority chain's:
-    /// excavation first, then claiming, then carrying a body, reinforcing,
-    /// gold, objects, corpses. So a worker dropped beside a marked wall digs it
-    /// rather than putting a book away, even though putting the book away is
-    /// second in the ordinary chain (ADR-0065). Two of the nine are absent here
-    /// because this project has no traps or doors to fetch crates for, and one
-    /// is unidentified.</para>
-    ///
-    /// <para><b>And claiming the just-dug tile is absent on purpose.</b> DK2's
-    /// kind 14 is not one of the nine; a dropped worker takes the ordinary
-    /// claim.</para>
-    ///
-    /// <para>All of it inside <see cref="DropScanTiles"/> of where the worker
-    /// landed, measured to <b>the tile the work is at</b> and not to the tile
-    /// the worker would stand on. That distinction is a whole tile for a wall
-    /// job and the owner's count settles it: a marked wall <i>four</i> tiles
-    /// away is reachable from a floor tile three away, and it does not pay. DK2
-    /// agrees in shape - a dig task is raised on the marked tile itself, which
-    /// is what its scan's own pre-filter looks for before it calls any
-    /// predicate.</para>
+    /// <para><b>A different order from <see cref="TryTakeJob"/>'s</b>: DK2's drop
+    /// scan is one composite per-tile predicate, ordered excavation, claiming,
+    /// carrying a body, reinforcing, gold, objects, corpses — so a worker dropped
+    /// beside a marked wall digs it rather than putting a book away (ADR-0065).
+    /// Two of its nine kinds are absent (no traps or doors here) and one is
+    /// unidentified; kind 14, claiming the just-dug tile, is not among them. All
+    /// of it inside <see cref="DropScanTiles"/> of where the worker landed,
+    /// measured to <b>the tile the work is at</b> — CONFIRMED, owner's count: a
+    /// marked wall four away does not pay, though a floor tile three does.</para>
     /// </summary>
     private bool TryTakeDroppedJob(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
@@ -963,22 +783,16 @@ public sealed class ImpTaskSystem : ISimulationSystem
     };
 
     /// <summary>
-    /// The second tier: the nearest tile at which there is <i>either</i> a wall
-    /// to reinforce <i>or</i> gold to pick up, and at that tile the wall wins.
-    ///
-    /// <para>This is the shape of the original's last resort, read on
-    /// 2026-09-05: once every whole-map kind has come up empty it scans outwards
-    /// from the imp in rings and at each tile tries reinforce-or-repair, then
-    /// floor gold, then loose objects, then one kind not yet identified. Two of
-    /// the four exist here. The ring is measured in steps rather than in
-    /// straight-line rings (Q25), which is the one respect in which this is not
-    /// the original's search.</para>
-    ///
-    /// <para><b>Why one search and not two.</b> Two searches — the nearest wall,
-    /// then the nearest pile — would put a wall across the dungeon above a pile
-    /// at the imp's feet, which is precisely the strict order the binary does
-    /// not have. Asking both questions at every standing tile is what makes
-    /// distance the primary key and kind the tie-break.</para>
+    /// Tier B: the nearest tile at which there is <i>either</i> a wall to
+    /// reinforce <i>or</i> gold to pick up, and at that tile the wall wins.
+    /// <para>The shape of the original's last resort: once every whole-map kind is
+    /// empty it scans outwards in rings and at each tile tries reinforce-or-repair,
+    /// then floor gold, then a loose object, then one kind not yet identified. Two
+    /// of the four exist here. Ours: rings measured in steps (HYPOTHESIS, Q25).</para>
+    /// <para>One search and not two: the nearest wall then the nearest pile would
+    /// put a wall across the dungeon above a pile at the imp's feet, the strict
+    /// order the binary does not have. Distance is the primary key, kind the
+    /// tie-break.</para>
     /// </summary>
     private bool TrySweep(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
@@ -1139,11 +953,10 @@ public sealed class ImpTaskSystem : ISimulationSystem
         {
             // The just-dug tile: claimable, freshly dug, and with none of its
             // EIGHT neighbours still carrying this keeper's dig mark. Eight and
-            // not four, and a dig mark and not a mining one, because that is
-            // what the original's handler tests — it looks up its kind-1 task
-            // (a marked tile with no GoldValue) on each of the eight tiles
-            // around it, and only kind 1 (Q154). After that it is an ordinary
-            // claim, taken standing on the tile.
+            // not four, and a dig mark and not a mining one, because the
+            // original's handler looks up its kind-1 task (a marked tile with no
+            // GoldValue) on each of the eight tiles around it, and only kind 1
+            // (Q154). After that it is an ordinary claim, done standing on it.
             case JobPriority.ClaimFreshlyDug:
                 if (!tile.FreshlyDug) return false;
                 if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId)) return false;
@@ -1156,13 +969,12 @@ public sealed class ImpTaskSystem : ISimulationSystem
                 if (!TileWorkRules.TryTaggedWork(context.Database, tile, playerId, out kind)) return false;
                 break;
 
-            // Claiming floor and taking somebody else's room are the same
-            // priority and two kinds of work, because the balance table gives
-            // them separate rates (ClaimTileHealth +825, ConvertRoomHealth
-            // −4000) and the terrain flag partitions them exactly: a room tile
-            // is one and only one of the two. The owner describes both as
-            // claiming (Q24, Q92), so nothing here has to choose an order
-            // between them.
+            // Claiming floor and taking somebody else's room are one priority
+            // and two kinds of work: the balance table gives them separate rates
+            // (ClaimTileHealth +825, ConvertRoomHealth −4000) and the terrain
+            // flag partitions them exactly, a room tile being one and only one
+            // of the two. The owner describes both as claiming (Q24, Q92), so
+            // no order between them has to be chosen here.
             case JobPriority.Claim:
                 if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId))
                     kind = TileWorkKind.Claim;
@@ -1183,8 +995,9 @@ public sealed class ImpTaskSystem : ISimulationSystem
         }
 
         // An imp claims a floor tile by standing on it (Q44, CONFIRMED) and digs
-        // a wall from beside it (Q27, CONFIRMED). One stance rule decides which,
-        // and a worker in the wrong one has no job here.
+        // a wall from beside it (Q27, CONFIRMED): a gold block takes three imps
+        // a side, twelve in all. One stance rule decides which (WorkStance), and
+        // a worker in the wrong one has no job here.
         bool onTheTile = WorkStance.IsOnTheTile(context.Database, world, grid, target, kind);
         if (onTheTile != (standing == target))
         {
@@ -1192,16 +1005,12 @@ public sealed class ImpTaskSystem : ISimulationSystem
             return false;
         }
 
-        // Claiming and reinforcing spread from ground the keeper already holds;
-        // marked work does not, because the keeper asked for it by name.
-        //
-        // Which tile carries that condition follows from the stance, and this is
-        // the other half of what Q44 moved. A wall job is taken from the keeper's
-        // own land, so the STANDING tile must be owned. A floor job is done
-        // standing on the tile being claimed — which is by definition not owned
-        // yet — so it is the TARGET that must touch owned land instead. Both
-        // readings say the same thing about the map (territory grows outwards,
-        // never in islands); they differ only in where the imp's feet are (Q42).
+        // Claiming and reinforcing spread from ground the keeper already holds
+        // (CONFIRMED, Q42); marked work does not, because the keeper asked for it
+        // by name. Which tile carries the condition follows from the stance: a
+        // wall job is taken from the keeper's own land, so the STANDING tile must
+        // be owned; a floor job is done standing on the tile being claimed, not
+        // owned yet, so it is the TARGET that must touch owned land instead.
         if (priority != JobPriority.MarkedExcavation)
         {
             bool reachesOwnLand = onTheTile
@@ -1216,11 +1025,11 @@ public sealed class ImpTaskSystem : ISimulationSystem
         }
 
         // Three workers to a face for a wall and exactly ONE for a tile a worker
-        // stands on to claim it (Q43, Q44), and the surplus goes and finds other
-        // work rather than queueing. Rejecting the FACE rather than the tile is
-        // what makes that happen: the search simply carries on to the next
-        // standing tile, which may be another side of this same block, another
-        // block, or another priority entirely.
+        // stands on to claim it (CONFIRMED both ways, Q43/Q44); the surplus finds
+        // other work rather than queueing. Rejecting the FACE rather than the
+        // tile is what makes that happen: the search carries on to the next
+        // standing tile, which may be another side of this block, another block,
+        // or another priority entirely. The cap is per job, not per tile.
         int index = (target.Y * world.Width) + target.X;
         if (ImpCrowding.FaceIsFull(
                 world, context.Database, index, standing, askingCreatureId, onTheTile))
@@ -1250,12 +1059,11 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// <summary>
     /// Whether any tile orthogonally adjacent to <paramref name="target"/>
     /// belongs to the keeper — the condition on an unprompted job the worker
-    /// does standing on the target itself.
-    ///
-    /// Orthogonal, matching the way work spreads (Q27), and deliberately not the
-    /// eight-connected neighbourhood the mover uses: a keeper's territory
-    /// creeping diagonally across a corner is not what the original shows.
-    /// STRONGLY INFERRED; Q42.
+    /// does standing on the target itself (CONFIRMED, Q42).
+    /// <para>Orthogonal rather than the eight-connected neighbourhood the mover
+    /// uses, matching the way work spreads (Q27). That narrowing is STRONGLY
+    /// INFERRED: a keeper's territory creeping diagonally across a corner is not
+    /// what the original shows.</para>
     /// </summary>
     private static bool TouchesOwnLand(
         SimulationContext context, WorldState world, TilePos target, byte playerId)
@@ -1356,15 +1164,12 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// <summary>
     /// DK2's imp task <b>kind 8</b>: the nearest loose object that belongs in a
     /// room, and a walk to it.
-    ///
-    /// <para><b>Second in Tier A</b>, above marked excavation and above
-    /// claiming (<c>imp-task-priority.md</c> §4) - so an imp that finds a book
-    /// on the floor shelves it before it digs anything the keeper marked. Not
-    /// an obvious ordering, and it is the original's.</para>
-    ///
+    /// <para><b>Second in Tier A</b>, above marked excavation and above claiming
+    /// (<c>imp-task-priority.md</c> §4, ADR-0065) - so an imp that finds a book
+    /// on the floor shelves it before it digs anything the keeper marked.</para>
     /// <para>Like every other carry here the destination is settled before the
-    /// walk: an object whose room the keeper has not built, or has no space
-    /// left in, is an object nobody sets off for.</para>
+    /// walk: an object whose room the keeper has not built, or has no space left
+    /// in, is an object nobody sets off for.</para>
     /// </summary>
     private bool TryTakeObject(
         SimulationContext context, CreatureState creature, CreatureDef definition,
@@ -1548,18 +1353,14 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// <summary>
     /// Looks for a body to carry: a collapsed creature when
     /// <paramref name="corpses"/> is false, a corpse when it is true.
-    ///
-    /// <para>Two calls rather than one search for both, because DK2 has two
-    /// task kinds and searches them in order — an unconscious creature anywhere
-    /// on the map outranks a corpse at the imp's feet. Within a kind the nearest
-    /// by walking wins, which is this project's standing reading of "nearest"
-    /// (Q25).</para>
-    ///
+    /// <para>Two calls rather than one search for both, because DK2 has two task
+    /// kinds and searches them in order — an unconscious creature anywhere on
+    /// the map outranks a corpse at the imp's feet. Within a kind the nearest by
+    /// walking wins (HYPOTHESIS, Q25).</para>
     /// <para><b>A body with nowhere to go is not taken.</b> The destination is
-    /// settled before the walk starts, not on arrival: a collapsed creature
-    /// whose bed was sold has nowhere to be carried, and an enemy has nowhere at
-    /// all until there is a prison. Deciding late would have an imp cross the
-    /// dungeon to stand over a body and shrug.</para>
+    /// settled before the walk, not on arrival: a collapsed creature whose bed
+    /// was sold has nowhere to be carried, and an enemy has nowhere at all until
+    /// there is a prison.</para>
     /// </summary>
     private bool TryTakeBody(
         SimulationContext context, CreatureState creature, CreatureDef definition,
@@ -1569,10 +1370,10 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         if (creature.CarriedCreatureId >= 0 || creature.GoldHeld > 0) return false;
 
-        // The graveyard is found ONCE, not once per tile the search touches.
+        // The graveyard is found ONCE, not once per tile the search touches:
         // CarryRules.TryDestinationFor rebuilds the room index, and calling it
         // from inside a whole-map predicate makes the search quadratic in the
-        // map - which it was, for exactly as long as it took to notice.
+        // map.
         int graveyard = corpses
             ? CarryRules.NearestGraveyardTile(world, context.Database, creature)
             : -1;
@@ -1839,13 +1640,12 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
     /// <summary>
     /// Ends the current job and looks again on the next tick.
-    ///
-    /// Deliberately not the idle delay. An imp whose wall has just fallen moves
-    /// straight to the next marked tile in the original — it does not stand
-    /// around for five seconds — so the delay belongs to the imp that looked and
-    /// found nothing, which is what "idle" names. STRONGLY INFERRED: the
-    /// variable is <c>ImpIdleDelayBeforeReevaluation</c>, and an imp that has
-    /// just finished a job has not been idle.
+    /// <para>Deliberately not the idle delay: in the original an imp whose wall
+    /// has just fallen moves straight to the next marked tile, so the delay
+    /// belongs to the imp that looked and found nothing, which is what "idle"
+    /// names. STRONGLY INFERRED from the variable's name,
+    /// <c>ImpIdleDelayBeforeReevaluation</c>. Also ours: a freshly placed worker
+    /// looks immediately.</para>
     /// </summary>
     private static void GoIdle(CreatureState creature)
     {
