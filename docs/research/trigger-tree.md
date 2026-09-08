@@ -73,14 +73,38 @@ one-shot.
 This dead return-dependent path is preserved as a binary quirk, not treated as
 an intended countdown.
 
-**The external enable/disable path exists, and it is not hypothetical.**
-`0x00508660` (condition) and `0x00508840` (action) each take a flag argument and
-set or clear bit 0 of `+0x10`; the condition one also writes `1` to the repeat
-byte, which is the value that makes a successful descendant action one-shot. So
-a record can be re-armed after retirement, and a condition re-armed this way
-arrives with a repeat policy it was not authored with. **Who calls these two,
-and when, is UNKNOWN** — it is the next thing to read before an executor treats
-retirement as permanent.
+## Re-arming: retirement is reversible, and action type 14 is how
+
+`0x00508660` (condition) and `0x00508840` (action) each take a flag and set or
+clear bit 0 of `+0x10`. Enabling a **condition** also writes **1** to its repeat
+byte; disabling writes 0. Each setter has exactly one caller: `FUN_00519A20`, a
+second recursive walk that resolves ids by the same rules as the evaluator above
+and applies the flag to every record in a subtree.
+
+That walk is reached from two places, and they pull in opposite directions:
+
+| caller | flag | when |
+|---|---|---|
+| `0x0050C2AC`, `0x0050C2C5` in the level initialiser `FUN_0050B5B0` | **0** — disable | level load, over the `+0x4030` array |
+| `0x0051A19C`, `0x0051A594` in `FUN_00519F90` | **1** — enable | runtime |
+
+`FUN_00519F90`'s only caller is the world action dispatcher, at the arm for
+**action type 14** (`0x00519182`, resolved through the dispatcher's two-level
+table; 259 records ship, and level 1 uses it).
+
+**The consequence an executor must not miss.** A re-armed condition carries
+repeat byte 1 whatever it was authored with, and a condition passes its own
+repeat byte to its children, where 1 is exactly the value that retires a
+successful action. So re-arming a subtree silently makes its actions one-shot.
+**232 shipped conditions carry 255**, so this is not a corner case.
+
+This also part-answers what the 24 slots at `+0x4030` are: each 0x208-byte slot
+holds a trigger id at `+0`, and sixteen more at `+0x20` stride, and the loader
+**disables every one of those subtrees** before the level runs. What the slots
+represent is still UNKNOWN, and so is whether action type 14's transcribed
+parameter names are right — three of three transcribed THINGS names were wrong,
+and its handler passes body bytes 0, 1 and 4 into a function that does more than
+this walk.
 
 `+0x10` is initialised to **2**, not to 0 or 1: both initialisers set bit 1 and
 only bit 0 varies. What bit 1 means is UNKNOWN; nothing above reads it.
