@@ -419,17 +419,12 @@ that dword is `0x0067DD40`, an RTTI complete object locator whose `offset` field
 is **0**, so this is the class's *primary* vtable, the one at `[this]`.
 
 **DKII.EXE ships MSVC RTTI**, so the class behind any vtable can be recovered:
-the locator's type descriptor is at `0x006A49D0` and carries the decorated
-class name. That is a capability worth having and it is now a script
-(`Rtti.py`), because it is how a future session answers *"is this the same
-object?"* for any vtable without re-deriving it.
+the locator's type descriptor is at `0x006A49D0`. `Rtti.py` does it for any
+vtable, which is how a future session answers *"is this the same object?"*.
 
-**The name itself is deliberately not recorded here.** It is the original's own
-internal identifier, and it buys nothing that a scan consumes — every tool in
-`reverse-engineering/` is driven by addresses, offsets and globals, not by class
-names. The three addresses above carry the whole finding, and the name can be
-read back from them in a minute if it is ever actually needed. What matters for
-this document is the *structure*: primary vtable, at object offset 0.
+**The name itself is deliberately not recorded.** It is the original's internal
+identifier, and every tool in `reverse-engineering/` is driven by addresses,
+not names; the three addresses above carry the whole finding.
 
 *Not* measured: the vtable's extent. The forward walk was truncated by the dump
 window, so the "69 entries" it suggested is an artefact. The vtable is certainly
@@ -445,27 +440,31 @@ registered through `atexit`. So it is not allocated and not owned by a manager,
 and its address is a constant — a far better handle than the two globals that
 merely cache a pointer to it.
 
-Across the whole executable it is referenced 90 times: **87 `MOV ECX`** (direct,
-non-virtual method calls), **two `PUSH`** — at `0x00525537` and `0x00525A90`,
-the only places it is handed to anything else — and one `MOV EAX`.
+**ANSWERED: the world frame, once per game turn.** Slot `0x18` has exactly one
+caller — `0x00526AA7` in `FUN_00526590`, which loads the callee with
+`MOV ECX,[ESI+0x14]`. `ESI` is a container that owns the world as a *component*,
+which is why every scan for a caller that names the world failed. Its own caller
+is `FUN_00525370`, which attaches the world at `0x00525537` and detaches it at
+`0x00525A90`. The container has four component slots — two others at `+0x0C` and
+`+0x10`, the world at `+0x14`, the turn driver at `+0x18` (`0x006FCEC0`, or
+`0x006FD120` when `0x0075AD4B` is 3). Attaching stores `world+4` = container and
+calls the component's own vtable slot `+4`.
 
-**Still UNKNOWN: who invokes slot `0x18`, and how often.** That is the rate the
-whole question is about, and this round did not close it. What it did was rule
-out the obvious techniques, which is worth recording so they are not retried:
+**The rate.** The world frame runs once per main-loop iteration, ungated; the
+accumulator beside it at `+0x288` gates world slot `0x28`, the multiplayer
+resync. The loop advances only when the driver's slot `0x14` (`FUN_00522760`)
+reports a turn due, which `FUN_00521BA0` decides as
+`lastTurnMs + 1000 / container[+8] < nowMs`. `container[+8]` is **4**, an
+immediate at `0x00526264`; `container[+4]`, the game turn, is set to **1** at
+`0x00526254` and incremented once per iteration. `FUN_00517490` returns
+`world->container->turn` — the `%d` in the binary's own `**** GameTurn %d ****`.
+A turn is 250 ms; the trigger tree is evaluated exactly once per turn.
 
-| ruled out | how |
-|---|---|
-| Correlating slot-`0x18` call sites with nearby loads of the object | **Zero** of the 97 sites has a reference to `0x006F2A08`, `0x006E5050` or `0x006E5054` anywhere in the preceding **2 KB** |
-| `FUN_00521BA0`, the best-looking candidate | Holds three of the 97 sites but references none of the world globals; its slot `0x18` belongs to a different class |
-| Slot-`0x18` callers that also use the clock and variable 19 | Exactly one, `FUN_0043CC30`, and it references the world nowhere either |
+**Two fours that never meet.** The loop rate is that immediate; variable 19 is
+per-level data. No code puts them in one place, so a level shipping 5 would
+scale authored seconds by 5 against a clock still running at 4. All 66 ship 4.
 
-What those three share is the useful part: **the update is invoked through an
-abstract interface, by code that never names the world.** So the thread to pull
-is not the call site but the *registration*. `0x00525537` passes the world to
-`FUN_00527090` on an object held at `[EBP+0x10]`, gated on a flag at
-`0x0075AEAB`; `0x00525A90` is the other hand-off. Start there.
-
-Also still UNKNOWN: what the 24 slots at `+0x4030` are. Q228 keeps all of it.
+Also still UNKNOWN: what the 24 slots at `+0x4030` are. Q228 keeps that.
 
 **A method note that cost time here.** `0x00518150` appeared to have exactly one
 caller — itself — and a byte scan of every block for its address returned **0
