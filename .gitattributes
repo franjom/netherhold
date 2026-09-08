@@ -1,0 +1,4 @@
+# Shell scripts must keep LF: a CRLF shebang is a "bad interpreter" error on
+# any non-Windows checkout, and git hooks are the one place that bites silently.
+.githooks/* text eol=lf
+*.sh text eol=lf
