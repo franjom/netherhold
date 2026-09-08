@@ -70,22 +70,22 @@ public static class TriggerConditionEvaluator
         if (!state.IsStarted(timerId))
             return TriggerConditionResult.Unsatisfied;
 
-        int operand;
         if ((Byte(parameters, "Flag") & 1) != 0)
         {
-            operand = SimulationTiming.TicksFromSeconds(Int(parameters, "Value"));
-        }
-        else
-        {
-            byte indirectId = Byte(parameters, "IndirectTimerId");
-            if (indirectId == TriggerState.SpecialTimerId)
-                return TriggerConditionResult.NotEvaluated;
-            operand = state.ReadTimer(indirectId);
+            int threshold = SimulationTiming.TicksFromSeconds(Int(parameters, "Value"));
+            int deadline = unchecked(state.ReadTimer(timerId) + threshold);
+            return Result(TriggerState.Compare(
+                Byte(parameters, "Comparison"), currentTick, deadline));
         }
 
-        int deadline = unchecked(state.ReadTimer(timerId) + operand);
+        byte indirectId = Byte(parameters, "IndirectTimerId");
+        if (indirectId == TriggerState.SpecialTimerId)
+            return TriggerConditionResult.NotEvaluated;
+
         return Result(TriggerState.Compare(
-            Byte(parameters, "Comparison"), currentTick, deadline));
+            Byte(parameters, "Comparison"),
+            state.ReadTimer(indirectId),
+            state.ReadTimer(timerId)));
     }
 
     private static int ReadFlag(TriggerState state, byte id) =>

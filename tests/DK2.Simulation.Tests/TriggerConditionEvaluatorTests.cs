@@ -81,14 +81,14 @@ public class TriggerConditionEvaluatorTests
     }
 
     [Fact]
-    public void IndirectTimerModeUsesTheSecondTimersStampInsteadOfTheValue()
+    public void HandlerBackedIndirectTimerModeComparesSecondStampAgainstNamedStamp()
     {
         var state = new TriggerState();
         state.StartTimer(2, now: 10);
         state.StartTimer(3, now: 8);
         TriggerRecord record = Condition(2, new Dictionary<string, long>
         {
-            ["Comparison"] = 3,
+            ["Comparison"] = 1,
             ["TimerId"] = 2,
             ["Flag"] = 0,
             ["IndirectTimerId"] = 3,
@@ -97,10 +97,12 @@ public class TriggerConditionEvaluatorTests
 
         Assert.Equal(
             TriggerConditionResult.Satisfied,
-            TriggerConditionEvaluator.Evaluate(record, state, currentTick: 18));
+            TriggerConditionEvaluator.Evaluate(record, state, currentTick: 1000));
+
+        state.StartTimer(3, now: 12);
         Assert.Equal(
             TriggerConditionResult.Unsatisfied,
-            TriggerConditionEvaluator.Evaluate(record, state, currentTick: 17));
+            TriggerConditionEvaluator.Evaluate(record, state, currentTick: 1000));
     }
 
     [Fact]

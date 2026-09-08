@@ -324,4 +324,15 @@ public class TriggerStateOnRealDataTests
             TriggerConditionResult.Unsatisfied,
             TriggerConditionEvaluator.Evaluate(record, state, currentTick: 0));
     }
+
+    [InstallFact]
+    public void NoShippedTimerConditionUsesIndirectMode()
+    {
+        TriggerRecord[] timers = AllTriggers(Install())
+            .Where(r => r.Tag == 213 && r.Type == 2)
+            .ToArray();
+
+        Assert.Equal(303, timers.Length);
+        Assert.All(timers, r => Assert.Equal(1, r.Parameters["Flag"] & 1));
+    }
 }
