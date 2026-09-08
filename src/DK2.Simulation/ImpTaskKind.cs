@@ -53,14 +53,12 @@ public enum ImpTaskKind : byte
     CarryUnconscious = 13,
 
     /// <summary>
-    /// Claim the tile just dug out — DK2's kind <b>14</b>, first of everything.
+    /// Claim the tile just dug out — DK2's kind <b>14</b>, highest priority.
     ///
-    /// <para><b>DK2 never stores this one.</b> Kind 14's handler raises a kind 3
-    /// at the tile and takes <i>that</i>, so the byte it writes is 3 and a
-    /// worker that took the fast lane is indistinguishable afterwards from one
-    /// that claimed the ordinary way. This project keeps the distinction only
-    /// because its <c>JobPriority</c> does; <see cref="CreatureState.LastTaskKind"/>
-    /// records <see cref="Claim"/> for both, exactly as the original does.</para>
+    /// <para>DK2 never stores 14: kind 14's handler raises a kind 3 at the tile
+    /// and takes that, so the stored byte is 3. This project keeps the value only
+    /// because <c>JobPriority</c> distinguishes it; <see cref="CreatureState.LastTaskKind"/>
+    /// records <see cref="Claim"/> for both, as the original does.</para>
     /// </summary>
     ClaimFreshlyDug = 14,
 }
