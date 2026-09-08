@@ -617,6 +617,50 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length >= 3 && args[1] == "triggers":
+    {
+        // One level's trigger records with their links and decoded parameters.
+        // `kwd records` prints ids and types; `kwd trigger-types` counts them
+        // corpus-wide; neither shows a tree. This does, because to design an
+        // observation in the running game you have to know which condition
+        // leads to which visible action.
+        var byId = new Dictionary<int, TriggerRecord>();
+        var order = new List<TriggerRecord>();
+        foreach (TriggerRecord record in KwdTriggers.Parse(KwdReader.ReadFile(ResolveEditor(args[2]))))
+        {
+            order.Add(record);
+            byId[record.TriggerId] = record;
+        }
+
+        // Optional filter: a tag and type, so "show me every timer condition"
+        // is one command rather than a grep over thousands of lines.
+        int? wantTag = args.Length >= 4 ? int.Parse(args[3]) : null;
+        int? wantType = args.Length >= 5 ? int.Parse(args[4]) : null;
+
+        foreach (TriggerRecord record in order)
+        {
+            if (wantTag is not null && record.Tag != wantTag) continue;
+            if (wantType is not null && record.Type != wantType) continue;
+
+            Console.WriteLine(
+                $"tag={record.Tag} id={record.TriggerId,4} type={record.Type,3} "
+                + $"next={record.NextTriggerId,4} child={record.ChildTriggerId,4} "
+                + $"repeat={record.RepeatCount,3}  "
+                + string.Join(" ", record.Parameters.Select(p => $"{p.Key}={p.Value}")));
+
+            // One level of the tree, which is what says what the condition does.
+            for (int child = record.ChildTriggerId; child != 0 && byId.ContainsKey(child);)
+            {
+                TriggerRecord c = byId[child];
+                Console.WriteLine(
+                    $"    -> tag={c.Tag} id={c.TriggerId,4} type={c.Type,3} "
+                    + string.Join(" ", c.Parameters.Select(p => $"{p.Key}={p.Value}")));
+                child = c.NextTriggerId == child ? 0 : c.NextTriggerId;
+            }
+        }
+        return 0;
+    }
+
     case "kwd" when args.Length >= 4 && args[1] == "trigger-params":
     {
         // The distribution of ONE named parameter across every shipped record
@@ -1751,6 +1795,7 @@ static int Usage()
     Console.WriteLine("  kwd records <file.kwd|kld>            dump decoded ids/types and consumed lengths");
     Console.WriteLine("  kwd trigger-types                     dump shipped trigger type counts and levels");
     Console.WriteLine("  kwd trigger-params <tag> <type|*> [name]  value distribution of one trigger parameter");
+    Console.WriteLine("  kwd triggers <file> [tag] [type]        one level's triggers, their links and parameters");
     Console.WriteLine("  kwd corpus                             parse and round-trip the shipped KWD/KLD corpus");
     Console.WriteLine("  kwd things [file.kld]                  placed entities of one level, or the corpus");
     Console.WriteLine("  kwd creaturescan <name> <value>        the same, anchored on one creature");

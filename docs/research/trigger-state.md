@@ -71,7 +71,10 @@ agree on sixteen:
 - the condition path compares the id against `0x10` before indexing it
   (`CMP DL,0x10` at `0x005184EB`).
 
-The corpus agrees: every timer *started* by action type 8 has an id in 0..15.
+The corpus agrees twice over. Every timer *started* by action type 8 has an id
+in 0..15 — and **level 1 alone starts all sixteen of them, 0 through 15, and
+never a seventeenth**, which is about as direct as data-side corroboration of a
+bank size gets.
 
 ## 3. A flag is a byte, and the arithmetic is asymmetric
 
