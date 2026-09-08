@@ -116,7 +116,7 @@ not required to fix the backlog, but do not add to it.
 |---|---|---|
 | open-question row | **800 characters** | 161 of 234 over; 41 rows hold 126 KB |
 | XML doc comment | **12 lines** | worst is 113 |
-| inline comment | **3 lines** | |
+| inline comment | **6 lines** | median is 3, so 6 is real headroom |
 | comment lines per file | **40%** | 39% overall, worst 84% |
 | commit message body | **15 lines** | recent ones run 40–64 |
 | research doc | **400 lines** | 6 of 50 over |
@@ -126,6 +126,15 @@ not required to fix the backlog, but do not add to it.
 An ADR carries the decision and the reason. The *evidence* goes in the research
 doc. A commit message says why the change was needed, not what the
 investigation felt like.
+
+**`dk2tools docs` enforces this.** It checks only what you **changed**, so the
+backlog cannot drown the signal, and a whole-file measure (length, comment
+ratio) fails only if your change made it worse — a one-line fix to a long
+document is not the moment to demand a split. `--all` reports the backlog
+(1,153 items today, mostly oversized comment blocks). `--message <file>` checks
+a commit body, for a commit-msg hook. Budgets live in one place,
+`DocBudgets` in `src/DK2.Tools/Program.cs`; changing one there without changing
+this table is a bug.
 
 ### What is worth recording
 
