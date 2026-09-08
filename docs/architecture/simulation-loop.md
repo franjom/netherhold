@@ -1,8 +1,8 @@
 # The simulation loop and the determinism contract
 
-Milestone M2. This is the first code in the project that is genuinely ours
-rather than a reading of DK2's data, so it is worth being explicit about what
-it does and does not claim.
+Milestone M2, and still the contract every later milestone rests on. This is the
+first code in the project that is genuinely ours rather than a reading of DK2's
+data, so it is worth being explicit about what it does and does not claim.
 
 ## What it claims
 
@@ -10,9 +10,12 @@ it does and does not claim.
 > same order, produce the same `StateHash()` at every tick — on any machine, in
 > any process.
 
-Nothing more. It is **not** a claim about how DK2 orders its own updates, how
-fast its tick runs, or what its systems do. Those are still open questions
-(Q1 in `docs/research/open-questions.md`).
+Nothing more. It is **not** a claim about how DK2 orders its own updates or what
+its systems do; that ordering is UNKNOWN and ours is declared rather than
+measured (ADR-0013, `SimulationSystems`). DK2's tick *rate* is no longer open:
+it is 4 ticks a game second, a tick of 250 ms, read from the binary and observed
+in a running process (ADR-0089), and `SimulationTiming` is the one place that
+relates ticks to seconds (ADR-0011).
 
 ## Why it has to exist before any mechanic
 
@@ -25,19 +28,23 @@ records noise. The gate is cheap now and impossible to retrofit later.
 
 | Type | Role |
 |---|---|
-| `GameSimulation` | Owns the loop. `Tick(in InputFrame)` is the only way time moves. |
-| `WorldState` | All mutable state: tiles, players, current tick. |
+| `GameSimulation` | Owns the loop. `Tick(in InputFrame)` is the only way time moves. Holds `HashVersion`. |
+| `WorldState` | All mutable state: tiles, players, creatures, objects, the pending-work queue, `TriggerState`, current tick. |
 | `ISimulationSystem` | One unit of per-tick work. Runs in explicit registration order. |
 | `SimulationContext` | The only things a system may touch: database, world, input, RNG, event sink. |
 | `InputFrame` / `PlayerCommand` | Everything entering the simulation on a tick. |
 | `SimEvent` / `ISimulationEventSink` | Write-only observation. Never read back. |
-| `WorldSnapshot` | Binary save/load, including RNG position. |
+| `WorldSnapshot` | Binary save/load, including RNG position. Carries `FormatVersion`, kept equal to `HashVersion`. |
 | `Hash64` | FNV-1a structural hash, stable across processes and machines. |
 
 Tick N executes with `context.Tick == N`; afterwards `World.CurrentTick` is
-N+1. That ordering is our convention, chosen for legibility. The original's
-internal update order is UNKNOWN and becomes a research question when it starts
-to matter (M4).
+N+1. That ordering is our convention, chosen for legibility.
+
+`SimulationSystems.Default()` is the one declaration of which systems run and in
+what order (ADR-0013). It is what the scenario runner, the Unity `DungeonRunner`
+and the real-data tests all construct, so a scenario and the test suite can never
+disagree about ordering. A test that needs one system absent removes it from that
+array rather than building its own.
 
 ## Design decisions worth knowing
 
@@ -60,8 +67,9 @@ because they compare two runs *in the same process*. CI runs it on Linux and
 Windows, which is what turns the local property into a cross-platform one.
 
 Changing simulation state deliberately will break it. That is correct: bump
-`GameSimulation.HashVersion` and update the literal in the same commit. Breaking
-it any other way means determinism is broken and the change must not ship.
+`GameSimulation.HashVersion`, bump `WorldSnapshot.FormatVersion` to match, and
+update the literal, all in the same commit. Breaking it any other way means
+determinism is broken and the change must not ship.
 
 **Events cannot affect behaviour.** Systems write to an `ISimulationEventSink`
 and never read from one. `DeterminismTests.EventRecording_DoesNotAffectState`
@@ -75,22 +83,22 @@ ticks and requires they never diverge, which proves the snapshot captured
 everything the simulation actually depends on. Our save format is our own; DK2's
 is not a target (plan risk R13).
 
-**A test-only chaos system keeps the gate honest.** No real systems are
-registered yet, so an empty world never changes and "both runs agree" would be
-trivially true — the gate would pass with a broken loop, a broken hash or a
-broken snapshot. `ChaosSystem` (in the test assembly, and never anywhere else)
-consumes randomness and mutates state every tick so that agreement is only
-possible if everything underneath really is deterministic. It implements no DK2
-mechanic and never will.
+**A test-only chaos system keeps the gate honest.** `ChaosSystem` (in
+`tests/DK2.Simulation.Tests`, and never anywhere else) consumes randomness and
+mutates state every tick, so agreement between two runs is only possible if the
+loop, the hash and the snapshot really are deterministic. It was written when no
+real systems existed and an empty world made "both runs agree" trivially true;
+it stays because the pinned world it runs in still spawns no creatures (Q206),
+so creature-state changes move the pin through `HashVersion` alone.
 
-## What M2 deliberately does not contain
+It implements no DK2 mechanic and never will.
 
-No gameplay. `GameSimulation.Systems` is empty in every non-test configuration,
-and the scenario runner says so in its report rather than producing output that
-looks like a finished experiment. Digging, claiming and the first Imp are M3 —
-and the numbers they need are already extracted
-(`docs/research/kwd-terrain-rooms.md`, `kwd-variables.md`).
+## What the loop deliberately does not decide
 
-`TileState` and `PlayerState` carry only fields justified by parsed data today.
-Room membership, dig tagging, gold in seams, creature rosters and the rest
-arrive with the mechanics that read them, not before.
+`TileState` and `PlayerState` carry only fields a built mechanic reads. Room
+membership is derived rather than stored (`RoomInstance`, ADR-0027); state
+arrives with the mechanic that reads it, not before. `TriggerState` is the most
+recent addition (ADR-0102) and shows the rule working in the other direction: a
+flag bank that only a trigger *reader* would need was still added, because an
+action record writes a flag a later condition reads, so two worlds disagreeing
+about one will diverge — even though trigger execution itself is not built.
