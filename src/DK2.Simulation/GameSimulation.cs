@@ -87,12 +87,14 @@ public sealed class GameSimulation
         _context.Tick = World.CurrentTick;
         _context.Input = input;
 
-        LastTriggerRun = _triggers.Run(unchecked((int)World.CurrentTick.Value));
+        // DK2's first game turn is 1; our next-tick clock starts at 0.
+        int dk2Turn = unchecked((int)(World.CurrentTick.Value + 1));
+        LastTriggerRun = _triggers.Run(dk2Turn);
 
         foreach (ISimulationSystem system in _systems)
             system.Execute(_context);
 
-        _triggerEmitter?.Emit(World.CurrentTick, World.Triggers, _triggers.Tree);
+        _triggerEmitter?.Emit(dk2Turn, World.Triggers, _triggers.Tree);
 
         World.CurrentTick = World.CurrentTick.Next;
     }

@@ -27,11 +27,10 @@ public sealed class TriggerTree
     private readonly Dictionary<ushort, TriggerRecord> _conditions = [];
     private readonly Dictionary<ushort, TriggerRecord> _actions = [];
 
-    public TriggerTree(IEnumerable<TriggerRecord> records, ushort rootTriggerId, byte rootRepeat)
+    public TriggerTree(IEnumerable<TriggerRecord> records, ushort rootTriggerId)
     {
         Records = records?.ToArray() ?? throw new ArgumentNullException(nameof(records));
         RootTriggerId = rootTriggerId;
-        RootRepeat = rootRepeat;
 
         foreach (TriggerRecord record in Records)
         {
@@ -48,6 +47,9 @@ public sealed class TriggerTree
 
         FirstCondition = Records.FirstOrDefault(r => r.Tag == 213);
         FirstAction = Records.FirstOrDefault(r => r.Tag == 214);
+        // DK2 copies the resolved root condition's own repeat byte here.
+        // Resolve also preserves its first-condition fallback for a missing id.
+        RootRepeat = Resolve(unchecked((short)rootTriggerId))?.RepeatCount ?? 0;
     }
 
     public IReadOnlyList<TriggerRecord> Records { get; }
@@ -94,12 +96,15 @@ public sealed class TriggerExecutor
         return new TriggerRunResult(blocked);
     }
 
-    /// <summary>External active-bit path; re-arming a condition forces its repeat byte to one.</summary>
+    /// <summary>
+    /// External active-bit path: disabling zeros repeat; re-arming a condition sets it to one.
+    /// </summary>
     public void SetActive(short triggerId, bool active)
     {
         TriggerRecord record = (_tree?.Resolve(triggerId))
             ?? throw new ArgumentOutOfRangeException(nameof(triggerId), triggerId, "Trigger id zero has no record.");
-        _state.SetRecordActive(record, active, rearmCondition: active && record.Tag == 213);
+        byte? repeat = active && record.Tag == 213 ? (byte)1 : !active ? (byte)0 : null;
+        _state.SetRecordActive(record, active, repeat);
     }
 
     private void Walk(short id, byte inheritedRepeat, int currentTick, List<BlockedTrigger> blocked)
@@ -129,7 +134,7 @@ public sealed class TriggerExecutor
                 {
                     descend = true;
                     if (inheritedRepeat == 1)
-                        _state.SetRecordActive(record, active: false, rearmCondition: false);
+                        _state.SetRecordActive(record, active: false, repeat: null);
                 }
                 else
                 {

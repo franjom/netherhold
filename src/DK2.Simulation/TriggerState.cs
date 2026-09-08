@@ -327,13 +327,13 @@ public sealed class TriggerState
         _records[(record.Tag, record.TriggerId)].Repeat;
 
     internal void SetRecordActive(
-        DK2.Data.Model.TriggerRecord record, bool active, bool rearmCondition)
+        DK2.Data.Model.TriggerRecord record, bool active, byte? repeat)
     {
         TriggerRecordState value = _records[(record.Tag, record.TriggerId)];
         _records[(record.Tag, record.TriggerId)] = value with
         {
             Active = active,
-            Repeat = rearmCondition ? (byte)1 : value.Repeat,
+            Repeat = repeat ?? value.Repeat,
         };
     }
 

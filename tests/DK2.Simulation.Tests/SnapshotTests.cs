@@ -64,7 +64,17 @@ public class SnapshotTests
                 ["FlagId"] = 3, ["Flag"] = 0x12, ["Value"] = 1,
             },
         };
-        var tree = new TriggerTree([action], 0xFFFF, rootRepeat: 1);
+        TriggerRecord condition = new GenericTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = 1, Type = 1, RepeatCount = 1,
+            ChildTriggerId = 0xFFFF,
+            Parameters = new Dictionary<string, long>
+            {
+                ["Comparison"] = 3, ["FlagId"] = 0, ["Flag"] = 1,
+                ["IndirectFlagId"] = 0, ["Value"] = 0,
+            },
+        };
+        var tree = new TriggerTree([condition, action], 1);
         var original = new GameSimulation(database, TestWorld.World(database), 1, triggers: tree);
         original.Tick();
 

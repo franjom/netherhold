@@ -17,7 +17,7 @@ public class TriggerExecutorTests
     {
         var state = new TriggerState();
         state.Write(3, FlagWriteMode.Assign, initial);
-        new TriggerExecutor(new TriggerTree([Action(1, 3, mode, operand)], 0xFFFF, 2), state).Run(9);
+        new TriggerExecutor(new TriggerTree([Action(1, 3, mode, operand)], 0xFFFF), state).Run(9);
         Assert.Equal(expected, state.Read(3));
     }
 
@@ -26,7 +26,7 @@ public class TriggerExecutorTests
     {
         var state = new TriggerState();
         state.Write(9, FlagWriteMode.Assign, 77);
-        new TriggerExecutor(new TriggerTree([Action(1, 3, 0x08, 9)], 0xFFFF, 2), state).Run(1);
+        new TriggerExecutor(new TriggerTree([Action(1, 3, 0x08, 9)], 0xFFFF), state).Run(1);
         Assert.Equal(77, state.Read(3));
     }
 
@@ -34,7 +34,7 @@ public class TriggerExecutorTests
     public void FlagOperandIsTruncatedToItsLowByte()
     {
         var state = new TriggerState();
-        new TriggerExecutor(new TriggerTree([Action(1, 3, 0x0A, 0x1234)], 0xFFFF, 2), state).Run(1);
+        new TriggerExecutor(new TriggerTree([Action(1, 3, 0x0A, 0x1234)], 0xFFFF), state).Run(1);
         Assert.Equal(0x34, state.Read(3));
     }
 
@@ -48,7 +48,7 @@ public class TriggerExecutorTests
             ["Comparison"] = 4, ["FlagId"] = 3, ["Flag"] = 1,
             ["IndirectFlagId"] = 0, ["Value"] = 0,
         });
-        new TriggerExecutor(new TriggerTree([action], 0xFFFF, 2), state).Run(1);
+        new TriggerExecutor(new TriggerTree([action], 0xFFFF), state).Run(1);
 
         Assert.Equal(255, state.Read(3));
         Assert.Equal(
@@ -68,7 +68,7 @@ public class TriggerExecutorTests
         TriggerRecord parent = Action(1, 3, 0x12, 1, child: 0xFFFE);
         TriggerRecord child = Action(2, 4, 0x12, 1);
         var executor = new TriggerExecutor(
-            new TriggerTree([condition, parent, child], rootTriggerId: 1, rootRepeat: 2), state);
+            new TriggerTree([condition, parent, child], rootTriggerId: 1), state);
 
         executor.Run(5);
         executor.Run(6);
@@ -87,7 +87,7 @@ public class TriggerExecutorTests
             ["IndirectFlagId"] = 0, ["Value"] = 0,
         });
         TriggerRecord child = Action(1, 2, 0x12, 1);
-        new TriggerExecutor(new TriggerTree([inactive, child], 1, 2), state).Run(1);
+        new TriggerExecutor(new TriggerTree([inactive, child], 1), state).Run(1);
         Assert.Equal(0, state.Read(2));
     }
 
@@ -95,7 +95,7 @@ public class TriggerExecutorTests
     public void ZeroRootIdEndsTheChain()
     {
         var state = new TriggerState();
-        new TriggerExecutor(new TriggerTree([Action(1, 2, 0x12, 1)], 0, 1), state).Run(1);
+        new TriggerExecutor(new TriggerTree([Action(1, 2, 0x12, 1)], 0), state).Run(1);
         Assert.Equal(0, state.Read(2));
     }
 
@@ -112,7 +112,7 @@ public class TriggerExecutorTests
         });
         TriggerRecord siblingChild = Action(2, 4, 0x12, 1);
         TriggerRunResult result = new TriggerExecutor(
-            new TriggerTree([blocked, child, sibling, siblingChild], 1, 2), state).Run(1);
+            new TriggerTree([blocked, child, sibling, siblingChild], 1), state).Run(1);
 
         Assert.Equal(new BlockedTrigger(213, 72, 1), Assert.Single(result.Blocked));
         Assert.Equal(0, state.Read(3));
@@ -123,15 +123,51 @@ public class TriggerExecutorTests
     public void TimerActionStampsTheCurrentTurn()
     {
         var state = new TriggerState();
-        new TriggerExecutor(new TriggerTree([Timer(1, 5)], 0xFFFF, 2), state).Run(27);
+        new TriggerExecutor(new TriggerTree([Timer(1, 5)], 0xFFFF), state).Run(27);
         Assert.Equal(27, state.ReadTimer(5));
+    }
+
+    [Fact]
+    public void FirstSimulationTurnStartsTimerAtOneRatherThanTheUnstartedSentinel()
+    {
+        GameDatabase db = TestWorld.Database();
+        var tree = new TriggerTree([Timer(1, 5)], 0xFFFF);
+        var sim = new GameSimulation(db, TestWorld.World(db), 1, triggers: tree);
+
+        sim.Tick();
+
+        Assert.Equal(1, sim.World.Triggers.ReadTimer(5));
+        Assert.True(sim.World.Triggers.IsStarted(5));
+    }
+
+    [Fact]
+    public void RootRepeatComesFromResolvedRootIncludingFirstRecordFallback()
+    {
+        TriggerRecord first = Condition(3, repeat: 255, child: 0, next: 0, FlagEqualsZero());
+        var tree = new TriggerTree([first], rootTriggerId: 99);
+        Assert.Equal(255, tree.RootRepeat);
+    }
+
+    [Fact]
+    public void ExternalDisableZerosTheRuntimeRepeatByte()
+    {
+        TriggerRecord repeating = Condition(1, repeat: 255, child: 0, next: 0, FlagEqualsZero());
+        var disabledState = new TriggerState();
+        var executor = new TriggerExecutor(new TriggerTree([repeating], 1), disabledState);
+        executor.SetActive(1, active: false);
+
+        TriggerRecord authoredInactive = Condition(1, repeat: 0, child: 0, next: 0, FlagEqualsZero());
+        var zeroState = new TriggerState();
+        _ = new TriggerExecutor(new TriggerTree([authoredInactive], 1), zeroState);
+
+        Assert.Equal(StateHash(zeroState), StateHash(disabledState));
     }
 
     [Fact]
     public void TickRunsTriggersAndEmitsTheProbeHeaderAndOneRow()
     {
         GameDatabase db = TestWorld.Database();
-        var tree = new TriggerTree([Action(1, 3, 0x0A, 7)], 0xFFFF, 2);
+        var tree = new TriggerTree([Action(1, 3, 0x0A, 7)], 0xFFFF);
         var sim = new GameSimulation(db, TestWorld.World(db), 1, triggers: tree);
         var output = new StringWriter();
         sim.EmitTriggerTurnsTo(output);
@@ -143,7 +179,7 @@ public class TriggerExecutorTests
         Assert.Equal(150, lines[0].Split(',').Length);
         Assert.Equal(150, lines[1].Split(',').Length);
         Assert.Equal("", lines[1].Split(',')[0]);
-        Assert.Equal("0", lines[1].Split(',')[1]);
+        Assert.Equal("1", lines[1].Split(',')[1]);
         Assert.Equal(7, sim.World.Triggers.Read(3));
     }
 
@@ -173,4 +209,17 @@ public class TriggerExecutorTests
             Body = new byte[8], TriggerId = id, Type = parameters.Count == 0 ? (byte)72 : (byte)1,
             RepeatCount = repeat, ChildTriggerId = child, NextTriggerId = next, Parameters = parameters,
         };
+
+    private static Dictionary<string, long> FlagEqualsZero() => new()
+    {
+        ["Comparison"] = 3, ["FlagId"] = 0, ["Flag"] = 1,
+        ["IndirectFlagId"] = 0, ["Value"] = 0,
+    };
+
+    private static ulong StateHash(TriggerState state)
+    {
+        DK2.Core.Hash64 hash = DK2.Core.Hash64.Start();
+        state.HashInto(ref hash);
+        return hash.Value;
+    }
 }

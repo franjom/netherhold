@@ -37,6 +37,41 @@ public class TriggerExecutorOnRealDataTests
         Assert.Equal(a.StateHash(), b.StateHash());
     }
 
+    [InstallFact]
+    public void EveryShippedIndirectFlagActionExecutesItsDecodedOperand()
+    {
+        string install = Dk2InstallGate.Path;
+        string maps = Path.Combine(install, "Data", "editor", "maps");
+        TriggerRecord[] indirect = Directory.EnumerateFiles(maps, "*Triggers.kld")
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .SelectMany(file => GameDatabaseLoader.LoadCampaignTriggers(
+                install, Path.GetFileName(file)[..^"Triggers.kld".Length]) ?? [])
+            .Where(r => r.Tag == 214 && r.Type == 7 && (r.Parameters["Flag"] & 0x02) == 0)
+            .ToArray();
+
+        Assert.Equal(4, indirect.Length);
+        foreach (TriggerRecord action in indirect)
+        {
+            TriggerRecord isolated = new ActionTriggerRecord(new byte[16])
+            {
+                Body = action.Body, TriggerId = action.TriggerId, Type = action.Type,
+                RepeatCount = action.RepeatCount, Parameters = action.Parameters,
+            };
+            var state = new TriggerState();
+            byte target = (byte)action.Parameters["FlagId"];
+            byte source = unchecked((byte)action.Parameters["Value"]);
+            state.Write(target, FlagWriteMode.Assign, 5);
+            if (source != target) state.Write(source, FlagWriteMode.Assign, 23);
+            int operand = state.Read(source);
+            byte mode = (byte)action.Parameters["Flag"];
+
+            new TriggerExecutor(new TriggerTree([isolated], isolated.TriggerId), state).Run(1);
+
+            int expected = (mode & 0x08) != 0 ? operand : unchecked((byte)(5 + operand));
+            Assert.Equal(expected, state.Read(target));
+        }
+    }
+
     private static (GameSimulation Simulation, TriggerTree Tree) LevelOne(ulong seed)
     {
         string install = Dk2InstallGate.Path;
@@ -47,7 +82,7 @@ public class TriggerExecutorOnRealDataTests
         byte[] players = GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!
             .Select(p => p.PlayerId).ToArray();
         WorldState world = WorldState.FromMap(database, map, players);
-        var tree = new TriggerTree(records, level.TriggerId, rootRepeat: 1);
+        var tree = new TriggerTree(records, level.TriggerId);
         return (new GameSimulation(database, world, seed, triggers: tree), tree);
     }
 }
