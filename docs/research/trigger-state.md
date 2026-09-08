@@ -213,14 +213,62 @@ arithmetic signature of one missing multiply by variable 19 and not of noise.
 Timer 2's stamp moved 153 ticks between the two runs; the seconds model has no
 free parameter and tracked it.
 
-Twelve further predictions agree by silence. Condition 41 (`timer15 >= 150`)
-must have written flags 34 to 40 at tick 160 under the ticks reading; condition
-32 (`timer1 >= 80`) must have written flags 30 to 33 at tick 260. Neither did,
-anywhere in 476 ticks, and under seconds both fall outside the capture. Every
-gate between those conditions and those writes is a `flag0 == 0` test, and
-flag0 read 0 at both ticks in the capture itself. One gate above them is a
-type-31 condition against 6000, probably a gold test, which the reader does not
-observe — so this evidence is corroborating rather than decisive.
+**A claim that stood here is withdrawn.** It said twelve further predictions
+agreed by silence, and that "every gate between those conditions and those
+writes is a `flag0 == 0` test, and flag0 read 0 at both ticks". That was read
+off **byte 03 of the flag condition, which is the indirect operand and is zero
+in 1374 of 1375 shipped records** — so every gate looked like flag 0 and none
+of them was checked at all. The correct byte is 01 (see §5a). The conclusion
+happened to be right; the argument for it was not, and two 300-second captures
+have since replaced it with direct measurements that need no gate analysis.
+
+### Runs 3 and 4: a chain, an exact stamp, and a disagreement about *which* flag
+
+Two 300-second captures put far more of the cascade inside the window.
+Thirteen direct measurements now stand across four runs, **every one with a
+residual of exactly +1 tick, and none for ticks**. Three are worth naming.
+
+**A chain.** Condition 41 (`timer15 >= 150`) starts timer 5; condition 153
+(`timer5 >= 40`) then writes flag 40. In run 3 cond 41 was predicted at tick
+608 and timer 5 was stamped at 609; cond 153 was then predicted at 768 and flag
+40 appeared at 769. The second prediction is only right *because* the first
+was — under the ticks reading timer 5 would have been stamped at 158 and flag
+40 written at 198.
+
+**An exact stamp, with no sampling lag at all.** A timer records the tick it was
+set at, so unlike a flag it is not observed late. In run 4, timer 15 was stamped
+at 11, so cond 41 predicts timer 5's stamp at `11 + 150 * 4 = 611`. The stored
+value is **611**. Residual zero. The ticks reading gives 161.
+
+**And the models disagree about which flag, not just when.** Condition 10
+(`timer15 >= 8`) has two child branches — with byte 01 read correctly, they are
+`flag0 == 0` and `flag1 == 1` — so whether flag 1 gets written depends on flag
+0's value at the moment cond 10 fires, and flag 0 changes during the run:
+
+| run | timer15 stamp | ticks fires at | flag0 then | ticks predicts | seconds fires at | flag0 then | seconds predicts | observed |
+|---|---:|---:|---:|---|---:|---:|---|---|
+| 2 | 10 | 18 | 0 | writes flag 1 | 42 | 0 | writes flag 1 | written |
+| 3 | 8 | 16 | 0 | writes flag 1 | 40 | 1 | no write | **not written** |
+| 4 | 11 | 19 | 0 | writes flag 1 | 43 | 1 | no write | **not written** |
+
+Two runs where the ticks reading requires a flag to be written and it was not.
+That is a qualitative refutation, not a timing one.
+
+### The load-time multiply, watched rather than argued
+
+Run 4 read the condition array straight out of the running game after the level
+was up: **356 conditions and 326 actions**, matching level 1's `.kld` exactly,
+and **all 22 timer thresholds stored as the authored value times four** — id 10
+holds 32 for an authored 8, id 41 holds 600 for 150, id 157 holds 840 for 210.
+Q233 is confirmed by observation, not only by the disassembly below.
+
+### What the tick rate does over five minutes
+
+Steady state is **3.93 to 3.95 ticks/s (253 to 254 ms)** in both 300-second
+runs. Run 4's first 60 seconds ran at 3.687 and every later window at ~3.93, so
+the opening of a fresh level is slower and the rest is flat; the worst single
+interval in 300 s was 335 ms. Nothing here is a stall, and the few ms above 250
+track the host rather than the design, so the simulation keeps 250 ms exactly.
 
 ### The two readings are compatible, at different layers
 
@@ -285,6 +333,33 @@ covered and was filtered to a 0x2600-byte window; the creature-context
 dispatcher `FUN_0049AC80` was already on a list of functions that reference
 var19 *and* call the clock, and sits outside that window. A scan proves nothing
 outside its range.
+
+### 5a. A flag condition names its flag in byte 01
+
+The handler at `0x0051845B`:
+
+```
+0051845f  MOV  DL,CH                              ; byte 01
+00518471  MOV  BL,byte ptr [EBP + ESI + 0x3f70]   ; flags[byte 01] -- the subject
+0051847f  CMP  EBP,0x80                           ; ... unless it is the special id
+005184ab  TEST DL,0x1                             ; byte 02, low bit
+005184b0  MOV  EAX,dword ptr [EAX + 0x4]          ;   set   -> the immediate at +4
+005184b7  MOV  AL,byte ptr [ECX + ESI + 0x3f70]   ;   clear -> flags[byte 03]
+```
+
+So byte 01 is the flag id, byte 02's low bit selects the operand, and byte 03 is
+the **indirect** flag — the same shape as the timer condition, whose byte 01 was
+corrected earlier. **The reader had this on byte 03 and every test still
+passed**, because byte 03 is zero in 1374 of 1375 shipped records. Corrected in
+`KwdAdditionalRecords`, and pinned by a test written to fail under the old
+reading: byte 01 yields **91 distinct flag ids** across the campaign against
+byte 03's two.
+
+**Indirect flag mode is live, with a population of one.** Exactly one shipped
+record has byte 02's low bit clear — **level 3, trigger 18: `flag 3 > flag 4`,
+repeating** — and it is the same record that has a non-zero byte 03. If the
+decode were wrong those two facts would have no reason to coincide. A condition
+evaluator that only compares against an immediate cannot run level 3.
 
 ### Timer id 16 is not a timer
 
@@ -426,7 +501,10 @@ Every comparison code in the corpus is one of the six the routine at
 | A stamp of 0 means "not started" | **Strongly inferred** | `TEST EAX,EAX; JZ` before any comparison |
 | The clock counts ticks, 250 ms each | **Known** (observed) | `now % var19 == 0` is the once-a-second gate (ADR-0089), and the counter was read live at 3.94 ticks/s with var19 = 4 |
 | A stamp in the timer bank is a tick count | **Known** (observed) | five timers caught being stamped across two runs, each holding exactly the tick it was set at |
-| Authored thresholds are in **seconds** | **Known** (observed) | two live captures of campaign level 1, matched flag by flag; residual constant under seconds, `3 x threshold + 1` under ticks |
+| Authored thresholds are in **seconds** | **Known** (observed) | four live captures; 13 direct measurements, residual exactly +1 every time and none for ticks; two runs where the ticks reading requires a flag that was never written |
+| The stored threshold is the authored value x variable 19 | **Known** (observed) | all 22 of level 1's type-2 thresholds read out of the running game as authored x4 |
+| A flag condition's flag is byte 01; byte 03 is the indirect operand | **Known** | handler at `0x0051845B`; 91 distinct ids on byte 01 against 2 on byte 03 |
+| Indirect flag mode is used once in the campaign | **Known** | level 3 trigger 18, `flag 3 > flag 4`, the only record with byte 02 bit 0 clear |
 | The in-memory threshold is in ticks, converted at load | **Known** | `0x0050C2DB` multiplies `record+4` by variable 19 in place, for condition types 2 and 34 and action types 16 and 23 (Q233) |
 | `+0x7308` is the condition array and `+0x730C` the action array | **Known** | both walked at `0x0050C2DB` with a 20-byte stride and counts at `+0x7314` / `+0x7318` |
 | `+0x731A` is the root trigger's repeat count | **Strongly inferred** | copied from byte `+0xF` of the root record, which is `RepeatCount` in the file layout |

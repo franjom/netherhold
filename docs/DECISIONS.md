@@ -8065,3 +8065,52 @@ condition array; and `+0x731A` is the root trigger record's `RepeatCount`,
 copied from byte `+0xF` of the record the root id resolves to. The in-memory
 record is the 16-byte `.kld` payload verbatim plus four runtime bytes whose
 purpose is UNKNOWN.
+
+### Amendment, 2026-09-08 (later) — watched in the running game, and one more byte was on the wrong field
+
+**Q233 confirmed by observation.** The condition array was read out of the
+running game with level 1 up: **356 conditions and 326 actions**, matching the
+`.kld` exactly, and **all 22 timer thresholds stored as the authored value
+times four**. Id 10 holds 32 for an authored 8; id 41 holds 600 for 150; id 157
+holds 840 for 210. The load-time multiply is no longer an inference.
+
+**The seconds reading now rests on 13 direct measurements** across four
+captures, every residual exactly `+1` tick and none for ticks. Two of them are
+qualitatively stronger than a timing match:
+
+- **A chain.** Condition 41 starts timer 5, and condition 153 on timer 5 writes
+  flag 40. Predicted at ticks 608 and 768; observed at 609 and 769. The second
+  is only right because the first was.
+- **A disagreement about *which* flag.** Condition 10's branches are
+  `flag0 == 0` and `flag1 == 1`, and flag 0 changes during a run. In two
+  captures the ticks reading requires flag 1 to be written and it never was.
+
+**A claim in the research doc is withdrawn**, and the reason is a second byte on
+the wrong field. The "twelve predictions agreeing by silence, with every gate a
+`flag0 == 0` test" argument was read off **byte 03 of the flag condition, which
+is the indirect operand and is zero in 1374 of 1375 shipped records** — so every
+gate looked like flag 0 and none was really checked. The conclusion was right
+and the argument was not; the 300-second captures replaced it with direct
+measurements that need no gate analysis.
+
+**Type 1's byte layout is corrected in `KwdAdditionalRecords`**, from the
+handler at `0x0051845B`: byte 01 is the flag id (indexed into `+0x3F70`), byte
+02's low bit selects the operand — set means the immediate at `+4`, clear means
+`flags[byte 03]` — and byte 03 is the indirect flag. This is the **same
+correction already applied to type 2**, missed because only type 2 was
+re-checked when that one was found. Pinned by a test written to fail under the
+old reading: byte 01 yields 91 distinct flag ids across the campaign, byte 03
+yields two.
+
+**And that turned up a live mechanism with a population of one.** Exactly one
+shipped record has byte 02's low bit clear — **level 3, trigger 18:
+`flag 3 > flag 4`, repeating** — and it is the same record with a non-zero byte
+03, which is why the decode is not a coincidence. **A condition evaluator that
+only compares against an immediate cannot run level 3.** Recorded as a
+requirement, since nothing evaluates conditions yet.
+
+**Timing, from two 300-second runs:** steady state is 3.93 to 3.95 ticks/s
+(253 to 254 ms). The opening ~60 s of a fresh level runs slower (3.69) and
+everything after is flat; worst single interval in 300 s was 335 ms. The few ms
+above 250 track the host, so the simulation keeps 250 ms exactly and ADR-0089
+stands on three independent measurements.

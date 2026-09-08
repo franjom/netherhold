@@ -63,12 +63,13 @@ public class TriggerStateOnRealDataTests
             if (record.Parameters.TryGetValue("FlagId", out long flag)) flagIds.Add(flag);
 
             // WHICH BYTE IS THE TIMER INDEX MATTERS, and the external names had
-            // it on the wrong one. The condition's index is byte 01 - the field
-            // the reader still calls `TargetId` - because that is the byte the
-            // handler compares against 0x10 and then uses to index the bank
-            // (0x005184EB, 0x0051851A). Byte 03, which the reader calls
-            // `TimerId`, is the INDIRECT operand's timer and is 0 in all 303
-            // shipped records because no shipped level uses indirect mode.
+            // it on the wrong one. The condition's index is byte 01 - which the
+            // reader now calls `TimerId` - because that is the byte the handler
+            // compares against 0x10 and then uses to index the bank
+            // (0x005184EB, 0x0051851A). Byte 03, now `IndirectTimerId`, is the
+            // indirect operand's timer and is 0 in all 303 shipped records
+            // because no shipped level uses indirect TIMER mode. (Indirect
+            // FLAG mode is used - exactly once, see below.)
             if (record.Tag == 213 && record.Type == 2
                 && record.Parameters.TryGetValue("TimerId", out long tested))
                 testedTimers.Add(tested);
@@ -106,6 +107,105 @@ public class TriggerStateOnRealDataTests
         // And EVERY action type 23 record names the sentinel, which is what
         // makes it a live mechanism rather than a curiosity (Q232).
         Assert.Equal(new[] { (long)TriggerState.SpecialTimerId }, type23Timers.ToArray());
+    }
+
+    /// <summary>
+    /// <b>A flag condition reads the flag named by byte 01, not byte 03.</b>
+    /// This test exists because the reader had it on the wrong byte and every
+    /// other test still passed: byte 03 is zero in 1374 of 1375 shipped
+    /// records, so a sweep keyed on it saw one flag id and called it fine.
+    ///
+    /// <para>The handler at <c>0x0051845B</c> takes byte 01 into <c>DL</c> via
+    /// <c>MOV DL,CH</c> and indexes the flag bank with it
+    /// (<c>MOV BL,[EBP + ESI + 0x3F70]</c>). Byte 03 is the operand of the
+    /// indirect form and is only read when byte 02's low bit is clear. The same
+    /// shape as the timer condition, whose byte 01 was corrected earlier — this
+    /// one was missed because only type 2 was re-checked.</para>
+    ///
+    /// <para>Written to <b>fail under the old reading</b>: byte 03 yields a
+    /// single distinct value across the corpus, byte 01 yields dozens.</para>
+    /// </summary>
+    [InstallFact]
+    public void AFlagConditionNamesItsFlagInByteOne()
+    {
+        string install = Install();
+
+        var read = new SortedSet<long>();
+        var indirect = new SortedSet<long>();
+        int records = 0;
+
+        foreach (TriggerRecord record in AllTriggers(install))
+        {
+            if (record.Tag != 213 || record.Type != 1) continue;
+            records++;
+            if (record.Parameters.TryGetValue("FlagId", out long f)) read.Add(f);
+            if (record.Parameters.TryGetValue("IndirectFlagId", out long i)) indirect.Add(i);
+        }
+
+        Assert.Equal(1375, records);
+
+        // The discriminating assertion. Byte 03 is 0 or 4 across the whole
+        // campaign; byte 01 ranges over most of the bank.
+        Assert.True(
+            read.Count > 50,
+            $"byte 01 yielded only {read.Count} distinct flag ids ({string.Join(",", read)}); "
+            + "that is the signature of reading the indirect byte instead");
+        Assert.Equal(91, read.Count);
+        Assert.Equal(0, read.Min);
+
+        // Including the special id, which the handler tests for explicitly
+        // (CMP EBP,0x80) rather than indexing with.
+        Assert.Equal(TriggerState.SpecialFlagId, read.Max);
+
+        Assert.Equal(new long[] { 0, 4 }, indirect.ToArray());
+    }
+
+    /// <summary>
+    /// <b>One shipped record compares a flag against another flag</b>, and it
+    /// is the only one in the campaign — so indirect flag mode is a live
+    /// mechanism with a population of one, not a dead branch.
+    ///
+    /// <para>Byte 02's low bit selects the operand: set means the immediate at
+    /// <c>+4</c> (<c>MOV EAX,[EAX+0x4]</c>), clear means
+    /// <c>flags[byte 03]</c> (<c>MOV AL,[ECX + ESI + 0x3F70]</c>). Exactly one
+    /// record in 1375 has that bit clear, and it is the same record that has a
+    /// non-zero byte 03. If the decode were wrong those two facts would have no
+    /// reason to coincide.</para>
+    ///
+    /// <para><b>Consequence:</b> a condition evaluator that only supports
+    /// comparison against an immediate cannot run level 3. Nothing evaluates
+    /// conditions yet, so this is a requirement recorded rather than a bug.</para>
+    /// </summary>
+    [InstallFact]
+    public void ExactlyOneShippedConditionComparesTwoFlags()
+    {
+        string install = Install();
+
+        var indirectRecords = new List<(string Level, TriggerRecord Record)>();
+
+        foreach (string level in LevelNames(install))
+        {
+            foreach (TriggerRecord record in
+                     GameDatabaseLoader.LoadCampaignTriggers(install, level) ?? [])
+            {
+                if (record.Tag != 213 || record.Type != 1) continue;
+                if (!record.Parameters.TryGetValue("Flag", out long mode)) continue;
+                if ((mode & 1) == 0) indirectRecords.Add((level, record));
+            }
+        }
+
+        (string Level, TriggerRecord Record) only = Assert.Single(indirectRecords);
+
+        Assert.Equal("level3", only.Level);
+        Assert.Equal(18, only.Record.TriggerId);
+
+        // flag 3 > flag 4, repeating. Comparison 4 is signed '>' (0x00519980).
+        Assert.Equal(4, only.Record.Parameters["Comparison"]);
+        Assert.Equal(3, only.Record.Parameters["FlagId"]);
+        Assert.Equal(4, only.Record.Parameters["IndirectFlagId"]);
+
+        // And the immediate is unused in this mode, which is why it is zero.
+        Assert.Equal(0, only.Record.Parameters["Value"]);
     }
 
     /// <summary>

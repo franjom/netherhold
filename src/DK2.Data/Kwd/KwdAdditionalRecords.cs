@@ -245,7 +245,14 @@ public static class KwdTriggers
         void S(string name, int at) => p[name] = KwdAdditionalRecords.I32(r, at);
         void Unread() { S("Unreached_0000", 0); S("Unreached_0004", 4); }
 
-        if (type == 1) { B("Comparison", 0); B("TargetId", 1); B("Flag", 2); B("FlagId", 3); S("Value", 4); }
+        // Byte 1 is the flag read, byte 3 the flag compared against. Read off
+        // the handler at 0x0051845B: MOV DL,CH takes byte 1 and indexes the
+        // flag bank with it (MOV BL,[EBP + ESI + 0x3F70]), while byte 2 bit 0
+        // selects the operand -- set means the immediate at +4, clear means
+        // flags[byte 3] (MOV AL,[ECX + ESI + 0x3F70]). Identical in shape to
+        // type 2, whose byte 1/byte 3 pair was corrected earlier; this one was
+        // missed because only type 2 was checked.
+        if (type == 1) { B("Comparison", 0); B("FlagId", 1); B("Flag", 2); B("IndirectFlagId", 3); S("Value", 4); }
         else if (type == 2) { B("Comparison", 0); B("TimerId", 1); B("Flag", 2); B("IndirectTimerId", 3); S("Value", 4); }
         else if (type is 3 or 4 or 6 or 8 or 10 or 12 or 13 or 16 or 33 or 43 or 46 or 56 or 57 or 58 or 59 or 60 or 61 or 65 or 72) Unread();
         else if (type is 19 or 20 or 21) { B("Comparison", 0); B("CreatureId", 1); W("Unreached_0002", 2); S("Value", 4); }
