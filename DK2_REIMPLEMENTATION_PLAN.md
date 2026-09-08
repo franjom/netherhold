@@ -1065,7 +1065,7 @@ yet been exercised on GitHub-hosted Linux, which is the run that turns the pinne
 hash into a genuine cross-platform claim.
 
 M3 has started and is marked partial. Its terrain half is done: dig, mine,
-claim, reinforce, repair, attack and fill-in are implemented as one uniform
+claim, reinforce, repair and attack are implemented as one uniform
 data-driven rule, along with dig markers and the first real player command, and
 they are exercised against the real game's data. Evidence and the three
 anomalies the data throws up: `docs/research/tile-work.md`.
