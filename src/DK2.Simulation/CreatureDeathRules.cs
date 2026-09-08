@@ -7,70 +7,18 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>
-/// Dying, which in DK2 is a process with two timers rather than an event —
-/// CONFIRMED by the owner (Q99, 2026-09-04).
-///
-/// <para>The owner's description, which this file implements the first half of:
-/// <i>"when a creature drops, its petals on the flower above its head are
-/// exhausted, it remains lying on the ground for a period of time, that gives
-/// imps an opportunity to return a creature to its bed in the lair for healing,
-/// or to prison if it is an enemy creature. Once that timer runs out a creature
-/// dies and its corpse remains there lying, that gives imps an opportunity to
-/// carry it to graveyard. If that timer runs out and no one carries the corpse
-/// it just disappears."</i></para>
-///
-/// <para><b>Both timers are in the shipped data, and both are 60 seconds.</b>
-/// This is the answer landing exactly on two variables that were already parsed
-/// and had nothing reading them:</para>
-///
-/// <list type="table">
-/// <item><term><c>CreatureDyingStateDurationSeconds</c> (26) = 60</term>
-/// <description>how long the collapsed creature lies there rescuable</description></item>
-/// <item><term><c>DeadBodyDiesAfterSeconds</c> (23) = 60</term>
-/// <description>how long its corpse lies there carryable</description></item>
-/// </list>
-///
-/// <para>Two independently-named variables with the same value is the kind of
-/// coincidence that would have made one of them look redundant. The owner's
-/// answer says they are two different clocks on two different things, which is
-/// why <see cref="BodyWindowTicks"/> is defined here and deliberately unused —
-/// see below.</para>
-///
-/// <para><b>Where the line is drawn: the dying creature is a creature, the
-/// corpse is not</b> (ADR-0051). A collapsed creature still has health, an
-/// owner, a tile and a bed, and the way it recovers is by being healed — so it
-/// stays in <see cref="WorldState.Creatures"/> and every rule that reads a
-/// creature keeps working on it. A corpse has none of those. In DK2 it is an
-/// <i>object</i>: it carries a <c>DecomposeValue</c> (200 for most, 0 for the
-/// undead), imps haul it the way they haul gold, and a graveyard counts
-/// <c>DecomposeValueNeededForVampire</c> (1000) of them to make a Vampire.
-/// The THINGS DeadBody payload now has a typed format, but no shipped instance
-/// corroborates it and M6 has not projected things into the world. Modelling a
-/// corpse as a fake creature would put a thing with no needs into the creature
-/// list, where every present and future system would have to remember to skip
-/// it. So the second timer is recorded and not implemented, and the death event
-/// names whether a body was owed.</para>
-    /// <para><b>CORRECTED 2026-09-04: a corpse is NOT an object.</b> The
-    /// sentence above — and ADR-0051, and <c>creature-death.md</c> — gave
-    /// "a corpse is an OBJECT, and OBJECTS is unparsed (M6)" as the cause of
-    /// this gap. The OBJECTS record is parsed now: <b>145 objects, and not one
-    /// of them is a corpse.</b> The nearest are decoration — Skeleton (48),
-    /// Skull (49), Bone (50) — and none carries a type flag.</para>
-    ///
-    /// <para>Everything else already pointed the same way: both timers are
-    /// <i>creature</i> variables, <c>DecomposeValue</c> is a <i>creature</i>
-    /// field, and the binary's per-creature dump carries
-    /// <c>HasBeenKnockedOut</c> and <c>DieInstantly</c>. <b>A corpse is a
-    /// creature in a state</b>, so a graveyard needs an imp task that carries a
-    /// creature whose dying window ran out — not a new record. See
-    /// <c>docs/research/objects.md</c> §4.</para>
-///
-/// <para><b>What this costs today, stated plainly:</b> a creature that dies
-/// vanishes at the end of the dying window instead of leaving a corpse for 60
-/// more seconds, so nothing accumulates toward a graveyard and no Vampire can
-/// ever be made. That is a known gap with a named cause, not an oversight.</para>
-/// </summary>
+/// <summary>Dying: in DK2 a process with two timers, not an event.</summary>
+/// <remarks>
+/// <para>Rule: a creature out of health collapses and lies there rescuable for
+/// <c>CreatureDyingStateDurationSeconds</c> (60), in which an imp may carry it
+/// to its own bed or, if an enemy, to a prison; then it dies and lies there as a
+/// corpse for <c>DeadBodyDiesAfterSeconds</c> (also 60), in which an imp may
+/// carry it to a graveyard; then it disappears. CONFIRMED (owner, Q99;
+/// ADR-0051, ADR-0063).</para>
+/// <para>A corpse is a creature in a state, not an object: none of the 145
+/// OBJECTS records is a corpse (docs/research/objects.md §4). Not implemented:
+/// what a graveyard does with its corpses, so no Vampire is made (Q165).</para>
+/// </remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-death.md")]
 public static class CreatureDeathRules
 {
@@ -84,83 +32,26 @@ public static class CreatureDeathRules
     /// Whether running out of health puts this creature on the floor at all, or
     /// simply ends it. <b>A creature that leaves no body has no dying state</b>
     /// — it vanishes on the spot.
-    ///
-    /// <para><b>CONFIRMED twice over, from two independent directions.</b> The
-    /// owner: <i>"imps are dead right away, they don't have a lying state."</i>
-    /// And OpenKeeper's <c>HealthSystem.processHealthDepleted</c> opens with
-    /// exactly this test before any unconscious handling:</para>
-    ///
-    /// <code>
-    /// // No body, just vanish from the world
-    /// if (!isLeaveDeadBody(entityId)) { ...remove(); return; }
-    /// </code>
-    ///
-    /// <para>...where <c>isLeaveDeadBody</c> reads the <c>GENERATE_DEAD_BODY</c>
-    /// flag and nothing else. So the same flag decides both halves, which is
-    /// coherent in a way worth saying out loud: <b>the dying state <i>is</i> a
-    /// body on the floor</b> — a live one. A creature that leaves nothing behind
-    /// when it dies had nothing to lie there in the first place.</para>
-    ///
-    /// <para>The owner's testimony covers the Imp; OpenKeeper generalises it to
-    /// all eight bodyless creatures. The other seven are Vampire, Skeleton,
-    /// Horny, Stone Knight, Unique Skeleton, Unique Vampire and Jack — a
-    /// summon, three undead, a construct and Jack, all of which vanishing on
-    /// the spot is unsurprising for.</para>
+    /// <para>CONFIRMED by the owner for the Imp, and generalised to all eight
+    /// bodyless creatures (<see cref="LeavesBody"/>) by OpenKeeper, whose
+    /// <c>HealthSystem.processHealthDepleted</c> tests
+    /// <c>GENERATE_DEAD_BODY</c> and nothing else before any unconscious
+    /// handling. One flag decides both halves, which is coherent: the dying
+    /// state <i>is</i> a body on the floor, a live one.</para>
     /// </summary>
     public static bool HasDyingState(CreatureDef creature) => LeavesBody(creature);
 
     /// <summary>
-    /// Whether this creature comes back — <see cref="CreatureFlags.CanBeResurrected"/>,
-    /// which is set on <b>exactly the two Vampires and nobody else</b> in the
-    /// shipped data.
-    ///
-    /// <para><b>Nothing reads this, and the reason is that reading it would
-    /// make vampires immortal.</b> The owner's rule (2026-09-04):</para>
-    ///
-    /// <para><i>"vampires also don't drop a body, they reincarnate at their
-    /// sarcophagus and sleep to recover, but they lose a level once they
-    /// reincarnate. If they were killed at level 1 they are permanently dead.
-    /// Exception to that rule for vampires are monks: if a monk kills a vampire
-    /// it is permanently dead, regardless of its level."</i></para>
-    ///
-    /// <para><b>One confirmation falls out of that, and one mistake was made
-    /// out of it.</b> The vampire having no dead body stops being an oddity:
-    /// there is no corpse because the creature is not finished. But this
-    /// comment used to add that the <i>sarcophagus is the vampire's lair
-    /// bed</i>, so that reincarnation would be <see cref="Rescue"/> with no imp
-    /// involved — and that was a pun on the word, not a finding. The owner
-    /// retracted the wording it rested on the same day: <i>"sarchopagus at the
-    /// graveyard, I made a wrong claim earlier."</i></para>
-    ///
-    /// <para><b>A vampire comes back at the Graveyard</b> (Q113, closed), and
-    /// the shipped data says so in two places that were never consulted while
-    /// the wrong claim stood: the <b>Graveyard's <c>CreatedCreatureId</c> is 8,
-    /// the Vampire</b> — one of only two rooms in the table that create a
-    /// creature, the other being the Prison's Skeleton — and the Graveyard's
-    /// object ids are <b>31-34</b> against the Vampire's <c>LairObjectId</c> of
-    /// <b>26</b>. Two different objects. The binary agrees about the vocabulary:
-    /// <c>Object.cpp</c>'s union names <c>Lair</c> and <c>TombStone</c>, and the
-    /// words <i>sarcophagus</i> and <i>coffin</i> appear nowhere in the
-    /// executable's strings (ADR-0046 — facts only). A bed is a <c>Lair</c>
-    /// object whatever art it wears.</para>
-    ///
-    /// <para>So the day this is implemented it needs a <b>Graveyard tile</b> to
-    /// put the creature on, not <see cref="Rescue"/> — which also makes the
-    /// wiki's third permanent-death condition (no Graveyard under your control)
-    /// corroborated rather than merely repeated.</para>
-    ///
-    /// <para><b>Why it stays unimplemented.</b> The cost of reincarnation is a
-    /// level, and levels do not exist. A vampire that reincarnated without
-    /// paying would come back for ever — the immortal Imp again, in a cape. And
-    /// the two ways it ends are both out of reach: level 1 needs levels, and
-    /// "a monk killed it" needs the killer's identity, which needs combat
-    /// (M7).</para>
-    ///
-    /// <para><b>So instant death is not a placeholder here — it is correct for
-    /// the world that currently exists.</b> With no levels, every creature is
-    /// level 1, and a level-1 vampire is permanently dead by the owner's own
-    /// rule. The behaviour is right; it will need this flag the day levels
-    /// arrive, and not before. Q111.</para>
+    /// Whether this creature comes back —
+    /// <see cref="CreatureFlags.CanBeResurrected"/>, on exactly the two Vampires.
+    /// <para>CONFIRMED by the owner (Q113): a vampire reincarnates at the
+    /// <b>Graveyard</b> and sleeps to recover, at the cost of one level; killed
+    /// at level 1, or by a monk, it is permanently dead. The data agrees — the
+    /// Graveyard's <c>CreatedCreatureId</c> is 8, the Vampire, and its object ids
+    /// 31-34 are not the Vampire's <c>LairObjectId</c> of 26, so reincarnation is
+    /// a Graveyard tile and not <see cref="Rescue"/>.</para>
+    /// <para>Not implemented (Q111): no simulation reader; the monk exception
+    /// needs the killer's identity, which needs combat.</para>
     /// </summary>
     public static bool CanBeResurrected(CreatureDef creature) =>
         creature.Flags.HasFlag(CreatureFlags.CanBeResurrected);
@@ -173,10 +64,6 @@ public static class CreatureDeathRules
     /// Whether this creature is dead and lying on the floor as a corpse — the
     /// second window, and the one an imp carries to a graveyard.
     ///
-    /// <para>A corpse is not alive and is not a thing: it is a creature in a
-    /// state, which is what took five sittings to establish because this project
-    /// had written "a corpse is an object" as the reason three mechanics were
-    /// blocked and nobody had checked it (docs/research/objects.md §4).</para>
     /// </summary>
     public static bool IsCorpse(CreatureState creature) =>
         creature.Activity == CreatureActivity.Dead;
@@ -185,28 +72,13 @@ public static class CreatureDeathRules
     /// Whether this creature is off its feet: out of health, or already in the
     /// dying window. <b>This, and not <see cref="IsDying"/>, is what every
     /// system guards on.</b>
-    ///
-    /// <para>The distinction is a tick of bookkeeping and it was a real bug.
-    /// <see cref="Systems.CreatureHealthSystem"/> books the collapse once a game
-    /// second, so between health reaching zero and the collapse being recorded
-    /// there is a window in which a creature has no health and is still
-    /// <see cref="CreatureActivity.Idle"/>. Guarding on <c>IsDying</c> alone let
-    /// things act in that window, and two of them did something absurd:</para>
-    ///
-    /// <list type="bullet">
-    /// <item>A creature at zero health standing near its bed decided it was
-    /// wounded enough to sleep (<c>CreatureSleepsWhenBelowPercentHealth</c>),
-    /// walked there, and healed — so it <b>never collapsed at all</b> and the
-    /// dying window was skipped whenever a bed was in reach.</item>
-    /// <item>An Imp at zero health on its own land regenerated its 67 a second
-    /// before the collapse was booked, so it climbed back to 500 and could not
-    /// be killed at home.</item>
-    /// </list>
-    ///
-    /// <para>Both were found by tests written for the second one. Guarding on
-    /// "has no health" rather than "has been marked as dying" closes the window
-    /// without needing the collapse to be instantaneous, which matters because
-    /// combat will subtract health per tick rather than per second.</para>
+    /// <para><see cref="Systems.CreatureHealthSystem"/> books the collapse once
+    /// a game second, leaving a window in which a creature has no health and is
+    /// still <see cref="CreatureActivity.Idle"/>. Guarding on <c>IsDying</c>
+    /// alone let a creature at zero health walk to its bed under
+    /// <c>CreatureSleepsWhenBelowPercentHealth</c> and heal, and let an Imp
+    /// regenerate 67 a second on its own land back to 500. Guarding on "has no
+    /// health" closes it without needing the collapse to be instantaneous.</para>
     /// </summary>
     public static bool IsDown(CreatureState creature) =>
         HasCollapsed(creature) || IsDying(creature);
@@ -224,14 +96,9 @@ public static class CreatureDeathRules
 
     /// <summary>
     /// How long a corpse lies there before it rots away —
-    /// <c>DeadBodyDiesAfterSeconds</c>, which is also <b>60</b>.
-    ///
-    /// <para><b>Called at last</b> (ADR-0063). It sat here uncalled for five
-    /// sittings, deliberately, so that the missing half of the mechanic was
-    /// missing visibly rather than being rediscovered from the variable table —
-    /// and the thing blocking it turned out not to be OBJECTS at all but the
-    /// absence of an imp task that carries a creature. See
-    /// <see cref="CarryRules"/>.</para>
+    /// <c>DeadBodyDiesAfterSeconds</c>, which is also <b>60</b>. The window an
+    /// imp has to carry it to a graveyard (ADR-0063,
+    /// <see cref="CarryRules"/>).
     /// </summary>
     public static int BodyWindowTicks(GameDatabase database) =>
         SimulationTiming.TicksFromSeconds(
@@ -249,15 +116,10 @@ public static class CreatureDeathRules
     /// Turns a collapsed creature into a corpse: the second state of the
     /// owner's pipeline, and the one that gives a graveyard something to be for.
     ///
-    /// <para><b>Only for creatures that leave a body.</b> An Imp is <i>"dead
-    /// right away"</i> and a Vampire reincarnates, so both skip this and are
-    /// removed outright — the flag that decides is
-    /// <see cref="LeavesBody"/>.</para>
-    ///
-    /// <para>The bed is released here rather than on collapse, which is the
-    /// whole reason a rescue has anywhere to carry the creature <i>to</i>: a
-    /// lair tile freed the moment its owner fell would be claimed by somebody
-    /// else while the owner lay on the floor.</para>
+    /// <para>Only for creatures that leave a body (<see cref="LeavesBody"/>): an
+    /// Imp and a Vampire skip this and are removed outright. The bed is released
+    /// here rather than on collapse, which is what gives a rescue somewhere to
+    /// carry the creature <i>to</i>.</para>
     /// </summary>
     public static void BecomeCorpse(
         WorldState world, GameDatabase database, CreatureState creature)
@@ -266,9 +128,8 @@ public static class CreatureDeathRules
 
         creature.Activity = CreatureActivity.Dead;
 
-        // A fresh sixty seconds. The corpse window and the rescue window share
-        // one field because they never run at once, so the clock has to be put
-        // back to zero at the seam or a corpse would inherit a spent one.
+        // A fresh sixty seconds: the corpse and rescue windows share one field,
+        // so a corpse would inherit a spent clock without this.
         creature.DyingTicks = 0;
 
         creature.TargetTileIndex = -1;
@@ -281,33 +142,14 @@ public static class CreatureDeathRules
     /// <summary>
     /// Whether this creature leaves a corpse behind —
     /// <see cref="CreatureFlags.GenerateDeadBody"/>.
-    ///
-    /// <para><b>Eight of the 46 leave nothing:</b> the Imp, Vampire, Skeleton,
-    /// Horny, Stone Knight, Unique Skeleton, Unique Vampire and <b>Jack</b>.
-    /// Which is nearly, and importantly not exactly, the set that never gets
-    /// hungry — that one contains the <b>Unique Firefly</b> (which does leave a
-    /// body) and not Jack (which eats). The two sets differ by exactly one
-    /// member each way.</para>
-    ///
-    /// <para>So this is the <b>third</b> near-miss grouping in the same record,
-    /// after never-eats and never-sleeps, and the third time the tempting
-    /// shortcut — "these are the undead, one flag would do" — is refuted by a
-    /// single creature. There is no undead flag. Each need is its own column,
-    /// and <c>CreatureNeedsOnRealDataTests</c> asserts all three sets by name
-    /// because every one of them was guessed wrong before it was read.</para>
-    ///
-    /// <para>The Vampire having no body is the coherent one: a vampire is what
-    /// bodies are spent to make.</para>
-    ///
-    /// <para><b>This flag governs, and <c>DecomposeValue</c> does not.</b> The
-    /// two disagree for exactly two creatures: <b>Horny</b> and <b>Jack</b> both
-    /// carry a decompose value of 200 while generating no body, so those 200s
-    /// can never be read by anything. Both are records where a template value
-    /// would plausibly survive unedited — Horny is a summon rather than a roster
-    /// creature (CONFIRMED by the owner) and Jack's record runs backwards in
-    /// several other places. A graveyard that counted <c>DecomposeValue</c>
-    /// instead of asking this question would be fed by two corpses that never
-    /// exist.</para>
+    /// <para>Eight of the 46 leave nothing: Imp, Vampire, Skeleton, Horny, Stone
+    /// Knight, Unique Skeleton, Unique Vampire and Jack. Nearly, and not exactly,
+    /// the set that never gets hungry — which holds the Unique Firefly (it leaves
+    /// a body) and not Jack (it eats). There is no undead flag;
+    /// <c>CreatureNeedsOnRealDataTests</c> asserts all three sets by name.</para>
+    /// <para>Trap: this flag governs and <c>DecomposeValue</c> does not. Horny
+    /// and Jack carry a decompose value of 200 while generating no body, so a
+    /// graveyard counting it would be fed by corpses that never exist.</para>
     /// </summary>
     public static bool LeavesBody(CreatureDef creature) =>
         creature.Flags.HasFlag(CreatureFlags.GenerateDeadBody);
@@ -315,20 +157,14 @@ public static class CreatureDeathRules
     /// <summary>
     /// Drops a creature to the ground at zero health, starting the rescue
     /// window. Returns false if it was already dying.
-    ///
-    /// <para><b>It keeps its bed.</b> Releasing it here would be the obvious
-    /// tidy-up and it would be wrong: the owner's rescue path is an imp carrying
-    /// the creature <i>to that bed</i>, so a lair tile freed on collapse would
-    /// be a tile some other creature claims while its owner is lying on the
-    /// floor. The bed is released at death, in
-    /// <see cref="Systems.CreatureHealthSystem"/>.</para>
-    ///
-    /// <para><b>It keeps its gold, too.</b> DK2 makes a dying imp drop what it
-    /// carried, and floor gold is an object — three of the 145, and there is now
-    /// a list to put an instance in (Q130). What is missing is the mechanic
-    /// rather than the record, so for the moment the gold stays on the creature
-    /// and is reported lost when it dies, rather than being invented onto a
-    /// tile.</para>
+    /// <para>It keeps its bed on purpose: the rescue path is an imp carrying the
+    /// creature <i>to that bed</i>, so a lair tile freed on collapse would be
+    /// claimed by somebody else while its owner lay on the floor. The bed is
+    /// released at death, by <see cref="Systems.CreatureHealthSystem"/> or
+    /// <see cref="BecomeCorpse"/>.</para>
+    /// <para>It keeps its gold too: DK2 drops what a creature carried when the
+    /// creature is <i>destroyed</i>, not when it collapses, and so does this
+    /// (<see cref="FloorGold.DropFrom"/>).</para>
     /// </summary>
     public static bool Collapse(CreatureState creature)
     {
@@ -346,33 +182,17 @@ public static class CreatureDeathRules
     }
 
     /// <summary>
-    /// Puts a rescued creature into its own bed, which is where it recovers.
-    /// Returns false if it was not dying, or has no bed to be put into.
-    ///
-    /// <para><b>Nothing calls this yet</b> — an imp cannot pick anything up, and
-    /// that is the other missing half of M4 — and it is here for the same reason
-    /// <see cref="CreatureHealthRules.Eat"/> is: the transition is the part worth
-    /// getting right, it can be tested now, and waiting for carrying would mean
-    /// writing it blind.</para>
-    ///
-    /// <para><b>Note what it does not do: it does not add any health.</b> The
-    /// creature wakes up at zero and is healed by the lair, at
-    /// <c>ModifyHealthOfCreatureInLairPerSecond</c> (100 a second), because it
-    /// is now <see cref="CreatureActivity.Sleeping"/> in its own bed and that is
-    /// the only state a lair heals in (ADR-0049). Which makes the order inside
-    /// <see cref="Systems.CreatureHealthSystem"/> load-bearing: healing is
-    /// applied <i>before</i> the collapse test, so a creature rescued at zero
-    /// health is above zero by the time anything asks whether it has collapsed.
-    /// Reverse those two and a rescue would collapse the creature it just
-    /// saved.</para>
+    /// Puts a rescued creature into its own bed, where it recovers. Returns
+    /// false if it was not dying or has no bed — a bed sold while its owner lay
+    /// dying is not replaced, so such a creature cannot be rescued at all;
+    /// UNKNOWN whether DK2 agrees (Q107).
+    /// <para>Adds no health: it wakes at zero and the lair heals it at
+    /// <c>ModifyHealthOfCreatureInLairPerSecond</c> (100 a second), being now
+    /// <see cref="CreatureActivity.Sleeping"/> in its own bed (ADR-0049). So the
+    /// order in <see cref="Systems.CreatureHealthSystem"/> is load-bearing:
+    /// healing runs <i>before</i> the collapse test, or a rescue would collapse
+    /// what it saved.</para>
     /// </summary>
-    /// <remarks>
-    /// A creature whose bed was sold out from under it while it lay dying has
-    /// nowhere to be carried and cannot be rescued at all — see the guard in
-    /// <see cref="Systems.CreatureSleepSystem"/> for why a collapsed creature is
-    /// not allowed to claim a replacement, and Q107 for the observation that
-    /// would settle it.
-    /// </remarks>
     public static bool Rescue(WorldState world, GameDatabase database, CreatureState creature)
     {
         if (!IsDying(creature)) return false;

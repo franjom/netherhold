@@ -7,20 +7,17 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>
-/// The entire game. Deterministic, headless, serialisable, Unity-free.
-///
-/// Contract, and the whole point of this type:
-/// <para>
-/// <b>Same database + same initial world + same seed + same input frames, in
-/// the same order, produce the same <see cref="StateHash"/> at every tick — on
-/// any machine, in any process.</b>
-/// </para>
-/// Enforced by <c>DeterminismTests</c> and by the CI gate. Anything that would
-/// break it (wall-clock time, unordered collections, floating point in gameplay
-/// maths, <see cref="object.GetHashCode"/> over strings, ambient randomness) is
-/// a defect, not a trade-off.
-/// </summary>
+/// <summary>The entire game. Deterministic, headless, serialisable, Unity-free.</summary>
+/// <remarks>
+/// <para>Contract: <b>same database + same initial world + same seed + same
+/// input frames, in the same order, produce the same <see cref="StateHash"/> at
+/// every tick — on any machine, in any process.</b></para>
+/// <para>Enforced by <c>DeterminismTests</c>, whose pinned hash is the gate
+/// (there is no CI). Anything that would break it — wall-clock time, unordered
+/// collections, floating point in gameplay maths,
+/// <see cref="object.GetHashCode"/> over strings, ambient randomness — is a
+/// defect, not a trade-off.</para>
+/// </remarks>
 public sealed class GameSimulation
 {
     private const ulong HashVersion = 40;
@@ -99,10 +96,9 @@ public sealed class GameSimulation
     /// position in its stream. Two runs that agree on this at every tick are
     /// behaviourally identical.
     ///
-    /// The RNG state is included deliberately. Two runs can hold identical
-    /// world state while having consumed different numbers of random draws;
-    /// without this they would look identical now and diverge later, which is
-    /// exactly the failure the gate exists to catch early.
+    /// The RNG state is included deliberately: two runs can hold identical
+    /// world state having consumed different numbers of draws, and without this
+    /// they would look identical now and diverge later.
     /// </summary>
     public ulong StateHash()
     {

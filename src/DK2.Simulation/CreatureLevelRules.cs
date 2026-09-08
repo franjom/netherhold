@@ -7,70 +7,18 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>
-/// What a level does to a creature: it multiplies its stats, by percentages the
-/// shipped data states outright.
-///
-/// <para><b>CONFIRMED by the owner</b> (2026-09-04): <i>"imps gain speed as they
-/// gain more levels"</i> — said in passing while trying to time one through
-/// water, and it sent this project looking for something it had been carrying
-/// unread the whole time. <c>GlobalVariables.kwd</c> holds a <b>32-stat by
-/// 9-level table of percentages</b> against the level-1 value, 320 rows, parsed
-/// into <c>GlobalVariables.CreatureStats</c> since variables were first read and
-/// looked at by nothing until now (Q119).</para>
-///
-/// <para>The curve, for the stats that matter today:</para>
-///
-/// <list type="bullet">
-/// <item><b>Health</b> 125% at level 2, then 150 / 175 / 200 / 225 / 250 / 300 /
-/// 400 / <b>600%</b> at level 10. So a level-10 Goblin has 9000 health against
-/// its record's 1500.</item>
-/// <item><b>Speed</b> and <b>run speed</b> 105% per level to level 5, then 125 /
-/// 150 / 175 / 200 / <b>250%</b>. An imp at level 2 walks at 1.93 tiles a second
-/// against 1.84 at level 1 — visible, which is what the owner saw.</item>
-/// <item><b>Experience for the next level</b> 130% rising to <b>1000%</b>, so
-/// the last level costs ten times what the first one did.</item>
-/// <item>And <b>ten of the 32 stats never scale at all</b>, own-land
-/// regeneration among them — an Imp heals at 67 a second for ever.</item>
-/// </list>
-///
-/// <para><b>Gaining a level is implemented for workers and for training</b>, and
-/// the owner settled the rule (Q124): <i>"imps get experience by working, while they do
-/// their usual things around the dungeon, digging, reinforcing walls, mining
-/// gold, etc. they get exp and passively their level raises. creatures also gain
-/// levels through experience, mostly training and fighting. creatures can get up
-/// to level 4 using the training room, up to level 8 using the combat pit, and
-/// to get to level 10 they need to fight actual fights."</i></para>
-///
-/// <para><b>Two of those caps are shipped variables to the number</b> —
-/// <c>TrainingRoomMaxExperienceLevel</c> 4 and
-/// <c>CombatPitMaxExperienceLevel</c> 8 — which is the third time an owner
-/// statement has landed on a variable name outright. An imp works and levels,
-/// and since ADR-0083 a creature that is not a worker <b>trains</b>.</para>
-///
-/// <para><b>This summary used to claim the record's rates were per MINUTE.
-/// RETRACTED 2026-09-07 (Q205).</b> The argument was that <c>ExpPerSecond</c>
-/// reads 1200 for an Imp, that <c>ImpExperienceGainPerSecond</c> is 20, and that
-/// 1200 / 60 = 20 — <i>"two independent fields agreeing on one creature's
-/// rate"</i>. They were never about the same mechanic. <c>ExpPerSecond</c> is
-/// <b>combat</b> experience, read only by the per-tick hook of state category 22
-/// (battle, fleeing, threat-response), which is the owner's own <i>"to get to
-/// level 10 they need to fight actual fights"</i>; and the loader divides it by
-/// variable 19 as it stores it, which is what a per-second number becoming a
-/// per-tick one looks like. The Imp is also the one creature in 46 whose combat
-/// rate is not 5x its training rate, and the one creature that never fights, so
-/// its 1200 is unreachable (Q208).</para>
-///
-/// <para><b>Training and work are both built and both pay per original
-/// tick</b> — see <see cref="TrainingRules"/> and
-/// <see cref="Systems.CreatureExperienceSystem"/>. Fighting still does not
-/// exist, so nothing here reaches level 5.</para>
-///
-/// <para>Integer arithmetic throughout, on the same 100-based percentages the
-/// file uses. A percentage is applied to the <i>record's</i> value rather than
-/// compounded per level, so there is no rounding drift up the curve and no
-/// dependence on the order levels were gained in.</para>
-/// </summary>
+/// <summary>What a level does to a creature: it multiplies its stats.</summary>
+/// <remarks>
+/// <para>Rule: <c>GlobalVariables.kwd</c> holds a 32-stat by 9-level table of
+/// percentages against the level-1 value (<c>GlobalVariables.CreatureStats</c>)
+/// — health 125% at level 2 to 600% at level 10, speed to 250%, experience for
+/// the next level 130% to 1000%, ten of the 32 never scaling. CONFIRMED (owner,
+/// Q119, Q124); curve and caps in docs/research/creature-levels.md.</para>
+/// <para>Built: work and training, per original tick (ADR-0083). Not
+/// implemented: fighting, so nothing reaches level 5. Trap: the record's
+/// <c>ExpPerSecond</c> (1200 for an Imp) is <b>combat</b> experience, not
+/// <c>ImpExperienceGainPerSecond</c> (20) per minute (Q205/Q208).</para>
+/// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-levels.md")]
 public static class CreatureLevelRules
 {
@@ -105,11 +53,6 @@ public static class CreatureLevelRules
     /// <summary>
     /// A creature's maximum health at its level: the record's <c>Hp</c> scaled
     /// by the Health row.
-    ///
-    /// <para>This is the method that used to be <c>CreatureHealthRules.MaxHealth</c>
-    /// and returned <c>creature.Hp</c> flat — which was right for the world as
-    /// it was, since every creature was level 1, and would have quietly stayed
-    /// wrong the moment anything set a level.</para>
     /// </summary>
     public static int MaxHealth(GameDatabase database, CreatureDef creature, int level) =>
         Scale(creature.Hp, Percent(database, CreatureStatId.Health, level));
@@ -126,51 +69,16 @@ public static class CreatureLevelRules
         Scale(creature.Speed.Raw, Percent(database, CreatureStatId.Speed, level));
 
     /// <summary>
-    /// What a worker earns for one of the original's ticks of work — the raw
-    /// <c>ImpExperienceGainPerSecond</c> of <b>20</b>, undivided.
-    ///
-    /// <para><b>CONFIRMED by the owner</b> (Q124): <i>"imps get experience by
-    /// working, while they do their usual things around the dungeon, digging,
-    /// reinforcing walls, mining gold, etc."</i> — and the binary says which
-    /// activities and how often (Q79, 2026-09-07).</para>
-    ///
-    /// <para><b>Per tick of work, not per job, and not per second.</b> DK2 reads
-    /// this variable at <b>nine</b> sites, every one of them in the imp's task
-    /// unit, and every one has the identical shape: a predicate on the target
-    /// tile, then this award, then one tick's worth of work applied to the tile.
-    /// The three distinct predicates were read and they are all tile
-    /// <i>properties</i> — "is this claimable", "is this a diggable wall", "is
-    /// this reinforceable" — so the guard means <b>"is this still a valid
-    /// target"</b> and not "the job just finished". The owner's <i>"per job
-    /// done"</i> named exactly the right activities and the granularity turned
-    /// out finer.</para>
-    ///
-    /// <para><b>And the cadence is CONFIRMED by a closed chain rather than
-    /// inferred from the work beside it</b> (2026-09-07, second pass). The imp
-    /// task records live at <c>0x006E4198</c>, stride <c>0x1D</c>; the
-    /// dispatcher <c>FUN_00496AA0</c> indexes one by the creature's current task
-    /// kind (<c>creature+0x3A9</c>) and calls its handler at <c>+0x00</c>; its
-    /// <b>only</b> caller is <c>FUN_00488930</c>; and <c>FUN_00488930</c> also
-    /// calls <c>FUN_00476FC0</c>, the creature <b>state</b> dispatcher, which is
-    /// known to run every tick from three independent facts — the prison drain's
-    /// 16-tick countdown, the slap timer's 100 decrements over 25 game seconds
-    /// (Q159, owner-confirmed), and the ticks-in-state counter it increments
-    /// once per call. So the task handler runs once a tick, and <b>20 a tick is
-    /// 80 a game second</b>.</para>
-    ///
-    /// <para><b>The one rate in the family that is NOT divided by four.</b> Its
-    /// four siblings on the creature record go through
-    /// <see cref="SimulationTiming.LoaderRatePerTick"/> as the loader stores
-    /// them; this one is a global, is read raw, and is added raw. So its name is
-    /// wrong by a factor of four in the opposite direction to everything around
-    /// it: <b>20 a tick is 80 a game second</b>, and an imp reaches level 2 in
-    /// about <b>37 seconds</b> of continuous work rather than the 150 this
-    /// project believed for three weeks.</para>
-    ///
-    /// <para><b>Working, not merely alive.</b> An idle imp earns nothing, which
-    /// is what the owner's <i>"while they do their usual things"</i> says and
-    /// what makes experience a consequence of the player keeping their imps
-    /// busy.</para>
+    /// What a worker earns for one of the original's ticks of work: the raw
+    /// <c>ImpExperienceGainPerSecond</c> of <b>20</b>, undivided — <b>80 a game
+    /// second</b>, so level 2 costs 3000 / 80 = <b>37.5 s</b>.
+    /// <para>Trap: the name is wrong by a factor of four in the opposite
+    /// direction to its four siblings on the creature record, which the loader
+    /// divides through <see cref="SimulationTiming.LoaderRatePerTick"/>; this is
+    /// a global, read raw, once per original tick (250 ms, ADR-0089). Per tick
+    /// of work, not per job: DK2 reads it at nine sites in the imp's task unit,
+    /// each guarded by a tile <i>property</i> predicate — STRONGLY INFERRED,
+    /// closed call chain (Q79, Q124). An idle imp earns nothing.</para>
     /// </summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-levels.md")]
     public static int WorkExperiencePerOriginalTick(
@@ -185,44 +93,15 @@ public static class CreatureLevelRules
 
     /// <summary>
     /// Adds experience and promotes at most one level, reproducing DK2's adder
-    /// (<c>FUN_00457880</c>) clause by clause.
-    ///
-    /// <para><b>This replaces a reading that was wrong in both halves</b> (Q127).
-    /// The old code spent the threshold and <i>carried</i> the remainder, and
-    /// looped so that a large award could buy two levels. DK2 does neither.</para>
-    ///
-    /// <list type="number">
-    /// <item><b>A threshold of zero refuses everything.</b> The original
-    /// computes the level's threshold first and returns without touching the
-    /// balance if it is zero — so a creature whose <c>ExpForNextLevel</c> is
-    /// zero can never gain <i>or lose</i> experience, whatever is handed to
-    /// it.</item>
-    /// <item><b>A loss bigger than the balance is a no-op, not a clamp.</b> The
-    /// original subtracts only when the magnitude fits, so experience floors at
-    /// zero by refusing the subtraction outright. A creature on 10 points handed
-    /// −50 keeps its 10.</item>
-    /// <item><b>Reaching the threshold zeroes the balance.</b> Not
-    /// <c>-= needed</c>. The overshoot is <b>discarded</b>, so a single enormous
-    /// award buys exactly one level and throws the rest away.</item>
-    /// <item><b>One level per call.</b> No loop. Two levels in one award is not
-    /// possible in the original, and making it possible here would let any
-    /// future lump payout outrun DK2.</item>
-    /// </list>
-    ///
-    /// <para><b>Why the discard is load-bearing rather than a curiosity:</b> it
-    /// makes the <i>cadence</i> of an award observable. Four awards of seven and
-    /// one award of twenty-eight leave different balances behind the moment one
-    /// of them crosses a threshold, which is why training pays on
-    /// <see cref="SimulationTiming.OnOriginalTick"/> instead of once a game
-    /// second.</para>
-    ///
-    /// <para><b>What is not reproduced:</b> the original also refuses the whole
-    /// call when a creature flag (<c>0x8000</c> on the runtime creature) is set
-    /// and the level has reached <c>CombatPitMaxExperienceLevel</c>. That flag
-    /// is unmapped and nothing here sets it, so the clause would be dead code
-    /// carrying a guess.</para>
-    ///
-    /// <para>Returns true if a level was gained.</para>
+    /// (<c>FUN_00457880</c>, Q127). Returns true if a level was gained. A
+    /// threshold of zero refuses everything, gains and losses alike; a loss
+    /// bigger than the balance is a no-op rather than a clamp; reaching the
+    /// threshold <b>zeroes</b> the balance rather than subtracting, so the
+    /// overshoot is discarded — which makes an award's <i>cadence</i> observable
+    /// and is why training pays on
+    /// <see cref="SimulationTiming.OnOriginalTick"/>; and one level per call, no
+    /// loop. Not reproduced: its refusal when an unmapped creature flag
+    /// (<c>0x8000</c>) is set at <c>CombatPitMaxExperienceLevel</c>.
     /// </summary>
     [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
     public static bool Grant(
@@ -254,19 +133,13 @@ public static class CreatureLevelRules
     /// <summary>
     /// The experience needed to reach the next level: the record's
     /// <c>ExpForNextLevel</c> scaled by the table.
-    ///
-    /// <para><b>Indexed by the creature's CURRENT level, and the binary
-    /// CONFIRMS the reading this project chose</b> (Q124, settled 2026-09-07).
-    /// DK2's adder indexes the <c>ExperienceForNextLevel</c> column with the
-    /// creature's <i>current</i> level byte and uses the record's raw value
-    /// when that level is 1 — so level 1 does get the implicit 100% and the
-    /// first level costs exactly the record's own 3000. The alternative reading,
-    /// indexing by the target level, would have made the first level cost 3900
-    /// and the record's number appear nowhere.</para>
-    ///
-    /// <para>The original also clamps the scaled threshold to <c>0xFFFE</c>.
-    /// Not reproduced, because it cannot bite: the largest shipped product is
-    /// 3000 at 1000% = 30000, less than half the clamp.</para>
+    /// <para>Indexed by the creature's <b>current</b> level, which the binary
+    /// confirms (Q124): DK2's adder indexes the <c>ExperienceForNextLevel</c>
+    /// column with the current level byte and uses the record's raw value at
+    /// level 1, so the first level costs exactly the record's own 3000; indexing
+    /// by the target level would make it 3900. Not reproduced: the clamp of the
+    /// scaled threshold to <c>0xFFFE</c>, which cannot bite, the largest shipped
+    /// product being 3000 at 1000%.</para>
     /// </summary>
     public static int ExperienceForNextLevel(
         GameDatabase database, CreatureDef creature, int level) =>

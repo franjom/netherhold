@@ -7,65 +7,31 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>
-/// Where a keeper's gold physically is.
-///
-/// <para><b>A player has no gold counter.</b> In DK2 gold is always somewhere —
-/// in a treasury, in the dungeon heart, in a pile on the floor, in a creature's
-/// hands — and the number on the interface is the total of those places. That is
-/// why a keeper with no treasury cannot keep any gold, why destroying a treasury
-/// takes the gold with it, and why the balance table's three gold limits are all
-/// <i>per tile</i>: <c>MaxGoldPerTreasuryTile</c>, <c>MaxGoldPerDungeonHeartTile</c>
-/// and <c>MaxGoldPileOutsideTreasury</c>. Modelling gold as a player-level
-/// integer would have made all three unenforceable, so it is not modelled that
-/// way here (ADR-0015).</para>
-///
-/// <para><b>All four places now exist.</b> Treasury tiles and dungeon-heart
-/// tiles are here, because a variable names each and a tile can carry the
-/// amount; a creature's hands are on the creature
-/// (<see cref="CreatureState.GoldHeld"/>), because that is where DK2 puts mined
-/// gold before a treasury ever sees it (Q31); and <b>floor piles are objects</b>,
-/// in <see cref="FloorGold"/>, since 2026-09-05. Gold that will not fit is still
-/// <i>refused</i> here rather than dropped, because this class knows an amount
-/// and not a place — the caller knows which tile the surplus belongs on and
-/// drops it there. See docs/research/rooms-and-gold.md and
-/// docs/research/gold-on-the-floor.md.</para>
-
-/// <para><b>A treasury tile's gold is an object in the original</b> — type 3,
-/// "Gold Pile 1", created on the tile at first deposit and carrying the amount
-/// in the same union field a floor pile uses. Ours keeps it in the tile and that
-/// is ADR-0015's call, unchanged; the finding is recorded rather than acted on
-/// because no behaviour has yet been found that separates the two. The place it
-/// would show is a keeper picking a treasury pile up in the hand.</para>
-///
-/// <para>Which tile gets filled depends on who is asking.
-/// <see cref="DepositInto"/> — the carrier's route — puts the load in the tile
-/// the imp walked to, which is DK2's own answer to Q35 as far as it is known.
-/// <see cref="Deposit"/> and <see cref="TryWithdraw"/> work in tile-index order,
-/// which is <b>ours, not DK2's</b>, and is used only where no carrier is
-/// involved: paying for a room, and refunds.</para>
-/// </summary>
+/// <summary>Where a keeper's gold physically is.</summary>
+/// <remarks>
+/// <para>Rule: a player has no gold counter. Gold is always somewhere — a
+/// treasury tile, a dungeon-heart tile, a floor pile (<see cref="FloorGold"/>)
+/// or a creature's hands (<see cref="CreatureState.GoldHeld"/>, Q31) — so a
+/// keeper with no treasury cannot keep any, and the table's three limits are
+/// <i>per tile</i> (ADR-0015, docs/research/rooms-and-gold.md).</para>
+/// <para>Deviates: a treasury tile's gold is object type 3 in the original;
+/// ours keeps it in the tile. <see cref="Deposit"/> and
+/// <see cref="TryWithdraw"/> work in tile-index order, <b>ours not DK2's</b>,
+/// where <see cref="DepositInto"/> uses the tile the imp reached (Q35).</para>
+/// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public static class GoldStore
 {
     /// <summary>
     /// How much gold one tile can hold, <b>ignoring the shape of the room it is
-    /// in</b>.
-    ///
-    /// Keyed on the room the tile's terrain belongs to, not on a terrain id: the
-    /// two variables are named for the treasury and the dungeon heart, so the
-    /// room type is the data's own vocabulary for this question. Every other
-    /// tile holds nothing — including plain floor, whose
-    /// <c>MaxGoldPileOutsideTreasury</c> would need gold-pile objects to mean
-    /// anything.
-    ///
-    /// <para><b>Prefer the overload that takes a tile index.</b> This one cannot
-    /// see that nine of a dungeon heart's tiles are the raised platform its
-    /// structure stands on and hold nothing (Q52), so it over-reports a heart by
-    /// 9000. It survives for the one caller that has a tile and no map — the
-    /// spill calculation when a tile stops being a store — where the difference
-    /// cannot bite, because a platform tile can never have had gold on it to
-    /// spill.</para>
+    /// in</b>. Keyed on the room the tile's terrain belongs to, not on a terrain
+    /// id: the two variables are named for the treasury and the dungeon heart, so
+    /// the room type is the data's own vocabulary. Every other tile holds nothing.
+    /// <para>Prefer the overload taking a tile index. This one cannot see that
+    /// nine of a dungeon heart's tiles are the raised platform and hold nothing
+    /// (Q52), so it over-reports a heart by 9000. It survives for the one caller
+    /// with a tile and no map — the spill when a tile stops being a store —
+    /// where a platform tile can never have had gold to spill.</para>
     /// </summary>
     public static int Capacity(GameDatabase database, in TileState tile)
     {
@@ -81,19 +47,13 @@ public static class GoldStore
     /// <summary>
     /// How much gold the tile at <paramref name="tileIndex"/> can hold, given
     /// the room it is part of.
-    ///
-    /// <para><b>This is where a dungeon heart's 16000 comes from</b> (Q52,
-    /// ADR-0027). A heart is 5x5 and the middle 3x3 is the platform the heart
-    /// structure stands on, so sixteen tiles store gold at
-    /// <c>MaxGoldPerDungeonHeartTile</c>'s 1000 and nine store nothing. The
-    /// owner measured the total in the original: a keeper with no treasury tops
-    /// out at 16000, and a screenshot shows the raised centre with gold piles
-    /// ringing it.</para>
-    ///
-    /// <para>A treasury has no such platform, so every tile of one counts. The
-    /// rule asks the room instance rather than the room type for the geometry,
-    /// which is why a heart that has been partly destroyed answers sensibly
-    /// instead of by a hardcoded 16.</para>
+    /// <para>Where a dungeon heart's 16000 comes from (Q52, ADR-0027): a heart
+    /// is 5x5 and its middle 3x3 is the platform the structure stands on, so
+    /// sixteen tiles store <c>MaxGoldPerDungeonHeartTile</c>'s 1000 and nine
+    /// store nothing. CONFIRMED by the owner, who measured a treasury-less keeper
+    /// topping out at 16000. A treasury has no platform, so every tile counts;
+    /// the geometry is asked of the room <i>instance</i>, so a partly destroyed
+    /// heart answers sensibly rather than by a hardcoded 16.</para>
     /// </summary>
     public static int Capacity(WorldState world, GameDatabase database, int tileIndex) =>
         Capacity(world, database, tileIndex, RoomIndex.RoomAt(world, database, tileIndex));
@@ -141,12 +101,12 @@ public static class GoldStore
     /// Puts as much of <paramref name="amount"/> into <i>this one tile</i> as it
     /// will take, and returns how much went in.
     ///
-    /// The carrier's version of <see cref="Deposit"/>, and the one that is
-    /// closest to what DK2 does: an imp walks to a tile and puts its load down
-    /// there, so the tile is chosen by the walk rather than by an index. That
-    /// makes which gold survives a treasury being partly destroyed a consequence
-    /// of where imps walked, which is what the original looks like (Q35 —
-    /// nearest tile, spillover to another, and the owner flagged it as belief).
+    /// <para>The carrier's version of <see cref="Deposit"/>, and the closer to
+    /// DK2: an imp walks to a tile and puts its load there, so the tile is
+    /// chosen by the walk. Which gold survives a treasury being partly destroyed
+    /// is therefore a consequence of where imps walked. HYPOTHESIS (Q35):
+    /// nearest tile with spillover to another, which the owner flagged as
+    /// belief.</para>
     /// </summary>
     public static int DepositInto(
         WorldState world, GameDatabase database, int tileIndex, int amount)

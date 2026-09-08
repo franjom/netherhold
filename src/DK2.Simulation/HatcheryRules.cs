@@ -7,31 +7,18 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>
-/// The Hatchery: coops, and the egg that appears on one.
-///
-/// <para><b>Read out of <c>DKII.EXE</c></b> on 2026-09-04, and every number here
-/// is the original's — see <c>docs/research/hatchery.md</c> for the evidence and
-/// <c>balance-variables-in-the-binary.md</c> for how the variable it reads was
-/// identified.</para>
-///
-/// <para><b>Deliberately incomplete, and the missing piece is named.</b> DK2's
-/// laying interval is
+/// <summary>The Hatchery: coops, and the egg that appears on one.</summary>
+/// <remarks>
+/// <para>Every number is the original's, read out of <c>DKII.EXE</c>
+/// (docs/research/hatchery.md; balance-variables-in-the-binary.md for how the
+/// variable was identified).</para>
+/// <para>The laying interval is
 /// <c>(int)(ChickenGenerationTimePerHatchery / pow(tiles, 0.315477776)) × V19</c>,
-/// and <b>V19 is a balance variable that no shipped file supplies</b> — its
-/// global is read from 223 places in the binary as both multiplier and divisor
-/// and is absent from all 1236 files in the install — because the <b>level
-/// header</b> supplies it, which is what Q132 turned out to be. It is <b>4</b>
-/// on every shipped level, so the interval has its unit and
-/// <see cref="Systems.HatcherySystem"/> drives the laying (ADR-0066).</para>
-///
-/// <para>What is here is everything the binary settles outright: how many coops
-/// a room gets, where they may stand, and where an egg appears. Written now
-/// rather than with the clock for the reason <see cref="CreatureHealthRules.Eat"/>
-/// and <see cref="CreatureDeathRules.Rescue"/> were: the transition is the part
-/// worth getting right, it can be tested now, and waiting would mean writing it
-/// blind.</para>
-/// </summary>
+/// where V19 is DK2's ticks-a-game-second — a balance variable no shipped file
+/// supplies, because the <b>level header</b> does (Q132). It is 4 on every
+/// shipped level, and <see cref="Systems.HatcherySystem"/> drives the laying
+/// (ADR-0066).</para>
+/// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery.md")]
 public static class HatcheryRules
 {
@@ -51,30 +38,22 @@ public static class HatcheryRules
     /// <summary>
     /// The object a hatchery places: <b>35, the Chicken Coop</b>.
     ///
-    /// <para><b>Named by id rather than by a type flag</b>, which is the
-    /// exception to <c>objects.md</c> §3's advice and the original's own choice:
-    /// its union dispatch branches on the literal 35, and the coop's record
-    /// carries no type bit at all — only <see cref="ObjectFlags.Obstacle"/>.
-    /// There is nothing to ask.</para>
+    /// <para>Named by id rather than by a type flag — the exception to
+    /// objects.md §3's advice, and the original's own choice: its union dispatch
+    /// branches on the literal 35, and the coop's record carries no type bit at
+    /// all, only <see cref="ObjectFlags.Obstacle"/>.</para>
     /// </summary>
     public const byte CoopObjectId = 35;
 
     /// <summary>
     /// What a hatchery lays: <b>47, the Egg</b> — and <i>not</i> 9, the Chicken.
-    ///
-    /// <para>Two different objects. Of the three a hatchery deals in — coop, egg
-    /// and chicken — only the Chicken carries
-    /// <see cref="ObjectFlags.TypeFood"/>, and only the Chicken has a creature's
-    /// <c>HpFromChicken</c> against it (375 for a Goblin). <b>It is not the only
-    /// object in the game with that flag</b>, which this comment said until
-    /// 2026-09-06: the <b>Torture Pendulum</b> (65) carries it too, and the
-    /// difference matters because the original's prison food search matches the
-    /// flag where its hatchery search matches the id
-    /// (<c>docs/research/eating.md</c> §6). So something turns an
-    /// egg into a chicken and this project had never accounted for it; the
-    /// objects' differing <c>StartState</c> — 0 for the egg, 10 for the
-    /// chicken — says both have a state machine to do it in. <b>Q133</b>, and
-    /// the owner can settle it by looking at a hatchery.</para>
+    /// <para>Of the three objects a hatchery deals in, only the Chicken carries
+    /// <see cref="ObjectFlags.TypeFood"/> and has a creature's
+    /// <c>HpFromChicken</c> against it (375 for a Goblin). Trap: the Torture
+    /// Pendulum (65) carries the flag too, which matters because the prison food
+    /// search matches the flag where the hatchery search matches the id
+    /// (docs/research/eating.md §6). What turns an egg into a chicken in DK2 is a
+    /// state machine — their <c>StartState</c> differs, 0 against 10 (Q133).</para>
     /// </summary>
     public const byte EggObjectId = 47;
 
@@ -91,40 +70,24 @@ public static class HatcheryRules
     /// <summary>
     /// How long an egg takes to become a chicken: about <b>two seconds</b>.
     ///
-    /// <para><b>CONFIRMED by the owner</b> (2026-09-05), who watched one:
-    /// <i>"it produces eggs that hatch, that entire animation of eggs appearing
-    /// and hatching lasts about 2 seconds, and after that a chicken appears and
-    /// roams around the hatchery."</i></para>
-    ///
-    /// <para><b>Timed from an animation, which is the caveat.</b> Two seconds is
-    /// how long the whole appear-and-hatch sequence takes on screen; whether the
-    /// simulation holds an egg in a state for exactly that long, or the art
-    /// simply covers a shorter transition, is not settled. It is recorded as the
-    /// observation it is, and nothing yet advances a clock towards it — see
-    /// <see cref="Hatch"/>.</para>
+    /// <para>CONFIRMED by the owner (2026-09-05), who watched the whole
+    /// appear-and-hatch sequence. Caveat: it is timed from an animation, so
+    /// whether the simulation holds an egg in a state for exactly that long or
+    /// the art covers a shorter transition is UNKNOWN.</para>
     /// </summary>
     public const int EggHatchSeconds = 2;
 
     /// <summary>
     /// How many chickens a hatchery holds: <b>one per tile</b>.
     ///
-    /// <para><b>CONFIRMED by the owner, by measurement</b> (2026-09-05). A 5×5
-    /// settles at more than twenty and a <b>3×3 settles at exactly nine</b> —
-    /// which is one per tile on both counts, and rules out the only other
-    /// candidate this project had.</para>
+    /// <para>CONFIRMED by the owner's measurement (2026-09-05): a 5x5 settles at
+    /// more than twenty and a 3x3 at exactly nine. Taken from the Chicken's
+    /// OBJECTS <c>RoomCapacity</c> of 1 rather than pinned as a constant, so
+    /// this is a rule about capacity and not a magic nine.</para>
     ///
-    /// <para><b>And the record said so all along.</b> The Chicken's OBJECTS
-    /// entry carries <c>RoomCapacity</c> = 1, a field whose doc reads "how many
-    /// of it a room tile holds". Nobody had read it as a flock limit because
-    /// nothing needed one. So the number is <b>not</b> a constant here: it is
-    /// taken from the definition, which is what makes this a rule about
-    /// <i>capacity</i> rather than a magic nine.</para>
-    ///
-    /// <para><b>It is not <c>MaxFreeRangeChickensPerPlayer</c></b>, which was
-    /// this project's assumption until the owner looked. That variable is 12,
-    /// real, and checked before laying — but 25 chickens in a 5×5 rules it out
-    /// as the room's limit, so it caps loose birds instead. See
-    /// <see cref="FreeRangeCap"/>.</para>
+    /// <para>Trap: it is not <c>MaxFreeRangeChickensPerPlayer</c>, which is 12,
+    /// real and checked before laying — the 5x5 count rules it out as the room's
+    /// limit (<see cref="FreeRangeCap"/>).</para>
     /// </summary>
     public static int FlockCapacity(
         GameDatabase database, RoomInstance hatchery)
@@ -158,10 +121,10 @@ public static class HatcheryRules
     /// Chickens <i>and</i> eggs in this room — everything that is or is about to
     /// be a bird.
     ///
-    /// <para>What the capacity is measured against, and the reason it is not
-    /// just <see cref="Flock"/>: an egg is a chicken two seconds from now, so a
-    /// room that laid while full would overshoot its own limit by however many
-    /// eggs were in the air.</para>
+    /// <para>What the capacity is measured against rather than
+    /// <see cref="Flock"/>: an egg is a chicken two seconds from now, so a room
+    /// that laid while full would overshoot its limit by the eggs in the
+    /// air.</para>
     /// </summary>
     public static int Birds(WorldState world, RoomInstance hatchery)
     {
@@ -184,19 +147,13 @@ public static class HatcheryRules
 
     /// <summary>
     /// The smallest squared distance, <b>in whole tiles</b>, that two coops may
-    /// be apart: 3, so a squared distance of 0, 1 or 2 is refused.
-    ///
-    /// <para>In plain terms: <b>not the same tile, not orthogonally adjacent,
-    /// not diagonally adjacent.</b> Two tiles apart in a straight line is 4 and
-    /// is allowed.</para>
-    ///
-    /// <para><b>The original compares fixed-point distances against 3.0</b> — a
-    /// spacing of about 1.73 tiles — and the integer form above is exactly
-    /// equivalent rather than an approximation, because a coop always stands at
-    /// its tile's centre. A separation of <c>n</c> tiles is <c>n × 4096</c> in
-    /// DK2's fixed point, its square is <c>n² × 4096</c> once scaled back, and
-    /// <c>n² × 4096 &lt; 3 × 4096</c> is <c>n² &lt; 3</c>. Doing it in tiles
-    /// keeps the arithmetic exact and needs no <see cref="Fp32"/> at all.</para>
+    /// be apart: 3, so 0, 1 or 2 is refused — not the same tile, not
+    /// orthogonally adjacent, not diagonally adjacent; two tiles in a straight
+    /// line is 4 and is allowed.
+    /// <para>The original compares fixed-point distances against 3.0 — about
+    /// 1.73 tiles — and the integer form is exactly equivalent, not an
+    /// approximation, because a coop always stands at its tile's centre:
+    /// <c>n² × 4096 &lt; 3 × 4096</c> is <c>n² &lt; 3</c>.</para>
     /// </summary>
     public const int MinCoopSeparationSquared = 3;
 
@@ -207,13 +164,13 @@ public static class HatcheryRules
     /// <summary>
     /// Which tiles of this room should hold coops, in the order they are taken.
     ///
-    /// <para><b>Deterministic, and the original is too</b>: it walks the room's
-    /// own tile list and takes the first position that is far enough from every
-    /// coop already placed, rather than choosing at random. So this needs no RNG
-    /// and cannot drift — which matters, because the room is rebuilt from the
-    /// tiles every time it is asked for (<see cref="RoomIndex"/>).</para>
+    /// <para>Deterministic, as the original is: it walks the room's own tile
+    /// list and takes the first position far enough from every coop already
+    /// placed, rather than choosing at random. So this needs no RNG and cannot
+    /// drift, which matters because the room is rebuilt from the tiles every
+    /// time it is asked for (<see cref="RoomIndex"/>).</para>
     ///
-    /// <para>May return fewer than <see cref="CoopCount"/> if the spacing rule
+    /// <para>May return fewer than <see cref="CoopCount"/> when the spacing rule
     /// runs out of room, which a long thin hatchery can do.</para>
     /// </summary>
     public static void CoopTiles(WorldState world, RoomInstance hatchery, List<int> into)
@@ -269,10 +226,10 @@ public static class HatcheryRules
     /// many it added.
     ///
     /// <para>Idempotent, so it is safe to call whenever the room changes: a coop
-    /// already standing on a wanted tile is left alone. A coop on a tile the
-    /// rule no longer wants — the room was dug into a different shape — is
-    /// <b>not</b> removed, because whether DK2 tidies those up is UNKNOWN and
-    /// removing one is the more destructive guess.</para>
+    /// already on a wanted tile is left alone. A coop on a tile the rule no
+    /// longer wants — the room was dug into a different shape — is <b>not</b>
+    /// removed: UNKNOWN whether DK2 tidies those up, and removing one is the
+    /// more destructive guess.</para>
     /// </summary>
     public static int PlaceCoops(
         WorldState world, GameDatabase database, RoomInstance hatchery)
@@ -301,41 +258,16 @@ public static class HatcheryRules
     }
 
     /// <summary>
-    /// Lays one egg in this hatchery and hands it back, or returns null if there
-    /// was nowhere to put it.
-    ///
-    /// <para><b>Two cases, and the original does them in this order.</b> If the
-    /// room has coops, one is chosen <b>at random</b> and the egg goes there. If
-    /// it has none, the room's <i>empty</i> tiles are counted and one of those is
-    /// chosen at random instead — so a hatchery too small to earn a coop still
-    /// produces, on the floor.</para>
-    ///
-    /// <para><b>The random draw is behaviour</b>, and it is the first place in
-    /// this simulation where DK2's own generator position would be observable
-    /// (Q3): two hatcheries of one size lay in the same rhythm but not in the
-    /// same places. Ours is <see cref="SimRandom"/>, which is not DK2's
-    /// generator and does not try to be — what the determinism gate needs is
-    /// that the draw happens in a fixed order, and it does.</para>
-    ///
-    /// <para><b>A full room lays nothing</b>, where full is
-    /// <see cref="FlockCapacity"/> — one bird per tile, measured by the owner at
-    /// nine in a 3×3. <b>The limit is confirmed; the mechanism behind it is a
-    /// reading.</b> DK2 might refuse to lay, or lay anyway and let the surplus
-    /// rot; the owner reports both continuous production and birds vanishing, so
-    /// both are in play. Refusing is what reproduces the measurement — a 3×3
-    /// settling at <i>exactly</i> nine is a cap, not the balance point of two
-    /// rates — and it is the choice that cannot run away. Q135.</para>
-    ///
-    /// <para><see cref="Systems.HatcherySystem"/> calls this on the room's own
-    /// interval (ADR-0066). The per-player free-range cap is still not
-    /// applied, and <b>the owner's observation is now the reason rather than
-    /// a hedge</b>: a 5×5 hatchery holds <i>more than twenty</i> chickens
-    /// (2026-09-05), where a cap of 12 on the room's flock would have stopped it
-    /// at twelve. So <c>MaxFreeRangeChickensPerPlayer</c> counts something
-    /// narrower than "chickens this keeper has" — loose ones, which is what its
-    /// name says and what the Chicken union's own <c>FreeRange</c> field
-    /// distinguishes. Enforcing it here would throttle a room that DK2 does not
-    /// throttle.</para>
+    /// Lays one egg here and hands it back, or null for nowhere to put it.
+    /// Called by <see cref="Systems.HatcherySystem"/> on the room's own interval
+    /// (ADR-0066).
+    /// <para>Two cases, in the original's order: with coops, one is chosen <b>at
+    /// random</b> and the egg goes there; with none, an <i>empty</i> tile of the
+    /// room is, so a hatchery too small to earn a coop still produces on the
+    /// floor. The draw is behaviour and the first place DK2's own generator
+    /// position would be observable (Q3). A full room
+    /// (<see cref="FlockCapacity"/>) lays nothing: the limit is CONFIRMED, the
+    /// mechanism a reading — DK2 might lay and let the surplus rot (Q135).</para>
     /// </summary>
     public static ObjectState? TryLayEgg(
         WorldState world, GameDatabase database, RoomInstance hatchery, SimRandom rng)
@@ -370,22 +302,15 @@ public static class HatcheryRules
 
     /// <summary>
     /// Turns an egg into a chicken on the same tile, and hands back the chicken.
-    ///
-    /// <para><b>The transition the owner confirmed</b> and the data had only
-    /// implied: a hatchery lays object 47 and a creature eats object 9, and this
-    /// is the step between. The chicken inherits the egg's tile and owner, and
-    /// the egg ceases to exist — it is a replacement rather than a
-    /// state change, because our object carries no state machine yet (DK2's
-    /// does: every object has a <c>StateId</c> and a <c>StateAge</c>, and the
-    /// egg's start state is 0 against the chicken's 10).</para>
-    ///
-    /// <para><see cref="Systems.HatcherySystem"/> drives this, counting
+    /// Throws if handed something that is not an egg.
+    /// <para>The chicken inherits the egg's tile and owner and the egg ceases to
+    /// exist. Deviates: a replacement rather than a state change, because our
+    /// object carries no state machine where DK2's has a <c>StateId</c> and a
+    /// <c>StateAge</c> per object.</para>
+    /// <para>Driven by <see cref="Systems.HatcherySystem"/>, which counts
     /// <see cref="EggHatchSeconds"/> on the egg's own
-    /// <see cref="ObjectState.TimerTicks"/> and hatching <b>before</b> it lays,
-    /// so an egg is not aged on the second it is laid (ADR-0066).</para>
-    ///
-    /// <para>Throws if handed something that is not an egg, because silently
-    /// hatching a bed would be worse than stopping.</para>
+    /// <see cref="ObjectState.TimerTicks"/> and hatches <b>before</b> it lays, so
+    /// an egg is not aged on the second it is laid (ADR-0066).</para>
     /// </summary>
     public static ObjectState Hatch(
         WorldState world, GameDatabase database, ObjectState egg)
@@ -412,17 +337,6 @@ public static class HatcheryRules
     }
 
     /// <summary>
-    /// <c>MaxFreeRangeChickensPerPlayer</c> — <b>12</b> in the shipped table, and
-    /// the original really does check it before laying at a coop: variable 86,
-    /// whose global is one byte wide and has <b>exactly one reader in the whole
-    /// binary</b>, which is that check.
-    ///
-    /// <para><b>It does not cap a hatchery's flock.</b> The owner watched a 5×5
-    /// hold more than twenty chickens. Whatever the counter it is compared
-    /// against holds, it is not "chickens this keeper owns" — see
-    /// <see cref="TryLayEgg"/>. Exposed, not enforced.</para>
-    /// </summary>
-    /// <summary>
     /// The largest tile count the interval table covers. A hatchery bigger than
     /// this lays at the same rate as one exactly this big.
     ///
@@ -434,13 +348,10 @@ public static class HatcheryRules
 
     // pow(n, 0.315477776) for n = 1..256, scaled by 2^24 and rounded.
     //
-    // A TABLE RATHER THAN Math.Pow, because this number decides when an egg
-    // appears and eggs are hashed. IEEE-754 pow is not guaranteed bit-identical
-    // across runtimes, and the truncation below sits on a knife edge: a 3x3
-    // hatchery computes 7.99977 and takes 7, so a difference in the eighth
-    // decimal place would hand one machine 8 and another 7 and diverge the run.
-    // HatcheryTests regenerates this from Math.Pow and compares, so the table is
-    // provably the formula while the simulation never touches a float.
+    // A TABLE RATHER THAN Math.Pow: this number decides when an egg appears and
+    // eggs are hashed, IEEE-754 pow is not guaranteed bit-identical across
+    // runtimes, and the truncation sits on a knife edge (a 3x3 computes 7.99977
+    // and takes 7). HatcheryTests regenerates this from Math.Pow and compares.
     private static readonly int[] PowScaled =
     [
         16777216, 20877965, 23726903, 25981035, 27875932, 29526320, 30997705, 32331415,
@@ -479,33 +390,15 @@ public static class HatcheryRules
 
     /// <summary>
     /// How long this hatchery waits between eggs, in <b>game seconds</b>.
-    ///
-    /// <para>Read from the original (<c>hatchery.md</c> §4), and the formula is
-    /// exact:</para>
-    ///
-    /// <code>
-    ///   interval = (int)( ChickenGenerationTimePerHatchery / pow(tiles, 0.315477776) ) * V19
-    /// </code>
-    ///
-    /// <para>The truncation happens <b>before</b> the multiply by ticks-per-game-second,
-    /// so this returns the truncated whole seconds and the caller converts —
-    /// which is what kept the arithmetic right while
-    /// <see cref="SimulationTiming.TicksPerSecond"/> was a placeholder, and what
-    /// keeps it right now that it is four (Q1, settled 2026-09-07).</para>
-    ///
-    /// <para><b>A bigger hatchery lays faster, on a curve.</b> With the shipped
-    /// 16: one tile every 16 seconds, 3x3 every <b>7</b>, 5x5 every 5, 8x8 every
-    /// 4.</para>
-    ///
-    /// <para><b>The 3x3 case is a quirk to reproduce rather than round away.</b>
-    /// The exponent is typed rather than derived — it is not
-    /// <c>log 2 / log 9</c> — and it lands at <c>pow(9, e) = 2.00006</c>, a hair
-    /// <i>above</i> two. So 16/2.00006 is 7.99977 and the truncation takes
-    /// <b>7</b>, where a designer thinking "nine tiles should be exactly half of
-    /// one" would have expected 8. The smallest hatchery is one second faster
-    /// than the round number, for ever, because of the sixth decimal place
-    /// (Q134). <c>hatchery.md</c> §4's table said 8 for a day; its own header
-    /// said "truncated".</para>
+    /// <para>Read from the original (docs/research/hatchery.md §4). The
+    /// truncation happens <b>before</b> the multiply by ticks-per-game-second, so
+    /// this returns truncated whole seconds and the caller converts. A bigger
+    /// hatchery lays faster on a curve: with the shipped 16, one tile every 16
+    /// seconds, 3x3 every <b>7</b>, 5x5 every 5, 8x8 every 4.</para>
+    /// <para>Trap: the 3x3 case is a quirk, not a rounding error to tidy. The
+    /// exponent is typed rather than derived — not <c>log 2 / log 9</c> — and
+    /// <c>pow(9, e)</c> is 2.00006, a hair above two, so 16/2.00006 is 7.99977
+    /// and the truncation takes <b>7</b> where 8 looks right (Q134).</para>
     /// </summary>
     public static int LayIntervalSeconds(GameDatabase database, RoomInstance hatchery) =>
         LayIntervalSecondsForTiles(database, hatchery.TileCount);
@@ -523,6 +416,16 @@ public static class HatcheryRules
         return (int)(((long)seconds << 24) / PowScaled[clamped - 1]);
     }
 
+    /// <summary>
+    /// <c>MaxFreeRangeChickensPerPlayer</c> — <b>12</b> in the shipped table, and
+    /// the original does check it before laying at a coop: variable 86, one byte
+    /// wide, with exactly one reader in the binary.
+    ///
+    /// <para>Trap: it does not cap a hatchery's flock. The owner watched a 5x5
+    /// hold more than twenty chickens, so whatever counter it is compared
+    /// against, it is not "chickens this keeper owns" (<see cref="TryLayEgg"/>).
+    /// Exposed, not enforced.</para>
+    /// </summary>
     public static int FreeRangeCap(GameDatabase database) =>
         database[VariableTypeId.MaxFreeRangeChickensPerPlayer];
 }

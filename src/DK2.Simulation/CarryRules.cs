@@ -6,37 +6,18 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>
-/// What a worker may pick up off the floor, and where it must take it.
-///
-/// <para>The owner described the whole pipeline in one breath (Q99), and both
-/// halves of it end here:</para>
-///
-/// <code>
-///   health -> 0
-///      |
-///   COLLAPSED   CreatureDyingStateDurationSeconds = 60
-///      |        an imp carries it to its own bed, and it heals there
-///      v
-///   CORPSE      DeadBodyDiesAfterSeconds = 60
-///      |        an imp carries it to a graveyard
-///      v
-///   gone
-/// </code>
-///
-/// <para>Both timers had been parsed for months with nothing able to read
-/// either, and the named reason was <i>"a corpse is an object"</i> — which was
-/// checked in the end and found to be false (<c>objects.md</c> §4). None of the
-/// 145 objects is a corpse. <b>A corpse is a creature in a state</b>, so what
-/// was missing was never a record: it was this, an imp task that carries a
-/// creature.</para>
-///
-/// <para>DK2's own imp task table has one kind for each
-/// (<c>imp-task-priority.md</c> §4): <b>kind 13</b>, carry an unconscious
+/// <summary>What a worker may pick up off the floor, and where it takes it.</summary>
+/// <remarks>
+/// <para>The two halves of the owner's death pipeline (Q99,
+/// <see cref="CreatureDeathRules"/>): a collapsed creature to its own bed inside
+/// <c>CreatureDyingStateDurationSeconds</c> (60), where it heals; a corpse to a
+/// graveyard inside <c>DeadBodyDiesAfterSeconds</c> (also 60).</para>
+/// <para>DK2's imp task table has one kind for each
+/// (docs/research/imp-task-priority.md §4): <b>kind 13</b>, carry an unconscious
 /// creature — its keeper's own to a Lair, an enemy's to a Prison — and
 /// <b>kind 12</b>, carry a corpse to the Graveyard. They are the last two
 /// entries of Tier A, below claiming and above everything found by distance.</para>
-/// </summary>
+/// </remarks>
 public static class CarryRules
 {
     /// <summary>
@@ -56,10 +37,10 @@ public static class CarryRules
     /// <summary>
     /// Whether <paramref name="worker"/> may carry <paramref name="body"/>.
     ///
-    /// <para><b>A carrier carries one thing.</b> DK2's imp has one carry slot
-    /// and this has one field; a worker already holding a body is not offered
-    /// another, and a worker with gold in its hands is running to a treasury
-    /// (Q31, ADR-0018) rather than weighing anything.</para>
+    /// <para>A carrier carries one thing: DK2's imp has one carry slot and so
+    /// has this. A worker already holding a body is not offered another, and a
+    /// worker with gold in its hands is running to a treasury (Q31,
+    /// ADR-0018).</para>
     /// </summary>
     public static bool CanCarry(CreatureDef definition, CreatureState worker, CreatureState body)
     {
@@ -73,22 +54,15 @@ public static class CarryRules
     }
 
     /// <summary>
-    /// Where <paramref name="body"/> has to go, as a tile index, or -1 when
-    /// there is nowhere to take it.
-    ///
+    /// Where <paramref name="body"/> goes, as a tile index, or -1 for nowhere.
     /// <list type="bullet">
-    /// <item><b>Collapsed, the carrier's keeper's own</b> — to its <i>own
-    /// bed</i>, which is where it recovers. Not to any free lair tile: the bed
-    /// is a placed object that belongs to this creature and it kept that bed
-    /// through the collapse precisely so this walk would have a destination
-    /// (<see cref="CreatureDeathRules.Collapse"/>).</item>
-    /// <item><b>Collapsed, somebody else's</b> — to a free tile in the
-    /// worker's keeper's nearest <b>Prison</b> (ADR-0064). -1 when every prison
-    /// is full and -1 when there is none, which is the manual's own rule: imps
-    /// try the next nearest prison with space and stop collecting prisoners
-    /// altogether when there is nowhere to put one.</item>
-    /// <item><b>A corpse</b> — to the nearest reachable tile of one of the
-    /// keeper's <b>Graveyards</b>.</item>
+    /// <item><b>Collapsed, the carrier's keeper's own</b> — its <i>own bed</i>,
+    /// not any free lair tile; it kept that bed through the collapse so this walk
+    /// would have a destination (<see cref="CreatureDeathRules.Collapse"/>).</item>
+    /// <item><b>Collapsed, somebody else's</b> — a free tile in the worker's
+    /// keeper's nearest <b>Prison</b> (ADR-0064); -1 when none has room, which
+    /// is the manual's own rule.</item>
+    /// <item><b>A corpse</b> — the keeper's nearest Graveyard tile.</item>
     /// </list>
     /// </summary>
     public static int TryDestinationFor(
@@ -97,10 +71,9 @@ public static class CarryRules
         if (CreatureDeathRules.IsCorpse(body))
             return NearestGraveyardTile(world, database, worker);
 
-        // A collapsed enemy belongs in a prison - kind 13's other branch, room
-        // 11 - and the worker's keeper's prison is the one it goes to, not the
-        // body's. A keeper with no prison, or with every cell taken, leaves it
-        // lying where it fell.
+        // A collapsed enemy goes to the WORKER's keeper's prison, not the
+        // body's (kind 13's other branch). A keeper with no prison, or with
+        // every cell taken, leaves it lying where it fell.
         if (body.OwnerPlayerId != worker.OwnerPlayerId)
             return PrisonRules.FreeTileIn(
                 world, database, worker.OwnerPlayerId, worker.Tile);
@@ -133,10 +106,9 @@ public static class CarryRules
                 long dy = (tileIndex / world.Width) - worker.Tile.Y;
                 long distance = (dx * dx) + (dy * dy);
 
-                // Ties go to the lower tile index, which is row-major order and
-                // is the order RoomInstance already keeps its tiles in. Any
-                // stable rule would do; this one costs nothing and is the same
-                // one every other room walk here uses.
+                // Ties go to the lower tile index (row-major), the order
+                // RoomInstance keeps its tiles in and every other room walk
+                // here uses.
                 if (distance >= bestDistance) continue;
 
                 bestDistance = distance;
@@ -150,20 +122,17 @@ public static class CarryRules
     /// <summary>
     /// Puts <paramref name="body"/> into <paramref name="worker"/>'s arms.
     ///
-    /// <para>The body keeps every clock it was running. <b>The rescue window
-    /// does not pause for being carried</b>, so an imp that has too far to walk
-    /// arrives with a corpse — which is a real outcome rather than an oversight,
-    /// and is what makes a lair near the fighting worth building. UNKNOWN
-    /// whether the original pauses it (Q164).</para>
+    /// <para>The body keeps every clock it was running: the rescue window does
+    /// not pause for being carried, so an imp with too far to walk arrives with
+    /// a corpse. UNKNOWN whether the original pauses it (Q164).</para>
     /// </summary>
     public static void PickUp(CreatureState worker, CreatureState body)
     {
         worker.CarriedCreatureId = body.Id;
         body.CarriedByCreatureId = worker.Id;
 
-        // A carried body stops going anywhere of its own accord. It has no path
-        // to begin with - collapsing clears it - but a corpse that was walking
-        // when it died would otherwise keep its route.
+        // A corpse that was walking when it died would otherwise keep its
+        // route. (Collapsing already clears the path.)
         body.Path.Clear();
         body.PathIndex = 0;
     }

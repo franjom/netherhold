@@ -9,14 +9,14 @@ namespace DK2.Simulation.Commands;
 /// <summary>
 /// Marks tiles for digging.
 ///
-/// The player-facing mechanic is CONFIRMED: DK2 lets a keeper paint a rectangle
-/// of rock with dig markers, imps then go and dig what is marked, and the
-/// terrain table carries a per-type <c>Taggable</c> flag saying what may be
-/// marked at all. What is <b>ours, not DK2's</b>, is the shape of this command:
-/// an explicit list of tiles with an explicit tag/untag intent. The original's
-/// interface is a drag-toggle, whose exact rule (does a drag that starts on a
-/// tagged tile untag everything it touches?) is UNKNOWN and belongs to the UI
-/// layer, not to the simulation.
+/// <para>CONFIRMED: a keeper paints a rectangle of rock with dig markers, imps
+/// dig what is marked, and the terrain table's per-type <c>Taggable</c> flag
+/// says what may be marked at all.</para>
+///
+/// <para>Ours, not DK2's: the shape of this command — an explicit list of tiles
+/// with an explicit tag/untag intent. The original's interface is a drag-toggle
+/// whose exact rule is UNKNOWN (does a drag starting on a tagged tile untag
+/// everything it touches?) and belongs to the UI layer.</para>
 /// </summary>
 public sealed record TagTilesCommand(byte PlayerId, IReadOnlyList<TilePos> Tiles, bool Tagged)
     : PlayerCommand(PlayerId)

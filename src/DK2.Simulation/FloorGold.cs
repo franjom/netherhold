@@ -7,42 +7,18 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>
-/// Gold lying on the floor: the fourth of the four places a keeper's gold can
-/// be, and the one <see cref="GoldStore"/> has been refusing to model since it
-/// was written.
-///
-/// <para><b>Read out of <c>DKII.EXE</c></b> on 2026-09-05 —
-/// <c>docs/research/gold-on-the-floor.md</c> has the evidence. Every number
-/// here is the original's.</para>
-///
-/// <para><b>A pile is an object.</b> Object <b>1</b>, named "Gold" in
-/// <c>Objects.kwd</c>, carrying the amount in the object union's first field
-/// (<see cref="ObjectState.GoldHeld"/>). The original creates one of these
-/// wherever gold has to leave a player's books and land in the world: a
-/// treasury that could not take a deposit, a treasury tile that stopped being
-/// one, a creature that was destroyed while carrying.</para>
-///
-/// <para><b>Piles do not merge here, because they do not merge there.</b> Every
-/// path below creates a <i>new</i> object rather than adding to whatever stands
-/// on the tile — which is how a creature carrying 3000 leaves three separate
-/// piles. The one place the original does merge is an imp choosing where to put
-/// a load down, and that is a rule about which slot an imp walks to rather than
-/// about the pile; it arrives with the imp task. <see cref="MaxPile"/> is the
-/// variable that rule reads, and it is exposed here <b>unenforced</b> for the
-/// same reason: nothing this class does may clamp to it, because the original
-/// makes piles bigger than it on two of the three paths below.</para>
-///
-/// <para><b>Sub-tile position is not modelled</b>, and the original has a great
-/// deal of it — a ring of eight quarter-points for an overflowing treasury, a
-/// uniform draw across the whole tile for a creature's drop, a twelve-slot
-/// layout for an imp. <see cref="ObjectState.TileIndex"/> is a tile, so all
-/// three collapse to "on this tile", and the draws that pick between them are
-/// not made. That is a deliberate loss of a presentation detail rather than of
-/// behaviour — but it is also why <b>this class takes no
-/// <see cref="SimRandom"/></b>: reproducing the original's RNG position needs
-/// its generator, and it is Q3, not this.</para>
-/// </summary>
+/// <summary>Gold lying on the floor, the fourth place a keeper's gold can be.</summary>
+/// <remarks>
+/// <para>Every number is the original's, read out of <c>DKII.EXE</c>
+/// (docs/research/gold-on-the-floor.md). A pile is object <b>1</b>, "Gold",
+/// carrying the amount in <see cref="ObjectState.GoldHeld"/>, created wherever
+/// gold leaves a player's books for the world.</para>
+/// <para>Piles do not merge here because they do not merge there: every path
+/// creates a <i>new</i> object, so a creature carrying 3000 leaves three piles.
+/// <see cref="MaxPile"/> is exposed <b>unenforced</b>. Not implemented: sub-tile
+/// position, of which the original has a great deal — which is also why this
+/// class takes no <see cref="SimRandom"/> (Q3).</para>
+/// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/gold-on-the-floor.md")]
 public static class FloorGold
 {
@@ -60,11 +36,10 @@ public static class FloorGold
     /// The object a treasury tile's gold is in the original: <b>3, "Gold Pile
     /// 1"</b> — one per tile, created on first deposit.
     ///
-    /// <para><b>Ours is not this.</b> Treasury gold lives in
-    /// <see cref="TileState.GoldHeld"/> (ADR-0015), which is the same number in
-    /// a different place, and no rule here creates object 3. The constant is
-    /// recorded so that the difference is written down at the one place a reader
-    /// would look for it, rather than inferred from its absence.</para>
+    /// <para>Deviates: treasury gold lives in
+    /// <see cref="TileState.GoldHeld"/> (ADR-0015) and no rule here creates
+    /// object 3. The constant is recorded so the difference is written down
+    /// rather than inferred from its absence.</para>
     /// </summary>
     public const byte TreasuryPileObjectId = 3;
 
@@ -89,18 +64,13 @@ public static class FloorGold
     /// <summary>
     /// <c>MaxGoldPileOutsideTreasury</c>, shipped as <b>2000</b>.
     ///
-    /// <para><b>It is a target rule, not a limit</b>, and that distinction is
-    /// the whole finding. Its three readers in the binary are all imp code
-    /// choosing where to put a load down: a candidate spot holding a pile
-    /// <i>strictly greater</i> than this is not chosen. Nothing clamps a pile to
-    /// it — a sold treasury tile makes a pile of up to
-    /// <c>MaxGoldPerTreasuryTile</c> (3000), and an overflowing deposit makes
-    /// one of whatever was left over.</para>
-    ///
-    /// <para>Exposed and not applied, exactly as
-    /// <c>MaxFreeRangeChickensPerPlayer</c> was — and for the reason that one
-    /// turned out to be right: applying a plausible cap is unfalsifiable once
-    /// it is in, because every test then agrees with it.</para>
+    /// <para>Trap: it is a target rule, not a limit. Its three readers in the
+    /// binary are all imp code choosing where to put a load down — a candidate
+    /// spot holding a pile <i>strictly greater</i> than this is not chosen —
+    /// and nothing clamps a pile to it. A sold treasury tile makes a pile of up
+    /// to <c>MaxGoldPerTreasuryTile</c> (3000) and an overflowing deposit makes
+    /// one of whatever was left over, so applying it here would be a plausible
+    /// cap that no test could then falsify.</para>
     /// </summary>
     public static int MaxPile(GameDatabase database) =>
         database is null
@@ -150,12 +120,11 @@ public static class FloorGold
     /// <summary>
     /// How much gold is on the floor anywhere in the world.
     ///
-    /// <para><b>This is not part of any player's total</b>, and that is the
-    /// original's own accounting rather than a simplification: when a treasury
-    /// tile becomes a floor pile the amount is subtracted from the player's
-    /// gold in the same breath. Gold on the floor belongs to whoever picks it
-    /// up. <see cref="GoldStore.Total"/> counts tiles and therefore already
-    /// excludes it.</para>
+    /// <para>Not part of any player's total, which is the original's own
+    /// accounting: when a treasury tile becomes a floor pile the amount is
+    /// subtracted from the player's gold in the same breath. Floor gold belongs
+    /// to whoever picks it up, and <see cref="GoldStore.Total"/> counts tiles so
+    /// already excludes it.</para>
     /// </summary>
     public static int Total(WorldState world, GameDatabase database)
     {
@@ -193,15 +162,12 @@ public static class FloorGold
     /// The same, for the callers that have no reason to name an owner — every
     /// one of them so far, because nothing yet reads a floor pile's owner.
     ///
-    /// <para><b>The owner is a guess and is marked as one.</b> The original
-    /// gives every floor pile a player id that the level fixes once at load and
-    /// that is emphatically <i>not</i> the room's owner or the dead creature's
-    /// keeper — the same global on all three paths. Which id that is has not
-    /// been read out (Q136). <see cref="PlayerIds.Neutral"/> is used here
-    /// because it is what an unclaimed thing already belongs to in this project
-    /// (ADR-0043), and because nothing depends on it yet: the day an imp is
-    /// allowed to fetch a rival keeper's dropped gold, this is the field that
-    /// decides it, and the question has to be answered first.</para>
+    /// <para>The owner is a guess: UNKNOWN (Q136). The original gives every
+    /// floor pile the same global player id, fixed once at load, and it is
+    /// emphatically not the room's owner or the dead creature's keeper.
+    /// <see cref="PlayerIds.Neutral"/> is used because that is what an unclaimed
+    /// thing belongs to here (ADR-0043) and nothing depends on it yet — the day
+    /// an imp may fetch a rival's dropped gold, this field decides it.</para>
     /// </summary>
     public static ObjectState? Drop(
         WorldState world, GameDatabase database, int tileIndex, int amount) =>
@@ -238,18 +204,14 @@ public static class FloorGold
 
     /// <summary>
     /// Drops a creature's gold on the tile it is standing on, empties its hands,
-    /// and returns how much actually reached the floor.
-    ///
-    /// <para><b>Less than it was carrying, sometimes.</b> The original divides
-    /// the gold by the number of piles with integer division and gives every
-    /// pile that share, so <b>the remainder is destroyed</b> — 2999 carried
-    /// becomes two piles of 1499 and one gold ceases to exist. Reproduced rather
-    /// than corrected, per the brief: a quirk is behaviour.</para>
-    ///
-    /// <para>Called when a creature <b>is destroyed</b>. In the original that is
-    /// one function on the teardown path, so it covers every way of leaving the
-    /// world rather than dying specifically; ours calls it from death only,
-    /// because death is the only teardown this project has built (Q137).</para>
+    /// and returns how much actually reached the floor — sometimes less than it
+    /// was carrying, because the original divides by the pile count with integer
+    /// division and gives each pile that share, destroying the remainder: 2999
+    /// carried becomes two piles of 1499. Reproduced, not corrected.
+    /// <para>Called when a creature is <b>destroyed</b>. In the original that is
+    /// one function on the teardown path, covering every way of leaving the
+    /// world; ours calls it from death only, death being the only teardown built
+    /// (Q137).</para>
     /// </summary>
     public static int DropFrom(
         WorldState world, GameDatabase database, CreatureState creature)
