@@ -65,18 +65,100 @@ All asset access must go through an abstraction layer.
 
 Do not "fix" strange DK2 behavior without documenting the deviation.
 
-## AI collaboration
+## AI collaboration — what to record, and how much
 
-If you discover something important:
+Do not leave important knowledge only in chat history. **Do not write it five
+times either.** Both failures are live in this repo, and the second is now the
+bigger one: `docs/` is ~600k tokens, one question row is 11,000 characters,
+`HANDOFF.md` reached 6,491 lines, and one finding on 2026-09-08 was written into
+five files plus its commit message.
 
-DOCUMENT IT.
+### One fact, one home
 
-Do not leave important knowledge only inside chat history.
+Every fact has exactly **one** canonical location. Everywhere else links to it.
+
+| what | home |
+|---|---|
+| a decision, and why | one ADR in `docs/DECISIONS.md` |
+| evidence for a DK2 behaviour | one section of one `docs/research/*.md` |
+| an open unknown, and how to close it | one row in `open-questions.md` |
+| something surprising about *this* code | a comment in the code |
+| why this change, now | the commit message |
+| where the project currently stands | `docs/HANDOFF.md` |
+
+If you are about to write a paragraph that exists elsewhere, write `see
+ADR-0102` instead. A second copy is not emphasis — it is a second thing that
+can go stale, and stale claims are this repo's most frequent defect.
+
+### Replace, do not append
+
+**The rule that matters most.** It is what produced a 6,491-line handoff and a
+question file where 41 rows hold 126 KB. When something supersedes what is
+written, **rewrite that place**.
+
+- Do not stack `AMENDED` / `NARROWED` / `HALF ANSWERED` / `CONFIRMED` paragraphs
+  onto a question row. Rewrite the row to say what is true now, and what is
+  still open.
+- Do not leave a wrong claim in place with a correction beneath it. Delete the
+  claim; state what is true.
+- Do not keep superseded prose "for the record". **Git is the record** — cite
+  the commit if an old reading still matters.
+- Keep a correction only when the *mistake* has a reusable shape, and keep
+  **one sentence** of it, not the narrative.
+
+### Budgets
+
+These are triggers, not style preferences: over budget means the material
+belongs somewhere else. They apply to anything you **create or edit** — you are
+not required to fix the backlog, but do not add to it.
+
+| | budget | currently |
+|---|---|---|
+| open-question row | **800 characters** | 161 of 234 over; 41 rows hold 126 KB |
+| XML doc comment | **12 lines** | worst is 113 |
+| inline comment | **3 lines** | |
+| comment lines per file | **40%** | 39% overall, worst 84% |
+| commit message body | **15 lines** | recent ones run 40–64 |
+| research doc | **400 lines** | 6 of 50 over |
+| ADR | **50 lines** (amendment **15**) | already met — do not regress |
+| `docs/HANDOFF.md` | **500 lines** | 469 after the 2026-09-08 rewrite |
+
+An ADR carries the decision and the reason. The *evidence* goes in the research
+doc. A commit message says why the change was needed, not what the
+investigation felt like.
+
+### What is worth recording
+
+Record: a decision and its reason; a DK2 fact and how it was established; an
+unknown and how to close it; a constraint invisible from the code.
+
+Do **not** record: what the code already says; a dead end that taught nothing;
+session narrative ("first I looked at…"); reasoning anyone could re-derive in a
+minute; how hard or long the work was; the same fact in a second voice.
+
+### Tone
+
+State the fact; do not argue for it at length. Cut:
+
+- rhetorical framing — "the finding worth keeping", "this deserves naming",
+  "worth repeating"
+- self-narration — "I was wrong", "this cost a day". One sentence, and only
+  where the lesson generalises.
+- emphasis inflation. If a third of a paragraph is bold, none of it is.
+- the same point restated in a second register for effect.
+
+Long-form prose is deliberate in this repo. That is not a licence for length: a
+reader must be able to act on a section without reading its history.
 
 ## Session handoff
 
 Read docs/HANDOFF.md first: current state, next steps, decisions already made,
 environment gotchas, and the research method in use.
+
+It is a **reference, not a log**: state what is true now and let git hold the
+history. It reached 6,491 lines of dated session narrative before being cut to
+469 on 2026-09-08. Budget 500 lines. Do not append a sitting; edit the section
+the fact belongs to.
 
 ## Before changing architecture
 
