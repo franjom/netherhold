@@ -71,8 +71,19 @@ activation, and value 1 additionally makes successful descendant actions
 one-shot.
 
 This dead return-dependent path is preserved as a binary quirk, not treated as
-an intended countdown. A running-game experiment could still check whether
-some external enable/disable path mutates the same records.
+an intended countdown.
+
+**The external enable/disable path exists, and it is not hypothetical.**
+`0x00508660` (condition) and `0x00508840` (action) each take a flag argument and
+set or clear bit 0 of `+0x10`; the condition one also writes `1` to the repeat
+byte, which is the value that makes a successful descendant action one-shot. So
+a record can be re-armed after retirement, and a condition re-armed this way
+arrives with a repeat policy it was not authored with. **Who calls these two,
+and when, is UNKNOWN** — it is the next thing to read before an executor treats
+retirement as permanent.
+
+`+0x10` is initialised to **2**, not to 0 or 1: both initialisers set bit 1 and
+only bit 0 varies. What bit 1 means is UNKNOWN; nothing above reads it.
 
 ## Implementation boundary
 
