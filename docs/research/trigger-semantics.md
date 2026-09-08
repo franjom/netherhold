@@ -68,6 +68,24 @@ the condition: their eight-byte body is not read. Treating the world switch's
 default arm as proof that such a type was unsupported would therefore be
 wrong.
 
+**The world context computes only nine condition types.** Resolving the
+dispatcher's two-level table for all 67 in range gives distinct arms for types
+**1, 2, 34, 35, 43, 44, 45, 64 and 67** only; **46 returns 0 without even
+logging**, and the other 57 share the default arm at `0x00518929`. A world-tree
+record of any other type fails, whatever its parameters say. Types owned by the
+player, creature or area contexts are reached by *their* walkers, not this one —
+which is the caveat above, restated with the table filled in.
+
+**Type 34 is level time, and it is how a level bootstraps.** Its arm at
+`0x0051829D` takes byte `00` as the comparison, the dword at `+4`, and calls
+`FUN_00517490` — the game-turn accessor (`trigger-state.md` §6). The loader
+scales that dword by variable 19 (Q233), so the authored value is **seconds
+since the level began**. 325 records ship it. Campaign level 1's root is trigger
+89: type 34, comparison 5 (`>=`), value 0 — true on turn 1 — with `next = 0` and
+two type-14 children. **The entire level hangs off that one node**, so an
+executor lacking type 34 fires nothing at all, which is exactly what the first
+two-sided capture showed.
+
 **Type 72 is unhandled anyway, and that caveat is why it took nine functions to
 establish it.** Every generic dispatcher bounds the type below 72 — world 67,
 creature 62, player 55, area 31 — and the event filters bound at 62 and 53, so

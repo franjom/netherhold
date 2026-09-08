@@ -24,6 +24,10 @@ switch (args[0])
     case "trigger-diff" when args.Length == 3:
         return DiffTriggerCsv(args[1], args[2]);
 
+    case "trigger-run" when args.Length == 4:
+        return RunTriggerCsv(
+            args[1], int.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture), args[3]);
+
     case "where":
     {
         string? dir = Dk2Install.Find();
@@ -2189,6 +2193,49 @@ static int Usage()
     return 1;
 }
 
+/// <summary>
+/// Runs one campaign level's trigger tree for a number of turns and writes the
+/// probe's CSV shape, so our side can be diffed against a live capture.
+/// </summary>
+static int RunTriggerCsv(string levelName, int turns, string outPath)
+{
+    string? install = Dk2Install.Find();
+    if (install is null)
+    {
+        Console.Error.WriteLine("DK2 installation not found (set DK2_DIR).");
+        return 2;
+    }
+
+    LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, levelName);
+    LevelDef? level = GameDatabaseLoader.LoadCampaignLevel(install, levelName);
+    List<TriggerRecord>? records = GameDatabaseLoader.LoadCampaignTriggers(install, levelName);
+    List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName);
+    if (map is null || level is null || records is null || players is null)
+    {
+        Console.Error.WriteLine($"'{levelName}' is missing map, level, trigger or player data.");
+        return 2;
+    }
+
+    GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, levelName);
+    WorldState world = WorldState.FromMap(
+        database, map, players.Select(p => p.PlayerId).ToArray());
+    var tree = new TriggerTree(records, level.TriggerId);
+    var simulation = new GameSimulation(database, world, seed: 0, triggers: tree);
+
+    using (var writer = new StreamWriter(outPath))
+    {
+        simulation.EmitTriggerTurnsTo(writer);
+        for (int i = 0; i < turns; i++) simulation.Tick();
+    }
+
+    Console.WriteLine($"{levelName}: {turns} turns, root trigger {tree.RootTriggerId} "
+        + $"repeat {tree.RootRepeat} -> {outPath}");
+    foreach ((int tag, byte type, int count) in
+             (simulation.LastTriggerRun?.Summary ?? []).OrderByDescending(s => s.Count))
+        Console.WriteLine($"  blocked tag {tag} type {type}: {count}");
+    return 0;
+}
+
 static int DiffTriggerCsv(string leftPath, string rightPath)
 {
     string[][] ReadRows(string path)
@@ -2201,39 +2248,61 @@ static int DiffTriggerCsv(string leftPath, string rightPath)
 
     try
     {
-        string[][] left = ReadRows(leftPath);
-        string[][] right = ReadRows(rightPath);
         string[] columns = TriggerTurnCsvEmitter.Header.Split(',');
+
+        // Rows pair by TURN, never by position. A live capture starts at
+        // whatever turn the probe attached on and may sample one turn twice, so
+        // pairing by row silently compares different turns -- an answer that
+        // looks like a divergence report and is noise.
+        Dictionary<int, string[]> Index(string[][] rows, string path)
+        {
+            var byTurn = new Dictionary<int, string[]>();
+            foreach (string[] row in rows)
+            {
+                if (row.Length != columns.Length)
+                    throw new InvalidDataException(
+                        $"'{path}' has a row of {row.Length} columns; expected {columns.Length}.");
+                if (int.TryParse(row[1], System.Globalization.NumberStyles.Integer,
+                        System.Globalization.CultureInfo.InvariantCulture, out int t))
+                    byTurn[t] = row;
+            }
+            return byTurn;
+        }
+
+        Dictionary<int, string[]> left = Index(ReadRows(leftPath), leftPath);
+        Dictionary<int, string[]> right = Index(ReadRows(rightPath), rightPath);
+        int[] turns = left.Keys.Intersect(right.Keys).OrderBy(t => t).ToArray();
+        if (turns.Length == 0)
+        {
+            Console.Error.WriteLine("the two files share no turn number; nothing to compare.");
+            return 1;
+        }
+
         var compared = new int[columns.Length];
         var unknown = new int[columns.Length];
         var different = new int[columns.Length];
         (string Turn, string Column, string Left, string Right)? first = null;
-        int rows = Math.Max(left.Length, right.Length);
 
-        for (int row = 0; row < rows; row++)
+        Console.WriteLine($"turns {turns[0]}..{turns[^1]} ({turns.Length} shared; "
+            + $"{left.Count} left rows, {right.Count} right rows)");
+
+        foreach (int turn in turns)
         {
-            string[]? a = row < left.Length ? left[row] : null;
-            string[]? b = row < right.Length ? right[row] : null;
-            if (a is not null && a.Length != columns.Length)
-                throw new InvalidDataException($"'{leftPath}' row {row + 2} has {a.Length} columns; expected {columns.Length}.");
-            if (b is not null && b.Length != columns.Length)
-                throw new InvalidDataException($"'{rightPath}' row {row + 2} has {b.Length} columns; expected {columns.Length}.");
-
-            string turn = a?[1] ?? b?[1] ?? row.ToString();
+            string[] a = left[turn];
+            string[] b = right[turn];
             for (int col = 0; col < columns.Length; col++)
             {
-                string av = a?[col] ?? "<missing row>";
-                string bv = b?[col] ?? "<missing row>";
-                if (a is not null && b is not null && (av.Length == 0 || bv.Length == 0))
+                if (a[col].Length == 0 || b[col].Length == 0)
                 {
                     unknown[col]++;
                     continue;
                 }
 
                 compared[col]++;
-                if (av == bv) continue;
+                if (a[col] == b[col]) continue;
                 different[col]++;
-                first ??= (turn, columns[col], av, bv);
+                first ??= (turn.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    columns[col], a[col], b[col]);
             }
         }
 
