@@ -1,74 +1,60 @@
 ﻿# Research queue: questions answerable without the running game
 
-**Purpose.** A standing list of open questions that need only the **binary**, the
-**shipped data files**, **Flame** or **OpenKeeper** — no owner observation, no
-stopwatch, no play session. These can be worked independently and in parallel
-with feature work, because none of them touches `src/`.
+**Purpose.** Open questions that need only the **binary**, the **shipped data
+files**, **Flame** or **OpenKeeper** — no owner observation, no stopwatch, no
+play session. They can be worked in parallel with feature work, because none of
+them touches `src/`. The other half of the split is
+`docs/research/observation-checklist.md`.
 
-Maintained as questions move. Last reviewed **2026-09-07 (later still)**
-against 215 catalogued questions.
+Every row here must still be open in `docs/research/open-questions.md`, which is
+the one home for a question's status. This page carries only the **starting
+point** for the work. To re-derive what is still open, sort the question ids:
 
-**The queue's head is clear, and the blocker at its head is gone.** Everything
-agreed for the previous pass is done (the cut-list re-check, **Q210**, **Q212**,
-**Q213**, **Q84**, **Q85**), and then **Gap 1 was settled**: `TicksPerSecond` is
-**4**, a tick is **250 ms**, `HashVersion` is **35** (ADR-0089).
+```sh
+grep -oE '^\| \*{0,2}Q[0-9]+' docs/research/open-questions.md \
+  | grep -oE '[0-9]+' | sort -n | tail -1
+```
 
-**The Q1/Q47 deadlock dissolved rather than being resolved.** It was recorded
-here as "one of the two readings is wrong". Both were, in a way neither row
-predicted: **Q1 was right about four ticks and never needed the tick counter's
-writer** — the creature update fixes its own rate by setting effect timers to
-`variable 19 × 10` and decrementing them once per call — and **Q47's five was
-never a cadence at all**, only the size of an application. Deriving a *schedule*
-from an *amount* is the shape of the mistake, and it is worth recognising again:
-a measured quantity was extended into a claim about a different quantity.
+**Closed since this page was last pruned**, and not to be re-opened here: Q1
+(a tick is 250 ms, adopted — ADR-0089), Q69, Q81, Q110, Q123 (all read from the
+binary), Q86 (the portal tally's reset is an ownership change), Q209's
+neighbourhood is *not* closed but its object half is, Q214 and Q22 (there is no
+fill-in mechanism in DK2 — Q219), and **M1** (all 18 record-type ids parse and
+round-trip, ADR-0091). Tranche B below is therefore field-level work inside
+records that already parse, not a stalled milestone.
 
-**Two new items came out of it**, both cheap and both in this queue's remit
-except where noted: **Q215** (what guards DK2's "health reached MaxHealth"
-conversion — disassemble `0x00453058` onward rather than trusting the decompile)
-and **Q214** (one minute of play; it is on the observation checklist instead).
-
-~~**Next sitting: the Library and research accrual**~~ — **BUILT 2026-09-07**
-(ADR-0090, `HashVersion` 36). Category 12's prayer hook was indeed the template.
-Three new questions came out of it, all in this queue's remit: **Q217** (who
-sets the keeper's casino flag at `player+0x20D` — scan for stores to
-`[reg + 0x20D]`), **Q218** (who passes the research adder a negative amount —
-`CallScanAll.py` on `0x004c2dc0`, and remember that a `.text`-only scan is how
-ADR-0086's "reached only through a vtable" went wrong), and **Q216**, which
-needs the research tree rather than this queue.
-
-**The standing lesson from that sitting**, because it cost a documented claim:
-record a shipped variable as **"no reader found"**, never as **"no reader"**.
-`IncreasedWorkRateDurationFromSlappingSeconds` was written up as read by nothing
-and turned out to govern a second slap effect in a mechanism nobody had looked
-at. `hand-of-evil.md` used the hedged form and needed only an addition;
-`tile-work.md` used the flat form and needed a correction.
+**The standing lesson from the last sitting**, because it cost a documented
+claim: record a shipped variable as **"no reader found"**, never as **"no
+reader"**. `IncreasedWorkRateDurationFromSlappingSeconds` was written up as read
+by nothing and turned out to govern a second slap effect in a mechanism nobody
+had looked at.
 
 ---
 
 ## The four rules, before anything else
 
 **1. Decompiler output never enters the repository.** ADR-0046 and
-`reverse-engineering/README.md`. Facts cross — a number, a formula, a comparison,
-an order of operations, a description of control flow, **in our own words**, in
-`docs/research/`, with provenance. Output does not cross: not into `src/`, not
-into `docs/`, not into a commit message, not into a test fixture. Check
-`git status --short reverse-engineering/` is empty before every commit.
+`reverse-engineering/README.md`. Facts cross — a number, a formula, a
+comparison, an order of operations, a description of control flow, **in our own
+words**, in `docs/research/`, with provenance. Output does not cross: not into
+`src/`, not into `docs/`, not into a commit message, not into a test fixture.
+Check `git status --short reverse-engineering/` is empty before every commit.
 
 **2. Flame is UNLICENSED.** Facts only. **Never write an identifier from Flame
 into the repository** — not a function name, not a struct name, not a field name.
 A Flame name may be *cited in a document* under ADR-0080 and may never appear in
-code. Use it to confirm or to aim; describe what you learn in our words.
+code.
 
 **3. OpenKeeper is reusable with attribution** (ADR-0003's second amendment,
 `THIRD-PARTY-NOTICES.md`) — **and its implementation is its guess, never
-evidence.** The owner's standing instruction: *"reference it and compare with our
-own findings, not copy it."* Q86 is the cautionary case: a slope taken from
+evidence.** The owner's standing instruction: *"reference it and compare with
+our own findings, not copy it."* Q86 is the cautionary case: a slope taken from
 OpenKeeper shipped, was tested, and was wrong.
 
 **4. Numbers collide across worktrees.** ADR numbers and question numbers are
 read from committed files, so two worktrees will pick the same next number.
-**Check every worktree before taking one**, and prefer appending answers to
-existing rows over opening new questions.
+**Check every worktree before taking one**, and prefer appending an answer to an
+existing row over opening a new question.
 
 ## How the binary work is done here
 
@@ -81,29 +67,29 @@ JAVA_HOME="C:/Program Files/Java/jdk-26.0.2.1" \
   -scriptPath <dir> -postScript <Script.py> <args>
 ```
 
-Helper scripts are copied into
-`reverse-engineering/scripts-from-master/` in the codex worktree:
+Helper scripts sit in `reverse-engineering/` alongside the exports. **Only
+`README.md` there is tracked** (`git ls-files reverse-engineering`), so the
+scripts below are local to a clone and are lost with it.
 
 | Script | What it does |
 |---|---|
 | `ScanAll.py <out> <addrHex>...` | **use this one.** Raw scan of **every initialised block** for the little-endian bytes of an address, naming the block on each hit; sees indexed reads that Ghidra's reference analysis misses |
-| ~~`ScanAddr.py`~~ | **superseded 2026-09-07.** Same scan, but hardcoded to `0x401000`–`0x652c00`, which is `.text` **only** — it never saw `cseg`, the image's *second executable block* (`0x653000`–`0x66bfff`, 100 KB of code). Every reader count in this project taken before that date is a claim about `.text` |
-| `MaskScan.py <out> <hexConst>...` | every instruction whose text mentions a constant, **with the containing function name**. Pass the digits **without** `0x` — the script prepends it |
-| `CallScan.py <out> <addrHex>...` | every `E8`/`E9` rel32 whose target is the address, plus absolute occurrences — finds callers in unanalysed regions and vtable installs |
-| `ForceAt.py <out> <addrHex>...` | force a function at exactly this address and decompile |
-| `ForceFunc.py <out> <addrHex>...` | walk back to the MSVC prologue, force a function, decompile |
+| ~~`ScanAddr.py`~~ | **superseded.** Same scan, hardcoded to `0x401000`–`0x652c00`, which is `.text` **only** — it never saw `cseg`, the image's second executable block (`0x653000`–`0x66bfff`, 100 KB of code) |
+| `MaskScan.py <out> <hexConst>...` | every instruction whose text mentions a constant, with the containing function name. Pass the digits **without** `0x` |
+| `CallScanAll.py <out> <addrHex>...` | every `E8`/`E9` rel32 whose target is the address, plus absolute occurrences — finds callers in unanalysed regions and vtable installs |
+| `ForceAt.py` / `ForceFunc.py <out> <addrHex>...` | force a function at exactly this address, or walk back to the MSVC prologue first, and decompile |
 | `Disasm.py <start> <end> <out>` | plain disassembly of a range — **use this when the decompiler garbles**, which it does around register-tracked table fills |
 | `PreCall.py <out> <targetHex>` | the 12 instructions before every reference to a target, for reading pushed arguments |
 | `CatTable.py <out> [start end]` | reconstructs a run-time-filled table by walking a straight-line `MOV` run and tracking registers |
 | `AtAndCallers.py <out> <addrHex>...` | decompiles the function containing each address **and lists its callers**. The workhorse for a cadence question: how often something happens is a property of who calls it |
 | `Up.py <out> <addrHex> <depth>` | walks the caller tree upward breadth-first. Stops dead on a vtable method (0 callers), which is itself the finding — scan the address next |
-| `Intersect.py <out> <globalHex> <calleeHex>` | functions that reference a global **and** call a given function. Narrowed 102 x 94 candidates to **one** on 2026-09-07; the sharpest instrument here when you can name two things the answer must touch |
-| `CallSlot.py <out> <slotHex> <globalHex>` | indirect calls through a vtable slot offset, flagged by whether the caller also touches a global. Note that an empty result is weak evidence — the dispatcher may reach its list through a member rather than a global |
-| `TickWriter.py <out> <globalHex>` | dword stores into `[reg + 4]` across the image, flagged by whether the containing function touches a global. Built for the tick counter; found only linked-list `next` pointers, which was the useful negative |
+| `Intersect.py <out> <globalHex> <calleeHex>` | functions that reference a global **and** call a given function. The sharpest instrument here when you can name two things the answer must touch |
+| `CallSlot.py <out> <slotHex> <globalHex>` | indirect calls through a vtable slot offset. An empty result is weak evidence — the dispatcher may reach its list through a member rather than a global |
+| `ReadsAt.py <out> <sourceOffsetHex>` | every reference to a record offset. Matches instruction text, so it hits **stack** offsets too — check the base register before counting a hit |
 | `Imports.py <out> <needle>...` | imported symbols matching a needle, with every reference site. `timeGetTime`, `QueryPerformanceCounter` and `GetTickCount` in one run locate the platform clock |
-| `dk2tools kwd research` | every creature that can research, with what the loader's divide by variable 19 does to its rate, and the level curve. Found that the floor at 1 **inflates** three creatures - the Skeleton's tabled 1 becomes 4 a second |
+| `dk2tools kwd fieldsweep <creatures\|objects>` | the data half of a record sweep in one command; a new record type is about ten lines |
 
-**Two traps that have each cost this project time twice:**
+**Traps that have each cost this project time twice:**
 
 - `Memory.getBytes` with a Python `bytearray` **fails silently** and leaves the
   buffer zeroed, which reads as "no hits" rather than as an error. Use
@@ -112,181 +98,84 @@ Helper scripts are copied into
   matches `0x20000000`. Filter the output, or you will read one bit's answer as
   another's.
 - **`MaskScan` prepends `0x` to its argument.** Pass `68a`, not `0x68a` — the
-  latter searches for `0x0x68a`, matches nothing, and **reports zero hits rather
-  than an error**. This cost real time on 2026-09-07: a zero-hit run was taken
-  as evidence that the room-manager region was unanalysed and had to be scanned
-  raw, and the conclusion *"reached only through a vtable"* was built on top of
-  it. Re-run correctly, the same query returned 114 hits including twelve
-  callers nothing had recorded. **A scanner that reports zero rather than
-  failing is the most expensive kind of bug there is** — check any zero-hit run
-  against a constant you know is present before believing it.
-
-- **A scan bounded to `.text` misses 100 KB of code.** The image has **two
-  executable blocks** — `.text` and **`cseg` at `0x00653000`–`0x0066BFFF`**.
-  `ScanAddr.py` covered only the first, so every reader count taken before
-  2026-09-07 is a claim about `.text` alone. Use `ScanAll.py`, which walks all
-  thirteen initialised blocks and names the block on each hit. (Re-run over the
-  cut list, `cseg` contributed **zero** hits — the conclusions held. That is the
-  outcome, not the reason to skip the check.)
-- **Always put a positive control in the same run.** Cheapest one here is
-  variable 19's global `0x006F2590`: it must return **226** hits. A run where
-  the control comes back low or empty is a broken harness, and you find that out
-  in the same output rather than three conclusions later.
-
-### The cut list is re-checked, and it holds (2026-09-07)
-
-The item that stood at the head of this queue — *re-check the fourteen variables
-declared cut, because every scan-based negative is suspect* — **is done**. All
-fourteen hold; the sweep was widened to all **57** zero-reader globals rather
-than the fourteen; and it returned three findings of its own, including `cseg`
-above and a zero-shipped percentage that is **not** inert. See
-`balance-variables-in-the-binary.md`, last section, and ADR-0085 amendment 1.
-Leftover: **Q212**.
+  latter searches for `0x0x68a` and **reports zero hits rather than an error**.
+  A zero-hit run was once taken as evidence that a region was unanalysed, and
+  the conclusion *"reached only through a vtable"* was built on top of it; the
+  same query run correctly returned 114 hits including twelve unrecorded
+  callers. **A scanner that reports zero rather than failing is the most
+  expensive kind of bug there is** — check any zero-hit run against a constant
+  you know is present before believing it.
+- **A scan bounded to `.text` misses 100 KB of code.** The image has two
+  executable blocks, `.text` and **`cseg` at `0x00653000`–`0x0066BFFF`**. Every
+  reader count taken before 2026-09-07 is a claim about `.text` alone.
+- **Always put a positive control in the same run.** Cheapest here is variable
+  19's global `0x006F2590`: it must return **226** hits. A run whose control
+  comes back low or empty is a broken harness, and you find that out in the same
+  output rather than three conclusions later.
+- **Watch for the second kind of inert** (ADR-0085): a variable with a live
+  reader and a shipped value that makes it a no-op is **disabled**, not cut.
+  A zero is a reason to look harder, not to stop.
 
 ### Two facts about the executable worth knowing up front
 
 - **Tables filled at run time cannot be read from the file.** The 281-record
-  creature state table (`0x006DA8B0`, stride 25) and the 32-record state-category
-  table (`0x00699688`, stride `0x40`) both live in uninitialised `.data` and are
-  filled by long straight-line `MOV` runs that belong to no function. Recovering
-  one means walking the disassembly tracking register values — `CatTable.py`.
+  creature state table (`0x006DA8B0`, stride 25) and the 32-record
+  state-category table (`0x00699688`, stride `0x40`) both live in uninitialised
+  `.data` and are filled by long straight-line `MOV` runs belonging to no
+  function. Recovering one means walking the disassembly tracking register
+  values — `CatTable.py`.
 - **Indexed reads carry the base constant.** A stride of 25 compiles to
-  `[EAX + EAX*4 + base]` with `EAX` pre-multiplied by 5. So an address scan for
-  a table slot really does find every read of that slot, which is what makes
-  "written once and never read" a provable statement (Q184).
+  `[EAX + EAX*4 + base]` with `EAX` pre-multiplied by 5, so an address scan for
+  a table slot really does find every read of it — which is what makes "written
+  once and never read" a provable statement (Q184).
 
 ---
 
 ## Tranche A — the cheap reader scans
 
-**Method identical for all six**, and each is an hour or two: take the variable's
-cached global out of `docs/research/balance-variables-in-the-binary.md`, run
-`ScanAddr.py`, then `MaskScan.py` to name the containing routine, then decompile
-it. Expect a high close rate.
+**Method:** take the variable's cached global out of
+`balance-variables-in-the-binary.md`, run `ScanAll.py`, then `MaskScan.py` to
+name the containing routine, then decompile it. An hour or two each.
 
 | Q | Question | Starting point |
 |---|---|---|
-| **Q69** | What reads `AttackTileHealth` (−140), and what reads the two mana-vault claim rates? | Q68 removed this project's only user for `AttackTileHealth`, so it may be dead. `ClaimNeutralManaVaultHealth` (4) and `ClaimEnemyManaVaultHealth` (20) have **no global listed** — find out why |
-| **Q81** | What is `IncreasedWorkRatePersentageOfPlayersTorturedCreatureTypes` = 25? | Its three siblings all land in `creature[0x3B3]`, the work-rate bonus (Q6). Does this one? |
-| **Q110** | Does anything shorten the dying window? | `CreatureDyingStateDurationSeconds` = 60 at `0x006F25B0` |
-| **Q160** | What is `TimeInHandBeforeCreaturesBecomeAngrySeconds` = 1000 for? | `0x006F2977`. 1000 is absurd as seconds, so it is either ticks, dead, or not a duration |
-| **Q168** | How often does an overcrowded prison roll its jail break? | `OvercrowdingJailBreakPercentagePerExtraCreature` at `0x006F2920` has **one** reader already counted |
-| **Q123** | Does anger cool while merely *in* the lair, or only while asleep in your own bed? | **Nearly free now.** The routine is known and has exactly **three callers**, each a state's per-tick handler. The 281-state table with names is in `creature-state-table.md` — find the three callers, look up their names, done. If all three are sleeping states our rule is exact; if one is awake-in-lair, we undercool |
+| **Q160** | What is `TimeInHandBeforeCreaturesBecomeAngrySeconds` = 1000 for? | `0x006F2977`. It is **not** the hand's grace period, which the original hardcodes as `PickupTick + 20 × variable 19`. 1000 seconds is over sixteen minutes, so it is ticks, dead, or not a duration |
+| **Q168** | How often does an overcrowded prison roll its jail break? | `OvercrowdingJailBreakPercentagePerExtraCreature` at `0x006F2920` has **one** reader already counted. Ours rolls once a game second, which makes two over capacity a certainty on the first roll. Also has an observation route |
 
-**Watch for the second kind of inert** (ADR-0085): a variable with a live reader
-and a shipped value that makes it a no-op is **disabled**, not cut, and the two
-belong in different columns. A zero is a reason to look harder, not to stop.
+## Tranche B — field-level questions inside parsed records
 
-## Tranche B — the M1 record sweep (data, not binary)
-
-**This is the stalled milestone.** M1's definition of done is *"all 18 record
-types round-trip"*; **nine** parse today. This tranche is pure file work with
-OpenKeeper's field lists and Flame's symbol map as cross-checks, and it touches
-no simulation code at all.
+Pure file work with OpenKeeper's field lists and Flame's symbol map as
+cross-checks; touches no simulation code. The tools are already there:
+`dk2tools kwd recscan`, `creaturescan`, `creaturehex`, `objecthex`, `fieldsweep`.
 
 | Q | Question |
 |---|---|
-| **Q70** | What are the last **72 bytes** of a CREATURES record? The shipped record is 5449 bytes and the fullest published field list does not account for the tail |
+| **Q70** | What are the last **72 bytes** of a CREATURES record? `KwdCreatures` reads nothing past `0x1081`, and every offset it does read was confirmed against OpenKeeper's cumulative field order, so nothing built today is at risk |
 | **Q14** | What are the **88 extra bytes** in the embedded 5537-byte CREATURES variant? |
 | **Q15** | What is the `THINGS(190)` chunk inside `GlobalVariables.kwd` (39 items) for? |
-| **Q85** | What do the two trailing fields on every VARIABLES record mean? `Unk1` and `Unk2` are parsed and read by nothing — **correlate them across all 214 records and all 66 level files** |
-| **Q84** | What are variable ids **66** and **77**? Both appear only in per-level files; level 1 has 66 = 3 (`unk1` = 2) and 77 = 29 (`unk1` = 3, `unk2` = 125) |
-| **Q183** | What is in the fixed block between a map's header (ends `0x134`) and its grid (`0x8861`)? Same in all 66 maps or not — that alone is informative |
-| **Q120** | Which objects belong to which room? `dk2tools kwd objects` already prints a partial "object ids per room"; **Q169** is the follow-on when two rooms list one object |
-| **Q129** | Is the Dungeon Heart's health **34464** or a truncated **100000**? |
+| **Q85** | What do the two trailing fields on every VARIABLES record mean? In a level file almost every entry carries `unk1 = 13, unk2 = 1` while `GameTicks`, `LevelRating` and `AverageTime` carry `0, 0` — that is a grouping. Correlate across all 214 records and all 66 level files |
+| **Q84** | What are variable ids **66** and **77**? Both appear only in per-level files; level 1 has 66 = 3 (`unk1` = 2) and 77 = 29 (`unk1` = 3, `unk2` = 125). Low priority |
+| **Q183** | What is in the fixed block between a map's header (ends `0x134`) and its grid (`0x8861`)? Partly cracked — the player's gold is at `0x2dd4`. Whether the rest is identical across all 66 maps is itself informative |
+| **Q120** | Which objects belong to which room? `Rooms.kwd` carries an `ObjectIds` list per room, parsed and read by nothing; `dk2tools kwd objects` prints a partial map. **Q169** is the follow-on when two rooms list the same object |
+| **Q129** | Is the Dungeon Heart's health **34464** or a truncated **100000**? 34464 is exactly 100000 − 65536, the signature of a five-digit number typed into a 16-bit field — the same arithmetic already seen once (Q55) |
+| **Q221** | Is the 16-byte DeadBody THINGS payload correct in retail data? |
+| **Q220** | Does a standalone `GLOBALS(0)` chunk exist, and if so what is its payload? |
 
-**The tool for this is `dk2tools`**, and it already has the offset-hunting
-commands: `kwd recscan`, `kwd creaturescan`, `kwd creaturehex` and — added
-2026-09-07 — **`kwd objecthex <offsetHex> <count> [-w]`**. Adding the equivalent
-for another record type is the right move rather than a one-off script.
-
-## Tranche C — the meaty single questions
-
-**Q209 — what predicate turns an object into an impassable tile?** The highest
-value item on this page, and it is properly set up. DK2 blocks a portal's centre
-and a heart's platform with **objects**, and the table says so: object **100 is
-named "Dungeon Heart Obstacle"**. Already established: `objDef+0xF4` is the
-runtime flags word, `objDef+0xF8` a size in 4096 fixed point used as `size >> 1`
-(file offset `0x32C`), **15** objects carry `SolidObstacle` and all fifteen are
-room furniture, **58** carry `Obstacle`. **Both obvious rules are refuted by the
-shipped data** — `Obstacle && size > 0` would block every creature bed, and
-`SolidObstacle` alone would not block a portal because the Portal Crystal lacks
-it. `FUN_004D12B0` reads all of it but is a collision *enumerator* behind a
-first-person flag, not tile pathing. **So find DK2's tile-walkability predicate
-itself, and come at it from the pathfinder rather than the object side.** It gates
-the workshop's anvil, the library's bookcases, the casino's tables and the
-graveyard's tombstones — every one of those rooms is coming.
-
-**Q186 — the rest of the state-category record.** All 32 records are decoded
-except two fields: `+0x34`, an allowed-category **bitmask** whose use is unread,
-and `+0x3c`, a small integer. `CatTable.py` reconstructs the table; the question
-is what consults those two. Transition legality lives here, and a
-reimplementation that lets a creature move between states the original forbids
-will drift with nothing to catch it.
-
-**Q202 — anger buckets 0 and 5.** Six counters, four certain because exactly one
-record field feeds each. Buckets 0 and 5 are catch-alls and **their names in our
-code are ours**. All 60 call sites are tabulated in `creature-anger.md`; the work
-is finding what distinguishes the two groups.
-
-**Q204 — two unidentified flags in the job path.** (a) `player+0x76 & 4` in the
-dispatcher restricts a creature to jobs 10 (Leave) and 16 (Rebel) and nothing
-else — a switch that turns a keeper's whole workforce mutinous. (b)
-`def+0x686 & 0x4000` diverts a chooser to state `0xEE`. Both self-contained.
-
-**Q188 — when does a prisoner's step roll halve?** State 116 returns to the
-decision state on `random(100) < 20`, but down one of two paths: when
-`FUN_00494A00(creature, 9)` is non-zero it instead requires 10..19, halving the
-rate. Read that predicate.
-
-## Tranche D — needs Flame specifically
-
-These are runtime structures, so the file data cannot answer them and the
-decompiler alone is slow going. **Facts only — never an identifier into the
-repo.**
-
-| Q | Question |
-|---|---|
-| **Q4** | `CMapEntry` (11 bytes) — full per-tile runtime state or a cache? Field meanings |
-| **Q5** | `Follow_Path` (36 bytes) contents, and DK2's pathfinding algorithm. This one eventually decides whether our A* can match the original's routes at all |
-| **Q1** | **Simulation ticks per second.** The single most foundational open question here. Flame ships a `limit_tps` patch, which implies it knows the number. **Determine it; do not change `SimulationTiming.TicksPerSecond`** — that constant moves the pinned determinism hash and wants coordinating |
-
----
-
-## What is *not* on this page, and why
-
-Anything that needs the game running or the owner watching: Q1's confirmation,
-Q46 claim duration, Q22 fill-in, Q102 hunger clock start, Q103 the sleep cycle,
-Q39 mana granularity, Q75 the starting stockpile, Q89 attraction below
-recommended size, Q143, Q138 — and the **portal recovery** experiment, which is
-the cheapest item on `observation-checklist.md` and unblocks a formula that is
-otherwise fully read (Q86).
-
-**Combat (Q8) is deliberately absent.** It is the largest unread mechanic in the
-game and an M7 milestone, not a research errand.
-
-### The record sweeps, and which of them are done
+### The record sweeps, and which are done
 
 | record | scalar fields | swept | result |
 |---|---|---|---|
-| balance variables (240 ids) | — | **yes**, 2026-09-06/07 | 12 zero-shipped: 2 cut, 10 disabled; ADR-0085, amended (id 112 is live at zero) |
-| **CREATURES** (46 records) | 56 | **yes**, 2026-09-07 | 2 zero everywhere, 4 constant, 3 fields **CUT** with no consumer; `record-field-sweep.md` |
-| **OBJECTS** (145 records) | 21 | **data yes, binary no** | `ManaValue` zero in all 145; consumer unknown, needs the objects loader (**Q213**) |
-| ROOMS | — | no | — |
-| TERRAIN | — | no | — |
-| DOORS, TRAPS, SHOTS, SPELLS, EFFECTS | — | no | — |
+| balance variables (240 ids) | — | **yes** | 12 zero-shipped: 2 cut, 10 disabled; ADR-0085, amended (id 112 is live at zero) |
+| **CREATURES** (46 records) | 56 | **yes** | 2 zero everywhere, 4 constant, 3 fields **cut** with no consumer; `record-field-sweep.md` |
+| **OBJECTS** (145 records) | 21 | **data yes, binary no** | `ManaValue` zero in all 145; consumer unknown, and it needs the objects loader |
+| ROOMS, TERRAIN, DOORS, TRAPS, SHOTS, SPELLS, EFFECTS | — | no | the same two questions apply to each: which fields never vary, and does the engine read them |
 
-`dk2tools kwd fieldsweep <creatures|objects>` does the data half in one command
-and takes a new record type in about ten lines. **The remaining rows are cheap**
-and the same two questions apply to each: which fields never vary, and does the
-engine read them.
-
-**How to take a field from a file offset to a runtime offset**, which is what
-the binary half needs and what used to be guesswork:
+**Taking a field from a file offset to a runtime offset** — what the binary half
+of a sweep needs, and what used to be guesswork:
 
 1. the creature loader is `FUN_00492320`, and **source offset = file offset +
    `0x3F0`** (confirmed on two fields at opposite ends of the record);
-2. `ReadsAt.py <out> <sourceOffsetHex>` finds the loader's read;
+2. `ReadsAt.py <sourceOffsetHex>` finds the loader's read;
 3. the **store** on the next line or two gives the runtime offset;
 4. `ReadsAt.py` on *that* offset lists every reference — and three of them are
    never consumers: the initialiser `FUN_00491DC0`, the loader itself, and the
@@ -297,7 +186,107 @@ unknown; find it the way the creature one was found — scan for stores to a
 runtime offset you can identify at both ends, then read the source offset copied
 into it.
 
-**And a trap in step 4:** `ReadsAt.py` matches instruction text, so it hits
-**stack** offsets too. `+0x758` returned a `[ESP + 0x758]` local from an
-unrelated routine. Check the base register before counting a hit — this one
-inflates a count, where every other scanning trap here deflates it.
+## Tranche C — the meaty single questions
+
+**Q209 — what predicate turns an object into an impassable tile?** The highest
+value item on this page, and properly set up (ADR-0084, `structure-blocks.md`
+§5). DK2 blocks a portal's centre and a heart's platform with **objects**, and
+object **100 is named "Dungeon Heart Obstacle"**. Established: `objDef+0xF4` is
+the runtime flags word, `objDef+0xF8` a size in 4096 fixed point used as
+`size >> 1` (file offset `0x32C`), **15** objects carry `SolidObstacle` and all
+fifteen are room furniture, **58** carry `Obstacle`. **Both obvious rules are
+refuted by the shipped data** — `Obstacle && size > 0` would block every
+creature bed, and `SolidObstacle` alone would not block a portal because the
+Portal Crystal lacks it. `FUN_004D12B0` reads all of it but is a collision
+*enumerator* behind a first-person flag, not tile pathing. **So find DK2's tile
+walkability predicate itself, and come at it from the pathfinder rather than
+from the object side.** It gates the workshop's anvil, the library's bookcases,
+the casino's tables and the graveyard's tombstones.
+
+**Q186 — the rest of the state-category record.** All 32 records are decoded
+except `+0x34`, an allowed-category **bitmask** whose use is unread, and
+`+0x3c`, a small integer. `CatTable.py` reconstructs the table; the question is
+what consults those two. **Transition legality lives here**, and a
+reimplementation that lets a creature move between states the original forbids
+will drift with nothing to catch it.
+
+**Q202 — anger buckets 0 and 5.** Six counters, four certain because exactly one
+record field feeds each. Buckets 0 and 5 are catch-alls and **their names in our
+code are ours**. All 60 call sites are tabulated in `creature-anger.md`; the
+work is finding what distinguishes the two groups. Also has an observation route.
+
+**Q204 — two unidentified flags in the job path.** (a) `player+0x76 & 4` in the
+dispatcher restricts a creature to jobs 10 (Leave) and 16 (Rebel) and nothing
+else — a switch that turns a keeper's whole workforce mutinous, and it smells
+like a keeper whose heart has fallen. (b) `def+0x686 & 0x4000` diverts a chooser
+to state `0xEE`, is per-creature-type, and can be checked against all 46
+records. Both self-contained.
+
+**Q188 — when does a prisoner's step roll halve?** State 116 returns to the
+decision state on `random(100) < 20`, but down one of two paths: when
+`FUN_00494A00(creature, 9)` is non-zero it instead requires 10..19, halving the
+rate. `FUN_00494a00` reads bit 0 of `creature + 0xFE`, an entry in a table of
+27-byte records indexed by a small id. Read that predicate.
+
+**Q215 — what guards DK2's "health reached MaxHealth" conversion?**
+`FUN_00452f60` converts a tile to its `MaxHealthTypeTerrainId` the moment the
+health reaches `terrain+0x1ad`, with no visible test of *which* kind of work
+raised it. Disassemble `0x00453058` onward rather than trusting the decompile.
+
+**Q217 — what sets the keeper's casino flag at `player+0x20D`?** The research
+adder's first bonus is gated on a 16-bit field beside the research accumulator
+being non-zero, and the percentage comes from
+`IncreasedWorkRatePersentageWhenCasinoBigWinOccurs`. The only evidence is a
+variable's name. Scan for stores to `[reg + 0x20D]`.
+
+**Q218 — what passes DK2's research adder a negative amount?** `FUN_004c2dc0`
+has a full negative branch — clamp-subtract from the accumulator, floored at
+zero, skipping every bonus — and its only caller is the category-4 hook, which
+can only pass a non-negative value. So either a second caller exists or the
+branch is dead. `CallScanAll.py` on `0x004c2dc0`, and remember that a `.text`-only
+scan is how ADR-0086's "reached only through a vtable" went wrong.
+
+## Tranche D — the trigger and action-point frontier
+
+Records parse and their state banks exist (ADR-0092, ADR-0102, ADR-0103);
+**nothing evaluates a condition or runs an action**, and these are what stands
+between the corpus and execution. All are binary or shipped-file work.
+
+| Q | Question |
+|---|---|
+| **Q225** | Do DK2-authored files corroborate the trigger types absent from the shipped corpus? Four unshipped action types have no body read |
+| **Q226** | What do the remaining transcribed trigger selectors mean? |
+| **Q227** | What are the trigger fields DKII.EXE reads without revealing a role? |
+| **Q229** | Flag id 128 is **not a flag** — both dispatchers compare the id against `0x80`. What is it? |
+| **Q230** | What does DK2 do when a trigger names a flag id above 128? The write path masks the id |
+| **Q232** | Timer id 16 is **not a timer** — the condition path compares the id against `0x10`. What is it? |
+| **Q235** | What do action-point flag bits 0, 2, 3, 4 and 5 mean? The corpus authors `0x7D`; bits 1 and 7 rest on the disassembly alone |
+| **Q236** | Who consumes or mutates the passage counter and the wait timer? |
+| **Q237** | When is an action-point rectangle tested, and what is its actual per-tick cost? |
+| **Q238** | How is `NextWaypointId` traversed, terminated, and handled when missing or cyclic? |
+| **Q223** | When a ROOM record and the MAP grid disagree about who owns a structure, which does DK2 believe? |
+| **Q224** | What state does a door or a trap need, and is `DoorThing.Flags` the locked bit? |
+
+## Tranche E — needs Flame specifically
+
+Runtime structures, so the file data cannot answer them and the decompiler alone
+is slow going. **Facts only — never an identifier into the repo.**
+
+| Q | Question |
+|---|---|
+| **Q4** | `CMapEntry` (11 bytes) — full per-tile runtime state or a cache? Field meanings |
+| **Q5** | `Follow_Path` (36 bytes) contents, and DK2's pathfinding algorithm. This one eventually decides whether our A* can match the original's routes at all |
+
+---
+
+## What is *not* on this page, and why
+
+Anything that needs the game running or the owner watching lives in
+`docs/research/observation-checklist.md`: Q35 the treasury fill order, Q49 the
+pause after claiming, Q57 running out of mana, Q62 the reinforce application
+count, Q75 the starting stockpile, Q89 and Q61 attraction below recommended
+size, Q97 why arrivals slow, Q102 the hunger clock's start, Q103 the sleep
+cycle, Q138/Q140 the floor lump, Q143, Q145, Q177, Q199 and Q216.
+
+**Combat (Q8) is deliberately absent.** It is the largest unread mechanic in the
+game and an M7 milestone, not a research errand.
