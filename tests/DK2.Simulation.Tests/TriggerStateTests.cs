@@ -106,6 +106,44 @@ public class TriggerStateTests
     }
 
     [Fact]
+    public void AnUnstartedTimerDoesNotReadAsALongTimeAgo()
+    {
+        // The condition path tests the stored stamp and bails before comparing
+        // anything, so "never started" is not the same as "started at tick 0".
+        // Elapsed() alone would say 500 ticks have passed on a timer nothing
+        // ever stamped, which is how a trigger fires at the start of a level
+        // that was meant to wait for something.
+        var triggers = new TriggerState();
+
+        Assert.False(triggers.IsStarted(7));
+        Assert.False(triggers.HasElapsed(7, value: 10, now: 500));
+
+        triggers.StartTimer(7, now: 100);
+
+        Assert.True(triggers.IsStarted(7));
+        Assert.False(triggers.HasElapsed(7, value: 10, now: 109));
+        Assert.True(triggers.HasElapsed(7, value: 10, now: 110));
+    }
+
+    [Fact]
+    public void ATimerThresholdIsInTicks_SoSixHundredIsAHundredAndFiftySeconds()
+    {
+        // The unit, which is the half of Q228 that is settled. No multiply
+        // exists in the trigger path and nothing in the trigger region reads
+        // variable 19, while the rest of the game scales a second-authored
+        // duration by it. A reading in seconds would make every timed
+        // objective in the campaign four times too long.
+        var triggers = new TriggerState();
+        triggers.StartTimer(0, now: 1);
+
+        int oneHundredAndFiftySeconds = 150 * SimulationTiming.TicksPerSecond;
+        Assert.Equal(600, oneHundredAndFiftySeconds);
+
+        Assert.True(triggers.HasElapsed(0, value: 600, now: 1 + oneHundredAndFiftySeconds));
+        Assert.False(triggers.HasElapsed(0, value: 600, now: oneHundredAndFiftySeconds));
+    }
+
+    [Fact]
     public void TheSixComparisonCodesAreSigned()
     {
         // Signed is the correction, not the code list: the previous reader

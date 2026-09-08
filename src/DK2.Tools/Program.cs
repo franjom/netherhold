@@ -617,6 +617,50 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length >= 4 && args[1] == "trigger-params":
+    {
+        // The distribution of ONE named parameter across every shipped record
+        // of one tag and type. `kwd trigger-types` says how many records exist;
+        // this says what they carry, which is what settles a unit question:
+        // a timer threshold authored in seconds and one authored in ticks are
+        // the same field with values that differ by a factor of four.
+        if (!int.TryParse(args[2], out int wantTag))
+        {
+            Console.Error.WriteLine("usage: kwd trigger-params <tag> <type> [parameterName]");
+            return 2;
+        }
+
+        bool anyType = args[3] == "*";
+        int wantType = anyType ? -1 : int.Parse(args[3]);
+        string? wantParam = args.Length >= 5 ? args[4] : null;
+
+        string maps = Path.Combine(Dk2Install.Require(), "Data", "editor", "maps");
+        var tally = new SortedDictionary<string, int>(StringComparer.Ordinal);
+        int records = 0;
+
+        foreach (string file in Directory.EnumerateFiles(maps, "*Triggers.kld").Order(StringComparer.OrdinalIgnoreCase))
+        {
+            foreach (TriggerRecord record in KwdTriggers.Parse(KwdReader.ReadFile(file)))
+            {
+                if (record.Tag != wantTag) continue;
+                if (!anyType && record.Type != wantType) continue;
+
+                records++;
+                foreach ((string name, long value) in record.Parameters)
+                {
+                    if (wantParam is not null && name != wantParam) continue;
+                    string key = $"{name}={value}";
+                    tally[key] = tally.TryGetValue(key, out int n) ? n + 1 : 1;
+                }
+            }
+        }
+
+        foreach ((string key, int count) in tally.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key, StringComparer.Ordinal))
+            Console.WriteLine($"  {key,-28} {count,5}");
+        Console.WriteLine($"-- {records} records of tag {wantTag} type {(anyType ? "*" : $"{wantType}")}");
+        return 0;
+    }
+
     case "kwd" when args.Length >= 2 && args[1] == "terrain":
     {
         List<TerrainDef> terrains = KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(
@@ -1706,6 +1750,7 @@ static int Usage()
     Console.WriteLine("  kwd recscan <file.kwd> <value> [rec]   offsets holding a measured value, with the column");
     Console.WriteLine("  kwd records <file.kwd|kld>            dump decoded ids/types and consumed lengths");
     Console.WriteLine("  kwd trigger-types                     dump shipped trigger type counts and levels");
+    Console.WriteLine("  kwd trigger-params <tag> <type|*> [name]  value distribution of one trigger parameter");
     Console.WriteLine("  kwd corpus                             parse and round-trip the shipped KWD/KLD corpus");
     Console.WriteLine("  kwd things [file.kld]                  placed entities of one level, or the corpus");
     Console.WriteLine("  kwd creaturescan <name> <value>        the same, anchored on one creature");

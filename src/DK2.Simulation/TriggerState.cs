@@ -53,7 +53,9 @@ public enum FlagWriteMode : byte
 ///
 /// <para>Nothing here decides <b>when</b> a trigger is evaluated. That is a
 /// separate and still-open question (Q228), and no code in this class assumes
-/// an answer to it.</para>
+/// an answer to it. What Q228 <i>did</i> settle is the unit: the clock a timer
+/// stamps is the game's own tick counter, so every value in the timer bank is
+/// in ticks of 250 ms.</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-state.md")]
 public sealed class TriggerState
@@ -173,8 +175,37 @@ public sealed class TriggerState
     /// <summary>Sets a timer to an explicit stamp — DK2's action type 23.</summary>
     public void SetTimer(byte timerId, int value) => _timers[timerId] = value;
 
-    /// <summary>Ticks elapsed since the timer was stamped.</summary>
+    /// <summary>
+    /// Ticks elapsed since the timer was stamped. <b>Only meaningful when
+    /// <see cref="IsStarted"/></b> — see it for why.
+    /// </summary>
     public int Elapsed(byte timerId, int now) => now - _timers[timerId];
+
+    /// <summary>
+    /// Whether the timer has ever been stamped.
+    ///
+    /// <para><b>A stamp of zero means "not started", and it is a real
+    /// distinction rather than a convention.</b> The condition path opens with
+    /// a test of the stored stamp and bails before comparing anything, so an
+    /// unstarted timer does not read as "a very long time ago" — its condition
+    /// simply does not hold. Tick 0 is therefore not a usable stamp.</para>
+    /// </summary>
+    public bool IsStarted(byte timerId) => _timers[timerId] != 0;
+
+    /// <summary>
+    /// Whether <paramref name="value"/> ticks have passed since the timer was
+    /// stamped — the whole condition, in the shape DK2 evaluates it.
+    ///
+    /// <para><b>A deadline, not a subtraction.</b> The executable computes
+    /// <c>stamp + value</c> and compares the clock against it, and it is
+    /// <b>ticks throughout</b>: the authored threshold is consumed raw, with no
+    /// seconds-to-ticks multiply anywhere in the trigger code, while the rest
+    /// of the game multiplies a second-authored duration by variable 19 before
+    /// adding it to a stamp. So a threshold of 600 is 150 seconds, not ten
+    /// minutes.</para>
+    /// </summary>
+    public bool HasElapsed(byte timerId, int value, int now) =>
+        IsStarted(timerId) && now >= _timers[timerId] + value;
 
     /// <summary>
     /// Compares two values with DK2's comparison codes. The routine at

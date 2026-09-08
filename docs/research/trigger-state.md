@@ -107,16 +107,77 @@ No shipped level writes a flag id **above** 128; in the original such an id
 would index past the flag bank and into the timers, and this reimplementation
 refuses rather than reproducing an overrun nobody has observed (Q230).
 
-## 5. A timer stores when it started
+## 5. A timer stores when it started, and the clock counts ticks
 
 Action type 8 stamps a timer with the current clock (`timers[id] = clock()`).
-Action type 23 sets an explicit stamp. The condition side subtracts: **elapsed
-time is derived, not counted down**, so nothing has to be decremented once a
-tick.
+Action type 23 sets an explicit stamp. **The comparison is a deadline, not a
+subtraction**: the condition computes `stamp + value` and compares the clock
+against it (`ADD EBX,EAX` then `CMP EAX,EBX` at `0x00518537`). Equivalent to
+comparing elapsed time, but it means nothing is ever decremented — a timer
+costs no per-tick work.
 
-The clock itself is a two-hop accessor — `0x00517490` returns
-`this->[+4]->[+4]` — and **its unit is not established here**. That is the same
-question as the evaluation cadence, and it is Q228.
+**A stamp of zero means "not started".** The condition path opens with
+`TEST EAX,EAX; JZ` on the stored stamp and bails before comparing anything, so
+tick 0 is not a usable stamp and an unstarted timer's condition is not merely
+"a very long time ago".
+
+There is also an **indirect mode**: at `0x005185C1` the id in byte `03` selects
+a *second* timer and the comparison runs against that timer's stored stamp
+rather than against a literal.
+
+### The clock is the game's tick counter
+
+`0x00517490` returns `this->[+4]->[+4]` on the game object, and **it is not a
+trigger clock at all** — 196 functions call it, at 448 sites. It is the "now"
+every gate in the game reads, which this project had already established while
+settling Q1.
+
+**Its unit is ticks, read directly rather than inferred.** In the creature's
+per-tick update at `0x00488D89`:
+
+```
+CALL 0x00517490            ; now
+XOR  EDX,EDX
+DIV  dword ptr [0x006F2590] ; / variable 19
+TEST EDX,EDX
+JNZ  ...                    ; proceed only when now % var19 == 0
+```
+
+`now % var19 == 0` is the once-a-game-second gate, and it is only once a game
+second if `now` counts **ticks**, four to the second. That fixes a trigger
+timer's unit at 250 ms per unit (ADR-0089).
+
+### Authored timer thresholds are in ticks, not seconds
+
+The same function shows the game's idiom for a duration authored in seconds, 30
+bytes earlier at `0x00488D1D`:
+
+```
+CALL 0x00517490            ; now
+MOV  ECX,[0x006F2590]      ; variable 19
+MOV  EDI,[ESI + 0x4B3]     ; a stored stamp
+LEA  EDX,[ECX + ECX*4]     ; var19 * 5  -> five game seconds, in ticks
+ADD  EDX,EDI               ; stamp + five seconds
+CMP  EAX,EDX               ; now vs deadline
+```
+
+Structurally identical to the trigger timer comparison **except for the
+multiply**. The trigger path has none, and **no code in the trigger region
+references variable 19's global at all** — checked with a scan of every
+initialised block, `cseg` included, whose positive control returned its expected
+226 hits.
+
+So a trigger's authored threshold is consumed raw, in ticks. `Value=600` on a
+timer condition is **150 seconds, not ten minutes**.
+
+**This deserves an observation before anything is built on it.** The shipped
+thresholds are suspiciously round *as seconds* — 60, 120, 180, 240, 300, 600 —
+which is what a designer typing seconds would produce, and a 4x error here would
+mis-time every timed objective in the campaign. Against that: the corpus also
+contains 1, 3, 5, 15 and 25, which are not multiples of four, so the editor is
+not storing `seconds x 4`. The binary reading stands and the round numbers are
+most likely round tick counts, but Q228 records what to watch in the running
+game to be sure.
 
 ## 6. Scope in the shipped campaign
 
@@ -138,10 +199,13 @@ Every comparison code in the corpus is one of the six the routine at
 | Add/subtract signed, reads zero-extended | **Strongly inferred** | `char` load in arithmetic, `AND ECX,0xFF` on the read |
 | Byte `01` (action 7) / `02` (generic 1,2) is a mode, not a flag | **Strongly inferred** | the three bit tests, §3 |
 | Id 128 is a separate 32-bit target | **Strongly inferred** | explicit `CMP ...,0x80` in both dispatchers |
-| A timer stores a start stamp | **Strongly inferred** | write stamps the clock; read subtracts |
+| A timer stores a start stamp; comparison is a deadline | **Strongly inferred** | write stamps the clock; read compares `now` to `stamp + value` |
+| A stamp of 0 means "not started" | **Strongly inferred** | `TEST EAX,EAX; JZ` before any comparison |
+| The clock counts ticks, 250 ms each | **Strongly inferred** | `now % var19 == 0` is the once-a-second gate (ADR-0089) |
+| Authored thresholds are ticks, not seconds | **Strongly inferred**, wants an observation | no multiply in the trigger path, and no var19 reference in the region |
 | No shipped level exceeds either bank | **Known** (from data) | corpus sweep, all 66 levels |
 | What id 128's target *is* | **UNKNOWN** | Q229 |
-| The clock's unit, and when a trigger is evaluated | **UNKNOWN** | Q228 |
+| **When** a trigger is evaluated | **UNKNOWN** | Q228 |
 | Whether `0x006E5050` and `0x006E5054` are one object | **UNKNOWN** | Q231 |
 
 `Confirmed` is deliberately not used: no original-game observation was made.
