@@ -546,6 +546,13 @@ public sealed class WorldState
     /// yet, so for now tests and the scenario harness queue work directly and
     /// say so in their reports.
     /// </summary>
+    /// <summary>
+    /// The level's trigger flags and timers. One bank per level, never per
+    /// player — see <see cref="TriggerState"/> for the four readings behind
+    /// that.
+    /// </summary>
+    public TriggerState Triggers { get; } = new();
+
     public IReadOnlyList<TileWorkOrder> PendingWork => _pendingWork;
 
     public void QueueWork(TileWorkOrder order)
@@ -823,5 +830,11 @@ public sealed class WorldState
         hash.Add(_objects.Count);
         hash.Add(_nextObjectId);
         foreach (ObjectState o in _objects) o.HashInto(ref hash);
+
+        // The trigger banks are level state, not level data: an action record
+        // writes a flag and a later condition reads it, so two worlds that
+        // disagree about a flag will diverge as soon as that condition is
+        // evaluated. See TriggerState for why they are level-global.
+        Triggers.HashInto(ref hash);
     }
 }

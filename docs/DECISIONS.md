@@ -7914,3 +7914,88 @@ three-way interpretation of its second dword. Remaining external names are
 listed rather than silently promoted. M6 can design execution against a
 byte-accurate, provenance-labelled surface without this ADR deciding when or
 how triggers run.
+
+---
+
+## ADR-0102 — Trigger flags and timers are level state, and the byte called `Flag` is an opcode
+
+**Status:** accepted (2026-09-08). **`HashVersion` 36 → 37** and snapshot
+`FormatVersion` 36 → 37: this adds state to the world. Pinned hash moves to
+`0xD17C2E424DDE0AF2`. **Evidence:** `docs/research/trigger-state.md`; Q228–Q231.
+
+**Context.** ADR-0092 established every trigger parameter's offset, width and
+signedness from DKII.EXE, but deliberately stopped short of execution. The
+parameters address state — flags, timers, action points — and the world had
+none of it. Flags and timers are **38% of all trigger traffic** (3,472 of 9,161
+records), which makes them the first thing worth building and the largest single
+step toward "the level is winnable".
+
+**The blocking question was scope, not mechanism.** A flag bank that is
+per-player and a flag bank that is level-global are the same code and different
+state, and the difference is invisible until a determinism hash diverges or one
+keeper's script quietly overwrites another's. So it was settled from the binary
+before anything was written.
+
+**Decision.** `TriggerState` on `WorldState`: 128 flag bytes, 256 timer dwords,
+one opaque special target. Hashed, snapshotted, and level-global.
+
+### Level-global, from four readings
+
+1. Only two functions index either bank, and both are trigger dispatchers.
+2. Every call site of the action dispatcher loads `this` from a global pointer.
+3. **The player-context dispatcher `0x004C8620` — invoked for one player, and
+   holding that player as its own `this` — deliberately does not pass it**, and
+   loads the global instead before delegating. That is the one call site that
+   would have revealed a per-player bank, and it says the opposite.
+4. Neither global is per-player: each is written once or twice, at construction.
+
+The scan walked every initialised block including `cseg`, and its positive
+control at `0x006F2590` returned the expected 226.
+
+### Three readings that correct or sharpen ADR-0092
+
+**The byte named `Flag` is an operation and addressing mode, not a flag.** On
+action type 7 its bits select literal-versus-indirect operand (`0x02`),
+assign-versus-arithmetic (`0x08`) and add-versus-subtract (`0x10`); on generic
+types 1 and 2 the same idea sits in a different byte with a different bit. Those
+names were on Q226's list as "access known, name unverified" — the name was
+worse than unverified, it pointed at the wrong kind of thing.
+
+**A flag is a byte, so the 32-bit operand is truncated.** ADR-0092 recorded
+`Value:u32@04` correctly; what it could not say is that only the low eight bits
+reach a flag. The full dword reaches only flag id 128.
+
+**Add and subtract are signed; every read zero-extends.** A flag driven below
+zero reads back as 128..255, so a condition comparing it against 0 sees a large
+positive number. That is DK2's asymmetry and it is reproduced, not fixed.
+
+### Two things deliberately not modelled
+
+- **Flag id 128 is not a flag** — both dispatchers divert it to a separate
+  32-bit target with a companion byte and a virtual call. **What it is remains
+  UNKNOWN (Q229)**, so it is carried as an opaque value rather than given a
+  plausible name. Naming a mechanism from the shape of its handling is what made
+  `FillInHealth` and creature flag bit 30 look right.
+- **An id above 128 is refused.** In the original it would index past the flag
+  bank and into the timers. No shipped level does it, so this raises rather than
+  reproducing an overrun whose consequences nobody has watched (Q230).
+
+**A timer stores when it started, not how long is left.** Elapsed time is
+derived by subtraction on the condition side, so nothing needs decrementing once
+a tick — which also means this adds no per-tick work to the simulation.
+
+### Consequences
+
+- **The pinned determinism hash moved** because 128 flag bytes and 256 timer
+  dwords enter it even when every slot is zero. That is the intended cost of
+  putting them in the hash: an action writes a flag and a later condition reads
+  it, so two worlds disagreeing about one diverge only when that condition is
+  evaluated — late, and far from the cause.
+- **Nothing evaluates a trigger yet**, and this ADR does not pretend otherwise.
+  The remaining blocker for M6 is **when** the tree is walked (Q228); the clock
+  behind every timer is a two-hop accessor whose unit is not established. That
+  is a cadence question, the class that produced the Q1/Q47 deadlock, and it
+  deserves its own pass rather than a guess.
+- Action points, the other mutable trigger state, are still unmodelled (Q222 is
+  now answered — they *are* mutable, since action types 16, 17, 27 and 31 write
+  an `Available` byte — so the storage is the next step, not the question).

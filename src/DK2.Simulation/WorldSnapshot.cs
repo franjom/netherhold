@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 36;
+    private const int FormatVersion = 37;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -178,6 +178,14 @@ public static class WorldSnapshot
             w.Write(o.TimerTicks);
             w.Write(o.InHand);
         }
+
+        // The trigger banks. Written whole rather than sparsely: they are a
+        // fixed 128 bytes and 256 dwords, and a sparse form would have to
+        // encode which slots are set, which costs more than the slots.
+        for (int i = 0; i < TriggerState.FlagCount; i++) w.Write(world.Triggers.RawFlags[i]);
+        for (int i = 0; i < TriggerState.TimerCount; i++) w.Write(world.Triggers.RawTimers[i]);
+        w.Write(world.Triggers.SpecialValue);
+        w.Write(world.Triggers.SpecialValueWritten);
     }
 
     public static byte[] ToBytes(GameSimulation simulation)
@@ -361,6 +369,11 @@ public static class WorldSnapshot
         // is: a bed destroyed when its owner died must not have its id handed
         // out again to the next bed.
         world.NextObjectId = nextObjectId;
+
+        for (int i = 0; i < TriggerState.FlagCount; i++) world.Triggers.RawFlags[i] = r.ReadByte();
+        for (int i = 0; i < TriggerState.TimerCount; i++) world.Triggers.RawTimers[i] = r.ReadInt32();
+        world.Triggers.SpecialValue = r.ReadInt32();
+        world.Triggers.SpecialValueWritten = r.ReadBoolean();
 
         return new GameSimulation(database, world, rng, systems);
     }

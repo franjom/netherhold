@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -21,6 +21,35 @@ public class SnapshotTests
 
         Assert.Equal(original.CurrentTick, restored.CurrentTick);
         Assert.Equal(original.StateHash(), restored.StateHash());
+    }
+
+    [Fact]
+    public void RoundTrip_CarriesTheTriggerBanks()
+    {
+        // RoundTrip_PreservesStateHash would catch this too, since the banks
+        // are hashed - but only by failing with "the hash moved", which says
+        // nothing about which of two hundred fields was dropped. This names
+        // them, so a snapshot that forgets a bank fails where the bank is.
+        GameSimulation original = TestWorld.Simulation();
+        original.World.Triggers.Write(0, FlagWriteMode.Assign, 200);
+        original.World.Triggers.Write(127, FlagWriteMode.Subtract, 1);
+        original.World.Triggers.StartTimer(0, now: 11);
+        original.World.Triggers.StartTimer(255, now: -4);
+        original.World.Triggers.Write(TriggerState.SpecialFlagId, FlagWriteMode.Assign, 0x7FFFFFFF);
+
+        GameSimulation restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(original), TestWorld.Database(), [new ChaosSystem()]);
+
+        Assert.Equal(200, restored.World.Triggers.Read(0));
+
+        // 0 - 1 as a signed char, read back zero-extended: the wrap has to
+        // survive the round trip as the byte it is, not as -1.
+        Assert.Equal(255, restored.World.Triggers.Read(127));
+
+        Assert.Equal(11, restored.World.Triggers.ReadTimer(0));
+        Assert.Equal(-4, restored.World.Triggers.ReadTimer(255));
+        Assert.Equal(0x7FFFFFFF, restored.World.Triggers.SpecialValue);
+        Assert.True(restored.World.Triggers.SpecialValueWritten);
     }
 
     [Fact]
