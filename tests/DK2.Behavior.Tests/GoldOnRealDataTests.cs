@@ -258,9 +258,10 @@ public class GoldOnRealDataTests
     /// <summary>
     /// The one place the whole model can be checked against a single shipped
     /// number: <c>MaxGoldPileOutsideTreasury</c> is 2000, which is what a lump
-    /// on the floor can grow to. It is read by nothing, because floor lumps are
-    /// OBJECTS and the OBJECTS record is not parsed until M6 — and this test
-    /// exists so that stays deliberate rather than forgotten (Q31).
+    /// on the floor can grow to. It is read by nothing: OBJECTS now parses, but
+    /// M6 has not projected floor-lump records or their behaviour into the
+    /// world. This test exists so that stays deliberate rather than forgotten
+    /// (Q31).
     /// </summary>
     [InstallFact]
     public void TheFloorPileLimitIsInTheDataAndIsReadByNothing()

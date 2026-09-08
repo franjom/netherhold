@@ -27,8 +27,14 @@ public class GameDatabaseTests
         Assert.Equal(41, db.Terrain.Count);
         Assert.Equal(26, db.Rooms.Count);
         Assert.Equal(46, db.Creatures.Count);
+        Assert.Equal(13, db.KeeperSpells.Count);
+        Assert.Equal(145, db.Objects.Count);
         Assert.Equal(8, db.Doors.Count);
         Assert.Equal(16, db.Traps.Count);
+        Assert.Equal(41, db.CreatureSpells.Count);
+        Assert.Equal(65, db.Shots.Count);
+        Assert.Equal(370, db.Effects.Count);
+        Assert.Equal(596, db.EffectElements.Count);
         Assert.NotEmpty(db.Variables.Misc);
     }
 

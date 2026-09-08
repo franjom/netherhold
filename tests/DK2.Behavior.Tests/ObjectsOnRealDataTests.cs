@@ -22,8 +22,8 @@ namespace DK2.Behavior.Tests;
 /// <c>TheresNoCorpseObject_SoADeadBodyIsNotAnObject</c>, which is the most
 /// useful test in this file.</para>
 ///
-/// <para>Every test here skips silently without an install, like the rest of
-/// this project.</para>
+/// <para>Every test here is install-gated and is reported as skipped when the
+/// configured game data is absent.</para>
 /// </summary>
 public class ObjectsOnRealDataTests
 {

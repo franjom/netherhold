@@ -35,10 +35,9 @@ public sealed record TrapDef
     /// them: Gas Trap 58 is <i>Gas Trap Cloud</i>, Boulder Trap 26 is
     /// <i>Boulder</i>, Jack In The Box 64 is <i>Jack In The Box</i>. Index the
     /// table by row with one of these instead and Gas Trap fires
-    /// <i>Lightning Trap Shot</i>. Nothing parses SHOTS yet (M6), so the
-    /// convention is asserted in
-    /// <c>DoorsAndTrapsDefinitionsOnRealDataTests</c> rather than expressed in
-    /// a type.</para>
+    /// <i>Lightning Trap Shot</i>. The convention is asserted in
+    /// <c>DoorsAndTrapsDefinitionsOnRealDataTests</c> and SHOTS now parses into
+    /// definitions keyed by this id.</para>
     /// </summary>
     public required byte ShotTypeId { get; init; }
 

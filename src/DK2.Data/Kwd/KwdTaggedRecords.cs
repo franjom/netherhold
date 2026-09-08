@@ -36,9 +36,9 @@ namespace DK2.Data.Kwd;
 /// <c>GlobalVariables.kwd</c>'s THINGS chunk is 39 cameras of 92 bytes each, so
 /// it divides perfectly and still is not a fixed-stride record type.)</para>
 ///
-/// <para>This type deliberately stops at the tag and the payload bytes. Reading
-/// a payload's <i>fields</i> is M6 work and belongs with the mechanic that needs
-/// them.</para>
+/// <para>This type deliberately stops at the tag and the payload bytes. M1's
+/// field readers are layered separately in <see cref="KwdThings"/> and
+/// <see cref="KwdTriggers"/>. Executing those records remains M6 work.</para>
 /// </summary>
 public static class KwdTaggedRecords
 {

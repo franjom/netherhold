@@ -12,8 +12,8 @@ namespace DK2.Simulation;
 /// answer before it may produce one.
 ///
 /// <para><b>Why this is the first room behaviour built.</b> Nothing placed a
-/// non-imp creature before it. THINGS is unparsed, so no level's own starting
-/// roster loads, and <see cref="Systems.ImpTaskSystem"/> skips anything without
+/// non-imp creature before it. THINGS now parses, but M6 has not projected a
+/// level's starting roster into the world, and <see cref="Systems.ImpTaskSystem"/> skips anything without
 /// <see cref="CreatureFlags.IsWorker"/> — a non-worker dropped into the world
 /// stood still forever. Every other room's behaviour needs occupants, and this
 /// is the room whose behaviour <i>is</i> producing them. It also needs no

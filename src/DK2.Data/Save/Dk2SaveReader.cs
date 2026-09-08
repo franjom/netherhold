@@ -17,7 +17,8 @@ namespace DK2.Data.Save;
 /// of which serialises itself through its own virtual method — so there is no
 /// flat record array to walk and entities are not read yet (Q182). A save loads
 /// with the dungeon as the player left it and no occupants, which is the same
-/// shape a campaign level already loads in: THINGS is unparsed too.</para>
+/// shape a campaign level currently loads in: THINGS parses, but M6 has not
+/// projected those records into the simulation.</para>
 ///
 /// <para>Layout CONFIRMED against the reference install's own two saves and
 /// cross-validated against the level's design map — see

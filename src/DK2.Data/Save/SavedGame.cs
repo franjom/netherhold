@@ -49,8 +49,8 @@ public sealed record Dk2SaveHeader(
 /// <para><b>Terrain and ownership only</b> — what follows the grid is a run of
 /// typed sections whose entities each serialise themselves (Q182), so a save
 /// carries no creatures, objects, traps or doors yet. A campaign level loads
-/// with no occupants either, for the unrelated reason that THINGS is unparsed,
-/// so this is not a new gap.</para>
+/// with no occupants either, for the unrelated reason that parsed THINGS have
+/// not yet been projected into <c>WorldState</c>, so this is not a new gap.</para>
 /// </summary>
 /// <param name="Header">What the save says about itself.</param>
 /// <param name="Map">
