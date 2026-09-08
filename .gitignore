@@ -59,3 +59,6 @@ unity/DK2.Unity/.vsconfig
 # ---------------------------------------------------------------
 reverse-engineering/**
 !reverse-engineering/README.md
+
+# Cygwin/MSYS crash dumps, which a crashing grep leaves in the working tree
+*.stackdump
