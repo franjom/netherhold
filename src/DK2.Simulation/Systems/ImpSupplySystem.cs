@@ -8,40 +8,17 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// Makes imps: free ones to keep a keeper above the floor, bought ones when a
-/// keeper casts Create Imp.
-///
-/// <para>This closes a gap every scenario run has reported since workers
-/// existed — "nothing generates imps: scenario files and tests place them" — and
-/// it is the first thing in the simulation that <b>spends</b> mana rather than
-/// only earning it.</para>
-///
-/// <para><b>The free supply is CONFIRMED and the data names it twice.</b> A
-/// keeper below <c>MinimumImpThreshold</c> (4) gets one imp every
-/// <c>TimeBeforeFreeImpGeneratedSeconds</c> (5) until they are back up to it.
-/// The owner established the behaviour by dropping every imp into a dungeon
-/// heart and watching them come back at roughly five-second intervals; the two
-/// variables carry exactly those numbers and say exactly that in their names.
-/// It is rare for an observation and a variable name to meet this cleanly.</para>
-///
-/// <para><b>Nothing here is ours any more, and Q56 is why that sentence exists.</b>
-/// This class used to hold a countdown that was pinned to zero while a keeper
-/// was up to strength, on the reasoning that the alternative "differs only in
-/// how fast the first replacement arrives after a long spell at full strength".
-/// That difference is precisely what the owner filmed on 2026-09-05, and the
-/// original does the other thing: it keeps a <b>deadline</b> that only ever
-/// moves when an imp is made, so the first replacement after a long spell at
-/// four arrives with no wait at all. See <see cref="TopUp"/>, and
-/// docs/research/imps-and-mana.md for the read.</para>
-///
-/// <para><b>Not implemented, and it is the interesting one:</b> imps cost mana
-/// to keep — about 7 a second each, which is what the red figure under a
-/// keeper's mana orb is. That number is in neither the balance table nor the
-/// CREATURES record, so it is recorded rather than hardcoded. See Q53 and
-/// docs/research/imps-and-mana.md; until it lands, a dungeon full of imps is
-/// free to run here and is not in the original.</para>
-/// </summary>
+/// <summary>Makes imps: free ones to keep a keeper above the floor, bought ones when
+/// a keeper casts Create Imp.</summary>
+/// <remarks>The free supply is CONFIRMED and the data names it twice: a keeper below
+/// <c>MinimumImpThreshold</c> (4) gets one imp every
+/// <c>TimeBeforeFreeImpGeneratedSeconds</c> (5) until they are back up to it, and the
+/// owner established the behaviour by dropping every imp into a dungeon heart and
+/// watching them return at roughly five-second intervals. Not implemented: imps cost
+/// mana to keep, about 7 a second each — the red figure under a keeper's mana orb —
+/// which is in neither the balance table nor the CREATURES record, so it is recorded
+/// rather than hardcoded (Q53, docs/research/imps-and-mana.md). Until it lands, a
+/// dungeon full of imps is free to run here and is not in the original.</remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/imps-and-mana.md")]
 public sealed class ImpSupplySystem : ISimulationSystem
 {
@@ -59,34 +36,18 @@ public sealed class ImpSupplySystem : ISimulationSystem
         TopUp(context);
     }
 
-    /// <summary>
-    /// Hands a short-handed keeper a free imp when one is due.
-    ///
-    /// <para><b>The due time is a deadline, and it moves only when an imp is
-    /// made.</b> DK2 keeps one field on the keeper — read here as
-    /// <see cref="PlayerState.NextFreeImpTick"/> — and the original's keeper
-    /// update writes it in exactly one place, right after the spawn, as
-    /// <c>now + TimeBeforeFreeImpGeneratedSeconds</c>. A keeper at full strength
-    /// is never touched, so their deadline slides into the past and the next
-    /// loss is replaced <b>on the spot</b>.</para>
-    ///
-    /// <para><b>This is a correction, and it was caught by watching.</b> Q56 was
-    /// answered "ours" for three weeks: a countdown pinned to zero while the
-    /// keeper was up to strength, restarted from full when they fell short. The
-    /// owner recorded thirty seconds at exactly four imps, sacrificed one, and
-    /// the replacement appeared in about 1.4 seconds rather than 5 — and only
-    /// the further replacements came five seconds apart. The binary then said
-    /// why. Both halves of the old comment were wrong: the alternative was not
-    /// "indistinguishable in the steady state", it was the observable, and the
-    /// thing it differed on was the case the owner filmed.</para>
-    ///
-    /// <para>Two details are deliberate and both are read out of the original.
-    /// The deadline is advanced <b>whether or not the spawn succeeds</b> — the
-    /// original does not test the cast's return value — so a keeper with no
-    /// heart burns its interval rather than retrying every tick. And a free imp
-    /// is genuinely free: the free flag makes the original skip both the
-    /// spell-availability check and the mana check, and skip the deduction.</para>
-    /// </summary>
+    /// <summary>Hands a short-handed keeper a free imp when one is due.</summary>
+    /// <remarks>The due time is a deadline and it moves only when an imp is made:
+    /// DK2 keeps one field on the keeper — <see cref="PlayerState.NextFreeImpTick"/> —
+    /// and its keeper update writes it in exactly one place, right after the spawn, as
+    /// <c>now + TimeBeforeFreeImpGeneratedSeconds</c>. A keeper at full strength is
+    /// never touched, so the deadline slides into the past and the next loss is
+    /// replaced on the spot: the owner filmed thirty seconds at exactly four imps,
+    /// sacrificed one, and the replacement came in about 1.4 seconds rather than 5,
+    /// with the following ones five apart (Q56). Two more details are the original's:
+    /// the deadline advances whether or not the spawn succeeds, since the original
+    /// does not test the cast's return value; and a free imp skips the
+    /// spell-availability check, the mana check and the deduction.</remarks>
     private static void TopUp(SimulationContext context)
     {
         WorldState world = context.World;
@@ -101,21 +62,11 @@ public sealed class ImpSupplySystem : ISimulationSystem
             byte playerId = player.PlayerId;
 
             // Only a keeper is topped up (Q91). Nobody, the hero side and the
-            // neutral player are all real player ids that own real terrain —
-            // 167 of the campaign's portals belong to Neutral — and none of
-            // them keeps a dungeon reinforced by imps.
-            //
-            // This was harmless on shipped data because none of the three has a
-            // dungeon heart, so Spawn returned null and the clock simply ran
-            // again. Harmless-by-accident is the shape of defect this project
-            // has been bitten by before: the rule holds because of a fact about
-            // the levels rather than because anything checks it, and a level
-            // that gave the hero side a heart would have quietly staffed it.
-            //
-            // The deadline is NOT cleared here, and that is the correction: the
-            // original leaves it alone for everybody it declines to serve, which
-            // is exactly why a keeper who has been at full strength replaces
-            // their next loss immediately.
+            // neutral player own real terrain but keep no imp-staffed dungeon -
+            // a rule nothing else enforces, so a level that gave the hero side a
+            // heart would have staffed it. The deadline is deliberately NOT
+            // cleared for anyone declined, which is what makes a full-strength
+            // keeper's next replacement immediate.
             if (!PlayerIds.IsKeeper(playerId)) continue;
 
             if (ImpSupplyRules.ImpCount(world, database, playerId) >= minimum) continue;
@@ -187,14 +138,11 @@ public sealed class ImpSupplySystem : ISimulationSystem
             $"cost={cost} mana={player.Mana}");
     }
 
-    /// <summary>
-    /// Puts a new imp on this keeper's dungeon heart, or returns null if they
-    /// have not got one.
-    ///
-    /// The creature type is found by flag rather than by id — the same rule
-    /// every other creature lookup follows — and by name among the workers,
-    /// because the Dwarf is a worker too and is not what Create Imp makes.
-    /// </summary>
+    /// <summary>Puts a new imp on this keeper's dungeon heart, or returns null if
+    /// they have not got one.</summary>
+    /// <remarks>The type is found by name, <c>Imp</c> — not by id, and not by the
+    /// worker flag, because the Dwarf carries it too and is not what Create Imp
+    /// makes.</remarks>
     private static CreatureState? Spawn(SimulationContext context, byte playerId)
     {
         WorldState world = context.World;

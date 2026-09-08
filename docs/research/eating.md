@@ -1,14 +1,18 @@
-﻿# Eating: hunger, the chicken, and the two ways of paying it off
+﻿# Mechanic: eating — hunger, the chicken, and the two ways of paying it off
 
-What a hungry creature does about it, read from the original's own
-`HungerState.cpp` on **2026-09-06**. Everything here is from the binary unless
-it says otherwise; the owner has confirmed one sentence of it, and that sentence
-is about prisoners.
+Source(s):
+- `DKII.EXE` v1.70, `HungerState.cpp`'s translation unit and the creature state
+  object's own debug dump `FUN_00479200`, read 2026-09-06
+- The reference install's `Creatures.kwd` and `Objects.kwd`, via `DK2.Data`
+- Owner observation, 2026-09-05 (Q172, the prisoners' race for a chicken)
 
-Companion to `hatchery.md`, which is the room that makes the food, and to
-`creature-needs.md`, which is where the creature record's numbers live.
+Original version: DK2 v1.70
 
----
+Companion to `hatchery.md`, the room that makes the food, and to
+`creature-needs.md`, where the creature record's numbers live.
+
+Confidence: **CONFIRMED** from the binary throughout, except the two items in
+§8.
 
 ## 1. The short version
 
@@ -30,8 +34,6 @@ Two numbers do all the work and both are in the creature record: `HungerRate`
 (180 seconds for a Goblin, 220 for a Bile Demon) and `HungerFill` (1 for nearly
 everybody, **5** for a Bile Demon, 0 for the four creatures that never eat).
 
----
-
 ## 2. Where it lives in the binary
 
 DK2 ships the file name: `D:\Dev\DK2\Projects\Source\Game\HungerState.cpp` at
@@ -39,11 +41,11 @@ DK2 ships the file name: `D:\Dev\DK2\Projects\Source\Game\HungerState.cpp` at
 around them is the whole mechanic.
 
 **The creature state object's own debug dump** (`FUN_00479200`) names the
-fields, which is how this stopped being guesswork:
+fields:
 
 | Offset | DK2's name | What it is |
 |---|---|---|
-| `+0x10` | `CurrentStateId` | index into the state table below |
+| `+0x10` | `CurrentStateId` | index into the state table |
 | `+0x18` | `StartedAt` | tick this state was entered |
 | `+0x1c` | `Age` | ticks in this state |
 | `+0x48` | `LastAteTime` | the hunger clock's stamp |
@@ -57,55 +59,27 @@ fields, which is how this stopped being guesswork:
 | `+0xdf` | `UtilityNewState` | the state a "move to" hands control to |
 
 The dump prints thirty more, including the whole `ImpJobData` block and the
-lair/prison sub-blocks; the rest are in `creature-table-dump.md`'s neighbourhood
-and are not this document's business.
+lair/prison sub-blocks; those are `creature-table-dump.md`'s business.
 
-### 2.1 The state table, and how it was recovered
+### 2.1 The state table
 
-> **Superseded — see `creature-state-table.md`.** Everything this section said
-> about the table's shape was wrong in two independent ways, and both are worth
-> reading about there rather than here: the base was one field group late
-> (`0x006DA8C0` instead of `0x006DA8B0`, which put the id at `+0` and every
-> handler one state off), and the count of **239** came from a scan window that
-> ended at `0x006DC000` while the table runs to `0x006DC420`. The table is
-> **281 records of 25 bytes at `0x006DA8B0`**, filled between `0x0047BBE3` and
-> `0x004805E4`, and all 281 are now recovered and named.
+**See `creature-state-table.md`**, which is its home: **281 records of 25 bytes
+at `0x006DA8B0`**, filled between `0x0047BBE3` and `0x004805E4`, all 281
+recovered and named. Two facts from it that this mechanic needs:
 
-DK2's creature states are a table of **281 records of 25 bytes** based at
-`0x006DA8B0`, filled at run time by a long straight run of `MOV` instructions
-between `0x0047BBE3` and `0x004805E4` — no function contains it, which is why a
-caller search finds nothing.
-
-Record layout: `+0x00`, `+0x04`, `+0x08` and `+0x0c` **four function pointers**
-(the first is the state's update, and it is the only one whose role has been
-read), `+0x10` the id (a dword, equal to the record's index for all 281), `+0x14`
-a `Text.str` string id, `+0x16` a group tag, `+0x17` a category, `+0x18` a flag
-byte.
-
-Recovering it is a two-step: list every write into the table's address range,
-then walk the installer's linear disassembly tracking register values, because
-the pointers are stored from `EBP`/`EDI`/`ECX` rather than as immediates. All
-281 resolve — 2,528 of the 2,529 fields, the exception being the null state's
-fourth pointer.
-
-`FUN_00476d30(newStateId, out)` is **SetState**. The two bytes are not the same
-kind of thing, which this section used to get wrong: `+0x16` is a **group tag**
-and is only ever compared for equality, while `+0x17` is the **category** and is
-the one that indexes the 0x40-byte-per-category table at `0x00699688`. When the
-group tags match, the move is allowed if the categories match; when they differ,
-the category tables decide, and the leave and enter hooks run. It then writes
-`CurrentStateId`, stamps `StartedAt`, and zeroes `Age` and `SuspendTime`.
-Category `2` means "utility state", which saves the previous state in
-`StateBeforeUtilityState` and the state to resume in `UtilityNewState`.
+- Record layout: `+0x00` the state's **update handler** (the only one of the four
+  pointer slots that is read), `+0x14` a `Text.str` string id, `+0x16` a **group
+  tag**, `+0x17` the **category**, `+0x18` a flag byte.
+- `FUN_00476d30(newStateId, out)` is **SetState**. `+0x16` is only ever compared
+  for equality; `+0x17` is the one that indexes the 0x40-byte-per-category table
+  at `0x00699688` (§10). When the group tags match, the move is allowed if the
+  categories match; when they differ, the category tables decide, and the leave
+  and enter hooks run. It then writes `CurrentStateId`, stamps `StartedAt`, and
+  zeroes `Age` and `SuspendTime`. Category `2` means "utility state", which saves
+  the previous state in `StateBeforeUtilityState` and the state to resume in
+  `UtilityNewState`.
 
 ### 2.2 The states this mechanic uses
-
-**Corrected 2026-09-06 — every id in this table used to read one too low.**
-It was written under the frame ADR-0072 replaced, which filed each handler at
-the state below its own. The handler addresses were right all along; the ids
-were not. The five hatchery states are `eating` and the six prison ones are
-`being held captive`, which is the cheapest way to check the frame is now
-straight.
 
 | Id | Handler | Label | What it does |
 |---|---|---|---|
@@ -119,24 +93,17 @@ straight.
 | `0x76` (118) | `FUN_00473750` | being held captive | eat it |
 | `0x77` (119) | `FUN_00473730` | being held captive | arriving |
 
-The old row for `0x5F` — *"wander to a random adjacent tile in the hatchery"* —
-belonged to a handler this table no longer lists, and the post-meal wander is
-Q175 either way.
+The five hatchery states are labelled `eating` and the six prison ones `being
+held captive`, which is the cheapest way to check the frame is straight — every
+id here read one too low under the frame ADR-0072 replaced.
 
 `FUN_004633d0` is not a state; it is the attempt, called from the needs routine.
-
----
 
 ## 3. The clock — `FUN_00477c20`
 
 One routine drives hunger, sleep and pay, in that order, and each block returns
 early on success. So **hunger is asked before tiredness**, and a creature that
 sets off to eat does not also consider its bed this tick.
-
-**Re-read 2026-09-06 against the corrected record layout**, and two of the
-three gates were misnamed. The suppressing byte is the **group tag** at `+0x16`,
-not the category at `+0x17`; and the two bit tests are on the **flag byte** at
-`+0x18`, which nothing had been read to consume at all (Q185).
 
 ```c
 if (stateTable[CurrentStateId].groupTag == 7) return 0;  // already attending to a need
@@ -159,28 +126,25 @@ if (fill != 0) {
 ```
 
 **Group tag 7 is exactly the fourteen states that ARE a need** — lair-seeking
-(79-81), sleeping (82-84), eating (91-95) and pay (187-189). So the first line
-says *a creature already attending to a need does not reconsider its needs*,
-which is a better rule than the "sleeping suppresses needs" this document used
-to record. **Q176's conclusion survives and its explanation does not**: a hungry
-creature still does not get up out of bed, because sleeping is one of the
-fourteen.
+(79–81), sleeping (82–84), eating (91–95) and pay (187–189). So the first line
+says *a creature already attending to a need does not reconsider its needs*.
+**Q176 follows:** a hungry creature does not get up out of bed, because sleeping
+is one of the fourteen.
 
-**Flag bit 8 suppresses the hunger clock and bit `0x10` the tiredness clock**,
-and the fifteen states that carry them are exactly **drinking, gambling and
-dancing**. So the Casino makes a creature neither hungry nor tired, and that is
-the first thing anything has been read to do with the flag byte. The categories
-8 and 9 the attempt gates exclude are the eating states and the sleeping states
-respectively — belt and braces beside the group check, except through the
-utility indirection two lines above them, which resolves a category-2 state to
-the state it will resume into.
+**Flag bit 3 (`8`) suppresses the hunger clock and bit 4 (`0x10`) the tiredness
+clock**, and the fifteen states that carry them are exactly **drinking, gambling
+and dancing** (Q185). So the Casino makes a creature neither hungry nor tired —
+the accumulation, not the attempt. The categories 8 and 9 the attempt gates
+exclude are the eating states and the sleeping states respectively — belt and
+braces beside the group check, except through the utility indirection two lines
+above them, which resolves a category-2 state to the state it will resume into.
 
 **Three things worth stating separately.**
 
 **It adds rather than sets.** A creature with nowhere to eat accumulates, and
 owes every helping it missed when a hatchery finally appears. This project had
-it the other way round until 2026-09-06: `ChickensNeeded` was *set* to
-`HungerFill`, which saturates. Observable, and one test now says so.
+it the other way round until 2026-09-06 — the accumulator was *set* to
+`HungerFill`, which saturates. Observable, and a test says so.
 
 **The retry is four game ticks.** Written as a literal `4` here; the prison's
 copy of the same test (`FUN_004731f0`) reads
@@ -199,9 +163,7 @@ def.TimeSleepTicks  =  file.sleep       * V19;
 
 so `V19` is the ticks-per-game-second multiplier, `hungerRate` is fixed-point
 seconds and `awake`/`sleep` are plain integers — three independent facts this
-project had already inferred, arriving together from a single load routine.
-
----
+project had inferred, arriving together from one load routine.
 
 ## 4. The three creature-record fields, pinned
 
@@ -232,8 +194,6 @@ invisible. Applied anyway, because the original applies it, and a test asserts
 the shipped table is flat so that the day it stops being flat is a data change
 rather than a silent one.
 
----
-
 ## 5. The health a chicken is worth — `FUN_00463760`
 
 ```c
@@ -244,18 +204,16 @@ ApplyHealth(gain);
 So `HpFromChicken` is a **cap on the top-up**, and the ceiling it is capped
 against is the *levelled* maximum while `HpFromChicken` itself never levels. Our
 `CreatureHealthRules.Apply` already clamps to the levelled maximum, so this was
-right before it was read; it is written down now because "the clamp is
-defensive" and "the clamp is the rule" are different claims.
+right before it was read; it is written down because "the clamp is defensive" and
+"the clamp is the rule" are different claims.
 
 Two records make the clamp load-bearing rather than theoretical: **Jack** has 240
 health and a chicken worth **250**, and the **Firefly** eats two chickens for
 **0** health each. A chicken is not a healing item; hunger is its own need.
 
----
-
 ## 6. Finding the bird, and the two searches that do not agree
 
-### In a hatchery — `FUN_00463500` (state `0x5B`)
+### In a hatchery — `FUN_00463500` (state `0x5C`)
 
 1. The tile underfoot must be a room of **type 4** owned by **this creature's own
    keeper**. The "allow allied" argument is passed as **false**, so an ally's
@@ -266,7 +224,7 @@ health and a chicken worth **250**, and the **Firefly** eats two chickens for
    (`dx² + dy²`, each term `>> 12`). Not a path length. Not a ring search.
 4. A candidate is skipped when its tile carries an object whose definition flags
    have `0x4000` — **UNKNOWN what that bit means**, and not modelled here.
-5. No chicken: re-enter `0x5B` and try again next update.
+5. No chicken: re-enter and try again next update.
 6. A chicken: remember **its thing id on the creature** (`+0xaf`) and route to
    it, resuming in `0x5D`.
 
@@ -277,20 +235,18 @@ Same shape, same ranking, but the test is `objectDef.flags & 0x80` —
 issues a move to the chosen object resuming in `0x76`, which is the state that
 eats. When it finds nothing it applies the creature's `AngerNoFood` — divided by
 four, because the loader stores every `angerNo*` field per DK2 tick
-(`prison.md` §7.4).
-
-**Read in full 2026-09-06 (ADR-0074).** `prison.md` §7 carries the whole of it:
-the race, the one-bird-fills-you asymmetry, the quarter-rate anger, and the fact
-that the general attempt routes *any* creature standing in a prison to this
-search rather than to a hatchery.
+(`prison.md` §7.4). `prison.md` §7 carries the whole of it: the race, the
+one-bird-fills-you asymmetry, the quarter-rate anger, and the fact that the
+general attempt routes *any* creature standing in a prison to this search rather
+than to a hatchery (ADR-0074).
 
 ### The difference is real
 
 **Two of the 145 OBJECTS records carry `TypeFood`: the Chicken (9) and the
 Torture Pendulum (65).** So a pendulum standing in a prison is food to a
 prisoner and one standing in a hatchery is not. This repository asserted *"only
-the Chicken carries `ObjectFlags.TypeFood`"* in a doc comment until 2026-09-06,
-when somebody counted; a real-data test counts it now.
+the Chicken carries `ObjectFlags.TypeFood`"* in a doc comment until somebody
+counted; a real-data test counts it now.
 
 Whether a pendulum can ever be in a prison is a separate question and the answer
 is probably no — its home room is the Torture Chamber. The point is that the two
@@ -305,8 +261,6 @@ again. **CONFIRMED by the owner** for prisoners (Q172, 2026-09-05): *"if I drop
 a chicken in a prison with creatures in they rush toward that chicken, the first
 one to it gets it, eats it, and its health replenishes by some amount"*.
 
----
-
 ## 7. Eating, and the two amounts
 
 Within a squared distance of `0x1001` — one tile in a fixed point whose tile is
@@ -314,8 +268,7 @@ Within a squared distance of `0x1001` — one tile in a fixed point whose tile i
 above, the subtract, an effect on the creature, the bird destroyed,
 `LastAteTime` stamped.
 
-**The subtract is where the two paths differ, and the difference is in the
-binary rather than in the reading:**
+**The subtract is where the two paths differ:**
 
 | Where | Argument to the subtract |
 |---|---|
@@ -338,64 +291,56 @@ for wandering a random adjacent tile inside the room, chosen with an RNG call
 that carries `HungerState.cpp` and the line number — 367 and 413 — in its
 arguments.
 
----
-
 ## 8. What is UNKNOWN
 
 - **How a hungry creature that is not already standing in a hatchery gets
-  there.** `FUN_004633d0` tests that a suitable hatchery exists and then enters
-  `0x5B` — whose handler fails outright when the creature is not in one. State
-  `0x5A` does exactly the missing walk, and the only reference to it found is a
-  fallback for one particular player id at `0x004775ac`. **Q174**, and two
-  hypotheses are now dead rather than untested:
+  there** (Q174). `FUN_004633d0` tests that a suitable hatchery exists and then
+  enters `0x5B` — whose handler looks the room up again and issues the MoveTo, so
+  there was never a missing piece; the question existed because of an off-by-one
+  in the state frame. Two hypotheses raised while chasing it are dead rather than
+  untested:
   - **not a category-enter hook.** The category table (§10) gives category 8 —
     the eating group — no enter hook at all. Categories 4, 5, 9, 12, 13, 14, 15,
     16, 17, 22, 25 and 31 have one; 8 does not.
   - **and a failing handler does not stall.** The creature update
     (`FUN_00476fc0`) calls the state's own handler and, when it returns 0,
-    **`SetState(1)`** — so a creature whose `0x5B` fails is dropped to state 1
-    and asks again a second later. It does not get stuck; it simply does not
-    walk. Which leaves `FUN_004ded00`'s discarded out-parameter as the last
-    unexplained thing in the attempt.
-- **What object flag `0x4000` means** — the per-tile skip in the hatchery search.
-- ~~**Whether a sleeping creature wakes to eat.**~~ **ANSWERED, and the answer
-  is no** (Q176). The needs routine's first line is
-  `if (stateTable[CurrentStateId].byte6 == 7) return 0`, and the sleep states
-  `0x52`–`0x54` carry byte6 = 7. Corroborated by the sleep block's own
-  `category != 9` refusal, 9 being exactly those three states' category: the
-  routine does not re-ask a question you are already answering. What is still
-  undecoded is `byte8 & 8`, which suppresses the *increment* rather than the
-  attempt.
+    **`SetState(1)`** — so a creature whose handler fails is dropped to state 1
+    and asks again a second later. `FUN_004ded00`'s discarded out-parameter is
+    the last unexplained thing in the attempt.
+- **What object flag `0x4000` means** — the per-tile skip in the hatchery search
+  (§6).
 - **Whether hunger really outranks sleep in play.** It does in the routine's
   source order; whether a player would ever see the difference depends on
   category gating that is not decoded.
-- **The `MaxFreeRangeChickensPerPlayer` cap** (12) — checked before laying in
-  the original, and nothing here takes a chicken out of a room, so it still has
-  nothing to count.
+- **The `MaxFreeRangeChickensPerPlayer` cap** (12) — checked before laying in the
+  original, and nothing here takes a chicken out of a room, so it still has
+  nothing to count (`hatchery.md` §5).
 
-## 9. What this project built from it
+## 9. Implementation
 
-ADR-0067, 2026-09-06: `EatingRules`, `CreatureEatSystem`, the accumulator
-(`CreatureState.HungerNeed`, was `ChickensNeeded`) and `FoodAttemptTicks`.
-`HashVersion` and snapshot `FormatVersion` 26 → 27. Scenario
-`a_goblin_eats_a_chicken`.
+ADR-0067: `EatingRules` + `CreatureEatSystem`, with `PrisonerEatSystem` for the
+prison path. `CreatureState.HungerNeed` is the accumulator (§3's "it adds") and
+`CreatureState.FoodAttemptTicks` the retry stamp, gated by
+`EatingRules.RetryTicks` — one game second. `EatingRules` carries `HungerFill`
+(level-scaled by stat row 9), `HungerRateSeconds`, `IsHungry`, `StillOwesFood`,
+`IsFood` (the `TypeFood` flag, for the prison) and `IsEdibleChicken` (object id
+9, for the hatchery) as the two predicates of §6, `HatcheryUnder` /
+`IsHatcheryOf`, `NearestChickenIn` / `NearestFoodIn` with `DistanceSquared` and
+`ReachTilesSquared`, and `Eat` / `EatInPrison` for the two subtract amounts of
+§7. Scenarios `scenarios/creatures/a_goblin_gets_hungry.yaml`,
+`a_goblin_eats_a_chicken.yaml` and `a_keeper_drops_a_chicken_in_a_prison.yaml`.
 
-What is **ours** and said so in the code: composing states `0x5A` and `0x5B` into
-one walk-then-search (Q174 above); driving the retry from the eat system rather
-than from a needs routine shared with sleep; leaving a sleeper asleep (Q176); and
-no post-meal wander (Q175).
-
----
+**Ours, and said so in the code:** composing the walk and the in-room search
+into one step where DK2 has `0x5A` and `0x5B`; driving the retry from the eat
+system rather than from a needs routine shared with sleep; leaving a sleeper
+asleep (Q176); and no post-meal wander (Q175).
 
 ## 10. The state category table — `0x00699688`
 
-Found while chasing Q174, and it answers **Q173** on the way past, so it is
-recorded here rather than left in a scratchpad.
-
-Every state record carries two category bytes. **Byte 7 is the group** — the
-mechanic the state belongs to — and there are 32 of them, described by a table
-of **32 records of 0x40 bytes based at `0x00699688`**, filled by the same kind of
+Found while chasing Q174, and it answers **Q173** on the way past. There are
+**32 records of 0x40 bytes based at `0x00699688`**, filled by the same kind of
 run of `MOV`s as the state table (`0x004798f4`–`0x0047a773`, no function).
+`training.md` §2 has all 32 decoded.
 
 | Offset | What it is |
 |---|---|
@@ -407,14 +352,14 @@ run of `MOV`s as the state table (`0x004798f4`–`0x0047a773`, no function).
 | `+0x38` | the category's own id |
 | `+0x3c` | a small integer, meaning not established |
 
-**Byte 6 looks like a priority** — 0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 50,
-100, with the idle state at 100 — and **7 is the value the needs routine treats
-as "do not ask"**.
+**The state record's group tag looks like a priority** — 0, 1, 2, 3, 4, 6, 7, 8,
+9, 10, 12, 13, 50, 100, with the idle state at 100 — and **7 is the value the
+needs routine treats as "do not ask"** (§3).
 
 Groups relevant here:
 
-| Category | States | Enter | Update | Leave |
-|---|---|---|---|---|
+| Category | States | Enter | Update | Leave | What it is |
+|---|---|---|---|---|---|
 | 2 | 6, 7, 8, 9, 0x58 | — | — | — | the **utility** move states; `SetState` special-cases this number |
 | 8 | 0x5B–0x5F | **none** | `FUN_004b4c20` | — | **eating** |
 | 9 | 0x52–0x54 | `FUN_004b4c20` | `FUN_0047ac00` | `FUN_0047ab90` | **sleeping** |
@@ -441,4 +386,3 @@ So **returning 0 from a state handler is "I could not"**, and the answer is
 always the same: back to state 1. That is why the eating states re-enter
 themselves rather than returning 0 when they merely have nothing to do this
 tick.
-

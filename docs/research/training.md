@@ -1,4 +1,4 @@
-# Training, and the four rates that share its shape
+# Mechanic: training, and the four rates that share its shape
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-07
@@ -10,23 +10,14 @@ Original version: DK2 v1.70 (GOG)
 Everything below is read out of the executable. Facts only, per ADR-0046 — no
 decompiler output is reproduced and none is in the repository.
 
-Questions: **Q205 (answered)**, **Q79 (answered)**, Q127 (corrected), Q124
-(one clause confirmed), Q186 (advanced), Q203 (two more dead variables).
+Confidence: **CONFIRMED** throughout except where a clause says otherwise.
+Questions: Q205, Q79, Q127 (both readings corrected), Q124 (one clause
+confirmed), Q186, Q203.
 
----
-
-## 1. The question, and why it was the right one to ask
-
-Training was a job a creature chose, walked to, stood in, and was paid nothing
-for. The rate was sitting in the creature record under the name
-`ExpPerSecondTraining`, and the reason it had not been used is that the name
-could not be trusted: the neighbouring `ExpPerSecond` reads **1200** for an Imp
-against a balance-table `ImpExperienceGainPerSecond` of **20**, and 20 × 60 =
-1200. This project had read that as proof the record's fields were **per
-minute**.
-
-They are not. **The 1200 was a coincidence between two unrelated mechanics**,
-and the third instance of that trap in this project's history.
+Trap: the Imp's `ExpPerSecond` of **1200** against a balance-table
+`ImpExperienceGainPerSecond` of **20** is 20 × 60, which had been recorded as
+evidence that the record's rates are **per minute**. They are not — the 1200 is
+a coincidence between two unrelated mechanics (§5.2).
 
 ## 2. Where the payment lives — CONFIRMED
 
@@ -52,9 +43,8 @@ current category's **update hook** immediately before the state's own handler.
 
 `+0x08/0x0c`, `+0x18/0x1c` and `+0x28/0x2c` are **zero in all 32 records**, so
 each hook is a 16-byte slot of which only the first word is used — the shape of
-an MSVC pointer-to-member-function. That is worth noting against **Q184**, which
-asks about three unread pointers beside each *state* record's handler: the same
-shape appears here and is unused in every category.
+an MSVC pointer-to-member-function. The same shape appears beside each *state*
+record's handler and is unused there too (Q184).
 
 **Category 13 is training.** Its hooks are:
 
@@ -66,8 +56,7 @@ shape appears here and is unused in every category.
 
 States 108–112 carry category 13; state 113 carries category 0. So **five of the
 six training states pay identically and the payment was written once**. The same
-trick gave the prison its drain (category 14, `FUN_0047B7C0`) — which is how
-Q173 was settled — and gives research and manufacture theirs.
+trick gave the prison its drain (category 14, `FUN_0047B7C0`, Q173).
 
 ## 3. What the update hook does, in order — CONFIRMED
 
@@ -114,8 +103,7 @@ runtime fields, and **four of the five are divided as they are stored**:
 
 The frame-to-record delta is the established `0x3F0` (`payday.md` §6), and the
 mapping is airtight in both directions: the file record skips `0x0F02` (two
-`u8`s, `JobClass` and `FightStyle`) and the loader's run skips the matching
-frame slot.
+`u8`s, `JobClass` and `FightStyle`) and the loader's run skips that frame slot.
 
 **The divisor is `[0x006E4154 + 0x40]`, which is variable 19** — the same
 globals block and the same slot payday already used for its percentage table.
@@ -140,7 +128,7 @@ than half the table, and the shipped column takes only five distinct values:
 | 15 | 3 | **12** — loses 3 | 7 | **Horny**, Prince Tristran, King Reginald, Prince Felix, Prince Balder, Stone Knight, Lord Of The Land |
 
 The 15s lose a **fifth** of their rate, and they are the heroes' lords and the
-Horned Reaper — the most expensive creatures in the game.
+Horned Reaper.
 
 ### 4.2 And so is the floor, in the shipped data
 
@@ -149,9 +137,7 @@ zero. That is not rounding hygiene, and the research column proves it: the
 **Skeleton's `ResearchPerSecond` is 1** and the **Dark Angel's is 3**. Both
 divide to zero and are floored to one, so each researches at **4 a game
 second** — four times the Skeleton's shipped number and a third more than the
-Dark Angel's. The floor is the difference between a creature that can do a thing
-at all and one that cannot, and it does not merely round, it **rounds up as far
-as it needs to**.
+Dark Angel's. It **rounds up as far as it needs to**.
 
 ## 5. What the sibling rates are for — CONFIRMED
 
@@ -166,24 +152,21 @@ scales it by one column of the 32 × 9 per-level stat table at `DAT_006E4154`:
 | `ManufacturePerSecond` | `0x0047B190` | **5** | `+0x213` | **18** | the **player** |
 
 **`ExpPerSecond` is combat experience.** Category 22 is the category the job
-choosers and the job dispatcher both refuse on, and `open-questions.md` Q185
-lists its states as battle, fleeing, reporting danger and celebrating. That is
-the owner's own *"to get to level 10 they need to fight actual fights"* (Q124),
-in the code.
+choosers and the job dispatcher both refuse on, and its states are battle,
+fleeing, reporting danger and celebrating (Q185). That is the owner's own *"to
+get to level 10 they need to fight actual fights"* (Q124), in the code.
 
 ### 5.1 The stat ids are pinned from both ends
 
 The columns are 9 `s16` entries each (levels 2–10, level 1 implicit at 100%), so
 the stride is `0x12` and the four offsets `0x1DD`, `0x1EF`, `0x201`, `0x213` are
-consecutive ids **15, 16, 17, 18**. Two of those four already have names:
-OpenKeeper calls 17 `ResearchPerSecond` and 18 `ManufacturePerSecond`, and the
-binary's hooks for categories 4 and 5 read exactly the record fields those names
-predict. So 15 and 16 fall out by position with a confirmed anchor on each side.
-
-**And the shipped table agrees from a third direction.** The four columns are two
-matched pairs — 15 and 16 are **100% at every level**, while 17 and 18 carry the
-*same* curve as each other (125% at level 2 to 700% at 10). Two experience rates
-that do not scale, two production rates that scale identically.
+consecutive ids **15, 16, 17, 18**. OpenKeeper names 17 `ResearchPerSecond` and
+18 `ManufacturePerSecond`, and the binary's hooks for categories 4 and 5 read
+exactly the record fields those names predict, so 15 and 16 fall out by position
+with a confirmed anchor on each side. **The shipped table agrees from a third
+direction:** the four columns are two matched pairs — 15 and 16 are **100% at
+every level**, while 17 and 18 carry the *same* curve as each other (125% at
+level 2 to 700% at 10).
 
 ### 5.2 One relationship nobody was looking for
 
@@ -192,7 +175,7 @@ that do not scale, two production rates that scale identically.
 maintained as one decision, which is a small argument that they are the same
 kind of quantity in the same unit, arrived at without reading any code.
 
-**The five exceptions say something too, and they are not noise:**
+**The five exceptions say something too:**
 
 | Creature | combat | training | ratio |
 |---|---|---|---|
@@ -203,27 +186,20 @@ kind of quantity in the same unit, arrived at without reading any code.
 | Maiden Of The Nest | 100 | 25 | 4 |
 
 Three of the four non-Imp exceptions are **uniques whose ordinary form obeys the
-rule** — the plain Mistress is 100/20, the Bile Demon 100/20, the Troll 150/30.
-So the uniques had their *combat* rate raised and nobody re-derived the training
-column, which reads like a balance pass on one field. The Maiden Of The Nest is
-the only creature in the game carrying 25.
+rule** — the plain Mistress is 100/20, the Bile Demon 100/20, the Troll 150/30 —
+so their *combat* rate was raised and nobody re-derived the training column. The
+Maiden Of The Nest is the only creature in the game carrying 25.
 
 **The Imp is the real outlier at forty times**, and it is the one creature that
-never trains and never fights. Its 1200 is unreachable: nothing puts a worker
-into a category-22 state. So the number that started this whole investigation —
-the 1200 that looked like proof of a per-minute unit — belongs to a mechanic the
-Imp cannot enter, in a field the Imp does not obey the convention for.
-**Unexplained, and recorded as such.**
+never trains and never fights: its 1200 is unreachable, because nothing puts a
+worker into a category-22 state. **Unexplained, and recorded as such.**
 
----
-
-## 6. Q79: imp experience is per tick of work, not per job — STRONGLY INFERRED
+## 6. Q79: imp experience is per tick of work, not per job — CONFIRMED
 
 The owner (2026-09-07): *"imps are fast little buggers, but I am inclined to say
 per job done, job being excavating tiles, mining gold, claiming tiles,
-reinforcing walls, and anything else imps might do."*
-
-**The activities are exactly right and the granularity is finer.**
+reinforcing walls, and anything else imps might do."* **The activities are
+exactly right and the granularity is finer.**
 
 `ImpExperienceGainPerSecond` (global `0x006F295E`, value 20) is read at **nine**
 sites, every one of them in the imp's task unit between `0x00496E00` and
@@ -236,8 +212,8 @@ AddExperience(creature, 20)                       -- the RAW 20, undivided
 <apply one tick's worth of work to the tile>
 ```
 
-The three distinct predicates were decompiled and they are all **tile
-properties**, read out of the terrain definition table `DAT_006DA4A8`:
+The three distinct predicates are all **tile properties**, read out of the
+terrain definition table `DAT_006DA4A8`:
 
 | Guard | What it tests |
 |---|---|
@@ -246,29 +222,22 @@ properties**, read out of the terrain definition table `DAT_006DA4A8`:
 | `FUN_00453D80` | tile unowned, terrain solid, `+0x185 != 0` — **reinforceable** |
 
 **None of them means "the job just finished."** They mean *"is this still a
-valid target for the work I am about to do."* And the work applied immediately
-after is the accrual `tile-work.md` established runs **once an original tick** —
-that is the finding Q47's "fifth" rests on. So the experience shares that
-cadence.
-
-The handlers are entries in an **imp task table** at `0x006E4198`, stride `0x1D`,
-filled by a second static initialiser `FUN_004950C0`. They are not creature
-state handlers: no state in the 281-record table points into
-`0x00496`–`0x00498`.
+valid target for the work I am about to do."* The work applied immediately after
+is the accrual `tile-work.md` establishes runs **once an original tick**, so the
+experience shares that cadence. The handlers are entries in an **imp task
+table** at `0x006E4198`, stride `0x1D`, filled by a second static initialiser
+`FUN_004950C0` — not creature state handlers: no state in the 281-record table
+points into `0x00496`–`0x00498`.
 
 ### 6.1 So the global's name is wrong, and in the opposite direction
 
 It is **the one rate in the family that is not divided by variable 19**. Its four
 siblings on the creature record are converted to per-tick by the loader; this
 one is a global, is read raw, and is added raw. **20 a tick is 80 a game
-second**, so an imp reaches level 2 in about **37 seconds** of continuous work
-and not the 150 this project believed for three weeks.
+second**, so an imp reaches level 2 in **37.5 seconds** of continuous work
+(3000 / 80), not the 150 asserted here for three weeks.
 
 ### 6.2 The cadence — CONFIRMED, and the chain is closed
-
-This section first said the factor of four was taken from `tile-work.md` rather
-than read, and named the probe: *find what iterates the task table at
-`0x006E4198`*. Done the same day.
 
 | Link | Routine |
 |---|---|
@@ -278,28 +247,24 @@ than read, and named the probe: *find what iterates the task table at
 | its **only** caller | **`FUN_00488930`** (`+0x1138`) |
 | which also calls the creature **state** dispatcher | **`FUN_00476FC0`** (`+0x1700`) |
 
-And `FUN_00476FC0` runs **every tick**, from three independent facts already
-established here: the prison drain's 16-tick countdown (Q173), the slap timer's
+And `FUN_00476FC0` runs **every tick**, from three independent facts established
+elsewhere here: the prison drain's 16-tick countdown (Q173), the slap timer's
 100 decrements over 25 game seconds (Q159, CONFIRMED by the owner off the status
 bar), and the ticks-in-state counter it increments once per call.
 
 So `FUN_00488930` is the **per-tick creature update**, the task handler runs once
-a tick, and **20 a tick is 80 a game second**. Q79 moves from STRONGLY INFERRED
-to CONFIRMED.
+a tick, and **20 a tick is 80 a game second**.
 
-**One correction falls out.** §8 calls `FUN_00485880` — the
-`EPLossSecondWhileNotTraining` hook — *"a per-second hook"*. It is not: it is
-called from `FUN_00488930` at `+0xC54`, so it is **per tick** like everything
-else there. The name said "Second" and this document repeated it, which is the
-same misnaming `ImpExperienceGainPerSecond` carries. If that variable were ever
-non-zero it would drain **four times** its named rate.
-
----
+**One correction falls out.** `FUN_00485880`, the `EPLossSecondWhileNotTraining`
+hook of §8, is **per tick** rather than per second: it is called from
+`FUN_00488930` at `+0xC54`. The name says "Second", the same misnaming
+`ImpExperienceGainPerSecond` carries. If that variable were ever non-zero it
+would drain **four times** its named rate.
 
 ## 7. The adder, and two readings of ours that were wrong — CONFIRMED
 
 `FUN_00457880(creature, delta)` is the only thing in the game that changes a
-creature's experience. Read clause by clause:
+creature's experience:
 
 ```
 if ((creature.flags & 0x8000) && creature.level >= CombatPitMaxExperienceLevel)
@@ -321,35 +286,33 @@ LevelUp(creature)
 creature.exp = 0                             -- the overshoot is DISCARDED
 ```
 
-**Q127 asked which of two readings DK2 uses and this project chose both halves
-wrongly:**
+**Q127 asked which of two readings DK2 uses, and both halves chosen here were
+wrong:**
 
 | We had | DK2 |
 |---|---|
 | the threshold is *spent*, remainder carried | the balance is **zeroed** |
 | a promotion **loops**, so a big award buys two levels | **one level per call**, however large the award |
 
-The reason the second one had been argued for was *"a single-step version would
-silently drop the second level the day combat pays out in lumps."* It does drop
-it. That is the game.
+The argument for the second was *"a single-step version would silently drop the
+second level the day combat pays out in lumps."* It does drop it. That is the
+game.
 
 **And the discard is what makes the cadence load-bearing.** Four awards of seven
 and one award of twenty-eight leave different balances behind on any second that
 crosses a threshold, which is why training and imp work are both paid on the
 original's tick here rather than once a game second.
 
-Two smaller clauses worth keeping:
-
 - **`ExpForNextLevel` is not merely the price of a level, it is the switch.** A
   creature carrying zero can never gain *or lose* experience.
 - **A loss floors at zero by refusing the subtraction**, not by clamping. On ten
   points, minus fifty leaves ten.
 
-### 7.1 One clause of Q124 is now confirmed rather than chosen
+### 7.1 One clause of Q124 is confirmed rather than chosen
 
 `ExperienceForNextLevel` is indexed by the creature's **current** level, and the
 raw record value is used at level 1. That was a reading this project picked from
-two possibilities and wrote down as a choice; the adder makes it a fact.
+two possibilities; the adder makes it a fact.
 
 ### 7.2 The training path's extra clamp does nothing
 
@@ -360,33 +323,26 @@ the outcome is identical either way. **Redundant, and reported as redundant**
 rather than reproduced as if it mattered. The combat hook (category 22) calls
 the adder directly and skips it.
 
----
-
 ## 8. One more inert balance variable, of a new kind (Q203)
 
 | Variable | Value | Status |
 |---|---|---|
-| `MotionlessWhileTrainingSeconds` (40) | 5 | **DEAD, and already known** — ADR-0082 listed it with the rest of the `MotionlessWhile*Seconds` family. Re-confirmed here by the same scan (one reference, `MOV [0x006F25ED],EAX`, its own stub), which is worth recording only because a dig into training is exactly where you would expect to find its reader if it had one |
-| `EPLossSecondWhileNotTraining` (132) | **0** | **NEW, AND A DIFFERENT KIND OF INERT.** It has a real reader: `FUN_00485880`, a per-second hook that calls the experience adder with the *negation* of this variable whenever the creature's current state category is **not** 13. So DK2 was built to make experience **decay unless you kept your creatures training**, and shipped with the rate set to zero |
+| `MotionlessWhileTrainingSeconds` (40) | 5 | **DEAD** — one reference, `MOV [0x006F25ED],EAX`, its own stub. ADR-0082 listed it with the rest of the `MotionlessWhile*Seconds` family (`job-selection.md` §4); a dig into training is where its reader would have been if it had one |
+| `EPLossSecondWhileNotTraining` (132) | **0** | **A DIFFERENT KIND OF INERT.** It has a real reader: `FUN_00485880`, called per tick, which calls the experience adder with the *negation* of this variable whenever the creature's current state category is **not** 13. DK2 was built to make experience **decay unless you kept your creatures training**, and shipped with the rate set to zero |
 
-`EPLossSecondWhileNotTraining` is the **first inert variable in this project
-found to be inert by *value* rather than by having no reader**. Worth
-distinguishing, because the two mean different things: a variable with no reader
-is a feature that was **cut**, and a variable with a reader and a zero is a
-feature that was **turned off**. The mechanism is intact and a mod that sets the
-rate would work — which also means the audit this project has been running
-(scan for readers, count zero, call it dead) would have **missed** this one
-entirely. Twelve variables have been retired that way; none of them was checked
-for a shipped value of zero on a live mechanism.
+`EPLossSecondWhileNotTraining` is the **first inert variable here found inert by
+*value* rather than by having no reader**. A variable with no reader is a feature
+that was **cut**; a variable with a reader and a zero is one that was **turned
+off**, its mechanism intact and a mod that set the rate would work. The audit
+this project runs (scan for readers, count zero, call it dead) would have
+**missed** it: twelve variables have been retired that way and none was checked
+for a shipped zero on a live mechanism.
 
-`FUN_00478050`, the routine that hook uses, is worth its own line: it returns the
-current state's category byte, and **if that category is 2 it reads the category
-of the state saved at `creature+0xDF` instead**. Category 2 is the "utility
-state" that saves the caller's state (ADR-0067), so the indirection means a
-creature interrupted mid-training is still counted as training. Nothing here
-needs that yet.
-
----
+`FUN_00478050`, the routine that hook uses, returns the current state's category
+byte, and **if that category is 2 it reads the category of the state saved at
+`creature+0xDF` instead** — category 2 being the "utility state" that saves the
+caller's state (`eating.md` §2.1), so a creature interrupted mid-training is
+still counted as training.
 
 ## 9. Also read, and not built
 
@@ -399,28 +355,44 @@ needs that yet.
 | The gold spend goes through `FUN_004BA420(-cost, 0, tileX, tileY)`, i.e. it is charged **at the creature's tile** rather than to an abstract balance | `0x0047B3CA` |
 | Message id `0x37` is what a keeper is shown when training cannot be paid for | `FUN_004C4600` |
 
----
-
-## 10. What is built, and what is ours
+## 10. Implementation
 
 `TrainingRules` and the `Train` branch of `CreatureJobSystem.Working`
 (ADR-0083):
 
-- **Experience on the original's tick**, `LoaderRatePerTick(ExpPerSecondTraining)`
-  scaled by stat 16, through the corrected `CreatureLevelRules.Grant`.
-- **The cap**, in `TrainingRules.BelowCap` and again in `JobRules.Refused`.
-- **The bill**: five gold a game second, tested before the job is taken and
-  before every charge, and the job lost when it cannot be paid.
-- **The order**: award, then charge.
+- **Experience on the original's tick** (`SimulationTiming.OnOriginalTick`),
+  `TrainingRules.ExperiencePerOriginalTick` —
+  `SimulationTiming.LoaderRatePerTick(ExpPerSecondTraining)` scaled by stat 16 —
+  through `CreatureLevelRules.Grant`. Our rate and DK2's are both four a game
+  second (Q1, ADR-0089), so `OriginalTickPeriodTicks` is 1 today; the *four* is
+  DK2's and must not be folded into our step rate.
+- **The cap**, in `TrainingRules.LevelCap` / `BelowCap` and again in
+  `JobRules.Refused`.
+- **The bill**: `TrainingRules.GoldPerSecond` (five) and `CanAfford`, tested
+  before the job is taken and before every charge, and the job lost when it
+  cannot be paid. **The order**: award, then charge.
+- `TrainingRules.ExperienceLostPerSecondWhileNotTraining` exposes §8's shipped
+  zero rather than pretending the variable does not exist.
 
-**Ours, and said so at the call sites:**
+**Ours, and said so at the call sites:** a capped creature keeps the job for up
+to one five-second gate instead of being ejected by a state handler, because
+this project has one working state where DK2 has six; the gold comes out of the
+keeper's tiles through `GoldStore.TryWithdraw` rather than the tile underfoot;
+and there is no floating "-20", no message `0x37` and no combat-pit fallback.
 
-- **A capped creature keeps the job for up to one gate** (five game seconds)
-  instead of being ejected by a state handler, because this project has one
-  working state where DK2 has six.
-- **The gold is taken from the keeper's tiles by `GoldStore.TryWithdraw`**, not
-  from the tile the creature is standing on.
-- **No floating "-20"**, no message `0x37`, and no combat-pit fallback.
-- **`SimulationTiming.OriginalTickPeriodTicks`** is the mechanism for paying on
-  DK2's cadence inside our own tick rate. It is five only because
-  `TicksPerSecond` is a placeholder 20 (Q1); the *four* is DK2's.
+## Tests
+
+`TrainingTests` and `CreatureLevelTests` (`tests/DK2.Simulation.Tests/`);
+`ResearchOnRealDataTests` pins §4.2's floor. Scenario
+`scenarios/creatures/two_keepers_find_work_for_a_goblin.yaml`.
+
+## Known exceptions
+
+§4.1's truncation and §4.2's floor are both reproduced; §7.2's redundant clamp
+is reported rather than reproduced; the unmapped `0x8000` flag in the adder's
+first line is not reproduced.
+
+## Open questions
+
+The category record's `+0x3c` small integer (§2); the Imp's unreachable 1200
+(§5.2); the adder's `creature.flags & 0x8000` (§7).

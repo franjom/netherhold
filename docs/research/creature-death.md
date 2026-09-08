@@ -1,12 +1,22 @@
-﻿# Dying: two timers, three states, and the half that cannot be built
+﻿# Mechanic: dying — two timers, three states
 
-**Status:** **both timers are implemented** (2026-09-05, ADR-0063) and the
-pipeline runs end to end: collapse, rescue-or-die, corpse, bury-or-rot. The
-second timer spent five sittings as *"a real number in the shipped data with
-nothing able to read it"*, on an explanation — *"a corpse is an object"* — that
-turned out to be false.
+Source(s):
+- Owner observation, 2026-09-04 and 2026-09-07 (Q99, Q107, Q109, Q111)
+- The reference install's `Creatures.kwd`, `Objects.kwd`, `Rooms.kwd` and
+  `GlobalVariables.kwd`, via `DK2.Data`
+- `DKII.EXE` v1.70: the common creature-health routine and the two dying-state
+  handlers, read 2026-09-07 (Q110)
+- OpenKeeper `HealthSystem.processHealthDepleted`, under ADR-0003's second
+  amendment
+- The DK2 wiki, **Dungeon Keeper 2 section only**, via the MediaWiki API
+  (`wiki-as-a-source.md`, including the licence flag on mirroring any of it)
 
-## The answer — CONFIRMED (owner, Q99, 2026-09-04)
+Original version: DK2 v1.70
+
+Confidence: **CONFIRMED (owner)** for the pipeline, **CONFIRMED (data)** for the
+flags and the numbers, **CONFIRMED (binary)** for the collapse window's guard.
+
+## 1. The pipeline — CONFIRMED (owner, Q99)
 
 > *"When a creature drops, its petals on the flower above its head are exhausted,
 > it remains lying on the ground for a period of time, that gives imps an
@@ -50,19 +60,15 @@ with nothing reading either:
 | `DeadBodyDiesAfterSeconds` | 23 | 60 |
 
 Two independently named variables holding the same value looked like redundancy
-before this answer. They are two clocks on two different things, which is why
-`CreatureDeathRules.BodyWindowTicks` was defined years before it could be called:
-the number was pinned so that the second timer would be missing *visibly*. **It
-has a caller now** (ADR-0063), and the two clocks share one field —
-`CreatureState.DyingTicks` — because they never run at once, reset at the seam so
-a corpse gets a fresh sixty seconds.
+before this answer. They are two clocks on two different things, and they share
+one field — `CreatureState.DyingTicks` — because they never run at once, reset
+at the seam so a corpse gets a fresh sixty seconds.
 
-**What was actually blocking it** was not OBJECTS but the absence of an imp task
-that carries a creature. DK2 has two: **kind 13** for the unconscious and **kind
-12** for corpses, the last two entries of its Tier A job table
-(`imp-task-priority.md` §4). Both are built.
+**Q109, CONFIRMED (owner, 2026-09-07): an enemy collapses the same way** — dying
+state first, so imps have time to drag it to a prison if there is one, then death
+and a corpse.
 
-## Three deaths, and one flag that picks between two of them
+## 2. Three deaths, and one flag that picks between two of them
 
 `GenerateDeadBody` (bit 15) decides whether running out of health puts a
 creature on the floor at all:
@@ -72,57 +78,6 @@ creature on the floor at all:
 | **Collapse** | the 38 creatures with `GenerateDeadBody` | 60 seconds rescuable, then dead, then a corpse |
 | **Instant** | the 8 without it | gone on the spot, nothing left |
 | **Reincarnate** | the 2 with `CanBeResurrected` | back at the Graveyard's sarcophagus, asleep, one level poorer |
-
-### A corpse is not an object — CORRECTED
-
-This document, ADR-0051 and several code comments gave **"a corpse is an OBJECT,
-and OBJECTS is unparsed (M6)"** as the reason nothing lies on the floor after a
-death. The OBJECTS record was parsed on 2026-09-04: **145 objects, and not one of
-them is a corpse.** The nearest are decoration — Skeleton (48), Skull (49), Bone
-(50) — and none of them carries a type flag.
-
-Everything else already pointed the same way and nobody had put it together:
-
-- both timers are **creature** variables (`CreatureDyingStateDurationSeconds`,
-  `DeadBodyDiesAfterSeconds`);
-- `DecomposeValue` is a **creature** field;
-- the binary's per-creature debug dump carries **`HasBeenKnockedOut`** and
-  **`DieInstantly`**, and `Creature.cpp` owns the dying state.
-
-**A corpse is a creature in a state.** So the graveyard is buildable without any
-new record: it wants an imp task that carries a *creature* whose dying window has
-run out, and a room that consumes it for its `DecomposeValue`. Considerably
-smaller than "parse OBJECTS first" implied — and it was hiding behind a claim
-nobody had checked. See `docs/research/objects.md` §4.
-
-### Where a vampire comes back — CORRECTED
-
-The owner's first wording was *"they reincarnate at their sarcophagus"*, and this
-project read "their sarcophagus" as the vampire's own bed, because its
-`LairObjectId` had been pinned as a coffin. That was wrong, and the owner
-retracted it themselves on the same day: *"sarchopagus at the graveyard, I made a
-wrong claim earlier."*
-
-Two shipped facts back the correction, neither of which was looked at when the
-wrong one was written down:
-
-- The **Graveyard's `CreatedCreatureId` is 8 — the Vampire.** Only two rooms in
-  the table create a creature at all; the other is the Prison, whose 9 is the
-  Skeleton.
-- The **Graveyard's object ids are 31-34**; the Vampire's `LairObjectId` is
-  **26**. Two different objects.
-
-The executable settles the vocabulary: `Object.cpp`'s union names `Lair` and
-`TombStone` among its object kinds, and the words *sarcophagus* and *coffin*
-appear nowhere in its strings (binary, ADR-0046 - facts only). A bed is a `Lair`
-object whatever art it wears. The vampire's coffin-shaped bed and the graveyard's
-sarcophagus are two objects that look alike, and reading one as the other was a
-pun rather than a finding.
-
-Consequence for the day this is built: reincarnation puts the creature on a
-**Graveyard** tile, so it needs a Graveyard under the keeper's control - which
-the DK2 wiki also gives as a third permanent-death condition, and which is now
-corroborated rather than merely repeated. Q113 closed.
 
 **The instant-death rule is CONFIRMED from two directions that never met.** The
 owner gave it for the Imp. OpenKeeper's `HealthSystem.processHealthDepleted`
@@ -138,46 +93,72 @@ if (!isLeaveDeadBody(entityId)) {
 
 …where `isLeaveDeadBody` reads `GENERATE_DEAD_BODY` and nothing else. So **one
 flag decides both halves**, which is coherent in a way worth saying out loud:
-**the dying state *is* a body on the floor** — a live one. A creature that
-leaves nothing behind had nothing to lie there in the first place.
+**the dying state *is* a body on the floor** — a live one. A creature that leaves
+nothing behind had nothing to lie there in the first place. It also explains why
+the bodyless set is such an odd mixture: it is not a mixture at all — a summon,
+three undead, a construct, a worker and Jack are exactly the things that would
+puff out rather than fall over.
 
-That also retires the puzzle from the section below about why the bodyless set
-is such an odd mixture. It is not a mixture at all: a summon, three undead, a
-construct, a worker and Jack are exactly the things that would puff out rather
-than fall over.
+### 2.1 A corpse is not an object
 
-### The vampire, and why implementing it would be a mistake
+This document, ADR-0051 and several code comments gave **"a corpse is an OBJECT,
+and OBJECTS is unparsed (M6)"** as the reason nothing lies on the floor after a
+death. The OBJECTS record was parsed on 2026-09-04: **145 objects, and not one of
+them is a corpse.** The nearest are decoration — Skeleton (48), Skull (49), Bone
+(50) — and none of them carries a type flag.
+
+Everything else already pointed the same way:
+
+- both timers are **creature** variables (`CreatureDyingStateDurationSeconds`,
+  `DeadBodyDiesAfterSeconds`);
+- `DecomposeValue` is a **creature** field;
+- the binary's per-creature debug dump carries **`HasBeenKnockedOut`** and
+  **`DieInstantly`**, and `Creature.cpp` owns the dying state.
+
+**A corpse is a creature in a state** — `CreatureActivity.Dead`. See
+`docs/research/objects.md` §4.
+
+### 2.2 Where a vampire comes back — the Graveyard (Q113)
+
+The owner's first wording was *"they reincarnate at their sarcophagus"*, which
+this project read as the vampire's own bed, because its `LairObjectId` had been
+pinned as a coffin. The owner retracted it the same day: *"sarchopagus at the
+graveyard, I made a wrong claim earlier."*
+
+Two shipped facts back the correction:
+
+- The **Graveyard's `CreatedCreatureId` is 8 — the Vampire.** Only two rooms in
+  the table create a creature at all; the other is the Prison, whose 9 is the
+  Skeleton.
+- The **Graveyard's object ids are 31–34**; the Vampire's `LairObjectId` is
+  **26**. Two different objects.
+
+The executable settles the vocabulary: `Object.cpp`'s union names `Lair` and
+`TombStone` among its object kinds, and the words *sarcophagus* and *coffin*
+appear nowhere in its strings. A bed is a `Lair` object whatever art it wears.
+The vampire's coffin-shaped bed and the graveyard's sarcophagus are two objects
+that look alike, and reading one as the other was a pun rather than a finding.
+
+So reincarnation puts the creature on a **Graveyard** tile, which needs a
+Graveyard under the keeper's control — which the DK2 wiki also gives as a third
+permanent-death condition.
+
+### 2.3 The vampire, and why it is not implemented
 
 `CanBeResurrected` (bit 23) is set on **exactly the two Vampires and nobody
-else**, so the owner's rule is data-driven rather than a name check. Two things
-fall neatly into place:
+else**, so the owner's rule is data-driven rather than a name check. The vampire
+having no dead body stops being an oddity: there is no corpse because the
+creature is not finished.
 
-- **The sarcophagus is the vampire's lair bed.** Its `LairObjectId` is a coffin,
-  which `TheGoblinsBedIsObjectTwentyTwoAndTheVampiresIsACoffin` already pinned
-  for an unrelated reason. So reincarnation lands a creature in its own bed and
-  heals it there — which is `CreatureDeathRules.Rescue` with no imp involved.
-- **The vampire having no dead body stops being an oddity.** There is no corpse
-  because the creature is not finished.
-
-**And it is deliberately not implemented.** The cost of reincarnation is a level,
-and levels do not exist. A vampire that reincarnated without paying would come
-back for ever — the immortal Imp again, in a cape. Both exits are also out of
-reach: level 1 needs levels, and *"a monk killed it"* needs the killer's
-identity, which needs combat (M7).
-
-**So instant death is not a placeholder for vampires — it is correct for the
-world that currently exists.** With no levels every creature is level 1, and a
-level-1 vampire is permanently dead by the owner's own rule. The flag is read
-and tested and nothing branches on it; it will be needed the day levels arrive
-and not before (Q111).
+**It is deliberately not implemented.** The cost of reincarnation is a level, and
+although levels now exist (`creature-levels.md`), both exits are still out of
+reach: *"a monk killed it"* needs the killer's identity, which needs combat (M7),
+and the destination needs a Graveyard that does something (Q165). The flag is
+read and tested and nothing branches on it (Q111).
 
 **OpenKeeper does not implement or even read `CanBeResurrected`.**
 
-### What the DK2 wiki adds, and where it disagrees
-
-Read through the MediaWiki API, **Dungeon Keeper 2 section only** — the page
-covers four games and tags each claim, and they differ. See
-`wiki-as-a-source.md`, including the licence flag on mirroring any of it.
+### 2.4 What the DK2 wiki adds, and where it disagrees
 
 > *"Although not completely immortal, Vampires can only be eternally 'laid to
 > rest' by Monks (hence their unbridled hatred of the shaven-pated holy ones).
@@ -186,30 +167,20 @@ covers four games and tags each claim, and they differ. See
 > a Vampire is slain, or if the Vampire is level 1, then it is lost for good."*
 
 That **confirms three of the owner's four points** — loses a level, level 1 is
-final, only a Monk makes it final regardless — and adds two things:
-
-**A third permanent-death condition, which the owner did not mention: no
-Graveyard.** So a vampire dies for good if it is level 1, *or* a Monk killed it,
-*or* its keeper controls no Graveyard at that moment. Three conditions, and the
-third is the only one that is a property of the dungeon rather than of the
-creature or its killer.
-
-**And a conflict worth resolving before any of this is built (Q113): the wiki
-says it reincarnates *in the Graveyard*; the owner said *at their
-sarcophagus*.** These are not obviously the same place — a lair bed and a
-Graveyard are different rooms — and the vampire's `LairObjectId` really is a
-coffin, so both readings have data behind them. It matters because it decides
-what a reincarnation needs to find: a free lair tile, or a graveyard tile.
+final, only a Monk makes it final regardless — and adds a **third permanent-death
+condition the owner did not mention: no Graveyard.** So a vampire dies for good
+if it is level 1, *or* a Monk killed it, *or* its keeper controls no Graveyard at
+that moment. The third is the only one that is a property of the dungeon rather
+than of the creature or its killer.
 
 **A third source disagrees with both on health.** The page's *lead paragraph*
 says a resurrected vampire returns "at full health" — but the lead is
 game-agnostic prose covering all four titles, so it is not a DK2 claim, and the
 DK2 section says nothing about health. The owner's account is that it *sleeps to
-recover*. Untagged lead prose is the weakest of the three and is not being
-followed.
+recover*. Untagged lead prose is the weakest of the three and is not followed.
 
-**Two numbers the wiki gave that the shipped data confirms exactly**, both now
-pinned by tests:
+**Two numbers the wiki gave that the shipped data confirms exactly**, both pinned
+by tests:
 
 - **Five corpses in a Graveyard make a Vampire.** The data never says "five": it
   says `DecomposeValue` 200 a corpse and `DecomposeValueNeededForVampire` 1000.
@@ -217,108 +188,24 @@ pinned by tests:
   than either alone — it confirms the wiki *and* confirms that our reading of
   `DecomposeValue` as a per-corpse worth is right, which nothing else could
   check. (DK1 needs ten, which is on the adjacent line of the same infobox
-  field. Read carelessly that page supports either number.)
+  field; read carelessly that page supports either number.)
 - **Two Black Knights sacrificed make a Vampire.** Present in the shipped temple
   table as `BlackKnight + BlackKnight → rewardType=1 value=8`, and creature 8 is
-  the Vampire. This is the first thing in the project ever to read
-  `SacrificeEntry`, so it doubles as a layout check on that record.
+  the Vampire. The first thing in the project ever to read `SacrificeEntry`, so
+  it doubles as a layout check on that record.
 
-One more, unimplementable and worth knowing: **at level 10 a Vampire raises any
-corpse it sees into a Skeleton**, which competes with its keeper's own supply of
-corpses for making more Vampires. That is `SkeletonArmyDurationSeconds` and
-`RaiseDead` territory, and needs levels, corpses and combat first.
+One more, unimplementable: **at level 10 a Vampire raises any corpse it sees into
+a Skeleton**, which competes with its keeper's own supply of corpses for making
+more Vampires. That is `SkeletonArmyDurationSeconds` and `RaiseDead` territory,
+and needs corpses and combat first.
 
-So the vampire is now the best-sourced unimplemented mechanic in the project:
-owner testimony, a wiki section, and two arithmetic confirmations from the
-install — against zero help from OpenKeeper.
-
-## What is implemented
-
-`CreatureActivity.Dying`, `CreatureState.DyingTicks`, `CreatureDeathRules`, and
-the collapse/die pair in `CreatureHealthSystem`. A collapsed creature keeps its
-owner, its tile, its gold and its bed, and **does nothing at all** — no
-movement, no work, no sleep, no hunger, no regeneration.
-
-The bed is held for the whole window on purpose: the rescue carries the creature
-*back to that bed*, so a lair tile freed on collapse would be a tile somebody
-else claims while its owner lies on the floor waiting to be carried to it. It is
-released at death.
-
-## What is NOT implemented, and why
-
-**Rewritten 2026-09-05.** Three of the five rows below used to say "missing" and
-are now built; the table is kept rather than deleted because what a gap turned
-out to be is worth more than the gap was.
-
-| Was missing | Now |
-|---|---|
-| **The corpse** | **Built** (ADR-0063). Not an object — none of the 145 is a corpse; it is a creature in a state, `CreatureActivity.Dead`, and it lies there for `DeadBodyDiesAfterSeconds` |
-| **Rescue** | **Built** (ADR-0063). `CreatureDeathRules.Rescue` had been written, tested and callerless for five sittings so the gap would be visible; kind 13 is its caller |
-| **Prison for enemies** | **Built** (ADR-0064, `docs/research/prison.md`): an imp drags an unconscious enemy to a cell, it withers at `PrisonModifyCreatureHealthPerSecond` (−3) a game second, and at nothing it rises as a **Skeleton for the jailer**. `MotionlessInPrisonSeconds` (8) is still parsed and unread |
-| **The Vampire** | **Still missing, and now for a reason with a number in it.** A graveyard keeps a tally — DK2's room dump gives the Graveyard case exactly one field of its own, `DecomposeValue`, a dword on the room instance — and `corpse_buried` reports what each body is worth. What is unread is the **threshold**: how much fills a graveyard and what happens at the top (Q165) |
-| **The petals** | **ANSWERED, and it is health** (Q108). Petals empty as a creature is hurt and fill again when it eats, so the flower is a health readout rather than the anger meter. A petal is plausibly a tenth of maximum, which makes `CreatureCriticalHealthPercentageOfMax` = 20 the two petals a prisoner arrives at (Q167); the count itself is Q171 |
-| **Chickens for the dying** | Never built and never named here before: a keeper keeps a *prisoner* alive by dropping chickens on it, and a chicken is an object nothing can pick up. So a prisoner's countdown always runs out (ADR-0064) |
-
-**The cost, stated plainly:** the pipeline runs end to end now — collapse,
-rescue-or-die, corpse, bury-or-rot, and for an enemy a cell instead of a bed.
-What is left at the far end is what a full graveyard does, which is the only way
-to a Vampire.
-
-## The line: a dying creature is a creature, a corpse is not
-
-A collapsed creature has health, an owner, a tile and a bed, and recovers by
-being healed — everything that reads a creature keeps working on it, so it stays
-in `WorldState.Creatures`. A corpse has none of those.
-
-Modelling the corpse as a creature was considered and rejected (ADR-0051): it
-would put a thing with no needs into the creature list, where every present *and
-future* system would have to remember to skip it.
-
-## The bug this found: guard on health, not on state
-
-The collapse is *booked* once a game second, which leaves a window in which a
-creature has no health and is still `Idle`. Guarding on "is dying" let two
-things happen in that window:
-
-- **A creature at zero health near its bed** decided it was wounded enough to
-  sleep (`CreatureSleepsWhenBelowPercentHealth` = 50), walked there, and healed —
-  so it **never collapsed at all** whenever a bed was in reach.
-- **An Imp at zero health on its own land** regenerated its 67 a second before
-  the collapse was booked, climbed back to 500, and **could not be killed at
-  home**.
-
-Both were found by a test written for the second. So every system guards on
-`CreatureDeathRules.IsDown` — *no health, or already dying* — not on the state.
-This matters beyond the current cadence: **combat will subtract health per tick,
-not per second.**
-
-Two corollaries of the same reasoning:
-
-- **Own-land regeneration is suppressed at zero health; lair healing is not.**
-  The owner's answer gives exactly one route off the floor, so passive
-  regeneration must not be a second one — and lair healing must still work at
-  zero, because that *is* the rescue.
-
-  > The Imp's instant death then *removed* the guard's original subject, which
-  > would have made it look pointless. It is not: **King Reginald** regenerates
-  > **400** a second on his own land and does leave a body, so he collapses and
-  > would heal back up every second he lay there. He is the only creature in
-  > the shipped data with both properties, which is why
-  > `KingReginaldIsTheCreatureTheDownGuardNowProtectsAgainst` asserts that he
-  > is the only one rather than merely that he is one.
-- **The order inside `CreatureHealthSystem` is load-bearing.** Healing applies
-  *before* the collapse test, so a creature rescued at zero health is above zero
-  by the time anything asks. Reversed, a rescue would collapse the creature it
-  just saved. `ARescuedCreatureWakesInItsBedAndIsHealedRatherThanCollapsingAgain`
-  is the test that goes red.
-
-## The bodies: eight creatures leave none
+## 3. The bodies: eight creatures leave none
 
 `CreatureFlags.GenerateDeadBody` (bit 15) is clear on eight of 46: **Imp,
 Vampire, Skeleton, Horny, Stone Knight, Unique Skeleton, Unique Vampire, Jack.**
 
 The Vampire is the coherent member twice over — a vampire is what bodies are
-spent to make, *and* it leaves no corpse because it is not finished (above).
+spent to make, *and* it leaves no corpse because it is not finished (§2.3).
 
 **This is the third near-miss grouping in this record**, and the third time the
 shortcut "these are the undead, one flag would do" is refuted by one creature:
@@ -331,10 +218,10 @@ shortcut "these are the undead, one flag would do" is refuted by one creature:
 
 Seven shared between the first two, one each way. **There is no undead flag.**
 Each need is its own column. All three sets are asserted by name in
-`CreatureNeedsOnRealDataTests` because every one of them was guessed wrong
-before it was read.
+`CreatureNeedsOnRealDataTests` because every one of them was guessed wrong before
+it was read.
 
-### And two records carry unreachable data
+### 3.1 Two records carry unreachable data
 
 `Horny` and `Jack` both have `DecomposeValue = 200` while generating **no body**,
 so those 200s can never be read by anything. The other six bodyless creatures
@@ -348,33 +235,137 @@ slapping calms it; being held annoys it).
 **The flag governs.** A graveyard counting `DecomposeValue` instead of asking
 `LeavesBody` would be fed by two corpses that never exist.
 
-## The collapse window rejects further damage
+## 4. The collapse window rejects further damage — CONFIRMED (binary, Q110)
 
-**CONFIRMED from the binary (Q110, 2026-09-07).** The cached
-`CreatureDyingStateDurationSeconds` value has one live reader, in the common
-creature-health routine. On the first blow that puts an eligible creature down,
-that routine loads `60 * 4` into the creature's health/countdown field and sets
-the `CreatureDying` flag. The two dying-state handlers are states `0xd8` and
+The cached `CreatureDyingStateDurationSeconds` value has one live reader, in the
+common creature-health routine. On the first blow that puts an eligible creature
+down, that routine loads `60 * 4` into the creature's health/countdown field and
+sets the `CreatureDying` flag. The two dying-state handlers are states `0xd8` and
 `0xd9`; `0xd9` advances that countdown by calling the same health routine with
 `-1` in its explicit dying-countdown mode.
 
 The same routine has an early return for a creature already flagged
-`CreatureDying` when that mode is absent. The ordinary combat, spell and
-environmental-damage callers all use the ordinary mode. Therefore a second hit
-or a keeper spell does **not** finish a collapsed creature early: the 60-second
-rescue window is inviolable to further gameplay damage.
+`CreatureDying` when that mode is absent, and the ordinary combat, spell and
+environmental-damage callers all use the ordinary mode. Therefore a second hit or
+a keeper spell does **not** finish a collapsed creature early: **the 60-second
+rescue window is inviolable to further gameplay damage.**
 
 The exceptional callers are bookkeeping, not extra attacks: the dying-state
 countdown itself, another state handler that also decrements by one, a trigger
 action that adjusts a spawned creature to a requested health value, and loading
-paths. No gameplay damage caller bypasses the guard. Rescue/healing remains the
-intended way out before the countdown expires.
+paths. Rescue and healing remain the only way out before the countdown expires.
 
-## Open
+## 5. Implementation
 
-| | |
+`CreatureActivity.Dying` and `Dead`, `CreatureState.DyingTicks`,
+`CreatureDeathRules` (`HasCollapsed`, `HasDyingState`, `LeavesBody`,
+`CanBeResurrected`, `IsDying`, `IsCorpse`, `IsDown`, `DyingWindowTicks`,
+`BodyWindowTicks`, `DyingWindowElapsed`, `BodyWindowElapsed`, `Collapse`,
+`BecomeCorpse`, `Rescue`), and the collapse/die pair in `CreatureHealthSystem`
+(ADR-0051, then ADR-0063). A collapsed creature keeps its owner, its tile, its
+gold and its bed, and **does nothing at all** — no movement, no work, no sleep,
+no hunger, no regeneration.
+
+The bed is held for the whole window on purpose: the rescue carries the creature
+*back to that bed*, so a lair tile freed on collapse would be a tile somebody
+else claims while its owner lies on the floor waiting to be carried to it. It is
+released at death.
+
+**The imp tasks are the two DK2 has**, the last two entries of its Tier A job
+table (`imp-task-priority.md` §4): `ImpTaskKind.CarryUnconscious` is DK2's
+**kind 13** and `CarryCorpse` its **kind 12**, routed by
+`CarryRules.NearestGraveyardTile` and reported as the `corpse_buried` event. The
+absence of a task that carries a creature — not OBJECTS — was what actually
+blocked this for five sittings.
+
+| Stage | State |
 |---|---|
-| **Q107** | Can a creature whose bed is sold while it lies dying be rescued? We say no — a collapsed creature is not allowed to claim a replacement, because claiming is a walk and a placement in the owner's own description. **This decides a real outcome now** (ADR-0063): a rescue's destination is the creature's own bed, so no bed means no imp comes |
-| **Q108** | Is the "flower petals" indicator the anger meter, or a separate health/consciousness one? Bears on Q106 |
-| **Q109** | Does an *enemy* creature collapse the same way, or go straight to a capturable state? The answer mentions prison as the imp's alternative destination, which implies the same collapse either way |
-| **Q110** | **CLOSED.** No. The common health routine rejects ordinary damage once `CreatureDying` is set. Only the dying-state countdown and bookkeeping/loading paths use its explicit bypass mode |
+| The corpse | **Built** (ADR-0063). A creature in `CreatureActivity.Dead`, lying for `DeadBodyDiesAfterSeconds` |
+| Rescue | **Built** (ADR-0063). `CreatureDeathRules.Rescue` had been written, tested and callerless for five sittings so the gap would be visible; kind 13 is its caller |
+| Prison for enemies | **Built** (ADR-0064, `docs/research/prison.md`): an imp drags an unconscious enemy to a cell, it withers at `PrisonModifyCreatureHealthPerSecond` (−3) a game second, and at nothing it rises as a **Skeleton for the jailer**. A prisoner arrives at **max / 6** health (Q167, ADR-0071). `MotionlessInPrisonSeconds` (8) is still parsed and unread |
+| The Vampire | **Not built.** A graveyard keeps a tally — DK2's room dump gives the Graveyard case exactly one field of its own, `DecomposeValue`, a dword on the room instance — and `corpse_buried` reports what each body is worth. What is unread is the **threshold**: what fills a graveyard and what happens at the top (Q165) |
+| Chickens for the dying | **Not built.** A keeper keeps a *prisoner* alive by dropping chickens on it, so a prisoner's countdown always runs out here (ADR-0064) |
+
+**The petals are health** (Q108), and there are **six** of them (Q171, CONFIRMED
+by the owner with a screenshot). Petals empty as a creature is hurt and fill
+again when it eats, so the flower is a health readout rather than the anger
+meter.
+
+### 5.1 The line: a dying creature is a creature, a corpse is not
+
+A collapsed creature has health, an owner, a tile and a bed, and recovers by
+being healed — everything that reads a creature keeps working on it, so it stays
+in `WorldState.Creatures`. A corpse has none of those.
+
+Modelling the corpse as a *separate entity* was considered and rejected
+(ADR-0051): it would put a thing with no needs into the creature list, where
+every present *and future* system would have to remember to skip it. What it is
+instead is the same creature in `CreatureActivity.Dead`, which every system tests
+through `CreatureDeathRules.IsDown`.
+
+### 5.2 Guard on health, not on state
+
+The collapse is *booked* once a game second, which leaves a window in which a
+creature has no health and is still `Idle`. Guarding on "is dying" let two
+things happen in that window:
+
+- **A creature at zero health near its bed** decided it was wounded enough to
+  sleep (`CreatureSleepsWhenBelowPercentHealth` = 50), walked there, and healed —
+  so it **never collapsed at all** whenever a bed was in reach.
+- **An Imp at zero health on its own land** regenerated its 67 a second before
+  the collapse was booked, climbed back to 500, and **could not be killed at
+  home**.
+
+So every system guards on `CreatureDeathRules.IsDown` — *no health, or already
+dying* — not on the state. This matters beyond the current cadence: **combat will
+subtract health per tick, not per second.**
+
+Two corollaries:
+
+- **Own-land regeneration is suppressed at zero health; lair healing is not.**
+  The owner's answer gives exactly one route off the floor, so passive
+  regeneration must not be a second one — and lair healing must still work at
+  zero, because that *is* the rescue. The Imp's instant death removed the guard's
+  original subject, but **King Reginald** regenerates **400** a second on his own
+  land *and* does leave a body, so he collapses and would heal back up every
+  second he lay there. He is the only creature in the shipped data with both
+  properties, which is why
+  `KingReginaldIsTheCreatureTheDownGuardNowProtectsAgainst` asserts that he is
+  the only one rather than merely that he is one.
+- **The order inside `CreatureHealthSystem` is load-bearing.** Healing applies
+  *before* the collapse test, so a creature rescued at zero health is above zero
+  by the time anything asks. Reversed, a rescue would collapse the creature it
+  just saved. `ARescuedCreatureWakesInItsBedAndIsHealedRatherThanCollapsingAgain`
+  is the test that goes red.
+
+## Tests
+
+`CreatureNeedsTests` and `CarryingTests` (`tests/DK2.Simulation.Tests/`);
+`BothDyingTimersAreSixtySecondsAndTheyAreTwoDifferentClocks`,
+`EightCreaturesLeaveNoBodyAndThatSetIsNotTheNeverHungryOne`,
+`TheEightCreaturesThatLeaveNoBodyAreExactlyTheOnesWithNoLyingState`,
+`ADecomposingBodyIsWorthTwoHundredAndTheUndeadAreWorthNothing`,
+`OnlyTheTwoVampiresCanBeResurrectedAndTheirBedIsWhereTheyComeBack`,
+`FiveCorpsesMakeAVampire_WhichIsTwoNumbersAgreeingFromTwoSources`,
+`TwoBlackKnightsSacrificedMakeAVampire` and
+`TheVampiresOwnNumbersMatchTheWikisDk2Column`
+(`tests/DK2.Behavior.Tests/CreatureNeedsOnRealDataTests.cs`). Scenarios
+`scenarios/creatures/a_goblin_collapses_and_dies.yaml`,
+`an_imp_buries_a_corpse.yaml` and `an_imp_drags_an_enemy_to_prison.yaml`.
+
+## Known exceptions
+
+- Horny's and Jack's unreachable `DecomposeValue` of 200 (§3.1), read through the
+  flag rather than the field.
+- **Q107, CONFIRMED (owner, 2026-09-07) and built:** a creature whose bed is sold
+  while it lies dying is **not** rescued — *"if its bed gets sold an imp can't
+  get that creature to bed, if it is mid flight it gets dropped, and then its
+  dying timer runs out and it dies"*. A rescue's destination is the creature's
+  own bed, so no bed means no imp comes.
+
+## Open questions
+
+- **Q165**: what a graveyard does with the corpses it is fed, which is the only
+  route to a Vampire.
+- **Q111**: the remaining half of reincarnation — the killer's identity, so that
+  *"a monk killed it"* can be tested.

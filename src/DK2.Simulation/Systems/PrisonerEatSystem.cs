@@ -8,72 +8,16 @@ using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// A hungry prisoner looks round its cell for something to eat, walks to the
-/// nearest thing it finds, and eats it — the second half of Q172, and the half
-/// the owner described as a race:
-///
-/// <para><i>"they rush toward that chicken, the first one to reach it eats
-/// it"</i> (2026-09-05).</para>
-///
-/// <para><b>Read from the original's own prison states</b>, under the
-/// state-table frame corrected by ADR-0072 — without which these handlers were
-/// all filed one state early and the search looked like an eat-in-place
-/// (<c>docs/research/prison.md</c> §7):</para>
-///
-/// <list type="table">
-/// <item><term><b>115</b> (<c>0x73</c>)</term><description>The decision. When
-/// <c>HungerNeed &gt;= HungerFill</c> <i>and</i>
-/// <c>TimeBetweenReattemptingHungerSeconds</c> has passed since the last
-/// attempt, it stamps the clock and goes to 117. Otherwise it wanders
-/// (ADR-0073).</description></item>
-/// <item><term><b>117</b> (<c>0x75</c>)</term><description>The search, and it is
-/// a <b>walk</b> rather than a meal: it scans every tile of the prison for
-/// food-flagged objects, takes the nearest by straight-line squared distance,
-/// and issues a move to it resuming in 118. Finding none, it applies
-/// <c>AngerNoFood</c>, tells the interface, and drops back to 116 to keep
-/// wandering.</description></item>
-/// <item><term><b>118</b> (<c>0x76</c>)</term><description>The meal. If a
-/// food-flagged object is on the tile underfoot it destroys it and pays off
-/// hunger — <b>the whole of <c>HungerFill</c></b>, not one helping. Still owing?
-/// back to 117 for another. Nothing there? <b>also back to 117</b>, and that is
-/// the race: the bird was never reserved and somebody else ate
-/// it.</description></item>
-/// <item><term><b>119</b> (<c>0x77</c>)</term><description>Arriving, which here
-/// is the same tick as the meal.</description></item>
-/// </list>
-///
-/// <para><b>A prisoner never leaves the prison states to eat.</b> 117, 118 and
-/// 119 carry the same label, group tag and category as 114, 115 and 116 — the
-/// creature is <i>being held captive</i> throughout — so this system leaves
-/// <see cref="CreatureActivity.Imprisoned"/> alone and marks the walk with
-/// <see cref="CreatureState.TargetObjectId"/> instead. That is not tidiness: it
-/// is why <see cref="PrisonSystem"/> keeps draining a prisoner that is walking
-/// to its dinner, and why the keeper can still lift one out mid-stride.</para>
-///
-/// <para><b>Two rules that were nearly missed, and both are in the original's
-/// units rather than its prose.</b></para>
-///
-/// <list type="number">
-/// <item><b>One bird fills a prisoner completely.</b> DK2's state 118 passes the
-/// level-scaled <c>HungerFill</c> to the same routine its hatchery state passes
-/// a literal 1 to, so a caged Bile Demon is filled by one chicken where a free
-/// one eats five (<see cref="EatingRules.EatInPrison"/>, written down two
-/// sittings before anything could call it).</item>
-/// <item><b>The anger is a quarter of the tabled figure.</b> The creature loader
-/// divides every <c>angerNo*</c> field by DK2's four ticks a second as it loads
-/// it, and state 117 adds one of those per attempt rather than per tick
-/// (<see cref="PrisonRules.AngerPerFailedFoodSearch"/>).</item>
-/// </list>
-///
-/// <para><b>What is ours, and stated as such.</b> The route to the bird is
-/// restricted to the cell's own tiles. DK2 issues an ordinary move and relies on
-/// the bird being in the room the prisoner is standing in; ours would happily
-/// route an L-shaped prison's corner through the corridor outside, which would
-/// look exactly like an escape. The containment that ADR-0073 found in the
-/// wander — <i>a tile outside the room is never a candidate</i> — is applied
-/// here too, and it is a narrowing rather than a rule.</para>
-/// </summary>
+/// <summary>A hungry prisoner looks round its cell for food, walks to the nearest it
+/// finds, and eats it.</summary>
+/// <remarks>The first to reach a chicken eats it and the bird is never reserved, so
+/// it is a race — CONFIRMED (owner, 2026-09-05, Q172); read from DK2's prison states
+/// 115 and 117-119 under ADR-0072's corrected frame (docs/research/prison.md §7). A
+/// prisoner never leaves the prison states to eat: 117-119 carry the same label,
+/// group and category as 114-116, so <see cref="CreatureActivity.Imprisoned"/> stands
+/// and the walk is marked with <see cref="CreatureState.TargetObjectId"/> instead.
+/// That is why <see cref="PrisonSystem"/> keeps draining a prisoner walking to its
+/// dinner, and why a keeper can lift one out mid-stride.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/prison.md")]
 public sealed class PrisonerEatSystem : ISimulationSystem
 {
@@ -138,10 +82,12 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         }
     }
 
-    /// <summary>
-    /// State 117: look round the cell, and either set off for the nearest thing
-    /// worth eating or grow angry that there is none.
-    /// </summary>
+    /// <summary>State 117: look round the cell, and either set off for the nearest
+    /// thing worth eating or grow angry that there is none.</summary>
+    /// <remarks>The anger is a quarter of the tabled figure: the creature loader
+    /// divides every <c>angerNo*</c> field by DK2's four ticks a second as it loads
+    /// it, and 117 adds one of those per attempt rather than per tick
+    /// (<see cref="PrisonRules.AngerPerFailedFoodSearch"/>).</remarks>
     private void Search(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
@@ -254,9 +200,12 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             $"health={before}->{creature.Health} gained={gained} " +
             $"need={creature.HungerNeed}");
 
-        // Still owing helpings sends it round again at once. EatInPrison pays
-        // off a whole HungerFill, so this only fires for a prisoner that had
-        // accumulated more than one - which is any prisoner left long enough.
+        // Still owing helpings sends it round again at once. One bird fills a
+        // prisoner completely: EatInPrison pays off a whole level-scaled
+        // HungerFill rather than one helping, because DK2's state 118 passes it
+        // to the same routine the hatchery state passes a literal 1 to. So this
+        // only fires for a prisoner that had accumulated more than one helping,
+        // which is any prisoner left long enough.
         if (EatingRules.StillOwesFood(creature))
         {
             BackToTheSearch(creature);
@@ -282,13 +231,12 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         creature.PathIndex = 0;
     }
 
-    /// <summary>
-    /// The cell, as a thing to walk about in: every tile the mover could
-    /// ordinarily use, minus every tile that is not this room's.
-    ///
-    /// <para>See the type summary — this is the narrowing, not the
-    /// original.</para>
-    /// </summary>
+    /// <summary>The cell, as a thing to walk about in: every tile the mover could
+    /// ordinarily use, minus every tile that is not this room's.</summary>
+    /// <remarks>Ours, a narrowing rather than a rule. DK2 issues an ordinary move and
+    /// relies on the bird being in the room the prisoner stands in; an unrestricted
+    /// route across an L-shaped prison's corner would run along the corridor outside
+    /// and look exactly like an escape. Same containment as ADR-0073's wander.</remarks>
     private sealed class CellGrid(IPathGrid inner, RoomInstance room, int width) : IPathGrid
     {
         public int Width => inner.Width;

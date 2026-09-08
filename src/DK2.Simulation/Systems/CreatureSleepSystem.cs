@@ -8,80 +8,18 @@ using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// Beds and sleep: how a creature gets a bed, walks to it, sleeps in it and
-/// wakes — the first thing a creature that is not a worker ever chooses to do.
-///
-/// <para><b>This is the first driver for non-workers.</b> Until beds existed the
-/// only creature that moved under its own steam was an imp; a goblin out of a
-/// portal stood on the hole forever because nothing looked at it. This system
-/// is the other half, and it deliberately reuses the imps' pathfinder and the
-/// imps' movement system rather than growing a second way to walk.</para>
-///
-/// <para><b>Getting a bed is a journey with a test at the end</b> (ADR-0060;
-/// <c>docs/research/lair-acquisition.md</c> §4, §5, read from the original's
-/// own lair state on 2026-09-05 after the owner filmed it). The shape:</para>
-///
-/// <list type="number">
-/// <item><b>An idle creature with no bed tries to get one before anything
-/// else, whatever its mood</b> (Q150). Sleep need is the second way in: a
-/// creature whose <c>TimeAwake</c> has run out with no bed makes the same
-/// attempt. The attempt <i>fails</i> when no reachable lair has a free tile,
-/// and only then does the creature do anything else, retrying at its next idle
-/// decision — here every <see cref="LairRules.IdleRedecisionTicks"/>.</item>
-/// <item><b>The room is chosen first, by distance to its centre</b>: the
-/// nearest reachable lair with a free slot, preferring one that holds no bed
-/// of the other alignment (Q151; <see cref="CreatureFlags.IsGood"/> against
-/// <see cref="CreatureFlags.IsEvil"/>). Nothing about its size or whether it
-/// is "functional" — the finder tests room type, owner, reach, a free slot,
-/// distance and the alignment of existing beds, and that is all.</item>
-/// <item><b>The tile is chosen on arrival</b>: the tile underfoot, then eight
-/// neighbours in a fixed order, then a walk of the room from a random start,
-/// each tested for "the keeper's lair tile with no bed on it". Nothing is
-/// reserved — two creatures heading for one room is normal, and the one that
-/// arrives second finds its tile taken and looks next door. That is what the
-/// owner filmed: creatures crossing a lair, walking up to an occupied tile,
-/// rejecting it and carrying on; in a 1×5 lair the tiles went 1, 3, 5, 4.</item>
-/// <item><b>The bed goes down where the creature stands</b>, at the tile
-/// centre, and then the creature <b>sleeps at once only if it is hurt past
-/// <c>CreatureSleepsWhenBelowPercentHealth</c></b>; otherwise the state simply
-/// ends and it is idle. Tiredness has its own way back in.</item>
-/// </list>
-///
-/// <para><b>What is the original's and what is ours.</b> The triggers, the
-/// room test and preference, the on-arrival search order and its predicate,
-/// the absence of reservation, the no-size test, the post-bedding health
-/// threshold and the <c>TimeSleep</c> gate are read from the binary
-/// (STRONGLY INFERRED; the owner's recordings CONFIRM the outcome). Ours are:
-/// the idle retry cadence, the tile of the room the walk aims at (Q157, the
-/// room centre), the order of the room walk (ascending tile index rather than
-/// the room's join order), and the absence of the third-of-a-tile jitter the
-/// original puts on the walk target — our mover walks to tile centres, and
-/// the bed sits at the centre either way.</para>
-///
-/// <para><b>A bed that stops existing is replaced, not mourned</b> — CONFIRMED
-/// by the owner (2026-09-04): <i>"if a lair tile with bed on it is sold, then
-/// the creature whose bed it was loses a place to sleep. It needs to find a new
-/// free lair tile to place its bed, otherwise anger mechanic is triggered, it
-/// gets upset, then angry then it leaves the dungeon."</i> Losing a bed drops
-/// the creature back to idle, and idle with no bed is the attempt above — the
-/// same journey by the same route, so a creature whose lair is partly sold
-/// walks to a surviving tile, and only a creature that finds <i>no</i> free
-/// tile is left bedless and on the anger ladder
-/// (<see cref="CreatureAngerSystem"/>).</para>
-///
-/// <para><b>Order.</b> Registered after <see cref="ImpTaskSystem"/> and before
-/// <see cref="CreatureHealthSystem"/>, so a creature that falls asleep this
-/// tick is healed on the same second rather than a second late. It sets paths
-/// and <see cref="CreatureMovementSystem"/> walks them on the following tick,
-/// exactly as an imp's job works.</para>
-///
-/// <para><b>Workers are skipped entirely.</b> An imp has no bed
-/// (<c>LairObjectId</c> is 0) and never sleeps, so the two systems cannot fight
-/// over the same creature — but the guard is explicit rather than incidental,
-/// because "an imp is excluded because its record happens to say 0" is the kind
-/// of reasoning that stops being true when somebody edits a record.</para>
-/// </summary>
+/// <summary>Beds and sleep: how a creature gets a bed, walks to it, sleeps in it and
+/// wakes.</summary>
+/// <remarks>STRONGLY INFERRED from the original's own lair state, the owner's
+/// recordings CONFIRMing the outcome (ADR-0060, docs/research/lair-acquisition.md §4,
+/// §5). An idle creature with no bed tries to get one before anything else, whatever
+/// its mood (Q150), and a creature whose <c>TimeAwake</c> has run out makes the same
+/// attempt; a failed one retries every <see cref="LairRules.IdleRedecisionTicks"/>. A
+/// bed that stops existing is replaced, not mourned — CONFIRMED (owner, 2026-09-04) —
+/// so losing one drops the creature to idle and back into that attempt, and only one
+/// that finds no free tile is left bedless and on <see cref="CreatureAngerSystem"/>'s
+/// ladder. Ours: the idle retry cadence, the room centre as the walk's target (Q157),
+/// the room walk in ascending tile index, and no third-of-a-tile target jitter.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/lair-acquisition.md")]
 public sealed class CreatureSleepSystem : ISimulationSystem
 {
@@ -112,6 +50,10 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             CreatureState creature = creatures[i];
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
+            // Workers are skipped explicitly rather than incidentally: an imp
+            // has no bed (LairObjectId 0) and would fall out of NeedsBed anyway,
+            // but "excluded because its record happens to say 0" stops being
+            // true the moment somebody edits a record.
             if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
             if (!LairRules.NeedsBed(definition)) continue;
 
@@ -133,31 +75,20 @@ public sealed class CreatureSleepSystem : ISimulationSystem
                 }
             }
 
-            // A collapsed creature does nothing at all (ADR-0051), and where
-            // this line sits is the whole of that rule.
-            //
-            // *After* the validity check above, because a bed that stopped
-            // being a lair tile stopped existing whatever its owner is doing —
-            // that is the world removing something, not the creature acting,
-            // and a bed object left behind would make BedTaken lie.
-            //
-            // *Before* the attempt below, because getting a bed is the creature
-            // acting: a walk and a placement, and something lying unconscious
-            // on the floor can do neither. The cost is that a creature whose
-            // bed is sold while it lies dying can no longer be carried anywhere
-            // — Q107, and it costs nothing today because carrying does not
-            // exist.
             // A creature in the keeper's hand is out of the dungeon: it does
             // not act until it is put down (HandRules.IsHeld, ADR-0062).
             if (HandRules.IsHeld(creature)) continue;
 
-            // A prisoner is skipped HERE, and since ADR-0073 that is a rule
-            // rather than a gap: its cell IS what it does. It wanders (that is
-            // PrisonerWanderSystem's, every tick) and its health is the
-            // prison's (PrisonSystem's, every second). What is still a stated
-            // narrowing is the OTHER half of Q172 - racing for a chicken
-            // dropped among them - and that half no longer waits on movement.
+            // A prisoner's cell IS what it does: it wanders (PrisonerWanderSystem,
+            // every tick), eats what is dropped among it (PrisonerEatSystem) and
+            // its health is the prison's (PrisonSystem, every second). ADR-0073.
             if (PrisonRules.IsImprisoned(creature)) continue;
+            // A collapsed creature does nothing at all (ADR-0051), and where this
+            // line sits is the rule. After the bed-validity check above, because
+            // a tile that stopped being a lair stopped existing whatever its
+            // owner is doing and a leftover bed object would make BedTaken lie;
+            // before the attempt below, because getting a bed is the creature
+            // acting - a walk and a placement (Q107).
             if (CreatureDeathRules.IsDown(creature)) continue;
 
             // A creature walking out of the dungeon does not stop for a nap,
@@ -212,20 +143,18 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         }
     }
 
-    /// <summary>
-    /// The lair state on arrival — at the room, or at a tile found within it.
-    ///
-    /// <para>Nothing happens while the creature still has route to walk. When
-    /// it runs out — arrived, or stopped short because a waypoint became
-    /// unwalkable — the tile underfoot is tested. Not the keeper's lair at all
-    /// (sold or captured while it walked, or a blocked route): the state ends
-    /// and the creature is idle, to try again at its next idle decision. Free:
-    /// the bed goes down here. Taken: the local search runs from where the
-    /// creature now stands, and a found tile is a new short walk in the same
-    /// state; a room with no free tile sends the creature back through the
-    /// finder, possibly to another lair, and only when that fails too does the
-    /// state end with nothing.</para>
-    /// </summary>
+    /// <summary>The lair state on arrival — at the room, or at a tile found within
+    /// it.</summary>
+    /// <remarks>Nothing happens while there is route left. When it runs out the tile
+    /// underfoot is tested: not the keeper's lair at all (sold or captured while it
+    /// walked, or a blocked route) ends the state and leaves the creature idle; free,
+    /// and the bed goes down here; taken, and the local search runs from where the
+    /// creature now stands — the tile underfoot, then eight neighbours in a fixed
+    /// order, then a walk of the room from a random start
+    /// (<see cref="LairRules.TryFindFreeTile"/>). Nothing is reserved: two creatures
+    /// heading for one room is normal, and the owner filmed the second reject an
+    /// occupied tile and carry on — a 1x5 lair filled 1, 3, 5, 4. A room with no free
+    /// tile sends the creature back through the finder, possibly to another lair.</remarks>
     private void Seeking(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
@@ -280,16 +209,14 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         GiveUp(creature);
     }
 
-    /// <summary>
-    /// The bed goes down on the tile the creature is standing on, and what
-    /// happens next is decided by health alone.
-    ///
-    /// <para><b>Moving house</b> is the original's rule and is kept although no
-    /// path here reaches it: a creature that finds a tile while owning a bed in
-    /// another room destroys the old bed. Here a bed is either valid — and its
-    /// owner never seeks — or already released, so the branch is a guard with
-    /// an event, not a mechanic anybody will see.</para>
-    /// </summary>
+    /// <summary>The bed goes down on the tile the creature is standing on, at the tile
+    /// centre; what happens next is decided by health alone — it sleeps at once only
+    /// if hurt past <c>CreatureSleepsWhenBelowPercentHealth</c>, otherwise the state
+    /// ends and it is idle until tiredness brings it back.</summary>
+    /// <remarks>Moving house is the original's rule and is kept although no path here
+    /// reaches it: a creature that finds a tile while owning a bed in another room
+    /// destroys the old bed. Here a bed is either valid — and its owner never seeks —
+    /// or already released, so the branch is a guard with an event.</remarks>
     private static void MakeBed(
         SimulationContext context, CreatureState creature, CreatureDef definition, int tileIndex)
     {

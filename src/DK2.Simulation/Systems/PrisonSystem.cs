@@ -7,42 +7,16 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// What a prison does to the creatures in it — once a game second.
-///
-/// <para>Three things, in this order, and the order is the behaviour:</para>
-/// <list type="number">
-/// <item><b>A cell that is no longer a cell lets its prisoner go.</b> The
-/// manual's <i>"losing a prison frees every enemy in it"</i>, and the same test
-/// covers selling part of a prison out from under somebody, digging it away, or
-/// a rival claiming the tile. Checking where the prisoner is standing rather
-/// than hooking every path that can destroy a room is the same choice
-/// <see cref="RoomInstance"/> makes: derived state cannot drift.</item>
-/// <item><b>An overcrowded prison breaks out.</b>
-/// <c>OvercrowdingJailBreakPercentagePerExtraCreature</c> = 50, per extra
-/// creature, rolled once a second (<see cref="PrisonRules.JailBreakPercent"/>).
-/// A prison only ever becomes overcrowded because a keeper put a prisoner into a
-/// full one by hand — imps refuse to — which is the manual's <i>"manual
-/// overcrowding"</i>.</item>
-/// <item><b>Everybody left withers</b> by
-/// <c>PrisonModifyCreatureHealthPerSecond</c> = -3, and a prisoner that runs out
-/// <b>rises as a Skeleton</b> for the keeper whose prison it was standing in.
-/// The Prison's <c>CreatedCreatureId</c> is 9 and the manual says it in words:
-/// <i>"any creatures that perish in Prison will rise as Skeletons under your
-/// control"</i>.</item>
-/// </list>
-///
-/// <para><b>Dying in a prison is not the ordinary death.</b> There is no
-/// collapse, no rescue window and no corpse: the creature is replaced where it
-/// stands. That is what the room is <i>for</i>, and it is why a keeper who wants
-/// a prisoner alive drops chickens on it (which needs the Hatchery's chickens to
-/// be droppable — not built, so today a prisoner's clock runs out).</para>
-///
-/// <para>Registered after <see cref="CreatureHealthSystem"/>, on the same
-/// cadence and the same phase, so a prisoner's second is settled once per second
-/// by one system rather than argued over by two. The health system skips
-/// prisoners entirely for that reason.</para>
-/// </summary>
+/// <summary>What a prison does to the creatures in it, once a game second: frees any
+/// whose cell is gone, rolls a jail break in the overcrowded, then withers the
+/// rest.</summary>
+/// <remarks>That order is the behaviour, and each step's rule and numbers are on its
+/// own method. Dying in a prison is not the ordinary death: no collapse, no rescue
+/// window, no corpse — the creature is replaced where it stands, which is what the
+/// room is for, and a keeper who wants a prisoner alive drops a chicken on it
+/// (ADR-0074, ADR-0075). Registered after <see cref="CreatureHealthSystem"/>, on the
+/// same cadence and phase, so exactly one system settles a prisoner's second; the
+/// health system skips prisoners for that reason.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/prison.md")]
 public sealed class PrisonSystem : ISimulationSystem
 {
@@ -59,10 +33,13 @@ public sealed class PrisonSystem : ISimulationSystem
         Wither(context);
     }
 
-    /// <summary>
-    /// A prisoner standing anywhere but on a tile of a prison belonging to the
-    /// keeper who imprisoned it is not a prisoner any more.
-    /// </summary>
+    /// <summary>A prisoner standing anywhere but on a tile of a prison belonging to
+    /// the keeper who imprisoned it is not a prisoner any more.</summary>
+    /// <remarks>The manual's "losing a prison frees every enemy in it", and the same
+    /// test covers selling part of a prison out from under somebody, digging it away,
+    /// or a rival claiming the tile. Testing where the prisoner stands, rather than
+    /// hooking every path that can destroy a room, is <see cref="RoomInstance"/>'s own
+    /// choice: derived state cannot drift.</remarks>
     private static void FreeThoseWhoseCellIsGone(SimulationContext context)
     {
         WorldState world = context.World;
@@ -99,10 +76,13 @@ public sealed class PrisonSystem : ISimulationSystem
         return false;
     }
 
-    /// <summary>
-    /// Rolls each overcrowded prison's chance, and empties the ones that come
-    /// up.
-    /// </summary>
+    /// <summary>Rolls each overcrowded prison's chance, and empties the ones that
+    /// come up.</summary>
+    /// <remarks><c>OvercrowdingJailBreakPercentagePerExtraCreature</c> = 50, per extra
+    /// creature, rolled once a second (<see cref="PrisonRules.JailBreakPercent"/>). A
+    /// prison only ever becomes overcrowded because a keeper put a prisoner into a
+    /// full one by hand — imps refuse to — which is the manual's "manual
+    /// overcrowding".</remarks>
     private static void BreakOutTheOvercrowded(SimulationContext context)
     {
         WorldState world = context.World;
@@ -143,7 +123,12 @@ public sealed class PrisonSystem : ISimulationSystem
         }
     }
 
-    /// <summary>Takes the second's health off every prisoner, and raises the skeletons.</summary>
+    /// <summary>Takes the second's health off every prisoner, and raises the
+    /// skeletons.</summary>
+    /// <remarks><c>PrisonModifyCreatureHealthPerSecond</c> = -3. A prisoner that runs
+    /// out rises as a Skeleton for the keeper whose prison it was standing in: the
+    /// manual's "any creatures that perish in Prison will rise as Skeletons under your
+    /// control".</remarks>
     private static void Wither(SimulationContext context)
     {
         WorldState world = context.World;

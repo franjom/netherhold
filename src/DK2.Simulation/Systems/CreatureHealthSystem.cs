@@ -7,49 +7,16 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// Regeneration, hunger's clock, and death — once a game second.
-///
-/// <para>Runs on the same cadence and the same phase as <see cref="ManaSystem"/>:
-/// the last tick of each game second, so a level does not begin by paying out a
-/// second that has not elapsed. Per-second rather than per-tick because every
-/// number it applies is written <i>per second</i> in the data, and splitting
-/// them across the four ticks of a second would invent precision the files do
-/// not have. That reason survived Q1 being settled: the rate is now known to be
-/// DK2's own four a second, and these numbers are still per second.</para>
-///
-/// <para><b>Healing sources add.</b> A creature on its own land in a lair gets
-/// both, because nothing in the data or in OpenKeeper suggests they are
-/// exclusive — and for 44 of the 46 creatures the own-land term is zero anyway,
-/// so the question only arises for an Imp or King Reginald asleep in a lair.
-/// Recorded as the reading it is (Q100).</para>
-///
-/// <para><b>Zero health is not death</b> — CONFIRMED by the owner (Q99), and
-/// this system used to have it wrong. A creature that runs out of health
-/// <i>collapses</i> and lies there for <c>CreatureDyingStateDurationSeconds</c>
-/// (60), rescuable by an imp that carries it back to its bed, and only then
-/// dies. See <see cref="CreatureDeathRules"/> for the whole process and for
-/// which half of it is still missing.</para>
-///
-/// <para><b>Not every creature gets that window.</b> One that leaves no body
-/// has no lying state and dies on the spot — CONFIRMED by the owner for the Imp
-/// (<i>"imps are dead right away, they don't have a lying state"</i>) and by
-/// OpenKeeper for all eight bodyless creatures, which tests the very same
-/// <c>GenerateDeadBody</c> flag before any unconscious handling.</para>
-///
-/// <para><b>A creature that is down is skipped entirely</b>, and that guard is
-/// not cosmetic. Own-land regeneration would otherwise heal a collapsed
-/// creature off the floor: <b>King Reginald</b> regenerates 400 health a second
-/// on his own land and does leave a body, so he is the one who would be
-/// unkillable at home. (The Imp has 67 and would have been, before the owner's
-/// answer took its lying state away.) Recovery is the rescue, not
-/// self-healing — so own-land regeneration is suppressed at zero health while
-/// lair healing is not, because a bed is the one route back.</para>
-///
-/// <para>Registered <b>after</b> <see cref="PortalSystem"/> so a creature that
-/// arrives this tick is not regenerated on the tick it arrives, and so its
-/// hunger clock starts from a full second.</para>
-/// </summary>
+/// <summary>Regeneration, hunger's clock, and death — once a game second, on its last
+/// tick, the phase <see cref="ManaSystem"/> uses.</summary>
+/// <remarks>Per second rather than per tick because every number it applies is written
+/// per second in the data; Q1 is settled at DK2's own four ticks a second and these are
+/// still per-second numbers. Zero health is not death: a creature collapses for
+/// <c>CreatureDyingStateDurationSeconds</c> (60), rescuable by an imp that carries it
+/// back to its bed, and only then dies — CONFIRMED by the owner (Q99); the whole
+/// process, and which half of it is missing, is in <see cref="CreatureDeathRules"/>.
+/// Registered after <see cref="PortalSystem"/>, so a creature that arrives this tick is
+/// not regenerated on it and its hunger clock starts from a full second.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-needs.md")]
 public sealed class CreatureHealthSystem : ISimulationSystem
 {
@@ -70,18 +37,11 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             CreatureState state = world.Creatures[i];
 
             // A prisoner's HEALTH belongs to PrisonSystem alone: it withers at
-            // PrisonModifyCreatureHealthPerSecond and dies into a Skeleton
-            // rather than into a collapse, so nothing here may touch its health
-            // or its dying clock (ADR-0064).
-            //
-            // Its HUNGER is another matter, and this line used to stop that too.
-            // DK2's needs routine suppresses the hunger clock on a bit of the
-            // state record's flag byte - and the fifteen states that set it are
-            // exactly drinking, gambling and dancing, so it is the Casino and
-            // not the Prison. Every prison state has the bit clear, which is
-            // what makes state 115's own hunger test reachable at all: a
-            // prisoner gets hungry, and if nobody drops it a chicken it grows
-            // angry about it (ADR-0074).
+            // PrisonModifyCreatureHealthPerSecond and dies into a Skeleton, not a
+            // collapse, so nothing here touches its health or dying clock
+            // (ADR-0064). Its HUNGER is this system's: DK2 suppresses the hunger
+            // clock on a state-flag bit only the fifteen drinking, gambling and
+            // dancing states set, so a prisoner does get hungry (ADR-0074).
             if (PrisonRules.IsImprisoned(state))
             {
                 Hunger(context, database.CreatureById(state.CreatureTypeId), state);
@@ -110,11 +70,10 @@ public sealed class CreatureHealthSystem : ISimulationSystem
                 }
             }
 
-            // A dying creature does nothing but die. No hunger clock, and above
-            // all no regeneration — see the type summary for the immortal imp.
-            // A corpse counts its own clock down and does nothing else. It
-            // has no health to regenerate, no hunger to feel, and nothing left
-            // to collapse into.
+            // A dying creature does nothing but die: no hunger clock and, above
+            // all, no regeneration. A corpse counts its own clock down and does
+            // nothing else — no health to regenerate, no hunger to feel, nothing
+            // left to collapse into.
             if (CreatureDeathRules.IsCorpse(state))
             {
                 Rotting(context, creature, state);
@@ -129,6 +88,12 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
             Hunger(context, creature, state);
 
+            // Healing sources add: nothing in the data or in OpenKeeper makes them
+            // exclusive, and the own-land term is zero for 44 of the 46 creatures
+            // anyway (Q100). Own-land regeneration is suppressed at zero health
+            // and lair healing is not, because a bed is the one route back —
+            // otherwise King Reginald, at 400 a second on his own land, would be
+            // unkillable at home.
             int regen = CreatureHealthRules.OwnLandRegenPerSecond(world, creature, state)
                         + CreatureHealthRules.LairHealPerSecond(world, database, state);
 
@@ -268,11 +233,9 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         // lying on the floor is not still holding a lair tile.
         LairRules.ReleaseBed(context.World, context.Database, state);
 
-        // The body is delivered at last (ADR-0063). This used to report a debt
-        // it could not pay, on the standing explanation that a corpse is an
-        // object -- which was wrong: none of the 145 objects is a corpse, and a
-        // corpse is a creature in a state (objects.md section 4). What was
-        // missing was an imp task that carries one, and now there is one.
+        // The body is delivered by an imp task (ADR-0063). A corpse is a creature
+        // in a state, not an object: none of the 145 objects is a corpse
+        // (objects.md section 4).
         bool leavesBody = CreatureDeathRules.LeavesBody(creature);
 
         // What it was carrying falls where it fell -- in one, two or three

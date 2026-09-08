@@ -8,53 +8,18 @@ using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// The ladder: <b>content → unhappy → angry → gone</b>. Once a game second.
-///
-/// <para><b>Confirmed three times from three different causes before it was
-/// ever built</b>, which is unusual and is why the shape was never in doubt —
-/// only the unit was:</para>
-///
-/// <list type="bullet">
-/// <item><b>Q9</b> (pay): <i>"Unpaid → unhappy → angry → leaves; a converted
-/// creature rebels instead."</i></item>
-/// <item><b>Q105</b> (lairs): <i>"If a creature can't get a lair it becomes
-/// unhappy, it can't go to sleep, then angry, then it leaves the dungeon."</i></item>
-/// <item><b>The bed-loss answer</b>: a creature whose lair tile is sold looks
-/// for another, <i>"otherwise anger mechanic is triggered, it gets upset, then
-/// angry then it leaves the dungeon."</i></item>
-/// </list>
-///
-/// <para>And then <b>Q106</b> gave the unit with a stopwatch — 32767 — which is
-/// the whole reason this file exists. See <see cref="CreatureAngerRules"/> for
-/// the arithmetic.</para>
-///
-/// <para><b>What an angry creature does comes from its own record</b>, not from
-/// a rule here: a Goblin's <c>AngryJobs</c> table is <c>Leave(50%)</c> and
-/// <c>Rebel(50%)</c>. Leaving is implemented. Rebelling is <b>not</b> — it needs
-/// a creature to change sides and become a hero, and the three variables that
-/// govern the outcome (<c>RebelLeavingPercentage</c> 70,
-/// <c>RebelBecomeGoodPercentage</c> 15, <c>RebelDefectPercentage</c> 15) have
-/// nothing to act on. So a creature that draws Rebel stays angry and says so
-/// rather than being quietly made to leave instead — and then rolls again five
-/// game seconds later, which is the original's cadence and means a Goblin does
-/// leave in the end, by the coin toss its record describes rather than by a
-/// draw that stuck (ADR-0061, Q122).</para>
-///
-/// <para><b>Cadence and order.</b> The last tick of each game second, the phase
-/// <see cref="ManaSystem"/> and <see cref="CreatureHealthSystem"/> use, because
-/// every rate it reads is written per second. Registered <b>after</b>
-/// <see cref="CreatureSleepSystem"/> so that a creature which claimed a bed this
-/// tick is not charged <c>AngerNoLair</c> for the second it arrived, and
-/// <b>after</b> <see cref="CreatureHealthSystem"/> so that a creature which
-/// collapsed this second is already <see cref="CreatureActivity.Dying"/> and is
-/// skipped.</para>
-///
-/// <para><b>A creature that is down is skipped entirely.</b> Something lying on
-/// the floor waiting to be carried to bed is not accruing a grievance about not
-/// having got there — and more practically, a dying creature that deserted would
-/// vanish out of the rescue window by a second route (ADR-0051).</para>
-/// </summary>
+/// <summary>The anger ladder — content, unhappy, angry, gone — stepped once a game
+/// second.</summary>
+/// <remarks>CONFIRMED: three owner answers give the shape from three separate causes
+/// (Q9 pay, Q105 lairs, the bed-loss answer), and Q106 gave the unit by stopwatch,
+/// 32767; the arithmetic is <see cref="CreatureAngerRules"/>'s. What an angry
+/// creature does comes from its own record, not from a rule here (ADR-0061, Q122):
+/// see <see cref="Decide"/> and <see cref="Leave"/>. Runs on the last tick of each
+/// game second, the phase <see cref="ManaSystem"/> and
+/// <see cref="CreatureHealthSystem"/> use because every rate it reads is per second,
+/// and after <see cref="CreatureSleepSystem"/> so a creature that claimed a bed this
+/// tick is not charged <c>AngerNoLair</c>, and after the health system so one that
+/// collapsed is already <see cref="CreatureActivity.Dying"/> and skipped (ADR-0051).</remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-anger.md")]
 public sealed class CreatureAngerSystem : ISimulationSystem
 {
@@ -91,13 +56,12 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             if (CreatureDeathRules.IsDown(state)) continue;
             if (!CreatureAngerRules.CanBeAngered(creature)) continue;
 
-            // The band this creature was LAST REPORTED IN, not the one it was
-            // in at the top of this pass. Anger reaches a creature from four
-            // places and three of them run earlier in the same tick - a slap,
-            // the prison, and having no work (ADR-0082) - so a "before" read
-            // from the anger visible here would miss every crossing it did not
-            // cause itself. DK2 keeps the band in its anger object and rewrites
-            // it on every add; this keeps the same value and reports against it.
+            // The band this creature was last reported in, not the one it is in
+            // at the top of this pass. Anger reaches a creature from four places
+            // and three of them run earlier in the same tick - a slap, the
+            // prison, and having no work (ADR-0082) - so a "before" read from
+            // the anger visible here would miss every crossing it did not cause.
+            // DK2 keeps the band in its anger object and rewrites it on each add.
             CreatureMood before = state.Mood;
 
             CreatureAnger delta = CreatureAngerRules.PerSecond(world, database, creature, state);
@@ -127,52 +91,18 @@ public sealed class CreatureAngerSystem : ISimulationSystem
         }
     }
 
-    /// <summary>
-    /// <b>A fresh roll on every allowed selection</b>, five game seconds apart,
-    /// with a lair attempt before it — the original's angry chooser
-    /// (<c>FUN_004784c0</c>), read on 2026-09-05 (Q122, ADR-0061).
-    ///
-    /// <para>The order is the original's, and each line of it is a rule:</para>
-    ///
-    /// <list type="number">
-    /// <item><b>A creature already walking out does not choose again.</b> The
-    /// chooser is reached only when the creature's current state had nothing to
-    /// say, and leaving is a state (<c>lair-acquisition.md</c> §5).</item>
-    /// <item><b>The five-second gate</b>, against
-    /// <see cref="CreatureState.LastAngryChoiceTick"/> — and it is a gate on
-    /// <i>success</i>. A selection that starts nothing does not stamp it, so a
-    /// creature that cannot act on its anger tries again at every
-    /// opportunity.</item>
-    /// <item><b>No lair? Go and get one</b>, before any roll and instead of it
-    /// — the same attempt an idle creature makes, which is why it is
-    /// <see cref="LairSeeker"/> and not a copy. Setting off spends the
-    /// selection.</item>
-    /// <item><b>Roll <c>rand(100)</c></b> and take the first entry of the
-    /// table whose inclusive cumulative range holds it
-    /// (<see cref="CreatureAngerRules.CumulativeRanges"/>).</item>
-    /// <item><b>Fall through in record order</b> when the roll lands outside
-    /// every range, which a table whose chances sum to less than 100 can
-    /// do.</item>
-    /// </list>
-    ///
-    /// <para><b>ADR-0053's draw-once-and-keep was wrong in shape</b>, and the
-    /// reason it was written that way is a fact about DK2 rather than an
-    /// argument against re-rolling: with <c>Leave(50%)</c> an angry Goblin
-    /// <i>does</i> walk out within a few rolls. What was right about it is kept
-    /// — an unbuilt outcome is still never reported as a built one.</para>
-    ///
-    /// <para><b>Where ours stops short, and why it is one sentence.</b> The
-    /// original's fall-through also runs when a chosen job's own start routine
-    /// <i>fails</i> — no training room, no shrine. Ours cannot: every job in
-    /// this simulation either starts (<c>Leave</c>, which the original starts
-    /// unconditionally too — its routine sets the leaving state and returns
-    /// success, leaving the portal search to the state) or does not exist at
-    /// all. <b>A job that does not exist ends the selection where DK2 would
-    /// have succeeded</b>, rather than falling through to <c>Leave</c> and
-    /// turning half of every angry Goblin into a deserter it should not be. So
-    /// a Goblin that draws <c>Rebel</c> stands there for five seconds and rolls
-    /// again, and leaves after a couple of rounds instead of at once.</para>
-    /// </summary>
+    /// <summary>A fresh roll on every allowed selection, five game seconds apart,
+    /// with a lair attempt before it: the original's angry chooser
+    /// <c>FUN_004784c0</c> (Q122, ADR-0061).</summary>
+    /// <remarks>Its order: a creature already walking out does not choose again, since
+    /// leaving is a state (lair-acquisition.md §5); the five-second gate on
+    /// <see cref="CreatureState.LastAngryChoiceTick"/> gates success only, so a
+    /// selection that starts nothing stamps nothing; no lair means going for one
+    /// instead of rolling (<see cref="LairSeeker"/>); then <c>rand(100)</c> takes the
+    /// first inclusive cumulative range and otherwise falls through in record order
+    /// (<see cref="CreatureAngerRules.CumulativeRanges"/>). Deviates: the original also
+    /// falls through when a chosen job's start routine fails; here an unbuilt job ends
+    /// the selection instead of turning half of every angry Goblin into a deserter.</remarks>
     private void Decide(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
@@ -235,64 +165,25 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             $"from=[{string.Join(",", creature.AngryJobs
                 .Select(j => $"{j.Job}:{j.ChancePercent}%"))}]");
 
-        // Rebel, Sulk, DestroyWalls, StealGold and the rest are real DK2
-        // outcomes with nothing here to act on. Reported by the event above and
-        // then left alone: the creature stays in the dungeon, angry, doing
-        // nothing, until its gate opens and it rolls again. Honest, and
-        // visible.
+        // Not implemented: Rebel, Sulk, DestroyWalls, StealGold and the rest are
+        // real DK2 outcomes with nothing here to act on. The event above reports
+        // them as unbuilt and the creature stays in the dungeon, angry, until
+        // its gate opens and it rolls again.
         if (chosen == JobType.Leave) Leave(context, creature, state);
     }
 
-    /// <summary>
-    /// The creature walks out — to <b>the nearest portal its keeper owns</b>,
-    /// and it only actually goes when it gets there.
-    ///
-    /// <para><b>CONFIRMED by the owner</b> (2026-09-04, Q116): <i>"angry evil
-    /// creature goes to the nearest available portal and leaves the dungeon.
-    /// Angry converted good creature turns turncoat and starts attacking the
-    /// dungeon and its creatures."</i> Which settles a question this method
-    /// previously answered with a shrug — it removed the creature on the spot
-    /// and said <c>via=nowhere_in_particular</c> in its own event so the lie
-    /// would at least be greppable.</para>
-    ///
-    /// <para><b>Two consequences, and both are behaviour rather than
-    /// bookkeeping.</b> A keeper whose portal is unreachable — walled off, taken
-    /// by a rival, never claimed — <b>keeps a creature that wanted to leave</b>,
-    /// standing there angry. And a deserter is <i>visible</i> for the length of
-    /// its walk: it can be killed, and it is still on the payroll, which is
-    /// exactly the window in which a player would notice and do something about
-    /// it.</para>
-    ///
-    /// <para><b>Nearest is by path, not by line</b> — <see cref="IPathfinder"/>'s
-    /// Dijkstra over the same <see cref="WorldPathGrid"/> the creature would walk
-    /// on, so "nearest" already accounts for the walls in the way and for what
-    /// this particular creature can cross. A route is planned only when the
-    /// creature has run out of one, so an existing walk is never restarted; if a
-    /// route cannot be found at all it is retried, silently, every second, and
-    /// the one report of the failure goes out on the second it first happened.
-    /// A portal built later is therefore an escape route, which is the
-    /// forgiving reading and the one a player would expect.</para>
-    ///
-    /// <para><b>Its bed goes at the moment it decides</b>, not when it arrives,
-    /// for two reasons. A lair that leaks a tile every time somebody storms off
-    /// would quietly shrink; and a leaver still holding a bed would keep
-    /// <i>curing itself</i> at −550 a second the moment it walked past its own
-    /// lair, which would make the walk out reversible by accident rather than by
-    /// any rule anybody wrote (Q121).</para>
-    ///
-    /// <para><b>The other branch is CONFIRMED and unbuilt.</b> A converted good
-    /// creature does not walk out — it <i>turns turncoat and attacks the
-    /// dungeon</i>. That is the <c>Rebel</c> entry in the angry job tables (a
-    /// Goblin draws it half the time, a Vampire always), and the original tracks
-    /// it as its own per-creature state: <c>Creature.cpp</c>'s debug dump prints
-    /// <c>TurncoatPlayer</c> and <c>TurncoatTimer</c>, so becoming a turncoat
-    /// means belonging to another player for a time (binary, ADR-0046 — facts
-    /// only). It needs conversion, which needs the torture chamber, and the
-    /// three shipped percentages that split the outcome
-    /// (<c>RebelLeavingPercentage</c> 70, <c>RebelBecomeGoodPercentage</c> 15,
-    /// <c>RebelDefectPercentage</c> 15) have nothing to act on. So a creature
-    /// that draws Rebel still stands there.</para>
-    /// </summary>
+    /// <summary>Walks the creature out to the nearest portal its keeper owns; it only
+    /// actually goes when it gets there.</summary>
+    /// <remarks>CONFIRMED by the owner (2026-09-04, Q116): an angry evil creature goes to
+    /// the nearest available portal and leaves; an angry converted good creature turns
+    /// turncoat instead — not implemented, since it needs conversion
+    /// (docs/research/creature-anger.md). A keeper whose portal is unreachable therefore
+    /// keeps a creature that wanted to leave, and a deserter is visible and still on the
+    /// payroll for the length of its walk. Nearest is by path, not line: Dijkstra over
+    /// this creature's own <see cref="WorldPathGrid"/>. A route is planned only when it
+    /// has none, and a failure is retried silently each second but reported once. Its bed
+    /// goes when it decides, not on arrival, so a lair cannot leak a tile per storm-off
+    /// and a leaver cannot cure itself at −550 a second by walking past its own lair.</remarks>
     private void Leave(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {

@@ -6,33 +6,18 @@ using DK2.Core;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// Resolves the work applications queued on the world this tick, in queue
-/// order, and clears the queue.
-///
-/// The system owns no policy. It does not decide who works, what they work on,
-/// or how often — those are creature decisions (M3, later) and a timing question
-/// (Q19/Q1). All it does is turn "one application of kind K by player P on tile
-/// I" into the health change and terrain transition that DK2's data says it is,
-/// via <see cref="TileWorkRules"/>.
-///
-/// <para>
-/// Gold released by mining goes into the hands of the creature named on the
-/// order — CONFIRMED (Q31): in DK2 the imp that freed the gold is the imp that
-/// carries it away, and <see cref="ImpTaskSystem"/> is what does the carrying.
-/// Work with no creature behind it — a test, the harness — still has its gold
-/// reported and dropped, because nothing was there to pick it up.
-/// </para>
-///
-/// <para>
-/// An application that frees more than the worker's hands will hold has its
-/// remainder reported as uncollected and dropped. With the shipped numbers a
-/// worker never gets into that position, because it stops mining before a swing
-/// that would overflow it; the branch exists so that data which broke that
-/// assumption would show up in the event log rather than silently inflate the
-/// economy.
-/// </para>
-/// </summary>
+/// <summary>Resolves the work applications queued on the world this tick, in queue
+/// order, and clears the queue.</summary>
+/// <remarks>No policy here: who works, on what, and how often are creature decisions
+/// and a timing question (Q19/Q1). This turns "one application of kind K by player P
+/// on tile I" into the health change and terrain transition DK2's data says it is,
+/// via <see cref="TileWorkRules"/>. Gold released by mining goes into the hands of
+/// the creature named on the order — CONFIRMED (Q31): the imp that freed the gold is
+/// the imp that carries it away, and <see cref="ImpTaskSystem"/> does the carrying.
+/// Work with no creature behind it (a test, the harness) has its gold reported and
+/// dropped, as does any remainder past what a worker's hands hold — with the shipped
+/// numbers a worker stops before a swing that would overflow it, so that branch
+/// exists to make data which broke the assumption show up in the log.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/tile-work.md")]
 public sealed class TileWorkSystem : ISimulationSystem
 {
@@ -74,8 +59,8 @@ public sealed class TileWorkSystem : ISimulationSystem
 
             // A tile that has just changed terrain is freshly dug exactly when
             // the work that changed it was excavation (Q154). A claim, a
-            // conversion, an attacker breaking it, a fill-in: all of those
-            // change the terrain too, and all of them end its being fresh.
+            // conversion, an attacker breaking it: all of those change the
+            // terrain too, and all of them end its being fresh.
             if (result.Outcome is TileWorkOutcome.Destroyed or TileWorkOutcome.Transformed)
                 tile.FreshlyDug = result.Outcome == TileWorkOutcome.Destroyed && IsExcavation(order.Kind);
 
@@ -105,30 +90,18 @@ public sealed class TileWorkSystem : ISimulationSystem
             worker, context.Database.CreatureById(worker.CreatureTypeId));
     }
 
-    /// <summary>
-    /// Hands the rest of a converted room to its new owner, all at once.
-    ///
-    /// <para><b>CONFIRMED</b> (owner, 2026-09-04): <i>"once an imp claims a
-    /// portal then the entire portal gets claimed, all tiles that are assigned
-    /// to that portal are immediately claimed … rooms are instantly claimed by
-    /// imps, not tile by tile."</i> One tile is worked; the room changes hands.
-    /// Without this a keeper would have to claim a portal nine times and could
-    /// leave one half-taken, which is a state DK2 cannot be in.</para>
-    ///
-    /// <para><b>Only the owner is written, not the terrain or the health.</b> The
-    /// worked tile went through <see cref="TileWorkRules.Apply"/> and had its
-    /// health, accumulated work and remainder reset by the conversion; the other
-    /// tiles were never worked, so resetting theirs would repair a room by
-    /// taking it. A rival who has been chipping at your treasury and then claims
-    /// it gets the damage along with it — the same reasoning that keeps a claimed
-    /// burning bridge burning (Q68).</para>
-    ///
-    /// <para>Gold is deliberately left where it is. A treasury's contents change
-    /// hands with the treasury, which is exactly what Q40 observed on defeat:
-    /// rivals claim the rooms <i>and gold</i>. Nothing spills, because the tile's
-    /// capacity is a property of its terrain and the terrain did not
-    /// change.</para>
-    /// </summary>
+    /// <summary>Hands the rest of a converted room to its new owner, all at
+    /// once.</summary>
+    /// <remarks>CONFIRMED (owner, 2026-09-04): "rooms are instantly claimed by imps,
+    /// not tile by tile" — one tile is worked and the room changes hands, so a keeper
+    /// never claims a portal nine times or leaves one half-taken. Only the owner is
+    /// written, not the terrain or the health: the worked tile had its health,
+    /// accumulated work and remainder reset by <see cref="TileWorkRules.Apply"/>,
+    /// while the others were never worked, so resetting theirs would repair a room by
+    /// taking it — a rival who chipped at your treasury and then claims it gets the
+    /// damage with it, as a claimed burning bridge keeps burning (Q68). Gold is left
+    /// where it is: a treasury's contents change hands with the treasury (Q40), and
+    /// nothing spills because capacity belongs to the terrain, which did not change.</remarks>
     private static void SpreadTakeover(
         SimulationContext context, TileWorkOrder order, RoomInstance room)
     {

@@ -8,54 +8,18 @@ using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// Payday: the keeper's wage bill falls due, every creature it owns is credited,
-/// and each one walks to a treasury and lifts its own wages off the floor.
-///
-/// <para>The last of M4's original seven items, and the one that turns gold from
-/// something a keeper accumulates into something a keeper can <b>run out
-/// of</b>. Read from the original — <c>docs/research/payday.md</c> has the
-/// addresses; ADR-0078 has the decisions.</para>
-///
-/// <para><b>Two phases, in one system, and the original keeps them apart.</b>
-/// Its clock is a per-player routine and its collecting is three creature
-/// states. This runs the clock first and then every creature's collecting,
-/// which matters for exactly one thing: a creature credited on this tick sets
-/// off on this tick rather than the next. That is the original's order too —
-/// its clock calls the collect decision directly, in the same loop that credits
-/// the wage.</para>
-///
-/// <list type="number">
-/// <item><b>The clock.</b> Each keeper carries a deadline
-/// (<see cref="PlayerState.NextPaydayTick"/>), seeded from
-/// <c>TimeBeforeFirstPayDaySeconds</c> and rewritten as <c>now +
-/// PayDayFrequencySeconds</c> each time it fires. Zero means never.</item>
-/// <item><b>The credit.</b> Every creature of that keeper gets <c>Pay</c> scaled
-/// by its level <i>added</i> to what it is already owed, and its failed-attempt
-/// counter reset. A creature holding <see cref="CreatureState.SkipNextPayment"/>
-/// is not credited at all and the ticket is spent.</item>
-/// <item><b>The walk.</b> A creature owed money and not already busy goes to the
-/// nearest reachable Treasury or Dungeon Heart of its own keeper <b>that has
-/// gold in it</b>.</item>
-/// <item><b>The taking.</b> On arrival it takes up to what it is owed off <b>the
-/// one tile it is standing on</b>. An empty tile costs it one of its two
-/// attempts.</item>
-/// </list>
-///
-/// <para><b>What is ours and named as such.</b> Three states folded into one
-/// activity; the arrival tile chosen as the room's gold-bearing tile nearest the
-/// creature rather than by the original's object search, which walks a tile's
-/// object list this project does not model for gold; and the Dungeon Heart
-/// admitted unconditionally where the original tests one undecoded flag bit
-/// beside the type. None of the three changes who gets paid.</para>
-///
-/// <para><b>What is missing, and it is the important one.</b> Nothing here
-/// charges <c>AngerNoPay</c>. The owner has described the consequence (Q9:
-/// unhappy, then angry, then leaves — or rebels, if converted) and the ladder is
-/// built (ADR-0053), but the routine that connects them was not found in the
-/// payday path and is not invented here. An unpaid creature stays owed and stays
-/// calm, which is wrong and is wrong <i>visibly</i> — the events say so.</para>
-/// </summary>
+/// <summary>Payday: the wage bill falls due, every creature is credited, and each
+/// walks to a treasury for its own wages (docs/research/payday.md, ADR-0078).</summary>
+/// <remarks>Two phases in one system, the clock then the collecting, which is the
+/// original's order — its clock calls the collect decision in the same loop that
+/// credits the wage — so a creature credited on this tick sets off on this tick.
+/// Being owed is what charges <c>AngerNoPay</c> +60, and that charge lives in
+/// <see cref="CreatureAngerRules"/> on the anger system's second (ADR-0079,
+/// <see cref="PaydayRules.IsOwedWages"/>). Ours, none of it changing who gets paid:
+/// three original states folded into one activity; the arrival tile is the room's
+/// gold-bearing tile nearest the creature, not the original's object search; and the
+/// Dungeon Heart is admitted unconditionally where the original tests one undecoded
+/// flag bit beside the type.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/payday.md")]
 public sealed class PaydaySystem : ISimulationSystem
 {
@@ -79,10 +43,16 @@ public sealed class PaydaySystem : ISimulationSystem
 
     // ------------------------------------------------------------- the clock
 
-    /// <summary>
-    /// Fires any keeper's payday that has come due, credits its creatures, and
-    /// reschedules.
-    /// </summary>
+    /// <summary>Fires any keeper's payday that has come due, credits its creatures,
+    /// and reschedules.</summary>
+    /// <remarks>Each keeper carries a deadline
+    /// (<see cref="PlayerState.NextPaydayTick"/>), seeded from
+    /// <c>TimeBeforeFirstPayDaySeconds</c> and rewritten as
+    /// <c>now + PayDayFrequencySeconds</c> each time it fires. A creature is credited
+    /// <c>Pay</c> scaled by its level, added to what it is already owed, and its
+    /// failed-attempt budget refills; one holding
+    /// <see cref="CreatureState.SkipNextPayment"/> is not credited and spends the
+    /// ticket.</remarks>
     private static void Clock(SimulationContext context)
     {
         WorldState world = context.World;
@@ -93,16 +63,12 @@ public sealed class PaydaySystem : ISimulationSystem
         {
             ref PlayerState player = ref world.PlayerAtIndex(p);
 
-            // Zero means "not scheduled yet", and the first sight of it sets
-            // the first payday TimeBeforeFirstPayDaySeconds out - so a level
-            // does not open with the whole dungeon owed money.
-            //
-            // A DIVERGENCE, stated: the original seeds this in an initialiser
-            // and reads zero as "this player never has a payday". Ours has
-            // nowhere to seed it (WorldState.FromMap has no GameDatabase) and
-            // no player that needs "never" - a slot with no creatures bills
-            // nobody. If a hero or front-end player ever needs suppressing, it
-            // wants a flag rather than this sentinel back.
+            // Zero means "not scheduled yet", and the first sight of it sets the
+            // first payday TimeBeforeFirstPayDaySeconds out, so a level does not
+            // open with the whole dungeon owed money. A stated divergence: the
+            // original seeds this in an initialiser and reads zero as "this
+            // player never has a payday". Suppressing a player here would want a
+            // flag rather than the sentinel back.
             if (player.NextPaydayTick.Value == 0)
             {
                 player.NextPaydayTick =
@@ -200,21 +166,15 @@ public sealed class PaydaySystem : ISimulationSystem
         }
     }
 
-    /// <summary>
-    /// Chooses a treasury and starts the walk, or records why not.
-    ///
-    /// <para>Rooms are ranked nearest-first by squared straight-line distance —
-    /// the original's ranking, and the same one the prison's food search and the
-    /// hunger walk use — and the first that this creature can actually reach
-    /// over its own <see cref="WorldPathGrid"/> wins. Ties fall back to the
-    /// lowest tile index, which is <see cref="RoomIndex.Build"/>'s order and is
-    /// reproducible (ADR-0001).</para>
-    ///
-    /// <para><b>A treasury with no gold in it is not a candidate</b>, which is
-    /// the original's own gate and has a visible consequence: a keeper with
-    /// three empty treasuries and one full one sends everybody to the full one
-    /// rather than to the nearest.</para>
-    /// </summary>
+    /// <summary>Chooses a treasury and starts the walk, or records why not.</summary>
+    /// <remarks>Rooms are ranked nearest-first by squared straight-line distance — the
+    /// original's ranking, and the same one the prison's food search and the hunger
+    /// walk use — and the first this creature can actually reach over its own
+    /// <see cref="WorldPathGrid"/> wins. Ties fall back to the lowest tile index,
+    /// <see cref="RoomIndex.Build"/>'s order (ADR-0001). A treasury with no gold in it
+    /// is not a candidate, which is the original's own gate and is visible in play: a
+    /// keeper with three empty treasuries and one full one sends everybody to the full
+    /// one rather than to the nearest.</remarks>
     private void SetOutForTheTreasury(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {

@@ -8,27 +8,17 @@ using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// <b>Go and get a lair</b> — one attempt, shared by everything that makes it,
-/// because in the original it is one function (<c>FUN_0046f390</c>) called from
-/// four places: the idle state, the sleep need, and the unhappy and angry job
-/// choosers (<c>lair-acquisition.md</c> §5, §8).
-///
-/// <para>It lives here rather than inside <see cref="CreatureSleepSystem"/>
-/// because <see cref="CreatureAngerSystem"/> makes the same attempt before it
-/// rolls an angry job (ADR-0061) — and a second copy of "which lair, and can I
-/// get there" would be a second set of answers to a question the original
-/// answers once.</para>
-///
-/// <para><b>The preconditions are the attempt's own</b>, not the caller's: a
-/// creature that is down, already on its way to a lair, walking out of the
-/// dungeon, has a bed already, or is not owed one at all, cannot take a lair —
-/// whoever asks. Callers keep only their own cadence (the idle countdown, the
-/// five-second angry gate), which is where the original keeps it too.</para>
-///
-/// <para>A failed attempt is reported under the <i>calling</i> system's name,
-/// so the log says which of the two asked.</para>
-/// </summary>
+/// <summary>One attempt to go and get a lair, shared by everything that makes it: in
+/// the original it is one function, <c>FUN_0046f390</c>, called from four places —
+/// the idle state, the sleep need, and the unhappy and angry job choosers
+/// (docs/research/lair-acquisition.md §5, §8).</summary>
+/// <remarks>It lives here rather than in <see cref="CreatureSleepSystem"/> because
+/// <see cref="CreatureAngerSystem"/> makes the same attempt before rolling an angry
+/// job (ADR-0061), and a second copy of "which lair, and can I get there" would be a
+/// second set of answers. The preconditions are the attempt's own, not the caller's;
+/// callers keep only their own cadence — the idle countdown, the five-second angry
+/// gate — which is where the original keeps it. A failed attempt is reported under
+/// the calling system's name, so the log says which caller asked.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/lair-acquisition.md")]
 public sealed class LairSeeker
 {
@@ -39,20 +29,14 @@ public sealed class LairSeeker
     public LairSeeker(IPathfinder pathfinder) =>
         _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
 
-    /// <summary>
-    /// The gate the original's attempt opens with, and the reason this class
-    /// exists: conditions that have nothing to do with <i>why</i> anybody is
-    /// asking. Read from <c>FUN_0046f390</c> (Q104, Q150): not held and not
-    /// dying, a record that names a bed <b>and</b> a non-zero
-    /// <c>TimeSleep</c> (<see cref="LairRules.NeedsBed"/>), not already in the
-    /// lair-seeking state, and no bed yet.
-    ///
-    /// <para><b>Held</b> is missing because the hand is: nothing can pick a
-    /// creature up, so there is no state to test. <b>Leaving</b> is here and is
-    /// not the original's — a creature that gave its bed up to walk out must
-    /// not take another one on the way past (Q121), which the original gets
-    /// from its state machine instead.</para>
-    /// </summary>
+    /// <summary>The gate the original's attempt opens with: conditions that have
+    /// nothing to do with why anybody is asking.</summary>
+    /// <remarks>Read from <c>FUN_0046f390</c> (Q104, Q150): a record that names a bed
+    /// and a non-zero <c>TimeSleep</c> (<see cref="LairRules.NeedsBed"/>), not held,
+    /// not imprisoned, not down, not already lair-seeking, and no bed yet. Leaving is
+    /// ours, not the original's, which gets it from its state machine instead: a
+    /// creature that gave up its bed to walk out must not take another one on the way
+    /// past (docs/research/lair-acquisition.md).</remarks>
     public static bool CanAttempt(
         WorldState world, GameDatabase database,
         CreatureState creature, CreatureDef definition)
@@ -66,13 +50,10 @@ public sealed class LairSeeker
         return !LairRules.HasBed(world, database, creature);
     }
 
-    /// <summary>
-    /// The whole attempt, preconditions and all — what a caller with a reason
-    /// to ask calls. <see cref="CanAttempt"/> then <see cref="TrySetOutForALair"/>,
-    /// and a creature that fails the preconditions fails silently, exactly as
-    /// the original's does: it is not a lair failure, it is not a lair
-    /// question.
-    /// </summary>
+    /// <summary>The whole attempt, preconditions and all: <see cref="CanAttempt"/>
+    /// then <see cref="TrySetOutForALair"/>. A creature that fails the preconditions
+    /// fails silently, as the original's does — it is not a lair failure because it
+    /// was never a lair question.</summary>
     public bool TryGoForALair(
         SimulationContext context, string systemName,
         CreatureState creature, CreatureDef definition)
@@ -83,27 +64,18 @@ public sealed class LairSeeker
         return TrySetOutForALair(context, systemName, creature, definition);
     }
 
-    /// <summary>
-    /// The attempt: choose a room and set off for it, or report why not.
-    ///
-    /// <para>The finder keeps two answers as it walks the keeper's lairs in
-    /// order of distance: the nearest reachable one with a free slot, and the
-    /// nearest such that also holds no bed of the other side. The second wins
-    /// when it exists. Reach is a real route over this creature's own
-    /// <see cref="WorldPathGrid"/>, planned once here and then walked, so a
-    /// lair behind water is reachable for a goblin and not for a vampire.</para>
-    ///
-    /// <para>Rooms are visited nearest first so that the path search — the
-    /// expensive part — stops at the first preferred room it can reach; the
-    /// nearest reachable room of any kind is remembered on the way as the
-    /// fallback. Equal distances fall back to the room with the lowest tile
-    /// index, which is <see cref="RoomIndex.Build"/>'s own order and is
-    /// reproducible (ADR-0001).</para>
-    ///
-    /// <para>The failure reasons are the original's three interface messages —
-    /// no lair, every lair full, every lair unreachable — and nothing here
-    /// invents a grace period for them.</para>
-    /// </summary>
+    /// <summary>The attempt: choose a room and set off for it, or report why not.</summary>
+    /// <remarks>The finder keeps two answers as it walks the keeper's lairs in order of
+    /// distance to their centres: the nearest reachable one with a free slot, and the
+    /// nearest such that also holds no bed of the other alignment (Q151). The second
+    /// wins when it exists. Room type, owner, reach, a free slot, distance and the
+    /// alignment of existing beds are all it tests — nothing about size or being
+    /// "functional". Reach is a real route over this creature's own
+    /// <see cref="WorldPathGrid"/>, so a lair behind water is reachable for a goblin
+    /// and not for a vampire; equal distances fall back to the lowest tile index,
+    /// <see cref="RoomIndex.Build"/>'s own order (ADR-0001). The failure reasons are
+    /// the original's three interface messages — no lair, every lair full, every lair
+    /// unreachable — with no grace period invented.</remarks>
     public bool TrySetOutForALair(
         SimulationContext context, string systemName,
         CreatureState creature, CreatureDef definition)

@@ -8,58 +8,18 @@ using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// Walks every creature that has somewhere to be one tick further along its
-/// route.
-///
-/// <para><b>Speed is read as tiles per second (STRONGLY INFERRED).</b> The
-/// CREATURES record stores speed as a 4096-denominator fixed-point number and
-/// gives the Imp 7536, i.e. 1.84. The global variables table uses the identical
-/// scale for values whose names state their unit —
-/// <c>BoulderSpeedTilesPerSecond</c> = 4915 (1.2),
-/// <c>TriggerTrapTriggerSpeedTilesPerSecond</c> = 4096 (1.0),
-/// <c>DefaultTorchLightRadiusTiles</c> = 6144 (1.5) — so a speed of 1.84 on the
-/// same scale is 1.84 tiles per second. Nothing in the creature record itself
-/// says so, which is why this is inferred rather than confirmed.</para>
-///
-/// <para>How many ticks a second is remains UNKNOWN (Q1), so this system says
-/// nothing about how long a walk takes in wall-clock terms. What it does fix is
-/// the relationship between walking and working: both are driven from
-/// <see cref="SimulationTiming"/>, so an imp's travel time and its dig rate stay
-/// in the same proportion however Q1 is eventually answered.</para>
-///
-/// <para>Movement is along the route the pathfinder returned, which is
-/// four-connected, so every leg is a straight line along one axis. Ours, not
-/// DK2's: the original's creatures visibly turn, accelerate and avoid each
-/// other, none of which is reconstructed here.</para>
-///
-/// <para><b>A creature never enters a tile it could not walk to
-/// (CONFIRMED).</b> "Creatures can not pass through walls, they can only move
-/// through dug out tiles, not through solid rocks" — the owner, 2026-09-04,
-/// made explicit after watching another reimplementation let imps walk through
-/// rock. The route came from <see cref="WorldPathGrid"/> and so was legal when
-/// it was planned, but a route is planned once and the world keeps moving. The
-/// shipped cause is <see cref="BridgeBurnSystem"/>: a wooden bridge over lava
-/// runs out after thirty seconds and the tile becomes lava again (Q67), so a
-/// creature already walking a route across it would otherwise stroll over the
-/// lava. Every waypoint is therefore re-checked at the moment it is stepped
-/// onto, and a creature that finds one blocked stops and forgets the route
-/// rather than entering it. Dropping the route rather than re-planning here is
-/// the same choice <see cref="ImpTaskSystem"/> already makes when the world
-/// changes under a walk, and it composes with both users of a path: a worker
-/// abandons the job and looks again, a carrier re-routes to somewhere else that
-/// will take its gold.</para>
-///
-/// <para>The mover leaves the tile a creature is <i>standing</i> on alone, the
-/// same way <see cref="Pathfinding.GridPathfinder"/> does not test a mover's
-/// starting tile: a creature caught on ground that turned impassable has to be
-/// able to walk off it.</para>
-///
-/// <para>UNKNOWN, and deliberately not invented: what the original's creature
-/// does at that instant — whether it stops dead or re-routes around. Only the
-/// observable rule is reproduced, which is that no creature is ever inside
-/// terrain it could not have walked into.</para>
-/// </summary>
+/// <summary>Advances every creature that has a route one tick along it.</summary>
+/// <remarks>No creature ever stands in terrain it could not walk into —
+/// CONFIRMED (owner, 2026-09-04). A route from <see cref="WorldPathGrid"/> is
+/// planned once while the world moves on, so every waypoint is re-checked as it
+/// is stepped onto and a blocked one ends the walk (the route is dropped, not
+/// re-planned, as in <see cref="ImpTaskSystem"/>); the shipped cause is
+/// <see cref="BridgeBurnSystem"/>, a bridge over lava expiring after thirty
+/// seconds (Q67). The tile a creature stands on is not tested, as in
+/// <see cref="GridPathfinder"/>, so it can walk off ground that turned
+/// impassable. UNKNOWN: whether the original stops dead or re-routes. Deviates:
+/// routing is ours and four-connected (Q5), and the original's turning,
+/// acceleration and mutual avoidance are not reconstructed.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/imp-tasks.md")]
 public sealed class CreatureMovementSystem : ISimulationSystem
 {
@@ -69,32 +29,27 @@ public sealed class CreatureMovementSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        // ONE MASK FOR THE WHOLE TICK. The structure mask (Q88 - a portal's
+        // One mask for the whole tick. The structure mask (Q88 - a portal's
         // centre and a heart's platform) does not depend on the mover, and this
         // is the one place that builds a grid per creature per tick, so
-        // computing it here rather than in the constructor keeps the cost at one
-        // pass over the tiles a tick instead of one per creature.
+        // computing it here keeps the cost at one pass over the tiles a tick
+        // instead of one per creature.
         StructureBlocks structures = StructureBlocks.For(context.World, context.Database);
 
         foreach (CreatureState creature in context.World.Creatures)
         {
             if (creature.PathIndex >= creature.Path.Count) continue;
 
-            // Belt and braces: collapsing clears the path, so a dying creature
-            // has nothing to walk anyway (ADR-0051). The guard is here so that a
-            // future mechanic which sets a path on a creature that then drops
-            // cannot make a corpse-to-be keep walking.
             // A creature in the keeper's hand is out of the dungeon: it does
             // not act until it is put down (HandRules.IsHeld, ADR-0062).
             if (HandRules.IsHeld(creature)) continue;
 
-            // A prisoner DOES walk, as of ADR-0073. This used to refuse to
-            // move one at all, which was a stated narrowing against Q172 - and
-            // the narrowing is gone rather than loosened: the only thing that
-            // ever gives a prisoner a path is PrisonerWanderSystem, and every
-            // path it gives is a single step onto a tile of the prisoner's own
-            // cell. There is deliberately no "prisoners may not leave" test
-            // here, because a step out of the cell is never chosen.
+            // Belt and braces: collapsing already clears the path (ADR-0051), so
+            // this only bites if a future mechanic sets a path on a creature
+            // that then drops. A prisoner does walk (ADR-0073, Q172): the only
+            // thing that ever gives one a path is PrisonerWanderSystem and every
+            // path it gives is a single step inside the prisoner's own cell, so
+            // there is deliberately no "prisoners may not leave" test here.
             if (CreatureDeathRules.IsDown(creature)) continue;
 
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
@@ -144,19 +99,12 @@ public sealed class CreatureMovementSystem : ISimulationSystem
                 continue;
             }
 
-            // A leg is walked in two phases: the SURPLUS of the longer axis
-            // first, straight, and only then both axes together at 45 degrees.
-            // The order is the whole point. A creature stops wherever it
-            // crossed into its tile, not at the centre, so a leg to a diagonal
-            // neighbour rarely starts square; walked 45 degrees first it sweeps
-            // through the side tile for most of a tile-width, and if that side
-            // tile is rock the creature is standing in rock. Walked surplus
-            // first, the 45-degree phase runs exactly through the corner the two
-            // tiles share and touches nothing else -- which is what the owner's
-            // "a creature passes diagonally between two solid tiles" (Q28,
-            // ADR-0025) looks like once a creature has a width. Routing is ours
-            // (Q5); this is the shape of it that keeps ADR-0025 and the
-            // no-creature-in-rock invariant true at the same time.
+            // Two phases, and the order matters: the surplus of the longer axis
+            // straight, then both axes at 45 degrees. A creature stops where it
+            // crossed into its tile, so diagonal-first would sweep it through the
+            // side tile for most of a tile-width and could stand it in rock;
+            // surplus-first runs the diagonal phase through the shared corner
+            // only - "passes diagonally between two solid tiles" (Q28, ADR-0025).
             int ax = Math.Abs(dx);
             int ay = Math.Abs(dy);
             int surplus = Math.Abs(ax - ay);
@@ -185,16 +133,12 @@ public sealed class CreatureMovementSystem : ISimulationSystem
         KeepOffTheCorner(creature, grid);
     }
 
-    /// <summary>
-    /// The one place the two-phase walk above can still leave a creature's
-    /// tile solid: the shared corner itself, when a tick's budget runs out with
-    /// the position exactly on it. A corner belongs to four tiles and integer
-    /// division hands it to the one with the larger coordinates, which between
-    /// two solid tiles is one of the solid ones. One position unit toward the
-    /// waypoint is inside the destination tile, and a unit is 1/4096 of a tile
-    /// -- below anything the game can show or the hash can care about except in
-    /// the sign of it being right.
-    /// </summary>
+    /// <summary>Nudges a creature off the shared corner, the one place the
+    /// two-phase walk can still leave its tile solid: a tick's budget can run
+    /// out with the position exactly on a corner, and integer division hands a
+    /// corner to the tile with the larger coordinates — between two solid tiles,
+    /// a solid one. One position unit toward the waypoint is inside the
+    /// destination tile, and a unit is 1/4096 of a tile.</summary>
     private static void KeepOffTheCorner(CreatureState creature, WorldPathGrid grid)
     {
         if (creature.PathIndex >= creature.Path.Count) return;
@@ -207,31 +151,18 @@ public sealed class CreatureMovementSystem : ISimulationSystem
         creature.PosY += Math.Sign(CreatureState.CentreOf(waypoint.Y) - creature.PosY);
     }
 
-    /// <summary>
-    /// How far a creature must travel to reach a waypoint, in position units and
-    /// on the same scale <see cref="StepThisTick"/> spends.
-    ///
-    /// <para><b>A diagonal leg is longer than a straight one, and by exactly the
-    /// factor the router charges.</b> Movement is continuous through world space
-    /// at a constant speed (Q29 - a creature's speed is in tiles per second), so
-    /// crossing to a diagonal neighbour covers root-2 tile-widths and takes
-    /// 1.41x as long. Using <c>|dx| + |dy|</c> here would charge 2x, and using
-    /// <c>max</c> would charge 1x; both are wrong, and both would put the mover
-    /// out of step with <see cref="GridPathfinder"/>, whose route was costed at
-    /// 14/10. A router and a mover that disagree produce creatures that arrive
-    /// early or late for no reason anybody can see.</para>
-    ///
-    /// <para>Integer arithmetic throughout, on the same 14/10 stand-in for
-    /// root-2 the search uses: no square root, so no floating point, so no
-    /// cross-machine drift (Q48).</para>
-    ///
-    /// <para><b>Octile, not square.</b> A leg between two tile centres is
-    /// square and either axis would do; a leg from wherever a creature actually
-    /// stopped is not, and this is the length of the walk
-    /// <see cref="Advance"/> makes -- the surplus of the longer axis straight,
-    /// then the rest at 14/10. Charging <c>max x 14/10</c> for an unsquare leg
-    /// would make a creature arrive late for no reason anybody could see.</para>
-    /// </summary>
+    /// <summary>How far a creature must travel to reach a waypoint, in position
+    /// units, on the same scale <see cref="StepThisTick"/> spends.</summary>
+    /// <remarks>Octile, not square: the surplus of the longer axis at 10/10 plus
+    /// the shorter at 14/10, which is the walk <see cref="Advance"/> actually
+    /// makes. Movement is continuous at a constant speed (Q29 - speed is in tiles
+    /// per second), so a diagonal neighbour is root-2 tile-widths away and must
+    /// cost 14/10 - not the 2x of <c>|dx| + |dy|</c>, the 1x of <c>max</c>, or
+    /// <c>max x 14/10</c> on a leg that is not square. All three would disagree
+    /// with <see cref="GridPathfinder"/>, which costed the route at 14/10, and a
+    /// router and a mover that disagree make creatures arrive early or late for
+    /// no visible reason. Integer arithmetic on the same 14/10 stand-in for
+    /// root-2: no square root, no floating point, no cross-machine drift (Q48).</remarks>
     private static int LegLength(int dx, int dy)
     {
         int ax = Math.Abs(dx);
@@ -241,23 +172,18 @@ public sealed class CreatureMovementSystem : ISimulationSystem
         return surplus + (shorter * GridPathfinder.DiagonalCost / GridPathfinder.StraightCost);
     }
 
-    /// <summary>
-    /// Distance to cover this tick, in position units.
-    ///
-    /// Integer division alone would discard the remainder every tick and leave
-    /// every creature permanently slower than its own data says; the carried
-    /// remainder makes the speed exact over any whole number of seconds while
-    /// keeping the arithmetic in integers (ADR-0001).
-    ///
-    /// <para><b>Speed is the creature's level speed, not its record speed</b>
-    /// (Q119). CONFIRMED by the owner: <i>"imps gain speed as they gain more
-    /// levels"</i>, and the shipped stat table says by how much — 105% per level
-    /// to level 5, then up to 250% at level 10. So a level-2 imp covers 7913
-    /// raw units a second against its record's 7536, which is the difference the
-    /// owner could see on screen. See <see cref="CreatureLevelRules"/>; nothing
-    /// raises a level yet, so today this reads 100% for everything that was not
-    /// placed at a level by hand.</para>
-    /// </summary>
+    /// <summary>Distance to cover this tick, in position units.</summary>
+    /// <remarks>Speed is tiles per second on a 4096 denominator — STRONGLY
+    /// INFERRED: the Imp's 7536 is 1.84, and the globals that name the unit share
+    /// the scale (<c>BoulderSpeedTilesPerSecond</c> 4915 = 1.2,
+    /// <c>TriggerTrapTriggerSpeedTilesPerSecond</c> 4096 = 1.0,
+    /// <c>DefaultTorchLightRadiusTiles</c> 6144 = 1.5). Ticks per second is
+    /// UNKNOWN (Q1). It is the creature's level speed, not its record speed
+    /// (Q119) — CONFIRMED by the owner, "imps gain speed as they gain more
+    /// levels": 105% per level to level 5, up to 250% at level 10, so a level-2
+    /// imp covers 7913 raw units a second (<see cref="CreatureLevelRules"/>;
+    /// nothing raises a level yet). The remainder is carried because integer
+    /// division alone would leave every creature slower than its data (ADR-0001).</remarks>
     private static int StepThisTick(
         GameDatabase database, CreatureState creature, CreatureDef definition)
     {

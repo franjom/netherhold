@@ -1,37 +1,36 @@
-﻿# Creature needs: health and hunger
+﻿# Mechanic: creature needs — health and hunger
 
-What a creature *has*, as opposed to where it is standing. Health is
-implemented; hunger's clock is implemented and eating is not, for a reason given
-below.
+Source(s):
+- The reference install's `Creatures.kwd`, `GlobalVariables.kwd` and
+  `Terrain.kwd`, via `DK2.Data` (every number below)
+- Owner observation, 2026-09-04 and 2026-09-05 (Q99–Q105, Q118)
+- `DKII.EXE` v1.70 for `HungerState.cpp` and `LairState.cpp`, whose readings
+  live in `eating.md` and `lair-acquisition.md`
+- OpenKeeper, for the shape only, under ADR-0003's second amendment
 
-Evidence classes used here, per ADR-0046's rule 4: **shipped data** (all the
-numbers), **OpenKeeper** (the shape, under ADR-0003's second amendment), **the
-binary** (attempted, and mostly refused — §6), and **owner observation**
-(pending — §7 is the list of questions put to the owner).
+Original version: DK2 v1.70
 
----
+What a creature *has*, as opposed to where it is standing. Health, hunger, sleep,
+collapse and death are all implemented; this note is the data behind them and
+the owner answers that pinned them.
 
-## 1. Why health, and why first
-
-Every unbuilt mechanic reads it. The balance table has **21 variables** whose
-names contain "health", and they are the lair, the prison, torture, praying,
-fire, possession, the dungeon heart and the boulder. `CreatureSleepsWhenBelowPercentHealth`
-makes *sleep itself* a function of health. None of that could be written against
-a creature that had none, and each becomes roughly one line once it does.
-
-It is also the substrate combat needs, and combat is M7.
+Confidence: **CONFIRMED (data)** for every table here; **CONFIRMED (owner)** for
+the behaviours in §7; **STRONGLY INFERRED** for the two items §3 marks.
 
 ## 2. The numbers, all from the creature record
 
 | Field | Meaning | Examples |
 |---|---|---|
-| `Hp` | maximum **and** starting health | Imp 500, Goblin 1500, Bile Demon 6000, Jack 240 |
+| `Hp` | maximum at level 1 **and** starting health | Imp 500, Goblin 1500, Bile Demon 6000, Jack 240 |
 | `HpFromChicken` | health restored per chicken eaten | Goblin 375, Bile Demon 200, **Firefly 0**, **Jack 250** |
 | `HungerRate` | seconds between meals, fp32 | Goblin 180, Warlock 200, Bile Demon 220 |
 | `HungerFill` | chickens needed to be full | Goblin 1, Warlock 2, Bile Demon 5 |
 | `TimeAwake` / `TimeSleep` | the sleep cycle, seconds | Goblin 240/9, Troll 330/10 |
 | `OwnLandHealthIncreasePerSecond` | regeneration on your keeper's land | **Imp 67, King Reginald 400, everyone else 0** |
 | `DecomposeValue` | corpse worth, for the Vampire threshold | 200 for most, 0 for the undead — but **it is not what decides whether a corpse exists**: `GenerateDeadBody` is, and the two disagree for Horny and Jack, which carry 200 while leaving no body at all |
+
+The maximum is `Hp` **scaled by the level's Health row** (`creature-levels.md`
+§2), not `Hp` flat.
 
 And from the balance table:
 
@@ -49,13 +48,17 @@ And from the balance table:
 | `MaxFreeRangeChickensPerPlayer` | 12 |
 | `TimeBetweenReattemptingHungerSeconds` | 4 |
 
+**Health is the substrate.** The balance table has **21 variables** whose names
+contain "health" — the lair, the prison, torture, praying, fire, possession, the
+dungeon heart and the boulder — and `CreatureSleepsWhenBelowPercentHealth` makes
+*sleep itself* a function of health. It is also what combat will subtract from
+(M7).
+
 ## 3. The findings that were not in any list
 
-### 32767 means "never", per need, and it is not one flag — **CONFIRMED (data)**
+### 32767 means "never", per need, and it is not one flag — CONFIRMED (data)
 
-This had been an open question since creatures were parsed: *is `hungerRate == 32767`
-a general sentinel or an Imp quirk?* It is general, and it is finer-grained than
-a flag would be.
+The sentinel is general, and finer-grained than a flag would be.
 
 - **Eight never get hungry:** Imp, Vampire, Skeleton, Horny, Stone Knight, and
   the unique Firefly, Skeleton and Vampire.
@@ -64,54 +67,48 @@ a flag would be.
 
 **Neither set contains the other.** The Vampire sleeps and never eats; **the
 Dwarf eats and never sleeps**. No single "undead" flag can produce that, so the
-two needs really are switched off separately in the record.
+two needs really are switched off separately in the record. Both sets were
+guessed wrong before the install was asked — the first guess had four
+never-hungry creatures and missed the Stone Knight and all three uniques, the
+second had five sleepless and missed the Dwarf — and both are now asserted by
+name, which is the only reason the numbers above can be trusted.
 
-> Both sets were guessed wrong before the install was asked. The first guess had
-> four never-hungry creatures and missed the Stone Knight and all three uniques;
-> the second had five sleepless and missed the Dwarf. Both are now asserted by
-> name in `CreatureNeedsOnRealDataTests`, which is the only reason the numbers
-> above can be trusted.
-
-### Own-land regeneration is real and almost unused — **CONFIRMED (data)**
+### Own-land regeneration is real and almost unused — CONFIRMED (data)
 
 `OwnLandHealthIncreasePerSecond` is non-zero for **exactly two of 46 creatures**:
 the Imp at 67 a second and King Reginald at 400. Everyone else is zero.
 
-This is the same shape as mana, where three terrain types out of 41 generate any
-(ADR-0017), and it is the reason to read a whole column before believing a rule
-is general. Implemented as data — so it is a no-op for 44 creatures without
-needing a special case — and tested with a creature that has it *and* one that
-does not, because a suite that only tested the Imp would read as though the rule
-were universal.
+Same shape as mana, where three terrain types out of 41 generate any (ADR-0017),
+and the reason to read a whole column before believing a rule is general.
+Implemented as data — a no-op for 44 creatures without a special case — and
+tested with a creature that has it *and* one that does not, because a suite that
+only tested the Imp would read as though the rule were universal. It also caught
+a fixture bug on the way in: `Dk2TerrainFixture` had the Imp's value transcribed
+as **0**.
 
-> It also caught a fixture bug on the way in: `Dk2TerrainFixture` had the Imp's
-> value transcribed as **0**. The drift guard has now earned its keep twice on
-> this one record — the Imp's hunger rate was once wrong by a factor of 4096.
+### A chicken is not a healing item — CONFIRMED (data)
 
-### A chicken is not a healing item — **CONFIRMED (data)**
-
-- The **Firefly** eats two chickens and gains **0** health from either. So
+- The **Firefly** eats two chickens and gains **0** health from either, so
   `HpFromChicken` cannot be read as "the reason a creature eats"; hunger is its
-  own need, and health is a side effect that sometimes happens to be zero.
+  own need and health is a side effect that is sometimes zero.
 - **Jack** has 240 health and a chicken worth **250** — more than its entire
-  maximum, and it eats two. This makes the clamp in `Apply` **load-bearing for
-  correctness rather than tidiness**: without it Jack finishes a meal above its
-  own maximum and anything later keyed off "at full health" never fires for it.
+  maximum, and it eats two. That makes the clamp in `CreatureHealthRules.Apply`
+  **load-bearing for correctness rather than tidiness**: without it Jack finishes
+  a meal above its own maximum and anything later keyed off "at full health"
+  never fires for it. The test was written the other way round, asserting no
+  creature could be over-healed, and the install refuted it.
 
-That test was written the other way round — asserting no creature could be
-over-healed — and the install refuted it.
-
-### Hunger costs no health, on purpose — **STRONGLY INFERRED (data, by absence)**
+### Hunger costs no health, on purpose — STRONGLY INFERRED (data, by absence)
 
 Searched: 21 health variables and nine anger variables. **There is no
-starvation.** What going unfed costs is *anger*, and that is per creature in the
-record — `angerNoFood` is 100 for a Goblin, 110 for Jack, 1 for the Imp.
+starvation.** What going unfed costs is *anger*, per creature in the record —
+`angerNoFood` is 100 for a Goblin, 110 for Jack, 1 for the Imp
+(`creature-anger.md`). So a hungry creature takes no damage, and that is a
+deliberate negative rather than an omission. Tested
+(`BeingHungryCostsNoHealthAtAll`) so that nobody later "fixes" it into
+starvation.
 
-So a hungry creature here takes no damage, and that is a deliberate negative
-rather than an omission. It is tested (`BeingHungryCostsNoHealthAtAll`) so that
-nobody later "fixes" it into starvation.
-
-### `TerrainDef.Damage` is a signed health delta, and only the stopped pay it — **CONFIRMED (owner)**
+### `TerrainDef.Damage` is a signed health delta, and only the stopped pay it — CONFIRMED (owner)
 
 The field is named for damage and is not damage. Three of the 41 terrains carry
 a non-zero one:
@@ -125,20 +122,17 @@ a non-zero one:
 Hero Lair is the entry that settles the sign: it is the hero side's answer to a
 keeper's lair, and it heals. So the column is a per-second health delta, and
 `CreatureHealthRules.TerrainHealthPerSecond` returns it negated so that positive
-heals everywhere in this file.
+heals everywhere in that file.
 
 **Crossing a hazard you can cross is free.** The owner, 2026-09-04: *"no creature
-that can traverse through water looses health"*. The first implementation charged
-whatever stood in water, which would have drowned in five seconds the imp the
-owner had just watched wade a lake to mine a gem. The flag that decides
+that can traverse through water looses health"*. The flag that decides
 passability decides the cost, one hazard at a time — so `WorldPathGrid` and this
 rule read the same bit for the same reason.
 
 **Then who pays?** A creature that cannot cross is never routed into water, but
 it can be *put* there — dropped from the keeper's hand, or in the original sent
-by a patrol route drawn across it. And the roster says water charges almost
-nobody: `CanWalkOnWater` is on **44 of the 46** creatures. The two without it are
-the **Vampire** and the **Unique Vampire**.
+by a patrol route drawn across it. `CanWalkOnWater` is on **44 of the 46**
+creatures; the two without it are the **Vampire** and the **Unique Vampire**.
 
 Three sources that never met agree on those two records:
 
@@ -153,140 +147,89 @@ Three sources that never met agree on those two records:
 
 So water is not a barrier with exceptions but a **hindrance with two
 exceptions**, which is what the game says in its own tooltip: *"Water. Impassable
-to some, others are merely hindered by it."* The two clauses split the roster
-2 / 44.
+to some, others are merely hindered by it."*
 
-**Lava is where the rule earns its keep.** Seven creatures carry
-`CanWalkOnLava` — Salamander, Firefly, Giant, Fairy, Horny and the unique Firefly
-and Salamander — so the other 39 burn. The Imp is the clean pair: free in water,
-dead in lava in five seconds.
+**Lava is where the rule earns its keep.** Seven creatures carry `CanWalkOnLava`
+— Salamander, Firefly, Giant, Fairy, Horny and the unique Firefly and Salamander
+— so the other 39 burn. The Imp is the clean pair: free in water, dead in lava
+in five seconds.
 
 **Two things are still ours.** The **cadence** is per game second like every
-other rate here, and nothing states it — and the owner's answer removed the cheap
+other rate here and nothing states it — and the owner's answer removed the cheap
 way to check, because nothing they can walk into water is charged at all; it
 needs a Vampire dropped in a lake (Q118). The **slowdown** is CONFIRMED to exist
 (*"water visibly slows imps and other creatures passing through it"*) and is not
 implemented, because no variable for it exists in any of the 214. The standing
-hypothesis is the unread third speed in every creature record, `ShuffleSpeed`:
+HYPOTHESIS is the unread third speed in every creature record, `ShuffleSpeed`:
 Imp 4096 against its 7536 walk, Vampire 1638 against 2867 — not a constant ratio,
 so a per-creature speed rather than a global multiplier, which is the shape a
-hindrance needs.
+hindrance needs. `ShuffleSpeed` has no row in the level table, so the slowdown
+would deepen with level (`creature-levels.md` §6).
 
 This is also why the fixture has a **Vampire**: it is the only creature a water
-test can honestly use. Adding it caught the Goblin missing `CanWalkOnWater` — the
-fourth flag the drift guard has found absent from that one record.
+test can honestly use. Adding it caught the Goblin missing `CanWalkOnWater`.
 
-## 4. What is implemented
+## 4. Implementation
 
-`CreatureHealthRules` + `CreatureHealthSystem`, registered **last** in the tick
-so a creature that arrives on tick N is not aged on the tick it arrives. Once a
-game second, on the same phase as `ManaSystem`, because every number above is
-written per second and dividing them by twenty would invent precision — and
-would lean on `TicksPerSecond`, still a placeholder (Q1).
+`CreatureHealthRules` + `CreatureHealthSystem`, once a game second, registered
+after `CreatureSleepSystem` — so a creature that claimed a bed this tick is not
+charged for the second it arrived — and before payday, jobs, anger and
+experience.
 
-- Health seeded from `Hp` at spawn, clamped to `[0, Hp]`. **`WorldState.SpawnCreature`
-  now takes the `GameDatabase`** for that one line: a creature spawned at zero
-  health dies on the tick it arrives, so there must be no overload that leaves
-  health out. That cost 25 call-site changes and is worth it.
-- Own-land regeneration, per the record.
+- Health seeded from `Hp` at spawn and clamped to the level-scaled maximum.
+  **`WorldState.SpawnCreature` takes the `GameDatabase`** for that one line: a
+  creature spawned at zero health dies on the tick it arrives, so there must be
+  no overload that leaves health out.
+- Own-land regeneration, per the record, **suppressed at zero health** (§7, Q99).
 - **Hazard and healing terrain** (`TerrainHealthPerSecond`), gated on the
-  creature's own crossing flag — see §3. Applied to a collapsed creature as well
-  as a standing one, which is currently a no-op because the clamp at zero cannot
-  take it lower.
-- **Beds and sleep** (`LairRules` + `CreatureSleepSystem`): one bed per lair
-  tile, claimed on arrival, walked to when the creature wants to sleep, and
-  **healing at 100 a second only while asleep in its own bed**. CONFIRMED by the
-  owner — see §7. This is also the **first driver any non-worker has ever had**;
-  it reuses the imps' pathfinder and movement system rather than growing a
-  second way to walk.
-- Hunger's clock, and the "needs N chickens" flag.
-- `Eat` — counts one chicken down, applies `HpFromChicken`, and resets the clock
-  **only when the last one goes down**, because DK2 resets on being *full*, not
-  on each chicken. Nothing calls it yet.
-- **Collapse and death** (`CreatureDeathRules`): zero health is a 60-second
-  window on the floor, not death — CONFIRMED by the owner (Q99, ADR-0051). A
-  collapsed creature keeps its owner, tile, gold and bed and does nothing at
-  all; only when `CreatureDyingStateDurationSeconds` elapses does it die. The
-  corpse that should follow is an OBJECT and is missing (M6). See
-  `docs/research/creature-death.md`.
-- **Sleep-from-wounds (50%) is read** — it is half of `LairRules.WantsToSleep`,
-  so a hurt creature goes to bed without being tired. Critical health (20%) is
-  computed and still unread; nothing flees yet.
+  creature's own crossing flag — §3.
+- **Beds and sleep** (`LairRules` + `CreatureSleepSystem`, ADR-0049 then
+  ADR-0060): one bed per lair tile, the room chosen by distance and alignment,
+  the tile found on arrival, and **healing at 100 a second only while asleep in
+  its own bed** (`AsleepInOwnBed`). See `lair-acquisition.md`. This was the first
+  driver any non-worker ever had; it reuses the imps' pathfinder and movement
+  system rather than growing a second way to walk.
+- **Hunger and eating** (`EatingRules` + `CreatureEatSystem`, ADR-0067): the
+  accumulator, the once-a-second retry, the walk to a hatchery, the nearest
+  chicken and the two subtract amounts. See `eating.md`.
+- **Sleep-from-wounds (50%)** is half of `LairRules.WantsToSleep`, so a hurt
+  creature goes to bed without being tired. `CreatureCriticalHealthPercentageOfMax`
+  (20%) is computed and still unread; nothing flees yet.
+- **Collapse, death and the corpse** (`CreatureDeathRules`, ADR-0051 then
+  ADR-0063): zero health is a 60-second window on the floor, then death, then a
+  corpse for 60 more, then gone — and an imp can carry the creature to its bed,
+  to a prison, or to a Graveyard. See `creature-death.md`.
 
 ## 5. What is deliberately absent
 
 | | Why |
 |---|---|
-| **Eating** | The Chicken is object 9 and the world has a list to put one in, but no **Hatchery** lays one — and the binary says a hatchery lays an **egg** (object 47), so there is a transition to chicken nobody had accounted for. Hunger arrives and never leaves. Honest, and it costs no health. See `hatchery.md` |
-| **Anywhere to sleep but a bed** | A creature with no bed stays awake indefinitely and never recovers. In DK2 that is what `angerNoLair` is for — 100 for a Goblin, joint-largest in its record — and anger does not exist yet (Q105) |
-| **Anger** | The actual consequence of hunger. Its own need, its own record fields, its own step |
-| **Levels** | `Hp` is the maximum because `CreatureStats` scales stats by level and levels do not exist. When they do, the maximum becomes a function of level and `Health` stays the current value |
-| **Bodies, graveyards, the Vampire** | **Built** (ADR-0051, then ADR-0063): a creature collapses for 60 seconds, dies, lies there as a corpse for 60 more, and an imp carries it to a Graveyard. The "corpse is an OBJECT" that used to be recorded here as the blocker was false — a corpse is a creature in a state. What is still missing is what a graveyard *does* with them (Q165), which is where vampires come from |
+| **Starvation** | There is none in DK2 (§3), and a test pins the absence. |
+| **Sleeping anywhere but a bed** | A creature with no bed stays awake indefinitely and never recovers, which is CONFIRMED (owner, Q105): it cannot sleep at all. What it does instead is accrue `angerNoLair`. |
+| **Hated company** | The relation is parsed and unused; `ModifyAngerInCompanyOfHatedCreaturesPerSecond` (+150) has nothing to read it (`creature-anger.md`). |
+| **What a graveyard does with corpses** | The tally is read (Q165) and the threshold is not, so vampires cannot be made. |
+| **`ShuffleSpeed` and the water slowdown** | No variable governs it (§3, Q118). |
 
-## 6. What the binary was asked, refused to say, and then said anyway
+## 6. The method that got at the binary, kept because it is reusable
 
-**⚠ READ THE UPDATE FIRST.** The section below is the 2026-09-04 record of four
-failed approaches, kept because the *method* is still useful. **It stopped being
-true on 2026-09-05.**
+`HungerState.cpp` and `LairState.cpp` appear in the executable's own `__FILE__`
+strings, at `0x006985f8` and `0x00698cc0`. Ghidra finds **zero referencing
+functions** for either — the assert loads the address indirectly, and the
+creature state machine is reached purely through vtables, so auto-analysis never
+discovers those bodies. `ScanForAddr.py` scanning initialised memory for the raw
+little-endian address finds the load sites (`0x00463c6d`, `0x00463d25` for
+hunger; `0x0046f5d7` for the lair), and Ghidra covers none of them with a
+function.
 
-### The update: step 2 was already the answer
+**The question that worked was not "which function contains this instruction"
+but "what is compiled either side of it".** Decompiling the *neighbourhood* of
+the scan hit gave the lair acquisition code, the tile search, the room choice and
+the creature-to-bed link in about ten minutes, and the same move gave hunger.
+`source-file-map.md` now indexes all 72 translation units by name.
 
-The scan in step 2 found the lair's load site at `0x0046f5d7` and the section
-concluded that "Ghidra has no function covering it" was a dead end. It is not a
-dead end — **it is a starting address.** Decompiling the *neighbourhood* of that
-address, rather than trying to make Ghidra own the exact instruction, gives the
-lair acquisition code, the tile search, the room choice and the creature-to-bed
-link. All of it is written up in `lair-acquisition.md`.
+## 7. The owner answers that pinned this
 
-**The vtable route named as "the next thing to try" was never needed**, and the
-one that worked cost about ten minutes. What made the difference was not a new
-tool but a different question: instead of *"which function contains this
-instruction"*, ask *"what is compiled either side of it"*.
-
-`HungerState.cpp`'s two load sites at `0x00463c6d` and `0x00463d25` have not been
-followed the same way, and by this reasoning they should be. That is the cheapest
-open lead in this document.
-
-### The original record, from 2026-09-04
-
-Under ADR-0046. `HungerState.cpp` and `LairState.cpp` both appear in the
-executable's own `__FILE__` strings — at `0x006985f8` and `0x00698cc0` — so the
-code exists and is named. **Getting at it failed**, and the method is recorded so
-the next attempt starts further along:
-
-1. `DumpNearString.py` found the strings but **zero referencing functions**: the
-   assert loads the address indirectly, so Ghidra's reference analysis never
-   links it.
-2. `ScanForAddr.py` scanned initialised memory for the raw little-endian address
-   and found the load sites — `0x00463c6d`, `0x00463d25` for hunger and
-   `0x0046f5d7` for the lair — but **Ghidra has no function covering any of
-   them**. The creature state machine is reached purely through vtables, so
-   auto-analysis never discovers those bodies.
-3. `ForceFunc.py` walked back to the nearest MSVC prologue and forced a function
-   there. The created function **did not extend to the target**.
-4. Re-running full analysis with **Aggressive Instruction Finder** enabled
-   changed nothing.
-
-**Next thing to try:** the vtables themselves. DK2's creature states are a class
-hierarchy with ~25 leaves (`executable-strings.md`), so there is a table of
-function pointers somewhere, and reading it would name every state handler at
-once instead of one at a time. That is a bigger, more valuable job than hunger,
-and it is the route into the whole `*State.cpp` family. — *Superseded: see the
-update above. Decompiling around the scan hit was enough, and
-`source-file-map.md` now indexes all 72 translation units by name.*
-
-So **nothing in this document rests on the binary.** The one thing it did
-confirm, indirectly, is that `Hatchery.cpp` exists as its own translation unit
-with two functions reachable from its assert — kept in `reverse-engineering/`
-for when chickens are built.
-
-## 7. For the owner — questions playing the game would settle
-
-Ranked by how much they would change.
-
-### Q101 — the lair — **ANSWERED, and it replaced the implementation**
-
-**CONFIRMED by the owner**, 2026-09-04:
+### Q101 — the lair — CONFIRMED, and it replaced the implementation
 
 > *"A lair is a room with tiles, on each tile only one bed/chair/whatever per
 > creature can be present. When a creature enters a dungeon through a portal it
@@ -303,107 +246,76 @@ nobody asked:
    creature. A creature with no bed never heals, whatever it stands on.
 3. **A lair's capacity is its tile count** — one bed per tile. Worth stating
    because it is *not* the general rule for rooms: a temple's capacity is its
-   rim, `2(w+h) - 4` (Q60). Capacity is per room type, and the lair's happens to
-   be the obvious one.
-
-Built as `LairRules` + `CreatureSleepSystem` (ADR-0049), which is also **the
-first driver any non-worker creature has ever had** — before it, a goblin out of
-a portal stood on the hole forever.
+   rim, `2(w+h) - 4` (Q60). Capacity is per room type.
 
 The bed object is `LairObjectId` in the creature record: 22 for a Goblin, 26 for
 a Vampire (a coffin), 18 for a Bile Demon, and **0 for ten creatures** — the Imp,
-both Skeletons, Horny, Jack and the five hero lords. The owner confirmed the two
-interesting ones: *"skeleton does not have a lair"*, and *"horny is only a
-summonable creature, it is not in a regular roster of creatures, and only on
-special conditions/maps when conditions are met"* — which is also why Horny
-carries no `AvailableViaPortal`.
+both Skeletons, Horny, Jack and the five hero lords. The owner confirmed two:
+*"skeleton does not have a lair"*, and *"horny is only a summonable creature, it
+is not in a regular roster of creatures, and only on special conditions/maps when
+conditions are met"* — which is also why Horny carries no `AvailableViaPortal`.
 
-### Q99 — is zero health death? **ANSWERED: no**
+### Q99 — is zero health death? No
 
-**CONFIRMED by the owner** (2026-09-04). A creature at zero health collapses and
-lies there rescuable for `CreatureDyingStateDurationSeconds` (60); only then does
-it die, leaving a corpse that lies carryable for `DeadBodyDiesAfterSeconds`
-(also 60). Two timers, three states, and both numbers were already parsed with
-nothing reading either.
+A creature at zero health collapses and lies there rescuable for
+`CreatureDyingStateDurationSeconds` (60); only then does it die, leaving a corpse
+that lies carryable for `DeadBodyDiesAfterSeconds` (also 60). Both numbers had
+been parsed with nothing reading either. See `creature-death.md`.
 
-The collapse and the death are implemented; the corpse is not, because it is an
-OBJECT (M6). See **`docs/research/creature-death.md`** and ADR-0051 — including
-the defect this answer exposed, in which a creature at zero health could walk to
-bed and heal, and an Imp could regenerate off the floor and become unkillable on
-its own land.
+The guard this changed: **own-land regeneration is suppressed at zero health and
+lair healing is not**, because the owner's answer gives exactly one route off the
+floor and a bed is it. Without that, a creature at zero health near its bed
+walked there and healed and never collapsed, and an Imp on its own land could not
+be killed at home.
 
-Also note what this changed about the guard here: **own-land regeneration is now
-suppressed at zero health, and lair healing is not**, because the owner's answer
-gives exactly one route off the floor and a bed is it.
+### Q100 — does regeneration care what the creature is doing? No
 
-### Q100 — does regeneration care what the creature is doing? **No** (2026-09-05)
+The owner recorded a wounded imp regenerating **while digging** and **while
+running through the dungeon**, so regeneration is not restricted to resting,
+idling, sleeping or standing still — which is what this project already did.
+**Working** is answered; *fighting* and *being carried* are not, and own-land
+regeneration is 67 a second on an imp, meaningful inside a fight and irrelevant
+outside one. **Q152**, along with the Hand of Evil and possession.
 
-**Answered by watching, and it confirms what was here by omission.** The owner
-recorded a wounded imp regenerating **while digging** and **while running through
-the dungeon**. So regeneration is not restricted to resting, idling, sleeping or
-standing still, which is exactly what this project already does.
+### Q103 — the sleep cycle is 240 seconds up and 9 down
 
-Worth being precise about what that did and did not settle. The question asked
-whether DK2 excludes a creature that is *fighting, working or being carried*;
-**working** is now answered and the other two are not. Own-land regeneration is
-67 a second on an imp — meaningful inside a fight, irrelevant outside one — so
-the combat case is the one that changes a game, and it is a ten-second
-observation rather than a decompilation job. **Q152**, along with the Hand of
-Evil and possession.
-
-The original text of the question follows, because the reasoning in it is still
-the reasoning for the part that is open.
-
-### Q100, as it was asked
-
-Implemented: own-land regeneration and lair healing **add**, and both apply
-regardless of activity.
-
-*How to see it:* an imp is the easy subject, since it is one of the two
-creatures that regenerate. Wound one, then watch whether it heals *while
-digging* on your own land, or only when idle. If a wounded imp heals mid-job,
-the reading is right.
-
-### Q102 — how fast does hunger actually arrive?
-
-The record says 180 seconds for a Goblin, and the clock starts at spawn.
-UNKNOWN whether DK2 starts it at spawn, at the first meal, or at level start.
-
-*How to see it:* start a level, note the clock when your first goblin arrives,
-and note when it first heads for the hatchery. Three minutes would confirm it.
-
-### Q103 — is the sleep cycle really 240 seconds up and 9 down?
-
-The record says `TimeAwake` 240 and `TimeSleep` 9 for a Goblin, and both are
-read as seconds. Four minutes awake and **nine seconds asleep** looks wrong
-until you multiply: nine seconds at 100 health a second is **900**, well over
-half a Goblin's 1500. So a short sleep is a big heal and the ratio stops looking
-odd — but it is still a reading.
-
-*How to see it:* watch a healthy goblin in a dungeon with a lair. Does it go to
-bed roughly every four minutes, and is it up again in under ten seconds?
+Both fields are read as seconds. Four minutes awake and **nine seconds asleep**
+looks wrong until you multiply: nine seconds at 100 health a second is **900**,
+well over half a Goblin's 1500. So a short sleep is a big heal. **Still a
+reading**, and `LairRules.WantsToSleep` says so at the call site.
 
 ### Q104 — a bed it can never sleep in
 
-The **Dwarf** and the **Stone Knight** both carry a bed object *and* a
-`TimeAwake` of 32767. By the record they occupy a lair tile and never sleep in
-it. `LairRules.NeedsBed` gates on the object id, so here they claim a bed and
-never use it — which also means they take a bed away from something that would.
+The **Dwarf** and the **Stone Knight** both carry the hero bed (6) *and* a
+`TimeSleep` of 0 with `TimeAwake` 32767. DK2's lair attempt gates on **both**
+fields, so it never sends either for a bed —
+`LairRules.NeedsBed` does the same (`lair-acquisition.md` §5). Pinned by
+`TheDwarfAndTheStoneKnightCarryABedIdAndAreNeverSentForOne`.
 
-Nothing depends on which field DK2 gates on, because a creature that never
-sleeps never heals in a bed either way. It is checked
-(`TwoCreaturesOwnABedTheyCanNeverSleepIn`) rather than assumed away.
+### Q102 — how fast does hunger actually arrive? UNKNOWN
 
-*How to see it:* Dwarves are hero creatures, so this needs a level where you can
-capture and convert one. Does a converted dwarf take a lair tile?
+The record says 180 seconds for a Goblin, and ours starts the clock at spawn.
+Whether DK2 starts it at spawn, at the first meal, or at level start is not
+settled. *How to see it:* start a level, note the clock when your first goblin
+arrives, and note when it first heads for the hatchery.
 
-### Q105 — what happens to a creature with no bed?
+## Tests
 
-Implemented: it stays awake, keeps its awake counter climbing, and never
-recovers. `angerNoLair` is **100** for a Goblin — joint-largest of its four
-anger sources — so DK2's answer is clearly *anger*, and anger does not exist
-here yet.
+`CreatureNeedsTests` (`tests/DK2.Simulation.Tests/`) and
+`CreatureNeedsOnRealDataTests` (`tests/DK2.Behavior.Tests/`), which asserts the
+three sets of §3 and the two records of §3 by name, plus
+`Dk2TerrainFixture`'s drift guard against the shipped install.
 
-*How to see it:* two questions really. Does a creature with no free lair tile
-sleep on the floor, or not sleep at all? And is "no lair" the anger source that
-makes creatures leave a dungeon whose lair is too small?
+## Known exceptions
+
+- `MaxFreeRangeChickensPerPlayer` and `TimeBetweenReattemptingSleepSeconds` are
+  parsed and not applied, because the original does not read them the way their
+  names imply (`hatchery.md` §5, `lair-acquisition.md` §6).
+- Horny and Jack carry `DecomposeValue` 200 while leaving no body, so those 200s
+  are unreachable (`creature-death.md`).
+
+## Open questions
+
+- **Q102** (above), **Q118** (the water slowdown and the hazard cadence),
+  **Q152** (regeneration in combat, in the hand, under possession).
+- **Q165**: what a graveyard does with the corpses it is fed.

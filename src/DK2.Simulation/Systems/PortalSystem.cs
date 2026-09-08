@@ -7,36 +7,18 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// Runs every keeper's portals: waits, checks the four gates, and puts a
-/// creature on the hole in the middle.
-///
-/// <para><b>This is the first system that makes a creature that is not an
-/// imp</b>, and the first consumer of <see cref="SimulationContext.Rng"/> —
-/// the shared RNG has been carried, hashed and snapshotted since M1 with nothing
-/// drawing from it. Which of several eligible creatures arrives is the first
-/// genuinely random decision in the simulation.</para>
-///
-/// <para>The rules and their evidence are in <see cref="PortalRules"/>. What is
-/// here is the two things that only a per-tick loop can decide: when the clock
-/// is read, and what a tick sees.</para>
-///
-/// <para><b>The keeper's creature count is taken once per tick and not updated
-/// mid-tick, and that is a reproduced quirk rather than an oversight</b>
-/// (fidelity priority 4). Two portals whose clocks come ripe on the same tick
-/// both produce, even though the first arrival would have pushed the required
-/// interval up and could have taken the keeper to their cap. OpenKeeper calls
-/// this out as confirmed original behaviour and replicates it deliberately, for
-/// the same reason: the original counts creatures once a tick too. The visible
-/// consequence is that a keeper with several portals can end a tick one or two
-/// over their stated maximum.</para>
-///
-/// <para><b>Cost.</b> One <see cref="RoomIndex.Build"/> sweep per tick, because
-/// finding a portal means finding rooms and testing attraction means knowing
-/// every room a keeper owns. That is a whole-map pass, which
-/// <see cref="ManaSystem"/> already does per tick, so it is a cost the tick
-/// already carries rather than a new one.</para>
-/// </summary>
+/// <summary>Runs each keeper's portals: advances the idle clock, checks the four
+/// gates in <see cref="Pick"/>, and spawns a creature on the portal's centre
+/// tile. Rules and evidence: <see cref="PortalRules"/>.</summary>
+/// <remarks>
+/// <para>Reproduced quirk, not an oversight (fidelity priority 4): the keeper's
+/// creature count is read once per tick, so two portals ripe on the same tick
+/// both produce and a keeper can end the tick one or two over their stated
+/// maximum. STRONGLY INFERRED — OpenKeeper replicates the same once-a-tick
+/// count as original behaviour.</para>
+/// <para>Cost: one <see cref="RoomIndex.Build"/> sweep per tick, which
+/// <see cref="ManaSystem"/> already pays.</para>
+/// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/portals.md")]
 public sealed class PortalSystem : ISimulationSystem
 {
@@ -56,17 +38,11 @@ public sealed class PortalSystem : ISimulationSystem
             byte playerId = world.PlayerAtIndex(i).PlayerId;
 
             // Only a keeper's portals run. An unclaimed portal belongs to the
-            // neutral player (<see cref="PlayerIds.Neutral"/>) — that is what
-            // 167 of the campaign's portals are — and it is not waiting for
-            // anything, so its clock does not run and a keeper who claims one
-            // waits a full interval for the first arrival (Q86).
-            //
-            // <b>This clause is only about the clock.</b> Without it nothing
-            // would spawn anyway: no shipped level deals a creature pool or
-            // creature availability to a player below 3, so the gates in
-            // <see cref="Pick"/> would refuse every candidate. What it decides
-            // is whether claiming a portal that has stood idle for ten minutes
-            // hands the new owner a creature at once. It does not.
+            // neutral player (PlayerIds.Neutral) — 167 of the campaign's are —
+            // and its clock does not run, so a keeper who claims one waits a
+            // full interval for the first arrival (Q86). This clause decides
+            // only the clock: no shipped level grants a creature pool or
+            // availability below player 3, so Pick would refuse every candidate.
             if (!PlayerIds.IsKeeper(playerId)) continue;
 
             RunPortalsOf(context, rooms, playerId);
@@ -90,16 +66,12 @@ public sealed class PortalSystem : ISimulationSystem
 
             if (!PortalRules.IsEntrance(room.Definition)) continue;
 
-            // Counted before the functional test, and deliberately. DK2's
-            // capacity routine walks the owner's room list and tests the room
-            // type and nothing else — not size, not whether the room still has
-            // its centre. So a broken portal, or a Hero Portal a keeper has
-            // claimed and cannot use, still raises the cap. Both portal types
-            // count; this used to count only type 3.
-            //
-            // Two orderings were wrong here in one day: first counting only
-            // Portals, then counting only portals that can produce. See
-            // PortalRules.CreatureCapacity for what the routine actually reads.
+            // Counted before the functional test, deliberately: DK2's capacity
+            // routine walks the owner's room list and tests the room type only —
+            // not size, not whether the room still has its centre. A broken
+            // portal, or a Hero Portal a keeper has claimed and cannot use,
+            // still raises the cap, and both portal types count. See
+            // PortalRules.CreatureCapacity for what the routine reads.
             portalsHeld++;
 
             if (!PortalRules.CanProduce(world, room)) continue;
@@ -128,12 +100,10 @@ public sealed class PortalSystem : ISimulationSystem
             centre.EntranceIdleTicks++;
 
             // Per portal, from this portal's own tally — not the keeper's
-            // creature count, and not shared between a keeper's portals. That
-            // is the observed behaviour: a portal claimed after another had
-            // produced five creatures started again at 25 seconds and not 50
-            // (Q86, and TileState.EntranceCreaturesGenerated for the numbers).
-            // So the requirement is computed inside the loop now, and the
-            // once-per-tick read above is only the capacity check.
+            // creature count, and not shared between a keeper's portals: a
+            // portal claimed after another had produced five creatures starts
+            // again at 25 seconds, not 50 (Q86; the numbers are on
+            // TileState.EntranceCreaturesGenerated).
             int required = PortalRules.SpawnIntervalTicks(
                 database, centre.EntranceCreaturesGenerated);
 
@@ -165,26 +135,18 @@ public sealed class PortalSystem : ISimulationSystem
         }
     }
 
-    /// <summary>
-    /// Which creature walks out, or null when nothing qualifies.
-    ///
-    /// <para><b>Uniformly at random among the eligible types</b>, which is
-    /// OpenKeeper's choice and is a placeholder for something the data says
-    /// exists. <c>DecreaseEntrancePersentageOfLastSackedCreatureType</c> and
-    /// <c>IncreaseEntrancePersentageOfNewCreatureTypes</c> are both 33, so DK2
-    /// carries a <i>percentage per creature type</i> that moves as a keeper
-    /// sacks and receives — a weighting this does not model, and cannot until
-    /// sacking exists (there is no drop-creature command yet). Uniform is the
-    /// honest stand-in: it is what the weighting starts as before anything has
-    /// shifted it. Recorded as Q90.</para>
-    ///
+    /// <summary>Which creature walks out, or null when nothing qualifies.</summary>
+    /// <remarks>
+    /// <para>Uniformly at random among the eligible types — a placeholder for a
+    /// weighting the data says exists (Q90). Both
+    /// <c>DecreaseEntrancePersentageOfLastSackedCreatureType</c> and
+    /// <c>IncreaseEntrancePersentageOfNewCreatureTypes</c> are 33, so DK2 carries
+    /// a percentage per creature type that moves as a keeper sacks and receives.
+    /// Uniform is what it starts as; modelling it needs sacking, not yet built.</para>
     /// <para>Candidates are collected in creature-id order and the draw is made
-    /// even when only one qualifies, so the RNG advances by exactly one step per
-    /// arrival regardless of how many types were in the running. A draw that
-    /// depended on the candidate count would make the stream a function of the
-    /// keeper's rooms, and two runs that differed only in a room built and sold
-    /// would then diverge forever.</para>
-    /// </summary>
+    /// even when only one qualifies, so the RNG advances exactly one step per
+    /// arrival and the stream does not depend on the keeper's rooms.</para>
+    /// </remarks>
     private static CreatureDef? Pick(
         SimulationContext context, List<RoomInstance> ownedRooms, byte playerId,
         RoomDef portal)

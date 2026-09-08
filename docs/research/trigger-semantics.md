@@ -68,6 +68,19 @@ the condition: their eight-byte body is not read. Treating the world switch's
 default arm as proof that such a type was unsupported would therefore be
 wrong.
 
+**Type 72 is unhandled anyway, and that caveat is why it took nine functions to
+establish it.** Every generic dispatcher bounds the type below 72 — world 67,
+creature 62, player 55, area 31 — and the event filters bound at 62 and 53, so
+no context reaches a type-72 arm. The world default at `0x00518929` formats
+`Unhandled Trigger When [ Type %d, Index %d ]` and returns **0**. All **137**
+shipped records carry an empty body: both dwords are zero in every one.
+
+So a type-72 condition always fails, its children never run, and its siblings
+continue, `NextTriggerId` being unconditional. An executor that declines to
+evaluate the type and declines to descend is **behaviourally identical to the
+retail engine here**, provided it still walks to the next sibling. Level 1 holds
+49 of the 137, and they cost no divergence.
+
 The common comparison routine at `0x00519980` implements codes 1 through 6 as
 signed `<`, `<=`, `==`, `>`, `>=`, and `!=`. Consequently generic comparison
 values at `+0x04` are `s32`, not `u32`.

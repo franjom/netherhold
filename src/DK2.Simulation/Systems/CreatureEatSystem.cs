@@ -8,70 +8,18 @@ using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// A hungry creature goes to a hatchery and eats a chicken — the half of the
-/// room that had been missing since <see cref="HatcherySystem"/> started laying
-/// (ADR-0066), and the answer to the oldest "cannot" in the project: a creature
-/// got hungry and nothing could be done about it.
-///
-/// <para><b>Read from the original's own <c>HungerState.cpp</c></b>
-/// (<c>docs/research/eating.md</c>), whose states this follows one for one:</para>
-///
-/// <list type="number">
-/// <item><b>The need is asked once a game second</b>, from the same routine
-/// that asks about sleep and pay — and <b>before</b> either of them, which is
-/// the order the original's routine has and the reason this system is
-/// registered above <see cref="CreatureSleepSystem"/>. A creature that is
-/// already asleep is left asleep; that narrowing is ours and is named
-/// below.</item>
-/// <item><b>The walk is to a room, not to a bird</b>
-/// (<see cref="CreatureActivity.SeekingFood"/>): the nearest reachable
-/// hatchery of the creature's own keeper, an ally's being no use to it.</item>
-/// <item><b>The bird is chosen on arrival</b>, from inside the room, as the
-/// nearest chicken by straight-line squared distance
-/// (<see cref="EatingRules.NearestChickenIn"/>). An empty hatchery is not a
-/// failure: the creature stands in it and asks again a second later, which is
-/// exactly what the original's state does when its search comes back empty.
-/// The hatchery is laying, after all.</item>
-/// <item><b>Nothing is reserved</b>, so two hungry creatures may set off for
-/// one chicken and the second to arrive finds it gone and looks again
-/// (<see cref="CreatureActivity.FetchingChicken"/>). The owner watched exactly
-/// this in a prison (Q172): <i>"they rush toward that chicken, the first one to
-/// it gets it"</i>.</item>
-/// <item><b>Eating is one tick's work</b> once the creature is within a tile:
-/// health up by <c>min(HpFromChicken, missing)</c>, <c>HungerNeed</c> down by
-/// one, the clock restarted and the bird destroyed.</item>
-/// </list>
-///
-/// <para><b>What is ours and stated as such.</b> The original reaches its
-/// in-room search state directly and its handler simply fails when the creature
-/// is not standing in a hatchery; which routine walks it there in the ordinary
-/// case is <b>not established</b> — state 0x5A does exactly that walk, and the
-/// only caller found for it is a fallback for one particular player id
-/// (Q174). This system composes the two, which produces the same observable
-/// behaviour by the shortest honest route. Also ours: the retry cadence being
-/// driven from this system rather than from a needs routine shared with sleep,
-/// and the absence of the post-meal wander around the hatchery (the original's
-/// state 0x5F, which picks a random adjacent tile — cosmetic here, and Q175).
-/// </para>
-///
-/// <para><b>A sleeping creature is left asleep, and that is the original's rule
-/// rather than a guess</b> (Q176). Its needs routine refuses outright when the
-/// current state's category byte is 7, and the three sleep states carry 7 —
-/// corroborated by the sleep block's own refusal to fire when the creature is
-/// already in the sleeping category. So a hungry creature does <b>not</b> get up
-/// to eat. This system skips <see cref="CreatureActivity.Sleeping"/> and
-/// <see cref="CreatureActivity.GoingToSleep"/>, and a test pins it.</para>
-///
-/// <para><b>Prisoners are skipped here too</b>, and the reason has changed.
-/// They eat by a different state in the original — one bird pays off the whole
-/// of <c>HungerFill</c> rather than one
-/// (<see cref="EatingRules.EatInPrison"/>) — and a prisoner walking to a
-/// hatchery is not a thing that happens: it is fed where it stands, by a keeper
-/// dropping a bird into the cell. This used to say <i>"they cannot move
-/// yet"</i>, which stopped being true at ADR-0073. What is missing is the
-/// racing-for-the-bird half of Q172, not movement.</para>
-/// </summary>
+/// <summary>A hungry creature goes to a hatchery and eats a chicken, the eating half
+/// of the room <see cref="HatcherySystem"/> stocks (ADR-0066).</summary>
+/// <remarks>Follows the original's <c>HungerState.cpp</c> states one for one
+/// (docs/research/eating.md): the walk is to a room and not to a bird, the nearest
+/// reachable hatchery of the creature's own keeper; the bird is chosen on arrival
+/// (<see cref="EatingRules.NearestChickenIn"/>) and nothing is reserved, so two
+/// hungry creatures may race for one and the loser looks again (Q172, owner). An
+/// empty hatchery is not a failure — it lays. Prisoners eat by their own states, one
+/// bird paying off a whole <c>HungerFill</c> (<see cref="PrisonerEatSystem"/>). Ours:
+/// composing the walk with the in-room search, the walking routine being unestablished
+/// (Q174); the retry cadence living here; and no post-meal wander round the hatchery
+/// (the original's state 0x5F, cosmetic — Q175).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/eating.md")]
 public sealed class CreatureEatSystem : ISimulationSystem
 {
@@ -153,24 +101,17 @@ public sealed class CreatureEatSystem : ISimulationSystem
         }
     }
 
-    /// <summary>
-    /// Choose a hatchery and set off for it, or say why not.
-    ///
-    /// <para>Rooms are visited nearest first by squared distance to the room's
-    /// centre, and the first one this creature can actually reach over its own
-    /// <see cref="WorldPathGrid"/> wins — so a hatchery behind water is
-    /// reachable for a goblin and not for a vampire, exactly as a lair is.
-    /// Equal distances fall back to the lowest tile index, which is
-    /// <see cref="RoomIndex.Build"/>'s own order and is reproducible
-    /// (ADR-0001).</para>
-    ///
-    /// <para><b>A hatchery with no birds in it is still a hatchery</b>, and the
-    /// finder does not look at the flock — the room lays, so an empty one will
-    /// have a chicken shortly. What the original <i>does</i> test is whether the
-    /// room holds any object at all (<see cref="EatingRules.HoldsAnyObject"/>),
-    /// which a coop satisfies; the one thing it rules out is a hatchery too
-    /// small to earn a coop, and therefore too small ever to lay.</para>
-    /// </summary>
+    /// <summary>Chooses a hatchery and sets off for it, or says why not.</summary>
+    /// <remarks>Rooms are visited nearest first by squared distance to the room's
+    /// centre, and the first this creature can actually reach over its own
+    /// <see cref="WorldPathGrid"/> wins — so a hatchery behind water is reachable for
+    /// a goblin and not for a vampire, exactly as a lair is. Equal distances fall back
+    /// to the lowest tile index, <see cref="RoomIndex.Build"/>'s own order (ADR-0001).
+    /// A hatchery with no birds in it is still a hatchery and the finder does not look
+    /// at the flock; what the original tests is whether the room holds any object at
+    /// all (<see cref="EatingRules.HoldsAnyObject"/>), which a coop satisfies, so the
+    /// one thing it rules out is a room too small to earn a coop and therefore too
+    /// small ever to lay.</remarks>
     private bool TrySetOutForAHatchery(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
@@ -372,6 +313,9 @@ public sealed class CreatureEatSystem : ISimulationSystem
             $"at=({x},{y}) steps={creature.Path.Count}");
     }
 
+    /// <summary>One bird eaten: one tick's work once the creature is within a tile.
+    /// Health up by <c>min(HpFromChicken, missing)</c>, <c>HungerNeed</c> down by one
+    /// helping, the clock restarted and the bird destroyed.</summary>
     private static void Swallow(
         SimulationContext context, CreatureState creature,
         CreatureDef definition, ObjectState chicken)

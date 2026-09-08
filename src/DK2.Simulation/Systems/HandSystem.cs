@@ -8,21 +8,16 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// The Hand of Evil: this tick's pick-ups, drops and slaps, and the two clocks
-/// that holding and slapping start.
-///
-/// <para><b>Runs first, before anything a creature does of its own accord.</b>
-/// A creature the keeper picked up this tick must not also take a step this
-/// tick, and one dropped onto marked work should be able to start on it at
-/// once rather than after a tick of standing still. DK2's own order is UNKNOWN
-/// (the standing caveat on <see cref="ISimulationSystem"/>); this is the order
-/// that makes the keeper's hand feel like a hand, and it is declared rather
-/// than inferred.</para>
-///
-/// <para>Evidence, addresses and the open questions: docs/research/hand-of-evil.md.
+/// <summary>The Hand of Evil: this tick's pick-ups, drops and slaps, plus the
+/// two clocks that holding and slapping start.</summary>
+/// <remarks>
+/// <para>Runs before anything a creature does of its own accord, so a creature
+/// picked up this tick takes no step and one dropped onto marked work can start
+/// on it at once. DK2's own order is UNKNOWN (the standing caveat on
+/// <see cref="ISimulationSystem"/>); this order is declared, not inferred.</para>
+/// <para>Evidence, addresses and open questions: docs/research/hand-of-evil.md.
 /// Decisions: ADR-0062.</para>
-/// </summary>
+/// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hand-of-evil.md")]
 public sealed class HandSystem : ISimulationSystem
 {
@@ -32,7 +27,7 @@ public sealed class HandSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        // The clocks first, then the keeper. A slap sets WorkFasterTimer to its
+        // The clocks first, then the keeper. A slap sets WorkFasterTicks to its
         // full length and must not be shortened by the same tick's decrement -
         // the original decrements in its creature update and slaps from the
         // input path, so its two never meet on one tick either.
@@ -66,14 +61,11 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
-        // The job goes before the creature does. An imp lifted off a seam has
-        // stopped mining it, and leaving the target behind would have it walk
-        // back to a tile it is no longer standing near the moment it lands.
-        //
-        // And so does its load. A worker lifted while carrying a book or a body
-        // leaves both on the floor where it was standing: an imp in the keeper's
-        // hand is out of the dungeon, and a body that followed it up there would
-        // be somewhere no rule could reach (ADR-0065).
+        // The job and the load both go before the creature does. An imp lifted
+        // off a seam has stopped mining it; a worker lifted while carrying a
+        // book or a body leaves both on the floor where it stood, because a
+        // body carried up into the hand would be somewhere no rule could reach
+        // (ADR-0065).
         DropLoad(context, creature);
         creature.ClearJob();
 
@@ -86,14 +78,10 @@ public sealed class HandSystem : ISimulationSystem
             $"held={world.Player(command.PlayerId).Hand.Count}");
     }
 
-    /// <summary>
-    /// Lifts a loose object into the hand — a chicken out of a hatchery, a pile
-    /// of gold off the floor, a special.
-    ///
-    /// <para>CONFIRMED by the owner (2026-09-06). Until ADR-0075 the hand held
-    /// creature ids only, which left the prison eating of ADR-0074 complete and
-    /// unreachable in play.</para>
-    /// </summary>
+    /// <summary>Lifts a loose object into the hand — a chicken out of a
+    /// hatchery, a pile of gold off the floor, a special. CONFIRMED by the owner
+    /// (2026-09-06); the hand holds objects as well as creatures per
+    /// ADR-0075, which is what makes ADR-0074's prison eating reachable.</summary>
     private static void PickUpObject(SimulationContext context, PickUpObjectCommand command)
     {
         WorldState world = context.World;
@@ -185,18 +173,12 @@ public sealed class HandSystem : ISimulationSystem
 
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
 
-        // THE HOLE IS THE ONE UNWALKABLE TILE A KEEPER MAY DROP ONTO, and that
-        // is not an exception bolted on - it is what the tile is for. The owner
-        // gave both halves of Q88 in one sentence: the portal's centre is "not
-        // walkable" AND is "for hand of evil to throw creatures in". So the
-        // walkability refusal has to be asked second, or the two halves of one
-        // answer contradict each other. They did, for about a minute.
-        // A PRISONER IS NOT POSTED HOME, and is refused the tile rather than
-        // freed onto it. Whether DK2 lets a keeper drop an enemy captive into
-        // its own portal is UNKNOWN; both "eject it" and "free it into the
-        // dungeon" invent something, and the third option - the hole simply is
-        // not a legal drop for a captive - invents least and leaves the
-        // prisoner rules (ADR-0064) untouched.
+        // The hole is the one unwalkable tile a keeper may drop onto, so the
+        // walkability refusal is asked second: the portal's centre is "not
+        // walkable" and is "for hand of evil to throw creatures in" (Q88,
+        // CONFIRMED by the owner). A prisoner is refused the tile rather than
+        // freed onto it - whether DK2 ejects an enemy captive dropped into its
+        // own portal is UNKNOWN, and refusing leaves ADR-0064 untouched.
         bool intoTheHole = !PrisonRules.IsImprisoned(creature)
             && PortalRules.IsHoleTile(
                 world, context.Database, command.Tile, command.PlayerId);
@@ -230,16 +212,12 @@ public sealed class HandSystem : ISimulationSystem
         creature.MoveRemainder = 0;
         creature.ClearJob();
 
-        // THROWN INTO THE PORTAL, which is how a keeper gets rid of a creature
-        // (Q88, CONFIRMED by the owner 2026-09-07: the portal's centre is
-        // "for hand of evil to throw creatures in, removing them from
-        // dungeon"). The same removal a deserter reaching a portal gets, by the
-        // same event kind, because it is the same thing happening for a
-        // different reason - and the gold goes with it rather than spilling,
-        // which is Q137 answered in the owner's own parenthesis: "a creature
-        // leaving (BEING THROWN) through portal does not drop its gold".
-        //
-        // A captive never gets here: see intoTheHole above.
+        // Thrown into the portal: how a keeper gets rid of a creature (Q88,
+        // CONFIRMED by the owner 2026-09-07), and the same removal by the same
+        // event kind that a deserter reaching a portal gets. The gold goes with
+        // it rather than spilling - "a creature leaving (BEING THROWN) through
+        // portal does not drop its gold" (Q137, owner). A captive never gets
+        // here: see intoTheHole above.
         if (intoTheHole)
         {
             context.Emit(SystemName, "creature_left",
@@ -253,12 +231,12 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
-        // A creature lifted out of a cell is still that keeper's prisoner while
-        // it is in the hand, and where it lands decides whether it stays one:
-        // back onto a tile of one of the keeper's prisons and it is imprisoned
-        // again, anywhere else and it is loose in the dungeon (ADR-0064). The
-        // third destination the owner named - a torture rack - needs the
-        // Torture Chamber, which is not built.
+        // A creature lifted out of a cell stays that keeper's prisoner while in
+        // the hand, and where it lands decides whether it stays one: back onto
+        // a tile of one of the keeper's prisons and it is imprisoned again,
+        // anywhere else and it is loose (ADR-0064). Not implemented: the third
+        // destination the owner named, a torture rack, needs the Torture
+        // Chamber.
         if (PrisonRules.IsImprisoned(creature))
         {
             if (DropIntoACell(context, command, creature)) return;
@@ -272,18 +250,12 @@ public sealed class HandSystem : ISimulationSystem
             PrisonRules.Release(creature);
         }
 
-        // The keeper's 12.5% starts here but is not decided here. Dropping a
-        // worker sets a one-shot ticket and nothing else: the next evaluation
-        // spends it by looking around where the worker landed, and the bonus
-        // turns on only if that look finds something (ADR-0069). Deciding it
-        // here - "is there marked work beside this tile?" - is what this system
-        // used to do, and it was wrong twice over: the box is bigger than the
-        // four neighbours, and marked tile work is not the only thing a dropped
-        // worker will take.
-        //
-        // The timer goes to zero with it, because DK2's chooser skips its own
-        // idle throttle while the ticket is unspent: a dropped worker evaluates
-        // on the spot rather than on the next scheduled think.
+        // Dropping a worker sets a one-shot ticket and nothing else; the next
+        // evaluation spends it by looking around where the worker landed, and
+        // the keeper's 12.5% bonus turns on only if that look finds something
+        // (ADR-0069). The timer goes to zero with it because DK2's chooser skips
+        // its own idle throttle while the ticket is unspent: a dropped worker
+        // evaluates on the spot, not on the next scheduled think.
         bool worker = definition.Flags.HasFlag(CreatureFlags.IsWorker);
         creature.JustDropped = worker;
         creature.DroppedTask = ImpTaskKind.None;
@@ -295,16 +267,11 @@ public sealed class HandSystem : ISimulationSystem
             $"worker={(worker ? "yes" : "no")} held={hand.Count}");
     }
 
-    /// <summary>
-    /// Puts a prisoner back in a cell if it was dropped on a tile of one of the
-    /// dropper's own prisons, and says whether it took.
-    ///
-    /// <para><b>The tile need not be free.</b> A keeper who drops a prisoner
-    /// into a prison that is already full has overcrowded it on purpose, which
-    /// is exactly the manual's <i>"manual overcrowding"</i> and is what
-    /// <see cref="PrisonSystem"/> rolls a jail break on. An imp will not do
-    /// this; only a keeper can.</para>
-    /// </summary>
+    /// <summary>Puts a prisoner back in a cell if it was dropped on a tile of
+    /// one of the dropper's own prisons; returns whether it took.</summary>
+    /// <remarks>The tile need not be free: dropping into a full prison is the
+    /// manual's "manual overcrowding", which <see cref="PrisonSystem"/> rolls a
+    /// jail break on. Only a keeper can do it; an imp will not.</remarks>
     private static bool DropIntoACell(
         SimulationContext context, DropCommand command, CreatureState creature)
     {
@@ -331,31 +298,18 @@ public sealed class HandSystem : ISimulationSystem
     }
 
 
-    /// <summary>
-    /// Puts an object down on a tile the keeper owns.
-    ///
-    /// <para><b>Owned ground, CONFIRMED by the owner</b> (2026-09-06) — and
-    /// <b>not</b> <c>CanBeDroppedOnAnyLand</c>, which is set on one record and
-    /// read by nothing (<see cref="HandRules.CanDropObjectOn"/>).</para>
-    ///
-    /// <para><b>Two branches of the original's are read and not built</b>, both
-    /// because they need a target this project's drop has no way to name:</para>
-    ///
-    /// <list type="bullet">
-    /// <item><b>A chicken dropped into somebody else's Hatchery becomes
-    /// theirs.</b> The handler tests object id 9 against a tile owned by another
-    /// keeper, in a room of type 4, and reassigns the bird. Unreachable here
-    /// while the drop is owned-tiles-only, and unreachable in the original for
-    /// the same reason as far as anyone has watched.</item>
-    /// <item><b>A chicken or a pile of gold dropped ONTO a creature is
-    /// earmarked for it</b> — the handler writes that creature's id into a field
-    /// on the object when the creature's level-scaled <c>HungerFill</c> (or
-    /// <c>MaxGoldHeld</c>) is non-zero. That is a reservation, and it is the one
-    /// case where a bird is <i>not</i> up for grabs. The prison search of
-    /// ADR-0074 does not consult the field, so a race for an earmarked bird
-    /// would still be a race; whether something else does is unread.</item>
-    /// </list>
-    /// </summary>
+    /// <summary>Puts an object down on a tile the keeper owns — CONFIRMED by the
+    /// owner (2026-09-06), and not <c>CanBeDroppedOnAnyLand</c>, which is set on
+    /// one record and read by nothing
+    /// (<see cref="HandRules.CanDropObjectOn"/>).</summary>
+    /// <remarks>Not implemented: two branches of the original's handler, both
+    /// needing a drop target this project cannot name. A chicken dropped into
+    /// another keeper's Hatchery becomes theirs (the handler tests object id 9
+    /// against another keeper's tile in a room of type 4). A chicken or gold
+    /// pile dropped onto a creature is earmarked for it, by that creature's id,
+    /// when its level-scaled <c>HungerFill</c> or <c>MaxGoldHeld</c> is
+    /// non-zero; ADR-0074's prison search does not consult that field, and
+    /// whether anything else does is unread.</remarks>
     private static void DropObject(
         SimulationContext context, DropCommand command, HandItem held)
     {

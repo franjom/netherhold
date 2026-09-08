@@ -1,10 +1,16 @@
-# Job selection for creatures that are not workers
+# Mechanic: job selection for creatures that are not workers
 
-**Status:** read from the binary and **BUILT**, 2026-09-06 (ADR-0082).
-Questions: Q2 (closed), Q203 (new), Q204 (new).
+Source(s):
+- `DKII.EXE` v1.70 (GOG), read with Ghidra
+- The reference install's `Creatures.kwd` and `GlobalVariables.kwd`, via `DK2.Data`
+- `docs/research/creature-state-table.md` for the 281 states and their categories
 
-Everything below is read out of DKII.EXE v1.70 with Ghidra. Facts only, per
-ADR-0046 — no decompiler output is reproduced and none is in the repository.
+Original version: DK2 v1.70 (GOG)
+
+Facts only, per ADR-0046 — no decompiler output is reproduced and none is in the
+repository.
+
+Confidence: **CONFIRMED**. Questions: Q2 (closed), Q203, Q204, Q210.
 
 ---
 
@@ -31,8 +37,8 @@ Each chooser does the same five things:
    Hardcoded, in all three.
 4. Build **cumulative ranges** from the mood's table — running total, record
    order, inclusive at both ends — then `rand(100)`. Identical to the arithmetic
-   `creature-anger.md` already documents for the angry chooser, including the
-   sort that cannot reorder anything.
+   `creature-anger.md` documents for the angry chooser, including the sort that
+   cannot reorder anything.
 5. Try the job whose range holds the roll; **on failure try every job in the
    table in list order**. Stamp the gate only on success.
 
@@ -46,9 +52,9 @@ Each chooser does the same five things:
   tail is a bare `return 0`, and so is the angry one's. **A creature that is
   already unhappy is never made crosser by idleness.**
 
-That last asymmetry is the same shape as `AngerNoPay` having no treasury clause
-where both its siblings test for the room (ADR-0079). Twice now: a plausible
-symmetry that the game does not have.
+That asymmetry is the same shape as `AngerNoPay` having no treasury clause where
+both its siblings test for the room (ADR-0079). Twice: a plausible symmetry the
+game does not have.
 
 ---
 
@@ -96,16 +102,12 @@ Job **20 (Tunnelling)** has a case that does nothing and returns zero, and job
 | 9 Drink | `FUN_004560f0` | Casino | `0x91` | keeper has a casino **or** the creature is carrying more than the gambling stake |
 | 15 Sulk | `FUN_00482ef0` | **Lair** | `0x55` | sleeps at all, **has a bed**, and that bed is in a room |
 
-**Guard is the one room mapping that is confirmed rather than inferred**: the
-handler passes the literal `9` to its room search, and 9 is `GuardRoom`. The
-rest follow from which finder each handler calls.
-
 ### 3.1 Sulking is going to your lair and moping in it
 
 `FUN_00482ef0` is the Sleep handler with one digit changed — same three
 preconditions, same room, state `0x55` where sleep uses `0x51`. **A creature
-with no bed cannot sulk at all**, which matters more than it sounds: every
-unhappy table in the shipped game is Sulk and Drink.
+with no bed cannot sulk at all**, which matters because every unhappy table in
+the shipped game is Sulk and Drink.
 
 ### 3.2 The shipped tables are small and sharp
 
@@ -144,12 +146,12 @@ A raw `.text` scan for each global finds **only the loader stub writing it**:
 That takes the count of shipped-but-unread balance variables from five to
 twelve, and this is the first time a whole *family* has gone at once.
 
-**The last one is a cross-check rather than a curiosity.** All three choosers
-gate on a hardcoded `5 × variable 19`, and the shipped variable that looks like
-it should govern how long a creature stays on a job is read by nothing. Two
-independent facts agreeing that the gate is five seconds, one of them by being
-conspicuously unused — and together, real evidence that **there is no job
-timer at all**.
+**`MinimumJobDurationSeconds` is a cross-check rather than a curiosity.** All
+three choosers gate on a hardcoded `5 × variable 19`, and the shipped variable
+that looks like it should govern how long a creature stays on a job is read by
+nothing. Two independent facts agreeing that the gate is five seconds, one of
+them by being conspicuously unused — together, real evidence that **there is no
+job timer at all**.
 
 The two praying variables in the same block are emphatically *not* dead:
 `ModifyCreatureAngerWhilePrayingPerSecond` has **32** read sites and
@@ -174,15 +176,18 @@ a Temple is the only way to take it back.
 
 ---
 
-## 6. What was built, and what is ours
+## 6. Implementation
 
-Built: the happy and unhappy choosers, the gate and its three timestamps, the
-cumulative ranges and fall-through, the room search, the walk, the per-job
-tests above, `AngerNoWork` and its asymmetry, and the Temple's per-second
-effect. `JobRules`, `CreatureJobSystem`, `CreatureActivity.GoingToJob` and
-`AtWork`, `CreatureState.CurrentJob`.
+`JobRules` + `CreatureJobSystem` (ADR-0082, extended by ADR-0083),
+`CreatureActivity.GoingToJob` and `AtWork`, `CreatureState.CurrentJob`. Built:
+the happy and unhappy choosers, the gate and its three timestamps
+(`JobRules.ReselectionGateTicks`), the cumulative ranges and fall-through
+(`JobRules.TableFor`), the room search, the walk, the per-job tests of §3,
+`AngerNoWork` and its asymmetry (`JobRules.ChargesNoWorkAnger`, content only),
+`JobRules.RoomFor` from §6, the Temple's per-second effect (`PrayingCalm`,
+`PrayingHeal`), and training's award and bill (`training.md`).
 
-**Ours, and stated as such:**
+**Ours, and stated as such at the call sites:**
 
 - **The walk to the room.** Copied from the hatchery walk tile for tile —
   nearest room by squared distance to its centre, first reachable one wins,
@@ -192,38 +197,23 @@ effect. `JobRules`, `CreatureJobSystem`, `CreatureActivity.GoingToJob` and
   composes payday's three.
 - **How long a creature keeps a job** — until the room stops being its keeper's,
   or a need takes it away. §4 is the evidence that this is not a timer.
-- ~~**Train's gold clause is not modelled.**~~ **BUILT 2026-09-07 (ADR-0083).**
-  It is modelled, and the reasoning here for skipping it was wrong twice over:
-  `GoldStore.Total` has always been able to sum a keeper's tiles, and the clause
-  turned out not to be a narrowing at all but **the order the two tests are
-  made in** — the original tests gold *first*, so a broke keeper's level-9
-  creature is refused for poverty rather than for being too good. And a keeper
-  who runs out mid-job **loses the creature's job**, which no other job in DK2
-  does.
-- ~~**Nothing is produced by any job but praying.**~~ **TRAINING IS, since
-  ADR-0083 (`training.md`).** And the "live unit ambiguity of exactly the shape
-  that made `ExpPerSecond` turn out to be per minute" was the wrong worry: the
-  shape was there, but **`ExpPerSecond` is not per minute** — the loader divides
-  all four of these rates by variable 19 as it stores them, so the names are
-  right, and the 1200 that suggested otherwise belongs to a different mechanic
-  (combat, category 22) on the one creature that breaks the family's own 5:1
-  convention. **Research and manufacture are still not produced**, and it is no
-  longer the rate that stops them: their hooks pay the *player*, and no keeper
-  here has anything to research or make.
+- Train's gold clause is modelled and the original's **order** is kept: gold is
+  tested *before* the level cap, so a broke keeper's level-9 creature is refused
+  for poverty rather than for being too good, and a keeper who runs out mid-job
+  **loses the creature's job** — which no other job in DK2 does.
 
----
+**Two jobs have an effect** (`JobRules.EffectIsBuilt`): Praying and Train.
+Research and Manufacture are walked to and stood in; their category hooks pay
+the *player*, and no keeper here has anything to research or make.
 
-## The room → job map is confirmed, from a table found for another reason (2026-09-07, Q210)
+## 7. The room → job map — CONFIRMED (Q210)
 
-`JobRules.RoomFor` was **strongly inferred**: only Guard was certain, because
-its handler passes the literal `9` to its room search. The rest followed from
-which finder each handler calls — *"the obvious ones"*, which is exactly the
-kind of reasoning that has been wrong here before.
-
-**DK2's per-room-type handler table settles eight of them at once.** Each of its
-26 records ends with a **job id** (`portals.md`, slot `+0x25`), and
-`FUN_004E8DA0` loads it, asks the *creature's definition* whether that creature
-may do the job, and writes it into `creature+0x2bc`.
+`JobRules.RoomFor` was strongly inferred: only Guard was certain, because its
+handler passes the literal `9` to its room search. **DK2's per-room-type handler
+table settles eight of them at once.** Each of its 26 records ends with a **job
+id** (`portals.md`, slot `+0x25`), and `FUN_004E8DA0` loads it, asks the
+*creature's definition* whether that creature may do the job, and writes it into
+`creature+0x2bc`.
 
 | room | id | `JobType` |
 |---|---|---|
@@ -239,17 +229,28 @@ may do the job, and writes it into `creature+0x2bc`.
 
 Every row matches the `JobType` numbering this project already had, **including
 both non-sequential values** — `Drink` is 9 rather than 10, and `Wait` is 22.
-Eight independent agreements, from a table opened while chasing a portal reset,
-is stronger evidence than the handler-shape reasoning it replaces, so
-`JobRules` is now **CONFIRMED**.
+Eight independent agreements, from a table opened while chasing a portal reset.
 
-**One row we did not have: Prison → `Wait`.** Added, and **inert**: no
-creature's job tables list `Wait` and nothing in this project asks for it. It is
-in the map because the table states it, and a missing row is harder to notice
-than an unused one.
+**Prison → `Wait` is inert**: no creature's job tables list `Wait` and nothing in
+this project asks for it. It is in the map because the table states it, and a
+missing row is harder to notice than an unused one.
 
 **Two rows the table cannot speak to.** The **Lair** and **Combat Pit** records
 carry *no* job id, so `Sleep`, `Sulk` and `CombatPitSpectate` are reached by some
-other route and are neither confirmed nor contradicted. Sulk needing a Lair —
-the finding at the top of this document — rests on its handler as before. A room
-with no job slot is not a room with no purpose.
+other route and are neither confirmed nor contradicted. Sulk needing a Lair (§3.1)
+rests on its handler. A room with no job slot is not a room with no purpose.
+
+---
+
+## Tests
+
+`CreatureJobTests` (`tests/DK2.Simulation.Tests/`). Scenarios
+`scenarios/creatures/two_keepers_find_work_for_a_goblin.yaml` and
+`a_goblin_with_no_lair_walks_out.yaml`.
+
+## Open questions
+
+- **Q204**, both flags: `player+0x76 & 4` in the dispatcher and
+  `def+0x686 & 0x4000` in all three choosers.
+- **Q203**: the seven dead variables are STRONGLY INFERRED dead, from a `.text`
+  scan per global.

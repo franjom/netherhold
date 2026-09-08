@@ -1,16 +1,17 @@
-﻿# How a creature gets a lair, and how ours now does
+﻿# Mechanic: how a creature gets a lair
 
-**Sources:** the owner's recordings of DK2 v1.70 (2026-09-05, analysed by a
-second assistant) and `DKII.EXE` read the same day. Facts in our own words;
-ADR-0046 governs the boundary.
+Source(s):
+- The owner's recordings of DK2 v1.70, 2026-09-05
+- `DKII.EXE` v1.70, `LairState.cpp`'s translation unit and the player's lair
+  finder `FUN_004e0470`, read 2026-09-05
+- OpenKeeper `RoomLairControl` and `TaskManager`, for the contrast in §7a only
 
-**Built 2026-09-05 (ADR-0060).** `CreatureSleepSystem` now does what §4, §5
-and §7 describe: a bedless idle creature picks the nearest reachable lair with
-a free slot (preferring one with no bed of the other side), walks to it, and
-finds its tile on arrival — underfoot, the eight neighbours in the original's
-order, then a walk of the room from a random start. §1–§2 describe what was
-watched and what the old implementation got wrong; they are kept as the record
-of why. What is still ours is listed at the end of §7.
+Original version: DK2 v1.70
+
+Facts in our own words; ADR-0046 governs the boundary.
+
+Confidence: **CONFIRMED** for §3–§6 and §8 from the binary, **CONFIRMED (owner)**
+for §1. Built 2026-09-05, ADR-0060 and ADR-0061.
 
 ## 1. What was watched
 
@@ -19,8 +20,8 @@ room**, and put its bed down near the far side. A second Salamander entered from
 the same direction and chose a spot on the **opposite** side from the first. A
 Warlock later put its chair down right beside the first Salamander's bed.
 
-**In a 1×5 lair**, which is the controlled version of the same thing, four
-creatures claimed tiles in this order:
+**In a 1×5 lair**, the controlled version of the same thing, four creatures
+claimed tiles in this order:
 
 | | creature | tile |
 |---|---|---|
@@ -30,19 +31,18 @@ creatures claimed tiles in this order:
 | 4 | Salamander | 4 |
 
 The Salamander was **seen to walk up to an occupied tile, reject it, and carry on
-to a free one**. That was not a one-off: creatures were repeatedly watched
-visiting taken lair tiles, turning them down and trying others.
+to a free one**, and creatures were repeatedly watched visiting taken lair tiles,
+turning them down and trying others.
 
-**And the trigger looked like it was not availability.** A free lair tile
-existed while a bedless Bile Demon and a bedless Troll went off to the **Training
-Room** instead, and only went looking for a lair later, when the mood turned
-**Unhappy** with "no lair" as the reason. (The first write-up said Goblin; the
-owner corrected it to Troll — *Goblins always went for the lair first*, as did
-Salamander, Warlock and Firefly, and the Bile Demon and Troll were **not
-consistent**: on other runs they went lair-first too.) §5 and §8 are what the
-binary made of that.
+A free lair tile existed while a bedless Bile Demon and a bedless Troll went off
+to the **Training Room** instead, and only went looking for a lair later, when
+the mood turned **Unhappy** with "no lair" as the reason. Goblin, Salamander,
+Warlock and Firefly *always* went for the lair first; the Bile Demon and Troll
+were **not consistent** and went lair-first on other runs. §5 and §8 are what
+the binary made of that: mood is not the trigger, and the training detour is the
+lair attempt *failing*.
 
-## 2. What follows, and what it costs us
+## 2. What follows from it
 
 | Claim | Status |
 |---|---|
@@ -50,28 +50,20 @@ binary made of that.
 | Acquiring a lair is a **journey**, not a reservation | **CONFIRMED** — creatures cross the room to place a bed |
 | Occupancy is tested **on arrival**, not when choosing | **CONFIRMED** — a candidate was rejected in front of the camera |
 | A rejected candidate is followed by another attempt | **CONFIRMED** |
-| Candidate choice contains randomness, or something that looks like it | **STRONGLY INFERRED** from the watched spread, and **corroborated by the binary** — see §4 |
+| Candidate choice contains randomness | **STRONGLY INFERRED** from the watched spread, **corroborated by the binary** — §4 |
 | A creature remembers what it has already rejected within one search | **HYPOTHESIS** |
-| **A happy bedless creature does not claim a free tile** | **WRONG as first stated, and the binary says why.** An idle creature with no lair tries for one *first*, whatever its mood — the attempt can *fail* (no reachable lair with a free slot), and only then does it do a job. The Bile Demon and Troll that trained first were the failure case; the four types that "always" went lair-first were the rule. See §5, §8 |
-| **`AngerNoLair` accumulating to unhappiness is what starts the search** | **Half right.** The *unhappy* and *angry* job choosers do try for a lair first, unconditionally — but so does the *happy* idle path. Mood is not the trigger; **being idle without a lair is**, and a sleep need every `TimeAwake` is a second trigger. §5 |
+| An idle creature with no lair tries for one **first, whatever its mood** | **CONFIRMED** (§5). The attempt can *fail* — no reachable lair with a free slot — and only then does the creature take a job |
+| Being idle without a lair is the trigger; a sleep need every `TimeAwake` is a second one | **CONFIRMED** (§5). The unhappy and angry job choosers also try for a lair first, but the happy idle path does too, so mood gates nothing |
 
-**Contradicted, and it is ours:** `CreatureSleepSystem` claims a bed on the first
-tick one is free, from wherever the creature happens to be standing, with no walk
-and no mood test. Both halves are wrong. It was built from the owner's earlier
-and entirely accurate description — *"when a creature enters a dungeon through a
-portal it goes to a lair, finds a free tile and occupies it with its bed"* — of
-which this project implemented the second half and skipped the going.
-
-## 3. The link between creature and bed is two-way, and ours already matches
+## 3. The link between creature and bed is two-way
 
 The creature record carries the **thing id of its lair**, and the lair object
 carries the **thing id of its creature** back. A helper that answers *"is this my
 own lair?"* checks all of it: the id is set, the thing still exists, it is of the
 object kind, it has an owner creature, and that owner is this creature.
 
-That is exactly the relation ADR-0054 moved this project to on 2026-09-04, when
-`Lair.CreatureId` on the object replaced a tile index on the creature. Nothing to
-change.
+That is exactly the relation ADR-0054 moved this project to, when
+`Lair.CreatureId` on the object replaced a tile index on the creature.
 
 ## 4. Choosing where to go: a room first, then a tile
 
@@ -92,22 +84,20 @@ creatures is the exact complement of `IsEvil` and is now named **`IsGood`**.
 the creature does something else. If the keeper can build lairs it also raises
 an interface message: *no lair* when the keeper has none, *lair unreachable*
 when every lair fails the reach test, and *lair full* once a full lair has been
-full for a grace period. **A lair's slot count is its tile count** (Q156, read
-2026-09-05): the room's capacity routine is a switch on room type, and for a
-lair it copies the room's tile counter — a word that is incremented when a tile
-joins the room and summed when two rooms merge — straight into the capacity
-field. The free-slot test is `used + 1 ≤ tiles`. One bed per tile, exactly.
-**The finder tests nothing else** — not the room's size against
-`RecommendedSize`, not whether it is "functional"; ownership is implicit in
-walking the keeper's own room list.
+full for a grace period. **A lair's slot count is its tile count** (Q156): the
+room's capacity routine is a switch on room type, and for a lair it copies the
+room's tile counter — a word incremented when a tile joins the room and summed
+when two rooms merge — straight into the capacity field. The free-slot test is
+`used + 1 ≤ tiles`. One bed per tile, exactly. **The finder tests nothing
+else** — not the room's size against `RecommendedSize`, not whether it is
+"functional"; ownership is implicit in walking the keeper's own room list.
 
-**The tile is chosen on arrival, and starts underfoot.** The lair-seeking
-state lives in EA's `LairState.cpp`. When the creature reaches the room, the
-state's entry test requires the tile underfoot to be **the keeper's own lair
-tile** and the record's `TimeSleep` to be non-zero; then, if the creature's
-existing bed is already in this room, it goes straight to sleeping; otherwise a
-room routine takes the creature's position and tries, in order (all read
-2026-09-05):
+**The tile is chosen on arrival, and starts underfoot.** The lair-seeking state
+lives in EA's `LairState.cpp`. When the creature reaches the room, the state's
+entry test requires the tile underfoot to be **the keeper's own lair tile** and
+the record's `TimeSleep` to be non-zero; then, if the creature's existing bed is
+already in this room, it goes straight to sleeping; otherwise a room routine
+takes the creature's position and tries, in order:
 
 1. **the tile the creature is standing on**;
 2. its **eight neighbours in a fixed order**: (−1,−1), (−1,0), (−1,+1), (0,+1),
@@ -121,9 +111,8 @@ room routine takes the creature's position and tries, in order (all read
 
 Each candidate is put through one predicate: *the keeper's lair tile, with no bed
 object of any kind on it*. So the **search is local first and exhaustive
-second**, which is precisely the behaviour that was filmed: a creature that walks
-into a lair looks where it is standing, then next door, and only wanders if both
-fail.
+second**, which is precisely what was filmed: a creature that walks into a lair
+looks where it is standing, then next door, and only wanders if both fail.
 
 **The random offset is on the walk, not the bed.** Having found a tile, the
 creature walks to that tile's centre **displaced by about a third of a tile in a
@@ -136,8 +125,8 @@ registered in the room, so the room's used-slot count rises by one; if somebody
 took it during the walk, the search runs again from where the creature now
 stands; if the search finds nothing, the whole attempt restarts through the
 finder — possibly at another lair — and if that fails too the state ends and the
-creature is idle again. **The earlier reading of this paragraph had the jitter
-on the bed's position; it is on the walk target, and the bed sits centred.**
+creature is idle again. Not the other way round: the jitter is on the walk
+target and the bed sits centred.
 
 **Two more things the state does.** If the creature already owned a bed in a
 *different* room when the search found a tile, the old bed is destroyed there
@@ -150,18 +139,17 @@ The spread between the two Salamanders is therefore explained by step 1: they
 entered from the same side but were standing in different places by the time the
 search ran.
 
-## 5. What starts the search — READ 2026-09-05 (Q150)
+## 5. What starts the search (Q150)
 
 **There is no mood gate. An idle creature with no lair tries to get one before
 it does anything else, and the same attempt is also the first thing the unhappy
-and angry job choosers make.** The apparent "goes to train first" is the attempt
-*failing*.
+and angry job choosers make.**
 
 The creature's decision routine (`FUN_00476fc0`, one call per think) runs, in
 order:
 
 1. the current state's own update;
-2. **needs** (`FUN_00477c20`): hunger, then sleep — see below;
+2. **needs** (`FUN_00477c20`): hunger, then sleep;
 3. if nothing fired and the creature is **unhappy or angry**, that mood's job
    chooser (§8), whose first line is *no lair → go and get one*.
 
@@ -174,16 +162,17 @@ otherwise wander for 12 ticks.
 **The attempt (`FUN_0046f390`) succeeds when:** the creature is not held and not
 dying; its record's **`TimeSleep` is non-zero**; it is not already in the
 lair-seeking state; it has no bed yet; its record names a bed (`LairObjectId` ≠
-0); and the finder of §4 returns a room. **The `TimeSleep` gate is the half our
-`LairRules.NeedsBed` lacks**, and it answers Q104: the Dwarf and the Stone Knight
-carry `LairObjectId` 6 but `TimeSleep` 0 (with `TimeAwake` 32767), so the
-original never sends them for a bed at all — the two fields together, not the
-one, decide who sleeps. The gate excludes exactly: Imp, Skeleton, Unique
-Skeleton, Horny, Dwarf, Stone Knight (by `TimeSleep`), and the seven
-`LairObjectId`-0 heroes (the princes, King Reginald, Lord of the Land, Jack). It then enters the
-lair-seeking state (`0x50`), which is the journey and the on-arrival tile test
-§4 describes. **It fails when no reachable lair has a free slot**, and the
-creature falls through to a job — to try again at its next idle decision.
+0); and the finder of §4 returns a room. It then enters the lair-seeking state
+(`0x50`), which is the journey and the on-arrival tile test §4 describes. **It
+fails when no reachable lair has a free slot**, and the creature falls through to
+a job — to try again at its next idle decision.
+
+**The two-field gate answers Q104.** The Dwarf and the Stone Knight carry
+`LairObjectId` 6 but `TimeSleep` 0 (with `TimeAwake` 32767), so the original
+never sends them for a bed at all: the two fields together, not the one, decide
+who sleeps. The gate excludes exactly Imp, Skeleton, Unique Skeleton, Horny,
+Dwarf and Stone Knight by `TimeSleep`, and the seven `LairObjectId`-0 heroes (the
+princes, King Reginald, Lord of the Land, Jack) by the id.
 
 **The second trigger is the sleep need.** The needs check keeps three fields
 EA's own debug dump names `LastSleptTime`, `SleepNeeded` and
@@ -192,22 +181,20 @@ creature last slept, `SleepNeeded` is set to `TimeSleep` (`0xEC4`); while it is
 non-zero, and the current state may be interrupted for sleep, the creature
 re-attempts the Sleep job every 4 ticks — and the Sleep job on a creature with
 no lair is *the same attempt*: find a lair, go and claim a bed. Hunger runs the
-same way one block earlier (`HungerNeed` grows by the level-scaled
-`HungerFill` every `HungerRate`).
+same way one block earlier (`HungerNeed` grows by the level-scaled `HungerFill`
+every `HungerRate`; `eating.md` §3).
 
 **What this predicts, for the owner to break:** with a **large, empty,
 reachable lair** built before the portal delivers anything, *every* creature —
 Bile Demon and Troll included — goes for a bed before its first job. A Troll
 that trains first has found no lair with a free slot at that moment: full,
-unreachable, or (Q156) counted full by a rule we have not read.
+unreachable, or counted full by a rule we have not read.
 
-**Why the earlier reading was wrong, kept for the method.** The mood transition
-and the lair search coincided in the recording because the *unhappy* chooser
-tries the lair first — a real rule — and because the creature's earlier attempt
-had failed for a reason the camera could not see. A coincidence between a visible
-state change and a behaviour is not the trigger until the behaviour is shown to
-be *absent* without it, and the owner's four other creature types showed the
-opposite.
+**The method note worth keeping:** a coincidence between a visible state change
+and a behaviour is not the trigger until the behaviour is shown to be *absent*
+without it. The mood transition and the lair search coincided on camera because
+the *unhappy* chooser tries the lair first, and because an earlier attempt had
+failed for a reason the camera could not see.
 
 ## 6. A variable that governs nothing
 
@@ -216,46 +203,38 @@ instructions in the whole executable.** Its dispatch stub stores it into a
 dedicated global and nothing ever loads that global back.
 
 This is a real answer to "what uses it": **nothing does.** It is the third
-balance variable this project has caught not meaning what its name implies, after
-`MaxFreeRangeChickensPerPlayer` and `MaxGoldPileOutsideTreasury`, and the
+balance variable this project has caught not meaning what its name implies,
+after `MaxFreeRangeChickensPerPlayer` and `MaxGoldPileOutsideTreasury`, and the
 cheapest of the three to check. Do not build a retry interval on it.
 
-## 7. What this means for the rework
+## 7. Implementation
 
-**Built 2026-09-05 — ADR-0060.** The shape below is what was built; the list
-is kept as the specification it was. Marked as ours in the code: the idle
-retry cadence (12 ticks), the arrival tile (room centre, Q157), the order of
-the room walk (ascending tile index; the random start is kept), and no
-sub-tile jitter on the walk target. The shape it had to take:
+**ADR-0060.** `CreatureSleepSystem` and the shared `LairSeeker` (this document's
+§4 finder) do what §4, §5 and §7a-adjacent readings describe: a bedless idle
+creature picks the nearest reachable lair with a free slot, preferring one with
+no bed of the other side, walks to it, and finds its tile on arrival —
+underfoot, the eight neighbours in the original's order, then a walk of the room
+from a random start.
 
-- a creature with no lair does **not** claim one until something makes it want to;
-- wanting one puts it into a state that **picks a room by distance** and walks
-  there;
-- on arrival it tests **where it is standing**, then its immediate neighbours,
-  then wanders the room;
-- occupancy is decided **at the moment of the test**, so two creatures heading for
-  the same room is normal and one of them losing is normal.
+`LairRules` carries the rest: `NeedsBed` (`LairObjectId != 0 && TimeSleep != 0`,
+the §5 gate, both halves), `Capacity` (the room's tile count), `HasFreeSlot`,
+`IsFreeLairTile`, `HoldsBedOfOtherAlignment`, `DistanceToCentreSquared`,
+`ArrivalTile`, `TryFindFreeTile`, `TryPlaceBedInAnyLair`, `PlaceBed`,
+`ReleaseBed`, `BedStillValid`, `AsleepInOwnBed`, `WantsToSleep`,
+`HasSleptEnough`, and `IdleRedecisionTicks` (12).
 
-**Every part is now read** (§3, §4, §5, §6, §8), so the rework is buildable
-without a guess: an idle bedless creature attempts a lair first; the room is the
-nearest reachable lair with a free slot, preferring one with no beds of the
-other alignment; the tile is found on arrival; failure falls through to a job
-and is retried at the next idle decision; a sleep need every `TimeAwake` is the
-second way in. What is still unread and must be marked as ours when built: the
-exact idle re-decision cadence (the idle state's own fallback is a 12-tick
-wander, after which it decides again), and **which tile of the chosen room the
-travel-to-room step aims at** — the arrival test only requires *some* tile of
-the keeper's lair underfoot (Q157). Q156 (one bed per tile) and the
-neighbour-offset table are now read (§4), and so is the gate: `TimeSleep ≠ 0` as
-well as `LairObjectId ≠ 0`, which our `NeedsBed` must gain (Q104).
+**Ours, and marked as such in the code:** the idle retry cadence (12 ticks); the
+arrival tile — room centre, where the original's travel-to-room step
+(`FUN_00471a70`) has not been read and its arrival test only requires *some* tile
+of the keeper's lair underfoot (**Q157**); the order of the room walk (ascending
+tile index, with the random start kept); and no sub-tile jitter on the walk
+target.
 
-**Checked against a third party's plan, 2026-09-05.** An implementation plan
-drawn from this note by another tool matched the binary on every point it made
-from the note, and added one clause the binary does not have: it would also have
-required the lair to be *"valid/functional according to the applicable lair
-rules"*. The finder tests room type, reachability, a free slot, distance and the
-alignment of existing beds — nothing about size or function. The rework must
-not add that test.
+**Not added deliberately:** an implementation plan drawn from this note by
+another tool required the lair to be *"valid/functional according to the
+applicable lair rules"*. The finder tests room type, reachability, a free slot,
+distance and the alignment of existing beds — **nothing about size or
+function**, so that test must not exist here either.
 
 ## 7a. How OpenKeeper does it, for the record
 
@@ -278,6 +257,7 @@ rolls `rand(100)`, tries the job whose range holds the roll, and on failure
 tries every job in list order. A re-roll is allowed only after **five game
 seconds** (5 × variable 19). **The unhappy and angry choosers try for a lair
 before rolling; the happy one does not, because the idle state already did.**
+`job-selection.md` carries the choosers and the dispatcher in full.
 
 The job ids match the record: **1 Sleep** (the lair attempt when bedless, bed
 when not), 2 Eat, 3 Research, 4 Train, 5 Manufacture, 6 Guard, 7 Torture,
@@ -287,11 +267,31 @@ gold — dispatched by `FUN_00478800(job)`.
 **Hero and neutral creatures skip all of this** — the decision routine sends
 them to their own routines by owner id before needs are looked at.
 
-**Built 2026-09-05 — ADR-0061.** The angry chooser's half of this is now in
+**Built 2026-09-05 — ADR-0061.** The angry chooser's half is in
 `CreatureAngerSystem`: the five-second gate, the lair attempt before the roll
-(through the shared `LairSeeker`, which is this document's §4 finder), the
-cumulative ranges and the fall-through. Two arithmetic quirks that only show
-under a second reading — the ranges are inclusive at both ends, and the "sort"
-cannot reorder anything — are written out in `creature-anger.md`, "The chooser,
-read from the binary". The happy and unhappy choosers have no jobs to run yet.
+(through `LairSeeker`), the cumulative ranges and the fall-through. Two
+arithmetic quirks that only show under a second reading — the ranges are
+inclusive at both ends, and the "sort" cannot reorder anything — are in
+`creature-anger.md`, "The chooser, read from the binary".
 
+## Tests
+
+`LairAcquisitionTests` and `CreatureAngerTests`
+(`tests/DK2.Simulation.Tests/`, both citing §4, §5 and §8);
+`TheDwarfAndTheStoneKnightCarryABedIdAndAreNeverSentForOne` and
+`TwelveCreaturesNeverGoForABedAndTheyAreTheOnesWithNowhereToLiveOrNoSleepToSleep`
+(`tests/DK2.Behavior.Tests/CreatureNeedsOnRealDataTests.cs`).
+
+## Known exceptions
+
+- `TimeBetweenReattemptingSleepSeconds` parsed and never applied (§6), because
+  the original never reads it.
+
+## Open questions
+
+- **Q157**: which tile of the chosen room the travel-to-room step aims at.
+  UNKNOWN; ours arrives at the room centre.
+- Whether a creature remembers what it has already rejected within one search
+  (§2). **HYPOTHESIS.**
+- The exact idle re-decision cadence. The idle state's own fallback is a 12-tick
+  wander, after which it decides again; ours uses the same 12.
