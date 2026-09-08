@@ -268,4 +268,60 @@ public class TriggerStateOnRealDataTests
         foreach (long code in codes)
             Assert.Equal(expected[code], TriggerState.Compare((byte)code, 1, 2));
     }
+
+    [InstallFact]
+    public void EveryShippedFlagAndOrdinaryTimerConditionEvaluates()
+    {
+        string install = Install();
+        var state = new TriggerState();
+        int flags = 0, timers = 0, specialTimers = 0;
+
+        foreach (TriggerRecord record in AllTriggers(install))
+        {
+            if (record.Tag != 213 || record.Type is not (1 or 2)) continue;
+
+            TriggerConditionResult result =
+                TriggerConditionEvaluator.Evaluate(record, state, currentTick: 1);
+            if (record.Type == 1)
+            {
+                flags++;
+                Assert.NotEqual(TriggerConditionResult.NotEvaluated, result);
+            }
+            else if (record.Parameters["TimerId"] == TriggerState.SpecialTimerId)
+            {
+                specialTimers++;
+                Assert.Equal(TriggerConditionResult.NotEvaluated, result);
+            }
+            else
+            {
+                timers++;
+                Assert.NotEqual(TriggerConditionResult.NotEvaluated, result);
+            }
+        }
+
+        Assert.Equal(1375, flags);
+        Assert.Equal(298, timers);
+        Assert.Equal(5, specialTimers);
+    }
+
+    [InstallFact]
+    public void LevelThreeTrigger18EvaluatesFlagThreeAgainstFlagFour()
+    {
+        string install = Install();
+        TriggerRecord record = (GameDatabaseLoader.LoadCampaignTriggers(install, "level3") ?? [])
+            .Single(r => r.Tag == 213 && r.TriggerId == 18);
+        var state = new TriggerState();
+        state.Write(3, FlagWriteMode.Assign, 9);
+        state.Write(4, FlagWriteMode.Assign, 5);
+
+        Assert.Equal(1, record.Type);
+        Assert.Equal(
+            TriggerConditionResult.Satisfied,
+            TriggerConditionEvaluator.Evaluate(record, state, currentTick: 0));
+
+        state.Write(3, FlagWriteMode.Assign, 1);
+        Assert.Equal(
+            TriggerConditionResult.Unsatisfied,
+            TriggerConditionEvaluator.Evaluate(record, state, currentTick: 0));
+    }
 }
