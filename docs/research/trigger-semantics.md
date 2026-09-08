@@ -92,7 +92,7 @@ are grouped; the count beside each type is its shipped record count.
 | types (count) | body reads and provenance |
 |---|---|
 | 1 (1375) | `Comparison:u8@00` **B**, `TargetId:u8@01` **T**, `Flag:u8@02` **T**, `FlagId:u8@03` **B**, `Value:s32@04` **B** |
-| 2 (303) | `Comparison:u8@00` **B**, `TargetId:u8@01` **T**, `Flag:u8@02` **T**, `TimerId:u8@03` **B**, `Value:s32@04` **B** |
+| 2 (303) | `Comparison:u8@00` **B**, `TimerId:u8@01` **C**, `Flag:u8@02` **T**, `IndirectTimerId:u8@03` **C**, `Value:s32@04` **B** — *corrected 2026-09-08: byte 01 is the timer the condition tests (`CMP DL,0x10` at `0x005184EB`, then indexed at `0x0051851A`); byte 03 is the indirect operand's timer, read only in indirect mode and 0 in all 303 shipped records. See `trigger-state.md` §5.* |
 | 3 (22), 4 (37), 6 (158), 8 (88), 10 (4), 12 (2), 13 (4), 16 (30), 46 (1), 56 (1), 57 (1), 58 (1), 60 (1), 65 (1), 72 (137) | body `00..07` **N** |
 | 19 (205), 20 (2) | `Comparison:u8@00` **B**, `CreatureId:u8@01` **B**, `Value:s32@04` **B**; `02..03` **N** |
 | 22 (26) | `Comparison:u8@00` **B**, `PlayerId:u8@03` **B**, `Value:s32@04` **B**; `01..02` **N** |

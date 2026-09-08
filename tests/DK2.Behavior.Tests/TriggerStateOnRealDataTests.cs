@@ -54,28 +54,58 @@ public class TriggerStateOnRealDataTests
         string install = Install();
 
         var flagIds = new SortedSet<long>();
-        var timerIds = new SortedSet<long>();
+        var startedTimers = new SortedSet<long>();
+        var testedTimers = new SortedSet<long>();
+        var type23Timers = new SortedSet<long>();
 
         foreach (TriggerRecord record in AllTriggers(install))
         {
             if (record.Parameters.TryGetValue("FlagId", out long flag)) flagIds.Add(flag);
-            if (record.Parameters.TryGetValue("TimerId", out long timer)) timerIds.Add(timer);
+
+            // WHICH BYTE IS THE TIMER INDEX MATTERS, and the external names had
+            // it on the wrong one. The condition's index is byte 01 - the field
+            // the reader still calls `TargetId` - because that is the byte the
+            // handler compares against 0x10 and then uses to index the bank
+            // (0x005184EB, 0x0051851A). Byte 03, which the reader calls
+            // `TimerId`, is the INDIRECT operand's timer and is 0 in all 303
+            // shipped records because no shipped level uses indirect mode.
+            if (record.Tag == 213 && record.Type == 2
+                && record.Parameters.TryGetValue("TimerId", out long tested))
+                testedTimers.Add(tested);
+
+            if (record.Tag == 214 && record.Type == 8
+                && record.Parameters.TryGetValue("TimerId", out long started))
+                startedTimers.Add(started);
+
+            if (record.Tag == 214 && record.Type == 23
+                && record.Parameters.TryGetValue("TimerId", out long set))
+                type23Timers.Add(set);
         }
 
-        // Non-vacuous: flags and timers are the trigger system's busiest
-        // mechanism, so an empty sweep here means the sweep is broken.
         Assert.NotEmpty(flagIds);
-        Assert.NotEmpty(timerIds);
+        Assert.NotEmpty(startedTimers);
+        Assert.NotEmpty(testedTimers);
 
         Assert.True(
             flagIds.Max <= TriggerState.SpecialFlagId,
             $"flag id {flagIds.Max} is past the bank and past the special target; "
             + $"ids seen: {string.Join(",", flagIds)}");
 
+        // Started timers all live inside the sixteen-slot bank.
         Assert.True(
-            timerIds.Max < TriggerState.TimerCount,
-            $"timer id {timerIds.Max} is outside a 0xFF-masked bank; "
-            + $"ids seen: {string.Join(",", timerIds)}");
+            startedTimers.Max < TriggerState.TimerCount,
+            $"timer id {startedTimers.Max} is past the {TriggerState.TimerCount}-slot bank; "
+            + $"ids seen: {string.Join(",", startedTimers)}");
+
+        // Tested timers reach the sentinel and never go past it.
+        Assert.True(
+            testedTimers.Max <= TriggerState.SpecialTimerId,
+            $"tested timer id {testedTimers.Max} is past the special target; "
+            + $"ids seen: {string.Join(",", testedTimers)}");
+
+        // And EVERY action type 23 record names the sentinel, which is what
+        // makes it a live mechanism rather than a curiosity (Q232).
+        Assert.Equal(new[] { (long)TriggerState.SpecialTimerId }, type23Timers.ToArray());
     }
 
     /// <summary>

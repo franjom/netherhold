@@ -80,10 +80,34 @@ public sealed class TriggerState
     public const byte SpecialFlagId = 0x80;
 
     /// <summary>
-    /// Timer ids 0..255. The write path masks the id with <c>0xFF</c> and
-    /// applies no bound of its own, so the bank must be at least this wide.
+    /// Timer ids 0..15. <b>Sixteen, not the 256 the masked write path first
+    /// suggested</b>, and two independent readings agree: the next known field
+    /// on the object sits at <c>+0x4030</c>, leaving the bank at
+    /// <c>+0x3FF0</c> exactly 0x40 bytes — sixteen dwords — and the condition
+    /// path compares the id against <c>0x10</c> before touching it.
     /// </summary>
-    public const int TimerCount = 256;
+    public const int TimerCount = 16;
+
+    /// <summary>
+    /// Id 16 — the first id past the timer bank, and <b>not a timer</b>, the
+    /// same shape as <see cref="SpecialFlagId"/> one past the flag bank.
+    ///
+    /// <para>The condition path compares the id against this value
+    /// (<c>CMP DL,0x10</c> at <c>0x005184EB</c>) and on a match reads its value
+    /// through a virtual call at slot <c>+0x34C</c> instead of indexing the
+    /// bank. There is only <b>one</b> indexed store to the timer bank in the
+    /// whole executable — action type 8's, which stamps the clock — so a write
+    /// naming this id does not reach the bank either.</para>
+    ///
+    /// <para><b>It is heavily used and completely unidentified.</b> All 86
+    /// action type 23 records in the campaign target it, and five type 2
+    /// conditions test it. <b>What it is remains UNKNOWN (Q232)</b>, so this
+    /// type refuses it rather than modelling a stored value it has not seen
+    /// written — the read side is a virtual call and the write side is
+    /// somewhere this reading has not reached, and they need not be the same
+    /// field.</para>
+    /// </summary>
+    public const byte SpecialTimerId = 16;
 
     private readonly byte[] _flags = new byte[FlagCount];
     private readonly int[] _timers = new int[TimerCount];
@@ -162,24 +186,52 @@ public sealed class TriggerState
         };
     }
 
+    private static byte CheckTimer(byte timerId)
+    {
+        if (timerId == SpecialTimerId)
+            throw new ArgumentOutOfRangeException(
+                nameof(timerId), timerId,
+                $"Timer id {SpecialTimerId} is the special target, not a timer slot. Every "
+                + "action type 23 record in the campaign names it and nobody knows what it is "
+                + "yet (Q232).");
+
+        if (timerId >= TimerCount)
+            throw new ArgumentOutOfRangeException(
+                nameof(timerId), timerId,
+                $"Timer id {timerId} is past the {TimerCount}-slot bank. In DK2 this would "
+                + "index past it into the object's next field; no shipped level does it.");
+
+        return timerId;
+    }
+
     /// <summary>
     /// A timer's stored stamp. <b>A timer holds the moment it was started, not
-    /// a countdown</b>: the condition side subtracts it from the current clock,
-    /// so elapsed time is derived rather than counted down.
+    /// a countdown</b>: the condition side compares the clock against
+    /// <c>stamp + value</c>, so elapsed time is derived rather than counted
+    /// down.
     /// </summary>
-    public int ReadTimer(byte timerId) => _timers[timerId];
+    public int ReadTimer(byte timerId) => _timers[CheckTimer(timerId)];
 
     /// <summary>Stamps a timer with <paramref name="now"/> — DK2's action type 8.</summary>
-    public void StartTimer(byte timerId, int now) => _timers[timerId] = now;
+    public void StartTimer(byte timerId, int now) => _timers[CheckTimer(timerId)] = now;
 
-    /// <summary>Sets a timer to an explicit stamp — DK2's action type 23.</summary>
-    public void SetTimer(byte timerId, int value) => _timers[timerId] = value;
+    /// <summary>
+    /// Sets a timer to an explicit stamp.
+    ///
+    /// <para><b>This is not DK2's action type 23</b>, which is what an earlier
+    /// version of this comment claimed. Every one of that type's 86 shipped
+    /// records names <see cref="SpecialTimerId"/>, and the bank has exactly one
+    /// indexed store in the whole executable — type 8's. So type 23 does not
+    /// write a timer slot at all, and this method exists for tests and for a
+    /// snapshot restore.</para>
+    /// </summary>
+    public void SetTimer(byte timerId, int value) => _timers[CheckTimer(timerId)] = value;
 
     /// <summary>
     /// Ticks elapsed since the timer was stamped. <b>Only meaningful when
     /// <see cref="IsStarted"/></b> — see it for why.
     /// </summary>
-    public int Elapsed(byte timerId, int now) => now - _timers[timerId];
+    public int Elapsed(byte timerId, int now) => now - _timers[CheckTimer(timerId)];
 
     /// <summary>
     /// Whether the timer has ever been stamped.
@@ -190,7 +242,7 @@ public sealed class TriggerState
     /// unstarted timer does not read as "a very long time ago" — its condition
     /// simply does not hold. Tick 0 is therefore not a usable stamp.</para>
     /// </summary>
-    public bool IsStarted(byte timerId) => _timers[timerId] != 0;
+    public bool IsStarted(byte timerId) => _timers[CheckTimer(timerId)] != 0;
 
     /// <summary>
     /// Whether <paramref name="value"/> ticks have passed since the timer was
@@ -205,7 +257,7 @@ public sealed class TriggerState
     /// minutes.</para>
     /// </summary>
     public bool HasElapsed(byte timerId, int value, int now) =>
-        IsStarted(timerId) && now >= _timers[timerId] + value;
+        IsStarted(timerId) && now >= _timers[CheckTimer(timerId)] + value;
 
     /// <summary>
     /// Compares two values with DK2's comparison codes. The routine at

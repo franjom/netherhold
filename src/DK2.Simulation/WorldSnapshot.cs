@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 37;
+    private const int FormatVersion = 39;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {

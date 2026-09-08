@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -246,7 +246,7 @@ public static class KwdTriggers
         void Unread() { S("Unreached_0000", 0); S("Unreached_0004", 4); }
 
         if (type == 1) { B("Comparison", 0); B("TargetId", 1); B("Flag", 2); B("FlagId", 3); S("Value", 4); }
-        else if (type == 2) { B("Comparison", 0); B("TargetId", 1); B("Flag", 2); B("TimerId", 3); S("Value", 4); }
+        else if (type == 2) { B("Comparison", 0); B("TimerId", 1); B("Flag", 2); B("IndirectTimerId", 3); S("Value", 4); }
         else if (type is 3 or 4 or 6 or 8 or 10 or 12 or 13 or 16 or 33 or 43 or 46 or 56 or 57 or 58 or 59 or 60 or 61 or 65 or 72) Unread();
         else if (type is 19 or 20 or 21) { B("Comparison", 0); B("CreatureId", 1); W("Unreached_0002", 2); S("Value", 4); }
         else if (type == 22) { B("Comparison", 0); W("Unreached_0001", 1); B("PlayerId", 3); S("Value", 4); }

@@ -34,7 +34,7 @@ public class SnapshotTests
         original.World.Triggers.Write(0, FlagWriteMode.Assign, 200);
         original.World.Triggers.Write(127, FlagWriteMode.Subtract, 1);
         original.World.Triggers.StartTimer(0, now: 11);
-        original.World.Triggers.StartTimer(255, now: -4);
+        original.World.Triggers.StartTimer(15, now: -4);
         original.World.Triggers.Write(TriggerState.SpecialFlagId, FlagWriteMode.Assign, 0x7FFFFFFF);
 
         GameSimulation restored = WorldSnapshot.FromBytes(
@@ -47,7 +47,7 @@ public class SnapshotTests
         Assert.Equal(255, restored.World.Triggers.Read(127));
 
         Assert.Equal(11, restored.World.Triggers.ReadTimer(0));
-        Assert.Equal(-4, restored.World.Triggers.ReadTimer(255));
+        Assert.Equal(-4, restored.World.Triggers.ReadTimer(15));
         Assert.Equal(0x7FFFFFFF, restored.World.Triggers.SpecialValue);
         Assert.True(restored.World.Triggers.SpecialValueWritten);
     }
