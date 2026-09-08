@@ -1,0 +1,26 @@
+#!/bin/sh
+# Checks the commit body and the staged changes against AGENTS.md's recording
+# budgets. Install once, per clone:
+#
+#     git config core.hooksPath .githooks
+#
+# It stays out of the way on purpose: if the tool is not built, the hook passes
+# rather than blocking a commit for a reason that has nothing to do with the
+# commit. A gate that fires when you cannot act on it is a gate people disable.
+
+TOOL="src/DK2.Tools/bin/Release/net10.0/DK2.Tools.dll"
+
+if [ ! -f "$TOOL" ]; then
+    echo "commit-msg: DK2.Tools is not built, skipping the budget check." >&2
+    echo "            dotnet build DK2.slnx -c Release" >&2
+    exit 0
+fi
+
+dotnet "$TOOL" docs --message "$1" || {
+    echo >&2
+    echo "commit-msg: over budget. Fix it, or commit with --no-verify if you" >&2
+    echo "            have a reason and can say what it is." >&2
+    exit 1
+}
+
+exit 0

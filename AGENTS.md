@@ -136,6 +136,9 @@ a commit body, for a commit-msg hook. Budgets live in one place,
 `DocBudgets` in `src/DK2.Tools/Program.cs`; changing one there without changing
 this table is a bug.
 
+Install the commit hook once per clone: `git config core.hooksPath .githooks`.
+CI runs the same check on every push and pull request.
+
 ### What is worth recording
 
 Record: a decision and its reason; a DK2 fact and how it was established; an
