@@ -29,7 +29,7 @@ namespace DK2.Simulation;
 public static class WorldSnapshot
 {
     private static readonly byte[] MagicBytes = Encoding.ASCII.GetBytes("DK2S");
-    private const int FormatVersion = 39;
+    private const int FormatVersion = 40;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -179,8 +179,23 @@ public static class WorldSnapshot
             w.Write(o.InHand);
         }
 
+        w.Write(world.ActionPoints.Count);
+        foreach (ActionPointState actionPoint in world.ActionPoints)
+        {
+            w.Write(actionPoint.Id);
+            w.Write(actionPoint.StartX);
+            w.Write(actionPoint.StartY);
+            w.Write(actionPoint.EndX);
+            w.Write(actionPoint.EndY);
+            w.Write(actionPoint.TriggerId);
+            w.Write(actionPoint.NextWaypointId);
+            w.Write(actionPoint.Flags);
+            w.Write(actionPoint.PassageCount);
+            w.Write(actionPoint.WaitTimerTicks);
+        }
+
         // The trigger banks. Written whole rather than sparsely: they are a
-        // fixed 128 bytes and 256 dwords, and a sparse form would have to
+        // fixed 128 bytes and 16 dwords, and a sparse form would have to
         // encode which slots are set, which costs more than the slots.
         for (int i = 0; i < TriggerState.FlagCount; i++) w.Write(world.Triggers.RawFlags[i]);
         for (int i = 0; i < TriggerState.TimerCount; i++) w.Write(world.Triggers.RawTimers[i]);
@@ -369,6 +384,24 @@ public static class WorldSnapshot
         // is: a bed destroyed when its owner died must not have its id handed
         // out again to the next bed.
         world.NextObjectId = nextObjectId;
+
+        int actionPointCount = r.ReadInt32();
+        for (int i = 0; i < actionPointCount; i++)
+        {
+            world.RawActionPoints.Add(new ActionPointState
+            {
+                Id = r.ReadByte(),
+                StartX = r.ReadUInt16(),
+                StartY = r.ReadUInt16(),
+                EndX = r.ReadUInt16(),
+                EndY = r.ReadUInt16(),
+                TriggerId = r.ReadUInt16(),
+                NextWaypointId = r.ReadByte(),
+                Flags = r.ReadByte(),
+                PassageCount = r.ReadUInt16(),
+                WaitTimerTicks = r.ReadUInt16(),
+            });
+        }
 
         for (int i = 0; i < TriggerState.FlagCount; i++) world.Triggers.RawFlags[i] = r.ReadByte();
         for (int i = 0; i < TriggerState.TimerCount; i++) world.Triggers.RawTimers[i] = r.ReadInt32();

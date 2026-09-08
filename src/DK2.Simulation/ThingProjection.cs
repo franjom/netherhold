@@ -17,10 +17,11 @@ namespace DK2.Simulation;
 public readonly record struct ThingProjectionResult(
     int Creatures,
     int Objects,
+    int ActionPoints,
     int RoomsAlreadyInTheGrid,
     int NotYetProjected)
 {
-    public int Placed => Creatures + Objects;
+    public int Placed => Creatures + Objects + ActionPoints;
 }
 
 /// <summary>
@@ -35,14 +36,13 @@ public readonly record struct ThingProjectionResult(
 /// subtile reading every single one would. <c>dk2tools kwd things</c> with no
 /// argument re-checks it.</para>
 ///
-/// <para><b>What this places, and what it deliberately does not.</b> Creatures
-/// and objects, because <see cref="WorldState"/> already holds both and both
-/// are live simulation entities. Action points, doors, traps, hero parties and
-/// effect generators are read from the file and counted, but the world has
-/// nowhere to put them yet — see the remarks on
+/// <para><b>What this places, and what it deliberately does not.</b> Creatures,
+/// objects and action points, because <see cref="WorldState"/> holds each as
+/// simulation state. Doors, traps, hero parties and effect generators are read
+/// from the file and counted, but the world has nowhere to put them yet — see
+/// the remarks on
 /// <see cref="ThingProjectionResult.NotYetProjected"/> below and Q222–Q224.
-/// Nothing here adds state to the world hash, so this changes no
-/// <c>HashVersion</c>.</para>
+/// Action points are hashed world state (ADR-0103).</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/placed-things.md")]
 public static class ThingProjection
@@ -75,7 +75,7 @@ public static class ThingProjection
         if (database is null) throw new ArgumentNullException(nameof(database));
         if (things is null) throw new ArgumentNullException(nameof(things));
 
-        int creatures = 0, objects = 0, rooms = 0, skipped = 0;
+        int creatures = 0, objects = 0, actionPoints = 0, rooms = 0, skipped = 0;
 
         foreach (ThingRecord record in things)
         {
@@ -104,6 +104,11 @@ public static class ThingProjection
                     objects++;
                     break;
 
+                case ActionPointThing t:
+                    PlaceActionPoint(world, t);
+                    actionPoints++;
+                    break;
+
                 // A ROOM record does not place a room: the MAP grid already
                 // carries the room's terrain, and WorldState.FromMap has
                 // already laid it down. Checked rather than assumed — across
@@ -120,7 +125,7 @@ public static class ThingProjection
             }
         }
 
-        return new ThingProjectionResult(creatures, objects, rooms, skipped);
+        return new ThingProjectionResult(creatures, objects, actionPoints, rooms, skipped);
     }
 
     private static void PlaceCreature(
@@ -160,5 +165,26 @@ public static class ThingProjection
         // MoneyAmount is what a placed gold pile is worth. It is zero on every
         // object that is not gold, so this needs no type test.
         state.GoldHeld = thing.MoneyAmount;
+    }
+
+    private static void PlaceActionPoint(WorldState world, ActionPointThing thing)
+    {
+        // DK2 copies coordinate words, copies only five bits out of Flags, and
+        // scales WaitDelay once at load. Unchecked casts reproduce those
+        // 16-bit stores rather than adding validation the original lacks.
+        world.AddActionPoint(new ActionPointState
+        {
+            Id = thing.ActionPointId,
+            StartX = unchecked((ushort)thing.StartX),
+            StartY = unchecked((ushort)thing.StartY),
+            EndX = unchecked((ushort)thing.EndX),
+            EndY = unchecked((ushort)thing.EndY),
+            TriggerId = thing.TriggerId,
+            NextWaypointId = thing.NextWaypointId,
+            Flags = (byte)(thing.Flags & ActionPointState.LoadedFlagMask),
+            PassageCount = 0,
+            WaitTimerTicks = unchecked((ushort)(
+                thing.WaitDelay * SimulationTiming.OriginalTicksPerGameSecond)),
+        });
     }
 }

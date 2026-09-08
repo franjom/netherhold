@@ -7,6 +7,11 @@ What is *built* rather than known, against the long-term goals:
 `docs/GOAL_ALIGNMENT.md`.
 
 ## Solved (usable today)
+- Action-point storage and projection: all 1,152 shipped points enter
+  `WorldState` in file order with the rectangle, ids/link, loader-selected flag
+  bits and saved runtime words. The earlier shared `Available` interpretation
+  is refuted; exact flag meanings and update cadence remain Q235–Q238. See
+  docs/research/action-points.md and ADR-0103.
 - Terrain (41 types), rooms (26 types) and the level tile grid: parsed and
   cross-validated; the dig/claim terrain transition graph is data. See
   docs/research/kwd-terrain-rooms.md.
