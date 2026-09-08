@@ -160,7 +160,10 @@ JNZ  ...                    ; proceed only when now % var19 == 0
 second if `now` counts **ticks**, four to the second. That fixes a trigger
 timer's unit at 250 ms per unit (ADR-0089).
 
-### Authored timer thresholds are in ticks, not seconds
+### Authored timer thresholds are in seconds
+
+**This section said "in ticks, not seconds" and was wrong. It is corrected
+below, and the disassembly it rested on is kept, because that part holds.**
 
 The same function shows the game's idiom for a duration authored in seconds, 30
 bytes earlier at `0x00488D1D`:
@@ -180,17 +183,65 @@ references variable 19's global at all** — checked with a scan of every
 initialised block, `cseg` included, whose positive control returned its expected
 226 hits.
 
-So a trigger's authored threshold is consumed raw, in ticks. `Value=600` on a
-timer condition is **150 seconds, not ten minutes**.
+The reading taken from that was that the authored threshold is consumed raw as
+ticks, so `Value=600` on a timer condition would be 150 seconds. The section
+flagged the round numbers as a reason to doubt it and Q228 recorded it as
+wanting an observation. **The observation was taken, and it went the other
+way.**
 
-**This deserves an observation before anything is built on it.** The shipped
-thresholds are suspiciously round *as seconds* — 60, 120, 180, 240, 300, 600 —
-which is what a designer typing seconds would produce, and a 4x error here would
-mis-time every timed objective in the campaign. Against that: the corpus also
-contains 1, 3, 5, 15 and 25, which are not multiples of four, so the editor is
-not storing `seconds x 4`. The binary reading stands and the round numbers are
-most likely round tick counts, but Q228 records what to watch in the running
-game to be sure.
+### What the running game says
+
+Two captures of campaign level 1 with a memory reader, correlated against this
+level's trigger graph. The method that discriminates is to predict, for each
+type-2 condition, the tick at which **the specific flag that condition's
+subtree writes** should change — not merely to look for activity near a
+predicted tick. Level 1 changes some flag every ~13 ticks on average, so a
+tick-only match is worth nothing.
+
+| run | condition | stamp | authored | if ticks | if seconds | flag | observed |
+|----:|-----------|------:|---------:|---------:|-----------:|------|---------:|
+| 1 | 10: timer15 >= 8 | 6 | 8 | 14 | 38 | flag 1 | **39** |
+| 2 | 10: timer15 >= 8 | 10 | 8 | 18 | 42 | flag 1 | **43** |
+| 1 | 50: timer2 >= 5 | 273 | 5 | 278 | 293 | flag 48 | **294** |
+| 2 | 50: timer2 >= 5 | 426 | 5 | 431 | 446 | flag 48 | **447** |
+
+The residual's *size* is weak evidence; the way it *scales* is not. Under
+seconds the residual is a constant `+1` tick in all four — the sampler's own
+lag, since it polls at roughly the tick rate and so sees a change up to one tick
+late. Under ticks it is exactly `3 * threshold + 1` in all four, which is the
+arithmetic signature of one missing multiply by variable 19 and not of noise.
+Timer 2's stamp moved 153 ticks between the two runs; the seconds model has no
+free parameter and tracked it.
+
+Twelve further predictions agree by silence. Condition 41 (`timer15 >= 150`)
+must have written flags 34 to 40 at tick 160 under the ticks reading; condition
+32 (`timer1 >= 80`) must have written flags 30 to 33 at tick 260. Neither did,
+anywhere in 476 ticks, and under seconds both fall outside the capture. Every
+gate between those conditions and those writes is a `flag0 == 0` test, and
+flag0 read 0 at both ticks in the capture itself. One gate above them is a
+type-31 condition against 6000, probably a gold test, which the reader does not
+observe — so this evidence is corroborating rather than decisive.
+
+### The two readings are compatible, at different layers
+
+The disassembly above is not retracted: there is no multiply in the trigger
+comparison and no reference to variable 19's global anywhere in `0x517400` to
+`0x519A00`. What was wrong was the inference from that to the *authored* unit.
+Both facts hold together if the conversion happens **before evaluation ever
+runs** — most likely once at level load, when the trigger records are built,
+leaving the in-memory `Value` in ticks while the `.kld` on disk holds seconds.
+
+That is a hypothesis, and a cheap and decisive one to test: read the live
+trigger record for level 1's condition 10 out of the running game's trigger
+array and see whether its threshold field holds **8** or **32**. Q233 carries
+it.
+
+The earlier failure is worth naming, because it is the same one twice. The scan
+that found "no var19 in the trigger path" was correct about every block it
+covered and was filtered to a 0x2600-byte window; the creature-context
+dispatcher `FUN_0049AC80` was already on a list of functions that reference
+var19 *and* call the clock, and sits outside that window. A scan proves nothing
+outside its range.
 
 ### Timer id 16 is not a timer
 
@@ -330,8 +381,10 @@ Every comparison code in the corpus is one of the six the routine at
 | Evaluation is a virtual method, `FUN_0050A450` | **Strongly inferred** | zero direct call sites; one vtable reference at `0x0066E404` |
 | A timer stores a start stamp; comparison is a deadline | **Strongly inferred** | write stamps the clock; read compares `now` to `stamp + value` |
 | A stamp of 0 means "not started" | **Strongly inferred** | `TEST EAX,EAX; JZ` before any comparison |
-| The clock counts ticks, 250 ms each | **Strongly inferred** | `now % var19 == 0` is the once-a-second gate (ADR-0089) |
-| Authored thresholds are ticks, not seconds | **Strongly inferred**, wants an observation | no multiply in the trigger path, and no var19 reference in the region |
+| The clock counts ticks, 250 ms each | **Known** (observed) | `now % var19 == 0` is the once-a-second gate (ADR-0089), and the counter was read live at 3.94 ticks/s with var19 = 4 |
+| A stamp in the timer bank is a tick count | **Known** (observed) | five timers caught being stamped across two runs, each holding exactly the tick it was set at |
+| Authored thresholds are in **seconds** | **Known** (observed) | two live captures of campaign level 1, matched flag by flag; residual constant under seconds, `3 x threshold + 1` under ticks |
+| The in-memory threshold is in ticks, converted at load | **Hypothesis** | reconciles the observation with the absent multiply in the evaluation path; Q233 |
 | No shipped level exceeds either bank | **Known** (from data) | corpus sweep, all 66 levels |
 | What id 128's target *is* | **UNKNOWN** | Q229 |
 | How often `FUN_0050A450` is invoked, and what the 24 slots are | **UNKNOWN** | Q228 |

@@ -7936,7 +7936,7 @@ state, and the difference is invisible until a determinism hash diverges or one
 keeper's script quietly overwrites another's. So it was settled from the binary
 before anything was written.
 
-**Decision.** `TriggerState` on `WorldState`: 128 flag bytes, 256 timer dwords,
+**Decision.** `TriggerState` on `WorldState`: 128 flag bytes, 16 timer dwords,
 one opaque special target. Hashed, snapshotted, and level-global.
 
 ### Level-global, from four readings
@@ -7986,7 +7986,7 @@ a tick — which also means this adds no per-tick work to the simulation.
 
 ### Consequences
 
-- **The pinned determinism hash moved** because 128 flag bytes and 256 timer
+- **The pinned determinism hash moved** because 128 flag bytes and 16 timer
   dwords enter it even when every slot is zero. That is the intended cost of
   putting them in the hash: an action writes a flag and a later condition reads
   it, so two worlds disagreeing about one diverge only when that condition is
@@ -7999,3 +7999,42 @@ a tick — which also means this adds no per-tick work to the simulation.
 - Action points, the other mutable trigger state, are still unmodelled (Q222 is
   now answered — they *are* mutable, since action types 16, 17, 27 and 31 write
   an `Available` byte — so the storage is the next step, not the question).
+
+### Amendment, 2026-09-08 — an authored timer threshold is in seconds, and this ADR said ticks
+
+**Corrected by observation of the running game.** A memory reader was attached
+to a live DKII-dx.EXE and two plays of campaign level 1 were captured at the
+tick rate, sampling the flag bank, the timer bank and the tick counter. The
+capture was then correlated against level 1's own trigger graph by predicting,
+for each type-2 condition, the tick at which **the specific flag its subtree
+writes** should change.
+
+Under a seconds reading the residual is a constant `+1` tick — the sampler's
+lag — in four of four measurements across two runs, two timers and two
+thresholds. Under a ticks reading it is exactly `3 x threshold + 1` in all
+four, which is one missing multiply by variable 19, not noise. Twelve further
+conditions predicted flag writes that a ticks reading requires and that never
+happened. `Value=600` is ten minutes, not 150 seconds.
+
+**What is retracted is an inference, not a disassembly.** There is still no
+multiply in the trigger comparison and still no reference to variable 19's
+global in `0x517400`-`0x519A00`. Both hold together if the conversion runs once
+at level load, leaving the in-memory threshold in ticks while the `.kld` holds
+seconds — a hypothesis, and Q233 is a direct read of the live trigger record
+that settles it.
+
+The scan that produced the wrong inference was sound over every block it
+covered and was filtered to a 0x2600-byte window. `FUN_0049AC80` was already
+on a list of functions that reference variable 19 *and* call the clock, and it
+sits outside that window. A scan proves nothing outside its range.
+
+**Also confirmed rather than corrected**, from the same captures: the clock
+counts ticks at 3.94/s with variable 19 read live as 4 (ADR-0089); a stamp in
+the timer bank is a tick count, caught five times across two runs, each holding
+exactly the tick it was set at; and both cached world pointers `0x006E5050` and
+`0x006E5054` hold `0x006F2A08`, so they are two caches of one pointer rather
+than two subobject pointers (Q231, closed).
+
+`TriggerState.HasElapsed` now takes seconds and multiplies by
+`SimulationTiming.TicksFromSeconds`. Nothing evaluated a condition yet, so no
+behaviour changed and the determinism hash is untouched.

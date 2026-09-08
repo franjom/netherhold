@@ -116,31 +116,58 @@ public class TriggerStateTests
         var triggers = new TriggerState();
 
         Assert.False(triggers.IsStarted(7));
-        Assert.False(triggers.HasElapsed(7, value: 10, now: 500));
+        Assert.False(triggers.HasElapsed(7, seconds: 10, now: 500));
 
         triggers.StartTimer(7, now: 100);
 
+        // Ten authored seconds is forty ticks after the stamp.
         Assert.True(triggers.IsStarted(7));
-        Assert.False(triggers.HasElapsed(7, value: 10, now: 109));
-        Assert.True(triggers.HasElapsed(7, value: 10, now: 110));
+        Assert.False(triggers.HasElapsed(7, seconds: 10, now: 139));
+        Assert.True(triggers.HasElapsed(7, seconds: 10, now: 140));
     }
 
     [Fact]
-    public void ATimerThresholdIsInTicks_SoSixHundredIsAHundredAndFiftySeconds()
+    public void ATimerThresholdIsInSeconds_SoSixHundredIsTenMinutes()
     {
-        // The unit, which is the half of Q228 that is settled. No multiply
-        // exists in the trigger path and nothing in the trigger region reads
-        // variable 19, while the rest of the game scales a second-authored
-        // duration by it. A reading in seconds would make every timed
-        // objective in the campaign four times too long.
+        // This test asserted the opposite until two live captures of campaign
+        // level 1 were matched against the trigger graph flag by flag. The
+        // earlier reading rested on a scan that found no seconds-to-ticks
+        // multiply in the trigger path, over a range too narrow to contain one.
+        // Under seconds the residual is a constant +1 tick in four of four
+        // measurements; under ticks it is exactly 3 * threshold + 1 every time,
+        // which is a missing multiply by variable 19, not noise.
         var triggers = new TriggerState();
         triggers.StartTimer(0, now: 1);
 
-        int oneHundredAndFiftySeconds = 150 * SimulationTiming.TicksPerSecond;
-        Assert.Equal(600, oneHundredAndFiftySeconds);
+        int tenMinutes = 600 * SimulationTiming.TicksPerSecond;
+        Assert.Equal(2400, tenMinutes);
 
-        Assert.True(triggers.HasElapsed(0, value: 600, now: 1 + oneHundredAndFiftySeconds));
-        Assert.False(triggers.HasElapsed(0, value: 600, now: oneHundredAndFiftySeconds));
+        Assert.True(triggers.HasElapsed(0, seconds: 600, now: 1 + tenMinutes));
+        Assert.False(triggers.HasElapsed(0, seconds: 600, now: tenMinutes));
+
+        // And the reading that was committed is now explicitly wrong: at 150
+        // seconds past the stamp a threshold of 600 has not come due.
+        Assert.False(triggers.HasElapsed(
+            0, seconds: 600, now: 1 + 150 * SimulationTiming.TicksPerSecond));
+    }
+
+    [Fact]
+    public void TheThresholdsCampaignLevelOneAuthorsAreReadBackAsObserved()
+    {
+        // The two conditions that were actually timed in the running game.
+        // Level 1's trigger 10 is "timer 15 >= 8" and its trigger 50 is
+        // "timer 2 >= 5"; the stamps below are the ones the captures caught,
+        // and the ticks are the ones at which the flag each subtree writes was
+        // seen to change, less the sampler's one-tick lag.
+        var triggers = new TriggerState();
+
+        triggers.StartTimer(15, now: 6);
+        Assert.True(triggers.HasElapsed(15, seconds: 8, now: 38));
+        Assert.False(triggers.HasElapsed(15, seconds: 8, now: 37));
+
+        triggers.StartTimer(2, now: 426);
+        Assert.True(triggers.HasElapsed(2, seconds: 5, now: 446));
+        Assert.False(triggers.HasElapsed(2, seconds: 5, now: 445));
     }
 
     [Fact]

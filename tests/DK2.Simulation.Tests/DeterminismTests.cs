@@ -314,7 +314,7 @@ public class DeterminismTests
         // banks (ADR-0102). They are hashed because an action record writes a
         // flag and a later condition reads it, so two worlds disagreeing about
         // one diverge as soon as that condition is evaluated. 128 flag bytes
-        // and 256 timer dwords enter the hash even when every slot is zero,
+        // and 16 timer dwords enter the hash even when every slot is zero,
         // which is what moves this value here.
         //
         // 36 adds PlayerState.ResearchPoints, the Library's accrual. A new

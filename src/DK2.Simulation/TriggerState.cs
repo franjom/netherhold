@@ -51,11 +51,19 @@ public enum FlagWriteMode : byte
 /// first id past the end. The executable special-cases exactly that id rather
 /// than running off into the timers.</para>
 ///
-/// <para>Nothing here decides <b>when</b> a trigger is evaluated. That is a
-/// separate and still-open question (Q228), and no code in this class assumes
-/// an answer to it. What Q228 <i>did</i> settle is the unit: the clock a timer
-/// stamps is the game's own tick counter, so every value in the timer bank is
-/// in ticks of 250 ms.</para>
+/// <para><b>Two units, and they are not the same one.</b> A <i>stamp</i> in the
+/// timer bank is a tick count — the clock a timer records is the game's own
+/// tick counter, and a live capture of campaign level 1 caught five timers
+/// being stamped, each holding exactly the tick it was set at. An authored
+/// <i>threshold</i> in a trigger record is in <b>seconds</b>, and is multiplied
+/// by variable 19 before it is compared. See <see cref="HasElapsed"/>; the
+/// evidence is in <c>docs/research/trigger-state.md</c> §5.</para>
+///
+/// <para>Nothing here decides <b>when</b> a trigger is evaluated. Q228 is still
+/// open on the cadence, and no code in this class assumes an answer — though
+/// the same capture bounds it: a threshold crossing showed up within one tick
+/// of its predicted tick in four out of four measurements, so evaluation cannot
+/// be rarer than about once per tick.</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-state.md")]
 public sealed class TriggerState
@@ -245,19 +253,37 @@ public sealed class TriggerState
     public bool IsStarted(byte timerId) => _timers[CheckTimer(timerId)] != 0;
 
     /// <summary>
-    /// Whether <paramref name="value"/> ticks have passed since the timer was
-    /// stamped — the whole condition, in the shape DK2 evaluates it.
+    /// Whether <paramref name="seconds"/> <b>seconds</b> have passed since the
+    /// timer was stamped — the whole condition, in the shape DK2 evaluates it.
     ///
-    /// <para><b>A deadline, not a subtraction.</b> The executable computes
-    /// <c>stamp + value</c> and compares the clock against it, and it is
-    /// <b>ticks throughout</b>: the authored threshold is consumed raw, with no
-    /// seconds-to-ticks multiply anywhere in the trigger code, while the rest
-    /// of the game multiplies a second-authored duration by variable 19 before
-    /// adding it to a stamp. So a threshold of 600 is 150 seconds, not ten
-    /// minutes.</para>
+    /// <para><b>A deadline, not a subtraction.</b> The executable computes a
+    /// deadline from the stamp and compares the clock against it, rather than
+    /// subtracting and testing the difference. With a saturating clock the two
+    /// are not the same, so the shape is kept.</para>
+    ///
+    /// <para><b>The threshold is in seconds, and an earlier version of this
+    /// file said otherwise.</b> It claimed the authored value was consumed raw
+    /// as ticks, on the strength of a scan that found no seconds-to-ticks
+    /// multiply in the trigger path. That scan covered <c>0x517400</c> to
+    /// <c>0x519A00</c> and no more, and the conversion is not in it. Two live
+    /// captures of campaign level 1 settle the direction: for each timer
+    /// condition, the tick at which <i>the specific flag its subtree writes</i>
+    /// actually changed was compared against both predictions.</para>
+    ///
+    /// <para>Under seconds the residual is a constant <c>+1</c> tick — the
+    /// sampler's own lag — in four out of four measurements across two runs,
+    /// two timers and two thresholds. Under ticks the residual is exactly
+    /// <c>3 * threshold + 1</c> every time, which is the arithmetic signature
+    /// of a missing multiply by variable 19 rather than of noise. Between the
+    /// two runs timer 2's stamp moved by 153 ticks and the seconds model, which
+    /// has no free parameter, tracked it. Twelve further conditions predicted
+    /// flags that would have had to change under ticks and did not.</para>
+    ///
+    /// <para>So a threshold of 600 is ten minutes, not 150 seconds.</para>
     /// </summary>
-    public bool HasElapsed(byte timerId, int value, int now) =>
-        IsStarted(timerId) && now >= _timers[CheckTimer(timerId)] + value;
+    public bool HasElapsed(byte timerId, int seconds, int now) =>
+        IsStarted(timerId)
+        && now >= _timers[CheckTimer(timerId)] + SimulationTiming.TicksFromSeconds(seconds);
 
     /// <summary>
     /// Compares two values with DK2's comparison codes. The routine at
