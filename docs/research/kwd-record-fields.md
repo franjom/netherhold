@@ -12,7 +12,8 @@ layout, not gameplay behaviour.
 | Both TRIGGERS payloads are 16 bytes with an 8-byte union followed by ids, type and repeat count | **Known** | All 9,161 shipped payloads consume and round-trip |
 | LEVEL has a 25,603-byte base metadata block, an optional 80-byte extension, then typed 72-byte paths and a height-sized `u32` tail | **Known** for the shipped files | All 66 LEVEL files consume and round-trip |
 | GLOBALS is a LEVEL path discriminator rather than a shipped standalone chunk | **Known** for this corpus; standalone form **Unknown** | Exhaustive sweep of 408 KWD/KLD files finds no type-0 chunk or path row |
-| Semantic field names below | **Strongly inferred** | Names come from OpenKeeper's GPLv3 reader; widths/order are independently checked against the shipped bytes |
+| TRIGGERS parameter reads | **Strongly inferred** where binary-read; otherwise explicitly transcribed or unreached | DKII.EXE dispatcher family and the shipped distribution; see `trigger-semantics.md` |
+| Other semantic field names below | **Strongly inferred** | Names come from OpenKeeper's GPLv3 reader; widths/order are independently checked against the shipped bytes |
 
 ## Re-checking
 
@@ -97,11 +98,18 @@ Both tags use:
 ```
 
 `GenericTriggerRecord` and `ActionTriggerRecord` expose the body bytes, useful
-word/dword views, and a type-aware parameter dictionary. Known parameter names
-are transcribed from the external reader. Unsupported types expose the two body
-dwords as `Unknown_0000` and `Unknown_0004`, so no byte disappears because a
-semantic name is missing. M1 reads the format only; executing any trigger stays
-in M6.
+word/dword views, and a type-aware parameter dictionary. Parameter names are no
+longer one undifferentiated external transcription: `trigger-semantics.md`
+records, per field, what DKII.EXE confirms, what it corrects, what remains
+transcribed, and what no handler reads. Unread bytes are exposed as
+`Unreached_<offset>`; read but unresolved fields remain `Unknown_<offset>`.
+Unsupported types still expose both body dwords as `Unknown_0000` and
+`Unknown_0004`, so no byte disappears because a semantic name is missing. M1
+reads the format only; executing any trigger stays in M6.
+
+`dk2tools kwd trigger-types` exhaustively reports the shipped tag/type counts
+and every level containing each type. The measured split is 3,753 tag-213
+records across 46 types and 5,408 tag-214 records across 38 types.
 
 ## LEVEL and GLOBALS
 
@@ -127,6 +135,8 @@ the absent standalone sample; Q221 records the unobserved DeadBody payload.
 ## Provenance
 
 - Primary: the shipped v1.70 KWD/KLD corpus under the configured DK2 install.
+- Primary for TRIGGERS parameter access: retail v1.70 `DKII.EXE`; addresses and
+  method are recorded in `trigger-semantics.md`.
 - Secondary: OpenKeeper field order, widths and names, consulted under GPLv3 as
   permitted by ADR-0003; implementation was not copied.
 - Existing container framing and sizes: `docs/research/kwd-container.md`.

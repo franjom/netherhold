@@ -7770,9 +7770,58 @@ and full-corpus consumption. No external implementation was copied. DeadBody's
 16-byte payload remains a hypothesis because no shipped file contains tag 202
 (Q221).
 
+**Amendment (2026-09-08):** the statement above established record consumption,
+not parameter semantics. ADR-0092 replaces it for TRIGGERS: several widths and
+names were false, and many named bytes have no reader in DKII.EXE.
+
 ### Consequences
 
 The milestone table can now say M1 complete without implying that M6 behaviour
 exists. Future format changes have three guards: the measured-stride tests,
 install-independent byte round-trips, and the install-gated corpus audit. The
 audit owns the counts so the prose no longer has to be trusted on its own.
+
+---
+
+## ADR-0092 — Trigger parameter views follow DKII.EXE reads, not editor labels
+
+**Status:** accepted (2026-09-08). `HashVersion` and snapshot `FormatVersion`
+remain **36**: this changes static-data views and audit tooling only. Trigger
+execution remains out of scope.
+**Evidence:** `docs/research/trigger-semantics.md`; Q222–Q224.
+
+### Context
+
+ADR-0091 made the 16-byte TRIGGERS structure load-bearing but left one unsafe
+sentence: it described parameter names and widths as externally transcribed and
+then checked by corpus consumption. Consumption proves boundaries, not meaning.
+DKII.EXE has context-specific world, player, creature, and area dispatchers;
+each reads the type byte and only a subset of the eight-byte body.
+
+### Decision
+
+- `KwdTriggers.Parameters` exposes the offsets and widths DKII.EXE reads for
+  each type. Signed comparison operands are signed in the view.
+- A byte with a binary-established role keeps or gains its semantic name. A
+  read whose role is not established is `Unknown_<offset>` or retains an
+  explicitly documented transcribed name.
+- A byte not read on that type's complete dispatch path is
+  `Unreached_<offset>`. It remains available through `Body` and round-trips;
+  `Unreached` is a reachability claim, not permission to discard the byte.
+- `dk2tools kwd trigger-types` is the reproducible scope audit. It enumerates
+  counts and level membership for every shipped tag/type combination. Types
+  absent from the retail corpus remain visibly uncorroborated even where the
+  executable contains a handler.
+- The dispatcher and per-parameter evidence is research, not observed gameplay,
+  so its maximum confidence is `StronglyInferred`.
+
+### Consequences
+
+The reader no longer presents untouched editor residue as a gameplay input.
+Known false readings are removed, including the shifted generic selectors,
+generic type 47's player/value interpretation, generic type 52's player label,
+action type 4's 32-bit objective id, action type 8's value, and action type 24's
+three-way interpretation of its second dword. Remaining external names are
+listed rather than silently promoted. M6 can design execution against a
+byte-accurate, provenance-labelled surface without this ADR deciding when or
+how triggers run.

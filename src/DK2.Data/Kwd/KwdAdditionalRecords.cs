@@ -9,10 +9,10 @@ using DK2.Data.Model;
 namespace DK2.Data.Kwd;
 
 /// <summary>
-/// Readers for the definition tables completed for M1. Field order and widths
-/// are transcribed from OpenKeeper's GPLv3 reader and independently constrained
-/// by the v1.70 shipped strides; semantic names remain readings, not evidence
-/// of game behaviour. See docs/research/kwd-record-fields.md.
+/// Readers for the definition tables completed for M1. Most field order and
+/// widths are transcribed from OpenKeeper's GPLv3 reader and independently
+/// constrained by the v1.70 shipped strides. Trigger parameter access is also
+/// checked against DKII.EXE; see docs/research/trigger-semantics.md.
 /// </summary>
 public static class KwdAdditionalRecords
 {
@@ -138,6 +138,8 @@ public static class KwdAdditionalRecords
 
     internal static ushort U16(byte[] r, int at) =>
         BinaryPrimitives.ReadUInt16LittleEndian(r.AsSpan(at));
+    internal static short I16(byte[] r, int at) =>
+        BinaryPrimitives.ReadInt16LittleEndian(r.AsSpan(at));
     internal static uint U32(byte[] r, int at) =>
         BinaryPrimitives.ReadUInt32LittleEndian(r.AsSpan(at));
     internal static int I32(byte[] r, int at) =>
@@ -240,26 +242,33 @@ public static class KwdTriggers
         var p = new Dictionary<string, long>();
         void B(string name, int at) => p[name] = r[at];
         void W(string name, int at) => p[name] = KwdAdditionalRecords.U16(r, at);
-        void D(string name, int at) => p[name] = KwdAdditionalRecords.U32(r, at);
-        if (type is 39 or 70) { B("Comparison", 0); B("PlayerId", 1); B("TargetId", 2); B("TargetType", 3); D("Value", 4); }
-        else if (type == 42) { B("Comparison", 0); B("PlayerId", 1); B("TerrainId", 2); B("Unknown_0003", 3); D("Value", 4); }
-        else if (type is 40 or 41 or 62 or 69) { B("Comparison", 0); B("PlayerId", 1); W("Unknown_0002", 2); D("Value", 4); }
-        else if (type is 56 or 57) { B("PlayerId", 0); }
-        else if (type == 47) { B("PlayerId", 0); D("Value", 4); }
-        else if (type is 58 or 60 or 61) { B("CreatureId", 0); }
-        else if (type == 59) { B("CreatureId", 0); B("RoomId", 1); }
-        else if (type is 19 or 20 or 21) { B("Comparison", 0); B("CreatureId", 1); B("Flag", 2); B("PlayerId", 3); D("Value", 4); }
-        else if (type is 22 or 23) { B("Comparison", 0); B("TargetId", 1); B("Flag", 2); B("PlayerId", 3); D("Value", 4); }
-        else if (type is 24 or 25 or 26 or 68) { B("Comparison", 0); B("RoomId", 1); B("Flag", 2); B("PlayerId", 3); D("Value", 4); }
-        else if (type is 27 or 28 or 29 or 33) { B("Comparison", 0); B("TargetId", 1); B("Flag", 2); B("PlayerId", 3); D("Value", 4); }
-        else if (type is 30 or 31 or 32 or 52 or 73 or 74) { B("Comparison", 0); B("Unknown_0001", 1); B("Flag", 2); B("PlayerId", 3); D("Value", 4); }
-        else if (type is 3) { D("Unknown_0000", 0); D("Value", 4); }
-        else if (type is 34 or 35 or 36 or 37 or 45 or 49 or 67) { B("Comparison", 0); D("Value", 4); }
-        else if (type is 44 or 64) { B("Comparison", 0); B("Unknown_0001", 1); D("Value", 4); }
-        else if (type == 53) { B("TargetType", 0); B("TargetId", 1); D("Value", 4); }
-        else if (type == 1) { B("Comparison", 0); B("TargetId", 1); B("Flag", 2); B("FlagId", 3); D("Value", 4); }
-        else if (type == 2) { B("Comparison", 0); B("TargetId", 1); B("Flag", 2); B("TimerId", 3); D("Value", 4); }
-        else { D("Unknown_0000", 0); D("Unknown_0004", 4); }
+        void S(string name, int at) => p[name] = KwdAdditionalRecords.I32(r, at);
+        void Unread() { S("Unreached_0000", 0); S("Unreached_0004", 4); }
+
+        if (type == 1) { B("Comparison", 0); B("TargetId", 1); B("Flag", 2); B("FlagId", 3); S("Value", 4); }
+        else if (type == 2) { B("Comparison", 0); B("TargetId", 1); B("Flag", 2); B("TimerId", 3); S("Value", 4); }
+        else if (type is 3 or 4 or 6 or 8 or 10 or 12 or 13 or 16 or 33 or 43 or 46 or 56 or 57 or 58 or 59 or 60 or 61 or 65 or 72) Unread();
+        else if (type is 19 or 20 or 21) { B("Comparison", 0); B("CreatureId", 1); W("Unreached_0002", 2); S("Value", 4); }
+        else if (type == 22) { B("Comparison", 0); W("Unreached_0001", 1); B("PlayerId", 3); S("Value", 4); }
+        else if (type == 23) { B("Comparison", 0); B("Unreached_0001", 1); B("Unknown_0002", 2); B("Unreached_0003", 3); S("Value", 4); }
+        else if (type is 24 or 25 or 26 or 68) { B("Comparison", 0); B("RoomId", 1); W("Unreached_0002", 2); S("Value", 4); }
+        else if (type is 27 or 28) { B("Comparison", 0); B("TargetId", 1); B("Flag", 2); B("Unreached_0003", 3); S("Value", 4); }
+        else if (type == 29) { B("Unreached_0000", 0); B("TargetId", 1); W("Unreached_0002", 2); S("Unreached_0004", 4); }
+        else if (type is 30 or 31 or 32 or 34 or 36 or 37 or 49 or 67 or 71 or 73) { B("Comparison", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); S("Value", 4); }
+        else if (type == 35) { B("Comparison", 0); B("CreatureId", 1); W("Unreached_0002", 2); S("Value", 4); }
+        else if (type == 39) { B("Comparison", 0); B("TargetId", 1); B("TargetType", 2); B("PlayerId", 3); S("Value", 4); }
+        else if (type == 40) { B("Comparison", 0); B("PlayerId", 1); B("TerrainId", 2); B("Unreached_0003", 3); S("Value", 4); }
+        else if (type == 41) { B("Unreached_0000", 0); B("PlayerId", 1); B("TerrainId", 2); B("Unreached_0003", 3); S("Unreached_0004", 4); }
+        else if (type == 42) { B("Comparison", 0); B("PlayerId", 1); B("TerrainId", 2); B("Unreached_0003", 3); S("Value", 4); }
+        else if (type is 44 or 45 or 64) { B("Comparison", 0); B("PlayerId", 1); W("Unreached_0002", 2); S("Value", 4); }
+        else if (type == 47) { B("CreatureId", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); S("Unreached_0004", 4); }
+        else if (type == 52) { B("Comparison", 0); W("Unreached_0001", 1); B("Level", 3); S("Value", 4); }
+        else if (type == 53) { B("TargetType", 0); B("TargetId", 1); W("Unreached_0002", 2); S("Unreached_0004", 4); }
+        else if (type == 62) { B("Comparison", 0); B("PlayerId", 1); W("Unreached_0002", 2); S("Value", 4); }
+        else if (type == 69) { B("Unreached_0000", 0); B("PlayerId", 1); W("Unreached_0002", 2); S("Unreached_0004", 4); }
+        else if (type == 70) { B("Unreached_0000", 0); B("TargetId", 1); B("TargetType", 2); B("PlayerId", 3); S("Unreached_0004", 4); }
+        else if (type == 74) { B("Comparison", 0); B("CreatureId", 1); W("Unreached_0002", 2); S("Value", 4); }
+        else { S("Unknown_0000", 0); S("Unknown_0004", 4); }
         return p;
     }
 
@@ -269,34 +278,43 @@ public static class KwdTriggers
         void B(string name, int at) => p[name] = r[at];
         void W(string name, int at) => p[name] = KwdAdditionalRecords.U16(r, at);
         void D(string name, int at) => p[name] = KwdAdditionalRecords.U32(r, at);
-        if (type == 22) { B("TerrainId", 0); B("PlayerId", 1); W("Unknown_0002", 2); W("PosX", 4); W("PosY", 6); }
-        else if (type == 32) { D("Unknown_0000", 0); W("PosX", 4); W("PosY", 6); }
-        else if (type == 49) { B("Unknown_0000", 0); B("PlayerId", 1); W("Unknown_0002", 2); W("PosX", 4); W("PosY", 6); }
-        else if (type == 18) { B("PlayerOneId", 0); B("PlayerTwoId", 1); B("Available", 2); }
-        else if (type is 33 or 36 or 37 or 38 or 44 or 45 or 51) { B("Available", 0); }
-        else if (type == 50) { D("Unknown_0000", 0); D("Value", 4); }
-        else if (type is 8 or 23) { B("TimerId", 0); D("Value", 4); }
-        else if (type == 7) { B("FlagId", 0); B("Flag", 1); W("Unknown_0002", 2); D("Value", 4); }
-        else if (type == 6) { B("PlayerId", 0); B("MakeType", 1); B("TargetId", 2); B("Available", 3); D("Unknown_0004", 4); }
-        else if (type == 46) { B("Available", 0); }
-        else if (type is 26 or 42 or 47) { B("TargetId", 0); }
-        else if (type == 4) { D("ObjectiveId", 0); B("ActionPointId", 4); }
-        else if (type == 24) { D("SpeechId", 0); B("Text", 4); B("Introduction", 5); W("PathId", 6); }
-        else if (type == 25) { D("TextId", 0); D("Unknown_0004", 4); }
-        else if (type is 30 or 34) { D("Value", 0); D("Unknown_0004", 4); }
-        else if (type == 31) { B("PathId", 0); B("ActionPointId", 1); B("Available", 2); }
-        else if (type == 9) { B("MakeType", 0); B("TargetId", 1); B("Available", 2); B("Unknown_0003", 3); D("Value", 4); }
-        else if (type == 16) { B("ActionPointId", 0); B("Available", 1); W("Unknown_0002", 2); D("Value", 4); }
-        else if (type == 17) { B("ActionPointId", 0); B("Available", 1); }
-        else if (type == 27) { B("ActionPointId", 0); B("Available", 1); W("Angle", 2); D("Time", 4); }
+        void S16(string name, int at) => p[name] = KwdAdditionalRecords.I16(r, at);
+        void Unread() { D("Unreached_0000", 0); D("Unreached_0004", 4); }
+
+        if (type == 22) { B("TerrainId", 0); B("PlayerId", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
+        else if (type == 32) { D("Unreached_0000", 0); W("PosX", 4); W("PosY", 6); }
+        else if (type == 49) { B("Unreached_0000", 0); B("PlayerId", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
+        else if (type == 18) { B("PlayerOneId", 0); B("PlayerTwoId", 1); B("Available", 2); B("Unreached_0003", 3); D("Unreached_0004", 4); }
+        else if (type is 33 or 36 or 37 or 38 or 44 or 45 or 51) { B("Available", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
+        else if (type == 50) { D("Unreached_0000", 0); D("Value", 4); }
+        else if (type == 8) { B("TimerId", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
+        else if (type == 23) { B("TimerId", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Value", 4); }
+        else if (type == 7) { B("FlagId", 0); B("Flag", 1); W("Unreached_0002", 2); D("Value", 4); }
+        else if (type == 6) { B("PlayerId", 0); B("MakeType", 1); B("TargetId", 2); B("Available", 3); D("Unreached_0004", 4); }
+        else if (type == 46) { B("Available", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
+        else if (type == 26) { B("ActionPointId", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
+        else if (type is 42 or 47) { B("TargetId", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
+        else if (type == 4) { W("ObjectiveId", 0); W("Unreached_0002", 2); B("ActionPointId", 4); B("Unreached_0005", 5); W("Unreached_0006", 6); }
+        else if (type == 24) { D("SpeechId", 0); D("Unknown_0004", 4); }
+        else if (type == 25) Unread();
+        else if (type == 30) { D("Value", 0); D("Unreached_0004", 4); }
+        else if (type == 34) Unread();
+        else if (type == 31) { B("PathId", 0); B("ActionPointId", 1); B("Available", 2); B("Unreached_0003", 3); D("Unreached_0004", 4); }
+        else if (type == 9) { B("MakeType", 0); B("TargetId", 1); B("Available", 2); B("Unreached_0003", 3); D("Value", 4); }
+        else if (type == 16) { B("ActionPointId", 0); B("Available", 1); W("Unreached_0002", 2); S16("Value", 4); W("Unreached_0006", 6); }
+        else if (type == 17) { B("ActionPointId", 0); B("Available", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
+        else if (type == 27) { B("ActionPointId", 0); B("Available", 1); S16("Angle", 2); D("Time", 4); }
         else if (type == 1) { B("CreatureId", 0); B("PlayerId", 1); B("Level", 2); B("Flag", 3); W("PosX", 4); W("PosY", 6); }
-        else if (type == 15) { B("PlayerId", 0); B("ObjectiveType", 1); W("Unknown_0002", 2); D("ActionPointId", 4); }
-        else if (type == 14) { B("PartyId", 0); B("PartyType", 1); W("Unknown_0002", 2); B("ActionPointId", 4); }
-        else if (type == 48) { B("GeneratorId", 0); B("Available", 1); }
-        else if (type == 28) { B("CreatureId", 0); B("Level", 1); }
-        else if (type == 5) { D("InformationId", 0); B("ActionPointId", 4); }
-        else if (type == 3) { D("Unknown_0000", 0); B("ActionPointId", 4); }
-        else if (type == 2) { B("ObjectId", 0); B("PlayerId", 1); W("Unknown_0002", 2); W("PosX", 4); W("PosY", 6); }
+        else if (type == 15) { B("PlayerId", 0); B("ObjectiveType", 1); W("Unreached_0002", 2); D("ActionPointId", 4); }
+        else if (type == 14) { B("PartyId", 0); B("PartyType", 1); W("Unreached_0002", 2); B("ActionPointId", 4); B("Unreached_0005", 5); W("Unreached_0006", 6); }
+        else if (type == 48) { B("GeneratorId", 0); B("Available", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
+        else if (type == 28) { B("CreatureId", 0); B("Level", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
+        else if (type is 3 or 5) Unread();
+        else if (type == 2) { B("ObjectId", 0); B("PlayerId", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
+        else if (type is 10 or 11 or 20 or 21 or 29 or 43) Unread();
+        else if (type == 35) { B("Unknown_0000", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
+        else if (type is 39 or 40) { B("Unknown_0000", 0); B("PlayerId", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
+        else if (type == 41) { W("Unknown_0000", 0); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
         else { D("Unknown_0000", 0); D("Unknown_0004", 4); }
         return p;
     }

@@ -277,7 +277,7 @@ public abstract class TriggerRecord : KwdRoundTripRecord
     public ushort ChildTriggerId { get; init; }
     public byte Type { get; init; }
     public byte RepeatCount { get; init; }
-    /// <summary>Type-aware views over <see cref="Body"/>; names follow the external field list.</summary>
+    /// <summary>Type-aware views over <see cref="Body"/>; see trigger-semantics.md for each name's provenance.</summary>
     public required IReadOnlyDictionary<string, long> Parameters { get; init; }
 }
 

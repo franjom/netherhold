@@ -45,6 +45,92 @@ public class KwdAdditionalRecordTests
             Assert.Equal(count, audit.RecordCounts[type]);
     }
 
+    [InstallFact]
+    public void ShippedTriggerTypes_HavePinnedDistribution()
+    {
+        IReadOnlyList<KwdTriggerCorpusAudit.Entry> entries =
+            KwdTriggerCorpusAudit.Run(Dk2InstallGate.Path);
+        Dictionary<byte, int> generic = ParseCounts(
+            "1:1375,2:303,3:22,4:37,6:158,8:88,10:4,12:2,13:4,16:30,19:205,20:2," +
+            "22:26,23:1,24:24,25:85,27:3,28:7,29:80,30:11,31:9,32:1,34:325,36:40," +
+            "39:183,40:92,41:69,42:89,44:13,46:1,47:72,52:3,53:159,56:1,57:1,58:1," +
+            "60:1,62:32,64:37,65:1,68:5,69:5,70:6,71:2,72:137,73:1");
+        Dictionary<byte, int> action = ParseCounts(
+            "1:268,2:5,4:1,6:303,7:1417,8:291,9:78,10:40,11:47,14:259,15:565," +
+            "16:109,17:291,18:27,20:16,21:2,22:160,23:86,24:827,26:100,27:18,28:10," +
+            "30:15,31:60,32:67,33:72,34:2,35:27,37:22,38:34,42:59,43:7,44:2,45:18," +
+            "47:84,49:3,50:3,51:13");
+
+        Assert.Equal(84, entries.Count);
+        Assert.Equal(9161, entries.Sum(e => e.Count));
+        Assert.Equal(generic, entries.Where(e => e.Tag == 213).ToDictionary(e => e.Type, e => e.Count));
+        Assert.Equal(action, entries.Where(e => e.Tag == 214).ToDictionary(e => e.Type, e => e.Count));
+        Assert.Equal(["level1"], entries.Single(e => e.Tag == 213 && e.Type == 46).Levels);
+        Assert.Equal(["Level19"], entries.Single(e => e.Tag == 214 && e.Type == 4).Levels);
+    }
+
+    [Fact]
+    public void TriggerParameterViews_MatchBinaryReadWidthsAndOffsets()
+    {
+        TriggerRecord generic39 = Trigger(213, 39, [1, 2, 3, 4, 0xfc, 0xff, 0xff, 0xff]);
+        Assert.Equal(2, generic39.Parameters["TargetId"]);
+        Assert.Equal(3, generic39.Parameters["TargetType"]);
+        Assert.Equal(4, generic39.Parameters["PlayerId"]);
+        Assert.Equal(-4, generic39.Parameters["Value"]);
+
+        TriggerRecord generic47 = Trigger(213, 47, [7, 1, 2, 3, 4, 5, 6, 7]);
+        Assert.Equal(7, generic47.Parameters["CreatureId"]);
+        Assert.DoesNotContain("PlayerId", generic47.Parameters.Keys);
+        Assert.DoesNotContain("Value", generic47.Parameters.Keys);
+
+        TriggerRecord generic52 = Trigger(213, 52, [1, 2, 3, 9, 4, 0, 0, 0]);
+        Assert.Equal(9, generic52.Parameters["Level"]);
+        Assert.DoesNotContain("PlayerId", generic52.Parameters.Keys);
+
+        TriggerRecord action4 = Trigger(214, 4, [0x34, 0x12, 0x78, 0x56, 9, 1, 2, 3]);
+        Assert.Equal(0x1234, action4.Parameters["ObjectiveId"]);
+        Assert.Equal(9, action4.Parameters["ActionPointId"]);
+
+        TriggerRecord action8 = Trigger(214, 8, [7, 1, 2, 3, 4, 5, 6, 7]);
+        Assert.Equal(7, action8.Parameters["TimerId"]);
+        Assert.DoesNotContain("Value", action8.Parameters.Keys);
+
+        TriggerRecord action16 = Trigger(214, 16, [7, 1, 2, 3, 0xfe, 0xff, 6, 7]);
+        Assert.Equal(-2, action16.Parameters["Value"]);
+
+        TriggerRecord action26 = Trigger(214, 26, [7, 1, 2, 3, 4, 5, 6, 7]);
+        Assert.Equal(7, action26.Parameters["ActionPointId"]);
+        Assert.DoesNotContain("TargetId", action26.Parameters.Keys);
+    }
+
+    [InstallFact]
+    public void ShippedTriggerParameterViews_UseBinaryReadNames()
+    {
+        string maps = Path.Combine(Dk2InstallGate.Path, "Data", "editor", "maps");
+        TriggerRecord[] triggers = Directory.GetFiles(maps, "*Triggers.kld")
+            .SelectMany(file => KwdTriggers.Parse(KwdReader.ReadFile(file))).ToArray();
+
+        TriggerRecord generic47 = triggers.First(t => t.Tag == 213 && t.Type == 47);
+        Assert.Contains("CreatureId", generic47.Parameters.Keys);
+        Assert.DoesNotContain("PlayerId", generic47.Parameters.Keys);
+        Assert.DoesNotContain("Value", generic47.Parameters.Keys);
+
+        TriggerRecord generic52 = triggers.First(t => t.Tag == 213 && t.Type == 52);
+        Assert.Contains("Level", generic52.Parameters.Keys);
+        Assert.DoesNotContain("PlayerId", generic52.Parameters.Keys);
+
+        TriggerRecord action4 = triggers.Single(t => t.Tag == 214 && t.Type == 4);
+        Assert.Equal(BinaryPrimitives.ReadUInt16LittleEndian(action4.Body.Span),
+            action4.Parameters["ObjectiveId"]);
+
+        TriggerRecord action8 = triggers.First(t => t.Tag == 214 && t.Type == 8);
+        Assert.DoesNotContain("Value", action8.Parameters.Keys);
+
+        TriggerRecord action26 = triggers.First(t => t.Tag == 214 && t.Type == 26);
+        Assert.Contains("ActionPointId", action26.Parameters.Keys);
+        Assert.DoesNotContain("TargetId", action26.Parameters.Keys);
+    }
+
     [Theory]
     [InlineData(KwdRecordType.CreatureSpells, KwdAdditionalRecords.CreatureSpellSize)]
     [InlineData(KwdRecordType.Shots, KwdAdditionalRecords.ShotSize)]
@@ -144,4 +230,18 @@ public class KwdAdditionalRecordTests
 
     private static byte[] Pattern(int size) =>
         Enumerable.Range(0, size).Select(i => (byte)(i * 37 + 11)).ToArray();
+
+    private static TriggerRecord Trigger(int tag, byte type, byte[] body)
+    {
+        byte[] tagged = new byte[24];
+        BinaryPrimitives.WriteInt32LittleEndian(tagged, tag);
+        BinaryPrimitives.WriteInt32LittleEndian(tagged.AsSpan(4), 16);
+        body.CopyTo(tagged, 8);
+        tagged[22] = type;
+        return KwdTriggers.Parse([Chunk(KwdRecordType.Triggers, tagged)]).Single();
+    }
+
+    private static Dictionary<byte, int> ParseCounts(string specification) =>
+        specification.Split(',').Select(pair => pair.Split(':')).ToDictionary(
+            pair => byte.Parse(pair[0]), pair => int.Parse(pair[1]));
 }

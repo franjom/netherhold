@@ -515,6 +515,21 @@ switch (args[0])
         return audit.ParsedTypes.Count == 18 ? 0 : 1;
     }
 
+    case "kwd" when args.Length == 2 && args[1] == "trigger-types":
+    {
+        IReadOnlyList<KwdTriggerCorpusAudit.Entry> distribution =
+            KwdTriggerCorpusAudit.Run(Dk2Install.Require());
+        int total = 0;
+        foreach (KwdTriggerCorpusAudit.Entry entry in distribution)
+        {
+            total += entry.Count;
+            Console.WriteLine($"tag={entry.Tag} type={entry.Type,3} count={entry.Count,4} " +
+                              $"levels={entry.Levels.Count,2}: {string.Join(",", entry.Levels)}");
+        }
+        Console.WriteLine($"-- {total} TRIGGERS records; {distribution.Count} tag/type combinations");
+        return 0;
+    }
+
     case "kwd" when args.Length >= 2 && args[1] == "terrain":
     {
         List<TerrainDef> terrains = KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(
@@ -1603,6 +1618,7 @@ static int Usage()
     Console.WriteLine("offset hunting in records we do not parse:");
     Console.WriteLine("  kwd recscan <file.kwd> <value> [rec]   offsets holding a measured value, with the column");
     Console.WriteLine("  kwd records <file.kwd|kld>            dump decoded ids/types and consumed lengths");
+    Console.WriteLine("  kwd trigger-types                     dump shipped trigger type counts and levels");
     Console.WriteLine("  kwd corpus                             parse and round-trip the shipped KWD/KLD corpus");
     Console.WriteLine("  kwd creaturescan <name> <value>        the same, anchored on one creature");
     Console.WriteLine("  kwd creaturehex <offsetHex> <count>    raw byte window across every creature");
