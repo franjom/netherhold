@@ -8038,3 +8038,30 @@ than two subobject pointers (Q231, closed).
 `TriggerState.HasElapsed` now takes seconds and multiplies by
 `SimulationTiming.TicksFromSeconds`. Nothing evaluated a condition yet, so no
 behaviour changed and the determinism hash is untouched.
+
+**Q233 answered the same day, and the hypothesis above was right.** The
+conversion is at `0x0050C2DB`, in the level trigger initialiser
+`FUN_0050B5B0`: it walks the condition array at `+0x7308` and the action array
+at `+0x730C` with a 20-byte stride, and for condition types 2 and 34 and
+action types 16 and 23 it does `IMUL` by variable 19 on the dword at
+`record+4` and writes it back **in place**. Found by rerunning the failed scan
+with no range filter — 225 sites in 82 functions, positive control intact.
+
+So the `.kld` holds seconds, the loader scales once, and the comparison
+consumes ticks. **Nothing that was read from the binary was wrong; what was
+wrong was assuming a single unit for a value that passes through a
+transform.**
+
+**Where this lands for our loader.** `HasElapsed` taking seconds is correct at
+the authored boundary and stays. When the `.kld` trigger loader is written the
+conversion must happen exactly once — either there, matching the original, or
+at the comparison, but not both. The original's choice has one visible
+consequence worth keeping in mind: because it rewrites the record in place, the
+scaled value is what a save game would contain.
+
+**Three offsets are now named** and one earlier note is corrected: `+0x730C`
+is the **action** array specifically, not "the trigger array"; `+0x7308` is the
+condition array; and `+0x731A` is the root trigger record's `RepeatCount`,
+copied from byte `+0xF` of the record the root id resolves to. The in-memory
+record is the 16-byte `.kld` payload verbatim plus four runtime bytes whose
+purpose is UNKNOWN.

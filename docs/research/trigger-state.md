@@ -231,10 +231,53 @@ Both facts hold together if the conversion happens **before evaluation ever
 runs** — most likely once at level load, when the trigger records are built,
 leaving the in-memory `Value` in ticks while the `.kld` on disk holds seconds.
 
-That is a hypothesis, and a cheap and decisive one to test: read the live
-trigger record for level 1's condition 10 out of the running game's trigger
-array and see whether its threshold field holds **8** or **32**. Q233 carries
-it.
+**And it is not a hypothesis any more.** The conversion is at `0x0050C2DB`,
+inside the level trigger initialiser `FUN_0050B5B0`, and it was found by
+redoing the failed scan with no range filter at all — 225 sites in 82
+functions, the positive control intact:
+
+```
+0050c2db  MOV  EDI,dword ptr [0x006f2590]   ; variable 19
+0050c2e3  CMP  word ptr [ESI + 0x7314],DX   ; the condition count
+0050c2ec  MOV  ECX,dword ptr [ESI + 0x7308] ; the condition array
+0050c2f9  LEA  EAX,[EAX + EAX*0x4]          ; index * 5
+0050c2fc  LEA  EAX,[ECX + EAX*0x4]          ; ... * 4 -> a 20-byte stride
+0050c2ff  MOV  CL,byte ptr [EAX + 0xe]      ; the record's type byte
+0050c302  CMP  CL,0x2                       ; a timer condition
+0050c30a  CMP  CL,0x22                      ; or type 34
+0050c30e  IMUL ECX,dword ptr [EAX + 0x4]    ; var19 * the value
+0050c312  MOV  dword ptr [EAX + 0x4],ECX    ; written back IN PLACE
+```
+
+A second loop immediately after it does the same to the **action** array for
+types `0x10` (16) and `0x17` (23). So the seconds-to-ticks multiply happens
+**once, at level load, in place** — which is exactly why the evaluation path
+has none: by the time anything is evaluated the field is already in ticks.
+
+**All three readings are true at once, at three different layers.** The `.kld`
+holds seconds; the loader scales; the comparison consumes ticks. The mistake
+was never a misread instruction, it was assuming a single unit for a value
+that passes through a transform.
+
+### The record layout, and two things this names
+
+The stride is 20 bytes and the type byte sits at `+0xE`. The `.kld` payload for
+tags 213 and 214 is **16 bytes** with `Type` at `+14` and the scaled dword at
+`+4`, so **the in-memory record is the file record verbatim** with four bytes
+appended, and those four bytes are runtime-only and still UNKNOWN. Nothing had
+to be inferred about an in-memory layout; the two agree offset for offset,
+which is itself the check that the arrays are what they look like.
+
+**There are two record arrays, not one.** `+0x730C` was recorded here as "the
+level's trigger array"; it is specifically the **tag 214 (action)** array, with
+its count at `+0x7318`. The **tag 213 (condition)** array is at `+0x7308` with
+its count at `+0x7314`. Level 1 ships 356 conditions and 326 actions, which is
+what those two counts should read.
+
+**`+0x731A` is the root trigger's repeat count.** After both loops, if the root
+trigger id at `+0x7310` is non-zero the initialiser looks the record up through
+`0x00518090` and copies byte `+0xF` of it — `RepeatCount` in the file layout —
+into `+0x731A`. That byte was carried as an unexplained argument.
 
 The earlier failure is worth naming, because it is the same one twice. The scan
 that found "no var19 in the trigger path" was correct about every block it
@@ -384,7 +427,9 @@ Every comparison code in the corpus is one of the six the routine at
 | The clock counts ticks, 250 ms each | **Known** (observed) | `now % var19 == 0` is the once-a-second gate (ADR-0089), and the counter was read live at 3.94 ticks/s with var19 = 4 |
 | A stamp in the timer bank is a tick count | **Known** (observed) | five timers caught being stamped across two runs, each holding exactly the tick it was set at |
 | Authored thresholds are in **seconds** | **Known** (observed) | two live captures of campaign level 1, matched flag by flag; residual constant under seconds, `3 x threshold + 1` under ticks |
-| The in-memory threshold is in ticks, converted at load | **Hypothesis** | reconciles the observation with the absent multiply in the evaluation path; Q233 |
+| The in-memory threshold is in ticks, converted at load | **Known** | `0x0050C2DB` multiplies `record+4` by variable 19 in place, for condition types 2 and 34 and action types 16 and 23 (Q233) |
+| `+0x7308` is the condition array and `+0x730C` the action array | **Known** | both walked at `0x0050C2DB` with a 20-byte stride and counts at `+0x7314` / `+0x7318` |
+| `+0x731A` is the root trigger's repeat count | **Strongly inferred** | copied from byte `+0xF` of the root record, which is `RepeatCount` in the file layout |
 | No shipped level exceeds either bank | **Known** (from data) | corpus sweep, all 66 levels |
 | What id 128's target *is* | **UNKNOWN** | Q229 |
 | How often `FUN_0050A450` is invoked, and what the 24 slots are | **UNKNOWN** | Q228 |
