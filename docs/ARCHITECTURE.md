@@ -488,8 +488,8 @@ flag bytes, 16 timer dwords, one opaque special value. Hashed and snapshotted.
   labels (ADR-0092, `docs/research/trigger-semantics.md`). Pinned by
   `TriggerStateOnRealDataTests`.
 - **Trigger execution is not built.** Flag and ordinary timer conditions can be
-  evaluated singly, and Q228 fixes the tree cadence at once per game turn;
-  `0x00518150` traversal and actions remain absent.
+  evaluated singly. Q228 fixes the cadence and `trigger-tree.md` fixes traversal
+  and repeat semantics; the executor and actions remain absent.
 
 ## Absences with architectural weight
 
