@@ -33,7 +33,13 @@ beside it.
 
 ## Versions
 
-**42** — `0xFFCC4119CA233DA7` (current). The world walker gains condition type 34
+**43** — `0x6E963365B44FD724` (current). Every player's trigger tree is walked
+each turn as well, in the player context. No hashed field changed; the literal
+moved because the version is hashed, and it had to move because a level with a
+player root now evolves differently from one saved under 42.
+`docs/research/trigger-walkers.md`.
+
+**42** — `0xFFCC4119CA233DA7`. The world walker gains condition type 34
 (level time), the arming half of action type 14, and the twenty-four party roots
 — with the load-time sweep that starts every party subtree disabled. Only the
 version constant moves this fixture's literal: it has no trigger tree and no

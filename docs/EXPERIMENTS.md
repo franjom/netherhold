@@ -36,21 +36,30 @@ move as one. **It may not be read for turn numbers**, and a future comparison
 that scores cell-by-cell equality against a played capture will manufacture
 divergences that are only the player.
 
-**2026-09-09, level 1, ours vs run 5, after condition 34 and the party roots.**
-The event set is **unchanged**: 48 columns fire in DK2, 0 in ours, 0 in ours
-alone. Not a regression and not a null result — it is where the diagnosis above
-was wrong. Trigger 89 now evaluates and both its type-14 children arm their
-parties, but its chain ends there: level 1 keeps its script on its **player**
-root, trigger 1, and no walker we have visits it. The world tree of this level
-is two party spawns and one party root (trigger 213, a type-64 condition, the
-single blocked record left). **Nothing measurable will move on level 1 until the
-player walker exists**, so the next comparison to run against these captures is
-not another world-tree change.
+**2026-09-09, level 1, ours vs run 5 — the first columns we get right.**
+Measured by event set over 1176 shared turns, as the calibration above requires;
+`trigger-diff`'s per-turn counts are not readable against a played capture.
 
-Method note: judge these by event set. The per-column report from
-`trigger-diff` now shows large per-turn difference counts wherever we and DK2
-both write a column, and by the calibration above most of that is the player,
-not the rule.
+| after | fire in both | DK2 only | ours only |
+|---|---:|---:|---:|
+| condition 34, type 14's arming half, the party roots | 0 | 48 | 0 |
+| …and the player walker | **2** (`t15`, `f83`) | 46 | **1** (`f1`) |
+
+The first row is where the earlier diagnosis was wrong: trigger 89 evaluates and
+arms its parties, but its chain ends there, and level 1 keeps its script on its
+player root. The second row is the player walker paying that off.
+
+**The one false positive is diagnosed and is not a walker defect.** We set `f1`
+at turn 33; DK2 never does. The chain is timer 15 → flag 0 == 0 → flag 2 == 0 →
+type 72 → write flag 1. DK2 sets **flag 0 at turn 10**, which closes that branch
+before the timer expires. Flag 0 is written by triggers 4 and 5, condition type
+**62**, which belong to **action point 4** — a tree no walker we have visits, and
+type 62 is one the area context owns. So the player tree's own behaviour depends
+on a flag an action-point tree sets: the walkers are not independent, and the
+action-point walker is what closes this.
+
+The remaining 46 are the census `trigger-run` prints: sixteen condition and
+action types nobody has implemented, plus the two trees not walked.
 
 **What the owner can settle by playing is not here.** It is
 `docs/research/observation-checklist.md`, which is the working list of

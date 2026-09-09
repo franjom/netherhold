@@ -320,7 +320,7 @@ holds a 3000/2800 value. Both were fixed by **searching for the roster the mecha
 select** rather than for the place it ought to live — `dk2tools kwd creaturebits` does that,
 and is the reusable half.
 
-## The other three trigger walkers — Q239–Q241
+## The other three trigger walkers — Q239–Q242
 
 The world walker is one of four. Campaign level 1 keeps almost none of its script
 in it, which is how these got numbered: implementing condition 34 and action
@@ -334,6 +334,7 @@ left open.
 | Q239 | **What drives the player, creature and action-point trigger walkers, and how often?** | **ANSWERED (binary, 2026-09-09): all four run once per game turn, from the same world frame** that Q228 closed — world tree at `0x0050A75B`, party roots at `0x0050A778`, every entity through vtable slot `0x14` at `0x0050A7D7`, every player at `0x0050A7F5`. Root ids and repeat arguments in `trigger-walkers.md`. Each entity walker has a second caller, an **event filter** keyed on a record's type byte, which is not a tree walk and is not driven by the frame | **Still open: the events themselves.** 26 call sites fire the two filters, one behaviour each, and none can be built before the behaviour that fires it. Nothing blocks the per-turn path, which is what level 1 uses |
 | Q240 | **What is bit `0x200000` of `+0x3E6`, which lets action type 14 arm nothing and still report success?** | With body byte `01` (`PartyType`) non-zero, the handler scans an entity list for a match on the party id and returns 1 early when that bit is clear (`0x00519FE4` to `0x0051A747`). 244 of 259 shipped type-14 records carry `PartyType` 0 and cannot reach it; 14 carry 2 and one carries 1 | Decompile the entity type whose `+0x417` the scan matches, then watch the bit across a level that ships a non-zero `PartyType`. Our executor models the byte-zero path only and says so |
 | Q241 | **What sets bit `0x40` of the world byte at `+0x7239`, which skips the level initialiser's party-disable sweep entirely?** (`0x0050C280`) | Nothing traced writes it. If it is ever set, all 24 party subtrees keep their authored active state instead of starting disabled, which would let party script run before any type 14 fires | A restored save is the obvious guess and no more than that. Find the writer before believing it. Our loader always runs the sweep |
+| Q242 | **What are the four interface fields player-context condition type 72 tests?** Its arm `0x004C84B8` returns 1 unless `+0xDD8`, `+0xDFA` or `+0xE20` is non-zero or `+0xDA8 == 0x12` | **Strongly inferred to be modal interface states**: the cancel handler at `0x00405362` tests the same four in the same order and closes whichever is active. 49 of level 1's 137 records are type 72, one gating its opening timer. **We take it as true**, counted in `TriggerRunResult.Assumed` | Only wrong if one can be set with nobody playing. Identify the object from its writers (`FUN_0044BED0` writes `+0xE20`), then find what sets `+0xDA8` to `0x12`. Live: watch all four while a level idles untouched |
 
 ## Numbering
 
@@ -341,6 +342,6 @@ New questions take the number after the highest in this file. Rows are never ren
 reordered or deleted, so file order is not numeric order: Q46–Q48 sit among Q22–Q31,
 Q60–Q61 and Q49–Q51 precede Q52, Q55x precedes Q55, Q135 precedes Q134, Q125 and Q120–Q123
 follow Q134, Q166 follows Q179, Q187 and Q189 precede Q184, Q214–Q219 follow Q209, and
-**Q210–Q213 sit after Q234** in the Hero Portal section above, with Q235–Q241 after them.
+**Q210–Q213 sit after Q234** in the Hero Portal section above, with Q235–Q242 after them.
 **Q39 appears twice** and both rows are kept; Q37a/Q37b, Q55x and Q118c are separate
 suffixed ids, not duplicates. **Q121 was never allocated** and must not be reused.

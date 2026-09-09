@@ -79,6 +79,45 @@ The creature event filter has 18 callers, including the level initialiser and
 action type 14's party creation, which fires event 3 for each creature it makes
 (`0x0051A5A1`). The player filter has 8.
 
+## A tree's context decides only part of its meaning
+
+Each context has its own condition and action dispatcher, and **each one hands
+every type it does not own to the world dispatcher**, with the world as `this`.
+The delegation is the default arm of the same two-level table the world uses.
+
+| context | conditions | base, range | delegates to | actions | base, range | delegates to |
+|---|---|---|---|---|---|---|
+| player | `0x004C7B20` | 19, `0x37` (19–74) | `0x00518270` at `0x004C856C` | `0x004C8620` | 10, `0x28` (10–50) | `0x00518AD0` at `0x004C8A3E` |
+| area | `0x004B0D70` | 39, `0x1F` (39–70) | `0x00518270` at `0x004B0EC9` | `0x004B0D70`'s twin | — | world action |
+
+So a flag test (type 1), a timer test (2) and a level-time test (34) mean the
+same thing in a player tree as in the world tree, over the same level-global
+banks — 1 and 2 because they fall below the base, 34 because its own arm is the
+default. Likewise action types 7, 8 and 14 fall below the player action base and
+reach the world. **Reusing the world evaluator inside a player tree is correct,
+not a convenience.**
+
+What each context owns is its own:
+
+- **player conditions:** 19–33, 47, 48, 52, 53, 56–61, 68, 71, 72, 73, 74.
+  Of these, 48, 53 and 56–61 jump straight to `0x004C850C`, `XOR EAX,EAX` —
+  **constant false**.
+- **player actions:** 10, 11, 24–28, 31, 34, 37, 38, 42, 50.
+- **area conditions:** 39, 40, 41, 42, 62, 69, 70.
+
+**Type 72 is not universally unhandled.** `trigger-semantics.md` establishes that
+no *world* arm reaches it and that all 137 shipped records have an empty body,
+both of which hold. But the player context **does** own it, at `0x004C84B8`: it
+reaches an interface object through the world and returns 1 unless one of four
+fields is set — `+0xDD8`, `+0xDA8 == 0x12`, `+0xDFA`, `+0xE20`. The game's cancel
+handler at `0x00405362` tests the same four in the same order to decide what to
+close, so they are **modal interface states** and the condition means roughly
+"nothing modal is open". What each field is remains UNKNOWN (Q242).
+
+That matters more than its obscurity suggests: 49 of campaign level 1's records
+are type 72, they sit in the player tree, and one of them gates the action that
+starts the timer the level's opening depends on.
+
 ## What a reimplementation gets from this
 
 The cadence question is closed for all four: **one walk per tree per game turn**,

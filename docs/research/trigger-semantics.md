@@ -96,18 +96,29 @@ type-34 record, therefore one missing rule — mistook the world tree for the
 level. Levels distribute their script across four walkers, and this one keeps
 almost none of it here.
 
-**Type 72 is unhandled anyway, and that caveat is why it took nine functions to
-establish it.** Every generic dispatcher bounds the type below 72 — world 67,
-creature 62, player 55, area 31 — and the event filters bound at 62 and 53, so
-no context reaches a type-72 arm. The world default at `0x00518929` formats
-`Unhandled Trigger When [ Type %d, Index %d ]` and returns **0**. All **137**
-shipped records carry an empty body: both dwords are zero in every one.
+**A dispatcher's range check is a size, not a top type.** Each one does
+`LEA reg,[type - base]` and then `CMP reg, size`, so the type it accepts runs
+from the base to `base + size`: world **1..67** (`0x00518282`), creature
+**3..65** (`0x0049AAAD`), player **19..74** (`0x004C7B30`), area **39..70**
+(`0x004B0D7F`). Reading those `CMP` immediates as top types is wrong and was
+wrong here until 2026-09-09; it is what produced the claim that no context
+reaches a type-72 arm.
 
-So a type-72 condition always fails, its children never run, and its siblings
-continue, `NextTriggerId` being unconditional. An executor that declines to
-evaluate the type and declines to descend is **behaviourally identical to the
-retail engine here**, provided it still walks to the next sibling. Level 1 holds
-49 of the 137, and they cost no divergence.
+**Out of range does not mean unhandled** — it means the next dispatcher. Each
+default arm delegates: player and area to the world (`0x004C856C`,
+`0x004B0EC9`), and **creature to the player** with the creature's owning player
+as `this` (`0x0049AC08`). Only the world's default gives up, formatting
+`Unhandled Trigger When [ Type %d, Index %d ]` and returning **0**
+(`0x00518929`). So the fallback chain is creature → player → world, and a type is
+unhandled only when it survives to the end of it.
+
+**Type 72 therefore holds in a player tree.** The player context owns it and
+computes it (`0x004C84B8`); the world, creature and area contexts do not, so it
+fails there. All **137** shipped records carry an empty body, both dwords zero,
+which is consistent with a condition that reads no parameters. Level 1 holds 49,
+all in its player tree, where declining them costs real divergence — see
+`trigger-walkers.md` for what the arm tests and Q242 for what is still unknown
+about it.
 
 The common comparison routine at `0x00519980` implements codes 1 through 6 as
 signed `<`, `<=`, `==`, `>`, `>=`, and `!=`. Consequently generic comparison

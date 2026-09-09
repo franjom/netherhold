@@ -12,10 +12,13 @@ public readonly record struct BlockedTrigger(int Tag, byte Type, ushort TriggerI
 public sealed class TriggerRunResult
 {
     internal TriggerRunResult(
-        IEnumerable<BlockedTrigger> blocked, IEnumerable<BlockedTrigger> partial)
+        IEnumerable<BlockedTrigger> blocked,
+        IEnumerable<BlockedTrigger> partial,
+        IEnumerable<BlockedTrigger> assumed)
     {
         Blocked = Order(blocked);
         Partial = Order(partial);
+        Assumed = Order(assumed);
     }
 
     /// <summary>Records the executor declined outright: it ran nothing and did not
@@ -30,9 +33,18 @@ public sealed class TriggerRunResult
     /// not create the party's creatures.</summary>
     public IReadOnlyList<BlockedTrigger> Partial { get; }
 
+    /// <summary>Records answered from a <b>modelling assumption</b> rather than from
+    /// state we hold. Distinct from both of the above: the walk proceeded exactly as the
+    /// original's would, but only because a value was supplied that this simulation cannot
+    /// derive. Player-context condition type 72 is the only member — see
+    /// <see cref="TriggerExecutor"/>.</summary>
+    public IReadOnlyList<BlockedTrigger> Assumed { get; }
+
     public IEnumerable<(int Tag, byte Type, int Count)> Summary => Census(Blocked);
 
     public IEnumerable<(int Tag, byte Type, int Count)> PartialSummary => Census(Partial);
+
+    public IEnumerable<(int Tag, byte Type, int Count)> AssumedSummary => Census(Assumed);
 
     private static BlockedTrigger[] Order(IEnumerable<BlockedTrigger> records) => records
         .OrderBy(b => b.Tag).ThenBy(b => b.Type).ThenBy(b => b.TriggerId).ToArray();
@@ -88,11 +100,13 @@ public sealed class TriggerTree
     public TriggerTree(
         IEnumerable<TriggerRecord> records,
         ushort rootTriggerId,
-        IEnumerable<HeroPartyThing>? parties = null)
+        IEnumerable<HeroPartyThing>? parties = null,
+        IEnumerable<ushort>? playerRoots = null)
     {
         Records = records?.ToArray() ?? throw new ArgumentNullException(nameof(records));
         RootTriggerId = rootTriggerId;
         Parties = BuildParties(parties);
+        PlayerRoots = (playerRoots ?? []).Where(id => id != 0).ToArray();
 
         foreach (TriggerRecord record in Records)
         {
@@ -133,8 +147,27 @@ public sealed class TriggerTree
     /// permission. trigger-tree.md, "The 24 slots".</remarks>
     public IReadOnlyList<TriggerPartySlot> Parties { get; }
 
+    /// <summary>Each player's trigger root, zeros dropped. Walked last in the turn, one
+    /// per player, by the <b>player</b> walker.</summary>
+    /// <remarks>
+    /// <para><b>UNKNOWN — the order.</b> DK2 walks the world's runtime player list
+    /// (world <c>+0x7A</c>, link <c>+0x3A</c>), not the PLAYERS file, and nothing
+    /// establishes that the two agree. This keeps file order. It is unobservable on
+    /// campaign level 1, which has one root, and observable in principle on the <b>36 of
+    /// 66</b> levels that have more than one (<c>dk2tools kwd roots</c>). It only matters
+    /// where two player trees write the same flag on the same turn.</para>
+    /// </remarks>
+    public IReadOnlyList<ushort> PlayerRoots { get; }
+
     internal TriggerRecord? FirstCondition { get; }
     internal TriggerRecord? FirstAction { get; }
+
+    /// <summary>Resolves an id in the <b>condition</b> array whatever its sign — DK2's
+    /// <c>FUN_00518090</c>. The player frame uses it on the root id before checking that
+    /// the id is positive, so an action id as a player root would take the first
+    /// condition's repeat byte. No shipped level does that.</summary>
+    internal TriggerRecord? ResolveCondition(ushort id) =>
+        id == 0 ? null : _conditions.GetValueOrDefault(id) ?? FirstCondition;
 
     private static TriggerPartySlot[] BuildParties(IEnumerable<HeroPartyThing>? parties)
     {
@@ -179,18 +212,41 @@ public sealed class TriggerTree
     }
 }
 
-/// <summary>Walks the world's twenty-five trigger roots once a game turn, executing flag
-/// (action type 7), timer (type 8) and party (type 14) actions; unsupported records block
-/// their child chain and are censused in <see cref="TriggerRunResult.Summary"/>.</summary>
+/// <summary>Which walker reached a record, and therefore which dispatcher decides it.
+/// </summary>
+internal enum TriggerContext
+{
+    /// <summary>The world tree and the party roots.</summary>
+    World,
+
+    /// <summary>One player's tree. Types the player dispatcher does not own are decided
+    /// by the world dispatcher anyway — see <see cref="TriggerExecutor"/>.</summary>
+    Player,
+}
+
+/// <summary>One turn's accumulating result, so the walk carries one argument instead of
+/// four.</summary>
+internal sealed class TriggerRun(int currentTick)
+{
+    public int CurrentTick { get; } = currentTick;
+    public List<BlockedTrigger> Blocked { get; } = [];
+    public List<BlockedTrigger> Partial { get; } = [];
+    public List<BlockedTrigger> Assumed { get; } = [];
+
+    public TriggerRunResult Result() => new(Blocked, Partial, Assumed);
+}
+
+/// <summary>Walks a level's trigger roots once a game turn — the world tree, the 24 party
+/// roots and every player's tree — running action types 7, 8 and 14 only.</summary>
 /// <remarks>
-/// <para>Rule: a record is evaluated only while its active bit is set; a child chain is
-/// entered only after the record succeeds; the next sibling is visited either way. A
-/// condition passes its own repeat count to its children, an action passes the inherited
-/// value through, and inherited value 1 clears a successful action's active bit.
-/// STRONGLY INFERRED — trigger-tree.md "The walk", "Repeat and active state".</para>
-/// <para>Not implemented: every action type but 7, 8 and 14, and the creature-creation
-/// half of 14 — see <see cref="TriggerRunResult.Partial"/>, which counts what a run left
-/// half-done rather than letting it pass as finished.</para></remarks>
+/// <para>Rule: a record runs only while its active bit is set; a child chain is entered
+/// only on success; the next sibling is visited either way; a condition passes its own
+/// repeat to its children, an action the inherited one, and inherited 1 retires a
+/// successful action. The player walker is the same shape — trigger-walkers.md.</para>
+/// <para>Gaps are counted, not hidden: <see cref="TriggerRunResult.Partial"/> for type
+/// 14's missing creatures, <see cref="TriggerRunResult.Assumed"/> for player-context type
+/// 72 taken as true (Q242). Creature and action-point trees are not walked.</para>
+/// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-tree.md")]
 public sealed class TriggerExecutor
 {
@@ -223,18 +279,29 @@ public sealed class TriggerExecutor
     /// </remarks>
     public TriggerRunResult Run(int currentTick)
     {
-        var blocked = new List<BlockedTrigger>();
-        var partial = new List<BlockedTrigger>();
-        if (_tree is null) return new TriggerRunResult(blocked, partial);
+        var run = new TriggerRun(currentTick);
+        if (_tree is null) return run.Result();
 
-        Walk(unchecked((short)_tree.RootTriggerId), _tree.RootRepeat, currentTick, blocked, partial);
+        Walk(unchecked((short)_tree.RootTriggerId), _tree.RootRepeat, TriggerContext.World, run);
         foreach (TriggerPartySlot slot in _tree.Parties)
         {
             if (slot.TriggerId == 0) continue;
-            Walk(unchecked((short)slot.TriggerId), 1, currentTick, blocked, partial);
+            Walk(unchecked((short)slot.TriggerId), 1, TriggerContext.World, run);
         }
 
-        return new TriggerRunResult(blocked, partial);
+        // Last in the turn, and in the player context: 0x0050A7F5 calls the loop that
+        // gives every player its frame, and the frame walks that player's own root.
+        // The repeat argument is read off the resolved record NOW (0x004B9F04), not
+        // copied at load as the world's +0x731A is -- so a root re-armed this game will
+        // pass 1 here where the world root would still pass its authored value.
+        foreach (ushort root in _tree.PlayerRoots)
+        {
+            TriggerRecord? record = _tree.ResolveCondition(root);
+            byte repeat = record is null ? (byte)0 : _state.RecordRepeat(record);
+            Walk(unchecked((short)root), repeat, TriggerContext.Player, run);
+        }
+
+        return run.Result();
     }
 
     /// <summary>Sets or clears the active bit of <paramref name="triggerId"/> <b>and of
@@ -295,12 +362,7 @@ public sealed class TriggerExecutor
         }
     }
 
-    private void Walk(
-        short id,
-        byte inheritedRepeat,
-        int currentTick,
-        List<BlockedTrigger> blocked,
-        List<BlockedTrigger> partial)
+    private void Walk(short id, byte inheritedRepeat, TriggerContext context, TriggerRun run)
     {
         while (id != 0)
         {
@@ -313,17 +375,16 @@ public sealed class TriggerExecutor
             {
                 if (record.Tag == 213)
                 {
-                    TriggerConditionResult result =
-                        TriggerConditionEvaluator.Evaluate(record, _state, currentTick);
+                    TriggerConditionResult result = EvaluateCondition(record, context, run);
                     if (result == TriggerConditionResult.NotEvaluated)
-                        blocked.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
+                        run.Blocked.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
                     else if (result == TriggerConditionResult.Satisfied)
                     {
                         descend = true;
                         childRepeat = _state.RecordRepeat(record);
                     }
                 }
-                else if (ExecuteAction(record, currentTick, partial))
+                else if (RunAction(record, context, run))
                 {
                     descend = true;
                     if (inheritedRepeat == 1)
@@ -331,15 +392,61 @@ public sealed class TriggerExecutor
                 }
                 else
                 {
-                    blocked.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
+                    run.Blocked.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
                 }
             }
 
             if (descend)
-                Walk(unchecked((short)record.ChildTriggerId), childRepeat, currentTick, blocked, partial);
+                Walk(unchecked((short)record.ChildTriggerId), childRepeat, context, run);
             id = unchecked((short)record.NextTriggerId);
         }
     }
+
+    /// <summary>Evaluates one condition in the context whose walker reached it.</summary>
+    /// <remarks>
+    /// <para>Rule: the player dispatcher owns 30 condition types and hands <b>every other
+    /// type to the world dispatcher</b>, `this` being the world object
+    /// (<c>0x004C856C</c>). So types 1, 2 and 34 mean the same thing in a player tree as
+    /// in the world tree, over the same level-global banks, and reusing the world
+    /// evaluator is right rather than convenient. `trigger-walkers.md`.</para>
+    /// </remarks>
+    private TriggerConditionResult EvaluateCondition(
+        TriggerRecord record, TriggerContext context, TriggerRun run)
+    {
+        if (context != TriggerContext.Player || !PlayerOwnsCondition(record.Type))
+            return TriggerConditionEvaluator.Evaluate(record, _state, run.CurrentTick);
+
+        if (record.Type != 72) return TriggerConditionResult.NotEvaluated;
+
+        run.Assumed.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
+        return TriggerConditionResult.Satisfied;
+    }
+
+    private bool RunAction(TriggerRecord record, TriggerContext context, TriggerRun run) =>
+        (context != TriggerContext.Player || !PlayerOwnsAction(record.Type))
+        && ExecuteAction(record, run.CurrentTick, run.Partial);
+
+    /// <summary>The 30 condition types the player dispatcher computes itself
+    /// (<c>0x004C7B20</c>, base 19, range <c>0x37</c>). Everything else it delegates.
+    /// </summary>
+    private static bool PlayerOwnsCondition(byte type) => type switch
+    {
+        >= 19 and <= 33 => true,
+        47 or 48 or 52 or 53 => true,
+        >= 56 and <= 61 => true,
+        68 or 71 or 72 or 73 or 74 => true,
+        _ => false,
+    };
+
+    /// <summary>The 13 action types the player dispatcher computes itself
+    /// (<c>0x004C8620</c>, base 10, range <c>0x28</c>). Note 7, 8 and 14 are <b>not</b>
+    /// among them — they fall below the base and reach the world dispatcher.</summary>
+    private static bool PlayerOwnsAction(byte type) => type switch
+    {
+        10 or 11 or 31 or 34 or 37 or 38 or 42 or 50 => true,
+        >= 24 and <= 28 => true,
+        _ => false,
+    };
 
     private bool ExecuteAction(
         TriggerRecord record, int currentTick, List<BlockedTrigger> partial)

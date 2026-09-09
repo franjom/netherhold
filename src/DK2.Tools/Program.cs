@@ -1049,6 +1049,50 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length == 2 && args[1] == "roots":
+    {
+        // Every trigger root in the campaign, by the walker that owns it. A level
+        // spreads its script over four trees and the world one is often the
+        // smallest, so this is what says how much of a level any given executor
+        // can reach (docs/research/trigger-walkers.md).
+        string rootMaps = Path.Combine(Dk2Install.Require(), "Data", "editor", "maps");
+        int levels = 0, worldRoots = 0, partyRoots = 0, playerRoots = 0;
+        int creatureRoots = 0, apRoots = 0, multiPlayer = 0;
+        foreach (string file in Directory.EnumerateFiles(rootMaps, "*Triggers.kld")
+                     .Order(StringComparer.OrdinalIgnoreCase))
+        {
+            string level = Path.GetFileName(file)[..^"Triggers.kld".Length];
+            LevelDef? def = GameDatabaseLoader.LoadCampaignLevel(Dk2Install.Require(), level);
+            List<ThingRecord>? rootThings = GameDatabaseLoader.LoadCampaignThings(Dk2Install.Require(), level);
+            List<PlayerDef>? rootPlayers = GameDatabaseLoader.LoadCampaignPlayers(Dk2Install.Require(), level);
+            if (def is null || rootThings is null || rootPlayers is null) continue;
+            levels++;
+
+            int players = rootPlayers.Count(p => p.TriggerId != 0);
+            int parties = rootThings.OfType<HeroPartyThing>().Count(p => p.TriggerId != 0);
+            int points = rootThings.OfType<ActionPointThing>().Count(a => a.TriggerId != 0);
+            int creatures = rootThings.OfType<GoodCreatureThing>().Count(c => c.TriggerId != 0)
+                + rootThings.OfType<KeeperCreatureThing>().Count(c => c.TriggerId != 0);
+
+            if (def.TriggerId != 0) worldRoots++;
+            partyRoots += parties;
+            playerRoots += players;
+            creatureRoots += creatures;
+            apRoots += points;
+
+            // Order within a turn is the world's runtime player list, not this
+            // file's order, and the two are only distinguishable where a level
+            // has more than one player root.
+            if (players > 1) multiPlayer++;
+        }
+        Console.WriteLine($"{levels} levels: {worldRoots} with a world root, "
+            + $"{partyRoots} party, {playerRoots} player, {creatureRoots} creature, "
+            + $"{apRoots} action point roots");
+        Console.WriteLine($"  {multiPlayer} levels have more than one player root "
+            + "-- only those can show whether player order matters");
+        return 0;
+    }
+
     case "kwd" when args.Length >= 3 && args[1] == "triggers":
     {
         // One level's trigger records with their links and decoded parameters.
@@ -2238,6 +2282,7 @@ static int Usage()
     Console.WriteLine("  kwd corpus                             parse and round-trip the shipped KWD/KLD corpus");
     Console.WriteLine("  kwd things [file.kld]                  placed entities of one level, or the corpus");
     Console.WriteLine("  kwd parties                            how shipped HERO_PARTY records map onto the 24 runtime slots");
+    Console.WriteLine("  kwd roots                              every trigger root in the campaign, by the walker that owns it");
     Console.WriteLine("  kwd creaturescan <name> <value>        the same, anchored on one creature");
     Console.WriteLine("  kwd creaturehex <offsetHex> <count>    raw byte window across every creature");
     Console.WriteLine("  kwd objecthex <offsetHex> <count> [-w]  the same across every object; -w reads u16s");
@@ -2274,7 +2319,8 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
     // The parties come from THINGS, not TRIGGERS, and without them twenty-four of the
     // world's twenty-five roots are empty and most of a level's script never runs.
     HeroPartyThing[] parties = things.OfType<HeroPartyThing>().ToArray();
-    var tree = new TriggerTree(records, level.TriggerId, parties);
+    var tree = new TriggerTree(
+        records, level.TriggerId, parties, players.Select(p => p.TriggerId));
     var simulation = new GameSimulation(database, world, seed: 0, triggers: tree);
 
     using (var writer = new StreamWriter(outPath))
@@ -2292,12 +2338,12 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
     // so a level can hang almost all of its script somewhere this run cannot reach, and an
     // empty output column then says nothing about the rule under test. Print the count so
     // a reader can tell "we got it wrong" from "we never looked".
-    ushort[] playerRoots = players.Where(p => p.TriggerId != 0).Select(p => p.TriggerId).ToArray();
     int apRoots = things.OfType<ActionPointThing>().Count(a => a.TriggerId != 0);
     int creatureRoots = things.OfType<KeeperCreatureThing>().Count(c => c.TriggerId != 0)
         + things.OfType<GoodCreatureThing>().Count(c => c.TriggerId != 0);
-    Console.WriteLine($"  not walked here: {apRoots} action point, {creatureRoots} creature, "
-        + $"{playerRoots.Length} player roots [{string.Join(",", playerRoots)}]");
+    Console.WriteLine($"  walked: {tree.PlayerRoots.Count} player roots "
+        + $"[{string.Join(",", tree.PlayerRoots)}]");
+    Console.WriteLine($"  not walked here: {apRoots} action point, {creatureRoots} creature roots");
     foreach ((int tag, byte type, int count) in
              (simulation.LastTriggerRun?.Summary ?? []).OrderByDescending(s => s.Count))
         Console.WriteLine($"  blocked tag {tag} type {type}: {count}");
@@ -2310,6 +2356,12 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
              (simulation.LastTriggerRun?.PartialSummary ?? []).OrderByDescending(s => s.Count))
         Console.WriteLine($"  PARTIAL tag {tag} type {type}: {count} "
             + "-- parties armed, no creatures created");
+
+    // And what was answered from an assumption rather than from state.
+    foreach ((int tag, byte type, int count) in
+             (simulation.LastTriggerRun?.AssumedSummary ?? []).OrderByDescending(s => s.Count))
+        Console.WriteLine($"  ASSUMED tag {tag} type {type}: {count} "
+            + "-- taken as true: no modal interface state in a headless run");
     return 0;
 }
 

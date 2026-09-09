@@ -17,13 +17,21 @@ public class TriggerExecutorOnRealDataTests
         (GameSimulation simulation, _) = LevelOne(seed: 7);
         simulation.Tick();
 
-        // Turn 1: the world root, trigger 89, is a type-34 level-time test that holds from
-        // the first turn, so both of its type-14 children fire and arm their parties. Only
-        // party 1 has a subtree; its root is a type 64 the world context computes and we do
-        // not, so it is what blocks. Two records ran in part -- the parties were armed and
-        // their creatures were not created.
-        Assert.Equal("213:64=1", Census(simulation.LastTriggerRun!.Summary));
+        // Turn 1 across all three trees this executor walks. The world root, trigger 89,
+        // is a type-34 level-time test that holds from the first turn, so both of its
+        // type-14 children fire and arm their parties; party 1's root is the type 64. The
+        // other fifteen entries are the player tree, which is where level 1 keeps its
+        // script -- every one of them a condition or action type nobody has implemented
+        // yet, and the list is the work queue for doing so.
+        Assert.Equal(
+            "213:19=1,213:25=4,213:30=3,213:31=3,213:46=1,213:53=2,213:56=1,213:58=1,"
+            + "213:60=1,213:64=1,214:17=2,214:24=2,214:31=2,214:38=2,214:44=1,214:45=1",
+            Census(simulation.LastTriggerRun!.Summary));
         Assert.Equal("214:14=2", Census(simulation.LastTriggerRun!.PartialSummary));
+
+        // Player-context type 72, taken as true rather than declined. If this ever reads
+        // zero, the player tree stopped being walked.
+        Assert.Equal("213:72=2", Census(simulation.LastTriggerRun!.AssumedSummary));
     }
 
     /// <summary>The world tree is <b>not</b> where campaign level 1 keeps its script, and a
@@ -145,7 +153,8 @@ public class TriggerExecutorOnRealDataTests
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "level1")!;
         WorldState world = WorldState.FromMap(database, map, players);
         var tree = new TriggerTree(
-            records, level.TriggerId, things.OfType<HeroPartyThing>());
+            records, level.TriggerId, things.OfType<HeroPartyThing>(),
+            GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!.Select(p => p.TriggerId));
         return (new GameSimulation(database, world, seed, triggers: tree), tree);
     }
 }

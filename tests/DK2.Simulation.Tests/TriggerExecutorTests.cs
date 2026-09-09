@@ -304,6 +304,107 @@ public class TriggerExecutorTests
         Assert.NotEqual(Disabled(7), Disabled(0));
     }
 
+    [Fact]
+    public void PlayerRootsAreWalkedAndTheirSubtreesRun()
+    {
+        TriggerRecord[] records =
+        [
+            Condition(5, repeat: 255, child: 0xFFFF, next: 0, FlagEqualsZero()),
+            Action(1, 3, 0x0A, 1),
+        ];
+        var withPlayer = new TriggerState();
+        var without = new TriggerState();
+
+        new TriggerExecutor(new TriggerTree(records, 0, playerRoots: [(ushort)5]), withPlayer).Run(1);
+        new TriggerExecutor(new TriggerTree(records, 0), without).Run(1);
+
+        Assert.Equal(1, withPlayer.Read(3));
+        Assert.Equal(0, without.Read(3));
+    }
+
+    /// <summary>The only condition type whose meaning this executor changes with context.
+    /// The player dispatcher owns 72 and computes it; the world dispatcher does not have
+    /// it at all, so the same record holds in one tree and is declined in the other.
+    /// </summary>
+    [Fact]
+    public void ConditionType72HoldsInAPlayerTreeAndIsDeclinedInTheWorldTree()
+    {
+        TriggerRecord[] records = [Type72(5, child: 0xFFFF), Action(1, 3, 0x0A, 1)];
+
+        var player = new TriggerState();
+        TriggerRunResult playerRun = new TriggerExecutor(
+            new TriggerTree(records, 0, playerRoots: [(ushort)5]), player).Run(1);
+
+        var world = new TriggerState();
+        TriggerRunResult worldRun =
+            new TriggerExecutor(new TriggerTree(records, 5), world).Run(1);
+
+        Assert.Equal(1, player.Read(3));
+        Assert.Equal([new BlockedTrigger(213, 72, 5)], playerRun.Assumed);
+        Assert.Empty(playerRun.Blocked);
+
+        Assert.Equal(0, world.Read(3));
+        Assert.Equal([new BlockedTrigger(213, 72, 5)], worldRun.Blocked);
+        Assert.Empty(worldRun.Assumed);
+    }
+
+    /// <summary>Reusing the world evaluator inside a player tree is only correct because
+    /// the player dispatcher delegates these types. If someone implements a type the
+    /// player context owns, this fails and says so.</summary>
+    [Theory]
+    [InlineData(213, (byte)1)]
+    [InlineData(213, (byte)2)]
+    [InlineData(213, (byte)34)]
+    [InlineData(214, (byte)7)]
+    [InlineData(214, (byte)8)]
+    [InlineData(214, (byte)14)]
+    public void EveryTypeWeImplementIsOneThePlayerDispatcherDelegates(int tag, byte type)
+    {
+        // A record of that type in a player tree must reach the same code as in a world
+        // tree: it must not be diverted, and it must not be declined for being diverted.
+        TriggerRecord[] records = tag == 213
+            ? [Typed(5, type, child: 0xFFFF), Action(1, 3, 0x0A, 1)]
+            : [Condition(5, 255, child: 0xFFFF, next: 0, FlagEqualsZero()), Typed214(1, type)];
+
+        TriggerRunResult run = new TriggerExecutor(
+            new TriggerTree(records, 0, playerRoots: [(ushort)5]), new TriggerState()).Run(1);
+
+        Assert.DoesNotContain(run.Assumed, b => b.Tag == tag && b.Type == type);
+        Assert.DoesNotContain(run.Blocked, b => b.Tag == tag && b.Type == type);
+    }
+
+    private static TriggerRecord Type72(ushort id, ushort child) =>
+        new GenericTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = id, Type = 72, RepeatCount = 1,
+            ChildTriggerId = child, NextTriggerId = 0,
+            Parameters = new Dictionary<string, long>(),
+        };
+
+    private static TriggerRecord Typed(ushort id, byte type, ushort child) =>
+        new GenericTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 1,
+            ChildTriggerId = child, NextTriggerId = 0,
+            Parameters = new Dictionary<string, long>
+            {
+                ["Comparison"] = 3, ["FlagId"] = 0, ["Flag"] = 1,
+                ["IndirectFlagId"] = 0, ["TimerId"] = 0, ["IndirectTimerId"] = 0, ["Value"] = 0,
+            },
+        };
+
+    private static TriggerRecord Typed214(ushort id, byte type) =>
+        new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = type,
+            RepeatCount = 0,
+            Parameters = new Dictionary<string, long>
+            {
+                ["FlagId"] = 3, ["Flag"] = 0x0A, ["Value"] = 1, ["TimerId"] = 0,
+                ["PartyId"] = 0, ["PartyType"] = 0, ["ActionPointId"] = 0,
+            },
+        };
+
     // A party root (5) whose subtree writes flag 3, a spare member subtree (7) linked from
     // nowhere else, and the type-14 action that arms them both.
     private static TriggerRecord[] PartyRecords() =>
