@@ -1884,3 +1884,16 @@ simulation state shape, so `HashVersion` and snapshot `FormatVersion` do not mov
 **Consequences.**
 - `HashVersion` and snapshot `FormatVersion` → **50**; pin `0xDDC3EA20017640B6` → `0x98DE8BA2B3BDC7BF`.
 - A name is not a mechanism. The dumper prints no member of the score block at `+0x142`–`+0x16E`, so type 31 stays open (Q260), and its `ResearchCompleted`/`ResearchPoint` labels disagree with a comment this repo wrote from the adder's arithmetic — recorded as Q265, not acted on, because an arithmetic path outranks a name.
+
+### ADR-0111 amendment — all ten dumpers, not just the player's
+**Date:** 2026-09-09. The technique repeated. 1,144 calls to the log `printf`
+cluster into eleven functions: ten object dumpers and a profiler. All ten are
+transcribed, indexed by `docs/research/debug-dumpers.md`, and they are the
+reference for any runtime offset on those objects.
+
+The creature's 199 fields and its job/needs object's 64 matter most: that is the
+address range where `AGENTS.md` records Flame naming only 34% of symbols, and it
+is what Goal 5 emphasises. The level-statistics dumper also answered Q260 — the
+player's twelve score counters are its first twelve fields, and type 31's is
+`GoldMined`. Nothing is implemented from a name alone.
+

@@ -55,17 +55,39 @@ Keeper spells are a four-entry array at `+0x5A`, `+0x62`, `+0x6A`, `+0x72`,
 stride 8, each printing `TypeId`, `Availability` and `Upgraded`; the last also
 prints `TimeLastCast` and `TimeLastChecked`.
 
-## The score block the dumper does not print
+## The score block, and what it is made of
 
 Twelve dwords at `+0x142`, `+0x146` … `+0x16E` are summed into a weighted total
 in the function containing `0x004BF211`, each multiplied by one of twelve
-hardcoded dwords at `0x0069F300`: **1000, 40, 50, 5, 5, 1, 2, 5, 20, 40, 50,
-500**, in offset order except that `+0x152` takes the last weight.
+hardcoded dwords at `0x0069F300`: **1000, 40, 50, 5, 500, 5, 1, 2, 5, 20, 40,
+50** — `+0x152` takes the 500, out of order in the emitted code.
 
-They are **not** the `MpdScore*` variables. Those are ids 228–233 in
-`Variables.kwd` holding 50, 5, 1, 10, 20, 40, and the weight 10 appears nowhere
-in the table while 1000, 2 and 500 appear nowhere in the variables.
+The player dumper prints none of them, but the **level-statistics** dumper
+(`debug-dumpers.md`) prints a struct whose first twelve fields land on those
+offsets exactly. `+0x142` is the struct's `+0x00`:
 
-`+0x15A` — weight 1, and what condition type 31 compares (Q260) — is credited at
-`0x004973CF` from a creature's owning player (`creature+0x2A`) by a delta
-computed from a fixed-point map position and a ratio of two word fields.
+| offset | field | weight |
+|---|---|---:|
+| `+0x142` | `DungeonHeartsDestroyed` | 1000 |
+| `+0x146` | `EnemyCreaturesKilled` | 40 |
+| `+0x14A` | `HeroesDestroyed` | 50 |
+| `+0x14E` | `RoomsTakenOver` | 5 |
+| `+0x152` | `RoomExtraPoints` | 500 |
+| `+0x156` | `LandOwned` | 5 |
+| `+0x15A` | **`GoldMined`** | 1 |
+| `+0x15E` | `ManaStored` | 2 |
+| `+0x162` | `ItemsManufactured` | 5 |
+| `+0x166` | `CreaturesCommanded` | 20 |
+| `+0x16A` | `CreaturesConverted` | 40 |
+| `+0x16E` | `CreatureTraining` | 50 |
+
+So **condition type 31 tests how much gold this keeper has mined** (Q260). The
+credit at `0x004973CF` adds to the owning player from a creature, which is what
+mining is.
+
+**There are two scoring systems and they are not the same one.** `Variables.kwd`
+holds `MpdScore*` at ids 228–233 — 50, 5, 1, 10, 20, 40 — naming five of the
+same concepts. Four agree with the table above (hero 50, land 5, gold 1,
+creature 20) and **`MpdScoreItemManufactured` is 10 where the table has 5**, so
+the hardcoded weights are not those variables read at load. Which system a
+shipped level scores by is unknown (Q267).
