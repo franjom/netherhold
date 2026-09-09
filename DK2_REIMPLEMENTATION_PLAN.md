@@ -495,7 +495,7 @@ Confidence reflects *our ability to reproduce the behaviour*, not merely to pars
 | **Spells (keeper & creature)** | | ● | | KWD `KEEPER_SPELLS(150)`, `CREATURE_SPELLS(160)`, `SHOTS(260)`; only Create Imp built (ADR-0021/0022) |
 | **Traps & doors** | | ● | | KWD `TRAPS(130)`, `DOORS(140)` parse into `TrapDef`/`DoorDef`; no simulation state holds one (Q224) |
 | **Heroes & parties** | | ● | | `CREATE_HERO_PARTY` trigger; `f3DF_myLeadersId`, `f3E1_positionInParty`; not projected (Q224) |
-| **Level scripting / triggers** | | ● | | 51 action types enumerated [KNOWN]; parameter views verified against DKII.EXE (ADR-0092); flag and timer banks are level state (ADR-0102); action points are world state (ADR-0103). **Nothing evaluates a condition or runs an action** (Q228) |
+| **Level scripting / triggers** | | ● | | Parameter views verified against DKII.EXE (ADR-0092); banks are level state (ADR-0102); action points are world state (ADR-0103). **Runs**: cadence closed (Q228, Q239), the world, party and player trees walked once a turn, condition types 1/2/34 and action types 7/8/14 executed. **Missing**: the creature and action-point trees, and every other type — 3 of 67 conditions and 3 of 51 actions are implemented |
 | **Campaign progression** | | ● | | OpenKeeper open issue "Campaign progress" |
 | **Computer player (AI keeper)** | | ● | | Flame `MyComputerPlayer`, `computer_player_flags`, `drop_condition`; `DK2.AI.KeeperAI` is ours, not a reading of DK2's |
 | **Multiplayer** | | ● | | `GameAction`, Flame `protocol_dump`, `network/protocol.h` |
