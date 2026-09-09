@@ -32,6 +32,19 @@ namespace DK2.Unity
     /// </summary>
     public sealed class DungeonScene : IRenderTarget
     {
+        /// <summary>A tile whose terrain fills its cell. One whole tile, so a wall is a
+        /// wall.</summary>
+        private const float SolidHeight = 1f;
+
+        /// <summary>A tile you could stand on: thin enough that a creature on it reads as
+        /// standing on it.</summary>
+        private const float OpenHeight = 0.06f;
+
+        /// <summary>What a tile marked for digging is tinted towards. DK2 plants flags;
+        /// this is a placeholder renderer, so it tints. An interface choice, not a claim
+        /// about the original (ADR-0104).</summary>
+        private static readonly Color TagTint = new Color(1f, 0.85f, 0.2f);
+
         private readonly Transform _root;
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
@@ -68,7 +81,9 @@ namespace DK2.Unity
             GameObject go = Instantiate(ground, $"tile {tile.Position.X},{tile.Position.Y}");
             if (go != null)
             {
-                Place(go, tile.Position.X, tile.Position.Y, ground.Look);
+                Place(go, tile.Position.X, tile.Position.Y, tile.Solid);
+                if (tile.Tagged)
+                    SetColour(go, Color.Lerp(ColourOf(LookOf(ground)), TagTint, 0.65f));
                 _tiles[tileIndex] = go;
             }
 
@@ -243,17 +258,24 @@ namespace DK2.Unity
             Collider collider = go.GetComponent<Collider>();
             if (collider != null) Object.Destroy(collider);
 
-            SetColour(go, ColourOf(asset.IsPlaceholder
-                ? asset.Look
-                : PlaceholderProvider.LookFor(asset.Reference)));
+            SetColour(go, ColourOf(LookOf(asset)));
 
             return go;
         }
 
-        private void Place(GameObject go, int x, int y, in PlaceholderLook look)
+        /// <summary>
+        /// A tile fills its cell if the terrain does and is a thin slab if it does not.
+        ///
+        /// <para><b>Height says one thing here: can you walk on it.</b> It used to come
+        /// from the placeholder's hashed <c>HeightPermille</c>, like a creature's does,
+        /// which made relief a function of the terrain's <i>name</i> — so a floor could
+        /// stand taller than a wall and the eye could not find the dug-out parts of a
+        /// level at all. <see cref="TileView.Solid"/> reached this class and nothing read
+        /// it. Colour still comes from the hash, which is what the hash is good for.</para>
+        /// </summary>
+        private void Place(GameObject go, int x, int y, bool solid)
         {
-            float height = look.HeightPermille / 1000f;
-            if (height <= 0f) height = 0.04f;
+            float height = solid ? SolidHeight : OpenHeight;
 
             go.transform.localScale = new Vector3(1f, height, 1f);
 
@@ -261,6 +283,10 @@ namespace DK2.Unity
             // flush and a block's base is level with it.
             go.transform.position = new Vector3(x + 0.5f, height / 2f, y + 0.5f);
         }
+
+        private static PlaceholderLook LookOf(in ResolvedAsset asset) => asset.IsPlaceholder
+            ? asset.Look
+            : PlaceholderProvider.LookFor(asset.Reference);
 
         private void PositionCreature(GameObject go, in CreatureView creature, in PlaceholderLook look)
         {

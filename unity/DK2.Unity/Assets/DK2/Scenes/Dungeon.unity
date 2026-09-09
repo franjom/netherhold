@@ -330,7 +330,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: DK2.Unity::DK2.Unity.DungeonRunner
   installDirectory: 
   levelName: Level1
-  saveFile: MyPetDungeo.SAV
+  saveFile: 
   seed: 1
   speed: 1
   showDiagnostics: 1

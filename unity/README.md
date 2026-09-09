@@ -28,8 +28,10 @@ component's **Install Directory** field or the `DK2_DIR` environment variable.
 
 You should get a campaign level as coloured boxes: walls tall, floors flat, room
 furniture standing on the floor, creatures as small uprights that turn gold when
-carrying gold. The colours are derived from each asset's key, so a terrain is
-always the same colour — see `PlaceholderProvider`.
+carrying gold. **Height means one thing — whether the terrain fills its tile**, so
+the dug-out parts of a level read as dug out. Colour is derived from each asset's
+key, so a terrain is always the same colour — see `PlaceholderProvider`. A tile
+you have marked for digging is tinted amber.
 
 WASD or the arrow keys pan and the mouse wheel zooms. The left mouse button uses
 the selected tool: `1` tag, `2` untag, `3` build, `4` sell, `5` pick up/drop,
