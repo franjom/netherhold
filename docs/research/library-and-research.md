@@ -2,10 +2,16 @@
 
 Milestone M4/M6. What a creature standing in a Library earns for its keeper.
 
-Implemented by `DK2.Simulation.ResearchRules` and the `JobType.Research` branch
-of `CreatureJobSystem`. Read from the binary on **2026-09-07**; every number
-below is from the reference install or from DKII.EXE, and none is written into
-the code as a literal.
+**Implementation:** `DK2.Simulation.ResearchRules` — `PerOriginalTick`,
+`MaxCredit`, `SlapBonusSeconds`, `SlapBonus` — credited from the
+`JobType.Research` branch of `Systems.CreatureJobSystem`, which adds the base
+once per original tick and the bonus once a game second.
+**Tests:** `ResearchTests` (`DK2.Simulation.Tests`) and
+`ResearchOnRealDataTests` (`DK2.Behavior.Tests`).
+**Questions:** Q81, Q159 (answered), Q216, Q217, Q218.
+
+Read from the binary on **2026-09-07**; every number below is from the reference
+install or from DKII.EXE, and none is written into the code as a literal.
 
 **Scope: the accrual, not the tree.** DK2 keeps two fields on the keeper — the
 accumulated points and a *current target* — and this reproduces only the first.
@@ -104,18 +110,14 @@ the whole column:
 Wizard — a *hero* — is twice as fast, which is worth knowing because every
 description of the game presents the Library as the Warlock's room.
 
-**The loader's floor runs both ways, and the second direction had not been
-found.** `SimulationTiming.LoaderRatePerTick` documented the floor as reachable
-in the sense that an `angerNo*` of 1 keeps its 1. It is also reachable *upward*:
-the **Skeleton's tabled 1 becomes 4 a game second, four times its record**, and
-the Monk's and Dark Angel's 3 become 4.
-
-> **A claim that nothing checked was already false.** That doc block said the
-> floor's sign-flip case was unreachable because *"every one of the ten is
-> either zero or at least four"*. Three creatures carry 1 or 3 in this column.
-> The **conclusion** survives — no shipped field is negative in the −3..−1 range,
-> so the sign flip still cannot occur — but the reason given for it was wrong,
-> and it had stood unchecked for a month. `ResearchOnRealDataTests` checks it now.
+**The loader's floor runs both ways.** It is reachable *upward*: the
+**Skeleton's tabled 1 becomes 4 a game second, four times its record**, and the
+Monk's and Dark Angel's 3 become 4. `SimulationTiming.LoaderRatePerTick` had
+justified its unreachable-sign-flip claim on *"every one of the ten is either
+zero or at least four"*, which three creatures in this column falsify; the
+conclusion survives, because no shipped field is negative in the −3..−1 range.
+`ResearchOnRealDataTests.TheLoadersFloorMAKESTheSkeletonResearchFourTimesFaster-`
+`ThanItsRecordSays` checks it against the install.
 
 ---
 
@@ -189,13 +191,15 @@ mechanism. **A slap does two unrelated things:**
 
 Both are stamped by the same handler (`FUN_0048b8a0`, whose step 5 is
 `LastSlapTick = now` at `creature+0x4BB`), and the research bonus is gated on
-that stamp.
+that stamp. Ours: `Efficiency.SlapBonusSeconds` = 25 for the work rate,
+`ResearchRules.SlapBonusSeconds` reading the variable for the research window
+(pinned against the install by
+`ResearchOnRealDataTests.TheSlapsResearchWindowIsSixtySecondsInTheShippedTable`).
 
-> **This partly rescues an owner measurement that had been written off.** Q159
-> closed *against* the owner's own hand-timed *"after a minute"*, in favour of
-> the binary's 25 seconds, and the 60 in the table was called a red herring.
-> **There really is a minute-long slap effect** — it just is not the work rate.
-> Q159's conclusion is unchanged and correct; the dismissal of the 60 was not.
+Q159's conclusion — 25 seconds for the work bonus — is unchanged and correct, but
+the 60 it dismissed as a red herring is this effect: **there really is a
+minute-long slap effect**, and the owner's hand-timed *"after a minute"* was
+measuring it. A variable looks dead when it is looked for in the wrong mechanism.
 
 ---
 

@@ -6,17 +6,13 @@
 
 **Status: researched and built, both ends.** `FloorGold` implements the pile,
 the split a dying creature makes, and the paths that put gold on the floor;
-`ImpTaskSystem` implements the imp that picks it back up (ADR-0056, and the
-owner supplied that trigger the following day). 31 tests and a scenario.
+`ImpTaskSystem` implements the imp that picks it back up (ADR-0056, superseded on
+the ordering by ADR-0058).
 
-## Why this was worth doing now
-
-`GoldStore` has carried the same paragraph since it was written: *"Floor piles
-are not [modelled]: a pile is an OBJECT and the OBJECTS record is not parsed
-until M6."* Both halves of that stopped being true — OBJECTS is parsed, and
-objects have somewhere to live (ADR-0054). What was left was the rule, and three
-places in the simulation were reporting gold they had to throw away because of
-it: a sold treasury tile, a destroyed one, and a creature that died carrying.
+**Implementation:** `FloorGold`, `GoldStore`, `ObjectState.GoldHeld`, and the
+drops in `RoomSellSystem`, `TileWorkSystem` and `CreatureHealthSystem`.
+**Tests:** `FloorGoldTests`, `ImpFetchesGoldTests`, `RoomSellTests`.
+**Scenario:** `scenarios/imps/an_imp_fetches_dropped_gold.yaml`.
 
 ## 1. A pile is an object, and which object depends on where it is
 
@@ -33,10 +29,9 @@ by **id**, not by flag:
 | 2 | Gold Bag | **created by nothing** the binary reaches through the ordinary object-create call |
 | **3** | Gold Pile 1 | **in a treasury or a dungeon heart** — one per tile |
 
-The negative on **Gold Bag** is worth stating because it is the kind of thing
-this project has been wrong about before: every call to the object-create
-function whose type argument is a literal 1, 2 or 3 was checked, and **none of
-them passes 2**. So a Gold Bag arrives from a level file or from somewhere that
+**Gold Bag is created by nothing** reachable that way: every call to the
+object-create function whose type argument is a literal 1, 2 or 3 was checked and
+**none passes 2**. So a Gold Bag arrives from a level file or from somewhere that
 does not pass a literal, and what it is for is **UNKNOWN**.
 
 Two of the records corroborate the split from the data side. `Gold Pile 1`
@@ -76,9 +71,6 @@ none. A treasury's capacity, by contrast, **is** counted:
 
 ## 3. `MaxGoldPileOutsideTreasury` is a target rule, not a limit
 
-**This is the finding that mattered most, and it is the same shape as the
-hatchery's flock cap two days earlier.**
-
 The variable is **2000**, and its global has exactly **three readers in the
 whole binary**. All three are imp code choosing where to put a load down, and
 all three make the same test: a candidate spot holding a pile whose `GoldHeld`
@@ -90,10 +82,10 @@ routinely make piles bigger: a sold treasury tile holding 3000 becomes a pile of
 3000.
 
 So the variable answers "where will an imp put gold down", not "how big may a
-pile be", and enforcing it as an invariant would have been wrong in a way no
-test could have caught — every test would simply have agreed with it. Compare
-`MaxFreeRangeChickensPerPlayer`, which was nearly enforced for the same reason
-and turned out to cap something else entirely (hatchery.md §5).
+pile be". Enforcing it as an invariant is the trap: no test could catch it,
+because every test would agree with it. `MaxFreeRangeChickensPerPlayer` has the
+same shape (hatchery.md §5). Ours exposes it as `FloorGold.MaxPile` and
+`FloorGold.AcceptsMore` and never clamps.
 
 **Q65 is ANSWERED by this.** It asked what happens to the 1000 surplus when a
 full treasury tile is sold, and offered three candidates: spread to neighbours,
@@ -156,7 +148,9 @@ in the casino's state code, which is presumably how a creature loses its money
 gambling.
 
 **Implemented:** `FloorGold.DropFrom`, called from `CreatureHealthSystem` on
-death — the only teardown this project has (Q137).
+death, which is the only teardown this project has. Leaving through a portal is
+**not** one: a creature keeps its gold when it is thrown through (Q137,
+ANSWERED — owner, 2026-09-07), so nothing in `PortalSystem` drops.
 
 ## 7. Sub-tile position, which is not modelled
 
@@ -191,7 +185,7 @@ read from 165 places.
 
 **Both ends of it now agree, which is new.** The original's gold-fetching task
 requires the object's own owner to equal that same global before an imp will
-take it (`imp-task-priority.md` §4), so the id that creates a pile and the id
+take it (`imp-task-priority.md` §5), so the id that creates a pile and the id
 that is looked for when collecting one are the same field. That does not say
 *which* id it is; it does say the two halves are consistent, which is what the
 question was really about.
@@ -205,39 +199,31 @@ question was really about.
 - `MaxPile` and `AcceptsMore` **exposed and never applied as a clamp**;
 - drops wired into selling a store, destroying a store, and a creature dying.
 
-**Built the following day** (2026-09-05, ADR-0056), once the owner supplied the
-trigger: **an imp fetches a pile and carries it to a treasury, and it does that
-before it will touch a marked wall.** See `imp-tasks.md`; the drops above are
-now a delay rather than a loss.
+**An imp fetches a pile and carries it to a treasury** (ADR-0056), so the drops
+above are a delay rather than a loss. **Where that sits in its priorities is
+Tier B, below marked excavation and claiming** — not, as ADR-0056 first had it,
+ahead of a marked wall (ADR-0058, Q146, Q147; `imp-task-priority.md` §1 and §5).
+Against reinforcing it is decided by **distance**, not order: a wall beats gold
+on the same tile, a nearer pile beats a farther wall.
 
 **Not built, and named:**
 
 - the twelve-slot merge, which arrives with an imp that puts a load *down*
   rather than picking one up;
 - treasury gold as an object (§2), deliberately;
-- **objects are invisible to the renderer.** A bed, a coop, an egg and now a
-  pile are all in the world and none of them is in `WorldView`, so a scenario
-  picture shows a tile with gold on it as bare floor. That predates this work
-  and is not gold-specific.
+- sub-tile position (§7). `ObjectView` carries a tile and no finer position, so a
+  renderer draws a pile at the tile centre wherever the original would offset it.
 
-**Open questions raised here:** Q136 (whose a floor pile is), Q137 (whether
-leaving by portal drops gold, as dying does), Q138 (whether mined gold an imp
+**Open here:** Q136 (whose a floor pile is), Q138 (whether mined gold an imp
 cannot hold falls on the floor), Q139 (which tile an overflowing refund uses),
-Q140 (whether an imp with a full treasury puts its load down).
+Q140 (whether an imp with a full treasury puts its load down), Q143 (whether the
+pick-up costs time), Q145 (whether fetching interrupts a swing in progress).
 
-**And more from building the imp that collects it:** Q142 (topping up a
-part-load), Q143 (whether the pick-up costs time), Q145 (whether fetching
-interrupts a swing in progress), Q146 (where fetching sits below digging).
-
-**Q144 is answered, and not the way this document first guessed.** The owner
-corrected their own report — gold mined on ground that was neither connected nor
-claimed never came home — and this document offered "reachability or ownership,
-one bridge separates them". It is **ownership**: the original refuses a tile that
-is neither water nor the worker's own before it looks at what is on it. Ours
-reproduced the outcome by accident, through both searches having to walk.
-
-**And Q147 was answered the same day, by the owner and then the binary:** DK2
-chooses in two tiers — digging and claiming whole-map by kind, and only then a
-ring scan in which reinforcing beats gold on the same tile and a nearer pile
-beats a farther wall. So gold sits **below claiming**, and against reinforcing
-it is decided by **distance**, not order. `imp-task-priority.md` and ADR-0058.
+**Answered here:** Q137 — a creature thrown through a portal keeps its gold
+(§6). Q142 — an imp does top up a part-load in the original; ours never does,
+because an imp with gold is already delivering before job selection is reached
+(`imp-task-priority.md` §5). Q144 — the refusal is **ownership**, not
+reachability: the original refuses a tile that is neither water nor the worker's
+own before it looks at what is on it, which is why gold mined on unclaimed
+ground never comes home. Ours reproduces the outcome by another route, both
+searches having to walk.

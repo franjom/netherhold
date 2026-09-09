@@ -7,13 +7,10 @@ governs the boundary. **Owner observations:** 2026-08-29 (Q24), 2026-09-05
 (Q141, later doubted), and 2026-09-05 again (Q147 — *"imps prioritise walls
 over gold on the floor, in both cases"*).
 
-**Why this exists.** It was written twice before it was right. The owner
-reported that imps fetch floor gold before mining (Q141); this project built
-that; the owner doubted it and asked for the binary; the binary put digging
-first and this project moved gold to second place on an argument (Q146). The
-first read also produced a hypothesis — that DK2's order is a tie-break within
-a position rather than a global ranking (Q147) — and named the two-minute
-experiment that would decide it. The owner ran it. Then the rest was read.
+**Implementation:** `ImpTaskSystem` (`TryTakeJob` is Tier A, `TrySweep` Tier B),
+ADR-0058 and ADR-0069. **Tests:** `ImpFetchesGoldTests`, `ImpTests`,
+`ImpClaimsWhatItDugTests`. **Questions:** Q24, Q25, Q141, Q146, Q147, Q153,
+Q154, Q155, Q162.
 
 ---
 
@@ -28,9 +25,9 @@ when Tier A is empty:** a ring scan outwards from the imp that, at every tile,
 tries *reinforce or repair a wall, pick up gold, carry a loose object,* and one
 unidentified kind. So a marked wall beats gold anywhere on the map; a wall to
 reinforce beats gold **on the same tile**; and a nearer pile beats a farther
-wall. That is the owner's Q24 order, the owner's Q147 observation, and the
-reason the Q146 argument ("gold last would never be collected") was wrong all
-at once: gold is not *last*, it is *near*.
+wall. That satisfies the owner's Q24 order and their Q147 observation, and it
+answers the Q146 argument that gold placed last would never be collected: gold
+is not *last*, it is *near*.
 
 ---
 
@@ -138,9 +135,15 @@ the slot at `+0x1ad` is filled from file `0x1ff`. The shift held for the flags
 and `GoldValue` by coincidence. So: **kind 6 (reinforce) takes solid rock whose
 health is below half its `MaxHealth`** — fresh Rock is 165 of 660 — and **kind
 16 (fix) takes anything whose health is not `MaxHealth`**, so a wall part-way
-up is a *fix*, at the same step of the ring scan. Our `Reinforce` predicate is
-by type and takes the same tiles the two take between them; no code change.
-The runtime ↔ file offset table is in `kwd-terrain-rooms.md`.
+up is a *fix*, at the same step of the ring scan. The runtime ↔ file offset
+table is in `kwd-terrain-rooms.md`.
+
+Ours splits the pair differently and only half of it is a job. `TileWorkKind`
+`.Reinforce` is solid ∧ not Impenetrable ∧ **not Ownable** ∧ the terrain is not
+already its own reinforced type — plain rock, chosen by type rather than by
+health — and it is the only kind `JobPriority.Reinforce` reaches. `TileWorkKind`
+`.RepairWall` exists with its own rate (`RepairWallHealth` 22) but no job
+priority selects it, so **kind 16 is not built as an imp job**.
 
 ---
 
@@ -157,11 +160,18 @@ then kind 15 for kinds 1/2. **Not read further.** It reads as "an imp told to
 do X also considers these"; where the argument comes from was not chased.
 
 **(b) The `JustDropped` scan.** If `imp+0x99` is non-zero it is cleared and a
-**ring scan of radius 2 tiles** (`0x2000` in 12-bit fixed point) runs with the
-**nine-step chain** as its per-tile callback. This is the one use of that
-chain. The flag's name is STRONGLY INFERRED from the dump's `JustDropped`; the
-behaviour it produces is the familiar one — *drop an imp beside something and
-it works on it.*
+ring scan runs with the **nine-step chain** as its per-tile callback. This is
+the one use of that chain. The flag's name is STRONGLY INFERRED from the dump's
+`JustDropped`; the behaviour it produces is the familiar one — *drop an imp
+beside something and it works on it.*
+
+**It reaches three tiles, not the two it is handed.** The scan is given a radius
+of `0x2000`, two tiles at `0x1000` to the tile, but the ring loop tests its
+bound *after* scanning a ring, with a strict greater-than, from a counter
+starting at 1 — so rings 1, 2 and 3 all scan. CONFIRMED: the owner counted it on
+screen (2026-09-06, Q162) — three tiles pay, the fourth does not, and the bound
+is measured to the tile the **work** is on. Reproduced rather than corrected
+(ADR-0002, ADR-0069); `hand-of-evil.md` §6 has the instruction-level reading.
 
 **(c) Tier A.** A byte table at `00698658` reads `0e 08 09 01 03 0d 0c ff`.
 For each kind, whole-map (`radius = 0x7fffffff`), stop at the first that takes:
@@ -240,16 +250,17 @@ face instead). Recorded, not built (**Q155**).
 
 ---
 
-## 8. What this project does, as of ADR-0058
+## 8. What this project does, as of ADR-0058 and ADR-0069
 
 | | DK2 | ours |
 |---|---|---|
 | Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **all of it but kind 9/10**: claim the just-dug tile, **8** (ADR-0065), marked excavation, claim, **13** both branches (ADR-0063, ADR-0064), **12**. Six of seven, in the original's order. The one missing is kind 9/10 — fetch a crate for a placed trap or door — which needs traps, doors and manufacturing |
-| Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold** |
+| Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold**. Kind 16 (fix a damaged own wall) is not a job here — §3 |
 | distance | rings, squared straight-line | steps along the walkable grid (Q25) |
 | kind 14 | claim the just-dug tile first, once no 8-neighbour has a dig task | **built** — `ClaimFreshlyDug`, same rule |
 | stealing | nearer imp takes the task | not built (Q155) |
-| just-dropped scan | radius 2, nine-step chain | **built** (ADR-0062) — the tile underfoot and its four orthogonal neighbours, which is a subset of the original's disc (Q162) |
+| just-dropped scan | three tiles, nine-step chain | **built** (ADR-0062, ADR-0069) — `TryTakeDroppedJob`, `DropScanTiles` = 3 Chebyshev measured to the work's tile, in DK2's drop order minus the two crate kinds and kind 11 (Q162) |
+| the aimed bonus | `DroppedTask` carries Efficiency +10 for as long as work of that kind lasts; `DroppedTask == LastTaskType` retries that kind whole-map before it is cleared | **built** (ADR-0069) — `TryTakeJobOfKind`, `CreatureState.DroppedTask`/`JustDropped`/`LastTaskKind`. The bonus itself is `hand-of-evil.md` §6 |
 | kind 13 | carry an unconscious creature: own to a Lair, an enemy's to a Prison | **built, both branches** — the rescue to its own bed (ADR-0063) and the capture into a cell (ADR-0064). What the prison then does is `docs/research/prison.md` |
 | kind 12 | carry a corpse to the Graveyard | **built** (ADR-0063) — what a graveyard does with the corpses is not (Q165) |
 
@@ -260,29 +271,25 @@ same tile; a nearer wall beats a farther pile.
 
 ---
 
-## 9. What the first read got wrong, kept on purpose
+## 9. Two traps in reading this code
 
-The first version of this document (2026-09-05, morning) read the nine-step
-chain as *the* priority, put gold "sixth of nine", guessed kind 12 was claiming
-("tests for unowned ground" — it tests for *owned* ground and carries corpses),
-guessed kind 3 was a bridge ("tests Lava and Water" — it tests for their
-*absence*, and is claiming), and framed Q147 as "global *or* positional". The
-truth was *both, in tiers*, and the chain it had found was the per-tile
-callback of a two-tile scan that runs only after an imp has been dropped.
+**A fixed-order chain is not a priority list until you know who calls it and how
+often.** The nine-step chain of §2.3 reads exactly like one and is the per-tile
+callback of a scan that runs only after an imp has been dropped.
 
-Two lessons worth more than the facts. **A fixed-order chain is not a priority
-list until you know who calls it and how often.** And **"this kind tests
-flag F" is not an identification until the polarity is checked** — three of
-the four mis-identifications were the right flag read the wrong way round.
+**"This kind tests flag F" is not an identification until the polarity is
+checked.** Kind 12 tests for *owned* ground, not unowned, and carries corpses;
+kind 3 tests for the *absence* of Lava and Water, and is claiming.
 
 ---
 
 ## 10. Open, in one place
 
-- ~~**Q153**~~ — the reinforce ceiling at `terrain+0x1ad` is `MaxHealth`; the
-  file-offset arithmetic that said otherwise was wrong (§3).
-- ~~**Q154**~~ — kind 14, claim-the-just-dug-tile: built; the trigger's timing is inferred, not read.
-- **Q155** — task stealing by distance: not built.
+- **Q153** — answered: the reinforce ceiling at `terrain+0x1ad` is `MaxHealth` (§3).
+- **Q154** — answered and built: kind 14, claim-the-just-dug-tile. The trigger's
+  timing is inferred, not read (§6).
+- **Q162** — answered: the drop scan reaches three tiles (§4b).
+- **Q155** — task stealing by distance: read, not built (§7).
 - **Q25** — the dig search walks the task list within a radius; whether it
   takes the *nearest* qualifying task or the *first in list order* was not read.
   The owner's answer (nearest by walking distance) stands as the observation.

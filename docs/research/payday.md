@@ -1,13 +1,17 @@
 # Payday
 
-**Status:** read from the binary and **BUILT**, 2026-09-06 (ADR-0078).
-Questions: Q9 (answered), Q201 (new).
+**Status:** read from the binary and **BUILT**, 2026-09-06 (ADR-0078); the anger
+charge the same day (ADR-0079). Every address below was decompiled; nothing here
+is inferred from a variable's name.
 
-Payday is the last unbuilt item of M4's original seven, and it turns out to be
-one of the most completely readable mechanics in the executable: a clock on the
-player, a wage on the creature, and three creature states that walk it to the
-money. Every address below was decompiled; nothing here is inferred from a
-variable's name.
+**Implementation:** `PaydayRules`, `Systems.PaydaySystem`,
+`CreatureActivity.SeekingWages`, and `CreatureAngerRules` for the anger charge.
+**Tests:** `PaydayTests`. **Scenario:**
+`scenarios/creatures/a_keeper_meets_its_wage_bill.yaml`.
+**Questions:** Q9 (answered), Q201.
+
+A clock on the player, a wage on the creature, and three creature states that
+walk it to the money.
 
 ---
 
@@ -20,9 +24,8 @@ cannot find one, or arrives to find the tile empty, gives up after two attempts
 and stays owed. Wages **accumulate**, so a creature that misses a payday is owed
 two.
 
-The last clause is what makes this worth building carefully: it is a real
-economy with a real failure mode, and the failure mode already has a consumer —
-`AngerNoPay`, which `creature-anger.md` records as *"No — there is no payday"*.
+The failure mode has a consumer: `AngerNoPay`, charged on the outstanding debt
+alone (§6).
 
 ---
 
@@ -59,7 +62,7 @@ prepayment**, and this is where the prepayment is spent.
 Note the branch: a creature with the flag set is **not** credited a wage at all.
 It is not "paid early and skipped"; the payday simply does not happen for it.
 
-### 2.1 The three variables are all live, and that is worth stating
+### 2.1 The three variables are all live
 
 Following the standing rule — *a named balance variable is not evidence the
 engine consults it* — each was scanned for readers:
@@ -70,9 +73,9 @@ engine consults it* — each was scanned for readers:
 | `TimeBeforeFirstPayDaySeconds` = 600 | `0x006F2611` | 2 | `FUN_004be330`, the initialiser |
 | `PayDayCutOffTimeSeconds` = 120 | `0x006F28A3` | 3 | `FUN_00414bc0` and `FUN_004872a0` |
 
-(One hit in each is the setter stub.) So all three are real, which is a
-different result from the four dead fields this project has caught — and worth
-recording as the *negative* of that pattern rather than assuming it.
+(One hit in each is the setter stub.) All three are real — the negative of the
+dead-field pattern this project has caught elsewhere, and read rather than
+assumed.
 
 **`PayDayCutOffTimeSeconds` is still not understood.** Q9 guessed *"how long a
 creature has to reach the treasury before it counts as unpaid"*. Its two readers
@@ -105,13 +108,18 @@ offset **`0x0F1C`**, which `kwd-creatures.md` lists as `u16 pay`. Exact hit.
 `levelPercent` is a table of `s16` percentages at `DAT_006e4154 + 0x129`,
 indexed by level — the same globals block that holds `V19` at `+0x40`.
 
-**Two consequences worth keeping:**
+Two consequences:
 
-- **Wages accumulate** (`+=`, clamped at zero). Being owed is a state that
-  persists across paydays, so a poor keeper's debt compounds.
+- **Wages accumulate** (`+=`, clamped at zero). Being owed persists across
+  paydays, so a poor keeper's debt compounds.
 - **A level-10 creature costs more than a level-1 one**, by a percentage the
-  table gives. This project has creature levels (Q119) and has never had
-  anything that spends them.
+  table gives (Q119).
+
+**Implemented:** `PaydayRules.Wage` scales the record's `Pay` by the level
+table's `CreatureStatId.Pay` row; `PaydayRules.MaxFailedAttempts` = 2;
+`PaydayRules.IsPayingRoomOf` accepts a Treasury or Dungeon Heart of the
+creature's own keeper; `PaydayRules.GoldIn` skips a room whose total is zero and
+`PaydayRules.TakeFromTile` lifts the money off the tile underfoot.
 
 ---
 
@@ -199,16 +207,12 @@ conspicuous and has no candidate.
 
 **Built on 2026-09-06 (ADR-0078):** `PaydayRules`, `PaydaySystem`,
 `CreatureActivity.SeekingWages`, three fields on the creature and one on the
-player, 13 tests and one scenario. Hash 30 -> 31.
+player. It cost one bump of `GameSimulation.HashVersion` and the snapshot
+`FormatVersion` with it; ADR-0078 records which.
 
-**The anger gap closed the same day** — §6. What is left is `PayDayCutOffTimeSeconds` and the two unread calls in state 189.
-
-~~The gap that matters is the first UNKNOWN: **where the anger comes from.**~~ The
-owner has already described the consequence (Q9: unhappy, then angry, then
-leaves — or rebels, if converted), and `AngerNoPay` is +60/s in the table, so
-the mechanism exists at both ends and the middle has not been found. It is
-probably charged from the needs routine rather than the payday states, in the
-same shape as `AngerNoFood`. That is the next thing to read.
+What is left unread: `PayDayCutOffTimeSeconds` and the two calls in state 189.
+The owner's account of the consequence stands as the observation (Q9: unhappy,
+then angry, then leaves — or rebels, if converted).
 
 ---
 
@@ -223,15 +227,18 @@ it charges all three standing sources one after another, **independently**:
 | `AngerNoFood` | `def+0x6c3` | `HungerNeed` >= level-scaled `HungerFill` **and** a hatchery is available |
 | **`AngerNoPay`** | **`def+0x6c5`** | **`WageOwed != 0`, and level-scaled `Pay` != 0** |
 
-### 6.1 The pay clause has no treasury test, and that is the finding
+### 6.1 The pay clause has no treasury test
 
 Both siblings test that the **room** exists. The pay charge tests **nothing but
 the debt**: no treasury clause, no "did it try and fail" clause. A keeper with no
 vault at all and a keeper whose creature has not walked over yet are charged
-identically, from the moment the clock runs until the money is in hand.
+identically, from the moment the clock runs until the money is in hand — **you
+cannot excuse yourself by having no treasury.** Assuming the sibling rule is the
+trap here.
 
-Writing the sibling rule here would have been very natural and would have been
-wrong. **You cannot excuse yourself by having no treasury.**
+**Implemented:** `PaydayRules.IsOwedWages` is that test — outstanding wage and
+level-scaled `Pay` both non-zero, nothing else — and `CreatureAngerRules` charges
+`AngerNoPay` off it (ADR-0079).
 
 ### 6.2 The fields were pinned, not guessed
 
@@ -257,29 +264,17 @@ danger, celebrating (2 each). **A creature busy with something urgent, or not
 properly yours yet, does not stop to be resentful.** Bits 3 and 4 were the Casino
 (ADR-0074); this is the third bit named.
 
-### 6.4 What a bed does to all of this — ~~and the answer below is wrong~~
+### 6.4 A bed does nothing about an unpaid wage
 
-**Corrected the same day by ADR-0081.** Everything in this subsection is
-arithmetic on two shipped numbers that never meet: `AngerNoPay` fills anger
-bucket 4 and `ModifyAngerOfCreatureInLairPerSecond` drains bucket 5, and DK2
-bands the *largest* bucket rather than a pooled total. **A bed does nothing
-whatever about an unpaid wage.** Kept below rather than deleted, because the
-shape of the mistake is worth more than the paragraph: two correct numbers, a
-plausible ratio between them, and no check that the game ever puts them in the
-same place. See `creature-anger.md`, "Anger is six counters, not one".
+`AngerNoPay` fills anger bucket 4 and `ModifyAngerOfCreatureInLairPerSecond`
+(−550) drains bucket 5, and DK2 bands the **largest** bucket rather than a pooled
+total (ADR-0081, `creature-anger.md`, "Anger is six counters, not one"). So the
+two never meet, and sleeping off an unpaid wage is not a mechanism.
 
-### 6.4 (retired) What a bed does to all of this
-
-`ModifyAngerOfCreatureInLairPerSecond` is **−550** and a Goblin's `AngerNoPay` is
-**60**, so a creature asleep in its own bed sleeps off unpaid resentment **nine
-times faster than being owed accrues it**. Wages alone will never drive a
-well-housed creature out of a dungeon; failing to pay has to be one of several
-things going wrong, which is what the ladder is for.
-
-This is why `a_keeper_meets_its_wage_bill.yaml` shows no mood change on either
-side — the lairs it needs to make its Goblins idle enough to collect are the same
-lairs that keep them calm. Pinned as arithmetic in
-`PaydayTests.ABedOutpacesAnUnpaidWageNineToOne`.
+**Trap:** the two are shipped numbers with a plausible ratio between them — 60
+against 550 reads as "a bed outpaces the debt nine to one" — and the arithmetic
+is meaningless because the engine never puts them in one place. Check that it
+does before comparing two shipped values.
 
 ### 6.5 Guards still unmodelled
 

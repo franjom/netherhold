@@ -1,20 +1,22 @@
 # Mana, and why it is the size of a dungeon
 
-Milestone M3. Where a keeper's mana comes from, what stops it growing, and the
-two things the data could not say.
+Milestone M3. Where a keeper's mana comes from, what stops it growing, and what
+drains it.
 
-Implemented by `DK2.Simulation.ManaRules` and
-`DK2.Simulation.Systems.ManaSystem`.
+**Implementation:** `DK2.Simulation.ManaRules` and
+`DK2.Simulation.Systems.ManaSystem`; the imp half is `ImpSupplyRules` /
+`ImpSupplySystem` and its home is `imps-and-mana.md`.
+**Tests:** `ManaTests` (`DK2.Simulation.Tests`) and `ManaOnRealDataTests`
+(`DK2.Behavior.Tests`, skipped with no install).
+**Scenario:** `scenarios/mana/land_pays_a_keeper.yaml`.
 
-The short version: **mana income is territory, plus a flat thirty for your
-heart.** Three terrain types out of 41 generate any mana at all, and between them
-they are every kind of ground a keeper can hold without having built on it. That
-makes the rule a sum over owned tiles and one boolean, which is why the
-implementation is under a hundred lines.
+**Mana income is territory, plus a flat thirty for your heart.** Three terrain
+types out of 41 generate any mana at all, and between them they are every kind of
+ground a keeper can hold without having built on it. So the income rule is a sum
+over owned tiles and one boolean.
 
-The two things the files could not settle — the ceiling, and how to count a
-heart — were both answered by the owner from playing the original, which is what
-the oracle is for. See §"How this was established" step 5.
+Two things the files could not settle — the ceiling, and how to count a heart —
+were answered by the owner from playing the original.
 
 ---
 
@@ -31,12 +33,13 @@ the oracle is for. See §"How this was established" step 5.
 | **A keeper has at most one dungeon heart, ever, and losing it is defeat** | **CONFIRMED** — observed in the original; the ROOMS record agrees from its side, the heart being unbuildable |
 | **A keeper's mana ceiling is 200000 from the first second and never moves** | **CONFIRMED** — observed in the original (Q37, Q37a) |
 | The ceiling is soft: mana above it drains back rather than being clamped | **STRONGLY INFERRED** — `ExcessManaDecreaseRatePerSecond` only means something if mana can exceed the ceiling |
-| The gain cap is per player, not shared across the level | **HYPOTHESIS** (Q38) |
+| The gain cap is per player, not shared across the level | **CONFIRMED** (owner, 2026-08-29, Q38) — one keeper's dungeon does not throttle another's |
 | **The gain cap is `MaximumManaGainPerSecond` = 500 as displayed** | **CONFIRMED for skirmish** (owner, 2026-09-06: regen sat at +500) — **CONTRADICTED for My Pet Dungeon** (owner, same day: +1400 and more), and **no level's VARIABLES overrides it** (all 66 files read). Mechanism UNKNOWN; see the last section and Q199 |
+| An imp costs its keeper 7 mana a second | **CONFIRMED** (owner, 2026-08-30, Q53) — four imps read −28 on the orb, five read −35 |
 | Mana is paid once a game second rather than smoothly | **OURS, not DK2's** (ADR-0017) — invisible in totals, visible only in the shape of the counter |
 | `TerrainDef.MaxManaGain` and `DungeonHeartMaxManaIncrease` are **not** ceiling contributions | **CONFIRMED by elimination** (Q37a) — the ceiling never moves, so nothing can contribute to it. What they *are* has no candidate left; both are read by nothing |
-| What mana is *for* | **NOT IMPLEMENTED** — nothing spends it; every spender is a spell, and spells are M7 |
-| What defeat does when a heart falls | **NOT IMPLEMENTED** (Q40) — scheduled with objectives at M6 |
+| What the original does when a keeper cannot pay its imps | **UNKNOWN** (Q57) — ours floors mana at zero and carries on |
+| What defeat does when a heart falls | **ANSWERED, NOT BUILT** (Q40) — the owner has described it; scheduled with objectives at M6 |
 
 ---
 
@@ -97,9 +100,9 @@ written:
 - **Losing land loses the income with it**, immediately, because the sum is over
   what is owned right now rather than over a running total.
 - **Building a room on your own floor costs you income**, because room terrain
-  pays zero. This one is worth stopping on: a keeper who paves their whole
-  dungeon has no mana, and nothing anywhere implements that as a rule. It is a
-  consequence of two data tables agreeing.
+  pays zero. A keeper who paves their whole dungeon has no mana, and nothing
+  anywhere implements that as a rule: it is a consequence of two data tables
+  agreeing.
 
 That last one is the mana scenario's whole point
 (`scenarios/mana/land_pays_a_keeper.yaml`): the reported rate falls from 38/s to
@@ -109,9 +112,9 @@ codebase knows a treasury was involved.
 ### The dungeon heart's thirty
 
 `DungeonHeartManaGenerationIncreasePerSecond` is 30 and it is per *heart*. That
-phrasing was the whole difficulty for a while, because a shipped heart covers 25
-tiles and the simulation has no room instances — rooms here are terrain — so
-"per heart" looked unimplementable without inventing a way to count hearts.
+phrasing was the whole difficulty, because a shipped heart covers 25 tiles and
+`ManaRules` walks tiles rather than rooms — so "per heart" looked unimplementable
+without inventing a way to count hearts.
 
 It is not, because of a fact from the original rather than from the files:
 **a keeper has at most one dungeon heart, ever, and losing it is defeat**
@@ -123,8 +126,7 @@ adds 30 once. A 5×5 heart is worth 30 a second, not 750.
 The ROOMS record agrees from its own side. The Dungeon Heart is the one room a
 keeper starts with that carries no `Buildable` flag, so there is no way to
 acquire a second — asserted against the install in
-`ADungeonHeartCannotBeBuilt_WhichIsWhyAKeeperOnlyEverHasOne`. Two independent
-lines of evidence for the same rule is as good as this project's evidence gets.
+`ADungeonHeartCannotBeBuilt_WhichIsWhyAKeeperOnlyEverHasOne`.
 
 Note what the 30 is *not*: heart terrain has a `ManaGain` of zero like every
 other room terrain, so the 30 belongs to the keeper and not to the tiles. Paving
@@ -150,11 +152,9 @@ the health deltas. Two things settle it well enough to call STRONGLY INFERRED:
 `MaximumManaThreshold` is 200000 and `ExcessManaDecreaseRatePerSecond` is 5.
 Taken together they only make sense one way: the threshold is the level at which
 mana stops accruing, and mana *above* it drains back down at 5 a second rather
-than being clamped away.
-
-A hard clamp would make the drain rate dead data. And there is at least one
-thing in the table that could push a keeper over — `SpecialIncreaseManaAmount`,
-a level special worth 50000 in one lump. So the drain is implemented, and tested
+than being clamped away. A hard clamp would make the drain rate dead data, and
+`SpecialIncreaseManaAmount` — a level special worth 50000 in one lump — is a
+thing that could push a keeper over. So the drain is implemented and tested
 (`ManaAboveTheThresholdDrainsBackToIt`), even though nothing in the simulation
 can yet reach the state that needs it.
 
@@ -163,26 +163,50 @@ second, it never moves, and it does not grow with the dungeon — CONFIRMED by
 observation of the original (Q37, Q37a), which is the only way this could have
 been settled.
 
-It is worth recording how close this came to being got wrong in the other
-direction. `DungeonHeartMaxManaIncrease` (32000) and `TerrainDef.MaxManaGain`
-(100, on Claimed Vault alone) both look exactly like contributions to a computed
-per-keeper ceiling, under which 200000 would have been an absolute limit sitting
-on top of a much smaller starting one. That reading is tidier than the truth: it
-gives both variables a job, and it explains why 32000 is in the table at all.
-Implementing it would have made a one-heart keeper's ceiling roughly six times
-too low, and it would have *looked* better justified than the flat ceiling that
-turned out to be right.
+`DungeonHeartMaxManaIncrease` (32000) and `TerrainDef.MaxManaGain` (100, on
+Claimed Vault alone) both look exactly like contributions to a computed
+per-keeper ceiling. **Trap:** that reading is tidier than the truth — it gives
+both variables a job and explains why 32000 is in the table at all — and it is
+refuted, in both the strong form (a ceiling of 32000 a heart plus `MaxManaGain` a
+tile, clamped at 200000) and the weak one (a ceiling that starts lower and grows
+toward 200000, the observation being of a mature dungeon). The ceiling is 200000
+from the first second and never moves (Q37a, owner observation). **Neither
+variable contributes to a mana ceiling, and neither may be used to justify a mana
+rule.** Both are read by nothing.
 
-The flat ceiling was implemented instead, not because it was better supported —
-it was not — but because the tidier reading required choosing between "per heart
-tile" and "per heart room" with nothing to choose on. Refusing that guess is what
-left the answer reachable.
+That leaves two numbers in the balance table with no candidate explanation:
+legacy data, editor-only data, or something outside mana entirely. Nothing reads
+either and nothing depends on them, so Q37a is closed on the prohibition rather
+than solved. A normal outcome for a twenty-five-year-old balance table, recorded
+because an unexplained number is exactly what a future session will find, decide
+must mean something, and wire up.
 
-There is no weaker version of that reading left, either. A ceiling that *started*
-lower and grew toward 200000 would have given the two variables the same job on a
-smaller scale; the ceiling is 200000 from the first second and never moves, so
-that is refuted too (Q37a). **Neither variable contributes to a mana ceiling, and
-neither should be used to justify a mana rule.** Both are read by nothing.
+---
+
+## What spends it
+
+**Imps do, and that half is built.** `imps-and-mana.md` is the home; in outline:
+
+- **Upkeep, 7 a second per imp** (CONFIRMED — owner, 2026-08-30, Q53), read off
+  the Create Imp *keeper-spell* record's `ManaUpkeepPerSecond` rather than
+  CREATURES. `ManaRules.UpkeepPerSecondByPlayerIndex` charges it for **every**
+  worker a keeper owns, including the free starting four, which is why the floor
+  is free to fill and not free to keep.
+- **Create Imp costs `1500 × (imps − MinimumImpThreshold + 1)`** — 1500, then
+  3000, then 4500 (CONFIRMED, Q54). `ImpSupplySystem` refuses the command when
+  mana is short and otherwise subtracts it.
+
+**The two halves are capped and netted separately, and both orders are
+observed.** `MaximumManaGainPerSecond` caps the *income* alone — netting first
+would let a large workforce raise a keeper's income cap — while the ceiling is
+applied to the net: the owner's screenshot of a full keeper reads exactly 200000
+with +400 and −297 on the orb, so income beating upkeep pins them at the top
+rather than 297 short. `ManaRules.ApplyOneSecond` does it in that order.
+
+**Mana floors at zero**, and what the original does when a keeper cannot pay is
+**UNKNOWN** (Q57): `InsufficientManaImpEvaluationPeriodSeconds` (10) says
+something happens on a ten-second clock, and guessing it would be inventing
+behaviour, so a keeper here sits at zero.
 
 ---
 
@@ -190,23 +214,22 @@ neither should be used to justify a mana rule.** Both are read by nothing.
 
 Read this before adding to `ManaRules`.
 
-- **Nothing spends mana.** Every spender in DK2 is a spell — Create Imp, Possess,
-  Lightning, Call to Arms — plus research and possession upkeep
-  (`ManaCostInFirstPersonPerSecond`). Spells are M7. Until then a mana total is
-  what a keeper *earned*, not what they would have left, and every scenario
-  report says so.
+- **Spells other than Create Imp.** Possess, Lightning, Call to Arms, Summon
+  Horny and research/possession upkeep (`ManaCostInFirstPersonPerSecond`) all
+  spend mana in DK2 and none of them exists here; the same spell column that gave
+  the imp its 7 holds 2000 a second for Summon Horny and 90 for Call To Arms.
+  Spells are M7. Trap drain is owner-reported and uninvestigated.
 - **Nothing happens when a heart falls.** Losing your dungeon heart is defeat in
-  DK2 (CONFIRMED — owner observation), and defeat is not implemented: no player
-  is eliminated, nothing happens to their creatures, rooms, land or gold. A
-  keeper whose heart is beaten down here just stops earning its 30 a second and
-  plays on, and every scenario with a heart on the map says so. Q40 — it belongs
-  with objectives and win conditions at M6, not with mana.
+  DK2, and the owner has described what defeat does (Q40): the defeated keeper's
+  creatures leave through the nearest portal and rival keepers claim their rooms
+  and gold. None of it is built — no player is eliminated, nothing happens to
+  their creatures, rooms, land or gold. A keeper whose heart is beaten down here
+  stops earning its 30 a second and plays on, and every scenario with a heart on
+  the map says so. It belongs with objectives and win conditions at M6.
 - **`MaxManaGain` and `DungeonHeartMaxManaIncrease` are read by nothing.**
   `MaxManaGain` is non-zero on exactly one terrain in the whole table, where it
-  repeats `ManaGain`; `DungeonHeartMaxManaIncrease` is 32000 against a ceiling
-  now known to be a flat 200000. Both look like contributions to a computed
-  ceiling and neither can be one, so what they are for is Q37a and nothing
-  depends on it. `MaxManaGainIsSetOnExactlyOneTerrain_-`
+  repeats `ManaGain`; `DungeonHeartMaxManaIncrease` is 32000 against a flat
+  200000 ceiling. `MaxManaGainIsSetOnExactlyOneTerrain_-`
   `WhichIsWhyNothingReadsIt` pins the negative result so that a future data set
   which contradicts it fails loudly.
 - **Mana-vault claiming is not special-cased by its two named rates** (Q69,
@@ -223,56 +246,25 @@ Read this before adding to `ManaRules`.
 
 ## How this was established
 
-Cheapest first, per the method in `HANDOFF.md`:
+Cheapest first, per the method in `HANDOFF.md`. No disassembly was needed and
+none was done.
 
 1. `dk2tools kwd terrainmana` (added for this) over the install's `Terrain.kwd` —
-   the whole 41-row table, both mana columns. The shape of the answer was
-   visible immediately: 38 zeroes and three ownable terrains.
+   the whole 41-row table, both mana columns: 38 zeroes and three ownable
+   terrains.
 2. `dk2tools kwd vars` for the nine mana globals, cross-read against the field
    names for units.
 3. Structural check rather than trust: `OnlyHeldGroundGeneratesMana` asserts the
    partition by exhaustion against the real database rather than spot-checking
-   three ids, and `NoRoomGeneratesMana` walks all 26 rooms. Both run in
-   `DK2.Behavior.Tests` and skip with no install.
-4. No disassembly was needed and none was done.
-5. **Two facts came from the owner playing the game**, and neither was reachable
+   three ids, and `NoRoomGeneratesMana` walks all 26 rooms.
+4. **Two facts came from the owner playing the game** and neither was reachable
    from the files: the ceiling is a flat 200000, and a keeper has exactly one
    dungeon heart whose loss is defeat. The first closed Q37 outright; the second
    turned the heart's 30 a second from unimplementable into a boolean.
 
 The transcription into `Dk2TerrainFixture` (the two vault terrains, the four
-rates) is guarded by `ManaOnRealDataTests` in the same way the terrain, room and
-Imp transcriptions are. That guard has already caught one real error in this
-project's history and it is cheap.
-
----
-
-## What does not fit
-
-**One thing, and it is smaller than it was.** `DungeonHeartMaxManaIncrease`
-(32000) is a strange number to exist beside a ceiling that is flat at 200000: it
-is neither the threshold nor a fraction of it, and the same goes for
-`MaxManaGain` at 100. The reading that gave both a job — a ceiling computed as
-32000 a heart plus `MaxManaGain` a tile, clamped at 200000 — is refuted for the
-ceiling, so whatever they are, they are not that.
-
-The last version of that reading is refuted too. A ceiling that *started* lower
-and grew toward 200000 — with the first observation simply being of a mature
-dungeon — would have given both variables the same job on a smaller scale. The
-ceiling is 200000 from the first second and never moves (Q37a, owner
-observation), so it does not.
-
-That leaves two numbers in the balance table with no candidate explanation
-attached: legacy data, editor-only data, or something outside mana entirely.
-Nothing reads either, nothing depends on them, and the useful part of the finding
-is the prohibition rather than the mystery — **neither is a mana ceiling
-contribution, and neither may be used to justify a mana rule.** Q37a is closed on
-that basis rather than solved.
-
-This is a normal outcome for a twenty-five-year-old balance table and not a sign
-that the model is wrong. It is recorded because an unexplained number is exactly
-the kind of thing a future session will find, decide must mean something, and
-wire up.
+rates) is guarded by `ManaOnRealDataTests`, as the terrain, room and Imp
+transcriptions are.
 
 ---
 
@@ -291,7 +283,8 @@ the variable's name to **CONFIRMED** for skirmish. **The second is a number the
 model cannot produce**, so the model is wrong or incomplete for that mode, and
 the question is where. **The pet-dungeon half is flagged for later at the
 owner's request**: they are not sure of the tile count or of what fed the +1400,
-so it is an observation to re-check (checklist item 4), not yet a measurement.
+so it is an observation to re-check (`observation-checklist.md` §5), not yet a
+measurement.
 
 **The obvious explanation was checked first and it is refuted.** ADR-0040 layers
 each level's own `<name>Variables.kld` over the global table, and a per-level
@@ -307,8 +300,6 @@ Candidates, none chosen, ranked by how cheap they are to rule out:
 1. **The binary applies the cap to something other than the displayed rate, or
    not at all in the pet-dungeon mode.** Cheapest to settle: find the reader of
    variable 235 in `DKII.EXE` and see what it clamps and under what condition.
-   This is the sixth clause — count a field's readers — applied late, to a cap
-   the simulation has already built on.
 2. **The displayed "+N" includes a source that is not territory income.** A
    pet-dungeon level may add mana by some route the display folds into the rate.
    Settled by play: note the level, count claimed tiles, and watch whether the
@@ -316,8 +307,8 @@ Candidates, none chosen, ranked by how cheap they are to rule out:
 3. **The value sits in a record this project does not decode** — PLAYERS(180)
    or LEVEL(220), both split and unread.
 4. **`MaxManaGain` (100) and `DungeonHeartMaxManaIncrease` (32000)**, the two
-   orphan numbers in the section above, are part of it. Ruled out for the
-   *ceiling*; not ruled out for the *rate*.
+   orphan numbers above. Ruled out for the *ceiling*; not ruled out for the
+   *rate*.
 
 Until one of those lands, the confidence line for the cap reads: **CONFIRMED for
 skirmish (owner), CONTRADICTED for My Pet Dungeon (owner), mechanism UNKNOWN.**
