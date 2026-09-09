@@ -98,20 +98,39 @@ repeat byte to its children, where 1 is exactly the value that retires a
 successful action. So re-arming a subtree silently makes its actions one-shot.
 **232 shipped conditions carry 255**, so this is not a corner case.
 
-This also part-answers what the 24 slots at `+0x4030` are: each 0x208-byte slot
-holds a trigger id at `+0`, and sixteen more at `+0x20` stride, and the loader
-**disables every one of those subtrees** before the level runs. What the slots
-represent is still UNKNOWN, and so is whether action type 14's transcribed
-parameter names are right — three of three transcribed THINGS names were wrong,
-and its handler passes body bytes 0, 1 and 4 into a function that does more than
-this walk.
+## The 24 slots at `+0x4030` are the level's party table
+
+`FUN_00519F90`, the action type 14 handler, indexes them at `0x0051A18A` with
+`party * 0x208`, and walks their members at `0x0051A1C1`
+(`LEA ESI,[ECX + EBX*0x1 + 0x4038]`, with `ECX` the member index shifted by 5).
+That fixes the record exactly, and it fills without a byte to spare:
+
+| offset | |
+|---|---|
+| `+0x00` | the party's own trigger id |
+| `+0x08 + i * 0x20`, i in 0..15 | sixteen member records of 0x20 bytes |
+| member `+0x18` | that member's trigger id |
+
+`8 + 16 * 0x20 = 0x208`. The loader's disable sweep reads exactly these
+seventeen ids — the member ids are its `+0x20`-stride reads — and **disables
+every one of those subtrees** before the level runs.
+
+**Action type 14 creates a party**, and for once the transcribed names hold. Body
+byte `00` is the table index (traced to arg 1 at `0x0051A16C`; `AND EAX,0xff`
+with **no bound check**, though shipped ids run 0..16 against 24 slots). Byte
+`01` is read at entry (`0x00519F98`) and selects a path; it ships as 0, 1 or 2.
+The handler enables the party's subtree, then for each member whose first byte is
+non-zero creates a creature — a block of per-creature setters unpacking a
+bitfield — and enables that member's own subtree. **Byte `04` is not traced**, so
+whether it is the action point the transcription calls it is still UNKNOWN.
 
 `+0x10` is initialised to **2**, not to 0 or 1: both initialisers set bit 1 and
 only bit 0 varies. What bit 1 means is UNKNOWN; nothing above reads it.
 
 ## Implementation boundary
 
-`TriggerConditionEvaluator` currently evaluates only one supported condition.
-There is no tree executor or action dispatcher in the reimplementation. An
-executor can now reproduce link order and retirement without guessing, but its
-action effects still require their own binary reads.
+`TriggerExecutor` walks this tree once per turn and runs action types 7 and 8
+only; everything else is counted, not guessed. Type 14 is the one whose absence
+is structural rather than incidental — level 1's root fires two of them, and
+until they run the party subtrees stay disabled, so most of the level's script
+never arms. Its creature-creation half needs its own reads before it can ship.
