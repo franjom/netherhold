@@ -267,12 +267,14 @@ namespace DK2.Unity
         /// <summary>
         /// A tile fills its cell if the terrain does and is a thin slab if it does not.
         ///
-        /// <para><b>Height says one thing here: can you walk on it.</b> It used to come
-        /// from the placeholder's hashed <c>HeightPermille</c>, like a creature's does,
-        /// which made relief a function of the terrain's <i>name</i> — so a floor could
-        /// stand taller than a wall and the eye could not find the dug-out parts of a
-        /// level at all. <see cref="TileView.Solid"/> reached this class and nothing read
-        /// it. Colour still comes from the hash, which is what the hash is good for.</para>
+        /// <para><b>This changed nothing you can see, and the commit that made it said
+        /// otherwise.</b> Height used to come from the resolved asset's
+        /// <c>HeightPermille</c> — which is a flat 1000 for a block and 40 for a slab, and
+        /// hashed only for a creature, so a solid tile was already full height. Reading
+        /// <see cref="TileView.Solid"/> says the same thing on purpose rather than by
+        /// coincidence, and covers the one case the old code got wrong: a file-backed
+        /// asset carries no placeholder look, so a real wall mesh would have drawn as a
+        /// slab. Nothing loads files yet (Q71). Colour still comes from the hash.</para>
         /// </summary>
         private void Place(GameObject go, int x, int y, bool solid)
         {
