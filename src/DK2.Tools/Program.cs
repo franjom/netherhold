@@ -1000,6 +1000,57 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length is 2 or 3 && args[1] == "oracle":
+    {
+        // Which level makes the best two-sided experiment -- and, as it turns out,
+        // that none of them does yet. A recorded capture is a played session, so a
+        // column whose chain runs through something only a human does can never
+        // agree. This measures the opposite: what a headless run moves on its own.
+        // The reading is docs/EXPERIMENTS.md, 2026-09-09.
+        int oracleTurns = args.Length == 3
+            ? int.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture)
+            : 1200;
+        string oracleInstall = Dk2Install.Require();
+        string oracleMaps = Path.Combine(oracleInstall, "Data", "editor", "maps");
+        var oracleRows = new List<OracleReach>();
+
+        foreach (string file in Directory.EnumerateFiles(oracleMaps, "*Triggers.kld")
+                     .Order(StringComparer.OrdinalIgnoreCase))
+        {
+            string level = Path.GetFileName(file)[.. ^"Triggers.kld".Length];
+            List<TriggerRecord>? recs = GameDatabaseLoader.LoadCampaignTriggers(oracleInstall, level);
+            LevelDef? def = GameDatabaseLoader.LoadCampaignLevel(oracleInstall, level);
+            List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(oracleInstall, level);
+            List<PlayerDef>? plyrs = GameDatabaseLoader.LoadCampaignPlayers(oracleInstall, level);
+            if (recs is null || def is null || things is null || plyrs is null) continue;
+
+            oracleRows.Add(MeasureOracleReach(
+                oracleInstall, level, oracleTurns, recs, def, things, plyrs));
+        }
+
+        Console.WriteLine($"Every level run headless for {oracleTurns} turns, ranked by what a capture "
+            + "of it could actually discriminate.");
+        Console.WriteLine("moved  = flag/timer ids this run ever set.   after1 = those that moved past turn 1,");
+        Console.WriteLine("         which is the only part a played capture can be compared against.");
+        Console.WriteLine("could  = ids a walk reaching every type 1/2/34 gate would set -- an upper bound, and");
+        Console.WriteLine("         the gap to `moved` is script that stalls on a type nobody has implemented.");
+        Console.WriteLine("writes = ids the file writes at all.");
+        Console.WriteLine();
+        Console.WriteLine($"{"level",-18} {"moved",5} {"after1",6} {"could",5} {"writes",6}  {"reach",5} {"of",5}  {"creature",8}");
+        foreach (OracleReach r in oracleRows
+                     .OrderByDescending(r => r.MovedAfterFirstTurn).ThenByDescending(r => r.Moved)
+                     .ThenBy(r => r.Level, StringComparer.OrdinalIgnoreCase))
+            Console.WriteLine($"{r.Level,-18} {r.Moved,5} {r.MovedAfterFirstTurn,6} "
+                + $"{r.Flags + r.Timers,5} {r.AllFlags + r.AllTimers,6}  "
+                + $"{r.Reached,5} {r.Records,5}  {r.CreatureRoots,8}");
+
+        int usable = oracleRows.Count(r => r.MovedAfterFirstTurn > 0);
+        Console.WriteLine();
+        Console.WriteLine($"{usable} of {oracleRows.Count} levels move any column past turn 1. "
+            + "A capture is worth taking of a level that moves many.");
+        return 0;
+    }
+
     case "kwd" when args.Length == 2 && args[1] == "parties":
     {
         // Which of the world's 24 party slots a shipped HERO_PARTY lands in, and
@@ -2283,6 +2334,8 @@ static int Usage()
     Console.WriteLine("  kwd things [file.kld]                  placed entities of one level, or the corpus");
     Console.WriteLine("  kwd parties                            how shipped HERO_PARTY records map onto the 24 runtime slots");
     Console.WriteLine("  kwd roots                              every trigger root in the campaign, by the walker that owns it");
+    Console.WriteLine("  kwd oracle [turns]                     every level run headless, ranked by how much of its");
+    Console.WriteLine("                                         script a two-sided capture could discriminate");
     Console.WriteLine("  kwd creaturescan <name> <value>        the same, anchored on one creature");
     Console.WriteLine("  kwd creaturehex <offsetHex> <count>    raw byte window across every creature");
     Console.WriteLine("  kwd objecthex <offsetHex> <count> [-w]  the same across every object; -w reads u16s");
@@ -2833,6 +2886,175 @@ static HashSet<int> AddedLineNumbers(string root, string baseRef, string relativ
     return added;
 }
 
+
+
+/// <summary>
+/// Walks one level's trigger roots the way <c>TriggerExecutor</c> would, descending
+/// only where a headless run could get through, and reports what that reaches.
+/// </summary>
+/// <remarks>
+/// Condition types 1, 2 and 34 are the whole of the passable set: a flag and a timer
+/// are the script's own state and level time is the clock. Every other type either
+/// measures a dungeon somebody is playing or is one the executor declines, and both
+/// stop the walk in exactly the same place the executor stops it.
+/// </remarks>
+static OracleReach MeasureOracleReach(
+    string install,
+    string level,
+    int turns,
+    List<TriggerRecord> records,
+    LevelDef def,
+    List<ThingRecord> things,
+    List<PlayerDef> players)
+{
+    var conditions = new Dictionary<ushort, TriggerRecord>();
+    var actions = new Dictionary<ushort, TriggerRecord>();
+    foreach (TriggerRecord record in records)
+    {
+        if (record.Tag == 213) conditions[record.TriggerId] = record;
+        else if (record.Tag == 214) actions[record.TriggerId] = record;
+    }
+
+    var seen = new HashSet<(int Tag, ushort Id)>();
+    var flags = new HashSet<byte>();
+    var timers = new HashSet<byte>();
+    var armed = new HashSet<int>();
+
+    void Walk(short id)
+    {
+        while (id != 0)
+        {
+            bool isCondition = id > 0;
+            ushort raw = unchecked((ushort)id);
+            TriggerRecord? record = isCondition
+                ? conditions.GetValueOrDefault(raw)
+                : actions.GetValueOrDefault(raw);
+
+            // A record already seen has had its whole next chain followed.
+            if (record is null || !seen.Add((record.Tag, raw))) return;
+
+            bool descend;
+            if (isCondition)
+            {
+                descend = record.Type is 1 or 2 or 34;
+            }
+            else
+            {
+                descend = record.Type is 7 or 8 or 14;
+                if (record.Type == 7 && record.Parameters.TryGetValue("FlagId", out long flag))
+                    flags.Add(unchecked((byte)flag));
+                if (record.Type == 8 && record.Parameters.TryGetValue("TimerId", out long timer))
+                    timers.Add(unchecked((byte)timer));
+                if (record.Type == 14 && record.Parameters.TryGetValue("PartyId", out long party))
+                    armed.Add(unchecked((byte)party));
+            }
+
+            if (descend) Walk(unchecked((short)record.ChildTriggerId));
+            id = unchecked((short)record.NextTriggerId);
+        }
+    }
+
+    if (def.TriggerId != 0) Walk(unchecked((short)def.TriggerId));
+    foreach (PlayerDef player in players)
+        if (player.TriggerId != 0) Walk(unchecked((short)player.TriggerId));
+    foreach (ActionPointThing point in things.OfType<ActionPointThing>())
+        if (point.TriggerId != 0) Walk(unchecked((short)point.TriggerId));
+
+    // A party subtree starts disabled and only a type 14 that actually ran arms it,
+    // so those roots join the walk as they are reached rather than at the start.
+    HeroPartyThing[] parties = things.OfType<HeroPartyThing>().ToArray();
+    int before;
+    do
+    {
+        before = seen.Count;
+        foreach (HeroPartyThing party in parties)
+        {
+            if (!armed.Contains(party.PartyId)) continue;
+            if (party.TriggerId != 0) Walk(unchecked((short)party.TriggerId));
+            foreach (GoodCreatureThing member in party.Members)
+                if (member.CreatureId != 0 && member.TriggerId != 0)
+                    Walk(unchecked((short)member.TriggerId));
+        }
+    }
+    while (seen.Count != before);
+
+    var allFlags = new HashSet<byte>();
+    var allTimers = new HashSet<byte>();
+    foreach (TriggerRecord record in records)
+    {
+        if (record.Tag != 214) continue;
+        if (record.Type == 7 && record.Parameters.TryGetValue("FlagId", out long flag))
+            allFlags.Add(unchecked((byte)flag));
+        if (record.Type == 8 && record.Parameters.TryGetValue("TimerId", out long timer))
+            allTimers.Add(unchecked((byte)timer));
+    }
+
+    int creatureRoots = things.OfType<GoodCreatureThing>().Count(c => c.TriggerId != 0)
+        + things.OfType<KeeperCreatureThing>().Count(c => c.TriggerId != 0);
+
+    (int moved, int after) = RunOracleLevel(install, level, turns, records, def, things, players);
+
+    return new OracleReach(
+        level, flags.Count, timers.Count, seen.Count, records.Count,
+        allFlags.Count, allTimers.Count, creatureRoots, moved, after);
+}
+
+/// <summary>
+/// Runs one level headless and counts the flag and timer ids that ever leave zero,
+/// and how many of those do it after the opening turn.
+/// </summary>
+/// <remarks>Turn 1 is where a level's unconditional opening fires, and a played
+/// capture agrees with us there for free. Everything a comparison can actually learn
+/// from is in the columns that move later.</remarks>
+static (int Moved, int MovedAfterFirstTurn) RunOracleLevel(
+    string install,
+    string level,
+    int turns,
+    List<TriggerRecord> records,
+    LevelDef def,
+    List<ThingRecord> things,
+    List<PlayerDef> players)
+{
+    LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
+    if (map is null) return (0, 0);
+
+    GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, level);
+    WorldState world = WorldState.FromMap(
+        database, map, players.Select(p => p.PlayerId).ToArray());
+    ThingProjection.Place(world, database, things);
+
+    var tree = new TriggerTree(
+        records, def.TriggerId,
+        things.OfType<HeroPartyThing>(),
+        players.Select(p => p.TriggerId));
+    var simulation = new GameSimulation(database, world, seed: 0, triggers: tree);
+
+    var firstTurn = new Dictionary<string, int>();
+    for (int turn = 1; turn <= turns; turn++)
+    {
+        simulation.Tick();
+        TriggerState state = world.Triggers;
+        for (byte id = 0; id < TriggerState.FlagCount; id++)
+            if (state.Read(id) != 0) firstTurn.TryAdd($"f{id}", turn);
+        for (byte id = 0; id < TriggerState.TimerCount; id++)
+            if (state.IsStarted(id)) firstTurn.TryAdd($"t{id}", turn);
+    }
+
+    return (firstTurn.Count, firstTurn.Values.Count(t => t > 1));
+}
+
+/// <summary>One level's suitability as a two-sided experiment. See `kwd oracle`.</summary>
+record OracleReach(
+    string Level,
+    int Flags,
+    int Timers,
+    int Reached,
+    int Records,
+    int AllFlags,
+    int AllTimers,
+    int CreatureRoots,
+    int Moved,
+    int MovedAfterFirstTurn);
 
 /// <summary>
 /// AGENTS.md's recording budgets, in one place so the rules and the checker

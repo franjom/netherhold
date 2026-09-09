@@ -72,6 +72,70 @@ It cannot be closed by any walker, and it should not be. The remaining 46 are th
 census `trigger-run` prints: unimplemented condition and action types, plus the
 creature trees, plus everything downstream of a player who never plays.
 
+## 2026-09-09 — there is no level worth capturing yet, and that is measurable
+
+The plan after level 1 was to find a level whose script runs on a clock rather
+than on a player, capture that instead, and finally have a comparison where a
+divergence is ours. `dk2tools kwd oracle` was written to pick it. It says not to
+bother: **7 of 66 levels move any flag or timer past turn 1, and the best moves
+three.**
+
+| level | moved | after turn 1 | could | the file writes |
+|---|---:|---:|---:|---:|
+| Level20 | 3 | **3** | 9 | 25 |
+| level15b | 5 | 1 | 18 | 25 |
+| level4 | 4 | 1 | 28 | 36 |
+| level5 | 4 | 1 | 11 | 15 |
+| Level6a | 4 | 1 | 2 | 20 |
+| level1 | 3 | 1 | 7 | 93 |
+| Level16 | 3 | 1 | 17 | 39 |
+| level3 | 7 | 0 | 15 | 47 |
+
+`moved` is what a headless run of 1200 turns actually sets; **`after turn 1` is
+the only part a played capture can be compared against**, because turn 1 is a
+level's unconditional opening and both sides agree there for free. `could` is
+what a walk that got through every type 1, 2 and 34 gate would set — an upper
+bound, not a promise.
+
+**The gap between `could` and `moved` is the finding.** level4 could move 28 and
+moves 4; Level16 could move 17 and moves 3. The script is structurally
+reachable. It stalls on condition and action types nobody has implemented, and
+the walk stops there because a declined record does not descend.
+
+### What is actually in the way
+
+The blocked census, summed over the 57 levels that reach a block at all:
+
+| | records | levels |
+|---|---:|---:|
+| action 17 | 238 | **38** |
+| condition 19 | 182 | 28 |
+| condition 53 | 157 | 24 |
+| condition 39 | 138 | 29 |
+| action 24 | 96 | **37** |
+| condition 29 | 77 | 14 |
+| condition 47 | 72 | 18 |
+| condition 25 | 57 | 21 |
+
+Two of these block more than half the campaign each. **Condition 53 is free**:
+its player arm is `XOR EAX,EAX` at `0x004C850C`, constant false, so answering
+false rather than declining costs no research and removes 157 records of noise —
+though it unblocks nothing, since false and declined both stop the descent.
+
+**A declined record is not the same as a failed one, and for some of these it is
+the wrong answer.** Action 24 is a speech: 96 records across 37 levels, and a
+speech has no simulation effect we model. If DK2's arm returns 1 the walker
+descends past it, and declining cuts off 37 levels' chains for nothing. The
+project already has the right shape for this — `TriggerRunResult.Partial`, where
+action type 14 arms a party, creates no creatures, and still returns true. What
+each blocked arm **returns** is the next question, and it is cheaper to answer
+than what each one means.
+
+### So the oracle is not blocked on choosing a level
+
+It is blocked on the executor reaching far enough into any level for a capture to
+be worth taking. Until then a recorded run measures the player, as level 1's did.
+
 **What the owner can settle by playing is not here.** It is
 `docs/research/observation-checklist.md`, which is the working list of
 single-question experiments; this file is for paired runs of the same scenario.
