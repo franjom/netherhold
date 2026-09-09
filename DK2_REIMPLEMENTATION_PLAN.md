@@ -982,20 +982,44 @@ death and corpses (ADR-0051/0063), anger and desertion (ADR-0053/0081), levels (
 Hand of Evil (ADR-0062), carrying (ADR-0063/0065), the prison (ADR-0064/0068) and fog of
 war (ADR-0076).
 
-**M5 — started, and one-sided.** The memory probe exists and works: a reader attached to a
-running DK2 clocked the tick rate at 3.94/s over two runs with balance variable 19 read live
-as 4, and read level 1's whole condition array out of the running game, which is what
-settled Q233 (ADR-0102 amendments). It is not yet under Flame, and the rest of the milestone
-is untouched: **no scenario has been captured from both sides, there is no comparer and no
-divergence report**, and `docs/experiments/` is empty (`docs/EXPERIMENTS.md`).
+**M5 — the rig works on one level; the milestone is not closed.** The memory probe reads a
+running DK2: it clocked the tick rate at 3.94/s with balance variable 19 read live as 4, and
+read level 1's whole condition array out of the running game, settling Q233 (ADR-0102
+amendments). **A comparer exists** — `dk2tools trigger-diff`, pairing rows by turn — and
+level 1 has been captured from both sides and reported three times (`docs/EXPERIMENTS.md`).
+Measured by event set over 1176 shared turns, ours against played run 5: **2 fire in both,
+46 DK2 only, 2 ours only** (2026-09-09, after ADR-0113).
 
-**M6 — partial.** Records parse (M1); a level's placed creatures and objects reach the world
-(ADR-0101), the trigger flag and timer banks are world state (ADR-0102), and action points
-are ordered world state (ADR-0103 — level 1 projects 27, and across 66 levels 1,152 enter
-the world, dropping the unprojected THINGS count from 3,272 to 2,120). **Still missing:
-trigger execution** — nothing evaluates a condition or runs an action, and Q228 has no
-answer for the cadence — plus door, trap, hero-party and effect-generator storage, and
-objectives. **No level is winnable.**
+Two limits are now measured rather than assumed. **Turn numbers are not reproducible between
+two plays of the same level** — run 4 against run 5 offsets by −156 to +285 turns and does
+not preserve order — so a report may be read for *which* events occur and never for when;
+any future cell-by-cell scoring against a played capture will manufacture divergence. And
+**we now invent two flags.** `f1` is settled — action point 4, gated on tagging and digging,
+an event only a player causes. `f34` appeared when ADR-0113 deepened the walk, and all that
+is established is its type-72 gate (Q242), which a headless run answers true for want of a
+player. Whether that is our assumption or the capture's player **cannot be separated from one
+played capture**, which is the sharpest argument for the second one.
+
+What remains: a **second level** captured from both sides, per-scenario records under
+`docs/experiments/` (still empty), and running DK2 under Flame, which §6.1 calls M5's first
+step and which has not been done.
+
+**M6 — partial, and trigger execution is now the bulk of it.** Records parse (M1); a level's
+placed creatures and objects reach the world (ADR-0101), the trigger flag and timer banks are
+world state (ADR-0102), action points are ordered world state (ADR-0103), and doors, traps,
+hero parties and effect generators are all stored, hashed and snapshotted (ADR-0106,
+ADR-0108) — nothing in the THINGS corpus is unprojected.
+
+**Triggers execute.** Q228 settled the cadence — one evaluation per game turn, from the world
+frame at `0x00526AA7`. The executor walks four trees (world, player, creature-owner fallback,
+action point), answers actions from their dispatcher's return value (ADR-0107), and computes
+about twenty condition types across the world, area and player contexts (ADR-0102, ADR-0105,
+ADR-0109 … ADR-0113). Campaign-wide the stall frontier is **417 distinct condition records**,
+down from 941.
+
+**Still missing:** the remaining condition types — **type 39 is the largest at 183 records**,
+then 29 (80), 47 (72) and 64 (37) — every action beyond types 7, 8 and 14, and **objectives**.
+**No level is winnable.**
 
 **Deliberate ordering note:** M5 comes *before* breadth work. Building the comparison rig
 early is what prevents accumulating a large body of plausible-but-wrong behaviour that is

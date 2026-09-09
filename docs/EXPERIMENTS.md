@@ -72,6 +72,27 @@ It cannot be closed by any walker, and it should not be. The remaining 46 are th
 census `trigger-run` prints: unimplemented condition and action types, plus the
 creature trees, plus everything downstream of a player who never plays.
 
+**2026-09-09, level 1, ours vs run 5 — after the creature counter (ADR-0113),
+a second false positive.** Re-measured by event set over the same 1176 turns:
+**2 fire in both, 46 DK2 only, 2 ours only**. Only the last number moved.
+Answering condition type 19 let the walk reach deeper, and `f34` joined `f1`.
+
+**It is not the creature count.** `f34`'s chain is trigger 328 — a **type 72**
+condition, `next = 0` — then action 65456, then the write. Type 19 introduced no
+fault; it made an existing gate reachable, which is what the `Assumed` census
+exists to surface. Deepening the walk is expected to cost false positives before
+it pays them back, and this is the first instance.
+
+**It is not the same cause as `f1`, and that matters.** `f1` is settled above:
+action point 4, gated on tagging and digging, an event only a player causes. For
+`f34` the only thing established is the type-72 gate we answer true because a
+headless run has no modal interface state (Q242). Q242 says that is wrong only if
+one of its four fields can be set with nobody playing — but run 5 was **played**,
+so DK2 may have answered false at that moment for an ordinary reason. Whether
+this is our assumption or the capture's player is **not yet separated**, and it
+cannot be from one played capture. It is a concrete thing a second capture would
+decide.
+
 ## 2026-09-09 — there is no level worth capturing yet, and that is measurable
 
 The plan after level 1 was to find a level whose script runs on a clock rather
