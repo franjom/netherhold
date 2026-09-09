@@ -1967,3 +1967,28 @@ The rebased `kwd oracle 200` measurements are recorded in the commit.
 - No hashed state, so no `HashVersion` bump.
 - **Type 70 keeps the old labels.** It has its own arm at `0x004B0DD7`, unread, so renaming its identical-looking bytes would be a guess.
 - Unresolved: the predicate matches the player's `Number` (`+0x10FC`), not the `TagId` (`+0x04`) that pairs a player with its trigger root. Ours has one id for both (Q271).
+
+## ADR-0116 — Live captures compare by event set and stored-stamp alignment
+**Date:** 2026-09-09 · **Status:** accepted · Experiment: `docs/experiments/level1-idle-001/`
+
+**Context.** `trigger-diff` pairs exact turn numbers and is correct for two of
+our runs. A live capture has a different, load-jittered origin; played sessions
+also differ with human input. Pairing their rows or absolute turns manufactures
+divergence. A probe started after level load also makes an event present in its
+first sample an upper bound rather than a measured first turn.
+
+**Decision.** `dk2tools capture-diff` first compares which flag and timer
+columns ever become non-zero. It then selects the lowest-numbered timer stamped
+on both sides, or an explicit `--anchor tN`, and subtracts each side's stored
+stamp from subsequent first-event turns. It refuses timing alignment when no
+shared timer exists. First-sample events remain visible but censored and do not
+contribute a residual.
+
+The reusable comparer lives beside `TriggerTurnCsvEmitter`; the CLI only renders
+its result. `trigger-diff` is unchanged and its help identifies it as the exact
+comparison for two of our runs.
+
+**Consequences.** The gitignored level-1 idle capture gates a test when present:
+both sides must contain exactly `t15`, `f1`, `f34`, `f83`, with no unique event,
+and every measurable residual must be at most one tick. Its path and skip policy
+live in `Dk2CaptureGate`. No simulation state changed, so no `HashVersion` bump.

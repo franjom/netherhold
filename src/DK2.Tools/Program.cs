@@ -21,6 +21,9 @@ if (args.Length == 0)
 
 switch (args[0])
 {
+    case "capture-diff" when args.Length is 3 or 5:
+        return CaptureDiff(args);
+
     case "trigger-diff" when args.Length == 3:
         return DiffTriggerCsv(args[1], args[2]);
 
@@ -2286,7 +2289,9 @@ static int Usage()
     Console.WriteLine("  status [--fast] [--check]              regenerate the plan's status paragraph;");
     Console.WriteLine("                                         --check exits 1 if the plan is stale");
     Console.WriteLine("  trigger-run <level> <turns> <out.csv>  our per-turn trigger state, in the live probe's shape");
-    Console.WriteLine("  trigger-diff <left.csv> <right.csv>   first divergent turn/column and column totals");
+    Console.WriteLine("  capture-diff <ours.csv> <capture.csv> [--anchor tN]");
+    Console.WriteLine("                                         event set and stamp-aligned capture timing");
+    Console.WriteLine("  trigger-diff <left.csv> <right.csv>   exact per-turn diff for two of our own runs");
     Console.WriteLine("  wad extract <file.WAD> <entry> [out]   extract one entry");
     Console.WriteLine("  sdt list <file.sdt>                    list sound-bank entries and formats");
     Console.WriteLine("  sdt extract <file.sdt> [--out converted-assets/audio]");
@@ -2400,6 +2405,67 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
         Console.WriteLine($"  ASSUMED tag {tag} type {type}: {count} "
             + "-- taken as true: no modal interface state in a headless run");
     return 0;
+}
+
+static int CaptureDiff(string[] arguments)
+{
+    string? anchor = null;
+    if (arguments.Length == 5)
+    {
+        if (arguments[3] != "--anchor")
+        {
+            Console.Error.WriteLine("usage: dk2tools capture-diff <ours.csv> <capture.csv> [--anchor tN]");
+            return 2;
+        }
+        anchor = arguments[4];
+    }
+
+    try
+    {
+        TriggerCaptureComparisonResult result = TriggerCaptureComparison.Compare(
+            arguments[1], arguments[2], anchor);
+
+        static string Ids(IReadOnlyList<string> ids) =>
+            ids.Count == 0 ? "(none)" : string.Join(", ", ids);
+        Console.WriteLine("event set:");
+        Console.WriteLine($"  in both ({result.InBoth.Count}): {Ids(result.InBoth)}");
+        Console.WriteLine($"  capture only ({result.CaptureOnly.Count}): {Ids(result.CaptureOnly)}");
+        Console.WriteLine($"  ours only ({result.OursOnly.Count}): {Ids(result.OursOnly)}");
+
+        if (result.AnchorId is null)
+        {
+            Console.WriteLine($"stamp alignment unavailable: {result.AlignmentRefusal}.");
+        }
+        else
+        {
+            Console.WriteLine($"anchor {result.AnchorId}: ours stamp {result.OursOrigin}, "
+                + $"capture stamp {result.CaptureOrigin}");
+            Console.WriteLine("stamp-aligned turns (capture residual = capture - ours):");
+            Console.WriteLine("  id       ours  capture  residual");
+            foreach (TriggerAlignedEvent e in result.AlignedEvents)
+            {
+                string ours = e.OursTurnIsCeiling ? $"<={e.OursTurn}" : e.OursTurn.ToString();
+                string capture = e.CaptureTurnIsCeiling
+                    ? $"<={e.CaptureTurn}"
+                    : e.CaptureTurn.ToString();
+                string residualText = e.Residual.HasValue ? $"{e.Residual.Value:+#;-#;0}" : "unknown";
+                Console.WriteLine($"  {e.Id,-6} {ours,6} {capture,8} {residualText,9}");
+            }
+        }
+
+        string match = result.EventSetsMatch ? "matched" : "differed";
+        string largest = result.LargestAbsoluteResidual is long residual
+            ? $"{residual} tick{(residual == 1 ? string.Empty : "s")}"
+            : "unavailable";
+        Console.WriteLine($"verdict: event set {match}; largest absolute residual {largest}");
+        return result.EventSetsMatch ? 0 : 1;
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+        or InvalidDataException or ArgumentException)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 2;
+    }
 }
 
 static int DiffTriggerCsv(string leftPath, string rightPath)

@@ -14,8 +14,10 @@ Controlled experiments comparing our simulation against original DK2 v1.70
 
 Captures live in `reverse-engineering/dk2runs/` (**gitignored**, so they are not
 backed up) as `dk2run<N>.csv`, in the shape `TriggerTurnCsvEmitter` writes. Our
-side comes from `dk2tools trigger-run <level> <turns> <out>`; compare with
-`dk2tools trigger-diff <a> <b>`, which pairs rows by **turn**, never by position.
+side comes from `dk2tools trigger-run <level> <turns> <out>`. Compare a live
+capture with `dk2tools capture-diff <ours> <capture>`, which checks the event set
+and aligns timing on a stored timer stamp. `trigger-diff` remains the exact,
+turn-paired comparison for two of our own runs (ADR-0116).
 
 **2026-09-08, level 1, ours vs run 5.** Over 1176 shared turns, 100 of 148
 columns identical and 48 divergent — **every divergence one-directional**, DK2
@@ -105,12 +107,12 @@ So the 46 were the player all along, and so were `f1` and `f34` — the two flag
 this morning's entry above was still calling ours. **We invent nothing on level
 1**, and neither does the type-72 assumption cost anything while nobody plays.
 
-**And turn numbers are now readable.** `f1` and `f34` sit exactly 7 ticks late in
-DK2 while being 568 ticks apart, so the residual is a constant and not a rate
-error. Timer 15 reads it exactly — a timer's value is a tick stamp, and DK2
-stored **7** where we store **1**. DK2 begins level 1's script six ticks after we
-do; whether that is its startup or our numbering is Q272. The ±156 to +285 of two
-played runs was entirely the human.
+**And turn numbers are readable after stamp alignment.** `f1` and `f34` sit
+exactly 7 ticks late in DK2 while being 568 ticks apart. Timer 15 reads the
+origin: DK2 stored **7** where we store **1**. Six captures put that first stamp
+at ticks 4, 6, 7, 8, 10 and 11, so the load origin jitters and absolute ticks are
+not comparable (Q272). `dk2tools capture-diff` removes that origin and reports a
+`+1` residual on both flags; its source remains open as Q273.
 
 ## 2026-09-09 — there is no level worth capturing yet, and that is measurable
 
