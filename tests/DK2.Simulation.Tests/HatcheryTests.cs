@@ -7,21 +7,11 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// The Hatchery — coops, and the egg that appears on one.
-///
-/// <para><b>Every number tested here came out of <c>DKII.EXE</c></b> rather than
-/// out of a guess about what feels right, which is why they are odd: six tiles
-/// per coop, a cap of 36, and a spacing rule that reads as "not adjacent, not
-/// even diagonally". See <c>docs/research/hatchery.md</c>.</para>
-///
-/// <para><b>What is deliberately not tested is a clock</b>, because there is
-/// not one. The interval DK2 lays on is multiplied by a balance variable that
-/// no shipped file supplies (Q132), so the room has no rhythm here and these
-/// tests drive it by hand — which is the same shape
-/// <c>CreatureHealthRules.Eat</c> and <c>CreatureDeathRules.Rescue</c> have,
-/// and for the same reason.</para>
-/// </summary>
+/// <summary>The Hatchery — coops, and the egg that appears on one. Every number
+/// here is read from <c>DKII.EXE</c>, which is why they are odd: six tiles per
+/// coop, a cap of 36, and a spacing rule that reads as "not adjacent, not even
+/// diagonally" (docs/research/hatchery.md). These tests drive the room by hand;
+/// its clock has its own file, <see cref="HatcheryClockTests"/>.</summary>
 public class HatcheryTests
 {
     private const byte Keeper = 3;
@@ -389,12 +379,9 @@ public class HatcheryTests
     public void AHatcheryHoldsOneChickenPerTile(int w, int h, int expected)
     {
         // MEASURED BY THE OWNER (2026-09-05): a 3x3 settles at nine and a 5x5 at
-        // more than twenty. One per tile on both counts.
-        //
-        // And the record had said so all along -- the Chicken's RoomCapacity is
-        // 1, a field documented as "how many of it a room tile holds" and read
-        // by nothing until there was a flock to limit. So the nine is NOT a
-        // constant in our code: it comes out of the definition.
+        // more than twenty — one per tile on both counts. The Chicken's
+        // RoomCapacity is 1, a field meaning "how many of it a room tile holds",
+        // so the nine is not a constant in our code: it comes from the definition.
         GameDatabase db = Db;
         WorldState world = World(db);
 

@@ -362,13 +362,11 @@ public class PaydayTests
         for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
             sim.Tick(InputFrame.Empty);
 
-        // Being owed is the whole trigger: the original tests the outstanding
-        // wage against zero and nothing else. There is no treasury on this map
-        // and no attempt has failed, and it is angry anyway.
-        //
-        // Both charges land, and since ADR-0080 they land in DIFFERENT
-        // COUNTERS - the Goblin on this map has no bed either, and the two
-        // grievances neither add up nor pay each other off.
+        // Being owed is the whole trigger: the original tests the outstanding wage
+        // against zero and nothing else. There is no treasury on this map and no
+        // attempt has failed, and it is angry anyway. Both charges land, in
+        // different counters (ADR-0081) — the Goblin here has no bed either, and
+        // the two grievances neither add up nor pay each other off.
         CreatureDef def = db.CreatureById(GoblinId);
         Assert.Equal(AngerWindowSeconds * def.AngerNoPay, goblin.Anger.Pay);
         Assert.Equal(AngerWindowSeconds * def.AngerNoLair, goblin.Anger.Lair);
@@ -402,7 +400,7 @@ public class PaydayTests
         // The lair charge continues either way; the wage charge stops dead with
         // the debt. What paying does NOT do is give back what was already
         // charged - the Pay bucket is frozen where the payment found it, and
-        // only a Temple takes anything back out of it (ADR-0080).
+        // only a Temple takes anything back out of it (ADR-0081).
         Assert.Equal(AngerWindowSeconds * def.AngerNoPay, owing);
         Assert.Equal(owing, goblin.Anger.Pay);
         Assert.Equal(settled + (AngerWindowSeconds * def.AngerNoLair), goblin.Anger.Lair);
@@ -438,21 +436,12 @@ public class PaydayTests
     [Fact]
     public void ABedDoesNotPayOffAWageBecauseTheyAreDifferentCounters()
     {
-        // THIS TEST REPLACES ONE THAT ASSERTED THE OPPOSITE, and the correction
-        // is ADR-0080. Its predecessor put the two shipped numbers side by side
-        // - a bed calms at 550 a second, an unpaid Goblin wage costs 60 - and
-        // concluded that a well-housed creature sleeps off unpaid resentment
-        // nine times faster than it accrues, so wages alone could never drive
-        // one out of a dungeon that had beds.
-        //
-        // Both numbers were right. The conclusion was wrong, because DK2 does
-        // not keep one anger counter for them to compete in:
+        // A bed calms at 550 a second and an unpaid Goblin wage costs 60, which
+        // looks like a bed outpacing wage anger nine to one. It does not:
         // ModifyAngerOfCreatureInLairPerSecond reaches bucket 5 and AngerNoPay
-        // fills bucket 4, the mood is read off the LARGEST bucket, and a bed
-        // therefore does nothing whatever about a wage. A keeper that never
-        // pays loses its creatures however comfortable it has made them - which
-        // is the outcome a player would expect, and was not what this
-        // simulation did until the buckets were read.
+        // fills bucket 4, the mood is read off the LARGEST bucket (ADR-0081), so a
+        // bed does nothing about a wage and a keeper that never pays loses its
+        // creatures however comfortable it has made them.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureDef def = db.CreatureById(GoblinId);

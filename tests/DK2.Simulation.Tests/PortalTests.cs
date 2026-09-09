@@ -8,23 +8,15 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// The portal: the first room whose behaviour is implemented, and the first
-/// thing in the simulation that makes a creature that is not an imp.
-///
-/// <para>The tests that matter most here are the <b>negative</b> ones. A portal
-/// has four gates and each is easy to implement so loosely that it never
-/// closes; a suite that only checked "a goblin eventually arrives" would pass
-/// against a portal that ignored the pool, the cap and the lair entirely. So
-/// every gate gets a test that it <i>stops</i> a creature, and one that lifting
-/// it lets the creature through.</para>
-///
-/// <para>The three-way arrangement is deliberate: <see cref="PortalRules"/> is
-/// tested here on the transcribed fixture, and
+/// <summary>The portal: the first room whose behaviour is implemented, and the
+/// first thing in the simulation that makes a creature that is not an imp. A
+/// portal has four gates, each easy to implement so loosely that it never closes,
+/// so every gate gets both a test that it stops a creature and one that lifting it
+/// lets the creature through — a suite that only checked "a goblin eventually
+/// arrives" would pass against a portal that ignored the pool, the cap and the
+/// lair. <see cref="PortalRules"/> is tested here on the transcribed fixture and
 /// <c>DK2.Behavior.Tests.PortalOnRealDataTests</c> re-runs the same questions
-/// against the shipped install so the fixture cannot drift from the game it
-/// claims to copy.</para>
-/// </summary>
+/// against the shipped install, so the fixture cannot drift.</summary>
 public class PortalTests
 {
     // 3 and 4, not 1 and 2: PlayerIds says 1 is the hero side and 2 is neutral,
@@ -184,29 +176,18 @@ public class PortalTests
         Assert.Equal(25 * second, PortalRules.SpawnIntervalTicks(db, -3));
     }
 
-    /// <summary>
-    /// The owner's two timing runs, as data. Base 25, gaps in seconds, measured
-    /// by hand off a claimed portal on 2026-09-07 (Q86,
-    /// <c>observation-checklist.md</c>).
-    ///
-    /// <para>The tolerance is <b>4 seconds a gap</b>, and it is not slack: these
-    /// were read off a wall clock by a human watching a game, and the owner said
-    /// so both times — <i>"not completely precise"</i>, <i>"I am still measuring
-    /// by hand"</i>. What the test is for is the <b>shape</b>: the old formula
-    /// misses run 1's third gap by 7 seconds and its sixth by 11, and no
-    /// tolerance that admits the quadratic admits that too.</para>
-    ///
-    /// <para><b>Run 1 has one gap outside the tolerance and it is named in the
-    /// data rather than absorbed by a wider one.</b> Its fourth gap is 40
-    /// seconds against a predicted 34, and every gap after it is back inside
-    /// tolerance — so the cumulative error steps once and stays flat instead of
-    /// wandering, which is what a one-off block looks like: the portal came due,
+    /// <summary>The owner's two timing runs, as data: base 25, gaps in seconds,
+    /// measured by hand off a claimed portal on 2026-09-07 (Q86,
+    /// observation-checklist.md). Tolerance is 4 seconds a gap because these were
+    /// read off a wall clock ("not completely precise", "I am still measuring by
+    /// hand"); the test is for the shape — the old formula misses run 1's third
+    /// gap by 7 seconds and its sixth by 11.</summary>
+    /// <remarks>Run 1's fourth gap is 40 seconds against a predicted 34 and is
+    /// named in the data rather than absorbed by a wider tolerance: every gap
+    /// after it is back inside tolerance, so the cumulative error steps once and
+    /// stays flat, which is what a one-off block looks like — the portal came due,
     /// nothing was eligible, it waited, and the clock was stamped at the actual
-    /// arrival. Widening the tolerance to 7 seconds would have hidden it and
-    /// would also have let the old formula through on three of the six gaps.
-    /// HYPOTHESIS — a single mistimed reading explains it equally well, and the
-    /// owner's own caveat allows for that.</para>
-    /// </summary>
+    /// arrival. HYPOTHESIS: one mistimed reading explains it equally well.</remarks>
     [Theory]
     // run 1, 2026-09-07: seven arrivals, the run that first broke the old slope.
     // Index 3 is the 40-second gap discussed above.
@@ -244,19 +225,12 @@ public class PortalTests
         Assert.Equal(knownAnomalyIndex >= 0 ? 1 : 0, outside);
     }
 
-    /// <summary>
-    /// <b>The measurement that settled Q86's last open half.</b> A second portal
-    /// claimed after the first had produced five creatures started its own
-    /// series again — the owner measured gaps of 27, 30, 31, 33 seconds from the
-    /// claim.
-    ///
-    /// <para>Three formulas, one measurement. A per-room tally predicts 25, 26,
-    /// 29, 34 (mean absolute error 2.3 s). A keeper-wide tally predicts 50, 61,
-    /// 74, 89 (38.3 s). The formula this project shipped for weeks predicted
-    /// 62, 75, 87, 100 (50.8 s). It is not a close call, and the visible
-    /// version needs no clock at all: <b>a freshly claimed portal runs at full
-    /// speed however worn out its neighbour is.</b></para>
-    /// </summary>
+    /// <summary>A freshly claimed portal runs at full speed however worn out its
+    /// neighbour is — the tally is per room, not keeper-wide. CONFIRMED (owner,
+    /// Q86): a second portal claimed after the first had produced five creatures
+    /// started its own series again, with measured gaps of 27, 30, 31, 33 seconds.
+    /// A per-room tally predicts 25, 26, 29, 34 (mean absolute error 2.3 s); a
+    /// keeper-wide one predicts 50, 61, 74, 89 (38.3 s).</summary>
     [Fact]
     public void ASecondPortalRunsItsOwnTallyAndNotTheKeepersFifth()
     {
@@ -288,21 +262,13 @@ public class PortalTests
         Assert.Equal(250 * second, PortalRules.SpawnIntervalTicks(db, 15));
     }
 
-    /// <summary>
-    /// A rival taking a worn-out portal gets it at the base interval — the
-    /// tally and the clock both go back to zero.
-    ///
-    /// <para><b>CONFIRMED both ways, 2026-09-07.</b> The owner, unprompted:
-    /// <i>"if an enemy keeper takes one of the portals from me [...] then yes,
-    /// it resets to zero for that portal and that keeper"</i>. And in the
-    /// binary: DK2's room-ownership-change routine fires the room type's own
-    /// handler after re-linking the room to its new owner, and for both portal
-    /// types that handler stamps the clock and zeros the tally.</para>
-    ///
-    /// <para>This was the last open part of Q86 and the reason the formula sat
-    /// unbuilt for a day — a tally that never reset risked a portal that grinds
-    /// to a halt where the original's recovers.</para>
-    /// </summary>
+    /// <summary>A rival taking a worn-out portal gets it at the base interval: the
+    /// tally and the clock both go back to zero. CONFIRMED both ways, 2026-09-07
+    /// (Q86) — the owner, unprompted: "if an enemy keeper takes one of the portals
+    /// from me [...] then yes, it resets to zero for that portal and that keeper";
+    /// and in the binary, DK2's room-ownership-change routine fires the room type's
+    /// own handler after re-linking the room to its new owner, and for both portal
+    /// types that handler stamps the clock and zeros the tally.</summary>
     [Fact]
     public void ARivalTakingAWornPortalGetsItAtTheBaseInterval()
     {
@@ -342,24 +308,17 @@ public class PortalTests
             PortalRules.SpawnIntervalTicks(db, taken.EntranceCreaturesGenerated));
     }
 
-    /// <summary>
-    /// Both portal types raise the creature cap, and neither the count nor the
-    /// rate is ours.
-    ///
-    /// <para><b>CONFIRMED from the binary, 2026-09-07.</b> DK2's capacity
-    /// routine walks the player's own room list twice — once counting room type
-    /// 3 (Portal) and once type <c>0x19</c> (Hero Portal) — then returns
-    /// <c>first + (total - 1) * perAdditional</c>. This project counted only
-    /// type 3, so a keeper who took a Hero Portal received its arrivals but not
-    /// its five extra places.</para>
-    ///
-    /// <para>The second variable is the interesting half. A raw scan for its
-    /// global finds <b>one hit, the loader's setter</b> — the exact signature
-    /// this project has used fourteen times to call a variable cut. It is live:
-    /// its byte sits immediately after the first variable's, and the compiler
-    /// loads a <i>word</i> and takes the high half, so the second address never
-    /// appears in any instruction at all.</para>
-    /// </summary>
+    /// <summary>Both portal types raise the creature cap, and neither the count
+    /// nor the rate is ours. STRONGLY INFERRED from the binary (2026-09-07): DK2's
+    /// capacity routine walks the player's room list twice — once counting room
+    /// type 3 (Portal), once type <c>0x19</c> (Hero Portal) — then returns
+    /// <c>first + (total - 1) * perAdditional</c>.</summary>
+    /// <remarks>A raw scan for the second variable's global finds one hit, the
+    /// loader's setter — the signature this project has used fourteen times to
+    /// call a variable cut. It is live anyway: its byte sits immediately after the
+    /// first variable's and the compiler loads a <i>word</i> and takes the high
+    /// half, so the second address never appears in any instruction (ADR-0085's
+    /// rule: record "no reader found", and say what was scanned).</remarks>
     [Fact]
     public void BothPortalTypesRaiseTheCapAndTheRateIsRead()
     {
@@ -459,32 +418,18 @@ public class PortalTests
 
     // ---- the two portals are not interchangeable --------------------------
 
-    /// <summary>
-    /// The room type picks the creature flag, so the two portals admit disjoint
-    /// rosters — and a keeper who claims a Hero Portal gets a room that will not
-    /// emit any creature the keeper has.
-    ///
-    /// <para>CONFIRMED by the owner 2026-09-07: <i>"hero portal is not something
-    /// a keeper can use, nor can an evil keeper summon good creatures"</i>, and
-    /// <i>"hero portal IS AN ENTRANCE, but for goodly heroes"</i>. And in the
-    /// binary, in one condition: the candidate builder requires
-    /// <c>def+0x686 &amp; 0x400</c> when <c>room+0x18 == 3</c> and
-    /// <c>def+0x68a &amp; 8</c> when <c>room+0x18 == 0x19</c>.</para>
-    ///
-    /// <para>The Hero Portal room def is synthesised from the Portal's here
-    /// because the fixture defines no room 25 — asking the fixture for it by id
-    /// once broke sixty unrelated tests. What the rule reads off the room is its
-    /// id and nothing else, so re-labelling the Portal exercises exactly the
-    /// branch under test. <c>PortalOnRealDataTests</c> does the same against the
-    /// shipped Hero Portal.</para>
-    ///
-    /// <para><b>The room type really is the discriminator, confirmed in play</b>
-    /// (owner, 2026-09-07, Q211): a keeper who claims one on Frosty's Castle
-    /// receives the mercenary roster as its own units. Had the gate been the
-    /// <i>owner</i> — the intuitive reading, and the one this test would have
-    /// passed just as happily under — that portal would have produced nothing.
-    /// </para>
-    /// </summary>
+    /// <summary>The <b>room type</b>, not the owner, picks the creature flag, so
+    /// the two portals admit disjoint rosters. CONFIRMED (owner, 2026-09-07):
+    /// "hero portal is not something a keeper can use, nor can an evil keeper
+    /// summon good creatures", and in play (Q211) a keeper who claims one on
+    /// Frosty's Castle receives the mercenary roster as its own units — under the
+    /// intuitive owner-gated reading that portal would have produced nothing. In
+    /// the binary the candidate builder requires <c>def+0x686 &amp; 0x400</c> when
+    /// <c>room+0x18 == 3</c> and <c>def+0x68a &amp; 8</c> when
+    /// <c>room+0x18 == 0x19</c>. The Hero Portal room def is synthesised from the
+    /// Portal's because the fixture defines no room 25; the rule reads only the
+    /// room id, so re-labelling exercises the branch under test, and
+    /// <c>PortalOnRealDataTests</c> does the same against the shipped room.</summary>
     [Fact]
     public void TheTwoPortalsAdmitDisjointCreaturesBecauseTheRoomTypePicksTheFlag()
     {
@@ -520,19 +465,13 @@ public class PortalTests
             goblin with { Flags = goblin.Flags | CreatureFlags.IsUnique }, portal));
     }
 
-    /// <summary>
-    /// A portal too broken to produce anything still raises the creature cap.
-    ///
-    /// <para>DK2's capacity routine walks the owner's room list and tests
+    /// <summary>A portal too broken to produce anything still raises the creature
+    /// cap: DK2's capacity routine walks the owner's room list and tests
     /// <c>room[0x18] == type</c> and nothing else — no size, no centre tile, no
-    /// notion of the room working. So the keeper here holds one working portal
-    /// and one ring whose middle a rival has taken, and is capped at 20 rather
-    /// than 15.</para>
-    ///
-    /// <para>This is the same rule that makes <b>claiming a dead Hero Portal
-    /// raise a keeper's creature limit</b>, which cannot be tested here for want
-    /// of a room 25 in the fixture.</para>
-    /// </summary>
+    /// notion of the room working. The keeper here holds one working portal and
+    /// one ring whose middle a rival has taken, and is capped at 20 rather than
+    /// 15. The same rule makes claiming a dead Hero Portal raise a keeper's limit,
+    /// which cannot be tested here for want of a room 25 in the fixture.</summary>
     [Fact]
     public void APortalTooBrokenToProduceStillRaisesTheCap()
     {

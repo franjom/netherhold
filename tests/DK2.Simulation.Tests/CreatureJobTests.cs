@@ -183,14 +183,11 @@ public sealed class CreatureJobTests
     [Fact]
     public void AnUnhappyCreatureIsNotAngeredByHavingNothingToDo()
     {
-        // THE ASYMMETRY, and it is the original's. The happy chooser's tail
-        // charges angerNoWork; the unhappy chooser's tail is a bare return, and
-        // so is the angry one's. A creature that is already unhappy is never
-        // made crosser by idleness - the grievance belongs to the creature that
-        // was fine until its keeper ran out of work for it.
-        //
-        // Same dungeon as AGoblinWithNowhereToTrain, same empty tables, and the
-        // only difference is where the creature starts on the ladder.
+        // The asymmetry is the original's: the happy chooser's tail charges
+        // angerNoWork, the unhappy chooser's tail is a bare return and so is the
+        // angry one's. A creature that is already unhappy is never made crosser by
+        // idleness. Same dungeon as AGoblinWithNowhereToTrain and the same empty
+        // tables; the only difference is where the creature starts on the ladder.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);

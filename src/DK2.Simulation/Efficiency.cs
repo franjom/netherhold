@@ -52,7 +52,7 @@ public static class EfficiencyRules
     /// <summary>Scales work from <see cref="BasePercent"/> to <paramref name="percent"/>, rounding
     /// halves away from zero; at <see cref="BasePercent"/> it returns its input untouched. The
     /// rounding is the measurement: 67.5 health at 90 % pays 309 gold a swing (68), where
-    /// truncating gives 304.5. Percents, not DK2's 4096ths, whose constants are approximations (<c>0xccc + 0x199</c> = 0.8997): reproduce the numbers, not the arithmetic (ADR-0002).</summary>
+    /// truncating gives 304.5. Percents, not DK2's 4096ths, whose constants are approximations (<c>0xccc + 0x199</c> = 0.8997): reproduce the numbers, not the arithmetic (AGENTS.md, Fidelity).</summary>
     public static int Scale(int baseAmount, int percent)
     {
         if (percent == BasePercent || baseAmount == 0) return baseAmount;

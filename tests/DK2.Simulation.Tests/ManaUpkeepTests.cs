@@ -8,19 +8,13 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// What imps cost to keep — the first thing in this project that takes mana away
-/// from a keeper continuously, and the reason the mana economy has two sides.
-///
-/// <para><b>CONFIRMED (owner, 2026-08-30, Q53)</b> from two screenshots of the
-/// original's mana orb: with four imps the red figure read <b>28</b> a second,
-/// and after summoning a fifth it read <b>35</b>. Both divide by seven exactly,
-/// which pins the rate and the unit at the same time.</para>
-///
-/// <para>The 7 is DK2's own, off the Create Imp spell record, and it was hunted
-/// for a long time in the wrong place: an upkeep for a creature ought to live on
-/// the CREATURES record and does not. See docs/research/imps-and-mana.md.</para>
-/// </summary>
+/// <summary>What imps cost to keep — the first thing here that takes mana away
+/// from a keeper continuously. CONFIRMED (owner, 2026-08-30, Q53) from two
+/// screenshots of the original's mana orb: with four imps the red figure read 28
+/// a second, with five it read 35. Both divide by seven exactly, which pins the
+/// rate and the unit at once. The 7 is DK2's own, off the Create Imp spell record
+/// rather than the CREATURES record where a creature upkeep would be expected
+/// (docs/research/imps-and-mana.md).</summary>
 public class ManaUpkeepTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -207,14 +201,11 @@ public class ManaUpkeepTests
         Run run = World(mana: 100_000);
 
         // The workforce is sized against the land this keeper STARTS with, not
-        // against what their free imps have already claimed by the time they are
-        // all here. That ordering used to be immaterial and stopped being so on
-        // 2026-09-05: the free supply now hands out its first imp on tick zero
-        // instead of five seconds in, so by the end of SettleWithFourImps the
-        // dungeon is measurably bigger, and sizing against it bought enough imps
-        // to outrun every unclaimed tile on the fixture map. The claim under
-        // test is that a working imp pays for itself, which needs somewhere left
-        // to work.
+        // against what its free imps have claimed by the time they are all here:
+        // the free supply hands out its first imp on tick zero, so by the end of
+        // SettleWithFourImps the dungeon is measurably bigger and sizing against
+        // it buys enough imps to outrun every unclaimed tile on the fixture map.
+        // The claim under test — a working imp pays for itself — needs work left.
         int gain = LandIncome(run);
         SettleWithFourImps(run);
 

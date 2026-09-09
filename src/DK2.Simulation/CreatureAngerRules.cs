@@ -54,7 +54,7 @@ public static class CreatureAngerRules
     /// <see cref="Ceiling"/>.
     ///
     /// <para>The original's anger-add routine clamps each bucket to
-    /// <c>[0, 0xFFFD]</c> and only then bands the largest of them (ADR-0080), so
+    /// <c>[0, 0xFFFD]</c> and only then bands the largest of them (ADR-0081), so
     /// a grievance climbs for a second full ceiling's worth after the creature
     /// has turned angry and a long-neglected creature does not calm the moment a
     /// keeper does one thing right. Invisible to the owner's stopwatch, which
@@ -101,7 +101,7 @@ public static class CreatureAngerRules
 
     /// <summary>
     /// Where this creature sits on the ladder right now, from the largest bucket
-    /// and never from their sum (ADR-0080) — the original bands the maximum of
+    /// and never from their sum (ADR-0081) — the original bands the maximum of
     /// its six counters, so two half-grievances leave a creature unhappy where a
     /// pooled counter would have made it angry.
     /// </summary>
@@ -137,7 +137,7 @@ public static class CreatureAngerRules
         CreatureAnger delta = default;
         if (PrisonRules.IsImprisoned(state)) return delta;
 
-        // ADDITIVE (ADR-0079) and PER BUCKET (ADR-0080): the original's
+        // ADDITIVE (ADR-0079) and PER BUCKET (ADR-0081): the original's
         // need-anger routine (FUN_00478d00) tests lair, food and pay one after
         // another and charges each into its own counter, so a bedless unpaid
         // creature takes both and neither pays off the other.
@@ -155,7 +155,7 @@ public static class CreatureAngerRules
             delta.Pay += creature.AngerNoPay;
         }
 
-        // AND A BED DOES NOT PAY OFF EITHER OF THEM (ADR-0080):
+        // AND A BED DOES NOT PAY OFF EITHER OF THEM (ADR-0081):
         // ModifyAngerOfCreatureInLairPerSecond reaches bucket 5 and nothing
         // else, where the two charges above are buckets 2 and 4.
         if (LairRules.AsleepInOwnBed(world, database, state))

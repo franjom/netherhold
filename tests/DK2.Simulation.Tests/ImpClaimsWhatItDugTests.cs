@@ -9,24 +9,17 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// An imp claims the tile it has just dug before it does anything else — once
-/// nothing beside that tile is still marked for digging.
-///
-/// <para><b>Read from the original on 2026-09-05</b> (Q154, ADR-0058,
-/// <c>docs/research/imp-task-priority.md</c> §6). When a dig leaves plain
-/// unowned path beside a keeper's floor, DK2 raises a task on that tile which is
-/// <b>first</b> in the imp's whole-map order — ahead of digging — and the
-/// handler takes it as soon as none of the tile's <b>eight</b> neighbours still
-/// carries a dig task. That is the rhythm anyone who has watched the game knows:
-/// a corridor is cut through and then claimed behind the digging front. Until
-/// this, our imps dug every mark on the map before claiming any of it.</para>
-///
-/// <para>The fixture map is a claimed room at (1..3, 1..3) in rock; (4,2) is the
-/// wall east of the room's middle row, (5,2) the one beyond it, and (1,4) the
-/// wall south of the room's first column. All three are diggable from the room
-/// and become unowned dirt path when dug.</para>
-/// </summary>
+/// <summary>An imp claims the tile it has just dug before it does anything else,
+/// once nothing beside that tile is still marked for digging. STRONGLY INFERRED
+/// from the binary (Q154, ADR-0058, docs/research/imp-task-priority.md §6): a dig
+/// that leaves plain unowned path beside a keeper's floor raises a task that is
+/// first in the imp's whole-map order, ahead of digging, and the handler takes it
+/// as soon as none of the tile's eight neighbours still carries a dig
+/// task.</summary>
+/// <remarks>Fixture map: a claimed room at (1..3, 1..3) in rock; (4,2) is the wall
+/// east of the room's middle row, (5,2) the one beyond it, (1,4) the wall south of
+/// the room's first column. All three are diggable from the room and become
+/// unowned dirt path when dug.</remarks>
 public class ImpClaimsWhatItDugTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;

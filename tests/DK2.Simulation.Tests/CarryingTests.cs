@@ -8,24 +8,15 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// Carrying: an imp picks a body off the floor and takes it somewhere.
-///
-/// <para>The owner described the whole pipeline in one breath (Q99), and until
-/// this existed only the first half of it could be built:</para>
-///
-/// <para><i>"When a creature drops … it remains lying on the ground for a
-/// period of time, that gives imps an opportunity to return a creature to its
-/// bed in the lair for healing, or to prison if it is an enemy creature. Once
-/// that timer runs out a creature dies and its corpse remains there lying, that
-/// gives imps an opportunity to carry it to graveyard. If that timer runs out
-/// and no one carries the corpse it just disappears."</i></para>
-///
-/// <para>Both sixty-second timers had been parsed for months with nothing able
-/// to read either, on the standing explanation that <i>"a corpse is an
-/// object"</i> — which was false. A corpse is a creature in a state, and what
-/// was missing was this (ADR-0063).</para>
-/// </summary>
+/// <summary>Carrying: an imp picks a body off the floor and takes it somewhere.
+/// CONFIRMED (owner, Q99): a downed creature lies on the ground for a period,
+/// during which an imp can return it to a bed in the lair for healing, or to
+/// prison if it is an enemy; when that timer runs out the creature dies and the
+/// corpse lies there for a second period, during which an imp can carry it to a
+/// graveyard; if that timer runs out too the corpse disappears. Both timers are
+/// sixty seconds and had been parsed for months with no reader, on the false
+/// explanation that a corpse is an object — a corpse is a creature in a state
+/// (ADR-0063).</summary>
 public class CarryingTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;

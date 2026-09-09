@@ -118,22 +118,12 @@ public sealed class ResearchTests
     [Fact]
     public void ASlappedResearcherWorksAtTripleRate_AndTheVariableSaysFiftyPercent()
     {
-        // THE ARITHMETIC IS THE ORIGINAL'S AND IT IS NOT WHAT THE VARIABLE
-        // SAYS. DK2 computes the bonus as
-        //     variable19 * pct * variable19 * perTickAmount / 100
-        // - IMUL ECX,EAX ; IMUL ECX,EBX ; IMUL ECX,EDI, with the divide by 100
-        // as the compiler's 0x51EB851F reciprocal - which is 4 x 50 x 4 / 100 =
-        // EIGHT times the per-tick amount, added once a game second on top of a
-        // base of four per-tick amounts. So the effective bonus is +200% where
-        // the variable is named 50%.
-        //
-        // The extra variable19 is almost certainly a slip: read as "a
-        // percentage of the per-second rate" the formula needs one factor, not
-        // two. It is reproduced rather than corrected (ADR-0002), and the
-        // sibling bonus in the same function is wrong a DIFFERENT way - the
-        // tortured-type line has ADD where these have IMUL, turning 25 into 29
-        // (Q81). Two different slips in three adjacent lines is what argues
-        // that none of it was intended.
+        // The arithmetic is the original's and it is not what the variable says:
+        // DK2 multiplies by variable19 twice, so 4 x 50 x 4 / 100 = eight times the
+        // per-tick amount once a game second on a base of four — +200 % where the
+        // variable is named 50 %. Almost certainly a slip, and the sibling bonus
+        // three lines away slips differently (ADD where these have IMUL, 25 into
+        // 29, Q81). Reproduced, not corrected: library-and-research.md.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState it = Researcher(db, world);
@@ -158,16 +148,12 @@ public sealed class ResearchTests
     [Fact]
     public void TheSlapsResearchBonusLastsSixtySecondsAndNotTheTwentyFiveOfItsWorkBonus()
     {
-        // ONE SLAP, TWO UNRELATED EFFECTS, AND THIS IS THE ONE THAT USES THE
-        // VARIABLE. Efficiency +10 points lasts 25 game seconds from a
-        // HARDCODED 100 ticks in the slap handler (Q159, CONFIRMED by the owner
-        // off the status bar). This research bonus lasts 60, read from
-        // IncreasedWorkRateDurationFromSlappingSeconds - a variable this
-        // project had written up as one that NOTHING reads.
-        //
-        // It reads it here. Which also rescues the owner's original hand-timed
-        // "after a minute": there really is a minute-long slap effect, it just
-        // is not the work rate.
+        // One slap, two unrelated effects, and this is the one that uses the
+        // variable. Efficiency +10 points lasts 25 game seconds from a hardcoded
+        // 100 ticks in the slap handler (Q159, CONFIRMED by the owner off the
+        // status bar); this research bonus lasts 60, read from
+        // IncreasedWorkRateDurationFromSlappingSeconds — which also rescues the
+        // owner's hand-timed "after a minute": it is not the work rate.
         GameDatabase db = Db;
         CreatureState it = Researcher(db, World(db));
 

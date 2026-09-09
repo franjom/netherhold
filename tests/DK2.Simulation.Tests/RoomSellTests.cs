@@ -8,19 +8,14 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// Selling a room (Q34): <b>half of what it cost, per tile</b>.
-///
-/// <para>Every number here is read from the shipped data, and that is the point
-/// of the question's history. Q34 was recorded for four sessions as a refund
-/// "in no field we read" on the strength of a mis-transcribed 100;
-/// <c>RoomSellValuePercentageOfCost</c> is <b>50</b>, exactly what the owner
-/// observed in the original. `RoomsOnRealDataTests` reads it back out of the
-/// install so this fixture cannot drift from it.</para>
-///
-/// <para>The fixture map is a claimed-path room at (1..3, 1..3) owned by player
-/// 1, surrounded by rock — see <see cref="Dk2TerrainFixture"/>.</para>
-/// </summary>
+/// <summary>Selling a room (Q34): half of what it cost, per tile.
+/// <c>RoomSellValuePercentageOfCost</c> is 50 in the shipped data, exactly what
+/// the owner observed; <c>RoomsOnRealDataTests</c> reads it back out of the install
+/// so this fixture cannot drift. Check our own dump before recording a number as
+/// absent — Q34 stood for four sessions as a refund "in no field we read" on the
+/// strength of a mis-transcribed 100. The fixture map is a claimed-path room at
+/// (1..3, 1..3) owned by player 1, surrounded by rock
+/// (<see cref="Dk2TerrainFixture"/>).</summary>
 public class RoomSellTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -193,22 +188,14 @@ public class RoomSellTests
 
     // ---- what a keeper loses ---------------------------------------------
 
-    /// <summary>
-    /// Gold stored on a treasury tile that is sold <b>stays on that tile, as a
-    /// pile on the floor</b>.
-    ///
-    /// <para>That is the original's own answer, and it is exact rather than
-    /// plausible: selling walks the room's gold objects and, for each, makes a
-    /// floor pile at the same tile, moves the amount across and subtracts it
-    /// from the player's total. So the keeper is poorer by 3000 and the world is
-    /// not — the gold is lying there for an imp to fetch back once there is
-    /// somewhere to put it (gold-on-the-floor.md §4).</para>
-    ///
-    /// <para><b>And the pile is over the limit.</b> A treasury tile holds 3000
-    /// and <c>MaxGoldPileOutsideTreasury</c> is 2000, and nothing clamps on the
-    /// way out — which is the finding that stopped this project from applying
-    /// that variable as an invariant.</para>
-    /// </summary>
+    /// <summary>Gold stored on a treasury tile that is sold stays on that tile as
+    /// a pile on the floor. Exact, not plausible: selling walks the room's gold
+    /// objects and for each makes a floor pile on the same tile, moves the amount
+    /// across and subtracts it from the player's total, so the keeper is poorer by
+    /// 3000 and the world is not (gold-on-the-floor.md §4). The pile is over the
+    /// limit and stays there: a treasury tile holds 3000,
+    /// <c>MaxGoldPileOutsideTreasury</c> is 2000, and nothing clamps on the way
+    /// out — which is why that variable is not applied as an invariant.</summary>
     [Fact]
     public void GoldOnASoldTreasuryTileEndsUpOnTheFloorOfThatTile()
     {
@@ -240,20 +227,12 @@ public class RoomSellTests
         Assert.False(FloorGold.AcceptsMore(database, biggest));
     }
 
-    /// <summary>
-    /// <b>Selling a keeper's whole treasury moves every coin to the floor</b>,
-    /// and the chain is worth following because none of it is lost.
-    ///
-    /// <para>The first tile's refund of 100 is banked into the second, which is
-    /// the only store left. Then the second tile is sold, so that 100 is
+    /// <summary>Selling a keeper's whole treasury moves every coin to the floor,
+    /// and none of it is lost. The first tile's refund of 100 is banked into the
+    /// second, the only store left; then the second tile is sold, so that 100 is
     /// displaced onto the floor along with anything else on it, and the second
-    /// tile's own refund has nowhere to be banked and lands on the floor too.
-    /// The keeper's total is zero and the world still holds 200.</para>
-    ///
-    /// <para>This is the test that used to assert the opposite. It was the
-    /// clearest statement of the gap floor piles left, and it is now the
-    /// clearest statement that the gap is closed.</para>
-    /// </summary>
+    /// tile's own refund has nowhere to be banked and lands on the floor too. The
+    /// keeper's total is zero and the world still holds 200.</summary>
     [Fact]
     public void SellingEveryStorePutsEveryRefundOnTheFloor()
     {

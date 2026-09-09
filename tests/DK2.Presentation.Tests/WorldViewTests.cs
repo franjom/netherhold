@@ -312,22 +312,14 @@ public class WorldViewTests
         Assert.Empty(walls.Intersect(rooms));
     }
 
-    /// <summary>
-    /// The four walls a reader has to be able to tell apart get four different
-    /// symbols.
-    ///
-    /// <para><b>Not a uniqueness claim, and it must not be read as one.</b>
-    /// Symbols come from a hash, so with eight solid terrains and a fixed
-    /// alphabet some pair will collide — an eight-symbol alphabet gave five
-    /// distinct characters for eight terrains, which is exactly what random
-    /// bucketing predicts. Widening the alphabet lowers the collision rate and
-    /// cannot abolish it. So the checkable property is the one that matters to a
-    /// reader: <b>Rock, Gold, Gems and Impenetrable Rock are the walls a
-    /// dungeon picture is about</b>, and those four must be distinguishable.
-    /// The other four solid terrains — Reinforced Wall, Fog Of War, Edge of Map,
-    /// Claim Scan — are either rare or not really terrain, and a collision
-    /// between them costs nothing.</para>
-    /// </summary>
+    /// <summary>The four walls a reader has to be able to tell apart get four
+    /// different symbols. Not a uniqueness claim: symbols come from a hash, so
+    /// with eight solid terrains and a fixed alphabet some pair collides —
+    /// widening the alphabet lowers the rate and cannot abolish it. The checkable
+    /// property is that Rock, Gold, Gems and Impenetrable Rock, the walls a
+    /// dungeon picture is about, stay distinguishable; a collision between the
+    /// other four solid terrains (Reinforced Wall, Fog Of War, Edge of Map, Claim
+    /// Scan) costs nothing.</summary>
     [InstallFact]
     public void TheFourWallsThatMatterAreDistinguishable()
     {

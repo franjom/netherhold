@@ -84,17 +84,15 @@ public enum CreatureFlags : uint
     IsMale = 1u << 31,
 }
 
-/// <summary>
-/// The <b>second</b> creature flag field: one byte at record offset 0x1545, of which only the low
-/// four bits are ever set across the 46 shipped creatures. Read as a dword because 0x1545..0x1548
-/// are the record's last four bytes and the upper three are zero on every creature, so nothing is
-/// lost and a fifth bit appearing would be visible.
+/// <summary>The <b>second</b> creature flag field: one byte at record offset 0x1545, of which only
+/// the low four bits are ever set across the 46 shipped creatures. Read as a dword because
+/// 0x1545..0x1548 are the record's last four bytes and the upper three are zero on every creature,
+/// so nothing is lost and a fifth bit appearing would be visible.
 /// <para>The runtime offset the binary tests (<c>byte ptr [def + 0x68a] &amp; 8</c>) is no guide to
 /// the file offset — the loader does not preserve record layout, and adjacency gave one wrong
 /// answer. The byte was found by searching all 5449 bytes x 8 bits for a bit selecting the roster
 /// the flag must select (<c>dk2tools kwd creaturebits</c>): exactly one does, bit 3 with mask 8, as
-/// the binary tests it. ADR-0086, docs/research/portals-mercenary.md §3.</para>
-/// </summary>
+/// the binary tests it. ADR-0086, docs/research/portals-mercenary.md §3.</para></summary>
 [Flags]
 public enum CreatureFlags2 : uint
 {

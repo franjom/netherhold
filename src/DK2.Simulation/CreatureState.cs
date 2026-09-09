@@ -339,7 +339,7 @@ public sealed class CreatureState
     /// running from 0 to <see cref="CreatureAngerRules.Saturation"/> (65533).
     ///
     /// <para>The band comes from the largest of the six, never from their sum
-    /// (ADR-0080, <see cref="CreatureAnger"/>). The boundaries are the owner's
+    /// (ADR-0081, <see cref="CreatureAnger"/>). The boundaries are the owner's
     /// stopwatch: a lairless Goblin accruing 100 a second turned unhappy at 2:45
     /// and angry at 5:30, which is 32767/2 and 32767 to within a percent (Q106,
     /// CONFIRMED).</para>

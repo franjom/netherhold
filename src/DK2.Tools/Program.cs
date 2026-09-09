@@ -43,17 +43,10 @@ switch (args[0])
     case "status":
     {
         // Regenerates the plan's status paragraph instead of anybody typing it.
-        //
-        // That line has gone stale three times -- revision 6 by six commits,
-        // revision 7 by three, revision 10 by a whole session -- and the plan
-        // diagnoses the cause itself: "every number here is a one-line shell
-        // command, so it should be a dk2tools status subcommand". This is that
-        // subcommand. Every figure below is read from a file or from test
-        // discovery; none of it is a constant in this source.
-        //
-        // --fast skips test discovery, which is the only slow part.
-        // --check exits 1 if the plan's committed line disagrees, so this can
-        //         gate a commit rather than merely offering the truth.
+        // Every figure below is read from a file or from test discovery; none of
+        // it is a constant in this source. --fast skips test discovery, the only
+        // slow part; --check exits 1 if the plan's committed line disagrees, so a
+        // hook can gate a commit on it.
         bool fast = args.Contains("--fast");
         bool check = args.Contains("--check");
 
@@ -567,26 +560,10 @@ switch (args[0])
         return 0;
     }
 
-    // Q74: is there ANY way a dug-out tile becomes rock again? The owner says no
-    // keeper can fill one in, and the terrain table plainly carries a fill-in
-    // transition. The remaining candidate is the level script: DK2 has an
-    // ALTER_TERRAIN_TYPE trigger action (type 22) that writes a terrain id
-    // straight onto a tile. This sweeps every shipped map's TRIGGERS chunk,
-    // decodes those actions, and reports which terrain they write - so the
-    // question is answered from the install rather than from anybody's word.
-    //
-    // Layout HYPOTHESIS from OpenKeeper's KwdFile.java (facts, not code): the
-    // action type is the second-to-last byte of the payload and the repeat count
-    // the last, and an ALTER_TERRAIN_TYPE body is terrainId(u8), playerId(u8),
-    // two nulls, posX(u16), posY(u16). Verified here by whether every decoded
-    // action type lands inside the enumerated range and every terrain id names a
-    // terrain the database has.
     case "kwd" when args.Length >= 2 && args[1] == "portals":
     {
         // Which shipped levels have more than one portal, and who starts with
-        // them. Written for Q86: the per-room / keeper-wide tally question needs
-        // a level where a keeper can hold two portals at once, and hunting for
-        // one by playing is far more expensive than reading 66 grids.
+        // them: Q86 needs a level where one keeper can hold two portals at once.
         string root = Dk2Install.Require();
         string mapsDir = Path.Combine(root, "Data", "editor", "maps");
         GameDatabase db = GameDatabaseLoader.Load(root);
@@ -703,6 +680,12 @@ switch (args[0])
 
     case "kwd" when args.Length >= 2 && args[1] == "alterterrain":
     {
+        // Q74 (can a dug-out tile become rock again?): sweeps every shipped map's
+        // TRIGGERS chunk for ALTER_TERRAIN_TYPE (action type 22) and reports the
+        // terrain those actions write. Payload layout and its OpenKeeper
+        // provenance: docs/research/external-resources.md; the 16-byte TRIGGERS
+        // payload is CONFIRMED in docs/research/kwd-record-fields.md. Guard: every
+        // decoded type lands in the enumerated range, every terrain id resolves.
         string root = Dk2Install.Require();
         string mapsDir = Path.Combine(root, "Data", "editor", "maps");
         GameDatabase db = GameDatabaseLoader.Load(root);
@@ -888,14 +871,11 @@ switch (args[0])
 
     case "kwd" when args.Length >= 2 && args[1] == "things":
     {
-        // The placed-entity dump. `kwd records` prints one line per THINGS
-        // record saying only its type and length; this prints the fields the
-        // projection into WorldState actually reads, so a claim about where
-        // level 1's heart is can be re-checked from the shipped file.
-        //
-        // With a file argument it dumps that level. With none it sweeps every
-        // <name>Things.kld in the install and prints the corpus distribution,
-        // which is what bounds "how much of a level is a THING".
+        // The placed-entity dump: unlike `kwd records`, which prints only a
+        // record's type and length, this prints the fields the projection into
+        // WorldState reads. With a file argument it dumps that level; with none it
+        // sweeps every <name>Things.kld in the install and prints the corpus
+        // distribution.
         if (args.Length == 2)
         {
             string maps = Path.Combine(Dk2Install.Require(), "Data", "editor", "maps");
@@ -1595,22 +1575,12 @@ switch (args[0])
         return 0;
     }
 
-    // Offset hunting in a record we only partly understand. Give it a creature
-    // and a value measured in the original, and it prints every offset whose
-    // u8 / u16 / s16 reading holds that value for that creature, with the whole
-    // column beside it so the reading can be judged plausible across all of
-    // them. This is the technique that found the Create Imp mana cost in
-    // KeeperSpells.kwd; a single hit is luck, a whole column that ranks the way
-    // the game plays is not. See docs/research/imps-and-mana.md.
-    // Raw window onto the CREATURES record, for judging a candidate offset
-    // found by creaturescan. Prints the same byte range for every creature so a
-    // column can be read down.
-    // Generic offset hunt in a record type we do not parse. Give it a file and
-    // a number measured in the original, and it prints every offset whose
+    // Generic offset hunt in a record type we do not parse: give it a file and a
+    // number measured in the original and it prints every offset whose
     // u8/u16/s16/s32 reading holds that number in some record, with the whole
-    // column beside it. Optionally anchor on one record index. This is the
-    // technique that found the Create Imp mana cost at KeeperSpells 0x11C; a
-    // single hit is luck, a column that ranks the way the game plays is not.
+    // column beside it; optionally anchor on one record index. Judge a candidate
+    // on the column, not on one hit — that is how the Create Imp mana cost fell
+    // out at KeeperSpells 0x11C (docs/research/imps-and-mana.md).
     case "kwd" when args.Length >= 4 && args[1] == "recscan":
     {
         string rpath = ResolveEditor(args[2]);
@@ -1664,6 +1634,9 @@ switch (args[0])
         return 0;
     }
 
+    // Raw window onto the CREATURES record, for judging a candidate offset found
+    // by creaturescan. Prints the same byte range for every creature so a column
+    // can be read down.
     case "kwd" when args.Length >= 4 && args[1] == "creaturehex":
     {
         int start = Convert.ToInt32(args[2], 16);
@@ -1693,10 +1666,10 @@ switch (args[0])
         return 0;
     }
 
-    // The object-record twin of creaturehex. Added 2026-09-07 while hunting the
-    // obstacle radius the binary reads at objDef+0xf8 (Q88): the loader's frame
-    // slot named a file offset, and the only way to check a frame-to-record
-    // delta is to look at the column and see whether the numbers behave.
+    // The object-record twin of creaturehex. Written for the obstacle radius the
+    // binary reads at objDef+0xf8 (Q88): the loader's frame slot names a file
+    // offset, and a frame-to-record delta can only be checked by reading the
+    // column and seeing whether the numbers behave.
     case "kwd" when args.Length >= 4 && args[1] == "objecthex":
     {
         int start = Convert.ToInt32(args[2], 16);
@@ -1733,6 +1706,10 @@ switch (args[0])
         return 0;
     }
 
+    // Offset hunt inside the CREATURES record: give it a creature and a value
+    // measured in the original and it prints every offset whose u8/u16/s16
+    // reading holds that value for that creature, with the whole column beside
+    // it. Judge the column, not one hit (docs/research/imps-and-mana.md).
     case "kwd" when args.Length >= 4 && args[1] == "creaturescan":
     {
         string wanted = args[2];
@@ -1797,21 +1774,11 @@ switch (args[0])
         return 0;
     }
 
-    // Which (offset, bit) in the CREATURES record selects exactly this set of
-    // creatures? The twin of creaturescan, for flags rather than values.
-    //
-    // Added 2026-09-07 hunting the hero portal's creature flag. The binary reads
-    // it as `byte ptr [def + 0x68a] & 8`, and the loader does not preserve file
-    // offsets into the runtime record — so the runtime offset says nothing about
-    // where the bit lives in the file. What *is* known is the roster the flag has
-    // to select, and searching for the roster finds the bit. Reasoning from the
-    // layout instead had already produced one wrong answer (file 0xF00, which
-    // turned out to be a 3000/2800 value, not flags).
-    // A field that is the same for every record cannot discriminate between
-    // records, so any rule this project keys on one is either dead code or a
-    // rule we invented. The balance-table equivalent of this sweep (ADR-0085)
-    // found ten live mechanisms shipped switched off; the creature and object
-    // records had never been swept at all. Q213.
+    // Which fields of the record are the same in every record? A constant field
+    // cannot discriminate between records, so a rule this project keys on one is
+    // either dead code or a rule we invented (Q213). The balance-table equivalent
+    // of this sweep found ten live mechanisms shipped switched off (ADR-0085); the
+    // creature and object records had never been swept at all.
     case "kwd" when args.Length >= 2 && args[1] == "fieldsweep":
     {
         string which = args.Length > 2 && !args[2].StartsWith('-') ? args[2] : "creatures";
@@ -1911,6 +1878,12 @@ switch (args[0])
         return 0;
     }
 
+    // Which (offset, bit) in the CREATURES record selects exactly this set of
+    // creatures? The flag twin of creaturescan. The loader does not preserve file
+    // offsets into the runtime record, so a runtime offset (the hero portal flag
+    // is read as `byte ptr [def + 0x68a] & 8`, DKII.EXE) says nothing about where
+    // the bit lives in the file — search for the roster the flag must select, not
+    // for the offset. Reasoning from the layout gave a wrong answer once.
     case "kwd" when args.Length >= 3 && args[1] == "creaturebits":
     {
         string[] names = args[2].Split(

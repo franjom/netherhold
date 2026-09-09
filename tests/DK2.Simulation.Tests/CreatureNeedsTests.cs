@@ -8,27 +8,18 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// Health and hunger — the first things a creature has that are not about where
-/// it is standing.
-///
-/// <para>The fixture's creatures are chosen opposites and that is what makes
-/// them useful here: the <b>Imp</b> never eats, never sleeps, and is one of only
-/// two creatures in the game that heal on their own land; the <b>Goblin</b> gets
-/// hungry every 180 seconds, needs one chicken, and heals on nobody's land. So
-/// every rule can be tested with a creature that has it and one that does
-/// not.</para>
-///
-/// <para>Hazard terrain needed a third, and the shipped data left no choice
-/// about which. Crossing a hazard is free to a creature that can cross it, and
-/// water is crossable by 44 of the 46; the <b>Vampire</b> is one of the two it
-/// is not, so it is the creature every water test here drowns.</para>
-///
-/// <para>Several of these are negative tests about things that are deliberately
-/// absent — hunger costs no health, an unfed creature does not starve — because
-/// those are the assumptions most likely to be "fixed" by someone later without
-/// noticing that DK2 charges anger for it instead.</para>
-/// </summary>
+/// <summary>Health and hunger.</summary>
+/// <remarks>
+/// <para>The fixture's creatures are chosen opposites: the Imp never eats, never
+/// sleeps, and is one of only two creatures that heal on their own land; the
+/// Goblin gets hungry every 180 seconds, needs one chicken, and heals on nobody's
+/// land. Hazard terrain needed a third — water is crossable by 44 of the 46, and
+/// the Vampire is one of the two it is not, so it is what every water test here
+/// drowns.</para>
+/// <para>Several tests here are negative — hunger costs no health, an unfed
+/// creature does not starve — because those are the assumptions most likely to be
+/// "fixed" later without noticing that DK2 charges anger instead.</para>
+/// </remarks>
 public class CreatureNeedsTests
 {
     private const byte Keeper = 3;
@@ -389,13 +380,10 @@ public class CreatureNeedsTests
     [Fact]
     public void AVampireInWaterLosesAHundredHealthASecond()
     {
-        // Water's TerrainDef.Damage is 100, and until the owner's observation
-        // it was read by nothing but the asset catalogue.
-        //
-        // The creature is a Vampire and that is the whole point: water charges
-        // only what cannot cross it, and in the shipped roster that is the
-        // Vampire and the Unique Vampire and nothing else. This test used to
-        // use a Goblin, which wades.
+        // Water's TerrainDef.Damage is 100, read by nothing but the asset
+        // catalogue until the owner's observation. The creature is a Vampire
+        // because water charges only what cannot cross it, and in the shipped
+        // roster that is the Vampire and the Unique Vampire and nothing else.
         GameDatabase db = Db;
         WorldState world = World(db);
         var pond = new TilePos(3, 6);
@@ -415,13 +403,10 @@ public class CreatureNeedsTests
     [Fact]
     public void AGoblinWadesTheSameWaterForNothing()
     {
-        // CONFIRMED by the owner (Q118): "no creature that can traverse through
-        // water looses health". The first version of this rule charged
-        // everything standing in water, which would have drowned an imp in five
-        // seconds doing the very job the owner had watched it do.
-        //
-        // Same tile and same terrain as the test above, run ten times as long.
-        // The only difference is one flag.
+        // CONFIRMED (owner, Q118): "no creature that can traverse through water
+        // looses health" — charging everything standing in water would drown an
+        // imp in five seconds doing the job the owner watched it do. Same tile and
+        // terrain as the test above, run ten times as long; one flag differs.
         GameDatabase db = Db;
         WorldState world = World(db);
         var pond = new TilePos(3, 6);
@@ -494,21 +479,12 @@ public class CreatureNeedsTests
     [Fact]
     public void TerrainIsStillAppliedToACollapsedCreatureButCannotTakeItFurther()
     {
-        // Lava is applied to the down as well as the standing, because a
-        // creature that drops in lava is in lava and lying in it is no safer
-        // than walking through it.
-        //
-        // **But it has no observable effect**, and this test exists because the
-        // first version of it asserted the opposite — that terrain was "the one
-        // thing that can still kill something during its rescue window". It is
-        // not: a creature at zero health cannot be taken lower, so the clamp
-        // makes every subsequent second a no-op and only ONE terrain event
-        // fires, the partial hit that took it to zero.
-        //
-        // The code is left as it is rather than adding a skip, because the rule
-        // "terrain acts on whatever is standing in it" is the true one and will
-        // start mattering the moment anything can heal a down creature in
-        // place. What is corrected is the claim, not the behaviour.
+        // Terrain acts on whatever is in it, down creatures included — lying in
+        // lava is no safer than walking through it — but has no observable effect
+        // during the rescue window: a creature at zero health cannot be taken
+        // lower, so the clamp makes every later second a no-op and exactly one
+        // terrain event fires, the partial hit that took it to zero. Kept unskipped
+        // because it matters the moment anything can heal a down creature in place.
         GameDatabase db = Db;
         WorldState world = World(db);
         var fire = new TilePos(3, 6);
@@ -626,15 +602,12 @@ public class CreatureNeedsTests
     [Fact]
     public void AnImpIsDeadRightAwayAndHasNoLyingState()
     {
-        // CONFIRMED by the owner: "imps are dead right away, they don't have a
-        // lying state." The discriminator is the GenerateDeadBody flag, which
-        // an Imp lacks — and OpenKeeper tests exactly the same flag before any
-        // unconscious handling, so the rule generalises to all eight bodyless
-        // creatures rather than being an Imp special case.
-        //
-        // Placed on its own lair tile on purpose: an Imp regenerates 67 health
-        // a second at home, so if the collapse were deferred by even one second
-        // it would heal instead of dying.
+        // CONFIRMED (owner): "imps are dead right away, they don't have a lying
+        // state." The discriminator is the GenerateDeadBody flag, which an Imp
+        // lacks; OpenKeeper tests the same flag before any unconscious handling,
+        // so the rule covers all eight bodyless creatures. Placed on its own lair
+        // tile on purpose — an Imp regenerates 67 health a second at home, so a
+        // collapse deferred by even one second would heal instead of dying.
         GameDatabase db = Db;
         WorldState world = World(db);
         var at = new TilePos(2, 2);
@@ -1000,17 +973,12 @@ public class CreatureNeedsTests
         sim.Run(Second * 5);
         Assert.True(LairRules.HasBed(world, db, first));
 
-        // It dies, and the one bed in the lair has to become available again —
-        // otherwise a lair silently loses a tile every time somebody dies.
-        //
-        // Two seconds used to be enough, because zero health used to be death.
-        // It now takes CreatureDyingStateDurationSeconds first (Q99), and the
-        // bed stays held for the whole of that window on purpose — the rescue
-        // path carries the creature back to it.
-        //
-        // And a bed is walked to: the newcomer notices the freed tile at its
-        // next idle decision and takes a step to it, which is why the run is
-        // a few seconds longer than the dying window.
+        // It dies, and the one bed in the lair has to become available again, or a
+        // lair silently loses a tile every time somebody dies. Zero health is not
+        // death: CreatureDyingStateDurationSeconds runs first (Q99) and the bed
+        // stays held for that window, because the rescue path carries the creature
+        // back to it. A bed is walked to, so the newcomer notices the freed tile
+        // at its next idle decision — hence a run longer than the dying window.
         first.Health = 0;
         CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 3));
         sim.Run(Second * 65);

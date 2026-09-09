@@ -35,7 +35,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// greater-than, from a ring counter starting at one — so it scans rings 1,
     /// 2 and 3 (<c>ImpUtils.cpp</c>, docs/research/hand-of-evil.md). CONFIRMED:
     /// the owner counted it on screen (2026-09-06) — three tiles boost, the
-    /// fourth does not. Reproduced rather than corrected (ADR-0002).</para>
+    /// fourth does not. Reproduced rather than corrected (AGENTS.md, Fidelity).</para>
     /// </summary>
     private const int DropScanTiles = 3;
 

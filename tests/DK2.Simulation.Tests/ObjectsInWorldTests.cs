@@ -8,23 +8,13 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// Objects standing in the world — the third list <see cref="WorldState"/> now
-/// has, after tiles and creatures.
-///
-/// <para>The first thing to use it is the <b>bed</b>, and that is not an
-/// arbitrary choice: a bed was already modelled, on the creature, as a tile
-/// index. So these tests are as much about the <i>move</i> as about the list.
-/// The behaviour they pin is the behaviour that used to be pinned on the other
-/// end of the relation, and the reason it moved is that DK2 keeps it here —
+/// <summary>Objects standing in the world — the third list
+/// <see cref="WorldState"/> has, after tiles and creatures. The first thing to use
+/// it is the bed, which DK2 keeps on the object rather than on the creature:
 /// <c>Lair.CreatureId</c>, a u16 at the first offset of the object's union
-/// (<c>docs/research/objects.md</c> §7, Q130).</para>
-///
-/// <para>What the move buys, and what these tests check, is that <b>a bed is now
-/// a thing that can be looked at</b>: which of the twelve it is, whose it is,
-/// and whether it is still there. None of those three questions had an answer
-/// when the fact lived on the creature.</para>
-/// </summary>
+/// (docs/research/objects.md §7, Q130). So a bed is now something that can be
+/// looked at — which of the twelve it is, whose it is, and whether it is still
+/// there — and these tests are as much about that move as about the list.</summary>
 public class ObjectsInWorldTests
 {
     private const byte Keeper = 3;

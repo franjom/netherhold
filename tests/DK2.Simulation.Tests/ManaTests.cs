@@ -40,14 +40,11 @@ public class ManaTests
         WorldState world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
 
-        // WITHOUT THE IMP SUPPLY, and the reason is a correction rather than
-        // convenience. These tests measure what land and a dungeon heart pay a
-        // keeper, to the mana. Since 2026-09-05 the free-imp supply keeps a
-        // deadline rather than a countdown, so the moment a test hands a keeper
-        // a heart it also hands them an imp - on the same tick - and the imp's
-        // upkeep starts coming off the figure being asserted. Leaving the system
-        // in would make every heart-income expectation a statement about two
-        // mechanics at once. ManaUpkeepTests is where imps and mana meet.
+        // Without the imp supply, deliberately: these tests measure what land and
+        // a dungeon heart pay a keeper, to the mana. The free-imp supply keeps a
+        // deadline rather than a countdown, so handing a keeper a heart hands them
+        // an imp on the same tick and the imp's upkeep comes off the figure being
+        // asserted. ManaUpkeepTests is where imps and mana meet.
         var sim = new GameSimulation(
             database, world, seed,
             Dk2TerrainFixture.SystemsWithout<Systems.ImpSupplySystem>());

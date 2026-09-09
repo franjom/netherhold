@@ -22,32 +22,20 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/gold-on-the-floor.md")]
 public static class FloorGold
 {
-    /// <summary>
-    /// The object a pile of gold on the floor is: <b>1, "Gold"</b>.
-    ///
-    /// <para>Named by id because the original names it by id — every one of its
-    /// creation sites passes the literal 1 — and because a type flag cannot
-    /// tell the three gold objects apart. <see cref="IsPile"/> still asks the
-    /// flag, for the reason objects.md §3 gives.</para>
-    /// </summary>
+    /// <summary>The object a pile of gold on the floor is: <b>1, "Gold"</b>. Named by id because
+    /// the original names it by id — every creation site passes the literal 1 — and because a type
+    /// flag cannot tell the three gold objects apart. <see cref="IsPile"/> still asks the flag, for
+    /// the reason objects.md §3 gives.</summary>
     public const byte FloorGoldObjectId = 1;
 
-    /// <summary>
-    /// The object a treasury tile's gold is in the original: <b>3, "Gold Pile
-    /// 1"</b> — one per tile, created on first deposit.
-    ///
-    /// <para>Deviates: treasury gold lives in
-    /// <see cref="TileState.GoldHeld"/> (ADR-0015) and no rule here creates
-    /// object 3. The constant is recorded so the difference is written down
-    /// rather than inferred from its absence.</para>
-    /// </summary>
+    /// <summary>The object a treasury tile's gold is in the original: <b>3, "Gold Pile 1"</b>, one
+    /// per tile, created on first deposit. Deviates: treasury gold lives in
+    /// <see cref="TileState.GoldHeld"/> (ADR-0015) and no rule here creates object 3. Recorded so
+    /// the difference is written down rather than inferred from its absence.</summary>
     public const byte TreasuryPileObjectId = 3;
 
-    /// <summary>
-    /// The gold a creature carries splits into <b>one pile below 1000, two
-    /// below 3000, three at 3000 and above</b> — the original's exact
-    /// thresholds.
-    /// </summary>
+    /// <summary>The gold a creature carries splits into <b>one pile below 1000, two below 3000,
+    /// three at 3000 and above</b> — the original's exact thresholds.</summary>
     public const int TwoPilesAbove = 1000;
 
     /// <inheritdoc cref="TwoPilesAbove"/>
@@ -61,28 +49,20 @@ public static class FloorGold
         return database.ObjectById(instance.ObjectTypeId) is { IsGold: true };
     }
 
-    /// <summary>
-    /// <c>MaxGoldPileOutsideTreasury</c>, shipped as <b>2000</b>.
-    ///
-    /// <para>Trap: it is a target rule, not a limit. Its three readers in the
-    /// binary are all imp code choosing where to put a load down — a candidate
-    /// spot holding a pile <i>strictly greater</i> than this is not chosen —
-    /// and nothing clamps a pile to it. A sold treasury tile makes a pile of up
-    /// to <c>MaxGoldPerTreasuryTile</c> (3000) and an overflowing deposit makes
-    /// one of whatever was left over, so applying it here would be a plausible
-    /// cap that no test could then falsify.</para>
-    /// </summary>
+    /// <summary><c>MaxGoldPileOutsideTreasury</c>, shipped as <b>2000</b>. Trap: it is a target
+    /// rule, not a limit. Its three readers in the binary are all imp code choosing where to put a
+    /// load down — a candidate spot holding a pile <i>strictly greater</i> than this is not chosen
+    /// — and nothing clamps a pile to it: a sold treasury tile makes a pile of up to
+    /// <c>MaxGoldPerTreasuryTile</c> (3000), and an overflowing deposit one of whatever was left
+    /// over.</summary>
     public static int MaxPile(GameDatabase database) =>
         database is null
             ? throw new ArgumentNullException(nameof(database))
             : database[VariableTypeId.MaxGoldPileOutsideTreasury];
 
-    /// <summary>
-    /// Whether an imp looking for somewhere to put gold down would accept this
-    /// pile — <see cref="MaxPile"/>'s only meaning. Strictly greater is what
-    /// the original tests, so a pile sitting exactly on the limit is still a
-    /// valid target.
-    /// </summary>
+    /// <summary>Whether an imp looking for somewhere to put gold down would accept this pile —
+    /// <see cref="MaxPile"/>'s only meaning. Strictly greater is what the original tests, so a
+    /// pile sitting exactly on the limit is still a valid target.</summary>
     public static bool AcceptsMore(GameDatabase database, ObjectState pile)
     {
         if (pile is null) throw new ArgumentNullException(nameof(pile));
@@ -117,15 +97,11 @@ public static class FloorGold
         return total;
     }
 
-    /// <summary>
-    /// How much gold is on the floor anywhere in the world.
-    ///
-    /// <para>Not part of any player's total, which is the original's own
-    /// accounting: when a treasury tile becomes a floor pile the amount is
-    /// subtracted from the player's gold in the same breath. Floor gold belongs
-    /// to whoever picks it up, and <see cref="GoldStore.Total"/> counts tiles so
-    /// already excludes it.</para>
-    /// </summary>
+    /// <summary>How much gold is on the floor anywhere in the world. Not part of any player's
+    /// total, which is the original's own accounting: when a treasury tile becomes a floor pile the
+    /// amount is subtracted from the player's gold in the same breath. Floor gold belongs to
+    /// whoever picks it up, and <see cref="GoldStore.Total"/> counts tiles so already excludes
+    /// it.</summary>
     public static int Total(WorldState world, GameDatabase database)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
@@ -138,15 +114,10 @@ public static class FloorGold
         return total;
     }
 
-    /// <summary>
-    /// Puts <paramref name="amount"/> of gold on the floor of one tile as a new
-    /// pile, and returns it. Nothing is merged and nothing is capped — see the
-    /// class remarks.
-    ///
-    /// <para>Zero or negative is refused with <see langword="null"/> rather than
-    /// spawning an empty pile, which the original would never have on the floor:
-    /// a pile that reaches zero is destroyed.</para>
-    /// </summary>
+    /// <summary>Puts <paramref name="amount"/> of gold on the floor of one tile as a new pile, and
+    /// returns it. Nothing is merged and nothing is capped — see the class remarks. Zero or
+    /// negative is refused with <see langword="null"/> rather than spawning an empty pile, which
+    /// the original would never have on the floor: a pile that reaches zero is destroyed.</summary>
     public static ObjectState? Drop(
         WorldState world, GameDatabase database, int tileIndex, int amount, byte ownerPlayerId)
     {
@@ -158,25 +129,18 @@ public static class FloorGold
         return pile;
     }
 
-    /// <summary>
-    /// The same, for the callers that have no reason to name an owner — every
-    /// one of them so far, because nothing yet reads a floor pile's owner.
-    ///
-    /// <para>The owner is a guess: UNKNOWN (Q136). The original gives every
-    /// floor pile the same global player id, fixed once at load, and it is
-    /// emphatically not the room's owner or the dead creature's keeper.
-    /// <see cref="PlayerIds.Neutral"/> is used because that is what an unclaimed
-    /// thing belongs to here (ADR-0043) and nothing depends on it yet — the day
-    /// an imp may fetch a rival's dropped gold, this field decides it.</para>
-    /// </summary>
+    /// <summary>The same, for the callers with no reason to name an owner — every one of them so
+    /// far, because nothing yet reads a floor pile's owner. Which owner is UNKNOWN (Q136): the
+    /// original gives every floor pile one global player id fixed at load, emphatically not the
+    /// room's owner or the dead creature's keeper. <see cref="PlayerIds.Neutral"/> is used because
+    /// that is what an unclaimed thing belongs to here (ADR-0043); the day an imp may fetch a
+    /// rival's dropped gold, this field decides it.</summary>
     public static ObjectState? Drop(
         WorldState world, GameDatabase database, int tileIndex, int amount) =>
         Drop(world, database, tileIndex, amount, PlayerIds.Neutral);
 
-    /// <summary>
-    /// Takes up to <paramref name="amount"/> off a pile and returns how much
-    /// came off, destroying the pile when it empties.
-    /// </summary>
+    /// <summary>Takes up to <paramref name="amount"/> off a pile and returns how much came off,
+    /// destroying the pile when it empties.</summary>
     public static int Take(
         WorldState world, GameDatabase database, ObjectState pile, int amount)
     {
@@ -191,28 +155,21 @@ public static class FloorGold
         return taken;
     }
 
-    /// <summary>
-    /// How many piles a creature carrying <paramref name="gold"/> leaves behind
-    /// when it is destroyed: <b>one below 1000, two below 3000, three at 3000
-    /// and above</b>, and none at all with empty hands.
-    /// </summary>
+    /// <summary>How many piles a creature carrying <paramref name="gold"/> leaves behind when it
+    /// is destroyed: <b>one below 1000, two below 3000, three at 3000 and above</b>, and none at
+    /// all with empty hands.</summary>
     public static int PileCount(int gold) =>
         gold <= 0 ? 0
         : gold < TwoPilesAbove ? 1
         : gold < ThreePilesAbove ? 2
         : 3;
 
-    /// <summary>
-    /// Drops a creature's gold on the tile it is standing on, empties its hands,
-    /// and returns how much actually reached the floor — sometimes less than it
-    /// was carrying, because the original divides by the pile count with integer
-    /// division and gives each pile that share, destroying the remainder: 2999
-    /// carried becomes two piles of 1499. Reproduced, not corrected.
-    /// <para>Called when a creature is <b>destroyed</b>. In the original that is
-    /// one function on the teardown path, covering every way of leaving the
-    /// world; ours calls it from death only, death being the only teardown built
-    /// (Q137).</para>
-    /// </summary>
+    /// <summary>Drops a creature's gold on the tile it is standing on, empties its hands, and
+    /// returns how much actually reached the floor — sometimes less than it was carrying, because
+    /// the original divides by the pile count with integer division and gives each pile that share,
+    /// destroying the remainder: 2999 carried becomes two piles of 1499. Reproduced, not corrected.
+    /// Called when a creature is <b>destroyed</b>; in the original that is one function covering
+    /// every way of leaving the world, ours calls it from death only (Q137).</summary>
     public static int DropFrom(
         WorldState world, GameDatabase database, CreatureState creature)
     {

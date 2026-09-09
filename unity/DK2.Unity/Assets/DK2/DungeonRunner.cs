@@ -17,24 +17,17 @@ using UnityEngine;
 
 namespace DK2.Unity
 {
-    /// <summary>
-    /// Owns a simulation, ticks it, and hands the result to a
-    /// <see cref="DungeonScene"/>. The whole of Unity's involvement in the game.
-    ///
-    /// <para><b>Note what it does not do.</b> It holds no game state — the
-    /// simulation does. It sends nothing to the simulation but
-    /// <see cref="InputFrame"/>s. It reads no asset path. It decides nothing
-    /// about what changed. Deleting this component and its objects would leave
-    /// the simulation running identically, which is plan §4.7's requirement and
-    /// is true here by construction rather than by discipline.</para>
-    ///
-    /// <para><b>The tick rate on screen is not a claim about DK2.</b> It comes
-    /// from <see cref="SimulationTiming.TicksPerSecond"/>, which is the
-    /// unmeasured Q1 placeholder. The number of ticks a job takes is faithful;
-    /// how fast that looks in seconds is not, and will not be until Q1 is
-    /// measured against the original. Do not tune it here — there is one
-    /// constant and it lives in the simulation (ADR-0011).</para>
-    /// </summary>
+    /// <summary>Owns a simulation, ticks it, and hands the result to a
+    /// <see cref="DungeonScene"/> — the whole of Unity's involvement in the game.</summary>
+    /// <remarks>
+    /// <para>Holds no game state, sends the simulation nothing but
+    /// <see cref="InputFrame"/>s, reads no asset path, and decides nothing about
+    /// what changed: deleting this component leaves the simulation running
+    /// identically (plan §4.7).</para>
+    /// <para>The on-screen tick rate comes from
+    /// <see cref="SimulationTiming.TicksPerSecond"/> — one constant, and it lives
+    /// in the simulation (ADR-0011). Do not tune it here.</para>
+    /// </remarks>
     public sealed class DungeonRunner : MonoBehaviour
     {
         [Header("Where Dungeon Keeper 2 is installed")]
@@ -271,22 +264,12 @@ namespace DK2.Unity
             if (next.y > 2f) camera.transform.position = next;
         }
 
-        /// <summary>
-        /// Frames the whole level, whatever shape it is.
-        ///
-        /// <para><b>The first version of this was wrong, and a screenshot is the
-        /// only thing that could have found it.</b> It put the camera at a
-        /// height of <c>world.Width * 0.75</c> — derived from the width alone —
-        /// so on campaign level 1, which is 30 wide and <b>38 deep</b>, the near
-        /// end of the dungeon fell off the bottom of the screen. No test could
-        /// have caught it: the smoke test proves 1140 objects exist, not that a
-        /// camera points at them.</para>
-        ///
-        /// <para>Derived now rather than guessed: fit the level's bounding
-        /// sphere inside the vertical field of view. Using the half-diagonal
-        /// means the framing cannot depend on which dimension happens to be
-        /// larger, which was the whole of the original bug.</para>
-        /// </summary>
+        /// <summary>Frames the whole level, whatever shape it is: fits the level's
+        /// bounding sphere inside the vertical field of view. Uses the
+        /// half-diagonal so the framing cannot depend on which dimension is the
+        /// larger — a camera height derived from the width alone dropped the near
+        /// end of campaign level 1 (30 wide, 38 deep) off the screen, and no test
+        /// can catch that; only a screenshot can.</summary>
         private void LookAt(WorldState world)
         {
             Camera camera = Camera.main;
@@ -312,19 +295,13 @@ namespace DK2.Unity
             camera.farClipPlane = Mathf.Max(camera.farClipPlane, distance * 3f);
         }
 
-        /// <summary>
-        /// Loads the grid out of a DK2 saved game.
-        ///
-        /// <para><b>Terrain and ownership only.</b> The entity records after the
-        /// grid are undecoded (Q182), so a save arrives with the dungeon the
-        /// player left and nobody in it. A campaign level arrives empty too, for
-        /// the unrelated reason that THINGS is unparsed, so nothing about the
-        /// scene is newly missing.</para>
-        ///
-        /// <para>The save names its own level and the reader takes the grid
-        /// dimensions from that level's design map, so <c>levelName</c> is
-        /// ignored here rather than having to agree.</para>
-        /// </summary>
+        /// <summary>Loads the grid out of a DK2 saved game: terrain and ownership
+        /// only. The 189-byte entity records after the grid are undecoded (Q182),
+        /// so a save arrives with the dungeon the player left and nobody in it —
+        /// unlike a campaign level, whose placed entities do arrive, through
+        /// <c>ThingProjection</c>. The save names its own level and the reader
+        /// takes the grid dimensions from that level's design map, so
+        /// <c>levelName</c> is ignored here.</summary>
         private LevelMap LoadSave(string install)
         {
             string path = Path.IsPathRooted(saveFile)

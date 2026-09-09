@@ -8,27 +8,17 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// Taking a room that belongs to somebody else — a rival's, or a neutral one,
-/// which is what an unclaimed portal is.
-///
-/// <para><b>CONFIRMED</b> (owner, 2026-09-04): <i>"once an imp claims a portal
-/// then the entire portal gets claimed, all tiles that are assigned to that
-/// portal are immediately claimed … that is a game mechanic that works on
-/// claiming enemy/neutral rooms too, rooms are instantly claimed by imps, not
-/// tile by tile."</i></para>
-///
-/// <para><b>This is a defect fix and the defect had been shipping since rooms
-/// existed.</b> <see cref="TileWorkKind.Claim"/> applied to room terrain — room
-/// terrain is <c>Ownable</c> and not <c>Solid</c>, which is all the claim rule
-/// asked for — so a rival's treasury came over one tile at a time at
-/// <c>ClaimTileHealth</c>'s rate, and a half-taken portal was a reachable state.
-/// Nothing checked it, and the reason nothing checked it is that nobody had
-/// asked the question: it took an owner sentence about portals to notice that
-/// the general case was wrong. Q92, ADR-0044.</para>
-///
-/// <para>The first two tests are the ones that would have caught it.</para>
-/// </summary>
+/// <summary>Taking a room that belongs to somebody else — a rival's, or a neutral
+/// one, which is what an unclaimed portal is. CONFIRMED (owner, 2026-09-04):
+/// "once an imp claims a portal then the entire portal gets claimed, all tiles
+/// that are assigned to that portal are immediately claimed … that is a game
+/// mechanic that works on claiming enemy/neutral rooms too, rooms are instantly
+/// claimed by imps, not tile by tile" (Q92, ADR-0044).</summary>
+/// <remarks>Before that, <see cref="TileWorkKind.Claim"/> applied to room terrain
+/// — it is <c>Ownable</c> and not <c>Solid</c>, which is all the claim rule asked
+/// for — so a rival's treasury came over a tile at a time at
+/// <c>ClaimTileHealth</c>'s rate and a half-taken portal was reachable. The first
+/// two tests here are the ones that would have caught it.</remarks>
 public class RoomConversionTests
 {
     private const byte Keeper = 3;

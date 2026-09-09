@@ -122,15 +122,12 @@ public class SdtArchiveTests
     [InstallFact]
     public void EveryCompressedPayloadEndsWithExactlyOneTrailingZeroByte()
     {
-        // Found while reviewing the branch rather than while writing it: walking
-        // the MPEG frames of a payload lands one byte short of StoredSize, every
-        // time, and that byte is always zero. 7,749 out of 7,749 is too uniform
-        // to be an accident, and it is in the shipped data rather than in the
-        // extractor - which preserves the stream, so the byte comes out with it.
-        //
-        // Whether it is a terminator, an alignment pad or an off-by-one in EA's
-        // own packer is UNKNOWN. This test exists so that the day it stops being
-        // universally true, somebody finds out.
+        // Walking a payload's MPEG frames lands exactly one byte short of
+        // StoredSize and that byte is always zero: 7,749 of 7,749 shipped
+        // payloads. It is in the data, not in the extractor, which preserves the
+        // stream. Whether it is a terminator, an alignment pad or an off-by-one in
+        // EA's own packer is UNKNOWN; this test exists so that the day it stops
+        // being universally true, somebody finds out.
         string install = Dk2InstallGate.Path;
 
         string soundRoot = Path.Combine(install, "Data", "Sound", "Sfx");

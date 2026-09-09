@@ -8,21 +8,15 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// Where imps come from.
-///
-/// <b>CONFIRMED (owner, 2026-08-30):</b> every keeper starts with four imps, four
-/// is a floor rather than a starting figure — drop them all into the dungeon
-/// heart and they come back at roughly five-second intervals — and beyond that
-/// an imp must be bought with the Create Imp spell, at 1500 mana for the first
-/// and 1500 more each time after.
-///
-/// <para>The shipped data names the first two of those in its own words:
-/// <c>MinimumImpThreshold</c> is 4 and <c>TimeBeforeFreeImpGeneratedSeconds</c>
-/// is 5. It is rare for an observation and a variable name to meet this cleanly,
-/// and the tests below assert against the variables rather than against 4 and 5,
-/// so that they are testing the rule and not the transcription.</para>
-/// </summary>
+/// <summary>Where imps come from. CONFIRMED (owner, 2026-08-30): every keeper
+/// starts with four imps and four is a floor rather than a starting figure — drop
+/// them all into the dungeon heart and they come back at roughly five-second
+/// intervals — and beyond that an imp must be bought with the Create Imp spell,
+/// at 1500 mana for the first and 1500 more each time after.</summary>
+/// <remarks>The shipped data names the first two: <c>MinimumImpThreshold</c> is 4
+/// and <c>TimeBeforeFreeImpGeneratedSeconds</c> is 5. The tests below assert
+/// against the variables rather than against 4 and 5, so they test the rule and
+/// not the transcription.</remarks>
 public class ImpSupplyTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -134,19 +128,12 @@ public class ImpSupplyTests
     [Fact]
     public void AReplacementAfterALongSpellAtFullStrengthArrivesAtOnce()
     {
-        // THE TEST THIS FILE WAS WRONG ABOUT FOR THREE WEEKS.
-        //
-        // The owner filmed it (2026-09-05): thirty seconds sitting at exactly
-        // four imps, then one imp picked up and dropped into the dungeon heart,
-        // and the replacement was walking around about 1.4 seconds later - not
-        // five. The old implementation held the countdown at zero while the
-        // keeper was up to strength and then started a fresh full interval, so
-        // it could not produce that, and the doc-comment defending it claimed
-        // the difference was unobservable. It is the observable.
-        //
-        // The original keeps a DEADLINE and writes it only when an imp is made,
-        // so a keeper who has not been owed one for half a minute has a deadline
-        // half a minute in the past, and the very next evaluation pays out.
+        // CONFIRMED (owner, filmed 2026-09-05): thirty seconds sitting at exactly
+        // four imps, then one imp dropped into the dungeon heart, and the
+        // replacement walking around about 1.4 seconds later — not five. The
+        // original keeps a DEADLINE and writes it only when an imp is made, so a
+        // keeper who has not been owed one for half a minute has a deadline half a
+        // minute in the past and the very next evaluation pays out.
         Run run = WithAHeart();
         int interval = ImpSupplyRules.FreeImpIntervalTicks(run.Db);
         run.Ticks(interval * 4);
@@ -194,15 +181,12 @@ public class ImpSupplyTests
     [Fact]
     public void AKeeperWithNowhereToPutAnImpStillBurnsTheInterval()
     {
-        // A consequence of the original advancing the deadline WITHOUT looking
-        // at whether the cast succeeded. A keeper with no heart is evaluated,
-        // fails to place anything, and still pays the interval - so when a heart
-        // finally exists the first imp is not automatically instant.
-        //
-        // STRONGLY INFERRED from the instruction order: the deadline is written
-        // unconditionally, on the line after the call, with no test of its
-        // result. Nothing observable turns on it in a shipped level, because a
-        // keeper without a heart has already lost (Q40).
+        // The original advances the deadline without looking at whether the cast
+        // succeeded, so a keeper with no heart is evaluated, places nothing and
+        // still pays the interval — the first imp after a heart appears is not
+        // instant. STRONGLY INFERRED from the instruction order: the deadline is
+        // written unconditionally on the line after the call. Nothing observable
+        // turns on it in a shipped level; a keeper with no heart has lost (Q40).
         Run run = WithAHeart(heart: false);
         int interval = ImpSupplyRules.FreeImpIntervalTicks(run.Db);
 
@@ -424,15 +408,12 @@ public class ImpSupplyTests
     [InlineData(PlayerIds.Neutral)]
     public void ANonKeeperIsNeverGivenFreeImpsEvenWithAHeartOfItsOwn(byte notAKeeper)
     {
-        // The defect Q91 named. ImpSupplySystem looped every player, and 0, 1
-        // and 2 are all real ids that own real terrain — 167 of the campaign's
-        // portals belong to Neutral. It was harmless only because no shipped
-        // level gives any of them a dungeon heart, so Spawn returned null and
-        // the clock ran again: the rule held because of a fact about the levels
-        // rather than because anything checked it.
-        //
-        // So this test gives them the heart. Before the gate, the hero side
-        // quietly staffed itself with imps.
+        // The defect Q91 named: ImpSupplySystem looped every player, and 0, 1 and
+        // 2 are all real ids that own real terrain — 167 of the campaign's portals
+        // belong to Neutral. It was harmless only because no shipped level gives
+        // any of them a dungeon heart, so the rule held because of a fact about
+        // the levels rather than because anything checked it. This test gives them
+        // the heart; before the gate, the hero side staffed itself with imps.
         Run run = WithAHeartFor(notAKeeper);
         int interval = ImpSupplyRules.FreeImpIntervalTicks(run.Db);
 

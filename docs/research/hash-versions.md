@@ -33,7 +33,11 @@ beside it.
 
 ## Versions
 
-**50** — `0x98DE8BA2B3BDC7BF` (current). Player condition type 32 reads the
+**51** — `0x5C6A03ED5BD250BC` (current). `PlayerState.GoldMined`, the
+counter behind trigger condition type 31 (ADR-0112). Composition: the fixture
+mines nothing, so the field is zero for its whole run and the hash moves anyway.
+
+**50** — `0x98DE8BA2B3BDC7BF`. Player condition type 32 reads the
 walked player's mana, named `CurrentMana` by DK2's own debug dumper (ADR-0111).
 Behaviour, not composition.
 

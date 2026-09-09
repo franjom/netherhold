@@ -423,15 +423,11 @@ public class ImpTests
     public void AnImpMinesAMarkedSeam_OneApplicationEveryWorkPeriod()
     {
         // The seam at (5,5) is 660 health and a swing takes 60 of it (Q47), so
-        // it takes eleven applications. What is asserted is the spacing: the gap
-        // between applications is one work period, whatever a period turns out
-        // to be worth in seconds (Q19/Q1).
-        //
-        // This keeper has no treasury, which is why the imp mines the seam
-        // straight through instead of running off with the first load. An imp
-        // with nowhere to put gold keeps mining in the original too (Q31); what
-        // is missing here is the floor lump the original leaves behind, so the
-        // overflow is reported as uncollected and lost.
+        // eleven applications. What is asserted is the spacing: one work period
+        // between applications, whatever a period is worth in seconds (Q19). This
+        // keeper has no treasury, so the imp mines the seam straight through
+        // instead of running off with the first load, as in the original (Q31);
+        // the overflow is reported as uncollected and lost (Q138).
         GameDatabase database = Dk2TerrainFixture.Database();
         Run run = Start(new TilePos(2, 2));
         Carve(run.World, database, new TilePos(4, 3), new TilePos(4, 4), new TilePos(4, 5));
@@ -616,14 +612,11 @@ public class ImpTests
         }
 
         // And they keep it for as long as the block lasts: it goes on being dug
-        // rather than being dropped and retaken every tick.
-        //
-        // Ticked one at a time against the terrain rather than for a fixed count,
-        // because three imps swinging together put 300 damage into a plain wall's
-        // 165 and the block falls fast. A fixed count here used to pass only
-        // because the crowding cap was wrongly 3 for a job worked ON the tile: it
-        // was reading three imps claiming the floor they had just opened, which
-        // is a thing the original does not do (Q44, OnlyOneImpClaimsOneTile).
+        // rather than being dropped and retaken every tick. Ticked one at a time
+        // against the terrain rather than for a fixed count, because three imps
+        // swinging together put 300 damage into a plain wall's 165 and the block
+        // falls fast — a fixed count passed only while the crowding cap was
+        // wrongly 3 for a job worked ON the tile (Q44, OnlyOneImpClaimsOneTile).
         for (int i = 0; i < 8; i++)
         {
             run.Tick();
@@ -662,20 +655,15 @@ public class ImpTests
         Assert.Equal(CreatureState.CentreOf(1), imp.PosY);
     }
 
-    /// <summary>
-    /// <b>A diagonal leg is longer, and the mover charges for it.</b> Walking
+    /// <summary>A diagonal leg is longer and the mover charges for it: walking
     /// four tiles on the bias covers 4 x root-2 tile-widths, so it takes about
-    /// 1.41x as long as walking four tiles straight — not the same time (which a
-    /// mover using Chebyshev distance would give) and not twice (which the
-    /// Manhattan distance it used to use would give).
-    ///
-    /// <para>Forced rather than chosen: a creature's speed is in tiles per second
-    /// (Q29), so it moves continuously through world space at a constant rate and
-    /// a longer leg simply takes longer. It also has to agree with
-    /// <see cref="GridPathfinder"/>, which costed the route at 14/10 — a router
-    /// and a mover that disagree produce creatures that arrive early. See Q48 and
-    /// ADR-0025.</para>
-    /// </summary>
+    /// 1.41x as long as four straight — not the same time (which Chebyshev
+    /// distance would give) and not twice (Manhattan, which it used to use).
+    /// Forced rather than chosen: a creature's speed is in tiles per second (Q29),
+    /// so it moves continuously at a constant rate and a longer leg takes longer.
+    /// It also has to agree with <see cref="GridPathfinder"/>, which costs the
+    /// route at 14/10 — a router and a mover that disagree produce creatures that
+    /// arrive early (Q48, ADR-0025).</summary>
     [Fact]
     public void WalkingOnTheBias_TakesRootTwoTimesAsLong()
     {
@@ -710,15 +698,11 @@ public class ImpTests
         int bias = TicksToWalk(diagonal: true);
 
         // 14/10 is the integer stand-in for root-2 that both the mover and the
-        // search use, so the ratio lands on it rather than on 1.41421...
-        //
-        // Within one tick, and the slack is not sloppiness. A tick is 250 ms now
-        // that Q1 is settled, this walk is four tiles, and a four-tile walk is
-        // nine ticks straight against thirteen on the bias - so a whole tick is
-        // 11% of the answer and the exact ratio cannot survive the rounding.
-        // DK2 steps at the same rate and therefore has the same quantisation:
-        // asserting equality here would be asserting a resolution the original
-        // does not have.
+        // search use, so the ratio lands on it rather than on 1.41421. Within one
+        // tick: a tick is 250 ms (Q1) and a four-tile walk is nine ticks straight
+        // against thirteen on the bias, so a whole tick is 11 % of the answer and
+        // the exact ratio cannot survive the rounding. DK2 steps at the same rate
+        // and has the same quantisation, so equality would assert a finer one.
         int predicted = straight * GridPathfinder.DiagonalCost / GridPathfinder.StraightCost;
         Assert.InRange(bias, predicted - 1, predicted + 1);
 

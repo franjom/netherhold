@@ -9,36 +9,18 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// An imp fetching gold off the floor — the half of carrying that ADR-0055 left
-/// open.
-///
-/// <para><b>These tests were written asserting the opposite of what they assert
-/// now</b>, and the day between the two is the most useful thing in this file.
-/// The owner reported <i>"if there is gold on the ground an imp will first take
-/// from that gold pile and take it to a treasury"</i> (Q141), watched with a
-/// marked gem tile beside the gold and nobody mining it; this project read that
-/// as fetching outranking marked excavation and built it that way. The owner
-/// then <b>doubted their own reading</b> and asked for the binary — and the
-/// binary disagrees: DK2 tries digging and mining first and floor gold sixth of
-/// nine. See <c>docs/research/imp-task-priority.md</c>.</para>
-///
-/// <para>So <see cref="MiningComesBeforeFetching"/> now holds the project to the
-/// opposite of what its predecessor did, and
-/// <see cref="GoldOnGroundTheKeeperDoesNotOwnIsNotFetched"/> holds it to a rule
-/// that was found in the same read and explains the owner's own correction.</para>
-///
-/// <para><b>And where gold sits was settled a day later still</b> (Q146, Q147,
-/// ADR-0058). It is not a rung on the ladder: the original searches its
-/// whole-map kinds first — digging, then claiming, among others — and only
-/// then sweeps outwards from the imp, trying <i>reinforce, then gold</i> at
-/// every tile. So a wall beats gold on the same tile and a nearer pile beats a
-/// farther wall. The four tests under <i>the second tier</i> pin that, and the
-/// older tests in this file pre-reinforce the room's walls so that they measure
-/// fetching and not the competition — a room ringed with bare rock is, quite
-/// correctly now, a room whose imp reinforces before it crosses the floor for
-/// gold.</para>
-/// </summary>
+/// <summary>An imp fetching gold off the floor — the half of carrying ADR-0055
+/// left open. Floor gold is sixth of nine kinds: DK2 tries digging and mining
+/// first (docs/research/imp-task-priority.md), contradicting the owner's report
+/// that an imp takes from a floor pile first (Q141), which was watched with a
+/// marked gem tile beside the gold and nobody mining it and was doubted by the
+/// owner before the binary settled it — see
+/// <see cref="MiningComesBeforeFetching"/>.</summary>
+/// <remarks>Gold is not a rung on that ladder (Q146, Q147, ADR-0058): the original
+/// searches its whole-map kinds first, then sweeps outwards from the imp trying
+/// reinforce then gold at each tile, so a wall beats gold on the same tile and a
+/// nearer pile beats a farther wall. The older tests here pre-reinforce the room's
+/// walls so that they measure fetching and not that competition.</remarks>
 public class ImpFetchesGoldTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -145,23 +127,16 @@ public class ImpFetchesGoldTests
         Assert.Contains(run.Of("gold_delivered"), e => e.Detail.Contains("amount=900"));
     }
 
-    /// <summary>
-    /// <b>The load-bearing test, and it asserts the reverse of what it used
-    /// to.</b> A marked wall and a pile of gold, both a step away and both there
-    /// before the imp ever looks: it goes for the wall.
-    ///
-    /// <para>Read out of the binary rather than watched: DK2 keeps a keeper-wide
-    /// task list whose entries carry a kind, and one function tries the kinds in
-    /// a fixed order and returns on the first that takes. Digging and mining a
-    /// marked tile are its <b>first two</b> kinds; a floor object flagged
-    /// <c>TypeGold</c> is its <b>sixth of nine</b>.</para>
-    ///
-    /// <para>The mark is set on the tile directly rather than through a command,
-    /// deliberately: a command applies in the tile system's slot in the tick,
-    /// which is <i>after</i> the imp has already chosen a job, and a test whose
-    /// result depends on that is testing the system order and not the
-    /// priority.</para>
-    /// </summary>
+    /// <summary>A marked wall and a pile of gold, both a step away and both there
+    /// before the imp looks: it goes for the wall. STRONGLY INFERRED from the
+    /// binary — DK2 keeps a keeper-wide task list whose entries carry a kind, and
+    /// one function tries the kinds in a fixed order, returning on the first that
+    /// takes; digging and mining a marked tile are its first two kinds and a floor
+    /// object flagged <c>TypeGold</c> its sixth of nine.</summary>
+    /// <remarks>The mark is set on the tile directly rather than through a
+    /// command: a command applies in the tile system's slot in the tick, after the
+    /// imp has chosen a job, so a test that depended on it would be testing the
+    /// system order and not the priority.</remarks>
     [Fact]
     public void MiningComesBeforeFetching()
     {
@@ -340,24 +315,16 @@ public class ImpFetchesGoldTests
 
     // ---- the owner's correction -------------------------------------------
 
-    /// <summary>
-    /// <b>The owner's correction, and the rule behind it.</b> They marked a gem
-    /// tile that was neither connected to their dungeon by bridge nor surrounded
-    /// by claimed tiles; imps mined it and <b>never carried any gold home</b>
-    /// (2026-09-05).
-    ///
-    /// <para>This project first reproduced that <i>by accident</i>: both
-    /// searches have to walk, so a stranded imp could not reach a store. The
-    /// binary says the real rule is simpler and quite different — <b>the
-    /// original's gold task refuses a tile that is neither water nor owned by
-    /// the worker's own player, before it looks at what is standing on
-    /// it.</b> Unclaimed ground was enough on its own; the bridge never came
-    /// into it.</para>
-    ///
-    /// <para>So this test puts the gold one step away on ground the keeper does
-    /// not own, with a treasury in easy reach and nothing else to do. The
-    /// accident would have collected it.</para>
-    /// </summary>
+    /// <summary>The owner marked a gem tile neither bridged to their dungeon nor
+    /// surrounded by claimed tiles; imps mined it and never carried any gold home
+    /// (CONFIRMED, owner 2026-09-05). The rule behind it, from the binary: the
+    /// original's gold task refuses a tile that is neither water nor owned by the
+    /// worker's own player, before it looks at what is standing on it — unclaimed
+    /// ground is enough on its own and the bridge never came into it.</summary>
+    /// <remarks>So the gold goes one step away on ground the keeper does not own,
+    /// with a treasury in easy reach and nothing else to do. Reproducing this by
+    /// walkability alone — a stranded imp cannot reach a store — would collect
+    /// it.</remarks>
     [Fact]
     public void GoldOnGroundTheKeeperDoesNotOwnIsNotFetched()
     {

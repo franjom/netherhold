@@ -58,7 +58,7 @@ public static class ResearchRules
     /// variable says: it multiplies by variable 19 <i>twice</i>, so <c>4 × 50 × 4 / 100</c> is
     /// <b>8 times the per-tick amount</b> — an effective <b>+200%</b> where
     /// <c>IncreasedWorkRatePecentageFromSlapping</c> is named 50%. Reproduced, not corrected
-    /// (ADR-0002): the extra factor is in the shipped v1.70 instructions, and its two unbuilt
+    /// (AGENTS.md, Fidelity): the extra factor is in the shipped v1.70 instructions, and its two unbuilt
     /// siblings are wrong in two further ways (library-and-research.md §3). UNKNOWN whether a
     /// player notices — a Warlock goes from 4 a second to 12 (Q216).</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/library-and-research.md")]

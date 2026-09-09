@@ -10,26 +10,18 @@ using UnityEngine;
 
 namespace DK2.Unity
 {
-    /// <summary>
-    /// Turns the presenter's pushes into GameObjects. The whole Unity-specific
-    /// half of the renderer.
-    ///
-    /// <para><b>There is deliberately almost no judgement in here.</b>
-    /// <see cref="ScenePresenter"/> already decided what changed, in what order,
-    /// which asset each thing needs and whether this is a create or an update;
-    /// the asset layer already decided whether the answer is a file or a
-    /// placeholder. What is left is arithmetic and <c>Instantiate</c>. That was
-    /// the point of pushing the logic down (ADR-0036): this file is the one part
-    /// of the project that cannot be covered by the test suite, so it holds as
-    /// little as possible.</para>
-    ///
-    /// <para><b>Coordinates.</b> The simulation's grid lies on Unity's XZ plane
-    /// with Y up. A tile <c>(x, y)</c> is centred at
-    /// <c>(x + 0.5, 0, y + 0.5)</c>, and a creature's <see cref="Fp32"/> position
-    /// divides by <see cref="Fp32.One"/> — <b>the conversion happens here and
-    /// nowhere else</b> (ADR-0001). Spawning centres a creature in its tile, so
-    /// the two conventions already agree.</para>
-    /// </summary>
+    /// <summary>Turns the presenter's pushes into GameObjects: the Unity-specific half of the renderer.</summary>
+    /// <remarks>
+    /// <para>Almost no judgement lives here: <see cref="ScenePresenter"/> decided
+    /// what changed, in what order, which asset each thing needs and create-vs-
+    /// update, and the asset layer decided file or placeholder (ADR-0036). This
+    /// file is the one part of the project the test suite cannot cover.</para>
+    /// <para>Coordinates: the grid lies on Unity's XZ plane, Y up; tile
+    /// <c>(x, y)</c> centres at <c>(x + 0.5, 0, y + 0.5)</c> and a creature's
+    /// <see cref="Fp32"/> position divides by <see cref="Fp32.One"/> — here and
+    /// nowhere else (ADR-0001). Spawning centres a creature in its tile, so the
+    /// two conventions agree.</para>
+    /// </remarks>
     public sealed class DungeonScene : IRenderTarget
     {
         /// <summary>A tile whose terrain fills its cell. One whole tile, so a wall is a
@@ -212,21 +204,13 @@ namespace DK2.Unity
             _furniture[tileIndex] = go;
         }
 
-        /// <summary>
-        /// Makes an object for a resolved asset.
-        ///
-        /// <para><b>File-backed assets are not loaded, and that is the honest
-        /// state of the project rather than a shortcut.</b> A
-        /// <see cref="ResolvedAsset.FilePath"/> points at converter output —
-        /// glTF binary and PNG, written by <c>DK2.Convert</c> via
-        /// <c>dk2tools convert</c> (the converter exists since 2026-09-05; this
-        /// comment said otherwise until 2026-09-06). This method has no branch
-        /// that reads either format yet: Unity ships no runtime glTF importer,
-        /// so one has to be chosen and added. Until then a file resolves to the
-        /// same primitive a placeholder does, and
-        /// <see cref="SawFileBackedAssets"/> records that it happened so the
-        /// runner can say so on screen.</para>
-        /// </summary>
+        /// <summary>Makes an object for a resolved asset. Not implemented:
+        /// loading a file-backed asset. A <see cref="ResolvedAsset.FilePath"/>
+        /// points at converter output (glTF binary and PNG from
+        /// <c>dk2tools convert</c>) and Unity ships no runtime glTF importer, so
+        /// one has to be chosen and added; until then a file resolves to the same
+        /// primitive a placeholder does and <see cref="SawFileBackedAssets"/>
+        /// records that it happened, so the runner can say so on screen.</summary>
         private GameObject Instantiate(in ResolvedAsset asset, string name)
         {
             if (asset.Reference.IsEmpty) return null;

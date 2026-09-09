@@ -8,27 +8,18 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// What happens to gold between the seam and the treasury.
-///
-/// <b>CONFIRMED (Q31, owner observation of the original):</b> an imp mines into
-/// its own hands up to <c>maxGoldHeld</c>, runs to the drop spot and adds the
-/// load to the store; if there is nowhere to put it, it keeps mining and a lump
-/// grows on the floor in front of it. Everything here tests the first half. The
-/// lump is an OBJECT and the OBJECTS record is not parsed until M6, so the second
-/// half stops at "keeps mining" and the gold that will not fit is reported and
-/// lost — which is asserted too, because a missing mechanic that is invisible is
-/// worse than one that is loud.
-///
-/// <para>The numbers all come out of the shipped data and are worth having in one
-/// place. A gold seam is 660 health and 3000 gold; <c>MineGoldHealth</c> is −300 a
-/// second and work lands five times a second (Q47), so a swing takes 60 health and
-/// frees 273 gold — the number the owner measured in the original. A seam is
-/// therefore <b>eleven swings</b> totalling exactly 3000. An Imp's
-/// <c>maxGoldHeld</c> is 1400, so it fills after five swings and a seam takes
-/// <b>three trips</b>: 1363, 1364, 273. A treasury tile holds 3000 and a
-/// dungeon-heart tile 1000.</para>
-/// </summary>
+/// <summary>What happens to gold between the seam and the treasury. CONFIRMED
+/// (owner, Q31): an imp mines into its own hands up to <c>maxGoldHeld</c>, runs
+/// to the drop spot and adds the load to the store; with nowhere to put it, it
+/// keeps mining and a lump grows on the floor in front of it.</summary>
+/// <remarks>Numbers, all from the shipped data: a gold seam is 660 health and
+/// 3000 gold; <c>MineGoldHealth</c> is −300 a second and work lands five times a
+/// second (Q47), so a swing takes 60 health and frees 273 gold — the number the
+/// owner measured. A seam is therefore eleven swings totalling exactly 3000, and
+/// an Imp's <c>maxGoldHeld</c> of 1400 fills after five swings, so a seam takes
+/// three trips: 1363, 1364, 273. A treasury tile holds 3000 and a dungeon-heart
+/// tile 1000. Not implemented: the lump. Gold that will not fit in an imp's hands
+/// is reported as uncollected and lost (Q138).</remarks>
 public class GoldCarryingTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -159,20 +150,12 @@ public class GoldCarryingTests
     [Fact]
     public void AFullTileSpillsIntoTheNextOne()
     {
-        // Two dungeon-heart tiles, 1000 each, against a 1363 load. The imp fills
-        // the one it walked to and carries the rest to the next — which is Q35's
-        // spillover, and it falls out of re-routing rather than being coded.
-        //
-        // (3,3) fills first because that is the one the imp reaches first coming
-        // back along the corridor, which is the whole point: which tile of a
-        // store fills is decided by the walk, not by an index.
-        //
-        // Everything here is placed to finish inside
-        // TimeBeforeFreeImpGeneratedSeconds. Heart tiles are the only way to get
-        // a 1000-capacity store, and a heart is also where ImpSupplySystem puts
-        // the imps it hands a short-staffed keeper - so the imp starts beside the
-        // seam and the store is two steps away, and the run stops before the
-        // first free imp arrives. This test is about one imp's load.
+        // Two dungeon-heart tiles, 1000 each, against a 1363 load: the imp fills
+        // the one it walked to and carries the rest to the next (Q35's spillover,
+        // which falls out of re-routing rather than being coded). (3,3) fills first
+        // because the imp reaches it first coming back — which tile of a store
+        // fills is decided by the walk, not by an index. The run ends inside
+        // TimeBeforeFreeImpGeneratedSeconds so this stays about one imp's load.
         Run run = AtTheSeam(new TilePos(4, 4));
         PutStoreAt(run, new TilePos(3, 3), RoomTypeId.DungeonHeart);
         PutStoreAt(run, new TilePos(3, 2), RoomTypeId.DungeonHeart);
@@ -207,19 +190,11 @@ public class GoldCarryingTests
         Assert.Empty(run.Of("gold_delivered"));
     }
 
-    /// <summary>
-    /// An imp puts nothing into a rival's treasury <b>for as long as it is the
-    /// rival's</b>.
-    ///
-    /// <para>The qualifier was added 2026-09-04 and it is not a weakening — it is
-    /// the test becoming true of a world where rooms can change hands. This used
-    /// to tick 300 and assert the tile was still empty, which held only because
-    /// nothing could take a room. Now the imp mines its seam out, finds the
-    /// rival's treasury claimable, takes it, and quite properly fills it: see
-    /// <see cref="AnImpTakesARivalsTreasuryAndThenUsesIt"/>. So the check moved
-    /// to every tick up to the takeover, which is what the sentence always
-    /// meant.</para>
-    /// </summary>
+    /// <summary>An imp puts nothing into a rival's treasury for as long as it is
+    /// the rival's. Asserted on every tick up to the takeover, not at a fixed
+    /// tick: rooms can change hands, so an imp that mines its seam out finds the
+    /// rival's treasury claimable, takes it, and then properly fills it — see
+    /// <see cref="AnImpTakesARivalsTreasuryBeforeItEverPutsGoldInIt"/>.</summary>
     [Fact]
     public void AnImpWillNotFillARivalsTreasuryWhileItIsStillTheRivals()
     {
@@ -242,28 +217,17 @@ public class GoldCarryingTests
         Assert.True(takenOver, "the imp never took the rival's treasury, so nothing above was tested");
     }
 
-    /// <summary>
-    /// The other half, and it is new behaviour rather than a rearranged
-    /// assertion: <b>an imp takes a rival's treasury and then uses it — in that
-    /// order.</b>
-    ///
-    /// <para><b>The order is the whole point, and it is CONFIRMED</b> (owner,
-    /// 2026-09-04): <i>"imps fill only their own keeper's treasury … for SP my
-    /// imps NEVER fill anyone's treasure but my own."</i> So this test asserts
-    /// the takeover happens strictly <i>before</i> the first delivery, which is
-    /// that rule stated as a sequence rather than as a prohibition. It is also
-    /// structurally guaranteed rather than merely observed:
-    /// `GoldStore`'s own store lookup skips every room whose owner is not
-    /// the depositor, and it is the only path into a tile's
-    /// <see cref="TileState.GoldHeld"/>.</para>
-    ///
-    /// <para>Nothing here was written to make the takeover happen. It falls out
-    /// of two rules meeting — a room somebody else holds is convertible work at
-    /// the claiming priority (Q92), and a treasury tile the keeper owns is
-    /// somewhere gold can go (ADR-0015) — and the whole sequence is the imp's
-    /// own: mine, fill its hands, find nowhere to unload, mine on, run out of
-    /// seam, look for a claim, take the treasury, unload into it.</para>
-    /// </summary>
+    /// <summary>An imp takes a rival's treasury and then uses it, in that order.
+    /// CONFIRMED (owner, 2026-09-04): "imps fill only their own keeper's treasury
+    /// … for SP my imps NEVER fill anyone's treasure but my own", stated here as a
+    /// sequence rather than a prohibition — the takeover happens strictly before
+    /// the first delivery.</summary>
+    /// <remarks>Structural, not merely observed: <c>GoldStore</c>'s store lookup
+    /// skips every room whose owner is not the depositor and is the only path into
+    /// a tile's <see cref="TileState.GoldHeld"/>. Nothing was written to make the
+    /// takeover happen; it falls out of two rules meeting — a room somebody else
+    /// holds is convertible work at the claiming priority (Q92) and a treasury
+    /// tile the keeper owns is somewhere gold can go (ADR-0015).</remarks>
     [Fact]
     public void AnImpTakesARivalsTreasuryBeforeItEverPutsGoldInIt()
     {

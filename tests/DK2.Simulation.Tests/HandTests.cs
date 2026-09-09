@@ -232,12 +232,10 @@ public class HandTests
     public void TheOwnersStatusBar_AnImpMinesSixtyHealthAtEightyPercentAndSeventyFiveAtAHundred()
     {
         // OWNER MEASUREMENT (2026-09-05), read off DK2's own gold counter:
-        //
-        //   272-273 gold a swing at 80%, 309-310 at 90%, 341 at 100%
-        //
-        // A gold seam is 3000 gold over 660 health, so a swing is
-        // health x 3000/660 = health x 4.5454 gold. MineGoldHealth is -300 a
-        // second, over the four ticks of a game second.
+        // 272-273 gold a swing at 80 %, 309-310 at 90 %, 341 at 100 %. A gold seam
+        // is 3000 gold over 660 health, so a swing is health x 3000/660 =
+        // health x 4.5454 gold; MineGoldHealth is -300 a second over the four
+        // ticks of a game second.
         int atEighty = EfficiencyRules.Scale(-60, 80);
         int atNinety = EfficiencyRules.Scale(-60, 90);
         int atHundred = EfficiencyRules.Scale(-60, 100);
@@ -402,14 +400,12 @@ public class HandTests
     [InlineData(4, 80)]
     public void TheDropLooksThreeTilesAndNotAFourth(int gap, int expected)
     {
-        // CONFIRMED by the owner off the status bar (2026-09-06), counting
-        // marked tiles up a corridor: three tiles boost, the fourth does not.
-        //
-        // DK2's own scan is nominally TWO tiles - it is handed 0x2000 against a
-        // 0x1000 tile - and reaches three because its loop tests the bound
-        // after scanning a ring and with a strict greater-than. An off-by-one
-        // in the original is a rule of the original (ADR-0002), so three is
-        // what is built and this is the test that pins it.
+        // CONFIRMED by the owner off the status bar (2026-09-06), counting marked
+        // tiles up a corridor: three tiles boost, the fourth does not. DK2's own
+        // scan is nominally two tiles — handed 0x2000 against a 0x1000 tile — and
+        // reaches three because its loop tests the bound after scanning a ring,
+        // with a strict greater-than. An off-by-one in the original is a rule of
+        // the original (AGENTS.md, Fidelity), so three is what is built.
         GameDatabase db = Db;
         WorldState world = World(db);
 
@@ -437,15 +433,12 @@ public class HandTests
     [Fact]
     public void AnImpDroppedOnEmptyGroundGetsNothingForIt()
     {
-        // The other half of the same observation, and the half that makes it a
-        // rule rather than a coincidence: "but if I drop it on a random tile
-        // where there is nothing marked by me its efficiency remains at 80%."
-        //
-        // "Empty" has to mean empty of every kind the drop scan tries, not just
-        // of marks - reinforcing is one of the nine, so a drop three tiles from
-        // any of the keeper's own rock would pay after all. Hence the wide
-        // claimed floor: this is a worker put down in the middle of a finished
-        // dungeon, which is what the owner's "random tile" was.
+        // The other half of the same observation (owner): "but if I drop it on a
+        // random tile where there is nothing marked by me its efficiency remains
+        // at 80%." "Empty" has to mean empty of every kind the drop scan tries,
+        // not just of marks — reinforcing is one of the nine, so a drop three
+        // tiles from any of the keeper's own rock would pay after all. Hence the
+        // wide claimed floor: a worker put down in a finished dungeon.
         GameDatabase db = Db;
         WorldState world = World(db);
         Pave(world, 1, 1, 9, 9);
@@ -601,18 +594,11 @@ public class HandTests
     [Fact]
     public void TheOwnersGoldCounter_273Then309Then341PerSwing()
     {
-        // THE OWNER MEASUREMENT, and the whole reason Efficiency exists here.
-        // Read straight off DK2's gold counter on 2026-09-05, one imp alone on
-        // a fresh map with the others in hand:
-        //
-        //   "it is 272-273, and 309-310 [slapped]"
-        //   "after a slap it gathers 341"
-        //
-        // A seam is 660 health and 3000 gold, and MineGoldHealth is -300 a
-        // second over four ticks a game second. If a refactor ever moves these
-        // three numbers, this is the assertion that came from the game.
-        // Ranges, because the owner read ranges - and the ranges are real
-        // rather than sloppy: gold comes off a running total that truncates, so
+        // OWNER MEASUREMENT (2026-09-05), read off DK2's gold counter with one imp
+        // alone on a fresh map and the others in hand: "it is 272-273, and 309-310
+        // [slapped]", "after a slap it gathers 341". A seam is 660 health and 3000
+        // gold and MineGoldHealth is -300 a second over four ticks a game second.
+        // Ranges because gold comes off a running total that truncates, so
         // consecutive swings at one rate genuinely alternate by a unit.
         Assert.InRange(FirstSwingGold(80), 272, 273);
         Assert.InRange(FirstSwingGold(90), 309, 310);
@@ -709,13 +695,11 @@ public class HandTests
 
         for (int i = 0; i < HandRules.AngerGraceTicks; i++) sim.Tick();
 
-        // The lairless ladder keeps running - a creature in the hand still
-        // knows it has no bed - so what "none the wiser" means precisely is
-        // that AngerInHand has not landed once. +100 a second and nothing else.
-        //
-        // Since ADR-0080 that is a cleaner statement than it was: the two
-        // grievances are separate counters, so "the hand has not charged it"
-        // is simply an empty Treatment bucket, with no arithmetic in the way.
+        // The lairless ladder keeps running — a creature in the hand still knows
+        // it has no bed — so "none the wiser" means precisely that AngerInHand has
+        // not landed once: +100 a second in the Lair bucket and nothing else. The
+        // two grievances are separate counters (ADR-0081), so "the hand has not
+        // charged it" is just an empty Treatment bucket.
         Assert.Equal(before + (HandRules.AngerGraceSeconds * 100), goblin.Anger.Lair);
         Assert.Equal(0, goblin.Anger.Treatment);
     }
@@ -725,7 +709,7 @@ public class HandTests
     {
         // AngerInHand is -250 for a Goblin: the hand SOOTHES most creatures,
         // which is the opposite of what its name suggests and is why the field
-        // had to be re-read as signed (ADR, creature-anger.md).
+        // had to be re-read as signed (docs/research/creature-anger.md).
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
@@ -735,7 +719,7 @@ public class HandTests
         Assert.Equal(-250, db.CreatureById(GoblinId).AngerInHand);
 
         // A second Goblin, left standing. It used to be here to cancel out the
-        // lairless ladder both of them were climbing; since ADR-0080 that
+        // lairless ladder both of them were climbing; since ADR-0081 that
         // ladder is a different counter and cannot interfere, and the twin
         // stays because it now demonstrates the separation instead - its
         // Treatment bucket does not move at all while the held one's drains.
@@ -1083,13 +1067,12 @@ public class HandTests
 
         PickUpAndDrop(sim, imp, pond);
 
-        // DELIBERATELY NARROWER THAN WHAT IS KNOWN. Water is unownable
-        // non-solid terrain and would qualify as "unclaimed floor" on the
-        // structural reading, and 44 of the 46 creatures can wade - so without
-        // an explicit stop a keeper here could drop an imp in the middle of a
-        // lake. Whether the original offers that is UNKNOWN and is item 5 on
-        // the observation checklist. Refusing invents least; if the owner
-        // watches it and the answer is yes, this test is what changes.
+        // Deliberately narrower than what is known: water is unownable non-solid
+        // terrain and would qualify as "unclaimed floor" on the structural
+        // reading, and 44 of the 46 creatures can wade, so without an explicit
+        // stop a keeper could drop an imp mid-lake. Whether the original offers
+        // that is UNKNOWN (item 5 on the observation checklist); refusing invents
+        // least, and this is the test that changes if the answer is yes.
         Assert.True(imp.InHand);
         Assert.Contains(sink.Events, e =>
             e.Kind == "drop_refused" && e.Detail.Contains("not_owned"));

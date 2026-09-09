@@ -9,24 +9,14 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// The Prison: capture, withering, skeletons and the jail break (ADR-0064).
-///
-/// <para>The other branch of DK2's imp task kind 13, and the half of carrying
-/// ADR-0063 had to stop short of. The owner drew the line between the two verbs
-/// on 2026-09-05, and it is sharper than this project had it:</para>
-///
-/// <para><i>"a corpse can not be picked up by hand of evil and dropped to a
-/// graveyard, only an imp can carry it to its grave, also an injured creature,
-/// lying on the floor bleeding out, can't be picked up by hand of evil and
-/// dropped to its lair, only an imp can carry it to its bed to recover, likewise
-/// only an imp can drag an enemy creature to prison, a hand of evil can then
-/// pick up that creature from prison and drop it around the dungeon, back in
-/// prison, or onto a torture rack in the torture chamber."</i></para>
-///
-/// <para>So: <b>the hand never touches a body</b>, and <b>a prisoner is the one
-/// creature a keeper may lift that it does not own</b>.</para>
-/// </summary>
+/// <summary>The Prison: capture, withering, skeletons and the jail break
+/// (ADR-0064) — the other branch of DK2's imp task kind 13, and the half of
+/// carrying ADR-0063 stopped short of. CONFIRMED (owner, 2026-09-05): only an imp
+/// can carry a corpse to a graveyard, an injured creature to its bed, or an enemy
+/// creature to prison; a hand of evil can then pick that creature up from prison
+/// and drop it around the dungeon, back in prison, or onto a torture rack. So the
+/// hand never touches a body, and a prisoner is the one creature a keeper may lift
+/// that it does not own.</summary>
 public class PrisonTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -36,13 +26,11 @@ public class PrisonTests
     private const byte SkeletonId = Dk2TerrainFixture.SkeletonCreatureId;
     private const int Second = SimulationTiming.TicksPerSecond;
 
-    // A real 3x3 prison at (4..6, 3..5) - DK2's smallest working one, and the
-    // size the owner read a capacity of TWO off the status bar (Q166). The three
-    // named cells are three of its nine tiles; the floor around it is paved so
-    // there is somewhere to stand imps and lay bodies down.
-    //
-    // It used to be a 1x3 column, which under the corrected capacity rule is not
-    // a prison at all: no inner tile, no capacity, no room.
+    // A real 3x3 prison at (4..6, 3..5) — DK2's smallest working one, and the size
+    // the owner read a capacity of TWO off the status bar (Q166). The three named
+    // cells are three of its nine tiles; the floor around it is paved so there is
+    // somewhere to stand imps and lay bodies down. A 1x3 column is not a prison at
+    // all under the capacity rule: no inner tile, no capacity, no room.
     private static readonly TilePos CellA = new(4, 3);
     private static readonly TilePos CellB = new(5, 4);
     private static readonly TilePos CellC = new(6, 5);
@@ -264,25 +252,12 @@ public class PrisonTests
     [Fact]
     public void APrisonerWakesAtOneSixthAndLosesThreeHealthASecond()
     {
-        // CONFIRMED by the owner (2026-09-05, Q167): "its flower gets two
-        // petals, and then that creature starts loosing health at some standard
-        // rate".
-        //
-        // The NUMBER is now read rather than fitted (2026-09-06). DK2's
-        // ModifyHealth, on taking a creature below zero, sets its health to
-        // maxHealth / 6 and flags it dying - computed the long way, as
-        // 100 * max / 6 / 100, which is the arithmetic of "a sixth expressed as
-        // a percentage". A flower has six petals. Those are the same decision.
-        //
-        // What this replaced was 20%, which was ours twice over: it came from
-        // CreatureCriticalHealthPercentageOfMax read as "two petals of ten", and
-        // the flower has six petals AND a raw scan of .text finds exactly one
-        // reference to that variable's global - the loader writing it. Nothing
-        // in the game reads it.
-        //
-        // A Goblin's 1500 becomes 250, not 300. An earlier draft gave a
-        // prisoner FULL health on nothing better than the shape of the
-        // mechanic, which made it take 500 game seconds to wither.
+        // CONFIRMED (owner, 2026-09-05, Q167): "its flower gets two petals, and
+        // then that creature starts loosing health at some standard rate". Read,
+        // not fitted: DK2's ModifyHealth sets health to maxHealth / 6 on taking a
+        // creature below zero (100 * max / 6 / 100 — a sixth as a percentage; a
+        // flower has six petals), so a Goblin's 1500 becomes 250. It is not
+        // CreatureCriticalHealthPercentageOfMax: a .text scan of that global finds only the loader's write (ADR-0085).
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
@@ -372,14 +347,12 @@ public class PrisonTests
     [Fact]
     public void ASkeletonInACellDoesNotWitherAtAllBecauseItNeverEats()
     {
-        // Q173, read from the binary on 2026-09-06 once the prison state
-        // category's own update hook was identified: the routine that applies
-        // PrisonModifyCreatureHealthPerSecond takes the health off ONLY when the
-        // creature's HungerFill is non-zero. The wither is HUNGER, which the
-        // owner had guessed and said he did not know.
-        //
-        // Which makes a Skeleton stable in a cell for ever - and a Skeleton is
-        // what a prison MAKES, so the room's own product is immune to the room.
+        // STRONGLY INFERRED from the binary (Q173): the routine that applies
+        // PrisonModifyCreatureHealthPerSecond, in the prison state category's
+        // update hook, takes the health off ONLY when the creature's HungerFill is
+        // non-zero — the wither is hunger. That makes a Skeleton stable in a cell
+        // for ever, and a Skeleton is what a prison makes, so the room's own
+        // product is immune to the room.
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
@@ -455,13 +428,11 @@ public class PrisonTests
     [Fact]
     public void APrisonerDoesGrowHungry()
     {
-        // This test used to say the opposite, and the opposite was a side
-        // effect: the health system skipped prisoners entirely so that exactly
-        // one system settled their second (ADR-0064), and their hunger clock
-        // went with their health. DK2 suppresses the hunger clock on a bit of
-        // the state record's flag byte, and the fifteen states that set it are
-        // drinking, gambling and dancing - the Casino, not the Prison
-        // (ADR-0074).
+        // DK2 suppresses the hunger clock on a bit of the state record's flag
+        // byte, and the fifteen states that set it are drinking, gambling and
+        // dancing — the Casino, not the Prison (ADR-0074). A prisoner's clock ran
+        // only as a side effect of the health system skipping prisoners so that
+        // exactly one system settled their second (ADR-0064).
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
@@ -475,17 +446,12 @@ public class PrisonTests
 
         Assert.Equal(10 * Second, captive.HungerTicks);
 
-        // Ten seconds is as far as this can be taken: a Goblin's HungerRate is
-        // 180 game seconds and PrisonModifyCreatureHealthPerSecond turns it to
-        // bone in 83, so no prisoner ever gets hungry IN a cell.
-        //
-        // That is not an argument that the mechanic is unreachable, and the
-        // reason is the clock's shape rather than its rate. HungerNeed
-        // accumulates over a creature's whole life and is paid off only by
-        // eating (EatingRules.Tick), so a creature that has been running about
-        // the map for three minutes is ALREADY hungry when the imps take it -
-        // and looks for food the moment it is put down. That is the case the
-        // owner watched, and ARaceForOneChickenInACell sets it up the same way.
+        // Ten seconds is as far as this can be taken: a Goblin's HungerRate is 180
+        // game seconds and PrisonModifyCreatureHealthPerSecond turns it to bone in
+        // 83, so no prisoner ever gets hungry IN a cell. The mechanic is still
+        // reachable, because HungerNeed accumulates over a creature's whole life
+        // and is paid off only by eating (EatingRules.Tick): a creature three
+        // minutes into the map is already hungry when the imps take it.
         Assert.True(captive.Health > 0);
         Assert.Equal(CreatureActivity.Imprisoned, captive.Activity);
     }
@@ -902,12 +868,10 @@ public class PrisonTests
         for (int i = 0; i < 10 * Second; i++) sim.Tick();
 
         // The bird is gone, the hunger is paid off, and the Goblin is
-        // HpFromChicken better for it - capped at the missing health, and a
-        // captive starts at a sixth of its maximum so there is room for all.
-        //
-        // The gain is read off the meal rather than off the clock, because the
-        // prison keeps draining the whole time: eating buys health, it does not
-        // pause the countdown (ADR-0064).
+        // HpFromChicken better for it — capped at the missing health, and a captive
+        // starts at a sixth of its maximum so there is room for all. The gain is
+        // read off the meal and not off the clock, because the prison keeps
+        // draining: eating buys health, it does not pause the countdown (ADR-0064).
         Assert.Null(world.ObjectById(bird.Id));
         Assert.Equal(0, captive.HungerNeed);
         Assert.Contains(sink.Events, e =>
@@ -1084,13 +1048,10 @@ public class PrisonTests
     [Fact]
     public void AKeeperStocksACellAndThePrisonersRaceForIt()
     {
-        // The whole mechanic end to end, and the two halves were built a commit
-        // apart: ADR-0074 gave a prisoner the hunger, the hunt and the meal,
-        // and ADR-0075 gave the keeper a way to put a bird within reach. Until
-        // the second, the first was complete and unreachable in play.
-        //
-        // CONFIRMED by the owner at both ends - "I can pick up a chicken and
-        // drop it in the prison" and "they rush toward that chicken, the first
+        // The whole mechanic end to end: ADR-0074 gives a prisoner the hunger, the
+        // hunt and the meal, ADR-0075 gives the keeper a way to put a bird within
+        // reach. CONFIRMED by the owner at both ends — "I can pick up a chicken
+        // and drop it in the prison" and "they rush toward that chicken, the first
         // one to reach it eats it".
         GameDatabase db = Db;
         WorldState world = World(db);

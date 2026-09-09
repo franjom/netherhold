@@ -8,24 +8,16 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// Anger, and the first test in this file is the owner's stopwatch.
-///
-/// <para>The ceiling — 32767 — blocked this mechanic for four sittings. Every
-/// rate was in the shipped data, <c>UnhappyThreshold</c> was 50 on all 46
-/// creatures, and 50% <i>of what</i> was in none of the 214 balance variables,
-/// not in the creature record, and not in OpenKeeper (whose
-/// <c>CreatureMoodSystem</c> is an empty stub carrying the comment
-/// <c>// I guess the initial mood is 10000</c>).</para>
-///
-/// <para>It was settled by putting a Goblin in a dungeon with no lair and
-/// timing it: <b>unhappy at ~2:45, angry at ~5:30</b>. Those are 32767/2 and
-/// 32767 to within a percent, and the 2:1 ratio pins the structure
+/// <summary>Anger. The mood ceiling is 32767 and <c>UnhappyThreshold</c> is 50
+/// on all 46 creatures; 50 % <i>of what</i> is in none of the 214 balance
+/// variables, not in the creature record, and not in OpenKeeper (whose
+/// <c>CreatureMoodSystem</c> is an empty stub). It was settled by the owner
+/// timing a Goblin in a dungeon with no lair: unhappy at ~2:45, angry at ~5:30 —
+/// 32767/2 and 32767 to within a percent, and the 2:1 ratio pins the structure
 /// independently of the ceiling. That measurement is
 /// <see cref="TheOwnersStopwatch_ALairlessGoblinIsUnhappyAt165sAndAngryAt330s"/>,
-/// and if a refactor ever moves those numbers this suite fails on the one
-/// assertion that came from the original game rather than from a file.</para>
-/// </summary>
+/// the one assertion here that came from the original game rather than from a
+/// file.</summary>
 public class CreatureAngerTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -103,17 +95,12 @@ public class CreatureAngerTests
     [Fact]
     public void TheOwnersStopwatch_ALairlessGoblinIsUnhappyAt165sAndAngryAt330s()
     {
-        // OWNER MEASUREMENT (Q106, 2026-09-04), and the only assertion in this
-        // project whose expected values came from playing the original:
-        //
-        //   "it became unhappy after approx 02:45ish minutes and angry after
-        //    approx 05:30ish minutes"
-        //
-        // At AngerNoLair = 100/s that is 16 500 and 33 000, against 16 383
-        // (32767/2) and 32 767 (short.MaxValue). Both inside 1%.
-        //
-        // Asserted as the tick the mood *changes*, with a one-second tolerance,
-        // because the systems run on the last tick of each game second.
+        // OWNER MEASUREMENT (Q106, 2026-09-04), the only assertion here whose
+        // expected values came from playing the original: unhappy after approx
+        // 02:45, angry after approx 05:30. At AngerNoLair = 100/s that is 16 500
+        // and 33 000 against 16 383 (32767/2) and 32 767 (short.MaxValue), both
+        // inside 1 %. Asserted as the tick the mood *changes*, one-second
+        // tolerance, because the systems run on the last tick of each game second.
         GameDatabase db = Db;
         WorldState world = World(db);
         var events = new ListEventSink();
@@ -182,16 +169,12 @@ public class CreatureAngerTests
     [Fact]
     public void AGoblinWithABedNeverGetsAngryAtAll()
     {
-        // The control. A mechanic that angers everybody is not a mechanic, and
-        // this is the difference the *player* makes: one lair tile.
-        //
-        // The tile is a diagonal step away rather than under the creature's
-        // feet, because a bed is walked to (ADR-0060). The two seconds of walk
-        // cost 200 anger at AngerNoLair's 100 a second, and THAT 200 IS NEVER
-        // REPAID — the bed drains a different counter (ADR-0080), so what a
-        // keeper who builds late buys is the bleeding stopping, not the wound
-        // healing. 200 out of a 16383 unhappy band is nothing, which is the
-        // real claim here: the run never gets within sight of a mood change.
+        // The control: one lair tile is the difference the player makes. The tile
+        // is a diagonal step away rather than under the creature's feet because a
+        // bed is walked to (ADR-0060), and the two seconds of walk cost 200 anger
+        // at AngerNoLair's 100 a second which is never repaid — the bed drains a
+        // different counter (ADR-0081). 200 out of a 16383 unhappy band is
+        // nothing: the run never gets within sight of a mood change.
         GameDatabase db = Db;
         WorldState world = World(db);
         PaintLair(db, world, new TilePos(3, 3));
@@ -214,14 +197,11 @@ public class CreatureAngerTests
     [Fact]
     public void AnAngryGoblinWalksToThePortalAndLeavesThroughIt()
     {
-        // OWNER, Q116 (2026-09-04): "angry evil creature goes to the nearest
-        // available portal and leaves the dungeon."
-        //
-        // Which is what this test is really about: the creature is NOT gone on
-        // the second it decides. It gives up its bed, sets off, and is still in
-        // the dungeon — killable, and still on the payroll — for the length of
-        // the walk. This method previously removed it on the spot and said
-        // via=nowhere_in_particular in its own event.
+        // CONFIRMED (owner, Q116, 2026-09-04): "angry evil creature goes to the
+        // nearest available portal and leaves the dungeon." The creature is not
+        // gone on the second it decides: it gives up its bed, sets off, and is
+        // still in the dungeon — killable, and still on the payroll — for the
+        // length of the walk.
         GameDatabase db = DeserterDb;
         WorldState world = World(db);
         PaintPortal(db, world, new TilePos(3, 3));
@@ -254,14 +234,11 @@ public class CreatureAngerTests
     [Fact]
     public void AKeeperWithNoPortalKeepsTheCreatureThatWantedToLeave()
     {
-        // The consequence of Q116 that is behaviour rather than bookkeeping: if
-        // there is nowhere to walk to, the creature does not leave. It stands
-        // in the dungeon, angry, having given up its bed.
-        //
-        // The fixture map has no portal at all, which makes this the default
-        // case here and is why the assertion is worth writing down: a rule that
-        // removed the creature regardless would pass every other test in this
-        // file.
+        // The consequence of Q116 that is behaviour rather than bookkeeping: with
+        // nowhere to walk to, the creature does not leave — it stands in the
+        // dungeon, angry, having given up its bed. The fixture map has no portal
+        // at all, so a rule that removed the creature regardless would pass every
+        // other test in this file.
         GameDatabase db = DeserterDb;
         WorldState world = World(db);
 
@@ -284,13 +261,11 @@ public class CreatureAngerTests
     [Fact]
     public void ADeserterDoesNotTakeABedOnItsWayOut()
     {
-        // The bed is released when it decides to go, and the sleep system skips
-        // a leaver — so a lair that becomes free while a deserter is walking
-        // past it stays free for a creature that intends to stay.
-        //
-        // Without the guard in CreatureSleepSystem the deserter claims that
-        // bed, because it is a creature with no bed standing next to a free
-        // lair tile, and then walks out of the dungeon holding it.
+        // The bed is released when the creature decides to go, and the sleep
+        // system skips a leaver, so a lair that becomes free while a deserter
+        // walks past stays free for a creature that intends to stay. Without the
+        // guard in CreatureSleepSystem the deserter claims that bed — it is a
+        // creature with no bed beside a free lair tile — and walks out holding it.
         GameDatabase db = DeserterDb;
         WorldState world = World(db);
         PaintLair(db, world, new TilePos(2, 2));
@@ -308,28 +283,12 @@ public class CreatureAngerTests
     [Fact]
     public void AnUnhappyGoblinGivenABedCoolsBackToContentOneSleepAtATime()
     {
-        // OWNER, Q115 (2026-09-04): "anger can be cooled down to unhappy, and
-        // unhappy can cool down to happy."
-        //
-        // So the ladder is reversible and a mood is a pure function of the
-        // anger value — no latch, no hysteresis, no "once angry always angry".
-        // That is what CreatureAngerRules.MoodOf already is, and this test is
-        // what would notice if somebody made a transition sticky to stop a
-        // creature flapping between moods.
-        //
-        // The shape of the run matters: the lair is painted *after* the goblin
-        // is already unhappy, because a lair from the start means it claims a
-        // bed on tick 0 and never angers at all (see the control above).
-        //
-        // **And the rate is the finding.** Cooling is -550 a second *asleep in
-        // its own bed*, and a Goblin sleeps for 9 seconds out of every ~250
-        // (TimeSleep 9, TimeAwake 240). So a bed does not cure anger smoothly:
-        // it cures it in instalments of exactly 9 x 550 = 4950, once every four
-        // minutes. One sleep is enough to cross back under the halfway mark
-        // from where 170 seconds of lairlessness left it, and it is nowhere
-        // near enough to reach zero — which is asserted, because "a bed fixes
-        // it" is the intuition and the arithmetic disagrees. See Q123 for the
-        // reading this depends on.
+        // CONFIRMED (owner, Q115): the ladder is reversible — a mood is a pure
+        // function of the anger value, no latch, no hysteresis. Cooling is -550 a
+        // second asleep in its own bed and a Goblin sleeps 9 s in every ~250
+        // (TimeSleep 9, TimeAwake 240), so a bed cures anger in instalments of
+        // 9 x 550 = 4950 (Q123): one sleep crosses back under halfway, no number
+        // of them reaches zero. Lair painted after unhappy; from tick 0 it never angers.
         GameDatabase db = Db;
         WorldState world = World(db);
 
@@ -360,16 +319,12 @@ public class CreatureAngerTests
 
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
 
-        // AND HERE IS THE CORRECTION (ADR-0080). This test used to assert that
-        // the creature came back to Content, nine seconds of sleep at -550
-        // apiece having undone the lairless grievance. It does not, because
-        // DK2 does not keep one anger counter: the lairless charge went into
-        // bucket 2 and ModifyAngerOfCreatureInLairPerSecond drains bucket 5.
-        //
-        // So a bed STOPS THE BLEEDING AND DOES NOT HEAL THE WOUND. The Lair
-        // bucket is frozen exactly where the bed found it - not one point of it
-        // is repaid - and the creature stays unhappy about the four minutes it
-        // spent without one.
+        // A bed stops the bleeding and does not heal the wound: DK2 keeps six
+        // anger counters, not one (ADR-0081), the lairless charge went into bucket
+        // 2, and ModifyAngerOfCreatureInLairPerSecond drains bucket 5. So the Lair
+        // bucket is frozen exactly where the bed found it — not one point repaid —
+        // and the creature stays unhappy about the four minutes it spent without
+        // one, however long it now sleeps.
         Assert.Equal(atBed, goblin.Anger.Lair);
         Assert.Equal(CreatureMood.Unhappy, CreatureAngerRules.MoodOf(definition, goblin));
 
@@ -386,15 +341,12 @@ public class CreatureAngerTests
     [Fact]
     public void AVampireThatDrawsRebelStaysPutAndSaysSo()
     {
-        // The unimplemented half, tested for what it *is* rather than quietly
-        // turned into desertion. Rebelling needs a creature to change sides and
-        // become a hero; RebelLeavingPercentage and its two siblings have
-        // nothing to act on. So the creature stays, angry, and the log says it.
-        //
-        // A Vampire, because its angry table is Rebel outright where a Goblin's
-        // is a coin toss — and since ADR-0061 a coin toss is re-tossed. This is
-        // the creature for which the unbuilt outcome is the *only* outcome, and
-        // no fall-through may turn it into a walk to the portal.
+        // Not implemented: rebelling, which needs a creature to change sides and
+        // become a hero, so RebelLeavingPercentage and its two siblings have
+        // nothing to act on. Tested for what it is rather than quietly turned into
+        // desertion: the creature stays, angry, and the log says so. A Vampire,
+        // because its angry table is Rebel outright where a Goblin's is a coin
+        // toss re-tossed (ADR-0061) — here the unbuilt outcome is the only one.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, new TilePos(2, 2));
@@ -408,7 +360,7 @@ public class CreatureAngerTests
         Assert.Equal(CreatureActivity.Idle, vampire.Activity);
 
         // Still angry, and CROSSER than it started — which it could not have
-        // been before ADR-0080, when a counter stopped dead at the angry band.
+        // been before ADR-0081, when a counter stopped dead at the angry band.
         // It saturates at 65533 instead, so thirty more seconds of having no
         // bed cost it three thousand more it will have to pray off.
         Assert.Equal(CreatureMood.Angry, CreatureAngerRules.MoodOf(db.CreatureById(VampireId), vampire));
@@ -426,16 +378,12 @@ public class CreatureAngerTests
     [Fact]
     public void TheAngryJobIsRolledAfreshEveryFiveGameSecondsAndNotOftener()
     {
-        // Q122, from the binary (2026-09-05): the angry chooser rolls afresh on
-        // every allowed selection, and a selection is allowed five game seconds
-        // after the last one that came to something —
-        // LastGameTickSuccessfullyChoseAngryJob is that timestamp, and it is
-        // the only thing the chooser keeps.
-        //
-        // A Vampire rolls Rebel, which is unbuilt: the selection is *made* (the
-        // original would have started the job), so it stamps, so the next one
-        // is five seconds later. Thirty seconds of anger is six rolls, not
-        // thirty.
+        // STRONGLY INFERRED from the binary (Q122, 2026-09-05): the angry chooser
+        // rolls afresh on every allowed selection, and a selection is allowed five
+        // game seconds after the last one that came to something —
+        // LastGameTickSuccessfullyChoseAngryJob is that timestamp and the only
+        // thing the chooser keeps. A Vampire's Rebel roll is unbuilt but still a
+        // selection, so it stamps: thirty seconds of anger is six rolls, not thirty.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, new TilePos(2, 2));
@@ -462,15 +410,10 @@ public class CreatureAngerTests
     [Fact]
     public void AGoblinLeavesInTheEndBecauseTheCoinIsTossedAgain()
     {
-        // The behaviour ADR-0053 chose *not* to have, and the reason it gave
-        // for not having it is a fact about DK2 rather than an argument against
-        // it: with Leave(50%) re-rolled every five seconds an angry Goblin
-        // walks out — it just takes a round or two.
-        //
-        // Which is the point of the correction. The old rule drew once, so half
-        // of all angry Goblins stood in the dungeon for ever; the original's
-        // own record says a coin is tossed, and this is what tossing it
-        // repeatedly comes to.
+        // ADR-0061 corrects ADR-0053's draw-once rule: with Leave(50%) re-rolled
+        // every five game seconds an angry Goblin walks out, it just takes a round
+        // or two. Drawing once left half of all angry Goblins standing in the
+        // dungeon for ever; the original's own record says a coin is tossed.
         GameDatabase db = Db;
         WorldState world = World(db);
         PaintPortal(db, world, new TilePos(3, 3));
@@ -496,17 +439,12 @@ public class CreatureAngerTests
     [Fact]
     public void AnAngryCreatureSetsOffForALairBeforeItRollsAnythingAtAll()
     {
-        // lair-acquisition.md §8: the unhappy and angry choosers both try for a
-        // lair before rolling — the same attempt (FUN_0046f390) the idle state
-        // makes, which is why it is one class here too (LairSeeker).
-        //
-        // The sleep system is left OUT of this simulation deliberately, so that
-        // what is asserted is the anger ladder's own attempt rather than the
-        // idle cadence's, which would fire seven ticks earlier and pass this
-        // test for the wrong reason. The cost is that the journey does not
-        // finish: arriving, testing the tile and putting the bed down are the
-        // lair state, and the lair state belongs to CreatureSleepSystem. In a
-        // dungeon with both — every real one — this creature gets its bed.
+        // docs/research/lair-acquisition.md §8: the unhappy and angry choosers
+        // both try for a lair before rolling — the same attempt (FUN_0046f390)
+        // the idle state makes, which is why it is one class here (LairSeeker).
+        // The sleep system is left out so what is asserted is the anger ladder's
+        // own attempt, not the idle cadence's seven ticks earlier; the cost is an
+        // unfinished journey — putting the bed down is CreatureSleepSystem's.
         GameDatabase db = Db;
         WorldState world = World(db);
         PaintLair(db, world, new TilePos(3, 3));
@@ -539,12 +477,10 @@ public class CreatureAngerTests
     public void TheCumulativeRangesOverlapAtEveryBoundarySoTheEarlierEntryIsFavoured()
     {
         // The original builds each entry's range as [running, running + chance]
-        // and then tests lo <= roll <= hi — inclusive at BOTH ends, so the
-        // ranges touch and the earlier entry wins the tie.
-        //
-        // A Goblin's coin toss is therefore 51/49 rather than 50/50, and since
-        // its rand(100) stops at 99 the last entry's upper bound is unreachable
-        // as well. Both are quirks; both are reproduced rather than tidied.
+        // and tests lo <= roll <= hi — inclusive at both ends, so ranges touch and
+        // the earlier entry wins the tie. A Goblin's coin toss is therefore 51/49
+        // rather than 50/50, and since rand(100) stops at 99 the last entry's
+        // upper bound is unreachable. Both quirks are reproduced, not tidied.
         var ranges = new List<(JobType Job, int Low, int High)>();
         CreatureAngerRules.CumulativeRanges(
             Db.CreatureById(GoblinId).AngryJobs, ranges);
@@ -564,14 +500,12 @@ public class CreatureAngerTests
     [Fact]
     public void ARollOutsideEveryRangeFallsThroughToTheFirstJobInTheRecord()
     {
-        // The original's chooser makes a second pass in record order when the
-        // first found nothing, and a table whose chances do not reach 100 is
-        // how that happens: 99 rolls out of 100 land outside a 1% table.
-        //
-        // So a creature with Leave(1%) does not stand around for 99 selections
-        // out of 100 — it leaves on the first one, by the fall-through. Without
-        // it, the roll would come to nothing, nothing would be stamped, and the
-        // creature would roll again a second later for ever.
+        // The original's chooser makes a second pass in record order when the first
+        // found nothing, which is how a table whose chances do not reach 100
+        // resolves: 99 rolls in 100 land outside a 1 % table. So a creature with
+        // Leave(1%) leaves on its first selection by the fall-through; without it
+        // nothing would be stamped and the creature would roll again a second
+        // later for ever.
         CreatureDef longshot = Dk2TerrainFixture.Deserter() with
         {
             Name = "Longshot",
@@ -603,14 +537,11 @@ public class CreatureAngerTests
     public void ASelectionThatStartsNothingIsNeverStamped()
     {
         // The gate is on *success*: the original writes
-        // LastGameTickSuccessfullyChoseAngryJob only where its chooser reaches
-        // the stamp, which is past a started job. A creature with nothing in
-        // its table to select never gets there, so nothing latches shut behind
-        // it and a table that becomes selectable later still is.
-        //
-        // The Imp is the creature whose angry table is empty, and it is also
-        // the one that would take nine hours to anger, so its anger is set here
-        // rather than waited for.
+        // LastGameTickSuccessfullyChoseAngryJob only where its chooser reaches the
+        // stamp, past a started job. A creature with nothing to select never gets
+        // there, so nothing latches shut behind it. The Imp is the creature whose
+        // angry table is empty, and the one that would take nine hours to anger,
+        // so its anger is set here rather than waited for.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState imp = world.SpawnCreature(db, 1, Keeper, new TilePos(2, 2));
@@ -643,7 +574,7 @@ public class CreatureAngerTests
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
 
         // Seeded in the bucket the bed actually drains - Treatment, which is
-        // where a slap and the Hand of Evil land (ADR-0080). Seeding the Lair
+        // where a slap and the Hand of Evil land (ADR-0081). Seeding the Lair
         // bucket instead would show nothing happening at all, which is the
         // point of ABedStopsTheGrievanceGrowingButDoesNotUndoIt.
         goblin.Anger.Treatment = 10_000;
@@ -681,7 +612,7 @@ public class CreatureAngerTests
         // AT 65533, NOT AT THE ANGRY BAND. The original clamps each bucket to
         // [0, 0xFFFD] and only then compares the largest of them against the
         // bands, so a grievance goes on climbing for a second ceiling's worth
-        // after the creature has already turned angry (ADR-0080).
+        // after the creature has already turned angry (ADR-0081).
         goblin.Anger.Lair = CreatureAngerRules.Saturation - 10;
         Assert.Equal(10, CreatureAngerRules.Apply(db.CreatureById(GoblinId), goblin, AngerBucket.Lair, 5000));
         Assert.Equal(CreatureAngerRules.Saturation, goblin.Anger.Lair);
@@ -694,27 +625,12 @@ public class CreatureAngerTests
     [Fact]
     public void TheOwnersSlapCount_SixToUnhappyAndFiveMoreToAngry()
     {
-        // OWNER MEASUREMENT (Q114, 2026-09-04), on a Salamander — whose
-        // AngerSlap is also 3000:
-        //
-        //   "exactly 6 slaps made a creature (salamander) unhappy, and after
-        //    that 5 slaps made it angry"
-        //
-        // This is the second of the two measurements, and it is the one that
-        // closed the mechanic. Timing alone could not separate (100/s into
-        // 32767) from (200/s into 65535), because doubling both preserves every
-        // duration — the Q47 trap. A slap is a *discrete* delta, so it scales
-        // with the ceiling where a rate does not.
-        //
-        // The two counts BRACKET the ceiling rather than merely agreeing:
-        //
-        //   5 slaps not enough, 6 enough  -> unhappy in (15000, 18000]
-        //                                 -> ceiling in (30000, 36000]
-        //   10 not enough, 11 enough      -> angry   in (30000, 33000]
-        //                                 -> ceiling in (30000, 33000]
-        //
-        // 32767 is the only meaningful number in the intersection. 65535 would
-        // have needed 11 slaps to *unhappy* and 22 to angry.
+        // OWNER MEASUREMENT (Q114, 2026-09-04) on a Salamander, whose AngerSlap is
+        // also 3000: exactly 6 slaps to unhappy, then 5 more to angry. A slap is a
+        // discrete delta so it scales with the ceiling where a rate does not —
+        // timing alone cannot separate 100/s into 32767 from 200/s into 65535 (the
+        // Q47 trap). 5 not enough / 6 enough brackets the ceiling in (30000,
+        // 36000], 10 / 11 in (30000, 33000]: only 32767. 65535 would need 11 and 22.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureDef def = db.CreatureById(GoblinId);

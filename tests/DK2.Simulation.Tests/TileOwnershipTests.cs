@@ -8,38 +8,18 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// One invariant: <b>a tile whose terrain cannot be owned does not carry an
-/// owner.</b>
-///
-/// <para><b>The defect this exists to stop coming back</b> (Q95, ADR-0045). The
-/// owner byte used to survive every conversion, on a justification recorded in
-/// two places: <i>"which owner id means 'nobody' is UNKNOWN (Q17), and every
-/// rule that cares asks <c>TerrainDef.IsOwnable</c> first, so a stale byte on
-/// unownable terrain is inert."</i> Both halves expired.</para>
-///
-/// <list type="number">
-/// <item><b>Q17 is answered.</b> Player 0 is unowned — confirmed three ways
-/// across all 66 shipped levels (ADR-0043). So there is now an id that means
-/// nobody, and the reason for not writing one is gone.</item>
-/// <item><b>The byte was never inert.</b>
-/// <see cref="TileWorkKind.Claim"/> tests <c>OwnerPlayerId != playerId</c> and
-/// does <i>not</i> ask <c>IsOwnable</c> first. So a keeper who dug through their
-/// own reinforced wall got Dirt Path still stamped with their id — which is
-/// neither claimable by them (the owner already matches) nor their own land (the
-/// terrain is not ownable). <b>Their territory could not grow through it,
-/// ever.</b></item>
-/// </list>
-///
-/// <para><b>It walled a level-1 keeper in permanently</b>, because the only route
-/// out of that dungeon heart is through the keeper's own reinforced wall. Four
-/// months, and what finally showed it was a scenario that dug toward the portal
-/// and then sat there for 130 game-seconds doing nothing.</para>
-///
-/// <para>The general lesson is the project's own: a justification can rot when
-/// the thing it rests on is answered elsewhere. "Q17 is UNKNOWN" was true when
-/// written and false the day ADR-0043 landed, and nothing connected the two.</para>
-/// </summary>
+/// <summary>One invariant: a tile whose terrain cannot be owned does not carry an
+/// owner (Q95, ADR-0045). Player 0 is unowned, confirmed three ways across all 66
+/// shipped levels (ADR-0043), so there is an id that means nobody.</summary>
+/// <remarks>The owner byte used to survive every conversion, justified as inert
+/// because every rule that cares asks <c>TerrainDef.IsOwnable</c> first. It does
+/// not: <see cref="TileWorkKind.Claim"/> tests <c>OwnerPlayerId != playerId</c>
+/// and never asks, so a keeper who dug through their own reinforced wall got Dirt
+/// Path still stamped with their id — neither claimable by them nor their own
+/// land, and their territory could not grow through it. That walled a level-1
+/// keeper in permanently for four months, the only route out of that heart being
+/// through the keeper's own reinforced wall. A justification can rot when the
+/// thing it rests on is answered elsewhere.</remarks>
 public class TileOwnershipTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;

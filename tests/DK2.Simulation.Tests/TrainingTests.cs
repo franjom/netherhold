@@ -85,13 +85,12 @@ public sealed class TrainingTests
     [Fact]
     public void AVampireTrainsAtTwentyEightASecondAndNotThirtyBecauseOfTheLoadersDivide()
     {
-        // THE QUIRK, and it is not a rounding detail: DK2's creature loader
-        // stores these rates as `file value / variable 19`, truncating, so a
-        // record that says 30 becomes 7 a tick and delivers 28 a game second.
-        // TWENTY-SIX OF THE FORTY-SIX shipped creatures lose something to it -
-        // eighteen carry 30, seven carry 15 and lose a full fifth (Horny and
-        // the heroes' lords among them), and the Maiden Of The Nest's 25 is the
-        // only odd value in the column.
+        // Not a rounding detail: DK2's creature loader stores these rates as
+        // `file value / variable 19`, truncating, so a record that says 30 becomes
+        // 7 a tick and delivers 28 a game second. Twenty-six of the forty-six
+        // shipped creatures lose something to it — eighteen carry 30, seven carry
+        // 15 and lose a full fifth (Horny and the heroes' lords among them), and
+        // the Maiden Of The Nest's 25 is the only odd value in the column.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureDef vampire = db.CreatureById(Dk2TerrainFixture.VampireCreatureId);

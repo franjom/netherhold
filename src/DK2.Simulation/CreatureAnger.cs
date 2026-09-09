@@ -43,7 +43,7 @@ public enum AngerBucket
 /// A creature's anger: <b>six independent counters, not one number</b>, banded
 /// by the <b>largest</b> of them and never by their sum. The original's anger-add
 /// routine adds to one bucket, clamps it to <c>[0, 65533]</c>, then walks all
-/// six for the maximum; nothing sums them (ADR-0080).
+/// six for the maximum; nothing sums them (ADR-0081).
 /// <para>The two models disagree in both directions. A creature at 20 000 hungry
 /// and 20 000 unpaid is unhappy here and angry under one counter; and a bed
 /// draining <see cref="AngerBucket.Treatment"/> at 550 a second does not touch

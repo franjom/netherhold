@@ -173,21 +173,15 @@ public class BridgeTests
 
     // ---- destruction and selling agree ----------------------------------
 
-    /// <summary>
-    /// <b>Whatever removes a bridge tile leaves the hazard</b> — asserted through
-    /// the rules rather than through a mechanic, because the original has no
-    /// mechanic that does this.
-    ///
-    /// <para>The owner (2026-09-03): a bridge can only be "attacked" by a rival
-    /// keeper's imps, who <i>claim</i> it rather than beat it down. So this is not
-    /// a test that DK2 destroys bridges by damage — it does not (Q68). It is a
-    /// test that the destroyed path and the selling path cannot disagree, since
-    /// both used to consult the destroyed-type field separately and both were
-    /// wrong the same way. `AttackTile` is the only work kind that will currently
-    /// take an enemy bridge tile to zero, and nothing in the simulation ever
-    /// chooses it; the injection here stands in for any future path that
-    /// might.</para>
-    /// </summary>
+    /// <summary>Whatever removes a bridge tile leaves the hazard. Asserted through
+    /// the rules, not a mechanic: DK2 does not destroy a bridge by damage — a
+    /// rival keeper's imps claim it rather than beat it down (CONFIRMED, owner
+    /// 2026-09-03, Q68). What this pins is that the destroyed path and the selling
+    /// path cannot disagree; they used to consult the destroyed-type field
+    /// separately and were wrong the same way. <c>AttackTile</c> is the only work
+    /// kind that takes an enemy bridge tile to zero and nothing in the simulation
+    /// chooses it, so the injection here stands in for a future path that
+    /// might.</summary>
     [Fact]
     public void AnythingThatRemovesABridgeTileLeavesTheHazard()
     {
@@ -374,27 +368,14 @@ public class BridgeTests
 
     // ---- a rival taking a bridge (Q68) -----------------------------------
 
-    /// <summary>
-    /// <b>The derived stance rule already predicts what the owner described, for
-    /// a case it was never designed for.</b>
-    ///
-    /// <para>The owner (2026-09-03): a rival keeper's imps take a bridge by
-    /// <i>jumping on it and claiming it, if it is adjacent to their keeper's
-    /// territory</i>. Both halves of that sentence are rules this project already
-    /// has, arrived at from other evidence entirely:</para>
-    /// <list type="bullet">
-    /// <item><b>jumping on it</b> is <see cref="WorkStance"/>'s on-the-tile
-    /// stance, which falls out of "standable while working and standable when the
-    /// job finishes" — a bridge is walkable and stays a bridge, so the rule says
-    /// stand on it without anyone having considered bridges (ADR-0028);</item>
-    /// <item><b>adjacent to their territory</b> is the ownership condition on the
-    /// claimed tile's neighbour (Q42, ADR-0028).</item>
-    /// </list>
-    ///
-    /// <para>Two derived rules predicting an observation neither was built from is
-    /// the strongest evidence either has had. The gap is elsewhere — see
-    /// <see cref="ARivalCannotYetClaimABridgeBecauseClaimingRefusesOwnedGround"/>.</para>
-    /// </summary>
+    /// <summary>A rival keeper's imps take a bridge by jumping on it and claiming
+    /// it, if it is adjacent to their keeper's territory (CONFIRMED, owner
+    /// 2026-09-03, Q68). Both halves are rules this project already had from other
+    /// evidence: jumping on it is <see cref="WorkStance"/>'s on-the-tile stance,
+    /// which follows from "standable while working and standable when the job
+    /// finishes" (ADR-0028), and adjacency is the ownership condition on the
+    /// claimed tile's neighbour (Q42, ADR-0028). The gap is elsewhere — see
+    /// <see cref="ARivalCannotYetClaimABridgeBecauseClaimingRefusesOwnedGround"/>.</summary>
     [Fact]
     public void TheStanceRuleAlreadySaysABridgeIsClaimedByStandingOnIt()
     {
@@ -411,19 +392,14 @@ public class BridgeTests
             database, run.World, grid, span, TileWorkKind.ConvertRoom));
     }
 
-    /// <summary>
-    /// <b>A rival claims a bridge, and it stays a bridge.</b> CONFIRMED (Q68,
-    /// owner 2026-09-03): there is no neutral step — the tile is claimed
-    /// directly.
-    ///
-    /// <para>The subtlety is the destination. Claiming normally converts a tile
-    /// to its <c>MaxHealthTypeTerrainId</c>, and for a bridge that is the bridge
-    /// itself, so it happens to work. For a rival's <i>Claimed Path</i> the same
-    /// field says <b>Rock</b> — it is the fill-in destination (Q18) — so
+    /// <summary>A rival claims a bridge and it stays a bridge, with no neutral
+    /// step — the tile is claimed directly. CONFIRMED (owner 2026-09-03, Q68).
+    /// The destination is the subtlety: claiming normally converts a tile to its
+    /// <c>MaxHealthTypeTerrainId</c>, which for a bridge is the bridge itself but
+    /// for a rival's Claimed Path is Rock, the fill-in destination (Q18), so
     /// following it would turn their floor into a wall. Hence
     /// <c>UpwardDestination</c>: claiming ground that is already the claimable
-    /// kind changes the owner and leaves the terrain alone.</para>
-    /// </summary>
+    /// kind changes the owner and leaves the terrain alone.</summary>
     [Fact]
     public void ARivalClaimsABridgeDirectlyAndItStaysABridge()
     {

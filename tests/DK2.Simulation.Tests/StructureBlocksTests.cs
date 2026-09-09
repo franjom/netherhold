@@ -93,13 +93,11 @@ public sealed class StructureBlocksTests
     [Fact]
     public void ADungeonHeartsMiddleNineAreNotWalkableAndTheSixteenAroundThemAre()
     {
-        // NOT one tile. The middle nine are the raised platform the heart stands
-        // on, and this project knows there are nine of them from arithmetic that
-        // has nothing to do with walking: a keeper with no treasury tops out at
-        // 16000 gold against MaxGoldPerDungeonHeartTile of 1000, so 16 of the 25
-        // tiles hold gold and the other 9 are structure (Q52, CONFIRMED off the
-        // owner's own gold counter). A tile that cannot hold gold because the
-        // heart is on it is not a tile a creature can stand on.
+        // Nine tiles, not one: the middle nine are the raised platform the heart
+        // stands on. The count comes from arithmetic with nothing to do with
+        // walking — a keeper with no treasury tops out at 16000 gold against
+        // MaxGoldPerDungeonHeartTile of 1000, so 16 of the 25 tiles hold gold and
+        // the other 9 are structure (Q52, CONFIRMED off the owner's gold counter).
         GameDatabase db = Db;
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.DungeonHeart, 4, 4, 8, 8);
@@ -215,13 +213,11 @@ public sealed class StructureBlocksTests
     [Fact]
     public void DroppingACreatureIntoTheHoleRemovesItFromTheDungeonWithItsGold()
     {
-        // THE KEEPER POWER THIS PROJECT DID NOT HAVE. The owner named it while
-        // answering a question about pathing: the portal's centre is "for hand of
-        // evil to throw creatures in, removing them from dungeon".
-        //
-        // And the gold goes with it rather than spilling on the floor, which is
-        // Q137 answered in the owner's own parenthesis - "a creature leaving
-        // (being thrown) through portal does not drop its gold".
+        // CONFIRMED (owner): the portal's centre is "for hand of evil to throw
+        // creatures in, removing them from dungeon", and the gold goes with the
+        // creature rather than spilling on the floor — Q137, in the owner's own
+        // parenthesis: "a creature leaving (being thrown) through portal does not
+        // drop its gold".
         GameDatabase db = Db;
         WorldState world = World(db);
         Claim(world, 4, 4, 9, 9);
@@ -300,13 +296,11 @@ public sealed class StructureBlocksTests
     [Fact]
     public void APrisonerIsRefusedTheHoleRatherThanPostedHomeOrFreedOntoIt()
     {
-        // A DELIBERATE NARROWING, and it is flagged in the code too. Whether DK2
-        // lets a keeper post an enemy captive home through its own portal is
-        // UNKNOWN. Ejecting it and freeing it into the dungeon both invent
-        // something; the third option - the hole is simply not a legal drop for
-        // a captive - invents least, leaves the prisoner rules (ADR-0064)
-        // untouched, and does not leave a freed prisoner standing on a tile
-        // nothing is allowed to walk on.
+        // A deliberate narrowing, flagged in the code too. Whether DK2 lets a
+        // keeper post an enemy captive home through its own portal is UNKNOWN;
+        // ejecting it and freeing it into the dungeon both invent something, while
+        // refusing the drop invents least, leaves the prisoner rules (ADR-0064)
+        // untouched, and does not stand a freed prisoner on an unwalkable tile.
         GameDatabase db = Db;
         WorldState world = World(db);
         Claim(world, 4, 4, 9, 9);

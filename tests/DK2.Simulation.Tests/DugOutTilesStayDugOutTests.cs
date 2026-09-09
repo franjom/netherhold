@@ -8,57 +8,18 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// The dungeon only ever opens up, and two terrains never open at all.
-///
-/// <para>Both rules are CONFIRMED by the owner, 2026-09-04, volunteered rather
-/// than asked for:</para>
-///
-/// <list type="number">
-/// <item><i>"once a tile is dug out, and maybe claimed, there is no possible way
-/// to fill in that tile to rock again. DK2 doesn't have a game mechanic for
-/// filling up dug out tiles."</i></item>
-/// <item><i>"there are 2 categories … of indestructable tiles, that can't be dug
-/// through by imps, solid rock and a gem tile. gem tile is an infinite gold
-/// source and solid rock is the boundary to limit expansion on the map."</i></item>
-/// </list>
-///
-/// <para><b>The second rule the shipped data already states, exactly.</b> Gems
-/// carry <c>Solid | Impenetrable | Taggable</c> with a gold value of 3000 and a
-/// <see cref="TerrainDef.DestroyedTypeTerrainId"/> of <b>Gems</b> — it destroys
-/// to itself, so mining can never remove it. Impenetrable Rock carries
-/// <c>Solid | Impenetrable</c> and is <b>not taggable</b>, so a keeper cannot
-/// even mark it. Two different mechanisms for two different jobs, and both fall
-/// out of the terrain record without a special case.</para>
-///
-/// <para><b>The first rule sits against the data rather than on it, and that is
-/// why it is written down here.</b> `Rooms.kwd`'s sibling table carries
-/// <c>FillInHealth</c> = 5, `Terrain.kwd` has a <see cref="TerrainFlags.FillInable"/>
-/// bit that Dirt Path, Claimed Path and both mana vaults set, and Claimed Path's
-/// <see cref="TerrainDef.MaxHealthTypeTerrainId"/> is <b>Rock</b> — three fields
-/// that together describe filling a floor tile back in (Q18, Q22). The owner has
-/// played the game and says no keeper can do it.
-///
-/// <para><b>So the work kind is gone, 2026-09-07.</b> This file used to describe
-/// a <c>TileWorkKind.FillIn</c> that the rules could resolve and no imp ever
-/// chose. An unreachable path that carries inferred behaviour is worse than no
-/// path — it invited a whole afternoon of trying to time an action nobody has
-/// seen — so it was removed. <b>What this file still guards is the property, not
-/// the enum member:</b> nothing a running simulation does ever turns a walkable
-/// tile solid, and the assertion below is now over the whole set of kinds an imp
-/// can choose rather than over one named exception. Q219 asks whether DK2
-/// exposes fill-in at all; if it does, the kind returns with an experiment
-/// behind it.</para>
-///
-/// <para><b>Scope, and it matters for M6.</b> These are statements about
-/// <i>workers</i>, not about the engine. DK2's level script has an
-/// <c>ALTER_TERRAIN_TYPE</c> trigger action that writes a terrain id straight
-/// onto a tile, and two tiles in the shipped campaign (both in <c>Secret3</c>)
-/// use it to turn Claimed Path into Reinforced Wall. So when triggers arrive,
-/// closing a tile becomes possible by script and these tests must not be read as
-/// forbidding it — they forbid a keeper's imps doing it. See Q74 and
-/// <c>docs/research/manual-1999.md</c>.</para>
-/// </summary>
+/// <summary>The dungeon only ever opens up, and two terrains never open at all.
+/// CONFIRMED (owner, 2026-09-04, volunteered): DK2 has no mechanic for filling a
+/// dug-out tile back to rock, and neither solid rock nor gems can be dug through
+/// — gems are an infinite gold source, solid rock the map boundary.</summary>
+/// <remarks>Gems destroy to Gems and Impenetrable Rock is not taggable, so both
+/// rules fall out of the terrain record; the fill-in reading that sits against
+/// them (<c>FillInHealth</c> = 5, <see cref="TerrainFlags.FillInable"/> on five
+/// floor terrains, Claimed Path's <see cref="TerrainDef.MaxHealthTypeTerrainId"/>
+/// = Rock) is Q18, Q22 and Q219, and <c>TileWorkKind.FillIn</c> was removed as
+/// unreachable — docs/research/tile-work.md. Scope: these guard workers, not the
+/// engine; two <c>Secret3</c> tiles do close a tile by
+/// <c>ALTER_TERRAIN_TYPE</c> (Q74).</remarks>
 public class DugOutTilesStayDugOutTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;

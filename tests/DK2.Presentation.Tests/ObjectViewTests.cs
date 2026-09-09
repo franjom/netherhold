@@ -11,19 +11,11 @@ using DK2.TestSupport;
 
 namespace DK2.Presentation.Tests;
 
-/// <summary>
-/// Objects crossing the presentation boundary.
-///
-/// <para><b>They did not cross it at all until now</b>, which is the gap these
-/// tests close: beds, coops, eggs and piles of gold have been in
-/// <see cref="WorldState"/> since ADR-0054 and every renderer drew a bare floor
-/// where one stood. A scenario picture of a sold treasury showed no gold, and
-/// the Unity view of a claimed lair showed no beds.</para>
-///
-/// <para>These run against the real install, for the reason
-/// <c>WorldViewTests</c> gives: the mapping's job is to be right for 145 records
-/// it did not choose.</para>
-/// </summary>
+/// <summary>Objects crossing the presentation boundary: beds, coops, eggs and
+/// piles of gold have been in <see cref="WorldState"/> since ADR-0054, and until
+/// these tests every renderer drew a bare floor where one stood. They run against
+/// the real install for the reason <c>WorldViewTests</c> gives: the mapping's job
+/// is to be right for 145 object definitions it did not choose.</summary>
 public class ObjectViewTests
 {
     private static (GameDatabase Database, WorldState World)? RealLevel()

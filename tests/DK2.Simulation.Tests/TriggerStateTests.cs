@@ -129,13 +129,12 @@ public class TriggerStateTests
     [Fact]
     public void ATimerThresholdIsInSeconds_SoSixHundredIsTenMinutes()
     {
-        // This test asserted the opposite until two live captures of campaign
-        // level 1 were matched against the trigger graph flag by flag. The
-        // earlier reading rested on a scan that found no seconds-to-ticks
-        // multiply in the trigger path, over a range too narrow to contain one.
-        // Under seconds the residual is a constant +1 tick in four of four
-        // measurements; under ticks it is exactly 3 * threshold + 1 every time,
-        // which is a missing multiply by variable 19, not noise.
+        // From two live captures of campaign level 1 matched against the trigger
+        // graph flag by flag: under seconds the residual is a constant +1 tick in
+        // four of four measurements, under ticks it is exactly 3 * threshold + 1
+        // every time — a missing multiply by variable 19, not noise. The earlier
+        // ticks reading rested on a scan that found no seconds-to-ticks multiply
+        // in the trigger path, over a range too narrow to contain one.
         var triggers = new TriggerState();
         triggers.StartTimer(0, now: 1);
 

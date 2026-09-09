@@ -8,22 +8,14 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// A defeated keeper's dungeon heart — Q207, and the answer is that the rule
-/// lives nowhere special.
-///
-/// <para><b>The owner, 2026-09-07 (Q93):</b> <i>"imp can then claim the enemy
+/// <summary>A defeated keeper's dungeon heart (Q207): the rule lives nowhere
+/// special. CONFIRMED (owner, 2026-09-07, Q93): "imp can then claim the enemy
 /// 'dungeon heart' room which has turned to ruin, but it can't be sold and have
-/// something else built in its place"</i>. Three clauses, and this file exists
-/// because the note written down at the time said <b>"our RoomSellSystem and
-/// RoomBuildSystem would allow both"</b> — which was wrong, and was wrong by
-/// reasoning rather than by measurement. All three already hold, each falling
-/// out of a general rule that was written for another reason.</para>
-///
-/// <para>So the tests are the point rather than any new code: <b>a claim nothing
-/// checks may already be false, and a claim nothing checks may also already be
-/// true.</b> Both cost the same to find out and only one of them was suspected.</para>
-/// </summary>
+/// something else built in its place". All three clauses already hold, each
+/// falling out of a general rule written for another reason — the note claiming
+/// <c>RoomSellSystem</c> and <c>RoomBuildSystem</c> would allow the last two was
+/// reasoning, not measurement. A claim nothing checks may already be true as
+/// easily as already false, and both cost the same to find out.</summary>
 public sealed class RuinedHeartTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -59,28 +51,12 @@ public sealed class RuinedHeartTests
     [Fact]
     public void ARivalsHeartIsREFUSEDToAnImpToday_AndThatIsRightForALiveOneOnly()
     {
-        // THE ACTUAL GAP, and it is smaller and sharper than Q207 supposed.
-        //
-        // Two rules keep an imp off a rival's heart and only one of them is
-        // about hearts:
-        //
-        //   Claim       refuses ALL room terrain - a room is converted whole,
-        //               not taken tile by tile (Q92).
-        //   ConvertRoom refuses the dungeon heart SPECIFICALLY, by terrain
-        //               identity, because "letting this apply to a heart would
-        //               send imps to steal one, which is visibly not DK2".
-        //
-        // That second exclusion is UNCONDITIONAL, and the owner's Q93 answer
-        // says it should not be: a heart that has FALLEN can be claimed. The
-        // comment in TileWorkRules.Applies already anticipated exactly that -
-        // "a heart is beaten down, not taken, and Q40's defeat rule is what
-        // happens *after* it falls" - so the reading was right and the
-        // condition is missing.
-        //
-        // It is missing because there is nothing to condition on: defeat is not
-        // implemented, so no heart in this simulation has ever fallen. Q207
-        // therefore closes on the two prohibitions below and hands the claimable
-        // half to defeat.
+        // Two rules keep an imp off a rival's heart and only one is about hearts:
+        // Claim refuses all room terrain, a room being converted whole rather than
+        // taken tile by tile (Q92); ConvertRoom refuses the dungeon heart
+        // specifically, by terrain identity. That second exclusion is
+        // unconditional and Q93 says it should not be — a heart that has FALLEN
+        // can be claimed. Not implemented: defeat, so nothing to condition on.
         GameDatabase db = Db;
         WorldState world = World(db);
         var at = new TilePos(2, 2);

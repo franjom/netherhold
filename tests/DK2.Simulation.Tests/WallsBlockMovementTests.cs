@@ -8,27 +8,17 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// Creatures cannot pass through walls.
-///
-/// <para>CONFIRMED (owner, 2026-09-04): <i>"creatures CAN NOT pass through
-/// walls, they can only move through dug out tiles, not through solid rocks"</i>.
-/// Volunteered rather than asked for, after watching an OpenKeeper gameplay
-/// video in which imps walked through rock.</para>
-///
-/// <para>The rule was already implemented — <see cref="WorldPathGrid"/> refuses
-/// every solid terrain, and has since the first worker — but it was implemented
-/// in one place and asserted in none. The pathfinding tests prove the
-/// <i>search</i> will not route through a wall on a hand-drawn grid; nothing
-/// proved that the simulation, running the real systems on real terrain over
-/// many ticks, never puts a creature inside one. A rule that only one line of
-/// code knows is a rule that can be deleted by accident, which is what these
-/// tests exist to prevent.</para>
-///
-/// <para>They are also the reason <see cref="Systems.CreatureMovementSystem"/>
-/// now re-checks each waypoint: a route is planned once, and a wooden bridge
-/// over lava burns out from under it thirty seconds after it is built (Q67).</para>
-/// </summary>
+/// <summary>Creatures cannot pass through walls. CONFIRMED (owner, 2026-09-04):
+/// "creatures CAN NOT pass through walls, they can only move through dug out
+/// tiles, not through solid rocks".</summary>
+/// <remarks><see cref="WorldPathGrid"/> has refused every solid terrain since the
+/// first worker, but in one place and asserted in none: the pathfinding tests
+/// prove the <i>search</i> will not route through a wall on a hand-drawn grid, not
+/// that the simulation running real systems on real terrain over many ticks never
+/// puts a creature inside one. These tests are also why
+/// <see cref="Systems.CreatureMovementSystem"/> re-checks each waypoint — a route
+/// is planned once, and a wooden bridge over lava burns out from under it thirty
+/// seconds after it is built (Q67).</remarks>
 public class WallsBlockMovementTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -126,20 +116,15 @@ public class WallsBlockMovementTests
         }
     }
 
-    /// <summary>
-    /// Ground that stops being walkable under a creature stops it, rather than
-    /// being walked over.
-    ///
-    /// The invariants above cannot produce this on their own — digging only ever
-    /// makes the world <i>more</i> walkable — so it is staged. **Lava, not rock**,
-    /// because lava is the case DK2 actually has: a wooden bridge over lava burns
-    /// out thirty seconds after it is built and the tile reverts (Q67,
-    /// <see cref="Systems.BridgeBurnSystem"/>), while nothing in DK2 ever turns
-    /// floor back into rock at all (owner, 2026-09-04 — see
-    /// <see cref="DugOutTilesStayDugOutTests"/>). An imp carries
-    /// <see cref="CreatureFlags.CanWalkOnWater"/> and not
-    /// <see cref="CreatureFlags.CanWalkOnLava"/>, so lava stops it.
-    /// </summary>
+    /// <summary>Ground that stops being walkable under a creature stops it rather
+    /// than being walked over. Staged, because the invariants above cannot produce
+    /// it — digging only makes the world more walkable. Lava, not rock, because
+    /// lava is the case DK2 has: a wooden bridge over lava burns out thirty seconds
+    /// after it is built and the tile reverts (Q67,
+    /// <see cref="Systems.BridgeBurnSystem"/>), while nothing in DK2 turns floor
+    /// back into rock (see <see cref="DugOutTilesStayDugOutTests"/>). An imp
+    /// carries <see cref="CreatureFlags.CanWalkOnWater"/> and not
+    /// <see cref="CreatureFlags.CanWalkOnLava"/>, so lava stops it.</summary>
     [Fact]
     public void GroundThatStopsBeingWalkableUnderAWalkStopsTheWalk()
     {

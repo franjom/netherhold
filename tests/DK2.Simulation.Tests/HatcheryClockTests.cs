@@ -8,14 +8,11 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>
-/// The Hatchery's clock: coops, eggs and chickens (ADR-0066).
-///
-/// <para><see cref="HatcheryRules"/> knew all of this for four sittings and
-/// could run none of it, on a written reason — DK2 multiplies the laying
-/// interval by a variable <i>"no shipped file supplies"</i> — that had stopped
-/// being true a day earlier when Q132 was answered.</para>
-/// </summary>
+/// <summary>The Hatchery's clock: coops, eggs and chickens (ADR-0066). The laying
+/// interval is <c>ChickenGenerationTimePerHatchery</c> over a curve in tile count,
+/// in game seconds; turning that into ticks needed the seconds-to-ticks
+/// multiplier, which is why <see cref="HatcheryRules"/> could not run its own
+/// clock until Q132 named it (variable 19, 4 in all 66 shipped levels).</summary>
 public class HatcheryClockTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -76,14 +73,11 @@ public class HatcheryClockTests
     [Fact]
     public void AThreeByThreeHatcheryLaysEverySevenSecondsAndNotEight()
     {
-        // The quirk, and it is a sixth-decimal-place quirk. The exponent was
-        // typed rather than derived and lands at pow(9, e) = 2.00006, a hair
-        // ABOVE two - so 16/2.00006 is 7.99977 and the truncation takes SEVEN,
-        // where a designer thinking "nine tiles is exactly half of one" would
-        // have expected eight.
-        //
-        // hatchery.md's own table said 8 for a day while its header said
-        // "truncated". Reproduced, not rounded away (Q134).
+        // A sixth-decimal-place quirk, not a rounding error to tidy: the exponent
+        // is typed rather than derived, pow(9, e) = 2.00006 is a hair above two,
+        // so 16/2.00006 = 7.99977 and the truncation takes seven where a designer
+        // thinking "nine tiles is exactly half of one" expects eight. Reproduced,
+        // not rounded away (Q134, docs/research/hatchery.md §4).
         GameDatabase db = Db;
         WorldState world = World(db);
 

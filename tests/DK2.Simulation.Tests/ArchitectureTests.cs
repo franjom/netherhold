@@ -31,30 +31,16 @@ public class ArchitectureTests
         Assert.Empty(offenders);
     }
 
-    /// <summary>
-    /// Every assembly Unity has to load targets <b>netstandard2.1</b>.
-    ///
-    /// <para><b>This test exists because the constraint it checks was claimed
-    /// for four months and never held.</b> ADR-0002 said netstandard2.1 was
-    /// "enforced by the compiler from day one"; in fact
-    /// <c>Directory.Build.props</c> selected it behind a condition on a marker
-    /// property that the project body set <i>after</i> the props file had
-    /// already been evaluated, so the condition was always false and every
-    /// assembly built as net10.0. <c>Polyfills.cs</c> sat behind
-    /// <c>#if NETSTANDARD2_1</c> and was never once compiled.</para>
-    ///
-    /// <para>Nothing noticed, because nothing had yet tried to hand a DLL to
-    /// Unity — and Unity cannot load a net10.0 assembly, so the whole
-    /// presentation plan would have failed at the first attempt to use it
-    /// (2026-09-04, ADR-0036). The lesson is the one this project keeps
-    /// relearning: <b>a constraint expressed only in build configuration is a
-    /// hope.</b> This asserts the outcome from the built artefact, where a
-    /// misconfiguration cannot hide.</para>
-    ///
-    /// <para>Read from the assembly rather than from the csproj deliberately: a
-    /// test that parsed the project files would be checking the same intent that
-    /// was already wrong, rather than the result.</para>
-    /// </summary>
+    /// <summary>Every assembly Unity has to load targets netstandard2.1
+    /// (ADR-0002); Unity cannot load a net10.0 assembly.</summary>
+    /// <remarks>Read from the built artefact, not from the csproj: the constraint
+    /// was expressed only in build configuration for four months and never held —
+    /// <c>Directory.Build.props</c> selected netstandard2.1 behind a condition on
+    /// a marker property the project body set after the props file was evaluated,
+    /// so every assembly built as net10.0 and <c>Polyfills.cs</c>, behind
+    /// <c>#if NETSTANDARD2_1</c>, was never compiled. A test that parsed the
+    /// project files would check the same intent that was already
+    /// wrong.</remarks>
     [Theory]
     [InlineData("DK2.Core")]
     [InlineData("DK2.Data.Model")]

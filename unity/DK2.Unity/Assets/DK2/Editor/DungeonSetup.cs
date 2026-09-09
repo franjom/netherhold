@@ -20,19 +20,13 @@ using UnityEngine.SceneManagement;
 
 namespace DK2.Unity.Editor
 {
-    /// <summary>
-    /// Editor-only helpers: builds the playable scene, and runs the whole
-    /// presentation pipeline headlessly so that "it works in Unity" is something
-    /// a command can answer rather than something a person has to eyeball.
-    ///
-    /// <para><b>Why the headless check earns its place.</b> Compiling the adapter
-    /// proves the C# is valid; it proves nothing about whether
-    /// <c>GameDatabaseLoader</c> can read a DK2 install from inside Unity's Mono
-    /// runtime, whether the netstandard2.1 assemblies actually load there, or
-    /// whether the presenter produces GameObjects. Those are exactly the things
-    /// that were never going to fail at compile time and were always going to
-    /// fail on first Play. This runs them from the command line.</para>
-    /// </summary>
+    /// <summary>Editor-only helpers: builds the playable scene, and runs the whole
+    /// presentation pipeline headlessly so a command can answer "it works in
+    /// Unity". Compiling the adapter proves only that the C# is valid; the
+    /// headless run is what proves <c>GameDatabaseLoader</c> can read a DK2
+    /// install from inside Unity's Mono runtime, that the netstandard2.1
+    /// assemblies load there, and that the presenter produces GameObjects — none
+    /// of which can fail at compile time.</summary>
     public static class DungeonSetup
     {
         private const string ScenePath = "Assets/DK2/Scenes/Dungeon.unity";
@@ -69,18 +63,13 @@ namespace DK2.Unity.Editor
             Debug.Log($"DK2: wrote {ScenePath}");
         }
 
-        /// <summary>
-        /// Runs the whole pipeline once, inside Unity, and exits non-zero if any
-        /// part of it fails. Invoked from the command line:
-        ///
+        /// <summary>Runs the whole pipeline once, inside Unity, and exits non-zero
+        /// if any part of it fails. Skips cleanly when there is no DK2 install,
+        /// like the install-gated tests. Invoked from the command line:
         /// <code>
         /// Unity.exe -batchmode -quit -nographics -projectPath unity/DK2.Unity \
         ///           -executeMethod DK2.Unity.Editor.DungeonSetup.SmokeTest
         /// </code>
-        ///
-        /// <para>Skips cleanly when there is no DK2 install, the same way the
-        /// install-gated tests do — a machine without the game is not a
-        /// failure.</para>
         /// </summary>
         public static void SmokeTest()
         {
@@ -138,26 +127,17 @@ namespace DK2.Unity.Editor
             }
         }
 
-        /// <summary>
-        /// The same run, but starting from a DK2 saved game instead of a
-        /// campaign level:
-        ///
+        /// <summary>The same run, but starting from a DK2 saved game instead of a
+        /// campaign level. Asserts the read's alignment measure as well as the
+        /// object count: a misread grid does not throw, it produces a plausible
+        /// dungeon of noise, and a correct read of a played save leaves most of the
+        /// terrain matching the level's design map where a wrong one leaves almost
+        /// none. Skips cleanly with no install and with no saves — a fresh copy of
+        /// DK2 has none.
         /// <code>
         /// Unity.exe -batchmode -quit -nographics -projectPath unity/DK2.Unity \
         ///           -executeMethod DK2.Unity.Editor.DungeonSetup.SaveSmokeTest
         /// </code>
-        ///
-        /// <para><b>What it is actually for.</b> A misread grid does not throw —
-        /// it produces a full, plausible-looking dungeon of noise, which is the
-        /// one failure mode a "did it render" check would sail straight past. So
-        /// this asserts the read's own alignment measure as well as the object
-        /// count: a correct read of a played save leaves most of the terrain
-        /// matching the level's design map, and a wrong one leaves almost
-        /// none.</para>
-        ///
-        /// <para>Skips cleanly when there is no install and when the install has
-        /// no saves — a fresh copy of DK2 has none, and that is not a
-        /// failure.</para>
         /// </summary>
         public static void SaveSmokeTest()
         {
