@@ -316,6 +316,151 @@ public class ThingProjectionTests
     }
 
     [Fact]
+    public void HeroPartiesAndEffectGeneratorsAreProjectedVerbatimWithoutSpawningMembers()
+    {
+        GameDatabase database = Database();
+        WorldState world = World(database);
+        var member = new GoodCreatureThing(new byte[32])
+        {
+            X = -1, Y = 2, Z = -3, GoldHeld = 65432, Level = 201, Flags = 0xE1,
+            ObjectiveTargetActionPointId = -4, InitialHealth = -5, TriggerId = 65000,
+            ObjectiveTargetPlayerId = 202, Objective = 203, CreatureId = 204,
+            Unknown_001D = new byte[] { 0xA1, 0xB2 }, Flags2 = 0xC3,
+        };
+
+        ThingProjectionResult result = ThingProjection.Place(world, database,
+        [
+            new HeroPartyThing(new byte[555])
+            {
+                Name = "second", TriggerId = 60000, PartyId = 222,
+                Unknown_0023 = -23, Unknown_0027 = -27, Members = [member],
+            },
+            new HeroPartyThing(new byte[555])
+            {
+                Name = "first", PartyId = 1, Members = [],
+            },
+            new EffectGeneratorThing(new byte[36])
+            {
+                X = -8, Y = 9, Unknown_0008 = -10, Unknown_000C = 11,
+                Unknown_0010 = 60001, Unknown_0012 = 60002,
+                EffectIds = [60003, 4, 60005], Frequency = 206, GeneratorId = 207,
+                Unknown_001E = new byte[] { 1, 2, 3, 4, 5, 6 },
+            },
+        ]);
+
+        Assert.Equal(2, result.HeroParties);
+        Assert.Equal(1, result.EffectGenerators);
+        Assert.Equal(0, result.NotYetProjected);
+        Assert.Empty(world.Creatures);
+        Assert.Equal(new[] { "second", "first" }, world.HeroParties.Select(p => p.Name));
+
+        HeroPartyState party = world.HeroParties[0];
+        Assert.Equal(((ushort)60000, (byte)222, -23, -27),
+            (party.TriggerId, party.PartyId, party.Unknown_0023, party.Unknown_0027));
+        HeroPartyMemberState projected = Assert.Single(party.Members);
+        Assert.Equal((-1, 2, -3, (ushort)65432, (byte)201, (byte)0xE1),
+            (projected.X, projected.Y, projected.Z, projected.GoldHeld, projected.Level, projected.Flags));
+        Assert.Equal((-4, -5, (ushort)65000, (byte)202, (byte)203, (byte)204, (byte)0xC3),
+            (projected.ObjectiveTargetActionPointId, projected.InitialHealth, projected.TriggerId,
+             projected.ObjectiveTargetPlayerId, projected.Objective, projected.CreatureId, projected.Flags2));
+        Assert.Equal(new byte[] { 0xA1, 0xB2 }, projected.Unknown_001D.ToArray());
+
+        EffectGeneratorState generator = Assert.Single(world.EffectGenerators);
+        Assert.Equal((-8, 9, -10, 11, (ushort)60001, (ushort)60002, (byte)206, (byte)207),
+            (generator.X, generator.Y, generator.Unknown_0008, generator.Unknown_000C,
+             generator.Unknown_0010, generator.Unknown_0012, generator.Frequency, generator.GeneratorId));
+        Assert.Equal(new ushort[] { 60003, 4, 60005 }, generator.EffectIds);
+        Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6 }, generator.Unknown_001E.ToArray());
+    }
+
+    [Fact]
+    public void FixedHeroPartyAndEffectGeneratorTailsRejectWrongLengths()
+    {
+        Assert.Equal(2, HeroPartyMemberState.Unknown001DLength);
+        Assert.Equal(6, EffectGeneratorState.Unknown001ELength);
+        Assert.Throws<ArgumentException>(() => new HeroPartyMemberState { Unknown_001D = new byte[] { 1 } });
+        Assert.Throws<ArgumentException>(() => new EffectGeneratorState
+        {
+            EffectIds = [], Unknown_001E = new byte[] { 1, 2, 3, 4, 5 },
+        });
+    }
+
+    [Fact]
+    public void EveryHeroPartyAndEffectGeneratorFieldParticipatesInTheHash()
+    {
+        HeroPartyMemberState Member(Action<HeroPartyMemberStateBuilder>? change = null)
+        {
+            var b = new HeroPartyMemberStateBuilder(); change?.Invoke(b); return b.Build();
+        }
+        ulong[] memberHashes =
+        [
+            MemberHash(Member()), MemberHash(Member(b => b.X = 1)), MemberHash(Member(b => b.Y = 1)),
+            MemberHash(Member(b => b.Z = 1)), MemberHash(Member(b => b.GoldHeld = 1)),
+            MemberHash(Member(b => b.Level = 1)), MemberHash(Member(b => b.Flags = 1)),
+            MemberHash(Member(b => b.ObjectiveTargetActionPointId = 1)),
+            MemberHash(Member(b => b.InitialHealth = 1)), MemberHash(Member(b => b.TriggerId = 1)),
+            MemberHash(Member(b => b.ObjectiveTargetPlayerId = 1)),
+            MemberHash(Member(b => b.Objective = 1)), MemberHash(Member(b => b.CreatureId = 1)),
+            MemberHash(Member(b => b.Unknown = [1, 0])), MemberHash(Member(b => b.Unknown = [0, 1])),
+            MemberHash(Member(b => b.Flags2 = 1)),
+        ];
+        Assert.Equal(memberHashes.Length, memberHashes.Distinct().Count());
+
+        ulong[] partyHashes =
+        [
+            PartyHash(new HeroPartyState { Name = "", Members = [] }),
+            PartyHash(new HeroPartyState { Name = "x", Members = [] }),
+            PartyHash(new HeroPartyState { Name = "", TriggerId = 1, Members = [] }),
+            PartyHash(new HeroPartyState { Name = "", PartyId = 1, Members = [] }),
+            PartyHash(new HeroPartyState { Name = "", Unknown_0023 = 1, Members = [] }),
+            PartyHash(new HeroPartyState { Name = "", Unknown_0027 = 1, Members = [] }),
+            PartyHash(new HeroPartyState { Name = "", Members = [Member()] }),
+        ];
+        Assert.Equal(partyHashes.Length, partyHashes.Distinct().Count());
+
+        ulong[] generatorHashes =
+        [
+            GeneratorHash(), GeneratorHash(x: 1), GeneratorHash(y: 1), GeneratorHash(u8: 1),
+            GeneratorHash(uc: 1), GeneratorHash(u10: 1), GeneratorHash(u12: 1),
+            GeneratorHash(ids: [1]), GeneratorHash(frequency: 1), GeneratorHash(id: 1),
+            GeneratorHash(tail: [1, 0, 0, 0, 0, 0]),
+            GeneratorHash(tail: [0, 0, 0, 0, 0, 1]),
+        ];
+        Assert.Equal(generatorHashes.Length, generatorHashes.Distinct().Count());
+
+        static ulong MemberHash(HeroPartyMemberState state) { Hash64 h = Hash64.Start(); state.HashInto(ref h); return h.Value; }
+        static ulong PartyHash(HeroPartyState state) { Hash64 h = Hash64.Start(); state.HashInto(ref h); return h.Value; }
+        static ulong GeneratorHash(int x = 0, int y = 0, int u8 = 0, int uc = 0,
+            ushort u10 = 0, ushort u12 = 0, ushort[]? ids = null, byte frequency = 0,
+            byte id = 0, byte[]? tail = null)
+        {
+            var state = new EffectGeneratorState
+            {
+                X = x, Y = y, Unknown_0008 = u8, Unknown_000C = uc,
+                Unknown_0010 = u10, Unknown_0012 = u12, EffectIds = ids ?? [],
+                Frequency = frequency, GeneratorId = id, Unknown_001E = tail ?? new byte[6],
+            };
+            Hash64 h = Hash64.Start(); state.HashInto(ref h); return h.Value;
+        }
+    }
+
+    private sealed class HeroPartyMemberStateBuilder
+    {
+        public int X, Y, Z, ObjectiveTargetActionPointId, InitialHealth;
+        public ushort GoldHeld, TriggerId;
+        public byte Level, Flags, ObjectiveTargetPlayerId, Objective, CreatureId, Flags2;
+        public byte[] Unknown = new byte[2];
+        public HeroPartyMemberState Build() => new()
+        {
+            X = X, Y = Y, Z = Z, GoldHeld = GoldHeld, Level = Level, Flags = Flags,
+            ObjectiveTargetActionPointId = ObjectiveTargetActionPointId,
+            InitialHealth = InitialHealth, TriggerId = TriggerId,
+            ObjectiveTargetPlayerId = ObjectiveTargetPlayerId, Objective = Objective,
+            CreatureId = CreatureId, Unknown_001D = Unknown, Flags2 = Flags2,
+        };
+    }
+
+    [Fact]
     public void AnActionPointCarriesTheRuntimeFieldsTheBinaryLoads()
     {
         GameDatabase database = Database();

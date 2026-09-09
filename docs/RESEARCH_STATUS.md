@@ -66,6 +66,7 @@ HYPOTHESIS / UNKNOWN (AGENTS.md). **CONFIRMED is reserved for the running game**
 | Trigger flags and timers are level state, and the byte called `Flag` is an opcode | ADR-0102 | `trigger-state.md` |
 | **Action points are ordered world state**: all 1,152 shipped points enter `WorldState` in THINGS-file order with the rectangle, ids/link, the five loader-copied flag bits and the saved runtime words. There is **no** availability field — the earlier shared `Available` interpretation is refuted | ADR-0103 | `action-points.md` |
 | **Doors and traps are ordered world state without behaviour**: all 940 doors and 959 traps across 48 levels enter `WorldState` with every parsed field verbatim; every door trigger id is zero | ADR-0106 | `doors-and-traps.md` |
+| **Hero parties and effect generators are ordered world state without behaviour**: all 220 parties from the 48-level campaign, every nested member field and the one generator enter `WorldState` verbatim; party members are not placed creatures | ADR-0108 | `hero-parties-and-effect-generators.md` |
 | The 1999 manual is a corroborating source, never an overriding one | ADR-0037 | `manual-1999.md` |
 | DKII.EXE may be decompiled and its output may not enter the repository; binary facts rank **below** owner observation and never reach CONFIRMED alone | ADR-0046 | `binary-entrance.md` |
 | A Flame name may be cited in a document and never appears in code | ADR-0080 | `wiki-as-a-source.md` |

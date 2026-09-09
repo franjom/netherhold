@@ -33,10 +33,19 @@ beside it.
 
 ## Versions
 
-**48** — `0x7DD1C7A2B6EF5CE1` (current). Player condition type 30 reads the
-walked player's gold, so a shipped level's script can branch on it (ADR-0110).
-Behaviour, not composition. **47 is reserved** for an unlanded branch; if that
-lands after this one it takes the next free number instead.
+**49** — `0xDDC3EA20017640B6` (current). Hero parties and effect generators enter
+ordered world state, every parsed field, nested member and variable effect-id
+list hashed and snapshotted verbatim (ADR-0108). Composition: the fixture has
+neither kind, so only their empty counts enter.
+
+**47 and 48 were both taken and neither is what shipped.** Two branches ran in
+parallel — 47 was reserved for hero parties, 48 taken by ADR-0110 when the gold
+condition landed first — so the merge renumbered hero parties to 49 and this is
+the only pin either change ever had in master. `0x7DD1C7A2B6EF5CE1` was 48's
+value on its own branch.
+
+**48** — Player condition type 30 reads the walked player's gold, so a shipped
+level's script can branch on it (ADR-0110). Behaviour, not composition.
 
 **46** — `0x52A068B601960E53`. An action DK2's dispatcher succeeds at
 returns true whether or not this executor performs it, so the walker retires it

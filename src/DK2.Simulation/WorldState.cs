@@ -442,6 +442,116 @@ public sealed class TrapState
 }
 
 /// <summary>
+/// One authored member of a hero party. Party members are templates for a
+/// future spawn, not creatures currently placed in the level (ADR-0108).
+/// Every parsed field is retained verbatim and no spawning behaviour exists.
+/// </summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
+public sealed class HeroPartyMemberState
+{
+    public const int Unknown001DLength = 2;
+
+    public int X { get; init; }
+    public int Y { get; init; }
+    public int Z { get; init; }
+    public ushort GoldHeld { get; init; }
+    public byte Level { get; init; }
+    public byte Flags { get; init; }
+    public int ObjectiveTargetActionPointId { get; init; }
+    public int InitialHealth { get; init; }
+    public ushort TriggerId { get; init; }
+    public byte ObjectiveTargetPlayerId { get; init; }
+    public byte Objective { get; init; }
+    public byte CreatureId { get; init; }
+    public required ReadOnlyMemory<byte> Unknown_001D
+    {
+        get => _unknown001D;
+        init => _unknown001D = value.Length == Unknown001DLength
+            ? value
+            : throw new ArgumentException(
+                $"A hero-party member's trailing unknown is {Unknown001DLength} bytes, not {value.Length}.",
+                nameof(Unknown_001D));
+    }
+    public byte Flags2 { get; init; }
+
+    private readonly ReadOnlyMemory<byte> _unknown001D;
+
+    public void HashInto(ref Hash64 hash)
+    {
+        hash.Add(X); hash.Add(Y); hash.Add(Z); hash.Add(GoldHeld);
+        hash.Add(Level); hash.Add(Flags); hash.Add(ObjectiveTargetActionPointId);
+        hash.Add(InitialHealth); hash.Add(TriggerId); hash.Add(ObjectiveTargetPlayerId);
+        hash.Add(Objective); hash.Add(CreatureId);
+        foreach (byte value in Unknown_001D.Span) hash.Add(value);
+        hash.Add(Flags2);
+    }
+}
+
+/// <summary>
+/// One hero party projected verbatim in THINGS-file order. It is authored
+/// state only: parties do not spawn, and their members are not placed creatures.
+/// </summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
+public sealed class HeroPartyState
+{
+    public required string Name { get; init; }
+    public ushort TriggerId { get; init; }
+    public byte PartyId { get; init; }
+    public int Unknown_0023 { get; init; }
+    public int Unknown_0027 { get; init; }
+    public required IReadOnlyList<HeroPartyMemberState> Members { get; init; }
+
+    public void HashInto(ref Hash64 hash)
+    {
+        hash.Add(Name); hash.Add(TriggerId); hash.Add(PartyId);
+        hash.Add(Unknown_0023); hash.Add(Unknown_0027);
+        hash.Add(Members.Count);
+        foreach (HeroPartyMemberState member in Members) member.HashInto(ref hash);
+    }
+}
+
+/// <summary>
+/// One effect generator projected verbatim in THINGS-file order. Generation
+/// behaviour is UNKNOWN and deliberately absent (ADR-0108).
+/// </summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
+public sealed class EffectGeneratorState
+{
+    public const int Unknown001ELength = 6;
+
+    public int X { get; init; }
+    public int Y { get; init; }
+    public int Unknown_0008 { get; init; }
+    public int Unknown_000C { get; init; }
+    public ushort Unknown_0010 { get; init; }
+    public ushort Unknown_0012 { get; init; }
+    public required IReadOnlyList<ushort> EffectIds { get; init; }
+    public byte Frequency { get; init; }
+    public byte GeneratorId { get; init; }
+    public required ReadOnlyMemory<byte> Unknown_001E
+    {
+        get => _unknown001E;
+        init => _unknown001E = value.Length == Unknown001ELength
+            ? value
+            : throw new ArgumentException(
+                $"An effect generator's trailing unknown is {Unknown001ELength} bytes, not {value.Length}.",
+                nameof(Unknown_001E));
+    }
+
+    private readonly ReadOnlyMemory<byte> _unknown001E;
+
+    public void HashInto(ref Hash64 hash)
+    {
+        hash.Add(X); hash.Add(Y); hash.Add(Unknown_0008); hash.Add(Unknown_000C);
+        hash.Add(Unknown_0010); hash.Add(Unknown_0012);
+        hash.Add(EffectIds.Count);
+        foreach (ushort effectId in EffectIds) hash.Add(effectId);
+        hash.Add(Frequency); hash.Add(GeneratorId);
+        foreach (byte value in Unknown_001E.Span) hash.Add(value);
+    }
+}
+
+/// <summary>
 /// All mutable simulation state for one level. Owns no behaviour — systems act
 /// on it. Everything reachable from here is hashed and snapshotted; anything
 /// not reachable from here does not exist as far as determinism is concerned,
@@ -457,6 +567,8 @@ public sealed class WorldState
     private readonly List<ActionPointState> _actionPoints = [];
     private readonly List<DoorState> _doors = [];
     private readonly List<TrapState> _traps = [];
+    private readonly List<HeroPartyState> _heroParties = [];
+    private readonly List<EffectGeneratorState> _effectGenerators = [];
     private int _nextCreatureId = 1;
     private int _nextObjectId = 1;
 
@@ -710,6 +822,16 @@ public sealed class WorldState
 
     internal void AddTrap(TrapState trap) => _traps.Add(trap);
 
+    /// <summary>The level's unspawned hero-party records in THINGS-file order.</summary>
+    public IReadOnlyList<HeroPartyState> HeroParties => _heroParties;
+
+    internal void AddHeroParty(HeroPartyState party) => _heroParties.Add(party);
+
+    /// <summary>The level's effect generators in THINGS-file order. No behaviour exists yet.</summary>
+    public IReadOnlyList<EffectGeneratorState> EffectGenerators => _effectGenerators;
+
+    internal void AddEffectGenerator(EffectGeneratorState generator) => _effectGenerators.Add(generator);
+
     public bool HasPlayer(byte playerId)
     {
         foreach (PlayerState p in _players)
@@ -773,6 +895,8 @@ public sealed class WorldState
     internal List<ActionPointState> RawActionPoints => _actionPoints;
     internal List<DoorState> RawDoors => _doors;
     internal List<TrapState> RawTraps => _traps;
+    internal List<HeroPartyState> RawHeroParties => _heroParties;
+    internal List<EffectGeneratorState> RawEffectGenerators => _effectGenerators;
 
     /// <summary>Restores the id counter after a snapshot, so ids stay unique across a save.</summary>
     internal int NextCreatureId
@@ -819,6 +943,12 @@ public sealed class WorldState
 
         hash.Add(_traps.Count);
         foreach (TrapState trap in _traps) trap.HashInto(ref hash);
+
+        hash.Add(_heroParties.Count);
+        foreach (HeroPartyState party in _heroParties) party.HashInto(ref hash);
+
+        hash.Add(_effectGenerators.Count);
+        foreach (EffectGeneratorState generator in _effectGenerators) generator.HashInto(ref hash);
 
         // The trigger banks are level state, not level data: an action record
         // writes a flag and a later condition reads it, so two worlds that

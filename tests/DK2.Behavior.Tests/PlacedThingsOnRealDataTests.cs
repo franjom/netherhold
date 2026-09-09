@@ -243,8 +243,11 @@ public class PlacedThingsOnRealDataTests
         Assert.Equal(27, result.ActionPoints);
         Assert.Equal(2, result.RoomsAlreadyInTheGrid);
 
-        Assert.Equal(2, result.NotYetProjected); // the two hero parties
+        Assert.Equal(2, result.HeroParties);
+        Assert.Equal(0, result.EffectGenerators);
+        Assert.Equal(0, result.NotYetProjected);
         Assert.Equal(27, world.ActionPoints.Count);
+        Assert.Equal(2, world.HeroParties.Count);
 
         // Every one an Imp, every one the human keeper's, every one standing on
         // a dungeon-heart tile that keeper already owns.
@@ -279,8 +282,9 @@ public class PlacedThingsOnRealDataTests
         string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
-        int levels = 0, levelsWithDoorsOrTraps = 0, creatures = 0, objects = 0;
-        int actionPoints = 0, doors = 0, traps = 0, rooms = 0, notYet = 0;
+        int levels = 0, levelsWithDoorsOrTraps = 0, levelsWithHeroParties = 0;
+        int creatures = 0, objects = 0, actionPoints = 0, doors = 0, traps = 0;
+        int heroParties = 0, effectGenerators = 0, rooms = 0, notYet = 0;
 
         foreach (string level in LevelNames(install))
         {
@@ -301,15 +305,20 @@ public class PlacedThingsOnRealDataTests
             actionPoints += result.ActionPoints;
             doors += result.Doors;
             traps += result.Traps;
+            heroParties += result.HeroParties;
+            effectGenerators += result.EffectGenerators;
             rooms += result.RoomsAlreadyInTheGrid;
             notYet += result.NotYetProjected;
             if (result.Doors != 0 || result.Traps != 0) levelsWithDoorsOrTraps++;
+            if (result.HeroParties != 0) levelsWithHeroParties++;
 
             Assert.Equal(result.Creatures, world.Creatures.Count);
             Assert.Equal(result.Objects, world.Objects.Count);
             Assert.Equal(result.ActionPoints, world.ActionPoints.Count);
             Assert.Equal(result.Doors, world.Doors.Count);
             Assert.Equal(result.Traps, world.Traps.Count);
+            Assert.Equal(result.HeroParties, world.HeroParties.Count);
+            Assert.Equal(result.EffectGenerators, world.EffectGenerators.Count);
 
             ActionPointThing[] authored = things.OfType<ActionPointThing>().ToArray();
             for (int i = 0; i < authored.Length; i++)
@@ -360,19 +369,66 @@ public class PlacedThingsOnRealDataTests
                 Assert.Equal(source.PlayerId, projected.PlayerId);
                 Assert.Equal(source.Unknown_000F, projected.Unknown_000F);
             }
+
+            HeroPartyThing[] authoredParties = things.OfType<HeroPartyThing>().ToArray();
+            for (int i = 0; i < authoredParties.Length; i++)
+            {
+                HeroPartyThing source = authoredParties[i];
+                HeroPartyState projected = world.HeroParties[i];
+                Assert.Equal(source.Name, projected.Name);
+                Assert.Equal(source.TriggerId, projected.TriggerId);
+                Assert.Equal(source.PartyId, projected.PartyId);
+                Assert.Equal(source.Unknown_0023, projected.Unknown_0023);
+                Assert.Equal(source.Unknown_0027, projected.Unknown_0027);
+                Assert.Equal(source.Members.Count, projected.Members.Count);
+                for (int m = 0; m < source.Members.Count; m++)
+                {
+                    GoodCreatureThing member = source.Members[m];
+                    HeroPartyMemberState state = projected.Members[m];
+                    Assert.Equal(member.X, state.X); Assert.Equal(member.Y, state.Y);
+                    Assert.Equal(member.Z, state.Z); Assert.Equal(member.GoldHeld, state.GoldHeld);
+                    Assert.Equal(member.Level, state.Level); Assert.Equal(member.Flags, state.Flags);
+                    Assert.Equal(member.ObjectiveTargetActionPointId, state.ObjectiveTargetActionPointId);
+                    Assert.Equal(member.InitialHealth, state.InitialHealth);
+                    Assert.Equal(member.TriggerId, state.TriggerId);
+                    Assert.Equal(member.ObjectiveTargetPlayerId, state.ObjectiveTargetPlayerId);
+                    Assert.Equal(member.Objective, state.Objective);
+                    Assert.Equal(member.CreatureId, state.CreatureId);
+                    Assert.Equal(member.Unknown_001D.ToArray(), state.Unknown_001D.ToArray());
+                    Assert.Equal(member.Flags2, state.Flags2);
+                }
+            }
+
+            EffectGeneratorThing[] authoredGenerators = things.OfType<EffectGeneratorThing>().ToArray();
+            for (int i = 0; i < authoredGenerators.Length; i++)
+            {
+                EffectGeneratorThing source = authoredGenerators[i];
+                EffectGeneratorState projected = world.EffectGenerators[i];
+                Assert.Equal(source.X, projected.X); Assert.Equal(source.Y, projected.Y);
+                Assert.Equal(source.Unknown_0008, projected.Unknown_0008);
+                Assert.Equal(source.Unknown_000C, projected.Unknown_000C);
+                Assert.Equal(source.Unknown_0010, projected.Unknown_0010);
+                Assert.Equal(source.Unknown_0012, projected.Unknown_0012);
+                Assert.Equal(source.EffectIds, projected.EffectIds);
+                Assert.Equal(source.Frequency, projected.Frequency);
+                Assert.Equal(source.GeneratorId, projected.GeneratorId);
+                Assert.Equal(source.Unknown_001E.ToArray(), projected.Unknown_001E.ToArray());
+            }
         }
 
         Assert.Equal(66, levels);
         Assert.Equal(48, levelsWithDoorsOrTraps);
+        Assert.Equal(35, levelsWithHeroParties);
         Assert.Equal(1944, creatures);
         Assert.Equal(788, objects);
         Assert.Equal(1152, actionPoints);
         Assert.Equal(940, doors);
         Assert.Equal(959, traps);
+        Assert.Equal(220, heroParties);
+        Assert.Equal(1, effectGenerators);
         Assert.Equal(275, rooms);
 
-        // What is still unread: 220 hero parties and one effect generator.
-        Assert.Equal(221, notYet);
+        Assert.Equal(0, notYet);
 
         static IEnumerable<byte> Keepers() =>
             Enumerable.Range(PlayerIds.FirstKeeper, 5).Select(i => (byte)i);

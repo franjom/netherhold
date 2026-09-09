@@ -1827,6 +1827,21 @@ simulation state shape, so `HashVersion` and snapshot `FormatVersion` do not mov
 - Level 1's turn-1 blocked census drops from 16 type groups to 10, all conditions; seven action groups move to `Partial`.
 - The creature action dispatcher (`0x0049AC80`, base 15) was found while checking this and owns ten of the types the world refuses, type 15's 565 records among them. A type is not dead because the world has no arm for it.
 
+## ADR-0108 — Hero parties and effect generators are verbatim ordered world state
+**Date:** 2026-09-09 · **Status:** accepted · Q254–Q259 opened · Research: `docs/research/hero-parties-and-effect-generators.md`
+
+**Context.** The remaining 221 parsed THINGS records — 220 hero parties from the 48-level campaign and one effect generator — were counted as `NotYetProjected` because `WorldState` had nowhere to keep them. In the full 66-level shipped sweep, parties occur on 35 levels.
+
+**Decision.** `WorldState.HeroParties` and `WorldState.EffectGenerators` preserve THINGS-file order and every parsed field verbatim. Nested party members and both byte/list fields are copied into world-owned storage. Every value and list length is hashed and snapshotted.
+- Party members are unspawned `GoodCreatureThing` templates, not placed creatures. Projection does not call `SpawnCreature` or increment its creature count.
+- Effect ids remain variable-length. The fixed two-byte member tail and six-byte generator tail validate their lengths because snapshots encode neither length.
+- `TriggerTree` continues to build its 24 party slots from the source `HeroPartyThing` records. Q256 records the temporary two-home representation.
+
+**Consequences.**
+- All parsed shipped THINGS records now project; `NotYetProjected` is zero across the corpus.
+- `HashVersion` and snapshot `FormatVersion` → **49**. Written against 47, which ADR-0110 had taken by the time this merged; `hash-versions.md` records why neither 47 nor 48 is what shipped.
+- **No behaviour is invented.** Parties do not spawn and generators do not generate. Both remain UNKNOWN (Q254–Q255).
+
 ## ADR-0109 — Eight player conditions are answered false, because the binary answers false
 **Date:** 2026-09-09 · **Status:** accepted · Research: `docs/research/trigger-walkers.md`
 
@@ -1851,6 +1866,7 @@ simulation state shape, so `HashVersion` and snapshot `FormatVersion` do not mov
 - Types 31, 32 and 71 have the same minimal arm and are still declined — the offset each reads is unidentified (Q260–Q262).
 
 **Consequences.**
-- `HashVersion` and snapshot `FormatVersion` → **48**; pin `0x52A068B601960E53` → `0x7DD1C7A2B6EF5CE1`. 47 is reserved for an unlanded branch.
+- `HashVersion` and snapshot `FormatVersion` → **48**, and to 49 when ADR-0108 merged behind it.
 - The campaign stall frontier falls **616 → 606**; no level's flags move, so every shipped gold test is false in a headless run.
 - **A deviation, deliberately:** DK2 skips a Dungeon Heart whose `+0x9A` bit 0 is set and we do not (Q263), so a heart we count might be one DK2 does not.
+
