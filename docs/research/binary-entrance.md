@@ -94,16 +94,15 @@ to be, because `(0-1) * 5 + 15` is 10 rather than 0 —
 `PortalRules.CreatureCapacity` already returns early on no portals for exactly
 that reason, and now that is corroborated rather than merely tidy.
 
-**Two divergences, both ours, both recorded rather than fixed:**
+**Two divergences were recorded here and both are now closed** (Q98). The
+implementation reproduces the routine: `PortalSystem` increments its portal
+count *before* the `CanProduce` test and counts both room types, so a broken
+portal and a claimed Hero Portal each raise the cap exactly as DK2's does. The
+quirk is stated on `PortalRules.CreatureCapacity`.
 
-| DK2 | Us | Why it is left alone |
-|---|---|---|
-| Sums **Portal and Hero Portal** | Counts keeper portals only (`IsKeeperPortal`) | A keeper holding a hero portal is not a state this project can reach — hero gates are the good side's and nothing claims them. It costs nothing today and would first need a rule for what a claimed hero gate even is |
-| Counts **every** room of the type the player owns, unfiltered | Counts only portals passing `CanProduce` — functional, and owning their own centre tile | A real behavioural difference: a damaged or centre-less portal still raises DK2's cap. Not changed on the strength of one reading, because `CanProduce` also protects the spawn-clock invariant and unpicking the two needs care |
-
-Both are Q98. The room-count helper is a plain walk of the player's room list
-comparing a room-type byte, with **no health or functionality test** — that part
-is unambiguous.
+The room-count helper is a plain walk of the player's room list comparing a
+room-type byte, with **no health or functionality test** — that part is
+unambiguous.
 
 ---
 
@@ -171,24 +170,15 @@ and one not. See Q97.
 
 **There is no halving, no multiply-by-count and no floating-point arithmetic
 anywhere in the 20 functions of `Entrance.cpp`.** The spawn clock is not in this
-translation unit, so this pass could neither confirm nor refute
-`max(base, base × creatures ÷ 2)` — the one thing it was opened for.
+translation unit. That is a durable negative result: it rules the interval out of
+`Entrance.cpp` and rules out any formula of the `base × creatures ÷ 2` shape
+being computed here.
 
-The candidate builder is reached through a **vtable**, so it has no direct
-callers and the usual walk up the call graph is closed. The next attempts, in
-order of promise:
-
-1. **Find the readers of the packed balance struct.** The capacity bytes live in
-   one global; the entrance interval is very likely a neighbour, and whatever
-   reads it is the timer code. Cheapest remaining route, and it generalises — it
-   would map *every* balance variable to the code that uses it.
-2. `Room.cpp` / `RoomManager.cpp` per-tick update, if the clock belongs to the
-   room rather than to the entrance.
-3. The vtable itself, to find what dispatches the candidate builder.
-
-**Q86 is still better answered with a stopwatch**, and the prediction is sharp:
-on level 1 the implemented formula says consecutive gaps of **18, 18, 27, 36,
-45** seconds — exactly nine more per goblin.
+The interval itself was settled afterwards, by stopwatch rather than by
+disassembly: it is `n² + base` game seconds, an addition, not a multiplication
+(ADR-0086, `portals-interval.md`). The candidate builder in this unit is reached
+through a **vtable**, so it has no direct callers, which is why the walk up the
+call graph closed here.
 
 ---
 
