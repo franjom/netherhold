@@ -105,6 +105,50 @@ oracle` ranks the candidates with **Level20** at the top. That waits on one fact
 about this install rather than about DK2: whether a mid-campaign level can be
 loaded directly, or the campaign has to be progressed to reach it.
 
-## Results
+## Results — run 2026-09-09, `dk2run6.csv`, 300 s / 1176 ticks
 
-*Not yet run.*
+**Every prediction held, and the event set matches exactly.**
+
+| id | ours | DK2 idle | delta |
+|---|---:|---:|---:|
+| `t15` | turn 1, value **1** | tick 11, value **7** | see below |
+| `f83` | turn 1 | tick 11 | see below |
+| `f1` | turn 33 | tick 40 | −7 |
+| `f34` | turn 601 | tick 608 | −7 |
+
+**4 fire in both, 0 DK2 only, 0 ours only.** Against the played run 5 the same
+comparison was 2 / 46 / 2. Removing the input, not the player, removed the whole
+divergence — which settles predictions 1 and 2 in the direction that clears us:
+`f1` and `f34` were never our defects.
+
+Prediction 4 also held: DK2 idle moved **two** flags in five minutes. Level 1
+does nothing on its own beyond its opening, because it is waiting to be dug.
+
+### Prediction 5 held, and the residual is a constant, not drift
+
+`f1` and `f34` are **both exactly 7 ticks late** in DK2, 568 ticks apart. An
+error in our tick rate would grow over that span; a fixed offset does not. So
+the rate is right and the **start** is not aligned.
+
+`t15` reads the offset directly rather than by sampling: a timer's value *is* a
+tick stamp, and DK2 stored **7** where we store **1**. So DK2 ran trigger 1's
+action — the first thing level 1 does — at tick 7, and we run it on turn 1. The
+7 in the sampled flags is that same 6-tick gap plus a tick of sampling latency.
+
+`t15` and `f83` show as tick 11 only because that is the first sample: the probe
+was started after the level, and both were already set. Their true turns are ≤ 11
+and the timer's stored 7 is the real answer for `t15`.
+
+**Q272** carries what is left: whether DK2 spends six ticks before its first
+trigger evaluation, or our first turn is mis-numbered.
+
+### Protocol notes
+
+Run as written except that the level was loaded before the probe, costing the
+first 11 ticks, and notifications were closed as they arrived. Neither hurt: the
+missed ticks only floor `t15`/`f83`, whose stamp is readable anyway, and clicking
+a notification away did not stop DK2 firing both flags. Nothing was dug.
+
+The capture also re-confirmed Q233 live: all 22 of level 1's type-2 thresholds
+are stored as exactly 4x their authored seconds. And the tick rate measured
+**3.918/s** over 300.18 s, against the 3.94 of the earlier runs.

@@ -95,6 +95,23 @@ against the Q242 assumption. Reaching for the nearest unknown — the assumption
 already knew was there — instead of walking up the chain is what produced the
 wrong first answer.
 
+**2026-09-09, level 1 idle — the first clean two-sided comparison.** Removing
+the *input* rather than the player: the owner loaded level 1 and touched nothing
+for five minutes (`docs/experiments/level1-idle-001`, protocol and predictions
+recorded before the run). Event set over 1176 ticks: **4 in both, 0 DK2 only,
+0 ours only**, against 2 / 46 / 2 for the same level played.
+
+So the 46 were the player all along, and so were `f1` and `f34` — the two flags
+this morning's entry above was still calling ours. **We invent nothing on level
+1**, and neither does the type-72 assumption cost anything while nobody plays.
+
+**And turn numbers are now readable.** `f1` and `f34` sit exactly 7 ticks late in
+DK2 while being 568 ticks apart, so the residual is a constant and not a rate
+error. Timer 15 reads it exactly — a timer's value is a tick stamp, and DK2
+stored **7** where we store **1**. DK2 begins level 1's script six ticks after we
+do; whether that is its startup or our numbering is Q272. The ±156 to +285 of two
+played runs was entirely the human.
+
 ## 2026-09-09 — there is no level worth capturing yet, and that is measurable
 
 The plan after level 1 was to find a level whose script runs on a clock rather
