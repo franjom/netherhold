@@ -133,9 +133,11 @@ return value has never decided where a shipped walk goes. The change is still
 right (DK2 retires a successful action; declining left the bit set) and the
 census is now honest, but the reach was always condition-bound.
 
-**Condition 53 is free**: its player arm is `XOR EAX,EAX` at `0x004C850C`,
-constant false. Answering false rather than declining removes 157 records of
-noise and unblocks nothing, since false and declined both stop the descent.
+**Done, and it behaved as predicted** (ADR-0109). The eight player condition
+types whose jump-table entry is the zero-return epilogue now answer false rather
+than declining. `moved` and `after1` did not move — false and declined both stop
+the descent — and the frontier fell from **777 stalls to 616**, a fifth of it
+noise that the binary had already answered.
 
 ### So the oracle is not blocked on choosing a level
 

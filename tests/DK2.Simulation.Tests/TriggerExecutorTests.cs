@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -276,6 +276,32 @@ public class TriggerExecutorTests
 
         Assert.Empty(result.Blocked);
         Assert.Equal([new BlockedTrigger(214, 14, 0xFFFE)], result.Partial);
+    }
+
+    /// <summary>Eight player condition types are answered <b>false</b>, not declined:
+    /// their jump-table entry is the dispatcher's own zero-return epilogue, so DK2 reads
+    /// nothing and returns 0. The walk is unchanged either way — what changes is that 163
+    /// shipped records stop being reported as work nobody has done (ADR-0109).</summary>
+    [Theory]
+    [InlineData((byte)48)]
+    [InlineData((byte)53)]
+    [InlineData((byte)56)]
+    [InlineData((byte)61)]
+    public void AConstantFalsePlayerConditionIsAnsweredNotDeclined(byte type)
+    {
+        TriggerRecord[] records = [Typed(5, type, child: 0xFFFF), Action(1, 3, 0x0A, 1)];
+
+        var state = new TriggerState();
+        TriggerRunResult run = new TriggerExecutor(
+            new TriggerTree(records, 0, playerRoots: [(ushort)5]), state).Run(1);
+
+        Assert.Equal(0, state.Read(3));
+        Assert.Empty(run.Blocked);
+
+        // And only in a player tree: the world dispatcher has no arm for these at all.
+        TriggerRunResult world =
+            new TriggerExecutor(new TriggerTree(records, 5), new TriggerState()).Run(1);
+        Assert.Equal([new BlockedTrigger(213, type, 5)], world.Blocked);
     }
 
     /// <summary>An action nobody has implemented must descend anyway when DK2's dispatcher

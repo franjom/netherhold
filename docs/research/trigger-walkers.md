@@ -134,8 +134,12 @@ not a convenience.**
 What each context owns is its own:
 
 - **player conditions:** 19–33, 47, 48, 52, 53, 56–61, 68, 71, 72, 73, 74.
-  Of these, 48, 53 and 56–61 jump straight to `0x004C850C`, `XOR EAX,EAX` —
-  **constant false**.
+  Eight of them — 48, 53, 56–61 — have a jump-table entry that **is** the
+  dispatcher's zero-return epilogue at `0x004C850C`: `XOR EAX,EAX`, five pops, a
+  `RET 4`. Not an arm that computes false, an arm that is the return. 163 shipped
+  records, 159 of them type 53 (ADR-0109). Type 73 is the contrast: its arm
+  starts six instructions earlier at `0x004C8500`, tests the player's `+0x134`,
+  and only *falls into* the same epilogue when that word is zero.
 - **player actions:** 10, 11, 24–28, 31, 34, 37, 38, 42, 50. Type 34's arm is
   bare `MOV EAX,1` (`0x004C8A37`): in a player tree it does nothing and succeeds.
 - **creature actions:** 15, 20, 21, 29, 30, 33, 35, 36, 42, 43. Every one of

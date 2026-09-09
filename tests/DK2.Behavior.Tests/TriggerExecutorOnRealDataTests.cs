@@ -24,10 +24,10 @@ public class TriggerExecutorOnRealDataTests
         // rest is the player tree, which is where level 1 keeps its script.
 
         // Blocked is conditions only, and it is the work queue: declining a condition
-        // cannot be told apart from it being false, so the walk stops there.
+        // cannot be told apart from it being false, so the walk stops there. Types 53, 56,
+        // 58 and 60 have left it -- DK2 answers those false and so do we (ADR-0109).
         Assert.Equal(
-            "213:19=1,213:25=4,213:30=3,213:31=3,213:46=1,213:53=2,213:56=1,213:58=1,"
-            + "213:60=1,213:64=1",
+            "213:19=1,213:25=4,213:30=3,213:31=3,213:46=1,213:64=1",
             Census(simulation.LastTriggerRun!.Summary));
 
         // Actions, which descend whatever we do because their dispatcher succeeds.

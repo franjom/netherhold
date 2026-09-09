@@ -484,11 +484,24 @@ public sealed class TriggerExecutor
         if (context != TriggerContext.Player || !PlayerOwnsCondition(record.Type))
             return TriggerConditionEvaluator.Evaluate(record, _state, run.CurrentTick);
 
+        if (PlayerConditionIsConstantFalse(record.Type))
+            return TriggerConditionResult.Unsatisfied;
+
         if (record.Type != 72) return TriggerConditionResult.NotEvaluated;
 
         run.Assumed.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
         return TriggerConditionResult.Satisfied;
     }
+
+    /// <summary>The eight player condition types whose jump-table entry <b>is</b> the
+    /// dispatcher's zero-return epilogue (<c>0x004C850C</c>): they read nothing and answer
+    /// false. Not the same as declining — this is DK2's answer, so 163 shipped records
+    /// leave the blocked census instead of sitting in it as unfinished work.</summary>
+    /// <remarks>Type 73 shares the epilogue but not the entry: its arm starts six
+    /// instructions earlier at <c>0x004C8500</c> and falls into the zero return only when
+    /// the player's <c>+0x134</c> is clear. These eight skip that test.</remarks>
+    private static bool PlayerConditionIsConstantFalse(byte type) =>
+        type is 48 or 53 or (>= 56 and <= 61);
 
     /// <summary>Runs one action, or answers for one this executor does not perform.</summary>
     /// <remarks>

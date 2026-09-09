@@ -1826,3 +1826,16 @@ simulation state shape, so `HashVersion` and snapshot `FormatVersion` do not mov
 - **It buys no reach, and that is measured.** All 5,408 shipped action records are leaves, so no shipped walk descends past one. `dk2tools kwd oracle` is byte-identical before and after. What it does buy is the one-shot retire DK2 performs on a successful action, and a census that separates our gaps from DK2's.
 - Level 1's turn-1 blocked census drops from 16 type groups to 10, all conditions; seven action groups move to `Partial`.
 - The creature action dispatcher (`0x0049AC80`, base 15) was found while checking this and owns ten of the types the world refuses, type 15's 565 records among them. A type is not dead because the world has no arm for it.
+
+## ADR-0109 — Eight player conditions are answered false, because the binary answers false
+**Date:** 2026-09-09 · **Status:** accepted · Research: `docs/research/trigger-walkers.md`
+
+**Context.** The blocked census is the work queue for trigger conditions, and 163 records in it were not work. The player condition dispatcher's jump table sends types 48, 53 and 56–61 to `0x004C850C` — which is not an arm that computes false but the dispatcher's own zero-return epilogue: `XOR EAX,EAX`, five pops, `RET 4`. Nothing is read; nothing can vary. Type 73 shows the difference, reaching the same instruction only by falling through a test of the player's `+0x134`.
+
+**Decision.** `EvaluateCondition` returns `Unsatisfied` for those eight types in a player tree, where it returned `NotEvaluated`. They leave `TriggerRunResult.Blocked`.
+
+**Consequences.**
+- **No behaviour change and no hash change.** False and declined both stop the descent; the walk is identical. `HashVersion` stays 46.
+- The stall frontier across the campaign falls from **777 distinct conditions to 616** (`dk2tools kwd oracle`), and `moved`/`after1` are unchanged, as predicted.
+- Level 1's turn-1 blocked census loses types 53, 56, 58 and 60.
+- Only in a player tree. The world dispatcher has no arm for these types at all, so a world-tree record of one stays blocked — which is what the test pins.
