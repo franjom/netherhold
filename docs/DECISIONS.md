@@ -1928,3 +1928,24 @@ player's twelve score counters are its first twelve fields, and type 31's is
 - **The largest single movement the oracle has recorded.** Campaign-wide `stalls` **599 → 417**, `moved` **55 → 62**, `after1` **10 → 11**. Level 1's blocked census drops type 19 and gains nothing.
 - No hashed state, so no `HashVersion` bump: the count is derived from creatures already hashed.
 - Unverified: whether DK2 drops a creature from the owned list while a hand holds it (Q268). Ours does.
+
+## ADR-0114 — Player room conditions count instances and sum their size
+**Date:** 2026-09-09 · **Status:** accepted · Q270 opened · Research: `docs/research/room-conditions.md`
+
+**Context.** Types 24 and 25 account for 109 shipped player conditions. Their
+room-list mechanics are established, and the simulation already derives the
+same owner/type room instances from the map.
+
+**Decision.** Both conditions use the existing `PlayerCounter` and shared
+comparison path. Type 25 counts owned room instances; type 24 sums their
+`RoomInstance.TileCount`, with the original room `Size` unit explicitly only
+STRONGLY INFERRED to be slab count. A zero `RoomId` selects every room type.
+The derived room list is built lazily once per `TriggerRun`.
+
+Type 68 remains blocked because `TotalCapacity` depends on room contents for
+which no equivalent is established (Q270). Type 25's `Comparison == 0`
+availability-table sub-mode also remains blocked: it is a different question,
+and none of the 85 shipped type-25 records uses it.
+
+**Consequences.** No state was added, so hash and snapshot versions stay 51.
+The rebased `kwd oracle 200` measurements are recorded in the commit.

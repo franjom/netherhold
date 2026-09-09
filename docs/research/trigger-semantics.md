@@ -208,16 +208,16 @@ records that branch. That is where the campaign's script actually stalls, and
 ## What the player conditions read
 
 The player condition dispatcher's `this` is the player object, so every type it
-owns is a question about one keeper. Four of them have the same minimal arm —
-load one dword off the player, compare it against the record's `Value` with the
-record's `Comparison`, return:
+owns is a question about one keeper. Room types 24, 25 and 68 are in
+`room-conditions.md`. Four other types have the same minimal arm — load one
+dword off the player, compare it with the record's value, return:
 
 | type | records | reads | what it is |
 |---|---:|---|---|
 | 30 | 11 | `[player+0x7E]` | **gold** — see below |
-| 31 | 9 | `[player+0x15A]` | **UNKNOWN** (Q260) |
-| 32 | 1 | `[player+0x82]` | **UNKNOWN** (Q261). Set to `0x7FFFFFFF` for one special player, so plausibly a capacity |
-| 71 | 2 | `[player+0xEE6]` | **UNKNOWN** (Q262) |
+| 31 | 9 | `[player+0x15A]` | gold mined (ADR-0112) |
+| 32 | 1 | `[player+0x82]` | current mana (ADR-0111) |
+| 71 | 2 | `[player+0xEE6]` | slaps received; no simulation counter yet (Q262) |
 
 **`+0x7E` is the keeper's gold.** The player's per-turn frame `FUN_004B9EC0`
 rebuilds it at `0x004B9F57`: walk the player's room list from `+0x36` through
