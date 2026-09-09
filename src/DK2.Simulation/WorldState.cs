@@ -367,6 +367,64 @@ public sealed class ActionPointState
 }
 
 /// <summary>
+/// One door projected verbatim from a placed THING. This is ordered, hashed
+/// state only: opening, closing, locking and movement blocking are UNKNOWN and
+/// deliberately have no implementation (ADR-0106).
+/// </summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
+public sealed class DoorState
+{
+    public int X { get; init; }
+    public int Y { get; init; }
+    public int Unknown_0008 { get; init; }
+    public ushort TriggerId { get; init; }
+    public byte DoorId { get; init; }
+    public byte PlayerId { get; init; }
+    public byte Flags { get; init; }
+    public required ReadOnlyMemory<byte> Unknown_0011 { get; init; }
+
+    public void HashInto(ref Hash64 hash)
+    {
+        hash.Add(X);
+        hash.Add(Y);
+        hash.Add(Unknown_0008);
+        hash.Add(TriggerId);
+        hash.Add(DoorId);
+        hash.Add(PlayerId);
+        hash.Add(Flags);
+        foreach (byte value in Unknown_0011.Span) hash.Add(value);
+    }
+}
+
+/// <summary>
+/// One trap projected verbatim from a placed THING. This is ordered, hashed
+/// state only: arming, firing and consuming shots are UNKNOWN and deliberately
+/// have no implementation (ADR-0106).
+/// </summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
+public sealed class TrapState
+{
+    public int X { get; init; }
+    public int Y { get; init; }
+    public int Unknown_0008 { get; init; }
+    public byte NumberOfShots { get; init; }
+    public byte TrapId { get; init; }
+    public byte PlayerId { get; init; }
+    public byte Unknown_000F { get; init; }
+
+    public void HashInto(ref Hash64 hash)
+    {
+        hash.Add(X);
+        hash.Add(Y);
+        hash.Add(Unknown_0008);
+        hash.Add(NumberOfShots);
+        hash.Add(TrapId);
+        hash.Add(PlayerId);
+        hash.Add(Unknown_000F);
+    }
+}
+
+/// <summary>
 /// All mutable simulation state for one level. Owns no behaviour — systems act
 /// on it. Everything reachable from here is hashed and snapshotted; anything
 /// not reachable from here does not exist as far as determinism is concerned,
@@ -380,6 +438,8 @@ public sealed class WorldState
     private readonly List<CreatureState> _creatures = [];
     private readonly List<ObjectState> _objects = [];
     private readonly List<ActionPointState> _actionPoints = [];
+    private readonly List<DoorState> _doors = [];
+    private readonly List<TrapState> _traps = [];
     private int _nextCreatureId = 1;
     private int _nextObjectId = 1;
 
@@ -623,6 +683,16 @@ public sealed class WorldState
 
     internal void AddActionPoint(ActionPointState actionPoint) => _actionPoints.Add(actionPoint);
 
+    /// <summary>The level's doors in THINGS-file order. No door behaviour exists yet.</summary>
+    public IReadOnlyList<DoorState> Doors => _doors;
+
+    internal void AddDoor(DoorState door) => _doors.Add(door);
+
+    /// <summary>The level's traps in THINGS-file order. No trap behaviour exists yet.</summary>
+    public IReadOnlyList<TrapState> Traps => _traps;
+
+    internal void AddTrap(TrapState trap) => _traps.Add(trap);
+
     public bool HasPlayer(byte playerId)
     {
         foreach (PlayerState p in _players)
@@ -684,6 +754,8 @@ public sealed class WorldState
     internal List<CreatureState> RawCreatures => _creatures;
     internal List<ObjectState> RawObjects => _objects;
     internal List<ActionPointState> RawActionPoints => _actionPoints;
+    internal List<DoorState> RawDoors => _doors;
+    internal List<TrapState> RawTraps => _traps;
 
     /// <summary>Restores the id counter after a snapshot, so ids stay unique across a save.</summary>
     internal int NextCreatureId
@@ -724,6 +796,12 @@ public sealed class WorldState
 
         hash.Add(_actionPoints.Count);
         foreach (ActionPointState actionPoint in _actionPoints) actionPoint.HashInto(ref hash);
+
+        hash.Add(_doors.Count);
+        foreach (DoorState door in _doors) door.HashInto(ref hash);
+
+        hash.Add(_traps.Count);
+        foreach (TrapState trap in _traps) trap.HashInto(ref hash);
 
         // The trigger banks are level state, not level data: an action record
         // writes a flag and a later condition reads it, so two worlds that

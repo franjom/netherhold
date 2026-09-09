@@ -122,6 +122,42 @@ public class SnapshotTests
     }
 
     [Fact]
+    public void RoundTrip_CarriesDoorsAndTrapsVerbatim()
+    {
+        GameDatabase database = TestWorld.Database();
+        GameSimulation original = TestWorld.Simulation();
+        ThingProjection.Place(original.World, database,
+        [
+            new DoorThing(new byte[20])
+            {
+                X = -1, Y = 2, Unknown_0008 = 3, TriggerId = 4,
+                DoorId = 5, PlayerId = 6, Flags = 0xE7,
+                Unknown_0011 = new byte[] { 7, 8, 9 },
+            },
+            new TrapThing(new byte[16])
+            {
+                X = -10, Y = 11, Unknown_0008 = 12, NumberOfShots = 13,
+                TrapId = 14, PlayerId = 15, Unknown_000F = 16,
+            },
+        ]);
+
+        GameSimulation restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(original), database, [new ChaosSystem()]);
+
+        DoorState door = Assert.Single(restored.World.Doors);
+        Assert.Equal((-1, 2, 3, (ushort)4, (byte)5, (byte)6, (byte)0xE7),
+            (door.X, door.Y, door.Unknown_0008, door.TriggerId,
+             door.DoorId, door.PlayerId, door.Flags));
+        Assert.Equal(new byte[] { 7, 8, 9 }, door.Unknown_0011.ToArray());
+
+        TrapState trap = Assert.Single(restored.World.Traps);
+        Assert.Equal((-10, 11, 12, (byte)13, (byte)14, (byte)15, (byte)16),
+            (trap.X, trap.Y, trap.Unknown_0008, trap.NumberOfShots,
+             trap.TrapId, trap.PlayerId, trap.Unknown_000F));
+        Assert.Equal(original.StateHash(), restored.StateHash());
+    }
+
+    [Fact]
     public void RestoredRun_ContinuesIdentically()
     {
         // The real invariant. Equal hashes at the moment of restore only prove

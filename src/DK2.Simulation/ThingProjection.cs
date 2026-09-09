@@ -18,10 +18,12 @@ public readonly record struct ThingProjectionResult(
     int Creatures,
     int Objects,
     int ActionPoints,
+    int Doors,
+    int Traps,
     int RoomsAlreadyInTheGrid,
     int NotYetProjected)
 {
-    public int Placed => Creatures + Objects + ActionPoints;
+    public int Placed => Creatures + Objects + ActionPoints + Doors + Traps;
 }
 
 /// <summary>Turns a level's placed THINGS records into world contents.</summary>
@@ -31,10 +33,10 @@ public readonly record struct ThingProjectionResult(
 /// levels they run x 0..118 and y 0..102 against a largest map of 121x105, and not one of the 6279
 /// records lands outside its own level's grid; under the subtile reading every one would.
 /// <c>dk2tools kwd things</c> re-checks it.</para>
-/// <para>Places creatures, objects and action points, because <see cref="WorldState"/> holds each
-/// as simulation state (action points are hashed state, ADR-0103). Not implemented: doors, traps,
-/// hero parties and effect generators are read and counted but the world has nowhere to put them
-/// (<see cref="ThingProjectionResult.NotYetProjected"/>, Q222–Q224).</para>
+/// <para>Places creatures, objects, action points, doors and traps, because
+/// <see cref="WorldState"/> holds each as simulation state. Doors and traps have
+/// no behaviour yet (ADR-0106). Hero parties and effect generators are read and
+/// counted but the world has nowhere to put them.</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/placed-things.md")]
 public static class ThingProjection
@@ -67,7 +69,8 @@ public static class ThingProjection
         if (database is null) throw new ArgumentNullException(nameof(database));
         if (things is null) throw new ArgumentNullException(nameof(things));
 
-        int creatures = 0, objects = 0, actionPoints = 0, rooms = 0, skipped = 0;
+        int creatures = 0, objects = 0, actionPoints = 0, doors = 0, traps = 0;
+        int rooms = 0, skipped = 0;
 
         foreach (ThingRecord record in things)
         {
@@ -101,6 +104,16 @@ public static class ThingProjection
                     actionPoints++;
                     break;
 
+                case DoorThing t:
+                    PlaceDoor(world, t);
+                    doors++;
+                    break;
+
+                case TrapThing t:
+                    PlaceTrap(world, t);
+                    traps++;
+                    break;
+
                 // A ROOM record does not place a room: the MAP grid already
                 // carries the room's terrain, and WorldState.FromMap has
                 // already laid it down. Checked rather than assumed — across
@@ -117,7 +130,8 @@ public static class ThingProjection
             }
         }
 
-        return new ThingProjectionResult(creatures, objects, actionPoints, rooms, skipped);
+        return new ThingProjectionResult(
+            creatures, objects, actionPoints, doors, traps, rooms, skipped);
     }
 
     private static void PlaceCreature(
@@ -177,4 +191,29 @@ public static class ThingProjection
                 thing.WaitDelay * SimulationTiming.OriginalTicksPerGameSecond)),
         });
     }
+
+    private static void PlaceDoor(WorldState world, DoorThing thing) =>
+        world.AddDoor(new DoorState
+        {
+            X = thing.X,
+            Y = thing.Y,
+            Unknown_0008 = thing.Unknown_0008,
+            TriggerId = thing.TriggerId,
+            DoorId = thing.DoorId,
+            PlayerId = thing.PlayerId,
+            Flags = thing.Flags,
+            Unknown_0011 = thing.Unknown_0011.ToArray(),
+        });
+
+    private static void PlaceTrap(WorldState world, TrapThing thing) =>
+        world.AddTrap(new TrapState
+        {
+            X = thing.X,
+            Y = thing.Y,
+            Unknown_0008 = thing.Unknown_0008,
+            NumberOfShots = thing.NumberOfShots,
+            TrapId = thing.TrapId,
+            PlayerId = thing.PlayerId,
+            Unknown_000F = thing.Unknown_000F,
+        });
 }

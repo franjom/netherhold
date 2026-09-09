@@ -33,7 +33,12 @@ beside it.
 
 ## Versions
 
-**44** — `0x48D7950540013015` (current). Every action point's trigger tree is
+**45** — `0x57E013D74DC65BAA` (current). Doors and traps enter ordered
+world state with every parsed field copied verbatim, hashed and snapshotted.
+Even the fixture's two empty collections add their counts to the hash.
+`docs/research/doors-and-traps.md`.
+
+**44** — `0x48D7950540013015`. Every action point's trigger tree is
 walked each turn too, in the area context, and five of the seven condition types
 that context owns are computed: 40, 41, 42, 62 and 69. No hashed field changed;
 the literal moved because the version is hashed, and it had to move because a
