@@ -1754,3 +1754,28 @@ Three for three on the THINGS field names this projection had to rely on — the
 - `HashVersion` and snapshot `FormatVersion` → **40**, stepping over the 38 this branch had reserved before master independently took 39. Pin `0x81D58B966898BEC8` → `0x6445940E0B0F23A9`.
 - The loader flag mask is pinned by a test that can fail: the corpus authors bits `0x7D`, so bit 6 ships and is discarded, while bits 1 and 7 are never authored and rest on the disassembly alone. Every other assertion compared the constant against itself.
 - **No action-point behaviour runs.** Flag meanings, timer and counter consumers, rectangle-entry cadence and waypoint traversal are Q235–Q238.
+
+
+## ADR-0104 — Player gestures are translated outside Unity
+**Date:** 2026-09-09 · **Status:** accepted
+
+**Context.** `DungeonRunner` advanced the simulation with empty input, while
+Unity-side gesture rules would evade the normal test suite and violate ADR-0036's
+arithmetic-only adapter boundary.
+
+**Decision.** `DK2.Presentation` owns `PlayerIntent`, `PlayerInputSnapshot` and a
+stateful `PlayerInputTranslator`. The translator turns button edges into one
+`InputFrame`: tag, untag, room-build and room-sell tools complete a row-major
+rectangle on release; hand, slap and Create Imp tools act once on press. A hand
+holding something drops first; otherwise a creature wins over an object on the
+same tile. These are project interface choices, not claims about DK2.
+
+Unity selects tools, projects a screen ray onto the ground plane, supplies
+button edges, queues commands until the next whole simulation tick, and handles
+camera arithmetic. Campaign THINGS use the existing projection so entity tools
+have starting targets; saved-game entities remain unavailable because their
+records are undecoded.
+
+**Consequences.** All eight existing `PlayerCommand` types are reachable from
+the Unity view without Unity types entering testable logic. Input changes no
+simulation state shape, so `HashVersion` and snapshot `FormatVersion` do not move.
