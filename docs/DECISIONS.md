@@ -1949,6 +1949,8 @@ and none of the 85 shipped type-25 records uses it.
 
 **Consequences.** No state was added, so hash and snapshot versions stay 51.
 The rebased `kwd oracle 200` measurements are recorded in the commit.
+
+**Amended 2026-09-09.** The per-`TriggerRun` cache rested on an unchecked claim — that no action this executor performs can alter terrain. It is true (only types 7, 8 and 14 are performed) but nothing would have noticed it becoming false, which is the shape of three long-lived defects in this repo. `TriggerExecutor.Performs` now names the set and two tests hold it: one pins the set so a fourth type is a failure here rather than a silence, and one digs a room between turns to prove the cache does not outlive one. The second was checked against a mutant that hoists the cache to the executor.
 ## ADR-0115 — Type 39 counts things in a rectangle, and two of its three selectors were misnamed
 **Date:** 2026-09-09 · **Status:** accepted · Q271 opened · Research: `docs/research/trigger-semantics.md`
 

@@ -633,7 +633,7 @@ public sealed class TriggerExecutor
     {
         if (context == TriggerContext.Player && PlayerOwnsAction(record.Type))
             return Unperformed(record, run.Partial);
-        if (record.Type is 7 or 8 or 14)
+        if (Performs(record.Type))
             return ExecuteAction(record, run.CurrentTick, run.Partial);
         if (WorldActionSucceeds(record.Type)) return Unperformed(record, run.Partial);
 
@@ -685,6 +685,16 @@ public sealed class TriggerExecutor
         >= 24 and <= 28 => true,
         _ => false,
     };
+
+    /// <summary>Whether this executor <b>carries out</b> an action type, as opposed to the
+    /// many more it answers for. Flag write, timer start, party arming — <b>none of them
+    /// touches terrain</b>, which is what lets <see cref="TriggerRun.Rooms"/> hold one
+    /// derived room list for a whole run.</summary>
+    /// <remarks>Adding a type here without invalidating that cache would leave a room
+    /// condition reading the map as it was before the write.
+    /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
+    /// makes that a failure rather than a silence.</remarks>
+    public static bool Performs(byte type) => type is 7 or 8 or 14;
 
     private bool ExecuteAction(
         TriggerRecord record, int currentTick, List<BlockedTrigger> partial)

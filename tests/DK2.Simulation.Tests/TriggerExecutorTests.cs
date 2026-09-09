@@ -605,6 +605,59 @@ public class TriggerExecutorTests
             },
         };
 
+    /// <summary>The room list types 24 and 25 read is built once per <see cref="Run"/> and
+    /// held for the whole walk (ADR-0114). That is only sound while <b>no action this
+    /// executor performs can alter terrain</b> — a flag write, a timer start and party
+    /// arming cannot. This pins the set so that adding a fourth is a failure here rather
+    /// than a room condition silently reading the map as it was before the write.</summary>
+    [Fact]
+    public void OnlyActionsThatCannotAlterTerrainArePerformed()
+    {
+        byte[] performed = Enumerable.Range(0, 256)
+            .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
+
+        Assert.Equal([(byte)7, (byte)8, (byte)14], performed);
+    }
+
+    /// <summary>And the cache lives for one turn, not for the executor: each
+    /// <see cref="TriggerExecutor.Run"/> makes its own <c>TriggerRun</c>. A room dug between
+    /// turns must therefore be visible on the next one, which this digs and re-asks.</summary>
+    [Fact]
+    public void TheRoomCacheDoesNotSurviveIntoTheNextTurn()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+
+        // Zero treasuries now, so ">= 1" is false on turn 1.
+        TriggerRecord[] records =
+        [
+            RoomCounter(5, 25, comparison: 5, RoomTypeId.Treasury, threshold: 1, child: 0xFFFF),
+            Action(1, 3, 0x0A, 1),
+        ];
+        var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
+        var executor = new TriggerExecutor(tree, world.Triggers, world, database);
+
+        executor.Run(1);
+        Assert.Equal(0, world.Triggers.Read(3));
+
+        BuildTreasury(world, database);
+        executor.Run(2);
+
+        Assert.Equal(1, world.Triggers.Read(3));
+    }
+
+    /// <summary>A one-tile Treasury owned by the keeper, laid straight onto the map the way
+    /// <see cref="RoomIndex"/> derives rooms — from the tiles, not from a room object.
+    /// </summary>
+    private static void BuildTreasury(WorldState world, GameDatabase database)
+    {
+        RoomDef treasury = database.Rooms.Values.First(r => r.RoomId == (byte)RoomTypeId.Treasury);
+        ref TileState tile = ref world.Tile(3, 3);
+        tile.TerrainId = treasury.TerrainId;
+        tile.OwnerPlayerId = Keeper;
+    }
+
     private static TriggerRecord Gold(ushort id, byte comparison, int threshold, ushort child) =>
         Counter(id, 30, comparison, threshold, child);
 
