@@ -89,6 +89,12 @@ public sealed record TriggerPartySlot(
     public static TriggerPartySlot Empty { get; } = new(0, []);
 }
 
+/// <summary>One player's tree root, <b>with the player it belongs to</b>. DK2's frame
+/// walks a player's root with that player as the condition dispatcher's <c>this</c>
+/// (<c>0x004B9F10</c>), so a root without its owner cannot answer a single one of the 30
+/// player-owned condition types.</summary>
+public readonly record struct TriggerPlayerRoot(byte PlayerId, ushort TriggerId);
+
 /// <summary>Immutable records and the root arguments used by the world walker.</summary>
 /// <remarks>
 /// <para>Rule: trigger ids are signed 16-bit. A positive id selects a tag 213
@@ -113,12 +119,12 @@ public sealed class TriggerTree
         IEnumerable<TriggerRecord> records,
         ushort rootTriggerId,
         IEnumerable<HeroPartyThing>? parties = null,
-        IEnumerable<ushort>? playerRoots = null)
+        IEnumerable<TriggerPlayerRoot>? playerRoots = null)
     {
         Records = records?.ToArray() ?? throw new ArgumentNullException(nameof(records));
         RootTriggerId = rootTriggerId;
         Parties = BuildParties(parties);
-        PlayerRoots = (playerRoots ?? []).Where(id => id != 0).ToArray();
+        PlayerRoots = (playerRoots ?? []).Where(r => r.TriggerId != 0).ToArray();
 
         foreach (TriggerRecord record in Records)
         {
@@ -169,7 +175,7 @@ public sealed class TriggerTree
     /// 66</b> levels that have more than one (<c>dk2tools kwd roots</c>). It only matters
     /// where two player trees write the same flag on the same turn.</para>
     /// </remarks>
-    public IReadOnlyList<ushort> PlayerRoots { get; }
+    public IReadOnlyList<TriggerPlayerRoot> PlayerRoots { get; }
 
     internal TriggerRecord? FirstCondition { get; }
     internal TriggerRecord? FirstAction { get; }
@@ -258,6 +264,11 @@ internal sealed class TriggerRun(int currentTick)
     /// <summary>The action point whose tree is being walked, or null outside one. Every
     /// area-owned condition measures over this point's rectangle.</summary>
     public ActionPointState? Area { get; set; }
+
+    /// <summary>The player whose tree is being walked, or null outside one. It is the
+    /// player condition dispatcher's <c>this</c>, so every player-owned type needs it.
+    /// </summary>
+    public byte? Player { get; set; }
 
     public List<BlockedTrigger> Blocked { get; } = [];
     public List<BlockedTrigger> Partial { get; } = [];
@@ -353,12 +364,14 @@ public sealed class TriggerExecutor
         // The repeat argument is read off the resolved record NOW (0x004B9F04), not
         // copied at load as the world's +0x731A is -- so a root re-armed this game will
         // pass 1 here where the world root would still pass its authored value.
-        foreach (ushort root in _tree.PlayerRoots)
+        foreach (TriggerPlayerRoot root in _tree.PlayerRoots)
         {
-            TriggerRecord? record = _tree.ResolveCondition(root);
+            TriggerRecord? record = _tree.ResolveCondition(root.TriggerId);
             byte repeat = record is null ? (byte)0 : _state.RecordRepeat(record);
-            Walk(unchecked((short)root), repeat, TriggerContext.Player, run);
+            run.Player = root.PlayerId;
+            Walk(unchecked((short)root.TriggerId), repeat, TriggerContext.Player, run);
         }
+        run.Player = null;
 
         return run.Result();
     }
@@ -487,11 +500,24 @@ public sealed class TriggerExecutor
         if (PlayerConditionIsConstantFalse(record.Type))
             return TriggerConditionResult.Unsatisfied;
 
+        if (record.Type == 30 && _world is not null)
+            return Result(TriggerState.Compare(
+                Byte(record.Parameters, "Comparison"),
+                GoldStore.Total(_world, run.Player!.Value),
+                unchecked((int)record.Parameters["Value"])));
+
         if (record.Type != 72) return TriggerConditionResult.NotEvaluated;
 
         run.Assumed.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
         return TriggerConditionResult.Satisfied;
     }
+
+    private static TriggerConditionResult Result(bool held) => held
+        ? TriggerConditionResult.Satisfied
+        : TriggerConditionResult.Unsatisfied;
+
+    private static byte Byte(IReadOnlyDictionary<string, long> p, string name) =>
+        checked((byte)p[name]);
 
     /// <summary>The eight player condition types whose jump-table entry <b>is</b> the
     /// dispatcher's zero-return epilogue (<c>0x004C850C</c>): they read nothing and answer

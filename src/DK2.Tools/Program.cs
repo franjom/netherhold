@@ -2379,7 +2379,8 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
     // condition measures over. A world with none of them walks no area tree.
     ThingProjection.Place(world, database, things);
     var tree = new TriggerTree(
-        records, level.TriggerId, parties, players.Select(p => p.TriggerId));
+        records, level.TriggerId, parties,
+        players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
     var simulation = new GameSimulation(database, world, seed: 0, triggers: tree);
 
     using (var writer = new StreamWriter(outPath))
@@ -3034,7 +3035,7 @@ static (int Moved, int MovedAfterFirstTurn, int Stalls) RunOracleLevel(
     var tree = new TriggerTree(
         records, def.TriggerId,
         things.OfType<HeroPartyThing>(),
-        players.Select(p => p.TriggerId));
+        players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
     var simulation = new GameSimulation(database, world, seed: 0, triggers: tree);
 
     var firstTurn = new Dictionary<string, int>();

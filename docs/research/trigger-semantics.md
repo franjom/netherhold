@@ -205,6 +205,36 @@ nothing short of implementing it can say which. Conditions are also the only
 records that branch. That is where the campaign's script actually stalls, and
 `docs/EXPERIMENTS.md` has the census.
 
+## What the player conditions read
+
+The player condition dispatcher's `this` is the player object, so every type it
+owns is a question about one keeper. Four of them have the same minimal arm —
+load one dword off the player, compare it against the record's `Value` with the
+record's `Comparison`, return:
+
+| type | records | reads | what it is |
+|---|---:|---|---|
+| 30 | 11 | `[player+0x7E]` | **gold** — see below |
+| 31 | 9 | `[player+0x15A]` | **UNKNOWN** (Q260) |
+| 32 | 1 | `[player+0x82]` | **UNKNOWN** (Q261). Set to `0x7FFFFFFF` for one special player, so plausibly a capacity |
+| 71 | 2 | `[player+0xEE6]` | **UNKNOWN** (Q262) |
+
+**`+0x7E` is the keeper's gold.** The player's per-turn frame `FUN_004B9EC0`
+rebuilds it at `0x004B9F57`: walk the player's room list from `+0x36` through
+the object table at `0x006EE540`, and for each room whose type byte `+0x18` is
+**1 (Treasury)**, or **5 (Dungeon Heart)** with bit 0 of `+0x9A` clear, add the
+room's `+0x49`. Those are the only two rooms that store gold, which
+`rooms-and-gold.md` had already established from the other direction.
+
+That sum is a **resync, not the counter**. `FUN_004BA420` — the player's gold
+transaction — adds to `+0x7E` at `0x004BA61D` and subtracts at `0x004BA63F`, so
+the value tracks every deposit and withdrawal live and the frame only corrects
+drift. A condition therefore reads the current total, **not** last turn's, even
+though the frame's own recompute happens after it walks the tree.
+
+The Dungeon Heart's `+0x9A` bit 0 is not identified (Q263). Our gold total has
+no equivalent, so a heart we would count might be one DK2 skips.
+
 ## Parameter provenance
 
 Offsets are body-relative. `u8`, `u16`, `s16`, `u32`, and `s32` are the exact

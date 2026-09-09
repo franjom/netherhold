@@ -1839,3 +1839,18 @@ simulation state shape, so `HashVersion` and snapshot `FormatVersion` do not mov
 - The stall frontier across the campaign falls from **777 distinct conditions to 616** (`dk2tools kwd oracle`), and `moved`/`after1` are unchanged, as predicted.
 - Level 1's turn-1 blocked census loses types 53, 56, 58 and 60.
 - Only in a player tree. The world dispatcher has no arm for these types at all, so a world-tree record of one stays blocked — which is what the test pins.
+
+## ADR-0110 — A player tree knows which player it is, and type 30 is that player's gold
+**Date:** 2026-09-09 · **Status:** accepted · Q260–Q263 opened · Research: `docs/research/trigger-semantics.md`
+
+**Context.** `TriggerTree.PlayerRoots` was a list of trigger ids. DK2's frame walks a player's root with that player as the condition dispatcher's `this` (`0x004B9F10`), so a root without its owner cannot answer any of the 30 player-owned condition types — about 700 shipped records. Both production call sites had the `PlayerDef` in hand and dropped the id.
+
+**Decision.** `TriggerPlayerRoot(PlayerId, TriggerId)` replaces the bare id, `TriggerRun` carries the player being walked, and condition type 30 is evaluated as that player's gold.
+- **Type 30 is gold**, on two independent readings that agree. Its arm loads `[player+0x7E]` and compares (`0x004C841F`); the player frame rebuilds that dword by summing every Treasury and Dungeon Heart the player owns (`0x004B9F57`), which is the quantity `GoldStore.Total` already holds and `rooms-and-gold.md` established from the data side.
+- **No one-turn lag.** The frame's sum runs after the tree walk, but it is a resync: `FUN_004BA420` writes `+0x7E` on every deposit and withdrawal, so the condition reads the live total.
+- Types 31, 32 and 71 have the same minimal arm and are still declined — the offset each reads is unidentified (Q260–Q262).
+
+**Consequences.**
+- `HashVersion` and snapshot `FormatVersion` → **48**; pin `0x52A068B601960E53` → `0x7DD1C7A2B6EF5CE1`. 47 is reserved for an unlanded branch.
+- The campaign stall frontier falls **616 → 606**; no level's flags move, so every shipped gold test is false in a headless run.
+- **A deviation, deliberately:** DK2 skips a Dungeon Heart whose `+0x9A` bit 0 is set and we do not (Q263), so a heart we count might be one DK2 does not.

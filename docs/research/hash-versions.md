@@ -33,7 +33,12 @@ beside it.
 
 ## Versions
 
-**46** — `0x52A068B601960E53` (current). An action DK2's dispatcher succeeds at
+**48** — `0x7DD1C7A2B6EF5CE1` (current). Player condition type 30 reads the
+walked player's gold, so a shipped level's script can branch on it (ADR-0110).
+Behaviour, not composition. **47 is reserved** for an unlanded branch; if that
+lands after this one it takes the next free number instead.
+
+**46** — `0x52A068B601960E53`. An action DK2's dispatcher succeeds at
 returns true whether or not this executor performs it, so the walker retires it
 under an inherited repeat of 1 (ADR-0107). Behaviour, not composition: the
 fixture runs no triggers, so only the version bump moves the value here, and the

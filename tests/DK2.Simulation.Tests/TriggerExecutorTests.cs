@@ -278,6 +278,66 @@ public class TriggerExecutorTests
         Assert.Equal([new BlockedTrigger(214, 14, 0xFFFE)], result.Partial);
     }
 
+    /// <summary>Condition type 30 is the player's gold. Its arm reads one dword,
+    /// <c>[player+0x7E]</c>, and compares it (<c>0x004C841F</c>); the player frame keeps
+    /// that dword by summing every Treasury and Dungeon Heart room it owns
+    /// (<c>0x004B9F57</c>), which is the quantity <see cref="GoldStore.Total"/> already
+    /// holds. ADR-0110.</summary>
+    [Theory]
+    [InlineData((byte)5, 400, true)]    // >= 400 holds on 500
+    [InlineData((byte)5, 600, false)]
+    [InlineData((byte)2, 600, true)]    // <= 600 holds on 500
+    public void ConditionThirtyComparesThePlayersGold(byte comparison, int threshold, bool holds)
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        world.TileAtIndex(0).OwnerPlayerId = 3;
+        world.TileAtIndex(0).GoldHeld = 500;
+
+        TriggerRecord[] records = [Gold(5, comparison, threshold, child: 0xFFFF), Action(1, 3, 0x0A, 1)];
+        var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(3, 5)]);
+        new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Equal(holds ? 1 : 0, world.Triggers.Read(3));
+    }
+
+    /// <summary>And it is the walked player's gold, not any player's. Two roots, two
+    /// keepers, one holding gold: only that one's subtree runs.</summary>
+    [Fact]
+    public void ConditionThirtyReadsTheGoldOfThePlayerWhoseTreeIsBeingWalked()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        world.TileAtIndex(0).OwnerPlayerId = 3;
+        world.TileAtIndex(0).GoldHeld = 500;
+
+        TriggerRecord[] records =
+        [
+            Gold(5, comparison: 5, threshold: 400, child: 0xFFFF),
+            Gold(6, comparison: 5, threshold: 400, child: 0xFFFE),
+            Action(1, 3, 0x0A, 1),
+            Action(2, 4, 0x0A, 1),
+        ];
+        var tree = new TriggerTree(
+            records, 0,
+            playerRoots: [new TriggerPlayerRoot(3, 5), new TriggerPlayerRoot(1, 6)]);
+        new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Equal(1, world.Triggers.Read(3));
+        Assert.Equal(0, world.Triggers.Read(4));
+    }
+
+    private static TriggerRecord Gold(ushort id, byte comparison, int threshold, ushort child) =>
+        new GenericTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = id, Type = 30, RepeatCount = 1,
+            ChildTriggerId = child, NextTriggerId = 0,
+            Parameters = new Dictionary<string, long>
+            {
+                ["Comparison"] = comparison, ["Value"] = threshold,
+            },
+        };
+
     /// <summary>Eight player condition types are answered <b>false</b>, not declined:
     /// their jump-table entry is the dispatcher's own zero-return epilogue, so DK2 reads
     /// nothing and returns 0. The walk is unchanged either way — what changes is that 163
@@ -293,7 +353,7 @@ public class TriggerExecutorTests
 
         var state = new TriggerState();
         TriggerRunResult run = new TriggerExecutor(
-            new TriggerTree(records, 0, playerRoots: [(ushort)5]), state).Run(1);
+            new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(3, 5)]), state).Run(1);
 
         Assert.Equal(0, state.Read(3));
         Assert.Empty(run.Blocked);
@@ -358,7 +418,7 @@ public class TriggerExecutorTests
 
         var player = new TriggerState();
         TriggerRunResult playerRun = new TriggerExecutor(
-            new TriggerTree(records, 0, playerRoots: [(ushort)0xFFFF]), player).Run(1);
+            new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(3, 0xFFFF)]), player).Run(1);
 
         var world = new TriggerState();
         TriggerRunResult worldRun =
@@ -410,7 +470,7 @@ public class TriggerExecutorTests
         var withPlayer = new TriggerState();
         var without = new TriggerState();
 
-        new TriggerExecutor(new TriggerTree(records, 0, playerRoots: [(ushort)5]), withPlayer).Run(1);
+        new TriggerExecutor(new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(3, 5)]), withPlayer).Run(1);
         new TriggerExecutor(new TriggerTree(records, 0), without).Run(1);
 
         Assert.Equal(1, withPlayer.Read(3));
@@ -428,7 +488,7 @@ public class TriggerExecutorTests
 
         var player = new TriggerState();
         TriggerRunResult playerRun = new TriggerExecutor(
-            new TriggerTree(records, 0, playerRoots: [(ushort)5]), player).Run(1);
+            new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(3, 5)]), player).Run(1);
 
         var world = new TriggerState();
         TriggerRunResult worldRun =
@@ -462,7 +522,7 @@ public class TriggerExecutorTests
             : [Condition(5, 255, child: 0xFFFF, next: 0, FlagEqualsZero()), Typed214(1, type)];
 
         TriggerRunResult run = new TriggerExecutor(
-            new TriggerTree(records, 0, playerRoots: [(ushort)5]), new TriggerState()).Run(1);
+            new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(3, 5)]), new TriggerState()).Run(1);
 
         Assert.DoesNotContain(run.Assumed, b => b.Tag == tag && b.Type == type);
         Assert.DoesNotContain(run.Blocked, b => b.Tag == tag && b.Type == type);

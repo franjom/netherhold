@@ -25,9 +25,9 @@ public class TriggerExecutorOnRealDataTests
 
         // Blocked is conditions only, and it is the work queue: declining a condition
         // cannot be told apart from it being false, so the walk stops there. Types 53, 56,
-        // 58 and 60 have left it -- DK2 answers those false and so do we (ADR-0109).
+        // 58 and 60 left it with ADR-0109, and type 30 -- the gold test -- with ADR-0110.
         Assert.Equal(
-            "213:19=1,213:25=4,213:30=3,213:31=3,213:46=1,213:64=1",
+            "213:19=1,213:25=4,213:31=3,213:46=1,213:64=1",
             Census(simulation.LastTriggerRun!.Summary));
 
         // Actions, which descend whatever we do because their dispatcher succeeds.
@@ -188,7 +188,8 @@ public class TriggerExecutorOnRealDataTests
         WorldState world = WorldState.FromMap(database, map, players);
         var tree = new TriggerTree(
             records, level.TriggerId, things.OfType<HeroPartyThing>(),
-            GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!.Select(p => p.TriggerId));
+            GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!
+                .Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
         return (new GameSimulation(database, world, seed, triggers: tree), tree);
     }
 }
