@@ -52,10 +52,10 @@ Three things still forbid it, and none of them was ever a licence consequence:
    three scan-derived offsets, **every** record type's on-disk size (eight of
    them new, each correct to the byte on the first attempt), the MAP flags byte
    from an independent direction, and one place where its own layout is
-   incomplete (Q70). Worked examples 2, 3 and 5 below are the record. A rule
+   incomplete (Q70). The worked cases below are the record. A rule
    that has produced that much corroboration is not obviously worth relaxing.
 
-**Worked example 5 is the template to keep**, and it is the sharpest case yet of
+The fourth worked case below is the template to keep, and the sharpest illustration of
 why "reference, don't copy" is a *good* rule rather than a merely lawful one. On
 Q74 their source supplied a mechanism we had not considered
 (`ALTER_TERRAIN_TYPE`) and a byte layout that would have cost an afternoon of
@@ -185,8 +185,7 @@ now.
 fill-in tool in the editor, or a fill-in trigger action?** That is the only
 surviving candidate explanation for `FillInHealth` and `TerrainFlags.FillInable`,
 which the shipped game gives no keeper access to and which OpenKeeper declares and
-never uses. §8.2 Triggers is where a trigger action would be documented. See Q74
-and *Worked example 5* below.
+never uses. §8.2 Triggers is where a trigger action would be documented. See Q74 and the worked cases below.
 
 ---
 
@@ -232,251 +231,33 @@ in `HANDOFF.md`.
 
 ---
 
-## Worked example 2: the three offsets we found by scanning
+## Method, from four worked cases
 
-**2026-09-03, with the repo cloned locally.** The owner's framing — *"if someone
-has already done the research and it is solid, not refutable, why wander around?
-Reference it and compare with our own findings, not copy it"* — points at exactly
-the right first target: **the three offsets this project found by scanning for a
-measured value.** Those were its shakiest data findings. OpenKeeper parses both
-records in full.
+The full write-ups lived here until 2026-09-09; each one's result has a home
+elsewhere, so what is kept is the lesson and the pointer.
 
-**Method.** Read the field *order and widths* out of OpenKeeper's reader, compute
-cumulative offsets, and compare. Nothing was copied; what was taken is arithmetic
-over a field list, which is fact.
+**Reference and compare, never copy** (owner: *"if someone has already done the
+research and it is solid, not refutable, why wander around? Reference it and
+compare with our own findings, not copy it"*). Applied to the three record
+offsets this project had found by scanning for a measured value — its shakiest
+data findings — OpenKeeper's full parse of both records confirmed all three
+independently. That is the shape every use of these sources should take.
 
-**The arithmetic is self-validating.** `readArtResource` consumes 64 + 4 + 12 + 4 =
-**84** bytes, and OpenKeeper's own scattered offset comments then act as
-checkpoints on the running total:
+**Generalise the check into a sweep.** The same comparison run across every
+record type settled all their sizes in an afternoon. Results and tables:
+`kwd-container.md` and `kwd-record-fields.md`.
 
-| their comment | our computed offset | agrees |
-|---|---|---|
-| `xc8` | 0x00C8 | ✓ |
-| `// e0` | 0x00E0 | ✓ |
-| `// ee` | 0x00EE | ✓ |
-| `// 120` | 0x0120 | ✓ |
-| `// 174` | 0x0174 | ✓ |
+**Filing a resource is not reading it.** One entry sat unread for a day while
+its own row already said what it was good for. The row was right; nobody acted
+on it. Write-up: `wall-rendering.md`.
 
-Five checkpoints land exactly, so the layout is certainly right — and therefore so
-is everything derived from it:
-
-| ours | theirs | verdict |
-|---|---|---|
-| `KwdKeeperSpells.OffsetManaUpkeepPerSecond` **0xE2**, u16 | `manaDrain`, `readUnsignedShort` at **0xE2** | **confirmed, and named** |
-| `KwdKeeperSpells.OffsetManaCost` **0x11C**, s32 | `manaCost`, `readInteger` (signed) at **0x11C** | **confirmed, including the signedness** |
-| KEEPERSPELLS record size **406** (derived from contentSize / itemCount) | field list totals **406** | **confirmed** |
-| `TrapsOnRealDataTests` trap upkeep **0x0202**, u16 | `manaUsage`, `readUnsignedShort` at **0x0202** | **confirmed, and named** |
-| TRAPS record size — we never derived one | field list totals **579** | new, and confirmed against the install |
-
-> **Correction, 2026-09-04.** This row first read "totals 516", which was a
-> partial sum: 516 is where `manaUsage` *ends*, not where the record does. The
-> full field list is **579**, and `Traps.kwd`'s own `contentSize / itemCount` is
-> 579 exactly. The mistake is instructive — a sum abandoned at the interesting
-> field looks like a record size and is not one, and nothing catches it except
-> the install. Worked example 3 makes that check the method rather than an
-> afterthought.
-
-**The signedness agreement is the pleasing part.** We read `manaCost` as signed
-32-bit for one reason: Summon Horny's 100000 overflows a u16. They declare it
-`int` and read it signed. Two routes, same width, same reason.
-
-**And it drew a distinction we had missed.** A trap carries **two** mana fields:
-the standing `manaUsage` at 0x0202, and a separate 4-byte **`manaCostToFire`** at
-0x01D4 — what one shot costs. The owner's Q59 measurement was of a standing
-upkeep that rose as traps were built, so it is the first; the per-shot cost is a
-field nothing here reads yet, and it is not something the measurement could have
-told us apart.
-
-**What this cost and what it bought.** Ten minutes, and it upgraded three
-scan-derived offsets from "believable, with a long note explaining why" to
-"confirmed from an independent direction, with the original field names". That is
-the best value-per-minute of any research this project has done, and it is a
-direct argument for doing the same sweep across the other record types before
-parsing them at M6.
-
-**What it did not do**, and this is the honest half: it confirmed *where* the
-fields are, not *what the numbers mean*. `manaDrain` being 7 for Create Imp still
-needed the owner watching an orb go from −28 to −35, and `manaUsage` being a
-standing charge still needed five trap measurements across three values. Static
-reversal locates fields; only the running game says what they do.
-
----
-
-## Worked example 3: every record size, in an afternoon
-
-**2026-09-04.** Worked example 2 ended with an argument for doing the same sweep
-across the other record types before parsing them at M6. This is that sweep. Full
-results and the tables live in `docs/research/kwd-container.md` §*Update
-2026-09-04*; what belongs here is the **method**, because it generalises and
-because it is the shape every future use of these sources should take.
-
-**The method, in one line:** read the field *order and widths* out of their
-reader, sum them, and check the total against `contentSize / itemCount` from the
-shipped files.
-
-**Why that is inside the boundary.** A list of field widths is a fact about a
-file format. Adding it up is arithmetic. Nothing is copied, nothing is
-translated, and the output is a single integer per record type — which is then
-*verified against the install*, so the sources are contributing a hypothesis and
-the original is still the oracle. The C# that came out of it
-(`KwdTaggedRecords`) implements a rule the install proved, not a structure their
-code has.
-
-**What it bought.** **Eight new record sizes, every one confirmed to the byte on
-the first attempt**, and the shape of the two types that have no fixed size at
-all. A field list is a hundred-odd widths in sequence; a sum that lands exactly
-on an independently measured stride cannot contain a wrong field cancelled out by
-another wrong field — not eight times running. So the *layouts* are confirmed,
-not merely the totals, and that is the whole of what M6 needs before it can start
-parsing.
-
-**What it cost.** An afternoon, most of it spent on two things the arithmetic
-could not do by itself: OpenKeeper's `readArtResource` peeks 12 bytes behind a
-`mark`/`reset` and switches on a type where every branch happens to consume the
-same 12 bytes, so it is 84 bytes rather than the 174 a naive sum gives; and
-tagged unions (VARIABLES, THINGS, TRIGGERS) sum to the total of all their
-branches, which is meaningless. Both were caught by the install disagreeing.
-
-**The three results worth carrying, beyond the numbers:**
-
-1. **The cross-check is the method, not a formality.** It caught a partial sum I
-   had already written down as a record size (TRAPS 516; see the correction
-   above), it caught `readArtResource` at 174, and it caught three tagged unions.
-   Every single failure of the arithmetic was found by the install and none by
-   inspection.
-2. **A source can be wrong in a direction that costs you nothing, and you should
-   still write it down.** Their CREATURES field list totals **5377** against the
-   shipped **5449**; their own offset check skips the last 72 bytes with a
-   warning. It is harmless to us — `KwdCreatures` stops at `0x1081`, and every
-   offset it reads was *confirmed* by this same sweep — but anyone extending that
-   parser past `0x1501` would be extending it into territory nobody has
-   described. Recorded as **Q70** rather than left as a shrug.
-3. **They locate fields; only the running game says what they mean.** Unchanged
-   from worked example 2 and worth repeating with evidence: this sweep produced
-   twelve record sizes and not one gameplay rule. `manaUsage` being a standing
-   charge still took five owner measurements; the MAP flags byte still took a
-   66-map behavioural sweep. **The division of labour is stable — static sources
-   for structure, the owner and the original for behaviour.**
-
----
-
-## Worked example 4: the resource that was filed correctly and read too late
-
-**2026-09-04, at the owner's prompting** — *"did you read this resource:
-simonschreibt.de/gat/dungeon-keeper-2-walls/ ? maybe it will be useful"*. It was.
-Full write-up in `docs/research/wall-rendering.md`; what belongs here is why it
-sat unread for a day when the table above already said what it was for.
-
-**The filing was right.** The row said "useful for the Unity view, says nothing
-about simulation", and both halves are true. Deferring it while the work was tile
-rules and mana was correct.
-
-**The trigger was missed.** The Unity view became the current task, and nothing
-went back to the row that said "for the Unity view". A resource table is only as
-good as the moment somebody re-reads it, and this one had a "when" column that
-nobody consulted when the *when* arrived. The editor manual has the same shape —
-its row says **M6** — so the same failure is queued up for triggers and
-objectives.
-
-**What reading it bought, in an afternoon:**
-
-- **It corroborated a guess.** `TileView.HealthPermille` was added on the
-  reasoning that a renderer should not need the terrain table to draw damage.
-  DK2 does show wall damage and does it by swapping in damage-state *textures* —
-  so both the fraction and the eventual asset kind are confirmed.
-- **It refuted a simplification.** `AssetCatalogue` asks for one mesh per solid
-  terrain. DK2 draws a wall from a set of pieces chosen by the size and shape of
-  the room behind it. One key per terrain is too coarse, and the catalogue now
-  says so rather than reading as complete.
-- **It gave the converter its route** — DK2WADTOOL, Hoenir's 010 Editor KMF
-  template, trass3r's KMF→OBJ scripts. Same category of third-party format
-  documentation this project already relies on for KWD, so squarely inside the
-  boundary; and no converted mesh may be committed, which is what
-  `FileAssetProvider` assumes by only ever reading `build/converted`.
-
-**And it produced two open questions rather than pretending to answer them**
-(Q71, what picks a wall piece; Q72, whether the deformation is deterministic per
-tile). The article's own author separates what he verified from what he inferred,
-and marks the runtime "noise modifier" as his inference with the alternative
-stated. **Copying that discipline across was most of the work of writing the
-note** — a source that labels its own confidence is easy to record faithfully and
-easy to over-read.
-
-**The rule this adds to the standing one:** a resource row's "when" is a
-commitment. When a milestone starts, re-read the rows that name it — the table
-already knows what to read and it cannot tell you on its own.
-
----
-
-## Worked example 5: OpenKeeper pointed at the mechanism, the install gave the answer
-
-The cleanest illustration yet of the owner's standing instruction — *"if someone
-has already done the research and it is solid, not refutable, why wander around? I
-need you to just reference it and compare with our own findings, not copy it."*
-
-**The question** (Q74, 2026-09-04): the owner said DK2 has no way to fill a
-dug-out tile back to rock. Our terrain data says otherwise — `FillInHealth` = 5,
-a `FillInable` flag on the five floor terrains, and Claimed Path's route back to
-Rock. Three coordinated fields are not an accident. So: is there *any* path by
-which a tile becomes solid again, and did anybody else find one?
-
-**Step 1 — what OpenKeeper has.** Two greps.
-
-| where | what |
-|---|---|
-| `tools/convert/map/Terrain.java:55` | `FILL_INABLE(0x00008000)` — the same bit we read |
-| `tools/convert/map/Variable.java:333` | `FILL_IN_HEALTH(11), // value=5` — the same id and value |
-
-Both **declared once and referenced nowhere else** in `src/`. Their worker task
-list — `DigTileTask`, `ClaimTileTask`, `ClaimWallTileTask`, `RepairWallTileTask`,
-`ClaimRoomTask`, plus the carry/capture tasks — has no fill-in task.
-
-That is a **negative result worth having**. The most complete reimplementation in
-existence read the same fields and never found a use, which rules out "somebody
-already solved this and we are re-deriving it badly". It is corroboration, not
-proof: two projects can be stuck in the same place.
-
-**Step 2 — the thing they had that we did not.** Their trigger-action enum
-(`TriggerAction.java:55`) has `ALTER_TERRAIN_TYPE(22)`, and
-`MapController.alterTerrain` implements it as a direct terrain write plus an
-optional owner change — **no health, no rate**. That is a mechanism we had not
-considered, and it is a genuine candidate answer to "how does a tile become solid
-again".
-
-Their reader also gave us a **layout hypothesis** for the record: the action type
-is the second-to-last byte of the payload, the repeat count the last, and an
-`ALTER_TERRAIN_TYPE` body is `terrainId(u8), playerId(u8), 0, 0, posX(u16),
-posY(u16)`, with 1-based coordinates.
-
-**Step 3 — the install decides, not them.** A hypothesis about a record layout is
-exactly the kind of claim this file says must be confirmed against the shipped
-data. New command `dk2tools kwd alterterrain [-v]` decodes every action record in
-every shipped trigger file and prints, per `ALTER_TERRAIN_TYPE`, what the target
-tile *starts* as.
-
-**The layout self-validated**: 5408 action records across 66 files, and every
-single decoded action type lands inside the enumerated 1..60 range. A wrong offset
-would have produced garbage in the hundreds.
-
-**And the answer was the reverse of what was being looked for.** Of 160
-`ALTER_TERRAIN_TYPE` actions, **94 are `Impenetrable Rock → Dirt Path`** — scripts
-*opening* passages sealed against digging. Level 1's three Rock writes are also
-opening: (15,18), (16,18) and (17,18) all start as Impenetrable Rock and are
-softened into diggable Rock. **Exactly two writes in the entire campaign turn an
-open tile solid**, both in `Secret3`, both Claimed Path → Reinforced Wall.
-
-**What the division of labour bought.** OpenKeeper supplied a mechanism we had not
-thought of and a byte layout that would have taken an afternoon to find by
-scanning. The install supplied the answer, which no amount of reading their source
-could have given — because their source does not know what the shipped maps
-contain either. Neither source alone would have done: theirs said *how a tile
-could be closed*, ours said *whether any tile is*.
-
-**And it closed the question the honest way, which was partly.** The fill-in
-*health* mechanic still has no user anywhere. The temptation was to call
-`ALTER_TERRAIN_TYPE` the explanation and file Q74 as answered; it is not the
-explanation, because it needs no rate. Two of three candidates eliminated, one
-left, and the remaining one named (the level editor).
+**An outside source points at the mechanism; the install gives the answer.**
+Asked whether DK2 can fill a dug-out tile back to rock (Q74), OpenKeeper named
+`ALTER_TERRAIN_TYPE` as a candidate and the shipped data eliminated two of
+three, leaving the level editor. Note the question was later closed the other
+way: **there is no fill-in mechanic at all** (Q219), and `FillInHealth` has no
+reader. The lesson stands and the conclusion did not — which is why a candidate
+is recorded as a candidate.
 
 ---
 
