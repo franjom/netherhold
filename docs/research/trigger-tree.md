@@ -20,9 +20,16 @@ flow claims come from the binary.
 
 ## The walk
 
-The caller supplies the root id from world offset `+0x7310` and a repeat byte
-from `+0x731A`. Q228's cadence result is kept in `trigger-state.md`: the caller
-runs once per game turn.
+**There are twenty-five roots per turn, not one.** The world frame walks the id
+at `+0x7310` with the repeat byte at `+0x731A`, and then loops the 24 party slots
+(`0x0050A760`: `LEA EDI,[ESI + 0x4030]`, `MOV EBP,0x18`, stride `0x208`),
+walking each slot's non-zero trigger id **with repeat argument 1**. An executor
+that walks only `+0x7310` can arm a party subtree and never traverse it, so
+nothing it contains will ever run. Q228's cadence result is in
+`trigger-state.md`: the caller runs once per game turn.
+
+Repeat 1 on those party roots is not incidental — it is the value that retires a
+successful action, so every action directly under a party root is one-shot.
 
 Ids are treated as signed 16-bit values. A positive id is looked up in the
 condition array at `+0x7308`; a negative id is looked up in the action array at
