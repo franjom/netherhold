@@ -878,7 +878,7 @@ which is correct; anything matching creature names must not assume it is trimmed
 | Traps and doors (M6/M7) | 31–33 |
 | Creature spells (M7) | 33–34 |
 | Combat (M7) | 35–36 |
-| Possession, first person (late) | 37–38 |
+| Possession, first person (late); p.3's card is superseded — see `controls.md` | 37–38 |
 | UI, minimap colours (Unity view) | 13–16 |
 | Skirmish/MPD/multiplayer options | 39–44 |
 | Game speed slider (25%–400% of default turn rate) | 44 |
