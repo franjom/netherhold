@@ -17,6 +17,8 @@ result on that level and it will not be a finding.
 | Each tree's root id and repeat argument come from the fields in the table below | **Strongly inferred** | Direct instruction read of each frame |
 | Creature and action-point objects reach their walker through vtable slot `0x14` | **Known** | Their frames have no other reference in any initialised block |
 | Those objects are the ones in the world's eight entity lists | **Strongly inferred** | `FUN_004B7830` is the only per-turn slot-`0x14` driver reached from the world frame, and both classes' vtables share base-class entries with it |
+| An action point's repeat argument is its root record's own byte, snapshotted when the root is attached | **Strongly inferred** | `0x004B0C90` is the only writer of `+0x36` besides the constructor's zero; direct instruction read |
+| The area context computes no action type at all | **Known** | `0x004B0CC0` calls the world action dispatcher `0x00518AD0` directly; there is no second table |
 
 ## One driver, five calls
 
@@ -39,6 +41,28 @@ executable.
 
 `FUN_004C2310` walks the player list from world `+0x7A` through link `+0x3A`,
 calling the player frame `FUN_004B9EC0` on each.
+
+## The action point's frame is five instructions and its repeat is a snapshot
+
+`0x004B05E0` reads the root id at `+0x34`, returns 1 if it is zero, and otherwise
+passes the byte at `+0x36` as the repeat argument to `0x004B0CC0`. Nothing else.
+
+`+0x36` is **not** read from the level file. The setter `0x004B0C90` writes both
+fields together: it stores the id at `+0x34`, resolves it in the **condition**
+array (`FUN_00518090`, whatever the sign), and copies that record's own `+0x0F`
+into `+0x36`. The constructor `0x004B0420` zeroes both, and the nine bytes from
+`+0x2E` round-trip through save and load as one block.
+
+So the action point sits between the world and the player: the world's repeat is
+copied once at load and never revisited, the player's is re-read from the record
+every turn, and the action point's is copied once **when the root is attached**.
+Re-arming a root later moves the player's number and not the action point's.
+
+`0x004B0CC0` is the world walker's shape with one dispatcher swapped: a positive
+id resolves through `FUN_00518090` and is decided by `FUN_004B0D70`, the area
+condition dispatcher; a negative id goes straight to `FUN_00518AD0`, the
+**world** action dispatcher. There is no area action dispatcher — the area
+context computes no action type of its own.
 
 ## Where each tree's root and repeat come from
 
@@ -88,7 +112,7 @@ The delegation is the default arm of the same two-level table the world uses.
 | context | conditions | base, range | delegates to | actions | base, range | delegates to |
 |---|---|---|---|---|---|---|
 | player | `0x004C7B20` | 19, `0x37` (19–74) | `0x00518270` at `0x004C856C` | `0x004C8620` | 10, `0x28` (10–50) | `0x00518AD0` at `0x004C8A3E` |
-| area | `0x004B0D70` | 39, `0x1F` (39–70) | `0x00518270` at `0x004B0EC9` | `0x004B0D70`'s twin | — | world action |
+| area | `0x004B0D70` | 39, `0x1F` (39–70) | `0x00518270` at `0x004B0EC9` | none | — | `0x00518AD0`, from the walker itself |
 
 So a flag test (type 1), a timer test (2) and a level-time test (34) mean the
 same thing in a player tree as in the world tree, over the same level-global
@@ -103,7 +127,9 @@ What each context owns is its own:
   Of these, 48, 53 and 56–61 jump straight to `0x004C850C`, `XOR EAX,EAX` —
   **constant false**.
 - **player actions:** 10, 11, 24–28, 31, 34, 37, 38, 42, 50.
-- **area conditions:** 39, 40, 41, 42, 62, 69, 70.
+- **area conditions:** 39, 40, 41, 42, 62, 69, 70. All seven measure something
+  over the point's own inclusive rectangle; `trigger-semantics.md`, "The area
+  context", has each one's quantity and comparison.
 
 **Type 72 is not universally unhandled.** `trigger-semantics.md` establishes that
 no *world* arm reaches it and that all 137 shipped records have an empty body,

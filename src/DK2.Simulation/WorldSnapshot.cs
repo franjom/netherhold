@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 43;
+    private const int FormatVersion = 44;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {

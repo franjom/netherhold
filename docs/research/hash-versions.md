@@ -33,7 +33,14 @@ beside it.
 
 ## Versions
 
-**43** — `0x6E963365B44FD724` (current). Every player's trigger tree is walked
+**44** — `0x48D7950540013015` (current). Every action point's trigger tree is
+walked each turn too, in the area context, and five of the seven condition types
+that context owns are computed: 40, 41, 42, 62 and 69. No hashed field changed;
+the literal moved because the version is hashed, and it had to move because a
+level with an action-point root now evolves differently from one saved under 43.
+`docs/research/trigger-walkers.md`.
+
+**43** — `0x6E963365B44FD724`. Every player's trigger tree is walked
 each turn as well, in the player context. No hashed field changed; the literal
 moved because the version is hashed, and it had to move because a level with a
 player root now evolves differently from one saved under 42.

@@ -222,13 +222,31 @@ internal enum TriggerContext
     /// <summary>One player's tree. Types the player dispatcher does not own are decided
     /// by the world dispatcher anyway — see <see cref="TriggerExecutor"/>.</summary>
     Player,
+
+    /// <summary>One action point's tree. Its dispatcher owns seven condition types and
+    /// <b>no action types at all</b> — <see cref="TriggerAreaConditions"/>.</summary>
+    Area,
 }
+
+/// <summary>One action point's trigger root, with the repeat argument its frame passes.
+/// </summary>
+/// <remarks>DK2 caches the repeat on the point at <c>+0x36</c> when the root is attached,
+/// copying the resolved record's own byte then (<c>0x004B0C90</c>), and the per-turn frame
+/// only reads it (<c>0x004B05E9</c>). So it is a load-time snapshot: re-arming the root
+/// later does not change what the frame passes. Resolved once here for the same reason.
+/// </remarks>
+internal readonly record struct TriggerAreaRoot(ActionPointState Point, byte Repeat);
 
 /// <summary>One turn's accumulating result, so the walk carries one argument instead of
 /// four.</summary>
 internal sealed class TriggerRun(int currentTick)
 {
     public int CurrentTick { get; } = currentTick;
+
+    /// <summary>The action point whose tree is being walked, or null outside one. Every
+    /// area-owned condition measures over this point's rectangle.</summary>
+    public ActionPointState? Area { get; set; }
+
     public List<BlockedTrigger> Blocked { get; } = [];
     public List<BlockedTrigger> Partial { get; } = [];
     public List<BlockedTrigger> Assumed { get; } = [];
@@ -245,37 +263,53 @@ internal sealed class TriggerRun(int currentTick)
 /// successful action. The player walker is the same shape — trigger-walkers.md.</para>
 /// <para>Gaps are counted, not hidden: <see cref="TriggerRunResult.Partial"/> for type
 /// 14's missing creatures, <see cref="TriggerRunResult.Assumed"/> for player-context type
-/// 72 taken as true (Q242). Creature and action-point trees are not walked.</para>
+/// 72 taken as true (Q242). Creature trees are not walked.</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-tree.md")]
 public sealed class TriggerExecutor
 {
     private readonly TriggerTree? _tree;
     private readonly TriggerState _state;
+    private readonly WorldState? _world;
+    private readonly GameDatabase? _database;
+    private readonly TriggerAreaRoot[] _areaRoots = [];
 
-    public TriggerExecutor(TriggerTree tree, TriggerState state)
+    /// <summary>Builds an executor over <paramref name="tree"/>.</summary>
+    /// <param name="world">The world whose action points carry the area roots, and whose
+    /// tiles the area conditions measure. Without it no action-point tree is walked —
+    /// which is what every caller that has no map wants.</param>
+    /// <param name="database">Terrain definitions, for the two area conditions that read
+    /// a terrain flag.</param>
+    public TriggerExecutor(
+        TriggerTree tree,
+        TriggerState state,
+        WorldState? world = null,
+        GameDatabase? database = null)
     {
         _tree = tree ?? throw new ArgumentNullException(nameof(tree));
         _state = state ?? throw new ArgumentNullException(nameof(state));
+        _world = world;
+        _database = database;
         _state.InitializeRecords(tree.Records);
         DisablePartySubtrees();
+        if (world is not null && database is not null) _areaRoots = BuildAreaRoots(world);
     }
 
     internal TriggerExecutor(TriggerState state) => _state = state;
 
     public TriggerTree? Tree => _tree;
 
-    /// <summary>Runs one game turn of the world tree — <b>all twenty-five roots of it</b>.
+    /// <summary>Runs one game turn: the world tree's twenty-five roots, then every action
+    /// point's, then every player's — the frame's own order (<c>0x0050A75B</c> onward).
     /// </summary>
     /// <remarks>
     /// <para>Rule: the id at <c>+0x7310</c> is walked with the repeat byte at
-    /// <c>+0x731A</c>, and then each of the twenty-four party slots' non-zero ids is
-    /// walked <b>with repeat argument 1</b> (<c>0x0050A760</c>: <c>LEA EDI,[ESI+0x4030]</c>,
-    /// <c>MOV EBP,0x18</c>, stride <c>0x208</c>). Repeat 1 is the value that retires a
-    /// successful action, so every action directly under a party root is one-shot.</para>
+    /// <c>+0x731A</c>, then each of the twenty-four party slots' non-zero ids <b>with
+    /// repeat argument 1</b> (<c>0x0050A760</c>, stride <c>0x208</c>) — the value that
+    /// retires a successful action, so a party root's own actions are one-shot.</para>
     /// <para>The party roots are not an optional extra: without them a level arms its
-    /// party subtrees through action type 14 and then never traverses them, so their
-    /// contents can never run. STRONGLY INFERRED — trigger-tree.md "The walk".</para>
+    /// party subtrees through action type 14 and never traverses them. STRONGLY INFERRED
+    /// — trigger-tree.md "The walk"; the other three walkers, trigger-walkers.md.</para>
     /// </remarks>
     public TriggerRunResult Run(int currentTick)
     {
@@ -288,6 +322,17 @@ public sealed class TriggerExecutor
             if (slot.TriggerId == 0) continue;
             Walk(unchecked((short)slot.TriggerId), 1, TriggerContext.World, run);
         }
+
+        // Before the players and after the parties, because the frame walks the world's
+        // eight entity lists there (0x0050A7D7). Creatures share those lists and are not
+        // walked, so an action point's position among them is ours; theirs is the thing
+        // table's order, and this is THINGS order (Q246).
+        foreach (TriggerAreaRoot root in _areaRoots)
+        {
+            run.Area = root.Point;
+            Walk(unchecked((short)root.Point.TriggerId), root.Repeat, TriggerContext.Area, run);
+        }
+        run.Area = null;
 
         // Last in the turn, and in the player context: 0x0050A7F5 calls the loop that
         // gives every player its frame, and the frame walks that player's own root.
@@ -323,6 +368,14 @@ public sealed class TriggerExecutor
                 nameof(triggerId), triggerId, "Trigger id zero has no record.");
         SetSubtreeActive(triggerId, active);
     }
+
+    /// <summary>Each action point that carries a root, with the repeat byte its frame
+    /// would have cached — see <see cref="TriggerAreaRoot"/>.</summary>
+    private TriggerAreaRoot[] BuildAreaRoots(WorldState world) => world.ActionPoints
+        .Where(point => point.TriggerId != 0)
+        .Select(point => new TriggerAreaRoot(
+            point, _tree!.ResolveCondition(point.TriggerId)?.RepeatCount ?? 0))
+        .ToArray();
 
     private void SetSubtreeActive(ushort triggerId, bool active) =>
         SetSubtreeActive(unchecked((short)triggerId), active);
@@ -409,10 +462,15 @@ public sealed class TriggerExecutor
     /// (<c>0x004C856C</c>). So types 1, 2 and 34 mean the same thing in a player tree as
     /// in the world tree, over the same level-global banks, and reusing the world
     /// evaluator is right rather than convenient. `trigger-walkers.md`.</para>
+    /// <para>The area dispatcher (<c>0x004B0D70</c>) delegates the same way, and owns
+    /// seven types of its own — <see cref="TriggerAreaConditions"/>.</para>
     /// </remarks>
     private TriggerConditionResult EvaluateCondition(
         TriggerRecord record, TriggerContext context, TriggerRun run)
     {
+        if (context == TriggerContext.Area && TriggerAreaConditions.Owns(record.Type))
+            return TriggerAreaConditions.Evaluate(record, run.Area!, _world!, _database!);
+
         if (context != TriggerContext.Player || !PlayerOwnsCondition(record.Type))
             return TriggerConditionEvaluator.Evaluate(record, _state, run.CurrentTick);
 

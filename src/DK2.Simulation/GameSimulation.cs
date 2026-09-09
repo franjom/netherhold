@@ -20,7 +20,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 43;
+    private const ulong HashVersion = 44;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationContext _context;
@@ -51,7 +51,7 @@ public sealed class GameSimulation
         _context = new SimulationContext(database, world, rng, NullEventSink.Instance);
         _triggers = triggers is null
             ? new TriggerExecutor(world.Triggers)
-            : new TriggerExecutor(triggers, world.Triggers);
+            : new TriggerExecutor(triggers, world.Triggers, world, database);
     }
 
     public GameDatabase Database { get; }

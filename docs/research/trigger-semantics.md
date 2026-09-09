@@ -124,6 +124,43 @@ The common comparison routine at `0x00519980` implements codes 1 through 6 as
 signed `<`, `<=`, `==`, `>`, `>=`, and `!=`. Consequently generic comparison
 values at `+0x04` are `s32`, not `u32`.
 
+## The area context
+
+Every one of the seven types `0x004B0D70` owns measures something over the
+action point's own **inclusive** rectangle and hands the result to `0x00519980`.
+Three of the seven do not read byte 00 as a comparison at all; their arm supplies
+a literal, which is why the parameter table below marks that byte unread.
+
+| type | left-hand quantity | comparison | right-hand side |
+|---|---|---|---|
+| 39 | things in the rectangle passing `FUN_004B0A80` | byte 00 | `Value` |
+| 40, 42 | tiles matching `PlayerId` and `TerrainId` (`FUN_004B07E0`) | byte 00 | `Value` |
+| 41 | the same count | literal `==` | the rectangle's own tile count |
+| 62 | tiles carrying `PlayerId`'s excavation task (`FUN_004B0960`) | byte 00 | `Value` |
+| 69 | the same count | literal `>=` | tiles whose terrain is taggable (`FUN_004B0A00`) |
+| 70 | **existence** of one thing, not a count (`FUN_004B06D0`) | — | — |
+
+40 and 42 share one arm, so **they are the same condition**; nothing in the
+dispatcher distinguishes them.
+
+`FUN_004B07E0` treats zero as "any" on each axis, and both zero short-circuits to
+the rectangle's area without reading a tile. With a terrain type named, ownership
+is decided by the tile's owner alone; with none named, the tile must also carry
+terrain flag `0x04`, our `Ownable`. That asymmetry is the original's.
+
+The task pool behind 62 and 69 is per player, holds up to 500 entries, and is
+keyed by coordinate. `FUN_00512D20` puts one entry in it per tile the player
+marks, choosing kind 1 or kind 2 by whether the terrain carries gold; **62 and 69
+count both**, so the split does not reach either condition and one tag bit per
+player per tile is the same quantity. `FUN_004B0A00` tests terrain flag `0x08`,
+our `Taggable`, which is the same flag `FUN_00512D20` requires before it will
+create the entry — so 69 asks whether the player has marked everything here that
+can be marked.
+
+39 and 70 count and test **things standing in the rectangle**, filtered by a
+category dword at thing `+0x12` and then by `FUN_004B0A80`. Neither is
+implemented; what that filter reads is UNKNOWN.
+
 ## Parameter provenance
 
 Offsets are body-relative. `u8`, `u16`, `s16`, `u32`, and `s32` are the exact

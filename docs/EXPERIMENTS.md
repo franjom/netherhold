@@ -44,22 +44,33 @@ Measured by event set over 1176 shared turns, as the calibration above requires;
 |---|---:|---:|---:|
 | condition 34, type 14's arming half, the party roots | 0 | 48 | 0 |
 | …and the player walker | **2** (`t15`, `f83`) | 46 | **1** (`f1`) |
+| …and the action-point walker | **2** | 46 | **1** |
 
 The first row is where the earlier diagnosis was wrong: trigger 89 evaluates and
 arms its parties, but its chain ends there, and level 1 keeps its script on its
 player root. The second row is the player walker paying that off.
 
-**The one false positive is diagnosed and is not a walker defect.** We set `f1`
-at turn 33; DK2 never does. The chain is timer 15 → flag 0 == 0 → flag 2 == 0 →
-type 72 → write flag 1. DK2 sets **flag 0 at turn 10**, which closes that branch
-before the timer expires. Flag 0 is written by triggers 4 and 5, condition type
-**62**, which belong to **action point 4** — a tree no walker we have visits, and
-type 62 is one the area context owns. So the player tree's own behaviour depends
-on a flag an action-point tree sets: the walkers are not independent, and the
-action-point walker is what closes this.
+**2026-09-09, level 1, ours vs run 5 — the action-point walker changes nothing
+here, and that is the finding.** Adding the fourth walker and five area condition
+types leaves the event set at exactly 2 / 46 / 1. Level 1 walks 15 action-point
+roots now, and none of them moves a flag in a run with no player.
 
-The remaining 46 are the census `trigger-run` prints: sixteen condition and
-action types nobody has implemented, plus the two trees not walked.
+**The one false positive is the player, not a missing walker.** We set `f1` at
+turn 33; DK2 never does. The chain is timer 15 → flag 0 == 0 → flag 2 == 0 →
+type 72 → write flag 1, and DK2 closes it by setting flag 0 at turn 10. Flag 0
+and flag 2 both hang off **action point 4**, one tile at (14,24), neutral terrain
+6 — and both of its conditions are things only a human does:
+
+- triggers 4 and 5, type **62**: how many tiles in that rectangle **player 3 has
+  tagged**. Zero until somebody marks the wall; DK2's run at turn 10.
+- trigger 14, type **42**: how many tiles there are still **neutral terrain 6**.
+  One until the wall is dug out; DK2's run at turn 35.
+
+So this is the hazard the calibration above warns about, in its other form: not a
+turn number that only the player set, but an *event* that only the player caused.
+It cannot be closed by any walker, and it should not be. The remaining 46 are the
+census `trigger-run` prints: unimplemented condition and action types, plus the
+creature trees, plus everything downstream of a player who never plays.
 
 **What the owner can settle by playing is not here.** It is
 `docs/research/observation-checklist.md`, which is the working list of

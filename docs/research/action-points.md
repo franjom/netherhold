@@ -96,12 +96,17 @@ tiles or objects within those tiles. The bit-4 world reader has the same
 inclusive shape.
 
 It is therefore **STRONGLY INFERRED** that relevant work can scale with rectangle area
-and contents. **No action point performs an entry test on its tick**, though: its
-tick is vtable slot `0x14`, `0x004B05E0`, and it is five instructions — walk the
-trigger root at `+0x34` with the repeat at `+0x36`, nothing else (`trigger-walkers.md`).
-Whatever pays the rectangle cost is invoked from elsewhere, which is what is left
-of Q237. The current change stores rectangles and performs no per-tick
-action-point work.
+and contents, and Q237's remaining half is answered: the rectangle cost is the
+**condition evaluation itself**. Every one of the seven types
+`0x004B0D70` owns sweeps the rectangle once, and the tick that reaches it is
+vtable slot `0x14`, `0x004B05E0` — five instructions, walk the trigger root at
+`+0x34` with the repeat at `+0x36`, nothing else. So a point with no root costs
+nothing at all and a point with one costs its rectangle per condition per turn.
+
+`+0x36` is written only by `0x004B0C90`, which copies the resolved root record's
+own repeat byte when the root is attached. The repeat is therefore a load-time
+snapshot rather than file data or a live read; `trigger-walkers.md` sets it
+against the world's and the player's.
 
 ## Waypoints
 

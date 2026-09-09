@@ -1754,3 +1754,20 @@ Three for three on the THINGS field names this projection had to rely on — the
 - `HashVersion` and snapshot `FormatVersion` → **40**, stepping over the 38 this branch had reserved before master independently took 39. Pin `0x81D58B966898BEC8` → `0x6445940E0B0F23A9`.
 - The loader flag mask is pinned by a test that can fail: the corpus authors bits `0x7D`, so bit 6 ships and is discarded, while bits 1 and 7 are never authored and rest on the disassembly alone. Every other assertion compared the constant against itself.
 - **No action-point behaviour runs.** Flag meanings, timer and counter consumers, rectangle-entry cadence and waypoint traversal are Q235–Q238.
+
+## ADR-0105 — The area walker, and five area conditions read off our own tile grid
+**Date:** 2026-09-09 · **Status:** accepted · Q237 closed, Q246–Q248 opened · Research: `docs/research/trigger-walkers.md`, `docs/research/trigger-semantics.md`
+
+**Context.** Three of DK2's four trigger walkers ran. The fourth belongs to the action point: 287 roots across the campaign, a five-instruction frame at `0x004B05E0`, and a dispatcher of its own at `0x004B0D70` owning seven condition types that all measure over the point's rectangle. Action points were already hashed world state (ADR-0103), so nothing new had to be modelled to walk them.
+
+**Decision.** `TriggerExecutor` takes the world and the database, walks every action point that carries a root — after the party roots and before the players, the frame's own order — and evaluates the area context in `TriggerAreaConditions`.
+- **The repeat argument is snapshotted at construction** from the root record's own byte, because DK2 snapshots it on the point at `+0x36` when the root is attached (`0x004B0C90`) rather than re-reading it each turn as the player frame does.
+- **Five of the seven types are computed:** 40, 41, 42, 62 and 69. Types 39 and 70 count things in the rectangle through a filter we have not read and are declined, so they stay in the blocked census.
+- **62 and 69 read our per-player tag bit** where DK2 reads a per-player task pool. The pool holds one entry per marked tile in two kinds and both conditions count both kinds, so the quantity is the same one.
+- **No area action dispatcher exists**; the walker calls the world's directly, which the executor already did for every non-player context.
+
+**Consequences.**
+- `HashVersion` and snapshot `FormatVersion` → **44**. Pin `0x6E963365B44FD724` → `0x48D7950540013015`.
+- Level 1 walks 15 more roots and its event set does not move: 2 agreeing, 46 DK2-only, 1 ours-only, unchanged. `docs/EXPERIMENTS.md` said the action-point walker would close that one false positive; it does not, and the corrected diagnosis is that both flags it needs are set by a human playing.
+- Ownership rests on the tile's owner being what DK2 compares (Q247), and off-map rectangle tiles are skipped rather than read (Q248). Neither is reachable in the shipped campaign.
+- Only the creature walker is left, and it needs creature state the executor does not have.

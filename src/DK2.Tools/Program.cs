@@ -2319,6 +2319,9 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
     // The parties come from THINGS, not TRIGGERS, and without them twenty-four of the
     // world's twenty-five roots are empty and most of a level's script never runs.
     HeroPartyThing[] parties = things.OfType<HeroPartyThing>().ToArray();
+    // And the action points, which carry a root each and the rectangle every area
+    // condition measures over. A world with none of them walks no area tree.
+    ThingProjection.Place(world, database, things);
     var tree = new TriggerTree(
         records, level.TriggerId, parties, players.Select(p => p.TriggerId));
     var simulation = new GameSimulation(database, world, seed: 0, triggers: tree);
@@ -2342,8 +2345,8 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
     int creatureRoots = things.OfType<KeeperCreatureThing>().Count(c => c.TriggerId != 0)
         + things.OfType<GoodCreatureThing>().Count(c => c.TriggerId != 0);
     Console.WriteLine($"  walked: {tree.PlayerRoots.Count} player roots "
-        + $"[{string.Join(",", tree.PlayerRoots)}]");
-    Console.WriteLine($"  not walked here: {apRoots} action point, {creatureRoots} creature roots");
+        + $"[{string.Join(",", tree.PlayerRoots)}], {apRoots} action point roots");
+    Console.WriteLine($"  not walked here: {creatureRoots} creature roots");
     foreach ((int tag, byte type, int count) in
              (simulation.LastTriggerRun?.Summary ?? []).OrderByDescending(s => s.Count))
         Console.WriteLine($"  blocked tag {tag} type {type}: {count}");
