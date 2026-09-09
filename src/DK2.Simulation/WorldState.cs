@@ -221,6 +221,16 @@ public struct PlayerState
     /// imp still adds to the total. Only ever added to; nothing spends it.</remarks>
     public int GoldMined;
 
+    /// <summary>The keeper that killed this one, DK2's <c>player+0x132</c> —
+    /// <c>KilledByPlayerId</c> in its debug dumper. Zero means alive: condition type 47
+    /// returns false outright on zero and otherwise compares it (ADR-0116).</summary>
+    /// <remarks><b>Nothing sets it.</b> No keeper can be defeated here yet — a fallen heart
+    /// is not even claimable (Q207) — so every keeper reads as alive, which is the answer
+    /// DK2 gives for a living keeper too. DK2 stores the killer's <i>object</i> id and
+    /// converts it through that object's <c>Number</c>; we store the player id, which is
+    /// the same value only while <c>TagId</c> and <c>Number</c> agree (Q271).</remarks>
+    public byte KilledByPlayerId;
+
     /// <summary>
     /// Research points banked by this keeper, DK2's <c>player+0x20F</c>. Only ever
     /// added to: the original keeps a <i>current target</i> beside it at
@@ -282,6 +292,7 @@ public struct PlayerState
         hash.Add(PlayerId);
         hash.Add(Mana);
         hash.Add(GoldMined);
+        hash.Add(KilledByPlayerId);
         hash.Add(ResearchPoints);
         hash.Add(NextFreeImpTick);
         hash.Add(NextPaydayTick);

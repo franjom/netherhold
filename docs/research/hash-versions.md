@@ -33,7 +33,13 @@ beside it.
 
 ## Versions
 
-**51** — `0x5C6A03ED5BD250BC` (current). `PlayerState.GoldMined`, the
+**52** — `0xB5C88C09424100AD` (current). `PlayerState.KilledByPlayerId`, the keeper
+that defeated this one (`player+0x132`), read by condition type 47. Nothing sets it:
+no keeper can be defeated yet, so it is always zero and the condition always false —
+which is DK2's own answer for a living keeper. Hashed anyway, because a field the
+simulation can be *given* is testable where a hardcoded false is not (ADR-0116).
+
+**51** — `0x5C6A03ED5BD250BC`. `PlayerState.GoldMined`, the
 counter behind trigger condition type 31 (ADR-0112). Composition: the fixture
 mines nothing, so the field is zero for its whole run and the hash moves anyway.
 

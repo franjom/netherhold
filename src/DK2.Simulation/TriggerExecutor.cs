@@ -505,6 +505,11 @@ public sealed class TriggerExecutor
         if (PlayerConditionIsConstantFalse(record.Type))
             return TriggerConditionResult.Unsatisfied;
 
+        // Answered whole, not measured: type 47 reads no Comparison and no Value, so it
+        // cannot go through the shared compare path below.
+        if (record.Type == 47 && _world is not null)
+            return Result(KilledBy(record.Parameters, _world, run.Player!.Value));
+
         if (_world is not null && _database is not null
             && PlayerCounter(
                 record.Type, record.Parameters, _world, _database, run.Player!.Value, run) is int measured)
@@ -543,6 +548,21 @@ public sealed class TriggerExecutor
         32 => world.Player(playerId).Mana,             // +0x82 "CurrentMana"
         _ => null,
     };
+
+    /// <summary>Condition type 47 — <b>has this keeper been killed, and by whom</b>
+    /// (<c>0x004C7B4B</c>). Not a comparison: the arm returns 0 outright when
+    /// <c>KilledByPlayerId</c> is zero, 1 when the record names no player, and otherwise
+    /// tests equality itself. So it is answered here and never reaches
+    /// <see cref="TriggerState.Compare"/>, whose <c>Comparison</c> byte this type does not
+    /// even read.</summary>
+    private static bool KilledBy(
+        IReadOnlyDictionary<string, long> parameters, WorldState world, byte playerId)
+    {
+        byte killer = world.Player(playerId).KilledByPlayerId;
+        if (killer == 0) return false;
+        byte wanted = Byte(parameters, "PlayerId");
+        return wanted == 0 || killer == wanted;
+    }
 
     /// <summary>Condition type 19 — how many creatures this keeper owns
     /// (<c>0x004C7B9D</c>). <b>The two paths are not the same count</b>: a named type

@@ -79,8 +79,8 @@ public class KwdAdditionalRecordTests
         Assert.Equal(-4, generic39.Parameters["Value"]);
 
         TriggerRecord generic47 = Trigger(213, 47, [7, 1, 2, 3, 4, 5, 6, 7]);
-        Assert.Equal(7, generic47.Parameters["CreatureId"]);
-        Assert.DoesNotContain("PlayerId", generic47.Parameters.Keys);
+        Assert.Equal(7, generic47.Parameters["PlayerId"]);
+        Assert.DoesNotContain("CreatureId", generic47.Parameters.Keys);
         Assert.DoesNotContain("Value", generic47.Parameters.Keys);
 
         TriggerRecord generic52 = Trigger(213, 52, [1, 2, 3, 9, 4, 0, 0, 0]);
@@ -111,8 +111,8 @@ public class KwdAdditionalRecordTests
             .SelectMany(file => KwdTriggers.Parse(KwdReader.ReadFile(file))).ToArray();
 
         TriggerRecord generic47 = triggers.First(t => t.Tag == 213 && t.Type == 47);
-        Assert.Contains("CreatureId", generic47.Parameters.Keys);
-        Assert.DoesNotContain("PlayerId", generic47.Parameters.Keys);
+        Assert.Contains("PlayerId", generic47.Parameters.Keys);
+        Assert.DoesNotContain("CreatureId", generic47.Parameters.Keys);
         Assert.DoesNotContain("Value", generic47.Parameters.Keys);
 
         TriggerRecord generic52 = triggers.First(t => t.Tag == 213 && t.Type == 52);

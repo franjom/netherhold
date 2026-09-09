@@ -658,6 +658,60 @@ public class TriggerExecutorTests
         tile.OwnerPlayerId = Keeper;
     }
 
+    /// <summary>Condition type 47 asks whether this keeper has been killed, and by whom
+    /// (<c>0x004C7B4B</c>). It is answered whole rather than compared: the arm returns 0 on
+    /// a living keeper, 1 when the record names no player, and otherwise tests equality —
+    /// it reads no <c>Comparison</c> and no <c>Value</c>, and the record carries neither.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 0, false)]     // alive, any killer named: false
+    [InlineData(0, 4, false)]     // alive, killer 4 named: still false
+    [InlineData(4, 0, true)]      // killed, no killer named: true
+    [InlineData(4, 4, true)]      // killed by 4, asking for 4
+    [InlineData(4, 5, false)]     // killed by 4, asking for 5
+    public void ConditionFortySevenAsksWhoKilledThisKeeper(
+        int killer, int asked, bool holds)
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        world.Player(1).KilledByPlayerId = (byte)killer;
+
+        TriggerRecord[] records = [KilledBy(5, asked), Action(1, 3, 0x0A, 1)];
+        var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(1, 5)]);
+        new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Equal(holds ? 1 : 0, world.Triggers.Read(3));
+    }
+
+    /// <summary>And it is never blocked: a living keeper is DK2's own answer, not a gap.
+    /// All 72 shipped records read false today because nothing can kill a keeper yet, which
+    /// is why this retires them from the census without advancing any level (ADR-0116).
+    /// </summary>
+    [Fact]
+    public void ConditionFortySevenIsAnsweredRatherThanDeclined()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+
+        TriggerRunResult result = new TriggerExecutor(
+                new TriggerTree([KilledBy(5, 3), Action(1, 3, 0x0A, 1)], 0,
+                    playerRoots: [new TriggerPlayerRoot(1, 5)]),
+                world.Triggers, world, database)
+            .Run(1);
+
+        Assert.DoesNotContain(result.Blocked, b => b.Type == 47);
+    }
+
+    /// <summary>A type-47 record as the reader builds one: byte 00 only, no comparison and
+    /// no value, so a helper that supplied either would not be testing this arm.</summary>
+    private static TriggerRecord KilledBy(ushort id, int playerId) =>
+        new GenericTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = id, Type = 47, RepeatCount = 1,
+            ChildTriggerId = 0xFFFF, NextTriggerId = 0,
+            Parameters = new Dictionary<string, long> { ["PlayerId"] = playerId },
+        };
+
     private static TriggerRecord Gold(ushort id, byte comparison, int threshold, ushort child) =>
         Counter(id, 30, comparison, threshold, child);
 

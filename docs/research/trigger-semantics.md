@@ -293,7 +293,7 @@ are grouped; the count beside each type is its shipped record count.
 | 40 (92), 42 (89) | `Comparison:u8@00` **B**, `PlayerId:u8@01` **B**, `TerrainId:u8@02` **B**, `Value:s32@04` **B**; `03` **N** |
 | 41 (69) | `PlayerId:u8@01` **B**, `TerrainId:u8@02` **B**; `00,03..07` **N** |
 | 44 (13), 64 (37) | `Comparison:u8@00` **B**, `PlayerId:u8@01` **C**, `Value:s32@04` **B**; `02..03` **N** |
-| 47 (72) | `CreatureId:u8@00` **C**; `01..07` **N** |
+| 47 (72) | `PlayerId:u8@00` **B**; `01..07` **N** — *corrected 2026-09-09 (ADR-0116): byte 00 is the player the arm `0x004C7B4B` compares against the killer's `Number`, not a creature. It reads no comparison and no value.* |
 | 52 (3) | `Comparison:u8@00` **B**, `Level:u8@03` **C**, `Value:s32@04` **B**; `01..02` **N** |
 | 53 (159) | `TargetType:u8@00` **T**, `TargetId:u8@01` **T**; `02..07` **N** |
 | 62 (32) | `Comparison:u8@00` **B**, `PlayerId:u8@01` **B**, `Value:s32@04` **B**; `02..03` **N** |

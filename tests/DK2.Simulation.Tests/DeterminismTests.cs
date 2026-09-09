@@ -105,7 +105,7 @@ public class DeterminismTests
         // though the fixture mines nothing -- an empty field still has to change the hash,
         // which is what proves the hash covers it. The pinned world spawns no creatures
         // (Q206), so a missing CreatureState field will not fail this pin.
-        Assert.Equal(0x5C6A03ED5BD250BCUL, sim.StateHash());
+        Assert.Equal(0xB5C88C09424100ADUL, sim.StateHash());
     }
 
     [Fact]

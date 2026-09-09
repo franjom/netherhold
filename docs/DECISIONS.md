@@ -1967,3 +1967,19 @@ The rebased `kwd oracle 200` measurements are recorded in the commit.
 - No hashed state, so no `HashVersion` bump.
 - **Type 70 keeps the old labels.** It has its own arm at `0x004B0DD7`, unread, so renaming its identical-looking bytes would be a guess.
 - Unresolved: the predicate matches the player's `Number` (`+0x10FC`), not the `TagId` (`+0x04`) that pairs a player with its trigger root. Ours has one id for both (Q271).
+
+## ADR-0116 — Type 47 asks who killed this keeper, and byte 00 is a player
+**Date:** 2026-09-09 · **Status:** accepted · Research: `docs/research/trigger-semantics.md`, `docs/research/player-object.md`
+
+**Context.** Condition type 47 was the largest remaining block, 72 records, and the top blocked type on every level sampled after ADR-0115. Its arm is `0x004C7B4B` on the player dispatcher.
+
+**Decision.** Type 47 reads `PlayerState.KilledByPlayerId`, a new hashed byte for DK2's `player+0x132`, which its own debug dumper names `KilledByPlayerId`.
+- **Byte 00 is a player, not a creature.** The reader called it `CreatureId`, corrected once already from an external list. The arm uses it only to compare against the killer's player `Number` (`0x004C7B86`), and its shipped values are 0 and 1, 3, 4, 5, 6, 7 — the player id range. Renamed `PlayerId`. That is the third misnamed selector found this way today, after type 39's two.
+- **Answered whole, not compared.** The arm returns 0 on a living keeper, 1 when byte 00 is zero, and otherwise tests equality itself. It reads no `Comparison` and no `Value`, and the record carries neither, so routing it through the shared compare path would have thrown on a missing key.
+- **Nothing sets the field.** No keeper can be defeated here — a fallen heart is not even claimable (Q207) — so every keeper reads as alive. That is DK2's answer for a living keeper too, so the condition is right today and will stay right when defeat arrives.
+- Hashed rather than hardcoded false, because a field the simulation can be *given* is testable where a constant is not.
+
+**Consequences.**
+- `HashVersion` and snapshot `FormatVersion` → **52**; pin `0x5C6A03ED5BD250BC` → `0xB5C88C09424100AD`.
+- Campaign-wide `stalls` **215 → 143**. `moved` and `after1` do not move, and could not: nothing kills a keeper, so all 72 records read false. This buys census honesty, not reach.
+- We store the player id where DK2 stores the killer's object id and converts through its `Number`; the two agree only while `TagId` and `Number` do (Q271).
