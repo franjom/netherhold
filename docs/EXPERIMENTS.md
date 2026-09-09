@@ -122,14 +122,19 @@ its player arm is `XOR EAX,EAX` at `0x004C850C`, constant false, so answering
 false rather than declining costs no research and removes 157 records of noise —
 though it unblocks nothing, since false and declined both stop the descent.
 
-**A declined record is not the same as a failed one, and for some of these it is
-the wrong answer.** Action 24 is a speech: 96 records across 37 levels, and a
-speech has no simulation effect we model. If DK2's arm returns 1 the walker
-descends past it, and declining cuts off 37 levels' chains for nothing. The
-project already has the right shape for this — `TriggerRunResult.Partial`, where
-action type 14 arms a party, creates no creatures, and still returns true. What
-each blocked arm **returns** is the next question, and it is cheaper to answer
-than what each one means.
+**A declined record is not the same as a failed one, and for the actions it is
+simply wrong.** That question is now answered: the world action dispatcher has
+two exits, `MOV EAX,1` and an `Unhandled Trigger When` message returning 0, and
+**every action type in the census above reaches the first**
+(`trigger-semantics.md`, "What an arm returns"). DK2 runs them and descends; we
+decline and stop. Type 17's arm and type 24's were read end to end to check the
+rule rather than assume it.
+
+So an unimplemented action can honestly return true and be counted in
+`TriggerRunResult.Partial`, the way action type 14 already arms a party and
+creates none of its creatures — **without anyone working out what it does**.
+Conditions are the opposite: declining one is indistinguishable from false until
+it would have been true, and only implementing it can say which.
 
 ### So the oracle is not blocked on choosing a level
 

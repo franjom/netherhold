@@ -161,6 +161,53 @@ can be marked.
 category dword at thing `+0x12` and then by `FUN_004B0A80`. Neither is
 implemented; what that filter reads is UNKNOWN.
 
+## What an arm returns, and why that decides the walk
+
+An action's return value is not a detail: the walker descends into an action's
+children only when it returns non-zero, so getting it wrong truncates the tree.
+
+**The world action dispatcher has exactly two exits.** `0x0051988C` is
+`MOV EAX,1`, and `0x00519893` formats `Unhandled Trigger When [ Type %d, Index
+%d ]` and returns 0. Every implemented arm reaches the first. So for an action
+the question "does DK2 succeed" has a static answer, and it needs no
+understanding of what the arm does:
+
+| | action types |
+|---|---|
+| world dispatcher **succeeds** | 1, 2, 4, 5, 6, 7, 8, 9, 14, 16, 17, 18, 22, 23, 25, 32, 39, 40, 41, 44, 45, 46, 47, 48, 49, 51 |
+| world dispatcher **fails**, printing the message | 3, 10, 11, 12, 13, 15, 19, 20, 21, 24, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36, 37, 38, 42, 43, 50 |
+
+In a player tree the thirteen types that dispatcher owns — 10, 11, 24–28, 31,
+34, 37, 38, 42, 50 — are handled there instead and reach its own `MOV EAX,1` at
+`0x004C8A4A`; the rest delegate to the world table above. **Type 5 is the
+degenerate case**: its world arm *is* the success exit, so it does nothing and
+succeeds.
+
+Two arms were read end to end to check the rule rather than assume it. Type 17
+(`0x00519257`) iterates the named action point's rectangle and finishes
+`MOV EAX,1`; it also jumps to the success exit when the point does not resolve.
+Type 24 (`0x004C8688`, player) queues a message of kind `0x15` carrying the
+speech id and finishes `MOV EAX,1`.
+
+### The asymmetry this creates
+
+**An action can be un-blocked without knowing what it does. A condition cannot.**
+
+Declining an action DK2 succeeds at is a behavioural error every time: the
+original descends and we stop. Since the return value is decided by the table
+above and not by the arm's effect, an unimplemented action can honestly return
+true and be counted in `TriggerRunResult.Partial` — which is what action type 14
+already does, arming a party and creating none of its creatures.
+
+A condition is the opposite. Declining one is indistinguishable from it being
+false, so it costs nothing *until* the condition would have been true, and
+nothing short of implementing it can say which. Conditions stay blocked.
+
+That is the whole of why the campaign's script stalls. Every action type in the
+measured blocked census — 17, 6, 23, 31, 47, 45, 42, 9, 26, 1, and 24 in the
+player trees where it appears — is one DK2 succeeds at (`docs/EXPERIMENTS.md`,
+2026-09-09).
+
 ## Parameter provenance
 
 Offsets are body-relative. `u8`, `u16`, `s16`, `u32`, and `s32` are the exact
