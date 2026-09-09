@@ -10,9 +10,31 @@ Controlled experiments comparing our simulation against original DK2 v1.70
 - Divergences are triaged as: our bug / unknown mechanic / accepted deviation
   (accepted ones need a written justification here).
 
-**No oracle-vs-ours run has been recorded**, which is why M5 is not started.
-`docs/experiments/` is empty; `find scenarios -name '*.yaml' | wc -l` is the
-number of scenarios available to drive one.
+## Recorded runs
+
+Captures live in `reverse-engineering/dk2runs/` (**gitignored**, so they are not
+backed up) as `dk2run<N>.csv`, in the shape `TriggerTurnCsvEmitter` writes. Our
+side comes from `dk2tools trigger-run <level> <turns> <out>`; compare with
+`dk2tools trigger-diff <a> <b>`, which pairs rows by **turn**, never by position.
+
+**2026-09-08, level 1, ours vs run 5.** Over 1176 shared turns, 100 of 148
+columns identical and 48 divergent — **every divergence one-directional**, DK2
+setting what we never set. We invent nothing. Cause: level 1's root is trigger
+89, condition type 34, `next = 0`, so the one unimplemented node blocks the whole
+tree (`docs/research/trigger-semantics.md`).
+
+**2026-09-09, level 1, run 4 vs run 5 — what the oracle can and cannot settle.**
+Two sessions of the same level, both played. **The event set is reproducible**:
+52 flags and timers fire, the same 52 in both, none unique to run 5, and the four
+unique to run 4 fired past run 5's window. **Turn numbers are not**: the offset
+runs from −156 to +285 turns, median 16, and **order is not preserved** either
+(f57 precedes f71 in one run, follows it in the other). Events that share a
+causal chain move together — t3, t11 and t14 are all exactly +85.
+
+So a divergence report may be read for *which* events occur, and for groups that
+move as one. **It may not be read for turn numbers**, and a future comparison
+that scores cell-by-cell equality against a played capture will manufacture
+divergences that are only the player.
 
 **What the owner can settle by playing is not here.** It is
 `docs/research/observation-checklist.md`, which is the working list of
