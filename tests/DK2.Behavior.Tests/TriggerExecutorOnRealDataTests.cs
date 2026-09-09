@@ -24,11 +24,11 @@ public class TriggerExecutorOnRealDataTests
         // rest is the player tree, which is where level 1 keeps its script.
 
         // Blocked is conditions only, and it is the work queue: declining a condition
-        // cannot be told apart from it being false, so the walk stops there. Seven types
+        // cannot be told apart from it being false, so the walk stops there. Eight types
         // have left it: 53/56/58/60 (ADR-0109), 30 gold (ADR-0110), 31 gold mined
-        // (ADR-0112), 19 creature count (ADR-0113). What is left is the real work queue.
+        // (ADR-0112), 19 creature count (ADR-0113), 25 room count (ADR-0114).
         Assert.Equal(
-            "213:25=4,213:46=1,213:64=1",
+            "213:46=1,213:64=1",
             Census(simulation.LastTriggerRun!.Summary));
 
         // Actions, which descend whatever we do because their dispatcher succeeds.
@@ -121,6 +121,23 @@ public class TriggerExecutorOnRealDataTests
             Directory.GetFiles(maps, "*Triggers.kld")
                 .SelectMany(f => KwdTriggers.Parse(KwdReader.ReadFile(f))),
             r => r.Tag == 213 && r.ChildTriggerId != 0);
+    }
+
+    [InstallFact]
+    public void EveryShippedType25RecordUsesTheRoomCountMode()
+    {
+        string maps = Path.Combine(Dk2InstallGate.Path, "Data", "editor", "maps");
+        TriggerRecord[] records = Directory.GetFiles(maps, "*Triggers.kld")
+            .SelectMany(file => KwdTriggers.Parse(KwdReader.ReadFile(file)))
+            .Where(record => record.Tag == 213 && record.Type == 25)
+            .ToArray();
+
+        Assert.Equal(85, records.Length);
+        Assert.Equal(
+            new Dictionary<long, int> { [1] = 1, [2] = 3, [3] = 30, [4] = 8, [5] = 43 },
+            records.GroupBy(record => record.Parameters["Comparison"])
+                .ToDictionary(group => group.Key, group => group.Count()));
+        Assert.DoesNotContain(records, record => record.Parameters["Comparison"] == 0);
     }
 
     private static string Census(IEnumerable<(int Tag, byte Type, int Count)> summary) =>

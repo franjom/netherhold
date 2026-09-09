@@ -270,6 +270,11 @@ internal sealed class TriggerRun(int currentTick)
     /// </summary>
     public byte? Player { get; set; }
 
+    /// <summary>The map's derived rooms, built only if a reached condition asks for them.
+    /// One run sees one world state because trigger actions that alter terrain are not yet
+    /// performed; when one is, it must invalidate this after the write.</summary>
+    public IReadOnlyList<RoomInstance>? Rooms { get; set; }
+
     public List<BlockedTrigger> Blocked { get; } = [];
     public List<BlockedTrigger> Partial { get; } = [];
     public List<BlockedTrigger> Assumed { get; } = [];
@@ -502,7 +507,7 @@ public sealed class TriggerExecutor
 
         if (_world is not null && _database is not null
             && PlayerCounter(
-                record.Type, record.Parameters, _world, _database, run.Player!.Value) is int measured)
+                record.Type, record.Parameters, _world, _database, run.Player!.Value, run) is int measured)
             return Result(TriggerState.Compare(
                 Byte(record.Parameters, "Comparison"),
                 measured,
@@ -515,18 +520,24 @@ public sealed class TriggerExecutor
     }
 
     /// <summary>The player quantity a condition type compares, or null for a type whose
-    /// arm we cannot answer. Types 30–32 are each the same three instructions — load one
-    /// dword off the player, compare, return — so the whole question is which field, and
-    /// DK2's own debug dumper names them (<c>FUN_004BCF10</c>, `player-object.md`).
-    /// Type 19 walks instead; <see cref="CreatureCount"/>.</summary>
+    /// arm we cannot answer. Types 19, 24 and 25 walk owned things; type 24 assumes
+    /// the room dumper's <c>Size</c> is slab count and uses
+    /// <see cref="RoomInstance.TileCount"/>. Type 25's byte overflow is unreachable in
+    /// shipped levels and is not modelled; its <c>Comparison == 0</c> availability mode
+    /// at <c>0x004C7ECF</c> is declined. Types 30–32 read named player dwords.
+    /// See trigger-semantics.md and room-conditions.md.</summary>
     private static int? PlayerCounter(
         byte type,
         IReadOnlyDictionary<string, long> parameters,
         WorldState world,
         GameDatabase database,
-        byte playerId) => type switch
+        byte playerId,
+        TriggerRun run) => type switch
     {
         19 => CreatureCount(parameters, world, database, playerId),
+        24 => Rooms(parameters, world, database, playerId, run).Sum(room => room.TileCount),
+        25 when Byte(parameters, "Comparison") != 0 =>
+            Rooms(parameters, world, database, playerId, run).Count(),
         30 => GoldStore.Total(world, playerId),        // +0x7E "Money"
         31 => world.Player(playerId).GoldMined,        // +0x15A "GoldMined"
         32 => world.Player(playerId).Mana,             // +0x82 "CurrentMana"
@@ -574,6 +585,20 @@ public sealed class TriggerExecutor
     /// flag should select.</summary>
     private static bool IsWorker(GameDatabase database, byte creatureTypeId) =>
         (database.CreatureById(creatureTypeId).Flags & CreatureFlags.IsWorker) != 0;
+
+    private static IEnumerable<RoomInstance> Rooms(
+        IReadOnlyDictionary<string, long> parameters,
+        WorldState world,
+        GameDatabase database,
+        byte playerId,
+        TriggerRun run)
+    {
+        byte roomId = Byte(parameters, "RoomId");
+        run.Rooms ??= RoomIndex.Build(world, database);
+        return run.Rooms.Where(room =>
+            room.OwnerPlayerId == playerId
+            && (roomId == 0 || room.Definition.RoomId == roomId));
+    }
 
     private static TriggerConditionResult Result(bool held) => held
         ? TriggerConditionResult.Satisfied

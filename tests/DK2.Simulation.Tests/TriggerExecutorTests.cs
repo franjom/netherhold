@@ -351,6 +351,106 @@ public class TriggerExecutorTests
         Assert.Equal(holds ? 1 : 0, world.Triggers.Read(3));
     }
 
+    [Fact]
+    public void Type25CountsRoomInstancesNotTiles()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState separate = RoomWorld(database);
+        PlaceRoom(separate, database, 1, RoomTypeId.Treasury, new TilePos(3, 3), new TilePos(6, 3));
+        WorldState joined = RoomWorld(database);
+        PlaceRoom(joined, database, 1, RoomTypeId.Treasury, new TilePos(3, 3), new TilePos(4, 3));
+
+        Assert.True(RoomConditionHolds(separate, database, 25, 1, RoomTypeId.Treasury, 3, 2));
+        Assert.True(RoomConditionHolds(joined, database, 25, 1, RoomTypeId.Treasury, 3, 1));
+    }
+
+    [Fact]
+    public void Type25RoomIdZeroCountsEveryOwnedRoomType()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = RoomWorld(database);
+        PlaceRoom(world, database, 1, RoomTypeId.Treasury, new TilePos(3, 3));
+        PlaceRoom(world, database, 1, RoomTypeId.Lair, new TilePos(6, 3));
+
+        Assert.True(RoomConditionHolds(world, database, 25, 1, 0, 3, 2));
+    }
+
+    [Fact]
+    public void Type25CountsOnlyTheAskingKeepersRooms()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = RoomWorld(database);
+        PlaceRoom(world, database, 1, RoomTypeId.Treasury, new TilePos(3, 3));
+        PlaceRoom(world, database, 2, RoomTypeId.Treasury, new TilePos(6, 3));
+
+        Assert.True(RoomConditionHolds(world, database, 25, 1, RoomTypeId.Treasury, 3, 1));
+    }
+
+    [Fact]
+    public void Type24AssumesRoomSizeIsTheSlabCount()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = RoomWorld(database);
+        PlaceRoom(
+            world, database, 1, RoomTypeId.Treasury,
+            new TilePos(3, 3), new TilePos(4, 3), new TilePos(4, 4));
+
+        Assert.True(RoomConditionHolds(world, database, 24, 1, 0, 3, 3));
+    }
+
+    [Fact]
+    public void Type24WithRoomIdSumsOnlyThatRoomType()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = RoomWorld(database);
+        PlaceRoom(
+            world, database, 1, RoomTypeId.Treasury, new TilePos(3, 3), new TilePos(4, 3));
+        PlaceRoom(
+            world, database, 1, RoomTypeId.Lair,
+            new TilePos(3, 5), new TilePos(4, 5), new TilePos(5, 5));
+
+        Assert.True(RoomConditionHolds(world, database, 24, 1, RoomTypeId.Treasury, 3, 2));
+    }
+
+    [Theory]
+    [InlineData((byte)1, false)]
+    [InlineData((byte)2, true)]
+    [InlineData((byte)3, true)]
+    [InlineData((byte)4, false)]
+    [InlineData((byte)5, true)]
+    [InlineData((byte)6, false)]
+    public void RoomCountersUseAllSixSharedComparisonCodes(byte comparison, bool holds)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = RoomWorld(database);
+        PlaceRoom(
+            world, database, 1, RoomTypeId.Treasury, new TilePos(3, 3), new TilePos(6, 3));
+
+        Assert.Equal(
+            holds,
+            RoomConditionHolds(world, database, 25, 1, RoomTypeId.Treasury, comparison, 2));
+    }
+
+    [Fact]
+    public void Type25ComparisonZeroAvailabilityModeIsDeclined()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = RoomWorld(database);
+        PlaceRoom(world, database, 1, RoomTypeId.Treasury, new TilePos(3, 3));
+        TriggerRecord[] records =
+        [
+            RoomCounter(5, 25, comparison: 0, RoomTypeId.Treasury, threshold: 0, child: 0xFFFF),
+            Action(1, 3, 0x0A, 1),
+        ];
+
+        TriggerRunResult result = new TriggerExecutor(
+            new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(1, 5)]),
+            world.Triggers, world, database).Run(1);
+
+        Assert.Equal(0, world.Triggers.Read(3));
+        Assert.Equal([new BlockedTrigger(213, 25, 5)], result.Blocked);
+    }
+
     /// <summary>And it is the walked player's gold, not any player's. Two roots, two
     /// keepers, one holding gold: only that one's subtree runs.</summary>
     [Fact]
@@ -519,6 +619,62 @@ public class TriggerExecutorTests
                 ["Comparison"] = comparison, ["Value"] = threshold,
             },
         };
+
+    private static TriggerRecord RoomCounter(
+        ushort id,
+        byte type,
+        byte comparison,
+        RoomTypeId roomType,
+        int threshold,
+        ushort child) => new GenericTriggerRecord(new byte[16])
+    {
+        Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 1,
+        ChildTriggerId = child, NextTriggerId = 0,
+        Parameters = new Dictionary<string, long>
+        {
+            ["Comparison"] = comparison, ["RoomId"] = (byte)roomType, ["Value"] = threshold,
+        },
+    };
+
+    private static WorldState RoomWorld(GameDatabase database) =>
+        WorldState.FromMap(database, TestWorld.Map(10, 8), [(byte)0, (byte)1, (byte)2]);
+
+    private static void PlaceRoom(
+        WorldState world,
+        GameDatabase database,
+        byte owner,
+        RoomTypeId type,
+        params TilePos[] tiles)
+    {
+        byte terrainId = database.Room(type).TerrainId;
+        foreach (TilePos at in tiles)
+        {
+            ref TileState tile = ref world.Tile(at.X, at.Y);
+            tile.TerrainId = terrainId;
+            tile.OwnerPlayerId = owner;
+            tile.Health = database.TerrainById(terrainId).StartingHealth;
+        }
+    }
+
+    private static bool RoomConditionHolds(
+        WorldState world,
+        GameDatabase database,
+        byte type,
+        byte playerId,
+        RoomTypeId roomType,
+        byte comparison,
+        int threshold)
+    {
+        TriggerRecord[] records =
+        [
+            RoomCounter(5, type, comparison, roomType, threshold, child: 0xFFFF),
+            Action(1, 3, 0x0A, 1),
+        ];
+        new TriggerExecutor(
+            new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(playerId, 5)]),
+            world.Triggers, world, database).Run(1);
+        return world.Triggers.Read(3) == 1;
+    }
 
     /// <summary>Eight player condition types are answered <b>false</b>, not declined:
     /// their jump-table entry is the dispatcher's own zero-return epilogue, so DK2 reads
