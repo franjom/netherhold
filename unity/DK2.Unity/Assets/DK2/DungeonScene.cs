@@ -33,12 +33,13 @@ namespace DK2.Unity
     public sealed class DungeonScene : IRenderTarget
     {
         /// <summary>A tile whose terrain fills its cell. One whole tile, so a wall is a
-        /// wall.</summary>
-        private const float SolidHeight = 1f;
+        /// wall. Public because <see cref="TilePicker"/> needs the same number to work
+        /// out what the pointer is over.</summary>
+        public const float SolidHeight = 1f;
 
         /// <summary>A tile you could stand on: thin enough that a creature on it reads as
         /// standing on it.</summary>
-        private const float OpenHeight = 0.06f;
+        public const float OpenHeight = 0.06f;
 
         /// <summary>What a tile marked for digging is tinted towards. DK2 plants flags;
         /// this is a placeholder renderer, so it tints. An interface choice, not a claim

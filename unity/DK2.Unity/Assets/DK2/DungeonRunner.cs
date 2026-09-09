@@ -200,19 +200,25 @@ namespace DK2.Unity
                 _pendingCommands.Add(command);
         }
 
+        /// <summary>
+        /// Which tile the pointer is over. The rule is <see cref="TilePicker"/>'s, because
+        /// it is testable and casting at the ground plane — what this did first — reads
+        /// the tile behind whatever wall the pointer is on.
+        /// </summary>
         private TilePos? ScreenToTile(Vector3 screenPosition)
         {
             Camera camera = Camera.main;
-            if (camera == null) return null;
+            if (camera == null || _worldView == null) return null;
 
             Ray ray = camera.ScreenPointToRay(screenPosition);
-            var ground = new Plane(Vector3.up, Vector3.zero);
-            if (!ground.Raycast(ray, out float distance)) return null;
-
-            Vector3 hit = ray.GetPoint(distance);
-            int x = Mathf.FloorToInt(hit.x);
-            int y = Mathf.FloorToInt(hit.z);
-            return _simulation.World.Contains(x, y) ? new TilePos(x, y) : (TilePos?)null;
+            return TilePicker.Pick(
+                new PickRay(
+                    ray.origin.x, ray.origin.y, ray.origin.z,
+                    ray.direction.x, ray.direction.y, ray.direction.z),
+                _worldView,
+                _simulation.World,
+                DungeonScene.SolidHeight,
+                DungeonScene.OpenHeight);
         }
 
         private void ReadToolKeys()
