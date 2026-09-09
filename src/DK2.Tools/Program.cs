@@ -2165,6 +2165,7 @@ static int Usage()
     Console.WriteLine("       [--message <file>]                also check a commit message body");
     Console.WriteLine("  status [--fast] [--check]              regenerate the plan's status paragraph;");
     Console.WriteLine("                                         --check exits 1 if the plan is stale");
+    Console.WriteLine("  trigger-run <level> <turns> <out.csv>  our per-turn trigger state, in the live probe's shape");
     Console.WriteLine("  trigger-diff <left.csv> <right.csv>   first divergent turn/column and column totals");
     Console.WriteLine("  wad extract <file.WAD> <entry> [out]   extract one entry");
     Console.WriteLine("  sdt list <file.sdt>                    list sound-bank entries and formats");
