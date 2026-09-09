@@ -500,7 +500,9 @@ public sealed class TriggerExecutor
         if (PlayerConditionIsConstantFalse(record.Type))
             return TriggerConditionResult.Unsatisfied;
 
-        if (_world is not null && PlayerCounter(record.Type, _world, run.Player!.Value) is int measured)
+        if (_world is not null && _database is not null
+            && PlayerCounter(
+                record.Type, record.Parameters, _world, _database, run.Player!.Value) is int measured)
             return Result(TriggerState.Compare(
                 Byte(record.Parameters, "Comparison"),
                 measured,
@@ -513,17 +515,65 @@ public sealed class TriggerExecutor
     }
 
     /// <summary>The player quantity a condition type compares, or null for a type whose
-    /// arm we cannot answer. Each of these arms is the same three instructions — load one
+    /// arm we cannot answer. Types 30–32 are each the same three instructions — load one
     /// dword off the player, compare, return — so the whole question is which field, and
     /// DK2's own debug dumper names them (<c>FUN_004BCF10</c>, `player-object.md`).
-    /// </summary>
-    private static int? PlayerCounter(byte type, WorldState world, byte playerId) => type switch
+    /// Type 19 walks instead; <see cref="CreatureCount"/>.</summary>
+    private static int? PlayerCounter(
+        byte type,
+        IReadOnlyDictionary<string, long> parameters,
+        WorldState world,
+        GameDatabase database,
+        byte playerId) => type switch
     {
+        19 => CreatureCount(parameters, world, database, playerId),
         30 => GoldStore.Total(world, playerId),        // +0x7E "Money"
         31 => world.Player(playerId).GoldMined,        // +0x15A "GoldMined"
         32 => world.Player(playerId).Mana,             // +0x82 "CurrentMana"
         _ => null,
     };
+
+    /// <summary>Condition type 19 — how many creatures this keeper owns
+    /// (<c>0x004C7B9D</c>). <b>The two paths are not the same count</b>: a named type
+    /// reads a cached per-type total, id 0 reads the owned total <i>minus every
+    /// worker</i>. So workers are excluded from the total and counted when asked for by
+    /// name, which is DK2's asymmetry and not ours. trigger-semantics.md, ADR-0113.
+    /// </summary>
+    /// <remarks>UNVERIFIED: whether DK2 keeps a creature in the owned list while a hand
+    /// holds it. Ours does not, so a keeper mid-pickup may count one fewer (Q268).
+    /// </remarks>
+    private static int CreatureCount(
+        IReadOnlyDictionary<string, long> parameters,
+        WorldState world,
+        GameDatabase database,
+        byte playerId)
+    {
+        byte wanted = Byte(parameters, "CreatureId");
+        int count = 0;
+        foreach (CreatureState creature in world.Creatures)
+        {
+            if (creature.OwnerPlayerId != playerId) continue;
+            if (wanted != 0)
+            {
+                if (creature.CreatureTypeId != wanted) continue;
+            }
+            else if (IsWorker(database, creature.CreatureTypeId))
+            {
+                continue;
+            }
+
+            count++;
+        }
+
+        return count;
+    }
+
+    /// <summary>Bit 0 of the creature definition's runtime <c>+0x686</c> flag dword,
+    /// which is file offset <c>0xEFC</c> — <see cref="CreatureFlags.IsWorker"/>. Imp and
+    /// Dwarf are the only two shipped creatures that set it, which is the roster a worker
+    /// flag should select.</summary>
+    private static bool IsWorker(GameDatabase database, byte creatureTypeId) =>
+        (database.CreatureById(creatureTypeId).Flags & CreatureFlags.IsWorker) != 0;
 
     private static TriggerConditionResult Result(bool held) => held
         ? TriggerConditionResult.Satisfied

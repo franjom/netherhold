@@ -1913,3 +1913,18 @@ player's twelve score counters are its first twelve fields, and type 31's is
 - `HashVersion` and snapshot `FormatVersion` → **51**; pin `0x98DE8BA2B3BDC7BF` → `0x5C6A03ED5BD250BC`.
 - **The first change today that moves the oracle.** Campaign-wide `moved` 54 → 55 and `after1` 9 → 10, stalls 606 → 599 — and the level that moved is **level 1**, the one with a live capture: 3 → 4 columns, 1 → 2 past turn 1, its blocked census down to four condition types.
 - Unchecked: whether a gem seam's `GoldMinedFromGems` yield is credited the same way.
+
+## ADR-0113 — Counting a keeper's creatures, and why the total excludes its workers
+**Date:** 2026-09-09 · **Status:** accepted · Q268, Q269 opened · Research: `docs/research/trigger-semantics.md`, `docs/research/player-object.md`
+
+**Context.** Condition type 19 is the largest unimplemented player-condition block in the corpus — **205 records across 29 levels**, more than gold, mana and gold-mined together. Its arm is `0x004C7B9D`, reached through the player dispatcher's byte table at `0x004C85E8` (base 19, so `DispatchMap.py`'s printed index is the true type minus 18).
+
+**Decision.** Type 19 counts the creatures the walked keeper owns, by walking `WorldState.Creatures` and filtering on `OwnerPlayerId`.
+- **`CreatureId` 0 does not mean "no filter" — it means the total, and the total excludes workers.** That path takes `TotalNumberOfOwnedThings[0]` and walks `ThingsOwnedList[0]` doing `DEC EAX` once per creature whose definition sets bit 0 of `+0x686` (`0x004C7BD9`). Bit 0 is `CreatureFlags.IsWorker`, and across the shipped roster **exactly Imp and Dwarf** set it — the keeper's worker and the heroes' — which is the roster a worker flag should select, so the bit-order source is confirmed by the data and not merely trusted.
+- **A named creature id counts workers normally**, because that path reads a cached per-type total through `CPlayer::GetNumberOfCreaturesOfType` (`0x004BA7D0`, named by its own error string). Asking for imps returns imps. The asymmetry is DK2's, not ours.
+- **Type 20 is declined, not answered.** Its arm `0x004C7C23` is the same walk plus a filter on `creature+0x28A` — a three-valued field this simulation has no equivalent for (Q269). Both its two shipped records compare with `>=`, so an over-count would fire them early; leaving them blocked is the honest answer.
+
+**Consequences.**
+- **The largest single movement the oracle has recorded.** Campaign-wide `stalls` **599 → 417**, `moved` **55 → 62**, `after1` **10 → 11**. Level 1's blocked census drops type 19 and gains nothing.
+- No hashed state, so no `HashVersion` bump: the count is derived from creatures already hashed.
+- Unverified: whether DK2 drops a creature from the owned list while a hand holds it (Q268). Ours does.

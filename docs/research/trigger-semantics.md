@@ -235,6 +235,31 @@ though the frame's own recompute happens after it walks the tree.
 The Dungeon Heart's `+0x9A` bit 0 is not identified (Q263). Our gold total has
 no equivalent, so a heart we would count might be one DK2 skips.
 
+### Counting creatures: types 19, 20 and 21
+
+Type 19 (205 records, the largest block in the corpus) is **two counts behind one
+type byte**, and they disagree.
+
+- `CreatureId != 0` calls `CPlayer::GetNumberOfCreaturesOfType` (`0x004BA7D0`,
+  named by its own error string), a binary search over a sorted 13-byte
+  `SPlayerCreatureInfo` array — count at `player+0x4E`, base `+0x52`, entry
+  `TypeId:u8@0` and the count at `@9`. Workers are counted like anything else.
+- `CreatureId == 0` takes `TotalNumberOfOwnedThings[0]` (`player+0x16`) and walks
+  `ThingsOwnedList[0]` (`player+0x06`), doing `DEC EAX` for every creature whose
+  definition sets bit 0 of `+0x686`. **The total excludes workers.** Both arrays
+  are eight-entry, one slot per thing category, and category 0 is creatures.
+
+That bit is `IsWorker`, file offset `0xEFC`: `dk2tools kwd creaturehex 0xEFC 4`
+shows the only shipped creatures with an odd first byte are **Imp (0x9F) and
+Dwarf (0x17)** — the keeper's worker and the heroes'.
+
+Types 20 and 21 are one arm shape used twice. Both walk `ThingsOwnedList[0]`,
+filter by `CreatureId` when non-zero, exclude workers **always** (unlike type 19),
+and additionally require `creature+0x28A` to equal **0** for type 20
+(`0x004C7C4C`) and **2** for type 21 (`0x004C7CC4`). That field is never stored by
+name and is compared against 0, 1 and 2 in a filter table at `FUN_00418A90`; it is
+Q269, and type 20 stays declined until it is answered. Type 21 ships no records.
+
 ## Parameter provenance
 
 Offsets are body-relative. `u8`, `u16`, `s16`, `u32`, and `s32` are the exact

@@ -22,6 +22,7 @@ or a community document.
 | offset | name | note |
 |---|---|---|
 | `+0x04` | `TagId` | the player id the trigger walker pairs with a root |
+| `+0x06`, `+0x16` | `ThingsOwnedList[]`, `TotalNumberOfOwnedThings[]` | eight-entry arrays, one slot per thing category — words then dwords. **Category 0 is creatures**, and condition type 19 walks both |
 | `+0x36` | `RoomList` | head of the owned-room list, walked through the object table at `0x006EE540` |
 | `+0x3C` | `OwnedArea` | four values |
 | `+0x76` | *(bitfield)* | `CanPopImps`, `BookHeldInPossession`, `CallToArmsOn`, `DungeonHeartIsInvulnerable`, `HeartPlugRemoved`, `GameWonSequenceActive`, `ReaperCreatedForEndSequence`, `ThirdPersonPossess`, `WarnAboutLowMana`, `FirstPayDaySet`, `HasPlayedHornyAvailable`, `HasPlayedToDismissReaper`, `PortalsOpen`, `Active`, `NotUsed` |
@@ -48,12 +49,19 @@ or a community document.
 | `+0xFCE` | `CreatureUsed[]` | an array |
 | `+0x10D2`–`+0x10F2` | `MaintainImpManaPerSecond`, `MaintainTrapManaPerSecond`, `MaxManaGainPerSecond`, `ManaGainPerSecond`, `BasicManaPerSecond`, `MaxMana`, `OneShotManaGain`, `OneShotManaLoss` | |
 | `+0x10DA`, `+0x10DC` | **`TriggerRoot`, `TriggerRootRepeatCount`** | confirms `trigger-walkers.md` by name |
-| `+0x10F6`–`+0x10FB` | `MaxCreatures`, `NumberOfCreatureTypes`, `NumberOfRooms`, `ComputerPlayerOn`, `ImpsWantARescan` | |
+| `+0x10F6` w, `+0x10F8`, `+0x10F9` | `MaxCreatures`, `NumberOfCreatureTypes`, **`NumberOfRooms`** | `+0x10F9` is condition type 25's unfiltered count |
+| `+0x10FA`–`+0x10FC` | `ComputerPlayerOn`, `ImpsWantARescan`, the player `Number` | |
 | `+0x111D` | `FireworksTime` | |
 
-Keeper spells are a four-entry array at `+0x5A`, `+0x62`, `+0x6A`, `+0x72`,
-stride 8, each printing `TypeId`, `Availability` and `Upgraded`; the last also
-prints `TimeLastCast` and `TimeLastChecked`.
+**Corrected 2026-09-09.** Those four are not four keeper spells — they are four
+separate **availability tables**, each a `{count, base}` pair at stride 8:
+`RoomInfo[]` (`+0x56`/`+0x5A`), `DoorInfo[]` (`+0x5E`/`+0x62`), `TrapInfo[]`
+(`+0x66`/`+0x6A`) and the keeper spells (`+0x6E`/`+0x72`). Every entry is nine
+bytes — `TypeId:u8@0`, `Availability:u32@1`, `Upgraded:u32@5` — and the spell
+table's dumper adds `TimeLastCast` and `TimeLastChecked`. `FUN_004BAB20` is the
+`RoomInfo` lookup: a descending scan for `TypeId`, returning that entry's
+`Availability` or **1** when the type is absent. Reading the earlier summary as
+one spell array was a mis-transcription of four loops that share a format string.
 
 ## The score block, and what it is made of
 

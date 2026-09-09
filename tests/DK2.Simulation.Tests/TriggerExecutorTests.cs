@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
 
@@ -375,6 +376,134 @@ public class TriggerExecutorTests
         Assert.Equal(1, world.Triggers.Read(3));
         Assert.Equal(0, world.Triggers.Read(4));
     }
+
+    /// <summary>Condition type 19 counts the keeper's creatures (<c>0x004C7B9D</c>). Naming
+    /// a creature id reads DK2's per-type cache through
+    /// <c>CPlayer::GetNumberOfCreaturesOfType</c> (<c>0x004BA7D0</c>), and that count is
+    /// of the type asked for, whatever it is.</summary>
+    [Theory]
+    [InlineData(GoblinId, (byte)5, 2, true)]     // two goblins, >= 2
+    [InlineData(GoblinId, (byte)5, 3, false)]
+    [InlineData(ImpId, (byte)3, 3, true)]        // three imps, == 3
+    [InlineData(ImpId, (byte)4, 3, false)]       // 4 is >, not >=
+    public void ConditionNineteenCountsTheKeepersCreaturesOfOneType(
+        byte creatureId, byte comparison, int threshold, bool holds)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+
+        RunCreatureCondition(world, database, creatureId, comparison, threshold);
+
+        Assert.Equal(holds ? 1 : 0, world.Triggers.Read(3));
+    }
+
+    /// <summary>Creature id 0 is not "no filter" — it is the total, and the total
+    /// <b>excludes workers</b>. Its arm takes <c>TotalNumberOfOwnedThings[0]</c> and walks
+    /// the owned list decrementing once per definition with bit 0 of <c>+0x686</c> set
+    /// (<c>0x004C7BD9</c>). Across the shipped roster that bit is exactly Imp and Dwarf.
+    /// So this keeper's three imps and two goblins count as two.</summary>
+    [Fact]
+    public void ConditionNineteenWithCreatureIdZeroCountsEveryCreatureExceptWorkers()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+
+        RunCreatureCondition(world, database, creatureId: 0, comparison: 3, threshold: 2);
+
+        Assert.Equal(1, world.Triggers.Read(3));
+    }
+
+    /// <summary>And asking for imps by name still counts them, which is the whole
+    /// asymmetry: the same three imps are 0 of the total and 3 of their own type.</summary>
+    [Fact]
+    public void ConditionNineteenCountsWorkersWhenAskedForThemByName()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+
+        RunCreatureCondition(world, database, ImpId, comparison: 3, threshold: 3);
+
+        Assert.Equal(1, world.Triggers.Read(3));
+    }
+
+    /// <summary>It counts the walked keeper's creatures, not everyone's. The rival owns
+    /// four goblins; the keeper's own two are what the arm sees.</summary>
+    [Fact]
+    public void ConditionNineteenCountsOnlyTheWalkedPlayersCreatures()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+        for (int i = 0; i < 4; i++)
+            world.SpawnCreature(database, GoblinId, PlayerIds.Neutral, new TilePos(6, 6));
+
+        RunCreatureCondition(world, database, GoblinId, comparison: 3, threshold: 2);
+
+        Assert.Equal(1, world.Triggers.Read(3));
+    }
+
+    /// <summary>Two shipped records ask type <b>20</b>, and it is declined, not answered:
+    /// its arm (<c>0x004C7C23</c>) is type 19's walk plus a filter on <c>creature+0x28A</c>,
+    /// a three-valued field nothing here models (Q269). Answering it would over-count, and
+    /// both records compare with <c>&gt;=</c>, so they would fire early.</summary>
+    [Fact]
+    public void ConditionTwentyIsDeclinedBecauseItsExtraFilterIsUnknown()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+
+        TriggerRecord[] records =
+        [
+            CreatureCondition(5, type: 20, creatureId: GoblinId, comparison: 5, threshold: 1),
+            Action(1, 3, 0x0A, 1),
+        ];
+        var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
+        TriggerRunResult result =
+            new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Equal(0, world.Triggers.Read(3));
+        Assert.Equal([new BlockedTrigger(213, 20, 5)], result.Blocked);
+    }
+
+    private const byte Keeper = PlayerIds.FirstKeeper;
+    private const byte ImpId = Dk2TerrainFixture.ImpCreatureId;
+    private const byte GoblinId = 7;
+
+    /// <summary>Three imps and two goblins, all the keeper's.</summary>
+    private static WorldState CreatureWorld(GameDatabase database)
+    {
+        WorldState world = WorldState.FromMap(
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        for (int i = 0; i < 3; i++)
+            world.SpawnCreature(database, ImpId, Keeper, new TilePos(2, 2));
+        for (int i = 0; i < 2; i++)
+            world.SpawnCreature(database, GoblinId, Keeper, new TilePos(3, 3));
+        return world;
+    }
+
+    private static void RunCreatureCondition(
+        WorldState world, GameDatabase database, byte creatureId, byte comparison, int threshold)
+    {
+        TriggerRecord[] records =
+        [
+            CreatureCondition(5, type: 19, creatureId, comparison, threshold),
+            Action(1, 3, 0x0A, 1),
+        ];
+        var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
+        new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+    }
+
+    private static TriggerRecord CreatureCondition(
+        ushort id, byte type, byte creatureId, byte comparison, int threshold) =>
+        new GenericTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 1,
+            ChildTriggerId = 0xFFFF, NextTriggerId = 0,
+            Parameters = new Dictionary<string, long>
+            {
+                ["Comparison"] = comparison, ["CreatureId"] = creatureId,
+                ["Value"] = threshold,
+            },
+        };
 
     private static TriggerRecord Gold(ushort id, byte comparison, int threshold, ushort child) =>
         Counter(id, 30, comparison, threshold, child);
