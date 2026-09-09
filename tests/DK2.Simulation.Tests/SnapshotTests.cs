@@ -158,6 +158,54 @@ public class SnapshotTests
     }
 
     [Fact]
+    public void RoundTrip_CarriesHeroPartiesAndEffectGeneratorsVerbatim()
+    {
+        GameDatabase database = TestWorld.Database();
+        GameSimulation original = TestWorld.Simulation();
+        ThingProjection.Place(original.World, database,
+        [
+            new HeroPartyThing(new byte[555])
+            {
+                Name = "snapshot party", TriggerId = 4, PartyId = 5,
+                Unknown_0023 = -6, Unknown_0027 = 7,
+                Members =
+                [
+                    new GoodCreatureThing(new byte[32])
+                    {
+                        X = 8, Y = 9, Z = 10, GoldHeld = 11, Level = 12, Flags = 13,
+                        ObjectiveTargetActionPointId = 14, InitialHealth = 15, TriggerId = 16,
+                        ObjectiveTargetPlayerId = 17, Objective = 18, CreatureId = 19,
+                        Unknown_001D = new byte[] { 20, 21 }, Flags2 = 22,
+                    },
+                ],
+            },
+            new EffectGeneratorThing(new byte[36])
+            {
+                X = 23, Y = 24, Unknown_0008 = 25, Unknown_000C = 26,
+                Unknown_0010 = 27, Unknown_0012 = 28, EffectIds = [29, 30, 31],
+                Frequency = 32, GeneratorId = 33,
+                Unknown_001E = new byte[] { 34, 35, 36, 37, 38, 39 },
+            },
+        ]);
+
+        GameSimulation restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(original), database, [new ChaosSystem()]);
+
+        HeroPartyState party = Assert.Single(restored.World.HeroParties);
+        Assert.Equal(("snapshot party", (ushort)4, (byte)5, -6, 7),
+            (party.Name, party.TriggerId, party.PartyId, party.Unknown_0023, party.Unknown_0027));
+        HeroPartyMemberState member = Assert.Single(party.Members);
+        Assert.Equal((8, 9, 10, (ushort)11, (byte)12, (byte)13),
+            (member.X, member.Y, member.Z, member.GoldHeld, member.Level, member.Flags));
+        Assert.Equal(new byte[] { 20, 21 }, member.Unknown_001D.ToArray());
+
+        EffectGeneratorState generator = Assert.Single(restored.World.EffectGenerators);
+        Assert.Equal(new ushort[] { 29, 30, 31 }, generator.EffectIds);
+        Assert.Equal(new byte[] { 34, 35, 36, 37, 38, 39 }, generator.Unknown_001E.ToArray());
+        Assert.Equal(original.StateHash(), restored.StateHash());
+    }
+
+    [Fact]
     public void RestoredRun_ContinuesIdentically()
     {
         // The real invariant. Equal hashes at the moment of restore only prove

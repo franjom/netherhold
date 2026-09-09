@@ -20,10 +20,12 @@ public readonly record struct ThingProjectionResult(
     int ActionPoints,
     int Doors,
     int Traps,
+    int HeroParties,
+    int EffectGenerators,
     int RoomsAlreadyInTheGrid,
     int NotYetProjected)
 {
-    public int Placed => Creatures + Objects + ActionPoints + Doors + Traps;
+    public int Placed => Creatures + Objects + ActionPoints + Doors + Traps + HeroParties + EffectGenerators;
 }
 
 /// <summary>Turns a level's placed THINGS records into world contents.</summary>
@@ -33,10 +35,9 @@ public readonly record struct ThingProjectionResult(
 /// levels they run x 0..118 and y 0..102 against a largest map of 121x105, and not one of the 6279
 /// records lands outside its own level's grid; under the subtile reading every one would.
 /// <c>dk2tools kwd things</c> re-checks it.</para>
-/// <para>Places creatures, objects, action points, doors and traps, because
-/// <see cref="WorldState"/> holds each as simulation state. Doors and traps have
-/// no behaviour yet (ADR-0106). Hero parties and effect generators are read and
-/// counted but the world has nowhere to put them.</para>
+/// <para>Places every parsed THINGS kind that is not already represented by the
+/// map grid. Hero parties and effect generators are stored without behaviour
+/// (ADR-0108); party members remain unspawned templates, not creatures.</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/placed-things.md")]
 public static class ThingProjection
@@ -70,6 +71,7 @@ public static class ThingProjection
         if (things is null) throw new ArgumentNullException(nameof(things));
 
         int creatures = 0, objects = 0, actionPoints = 0, doors = 0, traps = 0;
+        int heroParties = 0, effectGenerators = 0;
         int rooms = 0, skipped = 0;
 
         foreach (ThingRecord record in things)
@@ -114,6 +116,16 @@ public static class ThingProjection
                     traps++;
                     break;
 
+                case HeroPartyThing t:
+                    PlaceHeroParty(world, t);
+                    heroParties++;
+                    break;
+
+                case EffectGeneratorThing t:
+                    PlaceEffectGenerator(world, t);
+                    effectGenerators++;
+                    break;
+
                 // A ROOM record does not place a room: the MAP grid already
                 // carries the room's terrain, and WorldState.FromMap has
                 // already laid it down. Checked rather than assumed — across
@@ -131,7 +143,8 @@ public static class ThingProjection
         }
 
         return new ThingProjectionResult(
-            creatures, objects, actionPoints, doors, traps, rooms, skipped);
+            creatures, objects, actionPoints, doors, traps,
+            heroParties, effectGenerators, rooms, skipped);
     }
 
     private static void PlaceCreature(
@@ -215,5 +228,35 @@ public static class ThingProjection
             TrapId = thing.TrapId,
             PlayerId = thing.PlayerId,
             Unknown_000F = thing.Unknown_000F,
+        });
+
+    private static void PlaceHeroParty(WorldState world, HeroPartyThing thing) =>
+        world.AddHeroParty(new HeroPartyState
+        {
+            Name = thing.Name,
+            TriggerId = thing.TriggerId,
+            PartyId = thing.PartyId,
+            Unknown_0023 = thing.Unknown_0023,
+            Unknown_0027 = thing.Unknown_0027,
+            Members = thing.Members.Select(member => new HeroPartyMemberState
+            {
+                X = member.X, Y = member.Y, Z = member.Z,
+                GoldHeld = member.GoldHeld, Level = member.Level, Flags = member.Flags,
+                ObjectiveTargetActionPointId = member.ObjectiveTargetActionPointId,
+                InitialHealth = member.InitialHealth, TriggerId = member.TriggerId,
+                ObjectiveTargetPlayerId = member.ObjectiveTargetPlayerId,
+                Objective = member.Objective, CreatureId = member.CreatureId,
+                Unknown_001D = member.Unknown_001D.ToArray(), Flags2 = member.Flags2,
+            }).ToArray(),
+        });
+
+    private static void PlaceEffectGenerator(WorldState world, EffectGeneratorThing thing) =>
+        world.AddEffectGenerator(new EffectGeneratorState
+        {
+            X = thing.X, Y = thing.Y,
+            Unknown_0008 = thing.Unknown_0008, Unknown_000C = thing.Unknown_000C,
+            Unknown_0010 = thing.Unknown_0010, Unknown_0012 = thing.Unknown_0012,
+            EffectIds = thing.EffectIds.ToArray(), Frequency = thing.Frequency,
+            GeneratorId = thing.GeneratorId, Unknown_001E = thing.Unknown_001E.ToArray(),
         });
 }

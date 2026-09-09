@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 46;
+    private const int FormatVersion = 47;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -217,6 +217,38 @@ public static class WorldSnapshot
             w.Write(trap.TrapId);
             w.Write(trap.PlayerId);
             w.Write(trap.Unknown_000F);
+        }
+
+        w.Write(world.HeroParties.Count);
+        foreach (HeroPartyState party in world.HeroParties)
+        {
+            w.Write(party.Name);
+            w.Write(party.TriggerId);
+            w.Write(party.PartyId);
+            w.Write(party.Unknown_0023);
+            w.Write(party.Unknown_0027);
+            w.Write(party.Members.Count);
+            foreach (HeroPartyMemberState member in party.Members)
+            {
+                w.Write(member.X); w.Write(member.Y); w.Write(member.Z);
+                w.Write(member.GoldHeld); w.Write(member.Level); w.Write(member.Flags);
+                w.Write(member.ObjectiveTargetActionPointId); w.Write(member.InitialHealth);
+                w.Write(member.TriggerId); w.Write(member.ObjectiveTargetPlayerId);
+                w.Write(member.Objective); w.Write(member.CreatureId);
+                w.Write(member.Unknown_001D.ToArray()); w.Write(member.Flags2);
+            }
+        }
+
+        w.Write(world.EffectGenerators.Count);
+        foreach (EffectGeneratorState generator in world.EffectGenerators)
+        {
+            w.Write(generator.X); w.Write(generator.Y);
+            w.Write(generator.Unknown_0008); w.Write(generator.Unknown_000C);
+            w.Write(generator.Unknown_0010); w.Write(generator.Unknown_0012);
+            w.Write(generator.EffectIds.Count);
+            foreach (ushort effectId in generator.EffectIds) w.Write(effectId);
+            w.Write(generator.Frequency); w.Write(generator.GeneratorId);
+            w.Write(generator.Unknown_001E.ToArray());
         }
 
         // The trigger banks. Written whole rather than sparsely: they are a
@@ -467,6 +499,54 @@ public static class WorldSnapshot
                 TrapId = r.ReadByte(),
                 PlayerId = r.ReadByte(),
                 Unknown_000F = r.ReadByte(),
+            });
+        }
+
+        int heroPartyCount = r.ReadInt32();
+        for (int i = 0; i < heroPartyCount; i++)
+        {
+            string name = r.ReadString();
+            ushort triggerId = r.ReadUInt16();
+            byte partyId = r.ReadByte();
+            int unknown0023 = r.ReadInt32();
+            int unknown0027 = r.ReadInt32();
+            int memberCount = r.ReadInt32();
+            var members = new HeroPartyMemberState[memberCount];
+            for (int m = 0; m < memberCount; m++)
+            {
+                members[m] = new HeroPartyMemberState
+                {
+                    X = r.ReadInt32(), Y = r.ReadInt32(), Z = r.ReadInt32(),
+                    GoldHeld = r.ReadUInt16(), Level = r.ReadByte(), Flags = r.ReadByte(),
+                    ObjectiveTargetActionPointId = r.ReadInt32(), InitialHealth = r.ReadInt32(),
+                    TriggerId = r.ReadUInt16(), ObjectiveTargetPlayerId = r.ReadByte(),
+                    Objective = r.ReadByte(), CreatureId = r.ReadByte(),
+                    Unknown_001D = r.ReadBytes(HeroPartyMemberState.Unknown001DLength),
+                    Flags2 = r.ReadByte(),
+                };
+            }
+            world.RawHeroParties.Add(new HeroPartyState
+            {
+                Name = name, TriggerId = triggerId, PartyId = partyId,
+                Unknown_0023 = unknown0023, Unknown_0027 = unknown0027, Members = members,
+            });
+        }
+
+        int effectGeneratorCount = r.ReadInt32();
+        for (int i = 0; i < effectGeneratorCount; i++)
+        {
+            int x = r.ReadInt32(); int y = r.ReadInt32();
+            int unknown0008 = r.ReadInt32(); int unknown000C = r.ReadInt32();
+            ushort unknown0010 = r.ReadUInt16(); ushort unknown0012 = r.ReadUInt16();
+            int effectIdCount = r.ReadInt32();
+            var effectIds = new ushort[effectIdCount];
+            for (int e = 0; e < effectIdCount; e++) effectIds[e] = r.ReadUInt16();
+            world.RawEffectGenerators.Add(new EffectGeneratorState
+            {
+                X = x, Y = y, Unknown_0008 = unknown0008, Unknown_000C = unknown000C,
+                Unknown_0010 = unknown0010, Unknown_0012 = unknown0012, EffectIds = effectIds,
+                Frequency = r.ReadByte(), GeneratorId = r.ReadByte(),
+                Unknown_001E = r.ReadBytes(EffectGeneratorState.Unknown001ELength),
             });
         }
 

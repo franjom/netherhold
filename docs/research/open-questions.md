@@ -357,6 +357,17 @@ than a defect: both flags its trees write need a human (`docs/EXPERIMENTS.md`).
 | Q252 | **What are `DoorThing.Unknown_0008` and `DoorThing.Unknown_0011`?** | **UNKNOWN.** Each field is stored verbatim. That conservative choice loses no information; for each field its only risk is hashing a bit DK2 discards | Trace both source ranges through the door loader and runtime readers. Keep the three bytes at `0011` distinct while checking accesses |
 | Q253 | **What are `TrapThing.Unknown_0008` and `TrapThing.Unknown_000F`?** | **UNKNOWN.** Each field is stored verbatim. That conservative choice loses no information; for each field its only risk is hashing a bit DK2 discards | Trace both source fields through the trap loader and runtime readers; name neither until a consumer establishes its role |
 
+## Hero-party and effect-generator questions raised by ADR-0108
+
+| Q | Question | What is known | How to settle it |
+|---|---|---|---|
+| Q254 | **How and when does a hero party spawn?** | **UNKNOWN.** The party and all sixteen authored member slots are state, but no member is a placed creature. Action type 14 is the known route that would spawn one; no spawn behaviour is implemented | Read action type 14's spawn path and the party runtime constructor, then observe a party-spawning level. Do not route templates through ordinary placement |
+| Q255 | **What does an effect generator do at runtime?** | **UNKNOWN.** Its one shipped record is stored, hashed and snapshotted, but it generates nothing | Read the generator instance handler and presentation/effect consumers; vary authored frequency and effect ids before implementing cadence or selection |
+| Q256 | **Should party state and `TriggerTree.Parties` eventually have one owner?** | The same source records currently have two homes: complete verbatim records on `WorldState`, and 24 reduced trigger slots built directly from `things.OfType<HeroPartyThing>()`. This branch deliberately leaves `TriggerTree` unchanged | Resolve when action type 14 is implemented: identify which runtime object owns member templates and party repeat/root state, then remove duplication only with equivalent hash/snapshot coverage |
+| Q257 | **Does DK2 transform `HeroPartyThing.Unknown_0023` or `Unknown_0027`?** | **UNKNOWN.** Both integers are stored verbatim. That conservative choice loses no information; its only risk for each field is hashing a value DK2 discards or transforms | Read the party loader and runtime readers; pin any transform against the authored corpus before narrowing state |
+| Q258 | **Does DK2 transform any nested `GoodCreatureThing` field when making a party member?** | **UNKNOWN**, including the two-byte `Unknown_001D` tail. Every parsed field is stored verbatim; the only risk is hashing a value or bit DK2 discards | Follow one member through party loading and spawning, separating template-time transforms from spawn-time creature initialisation |
+| Q259 | **What are the effect generator's unknown fields and how are its effect-id list and frequency consumed?** | **UNKNOWN.** `Unknown_0008`, `_000C`, `_0010`, `_0012`, the six-byte `_001E` tail, effect ids and frequency are stored verbatim. The conservative risk is hashing data DK2 discards or transforms | Read loader, save and generation paths. Keep the effect-id list variable-length and tail bytes distinct until accesses establish structure |
+
 
 ## Numbering
 
@@ -366,6 +377,6 @@ Q60–Q61 and Q49–Q51 precede Q52, Q55x precedes Q55, Q135 precedes Q134, Q125
 follow Q134, Q166 follows Q179, Q187 and Q189 precede Q184, Q214–Q219 follow Q209, and
 **Q210–Q213 sit after Q234** in the Hero Portal section above, with Q235–Q242 after them,
 and **Q243–Q245 were reserved for a concurrent branch that needed none of them**;
-they are free. Q249–Q253 belong to ADR-0106.
+they are free. Q249–Q253 belong to ADR-0106; Q254–Q259 belong to ADR-0108.
 **Q39 appears twice** and both rows are kept; Q37a/Q37b, Q55x and Q118c are separate
 suffixed ids, not duplicates. **Q121 was never allocated** and must not be reused.

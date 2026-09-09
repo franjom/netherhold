@@ -33,7 +33,12 @@ beside it.
 
 ## Versions
 
-**46** — `0x52A068B601960E53` (current). An action DK2's dispatcher succeeds at
+**47** — `0xE99A3644ED8CEBA0` (current). Hero parties and effect generators enter
+ordered world state with every parsed field, nested member and variable effect-id
+list hashed and snapshotted verbatim (ADR-0108). The fixture has neither kind, so
+their empty collection counts and the version bump move the pin.
+
+**46** — `0x52A068B601960E53`. An action DK2's dispatcher succeeds at
 returns true whether or not this executor performs it, so the walker retires it
 under an inherited repeat of 1 (ADR-0107). Behaviour, not composition: the
 fixture runs no triggers, so only the version bump moves the value here, and the

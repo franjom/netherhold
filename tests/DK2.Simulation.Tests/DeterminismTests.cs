@@ -101,11 +101,11 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 46: an action DK2's dispatcher succeeds at now returns true and the
-        // walk descends past it. This fixture runs no triggers, so only the version bump
-        // moves the value. The pinned world spawns no creatures (Q206), so a missing
-        // CreatureState field will not fail this pin. docs/research/hash-versions.md.
-        Assert.Equal(0x52A068B601960E53UL, sim.StateHash());
+        // HashVersion 47: hero-party and effect-generator collections entered the
+        // world hash. This fixture has neither, so their empty counts and the version
+        // bump move the value. The pinned world spawns no creatures (Q206).
+        // docs/research/hash-versions.md.
+        Assert.Equal(0xE99A3644ED8CEBA0UL, sim.StateHash());
     }
 
     [Fact]

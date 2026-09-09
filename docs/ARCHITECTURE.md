@@ -121,6 +121,8 @@ rather than to match something nobody has measured.
 | `Creatures` (`CreatureState`) | in spawn order, which decides who gets a job |
 | `Objects` (`ObjectState`) | in placement order (ADR-0054) |
 | `ActionPoints` (`ActionPointState`) | in THINGS-file order, because several original lookups walk the collection linearly (ADR-0103) |
+| `Doors`, `Traps` | verbatim authored state in THINGS-file order, without behaviour (ADR-0106) |
+| `HeroParties`, `EffectGenerators` | verbatim authored state in THINGS-file order, without spawn/generation behaviour (ADR-0108) |
 | `Triggers` (`TriggerState`) | the level-global flag and timer banks (ADR-0102) |
 
 Three rules govern it:
@@ -436,15 +438,16 @@ assert on the counts (ADR-0101, `docs/research/placed-things.md`).
 - Creatures and objects are placed. ROOM records are recognised and deliberately
   **not** placed: the MAP grid already holds their terrain, and all 275 agree with
   it on terrain id — five disagree on *owner*, Q223.
-- Doors, traps, hero parties and effect generators are counted as
-  `NotYetProjected`, because the world has nowhere to put them (Q224).
-- File order is preserved, because creature update order is behaviour.
+- Action points, doors, traps, hero parties and effect generators become ordered,
+  hashed and snapshotted state (ADR-0103/0106/0108). Party members remain
+  unspawned templates and do not enter `WorldState.Creatures`.
+- File order is preserved for every projected record type.
 - Coordinates are **bare tile indices**, not `Fp32` subtile units;
   `InitialHealth` is a **percentage** of the maximum; `RoomThing.RoomType` is a
   **terrain** id. All three had been transcribed from an external field list and
   all three were wrong.
-- It adds no world state, so it needs no `HashVersion` change. The harness opts
-  in with `setup.placed_things: true`; pinned by `PlacedThingsOnRealDataTests`.
+- The harness opts in with `setup.placed_things: true`; every shipped parsed
+  record now projects, pinned by `PlacedThingsOnRealDataTests`.
 
 ## Action points (M6)
 

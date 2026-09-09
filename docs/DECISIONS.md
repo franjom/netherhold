@@ -1826,3 +1826,18 @@ simulation state shape, so `HashVersion` and snapshot `FormatVersion` do not mov
 - **It buys no reach, and that is measured.** All 5,408 shipped action records are leaves, so no shipped walk descends past one. `dk2tools kwd oracle` is byte-identical before and after. What it does buy is the one-shot retire DK2 performs on a successful action, and a census that separates our gaps from DK2's.
 - Level 1's turn-1 blocked census drops from 16 type groups to 10, all conditions; seven action groups move to `Partial`.
 - The creature action dispatcher (`0x0049AC80`, base 15) was found while checking this and owns ten of the types the world refuses, type 15's 565 records among them. A type is not dead because the world has no arm for it.
+
+## ADR-0108 — Hero parties and effect generators are verbatim ordered world state
+**Date:** 2026-09-09 · **Status:** accepted · Q254–Q259 opened · Research: `docs/research/hero-parties-and-effect-generators.md`
+
+**Context.** The remaining 221 parsed THINGS records — 220 hero parties from the 48-level campaign and one effect generator — were counted as `NotYetProjected` because `WorldState` had nowhere to keep them. In the full 66-level shipped sweep, parties occur on 35 levels.
+
+**Decision.** `WorldState.HeroParties` and `WorldState.EffectGenerators` preserve THINGS-file order and every parsed field verbatim. Nested party members and both byte/list fields are copied into world-owned storage. Every value and list length is hashed and snapshotted.
+- Party members are unspawned `GoodCreatureThing` templates, not placed creatures. Projection does not call `SpawnCreature` or increment its creature count.
+- Effect ids remain variable-length. The fixed two-byte member tail and six-byte generator tail validate their lengths because snapshots encode neither length.
+- `TriggerTree` continues to build its 24 party slots from the source `HeroPartyThing` records. Q256 records the temporary two-home representation.
+
+**Consequences.**
+- All parsed shipped THINGS records now project; `NotYetProjected` is zero across the corpus.
+- `HashVersion` and snapshot `FormatVersion` move 46 → **47**; pin `0x52A068B601960E53` → `0xE99A3644ED8CEBA0`.
+- **No behaviour is invented.** Parties do not spawn and generators do not generate. Both remain UNKNOWN (Q254–Q255).
