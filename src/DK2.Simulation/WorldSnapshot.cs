@@ -451,7 +451,7 @@ public static class WorldSnapshot
                 DoorId = r.ReadByte(),
                 PlayerId = r.ReadByte(),
                 Flags = r.ReadByte(),
-                Unknown_0011 = r.ReadBytes(3),
+                Unknown_0011 = r.ReadBytes(DoorState.Unknown0011Length),
             });
         }
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -148,6 +148,27 @@ public class ThingProjectionTests
         Assert.Equal(1, result.RoomsAlreadyInTheGrid);
         Assert.Equal(0, result.Placed);
         Assert.Equal(before, world.Tile(4, 4).TerrainId);
+    }
+
+    /// <summary>
+    /// The snapshot writes a door's trailing unknown with no length and reads back a
+    /// fixed three, so a door holding any other number would desync the stream and
+    /// corrupt every record after it — silently, because `BinaryReader` cannot tell.
+    /// Nothing shipped can produce one; the type refuses to hold one anyway.
+    /// </summary>
+    [Fact]
+    public void ADoorRefusesATrailingUnknownThatIsNotThreeBytes()
+    {
+        Assert.Equal(3, DoorState.Unknown0011Length);
+
+        ArgumentException error = Assert.Throws<ArgumentException>(() => new DoorState
+        {
+            X = 1, Y = 2, Unknown_0008 = 3, TriggerId = 0,
+            DoorId = 4, PlayerId = 5, Flags = 6,
+            Unknown_0011 = new byte[] { 7, 8 },
+        });
+
+        Assert.Contains("3 bytes, not 2", error.Message);
     }
 
     [Fact]

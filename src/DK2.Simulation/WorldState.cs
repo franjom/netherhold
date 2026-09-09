@@ -381,7 +381,24 @@ public sealed class DoorState
     public byte DoorId { get; init; }
     public byte PlayerId { get; init; }
     public byte Flags { get; init; }
-    public required ReadOnlyMemory<byte> Unknown_0011 { get; init; }
+    /// <summary>How long <see cref="Unknown_0011"/> is. The snapshot writes those bytes
+    /// without a length and reads back exactly this many, so a door carrying any other
+    /// number would desync the stream and silently corrupt everything after it.</summary>
+    public const int Unknown0011Length = 3;
+
+    /// <summary>Bytes 17..19 of the record, kept together because nothing yet says they
+    /// are separate fields (Q252).</summary>
+    public required ReadOnlyMemory<byte> Unknown_0011
+    {
+        get => _unknown0011;
+        init => _unknown0011 = value.Length == Unknown0011Length
+            ? value
+            : throw new ArgumentException(
+                $"A door's trailing unknown is {Unknown0011Length} bytes, not {value.Length}.",
+                nameof(Unknown_0011));
+    }
+
+    private readonly ReadOnlyMemory<byte> _unknown0011;
 
     public void HashInto(ref Hash64 hash)
     {
