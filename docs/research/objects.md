@@ -157,19 +157,18 @@ checked against.
 
 | Mechanic | Was blocked on | Now |
 |---|---|---|
-| **Eating** | "chickens are objects" | The Chicken is object 9, `TypeFood`, decays outside a room; the Coop is 35 and the Egg is 47. Needs object *instances* in the world and a Hatchery |
+| **Eating** | "chickens are objects" | **DONE** — the Chicken is object 9, `TypeFood`, decays outside a room; the Coop is 35 and the Egg is 47. `HatcheryRules`/`HatcherySystem` lay the eggs and `EatingRules`/`CreatureEatSystem` consume them (`eating.md`, `hatchery.md`) |
 | **Gold piles** | "a pile is an object" | **DONE** (2026-09-05) — object 1 on the floor, object 3 in a treasury, `FloorGold`. And `MaxGoldPileOutsideTreasury` turned out not to be a limit at all (Q65) |
 | **Beds as things** | "a bed is an object" | Twelve bed objects, and `LairRules` already tracks which tile holds whose |
 | **Graveyard / vampires** | "a corpse is an object" | **Refuted** — see §4. It needed a creature-carrying task, not this record, and **that task now exists** (ADR-0063): a corpse is `CreatureActivity.Dead` and an imp carries it to a Graveyard. What is still missing is only what a graveyard *does* with them (Q165) |
 
 | **Putting things away** | nothing — it was never named as blocked, only as *"nothing to act on"* | **DONE** (2026-09-05, ADR-0065). DK2's imp task **kind 8** carries a loose object to the room that lists it, and the list it reads is `RoomDef.ObjectIds` — parsed since Q120 and read by nothing until now. Second in the Tier A table, above marked excavation and above claiming |
 
-`WorldState` grew its third list some time ago, so the first three are no longer
-waiting on instances: they are waiting on something that *makes* one. The
-Hatchery is the nearest — it knows how many coops a room gets and where they
-stand, and **since ADR-0066 it has its clock too** — so there are eggs and
-chickens on the floor, and kind 8 has something to carry. What no creature can
-do yet is eat one.
+`WorldState` holds object instances (`WorldState.Objects`, `ObjectState`), the
+Hatchery makes them — it knows how many coops a room gets, where they stand, and
+since ADR-0066 it has its clock — and a creature eats them. What a graveyard
+*does* with a corpse is the remaining gap: it keeps a per-room tally and the
+thing counted is `DecomposeValue` (Q165, partly answered).
 
 ## 7. The instance: one type, an 18-byte union, and the id that picks it
 
@@ -235,9 +234,9 @@ direction none of §2's four checks could reach. Those were all internal — a
 field list that sums to the stride, an id column that is a permutation, a string
 that lands, pointers from other records. Every one of them says "these bytes are
 self-consistent". This one says the bytes mean what we think they mean: the
-*code* has eighteen names for eighteen numbers, and the *file* gives those
-eighteen numbers the same eighteen names, and the two were compiled and shipped
-by people who never had to agree about it afterwards.
+*code* has eighteen names for twenty-one numbers, and the *file* gives those
+twenty-one numbers the same names, and the two were compiled and shipped by
+people who never had to agree about it afterwards.
 
 ### Five type flags confirmed from the other side
 
@@ -297,11 +296,12 @@ The `Lair` member of the union is two fields:
 - `FlagDestroyWhenDropped`, at 0x14C.
 
 **This settles the ownership question Q130 opened.** `LairRules` had put the
-relation on the creature (`CreatureState.LairTileIndex`, "which bed is mine");
-DK2 puts it on the object ("whose bed am I"). Same relation, opposite end, and
-two copies of one fact is the shape that has already cost this project three
-multi-month defects. **The object's end wins**, for three reasons beyond
-fidelity:
+relation on the creature ("which bed is mine"); DK2 puts it on the object
+("whose bed am I"). Same relation, opposite end, and two copies of one fact is
+the shape that has already cost this project three multi-month defects. **The
+object's end won**: `ObjectState.CreatureId` is the only copy, `LairRules`
+derives the rest, and there is no `CreatureState.LairTileIndex`. Three reasons
+beyond fidelity:
 
 1. **A bed is a thing that can be destroyed.** `FlagDestroyWhenDropped` sitting
    right next to `CreatureId` says so. A creature outliving its bed is real —

@@ -98,15 +98,17 @@ is the whole reason to spend a test on numbers we already had.
 | Only Monks can lay one to rest permanently | **CONFIRMS the owner** |
 | A level-1 Vampire is lost for good | **CONFIRMS the owner** |
 | **Lost for good if you control no Graveyard when it is slain** | **NEW — the owner did not mention this third condition** |
-| It reincarnates **in the Graveyard** | **CONFLICTS with the owner's "at their sarcophagus"** — see Q113 |
-| At level 10 it raises corpses into Skeletons, which competes with making more Vampires | New, and unimplementable (no levels, no corpses) |
+| It reincarnates **in the Graveyard** | **AGREES with the owner** once Q113 closed: the sarcophagus is the Graveyard's, not the vampire's own bed |
+| At level 10 it raises corpses into Skeletons, which competes with making more Vampires | New, and not built — levels (`CreatureLevelRules`) and corpses (`CreatureActivity.Dead`) now exist, so it is no longer blocked on either |
 | Health 2500, wage 750, Thinker, Blitzer | **CONFIRMED against the data** |
 
 ## Worth fetching next, when there is a reason to
 
 Not speculatively — a page is worth reading when a mechanic is being built.
-The ones with numbers this project will need: **Graveyard**, **Prison**
-(`MotionlessInPrisonSeconds`, rising as Skeletons), **Torture Chamber**,
-**Temple** (the sacrifice table above), **Lair**, and **Monk**. Each read the
-same way: DK2 section only, facts not prose, cross-checked where the install can
-check them.
+The ones with numbers this project will need: **Graveyard**, **Torture
+Chamber**, **Temple** (the sacrifice table above), **Lair**, and **Monk**. Each
+read the same way: DK2 section only, facts not prose, cross-checked where the
+install can check them. **Prison** has since been done from the binary and the
+owner instead (`prison.md`), which also found `MotionlessInPrisonSeconds` to
+have no reader at all — a caution about taking a variable name from any
+secondary source.

@@ -126,9 +126,10 @@ count will be added only when trigger records are projected, because inventing
 it without the record the original resolves would be worse than leaving the
 known dependency explicit.
 
-`HashVersion` and snapshot `FormatVersion` are 40 in the integrated branch.
-Version 38 was reserved for this work before master independently moved to 39;
-the merged result takes the next higher version and recomputes the pin.
+Action points are hashed and snapshotted, so landing them bumped both
+`HashVersion` and the snapshot `FormatVersion` and recomputed the pin. The
+current values are the constants in `GameSimulation` and `WorldSnapshot`; the
+history is in `hash-versions.md`.
 
 ## Confidence summary
 
