@@ -994,11 +994,11 @@ Two limits are now measured rather than assumed. **Turn numbers are not reproduc
 two plays of the same level** — run 4 against run 5 offsets by −156 to +285 turns and does
 not preserve order — so a report may be read for *which* events occur and never for when;
 any future cell-by-cell scoring against a played capture will manufacture divergence. And
-**we now invent two flags.** `f1` is settled — action point 4, gated on tagging and digging,
-an event only a player causes. `f34` appeared when ADR-0113 deepened the walk, and all that
-is established is its type-72 gate (Q242), which a headless run answers true for want of a
-player. Whether that is our assumption or the capture's player **cannot be separated from one
-played capture**, which is the sharpest argument for the second one.
+**both flags we invent are the absent player.** `f1` and `f34` each hang off a gate that
+tests a flag action point 4 sets when the player tags a wall — DK2's run set it at turn 10,
+ours never does. Level 1's own chain is gated the same way at its third node, so **no
+condition work can close it**: it is a tutorial that advances when the human does the taught
+action.
 
 What remains: a **second level** captured from both sides, per-scenario records under
 `docs/experiments/` (still empty), and running DK2 under Flame, which §6.1 calls M5's first

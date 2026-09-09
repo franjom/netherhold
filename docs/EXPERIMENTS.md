@@ -83,15 +83,17 @@ fault; it made an existing gate reachable, which is what the `Assumed` census
 exists to surface. Deepening the walk is expected to cost false positives before
 it pays them back, and this is the first instance.
 
-**It is not the same cause as `f1`, and that matters.** `f1` is settled above:
-action point 4, gated on tagging and digging, an event only a player causes. For
-`f34` the only thing established is the type-72 gate we answer true because a
-headless run has no modal interface state (Q242). Q242 says that is wrong only if
-one of its four fields can be set with nobody playing — but run 5 was **played**,
-so DK2 may have answered false at that moment for an ordinary reason. Whether
-this is our assumption or the capture's player is **not yet separated**, and it
-cannot be from one played capture. It is a concrete thing a second capture would
-decide.
+**Corrected the same day: it is the same cause as `f1`.** The first reading
+stopped at the type-72 gate and called the cause unseparated. Reading one level
+further up settles it — trigger 328's parent is trigger **127**, a type 1 testing
+**`flag 0 == 0`**, and flag 0 is the one action point 4 sets when the player tags
+a wall. DK2's run set it at turn 10; ours never does, so the gate stays open and
+we walk into the write. Type 72 is on the path but decides nothing here.
+
+So **both false positives are the absent player**, and neither is evidence
+against the Q242 assumption. Reaching for the nearest unknown — the assumption we
+already knew was there — instead of walking up the chain is what produced the
+wrong first answer.
 
 ## 2026-09-09 — there is no level worth capturing yet, and that is measurable
 
