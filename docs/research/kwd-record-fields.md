@@ -7,21 +7,20 @@ layout, not gameplay behaviour.
 
 | Claim | Confidence | Basis |
 |---|---|---|
-| CREATURE_SPELLS is 266 bytes; SHOTS 239; EFFECTS 246; EFFECT_ELEMENTS 182 | **Known** | `contentSize / itemCount` in the shipped files; every parsed record round-trips |
-| THINGS tags 194–205 have the recorded payload sizes and layouts | **Known** for the eleven shipped tags; **Hypothesis** for DeadBody (202) | All 6,318 shipped payloads consume and round-trip; tag 202 has no shipped instance |
-| Both TRIGGERS payloads are 16 bytes with an 8-byte union followed by ids, type and repeat count | **Known** | All 9,161 shipped payloads consume and round-trip |
-| LEVEL has a 25,603-byte base metadata block, an optional 80-byte extension, then typed 72-byte paths and a height-sized `u32` tail | **Known** for the shipped files | All 66 LEVEL files consume and round-trip |
-| GLOBALS is a LEVEL path discriminator rather than a shipped standalone chunk | **Known** for this corpus; standalone form **Unknown** | Exhaustive sweep of 408 KWD/KLD files finds no type-0 chunk or path row |
-| TRIGGERS parameter reads | **Strongly inferred** where binary-read; otherwise explicitly transcribed or unreached | DKII.EXE dispatcher family and the shipped distribution; see `trigger-semantics.md` |
-| Other semantic field names below | **Strongly inferred** | Names come from OpenKeeper's GPLv3 reader; widths/order are independently checked against the shipped bytes |
+| CREATURE_SPELLS is 266 bytes; SHOTS 239; EFFECTS 246; EFFECT_ELEMENTS 182 | **CONFIRMED** | `contentSize / itemCount` in the shipped files; every parsed record round-trips |
+| THINGS tags 194–205 have the recorded payload sizes and layouts | **CONFIRMED** for the eleven shipped tags; **HYPOTHESIS** for DeadBody (202) | All 6,318 shipped payloads consume and round-trip; tag 202 has no shipped instance |
+| Both TRIGGERS payloads are 16 bytes with an 8-byte union followed by ids, type and repeat count | **CONFIRMED** | All 9,161 shipped payloads consume and round-trip |
+| LEVEL has a 25,603-byte base metadata block, an optional 80-byte extension, then typed 72-byte paths and a height-sized `u32` tail | **CONFIRMED** for the shipped files | All 66 LEVEL files consume and round-trip; `KwdLevel.BaseMetadataSize`/`ExtendedMetadataSize` are 25603/25683 |
+| GLOBALS is a LEVEL path discriminator rather than a shipped standalone chunk | **CONFIRMED** for this corpus; standalone form **UNKNOWN** (Q220) | Exhaustive sweep of 408 KWD/KLD files finds no type-0 chunk or path row |
+| TRIGGERS parameter reads | **STRONGLY INFERRED** where binary-read; otherwise explicitly transcribed or unreached | DKII.EXE dispatcher family and the shipped distribution; see `trigger-semantics.md` |
+| Other semantic field names below | **STRONGLY INFERRED** | Names come from OpenKeeper's GPLv3 reader; widths/order are independently checked against the shipped bytes |
 
 ## Re-checking
 
 `dk2tools kwd corpus` parses all 408 KWD/KLD files and reports the count for
-each of the 18 record-type ids. For every old and new record it also compares
-the retained source image byte-for-byte through `KwdRecordRoundTrip`.
-`dk2tools kwd records <file>` prints
-decoded ids/types and consumed lengths. The corpus on 2026-09-07 contained:
+each of the 18 record-type ids, comparing every retained source image
+byte-for-byte through `KwdRecordRoundTrip`. `dk2tools kwd records <file>` prints
+decoded ids/types and consumed lengths. Re-run either to reproduce this table:
 
 | type | records |
 |---|---:|
@@ -109,7 +108,10 @@ reads the format only; executing any trigger stays in M6.
 
 `dk2tools kwd trigger-types` exhaustively reports the shipped tag/type counts
 and every level containing each type. The measured split is 3,753 tag-213
-records across 46 types and 5,408 tag-214 records across 38 types.
+records across 46 types and 5,408 tag-214 records across 38 types — 84 tag/type
+combinations. `dk2tools kwd trigger-params <tag> <type|*> [name]` gives one
+parameter's value distribution; `dk2tools kwd triggers <file>` one level's
+triggers with their links.
 
 ## LEVEL and GLOBALS
 
@@ -132,11 +134,26 @@ to this path discriminator. No shipped v1.70 level uses it, although the reader
 accepts and round-trips it in an install-independent synthetic test. Q220 records
 the absent standalone sample; Q221 records the unobserved DeadBody payload.
 
+## Implementation
+
+`DK2.Data.Kwd.KwdAdditionalRecords` (CREATURE_SPELLS, SHOTS, EFFECTS,
+EFFECT_ELEMENTS), `KwdThings`, `KwdTriggers`, `KwdLevel`,
+`KwdRecordRoundTrip`, `KwdCorpusAudit`; models in
+`DK2.Data.Model.KwdAdditionalRecords`.
+
+## Tests
+
+`DK2.Data.Tests.KwdAdditionalRecordTests` — including the corpus regression that
+shares `KwdCorpusAudit` with `dk2tools kwd corpus` — and
+`KwdRecordLayoutTests`. Most facts are install-gated; the shapes the shipped
+corpus does not contain (a standalone type-0 GLOBALS chunk) are covered by
+install-independent synthetic tests.
+
 ## Provenance
 
 - Primary: the shipped v1.70 KWD/KLD corpus under the configured DK2 install.
 - Primary for TRIGGERS parameter access: retail v1.70 `DKII.EXE`; addresses and
-  method are recorded in `trigger-semantics.md`.
+  method are recorded in `trigger-semantics.md` (ADR-0092).
 - Secondary: OpenKeeper field order, widths and names, consulted under GPLv3 as
   permitted by ADR-0003; implementation was not copied.
 - Existing container framing and sizes: `docs/research/kwd-container.md`.

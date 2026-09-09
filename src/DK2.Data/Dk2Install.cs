@@ -4,21 +4,13 @@
 
 namespace DK2.Data;
 
-/// <summary>
-/// Locates the local Dungeon Keeper 2 installation used as reference material.
-///
-/// Resolution order:
-/// <list type="number">
-/// <item>the <c>DK2_DIR</c> environment variable, which is authoritative — if
-/// it is set, no other location is considered, so a run can be pointed at a
-/// specific install (or at nothing at all) without surprises;</item>
-/// <item>otherwise, known default paths.</item>
-/// </list>
-///
-/// Returning null is a normal outcome, not an error: CI has no installation and
-/// the install-dependent tests skip. Nothing in the shipped game may require
-/// this type to succeed.
-/// </summary>
+/// <summary>Locates the local Dungeon Keeper 2 installation used as reference material.
+/// <para>Resolution order: the <c>DK2_DIR</c> environment variable, which is authoritative — if it
+/// is set, no other location is considered, so a run can be pointed at a specific install, or at
+/// nothing at all, without surprises — and otherwise known default paths.</para>
+/// <para>Returning null is a normal outcome, not an error: CI has no installation and the
+/// install-dependent tests skip. Nothing in the shipped game may require this type to
+/// succeed.</para></summary>
 public static class Dk2Install
 {
     /// <summary>

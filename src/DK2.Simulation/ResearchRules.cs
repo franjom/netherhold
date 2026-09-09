@@ -53,14 +53,14 @@ public static class ResearchRules
     public static int SlapBonusSeconds(GameDatabase database) =>
         database[VariableTypeId.IncreasedWorkRateDurationFromSlappingSeconds];
 
-    /// <summary>The bonus a recently slapped researcher earns, added <b>once a game
-    /// second</b> on top of the per-tick base, or zero. The arithmetic is the original's
-    /// and is not what the variable says: it multiplies by variable 19 <i>twice</i>, so
-    /// <c>4 × 50 × 4 / 100</c> is <b>8 times the per-tick amount</b> against a base of
-    /// four — an effective <b>+200%</b> where <c>IncreasedWorkRatePecentageFromSlapping</c>
-    /// is named 50%, tripling the rate. Reproduced rather than corrected (ADR-0002): the
-    /// extra factor is in the shipped v1.70 instructions, and its two unbuilt siblings
-    /// are wrong in two further ways (library-and-research.md §3). UNKNOWN whether a player would notice — a Warlock goes from 8 a second to 24 (Q216).</summary>
+    /// <summary>The bonus a recently slapped researcher earns, added <b>once a game second</b>
+    /// on top of the per-tick base, or zero. The arithmetic is the original's and is not what the
+    /// variable says: it multiplies by variable 19 <i>twice</i>, so <c>4 × 50 × 4 / 100</c> is
+    /// <b>8 times the per-tick amount</b> — an effective <b>+200%</b> where
+    /// <c>IncreasedWorkRatePecentageFromSlapping</c> is named 50%. Reproduced, not corrected
+    /// (ADR-0002): the extra factor is in the shipped v1.70 instructions, and its two unbuilt
+    /// siblings are wrong in two further ways (library-and-research.md §3). UNKNOWN whether a
+    /// player notices — a Warlock goes from 4 a second to 12 (Q216).</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/library-and-research.md")]
     public static int SlapBonus(
         GameDatabase database, CreatureState state, int perTickAmount, long now)

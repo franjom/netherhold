@@ -6,41 +6,18 @@ using DK2.Core;
 
 namespace DK2.Pathfinding;
 
-/// <summary>
-/// Eight-connected grid search: A* for a known destination, Dijkstra for "the
-/// nearest tile that satisfies a predicate".
-///
-/// <para><b>Connectivity and step cost are DK2's; tie-breaking is ours.</b></para>
-/// <list type="bullet">
-/// <item><b>Eight-connected, and corners may be cut.</b> CONFIRMED by observation
-/// of the original (Q28): a creature will pass diagonally between two solid
-/// tiles. This used to be four-connected on the grounds that it was the
-/// conservative choice, and the conservative choice turned out to be the wrong
-/// one - every route it produced was an overestimate.</item>
-/// <item><b>Octile step cost: 10 orthogonal, 14 diagonal.</b> STRONGLY INFERRED
-/// (Q48), and forced rather than chosen. A creature's speed is in tiles per
-/// second (Q29 - three variables name that unit in their own words), so movement
-/// is continuous through world space at a constant rate, so a step to a diagonal
-/// neighbour covers root-2 tile-widths and must take 1.41x as long. Uniform cost
-/// would make diagonals a free shortcut and have creatures crossing a dungeon
-/// measurably faster on the bias; 14/10 is the usual integer stand-in for root-2
-/// and is what <see cref="Systems"/>' mover charges too, which is the part that
-/// matters - a router and a mover that disagree produce creatures that arrive
-/// early.</item>
-/// <item><b>No terrain weighting.</b> CONFIRMED (Q30): the shortest route wins
-/// even through water. Every walkable tile costs the same to enter.</item>
-/// <item><b>Tie-breaking.</b> Several routes are usually equally short, and which
-/// one comes back is decided by a fixed neighbour order and then by tile index.
-/// That makes the result reproducible, which is what the determinism gate needs,
-/// but it is an arbitrary rule rather than a reconstructed one (Q5).</item>
-/// </list>
-///
-/// <para>Determinism: no floating point, no hashing, no unordered iteration.
-/// The instance keeps scratch buffers between calls purely to avoid allocating,
-/// and a generation stamp makes a reused buffer indistinguishable from a fresh
-/// one — asserted by <c>PathfindingTests.RepeatedSearches_DoNotContaminateEachOther</c>.
-/// Not thread-safe; the simulation is single-threaded by design.</para>
-/// </summary>
+/// <summary>Eight-connected grid search: A* for a known destination, Dijkstra for "the nearest
+/// tile satisfying a predicate". Connectivity and step cost are DK2's; tie-breaking is ours.
+/// <para>Eight-connected and corners may be cut — CONFIRMED by observation (Q28). Octile step
+/// cost, <b>10 orthogonal and 14 diagonal</b> — STRONGLY INFERRED (Q48), forced by speed being in
+/// tiles per second (Q29): a diagonal covers root-2 tile-widths, and <c>CreatureMovementSystem</c>
+/// (DK2.Simulation, not referenced from here) charges the same 14/10, because a router and a mover
+/// that disagree produce creatures that arrive early. No terrain weighting — CONFIRMED (Q30): the
+/// shortest route wins even through water. Tie-breaking is a fixed neighbour order then tile
+/// index, reproducible for the determinism gate but arbitrary rather than reconstructed (Q5).</para>
+/// <para>Determinism: no floating point, no hashing, no unordered iteration; a generation stamp
+/// makes a reused scratch buffer indistinguishable from a fresh one, asserted by
+/// <c>PathfindingTests.RepeatedSearches_DoNotContaminateEachOther</c>. Not thread-safe.</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/imp-tasks.md")]
 public sealed class GridPathfinder : IPathfinder
 {
@@ -150,13 +127,11 @@ public sealed class GridPathfinder : IPathfinder
         _cost[start] = 0;
         HeapPush(start, 0);
 
-        // Dijkstra, not breadth-first. Steps stopped costing the same when
-        // movement went eight-connected (Q48: 10 orthogonal, 14 diagonal), and a
-        // breadth-first sweep would return the goal reachable in the fewest
-        // STEPS rather than the nearest one. That distinction is observable and
-        // observed: the owner confirmed an imp takes the marked tile closest by
-        // WALKING DISTANCE (Q25), and three diagonal steps are further than four
-        // straight ones.
+        // Dijkstra, not breadth-first: steps stopped costing the same when movement went
+        // eight-connected (Q48, 10 orthogonal and 14 diagonal), and a breadth-first sweep would
+        // return the goal reachable in the fewest STEPS rather than the nearest one. The
+        // distinction is observed — the owner confirmed an imp takes the marked tile closest by
+        // WALKING DISTANCE (Q25), and three diagonal steps are further than four straight ones.
         while (_heapTile.Count > 0)
         {
             int current = HeapPop();

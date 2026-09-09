@@ -10,15 +10,20 @@ namespace DK2.Simulation;
 /// <summary>Health and hunger.</summary>
 /// <remarks><para>Every number is the shipped data's: maximum health is the record's <c>Hp</c>,
 /// own-land regeneration its <c>OwnLandHealthIncreasePerSecond</c>, lair healing
-/// <c>ModifyHealthOfCreatureInLairPerSecond</c>, hunger its <c>HungerRate</c> and <c>HungerFill</c>; readings that are ours are called out at the method making them.</para>
-/// <para>Own-land regeneration is a no-op for 44 of the 46 creatures: only the Imp (67 a second) and King Reginald (400) carry a rate. Going unfed costs no health — the price is anger (the record's <c>angerNoFood</c>, 100 for a Goblin), and no balance variable turns hunger into damage.</para></remarks>
+/// <c>ModifyHealthOfCreatureInLairPerSecond</c>, hunger its <c>HungerRate</c> and
+/// <c>HungerFill</c>.</para>
+/// <para>Own-land regeneration is a no-op for 44 of the 46 creatures: only the Imp (67 a second)
+/// and King Reginald (400) carry a rate. Going unfed costs no health — the price is anger (the
+/// record's <c>angerNoFood</c>, 100 for a Goblin), and no balance variable turns hunger into
+/// damage.</para></remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-needs.md")]
 public static class CreatureHealthRules
 {
     /// <summary>The 32767 that means "never" in the creature record — <c>short.MaxValue</c> in a
-    /// wider field, so a saturated 16-bit value, per need rather than per creature. Eight creatures
-    /// never get hungry (Imp, Vampire, Skeleton, Horny, Stone Knight and the unique Firefly,
-    /// Skeleton and Vampire); six never sleep (Imp, Skeleton, Dwarf, Horny, Stone Knight, Unique Skeleton). Neither set contains the other — the Vampire sleeps but never eats, the Dwarf eats but never sleeps — which rules out a single "undead" flag, so <c>CreatureNeedsOnRealDataTests</c> asserts both sets by name.</summary>
+    /// wider field, so a saturated 16-bit value, and set <b>per need</b> rather than per creature:
+    /// eight creatures never get hungry and six never sleep, and neither set contains the other (the
+    /// Vampire sleeps but never eats, the Dwarf eats but never sleeps), which rules out a single
+    /// "undead" flag. <c>CreatureNeedsOnRealDataTests</c> asserts both sets by name.</summary>
     public const int Never = short.MaxValue;
 
     /// <summary>Maximum health: the record's <c>Hp</c> scaled by the creature's level
@@ -42,7 +47,8 @@ public static class CreatureHealthRules
     /// <summary>Whether this creature is at or below <c>CreatureCriticalHealthPercentageOfMax</c>
     /// (20 %) of its maximum. No simulation reader, and no reader found in DK2 either: a raw scan of
     /// every initialised block for the variable's cached global finds one reference, the loader
-    /// writing it (2026-09-07; ADR-0085). Kept because the variable is shipped and named. The number a knocked-out creature actually gets is <see cref="KnockoutHealth"/>, a sixth, read from the damage path.</summary>
+    /// writing it (ADR-0085). Kept because the variable is shipped and named. What a knocked-out
+    /// creature actually gets is <see cref="KnockoutHealth"/>, a sixth, from the damage path.</summary>
     public static bool IsCriticallyHurt(
         GameDatabase database, CreatureDef creature, CreatureState state) =>
         state.Health * 100

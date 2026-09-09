@@ -75,24 +75,16 @@ public static class GameDatabaseLoader
         return MapGrid.Parse(KwdReader.ReadFile(file));
     }
 
-    /// <summary>
-    /// Reads one level's own VARIABLES table — <c>&lt;name&gt;Variables.kld</c> —
-    /// or null when the level has no such file.
-    ///
-    /// <para><b>Every shipped level has one, and they are not decoration.</b>
-    /// Twenty-six variable ids are overridden by at least one level, including
-    /// <c>MinimumImpThreshold</c> (0 on four secret levels and the front end,
-    /// against a global 4) and both payday variables (1200 on level 1, against a
-    /// global 600). Loading only <c>GlobalVariables.kwd</c> — which is all this
-    /// loader did until 2026-09-04 — plays every level with the wrong numbers
-    /// wherever it disagrees. Apply it with
-    /// <see cref="GameDatabase.ForLevel"/>.</para>
-    ///
-    /// <para>It also carries the two lists the global table leaves empty: the
-    /// level's <c>CreaturePool</c> (level 1: fifteen Goblins) and its
-    /// <c>Availability</c> set, which is what decides the rooms, traps, doors and
-    /// spells that level offers.</para>
-    /// </summary>
+    /// <summary>Reads one level's own VARIABLES table — <c>&lt;name&gt;Variables.kld</c> — or null
+    /// when the level has no such file. Apply it with <see cref="GameDatabase.ForLevel"/>.
+    /// <para><b>Every shipped level has one, and they are not decoration.</b> Twenty-six variable
+    /// ids are overridden by at least one level, including <c>MinimumImpThreshold</c> (0 on four
+    /// secret levels and the front end, against a global 4) and both payday variables (1200 on
+    /// level 1, against a global 600), so loading only <c>GlobalVariables.kwd</c> plays a level
+    /// with the wrong numbers wherever it disagrees.</para>
+    /// <para>It also carries the two lists the global table leaves empty: the level's
+    /// <c>CreaturePool</c> (level 1: fifteen Goblins) and its <c>Availability</c> set, which
+    /// decides the rooms, traps, doors and spells that level offers.</para></summary>
     public static GlobalVariables? LoadCampaignVariables(string installDir, string levelName)
     {
         string file = Path.Combine(

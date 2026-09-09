@@ -28,10 +28,9 @@ public static class ManaRules
     public static int GainPerSecond(GameDatabase database, in TileState tile) =>
         database.TerrainById(tile.TerrainId).ManaGain;
 
-    /// <summary>The most mana any one keeper may gain in a second, whatever they own.
-    /// HYPOTHESIS that the cap is per player rather than level-wide (Q38): nothing in
-    /// the name says which, and a shared cap would make one keeper's expansion throttle
-    /// another's, which is not how the original plays.</summary>
+    /// <summary>The most mana any one keeper may gain in a second, whatever they own. The cap is
+    /// per keeper, not level-wide: one keeper's dungeon does not throttle another's.
+    /// CONFIRMED (owner, 2026-08-29, Q38).</summary>
     public static int MaxGainPerSecond(GameDatabase database) =>
         database[VariableTypeId.MaximumManaGainPerSecond];
 

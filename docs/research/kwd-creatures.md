@@ -11,8 +11,8 @@ Original version: DK2 v1.70 (GOG)
 ## Evidence
 
 - 46 records, 250,654 bytes ÷ 46 = **5,449 bytes per record** exactly.
-  A 5,537-byte variant (88 extra trailing bytes) occurs when creature data is
-  embedded in a globals file; the parser accepts both.
+  `KwdCreatures` also accepts a 5,537-byte variant (88 extra trailing bytes) for
+  creature data embedded in a globals file; no shipped file exercises it.
 - Creature ids are 1..46 contiguous, and the id→name mapping **matches Flame's
   independently reverse-engineered list** (Imp=1, BileDemon=3, Warlock=5,
   Vampire=8, Troll=10, Horny=27, …). Two unrelated methods agreeing is the
@@ -27,13 +27,16 @@ Original version: DK2 v1.70 (GOG)
 
 ## Layout notes (offsets within a record)
 
+Every offset below is read by `KwdCreatures`; the full per-field dump for the
+other record types is `kwd-record-fields.md`.
+
 ```
 0x000  char[32]   name
-0x0D01 fp32       perceptionRange        0x0D37 fp32   shuffleSpeed
-0x0D38 u8         cloneCreatureId        0x0CFF u16    introductionStringId
-0x0DAC Attraction[2]  (u32 present, u16 roomId, u16 roomSize)
-0x0DC4 Spell[3]       (24 bytes; spellId at +22, levelAvailable at +23)
-0x0E0C Resistance[4]  (u8 attackType, u8 value)
+0x0CFF u16        introductionStringId   0x0D01 fp32  perceptionRange
+0x0D37 fp32       shuffleSpeed           0x0D38 u8    cloneCreatureId
+0x0DAC Attraction[2]  (8 bytes each: u32 present, u16 roomId, u16 roomSize)
+0x0DC4 Spell[3]       (24 bytes each; spellId at +22, levelAvailable at +23)
+0x0E0C Resistance[4]  (2 bytes each: u8 attackType, u8 value)
 0x0E14 JobPreference[3]  happy    (12 bytes: u32 job, u16 mood, u16 mana, u8 chance, 3 unk)
 0x0E38 JobPreference[2]  unhappy
 0x0E50 JobPreference[3]  angry
@@ -53,16 +56,20 @@ Original version: DK2 v1.70 (GOG)
 0x0F12 u16 threat       0x0F14 u16 meleeDamage       0x0F16 u16 slapDamage
 0x0F18 u16 manaGenPrayer 0x0F1C u16 pay              0x0F1E u16 maxGoldHeld
 0x0F22 u16 decomposeValue 0x0F24 u16 nameStringId    0x0F26 u16 tooltipStringId
-0x0F28..0x0F32 **s16** angerNoLair/NoFood/NoPay/NoWork/Slap/InHand — signed, and the
-last two are why: read as u16 a Goblin's angerInHand is 65286 and Jack's angerSlap
-is 60536, which are -250 and -5000. Slapping angers, being picked up calms.
-Corrected 2026-09-04 (ADR-0050); this run was documented as u16 for four months
+0x0F28..0x0F32 **s16** angerNoLair/NoFood/NoPay/NoWork/Slap/InHand
 0x0F34 u16 initialGoldHeld     0x0F4B u8 creatureId
 0x0F4E u8 hungerFill    0x0F4F u8 unhappyThreshold   0x0F50 u8 meleeAttackType
 0x0F52 u8 lairObjectId  0x107F s16 tortureHpChange   0x1081 s16 tortureMoodChange
 ```
 
 `fp32` is DK2's fixed-point: raw int with denominator 4096 (`DK2.Core.Fp32`).
+
+The six anger fields at `0x0F28`–`0x0F32` are **signed** (ADR-0050). Read as
+u16 a Goblin's `angerInHand` is 65286 and Jack's `angerSlap` is 60536, which are
+−250 and −5000: slapping angers, being picked up calms. See `creature-anger.md`.
+
+Nothing past `0x1081` is read; the record's last 72 bytes (`0x1501`–`0x1548`)
+are described by no published source — Q70, `kwd-container.md`.
 
 ## Significant finding — job selection is partly data-driven
 
@@ -79,12 +86,10 @@ Warlock  happy: Research(80%), Train(10%), Praying(10%)
 Imp      happy: Explore(100%)          (never eats or sleeps — sentinel values)
 ```
 
-This narrows open question Q2 considerably: **the candidate job set and its
-weights are data, not code.** What remains UNKNOWN is the surrounding
-procedure — when a creature re-evaluates, how mood selects which of the three
-tables applies (`unhappyThreshold` is per-creature, default 50), how the
-percentage roll interacts with room availability and reachability, and what
-happens when the chosen job is impossible.
+The candidate job set and its weights are data, not code. The surrounding
+procedure is Q2, ANSWERED from the binary and built (ADR-0082): it is not a
+priority list — see `job-selection.md` for the chooser, `unhappyThreshold`
+(per-creature, default 50) for which of the three tables applies.
 
 ## Confidence
 
@@ -103,19 +108,22 @@ comes from the VARIABLES `CreatureStats` rows instead.
 
 ## Tests
 
-`DK2.Data.Tests.KwdCreaturesTests` (7 tests, incl. the sum-to-100 invariant
-and the Flame cross-source id check)
+`DK2.Data.Tests.KwdCreaturesTests` (7 test methods, incl. the sum-to-100
+invariant and the Flame cross-source id check)
 
 ## Open questions
 
 - `moodChange` / `manaChange` units on JobPreference records.
-- ~~Are `hungerRate`/`timeAwake` == 32767 a general "never" sentinel, or
-  Imp-specific?~~ **ANSWERED 2026-09-04 (ADR-0048):** a general sentinel, and
-  **per need rather than per creature**. Eight creatures never get hungry (Imp,
-  Vampire, Skeleton, Horny, Stone Knight, and the unique Firefly, Skeleton and
-  Vampire); six never sleep (Imp, Skeleton, **Dwarf**, Horny, Stone Knight,
-  Unique Skeleton). Neither set contains the other — the Vampire sleeps and
-  never eats, the Dwarf eats and never sleeps — so no single "undead" flag can
-  produce it. Both sets are asserted by name in `CreatureNeedsOnRealDataTests`,
-  because both were guessed wrong first. See `creature-needs.md`.
-- The 88 extra bytes in the embedded 5537-byte record variant.
+- The 88 extra bytes in the embedded 5537-byte record variant, unobserved in
+  the shipped corpus.
+
+## Known exceptions
+
+`hungerRate` / `timeAwake` == 32767 is a general "never" sentinel and applies
+**per need rather than per creature** (ADR-0048). Eight creatures never get
+hungry (Imp, Vampire, Skeleton, Horny, Stone Knight, and the unique Firefly,
+Skeleton and Vampire); six never sleep (Imp, Skeleton, **Dwarf**, Horny, Stone
+Knight, Unique Skeleton). Neither set contains the other — the Vampire sleeps
+and never eats, the Dwarf eats and never sleeps — so no single "undead" flag
+produces it. Both sets are asserted by name in `CreatureNeedsOnRealDataTests`,
+because both were guessed wrong first. See `creature-needs.md`.

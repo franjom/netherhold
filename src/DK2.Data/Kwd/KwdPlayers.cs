@@ -8,26 +8,18 @@ using DK2.Data.Model;
 
 namespace DK2.Data.Kwd;
 
-/// <summary>
-/// Parser for PLAYERS(180) records: one per player slot, 205 bytes each, in a
-/// level's <c>&lt;name&gt;Players.kld</c>.
-///
-/// <para><b>Stride CONFIRMED from data:</b> every one of the 66 shipped files
-/// divides exactly (<c>contentSize / itemCount = 205</c>, item counts 3–7, 274
-/// records in all). <b>Field boundaries STRONGLY INFERRED</b> from the retail
-/// loader that unpacks this record: gold at 0, the AI flag at 4, the 158-byte
-/// parameter block at 8, then trigger id, player id, camera and a 32-byte name.
-/// The block's byte→field map is the one the loader applies, listed with
-/// consumers and shipped ranges in <c>docs/KEEPER_AI.md</c> §2.2.</para>
-///
-/// <para><b>Reads the way the game reads.</b> Where the editor wrote a 16-bit
-/// value and the game consumes one byte, this parser takes the byte; where the
-/// editor wrote a 32-bit boolean, non-zero is true. The bytes the game never
-/// reads (<c>0x05–0x07</c>, <c>0x3A–0x41</c>, <c>0x84–0x85</c> and the high bytes
-/// of the three u16s) hold uninitialised editor memory in most shipped records
-/// and are left alone; they remain reachable through
-/// <see cref="KeeperAIParameters.RawBlock"/>.</para>
-/// </summary>
+/// <summary>Parser for PLAYERS(180) records: one per player slot, 205 bytes each, in a level's
+/// <c>&lt;name&gt;Players.kld</c>.
+/// <para><b>Stride CONFIRMED from data:</b> all 66 shipped files divide exactly at 205 bytes (item
+/// counts 3-7, 274 records in all). <b>Field boundaries STRONGLY INFERRED</b> from the retail
+/// loader that unpacks the record: gold at 0, the AI flag at 4, the 158-byte parameter block at 8,
+/// then trigger id, player id, camera and a 32-byte name. That block's byte-to-field map, its
+/// consumers and its shipped ranges are in <c>docs/KEEPER_AI.md</c> §2.2.</para>
+/// <para><b>Reads the way the game reads.</b> Where the editor wrote 16 bits and the game consumes
+/// one byte, this takes the byte; where the editor wrote a 32-bit boolean, non-zero is true. The
+/// bytes the game never reads (<c>0x05-0x07</c>, <c>0x3A-0x41</c>, <c>0x84-0x85</c> and the high
+/// bytes of the three u16s) hold uninitialised editor memory in most shipped records and are left
+/// alone, reachable through <see cref="KeeperAIParameters.RawBlock"/>.</para></summary>
 public static class KwdPlayers
 {
     /// <summary>Bytes per player record.</summary>

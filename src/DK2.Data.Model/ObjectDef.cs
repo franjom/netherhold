@@ -6,25 +6,16 @@ using DK2.Core;
 
 namespace DK2.Data.Model;
 
-/// <summary>
-/// What kind of thing an object is, and what may be done to it.
-///
-/// <para><b>The seven <c>Type</c> bits are the discriminator</b> that the OBJECTS
-/// record uses instead of a type field, and they are what four half-built
-/// mechanics in this project have been waiting for: <see cref="Food"/> is a
-/// chicken, <see cref="Lair"/> is a bed, <see cref="Gold"/> is a pile,
-/// <see cref="SpellBook"/> is what a library makes.</para>
-///
-/// <para>Names are OpenKeeper's <c>GameObject.ObjectFlag</c>, used under
-/// ADR-0003's second amendment with attribution in
-/// <c>THIRD-PARTY-NOTICES.md</c>, and every one this project relies on is
-/// checked against the shipped file by <c>ObjectsOnRealDataTests</c> rather than
-/// taken on trust — <see cref="Lair"/> falls on exactly the creature beds,
-/// <see cref="Food"/> on the chicken and its egg, and so on.</para>
-///
-/// <para>Bits 11, 19 and 31 are absent from that list and from the shipped
-/// data's union of all flags; they are not named here because nothing has seen
-/// them set.</para>
+/// <summary>What kind of thing an object is, and what may be done to it.
+/// <para><b>The seven <c>Type</c> bits are the discriminator</b>: the OBJECTS record carries no
+/// type field. <see cref="TypeFood"/> is a chicken, <see cref="TypeLair"/> a bed,
+/// <see cref="TypeGold"/> a pile, <see cref="TypeSpellBook"/> what a library makes. Only 52 of the
+/// 145 carry any type flag, so a rule asks a flag rather than an id (docs/research/objects.md §3).</para>
+/// <para>Names are OpenKeeper's <c>GameObject.ObjectFlag</c>, used under ADR-0003's second
+/// amendment with attribution in <c>THIRD-PARTY-NOTICES.md</c>; every bit relied on here is checked
+/// against the shipped file by <c>ObjectsOnRealDataTests</c>. The union of all flags across the 145
+/// records is <b>0x07F7F7FF</b>: bits 11 and 19 are never set, nor is anything above bit 26, so a
+/// bit nobody has seen set cannot be quietly named.</para>
 /// </summary>
 [Flags]
 public enum ObjectFlags : uint
@@ -52,7 +43,8 @@ public enum ObjectFlags : uint
     /// <summary>Gold: a pile on the floor or in a treasury.</summary>
     TypeGold = 1u << 6,
 
-    /// <summary>Food — the chicken a hungry creature eats.</summary>
+    /// <summary>Food: the Chicken (9) a hungry creature eats and, oddly, the Torture Pendulum (65).
+    /// Not the Egg (47), which decays but is not food — Q133.</summary>
     TypeFood = 1u << 7,
 
     CanBePickedUp = 1u << 8,
@@ -62,13 +54,10 @@ public enum ObjectFlags : uint
     /// <summary>The dungeon's level gem, which a level's objective may name.</summary>
     TypeLevelGem = 1u << 12,
 
-    /// <summary>
-    /// <b>Dead.</b> Set on exactly one record — Call To Arms — and <b>tested
-    /// nowhere in the executable</b> (raw scan for the mask against the
-    /// definition's flag dword, 2026-09-06). The name is OpenKeeper's reading
-    /// of the bit, and it is a plausible one; what it is not is evidence about
-    /// where a keeper may put a thing down. Q196.
-    /// </summary>
+    /// <summary><b>Dead.</b> Set on exactly one record — Call To Arms — and <b>tested nowhere in
+    /// the executable</b> (raw scan for the mask against the definition's flag dword). The name is
+    /// OpenKeeper's reading of the bit and a plausible one; what it is not is evidence about where
+    /// a keeper may put a thing down. Q196.</summary>
     CanBeDroppedOnAnyLand = 1u << 13,
     Obstacle = 1u << 14,
     Bounce = 1u << 15,
@@ -84,38 +73,27 @@ public enum ObjectFlags : uint
     CastShadows = 1u << 26,
 }
 
-/// <summary>
-/// One OBJECTS(240) record: 145 of them, 894 bytes each.
-///
-/// <para><b>This is the record four mechanics have been blocked on</b>, each
-/// with the same named cause. Hunger arrives and cannot be satisfied because
-/// chickens are objects; a creature dies and leaves no corpse because a corpse
-/// is an object; a graveyard cannot fill and so no vampire can exist; and gold
-/// on the floor has nowhere to go. See <c>docs/research/objects.md</c>.</para>
-///
-/// <para><b>Only the gameplay tail is read.</b> The first 812 bytes are nine art
-/// resources and a light — mesh names, icons, in-hand art — and are skipped
-/// wholesale. Everything here lives at 0x32C or later, which is also why the
-/// parse is cheap: no art resource has to be understood for a bed to work.</para>
-///
-/// <para><b>The layout is validated, not trusted.</b> OpenKeeper's field order
-/// gave the sequence; the offsets come out of it arithmetically and then check
-/// themselves twice over — the fields from <c>0x34C</c> to the end sum to
-/// <b>0x37E = 894</b>, the independently measured record stride, and the
-/// <see cref="ObjectId"/> column reads 1 to 145 exactly once each.</para>
+/// <summary>One OBJECTS(240) record: 145 of them, 894 bytes each (docs/research/objects.md).
+/// <para><b>Only the gameplay tail is read.</b> The first 812 bytes are nine art resources and a
+/// light, skipped wholesale; everything here lives at 0x32C or later, so no art resource has to be
+/// understood for a bed to work.</para>
+/// <para><b>The layout is validated, not trusted.</b> OpenKeeper's field order gave the sequence;
+/// the offsets come out of it arithmetically and then check themselves twice over — the fields from
+/// <c>0x34C</c> to the end sum to <b>0x37E = 894</b>, the independently measured record stride, and
+/// the <see cref="ObjectId"/> column reads 1 to 145 exactly once each.</para>
+/// <para>Not the home of corpses: "a corpse is an object" is <b>refuted</b> (§4). A corpse is
+/// <c>CreatureActivity.Dead</c> and an imp carries it to a Graveyard (ADR-0063); what a Graveyard
+/// then does with them is Q165.</para>
 /// </summary>
 public sealed record ObjectDef
 {
     /// <summary>The editor's name, from the record's first 32 bytes.</summary>
     public required string Name { get; init; }
 
-    /// <summary>
-    /// The id rooms and creatures refer to. A Goblin's <c>LairObjectId</c> is 22,
-    /// a Vampire's is 26, and the Graveyard's <c>ObjectIds</c> are 31 to 34.
-    /// </summary>
+    /// <summary>The id rooms and creatures refer to. A Goblin's <c>LairObjectId</c> is 22, a
+    /// Vampire's is 26, and the Graveyard's <c>ObjectIds</c> are 31 to 34 (Tomb Stone 1-4).</summary>
     public required byte ObjectId { get; init; }
 
-    /// <summary>What kind of thing it is and what may be done to it.</summary>
     public required ObjectFlags Flags { get; init; }
 
     /// <summary>Health, for the objects that can be destroyed.</summary>
@@ -124,10 +102,8 @@ public sealed record ObjectDef
     /// <summary>Mana this object is worth — non-zero on very few.</summary>
     public required ushort ManaValue { get; init; }
 
-    /// <summary>
-    /// How many of it a room tile holds. The number a treasury tile's gold cap
-    /// and a hatchery's chicken count would be expressed in.
-    /// </summary>
+    /// <summary>How many of it a room tile holds — the unit a treasury tile's gold cap and a
+    /// hatchery's chicken count would be expressed in.</summary>
     public required byte RoomCapacity { get; init; }
 
     /// <summary>Which state the object starts in — its own small state machine.</summary>
@@ -145,36 +121,26 @@ public sealed record ObjectDef
     public required ushort NameStringId { get; init; }
     public required ushort TooltipStringId { get; init; }
 
-    /// <summary>A creature's bed.</summary>
+    /// <summary>One of the twelve beds — eleven evil plus the Hero Creature Bed.</summary>
     public bool IsLair => Flags.HasFlag(ObjectFlags.TypeLair);
 
-    /// <summary>A chicken.</summary>
+    /// <summary>Food: see <see cref="ObjectFlags.TypeFood"/> for what falls in the set.</summary>
     public bool IsFood => Flags.HasFlag(ObjectFlags.TypeFood);
 
-    /// <summary>Gold, loose or stored.</summary>
     public bool IsGold => Flags.HasFlag(ObjectFlags.TypeGold);
 
-    /// <summary>A spell book, which is what research produces.</summary>
     public bool IsSpellBook => Flags.HasFlag(ObjectFlags.TypeSpellBook);
 
-    /// <summary>A level special box.</summary>
     public bool IsSpecial => Flags.HasFlag(ObjectFlags.TypeSpecial);
 
-    /// <summary>
-    /// Whether the Hand of Evil may lift this — <b>26 of the 145 records</b>:
-    /// the three golds, the Chicken, Call To Arms, all fifteen specials, and
-    /// six odds and ends (the Casino Pay Out Adjuster, two Hero Gate tables,
-    /// the Frontend 3D Arrow, the Prison Door Bar, the MPD Level Indicator).
-    ///
-    /// <para><b>The flag has exactly one reader in the whole binary</b> and it
-    /// is the cursor's target search, which also lets the <b>Dungeon Heart</b>
-    /// through by id regardless of the flag — a targeting special case rather
-    /// than a lifting one, so it is not reproduced here.</para>
-    ///
-    /// <para>Note what is <i>not</i> in the set: <b>spell books, crates and
-    /// creature beds</b>. A keeper does not hand-carry a finished trap or a
-    /// book to a library; an imp does.</para>
-    /// </summary>
+    /// <summary>Whether the Hand of Evil may lift this — <b>26 of the 145 records</b>: the three
+    /// golds, the Chicken, Call To Arms, all fifteen specials, and six odds and ends (the Casino
+    /// Pay Out Adjuster, two Hero Gate tables, the Frontend 3D Arrow, the Prison Door Bar, the MPD
+    /// Level Indicator). <b>Spell books, crates and creature beds are not in the set</b>: an imp
+    /// carries a finished trap or a book to a library, not the keeper.
+    /// <para><b>The flag has exactly one reader in the whole binary</b>, the cursor's target
+    /// search, which also lets the <b>Dungeon Heart</b> through by id regardless of the flag — a
+    /// targeting special case rather than a lifting one, so it is not reproduced here.</para></summary>
     public bool CanBePickedUp => Flags.HasFlag(ObjectFlags.CanBePickedUp);
 
     /// <summary>Decays on its own, with or without a room to keep it.</summary>

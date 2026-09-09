@@ -25,20 +25,15 @@ public sealed record TrapDef
     /// <summary>Workshop manufacture work required to produce the trap.</summary>
     public required ushort ManufactureRequired { get; init; }
 
-    /// <summary>
-    /// Id of the SHOTS record emitted by this trap, or zero for entries which
-    /// emit no shot.
-    ///
-    /// <para><b>This is a record id, not a row index, and the two differ by
-    /// one.</b> SHOTS carries its own id byte at <c>+0xBE</c>, running 1..65
-    /// across the 65 shipped records, and every trap's value matches one of
-    /// them: Gas Trap 58 is <i>Gas Trap Cloud</i>, Boulder Trap 26 is
-    /// <i>Boulder</i>, Jack In The Box 64 is <i>Jack In The Box</i>. Index the
-    /// table by row with one of these instead and Gas Trap fires
-    /// <i>Lightning Trap Shot</i>. The convention is asserted in
-    /// <c>DoorsAndTrapsDefinitionsOnRealDataTests</c> and SHOTS now parses into
-    /// definitions keyed by this id.</para>
-    /// </summary>
+    /// <summary>Id of the SHOTS record emitted by this trap, or zero for entries which emit no
+    /// shot.
+    /// <para><b>A record id, not a row index, and the two differ by one.</b> SHOTS carries its own
+    /// id byte at <c>+0xBE</c>, running 1..65 across the 65 shipped records, and every trap's value
+    /// matches one of them: Gas Trap 58 is <i>Gas Trap Cloud</i>, Boulder Trap 26 is <i>Boulder</i>,
+    /// Jack In The Box 64 is <i>Jack In The Box</i>. Index the table by row instead and Gas Trap
+    /// fires <i>Lightning Trap Shot</i>. Asserted in
+    /// <c>DoorsAndTrapsDefinitionsOnRealDataTests</c>; SHOTS parses into definitions keyed by this
+    /// id.</para></summary>
     public required byte ShotTypeId { get; init; }
 
     /// <summary>Standing mana drain measured per game second, or zero.</summary>

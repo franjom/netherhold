@@ -25,8 +25,10 @@ callers by that measure and one by a raw scan for the address itself.
 
 ## The 72 names
 
-Grouped by what they are rather than by address, because the grouping is the
-useful part.
+**72 `.cpp` translation units, plus one header (`BridgeThing.h`) — 73 distinct
+filenames.** Grouped by what they are rather than by address, because the
+grouping is the useful part. The same list, with the binary facts that came out
+of the same scan, is `executable-strings.md`.
 
 **Creature behaviour — one file per state.** This is the shape of DK2's creature
 AI, and it is worth knowing before designing anything that touches it:
@@ -49,8 +51,8 @@ AI, and it is worth knowing before designing anything that touches it:
 **Things and the world:**
 `Creature.cpp`, `CreatureInstance.cpp`, `Object.cpp`, `ObjectState.cpp`,
 `ShotProcess.cpp`, `Specials.cpp`, `World.cpp`, `WorldTrigger.cpp`,
-`WorldWDL.cpp`, `Camera.cpp`, `RenderInfo.cpp`, **`Player.cpp`**,
-`ComputerPlayer.cpp`.
+`WorldWDL.cpp`, `Camera.cpp`, `RenderInfo.cpp`, `ProceduralMesh.cpp`,
+**`Player.cpp`**, `ComputerPlayer.cpp`.
 
 **Bridges get five files of their own**, which is more than any room and says
 something about how much trouble they were: `Bridge.cpp`, `BridgeThing.cpp`,
@@ -70,3 +72,18 @@ rather than one room with a flag (`portals.md`).
 **There is no `Gold.cpp` and no `Treasury.cpp` beyond `Treasure.cpp`.** Gold's
 rules live in the room, the object and the imp code, which is where this project
 found them and is why `FloorGold` and `GoldStore` are separate from each other.
+
+## Confidence
+
+CONFIRMED — the names and the count. They read straight out of the file as
+NUL-terminated strings and reproduce exactly on re-scan; only the *grouping*
+above is interpretation.
+
+## Known exceptions
+
+- **A scan of `.text` alone is not a scan of the code.** There is a second
+  executable section, `cseg` (RVA `0x00253000`, 101,914 bytes) —
+  `executable-strings.md` has the whole section table.
+- Twenty-five of the names are `*State.cpp`; there is exactly **one** state
+  class in the executable's RTTI, so the files are handler sets rather than
+  subclasses (`creature-state-table.md`).

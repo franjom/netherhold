@@ -26,21 +26,16 @@ public sealed record KeeperSpellDef
     /// </summary>
     public required int ManaCost { get; init; }
 
-    /// <summary>
-    /// Mana per second the spell's result costs its keeper for as long as it
-    /// exists, or zero for a spell whose effect is instantaneous.
-    ///
-    /// <para><b>This is what the red figure under the mana orb is made of.</b>
-    /// CONFIRMED (2026-08-30) by the owner from two screenshots: four imps drain
-    /// 28 a second and five drain 35, and Create Imp's value here is <b>7</b>.
-    /// Non-zero for exactly the five spells whose effect persists — Create Imp
-    /// 7, Summon Horny 2000, Call To Arms 90, Possession 25, OneShotReaper 125 —
-    /// and zero for all eight instants, which is the shape a per-second upkeep
-    /// has and a cast cost does not.</para>
-    ///
-    /// <para>See docs/research/imps-and-mana.md. The upkeep belongs to the
-    /// <i>spell</i> and not to the creature it makes, which is why a long search
-    /// of the CREATURES record for the Imp's 7 found nothing.</para>
-    /// </summary>
+    /// <summary>Mana per second the spell's result costs its keeper for as long as it exists, or
+    /// zero for a spell whose effect is instantaneous.
+    /// <para><b>This is what the red figure under the mana orb is made of.</b> CONFIRMED (owner,
+    /// 2026-08-30) from two screenshots: four imps drain 28 a second and five drain 35, and Create
+    /// Imp's value here is <b>7</b>. Non-zero for exactly the five spells whose effect persists —
+    /// Create Imp 7, Summon Horny 2000, Call To Arms 90, Possession 25, OneShotReaper 125 — and
+    /// zero for all eight instants, which is the shape a per-second upkeep has and a cast cost
+    /// does not.</para>
+    /// <para>The upkeep belongs to the <i>spell</i>, not to the creature it makes, which is why a
+    /// long search of the CREATURES record for the Imp's 7 found nothing
+    /// (docs/research/imps-and-mana.md).</para></summary>
     public required int ManaUpkeepPerSecond { get; init; }
 }

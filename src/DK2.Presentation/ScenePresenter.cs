@@ -10,40 +10,18 @@ using DK2.Simulation;
 
 namespace DK2.Presentation;
 
-/// <summary>
-/// Pushes what changed in the world to an <see cref="IRenderTarget"/>, and
-/// nothing that did not.
-///
-/// <para><b>This is the half of the Unity view that can be written and tested
-/// here.</b> It owns every decision a renderer would otherwise have to make and
-/// get right twice: what counts as a visible change, what order things are
-/// pushed in, which asset key each thing needs, and when to create versus
-/// update versus remove. What is left for the Unity adapter is turning a
-/// <see cref="ResolvedAsset"/> into a <c>GameObject</c> — see
-/// <see cref="IRenderTarget"/>.</para>
-///
-/// <para><b>Why diff rather than redraw.</b> A campaign level is 61×61, so
-/// 3,721 tiles. Iterating that per frame is nothing; <i>instantiating</i> it per
-/// frame is not, and a Unity target that destroyed and rebuilt every tile object
-/// each tick would be unusable. So the presenter remembers exactly what it last
-/// pushed for each tile and pushes again only when the visible part differs.
-/// <see cref="TextRenderer"/> is the opposite by design — it redraws everything,
-/// because a character grid costs nothing — and having both is what proves the
-/// boundary does not assume either strategy.</para>
-///
-/// <para><b>Order is fixed and is part of the contract.</b> Tiles in row order,
-/// creatures in the simulation's own order (which is spawn order, and is
-/// behaviour — ADR-0010). Two runs therefore produce the same call sequence,
-/// which is what makes a recorded transcript a testable artefact rather than an
-/// impression.</para>
-///
-/// <para><b>It never reads back from the target.</b> The presenter's memory is
-/// its own; a target could be destroyed and recreated and the presenter would
-/// not know. That is the plan's "deleting every GameObject must not change the
-/// simulation" (§4.7) holding by construction rather than by care — and
-/// <see cref="Resync"/> is how a target that <i>did</i> throw everything away
-/// asks to be filled in again.</para>
-/// </summary>
+/// <summary>Pushes what changed in the world to an <see cref="IRenderTarget"/>, and nothing that
+/// did not. It owns what counts as a visible change, the push order, which asset key each thing
+/// needs, and when to create versus update versus remove; the Unity adapter turns a
+/// <see cref="ResolvedAsset"/> into a <c>GameObject</c> and no more.
+/// <para><b>Diff rather than redraw</b>: a campaign level is 61x61, so 3,721 tiles — iterating
+/// that per frame is nothing, instantiating it is not, so the presenter remembers what it last
+/// pushed per tile and pushes again only when the visible part differs. <see cref="TextRenderer"/>
+/// redraws everything by design, and having both proves the boundary assumes neither.</para>
+/// <para><b>Order is part of the contract</b>: tiles in row order, creatures in the simulation's
+/// own order — spawn order, and behaviour (ADR-0010). <b>Never reads back from the target</b>, so
+/// the plan's "deleting every GameObject must not change the simulation" (§4.7) holds by
+/// construction; <see cref="Resync"/> refills a target that did throw everything away.</para></summary>
 public sealed class ScenePresenter
 {
     /// <summary>

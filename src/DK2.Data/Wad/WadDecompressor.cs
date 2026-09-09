@@ -4,26 +4,16 @@
 
 namespace DK2.Data.Wad;
 
-/// <summary>
-/// Decompressor for DK2's WAD entry compression (type 4): an LZ77-family byte
-/// stream with four token classes selected by the high bits of a flag byte.
-///
-/// Algorithm adapted from GLKeeper's DK2WADArchive.cpp (MIT license,
-/// https://github.com/codenamecpp/GLKeeper) — see THIRD-PARTY-NOTICES.md.
-/// Validated against every compressed entry of the reference install's five
-/// WAD archives (docs/research/wad-format.md).
-///
-/// Stream layout:
-///   prelude: flags byte (bit0 set => 3 extra header bytes follow), 1 skipped
-///            byte, then a 3-byte BIG-endian uncompressed size.
-///   tokens, selected by flag byte f:
-///     f &amp; 0x80 == 0          short backref: 1 extra byte
-///     f &amp; 0xC0 == 0x80       medium backref: 2 extra bytes
-///     f &amp; 0xE0 == 0xC0       long backref: 3 extra bytes
-///     f &amp; 0xE0 == 0xE0       literal run: ((f &amp; 0x1F) * 4 + 4) bytes;
-///                            values &gt; 0x70 terminate (final run = f &amp; 3 bytes)
-/// Backref tokens carry 0-3 leading literal bytes before the copy.
-/// </summary>
+/// <summary>Decompressor for DK2's WAD entry compression (type 4): an LZ77-family byte stream with
+/// four token classes selected by the high bits of a flag byte <c>f</c> — short, medium and long
+/// backrefs taking 1, 2 and 3 extra bytes, and a literal run of
+/// <c>(f &amp; 0x1F) * 4 + 4</c> bytes where values above <c>0x70</c> terminate the stream. Backref
+/// tokens carry 0-3 leading literal bytes before the copy. The prelude is a flags byte (bit 0 set
+/// means three extra header bytes follow), one skipped byte, then a 3-byte <b>big-endian</b>
+/// uncompressed size. The token table with its masks is in docs/research/wad-format.md.
+/// <para>Algorithm adapted from GLKeeper's <c>DK2WADArchive.cpp</c> (MIT,
+/// https://github.com/codenamecpp/GLKeeper) — see THIRD-PARTY-NOTICES.md. Validated against every
+/// compressed entry of the reference install's five WAD archives.</para></summary>
 public static class WadDecompressor
 {
     public static byte[] Decompress(ReadOnlySpan<byte> input, int expectedSize)

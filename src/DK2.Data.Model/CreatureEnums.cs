@@ -39,10 +39,8 @@ public enum JobClass : byte { Artisan = 0, Thinker = 1, Fighter = 2, Scout = 3 }
 /// <summary>CONFIRMED: creatures_struct.bt.</summary>
 public enum FightStyle : byte { NonFighter = 0, Blitzer = 1, Blocker = 2, Flanker = 3, Support = 4 }
 
-/// <summary>
-/// Creature definition flags (first flag dword, offset 0xEFC).
-/// CONFIRMED: creatures_struct.bt bit order.
-/// </summary>
+/// <summary>Creature definition flags: the first flag dword, at record offset 0xEFC.
+/// CONFIRMED: creatures_struct.bt bit order.</summary>
 [Flags]
 public enum CreatureFlags : uint
 {
@@ -55,16 +53,11 @@ public enum CreatureFlags : uint
     CanDisarmTraps = 1u << 6,
     IsEvil = 1u << 7,
 
-    /// <summary>
-    /// The hero side. Named on 2026-09-05 from two directions at once: across all
-    /// 46 shipped creatures this bit is the exact complement of
-    /// <see cref="IsEvil"/> (every hero, Prince to Royal Guard, and nothing
-    /// evil), and the original's lair-preference test reads the pair as
-    /// alignment — a creature avoids a lair holding a bed whose owner is of the
-    /// other side (Q151, docs/research/lair-acquisition.md §4). STRONGLY
-    /// INFERRED as a name; the complement is CONFIRMED by
-    /// <c>LairPreferenceOnRealDataTests</c>.
-    /// </summary>
+    /// <summary>The hero side: across all 46 shipped creatures this bit is the exact complement of
+    /// <see cref="IsEvil"/>, and the original's lair-preference test reads the pair as alignment —
+    /// a creature avoids a lair holding a bed whose owner is of the other side. STRONGLY INFERRED
+    /// as a name; the complement is CONFIRMED by <c>LairPreferenceOnRealDataTests</c>
+    /// (Q151, docs/research/lair-acquisition.md §4).</summary>
     IsGood = 1u << 8,
     IsImmuneToTurncoat = 1u << 9,
     AvailableViaPortal = 1u << 10,
@@ -92,98 +85,57 @@ public enum CreatureFlags : uint
 }
 
 /// <summary>
-/// The <b>second</b> creature flag field: one byte at record offset 0x1545, of
-/// which only the low four bits are ever set across the 46 shipped creatures.
-/// Read as a dword because 0x1545..0x1548 are the record's last four bytes and
-/// the upper three are zero on every creature — so nothing is lost and a fifth
-/// bit appearing would be visible.
-///
-/// <para><b>Why there is a second flag field at all, and how it was found</b>
-/// (2026-09-07, Q86 amendment 2). DK2's portal candidate builder tests two
-/// different creature flags depending on the room type — bit 10 of the first
-/// dword for a Portal, and <c>byte ptr [def + 0x68a] &amp; 8</c> for a Hero
-/// Portal. The runtime offset is no guide to the file offset: the loader does
-/// not preserve record layout, and reasoning from adjacency produced one wrong
-/// answer (file 0xF00, which holds a 3000/2800 value and not flags).</para>
-///
-/// <para>What located it was the <i>roster</i>. The flag has to select the
-/// creatures a Hero Portal generates, and <c>dk2tools kwd creaturebits</c>
-/// searched all 5449 bytes x 8 bits for a set matching: exactly one byte's bit 3
-/// does, and it is a byte tested with mask 8, as the binary tests it.</para>
-///
-/// <para>Bits 0 and 2 have named readers at the same runtime offset and the same
-/// masks, which corroborates the mapping; what they mean is Q210. Bit 1 is set on
-/// one creature and nothing was found reading it.</para>
+/// The <b>second</b> creature flag field: one byte at record offset 0x1545, of which only the low
+/// four bits are ever set across the 46 shipped creatures. Read as a dword because 0x1545..0x1548
+/// are the record's last four bytes and the upper three are zero on every creature, so nothing is
+/// lost and a fifth bit appearing would be visible.
+/// <para>The runtime offset the binary tests (<c>byte ptr [def + 0x68a] &amp; 8</c>) is no guide to
+/// the file offset — the loader does not preserve record layout, and adjacency gave one wrong
+/// answer. The byte was found by searching all 5449 bytes x 8 bits for a bit selecting the roster
+/// the flag must select (<c>dk2tools kwd creaturebits</c>): exactly one does, bit 3 with mask 8, as
+/// the binary tests it. ADR-0086, docs/research/portals-mercenary.md §3.</para>
 /// </summary>
 [Flags]
 public enum CreatureFlags2 : uint
 {
-    /// <summary>
-    /// King Reginald, Stone Knight and Jack — <b>immune to whatever the impact
-    /// routine at <c>0x004af1e0</c> applies</b>, which is its only reader. That
-    /// routine deals damage to a target creature and <b>doubles it</b> when the
-    /// target's tile carries terrain flag <c>+0x17b &amp; 0x80</c>; this bit
-    /// makes the routine skip the target entirely.
-    ///
-    /// <para>Which attack it is has <b>not</b> been established — the routine is
-    /// installed into a table rather than called, so naming it means reading the
-    /// table. Do not assume: a damage source that doubles on one terrain is
-    /// suggestive, and suggestive is what bit 30 was. Q210.</para>
-    /// </summary>
+    /// <summary>King Reginald, Stone Knight and Jack: immune to whatever the impact routine at
+    /// <c>0x004af1e0</c> applies, its only reader. That routine damages a target creature and
+    /// doubles the damage when the target's tile carries terrain flag <c>+0x17b &amp; 0x80</c>;
+    /// this bit makes it skip the target entirely. Which attack it is has <b>not</b> been
+    /// established — the routine is installed into a table rather than called. Q210,
+    /// ADR-0087.</summary>
     Unk0 = 1u << 0,
 
-    /// <summary>
-    /// Stone Knight alone, and <b>nothing reads it</b>. Now a bounded negative
-    /// rather than a failed search: no instruction in <i>either</i> executable
-    /// block tests this byte's bit 1, and no instruction reads a wider field at
-    /// <c>+0x687</c>, <c>+0x688</c> or <c>+0x689</c> that would cover the byte
-    /// without naming it. It is a flag rather than a rate, so there is no
-    /// shipped-value-makes-it-inert reading available either. Q210.
-    /// </summary>
+    /// <summary>Stone Knight alone, and <b>nothing reads it</b> — a bounded negative, not a failed
+    /// search: no instruction in <i>either</i> executable block tests this byte's bit 1, and none
+    /// reads a wider field at <c>+0x687</c>, <c>+0x688</c> or <c>+0x689</c> that would cover the
+    /// byte without naming it. Being a flag and not a rate, there is no inert-shipped-value reading
+    /// available either. Q210, ADR-0087.</summary>
     Unk1 = 1u << 1,
 
-    /// <summary>
-    /// <b>This creature never becomes angry.</b> Skeleton and Jack. DK2 funnels
-    /// every anger change in the game through one wrapper, and that wrapper's
-    /// first act is to test this bit and return — so a creature carrying it
-    /// takes no anger from any source: not from hunger, not from a missing lair,
-    /// not from a missing wage, not from a slap, not from the hand.
-    ///
-    /// <para><b>This replaced an inference that was right about the Skeleton and
-    /// wrong about Jack.</b> The rule used to be read off the data — the
-    /// Skeleton is the only creature whose four <c>angerNo*</c> fields are all
-    /// zero — which gives the correct answer for the Skeleton by an accident of
-    /// its record. <b>Jack's four fields are 120, 110, 60 and 50</b>, with an
-    /// <c>AngerInHand</c> of +500 and an <c>AngerSlap</c> of <b>−5000</b>, and
-    /// not one of them is ever read. The values are a decoy; the flag is the
-    /// rule.</para>
-    ///
-    /// <para>Three other readers gate on it besides the wrapper, each skipping
-    /// the same follow-on work — the two unhappiness messages
-    /// (<c>0x11</c> and <c>0x12</c>, fired as the mood band crosses 1 and 2) and
-    /// the event the second one raises.</para>
-    /// </summary>
+    /// <summary><b>This creature never becomes angry.</b> Skeleton and Jack. DK2 funnels every
+    /// anger change through one wrapper whose first act is to test this bit and return, so a
+    /// creature carrying it takes no anger from any source: not hunger, lair, wage, slap or hand.
+    /// Three further readers gate on it, each skipping the same follow-on work — the two
+    /// unhappiness messages (<c>0x11</c> and <c>0x12</c>, fired as the mood band crosses 1 and 2)
+    /// and the event the second raises.
+    /// <para>The flag is the rule and the record's values are a decoy: <b>Jack's four
+    /// <c>angerNo*</c> fields are 120, 110, 60 and 50</b>, its <c>AngerInHand</c> +500 and its
+    /// <c>AngerSlap</c> <b>−5000</b>, and not one is ever read. Reading it off the data instead —
+    /// the Skeleton alone has four zeroed <c>angerNo*</c> fields — is right about the Skeleton by
+    /// accident and wrong about Jack. ADR-0087, docs/research/creature-anger.md.</para></summary>
     NeverAngered = 1u << 2,
 
-    /// <summary>
-    /// <b>A Hero Portal may generate this creature.</b> The hero side's
-    /// counterpart to <see cref="CreatureFlags.AvailableViaPortal"/>, and the
-    /// two are exclusive by room type rather than by owner: DK2 requires this
-    /// bit when the room is type 25 and requires <c>AvailableViaPortal</c> when
-    /// it is type 3, so neither portal can ever emit the other's creatures.
-    ///
-    /// <para>Nine creatures carry it: Knight, Giant, Wizard, Elven Archer,
-    /// Thief, Monk, Fairy, Guard and Royal Guard. That is <i>exactly</i> the set
-    /// <c>PortalOnRealDataTests.TheCampaignUnlocksNineCreaturesOnlyTheFlagGateKeepsOut</c>
-    /// found from the other direction — the creatures the campaign makes
-    /// available to keepers that only the Portal's flag gate keeps out. The two
-    /// flags partition the portal-generated roster between the sides.</para>
-    ///
-    /// <para><b>The Dwarf is excluded</b>, and that is the detail that makes the
-    /// bit trustworthy. A neighbouring flag (bit 30 of the first dword) selects
-    /// these nine <i>plus</i> the Dwarf; gating on that would have a Hero Portal
-    /// emitting the heroes' worker. Each side's portal excludes its own worker —
-    /// the Imp likewise lacks <c>AvailableViaPortal</c>.</para>
-    /// </summary>
+    /// <summary><b>A Hero Portal may generate this creature</b>: the hero side's counterpart to
+    /// <see cref="CreatureFlags.AvailableViaPortal"/>. The two are exclusive by room type, not by
+    /// owner — DK2 requires this bit when the room is type 25 and <c>AvailableViaPortal</c> when it
+    /// is type 3, so neither portal can emit the other's creatures.
+    /// <para>Nine creatures carry it: Knight, Giant, Wizard, Elven Archer, Thief, Monk, Fairy,
+    /// Guard and Royal Guard — exactly the set
+    /// <c>PortalOnRealDataTests.TheCampaignUnlocksNineCreaturesOnlyTheFlagGateKeepsOut</c> found
+    /// from the campaign side. <b>The Dwarf is excluded</b>, where bit 30 of the first dword selects
+    /// these nine <i>plus</i> the Dwarf and would have a Hero Portal emitting the heroes' worker;
+    /// each side's portal excludes its own worker, the Imp likewise lacking
+    /// <c>AvailableViaPortal</c>. ADR-0086, docs/research/portals-mercenary.md §3.</para></summary>
     AvailableViaHeroPortal = 1u << 3,
 }

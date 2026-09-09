@@ -4,24 +4,16 @@
 
 namespace DK2.Data.Model;
 
-/// <summary>
-/// One row of a level's PLAYERS(180) record — a player slot as the level
-/// defines it: who plays, with how much gold, and, for a computer keeper, the
-/// personality block that drives it.
-///
-/// <para><b>Layout CONFIRMED, semantics STRONGLY INFERRED</b> from the retail
-/// loader that consumes this record (<c>docs/KEEPER_AI.md</c> §3.1): all 66
-/// shipped <c>*Players.kld</c> files
-/// divide exactly into 205-byte records, and the loader's reads pin the gold,
-/// the AI flag, the 158-byte block, the trigger id, the player id, the camera
-/// and the name. OpenKeeper's independent parser (GPLv3) agrees on every field
-/// boundary and was used as a cross-check only.</para>
-///
-/// <para>Every level carries a <c>Good Player</c> (id 1) and a <c>Neutral
-/// Player</c> (id 2) with the AI flag set; the game's player tick skips both
-/// before the computer keeper ever runs, so <see cref="IsComputerKeeper"/> is
-/// the question a caller usually means.</para>
-/// </summary>
+/// <summary>One row of a level's PLAYERS(180) record — a player slot as the level defines it: who
+/// plays, with how much gold, and, for a computer keeper, the personality block that drives it.
+/// <para><b>Layout CONFIRMED, semantics STRONGLY INFERRED</b> from the retail loader that consumes
+/// this record (<c>docs/KEEPER_AI.md</c> §3.1): all 66 shipped <c>*Players.kld</c> files divide
+/// exactly into 205-byte records, and the loader's reads pin the gold, the AI flag, the 158-byte
+/// block, the trigger id, the player id, the camera and the name. OpenKeeper's independent parser
+/// (GPLv3) agrees on every field boundary and was a cross-check only.</para>
+/// <para>Every level carries a <c>Good Player</c> (id 1) and a <c>Neutral Player</c> (id 2) with
+/// the AI flag set, and the game's player tick skips both before the computer keeper ever runs, so
+/// <see cref="IsComputerKeeper"/> is the question a caller usually means.</para></summary>
 public sealed record PlayerDef
 {
     /// <summary>Player id: 1 good, 2 neutral, 3 and up keepers (<see cref="PlayerIds"/>).</summary>

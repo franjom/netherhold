@@ -7,23 +7,13 @@ using System.Text;
 
 namespace DK2.Data.Wad;
 
-/// <summary>
-/// Reader for Dungeon Keeper 2 WAD archives ("DWFB" version 2).
-///
-/// Format (CONFIRMED against all five WADs of the reference install;
-/// docs/research/wad-format.md):
-///   0x00  char[4]  signature "DWFB"
-///   0x04  u32      version (always 2)
-///   0x08  u8[64]   zeros
-///   0x48  u32      entry count
-///   0x4C  u32      absolute offset of the name block
-///   0x50  u32      name block size
-///   0x54  u32      unknown
-///   0x58  entries[count], 40 bytes each:
-///         u32 unknown, u32 nameOffset (absolute), u32 nameSize,
-///         u32 dataOffset, u32 storedSize, u32 compressionType (0|4),
-///         u32 uncompressedSize, u32 unknown[3]
-/// </summary>
+/// <summary>Reader for Dungeon Keeper 2 WAD archives ("DWFB" version 2).
+/// <para>Header: the signature <c>DWFB</c> at 0, a version always 2, 64 zero bytes, the entry
+/// count at <c>0x48</c>, then the name block's absolute offset and size. Entries start at
+/// <c>0x58</c>, <b>40 bytes each</b>, carrying an absolute name offset and size, a data offset, a
+/// stored size, a compression type (0 or 4) and an uncompressed size. The full field table,
+/// including the four unknown dwords, is in docs/research/wad-format.md.</para>
+/// <para>CONFIRMED against all five WADs of the reference install.</para></summary>
 public sealed class WadArchive : IDisposable
 {
     private const uint Signature = 0x42465744; // "DWFB" little-endian

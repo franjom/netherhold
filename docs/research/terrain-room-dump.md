@@ -1,9 +1,14 @@
 # DK2 v1.70 terrain and room tables
 
-Extracted from the reference install on 2026-08-29.
-Layout and validation: docs/research/kwd-terrain-rooms.md
+DK2's own data, read from the reference install — CONFIRMED by definition.
+Layout and validation: `docs/research/kwd-terrain-rooms.md`. Each block names
+the `dk2tools` subcommand that regenerates it; a disagreement between this page
+and the tool means the page is stale.
 
 ## Terrain types (Terrain.kwd)
+
+`dk2tools kwd terrain`. `->maxHp` is `MaxHealthTypeTerrainId` and `->dead` is
+`DestroyedTypeTerrainId`; `dmg` is **signed** (Hero Lair is −67, so it heals).
 ```
  id name                      health   maxHp  gold  mana  dmg ->maxHp  ->dead  flags
   1 Impenetrable Rock              1       1     0     0    0       1       1  solid,impenetrable
@@ -103,8 +108,9 @@ read structurally rather than by terrain id (`dk2tools kwd terrainflags`):
 ### Mana per terrain
 
 The `mana` column above is `ManaGain`. `MaxManaGain` sits beside it in the
-record and is dumped here too, because its emptiness is the evidence
-(`dk2tools kwd terrainmana`). Every terrain not listed is zero in both columns:
+record and matters here because its emptiness is the evidence.
+`dk2tools kwd terrainmana` prints all 41 rows; every terrain not shown below is
+zero in both columns:
 
 ```
  id name                             manaGain maxManaGain
@@ -121,6 +127,12 @@ ones. That partition is what `DK2.Simulation.ManaRules` rests on, and
 
 
 ## Room types (Rooms.kwd)
+
+`dk2tools kwd rooms`. `sell%` is `RoomDef.ReturnPercentage`, a per-room gate —
+100 for every buildable room, 0 for the hero gates — and is not the refund
+percentage; that is `RoomSellValuePercentageOfCost` = 50 (Q34, ADR-0029).
+`terr` is the TERRAIN(110) id the room's tiles take, `spawn` its
+`createdCreatureId`.
 
 ```
  id name                      cost sell% terr spawn  size construction         flags
@@ -151,7 +163,24 @@ ones. That partition is what `DK2.Simulation.ManaRules` rests on, and
  25 Hero Portal                  0   100   40     0   3x3 ThreeByThree         
  26 Crypt                     2000   100   41     0   5x5 Normal               walls
 -- 26 room types
+
+object ids per room (Q120: which room owns which object):
+    4 Hatchery                 35
+    6 Library                  64,58
+    7 Training Room            14,29
+    9 Guard Room               71,112
+   10 Work Shop                16,15,46,15,16
+   11 Prison                   49,50,51
+   12 Torture Chamber          8,8,61,8,62,63
+   14 Graveyard                31,32,33,34
+   15 Casino                   87,59,67,68
+   16 Combat Pit               49,50
 ```
+
+Ten rooms of 26 have an `ObjectIds` list; the other sixteen carry none
+(Q120, ANSWERED). Work Shop repeats 15 and 16,
+and Torture Chamber repeats 8 three times, so the field is a **slot list, not a
+set** — see `objects.md` for what each id is.
 
 ### Full room flags
 
@@ -191,6 +220,11 @@ docs/research/rooms-and-gold.md and ADR-0016 (`dk2tools kwd roomflags`):
 
 ## Sample level grids
 
+`dk2tools kwd map <relative path>`. The `owners:` line is `p<playerId>=<tiles>`
+over the MAP record's second byte. **Player 0 occurs on no shipped map**: undug
+rock and every unclaimed tile belong to player 2 (neutral) — see
+`kwd-terrain-rooms.md` for the full sweep.
+
 ```
 $ dk2tools kwd map maps/level1Map.kld
 30 x 38 tiles
@@ -224,3 +258,12 @@ terrain histogram:
   terrain   7:      4 tiles
 owners: p1=783, p2=2840, p3=49, p4=49
 ```
+
+## Provenance
+
+Implementation: `DK2.Data.Kwd.KwdTerrainRooms`, `DK2.Data.Kwd.MapGrid`,
+`DK2.Data.Model.TerrainDef`, `RoomDef`, `RoomTypeId`.
+Tests: `DK2.Data.Tests.KwdTerrainRoomsTests`;
+`DK2.Simulation.Tests.Dk2TerrainFixture` builds simulation fixtures from these
+tables, and `DK2.Behavior.Tests.ManaOnRealDataTests` asserts the mana partition
+by exhaustion.

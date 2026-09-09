@@ -4,39 +4,18 @@
 
 namespace DK2.Data.Model;
 
-/// <summary>
-/// The tuning block of one computer keeper, as the original reads it out of a
-/// PLAYERS record's 158-byte parameter block.
-///
-/// <para><b>Field names are the original's own.</b> Every name here is a label
-/// the retail executable prints in its own debug dump of this structure; they
-/// are Bullfrog's spellings (<c>TendancyMoney</c>, <c>Reseached</c>) and are kept
-/// verbatim so the dump, the editor and this type agree. See
-/// <c>docs/KEEPER_AI.md</c> §2.2 for the offset→field map, the consumers,
-/// and the ranges across shipped levels.</para>
-///
+/// <summary>The tuning block of one computer keeper, as the original reads it out of a PLAYERS
+/// record's 158-byte parameter block. <c>docs/KEEPER_AI.md</c> §2.2 has the offset-to-field map,
+/// the consumers and ranges, and the nine parameters loaded and never read.
+/// <para>Field names are the original's own, the retail executable's own debug-dump labels, so
+/// Bullfrog's spellings (<c>TendancyMoney</c>, <c>Reseached</c>) are kept verbatim.</para>
 /// <para><b>Read the way the game reads it, not the way the editor wrote it.</b>
-/// Three fields the editor stores as 16-bit values — <see cref="TilesPerImpRatio"/>,
-/// <see cref="SpecialRange"/>, <see cref="WaitBeforeAttackingAgain"/> — are read
-/// by the game as a single byte, and the shipped files carry garbage in the high
-/// byte. This type reads the byte, so two campaign keepers really do get
-/// <c>TilesPerImpRatio</c> 232 (STRONGLY INFERRED from the loader; §6.5 there).
-/// The editor's per-player <c>aiType</c> byte at block offset 0 is exposed as
-/// <see cref="EditorAiType"/> because the game does not read it.</para>
-///
-/// <para><b>Nine of these are loaded and never read</b> by the retail game
-/// (<see cref="TendancyType"/> is not even in the block):
-/// <c>MinimumRandomTimeBeforePlacingReseachedRoom</c>, <c>SpecialFindChance</c>,
-/// <c>Flexibility</c>, <c>BuildLostRoomAfterMinimumTime</c>, <c>SpecialRange</c>,
-/// <c>IAUseCreatures</c>, <c>GoldValue</c>, <c>ManaValue</c>. They are kept so the
-/// record round-trips, and so a reader is not misled into thinking they matter.</para>
-///
-/// <para>Bit-width notes: values the game packs into bit-fields (e.g.
-/// <see cref="TilesLeftBetweenRooms"/> into 4 bits, <see cref="IAAllSpellsResearched"/>
-/// into 1) are exposed <i>unmasked</i> here, exactly as the file holds them; the
-/// simulation's keeper applies the mask, because that is a behaviour of the
-/// original and belongs with the behaviour, not the data.</para>
-/// </summary>
+/// <see cref="TilesPerImpRatio"/>, <see cref="SpecialRange"/> and
+/// <see cref="WaitBeforeAttackingAgain"/> are 16-bit in the editor and a single byte to the game,
+/// over garbage in the high byte, so two campaign keepers really do get <c>TilesPerImpRatio</c>
+/// 232 (STRONGLY INFERRED from the loader). <see cref="EditorAiType"/> is the editor's
+/// <c>aiType</c> at block offset 0, which the game ignores; bit-packed values are exposed
+/// <i>unmasked</i>, the simulation's keeper applying the mask.</para></summary>
 public sealed record KeeperAIParameters
 {
     /// <summary>Block byte 0. The editor's personality dropdown; the game ignores it.</summary>

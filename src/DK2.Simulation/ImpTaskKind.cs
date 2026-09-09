@@ -8,7 +8,7 @@ namespace DK2.Simulation;
 /// <remarks>
 /// <para>DK2 stores this as the byte <c>ImpJobData.LastTaskType</c>, written by each
 /// task-accepting routine when it takes the task; these values were read from those writes.
-/// docs/research/imp-task-priority.md §3 has all sixteen; these are the eight built here.</para>
+/// docs/research/imp-task-priority.md §3 identifies the kinds; these are the eight built here.</para>
 /// <para>The values are load-bearing in one place: <see cref="CreatureState.DroppedTask"/> is
 /// compared against <see cref="CreatureState.LastTaskKind"/> as raw bytes, as DK2 does. Gaps are
 /// kinds not built here: 9/10 (fetch a crate for a trap or door) and 11 (unidentified).</para>

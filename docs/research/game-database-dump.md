@@ -1,9 +1,17 @@
 # DK2 v1.70 global balance table (GlobalVariables.kwd)
 
-Extracted from the reference install (GOG, `Data/editor/GlobalVariables.kwd`)
-by `dk2tools kwd vars` on 2026-08-29. This is DK2's own data — CONFIRMED by
-definition. Names from ufdada/dk2-tools variables_struct.bt; ids 17, 19 etc.
-appear in data but have no known name yet (listed as Unknown_N).
+DK2's own data — CONFIRMED by definition. Reproduce with `dk2tools kwd vars`,
+which reads `Data/editor/GlobalVariables.kwd` from the reference install
+directly; a disagreement between this page and the tool means the page is
+stale. Layout: `kwd-variables.md`. Names from ufdada/dk2-tools
+`variables_struct.bt`; ids with no published name print as `Unknown_N` and
+carry their `unk1`/`unk2` payload slots (Q85).
+
+**This is the global table only.** Every level ships a `<name>Variables.kld`
+that overrides it, 26 ids are overridden by at least one level, and the merge
+rules are ADR-0040 — see `kwd-variables.md` before quoting a number as *the*
+value. Ids 66, 74 (`GameTicks`), 77, 241 (`LevelRating`) and 242 (`AverageTime`)
+appear only in per-level files and so are absent below.
 
 ```
 # Misc variables (197)
@@ -21,7 +29,7 @@ appear in data but have no known name yet (listed as Unknown_N).
    14  ConvertRoomHealth                                                     -4000
    15  AttackRoomHealth                                                      -1500
    16  RepairRoomHealth                                                      20000
-   17  Unknown_17                                                                3
+   17  Unknown_17                                                                3   unk1=5 unk2=1000
    18  ChickenGenerationTimePerHatchery                                         16
    20  GoldMinedFromGems                                                        25
    21  TimeBetweenReattemptingHungerSeconds                                      4
@@ -56,9 +64,9 @@ appear in data but have no known name yet (listed as Unknown_N).
    53  DefaultTorchLightGreen                                                  200
    54  DefaultTorchLightBlue                                                   100
    55  PrisonModifyCreatureHealthPerSecond                                      -3
-   61  Unknown_61                                                        305493641
-   62  Unknown_62                                                       -377003726
-   63  Unknown_63                                                        305498471
+   61  Unknown_61                                                        305493641   unk1=-1413218304 unk2=0
+   62  Unknown_62                                                       -377003726   unk1=1420541952 unk2=0
+   63  Unknown_63                                                        305498471   unk1=-878624768 unk2=0
    67  DefaultCellingHeightTiles                                                 0
    68  PayDayCutOffTimeSeconds                                                 120
    70  CasinoModifyCreatureGoldPerSecond                                       -50
@@ -210,3 +218,42 @@ appear in data but have no known name yet (listed as Unknown_N).
 # Sacrifice recipes:    44
 # Creature stat rows:   320
 ```
+
+## The records the printed lines do not account for
+
+The chunk holds **621 records**; the counts above sum to 593. The gap is not
+missing data, and the arithmetic is worth writing down because two of the four
+lines are not what they look like:
+
+| kind | records | printed as |
+|---|---:|---|
+| plain values | 225 | **197 lines** — see below |
+| `Availability` (id 2) | 32 | 32 |
+| `Sacrifice` (id 43) | 44 | 44 |
+| `CreatureStats` (id 65) | 288 | pooled into "Creature stat rows: 320" |
+| `CreatureFirstPersonStats` (id 224) | 32 | the other 32 of that 320 |
+| `CreaturePool` (id 1) | 0 | 0 — pools live only in per-level files |
+
+**Id 17 is not a scalar.** It carries **29 records** in this one chunk — value 4
+twelve times, 2 six times, 3 eleven times — and `KwdVariables` keeps plain
+values in a by-id dictionary where the last occurrence wins, so the line above
+shows one of the 29 and the other 28 are the whole of the 225 − 197 gap. Nothing
+else in the global table repeats an id. Whatever id 17 selects, it is a **list
+keyed by something the payload does not name**; the `unk1=5 unk2=1000` on the
+surviving record is the last row's slots 2 and 3, not a global.
+
+`CreatureStats` and `CreatureFirstPersonStats` are pooled into one
+`GlobalVariables.CreatureStats` list distinguished by a `FirstPerson` flag,
+which is why one "320" covers two ids. 288 = the level-scaled stat rows;
+`creature-levels.md` reads them.
+
+## Provenance
+
+Implementation: `DK2.Data.Kwd.KwdVariables`, `DK2.Data.Model.GlobalVariables`,
+`DK2.Data.Model.VariableTypeId`. Tests: `DK2.Data.Tests.GameDatabaseTests`,
+`GlobalVariablesMergeTests`; on real data,
+`DK2.Behavior.Tests.LevelVariablesOnRealDataTests`.
+
+Which of these the executable actually reads is a separate question:
+`balance-variables-in-the-binary.md` and `variables-corpus-sweep.md`. A zero
+here does not mean a dead mechanic (ADR-0085).

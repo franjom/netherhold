@@ -25,11 +25,12 @@ The chunk header carries `u32 width, u32 height`; content is exactly
 `width * height * 4` bytes, row-major, 4 bytes per tile:
 
 ```
-u8 terrainId    u8 playerId    u8 flags (bridge terrain)    u8 unknown
+u8 terrainId    u8 playerId    u8 flags    u8 unknown
 ```
 
 CONFIRMED across every campaign map: all tile terrain ids resolve against the
-TERRAIN table (asserted in tests). Example — `level1Map.kld`, 30 x 38:
+TERRAIN table (asserted in tests). Example — `level1Map.kld`, 30 × 38
+(4,560 content bytes):
 
 ```
 terrain  1 Impenetrable Rock   776    terrain  8 Claimed Path     18
@@ -43,6 +44,32 @@ terrain 14 Dungeon Heart        25    terrain 33 Hero Gate 2x2     4  (2x2)
 Tile counts independently confirm room geometry: Dungeon Heart occupies exactly
 25 tiles (5x5) and Portal exactly 9 (3x3), matching those rooms'
 `RecommendedSizeX/Y` and `TileConstruction` from the separate ROOMS record.
+
+**Byte 3 (`flags`) is the bridge hazard.** Over all 66 shipped maps it takes no
+value but 1 or 2; 2 occurs only on bridge terrain and every such tile borders
+lava, every 1 bridge tile touching a hazard borders water. A sold bridge
+reverts to what it spanned (ADR-0031, `BridgeRules`,
+`BridgesOnRealDataTests`). Behaviour CONFIRMED; that this byte is where the
+original keeps it is STRONGLY INFERRED.
+
+**Byte 2 (`playerId`) numbering**, CONFIRMED by sweeping the MAP record of all
+66 shipped maps (`dk2tools kwd map <file>` prints one map's owner histogram):
+
+| id | meaning | maps carrying it |
+|---:|---|---:|
+| 0 | reserved as "unowned" in `PlayerIds` | **0 — it never occurs** |
+| 1 | the hero side | 49 |
+| 2 | neutral — **undug rock and every unclaimed tile** | 66 |
+| 3 | first keeper | 66 |
+| 4–7 | further keepers | 40 / 21 / 12 / 3 |
+
+The trap: `DK2.Data.Model.PlayerIds` documents 0 as unmined rock, and no MAP
+tile in the campaign is owned by 0 — **2 is** what undug terrain carries.
+Nothing depends on the id-0 reading (rules test terrain and ownership, not the
+literal), but do not derive "unowned" from it. The 3–7 keeper range is asserted
+by `PortalOnRealDataTests.TheReservedPlayerIdsAreWhatTheCampaignSays` from
+dungeon-heart tiles, creature pools and availability entries, none of which is
+the undug-tile case.
 
 ## Significant finding — digging/claiming is a data-driven state machine
 
@@ -58,11 +85,11 @@ Gems (100 hp)          --destroyed-->  Gems        (inexhaustible)
 Gold (660 hp, 3000 gold) --destroyed--> Dirt Path
 ```
 
-Combined with the VARIABLES health deltas already extracted
-(`MineGoldHealth=-300`, `ClaimTileHealth=825`, `DigRockHealth=-5000`,
-`ReinforceWallHealth=50`, `RepairWallHealth=22`), this gives the complete
-numeric model for digging, claiming and reinforcing — pending confirmation of
-how often the deltas are applied (tied to open question Q1, the tick rate).
+Combined with the VARIABLES health deltas (`MineGoldHealth=-300`,
+`ClaimTileHealth=825`, `DigRockHealth=-5000`, `ReinforceWallHealth=50`,
+`RepairWallHealth=22`), this is the complete numeric model for digging,
+claiming and reinforcing. How often the deltas are applied is Q1, the tick
+rate; the full table is `terrain-room-dump.md`.
 
 ## Finding — room ids resolve gaps in Flame's disassembly
 
@@ -79,8 +106,7 @@ strings, which name them:
 | 22 | `unk_22` | **Hero Stone Bridge** |
 | 23 | `unk_23` | **Hero Gate [ 3x1 ]** |
 
-`DK2.Data.Model.RoomTypeId` now carries the complete set. This is a small
-contribution back: our data resolves unknowns in the best existing binary RE.
+`DK2.Data.Model.RoomTypeId` carries the complete set.
 
 ## Finding — the in-memory terrain record is filled field by field (2026-09-05)
 
@@ -126,20 +152,19 @@ heroes standing on it. The field is `short`, not `ushort`. Lava/Water are +100.
 ## Confidence
 
 CONFIRMED — record sizes, all parsed field offsets, the transition graph, room
-ids, and grid layout. Asserted across 10 tests including whole-corpus map
-validation.
+ids, grid layout, and the MAP `playerId` and `flags` bytes.
 
-UNKNOWN — MAP tile byte 3 (`flags`, bridge-related) and byte 4; the meaning of
-`maxHealthTypeTerrainId` for already-claimed path tiles (Claimed Path points at
-Rock, which does not fit the "upgrade" reading); MAP `playerId` numbering
-(level1 shows p1=32, p2=1048, p3=60 — which id means neutral is not yet known).
+UNKNOWN — MAP tile byte 4; the meaning of `maxHealthTypeTerrainId` for
+already-claimed path tiles (Claimed Path points at Rock, which does not fit the
+"upgrade" reading).
 
 ## Implementation
 
 `DK2.Data.Kwd.KwdTerrainRooms`, `DK2.Data.Kwd.MapGrid`,
 `DK2.Data.Model.TerrainDef`, `DK2.Data.Model.RoomDef`,
-`DK2.Data.Model.RoomTypeId`
+`DK2.Data.Model.RoomTypeId`, `DK2.Data.Model.PlayerIds`
 
 ## Tests
 
-`DK2.Data.Tests.KwdTerrainRoomsTests` (10 tests)
+`DK2.Data.Tests.KwdTerrainRoomsTests` (10 test methods, including whole-corpus
+map validation)

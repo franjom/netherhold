@@ -227,9 +227,9 @@ public static class CreatureAngerRules
     /// 19 (Q122, ADR-0061).
     ///
     /// <para>Variable 19 is DK2's ticks-a-game-second and is 4 in every shipped
-    /// level (Q1); ours is <see cref="SimulationTiming.TicksPerSecond"/> = 20.
-    /// What the original expresses is five game <i>seconds</i>, so that is what
-    /// this is, and settling the tick rate would not change it.</para>
+    /// level (Q1); ours is <see cref="SimulationTiming.TicksPerSecond"/>. What
+    /// the original expresses is five game <i>seconds</i>, so that is what this
+    /// is, and the tick rate does not change it.</para>
     /// </summary>
     public const int ReselectionGateTicks = 5 * SimulationTiming.TicksPerSecond;
 

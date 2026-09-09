@@ -319,14 +319,12 @@ public sealed class ScenarioRunner
 
                     ref TileState tile = ref world.Tile(x, y);
 
-                    // Already this room, and only the owner differs: this is a
-                    // scenario claiming a room the map shipped, not building
-                    // one. It is the only way to express a claimed portal —
-                    // room conversion is a real DK2 job with its own balance
-                    // value (ConvertRoomHealth, -4000) and there is no
-                    // TileWorkKind for it yet (Q92), so a scenario cannot claim
-                    // one the way an imp would. Reported as a shortfall below
-                    // rather than treated as ordinary setup.
+                    // Already this room and only the owner differs: a scenario claiming a room the
+                    // map shipped, not building one, and the only way to express a claimed portal.
+                    // Room conversion is a real DK2 job with its own balance value
+                    // (ConvertRoomHealth, -4000) and has no TileWorkKind yet (Q92), so a scenario
+                    // cannot claim one the way an imp would. Reported as a shortfall below rather
+                    // than treated as ordinary setup.
                     if (tile.TerrainId == room.TerrainId)
                     {
                         if (tile.OwnerPlayerId != r.Player)
@@ -683,25 +681,10 @@ public sealed class ScenarioRunner
         }
     }
 
-    /// <summary>
-    /// Resolves a scenario's map field.
-    ///
-    /// <c>campaign:level1</c> loads a shipped map. <c>flat_24x20</c> builds a
-    /// synthetic dungeon - impenetrable border, dirt path inside;
-    /// <c>rock_24x20</c> the same thing filled with diggable rock, which is what
-    /// a dig experiment needs; and <c>chamber_24x20</c> solid rock with a small
-    /// open chamber at the centre, which is what an experiment with workers
-    /// needs, since a worker has to stand somewhere. All three are testing
-    /// conveniences and none is a DK2 layout.
-    /// </summary>
-    /// <summary>
-    /// Places the level's own THINGS, when the scenario asks for them.
-    ///
-    /// <para>Refused rather than ignored on a synthetic map: a scenario that
-    /// says <c>placed_things: true</c> over <c>flat_24x20</c> is asking for
-    /// something that does not exist, and silently giving it an empty level
-    /// would make the scenario look like it had run.</para>
-    /// </summary>
+    /// <summary>Places the level's own THINGS, when the scenario asks for them. Refused rather
+    /// than ignored on a synthetic map: a scenario that says <c>placed_things: true</c> over
+    /// <c>flat_24x20</c> is asking for something that does not exist, and silently giving it an
+    /// empty level would make the scenario look like it had run.</summary>
     private void PlaceShippedThings(Scenario scenario, WorldState world, List<string> unsupported)
     {
         if (!scenario.Setup.PlacedThings) return;
@@ -733,6 +716,12 @@ public sealed class ScenarioRunner
                 + "(doors, traps, hero parties, effect generators)");
     }
 
+    /// <summary>Resolves a scenario's map field. <c>campaign:level1</c> loads a shipped map;
+    /// <c>flat_24x20</c> builds a synthetic dungeon with an impenetrable border and dirt path
+    /// inside, <c>rock_24x20</c> the same filled with diggable rock, and <c>chamber_24x20</c>
+    /// solid rock with a small open chamber at the centre, which is what an experiment with
+    /// workers needs since a worker has to stand somewhere. All three are testing conveniences
+    /// and none is a DK2 layout.</summary>
     private LevelMap ResolveMap(string spec)
     {
         const string campaign = CampaignPrefix;

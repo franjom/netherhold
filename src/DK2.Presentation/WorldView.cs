@@ -61,19 +61,12 @@ public readonly struct TileView
     /// <summary>Gold sitting in this tile (a treasury tile, a heart tile).</summary>
     public int GoldHeld { get; }
 
-    /// <summary>
-    /// Health as thousandths of the terrain's maximum, so a renderer can show
-    /// damage without knowing the terrain table. An integer, per ADR-0001;
-    /// 1000 for a terrain with no meaningful maximum.
-    ///
-    /// <para><b>Corroborated after the fact.</b> This was added on the reasoning
-    /// that a renderer ought not need the terrain table to draw damage. DK2
-    /// really does show wall damage, and shows it by swapping the wall's
-    /// <i>texture</i> for a damage-state one — CONFIRMED from Simon Schreibt's
-    /// captures (<c>docs/research/wall-rendering.md</c>). So a fraction is the
-    /// right thing to hand across, and the assets it will select are textures
-    /// rather than meshes.</para>
-    /// </summary>
+    /// <summary>Health as thousandths of the terrain's maximum, so a renderer can show damage
+    /// without knowing the terrain table. An integer, per ADR-0001; 1000 for a terrain with no
+    /// meaningful maximum.
+    /// <para>DK2 does show wall damage, and shows it by swapping the wall's <i>texture</i> for a
+    /// damage-state one — CONFIRMED from Simon Schreibt's captures
+    /// (docs/research/wall-rendering.md), so what this selects are textures, not meshes.</para></summary>
     public int HealthPermille { get; }
 
     public bool IsRoom => !Furniture.IsEmpty;
@@ -175,34 +168,18 @@ public readonly struct ObjectView
     public int GoldHeld { get; }
 }
 
-/// <summary>
-/// Turns simulation state into asset-keyed descriptions a renderer can draw —
-/// the whole of the presentation boundary the plan draws in §4.7, and the only
-/// place where "what the game is doing" becomes "what to put on screen".
-///
-/// <para><b>Why this exists rather than each renderer reading
-/// <see cref="WorldState"/> itself.</b> Every renderer would otherwise repeat the
-/// same three decisions — which asset key a terrain implies, which animation an
-/// activity implies, how a room's floor differs from its furniture — and they
-/// would drift apart. Getting those wrong in two places is worse than getting
-/// them wrong in one, because the disagreement then looks like a simulation bug.
-/// The Unity view and the harness's text view consume this same type, which is
-/// what makes the text view evidence about the Unity view.</para>
-///
-/// <para><b>Observation only.</b> Nothing here writes to the world; the view
-/// types are readonly structs holding copies. Note honestly that this is a
-/// convention rather than a compiler guarantee: <see cref="WorldState.Tile(int,int)"/>
-/// hands out a <c>ref</c>, so a determined renderer could still mutate. The
-/// guarantee the plan wants — "deleting every GameObject must not change the
-/// simulation" — holds in the direction that matters, because the simulation has
-/// no reference to any of this.</para>
-///
-/// <para><b>No caching.</b> A view is built on demand from current state, so it
-/// cannot go stale and there is no invalidation to get wrong. If that ever costs
-/// too much, the fix is to build views for a region rather than to hold one
-/// between ticks — a cached view is a second copy of the world, and this project
-/// has one authoritative copy on purpose.</para>
-/// </summary>
+/// <summary>Turns simulation state into asset-keyed descriptions a renderer can draw — the whole
+/// of the presentation boundary the plan draws in §4.7.
+/// <para>It exists rather than each renderer reading <see cref="WorldState"/> itself because every
+/// renderer would otherwise repeat the same three decisions — which asset key a terrain implies,
+/// which animation an activity implies, how a room's floor differs from its furniture — and a
+/// disagreement between two of them looks like a simulation bug. The Unity view and the harness's
+/// text view consume this same type, which is what makes the text view evidence about the Unity
+/// view.</para>
+/// <para><b>Observation only</b>, by convention rather than compiler guarantee: the view types are
+/// readonly structs holding copies, but <see cref="WorldState.Tile(int,int)"/> hands out a
+/// <c>ref</c>. What holds absolutely is the other direction — the simulation holds no reference to
+/// any of this. <b>No caching</b>: a view is built on demand, so it cannot go stale.</para></summary>
 public sealed class WorldView
 {
     private readonly GameDatabase _database;

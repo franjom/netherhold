@@ -4,35 +4,18 @@
 
 namespace DK2.Data.Model;
 
-/// <summary>
-/// DK2's reserved player ids. <b>Not every player is a keeper</b>, and until
-/// this was worked out the project quietly assumed they were.
-///
-/// <para><b>CONFIRMED, from three independent directions.</b> The shipped
-/// campaign's own data says it: across all 66 levels, <b>every dungeon-heart
-/// tile belongs to a player between 3 and 7</b> and never to 0, 1 or 2, and
-/// <b>every creature pool and every creature-availability entry names a player
-/// between 3 and 7</b> and never below. Level 1 shows all four ids at once — its
-/// hero gate is player 1, its unclaimed portal is player 2, its keeper's dungeon
-/// heart is player 3, and unmined rock is player 0. And OpenKeeper's
-/// <c>Player</c> constants, arrived at from the executable rather than from the
-/// maps, are the same four numbers with the same meanings. All of it is asserted
-/// in <c>PortalOnRealDataTests.TheReservedPlayerIdsAreWhatTheCampaignSays</c>.</para>
-///
-/// <para><b>Why it matters beyond bookkeeping.</b> A rule that loops over
-/// players and treats each as a keeper is wrong four ways: it would run an
-/// unclaimed portal's clock (<see cref="Simulation.Systems.PortalSystem"/>), pay
-/// a payday to nobody, and hand mana or free imps to the neutral player. The
-/// ids are also what makes "unclaimed" expressible at all — a neutral portal is
-/// a portal owned by <see cref="Neutral"/>, not a portal owned by no one.</para>
-///
-/// <para><b>What this does not say.</b> That <see cref="Good"/> is one player
-/// rather than a faction, or how the hero player's own structures behave.
-/// Four shipped portals belong to player 1 and eleven hero portals belong to
-/// player 2, and since neither id ever carries a creature pool, nothing comes
-/// out of any of them here. What the original does with them is UNKNOWN and is
-/// almost certainly level scripting rather than the portal clock (Q91).</para>
-/// </summary>
+/// <summary>DK2's reserved player ids. <b>Not every player is a keeper.</b>
+/// <para><b>CONFIRMED from three independent directions.</b> Across all 66 shipped levels every
+/// dungeon-heart tile, every creature pool and every creature-availability entry names a player
+/// between 3 and 7, never 0, 1 or 2. Level 1 shows four ids at once — hero gate player 1,
+/// unclaimed portal player 2, keeper's heart player 3, unmined rock player 0. And OpenKeeper's
+/// <c>Player</c> constants, read from the executable rather than the maps, agree. Asserted by
+/// <c>PortalOnRealDataTests.TheReservedPlayerIdsAreWhatTheCampaignSays</c>.</para>
+/// <para>A rule that loops over players treating each as a keeper would run an unclaimed portal's
+/// clock (<c>PortalSystem</c>, DK2.Simulation, not referenced from here), pay a payday to nobody
+/// and hand mana or free imps to <see cref="Neutral"/>. UNKNOWN whether <see cref="Good"/> is one
+/// player or a faction, and what the original does with the four player-1 and eleven player-2
+/// portals, neither id ever carrying a creature pool (Q91).</para></summary>
 public static class PlayerIds
 {
     /// <summary>Terrain that belongs to nobody — unmined rock, undug dirt.</summary>

@@ -5,17 +5,13 @@
 namespace DK2.Data.Model;
 
 /// <summary>
-/// The parsed DK2 static database: every definition the simulation reads and
-/// never writes. Loaded once from the original game's KWD files and immutable
-/// thereafter.
-///
-/// This type is the seam between the data layer (DK2.Data, which does file IO)
-/// and the simulation layer (DK2.Simulation, which does not). The simulation
-/// depends on this assembly only, so it can be handed a synthetic database in
-/// tests without any DK2 install present.
-///
-/// Rule (docs/HANDOFF.md): a balance constant hardcoded in simulation code is a
-/// bug. Read it from here.
+/// The parsed DK2 static database: every definition the simulation reads and never writes. Loaded
+/// once from the original game's KWD files and immutable thereafter.
+/// <para>This type is the seam between the data layer (DK2.Data, which does file IO) and the
+/// simulation layer (DK2.Simulation, which does not). The simulation depends on this assembly
+/// only, so a test can hand it a synthetic database with no DK2 install present.</para>
+/// <para>Rule (docs/HANDOFF.md): a balance constant hardcoded in simulation code is a bug — read
+/// it from here.</para>
 /// </summary>
 public sealed class GameDatabase
 {
@@ -40,9 +36,8 @@ public sealed class GameDatabase
         KeeperSpells = (keeperSpells ?? []).ToDictionary(
             s => s.Name, StringComparer.OrdinalIgnoreCase);
 
-        // Objects (M6). Keyed by id because that is how every other record
-        // refers to one: a creature names its bed by id, a room names its
-        // furniture by id.
+        // Keyed by id because that is how every other record refers to one: a
+        // creature names its bed by id, a room names its furniture by id.
         Objects = (objects ?? []).ToDictionary(o => o.ObjectId);
         Doors = (doors ?? []).ToDictionary(d => d.DoorId);
         Traps = (traps ?? []).ToDictionary(t => t.TrapId);
@@ -51,10 +46,9 @@ public sealed class GameDatabase
         Effects = (effects ?? []).ToDictionary(e => e.EffectId);
         EffectElements = (effectElements ?? []).ToDictionary(e => e.EffectElementId);
 
-        // Lowest room id wins a shared terrain id. In the shipped data no two
-        // rooms share one — RoomsOnRealDataTests asserts that — so the tie-break
-        // never fires; it exists so a data set which broke the assumption would
-        // still load deterministically rather than throwing at startup.
+        // Lowest room id wins a shared terrain id. No two shipped rooms share one
+        // (RoomsOnRealDataTests.EveryRoomOwnsItsOwnTerrain), so the tie-break never fires; it
+        // exists so a data set that broke the assumption would still load deterministically.
         RoomsByTerrain = Rooms.Values
             .GroupBy(r => r.TerrainId)
             .ToDictionary(g => g.Key, g => g.OrderBy(r => r.RoomId).First());
@@ -62,11 +56,9 @@ public sealed class GameDatabase
         WaterTerrain = Terrain.Values.Where(t => t.IsWater).OrderBy(t => t.TerrainId).FirstOrDefault();
         LavaTerrain = Terrain.Values.Where(t => t.IsLava).OrderBy(t => t.TerrainId).FirstOrDefault();
 
-        // The per-level stat table, flattened at construction so a rule that
-        // asks it once a tick does not scan 320 rows to do so. Built here
-        // rather than lazily because a database is immutable once made and
-        // ForLevel() rebuilds one from scratch, so there is nowhere for a stale
-        // copy to hide.
+        // The per-level stat table, flattened at construction so a rule asking it once a tick
+        // does not scan 320 rows. Built eagerly rather than lazily because a database is
+        // immutable and ForLevel() rebuilds one, so there is nowhere for a stale copy to hide.
         _statPercent = new byte[StatCount * (MaxCreatureLevel + 1)];
         Array.Fill(_statPercent, (byte)100);
         foreach (CreatureStatEntry e in Variables.CreatureStats)
@@ -82,10 +74,9 @@ public sealed class GameDatabase
                 (byte)Math.Min(e.Value, 255);
         }
 
-        // A percentage above 255 would be silently clamped by the byte above,
-        // so the wide values get their own map and the byte array stays the
-        // fast path. ExperienceForNextLevel reaches 1000 at level 10, so this
-        // is not hypothetical.
+        // A percentage above 255 would be silently clamped by the byte array, so wide values get
+        // their own map and the byte array stays the fast path. ExperienceForNextLevel reaches
+        // 1000 at level 10, so this is not hypothetical.
         _wideStatPercent = Variables.CreatureStats
             .Where(e => !e.FirstPerson && e.Value > 255
                         && e.Level >= 1 && e.Level <= MaxCreatureLevel)
@@ -96,27 +87,19 @@ public sealed class GameDatabase
     /// <summary>How many stat ids the shipped `CreatureStats` table covers.</summary>
     private const int StatCount = 32;
 
-    /// <summary>
-    /// The highest creature level the shipped table describes.
-    ///
-    /// <para>Ten, because the rows stop there. Not a rule about what a creature
-    /// may reach by play — <c>TrainingRoomMaxExperienceLevel</c> is 4 and
-    /// <c>CombatPitMaxExperienceLevel</c> is 8, so the two rooms cap well below
-    /// it — but a hard ceiling on what the data can scale.</para>
-    /// </summary>
+    /// <summary>The highest creature level the shipped table describes: ten, because the rows stop
+    /// there. Not a rule about what play may reach — <c>TrainingRoomMaxExperienceLevel</c> is 4 and
+    /// <c>CombatPitMaxExperienceLevel</c> is 8, capping well below it — but a hard ceiling on what
+    /// the data can scale.</summary>
     public const int MaxCreatureLevel = 10;
 
     private readonly byte[] _statPercent;
     private readonly Dictionary<(int StatId, int Level), int> _wideStatPercent;
 
-    /// <summary>
-    /// What percentage of its level-1 value this stat has at this level.
-    ///
-    /// <para>100 for level 1, for a stat the table does not scale, and for a
-    /// level outside the table — so a caller never has to special-case any of
-    /// those, and a stat this project has not named still returns something
-    /// harmless rather than zero.</para>
-    /// </summary>
+    /// <summary>What percentage of its level-1 value this stat has at this level. 100 for level 1,
+    /// for a stat the table does not scale, and for a level outside the table, so a caller never
+    /// special-cases any of those and a stat this project has not named returns something harmless
+    /// rather than zero.</summary>
     public int StatPercent(CreatureStatId stat, int level)
     {
         int id = (int)stat;
@@ -132,26 +115,17 @@ public sealed class GameDatabase
     public IReadOnlyDictionary<byte, TerrainDef> Terrain { get; }
     public IReadOnlyDictionary<byte, RoomDef> Rooms { get; }
 
-    /// <summary>
-    /// The room each room-terrain type belongs to.
-    ///
-    /// Rooms own their terrain in the data — the ROOMS record names a terrain id
-    /// and the TERRAIN record flags that type <c>Room</c> — so this is the
-    /// reverse of a link the files already draw, not an invention. It is what
-    /// lets a rule ask "is the tile I am standing on a treasury?" without
-    /// naming terrain id 10.
-    /// </summary>
+    /// <summary>The room each room-terrain type belongs to. Rooms own their terrain in the data —
+    /// the ROOMS record names a terrain id and the TERRAIN record flags that type <c>Room</c> — so
+    /// this reverses a link the files already draw. It lets a rule ask "is the tile I am standing
+    /// on a treasury?" without naming terrain id 10.</summary>
     public IReadOnlyDictionary<byte, RoomDef> RoomsByTerrain { get; }
     public IReadOnlyDictionary<byte, CreatureDef> Creatures { get; }
 
-    /// <summary>
-    /// The 145 objects, by id — beds, chickens, gold piles, tombstones, specials
-    /// and the room furniture.
-    ///
-    /// <para>Empty rather than absent when a data set carries no OBJECTS chunk,
-    /// so every rule that asks for an object has to cope with not finding one:
-    /// the fixture databases in the test suite do exactly that.</para>
-    /// </summary>
+    /// <summary>The 145 objects, by id — beds, chickens, gold piles, tombstones, specials and the
+    /// room furniture. Empty rather than absent when a data set carries no OBJECTS chunk, so every
+    /// rule that asks for an object has to cope with not finding one: the fixture databases in the
+    /// test suite do exactly that.</summary>
     public IReadOnlyDictionary<byte, ObjectDef> Objects { get; }
 
     /// <summary>The eight door definitions, keyed by their data-file id.</summary>
@@ -178,67 +152,43 @@ public sealed class GameDatabase
 
     public GlobalVariables Variables { get; }
 
-    /// <summary>
-    /// The one terrain type flagged <see cref="TerrainFlags.Water"/>, or null if
-    /// this data set has none.
-    ///
-    /// Found by flag rather than by id, for the same reason every gameplay rule
-    /// asks the flags: an id would be a fact about the reference install. The
-    /// shipped table has exactly one water and one lava type, which
-    /// <c>TerrainOnRealDataTests</c> asserts — a set with two would need a rule
-    /// nobody has evidence for, so this deliberately refuses to guess and takes
-    /// the lowest id.
-    /// </summary>
+    /// <summary>The one terrain type flagged <see cref="TerrainFlags.Water"/>, or null if this data
+    /// set has none. Found by flag rather than by id, for the reason every gameplay rule asks the
+    /// flags: an id would be a fact about the reference install. The shipped table has exactly one
+    /// water and one lava type
+    /// (<c>BridgesOnRealDataTests.TheInstallHasExactlyOneWaterAndOneLavaTerrain</c>); a set with
+    /// two would need a rule nobody has evidence for, so this takes the lowest id.</summary>
     public TerrainDef? WaterTerrain { get; }
 
     /// <summary>The one terrain type flagged <see cref="TerrainFlags.Lava"/>. See <see cref="WaterTerrain"/>.</summary>
     public TerrainDef? LavaTerrain { get; }
 
-    /// <summary>
-    /// The keeper spells, by the name the data file gives them.
-    ///
-    /// <para><b>Keyed by name, unusually.</b> Everything else here is keyed by
-    /// the id the record carries; the KEEPERSPELLS record's id field has not
-    /// been identified, and inventing an ordinal from record order would break
-    /// silently if the shipped order ever differed. The names are the file's own
-    /// internal ASCII, not the localised display strings (those live behind a
-    /// string id), so they are as stable as an id would be. See Q55.</para>
-    ///
-    /// <para>Empty on a synthetic database that does not supply spells, which is
-    /// why <see cref="KeeperSpell"/> returns null rather than throwing: a caller
-    /// that genuinely needs one says so with
-    /// <see cref="RequireKeeperSpell"/>.</para>
-    /// </summary>
+    /// <summary>The keeper spells, by the name the data file gives them.
+    /// <para><b>Keyed by name, unusually.</b> Everything else here is keyed by the id the record
+    /// carries; the KEEPERSPELLS record's id field has not been identified, and inventing an
+    /// ordinal from record order would break silently if the shipped order ever differed. The names
+    /// are the file's own internal ASCII, not the localised display strings (those live behind a
+    /// string id), so they are as stable as an id would be. Q55.</para>
+    /// <para>Empty on a synthetic database that supplies no spells, which is why
+    /// <see cref="KeeperSpell"/> returns null rather than throwing: a caller that genuinely needs
+    /// one says so with <see cref="RequireKeeperSpell"/>.</para></summary>
     public IReadOnlyDictionary<string, KeeperSpellDef> KeeperSpells { get; }
 
     /// <summary>Global rule value by id — the simulation's only source of balance numbers.</summary>
     public int this[VariableTypeId id] => Variables[id];
 
-    /// <summary>
-    /// The same definitions with one level's own VARIABLES applied over the
-    /// global table — see <see cref="GlobalVariables.MergedWith"/> for what
-    /// "applied" means and why it is not a union.
-    ///
-    /// <para>A new instance rather than a mutation, because a
-    /// <see cref="GameDatabase"/> is immutable and a running simulation holds
-    /// one: a level's numbers must not leak into another level's run. The
-    /// definitions themselves are shared, so this costs a few dictionary
-    /// rebuilds over about 130 records and nothing else.</para>
-    ///
-    /// <para>Returns <c>this</c> when the level carries no variables of its own,
-    /// so a caller can hand it whatever the loader found without checking.</para>
-    /// </summary>
-    /// <remarks>
-    /// <b>Every record collection has to be passed through here.</b> This
-    /// rebuilds the database from parts, so a record that is added to the
-    /// constructor and forgotten in this call is silently absent from every
-    /// campaign level while staying present everywhere else — which is what
-    /// happened to <see cref="Objects"/> between the day it was parsed and
-    /// 2026-09-04, and the scenario harness is what caught it: a goblin
-    /// claiming a bed threw for want of object 22 on a campaign map and nowhere
-    /// else. <c>ForLevelKeepsEveryRecordCollection</c> exists so the next
-    /// record cannot repeat it.
-    /// </remarks>
+    /// <summary>The same definitions with one level's own VARIABLES applied over the global table —
+    /// see <see cref="GlobalVariables.MergedWith"/> for what "applied" means and why it is not a
+    /// union. A new instance rather than a mutation, because a <see cref="GameDatabase"/> is
+    /// immutable and a running simulation holds one: a level's numbers must not leak into another
+    /// level's run. The definitions themselves are shared, so this costs a few dictionary rebuilds
+    /// over about 130 records. Returns <c>this</c> when the level carries no variables of its own,
+    /// so a caller can pass whatever the loader found without checking.</summary>
+    /// <remarks><b>Every record collection has to be passed through here.</b> This rebuilds the
+    /// database from parts, so a collection added to the constructor and forgotten here is silently
+    /// absent from every campaign level while present everywhere else — which happened to
+    /// <see cref="Objects"/>. <c>ObjectsOnRealDataTests.ForLevelKeepsEveryRecordCollection</c>
+    /// exists so the next record cannot repeat it.</remarks>
     public GameDatabase ForLevel(GlobalVariables? levelVariables) =>
         levelVariables is null
             ? this
@@ -278,15 +228,10 @@ public sealed class GameDatabase
     public KeeperSpellDef? KeeperSpell(string name) =>
         KeeperSpells.TryGetValue(name, out KeeperSpellDef? s) ? s : null;
 
-    /// <summary>
-    /// The named keeper spell, or a throw naming what is missing.
-    ///
-    /// Deliberately loud, and for the reason recorded in docs/HANDOFF.md: a rule
-    /// that starts reading a new piece of the database breaks every synthetic
-    /// database that does not supply it, and it should break at the seam with a
-    /// name in the message rather than quietly behaving differently in tests
-    /// than it does on the real data.
-    /// </summary>
+    /// <summary>The named keeper spell, or a throw naming what is missing. Deliberately loud
+    /// (docs/HANDOFF.md): a rule that starts reading a new piece of the database breaks every
+    /// synthetic database that does not supply it, and it should break at the seam with a name in
+    /// the message rather than behaving differently in tests than on the real data.</summary>
     public KeeperSpellDef RequireKeeperSpell(string name) =>
         KeeperSpell(name) ?? throw new KeyNotFoundException(
             $"No KEEPERSPELLS definition named '{name}'. This database carries " +
