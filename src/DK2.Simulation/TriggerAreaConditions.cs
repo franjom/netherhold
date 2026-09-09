@@ -39,6 +39,11 @@ public static class TriggerAreaConditions
         IReadOnlyDictionary<string, long> p = record.Parameters;
         return record.Type switch
         {
+            39 => Result(TriggerState.Compare(
+                Byte(p, "Comparison"),
+                Things(area, world, Byte(p, "ThingType"), Byte(p, "PlayerId"), Byte(p, "TypeId")),
+                Int(p, "Value"))),
+
             40 or 42 => Result(TriggerState.Compare(
                 Byte(p, "Comparison"),
                 Matching(area, world, database, Byte(p, "PlayerId"), Byte(p, "TerrainId")),
@@ -101,6 +106,39 @@ public static class TriggerAreaConditions
         }
 
         return count;
+    }
+
+    /// <summary>Things standing in the rectangle, filtered by owner and type — DK2's
+    /// <c>FUN_004B0620</c> with the predicate <c>FUN_004B0A80</c>, behind type 39. The
+    /// largest condition block in the corpus at 183 records.</summary>
+    /// <remarks>
+    /// <para>Rule: <paramref name="thingType"/> <b>6 counts objects and anything else
+    /// counts creatures</b>, and the predicate then reads the creature's or the object's
+    /// own type id. Zero means "any" on both other axes. DK2 walks each tile's thing list,
+    /// so a held object is not there to count.</para>
+    /// <para>The player is matched against <c>Number</c> (<c>+0x10FC</c>), not the
+    /// <c>TagId</c> that pairs a player with its root; ours has one id for both
+    /// (Q271).</para>
+    /// </remarks>
+    private static int Things(
+        ActionPointState area, WorldState world, byte thingType, byte player, byte typeId)
+    {
+        const byte ObjectThingType = 6;
+        int count = 0;
+        foreach (TilePos pos in Tiles(area, world))
+        {
+            int index = (pos.Y * world.Width) + pos.X;
+            count += thingType == ObjectThingType
+                ? world.Objects.Count(o =>
+                    !o.InHand && o.TileIndex == index && Matches(o.OwnerPlayerId, o.ObjectTypeId))
+                : world.Creatures.Count(c =>
+                    c.Tile == pos && Matches(c.OwnerPlayerId, c.CreatureTypeId));
+        }
+
+        return count;
+
+        bool Matches(byte owner, byte type) =>
+            (player == 0 || owner == player) && (typeId == 0 || type == typeId);
     }
 
     /// <summary>Tiles in the rectangle carrying one player's excavation task — DK2's

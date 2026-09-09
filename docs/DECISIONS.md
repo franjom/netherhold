@@ -1928,3 +1928,20 @@ player's twelve score counters are its first twelve fields, and type 31's is
 - **The largest single movement the oracle has recorded.** Campaign-wide `stalls` **599 → 417**, `moved` **55 → 62**, `after1` **10 → 11**. Level 1's blocked census drops type 19 and gains nothing.
 - No hashed state, so no `HashVersion` bump: the count is derived from creatures already hashed.
 - Unverified: whether DK2 drops a creature from the owned list while a hand holds it (Q268). Ours does.
+
+## ADR-0115 — Type 39 counts things in a rectangle, and two of its three selectors were misnamed
+**Date:** 2026-09-09 · **Status:** accepted · Q271 opened · Research: `docs/research/trigger-semantics.md`
+
+**Context.** Condition type 39 is the largest block in the corpus at **183 records**, and it was the top blocked type on every level sampled. Its arm is `0x004B0D9A` on the area dispatcher, which unpacks four selector bytes and delegates to `FUN_004B0620`; the predicate is `FUN_004B0A80`.
+
+**Decision.** Type 39 counts the things standing in the action point's rectangle, filtered by owner and type, and compares the count. Built in `TriggerAreaConditions` beside the five tile counters that share the dispatcher.
+- **Byte 03 is not a player id.** The arm reads it only to pick a category — `6` selects objects, every other value selects creatures — then overwrites the register. Of 183 records, 110 hold 0 and 70 hold 3, and **those two behave identically**; only the 3 records holding 6 differ. Renamed `ThingType`.
+- **Byte 01 is the player**, matched in the predicate against a player field. Renamed `PlayerId`, which also puts the player at byte 01 like every other area condition. Its shipped values are the ordinary player ids — 3 (111), 1 (53), 0 (16), then 2, 4, 5 — where the old name `TargetId` explained none of that.
+- **Byte 02 is the thing's own type id**, read as the creature's `+0x36F` or the object's `+0x12C` according to the category. Renamed `TypeId`. Zero means "any" on both it and the player, and both zero passes everything.
+- A held object is not counted: DK2 walks each tile's thing list and a thing in a hand is not on one.
+
+**Consequences.**
+- Campaign-wide `stalls` **417 → 279**. `moved` and `after1` do not change, and the level-1 event set against played run 5 stays 2 / 46 / 2 — the frontier moves, the reachable script does not.
+- No hashed state, so no `HashVersion` bump.
+- **Type 70 keeps the old labels.** It has its own arm at `0x004B0DD7`, unread, so renaming its identical-looking bytes would be a guess.
+- Unresolved: the predicate matches the player's `Number` (`+0x10FC`), not the `TagId` (`+0x04`) that pairs a player with its trigger root. Ours has one id for both (Q271).

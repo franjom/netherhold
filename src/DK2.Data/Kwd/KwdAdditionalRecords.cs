@@ -262,7 +262,11 @@ public static class KwdTriggers
         else if (type == 29) { B("Unreached_0000", 0); B("TargetId", 1); W("Unreached_0002", 2); S("Unreached_0004", 4); }
         else if (type is 30 or 31 or 32 or 34 or 36 or 37 or 49 or 67 or 71 or 73) { B("Comparison", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); S("Value", 4); }
         else if (type == 35) { B("Comparison", 0); B("CreatureId", 1); W("Unreached_0002", 2); S("Value", 4); }
-        else if (type == 39) { B("Comparison", 0); B("TargetId", 1); B("TargetType", 2); B("PlayerId", 3); S("Value", 4); }
+        // Corrected 2026-09-09: byte 01 is the player, 02 the thing's own type id and 03
+        // the thing category, which puts the player at byte 01 like every other area
+        // condition. The old labels had 01 and 03 swapped and called 03 a player id
+        // (ADR-0115, docs/research/trigger-semantics.md).
+        else if (type == 39) { B("Comparison", 0); B("PlayerId", 1); B("TypeId", 2); B("ThingType", 3); S("Value", 4); }
         else if (type == 40) { B("Comparison", 0); B("PlayerId", 1); B("TerrainId", 2); B("Unreached_0003", 3); S("Value", 4); }
         else if (type == 41) { B("Unreached_0000", 0); B("PlayerId", 1); B("TerrainId", 2); B("Unreached_0003", 3); S("Unreached_0004", 4); }
         else if (type == 42) { B("Comparison", 0); B("PlayerId", 1); B("TerrainId", 2); B("Unreached_0003", 3); S("Value", 4); }

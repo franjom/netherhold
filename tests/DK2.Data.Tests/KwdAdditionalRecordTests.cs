@@ -73,9 +73,9 @@ public class KwdAdditionalRecordTests
     public void TriggerParameterViews_MatchBinaryReadWidthsAndOffsets()
     {
         TriggerRecord generic39 = Trigger(213, 39, [1, 2, 3, 4, 0xfc, 0xff, 0xff, 0xff]);
-        Assert.Equal(2, generic39.Parameters["TargetId"]);
-        Assert.Equal(3, generic39.Parameters["TargetType"]);
-        Assert.Equal(4, generic39.Parameters["PlayerId"]);
+        Assert.Equal(2, generic39.Parameters["PlayerId"]);
+        Assert.Equal(3, generic39.Parameters["TypeId"]);
+        Assert.Equal(4, generic39.Parameters["ThingType"]);
         Assert.Equal(-4, generic39.Parameters["Value"]);
 
         TriggerRecord generic47 = Trigger(213, 47, [7, 1, 2, 3, 4, 5, 6, 7]);

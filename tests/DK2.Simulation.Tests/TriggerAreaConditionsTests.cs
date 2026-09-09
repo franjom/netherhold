@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
 
@@ -151,18 +152,108 @@ public class TriggerAreaConditionsTests
         Assert.Equal(expected, state.Read(Marker));
     }
 
+    /// <summary>Type 39 counts creatures standing in the rectangle. Zero means "any" on
+    /// the player and on the type, so all four combinations are one arm
+    /// (<c>FUN_004B0A80</c>).</summary>
     [Theory]
-    [InlineData((byte)39)]
-    [InlineData((byte)70)]
-    public void TheTwoAreaTypesThatCountThingsAreDeclinedRatherThanTakenAsFalse(byte type)
+    [InlineData(0, 0, 4)]    // any owner, any type
+    [InlineData(1, 0, 3)]    // player 1's three
+    [InlineData(0, GoblinId, 3)]
+    [InlineData(1, GoblinId, 2)]
+    [InlineData(2, GoblinId, 1)]
+    [InlineData(2, ImpId, 0)]      // player 2's only imp stands outside the rectangle
+    public void Type39CountsCreaturesInTheRectangleByOwnerAndType(
+        int player, int creatureId, int expected)
+    {
+        TriggerState state = RunThings(
+            thingType: 0, player, creatureId, expected,
+            world =>
+            {
+                GameDatabase db = Dk2TerrainFixture.Database();
+                world.SpawnCreature(db, GoblinId, 1, new TilePos(5, 5));
+                world.SpawnCreature(db, GoblinId, 1, new TilePos(6, 6));
+                world.SpawnCreature(db, ImpId, 1, new TilePos(5, 6));
+                world.SpawnCreature(db, GoblinId, 2, new TilePos(6, 5));
+                world.SpawnCreature(db, ImpId, 2, new TilePos(9, 9));   // outside
+            });
+
+        Assert.Equal(1, state.Read(Marker));
+    }
+
+    /// <summary>Thing type <b>6 counts objects instead</b>: the arm maps that one value to
+    /// the object category and every other value to creatures (<c>0x004B0DB5</c>). Only 3
+    /// of the 183 shipped records ask for objects.</summary>
+    [Fact]
+    public void Type39WithThingType6CountsObjectsAndNotCreatures()
+    {
+        TriggerState state = RunThings(
+            thingType: 6, player: 0, typeId: 0, expected: 1,
+            world =>
+            {
+                GameDatabase db = Dk2TerrainFixture.Database();
+                world.SpawnCreature(db, GoblinId, 1, new TilePos(5, 5));
+                world.SpawnObject(db, Dk2TerrainFixture.GoblinBedObjectId, 1, (5 * 16) + 5);
+            });
+
+        Assert.Equal(1, state.Read(Marker));
+    }
+
+    /// <summary>An object in a keeper's hand is out of the dungeon, and DK2 walks each
+    /// tile's own thing list, so it is not there to be counted — even though our
+    /// <c>TileIndex</c> still remembers where it was lifted from.</summary>
+    [Fact]
+    public void Type39DoesNotCountAnObjectHeldInAHand()
+    {
+        TriggerState state = RunThings(
+            thingType: 6, player: 0, typeId: 0, expected: 0,
+            world =>
+            {
+                GameDatabase db = Dk2TerrainFixture.Database();
+                ObjectState bed = world.SpawnObject(
+                    db, Dk2TerrainFixture.GoblinBedObjectId, 1, (5 * 16) + 5);
+                bed.InHand = true;
+            });
+
+        Assert.Equal(1, state.Read(Marker));
+    }
+
+    private const byte ImpId = Dk2TerrainFixture.ImpCreatureId;
+    private const byte GoblinId = 7;
+
+    /// <summary>One type-39 record over the rectangle (5,5)-(6,6) of the DK2 terrain
+    /// fixture, asserting the count equals <paramref name="expected"/>.</summary>
+    private static TriggerState RunThings(
+        byte thingType, int player, int typeId, int expected, Action<WorldState> arrange)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        var state = new TriggerState();
+        ExecuteOn(
+            WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, (byte)2]),
+            database,
+            Point(4, root: 1, 5, 5, 6, 6),
+            Area(1, 39, new()
+            {
+                ["Comparison"] = 3, ["PlayerId"] = player,
+                ["TypeId"] = typeId, ["ThingType"] = thingType, ["Value"] = expected,
+            }),
+            arrange,
+            state);
+        return state;
+    }
+
+    /// <summary>Type 70 keeps its own arm at <c>0x004B0DD7</c>, which this has not read, so
+    /// it stays declined — and its three selector bytes keep the labels type 39's turned out
+    /// not to deserve (ADR-0115). Type 39 left this test when it was built.</summary>
+    [Fact]
+    public void TypeSeventyIsDeclinedRatherThanTakenAsFalse()
     {
         TriggerRunResult result = Execute(
             Point(4, root: 1, 5, 5, 6, 6),
-            Area(1, type, new() { ["TargetId"] = 1, ["TargetType"] = 1, ["PlayerId"] = 1 }),
+            Area(1, 70, new() { ["TargetId"] = 1, ["TargetType"] = 1, ["PlayerId"] = 1 }),
             arrange: null,
             new TriggerState());
 
-        Assert.Contains(result.Blocked, b => b.Tag == 213 && b.Type == type);
+        Assert.Contains(result.Blocked, b => b.Tag == 213 && b.Type == 70);
     }
 
     /// <summary>A type the area dispatcher does not own reaches the world evaluator with
@@ -245,7 +336,19 @@ public class TriggerAreaConditionsTests
         ActionPointThing point, TriggerRecord root, Action<WorldState>? arrange, TriggerState state)
     {
         GameDatabase database = TestWorld.Database();
-        WorldState world = TestWorld.World(database);
+        return ExecuteOn(TestWorld.World(database), database, point, root, arrange, state);
+    }
+
+    /// <summary>The same walk against a caller's world, for the types that count things
+    /// rather than tiles and so need a database with creatures and objects in it.</summary>
+    private static TriggerRunResult ExecuteOn(
+        WorldState world,
+        GameDatabase database,
+        ActionPointThing point,
+        TriggerRecord root,
+        Action<WorldState>? arrange,
+        TriggerState state)
+    {
         ThingProjection.Place(world, database, [point]);
         arrange?.Invoke(world);
 

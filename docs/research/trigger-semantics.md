@@ -289,7 +289,7 @@ are grouped; the count beside each type is its shipped record count.
 | 27 (3), 28 (7) | `Comparison:u8@00` **B**, `TargetId:u8@01` **T**, `Flag:u8@02` **T**, `Value:s32@04` **B**; `03` **N** |
 | 29 (80) | `TargetId:u8@01` **T**; all other body bytes **N** |
 | 30 (11), 31 (9), 32 (1), 34 (325), 36 (40), 71 (2), 73 (1) | `Comparison:u8@00` **B**, `Value:s32@04` **B**; `01..03` **N** |
-| 39 (183) | `Comparison:u8@00` **B**, `TargetId:u8@01` **C**, `TargetType:u8@02` **C**, `PlayerId:u8@03` **C**, `Value:s32@04` **B** |
+| 39 (183) | `Comparison:u8@00` **B**, `PlayerId:u8@01` **B**, `TypeId:u8@02` **B**, `ThingType:u8@03` **B**, `Value:s32@04` **B** — *corrected 2026-09-09 (ADR-0115): bytes 01 and 03 were swapped and 03 was called a player id. The arm `0x004B0D9A` reads 03 only as `(b == 6) ? objects : creatures`, so its shipped values 0 and 3 are indistinguishable; byte 01 is the player the predicate `FUN_004B0A80` matches, and byte 02 the creature's `+0x36F` or the object's `+0x12C`.* |
 | 40 (92), 42 (89) | `Comparison:u8@00` **B**, `PlayerId:u8@01` **B**, `TerrainId:u8@02` **B**, `Value:s32@04` **B**; `03` **N** |
 | 41 (69) | `PlayerId:u8@01` **B**, `TerrainId:u8@02` **B**; `00,03..07` **N** |
 | 44 (13), 64 (37) | `Comparison:u8@00` **B**, `PlayerId:u8@01` **C**, `Value:s32@04` **B**; `02..03` **N** |
@@ -354,13 +354,13 @@ were evidence. Direct binary reads showed these claims false:
 
 - all generic comparison values were exposed as unsigned; DK2 compares them as
   signed 32-bit integers;
-- generic type 39's three selector bytes were shifted/misnamed: the binary uses
-  target id at `01`, target type at `02`, and player id at `03`;
+- generic type 39's three selector bytes were shifted/misnamed — and the 2026-09-08
+  relabelling of them was wrong too; see the table (ADR-0115);
 - generic type 47's byte `00` is a creature id, not a player id, and its old
   `Value` is never read;
 - generic type 52's byte `03` is a level, not a player id;
-- generic type 70 had the same shifted selector labels as type 39, but reads no
-  comparison or value at all;
+- generic type 70 inherited type 39's shifted labels and keeps them: its own arm
+  `0x004B0DD7` is unread, and it reads no comparison or value at all;
 - action type 4 reads a 16-bit objective id, not a 32-bit one;
 - action type 8 reads only its timer id; the old `Value` is untouched;
 - action type 16 reads a signed 16-bit value at `04`, not a 32-bit value;
