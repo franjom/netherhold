@@ -186,6 +186,12 @@ public sealed class TriggerState
     /// <c>==</c>, <c>&gt;</c>, <c>&gt;=</c> and <c>!=</c>. Signedness is load-bearing —
     /// unsigned operands invert every comparison against a negative threshold
     /// (ADR-0092).</summary>
+    /// <remarks><b>4 and 5 are the way round they look wrong.</b> The six arms sit in
+    /// memory as <c>&lt; &lt;= == &gt;= &gt; !=</c>, so reading them in address order
+    /// swaps <c>&gt;</c> and <c>&gt;=</c>; the jump table at <c>0x00519A04</c> is not in
+    /// address order and sends 4 to <c>SETG</c> (<c>0x005199D9</c>) and 5 to <c>SETGE</c>
+    /// (<c>0x005199C7</c>). Verified against the table 2026-09-09 while chasing a one-tick
+    /// timer discrepancy that this would have explained — it was not this.</remarks>
     public static bool Compare(byte comparison, int left, int right) => comparison switch
     {
         1 => left < right,

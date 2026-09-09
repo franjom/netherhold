@@ -139,8 +139,28 @@ action — the first thing level 1 does — at tick 7, and we run it on turn 1. 
 was started after the level, and both were already set. Their true turns are ≤ 11
 and the timer's stored 7 is the real answer for `t15`.
 
-**Q272** carries what is left: whether DK2 spends six ticks before its first
-trigger evaluation, or our first turn is mis-numbered.
+**Followed up the same day, and the six is not a rule.** Timer 15's stamp across
+all six captures of this level is **4, 6, 7, 8, 10 and 11** — the origin varies
+with the load, so there is no startup delay to reproduce and our turn 1 is not
+mis-numbered (Q272). What a comparison must do instead is **align on the first
+evaluation**, which a timer's stored stamp gives exactly.
+
+Aligned that way the residual is **+1 tick**, on both flags, 568 apart. It is not
+the arithmetic — DK2's timer arm computes `now` against `stamp + threshold` with
+`SETGE` (`0x00518537`), which is ours — and it is not the comparison codes, whose
+table was re-read to check (see below). The open possibility is the probe: a
+flag's tick is *sampled* while a stamp is *stored*, and the probe reads the banks
+at an arbitrary point within a tick. Q273.
+
+### A trap worth naming: the comparison arms are not in table order
+
+Chasing the +1 turned up an explanation that would have fitted perfectly —
+comparison code 5 being `>` rather than `>=` would put us exactly one tick early.
+The six arms do sit in memory as `< <= == >= > !=`, so reading them in address
+order swaps `>` and `>=`. **The jump table at `0x00519A04` is not in address
+order**: 4 goes to `SETG` and 5 to `SETGE`, which is what we already had. Reading
+the table rather than the layout is the only reason a correct mapping was not
+"corrected" into a wrong one.
 
 ### Protocol notes
 
