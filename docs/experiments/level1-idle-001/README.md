@@ -35,34 +35,33 @@ that reading is right, **a DK2 run with no player must set both**.
 3. **Do nothing for five minutes.** No tagging, no digging, no picking up, no
    dropping, no slapping, no spells, no building, no possession. Moving the
    camera and zooming are fine: they are not game actions.
-4. **Dismiss every prompt as soon as it appears.** Level 1 is the tutorial and
-   talks constantly (owner, 2026-09-09), so "note each one" is not a protocol —
-   holding the *screen* in a known state is. Closing a box is not a dungeon
-   action; it tags, digs and builds nothing.
-5. Afterwards, say roughly **how many** prompts there were and whether **any
-   stayed up more than a few seconds** — that is all the detail this needs.
-6. Copy the CSV to `reverse-engineering/dk2runs/dk2run6.csv` (gitignored).
+4. Note anything that visibly happens **in the dungeon** — a creature arriving,
+   a room appearing. The Mentor narrating is expected and needs no note; level 1
+   is thick with speech actions and they move no flag we read.
+5. Copy the CSV to `reverse-engineering/dk2runs/dk2run6.csv` (gitignored).
 
 Five minutes is ~1180 turns at the measured 3.94/s, which matches the 1200-turn
 headless runs, so the two windows are comparable without trimming.
 
-### The thing that could spoil it, and why this level is the worst case
+### Why idling makes this level's worst feature harmless
 
-**A modal box is not nothing, and level 1 is full of them.** Condition type 72
-tests four fields strongly inferred to be modal interface states (Q242); we
-answer it *true* because a headless run has none. **Level 1 ships 49 type-72
-records** — more than a third of the corpus's 137 — so while a box is up, DK2
-is answering a large part of this level's script the other way from us.
+Level 1 ships **49 type-72 records**, over a third of the corpus's 137, and type
+72 tests four fields strongly inferred to be modal interface states (Q242). We
+answer it *true* because a headless run has no interface. A modal up during a
+capture would therefore have DK2 answering a third of this level's script the
+other way from us — which is what makes the two **played** runs hard to read,
+and it was almost the reason to prefer a different level here.
 
-That is a real difference rather than a defect, but it is indistinguishable
-from one after the fact, which is why step 4 controls it instead of logging it:
-keep no box up and DK2 spends the run in the same state we assume.
+**It does not apply, because a modal cannot appear on its own.** CONFIRMED
+(owner, 2026-09-09): one only opens when the player clicks an element. Click
+nothing and DK2 spends the whole run in the state we assume, so the assumption
+is not merely uncontrolled-but-hoped-for — it is *exactly matched*.
 
-It also means **a failure of prediction 1 or 2 is not conclusive here.** If DK2
-idle does not set `f1` or `f34`, the tutorial having been mid-prompt at the
-moment those chains were walked is as good an explanation as a defect. A
-confirmation is worth more than a refutation on this level, and that asymmetry
-is the argument for a second, quieter level (see below).
+What the tutorial does do unprompted is talk. Level 1 is full of speech actions,
+and they set no flag or timer the probe samples, so narration is noise in the
+room and not in the data. Distinguishing "the level does things by itself" from
+"the level opens modals by itself" is what turns this level from the worst
+candidate into a clean one.
 
 ## Predictions, recorded before the run
 
@@ -74,9 +73,10 @@ is the argument for a second, quieter level (see below).
 | 4 | DK2 sets **little else** — level 1's chain is gated at trigger 15 on flag 2, which only digging sets | that the tutorial is player-advanced, which is why no condition work closes it |
 | 5 | The turns agree with our headless run **within a few ticks**, not the ±156–285 of run 4 vs run 5 | that per-turn comparison is usable once input variance is gone |
 
-**Predictions 1 and 2 are the ones that can embarrass us.** If DK2 idle does
-*not* set `f1` and `f34`, then the chain reading in `docs/EXPERIMENTS.md` is
-wrong and we have a real defect to find.
+**Predictions 1 and 2 are the ones that can embarrass us, and they are
+conclusive either way.** With no modal possible, the type-72 escape hatch is
+shut: if DK2 idle does *not* set `f1` and `f34`, the chain reading in
+`docs/EXPERIMENTS.md` is wrong and there is a real defect to find.
 
 Prediction 5 is the one that decides M5's direction. If turns agree, the
 comparer can be sharpened to per-turn and level 1 becomes a usable regression
@@ -93,18 +93,17 @@ dotnet run --project src/DK2.Tools -c Release -- trigger-diff ours.csv reverse-e
 Compare by **event set first** — which ids ever move — and only then by turn,
 because reading turns is the thing this run is testing rather than assuming.
 
-## A quieter level would carry prediction 5 better
+## A second level is worth having, but is no longer needed here
 
-Prediction 5 — that turns line up once input variance is gone — is the one that
-decides M5's direction, and it is the one most damaged by tutorial noise. It
-does not need level 1: it needs any level whose script moves something past turn
-1 while nobody plays. `dk2tools kwd oracle` ranks those, and **Level20** is the
-best of them by `after1`, with a frontier of one unanswered record.
+The earlier draft wanted a quieter level because tutorial modals looked likely
+to spoil prediction 5. They cannot, so level 1 idle carries all five predictions
+on its own — four events with turns attached is thin but enough to tell a
+few-tick agreement from a ±156–285 disagreement.
 
-**Blocked on one fact only:** which levels can actually be loaded here — whether
-the campaign needs progressing to reach level 20, or a save or level select can
-get there directly. That is a question about this install, not about DK2, so it
-is asked rather than assumed.
+A second level is still worth capturing once for breadth, and `dk2tools kwd
+oracle` ranks the candidates with **Level20** at the top. That waits on one fact
+about this install rather than about DK2: whether a mid-campaign level can be
+loaded directly, or the campaign has to be progressed to reach it.
 
 ## Results
 
