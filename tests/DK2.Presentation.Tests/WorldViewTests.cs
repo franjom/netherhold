@@ -34,6 +34,20 @@ public class WorldViewTests
         return (database, WorldState.FromMap(database, map, [0, 1]));
     }
 
+    [InstallFact]
+    public void ACreatureInTheHandIsNotDrawnInTheDungeon()
+    {
+        if (RealLevel() is not var (database, world)) return;
+
+        CreatureDef imp = database.CreatureByName("Imp")
+            ?? throw new InvalidOperationException("the shipped database has no Imp.");
+        CreatureState held = world.SpawnCreature(
+            database, imp.CreatureId, 1, FirstWalkableTile(database, world));
+        held.InHand = true;
+
+        Assert.DoesNotContain(new WorldView(database).Creatures(world), c => c.Id == held.Id);
+    }
+
     // ---- Mapping, against the whole shipped terrain table ----
 
     /// <summary>

@@ -231,8 +231,10 @@ netstandard2.1 DLLs from `Assets/Plugins/DK2` (synced by
 `DungeonRunner` ticks a `GameSimulation` and calls `ScenePresenter.Present`, and
 `DungeonScene` implements `IRenderTarget` in GameObjects. Deleting every
 GameObject would change nothing, because the simulation references none of it. It
-renders campaign level 1 as coloured boxes rather than DK2's walls (Q71), takes
-no input — nothing builds an `InputFrame` — and controls no camera.
+renders campaign level 1 as coloured boxes rather than DK2's walls (Q71).
+`DungeonRunner` projects mouse rays to tiles, moves the camera and passes button
+edges to `PlayerInputTranslator`; gesture-to-command behaviour remains in the
+Unity-free presentation assembly (ADR-0104).
 
 `unity/DK2.Unity.Compile` compiles the adapter against Unity's real module
 assemblies, which is the only way "do not commit code you have not built" reaches

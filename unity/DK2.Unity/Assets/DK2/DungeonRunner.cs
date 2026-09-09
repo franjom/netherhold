@@ -3,8 +3,10 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using DK2.Assets;
+using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Data.Save;
@@ -48,7 +50,12 @@ namespace DK2.Unity
         [SerializeField] private ulong seed = 1;
         [SerializeField] private bool fogOfWar;
         [Range(0, TileState.MaxTaggingPlayerId)]
-        [SerializeField] private int viewingPlayerId = 1;
+        [SerializeField] private int viewingPlayerId = PlayerIds.FirstKeeper;
+
+        [Header("Input")]
+        [SerializeField] private PlayerToolMode tool = PlayerToolMode.TagTiles;
+        [Range(1, byte.MaxValue)]
+        [SerializeField] private int selectedRoomId = (int)RoomTypeId.Treasury;
 
         [Header("Running")]
         [Tooltip("Multiplies the simulation's own tick rate. 0 pauses; 1 is the placeholder rate (Q1).")]
@@ -59,11 +66,17 @@ namespace DK2.Unity
         [Tooltip("Degrees below horizontal. 90 is straight down; 55 gives enough tilt to read wall heights.")]
         [Range(20f, 90f)]
         [SerializeField] private float cameraPitch = 55f;
+        [SerializeField] private float cameraPanSpeed = 12f;
+        [SerializeField] private float cameraZoomSpeed = 25f;
 
         private GameSimulation _simulation;
         private ScenePresenter _presenter;
+        private WorldView _worldView;
         private DungeonScene _scene;
         private AssetProviderChain _assets;
+        private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
+        private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
+        private byte[] _roomIds = Array.Empty<byte>();
         private double _tickDebt;
         private string _failure;
         private string _loadedFrom;
@@ -98,9 +111,12 @@ namespace DK2.Unity
                     "no Dungeon Keeper 2 installation found. Set the Install Directory field, " +
                     "or the DK2_DIR environment variable.");
 
-            GameDatabase database = GameDatabaseLoader.Load(install);
+            bool campaignLevel = string.IsNullOrWhiteSpace(saveFile);
+            GameDatabase database = campaignLevel
+                ? GameDatabaseLoader.LoadForCampaignLevel(install, levelName)
+                : GameDatabaseLoader.Load(install);
 
-            LevelMap map = string.IsNullOrWhiteSpace(saveFile)
+            LevelMap map = campaignLevel
                 ? GameDatabaseLoader.LoadCampaignMap(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' map.")
                 : LoadSave(install);
@@ -108,7 +124,16 @@ namespace DK2.Unity
             WorldState world = WorldState.FromMap(
                 database, map, PlayersOf(map), fogOfWarEnabled: fogOfWar);
 
+            if (campaignLevel)
+            {
+                var things = GameDatabaseLoader.LoadCampaignThings(install, levelName);
+                if (things != null) ThingProjection.Place(world, database, things);
+            }
+
             _simulation = new GameSimulation(database, world, seed, SimulationSystems.Default());
+            _roomIds = new List<byte>(database.Rooms.Keys).ToArray();
+            Array.Sort(_roomIds);
+            SelectKnownRoom();
 
             // The chain the plan specifies (§7.2). Both roots are relative to
             // the project directory and both normally missing, which is the
@@ -118,8 +143,9 @@ namespace DK2.Unity
                 convertedRoot: "build/converted");
 
             _scene = new DungeonScene(transform, world.Width);
+            _worldView = new WorldView(database, (byte)viewingPlayerId);
             _presenter = new ScenePresenter(
-                new WorldView(database, (byte)viewingPlayerId), _assets, _scene);
+                _worldView, _assets, _scene);
 
             _presenter.Present(world);
             LookAt(world);
@@ -128,6 +154,10 @@ namespace DK2.Unity
         private void Update()
         {
             if (_simulation == null) return;
+
+            ControlCamera();
+            ReadToolKeys();
+            QueueInput();
 
             if (speed > 0f)
             {
@@ -139,10 +169,100 @@ namespace DK2.Unity
                 _tickDebt -= ticks;
 
                 for (int i = 0; i < ticks; i++)
-                    _simulation.Tick();
+                {
+                    InputFrame input = i == 0 && _pendingCommands.Count > 0
+                        ? new InputFrame(_pendingCommands.ToArray())
+                        : InputFrame.Empty;
+                    _simulation.Tick(input);
+                    if (i == 0) _pendingCommands.Clear();
+                }
             }
 
             _presenter.Present(_simulation.World);
+        }
+
+        private void QueueInput()
+        {
+            PointerButtonTransition button = PointerButtonTransition.None;
+            if (Input.GetMouseButtonDown(0)) button |= PointerButtonTransition.Pressed;
+            if (Input.GetMouseButtonUp(0)) button |= PointerButtonTransition.Released;
+
+            if (button == PointerButtonTransition.None) return;
+
+            TilePos? tile = ScreenToTile(Input.mousePosition);
+            var intent = new PlayerIntent(
+                (byte)viewingPlayerId, tool, tile, button, (byte)selectedRoomId);
+            PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
+                _worldView, _simulation.World, (byte)viewingPlayerId);
+            InputFrame frame = _input.Translate(intent, snapshot);
+
+            foreach (PlayerCommand command in frame.All)
+                _pendingCommands.Add(command);
+        }
+
+        private TilePos? ScreenToTile(Vector3 screenPosition)
+        {
+            Camera camera = Camera.main;
+            if (camera == null) return null;
+
+            Ray ray = camera.ScreenPointToRay(screenPosition);
+            var ground = new Plane(Vector3.up, Vector3.zero);
+            if (!ground.Raycast(ray, out float distance)) return null;
+
+            Vector3 hit = ray.GetPoint(distance);
+            int x = Mathf.FloorToInt(hit.x);
+            int y = Mathf.FloorToInt(hit.z);
+            return _simulation.World.Contains(x, y) ? new TilePos(x, y) : (TilePos?)null;
+        }
+
+        private void ReadToolKeys()
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1)) tool = PlayerToolMode.TagTiles;
+            if (Input.GetKeyDown(KeyCode.Alpha2)) tool = PlayerToolMode.UntagTiles;
+            if (Input.GetKeyDown(KeyCode.Alpha3)) tool = PlayerToolMode.BuildRoom;
+            if (Input.GetKeyDown(KeyCode.Alpha4)) tool = PlayerToolMode.SellRoom;
+            if (Input.GetKeyDown(KeyCode.Alpha5)) tool = PlayerToolMode.Hand;
+            if (Input.GetKeyDown(KeyCode.Alpha6)) tool = PlayerToolMode.Slap;
+            if (Input.GetKeyDown(KeyCode.Alpha7)) tool = PlayerToolMode.CreateImp;
+
+            if (Input.GetKeyDown(KeyCode.LeftBracket)) SelectAdjacentRoom(-1);
+            if (Input.GetKeyDown(KeyCode.RightBracket)) SelectAdjacentRoom(1);
+        }
+
+        private void SelectKnownRoom()
+        {
+            if (_roomIds.Length == 0) return;
+            if (Array.IndexOf(_roomIds, (byte)selectedRoomId) >= 0) return;
+            selectedRoomId = _roomIds[0];
+        }
+
+        private void SelectAdjacentRoom(int direction)
+        {
+            if (_roomIds.Length == 0) return;
+
+            int index = Array.IndexOf(_roomIds, (byte)selectedRoomId);
+            if (index < 0) index = 0;
+            index = (index + direction + _roomIds.Length) % _roomIds.Length;
+            selectedRoomId = _roomIds[index];
+        }
+
+        private void ControlCamera()
+        {
+            Camera camera = Camera.main;
+            if (camera == null) return;
+
+            float horizontal = Input.GetAxisRaw("Horizontal");
+            float vertical = Input.GetAxisRaw("Vertical");
+            var pan = new Vector3(horizontal, 0f, vertical);
+            if (pan.sqrMagnitude > 1f) pan.Normalize();
+            camera.transform.position += pan * cameraPanSpeed * Time.unscaledDeltaTime;
+
+            float scroll = Input.mouseScrollDelta.y;
+            if (Mathf.Approximately(scroll, 0f)) return;
+
+            Vector3 next = camera.transform.position +
+                (camera.transform.forward * scroll * cameraZoomSpeed);
+            if (next.y > 2f) camera.transform.position = next;
         }
 
         /// <summary>
@@ -261,11 +381,17 @@ namespace DK2.Unity
 
             GUI.Label(new Rect(10, 30, 1200, 20), $"art: {art}");
 
-            if (_loadedFrom != null)
-                GUI.Label(new Rect(10, 70, 1200, 20), $"loaded from save: {_loadedFrom} — terrain and ownership only, no creatures or objects (Q182)");
-
             GUI.Label(
                 new Rect(10, 50, 1200, 20),
+                $"tool: {tool}" +
+                (tool == PlayerToolMode.BuildRoom ? $" (room {selectedRoomId})" : "") +
+                "   1 tag  2 untag  3 build  4 sell  5 hand  6 slap  7 create imp  [/] room");
+
+            if (_loadedFrom != null)
+                GUI.Label(new Rect(10, 90, 1200, 20), $"loaded from save: {_loadedFrom} — terrain and ownership only, no creatures or objects (Q182)");
+
+            GUI.Label(
+                new Rect(10, 70, 1200, 20),
                 "tick rate is SimulationTiming.TicksPerSecond, the unmeasured Q1 placeholder — " +
                 "tick counts are faithful, wall-clock speed is not a claim");
         }

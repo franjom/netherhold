@@ -37,6 +37,17 @@ public class ObjectViewTests
         return (database, WorldState.FromMap(database, map, [0, 1, 3]));
     }
 
+    [InstallFact]
+    public void AnObjectInTheHandIsNotDrawnInTheDungeon()
+    {
+        if (RealLevel() is not var (database, world)) return;
+
+        ObjectState held = world.SpawnObject(database, 1, PlayerIds.Neutral, 40);
+        held.InHand = true;
+
+        Assert.DoesNotContain(new WorldView(database).Objects(world), o => o.Id == held.Id);
+    }
+
     /// <summary>
     /// Every object in the world gets a mesh key, and it is the same key the
     /// catalogue lists — the agreement that stops a view inventing keys no

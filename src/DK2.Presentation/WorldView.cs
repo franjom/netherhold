@@ -320,6 +320,7 @@ public sealed class WorldView
 
         foreach (CreatureState creature in world.Creatures)
         {
+            if (creature.InHand) continue;
             TilePos position = creature.Tile;
             if (!IsVisible(world, position)) continue;
 
@@ -350,6 +351,7 @@ public sealed class WorldView
 
         foreach (ObjectState instance in world.Objects)
         {
+            if (instance.InHand) continue;
             var position = new TilePos(
                 instance.TileIndex % world.Width, instance.TileIndex / world.Width);
             if (!IsVisible(world, position)) continue;
