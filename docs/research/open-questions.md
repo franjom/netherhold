@@ -355,6 +355,7 @@ reordered or deleted, so file order is not numeric order: Q46–Q48 sit among Q2
 Q60–Q61 and Q49–Q51 precede Q52, Q55x precedes Q55, Q135 precedes Q134, Q125 and Q120–Q123
 follow Q134, Q166 follows Q179, Q187 and Q189 precede Q184, Q214–Q219 follow Q209, and
 **Q210–Q213 sit after Q234** in the Hero Portal section above, with Q235–Q242 after them,
-and **Q243–Q245 are reserved** for a concurrent branch and are not yet written here.
+and **Q243–Q245 were reserved for a concurrent branch that needed none of them**;
+they are free.
 **Q39 appears twice** and both rows are kept; Q37a/Q37b, Q55x and Q118c are separate
 suffixed ids, not duplicates. **Q121 was never allocated** and must not be reused.
