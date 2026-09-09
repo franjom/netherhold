@@ -374,8 +374,8 @@ public class BridgeTests
     /// evidence: jumping on it is <see cref="WorkStance"/>'s on-the-tile stance,
     /// which follows from "standable while working and standable when the job
     /// finishes" (ADR-0028), and adjacency is the ownership condition on the
-    /// claimed tile's neighbour (Q42, ADR-0028). The gap is elsewhere — see
-    /// <see cref="ARivalCannotYetClaimABridgeBecauseClaimingRefusesOwnedGround"/>.</summary>
+    /// claimed tile's neighbour (Q42, ADR-0028). The claim itself is
+    /// <see cref="ARivalClaimsABridgeDirectlyAndItStaysABridge"/>.</summary>
     [Fact]
     public void TheStanceRuleAlreadySaysABridgeIsClaimedByStandingOnIt()
     {

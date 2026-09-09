@@ -8,12 +8,10 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>What a creature is currently doing.</summary>
-/// <remarks>
-/// Not DK2's own creature state machine, which is much larger; reconstructing it
+/// <remarks>Not DK2's own creature state machine, which is much larger; reconstructing it
 /// is a later job (Q2, Q7, docs/research/creature-state-table.md). Several
 /// members fold two or three of the original's states into one, which is said
-/// where it happens.
-/// </remarks>
+/// where it happens.</remarks>
 public enum CreatureActivity
 {
     /// <summary>Standing still, waiting to re-evaluate what to do.</summary>
@@ -25,191 +23,140 @@ public enum CreatureActivity
     /// <summary>Standing next to its target tile, applying work to it.</summary>
     Working = 2,
 
-    /// <summary>
-    /// Carrying gold to somewhere its keeper can keep it. A state rather than a
+    /// <summary>Carrying gold to somewhere its keeper can keep it. A state rather than a
     /// <c>JobPriority</c> because it is the tail of a mining job, not a job an
-    /// imp chooses (Q31, ADR-0018).
-    /// </summary>
+    /// imp chooses (Q31, ADR-0018).</summary>
     DeliveringGold = 3,
 
     /// <summary>Walking to its own bed in a lair, to sleep in it.</summary>
     GoingToSleep = 4,
 
-    /// <summary>
-    /// Asleep in its own bed — the only state in which a lair heals a creature
-    /// (ADR-0049, CONFIRMED by the owner).
-    /// </summary>
+    /// <summary>Asleep in its own bed — the only state in which a lair heals a creature
+    /// (ADR-0049, CONFIRMED by the owner).</summary>
     Sleeping = 5,
 
-    /// <summary>
-    /// Collapsed at zero health, lying on the ground, not yet dead: DK2's
+    /// <summary>Collapsed at zero health, lying on the ground, not yet dead: DK2's
     /// <c>CreatureDyingStateDurationSeconds</c> (60) window, which ends in
     /// rescue or death (ADR-0051, CONFIRMED by the owner).
-    ///
     /// <para>Does nothing at all — no moving, working, sleeping, regenerating or
     /// growing hungry — but keeps its bed, because the way out is an imp
-    /// carrying it back to that bed (docs/research/creature-death.md).</para>
-    /// </summary>
+    /// carrying it back to that bed (docs/research/creature-death.md).</para></summary>
     Dying = 6,
 
-    /// <summary>
-    /// Walking out of the dungeon for good, having drawn <c>Leave</c> from its
+    /// <summary>Walking out of the dungeon for good, having drawn <c>Leave</c> from its
     /// angry job table: to the nearest available portal, so a keeper whose
     /// portal is unreachable keeps a creature that wanted to go (Q116, CONFIRMED
     /// by the owner 2026-09-04; docs/research/portals.md).
-    ///
     /// <para>A leaver has given up its bed, will not claim another, and is
-    /// skipped by <see cref="Systems.CreatureSleepSystem"/> entirely.</para>
-    /// </summary>
+    /// skipped by <see cref="Systems.CreatureSleepSystem"/> entirely.</para></summary>
     Leaving = 7,
 
-    /// <summary>
-    /// Walking to a pile of gold lying on the floor, to pick it up. Fetching
+    /// <summary>Walking to a pile of gold lying on the floor, to pick it up. Fetching
     /// floor gold outranks marked excavation, which had been the top of the
     /// priority order since ADR-0018 (Q141, CONFIRMED by the owner 2026-09-05;
     /// docs/research/gold-on-the-floor.md).
-    ///
     /// <para>Only the walk and the pick-up; carrying it home is
-    /// <see cref="DeliveringGold"/> whatever put the gold in the hands.</para>
-    /// </summary>
+    /// <see cref="DeliveringGold"/> whatever put the gold in the hands.</para></summary>
     FetchingGold = 8,
 
-    /// <summary>
-    /// Walking to a lair to put a bed down, and the state every non-worker
+    /// <summary>Walking to a lair to put a bed down, and the state every non-worker
     /// enters first. Unlike <see cref="GoingToSleep"/> it walks to a
     /// <i>room</i>, chosen by distance, and picks the tile on arrival,
     /// reserving nothing — so two creatures may head for the same room and one
     /// may find it full (ADR-0060, docs/research/lair-acquisition.md §4, §5).
-    ///
     /// <para>Ends with a bed placed — sleeping at once below
     /// <c>CreatureSleepsWhenBelowPercentHealth</c>, idle otherwise — or with
-    /// nothing, and then retries at the next idle decision.</para>
-    /// </summary>
+    /// nothing, and then retries at the next idle decision.</para></summary>
     SeekingLair = 9,
 
-    /// <summary>
-    /// Dead and lying on the floor as a corpse, for
+    /// <summary>Dead and lying on the floor as a corpse, for
     /// <c>DeadBodyDiesAfterSeconds</c> (60): an imp may carry it to a graveyard
     /// inside that window, and it disappears if nobody does (Q99, CONFIRMED by
     /// the owner 2026-09-04). Only records carrying
     /// <see cref="Data.Model.CreatureFlags.GenerateDeadBody"/> reach this state;
     /// an Imp dies at once, and so does a Vampire, which reincarnates.
-    ///
     /// <para>A corpse is a creature in a state, not an object — none of the 145
-    /// OBJECTS records is a corpse (docs/research/objects.md §4).</para>
-    /// </summary>
+    /// OBJECTS records is a corpse (docs/research/objects.md §4).</para></summary>
     Dead = 10,
 
-    /// <summary>
-    /// Walking to a body — collapsed or dead — in order to pick it up. DK2's
-    /// imp task kinds 13 and 12.
-    /// </summary>
+    /// <summary>Walking to a body — collapsed or dead — in order to pick it up. DK2's
+    /// imp task kinds 13 and 12.</summary>
     FetchingBody = 11,
 
-    /// <summary>
-    /// Carrying a body to where it has to go: a collapsed creature to its own
+    /// <summary>Carrying a body to where it has to go: a collapsed creature to its own
     /// bed, a corpse to a graveyard (<see cref="CarryRules"/>). Distinct from
     /// <see cref="DeliveringGold"/> because a body is a creature still running
-    /// its own clock, and what happens on arrival depends on which clock it is.
-    /// </summary>
+    /// its own clock, and what happens on arrival depends on which clock it is.</summary>
     CarryingBody = 12,
 
-    /// <summary>
-    /// Standing in somebody else's prison, losing health — the far end of DK2's
-    /// imp task kind 13, and put here only by an imp (CONFIRMED by the owner
-    /// 2026-09-05). The holding keeper's hand may lift it out, the one case
-    /// where the Hand of Evil touches a creature its keeper does not own
-    /// (<see cref="HandRules.CanPickUp"/>). Rules and evidence:
-    /// <see cref="PrisonRules"/>, docs/research/prison.md.
-    /// <para>Arrives at <see cref="CreatureHealthRules.KnockoutHealth"/> (Q167),
-    /// loses <c>PrisonModifyCreatureHealthPerSecond</c> (3) a game second, and
-    /// at zero rises as a Skeleton for the prison's keeper. Not implemented: the
-    /// search and the race for a chicken the owner watched (Q172).</para>
-    /// </summary>
+    /// <summary>Standing in somebody else's prison, losing health — the far end of DK2's imp task
+    /// kind 13, and put here only by an imp (CONFIRMED, owner 2026-09-05). The holding keeper's
+    /// hand may lift it out, the one case where the Hand of Evil touches a creature its keeper does
+    /// not own (<see cref="HandRules.CanPickUp"/>). Rules, rates and what is unbuilt:
+    /// <see cref="PrisonRules"/>, docs/research/prison.md.</summary>
     Imprisoned = 13,
 
-    /// <summary>
-    /// Walking to a loose object in order to pick it up — DK2's imp task
-    /// kind 8.
-    /// </summary>
+    /// <summary>Walking to a loose object in order to pick it up — DK2's imp task
+    /// kind 8.</summary>
     FetchingObject = 14,
 
-    /// <summary>
-    /// Carrying a loose object to the room it belongs in
+    /// <summary>Carrying a loose object to the room it belongs in
     /// (<see cref="ObjectCarryRules"/>). Distinct from
     /// <see cref="CarryingBody"/> because DK2 keeps two slots side by side in
     /// its creature record: <c>CarryingId</c> for a thing, <c>DraggingId</c> for
-    /// a creature.
-    /// </summary>
+    /// a creature.</summary>
     CarryingObject = 15,
 
-    /// <summary>
-    /// Walking to a hatchery, because it is hungry — to a room, not to a bird.
-    ///
+    /// <summary>Walking to a hatchery, because it is hungry — to a room, not to a bird.
     /// <para>The original picks the nearest reachable hatchery of the creature's
     /// own keeper and looks for a chicken only once standing in it, so an empty
     /// hatchery leaves the creature standing in it, hungry, asking again a
-    /// second later (docs/research/eating.md; <see cref="EatingRules"/>).</para>
-    /// </summary>
+    /// second later (docs/research/eating.md; <see cref="EatingRules"/>).</para></summary>
     SeekingFood = 16,
 
-    /// <summary>
-    /// Walking to one particular chicken it has picked out, inside the hatchery
+    /// <summary>Walking to one particular chicken it has picked out, inside the hatchery
     /// it is standing in.
-    ///
     /// <para>Nothing is reserved: the chosen bird's id lives on the creature and
     /// nowhere else, so two hungry creatures may pick the same one and the
     /// second to arrive finds it gone and looks again (Q172, CONFIRMED by the
-    /// owner).</para>
-    /// </summary>
+    /// owner).</para></summary>
     FetchingChicken = 17,
 
-    /// <summary>
-    /// Walking to a treasury to collect wages, and taking them off the floor on
+    /// <summary>Walking to a treasury to collect wages, and taking them off the floor on
     /// arrival — the original's states 187 (choose a room and walk), 188 (notice
     /// arrival, re-check the room) and 189 (take the gold) folded into one
     /// (ADR-0078, docs/research/payday.md).
-    ///
     /// <para>The wage is credited before the walk, so a creature that never
-    /// reaches a treasury stays owed rather than losing it.</para>
-    /// </summary>
+    /// reaches a treasury stays owed rather than losing it.</para></summary>
     SeekingWages = 18,
 
-    /// <summary>
-    /// Walking to the room a job is done in — the non-worker's equivalent of
+    /// <summary>Walking to the room a job is done in — the non-worker's equivalent of
     /// <see cref="MovingToJob"/>, which belongs to workers and the tile-work
     /// loop (ADR-0082).
-    ///
     /// <para>Which room is <see cref="JobRules.RoomFor"/>; the walk is the
     /// hatchery walk exactly — nearest room of that type belonging to this
-    /// creature's own keeper, first reachable one wins.</para>
-    /// </summary>
+    /// creature's own keeper, first reachable one wins.</para></summary>
     GoingToJob = 19,
 
-    /// <summary>
-    /// Standing in the room, doing the job in
+    /// <summary>Standing in the room, doing the job in
     /// <see cref="CreatureState.CurrentJob"/> — one state where DK2 has one per
     /// job (0x35 research, 0x3f the workshop, 0x61 guarding, 0x65 the temple,
     /// 0x6c training, 0x91 the casino, 0x55 sulking in a lair).
-    ///
     /// <para>Three jobs act here: Praying (ADR-0081, the only source in the game
     /// that drains an anger bucket it did not fill), Train and Research. Not
     /// implemented: guarding, the workshop and the casino — a creature at those
     /// stands in the room, which is still a second it is not idle and not taking
-    /// <c>AngerNoWork</c>.</para>
-    /// </summary>
+    /// <c>AngerNoWork</c>.</para></summary>
     AtWork = 20,
 }
 
 /// <summary>One creature in the world.</summary>
-/// <remarks>
-/// <para>A class rather than a struct because a creature carries a path, and
+/// <remarks><para>A class rather than a struct because a creature carries a path, and
 /// because creatures are few where tiles are tens of thousands.</para>
 /// <para>Stored in a list in spawn order and never sorted: the order creatures
 /// are updated in is behaviour, as the work queue's order is (ADR-0010).</para>
 /// <para>Only fields some implemented mechanic reads are here, as for
-/// <see cref="TileState"/>.</para>
-/// </remarks>
+/// <see cref="TileState"/>.</para></remarks>
 public sealed class CreatureState
 {
     /// <summary>Stable identity for the life of the level. Assigned by <see cref="WorldState"/>.</summary>
@@ -220,87 +167,66 @@ public sealed class CreatureState
 
     public byte OwnerPlayerId;
 
-    /// <summary>
-    /// Position within the dungeon in <see cref="Fp32"/> units, where
+    /// <summary>Position within the dungeon in <see cref="Fp32"/> units, where
     /// <see cref="Fp32.One"/> is one tile: the centre of tile (x,y) is
     /// <c>(x * 4096 + 2048, y * 4096 + 2048)</c>. Never negative — the dungeon
     /// starts at the origin.
-    ///
     /// <para>Sub-tile because travel time is gameplay; fixed point rather than
     /// floating so the same walk arrives on the same tick everywhere
-    /// (ADR-0001).</para>
-    /// </summary>
+    /// (ADR-0001).</para></summary>
     public int PosX;
     public int PosY;
 
-    /// <summary>
-    /// Fractional movement carried between ticks, in units of
+    /// <summary>Fractional movement carried between ticks, in units of
     /// <c>1 / SimulationTiming.TicksPerSecond</c> of an <see cref="Fp32"/> unit.
-    ///
     /// <para>Speed is given per second and spent per tick; discarding the
     /// remainder each tick would make an imp at 1.84 tiles/second walk 0.4% slow
-    /// for ever.</para>
-    /// </summary>
+    /// for ever.</para></summary>
     public int MoveRemainder;
 
-    /// <summary>
-    /// Gold in this creature's hands: mined into its own hands up to
+    /// <summary>Gold in this creature's hands: mined into its own hands up to
     /// <see cref="Data.Model.CreatureDef.MaxGoldHeld"/>, carried to a place its
     /// keeper can keep gold, put down there (Q31, CONFIRMED by the owner).
-    ///
     /// <para>On the creature rather than the player for the same reason gold is
     /// on tiles (ADR-0015); while it is here it is not spendable. Survives
     /// <see cref="ClearJob"/> — an imp whose seam collapsed still holds what it
     /// mined. Not seeded from <c>InitialGoldHeld</c> (Imp: 500), whose purpose
-    /// is UNKNOWN and which nothing here reads.</para>
-    /// </summary>
+    /// is UNKNOWN and which nothing here reads.</para></summary>
     public int GoldHeld;
 
-    /// <summary>
-    /// Current health, seeded from the creature record's <c>Hp</c> on spawn and
+    /// <summary>Current health, seeded from the creature record's <c>Hp</c> on spawn and
     /// clamped to <see cref="CreatureHealthRules.MaxHealth"/> — DK2 has no
     /// separate max-health field, the maximum is <c>Hp</c> scaled by the level's
     /// Health percentage.
-    ///
     /// <para>Reaching zero is not automatically death: see
-    /// <see cref="CreatureHealthRules"/> and Q99.</para>
-    /// </summary>
+    /// <see cref="CreatureHealthRules"/> and Q99.</para></summary>
     public int Health;
 
-    /// <summary>
-    /// Ticks since the hunger clock last ticked over, counting up towards the
+    /// <summary>Ticks since the hunger clock last ticked over, counting up towards the
     /// record's <c>HungerRate</c> in seconds — DK2's <c>LastAteTime</c> read as
     /// an age rather than a stamp.
-    ///
     /// <para>Reset both by each helping of hunger the clock adds and by each
     /// chicken swallowed, so a creature part-way through a Bile Demon's five
     /// birds is not also accumulating a sixth. Counts from spawn, so a creature
-    /// arrives fed.</para>
-    /// </summary>
+    /// arrives fed.</para></summary>
     public int HungerTicks;
 
-    /// <summary>
-    /// How much hunger this creature has stored up — DK2's own
+    /// <summary>How much hunger this creature has stored up — DK2's own
     /// <c>HungerNeed</c>, by the name its debug dump prints.
-    ///
     /// <para>An accumulator, not a countdown: every <c>HungerRate</c> seconds
     /// the original adds <c>HungerFill</c> and nothing caps it, a creature is
     /// hungry at <c>HungerFill</c> or more, and each chicken pays off exactly
     /// one (docs/research/eating.md). Going unfed costs no health; the price is
     /// anger (the record's <c>angerNoFood</c>), and no balance variable turns
-    /// hunger into damage.</para>
-    /// </summary>
+    /// hunger into damage.</para></summary>
     public int HungerNeed;
 
-    /// <summary>
-    /// Countdown to the next attempt to go and eat — DK2's
+    /// <summary>Countdown to the next attempt to go and eat — DK2's
     /// <c>LastAttemptedHunger</c> read as a countdown rather than a stamp.
-    ///
     /// <para>A hungry creature that cannot find a hatchery does not search again
     /// until this runs out: <see cref="EatingRules.RetryTicks"/>, one game
     /// second. Separate from <see cref="TimerTicks"/>, the shared idle
-    /// re-decision, because a creature must be able to wait on both at once.</para>
-    /// </summary>
+    /// re-decision, because a creature must be able to wait on both at once.</para></summary>
     public int FoodAttemptTicks;
 
     // No LairTileIndex: the bed records whose it is, not the creature, as DK2
@@ -308,150 +234,117 @@ public sealed class CreatureState
     // Ask LairRules.BedTileIndex or LairRules.BedOf; docs/research/objects.md
     // section 7, Q130.
 
-    /// <summary>
-    /// Ticks this creature has been awake, counting up towards the record's
+    /// <summary>Ticks this creature has been awake, counting up towards the record's
     /// <c>TimeAwake</c> in seconds (240 for a Goblin). Reset on waking, not on
     /// falling asleep, so the cycle is "awake for TimeAwake, then asleep for
     /// TimeSleep" rather than a fixed period. Whether that is DK2's cycle is
-    /// UNKNOWN (Q103).
-    /// </summary>
+    /// UNKNOWN (Q103).</summary>
     public int AwakeTicks;
 
     /// <summary>Ticks this creature has been asleep, counting up towards <c>TimeSleep</c>.</summary>
     public int SleepTicks;
 
-    /// <summary>
-    /// Ticks spent in the current death state, counting up — two clocks in one
+    /// <summary>Ticks spent in the current death state, counting up — two clocks in one
     /// field, because they never run at once (Q99, CONFIRMED by the owner;
     /// <see cref="CreatureDeathRules"/>).
-    ///
     /// <para>While <see cref="CreatureActivity.Dying"/>, the rescue window
     /// <c>CreatureDyingStateDurationSeconds</c> (60), in which an imp may return
     /// the creature to its bed or, for an enemy, to a prison. While
     /// <see cref="CreatureActivity.Dead"/>, the corpse window
     /// <c>DeadBodyDiesAfterSeconds</c> (also 60). Reset to zero at the
-    /// transition, so a corpse gets its own full sixty seconds.</para>
-    /// </summary>
+    /// transition, so a corpse gets its own full sixty seconds.</para></summary>
     public int DyingTicks;
 
-    /// <summary>
-    /// How cross this creature is — six counters, one per grievance, each
+    /// <summary>How cross this creature is — six counters, one per grievance, each
     /// running from 0 to <see cref="CreatureAngerRules.Saturation"/> (65533).
-    ///
     /// <para>The band comes from the largest of the six, never from their sum
     /// (ADR-0081, <see cref="CreatureAnger"/>). The boundaries are the owner's
     /// stopwatch: a lairless Goblin accruing 100 a second turned unhappy at 2:45
     /// and angry at 5:30, which is 32767/2 and 32767 to within a percent (Q106,
-    /// CONFIRMED).</para>
-    /// </summary>
+    /// CONFIRMED).</para></summary>
     public CreatureAnger Anger;
 
-    /// <summary>
-    /// The mood band this creature was last <i>reported</i> in — DK2's own
+    /// <summary>The mood band this creature was last <i>reported</i> in — DK2's own
     /// <c>this[7]</c>, the eighth slot of the anger object, which its anger-add
     /// routine rewrites on every add (ADR-0081).
-    ///
     /// <para>Stored rather than recomputed so the report is honest: anger is
     /// applied from four places and three of them run before
     /// <see cref="Systems.CreatureAngerSystem"/> in the same tick, so a system
     /// deriving "the mood before" from the anger it can see would find the
     /// change already made. The band itself stays derived —
-    /// <see cref="CreatureAngerRules.MoodOf"/> is the truth at any instant.</para>
-    /// </summary>
+    /// <see cref="CreatureAngerRules.MoodOf"/> is the truth at any instant.</para></summary>
     public CreatureMood Mood;
 
-    /// <summary>
-    /// The job this creature is currently doing, or
+    /// <summary>The job this creature is currently doing, or
     /// <see cref="Data.Model.JobType.None"/> — DK2's own field at
     /// <c>creature+0x64</c>, written by its job dispatcher the moment a handler
     /// accepts and nowhere else (ADR-0082). Meaningful only while the activity
     /// is <see cref="CreatureActivity.GoingToJob"/> or
-    /// <see cref="CreatureActivity.AtWork"/>.
-    /// </summary>
+    /// <see cref="CreatureActivity.AtWork"/>.</summary>
     public JobType CurrentJob;
 
     /// <summary>The tile of the room this creature is walking to for its job, or -1.</summary>
     public int JobTileIndex = -1;
 
-    /// <summary>
-    /// When this creature last chose a job while <b>content</b>, and the gate on
+    /// <summary>When this creature last chose a job while <b>content</b>, and the gate on
     /// choosing another: five game seconds
     /// (<see cref="JobRules.ReselectionGateTicks"/>).
-    ///
     /// <para>Three timestamps, not one, which is the original's own layout —
     /// <c>creature+0xfd</c> happy, <c>+0xf9</c> unhappy, <c>+0x101</c> angry —
     /// so the gate never silences a mood change. Zero means never, so tick zero
     /// reads as never: the same sentinel and one-tick collision as
     /// <see cref="LastAngryChoiceTick"/> (ADR-0061), unreachable because only a
-    /// succeeded selection stamps anything.</para>
-    /// </summary>
+    /// succeeded selection stamps anything.</para></summary>
     public long LastHappyChoiceTick;
 
-    /// <summary>
-    /// When this creature last chose a job while <b>unhappy</b>. See
-    /// <see cref="LastHappyChoiceTick"/> for why there are three.
-    /// </summary>
+    /// <summary>When this creature last chose a job while <b>unhappy</b>. See
+    /// <see cref="LastHappyChoiceTick"/> for why there are three.</summary>
     public long LastUnhappyChoiceTick;
 
-    /// <summary>
-    /// Wages this creature has been credited and has not yet collected.
-    ///
+    /// <summary>Wages this creature has been credited and has not yet collected.
     /// <para>It accumulates: the original's accrual adds rather than assigns, so
     /// a creature that misses a payday is owed two and an unpayable keeper
     /// builds a compounding debt. Clamped at zero by DK2 and by
     /// <see cref="PaydayRules"/>. Zero for an Imp for ever, by the data rather
-    /// than by a rule: the Imp's record carries <c>pay=0</c>.</para>
-    /// </summary>
+    /// than by a rule: the Imp's record carries <c>pay=0</c>.</para></summary>
     public int WageOwed;
 
-    /// <summary>
-    /// How many times this creature has walked to a treasury this payday and
+    /// <summary>How many times this creature has walked to a treasury this payday and
     /// found the tile it reached empty. At
     /// <see cref="PaydayRules.MaxFailedAttempts"/> it stops trying until the
     /// next payday, which resets this to zero for everybody; the original keeps
-    /// the same counter in a byte beside the wage.
-    /// </summary>
+    /// the same counter in a byte beside the wage.</summary>
     public int PayAttemptsFailed;
 
-    /// <summary>
-    /// DK2's own <c>SkipNextPayment</c>: a one-shot ticket that suppresses
+    /// <summary>DK2's own <c>SkipNextPayment</c>: a one-shot ticket that suppresses
     /// exactly one payday. The original's clock consumes it whether or not it
     /// was needed — the creature is not credited a wage at all and the flag is
     /// cleared in the same breath.
-    ///
     /// <para>Not implemented: nothing sets it. The thing that should is a treat,
     /// which the manual (§7.6.2.2) describes as buying off wages on the next
     /// payday; keeper spells do not exist, so the field is carried, hashed, read
-    /// by the clock and written by tests only.</para>
-    /// </summary>
+    /// by the clock and written by tests only.</para></summary>
     public bool SkipNextPayment;
 
-    /// <summary>
-    /// Experience level, 1 to <see cref="CreatureLevelRules.MaxLevel"/> (10). A
+    /// <summary>Experience level, 1 to <see cref="CreatureLevelRules.MaxLevel"/> (10). A
     /// level multiplies the creature's stats by percentages the shipped data
     /// states outright (<see cref="CreatureLevelRules"/>); CONFIRMED by the
     /// owner, <i>"imps gain speed as they gain more levels"</i> (Q119).
-    ///
     /// <para>Raised by working and by training; every creature still spawns at
     /// 1. Not implemented: fighting, so nothing here reaches level 5
-    /// (ADR-0083).</para>
-    /// </summary>
+    /// (ADR-0083).</para></summary>
     public int Level = CreatureLevelRules.FirstLevel;
 
-    /// <summary>
-    /// Experience banked towards the <b>next</b> level, not a lifetime total —
+    /// <summary>Experience banked towards the <b>next</b> level, not a lifetime total —
     /// see <see cref="CreatureLevelRules.Grant"/> (Q127).
-    ///
     /// <para>A working imp earns 80 a game second, so its second level costs
     /// 3000 / 80 = 37.5 seconds of work (Q124, ADR-0083 item 6). Trap:
     /// <c>ImpExperienceGainPerSecond</c> is 20 per <i>original tick</i> (250 ms,
     /// ADR-0089) despite the name — see
-    /// <see cref="CreatureLevelRules.WorkExperiencePerOriginalTick"/>.</para>
-    /// </summary>
+    /// <see cref="CreatureLevelRules.WorkExperiencePerOriginalTick"/>.</para></summary>
     public int ExperiencePoints;
 
-    /// <summary>
-    /// The tick on which this creature last <b>successfully</b> chose an angry
+    /// <summary>The tick on which this creature last <b>successfully</b> chose an angry
     /// job, or 0 for never — DK2's own
     /// <c>LastGameTickSuccessfullyChoseAngryJob</c>, the only thing its angry
     /// chooser keeps between selections (ADR-0061, Q122).
@@ -460,76 +353,48 @@ public sealed class CreatureState
     /// this, so a creature that cannot act on its anger re-rolls at every
     /// opportunity — which is how a portal built later becomes an escape route.
     /// 0 means never and tick 0 is a real tick, which costs nothing because the
-    /// anger ladder never runs on tick 0.</para>
-    /// </summary>
+    /// anger ladder never runs on tick 0.</para></summary>
     public long LastAngryChoiceTick;
 
-    /// <summary>
-    /// Whether this creature is in a keeper's hand — DK2's
-    /// <c>StateFlags1.InHand</c>, bit 0 of the first flag word its debug dump
-    /// prints.
-    ///
-    /// <para>A held creature is out of the dungeon: it does not walk, work,
-    /// sleep or look for a lair, and every system that would make it act tests
-    /// <see cref="HandRules.IsHeld"/> beside
-    /// <see cref="CreatureDeathRules.IsDown"/>. It does keep getting hungry and
-    /// minding its mood, which is how <c>AngerInHand</c> reaches it
-    /// (ADR-0062).</para>
-    /// </summary>
+    /// <summary>Whether this creature is in a keeper's hand — DK2's <c>StateFlags1.InHand</c>. A
+    /// held creature is out of the dungeon: it does not walk, work, sleep or look for a lair, and
+    /// every system that would make it act tests <see cref="HandRules.IsHeld"/> beside
+    /// <see cref="CreatureDeathRules.IsDown"/>. It does keep getting hungry and minding its mood,
+    /// which is how <c>AngerInHand</c> reaches it (ADR-0062).</summary>
     public bool InHand;
 
-    /// <summary>
-    /// The tick this creature was last picked up <b>or put down</b> — DK2's
-    /// <c>PickupTick</c>, which its drop handler writes as well as its pick-up
-    /// handler, so the name is narrower than the field.
-    ///
-    /// <para>Read by the hand's grip on a creature's mood: the original waits
-    /// <see cref="HandRules.AngerGraceSeconds"/> after the pick-up before
-    /// <c>AngerInHand</c> applies, so moving a creature across the dungeon and
-    /// putting it down costs nothing.</para>
-    /// </summary>
+    /// <summary>The tick this creature was last picked up <b>or put down</b> — DK2's
+    /// <c>PickupTick</c>, which its drop handler writes as well as its pick-up handler, so the name
+    /// is narrower than the field. Read by the hand's grip on a creature's mood, which waits
+    /// <see cref="HandRules.AngerGraceSeconds"/> after the pick-up.</summary>
     public long PickupTick;
 
-    /// <summary>
-    /// The tick of the last slap that landed, or 0 for never — DK2's
-    /// <c>LastSlapTick</c>.
-    ///
-    /// <para>A tally, not a cooldown: every slap counts however fast they come,
-    /// because the original's window on this field guards only the knock-back
-    /// impulse (<see cref="HandRules.KnockBackWindowSeconds"/>). The owner's
-    /// Salamander took six slaps to sulk (Q114) because a human clicks at human
-    /// speed.</para>
-    /// </summary>
+    /// <summary>The tick of the last slap that landed, or 0 for never — DK2's
+    /// <c>LastSlapTick</c>. A tally, not a cooldown: every slap counts however fast they come
+    /// (<see cref="HandRules.KnockBackWindowSeconds"/>).</summary>
     public long LastSlapTick;
 
-    /// <summary>
-    /// Ticks of raised Efficiency left from a slap, counting down — DK2's
+    /// <summary>Ticks of raised Efficiency left from a slap, counting down — DK2's
     /// <c>WorkFasterTimer</c>, which its slap handler sets to a hardcoded 100
     /// and its creature update decrements once a tick.
-    ///
     /// <para>Worth <see cref="EfficiencyRules.BonusPercent"/> while running, and
     /// it does not stack: a second slap rewrites it rather than adding, so an
     /// imp slapped ten times works exactly as fast as one slapped once —
-    /// CONFIRMED by the owner (docs/research/tile-work.md).</para>
-    /// </summary>
+    /// CONFIRMED by the owner (docs/research/tile-work.md).</para></summary>
     public int WorkFasterTicks;
 
-    /// <summary>
-    /// A one-shot ticket, set when the keeper puts this worker down and spent by
+    /// <summary>A one-shot ticket, set when the keeper puts this worker down and spent by
     /// its very next job evaluation — DK2's <c>ImpJobData.JustDropped</c>.
-    ///
     /// <para>Not the Efficiency bonus: it only skips the idle throttle so a
     /// dropped worker evaluates on the spot, and turns that first evaluation
     /// into the seven-by-seven drop scan
     /// (<c>ImpTaskSystem.TryTakeDroppedJob</c>). The bonus is
     /// <see cref="DroppedTask"/>. The distinction is DK2's: its job chooser
     /// clears this unconditionally on its first run, and the field the
-    /// Efficiency arithmetic reads is four bytes further on (ADR-0069).</para>
-    /// </summary>
+    /// Efficiency arithmetic reads is four bytes further on (ADR-0069).</para></summary>
     public bool JustDropped;
 
-    /// <summary>
-    /// The kind of task this worker was <b>dropped onto and is still doing</b>,
+    /// <summary>The kind of task this worker was <b>dropped onto and is still doing</b>,
     /// or <see cref="ImpTaskKind.None"/> — DK2's <c>ImpJobData.DroppedTask</c>,
     /// the field <see cref="EfficiencyRules.Percent"/> reads, worth
     /// <see cref="EfficiencyRules.BonusPercent"/> (12.5%, as a slap is, and
@@ -538,68 +403,53 @@ public sealed class CreatureState
     /// keeper-marked tile works at 90%, on an unmarked tile at 80% (CONFIRMED,
     /// owner 2026-09-05, docs/research/tile-work.md). Cleared only where this
     /// kind still matches <see cref="LastTaskKind"/> and no such work remains,
-    /// so it survives the walk and finishing the tile.</para>
-    /// </summary>
+    /// so it survives the walk and finishing the tile.</para></summary>
     public ImpTaskKind DroppedTask;
 
-    /// <summary>
-    /// The kind of the task this worker most recently took — DK2's
+    /// <summary>The kind of the task this worker most recently took — DK2's
     /// <c>ImpJobData.LastTaskType</c>, written by every one of its
     /// task-accepting routines on the way in.
-    ///
     /// <para>Here for one reason: it is the guard on <see cref="DroppedTask"/>'s
     /// only clear. A worker that has wandered onto another kind of work keeps
-    /// the aimed bonus, because the comparison fails and DK2 falls through.</para>
-    /// </summary>
+    /// the aimed bonus, because the comparison fails and DK2 falls through.</para></summary>
     public ImpTaskKind LastTaskKind;
 
-    /// <summary>
-    /// The id of the body this worker is carrying, or -1 for none. One slot, as
+    /// <summary>The id of the body this worker is carrying, or -1 for none. One slot, as
     /// DK2's imp has: a worker holding a body is not offered another, and a
     /// worker holding gold is not offered a body at all
-    /// (<see cref="CarryRules.CanCarry"/>).
-    /// </summary>
+    /// (<see cref="CarryRules.CanCarry"/>).</summary>
     public int CarriedCreatureId = -1;
 
-    /// <summary>
-    /// The id of the worker carrying this body, or -1 for none — the other end
+    /// <summary>The id of the worker carrying this body, or -1 for none — the other end
     /// of <see cref="CarriedCreatureId"/>. Both ends are stored because both are
     /// asked: the carrier needs to know what it holds on arrival, and the body
     /// needs to be seen as held so nobody else crosses the dungeon for it. Kept
     /// in step by <see cref="CarryRules.PickUp"/> and
-    /// <see cref="CarryRules.PutDown"/>, the only two writers of either.
-    /// </summary>
+    /// <see cref="CarryRules.PutDown"/>, the only two writers of either.</summary>
     public int CarriedByCreatureId = -1;
 
-    /// <summary>
-    /// The id of the body this worker is walking towards, or -1 for none.
+    /// <summary>The id of the body this worker is walking towards, or -1 for none.
     /// Separate from <see cref="CarriedCreatureId"/> because the target can go
     /// wrong on its own — the body may rot, be rescued by a nearer imp, or be
     /// picked up by the keeper first — and because naming it at the start keeps
-    /// two bodies on one tile distinct.
-    /// </summary>
+    /// two bodies on one tile distinct.</summary>
     public int TargetBodyId = -1;
 
-    /// <summary>
-    /// The keeper whose prison holds this creature, or
+    /// <summary>The keeper whose prison holds this creature, or
     /// <see cref="PrisonRules.NoPrison"/> for none.
-    ///
     /// <para>Not <see cref="OwnerPlayerId"/>: a prisoner is still its own
     /// keeper's creature, merely somebody else's problem to feed. The original's
     /// creature dump names the field <c>PrisonOwner</c> at offset <c>0x3cb</c>
     /// (ADR-0046). Survives being picked up: dropping a prisoner back on a
     /// prison tile puts it straight back, and only dropping it elsewhere frees
-    /// it (<see cref="PrisonRules.Release"/>).</para>
-    /// </summary>
+    /// it (<see cref="PrisonRules.Release"/>).</para></summary>
     public int PrisonOwnerPlayerId = PrisonRules.NoPrison;
 
-    /// <summary>
-    /// The id of the object this worker is carrying, or -1 for none — DK2's
+    /// <summary>The id of the object this worker is carrying, or -1 for none — DK2's
     /// <c>CarryingId</c> at creature offset <c>0x3c3</c>, a separate slot from
     /// <see cref="CarriedCreatureId"/> (DK2's <c>DraggingId</c>, two bytes
     /// along), because the original distinguishes carrying a thing from dragging
-    /// a creature.
-    /// </summary>
+    /// a creature.</summary>
     public int CarriedObjectId = -1;
 
     /// <summary>The object this worker is walking towards, or -1 for none.</summary>
@@ -613,17 +463,13 @@ public sealed class CreatureState
     /// <summary>Which kind of work it intends to apply. Meaningless when <see cref="TargetTileIndex"/> is -1.</summary>
     public TileWorkKind TargetWork;
 
-    /// <summary>
-    /// Countdown in ticks. What it counts down to depends on
+    /// <summary>Countdown in ticks. What it counts down to depends on
     /// <see cref="Activity"/>: the next re-evaluation when idle, the next work
-    /// application when working.
-    /// </summary>
+    /// application when working.</summary>
     public int TimerTicks;
 
-    /// <summary>
-    /// The route being walked, excluding the tile it started from. Empty when
-    /// the creature is not going anywhere.
-    /// </summary>
+    /// <summary>The route being walked, excluding the tile it started from. Empty when
+    /// the creature is not going anywhere.</summary>
     public readonly List<TilePos> Path = [];
 
     /// <summary>How far along <see cref="Path"/> the creature is.</summary>
@@ -635,11 +481,9 @@ public sealed class CreatureState
     /// <summary>The centre of a tile, in position units.</summary>
     public static int CentreOf(int tile) => (tile * Fp32.One) + (Fp32.One / 2);
 
-    /// <summary>
-    /// Forgets what this creature was doing. Deliberately leaves
+    /// <summary>Forgets what this creature was doing. Deliberately leaves
     /// <see cref="GoldHeld"/> alone: what is in an imp's hands is not part of
-    /// its job.
-    /// </summary>
+    /// its job.</summary>
     public void ClearJob()
     {
         // DroppedTask survives: DK2 clears it in exactly one place, a later

@@ -34,14 +34,12 @@ public class TileWorkTests
     [Fact]
     public void DiggingRock_TakesTwoApplications_AndLeavesDirtPath()
     {
-        // TWO applications, which is what the owner counted in the original
-        // (2026-08-30) - being careful to note that a third animation plays
-        // over the block already crumbling, so two do the damage.
-        //
+        // TWO applications, CONFIRMED (owner, 2026-08-30), who noted that a third
+        // animation plays over the block already crumbling, so two do the damage.
         // The shipped DigRockHealth of -5000 would fell it in one with 4835 to
-        // spare. That value cannot produce the observed behaviour, so it is
-        // corrected to -500 in ObservedCorrections - the project's only such
-        // override, and the reasoning is there. See ADR-0023 and Q20.
+        // spare, so it cannot produce the observed behaviour and is corrected to
+        // -500 in ObservedCorrections — the project's only such override
+        // (ADR-0023, Q20).
         TileState tile = TileOf(Dk2TerrainFixture.Rock);
 
         TileWorkResult first = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Dig, 1);
@@ -90,16 +88,12 @@ public class TileWorkTests
     [Fact]
     public void ClaimingDirtPath_TakesFourApplications_AndYieldsClaimedPath()
     {
-        // FOUR applications, and the count is unchanged by the 2026-09-07
-        // reversal of ADR-0024 - which is exactly why claiming could never have
-        // caught that bug. Dirt Path ships at 1 health of a 660 maximum, so the
+        // FOUR applications. Dirt Path ships at 1 health of a 660 maximum, so the
         // deficit (659) and the whole maximum (660) are within one swing of each
-        // other. ClaimTileHealth is 825 a game second over the base-Efficiency
-        // divisor of five => 165 an application, and 1 + 4 x 165 = 661 >= 660.
-        //
-        // The work now accumulates in the tile's own health, which is what DK2's
-        // applier does (FUN_00452f60 stores into tile+6 and converts when the
-        // health reaches the terrain record's MaxHealth at +0x1ad).
+        // other — which is why claiming could never have caught ADR-0024's charge.
+        // ClaimTileHealth is 825 a game second over the base-Efficiency divisor of
+        // five = 165 an application, and 1 + 4 x 165 = 661 >= 660. Work accumulates
+        // in the tile's health, as DK2's applier does (FUN_00452f60, tile+6, converting at MaxHealth, +0x1ad).
         TileState tile = TileOf(Dk2TerrainFixture.DirtPath, owner: 3);
 
         for (int i = 0; i < 3; i++)
@@ -123,24 +117,12 @@ public class TileWorkTests
     [Fact]
     public void ReinforcingRock_TakesFiftyApplications_BecauseTheCostIsTheDeficit()
     {
-        // FIFTY, not the 66 this test asserted until 2026-09-07, and the number
-        // is READ rather than timed. ADR-0024 charged an upward job the terrain's
-        // whole MaxHealth on the strength of a stopwatch: 66 applications fitted
-        // the owner's 13.3-13.4 s if work landed five times a second. Both halves
-        // were wrong and they cancelled.
-        //
-        // DK2's tile applier adds the delta into the tile's OWN health word and
-        // converts when it reaches MaxHealth, so reinforcing Rock costs the
-        // deficit - 660 - 165 = 495 - at 50 a game second over the divisor of
-        // five, i.e. 10 an application, i.e. 50 applications. At the four
-        // applications a second that the creature update actually runs at, that
-        // is 12.5 s against a hand-timed 13.35: an over-read of 0.85 s, which is
-        // what a hand timer does. The slapped run agrees at 45 applications and
-        // 11.25 s against 11.5-11.9 s observed.
-        //
-        // If this assertion ever needs changing again, change it from the
-        // applier's instructions and not from a stopwatch. See Q47, Q62 and
-        // docs/research/tile-work.md.
+        // FIFTY, read from the applier and not timed: DK2 adds the delta into the
+        // tile's own health word and converts at MaxHealth, so reinforcing Rock
+        // costs the deficit (660 - 165 = 495) at 10 an application. That is 12.5 s
+        // against a hand-timed 13.35, and 45 applications / 11.25 s slapped against
+        // 11.5-11.9 s. ADR-0024's 66 fitted the stopwatch with two wrong halves
+        // that cancelled: change this from the applier (Q47, Q62, tile-work.md).
         TileState tile = TileOf(Dk2TerrainFixture.Rock);
         int start = Db.TerrainById(Dk2TerrainFixture.Rock).StartingHealth;
 
@@ -201,13 +183,11 @@ public class TileWorkTests
     [Fact]
     public void DiggingAnEnemyWallIsVastlySlowerThanDiggingYourOwn()
     {
-        // -130 vs -8 per second against 900 health, at five applications a
-        // second: 26 vs 1.6 a swing, so 35 swings against 563.
-        //
-        // DigEnemyWallHealth is one of only two deltas that does not divide by
-        // five, so this is also the test that would catch a lost remainder: 563
-        // swings is 8 health a second exactly, where truncating to -1 a swing
-        // would take 900 and run the job 37% slow forever.
+        // -130 vs -8 per second against 900 health, at five applications a second:
+        // 26 vs 1.6 a swing, so 35 swings against 563. DigEnemyWallHealth is one of
+        // only two deltas that does not divide by five, so this also catches a lost
+        // remainder — 563 swings is 8 health a second exactly, where truncating to
+        // -1 a swing would take 900 and run the job 37 % slow for ever.
         Assert.Equal(35, ApplicationsToDestroy(Dk2TerrainFixture.ReinforcedWall,
             TileWorkKind.DigOwnWall, owner: 1, worker: 1));
         Assert.Equal(563, ApplicationsToDestroy(Dk2TerrainFixture.ReinforcedWall,
@@ -262,13 +242,11 @@ public class TileWorkTests
     [Fact]
     public void AGemFace_IsInexhaustibleAndYieldsTheGemsRate()
     {
-        // Gems are impenetrable and their destroyed type is themselves, so a
-        // face collapses and instantly reappears at full health.
-        //
-        // 100 health against 60 a swing (Q47) means a face takes two swings to
-        // collapse, and only the collapse pays. Fifty swings are therefore
-        // twenty-five collapses — the *rate per second* is unchanged by the
-        // finer granularity, which is the whole point of it.
+        // Gems are impenetrable and their destroyed type is themselves, so a face
+        // collapses and instantly reappears at full health. 100 health against 60
+        // a swing (Q47) means two swings to collapse and only the collapse pays, so
+        // fifty swings are twenty-five collapses — the rate per second is unchanged
+        // by the finer granularity, which is the whole point of it.
         TileState tile = TileOf(Dk2TerrainFixture.Gems);
         int total = 0;
 
