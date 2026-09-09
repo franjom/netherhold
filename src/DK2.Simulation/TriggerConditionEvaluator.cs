@@ -22,8 +22,14 @@ public enum TriggerConditionResult
 
 /// <summary>
 /// Evaluates one tag-213 condition without walking or mutating a trigger tree.
-/// Types 1 and 2 follow the parameter reads established in trigger-state.md;
-/// every other type remains distinguishable from a false condition.
+/// Types 1, 2 and 34 follow the parameter reads established in trigger-state.md
+/// and trigger-semantics.md; every other type remains distinguishable from a
+/// false condition.
+/// <para>Six of the world context's nine computed types are still missing — 35,
+/// 43, 44, 45, 64 and 67 — and the other 57 types the corpus ships fail in the
+/// retail engine too, at the default arm <c>0x00518929</c>, so declining them is
+/// not a gap (trigger-semantics.md, "The world context computes only nine
+/// condition types").</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-state.md")]
 public static class TriggerConditionEvaluator
@@ -43,6 +49,7 @@ public static class TriggerConditionEvaluator
         {
             1 => EvaluateFlag(record.Parameters, state),
             2 => EvaluateTimer(record.Parameters, state, currentTick),
+            34 => EvaluateLevelTime(record.Parameters, currentTick),
             _ => TriggerConditionResult.NotEvaluated,
         };
     }
@@ -87,6 +94,26 @@ public static class TriggerConditionEvaluator
             state.ReadTimer(indirectId),
             state.ReadTimer(timerId)));
     }
+
+    /// <summary>Type 34 — how long the level has been running, compared against an
+    /// authored number of <b>seconds</b>.</summary>
+    /// <remarks>
+    /// <para>Rule: <c>Compare(byte 00, the current game turn, Value seconds)</c>. The arm
+    /// at <c>0x0051829D</c> calls <c>FUN_00517490</c>, so the left side is the same
+    /// counter the walker is driven by and there is no separate clock.</para>
+    /// <para>The multiply is <b>ours to do and DK2's to have done already</b>: its loader
+    /// scales the dword in place at <c>0x0050C30E</c>, ours keeps the authored seconds —
+    /// the same split <see cref="EvaluateTimer"/> makes. STRONGLY INFERRED, and the
+    /// seconds reading has thirteen live measurements behind it (trigger-semantics.md
+    /// "Type 34 is level time"; trigger-state.md §5).</para>
+    /// </remarks>
+    private static TriggerConditionResult EvaluateLevelTime(
+        IReadOnlyDictionary<string, long> parameters,
+        int currentTick) =>
+        Result(TriggerState.Compare(
+            Byte(parameters, "Comparison"),
+            currentTick,
+            SimulationTiming.TicksFromSeconds(Int(parameters, "Value"))));
 
     private static int ReadFlag(TriggerState state, byte id) =>
         id == TriggerState.SpecialFlagId ? state.SpecialValue : state.Read(id);

@@ -183,6 +183,170 @@ public class TriggerExecutorTests
         Assert.Equal(7, sim.World.Triggers.Read(3));
     }
 
+    [Theory]
+    [InlineData(5, 2, 7, false)]   // >= 2 seconds is >= 8 ticks, and turn 7 is not there yet
+    [InlineData(5, 2, 8, true)]
+    [InlineData(1, 2, 7, true)]    // < 2 seconds still holds at turn 7
+    [InlineData(3, 0, 0, true)]    // == 0 seconds: level 1's own bootstrap, true from turn 1
+    public void LevelTimeConditionScalesItsValueFromSecondsToTicks(
+        byte comparison, int seconds, int turn, bool fires)
+    {
+        var state = new TriggerState();
+        TriggerRecord condition = LevelTime(1, comparison, seconds, child: 0xFFFF);
+        new TriggerExecutor(
+            new TriggerTree([condition, Action(1, 3, 0x0A, 9)], 1), state).Run(turn);
+
+        Assert.Equal(fires ? 9 : 0, state.Read(3));
+    }
+
+    /// <summary>The load sweep and action type 14 are two halves of one behaviour, so they
+    /// are tested as one: the same tree runs a party root only after a type 14 has armed
+    /// it.</summary>
+    [Fact]
+    public void PartySubtreeStaysDisabledUntilActionFourteenArmsIt()
+    {
+        var armed = new TriggerState();
+        var unarmed = new TriggerState();
+        TriggerRecord[] records = PartyRecords();
+        HeroPartyThing[] parties = [Party(0, triggerId: 5, (6, 9))];
+
+        // Root 0xFFFE is the type-14 action; root 0 is no world root at all, which leaves
+        // the party subtree exactly as the level initialiser left it.
+        new TriggerExecutor(new TriggerTree(records, 0xFFFE, parties), armed).Run(1);
+        new TriggerExecutor(new TriggerTree(records, 0, parties), unarmed).Run(1);
+
+        Assert.Equal(1, armed.Read(3));
+        Assert.Equal(0, unarmed.Read(3));
+    }
+
+    /// <summary>The arming walk enters a condition's child chain and an action's next
+    /// chain, and never an action's child chain — so what hangs under an action keeps
+    /// whatever state it was authored with, through both the load sweep and the arm.
+    /// </summary>
+    [Fact]
+    public void ArmingReachesAnActionsSiblingsButNotItsChildren()
+    {
+        var state = new TriggerState();
+        // 5 -> child action 1 (flag 3), whose child is condition 6 (flag 4) and whose next
+        // is condition 7 (flag 5). Both 6 and 7 are authored inactive, so only the one the
+        // arming walk reaches can fire.
+        TriggerRecord[] records =
+        [
+            Condition(5, repeat: 255, child: 0xFFFF, next: 0, FlagEqualsZero()),
+            Condition(6, repeat: 0, child: 0xFFFE, next: 0, FlagEqualsZero()),
+            Condition(7, repeat: 0, child: 0xFFFC, next: 0, FlagEqualsZero()),
+            Action(1, 3, 0x0A, 1, child: 6, next: 7),
+            Action(2, 4, 0x0A, 1),
+            Action(4, 5, 0x0A, 1),
+            PartyAction(3, partyId: 0),
+        ];
+
+        new TriggerExecutor(
+            new TriggerTree(records, 0xFFFD, [Party(0, triggerId: 5)]), state).Run(1);
+
+        Assert.Equal(1, state.Read(3));
+        Assert.Equal(0, state.Read(4));
+        Assert.Equal(1, state.Read(5));
+    }
+
+    [Fact]
+    public void AMemberSlotWithNoCreatureIsNotArmed()
+    {
+        TriggerRecord[] records = PartyRecords();
+        var occupied = new TriggerState();
+        var empty = new TriggerState();
+
+        // Same member trigger id either way; only the creature id byte differs, and that
+        // is the byte DK2 tests at member +0x1C before arming. Record 7 is authored active
+        // and the load sweep disables it in both runs, so any difference left is the arm's.
+        new TriggerExecutor(
+            new TriggerTree(records, 0xFFFE, [Party(0, 5, (7, 9))]), occupied).Run(1);
+        new TriggerExecutor(
+            new TriggerTree(records, 0xFFFE, [Party(0, 5, (7, 0))]), empty).Run(1);
+
+        Assert.NotEqual(StateHash(occupied), StateHash(empty));
+    }
+
+    [Fact]
+    public void ActionFourteenIsCountedAsPartialNotAsBlockedOrFinished()
+    {
+        TriggerRunResult result = new TriggerExecutor(
+                new TriggerTree(PartyRecords(), 0xFFFE, [Party(0, 5, (7, 9))]), new TriggerState())
+            .Run(1);
+
+        Assert.Empty(result.Blocked);
+        Assert.Equal([new BlockedTrigger(214, 14, 0xFFFE)], result.Partial);
+    }
+
+    /// <summary>Disabling a condition zeros its repeat byte; disabling an action must not
+    /// touch one. Both setters are one instruction apart in intent and the action's simply
+    /// does not write <c>+0x0F</c> — a difference no walk reads, and the determinism hash
+    /// does.</summary>
+    [Fact]
+    public void DisablingAnActionLeavesItsRepeatByteAlone()
+    {
+        ulong Disabled(byte repeat)
+        {
+            var state = new TriggerState();
+            TriggerRecord action = new ActionTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = 0xFFFF, Type = 7, RepeatCount = repeat,
+                Parameters = new Dictionary<string, long>
+                {
+                    ["FlagId"] = 3, ["Flag"] = 0x0A, ["Value"] = 1,
+                },
+            };
+            var executor = new TriggerExecutor(new TriggerTree([action], 0xFFFF), state);
+            executor.SetActive(unchecked((short)0xFFFF), active: false);
+            return StateHash(state);
+        }
+
+        Assert.NotEqual(Disabled(7), Disabled(0));
+    }
+
+    // A party root (5) whose subtree writes flag 3, a spare member subtree (7) linked from
+    // nowhere else, and the type-14 action that arms them both.
+    private static TriggerRecord[] PartyRecords() =>
+    [
+        Condition(5, repeat: 255, child: 0xFFFF, next: 0, FlagEqualsZero()),
+        Condition(7, repeat: 255, child: 0, next: 0, FlagEqualsZero()),
+        Action(1, 3, 0x0A, 1),
+        PartyAction(2, partyId: 0),
+    ];
+
+    private static HeroPartyThing Party(
+        byte partyId, ushort triggerId, params (ushort Trigger, byte Creature)[] members) =>
+        new(new byte[555])
+        {
+            Name = string.Empty, TriggerId = triggerId, PartyId = partyId,
+            Members = members.Select(m => new GoodCreatureThing(new byte[32])
+            {
+                TriggerId = m.Trigger, CreatureId = m.Creature, Unknown_001D = new byte[2],
+            }).ToArray(),
+        };
+
+    private static TriggerRecord PartyAction(ushort id, byte partyId) =>
+        new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 14,
+            RepeatCount = 0,
+            Parameters = new Dictionary<string, long>
+            {
+                ["PartyId"] = partyId, ["PartyType"] = 0, ["ActionPointId"] = 0,
+            },
+        };
+
+    private static TriggerRecord LevelTime(ushort id, byte comparison, int seconds, ushort child) =>
+        new GenericTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = id, Type = 34, RepeatCount = 1,
+            ChildTriggerId = child, NextTriggerId = 0,
+            Parameters = new Dictionary<string, long>
+            {
+                ["Comparison"] = comparison, ["Value"] = seconds,
+            },
+        };
+
     private static TriggerRecord Action(
         ushort id, byte flagId, byte mode, int value, ushort child = 0, ushort next = 0) =>
         new ActionTriggerRecord(new byte[16])

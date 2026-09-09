@@ -17,10 +17,71 @@ public class TriggerExecutorOnRealDataTests
         (GameSimulation simulation, _) = LevelOne(seed: 7);
         simulation.Tick();
 
-        string census = string.Join(",", simulation.LastTriggerRun!.Summary
-            .Select(s => $"{s.Tag}:{s.Type}={s.Count}"));
-        Assert.Equal("213:34=1", census);
+        // Turn 1: the world root, trigger 89, is a type-34 level-time test that holds from
+        // the first turn, so both of its type-14 children fire and arm their parties. Only
+        // party 1 has a subtree; its root is a type 64 the world context computes and we do
+        // not, so it is what blocks. Two records ran in part -- the parties were armed and
+        // their creatures were not created.
+        Assert.Equal("213:64=1", Census(simulation.LastTriggerRun!.Summary));
+        Assert.Equal("214:14=2", Census(simulation.LastTriggerRun!.PartialSummary));
     }
+
+    /// <summary>The world tree is <b>not</b> where campaign level 1 keeps its script, and a
+    /// reader of the CSV this executor emits has to know that before concluding anything
+    /// from an empty column.</summary>
+    /// <remarks>
+    /// The world root, trigger 89, spawns two parties and ends: <c>next = 0</c>. The chain
+    /// that carries the level -- 1 to 10 to 15 to 31, the timers and the flags the live
+    /// captures show moving -- hangs off trigger <b>1</b>, which is the single
+    /// <b>player</b> root, walked by <c>FUN_004C79A0</c> and not by anything here. This
+    /// test exists so that arrangement cannot quietly change under a claim that our world
+    /// walker is complete.
+    /// </remarks>
+    [InstallFact]
+    public void LevelOneKeepsItsScriptOnThePlayerRootNotTheWorldRoot()
+    {
+        string install = Dk2InstallGate.Path;
+        LevelDef level = GameDatabaseLoader.LoadCampaignLevel(install, "level1")!;
+        List<TriggerRecord> records = GameDatabaseLoader.LoadCampaignTriggers(install, "level1")!;
+        ushort[] playerRoots = GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!
+            .Select(p => p.TriggerId).Where(id => id != 0).ToArray();
+
+        Assert.Equal(89, level.TriggerId);
+        Assert.Equal([(ushort)1], playerRoots);
+
+        TriggerRecord world = records.Single(r => r.Tag == 213 && r.TriggerId == 89);
+        TriggerRecord player = records.Single(r => r.Tag == 213 && r.TriggerId == 1);
+        Assert.Equal(34, world.Type);
+        Assert.Equal(34, player.Type);
+
+        // The world root's chain is two records long and both are party spawns; the player
+        // root's runs on. That length difference is the whole point.
+        Assert.Equal(0, world.NextTriggerId);
+        Assert.Equal(10, player.NextTriggerId);
+        Assert.Equal(
+            [(byte)14, (byte)14],
+            Chain(records, world.ChildTriggerId).Select(r => r.Type).ToArray());
+        Assert.True(Chain(records, player.NextTriggerId).Count > 10);
+    }
+
+    private static List<TriggerRecord> Chain(List<TriggerRecord> records, ushort from)
+    {
+        var chain = new List<TriggerRecord>();
+        var seen = new HashSet<ushort>();
+        for (ushort id = from; id != 0 && seen.Add(id);)
+        {
+            short signed = unchecked((short)id);
+            TriggerRecord? record = records.FirstOrDefault(
+                r => r.TriggerId == id && r.Tag == (signed > 0 ? 213 : 214));
+            if (record is null) break;
+            chain.Add(record);
+            id = record.NextTriggerId;
+        }
+        return chain;
+    }
+
+    private static string Census(IEnumerable<(int Tag, byte Type, int Count)> summary) =>
+        string.Join(",", summary.Select(s => $"{s.Tag}:{s.Type}={s.Count}"));
 
     [InstallFact]
     public void LevelOneTriggerRunIsDeterministicForTheSameSeed()
@@ -81,8 +142,10 @@ public class TriggerExecutorOnRealDataTests
         List<TriggerRecord> records = GameDatabaseLoader.LoadCampaignTriggers(install, "level1")!;
         byte[] players = GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!
             .Select(p => p.PlayerId).ToArray();
+        List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "level1")!;
         WorldState world = WorldState.FromMap(database, map, players);
-        var tree = new TriggerTree(records, level.TriggerId);
+        var tree = new TriggerTree(
+            records, level.TriggerId, things.OfType<HeroPartyThing>());
         return (new GameSimulation(database, world, seed, triggers: tree), tree);
     }
 }

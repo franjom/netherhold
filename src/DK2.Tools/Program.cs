@@ -1000,6 +1000,55 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length == 2 && args[1] == "parties":
+    {
+        // Which of the world's 24 party slots a shipped HERO_PARTY lands in, and
+        // which of its sixteen member slots count as used. Action type 14 indexes
+        // that array by the id in its own body, so an executor has to choose
+        // between the file's order and the record's own PartyId, and has to
+        // decide what an unused member is. This prints the evidence for both
+        // (docs/research/trigger-tree.md, "The 24 slots at +0x4030").
+        string partyMaps = Path.Combine(Dk2Install.Require(), "Data", "editor", "maps");
+        int partyFiles = 0, parties = 0, orderDiffers = 0, duplicates = 0, overSlots = 0;
+        int withCreature = 0, creatureNoTrigger = 0, triggerNoCreature = 0, maxPartyId = -1;
+        foreach (string file in Directory.EnumerateFiles(partyMaps, "*Things.kld")
+                     .Order(StringComparer.OrdinalIgnoreCase))
+        {
+            partyFiles++;
+            var seen = new HashSet<byte>();
+            int index = 0;
+            foreach (HeroPartyThing party in KwdThings
+                         .Parse(KwdReader.ReadFile(file)).OfType<HeroPartyThing>())
+            {
+                parties++;
+                if (party.PartyId != index) orderDiffers++;
+                if (!seen.Add(party.PartyId)) duplicates++;
+                if (party.PartyId >= 24) overSlots++;
+                maxPartyId = Math.Max(maxPartyId, party.PartyId);
+                index++;
+                foreach (GoodCreatureThing member in party.Members)
+                {
+                    if (member.CreatureId != 0)
+                    {
+                        withCreature++;
+                        if (member.TriggerId == 0) creatureNoTrigger++;
+                    }
+                    else if (member.TriggerId != 0)
+                    {
+                        triggerNoCreature++;
+                    }
+                }
+            }
+        }
+        Console.WriteLine($"{partyFiles} THINGS files, {parties} HERO_PARTY records, ids 0..{maxPartyId}");
+        Console.WriteLine($"  {orderDiffers} whose PartyId differs from their position in the file");
+        Console.WriteLine($"  {duplicates} sharing a PartyId with an earlier party in the same file");
+        Console.WriteLine($"  {overSlots} with a PartyId past the 24 runtime slots");
+        Console.WriteLine($"  {withCreature} members carry a creature id, {creatureNoTrigger} of those no trigger");
+        Console.WriteLine($"  {triggerNoCreature} members carry a trigger but no creature id");
+        return 0;
+    }
+
     case "kwd" when args.Length >= 3 && args[1] == "triggers":
     {
         // One level's trigger records with their links and decoded parameters.
@@ -2188,6 +2237,7 @@ static int Usage()
     Console.WriteLine("  kwd triggers <file> [tag] [type]        one level's triggers, their links and parameters");
     Console.WriteLine("  kwd corpus                             parse and round-trip the shipped KWD/KLD corpus");
     Console.WriteLine("  kwd things [file.kld]                  placed entities of one level, or the corpus");
+    Console.WriteLine("  kwd parties                            how shipped HERO_PARTY records map onto the 24 runtime slots");
     Console.WriteLine("  kwd creaturescan <name> <value>        the same, anchored on one creature");
     Console.WriteLine("  kwd creaturehex <offsetHex> <count>    raw byte window across every creature");
     Console.WriteLine("  kwd objecthex <offsetHex> <count> [-w]  the same across every object; -w reads u16s");
@@ -2211,16 +2261,20 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
     LevelDef? level = GameDatabaseLoader.LoadCampaignLevel(install, levelName);
     List<TriggerRecord>? records = GameDatabaseLoader.LoadCampaignTriggers(install, levelName);
     List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName);
-    if (map is null || level is null || records is null || players is null)
+    List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, levelName);
+    if (map is null || level is null || records is null || players is null || things is null)
     {
-        Console.Error.WriteLine($"'{levelName}' is missing map, level, trigger or player data.");
+        Console.Error.WriteLine($"'{levelName}' is missing map, level, trigger, player or thing data.");
         return 2;
     }
 
     GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, levelName);
     WorldState world = WorldState.FromMap(
         database, map, players.Select(p => p.PlayerId).ToArray());
-    var tree = new TriggerTree(records, level.TriggerId);
+    // The parties come from THINGS, not TRIGGERS, and without them twenty-four of the
+    // world's twenty-five roots are empty and most of a level's script never runs.
+    HeroPartyThing[] parties = things.OfType<HeroPartyThing>().ToArray();
+    var tree = new TriggerTree(records, level.TriggerId, parties);
     var simulation = new GameSimulation(database, world, seed: 0, triggers: tree);
 
     using (var writer = new StreamWriter(outPath))
@@ -2229,11 +2283,33 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
         for (int i = 0; i < turns; i++) simulation.Tick();
     }
 
+    int occupied = tree.Parties.Count(s => s.TriggerId != 0);
     Console.WriteLine($"{levelName}: {turns} turns, root trigger {tree.RootTriggerId} "
-        + $"repeat {tree.RootRepeat} -> {outPath}");
+        + $"repeat {tree.RootRepeat}, {occupied} occupied party roots -> {outPath}");
+
+    // The roots this executor does NOT walk. The world walker is one of four -- there are
+    // also player, creature and action-point walkers, each with its own root per entity --
+    // so a level can hang almost all of its script somewhere this run cannot reach, and an
+    // empty output column then says nothing about the rule under test. Print the count so
+    // a reader can tell "we got it wrong" from "we never looked".
+    ushort[] playerRoots = players.Where(p => p.TriggerId != 0).Select(p => p.TriggerId).ToArray();
+    int apRoots = things.OfType<ActionPointThing>().Count(a => a.TriggerId != 0);
+    int creatureRoots = things.OfType<KeeperCreatureThing>().Count(c => c.TriggerId != 0)
+        + things.OfType<GoodCreatureThing>().Count(c => c.TriggerId != 0);
+    Console.WriteLine($"  not walked here: {apRoots} action point, {creatureRoots} creature, "
+        + $"{playerRoots.Length} player roots [{string.Join(",", playerRoots)}]");
     foreach ((int tag, byte type, int count) in
              (simulation.LastTriggerRun?.Summary ?? []).OrderByDescending(s => s.Count))
         Console.WriteLine($"  blocked tag {tag} type {type}: {count}");
+
+    // Say plainly what ran only in part. Action type 14 arms a party's subtrees and does
+    // not create its creatures, so anything downstream that waits on a hero existing --
+    // being killed, reaching a point, being fought -- cannot happen in this run, and a
+    // divergence there is ours, not a finding about DK2.
+    foreach ((int tag, byte type, int count) in
+             (simulation.LastTriggerRun?.PartialSummary ?? []).OrderByDescending(s => s.Count))
+        Console.WriteLine($"  PARTIAL tag {tag} type {type}: {count} "
+            + "-- parties armed, no creatures created");
     return 0;
 }
 

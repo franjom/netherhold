@@ -320,12 +320,26 @@ holds a 3000/2800 value. Both were fixed by **searching for the roster the mecha
 select** rather than for the place it ought to live — `dk2tools kwd creaturebits` does that,
 and is the reusable half.
 
+## The other three trigger walkers — Q239–Q241
+
+The world walker is one of four. Campaign level 1 keeps almost none of its script
+in it, which is how these got numbered: implementing condition 34 and action
+type 14's arming half moved nothing measurable, because trigger 89's chain is two
+party spawns and the level runs off its **player** root, trigger 1. See
+`trigger-tree.md`, "Implementation boundary".
+
+| Q | Question | What is known | How to settle it |
+|---|---|---|---|
+| Q239 | **What drives the player, creature and action-point trigger walkers, and how often?** `FUN_004C79A0`, `0x0049A980` and `0x004B0CC0` each walk roots the world walker never sees — level 1 alone has 1 player, 4 creature and 15 | The world walker's cadence is settled (Q228: once a game turn, from the world frame at vtable slot `0x18`). Nothing equivalent holds for the other three, whose roots come from three other places: `PlayerDef.TriggerId`, each creature THING's, each `ActionPointThing`'s | Same method that closed Q228: find each walker's single caller and the slot it hangs off, rather than scanning for callers by name. **Do this before any further world-tree work is measured against a live capture** — on level 1 nothing in the world tree can move the numbers |
+| Q240 | **What is bit `0x200000` of `+0x3E6`, which lets action type 14 arm nothing and still report success?** | With body byte `01` (`PartyType`) non-zero, the handler scans an entity list for a match on the party id and returns 1 early when that bit is clear (`0x00519FE4` to `0x0051A747`). 244 of 259 shipped type-14 records carry `PartyType` 0 and cannot reach it; 14 carry 2 and one carries 1 | Decompile the entity type whose `+0x417` the scan matches, then watch the bit across a level that ships a non-zero `PartyType`. Our executor models the byte-zero path only and says so |
+| Q241 | **What sets bit `0x40` of the world byte at `+0x7239`, which skips the level initialiser's party-disable sweep entirely?** (`0x0050C280`) | Nothing traced writes it. If it is ever set, all 24 party subtrees keep their authored active state instead of starting disabled, which would let party script run before any type 14 fires | A restored save is the obvious guess and no more than that. Find the writer before believing it. Our loader always runs the sweep |
+
 ## Numbering
 
 New questions take the number after the highest in this file. Rows are never renumbered,
 reordered or deleted, so file order is not numeric order: Q46–Q48 sit among Q22–Q31,
 Q60–Q61 and Q49–Q51 precede Q52, Q55x precedes Q55, Q135 precedes Q134, Q125 and Q120–Q123
 follow Q134, Q166 follows Q179, Q187 and Q189 precede Q184, Q214–Q219 follow Q209, and
-**Q210–Q213 sit after Q234** in the Hero Portal section above, with Q235–Q238 after them.
+**Q210–Q213 sit after Q234** in the Hero Portal section above, with Q235–Q241 after them.
 **Q39 appears twice** and both rows are kept; Q37a/Q37b, Q55x and Q118c are separate
 suffixed ids, not duplicates. **Q121 was never allocated** and must not be reused.

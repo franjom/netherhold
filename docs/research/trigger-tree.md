@@ -14,6 +14,9 @@ semantics or add an executor to the reimplementation.
 | `ChildTriggerId` is visited only after the current condition or action succeeds | **Strongly inferred** | Calls from `0x005181C6` and `0x00518242`, after each dispatcher succeeds |
 | A condition's `RepeatCount` is passed to its child chain; value 1 retires each successful action | **Strongly inferred** | Byte `+0x0F` is the recursive argument; the action path clears its active bit only when that byte equals 1 |
 | Across all 9,161 shipped records, every non-zero child and next link resolves within its file | **Known** | Exhaustive read of 66 shipped trigger files |
+| The arming walk enters a condition's child chain but never an action's | **Strongly inferred** | `0x00519A6A` reads `+0x0C`; the action arm at `0x00519AE1` reads only `+0x0A` |
+| Action type 14's member gate is the creature id at member `+0x1C` | **Strongly inferred** | `TEST AL,AL` at `0x0051A1CF` on the copied member record |
+| Every shipped party member carrying a trigger id also carries a creature id | **Known** | 66 THINGS files, 220 parties, 947 occupied member slots (`dk2tools kwd parties`) |
 
 `Confirmed` is reserved for an observation of the running game. These control-
 flow claims come from the binary.
@@ -88,6 +91,20 @@ byte; disabling writes 0. Each setter has exactly one caller: `FUN_00519A20`, a
 second recursive walk that resolves ids by the same rules as the evaluator above
 and applies the flag to every record in a subtree.
 
+**That walk does not descend an action's children.** Its condition arm reads
+`+0x0C` and then `+0x0A` (`0x00519A6A`, `0x00519A80`); its action arm reads only
+`+0x0A` (`0x00519AE1`). So a subtree hanging under an action is reached by
+neither the load-time disable nor the runtime arm, and keeps whatever state its
+own initialiser gave it — active for an action, and for a condition only if its
+authored `RepeatCount` is non-zero. Anything an author hangs below an action
+inside a party subtree therefore does **not** come alive with the rest of it.
+
+The two setters differ in one more way. Enabling a condition writes **1** to its
+repeat byte and disabling writes 0 (`0x00508660`); the action setter
+(`0x00508840`) writes **only** bit 0 of `+0x10` and never touches `+0x0F`, in
+either direction. No walk reads an action's repeat byte, so this is invisible in
+play and visible in a state hash.
+
 That walk is reached from two places, and they pull in opposite directions:
 
 | caller | flag | when |
@@ -120,24 +137,65 @@ That fixes the record exactly, and it fills without a byte to spare:
 
 `8 + 16 * 0x20 = 0x208`. The loader's disable sweep reads exactly these
 seventeen ids — the member ids are its `+0x20`-stride reads — and **disables
-every one of those subtrees** before the level runs.
+every one of those subtrees** before the level runs (`0x0050C289` to
+`0x0050C2D9`: sixteen reads from `+0x20` at stride `0x20`, then the party's own
+at `+0x00`, times 24 slots). Unlike the runtime arm it **gates on nothing** but
+the id being non-zero: an unoccupied member slot is disabled here and, because
+the arm skips it, never re-enabled.
 
-**Action type 14 creates a party**, and for once the transcribed names hold. Body
-byte `00` is the table index (traced to arg 1 at `0x0051A16C`; `AND EAX,0xff`
-with **no bound check**, though shipped ids run 0..16 against 24 slots). Byte
-`01` is read at entry (`0x00519F98`) and selects a path; it ships as 0, 1 or 2.
-The handler enables the party's subtree, then for each member whose first byte is
-non-zero creates a creature — a block of per-creature setters unpacking a
-bitfield — and enables that member's own subtree. **Byte `04` is not traced**, so
-whether it is the action point the transcription calls it is still UNKNOWN.
+**UNKNOWN — the sweep has an off switch.** The whole loop is skipped when bit
+`0x40` of the world byte at `+0x7239` is set (`0x0050C280`). Nothing traced sets
+it; a restored save is a guess and no more than that.
+
+**Which slot a shipped party lands in is not decided by the data.** Action type
+14 selects by id, so a reimplementation should too — but across 66 THINGS files
+and 220 parties, no party's `PartyId` differs from its position in its file and
+none repeats (`dk2tools kwd parties`). Ids reach 19. The two readings are
+indistinguishable in the shipped campaign, and only the consumer's arithmetic
+picks between them.
+
+**Action type 14 creates a party**, and all three of its named bytes now hold.
+The call site at `0x00519182` pushes them in a fixed order — byte `00`, byte
+`04`, byte `01` — which makes them arguments 1, 2 and 3:
+
+| body byte | argument | what the handler does with it |
+|---|---|---|
+| `00` `PartyId` | 1 | `AND EAX,0xff`, `* 0x208`, index `+0x4030` (`0x0051A16C`). **No bound check**; shipped ids run 0..19 against 24 slots |
+| `04` `ActionPointId` | 2 | matched against `[obj+0x37]` (`0x0051A035`), then the object's `+0x38`..`+0x3E` bounds become a centre in `Fp32` (`SHL 0xc`, `ADD 0x800`) — the spawn point |
+| `01` `PartyType` | 3 | tested at entry (`0x00519F98`); zero skips a preliminary scan entirely. Ships as 0 (244 records), 2 (14) or 1 (1) |
+
+The handler enables the party's subtree (`0x0051A197`), then loops the sixteen
+member slots: **a slot is skipped when the byte at member `+0x1C` is zero**
+(`0x0051A1CF`) — the creature id, since the runtime member record is the
+THINGS-file member copied verbatim and `+0x18`/`+0x1C` are its trigger and
+creature ids. Otherwise it creates a creature — a block of per-creature setters
+unpacking a bitfield — and enables that member's own subtree (`0x0051A594`).
+
+**UNKNOWN — the guarded early return.** When `PartyType` is non-zero the handler
+first walks an entity list for a match on the party id, and if bit `0x200000` of
+that entity's `+0x3E6` is clear it **returns 1 having armed nothing**
+(`0x00519FE4` to `0x0051A747`). What that bit means is untraced. It cannot be
+reached with `PartyType` zero, which is 244 of the 259 shipped records and both
+of campaign level 1's.
 
 `+0x10` is initialised to **2**, not to 0 or 1: both initialisers set bit 1 and
 only bit 0 varies. What bit 1 means is UNKNOWN; nothing above reads it.
 
 ## Implementation boundary
 
-`TriggerExecutor` walks this tree once per turn and runs action types 7 and 8
-only; everything else is counted, not guessed. Type 14 is the one whose absence
-is structural rather than incidental — level 1's root fires two of them, and
-until they run the party subtrees stay disabled, so most of the level's script
-never arms. Its creature-creation half needs its own reads before it can ship.
+`TriggerExecutor` walks all twenty-five roots once per turn, starts every party
+subtree disabled, and runs action types 7, 8 and 14. Type 14 runs **in part**:
+it arms the party's and its occupied members' subtrees and creates no creatures.
+That half is counted in `TriggerRunResult.Partial` rather than reported as
+success, because a level whose script waits on a hero existing — being killed,
+reaching a point, being fought — cannot proceed, and a divergence there is ours.
+Everything else is blocked and counted, not guessed.
+
+**What this walker is not.** It is one of four. The player, creature and area
+walkers (`0x004C79A0`, `0x0049A980`, `0x004B0CC0`) each have their own roots per
+entity, and a level is free to keep almost all of its script in them. Campaign
+level 1 does exactly that: its world root, trigger 89, spawns two parties and
+ends, while the chain that runs the level hangs off its single **player** root,
+trigger 1. So an empty column in this executor's output is not evidence about a
+rule — most often it means nothing here ever looked. `dk2tools trigger-run`
+prints the count of roots it did not walk for that reason.

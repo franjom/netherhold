@@ -101,12 +101,13 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 41: mutable trigger-record activation enters the hash;
-        // this fixture has no trigger tree, so its stable contribution is zero.
-        // The pinned world spawns no creatures (Q206), so a CreatureState field
-        // left out of HashInto will not fail this pin. Per-version reasons and
-        // the superseded literals: docs/research/hash-versions.md.
-        Assert.Equal(0xDEF9B4B1985D90DEUL, sim.StateHash());
+        // HashVersion 42: condition type 34, action type 14's arming half, and the
+        // twenty-four party roots. This fixture has no trigger tree and no parties, so
+        // none of that contributes here and only the version constant moved the literal —
+        // which is the point of hashing the version. The pinned world spawns no creatures
+        // (Q206), so a CreatureState field left out of HashInto will not fail this pin.
+        // Per-version reasons and the superseded literals: docs/research/hash-versions.md.
+        Assert.Equal(0xFFCC4119CA233DA7UL, sim.StateHash());
     }
 
     [Fact]

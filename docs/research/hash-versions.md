@@ -33,7 +33,13 @@ beside it.
 
 ## Versions
 
-**41** — `0xDEF9B4B1985D90DE` (current). Trigger-record active and repeat state,
+**42** — `0xFFCC4119CA233DA7` (current). The world walker gains condition type 34
+(level time), the arming half of action type 14, and the twenty-four party roots
+— with the load-time sweep that starts every party subtree disabled. Only the
+version constant moves this fixture's literal: it has no trigger tree and no
+parties, so none of the new state exists in it. `docs/research/trigger-tree.md`.
+
+**41** — `0xDEF9B4B1985D90DE`. Trigger-record active and repeat state,
 including one-shot action retirement, enters the hash and snapshot. The fixture
 has no trigger tree, so its record count remains zero.
 

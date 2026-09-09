@@ -36,6 +36,22 @@ move as one. **It may not be read for turn numbers**, and a future comparison
 that scores cell-by-cell equality against a played capture will manufacture
 divergences that are only the player.
 
+**2026-09-09, level 1, ours vs run 5, after condition 34 and the party roots.**
+The event set is **unchanged**: 48 columns fire in DK2, 0 in ours, 0 in ours
+alone. Not a regression and not a null result — it is where the diagnosis above
+was wrong. Trigger 89 now evaluates and both its type-14 children arm their
+parties, but its chain ends there: level 1 keeps its script on its **player**
+root, trigger 1, and no walker we have visits it. The world tree of this level
+is two party spawns and one party root (trigger 213, a type-64 condition, the
+single blocked record left). **Nothing measurable will move on level 1 until the
+player walker exists**, so the next comparison to run against these captures is
+not another world-tree change.
+
+Method note: judge these by event set. The per-column report from
+`trigger-diff` now shows large per-turn difference counts wherever we and DK2
+both write a column, and by the calibration above most of that is the player,
+not the rule.
+
 **What the owner can settle by playing is not here.** It is
 `docs/research/observation-checklist.md`, which is the working list of
 single-question experiments; this file is for paired runs of the same scenario.

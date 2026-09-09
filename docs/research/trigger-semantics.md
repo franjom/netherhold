@@ -80,11 +80,20 @@ which is the caveat above, restated with the table filled in.
 `0x0051829D` takes byte `00` as the comparison, the dword at `+4`, and calls
 `FUN_00517490` — the game-turn accessor (`trigger-state.md` §6). The loader
 scales that dword by variable 19 (Q233), so the authored value is **seconds
-since the level began**. 325 records ship it. Campaign level 1's root is trigger
-89: type 34, comparison 5 (`>=`), value 0 — true on turn 1 — with `next = 0` and
-two type-14 children. **The entire level hangs off that one node**, so an
-executor lacking type 34 fires nothing at all, which is exactly what the first
-two-sided capture showed.
+since the level began**. 325 records ship it. Campaign level 1's world root is
+trigger 89: type 34, comparison 5 (`>=`), value 0 — true on turn 1 — with
+`next = 0` and two type-14 children.
+
+**Corrected 2026-09-09: the level does not hang off that node.** Trigger 89's
+whole chain is those two party spawns. The chain that runs the level —
+1 → 10 → 15 → 31, carrying the timers and flags the live captures show moving —
+hangs off trigger **1**, which is level 1's single **player** root, walked by
+`FUN_004C79A0` and not by the world walker at all. Implementing type 34 was
+still necessary and it is still what unblocks trigger 89; it is simply not
+sufficient, and the earlier reading of the first two-sided capture — one blocked
+type-34 record, therefore one missing rule — mistook the world tree for the
+level. Levels distribute their script across four walkers, and this one keeps
+almost none of it here.
 
 **Type 72 is unhandled anyway, and that caveat is why it took nine functions to
 establish it.** Every generic dispatcher bounds the type below 72 — world 67,
