@@ -12,36 +12,26 @@ namespace DK2.Simulation;
 /// <see cref="CreatureDeathRules"/>): a collapsed creature to its own bed inside
 /// <c>CreatureDyingStateDurationSeconds</c> (60), where it heals; a corpse to a
 /// graveyard inside <c>DeadBodyDiesAfterSeconds</c> (also 60).</para>
-/// <para>DK2's imp task table has one kind for each
-/// (docs/research/imp-task-priority.md §4): <b>kind 13</b>, carry an unconscious
-/// creature — its keeper's own to a Lair, an enemy's to a Prison — and
-/// <b>kind 12</b>, carry a corpse to the Graveyard. They are the last two
-/// entries of Tier A, below claiming and above everything found by distance.</para>
-/// </remarks>
+/// <para>DK2's imp task table has one kind for each (imp-task-priority.md §4): kind 13, carry an
+/// unconscious creature — its keeper's own to a Lair, an enemy's to a Prison — and kind 12, carry a
+/// corpse to the Graveyard. They are the last two entries of Tier A, below claiming and above
+/// everything found by distance.</para></remarks>
 public static class CarryRules
 {
-    /// <summary>
-    /// Whether <paramref name="body"/> is something a worker could pick up at
-    /// all — collapsed and rescuable, or dead and carryable.
-    ///
-    /// <para>Says nothing about whether there is anywhere to take it. That is
-    /// <see cref="TryDestinationFor"/>, and the two are separate because a body
-    /// with nowhere to go is a body nobody should walk to.</para>
-    /// </summary>
+    /// <summary>Whether <paramref name="body"/> is something a worker could pick up at all —
+    /// collapsed and rescuable, or dead and carryable. Says nothing about whether there is anywhere
+    /// to take it; that is <see cref="TryDestinationFor"/>, kept separate because a body with
+    /// nowhere to go is a body nobody should walk to.</summary>
     public static bool IsCarryable(CreatureState body) =>
         !body.InHand
         && body.CarriedByCreatureId < 0
         && !PrisonRules.IsImprisoned(body)
         && (CreatureDeathRules.IsDying(body) || CreatureDeathRules.IsCorpse(body));
 
-    /// <summary>
-    /// Whether <paramref name="worker"/> may carry <paramref name="body"/>.
-    ///
-    /// <para>A carrier carries one thing: DK2's imp has one carry slot and so
-    /// has this. A worker already holding a body is not offered another, and a
-    /// worker with gold in its hands is running to a treasury (Q31,
-    /// ADR-0018).</para>
-    /// </summary>
+    /// <summary>Whether <paramref name="worker"/> may carry <paramref name="body"/>. A carrier
+    /// carries one thing, DK2's imp having one carry slot: a worker already holding a body is not
+    /// offered another, and one with gold in its hands is running to a treasury (Q31,
+    /// ADR-0018).</summary>
     public static bool CanCarry(CreatureDef definition, CreatureState worker, CreatureState body)
     {
         if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) return false;
@@ -53,18 +43,14 @@ public static class CarryRules
         return IsCarryable(body);
     }
 
-    /// <summary>
-    /// Where <paramref name="body"/> goes, as a tile index, or -1 for nowhere.
+    /// <summary>Where <paramref name="body"/> goes, as a tile index, or -1 for nowhere.
     /// <list type="bullet">
-    /// <item><b>Collapsed, the carrier's keeper's own</b> — its <i>own bed</i>,
-    /// not any free lair tile; it kept that bed through the collapse so this walk
-    /// would have a destination (<see cref="CreatureDeathRules.Collapse"/>).</item>
-    /// <item><b>Collapsed, somebody else's</b> — a free tile in the worker's
-    /// keeper's nearest <b>Prison</b> (ADR-0064); -1 when none has room, which
-    /// is the manual's own rule.</item>
-    /// <item><b>A corpse</b> — the keeper's nearest Graveyard tile.</item>
-    /// </list>
-    /// </summary>
+    /// <item>Collapsed, the carrier's keeper's own — its own bed, not any free lair tile; it kept
+    /// that bed through the collapse so this walk would have a destination
+    /// (<see cref="CreatureDeathRules.Collapse"/>).</item>
+    /// <item>Collapsed, somebody else's — a free tile in the worker's keeper's nearest Prison
+    /// (ADR-0064); -1 when none has room, which is the manual's own rule.</item>
+    /// <item>A corpse — the keeper's nearest Graveyard tile.</item></list></summary>
     public static int TryDestinationFor(
         WorldState world, GameDatabase database, CreatureState worker, CreatureState body)
     {
@@ -81,14 +67,10 @@ public static class CarryRules
         return LairRules.BedTileIndex(world, database, body);
     }
 
-    /// <summary>
-    /// The keeper's nearest Graveyard tile by straight-line distance, or -1.
-    ///
-    /// <para>Straight-line rather than walked, which is how the original
-    /// measures rooms everywhere else this project has read it — the lair
-    /// finder does the same (ADR-0060). Whether a route exists is settled by the
-    /// pathfinder afterwards, at the one place that can answer it.</para>
-    /// </summary>
+    /// <summary>The keeper's nearest Graveyard tile by straight-line distance, or -1. Straight-line
+    /// rather than walked, which is how the original measures rooms everywhere else this project has
+    /// read it — the lair finder does the same (ADR-0060). Whether a route exists is settled by the
+    /// pathfinder afterwards, at the one place that can answer it.</summary>
     public static int NearestGraveyardTile(
         WorldState world, GameDatabase database, CreatureState worker)
     {
@@ -106,9 +88,8 @@ public static class CarryRules
                 long dy = (tileIndex / world.Width) - worker.Tile.Y;
                 long distance = (dx * dx) + (dy * dy);
 
-                // Ties go to the lower tile index (row-major), the order
-                // RoomInstance keeps its tiles in and every other room walk
-                // here uses.
+                // Ties go to the lower tile index (row-major), the order RoomInstance keeps its
+                // tiles in and every other room walk here uses.
                 if (distance >= bestDistance) continue;
 
                 bestDistance = distance;
@@ -119,20 +100,17 @@ public static class CarryRules
         return best;
     }
 
-    /// <summary>
-    /// Puts <paramref name="body"/> into <paramref name="worker"/>'s arms.
-    ///
-    /// <para>The body keeps every clock it was running: the rescue window does
-    /// not pause for being carried, so an imp with too far to walk arrives with
-    /// a corpse. UNKNOWN whether the original pauses it (Q164).</para>
-    /// </summary>
+    /// <summary>Puts <paramref name="body"/> into <paramref name="worker"/>'s arms. The body keeps
+    /// every clock it was running: the rescue window does not pause for being carried, so an imp
+    /// with too far to walk arrives with a corpse. UNKNOWN whether the original pauses it
+    /// (Q164).</summary>
     public static void PickUp(CreatureState worker, CreatureState body)
     {
         worker.CarriedCreatureId = body.Id;
         body.CarriedByCreatureId = worker.Id;
 
-        // A corpse that was walking when it died would otherwise keep its
-        // route. (Collapsing already clears the path.)
+        // A corpse that was walking when it died would otherwise keep its route; collapsing
+        // already clears the path.
         body.Path.Clear();
         body.PathIndex = 0;
     }
@@ -144,13 +122,9 @@ public static class CarryRules
         body.CarriedByCreatureId = -1;
     }
 
-    /// <summary>
-    /// Moves a carried body to wherever its carrier is.
-    ///
-    /// <para>Called after the mover has run, so a body is never a tick behind
-    /// the arms holding it — which matters because <c>LairRules</c> and the
-    /// graveyard both ask what tile it is standing on.</para>
-    /// </summary>
+    /// <summary>Moves a carried body to wherever its carrier is. Called after the mover has run, so
+    /// a body is never a tick behind the arms holding it — which matters because <c>LairRules</c>
+    /// and the graveyard both ask what tile it is standing on.</summary>
     public static void FollowCarrier(CreatureState worker, CreatureState body)
     {
         body.PosX = worker.PosX;

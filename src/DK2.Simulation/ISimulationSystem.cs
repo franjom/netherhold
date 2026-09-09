@@ -41,19 +41,14 @@ public sealed class SimulationContext
         Events.Emit(new SimEvent(Tick, system, kind, detail));
 }
 
-/// <summary>
-/// One unit of per-tick simulation work.
-///
-/// Systems run in a fixed registration order, once per tick, single-threaded.
-/// Ordering is part of the simulation's definition: two systems that touch the
-/// same state in a different order produce a different game, so the order is
-/// declared explicitly by whoever builds the <see cref="GameSimulation"/> and
-/// is never inferred, sorted or parallelised.
-///
-/// UNKNOWN: the order in which the original updates its own subsystems. When
-/// that starts to matter (M4 onwards) it becomes a research question in its own
-/// right rather than something we settle by convenience.
-/// </summary>
+/// <summary>One unit of per-tick simulation work.</summary>
+/// <remarks>
+/// <para>Systems run in a fixed registration order, once per tick, single-threaded. Order is
+/// part of the simulation's definition — two systems that touch the same state in a different
+/// order produce a different game — so whoever builds the <see cref="GameSimulation"/> declares
+/// it explicitly; it is never inferred, sorted or parallelised.</para>
+/// <para>UNKNOWN: the order in which the original updates its own subsystems.</para>
+/// </remarks>
 public interface ISimulationSystem
 {
     /// <summary>Stable name, used in event logs and divergence reports.</summary>

@@ -24,26 +24,18 @@ public readonly record struct ThingProjectionResult(
     public int Placed => Creatures + Objects + ActionPoints;
 }
 
-/// <summary>
-/// Turns a level's placed THINGS records into world contents.
-///
-/// <para><b>What a THING's coordinates are.</b> Bare tile indices. They are
-/// 32-bit ints and the simulation carries positions in fixed-point subtile
-/// units (<see cref="Fp32"/>, 4096 to the tile), so the natural reading is that
-/// they are the same units — and they are not. Across all 66 shipped levels the
-/// coordinates run x 0..118 and y 0..102 against a largest map of 121x105, and
-/// not one of the 6279 records lands outside its own level's grid; under the
-/// subtile reading every single one would. <c>dk2tools kwd things</c> with no
-/// argument re-checks it.</para>
-///
-/// <para><b>What this places, and what it deliberately does not.</b> Creatures,
-/// objects and action points, because <see cref="WorldState"/> holds each as
-/// simulation state. Doors, traps, hero parties and effect generators are read
-/// from the file and counted, but the world has nowhere to put them yet — see
-/// the remarks on
-/// <see cref="ThingProjectionResult.NotYetProjected"/> below and Q222–Q224.
-/// Action points are hashed world state (ADR-0103).</para>
-/// </summary>
+/// <summary>Turns a level's placed THINGS records into world contents.</summary>
+/// <remarks>
+/// <para>A THING's coordinates are bare tile indices, not the fixed-point subtile units the
+/// simulation carries positions in (<see cref="Fp32"/>, 4096 to the tile). Across all 66 shipped
+/// levels they run x 0..118 and y 0..102 against a largest map of 121x105, and not one of the 6279
+/// records lands outside its own level's grid; under the subtile reading every one would.
+/// <c>dk2tools kwd things</c> re-checks it.</para>
+/// <para>Places creatures, objects and action points, because <see cref="WorldState"/> holds each
+/// as simulation state (action points are hashed state, ADR-0103). Not implemented: doors, traps,
+/// hero parties and effect generators are read and counted but the world has nowhere to put them
+/// (<see cref="ThingProjectionResult.NotYetProjected"/>, Q222–Q224).</para>
+/// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/placed-things.md")]
 public static class ThingProjection
 {
@@ -145,13 +137,11 @@ public static class ThingProjection
         state.Level = CreatureLevelRules.Clamp(thing.Level);
         state.GoldHeld = thing.GoldHeld;
 
-        // No floor on the result, deliberately. A creature that rounded to zero
-        // health would die on the tick it arrived, so the obvious move is to
-        // clamp to 1 — but the clamp could never fire: the smallest Hp in the
-        // shipped table is 240, the smallest placed percentage is 5, and the
-        // level curve only ever scales health up. A branch that cannot run is a
-        // branch nobody maintains, so the guarantee is asserted in
-        // PlacedThingsOnRealDataTests instead of being defended against here.
+        // No floor on the result, deliberately: a creature that rounded to zero health would die on
+        // the tick it arrived, but the clamp could never fire — the smallest Hp in the shipped table
+        // is 240, the smallest placed percentage is 5, and the level curve only scales health up. A
+        // branch that cannot run is a branch nobody maintains, so the guarantee is asserted in
+        // PlacedThingsOnRealDataTests instead.
         CreatureDef def = database.CreatureById(creatureTypeId);
         int max = CreatureLevelRules.MaxHealth(database, def, state.Level);
         state.Health = max * initialHealthPercent / FullHealthPercent;

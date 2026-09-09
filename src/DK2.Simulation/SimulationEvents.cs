@@ -6,15 +6,11 @@ using DK2.Core;
 
 namespace DK2.Simulation;
 
-/// <summary>
-/// Something the simulation did, recorded for observation only.
-///
-/// Events are the harness's and the oracle comparison's window into the
-/// simulation. They are strictly write-only from the simulation's point of
-/// view: nothing in the simulation ever reads an event back, so attaching a
-/// recorder cannot change behaviour. That property is asserted by
-/// <c>DeterminismTests.EventRecording_DoesNotAffectState</c>.
-/// </summary>
+/// <summary>Something the simulation did, recorded for observation only.</summary>
+/// <remarks>Events are the harness's and the oracle comparison's window into the simulation,
+/// and are strictly write-only: nothing in the simulation ever reads an event back, so
+/// attaching a recorder cannot change behaviour. Asserted by
+/// <c>DeterminismTests.EventRecording_DoesNotAffectState</c>.</remarks>
 /// <param name="Tick">The tick during which it happened.</param>
 /// <param name="System">Which system emitted it.</param>
 /// <param name="Kind">Stable machine-readable event name.</param>

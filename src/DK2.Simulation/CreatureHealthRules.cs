@@ -8,49 +8,28 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>Health and hunger.</summary>
-/// <remarks>
-/// <para>Every number is the shipped data's: maximum health is the record's
-/// <c>Hp</c>, own-land regeneration its <c>OwnLandHealthIncreasePerSecond</c>,
-/// lair healing <c>ModifyHealthOfCreatureInLairPerSecond</c>, hunger its
-/// <c>HungerRate</c> and <c>HungerFill</c>. The readings that are ours are
-/// called out at the methods making them (docs/research/creature-needs.md).</para>
-/// <para>Own-land regeneration is a no-op for 44 of the 46 creatures: only the
-/// Imp (67 a second) and King Reginald (400) carry a rate. Going unfed costs no
-/// health — the price is anger (the record's <c>angerNoFood</c>, 100 for a
-/// Goblin) and no balance variable turns hunger into damage.</para>
-/// </remarks>
+/// <remarks><para>Every number is the shipped data's: maximum health is the record's <c>Hp</c>,
+/// own-land regeneration its <c>OwnLandHealthIncreasePerSecond</c>, lair healing
+/// <c>ModifyHealthOfCreatureInLairPerSecond</c>, hunger its <c>HungerRate</c> and <c>HungerFill</c>; readings that are ours are called out at the method making them.</para>
+/// <para>Own-land regeneration is a no-op for 44 of the 46 creatures: only the Imp (67 a second) and King Reginald (400) carry a rate. Going unfed costs no health — the price is anger (the record's <c>angerNoFood</c>, 100 for a Goblin), and no balance variable turns hunger into damage.</para></remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-needs.md")]
 public static class CreatureHealthRules
 {
-    /// <summary>
-    /// The 32767 that means "never" in the creature record — a general
-    /// sentinel, per need rather than per creature. <c>short.MaxValue</c> in a
-    /// wider field, so a saturated 16-bit value rather than a meaningful one —
-    /// and 32767 seconds is nine hours of play either way.
-    /// <para>Eight creatures never get hungry (Imp, Vampire, Skeleton, Horny,
-    /// Stone Knight and the unique Firefly, Skeleton and Vampire); six never
-    /// sleep (Imp, Skeleton, Dwarf, Horny, Stone Knight, Unique Skeleton).
-    /// Neither set contains the other — the Vampire sleeps but never eats, the
-    /// Dwarf eats but never sleeps — which rules out a single "undead" flag, so
-    /// <c>CreatureNeedsOnRealDataTests</c> asserts both sets by name.</para>
-    /// </summary>
+    /// <summary>The 32767 that means "never" in the creature record — <c>short.MaxValue</c> in a
+    /// wider field, so a saturated 16-bit value, per need rather than per creature. Eight creatures
+    /// never get hungry (Imp, Vampire, Skeleton, Horny, Stone Knight and the unique Firefly,
+    /// Skeleton and Vampire); six never sleep (Imp, Skeleton, Dwarf, Horny, Stone Knight, Unique Skeleton). Neither set contains the other — the Vampire sleeps but never eats, the Dwarf eats but never sleeps — which rules out a single "undead" flag, so <c>CreatureNeedsOnRealDataTests</c> asserts both sets by name.</summary>
     public const int Never = short.MaxValue;
 
-    /// <summary>
-    /// Maximum health: the record's <c>Hp</c> scaled by the creature's level
-    /// (<see cref="CreatureLevelRules"/>), which is why it takes the state and
-    /// the database. There is deliberately no level-free overload — a call that
-    /// forgot the level would cap a level-10 Goblin at 1500 instead of 9000.
-    /// </summary>
+    /// <summary>Maximum health: the record's <c>Hp</c> scaled by the creature's level
+    /// (<see cref="CreatureLevelRules"/>), which is why it takes the state and the database. There
+    /// is deliberately no level-free overload — one would cap a level-10 Goblin at 1500, not 9000.</summary>
     public static int MaxHealth(
         GameDatabase database, CreatureDef creature, CreatureState state) =>
         CreatureLevelRules.MaxHealth(database, creature, state.Level);
 
-    /// <summary>
-    /// Applies a health change and clamps it. Positive heals, negative hurts.
-    /// Returns the amount that actually landed, which is less than asked for at
-    /// either end.
-    /// </summary>
+    /// <summary>Applies a health change and clamps it: positive heals, negative hurts. Returns the
+    /// amount that actually landed, which is less than asked for at either end.</summary>
     public static int Apply(
         GameDatabase database, CreatureDef creature, CreatureState state, int delta)
     {
@@ -60,81 +39,52 @@ public static class CreatureHealthRules
         return state.Health - before;
     }
 
-    /// <summary>
-    /// Whether this creature is at or below
-    /// <c>CreatureCriticalHealthPercentageOfMax</c> (20%) of its maximum.
-    ///
-    /// <para>No simulation reader, and DK2 has none either: a raw scan of every
-    /// initialised block for the variable's cached global finds one reference,
-    /// the loader writing it (re-checked 2026-09-07; ADR-0085). Kept because the
-    /// variable is shipped and named. The number a knocked-out creature actually
-    /// gets is <see cref="KnockoutHealth"/>, a sixth, read from the damage
-    /// path.</para>
-    /// </summary>
+    /// <summary>Whether this creature is at or below <c>CreatureCriticalHealthPercentageOfMax</c>
+    /// (20 %) of its maximum. No simulation reader, and no reader found in DK2 either: a raw scan of
+    /// every initialised block for the variable's cached global finds one reference, the loader
+    /// writing it (2026-09-07; ADR-0085). Kept because the variable is shipped and named. The number a knocked-out creature actually gets is <see cref="KnockoutHealth"/>, a sixth, read from the damage path.</summary>
     public static bool IsCriticallyHurt(
         GameDatabase database, CreatureDef creature, CreatureState state) =>
         state.Health * 100
             <= MaxHealth(database, creature, state)
                * database[VariableTypeId.CreatureCriticalHealthPercentageOfMax];
 
-    /// <summary>
-    /// The sixth in <see cref="KnockoutHealth"/> — and the number of petals on
-    /// the flower above a creature's head, which is not a coincidence.
-    /// </summary>
+    /// <summary>The sixth in <see cref="KnockoutHealth"/> — and the number of petals on the flower
+    /// above a creature's head, which is not a coincidence.</summary>
     public const int KnockoutFraction = 6;
 
-    /// <summary>
-    /// What a creature has left the moment it is knocked out: exactly one sixth
-    /// of its maximum, and a flower has exactly six petals (Q171).
-    /// <para>DK2's <c>ModifyHealth</c> applies the delta and then, if the result
-    /// went below zero and the creature is not already dying, sets health to
-    /// <c>maxHealth / 6</c> and raises the <c>CreatureDying</c> flag — computed
-    /// as <c>100 * max / 6 / 100</c>, a sixth expressed as a percentage. Damage
-    /// taken <i>while</i> dying misses that branch, goes negative and kills.
-    /// STRONGLY INFERRED (binary). Open: one sixth is one petal but the owner
-    /// counts two in a cell (Q167) — display, not health. Trap: it is not
-    /// <c>CreatureCriticalHealthPercentageOfMax</c>.</para>
-    /// </summary>
+    /// <summary>What a creature has left the moment it is knocked out: exactly one sixth of its
+    /// maximum, and a flower has exactly six petals (Q171). DK2's <c>ModifyHealth</c> applies the
+    /// delta and then, if the result went below zero and the creature is not already dying, sets
+    /// health to <c>maxHealth / 6</c> and raises the <c>CreatureDying</c> flag — computed as
+    /// <c>100 * max / 6 / 100</c>. Damage taken while dying misses that branch, goes negative and kills. STRONGLY INFERRED (binary). Open: one sixth is one petal but the owner counts two in a cell (Q167) — display, not health. Trap: it is not <c>CreatureCriticalHealthPercentageOfMax</c>.</summary>
     public static int KnockoutHealth(
         GameDatabase database, CreatureDef creature, CreatureState state) =>
-        // DK2: 100 * max / 6 / 100. At least one, because a creature brought
-        // round at nothing is a creature that dies on the tick it wakes.
+        // DK2: 100 * max / 6 / 100, floored at one — a creature brought round at nothing dies on the tick it wakes.
         Math.Max(1, MaxHealth(database, creature, state) / KnockoutFraction);
 
-    /// <summary>
-    /// Whether this creature is hurt enough that DK2 sends it to bed —
-    /// <c>CreatureSleepsWhenBelowPercentHealth</c>, which is 50. The condition
-    /// that makes a wounded creature lie down without being tired; read by
-    /// <see cref="LairRules"/> and <see cref="Systems.CreatureSleepSystem"/>.
-    /// </summary>
+    /// <summary>Whether this creature is hurt enough that DK2 sends it to bed —
+    /// <c>CreatureSleepsWhenBelowPercentHealth</c>, 50. The condition that makes a wounded creature
+    /// lie down without being tired; read by <see cref="LairRules"/> and <see cref="Systems.CreatureSleepSystem"/>.</summary>
     public static bool ShouldSleepFromWounds(
         GameDatabase database, CreatureDef creature, CreatureState state) =>
         state.Health * 100
             < MaxHealth(database, creature, state)
               * database[VariableTypeId.CreatureSleepsWhenBelowPercentHealth];
 
-    /// <summary>
-    /// Health per second for a creature standing on land its own keeper owns —
-    /// the record's <c>OwnLandHealthIncreasePerSecond</c>, or 0 off its own
-    /// land.
-    ///
-    /// <para>The tile test is ours: HYPOTHESIS (Q100). It compares the tile's
-    /// owner against the creature's, as OpenKeeper does. UNKNOWN whether DK2
-    /// also requires the creature to be idle, or excludes it while fighting or
-    /// working.</para>
-    /// </summary>
+    /// <summary>Health per second for a creature standing on land its own keeper owns — the record's
+    /// <c>OwnLandHealthIncreasePerSecond</c>, or 0 off its own land. The tile test is ours:
+    /// HYPOTHESIS (Q100), comparing the tile's owner against the creature's as OpenKeeper does.
+    /// UNKNOWN whether DK2 also requires the creature to be idle, or excludes it while fighting or working.</summary>
     public static int OwnLandRegenPerSecond(
         WorldState world, CreatureDef creature, CreatureState state)
     {
         int rate = creature.OwnLandHealthIncreasePerSecond;
         if (rate == 0) return 0;
 
-        // Standing on your own land does not pick you up off the floor: Q99
-        // gives exactly one route back from a collapse, an imp carrying the
-        // creature to its bed. Without this an Imp, which regenerates 67 a
-        // second at home, would be unkillable on its own territory. Lair healing
-        // is deliberately not gated this way - healing a creature at zero health
-        // in its own bed is what a rescue is.
+        // Standing on your own land does not pick you up off the floor (Q99 gives one route back
+        // from a collapse: an imp carrying the creature to its bed), or an Imp would be unkillable
+        // at home. Lair healing is deliberately not gated this way — that is what a rescue is.
         if (CreatureDeathRules.IsDown(state)) return 0;
 
         TilePos at = state.Tile;

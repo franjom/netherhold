@@ -22,6 +22,15 @@ public sealed class TriggerRunResult
 }
 
 /// <summary>Immutable records and the root arguments used by the world walker.</summary>
+/// <remarks>
+/// <para>Rule: trigger ids are signed 16-bit. A positive id selects a tag 213
+/// condition, a negative id a tag 214 action, zero ends a chain. A non-zero id
+/// with no record falls back to the first record of that tag. No other tag loads.</para>
+/// <para>Source: DKII.EXE 0x00518150 — STRONGLY INFERRED
+/// (docs/research/trigger-tree.md "The walk"). The fallback is unreachable in
+/// shipped data: all 9,161 records across the 66 shipped trigger files resolve
+/// inside their own file.</para>
+/// </remarks>
 public sealed class TriggerTree
 {
     private readonly Dictionary<ushort, TriggerRecord> _conditions = [];
@@ -47,8 +56,11 @@ public sealed class TriggerTree
 
         FirstCondition = Records.FirstOrDefault(r => r.Tag == 213);
         FirstAction = Records.FirstOrDefault(r => r.Tag == 214);
-        // DK2 copies the resolved root condition's own repeat byte here.
-        // Resolve also preserves its first-condition fallback for a missing id.
+        // The level initialiser copies the resolved root record's own RepeatCount
+        // byte into world +0x731A — STRONGLY INFERRED (docs/research/trigger-state.md,
+        // "+0x731A is the root trigger's repeat count"). Resolve keeps the binary's
+        // first-record fallback here, which
+        // TriggerExecutorTests.RootRepeatComesFromResolvedRootIncludingFirstRecordFallback pins.
         RootRepeat = Resolve(unchecked((short)rootTriggerId))?.RepeatCount ?? 0;
     }
 
@@ -67,10 +79,18 @@ public sealed class TriggerTree
     }
 }
 
-/// <summary>
-/// Walks one world trigger tree and executes only established flag and timer actions.
-/// Unsupported records block their child chain and are returned as a census.
-/// </summary>
+/// <summary>Walks one world trigger tree, executing only flag (action type 7) and timer
+/// (type 8) actions; unsupported records block their child chain and are censused in
+/// <see cref="TriggerRunResult.Summary"/>.</summary>
+/// <remarks>
+/// <para>Rule: a record is evaluated only while its active bit is set; a child chain is
+/// entered only after the record succeeds; the next sibling is visited either way. A
+/// condition passes its own repeat count to its children, an action passes the inherited
+/// value through, and inherited value 1 clears a successful action's active bit.
+/// STRONGLY INFERRED — trigger-tree.md "The walk", "Repeat and active state".</para>
+/// <para>Not implemented: every action type but 7 and 8, including type 14, the in-game
+/// re-arm that sets each condition in a subtree to repeat 1, making that subtree's actions
+/// one-shot (259 records ship; level 1 uses one) — trigger-tree.md "Re-arming".</para></remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-tree.md")]
 public sealed class TriggerExecutor
 {

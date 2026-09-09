@@ -7,22 +7,17 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>
-/// Finds the <see cref="RoomInstance"/>s on a map.
-///
-/// <para>Two entry points, and the choice between them is about cost rather than
-/// meaning — they agree by construction, because they share one flood fill.
-/// <see cref="RoomAt"/> answers for a single tile and walks only that room;
-/// <see cref="Build"/> sweeps the whole map once and is what a caller looping
-/// over every tile should use instead of asking tile by tile.</para>
-///
-/// <para>Nothing here is cached. Caching would need invalidating on every path
-/// that changes a tile's terrain or owner, and the first one anybody forgets
-/// gives a room that disagrees with the map — the exact failure that keeping
-/// membership in <see cref="TileState"/> would have risked. Recomputing is
-/// cheap: a single-room fill is bounded by the room, and a full sweep visits
-/// each tile once.</para>
-/// </summary>
+/// <summary>Finds the <see cref="RoomInstance"/>s on a map.</summary>
+/// <remarks>
+/// <para>Two entry points that agree by construction, sharing one flood fill; the choice is about
+/// cost. <see cref="RoomAt"/> answers for a single tile and walks only that room;
+/// <see cref="Build"/> sweeps the whole map once and is what a caller looping over every tile
+/// should use.</para>
+/// <para>Nothing is cached. A cache would need invalidating on every path that changes a tile's
+/// terrain or owner, and the first one anybody forgets gives a room that disagrees with the map —
+/// the failure keeping membership in <see cref="TileState"/> would have risked. Recomputing is
+/// cheap: a single-room fill is bounded by the room, a full sweep visits each tile once.</para>
+/// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public static class RoomIndex
 {

@@ -4,19 +4,15 @@
 
 namespace DK2.Simulation;
 
-/// <summary>
-/// What a worker is doing, by DK2's own task-kind numbers.
-///
-/// <para>DK2 stores this as the byte <c>ImpJobData.LastTaskType</c>, written by
-/// each task-accepting routine when it takes the task; the values below were
-/// read from those writes (docs/research/imp-task-priority.md has the full table
-/// of sixteen; these are the eight this project builds).</para>
-///
-/// <para>The values are load-bearing in one place: <see cref="CreatureState.DroppedTask"/>
-/// is compared against <see cref="CreatureState.LastTaskKind"/> as raw bytes, as
-/// DK2 does. Gaps are kinds not built here: 9/10 (fetch a crate for a trap or
-/// door) and 11 (unidentified).</para>
-/// </summary>
+/// <summary>What a worker is doing, by DK2's own task-kind numbers.</summary>
+/// <remarks>
+/// <para>DK2 stores this as the byte <c>ImpJobData.LastTaskType</c>, written by each
+/// task-accepting routine when it takes the task; these values were read from those writes.
+/// docs/research/imp-task-priority.md §3 has all sixteen; these are the eight built here.</para>
+/// <para>The values are load-bearing in one place: <see cref="CreatureState.DroppedTask"/> is
+/// compared against <see cref="CreatureState.LastTaskKind"/> as raw bytes, as DK2 does. Gaps are
+/// kinds not built here: 9/10 (fetch a crate for a trap or door) and 11 (unidentified).</para>
+/// </remarks>
 public enum ImpTaskKind : byte
 {
     /// <summary>No task. DK2 writes a literal zero and tests against it.</summary>
