@@ -301,6 +301,32 @@ public class TriggerExecutorTests
         Assert.Equal(holds ? 1 : 0, world.Triggers.Read(3));
     }
 
+    /// <summary>Condition type 31 is the gold this keeper has mined — the statistics
+    /// struct's <c>GoldMined</c>, which lands on <c>[player+0x15A]</c> (ADR-0112). It is
+    /// not the gold the keeper <i>has</i>: that is type 30, and the two diverge the moment
+    /// any of it is spent.</summary>
+    [Fact]
+    public void ConditionThirtyOneComparesGoldMinedNotGoldHeld()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        world.Player(1).GoldMined = 500;   // mined it all and spent it all
+        Assert.Equal(0, GoldStore.Total(world, 1));
+
+        TriggerRecord[] records =
+        [
+            Counter(5, type: 31, comparison: 5, threshold: 400, child: 0xFFFF),
+            Counter(6, type: 30, comparison: 5, threshold: 400, child: 0xFFFE),
+            Action(1, 3, 0x0A, 1),
+            Action(2, 4, 0x0A, 1),
+        ];
+        var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(1, 5)]);
+        new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Equal(1, world.Triggers.Read(3));
+        Assert.Equal(0, world.Triggers.Read(4));
+    }
+
     /// <summary>Condition type 32 is the player's mana. Same three-instruction arm as
     /// type 30, reading <c>[player+0x82]</c>, which DK2's own debug dumper prints as
     /// <c>CurrentMana</c> (`player-object.md`).</summary>

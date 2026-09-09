@@ -366,6 +366,43 @@ public class TileWorkTests
         Assert.False(sim.World.Tile(tile).IsTaggedByAnyone);
     }
 
+    /// <summary>Mined gold is credited to the <b>miner's owner</b>, which is what DK2
+    /// credits (`creature+0x2A` at `0x004973CF`), and it is credited even when the imp's
+    /// hands are already full — the original adds before it asks (ADR-0112).</summary>
+    [Fact]
+    public void GoldMinedCreditsTheMinersKeeperWhetherOrNotTheImpCanCarryIt()
+    {
+        GameSimulation sim = Dk2TerrainFixture.Simulation();
+        var seam = new TilePos(5, 5);
+        Assert.Equal(Dk2TerrainFixture.Gold, sim.World.Tile(seam).TerrainId);
+
+        CreatureState imp = sim.World.SpawnCreature(
+            sim.Database, Dk2TerrainFixture.ImpCreatureId, ownerPlayerId: 2, new TilePos(4, 5));
+        imp.GoldHeld = int.MaxValue;   // no room for a single nugget
+
+        sim.World.QueueWork(new TileWorkOrder(
+            (seam.Y * sim.World.Width) + seam.X, TileWorkKind.MineGold, 1, imp.Id));
+        sim.Tick();
+
+        // Player 2 owns the imp; player 1 merely ordered the work.
+        Assert.True(sim.World.Player(2).GoldMined > 0);
+        Assert.Equal(0, sim.World.Player(1).GoldMined);
+    }
+
+    /// <summary>And nothing is credited when nothing swung. DK2's adder lives inside the
+    /// creature's mining routine, so work with no worker has no keeper to credit.</summary>
+    [Fact]
+    public void GoldMinedIsNotCreditedWhenNobodySwung()
+    {
+        GameSimulation sim = Dk2TerrainFixture.Simulation();
+        var seam = new TilePos(5, 5);
+
+        sim.World.QueueWork(seam.X, seam.Y, TileWorkKind.MineGold, 1);
+        sim.Tick();
+
+        Assert.Equal(0, sim.World.Player(1).GoldMined);
+    }
+
     [Fact]
     public void AMarkSurvivesAGemCollapse_BecauseAGemFaceIsStillMarkable()
     {

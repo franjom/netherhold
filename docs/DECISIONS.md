@@ -1897,3 +1897,19 @@ is what Goal 5 emphasises. The level-statistics dumper also answered Q260 — th
 player's twelve score counters are its first twelve fields, and type 31's is
 `GoldMined`. Nothing is implemented from a name alone.
 
+
+## ADR-0112 — Gold mined is a keeper's counter, and it is credited to whoever swung
+**Date:** 2026-09-09 · **Status:** accepted · Q260 closed · Research: `docs/research/player-object.md`
+
+**Context.** Condition type 31 compares `[player+0x15A]`, which the level-statistics struct names `GoldMined` — 9 shipped records across 29 levels, the second-largest player-condition block. Nothing counted it. Both halves of the mechanism already existed: `TileWorkRules` computes the gold a swing frees, and `TileWorkSystem` already reported the amount.
+
+**Decision.** `PlayerState.GoldMined` accumulates it, hashed and snapshotted, and condition type 31 compares it.
+- **Credited to the miner's owner**, not to whoever ordered the work. DK2 adds to `[creature+0x2A]` at `0x004973CF`, and the two differ whenever a keeper orders work an allied imp performs.
+- **Gold released, not gold banked.** The original credits before it asks whether the imp can carry any, so a full imp still adds to the total — which is the `uncollected` gold `TileWorkSystem` already reports.
+- **No worker, no credit.** DK2's adder is inside the creature's mining routine, so work the harness queues with no swinger credits nobody.
+- Only ever added to. Nothing spends it, exactly as `ResearchPoints` behaves.
+
+**Consequences.**
+- `HashVersion` and snapshot `FormatVersion` → **51**; pin `0x98DE8BA2B3BDC7BF` → `0x5C6A03ED5BD250BC`.
+- **The first change today that moves the oracle.** Campaign-wide `moved` 54 → 55 and `after1` 9 → 10, stalls 606 → 599 — and the level that moved is **level 1**, the one with a live capture: 3 → 4 columns, 1 → 2 past turn 1, its blocked census down to four condition types.
+- Unchecked: whether a gem seam's `GoldMinedFromGems` yield is credited the same way.

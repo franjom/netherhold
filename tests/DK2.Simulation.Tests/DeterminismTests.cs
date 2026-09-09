@@ -101,10 +101,11 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 50: player condition type 32 reads the walked player's mana, so a
-        // level holding one can branch on it. This fixture runs no triggers, so only the
-        // version bump moves the value. The pinned world spawns no creatures (Q206).
-        Assert.Equal(0x98DE8BA2B3BDC7BFUL, sim.StateHash());
+        // HashVersion 51: PlayerState gained GoldMined, so composition moves this even
+        // though the fixture mines nothing -- an empty field still has to change the hash,
+        // which is what proves the hash covers it. The pinned world spawns no creatures
+        // (Q206), so a missing CreatureState field will not fail this pin.
+        Assert.Equal(0x5C6A03ED5BD250BCUL, sim.StateHash());
     }
 
     [Fact]

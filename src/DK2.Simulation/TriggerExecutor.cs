@@ -520,6 +520,7 @@ public sealed class TriggerExecutor
     private static int? PlayerCounter(byte type, WorldState world, byte playerId) => type switch
     {
         30 => GoldStore.Total(world, playerId),        // +0x7E "Money"
+        31 => world.Player(playerId).GoldMined,        // +0x15A "GoldMined"
         32 => world.Player(playerId).Mana,             // +0x82 "CurrentMana"
         _ => null,
     };

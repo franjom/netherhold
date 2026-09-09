@@ -213,6 +213,14 @@ public struct PlayerState
     public byte PlayerId;
     public int Mana;
 
+    /// <summary>Gold this keeper's creatures have mined, DK2's <c>player+0x15A</c> —
+    /// <c>GoldMined</c> in the level-statistics struct embedded at <c>+0x142</c>
+    /// (`player-object.md`). Trigger condition type 31 compares it.</summary>
+    /// <remarks>Counts gold <b>released</b> from the seam, not gold banked: DK2 credits it
+    /// at <c>0x004973CF</c> before anything asks whether the imp could carry it, so a full
+    /// imp still adds to the total. Only ever added to; nothing spends it.</remarks>
+    public int GoldMined;
+
     /// <summary>
     /// Research points banked by this keeper, DK2's <c>player+0x20F</c>. Only ever
     /// added to: the original keeps a <i>current target</i> beside it at
@@ -273,6 +281,7 @@ public struct PlayerState
     {
         hash.Add(PlayerId);
         hash.Add(Mana);
+        hash.Add(GoldMined);
         hash.Add(ResearchPoints);
         hash.Add(NextFreeImpTick);
         hash.Add(NextPaydayTick);

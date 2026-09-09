@@ -64,6 +64,7 @@ public sealed class TileWorkSystem : ISimulationSystem
             if (result.Outcome is TileWorkOutcome.Destroyed or TileWorkOutcome.Transformed)
                 tile.FreshlyDug = result.Outcome == TileWorkOutcome.Destroyed && IsExcavation(order.Kind);
 
+            CreditGoldMined(context, order, result.GoldReleased);
             int carried = HandTo(context, order, result.GoldReleased);
             Report(context, order, result, before, world, carried);
         }
@@ -158,6 +159,25 @@ public sealed class TileWorkSystem : ISimulationSystem
         for (int i = 0; i < tagged.Count; i++)
             if (tagged[i] == kind) return true;
         return false;
+    }
+
+    /// <summary>Adds what this swing freed from the seam to the swinger's keeper.</summary>
+    /// <remarks>
+    /// <para>Rule: DK2 credits <c>[creature+0x2A]</c> — the <b>miner's owner</b>, not
+    /// whoever ordered the work — at <c>0x004973CF</c>, and does it before anything asks
+    /// whether the imp can carry the gold. So a full imp still adds to the total, and the
+    /// uncollected gold reported below is counted here. `player-object.md`.</para>
+    /// <para>No worker, no credit: DK2's adder lives inside the creature's mining routine,
+    /// so gold a test or the harness releases with <c>WorkerCreatureId</c> -1 has no
+    /// keeper to credit.</para>
+    /// </remarks>
+    private static void CreditGoldMined(
+        SimulationContext context, TileWorkOrder order, int released)
+    {
+        if (released <= 0) return;
+        CreatureState? miner = context.World.CreatureById(order.WorkerCreatureId);
+        if (miner is null || !context.World.HasPlayer(miner.OwnerPlayerId)) return;
+        context.World.Player(miner.OwnerPlayerId).GoldMined += released;
     }
 
     private static void Report(

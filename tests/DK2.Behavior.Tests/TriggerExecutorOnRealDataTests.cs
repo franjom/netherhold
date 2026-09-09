@@ -24,10 +24,11 @@ public class TriggerExecutorOnRealDataTests
         // rest is the player tree, which is where level 1 keeps its script.
 
         // Blocked is conditions only, and it is the work queue: declining a condition
-        // cannot be told apart from it being false, so the walk stops there. Types 53, 56,
-        // 58 and 60 left it with ADR-0109, and type 30 -- the gold test -- with ADR-0110.
+        // cannot be told apart from it being false, so the walk stops there. Six types
+        // left it today: 53/56/58/60 (ADR-0109), 30 gold (ADR-0110), 31 gold mined
+        // (ADR-0112). What is left is the real work queue.
         Assert.Equal(
-            "213:19=1,213:25=4,213:31=3,213:46=1,213:64=1",
+            "213:19=1,213:25=4,213:46=1,213:64=1",
             Census(simulation.LastTriggerRun!.Summary));
 
         // Actions, which descend whatever we do because their dispatcher succeeds.
