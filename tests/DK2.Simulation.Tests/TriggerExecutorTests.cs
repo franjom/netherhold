@@ -278,6 +278,75 @@ public class TriggerExecutorTests
         Assert.Equal([new BlockedTrigger(214, 14, 0xFFFE)], result.Partial);
     }
 
+    /// <summary>An action nobody has implemented must descend anyway when DK2's dispatcher
+    /// succeeds at it: the return value is decided by the jump table, not by the arm. Type
+    /// 5 is the degenerate case — its arm <i>is</i> the success exit.</summary>
+    [Theory]
+    [InlineData((byte)5)]
+    [InlineData((byte)17)]
+    [InlineData((byte)45)]
+    [InlineData((byte)51)]
+    public void AnActionDk2SucceedsAtDescendsAndCountsAsPartial(byte type)
+    {
+        var state = new TriggerState();
+        TriggerRunResult result = new TriggerExecutor(
+                new TriggerTree([Typed214(1, type, child: 0xFFFE), Action(2, 3, 0x0A, 1)], 0xFFFF),
+                state)
+            .Run(1);
+
+        Assert.Equal(1, state.Read(3));
+        Assert.Equal(new BlockedTrigger(214, type, 0xFFFF), Assert.Single(result.Partial));
+        Assert.Empty(result.Unhandled);
+    }
+
+    /// <summary>And an action DK2 itself refuses must not: its dispatcher prints
+    /// <c>Unhandled Trigger When</c> and returns zero, so the subtree is dead script in the
+    /// retail game too. Counted apart from <c>Blocked</c>, which is our own gaps.</summary>
+    [Theory]
+    [InlineData((byte)3)]
+    [InlineData((byte)26)]
+    [InlineData((byte)43)]
+    [InlineData((byte)52)]
+    public void AnActionDk2RefusesStopsTheWalkAndCountsAsUnhandled(byte type)
+    {
+        var state = new TriggerState();
+        TriggerRunResult result = new TriggerExecutor(
+                new TriggerTree([Typed214(1, type, child: 0xFFFE), Action(2, 3, 0x0A, 1)], 0xFFFF),
+                state)
+            .Run(1);
+
+        Assert.Equal(0, state.Read(3));
+        Assert.Equal(new BlockedTrigger(214, type, 0xFFFF), Assert.Single(result.Unhandled));
+        Assert.Empty(result.Partial);
+        Assert.Empty(result.Blocked);
+    }
+
+    /// <summary>The thirteen action types the player dispatcher owns reach its own
+    /// <c>MOV EAX,1</c>; the world dispatcher has no arm for any of them. So the same
+    /// record descends in a player tree and stops in the world tree — the mirror image of
+    /// condition type 72.</summary>
+    [Fact]
+    public void ActionType24DescendsInAPlayerTreeAndIsRefusedInTheWorldTree()
+    {
+        TriggerRecord[] records = [Typed214(1, 24, child: 0xFFFE), Action(2, 3, 0x0A, 1)];
+
+        var player = new TriggerState();
+        TriggerRunResult playerRun = new TriggerExecutor(
+            new TriggerTree(records, 0, playerRoots: [(ushort)0xFFFF]), player).Run(1);
+
+        var world = new TriggerState();
+        TriggerRunResult worldRun =
+            new TriggerExecutor(new TriggerTree(records, 0xFFFF), world).Run(1);
+
+        Assert.Equal(1, player.Read(3));
+        Assert.Equal([new BlockedTrigger(214, 24, 0xFFFF)], playerRun.Partial);
+        Assert.Empty(playerRun.Unhandled);
+
+        Assert.Equal(0, world.Read(3));
+        Assert.Equal([new BlockedTrigger(214, 24, 0xFFFF)], worldRun.Unhandled);
+        Assert.Empty(worldRun.Partial);
+    }
+
     /// <summary>Disabling a condition zeros its repeat byte; disabling an action must not
     /// touch one. Both setters are one instruction apart in intent and the action's simply
     /// does not write <c>+0x0F</c> — a difference no walk reads, and the determinism hash
@@ -393,11 +462,11 @@ public class TriggerExecutorTests
             },
         };
 
-    private static TriggerRecord Typed214(ushort id, byte type) =>
+    private static TriggerRecord Typed214(ushort id, byte type, ushort child = 0) =>
         new ActionTriggerRecord(new byte[16])
         {
             Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = type,
-            RepeatCount = 0,
+            RepeatCount = 0, ChildTriggerId = child,
             Parameters = new Dictionary<string, long>
             {
                 ["FlagId"] = 3, ["Flag"] = 0x0A, ["Value"] = 1, ["TimerId"] = 0,

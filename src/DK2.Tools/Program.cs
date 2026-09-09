@@ -1035,14 +1035,17 @@ switch (args[0])
         Console.WriteLine("could  = ids a walk reaching every type 1/2/34 gate would set -- an upper bound, and");
         Console.WriteLine("         the gap to `moved` is script that stalls on a type nobody has implemented.");
         Console.WriteLine("writes = ids the file writes at all.");
+        Console.WriteLine("stalls = distinct condition records the run reaches and cannot answer -- the");
+        Console.WriteLine("         frontier, and the only thing that grows when the walk goes deeper.");
         Console.WriteLine();
-        Console.WriteLine($"{"level",-18} {"moved",5} {"after1",6} {"could",5} {"writes",6}  {"reach",5} {"of",5}  {"creature",8}");
+        Console.WriteLine($"{"level",-18} {"moved",5} {"after1",6} {"could",5} {"writes",6}  "
+            + $"{"stalls",6}  {"reach",5} {"of",5}  {"creature",8}");
         foreach (OracleReach r in oracleRows
                      .OrderByDescending(r => r.MovedAfterFirstTurn).ThenByDescending(r => r.Moved)
                      .ThenBy(r => r.Level, StringComparer.OrdinalIgnoreCase))
             Console.WriteLine($"{r.Level,-18} {r.Moved,5} {r.MovedAfterFirstTurn,6} "
                 + $"{r.Flags + r.Timers,5} {r.AllFlags + r.AllTimers,6}  "
-                + $"{r.Reached,5} {r.Records,5}  {r.CreatureRoots,8}");
+                + $"{r.Stalls,6}  {r.Reached,5} {r.Records,5}  {r.CreatureRoots,8}");
 
         int usable = oracleRows.Count(r => r.MovedAfterFirstTurn > 0);
         Console.WriteLine();
@@ -2404,14 +2407,18 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
              (simulation.LastTriggerRun?.Summary ?? []).OrderByDescending(s => s.Count))
         Console.WriteLine($"  blocked tag {tag} type {type}: {count}");
 
-    // Say plainly what ran only in part. Action type 14 arms a party's subtrees and does
-    // not create its creatures, so anything downstream that waits on a hero existing --
-    // being killed, reaching a point, being fought -- cannot happen in this run, and a
-    // divergence there is ours, not a finding about DK2.
+    // Say plainly what ran only in part. These descend as DK2's do and leave the world
+    // untouched, so anything downstream that waits on their effect -- a hero existing, a
+    // tile changing hands -- cannot happen in this run, and a divergence there is ours.
     foreach ((int tag, byte type, int count) in
              (simulation.LastTriggerRun?.PartialSummary ?? []).OrderByDescending(s => s.Count))
-        Console.WriteLine($"  PARTIAL tag {tag} type {type}: {count} "
-            + "-- parties armed, no creatures created");
+        Console.WriteLine($"  PARTIAL tag {tag} type {type}: {count} -- descended, effect missing");
+
+    // And what DK2 itself refuses: dead script, not a gap of ours.
+    foreach ((int tag, byte type, int count) in
+             (simulation.LastTriggerRun?.UnhandledSummary ?? []).OrderByDescending(s => s.Count))
+        Console.WriteLine($"  UNHANDLED tag {tag} type {type}: {count} "
+            + "-- DK2's own dispatcher returns zero here");
 
     // And what was answered from an assumption rather than from state.
     foreach ((int tag, byte type, int count) in
@@ -2992,11 +2999,12 @@ static OracleReach MeasureOracleReach(
     int creatureRoots = things.OfType<GoodCreatureThing>().Count(c => c.TriggerId != 0)
         + things.OfType<KeeperCreatureThing>().Count(c => c.TriggerId != 0);
 
-    (int moved, int after) = RunOracleLevel(install, level, turns, records, def, things, players);
+    (int moved, int after, int stalls) =
+        RunOracleLevel(install, level, turns, records, def, things, players);
 
     return new OracleReach(
         level, flags.Count, timers.Count, seen.Count, records.Count,
-        allFlags.Count, allTimers.Count, creatureRoots, moved, after);
+        allFlags.Count, allTimers.Count, creatureRoots, moved, after, stalls);
 }
 
 /// <summary>
@@ -3006,7 +3014,7 @@ static OracleReach MeasureOracleReach(
 /// <remarks>Turn 1 is where a level's unconditional opening fires, and a played
 /// capture agrees with us there for free. Everything a comparison can actually learn
 /// from is in the columns that move later.</remarks>
-static (int Moved, int MovedAfterFirstTurn) RunOracleLevel(
+static (int Moved, int MovedAfterFirstTurn, int Stalls) RunOracleLevel(
     string install,
     string level,
     int turns,
@@ -3016,7 +3024,7 @@ static (int Moved, int MovedAfterFirstTurn) RunOracleLevel(
     List<PlayerDef> players)
 {
     LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
-    if (map is null) return (0, 0);
+    if (map is null) return (0, 0, 0);
 
     GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, level);
     WorldState world = WorldState.FromMap(
@@ -3030,9 +3038,12 @@ static (int Moved, int MovedAfterFirstTurn) RunOracleLevel(
     var simulation = new GameSimulation(database, world, seed: 0, triggers: tree);
 
     var firstTurn = new Dictionary<string, int>();
+    var stalls = new HashSet<ushort>();
     for (int turn = 1; turn <= turns; turn++)
     {
         simulation.Tick();
+        foreach (BlockedTrigger b in simulation.LastTriggerRun?.Blocked ?? [])
+            if (b.Tag == 213) stalls.Add(b.TriggerId);
         TriggerState state = world.Triggers;
         for (byte id = 0; id < TriggerState.FlagCount; id++)
             if (state.Read(id) != 0) firstTurn.TryAdd($"f{id}", turn);
@@ -3040,7 +3051,7 @@ static (int Moved, int MovedAfterFirstTurn) RunOracleLevel(
             if (state.IsStarted(id)) firstTurn.TryAdd($"t{id}", turn);
     }
 
-    return (firstTurn.Count, firstTurn.Values.Count(t => t > 1));
+    return (firstTurn.Count, firstTurn.Values.Count(t => t > 1), stalls.Count);
 }
 
 /// <summary>One level's suitability as a two-sided experiment. See `kwd oracle`.</summary>
@@ -3054,7 +3065,8 @@ record OracleReach(
     int AllTimers,
     int CreatureRoots,
     int Moved,
-    int MovedAfterFirstTurn);
+    int MovedAfterFirstTurn,
+    int Stalls);
 
 /// <summary>
 /// AGENTS.md's recording budgets, in one place so the rules and the checker

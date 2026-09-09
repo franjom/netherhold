@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -14,24 +14,34 @@ public sealed class TriggerRunResult
     internal TriggerRunResult(
         IEnumerable<BlockedTrigger> blocked,
         IEnumerable<BlockedTrigger> partial,
-        IEnumerable<BlockedTrigger> assumed)
+        IEnumerable<BlockedTrigger> assumed,
+        IEnumerable<BlockedTrigger> unhandled)
     {
         Blocked = Order(blocked);
         Partial = Order(partial);
         Assumed = Order(assumed);
+        Unhandled = Order(unhandled);
     }
 
     /// <summary>Records the executor declined outright: it ran nothing and did not
-    /// descend, where the retail engine would have done both.</summary>
+    /// descend, where the retail engine would have done both. Conditions only — an action
+    /// is answered from its dispatcher's return value, so it is never declined.</summary>
     public IReadOnlyList<BlockedTrigger> Blocked { get; }
 
-    /// <summary>Records the executor ran <b>in part</b>: enough of the original's effect
-    /// to descend honestly, but not all of it. A partial record is not a blocked one —
-    /// the walk continues past it exactly as the original's would — and it is not a
-    /// finished one either, so it is counted separately rather than disappearing into
-    /// success. Action type 14 is the only member: it arms the party's subtrees and does
-    /// not create the party's creatures.</summary>
+    /// <summary>Records the executor ran <b>in part</b>: the walk continues past them
+    /// exactly as the original's would, but their effect on the world is missing or
+    /// incomplete. Every action type this executor does not perform is here, because DK2's
+    /// dispatcher succeeds at it and descending is the faithful answer — see
+    /// <see cref="TriggerExecutor"/>. Action type 14 is the incomplete case rather than
+    /// the missing one: it arms the party's subtrees and creates no creatures.</summary>
     public IReadOnlyList<BlockedTrigger> Partial { get; }
+
+    /// <summary>Records <b>DK2's own dispatchers refuse</b> in the context they were
+    /// reached in, printing <c>Unhandled Trigger When</c> and returning zero. Not a gap in
+    /// this executor. Actions only, and 25 of the 51 world action types are in the set —
+    /// but ten of those belong to the creature dispatcher, whose trees nothing here walks,
+    /// so this is a statement about a context and not about a type.</summary>
+    public IReadOnlyList<BlockedTrigger> Unhandled { get; }
 
     /// <summary>Records answered from a <b>modelling assumption</b> rather than from
     /// state we hold. Distinct from both of the above: the walk proceeded exactly as the
@@ -45,6 +55,8 @@ public sealed class TriggerRunResult
     public IEnumerable<(int Tag, byte Type, int Count)> PartialSummary => Census(Partial);
 
     public IEnumerable<(int Tag, byte Type, int Count)> AssumedSummary => Census(Assumed);
+
+    public IEnumerable<(int Tag, byte Type, int Count)> UnhandledSummary => Census(Unhandled);
 
     private static BlockedTrigger[] Order(IEnumerable<BlockedTrigger> records) => records
         .OrderBy(b => b.Tag).ThenBy(b => b.Type).ThenBy(b => b.TriggerId).ToArray();
@@ -250,20 +262,22 @@ internal sealed class TriggerRun(int currentTick)
     public List<BlockedTrigger> Blocked { get; } = [];
     public List<BlockedTrigger> Partial { get; } = [];
     public List<BlockedTrigger> Assumed { get; } = [];
+    public List<BlockedTrigger> Unhandled { get; } = [];
 
-    public TriggerRunResult Result() => new(Blocked, Partial, Assumed);
+    public TriggerRunResult Result() => new(Blocked, Partial, Assumed, Unhandled);
 }
 
-/// <summary>Walks a level's trigger roots once a game turn — the world tree, the 24 party
-/// roots and every player's tree — running action types 7, 8 and 14 only.</summary>
+/// <summary>Walks a level's trigger roots once a game turn — world, 24 parties, action
+/// points, players — performing action types 7, 8 and 14 and answering for the rest.</summary>
 /// <remarks>
 /// <para>Rule: a record runs only while its active bit is set; a child chain is entered
 /// only on success; the next sibling is visited either way; a condition passes its own
 /// repeat to its children, an action the inherited one, and inherited 1 retires a
 /// successful action. The player walker is the same shape — trigger-walkers.md.</para>
-/// <para>Gaps are counted, not hidden: <see cref="TriggerRunResult.Partial"/> for type
-/// 14's missing creatures, <see cref="TriggerRunResult.Assumed"/> for player-context type
-/// 72 taken as true (Q242). Creature trees are not walked.</para>
+/// <para>Gaps are counted, not hidden, and which list one lands in follows DK2's own
+/// answer: <see cref="TriggerRunResult.Partial"/>, <see cref="TriggerRunResult.Blocked"/>,
+/// <see cref="TriggerRunResult.Unhandled"/>, <see cref="TriggerRunResult.Assumed"/>
+/// (ADR-0107). Creature trees are not walked.</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-tree.md")]
 public sealed class TriggerExecutor
@@ -443,10 +457,6 @@ public sealed class TriggerExecutor
                     if (inheritedRepeat == 1)
                         _state.SetRecordActive(record, active: false, repeat: null);
                 }
-                else
-                {
-                    run.Blocked.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
-                }
             }
 
             if (descend)
@@ -480,9 +490,52 @@ public sealed class TriggerExecutor
         return TriggerConditionResult.Satisfied;
     }
 
-    private bool RunAction(TriggerRecord record, TriggerContext context, TriggerRun run) =>
-        (context != TriggerContext.Player || !PlayerOwnsAction(record.Type))
-        && ExecuteAction(record, run.CurrentTick, run.Partial);
+    /// <summary>Runs one action, or answers for one this executor does not perform.</summary>
+    /// <remarks>
+    /// <para>Rule: whether an action succeeds is decided by the jump table, not by what
+    /// its arm does. The world dispatcher has one success exit (<c>0x0051988C</c>) and one
+    /// failure exit that prints <c>Unhandled Trigger When</c> (<c>0x00519893</c>); the
+    /// player dispatcher's thirteen own arms all set <c>EAX</c> to 1 and the rest delegate
+    /// to the world one. trigger-semantics.md, "What an arm returns".</para>
+    /// <para>So a type nobody has implemented can still return what DK2 returns, and does.
+    /// What that buys is the one-shot retire below and an honest census — <b>not</b> reach:
+    /// all 5,408 shipped action records are leaves, so no shipped walk has ever descended
+    /// past an action (ADR-0107).</para>
+    /// </remarks>
+    private bool RunAction(TriggerRecord record, TriggerContext context, TriggerRun run)
+    {
+        if (context == TriggerContext.Player && PlayerOwnsAction(record.Type))
+            return Unperformed(record, run.Partial);
+        if (record.Type is 7 or 8 or 14)
+            return ExecuteAction(record, run.CurrentTick, run.Partial);
+        if (WorldActionSucceeds(record.Type)) return Unperformed(record, run.Partial);
+
+        run.Unhandled.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
+        return false;
+    }
+
+    private static bool Unperformed(TriggerRecord record, List<BlockedTrigger> partial)
+    {
+        partial.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
+        return true;
+    }
+
+    /// <summary>Whether the world action dispatcher (<c>0x00518AD0</c>) reaches its
+    /// success exit for a type. Read off its own tables: a byte table at
+    /// <c>0x00519930</c> indexed by <c>type - 1</c>, a jump table at <c>0x005198C4</c>,
+    /// and a range check that sends type 0 and anything past 51 to the failure exit with
+    /// the other 25.</summary>
+    private static bool WorldActionSucceeds(byte type) => type switch
+    {
+        < 1 or > 51 => false,
+        3 or 15 or 24 => false,
+        >= 10 and <= 13 => false,
+        >= 19 and <= 21 => false,
+        >= 26 and <= 31 => false,
+        >= 33 and <= 38 => false,
+        42 or 43 or 50 => false,
+        _ => true,
+    };
 
     /// <summary>The 30 condition types the player dispatcher computes itself
     /// (<c>0x004C7B20</c>, base 19, range <c>0x37</c>). Everything else it delegates.
@@ -516,7 +569,8 @@ public sealed class TriggerExecutor
             return true;
         }
         if (record.Type == 14) return CreateParty(record, p, partial);
-        if (record.Type != 7) return false;
+        if (record.Type != 7)
+            throw new ArgumentException($"Action type {record.Type} has no arm here.", nameof(record));
 
         byte modeByte = checked((byte)p["Flag"]);
         int operand = unchecked((int)(uint)p["Value"]);
@@ -537,10 +591,10 @@ public sealed class TriggerExecutor
     /// (<c>0x0051A1CF</c>) or else create the creature and arm that member's subtree
     /// (<c>0x0051A58F</c>). trigger-tree.md, "Action type 14 creates a party" — including
     /// the <c>PartyType</c> branch that can arm nothing and still succeed (Q240).</para>
-    /// <para><b>Why it still descends.</b> The creature-creation block is missing, so this
-    /// reports through <see cref="TriggerRunResult.Partial"/> rather than passing as
-    /// success — but returns true, because the retail engine descends and blocking would
-    /// cut off the subtree our own arming just enabled.</para>
+    /// <para><b>Why it still returns true.</b> The creature-creation block is missing, so
+    /// this reports through <see cref="TriggerRunResult.Partial"/> rather than passing as
+    /// success — but it succeeds, as its arm does. The subtrees it arms are party roots,
+    /// walked from the world's own slot table and not from this record's children.</para>
     /// </remarks>
     private bool CreateParty(
         TriggerRecord record, IReadOnlyDictionary<string, long> p, List<BlockedTrigger> partial)

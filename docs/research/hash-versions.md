@@ -33,7 +33,13 @@ beside it.
 
 ## Versions
 
-**45** — `0x57E013D74DC65BAA` (current). Doors and traps enter ordered
+**46** — `0x52A068B601960E53` (current). An action DK2's dispatcher succeeds at
+returns true whether or not this executor performs it, so the walker retires it
+under an inherited repeat of 1 (ADR-0107). Behaviour, not composition: the
+fixture runs no triggers, so only the version bump moves the value here, and the
+campaign-wide measurement moved nothing either — every shipped action is a leaf.
+
+**45** — `0x57E013D74DC65BAA`. Doors and traps enter ordered
 world state with every parsed field copied verbatim, hashed and snapshotted.
 Even the fixture's two empty collections add their counts to the hash.
 `docs/research/doors-and-traps.md`.

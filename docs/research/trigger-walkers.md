@@ -19,6 +19,8 @@ result on that level and it will not be a finding.
 | Those objects are the ones in the world's eight entity lists | **Strongly inferred** | `FUN_004B7830` is the only per-turn slot-`0x14` driver reached from the world frame, and both classes' vtables share base-class entries with it |
 | An action point's repeat argument is its root record's own byte, snapshotted when the root is attached | **Strongly inferred** | `0x004B0C90` is the only writer of `+0x36` besides the constructor's zero; direct instruction read |
 | The area context computes no action type at all | **Known** | `0x004B0CC0` calls the world action dispatcher `0x00518AD0` directly; there is no second table |
+| Action dispatch is a chain: creature → player → world | **Known** | Each default arm is a direct `CALL` to the next dispatcher — `0x0049B155`, `0x004C8A45` |
+| An action's return value cannot steer any shipped walk | **Known** | The walk descends only into `ChildTriggerId`, and all 5,408 shipped action records have zero there |
 
 ## One driver, five calls
 
@@ -112,7 +114,15 @@ The delegation is the default arm of the same two-level table the world uses.
 | context | conditions | base, range | delegates to | actions | base, range | delegates to |
 |---|---|---|---|---|---|---|
 | player | `0x004C7B20` | 19, `0x37` (19–74) | `0x00518270` at `0x004C856C` | `0x004C8620` | 10, `0x28` (10–50) | `0x00518AD0` at `0x004C8A3E` |
+| creature | `0x0049AAA0` | — | — | `0x0049AC80` | 15, `0x1C` (15–43) | **`0x004C8620`** at `0x0049B151` |
 | area | `0x004B0D70` | 39, `0x1F` (39–70) | `0x00518270` at `0x004B0EC9` | none | — | `0x00518AD0`, from the walker itself |
+
+**Actions delegate in a chain, not a star.** The creature dispatcher's default
+arm passes the record to the *player* dispatcher with the creature's owning
+player as `this` (`[ESI+0x2A]`), and that one passes on to the world. So an
+action reaching a creature tree has three tables to fall through and the world's
+is the last; a player tree has two. Conditions do not chain: both entity
+dispatchers hand straight to `0x00518270`.
 
 So a flag test (type 1), a timer test (2) and a level-time test (34) mean the
 same thing in a player tree as in the world tree, over the same level-global
@@ -126,7 +136,11 @@ What each context owns is its own:
 - **player conditions:** 19–33, 47, 48, 52, 53, 56–61, 68, 71, 72, 73, 74.
   Of these, 48, 53 and 56–61 jump straight to `0x004C850C`, `XOR EAX,EAX` —
   **constant false**.
-- **player actions:** 10, 11, 24–28, 31, 34, 37, 38, 42, 50.
+- **player actions:** 10, 11, 24–28, 31, 34, 37, 38, 42, 50. Type 34's arm is
+  bare `MOV EAX,1` (`0x004C8A37`): in a player tree it does nothing and succeeds.
+- **creature actions:** 15, 20, 21, 29, 30, 33, 35, 36, 42, 43. Every one of
+  these is refused by the world dispatcher, so **a type is not dead because the
+  world has no arm for it** — type 15 alone has 565 shipped records.
 - **area conditions:** 39, 40, 41, 42, 62, 69, 70. All seven measure something
   over the point's own inclusive rectangle; `trigger-semantics.md`, "The area
   context", has each one's quantity and comparison.

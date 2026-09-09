@@ -1,8 +1,9 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
+using DK2.Data.Kwd;
 using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.TestSupport;
@@ -20,14 +21,22 @@ public class TriggerExecutorOnRealDataTests
         // Turn 1 across all three trees this executor walks. The world root, trigger 89,
         // is a type-34 level-time test that holds from the first turn, so both of its
         // type-14 children fire and arm their parties; party 1's root is the type 64. The
-        // other fifteen entries are the player tree, which is where level 1 keeps its
-        // script -- every one of them a condition or action type nobody has implemented
-        // yet, and the list is the work queue for doing so.
+        // rest is the player tree, which is where level 1 keeps its script.
+
+        // Blocked is conditions only, and it is the work queue: declining a condition
+        // cannot be told apart from it being false, so the walk stops there.
         Assert.Equal(
             "213:19=1,213:25=4,213:30=3,213:31=3,213:46=1,213:53=2,213:56=1,213:58=1,"
-            + "213:60=1,213:64=1,214:17=2,214:24=2,214:31=2,214:38=2,214:44=1,214:45=1",
+            + "213:60=1,213:64=1",
             Census(simulation.LastTriggerRun!.Summary));
-        Assert.Equal("214:14=2", Census(simulation.LastTriggerRun!.PartialSummary));
+
+        // Actions, which descend whatever we do because their dispatcher succeeds.
+        Assert.Equal(
+            "214:14=2,214:17=2,214:24=2,214:31=2,214:38=2,214:44=1,214:45=1",
+            Census(simulation.LastTriggerRun!.PartialSummary));
+
+        // Nothing on level 1's opening turn reaches a type DK2 itself refuses.
+        Assert.Empty(simulation.LastTriggerRun!.Unhandled);
 
         // Player-context type 72, taken as true rather than declined. If this ever reads
         // zero, the player tree stopped being walked.
@@ -86,6 +95,31 @@ public class TriggerExecutorOnRealDataTests
             id = record.NextTriggerId;
         }
         return chain;
+    }
+
+    /// <summary>The whole reason an action's return value cannot buy this executor any
+    /// reach: <b>every shipped action record is a leaf</b>. A walk descends into
+    /// <c>ChildTriggerId</c> and only a condition ever has one, so the success or failure
+    /// of an action decides nothing about where the walk goes next (ADR-0107). If this ever
+    /// fails, un-blocking an action type starts to matter and the census above will move.
+    /// </summary>
+    [InstallFact]
+    public void NoShippedActionRecordHasAChild()
+    {
+        string maps = Path.Combine(Dk2InstallGate.Path, "Data", "editor", "maps");
+        TriggerRecord[] actions = Directory.GetFiles(maps, "*Triggers.kld")
+            .SelectMany(f => KwdTriggers.Parse(KwdReader.ReadFile(f)))
+            .Where(r => r.Tag == 214)
+            .ToArray();
+
+        Assert.Equal(5408, actions.Length);
+        Assert.All(actions, a => Assert.Equal(0, a.ChildTriggerId));
+
+        // And conditions do branch, so the corpus is not simply flat.
+        Assert.Contains(
+            Directory.GetFiles(maps, "*Triggers.kld")
+                .SelectMany(f => KwdTriggers.Parse(KwdReader.ReadFile(f))),
+            r => r.Tag == 213 && r.ChildTriggerId != 0);
     }
 
     private static string Census(IEnumerable<(int Tag, byte Type, int Count)> summary) =>

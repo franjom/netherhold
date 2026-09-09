@@ -1810,3 +1810,19 @@ simulation state shape, so `HashVersion` and snapshot `FormatVersion` do not mov
 - The shipped corpus projects 940 doors and 959 traps across 48 levels. Only 220 hero parties and one effect generator remain `NotYetProjected`.
 - `HashVersion` and snapshot `FormatVersion` move 44 → **45**; pin `0x48D7950540013015` → `0x57E013D74DC65BAA`.
 - **No behaviour is invented.** Doors do not open, close, lock or block movement. Traps do not arm, fire or consume shots. All such behaviour is UNKNOWN (Q249).
+
+## ADR-0107 — An action returns what its dispatcher returns, whether or not we perform it
+**Date:** 2026-09-09 · **Status:** accepted · Research: `docs/research/trigger-semantics.md`, `docs/research/trigger-walkers.md`
+
+**Context.** The executor performs three action types and declined the rest, which is wrong at the walker: DK2 decides an action's return value from the jump table, not from the arm. The world dispatcher has one success exit and one `Unhandled Trigger When` exit; the player and creature dispatchers each own arms that succeed before delegating. So a type nobody has implemented still has a known, correct answer.
+
+**Decision.** `RunAction` gives DK2's answer for every action type, performed or not.
+- Player-owned and world-succeeding types return true and are counted in `TriggerRunResult.Partial` — the walk continues, the effect is missing, and the report says so.
+- Types the reachable dispatcher chain refuses go to a new `TriggerRunResult.Unhandled`. That is not a gap of ours: the retail engine stops there too.
+- `Blocked` therefore holds conditions only. Declining a condition is indistinguishable from it being false, and no dispatch table can supply the answer.
+
+**Consequences.**
+- `HashVersion` and snapshot `FormatVersion` move 45 → **46**; pin `0x57E013D74DC65BAA` → `0x52A068B601960E53`.
+- **It buys no reach, and that is measured.** All 5,408 shipped action records are leaves, so no shipped walk descends past one. `dk2tools kwd oracle` is byte-identical before and after. What it does buy is the one-shot retire DK2 performs on a successful action, and a census that separates our gaps from DK2's.
+- Level 1's turn-1 blocked census drops from 16 type groups to 10, all conditions; seven action groups move to `Partial`.
+- The creature action dispatcher (`0x0049AC80`, base 15) was found while checking this and owns ten of the types the world refuses, type 15's 565 records among them. A type is not dead because the world has no arm for it.

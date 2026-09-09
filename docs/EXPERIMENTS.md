@@ -91,6 +91,9 @@ three.**
 | Level16 | 3 | 1 | 17 | 39 |
 | level3 | 7 | 0 | 15 | 47 |
 
+The table has not moved since it was first measured; ADR-0107 is the change that
+was expected to move it and did not.
+
 `moved` is what a headless run of 1200 turns actually sets; **`after turn 1` is
 the only part a played capture can be compared against**, because turn 1 is a
 level's unconditional opening and both sides agree there for free. `could` is
@@ -117,29 +120,30 @@ The blocked census, summed over the 57 levels that reach a block at all:
 | condition 47 | 72 | 18 |
 | condition 25 | 57 | 21 |
 
-Two of these block more than half the campaign each. **Condition 53 is free**:
-its player arm is `XOR EAX,EAX` at `0x004C850C`, constant false, so answering
-false rather than declining costs no research and removes 157 records of noise —
-though it unblocks nothing, since false and declined both stop the descent.
+**Only the conditions are in the way, and that was tested, not assumed.** Every
+action type here is one DK2's dispatcher succeeds at, so declining them looked
+like the cheap half of the problem — un-block them and the walk descends as the
+original's does, without anyone working out what they mean.
 
-**A declined record is not the same as a failed one, and for the actions it is
-simply wrong.** That question is now answered: the world action dispatcher has
-two exits, `MOV EAX,1` and an `Unhandled Trigger When` message returning 0, and
-**every action type in the census above reaches the first**
-(`trigger-semantics.md`, "What an arm returns"). DK2 runs them and descends; we
-decline and stop. Type 17's arm and type 24's were read end to end to check the
-rule rather than assume it.
+It buys nothing. Un-blocking every action type (ADR-0107) left the table above
+byte-identical: same 54 columns moved, same 9 moving past turn 1, same 777
+distinct conditions stalled on. **A walk descends into `ChildTriggerId`, and all
+5,408 shipped action records have zero there** — actions are leaves, so their
+return value has never decided where a shipped walk goes. The change is still
+right (DK2 retires a successful action; declining left the bit set) and the
+census is now honest, but the reach was always condition-bound.
 
-So an unimplemented action can honestly return true and be counted in
-`TriggerRunResult.Partial`, the way action type 14 already arms a party and
-creates none of its creatures — **without anyone working out what it does**.
-Conditions are the opposite: declining one is indistinguishable from false until
-it would have been true, and only implementing it can say which.
+**Condition 53 is free**: its player arm is `XOR EAX,EAX` at `0x004C850C`,
+constant false. Answering false rather than declining removes 157 records of
+noise and unblocks nothing, since false and declined both stop the descent.
 
 ### So the oracle is not blocked on choosing a level
 
-It is blocked on the executor reaching far enough into any level for a capture to
-be worth taking. Until then a recorded run measures the player, as level 1's did.
+It is blocked on **conditions**. Until enough of them are implemented for some
+level to run its script without a player, a recorded run measures the player, as
+level 1's did. `dk2tools kwd oracle` re-scores every level in one command; its
+`stalls` column is the frontier and the only one that grows when a condition
+lands.
 
 **What the owner can settle by playing is not here.** It is
 `docs/research/observation-checklist.md`, which is the working list of

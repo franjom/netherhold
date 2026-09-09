@@ -101,11 +101,11 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 45: doors and traps became ordered, hashed state. This fixture has
-        // neither, but both empty collection counts enter the hash and the version records
-        // the snapshot shape. The pinned world spawns no creatures (Q206), so a missing
+        // HashVersion 46: an action DK2's dispatcher succeeds at now returns true and the
+        // walk descends past it. This fixture runs no triggers, so only the version bump
+        // moves the value. The pinned world spawns no creatures (Q206), so a missing
         // CreatureState field will not fail this pin. docs/research/hash-versions.md.
-        Assert.Equal(0x57E013D74DC65BAAUL, sim.StateHash());
+        Assert.Equal(0x52A068B601960E53UL, sim.StateHash());
     }
 
     [Fact]
