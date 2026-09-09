@@ -301,6 +301,29 @@ public class TriggerExecutorTests
         Assert.Equal(holds ? 1 : 0, world.Triggers.Read(3));
     }
 
+    /// <summary>Condition type 32 is the player's mana. Same three-instruction arm as
+    /// type 30, reading <c>[player+0x82]</c>, which DK2's own debug dumper prints as
+    /// <c>CurrentMana</c> (`player-object.md`).</summary>
+    [Theory]
+    [InlineData((byte)5, 200, true)]
+    [InlineData((byte)5, 400, false)]
+    public void ConditionThirtyTwoComparesThePlayersMana(byte comparison, int threshold, bool holds)
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        world.Player(1).Mana = 300;
+
+        TriggerRecord[] records =
+        [
+            Counter(5, type: 32, comparison, threshold, child: 0xFFFF),
+            Action(1, 3, 0x0A, 1),
+        ];
+        var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(1, 5)]);
+        new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Equal(holds ? 1 : 0, world.Triggers.Read(3));
+    }
+
     /// <summary>And it is the walked player's gold, not any player's. Two roots, two
     /// keepers, one holding gold: only that one's subtree runs.</summary>
     [Fact]
@@ -328,9 +351,13 @@ public class TriggerExecutorTests
     }
 
     private static TriggerRecord Gold(ushort id, byte comparison, int threshold, ushort child) =>
+        Counter(id, 30, comparison, threshold, child);
+
+    private static TriggerRecord Counter(
+        ushort id, byte type, byte comparison, int threshold, ushort child) =>
         new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 30, RepeatCount = 1,
+            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 1,
             ChildTriggerId = child, NextTriggerId = 0,
             Parameters = new Dictionary<string, long>
             {

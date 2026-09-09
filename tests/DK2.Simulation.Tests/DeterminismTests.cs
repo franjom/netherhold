@@ -101,11 +101,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 49: two changes merged. The hero-party and effect-generator
-        // collections entered the world hash (empty here, so their counts alone), and
-        // player condition type 30 reads the walked player's gold. The pinned world
-        // spawns no creatures (Q206). docs/research/hash-versions.md.
-        Assert.Equal(0xDDC3EA20017640B6UL, sim.StateHash());
+        // HashVersion 50: player condition type 32 reads the walked player's mana, so a
+        // level holding one can branch on it. This fixture runs no triggers, so only the
+        // version bump moves the value. The pinned world spawns no creatures (Q206).
+        Assert.Equal(0x98DE8BA2B3BDC7BFUL, sim.StateHash());
     }
 
     [Fact]

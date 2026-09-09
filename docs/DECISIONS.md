@@ -1870,3 +1870,17 @@ simulation state shape, so `HashVersion` and snapshot `FormatVersion` do not mov
 - The campaign stall frontier falls **616 → 606**; no level's flags move, so every shipped gold test is false in a headless run.
 - **A deviation, deliberately:** DK2 skips a Dungeon Heart whose `+0x9A` bit 0 is set and we do not (Q263), so a heart we count might be one DK2 does not.
 
+
+## ADR-0111 — Player fields are read from DK2's own debug dumper, and type 32 is mana
+**Date:** 2026-09-09 · **Status:** accepted · Q261, Q262 answered; Q264–Q266 opened · Research: `docs/research/player-object.md`
+
+**Context.** Three player conditions — 31, 32 and 71 — have the same three-instruction arm: load one dword off the player, compare, return. The whole question is which field, and the offsets alone said nothing (Q260–Q262). `FUN_004BCF10` turned out to be a debug dumper that prints ~90 player fields, each with **the original's own name** in its format string.
+
+**Decision.** `player-object.md` transcribes the map, and it is the reference for any future player offset. Condition type 32 evaluates as the walked player's mana.
+- `+0x82` is `CurrentMana`, so type 32 is mana. `+0xEE6` is `NumberOfSlaps`, so type 71 is slaps.
+- `+0x7E` prints as `Money`, which **confirms ADR-0110's gold reading by name** where that rested on the room types the frame sums.
+- **Type 71 is not implemented.** This project counts no slaps per player, so its two shipped records stay blocked rather than being answered from a number we do not keep.
+
+**Consequences.**
+- `HashVersion` and snapshot `FormatVersion` → **50**; pin `0xDDC3EA20017640B6` → `0x98DE8BA2B3BDC7BF`.
+- A name is not a mechanism. The dumper prints no member of the score block at `+0x142`–`+0x16E`, so type 31 stays open (Q260), and its `ResearchCompleted`/`ResearchPoint` labels disagree with a comment this repo wrote from the adder's arithmetic — recorded as Q265, not acted on, because an arithmetic path outranks a name.

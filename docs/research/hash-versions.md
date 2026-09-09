@@ -33,7 +33,11 @@ beside it.
 
 ## Versions
 
-**49** — `0xDDC3EA20017640B6` (current). Hero parties and effect generators enter
+**50** — `0x98DE8BA2B3BDC7BF` (current). Player condition type 32 reads the
+walked player's mana, named `CurrentMana` by DK2's own debug dumper (ADR-0111).
+Behaviour, not composition.
+
+**49** — `0xDDC3EA20017640B6`. Hero parties and effect generators enter
 ordered world state, every parsed field, nested member and variable effect-id
 list hashed and snapshotted verbatim (ADR-0108). Composition: the fixture has
 neither kind, so only their empty counts enter.

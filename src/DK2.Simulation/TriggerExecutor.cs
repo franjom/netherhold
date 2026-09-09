@@ -500,10 +500,10 @@ public sealed class TriggerExecutor
         if (PlayerConditionIsConstantFalse(record.Type))
             return TriggerConditionResult.Unsatisfied;
 
-        if (record.Type == 30 && _world is not null)
+        if (_world is not null && PlayerCounter(record.Type, _world, run.Player!.Value) is int measured)
             return Result(TriggerState.Compare(
                 Byte(record.Parameters, "Comparison"),
-                GoldStore.Total(_world, run.Player!.Value),
+                measured,
                 unchecked((int)record.Parameters["Value"])));
 
         if (record.Type != 72) return TriggerConditionResult.NotEvaluated;
@@ -511,6 +511,18 @@ public sealed class TriggerExecutor
         run.Assumed.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
         return TriggerConditionResult.Satisfied;
     }
+
+    /// <summary>The player quantity a condition type compares, or null for a type whose
+    /// arm we cannot answer. Each of these arms is the same three instructions — load one
+    /// dword off the player, compare, return — so the whole question is which field, and
+    /// DK2's own debug dumper names them (<c>FUN_004BCF10</c>, `player-object.md`).
+    /// </summary>
+    private static int? PlayerCounter(byte type, WorldState world, byte playerId) => type switch
+    {
+        30 => GoldStore.Total(world, playerId),        // +0x7E "Money"
+        32 => world.Player(playerId).Mana,             // +0x82 "CurrentMana"
+        _ => null,
+    };
 
     private static TriggerConditionResult Result(bool held) => held
         ? TriggerConditionResult.Satisfied
