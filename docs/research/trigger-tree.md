@@ -191,11 +191,8 @@ success, because a level whose script waits on a hero existing — being killed,
 reaching a point, being fought — cannot proceed, and a divergence there is ours.
 Everything else is blocked and counted, not guessed.
 
-**What this walker is not.** It is one of four. The player, creature and area
-walkers (`0x004C79A0`, `0x0049A980`, `0x004B0CC0`) each have their own roots per
-entity, and a level is free to keep almost all of its script in them. Campaign
-level 1 does exactly that: its world root, trigger 89, spawns two parties and
-ends, while the chain that runs the level hangs off its single **player** root,
-trigger 1. So an empty column in this executor's output is not evidence about a
-rule — most often it means nothing here ever looked. `dk2tools trigger-run`
+**What this walker is not.** It is one of four, and campaign level 1 keeps its
+script in another one — see `trigger-walkers.md` for which code drives each tree
+and how often. So an empty column in this executor's output is not evidence about
+a rule: most often it means nothing here ever looked. `dk2tools trigger-run`
 prints the count of roots it did not walk for that reason.

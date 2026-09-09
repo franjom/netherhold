@@ -62,11 +62,12 @@ complete dispatch family is:
 | creature | `0x0049AAA0` | `0x0049AC80` |
 | action point / area | `0x004B0D70` | delegates to world action |
 
-Event-side walkers at `0x004C79A0`, `0x0049A980`, and `0x004B0CC0`, plus event
-filters at `0x004C7A50` and `0x0049AA30`, account for types whose occurrence is
-the condition: their eight-byte body is not read. Treating the world switch's
-default arm as proof that such a type was unsupported would therefore be
-wrong.
+The event filters at `0x004C7A50` and `0x0049AA30` account for types whose
+occurrence is the condition: they match a record's type byte against an event id
+and run its children without evaluating it, so its eight-byte body is never read.
+Treating the world switch's default arm as proof that such a type was unsupported
+would therefore be wrong. Which code walks which tree, and how often, is
+`trigger-walkers.md`.
 
 **The world context computes only nine condition types.** Resolving the
 dispatcher's two-level table for all 67 in range gives distinct arms for types

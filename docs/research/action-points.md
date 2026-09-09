@@ -96,10 +96,12 @@ tiles or objects within those tiles. The bit-4 world reader has the same
 inclusive shape.
 
 It is therefore **STRONGLY INFERRED** that relevant work can scale with rectangle area
-and contents. It is **UNKNOWN** whether every action point performs an entry
-test every tick, because the call path and cadence of the point's tick/walker
-at `0x004B05E0` / `0x004B0CC0` have not been closed (Q237). The current change
-stores rectangles and performs no per-tick action-point work.
+and contents. **No action point performs an entry test on its tick**, though: its
+tick is vtable slot `0x14`, `0x004B05E0`, and it is five instructions — walk the
+trigger root at `+0x34` with the repeat at `+0x36`, nothing else (`trigger-walkers.md`).
+Whatever pays the rectangle cost is invoked from elsewhere, which is what is left
+of Q237. The current change stores rectangles and performs no per-tick
+action-point work.
 
 ## Waypoints
 
