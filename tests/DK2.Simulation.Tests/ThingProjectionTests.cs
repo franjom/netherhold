@@ -151,10 +151,10 @@ public class ThingProjectionTests
     }
 
     [Fact]
-    public void WhatIsNotProjectedYetIsCounted_NotSilentlyDropped()
+    public void DoorsAndTrapsAreProjected_NotCountedAsMissing()
     {
-        // The difference between "this level has no doors" and "this projection
-        // cannot see doors" is a number, and without it both look like success.
+        // Door and trap counts leave the remaining-gap count honest: a caller
+        // can distinguish projected state from a silently ignored record.
         GameDatabase database = Database();
         WorldState world = World(database);
 
@@ -165,11 +165,133 @@ public class ThingProjectionTests
             new ActionPointThing(new byte[56]) { StartX = 6, StartY = 4, ActionPointId = 1, Name = "" },
         ]);
 
-        Assert.Equal(2, result.NotYetProjected);
-        Assert.Equal(1, result.Placed);
+        Assert.Equal(0, result.NotYetProjected);
+        Assert.Equal(3, result.Placed);
+        Assert.Equal(1, result.Doors);
+        Assert.Equal(1, result.Traps);
         Assert.Empty(world.Creatures);
         Assert.Empty(world.Objects);
         Assert.Single(world.ActionPoints);
+        Assert.Single(world.Doors);
+        Assert.Single(world.Traps);
+    }
+
+    [Fact]
+    public void ADoorAndTrapCarryEveryParsedFieldVerbatimInFileOrder()
+    {
+        GameDatabase database = Database();
+        WorldState world = World(database);
+
+        ThingProjectionResult result = ThingProjection.Place(world, database,
+        [
+            new DoorThing(new byte[20])
+            {
+                X = -11, Y = 12, Unknown_0008 = unchecked((int)0x89ABCDEF),
+                TriggerId = 65432, DoorId = 201, PlayerId = 202, Flags = 0xE7,
+                Unknown_0011 = new byte[] { 0xA1, 0xB2, 0xC3 },
+            },
+            new DoorThing(new byte[20])
+            {
+                X = 21, Y = 22, DoorId = 2, Unknown_0011 = new byte[3],
+            },
+            new TrapThing(new byte[16])
+            {
+                X = -31, Y = 32, Unknown_0008 = unchecked((int)0xFEDCBA98),
+                NumberOfShots = 203, TrapId = 204, PlayerId = 205,
+                Unknown_000F = 0xD4,
+            },
+            new TrapThing(new byte[16]) { X = 41, Y = 42, TrapId = 4 },
+        ]);
+
+        Assert.Equal(2, result.Doors);
+        Assert.Equal(2, result.Traps);
+        Assert.Equal(new[] { -11, 21 }, world.Doors.Select(d => d.X).ToArray());
+        DoorState door = world.Doors[0];
+        Assert.Equal(12, door.Y);
+        Assert.Equal(unchecked((int)0x89ABCDEF), door.Unknown_0008);
+        Assert.Equal((ushort)65432, door.TriggerId);
+        Assert.Equal((byte)201, door.DoorId);
+        Assert.Equal((byte)202, door.PlayerId);
+        Assert.Equal((byte)0xE7, door.Flags);
+        Assert.Equal(new byte[] { 0xA1, 0xB2, 0xC3 }, door.Unknown_0011.ToArray());
+
+        Assert.Equal(new[] { -31, 41 }, world.Traps.Select(t => t.X).ToArray());
+        TrapState trap = world.Traps[0];
+        Assert.Equal(32, trap.Y);
+        Assert.Equal(unchecked((int)0xFEDCBA98), trap.Unknown_0008);
+        Assert.Equal((byte)203, trap.NumberOfShots);
+        Assert.Equal((byte)204, trap.TrapId);
+        Assert.Equal((byte)205, trap.PlayerId);
+        Assert.Equal((byte)0xD4, trap.Unknown_000F);
+    }
+
+    [Fact]
+    public void DoorsAndTrapsParticipateInTheWorldHash()
+    {
+        GameDatabase database = Database();
+        WorldState empty = World(database);
+        WorldState populated = World(database);
+        ThingProjection.Place(populated, database,
+        [
+            new DoorThing(new byte[20])
+            { X = 1, Y = 2, DoorId = 3, Flags = 4, Unknown_0011 = new byte[3] },
+            new TrapThing(new byte[16])
+            { X = 5, Y = 6, TrapId = 7, NumberOfShots = 8 },
+        ]);
+
+        Hash64 emptyHash = Hash64.Start();
+        empty.HashInto(ref emptyHash);
+        Hash64 populatedHash = Hash64.Start();
+        populated.HashInto(ref populatedHash);
+
+        Assert.NotEqual(emptyHash.Value, populatedHash.Value);
+    }
+
+    [Fact]
+    public void EveryDoorAndTrapFieldParticipatesInItsStateHash()
+    {
+        ulong[] doorHashes =
+        [
+            DoorHash(new DoorState { Unknown_0011 = new byte[3] }),
+            DoorHash(new DoorState { X = 1, Unknown_0011 = new byte[3] }),
+            DoorHash(new DoorState { Y = 1, Unknown_0011 = new byte[3] }),
+            DoorHash(new DoorState { Unknown_0008 = 1, Unknown_0011 = new byte[3] }),
+            DoorHash(new DoorState { TriggerId = 1, Unknown_0011 = new byte[3] }),
+            DoorHash(new DoorState { DoorId = 1, Unknown_0011 = new byte[3] }),
+            DoorHash(new DoorState { PlayerId = 1, Unknown_0011 = new byte[3] }),
+            DoorHash(new DoorState { Flags = 1, Unknown_0011 = new byte[3] }),
+            DoorHash(new DoorState { Unknown_0011 = new byte[] { 1, 0, 0 } }),
+            DoorHash(new DoorState { Unknown_0011 = new byte[] { 0, 1, 0 } }),
+            DoorHash(new DoorState { Unknown_0011 = new byte[] { 0, 0, 1 } }),
+        ];
+        Assert.Equal(doorHashes.Length, doorHashes.Distinct().Count());
+
+        ulong[] trapHashes =
+        [
+            TrapHash(new TrapState()),
+            TrapHash(new TrapState { X = 1 }),
+            TrapHash(new TrapState { Y = 1 }),
+            TrapHash(new TrapState { Unknown_0008 = 1 }),
+            TrapHash(new TrapState { NumberOfShots = 1 }),
+            TrapHash(new TrapState { TrapId = 1 }),
+            TrapHash(new TrapState { PlayerId = 1 }),
+            TrapHash(new TrapState { Unknown_000F = 1 }),
+        ];
+        Assert.Equal(trapHashes.Length, trapHashes.Distinct().Count());
+
+        static ulong DoorHash(DoorState state)
+        {
+            Hash64 hash = Hash64.Start();
+            state.HashInto(ref hash);
+            return hash.Value;
+        }
+
+        static ulong TrapHash(TrapState state)
+        {
+            Hash64 hash = Hash64.Start();
+            state.HashInto(ref hash);
+            return hash.Value;
+        }
     }
 
     [Fact]

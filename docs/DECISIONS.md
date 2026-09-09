@@ -1795,3 +1795,18 @@ simulation state shape, so `HashVersion` and snapshot `FormatVersion` do not mov
 - Level 1 walks 15 more roots and its event set does not move: 2 agreeing, 46 DK2-only, 1 ours-only, unchanged. `docs/EXPERIMENTS.md` said the action-point walker would close that one false positive; it does not, and the corrected diagnosis is that both flags it needs are set by a human playing.
 - Ownership rests on the tile's owner being what DK2 compares (Q247), and off-map rectangle tiles are skipped rather than read (Q248). Neither is reachable in the shipped campaign.
 - Only the creature walker is left, and it needs creature state the executor does not have.
+
+## ADR-0106 — Doors and traps are verbatim ordered world state without behaviour
+**Date:** 2026-09-09 · **Status:** accepted · Q224 answered, Q249–Q253 opened · Research: `docs/research/doors-and-traps.md`
+
+**Context.** All 940 doors and 959 traps in the shipped THINGS files parsed and round-tripped, then `ThingProjection` counted every one as `NotYetProjected` because `WorldState` had no storage for either type. Their runtime layout and behaviour were not read for this branch.
+
+**Decision.** `WorldState.Doors` and `WorldState.Traps` hold every record in THINGS-file order. Projection copies every parsed field verbatim: no coordinate conversion, validation, flag mask, shot filtering or scaling. Every field is hashed and snapshotted.
+- The three-byte door unknown is copied into world-owned storage rather than aliasing a parser buffer.
+- All 940 door `TriggerId` values are zero. Doors therefore add no trigger walker; the existing five root sources are complete for the shipped corpus.
+- Verbatim storage is conservative: it loses no information, but may hash a bit DK2 discards. Q250–Q253 keep that risk explicit for flags, shots and the four unknown fields.
+
+**Consequences.**
+- The shipped corpus projects 940 doors and 959 traps across 48 levels. Only 220 hero parties and one effect generator remain `NotYetProjected`.
+- `HashVersion` and snapshot `FormatVersion` move 44 → **45**; pin `0x48D7950540013015` → `0x57E013D74DC65BAA`.
+- **No behaviour is invented.** Doors do not open, close, lock or block movement. Traps do not arm, fire or consume shots. All such behaviour is UNKNOWN (Q249).

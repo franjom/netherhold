@@ -279,7 +279,8 @@ public class PlacedThingsOnRealDataTests
         string install = Install();
 
         GameDatabase db = GameDatabaseLoader.Load(install);
-        int levels = 0, creatures = 0, objects = 0, actionPoints = 0, rooms = 0, notYet = 0;
+        int levels = 0, levelsWithDoorsOrTraps = 0, creatures = 0, objects = 0;
+        int actionPoints = 0, doors = 0, traps = 0, rooms = 0, notYet = 0;
 
         foreach (string level in LevelNames(install))
         {
@@ -298,12 +299,17 @@ public class PlacedThingsOnRealDataTests
             creatures += result.Creatures;
             objects += result.Objects;
             actionPoints += result.ActionPoints;
+            doors += result.Doors;
+            traps += result.Traps;
             rooms += result.RoomsAlreadyInTheGrid;
             notYet += result.NotYetProjected;
+            if (result.Doors != 0 || result.Traps != 0) levelsWithDoorsOrTraps++;
 
             Assert.Equal(result.Creatures, world.Creatures.Count);
             Assert.Equal(result.Objects, world.Objects.Count);
             Assert.Equal(result.ActionPoints, world.ActionPoints.Count);
+            Assert.Equal(result.Doors, world.Doors.Count);
+            Assert.Equal(result.Traps, world.Traps.Count);
 
             ActionPointThing[] authored = things.OfType<ActionPointThing>().ToArray();
             for (int i = 0; i < authored.Length; i++)
@@ -324,18 +330,49 @@ public class PlacedThingsOnRealDataTests
                                  * SimulationTiming.OriginalTicksPerGameSecond)),
                              projected.WaitTimerTicks);
             }
+
+            DoorThing[] authoredDoors = things.OfType<DoorThing>().ToArray();
+            for (int i = 0; i < authoredDoors.Length; i++)
+            {
+                DoorThing source = authoredDoors[i];
+                DoorState projected = world.Doors[i];
+                Assert.Equal(source.X, projected.X);
+                Assert.Equal(source.Y, projected.Y);
+                Assert.Equal(source.Unknown_0008, projected.Unknown_0008);
+                Assert.Equal((ushort)0, source.TriggerId);
+                Assert.Equal(source.TriggerId, projected.TriggerId);
+                Assert.Equal(source.DoorId, projected.DoorId);
+                Assert.Equal(source.PlayerId, projected.PlayerId);
+                Assert.Equal(source.Flags, projected.Flags);
+                Assert.Equal(source.Unknown_0011.ToArray(), projected.Unknown_0011.ToArray());
+            }
+
+            TrapThing[] authoredTraps = things.OfType<TrapThing>().ToArray();
+            for (int i = 0; i < authoredTraps.Length; i++)
+            {
+                TrapThing source = authoredTraps[i];
+                TrapState projected = world.Traps[i];
+                Assert.Equal(source.X, projected.X);
+                Assert.Equal(source.Y, projected.Y);
+                Assert.Equal(source.Unknown_0008, projected.Unknown_0008);
+                Assert.Equal(source.NumberOfShots, projected.NumberOfShots);
+                Assert.Equal(source.TrapId, projected.TrapId);
+                Assert.Equal(source.PlayerId, projected.PlayerId);
+                Assert.Equal(source.Unknown_000F, projected.Unknown_000F);
+            }
         }
 
         Assert.Equal(66, levels);
+        Assert.Equal(48, levelsWithDoorsOrTraps);
         Assert.Equal(1944, creatures);
         Assert.Equal(788, objects);
         Assert.Equal(1152, actionPoints);
+        Assert.Equal(940, doors);
+        Assert.Equal(959, traps);
         Assert.Equal(275, rooms);
 
-        // What is still unread: 959 traps, 940 doors, 220 hero parties and one
-        // effect generator. A number rather than a shrug, so teaching the
-        // projection any of them has to change it.
-        Assert.Equal(2120, notYet);
+        // What is still unread: 220 hero parties and one effect generator.
+        Assert.Equal(221, notYet);
 
         static IEnumerable<byte> Keepers() =>
             Enumerable.Range(PlayerIds.FirstKeeper, 5).Select(i => (byte)i);

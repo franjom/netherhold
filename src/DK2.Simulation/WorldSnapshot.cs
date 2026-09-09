@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 44;
+    private const int FormatVersion = 45;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -192,6 +192,31 @@ public static class WorldSnapshot
             w.Write(actionPoint.Flags);
             w.Write(actionPoint.PassageCount);
             w.Write(actionPoint.WaitTimerTicks);
+        }
+
+        w.Write(world.Doors.Count);
+        foreach (DoorState door in world.Doors)
+        {
+            w.Write(door.X);
+            w.Write(door.Y);
+            w.Write(door.Unknown_0008);
+            w.Write(door.TriggerId);
+            w.Write(door.DoorId);
+            w.Write(door.PlayerId);
+            w.Write(door.Flags);
+            w.Write(door.Unknown_0011.ToArray());
+        }
+
+        w.Write(world.Traps.Count);
+        foreach (TrapState trap in world.Traps)
+        {
+            w.Write(trap.X);
+            w.Write(trap.Y);
+            w.Write(trap.Unknown_0008);
+            w.Write(trap.NumberOfShots);
+            w.Write(trap.TrapId);
+            w.Write(trap.PlayerId);
+            w.Write(trap.Unknown_000F);
         }
 
         // The trigger banks. Written whole rather than sparsely: they are a
@@ -411,6 +436,37 @@ public static class WorldSnapshot
                 Flags = r.ReadByte(),
                 PassageCount = r.ReadUInt16(),
                 WaitTimerTicks = r.ReadUInt16(),
+            });
+        }
+
+        int doorCount = r.ReadInt32();
+        for (int i = 0; i < doorCount; i++)
+        {
+            world.RawDoors.Add(new DoorState
+            {
+                X = r.ReadInt32(),
+                Y = r.ReadInt32(),
+                Unknown_0008 = r.ReadInt32(),
+                TriggerId = r.ReadUInt16(),
+                DoorId = r.ReadByte(),
+                PlayerId = r.ReadByte(),
+                Flags = r.ReadByte(),
+                Unknown_0011 = r.ReadBytes(3),
+            });
+        }
+
+        int trapCount = r.ReadInt32();
+        for (int i = 0; i < trapCount; i++)
+        {
+            world.RawTraps.Add(new TrapState
+            {
+                X = r.ReadInt32(),
+                Y = r.ReadInt32(),
+                Unknown_0008 = r.ReadInt32(),
+                NumberOfShots = r.ReadByte(),
+                TrapId = r.ReadByte(),
+                PlayerId = r.ReadByte(),
+                Unknown_000F = r.ReadByte(),
             });
         }
 
