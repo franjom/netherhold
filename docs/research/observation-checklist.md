@@ -368,6 +368,14 @@ and a renderer stores nothing. **Different** → it is decided when the wall
 appears and is view state a renderer has to keep. Either way **the simulation
 must not gain a field for it**. Not blocking anything; say so and it stays open.
 
+### Q282 — does the idle taunt fire at 2:40 and the camera wander at 3:00?
+Idleness is cursor movement alone, timed in real milliseconds, so pause does not
+stop it; thresholds, alternate line and suppressing mode global are in
+`mentor-speech-and-notifications.md` §5, untimed. **Do:** park the pointer clear
+of a Library, don't touch the mouse, time both. **Means:** taunt ~160 s then
+wander ~20 s later → the read holds; later, or nothing → a gate was missed.
+Report the **exact line**: over a Library with >4 creatures it should differ.
+
 ### Q74 — is there a fill-in tool in the level editor?
 All that is left of the fill-in data (`FillInHealth` = 5, the `FillInable` flag,
 Claimed Path's route back to Rock) after Q219 established that **no keeper can
