@@ -2252,3 +2252,53 @@ it also unblocks condition 64 (Q283). Those are the next two pieces of work.
 The 513 orphans are recorded, not explained: script in the shipped files that
 no root of any class reaches. Whether DK2 reaches them by a route this project
 has not found, or they are genuinely dead, is UNKNOWN (Q285).
+
+## ADR-0126 — Most of the campaign's script is waiting for the player, and that is measured
+**Date:** 2026-09-10 · **Status:** accepted · `dk2tools kwd unreached`
+
+> Numbered 0126 because 0124 is held by a concurrent worktree.
+
+**Context.** ADR-0125 found 3,824 records the walk reaches and answers false and
+left it there. "Only a mechanism opens these" is not actionable until you know
+*which*.
+
+**Decision.** Attribute each unreached record to the nearest condition above it
+that was reached and answered false (`TriggerReach.Closed`), grouped by type —
+**over an hour, not 600 turns**. At 600 the biggest group is 501 level-time
+gates not yet due; at 14,400 it is three. A short run reads as a blocked
+simulation. The default is now 14,400: 3,145 ran, 3,348 closed.
+
+**What closes them**, by the mechanism that would open each group:
+
+| | types | records |
+|---|---|---:|
+| cascade — a flag or timer nothing upstream set | 1, 2 | 1,576 |
+| **keeper activity — dig, claim, build a room** | 25, 24, 40, 41, 42 | **696** |
+| creatures existing and moving | 19, 39 | 429 |
+| dead in DK2 too — its own constant-false arm | 53 | 257 |
+| combat, research, gold | 47, 29, 30, 31 | 279 |
+
+**The keeper is the human one.** Types 40, 41 and 42 name the player they
+measure, and it is overwhelmingly player 3: 84 of 92, 47 of 69, 49 of 89. So
+those 696 records are not waiting on a missing simulation — they are waiting on
+somebody playing. A computer keeper does not substitute: `DK2.AI.KeeperAI` is
+this project's own invention, not a reading of DK2's, so driving an oracle run
+with it would inject divergence that could not be attributed.
+
+**Consequences.** **Idle captures are exhausted.** Both match exactly, and this
+says why that was achievable: an idle run can only exercise the third of the
+script that is not waiting for a player. No further mechanism work changes that,
+because the block is not mechanical.
+
+M5's next step is therefore **an input channel**, not more simulation.
+`GameSimulation.Tick(in InputFrame)` is half of one; what is missing is a
+recording of DK2's own input to feed the other side. Until that exists, a
+played capture measures the player and an idle capture measures a third of the
+script — which is exactly the trap `our-side-of-a-capture-has-no-player`
+describes, now sized.
+
+Two caveats kept explicit. The 1,576 cascade records are assumed downstream of
+other blocks and are not separately attributed; some may instead wait on the
+special flag id 128 path (Q229), which nothing here writes. And 257 records are
+dead in DK2 as well, so the honest denominator for "script we do not run" is
+8,904, not 9,161.

@@ -131,6 +131,39 @@ public class TriggerReachTests
         Assert.Empty(TriggerReach.Reachable(tree, [(ushort)0]));
     }
 
+    /// <summary>A condition the walk reached and answered <b>false</b> forecloses its
+    /// subtree just as a decline does, and that is the larger number: campaign-wide 153
+    /// records sit behind declines and 3,348 behind false conditions. The distinction is
+    /// what an arm opens versus what only a changed world opens.</summary>
+    [Fact]
+    public void AConditionThatAnsweredFalseForeclosesItsSubtreeToo()
+    {
+        // 5 is DK2's own constant-false arm and has a subtree of two.
+        TriggerRecord[] records = [Gate(5, child: 6), Gate(6, child: 7), Gate(7)];
+        var tree = new TriggerTree(records, 5);
+        var executor = new TriggerExecutor(tree, new TriggerState()) { TrackReach = true };
+
+        TriggerClosure closure = Assert.Single(TriggerReach.Closed(tree, executor.Run(1)));
+
+        Assert.Equal((ushort)5, closure.TriggerId);
+        Assert.Equal(1, closure.Type);
+        Assert.Equal(2, closure.Records);
+    }
+
+    /// <summary>A condition that answered true closes nothing — the walk went through it,
+    /// so its subtree is in the reach and subtracted.</summary>
+    [Fact]
+    public void AConditionThatAnsweredTrueClosesNothing()
+    {
+        TriggerRecord[] records = [AlwaysTrue(5, child: 6), Gate(6)];
+        var tree = new TriggerTree(records, 5);
+        var executor = new TriggerExecutor(tree, new TriggerState()) { TrackReach = true };
+
+        Assert.All(
+            TriggerReach.Closed(tree, executor.Run(1)),
+            c => Assert.NotEqual((ushort)5, c.TriggerId));
+    }
+
     private static int GatedBy(TriggerRecord[] records, ushort declined)
     {
         var tree = new TriggerTree(records, records[0].TriggerId);
@@ -146,10 +179,20 @@ public class TriggerReachTests
     private static TriggerRecord Declined(ushort id, ushort child = 0, ushort next = 0) =>
         Condition(id, type: 21, child, next);
 
-    /// <summary>Type 48 is one of DK2's own constant-false arms, so it is answered and
-    /// never descended. Its children exist to be counted, not run.</summary>
+    /// <summary>Flag 0 equals 5 — reached, answered <b>false</b>, never descended. Not
+    /// type 48: that arm is constant-false only in a <i>player</i> tree, and these run in
+    /// a world one, where it is declined instead. The distinction is the whole subject
+    /// here, so the helper must not blur it.</summary>
     private static TriggerRecord Gate(ushort id, ushort child = 0, ushort next = 0) =>
-        Condition(id, type: 48, child, next);
+        new GenericTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = id, Type = 1, RepeatCount = 1,
+            ChildTriggerId = child, NextTriggerId = next,
+            Parameters = new Dictionary<string, long>
+            {
+                ["Comparison"] = 3, ["FlagId"] = 0, ["Flag"] = 1, ["Value"] = 5,
+            },
+        };
 
     /// <summary>Level time at least zero — true on every turn, so the walk descends.
     /// </summary>

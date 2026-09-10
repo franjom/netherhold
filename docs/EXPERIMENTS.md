@@ -231,7 +231,10 @@ rest are the player arms the type numbers suggest. Reading types 46, 52, 71 and
 accounts for every one of the 9,161 shipped records from a real run: 2,669 ran, 3,824 were
 walked to and answered false, 1,138 hang off creature roots nothing walks, 864 off party
 subtrees nothing arms, 513 off no root at all — and 153, **1.7%**, are the whole condition
-frontier. An idle capture therefore has a **29% ceiling** on the script it can exercise.
+frontier. An idle capture therefore has a **one-third ceiling** on the script it can exercise, and
+ADR-0126 names what holds the rest: the largest identifiable block is 696 records waiting
+for **player 3 — the human keeper** — to dig, claim and build. Idle captures are exhausted
+as a source of signal; what M5 needs next is an input channel, not more mechanisms.
 
 ### So the oracle is not blocked on choosing a level
 

@@ -26,19 +26,24 @@ public sealed class TriggerRunResult
         IEnumerable<BlockedTrigger> partial,
         IEnumerable<BlockedTrigger> assumed,
         IEnumerable<BlockedTrigger> unhandled,
-        HashSet<ushort>? reached = null)
+        HashSet<ushort>? reached = null,
+        HashSet<ushort>? unsatisfied = null)
     {
         Blocked = Order(blocked);
         Partial = Order(partial);
         Assumed = Order(assumed);
         Unhandled = Order(unhandled);
         Reached = reached;
+        Unsatisfied = unsatisfied;
     }
 
     /// <summary>Every record the walk resolved, when the executor was asked to track it.
     /// What a decline <b>cost</b> is the subtree behind it that this set does not already
     /// contain — see <see cref="TriggerReach"/>.</summary>
     public HashSet<ushort>? Reached { get; }
+
+    /// <summary>Conditions reached that answered false, when reach was tracked.</summary>
+    public HashSet<ushort>? Unsatisfied { get; }
 
     /// <summary>Records the executor declined outright: it ran nothing and did not
     /// descend, where the retail engine would have done both. Conditions only — an action
@@ -298,12 +303,19 @@ internal sealed class TriggerRun(int currentTick)
     /// the set costs an allocation and a hash per record. `dk2tools` turns it on.</summary>
     public HashSet<ushort>? Reached { get; set; }
 
+    /// <summary>Conditions the walk reached and that answered <b>false</b>, tracked
+    /// alongside <see cref="Reached"/>. Their subtrees are the largest reason a shipped
+    /// record never runs, and no dispatcher arm opens them — only a world in which
+    /// something happens does.</summary>
+    public HashSet<ushort>? Unsatisfied { get; set; }
+
     public List<BlockedTrigger> Blocked { get; } = [];
     public List<BlockedTrigger> Partial { get; } = [];
     public List<BlockedTrigger> Assumed { get; } = [];
     public List<BlockedTrigger> Unhandled { get; } = [];
 
-    public TriggerRunResult Result() => new(Blocked, Partial, Assumed, Unhandled, Reached);
+    public TriggerRunResult Result() =>
+        new(Blocked, Partial, Assumed, Unhandled, Reached, Unsatisfied);
 }
 
 /// <summary>Walks a level's trigger roots once a game turn — world, 24 parties, action
@@ -371,7 +383,11 @@ public sealed class TriggerExecutor
     /// </remarks>
     public TriggerRunResult Run(int currentTick)
     {
-        var run = new TriggerRun(currentTick) { Reached = TrackReach ? [] : null };
+        var run = new TriggerRun(currentTick)
+        {
+            Reached = TrackReach ? [] : null,
+            Unsatisfied = TrackReach ? [] : null,
+        };
         if (_tree is null) return run.Result();
 
         Walk(unchecked((short)_tree.RootTriggerId), _tree.RootRepeat, TriggerContext.World, run);
@@ -497,6 +513,10 @@ public sealed class TriggerExecutor
                     {
                         descend = true;
                         childRepeat = _state.RecordRepeat(record);
+                    }
+                    else
+                    {
+                        run.Unsatisfied?.Add(record.TriggerId);
                     }
                 }
                 else if (RunAction(record, context, run))

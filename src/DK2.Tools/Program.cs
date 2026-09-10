@@ -1093,13 +1093,14 @@ switch (args[0])
     case "kwd" when args.Length is 2 or 3 && args[1] == "unreached":
     {
         // Where a level's script is when the run never touches it. `kwd oracle`'s
-        // `reach` column is a STATIC walk that descends only through condition
-        // types 1/2/34, so its gap is not "what the run missed" -- this is. Every
-        // record is put in exactly one bucket, and the buckets are ordered so that
-        // the first one that claims a record keeps it (ADR-0125).
-        int unreachedTurns = args.Length == 3 ? int.Parse(args[2]) : 600;
+        // `reach` is a STATIC walk descending only through types 1/2/34, so its gap
+        // is not "what the run missed" -- this is. One bucket per record, first to
+        // claim it keeps it (ADR-0125). The default hour is deliberate: at 600 turns
+        // the biggest closed group is level-time gates not yet due (ADR-0126).
+        int unreachedTurns = args.Length == 3 ? int.Parse(args[2]) : 14400;
         string reachMaps = Path.Combine(Dk2Install.Require(), "Data", "editor", "maps");
         int total = 0, ran = 0, declined = 0, creature = 0, party = 0, orphan = 0, closed = 0;
+        var closedByType = new Dictionary<byte, int>();
         Console.WriteLine($"Every level run headless for {unreachedTurns} turns. Records the run never");
         Console.WriteLine("walked, by why -- first bucket that claims a record keeps it:");
         Console.WriteLine("  declined = behind a condition this executor cannot answer (the frontier)");
@@ -1144,6 +1145,8 @@ switch (args[0])
             // foreclosed if some later turn walks them anyway.
             var walked = new HashSet<ushort>();
             var foreclosed = new HashSet<ushort>();
+            var closedBy = new Dictionary<ushort, byte>();
+            var closedSets = new Dictionary<ushort, HashSet<ushort>>();
             for (int turn = 1; turn <= unreachedTurns; turn++)
             {
                 rsim.Tick();
@@ -1151,6 +1154,13 @@ switch (args[0])
                 if (run.Reached is not null) walked.UnionWith(run.Reached);
                 foreach (TriggerGate gate in TriggerReach.Gated(rtree, run))
                     foreclosed.UnionWith(gate.Foreclosed);
+                foreach (TriggerClosure c in TriggerReach.Closed(rtree, run))
+                {
+                    closedBy[c.TriggerId] = c.Type;
+                    if (!closedSets.TryGetValue(c.TriggerId, out HashSet<ushort>? set))
+                        closedSets[c.TriggerId] = set = [];
+                    set.UnionWith(c.Foreclosed);
+                }
             }
 
             foreclosed.ExceptWith(walked);
@@ -1185,6 +1195,24 @@ switch (args[0])
                 else lClosed++;
             }
 
+            // Attribute each still-unreached record to the false condition nearest it,
+            // by taking the smallest foreclosed set that contains it: a record deep under
+            // several false conditions belongs to the one that stopped the walk last.
+            foreach (ushort id in rrecords.Select(r => r.TriggerId))
+            {
+                if (walked.Contains(id) || foreclosed.Contains(id)) continue;
+                ushort best = 0;
+                int bestSize = int.MaxValue;
+                foreach ((ushort gateId, HashSet<ushort> set) in closedSets)
+                {
+                    if (!set.Contains(id) || set.Count >= bestSize) continue;
+                    best = gateId;
+                    bestSize = set.Count;
+                }
+                if (bestSize != int.MaxValue) closedByType[closedBy[best]] =
+                    closedByType.GetValueOrDefault(closedBy[best]) + 1;
+            }
+
             total += rrecords.Count;
             ran += walked.Count;
             declined += lDeclined; creature += lCreature; party += lParty;
@@ -1196,6 +1224,14 @@ switch (args[0])
         Console.WriteLine();
         Console.WriteLine($"{"TOTAL",-18} {total,7} {ran,6} {declined,8} {creature,8} "
             + $"{party,6} {orphan,6} {closed,6}");
+
+        // And what closes them: the condition type nearest each unreached record that
+        // the walk did reach and answered false. This is the list a mechanism opens --
+        // no dispatcher arm does, because these arms already work.
+        Console.WriteLine();
+        Console.WriteLine("closed by condition type (the nearest false condition above each record):");
+        foreach ((byte type, int count) in closedByType.OrderByDescending(e => e.Value).Take(20))
+            Console.WriteLine($"  type {type,3}: {count,5}");
         return 0;
     }
 
@@ -2428,7 +2464,7 @@ static int Usage()
     Console.WriteLine("  kwd things [file.kld]                  placed entities of one level, or the corpus");
     Console.WriteLine("  kwd parties                            how shipped HERO_PARTY records map onto the 24 runtime slots");
     Console.WriteLine("  kwd roots                              every trigger root in the campaign, by the walker that owns it");
-    Console.WriteLine("  kwd unreached [turns]                 records a run never walks, and why -- declined, creature, party, orphan, closed");
+    Console.WriteLine("  kwd unreached [turns]                 records a run never walks, and why -- declined, creature, party, orphan, closed (default 14400 = an hour)");
     Console.WriteLine("  kwd oracle [turns]                     every level run headless, ranked by how much of its");
     Console.WriteLine("                                         script a two-sided capture could discriminate");
     Console.WriteLine("  kwd creaturescan <name> <value>        the same, anchored on one creature");

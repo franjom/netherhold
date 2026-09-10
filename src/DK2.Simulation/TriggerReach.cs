@@ -47,6 +47,33 @@ public static class TriggerReach
         return [.. gates.OrderByDescending(g => g.Records).ThenBy(g => g.Blocked.TriggerId)];
     }
 
+    /// <summary>Records foreclosed by each condition that was reached and answered
+    /// <b>false</b>, largest first. Same arithmetic as <see cref="Gated"/> and a
+    /// different question: what would open if the world changed, rather than what would
+    /// open if an arm were implemented.</summary>
+    public static IReadOnlyList<TriggerClosure> Closed(TriggerTree tree, TriggerRunResult result)
+    {
+        if (tree is null) throw new ArgumentNullException(nameof(tree));
+        if (result is null) throw new ArgumentNullException(nameof(result));
+        if (result.Reached is null || result.Unsatisfied is null)
+            throw new ArgumentException(
+                "The run did not track reach; set TriggerExecutor.TrackReach.", nameof(result));
+
+        var closures = new List<TriggerClosure>();
+        foreach (ushort id in result.Unsatisfied)
+        {
+            TriggerRecord? record = tree.Resolve(unchecked((short)id));
+            if (record is null) continue;
+
+            var subtree = new HashSet<ushort>();
+            Collect(tree, unchecked((short)record.ChildTriggerId), subtree);
+            subtree.ExceptWith(result.Reached);
+            closures.Add(new TriggerClosure(record.Type, id, subtree));
+        }
+
+        return [.. closures.OrderByDescending(c => c.Records).ThenBy(c => c.TriggerId)];
+    }
+
     /// <summary>Every record reachable from <paramref name="roots"/> if every condition
     /// on the way answered true — what a tree <i>contains</i>, as opposed to what a run
     /// touched. Use it to attribute records a run never reached to the root class that
@@ -82,6 +109,14 @@ public static class TriggerReach
 /// <remarks>The set, not just its size, because a caller summing over turns has to union
 /// them: the same subtree foreclosed on three hundred turns is one cost, not three
 /// hundred.</remarks>
+/// <summary>One condition that answered false, and the records it left unreached.
+/// </summary>
+public readonly record struct TriggerClosure(
+    byte Type, ushort TriggerId, IReadOnlyCollection<ushort> Foreclosed)
+{
+    public int Records => Foreclosed.Count;
+}
+
 public readonly record struct TriggerGate(
     BlockedTrigger Blocked, IReadOnlyCollection<ushort> Foreclosed)
 {
