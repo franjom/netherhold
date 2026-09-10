@@ -2697,3 +2697,43 @@ in terms of state ids and there is no group tag for `MovingToJob`.
 - Reading the 264 handlers has no shortcut: 259 serve exactly one state, and
   Flame names the behaviour of none. That is the size of the work this unblocks,
   not of this decision.
+
+## ADR-0136 — Action type 22 writes one tile, and its coordinates are one-based
+
+**Date:** 2026-09-10 · **Status:** accepted · Q301
+
+**Context.** 160 `ALTER_TERRAIN_TYPE` records across 13 levels, and the fourth
+most common action the world dispatcher actually performs. Its arm is
+`0x00519425`, reached through the dispatcher's own tables rather than assumed:
+type 22 maps to a real arm where types 15 and 3 map to the unhandled exit.
+
+**Decision.** Perform it, and take three things from the arm.
+
+**The authored coordinates are one-based.** The arm unpacks x and y from the
+record's dword at `+0x04` and runs `DEC` on each before the tile lookup. This is
+read from the instructions; the shipped corpus cannot confirm it, because its
+coordinates run 5..110 and 5..62 and so never touch either edge. Getting it
+wrong would move every scripted terrain change one tile up and left, which no
+test of the write alone would catch, so a test states it.
+
+**Two cases succeed and change nothing**: a coordinate off the map, and a tile
+that already carries the requested terrain (`0x00519484`). Neither is an error.
+
+**Ownership follows the terrain, not the record.** The record names a player and
+the arm carries it, but a tile only takes an owner if its new terrain is
+`Ownable` (Q95, ADR-0045). 41 of the 160 records write Claimed Path, which
+*means* owned, and 94 write Dirt Path, which cannot be — writing the player onto
+both would build tiles DK2 cannot produce.
+
+**Room tiles are declined.** Past the guards the arm demolishes any room on the
+tile through the global object table and notifies the map, and neither is read.
+Performing the write without them would leave `RoomIndex` describing a room
+whose tiles had moved, so a room tile on either side reports through
+`Partial` instead — the executor's existing way of saying "descended, effect
+missing" (Q301).
+
+**Consequences.** `Performs` gains 22, and with it the obligation the test
+`OnlyActionsThatCannotAlterTerrainArePerformed` was written to enforce: the
+write clears `TriggerRun.Rooms`, so a room condition later in the same turn
+cannot read the map as it was before. No state field changed and the
+determinism pin does not move — the pinned world runs no triggers.

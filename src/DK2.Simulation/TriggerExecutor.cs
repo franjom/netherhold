@@ -780,7 +780,7 @@ public sealed class TriggerExecutor
         if (context == TriggerContext.Player && PlayerOwnsAction(record.Type))
             return Unperformed(record, context, run.Partial);
         if (Performs(record.Type))
-            return ExecuteAction(record, context, run.CurrentTick, run.Partial);
+            return ExecuteAction(record, context, run);
         if (WorldActionSucceeds(record.Type)) return Unperformed(record, context, run.Partial);
 
         run.Unhandled.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
@@ -841,19 +841,19 @@ public sealed class TriggerExecutor
     /// condition reading the map as it was before the write.
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
-    public static bool Performs(byte type) => type is 7 or 8 or 14;
+    public static bool Performs(byte type) => type is 7 or 8 or 14 or 22;
 
-    private bool ExecuteAction(
-        TriggerRecord record, TriggerContext context, int currentTick,
-        List<BlockedTrigger> partial)
+    private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
         IReadOnlyDictionary<string, long> p = record.Parameters;
+        List<BlockedTrigger> partial = run.Partial;
         if (record.Type == 8)
         {
-            _state.StartTimer(checked((byte)p["TimerId"]), currentTick);
+            _state.StartTimer(checked((byte)p["TimerId"]), run.CurrentTick);
             return true;
         }
         if (record.Type == 14) return CreateParty(record, context, p, partial);
+        if (record.Type == 22) return AlterTerrain(record, context, p, run);
         if (record.Type != 7)
             throw new ArgumentException($"Action type {record.Type} has no arm here.", nameof(record));
 
@@ -866,6 +866,48 @@ public sealed class TriggerExecutor
             ? FlagWriteMode.Assign
             : (modeByte & 0x10) != 0 ? FlagWriteMode.Add : FlagWriteMode.Subtract;
         _state.Write(checked((byte)p["FlagId"]), mode, operand);
+        return true;
+    }
+
+    /// <summary>Action type 22 — write a terrain type onto one tile (ADR-0136).</summary>
+    /// <remarks>
+    /// <para>From the world arm <c>0x00519425</c>. <b>The coordinates are one-based</b>:
+    /// it decrements each before the lookup. Two cases succeed without writing — off the
+    /// map, and a tile already carrying the terrain (<c>0x00519484</c>).</para>
+    /// <para><b>Room tiles are declined.</b> The arm also demolishes a room on the tile
+    /// and notifies the map, neither of which is read; half-performing would leave
+    /// <see cref="RoomIndex"/> describing a room whose tiles had moved (Q301).</para>
+    /// </remarks>
+    private bool AlterTerrain(
+        TriggerRecord record, TriggerContext context,
+        IReadOnlyDictionary<string, long> p, TriggerRun run)
+    {
+        if (_world is null || _database is null)
+            return Unperformed(record, context, run.Partial);
+
+        var at = new TilePos(
+            checked((int)p["PosX"]) - 1, checked((int)p["PosY"]) - 1);
+        if (!_world.Contains(at)) return true;
+
+        byte terrainId = checked((byte)p["TerrainId"]);
+        ref TileState tile = ref _world.Tile(at);
+        if (tile.TerrainId == terrainId) return true;
+
+        TerrainDef next = _database.TerrainById(terrainId);
+        if (next.IsRoom
+            || _database.TerrainById(tile.TerrainId).IsRoom
+            || RoomIndex.RoomAt(_world, _database, (at.Y * _world.Width) + at.X) is not null)
+            return Unperformed(record, context, run.Partial);
+
+        tile.TerrainId = terrainId;
+        tile.Health = next.StartingHealth;
+        tile.OwnerPlayerId = next.IsOwnable
+            ? checked((byte)p["PlayerId"])
+            : PlayerIds.Unowned;
+        if (!next.IsTaggable) tile.TaggedBy = 0;
+
+        // The map this run has already derived is now wrong about this tile.
+        run.Rooms = null;
         return true;
     }
 
