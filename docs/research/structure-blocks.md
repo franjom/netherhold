@@ -161,6 +161,57 @@ role, size, or state was established. The next probe is precise: recover the
 callback passed through the first registered navigation slot and enumerate its
 object-definition and object-instance field reads.
 
+### 5.3 The four slots, walked (2026-09-10)
+
+§5.1's probe was "recover the callback passed through the first registered
+navigation slot". Done, and it moves the question rather than answering it.
+
+**Navigation registers four callbacks, not three.** One function stores each
+enumerator into a global with a context pointer beside it:
+
+| slot | enumerator | context | consumers |
+|---|---|---|---|
+| `0x006ED3FC` | `0x004D1170` | `0x006ED40C` | 2 |
+| `0x006ED400` | `0x004D12B0` | `0x006ED410` | 4 |
+| `0x006ED404` | `0x004D15E0` | `0x006ED414` | 2 |
+| `0x006ED408` | **`0x004D16B0`** | `0x006ED418` | 13 |
+
+The fourth was not recorded before. It is much the busiest and has not been read.
+
+**Both consumers of the first slot are ruled out.** Neither tests a tile:
+
+- `0x004D1AB0` is a **ray cast**: it sums the two things' `+0x200` radii, runs a
+  segment test on their `+0x1A8` positions and keeps the nearest hit in a global
+  seeded to `0x7FFFFFFF`. Its caller sets the `FirstPersonObstacle` global
+  `0x006ECA78` around the call and clears it after, so this is the first-person
+  path the flag bit was always about.
+- `0x004D2B80` is **thing-versus-thing separation**: `+0x84` positions, `+0xDC`
+  radii summed, a `+0x10E` bit-7 skip, and a divide against the summed radius.
+
+**The obstacle enumerator's answer is a distance, not a flag.** Of its four
+consumers, `0x004D27F0` is the one that answers a yes/no: the caller seeds
+`0x006ED37C`, asks over a 1.2-tile radius, and reads the byte back. The callback
+takes `(thing, context)`, deltas the thing's `+0x84` against the query point,
+approximates the length as `max + min/2`, compares it with a threshold at
+`context+0x8`, and sets the byte when it is within.
+
+**So the shape of the mechanism is against a per-tile predicate.** Every object
+field any of these four consumers reads is an **instance** field — `+0x84`,
+`+0xDC`, `+0x1A8`, `+0x200`, `+0x10E`. Not one reads the object *definition*, so
+neither `objDef+0xF4` flags nor `objDef+0xF8` size reaches a consumer: the flag
+gate is inside the enumerator and the geometry is a **continuous radius**.
+
+That would explain why both candidate predicates in §5 are refuted by the data.
+A creature is pushed out of a circle rather than refused a tile, so the Dungeon
+Heart Obstacle's 4096 diameter covers its tile and a bed's 2048 does not cover
+its own — no flag combination has to separate them, and none does.
+
+**HYPOTHESIS, not a finding.** It is consistent with everything read here and
+with the shipped diameters, and it is not established: the pathfinder's own tile
+test has still not been located, and a grid router needs one. The next probe is
+the fourth slot `0x004D16B0` and its thirteen consumers, which is where a router
+would sit if one of these four is it (Q209).
+
 ### 5.2 Which corrects what Q88 used to say
 
 The old note read: *"Fixing it means teaching the path grid about rooms, which
