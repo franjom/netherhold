@@ -6,8 +6,8 @@ using DK2.Core;
 
 namespace DK2.Simulation;
 
-/// <summary>The one place where ticks are related to seconds: four ticks a game second, so a tick is
-/// 250 ms of wall clock at normal speed. Nothing else in the simulation may write a tick count that
+/// <summary>The one place where ticks are related to seconds: four ticks a game second, a nominal
+/// 250 ms a tick (measured 254-263, docs/EXPERIMENTS.md). Nothing else may write a tick count that
 /// means a number of seconds. STRONGLY INFERRED from three independent readings that meet — variable
 /// 19, the portal stopwatch fit and <c>FUN_00488930</c>'s effect timers (Q1, ADR-0089,
 /// docs/research/balance-variables-in-the-binary.md).</summary>

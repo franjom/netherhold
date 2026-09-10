@@ -363,3 +363,51 @@ entry was read as one 36-byte block rather than eighteen fields. And the owner
 alt-tabbed near the end: the game fell to 0.7 ticks/s for the last ten seconds,
 plainly visible as `t297` at 75.0 s and `t304` at 84.8 s, and everything after
 `t297` is excluded above.
+
+**2026-09-10, runs 13 and 14 - the input channel, complete.** Two played
+captures of the *same three tiles* on level 1, 20 Hz, 60 s each: mark (10,28)
+and (14,32) rock and (14,24) gold, then leave them entirely alone. A controlled
+repeat, and the first captures where the replay leaves nothing on either side.
+
+| | in both | DK2 only | ours only |
+|---|---|---|---|
+| run 13, no input | 3 | **3** | 0 |
+| run 13 + recorded input | **6** | **0** | 0 |
+| run 14 + recorded input | **5** | **0** | 0 |
+
+Twenty rows read out as three commands, and twenty-two as three - exactly the
+three marks placed each time, with no false positives. The pipeline model of
+the pool (ADR-0131) survives a run whose ground truth is unambiguous.
+
+What is left is rate, not input: the two flags an imp drives fire **37 and 28
+ticks early**, while `f2`, a trigger timer with no imp in its path, lands at
+residual +1, which is exact agreement.
+
+**Reinforcing occupies 61 ticks.** Run 14's three reinforce tasks each ran
+exactly 61; run 13's ran 61, 61 and 75. Walk time is near zero - each task is
+created the tick after the adjacent claim ends, with the imp standing on the
+tile it just claimed - and run 14's three overlapped yet came out identical, so
+61 is work, not scheduling. Against it: our model spends 50 applications, and
+the owner's stopwatch (Q62) read 13.1-13.8 s, which at the rate below is also
+about 50 ticks. **The pool task is some 11 ticks longer than both** (Q296).
+
+**A tick is not 250 ms.** The probe times the game's own turn counter against
+the wall clock, and four clean runs disagree with `SimulationTiming`'s note:
+
+| run | ticks/s | ms/tick |
+|---|---|---|
+| 10 | 3.900 | 256 |
+| 11 | 3.937 | 254 |
+| 13 | 3.837 | 261 |
+| 14 | 3.803 | 263 |
+
+Run 12 is excluded at 3.446: the owner alt-tabbed. Four ticks a *game* second
+is not in doubt - variable 19 reads 4 and the trigger timers agree exactly -
+but a game second costs **1.02-1.05 wall seconds**, because the turn is
+frame-paced. Every stopwatch reading the project has used as evidence is
+therefore biased 2-5% long against a tick count converted at 250 ms.
+
+**Claiming: the floor is 9 ticks, not 11.** Runs 13 and 14 add 9, 11, 18, 12,
+17 and 22. The 9 is below run 12's floor and breaks the clean arithmetic that
+12 had (Q292), which is a reason to distrust the task's ends rather than the
+constant. No constant has moved on any of this.
