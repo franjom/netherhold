@@ -8,10 +8,24 @@
     <!-- A library of test infrastructure, not a test project: no test SDK, no
          runner, and `dotnet test` must not try to collect tests from it. -->
     <IsTestProject>false</IsTestProject>
+    <!-- The C# Dev Kit test explorer ignores IsTestProject and probes any
+         assembly that references xunit, so this project gets a testhost
+         launched at it whether we want one or not. Both properties exist to
+         make that launch succeed quietly: without the copy, the xunit DLLs
+         named in deps.json are missing from bin; without a testhost of our
+         own (the two packages below), Dev Kit falls back to its bundled one
+         and that one cannot resolve its own testhost.dll. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="xunit" Version="2.9.3" />
+    <!-- Not here to run tests: there are none. They put testhost.dll and a
+         discoverer in bin so the Dev Kit probe described above finds zero
+         tests instead of crashing. IsTestProject stays false, so `dotnet test`
+         still skips this project. -->
+    <PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.14.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
 
   <ItemGroup>
