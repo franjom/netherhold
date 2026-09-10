@@ -325,7 +325,7 @@ have **no shipped-data corroboration**; Q225 keeps custom-map verification open.
 | 16 (109) | `ActionPointId:u8@00`, `Available:u8@01`, `Value:s16@04` — all **B**; `02..03,06..07` **N** |
 | 17 (291) | `ActionPointId:u8@00`, `Available:u8@01` — both **B**; `02..07` **N** |
 | 18 (27) | `PlayerOneId:u8@00`, `PlayerTwoId:u8@01`, `Available:u8@02` — all **B**; `03..07` **N** |
-| 22 (160) | `TerrainId:u8@00`, `PlayerId:u8@01`, `PosX:u16@04`, `PosY:u16@06` — all **B**; `02..03` **N** |
+| 22 (160) | `TerrainId:u8@00`, `PlayerId:u8@01`, `PosX:u16@04`, `PosY:u16@06` — all **B**; `02..03` **N**. **Both coordinates are one-based**: the arm `DEC`s each before the lookup (ADR-0135) |
 | 23 (86) | `TimerId:u8@00` **B**, `Value:u32@04` **B**; `01..03` **N** |
 | 24 (827) | `SpeechId:u32@00` **B**, `Unknown:u32@04` **U** |
 | 26 (100) | `ActionPointId:u8@00` **C**; `01..07` **N** |

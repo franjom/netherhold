@@ -795,11 +795,95 @@ public class TriggerExecutorTests
     [Fact]
     public void OnlyActionsThatCannotAlterTerrainArePerformed()
     {
+        // 22 is the one that can, and it clears TriggerRun.Rooms after the write.
+        // Anything added here without doing the same brings back the bug this test
+        // was written for: a room condition later in the turn reading the old map.
         byte[] performed = Enumerable.Range(0, 256)
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
-        Assert.Equal([(byte)7, (byte)8, (byte)14], performed);
+        Assert.Equal([(byte)7, (byte)8, (byte)14, (byte)22], performed);
     }
+
+    /// <summary>Action type 22's coordinates are <b>one-based</b>: the arm at
+    /// <c>0x00519425</c> decrements each before the lookup, so an authored (4,3)
+    /// writes tile (3,2). Getting this wrong moves every scripted terrain change one
+    /// tile up and left, which no test of the write alone would catch.</summary>
+    [Fact]
+    public void AlterTerrainCoordinatesAreOneBased()
+    {
+        (WorldState world, GameDatabase database) = AlterWorld();
+        RunAlter(world, database, Dk2TerrainFixture.Rock, Keeper, x: 4, y: 3);
+
+        Assert.Equal(Dk2TerrainFixture.Rock, world.Tile(3, 2).TerrainId);
+    }
+
+    /// <summary>Ownable terrain takes the record's player; terrain nobody can own is
+    /// cleared instead of keeping one (Q95, ADR-0045). A Claimed Path with no owner is
+    /// a tile DK2 cannot produce, and a fixture that builds one measures nothing.
+    /// </summary>
+    [Theory]
+    [InlineData(Dk2TerrainFixture.ClaimedPath, Keeper)]
+    [InlineData(Dk2TerrainFixture.DirtPath, PlayerIds.Unowned)]
+    public void AlterTerrainOwnsOnlyWhatCanBeOwned(byte terrainId, byte expectedOwner)
+    {
+        (WorldState world, GameDatabase database) = AlterWorld();
+        RunAlter(world, database, terrainId, Keeper, x: 4, y: 4);
+
+        ref TileState tile = ref world.Tile(3, 3);
+        Assert.Equal(terrainId, tile.TerrainId);
+        Assert.Equal(expectedOwner, tile.OwnerPlayerId);
+    }
+
+    /// <summary>Two cases the arm answers by succeeding and changing nothing: a
+    /// coordinate off the map, and a tile that already carries the terrain asked for
+    /// (<c>0x00519484</c>). Neither is an error and neither writes.</summary>
+    [Fact]
+    public void AlterTerrainSucceedsWithoutWritingOffTheMapOrOnItsOwnTerrain()
+    {
+        (WorldState world, GameDatabase database) = AlterWorld();
+        byte before = world.Tile(3, 3).TerrainId;
+
+        RunAlter(world, database, Dk2TerrainFixture.Rock, Keeper, x: 30_000, y: 30_000);
+        Assert.Equal(before, world.Tile(3, 3).TerrainId);
+
+        world.Tile(3, 3).OwnerPlayerId = PlayerIds.Unowned;
+        RunAlter(world, database, before, Keeper, x: 4, y: 4);
+        Assert.Equal(PlayerIds.Unowned, world.Tile(3, 3).OwnerPlayerId);
+    }
+
+    private static (WorldState World, GameDatabase Database) AlterWorld()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        return (WorldState.FromMap(
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]),
+            database);
+    }
+
+    private static TriggerRunResult RunAlter(
+        WorldState world, GameDatabase database, byte terrainId, byte playerId, int x, int y)
+    {
+        // An action hangs off a condition, so the root is a level-time test that is
+        // true on the first turn and the alter-terrain record is its child.
+        TriggerRecord[] records =
+        [
+            LevelTime(5, comparison: 5, seconds: 0, child: 0xFFFF),
+            AlterTerrainRecord(1, terrainId, playerId, x, y),
+        ];
+        var tree = new TriggerTree(records, 5, playerRoots: []);
+        return new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+    }
+
+    private static TriggerRecord AlterTerrainRecord(
+        ushort id, byte terrainId, byte playerId, int x, int y) =>
+        new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 22,
+            Parameters = new Dictionary<string, long>
+            {
+                ["TerrainId"] = terrainId, ["PlayerId"] = playerId,
+                ["PosX"] = x, ["PosY"] = y,
+            },
+        };
 
     /// <summary>And the cache lives for one turn, not for the executor: each
     /// <see cref="TriggerExecutor.Run"/> makes its own <c>TriggerRun</c>. A room dug between
