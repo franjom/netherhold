@@ -30,8 +30,8 @@ public static class ObservedCorrections
     /// dug plain unreinforced wall (terrain 2, "Rock") and counted <b>two damaging
     /// swings</b>, a third animation playing over a crumbling block (2026-08-30).
     /// <para>Rock has 165 health, so per-swing damage is in [83, 164]; one application
-    /// is the tabled delta over <see cref="SimulationTiming.BaseApplicationDivisor"/>,
-    /// so the field should read [415, 820] and the shipped -5000 is six to twelve times
+    /// is the tabled delta shifted by <see cref="SimulationTiming.WorkApplicationShift"/>,
+    /// so the field should read [415, 825] and the shipped -5000 is six to twelve times
     /// too big. -500 is the only round number in the window, is a tenth of the shipped
     /// value, gives 165 → 65 → destroyed, and the balance table holds no alternative
     /// candidate in that range (docs/research/tile-work.md §Q20). Whether the engine

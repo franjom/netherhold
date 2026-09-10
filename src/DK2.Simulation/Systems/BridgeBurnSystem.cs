@@ -43,7 +43,6 @@ public sealed class BridgeBurnSystem : ISimulationSystem
 
             tile.TerrainId = becomes;
             tile.Health = next.StartingHealth;
-            tile.WorkRemainder = 0;
             tile.Flags = BridgeRules.SpansWater;
             if (!next.IsTaggable) tile.TaggedBy = 0;
 

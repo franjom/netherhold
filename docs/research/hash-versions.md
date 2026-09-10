@@ -33,7 +33,14 @@ beside it.
 
 ## Versions
 
-**53** — `0x94D2541428918DAC` (current). `PlayerState.SlapCount` (`player+0xEE6`,
+**54** — `0x2820694B7F459227` (current). `TileState.WorkRemainder` **removed**. It
+carried the fraction a tabled per-second delta left over when divided by five, so
+the per-second rate held exactly. Run 15 read a reinforcing tile's health word 20
+times a second and counted 54 consecutive steps of 9 against a tabled 9.6: DK2
+loses the fraction every application. The accumulator was modelling a device the
+original does not have, and the arithmetic that needed it is gone too (ADR-0133).
+
+**53** — `0x94D2541428918DAC`. `PlayerState.SlapCount` (`player+0xEE6`,
 condition type 71) and `PlayerState.PossessedCreatureId` (`player+0x134`, condition
 type 73). Nothing writes either: no keeper here slaps or possesses, so both are
 truly zero rather than stubbed, and the conditions read state instead of answering

@@ -101,11 +101,12 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 51: PlayerState gained GoldMined, so composition moves this even
-        // though the fixture mines nothing -- an empty field still has to change the hash,
-        // which is what proves the hash covers it. The pinned world spawns no creatures
-        // (Q206), so a missing CreatureState field will not fail this pin.
-        Assert.Equal(0x94D2541428918DACUL, sim.StateHash());
+        // HashVersion 54: TileState lost WorkRemainder. Run 15 watched 54 consecutive
+        // reinforce steps of exactly 9 where the tabled rate wants 9.6, so DK2 drops the
+        // fraction rather than banking it and the accumulator was modelling nothing
+        // (ADR-0133). The pinned world spawns no creatures (Q206), so a missing
+        // CreatureState field will not fail this pin.
+        Assert.Equal(0x2820694B7F459227UL, sim.StateHash());
     }
 
     [Fact]

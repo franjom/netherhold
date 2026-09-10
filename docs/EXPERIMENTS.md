@@ -411,3 +411,50 @@ therefore biased 2-5% long against a tick count converted at 250 ms.
 17 and 22. The 9 is below run 12's floor and breaks the clean arithmetic that
 12 had (Q292), which is a reason to distrust the task's ends rather than the
 constant. No constant has moved on any of this.
+
+**2026-09-10, run 15 — the tile's own health, and four work rates at once.**
+The capture the last three were building towards: `dk2watch.py --tiles` reads
+the health word of every tile the pool has work on, 20 times a second. Three
+tiles marked and left alone; 235 rows over six tiles.
+
+**The offsets are right.** Terrains came back 2, 3, 6, 8 and 9 — Rock, Dirt
+Path, Gold, Claimed Path, Reinforced Wall, exactly the five in play — and every
+health sat inside its tabled maximum. `map = world + 0x9DA`, tiles `+0x14`,
+health `word +0x06` are confirmed live (`runtime-map.md`).
+
+**The traces.** Each is one tile, tick by tick:
+
+| tile | trace |
+|---|---|
+| claim (10,28) | `1 → 165 → 329 → 493 → 657 →` Claimed Path — **+164, five times** |
+| reinforce (14,33) | `165 → 174 → … → 651 →` Reinforced Wall — **+9, fifty-five times** |
+| mine (14,24) | `660 → 600 → … → 60 →` Dirt Path — **−60 a worker** |
+| dig (14,32) | `900 → 874 → …` — **−26 a worker**, in steps of 26 and 52 |
+
+All three reinforces ran +9 and all three claims +164, so these are the rates
+and not a sample. **One mechanism gives all four**: the tabled delta times
+Efficiency in 4096ths, arithmetic-shifted down 14. Our `tabled ÷ 5` matched two
+of the four — it is only equal when the value divides by twenty (ADR-0133).
+
+**Nothing is carried.** Fifty-four consecutive reinforce steps of exactly 9
+against a tabled 9.6. An accumulator would have shown 9, 10, 10, 9, 10.
+`TileState.WorkRemainder` is deleted; `HashVersion` 54.
+
+**Q296, answered.** The pool task brackets the work. A claim task enters the
+pool about 5 ticks before the health first moves and leaves 2 after; reinforce
+is 55 applications over 56 ticks inside a 61-tick task. The 9–22 tick spread in
+claim task lengths was walk time, never the work.
+
+**Q62, closed.** 55 applications is 56 ticks, 14.2 s at this run's 254 ms tick,
+against the owner's 13.1–13.8 s stopwatch. The old 50 gave 12.7 s and sat below
+every reading for a fortnight. The residual was the +1, not a mechanism.
+
+**It does not move the replay, and that was checked.** Runs 13–15 keep their
+residuals (−37, −27, −18): digging is the one delta ADR-0133 leaves alone, and
+the lagging flags are dig-driven. What is left is the approach time, Q296.
+
+**One thing raised, Q297.** Digging a Reinforced Wall ends at Dirt Path rather
+than the Rock its `DestroyedTypeTerrainId` names — (14,32) showed Rock at a full
+165 for a single tick, (10,28) never showed it. Three workers at 26 cannot take
+165 off in one tick, so something carries the job through.
+

@@ -234,28 +234,31 @@ public class HandTests
         // OWNER MEASUREMENT (2026-09-05), read off DK2's own gold counter:
         // 272-273 gold a swing at 80 %, 309-310 at 90 %, 341 at 100 %. A gold seam
         // is 3000 gold over 660 health, so a swing is health x 3000/660 =
-        // health x 4.5454 gold; MineGoldHealth is -300 a second over the four
-        // ticks of a game second.
-        int atEighty = EfficiencyRules.Scale(-60, 80);
-        int atNinety = EfficiencyRules.Scale(-60, 90);
-        int atHundred = EfficiencyRules.Scale(-60, 100);
+        // health x 4.5454 gold; MineGoldHealth is -300 a second.
+        GameDatabase db = Db;
+        int Swing(int bonuses) =>
+            TileWorkRules.PerApplication(db, TileWorkKind.MineGold, Rate(bonuses));
 
-        Assert.Equal(-60, atEighty);    // 272.7 gold — owner read 272-273
-        Assert.Equal(-68, atNinety);    // 309.1 gold — owner read 309-310
-        Assert.Equal(-75, atHundred);   // 340.9 gold — owner read 341
+        Assert.Equal(-60, Swing(0));    // 272.7 gold — owner read 272-273
+        Assert.Equal(-68, Swing(1));    // 309.1 gold — owner read 309-310
+        Assert.Equal(-75, Swing(2));    // 340.9 gold — owner read 341
 
-        // The 90% case is the one that pins the rounding: 67.5 is a half, and
-        // 67 would have read 304.5 gold. It reads 309.
-        Assert.Equal(309, (int)(atNinety * -3000L / 660));
+        // The middle one is the load-bearing case. Whole percents put it on a
+        // half -- 67.5 -- and only a bespoke round-away-from-zero reached 68;
+        // in 4096ths 0xe65 lands at 67.47 and the floor gets there by itself.
+        Assert.Equal(309, (int)(Swing(1) * -3000L / 660));
     }
 
     [Fact]
-    public void AtTheDefaultRateScalingChangesNothingAtAll()
+    public void TheThreeDisplayedPercentagesAreNotTheThreeMultipliers()
     {
-        // Which is why the whole suite survived Efficiency arriving: every
-        // number this project measured before it existed was an 80% number.
-        for (int amount = -5000; amount <= 5000; amount += 7)
-            Assert.Equal(amount, EfficiencyRules.Scale(amount, EfficiencyRules.BasePercent));
+        // 0xccc is 0.7998 and two bonuses reach 0xffe, three short of 4096, so
+        // "80 %" and "100 %" are what the status bar rounds to and not what the
+        // work does. Keeping both is the point: run 15 needed the 4096ths.
+        Assert.Equal(0xCCC, EfficiencyRules.BaseModifier);
+        Assert.Equal(0xE65, EfficiencyRules.BaseModifier + EfficiencyRules.BonusModifier);
+        Assert.Equal(0xFFE, EfficiencyRules.BaseModifier + (2 * EfficiencyRules.BonusModifier));
+        Assert.NotEqual(4096, EfficiencyRules.BaseModifier + (2 * EfficiencyRules.BonusModifier));
     }
 
     [Fact]
@@ -600,20 +603,25 @@ public class HandTests
         // gold and MineGoldHealth is -300 a second over four ticks a game second.
         // Ranges because gold comes off a running total that truncates, so
         // consecutive swings at one rate genuinely alternate by a unit.
-        Assert.InRange(FirstSwingGold(80), 272, 273);
-        Assert.InRange(FirstSwingGold(90), 309, 310);
-        Assert.InRange(FirstSwingGold(100), 340, 341);
+        Assert.InRange(FirstSwingGold(0), 272, 273);
+        Assert.InRange(FirstSwingGold(1), 309, 310);
+        Assert.InRange(FirstSwingGold(2), 340, 341);
     }
 
     [Fact]
     public void ASlapTakesASwingOffASeamAndTwoSwingsWithAWellAimedDrop()
     {
-        Assert.Equal(11, SwingsThroughSeam(80));
-        Assert.Equal(10, SwingsThroughSeam(90));
-        Assert.Equal(9, SwingsThroughSeam(100));
+        Assert.Equal(11, SwingsThroughSeam(0));
+        Assert.Equal(10, SwingsThroughSeam(1));
+        Assert.Equal(9, SwingsThroughSeam(2));
     }
 
-    private static int FirstSwingGold(int efficiencyPercent)
+    /// <summary>Efficiency in the 4096ths the work arithmetic uses, from a count
+    /// of the two bonuses (ADR-0133): 0 is a plain imp, 1 slapped, 2 both.</summary>
+    private static int Rate(int bonuses) =>
+        EfficiencyRules.BaseModifier + (EfficiencyRules.BonusModifier * bonuses);
+
+    private static int FirstSwingGold(int bonuses)
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -621,10 +629,10 @@ public class HandTests
         tile.SetTaggedBy(Keeper, true);
 
         return TileWorkRules.Apply(
-            db, ref tile, TileWorkKind.MineGold, Keeper, efficiencyPercent).GoldReleased;
+            db, ref tile, TileWorkKind.MineGold, Keeper, Rate(bonuses)).GoldReleased;
     }
 
-    private static int SwingsThroughSeam(int efficiencyPercent)
+    private static int SwingsThroughSeam(int bonuses)
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -636,7 +644,7 @@ public class HandTests
         while (tile.TerrainId == Dk2TerrainFixture.Gold && swings < 100)
         {
             gold += TileWorkRules.Apply(
-                db, ref tile, TileWorkKind.MineGold, Keeper, efficiencyPercent).GoldReleased;
+                db, ref tile, TileWorkKind.MineGold, Keeper, Rate(bonuses)).GoldReleased;
             swings++;
         }
 

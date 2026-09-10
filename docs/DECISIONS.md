@@ -2576,3 +2576,47 @@ and Claimed Path with no owner (claimed *means* owned). Each behaved
 confusingly for that reason alone. A test standing on an impossible tile
 measures nothing, and the negative half of this pair was deleted rather than
 kept green.
+
+## ADR-0133 — One application is a shift, not a division, and nothing is carried
+
+**Context.** Run 15 read the running game's tile health word 20 times a second
+while three tiles were dug, claimed and reinforced (`runtime-map.md`). That is
+four work rates measured at once, against terrain whose deltas we already knew:
+
+| variable | tabled | ours | DK2 |
+|---|---|---|---|
+| `MineGoldHealth` | −300 | −60 | **−60** |
+| `DigOwnWallHealth` | −130 | −26 | **−26** |
+| `ClaimTileHealth` | +825 | +165 | **+164** |
+| `ReinforceWallHealth` | +50 | +10 | **+9** |
+
+**Decision.** One application is `tabled × Efficiency-in-4096ths >> 14` — twelve
+bits for the multiplier, two for the four ticks of a game second — as a single
+**arithmetic shift**, which floors. Our `tabled ÷ 5` truncated toward zero and
+is only equal when the value divides by twenty, which is why gold and digging
+looked right for a fortnight while claiming and reinforcing did not.
+
+**And nothing is carried.** `TileState.WorkRemainder` banked the fraction so the
+per-second rate held exactly. Run 15 watched **54 consecutive reinforce steps of
+9** where the tabled rate wants 9.6: DK2 drops it every time. The field is
+deleted (`HashVersion` 54).
+
+**The floor is not a rounding detail.** `DigEnemyWallHealth` −8 floors to −2,
+which is −8 a game second exactly; truncating gave −1 and needed the
+accumulator to reach the same place. Where they differ the game takes the floor.
+
+**Efficiency moves to 4096ths.** `EfficiencyRules.Scale` and its bespoke
+round-half-away-from-zero are gone: they existed to make 90 % pay 68 health a
+swing from a whole percent, and `0xe65` lands at 67.47 and floors there by
+itself. All three of the owner's gold measurements — 273, 309, 341 — still come
+out, now from the arithmetic DK2 runs rather than one fitted to them. The
+percents stay as the display value the status bar shows.
+
+**What it costs.** Claiming a tile is five applications, not four; reinforcing
+Rock is 55, not 50. Both are CONFIRMED tile by tile rather than fitted to a
+stopwatch, which is how this number was wrong twice before (ADR-0024's 66, then
+ADR-0089's 50 — see Q62).
+
+**It does not close the replay gap, which was checked.** Runs 13–15 keep their
+residuals almost exactly: digging is the delta that did not move, and the flags
+that lag are dig-driven. What is left is the approach time Q296 found.

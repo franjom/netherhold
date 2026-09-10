@@ -65,13 +65,12 @@ public static class SimulationTiming
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/open-questions.md#Q47")]
     public const int WorkApplicationsPerSecond = OriginalTicksPerGameSecond;
 
-    /// <summary>What a tabled per-second work delta is divided by for one application at the default
-    /// Efficiency: five, derived as <c>4 ÷ 0.8</c>. DK2's work handlers read the rate global already
-    /// divided by <see cref="OriginalTicksPerGameSecond"/> at load time, then multiply by Efficiency
-    /// in 4096ths (<c>0xccc</c> = 0.8 at spawn), so one application is <c>tabled ÷ 4 × 0.8</c>.</summary>
-    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/tile-work.md")]
-    public const int BaseApplicationDivisor =
-        OriginalTicksPerGameSecond * 100 / EfficiencyRules.BasePercent;
+    /// <summary>The arithmetic shift a tabled per-second work delta takes to become one application:
+    /// fourteen — twelve for Efficiency's 4096ths, two for the four ticks of a game second. A signed
+    /// shift <b>floors</b>, where the <c>÷ 5</c> this replaced truncated toward zero, and that one
+    /// unit is the whole of ADR-0133 (Q292, run 15 read four rates at once).</summary>
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/tile-work.md")]
+    public const int WorkApplicationShift = 14;
 
     /// <summary>How often a worker applies work to a tile, in ticks: one — work lands once per
     /// creature update and that is once a tick. Derived, so a finer <see cref="TicksPerSecond"/> carries it.</summary>

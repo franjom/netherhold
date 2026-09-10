@@ -140,42 +140,21 @@ public static class TileWorkRules
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/tile-work.md")]
     public const int MaxTileHealth = 32000;
 
-    /// <summary>
-    /// The health one application of <paramref name="kind"/> moves, and the
-    /// fraction it leaves behind in <paramref name="remainder"/>.
-    /// <para>The table's deltas are per game second; one application is the delta
-    /// over <see cref="SimulationTiming.BaseApplicationDivisor"/> (5 — Efficiency
-    /// 80% over the four ticks of a game second, Q19, Q47). Eight of the ten deltas
-    /// divide exactly; the rest carry the remainder on, so the per-second rate
-    /// holds. The divisor is not the cadence: see
-    /// <see cref="SimulationTiming.WorkApplicationsPerSecond"/>.</para>
-    /// </summary>
-    public static int PerApplication(GameDatabase database, TileWorkKind kind, ref sbyte remainder)
+    /// <summary>The health one application of <paramref name="kind"/> moves at
+    /// <paramref name="efficiency"/> 4096ths of work rate: the tabled per-second
+    /// delta shifted down by <see cref="SimulationTiming.WorkApplicationShift"/>,
+    /// carrying nothing (ADR-0133). Not the cadence, which is
+    /// <see cref="SimulationTiming.WorkApplicationsPerSecond"/>.</summary>
+    public static int PerApplication(
+        GameDatabase database, TileWorkKind kind, int efficiency = EfficiencyRules.BaseModifier)
     {
         // Through ObservedCorrections: one variable in the table does not produce
         // the behaviour the original shows, and this is the single seam where
         // that correction enters the simulation (ADR-0023, Q20).
         int perSecond = ObservedCorrections.TileWorkPerSecond(database, Variable(kind));
-        int rate = SimulationTiming.BaseApplicationDivisor;
 
-        int whole = perSecond / rate;
-        int carry = remainder + (perSecond % rate);
-
-        if (Math.Abs(carry) >= rate)
-        {
-            whole += Math.Sign(carry);
-            carry -= Math.Sign(carry) * rate;
-        }
-
-        remainder = (sbyte)carry;
-        return whole;
-    }
-
-    /// <summary>What the next application would move, without moving it.</summary>
-    public static int PeekPerApplication(GameDatabase database, TileWorkKind kind, sbyte remainder)
-    {
-        sbyte scratch = remainder;
-        return PerApplication(database, kind, ref scratch);
+        // An arithmetic shift, so this floors rather than truncating toward zero.
+        return perSecond * efficiency >> SimulationTiming.WorkApplicationShift;
     }
 
     /// <summary>
@@ -201,11 +180,10 @@ public static class TileWorkRules
     public static bool CompletesAsTakeover(TileWorkKind kind) =>
         kind is TileWorkKind.ConvertRoom;
 
-    /// <summary>The per-second health delta the balance table gives this kind of
-    /// work, after <see cref="ObservedCorrections"/>: the raw rate, no remainder
-    /// carried (<see cref="PerApplication"/> carries one). The sign is what callers
-    /// outside the application loop want — negative work ends at the terrain's
-    /// <see cref="TerrainDef.DestroyedTypeTerrainId"/>.</summary>
+    /// <summary>The per-second health delta the balance table gives this kind of work,
+    /// after <see cref="ObservedCorrections"/> and unscaled by Efficiency. The sign is
+    /// what callers outside the application loop want — negative work ends at the
+    /// terrain's <see cref="TerrainDef.DestroyedTypeTerrainId"/>.</summary>
     public static int PerSecond(GameDatabase database, TileWorkKind kind) =>
         ObservedCorrections.TileWorkPerSecond(database, Variable(kind));
 
@@ -350,28 +328,23 @@ public static class TileWorkRules
     /// maximum (upward work only) its <see cref="TerrainDef.MaxHealthTypeTerrainId"/>
     /// — both at that type's starting health, without dig tags (<see cref="Convert"/>).
     /// </summary>
-    /// <param name="efficiencyPercent">Worker Efficiency as a whole percent; 80 is
-    /// DK2's birth value and what docs/research/tile-work.md measured at. A slap,
-    /// or a drop beside the marked tile, gives 90; both 100
-    /// (<see cref="EfficiencyRules.Scale"/>, Q159).</param>
+    /// <param name="efficiency">Worker Efficiency in 4096ths, from
+    /// <see cref="EfficiencyRules.Modifier"/>; a slap or a well-aimed drop adds one
+    /// <see cref="EfficiencyRules.BonusModifier"/> (Q159).</param>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/tile-work.md")]
     public static TileWorkResult Apply(
         GameDatabase database,
         ref TileState tile,
         TileWorkKind kind,
         byte playerId,
-        int efficiencyPercent = EfficiencyRules.BasePercent)
+        int efficiency = EfficiencyRules.BaseModifier)
     {
         if (!Applies(database, tile, kind, playerId))
             return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
 
-        // The tabled fraction with its remainder carried first, Efficiency on
-        // top. The order matters: the carry keeps the per-second rate exactly
-        // what the table says, and scaling after leaves the 80% case unchanged.
-        int delta = EfficiencyRules.Scale(
-            PerApplication(database, kind, ref tile.WorkRemainder), efficiencyPercent);
+        int delta = PerApplication(database, kind, efficiency);
 
         if (delta < 0)
         {
@@ -458,7 +431,7 @@ public static class TileWorkRules
         if (!Applies(database, tile, kind, playerId)) return 0;
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
-        int delta = PeekPerApplication(database, kind, tile.WorkRemainder);
+        int delta = PerApplication(database, kind);
         if (delta >= 0) return 0;
 
         int applied = Math.Max(delta, -tile.Health);
@@ -529,9 +502,6 @@ public static class TileWorkRules
 
         tile.TerrainId = newTerrainId;
         tile.Health = next.StartingHealth;
-
-        // Whatever the tile becomes starts its own upward job from nothing.
-        tile.WorkRemainder = 0;
 
         // Only when the tile actually became something else: a rival claiming a
         // burning wooden bridge takes it fire and all, because putting the fire

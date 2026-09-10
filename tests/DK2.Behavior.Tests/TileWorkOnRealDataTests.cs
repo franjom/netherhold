@@ -110,10 +110,10 @@ public class TileWorkOnRealDataTests
             TileWorkRules.Apply(db, ref tile, TileWorkKind.Dig, 1).Outcome);
         Assert.Equal(IdOf(db, "Dirt Path"), tile.TerrainId);
 
-        // Four swings to claim one tile against the real numbers (Q47), which is
-        // the owner's "2-3-4 jumps MAX" (Q46) — asserted rather than looped, so
-        // that a change to the application rate shows up here too.
-        for (int i = 0; i < 3; i++)
+        // Five swings to claim one tile against the real numbers, CONFIRMED by
+        // run 15's health trace (ADR-0133) — asserted rather than looped, so that
+        // a change to the application rate shows up here too.
+        for (int i = 0; i < 4; i++)
             Assert.Equal(TileWorkOutcome.Progressed,
                 TileWorkRules.Apply(db, ref tile, TileWorkKind.Claim, 1).Outcome);
 
@@ -131,22 +131,13 @@ public class TileWorkOnRealDataTests
         }
         Assert.Equal(IdOf(db, "Reinforced Wall"), wall.TerrainId);
 
-        // FIFTY swings, on the real shipped data: Rock's 165 up to its
-        // maxHealth of 660 is 495 health at 10 a swing (ReinforceWallHealth 50
-        // over the base-Efficiency divisor of five). At the four applications a
-        // second the creature update actually runs at, that is 12.5 seconds.
-        //
-        // The owner stopwatched 13.3-13.4 s with a fresh level-1 imp and
-        // 13.38/13.77 s earlier, all of which carry their own reaction time and
-        // all of which sit 0.4-1.3 s ABOVE this - the direction a hand timer
-        // errs in. This assertion was 66 between 2026-08-30 and 2026-09-07,
-        // when ADR-0024 charged an upward job the whole maxHealth to make 66
-        // swings fit those seconds at a guessed five a second. Both halves were
-        // wrong and they cancelled; see Q47 and Q62.
-        //
-        // If it has to change again, change it from the applier's instructions
-        // (FUN_00452f60) and not from a stopwatch.
-        Assert.Equal(50, swings);
+        // FIFTY-FIVE, on the real shipped data: Rock's 165 up to its maxHealth
+        // of 660 is 495 at 9 a swing, and 495 / 9 is exactly 55. This has been
+        // wrong twice (66, then 50) and a stopwatch was the evidence both
+        // times; run 15 counted the steps in the tile's own health word, so it
+        // is CONFIRMED rather than fitted. If it changes again, change it from
+        // a health trace and not from seconds (ADR-0133, Q62).
+        Assert.Equal(55, swings);
     }
 
     [InstallFact]

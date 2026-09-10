@@ -135,7 +135,7 @@ Imp maxGoldHeld    1400
 The 1363-against-1400 near-miss is what pointed at Q47. The owner measured 273
 gold a swing, which puts a swing at 60 health — a fifth of `MineGoldHealth`'s
 −300, that fifth being the loader's divide by variable 19 followed by the worker's
-80 % Efficiency (`SimulationTiming.BaseApplicationDivisor`).
+80 % Efficiency. **The fifth is approximate**: the shift floors, so gold's −300 lands on −60 exactly while claiming's 825 lands on 164 (ADR-0133).
 **Trap: the fifth is the size of an application, not its rate.** Work lands
 **once a tick, four times a game second**
 (`SimulationTiming.WorkApplicationsPerSecond`, ADR-0089); "five applications a

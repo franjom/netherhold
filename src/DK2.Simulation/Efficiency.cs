@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
 using DK2.Data.Model;
 
 namespace DK2.Simulation;
@@ -13,9 +14,19 @@ namespace DK2.Simulation;
 /// <c>WorkEnhancement</c>; whole percents are what the game displays and what every measurement landed on (<see cref="Scale"/>). Trap: it is not the creature's level (same doc, "does NOT change with level").</remarks>
 public static class EfficiencyRules
 {
-    /// <summary>What every creature works at with nothing helping it: 80 %. DK2's constructor sets
-    /// <c>WorkModifier</c> to <c>0xccc</c> = 0.7998, not 0.8 — why this is a percent, not 4096ths.</summary>
+    /// <summary>What every creature works at with nothing helping it, as the status bar shows it:
+    /// 80 %. The arithmetic uses <see cref="BaseModifier"/>, which is not quite the same number.</summary>
     public const int BasePercent = 80;
+
+    /// <summary>What DK2's constructor writes into <c>WorkModifier</c>: <c>0xccc</c> = 0.7998, not
+    /// 0.8. Run 15 read four work rates off the running game at once and only the 4096ths reproduce
+    /// all four — <c>× 80 ÷ 100</c> gives −27 for a dig the game does at −26 (ADR-0133).</summary>
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/tile-work.md")]
+    public const int BaseModifier = 0xCCC;
+
+    /// <summary>What each bonus adds to <c>WorkEnhancement</c>: <c>0x199</c> = 409. Two of them reach
+    /// <c>0xffe</c>, three short of 4096, which is why "100 %" is a display value.</summary>
+    public const int BonusModifier = 0x199;
 
     /// <summary>What each of the two bonuses is worth: ten points, stacking to exactly 100 %. DK2
     /// adds a hardcoded <c>0x199</c> = 409 = 0.0999 to <c>WorkEnhancement</c> per bonus.</summary>
@@ -35,35 +46,27 @@ public static class EfficiencyRules
     /// it was dropped onto (<see cref="CreatureState.DroppedTask"/> holds the kind of task the drop
     /// found, not merely "was dropped" — ADR-0069). Not implemented: DK2's non-worker branch
     /// (<c>DroppedToDoJobId</c> without <see cref="CreatureFlags.IsWorker"/>) and a third term of 0.05 per keeper-held counter unit, most likely the torture tally.</summary>
-    public static int Percent(CreatureState creature, CreatureDef definition)
-    {
-        int percent = BasePercent;
+    public static int Percent(CreatureState creature, CreatureDef definition) =>
+        BasePercent + (BonusPercent * Bonuses(creature, definition));
 
-        if (creature.WorkFasterTicks > 0)
-            percent += BonusPercent;
+    /// <summary>The same creature's multiplier in 4096ths, which is what work arithmetic uses:
+    /// <see cref="BaseModifier"/> plus <see cref="BonusModifier"/> a bonus.</summary>
+    public static int Modifier(CreatureState creature, CreatureDef definition) =>
+        BaseModifier + (BonusModifier * Bonuses(creature, definition));
+
+    /// <summary>How many of the two bonuses this creature has, so the percent the status bar shows
+    /// and the 4096ths the arithmetic uses can never drift apart.</summary>
+    private static int Bonuses(CreatureState creature, CreatureDef definition)
+    {
+        int bonuses = 0;
+
+        if (creature.WorkFasterTicks > 0) bonuses++;
 
         if (definition.Flags.HasFlag(CreatureFlags.IsWorker)
             && creature.DroppedTask != ImpTaskKind.None)
-            percent += BonusPercent;
+            bonuses++;
 
-        return percent;
+        return bonuses;
     }
 
-    /// <summary>Scales work from <see cref="BasePercent"/> to <paramref name="percent"/>, rounding
-    /// halves away from zero; at <see cref="BasePercent"/> it returns its input untouched. The
-    /// rounding is the measurement: 67.5 health at 90 % pays 309 gold a swing (68), where
-    /// truncating gives 304.5. Percents, not DK2's 4096ths, whose constants are approximations (<c>0xccc + 0x199</c> = 0.8997): reproduce the numbers, not the arithmetic (AGENTS.md, Fidelity).</summary>
-    public static int Scale(int baseAmount, int percent)
-    {
-        if (percent == BasePercent || baseAmount == 0) return baseAmount;
-
-        int numerator = baseAmount * percent;
-        int whole = numerator / BasePercent;
-        int rest = Math.Abs(numerator % BasePercent);
-
-        // Halves away from zero: 67.5 -> 68, and -67.5 -> -68 for downward deltas.
-        if (rest * 2 >= BasePercent) whole += Math.Sign(numerator);
-
-        return whole;
-    }
 }

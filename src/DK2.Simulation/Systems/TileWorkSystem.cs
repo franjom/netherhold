@@ -82,12 +82,12 @@ public sealed class TileWorkSystem : ISimulationSystem
     /// </summary>
     private static int EfficiencyOf(SimulationContext context, int workerCreatureId)
     {
-        if (workerCreatureId < 0) return EfficiencyRules.BasePercent;
+        if (workerCreatureId < 0) return EfficiencyRules.BaseModifier;
 
         CreatureState? worker = context.World.CreatureById(workerCreatureId);
-        if (worker is null) return EfficiencyRules.BasePercent;
+        if (worker is null) return EfficiencyRules.BaseModifier;
 
-        return EfficiencyRules.Percent(
+        return EfficiencyRules.Modifier(
             worker, context.Database.CreatureById(worker.CreatureTypeId));
     }
 

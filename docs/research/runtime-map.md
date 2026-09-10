@@ -3,11 +3,11 @@
 | | |
 |---|---|
 | Source(s) | `DKII.EXE` v1.70 — the tile lookup `FUN_004508D0`, the applier `FUN_00452F60`, the caller at `0x0049713D` |
-| Observed behaviour | Not yet sampled from the running game |
-| Confidence | **STRONGLY INFERRED** — read directly from the address arithmetic, unsampled |
+| Observed behaviour | Sampled, run 15 (level 1, 2026-09-10) — 235 rows over six tiles |
+| Confidence | **CONFIRMED** — the terrains came back 2/3/6/8/9 and every health sat inside its tabled maximum |
 | Implementation | Read by `dk2watch.py --tiles`; nothing in `src/` uses it |
 | Tests | — |
-| Open questions | Q292 — what one claim application is worth, which this is built to answer |
+| Open questions | Q292 answered: 164, five times (ADR-0133). Q297 — a dug Reinforced Wall reaches Dirt Path in one tick on one tile and two on another |
 
 ## Finding a tile
 
@@ -61,6 +61,13 @@ changes:
 wall,tick,x,y,terrain,health,flags
 ```
 
-**Unverified until it runs.** The first capture also tests the two offsets: a
-width outside the map sizes DK2 ships, or health that never moves while a tile
-is plainly being dug, means the arithmetic above is wrong rather than the game.
+**Verified.** Run 15 dug, claimed and reinforced three tiles and the trace reads
+straight: Rock 165 climbing by 9, Dirt Path 1 climbing by 164, Gold 660 falling
+by 60, each converting at its tabled maximum. That settled four work rates at
+once (ADR-0133) and closed Q62, Q292 and Q296 in one capture.
+
+One thing it raised. Digging a **Reinforced Wall** ends at Dirt Path, not at the
+Rock its `DestroyedTypeTerrainId` names: (14,32) showed Rock at a full 165 for a
+single tick and (10,28) never showed it at all. Three workers at 26 each cannot
+take 165 off in a tick, so something carries the job through the intermediate
+terrain — Q297.

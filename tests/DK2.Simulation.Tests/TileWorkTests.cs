@@ -86,47 +86,48 @@ public class TileWorkTests
     }
 
     [Fact]
-    public void ClaimingDirtPath_TakesFourApplications_AndYieldsClaimedPath()
+    public void ClaimingDirtPath_TakesFiveApplications_AndYieldsClaimedPath()
     {
-        // FOUR applications. Dirt Path ships at 1 health of a 660 maximum, so the
-        // deficit (659) and the whole maximum (660) are within one swing of each
-        // other — which is why claiming could never have caught ADR-0024's charge.
-        // ClaimTileHealth is 825 a game second over the base-Efficiency divisor of
-        // five = 165 an application, and 1 + 4 x 165 = 661 >= 660. Work accumulates
-        // in the tile's health, as DK2's applier does (FUN_00452f60, tile+6, converting at MaxHealth, +0x1ad).
+        // FIVE applications of 164, CONFIRMED tile by tile against the running
+        // game: run 15 sampled a claim at 20 Hz and read 1, 165, 329, 493, 657,
+        // then Claimed Path (2026-09-10, EXPERIMENTS.md). ClaimTileHealth 825 in
+        // 4096ths of Efficiency, shifted down 14, is 164 and not the 165 that
+        // tabled/5 gave — and 659 / 164 crosses four where 659 / 165 does not.
         TileState tile = TileOf(Dk2TerrainFixture.DirtPath, owner: 3);
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 4; i++)
         {
             TileWorkResult step = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Claim, 2);
             Assert.Equal(TileWorkOutcome.Progressed, step.Outcome);
-            Assert.Equal(165, step.HealthDelta);
+            Assert.Equal(164, step.HealthDelta);
             Assert.Equal(Dk2TerrainFixture.DirtPath, tile.TerrainId);
         }
 
-        Assert.Equal(1 + (3 * 165), tile.Health);
+        // The last value run 15 saw before the tile turned over.
+        Assert.Equal(657, tile.Health);
+        Assert.Equal(1 + (4 * 164), tile.Health);
 
         TileWorkResult result = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Claim, 2);
 
         Assert.Equal(TileWorkOutcome.Transformed, result.Outcome);
         Assert.Equal(Dk2TerrainFixture.ClaimedPath, tile.TerrainId);
         Assert.Equal(2, tile.OwnerPlayerId);
-        Assert.Equal(165, result.HealthDelta);
+        Assert.Equal(164, result.HealthDelta);
     }
 
     [Fact]
-    public void ReinforcingRock_TakesFiftyApplications_BecauseTheCostIsTheDeficit()
+    public void ReinforcingRock_TakesFiftyFiveApplications_BecauseTheCostIsTheDeficit()
     {
-        // FIFTY, read from the applier and not timed: DK2 adds the delta into the
-        // tile's own health word and converts at MaxHealth, so reinforcing Rock
-        // costs the deficit (660 - 165 = 495) at 10 an application. That is 12.5 s
-        // against a hand-timed 13.35, and 45 applications / 11.25 s slapped against
-        // 11.5-11.9 s. ADR-0024's 66 fitted the stopwatch with two wrong halves
-        // that cancelled: change this from the applier (Q47, Q62, tile-work.md).
+        // FIFTY-FIVE of 9, CONFIRMED against the running game: run 15 watched 54
+        // consecutive +9 steps from 165 to 651 and the conversion on the 55th
+        // (2026-09-10). The deficit is 660 - 165 = 495 and 495 / 9 is exactly 55.
+        // Nine, not the ten tabled/5 gave; at ~255 ms a tick that is 14.2 s
+        // against the owner's 13.1-13.8 s stopwatch, which the old 50 undershot
+        // in one direction for a fortnight (Q47, Q62, ADR-0133).
         TileState tile = TileOf(Dk2TerrainFixture.Rock);
         int start = Db.TerrainById(Dk2TerrainFixture.Rock).StartingHealth;
 
-        for (int i = 1; i <= 49; i++)
+        for (int i = 1; i <= 54; i++)
         {
             TileWorkResult step = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Reinforce, 1);
             Assert.Equal(TileWorkOutcome.Progressed, step.Outcome);
@@ -136,7 +137,8 @@ public class TileWorkTests
         // The progress IS the wall's health now, and that is the correction:
         // a half-reinforced wall is a tougher wall, which is also what drives
         // the original's visual stages (terrain+0x1c3).
-        Assert.Equal(start + (49 * 10), tile.Health);
+        Assert.Equal(651, tile.Health);
+        Assert.Equal(start + (54 * 9), tile.Health);
         Assert.True(tile.Health < Db.TerrainById(Dk2TerrainFixture.Rock).MaxHealth);
 
         TileWorkResult last = TileWorkRules.Apply(Db, ref tile, TileWorkKind.Reinforce, 1);
@@ -183,14 +185,15 @@ public class TileWorkTests
     [Fact]
     public void DiggingAnEnemyWallIsVastlySlowerThanDiggingYourOwn()
     {
-        // -130 vs -8 per second against 900 health, at five applications a second:
-        // 26 vs 1.6 a swing, so 35 swings against 563. DigEnemyWallHealth is one of
-        // only two deltas that does not divide by five, so this also catches a lost
-        // remainder — 563 swings is 8 health a second exactly, where truncating to
-        // -1 a swing would take 900 and run the job 37 % slow for ever.
+        // -130 vs -8 per second against 900 health: 26 a swing against 2, so 35
+        // swings against 450. The 26 is CONFIRMED — run 15 watched an imp take a
+        // reinforced wall down in 26s and 52s (2026-09-10). The -2 is where the
+        // floor earns its keep: -8 x 4096ths shifted down 14 floors to -2, which
+        // is -8 a game second exactly, where truncating toward zero gives -1 and
+        // runs the job at half rate for ever (ADR-0133).
         Assert.Equal(35, ApplicationsToDestroy(Dk2TerrainFixture.ReinforcedWall,
             TileWorkKind.DigOwnWall, owner: 1, worker: 1));
-        Assert.Equal(563, ApplicationsToDestroy(Dk2TerrainFixture.ReinforcedWall,
+        Assert.Equal(450, ApplicationsToDestroy(Dk2TerrainFixture.ReinforcedWall,
             TileWorkKind.DigEnemyWall, owner: 1, worker: 2));
     }
 

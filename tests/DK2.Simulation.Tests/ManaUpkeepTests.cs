@@ -76,6 +76,22 @@ public class ManaUpkeepTests
     private static void SettleWithFourImps(Run run) =>
         run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 5);
 
+    /// <summary>Ticks on until the keeper's land income stops growing. A test about
+    /// upkeep must not race four imps still claiming ground: income climbed 41 to 44
+    /// over eight seconds here, and two tests read a rate on one side of that and
+    /// paid for it on the other, which made them depend on the claim rate (ADR-0133).</summary>
+    private static void SettleTheLand(Run run)
+    {
+        int last = LandIncome(run);
+        for (int steady = 0, second = 0; steady < 5 && second < 300; second++)
+        {
+            run.Ticks(SimulationTiming.TicksPerSecond);
+            int now = LandIncome(run);
+            steady = now == last ? steady + 1 : 0;
+            last = now;
+        }
+    }
+
     // ---- the measurement --------------------------------------------------
 
     /// <summary>
@@ -133,6 +149,7 @@ public class ManaUpkeepTests
     {
         Run run = World(mana: 100_000);
         SettleWithFourImps(run);
+        SettleTheLand(run);
 
         for (int extra = 0; extra < 4; extra++)
         {
@@ -173,6 +190,7 @@ public class ManaUpkeepTests
     {
         Run run = World(mana: 100_000);
         SettleWithFourImps(run);
+        SettleTheLand(run);
 
         // Buy imps until they cost more per second than the land earns. The
         // land here is small, so this does not take many.

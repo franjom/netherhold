@@ -82,17 +82,6 @@ public struct TileState
     /// <summary>
     /// Health owed to this tile that was too small to apply, carried between
     /// applications; always smaller in magnitude than
-    /// <see cref="SimulationTiming.BaseApplicationDivisor"/> — the five a tabled
-    /// per-second delta is divided by (Q47, ADR-0020). Eight of the ten deltas divide
-    /// by five exactly; <c>DigEnemyWallHealth</c> (−8) and <c>RepairWallHealth</c> (22)
-    /// do not, and integer division alone would run them 37% and 10% slow forever
-    /// (<see cref="CreatureState.MoveRemainder"/> is the same device, ADR-0001).
-    /// <para>On the tile rather than the worker: two imps on one wall should between
-    /// them remove what the table says per second, which a shared accumulator gives
-    /// and two private ones would not. Shared across work kinds too — only those two
-    /// jobs leave a remainder, and changing terrain restarts it at zero.</para></summary>
-    public sbyte WorkRemainder;
-
     /// <summary>
     /// Ticks left before this tile burns away, or 0 when nothing is burning.
     /// <para>A wooden bridge over lava does not last
@@ -191,7 +180,6 @@ public struct TileState
         hash.Add(TaggedBy);
         hash.Add(DiscoveredBy);
         hash.Add(FreshlyDug ? (byte)1 : (byte)0);
-        hash.Add(WorkRemainder);
         hash.Add(BurnTicksRemaining);
         hash.Add(EntranceIdleTicks);
         hash.Add(EntranceCreaturesGenerated);
