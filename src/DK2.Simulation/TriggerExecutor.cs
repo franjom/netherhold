@@ -54,8 +54,9 @@ public sealed class TriggerRunResult
     /// exactly as the original's would, but their effect on the world is missing or
     /// incomplete. Every action type this executor does not perform is here, because DK2's
     /// dispatcher succeeds at it and descending is the faithful answer — see
-    /// <see cref="TriggerExecutor"/>. Action type 14 is the incomplete case rather than
-    /// the missing one: it arms the party's subtrees and creates no creatures.</summary>
+    /// <see cref="TriggerExecutor"/>. Types 1 and 14 are the incomplete cases rather than
+    /// the missing ones: 14 arms a party's subtrees and creates no creatures, and 1 creates
+    /// a creature without the flag byte the same arm writes onto it.</summary>
     public IReadOnlyList<BlockedTrigger> Partial { get; }
 
     /// <summary>Records <b>DK2's own dispatchers refuse</b> in the context they were
@@ -841,7 +842,7 @@ public sealed class TriggerExecutor
     /// condition reading the map as it was before the write.
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
-    public static bool Performs(byte type) => type is 7 or 8 or 14 or 22;
+    public static bool Performs(byte type) => type is 1 or 7 or 8 or 14 or 22;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -852,6 +853,7 @@ public sealed class TriggerExecutor
             _state.StartTimer(checked((byte)p["TimerId"]), run.CurrentTick);
             return true;
         }
+        if (record.Type == 1) return CreateCreature(record, context, p, run);
         if (record.Type == 14) return CreateParty(record, context, p, partial);
         if (record.Type == 22) return AlterTerrain(record, context, p, run);
         if (record.Type != 7)
@@ -867,6 +869,42 @@ public sealed class TriggerExecutor
             : (modeByte & 0x10) != 0 ? FlagWriteMode.Add : FlagWriteMode.Subtract;
         _state.Write(checked((byte)p["FlagId"]), mode, operand);
         return true;
+    }
+
+    /// <summary>Action type 1 — put one creature on the map (ADR-0137).</summary>
+    /// <remarks>
+    /// <para>From the world arm <c>0x00518B12</c>. <b>The coordinates are zero-based</b>,
+    /// where type 22's are one-based: nothing decrements them before <c>FUN_00519B20</c>
+    /// makes each a tile centre. <c>Level</c> is one-based and applied by repetition — the
+    /// arm calls the level-up routine <c>Level - 1</c> times, so 0 and 1 both leave a
+    /// level-1 creature.</para>
+    /// <para><b>Every record reports partial</b>, because the <c>Flag</c> byte the same arm
+    /// writes onto the creature is dropped and bit 0 of it is <c>DestroysRooms</c>, which
+    /// all 268 set (Q302–Q305).</para>
+    /// </remarks>
+    private bool CreateCreature(
+        TriggerRecord record, TriggerContext context,
+        IReadOnlyDictionary<string, long> p, TriggerRun run)
+    {
+        if (_world is null || _database is null)
+            return Unperformed(record, context, run.Partial);
+
+        var at = new TilePos(checked((int)p["PosX"]), checked((int)p["PosY"]));
+        if (!_world.Contains(at)) return Unperformed(record, context, run.Partial);
+
+        byte creatureTypeId = checked((byte)p["CreatureId"]);
+        CreatureState creature = _world.SpawnCreature(
+            _database, creatureTypeId, checked((byte)p["PlayerId"]), at);
+
+        // The player byte selects the record at index PlayerId - 1 and the creature is
+        // created with the word at its +0x04, TagId. Passed through as the id itself
+        // here, which is the same number for every shipped level (Q305).
+        int level = CreatureLevelRules.Clamp(checked((int)p["Level"]));
+        creature.Level = level;
+        creature.Health = CreatureLevelRules.MaxHealth(
+            _database, _database.CreatureById(creatureTypeId), level);
+
+        return Unperformed(record, context, run.Partial);
     }
 
     /// <summary>Action type 22 — write a terrain type onto one tile (ADR-0136).</summary>

@@ -801,7 +801,7 @@ public class TriggerExecutorTests
         byte[] performed = Enumerable.Range(0, 256)
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
-        Assert.Equal([(byte)7, (byte)8, (byte)14, (byte)22], performed);
+        Assert.Equal([(byte)1, (byte)7, (byte)8, (byte)14, (byte)22], performed);
     }
 
     /// <summary>Action type 22's coordinates are <b>one-based</b>: the arm at
@@ -849,6 +849,104 @@ public class TriggerExecutorTests
         world.Tile(3, 3).OwnerPlayerId = PlayerIds.Unowned;
         RunAlter(world, database, before, Keeper, x: 4, y: 4);
         Assert.Equal(PlayerIds.Unowned, world.Tile(3, 3).OwnerPlayerId);
+    }
+
+    /// <summary>Action type 1's coordinates are <b>zero-based</b> — the arm at
+    /// <c>0x00518B12</c> makes a tile centre out of each without decrementing, where type
+    /// 22's arm decrements first. Two neighbouring arms reading the same two body words
+    /// under different conventions is exactly the kind of quirk a test has to hold down.
+    /// </summary>
+    [Fact]
+    public void CreateCreatureCoordinatesAreZeroBasedUnlikeAlterTerrain()
+    {
+        (WorldState world, GameDatabase database) = CreatureWorld();
+        RunCreate(world, database, x: 4, y: 3);
+
+        CreatureState made = Assert.Single(world.Creatures);
+        Assert.Equal(new TilePos(4, 3), made.Tile);
+    }
+
+    /// <summary>Type, owner and level come off the record. <c>Level</c> is one-based and
+    /// the arm reaches it by repetition — <c>Level - 1</c> calls to the level-up routine
+    /// — so 0 and 1 are the same request and both leave a level-1 creature.</summary>
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(1, 1)]
+    [InlineData(4, 4)]
+    [InlineData(200, CreatureLevelRules.MaxLevel)]
+    public void CreateCreatureAppliesTheRecordsLevelOneBased(int asked, int expected)
+    {
+        (WorldState world, GameDatabase database) = CreatureWorld();
+        RunCreate(world, database, x: 4, y: 3, level: asked);
+
+        CreatureState made = Assert.Single(world.Creatures);
+        Assert.Equal(Dk2TerrainFixture.GoblinCreatureId, made.CreatureTypeId);
+        Assert.Equal(Keeper, made.OwnerPlayerId);
+        Assert.Equal(expected, made.Level);
+        Assert.Equal(
+            CreatureLevelRules.MaxHealth(
+                database, database.CreatureById(made.CreatureTypeId), expected),
+            made.Health);
+    }
+
+    /// <summary>Creating a creature is reported <b>partial for every record</b>, and the
+    /// reason is not that the creature is missing. The same arm copies the body's
+    /// <c>Flag</c> byte onto the creature's <c>Flags</c> at <c>+0x46F</c>, and its bit 0
+    /// — set by all 268 shipped records — is <c>DestroysRooms</c>, which nothing here
+    /// reads (Q302). A census that called this performed would overstate the fidelity.
+    /// </summary>
+    [Fact]
+    public void CreateCreatureReportsPartialBecauseTheFlagByteIsDropped()
+    {
+        (WorldState world, GameDatabase database) = CreatureWorld();
+        TriggerRunResult result = RunCreate(world, database, x: 4, y: 3);
+
+        Assert.Single(world.Creatures);
+        BlockedTrigger partial = Assert.Single(result.Partial);
+        Assert.Equal(1, partial.Type);
+        Assert.Equal(TriggerContext.World, partial.Context);
+        Assert.Empty(result.Unhandled);
+    }
+
+    /// <summary>Off the map nothing is created, and the walk still succeeds. Our
+    /// <c>SpawnCreature</c> throws outside the map, so without this guard a record with a
+    /// coordinate the level cannot hold would take the whole turn down.</summary>
+    [Fact]
+    public void CreateCreatureOffTheMapMakesNothingAndDoesNotThrow()
+    {
+        (WorldState world, GameDatabase database) = CreatureWorld();
+        RunCreate(world, database, x: 30_000, y: 30_000);
+
+        Assert.Empty(world.Creatures);
+    }
+
+    private static (WorldState World, GameDatabase Database) CreatureWorld()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        return (WorldState.FromMap(
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]),
+            database);
+    }
+
+    private static TriggerRunResult RunCreate(
+        WorldState world, GameDatabase database, int x, int y, int level = 1)
+    {
+        TriggerRecord[] records =
+        [
+            LevelTime(5, comparison: 5, seconds: 0, child: 0xFFFF),
+            new ActionTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = unchecked((ushort)-1), Type = 1,
+                Parameters = new Dictionary<string, long>
+                {
+                    ["CreatureId"] = Dk2TerrainFixture.GoblinCreatureId,
+                    ["PlayerId"] = Keeper, ["Level"] = level, ["Flag"] = 0x29,
+                    ["PosX"] = x, ["PosY"] = y,
+                },
+            },
+        ];
+        var tree = new TriggerTree(records, 5, playerRoots: []);
+        return new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
     }
 
     private static (WorldState World, GameDatabase Database) AlterWorld()

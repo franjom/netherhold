@@ -312,7 +312,7 @@ have **no shipped-data corroboration**; Q225 keeps custom-map verification open.
 
 | type (count) | body reads and provenance |
 |---|---|
-| 1 (268) | `CreatureId:u8@00`, `PlayerId:u8@01`, `Level:u8@02`, `Flag:u8@03`, `PosX:u16@04`, `PosY:u16@06` — all **B** |
+| 1 (268) | `CreatureId:u8@00`, `PlayerId:u8@01`, `Level:u8@02`, `Flag:u8@03`, `PosX:u16@04`, `PosY:u16@06` — all **B**. **Both coordinates are zero-based**, unlike type 22's, and `Level` is one-based (ADR-0137) |
 | 2 (5) | `ObjectId:u8@00`, `PlayerId:u8@01`, `PosX:u16@04`, `PosY:u16@06` — all **B**; `02..03` **N** |
 | 4 (1) | `ObjectiveId:u16@00` **C**, `ActionPointId:u8@04` **B**; `02..03,05..07` **N** |
 | 6 (303) | `PlayerId:u8@00` **B**, `MakeType:u8@01` **T**, `TargetId:u8@02` **T**, `Available:u8@03` **B**; `04..07` **N** |

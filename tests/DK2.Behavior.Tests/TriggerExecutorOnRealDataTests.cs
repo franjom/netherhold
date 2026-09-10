@@ -46,6 +46,63 @@ public class TriggerExecutorOnRealDataTests
         Assert.Equal("213:72@Player=2", Census(simulation.LastTriggerRun!.AssumedSummary));
     }
 
+    /// <summary>Corpus corroboration for the one thing about action type 1 that a wrong
+    /// reading would hide: <b>its coordinates are zero-based</b>. The arm at
+    /// <c>0x00518B12</c> makes a tile centre of each body word without decrementing,
+    /// where type 22's arm decrements first (ADR-0136) — so the two neighbouring arms
+    /// read the same pair of words under different conventions, and nothing in the
+    /// parameter values themselves says which is which (type 1's smallest coordinate is
+    /// 2, so no record is out of range either way).</summary>
+    /// <remarks>What discriminates them is where the creature lands. Read one tile up
+    /// and left, a scripted hero appears inside solid rock far more often than it should.
+    /// The margin is the assertion; the exact counts are not, because they would break on
+    /// any change to the terrain table rather than to this rule.</remarks>
+    [InstallFact]
+    public void CreateCreatureCoordinatesLandOnOpenGroundOnlyWhenReadZeroBased()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+
+        int records = 0, solidAsWritten = 0, solidIfDecremented = 0;
+
+        foreach (string level in TriggerLevels(install))
+        {
+            LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
+            if (map is null) continue;
+
+            foreach (TriggerRecord record in
+                GameDatabaseLoader.LoadCampaignTriggers(install, level) ?? [])
+            {
+                if (record.Tag != 214 || record.Type != 1) continue;
+
+                int x = (int)record.Parameters["PosX"], y = (int)record.Parameters["PosY"];
+                records++;
+                if (Solid(database, map, x, y)) solidAsWritten++;
+                if (Solid(database, map, x - 1, y - 1)) solidIfDecremented++;
+            }
+        }
+
+        Assert.Equal(268, records);
+
+        // Not one of the 268 spawns a creature inside rock, and 67 would if the
+        // coordinates were decremented first. Both halves matter: the zero says the
+        // reading is right, the 67 says the corpus could have told us it was wrong.
+        Assert.Equal(0, solidAsWritten);
+        Assert.True(solidIfDecremented > 50,
+            $"only {solidIfDecremented} decremented coordinates land in solid terrain, "
+            + "so this no longer discriminates the two readings");
+    }
+
+    private static bool Solid(GameDatabase database, LevelMap map, int x, int y) =>
+        map.Contains(x, y) && database.TerrainById(map.Tiles[(y * map.Width) + x].TerrainId).IsSolid;
+
+    private static IEnumerable<string> TriggerLevels(string install)
+    {
+        string maps = Path.Combine(install, "Data", "editor", "maps");
+        foreach (string file in Directory.EnumerateFiles(maps, "*Triggers.kld").OrderBy(f => f))
+            yield return Path.GetFileName(file)[..^"Triggers.kld".Length];
+    }
+
     /// <summary>The world tree is <b>not</b> where campaign level 1 keeps its script, and a
     /// reader of the CSV this executor emits has to know that before concluding anything
     /// from an empty column.</summary>

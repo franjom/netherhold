@@ -2737,3 +2737,45 @@ missing" (Q301).
 write clears `TriggerRun.Rooms`, so a room condition later in the same turn
 cannot read the map as it was before. No state field changed and the
 determinism pin does not move — the pinned world runs no triggers.
+
+## ADR-0137 — Action type 1 creates a creature, and its coordinates are zero-based
+
+**Date:** 2026-09-10 · **Status:** accepted · Q302–Q305
+
+**Context.** 268 `CREATE_CREATURE` records across 13 levels, the largest action
+type this executor could reach with every parameter already known. Its arm is
+`0x00518B12`, read whole rather than sampled.
+
+**Decision.** Create the creature: type, owner, tile, level and the health that
+level carries. Three readings the arm settles, and one it does not.
+
+**The coordinates are zero-based** — the arm makes a tile centre of each body
+word without decrementing, where type 22's arm twelve slots along the same jump
+table `DEC`s both (ADR-0136). Two arms, the same two words, different
+conventions. The corpus cannot say which from the values, since type 1's
+smallest is 2, but it can say it from where the creature lands: **none of the
+268 spawns into solid terrain as written, and 67 would if decremented.** That is
+the assertion, not the instruction read, because a test of the write alone would
+never have caught it.
+
+**`Level` is one-based and applied by repetition** — the arm calls the level-up
+routine `Level - 1` times, so 0 and 1 are the same request and anything past 10
+saturates there. Health follows from the level rather than from the record.
+
+**Every record reports partial, and not because the creature is missing.** The
+same arm copies the body's `Flag` byte onto the creature's own `Flags` byte at
+`+0x46F`, and bit 0 of it is `DestroysRooms` — set by all 268, and a named DK2
+capability this simulation has no reader for (Q302). Calling this performed
+would overstate what was built, so the census keeps saying so.
+
+**Not modelled, and each says why rather than guessing:** the collapsed arrival
+`Flag` bit 7 asks for, which needs a collapse whose health value already
+disagrees with DK2's (Q303); the `TagId` indirection the arm uses to turn the
+player byte into an owner (Q305); and the Good-player spawn relocation (Q304).
+
+**Consequences.** `Performs` gains 1. Creating a creature cannot alter terrain,
+so the `TriggerRun.Rooms` cache needs no invalidation and
+`OnlyActionsThatCannotAlterTerrainArePerformed` keeps its meaning. No state field
+changed and the determinism pin does not move. No scenario is on a level that
+ships a type 1 record, so nothing pinned moves either — which is also why this
+gains no coverage until one is.

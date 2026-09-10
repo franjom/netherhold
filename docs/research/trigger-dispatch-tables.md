@@ -150,6 +150,90 @@ no party creatures, and `CreatureState` carries no party id. Computing from
 templates alone would therefore count every party member as missing as soon as
 the subtree is armed and could fire twelve reached conditions early (Q283).
 
+## Action type 1 creates one creature
+
+The world arm is `0x00518B12`, and it is the largest action arm built so far.
+Read whole 2026-09-10.
+
+**Its coordinates are zero-based.** The body's two words become a spawn point as
+`(n << 12) + 0x800`, the centre of tile *n*, and **nothing decrements them** —
+where type 22's arm, twelve slots along the same jump table, `DEC`s both first
+(ADR-0136). Two neighbouring arms read the same pair of words under different
+conventions, and the parameter values cannot tell you which: type 1's smallest
+shipped coordinate is 2, so no record would be out of range either way. Where the
+creature lands does tell you. Read as written, **none of the 268 shipped records
+puts a creature inside solid terrain; read one tile up and left, 67 do.**
+
+| step | what the arm does |
+|---|---|
+| owner | body `PlayerId` selects the player record at index `PlayerId - 1` (stride 4389 from `world+0x84`) and the **word at its `+0x04`, `TagId`**, is what the creature is created with — an indirection, not the byte itself |
+| creation | `FUN_00519B20`. Failure returns 1 having done nothing |
+| level | one-based, and applied **by repetition**: `Level - 1` calls to the level-up routine `0x0048B120`, which itself stops at 10. `CMP EAX,1; JBE` means 0 and 1 are the same request |
+| flags | the body's `Flag` byte, bit for bit — below |
+| collapsed | only when `Flag` bit 7 is set — below |
+
+`FUN_00519B20` has a **Good-player-only** preamble: when the owner is the Good
+player (`word[0x006F254C]`) and the target's room type is 19, 20 or 23, it moves
+the spawn to a walkable neighbour picked at random (`WorldTrigger.cpp:1377`) and
+afterwards orders the creature to walk to the tile the record asked for. Every
+other owner reaches the factory `0x004B78D0` at the requested point directly.
+
+### The `Flag` byte is the creature's own `Flags` byte
+
+Eight one-line setters, and six of them write **`creature+0x46F`**, which DK2's
+creature dumper calls `Flags` (`creature-object.md`) — at the *same* bit
+positions. Bit 1 is never read. The other two are named fields:
+
+| body bit | writes | shipped |
+|---|---|---|
+| 0 | `Flags` bit 0 **and** `+0x3EA` bit 7, **`DestroysRooms`** | all 268 |
+| 2 | `+0x3EA` bit 11, **`DieInstantly`** | 22 |
+| 3 | `Flags` bit 3 | all 268 |
+| 5 | `Flags` bit 5 | 218 |
+| 7 | `Flags` bit 7, and the collapsed arrival below | 11 |
+| 4, 6 | `Flags` bits 4 and 6 | never |
+
+The same two setters are called from action type 14's party creation
+(`FUN_00519F90+0x5B4`/`+0x5E7`) and from a third site at `0x0052081F`, so the
+byte's layout is shared rather than type 1's own.
+
+### Bit 7 makes the creature arrive collapsed
+
+The tail runs only when `Flags` bit 7 is set: clamp health down to
+`maxHealthForLevel / 3` (`0x0048F1D0`, through `ModifyHealth`), then call
+`0x0048B770`. That is the **same routine `ModifyHealth` calls at `0x004B2FB5`**
+when a creature's health runs out and it is not to die outright — so bit 7
+creates a creature already in the dying, rescuable state rather than standing.
+The clamp-then-call idiom appears three more times, in the placed-things loader
+at `0x0052040F`, `0x0052086C` and `0x00520B6B`.
+
+Two field identifications fall out. **`creature+0x40` is Health**: `ModifyHealth`
+writes it at that transition and the level-up routine reads it against the same
+maximum. **`0x0048F1D0` is `maxHealthForLevel / 3`**, computed as
+`((100 × mh) / 3) / 100` with both divisions floored.
+
+### `DieInstantly` has exactly one reader
+
+`0x0048E110`, its getter, is called from **one place in the binary**:
+`ModifyHealth` at `0x004B2F8D`, in the branch that decides whether a creature
+losing its last health gets the collapsed window or dies at once. It is consulted
+**only when the creature is not in a room** (`+0x3B9` zero); standing in a room
+of kind 11 or 12 skips the window instead. The getter also returns true
+unconditionally for creature types 21, 28 and 29 — King Reginald, Stone
+Knight and Lord Of The Land.
+
+`CreatureDeathRules.HasDyingState` derives that window from the definition's
+`GenerateDeadBody` flag instead. Those are different predicates and at least King
+Reginald and Lord Of The Land are decided differently by them (Q303).
+
+### What is built
+
+ADR-0137 creates the creature — type, owner, zero-based tile, level and the
+health that level carries. **All 268 records report partial**, and not because
+the creature is missing: the `Flag` byte is dropped, and its bit 0 is
+`DestroysRooms` on every one of them (Q302). The collapsed arrival, the `TagId`
+indirection and the Good-player relocation are not modelled (Q303–Q305).
+
 ## What is implemented, and what is not
 
 ADR-0121 built 46, 52, 71 and 73. Types 71 and 73 read player fields nothing
