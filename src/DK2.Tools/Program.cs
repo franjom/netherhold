@@ -2654,12 +2654,13 @@ static int Replay(string[] arguments)
     InputLogTally t2 = log.Tally;
     Console.WriteLine($"{arguments[2]}: {t2.Rows} rows -> {t2.Commands} commands over "
         + $"{log.Turns.Count} turns, probe turns {t2.FirstStamp}..{t2.LastStamp}");
-    if (t2.Cancelled > 0)
-        Console.WriteLine($"  {t2.Cancelled} tag/untag pairs cancelled -- a tile moving "
-            + "between the pool's two tag lists, not a command");
-    if (t2.Ignored > 0)
-        Console.WriteLine($"  {t2.Ignored} rows of a pool kind that is not a tag, ignored "
-            + $"-- replayed kinds are {string.Join(", ", InputLog.TagKinds.Order())}");
+    if (t2.Migrations > 0)
+        Console.WriteLine($"  {t2.Migrations} rows moved a tile between kind lists without "
+            + "adding or removing it -- the pool is a pipeline, not a set of marks");
+    if (t2.Worked > 0)
+        Console.WriteLine($"  {t2.Worked} pool changes were DK2's own imps taking or "
+            + $"finishing work, not the player (mark kinds are "
+            + $"{string.Join(", ", InputLog.TagKinds.Order())})");
     if (t2.Before > 0)
         Console.WriteLine($"  {t2.Before} commands dated before turn 1 and dropped -- the "
             + $"probe attached after the level began, or --origin {origin} is wrong");
@@ -2672,11 +2673,14 @@ static int Replay(string[] arguments)
         RoomLogTally r = rooms.Tally;
         Console.WriteLine($"{roomPath}: {r.Rows} rows -> {r.Commands} commands over "
             + $"{rooms.Turns.Count} turns");
-        if (r.Unreplayable > 0)
-            Console.WriteLine($"  {r.Unreplayable} rooms dropped -- their bounds do not "
-                + "enclose exactly their slab count, so the tile set is not in the log");
+        if (r.Unsettled > 0)
+            Console.WriteLine($"  {r.Unsettled} rows skipped -- bounds did not enclose exactly "
+                + "the slab count, so the room was still being built");
         if (r.Before > 0)
             Console.WriteLine($"  {r.Before} commands dated before turn 1 and dropped");
+        if (r.Disowned > 0)
+            Console.WriteLine($"  {r.Disowned} rows whose room names a different owner than "
+                + "the list it was found in -- THE ROOM WALK IS WRONG, not the room");
     }
 
     return RunTriggerCsv(arguments[1], turns, arguments[3], log, rooms);

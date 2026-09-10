@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Source(s) | `DKII.EXE` v1.70 — the area condition 62 counter `0x004B0960`, the per-coordinate lookup `0x00508290`, the total at `0x00508300`, and `FUN_00512D20` |
-| Observed behaviour | Not yet sampled from the running game |
-| Confidence | **STRONGLY INFERRED** — the layout is read directly, but nothing has been read out of a live process yet |
+| Observed behaviour | Sampled live, runs 9 and 10 (level 1, 2026-09-10); kinds 1 and 2 CONFIRMED by owner |
+| Confidence | **CONFIRMED** for the layout and for kinds 1 and 2; the other kinds are read live but unnamed |
 | Implementation | `TileState.IsTaggedBy` / `TileTagSystem` model the tagged set; `InputLog` replays a captured log |
 | Tests | `TriggerAreaConditions` type 62 (`Tagged`), `InputLogTests` |
 | Open questions | Q286 — what the kinds name; Q287 — whether entry coordinates are tile coordinates; Q288 — what kind 11 is |
@@ -62,12 +62,13 @@ is unusual enough to be worth restating: `0x00508290` reads it as `MOV DX, word
 ptr [EDX + 0x1F]`. The corrected offset is what makes the dumper and that
 walker agree — before the correction they named different fields.
 
-**Marking a tile files it under one of three kinds, not two.** The routine at
-`0x00512D20` has three arms and pushes **11**, **2** and **1**; the first is
-taken when a tile flag byte `+0x0B` bit 0 is set, the other two when the
-terrain's `+0x17B` bit 3 is. Area condition 62 counts 1 and 2, which is where
-the earlier "split by gold" reading came from — it is the split between those
-two, not the whole story. What kind 11 is remains unread (Q288).
+**Kind 1 is rock and kind 2 is gold — CONFIRMED** (owner, 2026-09-10). Four
+marks placed as two rock and two gold arrived as exactly two of each, so the
+"split by gold" reading is now an observation rather than an inference.
+
+The routine at `0x00512D20` has a **third** arm pushing **11**, taken when a
+tile flag byte `+0x0B` bit 0 is set; nothing filed under it in either capture,
+so what it is remains unread (Q288).
 
 The **adder** is `0x00507BB0`, taking `(kind, x, y)`, and the **remover** is
 `0x00507EF0`; between them they own the head and live-count arrays. Their 27
@@ -84,24 +85,50 @@ A second accessor at `0x00508300` sums `+0x469A` (a byte) with the words at
 `FreeListHead` by the dumper's names. `FUN_00512D20` compares `+0x4650` against
 **20** and marks through the pool only when it is above that.
 
+### The pool is a pipeline, not a set of marks
+
+**A row is not an event.** A tile sits in several kind lists at once and moves
+between them as an imp takes it up: run 10's `(14,23)` went 1, then +3, then
++14, then −1, then −3 and −14 as it was dug out. Reading rows as tag and untag
+events invents untags the player never issued. What is an event is a tile
+**entering the pool** or **leaving it altogether**.
+
+Kinds **3**, **6** and **14** were seen live and are stages of work rather than
+marks; which is which is unread.
+
+**A finished dig and a dropped mark both leave the pool**, and the kind
+transition between them is often not sampled at all — gold dug in run 10 was
+never seen in a work kind. The discriminator is the task's own **`Worker`**
+slots: an imp that took the job sits in one, and a mark the player drops before
+anyone walks over has none. The probe records the count on every row.
+
+**Cadence says nothing.** An earlier reading here treated a one-tile-per-sample
+trickle as DK2's own work and a batch as the player. That is wrong: a player
+clicking tiles 1.5 seconds apart produces exactly that trickle (owner,
+2026-09-10). The kind is the discriminator; the arrival rate is not.
+
 ## Reading it live
 
 `reverse-engineering/dk2watch.py --tags <out.csv>` walks **all fifteen** kinds
 for players 1–7 each sample and writes one row per change. It records every
 kind because that is how the unread ones get read; `InputLog` then replays only
-the tag kinds, and counts the rest:
+the mark kinds, and counts the rest:
 
 ```
-wall,tick,player,event,kind,x,y
+wall,tick,player,event,kind,x,y,type,data,id,workers
 ```
 
 `event` is `tag` or `untag`. That is a command log, not a state dump, so it
 lines up with `GameSimulation.Tick(in InputFrame)` on our side.
 
-**Unverified until it runs.** The walk guards against a null pool and caps its
-iteration, but no value has been read out of DK2 yet; the first capture is also
-the first test of this layout. Expect the tick column to be one late, as every
-sampled column is (ADR-0119).
+**The coordinates are tile coordinates** (Q287, answered): replaying run 9's
+marks applied 30 tags and had none rejected, so every one landed on terrain our
+independently-loaded map agrees is diggable. The tick column is one late, as
+every sampled column is (ADR-0119).
+
+One trap in the protocol rather than the code: the probe counts down eight
+seconds before sampling, and run 10's deliberate tag-then-untag happened inside
+that window and is simply absent from the log.
 
 ## Replaying it
 

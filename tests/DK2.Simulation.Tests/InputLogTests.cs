@@ -9,9 +9,10 @@ using DK2.Simulation.Commands;
 namespace DK2.Simulation.Tests;
 
 /// <summary>
-/// Reading DK2's task-pool log back as input frames. The log is a diff of a
-/// sampled list, not a stream of clicks, so the questions here are about what
-/// that costs: when a change happened, and which changes were never commands.
+/// Reading DK2's task pool back as input frames. The pool is a work pipeline,
+/// not a set of marks — a tile sits in several kind lists at once and migrates
+/// between them — so the questions here are about which pool changes are the
+/// player and which are DK2 giving its own imps a job.
 /// </summary>
 public class InputLogTests
 {
@@ -20,132 +21,122 @@ public class InputLogTests
         InputLog.Read(
             new StringReader(InputLog.Header + "\n" + body), "test", lag, origin, kinds);
 
-    private static TagTilesCommand Only(InputFrame frame)
-    {
-        PlayerCommand command = Assert.Single(frame.All);
-        return Assert.IsType<TagTilesCommand>(command);
-    }
+    /// <summary>
+    /// wall,tick,player,event,kind,x,y,type,data,id,workers. <c>workers</c> is
+    /// how many of the task's twelve Worker slots were filled when the probe
+    /// last saw it, which is what tells a finished dig from a dropped mark.
+    /// </summary>
+    private static string Row(
+        long tick, string ev, byte kind, int x, int y, byte player = 3, int workers = 0) =>
+        $"0.0,{tick},{player},{ev},{kind},{x},{y},{kind},0,1,{workers}\n";
 
-    // ---- when a command happened -----------------------------------------
+    private static TagTilesCommand Only(InputFrame frame) =>
+        Assert.IsType<TagTilesCommand>(Assert.Single(frame.All));
+
+    // ---- what counts as an event -----------------------------------------
 
     /// <summary>
-    /// The probe sees a change one turn after the game made it (ADR-0119), so a
-    /// row stamped 41 is a command issued on 40. Nothing in the file says this;
-    /// it is the caller's claim, which is why it is an argument.
+    /// A tile entering the pool under a mark kind is the player marking it, and
+    /// leaving it altogether is the mark going away. The stamp is one turn late
+    /// (ADR-0119), so a row stamped 41 is a command issued on 40.
     /// </summary>
     [Fact]
-    public void AStampIsOneTurnLaterThanTheCommand()
+    public void EnteringThePoolIsATagAndLeavingItIsAnUntag()
     {
-        InputLog log = Read("0.0,41,3,tag,1,10,20\n");
+        InputLog log = Read(Row(41, "tag", 1, 10, 20) + Row(61, "untag", 1, 10, 20));
+
+        Assert.True(Only(log.At(40)).Tagged);
+        Assert.False(Only(log.At(60)).Tagged);
+    }
+
+    /// <summary>
+    /// The real trap, from the first live capture: a tile moves between kind
+    /// lists as an imp takes it up, and every one of those rows is a tag or an
+    /// untag. Reading rows as events emits an untag the player never issued,
+    /// which on replay would stop our imps digging.
+    /// </summary>
+    [Fact]
+    public void MigratingBetweenKindListsIsNotAnEvent()
+    {
+        InputLog log = Read(
+            Row(41, "tag", 1, 14, 24)
+            + Row(61, "tag", 14, 14, 24)
+            + Row(62, "untag", 1, 14, 24)
+            + Row(63, "tag", 3, 14, 24));
 
         Assert.Equal([40L], log.Turns);
-        Assert.Empty(log.At(41).All);
+        Assert.Equal(3, log.Tally.Migrations);
     }
-
-    [Fact]
-    public void LagZeroTakesTheStampAtFaceValue()
-    {
-        InputLog log = Read("0.0,41,3,tag,1,10,20\n", lag: 0);
-
-        Assert.Equal([41L], log.Turns);
-    }
-
-    /// <summary>A capture that attached at turn 5000 still replays from our turn 1.</summary>
-    [Fact]
-    public void AnOriginRebasesEveryTurn()
-    {
-        InputLog log = Read("0.0,5001,3,tag,1,10,20\n0.0,5011,3,tag,1,11,20\n",
-            origin: 5000);
-
-        Assert.Equal([1L, 11L], log.Turns);
-    }
-
-    [Fact]
-    public void CommandsBeforeTheRunBeginsAreDroppedAndCounted()
-    {
-        InputLog log = Read("0.0,1,3,tag,1,10,20\n0.0,50,3,tag,1,11,20\n");
-
-        Assert.Equal([49L], log.Turns);
-        Assert.Equal(1, log.Tally.Before);
-        Assert.Equal(1, log.Tally.Commands);
-    }
-
-    // ---- what was never a command ----------------------------------------
 
     /// <summary>
-    /// The pool splits tagged tiles into two lists by whether the terrain holds
-    /// gold, so a tile crossing between them is untagged and tagged in one
-    /// sample. Replaying that pair would untag a tile the player still wants
-    /// dug. It cancels because the alternative — a real untag and retag inside
-    /// one sample — nets to no change in the pool and emits no rows at all.
+    /// And when that tile finally leaves, the leaving is the work finishing —
+    /// an imp had taken it, so the player is not the one letting go.
     /// </summary>
     [Fact]
-    public void ATileMovingBetweenTheTwoTagListsIsNotACommand()
+    public void LeavingAfterAnImpTookItIsWorkFinishing()
     {
-        InputLog log = Read("0.0,41,3,untag,1,10,20\n0.0,41,3,tag,2,10,20\n");
+        InputLog log = Read(
+            Row(41, "tag", 1, 14, 24)
+            + Row(61, "tag", 14, 14, 24)
+            + Row(62, "untag", 1, 14, 24)
+            + Row(80, "untag", 14, 14, 24));
+
+        Assert.Equal([40L], log.Turns);
+        Assert.Equal(1, log.Tally.Worked);
+    }
+
+    /// <summary>
+    /// The case the kind transition misses. Gold dug in run 10 was never
+    /// sampled in a work kind at all — it entered as kind 2 and left as kind 2,
+    /// which reads as the player letting go. The task's own Worker slot says
+    /// otherwise, and it is recorded on every row.
+    /// </summary>
+    [Fact]
+    public void ADigThatFinishedWithoutAWorkKindEverBeingSampledIsStillWork()
+    {
+        InputLog log = Read(
+            Row(41, "tag", 2, 16, 23)
+            + Row(90, "untag", 2, 16, 23, workers: 1));
+
+        Assert.Equal([40L], log.Turns);
+        Assert.Equal(1, log.Tally.Worked);
+    }
+
+    /// <summary>A tile the player drops before any imp touches it is theirs.</summary>
+    [Fact]
+    public void LeavingWithNoImpEverOnItIsThePlayerLettingGo()
+    {
+        InputLog log = Read(Row(41, "tag", 1, 10, 20) + Row(61, "untag", 1, 10, 20));
+
+        Assert.Equal(0, log.Tally.Worked);
+        Assert.Equal([40L, 60L], log.Turns);
+    }
+
+    [Fact]
+    public void EnteringUnderAWorkKindIsDk2GivingItselfAJob()
+    {
+        InputLog log = Read(Row(41, "tag", 6, 13, 23));
 
         Assert.Empty(log.Turns);
-        Assert.Equal(1, log.Tally.Cancelled);
-        Assert.Equal(2, log.Tally.Rows);
-    }
-
-    [Fact]
-    public void DifferentTilesInOneSampleBothSurvive()
-    {
-        InputLog log = Read("0.0,41,3,untag,1,10,20\n0.0,41,3,tag,1,11,20\n");
-
-        Assert.Equal(0, log.Tally.Cancelled);
-        Assert.Collection(
-            log.At(40).All,
-            c => Assert.False(Assert.IsType<TagTilesCommand>(c).Tagged),
-            c => Assert.True(Assert.IsType<TagTilesCommand>(c).Tagged));
-    }
-
-    /// <summary>Cancelling is per player: two keepers may mark the same tile.</summary>
-    [Fact]
-    public void OnePlayersUntagDoesNotCancelAnothersTag()
-    {
-        InputLog log = Read("0.0,41,3,untag,1,10,20\n0.0,41,4,tag,1,10,20\n");
-
-        Assert.Equal(0, log.Tally.Cancelled);
-        Assert.Equal(2, log.At(40).All.Count);
+        Assert.Equal(1, log.Tally.Worked);
     }
 
     /// <summary>
-    /// The probe records every one of the pool's fifteen kinds, because that is
-    /// how the unread ones get read. Replaying them all would dig wherever any
-    /// task sits, so a kind outside the tag set is counted and dropped — and
-    /// kind 11, the marking routine's third arm, is deliberately outside it
-    /// until what separates it from 1 and 2 is known (Q288).
+    /// A player marking tiles one at a time looks exactly like a trickle, so
+    /// arrival rate says nothing about who caused it — CONFIRMED (owner,
+    /// 2026-09-10) against an earlier reading of this class that treated a
+    /// lone arrival as suspect. The kind is the discriminator; the cadence is
+    /// not.
     /// </summary>
     [Fact]
-    public void ARowOfAKindThatIsNotATagIsCountedAndDropped()
+    public void MarksArrivingOneAtATimeAreStillThePlayers()
     {
-        InputLog log = Read("0.0,41,3,tag,7,10,20\n0.0,41,3,tag,1,11,20\n");
+        InputLog log = Read(
+            Row(96, "tag", 1, 14, 23) + Row(102, "tag", 1, 15, 23)
+            + Row(109, "tag", 2, 16, 23) + Row(117, "tag", 2, 17, 23));
 
-        Assert.Equal(2, log.Tally.Rows);
-        Assert.Equal(1, log.Tally.Ignored);
-        TagTilesCommand tag = Only(log.At(40));
-        Assert.Equal([new TilePos(11, 20)], tag.Tiles);
-    }
-
-    /// <summary>The window is the capture's, so --origin can be checked against it.</summary>
-    [Fact]
-    public void AFilteredKindDoesNotShrinkTheReportedWindow()
-    {
-        InputLog log = Read("0.0,41,3,tag,7,10,20\n0.0,90,3,tag,7,11,20\n");
-
-        Assert.Equal(41, log.Tally.FirstStamp);
-        Assert.Equal(90, log.Tally.LastStamp);
-    }
-
-    [Fact]
-    public void AnExplicitKindSetOverridesTheDefault()
-    {
-        InputLog log = Read("0.0,41,3,tag,7,10,20\n", kinds: [7]);
-
-        Assert.Equal(0, log.Tally.Ignored);
-        Assert.Single(log.Turns);
+        Assert.Equal([95L, 101L, 108L, 116L], log.Turns);
+        Assert.Equal(0, log.Tally.Worked);
     }
 
     // ---- the shape of a frame --------------------------------------------
@@ -154,23 +145,80 @@ public class InputLogTests
     public void ADragArrivesAsOneCommandInRowMajorOrder()
     {
         InputLog log = Read(
-            "0.0,41,3,tag,1,11,20\n0.0,41,3,tag,1,10,21\n0.0,41,3,tag,1,10,20\n");
+            Row(41, "tag", 1, 11, 20) + Row(41, "tag", 1, 10, 21) + Row(41, "tag", 1, 10, 20));
 
-        TagTilesCommand tag = Only(log.At(40));
         Assert.Equal(
             [new TilePos(10, 20), new TilePos(11, 20), new TilePos(10, 21)],
-            tag.Tiles);
+            Only(log.At(40)).Tiles);
     }
 
     [Fact]
     public void PlayersAreOrderedSoAFrameIsNotTheProbesEmissionOrder()
     {
-        InputLog log = Read("0.0,41,5,tag,1,10,20\n0.0,41,2,tag,1,11,20\n");
+        InputLog log = Read(
+            Row(41, "tag", 1, 10, 20, player: 5) + Row(41, "tag", 1, 11, 20, player: 2));
 
         Assert.Collection(
             log.At(40).All,
             c => Assert.Equal(2, ((TagTilesCommand)c).PlayerId),
             c => Assert.Equal(5, ((TagTilesCommand)c).PlayerId));
+    }
+
+    [Fact]
+    public void OnePlayersUntagDoesNotTouchAnothersMark()
+    {
+        InputLog log = Read(
+            Row(41, "tag", 1, 10, 20, player: 3) + Row(41, "tag", 1, 10, 20, player: 4)
+            + Row(61, "untag", 1, 10, 20, player: 3));
+
+        Assert.Equal(2, log.At(40).All.Count);
+        Assert.False(Only(log.At(60)).Tagged);
+    }
+
+    // ---- bookkeeping -----------------------------------------------------
+
+    [Fact]
+    public void LagZeroTakesTheStampAtFaceValue()
+    {
+        Assert.Equal([41L], Read(Row(41, "tag", 1, 10, 20), lag: 0).Turns);
+    }
+
+    /// <summary>A capture that attached at turn 5000 still replays from our turn 1.</summary>
+    [Fact]
+    public void AnOriginRebasesEveryTurn()
+    {
+        InputLog log = Read(
+            Row(5001, "tag", 1, 10, 20) + Row(5011, "tag", 1, 11, 20), origin: 5000);
+
+        Assert.Equal([1L, 11L], log.Turns);
+    }
+
+    [Fact]
+    public void CommandsBeforeTheRunBeginsAreDroppedAndCounted()
+    {
+        InputLog log = Read(Row(1, "tag", 1, 10, 20) + Row(50, "tag", 1, 11, 20));
+
+        Assert.Equal([49L], log.Turns);
+        Assert.Equal(1, log.Tally.Before);
+    }
+
+    /// <summary>The window is the capture's, so --origin can be checked against it.</summary>
+    [Fact]
+    public void TheWindowSpansEveryRowIncludingOnesThatIssuedNoCommand()
+    {
+        InputLog log = Read(Row(41, "tag", 6, 10, 20) + Row(90, "tag", 6, 11, 20));
+
+        Assert.Equal(41, log.Tally.FirstStamp);
+        Assert.Equal(90, log.Tally.LastStamp);
+    }
+
+    [Fact]
+    public void AnExplicitKindSetOverridesTheDefault()
+    {
+        InputLog log = Read(Row(41, "tag", 7, 10, 20), kinds: [7]);
+
+        Assert.Equal(0, log.Tally.Worked);
+        Assert.Single(log.Turns);
     }
 
     [Fact]
@@ -186,9 +234,9 @@ public class InputLogTests
     // ---- refusals --------------------------------------------------------
 
     [Theory]
-    [InlineData("0.0,41,3,tag,1,10\n")]
-    [InlineData("0.0,41,3,poke,1,10,20\n")]
-    [InlineData("0.0,x,3,tag,1,10,20\n")]
+    [InlineData("0.0,41,3,tag,1,10,20,1,0,1\n")]
+    [InlineData("0.0,41,3,poke,1,10,20,1,0,1,0\n")]
+    [InlineData("0.0,x,3,tag,1,10,20,1,0,1,0\n")]
     public void AMalformedRowIsRefusedRatherThanGuessedAt(string body) =>
         Assert.Throws<InvalidDataException>(() => Read(body));
 
@@ -197,12 +245,35 @@ public class InputLogTests
         Assert.Throws<InvalidDataException>(
             () => InputLog.Read(new StringReader("tick,x,y\n"), "test"));
 
-    // ---- through the simulation ------------------------------------------
+    // ---- against the live capture ----------------------------------------
 
     /// <summary>
-    /// The point of the whole class: a log drives the tile a player marked, at
-    /// the turn they marked it. A stamp of 3 is DK2 turn 2, which is our second
-    /// tick, so the tile is still unmarked when the first one has run.
+    /// Rows lifted from run 9, the first live capture. The player marked
+    /// (10,28) and dropped it, then marked (14,24), which an imp took up and
+    /// dug out. Reading rows as events gave five commands here; three of them
+    /// were DK2 working.
+    /// </summary>
+    [Fact]
+    public void TheFirstLiveCaptureYieldsThreeCommandsAndNotFive()
+    {
+        InputLog log = Read(
+            Row(36, "tag", 1, 10, 28)
+            + Row(48, "untag", 1, 10, 28)
+            + Row(69, "tag", 2, 14, 24)
+            + Row(121, "tag", 14, 14, 24)
+            + Row(122, "untag", 2, 14, 24)
+            + Row(125, "tag", 3, 14, 24)
+            + Row(136, "untag", 3, 14, 24, workers: 1)
+            + Row(136, "untag", 14, 14, 24, workers: 1));
+
+        Assert.Equal([35L, 47L, 68L], log.Turns);
+        Assert.Equal(3, log.Tally.Commands);
+        Assert.Equal(8, log.Tally.Rows);
+    }
+
+    /// <summary>
+    /// And the whole point: the tile the player marked is marked in our world
+    /// at the turn they marked it, with no phantom untag from the imp's work.
     /// </summary>
     [Fact]
     public void ALogTagsTheTileTheCaptureSaysWasTagged()
@@ -213,7 +284,8 @@ public class InputLogTests
         TilePos target = Rock(database, world);
         var sim = new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems());
 
-        InputLog log = Read($"0.0,3,3,tag,1,{target.X},{target.Y}\n");
+        InputLog log = Read(
+            Row(3, "tag", 1, target.X, target.Y) + Row(9, "tag", 14, target.X, target.Y));
         Assert.Equal([2L], log.Turns);
 
         sim.Tick(log.At(sim.CurrentTick.Value + 1));

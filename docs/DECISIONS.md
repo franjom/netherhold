@@ -2457,3 +2457,50 @@ against a live game; the first capture tests the layouts before it tests any
 rule. Q289 is the sharpest of those: if `FirstSlab`/`LastSlab` do not bound the
 room, every placement drops and this ADR's method — exact or nothing — yields
 nothing until a slab source is found.
+
+## ADR-0130 — Two live captures, and most of what ADR-0128 assumed was wrong
+**Date:** 2026-09-10 · **Status:** accepted · runs 9 and 10, level 1 · amends ADR-0128, ADR-0129
+
+**Context.** ADR-0128 and ADR-0129 built both recorders against layouts read
+from the binary and never sampled. The owner ran two captures. Both layouts
+read; four of the readings around them did not survive.
+
+**What held.** The pool's entry layout, the room-list walk, and the
+coordinates: replaying run 9's marks applied 30 tags and had **none** rejected,
+so they are tile coordinates and agree with our own map (Q287).
+
+**What did not.**
+
+- **The room walk was one player record out.** The base is `playerArray +
+  (id−1)×4389`, since the pool formula's `playerId×4389 − 0x20` resolves to
+  `player+0x1105`. Run 9 filed the human's own dungeon heart under player 2.
+  The probe now carries the room's own `PlayerId` so the walk checks itself.
+- **`FirstSlab`/`LastSlab` are list ends, not a minimum and a maximum.** Run
+  10's settled lair runs (8,30) to (10,26), descending in y. Ordered they bound
+  the room exactly — and every settled room agrees, which also **confirms
+  `Size` is the slab count**, until now only strongly inferred.
+- **But not during construction.** Imps build a room slab by slab, and for six
+  samples `Size` ran *ahead* of what the bounds enclose — 3 slabs in a 2-slab
+  box — which no bounding box can do (Q291). A replay must place against what
+  it has already placed, not against the previous row, or a 15-slab lair
+  arrives as one slab and six refusals.
+- **The pool is a work pipeline, not a set of marks.** A tile occupies several
+  kinds at once and migrates as an imp takes it up, so **a row is not an
+  event**; entering the pool and leaving it are. Reading rows directly emitted
+  untags the player never issued, which on replay stops our imps digging —
+  exactly the failure the owner predicted before the first capture.
+
+**Kinds 1 and 2 are rock and gold — CONFIRMED** (owner, 2026-09-10): four marks
+placed as two rock and two gold arrived as exactly two of each.
+
+**And a heuristic of mine, disproved on the spot.** I read a one-tile-per-sample
+trickle as DK2's own work and a batch as the player, and said so. The owner had
+placed those tiles individually, about 1.5 seconds apart. **Cadence carries no
+information about who acted**; the kind does.
+
+**Consequences.** A finished dig and a dropped mark both leave the pool, and
+the kind transition between them is often not sampled — run 10's gold showed
+none. The discriminator is the task's own **`Worker`** slots, now recorded on
+every row: an imp that took the job sits in one. That closes the last known
+hole in the tag recording without needing the runtime map, which ADR-0129 had
+put on the critical path.

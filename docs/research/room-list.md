@@ -3,11 +3,11 @@
 | | |
 |---|---|
 | Source(s) | `DKII.EXE` v1.70 — the per-turn gold resync `0x004B9F62`, the room dumper `0x004E70B6`, the room conditions at `0x004C7EB3` / `0x004C7F8E` |
-| Observed behaviour | Not yet sampled from the running game |
-| Confidence | **STRONGLY INFERRED** — the walk is read directly, but nothing has been read out of a live process yet |
+| Observed behaviour | Sampled live, run 10 (level 1, 2026-09-10) |
+| Confidence | **CONFIRMED** — the walk was read out of a live process and each room's own `PlayerId` agrees with it |
 | Implementation | `RoomLog` replays a captured log; `RoomInstance` is our model |
 | Tests | `RoomLogTests` |
-| Open questions | Q289 — whether `FirstSlab`/`LastSlab` bound the room |
+| Open questions | Q289 answered below; Q291 — why the bounds trail the slab count while a room is built |
 
 ## The walk
 
@@ -49,15 +49,33 @@ The three player room conditions read `TypeId`, `Size` and `TotalCapacity`
 only (`room-conditions.md`), never a tile. So for the measurement `capture-diff`
 actually runs, a recording of type, owner and slab count is complete.
 
-It is **not** enough to place the room. `RoomLog` therefore replays a placement
-only when the bounds enclose exactly `Size` slabs, and counts the rest rather
-than filling the bounding box: an L-shaped room has the bounds of the rectangle
-that would contain it, and putting tiles where DK2 had none makes every later
+It is **not** enough to place the room. `RoomLog` therefore replays a row only
+when the bounds enclose exactly `Size` slabs, and skips the rest rather than
+filling the bounding box: an L-shaped room has the bounds of the rectangle that
+would contain it, and putting tiles where DK2 had none makes every later
 divergence unattributable.
 
-Whether `FirstSlab`/`LastSlab` are a bounding box at all is Q289. The first
-capture answers it: if the area equals `Size` for rooms placed as one drag,
-they bound; if not, they are the ends of some list.
+### Q289, answered: they are list ends, and they must be ordered
+
+Run 10's settled lair spans `FirstSlab (8,30)` to `LastSlab (10,26)` —
+**descending in y**. They are the ends of a list, not a minimum and a maximum,
+so a reader that assumes ordering computes an empty box and drops the room.
+Ordered, they span exactly the room: 3×5 for 15 slabs.
+
+Every settled room agrees. Level 1 starts with a Hero Gate 2×2 (`Size` 4), a
+Portal 3×3 (9) and a Dungeon Heart 5×5 (25), and each one's ordered bounds
+enclose exactly its slab count — which also confirms `Size` is the slab count,
+until now only STRONGLY INFERRED (`room-conditions.md`).
+
+### But not while the room is being built
+
+**Imps build a room slab by slab**, and for six consecutive samples the lair's
+`Size` ran *ahead* of what its bounds enclose — 3 slabs inside a 2-slab box,
+then 9 inside 6, then 12 inside 9 — which no bounding box can do. The two
+fields are not updated together (Q291). A replay must therefore wait for a room
+to settle, and measure what to place against what it has already placed rather
+than against the previous row; a 15-slab lair then arrives as 1 slab and later
+14, rather than as one slab and six refusals.
 
 ## Rooms are not imp tasks
 
@@ -73,12 +91,20 @@ instantly is a deviation with nothing to model against, rather than a gap.
 sample and writes one row per change:
 
 ```
-wall,tick,player,event,room,type,x,y,size,x0,y0,x1,y1
+wall,tick,player,event,room,type,x,y,size,x0,y0,x1,y1,owner
 ```
 
-`event` is `build`, `grow`, `shrink` or `gone`. A room object appears when the
-player places it and **grows** when they place next to it, so one tag id
-changing size is one room and not two.
+`event` is `build`, `grow`, `shrink` or `gone`, and one tag id changing size is
+one room rather than two. A room **grows** for two different reasons: the
+player places more of the same type beside it, and — the one run 10 showed —
+its own imps finish the slabs of a single placement, one at a time.
 
-**Unverified until it runs**, and the tick column will be one late as every
-sampled column is (ADR-0119).
+`owner` is the room's own `PlayerId`, carried so the walk checks itself: the
+walk's player index comes from a stride and the field does not. That caught the
+first version reading **one player record too far** — the player base is
+`playerArray + (id−1)×4389`, because the pool formula's `playerId×4389 − 0x20`
+resolves to `player+0x1105`. Run 9 put the human's own dungeon heart under
+player 2; run 10, corrected, agrees on every row. `RoomLog` prefers the field
+over the index and counts any disagreement.
+
+The tick column is one late, as every sampled column is (ADR-0119).
