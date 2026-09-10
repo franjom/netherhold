@@ -1410,7 +1410,7 @@ Legal basis: copyright protects expression, not names, titles or short phrases, 
 - Research, Train, Guard and Drink are chosen, walked to and stood in, logged `effect=unbuilt`. Not a stub: every second at a job is a second not idle and not taking `AngerNoWork`, which is the half the choosers depend on. Missing is production; training's rate carried the per-second/per-minute ambiguity, so it was left for its own read (Q205). **Code now: training pays, and the per-minute reading is withdrawn (see ADR-0083).**
 - **M4 is seven of seven**: portal spawn, lair claim, hunger→hatchery, sleep, payday, job selection with logged reasons, and training — the one item *selected* but not yet *worth* anything.
 - 19 tests in `CreatureJobTests`; `two_keepers_find_work_for_a_goblin.yaml`, whose log is the mechanic in five lines: one keeper's Goblins take Train and go; the other's are refused, take 50 a second, cross to Unhappy at 5m28s with `worst=Work` naming the bucket, and are never charged again because the unhappy chooser does not charge it. Its first draft inverted its own demonstration — the Vampire, placed to be the third creature for two beds, was nearer the lairs than the Goblins, so it got a bed and one of them did not (correct behaviour, nothing being reserved, ADR-0060); the Goblins now start standing on the beds.
-- **The determinism pin cannot see any of this (Q206).** The new fields do not move the hash: `TestWorld.World` spawns no creatures at all, so every creature-state change this project has made has moved the pinned value through `HashVersion` alone and never through the field itself. The pin still catches struct layout drift, dictionary order and string hashing, but for a simulation whose state is mostly creatures it is guarding a world that has none, and several hash-history notes in `DeterminismTests` describe creatures the fixture does not have. Recorded rather than fixed: widening it is a change to the guard itself.
+- **The determinism pin could not see any of this (Q206).** These fields moved the pinned value through `HashVersion` alone, because the gate's world spawned no creatures at all — so no creature field had ever moved it, and the hash-history notes explaining a move by what the fixture's creatures were doing described creatures that were not there. Fixed on 2026-09-10, well after the fact: the gate's world now holds two.
 - `HashVersion` 32 → **33** (`CurrentJob`, `JobTileIndex`, two choice timestamps, the stored mood band). Pin `0x21A7E4D24F37DF48`.
 
 ## ADR-0083 — Training pays, and the experience model underneath it was wrong in three places
@@ -2679,21 +2679,21 @@ in terms of state ids and there is no group tag for `MovingToJob`.
    `Cat.Prison, Flag.Unread0 | Flag.SuppressNeedAnger` rather than five bare
    numbers; an untyped row is a memory dump transcribed into C#.
 4. **An unread transition is not a refused one.** (Dying is admitted from almost anywhere — the passthrough inside group 3, an all-ones mask outside — but *not* from the Refused category, whose bit is never written.) `CreatureStateTransitions`
-   answers the equal-tags half of DK2's rule and returns `NeedsCategoryTable`
-   for the other half, on ADR-0109's precedent. It settles 20,628 of the 78,680
-   ordered pairs; the remaining 58,052 wait on Q300.
+   answers **both** halves: all 78,680 ordered pairs resolve, 37,791 allowed and
+   40,889 refused, measured and pinned. ADR-0109's precedent — return
+   "unresolved" rather than invent a rule — was discharged by Q300 the same day.
 
 **Consequences.**
 - Nothing hashed changed **yet**: both new types are pure data and predicates,
-  so `HashVersion` stays where it is and the pin is untouched. **`HashVersion`
-  and snapshot `FormatVersion` 56 are reserved** for `Dk2StateId`; ADR-0134 took
-  55.
+  so `HashVersion` stays where it is and the pin is untouched. `Dk2StateId` takes
+  **the next free** `HashVersion` and `FormatVersion`, not one reserved in
+  advance: a reservation is worth nothing against a concurrent branch that reads
+  the number out of `GameSimulation.cs`.
 - The field is deliberately not in this commit, and now waits on one thing only
   — the pinned world, below.
-- **The pin cannot catch a `CreatureState` field anyway** — the pinned world
-  spawns no creatures (Q206), which is now a prerequisite rather than
-  housekeeping: give it a creature before `Dk2StateId` lands, or the field
-  arrives unguarded.
+- **The pin could not catch a `CreatureState` field at all** — the pinned world
+  spawned no creatures, which made this a prerequisite rather than housekeeping.
+  Done 2026-09-10, ahead of the field (Q206).
 - Reading the 264 handlers has no shortcut: 259 serve exactly one state, and
   Flame names the behaviour of none. That is the size of the work this unblocks,
   not of this decision.

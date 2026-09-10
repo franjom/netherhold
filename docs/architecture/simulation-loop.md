@@ -1,4 +1,4 @@
-# The simulation loop and the determinism contract
+﻿# The simulation loop and the determinism contract
 
 Milestone M2, and still the contract every later milestone rests on. This is the
 first code in the project that is genuinely ours rather than a reading of DK2's
@@ -88,8 +88,9 @@ is not a target (plan risk R13).
 mutates state every tick, so agreement between two runs is only possible if the
 loop, the hash and the snapshot really are deterministic. It was written when no
 real systems existed and an empty world made "both runs agree" trivially true;
-it stays because the pinned world it runs in still spawns no creatures (Q206),
-so creature-state changes move the pin through `HashVersion` alone.
+it stays because the gate still registers no real system: the two creatures now
+in its world (Q206) are moved by nothing else, so without it the pin would be
+watching a world at rest.
 
 It implements no DK2 mechanic and never will.
 

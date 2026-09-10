@@ -499,10 +499,12 @@ internal static class Dk2TerrainFixture
     /// <c>PortalOnRealDataTests</c> re-reads the overrides out of the shipped
     /// <c>Creatures.kwd</c>, so this cannot drift from it.
     /// </remarks>
+    public const byte GoblinCreatureId = 7;
+
     public static CreatureDef Goblin() => Imp() with
     {
         Name = "Goblin",
-        CreatureId = 7,
+        CreatureId = GoblinCreatureId,
         SlapDamage = 115,
 
         // The real Goblin's flags, all load-bearing. AvailableViaPortal is what

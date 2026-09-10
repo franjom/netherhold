@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Linq;
 using DK2.Data.Model;
 using DK2.Simulation;
 
@@ -103,10 +104,28 @@ public class DeterminismTests
 
         // HashVersion 54: TileState lost WorkRemainder. Run 15 watched 54 consecutive
         // reinforce steps of exactly 9 where the tabled rate wants 9.6, so DK2 drops the
-        // fraction rather than banking it and the accumulator was modelling nothing
-        // (ADR-0133). The pinned world spawns no creatures (Q206), so a missing
-        // CreatureState field will not fail this pin.
-        Assert.Equal(0xE5035AF2FB584476UL, sim.StateHash());
+        // fraction rather than banking it (ADR-0133). The literal moved again on
+        // 2026-09-10 with HashVersion staying put, which is allowed exactly here: the
+        // fixture gained two creatures, so CreatureState.HashInto runs inside the gate
+        // at last, while the hash and the shape of the state did not change (Q206).
+        Assert.Equal(0xCB555B61573BE9F8UL, sim.StateHash());
+    }
+
+    /// <summary>The pin above only guards creature state while there is creature state
+    /// in it. For four days there was none and nobody noticed, because an empty
+    /// population makes every creature assertion pass by vacuity (Q206) — so the
+    /// population is asserted here rather than trusted.</summary>
+    [Fact]
+    public void ThePinnedWorldIsPopulated_OrItGuardsNoCreatureField()
+    {
+        GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
+
+        Assert.True(sim.World.Creatures.Count >= 2,
+            "The gate's world needs at least two creatures: one so CreatureState.HashInto "
+            + "runs at all, a second so the order of WorldState.Creatures is hashed too.");
+        Assert.Equal(
+            sim.World.Creatures.Count,
+            sim.World.Creatures.Select(c => c.Id).Distinct().Count());
     }
 
     [Fact]

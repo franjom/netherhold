@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -12,9 +12,11 @@ namespace DK2.Simulation.Tests;
 /// A synthetic database and map, so the determinism gate runs everywhere —
 /// including CI, where no Dungeon Keeper 2 installation exists.
 ///
-/// The values here are invented on purpose and are NOT claims about DK2. They
-/// exist only to give the simulation loop something structurally realistic to
-/// chew on. Tests that assert real game behaviour load the real database and
+/// The terrain and the map here are invented on purpose and are NOT claims
+/// about DK2; they exist only to give the simulation loop something
+/// structurally realistic to chew on. The three groups whose comments say
+/// otherwise — variables, keeper spells, creatures — are DK2's own, because
+/// those reach the determinism hash. Tests that assert real game behaviour load the real database and
 /// skip when the install is absent.
 /// </summary>
 internal static class TestWorld
@@ -34,7 +36,14 @@ internal static class TestWorld
             Terrain(9, "Reinforced Wall", TerrainFlags.Solid, 900, destroyedType: Rock),
         ],
         rooms: [],
-        creatures: [],
+
+        // The two creature records are DK2's own, borrowed from Dk2TerrainFixture
+        // rather than invented like the terrain above, for the reason the variables
+        // below are: they reach the determinism hash through Hp, and an invented
+        // number inside a pinned hash is one nobody can check. Borrowed rather than
+        // copied because that fixture's *OnRealDataTests re-read both out of the
+        // shipped file, so neither can drift from the game.
+        creatures: [Dk2TerrainFixture.Imp(), Dk2TerrainFixture.Goblin()],
         variables: Variables(),
         keeperSpells: KeeperSpells());
 
@@ -61,8 +70,9 @@ internal static class TestWorld
     /// <see cref="ManaSystem"/> and two for
     /// <see cref="Systems.ImpSupplySystem"/>. The numbers are DK2's, because a
     /// made-up threshold here would be a made-up number in a determinism hash;
-    /// no terrain in this fixture generates mana and no creature in it is a
-    /// worker, so nothing depends on them.
+    /// no terrain in this fixture generates mana, and neither system that reads
+    /// them is registered — <see cref="Simulation"/> attaches the chaos system
+    /// and nothing else, so the Imp below never supplies anybody.
     /// </summary>
     private static GlobalVariables Variables()
     {
@@ -126,11 +136,25 @@ internal static class TestWorld
     public static WorldState World(GameDatabase database) =>
         WorldState.FromMap(database, Map(), [(byte)0, (byte)1, (byte)2]);
 
-    /// <summary>A simulation with the chaos system attached, for gate testing.</summary>
+    /// <summary>A simulation with the chaos system attached, for gate testing.
+    /// <para><b>Two creatures stand in it</b>, which is the point of them: until
+    /// 2026-09-10 the pinned world had none, so <c>CreatureState.HashInto</c> never
+    /// ran inside the gate and a change to it could not move the pinned literal
+    /// (Q206 — verified by hashing a constant there and watching the pin pass).
+    /// Two rather than one, of different types and different owners, so the
+    /// <see cref="WorldState.Creatures"/> order is hashed as well as the fields:
+    /// that order is behaviour (ADR-0010).</para>
+    /// <para>Here rather than in <see cref="World"/> because this is the gate's
+    /// fixture and that one is shared: five other files build worlds from it and
+    /// none of them asked for a population.</para></summary>
     public static GameSimulation Simulation(ulong seed = 12345)
     {
         GameDatabase database = Database();
-        return new GameSimulation(database, World(database), seed, [new ChaosSystem()]);
+        WorldState world = World(database);
+        world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, ownerPlayerId: 1, new TilePos(3, 3));
+        world.SpawnCreature(
+            database, Dk2TerrainFixture.GoblinCreatureId, ownerPlayerId: 2, new TilePos(5, 4));
+        return new GameSimulation(database, world, seed, [new ChaosSystem()]);
     }
 }
 
@@ -167,6 +191,17 @@ internal sealed class ChaosSystem : ISimulationSystem
         int amount = context.Rng.NextInt(1, 25);
         world.PlayerAtIndex(from).Mana -= amount;
         world.PlayerAtIndex(to).Mana += amount;
+
+        // Move a creature, so the gate covers CreatureState.HashInto changing
+        // and not merely running (Q206). Both writes are bounded by
+        // construction: the nudge is relative to the creature's own tile centre
+        // and half a tile is 2048, so the position stays inside that tile and
+        // never goes negative, and hunger only climbs. Which creature is picked
+        // is itself part of what has to come out the same twice.
+        CreatureState creature = world.Creatures[context.Rng.NextInt(world.Creatures.Count)];
+        creature.PosX = CreatureState.CentreOf(creature.Tile.X) + context.Rng.NextInt(-2047, 2047);
+        creature.PosY = CreatureState.CentreOf(creature.Tile.Y) + context.Rng.NextInt(-2047, 2047);
+        creature.HungerNeed += context.Rng.NextInt(1, 5);
 
         // Commands are applied verbatim so input differences show up in state.
         foreach (PlayerCommand command in context.Input.All)

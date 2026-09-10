@@ -396,4 +396,3 @@ Instrumentation, measurement tooling or disassembly, and scheduled accordingly.
 | Q39 | Whether mana accrues smoothly or in whole seconds. The unit is CONFIRMED per second; granularity is invisible in any total and nothing depends on it |
 | Q48 (second half) | What the *pathfinder* charges for a diagonal when choosing between routes. The mover's cost is forced — a diagonal step covers √2 tile-widths at a constant speed, so octile 14:10 — and the owner confirmed the glide. Two cost models produce the same paths except where a route with fewer steps is longer in true distance |
 | Q4, Q11, Q14, Q15, Q70, Q85, Q183 | Record and runtime-structure layouts, field meanings |
-| Q206 | The determinism pin's world has no creatures in it — a test-fixture fact |

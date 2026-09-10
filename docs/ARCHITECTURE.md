@@ -152,8 +152,9 @@ any machine.**
   cross-machine stability. Changing simulation state deliberately means bumping
   `GameSimulation.HashVersion`, keeping `WorldSnapshot.FormatVersion` equal to
   it, and re-pinning the literal in the same commit. Never loosen the assertion.
-  **The pin's world spawns no creatures** (Q206), so a creature field missing
-  from `HashInto` will not fail it.
+  **The pin's world holds two creatures** (Q206), so a change to
+  `CreatureState.HashInto` does fail it. It registers no creature *system*,
+  so what it guards is the fields, not behaviour over ticks.
 - `WorldSnapshot` round-trips are verified by continuing both runs for hundreds
   of ticks, not by comparing bytes.
 - `.github/workflows/ci.yml` declares the gate on Linux and Windows with

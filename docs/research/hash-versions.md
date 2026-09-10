@@ -1,4 +1,4 @@
-# State-hash versions
+﻿# State-hash versions
 
 `GameSimulation.HashVersion` numbers the shape of the simulation state that
 `GameSimulation.StateHash()` folds, and `WorldSnapshot.FormatVersion` is kept
@@ -12,14 +12,13 @@ determinism is broken and the change must not ship. See
 `docs/architecture/simulation-loop.md` for what the pin is for and why the hash
 is FNV-1a rather than `GetHashCode`.
 
-**What the pin cannot see (Q206).** `TestWorld.World` spawns no creatures, so a
-change to `CreatureState` reaches the pinned value only through `HashVersion` —
-verified by hashing a constant in `CreatureState.HashInto` and watching the pin
-still pass. Notes below that explain a move by what the fixture's creatures were
-doing predate that finding; what moved the value in those commits was the
-version bump beside the change. The pin still does its real job — struct layout
-drift, dictionary iteration order, string hashing — but for a simulation whose
-state is mostly creatures it guards a world that has none.
+**What the pin could not see, and now can (Q206).** Until 2026-09-10 the gate's
+world held no creatures, so a change to `CreatureState` reached the pinned value
+only through `HashVersion` — verified by hashing a constant in
+`CreatureState.HashInto` and watching the pin still pass. It holds two now, and
+that same constant fails the pin. **Every note below predates the fix:** for
+versions up to 55, what moved the value was the version bump beside the change,
+not the creature field the note describes.
 
 **Composition versus behaviour.** Most bumps here moved the value on
 *composition*: a field entered or left the hash, and every instance of it held
@@ -33,7 +32,10 @@ beside it.
 
 ## Versions
 
-**55** — `0xE5035AF2FB584476` (current). A continuing marked dig task re-resolves the tile before each
+**55** — `0xCB555B61573BE9F8` (current), and `0xE5035AF2FB584476` until 2026-09-10,
+when the gate's world gained two creatures and the literal was re-pinned **without**
+a version change: the fixture moved, not the hash or the shape of the state (Q206).
+A continuing marked dig task re-resolves the tile before each
 application, so Reinforced Wall proceeds through Rock to Dirt Path (ADR-0134).
 No state field changed; the version separates snapshots whose resumed jobs have
 different behaviour.
