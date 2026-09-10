@@ -316,3 +316,25 @@ already assigned, so no walk is in the figure: **11, 11, 11, 11, 11, 11, 12, 16,
 17 ticks**. Run 10's fourteen all read 10. Both runs are internally consistent
 and differ by one, which is sampling phase against a 3.93 tick/s game at 4 Hz —
 a higher rate would settle whether the constant is 10 or 11. Ours is 4 (Q292).
+
+**2026-09-10, run 11 — reinforcing, found and timed.** Pool kind 6 is an imp
+reinforcing a wall. Every one in the capture sits on a wall **adjacent to a
+tile just claimed**, two queued the tick the claim finished, and the rest wait
+for a free imp:
+
+| wall | queued | after claiming | gap |
+|---|---:|---|---:|
+| (9,28) | t109 | (10,28) at t108 | +1 |
+| (14,22) | t235 | (14,23) at t234 | +1 |
+| (13,23) | t255 | (14,23) at t234 | +21 |
+| (15,22) | t362 | (15,23) at t284 | +78 |
+
+Durations, each starting with its worker already assigned: **61, 61, 70, 76**
+ticks. Our model reinforces Rock in **50** applications — 495 of deficit at 10
+a swing, one swing a tick — so we are again the faster side, by about a fifth
+(Q294). Three more were still running when the capture ended, consistent with
+tasks of that length.
+
+This is the second mechanism the task pool has named without a decompile of its
+own, after claiming. Both were identified from *what precedes them* rather than
+from how they arrive — the reading that failed twice today.

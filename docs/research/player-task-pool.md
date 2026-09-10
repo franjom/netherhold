@@ -45,7 +45,9 @@ The pool holds **fifteen kind lists**, walked as `kind = 1 … 15`:
 
 An entry, from DK2's own dumper at `0x005083C5` (`debug-dumpers.md`), whose
 printed offsets are four low because its loop pairs them against a cursor at
-`record + 4`:
+`record + 4`. The adder confirms the corrected layout independently: it
+compares the kind against `[entry + 0x04]`, follows `Next` at `+0x1F` and
+returns the id from `+0x21` (`0x00507BFB`, `0x00507C16`, `0x00507C2E`).
 
 | | |
 |---|---|
@@ -97,7 +99,24 @@ Kinds **3**, **6** and **14** were seen live and are work rather than marks.
 **Kind 3 is claiming**: every kind-3 task follows that same tile's dig
 completing, and none follows a cancelled one. It is created with a worker
 already assigned — the imp that just dug the tile — and runs **10 ticks in run
-10 and 11 in run 11** (Q292). Kinds 6 and 14 are unnamed.
+10 and 11 in run 11** (Q292).
+
+**Kind 6 is reinforcing a wall — STRONGLY INFERRED** on four strands, none of
+which is a pattern in the arrival rate:
+
+- **Position.** Every kind-6 task in run 11 sits on a wall adjacent to a tile
+  that had just been claimed, and two were queued the very tick the claim
+  finished. The rest wait for a free imp.
+- **The adder consults it.** Adding a **kind-1 dig** checks kind 6's live count
+  at `+0x4684` and walks its list for a task on the same coordinates before
+  proceeding (`0x00507C7B`) — which is what marking a wall someone is already
+  reinforcing would have to resolve.
+- **Duration.** 61, 61, 70 and 76 ticks, each starting with its worker already
+  assigned. Our reinforce model, derived independently from the shipped table,
+  is 50 applications for Rock's 495 deficit (Q294).
+- **It is not a mark.** It arrives without the player acting.
+
+Kind 14 is unnamed; it accompanies a dig in progress.
 
 **A finished dig and a dropped mark both leave the pool**, and the kind
 transition between them is often not sampled at all — gold dug in run 10 was
