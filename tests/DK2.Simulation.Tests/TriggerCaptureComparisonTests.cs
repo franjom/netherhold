@@ -78,6 +78,77 @@ public class TriggerCaptureComparisonTests
         Assert.False(result.EventSetsMatch);
     }
 
+    // A restamp is the only exact measurement a live capture yields: the game writes the tick
+    // it acted on, so reading the slot late cannot move it. Level 20 run 8 stored 1724 on both
+    // sides while the probe first SAW it at 1725, which is what dated the sampling lag.
+    [Fact]
+    public void Compare_ComparesStoredStampsAndNotWhenTheProbeNoticedThem()
+    {
+        using StringReader ours = Csv(
+            Row(4, ("t0", 4), ("t1", 4)),
+            Row(1724, ("t0", 4), ("t1", 1724)),
+            Row(2600, ("t0", 4), ("t1", 1724)));
+        using StringReader capture = Csv(
+            Row(33, ("t0", 4), ("t1", 4)),
+            Row(1725, ("t0", 4), ("t1", 1724)),
+            Row(2600, ("t0", 4), ("t1", 1724)));
+
+        TriggerCaptureComparisonResult result = TriggerCaptureComparison.Compare(
+            ours, "ours", capture, "capture");
+
+        TriggerStampSeries t1 = result.StampSeries.Single(s => s.Id == "t1");
+        Assert.Equal([0L, 1720L], t1.Ours);
+        Assert.Equal([0L, 1720L], t1.Capture);
+        Assert.True(t1.Agrees);
+        Assert.False(t1.Truncated);
+        Assert.True(result.StampsAgree);
+    }
+
+    // The same out-of-window rule as the event set: our restamp at 1724 says nothing about a
+    // capture that stopped at 1218, so it must not be compared against its absence.
+    [Fact]
+    public void Compare_TruncatesAStampSeriesToTheShorterRunsWindow()
+    {
+        using StringReader ours = Csv(
+            Row(4, ("t0", 4), ("t1", 4)),
+            Row(1724, ("t0", 4), ("t1", 1724)));
+        using StringReader capture = Csv(
+            Row(33, ("t0", 4), ("t1", 4)),
+            Row(1218, ("t0", 4), ("t1", 4)));
+
+        TriggerCaptureComparisonResult result = TriggerCaptureComparison.Compare(
+            ours, "ours", capture, "capture");
+
+        TriggerStampSeries t1 = result.StampSeries.Single(s => s.Id == "t1");
+        Assert.Equal([0L], t1.Ours);
+        Assert.Equal([0L], t1.Capture);
+        Assert.True(t1.Agrees);
+        Assert.True(t1.Truncated);
+    }
+
+    // And a stamp the capture did cover must still be able to disagree.
+    [Fact]
+    public void Compare_StillReportsAStampThatDiffersInsideTheWindow()
+    {
+        using StringReader ours = Csv(
+            Row(4, ("t0", 4), ("t1", 4)),
+            Row(1724, ("t0", 4), ("t1", 1724)),
+            Row(2600, ("t0", 4), ("t1", 1724)));
+        using StringReader capture = Csv(
+            Row(4, ("t0", 4), ("t1", 4)),
+            Row(1730, ("t0", 4), ("t1", 1730)),
+            Row(2600, ("t0", 4), ("t1", 1730)));
+
+        TriggerCaptureComparisonResult result = TriggerCaptureComparison.Compare(
+            ours, "ours", capture, "capture");
+
+        TriggerStampSeries t1 = result.StampSeries.Single(s => s.Id == "t1");
+        Assert.Equal([0L, 1720L], t1.Ours);
+        Assert.Equal([0L, 1726L], t1.Capture);
+        Assert.False(t1.Agrees);
+        Assert.False(result.StampsAgree);
+    }
+
     [Fact]
     public void Compare_ReportsEventSetWithoutInventingAnAnchor()
     {

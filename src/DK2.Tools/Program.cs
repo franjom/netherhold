@@ -2457,14 +2457,37 @@ static int CaptureDiff(string[] arguments)
                 string residualText = e.Residual.HasValue ? $"{e.Residual.Value:+#;-#;0}" : "unknown";
                 Console.WriteLine($"  {e.Id,-6} {ours,6} {capture,8} {residualText,9}");
             }
+
+            if (result.AlignedEvents.Any(e => e.Residual is not null and not 0))
+                Console.WriteLine("  note: a capture turn is when the probe SAW the change, "
+                    + "measured as one tick after\n        the game acted (run 8: timer 1 "
+                    + "stored 1724, first seen at 1725). On a flag,\n        a +1 residual is "
+                    + "agreement; the stamps below are the unsampled check.");
+        }
+
+        if (result.StampSeries.Count > 0)
+        {
+            Console.WriteLine("timer stamps, stored and origin-relative (no sampling in the path):");
+            Console.WriteLine("  id       ours                 capture");
+            foreach (TriggerStampSeries s in result.StampSeries)
+            {
+                string verdict = s.Agrees ? "same" : "DIFFER";
+                if (s.Truncated) verdict += ", to the shorter run's window";
+                Console.WriteLine($"  {s.Id,-6} {string.Join(", ", s.Ours),-20} "
+                    + $"{string.Join(", ", s.Capture),-20} {verdict}");
+            }
         }
 
         string match = result.EventSetsMatch ? "matched" : "differed";
         string largest = result.LargestAbsoluteResidual is long residual
             ? $"{residual} tick{(residual == 1 ? string.Empty : "s")}"
             : "unavailable";
-        Console.WriteLine($"verdict: event set {match}; largest absolute residual {largest}");
-        return result.EventSetsMatch ? 0 : 1;
+        string stamps = result.StampSeries.Count == 0
+            ? "no timer stamped on both sides"
+            : result.StampsAgree ? "stamps agree exactly" : "STAMPS DIFFER";
+        Console.WriteLine($"verdict: event set {match}; {stamps}; "
+            + $"largest absolute sampled residual {largest}");
+        return result.EventSetsMatch && result.StampsAgree ? 0 : 1;
     }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
         or InvalidDataException or ArgumentException)

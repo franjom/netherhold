@@ -2033,3 +2033,32 @@ hide one, since an event inside the window is still reported. The untested list
 also names what a longer capture would buy, which is how the 11-minute Level 20
 run that discriminates Q273 was chosen. No simulation state changed, so no
 `HashVersion` bump.
+
+## ADR-0119 — Compare a timer's stored stamps, not the turn the probe noticed them
+**Date:** 2026-09-10 · **Status:** accepted · Experiment: `docs/experiments/level20-idle-002/`
+
+**Context.** A live capture yields two unlike quantities. A flag is a boolean
+seen only when the probe looks, so its turn is an observation. A timer slot
+holds *the tick the game recorded when it started the timer*, so its value
+survives being read late. ADR-0117 stored only each column's **first** non-zero
+value, which threw the second kind away: Level 20's timer 1 restamps at 1724
+inside the capture, and the comparer showed it as a censored ceiling event —
+the run's one exact measurement, invisible.
+
+That measurement is what answered Q273. DK2 stored **1724** where the probe
+labelled the change **1725**, dating the probe's own lag at one tick against
+the game's record, on a single event.
+
+**Decision.** Record, per timer, the ordered sequence of distinct stored values,
+and compare those sequences origin-relative. Truncate each side to what the
+other run was still running to observe, strictly, since a sampled probe needs a
+further read to show a stamp written on its last tick — ADR-0118's rule, which
+a re-run against the earlier capture proved was needed here too. Report stamp
+agreement separately from the sampled residual, and exit non-zero if either
+fails. A sampled residual is annotated rather than silently corrected: the
+mechanism behind the lag is not separated, so the raw number stays visible.
+
+**Consequences.** The comparison now has an exact half and an approximate half,
+and says which is which. `StampsAgree` is the strong claim; a `+1` on a flag is
+agreement given the measured lag. No simulation state changed, so no
+`HashVersion` bump.

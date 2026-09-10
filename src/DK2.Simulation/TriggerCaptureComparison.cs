@@ -46,6 +46,7 @@ public static class TriggerCaptureComparison
         var aligned = new List<TriggerAlignedEvent>();
         List<string> oursBeyond = [];
         List<string> captureBeyond = [];
+        var stampSeries = new List<TriggerStampSeries>();
 
         if (anchorId is null)
         {
@@ -75,12 +76,33 @@ public static class TriggerCaptureComparison
                 captureOrigin.Value, captureData.LastTurn);
             captureBeyond = Extract(captureOnly, captureData, captureOrigin.Value,
                 oursOrigin.Value, oursData.LastTurn);
+
+            for (byte timer = 0; timer < TriggerState.TimerCount; timer++)
+            {
+                string id = $"t{timer}";
+                if (!oursData.Stamps.TryGetValue(id, out List<long>? mine)
+                    || !captureData.Stamps.TryGetValue(id, out List<long>? theirs)) continue;
+                // A stamp is a tick, so the run that ended first cannot speak to one written
+                // after it stopped. Comparing the untruncated series makes a short capture
+                // read as a disagreement, which is ADR-0118's mistake in a second place.
+                long[] a = Within(mine, oursOrigin.Value, captureOrigin.Value, captureData.LastTurn);
+                long[] b = Within(theirs, captureOrigin.Value, oursOrigin.Value, oursData.LastTurn);
+                bool truncated = a.Length != mine.Count || b.Length != theirs.Count;
+                stampSeries.Add(new TriggerStampSeries(id, a, b, a.SequenceEqual(b), truncated));
+            }
         }
 
         return new TriggerCaptureComparisonResult(
             inBoth, captureOnly, oursOnly, oursBeyond, captureBeyond,
-            anchorId, oursOrigin, captureOrigin, alignmentRefusal, aligned);
+            anchorId, oursOrigin, captureOrigin, alignmentRefusal, aligned, stampSeries);
     }
+
+    /// <summary>Stamps the other run was still running to record, origin-relative. The bound is
+    /// strict because a sampled probe needs a further read to show a stamp written on its last
+    /// tick.</summary>
+    private static long[] Within(
+        List<long> stamps, long origin, long otherOrigin, long otherLastTurn) =>
+        [.. stamps.Select(v => v - origin).Where(v => v + otherOrigin < otherLastTurn)];
 
     /// <summary>Moves the one-sided events the other run stopped too early to see out of
     /// <paramref name="only"/>. A run that ends at turn 1218 says nothing about an event due
@@ -108,6 +130,7 @@ public static class TriggerCaptureComparison
             throw new InvalidDataException($"'{name}' does not have the live trigger-probe header.");
 
         var events = new Dictionary<string, EventObservation>();
+        var stamps = new Dictionary<string, List<long>>();
         bool firstDataRow = true;
         long lastTurn = long.MinValue;
         string? line;
@@ -131,6 +154,17 @@ public static class TriggerCaptureComparison
                         $"'{name}' has an invalid value '{cell}' in column {columns[col]}.");
                 if (value != 0 && !events.ContainsKey(columns[col]))
                     events.Add(columns[col], new EventObservation(turn, value, firstDataRow));
+
+                // A timer slot holds the tick the timer was started, so every distinct value
+                // it takes is a tick the game (or we) recorded at the moment of acting. Unlike
+                // the turn a change was noticed, that survives being read late.
+                if (value != 0 && col < 2 + TriggerState.TimerCount)
+                {
+                    List<long> seen = stamps.TryGetValue(columns[col], out List<long>? list)
+                        ? list
+                        : stamps[columns[col]] = [];
+                    if (seen.Count == 0 || seen[^1] != value) seen.Add(value);
+                }
             }
             firstDataRow = false;
         }
@@ -138,7 +172,7 @@ public static class TriggerCaptureComparison
         if (lastTurn == long.MinValue)
             throw new InvalidDataException($"'{name}' has a header but no data rows.");
 
-        return new CaptureData(events, lastTurn);
+        return new CaptureData(events, stamps, lastTurn);
     }
 
     private static string? SelectAnchor(
@@ -167,9 +201,18 @@ public static class TriggerCaptureComparison
     }
 
     private sealed record CaptureData(
-        Dictionary<string, EventObservation> Events, long LastTurn);
+        Dictionary<string, EventObservation> Events,
+        Dictionary<string, List<long>> Stamps,
+        long LastTurn);
     private sealed record EventObservation(long FirstTurn, long FirstValue, bool FirstTurnIsCeiling);
 }
+
+/// <summary>One timer's stored stamps on each side, relative to the anchor's origin. A stamp
+/// is the tick the game recorded when it started the timer, so it is exact however late the
+/// probe read it — the only quantity a live capture yields with no sampling in the path.</summary>
+public sealed record TriggerStampSeries(
+    string Id, IReadOnlyList<long> Ours, IReadOnlyList<long> Capture, bool Agrees,
+    bool Truncated);
 
 public sealed record TriggerAlignedEvent(
     string Id,
@@ -191,8 +234,10 @@ public sealed class TriggerCaptureComparisonResult
         long? oursOrigin,
         long? captureOrigin,
         string? alignmentRefusal,
-        IReadOnlyList<TriggerAlignedEvent> alignedEvents)
+        IReadOnlyList<TriggerAlignedEvent> alignedEvents,
+        IReadOnlyList<TriggerStampSeries> stampSeries)
     {
+        StampSeries = stampSeries;
         InBoth = inBoth;
         CaptureOnly = captureOnly;
         OursOnly = oursOnly;
@@ -220,6 +265,13 @@ public sealed class TriggerCaptureComparisonResult
     public long? CaptureOrigin { get; }
     public string? AlignmentRefusal { get; }
     public IReadOnlyList<TriggerAlignedEvent> AlignedEvents { get; }
+
+    /// <summary>Per-timer stored stamps, the exact half of the comparison.</summary>
+    public IReadOnlyList<TriggerStampSeries> StampSeries { get; }
+
+    /// <summary>True when every timer stamped on both sides holds the same stored values.
+    /// This is the claim a sampled residual cannot make.</summary>
+    public bool StampsAgree => StampSeries.All(s => s.Agrees);
     public long? LargestAbsoluteResidual => AlignedEvents
         .Select(e => e.Residual.HasValue ? Math.Abs(e.Residual.Value) : (long?)null)
         .Max();

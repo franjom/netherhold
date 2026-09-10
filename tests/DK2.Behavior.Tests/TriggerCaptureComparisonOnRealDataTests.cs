@@ -68,40 +68,37 @@ public class TriggerCaptureComparisonOnRealDataTests
         }
     }
 
-    /// <summary>UNVERIFIED against the game. These two turns are what a longer Level 20 idle
-    /// capture must show, and they are pinned here so a change to the trigger clock cannot
-    /// move them silently before that capture is taken. t1's restamp is a stored value and f6
-    /// a sampled one, which is what makes one run discriminate Q273 both ways.</summary>
-    [InstallFact]
-    public void Level20Idle_PredictsARestampAt1724AndAFlagAt2404_NotYetCaptured()
+    /// <summary>The run that answered Q273 (<c>level20-idle-002</c>). Timer 1 restamps inside
+    /// the window, and a restamp is a value the game stores rather than one the probe times:
+    /// DK2 wrote <b>1724</b> and so do we, exactly. The probe first saw it at 1725, which
+    /// dates its own lag at one tick against the game's record — and that one tick is the
+    /// whole of the residual on every sampled flag here and on level 1.</summary>
+    [CaptureFact(Dk2CaptureGate.Level20LongIdleRelativePath)]
+    public void Level20LongIdle_StoredStampsAgreeExactlyAndOnlySampledTurnsLag()
     {
         string oursPath = Path.GetTempFileName();
         try
         {
-            WriteRun(oursPath, "Level20", turns: 2600);
-            string[] lines = File.ReadAllLines(oursPath);
-            string[] columns = lines[0].Split(',');
-            int t1 = Array.IndexOf(columns, "t1");
-            int f6 = Array.IndexOf(columns, "f6");
+            WriteRun(oursPath, "Level20", turns: 2620);
+            TriggerCaptureComparisonResult result = TriggerCaptureComparison.Compare(
+                oursPath, Dk2CaptureGate.PathFor(Dk2CaptureGate.Level20LongIdleRelativePath));
 
-            Assert.Equal(1724, FirstTurnWith(lines, columns, t1, "1724"));
-            Assert.Equal(2404, FirstTurnWith(lines, columns, f6, "1"));
+            Assert.Equal(["t0", "t1", "f6", "f7"], result.InBoth);
+            Assert.Empty(result.CaptureOnly);
+            Assert.Empty(result.OursOnly);
+
+            TriggerStampSeries t1 = result.StampSeries.Single(s => s.Id == "t1");
+            Assert.Equal([0L, 1720L], t1.Ours);
+            Assert.Equal([0L, 1720L], t1.Capture);
+            Assert.True(result.StampsAgree);
+
+            // The sampled half lags by exactly one, and by no more.
+            Assert.Equal(1, result.AlignedEvents.Single(e => e.Id == "f6").Residual);
         }
         finally
         {
             File.Delete(oursPath);
         }
-    }
-
-    private static long FirstTurnWith(string[] lines, string[] columns, int column, string value)
-    {
-        foreach (string line in lines.Skip(1))
-        {
-            string[] cells = line.Split(',');
-            if (cells[column] == value) return long.Parse(cells[1]);
-        }
-        throw new InvalidOperationException(
-            $"No turn has {columns[column]} = {value}.");
     }
 
     private static void WriteRun(string path, string levelName, int turns)

@@ -131,9 +131,27 @@ counted as a divergence against a capture that ended at 1218, so a run matching
 in every column reported "event set differed". An event the other side stopped
 before is untested, not divergent, and is now reported as such.
 
-**The 11-minute version of this run is the one to take next**, because it puts
-an unsampled event (t1 restamping at 1724) and a sampled one (f6 at 2404) on
-one clock and discriminates Q273 both ways.
+**2026-09-10, Level 20 for eleven minutes — Q273 answered by the game itself.**
+Timer 1 restamps inside this window, and a timer slot holds the tick the game
+recorded when it acted, so it cannot be moved by reading it late. DK2 stored
+**1724**, we store 1724, and the probe first *saw* it at **1725**: one event
+carries the ground truth and the observation together, and they differ by
+exactly the disputed tick (`docs/experiments/level20-idle-002`).
+
+Measured on t1, then checked against three events it was not fitted to — Level
+20's `f6` (2405 → 2404) and level 1's `f1` (40 → 39) and `f34` (608 → 607) —
+all three land on ours. **Every trigger event captured from DK2 across two
+levels now matches exactly.** The probe's sample labelled N shows state before
+tick N's trigger pass, so capture row N is our row N−1.
+
+Two things to carry forward. `capture-diff` could not see the restamp at all,
+because it kept only each column's first non-zero value; it now compares each
+timer's stored-stamp sequence, which is the only unsampled part of a capture
+(ADR-0119) — and re-running the ADR-0118 window rule against the earlier
+capture caught the same off-by-one hiding in the new code path. And the run was
+**not idle**: heroes invaded, killed imps and attacked the heart with no
+trigger firing, so Level 20 is a still world for only about seven minutes
+(Q275).
 
 ## 2026-09-09 — there is no level worth capturing yet, and that is measurable
 

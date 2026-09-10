@@ -13,6 +13,7 @@ public static class Dk2CaptureGate
 {
     public const string Level1IdleRelativePath = "reverse-engineering/dk2runs/dk2run6.csv";
     public const string Level20IdleRelativePath = "reverse-engineering/dk2runs/dk2run7.csv";
+    public const string Level20LongIdleRelativePath = "reverse-engineering/dk2runs/dk2run8.csv";
 
     public static string Path => PathFor(Level1IdleRelativePath);
 
