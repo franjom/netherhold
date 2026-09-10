@@ -2504,3 +2504,39 @@ none. The discriminator is the task's own **`Worker`** slots, now recorded on
 every row: an imp that took the job sits in one. That closes the last known
 hole in the tag recording without needing the runtime map, which ADR-0129 had
 put on the critical path.
+
+## ADR-0131 — A cancelled dig is told from a finished one by the claim, not the worker
+**Date:** 2026-09-10 · **Status:** accepted · run 11, level 1 · amends ADR-0130
+
+**Context.** ADR-0130 closed the last known hole in the tag recording with the
+task's `Worker` count: an imp that took the job sits in a slot, so a removal
+with a worker is a finished dig and one without is the player letting go. It
+was reasoned from the field's name and never tested against play.
+
+**It is wrong.** The owner cancelled a mark **with three imps already digging
+it**, on request, and labelled it in advance. That removal carries the same
+worker count as a completion. The column was added the same morning for exactly
+this job and does not do it.
+
+**Decision.** A dig's removal is a completion **iff a claim task follows on that
+tile before the tile is marked again**. A dug tile is claimed and a cancelled
+one stays rock, so the claim is evidence the tile changed, which is the thing
+actually being asked. The bound matters: without it, re-marking a tile would
+retrospectively turn an earlier cancellation into a completion.
+
+**Against the labelled run**: sixteen commands, both cancellations kept, all
+nine completions rejected, **no false untags**. Before this, every completed dig
+replayed as the player changing their mind — which would stop our imps digging
+tiles DK2 dug.
+
+**Consequences.** One wrinkle stays open: a tile left the pool and returned
+seven ticks later under a **different task id**, which is DK2 freeing and
+re-allocating rather than the owner acting. It replays as an untag and an
+immediate retag, so it is self-cancelling, but it is not understood.
+
+**And the method note, which cost more than the bug.** Both discriminators —
+the worker count here, and "a trickle is DK2's own work" in ADR-0130 — were
+inferred from the shape of a capture and both were wrong. A capture records
+what the game did and never who caused it. The owner labelling two cancellations
+in advance settled in one run what two unlabelled runs could not, and it is now
+the standing protocol: **ask for labelled play before inferring provenance**.

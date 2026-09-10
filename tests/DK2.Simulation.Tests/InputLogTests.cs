@@ -88,28 +88,69 @@ public class InputLogTests
     /// <summary>
     /// The case the kind transition misses. Gold dug in run 10 was never
     /// sampled in a work kind at all — it entered as kind 2 and left as kind 2,
-    /// which reads as the player letting go. The task's own Worker slot says
-    /// otherwise, and it is recorded on every row.
+    /// which reads as the player letting go. What says otherwise is that the
+    /// tile is then claimed, which only a dug tile can be.
     /// </summary>
     [Fact]
     public void ADigThatFinishedWithoutAWorkKindEverBeingSampledIsStillWork()
     {
         InputLog log = Read(
             Row(41, "tag", 2, 16, 23)
-            + Row(90, "untag", 2, 16, 23, workers: 1));
+            + Row(90, "untag", 2, 16, 23, workers: 1)
+            + Row(91, "tag", InputLog.ClaimKind, 16, 23, workers: 1));
 
+        // Two: the dig's removal, and the claim task's own arrival.
         Assert.Equal([40L], log.Turns);
-        Assert.Equal(1, log.Tally.Worked);
+        Assert.Equal(2, log.Tally.Worked);
+    }
+
+    /// <summary>
+    /// Run 11's untag B, and the reason the worker count is not the test: the
+    /// owner cancelled a tile with **three** imps already digging it, the same
+    /// count a finished dig shows. No claim follows a cancelled tile, because
+    /// it is still rock — that is what separates them (Q293).
+    /// </summary>
+    [Fact]
+    public void CancellingADigThreeImpsAreOnIsStillThePlayer()
+    {
+        InputLog log = Read(
+            Row(127, "tag", 1, 11, 27)
+            + Row(141, "untag", 1, 11, 27, workers: 3));
+
+        Assert.Equal([126L, 140L], log.Turns);
+        Assert.False(Only(log.At(140)).Tagged);
+        Assert.Equal(0, log.Tally.Worked);
+    }
+
+    /// <summary>
+    /// And a claim that arrives after the tile is marked again belongs to the
+    /// later dig. Without that bound, re-marking a tile would retrospectively
+    /// turn an earlier cancellation into a completion.
+    /// </summary>
+    [Fact]
+    public void AClaimAfterTheTileIsMarkedAgainDoesNotExcuseTheEarlierUntag()
+    {
+        InputLog log = Read(
+            Row(41, "tag", 1, 11, 27)
+            + Row(50, "untag", 1, 11, 27, workers: 3)
+            + Row(60, "tag", 1, 11, 27)
+            + Row(80, "untag", 1, 11, 27, workers: 3)
+            + Row(81, "tag", InputLog.ClaimKind, 11, 27, workers: 1));
+
+        Assert.Contains(49L, log.Turns);
+        Assert.False(Only(log.At(49)).Tagged);
+        Assert.DoesNotContain(79L, log.Turns);
     }
 
     /// <summary>A tile the player drops before any imp touches it is theirs.</summary>
+    /// <summary>Run 11's untag A: dropped before any imp reached it.</summary>
     [Fact]
     public void LeavingWithNoImpEverOnItIsThePlayerLettingGo()
     {
-        InputLog log = Read(Row(41, "tag", 1, 10, 20) + Row(61, "untag", 1, 10, 20));
+        InputLog log = Read(Row(109, "tag", 1, 8, 30) + Row(119, "untag", 1, 8, 30));
 
         Assert.Equal(0, log.Tally.Worked);
-        Assert.Equal([40L, 60L], log.Turns);
+        Assert.Equal([108L, 118L], log.Turns);
     }
 
     [Fact]
@@ -262,8 +303,8 @@ public class InputLogTests
             + Row(69, "tag", 2, 14, 24)
             + Row(121, "tag", 14, 14, 24)
             + Row(122, "untag", 2, 14, 24)
-            + Row(125, "tag", 3, 14, 24)
-            + Row(136, "untag", 3, 14, 24, workers: 1)
+            + Row(125, "tag", InputLog.ClaimKind, 14, 24)
+            + Row(136, "untag", InputLog.ClaimKind, 14, 24, workers: 1)
             + Row(136, "untag", 14, 14, 24, workers: 1));
 
         Assert.Equal([35L, 47L, 68L], log.Turns);

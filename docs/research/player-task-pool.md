@@ -95,14 +95,22 @@ events invents untags the player never issued. What is an event is a tile
 
 Kinds **3**, **6** and **14** were seen live and are work rather than marks.
 **Kind 3 is claiming**: every kind-3 task follows that same tile's dig
-completing, and in run 10 fourteen of them ran back to back at **exactly 10
-ticks** each (Q292). Kinds 6 and 14 are unnamed.
+completing, and none follows a cancelled one. It is created with a worker
+already assigned — the imp that just dug the tile — and runs **10 ticks in run
+10 and 11 in run 11** (Q292). Kinds 6 and 14 are unnamed.
 
 **A finished dig and a dropped mark both leave the pool**, and the kind
 transition between them is often not sampled at all — gold dug in run 10 was
-never seen in a work kind. The discriminator is the task's own **`Worker`**
-slots: an imp that took the job sits in one, and a mark the player drops before
-anyone walks over has none. The probe records the count on every row.
+never seen in a work kind.
+
+The task's `Worker` count does **not** separate them. Run 11 tested it against
+labelled play: a mark cancelled with **three imps already digging** left the
+pool with the same worker count as a finished dig (Q293).
+
+**What separates them is the claim.** A dug tile is claimed and a cancelled one
+stays rock, so a dig's removal is a completion exactly when a kind-3 task
+follows it on that tile before the tile is marked again. On run 11 that keeps
+both labelled cancellations and rejects all nine completions.
 
 **Cadence says nothing.** An earlier reading here treated a one-tile-per-sample
 trickle as DK2's own work and a batch as the player. That is wrong: a player

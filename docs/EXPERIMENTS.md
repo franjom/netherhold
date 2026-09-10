@@ -288,3 +288,31 @@ Ours completes a claim in **4 ticks**: `ClaimTileHealth` 825 over the
 efficiency divisor is 165 a swing, and Dirt Path climbs 1 → 660 in four. The
 gap is real; its size is not yet pinned, because DK2's figure still contains
 the walk (Q292).
+
+**2026-09-10, level 1, run 11 — labelled play, and the discriminator it broke.**
+The first capture carrying ground truth: the owner marked single tiles and left
+them to be dug, then cancelled two deliberately — one before any imp reached it
+and one *while three were digging it*. Both were named in advance.
+
+| tile | tagged | gone | workers at removal | claimed after |
+|---|---:|---:|---:|---|
+| (8,30) cancelled, no imp | 109 | 119 | 0 | no |
+| (11,27) cancelled, three imps | 127 | 141 | **3** | no |
+| nine dug to completion | | | 1–3 | yes, all nine |
+
+**The `Worker` count does not tell a cancellation from a completion** — (11,27)
+carries the same three as a finished dig. The column was added that morning for
+exactly this job and does not do it (Q293).
+
+**The claim does.** A dug tile is claimed and a cancelled one stays rock, so a
+removal is a completion exactly when a kind-3 task follows on that tile before
+it is marked again. Against the labelled run that keeps both cancellations and
+rejects all nine completions: sixteen commands, **no false untags**. One
+questionable pair remains — (15,23) leaves and returns seven ticks later under a
+different task id, which is DK2 re-allocating rather than the owner.
+
+**Claim timing, cleanly.** Nine claim tasks, each starting with its worker
+already assigned, so no walk is in the figure: **11, 11, 11, 11, 11, 11, 12, 16,
+17 ticks**. Run 10's fourteen all read 10. Both runs are internally consistent
+and differ by one, which is sampling phase against a 3.93 tick/s game at 4 Hz —
+a higher rate would settle whether the constant is 10 or 11. Ours is 4 (Q292).

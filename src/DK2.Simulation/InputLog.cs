@@ -90,6 +90,7 @@ public sealed class InputLog
 
     private static InputLog Build(List<Row> rows, HashSet<byte> kinds, long lag, long origin)
     {
+        Claims claims = Claims.From(rows, kinds);
         var pool = new Dictionary<(byte Player, TilePos Tile), Occupancy>();
         var pending = new SortedDictionary<long, SortedDictionary<byte, TurnMarks>>();
         var tally = new Counters { Rows = rows.Count };
@@ -100,7 +101,7 @@ public sealed class InputLog
             // so a tile changing kind lists shows as both; adding first makes
             // that a migration rather than a spurious leave and re-enter.
             foreach (Row row in sample.OrderByDescending(r => r.Tagged))
-                Apply(row, pool, kinds, pending, tally, lag, origin);
+                Apply(row, pool, kinds, claims, pending, tally, lag, origin);
         }
 
         return Emit(pending, tally, rows);
@@ -108,7 +109,7 @@ public sealed class InputLog
 
     private static void Apply(
         in Row row, Dictionary<(byte, TilePos), Occupancy> pool, HashSet<byte> kinds,
-        SortedDictionary<long, SortedDictionary<byte, TurnMarks>> pending,
+        Claims claims, SortedDictionary<long, SortedDictionary<byte, TurnMarks>> pending,
         Counters tally, long lag, long origin)
     {
         (byte, TilePos) key = (row.Player, row.Tile);
@@ -124,11 +125,7 @@ public sealed class InputLog
             held.Kinds.Remove(row.Kind);
         }
 
-        // The task's own Worker slots, not the kind it sat in. A dig that an
-        // imp finished and a mark the player dropped both leave the pool, and
-        // the kind transition between them is often not sampled at all -- gold
-        // dug on the first live capture showed none. A worker is recorded.
-        if (row.Workers > 0 || !kinds.Contains(row.Kind)) held.Worked = true;
+        if (!kinds.Contains(row.Kind)) held.Worked = true;
 
         bool now = held.Kinds.Count > 0;
         if (was == now)
@@ -137,10 +134,14 @@ public sealed class InputLog
             return;
         }
 
-        // Entering under a work kind is an imp taking a job, and leaving a tile
-        // an imp had taken is that job finishing. Neither is the player, and
-        // replaying either would put marks in our world DK2 never got told about.
-        bool player = now ? kinds.Contains(row.Kind) : !held.Worked;
+        // Entering under a work kind is an imp taking a job. Leaving is the
+        // harder half: a finished dig and a cancelled one both remove the task,
+        // and the worker count does not separate them -- run 11 cancelled a tile
+        // with three imps on it. What separates them is that a dug tile is then
+        // claimed and a cancelled one stays rock (Q293).
+        bool player = now
+            ? kinds.Contains(row.Kind)
+            : !held.Worked && !claims.Follows(row.Tile, row.Stamp);
         if (!player)
         {
             tally.Worked++;
@@ -199,6 +200,51 @@ public sealed class InputLog
     /// </summary>
     private static TilePos[] Sorted(HashSet<TilePos> tiles) =>
         [.. tiles.OrderBy(t => t.Y).ThenBy(t => t.X)];
+
+    /// <summary>
+    /// When each tile was claimed, and when it was marked, so a dig leaving the
+    /// pool can be asked whether a claim followed it. Bounded by the tile's next
+    /// mark: a claim after that belongs to the later dig, not to this one.
+    /// </summary>
+    private sealed class Claims
+    {
+        private readonly Dictionary<TilePos, List<long>> _claimed = [];
+        private readonly Dictionary<TilePos, List<long>> _marked = [];
+
+        public static Claims From(List<Row> rows, HashSet<byte> kinds)
+        {
+            var claims = new Claims();
+            foreach (Row row in rows.Where(r => r.Tagged))
+            {
+                Dictionary<TilePos, List<long>>? into =
+                    row.Kind == ClaimKind ? claims._claimed
+                    : kinds.Contains(row.Kind) ? claims._marked
+                    : null;
+                if (into is null) continue;
+                if (!into.TryGetValue(row.Tile, out List<long>? at)) into[row.Tile] = at = [];
+                at.Add(row.Stamp);
+            }
+            return claims;
+        }
+
+        /// <summary>Whether a claim of <paramref name="tile"/> follows <paramref name="stamp"/>
+        /// before the tile is marked again — that is, whether this dig finished.</summary>
+        public bool Follows(TilePos tile, long stamp)
+        {
+            if (!_claimed.TryGetValue(tile, out List<long>? claimed)) return false;
+            long next = _marked.TryGetValue(tile, out List<long>? marked)
+                ? marked.Where(m => m > stamp).DefaultIfEmpty(long.MaxValue).Min()
+                : long.MaxValue;
+            return claimed.Any(c => c >= stamp && c < next);
+        }
+    }
+
+    /// <summary>
+    /// The pool kind an imp claims a dug tile under. CONFIRMED (runs 10 and 11,
+    /// 2026-09-10): every kind-3 task follows that tile's own dig completing,
+    /// and no cancelled dig is followed by one.
+    /// </summary>
+    public const byte ClaimKind = 3;
 
     /// <summary>Which kind lists hold one tile, and whether an imp ever took it.</summary>
     private sealed class Occupancy
