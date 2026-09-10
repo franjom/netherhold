@@ -87,11 +87,11 @@ fixture. If they do not, no passive capture will do and the scenario runner
 
 ```
 dotnet run --project src/DK2.Tools -c Release -- trigger-run Level1 1200 ours.csv
-dotnet run --project src/DK2.Tools -c Release -- trigger-diff ours.csv reverse-engineering/dk2runs/dk2run6.csv
+dotnet run --project src/DK2.Tools -c Release -- capture-diff ours.csv reverse-engineering/dk2runs/dk2run6.csv
 ```
 
-Compare by **event set first** — which ids ever move — and only then by turn,
-because reading turns is the thing this run is testing rather than assuming.
+The command reports the event set first, then aligns turns on `t15`'s stored
+stamp. Use `--anchor tN` only when a different shared timer is intended.
 
 ## A second level is worth having, but is no longer needed here
 

@@ -44,7 +44,7 @@ grep -oE '^\| \*{0,2}Q[0-9]+' docs/research/open-questions.md \
 | M2 deterministic skeleton | ✅ | `GameSimulation.Tick()`, `StateHash()`, `WorldSnapshot`, harness, CI gate |
 | M3 dungeon prototype | ✅ 2026-09-04 | tile work, imps, rooms, gold, mana, asset layer, presentation boundary, Unity view renders campaign level 1 |
 | M4 first creature loop | ✅ 2026-09-06 | ADR-0082: portal, lair, hunger→hatchery, sleep, training, payday, job selection for every creature |
-| M5 oracle comparison | started, no comparison | the live-memory reader exists (`reverse-engineering/dk2watch.py`, gitignored, documented under "Running things") and has settled the tick rate at 3.94/s and read level 1's condition array. `dk2tools trigger-diff` is the comparer and `docs/EXPERIMENTS.md` carries four recorded runs. What is missing: a level 1 capture with **no input** (`docs/experiments/level1-idle-001`), a second level worth capturing at all, and the original-side half of a scenario |
+| M5 oracle comparison | first clean comparison | level 1 idle matches exactly by event set (4 / 0 / 0); `dk2tools capture-diff` aligns live captures on stored timer stamps, and the optional `dk2run6.csv` gates a regression test (ADR-0117). Broader scenarios and more implemented trigger effects remain |
 | M6 real level loads | partial | every parsed THINGS record reaches the world or existing MAP grid (ADR-0101/0103/0106/0108), and trigger state plus partial execution exist (ADR-0102/0105). Still missing: most trigger actions, party/generator behaviour, and objectives. No level is winnable |
 
 ### What exists (present tense; the ADR is the specification)
