@@ -101,9 +101,13 @@ on its own — four events with turns attached is thin but enough to tell a
 few-tick agreement from a ±156–285 disagreement.
 
 A second level is still worth capturing once for breadth, and `dk2tools kwd
-oracle` ranks the candidates with **Level20** at the top. That waits on one fact
-about this install rather than about DK2: whether a mid-campaign level can be
-loaded directly, or the campaign has to be progressed to reach it.
+oracle` ranks the candidates with **Level20** at the top.
+
+**That is no longer blocked.** Only the tutorial was reachable until 2026-09-10,
+when the registry value gating the world map was found and its size read off the
+loader — `docs/research/campaign-progress-registry.md`. Every campaign level is
+now selectable on this install, so a capture may be taken of whichever level the
+oracle says is worth it.
 
 ## Results — run 2026-09-09, `dk2run6.csv`, 300 s / 1176 ticks
 

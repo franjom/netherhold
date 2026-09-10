@@ -156,6 +156,8 @@ The smoke test loads campaign level 1 (30x38) through Unity's Mono runtime, pres
 
 **Live memory reader** (same directory, same gitignore): `python reverse-engineering/dk2watch.py --seconds 300 --csv D:\run.csv`. Attaches to `DKII-dx.EXE` **or** `DKII.EXE` with `PROCESS_VM_READ` only — the two exes differ in 1126 of 2,987,568 bytes and none is in `.text`, `cseg` or `.data`, so every address is valid for both. It prints the cached world pointers, variable 19, the record counts and every type-2 timer threshold, then samples the flag bank, timer bank, tick counter and root trigger id at the tick rate into a 150-column CSV. **Load the level first**; it waits for a real level, because the front end is itself one (1 condition, 1 action) and a non-null pointer is not proof. It accumulates the tick counter across a level load, which resets it. Fullscreen is fine — DK2 has no windowed switch and DDrawCompat's borderless mode crashed level load here.
 
+**Reaching a level other than the tutorial**: the world map is gated by the registry value `Player Level Status` under `HKCU\Software\Bullfrog Productions Ltd\Dungeon Keeper II\Configuration\Player` — **160 bytes, forty dwords, one per campaign *map* and not per level number**, so the twenty levels occupy twenty-four entries with 6b, 11B, 11C and 15b interleaved. Setting the first 23 to 1 offers level 20 and leaves everything below it selectable. `Level Number` and `Total Evil Rating` gate nothing; both were tried. Take the size from the loader's clamp at `0x0055FEE1`, not from the community write-up that says 25 dwords — that wrong size is what makes DK2 discard the value. Back the key up first, close DK2 before editing, and see `docs/research/campaign-progress-registry.md`.
+
 ---
 
 ## Next steps
