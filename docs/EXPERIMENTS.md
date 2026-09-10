@@ -451,7 +451,12 @@ every reading for a fortnight. The residual was the +1, not a mechanism.
 
 **It does not move the replay, and that was checked.** Runs 13–15 keep their
 residuals (−37, −27, −18): digging is the one delta ADR-0133 leaves alone, and
-the lagging flags are dig-driven. What is left is the approach time, Q296.
+the lagging flags are dig-driven, so the change moved exactly what it should.
+**What is left is not the approach.** That was the first guess and it is wrong:
+`ImpTaskSystem` already walks a worker to its stance and only swings once
+`IsInWorkingPosition` passes. Ours is simply shorter, or fewer imps are
+involved, or they start nearer — unidentified, and worth measuring against a
+capture's approach times rather than guessed at again (Q296).
 
 **One thing raised, Q297.** Digging a Reinforced Wall ends at Dirt Path rather
 than the Rock its `DestroyedTypeTerrainId` names — (14,32) showed Rock at a full

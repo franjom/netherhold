@@ -2619,4 +2619,9 @@ ADR-0089's 50 — see Q62).
 
 **It does not close the replay gap, which was checked.** Runs 13–15 keep their
 residuals almost exactly: digging is the delta that did not move, and the flags
-that lag are dig-driven. What is left is the approach time Q296 found.
+that lag are dig-driven.
+
+**Correction, same day.** This first said the remainder was Q296's approach time,
+which we did not model. We do: `ImpTaskSystem.UpdateMoving` walks a worker to its
+stance and only swings once `IsInWorkingPosition` passes. The claim came from a
+grep that missed the call. What drives the 18–37 tick lead is unidentified.
