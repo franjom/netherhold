@@ -67,6 +67,18 @@ public sealed class GameSimulation
     public IReadOnlyList<ISimulationSystem> Systems => _systems;
     public TriggerRunResult? LastTriggerRun { get; private set; }
 
+    /// <summary>Records which trigger records each turn's walk reached, so that
+    /// <see cref="TriggerReach"/> can say what a declined condition foreclosed. Analysis
+    /// only, and off by default because it costs a set per turn. Assigning it must not
+    /// change behaviour — the same contract as <see cref="ObserveWith"/> — and
+    /// <c>TriggerReachTests.TrackingReachDoesNotChangeTheStateHash</c> pins that.
+    /// </summary>
+    public bool TrackTriggerReach
+    {
+        get => _triggers.TrackReach;
+        set => _triggers.TrackReach = value;
+    }
+
     /// <summary>The next tick to be executed.</summary>
     public GameTick CurrentTick => World.CurrentTick;
 

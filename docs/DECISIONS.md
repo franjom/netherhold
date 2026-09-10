@@ -2132,3 +2132,51 @@ door and trap availability, but all ten shipped records use the counting mode
 whose partition bit is unidentified (Q281), so the half that was easy is inert.
 Type 70 was read and not built for the same reason — its walk adds two filters
 type 39's counter lacks (Q280). Q278–Q281 record what each one waits on.
+
+## ADR-0123 — Measure what a decline forecloses, and stop ranking the frontier by declines
+**Date:** 2026-09-10 · **Status:** accepted · `TriggerReach`
+
+> **ADR-0122 is reserved** for a concurrent worktree that was given the next
+> number before this one was written. Same convention as ADR-0100.
+
+**Context.** This project has ranked the trigger frontier four times and been
+wrong three times, each time by measuring a proxy: records shipped (ADR-0119
+replaced it), declines reached (ADR-0119), declines by walker (ADR-0121). Each
+proxy correlated with the thing wanted — *how much script does this unblock* —
+and none of them was it.
+
+**Decision.** Measure it. `TriggerReach.Gated` takes a run whose reach was
+tracked and returns, per declined condition, **the records behind it that the
+walk never reached because of it**: the full subtree under its child, minus
+everything the run reached by another route. `dk2tools trigger-run` prints it
+beside each census line and `kwd oracle` has a `gates` column.
+
+**What it says.** Campaign-wide, **59 declines foreclose 153 records** — and the
+ranking is not the one declines gave:
+
+| type | declines | **gates** |
+|---|---:|---:|
+| 22 | 26 | **95** |
+| 28 | 5 | **18** |
+| 2 | 5 | **14** |
+| 64 | 12 | **12** |
+| 70 / 27 / 20 / 23 | 6 / 2 / 2 / 1 | 8 / 3 / 2 / 1 |
+
+Type 28 outranks type 64 at a fifth of the declines, and **type 64 is the worst
+entry in the table**: twelve declines foreclosing one record each.
+
+**The larger consequence is that the frontier is nearly spent.** The walk misses
+**4,252** records campaign-wide and declines account for **153** of them — 3.6%.
+Level 4 is the clean case: one decline, one record foreclosed, 103 records
+unreached. The rest is script the walk *does* reach and answers false, because an
+idle world has nothing happening in it. `kwd oracle`'s `could` legend asserted
+the opposite — that the gap between `moved` and `could` is stalls — and that
+line is now corrected rather than left standing.
+
+So condition arms are no longer where reach comes from. The campaign has **289
+creature roots**, the largest root class it has, and the creature walker is not
+implemented at all; that is the next place to look, not another arm.
+
+**Consequences.** No simulation state and no behaviour change: reach tracking is
+off by default and `TrackingReachDoesNotChangeTheStateHash` pins that turning it
+on is inert, the same contract `ObserveWith` has. No `HashVersion` bump.

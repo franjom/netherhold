@@ -1015,20 +1015,24 @@ switch (args[0])
             + "of it could actually discriminate.");
         Console.WriteLine("moved  = flag/timer ids this run ever set.   after1 = those that moved past turn 1,");
         Console.WriteLine("         which is the only part a played capture can be compared against.");
-        Console.WriteLine("could  = ids a walk reaching every type 1/2/34 gate would set -- an upper bound, and");
-        Console.WriteLine("         the gap to `moved` is script that stalls on a type nobody has implemented.");
+        Console.WriteLine("could  = ids a walk reaching every type 1/2/34 gate would set -- an upper bound.");
+        Console.WriteLine("         The gap to `moved` is NOT the frontier: level 4 has 24 ids of gap and its");
+        Console.WriteLine("         one stall forecloses one record. Most of that gap is script the walk does");
+        Console.WriteLine("         reach and answers false, because an idle world has nothing happening.");
         Console.WriteLine("writes = ids the file writes at all.");
-        Console.WriteLine("stalls = distinct condition records the run reaches and cannot answer -- the");
-        Console.WriteLine("         frontier, and the only thing that grows when the walk goes deeper.");
+        Console.WriteLine("stalls = distinct condition records the run reaches and cannot answer.");
+        Console.WriteLine("gates  = records those stalls foreclose -- the subtrees they cut off that nothing");
+        Console.WriteLine("         else reaches. THIS is the cost of the frontier; `stalls` only counts the");
+        Console.WriteLine("         declines, and the two rank differently (see `reach` for the rest).");
         Console.WriteLine();
         Console.WriteLine($"{"level",-18} {"moved",5} {"after1",6} {"could",5} {"writes",6}  "
-            + $"{"stalls",6}  {"reach",5} {"of",5}  {"creature",8}");
+            + $"{"stalls",6} {"gates",5}  {"reach",5} {"of",5}  {"creature",8}");
         foreach (OracleReach r in oracleRows
                      .OrderByDescending(r => r.MovedAfterFirstTurn).ThenByDescending(r => r.Moved)
                      .ThenBy(r => r.Level, StringComparer.OrdinalIgnoreCase))
             Console.WriteLine($"{r.Level,-18} {r.Moved,5} {r.MovedAfterFirstTurn,6} "
                 + $"{r.Flags + r.Timers,5} {r.AllFlags + r.AllTimers,6}  "
-                + $"{r.Stalls,6}  {r.Reached,5} {r.Records,5}  {r.CreatureRoots,8}");
+                + $"{r.Stalls,6} {r.Gates,5}  {r.Reached,5} {r.Records,5}  {r.CreatureRoots,8}");
 
         int usable = oracleRows.Count(r => r.MovedAfterFirstTurn > 0);
         Console.WriteLine();
@@ -2359,7 +2363,10 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
     var tree = new TriggerTree(
         records, level.TriggerId, parties,
         players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
-    var simulation = new GameSimulation(database, world, seed: 0, triggers: tree);
+    var simulation = new GameSimulation(database, world, seed: 0, triggers: tree)
+    {
+        TrackTriggerReach = true,
+    };
 
     using (var writer = new StreamWriter(outPath))
     {
@@ -2382,9 +2389,23 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
     Console.WriteLine($"  walked: {tree.PlayerRoots.Count} player roots "
         + $"[{string.Join(",", tree.PlayerRoots)}], {apRoots} action point roots");
     Console.WriteLine($"  not walked here: {creatureRoots} creature roots");
+    // The count is what the walk declined; `gates` is what that cost -- the records
+    // behind those declines it never reached because of them. They are not the same
+    // number and do not rank the same way: one decline can foreclose a hundred records
+    // and a dozen can foreclose none (`TriggerReach`).
+    IReadOnlyList<TriggerGate> gates = simulation.LastTriggerRun is null
+        ? []
+        : TriggerReach.Gated(tree, simulation.LastTriggerRun);
     foreach (TriggerCensusRow r in
              (simulation.LastTriggerRun?.Summary ?? []).OrderByDescending(s => s.Count))
-        Console.WriteLine($"  blocked tag {r.Tag} type {r.Type} in {r.Context}: {r.Count}");
+    {
+        int foreclosed = gates
+            .Where(g => g.Blocked.Type == r.Type && g.Blocked.Context == r.Context)
+            .Sum(g => g.Records);
+        Console.WriteLine(
+            $"  blocked tag {r.Tag} type {r.Type} in {r.Context}: {r.Count}"
+            + $" -- gates {foreclosed} records");
+    }
 
     // Say plainly what ran only in part. These descend as DK2's do and leave the world
     // untouched, so anything downstream that waits on their effect -- a hero existing, a
@@ -3069,12 +3090,12 @@ static OracleReach MeasureOracleReach(
     int creatureRoots = things.OfType<GoodCreatureThing>().Count(c => c.TriggerId != 0)
         + things.OfType<KeeperCreatureThing>().Count(c => c.TriggerId != 0);
 
-    (int moved, int after, int stalls) =
+    (int moved, int after, int stalls, int gates) =
         RunOracleLevel(install, level, turns, records, def, things, players);
 
     return new OracleReach(
         level, flags.Count, timers.Count, seen.Count, records.Count,
-        allFlags.Count, allTimers.Count, creatureRoots, moved, after, stalls);
+        allFlags.Count, allTimers.Count, creatureRoots, moved, after, stalls, gates);
 }
 
 /// <summary>
@@ -3084,7 +3105,7 @@ static OracleReach MeasureOracleReach(
 /// <remarks>Turn 1 is where a level's unconditional opening fires, and a played
 /// capture agrees with us there for free. Everything a comparison can actually learn
 /// from is in the columns that move later.</remarks>
-static (int Moved, int MovedAfterFirstTurn, int Stalls) RunOracleLevel(
+static (int Moved, int MovedAfterFirstTurn, int Stalls, int Gates) RunOracleLevel(
     string install,
     string level,
     int turns,
@@ -3094,7 +3115,7 @@ static (int Moved, int MovedAfterFirstTurn, int Stalls) RunOracleLevel(
     List<PlayerDef> players)
 {
     LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
-    if (map is null) return (0, 0, 0);
+    if (map is null) return (0, 0, 0, 0);
 
     GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, level);
     WorldState world = WorldState.FromMap(
@@ -3105,15 +3126,24 @@ static (int Moved, int MovedAfterFirstTurn, int Stalls) RunOracleLevel(
         records, def.TriggerId,
         things.OfType<HeroPartyThing>(),
         players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
-    var simulation = new GameSimulation(database, world, seed: 0, triggers: tree);
+    var simulation = new GameSimulation(database, world, seed: 0, triggers: tree)
+    {
+        TrackTriggerReach = true,
+    };
 
     var firstTurn = new Dictionary<string, int>();
     var stalls = new HashSet<ushort>();
+    var gated = new HashSet<ushort>();
     for (int turn = 1; turn <= turns; turn++)
     {
         simulation.Tick();
         foreach (BlockedTrigger b in simulation.LastTriggerRun?.Blocked ?? [])
             if (b.Tag == 213) stalls.Add(b.TriggerId);
+        // Union across turns, like `stalls`: a decline on turn 300 forecloses records the
+        // turn-1 walk had no reason to want.
+        if (simulation.LastTriggerRun is { } run)
+            foreach (TriggerGate gate in TriggerReach.Gated(tree, run))
+                gated.UnionWith(gate.Foreclosed);
         TriggerState state = world.Triggers;
         for (byte id = 0; id < TriggerState.FlagCount; id++)
             if (state.Read(id) != 0) firstTurn.TryAdd($"f{id}", turn);
@@ -3121,7 +3151,7 @@ static (int Moved, int MovedAfterFirstTurn, int Stalls) RunOracleLevel(
             if (state.IsStarted(id)) firstTurn.TryAdd($"t{id}", turn);
     }
 
-    return (firstTurn.Count, firstTurn.Values.Count(t => t > 1), stalls.Count);
+    return (firstTurn.Count, firstTurn.Values.Count(t => t > 1), stalls.Count, gated.Count);
 }
 
 /// <summary>One level's suitability as a two-sided experiment. See `kwd oracle`.</summary>
@@ -3136,7 +3166,8 @@ record OracleReach(
     int CreatureRoots,
     int Moved,
     int MovedAfterFirstTurn,
-    int Stalls);
+    int Stalls,
+    int Gates);
 
 /// <summary>
 /// AGENTS.md's recording budgets, in one place so the rules and the checker

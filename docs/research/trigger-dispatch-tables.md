@@ -115,3 +115,8 @@ unread (Q279).
 Declined and why: 22/23 combat, 20 `creature+0x28A` (Q269), 27/28 trap and door
 counting (Q281), 64 the world's own large arm, 70 two unidentified flags (Q280),
 2 the special timer id 16 (Q232).
+
+**Rank what is left by `gates`, not by declines** (ADR-0123). Type 28 forecloses
+18 records from 5 declines; type 64 forecloses 12 from 12. And the whole
+remainder is small: 59 declines foreclose 153 records out of 4,252 the walk
+never reaches, so arms are no longer where reach comes from.

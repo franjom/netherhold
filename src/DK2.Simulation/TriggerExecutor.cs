@@ -25,13 +25,20 @@ public sealed class TriggerRunResult
         IEnumerable<BlockedTrigger> blocked,
         IEnumerable<BlockedTrigger> partial,
         IEnumerable<BlockedTrigger> assumed,
-        IEnumerable<BlockedTrigger> unhandled)
+        IEnumerable<BlockedTrigger> unhandled,
+        HashSet<ushort>? reached = null)
     {
         Blocked = Order(blocked);
         Partial = Order(partial);
         Assumed = Order(assumed);
         Unhandled = Order(unhandled);
+        Reached = reached;
     }
+
+    /// <summary>Every record the walk resolved, when the executor was asked to track it.
+    /// What a decline <b>cost</b> is the subtree behind it that this set does not already
+    /// contain — see <see cref="TriggerReach"/>.</summary>
+    public HashSet<ushort>? Reached { get; }
 
     /// <summary>Records the executor declined outright: it ran nothing and did not
     /// descend, where the retail engine would have done both. Conditions only — an action
@@ -286,12 +293,17 @@ internal sealed class TriggerRun(int currentTick)
     /// performed; when one is, it must invalidate this after the write.</summary>
     public IReadOnlyList<RoomInstance>? Rooms { get; set; }
 
+    /// <summary>Every record the walk resolved this turn, or null when reach tracking is
+    /// off. Off by default: the simulation runs this every turn and does not need it, and
+    /// the set costs an allocation and a hash per record. `dk2tools` turns it on.</summary>
+    public HashSet<ushort>? Reached { get; set; }
+
     public List<BlockedTrigger> Blocked { get; } = [];
     public List<BlockedTrigger> Partial { get; } = [];
     public List<BlockedTrigger> Assumed { get; } = [];
     public List<BlockedTrigger> Unhandled { get; } = [];
 
-    public TriggerRunResult Result() => new(Blocked, Partial, Assumed, Unhandled);
+    public TriggerRunResult Result() => new(Blocked, Partial, Assumed, Unhandled, Reached);
 }
 
 /// <summary>Walks a level's trigger roots once a game turn — world, 24 parties, action
@@ -321,6 +333,11 @@ public sealed class TriggerExecutor
     /// which is what every caller that has no map wants.</param>
     /// <param name="database">Terrain definitions, for the two area conditions that read
     /// a terrain flag.</param>
+    /// <summary>Records every record each turn's walk resolved, for
+    /// <see cref="TriggerReach"/>. Off by default — see <see cref="TriggerRun.Reached"/>.
+    /// </summary>
+    public bool TrackReach { get; set; }
+
     public TriggerExecutor(
         TriggerTree tree,
         TriggerState state,
@@ -354,7 +371,7 @@ public sealed class TriggerExecutor
     /// </remarks>
     public TriggerRunResult Run(int currentTick)
     {
-        var run = new TriggerRun(currentTick);
+        var run = new TriggerRun(currentTick) { Reached = TrackReach ? [] : null };
         if (_tree is null) return run.Result();
 
         Walk(unchecked((short)_tree.RootTriggerId), _tree.RootRepeat, TriggerContext.World, run);
@@ -464,6 +481,7 @@ public sealed class TriggerExecutor
         {
             TriggerRecord record = _tree!.Resolve(id)
                 ?? throw new InvalidDataException($"No tag {(id > 0 ? 213 : 214)} trigger records exist.");
+            run.Reached?.Add(record.TriggerId);
             bool descend = false;
             byte childRepeat = inheritedRepeat;
 
