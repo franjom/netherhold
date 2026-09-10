@@ -2133,11 +2133,33 @@ whose partition bit is unidentified (Q281), so the half that was easy is inert.
 Type 70 was read and not built for the same reason — its walk adds two filters
 type 39's counter lacks (Q280). Q278–Q281 record what each one waits on.
 
+## ADR-0122 — Read condition type 64 and decline it until parties spawn
+**Date:** 2026-09-10 · **Status:** accepted · Arm `0x005187AD`
+
+**Context.** Type 64 accounts for twelve of the campaign's 59 remaining stalls.
+The plan said it waited on party spawning from record shape alone; the arm had
+not established either the quantity or whether byte 01 really named a player.
+
+**Decision.** The complete read is in `trigger-dispatch-tables.md`. Byte 01 is
+`PartyId`. The arm compares authored occupied member slots minus active,
+non-dying creatures carrying that party id. It combines the world creature list
+for non-Good owners with the Good player's owned-creature list; the player array
+is not indexed by the body byte.
+
+Do not implement it yet. Action type 14 arms trigger subtrees but creates no
+creatures, and `CreatureState` has no party identity. A template-only answer
+would report the whole party missing immediately and may fire a trigger early.
+Q283 binds the condition to the spawning work that supplies both facts.
+
+**Consequences.** The stall frontier remains 59 by design. The parameter view
+now says `PartyId` rather than `PlayerId`; no simulation state changed, so
+`HashVersion` stays 53.
+
 ## ADR-0123 — Measure what a decline forecloses, and stop ranking the frontier by declines
 **Date:** 2026-09-10 · **Status:** accepted · `TriggerReach`
 
-> **ADR-0122 is reserved** for a concurrent worktree that was given the next
-> number before this one was written. Same convention as ADR-0100.
+> Numbered 0123 because 0122 had been handed to a concurrent worktree before
+> this was written; it landed as the type 64 read above.
 
 **Context.** This project has ranked the trigger frontier four times and been
 wrong three times, each time by measuring a proxy: records shipped (ADR-0119

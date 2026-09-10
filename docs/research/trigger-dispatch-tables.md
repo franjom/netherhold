@@ -103,6 +103,42 @@ by the definition's `+0x686` bit 0 — the same bit type 19's unfiltered total
 subtracts them by. The three shipped records ask for one creature at level 4,
 one at 8, and twenty at 2, which is what a level threshold should look like.
 
+## Type 64 counts party members no longer active
+
+The world arm at `0x005187AD` reads byte 01 as a **party id**, not a player id.
+It indexes the 24-slot party table at world `+0x4030` (stride `0x208`) and counts
+the sixteen member records whose first byte is non-zero. The members begin at
+slot `+0x24`, have stride `0x20`, and are the same sixteen records action type
+14 walks before creating creatures.
+
+It subtracts party creatures that are still active. The first walk starts at
+the world creature-list head (`world+0x08`), skips creatures owned by the Good
+player (`word[thing+0x28] == word[0x006F254C]`), and counts matching
+`thing+0x417` party ids whose `thing+0x3E6` bit 21 is clear. The second walk
+starts at `ThingsOwnedList[0]` on **player-array entry 0**, the Good player, and
+applies the same party-id and bit-21 filters. It does not index the player array
+by the body byte. Bit 21 is `CreatureDying`, so the measured quantity is:
+
+`occupied member templates - active, non-dying creatures in that party`.
+
+The comparison tail at `0x00518883` uses that signed difference as the left
+operand and the body dword as the right, through **its own inline jump table**
+at `0x00518AB0` rather than the shared routine `0x00519980`. That table is
+**not in address order** — entry 3 is `0x005188FF` (`SETG`) and entry 4 is
+`0x005188EA` (`SETGE`), so its codes mean what the shared routine's mean, 4 `>`
+and 5 `>=`, and reading the arms in address order would swap them. Second
+instance of that hazard after Q272; assume nothing from listing order.
+
+All 37 shipped records exercise this path: comparisons are 35 `>=` and two
+`==`; values span 2–8; party ids span 0–8, and **8 is outside the player-id
+range** any other condition uses, which is the corpus half of the `PartyId`
+correction. **STRONGLY INFERRED** from DKII.EXE v1.70 and the shipped corpus.
+
+This is deliberately not built. Action 14 only arms subtrees here; it creates
+no party creatures, and `CreatureState` carries no party id. Computing from
+templates alone would therefore count every party member as missing as soon as
+the subtree is armed and could fire twelve reached conditions early (Q283).
+
 ## What is implemented, and what is not
 
 ADR-0121 built 46, 52, 71 and 73. Types 71 and 73 read player fields nothing
@@ -113,8 +149,8 @@ given or received is unread (Q278), and the possessed creature's `+0x488` is
 unread (Q279).
 
 Declined and why: 22/23 combat, 20 `creature+0x28A` (Q269), 27/28 trap and door
-counting (Q281), 64 the world's own large arm, 70 two unidentified flags (Q280),
-2 the special timer id 16 (Q232).
+counting (Q281), 64 party spawning and party identity (Q283), 70 two
+unidentified flags (Q280), 2 the special timer id 16 (Q232).
 
 **Rank what is left by `gates`, not by declines** (ADR-0123). Type 28 forecloses
 18 records from 5 declines; type 64 forecloses 12 from 12. And the whole

@@ -293,7 +293,7 @@ are grouped; the count beside each type is its shipped record count.
 | 39 (183) | `Comparison:u8@00` **B**, `PlayerId:u8@01` **B**, `TypeId:u8@02` **B**, `ThingType:u8@03` **B**, `Value:s32@04` **B** — *corrected 2026-09-09 (ADR-0115): bytes 01 and 03 were swapped and 03 was called a player id. The arm `0x004B0D9A` reads 03 only as `(b == 6) ? objects : creatures`, so its shipped values 0 and 3 are indistinguishable; byte 01 is the player the predicate `FUN_004B0A80` matches, and byte 02 the creature's `+0x36F` or the object's `+0x12C`.* |
 | 40 (92), 42 (89) | `Comparison:u8@00` **B**, `PlayerId:u8@01` **B**, `TerrainId:u8@02` **B**, `Value:s32@04` **B**; `03` **N** |
 | 41 (69) | `PlayerId:u8@01` **B**, `TerrainId:u8@02` **B**; `00,03..07` **N** |
-| 44 (13), 64 (37) | `Comparison:u8@00` **B**, `PlayerId:u8@01` **C**, `Value:s32@04` **B**; `02..03` **N** |
+| 44 (13), 64 (37) | Both read `Comparison:u8@00`, `Value:s32@04` **B** and no bytes `02..03`; byte 01 is `PlayerId:u8` **C** for 44 but `PartyId:u8` **B** for 64 — see `trigger-dispatch-tables.md`, "Type 64" |
 | 47 (72) | `PlayerId:u8@00` **B**; `01..07` **N** — *corrected 2026-09-09 (ADR-0116): byte 00 is the player the arm `0x004C7B4B` compares against the killer's `Number`, not a creature. It reads no comparison and no value.* |
 | 52 (3) | `Comparison:u8@00` **B**, `Level:u8@03` **C**, `Value:s32@04` **B**; `01..02` **N** |
 | 53 (159) | `TargetType:u8@00` **T**, `TargetId:u8@01` **T**; `02..07` **N** |
