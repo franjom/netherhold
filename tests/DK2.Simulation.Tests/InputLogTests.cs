@@ -15,8 +15,10 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class InputLogTests
 {
-    private static InputLog Read(string body, long lag = 1, long origin = 1) =>
-        InputLog.Read(new StringReader(InputLog.Header + "\n" + body), "test", lag, origin);
+    private static InputLog Read(
+        string body, long lag = 1, long origin = 1, HashSet<byte>? kinds = null) =>
+        InputLog.Read(
+            new StringReader(InputLog.Header + "\n" + body), "test", lag, origin, kinds);
 
     private static TagTilesCommand Only(InputFrame frame)
     {
@@ -107,6 +109,43 @@ public class InputLogTests
 
         Assert.Equal(0, log.Tally.Cancelled);
         Assert.Equal(2, log.At(40).All.Count);
+    }
+
+    /// <summary>
+    /// The probe records every one of the pool's fifteen kinds, because that is
+    /// how the unread ones get read. Replaying them all would dig wherever any
+    /// task sits, so a kind outside the tag set is counted and dropped — and
+    /// kind 11, the marking routine's third arm, is deliberately outside it
+    /// until what separates it from 1 and 2 is known (Q288).
+    /// </summary>
+    [Fact]
+    public void ARowOfAKindThatIsNotATagIsCountedAndDropped()
+    {
+        InputLog log = Read("0.0,41,3,tag,7,10,20\n0.0,41,3,tag,1,11,20\n");
+
+        Assert.Equal(2, log.Tally.Rows);
+        Assert.Equal(1, log.Tally.Ignored);
+        TagTilesCommand tag = Only(log.At(40));
+        Assert.Equal([new TilePos(11, 20)], tag.Tiles);
+    }
+
+    /// <summary>The window is the capture's, so --origin can be checked against it.</summary>
+    [Fact]
+    public void AFilteredKindDoesNotShrinkTheReportedWindow()
+    {
+        InputLog log = Read("0.0,41,3,tag,7,10,20\n0.0,90,3,tag,7,11,20\n");
+
+        Assert.Equal(41, log.Tally.FirstStamp);
+        Assert.Equal(90, log.Tally.LastStamp);
+    }
+
+    [Fact]
+    public void AnExplicitKindSetOverridesTheDefault()
+    {
+        InputLog log = Read("0.0,41,3,tag,7,10,20\n", kinds: [7]);
+
+        Assert.Equal(0, log.Tally.Ignored);
+        Assert.Single(log.Turns);
     }
 
     // ---- the shape of a frame --------------------------------------------

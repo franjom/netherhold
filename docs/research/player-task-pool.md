@@ -7,7 +7,7 @@
 | Confidence | **STRONGLY INFERRED** — the layout is read directly, but nothing has been read out of a live process yet |
 | Implementation | `TileState.IsTaggedBy` / `TileTagSystem` model the tagged set; `InputLog` replays a captured log |
 | Tests | `TriggerAreaConditions` type 62 (`Tagged`), `InputLogTests` |
-| Open questions | Q286 — what kinds 3–15 are; Q287 — whether entry coordinates are tile coordinates |
+| Open questions | Q286 — what the kinds name; Q287 — whether entry coordinates are tile coordinates; Q288 — what kind 11 is |
 
 ## Why this matters more than a tile flag
 
@@ -41,28 +41,55 @@ The pool holds **fifteen kind lists**, walked as `kind = 1 … 15`:
 |---|---|
 | `pool + 0x4678 + kind*2` | `u16`, zero when that kind's list is empty |
 | `pool + 0x4656 + kind*2` | `u16`, the head entry index for that kind |
-| `pool + index*36` | an entry, **36 bytes** |
-| entry `+0x00`, `+0x02` | `x:u16`, `y:u16` |
-| entry `+0x1F` | `u16`, the next index; **0 ends the list** |
+| `pool + index*36` | an entry, **36 bytes**; there are **500** |
 
-Entry index 0 therefore never holds a live entry. The next-index field is
-*unaligned* inside the entry, which is unusual enough to be worth restating:
-`0x00508290` reads it as `MOV DX, word ptr [EDX + 0x1F]`.
+An entry, from DK2's own dumper at `0x005083C5` (`debug-dumpers.md`), whose
+printed offsets are four low because its loop pairs them against a cursor at
+`record + 4`:
 
-**Kinds 1 and 2 are the tagged tiles**, split only by whether the terrain holds
-gold; condition 62 counts both, which is why one tag bit on our side is the
-same quantity. What kinds 3–15 hold is unread (Q286) — the pool is a general
-task pool and tagging is only its first two lists.
+| | |
+|---|---|
+| `+0x00`, `+0x02` | `x:u16`, `y:u16` — `Position` |
+| `+0x04` | `Type:u8` |
+| `+0x05` | `Worker[12]`, twelve `u16` |
+| `+0x1D` | `Data:u16` |
+| `+0x1F` | `Next:u16`; **0 ends the list** |
+| `+0x21` | `Id:u16` |
+| `+0x23` | `Allocated:u8` |
+
+Entry index 0 therefore never holds a live entry. `Next` is *unaligned*, which
+is unusual enough to be worth restating: `0x00508290` reads it as `MOV DX, word
+ptr [EDX + 0x1F]`. The corrected offset is what makes the dumper and that
+walker agree — before the correction they named different fields.
+
+**Marking a tile files it under one of three kinds, not two.** The routine at
+`0x00512D20` has three arms and pushes **11**, **2** and **1**; the first is
+taken when a tile flag byte `+0x0B` bit 0 is set, the other two when the
+terrain's `+0x17B` bit 3 is. Area condition 62 counts 1 and 2, which is where
+the earlier "split by gold" reading came from — it is the split between those
+two, not the whole story. What kind 11 is remains unread (Q288).
+
+The **adder** is `0x00507BB0`, taking `(kind, x, y)`, and the **remover** is
+`0x00507EF0`; between them they own the head and live-count arrays. Their 27
+call sites push kinds 1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14 and **16** —
+which the coordinate lookup, walking only 1…15, never checks. Q286 is now
+about which activity each names rather than whether they exist.
+
+> A caution on method: a window of instructions before a `CALL` mis-reads the
+> kind wherever several branches `JMP` to one shared call site, as these three
+> tag arms do. Read the branches, not the call.
 
 A second accessor at `0x00508300` sums `+0x469A` (a byte) with the words at
-`+0x4650`, `+0x4652` and `+0x4654`, so those four are counts of something the
-pool tracks apart from the per-kind heads. `FUN_00512D20` compares `+0x4650`
-against **20** and takes an overflow path above it.
+`+0x4650`, `+0x4652` and `+0x4654` — `NumberOfFreeTasks`, `NextUniqueId` and
+`FreeListHead` by the dumper's names. `FUN_00512D20` compares `+0x4650` against
+**20** and marks through the pool only when it is above that.
 
 ## Reading it live
 
-`reverse-engineering/dk2watch.py --tags <out.csv>` walks kinds 1 and 2 for
-players 1–7 each sample and writes one row per change:
+`reverse-engineering/dk2watch.py --tags <out.csv>` walks **all fifteen** kinds
+for players 1–7 each sample and writes one row per change. It records every
+kind because that is how the unread ones get read; `InputLog` then replays only
+the tag kinds, and counts the rest:
 
 ```
 wall,tick,player,event,kind,x,y

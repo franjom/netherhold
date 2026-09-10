@@ -63,10 +63,17 @@ placeholder pathfinder (Q5).
 
 ## The imp task pool — `0x005083C5`
 
-A task is `Task`, `Position (%d, %d)`, `Type`, `Data` `+0x19`, `Next` `+0x1B`,
-`Id` `+0x1D`, `Allocated` `+0x1F` — a linked free list. The pool holds
-`NumberOfFreeTasks` `+0x4650`, `NextUniqueId` `+0x4652`, `FreeListHead`
-`+0x4654`.
+A task is `Position (%d, %d)`, `Type`, twelve `Worker` words, `Data`, `Next`,
+`Id`, `Allocated` — a linked free list. The pool holds `NumberOfFreeTasks`
+`+0x4650`, `NextUniqueId` `+0x4652`, `FreeListHead` `+0x4654`.
+
+**A fifth caution, learned here: pair against the record, not the cursor.**
+This dumper's loop advances a pointer that sits at `record + 4`, so offsets
+read off its loads are four low. Against the record the layout is `x` `+0x00`,
+`y` `+0x02`, `Type` `+0x04`, `Worker[12]` `+0x05`, `Data` `+0x1D`, `Next`
+`+0x1F`, `Id` `+0x21`, `Allocated` `+0x23` — 36 bytes, 500 of them. The
+corrected `Next` is the offset the pool's own walker reads at `0x005082DA`,
+which the earlier reading contradicted; see `player-task-pool.md`.
 
 This is the pool `trigger-semantics.md` reasons about for area conditions 62 and
 69, which count a player's marked tiles.

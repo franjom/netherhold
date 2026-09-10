@@ -2409,3 +2409,51 @@ rather than a divergence report that blames a rule (Q287).
 
 Still missing on the recording side: rooms, creature drops and spells. Rooms
 are the larger half of the 696 and are next.
+
+## ADR-0129 — Record rooms from the player's room list, and refuse to invent their tiles
+**Date:** 2026-09-10 · **Status:** accepted · `RoomLog`, `dk2tools replay --rooms`
+
+**Context.** ADR-0126 sized keeper activity at 696 gated records; ADR-0128 built
+the tag half. Rooms are the larger half, and nothing recorded them.
+
+**Decision.** The probe walks each keeper's room list — `u16 [player+0x36]`, then
+`u32 [0x006EE540 + idx*4]`, next at `u16 [room+0x08]`, null ends it — and writes
+one row per change. `RoomLog` reads it back as `BuildRoomCommand`s and
+`SellRoomCommand`s (`room-list.md`).
+
+**A room does not know its tiles.** DK2's dumper prints 122 fields and names no
+slab list: only `TypeId`, `CentrePos`, `FirstSlab`, `LastSlab` and `Size`. So a
+replay can place a room exactly **only when the bounds enclose exactly `Size`
+slabs**. Anything else is counted and dropped.
+
+**We do not fill the bounding box.** An L-shaped room has the bounds of the
+rectangle that would contain it, so filling them puts tiles on the map DK2 never
+had there, and every divergence after that is unattributable — the trap
+`our-side-of-a-capture-has-no-player` names, in the other direction.
+
+**Dropping is affordable because of what the conditions read.** Types 24, 25 and
+68 read `TypeId`, `Size` and `TotalCapacity` and never a tile
+(`room-conditions.md`), so for the measurement `capture-diff` runs, type, owner
+and slab count is a complete recording.
+
+**Three corrections came out of the same reading:**
+
+- **The task pool's entry layout was four bytes low** throughout
+  `debug-dumpers.md`: those offsets were paired against the dumper's cursor,
+  which sits at `record+4`. Corrected, `Next` lands at `+0x1F` — the offset the
+  pool's own walker reads, which the old reading contradicted. There are 500
+  entries and each has twelve `Worker` words.
+- **Marking a tile files under three kinds, not two.** `0x00512D20` pushes 11, 2
+  and 1 from three arms. The probe now records all fifteen kinds and `InputLog`
+  replays only 1 and 2, counting the rest, because what kind 11 is remains
+  unread (Q288).
+- **Rooms are not imp tasks.** No pool writer references the room handler table,
+  across all 27 call sites of the adder. That agrees from the binary with what
+  `imp-task-priority.md` §3 said from our side, so `RoomBuildSystem` building
+  instantly is a deviation with nothing to model against rather than a gap.
+
+**Consequences.** Both recording halves now exist and neither has been run
+against a live game; the first capture tests the layouts before it tests any
+rule. Q289 is the sharpest of those: if `FirstSlab`/`LastSlab` do not bound the
+room, every placement drops and this ADR's method — exact or nothing — yields
+nothing until a slab source is found.

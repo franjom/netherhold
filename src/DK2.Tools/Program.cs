@@ -2443,6 +2443,7 @@ static int Usage()
     Console.WriteLine("                                         --check exits 1 if the plan is stale");
     Console.WriteLine("  trigger-run <level> <turns> <out.csv>  our per-turn trigger state, in the live probe's shape");
     Console.WriteLine("  replay <level> <tags.csv> <out.csv> [--turns N] [--lag L] [--origin T]");
+    Console.WriteLine("                                     [--rooms rooms.csv]");
     Console.WriteLine("                                         the same, driven by a captured task-pool log");
     Console.WriteLine("  capture-diff <ours.csv> <capture.csv> [--anchor tN]");
     Console.WriteLine("                                         event set and stamp-aligned capture timing");
@@ -2483,7 +2484,8 @@ static int Usage()
 /// Runs one campaign level's trigger tree for a number of turns and writes the
 /// probe's CSV shape, so our side can be diffed against a live capture.
 /// </summary>
-static int RunTriggerCsv(string levelName, int turns, string outPath, InputLog? log = null)
+static int RunTriggerCsv(
+    string levelName, int turns, string outPath, InputLog? log = null, RoomLog? rooms = null)
 {
     string? install = Dk2Install.Find();
     if (install is null)
@@ -2521,7 +2523,7 @@ static int RunTriggerCsv(string levelName, int turns, string outPath, InputLog? 
     // declared system list; an idle run keeps the shape its baselines were measured in.
     var simulation = new GameSimulation(
         database, world, seed: 0,
-        systems: log is null ? null : SimulationSystems.Default(),
+        systems: log is null && rooms is null ? null : SimulationSystems.Default(),
         triggers: tree)
     {
         TrackTriggerReach = true,
@@ -2531,22 +2533,20 @@ static int RunTriggerCsv(string levelName, int turns, string outPath, InputLog? 
     // task pool looks exactly like a level nobody dug: counting what TileTagSystem
     // accepted turns that silent failure into a number.
     var tally = new TagTally();
-    if (log is not null) simulation.ObserveWith(tally);
+    if (log is not null || rooms is not null) simulation.ObserveWith(tally);
 
     using (var writer = new StreamWriter(outPath))
     {
         simulation.EmitTriggerTurnsTo(writer);
         for (int i = 0; i < turns; i++)
         {
-            // The log is in DK2's turn numbers, which run one ahead of our tick.
-            InputFrame frame = log is null
-                ? InputFrame.Empty
-                : log.At(simulation.CurrentTick.Value + 1);
-            simulation.Tick(frame);
+            // The logs are in DK2's turn numbers, which run one ahead of our tick.
+            long turn = simulation.CurrentTick.Value + 1;
+            simulation.Tick(Merge(log?.At(turn), rooms?.At(turn)));
         }
     }
 
-    if (log is not null) tally.Report();
+    if (log is not null || rooms is not null) tally.Report();
 
     int occupied = tree.Parties.Count(s => s.TriggerId != 0);
     Console.WriteLine($"{levelName}: {turns} turns, root trigger {tree.RootTriggerId} "
@@ -2612,6 +2612,7 @@ static int Replay(string[] arguments)
     int turns = 600;
     long lag = 1;
     long origin = 1;
+    string? roomPath = null;
     for (int i = 4; i < arguments.Length; i += 2)
     {
         if (i + 1 >= arguments.Length) return ReplayUsage();
@@ -2628,15 +2629,20 @@ static int Replay(string[] arguments)
             case "--origin" when long.TryParse(value, System.Globalization.NumberStyles.Integer, ic, out long o):
                 origin = o;
                 break;
+            case "--rooms":
+                roomPath = value;
+                break;
             default:
                 return ReplayUsage();
         }
     }
 
     InputLog log;
+    RoomLog? rooms = null;
     try
     {
         log = InputLog.Read(arguments[2], lag, origin);
+        if (roomPath is not null) rooms = RoomLog.Read(roomPath, lag, origin);
     }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
         or InvalidDataException or ArgumentException)
@@ -2651,6 +2657,9 @@ static int Replay(string[] arguments)
     if (t2.Cancelled > 0)
         Console.WriteLine($"  {t2.Cancelled} tag/untag pairs cancelled -- a tile moving "
             + "between the pool's two tag lists, not a command");
+    if (t2.Ignored > 0)
+        Console.WriteLine($"  {t2.Ignored} rows of a pool kind that is not a tag, ignored "
+            + $"-- replayed kinds are {string.Join(", ", InputLog.TagKinds.Order())}");
     if (t2.Before > 0)
         Console.WriteLine($"  {t2.Before} commands dated before turn 1 and dropped -- the "
             + $"probe attached after the level began, or --origin {origin} is wrong");
@@ -2658,13 +2667,40 @@ static int Replay(string[] arguments)
         Console.WriteLine($"  the log runs to turn {log.Turns[^1]} but the run stops at "
             + $"{turns}; raise --turns to replay all of it");
 
-    return RunTriggerCsv(arguments[1], turns, arguments[3], log);
+    if (rooms is not null)
+    {
+        RoomLogTally r = rooms.Tally;
+        Console.WriteLine($"{roomPath}: {r.Rows} rows -> {r.Commands} commands over "
+            + $"{rooms.Turns.Count} turns");
+        if (r.Unreplayable > 0)
+            Console.WriteLine($"  {r.Unreplayable} rooms dropped -- their bounds do not "
+                + "enclose exactly their slab count, so the tile set is not in the log");
+        if (r.Before > 0)
+            Console.WriteLine($"  {r.Before} commands dated before turn 1 and dropped");
+    }
+
+    return RunTriggerCsv(arguments[1], turns, arguments[3], log, rooms);
+}
+
+/// <summary>
+/// One tick's input from both logs. They are separate recordings of one
+/// player's session, so a turn can carry commands from each; tags come first,
+/// which is the declared system order and so cannot change what a room build
+/// sees.
+/// </summary>
+static InputFrame Merge(InputFrame? tags, InputFrame? rooms)
+{
+    IReadOnlyList<PlayerCommand> a = tags?.All ?? [];
+    IReadOnlyList<PlayerCommand> b = rooms?.All ?? [];
+    if (b.Count == 0) return tags ?? InputFrame.Empty;
+    if (a.Count == 0) return rooms ?? InputFrame.Empty;
+    return new InputFrame([.. a, .. b]);
 }
 
 static int ReplayUsage()
 {
     Console.Error.WriteLine("usage: dk2tools replay <level> <tags.csv> <out.csv> "
-        + "[--turns N] [--lag L] [--origin T]");
+        + "[--turns N] [--lag L] [--origin T] [--rooms rooms.csv]");
     return 2;
 }
 

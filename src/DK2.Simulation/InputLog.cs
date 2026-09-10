@@ -40,11 +40,21 @@ public sealed class InputLog
     public InputFrame At(long turn) =>
         _frames.TryGetValue(turn, out InputFrame frame) ? frame : InputFrame.Empty;
 
-    public static InputLog Read(string path, long lag = 1, long origin = 1)
+    /// <summary>
+    /// The pool kinds that are a player marking a tile. Two are established —
+    /// area condition 62's counter reads them — and the marking routine has a
+    /// third arm that files under 11, taken by a tile flag rather than by the
+    /// terrain's gold. What separates them is not read, so 11 is recorded by
+    /// the probe and left out here rather than replayed as a dig (Q288).
+    /// </summary>
+    public static readonly HashSet<byte> TagKinds = [1, 2];
+
+    public static InputLog Read(
+        string path, long lag = 1, long origin = 1, HashSet<byte>? kinds = null)
     {
         if (path is null) throw new ArgumentNullException(nameof(path));
         using var reader = File.OpenText(path);
-        return Read(reader, path, lag, origin);
+        return Read(reader, path, lag, origin, kinds);
     }
 
     /// <summary>
@@ -55,12 +65,16 @@ public sealed class InputLog
     /// lined up. Neither is inferred from the data: both are the caller's claim
     /// about the capture, and getting them wrong shifts every command.
     /// </summary>
-    public static InputLog Read(TextReader reader, string name, long lag = 1, long origin = 1)
+    public static InputLog Read(
+        TextReader reader, string name, long lag = 1, long origin = 1,
+        HashSet<byte>? kinds = null)
     {
         if (reader is null) throw new ArgumentNullException(nameof(reader));
+        kinds ??= TagKinds;
 
         var pending = new SortedDictionary<long, SortedDictionary<byte, TurnMarks>>();
         int rows = 0;
+        int ignored = 0;
         long firstTurn = long.MaxValue;
         long lastTurn = long.MinValue;
 
@@ -90,8 +104,16 @@ public sealed class InputLog
                 (int)Long(cells[5], name, number), (int)Long(cells[6], name, number));
 
             rows++;
+            // The window is the whole capture's, not the tags' — it is what a
+            // reader checks --origin against, so a filtered kind must not shrink it.
             if (stamp < firstTurn) firstTurn = stamp;
             if (stamp > lastTurn) lastTurn = stamp;
+
+            if (!kinds.Contains((byte)Long(cells[4], name, number)))
+            {
+                ignored++;
+                continue;
+            }
 
             long turn = stamp - lag - origin + 1;
             if (!pending.TryGetValue(turn, out SortedDictionary<byte, TurnMarks>? byPlayer))
@@ -101,12 +123,12 @@ public sealed class InputLog
             (tagged ? marks.Tagged : marks.Untagged).Add(tile);
         }
 
-        return Build(pending, rows, firstTurn, lastTurn);
+        return Build(pending, rows, ignored, firstTurn, lastTurn);
     }
 
     private static InputLog Build(
         SortedDictionary<long, SortedDictionary<byte, TurnMarks>> pending,
-        int rows, long firstTurn, long lastTurn)
+        int rows, int ignored, long firstTurn, long lastTurn)
     {
         var frames = new Dictionary<long, InputFrame>();
         var turns = new List<long>();
@@ -143,7 +165,7 @@ public sealed class InputLog
         }
 
         return new InputLog(frames, turns, new InputLogTally(
-            rows, commands, cancelled, before,
+            rows, commands, cancelled, before, ignored,
             rows == 0 ? 0 : firstTurn, rows == 0 ? 0 : lastTurn));
     }
 
@@ -184,7 +206,9 @@ public sealed class InputLog
 /// <summary>
 /// What a log contained, so a replay can report on its own input rather than
 /// only on its output. <paramref name="Before"/> counts commands dated before
-/// our turn 1 — the probe attaching mid-level, or the wrong origin.
+/// our turn 1 — the probe attaching mid-level, or the wrong origin;
+/// <paramref name="Ignored"/> counts rows of a pool kind that is not a tag.
 /// </summary>
 public readonly record struct InputLogTally(
-    int Rows, int Commands, int Cancelled, int Before, long FirstStamp, long LastStamp);
+    int Rows, int Commands, int Cancelled, int Before, int Ignored,
+    long FirstStamp, long LastStamp);
