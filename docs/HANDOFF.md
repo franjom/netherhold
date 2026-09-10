@@ -182,8 +182,10 @@ Agreed order as of 2026-09-08 (M0–M4 closed; the research queue's head is clea
 5. **Rebel** (`CreatureAngerSystem` implements Leave only; `RebelLeavingPercentage` 70 / `RebelBecomeGoodPercentage` 15 / `RebelDefectPercentage` 15 are read by nothing).
 6. **Combat** (Q8) — the largest missing mechanic, the first to subtract health per tick, and M7's head. Heroes and hero parties follow it.
 7. **Computer keeper, `docs/KEEPER_AI.md` §12.7 steps 2–5:** an `IWorldView` facade (no hash change); §12.3's missing commands and §12.4's messages (each bumps the hash and wants an ADR); threat evaluation, attack planning, Call to Arms, traps, prisoners, retreat; `KeeperAIPersonality`. §12.8's four deviations (own RNG stream, flood-fill connectivity, Chebyshev range, batched room placement) each want an ADR if they survive.
-8. **M5 — the oracle rig.** DK2 can run under the Flame built on 2026-09-07 (back up `PATCH.dll` first); plan §2.2.1 item 4 (a Ghidra import for the `sgmap`) and §11 item 5 (an `sgmap` query tool) no longer wait on anything. `docs/EXPERIMENTS.md` has no recorded run.
+8. **M5 — the oracle rig.** DK2 can run under the Flame built on 2026-09-07 (back up `PATCH.dll` first); plan §2.2.1 item 4 (a Ghidra import for the `sgmap`) and §11 item 5 (an `sgmap` query tool) no longer wait on anything. Three runs are recorded under `docs/experiments/`; 26 of the 27 scenarios still carry no expectation block.
 9. **Unity:** loading the converter's glTF/PNG (Unity ships no runtime glTF importer); DK2's wall pieces instead of boxes (Q71/Q72, `wall-rendering.md`).
+
+**Not in the order above — a scheduling question, raised 2026-09-10.** The creature state machine's shape is settled research (`creature-state-table.md`: 281 states CONFIRMED, `SetState`'s group/category rule in §2.1, the 32 category hooks in §6), but three parts of it are engine architecture rather than breadth and none is tracked anywhere: a **resume slot** for the utility states category 2 marks (nothing in `CreatureState` saves a caller's state); a **transition gate**, since 35 sites assign `Activity` directly across seven systems and nothing refuses an illegal move; and the **category update hook** that ADR-0083 found runs before the state handler, carrying the prison drain and the training award. `GOAL_ALIGNMENT.md` gap 2 defers breadth until after M5 and these add no behaviour, so whether they precede it is the owner's call. Reading the handlers is separately large and has no shortcut: 259 of the 264 serve one state each, and Flame names the behaviour of none.
 
 **Known "ours, not DK2's" left in the code, each flagged at its site**
 
@@ -199,7 +201,6 @@ Agreed order as of 2026-09-08 (M0–M4 closed; the research queue's head is clea
 
 - The pin's empty world (Q206): give `TestWorld.World` a creature so `HashInto` changes fail the pin directly.
 - Scenario tick budgets were written against 20 ticks/s and now cover five times the game time; trim them.
-- A `dk2tools status` subcommand that prints the counts (plan §8 asks for it) so no document carries a hand-edited figure.
 - No `README.md` at the repository root.
 - Re-run the zero-value audit (ADR-0085's method) whenever a new record type gains a reader; it has been run on the balance table, the creature record and the object record (Q213), not on terrain or rooms.
 - Simulation speed has never been measured (goal 9).
