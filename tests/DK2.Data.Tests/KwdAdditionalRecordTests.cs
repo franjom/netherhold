@@ -91,6 +91,12 @@ public class KwdAdditionalRecordTests
         Assert.Equal(7, generic64.Parameters["PartyId"]);
         Assert.DoesNotContain("PlayerId", generic64.Parameters.Keys);
 
+        TriggerRecord generic70 = Trigger(213, 70, [0, 2, 3, 6, 4, 0, 0, 0]);
+        Assert.Equal(2, generic70.Parameters["PlayerId"]);
+        Assert.Equal(3, generic70.Parameters["TypeId"]);
+        Assert.Equal(6, generic70.Parameters["ThingType"]);
+        Assert.DoesNotContain("TargetId", generic70.Parameters.Keys);
+
         TriggerRecord action4 = Trigger(214, 4, [0x34, 0x12, 0x78, 0x56, 9, 1, 2, 3]);
         Assert.Equal(0x1234, action4.Parameters["ObjectiveId"]);
         Assert.Equal(9, action4.Parameters["ActionPointId"]);

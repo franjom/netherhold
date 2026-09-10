@@ -2195,7 +2195,7 @@ than left standing.
 
 **Corrected by ADR-0125.** This ADR set 153 against `kwd oracle`'s 4,252, which
 is a *static* figure counting a different thing; the honest accounting is
-1.7% of 9,161, and it is in ADR-0125.
+1.6% of 9,161, and it is in ADR-0125.
 
 So condition arms are no longer where reach comes from. The campaign has **289
 creature roots**, the largest root class it has, and the creature walker is not
@@ -2205,7 +2205,29 @@ implemented at all; that is the next place to look, not another arm.
 off by default and `TrackingReachDoesNotChangeTheStateHash` pins that turning it
 on is inert, the same contract `ObserveWith` has. No `HashVersion` bump.
 
-## ADR-0125 — Account for every trigger record a run never walks, and the frontier is 1.7% of it
+## ADR-0124 — Build condition 70 for creatures; keep door and trap counts declined
+**Date:** 2026-09-10 · **Status:** accepted · Q280/Q281
+
+**Context.** Conditions 27, 28 and 70 were parked on three supposedly unknown
+flags. DK2's own debug dumpers already name both type-70 bits `Possessed`. A
+fresh arm read also disproved the premise that 27 and 28 share the trap bit.
+
+**Decision.** Type 70 now asks whether its area contains a matching creature
+named by any player's `PossessedCreatureId`. Its selector bytes are renamed to
+player, subtype and thing category. Object targets still decline because object
+possession is not represented; no shipped type-70 record selects objects.
+
+Do not build 27 or 28 yet. Trap `+0x10C` bit 5 is strongly inferred
+`UnderConstruction`, but trap construction is absent. Condition 27 instead
+partitions on an unidentified door dword at `+0x109` (Q284). The per-type trap
+helper counts matching `+0xF6` ids, with a Boulder-shot special case that also
+counts live Boulder objects.
+
+**Consequences.** The 66-map frontier moves from 59 stalls/153 gates to
+**53/145**. No state was added, so `HashVersion` remains 53. Both stored live
+captures retain exact event sets and timer stamps.
+
+## ADR-0125 — Account for every trigger record a run never walks, and the frontier is 1.6% of it
 **Date:** 2026-09-10 · **Status:** accepted · `dk2tools kwd unreached`
 
 > Numbered 0125 because 0124 was handed to a concurrent worktree first.
@@ -2226,19 +2248,19 @@ Over 600 turns, all 66 levels, **9,161 records**:
 | bucket | records | share |
 |---|---:|---:|
 | ran | 2,669 | 29% |
-| **closed** — walked to, condition answered false | **3,824** | **42%** |
+| **closed** — walked to, condition answered false | **3,832** | **42%** |
 | **creature** — only under a creature root; no walker exists | **1,138** | 12% |
 | **party** — only under a party subtree nothing arms (Q254) | **864** | 9% |
 | orphan — reachable from no root at all | 513 | 5.6% |
-| **declined** — the entire condition frontier | **153** | **1.7%** |
+| **declined** — the entire condition frontier | **145** | **1.6%** |
 
 **Consequences.** Three things follow, and they reorder the roadmap.
 
-**The frontier is spent.** 1.7%. Types 22, 23, 27, 28, 64 and 70 are all read
-and parked behind mechanisms; finishing every one of them cannot move reach
+**The frontier is spent.** 1.6%. Types 22, 23, 27, 28 and 64 are all read and
+parked behind mechanisms; finishing every one of them cannot move reach
 materially. Arms are no longer the work.
 
-**An idle capture can only ever exercise 29% of the script.** The 3,824 closed
+**An idle capture can only ever exercise 29% of the script.** The 3,832 closed
 records sit behind conditions the walk reaches and answers honestly false,
 because nothing in an idle world builds a room, fights, or issues a command.
 That is a ceiling on M5's method, not a defect to fix, and it is why the
@@ -2266,7 +2288,7 @@ left it there. "Only a mechanism opens these" is not actionable until you know
 that was reached and answered false (`TriggerReach.Closed`), grouped by type —
 **over an hour, not 600 turns**. At 600 the biggest group is 501 level-time
 gates not yet due; at 14,400 it is three. A short run reads as a blocked
-simulation. The default is now 14,400: 3,145 ran, 3,348 closed.
+simulation. The default is now 14,400: 3,145 ran, 3,356 closed.
 
 **What closes them**, by the mechanism that would open each group:
 
@@ -2279,29 +2301,28 @@ simulation. The default is now 14,400: 3,145 ran, 3,348 closed.
 | combat, research, gold | 47, 29, 30, 31 | 279 |
 
 **The keeper is the human one.** Types 40, 41 and 42 name the player they
-measure, and it is overwhelmingly player 3: 84 of 92, 47 of 69, 49 of 89. So
-those 696 records are not waiting on a missing simulation — they are waiting on
-somebody playing. A computer keeper does not substitute: `DK2.AI.KeeperAI` is
-this project's own invention, not a reading of DK2's, so driving an oracle run
-with it would inject divergence that could not be attributed.
+measure, overwhelmingly player 3: 84 of 92, 47 of 69, 49 of 89. Those 696 wait
+on somebody playing, not on a missing simulation, and a computer keeper does
+not substitute — `DK2.AI.KeeperAI` is ours, not a reading of DK2's, so it would
+inject divergence that could not be attributed.
 
 **Consequences.** **Idle captures are exhausted.** Both match exactly, and this
-says why that was achievable: an idle run can only exercise the third of the
-script that is not waiting for a player. No further mechanism work changes that,
-because the block is not mechanical.
+says why that was achievable: an idle run only exercises the third of the script
+not waiting for a player, and no mechanism work changes that.
 
-M5's next step is therefore **an input channel**, not more simulation.
-`GameSimulation.Tick(in InputFrame)` is half of one; what is missing is a
-recording of DK2's own input to feed the other side. Until that exists, a
-played capture measures the player and an idle capture measures a third of the
-script — which is exactly the trap `our-side-of-a-capture-has-no-player`
-describes, now sized.
+M5's next step is therefore **an input channel** (ADR-0127), not more
+simulation: `Tick(in InputFrame)` is half of one and nothing records DK2's own
+input. Until that exists a played capture measures the player and an idle one a
+third of the script — `our-side-of-a-capture-has-no-player`, now sized.
 
-Two caveats kept explicit. The 1,576 cascade records are assumed downstream of
-other blocks and are not separately attributed; some may instead wait on the
-special flag id 128 path (Q229), which nothing here writes. And 257 records are
-dead in DK2 as well, so the honest denominator for "script we do not run" is
-8,904, not 9,161.
+**Type 70 is the pattern in miniature** (ADR-0124): answering it moved eight
+records from `declined` to `closed` and left `ran` at 3,145 exactly. An arm
+answering false where it used to decline changes the bookkeeping, not the
+reach. The split is now 149 declined, 3,356 closed.
+
+Two caveats. The 1,576 cascade records are assumed downstream of other blocks,
+not separately attributed, and some may instead wait on the special flag id 128
+path (Q229). And 257 are dead in DK2 too, so the denominator is 8,904.
 
 ## ADR-0127 — Record the player's commands from DK2's task pool, not from its input
 **Date:** 2026-09-10 · **Status:** accepted · `player-task-pool.md`
