@@ -463,3 +463,43 @@ Rock at 165 for one tick, while (10,28) never showed it. The marked dig persists
 and each swing reselects its rate from the current tile, so only queue position
 determines whether the intermediate Rock survives to a sample (`runtime-map.md`).
 
+**2026-09-10, run 15 again — our side traced against DK2's, tile for tile.**
+`dk2tools replay ... --tiles` writes the same shape the probe does, watching
+exactly the tiles the capture mentions, so the two traces lay side by side.
+
+| tile | marked | first swing, DK2 | first swing, ours | dug, DK2 | dug, ours |
+|---|---|---|---|---|---|
+| (10,28) | 21 | **26** | **26** | **44** | **45** |
+| (14,24) | 25 | 64 | 55 | 87 | 67 |
+| (14,32) | 31 | 63 | 46 | 90 | 87 |
+
+**The first tile is exact** — same approach, same rates, one tick apart after
+eighteen ticks of digging. The work model is not the problem.
+
+**All of the divergence is redeployment.** DK2 finishes (10,28) at 44 and lands
+its next swings at 63 and 64, nineteen and twenty ticks later, which at the
+Imp's 1.84 tiles a second is the eight-tile walk around the dungeon heart. We
+finish at 45 and land ours at 46 and 55, because a spare worker was already on
+its way.
+
+**Why we have a spare, measured rather than guessed.** One application per
+worker per tick means a tick's health change divided by the per-worker delta
+counts the workers on that tile. Over the whole capture:
+
+| | 1 worker | 2 | 3 | 4 |
+|---|---|---|---|---|
+| DK2 | 34 ticks | 32 | 51 | **never** |
+| ours | 41 ticks | 29 | 15 | **26 ticks** |
+
+**DK2 never puts a fourth imp on anything, in 117 working ticks** — and it had
+four. The owner confirmed the count the same day, which turns this from a
+population difference into a scheduling one. The whole 60-second task pool held
+only the six tiles above, so DK2's fourth imp had **no task at all** while two
+marked tiles waited more than thirteen ticks, and it took neither until the
+first mark was finished. Then all of them redeployed together.
+
+Ours also has four, from the shipped `MinimumImpThreshold`, and sends its spare
+to the next mark at once. That is the whole 18–37 tick lead. What an imp does
+when the job it wants is full is Q299, and nothing should change in
+`ImpTaskSystem` until a capture samples creature activity rather than the pool:
+three readings of this one capture have already been wrong.

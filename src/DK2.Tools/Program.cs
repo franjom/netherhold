@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using DK2.Assets;
 using DK2.Convert;
+using DK2.Core;
 using DK2.Convert.Audio;
 using DK2.Data;
 using DK2.Data.Kwd;
@@ -2485,7 +2486,8 @@ static int Usage()
 /// probe's CSV shape, so our side can be diffed against a live capture.
 /// </summary>
 static int RunTriggerCsv(
-    string levelName, int turns, string outPath, InputLog? log = null, RoomLog? rooms = null)
+    string levelName, int turns, string outPath, InputLog? log = null, RoomLog? rooms = null,
+    string? tilePath = null)
 {
     string? install = Dk2Install.Find();
     if (install is null)
@@ -2535,6 +2537,16 @@ static int RunTriggerCsv(
     var tally = new TagTally();
     if (log is not null || rooms is not null) simulation.ObserveWith(tally);
 
+    // The same tiles the probe was sampling, so the two traces line up tile for
+    // tile. Watching only those costs a handful of reads a tick instead of a sweep,
+    // and a tile the capture never mentions has nothing to compare against anyway.
+    TilePos[] watched = tilePath is null || log is null
+        ? []
+        : [.. log.Watched.OrderBy(t => t.Y).ThenBy(t => t.X)];
+    using var tileWriter = tilePath is null ? null : new StreamWriter(tilePath);
+    tileWriter?.WriteLine("tick,x,y,terrain,health");
+    var seen = new Dictionary<TilePos, (byte Terrain, int Health)>();
+
     using (var writer = new StreamWriter(outPath))
     {
         simulation.EmitTriggerTurnsTo(writer);
@@ -2543,7 +2555,29 @@ static int RunTriggerCsv(
             // The logs are in DK2's turn numbers, which run one ahead of our tick.
             long turn = simulation.CurrentTick.Value + 1;
             simulation.Tick(Merge(log?.At(turn), rooms?.At(turn)));
+
+            foreach (TilePos at in watched)
+            {
+                ref TileState tile = ref world.Tile(at);
+                var now = (tile.TerrainId, tile.Health);
+                if (seen.TryGetValue(at, out (byte, int) was) && was == now) continue;
+                seen[at] = now;
+                tileWriter?.WriteLine(
+                    $"{turn},{at.X},{at.Y},{tile.TerrainId},{tile.Health}");
+            }
         }
+    }
+
+    if (tilePath is not null)
+        Console.WriteLine($"  tiles: {watched.Length} watched -> {tilePath}");
+
+    // How many workers were available to answer the marks. A capture's approach
+    // times cannot be compared against ours without it: two imps and five imps
+    // dig the same tile at the same rate and reach the second one very differently.
+    foreach (PlayerDef p in players)
+    {
+        int imps = ImpSupplyRules.ImpCount(world, database, p.PlayerId);
+        if (imps > 0) Console.WriteLine($"  imps: player {p.PlayerId} has {imps}");
     }
 
     if (log is not null || rooms is not null) tally.Report();
@@ -2613,6 +2647,7 @@ static int Replay(string[] arguments)
     long lag = 1;
     long origin = 1;
     string? roomPath = null;
+    string? tilePath = null;
     for (int i = 4; i < arguments.Length; i += 2)
     {
         if (i + 1 >= arguments.Length) return ReplayUsage();
@@ -2631,6 +2666,9 @@ static int Replay(string[] arguments)
                 break;
             case "--rooms":
                 roomPath = value;
+                break;
+            case "--tiles":
+                tilePath = value;
                 break;
             default:
                 return ReplayUsage();
@@ -2683,7 +2721,7 @@ static int Replay(string[] arguments)
                 + "the list it was found in -- THE ROOM WALK IS WRONG, not the room");
     }
 
-    return RunTriggerCsv(arguments[1], turns, arguments[3], log, rooms);
+    return RunTriggerCsv(arguments[1], turns, arguments[3], log, rooms, tilePath);
 }
 
 /// <summary>
@@ -2704,7 +2742,7 @@ static InputFrame Merge(InputFrame? tags, InputFrame? rooms)
 static int ReplayUsage()
 {
     Console.Error.WriteLine("usage: dk2tools replay <level> <tags.csv> <out.csv> "
-        + "[--turns N] [--lag L] [--origin T] [--rooms rooms.csv]");
+        + "[--turns N] [--lag L] [--origin T] [--rooms rooms.csv] [--tiles tiles.csv]");
     return 2;
 }
 
