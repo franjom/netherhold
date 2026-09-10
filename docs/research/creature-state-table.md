@@ -80,7 +80,7 @@ did not say, and the order is load-bearing.
 | 2 | target category is `0` | **refused** |
 | 3 | otherwise | allowed iff target category **equals** current category |
 
-Test 1 before test 2 is why anything can die: group `3` with category `0x17` is
+Test 1 before test 2 is why a group-3 creature can always die: group `3` with category `0x17` is
 states **216, 217 and 218** — the two *dying* states and *frozen* — so a group-3
 creature enters them from any category, including the category `0` that test 2
 would otherwise refuse. Test 2 before test 3 is why two category-`0` states
@@ -88,26 +88,21 @@ never reach each other even though their categories are equal.
 
 **When the group tags differ**, the current state is first replaced by the id at
 the state object's `+0xDF` (`UtilityNewState`) **if the current category is `2`**
-— so a creature standing in a movement state is judged by the state it saved,
-not by the movement. The substitution is inside the transition rule, which is
+— so a creature standing in a movement state is judged by where the movement
+is heading (the dumper's own name for `+0xDF` is `UtilityNewState`), not by the
+movement. The substitution is inside the transition rule, which is
 why a resume slot is a prerequisite for the rule and not only for resuming.
 
 The move is then allowed if **any** of three conditions holds, over the category
-records at `0x00699688` (`+0x00` own bit, `+0x34` mask, `+0x38` index):
+records at `0x00699688` — allowed when the two categories are equal, when the
+target's entry mask is zero, or when the mask names the category being left.
+`+0x38` turned out to be the identity for all 32 records, so the routine's
+double indirection through it collapses; **the records, the mask's direction and
+that identity have one home, `state-categories.md`** (Q300).
 
-- `index[current] == index[index[target]]`
-- `mask[index[target]] == 0`
-- `bit[current] & mask[index[target]]` is non-zero
-
-That **answers how `+0x34`'s mask is used** (Q186's remaining half) and shows
-`+0x38` is not merely "its own index": it is indirected through twice, so it
-names a *representative* category. The **values** of those three fields are
-still undumped, which is the whole of what stops this branch being built.
-
-**Coverage.** The two state bytes settle **20,628 of the 78,680** ordered pairs
-of distinct states — 4,116 allowed and 16,512 refused, 26%. The other 58,052
-need the category records. `CreatureStateTransitions` answers those
-`NeedsCategoryTable` rather than refusing them, on ADR-0109's precedent.
+**Coverage.** Both halves now resolve: **all 78,680** ordered pairs of distinct
+states are decided, 37,791 allowed and 40,889 refused. The two state bytes alone
+settled 20,628 of them; the category records decide the rest.
 
 ## 3. The labels — CONFIRMED
 
@@ -383,11 +378,13 @@ labels in §3 were resolved independently from the install's own `Text.str`.
 ## Implementation and tests
 
 `CreatureStateTable` carries all 281 rows — the label's string id, the group tag,
-the category and the flag byte. They are **transcribed, and the code is their only
-home**: the dump they came from cannot enter the repository (ADR-0046) and this
-note carries summaries, not rows. `CreatureStateTableTests` re-asserts §5's
-populations and spans, and that is the whole of what guards a drifted row.
-Handler addresses stay in §4; label *strings* stay out per §3, only their ids.
+the category and the flag byte. **§4 above is their source**: it carries all 281
+rows, and `tools/gen-creature-state-tables.py` regenerates the code from it, so a
+row is corrected here and never there. What may *not* cross is the Ghidra dump
+those rows were read from (ADR-0046), which is why the note holds the values
+rather than pointing at a file. `CreatureStateTableTests` re-asserts §5's checks,
+so a drifted row fails. Handler addresses stay in §4; label *strings* stay out
+per §3, only their ids.
 
 `CreatureStateTransitions` implements §2.2's equal-tags half and reports the
 other half as `NeedsCategoryTable`. It hashes nothing and holds no state.

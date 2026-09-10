@@ -2,116 +2,103 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
-using System.Linq;
 using DK2.Data.Model;
 
 namespace DK2.Data.Tests;
 
-/// <summary>The half of DK2's transition rule that the two state bytes decide, plus proof
-/// that the other half is reported rather than answered.</summary>
+/// <summary>DK2's transition rule, both halves. The differing-tags half answered
+/// <c>NeedsCategoryTable</c> until the 32 category records were recovered (Q300); nothing is
+/// unresolved now, so a pair either goes or it does not.</summary>
 public sealed class CreatureStateTransitionsTests
 {
-    /// <summary>Sleeping states 82 and 84 share group 7 and category 9.</summary>
+    /// <summary>No utility state is involved in most of these, so the third argument is
+    /// never consulted; passing the current state makes that explicit.</summary>
+    private static StateTransition Classify(int from, int to) =>
+        CreatureStateTransitions.Classify(from, to, from);
+
+    /// <summary>Sleeping states 82 and 84 share group 7 and the sleeping category.</summary>
     [Fact]
     public void SameTagAndSameCategoryIsAllowed()
     {
-        Assert.Equal(StateTransition.Allowed, CreatureStateTransitions.Classify(82, 84));
+        Assert.Equal(StateTransition.Allowed, Classify(82, 84));
     }
 
-    /// <summary>State 79 (group 7, category 6) to state 82 (group 7, category 9): the tags
-    /// match and the categories do not, so the original refuses it.</summary>
+    /// <summary>State 79 is group 7 / lair, state 82 group 7 / sleeping: the tags match and
+    /// the categories do not, so the original refuses it.</summary>
     [Fact]
     public void SameTagAndDifferentCategoryIsRefused()
     {
-        Assert.Equal(StateTransition.Refused, CreatureStateTransitions.Classify(79, 82));
+        Assert.Equal(StateTransition.Refused, Classify(79, 82));
     }
 
-    /// <summary>States 2 and 3 both sit in group 2, category 0 — the category the rule
-    /// refuses as a target even when the categories are equal, because the refusal is
-    /// tested before the equality.</summary>
+    /// <summary>States 2 and 3 are both group 2 / refused — the category the rule rejects as
+    /// a target even when both sides match, because the rejection is tested first.</summary>
     [Fact]
-    public void CategoryZeroIsRefusedEvenWhenBothSidesAreCategoryZero()
+    public void TheRefusedCategoryIsRejectedEvenWhenBothSidesAreInIt()
     {
         Assert.Equal(CreatureStateCategory.Refused, CreatureStateTable.Get(2).Category);
         Assert.Equal(CreatureStateCategory.Refused, CreatureStateTable.Get(3).Category);
-        Assert.Equal(StateTransition.Refused, CreatureStateTransitions.Classify(2, 3));
+        Assert.Equal(StateTransition.Refused, Classify(2, 3));
     }
 
-    /// <summary>Differing group tags hand the decision to the category table's own fields,
-    /// which have not been read. The answer must not collapse to <c>Refused</c>.</summary>
+    /// <summary>Group 3 with the dying category is admitted from any category, which is the
+    /// rule that lets a creature die out of whatever it was doing. State 207 is group 3 in
+    /// the refused category, which the test below it would otherwise reject.</summary>
     [Fact]
-    public void DifferingTagsAreReportedNotRefused()
+    public void ThePassthroughAdmitsDyingFromTheRefusedCategory()
     {
-        // State 13 is group 8; state 82 is group 7.
-        Assert.NotEqual(CreatureStateTable.Get(13).Group, CreatureStateTable.Get(82).Group);
-        Assert.Equal(StateTransition.NeedsCategoryTable, CreatureStateTransitions.Classify(13, 82));
-    }
-
-    /// <summary>The passthrough pair — group 3 with the dying category — is three states. A creature in group 3 can always be moved into them whatever its
-    /// category, which is the rule that lets anything die: the pair is tested before the
-    /// category refusal and before the equality.</summary>
-    [Fact]
-    public void ThePassthroughPairIsDyingAndFrozen()
-    {
-        foreach (int id in new[] { 216, 217, 218 })
-        {
-            Assert.Equal(CreatureStateTransitions.PassthroughGroup, CreatureStateTable.Get(id).Group);
-            Assert.Equal(CreatureStateTransitions.PassthroughCategory, CreatureStateTable.Get(id).Category);
-        }
-
-        // State 207 is group 3, category 0 — a category the rule would otherwise refuse.
         Assert.Equal(CreatureStateTransitions.PassthroughGroup, CreatureStateTable.Get(207).Group);
-        Assert.Equal(StateTransition.Allowed, CreatureStateTransitions.Classify(207, 216));
+        Assert.Equal(CreatureStateCategory.Refused, CreatureStateTable.Get(207).Category);
+        Assert.Equal(StateTransition.Allowed, Classify(207, 216));
     }
 
-    /// <summary>And the passthrough does <b>not</b> say a creature can die out of
-    /// anything. It sits inside the equal-tags branch, so it reaches only states already
-    /// in group 3; crossing groups lands in the half nobody has read. Asserted because
-    /// the claim that it was universal outran the code for a day, and the test above
-    /// could not see it — both of its states are group 3.</summary>
+    /// <summary>Differing tags now resolve, on the target's entry mask against the bit of
+    /// the category being left.</summary>
     [Fact]
-    public void DyingIsNotAdmittedAcrossGroupsByThisHalfOfTheRule()
+    public void DifferingTagsAreDecidedByTheTargetsEntryMask()
     {
-        int[] elsewhere = Enumerable.Range(0, CreatureStateTable.Count)
-            .Where(id => CreatureStateTable.Get(id).Group
-                != CreatureStateTransitions.PassthroughGroup)
-            .ToArray();
+        Assert.NotEqual(CreatureStateTable.Get(13).Group, CreatureStateTable.Get(82).Group);
 
-        Assert.NotEmpty(elsewhere);
-        foreach (int id in elsewhere)
-        {
-            Assert.Equal(
-                StateTransition.NeedsCategoryTable,
-                CreatureStateTransitions.Classify(id, 216));
-        }
+        uint workerBit = CreatureStateCategoryTable.Get(CreatureStateCategory.WorkerJob).Bit;
+        uint sleepMask = CreatureStateCategoryTable.Get(CreatureStateCategory.Sleeping).EntryMask;
+
+        Assert.NotEqual(0u, sleepMask);
+        Assert.NotEqual(0u, workerBit & sleepMask);
+        Assert.Equal(StateTransition.Allowed, Classify(13, 82));
     }
 
-    /// <summary>A creature in a utility state is compared by the state it saved. Utility
-    /// states are the five movement states.</summary>
+    /// <summary>A zero entry mask admits everything, which is the opposite of the natural
+    /// reading. The prison's is zero, so crossing group tags into a captive state is never
+    /// refused by the mask.</summary>
     [Fact]
-    public void AUtilityStateIsComparedByTheStateItSaved()
+    public void AZeroEntryMaskAdmitsAnyCategory()
     {
-        Assert.True(CreatureStateTable.IsUtility(6));
+        Assert.Equal(0u, CreatureStateCategoryTable.Get(CreatureStateCategory.Prison).EntryMask);
+        Assert.Equal(CreatureStateCategory.Prison, CreatureStateTable.Get(114).Category);
+        Assert.NotEqual(CreatureStateTable.Get(13).Group, CreatureStateTable.Get(114).Group);
+        Assert.Equal(StateTransition.Allowed, Classify(13, 114));
+    }
+
+    /// <summary>A creature in a movement state is judged by where the movement is heading,
+    /// not by the movement itself.</summary>
+    [Fact]
+    public void AMovementStateIsJudgedByItsUtilityNewState()
+    {
+        Assert.True(CreatureStateTable.Get(6).IsUtility);
+
         Assert.Equal(82, CreatureStateTransitions.ResolveComparisonState(6, 82));
+        Assert.Equal(13, CreatureStateTransitions.ResolveComparisonState(13, 82));
+        Assert.Equal(StateTransition.Allowed, CreatureStateTransitions.Classify(6, 82, 82));
     }
 
+    /// <summary>Every ordered pair of distinct states now resolves. These figures are
+    /// measured, not targets: they are here so that a change to the rule or to either table
+    /// moves a number instead of passing unnoticed.</summary>
     [Fact]
-    public void ANonUtilityStateIsComparedByItself()
-    {
-        Assert.False(CreatureStateTable.IsUtility(82));
-        Assert.Equal(82, CreatureStateTransitions.ResolveComparisonState(82, 13));
-    }
-
-    /// <summary>How much of the rule the two state bytes actually settle, over every ordered
-    /// pair of the 281 states. These are measured, not targets: they are here so that
-    /// dumping the category table shows up as a change instead of passing unnoticed, and so
-    /// that a wrong edit to the test order moves a number.</summary>
-    [Fact]
-    public void TheTwoBytesSettleAQuarterOfAllOrderedPairs()
+    public void EveryOrderedPairResolvesAndTheSplitIsMeasured()
     {
         int allowed = 0;
         int refused = 0;
-        int needsTable = 0;
 
         for (int from = 0; from < CreatureStateTable.Count; from++)
         {
@@ -122,18 +109,19 @@ public sealed class CreatureStateTransitionsTests
                     continue;
                 }
 
-                switch (CreatureStateTransitions.Classify(from, to))
+                if (Classify(from, to) == StateTransition.Allowed)
                 {
-                    case StateTransition.Allowed: allowed++; break;
-                    case StateTransition.Refused: refused++; break;
-                    default: needsTable++; break;
+                    allowed++;
+                }
+                else
+                {
+                    refused++;
                 }
             }
         }
 
-        Assert.Equal(78680, allowed + refused + needsTable);
-        Assert.Equal(4116, allowed);
-        Assert.Equal(16512, refused);
-        Assert.Equal(58052, needsTable);
+        Assert.Equal(78680, allowed + refused);
+        Assert.Equal(37791, allowed);
+        Assert.Equal(40889, refused);
     }
 }

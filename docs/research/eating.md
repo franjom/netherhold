@@ -344,13 +344,16 @@ run of `MOV`s as the state table (`0x004798f4`–`0x0047a773`, no function).
 
 | Offset | What it is |
 |---|---|
-| `+0x00` | `1 << category` — the group's own bit |
-| `+0x04` | **enter** hook, called by `SetState` when the category changes |
-| `+0x14` | **update** hook, called by the creature update each tick |
-| `+0x24` | **leave** hook |
-| `+0x34` | a mask of categories this one may be left for |
-| `+0x38` | the category's own id |
-| `+0x3c` | a small integer, meaning not established |
+| `+0x00` | the category's own bit |
+| `+0x04` / `+0x14` / `+0x24` | **enter**, **update** and **leave** hooks |
+| `+0x34` | the entry mask — which categories may enter **this** one |
+| `+0x38` | the category's own index |
+| `+0x3c` | a small id whose role is traced and whose meaning is open |
+
+**All 32 records are recovered, and their home is `state-categories.md`.** The
+row above is a summary; that note has the values, the accounting behind them, and
+two corrections to what this section used to say — the mask's direction, and the
+hook slot being four dwords rather than one used word.
 
 **The state record's group tag looks like a priority** — 0, 1, 2, 3, 4, 6, 7, 8,
 9, 10, 12, 13, 50, 100, with the idle state at 100 — and **7 is the value the

@@ -12,9 +12,10 @@ using Flag = CreatureStateFlags;
 
 /// <summary>DK2's 281 creature states, as data. Nothing here decides behaviour: it is the
 /// map a mechanic is read against, and the input to the transition rule.
-/// <para><b>Generated from <c>docs/research/creature-state-table.md</c></b>, whose six
-/// independent checks establish the frame and the count. Correct a row in the note and
-/// regenerate; do not edit one here. The two aliases above keep a row on one line.</para></summary>
+/// <para><b>Generated</b> by <c>tools/gen-creature-state-tables.py</c> from
+/// <c>docs/research/creature-state-table.md</c> §4, whose six independent checks establish
+/// the frame and the count. Correct a row in the note and regenerate; an edit made here is
+/// lost on the next run.</para></summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-state-table.md")]
 public static class CreatureStateTable
 {
@@ -26,7 +27,7 @@ public static class CreatureStateTable
     /// (<see cref="Cat.Unused"/>) is selected by no state.</summary>
     public const int CategoryCount = 32;
 
-    //                             id  label  grp  category                     flags
+    //                             id  label  grp  category             flags
     private static readonly CreatureStateDef[] Rows =
     {
         new CreatureStateDef(  0,  2599, 100, Cat.Refused,         Flag.None),
@@ -282,8 +283,8 @@ public static class CreatureStateTable
         new CreatureStateDef(250,  2661,   8, Cat.Refused,         Flag.None),
         new CreatureStateDef(251,  2664,   4, Cat.Combat,          Flag.Unread0 | Flag.SuppressNeedAnger),
         new CreatureStateDef(252,  2664,   4, Cat.Combat,          Flag.Unread0 | Flag.SuppressNeedAnger),
-        new CreatureStateDef(253,  2665,  11, Cat.Unnamed26,       Flag.Unread0 | Flag.SuppressNeedAnger),
-        new CreatureStateDef(254,  2665,  11, Cat.Unnamed26,       Flag.Unread0 | Flag.SuppressNeedAnger),
+        new CreatureStateDef(253,  2665,  11, Cat.ReportingDanger, Flag.Unread0 | Flag.SuppressNeedAnger),
+        new CreatureStateDef(254,  2665,  11, Cat.ReportingDanger, Flag.Unread0 | Flag.SuppressNeedAnger),
         new CreatureStateDef(255,  2597,   3, Cat.Unnamed7,        Flag.SuppressNeedAnger | Flag.Unread6),
         new CreatureStateDef(256,  2597,   3, Cat.Unnamed7,        Flag.SuppressNeedAnger | Flag.Unread6),
         new CreatureStateDef(257,  2597,   3, Cat.Unnamed7,        Flag.SuppressNeedAnger),
@@ -319,14 +320,16 @@ public static class CreatureStateTable
     public static ref readonly CreatureStateDef Get(int stateId)
     {
         if ((uint)stateId >= (uint)Rows.Length)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(stateId), stateId, $"DK2 has {Rows.Length} creature states.");
+        }
 
         return ref Rows[stateId];
     }
 
     /// <summary>Whether this state saves and resumes its caller's state.</summary>
-    public static bool IsUtility(int stateId) => Rows[stateId].IsUtility;
+    public static bool IsUtility(int stateId) => Get(stateId).IsUtility;
 
     /// <summary>Every state id in one category, ascending.</summary>
     public static int[] InCategory(CreatureStateCategory category)

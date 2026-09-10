@@ -76,13 +76,13 @@ public enum CreatureStateCategory : byte
 
     Payday = 20,
 
-    /// <summary><b>Not named:</b> one state.</summary>
+    /// <summary><b>Not named:</b> one state, and its label is <c>idle</c>.</summary>
     Unnamed21 = 21,
 
     Combat = 22,
 
-    /// <summary>Paired with group tag 3 this is the passthrough the transition rule admits
-    /// from any category, which is how anything dies (`creature-state-table.md` §2.2).</summary>
+    /// <summary>With group tag 3, the passthrough the rule admits from any category <i>in
+    /// that group</i>; crossing tags is decided by the entry mask (§2.2).</summary>
     Dying = 23,
 
     TrapDisarm = 24,
@@ -90,8 +90,9 @@ public enum CreatureStateCategory : byte
     /// <summary>The response to the keeper spell.</summary>
     CallToArms = 25,
 
-    /// <summary><b>Not named:</b> two states.</summary>
-    Unnamed26 = 26,
+    /// <summary>Both its states carry the <c>reporting danger</c> label and no other
+    /// category holds one, which is what names it (`state-categories.md`).</summary>
+    ReportingDanger = 26,
 
     /// <summary><b>Not named:</b> three states carrying the same label as three of
     /// <see cref="Combat"/>'s, yet in their own category; what separates them is unread.</summary>
@@ -101,7 +102,7 @@ public enum CreatureStateCategory : byte
     /// or mechanic attached and no handler read.</summary>
     Unnamed28 = 28,
 
-    /// <summary><b>Not named:</b> two states.</summary>
+    /// <summary><b>Not named:</b> two states, labelled <c>idle</c> and <c>hypnotised</c>.</summary>
     Unnamed29 = 29,
 
     Incapacitated = 30,

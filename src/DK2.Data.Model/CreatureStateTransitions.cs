@@ -14,21 +14,16 @@ public enum StateTransition
 
     /// <summary>The original refuses it, and the creature keeps the state it has.</summary>
     Refused,
-
-    /// <summary>The group tags differ, so the original consults three fields of the 32
-    /// category records, whose values this project has not read (Q300). Never answered as
-    /// <see cref="Refused"/>: an unread rule is not a false one — the precedent is
-    /// ADR-0109, which refuses to answer an unsupported trigger condition false.</summary>
-    NeedsCategoryTable,
 }
 
-/// <summary>DK2's rule for whether a creature may move from one state to another, read from
-/// the original's own transition routine (`creature-state-table.md` §2.2).
-/// <para>The equal-tags half is decided by the two bytes already in
-/// <see cref="CreatureStateTable"/> and is answered here. The differing-tags half needs
-/// category-record values that are filled at run time and undumped, so it is reported
-/// rather than guessed.</para></summary>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-state-table.md")]
+/// <summary>DK2's rule for whether a creature may move from one state to another, read whole
+/// from the original's own transition routine (`creature-state-table.md` §2.2,
+/// `state-categories.md`).
+/// <para>Both halves are answered. The equal-tags half needs only the two bytes in
+/// <see cref="CreatureStateTable"/>; the differing-tags half needs
+/// <see cref="CreatureStateCategoryTable"/>, which is why this was partial until Q300 was
+/// closed.</para></summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-categories.md")]
 public static class CreatureStateTransitions
 {
     /// <summary>The group tag that, paired with <see cref="PassthroughCategory"/>, is
@@ -36,47 +31,58 @@ public static class CreatureStateTransitions
     public const byte PassthroughGroup = 3;
 
     /// <summary>The category that <see cref="PassthroughGroup"/> admits regardless of the
-    /// current category — the dying and frozen states. It is tested before the refusal and
-    /// the equality below, but <b>inside</b> the equal-tags branch: it lets a creature die
-    /// out of anything <i>in that group</i>, and a move that crosses groups reaches the
-    /// unread half instead (Q300).</summary>
+    /// current category — the dying and frozen states. Tested before the refusal and the
+    /// equality, but <b>inside</b> the equal-tags branch.</summary>
     public const CreatureStateCategory PassthroughCategory = CreatureStateCategory.Dying;
 
     /// <summary>Classify a move from <paramref name="currentStateId"/> to
     /// <paramref name="targetStateId"/>.
-    /// <para>The order is the original's and it is load-bearing. The group tags are
-    /// compared first; where they match, three tests follow — the passthrough pair, the
-    /// refused category, then equality — and only the last of those three reads the
-    /// current state's category.</para></summary>
-    public static StateTransition Classify(int currentStateId, int targetStateId)
+    /// <para><paramref name="utilityNewStateId"/> is the state object's
+    /// <c>UtilityNewState</c>. It is consulted only when the group tags differ and the
+    /// creature is in a movement state, and then it <b>replaces</b> the current state for
+    /// the rest of the test — a creature mid-movement is judged by where the movement is
+    /// going, not by the movement.</para></summary>
+    public static StateTransition Classify(int currentStateId, int targetStateId, int utilityNewStateId)
     {
         ref readonly CreatureStateDef target = ref CreatureStateTable.Get(targetStateId);
         ref readonly CreatureStateDef current = ref CreatureStateTable.Get(currentStateId);
 
-        if (target.Group != current.Group)
+        if (target.Group == current.Group)
         {
-            return StateTransition.NeedsCategoryTable;
+            if (target.Group == PassthroughGroup && target.Category == PassthroughCategory)
+            {
+                return StateTransition.Allowed;
+            }
+
+            if (target.Category == CreatureStateCategory.Refused)
+            {
+                return StateTransition.Refused;
+            }
+
+            return target.Category == current.Category
+                ? StateTransition.Allowed
+                : StateTransition.Refused;
         }
 
-        if (target.Group == PassthroughGroup && target.Category == PassthroughCategory)
+        // Tags differ. A creature standing in a movement state is judged by the state that
+        // movement is heading for, and only then against the target's entry mask.
+        int fromId = current.IsUtility ? utilityNewStateId : currentStateId;
+        CreatureStateCategory from = CreatureStateTable.Get(fromId).Category;
+
+        if (from == target.Category)
         {
             return StateTransition.Allowed;
         }
 
-        if (target.Category == CreatureStateCategory.Refused)
-        {
-            return StateTransition.Refused;
-        }
-
-        return target.Category == current.Category
+        return CreatureStateCategoryTable.Get(target.Category)
+            .AdmitsFrom(CreatureStateCategoryTable.Get(from))
             ? StateTransition.Allowed
             : StateTransition.Refused;
     }
 
-    /// <summary>Which state the differing-tags half compares against: a creature standing in
-    /// a utility state is judged by the state it <b>saved</b>, not by the movement it is
-    /// performing. The substitution is inside the transition rule, which is why a resume
-    /// slot is a prerequisite for the rule and not only for resuming (ADR-0135).</summary>
-    public static int ResolveComparisonState(int currentStateId, int savedStateId) =>
-        CreatureStateTable.Get(currentStateId).IsUtility ? savedStateId : currentStateId;
+    /// <summary>Which state the differing-tags half compares against. Exposed because the
+    /// substitution is part of the rule, not an implementation detail: it is why a resume
+    /// slot is a prerequisite for the gate and not only for resuming (ADR-0135).</summary>
+    public static int ResolveComparisonState(int currentStateId, int utilityNewStateId) =>
+        CreatureStateTable.Get(currentStateId).IsUtility ? utilityNewStateId : currentStateId;
 }
