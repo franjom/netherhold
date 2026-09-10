@@ -63,10 +63,51 @@ index: `&DAT_00699688 + cat * 0x40`, with two sibling tables at `0x006996BC` and
 `0x006996C0`. Its range across all 281 records is **`0`–`31`**, exactly the 32
 entries of a `0x40`-byte-per-entry table, and **`+0x17 == 2` means "utility
 state"** — the case that saves the caller's state and resumes through
-`UtilityNewState`. When the group tags match, the transition is allowed if the
-categories match (with group `3` / category `0x17` special-cased through, and
-category `0` refused); when the tags differ, the tables at `0x00699688` decide.
-This is the probe **Q174** named.
+`UtilityNewState`. This is the probe **Q174** named.
+
+### 2.2 The transition rule, in the original's own order — CONFIRMED
+
+Read from `FUN_00476D30` on 2026-09-10. The routine takes the requested state id
+and reads the current one from the state object's `+0x10`. **Every test but the
+last reads the *target*'s two bytes**, which is what the earlier summary here
+did not say, and the order is load-bearing.
+
+**When the group tags are equal**, three tests in this order:
+
+| | Test | Result |
+|---|---|---|
+| 1 | target group is `3` **and** target category is `0x17` | **allowed**, whatever the current category |
+| 2 | target category is `0` | **refused** |
+| 3 | otherwise | allowed iff target category **equals** current category |
+
+Test 1 before test 2 is why anything can die: group `3` with category `0x17` is
+states **216, 217 and 218** — the two *dying* states and *frozen* — so a group-3
+creature enters them from any category, including the category `0` that test 2
+would otherwise refuse. Test 2 before test 3 is why two category-`0` states
+never reach each other even though their categories are equal.
+
+**When the group tags differ**, the current state is first replaced by the id at
+the state object's `+0xDF` (`UtilityNewState`) **if the current category is `2`**
+— so a creature standing in a movement state is judged by the state it saved,
+not by the movement. The substitution is inside the transition rule, which is
+why a resume slot is a prerequisite for the rule and not only for resuming.
+
+The move is then allowed if **any** of three conditions holds, over the category
+records at `0x00699688` (`+0x00` own bit, `+0x34` mask, `+0x38` index):
+
+- `index[current] == index[index[target]]`
+- `mask[index[target]] == 0`
+- `bit[current] & mask[index[target]]` is non-zero
+
+That **answers how `+0x34`'s mask is used** (Q186's remaining half) and shows
+`+0x38` is not merely "its own index": it is indirected through twice, so it
+names a *representative* category. The **values** of those three fields are
+still undumped, which is the whole of what stops this branch being built.
+
+**Coverage.** The two state bytes settle **20,628 of the 78,680** ordered pairs
+of distinct states — 4,116 allowed and 16,512 refused, 26%. The other 58,052
+need the category records. `CreatureStateTransitions` answers those
+`NeedsCategoryTable` rather than refusing them, on ADR-0109's precedent.
 
 ## 3. The labels — CONFIRMED
 
@@ -310,12 +351,22 @@ labels in §3 were resolved independently from the install's own `Text.str`.
 - **`+0x04`, `+0x08`, `+0x0c`** — answered as **dead** (Q184, §2); most are null
   and nothing reads any of them. What they were *for* is unknown.
 - **`+0x18`, the flag byte.** Fifteen distinct values (`0`–`5`, `25`, `28`,
-  `29`, `64`, `66`, `68`, `70`, `92`, `93`), which reads like a bitfield with
-  `0x40` and `0x1c` groups. Bit 3 suppresses the hunger clock and bit 4 the
-  tiredness clock, and the fifteen states carrying them are exactly drinking,
-  gambling and dancing; bit 1 suppresses the need-anger routine and all eleven
-  captive states carry it. The rest is UNKNOWN (Q185, `eating.md` §3,
-  `payday.md` §6).
+  `29`, `64`, `66`, `68`, `70`, `92`, `93`). **Six of the eight bits are used:
+  bits 5 and 7 are set by no shipped state**, so their meaning cannot be
+  recovered from this table at all. Populations, per bit: 0 → **195**, 1 → 43,
+  2 → 25, 3 → 15, 4 → 15, 6 → 15.
+
+  Bit 3 suppresses the hunger clock and bit 4 the tiredness clock; they never
+  appear apart, and together they mark the **contiguous run 145–159** — the
+  Casino's states. That run **spans three categories** (eight in 17, six in 0,
+  one in 18), so category 17 does not delimit the room and a mechanic keyed on
+  it alone would miss seven states. Bit 1 suppresses the need-anger routine and
+  all eleven captive states carry it. Bits 0, 2 and 6 are UNKNOWN (Q185,
+  `eating.md` §3, `payday.md` §6).
+
+  **The 147 this section used to give for bit 0 was the count of states whose
+  flag byte is exactly `1`**; six values carry the bit and 195 states have it.
+  Bit 1's 43 was counted as a bit and is right.
 - **The group tag's meaning.** Its role in `SetState` is known exactly (§2.1);
   what the groups *are* is not. Group **7** is the fourteen states that *are* a
   need, which the needs routine reads as "do not ask" (`eating.md` §3).
@@ -331,9 +382,19 @@ labels in §3 were resolved independently from the install's own `Text.str`.
 
 ## Implementation and tests
 
-Nothing here is a rule of its own. This project has **21 activities**
-(`CreatureActivity`) where DK2 has 281 states, each of our systems composing
-several of the original's — a divergence `DK2_REIMPLEMENTATION_PLAN.md` records.
-The table is the map used when a mechanic is read out of the binary:
-`eating.md`, `prison.md`, `training.md`, `payday.md`, `lair-acquisition.md` and
-`creature-anger.md` all index it, and their state ids are tested there.
+`CreatureStateTable` carries all 281 rows — the label's string id, the group tag,
+the category and the flag byte. It is **generated from this note**, so a row is
+corrected here and never in the code, and `CreatureStateTableTests` re-asserts
+the checks of §5 so a drifted row fails rather than passes. Handler addresses are
+not carried: nothing in this project calls them, so they stay in §4 as the
+reading list. Label *strings* are not carried either, per §3 — only their ids.
+
+`CreatureStateTransitions` implements §2.2's equal-tags half and reports the
+other half as `NeedsCategoryTable`. It hashes nothing and holds no state.
+
+This project still has **21 activities** (`CreatureActivity`) where DK2 has 281
+states, each of ours composing several of the original's. ADR-0135 makes the
+state id authoritative and retires the enum state by state rather than at once.
+The table is also the map a mechanic is read against: `eating.md`, `prison.md`,
+`training.md`, `payday.md`, `lair-acquisition.md` and `creature-anger.md` all
+index it, and their state ids are tested there.

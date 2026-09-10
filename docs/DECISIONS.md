@@ -2648,3 +2648,52 @@ reachability keeps floor healing out (Q215, `tile-work.md`).
 applications remove 100 then 65, so queue position alone produces both captured
 timelines. `HashVersion` and snapshot `FormatVersion` move 54 → 55; no state
 field changed, but a resumed dig job now evolves differently.
+## ADR-0135 — A creature's state is DK2's state id, adopted one state at a time
+
+**Date:** 2026-09-10 · **Status:** accepted · advances Q186, opens Q300 · Research: `docs/research/creature-state-table.md`
+
+> Numbered 0135 because 0134 was taken by a concurrent branch, since merged.
+
+**Context.** The 21-value `CreatureActivity` enum was never a decision — it grew
+one activity at a time and is recorded only as a *fact* in plan §3 ("Ours has 21
+activities"). DK2 has 281 states, and since 2026-09-06 the whole table has been
+read out at CONFIRMED. The three things a state machine needs from it — a resume
+slot, a transition gate, a category hook layer — cannot even be specified while
+it is undecided which vocabulary is authoritative, because DK2's rule is written
+in terms of state ids and there is no group tag for `MovingToJob`.
+
+**Decision.**
+1. **DK2's state id is the authoritative representation.** `CreatureActivity`
+   becomes a retiring convenience, not the model.
+2. **Adopted incrementally, not at once.** `CreatureState` gains a hashed
+   `Dk2StateId` beside `Activity`; new work sets the id, and an activity retires
+   when the states composing it have been read. The alternative — rewriting 106
+   references across 61 test files in one commit — was rejected as unreviewable,
+   and inventing our own transition rule was rejected outright: AGENTS.md forbids
+   inventing behaviour that can be researched, and this one is researched.
+3. **The table is data, generated from the note.** `CreatureStateTable` carries
+   the label string id, group tag, category and flag byte for all 281 states.
+   Handler addresses stay in the note — nothing here calls them. Label *strings*
+   stay out of `src/` per the note's §3: they are shipped-asset text, and the
+   ids are enough. **The category and flag byte are typed**, so a row reads
+   `Cat.Prison, Flag.Unread0 | Flag.SuppressNeedAnger` rather than five bare
+   numbers; an untyped row is a memory dump transcribed into C#.
+4. **An unread transition is not a refused one.** `CreatureStateTransitions`
+   answers the equal-tags half of DK2's rule and returns `NeedsCategoryTable`
+   for the other half, on ADR-0109's precedent. It settles 20,628 of the 78,680
+   ordered pairs; the remaining 58,052 wait on Q300.
+
+**Consequences.**
+- Nothing hashed changed **yet**: both new types are pure data and predicates,
+  so `HashVersion` stays where it is and the pin is untouched. **`HashVersion`
+  and snapshot `FormatVersion` 56 are reserved** for `Dk2StateId`; ADR-0134 took
+  55.
+- The field is deliberately not in this commit, and now waits on one thing only
+  — the pinned world, below.
+- **The pin cannot catch a `CreatureState` field anyway** — the pinned world
+  spawns no creatures (Q206), which is now a prerequisite rather than
+  housekeeping: give it a creature before `Dk2StateId` lands, or the field
+  arrives unguarded.
+- Reading the 264 handlers has no shortcut: 259 serve exactly one state, and
+  Flame names the behaviour of none. That is the size of the work this unblocks,
+  not of this decision.
