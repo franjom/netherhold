@@ -270,7 +270,8 @@ public static class KwdTriggers
         else if (type == 40) { B("Comparison", 0); B("PlayerId", 1); B("TerrainId", 2); B("Unreached_0003", 3); S("Value", 4); }
         else if (type == 41) { B("Unreached_0000", 0); B("PlayerId", 1); B("TerrainId", 2); B("Unreached_0003", 3); S("Unreached_0004", 4); }
         else if (type == 42) { B("Comparison", 0); B("PlayerId", 1); B("TerrainId", 2); B("Unreached_0003", 3); S("Value", 4); }
-        else if (type is 44 or 45 or 64) { B("Comparison", 0); B("PlayerId", 1); W("Unreached_0002", 2); S("Value", 4); }
+        else if (type is 44 or 45) { B("Comparison", 0); B("PlayerId", 1); W("Unreached_0002", 2); S("Value", 4); }
+        else if (type == 64) { B("Comparison", 0); B("PartyId", 1); W("Unreached_0002", 2); S("Value", 4); }
         // Corrected 2026-09-09: byte 00 is a PLAYER, not a creature. The arm compares
         // it against the killer's player Number, and its shipped values are 0 and 1,
         // 3, 4, 5, 6, 7 -- the player id range (ADR-0116).

@@ -87,6 +87,10 @@ public class KwdAdditionalRecordTests
         Assert.Equal(9, generic52.Parameters["Level"]);
         Assert.DoesNotContain("PlayerId", generic52.Parameters.Keys);
 
+        TriggerRecord generic64 = Trigger(213, 64, [5, 7, 2, 3, 4, 0, 0, 0]);
+        Assert.Equal(7, generic64.Parameters["PartyId"]);
+        Assert.DoesNotContain("PlayerId", generic64.Parameters.Keys);
+
         TriggerRecord action4 = Trigger(214, 4, [0x34, 0x12, 0x78, 0x56, 9, 1, 2, 3]);
         Assert.Equal(0x1234, action4.Parameters["ObjectiveId"]);
         Assert.Equal(9, action4.Parameters["ActionPointId"]);
@@ -118,6 +122,10 @@ public class KwdAdditionalRecordTests
         TriggerRecord generic52 = triggers.First(t => t.Tag == 213 && t.Type == 52);
         Assert.Contains("Level", generic52.Parameters.Keys);
         Assert.DoesNotContain("PlayerId", generic52.Parameters.Keys);
+
+        TriggerRecord generic64 = triggers.First(t => t.Tag == 213 && t.Type == 64);
+        Assert.Contains("PartyId", generic64.Parameters.Keys);
+        Assert.DoesNotContain("PlayerId", generic64.Parameters.Keys);
 
         TriggerRecord action4 = triggers.Single(t => t.Tag == 214 && t.Type == 4);
         Assert.Equal(BinaryPrimitives.ReadUInt16LittleEndian(action4.Body.Span),
