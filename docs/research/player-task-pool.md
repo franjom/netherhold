@@ -93,8 +93,10 @@ between them as an imp takes it up: run 10's `(14,23)` went 1, then +3, then
 events invents untags the player never issued. What is an event is a tile
 **entering the pool** or **leaving it altogether**.
 
-Kinds **3**, **6** and **14** were seen live and are stages of work rather than
-marks; which is which is unread.
+Kinds **3**, **6** and **14** were seen live and are work rather than marks.
+**Kind 3 is claiming**: every kind-3 task follows that same tile's dig
+completing, and in run 10 fourteen of them ran back to back at **exactly 10
+ticks** each (Q292). Kinds 6 and 14 are unnamed.
 
 **A finished dig and a dropped mark both leave the pool**, and the kind
 transition between them is often not sampled at all — gold dug in run 10 was

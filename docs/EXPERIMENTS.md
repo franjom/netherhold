@@ -250,3 +250,41 @@ single-question experiments; this file is for paired runs of the same scenario.
 Q1 is the standing example of the difference: no stopwatch could separate *5
 ticks a second at work rate 0.8* from *4 ticks a second at 1.0*, so it was
 settled by reading the binary instead — a tick is 250 ms (ADR-0089).
+
+**2026-09-10, level 1 played, run 10 — the input channel, measured.** The first
+two-sided comparison of a *played* capture. One capture, two of our runs, both
+against DK2's own trigger state over 500 turns:
+
+| our run | in both | DK2 only | ours only |
+|---|---:|---:|---:|
+| without input | 3 | **28** | 0 |
+| with the recorded input | **24** | **7** | 0 |
+
+**Replaying the capture's own commands recovers 21 of the 28 events only a
+player can produce**, and we still invent nothing. That is what ADR-0126 said
+M5 needed, delivered and sized.
+
+**The seven that remain are one thing.** Every one is a terrain-count
+condition — six of type 42 and one of type 41, the "keeper activity" family.
+So the gap is no longer input but *consequence*: the commands arrive, and then
+our imps dig and claim at our rates rather than DK2's, so the counts do not
+cross the same thresholds at the same time. It is also why stamp alignment went
+from agreeing to 80 ticks out.
+
+Caveat: run 10 predates the probe's `workers` column, so a dig whose work kind
+was never sampled reads as the player letting go. That inflates untags and does
+not affect the event-set counts above.
+
+**And the same capture times DK2's claiming.** Pool kind 3 is an imp claiming
+the floor a dig left behind — every kind-3 task follows that tile's own dig
+completing, 14 of the 15 tiles in one drag (the last was dug too late to claim
+inside the window). They run strictly one at a time, each starting the tick
+after the last ended, and each takes **exactly 10 ticks** — fourteen times over,
+2.5 game seconds. Two other clusters took 12 and one 20, which is consistent
+with travel being included and varying with distance, so **10 ticks is an upper
+bound on the work itself**.
+
+Ours completes a claim in **4 ticks**: `ClaimTileHealth` 825 over the
+efficiency divisor is 165 a swing, and Dirt Path climbs 1 → 660 in four. The
+gap is real; its size is not yet pinned, because DK2's figure still contains
+the walk (Q292).
