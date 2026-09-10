@@ -2678,7 +2678,7 @@ in terms of state ids and there is no group tag for `MovingToJob`.
    ids are enough. **The category and flag byte are typed**, so a row reads
    `Cat.Prison, Flag.Unread0 | Flag.SuppressNeedAnger` rather than five bare
    numbers; an untyped row is a memory dump transcribed into C#.
-4. **An unread transition is not a refused one**, and its passthrough admits dying out of anything **in group 3** only. `CreatureStateTransitions`
+4. **An unread transition is not a refused one.** (Dying is admitted from almost anywhere — the passthrough inside group 3, an all-ones mask outside — but *not* from the Refused category, whose bit is never written.) `CreatureStateTransitions`
    answers the equal-tags half of DK2's rule and returns `NeedsCategoryTable`
    for the other half, on ADR-0109's precedent. It settles 20,628 of the 78,680
    ordered pairs; the remaining 58,052 wait on Q300.

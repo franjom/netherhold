@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Linq;
 using DK2.Data.Model;
 
 namespace DK2.Data.Tests;
@@ -50,6 +51,27 @@ public sealed class CreatureStateTransitionsTests
         Assert.Equal(CreatureStateTransitions.PassthroughGroup, CreatureStateTable.Get(207).Group);
         Assert.Equal(CreatureStateCategory.Refused, CreatureStateTable.Get(207).Category);
         Assert.Equal(StateTransition.Allowed, Classify(207, 216));
+    }
+
+    /// <summary>"Anything dies out of anything" is nearly true, and precisely not.
+    /// Inside group 3 the passthrough admits it; outside, Dying's entry mask is all ones.
+    /// But the mask is tested against the <i>source</i> category's bit, and record 0's bit
+    /// is permanently zero because nothing in the program writes it
+    /// (`state-categories.md` §3) — so the Refused states outside group 3 can never enter
+    /// Dying. This pins that consequence, which is the zero bit's only visible effect so
+    /// far.</summary>
+    [Fact]
+    public void EveryStateCanEnterDyingExceptThoseWhoseCategoryBitIsNeverWritten()
+    {
+        int[] refused = Enumerable.Range(0, CreatureStateTable.Count)
+            .Where(id => Classify(id, 216) != StateTransition.Allowed)
+            .ToArray();
+
+        Assert.All(refused, id => Assert.Equal(
+            CreatureStateCategory.Refused, CreatureStateTable.Get(id).Category));
+        Assert.All(refused, id => Assert.NotEqual(
+            CreatureStateTransitions.PassthroughGroup, CreatureStateTable.Get(id).Group));
+        Assert.Equal(45, refused.Length);
     }
 
     /// <summary>Differing tags now resolve, on the target's entry mask against the bit of
