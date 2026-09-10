@@ -34,16 +34,18 @@ public static class TriggerCaptureComparison
 
         string[] inBoth = eventIds.Where(id => oursData.Events.ContainsKey(id)
             && captureData.Events.ContainsKey(id)).ToArray();
-        string[] captureOnly = eventIds.Where(id => !oursData.Events.ContainsKey(id)
-            && captureData.Events.ContainsKey(id)).ToArray();
-        string[] oursOnly = eventIds.Where(id => oursData.Events.ContainsKey(id)
-            && !captureData.Events.ContainsKey(id)).ToArray();
+        List<string> captureOnly = eventIds.Where(id => !oursData.Events.ContainsKey(id)
+            && captureData.Events.ContainsKey(id)).ToList();
+        List<string> oursOnly = eventIds.Where(id => oursData.Events.ContainsKey(id)
+            && !captureData.Events.ContainsKey(id)).ToList();
 
         string? anchorId = SelectAnchor(anchor, oursData, captureData);
         string? alignmentRefusal = null;
         long? oursOrigin = null;
         long? captureOrigin = null;
         var aligned = new List<TriggerAlignedEvent>();
+        List<string> oursBeyond = [];
+        List<string> captureBeyond = [];
 
         if (anchorId is null)
         {
@@ -68,11 +70,35 @@ public static class TriggerCaptureComparison
                     id, oursTurn, captureTurn, residual,
                     a.FirstTurnIsCeiling, b.FirstTurnIsCeiling));
             }
+
+            oursBeyond = Extract(oursOnly, oursData, oursOrigin.Value,
+                captureOrigin.Value, captureData.LastTurn);
+            captureBeyond = Extract(captureOnly, captureData, captureOrigin.Value,
+                oursOrigin.Value, oursData.LastTurn);
         }
 
         return new TriggerCaptureComparisonResult(
-            inBoth, captureOnly, oursOnly, anchorId, oursOrigin, captureOrigin,
-            alignmentRefusal, aligned);
+            inBoth, captureOnly, oursOnly, oursBeyond, captureBeyond,
+            anchorId, oursOrigin, captureOrigin, alignmentRefusal, aligned);
+    }
+
+    /// <summary>Moves the one-sided events the other run stopped too early to see out of
+    /// <paramref name="only"/>. A run that ends at turn 1218 says nothing about an event due
+    /// at 1724, so counting that as a divergence reports a disagreement where there was no
+    /// observation — which is how a Level 20 idle capture that matched in all 150 columns
+    /// first read as "event set differed".</summary>
+    private static List<string> Extract(
+        List<string> only, CaptureData side, long origin, long otherOrigin, long otherLastTurn)
+    {
+        var beyond = new List<string>();
+        foreach (string id in only)
+        {
+            EventObservation e = side.Events[id];
+            if (e.FirstTurnIsCeiling) continue;
+            if (e.FirstTurn - origin + otherOrigin > otherLastTurn) beyond.Add(id);
+        }
+        only.RemoveAll(beyond.Contains);
+        return beyond;
     }
 
     private static CaptureData Read(TextReader reader, string name, string[] columns)
@@ -83,6 +109,7 @@ public static class TriggerCaptureComparison
 
         var events = new Dictionary<string, EventObservation>();
         bool firstDataRow = true;
+        long lastTurn = long.MinValue;
         string? line;
         while ((line = reader.ReadLine()) is not null)
         {
@@ -93,6 +120,7 @@ public static class TriggerCaptureComparison
                     $"'{name}' has a row of {cells.Length} columns; expected {columns.Length}.");
             if (!long.TryParse(cells[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out long turn))
                 throw new InvalidDataException($"'{name}' has an invalid tick '{cells[1]}'.");
+            lastTurn = turn;
 
             int eventEnd = 2 + TriggerState.TimerCount + TriggerState.FlagCount;
             for (int col = 2; col < eventEnd; col++)
@@ -107,7 +135,10 @@ public static class TriggerCaptureComparison
             firstDataRow = false;
         }
 
-        return new CaptureData(events);
+        if (lastTurn == long.MinValue)
+            throw new InvalidDataException($"'{name}' has a header but no data rows.");
+
+        return new CaptureData(events, lastTurn);
     }
 
     private static string? SelectAnchor(
@@ -135,7 +166,8 @@ public static class TriggerCaptureComparison
         return null;
     }
 
-    private sealed record CaptureData(Dictionary<string, EventObservation> Events);
+    private sealed record CaptureData(
+        Dictionary<string, EventObservation> Events, long LastTurn);
     private sealed record EventObservation(long FirstTurn, long FirstValue, bool FirstTurnIsCeiling);
 }
 
@@ -153,6 +185,8 @@ public sealed class TriggerCaptureComparisonResult
         IReadOnlyList<string> inBoth,
         IReadOnlyList<string> captureOnly,
         IReadOnlyList<string> oursOnly,
+        IReadOnlyList<string> oursBeyondCapture,
+        IReadOnlyList<string> captureBeyondOurs,
         string? anchorId,
         long? oursOrigin,
         long? captureOrigin,
@@ -162,6 +196,8 @@ public sealed class TriggerCaptureComparisonResult
         InBoth = inBoth;
         CaptureOnly = captureOnly;
         OursOnly = oursOnly;
+        OursBeyondCapture = oursBeyondCapture;
+        CaptureBeyondOurs = captureBeyondOurs;
         AnchorId = anchorId;
         OursOrigin = oursOrigin;
         CaptureOrigin = captureOrigin;
@@ -172,6 +208,12 @@ public sealed class TriggerCaptureComparisonResult
     public IReadOnlyList<string> InBoth { get; }
     public IReadOnlyList<string> CaptureOnly { get; }
     public IReadOnlyList<string> OursOnly { get; }
+
+    /// <summary>Our events due after the capture stopped, and the capture's due after our run
+    /// ended. Neither side disagrees about these; neither side looked.</summary>
+    public IReadOnlyList<string> OursBeyondCapture { get; }
+    public IReadOnlyList<string> CaptureBeyondOurs { get; }
+
     public bool EventSetsMatch => CaptureOnly.Count == 0 && OursOnly.Count == 0;
     public string? AnchorId { get; }
     public long? OursOrigin { get; }

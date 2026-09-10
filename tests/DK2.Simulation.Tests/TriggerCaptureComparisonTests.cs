@@ -35,6 +35,49 @@ public class TriggerCaptureComparisonTests
         Assert.Equal(1, result.LargestAbsoluteResidual);
     }
 
+    // Level 20 idle: ours restamps t1 at 1724, and the capture stopped at 1218. Before this,
+    // capture-diff called that a divergence and the verdict read "event set differed" on a run
+    // whose 150 columns were identical for every tick both sides covered.
+    [Fact]
+    public void Compare_DoesNotCallAnEventTheOtherRunStoppedBeforeADivergence()
+    {
+        using StringReader ours = Csv(
+            Row(4, ("t0", 4)),
+            Row(1218, ("t0", 4)),
+            Row(1724, ("t0", 4), ("f6", 1)));
+        using StringReader capture = Csv(
+            Row(4, ("t0", 4)),
+            Row(1218, ("t0", 4)));
+
+        TriggerCaptureComparisonResult result = TriggerCaptureComparison.Compare(
+            ours, "ours", capture, "capture");
+
+        Assert.Equal(["f6"], result.OursBeyondCapture);
+        Assert.Empty(result.OursOnly);
+        Assert.Empty(result.CaptureBeyondOurs);
+        Assert.True(result.EventSetsMatch);
+    }
+
+    // The same event one tick earlier is inside the window, so silence there is a real
+    // disagreement. Without this the fix above would excuse every one-sided event.
+    [Fact]
+    public void Compare_StillCallsAnEventInsideTheOtherRunsWindowADivergence()
+    {
+        using StringReader ours = Csv(
+            Row(4, ("t0", 4)),
+            Row(1218, ("t0", 4), ("f6", 1)));
+        using StringReader capture = Csv(
+            Row(4, ("t0", 4)),
+            Row(1218, ("t0", 4)));
+
+        TriggerCaptureComparisonResult result = TriggerCaptureComparison.Compare(
+            ours, "ours", capture, "capture");
+
+        Assert.Equal(["f6"], result.OursOnly);
+        Assert.Empty(result.OursBeyondCapture);
+        Assert.False(result.EventSetsMatch);
+    }
+
     [Fact]
     public void Compare_ReportsEventSetWithoutInventingAnAnchor()
     {

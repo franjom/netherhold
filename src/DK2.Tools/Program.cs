@@ -2431,6 +2431,12 @@ static int CaptureDiff(string[] arguments)
         Console.WriteLine($"  in both ({result.InBoth.Count}): {Ids(result.InBoth)}");
         Console.WriteLine($"  capture only ({result.CaptureOnly.Count}): {Ids(result.CaptureOnly)}");
         Console.WriteLine($"  ours only ({result.OursOnly.Count}): {Ids(result.OursOnly)}");
+        if (result.OursBeyondCapture.Count > 0)
+            Console.WriteLine("  ours, due after the capture stopped -- untested, not a "
+                + $"divergence ({result.OursBeyondCapture.Count}): {Ids(result.OursBeyondCapture)}");
+        if (result.CaptureBeyondOurs.Count > 0)
+            Console.WriteLine("  capture, due after our run ended -- untested, not a "
+                + $"divergence ({result.CaptureBeyondOurs.Count}): {Ids(result.CaptureBeyondOurs)}");
 
         if (result.AnchorId is null)
         {

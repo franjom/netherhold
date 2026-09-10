@@ -114,6 +114,27 @@ at ticks 4, 6, 7, 8, 10 and 11, so the load origin jitters and absolute ticks ar
 not comparable (Q272). `dk2tools capture-diff` removes that origin and reports a
 `+1` residual on both flags; its source remains open as Q273.
 
+**2026-09-10, Level 20 idle — the first window where nothing differs at all.**
+Reachable only after `docs/research/campaign-progress-registry.md`. Chosen
+because its idle run stamps two timers early and then does nothing: a stamp is
+*stored*, so unlike a flag it cannot be blurred by when the probe looked. Over
+ticks 36–1218 **all 150 columns are identical**, and both sides stamp timers 0
+and 1 at tick **4** (`docs/experiments/level20-idle-001`).
+
+That kills one of the two explanations for Q273's residual: our tick numbering
+carries no systematic offset. It does not settle the other, because **no event
+fired inside the window** — the first was due 506 ticks after the capture
+stopped. A silent window is worth recording and is not worth over-reading.
+
+The same run exposed a defect in `capture-diff`: our `f6`, due at 2404, was
+counted as a divergence against a capture that ended at 1218, so a run matching
+in every column reported "event set differed". An event the other side stopped
+before is untested, not divergent, and is now reported as such.
+
+**The 11-minute version of this run is the one to take next**, because it puts
+an unsampled event (t1 restamping at 1724) and a sampled one (f6 at 2404) on
+one clock and discriminates Q273 both ways.
+
 ## 2026-09-09 — there is no level worth capturing yet, and that is measurable
 
 The plan after level 1 was to find a level whose script runs on a clock rather

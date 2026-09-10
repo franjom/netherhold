@@ -6,23 +6,27 @@ using Xunit;
 
 namespace DK2.TestSupport;
 
-/// <summary>Owns the optional level-1 idle capture path and its test skip policy.</summary>
+/// <summary>Owns the optional live-capture paths and their test skip policy. Captures are
+/// evidence, not code: they live under the gitignored <c>reverse-engineering/</c>, so every
+/// test that reads one skips rather than fails where they are absent.</summary>
 public static class Dk2CaptureGate
 {
     public const string Level1IdleRelativePath = "reverse-engineering/dk2runs/dk2run6.csv";
+    public const string Level20IdleRelativePath = "reverse-engineering/dk2runs/dk2run7.csv";
 
-    public static string Path => System.IO.Path.Combine(RepositoryRoot(),
-        Level1IdleRelativePath.Replace('/', System.IO.Path.DirectorySeparatorChar));
+    public static string Path => PathFor(Level1IdleRelativePath);
 
-    public static string? SkipReason
+    public static string? SkipReason => SkipReasonFor(Level1IdleRelativePath);
+
+    public static string PathFor(string relativePath) => System.IO.Path.Combine(
+        RepositoryRoot(), relativePath.Replace('/', System.IO.Path.DirectorySeparatorChar));
+
+    public static string? SkipReasonFor(string relativePath)
     {
-        get
-        {
-            if (!Dk2InstallGate.Present) return Dk2InstallGate.SkipReason;
-            return File.Exists(Path)
-                ? null
-                : $"Missing {Level1IdleRelativePath}; ask the owner for a copy.";
-        }
+        if (!Dk2InstallGate.Present) return Dk2InstallGate.SkipReason;
+        return File.Exists(PathFor(relativePath))
+            ? null
+            : $"Missing {relativePath}; ask the owner for a copy.";
     }
 
     private static string RepositoryRoot()
@@ -35,8 +39,11 @@ public static class Dk2CaptureGate
     }
 }
 
-/// <summary><c>[Fact]</c> that skips unless the DK2 install and idle capture exist.</summary>
+/// <summary><c>[Fact]</c> that skips unless the DK2 install and the named idle capture exist.
+/// Defaults to the level-1 capture, which is the one most tests read.</summary>
 public sealed class CaptureFactAttribute : FactAttribute
 {
-    public CaptureFactAttribute() => Skip = Dk2CaptureGate.SkipReason;
+    public CaptureFactAttribute(
+        string relativePath = Dk2CaptureGate.Level1IdleRelativePath)
+        => Skip = Dk2CaptureGate.SkipReasonFor(relativePath);
 }

@@ -2007,3 +2007,29 @@ comparison for two of our runs.
 both sides must contain exactly `t15`, `f1`, `f34`, `f83`, with no unique event,
 and every measurable residual must be at most one tick. Its path and skip policy
 live in `Dk2CaptureGate`. No simulation state changed, so no `HashVersion` bump.
+
+## ADR-0118 — An event the other run stopped before is untested, not divergent
+**Date:** 2026-09-10 · **Status:** accepted · Experiment: `docs/experiments/level20-idle-001/`
+
+**Context.** ADR-0117 split events into three sets: both, capture only, ours
+only. Two runs of the same level rarely cover the same span — a capture is
+bounded by the owner's patience and our run by a turn count — so a one-sided set
+mixes two unlike things: the other side watched and saw nothing, or the other
+side had stopped. Level 20 idle made the difference visible. Our `f6` is due at
+turn 2404 and the capture ended at 1218, so a run whose 150 columns were
+identical at every tick both sides covered reported `event set differed`.
+
+**Decision.** Once an anchor is chosen, map each one-sided event onto the other
+side's clock through the two stored stamps. Those falling past that side's last
+observed turn move to `OursBeyondCapture` / `CaptureBeyondOurs`, are printed as
+untested, and do not count against `EventSetsMatch`. Events censored on a first
+row are never reclassified: they began at or before it, so they are inside the
+window by construction. Without an anchor nothing is reclassified, because
+there is no clock to map onto.
+
+**Consequences.** A verdict now distinguishes disagreement from absence of
+observation, and a short capture can no longer manufacture a divergence — nor
+hide one, since an event inside the window is still reported. The untested list
+also names what a longer capture would buy, which is how the 11-minute Level 20
+run that discriminates Q273 was chosen. No simulation state changed, so no
+`HashVersion` bump.

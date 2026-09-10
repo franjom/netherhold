@@ -120,6 +120,22 @@ requirement unsatisfiable. That leaves a genuine oddity — a 3x3 temple attract
 her while doing nothing as a temple (Q45) — recorded as **Q89** rather than
 resolved.
 
+**A portal with no rooms produces nobody — CONFIRMED (owner, 2026-09-10).**
+Level 20, five idle minutes, one owned portal, zero rooms built: nothing
+arrived. Against a 25 s base that is about a dozen missed intervals, and the
+game was demonstrably running, because the same capture shows the trigger clock
+advancing 1182 ticks (`docs/experiments/level20-idle-001`). The obvious
+confound is out — Level 20's pool is not empty; player 3 has six types, and all
+six want a room: Bile Demon and Troll a Workshop, Mistress a Torture Chamber,
+Warlock a Library, Dark Elf a Guard Room, Salamander a Training Room.
+
+This matters because it is the first check of the composition *at zero*, and
+because it contradicts a stated belief: the owner expected *"at least a goblin
+will enter no matter your room layout"*. Level 20's pool has no Goblin in it at
+all, so a Lair would not have produced one either. `PortalTests.BuildingThe`
+`LairLetsTheBankedWaitThrough` already encodes the rule; this is the first time
+the game was asked.
+
 ### 4. The clock is per portal, counts up, and runs only while owned
 
 **Per portal, CONFIRMED by observation** (owner, 2026-09-07): a second portal
