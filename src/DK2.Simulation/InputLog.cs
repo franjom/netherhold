@@ -26,12 +26,19 @@ public sealed class InputLog
     private readonly Dictionary<long, InputFrame> _frames;
 
     private InputLog(
-        Dictionary<long, InputFrame> frames, IReadOnlyList<long> turns, InputLogTally tally)
+        Dictionary<long, InputFrame> frames, IReadOnlyList<long> turns,
+        HashSet<TilePos> watched, InputLogTally tally)
     {
         _frames = frames;
         Turns = turns;
         Tally = tally;
+        Watched = watched;
     }
+
+    /// <summary>Every tile the capture mentions, whatever kind it appeared under
+    /// — the set the probe was sampling health for, so our side can trace the
+    /// same tiles and the two traces can be laid side by side.</summary>
+    public HashSet<TilePos> Watched { get; }
 
     /// <summary>Every turn that carries at least one command, ascending.</summary>
     public IReadOnlyList<long> Turns { get; }
@@ -188,7 +195,7 @@ public sealed class InputLog
             turns.Add(turn);
         }
 
-        return new InputLog(frames, turns, tally.Freeze(
+        return new InputLog(frames, turns, [.. rows.Select(r => r.Tile)], tally.Freeze(
             rows.Count == 0 ? 0 : rows.Min(r => r.Stamp),
             rows.Count == 0 ? 0 : rows.Max(r => r.Stamp)));
     }

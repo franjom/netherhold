@@ -463,3 +463,36 @@ than the Rock its `DestroyedTypeTerrainId` names — (14,32) showed Rock at a fu
 165 for a single tick, (10,28) never showed it. Three workers at 26 cannot take
 165 off in one tick, so something carries the job through.
 
+**2026-09-10, run 15 again — our side traced against DK2's, tile for tile.**
+`dk2tools replay ... --tiles` writes the same shape the probe does, watching
+exactly the tiles the capture mentions, so the two traces lay side by side.
+
+| tile | marked | first swing, DK2 | first swing, ours | dug, DK2 | dug, ours |
+|---|---|---|---|---|---|
+| (10,28) | 21 | **26** | **26** | **44** | **45** |
+| (14,24) | 25 | 64 | 55 | 87 | 67 |
+| (14,32) | 31 | 63 | 46 | 90 | 87 |
+
+**The first tile is exact** — same approach, same rates, one tick apart after
+eighteen ticks of digging. The work model is not the problem.
+
+**All of the divergence is redeployment.** DK2 finishes (10,28) at 44 and lands
+its next swings at 63 and 64, nineteen and twenty ticks later, which at the
+Imp's 1.84 tiles a second is the eight-tile walk around the dungeon heart. We
+finish at 45 and land ours at 46 and 55, because a spare worker was already on
+its way.
+
+**Why we have a spare, measured rather than guessed.** One application per
+worker per tick means a tick's health change divided by the per-worker delta
+counts the workers on that tile. Over the whole capture:
+
+| | 1 worker | 2 | 3 | 4 |
+|---|---|---|---|---|
+| DK2 | 34 ticks | 32 | 51 | **never** |
+| ours | 41 ticks | 29 | 15 | **26 ticks** |
+
+**DK2 never puts a fourth imp on anything, in 117 working ticks.** Three
+saturate the crowding cap on the marked tile and the other two marks wait.
+Ours is four, from the shipped `MinimumImpThreshold`, and the fourth walks off
+to the next mark while three dig. That is the whole 18–37 tick lead, and it is
+a population difference rather than a rate or a routing one (Q298).
