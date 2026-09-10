@@ -13,6 +13,7 @@ using DK2.Data.Model;
 using DK2.Data.Text;
 using DK2.Data.Wad;
 using DK2.Simulation;
+using DK2.Simulation.Systems;
 
 // DK2.Tools — command-line utilities for inspecting original game data.
 
@@ -30,6 +31,9 @@ switch (args[0])
     case "trigger-run" when args.Length == 4:
         return RunTriggerCsv(
             args[1], int.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture), args[3]);
+
+    case "replay" when args.Length >= 4:
+        return Replay(args);
 
     case "where":
     {
@@ -2438,6 +2442,8 @@ static int Usage()
     Console.WriteLine("  status [--fast] [--check]              regenerate the plan's status paragraph;");
     Console.WriteLine("                                         --check exits 1 if the plan is stale");
     Console.WriteLine("  trigger-run <level> <turns> <out.csv>  our per-turn trigger state, in the live probe's shape");
+    Console.WriteLine("  replay <level> <tags.csv> <out.csv> [--turns N] [--lag L] [--origin T]");
+    Console.WriteLine("                                         the same, driven by a captured task-pool log");
     Console.WriteLine("  capture-diff <ours.csv> <capture.csv> [--anchor tN]");
     Console.WriteLine("                                         event set and stamp-aligned capture timing");
     Console.WriteLine("  trigger-diff <left.csv> <right.csv>   exact per-turn diff for two of our own runs");
@@ -2477,7 +2483,7 @@ static int Usage()
 /// Runs one campaign level's trigger tree for a number of turns and writes the
 /// probe's CSV shape, so our side can be diffed against a live capture.
 /// </summary>
-static int RunTriggerCsv(string levelName, int turns, string outPath)
+static int RunTriggerCsv(string levelName, int turns, string outPath, InputLog? log = null)
 {
     string? install = Dk2Install.Find();
     if (install is null)
@@ -2509,16 +2515,38 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
     var tree = new TriggerTree(
         records, level.TriggerId, parties,
         players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
-    var simulation = new GameSimulation(database, world, seed: 0, triggers: tree)
+    // A triggers-only run is right for an idle capture -- nothing in one depends on the
+    // world changing, which is why both matched -- but it cannot honour input at all,
+    // because TileTagSystem is not there to read it. A replay therefore runs the
+    // declared system list; an idle run keeps the shape its baselines were measured in.
+    var simulation = new GameSimulation(
+        database, world, seed: 0,
+        systems: log is null ? null : SimulationSystems.Default(),
+        triggers: tree)
     {
         TrackTriggerReach = true,
     };
 
+    // A replay's tags are worth nothing if they never land, and a wrong reading of the
+    // task pool looks exactly like a level nobody dug: counting what TileTagSystem
+    // accepted turns that silent failure into a number.
+    var tally = new TagTally();
+    if (log is not null) simulation.ObserveWith(tally);
+
     using (var writer = new StreamWriter(outPath))
     {
         simulation.EmitTriggerTurnsTo(writer);
-        for (int i = 0; i < turns; i++) simulation.Tick();
+        for (int i = 0; i < turns; i++)
+        {
+            // The log is in DK2's turn numbers, which run one ahead of our tick.
+            InputFrame frame = log is null
+                ? InputFrame.Empty
+                : log.At(simulation.CurrentTick.Value + 1);
+            simulation.Tick(frame);
+        }
     }
+
+    if (log is not null) tally.Report();
 
     int occupied = tree.Parties.Count(s => s.TriggerId != 0);
     Console.WriteLine($"{levelName}: {turns} turns, root trigger {tree.RootTriggerId} "
@@ -2573,6 +2601,71 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
         Console.WriteLine($"  ASSUMED tag {r.Tag} type {r.Type} in {r.Context}: {r.Count} "
             + "-- taken as true: no modal interface state in a headless run");
     return 0;
+}
+
+/// <summary>
+/// Runs a level driven by a captured task-pool log, so our side of a played
+/// capture can be diffed against DK2's the way an idle one already is.
+/// </summary>
+static int Replay(string[] arguments)
+{
+    int turns = 600;
+    long lag = 1;
+    long origin = 1;
+    for (int i = 4; i < arguments.Length; i += 2)
+    {
+        if (i + 1 >= arguments.Length) return ReplayUsage();
+        string value = arguments[i + 1];
+        System.Globalization.CultureInfo ic = System.Globalization.CultureInfo.InvariantCulture;
+        switch (arguments[i])
+        {
+            case "--turns" when int.TryParse(value, System.Globalization.NumberStyles.Integer, ic, out int t):
+                turns = t;
+                break;
+            case "--lag" when long.TryParse(value, System.Globalization.NumberStyles.Integer, ic, out long l):
+                lag = l;
+                break;
+            case "--origin" when long.TryParse(value, System.Globalization.NumberStyles.Integer, ic, out long o):
+                origin = o;
+                break;
+            default:
+                return ReplayUsage();
+        }
+    }
+
+    InputLog log;
+    try
+    {
+        log = InputLog.Read(arguments[2], lag, origin);
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+        or InvalidDataException or ArgumentException)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 2;
+    }
+
+    InputLogTally t2 = log.Tally;
+    Console.WriteLine($"{arguments[2]}: {t2.Rows} rows -> {t2.Commands} commands over "
+        + $"{log.Turns.Count} turns, probe turns {t2.FirstStamp}..{t2.LastStamp}");
+    if (t2.Cancelled > 0)
+        Console.WriteLine($"  {t2.Cancelled} tag/untag pairs cancelled -- a tile moving "
+            + "between the pool's two tag lists, not a command");
+    if (t2.Before > 0)
+        Console.WriteLine($"  {t2.Before} commands dated before turn 1 and dropped -- the "
+            + $"probe attached after the level began, or --origin {origin} is wrong");
+    if (log.Turns.Count > 0 && log.Turns[^1] > turns)
+        Console.WriteLine($"  the log runs to turn {log.Turns[^1]} but the run stops at "
+            + $"{turns}; raise --turns to replay all of it");
+
+    return RunTriggerCsv(arguments[1], turns, arguments[3], log);
+}
+
+static int ReplayUsage()
+{
+    Console.Error.WriteLine("usage: dk2tools replay <level> <tags.csv> <out.csv> "
+        + "[--turns N] [--lag L] [--origin T]");
+    return 2;
 }
 
 static int CaptureDiff(string[] arguments)
@@ -3329,4 +3422,37 @@ static class DocBudgets
     public const int ResearchDoc = 400;
     public const int Adr = 50;
     public const int Handoff = 500;
+}
+
+/// <summary>Counts what the replayed tags did, from the events the tag system already emits.</summary>
+sealed class TagTally : ISimulationEventSink
+{
+    private int _applied;
+    private int _rejected;
+
+    public void Emit(in SimEvent simEvent)
+    {
+        if (simEvent.System != "TileTag") return;
+        foreach (string part in simEvent.Detail.Split(' '))
+        {
+            if (part.StartsWith("applied=", StringComparison.Ordinal))
+                _applied += int.Parse(part[8..], System.Globalization.CultureInfo.InvariantCulture);
+            else if (part.StartsWith("rejected=", StringComparison.Ordinal))
+                _rejected += int.Parse(part[9..], System.Globalization.CultureInfo.InvariantCulture);
+        }
+    }
+
+    /// <summary>
+    /// Rejections are the first-capture check. The pool's layout has been read but
+    /// never sampled, so if its coordinates are not tile coordinates every tag lands
+    /// off the map or on floor and this is where that shows, rather than in a
+    /// divergence report that blames a rule.
+    /// </summary>
+    public void Report()
+    {
+        Console.WriteLine($"  tags: {_applied} applied, {_rejected} rejected");
+        if (_applied == 0 && _rejected > 0)
+            Console.WriteLine("  NOTHING landed -- suspect the pool's coordinates rather "
+                + "than the level");
+    }
 }

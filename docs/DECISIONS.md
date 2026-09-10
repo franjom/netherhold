@@ -2360,3 +2360,52 @@ attributable; free play does not, which is what
 
 Not covered: creature drops and spells. Neither appears in the 696, so neither
 blocks this step.
+
+## ADR-0128 — A captured task-pool log replays as input frames
+**Date:** 2026-09-10 · **Status:** accepted · `InputLog`, `dk2tools replay`
+
+**Context.** ADR-0127 found where DK2 keeps what the player asked for and made
+the probe diff it. That produces a command log; nothing consumed one. ADR-0126
+sized what a consumer is worth: 696 records wait on keeper activity, and an
+idle capture cannot reach any of them.
+
+**Decision.** `InputLog` reads a `--tags` log into `InputFrame`s keyed by DK2
+turn, and `dk2tools replay <level> <tags.csv> <out.csv>` runs a level driven by
+one, writing the probe's CSV shape so `capture-diff` compares a *played*
+capture exactly as it already compares an idle one.
+
+Three readings the log needs and the file does not carry, so all three are
+arguments rather than inferences:
+
+- **`--lag`, default 1.** A sampled column is one turn late (ADR-0119), so a
+  row stamped 41 is a command issued on 40.
+- **`--origin`, default 1.** Which DK2 turn our turn 1 is. A capture that
+  attached mid-level lines up by setting it; commands dated before turn 1 are
+  dropped and *counted*, so a wrong origin is visible rather than silent.
+- **A tag and an untag of one tile in one sample cancel.** The pool splits
+  tagged tiles into two lists by whether the terrain holds gold, so a tile
+  crossing between them appears as both. Replaying the pair would unmark a
+  tile the player still wants dug. The cancellation is safe because the
+  alternative reading — a real untag and retag inside one sample — nets to no
+  change in the pool and emits no rows at all.
+
+**A replay runs the systems; an idle run does not.** `trigger-run` registers no
+systems, which is why its output is purely the trigger tree's. That cannot
+honour input at all — `TileTagSystem` is not there to read it — so `replay`
+registers `SimulationSystems.Default()`.
+
+**Measured, not assumed: that costs nothing.** With an empty log, level1 and
+Level20 produce trigger output identical to the triggers-only run over 600
+turns, every column. So the whole declared system list moves no flag and no
+timer on an idle campaign level, and the two matched baselines survive the
+change. It also says something about the idle captures: they matched partly
+because nothing in them depended on the world changing.
+
+**Consequences.** The replay reports `applied` and `rejected` tag counts from
+the events the tag system already emits. That is the **first-capture check**:
+the pool's layout is read but never sampled, so if its coordinates are not tile
+coordinates, every tag lands off the map or on floor and the count says so —
+rather than a divergence report that blames a rule (Q287).
+
+Still missing on the recording side: rooms, creature drops and spells. Rooms
+are the larger half of the 696 and are next.

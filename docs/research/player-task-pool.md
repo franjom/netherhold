@@ -5,9 +5,9 @@
 | Source(s) | `DKII.EXE` v1.70 — the area condition 62 counter `0x004B0960`, the per-coordinate lookup `0x00508290`, the total at `0x00508300`, and `FUN_00512D20` |
 | Observed behaviour | Not yet sampled from the running game |
 | Confidence | **STRONGLY INFERRED** — the layout is read directly, but nothing has been read out of a live process yet |
-| Implementation | `TileState.IsTaggedBy` / `TileTagSystem` model the tagged set; nothing reads DK2's pool |
-| Tests | `TriggerAreaConditions` type 62 (`Tagged`) |
-| Open questions | Q286 — what kinds 3–15 are |
+| Implementation | `TileState.IsTaggedBy` / `TileTagSystem` model the tagged set; `InputLog` replays a captured log |
+| Tests | `TriggerAreaConditions` type 62 (`Tagged`), `InputLogTests` |
+| Open questions | Q286 — what kinds 3–15 are; Q287 — whether entry coordinates are tile coordinates |
 
 ## Why this matters more than a tile flag
 
@@ -75,3 +75,32 @@ lines up with `GameSimulation.Tick(in InputFrame)` on our side.
 iteration, but no value has been read out of DK2 yet; the first capture is also
 the first test of this layout. Expect the tick column to be one late, as every
 sampled column is (ADR-0119).
+
+## Replaying it
+
+`InputLog` reads the log back as `InputFrame`s and `dk2tools replay <level>
+<tags.csv> <out.csv>` drives a level with them, writing the probe's CSV shape
+so `capture-diff` compares a played capture the way it already compares an idle
+one (ADR-0128). Three readings are arguments rather than inferences, because
+the file does not carry them:
+
+| `--lag` | how many turns late the stamp is; one, as every sampled column is |
+|---|---|
+| `--origin` | which DK2 turn our turn 1 is, for a capture that attached late |
+| cancellation | a tag and an untag of one tile in one sample are a list migration |
+
+The last is the one that would corrupt a replay silently. A tile crossing
+between kinds 1 and 2 is untagged and tagged in the same sample, and replaying
+that pair unmarks a tile the player still wants dug. It cancels safely because
+a *real* untag and retag inside one sample nets to no change in the pool and
+emits no rows at all.
+
+A replay registers `SimulationSystems.Default()`, unlike `trigger-run`, which
+registers none — without `TileTagSystem` there is nothing to honour the input.
+On level1 and Level20 that costs nothing: with an empty log the trigger output
+is identical to the triggers-only run across all 600 turns, so both matched
+baselines survive.
+
+**The `applied`/`rejected` line is the first-capture check.** If these
+coordinates are not tile coordinates, every tag lands off the map or on floor
+and the count says so, instead of a divergence report blaming a rule (Q287).
