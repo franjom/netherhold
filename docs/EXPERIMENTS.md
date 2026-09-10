@@ -388,8 +388,8 @@ exactly 61; run 13's ran 61, 61 and 75. Walk time is near zero - each task is
 created the tick after the adjacent claim ends, with the imp standing on the
 tile it just claimed - and run 14's three overlapped yet came out identical, so
 61 is work, not scheduling. Against it: our model spends 50 applications, and
-the owner's stopwatch (Q62) read 13.1-13.8 s, which at the rate below is also
-about 50 ticks. **The pool task is some 11 ticks longer than both** (Q296).
+the owner's stopwatch (Q62) read 13.1-13.8 s, which at the rate below is
+50-54 ticks. **The pool task is 7 to 11 ticks longer than both** (Q296).
 
 **A tick is not 250 ms.** The probe times the game's own turn counter against
 the wall clock, and four clean runs disagree with `SimulationTiming`'s note:
