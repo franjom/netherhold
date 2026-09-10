@@ -458,8 +458,8 @@ the lagging flags are dig-driven, so the change moved exactly what it should.
 involved, or they start nearer — unidentified, and worth measuring against a
 capture's approach times rather than guessed at again (Q296).
 
-**One thing raised, Q297.** Digging a Reinforced Wall ends at Dirt Path rather
-than the Rock its `DestroyedTypeTerrainId` names — (14,32) showed Rock at a full
-165 for a single tick, (10,28) never showed it. Three workers at 26 cannot take
-165 off in one tick, so something carries the job through.
+**Q297, answered.** Digging a Reinforced Wall ends at Dirt Path: (14,32) showed
+Rock at 165 for one tick, while (10,28) never showed it. The marked dig persists
+and each swing reselects its rate from the current tile, so only queue position
+determines whether the intermediate Rock survives to a sample (`runtime-map.md`).
 

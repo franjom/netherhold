@@ -1594,7 +1594,7 @@ Legal basis: copyright protects expression, not names, titles or short phrases, 
 - Scenario tick budgets now cover five times as much game time; nothing breaks and every hash is stable, but several are longer than their author intended.
 - `TicksPerSecond` and `OriginalTicksPerGameSecond` stay separate constants despite both being 4. One is our step rate, free to be refined; the other is a fact about DK2, in the same class as a tabled balance variable. Collapsing them would make facts about the original depend on a choice of ours.
 - The stage count predicts something separate and checkable: a tile's *appearance* steps `terrain+0x1c3` times as it is worked, which need not equal the number of swings. A claim that Q46's *"2-3-4 jumps MAX"* had therefore been counting stage crossings rather than swings was **withdrawn the same day**: the owner's *"an imp will go to it, jump a few times on it and claim it"* has the **imp** jumping, once per application, so four applications and two-to-four visible jumps corroborate the swing count as originally recorded. Ask the owner what an observation meant rather than reinterpreting it to dissolve an inconsistency.
-- **This ADR's fill-in paragraph is obsolete.** It stated that filling in a claimed path completes in one application, because Claimed Path ships at 660 of a 660 maximum and `FillInHealth` (+5, so +1 an application) trips the compare immediately — and it noted that the same unguarded compare would turn a *healed* claimed path into Rock, so DK2 has a guard here that has not been read (**Q215**, still open; our `CompletesUpward` gate stands in for it, which is why repair does not convert). **Code now: DK2 has no fill-in mechanism at all — `FillInHealth` has no reader anywhere in the executable and `TileWorkKind.FillIn` is deleted (Q219); the one-application test and the scenario caveat that quoted it are gone (see ADR-0101).**
+- **This ADR's fill-in paragraph is obsolete.** DK2 has no fill-in mechanism: `FillInHealth` has no reader and `TileWorkKind.FillIn` is deleted (Q219). The max-health compare really is unguarded; caller reachability keeps it safe (Q215, `tile-work.md`).
 - `HashVersion` and the snapshot format both 34 → **35**, pin `0x368FDF9DF3D0A6EA`.
 - Rejected: keeping 20 as a sub-tick substrate. It would have kept every existing number and the accidental 13.2 s reinforce, but that fit was the product of two errors and the substrate would have preserved a cadence the binary contradicts.
 
@@ -2625,3 +2625,26 @@ that lag are dig-driven.
 which we did not model. We do: `ImpTaskSystem.UpdateMoving` walks a worker to its
 stance and only swings once `IsInWorkingPosition` passes. The claim came from a
 grep that missed the call. What drives the 18–37 tick lead is unidentified.
+
+## ADR-0134 — A marked dig continues through a wall's intermediate Rock
+
+**Date:** 2026-09-10 · **Status:** accepted · Q215/Q297
+
+**Context.** Run 15 saw one dug Reinforced Wall remain Rock for one tick and
+another pass from Reinforced Wall to Dirt Path between samples. Our fixed
+`DigOwnWall` order stopped when the wall became unowned Rock.
+
+**Decision.** The three rate variants of a marked, non-gold dig are one
+continuing task. Before every application, resolve Rock, own wall or enemy wall
+from the tile's current terrain and owner. Preserve queue order: workers already
+queued later in a tick observe changes made by earlier workers.
+
+This follows DK2's worker handler, which selects one of the three rates before
+its shared applier call. The applier carries no overflow and performs one
+terrain conversion per call. It also has no max-health work-kind guard; caller
+reachability keeps floor healing out (Q215, `tile-work.md`).
+
+**Consequences.** Reinforced Wall still becomes Rock at 165. Two later rock
+applications remove 100 then 65, so queue position alone produces both captured
+timelines. `HashVersion` and snapshot `FormatVersion` move 54 → 55; no state
+field changed, but a resumed dig job now evolves differently.

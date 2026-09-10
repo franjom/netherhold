@@ -1156,6 +1156,14 @@ public sealed class ImpTaskSystem : ISimulationSystem
         if (IsExcavation(creature.TargetWork) && !tile.IsTaggedBy(creature.OwnerPlayerId))
             return false;
 
+        if (TileWorkRules.TryResolveDigTask(
+                context.Database, tile, creature.TargetWork, creature.OwnerPlayerId,
+                out TileWorkKind currentKind))
+        {
+            creature.TargetWork = currentKind;
+            return true;
+        }
+
         return TileWorkRules.Applies(
             context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
     }

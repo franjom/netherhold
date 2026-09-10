@@ -70,7 +70,7 @@ Combat (Q8), hero-party spawning and effect-generator behaviour (their state exi
 
 - **One deliberate departure from shipped data:** `DigRockHealth` −5000 is corrected to −500 because the owner measured two swings to dig a wall (ADR-0023, Q20). `ObservedCorrections` is the only place such a number may live, and lists the five conditions for adding one.
 - **Portal interval** `(n² + EntranceGenerationSpeedSeconds)` s with `n` this portal's own tally (ADR-0086, stopwatch-confirmed); whether the tally is ever zeroed is unread (both zero-stores are vtable-only). A worn portal lost and re-claimed is the missing observation.
-- **Fill-in of a claimed path completes in one application** because Claimed Path ships at 660 of 660 and the read rule converts at `MaxHealth` (Q215: DK2's guard is unread; disassemble `0x00453058` onward). Unreachable in ours since `FillIn` was deleted, so no imp can do it.
+- **The max-health conversion has no work-kind guard** (Q215, `tile-work.md`). It is safe because floor repair and fill-in are unreachable; repairable walls/rooms point to themselves.
 - **The determinism pin spawns no creatures** (Q206): `TestWorld.World` places none, so creature-state changes move the pin through `HashVersion` alone.
 - **A trigger timer's unit depends on where you read it** (ADR-0102 amendments): the `.kld` holds **seconds**, DK2's level trigger initialiser multiplies by variable 19 in place at load (`0x0050C2DB` in `FUN_0050B5B0`, condition types 2 and 34, action types 16 and 23), the comparison consumes **ticks**, and a save game would contain the scaled value. Confirmed by reading level 1's condition array out of the running game: all 22 timer thresholds held the authored value times four. Ours takes seconds and converts in `HasElapsed`; when the `.kld` trigger loader is written the conversion must happen exactly once — there or at the comparison, never both.
 - **Install-gated tests skip, they do not pass** (ADR-0100, `tests/DK2.TestSupport/InstallGate.cs`): `[InstallFact]`/`[InstallTheory]` set `Skip` when `Dk2Install.Find()` is null; `InstallGateTests` fails the build if a `return`-on-null reappears; `DK2_REQUIRE_INSTALL=1` turns a missing install into a failure. CI (`.github/workflows/ci.yml`, Linux + Windows) sets `DK2_DIR: /nonexistent`, so every real-data test is reported skipped there.
@@ -423,7 +423,6 @@ Cheap to expensive; stop when the question is answered. `AGENTS.md` gives the ra
 | Q | Read |
 |---|---|
 | Q209 | the walkability predicate for objects (see Next steps 1) |
-| Q215 | what guards DK2's "health reached `MaxHealth`" conversion — disassemble `0x00453058` onward; the decompile dropped the branch body |
 | Q217, Q218 | who sets the keeper's casino flag at `player+0x20D`; what passes the research adder `FUN_004c2dc0` a negative amount (`CallScanAll.py`, all blocks) |
 | Q216 | does slapping a researcher visibly triple research (needs the research tree) |
 | Q204 | `player+0x76 & 4` — a fallen dungeon heart? |

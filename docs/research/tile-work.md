@@ -3,11 +3,11 @@
 | | |
 |---|---|
 | Source(s) | `Terrain.kwd` and `GlobalVariables.kwd` (reference install); `DKII.EXE` v1.70 — the applier `FUN_00452f60`, the imp's claim/reinforce/attack handlers, `FUN_00488930`; owner measurements 2026-08-29 to 2026-09-06, off the gold counter and the status bar |
-| Confidence | **CONFIRMED**: the data, the deficit rule, the 273-gold swing, the once-a-tick cadence, Efficiency and its two bonuses, and — run 15, tile by tile — all four per-application deltas (ADR-0133). **STRONGLY INFERRED**: that the deltas are per game second, that upward conversion belongs to the work, per-player tagging. **UNKNOWN**: what guards DK2's upward conversion (Q215); whether a second worker adds a second application; what moved the base work rate mid-session |
+| Confidence | **CONFIRMED**: the data, the deficit rule, the 273-gold swing, the once-a-tick cadence, Efficiency and its two bonuses, and — run 15, tile by tile — all four per-application deltas (ADR-0133). **STRONGLY INFERRED**: the unguarded upward-conversion path (Q215), that the deltas are per game second, per-player tagging. **UNKNOWN**: whether a second worker adds a second application; what moved the base work rate mid-session |
 | Implementation | `TileWorkRules`, `Systems/TileWorkSystem`, `Systems/TileTagSystem`, `EfficiencyRules`, `ObservedCorrections`; `TileState.Health`; `SimulationTiming.WorkApplicationShift` (sizes an application) and `.WorkApplicationsPerSecond` (schedules it) |
 | Tests | `TileWorkTests`, `TileWorkOnRealDataTests` (re-runs the rules against the real database and asserts the terrain transition graph terminates for every tile of a campaign level), `DugOutTilesStayDugOutTests` |
 | Known exceptions | `DigRockHealth` is the project's only `ObservedCorrections` override (Q20, ADR-0023) |
-| Open questions | Q215, Q74, the mid-session base-rate shift below. **Q292 and Q62 are answered by run 15's health trace (ADR-0133); the rates below are measured, and the swing arithmetic in this file predates them** — `EXPERIMENTS.md` has the traces |
+| Open questions | Q74 and the mid-session base-rate shift below. **Q215, Q292 and Q62 are answered; the rates below are measured, and the swing arithmetic in this file predates run 15** — `EXPERIMENTS.md` has the traces |
 
 Every number comes from the reference install; none is written into the code.
 Who does the work and how they choose it: `imp-tasks.md`.
@@ -345,7 +345,7 @@ delta >= 0:  if (health + delta > 32000) health = 32000
              else                        health += delta
 
 then:  health == 0             -> become terrain[+0x1c6]   (destroyedType)
-       health >= terrain+0x1ad -> become terrain[+0x1c9]   (maxHealthType)
+       health >= terrain+0x1ad -> become terrain[+0x1c5]   (maxHealthType)
 ```
 
 **The tile's health IS the accumulator.** There is no separate progress field:
@@ -376,15 +376,16 @@ watched the **imp** jump, once per application. A tile's *appearance* should ste
 something separate to check. A consequence of health-as-progress in the other
 direction: **a half-reinforced wall is a tougher wall and looks it.**
 
-### The one weak point, named
+### Q215 — there is no work-kind guard
 
-The conversion compare has **no visible test of which kind of work raised the
-health**. Taken literally, healing a damaged Claimed Path back to full would turn
-it into Rock — Claimed Path's max-health type *is* Rock — which cannot be the
-game's behaviour. A guard exists and was **not read**: the decompiler dropped
-that branch's body and only the compare survived, the same trap as the empty `if`
-bodies that hid the health store until the disassembly was read directly.
-`TileWorkRules.CompletesUpward` stands in for it and is explicitly ours. **Q215.**
+**STRONGLY INFERRED from DKII.EXE v1.70.** After excluding zero health,
+`0x004532D9` loads `MaxHealth`, `0x004532E0` compares the new health, and
+`0x004532E9` loads `MaxHealthTypeTerrainId`; no instruction reads the delta or
+caller. An unchanged destination only clamps health (`0x004535C7`).
+
+The safety is in reachability. `RepairTileHealth` and fill-in have no path
+(Q219), while wall and room repair target terrain whose destination is itself.
+Our `CompletesUpward` names that caller invariant, not a binary guard.
 
 ## How this was established
 

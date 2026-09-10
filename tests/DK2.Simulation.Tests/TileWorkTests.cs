@@ -198,13 +198,49 @@ public class TileWorkTests
     }
 
     [Fact]
-    public void DestroyedReinforcedWall_RevertsToRock_NotToFloor()
+    public void DigTaskContinuesFromDestroyedReinforcedWallThroughRock()
     {
         TileState tile = TileOf(Dk2TerrainFixture.ReinforcedWall, owner: 1);
         while (tile.TerrainId == Dk2TerrainFixture.ReinforcedWall)
             TileWorkRules.Apply(Db, ref tile, TileWorkKind.DigOwnWall, 1);
 
         Assert.Equal(Dk2TerrainFixture.Rock, tile.TerrainId);
+
+        TileWorkResult firstRockSwing =
+            TileWorkRules.Apply(Db, ref tile, TileWorkKind.DigOwnWall, 1);
+        TileWorkResult secondRockSwing =
+            TileWorkRules.Apply(Db, ref tile, TileWorkKind.DigOwnWall, 1);
+
+        Assert.Equal(-100, firstRockSwing.HealthDelta);
+        Assert.Equal(-65, secondRockSwing.HealthDelta);
+        Assert.Equal(Dk2TerrainFixture.DirtPath, tile.TerrainId);
+    }
+
+    [Fact]
+    public void WorkerOrderExplainsBothObservedReinforcedWallTimelines()
+    {
+        GameSimulation sim = Dk2TerrainFixture.Simulation();
+        ref TileState oneTickRock = ref sim.World.Tile(5, 1);
+        ref TileState noVisibleRock = ref sim.World.Tile(6, 1);
+        oneTickRock = TileOf(Dk2TerrainFixture.ReinforcedWall, owner: 1);
+        noVisibleRock = TileOf(Dk2TerrainFixture.ReinforcedWall, owner: 1);
+        oneTickRock.Health = 26;
+        noVisibleRock.Health = 26;
+
+        sim.World.QueueWork(5, 1, TileWorkKind.DigOwnWall, 1);
+        sim.World.QueueWork(6, 1, TileWorkKind.DigOwnWall, 1);
+        sim.World.QueueWork(6, 1, TileWorkKind.DigOwnWall, 1);
+        sim.World.QueueWork(6, 1, TileWorkKind.DigOwnWall, 1);
+        sim.Tick();
+
+        Assert.Equal(Dk2TerrainFixture.Rock, oneTickRock.TerrainId);
+        Assert.Equal(Dk2TerrainFixture.DirtPath, noVisibleRock.TerrainId);
+
+        sim.World.QueueWork(5, 1, TileWorkKind.DigOwnWall, 1);
+        sim.World.QueueWork(5, 1, TileWorkKind.DigOwnWall, 1);
+        sim.Tick();
+
+        Assert.Equal(Dk2TerrainFixture.DirtPath, oneTickRock.TerrainId);
     }
 
     // ---- gold ------------------------------------------------------------

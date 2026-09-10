@@ -158,12 +158,10 @@ public static class TileWorkRules
     }
 
     /// <summary>
-    /// Whether reaching maximum health under this kind of work converts the tile
-    /// to its <see cref="TerrainDef.MaxHealthTypeTerrainId"/>.
-    /// <para>A property of the work, not of the health level: Claimed Path ships
-    /// at 660/660 with a max-health type of Rock, so a level-triggered rule would
-    /// turn every claimed floor tile in every level to rock on the first tick.
-    /// STRONGLY INFERRED (Q18, docs/research/tile-work.md).</para>
+    /// Which callers can raise health into a different
+    /// <see cref="TerrainDef.MaxHealthTypeTerrainId"/>. DK2's applier has no such
+    /// guard; its callers make the distinction, and no positive path heals floor
+    /// (Q215, docs/research/tile-work.md).
     /// </summary>
     public static bool CompletesUpward(TileWorkKind kind) =>
         kind is TileWorkKind.Claim or TileWorkKind.Reinforce;
@@ -300,8 +298,43 @@ public static class TileWorkRules
         TileWorkKind.DigEnemyWall,
     ];
 
+    private static readonly TileWorkKind[] DigTaskWorkKinds =
+    [
+        TileWorkKind.Dig,
+        TileWorkKind.DigOwnWall,
+        TileWorkKind.DigEnemyWall,
+    ];
+
     /// <summary>Every kind of work a dig marker can call for. Order carries no meaning.</summary>
     public static IReadOnlyList<TileWorkKind> TaggedWork => TaggedWorkKinds;
+
+    /// <summary>Re-resolves a continuing kind-1 dig task against the tile as it
+    /// exists now. DK2 selects the rock, own-wall or enemy-wall rate before every
+    /// application, so breaking a reinforced wall does not end its task at Rock
+    /// (Q297).</summary>
+    public static bool TryResolveDigTask(
+        GameDatabase database,
+        in TileState tile,
+        TileWorkKind requested,
+        byte playerId,
+        out TileWorkKind resolved)
+    {
+        if (requested is not (TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall))
+        {
+            resolved = requested;
+            return false;
+        }
+
+        foreach (TileWorkKind candidate in DigTaskWorkKinds)
+        {
+            if (!Applies(database, tile, candidate, playerId)) continue;
+            resolved = candidate;
+            return true;
+        }
+
+        resolved = requested;
+        return false;
+    }
 
     /// <summary>What work a tile marked by <paramref name="playerId"/> is asking
     /// for — the whole mapping from "the keeper marked this" to "an imp does that":
@@ -339,6 +372,9 @@ public static class TileWorkRules
         byte playerId,
         int efficiency = EfficiencyRules.BaseModifier)
     {
+        if (TryResolveDigTask(database, tile, kind, playerId, out TileWorkKind currentKind))
+            kind = currentKind;
+
         if (!Applies(database, tile, kind, playerId))
             return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
 

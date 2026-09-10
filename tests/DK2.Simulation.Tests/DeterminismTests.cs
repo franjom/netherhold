@@ -106,7 +106,7 @@ public class DeterminismTests
         // fraction rather than banking it and the accumulator was modelling nothing
         // (ADR-0133). The pinned world spawns no creatures (Q206), so a missing
         // CreatureState field will not fail this pin.
-        Assert.Equal(0x2820694B7F459227UL, sim.StateHash());
+        Assert.Equal(0xE5035AF2FB584476UL, sim.StateHash());
     }
 
     [Fact]

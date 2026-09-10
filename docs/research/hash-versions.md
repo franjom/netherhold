@@ -33,7 +33,12 @@ beside it.
 
 ## Versions
 
-**54** — `0x2820694B7F459227` (current). `TileState.WorkRemainder` **removed**. It
+**55** — `0xE5035AF2FB584476` (current). A continuing marked dig task re-resolves the tile before each
+application, so Reinforced Wall proceeds through Rock to Dirt Path (ADR-0134).
+No state field changed; the version separates snapshots whose resumed jobs have
+different behaviour.
+
+**54** — `0x2820694B7F459227`. `TileState.WorkRemainder` **removed**. It
 carried the fraction a tabled per-second delta left over when divided by five, so
 the per-second rate held exactly. Run 15 read a reinforcing tile's health word 20
 times a second and counted 54 consecutive steps of 9 against a tabled 9.6: DK2

@@ -7,7 +7,7 @@
 | Confidence | **CONFIRMED** — the terrains came back 2/3/6/8/9 and every health sat inside its tabled maximum |
 | Implementation | Read by `dk2watch.py --tiles`; nothing in `src/` uses it |
 | Tests | — |
-| Open questions | Q292 answered: 164, five times (ADR-0133). Q297 — a dug Reinforced Wall reaches Dirt Path in one tick on one tile and two on another |
+| Open questions | Q292 and Q297 answered (ADR-0133/0134) |
 
 ## Finding a tile
 
@@ -66,8 +66,19 @@ straight: Rock 165 climbing by 9, Dirt Path 1 climbing by 164, Gold 660 falling
 by 60, each converting at its tabled maximum. That settled four work rates at
 once (ADR-0133) and closed Q62, Q292 and Q296 in one capture.
 
-One thing it raised. Digging a **Reinforced Wall** ends at Dirt Path, not at the
-Rock its `DestroyedTypeTerrainId` names: (14,32) showed Rock at a full 165 for a
-single tick and (10,28) never showed it at all. Three workers at 26 each cannot
-take 165 off in a tick, so something carries the job through the intermediate
-terrain — Q297.
+## Q297 — the task survives, and every swing selects its rate again
+
+**STRONGLY INFERRED from DKII.EXE v1.70; CONFIRMED outcome in run 15.** There is
+no overflow carry and no chained destroy inside `FUN_00452F60`. The worker
+handler selects a rate before every call: `0x00496E75` loads the own-wall rate,
+`0x00496FE3` the rock rate and `0x00497090` the enemy-wall rate, then the shared
+call at `0x0049713D` applies it to the tile as it exists at that moment.
+
+The swing that empties Reinforced Wall therefore follows destroyed type 2 and
+creates Rock at 165. The dig task and tag remain valid, so a later worker
+resolves the same tile as unowned Rock and uses the rock rate. If the breaking
+swing is last in the tick, the sampler sees Rock until the next tick, as at
+(14,32); if another application follows before the sample, it sees the direct
+wall-to-floor change at (10,28). Ours keeps its measured two-swing rock
+correction (Q20), so two queued applications remove 100 then 65. The intermediate
+Rock is real in both cases; only its lifetime differs.

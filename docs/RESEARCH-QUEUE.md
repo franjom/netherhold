@@ -228,11 +228,6 @@ decision state on `random(100) < 20`, but down one of two paths: when
 rate. `FUN_00494a00` reads bit 0 of `creature + 0xFE`, an entry in a table of
 27-byte records indexed by a small id. Read that predicate.
 
-**Q215 — what guards DK2's "health reached MaxHealth" conversion?**
-`FUN_00452f60` converts a tile to its `MaxHealthTypeTerrainId` the moment the
-health reaches `terrain+0x1ad`, with no visible test of *which* kind of work
-raised it. Disassemble `0x00453058` onward rather than trusting the decompile.
-
 **Q217 — what sets the keeper's casino flag at `player+0x20D`?** The research
 adder's first bonus is gated on a 16-bit field beside the research accumulator
 being non-zero, and the percentage comes from
