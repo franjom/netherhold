@@ -984,9 +984,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
                     return false;
                 break;
 
+            // A wall is only worth reinforcing where it faces the keeper's own
+            // ground (Q295, owner). Today a guard rather than a change -- see
+            // TouchesOwnFloor for why it cannot yet fire.
             case JobPriority.Reinforce:
                 if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Reinforce, playerId))
                     return false;
+                if (!TouchesOwnFloor(context, world, target, playerId)) return false;
                 kind = TileWorkKind.Reinforce;
                 break;
 
@@ -1102,6 +1106,35 @@ public sealed class ImpTaskSystem : ISimulationSystem
                 if (!TileWorkRules.TryTaggedWork(context.Database, neighbour, playerId, out TileWorkKind kind)) continue;
                 if (kind != TileWorkKind.MineGold) return true;
             }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether one of the wall's four sides faces floor this keeper owns, which
+    /// is what makes it reinforceable. CONFIRMED (owner, 2026-09-10): "as soon
+    /// as the floor tile is claimed walls are eligible to be reinforced".
+    /// <para><b>Four, not eight</b> — ours: a wall reinforces the face it shows
+    /// a corridor, and targets already come from four neighbours.</para>
+    /// <para><b>It cannot fire today</b>, and is kept as a guard; ADR-0132 has
+    /// the argument and what would change it.</para>
+    /// </summary>
+    private static bool TouchesOwnFloor(
+        SimulationContext context, WorldState world, TilePos target, byte playerId)
+    {
+        ReadOnlySpan<int> dx = [1, -1, 0, 0];
+        ReadOnlySpan<int> dy = [0, 0, 1, -1];
+
+        for (int i = 0; i < 4; i++)
+        {
+            var at = new TilePos(target.X + dx[i], target.Y + dy[i]);
+            if (!world.Contains(at)) continue;
+
+            ref TileState neighbour = ref world.Tile(at);
+            if (neighbour.OwnerPlayerId != playerId) continue;
+            if (context.Database.TerrainById(neighbour.TerrainId).IsSolid) continue;
+            return true;
         }
 
         return false;

@@ -2540,3 +2540,39 @@ inferred from the shape of a capture and both were wrong. A capture records
 what the game did and never who caused it. The owner labelling two cancellations
 in advance settled in one run what two unlabelled runs could not, and it is now
 the standing protocol: **ask for labelled play before inferring provenance**.
+
+## ADR-0132 — Reinforcing needs the keeper's floor beside it, and that guard is inert today
+**Date:** 2026-09-10 · **Status:** accepted · owner confirmation · `ImpTaskSystem`
+
+**Context.** Our reinforce eligibility was tile-local — solid, penetrable,
+unowned, below its maximum-health type — with no neighbour condition. The
+owner: *"imps automatically reinforce walls, as soon as the floor tile is
+claimed walls are eligible to be reinforced"*, and every reinforce task in run
+11 sits on a wall touching a tile just claimed.
+
+**Decision.** A wall is reinforceable only where one of its four sides faces
+floor this keeper owns. The test goes where the job is chosen, not in
+`TileWork.Applies`, which is handed one tile and no world.
+
+**Four sides, not eight** — ours. A wall reinforces the face it presents to a
+corridor and a diagonal neighbour presents none; targets are already chosen
+from four neighbours, so eight here could only reject walls the worker reaches.
+Nothing observed needs the diagonal.
+
+**It changes no behaviour, and that was checked rather than assumed.** The
+determinism pin did not move and no test failed. The reason: a wall is only
+ever reached from an orthogonally adjacent tile a worker stands on, so either
+that tile is the keeper's floor and the rule passes, or it is not and
+**claiming outranks reinforcing**, so the floor becomes the keeper's first.
+Ground that cannot be claimed — water, lava — cannot be stood on either.
+
+**So it is a guard, not a fix**, and the code says so. It starts doing work the
+moment anything lets a worker stand on ground it cannot claim: a bridge over
+water, a rival's floor it may not take.
+
+**Two fixtures had to be thrown away to learn this**, both states DK2 cannot
+produce: Dirt Path with an owner stamped on it (Dirt Path is not `Ownable`),
+and Claimed Path with no owner (claimed *means* owned). Each behaved
+confusingly for that reason alone. A test standing on an impossible tile
+measures nothing, and the negative half of this pair was deleted rather than
+kept green.

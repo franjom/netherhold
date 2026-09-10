@@ -125,10 +125,11 @@ tick to seventy-eight. The exception is a worker dropped beside a wall, which
 reinforces it there and then; `ImpTaskSystem.TryTakeDroppedJob` already models
 both, and `JobPriority.Reinforce` is already last.
 
-**What is not modelled is the eligibility** (Q295): our predicate is
-tile-local — solid, penetrable, unowned, below its maximum-health type — with
-no requirement that a claimed floor tile touch it. So an imp of ours may
-reinforce a wall nowhere near its dungeon.
+**The eligibility is now modelled** (Q295, ADR-0132), though it changes
+nothing today: a wall is only ever reached from an adjacent tile a worker
+stands on, so either that tile is the keeper's floor — and the rule passes —
+or it is not, and claiming outranks reinforcing. It is kept as a guard because
+the rule is the original's.
 
 Kind 14 is the freshly-dug tile awaiting a claim: it appears the sample a dig
 completes and clears when the claim does, which is what `ImpTaskSystem` already

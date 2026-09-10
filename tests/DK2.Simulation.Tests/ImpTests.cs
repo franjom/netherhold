@@ -122,6 +122,49 @@ public class ImpTests
         Assert.Contains("priority=Reinforce", taken.Detail);
     }
 
+    /// <summary>
+    /// CONFIRMED (owner, 2026-09-10): "as soon as the floor tile is claimed
+    /// walls are eligible to be reinforced". The keeper's own ground is what
+    /// makes a wall worth reinforcing.
+    /// </summary>
+    [Fact]
+    public void AWallBesideTheKeepersOwnFloorIsReinforced()
+    {
+        Run run = StartOnOwnedFloor();
+
+        run.Ticks(SimulationTiming.TicksFromSeconds(1));
+
+        SimEvent taken = Assert.Single(run.Of("job_taken"));
+        Assert.Contains("priority=Reinforce", taken.Detail);
+    }
+
+    /// <summary>
+    /// A worker on a square of claimed path away from the fixture's own keeper
+    /// room, with reinforceable rock around it. The floor must be
+    /// <see cref="Dk2TerrainFixture.ClaimedPath"/> and not dirt with an owner
+    /// stamped on it: dirt is not <c>Ownable</c>, and the pair would then
+    /// differ in terrain as well as in ownership.
+    /// </summary>
+    private static Run StartOnOwnedFloor(bool owned = true)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+
+        var at = new TilePos(8, 5);
+        ref TileState floor = ref world.Tile(at);
+        floor.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        floor.Health = database.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
+        floor.OwnerPlayerId = owned ? Keeper : PlayerIds.Unowned;
+
+        world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, at);
+
+        var sim = new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems());
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+        return new Run(sim, sink);
+    }
+
     [Fact]
     public void AnIdleImp_LooksForWorkOnTheIntervalTheDataNames()
     {
