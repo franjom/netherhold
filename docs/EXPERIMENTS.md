@@ -491,8 +491,15 @@ counts the workers on that tile. Over the whole capture:
 | DK2 | 34 ticks | 32 | 51 | **never** |
 | ours | 41 ticks | 29 | 15 | **26 ticks** |
 
-**DK2 never puts a fourth imp on anything, in 117 working ticks.** Three
-saturate the crowding cap on the marked tile and the other two marks wait.
-Ours is four, from the shipped `MinimumImpThreshold`, and the fourth walks off
-to the next mark while three dig. That is the whole 18–37 tick lead, and it is
-a population difference rather than a rate or a routing one (Q298).
+**DK2 never puts a fourth imp on anything, in 117 working ticks** — and it had
+four. The owner confirmed the count the same day, which turns this from a
+population difference into a scheduling one. The whole 60-second task pool held
+only the six tiles above, so DK2's fourth imp had **no task at all** while two
+marked tiles waited more than thirteen ticks, and it took neither until the
+first mark was finished. Then all of them redeployed together.
+
+Ours also has four, from the shipped `MinimumImpThreshold`, and sends its spare
+to the next mark at once. That is the whole 18–37 tick lead. What an imp does
+when the job it wants is full is Q299, and nothing should change in
+`ImpTaskSystem` until a capture samples creature activity rather than the pool:
+three readings of this one capture have already been wrong.
