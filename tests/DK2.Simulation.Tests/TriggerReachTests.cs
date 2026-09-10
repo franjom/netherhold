@@ -105,6 +105,32 @@ public class TriggerReachTests
         Assert.Equal(quiet.StateHash(), tracked.StateHash());
     }
 
+    /// <summary>Static reachability answers what a tree <i>contains</i> below a root, so
+    /// that records a run never walked can be attributed to the root class that owns
+    /// them. It descends past conditions the walk would have stopped at — that is the
+    /// difference from a run.</summary>
+    [Fact]
+    public void ReachableDescendsPastConditionsARunWouldHaveStoppedAt()
+    {
+        // 6 is constant-false, so a run reaches 6 and stops. The tree still contains 7.
+        TriggerRecord[] records = [Gate(5, child: 6), Gate(6, child: 7), Gate(7)];
+        var tree = new TriggerTree(records, 5);
+
+        Assert.Equal([(ushort)5, (ushort)6, (ushort)7], TriggerReach.Reachable(tree, [(ushort)5]).Order());
+    }
+
+    /// <summary>And a root of zero contributes nothing rather than resolving to the
+    /// first record, which is what <see cref="TriggerTree.Resolve"/> does for an unknown
+    /// non-zero id.</summary>
+    [Fact]
+    public void AZeroRootContributesNothing()
+    {
+        TriggerRecord[] records = [Gate(5, child: 6), Gate(6)];
+        var tree = new TriggerTree(records, 5);
+
+        Assert.Empty(TriggerReach.Reachable(tree, [(ushort)0]));
+    }
+
     private static int GatedBy(TriggerRecord[] records, ushort declined)
     {
         var tree = new TriggerTree(records, records[0].TriggerId);

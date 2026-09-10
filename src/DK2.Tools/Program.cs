@@ -1090,6 +1090,115 @@ switch (args[0])
         return 0;
     }
 
+    case "kwd" when args.Length is 2 or 3 && args[1] == "unreached":
+    {
+        // Where a level's script is when the run never touches it. `kwd oracle`'s
+        // `reach` column is a STATIC walk that descends only through condition
+        // types 1/2/34, so its gap is not "what the run missed" -- this is. Every
+        // record is put in exactly one bucket, and the buckets are ordered so that
+        // the first one that claims a record keeps it (ADR-0125).
+        int unreachedTurns = args.Length == 3 ? int.Parse(args[2]) : 600;
+        string reachMaps = Path.Combine(Dk2Install.Require(), "Data", "editor", "maps");
+        int total = 0, ran = 0, declined = 0, creature = 0, party = 0, orphan = 0, closed = 0;
+        Console.WriteLine($"Every level run headless for {unreachedTurns} turns. Records the run never");
+        Console.WriteLine("walked, by why -- first bucket that claims a record keeps it:");
+        Console.WriteLine("  declined = behind a condition this executor cannot answer (the frontier)");
+        Console.WriteLine("  creature = only reachable from a creature root; no creature walker exists");
+        Console.WriteLine("  party    = only reachable from a party subtree nothing armed (action 14");
+        Console.WriteLine("             creates no creatures, Q254)");
+        Console.WriteLine("  orphan   = reachable from no root at all -- dead script in the file");
+        Console.WriteLine("  closed   = reached by no route above: the walk got there and a condition");
+        Console.WriteLine("             answered FALSE. Only a mechanism, not an arm, opens these.");
+        Console.WriteLine();
+        Console.WriteLine($"{"level",-18} {"records",7} {"ran",6} {"declined",8} {"creature",8} "
+            + $"{"party",6} {"orphan",6} {"closed",6}");
+
+        foreach (string file in Directory.EnumerateFiles(reachMaps, "*Triggers.kld")
+                     .Order(StringComparer.OrdinalIgnoreCase))
+        {
+            string level = Path.GetFileName(file)[..^"Triggers.kld".Length];
+            string reachInstall = Dk2Install.Require();
+            LevelMap? rmap = GameDatabaseLoader.LoadCampaignMap(reachInstall, level);
+            LevelDef? rdef = GameDatabaseLoader.LoadCampaignLevel(reachInstall, level);
+            List<TriggerRecord>? rrecords = GameDatabaseLoader.LoadCampaignTriggers(reachInstall, level);
+            List<PlayerDef>? rplayers = GameDatabaseLoader.LoadCampaignPlayers(reachInstall, level);
+            List<ThingRecord>? rthings = GameDatabaseLoader.LoadCampaignThings(reachInstall, level);
+            if (rmap is null || rdef is null || rrecords is null || rplayers is null || rthings is null)
+                continue;
+
+            GameDatabase rdatabase = GameDatabaseLoader.LoadForCampaignLevel(reachInstall, level);
+            WorldState rworld = WorldState.FromMap(
+                rdatabase, rmap, rplayers.Select(p => p.PlayerId).ToArray());
+            ThingProjection.Place(rworld, rdatabase, rthings);
+            var rtree = new TriggerTree(
+                rrecords, rdef.TriggerId,
+                rthings.OfType<HeroPartyThing>(),
+                rplayers.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
+            var rsim = new GameSimulation(rdatabase, rworld, seed: 0, triggers: rtree)
+            {
+                TrackTriggerReach = true,
+            };
+
+            // The union across turns, not one turn's: a record first reached on turn
+            // 300 was reached. Same for the declines, whose subtrees only stop being
+            // foreclosed if some later turn walks them anyway.
+            var walked = new HashSet<ushort>();
+            var foreclosed = new HashSet<ushort>();
+            for (int turn = 1; turn <= unreachedTurns; turn++)
+            {
+                rsim.Tick();
+                if (rsim.LastTriggerRun is not { } run) continue;
+                if (run.Reached is not null) walked.UnionWith(run.Reached);
+                foreach (TriggerGate gate in TriggerReach.Gated(rtree, run))
+                    foreclosed.UnionWith(gate.Foreclosed);
+            }
+
+            foreclosed.ExceptWith(walked);
+            HashSet<ushort> fromCreatures = TriggerReach.Reachable(
+                rtree,
+                rthings.OfType<KeeperCreatureThing>().Select(c => c.TriggerId)
+                    .Concat(rthings.OfType<GoodCreatureThing>().Select(c => c.TriggerId))
+                    .Where(id => id != 0));
+            HashSet<ushort> fromParties = TriggerReach.Reachable(
+                rtree,
+                rthings.OfType<HeroPartyThing>()
+                    .SelectMany(p => p.Members.Select(m => m.TriggerId).Append(p.TriggerId))
+                    .Where(id => id != 0));
+
+            HashSet<ushort> fromAnyRoot = TriggerReach.Reachable(
+                rtree,
+                new[] { rdef.TriggerId }
+                    .Concat(rplayers.Select(p => p.TriggerId))
+                    .Concat(rthings.OfType<ActionPointThing>().Select(a => a.TriggerId))
+                    .Concat(fromCreatures).Concat(fromParties)
+                    .Where(id => id != 0));
+
+            int lDeclined = 0, lCreature = 0, lParty = 0, lOrphan = 0, lClosed = 0;
+            foreach (TriggerRecord record in rrecords)
+            {
+                ushort id = record.TriggerId;
+                if (walked.Contains(id)) continue;
+                if (foreclosed.Contains(id)) lDeclined++;
+                else if (fromCreatures.Contains(id)) lCreature++;
+                else if (fromParties.Contains(id)) lParty++;
+                else if (!fromAnyRoot.Contains(id)) lOrphan++;
+                else lClosed++;
+            }
+
+            total += rrecords.Count;
+            ran += walked.Count;
+            declined += lDeclined; creature += lCreature; party += lParty;
+            orphan += lOrphan; closed += lClosed;
+            Console.WriteLine($"{level,-18} {rrecords.Count,7} {walked.Count,6} {lDeclined,8} "
+                + $"{lCreature,8} {lParty,6} {lOrphan,6} {lClosed,6}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"{"TOTAL",-18} {total,7} {ran,6} {declined,8} {creature,8} "
+            + $"{party,6} {orphan,6} {closed,6}");
+        return 0;
+    }
+
     case "kwd" when args.Length == 2 && args[1] == "roots":
     {
         // Every trigger root in the campaign, by the walker that owns it. A level
@@ -2319,6 +2428,7 @@ static int Usage()
     Console.WriteLine("  kwd things [file.kld]                  placed entities of one level, or the corpus");
     Console.WriteLine("  kwd parties                            how shipped HERO_PARTY records map onto the 24 runtime slots");
     Console.WriteLine("  kwd roots                              every trigger root in the campaign, by the walker that owns it");
+    Console.WriteLine("  kwd unreached [turns]                 records a run never walks, and why -- declined, creature, party, orphan, closed");
     Console.WriteLine("  kwd oracle [turns]                     every level run headless, ranked by how much of its");
     Console.WriteLine("                                         script a two-sided capture could discriminate");
     Console.WriteLine("  kwd creaturescan <name> <value>        the same, anchored on one creature");

@@ -227,6 +227,12 @@ are in the **world** tree and type 70's 6 are in an **area** tree, and only the
 rest are the player arms the type numbers suggest. Reading types 46, 52, 71 and
 73 whole took the frontier to **59**.
 
+**And then the frontier stopped being the answer** (ADR-0125). `dk2tools kwd unreached`
+accounts for every one of the 9,161 shipped records from a real run: 2,669 ran, 3,824 were
+walked to and answered false, 1,138 hang off creature roots nothing walks, 864 off party
+subtrees nothing arms, 513 off no root at all — and 153, **1.7%**, are the whole condition
+frontier. An idle capture therefore has a **29% ceiling** on the script it can exercise.
+
 ### So the oracle is not blocked on choosing a level
 
 It is blocked on **conditions**. Until enough of them are implemented for some

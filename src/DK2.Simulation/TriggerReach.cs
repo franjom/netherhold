@@ -47,6 +47,20 @@ public static class TriggerReach
         return [.. gates.OrderByDescending(g => g.Records).ThenBy(g => g.Blocked.TriggerId)];
     }
 
+    /// <summary>Every record reachable from <paramref name="roots"/> if every condition
+    /// on the way answered true — what a tree <i>contains</i>, as opposed to what a run
+    /// touched. Use it to attribute records a run never reached to the root class that
+    /// owns them.</summary>
+    public static HashSet<ushort> Reachable(TriggerTree tree, IEnumerable<ushort> roots)
+    {
+        if (tree is null) throw new ArgumentNullException(nameof(tree));
+        if (roots is null) throw new ArgumentNullException(nameof(roots));
+
+        var seen = new HashSet<ushort>();
+        foreach (ushort root in roots) Collect(tree, unchecked((short)root), seen);
+        return seen;
+    }
+
     /// <summary>Every record reachable from <paramref name="id"/> by following child and
     /// sibling links, which is exactly what the walk would have visited.</summary>
     /// <remarks>The visited set is not an optimisation. A shipped tree is a graph, not a

@@ -2187,13 +2187,15 @@ ranking is not the one declines gave:
 Type 28 outranks type 64 at a fifth of the declines, and **type 64 is the worst
 entry in the table**: twelve declines foreclosing one record each.
 
-**The larger consequence is that the frontier is nearly spent.** The walk misses
-**4,252** records campaign-wide and declines account for **153** of them — 3.6%.
-Level 4 is the clean case: one decline, one record foreclosed, 103 records
-unreached. The rest is script the walk *does* reach and answers false, because an
-idle world has nothing happening in it. `kwd oracle`'s `could` legend asserted
-the opposite — that the gap between `moved` and `could` is stalls — and that
-line is now corrected rather than left standing.
+**The larger consequence is that the frontier is nearly spent.** Level 4 is the
+clean case: one decline, one record foreclosed, 103 records its static walk does
+not reach. `kwd oracle`'s `could` legend asserted the opposite — that the gap
+between `moved` and `could` is stalls — and that line is now corrected rather
+than left standing.
+
+**Corrected by ADR-0125.** This ADR set 153 against `kwd oracle`'s 4,252, which
+is a *static* figure counting a different thing; the honest accounting is
+1.7% of 9,161, and it is in ADR-0125.
 
 So condition arms are no longer where reach comes from. The campaign has **289
 creature roots**, the largest root class it has, and the creature walker is not
@@ -2202,3 +2204,51 @@ implemented at all; that is the next place to look, not another arm.
 **Consequences.** No simulation state and no behaviour change: reach tracking is
 off by default and `TrackingReachDoesNotChangeTheStateHash` pins that turning it
 on is inert, the same contract `ObserveWith` has. No `HashVersion` bump.
+
+## ADR-0125 — Account for every trigger record a run never walks, and the frontier is 1.7% of it
+**Date:** 2026-09-10 · **Status:** accepted · `dk2tools kwd unreached`
+
+> Numbered 0125 because 0124 was handed to a concurrent worktree first.
+
+**Context.** ADR-0123 measured what declines foreclose (153 records) and set it
+against `kwd oracle`'s `reach`, concluding the frontier was 3.6% of unreached
+script. **That comparison was wrong.** `reach` is a *static* walk that descends
+only through condition types 1/2/34, so its gap is not what a run misses — the
+two numbers measure different things. The conclusion happened to survive; the
+arithmetic behind it did not, and the amended figure is below.
+
+**Decision.** Put every record in exactly one bucket, from a real run: walked,
+or one of five reasons it was not. `TriggerReach.Reachable` gives the static
+closure under each root class, the buckets are ordered so the first to claim a
+record keeps it, and `dk2tools kwd unreached [turns]` prints them per level.
+Over 600 turns, all 66 levels, **9,161 records**:
+
+| bucket | records | share |
+|---|---:|---:|
+| ran | 2,669 | 29% |
+| **closed** — walked to, condition answered false | **3,824** | **42%** |
+| **creature** — only under a creature root; no walker exists | **1,138** | 12% |
+| **party** — only under a party subtree nothing arms (Q254) | **864** | 9% |
+| orphan — reachable from no root at all | 513 | 5.6% |
+| **declined** — the entire condition frontier | **153** | **1.7%** |
+
+**Consequences.** Three things follow, and they reorder the roadmap.
+
+**The frontier is spent.** 1.7%. Types 22, 23, 27, 28, 64 and 70 are all read
+and parked behind mechanisms; finishing every one of them cannot move reach
+materially. Arms are no longer the work.
+
+**An idle capture can only ever exercise 29% of the script.** The 3,824 closed
+records sit behind conditions the walk reaches and answers honestly false,
+because nothing in an idle world builds a room, fights, or issues a command.
+That is a ceiling on M5's method, not a defect to fix, and it is why the
+remaining gap needs mechanisms rather than dispatcher arms.
+
+**The two structural gaps are named and sized.** The creature walker is 1,138
+records — one missing walker, no new mechanism, the dispatcher chain already
+documented in `trigger-walkers.md`. Action 14's creature creation is 864, and
+it also unblocks condition 64 (Q283). Those are the next two pieces of work.
+
+The 513 orphans are recorded, not explained: script in the shipped files that
+no root of any class reaches. Whether DK2 reaches them by a route this project
+has not found, or they are genuinely dead, is UNKNOWN (Q285).
