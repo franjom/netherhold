@@ -101,8 +101,10 @@ completing, and none follows a cancelled one. It is created with a worker
 already assigned — the imp that just dug the tile — and runs **10 ticks in run
 10 and 11 in run 11** (Q292).
 
-**Kind 6 is reinforcing a wall — STRONGLY INFERRED** on four strands, none of
-which is a pattern in the arrival rate:
+**Kind 6 is reinforcing a wall — CONFIRMED** (owner, 2026-09-10): *"imps
+automatically reinforce walls, as soon as the floor tile is claimed walls are
+eligible to be reinforced"*. Four strands had already agreed, none of them a
+pattern in the arrival rate:
 
 - **Position.** Every kind-6 task in run 11 sits on a wall adjacent to a tile
   that had just been claimed, and two were queued the very tick the claim
@@ -116,7 +118,21 @@ which is a pattern in the arrival rate:
   is 50 applications for Rock's 495 deficit (Q294).
 - **It is not a mark.** It arrives without the player acting.
 
-Kind 14 is unnamed; it accompanies a dig in progress.
+**And the owner supplied the scheduling with it**: reinforcing is the *lowest*
+priority — digging first, then gold, and walls only when everything more
+important is done and an imp is free. That is why the gaps above run from one
+tick to seventy-eight. The exception is a worker dropped beside a wall, which
+reinforces it there and then; `ImpTaskSystem.TryTakeDroppedJob` already models
+both, and `JobPriority.Reinforce` is already last.
+
+**What is not modelled is the eligibility** (Q295): our predicate is
+tile-local — solid, penetrable, unowned, below its maximum-health type — with
+no requirement that a claimed floor tile touch it. So an imp of ours may
+reinforce a wall nowhere near its dungeon.
+
+Kind 14 is the freshly-dug tile awaiting a claim: it appears the sample a dig
+completes and clears when the claim does, which is what `ImpTaskSystem` already
+calls `JobPriority.ClaimFreshlyDug` from Q154.
 
 **A finished dig and a dropped mark both leave the pool**, and the kind
 transition between them is often not sampled at all — gold dug in run 10 was
