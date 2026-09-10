@@ -338,3 +338,28 @@ tasks of that length.
 This is the second mechanism the task pool has named without a decompile of its
 own, after claiming. Both were identified from *what precedes them* rather than
 from how they arrive — the reading that failed twice today.
+
+**2026-09-10, run 12 — claiming timed at 20 Hz.** Five samples a tick instead
+of one, so a task's ends land on the tick they happened. Sixteen claims:
+
+| | ticks |
+|---|---|
+| run 12, 20 Hz, n=16 | floor **11**, mode **12**, tail to 25 |
+| run 11, 4 Hz, n=9 | floor 11, mode 11 |
+| run 10, 4 Hz, n=14 | 10 throughout |
+
+The tail is contention — this run had thirteen tasks live and imps claiming
+concurrently, where run 11's went one at a time. **Twelve ticks is three game
+seconds; ours is four ticks, one second.**
+
+The arithmetic points somewhere specific rather than at a fudge: Dirt Path's
+deficit of 659 over twelve swings is **55 a swing, and `ClaimTileHealth` 825 ÷
+55 is exactly 15** — three times our divisor of 5. Three swings of 220 at one a
+game second fits the same 12 ticks. Which of those DK2 does is a question for
+the claim handler, not for curve-fitting, so the constant has not moved (Q292).
+
+Two notes on method. The probe held 20 Hz with no late samples once each task
+entry was read as one 36-byte block rather than eighteen fields. And the owner
+alt-tabbed near the end: the game fell to 0.7 ticks/s for the last ten seconds,
+plainly visible as `t297` at 75.0 s and `t304` at 84.8 s, and everything after
+`t297` is excluded above.
