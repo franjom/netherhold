@@ -383,11 +383,11 @@ labels in §3 were resolved independently from the install's own `Text.str`.
 ## Implementation and tests
 
 `CreatureStateTable` carries all 281 rows — the label's string id, the group tag,
-the category and the flag byte. It is **generated from this note**, so a row is
-corrected here and never in the code, and `CreatureStateTableTests` re-asserts
-the checks of §5 so a drifted row fails rather than passes. Handler addresses are
-not carried: nothing in this project calls them, so they stay in §4 as the
-reading list. Label *strings* are not carried either, per §3 — only their ids.
+the category and the flag byte. They are **transcribed, and the code is their only
+home**: the dump they came from cannot enter the repository (ADR-0046) and this
+note carries summaries, not rows. `CreatureStateTableTests` re-asserts §5's
+populations and spans, and that is the whole of what guards a drifted row.
+Handler addresses stay in §4; label *strings* stay out per §3, only their ids.
 
 `CreatureStateTransitions` implements §2.2's equal-tags half and reports the
 other half as `NeedsCategoryTable`. It hashes nothing and holds no state.

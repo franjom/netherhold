@@ -2671,14 +2671,14 @@ in terms of state ids and there is no group tag for `MovingToJob`.
    references across 61 test files in one commit — was rejected as unreviewable,
    and inventing our own transition rule was rejected outright: AGENTS.md forbids
    inventing behaviour that can be researched, and this one is researched.
-3. **The table is data, generated from the note.** `CreatureStateTable` carries
+3. **The table is data, transcribed, its tests the only guard.** `CreatureStateTable` carries
    the label string id, group tag, category and flag byte for all 281 states.
    Handler addresses stay in the note — nothing here calls them. Label *strings*
    stay out of `src/` per the note's §3: they are shipped-asset text, and the
    ids are enough. **The category and flag byte are typed**, so a row reads
    `Cat.Prison, Flag.Unread0 | Flag.SuppressNeedAnger` rather than five bare
    numbers; an untyped row is a memory dump transcribed into C#.
-4. **An unread transition is not a refused one.** `CreatureStateTransitions`
+4. **An unread transition is not a refused one**, and its passthrough admits dying out of anything **in group 3** only. `CreatureStateTransitions`
    answers the equal-tags half of DK2's rule and returns `NeedsCategoryTable`
    for the other half, on ADR-0109's precedent. It settles 20,628 of the 78,680
    ordered pairs; the remaining 58,052 wait on Q300.

@@ -35,16 +35,19 @@ public static class CreatureStateTransitions
     /// admitted whatever the current category.</summary>
     public const byte PassthroughGroup = 3;
 
-    /// <summary>The category that <see cref="PassthroughGroup"/> admits regardless — the
-    /// dying and frozen states. Tested <i>before</i> the refusal and the equality below,
-    /// which is the rule that lets a creature die out of anything it was doing.</summary>
+    /// <summary>The category that <see cref="PassthroughGroup"/> admits regardless of the
+    /// current category — the dying and frozen states. It is tested before the refusal and
+    /// the equality below, but <b>inside</b> the equal-tags branch: it lets a creature die
+    /// out of anything <i>in that group</i>, and a move that crosses groups reaches the
+    /// unread half instead (Q300).</summary>
     public const CreatureStateCategory PassthroughCategory = CreatureStateCategory.Dying;
 
     /// <summary>Classify a move from <paramref name="currentStateId"/> to
     /// <paramref name="targetStateId"/>.
-    /// <para>The order is the original's and it is load-bearing: the passthrough pair
-    /// first, then the refused category, then equality. All three read the <b>target</b>'s
-    /// fields; only the last looks at the current state at all.</para></summary>
+    /// <para>The order is the original's and it is load-bearing. The group tags are
+    /// compared first; where they match, three tests follow — the passthrough pair, the
+    /// refused category, then equality — and only the last of those three reads the
+    /// current state's category.</para></summary>
     public static StateTransition Classify(int currentStateId, int targetStateId)
     {
         ref readonly CreatureStateDef target = ref CreatureStateTable.Get(targetStateId);

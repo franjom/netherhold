@@ -316,7 +316,14 @@ public static class CreatureStateTable
     public static ReadOnlySpan<CreatureStateDef> All => Rows;
 
     /// <summary>The state with this id. Ids run 0 to 280 and equal the row index.</summary>
-    public static ref readonly CreatureStateDef Get(int stateId) => ref Rows[stateId];
+    public static ref readonly CreatureStateDef Get(int stateId)
+    {
+        if ((uint)stateId >= (uint)Rows.Length)
+            throw new ArgumentOutOfRangeException(
+                nameof(stateId), stateId, $"DK2 has {Rows.Length} creature states.");
+
+        return ref Rows[stateId];
+    }
 
     /// <summary>Whether this state saves and resumes its caller's state.</summary>
     public static bool IsUtility(int stateId) => Rows[stateId].IsUtility;

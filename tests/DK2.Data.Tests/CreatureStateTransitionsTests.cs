@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Linq;
 using DK2.Data.Model;
 
 namespace DK2.Data.Tests;
@@ -61,6 +62,28 @@ public sealed class CreatureStateTransitionsTests
         // State 207 is group 3, category 0 — a category the rule would otherwise refuse.
         Assert.Equal(CreatureStateTransitions.PassthroughGroup, CreatureStateTable.Get(207).Group);
         Assert.Equal(StateTransition.Allowed, CreatureStateTransitions.Classify(207, 216));
+    }
+
+    /// <summary>And the passthrough does <b>not</b> say a creature can die out of
+    /// anything. It sits inside the equal-tags branch, so it reaches only states already
+    /// in group 3; crossing groups lands in the half nobody has read. Asserted because
+    /// the claim that it was universal outran the code for a day, and the test above
+    /// could not see it — both of its states are group 3.</summary>
+    [Fact]
+    public void DyingIsNotAdmittedAcrossGroupsByThisHalfOfTheRule()
+    {
+        int[] elsewhere = Enumerable.Range(0, CreatureStateTable.Count)
+            .Where(id => CreatureStateTable.Get(id).Group
+                != CreatureStateTransitions.PassthroughGroup)
+            .ToArray();
+
+        Assert.NotEmpty(elsewhere);
+        foreach (int id in elsewhere)
+        {
+            Assert.Equal(
+                StateTransition.NeedsCategoryTable,
+                CreatureStateTransitions.Classify(id, 216));
+        }
     }
 
     /// <summary>A creature in a utility state is compared by the state it saved. Utility
