@@ -9,8 +9,8 @@ namespace DK2.Simulation;
 /// <summary>
 /// What a declined condition <b>forecloses</b>: the records behind it the walk never
 /// reached because of it. Not the same quantity as how many conditions were declined,
-/// and it does not rank the same way — campaign-wide, 59 declines foreclose 153 records,
-/// type 28 forecloses 18 from five declines and type 64 twelve from twelve (ADR-0123).
+/// and it does not rank the same way — campaign-wide, 53 declines foreclose 145 records,
+/// type 28 forecloses 18 from five declines and type 64 twelve from twelve (ADR-0123/0124).
 /// </summary>
 /// <remarks>
 /// <para>Records already reached by another route are subtracted, so this is a

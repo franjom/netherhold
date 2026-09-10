@@ -11,11 +11,9 @@ namespace DK2.Simulation;
 /// The seven condition types an <b>action point's</b> own dispatcher computes
 /// (<c>0x004B0D70</c>, base 39, range <c>0x1F</c>). Every one measures something over
 /// that point's inclusive rectangle; every other type the dispatcher hands to the world.
-/// <para>Six are implemented. Type 70 is declined: it is <b>not</b> type 39's counter
-/// asked for existence — its walk (<c>0x004B06D0</c>) adds two filters the counter
-/// (<c>0x004B0620</c>) does not have, requiring <c>thing+0x3E6</c> bit 7 of a creature and
-/// <c>thing+0x146</c> bit 3 of an object, and neither flag is identified (Q280). Evidence
-/// and confidence per type: docs/research/trigger-dispatch-tables.md.</para>
+/// <para>All seven have an implemented path. Type 70's object branch is declined because
+/// object possession is not simulation state (Q280). Evidence and confidence per type:
+/// docs/research/trigger-dispatch-tables.md.</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-semantics.md")]
 public static class TriggerAreaConditions
@@ -65,6 +63,10 @@ public static class TriggerAreaConditions
                 Tagged(area, world, Byte(p, "PlayerId")),
                 Taggable(area, world, database))),
 
+            70 when Byte(p, "ThingType") != ObjectThingType => Result(
+                PossessedCreatureExists(
+                    area, world, Byte(p, "PlayerId"), Byte(p, "TypeId"))),
+
             _ => TriggerConditionResult.NotEvaluated,
         };
     }
@@ -76,6 +78,8 @@ public static class TriggerAreaConditions
     /// <summary>Comparison code 5, "left is at least right", type 69's literal
     /// (<c>0x004B0EA1</c>).</summary>
     private const byte AtLeast = 5;
+
+    private const byte ObjectThingType = 6;
 
     /// <summary>Tiles in the rectangle matching an owner, a terrain type, or both — DK2's
     /// <c>FUN_004B07E0</c>, the counter behind types 40, 41 and 42.</summary>
@@ -124,7 +128,6 @@ public static class TriggerAreaConditions
     private static int Things(
         ActionPointState area, WorldState world, byte thingType, byte player, byte typeId)
     {
-        const byte ObjectThingType = 6;
         int count = 0;
         foreach (TilePos pos in Tiles(area, world))
         {
@@ -141,6 +144,32 @@ public static class TriggerAreaConditions
         bool Matches(byte owner, byte type) =>
             (player == 0 || owner == player) && (typeId == 0 || type == typeId);
     }
+
+    /// <summary>Whether the rectangle contains a possessed creature matching the owner
+    /// and subtype selectors — type 70's existence walk at <c>0x004B06D0</c>.</summary>
+    /// <remarks>DK2 tests the creature's <c>Possessed</c> flag at <c>+0x3E6</c> bit 7.
+    /// This simulation stores the other end of that relation on each player. Thing type 6
+    /// selects objects instead; that branch is declined because object possession is not
+    /// represented (Q280).</remarks>
+    private static bool PossessedCreatureExists(
+        ActionPointState area, WorldState world, byte player, byte typeId)
+    {
+        foreach (CreatureState creature in world.Creatures)
+        {
+            if (!Contains(area, creature.Tile)) continue;
+            if (player != 0 && creature.OwnerPlayerId != player) continue;
+            if (typeId != 0 && creature.CreatureTypeId != typeId) continue;
+
+            foreach (byte playerId in world.PlayerIds)
+                if (world.Player(playerId).PossessedCreatureId == creature.Id) return true;
+        }
+
+        return false;
+    }
+
+    private static bool Contains(ActionPointState area, TilePos pos) =>
+        pos.X >= area.StartX && pos.X <= area.EndX &&
+        pos.Y >= area.StartY && pos.Y <= area.EndY;
 
     /// <summary>Tiles in the rectangle carrying one player's excavation task — DK2's
     /// <c>FUN_004B0960</c>, behind types 62 and 69.</summary>

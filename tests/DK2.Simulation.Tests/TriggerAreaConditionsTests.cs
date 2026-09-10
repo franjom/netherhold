@@ -241,17 +241,52 @@ public class TriggerAreaConditionsTests
         return state;
     }
 
-    /// <summary>Type 70 keeps its own arm at <c>0x004B0DD7</c>, which this has not read, so
-    /// it stays declined — and its three selector bytes keep the labels type 39's turned out
-    /// not to deserve (ADR-0115). Type 39 left this test when it was built.</summary>
+    /// <summary>The extra filter distinguishing type 70 from type 39: only the creature a
+    /// keeper is possessing satisfies the existence walk.</summary>
     [Fact]
-    public void TypeSeventyIsDeclinedRatherThanTakenAsFalse()
+    public void TypeSeventyFindsAPossessedMatchingCreature()
+    {
+        TriggerState state = Run(
+            Point(4, root: 1, 5, 5, 6, 6),
+            Area(1, 70, new() { ["PlayerId"] = 1, ["TypeId"] = GoblinId, ["ThingType"] = 0 }),
+            world =>
+            {
+                GameDatabase db = Dk2TerrainFixture.Database();
+                CreatureState creature = world.SpawnCreature(db, GoblinId, 1, new TilePos(5, 5));
+                world.Player(1).PossessedCreatureId = creature.Id;
+            });
+
+        Assert.Equal(1, state.Read(Marker));
+    }
+
+    [Theory]
+    [InlineData(false, 1, GoblinId, 5)]
+    [InlineData(true, 2, GoblinId, 5)]
+    [InlineData(true, 1, ImpId, 5)]
+    [InlineData(true, 1, GoblinId, 9)]
+    public void TypeSeventyRejectsANonMatchingCreature(
+        bool possessed, int owner, int typeId, int x)
+    {
+        TriggerState state = Run(
+            Point(4, root: 1, 5, 5, 6, 6),
+            Area(1, 70, new() { ["PlayerId"] = owner, ["TypeId"] = typeId, ["ThingType"] = 0 }),
+            world =>
+            {
+                GameDatabase db = Dk2TerrainFixture.Database();
+                CreatureState creature = world.SpawnCreature(db, GoblinId, 1, new TilePos(x, 5));
+                if (possessed) world.Player(1).PossessedCreatureId = creature.Id;
+            });
+
+        Assert.Equal(0, state.Read(Marker));
+    }
+
+    [Fact]
+    public void TypeSeventyDeclinesObjectTargetsUntilObjectPossessionIsState()
     {
         TriggerRunResult result = Execute(
             Point(4, root: 1, 5, 5, 6, 6),
-            Area(1, 70, new() { ["TargetId"] = 1, ["TargetType"] = 1, ["PlayerId"] = 1 }),
-            arrange: null,
-            new TriggerState());
+            Area(1, 70, new() { ["PlayerId"] = 1, ["TypeId"] = 0, ["ThingType"] = 6 }),
+            arrange: null, new TriggerState());
 
         Assert.Contains(result.Blocked, b => b.Tag == 213 && b.Type == 70);
     }

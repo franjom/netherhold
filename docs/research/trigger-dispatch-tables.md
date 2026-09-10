@@ -48,23 +48,29 @@ which table it is, with no inference:
 | `0x004BAE30` | `+0x66`/`+0x6A` | `TrapInfo` | **28** |
 | `0x004BAFA0` | `+0x6E`/`+0x72` | keeper spells | **29** (ADR-0120) |
 
-Types 27 and 28 share one arm shape (`0x004C80CE`, `0x004C8240`) with **two
-modes**, and the corpus decides which one matters:
+Types 27 and 28 have parallel arms (`0x004C80CE`, `0x004C8240`) with **two
+modes**, but their counting partitions are different:
 
 - `Comparison == 0` is availability, the same question type 29 asks: a named
   `TargetId` is looked up and tested against AVAILABLE (3); zero walks the whole
   table for any entry at 3.
-- `Comparison != 0` counts, and byte 02's bits 3 and 4 pick what is counted.
-  For type 28: bit 3 counts things in the list at `player+0xC` with
-  `thing+0x10C & 0x20`; bit 4 is `player+0x22` *minus* that count; neither bit
-  with `TargetId == 0` is `player+0x22` itself; neither bit with a named type
-  calls `0x004BA890` and then adds a second walk when the type record's `+0xBB`
-  is `0x1A`.
+- `Comparison != 0` counts, and byte 02's bits 3 and 4 select the partition.
+  Type 27 counts doors whose dword at `+0x109` is nonzero, or total doors minus
+  those; this is **not** the trap bit and the field remains UNKNOWN (Q284).
+  Its named-type helper `0x004BA850` walks owned doors and counts matching
+  `thing+0xF6` type ids.
+- Type 28 counts traps with `thing+0x10C & 0x20`, or total traps minus those.
+  The bit is set by the trap constructor, prevents firing and ordinary updates,
+  and is cleared when an existing trap is finished in place: **UnderConstruction**
+  is STRONGLY INFERRED. `0x004BA890` is the same per-type walk over owned traps.
+  If the named trap's shot id at definition `+0xBB` is 26, the Boulder shot,
+  the arm also counts owned type-74 Boulder objects still in the world.
 
 **All ten shipped records use the counting mode** — comparisons 3 and 5, never
 0 — so implementing the availability half would have moved nothing. The
-`+0x10C & 0x20` bit is unidentified (Q281), and `player+0xC`/`+0x22` are
-`ThingsOwnedList[3]`/`TotalNumberOfOwnedThings[3]`.
+`player+0xC`/`+0x22` are the trap owned-list head and total. Neither condition
+is built: door runtime state is absent, and trap construction, firing and the
+live Boulder projectile are absent (Q249, Q281, Q284).
 
 ## Area type 70 is not type 39 asked for existence
 
@@ -73,14 +79,19 @@ Both walk the action point's rectangle and both end at the same predicate
 (`0x004B06D0`, behind type 70) applies **two filters the counter
 (`0x004B0620`, behind type 39) does not**:
 
-- a creature must have `thing+0x3E6` bit 7 set;
-- an object must have `thing+0x146` bit 3 set.
+- a creature must have `thing+0x3E6` bit 7, `Possessed`, set;
+- an object must have `thing+0x146` bit 3, also `Possessed`, set.
 
-Neither flag is identified (Q280), so type 70 stays declined: guessing "any
-thing matching" would over-answer an existence test, which is the direction that
-fires a trigger early. Type 70 also reads no comparison and no value — its arm
-`0x004B0DD7` returns the walk's result directly, and maps byte 03 `== 6` to
-category 2 and anything else to category 0, exactly as type 39 does.
+The names come independently from the creature and object debug dumpers
+(`creature-object.md`, `objects.md`), while the condition arm establishes their
+meaning here. Type 70 reads no comparison or value: byte 01 is player, byte 02
+is subtype, and byte 03 `== 6` selects objects; anything else selects creatures.
+All six shipped records select creatures owned by player 3, five with any
+subtype and one with subtype 23.
+
+The creature branch is built from `PlayerState.PossessedCreatureId`, the other
+end of the same relation. The object branch still declines because this
+simulation has no object-possession state; no shipped record reaches it (Q280).
 
 ## Four player arms read whole
 
@@ -148,11 +159,11 @@ the moment possession stops being zero. Whether `NumberOfSlaps` counts slaps
 given or received is unread (Q278), and the possessed creature's `+0x488` is
 unread (Q279).
 
-Declined and why: 22/23 combat, 20 `creature+0x28A` (Q269), 27/28 trap and door
-counting (Q281), 64 party spawning and party identity (Q283), 70 two
-unidentified flags (Q280), 2 the special timer id 16 (Q232).
+Declined and why: 22/23 combat, 20 `creature+0x28A` (Q269), 27/28 missing door
+and trap behaviour (Q281/Q284), 64 party spawning and party identity (Q283),
+type 70's unused object branch (Q280), 2 the special timer id 16 (Q232).
 
 **Rank what is left by `gates`, not by declines** (ADR-0123). Type 28 forecloses
-18 records from 5 declines; type 64 forecloses 12 from 12. And the whole
-remainder is small: 59 declines foreclose 153 records out of 4,252 the walk
-never reaches, so arms are no longer where reach comes from.
+18 records from 5 declines; type 64 forecloses 12 from 12. The whole remainder
+is small: 53 declines account for 145 of all 9,161 records, 1.6% (ADR-0125), so
+arms are no longer where reach comes from.

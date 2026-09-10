@@ -280,7 +280,7 @@ public static class KwdTriggers
         else if (type == 53) { B("TargetType", 0); B("TargetId", 1); W("Unreached_0002", 2); S("Unreached_0004", 4); }
         else if (type == 62) { B("Comparison", 0); B("PlayerId", 1); W("Unreached_0002", 2); S("Value", 4); }
         else if (type == 69) { B("Unreached_0000", 0); B("PlayerId", 1); W("Unreached_0002", 2); S("Unreached_0004", 4); }
-        else if (type == 70) { B("Unreached_0000", 0); B("TargetId", 1); B("TargetType", 2); B("PlayerId", 3); S("Unreached_0004", 4); }
+        else if (type == 70) { B("Unreached_0000", 0); B("PlayerId", 1); B("TypeId", 2); B("ThingType", 3); S("Unreached_0004", 4); }
         else if (type == 74) { B("Comparison", 0); B("CreatureId", 1); W("Unreached_0002", 2); S("Value", 4); }
         else { S("Unknown_0000", 0); S("Unknown_0004", 4); }
         return p;

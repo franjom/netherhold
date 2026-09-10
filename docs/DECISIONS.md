@@ -2205,7 +2205,29 @@ implemented at all; that is the next place to look, not another arm.
 off by default and `TrackingReachDoesNotChangeTheStateHash` pins that turning it
 on is inert, the same contract `ObserveWith` has. No `HashVersion` bump.
 
-## ADR-0125 — Account for every trigger record a run never walks, and the frontier is 1.7% of it
+## ADR-0124 — Build condition 70 for creatures; keep door and trap counts declined
+**Date:** 2026-09-10 · **Status:** accepted · Q280/Q281
+
+**Context.** Conditions 27, 28 and 70 were parked on three supposedly unknown
+flags. DK2's own debug dumpers already name both type-70 bits `Possessed`. A
+fresh arm read also disproved the premise that 27 and 28 share the trap bit.
+
+**Decision.** Type 70 now asks whether its area contains a matching creature
+named by any player's `PossessedCreatureId`. Its selector bytes are renamed to
+player, subtype and thing category. Object targets still decline because object
+possession is not represented; no shipped type-70 record selects objects.
+
+Do not build 27 or 28 yet. Trap `+0x10C` bit 5 is strongly inferred
+`UnderConstruction`, but trap construction is absent. Condition 27 instead
+partitions on an unidentified door dword at `+0x109` (Q284). The per-type trap
+helper counts matching `+0xF6` ids, with a Boulder-shot special case that also
+counts live Boulder objects.
+
+**Consequences.** The 66-map frontier moves from 59 stalls/153 gates to
+**53/145**. No state was added, so `HashVersion` remains 53. Both stored live
+captures retain exact event sets and timer stamps.
+
+## ADR-0125 — Account for every trigger record a run never walks, and the frontier is 1.6% of it
 **Date:** 2026-09-10 · **Status:** accepted · `dk2tools kwd unreached`
 
 > Numbered 0125 because 0124 was handed to a concurrent worktree first.
@@ -2226,19 +2248,19 @@ Over 600 turns, all 66 levels, **9,161 records**:
 | bucket | records | share |
 |---|---:|---:|
 | ran | 2,669 | 29% |
-| **closed** — walked to, condition answered false | **3,824** | **42%** |
+| **closed** — walked to, condition answered false | **3,832** | **42%** |
 | **creature** — only under a creature root; no walker exists | **1,138** | 12% |
 | **party** — only under a party subtree nothing arms (Q254) | **864** | 9% |
 | orphan — reachable from no root at all | 513 | 5.6% |
-| **declined** — the entire condition frontier | **153** | **1.7%** |
+| **declined** — the entire condition frontier | **145** | **1.6%** |
 
 **Consequences.** Three things follow, and they reorder the roadmap.
 
-**The frontier is spent.** 1.7%. Types 22, 23, 27, 28, 64 and 70 are all read
-and parked behind mechanisms; finishing every one of them cannot move reach
+**The frontier is spent.** 1.6%. Types 22, 23, 27, 28 and 64 are all read and
+parked behind mechanisms; finishing every one of them cannot move reach
 materially. Arms are no longer the work.
 
-**An idle capture can only ever exercise 29% of the script.** The 3,824 closed
+**An idle capture can only ever exercise 29% of the script.** The 3,832 closed
 records sit behind conditions the walk reaches and answers honestly false,
 because nothing in an idle world builds a room, fights, or issues a command.
 That is a ceiling on M5's method, not a defect to fix, and it is why the

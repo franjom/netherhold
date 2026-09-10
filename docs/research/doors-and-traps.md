@@ -51,6 +51,18 @@ Doors do not open, close, lock or block movement. Traps do not arm, fire or
 consume shots. The state makes those mechanics possible to research and add
 later; it does not guess them. Q249 owns that behavioural work.
 
+## Runtime construction flag
+
+The trap runtime byte at `thing+0x10C` uses bit 5 (`0x20`) for a state best
+named **UnderConstruction** (STRONGLY INFERRED from DKII.EXE v1.70). The
+constructor sets it; while set, the firing decision and ordinary update paths
+short-circuit; the path which finishes an existing placed trap clears it before
+refreshing the trap. Condition type 28 partitions its counts on this bit.
+
+This is not enough to add the field to `TrapState`: the projection of authored
+traps into runtime construction state and all construction transitions remain
+unread. See Q249/Q281 and `trigger-dispatch-tables.md`.
+
 ## Confidence summary
 
 | claim | confidence |
