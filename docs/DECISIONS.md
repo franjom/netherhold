@@ -2302,3 +2302,40 @@ other blocks and are not separately attributed; some may instead wait on the
 special flag id 128 path (Q229), which nothing here writes. And 257 records are
 dead in DK2 as well, so the honest denominator for "script we do not run" is
 8,904, not 9,161.
+
+## ADR-0127 — Record the player's commands from DK2's task pool, not from its input
+**Date:** 2026-09-10 · **Status:** accepted · `player-task-pool.md`
+
+> Numbered 0127 because 0124 is held by a concurrent worktree.
+
+**Context.** ADR-0126 measured that the largest identifiable block of unrun
+script — 696 records — waits on **player 3, the human keeper**, digging,
+claiming and building. No mechanism opens those. M5 therefore needs an input
+channel: the same commands applied to DK2 and to us. `Tick(in InputFrame)` is
+half of one; nothing records DK2's side.
+
+**Decision.** Record **commands, not input.** Capturing keyboard and mouse
+would mean reproducing DK2's camera and hit-testing exactly to turn a click
+into a tile, and every error there would look like a simulation divergence.
+DK2 already stores the result at the level we want: a per-player **task pool**,
+one entry per marked tile, whose layout is in `player-task-pool.md`. Diffing it
+between samples yields `tag`/`untag` at a coordinate and a tick.
+
+`dk2watch.py --tags <out.csv>` writes that as `wall,tick,player,event,kind,x,y`
+— a command log beside the existing state CSV rather than more columns in it,
+because `capture-diff` parses that file by position.
+
+**Rooms come from the same idea, not the same structure.** The player's room
+list at `player+0x36` is already read for the gold resync; a room appearing in
+it is a placement. That is the other half of the 696 (types 25 and 24 are 397
+of them, terrain 40/41/42 the other 299) and is not built yet.
+
+**Consequences.** The first capture is also the first test of the layout, which
+has been read but never sampled — nothing is CONFIRMED here yet. The experiment
+it enables is a **scripted** session ("dig these five tiles ten seconds apart,
+build nothing"), because a small reproducible input keeps a divergence
+attributable; free play does not, which is what
+`our-side-of-a-capture-has-no-player` records.
+
+Not covered: creature drops and spells. Neither appears in the 696, so neither
+blocks this step.
