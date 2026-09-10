@@ -24,16 +24,18 @@ public class TriggerExecutorOnRealDataTests
         // rest is the player tree, which is where level 1 keeps its script.
 
         // Blocked is conditions only, and it is the work queue: declining a condition
-        // cannot be told apart from it being false, so the walk stops there. Eight types
+        // cannot be told apart from it being false, so the walk stops there. Twelve types
         // have left it: 53/56/58/60 (ADR-0109), 30 gold (ADR-0110), 31 gold mined
-        // (ADR-0112), 19 creature count (ADR-0113), 25 room count (ADR-0114).
+        // (ADR-0112), 19 creature count (ADR-0113), 25 room count (ADR-0114), 29 spell
+        // availability (ADR-0120), and 46/52/71/73 (ADR-0121) -- 46 is what left this
+        // census, and it left it answered false rather than implemented.
         Assert.Equal(
-            "213:46=1,213:64=1",
+            "213:64@World=1",
             Census(simulation.LastTriggerRun!.Summary));
 
         // Actions, which descend whatever we do because their dispatcher succeeds.
         Assert.Equal(
-            "214:14=2,214:17=2,214:24=2,214:31=2,214:38=2,214:44=1,214:45=1",
+            "214:14@World=2,214:17@Player=2,214:24@Player=2,214:31@Player=2,214:38@Player=2,214:44@Player=1,214:45@Player=1",
             Census(simulation.LastTriggerRun!.PartialSummary));
 
         // Nothing on level 1's opening turn reaches a type DK2 itself refuses.
@@ -41,7 +43,7 @@ public class TriggerExecutorOnRealDataTests
 
         // Player-context type 72, taken as true rather than declined. If this ever reads
         // zero, the player tree stopped being walked.
-        Assert.Equal("213:72=2", Census(simulation.LastTriggerRun!.AssumedSummary));
+        Assert.Equal("213:72@Player=2", Census(simulation.LastTriggerRun!.AssumedSummary));
     }
 
     /// <summary>The world tree is <b>not</b> where campaign level 1 keeps its script, and a
@@ -140,8 +142,11 @@ public class TriggerExecutorOnRealDataTests
         Assert.DoesNotContain(records, record => record.Parameters["Comparison"] == 0);
     }
 
-    private static string Census(IEnumerable<(int Tag, byte Type, int Count)> summary) =>
-        string.Join(",", summary.Select(s => $"{s.Tag}:{s.Type}={s.Count}"));
+    // The context is part of the pin, not commentary: the same type number is dispatched
+    // by a different arm in each tree, so a census that omits it can stay green while the
+    // walk that produced it has moved to a different rule.
+    private static string Census(IEnumerable<TriggerCensusRow> summary) =>
+        string.Join(",", summary.Select(s => $"{s.Tag}:{s.Type}@{s.Context}={s.Count}"));
 
     [InstallFact]
     public void LevelOneTriggerRunIsDeterministicForTheSameSeed()

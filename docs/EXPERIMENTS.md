@@ -220,6 +220,13 @@ than declining. `moved` and `after1` did not move — false and declined both st
 the descent — and the frontier fell from **777 stalls to 616**, a fifth of it
 noise that the binary had already answered.
 
+**And the census now names the walker** (ADR-0121). A type is dispatched by its
+own context's table before anything is delegated, so ranking by type alone can
+send you to the wrong arm: of the 66 stalls left after ADR-0120, type 64's 12
+are in the **world** tree and type 70's 6 are in an **area** tree, and only the
+rest are the player arms the type numbers suggest. Reading types 46, 52, 71 and
+73 whole took the frontier to **59**.
+
 ### So the oracle is not blocked on choosing a level
 
 It is blocked on **conditions**. Until enough of them are implemented for some

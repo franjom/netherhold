@@ -33,7 +33,13 @@ beside it.
 
 ## Versions
 
-**52** — `0xB5C88C09424100AD` (current). `PlayerState.KilledByPlayerId`, the keeper
+**53** — `0x94D2541428918DAC` (current). `PlayerState.SlapCount` (`player+0xEE6`,
+condition type 71) and `PlayerState.PossessedCreatureId` (`player+0x134`, condition
+type 73). Nothing writes either: no keeper here slaps or possesses, so both are
+truly zero rather than stubbed, and the conditions read state instead of answering
+a constant — the same reasoning as version 52's `KilledByPlayerId` (ADR-0121).
+
+**52** — `0xB5C88C09424100AD`. `PlayerState.KilledByPlayerId`, the keeper
 that defeated this one (`player+0x132`), read by condition type 47. Nothing sets it:
 no keeper can be defeated yet, so it is always zero and the condition always false —
 which is DK2's own answer for a living keeper. Hashed anyway, because a field the

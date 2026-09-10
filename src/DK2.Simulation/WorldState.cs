@@ -231,6 +231,27 @@ public struct PlayerState
     /// the same value only while <c>TagId</c> and <c>Number</c> agree (Q271).</remarks>
     public byte KilledByPlayerId;
 
+    /// <summary>Slaps this keeper has been counted for, DK2's <c>player+0xEE6</c> —
+    /// <c>NumberOfSlaps</c> in its debug dumper. Condition type 71 compares it
+    /// (<c>0x004C8491</c>); both shipped records ask for "at least", 11 and 50.</summary>
+    /// <remarks><b>Nothing sets it.</b> Slapping is a keeper's own act and no such act
+    /// exists here yet, so zero is this simulation's true count rather than a stand-in —
+    /// which is why the condition reads the field instead of answering a constant. Whether
+    /// the tally counts slaps <i>given</i> or <i>received</i> is UNKNOWN (Q278); the
+    /// dumper's name does not say and no writer has been read.</remarks>
+    public int SlapCount;
+
+    /// <summary>The creature this keeper is possessing, DK2's <c>player+0x134</c> —
+    /// <c>CreaturePossessed</c>. Zero means not possessing, and condition type 73 returns
+    /// <b>false outright</b> on zero without reading its comparison
+    /// (<c>0x004C8500</c>).</summary>
+    /// <remarks><b>Nothing sets it.</b> Possession is an interface act this project does
+    /// not have, so every keeper reads as not possessing — the answer DK2 gives for a
+    /// keeper who is not. What the arm compares when a keeper <i>is</i> possessing, the
+    /// possessed creature's <c>+0x488</c>, is UNKNOWN (Q279), so type 73 declines rather
+    /// than guesses the moment this stops being zero.</remarks>
+    public int PossessedCreatureId;
+
     /// <summary>
     /// Research points banked by this keeper, DK2's <c>player+0x20F</c>. Only ever
     /// added to: the original keeps a <i>current target</i> beside it at
@@ -293,6 +314,8 @@ public struct PlayerState
         hash.Add(Mana);
         hash.Add(GoldMined);
         hash.Add(KilledByPlayerId);
+        hash.Add(SlapCount);
+        hash.Add(PossessedCreatureId);
         hash.Add(ResearchPoints);
         hash.Add(NextFreeImpTick);
         hash.Add(NextPaydayTick);

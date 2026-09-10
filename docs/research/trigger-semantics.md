@@ -217,7 +217,7 @@ dword off the player, compare it with the record's value, return:
 | 30 | 11 | `[player+0x7E]` | **gold** — see below |
 | 31 | 9 | `[player+0x15A]` | gold mined (ADR-0112) |
 | 32 | 1 | `[player+0x82]` | current mana (ADR-0111) |
-| 71 | 2 | `[player+0xEE6]` | slaps received; no simulation counter yet (Q262) |
+| 71 | 2 | `[player+0xEE6]` | slaps; direction unread (Q278). ADR-0121 |
 
 **`+0x7E` is the keeper's gold.** The player's per-turn frame `FUN_004B9EC0`
 rebuilds it at `0x004B9F57`: walk the player's room list from `+0x36` through
@@ -259,6 +259,7 @@ and additionally require `creature+0x28A` to equal **0** for type 20
 (`0x004C7C4C`) and **2** for type 21 (`0x004C7CC4`). That field is never stored by
 name and is compared against 0, 1 and 2 in a filter table at `FUN_00418A90`; it is
 Q269, and type 20 stays declined until it is answered. Type 21 ships no records.
+Types 27, 28, 46, 52, 71, 73 and area 70 are in `trigger-dispatch-tables.md`.
 
 ## Parameter provenance
 
@@ -358,9 +359,8 @@ were evidence. Direct binary reads showed these claims false:
   relabelling of them was wrong too; see the table (ADR-0115);
 - generic type 47's byte `00` is a creature id, not a player id, and its old
   `Value` is never read;
-- generic type 52's byte `03` is a level, not a player id;
-- generic type 70 inherited type 39's shifted labels and keeps them: its own arm
-  `0x004B0DD7` is unread, and it reads no comparison or value at all;
+- generic type 52's byte `03` is a level, not a player id, and type 70 kept type
+  39's shifted labels while reading no comparison or value at all;
 - action type 4 reads a 16-bit objective id, not a 32-bit one;
 - action type 8 reads only its timer id; the old `Value` is untouched;
 - action type 16 reads a signed 16-bit value at `04`, not a 32-bit value;

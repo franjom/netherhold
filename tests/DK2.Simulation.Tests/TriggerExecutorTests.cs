@@ -115,7 +115,7 @@ public class TriggerExecutorTests
         TriggerRunResult result = new TriggerExecutor(
             new TriggerTree([blocked, child, sibling, siblingChild], 1), state).Run(1);
 
-        Assert.Equal(new BlockedTrigger(213, 72, 1), Assert.Single(result.Blocked));
+        Assert.Equal(new BlockedTrigger(213, 72, 1, TriggerContext.World), Assert.Single(result.Blocked));
         Assert.Equal(0, state.Read(3));
         Assert.Equal(1, state.Read(4));
     }
@@ -276,7 +276,7 @@ public class TriggerExecutorTests
             .Run(1);
 
         Assert.Empty(result.Blocked);
-        Assert.Equal([new BlockedTrigger(214, 14, 0xFFFE)], result.Partial);
+        Assert.Equal([new BlockedTrigger(214, 14, 0xFFFE, TriggerContext.World)], result.Partial);
     }
 
     /// <summary>Condition type 30 is the player's gold. Its arm reads one dword,
@@ -448,7 +448,7 @@ public class TriggerExecutorTests
             world.Triggers, world, database).Run(1);
 
         Assert.Equal(0, world.Triggers.Read(3));
-        Assert.Equal([new BlockedTrigger(213, 25, 5)], result.Blocked);
+        Assert.Equal([new BlockedTrigger(213, 25, 5, TriggerContext.Player)], result.Blocked);
     }
 
     /// <summary>And it is the walked player's gold, not any player's. Two roots, two
@@ -561,7 +561,189 @@ public class TriggerExecutorTests
             new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
 
         Assert.Equal(0, world.Triggers.Read(3));
-        Assert.Equal([new BlockedTrigger(213, 20, 5)], result.Blocked);
+        Assert.Equal([new BlockedTrigger(213, 20, 5, TriggerContext.Player)], result.Blocked);
+    }
+
+    /// <summary>Condition type <b>52</b> counts creatures at or above a level, and the
+    /// level is byte 03 — the byte the previous reader called a player id. The arm
+    /// (<c>0x004C7E4E</c>) compares it against the creature's own <c>+0x403</c>.</summary>
+    [Theory]
+    [InlineData(1, 2)]   // both goblins qualify at level 1
+    [InlineData(4, 1)]   // only the trained one
+    [InlineData(9, 0)]   // nothing is that high
+    public void ConditionFiftyTwoCountsCreaturesAtOrAboveTheAuthoredLevel(
+        byte level, int expected)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+        world.Creatures.First(c => c.CreatureTypeId == GoblinId).Level = 4;
+
+        AssertLeveledCount(world, database, level, expected);
+    }
+
+    /// <summary>And it excludes workers, by the same <c>+0x686</c> bit 0 that keeps them
+    /// out of type 19's total. <see cref="CreatureWorld"/> holds three imps, so a
+    /// threshold of 1 that counted workers would answer five rather than two.</summary>
+    [Fact]
+    public void ConditionFiftyTwoNeverCountsAWorkerHoweverHighItsLevel()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+        foreach (CreatureState imp in world.Creatures.Where(c => c.CreatureTypeId == ImpId))
+            imp.Level = 10;
+
+        AssertLeveledCount(world, database, level: 1, expected: 2);
+    }
+
+    /// <summary>Another keeper's veterans are not this keeper's count.</summary>
+    [Fact]
+    public void ConditionFiftyTwoCountsOnlyTheKeeperWhoseTreeAsked()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+        world.SpawnCreature(database, GoblinId, PlayerIds.Neutral, new TilePos(4, 4));
+        world.Creatures[^1].Level = 9;
+
+        AssertLeveledCount(world, database, level: 9, expected: 0);
+    }
+
+    /// <summary>Condition type <b>71</b> reads the keeper's slap tally
+    /// (<c>player+0xEE6</c>, <c>0x004C8491</c>). Nothing slaps yet, so it is zero — which
+    /// is an answer, not a decline.</summary>
+    [Fact]
+    public void ConditionSeventyOneReadsTheSlapTallyAndTodayThatIsZero()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+
+        TriggerRunResult result = RunPlayerCondition(
+            world, database, type: 71, comparison: 5, value: 1, extra: null);
+
+        Assert.Empty(result.Blocked);
+        Assert.Equal(0, world.Triggers.Read(3));
+    }
+
+    /// <summary>The same condition fires the moment the tally is set, which is what makes
+    /// the zero above a reading of state rather than a constant: when slapping arrives it
+    /// has one field to write and this condition is already right.</summary>
+    [Fact]
+    public void ConditionSeventyOneFiresOnceTheTallyIsSet()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+        world.Player(Keeper).SlapCount = 11;
+
+        RunPlayerCondition(world, database, type: 71, comparison: 5, value: 11, extra: null);
+
+        Assert.Equal(1, world.Triggers.Read(3));
+    }
+
+    /// <summary>Condition type <b>73</b> returns false outright when the keeper is not
+    /// possessing (<c>0x004C8500</c>), without reading its comparison or value. Nothing
+    /// possesses here, so it is answered false — answered, not declined.</summary>
+    [Fact]
+    public void ConditionSeventyThreeIsFalseWhileNoKeeperPossessesAnything()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+
+        // Value 0 under ">=" is true of every number, so a comparison reached at all would
+        // fire. It does not: the arm returns before it.
+        TriggerRunResult result = RunPlayerCondition(
+            world, database, type: 73, comparison: 5, value: 0, extra: null);
+
+        Assert.Empty(result.Blocked);
+        Assert.Equal(0, world.Triggers.Read(3));
+    }
+
+    /// <summary>But the moment a keeper <i>is</i> possessing, it declines. What the arm
+    /// compares then is the possessed creature's <c>+0x488</c>, which is unread (Q279).
+    /// This test exists so that adding possession fails here rather than leaving type 73
+    /// silently answering false forever.</summary>
+    [Fact]
+    public void ConditionSeventyThreeDeclinesRatherThanGuessOncePossessionExists()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+        world.Player(Keeper).PossessedCreatureId = world.Creatures[0].Id;
+
+        TriggerRunResult result = RunPlayerCondition(
+            world, database, type: 73, comparison: 5, value: 0, extra: null);
+
+        Assert.Equal([new BlockedTrigger(213, 73, 5, TriggerContext.Player)], result.Blocked);
+    }
+
+    /// <summary>Condition type <b>46</b> is DK2's own silent false. Its slot in the world
+    /// dispatcher's byte table points at <c>0x00518941</c> — the unhandled path's tail,
+    /// past the <c>printf</c> — so the engine returns zero for it deliberately and says
+    /// nothing, unlike every type it genuinely does not implement.</summary>
+    [Theory]
+    [InlineData(true)]    // reached through a player tree, by delegation
+    [InlineData(false)]   // and in the world tree, where it is dispatched directly
+    public void ConditionFortySixIsAnsweredFalseInEitherTree(bool inPlayerTree)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = CreatureWorld(database);
+        TriggerRecord[] records =
+        [
+            PlayerCondition(5, type: 46, comparison: 5, value: 0, extra: null),
+            Action(1, 3, 0x0A, 1),
+        ];
+        TriggerTree tree = inPlayerTree
+            ? new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)])
+            : new TriggerTree(records, 5);
+
+        TriggerRunResult result =
+            new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Empty(result.Blocked);
+        Assert.Equal(0, world.Triggers.Read(3));
+    }
+
+    /// <summary>Asks type 52 twice — "at least <paramref name="expected"/>", which must
+    /// fire, and one more, which must not. Two inequalities pin the count itself; one
+    /// would pass for any number on the right side of it.</summary>
+    private static void AssertLeveledCount(
+        WorldState world, GameDatabase database, byte level, int expected)
+    {
+        RunPlayerCondition(world, database, 52, 5, expected, ("Level", level));
+        Assert.Equal(1, world.Triggers.Read(3));
+        world.Triggers.Write(3, FlagWriteMode.Assign, 0);
+
+        RunPlayerCondition(world, database, 52, 5, expected + 1, ("Level", level));
+        Assert.Equal(0, world.Triggers.Read(3));
+    }
+
+    private static TriggerRunResult RunPlayerCondition(
+        WorldState world,
+        GameDatabase database,
+        byte type,
+        byte comparison,
+        int value,
+        (string Name, long Value)? extra)
+    {
+        TriggerRecord[] records =
+        [
+            PlayerCondition(5, type, comparison, value, extra),
+            Action(1, 3, 0x0A, 1),
+        ];
+        var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
+        return new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+    }
+
+    private static TriggerRecord PlayerCondition(
+        ushort id, byte type, byte comparison, int value, (string Name, long Value)? extra)
+    {
+        var parameters = new Dictionary<string, long>
+        {
+            ["Comparison"] = comparison, ["Value"] = value,
+        };
+        if (extra is { } e) parameters[e.Name] = e.Value;
+        return new GenericTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 1,
+            ChildTriggerId = 0xFFFF, NextTriggerId = 0, Parameters = parameters,
+        };
     }
 
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -892,7 +1074,7 @@ public class TriggerExecutorTests
         // And only in a player tree: the world dispatcher has no arm for these at all.
         TriggerRunResult world =
             new TriggerExecutor(new TriggerTree(records, 5), new TriggerState()).Run(1);
-        Assert.Equal([new BlockedTrigger(213, type, 5)], world.Blocked);
+        Assert.Equal([new BlockedTrigger(213, type, 5, TriggerContext.World)], world.Blocked);
     }
 
     /// <summary>An action nobody has implemented must descend anyway when DK2's dispatcher
@@ -912,7 +1094,7 @@ public class TriggerExecutorTests
             .Run(1);
 
         Assert.Equal(1, state.Read(3));
-        Assert.Equal(new BlockedTrigger(214, type, 0xFFFF), Assert.Single(result.Partial));
+        Assert.Equal(new BlockedTrigger(214, type, 0xFFFF, TriggerContext.World), Assert.Single(result.Partial));
         Assert.Empty(result.Unhandled);
     }
 
@@ -933,7 +1115,7 @@ public class TriggerExecutorTests
             .Run(1);
 
         Assert.Equal(0, state.Read(3));
-        Assert.Equal(new BlockedTrigger(214, type, 0xFFFF), Assert.Single(result.Unhandled));
+        Assert.Equal(new BlockedTrigger(214, type, 0xFFFF, TriggerContext.World), Assert.Single(result.Unhandled));
         Assert.Empty(result.Partial);
         Assert.Empty(result.Blocked);
     }
@@ -956,11 +1138,11 @@ public class TriggerExecutorTests
             new TriggerExecutor(new TriggerTree(records, 0xFFFF), world).Run(1);
 
         Assert.Equal(1, player.Read(3));
-        Assert.Equal([new BlockedTrigger(214, 24, 0xFFFF)], playerRun.Partial);
+        Assert.Equal([new BlockedTrigger(214, 24, 0xFFFF, TriggerContext.Player)], playerRun.Partial);
         Assert.Empty(playerRun.Unhandled);
 
         Assert.Equal(0, world.Read(3));
-        Assert.Equal([new BlockedTrigger(214, 24, 0xFFFF)], worldRun.Unhandled);
+        Assert.Equal([new BlockedTrigger(214, 24, 0xFFFF, TriggerContext.World)], worldRun.Unhandled);
         Assert.Empty(worldRun.Partial);
     }
 
@@ -1026,11 +1208,11 @@ public class TriggerExecutorTests
             new TriggerExecutor(new TriggerTree(records, 5), world).Run(1);
 
         Assert.Equal(1, player.Read(3));
-        Assert.Equal([new BlockedTrigger(213, 72, 5)], playerRun.Assumed);
+        Assert.Equal([new BlockedTrigger(213, 72, 5, TriggerContext.Player)], playerRun.Assumed);
         Assert.Empty(playerRun.Blocked);
 
         Assert.Equal(0, world.Read(3));
-        Assert.Equal([new BlockedTrigger(213, 72, 5)], worldRun.Blocked);
+        Assert.Equal([new BlockedTrigger(213, 72, 5, TriggerContext.World)], worldRun.Blocked);
         Assert.Empty(worldRun.Assumed);
     }
 

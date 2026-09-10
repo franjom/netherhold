@@ -2382,27 +2382,28 @@ static int RunTriggerCsv(string levelName, int turns, string outPath)
     Console.WriteLine($"  walked: {tree.PlayerRoots.Count} player roots "
         + $"[{string.Join(",", tree.PlayerRoots)}], {apRoots} action point roots");
     Console.WriteLine($"  not walked here: {creatureRoots} creature roots");
-    foreach ((int tag, byte type, int count) in
+    foreach (TriggerCensusRow r in
              (simulation.LastTriggerRun?.Summary ?? []).OrderByDescending(s => s.Count))
-        Console.WriteLine($"  blocked tag {tag} type {type}: {count}");
+        Console.WriteLine($"  blocked tag {r.Tag} type {r.Type} in {r.Context}: {r.Count}");
 
     // Say plainly what ran only in part. These descend as DK2's do and leave the world
     // untouched, so anything downstream that waits on their effect -- a hero existing, a
     // tile changing hands -- cannot happen in this run, and a divergence there is ours.
-    foreach ((int tag, byte type, int count) in
+    foreach (TriggerCensusRow r in
              (simulation.LastTriggerRun?.PartialSummary ?? []).OrderByDescending(s => s.Count))
-        Console.WriteLine($"  PARTIAL tag {tag} type {type}: {count} -- descended, effect missing");
+        Console.WriteLine($"  PARTIAL tag {r.Tag} type {r.Type} in {r.Context}: {r.Count} "
+            + "-- descended, effect missing");
 
     // And what DK2 itself refuses: dead script, not a gap of ours.
-    foreach ((int tag, byte type, int count) in
+    foreach (TriggerCensusRow r in
              (simulation.LastTriggerRun?.UnhandledSummary ?? []).OrderByDescending(s => s.Count))
-        Console.WriteLine($"  UNHANDLED tag {tag} type {type}: {count} "
+        Console.WriteLine($"  UNHANDLED tag {r.Tag} type {r.Type} in {r.Context}: {r.Count} "
             + "-- DK2's own dispatcher returns zero here");
 
     // And what was answered from an assumption rather than from state.
-    foreach ((int tag, byte type, int count) in
+    foreach (TriggerCensusRow r in
              (simulation.LastTriggerRun?.AssumedSummary ?? []).OrderByDescending(s => s.Count))
-        Console.WriteLine($"  ASSUMED tag {tag} type {type}: {count} "
+        Console.WriteLine($"  ASSUMED tag {r.Tag} type {r.Type} in {r.Context}: {r.Count} "
             + "-- taken as true: no modal interface state in a headless run");
     return 0;
 }

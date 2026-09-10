@@ -2091,3 +2091,44 @@ still match — the walk goes deeper without writing more. Availability is read
 from level data rather than world state because nothing mutates it yet; action
 type 38 carries an `Available` byte and will have to move it onto the player
 when it is implemented. No simulation state changed, so no `HashVersion` bump.
+
+## ADR-0121 — Rank stalls by the walker that owns them, and take the four arms that read whole
+**Date:** 2026-09-10 · **Status:** accepted · `HashVersion` **53**
+
+**Context.** The stall census reported a tag and a type and threw away the
+context. That is the fact that picks the arm: each dispatcher tables its own
+types first and delegates the rest, so type 46 in a player tree and type 46 in
+the world tree are different code. Ranking without it had already produced one
+wrong frontier (ADR-0119); reading arms without it risks reading the wrong one.
+
+**Decision.** `BlockedTrigger` carries a `TriggerContext`, and every census
+groups by it. Measured that way the 66 stalls are: 22 Player 26, 64 **World**
+12, 70 **Area** 6, 28 Player 5, 2 Player 5, 52 Player 3, 27 Player 2, 71
+Player 2, 20 Player 2, 73 Player 1, 46 Player 1, 23 Player 1.
+
+Four of those read whole and are now built (`trigger-dispatch-tables.md`):
+
+- **46 — DK2's own silent false.** Its world-table slot points at
+  `0x00518941`, the unhandled path's tail *past* the printf, so the engine
+  returns zero deliberately where the 57 types it truly refuses print first.
+- **52 — creatures at or above a level.** `0x004C7E4E` walks the owned list
+  comparing the creature's `+0x403` against byte 03, excluding workers by the
+  `+0x686` bit type 19's total excludes them by. Byte 03 is a level, not the
+  player id the previous reader named.
+- **71 — the slap tally**, `player+0xEE6`.
+- **73 — possession**, `player+0x134`: not possessing returns false *without*
+  reading the comparison or the value.
+
+**Two fields nothing writes, deliberately.** `SlapCount` and
+`PossessedCreatureId` follow `KilledByPlayerId` (ADR-0116): zero is this
+simulation's true state, not a stand-in, so the conditions read state instead of
+answering a constant and are already right when the mechanism lands. Type 73
+goes further and **declines** once possession is non-zero, because what it then
+compares (`+0x488`) is unread — an honest gap beats a silent false.
+
+**Consequences.** Frontier **66 → 59**; 1421 tests; both live captures still
+match. Types 27 and 28 were read and *not* built: the base offsets prove them
+door and trap availability, but all ten shipped records use the counting mode
+whose partition bit is unidentified (Q281), so the half that was easy is inert.
+Type 70 was read and not built for the same reason — its walk adds two filters
+type 39's counter lacks (Q280). Q278–Q281 record what each one waits on.

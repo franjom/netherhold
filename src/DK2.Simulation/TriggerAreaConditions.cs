@@ -11,10 +11,11 @@ namespace DK2.Simulation;
 /// The seven condition types an <b>action point's</b> own dispatcher computes
 /// (<c>0x004B0D70</c>, base 39, range <c>0x1F</c>). Every one measures something over
 /// that point's inclusive rectangle; every other type the dispatcher hands to the world.
-/// <para>Five are implemented. Types 39 and 70 count and test <i>things</i> standing in
-/// the rectangle and are declined, so they stay distinguishable from a false condition.
-/// Evidence and confidence per type: docs/research/trigger-semantics.md, "The area
-/// context".</para>
+/// <para>Six are implemented. Type 70 is declined: it is <b>not</b> type 39's counter
+/// asked for existence — its walk (<c>0x004B06D0</c>) adds two filters the counter
+/// (<c>0x004B0620</c>) does not have, requiring <c>thing+0x3E6</c> bit 7 of a creature and
+/// <c>thing+0x146</c> bit 3 of an object, and neither flag is identified (Q280). Evidence
+/// and confidence per type: docs/research/trigger-dispatch-tables.md.</para>
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-semantics.md")]
 public static class TriggerAreaConditions

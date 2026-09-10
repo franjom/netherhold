@@ -7,7 +7,17 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-public readonly record struct BlockedTrigger(int Tag, byte Type, ushort TriggerId);
+/// <summary>One record an executor could not fully honour, and <b>the walker that
+/// reached it</b>. The context is not decoration: a type is dispatched by the context's
+/// own table first and only then delegated, so the same type number is a different arm —
+/// and a different rule — depending on which tree it sits in. Ranking work by type alone
+/// hides that.</summary>
+public readonly record struct BlockedTrigger(
+    int Tag, byte Type, ushort TriggerId, TriggerContext Context);
+
+/// <summary>How many records of one tag, type and context an executor reported.</summary>
+public readonly record struct TriggerCensusRow(
+    int Tag, byte Type, TriggerContext Context, int Count);
 
 public sealed class TriggerRunResult
 {
@@ -50,21 +60,22 @@ public sealed class TriggerRunResult
     /// <see cref="TriggerExecutor"/>.</summary>
     public IReadOnlyList<BlockedTrigger> Assumed { get; }
 
-    public IEnumerable<(int Tag, byte Type, int Count)> Summary => Census(Blocked);
+    public IEnumerable<TriggerCensusRow> Summary => Census(Blocked);
 
-    public IEnumerable<(int Tag, byte Type, int Count)> PartialSummary => Census(Partial);
+    public IEnumerable<TriggerCensusRow> PartialSummary => Census(Partial);
 
-    public IEnumerable<(int Tag, byte Type, int Count)> AssumedSummary => Census(Assumed);
+    public IEnumerable<TriggerCensusRow> AssumedSummary => Census(Assumed);
 
-    public IEnumerable<(int Tag, byte Type, int Count)> UnhandledSummary => Census(Unhandled);
+    public IEnumerable<TriggerCensusRow> UnhandledSummary => Census(Unhandled);
 
     private static BlockedTrigger[] Order(IEnumerable<BlockedTrigger> records) => records
-        .OrderBy(b => b.Tag).ThenBy(b => b.Type).ThenBy(b => b.TriggerId).ToArray();
+        .OrderBy(b => b.Tag).ThenBy(b => b.Type).ThenBy(b => b.Context)
+        .ThenBy(b => b.TriggerId).ToArray();
 
-    private static IEnumerable<(int Tag, byte Type, int Count)> Census(
+    private static IEnumerable<TriggerCensusRow> Census(
         IReadOnlyList<BlockedTrigger> records) => records
-        .GroupBy(b => (b.Tag, b.Type))
-        .Select(g => (g.Key.Tag, g.Key.Type, g.Count()));
+        .GroupBy(b => (b.Tag, b.Type, b.Context))
+        .Select(g => new TriggerCensusRow(g.Key.Tag, g.Key.Type, g.Key.Context, g.Count()));
 }
 
 /// <summary>One member slot of a party: the subtree it arms, and whether a creature
@@ -232,7 +243,7 @@ public sealed class TriggerTree
 
 /// <summary>Which walker reached a record, and therefore which dispatcher decides it.
 /// </summary>
-internal enum TriggerContext
+public enum TriggerContext
 {
     /// <summary>The world tree and the party roots.</summary>
     World,
@@ -462,7 +473,8 @@ public sealed class TriggerExecutor
                 {
                     TriggerConditionResult result = EvaluateCondition(record, context, run);
                     if (result == TriggerConditionResult.NotEvaluated)
-                        run.Blocked.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
+                        run.Blocked.Add(
+                            new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
                     else if (result == TriggerConditionResult.Satisfied)
                     {
                         descend = true;
@@ -513,6 +525,11 @@ public sealed class TriggerExecutor
         if (record.Type == 29 && _database is not null)
             return Result(SpellAvailable(record.Parameters, _database, run.Player!.Value));
 
+        if (record.Type == 73 && _world is not null)
+            return Possessing(_world, run.Player!.Value)
+                ? TriggerConditionResult.NotEvaluated
+                : TriggerConditionResult.Unsatisfied;
+
         if (_world is not null && _database is not null
             && PlayerCounter(
                 record.Type, record.Parameters, _world, _database, run.Player!.Value, run) is int measured)
@@ -523,16 +540,17 @@ public sealed class TriggerExecutor
 
         if (record.Type != 72) return TriggerConditionResult.NotEvaluated;
 
-        run.Assumed.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
+        run.Assumed.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
         return TriggerConditionResult.Satisfied;
     }
 
     /// <summary>The player quantity a condition type compares, or null for a type whose
-    /// arm we cannot answer. Types 19, 24 and 25 walk owned things; type 24 assumes
+    /// arm we cannot answer. Types 19, 24, 25 and 52 walk owned things; type 24 assumes
     /// the room dumper's <c>Size</c> is slab count and uses
     /// <see cref="RoomInstance.TileCount"/>. Type 25's byte overflow is unreachable in
     /// shipped levels and is not modelled; its <c>Comparison == 0</c> availability mode
-    /// at <c>0x004C7ECF</c> is declined. Types 30–32 read named player dwords.
+    /// at <c>0x004C7ECF</c> is declined.
+    /// Types 30–32 and 71 read named player dwords, and type 52 walks owned creatures.
     /// See trigger-semantics.md and room-conditions.md.</summary>
     private static int? PlayerCounter(
         byte type,
@@ -549,6 +567,8 @@ public sealed class TriggerExecutor
         30 => GoldStore.Total(world, playerId),        // +0x7E "Money"
         31 => world.Player(playerId).GoldMined,        // +0x15A "GoldMined"
         32 => world.Player(playerId).Mana,             // +0x82 "CurrentMana"
+        52 => LeveledCreatureCount(parameters, world, database, playerId),
+        71 => world.Player(playerId).SlapCount,        // +0xEE6 "NumberOfSlaps"
         _ => null,
     };
 
@@ -590,6 +610,47 @@ public sealed class TriggerExecutor
         }
         return false;
     }
+
+    /// <summary>Condition type 52 — <b>how many of this keeper's creatures have reached
+    /// a level</b> (<c>0x004C7E4E</c>). Walks the owned-creature list and counts every
+    /// creature whose level is <b>at least</b> the record's, comparing that count against
+    /// <c>Value</c>. Workers are excluded, by the same <c>+0x686</c> bit 0 that type 19's
+    /// total excludes them by — so an imp never counts however high it is trained.
+    /// </summary>
+    /// <remarks>The three shipped records all ask "at least": one creature at level 4,
+    /// one at 8, and twenty at 2. The threshold is byte 03, which the previous reader
+    /// called a player id; the arm compares it against the creature's own level
+    /// (<c>+0x403</c>), not against an owner.</remarks>
+    private static int LeveledCreatureCount(
+        IReadOnlyDictionary<string, long> parameters,
+        WorldState world,
+        GameDatabase database,
+        byte playerId)
+    {
+        byte level = Byte(parameters, "Level");
+        int count = 0;
+        foreach (CreatureState creature in world.Creatures)
+        {
+            if (creature.OwnerPlayerId != playerId) continue;
+            if (IsWorker(database, creature.CreatureTypeId)) continue;
+            if (creature.Level < level) continue;
+            count++;
+        }
+
+        return count;
+    }
+
+    /// <summary>Whether this keeper is possessing a creature — DK2's
+    /// <c>player+0x134</c>, which condition type 73 reads before anything else.</summary>
+    /// <remarks>The arm's shape is why type 73 is answered here and not through
+    /// <see cref="PlayerCounter"/>: on zero it returns false <b>without</b> reading its
+    /// comparison or value, and only a keeper who <i>is</i> possessing reaches the compare
+    /// — against the possessed creature's <c>+0x488</c>, which is unread (Q279). Nothing
+    /// sets the field, so today this is always false and the decline below is unreachable;
+    /// it exists so that adding possession turns type 73 into an honest gap rather than a
+    /// silent wrong answer.</remarks>
+    private static bool Possessing(WorldState world, byte playerId) =>
+        world.Player(playerId).PossessedCreatureId != 0;
 
     /// <summary>Condition type 19 — how many creatures this keeper owns
     /// (<c>0x004C7B9D</c>). <b>The two paths are not the same count</b>: a named type
@@ -679,18 +740,19 @@ public sealed class TriggerExecutor
     private bool RunAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
         if (context == TriggerContext.Player && PlayerOwnsAction(record.Type))
-            return Unperformed(record, run.Partial);
+            return Unperformed(record, context, run.Partial);
         if (Performs(record.Type))
-            return ExecuteAction(record, run.CurrentTick, run.Partial);
-        if (WorldActionSucceeds(record.Type)) return Unperformed(record, run.Partial);
+            return ExecuteAction(record, context, run.CurrentTick, run.Partial);
+        if (WorldActionSucceeds(record.Type)) return Unperformed(record, context, run.Partial);
 
-        run.Unhandled.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
+        run.Unhandled.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
         return false;
     }
 
-    private static bool Unperformed(TriggerRecord record, List<BlockedTrigger> partial)
+    private static bool Unperformed(
+        TriggerRecord record, TriggerContext context, List<BlockedTrigger> partial)
     {
-        partial.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
+        partial.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
         return true;
     }
 
@@ -744,7 +806,8 @@ public sealed class TriggerExecutor
     public static bool Performs(byte type) => type is 7 or 8 or 14;
 
     private bool ExecuteAction(
-        TriggerRecord record, int currentTick, List<BlockedTrigger> partial)
+        TriggerRecord record, TriggerContext context, int currentTick,
+        List<BlockedTrigger> partial)
     {
         IReadOnlyDictionary<string, long> p = record.Parameters;
         if (record.Type == 8)
@@ -752,7 +815,7 @@ public sealed class TriggerExecutor
             _state.StartTimer(checked((byte)p["TimerId"]), currentTick);
             return true;
         }
-        if (record.Type == 14) return CreateParty(record, p, partial);
+        if (record.Type == 14) return CreateParty(record, context, p, partial);
         if (record.Type != 7)
             throw new ArgumentException($"Action type {record.Type} has no arm here.", nameof(record));
 
@@ -781,7 +844,8 @@ public sealed class TriggerExecutor
     /// walked from the world's own slot table and not from this record's children.</para>
     /// </remarks>
     private bool CreateParty(
-        TriggerRecord record, IReadOnlyDictionary<string, long> p, List<BlockedTrigger> partial)
+        TriggerRecord record, TriggerContext context,
+        IReadOnlyDictionary<string, long> p, List<BlockedTrigger> partial)
     {
         int partyId = checked((byte)p["PartyId"]);
         if (partyId >= TriggerTree.PartySlotCount)
@@ -798,7 +862,7 @@ public sealed class TriggerExecutor
             SetSubtreeActive(member.TriggerId, active: true);
         }
 
-        partial.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId));
+        partial.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
         return true;
     }
 }

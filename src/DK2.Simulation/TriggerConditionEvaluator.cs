@@ -45,11 +45,18 @@ public static class TriggerConditionEvaluator
 
         if (record.Tag != 213) return TriggerConditionResult.NotEvaluated;
 
+        // Type 46 is false, not unknown. The world dispatcher's byte table gives it its
+        // own slot, and that slot's jump entry is 0x00518941 -- the tail of the unhandled
+        // path, *past* the printf. So DK2 returns zero for it deliberately and silently,
+        // where every other type it does not implement prints "Unhandled Trigger When".
+        // One shipped record uses it (level 1, in a player tree, reaching this by
+        // delegation).
         return record.Type switch
         {
             1 => EvaluateFlag(record.Parameters, state),
             2 => EvaluateTimer(record.Parameters, state, currentTick),
             34 => EvaluateLevelTime(record.Parameters, currentTick),
+            46 => TriggerConditionResult.Unsatisfied,
             _ => TriggerConditionResult.NotEvaluated,
         };
     }
