@@ -702,6 +702,92 @@ public class TriggerExecutorTests
         Assert.DoesNotContain(result.Blocked, b => b.Type == 47);
     }
 
+    /// <summary>Condition type 29 asks whether a keeper's spell is available
+    /// (<c>0x004C83C8</c>). Like type 47 it is answered whole: the arm reads one byte and
+    /// returns a bare boolean, reading no <c>Comparison</c> and no <c>Value</c>.
+    /// <para><b>The state test is strictly AVAILABLE (3).</b> RESEARCHABLE (2) does not
+    /// answer it true, which is where a spell differs from a creature — see
+    /// <see cref="PortalRules.IsUnlocked"/>, which accepts either.</para></summary>
+    [Theory]
+    [InlineData(3, 7, 7, true)]      // spell 7 available, asked for 7
+    [InlineData(3, 7, 8, false)]     // spell 7 available, asked for 8
+    [InlineData(2, 7, 7, false)]     // RESEARCHABLE is not available
+    [InlineData(1, 7, 7, false)]     // UNAVAILABLE
+    [InlineData(4, 7, 7, false)]     // the fourth state is not available either
+    [InlineData(3, 7, 0, true)]      // id 0 asks whether ANY spell is available
+    [InlineData(2, 7, 0, false)]     // ...and only state 3 counts there too
+    public void ConditionTwentyNineAsksWhetherAKeeperSpellIsAvailable(
+        int state, int spellId, int asked, bool holds)
+    {
+        GameDatabase database = SpellDatabase(spellId, state, Keeper);
+        WorldState world = TestWorld.World(database);
+
+        TriggerRecord[] records = [SpellAvailable(5, asked), Action(1, 3, 0x0A, 1)];
+        var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
+        new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Equal(holds ? 1 : 0, world.Triggers.Read(3));
+    }
+
+    /// <summary>The table is per keeper and per kind: another player's available spell, and
+    /// an available <i>creature</i> of the same id, both answer false.</summary>
+    [Theory]
+    [InlineData(5, 2, false)]   // kind 5 (spells) but the rival's row
+    [InlineData(2, 3, false)]   // this keeper, state 3, but kind 2 (creature)
+    public void ConditionTwentyNineReadsOnlyThisKeepersSpells(
+        int kind, int owner, bool holds)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database().ForLevel(Level(
+            new AvailabilityEntry((ushort)kind, (ushort)owner, 7, 3)));
+        WorldState world = TestWorld.World(database);
+
+        var tree = new TriggerTree(
+            [SpellAvailable(5, 7), Action(1, 3, 0x0A, 1)], 0,
+            playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
+        new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Equal(holds ? 1 : 0, world.Triggers.Read(3));
+    }
+
+    /// <summary>And it is answered rather than declined — 80 shipped records over 14
+    /// levels, the largest single block in the stall census before this (ADR-0120).
+    /// </summary>
+    [Fact]
+    public void ConditionTwentyNineIsAnsweredRatherThanDeclined()
+    {
+        GameDatabase database = SpellDatabase(7, 1, Keeper);
+        WorldState world = TestWorld.World(database);
+
+        TriggerRunResult result = new TriggerExecutor(
+                new TriggerTree([SpellAvailable(5, 7), Action(1, 3, 0x0A, 1)], 0,
+                    playerRoots: [new TriggerPlayerRoot(Keeper, 5)]),
+                world.Triggers, world, database)
+            .Run(1);
+
+        Assert.DoesNotContain(result.Blocked, b => b.Type == 29);
+    }
+
+    private static GameDatabase SpellDatabase(int spellId, int state, byte owner) =>
+        Dk2TerrainFixture.Database().ForLevel(Level(
+            new AvailabilityEntry(5, owner, spellId, state)));
+
+    private static GlobalVariables Level(params AvailabilityEntry[] entries)
+    {
+        var level = new GlobalVariables();
+        level.Availabilities.AddRange(entries);
+        return level;
+    }
+
+    /// <summary>A type-29 record as the reader builds one: <c>TargetId</c> at byte 01 and
+    /// nothing else the arm reads.</summary>
+    private static TriggerRecord SpellAvailable(ushort id, int targetId) =>
+        new GenericTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = id, Type = 29, RepeatCount = 1,
+            ChildTriggerId = 0xFFFF, NextTriggerId = 0,
+            Parameters = new Dictionary<string, long> { ["TargetId"] = targetId },
+        };
+
     /// <summary>A type-47 record as the reader builds one: byte 00 only, no comparison and
     /// no value, so a helper that supplied either would not be testing this arm.</summary>
     private static TriggerRecord KilledBy(ushort id, int playerId) =>

@@ -2062,3 +2062,32 @@ mechanism behind the lag is not separated, so the raw number stays visible.
 and says which is which. `StampsAgree` is the strong claim; a `+1` on a flag is
 agreement given the measured lag. No simulation state changed, so no
 `HashVersion` bump.
+
+## ADR-0120 — Condition type 29 is keeper-spell availability, tested strictly against 3
+**Date:** 2026-09-10 · **Status:** accepted · Arm `0x004C83C8`
+
+**Context.** Type 29 was the largest block in the stall census — **80 records
+over 14 levels, 77 of them reached**. The plan asserted it needed "per-player
+spell availability" without the arm having been read, so the shape, the state
+tested and the meaning of id 0 were all guesses.
+
+**Decision.** Read the arm. It takes byte 1 as `TargetId` and returns a bare
+boolean: **zero walks the keeper's spell table** at `player+0x6E`/`+0x72`
+looking for any entry whose availability is 3, **a named id looks that one up**
+and compares the same way. It reads no `Comparison` and no `Value` — the record
+carries neither — so like type 47 it is answered in `EvaluateCondition` and
+never reaches `TriggerState.Compare`. Availability comes from `Availability`
+kind 5, which `kwd-variables.md` had already identified as keeper spells from
+its id range against `KeeperSpells.kwd`'s thirteen records.
+
+**The state test is `== 3` exactly, not "non-zero".** That distinction is
+load-bearing on shipped data: kind 5 holds **271 entries at 1** and one at 4,
+and it separates a spell from a creature, where `PortalRules.IsUnlocked`
+deliberately also accepts RESEARCHABLE (2).
+
+**Consequences.** The campaign stall frontier falls **143 → 66**. No flag moves
+that did not move before, so nothing in the two live captures changes and both
+still match — the walk goes deeper without writing more. Availability is read
+from level data rather than world state because nothing mutates it yet; action
+type 38 carries an `Available` byte and will have to move it onto the player
+when it is implemented. No simulation state changed, so no `HashVersion` bump.

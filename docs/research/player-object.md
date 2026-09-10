@@ -35,7 +35,8 @@ or a community document.
 | `+0x132` | `KilledByPlayerId` | read by condition type 47 |
 | `+0x134`, `+0x136` | `CreaturePossessed`, `CreatureHeldInPossession` | `+0x134` gates condition type 73 |
 | `+0x138`–`+0x13E` | `CallToArmsTag`, `CallToArmsPosition`, `CallToArmsManaTick` | |
-| `+0x19A`, `+0x19E` | `Status`, `ObjectiveTextId` | |
+| `+0x173` | **creatures lost** | a dword, incremented by the death handler `FUN_00487C70`; condition type 22's `PlayerId 0` path |
+| `+0x19A`, `+0x19E` | `Status`, `ObjectiveTextId` | but see the kill tally below |
 | `+0x1BE`–`+0x1C1` | `ObjectiveActionPointId`, `NumberOfThingsInHand`, `MaxNumberOfThingsInHand`, `FreeRangeChickenCount` | |
 | `+0x20D` | `CasinoBigWinnerGameTickRemaining` | |
 | `+0x20F`, `+0x213` | `ResearchCompleted`, `ResearchPoint` | **contradicts a comment in `WorldState.PlayerState`** — Q265 |
@@ -99,3 +100,36 @@ same concepts. Four agree with the table above (hero 50, land 5, gold 1,
 creature 20) and **`MpdScoreItemManufactured` is 10 where the table has 5**, so
 the hardcoded weights are not those variables read at load. Which system a
 shipped level scores by is unknown (Q267).
+
+## The kill tally at `+0x19E`, and why the dumper's name for it is entry 0
+
+Condition type 22's arm (`0x004C7D0F`) reads a **u16 at `+0x19E + 2 x n`** on
+another keeper's record, where `n` is the *asking* keeper's `Number`
+(`+0x10FC`). It reaches that record through the player array — base
+`world[0x84]`, stride **4389**, which is one player record — so a `PlayerId` of
+*k* selects index *k−1*.
+
+The death handler `FUN_00487C70` writes the same place:
+
+```
+MOV ECX,[ESI + 0x2a]              ; the victim's owner
+MOV AL,byte ptr [ECX + 0x10fc]    ; that owner's Number
+INC word ptr [EDI + EAX*2 + 0x19e]  ; on the KILLER: one more of theirs
+TEST byte ptr [ESI + 0x3e6],0x40
+JNZ skip
+INC dword ptr [EAX + 0x173]         ; the victim owner's own total
+```
+
+So `+0x19E` is a **16-entry per-victim tally living on the killer**, and
+`+0x173` is the victim's own running total — the two halves of type 22. The
+total is skipped when the victim carries bit `0x40` at `+0x3E6`, so a creature
+can count for the killer and not against its owner; what that bit marks is
+UNKNOWN.
+
+**The array is 16 words and ends at `+0x1BE`**, exactly where the next dumped
+field begins, which is what fixes its length. The debug dumper names `+0x19E`
+`ObjectiveTextId` — that is **entry 0**, the slot for player `Number` 0, and no
+keeper has that number. Whether the game genuinely reuses the slot or the
+dumper simply names the offset is not separated here; either way, reading
+`ObjectiveTextId` as a plain scalar and the tally as starting later would be
+wrong, because both instructions above use `+0x19E` itself.

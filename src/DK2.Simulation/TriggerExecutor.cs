@@ -505,10 +505,13 @@ public sealed class TriggerExecutor
         if (PlayerConditionIsConstantFalse(record.Type))
             return TriggerConditionResult.Unsatisfied;
 
-        // Answered whole, not measured: type 47 reads no Comparison and no Value, so it
-        // cannot go through the shared compare path below.
+        // Answered whole, not measured: types 29 and 47 read no Comparison and no Value, so
+        // neither can go through the shared compare path below.
         if (record.Type == 47 && _world is not null)
             return Result(KilledBy(record.Parameters, _world, run.Player!.Value));
+
+        if (record.Type == 29 && _database is not null)
+            return Result(SpellAvailable(record.Parameters, _database, run.Player!.Value));
 
         if (_world is not null && _database is not null
             && PlayerCounter(
@@ -562,6 +565,30 @@ public sealed class TriggerExecutor
         if (killer == 0) return false;
         byte wanted = Byte(parameters, "PlayerId");
         return wanted == 0 || killer == wanted;
+    }
+
+    /// <summary>Condition type 29 — <b>is this keeper's spell available</b>
+    /// (<c>0x004C83C8</c>). Also not a comparison: the arm reads one byte, <c>TargetId</c>,
+    /// and returns a bare true or false. Zero asks whether <i>any</i> spell is available,
+    /// walking the keeper's spell table at <c>player+0x6E</c>/<c>+0x72</c>; a named id
+    /// looks that one up. Both test the state <b>strictly against AVAILABLE (3)</b>, so —
+    /// unlike creatures, where <see cref="PortalRules.IsUnlocked"/> also accepts
+    /// RESEARCHABLE (2) — a researchable spell does not answer this true. The corpus makes
+    /// that distinction load-bearing: 271 shipped kind-5 entries hold 1, and one holds 4.
+    /// </summary>
+    private static bool SpellAvailable(
+        IReadOnlyDictionary<string, long> parameters, GameDatabase database, byte playerId)
+    {
+        const ushort KindSpell = 5;
+        const int Available = 3;
+        byte wanted = Byte(parameters, "TargetId");
+        foreach (AvailabilityEntry entry in database.Variables.Availabilities)
+        {
+            if (entry.Kind != KindSpell || entry.PlayerId != playerId) continue;
+            if (wanted != 0 && entry.TypeId != wanted) continue;
+            if (entry.Value == Available) return true;
+        }
+        return false;
     }
 
     /// <summary>Condition type 19 — how many creatures this keeper owns
