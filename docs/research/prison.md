@@ -238,6 +238,10 @@ overcrowd one by hand at all. Below 3x3 the count is zero, the "+1" never fires,
 and the room does nothing. The owner built a 3x3, captured until the imps
 stopped, and read **two** off the status bar.
 
+**The rendering shows the same split.** The outermost tiles carry no fence —
+the bars begin at the inner ring — so the rim is outside the cell to look at
+as well as to count, which is why an imp can reach a corpse there (Q306).
+
 ## What this opens
 
 Three mechanics have nothing to stand on without the prison. **Torture**:
