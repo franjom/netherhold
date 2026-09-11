@@ -118,7 +118,7 @@ From the manual (p.23) and the shipped variables:
 | rule | where it comes from | built |
 |---|---|---|
 | *"whilst in Prison, creatures gradually lose health as they wither away"* | `PrisonModifyCreatureHealthPerSecond` = **−3** | yes, once a game second |
-| *"any creatures that perish in Prison will rise as Skeletons under your control"* | `RoomDef.CreatedCreatureId` = **9** | yes, and the skeleton is the **jailer's** — but *perish* may not mean every death: see Q306, Q307 |
+| *"any creatures that perish in Prison will rise as Skeletons under your control"* | `RoomDef.CreatedCreatureId` = **9** | yes, and the skeleton is the **jailer's** — but *perish* means **starved**: one slain leaves a body on the rim (ADR-0140) |
 | Chickens dropped on a prisoner keep it alive | `manual-1999.md` §Hatchery | yes (ADR-0074, ADR-0075, §7) |
 | The door bar stops further deliveries | `SafeCreatureCapacity` on the room | **no** — no keeper-set limit here |
 | Full prison → next nearest with space → none → stop collecting | manual | yes, via the destination test |

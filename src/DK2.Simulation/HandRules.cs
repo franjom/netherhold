@@ -120,7 +120,13 @@ public static class HandRules
         if (!definition.Flags.HasFlag(CreatureFlags.CanBeSlapped)) return false;
         if (definition.Flags.HasFlag(CreatureFlags.IsHorny)) return false;
         if (creature.InHand) return false;
-        if (creature.OwnerPlayerId != playerId) return false;
+
+        // Your own creatures, and the enemies in your own prison: the owner slapped a
+        // captive Monk to death on 2026-09-11 (Q306). Whether anything else of another
+        // keeper's can be slapped is UNKNOWN, so this widens no further.
+        if (creature.OwnerPlayerId != playerId
+            && creature.PrisonOwnerPlayerId != playerId) return false;
+
         return !CreatureDeathRules.IsDown(creature);
     }
 

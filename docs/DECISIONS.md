@@ -2875,3 +2875,51 @@ surfaces (Q306).
 
 **Consequences.** No state field and no stored quantity changed — rooms are
 derived from tiles each time — so `HashVersion` and the pin stand.
+
+## ADR-0140 — A slain prisoner leaves a body on the rim; only the drain raises a Skeleton
+
+**Date:** 2026-09-11 · **Status:** accepted · Q306, Q307
+
+**Context.** `PrisonSystem` turned **every** prisoner whose health ran out into
+the prison's `CreatedCreatureId`, on the manual's *"any creatures that perish in
+Prison will rise as Skeletons"*. The owner slapped a captive Monk to death and
+photographed the result: **a corpse, lying on the prison's rim outside the
+fence**, with the live captives still inside it and no Skeleton. OpenKeeper
+reaches the same rule independently — its skeleton branch requires the entity
+not to be taking damage.
+
+**Decision, in three parts.**
+
+**A jailer may slap its own prisoner.** `CanSlap` refused, because a prisoner
+belongs to the keeper it was captured from, so none of this was reachable. The
+widening is exactly as far as the observation goes: your own creatures, plus the
+enemies in your own prison.
+
+**Only the drain raises.** A prisoner already out of health when the drain comes
+round was killed by something else and is released instead. The test is the
+health reading rather than a new "was damaged" flag, which is both simpler and
+what the situation actually asks.
+
+**The body goes to the rim.** It is moved to the first free outermost tile of the
+prison it died in — free meaning no creature on it. That is what puts it
+where an imp can reach it without passing the gate, and it needs the tile set
+ADR-0139 introduced.
+
+**The death itself is not booked here, and that is the point.** Releasing is
+enough: `CreatureHealthSystem` skips prisoners and picks this one up on the next
+game second, where standing on a Prison tile already means no rescuable window
+(Q303, ADR-0138). The ordinary path then produces exactly the corpse observed,
+which is a cross-check on ADR-0138 rather than a second mechanism.
+
+**What replaced a test that pinned nothing.** `APrisonerIsNotSlappable` asserted
+the opposite of all this and cited no source — it had pinned whatever
+`CanSlap`'s owner test happened to do. Its replacement cites the observation.
+
+**Left open.** The drop-through-the-floor animation is presentation. The
+Skeleton cap is now known to be the prison's own capacity and **per prison**
+(owner), but whether a rise is refused at it is unobserved, so nothing enforces
+it (Q307). `CanSlap` still models no notion of reach, so a keeper may slap its
+own creature held in somebody else's prison; narrowing that would be a guess.
+
+**Consequences.** No state field and no stored quantity changed, so `HashVersion`
+and the pin stand.

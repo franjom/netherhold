@@ -559,20 +559,58 @@ public class PrisonTests
         Assert.False(theirs.InHand);
     }
 
+    /// <summary><b>A jailer can slap its own prisoner</b>, which the opposite of this test
+    /// asserted until 2026-09-11 — on no evidence, having pinned whatever
+    /// <c>CanSlap</c>'s owner test happened to do. The owner slapped a captive Monk to
+    /// death and photographed the body (Q306).</summary>
+    /// <remarks>Still not modelled, and not narrowed here because narrowing it would be a
+    /// guess: <c>CanSlap</c> has never asked whether the hand can <i>reach</i> a creature,
+    /// so a keeper may also slap its own creature held in somebody else's prison.</remarks>
     [Fact]
-    public void APrisonerIsNotSlappable()
+    public void AJailerCanSlapItsOwnPrisoner()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
-        CreatureState captive = Prisoner(db, world, CellA);
+        CreatureState captive = Prisoner(db, world, CellB);
         int health = captive.Health;
 
         GameSimulation sim = Simulation(db, world);
         sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, captive.Id)));
 
-        Assert.Equal(health, captive.Health);
-        Assert.Equal(0, captive.WorkFasterTicks);
+        Assert.True(captive.Health < health, "a slap on a captive did nothing");
+    }
+
+    /// <summary><b>And slapping one to death leaves a body, not a Skeleton</b> — lying
+    /// on the prison's rim, outside the bars, where an imp can reach it. Observed
+    /// 2026-09-11 (ADR-0140). The Skeleton belongs to the drain alone: this prisoner was
+    /// already out of health when the drain came round.</summary>
+    [Fact]
+    public void APrisonerSlappedToDeathLeavesABodyOnTheRimAndNoSkeleton()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        BigPrison(db, world);
+        CreatureState captive = Prisoner(db, world, CellB);
+        RoomInstance prison = RoomIndex.Build(world, db)
+            .Single(r => r.Definition.TypeId == RoomTypeId.Prison);
+
+        captive.Health = 1;
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, captive.Id)));
+        Assert.True(captive.Health <= 0, "one slap was not enough to finish it");
+
+        for (int i = 0; i < 2 * Second; i++) sim.Tick();
+
+        Assert.Contains(sink.Events, e => e.Kind == "prisoner_slain");
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "prisoner_perished");
+        Assert.False(PrisonRules.IsImprisoned(captive));
+
+        // Still a tile of the prison, and not one of the fenced ones.
+        int body = (captive.Tile.Y * world.Width) + captive.Tile.X;
+        Assert.Contains(body, prison.TileIndices);
+        Assert.False(prison.IsInterior(body));
     }
 
     [Fact]

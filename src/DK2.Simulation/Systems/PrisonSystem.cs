@@ -129,9 +129,11 @@ public sealed class PrisonSystem : ISimulationSystem
     /// out rises as a Skeleton for the keeper whose prison it was standing in: the
     /// manual's "any creatures that perish in Prison will rise as Skeletons under your
     /// control".
-    /// <para><b>Every prisoner, which is probably too many</b> (Q306): the owner recalls
-    /// that one slapped to death leaves a corpse instead, and OpenKeeper reaches the same
-    /// rule from its own direction. No cap either (Q307).</para></remarks>
+    /// <para><b>Only the ones the drain finishes.</b> A prisoner already out of health
+    /// when the drain comes round was killed by something else, and that one leaves a body
+    /// on the prison's rim instead of rising (owner, 2026-09-11, ADR-0140). No cap on the
+    /// Skeletons yet, though DK2 shows one and it is this prison's capacity (Q307).</para>
+    /// </remarks>
     private static void Wither(SimulationContext context)
     {
         WorldState world = context.World;
@@ -143,6 +145,14 @@ public sealed class PrisonSystem : ISimulationSystem
             CreatureState creature = world.Creatures[i];
             if (!PrisonRules.IsImprisoned(creature)) continue;
             if (HandRules.IsHeld(creature)) continue;
+
+            // Out of health before the drain reached it, so the drain is not what
+            // killed it: a slain captive leaves a body, not a Skeleton (ADR-0140).
+            if (creature.Health <= 0)
+            {
+                Slain(context, creature);
+                continue;
+            }
 
             // Read here rather than once above, so that a level with no prison
             // does not demand a variable that only a prison needs. The synthetic
@@ -160,6 +170,63 @@ public sealed class PrisonSystem : ISimulationSystem
 
             Raise(context, creature);
         }
+    }
+
+    /// <summary>Lets go of a prisoner something else killed, putting its body outside the
+    /// bars first.</summary>
+    /// <remarks>
+    /// <para>Observed 2026-09-11: a Monk slapped to death in a prison left a corpse lying
+    /// on the <b>rim</b>, outside the fence, while the live captives stayed inside it. The
+    /// body is moved to the first free rim tile of the prison it died in — which is
+    /// what puts it where an imp can reach it without passing the gate.</para>
+    /// <para>The death itself is not booked here. Releasing it is enough:
+    /// <see cref="CreatureHealthSystem"/> skips prisoners and picks this one up on the next
+    /// game second, where standing on a Prison tile already means no rescuable window
+    /// (Q303, ADR-0138) — so the ordinary path produces exactly the corpse observed.
+    /// </para></remarks>
+    private static void Slain(SimulationContext context, CreatureState creature)
+    {
+        WorldState world = context.World;
+        var keeper = (byte)creature.PrisonOwnerPlayerId;
+        TilePos died = creature.Tile;
+
+        foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
+        {
+            if (!PrisonRules.IsPrisonOf(room, keeper)) continue;
+            if (!room.TileIndices.Contains((died.Y * world.Width) + died.X)) continue;
+
+            foreach (int tileIndex in room.TileIndices)
+            {
+                if (room.IsInterior(tileIndex)) continue;
+                if (Occupied(world, tileIndex, creature.Id)) continue;
+
+                creature.PosX = CreatureState.CentreOf(tileIndex % world.Width);
+                creature.PosY = CreatureState.CentreOf(tileIndex / world.Width);
+                break;
+            }
+
+            break;
+        }
+
+        PrisonRules.Release(creature);
+
+        context.Emit(SystemName, "prisoner_slain",
+            $"creature={creature.Id} player={keeper} " +
+            $"died_at=({died.X},{died.Y}) body_at=({creature.Tile.X},{creature.Tile.Y})");
+    }
+
+    /// <summary>Whether anything but <paramref name="exceptId"/> stands on this tile.
+    /// <b>Free</b>, in the owner's "first free outermost tile", means free of creatures:
+    /// a tile already carrying a body or a live one is passed over.</summary>
+    private static bool Occupied(WorldState world, int tileIndex, int exceptId)
+    {
+        foreach (CreatureState other in world.Creatures)
+        {
+            if (other.Id == exceptId) continue;
+            if ((other.Tile.Y * world.Width) + other.Tile.X == tileIndex) return true;
+        }
+
+        return false;
     }
 
     /// <summary>
