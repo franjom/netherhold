@@ -2808,11 +2808,10 @@ asked first, so a creature inside any *other* room is never asked about
 one killed in the corridor outside does not.
 
 **`DieInstantly` becomes state.** `CreatureState.DieInstantly` mirrors `+0x3EA`
-bit 11; trigger action type 1 sets it from its `Flag` byte's bit 2 (ADR-0137),
-completing a piece that decision could only document. Its getter `0x0048E110`
-answers true for creature types 21, 28 and 29 — King Reginald, Stone Knight
-and Lord Of The Land — before it reads the bit, so those three carry it
-whatever a script asked. A rule, not a data lookup, so it is code.
+bit 11; action type 1 sets it from its `Flag` byte's bit 2 (ADR-0137). Its getter
+`0x0048E110` answers true for creature types 21, 28 and 29 — King Reginald,
+Stone Knight and Lord Of The Land — before it reads the bit, so those three
+carry it whatever a script asked. A rule, not a lookup, so it is code.
 
 **What the reference projects say** — two of the three missing gates were in
 front of us, misquoted — is in `external-resources.md`, "Q303".
@@ -2830,3 +2829,49 @@ keep `DyingTicks` beside a zeroed health. Same behaviour, different place.
 
 **Consequences.** A new hashed and snapshotted bool: `HashVersion` 55 → 56,
 snapshot `FormatVersion` 55 → 56, pin `0xAEC253948973DF35`.
+
+## ADR-0139 — A prisoner is confined to the fenced interior, not to the room
+
+**Date:** 2026-09-11 · **Status:** accepted · Q306, Q307
+
+**Context.** `PrisonRules` let a prisoner stand anywhere in the room: deliveries
+picked any free tile and the wander scan offered any orthogonal neighbour that
+was part of the same room instance. That followed DK2's own scan, which tests
+room membership — but the scan also tests a *nothing is standing here*
+predicate, and the owner supplied what stands there: **a prison's fence begins at
+the inner ring, so its outermost tiles carry no bars and are outside the cell**
+(2026-09-11). Even a Skeleton raised from a dead prisoner leaves through the
+gate rather than appearing outside.
+
+**Decision.** Confine a prisoner to the room's **interior** — the tiles whose
+four orthogonal neighbours are all part of the room. `FreeTileIn` offers only
+those, and `TryWanderStep` steps only onto them.
+
+**The substitution is the same one `Capacity` already makes.** DK2 counts the
+tiles its furniture predicate accepts; we have no prison furniture, so the rim
+stands in for it. `Capacity` has read `InteriorTileCount + 1` since ADR-0070 for
+exactly that reason, and using a different stand-in for movement than for
+capacity was the inconsistency.
+
+**The interior becomes a set, not a count.** `RoomInstance.InteriorTileIndices`
+replaces the stored `EdgeTileCount`, which is now derived from it. One pass over
+the room, one source of truth, and a per-tile question that nothing could ask
+before.
+
+**A surprising consequence, asserted rather than hidden.** DK2's smallest prison
+is 3x3, whose interior is a single tile — so on one of those a prisoner
+cannot move at all. That follows from two owner observations that were never put
+side by side: a 3x3 holds two, and a prisoner stays inside the fence.
+
+**Capacity gains a second observed size.** `interior + 1` was confirmed only at
+3x3, where it reads 2. The owner's status bar on a 5x5 reads **"Captives held:
+6 / 10 … Maximum Skeletons: 10"**, and 10 is what the formula gives. No
+other candidate fits both: `tiles - 1` gives 8 and 24, the interior alone gives
+1 and 9. The theory row that predicted it is now an observation.
+
+**Still open.** Whether a Skeleton is refused at that maximum is unobserved and
+unbuilt (Q307), and so is the corpse a slapped prisoner leaves and where it
+surfaces (Q306).
+
+**Consequences.** No state field and no stored quantity changed — rooms are
+derived from tiles each time — so `HashVersion` and the pin stand.

@@ -78,7 +78,8 @@ public static class PrisonRules
             int y = here.Y + dy;
             if (x < 0 || y < 0 || x >= world.Width || y >= world.Height) continue;
 
-            if (!cell.TileIndices.Contains((y * world.Width) + x)) continue;
+            // Inside the bars, not merely inside the room (ADR-0139).
+            if (!cell.IsInterior((y * world.Width) + x)) continue;
 
             step = new TilePos(x, y);
             return true;
@@ -148,7 +149,7 @@ public static class PrisonRules
             if (!IsPrisonOf(room, playerId)) continue;
             if (PrisonerCount(world, room) >= Capacity(room)) continue;
 
-            foreach (int tileIndex in room.TileIndices)
+            foreach (int tileIndex in room.InteriorTileIndices)
             {
                 if (PrisonerOn(world, tileIndex) is not null) continue;
 

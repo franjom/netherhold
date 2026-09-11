@@ -235,12 +235,12 @@ predicate accepts — everything but the rim, the tiles its bars and gate have n
 taken — and **adds one if that count is non-zero**, into `SafeCreatureCapacity`.
 `TotalCapacity` is left at **−1** for a prison, which is why a keeper can
 overcrowd one by hand at all. Below 3x3 the count is zero, the "+1" never fires,
-and the room does nothing. The owner built a 3x3, captured until the imps
-stopped, and read **two** off the status bar.
+and the room does nothing. The owner built a 3x3 and read **two** off the bar.
 
-**The rendering shows the same split.** The outermost tiles carry no fence —
-the bars begin at the inner ring — so the rim is outside the cell to look at
-as well as to count, which is why an imp can reach a corpse there (Q306).
+**The rendering shows the same split, and a 5x5 confirms the formula.** The
+outermost tiles carry no fence, so the rim is outside the cell to look at as well
+as to count and a prisoner never reaches it (ADR-0139). DK2 reads **6 / 10** on a
+5x5: the inner 3x3 plus one (owner, 2026-09-11).
 
 ## What this opens
 

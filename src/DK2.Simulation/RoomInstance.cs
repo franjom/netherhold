@@ -68,10 +68,18 @@ public sealed class RoomInstance
     /// temple's capacity (Q60). CONFIRMED against three tooltip readings: 3x3 holds 8, 4x4 holds 12,
     /// 5x5 holds 16, which is <c>2(w+h) − 4</c> for a solid rectangle. Counting the boundary rather
     /// than evaluating the formula lets an L-shaped temple answer too; the room is a pool with a walkway, and creatures stand on the walkway.</summary>
-    public int EdgeTileCount { get; internal set; }
+    public int EdgeTileCount => TileCount - InteriorTileIndices.Count;
+
+    /// <summary>The tiles wholly surrounded by the room, in ascending order. <b>A set, not a
+    /// count</b>, because a prison's rim is where its bars are: a prisoner is confined to these
+    /// and a Skeleton raised from one leaves through the gate (owner, 2026-09-11, Q306).</summary>
+    public IReadOnlyList<int> InteriorTileIndices { get; internal set; } = [];
 
     /// <summary>Tiles wholly surrounded by the room — <see cref="TileCount"/> less the rim.</summary>
-    public int InteriorTileCount => TileCount - EdgeTileCount;
+    public int InteriorTileCount => InteriorTileIndices.Count;
+
+    /// <summary>Whether this tile of the room is one of the wholly surrounded ones.</summary>
+    public bool IsInterior(int tileIndex) => InteriorTileIndices.Contains(tileIndex);
 
     /// <summary>Whether a tile is one of the middle nine — the raised platform a dungeon heart's
     /// structure stands on, and what makes a heart hold 16000 and not 25000 (Q52). CONFIRMED: a

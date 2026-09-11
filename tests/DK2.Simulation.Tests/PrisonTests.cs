@@ -88,6 +88,28 @@ public class PrisonTests
                 Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
     }
 
+    /// <summary>A 5x5 prison, <b>whose fenced interior is exactly the 3x3 that
+    /// <see cref="Prison"/> is</b>, so <c>CellA</c>, <c>CellB</c> and <c>CellC</c> mean the
+    /// same tiles in both. Used wherever a prisoner has to move: a 3x3's interior is one
+    /// tile and nothing can walk anywhere in it (owner, 2026-09-11, Q306). DK2 shows
+    /// "Captives held: 6 / 10" on a room this size.</summary>
+    private static void BigPrison(GameDatabase db, WorldState world)
+    {
+        for (int y = 1; y <= 8; y++)
+        {
+            for (int x = 1; x <= 8; x++)
+            {
+                ref TileState tile = ref world.Tile(x, y);
+                tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+                tile.OwnerPlayerId = Keeper;
+            }
+        }
+
+        for (int y = 2; y <= 6; y++)
+            for (int x = 3; x <= 7; x++)
+                Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+    }
+
     /// <summary>
     /// Puts a creature on the floor before tick 0 — the same helper
     /// <c>CarryingTests</c> uses, and for the same reason: a collapse is booked
@@ -197,8 +219,8 @@ public class PrisonTests
 
         Prisoner(db, world, CellA);
 
-        // One in, one to go - and the tile it goes on is any free one, because
-        // the rim is where a body is laid down and the capacity is not per tile.
+        // One in, one to go - and the tile it goes on is the single fenced one,
+        // because a prisoner never reaches the rim (owner, 2026-09-11).
         Assert.NotEqual(-1, PrisonRules.FreeTileIn(world, db, Keeper, Floor));
 
         Prisoner(db, world, CellB);
@@ -221,6 +243,9 @@ public class PrisonTests
         // The owner's other half: "any smaller size and it doesn't render like a
         // prison, it only occupies those tiles." A room with no inner tile has
         // no capacity, and DK2's "+1" never fires because the count is zero.
+        // The 5x5 row stopped being a prediction on 2026-09-11: the status bar
+        // reads "Captives held: 6 / 10" on one, and interior + 1 is the only
+        // candidate fitting both observed sizes (ADR-0139).
         GameDatabase db = Db;
         WorldState world = World(db);
 
@@ -698,7 +723,7 @@ public class PrisonTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world);
+        BigPrison(db, world);
         CreatureState captive = Prisoner(db, world, CellB);
 
         TilePos start = captive.Tile;
@@ -726,7 +751,7 @@ public class PrisonTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world);
+        BigPrison(db, world);
         CreatureState captive = Prisoner(db, world, CellB);
 
         GameSimulation sim = Simulation(db, world);
@@ -770,11 +795,64 @@ public class PrisonTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world);
+        BigPrison(db, world);
         CreatureState captive = Prisoner(db, world, new TilePos(4, 3));
 
         Assert.True(PrisonRules.TryWanderStep(world, db, captive, start, out TilePos step));
         Assert.Equal(new TilePos(x, y), step);
+    }
+
+    /// <summary><b>A prisoner never steps onto the rim.</b> A prison's fence begins at
+    /// the inner ring, so its outermost tiles are outside the cell however much they are
+    /// part of the room (owner, 2026-09-11, Q306). Before this the mover offered any tile
+    /// of the room and a prisoner could shuffle out through the bars.</summary>
+    [Fact]
+    public void APrisonerNeverStandsOnTheUnfencedRim()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        BigPrison(db, world);
+        CreatureState captive = Prisoner(db, world, CellB);
+
+        RoomInstance prison = RoomIndex.Build(world, db)
+            .Single(r => r.Definition.TypeId == RoomTypeId.Prison);
+        Assert.Equal(25, prison.TileCount);
+        Assert.Equal(9, prison.InteriorTileCount);
+
+        GameSimulation sim = Simulation(db, world);
+        var visited = new HashSet<TilePos>();
+
+        for (int i = 0; i < 60 * Second; i++)
+        {
+            sim.Tick();
+            if (world.CreatureById(captive.Id) is null) break;
+
+            visited.Add(captive.Tile);
+            Assert.True(
+                prison.IsInterior((captive.Tile.Y * world.Width) + captive.Tile.X),
+                $"a prisoner reached the rim at ({captive.Tile.X},{captive.Tile.Y})");
+        }
+
+        // Non-vacuous: it has to have got about the nine, not stood on one.
+        Assert.True(visited.Count >= 4,
+            $"a prisoner only ever stood on {visited.Count} tiles of nine");
+    }
+
+    /// <summary><b>And on DK2's smallest prison it cannot move at all</b>, which follows
+    /// from two things the owner confirmed separately: a 3x3 holds two, so its fenced area
+    /// is one tile, and a prisoner stays inside the fence. Asserted because it is a
+    /// surprising consequence rather than an intended rule, and because nothing else would
+    /// notice if the confinement quietly stopped holding.</summary>
+    [Fact]
+    public void OnAMinimumPrisonTheFencedAreaIsOneTileAndNobodyMoves()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = Prisoner(db, world, CellB);
+
+        Assert.False(
+            PrisonRules.TryWanderStep(world, db, captive, startDirection: 0, out _));
     }
 
     /// <summary>

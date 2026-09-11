@@ -129,38 +129,41 @@ public static class RoomIndex
 
         var room = new RoomInstance(
             definition, ownerPlayerId, [.. tiles], minX, minY, maxX, maxY);
-        room.EdgeTileCount = CountEdgeTiles(world, room);
+        room.InteriorTileIndices = InteriorTiles(world, room);
         return room;
     }
 
     /// <summary>
-    /// Tiles of the room with at least one orthogonal neighbour that is not part
-    /// of it — including the map edge, so a room against the border counts that
-    /// side as rim.
+    /// The room's tiles whose four orthogonal neighbours are all part of it. Everything
+    /// else is rim — including a tile against the map border, which counts that side
+    /// as rim rather than as room.
     /// </summary>
-    private static int CountEdgeTiles(WorldState world, RoomInstance room)
+    private static int[] InteriorTiles(WorldState world, RoomInstance room)
     {
         var member = new HashSet<int>(room.TileIndices);
-        int edges = 0;
+        var interior = new List<int>(room.TileIndices.Count);
 
         foreach (int index in room.TileIndices)
         {
             int cx = index % world.Width;
             int cy = index / world.Width;
+            bool surrounded = true;
 
             for (int i = 0; i < NeighbourDx.Length; i++)
             {
                 int nx = cx + NeighbourDx[i];
                 int ny = cy + NeighbourDy[i];
 
-                if (!world.Contains(nx, ny) || !member.Contains((ny * world.Width) + nx))
-                {
-                    edges++;
-                    break;
-                }
+                if (world.Contains(nx, ny) && member.Contains((ny * world.Width) + nx)) continue;
+
+                surrounded = false;
+                break;
             }
+
+            if (surrounded) interior.Add(index);
         }
 
-        return edges;
+        // TileIndices is already ascending, so this is too.
+        return [.. interior];
     }
 }
