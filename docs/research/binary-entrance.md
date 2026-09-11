@@ -144,6 +144,21 @@ rather than one parameterised room:
 | Prison, Combat Pit | a count of something *inside* it — occupants, presumably |
 | Temple | 2 if it holds a particular object, otherwise 0 |
 
+### Corroborated by the owner, 2026-09-11
+
+**A 3x5 Temple never produced a Dark Angel; taken to 5x5 it did**, with the
+pool otherwise unchanged (creatures were being sacked back through the portal
+throughout). The Dark Angel's attraction record is **room 13, size 0** — *no*
+size requirement — so a `(roomId, minSize)` boolean, which is what
+`PortalRules.IsAttracted` implements, predicts she arrives at 3x5. She does not.
+
+The table above predicts it exactly: the Temple contributes **2 if it holds a
+particular object and 0 otherwise**, and a type is a candidate only while its
+value is **> 0**. This is the first evidence *for* the weighted model from
+outside the binary, and it answers Q89. It also lines up with Q270 — room
+capacity counts **auto-placed furniture, not tiles** — so the open half is
+**which object**, and at what size the Temple places it.
+
 ### The contradiction, stated rather than hidden
 
 Read literally, a Lair attraction contributes a **flat 1.0** and each goblin

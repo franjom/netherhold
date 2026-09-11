@@ -127,8 +127,10 @@ movement and boulders.
 
 **Two candidate rules were considered and both are refuted by the shipped data:**
 
-- `Obstacle && size > 0` would block **every creature bed**, and a creature
-  sleeps on its bed.
+- `Obstacle && size > 0` would block **every creature bed** — which the owner
+  confirms on 2026-09-11 is what DK2 does: a creature **walks around** a bed, a
+  bookcase and an anvil. So this rule is **no longer refuted**, and the
+  assumption that sank it (that a creature paths onto its own bed) was ours.
 - `SolidObstacle` alone would **not** block a portal's centre: the **Portal
   Crystal (object 99) carries `Obstacle` without `SolidObstacle`**.
 

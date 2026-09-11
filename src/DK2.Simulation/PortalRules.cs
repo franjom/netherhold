@@ -247,11 +247,11 @@ public static class PortalRules
     /// slots, and a creature that fills both needs both — the Bile Demon wants a
     /// Workshop of any size <i>and</i> a Hatchery of 25 tiles. The size is one room's
     /// tile count, not the keeper's total: five 5-tile hatcheries do not add up to 25.
-    /// STRONGLY INFERRED (OpenKeeper; docs/research/portals.md §3). Not gated on
-    /// <see cref="RoomInstance.IsFunctional"/>: the Maiden Of The Nest wants a Temple
-    /// of 9 tiles against a Temple's recommended 25, so gating would make her
-    /// unsatisfiable, leaving a 3x3 temple that attracts her while doing nothing as a
-    /// temple (Q45, Q89 — recorded, not resolved). No attraction, never blocked.</summary>
+    /// STRONGLY INFERRED (OpenKeeper; portals.md §3). Not gated on
+    /// <see cref="RoomInstance.IsFunctional"/> (Q45). No attraction, never blocked.
+    /// <para><b>Diverges (Q89, owner 2026-09-11):</b> a 3x5 Temple produced no Dark
+    /// Angel (its record asks size 0) and a 5x5 did — the Temple weighs 2 only while
+    /// it holds a particular object (binary-entrance.md §4), so ours over-attracts.</para></summary>
     public static bool IsAttracted(CreatureDef creature, IReadOnlyList<RoomInstance> keeperRooms)
     {
         foreach (CreatureAttraction attraction in creature.Attractions)
