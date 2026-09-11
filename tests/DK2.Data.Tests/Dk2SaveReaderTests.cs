@@ -257,36 +257,39 @@ public class Dk2SaveReaderTests
 
         Assert.NotEmpty(byRoom);
 
-        // What identified lane 2: every distinct value is one solid rectangle.
-        // A byte that merely correlated with rooms would not be — it would
-        // scatter, or lump every room of a type together. In the purpose-built
-        // save the ten instances come out as a 2x2 hero gate, four 3x3 portals
-        // and five 5x5 rooms, each exactly filling its box.
+        // What identifies lane 2: every distinct value is one CONNECTED region.
+        // It asserted "one solid rectangle" until 2026-09-11, when a played My
+        // Pet Dungeon save produced a room of 46 tiles in a 9x8 box. Rooms are
+        // built tile by tile, so a box was never the property to assert -- and
+        // this is the second time this test generalised from one purpose-built
+        // save. A byte merely correlating with rooms would scatter instead.
         foreach ((byte room, List<(int X, int Y)> cells) in byRoom)
         {
-            int minX = cells.Min(c => c.X), maxX = cells.Max(c => c.X);
-            int minY = cells.Min(c => c.Y), maxY = cells.Max(c => c.Y);
-            int area = (maxX - minX + 1) * (maxY - minY + 1);
+            var members = new HashSet<(int X, int Y)>(cells);
+            var reached = new HashSet<(int X, int Y)>();
+            var pending = new Stack<(int X, int Y)>();
+            pending.Push(cells[0]);
+            while (pending.Count > 0)
+            {
+                (int x, int y) = pending.Pop();
+                if (!reached.Add((x, y))) continue;
+                if (members.Contains((x + 1, y))) pending.Push((x + 1, y));
+                if (members.Contains((x - 1, y))) pending.Push((x - 1, y));
+                if (members.Contains((x, y + 1))) pending.Push((x, y + 1));
+                if (members.Contains((x, y - 1))) pending.Push((x, y - 1));
+            }
 
             Assert.True(
-                cells.Count == area,
-                $"room {room} covers {cells.Count} tiles but spans a {maxX - minX + 1}x{maxY - minY + 1} " +
-                "box, so lane 2 does not group tiles into solid rooms.");
+                reached.Count == cells.Count,
+                $"room {room} covers {cells.Count} tiles of which only {reached.Count} are "
+                + "reachable from the first by edge steps, so lane 2 does not group tiles "
+                + "into single rooms.");
 
-            // A room may be ONE tile, and the four-tile floor this used to
-            // assert was read off a single purpose-built save (mpd1) whose
-            // smallest room happened to be four. Two things refute it:
-            //
-            //   Terrain 37 is "Hero Gate [ 3x1 ]", a SHIPPED 3x1 room whose own
-            //   name gives its shape, and TrapTime has two of them.
-            //
-            //   The owner's own save carries two 1x1 rooms, on the row where
-            //   they built two stone-bridge tiles across lava. What is odd is
-            //   which tiles hold the ids: the bridge tiles themselves read
-            //   terrain 26 with room id 0, and the CLAIMED PATH beside each
-            //   carries the id. Recorded as Q200 rather than asserted away.
-            //
-            // The rectangle check above is the real test of lane 2; size is a
+            // A room may be ONE tile: terrain 37 is the shipped "Hero Gate
+            // [ 3x1 ]", and the owner's save carries two 1x1 rooms on the row
+            // where they bridged lava. Which tile of a bridge holds the id is
+            // odd enough to be Q200 rather than asserted away here. The
+            // connectivity check above is the real test of lane 2; size is a
             // sanity bound and is treated as one.
             Assert.InRange(cells.Count, 1, 25 * 25);
         }

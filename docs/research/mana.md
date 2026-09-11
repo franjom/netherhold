@@ -1,4 +1,4 @@
-# Mana, and why it is the size of a dungeon
+﻿# Mana, and why it is the size of a dungeon
 
 Milestone M3. Where a keeper's mana comes from, what stops it growing, and what
 drains it.
@@ -285,6 +285,16 @@ the question is where. **The pet-dungeon half is flagged for later at the
 owner's request**: they are not sure of the tile count or of what fed the +1400,
 so it is an observation to re-check (`observation-checklist.md` §5), not yet a
 measurement.
+
+**2026-09-11, and it splits the two clamps.** On the My Pet Dungeon level the
+owner names *Liberty*, the orb reads **+1400** income with the total at exactly
+**200000** — `MaximumManaThreshold` to the digit, on two screenshots taken
+minutes apart. So in that mode the **threshold is applied and the income cap is
+not**, which narrows candidate 1 below and rules out "the display is simply
+wrong": a display that invented its rate would not also stop dead on the other
+variable's value. What *Liberty* is on disk is unresolved — the string appears
+nowhere in the install in ASCII or UTF-16, and level text may sit inside a WAD,
+so the 66-file sweep below cannot yet be said to cover it.
 
 **The obvious explanation was checked first and it is refuted.** ADR-0040 layers
 each level's own `<name>Variables.kld` over the global table, and a per-level

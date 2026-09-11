@@ -240,12 +240,12 @@ public class PrisonTests
     [InlineData(5, 5, 10)]
     public void APrisonHoldsItsInnerTilesPlusOne(int w, int h, int expected)
     {
-        // The owner's other half: "any smaller size and it doesn't render like a
-        // prison, it only occupies those tiles." A room with no inner tile has
-        // no capacity, and DK2's "+1" never fires because the count is zero.
-        // The 5x5 row stopped being a prediction on 2026-09-11: the status bar
-        // reads "Captives held: 6 / 10" on one, and interior + 1 is the only
-        // candidate fitting both observed sizes (ADR-0139).
+        // A room with no inner tile has no capacity -- the owner's "any smaller
+        // size and it doesn't render like a prison" half -- and DK2's "+1" never
+        // fires because the count is zero. Neither the 4x4 nor the 5x5 row is a
+        // prediction any more: the status bar read "6 / 10" and "0 / 5" on
+        // 2026-09-11 (ADR-0139). interior + 1 fits all three observed sizes, and
+        // the 4x4 discriminates: a 3x3 cannot separate it from interior x 2.
         GameDatabase db = Db;
         WorldState world = World(db);
 

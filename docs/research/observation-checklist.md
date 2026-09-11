@@ -211,17 +211,17 @@ so a long walk to a distant graveyard can outlast the corpse.
 ## 4. Rooms
 
 ### Q179 — a 3x3 prison works where the record says 5x5
-`RoomDef.RecommendedSizeX/Y` is read as *the size below which the room does
-nothing*, on two matches (Graveyard 3x3, Temple 5x5) and on the 1999 manual,
-which prints a "Minimum Recommended Size" per room agreeing for 16 of 17 rooms
-and states the semantics outright. **Q179 is a live conflict:** the record says
-Prison 5x5 and the owner's **3x3 prison works**.
+`RoomDef.RecommendedSizeX/Y` was read as *the size below which the room does
+nothing* (ADR-0027, Q45), on the Graveyard 3x3 and Temple 5x5 matches and the
+1999 manual's own wording. The Prison's record says 5x5 and a 3x3 works.
 
-**Do:** two rooms. Build a **1x1 lair** (the table says Treasury/Lair/Guard Room
-1x1) and a **4x4 prison** (the table says 5x5).
-**Means:** 1x1 lair works and 4x4 prison does not → the reading holds and Q179's
-3x3 prison needs its own explanation. 4x4 prison works → the field is a
-recommendation and Q45's rule is wrong for at least the prison.
+**Settled for the prison** (owner, 2026-09-11): a 4x4 functions, so the field is
+a recommendation there and Q45's rule is wrong for at least this room (Q179).
+
+**Do next, and it decides whether Q45 survives anywhere:** a **2x2 graveyard**,
+below its own 3x3 record. Working → the field gates nothing and the two matches
+the rule was built on were coincidence. Not working → the prison is a real
+exception needing its own reason.
 
 ### Q60 — how does a room's yield scale above the minimum?
 Two rooms measured and they do not follow the same rule. Temple capacity is the
@@ -243,13 +243,14 @@ indistinguishable from the rim count.
 8 or 16 → `RoomInstance.EdgeTileCount` is wrong, and so is the story about
 creatures standing on the pool rim.
 
-**Do (graveyard):** the ambiguity is one tile. A 5x5 has **9** interior tiles and
-the owner counted **8** graves, so either graves = interior tiles (the centre
-coffin being the ninth, drawn differently) or interior tiles − 1. 3x3 cannot
-separate them. If a 5x5 graveyard prints a capacity in its tooltip the way a
-temple does, read it off. Otherwise build a **4x4**: its interior is a 2x2 with
-no centre tile, so the first reading predicts **4** and the second **3**. Not a
-7x7 — 25 against 24 leaves you counting headstones in a crowd.
+**Answered for the graveyard, and it impeaches an older number** (owner,
+2026-09-11): a **4x4** prints *"Graves used: 0 / 4. Maximum Vampires: 4"*, and a
+4x4's interior is a 2x2, so **capacity is the interior tile count** — not
+interior − 1, which would have printed 3.
+
+It predicts **9** at 5x5 where the recorded figure is **8 counted graves**; no
+rule gives both, and a printed field beats a count, so the 8 is the suspect
+datum. **Do:** read a **5x5**'s printed capacity.
 
 ### Q89 — does a room below `RecommendedSize` still attract?
 Creature attraction is a parsed field, `CreatureAttraction(RoomId, RoomSize)`,
