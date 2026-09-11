@@ -32,7 +32,12 @@ beside it.
 
 ## Versions
 
-**55** — `0xCB555B61573BE9F8` (current), and `0xE5035AF2FB584476` until 2026-09-10,
+**56** — `0xAEC253948973DF35` (current). `CreatureState.DieInstantly`, a new hashed and
+snapshotted bool, and with it a collapsed-window rule that reads the world rather than
+the definition alone: four gates where there was one (Q303, ADR-0138). A state field
+was added, so the snapshot format moves to 56 with it.
+
+**55** — `0xCB555B61573BE9F8`, and `0xE5035AF2FB584476` until 2026-09-10,
 when the gate's world gained two creatures and the literal was re-pinned **without**
 a version change: the fixture moved, not the hash or the shape of the state (Q206).
 A continuing marked dig task re-resolves the tile before each

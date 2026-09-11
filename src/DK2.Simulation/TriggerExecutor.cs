@@ -899,6 +899,10 @@ public sealed class TriggerExecutor
         // The player byte selects the record at index PlayerId - 1 and the creature is
         // created with the word at its +0x04, TagId. Passed through as the id itself
         // here, which is the same number for every shipped level (Q305).
+        // Bit 2 of the flag byte is DieInstantly (0x0048E140). The other bits land on
+        // the creature's own Flags byte, which nothing here reads yet (Q302).
+        creature.DieInstantly = (checked((byte)p["Flag"]) & 0x04) != 0;
+
         int level = CreatureLevelRules.Clamp(checked((int)p["Level"]));
         creature.Level = level;
         creature.Health = CreatureLevelRules.MaxHealth(

@@ -91,15 +91,43 @@ if (!isLeaveDeadBody(entityId)) {
 }
 ```
 
-…where `isLeaveDeadBody` reads `GENERATE_DEAD_BODY` and nothing else. So **one
-flag decides both halves**, which is coherent in a way worth saying out loud:
-**the dying state *is* a body on the floor** — a live one. A creature that leaves
-nothing behind had nothing to lie there in the first place. It also explains why
-the bodyless set is such an odd mixture: it is not a mixture at all — a summon,
+…where `isLeaveDeadBody` reads `GENERATE_DEAD_BODY` and nothing else. That
+**the dying state *is* a body on the floor** — a live one — is coherent: a
+creature that leaves nothing behind had nothing to lie there. It also explains
+why the bodyless set is such an odd mixture. It is not a mixture: a summon,
 three undead, a construct, a worker and Jack are exactly the things that would
 puff out rather than fall over.
 
-### 2.1 A corpse is not an object
+**One flag does not decide both halves, though.** OpenKeeper stops at that test;
+DK2 has three more. Corrected 2026-09-11 — Q303, ADR-0138.
+
+### 2.1 Four gates on the collapsed window, in DK2's own order
+
+`ModifyHealth` (`0x004B2CE0`) runs these between `0x004B2F2E` and `0x004B2F96`,
+once health has reached zero and the creature is not already dying. **Any one
+sends it straight to dead** — the corpse still follows, gate 1 having passed.
+
+| # | gate | at |
+|---|---|---|
+| 1 | the definition lacks `GenerateDeadBody`, flags bit 15 | `0x004B2F2E` |
+| 2 | the creature is `Possessed` | `0x004B2F37` |
+| 3 | it stands in a **Prison** or **Torture Chamber** — room `TypeId` 11 or 12 | `0x004B2F81` |
+| 4 | it stands in **no room** and `DieInstantly` is true | `0x004B2F8D` |
+
+**3 and 4 are exclusive, and that is the quirk.** The room is asked first, so a
+creature inside any *other* room is never asked about `DieInstantly`: a Lord Of
+The Land killed in a Treasury lies there rescuable, and one killed in the
+corridor outside does not.
+
+`DieInstantly` is `+0x3EA` bit 11. Its getter `0x0048E110` answers true for
+creature types 21, 28 and 29 — King Reginald, Stone Knight and Lord Of The
+Land — **before** it reads the bit; trigger action type 1 sets the bit from
+its `Flag` byte's bit 2 (`trigger-dispatch-tables.md`). Entering the window, DK2
+writes `CreatureDyingStateDurationSeconds × 4` = 240 into the health field
+(`0x004B2FA0`), so health doubles as the rescue clock; we hold a separate
+`DyingTicks` and leave health at zero.
+
+### 2.2 A corpse is not an object
 
 This document, ADR-0051 and several code comments gave **"a corpse is an OBJECT,
 and OBJECTS is unparsed (M6)"** as the reason nothing lies on the floor after a

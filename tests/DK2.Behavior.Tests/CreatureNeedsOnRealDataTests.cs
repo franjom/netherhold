@@ -761,28 +761,16 @@ public class CreatureNeedsOnRealDataTests
     {
         string install = Install();
 
-        // CONFIRMED from two directions that never met. The owner: "imps are
-        // dead right away, they don't have a lying state." OpenKeeper's
-        // HealthSystem.processHealthDepleted, before any unconscious handling:
+        // CONFIRMED from two directions that never met -- the owner for the
+        // Imp, and OpenKeeper opening on the same GENERATE_DEAD_BODY test.
+        // Both are quoted in creature-death.md section 2.
         //
-        //     // No body, just vanish from the world
-        //     if (!isLeaveDeadBody(entityId)) { ...remove(); return; }
-        //
-        // ...where isLeaveDeadBody reads GENERATE_DEAD_BODY and nothing else.
-        // So one flag decides both halves, which is coherent: the dying state
-        // *is* a body on the floor, a live one. Nothing left behind means there
-        // was nothing to lie there.
+        // Narrowed 2026-09-11 (Q303): DK2 gates the window four ways and this
+        // flag is only the first. No body, no lying state, still holds.
         GameDatabase db = GameDatabaseLoader.Load(install);
 
-        foreach (CreatureDef c in db.Creatures.Values)
-        {
-            Assert.Equal(
-                CreatureDeathRules.LeavesBody(c),
-                CreatureDeathRules.HasDyingState(c));
-        }
-
-        Assert.False(CreatureDeathRules.HasDyingState(db.CreatureByName("Imp")!));
-        Assert.True(CreatureDeathRules.HasDyingState(db.CreatureById(7)));   // Goblin
+        Assert.False(CreatureDeathRules.LeavesBody(db.CreatureByName("Imp")!));
+        Assert.True(CreatureDeathRules.LeavesBody(db.CreatureById(7)));   // Goblin
     }
 
     [InstallFact]
@@ -827,26 +815,40 @@ public class CreatureNeedsOnRealDataTests
         Assert.NotNull(db.CreatureByName("Monk"));
     }
 
+    /// <summary>Which of the shipped rooms refuse a dying creature its collapsed window, by
+    /// name. <c>ModifyHealth</c> compares the room's <c>TypeId</c> against 11 and 12
+    /// (<c>0x004B2F81</c>) and the room table says what those are; naming them here is what
+    /// makes the two magic numbers checkable against DK2's own data rather than against a
+    /// comment.</summary>
+    [InstallFact]
+    public void ThePrisonAndTheTortureChamberAreTheTwoRoomsThatRefuseTheDyingWindow()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Install());
+
+        var refusing = db.Rooms.Values
+            .Where(CreatureDeathRules.RoomRefusesTheDyingWindow)
+            .Select(r => r.Name)
+            .ToHashSet();
+
+        Assert.Equal(new HashSet<string> { "Prison", "Torture Chamber" }, refusing);
+    }
+
     [InstallFact]
     public void KingReginaldIsTheCreatureTheDownGuardNowProtectsAgainst()
     {
         string install = Install();
 
-        // Own-land regeneration is suppressed at zero health so a collapsed
-        // creature cannot heal itself off the floor. That guard was written for
-        // the Imp — and the owner's answer then removed the Imp's lying state
-        // altogether, which would have made the guard look pointless.
-        //
-        // It is not. King Reginald regenerates 400 a second on his own land
-        // **and** leaves a body, so he collapses and would heal back up every
-        // second he lay there: the one creature in the shipped data who would
-        // be unkillable at home. He is also the only one, which is exactly why
-        // this is asserted rather than assumed.
+        // Own-land regeneration is suppressed at zero health, a guard written
+        // for the Imp -- whose lying state the owner then removed, which would
+        // have made it look pointless. It is not: King Reginald regenerates 400
+        // a second at home and leaves a body, so he would heal off the floor.
+        // Narrowed 2026-09-11 (Q303): type 21 is DieInstantly, so only inside a
+        // room that is not a Prison or Torture Chamber does he collapse.
         GameDatabase db = GameDatabaseLoader.Load(install);
 
         var healsAndCollapses = db.Creatures.Values
             .Where(c => c.OwnLandHealthIncreasePerSecond > 0
-                        && CreatureDeathRules.HasDyingState(c))
+                        && CreatureDeathRules.LeavesBody(c))
             .Select(c => c.Name)
             .ToHashSet();
 

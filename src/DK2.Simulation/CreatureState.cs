@@ -326,6 +326,13 @@ public sealed class CreatureState
     /// by the clock and written by tests only.</para></summary>
     public bool SkipNextPayment;
 
+    /// <summary><c>DieInstantly</c>, bit 11 of the creature's second flag dword: this one
+    /// skips the collapsed, rescuable window and dies where it stands. Set by trigger action
+    /// type 1 from its <c>Flag</c> byte's bit 2, on 22 of the 268 shipped records
+    /// (ADR-0138). Three creature types carry it whatever the flag says —
+    /// <see cref="CreatureDeathRules.DiesInstantly"/>.</summary>
+    public bool DieInstantly;
+
     /// <summary>Experience level, 1 to <see cref="CreatureLevelRules.MaxLevel"/> (10). A
     /// level multiplies the creature's stats by percentages the shipped data
     /// states outright (<see cref="CreatureLevelRules"/>); CONFIRMED by the
@@ -517,6 +524,7 @@ public sealed class CreatureState
         hash.Add(WageOwed);
         hash.Add(PayAttemptsFailed);
         hash.Add(SkipNextPayment);
+        hash.Add(DieInstantly);
         hash.Add(Level);
         hash.Add(ExperiencePoints);
         hash.Add((int)Mood);

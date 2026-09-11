@@ -545,6 +545,110 @@ public class CreatureNeedsTests
         Assert.DoesNotContain(events.Events, e => e.Kind == "creature_died");
     }
 
+    // ---- the other three gates on the dying window (Q303) -----------------
+
+    /// <summary>A creature carrying <c>DieInstantly</c> that runs out of health <b>out of
+    /// doors</b> is gone on the spot: no collapse, no sixty seconds, nothing to rescue.
+    /// </summary>
+    [Fact]
+    public void ADieInstantlyCreatureOutOfDoorsNeverReachesTheFloor()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 6));
+        var events = new ListEventSink();
+
+        goblin.DieInstantly = true;
+        goblin.Health = 0;
+        GameSimulation sim = Simulation(db, world);
+        sim.ObserveWith(events);
+        sim.Run(Second);
+
+        // Still a corpse: the gate skips the rescuable window, not the body.
+        // Gate one already required GenerateDeadBody to get this far.
+        Assert.Equal(CreatureActivity.Dead, goblin.Activity);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "creature_collapsed");
+        Assert.Contains(events.Events, e => e.Kind == "creature_died");
+    }
+
+    /// <summary>And <b>the same creature in a room still collapses</b>. This is the quirk,
+    /// not an accident of the port: DK2 asks the room first and only reaches
+    /// <c>DieInstantly</c> when the creature is standing on no room at all
+    /// (<c>0x004B2F61</c>). A Lord Of The Land killed in a Treasury lies there rescuable and
+    /// one killed in the corridor outside it does not.</summary>
+    [Fact]
+    public void TheSameCreatureDyingInsideARoomIsNeverAskedAboutDieInstantly()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var at = new TilePos(6, 6);
+        Paint(db, world, RoomTypeId.Treasury, at, Keeper);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
+
+        goblin.DieInstantly = true;
+        goblin.Health = 0;
+        Simulation(db, world).Run(Second);
+
+        Assert.Single(world.Creatures);
+        Assert.Equal(CreatureActivity.Dying, goblin.Activity);
+    }
+
+    /// <summary>A Prison refuses the window to <b>anyone</b> who dies on its tiles, not only
+    /// to a registered prisoner. Our prison withering already bypassed the collapse through
+    /// <c>PrisonRules.IsImprisoned</c>; DK2 keys it on the tile, which is the wider rule and
+    /// the one that also covers a creature killed in a prison it is not held in.</summary>
+    [Fact]
+    public void APrisonTileRefusesTheWindowToACreatureThatIsNotAPrisoner()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var at = new TilePos(6, 6);
+        Paint(db, world, RoomTypeId.Prison, at, Rival);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, at);
+
+        Assert.False(PrisonRules.IsImprisoned(goblin));
+
+        goblin.Health = 0;
+        Simulation(db, world).Run(Second);
+
+        Assert.Equal(CreatureActivity.Dead, goblin.Activity);
+    }
+
+    /// <summary>Possession is the third gate. Nothing in this simulation possesses a
+    /// creature, so the rule answers from state that is always zero today — but it is state
+    /// we hold, and asserting it now is what keeps the gate honest when possession arrives.
+    /// </summary>
+    [Fact]
+    public void APossessedCreatureDiesWhereItStands()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 6));
+
+        world.Player(Keeper).PossessedCreatureId = goblin.Id;
+        goblin.Health = 0;
+        Simulation(db, world).Run(Second);
+
+        Assert.Equal(CreatureActivity.Dead, goblin.Activity);
+    }
+
+    /// <summary>Three creature types answer <c>DieInstantly</c> true whatever a script asked:
+    /// <c>0x0048E110</c> compares the type id against 21, 28 and 29 and returns 1 before it
+    /// ever reads the flag. Asserted on the id rather than the name because that is what the
+    /// binary compares.</summary>
+    [Theory]
+    [InlineData(21, true)]    // King Reginald
+    [InlineData(28, true)]    // Stone Knight
+    [InlineData(29, true)]    // Lord Of The Land
+    [InlineData(GoblinId, false)]
+    public void ThreeTypesCarryDieInstantlyWithNoFlagSet(byte creatureId, bool expected)
+    {
+        CreatureDef def = Dk2TerrainFixture.Goblin() with { CreatureId = creatureId };
+        var state = new CreatureState { DieInstantly = false };
+
+        Assert.Equal(expected, CreatureDeathRules.DiesInstantly(def, state));
+    }
+
     [Fact]
     public void ACollapsedCreatureLiesThereForSixtySecondsAndThenBecomesACorpseForSixtyMore()
     {

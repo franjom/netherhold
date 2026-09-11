@@ -21,12 +21,58 @@ public static class CreatureDeathRules
     /// <summary>Whether this creature has run out of health — not the same as dead.</summary>
     public static bool HasCollapsed(CreatureState creature) => creature.Health <= 0;
 
-    /// <summary>Whether running out of health puts this creature on the floor at all, or simply ends
-    /// it: a creature that leaves no body has no dying state and vanishes on the spot. CONFIRMED by
-    /// the owner for the Imp and generalised to all eight bodyless creatures
-    /// (<see cref="LeavesBody"/>) by OpenKeeper, whose <c>HealthSystem.processHealthDepleted</c>
-    /// tests <c>GENERATE_DEAD_BODY</c> and nothing else before any unconscious handling.</summary>
-    public static bool HasDyingState(CreatureDef creature) => LeavesBody(creature);
+    /// <summary>Whether running out of health puts this creature on the floor at all, or simply
+    /// ends it. <b>Four gates, in DK2's own order</b>, read from <c>ModifyHealth</c>
+    /// (<c>0x004B2CE0</c>) between <c>0x004B2F2E</c> and <c>0x004B2F96</c> — Q303,
+    /// docs/research/creature-death.md §2.</summary>
+    /// <remarks>
+    /// <para>The last two are the quirk: a creature <b>standing in a room</b> is judged by the
+    /// room alone and <see cref="DiesInstantly"/> is never asked, so a Lord Of The Land killed
+    /// in a Treasury lies there rescuable and one killed in a corridor does not.</para>
+    /// <para><see cref="LeavesBody"/> alone was the whole rule until Q303, and it is the first
+    /// gate rather than a wrong one — <c>0x004B2F2E</c> tests the same
+    /// <c>GenerateDeadBody</c> bit, definition flags bit 15.</para>
+    /// </remarks>
+    public static bool HasDyingState(
+        WorldState world, GameDatabase database, CreatureDef creature, CreatureState state)
+    {
+        if (!LeavesBody(creature)) return false;
+        if (IsPossessed(world, state)) return false;
+
+        RoomInstance? room = RoomIndex.RoomAt(
+            world, database, (state.Tile.Y * world.Width) + state.Tile.X);
+
+        return room is not null
+            ? !RoomRefusesTheDyingWindow(room.Definition)
+            : !DiesInstantly(creature, state);
+    }
+
+    /// <summary>The two rooms that kill outright: a creature dying on their tiles gets no
+    /// collapsed window. <c>ModifyHealth</c> reads the room's <c>TypeId</c> at <c>+0x18</c>
+    /// and refuses kinds 11 and 12 (<c>0x004B2F81</c>), which are the Prison and the Torture
+    /// Chamber. Both have their own way to end a creature — the Prison's is built
+    /// (ADR-0064, a Skeleton for the jailer) and the Torture Chamber's is not.</summary>
+    public static bool RoomRefusesTheDyingWindow(RoomDef room) =>
+        room.RoomId is (byte)RoomTypeId.Prison or (byte)RoomTypeId.TortureChamber;
+
+    /// <summary>Whether this creature skips the collapsed window when it dies out of doors.
+    /// <c>0x0048E110</c> answers true for creature types 21, 28 and 29 — King Reginald,
+    /// Stone Knight and Lord Of The Land — <b>before</b> it looks at the flag at all, so
+    /// those three carry it whatever a script asked for.</summary>
+    public static bool DiesInstantly(CreatureDef creature, CreatureState state) =>
+        creature.CreatureId is 21 or 28 or 29 || state.DieInstantly;
+
+    /// <summary>Whether any keeper is possessing this creature. Its own gate in DK2
+    /// (<c>0x004B2F37</c>): a possessed creature dies outright. Always false today, because
+    /// <see cref="WorldState.PlayerState.PossessedCreatureId"/> is an interface act nothing
+    /// here performs — the same standing as condition type 73 (ADR-0121).</summary>
+    public static bool IsPossessed(WorldState world, CreatureState state)
+    {
+        for (int i = 0; i < world.PlayerCount; i++)
+            if (world.PlayerAtIndex(i).PossessedCreatureId == state.Id) return true;
+
+        return false;
+    }
 
     /// <summary>Whether this creature comes back — <see cref="CreatureFlags.CanBeResurrected"/>, on
     /// exactly the two Vampires. CONFIRMED (owner, Q113): a vampire reincarnates at the Graveyard

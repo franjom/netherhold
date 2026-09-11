@@ -108,7 +108,7 @@ public class DeterminismTests
         // 2026-09-10 with HashVersion staying put, which is allowed exactly here: the
         // fixture gained two creatures, so CreatureState.HashInto runs inside the gate
         // at last, while the hash and the shape of the state did not change (Q206).
-        Assert.Equal(0xCB555B61573BE9F8UL, sim.StateHash());
+        Assert.Equal(0xAEC253948973DF35UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

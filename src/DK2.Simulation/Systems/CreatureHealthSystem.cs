@@ -115,10 +115,10 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             // explains why reversing these two would undo every rescue.
             if (!CreatureDeathRules.HasCollapsed(state)) continue;
 
-            // A creature that leaves no body has no lying state at all — it is
-            // gone on the spot (CONFIRMED: the owner for the Imp, OpenKeeper
-            // for all eight). Everything else gets its sixty seconds.
-            if (CreatureDeathRules.HasDyingState(creature))
+            // Four gates, not one: no body, possessed, standing in a Prison or a
+            // Torture Chamber, or DieInstantly out of doors (Q303). Everything else
+            // gets its sixty seconds.
+            if (CreatureDeathRules.HasDyingState(world, database, creature, state))
                 Collapse(context, creature, state);
             else
                 Die(context, creature, state);
