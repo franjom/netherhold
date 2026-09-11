@@ -274,26 +274,30 @@ therefore still UNKNOWN**, and nothing below depends on it.
 | function | what it does |
 |---|---|
 | `FUN_004DAE40` | asserts from **`DungeonHeart.cpp`** — its `__FILE__` is inside the function |
-| `FUN_004EF1F0` | takes a **thing**, reads its tile at `+0x2D`/`+0x2E`, **saves the old bit**, clears it, then probes two neighbouring slabs |
+| `FUN_004EF1F0` | takes a **room**, reads its tile at `+0x2D`/`+0x2E`, **saves the old bit**, clears it, then probes two neighbouring slabs |
 | `FUN_004F09B0` | walks a **rectangle** of slabs through the world's slab-at-`(x,y)` virtual `+0x1D8`, clearing as it goes, then makes a border pass one tile out |
-| `FUN_004F0F90` | takes a **thing**, same `+0x2D`/`+0x2E` tile, clears the bit, then notifies through `world+0x8` |
+| `FUN_004F0F90` | takes a **room**, same `+0x2D`/`+0x2E` tile, clears the bit, then notifies through `world+0x8` |
 
 All four sit in the room-file block — `DungeonHeart.cpp` around `0x004DAxxx`,
 below `Workshop.cpp` at `0x004F4F9F` (`source-file-map.md`). `FUN_004EF1F0` has
 five callers, one of them `FUN_0050B5B0` at `0x0050BC95` — the level loader
 (`World.cpp`), which is where ADR-0102 read the trigger timer scaling.
 
-**Two of the four take a thing and write the slab under it.** That is the link
-Q209 has been asking for, and it is not a predicate: **an object's contribution
-to walkability is cached in the slab word when the object is placed or
-removed**, and the pathfinder reads only the cache. So §5.3's finding —
-that no consumer reads an object definition — was right and is no longer
-strange: the definition is consulted once, at the **write**, and never again at
-query time.
+**Two of the four take a room, not an object** — corrected the same day it was
+first written the other way. The gate both use, `FUN_004E4300`, reads the
+record's **type byte `+0x18`** and admits some of 24 categories, and
+`trigger-semantics.md` already names that byte as a **room's type** in the global
+thing table `0x006EE540`. Q301 goes further and settles it: the **low 12 bits of
+the slab word at `+0x8` are the room on the tile**, looked up in that table.
 
-**That puts §5's two refuted flag rules back in play**, evaluated at the write
-site rather than the read. `Obstacle` and `SolidObstacle` were tested against the
-wrong code.
+**So bit 14 shares its word with a room id, which is exactly why §5.6 finds no
+setter** — the bit is written when the room id is, in one store.
+
+**And Q209's own question stays open, better posed.** This machinery is
+room-keyed, so nothing here says an anvil or a bookcase blocks a tile, and §5's
+`Obstacle`/`SolidObstacle` rules gain no support. What it does suggest is that
+the portal hole and the heart's 3×3 — `StructureBlocks`' only two cases —
+are **room** geometry, and may never have been an object rule at all.
 
 **Corroboration, free.** `FUN_004F0F90` reaches the slab a second way, off
 `world+0x9DA`: `+0xC` is the map width and `+0x14` the slab base — the same
@@ -326,12 +330,10 @@ one of those writes a **definition** record out of the table at `0x006EE540`,
 whose own `+0x8` is a different field — a trap worth naming, because the
 offset matches and the meaning does not.
 
-**What that constrains.** The word at `+0x8` is `id:12 | flags:4`, so a
-whole-word write sets the id and the flags together. Bit 14 having **no**
-independent setter and four independent clears means it is **written with the
-slab's identity and then punched out**, not toggled as a state. The Dungeon
-Heart, a rectangle walk and two thing routines each clear it; nothing raises it
-except assigning what the slab *is*.
+**What that constrains.** The word at `+0x8` is `roomId:12 | flags:4` (§5.5),
+so a whole-word write sets the room id and the flags together. Bit 14 having
+**no** independent setter and four independent clears means it is **written when
+a room claims the slab and punched out afterwards**, not toggled as a state.
 
 **So, STRONGLY INFERRED and not confirmed:** bit 14 is set from the terrain a
 slab holds and cleared where a structure opens that slab, which makes it read as
