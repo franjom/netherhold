@@ -199,6 +199,49 @@ The same two setters are called from action type 14's party creation
 (`FUN_00519F90+0x5B4`/`+0x5E7`) and from a third site at `0x0052081F`, so the
 byte's layout is shared rather than type 1's own.
 
+### What the flag byte's bits do, as far as anyone has read
+
+The **same byte** reaches a creature from three places — trigger action type 1,
+action type 14's party members, and the placed-things loader — and the shipped
+data uses only four values of it. Read from all 66 THINGS files, 919 placed
+creatures:
+
+| value | bits | placed | note |
+|---|---|---:|---|
+| `0x09` | 0, 3 | 673 | **the default**: the constructor at `0x00487718` writes `0x09` outright |
+| `0x29` | 0, 3, 5 | 159 | |
+| `0x49` | 0, 3, 6 | 57 | |
+| `0x69` | 0, 3, 5, 6 | 30 | |
+
+So bits 0 and 3 are on every creature in the game and carry no information, and
+only **5 and 6** vary. Bits 1, 2, 4 and 7 are never set on a placed creature,
+though action type 1 does set 2 (`DieInstantly`) and 7 (arrive collapsed).
+
+**Each of the two has a tiny reader set**, from a scan of every instruction
+touching `+0x46F`:
+
+- **bit 6 is read once in the whole binary**, at `0x0050BDB1`, inside a 4,675-byte
+  world method. The loop there walks a creature list, fires a creature event on
+  each, and for a creature with the bit **sets its state to 76**.
+- **bit 5 is read twice**, both in `FUN_004E8660`, which takes a **room** and a
+  creature: it is reached only when the room's `+0x6B` is non-zero, and goes on to
+  compare the creature's owner against the room's `PlayerId`.
+
+Neither is named. What is worth writing down is where they are *not*: state 76 is
+**not** the prison state — that is 117 (`prison.md` §7.6) — so bit 6
+is not "this creature is a prisoner", however much its placement suggests it. Of
+the 87 placed creatures carrying bit 6, **63 stand on Prison terrain and 3 on a
+Torture Chamber**, but the rest are on Lairs, Libraries, a Work Shop, a Combat
+Pit and open path; and **11 creatures placed on Prison terrain do not carry it**.
+
+That last number is the interesting one, because it is the shape Q308 needs: a
+map can place a creature in a prison and mark it differently from the others.
+State 76 sits in category 7, whose states include `joining your Dungeon.` and
+`leaving Dungeon` — which is what a scripted release would look like. **A
+lead, not a finding**: the next two reads are state 76's handler `0x0046EAB0` and
+the identity of the world method, whose strings (`WEAPON_METAL`, `GLOBAL\`) hint
+at level initialisation.
+
 ### Bit 7 makes the creature arrive collapsed
 
 The tail runs only when `Flags` bit 7 is set: clamp health down to
