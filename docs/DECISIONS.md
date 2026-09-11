@@ -3104,3 +3104,45 @@ with neighbours would not appear in a scan for the constant.
 
 **Consequences.** No state field, no stored quantity and no behaviour changed;
 the pin stands.
+
+## ADR-0145 — Q204's two flags were already named in files we had
+
+**Date:** 2026-09-11 · **Status:** accepted · Q204
+
+**Context.** Two flags gate DK2's job path and neither was identified: a
+per-player bit in the dispatcher, and a per-creature-type bit in all three
+choosers. Both were opened as Q204 in the sitting that reversed
+`job-selection.md`, and the plan carried the first as the candidate for a
+**fallen dungeon heart**, which would have made it the next feature's key.
+
+**Decision.** Record both answers, build neither, and withdraw the defeat
+hypothesis.
+
+**`player+0x76` bit 2 is `CallToArmsOn`.** The player debug dumper reaches
+`+0x76` once per bit; at `0x004BD31B` it shifts right by **2**, masks 1, and
+prints `CallToArmsOn %d`. The shift is the evidence — the order of the names
+already transcribed in `player-object.md` only corroborates it. The guard takes
+the creature's **owner** (`+0x2A`, Q262's pointer), so the flag is the keeper's:
+set, the dispatcher jumps past its whole `0..0x1C` table and admits jobs 10 and
+16 alone. Job 10 sets state **194**, shipped label `leaving Dungeon`. **So a
+Call To Arms suspends voluntary job-taking for that keeper's whole workforce.**
+
+**`def+0x686 & 0x4000` is `IsHorny`.** The loader copies file `0xEFC` into
+runtime `+0x686` unchanged, so `0x4000` is bit 14, which `CreatureEnums.cs` has
+named `IsHorny` since it was written. Verified the ADR-0086 way rather than
+trusted: the bit is set on **exactly one of the 46 shipped creatures**.
+
+**Nothing is built, and the first cannot be.** This simulation has no Call To
+Arms, so there is no state to drive that gate from; the omission is recorded at
+`CreatureJobSystem` so it lands when Call To Arms does. The second is inert for
+a different reason — Horny is never created here.
+
+**What this cost, and the pattern it makes.** Both answers were already inside
+this repository: one in a research doc transcribed for Q264, one in an enum
+written months ago. **Nobody had put either beside the question.** That is the
+second instance in one day — the first being the same `IsHorny` bit — so
+the lesson is not about these two flags: **when a question names an offset or a
+mask, search the repo for the offset before searching the binary.**
+
+**Consequences.** No state field and no stored quantity changed; the pin stands.
+Defeat loses its candidate flag and needs a new one (Q93, Q207).

@@ -32,7 +32,10 @@ Each chooser does the same five things:
    threat-response, celebrating — the same category the job dispatcher refuses
    on).
 2. Refuse if the creature-def flag `def+0x686 & 0x4000` is set; instead set
-   state `0xEE` unless already in state `0xF2`. Unidentified — Q204.
+   state `0xEE` unless already in state `0xF2`. That flag is **`IsHorny`**, bit
+   14 of the record's first flag dword, and **exactly one of the 46 shipped
+   creatures carries it: Horny** (§6.2). So the Horned Reaper is refused a
+   job outright.
 3. **The five-second gate**: `now - last >= 5 × variable 19`, or `last == 0`.
    Hardcoded, in all three.
 4. Build **cumulative ranges** from the mood's table — running total, record
@@ -79,9 +82,10 @@ Two guards on the dispatcher itself:
 
 - State category 22 refuses everything, as in the choosers.
 - **`player+0x76 & 0x4` restricts the creature to jobs 10 (Leave) and 16
-  (Rebel) and nothing else.** A per-player flag, unidentified — Q204. Whatever
-  it is, it is a switch that turns a keeper's whole workforce into deserters and
-  rebels.
+  (Rebel) and nothing else.** That bit is **`CallToArmsOn`** (§6.1). While a
+  keeper has a Call To Arms up, none of its creatures will take a voluntary job:
+  the guard at `0x00478849` jumps past the whole `0..0x1C` jump table and admits
+  only those two ids, so every other job returns failure without being tried.
 
 Job **20 (Tunnelling)** has a case that does nothing and returns zero, and job
 21 has no case at all: both always fail.
@@ -248,9 +252,55 @@ rests on its handler. A room with no job slot is not a room with no purpose.
 `scenarios/creatures/two_keepers_find_work_for_a_goblin.yaml` and
 `a_goblin_with_no_lair_walks_out.yaml`.
 
+---
+
+## 6. Q204's two flags, both answered 2026-09-11
+
+### 6.1 `player+0x76` bit 2 is `CallToArmsOn` — CONFIRMED
+
+Not by inference: **DK2 prints the name itself.** The player debug dumper
+(`0x004BCF2F`, `player-object.md`) reaches `+0x76` fifteen times, once per bit,
+and each push is a shift and a mask before its own format string. At
+`0x004BD31B` the sequence is `MOV` the dword at `+0x76`, `SHR` by **2**, `AND 1`,
+push, and the string is `CallToArmsOn %d`. The shift settles the bit; the order
+of the names in `player-object.md`'s bitfield row is corroboration, not evidence.
+
+The guard then reads plainly. `MOV ECX,[ECX+0x2A]` takes the creature's **owner**
+— the same owner pointer Q262 established — so the flag is the keeper's,
+not the creature's. Set, only job **10** and job **16** are reachable. Job 10's
+handler is three lines and sets state **194**, whose shipped label is
+`leaving Dungeon`; job 16's is the rebel path. Both names were ours already and
+Flame's map agrees, cited under ADR-0080 and adopted nowhere.
+
+**The rule, in one line:** a keeper's Call To Arms suspends voluntary job-taking
+for that keeper's whole workforce, leaving only quitting and revolting.
+
+**The standing hypothesis is refuted.** `HANDOFF.md` carried this flag as the
+candidate for *a keeper whose dungeon heart has fallen*, and it is nothing of the
+kind. Defeat needs a different candidate (Q93, Q207).
+
+**Not built, and it cannot be**: nothing in this simulation has a Call To Arms,
+so there is no state to drive the gate from. Recorded at
+`CreatureJobSystem` instead, so it lands when Call To Arms does.
+
+### 6.2 `def+0x686 & 0x4000` is `IsHorny` — CONFIRMED
+
+The loader copies file offset `0xEFC` straight into runtime `+0x686`
+(`record-field-sweep.md`), so bit order is preserved and `0x4000` is **bit 14**.
+`CreatureEnums.cs` has named bit 14 `IsHorny` since it was written, from the
+`creatures_struct.bt` bit order — and nothing in this repo had ever put the
+two facts side by side. Checked the ADR-0086 way rather than trusted:
+`dk2tools kwd creaturehex 0xEFC 4` sets byte `0xEFD` bit `0x40` on **exactly one
+of the 46 shipped creatures, Horny**. One bit, one creature, an independent name.
+
+State `0xEE` (238) is where it lands, and its handler is a small idle cycle: a
+one-in-three roll either moves it to 239 or tries once more and settles on 242.
+All three carry the generic `idle` string in category 28, so the shipped labels
+name none of them. The roll draws through the world's **game seed** at `+0x15A0`,
+the field `world-object.md` names `Seed` — worth knowing for determinism: a
+creature's idle transitions are seeded, not free-running.
+
 ## Open questions
 
-- **Q204**, both flags: `player+0x76 & 4` in the dispatcher and
-  `def+0x686 & 0x4000` in all three choosers.
 - **Q203**: the seven dead variables are STRONGLY INFERRED dead, from a `.text`
   scan per global.

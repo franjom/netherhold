@@ -117,6 +117,10 @@ public sealed class CreatureJobSystem : ISimulationSystem
             return;
         }
 
+        // Missing guard, and it cannot be added yet: while the owner's CallToArmsOn bit
+        // is set DK2 admits only Leave and Rebel here and fails every other job untried
+        // (0x00478849, ADR-0145). Nothing models a Call To Arms, so creatures keep
+        // working through a call that would have stopped them.
         IReadOnlyList<CreatureJobPreference> table = JobRules.TableFor(definition, mood);
         CreatureAngerRules.CumulativeRanges(table, _ranges);
         int roll = CreatureAngerRules.RollPercent(context.Rng);

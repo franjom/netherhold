@@ -171,7 +171,7 @@ Agreed order as of 2026-09-08 (M0–M4 closed; the research queue's head is clea
 **Features, cheapest evidence first**
 
 1. **Q209 — DK2's tile-walkability predicate for objects.** The workshop's anvil, the library's bookcases, the casino's tables and the graveyard's tombstones all block tiles in DK2 and none does here; `StructureBlocks` reproduces only the portal hole and the heart's 3×3 (ADR-0084). The obvious object-flag rule is refuted by the data (`Obstacle` is on every creature bed). Read it from the pathfinder side.
-2. **Defeat.** A fallen dungeon heart needs a state: `TileWorkRules.Applies` excludes the heart from `ConvertRoom` unconditionally and a *fallen* heart should be claimable (Q207's remaining half, Q93). Q204's `player+0x76 & 4` (restricts a keeper's creatures to Leave and Rebel) is the candidate flag. Q40 describes what defeat does. Needs objectives, so it sits with M6.
+2. **Defeat.** A fallen dungeon heart needs a state: `TileWorkRules.Applies` excludes the heart from `ConvertRoom` unconditionally and a *fallen* heart should be claimable (Q207's remaining half, Q93). Q204's `player+0x76 & 4` was the candidate flag and **is not it** — it is `CallToArmsOn`, CONFIRMED from DK2's own dumper (ADR-0145). Defeat has no candidate flag again. Q40 describes what defeat does. Needs objectives, so it sits with M6.
 3. **M6 — the rest of THINGS, and trigger execution.** Placement and trigger *state* landed on 2026-09-08 (ADR-0101, ADR-0102); what is left, in the order the evidence allows:
    - **Trigger execution.** Single-record type-1 flag and ordinary type-2 timer conditions evaluate. Q228 established that the root evaluator runs once per game turn; `trigger-tree.md` now records its link order and repeat retirement. The executor and all action effects remain to be built; Q226/Q227 are parameter meanings they still lack, and Q229/Q232 are live mechanisms that must not be named before their consumers are read.
    - **Action points as world state** (Q222, now a build task rather than a question: action types 16, 17, 27 and 31 write an `Available` byte against an `ActionPointId`, read from the binary, so availability belongs in the world hash). 1152 are placed across the campaign.
@@ -426,7 +426,7 @@ Cheap to expensive; stop when the question is answered. `AGENTS.md` gives the ra
 | Q209 | the walkability predicate for objects (see Next steps 1) |
 | Q217, Q218 | who sets the keeper's casino flag at `player+0x20D`; what passes the research adder `FUN_004c2dc0` a negative amount (`CallScanAll.py`, all blocks) |
 | Q216 | does slapping a researcher visibly triple research (needs the research tree) |
-| Q204 | `player+0x76 & 4` — a fallen dungeon heart? |
+| Q204 | ANSWERED: `player+0x76 & 4` is `CallToArmsOn`, not defeat (ADR-0145) |
 | Q201 | the dizzy-drop driver: `CreatureStunnedTimeSeconds` is dead (one reference, the setter); candidate is the per-creature `fp32 stunDuration` at record `0x0ED0` |
 | Q199 | the pet-dungeon mana cap: skirmish regen clamps at 500 (`MaximumManaGainPerSecond`), pet dungeon shows +1400; no level file overrides variable 235 — find its reader |
 | Q197 | portals visible through fog on the minimap — a second mechanism; `RevealThroughFogOfWar` is a terrain flag and a Portal is a room |
