@@ -223,7 +223,10 @@ health and a chicken worth **250**, and the **Firefly** eats two chickens for
 3. Rank by **straight-line squared distance** in the engine's fixed point
    (`dx² + dy²`, each term `>> 12`). Not a path length. Not a ring search.
 4. A candidate is skipped when its tile carries an object whose definition flags
-   have `0x4000` — **UNKNOWN what that bit means**, and not modelled here.
+   have `0x4000` — **`ObjectFlags.Obstacle`**, bit 14, named in `ObjectDef.cs`
+   since it was written and counted in `structure-blocks.md` §5. A chicken
+   behind the coop is passed over, and the coop carries the bit itself. Not
+   modelled here.
 5. No chicken: re-enter and try again next update.
 6. A chicken: remember **its thing id on the creature** (`+0xaf`) and route to
    it, resuming in `0x5D`.
@@ -307,8 +310,8 @@ arguments.
     **`SetState(1)`** — so a creature whose handler fails is dropped to state 1
     and asks again a second later. `FUN_004ded00`'s discarded out-parameter is
     the last unexplained thing in the attempt.
-- **What object flag `0x4000` means** — the per-tile skip in the hatchery search
-  (§6).
+- ~~What object flag `0x4000` means~~ — **answered 2026-09-11**: bit 14 is
+  `ObjectFlags.Obstacle`, which `ObjectDef.cs` has always named (§6 step 4).
 - **Whether hunger really outranks sleep in play.** It does in the routine's
   source order; whether a player would ever see the difference depends on
   category gating that is not decoded.

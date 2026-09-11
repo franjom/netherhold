@@ -212,6 +212,50 @@ test has still not been located, and a grid router needs one. The next probe is
 the fourth slot `0x004D16B0` and its thirteen consumers, which is where a router
 would sit if one of these four is it (Q209).
 
+### 5.4 The tile predicate exists, and it reads no object (2026-09-11)
+
+§5.3's next probe was the fourth slot. Done — and it **refutes §5.3's
+hypothesis**. There is a per-tile walkability test, it is a family of world
+virtual methods, and not one of them consults an object.
+
+**Slot 4 is a grid lookup, not an enumerator.** `0x004D16B0` takes `(x, y,
+world)`, asks the world's own bounds test through vtable slot `+0x1FC`, and on
+success returns one **byte** out of a grid: descriptor at `world+0x9F2`, row
+stride at `desc+0x8`, base at `desc+0x10`, one byte per tile. **Outside the map
+it returns 8.** Sixteen call sites go through the slot, not thirteen —
+§5.3 counted references, and one of the seventeen is the registration store.
+
+**The world's vtable carries a family of predicates over that byte.** None is
+ever called directly: each appears only as an `.rdata` vtable entry.
+
+| address | takes | answers |
+|---|---|---|
+| `0x00509200` | tile `x, y` | `(nav >> 3) & 1` |
+| `0x005090C0` | a fixed-point position | the same bit, `SAR 0xC` first |
+| `0x00509160` | tile `x, y` | `nav & 8` **or** slab word `+0x8` bit 14 |
+| `0x00509100` | a fixed-point position | the same pair |
+| `0x005091C0` | a slab pointer | player `+0x17B` bit 0 **or** that same bit 14 |
+
+**So the slab's flag word at `+0x8` is `id:12 | flags:4`.** The placement scan at
+`0x004FE677` masks it with `0xFFF` and compares the result against a terrain id,
+and three of the predicates test **bit 14** of the same word. Q309's `0x2000` is
+bit 13 — one bit below a bit that gates movement.
+
+**The nav byte is an enumeration, not a bitfield.** `0x004B228F` compares the
+whole byte against **4**; `0x00459944` reads **two** tiles' bytes and compares
+them for equality; `0x0048ECC5` hands a pair of them to one function. A plain
+blocked/clear flag would need none of that. Bit 3 is the blocked bit inside it,
+and off-map answering 8 is consistent with that reading.
+
+**And no object reaches any of it.** These predicates read the nav grid and the
+slab; nothing here touches an object instance or an object definition. So the
+link Q209 asks about cannot be a query-time test — it has to be a **write**:
+placing an object updates the nav byte or the slab bit. The grid is maintained
+through the descriptor rather than through the world, because **all 16
+references to `world+0x9F2` in both code blocks are reads** — `StoreAt`
+finds no store and a mask scan agrees. The next probe is that descriptor's own
+class, and whether object placement calls into it.
+
 ### 5.2 Which corrects what Q88 used to say
 
 The old note read: *"Fixing it means teaching the path grid about rooms, which
