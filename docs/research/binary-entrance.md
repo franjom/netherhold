@@ -188,13 +188,22 @@ not a curve fitted.
 are confirmed by our own files, not by this reading: `creature+0x36F` is the
 creature's type id and `object+0x12C` the object's, both from ADR-0115.
 
-**But the resolution first written here on 2026-09-11 was wrong and is
-withdrawn.** It said the Lair contributes its tile count, so lair tiles were
-the budget. They are not: `0x004DC153` tests the attraction's room id for
-**2**, and on a Lair it stores a **flat 1.0** (3.0 in one branch) and skips
-the room walk altogether. The original contradiction therefore stands — a
-Lair-attracted type would cap at one held creature, and level 1 gives
-fifteen. **It is not resolved.**
+**The first attempt at a resolution, that lair tiles are the budget, was wrong
+and stays withdrawn.** `0x004DC153` tests the attraction's room id for **2**
+and on a Lair stores a **flat 1.0** (3.0 in one branch).
+
+**RESOLVED, and it is one instruction.** The Lair branch ends
+`JMP 0x004DC223` — which lands **past** the draw-down loop at
+`0x004DC1F5`–`0x004DC221`. A Lair-attracted type is therefore given 1.0 and
+**never decremented**: owning a Lair is a plain yes, for ever. The draw-down
+applies to the room-walk path only.
+
+So both of the owner's observations fall out of one mechanism. **Goblins are
+Lair-attracted (creature 7, room 2) and uncapped**, which is why level 1's
+fifteen were never in conflict with anything; **Dark Angels are Temple-attracted
+and walk the room path**, so 2 minus one per angel held stops at two. The
+contradiction was never in the mechanism — it was a branch this document had
+not followed to its jump.
 
 **One caveat, recorded rather than waved away.** A portal's interval grows as
 `n² + EntranceGenerationSpeedSeconds` (ADR-0086), so a silence can also be a
@@ -231,22 +240,40 @@ See Q97.
 4. A type is a candidate only while `value > 0`. Past that the arm computes
    against `0xA000` (10.0) and `0xC8000` (200.0), which is unread.
 
+**The gates ahead of the budget**, same loop, in order: an availability bitmap
+at `player+0x1109`; creature flag `def+0x686 & 0x8000000` excludes outright;
+flag bit 10 against a spawner of room type **3 (Portal)** or `def+0x68a & 8`
+against type **25**; `FUN_004DC810` on the player, unread; and then a
+**population cap**.
+
+**That cap is Q87's capacity, found in the code.** It counts the keeper's
+things carrying `+0x3E6 & 2` and compares against
+`low + (portals - 1) × high` read from the two bytes of a loader-filled
+global at `0x006F28B4` — the shape of
+`CreaturesSupportedByFirstPortal` **15** and
+`CreaturesSupportedPerAdditionalPortal` **5**, which the owner confirmed with
+a stopwatch on 2026-09-07. The global is uninitialised in the file, so the
+values are the variables' and only the formula is read here. **STRONGLY
+INFERRED**, and it is a separate gate from attraction: the fifteen that
+bounds level 1 is this one, not the budget.
+
 **Not implemented, deliberately.** Two blockers, either sufficient:
 
-- **The contradiction above is unresolved.** Shipping this as read would cap a
-  Lair-attracted type at **one** creature and break the level 1 oracle match
-  that M5 already has. A faithfulness change that regresses a confirmed
-  comparison is not faithfulness.
-- **Its inputs are not modelled.** The general contribution is `TotalCapacity`,
-  which Q270 shows is a count of **auto-placed furniture**; we place none, and
-  the Temple's 2 needs the Hand to exist as an object. `RoomInstance` has
-  geometry, not furniture.
+- ~~The contradiction blocks it.~~ **Gone** — resolved above, and the
+  resolution shows `PortalRules.IsAttracted` is **exactly right for the Lair**,
+  which is why nothing has gone wrong yet: Goblins are the Lair case.
+- **Its inputs are not modelled, and this one stands.** The general
+  contribution is `TotalCapacity`, which Q270 shows counts **auto-placed
+  furniture**; we place none, and the Temple's 2 needs the Hand to exist as an
+  object. `RoomInstance` has geometry, not furniture. Computing it today would
+  yield **0** for every room and attract nobody — strictly worse than the
+  boolean we ship.
 
-**What unblocks it**, in order: the outer loop around `0x004DC102` and how
-attraction composes with the level's `CreaturePool` (if the pool supplies
-arrivals independently, a cap of one *attracted* goblin is compatible with
-fifteen held, and the contradiction dissolves); then auto-placed furniture,
-which Q270 leaves half-read.
+**What unblocks it is now a single dependency: auto-placed furniture.** Give a
+`RoomInstance` the objects DK2 would place in it and `TotalCapacity` follows
+from Q270, the Temple's Hand test becomes answerable, and this section becomes
+an ADR. Q270's own unread half — the six-byte kind list's writer, and
+whether every arm uses `+ 1` — is the same work.
 
 ---
 

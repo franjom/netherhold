@@ -249,9 +249,9 @@ public static class PortalRules
     /// tile count, not the keeper's total: five 5-tile hatcheries do not add up to 25.
     /// STRONGLY INFERRED (OpenKeeper; portals.md §3). Not gated on
     /// <see cref="RoomInstance.IsFunctional"/> (Q45). No attraction, never blocked.
-    /// <para><b>Diverges (Q89, owner 2026-09-11):</b> a 3x5 Temple produced no Dark
-    /// Angel (its record asks size 0) and a 5x5 did — the Temple weighs 2 only while
-    /// it holds a particular object (binary-entrance.md §4), so ours over-attracts.</para></summary>
+    /// <para><b>Diverges for nine of ten types (Q89):</b> DK2 budgets attraction —
+    /// a contribution per matching room, minus one per creature of the type held —
+    /// except the Lair, a flat uncapped yes, which is why Goblins match.</para></summary>
     public static bool IsAttracted(CreatureDef creature, IReadOnlyList<RoomInstance> keeperRooms)
     {
         foreach (CreatureAttraction attraction in creature.Attractions)
