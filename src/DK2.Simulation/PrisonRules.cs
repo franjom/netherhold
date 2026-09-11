@@ -122,6 +122,12 @@ public static class PrisonRules
     public static int Capacity(RoomInstance prison) =>
         prison.InteriorTileCount == 0 ? 0 : prison.InteriorTileCount + 1;
 
+    /// <summary>Whether this prisoner's health drains at all: a neutral creature in an
+    /// unclaimed prison waits there for ever (Q308, ADR-0142).</summary>
+    public static bool Withers(CreatureState creature) =>
+        creature.OwnerPlayerId != PlayerIds.Neutral
+        || creature.PrisonOwnerPlayerId != PlayerIds.Neutral;
+
     /// <summary>Whether this creature is somebody's prisoner.</summary>
     public static bool IsImprisoned(CreatureState creature) =>
         creature.PrisonOwnerPlayerId != NoPrison;
@@ -253,7 +259,7 @@ public static class PrisonRules
     /// a Skeleton is what a prison makes. Two deviations: the original applies -12
     /// every four game seconds (<c>ticksPerSecond &lt;&lt; 2</c>, same average, coarser
     /// granularity), and it also applies
-    /// <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> (150) under anger reason 9 in the same breath, which this does not (prison.md §4b). <b>A campaign map can switch the drain off</b> to hold a creature for scripted release; that flag's home is unknown (Q308).</para></summary>
+    /// <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> (150) under anger reason 9 in the same breath, which this does not (prison.md §4b). What stops it entirely is <see cref="Withers"/>, not this.</para></summary>
     public static int WitherPerSecond(
         GameDatabase database, CreatureDef creature) =>
         CreatureHealthRules.CanGetHungry(creature)

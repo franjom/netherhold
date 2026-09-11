@@ -758,6 +758,29 @@ public class PrisonTests
         Assert.Equal(CreatureActivity.Imprisoned, back.Activity);
     }
 
+    /// <summary><b>A neutral creature in an unclaimed prison does not wither</b>, which is
+    /// how a campaign parks one for a keeper to find (Q308). DK2 gates the drain on a
+    /// relationship rather than a flag: the room's owner against the creature's own, with
+    /// the neutral player exempt when both are it.</summary>
+    /// <remarks>Unreachable from a shipped level today — nothing here imprisons a
+    /// creature the map placed — so this asserts the rule directly rather than through
+    /// a run that could not produce one.</remarks>
+    [Theory]
+    [InlineData(PlayerIds.Neutral, PlayerIds.Neutral, false)]
+    [InlineData(PlayerIds.Neutral, Keeper, true)]
+    [InlineData(Rival, PlayerIds.Neutral, true)]
+    [InlineData(Rival, Keeper, true)]
+    public void OnlyANeutralCreatureInANeutralCellIsSpared(
+        byte owner, byte jailer, bool withers)
+    {
+        var creature = new CreatureState
+        {
+            OwnerPlayerId = owner, PrisonOwnerPlayerId = jailer,
+        };
+
+        Assert.Equal(withers, PrisonRules.Withers(creature));
+    }
+
     // ---- wandering the cell (Q172, ADR-0073) ------------------------------
 
     /// <summary>

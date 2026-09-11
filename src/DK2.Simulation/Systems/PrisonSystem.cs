@@ -162,6 +162,8 @@ public sealed class PrisonSystem : ISimulationSystem
             CreatureDef definition =
                 context.Database.CreatureById(creature.CreatureTypeId);
 
+            if (!PrisonRules.Withers(creature)) continue;   // neutral in a neutral cell
+
             int wither = PrisonRules.WitherPerSecond(context.Database, definition);
             if (wither == 0) continue;   // never eats, never withers - Q173
 

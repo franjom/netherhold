@@ -2962,3 +2962,50 @@ campaign oracle moves `stalls / moved / after1` from **53 / 62 / 11** to
 **46 / 62 / 11**; foreclosed gates fall from 145 to 124. Doors still do not
 open, close or block movement; traps still do not fire.
 
+
+## ADR-0142 — The prison drain is a relationship, not a flag
+
+**Date:** 2026-09-11 · **Status:** accepted · Q266, Q302, Q308
+
+**Context.** The owner: a campaign map can hold a creature in a prison **without
+draining it**, so a script can release it when a keeper finds the place — "an
+optional flag, on by default". The search began on the creature's `Flags` byte,
+whose bits 5 and 6 are the only ones shipped data varies. It ended at the drain
+itself, `FUN_0047B7C0`, read whole.
+
+**Decision.** There is no flag. The drain runs every 16 ticks — four game
+seconds, `variable 19 << 2`, which is where the original's coarser −12 comes
+from — and takes health off only when all of these hold:
+
+1. `HungerFill` scaled by level is non-zero (the Q173 gate, already built);
+2. the creature is **in a room** at all, `+0x3B9` non-zero;
+3. the room's owner and the creature's own owner **differ**, or they agree and
+   that owner is **not the neutral player**.
+
+So **a neutral creature in an unclaimed prison waits there indefinitely**, and
+claiming the prison starts its clock. That is the campaign trick, and it needs no
+per-creature switch. `PrisonRules.Withers` is the third gate in our terms.
+
+**Two globals settle with it — Q266, open since 2026-09-08.** The drain
+exempts `word[0x006F2548]`; the exemption only makes sense for the player an
+unclaimed room belongs to, the corpus places `NEUTRAL_CREATURE` records on prison
+tiles, and the player frame returns early for the same id. **`0x006F2548` is the
+neutral player and `0x006F254C` the hero one** — the latter already ours from
+the party counter and the Good-player spawn path. Flame's map agrees with both;
+its names are cited, not adopted.
+
+**The flag hunt was not wasted, and its result is recorded rather than dropped.**
+Shipped data uses four values of the `Flags` byte — `0x09` (the constructor's
+own default), `0x29`, `0x49`, `0x69` — so bits 0 and 3 are universal and only
+5 and 6 vary. Bit 6 is read **once in the whole binary** and sets state 76, whose
+handler DK2 files in `KeeperState.cpp`; bit 5 twice, in a routine taking a room
+and a creature. Neither is the drain (Q302).
+
+**What this does not fix.** Our drain is keyed on `IsImprisoned`, DK2's on the
+room the creature stands in — a wider rule, since it can catch a creature
+that is merely standing there. And the gate is **inert today**: nothing here
+imprisons a creature the map placed, so no neutral prisoner can arise. Built
+anyway, because the rule it replaces said every prisoner that eats withers, and
+that is wrong however few creatures reach it.
+
+**Consequences.** No state field and no stored quantity changed; the pin stands.
