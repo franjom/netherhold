@@ -451,6 +451,104 @@ public class TriggerExecutorTests
         Assert.Equal([new BlockedTrigger(213, 25, 5, TriggerContext.Player)], result.Blocked);
     }
 
+    [Theory]
+    [InlineData((byte)27, (byte)0x08, 1)]
+    [InlineData((byte)27, (byte)0x10, 2)]
+    [InlineData((byte)27, (byte)0x18, 1)]
+    [InlineData((byte)28, (byte)0x08, 1)]
+    [InlineData((byte)28, (byte)0x10, 2)]
+    [InlineData((byte)28, (byte)0x18, 1)]
+    public void DoorAndTrapConstructionModesCountOnlyTheWalkedKeeper(
+        byte type, byte flags, int expected)
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        ThingProjection.Place(world, database,
+        [
+            Door(1, Keeper, underConstruction: true),
+            Door(1, Keeper, underConstruction: false),
+            Door(2, Keeper, underConstruction: false),
+            Door(1, PlayerIds.Neutral, underConstruction: true),
+            Trap(1, Keeper, underConstruction: true),
+            Trap(1, Keeper, underConstruction: false),
+            Trap(2, Keeper, underConstruction: false),
+            Trap(1, PlayerIds.Neutral, underConstruction: true),
+        ]);
+
+        RunDoorOrTrapCondition(world, database, type, targetId: 1, flags, expected);
+
+        Assert.Equal(1, world.Triggers.Read(3));
+    }
+
+    [Theory]
+    [InlineData((byte)27, (byte)0, 3)]
+    [InlineData((byte)27, (byte)1, 2)]
+    [InlineData((byte)28, (byte)0, 3)]
+    [InlineData((byte)28, (byte)1, 2)]
+    public void DoorAndTrapOrdinaryModeCountsAllOrOneType(byte type, byte targetId, int expected)
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        ThingProjection.Place(world, database,
+        [
+            Door(1, Keeper, true), Door(1, Keeper, false), Door(2, Keeper, false),
+            Trap(1, Keeper, true), Trap(1, Keeper, false), Trap(2, Keeper, false),
+        ]);
+
+        RunDoorOrTrapCondition(world, database, type, targetId, flags: 1, expected);
+        Assert.Equal(1, world.Triggers.Read(3));
+    }
+
+    [Theory]
+    [InlineData((byte)27)]
+    [InlineData((byte)28)]
+    public void DoorAndTrapAvailabilityModesRemainDeclinedAfterConstructionStateExists(byte type)
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        ThingProjection.Place(world, database, [Door(1, Keeper, false), Trap(1, Keeper, false)]);
+
+        TriggerRunResult result = RunDoorOrTrapCondition(
+            world, database, type, targetId: 1, flags: 1, expected: 0, comparison: 0);
+
+        Assert.Equal([new BlockedTrigger(213, type, 5, TriggerContext.Player)], result.Blocked);
+    }
+
+    [Fact]
+    public void NamedBoulderTrapCountIncludesOwnedLiveBoulderObjects()
+    {
+        GameDatabase basis = TestWorld.Database();
+        var database = new GameDatabase(
+            basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
+            objects:
+            [
+                new ObjectDef
+                {
+                    Name = "fixture boulder", ObjectId = 74, Flags = ObjectFlags.None,
+                    Hp = 1, ManaValue = 0, RoomCapacity = 0, StartState = 0,
+                    PickUpPriority = 0, Width = new Fp32(0), Height = new Fp32(0),
+                    Mass = new Fp32(0), Speed = new Fp32(0), NameStringId = 0,
+                    TooltipStringId = 0,
+                },
+            ],
+            traps:
+            [
+                new TrapDef
+                {
+                    Name = "fixture", TrapId = 4, Health = 1, GoldCost = 1,
+                    ManufactureRequired = 1, ShotTypeId = 26, ManaUpkeepPerSecond = 0,
+                },
+            ]);
+        WorldState world = TestWorld.World(database);
+        ThingProjection.Place(world, database, [Trap(4, Keeper, false)]);
+        world.SpawnObject(database, 74, Keeper, tileIndex: 0);
+        world.SpawnObject(database, 74, PlayerIds.Neutral, tileIndex: 1);
+
+        RunDoorOrTrapCondition(world, database, 28, targetId: 4, flags: 1, expected: 2);
+
+        Assert.Equal(1, world.Triggers.Read(3));
+    }
+
     /// <summary>And it is the walked player's gold, not any player's. Two roots, two
     /// keepers, one holding gold: only that one's subtree runs.</summary>
     [Fact]
@@ -730,6 +828,44 @@ public class TriggerExecutorTests
         var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
         return new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
     }
+
+    private static TriggerRunResult RunDoorOrTrapCondition(
+        WorldState world,
+        GameDatabase database,
+        byte type,
+        byte targetId,
+        byte flags,
+        int expected,
+        byte comparison = 3)
+    {
+        TriggerRecord condition = new GenericTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = 5, Type = type, RepeatCount = 1,
+            ChildTriggerId = 0xFFFF, NextTriggerId = 0,
+            Parameters = new Dictionary<string, long>
+            {
+                ["Comparison"] = comparison, ["Value"] = expected,
+                ["TargetId"] = targetId, ["Flag"] = flags,
+            },
+        };
+        var tree = new TriggerTree(
+            [condition, Action(1, 3, 0x0A, 1)], 0,
+            playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
+        return new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+    }
+
+    private static DoorThing Door(byte type, byte owner, bool underConstruction) =>
+        new(new byte[20])
+        {
+            DoorId = type, PlayerId = owner, Flags = underConstruction ? (byte)0x02 : (byte)0,
+            Unknown_0011 = new byte[3],
+        };
+
+    private static TrapThing Trap(byte type, byte owner, bool underConstruction) =>
+        new(new byte[16])
+        {
+            TrapId = type, PlayerId = owner, NumberOfShots = underConstruction ? (byte)0 : (byte)1,
+        };
 
     private static TriggerRecord PlayerCondition(
         ushort id, byte type, byte comparison, int value, (string Name, long Value)? extra)

@@ -398,9 +398,8 @@ public sealed class ActionPointState
 }
 
 /// <summary>
-/// One door projected verbatim from a placed THING. This is ordered, hashed
-/// state only: opening, closing, locking and movement blocking are UNKNOWN and
-/// deliberately have no implementation (ADR-0106).
+/// One door projected from a placed THING. Authored bytes remain verbatim; the
+/// construction predicate is the one runtime value currently derived from them.
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
 public sealed class DoorState
@@ -412,6 +411,7 @@ public sealed class DoorState
     public byte DoorId { get; init; }
     public byte PlayerId { get; init; }
     public byte Flags { get; init; }
+    public bool UnderConstruction { get; init; }
     /// <summary>How long <see cref="Unknown_0011"/> is. The snapshot writes those bytes
     /// without a length and reads back exactly this many, so a door carrying any other
     /// number would desync the stream and silently corrupt everything after it.</summary>
@@ -440,14 +440,14 @@ public sealed class DoorState
         hash.Add(DoorId);
         hash.Add(PlayerId);
         hash.Add(Flags);
+        hash.Add(UnderConstruction);
         foreach (byte value in Unknown_0011.Span) hash.Add(value);
     }
 }
 
 /// <summary>
-/// One trap projected verbatim from a placed THING. This is ordered, hashed
-/// state only: arming, firing and consuming shots are UNKNOWN and deliberately
-/// have no implementation (ADR-0106).
+/// One trap projected from a placed THING. Authored bytes remain verbatim; the
+/// construction predicate is the one runtime value currently derived from them.
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
 public sealed class TrapState
@@ -459,6 +459,7 @@ public sealed class TrapState
     public byte TrapId { get; init; }
     public byte PlayerId { get; init; }
     public byte Unknown_000F { get; init; }
+    public bool UnderConstruction { get; init; }
 
     public void HashInto(ref Hash64 hash)
     {
@@ -469,6 +470,7 @@ public sealed class TrapState
         hash.Add(TrapId);
         hash.Add(PlayerId);
         hash.Add(Unknown_000F);
+        hash.Add(UnderConstruction);
     }
 }
 

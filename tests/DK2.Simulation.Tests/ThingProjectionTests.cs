@@ -234,6 +234,7 @@ public class ThingProjectionTests
         Assert.Equal((byte)201, door.DoorId);
         Assert.Equal((byte)202, door.PlayerId);
         Assert.Equal((byte)0xE7, door.Flags);
+        Assert.True(door.UnderConstruction);
         Assert.Equal(new byte[] { 0xA1, 0xB2, 0xC3 }, door.Unknown_0011.ToArray());
 
         Assert.Equal(new[] { -31, 41 }, world.Traps.Select(t => t.X).ToArray());
@@ -244,6 +245,8 @@ public class ThingProjectionTests
         Assert.Equal((byte)204, trap.TrapId);
         Assert.Equal((byte)205, trap.PlayerId);
         Assert.Equal((byte)0xD4, trap.Unknown_000F);
+        Assert.False(trap.UnderConstruction);
+        Assert.True(world.Traps[1].UnderConstruction);
     }
 
     [Fact]
@@ -281,6 +284,7 @@ public class ThingProjectionTests
             DoorHash(new DoorState { DoorId = 1, Unknown_0011 = new byte[3] }),
             DoorHash(new DoorState { PlayerId = 1, Unknown_0011 = new byte[3] }),
             DoorHash(new DoorState { Flags = 1, Unknown_0011 = new byte[3] }),
+            DoorHash(new DoorState { UnderConstruction = true, Unknown_0011 = new byte[3] }),
             DoorHash(new DoorState { Unknown_0011 = new byte[] { 1, 0, 0 } }),
             DoorHash(new DoorState { Unknown_0011 = new byte[] { 0, 1, 0 } }),
             DoorHash(new DoorState { Unknown_0011 = new byte[] { 0, 0, 1 } }),
@@ -297,6 +301,7 @@ public class ThingProjectionTests
             TrapHash(new TrapState { TrapId = 1 }),
             TrapHash(new TrapState { PlayerId = 1 }),
             TrapHash(new TrapState { Unknown_000F = 1 }),
+            TrapHash(new TrapState { UnderConstruction = true }),
         ];
         Assert.Equal(trapHashes.Length, trapHashes.Distinct().Count());
 

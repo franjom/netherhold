@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 56;
+    private const int FormatVersion = 57;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -208,6 +208,7 @@ public static class WorldSnapshot
             w.Write(door.DoorId);
             w.Write(door.PlayerId);
             w.Write(door.Flags);
+            w.Write(door.UnderConstruction);
             w.Write(door.Unknown_0011.ToArray());
         }
 
@@ -221,6 +222,7 @@ public static class WorldSnapshot
             w.Write(trap.TrapId);
             w.Write(trap.PlayerId);
             w.Write(trap.Unknown_000F);
+            w.Write(trap.UnderConstruction);
         }
 
         w.Write(world.HeroParties.Count);
@@ -491,6 +493,7 @@ public static class WorldSnapshot
                 DoorId = r.ReadByte(),
                 PlayerId = r.ReadByte(),
                 Flags = r.ReadByte(),
+                UnderConstruction = r.ReadBoolean(),
                 Unknown_0011 = r.ReadBytes(DoorState.Unknown0011Length),
             });
         }
@@ -507,6 +510,7 @@ public static class WorldSnapshot
                 TrapId = r.ReadByte(),
                 PlayerId = r.ReadByte(),
                 Unknown_000F = r.ReadByte(),
+                UnderConstruction = r.ReadBoolean(),
             });
         }
 
