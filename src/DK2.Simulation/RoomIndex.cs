@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -129,21 +129,27 @@ public static class RoomIndex
 
         var room = new RoomInstance(
             definition, ownerPlayerId, [.. tiles], minX, minY, maxX, maxY);
-        room.InteriorTileIndices = InteriorTiles(world, room);
+        room.InteriorTileIndices = SurroundedWithin(world, room.TileIndices);
+        room.InteriorRimTileCount = room.InteriorTileIndices.Count
+            - SurroundedWithin(world, room.InteriorTileIndices).Length;
         return room;
     }
 
     /// <summary>
-    /// The room's tiles whose four orthogonal neighbours are all part of it. Everything
+    /// The members whose four orthogonal neighbours are all members too. Everything
     /// else is rim — including a tile against the map border, which counts that side
     /// as rim rather than as room.
+    /// <para>Applied to a room's tiles this gives the interior; applied to that
+    /// interior it gives the interior's own core, and what is left is the ring a
+    /// graveyard puts its graves on (Q60). One function, so both rings generalise to
+    /// an L-shape the same way rather than by a bounding-box formula.</para>
     /// </summary>
-    private static int[] InteriorTiles(WorldState world, RoomInstance room)
+    private static int[] SurroundedWithin(WorldState world, IReadOnlyList<int> members)
     {
-        var member = new HashSet<int>(room.TileIndices);
-        var interior = new List<int>(room.TileIndices.Count);
+        var member = new HashSet<int>(members);
+        var interior = new List<int>(members.Count);
 
-        foreach (int index in room.TileIndices)
+        foreach (int index in members)
         {
             int cx = index % world.Width;
             int cy = index / world.Width;
@@ -163,7 +169,7 @@ public static class RoomIndex
             if (surrounded) interior.Add(index);
         }
 
-        // TileIndices is already ascending, so this is too.
+        // The input is already ascending, so this is too.
         return [.. interior];
     }
 }

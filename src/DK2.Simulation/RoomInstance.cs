@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -77,6 +77,11 @@ public sealed class RoomInstance
 
     /// <summary>Tiles wholly surrounded by the room — <see cref="TileCount"/> less the rim.</summary>
     public int InteriorTileCount => InteriorTileIndices.Count;
+
+    /// <summary>The rim of the <i>interior</i>: interior tiles not themselves wholly
+    /// surrounded by interior tiles. <b>A graveyard's graves sit here</b>, on five printed
+    /// capacities (Q60); a temple's is the room's own rim, one ring further out.</summary>
+    public int InteriorRimTileCount { get; internal set; }
 
     /// <summary>Whether this tile of the room is one of the wholly surrounded ones.</summary>
     public bool IsInterior(int tileIndex) => InteriorTileIndices.Contains(tileIndex);

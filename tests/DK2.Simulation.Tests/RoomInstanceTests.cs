@@ -187,6 +187,28 @@ public class RoomInstanceTests
         Assert.Equal((w * h) - expected, room.InteriorTileCount);
     }
 
+    /// <summary>Where a graveyard puts its graves, and the only rule in this file whose
+    /// every row is a number the game printed rather than a derivation. The 2x2 row is
+    /// the one that matters twice: it reads 0/0 in game, so a graveyard below its
+    /// recommended size does nothing <i>because its own formula reaches zero</i>, not
+    /// because a size gate refused it (Q45, Q60).</summary>
+    [Theory]
+    [InlineData(2, 2, 0)]
+    [InlineData(3, 3, 1)]
+    [InlineData(4, 4, 4)]
+    [InlineData(5, 3, 3)]
+    [InlineData(5, 5, 8)]
+    public void TheRimOfTheInterior_IsWhereAGraveyardPutsItsGraves(int w, int h, int expected)
+    {
+        WorldState world = World();
+        Paint(world, RoomTypeId.Treasury, 4, 4, w, h);
+
+        RoomInstance room = RoomAt(world, 4, 4);
+
+        // Treasury because the ring is pure geometry; the graveyard supplied the numbers.
+        Assert.Equal(expected, room.InteriorRimTileCount);
+    }
+
     // ---- the heart's platform, which is Q52 --------------------------------
 
     /// <summary>

@@ -232,15 +232,11 @@ makes `2(w+h) − 4` and `4 × (side − 1)` agree, so three squares could not t
 the rim from two other rules that predicted 8 and 16 here.
 `RoomInstance.EdgeTileCount` stands.
 
-**Answered for the graveyard** (owner, 2026-09-11, printed capacities): a 4x4
-reads 4 and a 5x5 reads 8. **Graves sit on the rim of the room's interior** —
-1x1 interior → 1, 2x2 → 4, 3x3 → 9 − 1 = 8, matching all three sizes. So the
-temple's capacity is the room's own rim and the graveyard's is the ring one
-step in, with a 3x3 interior's centre tile holding the tomb instead of a grave.
-
-Reading the 4x4 alone said "interior tile count", which the 5x5 refuted: it
-predicted 9. **Do:** a **3x5** graveyard, the cheapest discriminator left — the
-interior rim gives **3** and a linear `2(w+h)−12` fit gives **4**.
+**Graveyard: the rim of the room's interior**, and closed on five printed
+capacities (owner, 2026-09-11) — 0, 1, 4, 3 and 8 for 2x2, 3x3, 4x4, 5x3 and
+5x5. The 5x3 is what ruled out a linear fit, which wanted 4; the 2x2's zero is
+why a graveyard below its recommended size does nothing without any gate being
+involved. Built as `RoomInstance.InteriorRimTileCount`.
 
 ### Q89 — does a room below `RecommendedSize` still attract?
 Creature attraction is a parsed field, `CreatureAttraction(RoomId, RoomSize)`,

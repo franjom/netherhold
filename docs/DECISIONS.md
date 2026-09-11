@@ -328,6 +328,22 @@
 - The fixture now transcribes `RecommendedSizeX/Y` and the real-data drift guard checks them, because a rule reads them.
 - No behaviour changed except the heart's capacity, and no scenario hash moved.
 
+**Amendment (2026-09-11) — the graveyard half is in, and Q45's rule is refuted.**
+The owner read five graveyard capacities off the game's own tooltip: **0, 1, 4, 3
+and 8** for 2x2, 3x3, 4x4, 5x3 and 5x5. The interior ring above fits all five, so
+it is built as `RoomInstance.InteriorRimTileCount` — the same "wholly surrounded"
+test this ADR already used for the interior, applied once more *to* that interior,
+so both rings answer an L-shape by counting rather than by a bounding-box formula.
+The deferral above asked for one more size and got three.
+
+**`RecommendedSizeX/Y` is not the size below which a room does nothing.** A 4x4
+prison holds 5 against its 5x5 record (Q179) and a 3x3 temple prints a capacity of
+8 against the same, while the 2x2 graveyard that really does nothing is explained
+by its own ring reaching zero rather than by a gate. The field reads as authored
+documentation of the smallest *useful* size — which is why it matches the manual on
+16 of 17 rooms — and `RoomInstance.IsFunctional` is a live divergence, not a rule.
+Unaffected: whether a room's *effect* needs more than capacity is not tested here.
+
 ## ADR-0028 — Floor is worked from on top of it, walls from beside
 **Date:** 2026-09-01 · **Status:** accepted · refined by ADR-0030: the crowding cap follows the stance
 
