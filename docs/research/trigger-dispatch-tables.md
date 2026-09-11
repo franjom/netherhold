@@ -55,8 +55,9 @@ modes**, but their counting partitions are different:
   `TargetId` is looked up and tested against AVAILABLE (3); zero walks the whole
   table for any entry at 3.
 - `Comparison != 0` counts, and byte 02's bits 3 and 4 select the partition.
-  Type 27 counts doors whose dword at `+0x109` is nonzero, or total doors minus
-  those; this is **not** the trap bit and the field remains UNKNOWN (Q284).
+  Type 27 counts doors whose construction dword at `+0x109` is nonzero, or total
+  doors minus those; this is **not** the trap bit. The loader and complete door
+  class establish **UnderConstruction**, STRONGLY INFERRED (Q284).
   Its named-type helper `0x004BA850` walks owned doors and counts matching
   `thing+0xF6` type ids.
 - Type 28 counts traps with `thing+0x10C & 0x20`, or total traps minus those.
@@ -68,9 +69,10 @@ modes**, but their counting partitions are different:
 
 **All ten shipped records use the counting mode** — comparisons 3 and 5, never
 0 — so implementing the availability half would have moved nothing. The
-`player+0xC`/`+0x22` are the trap owned-list head and total. Neither condition
-is built: door runtime state is absent, and trap construction, firing and the
-live Boulder projectile are absent (Q249, Q281, Q284).
+`player+0xC`/`+0x22` are the trap owned-list head and total. ADR-0139 builds
+both count modes from projected construction state and the live object list;
+availability remains declined. Door navigation and trap firing are separate,
+still-unbuilt mechanics (Q249).
 
 ## Area type 70 is not type 39 asked for existence
 
@@ -243,9 +245,10 @@ the moment possession stops being zero. Whether `NumberOfSlaps` counts slaps
 given or received is unread (Q278), and the possessed creature's `+0x488` is
 unread (Q279).
 
-Declined and why: 22/23 combat, 20 `creature+0x28A` (Q269), 27/28 missing door
-and trap behaviour (Q281/Q284), 64 party spawning and party identity (Q283),
-type 70's unused object branch (Q280), 2 the special timer id 16 (Q232).
+Declined and why: 22/23 combat, 20 `creature+0x28A` (Q269), 27/28 only when
+`Comparison == 0` asks unread availability, 64 party spawning and party
+identity (Q283), type 70's unused object branch (Q280), 2 the special timer id
+16 (Q232).
 
 **Rank what is left by `gates`, not by declines** (ADR-0123). Type 28 forecloses
 18 records from 5 declines; type 64 forecloses 12 from 12. The whole remainder

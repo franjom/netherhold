@@ -285,6 +285,7 @@ public class PlacedThingsOnRealDataTests
         int levels = 0, levelsWithDoorsOrTraps = 0, levelsWithHeroParties = 0;
         int creatures = 0, objects = 0, actionPoints = 0, doors = 0, traps = 0;
         int heroParties = 0, effectGenerators = 0, rooms = 0, notYet = 0;
+        int unfinishedDoors = 0, unfinishedTraps = 0;
 
         foreach (string level in LevelNames(install))
         {
@@ -353,6 +354,8 @@ public class PlacedThingsOnRealDataTests
                 Assert.Equal(source.DoorId, projected.DoorId);
                 Assert.Equal(source.PlayerId, projected.PlayerId);
                 Assert.Equal(source.Flags, projected.Flags);
+                Assert.Equal((source.Flags & 0x02) != 0, projected.UnderConstruction);
+                if (projected.UnderConstruction) unfinishedDoors++;
                 Assert.Equal(source.Unknown_0011.ToArray(), projected.Unknown_0011.ToArray());
             }
 
@@ -368,6 +371,8 @@ public class PlacedThingsOnRealDataTests
                 Assert.Equal(source.TrapId, projected.TrapId);
                 Assert.Equal(source.PlayerId, projected.PlayerId);
                 Assert.Equal(source.Unknown_000F, projected.Unknown_000F);
+                Assert.Equal(source.NumberOfShots == 0, projected.UnderConstruction);
+                if (projected.UnderConstruction) unfinishedTraps++;
             }
 
             HeroPartyThing[] authoredParties = things.OfType<HeroPartyThing>().ToArray();
@@ -424,6 +429,8 @@ public class PlacedThingsOnRealDataTests
         Assert.Equal(1152, actionPoints);
         Assert.Equal(940, doors);
         Assert.Equal(959, traps);
+        Assert.Equal(3, unfinishedDoors);
+        Assert.Equal(0, unfinishedTraps);
         Assert.Equal(220, heroParties);
         Assert.Equal(1, effectGenerators);
         Assert.Equal(275, rooms);

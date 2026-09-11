@@ -215,6 +215,7 @@ public static class ThingProjection
             DoorId = thing.DoorId,
             PlayerId = thing.PlayerId,
             Flags = thing.Flags,
+            UnderConstruction = (thing.Flags & 0x02) != 0,
             Unknown_0011 = thing.Unknown_0011.ToArray(),
         });
 
@@ -228,6 +229,7 @@ public static class ThingProjection
             TrapId = thing.TrapId,
             PlayerId = thing.PlayerId,
             Unknown_000F = thing.Unknown_000F,
+            UnderConstruction = thing.NumberOfShots == 0,
         });
 
     private static void PlaceHeroParty(WorldState world, HeroPartyThing thing) =>

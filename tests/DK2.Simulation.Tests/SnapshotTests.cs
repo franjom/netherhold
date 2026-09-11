@@ -149,11 +149,13 @@ public class SnapshotTests
             (door.X, door.Y, door.Unknown_0008, door.TriggerId,
              door.DoorId, door.PlayerId, door.Flags));
         Assert.Equal(new byte[] { 7, 8, 9 }, door.Unknown_0011.ToArray());
+        Assert.True(door.UnderConstruction);
 
         TrapState trap = Assert.Single(restored.World.Traps);
         Assert.Equal((-10, 11, 12, (byte)13, (byte)14, (byte)15, (byte)16),
             (trap.X, trap.Y, trap.Unknown_0008, trap.NumberOfShots,
              trap.TrapId, trap.PlayerId, trap.Unknown_000F));
+        Assert.False(trap.UnderConstruction);
         Assert.Equal(original.StateHash(), restored.StateHash());
     }
 

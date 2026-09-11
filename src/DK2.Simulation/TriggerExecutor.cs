@@ -584,7 +584,7 @@ public sealed class TriggerExecutor
     }
 
     /// <summary>The player quantity a condition type compares, or null for a type whose
-    /// arm we cannot answer. Types 19, 24, 25 and 52 walk owned things; type 24 assumes
+    /// arm we cannot answer. Types 19, 24, 25, 27, 28 and 52 walk owned things; type 24 assumes
     /// the room dumper's <c>Size</c> is slab count and uses
     /// <see cref="RoomInstance.TileCount"/>. Type 25's byte overflow is unreachable in
     /// shipped levels and is not modelled; its <c>Comparison == 0</c> availability mode
@@ -603,6 +603,8 @@ public sealed class TriggerExecutor
         24 => Rooms(parameters, world, database, playerId, run).Sum(room => room.TileCount),
         25 when Byte(parameters, "Comparison") != 0 =>
             Rooms(parameters, world, database, playerId, run).Count(),
+        27 when Byte(parameters, "Comparison") != 0 => DoorCount(parameters, world, playerId),
+        28 when Byte(parameters, "Comparison") != 0 => TrapCount(parameters, world, database, playerId),
         30 => GoldStore.Total(world, playerId),        // +0x7E "Money"
         31 => world.Player(playerId).GoldMined,        // +0x15A "GoldMined"
         32 => world.Player(playerId).Mana,             // +0x82 "CurrentMana"
@@ -610,6 +612,40 @@ public sealed class TriggerExecutor
         71 => world.Player(playerId).SlapCount,        // +0xEE6 "NumberOfSlaps"
         _ => null,
     };
+
+    private static int DoorCount(
+        IReadOnlyDictionary<string, long> parameters, WorldState world, byte playerId)
+    {
+        byte flags = Byte(parameters, "Flag");
+        IEnumerable<DoorState> owned = world.Doors.Where(door => door.PlayerId == playerId);
+        if ((flags & 0x08) != 0) return owned.Count(door => door.UnderConstruction);
+        if ((flags & 0x10) != 0) return owned.Count(door => !door.UnderConstruction);
+        byte wanted = Byte(parameters, "TargetId");
+        return owned.Count(door => wanted == 0 || door.DoorId == wanted);
+    }
+
+    private static int TrapCount(
+        IReadOnlyDictionary<string, long> parameters,
+        WorldState world,
+        GameDatabase database,
+        byte playerId)
+    {
+        byte flags = Byte(parameters, "Flag");
+        IEnumerable<TrapState> owned = world.Traps.Where(trap => trap.PlayerId == playerId);
+        if ((flags & 0x08) != 0) return owned.Count(trap => trap.UnderConstruction);
+        if ((flags & 0x10) != 0) return owned.Count(trap => !trap.UnderConstruction);
+
+        byte wanted = Byte(parameters, "TargetId");
+        int count = owned.Count(trap => wanted == 0 || trap.TrapId == wanted);
+        if (wanted != 0
+            && database.Traps.TryGetValue(wanted, out TrapDef? trapDefinition)
+            && trapDefinition.ShotTypeId == 26)
+        {
+            count += world.Objects.Count(
+                item => item.OwnerPlayerId == playerId && item.ObjectTypeId == 74);
+        }
+        return count;
+    }
 
     /// <summary>Condition type 47 — <b>has this keeper been killed, and by whom</b>
     /// (<c>0x004C7B4B</c>). Not a comparison: the arm returns 0 outright when

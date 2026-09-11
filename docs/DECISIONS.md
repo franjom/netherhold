@@ -2779,3 +2779,39 @@ so the `TriggerRun.Rooms` cache needs no invalidation and
 changed and the determinism pin does not move. No scenario is on a level that
 ships a type 1 record, so nothing pinned moves either — which is also why this
 gains no coverage until one is.
+
+## ADR-0139 — Construction state backs door and trap trigger counts
+
+**Date:** 2026-09-11 · **Status:** accepted · Q249–Q253, Q281, Q284 · Research: `docs/research/doors-and-traps.md`
+
+**Context.** ADR-0106 retained authored doors and traps but declined conditions
+27 and 28 because their runtime predicates were absent. Reading both complete
+class vtables, their constructors, THINGS loaders and save ranges establishes
+how the authored records seed those predicates.
+
+**Decision.** Add hashed `UnderConstruction` state to doors and traps. A door
+starts under construction exactly when authored `Flags` bit 1 is set. A trap
+starts under construction exactly when authored `NumberOfShots` is zero; that
+field is a Boolean construction marker in the loader, not a consumable count.
+The verbatim authored fields remain for ADR-0106 compatibility.
+
+Implement the counting modes of player conditions 27 and 28. Flag bit 3 counts
+under-construction instances; bit 4 counts constructed instances; otherwise
+zero `TargetId` counts all owned instances and a nonzero id filters by type.
+Type 28's named Boulder Trap path also counts owned live Boulder objects.
+Availability mode (`Comparison == 0`) remains declined because availability is
+separate state and no shipped condition uses that mode.
+
+**Door blocking is deliberately out of scope.** The binary read establishes
+that constructed locked doors mark the navigation grid and that the update
+toggles an open state from nearby creatures, but reproducing this touches
+`DK2.Pathfinding`, imp task routing and every routed scenario. Neither trigger
+condition needs it, and the open/close eligibility partitions are not fully
+named, so it must arrive as its own measured mechanic rather than a side effect.
+
+**Consequences.** Version 56 was taken by parallel work; `HashVersion` and
+snapshot `FormatVersion` become **57**. The branch-base determinism literal is
+re-pinned from a computed run. At 1,200 ticks the
+campaign oracle moves `stalls / moved / after1` from **53 / 62 / 11** to
+**46 / 62 / 11**; foreclosed gates fall from 145 to 124. Doors still do not
+open, close or block movement; traps still do not fire.

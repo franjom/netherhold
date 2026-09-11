@@ -102,13 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 54: TileState lost WorkRemainder. Run 15 watched 54 consecutive
-        // reinforce steps of exactly 9 where the tabled rate wants 9.6, so DK2 drops the
-        // fraction rather than banking it (ADR-0133). The literal moved again on
-        // 2026-09-10 with HashVersion staying put, which is allowed exactly here: the
-        // fixture gained two creatures, so CreatureState.HashInto runs inside the gate
-        // at last, while the hash and the shape of the state did not change (Q206).
-        Assert.Equal(0xCB555B61573BE9F8UL, sim.StateHash());
+        // HashVersion 57: door and trap construction state became hashed (ADR-0139).
+        // Earlier pins and their reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0x09C5F94441340BF2UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
