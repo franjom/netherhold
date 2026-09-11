@@ -156,8 +156,19 @@ The table above predicts it exactly: the Temple contributes **2 if it holds a
 particular object and 0 otherwise**, and a type is a candidate only while its
 value is **> 0**. This is the first evidence *for* the weighted model from
 outside the binary, and it answers Q89. It also lines up with Q270 — room
-capacity counts **auto-placed furniture, not tiles** — so the open half is
-**which object**, and at what size the Temple places it.
+capacity counts **auto-placed furniture, not tiles**.
+
+**The object is the Temple Hand, object 66** (owner, same day: the hand in the
+centre pool of a 5x5 Temple). The shipped table names it exactly that and gives
+it `Obstacle`. Note the Temple's room record carries **no `ObjectIds` at all**,
+unlike the ten rooms that do, so the hand is placed by Temple-specific code —
+which is what "special-cased by room type" above predicts.
+
+**Open, and the owner's question:** the contribution is a *weight*, so whether
+2 means **at most two Dark Angels** depends on the decrement reading that the
+next section says contradicts itself. Plausible, not established — and
+settleable by keeping a 5x5 Temple, sacking nobody, and seeing whether a third
+ever arrives.
 
 ### The contradiction, stated rather than hidden
 
