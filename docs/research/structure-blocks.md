@@ -234,12 +234,15 @@ ever called directly: each appears only as an `.rdata` vtable entry.
 | `0x005090C0` | a fixed-point position | the same bit, `SAR 0xC` first |
 | `0x00509160` | tile `x, y` | `nav & 8` **or** slab word `+0x8` bit 14 |
 | `0x00509100` | a fixed-point position | the same pair |
-| `0x005091C0` | a slab pointer | player `+0x17B` bit 0 **or** that same bit 14 |
+| `0x005091C0` | a slab pointer | bit 0 of `+0x17B` in the slab's **terrain** record **or** that same bit 14 |
 
 **So the slab's flag word at `+0x8` is `id:12 | flags:4`.** The placement scan at
-`0x004FE677` masks it with `0xFFF` and compares the result against a terrain id,
-and three of the predicates test **bit 14** of the same word. Q309's `0x2000` is
-bit 13 — one bit below a bit that gates movement.
+`0x004FE677` masks it with `0xFFF` and compares that against a field of the thing
+being placed, and three of the predicates test **bit 14** of the same word.
+Q309's `0x2000` is bit 13 — one bit below a bit that gates movement. **Which
+id the low 12 bits hold is not established**: the slab's *terrain* id is the
+separate byte at `+0x0A` (`runtime-map.md`), and `+0x02`'s low 12 bits index a
+third table at `0x006EE540`.
 
 **The nav byte is an enumeration, not a bitfield.** `0x004B228F` compares the
 whole byte against **4**; `0x00459944` reads **two** tiles' bytes and compares
@@ -299,6 +302,47 @@ wrong code.
 **Next probe**, in order: the whole-word write to slab `+0x8`, which is where the
 set lives; then `FUN_004F0390` and `FUN_004F0840`, the two callers of the
 thing-clear, for which things qualify.
+
+### 5.6 Nothing sets bit 14 on its own, which says what it is (2026-09-11)
+
+§5.5's next probe was the set. It does not exist as a bit operation, and the
+sweep that establishes that is worth recording because it is exhaustive.
+
+**What was searched.** All of `.text` and `cseg` — `0x00401000` to
+`0x004D0000`, `0x004D0000` to `0x004F6000`, `0x004F6000` to `0x00653000`,
+disassembled whole and filtered, so this is not a range-limited claim:
+
+| shape | sites | on a slab |
+|---|---|---|
+| any **word-sized** op with immediate `0x4000` | 0 | — |
+| word-sized clear of bit 14 (`AND …,0xBFFF`) | 5 | **4**, all at `+0x8` (§5.5) |
+| `OR word ptr […], reg` | 64 | 0 |
+| `MOV word ptr [… + reg*1 + 0x8], reg` | 5 | 0 |
+| `MOV word ptr [reg + 0x8], reg` | 96 | none of those checked |
+
+The last row is the honest limit: 96 is too many to read, so the ones inside
+functions that also read the slab base (`world+0x9EE`) were checked first. Every
+one of those writes a **definition** record out of the table at `0x006EE540`,
+whose own `+0x8` is a different field — a trap worth naming, because the
+offset matches and the meaning does not.
+
+**What that constrains.** The word at `+0x8` is `id:12 | flags:4`, so a
+whole-word write sets the id and the flags together. Bit 14 having **no**
+independent setter and four independent clears means it is **written with the
+slab's identity and then punched out**, not toggled as a state. The Dungeon
+Heart, a rectangle walk and two thing routines each clear it; nothing raises it
+except assigning what the slab *is*.
+
+**So, STRONGLY INFERRED and not confirmed:** bit 14 is set from the terrain a
+slab holds and cleared where a structure opens that slab, which makes it read as
+**blocked**, matching the nav byte's bit 3 that the predicates OR it with.
+
+**What would settle it in one observation**, and it is cheap: the memory reader
+used for the tick-rate amendment (ADR-0102) can read the word at slab `+0x8` on
+a known tile. Compare a rock wall, a plain floor, a claimed room and a Dungeon
+Heart centre. If bit 14 is set on the wall and clear on the floor the reading
+above is confirmed; if it is the other way round this section is wrong and
+§5.5 still stands. `observation-checklist.md` is where it belongs.
 
 ### 5.2 Which corrects what Q88 used to say
 

@@ -28,6 +28,7 @@ established from the save path, now with a way to reach one live.
 | | |
 |---|---|
 | `+0x06` | `u16` **health** — read, written and clamped by the applier |
+| `+0x08` | `u16` `id:12 | flags:4`. **Bit 14 gates movement** and bit 13 is Q309; the low 12 bits are an id that is **not** the terrain one (`structure-blocks.md` §5.4) |
 | `+0x0A` | `u8` terrain id, indexing the terrain table at `0x006DA4A8` |
 | `+0x0B` | `u8` flags: bit 6 is the fog gate (`fog-of-war.md`), bit 0 is read by the tag adder |
 
