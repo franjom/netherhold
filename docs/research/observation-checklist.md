@@ -18,33 +18,71 @@ each other** — two identical readings cannot separate a real column from a
 coincidence. A **screenshot with the HUD visible** beats a description, and a
 60 fps recording beats a stopwatch where the answer is a count.
 
-**Where the numbers are read.** Gold per swing is the **gold seam's own
-remaining value**, watched as an imp mines it; read consecutive decrements, not
-one. The owner's 2026-09-05 sequence — 3000, 2690, 2381, 2072, 1763 — is 68
-health a swing (`68 × 3000/660 = 309.09`, truncated cumulatively) and matches to
-the last digit four times, which also established that gold is released in
-proportion to health removed and that the running total truncates. Cited from
-`tile-work.md`. A creature's **Efficiency** and **Health: NN%** are on the
-status bar when it is selected. Q86's two portal timing runs (cited by
-`PortalTests`) are recorded in `portals.md` and in Q86.
+**Where the numbers are read.** A rate is read off the **thing's own remaining
+value** over *consecutive* decrements, never one — the seam's gold, the tile's
+health. That is what settled gold per swing to the last digit four times
+(`tile-work.md`). A creature's **Efficiency** and **Health: NN%** are on the
+status bar while it is selected.
 
 ---
 
-## 1. Portals and arrivals
+## 1. Run sheet — which level, and in what order
 
-### Q97 — why do arrivals slow down as a dungeon fills?
-The symptom is CONFIRMED; the cause is not, and two mechanisms predict it.
-(a) the **interval stretches** with the keeper's creature count — what the code
-does; (b) the interval never changes and **eligibility drains**, each type
-weighted by its attracting rooms minus one per creature of that type held.
+Four sittings. Every experiment is written up in its own section below; this is
+only the route through them, and the order inside a sitting matters where it
+says so.
 
-**Do:** play level 1 twice — once with a lair of one or two tiles, once with a
-lair of 5x5 or bigger. Note roughly how long the third, fourth and fifth
-goblins take. No stopwatch precision needed.
-**Means:** big-lair run stays fast then slows abruptly → **(b)**, and the
-implemented interval scaling is the wrong cause for the right symptom. Both runs
-slow at the same rate whatever the lair size → **(a)**. See `binary-entrance.md`
-§4, where the reading of (b) contradicts itself and is a hypothesis.
+**Mode changes answers, so it is part of the method** — Q199 is the proof, the
+same rule reading +500 in skirmish and **+1400** in My Pet Dungeon. Mana, gold
+and wages in the campaign; geometry in MPD, where a room's capacity has no
+reason to care.
+
+### Sitting A — campaign level 1, from a fresh load
+
+One keeper, no combat, and a creature pool of exactly one entry, which is what
+makes it the clean instrument. **Level 1 overrides payday to 1200 s** where the
+global is 600 (`Level1Variables.kld`), so do not sit waiting for one here.
+
+1. **Q75 first, inside the first ten seconds, before an imp has moved.** Read
+   the HUD gold total against what is actually in the treasury and heart. Once
+   mining starts the comparison is gone for the session.
+2. **Q49** — ten unclaimed tiles, one imp, nothing else marked anywhere on the
+   map. Time the chain, never one claim.
+3. **Q102** — one fresh arrival, untouched; time its first walk to a hatchery.
+   Then repeat with one you pick up and drop halfway.
+4. **Q50, Q143, Q145, Q177** share one setup: two blocks of gold marked far
+   apart, one imp, kept selected so the status bar's Efficiency is visible.
+
+### Sitting B — My Pet Dungeon, for room geometry
+
+Build to the exact sizes given; the size *is* the experiment.
+
+- **Q60** — a **3x5** temple and a **4x4** graveyard. Every previous reading was
+  a square, so width and height have never been independent; and not a 7x7,
+  which leaves you counting headstones in a crowd.
+- **Q179** — a **4x4** prison, against the record's 5x5.
+- **Q216** — one creature in a library, let the bar move, then slap it.
+- **Q63** — train a *different* creature at the dummy: a goblin against a bile
+  demon.
+- **Q164** — kill something as far from the graveyard as the map allows.
+- **Q35, Q138, Q140** — one 3x3 treasury: fill it, then keep mining.
+- **Q202** (slap to unhappy with a free bed available) and **Q175** (watch one
+  creature finish a chicken) need no setup of their own.
+
+### Sitting C — a skirmish map, for a rival and a fight
+
+**Q23** a rival's dig markers, **Q152** a wounded imp in a fight, in the hand and
+possessed, **Q57** mana spent down to nothing on a small dungeon.
+
+### Sitting D — the My Pet Dungeon level that read +1400
+
+**Q199**, and **write down which level it is**: no note here names it.
+
+### Waiting on tooling, not on you
+
+**Q89** needs a level whose pool holds the **Dark Angel** (creature id 23) or the
+**Maiden Of The Nest** (45). `dk2tools kwd vars` prints a level's pool *count*
+and not its entries, so nobody can currently say which levels those are.
 
 ---
 
@@ -79,18 +117,16 @@ Answered by arithmetic: a swing frees 273, an Imp holds 1400, so it fills after
 **Do:** count the swings between an imp starting on a fresh seam and running off.
 **Means:** five confirms the chain from Q47 through `MaxGoldHeld`.
 
-### Q35 — which treasury tile does an imp fill, and where does the overflow go?
-The owner's belief (offered as belief) is nearest tile, spillover to another
-empty treasury tile, then a lump beside the treasury. Ours picks the same *room*
-and a different *tile*. Still open: the lump, and the **withdrawal** order.
+### Q35 — where does a full treasury's overflow go?
+The deposit half is read from the binary: the carrier takes the first tile below
+capacity along the room's own tile chain. Still open are the **withdrawal** order
+and the lump.
 
-**Do:** watch imps deliver into a **3x3 treasury**.
-**Watch:** does the first load land in the tile nearest the door or somewhere
-fixed; when one tile fills, where the next load goes; when the whole treasury is
-full, where exactly the lump appears — beside the treasury, or back at the seam.
-**Means:** decides which gold survives a treasury being partly destroyed.
+**Do:** fill a **3x3 treasury**, then keep mining.
+**Watch:** where exactly the lump appears — beside the treasury, or back at the
+seam. **Means:** decides which gold survives a treasury partly destroyed.
 
-### Q138 / Q140 / Q65 — how big does a floor lump grow?
+### Q138 / Q140 — how big does a floor lump grow?
 `MaxGoldPileOutsideTreasury` is **2000** and is the candidate ceiling.
 `MaxGoldPerTreasuryTile` is 3000. Ours keeps surplus in the imp's hands and
 sends it to find other work; the original has a twelve-slot layout for putting a
@@ -117,25 +153,6 @@ stop it as the tenth turns your colour. Time the chain, never one claim.
 **Means:** **~12 s** → no pause. **~17 s** → a 500 ms pause. Dividing by ten
 reaches a precision one observation never could.
 
-### Q62 — 50 applications or 55? (and Q20's leftover predictions)
-ADR-0089 predicts reinforcing Rock at **50 applications = 12.5 s**. Every
-recorded reading is above it: 13.38 and 13.77 (2026-08-30), 13.3–13.4 with a
-fresh level-1 imp and ~13.1 with a level-3 one (2026-09-05), and the owner
-recalls "about 14–15 seconds". A per-application amount of **9** rather than 10
-gives `495 / 9 = 55` applications = **13.75 s**, the middle of the range. The
-arithmetic at stake is whether DK2 truncates twice (`50/4 = 12`, then
-`12 × 0.8 = 9.6 → 9`) or rounds the second step to 10; the slapped-mining
-measurement says it rounds (67.5 gave 68 health), which argues for 10 and leaves
-the seconds unexplained.
-
-**Do:** record one reinforce at 60 fps and **count the applications** — one per
-work animation, four a second.
-**Means:** 50 against 55 is 10%, which no stopwatch separates and a recording
-does. While counting, two more predictions from the same model have never been
-checked: your **own reinforced wall** should take **35** swings and a **rival's**
-**563** (about two minutes). If both land, the model is confirmed across three
-orders of magnitude and `DigRockHealth` is definitively the only misfit.
-
 ### Q23 — are dig markers per keeper or shared?
 **Do:** in a skirmish, look at a rival keeper's walls. **Watch:** whether their
 dig markers are visible to you. Ours assumes per player (STRONGLY INFERRED).
@@ -143,16 +160,6 @@ dig markers are visible to you. Ours assumes per player (STRONGLY INFERRED).
 ---
 
 ## 3. Creatures, mood and needs
-
-### Q103 — is the sleep cycle 240 seconds up and 9 down?
-A Goblin's record says `TimeAwake` 240 and `TimeSleep` 9, both read as seconds,
-and both survived the owner's stopwatch without closing. Nine seconds at
-`ModifyHealthOfCreatureInLairPerSecond` = 100 is **900 health**, over half a
-Goblin's 1500 — a short sleep is a big heal, which is why the ratio is not odd.
-
-**Do:** watch a healthy goblin in a dungeon that has a lair.
-**Watch:** does it go to bed roughly every four minutes, and is it up again
-inside ten seconds. Implemented in `LairRules.WantsToSleep` / `HasSleptEnough`.
 
 ### Q102 — when does a creature's hunger clock start?
 Implemented: at spawn, counting to the record's `HungerRate` (180 s for a
@@ -203,7 +210,7 @@ so a long walk to a distant graveyard can outlast the corpse.
 
 ## 4. Rooms
 
-### Q45 / Q179 — does `RecommendedSize` gate function, and by how much?
+### Q179 — a 3x3 prison works where the record says 5x5
 `RoomDef.RecommendedSizeX/Y` is read as *the size below which the room does
 nothing*, on two matches (Graveyard 3x3, Temple 5x5) and on the 1999 manual,
 which prints a "Minimum Recommended Size" per room agreeing for 16 of 17 rooms
@@ -244,7 +251,7 @@ temple does, read it off. Otherwise build a **4x4**: its interior is a 2x2 with
 no centre tile, so the first reading predicts **4** and the second **3**. Not a
 7x7 — 25 against 24 leaves you counting headstones in a crowd.
 
-### Q61 / Q89 — does a small temple attract anything?
+### Q89 — does a room below `RecommendedSize` still attract?
 Creature attraction is a parsed field, `CreatureAttraction(RoomId, RoomSize)`,
 two per creature, and `RoomSize` is a tile count. **The Dark Angel's temple entry
 is `size >= 0`**, against the owner's recollection and the 1999 manual, which
@@ -263,18 +270,15 @@ outside this field. **The Maiden is the Q89 half:** she arrives at 3x3 → a roo
 below `RecommendedSize` advertises while doing nothing, and the two numbers are
 independent.
 
-### Q168 — how often does an overcrowded prison roll its jail break?
-`OvercrowdingJailBreakPercentagePerExtraCreature` = **50** names a percentage per
-extra creature and says nothing about the interval. Ours rolls once a game
-second, which makes two over capacity a certainty on the first roll. A 3x3
-prison holds **two** (Q166, CONFIRMED off the status bar).
+### Q168's leftover — can the prison's bar be set in the interface?
 
-**Do:** fill a 3x3 prison, then drop one more in by hand.
-**Watch:** roughly how long it holds before the break.
-**And while there:** the manual says a prison door has a **bar** that stops
-further deliveries, and the room dump carries `SafeCreatureCapacity` separately
-from the real capacity. Can that limit be set in the interface, and does it stop
-imps at the number you set rather than at the room's size?
+The roll is ANSWERED (once per over-capacity insertion, from the binary). What is
+not is the manual's claim that a prison door carries a **bar** stopping further
+deliveries, with `SafeCreatureCapacity` held separately from the real capacity in
+the room dump.
+**Do:** fill a 3x3 prison — it holds **two** (Q166, off the status bar).
+**Watch:** whether that limit can be set in the interface, and whether it stops
+imps at the number you set rather than at the room's size.
 
 ### Q216 — does slapping a researcher visibly triple their research?
 The adder computes the slap bonus as `variable19 × 50 × variable19 × perTick /
@@ -316,7 +320,7 @@ then sell a room or lose some floor.
 cap in that mode. It does not move → the displayed rate is not what `ManaRules`
 computes. `mana.md` §*The cap*.
 
-### Q9 — what is `PayDayCutOffTimeSeconds` = 120?
+### Q9's leftover — what is `PayDayCutOffTimeSeconds` = 120?
 `PayDayFrequencySeconds` is 600 and names itself; so do
 `TimeBeforeFirstPayDaySeconds` (600) and `DelayBeforePayReevaluationSeconds` (4).
 The 120 is unread, and the guess is how long a creature has to reach the treasury
@@ -360,9 +364,7 @@ to remember it.
 
 **Do:** find a wall with a distinctive silhouette — a bulge, a lean, a notch —
 and screenshot it from a fixed camera. Quit to the menu, load the same level
-again, and screenshot the same wall from the same angle. **The old version of
-this experiment asked you to dig the tile out and fill it back in; there is no
-fill-in in DK2 (Q219), so it cannot be run.**
+again, and screenshot the same wall from the same angle.
 **Means:** **identical** → the shape is a function of where the tile is, a hash,
 and a renderer stores nothing. **Different** → it is decided when the wall
 appears and is view state a renderer has to keep. Either way **the simulation
@@ -377,10 +379,8 @@ wander ~20 s later → the read holds; later, or nothing → a gate was missed.
 Report the **exact line**: over a Library with >4 creatures it should differ.
 
 ### Q74 — is there a fill-in tool in the level editor?
-All that is left of the fill-in data (`FillInHealth` = 5, the `FillInable` flag,
-Claimed Path's route back to Rock) after Q219 established that **no keeper can
-trigger a fill-in and the engine has no reader for the health**. Curiosity, not a
-blocker: if you ever have the editor open, look for the tool.
+Curiosity, not a blocker: Q219 established that no keeper can trigger a fill-in
+and the engine reads no fill-in health. If the editor is ever open, look.
 
 ---
 
@@ -396,3 +396,4 @@ Instrumentation, measurement tooling or disassembly, and scheduled accordingly.
 | Q39 | Whether mana accrues smoothly or in whole seconds. The unit is CONFIRMED per second; granularity is invisible in any total and nothing depends on it |
 | Q48 (second half) | What the *pathfinder* charges for a diagonal when choosing between routes. The mover's cost is forced — a diagonal step covers √2 tile-widths at a constant speed, so octile 14:10 — and the owner confirmed the glide. Two cost models produce the same paths except where a route with fewer steps is longer in true distance |
 | Q4, Q11, Q14, Q15, Q70, Q85, Q183 | Record and runtime-structure layouts, field meanings |
+| Q103 | The sleep cycle. A stopwatch corroborated 240 s up and could not close it, because the walk to the bed is inside the measurement; what resets the last-slept stamp is only in the binary |
