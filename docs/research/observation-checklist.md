@@ -224,33 +224,23 @@ the rule was built on were coincidence. Not working → the prison is a real
 exception needing its own reason.
 
 ### Q60 — how does a room's yield scale above the minimum?
-Two rooms measured and they do not follow the same rule. Temple capacity is the
-**edge tile count**, `2(w+h) − 4`: 8, 12, 16 at 3x3, 4x4, 5x5 — CONFIRMED, three
-consecutive squares landing on `4n − 4`. Graveyard: 1 grave at 3x3 and 8 at 5x5,
-which is *not* the 5x5 rim of 16 but the ring around the centre of the interior
-3x3. HYPOTHESIS.
+The two rooms do not follow the same rule, and both are now settled.
 
-**Do (temple):** build a **3x5**. All three measurements were squares, so width
-and height were never independent, and any rule that agrees along `w = h` is
-indistinguishable from the rim count.
+**Temple: the room's own rim**, `2(w+h) − 4` — 8, 12, 16 at 3x3, 4x4, 5x5 and
+**12 at a 3x5** (owner, 2026-09-11). The 3x5 is what closed it: every square
+makes `2(w+h) − 4` and `4 × (side − 1)` agree, so three squares could not tell
+the rim from two other rules that predicted 8 and 16 here.
+`RoomInstance.EdgeTileCount` stands.
 
-| what the rule might be | 3x5 predicts |
-|---|---|
-| **edge tiles**, `2(w+h) − 4` — implemented | **12** |
-| `4 × (smaller side − 1)` | 8 |
-| `4 × (larger side − 1)` | 16 |
+**Answered for the graveyard** (owner, 2026-09-11, printed capacities): a 4x4
+reads 4 and a 5x5 reads 8. **Graves sit on the rim of the room's interior** —
+1x1 interior → 1, 2x2 → 4, 3x3 → 9 − 1 = 8, matching all three sizes. So the
+temple's capacity is the room's own rim and the graveyard's is the ring one
+step in, with a 3x3 interior's centre tile holding the tomb instead of a grave.
 
-8 or 16 → `RoomInstance.EdgeTileCount` is wrong, and so is the story about
-creatures standing on the pool rim.
-
-**Answered for the graveyard, and it impeaches an older number** (owner,
-2026-09-11): a **4x4** prints *"Graves used: 0 / 4. Maximum Vampires: 4"*, and a
-4x4's interior is a 2x2, so **capacity is the interior tile count** — not
-interior − 1, which would have printed 3.
-
-It predicts **9** at 5x5 where the recorded figure is **8 counted graves**; no
-rule gives both, and a printed field beats a count, so the 8 is the suspect
-datum. **Do:** read a **5x5**'s printed capacity.
+Reading the 4x4 alone said "interior tile count", which the 5x5 refuted: it
+predicted 9. **Do:** a **3x5** graveyard, the cheapest discriminator left — the
+interior rim gives **3** and a linear `2(w+h)−12` fit gives **4**.
 
 ### Q89 — does a room below `RecommendedSize` still attract?
 Creature attraction is a parsed field, `CreatureAttraction(RoomId, RoomSize)`,

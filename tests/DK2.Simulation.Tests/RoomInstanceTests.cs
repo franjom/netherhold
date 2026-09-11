@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -174,6 +174,10 @@ public class RoomInstanceTests
     [InlineData(6, 6, 20)]
     public void TheRimOfARectangle_IsTwoWidthPlusHeightLessFour(int w, int h, int expected)
     {
+        // The 3x5 row stopped being a prediction on 2026-09-11: a 3x5 temple's own
+        // tooltip reads "Capacity used: 0 / 12" (owner). Squares cannot test this
+        // rule -- 2(w+h)-4 and 4*(side-1) agree on every one of them -- so the
+        // non-square carries the whole of the evidence (Q60).
         WorldState world = World();
         Paint(world, RoomTypeId.Treasury, 4, 4, w, h);
 
