@@ -170,15 +170,32 @@ next section says contradicts itself. Plausible, not established — and
 settleable by keeping a 5x5 Temple, sacking nobody, and seeing whether a third
 ever arrives.
 
-### The contradiction, stated rather than hidden
+### The contradiction, and how the owner resolved it
 
-Read literally, a Lair attraction contributes a **flat 1.0** and each goblin
-held subtracts 1.0. That would make the second goblin ineligible and cap level 1
-at **one** creature — which is flatly false; level 1 gives fifteen. **So the
-reading is wrong somewhere**, and I did not find where before stopping.
+**Stated first.** Read literally, a Lair attraction contributes a **flat 1.0**
+and each goblin held subtracts 1.0. That would cap level 1 at **one** creature
+— flatly false; level 1 gives fifteen. The reading was wrong somewhere and
+the 2026-09-07 sitting stopped without finding where.
 
-Nothing has been implemented from this section. It is here for what it would
-mean if the shape is right:
+**The Temple's 2 is a cap of two, and it was predicted before it was seen.**
+The number was read off the binary on 2026-09-07. On **2026-09-11** the owner
+built a 5x5 Temple, took a first Dark Angel, a second **1 m 44 s** later, and
+then nothing for three and a half minutes. Two, as written. A prediction met,
+not a curve fitted.
+
+**So the decrement-per-creature-held reading is right, and the Lair half is the
+wrong one.** It is not a flat 1.0: the table above already says most rooms
+contribute **a 16-bit field, most plausibly its tile count**, and a Lair of
+fifteen tiles carrying level 1's fifteen creatures is exactly that. The
+contradiction was between the two readings, never inside the mechanism.
+
+**One caveat, recorded rather than waved away.** A portal's interval grows as
+`n² + EntranceGenerationSpeedSeconds` (ADR-0086), so a silence can also be a
+stretched interval. What would remove the doubt is whether **other** creature
+types kept arriving across those three and a half minutes: if they did, the
+portal was firing and declining to pick an angel, which is the cap.
+
+Still unimplemented, and now worth implementing. What it means:
 
 > **It is a second, independent explanation for the owner's observation that
 > arrivals slow down** — not an interval that stretches, but eligibility
@@ -186,9 +203,10 @@ mean if the shape is right:
 > on the other. That would also match a well-known DK2 behaviour: a keeper needs
 > more lair space to attract more creatures.
 
-Which makes Q86 sharper rather than answered. The owner has confirmed the
-*symptom*; there are now **two candidate mechanisms** for it, one implemented
-and one not. See Q97.
+That mechanises the best-known piece of DK2 folklore — a keeper needs more
+lair space to attract more creatures, because **lair tiles are the attraction
+budget**. Q86's slowdown keeps two candidate mechanisms, one implemented and
+one not, but this one now has evidence the other lacks. See Q97.
 
 ---
 
