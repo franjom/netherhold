@@ -253,7 +253,7 @@ public static class PrisonRules
     /// a Skeleton is what a prison makes. Two deviations: the original applies -12
     /// every four game seconds (<c>ticksPerSecond &lt;&lt; 2</c>, same average, coarser
     /// granularity), and it also applies
-    /// <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> (150) under anger reason 9 in the same breath, which this does not (prison.md §4b).</para></summary>
+    /// <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> (150) under anger reason 9 in the same breath, which this does not (prison.md §4b). <b>A campaign map can switch the drain off</b> to hold a creature for scripted release; that flag's home is unknown (Q308).</para></summary>
     public static int WitherPerSecond(
         GameDatabase database, CreatureDef creature) =>
         CreatureHealthRules.CanGetHungry(creature)

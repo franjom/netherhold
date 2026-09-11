@@ -2900,10 +2900,9 @@ round was killed by something else and is released instead. The test is the
 health reading rather than a new "was damaged" flag, which is both simpler and
 what the situation actually asks.
 
-**The body goes to the rim.** It is moved to the first free outermost tile of the
-prison it died in — free meaning no creature on it. That is what puts it
-where an imp can reach it without passing the gate, and it needs the tile set
-ADR-0139 introduced.
+**The body goes to the rim**, the first free outermost tile of the prison it died
+in — free meaning no creature on it. That is what puts it where an imp can
+reach it without passing the gate, and it needs ADR-0139's tile set.
 
 **The death itself is not booked here, and that is the point.** Releasing is
 enough: `CreatureHealthSystem` skips prisoners and picks this one up on the next
@@ -2912,14 +2911,17 @@ game second, where standing on a Prison tile already means no rescuable window
 which is a cross-check on ADR-0138 rather than a second mechanism.
 
 **What replaced a test that pinned nothing.** `APrisonerIsNotSlappable` asserted
-the opposite of all this and cited no source — it had pinned whatever
-`CanSlap`'s owner test happened to do. Its replacement cites the observation.
+the opposite and cited no source — it had pinned whatever `CanSlap` happened
+to do.
 
-**Left open.** The drop-through-the-floor animation is presentation. The
-Skeleton cap is now known to be the prison's own capacity and **per prison**
-(owner), but whether a rise is refused at it is unobserved, so nothing enforces
-it (Q307). `CanSlap` still models no notion of reach, so a keeper may slap its
-own creature held in somebody else's prison; narrowing that would be a guess.
+**Amended the same day.** A captive answers to its **jailer alone**, its own
+keeper included — *"a keeper can't slap its own creature in someone else's
+dungeon"* (owner). Prison is the only place this simulation puts a creature in
+another's dungeon, so that is the whole reachable rule; reach in general is not.
+
+**Left open.** The animation is presentation. The Skeleton cap **is** enforced —
+at the maximum a withering prisoner dies to a corpse on the rim instead of rising
+(owner) — but what it counts is unknown, so nothing enforces it yet (Q307).
 
 **Consequences.** No state field and no stored quantity changed, so `HashVersion`
 and the pin stand.

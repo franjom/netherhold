@@ -563,22 +563,31 @@ public class PrisonTests
     /// asserted until 2026-09-11 — on no evidence, having pinned whatever
     /// <c>CanSlap</c>'s owner test happened to do. The owner slapped a captive Monk to
     /// death and photographed the body (Q306).</summary>
-    /// <remarks>Still not modelled, and not narrowed here because narrowing it would be a
-    /// guess: <c>CanSlap</c> has never asked whether the hand can <i>reach</i> a creature,
-    /// so a keeper may also slap its own creature held in somebody else's prison.</remarks>
-    [Fact]
-    public void AJailerCanSlapItsOwnPrisoner()
+    /// <remarks><b>And only the jailer.</b> "A keeper can't slap its own creature in
+    /// someone else's dungeon" (owner) — so a captive answers to whoever holds it and
+    /// not to the keeper it was taken from. Prison is the only place this simulation puts a
+    /// creature inside another keeper's dungeon, so it is the whole of the rule that can be
+    /// modelled; reach in general is not.</remarks>
+    [Theory]
+    [InlineData(Keeper, true)]
+    [InlineData(Rival, false)]
+    public void APrisonerIsSlappableByItsJailerAndByNobodyElse(byte slapper, bool lands)
     {
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
+
+        // Owned by Rival, held by Keeper: the two ends of the rule are different
+        // players, so a test that passes for one has to fail for the other.
         CreatureState captive = Prisoner(db, world, CellB);
+        Assert.Equal(Rival, captive.OwnerPlayerId);
+        Assert.Equal(Keeper, captive.PrisonOwnerPlayerId);
+
         int health = captive.Health;
-
         GameSimulation sim = Simulation(db, world);
-        sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, captive.Id)));
+        sim.Tick(InputFrame.Of(new SlapCreatureCommand(slapper, captive.Id)));
 
-        Assert.True(captive.Health < health, "a slap on a captive did nothing");
+        Assert.Equal(lands, captive.Health < health);
     }
 
     /// <summary><b>And slapping one to death leaves a body, not a Skeleton</b> — lying
