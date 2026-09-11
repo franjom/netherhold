@@ -1,4 +1,4 @@
-# The Library: research accrual
+﻿# The Library: research accrual
 
 Milestone M4/M6. What a creature standing in a Library earns for its keeper.
 
@@ -172,6 +172,40 @@ is why all three are reproduced rather than corrected (ADR-0002).
 
 The tortured-type figure is Q81's, arrived at independently; this reading
 reproduces it and puts the other two beside it.
+
+### The casino gate can never open, so +140 % is unreachable (Q217)
+
+`+0x20D` is **`CasinoBigWinnerGameTickRemaining`**, by DK2's own player dumper
+(`player-object.md`) — a countdown, not the flag this note first called it. A
+whole-image scan for the literal `0x20d` returns **eight** instructions, of which
+four address a player at word width:
+
+| site | in | what |
+|---|---|---|
+| `004b88d4` | `FUN_004b8640` | `MOV word ptr [ESI+0x20d],BX` — **writes zero**; the same routine zeroes `+0x20F` and `+0x213`, so it is an initialiser |
+| `004bd54f` | `FUN_004bcf10` | the debug dumper's read — which is what identifies the object as a player |
+| `004c2e1a` | `FUN_004c2dc0` | this section's gate |
+| `004c320b` | `FUN_004c3200` | a second gate of the same shape, on a different accrual |
+
+**Nothing writes a non-zero value, and nothing decrements it.** Both gates skip
+their bonus when the field is zero — at `004c2e1a` the `DIV` above leaves `EDX`
+zero, at `004c320b` an `XOR EBX,EBX` does, and both `JZ` over the block — so a
+field that is only ever zeroed keeps both closed. The +140 % is dead code in
+v1.70, and `IncreasedWorkRatePersentageWhenCasinoBigWinOccurs` is a variable
+whose reader exists and whose gate cannot open.
+
+**Bound on the scan:** it matches the literal displacement. A write through a
+folded base (`LEA EDI,[ESI+0x200]` then `MOV [EDI+0xd],AX`) would not appear, and
+was not searched for. Both the one writer and all three readers use the direct
+form, which is this compiler's style for this struct.
+
+### Nothing can pass the adder a negative amount (Q218)
+
+The clamp-subtract branch at the top is **dead**. A scan of all thirteen
+initialised blocks — `.text`, `cseg` and every data block, for a rel32 call or
+the bare address in a handler table — finds `FUN_004c2dc0` called from exactly
+**one** site, `0047b084`, and **zero** absolute occurrences. That caller floors
+its amount at 0 explicitly, so research cannot be lost.
 
 ---
 
