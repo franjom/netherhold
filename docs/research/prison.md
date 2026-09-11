@@ -237,10 +237,10 @@ taken — and **adds one if that count is non-zero**, into `SafeCreatureCapacity
 overcrowd one by hand at all. Below 3x3 the count is zero, the "+1" never fires,
 and the room does nothing. The owner built a 3x3 and read **two** off the bar.
 
-**The rendering shows the same split, and a 5x5 confirms the formula.** The
-outermost tiles carry no fence, so the rim is outside the cell to look at as well
-as to count and a prisoner never reaches it (ADR-0139). DK2 reads **6 / 10** on a
-5x5: the inner 3x3 plus one (owner, 2026-09-11).
+**The rendering shows the same split, at both observed sizes.** The rim is the
+stone band and the fenced floor is the interior, so a prisoner never reaches it
+(ADR-0139). A 5x5 fences a 3x3 and reads **6 / 10**; a 3x3 fences **one tile** and
+reads 0 / 2, so on the smallest prison nobody can move (owner, 2026-09-11).
 
 ## What this opens
 

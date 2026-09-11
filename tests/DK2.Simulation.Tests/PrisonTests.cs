@@ -838,11 +838,11 @@ public class PrisonTests
             $"a prisoner only ever stood on {visited.Count} tiles of nine");
     }
 
-    /// <summary><b>And on DK2's smallest prison it cannot move at all</b>, which follows
-    /// from two things the owner confirmed separately: a 3x3 holds two, so its fenced area
-    /// is one tile, and a prisoner stays inside the fence. Asserted because it is a
-    /// surprising consequence rather than an intended rule, and because nothing else would
-    /// notice if the confinement quietly stopped holding.</summary>
+    /// <summary><b>And on DK2's smallest prison it cannot move at all.</b> Derived first
+    /// from two owner observations that had never met — a 3x3 holds two, and a prisoner
+    /// stays inside the fence — then <b>observed</b>: on a 3x3 the bars enclose a single
+    /// tile of floor, the rim around it rendering as the stone band (owner, 2026-09-11).
+    /// Kept because nothing else would notice if the confinement stopped holding.</summary>
     [Fact]
     public void OnAMinimumPrisonTheFencedAreaIsOneTileAndNobodyMoves()
     {
