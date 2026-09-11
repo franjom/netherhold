@@ -1398,6 +1398,13 @@ public class TriggerExecutorTests
     /// <summary>An action nobody has implemented must descend anyway when DK2's dispatcher
     /// succeeds at it: the return value is decided by the jump table, not by the arm. Type
     /// 5 is the degenerate case — its arm <i>is</i> the success exit.</summary>
+    /// <remarks>Type 17 is here for a different reason than the rest, and the distinction is
+    /// worth keeping: its arm (<c>0x00519257</c>) has been <b>read</b>. It walks the action
+    /// point's rectangle and sets or clears one bit of each slab's flag word, and every
+    /// reader found for that bit paints the overhead map while its notifications enter a
+    /// sink the engine runs correctly without. So there is no simulation effect to miss, and
+    /// 291 records across 40 levels stay Partial by decision rather than by backlog
+    /// (ADR-0144). What the bit means is still Q309.</remarks>
     [Theory]
     [InlineData((byte)5)]
     [InlineData((byte)17)]

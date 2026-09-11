@@ -3057,3 +3057,50 @@ vtables — which looked like two data sources and is not: both are string
 about where the value comes from.
 
 **Consequences.** No state field and no stored quantity changed; the pin stands.
+
+## ADR-0144 — Action type 17 is read, and deliberately not built
+
+**Date:** 2026-09-11 · **Status:** accepted · Q237, Q309
+
+**Context.** Type 17 was the next build candidate: 291 records across 40 levels
+**including level 1**, so unlike types 1, 7 and 8 a level-1 replay would exercise
+it and a capture could measure it. The arm at `0x00519257` was read end to end
+first, to size the work. It turned out to size it at zero.
+
+**What the arm does** — resolve the `ActionPointId`; **succeed and do nothing
+if it does not resolve**; walk the point's rectangle inclusively; per slab set or
+clear **one bit of the slab's flag word** according to body byte 1; then send one
+rectangle-shaped notification. Full detail, including the multi-slab chain case,
+in `trigger-dispatch-tables.md`.
+
+**Decision.** Build nothing, and leave type 17 reported as `Partial`. Two
+independent findings support it, either sufficient:
+
+1. **Every reader found for that slab bit is display** — one overhead-map
+   painter, in which a set bit suppresses the tile's colour. That painter tests
+   the **fog** bit (slab `+0xB` bit `0x40`, `fog-of-war.md` §11) separately in
+   the same expression, which rules fog out as this bit's meaning and
+   corroborates the fog finding from a second direction for free.
+2. **The notifications enter an optional sink** — one forwarder, 47 call
+   sites across every subsystem, which returns success and does nothing when no
+   handler object is installed. A channel the engine runs correctly without does
+   not carry simulation state.
+
+**What this buys even though no code changed.** Type 17's `Partial` is now a read
+result rather than an absence of one, and 291 records stop being a to-do. The
+rectangle corner **order** (`StartX +0x38`, `StartY +0x3A`, `EndX +0x3C`,
+`EndY +0x3E`) moves from STRONGLY INFERRED to CONFIRMED, because the walk indexes
+the slab array with one pair as the column and multiplies the other by the map
+width. Q237's open half — *who walks a point's rectangle, and when* —
+gains a named answer: this arm does, once, when the action runs.
+
+**Rejected: modelling the bit as hashed tile state.** It would bump
+`HashVersion` to store a field no rule reads, on a meaning nothing has pinned
+— pinning a guess in the one place the project treats as settled.
+
+**Left open.** What the bit *means* is UNKNOWN and is Q309. **"No simulation
+reader found" is not "no simulation reader"**, and a mask that folded this bit
+with neighbours would not appear in a scan for the constant.
+
+**Consequences.** No state field, no stored quantity and no behaviour changed;
+the pin stands.

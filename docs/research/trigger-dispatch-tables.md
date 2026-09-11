@@ -279,6 +279,58 @@ the creature is missing: the `Flag` byte is dropped, and its bit 0 is
 `DestroysRooms` on every one of them (Q302). The collapsed arrival, the `TagId`
 indirection and the Good-player relocation are not modelled (Q303–Q305).
 
+## Action type 17 conceals a rectangle, and touches nothing simulated
+
+**Read whole from `0x00519257`, 2026-09-11.** The arm is short, and its shape is
+not the one its parameter row suggests.
+
+1. Body byte 0 is the `ActionPointId`, resolved through a virtual call on the
+   world. **If it does not resolve the arm succeeds and does nothing**, leaving
+   by the same exit a successful run takes.
+2. It walks the point's rectangle **inclusively on both axes** — X from the
+   point's `+0x38` to `+0x3C`, Y from `+0x3A` to `+0x3E` — indexing the slab
+   array at world `+0x9EE` by the map width at world `+0x9E6`, **16-byte stride**.
+   This is where `action-points.md`'s corner order stops being inferred.
+3. Per slab it calls one of two sibling methods, chosen by body byte 1, the byte
+   our table calls `Available`: **zero sets bit `0x2000` of the slab's flag word
+   at `+8`, non-zero clears it.** Both return early when the bit already holds
+   the target value, so both are idempotent. For terrain whose definition puts it
+   in one of three multi-slab categories the flag is instead applied along a
+   linked chain of slabs, so a structure changes as a unit.
+4. After the walk it sends one further command carrying the rectangle's origin
+   and size, and returns 1.
+
+**Shipped use is a lopsided boolean**: of the 291 records, **268 carry
+`Available` = 0** and 23 carry 1, so the corpus overwhelmingly *sets* the bit.
+
+### Why nothing was built from it
+
+Two independent reasons, either sufficient.
+
+**Every reader found is display.** A constant scan, filtered against the
+substring trap, finds exactly one function reading this bit off a slab: an
+overhead-map painter filling a word-per-tile colour buffer, in which a set bit
+suppresses the tile's normal colour. That painter tests the **fog** bit —
+slab `+0xB` bit `0x40`, the bit `fog-of-war.md` §11 pinned from the owner's
+save series — *separately, in the same expression*. So fog is ruled out as
+the meaning of `0x2000`, and the fog finding is corroborated from a second
+direction at no cost. The two other tests of the constant are a creature state
+word at a different offset and a graphics routine whose base was not pinned.
+
+**The notifications go into an optional sink.** Both the per-slab and the
+per-rectangle notification enter one forwarder with 47 call sites across every
+subsystem, which checks whether a handler object is installed and, **when none
+is, returns success and does nothing.** A channel the engine runs correctly
+without is not carrying simulation state.
+
+`TriggerExecutor` therefore leaves type 17 in `Partial`, which is now a read
+result rather than the absence of one. **"No simulation reader found" is not
+"no simulation reader"** — the standing lesson — so the slab bit keeps
+a question of its own (Q309).
+
+*Flame's map names three of these addresses — the per-slab tick, and the
+command forwarder pair. Cited as Flame's under ADR-0080, adopted nowhere.*
+
 ## What is implemented, and what is not
 
 ADR-0121 built 46, 52, 71 and 73. Types 71 and 73 read player fields nothing

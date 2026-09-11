@@ -30,7 +30,7 @@ agree on this relevant tail of the runtime object:
 | `+0x34` | 2 | trigger root id | `TriggerId` | **STRONGLY INFERRED** |
 | `+0x36` | 1 | trigger repeat count | resolved trigger record | **STRONGLY INFERRED**, not yet projected because THINGS projection has no trigger records |
 | `+0x37` | 1 | action-point id | `ActionPointId` | **STRONGLY INFERRED** |
-| `+0x38..+0x3F` | 4 × 2 | rectangle corners | low words of four source dwords | **STRONGLY INFERRED** |
+| `+0x38..+0x3F` | 4 × 2 | rectangle corners, in the order **StartX `+0x38`, StartY `+0x3A`, EndX `+0x3C`, EndY `+0x3E`** | low words of four source dwords | **CONFIRMED** — the order is read off action 17's walk, which indexes the slab array with the `+0x38`/`+0x3C` pair as the column and multiplies the `+0x3A`/`+0x3E` pair by the map width (`trigger-dispatch-tables.md`) |
 
 Variable 19 is the level's original tick rate and is 4 in all shipped levels.
 The loader multiplies the authored `WaitDelay` once and stores the low 16 bits.
@@ -74,7 +74,10 @@ refutes the shared interpretation:
   area/command bank on the world object. When enabled it copies the selected
   action point's rectangle into that bank. It does not write the point.
 - **Action 17** resolves the point and chooses between two operations over its
-  inclusive rectangle. It does not write the point.
+  inclusive rectangle. It does not write the point. Both operations are now
+  read: they set and clear **one bit of each slab's flag word**, and nothing
+  found reads that bit except the overhead map
+  (`trigger-dispatch-tables.md`, "Action type 17").
 - **Action 27**, player dispatcher `0x004C8620`, takes the rectangle centre and
   constructs a separate camera/event command. `Angle` becomes that command's
   angle and `Time` is converted to milliseconds. Neither is action-point data.
