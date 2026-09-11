@@ -3001,9 +3001,13 @@ own default), `0x29`, `0x49`, `0x69` — so bits 0 and 3 are universal and only
 handler DK2 files in `KeeperState.cpp`; bit 5 twice, in a routine taking a room
 and a creature. Neither is the drain (Q302).
 
-**What this does not fix.** Our drain is keyed on `IsImprisoned`, DK2's on the
-room the creature stands in — a wider rule, since it can catch a creature
-that is merely standing there. And the gate is **inert today**: nothing here
+**One caveat withdrawn the same day.** This ADR first called DK2's drain "wider"
+than ours for keying on the room rather than on imprisonment. It is not:
+`FUN_0047B7C0` is the **prison state's own** per-tick hook, so it runs for a
+creature already in that state and the room lookup only chooses whose ownership
+to compare. Nobody merely walking through drains — and nobody merely walking
+through is stopped either, the confinement being the prisoner's and not the
+prison's (owner). The gate is **inert today**: nothing here
 imprisons a creature the map placed, so no neutral prisoner can arise. Built
 anyway, because the rule it replaces said every prisoner that eats withers, and
 that is wrong however few creatures reach it.

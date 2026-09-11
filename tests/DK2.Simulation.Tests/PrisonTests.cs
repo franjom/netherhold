@@ -781,6 +781,38 @@ public class PrisonTests
         Assert.Equal(withers, PrisonRules.Withers(creature));
     }
 
+    /// <summary><b>The confinement is the prisoner's, not the prison's.</b> "Creatures that
+    /// are not imprisoned can walk over the rim tiles freely, no restrictions" (owner,
+    /// 2026-09-11) — so a prison is not an obstacle to anybody else, and the interior
+    /// rule ADR-0139 added must not leak out of <see cref="PrisonerWanderSystem"/>.</summary>
+    /// <remarks>Written because the natural next edit after ADR-0139 is to generalise the
+    /// rim into a barrier, and nothing else would fail if somebody did.</remarks>
+    [Fact]
+    public void APrisonIsNoObstacleToACreatureThatIsNotAPrisoner()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        BigPrison(db, world);
+        RoomInstance prison = RoomIndex.Build(world, db)
+            .Single(r => r.Definition.TypeId == RoomTypeId.Prison);
+
+        // Every tile of it, rim and fenced alike, is ground a walker may stand on.
+        var grid = new WorldPathGrid(db, world, db.CreatureById(GoblinId));
+        foreach (int tileIndex in prison.TileIndices)
+            Assert.True(grid.IsWalkable(tileIndex % world.Width, tileIndex / world.Width));
+
+        // And a free creature standing on one is nobody's prisoner and stays put
+        // where a captive would be shuffled about its cell.
+        CreatureState free = world.SpawnCreature(db, GoblinId, Keeper, CellA);
+        Assert.False(PrisonRules.IsImprisoned(free));
+
+        TilePos start = free.Tile;
+        GameSimulation sim = Simulation(db, world);
+        for (int i = 0; i < 5 * Second; i++) sim.Tick();
+
+        Assert.Equal(start, free.Tile);
+    }
+
     // ---- wandering the cell (Q172, ADR-0073) ------------------------------
 
     /// <summary>
