@@ -624,6 +624,14 @@ public sealed class TriggerExecutor
         return owned.Count(door => wanted == 0 || door.DoorId == wanted);
     }
 
+    /// <summary>The Boulder projectile's shot type, and the Boulder object that rolls
+    /// once one is fired. Condition 28 counts a keeper's Boulder traps <b>and</b> the
+    /// boulders already in flight, which is the one place a trap count reaches past the
+    /// traps themselves (`doors-and-traps.md`). Both ids are the shipped definitions'
+    /// own: object 74 is <c>Boulder</c> in <c>objects.md</c>.</summary>
+    private const byte BoulderShotTypeId = 26;
+    private const byte BoulderObjectId = 74;
+
     private static int TrapCount(
         IReadOnlyDictionary<string, long> parameters,
         WorldState world,
@@ -639,10 +647,11 @@ public sealed class TriggerExecutor
         int count = owned.Count(trap => wanted == 0 || trap.TrapId == wanted);
         if (wanted != 0
             && database.Traps.TryGetValue(wanted, out TrapDef? trapDefinition)
-            && trapDefinition.ShotTypeId == 26)
+            && trapDefinition.ShotTypeId == BoulderShotTypeId)
         {
             count += world.Objects.Count(
-                item => item.OwnerPlayerId == playerId && item.ObjectTypeId == 74);
+                item => item.OwnerPlayerId == playerId
+                    && item.ObjectTypeId == BoulderObjectId);
         }
         return count;
     }
