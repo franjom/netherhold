@@ -189,6 +189,36 @@ chain** as its per-tile callback: reinforce/fix → gold → objects → kind 11
 
 **(e) Otherwise** the imp enters its idle/wander state (12).
 
+### 4.1 Rescue is sixth to an idle imp and fourth to a dropped one
+
+Worth stating outright, because the Tier A position reads alarmingly on its own
+and the answer is two sections apart from the question.
+
+**An idle imp ranks carrying the unconscious 6th of 7**, and Tier A is
+unforgiving: the loop at `0x0046408B` walks the table strictly in order, passes
+`0x7FFFFFFF` as the radius every time, and stops at the first kind that takes.
+So an imp will dig a marked wall on the far side of the map before it will
+rescue a creature bleeding out beside it. **Re-verified 2026-09-11** at both
+ends — the table bytes read `0E 08 09 01 03 0D 0C FF` straight from
+`0x00698658`, and the loop was read again — because the conclusion is
+uncomfortable enough to be worth doubting twice.
+
+**A dropped imp ranks it 4th of 9.** The nine-step chain of §2.3 is the
+per-tile callback of the three-tile scan that runs when a keeper drops an imp,
+and there carrying a creature comes **before** reinforce, gold, objects and
+corpses — behind only dig/mine, claim and traps/doors.
+
+**So DK2 gives the player the lever, and the asymmetry is the design.** Rescue
+is not something the workforce does on its own initiative; it is something a
+keeper *orders* by dropping an imp on the casualty. A reimplementation that
+"fixed" the idle ranking would quietly remove a decision the original asks the
+player to make.
+
+**Neither reference project can check this.** OpenKeeper scores tasks as
+`distance + priority` and picks the best — a weighted model, not an ordered
+one — and its rescue task does not override the priority at all; Flame's map
+names no symbol at the table's address. This is binary-only, and CONFIRMED there.
+
 **What is *not* in Tier A is the finding.** Reinforcing and gold are never
 searched whole-map by kind. They are found by distance, and only after every
 whole-map kind has come up empty.
