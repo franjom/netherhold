@@ -256,6 +256,50 @@ references to `world+0x9F2` in both code blocks are reads** — `StoreAt`
 finds no store and a mask scan agrees. The next probe is that descriptor's own
 class, and whether object placement calls into it.
 
+### 5.5 The link is a cached bit, written when a thing is placed (2026-09-11)
+
+§5.4 left the question "who writes it". The bit-14 side answers, and it
+answers in a way that dissolves §5.3's puzzle.
+
+**A mask scan for a word-sized clear of bit 14 returns five sites in the whole
+executable, and four of them target `+0x8`** — the slab flag word. There is
+**no** matching set: no instruction anywhere ORs an immediate `0x4000` into a
+word. So the bit is cleared by bit-ops and set by a computed or whole-word
+write, which a constant scan cannot see. **Which way round the bit runs is
+therefore still UNKNOWN**, and nothing below depends on it.
+
+| function | what it does |
+|---|---|
+| `FUN_004DAE40` | asserts from **`DungeonHeart.cpp`** — its `__FILE__` is inside the function |
+| `FUN_004EF1F0` | takes a **thing**, reads its tile at `+0x2D`/`+0x2E`, **saves the old bit**, clears it, then probes two neighbouring slabs |
+| `FUN_004F09B0` | walks a **rectangle** of slabs through the world's slab-at-`(x,y)` virtual `+0x1D8`, clearing as it goes, then makes a border pass one tile out |
+| `FUN_004F0F90` | takes a **thing**, same `+0x2D`/`+0x2E` tile, clears the bit, then notifies through `world+0x8` |
+
+All four sit in the room-file block — `DungeonHeart.cpp` around `0x004DAxxx`,
+below `Workshop.cpp` at `0x004F4F9F` (`source-file-map.md`). `FUN_004EF1F0` has
+five callers, one of them `FUN_0050B5B0` at `0x0050BC95` — the level loader
+(`World.cpp`), which is where ADR-0102 read the trigger timer scaling.
+
+**Two of the four take a thing and write the slab under it.** That is the link
+Q209 has been asking for, and it is not a predicate: **an object's contribution
+to walkability is cached in the slab word when the object is placed or
+removed**, and the pathfinder reads only the cache. So §5.3's finding —
+that no consumer reads an object definition — was right and is no longer
+strange: the definition is consulted once, at the **write**, and never again at
+query time.
+
+**That puts §5's two refuted flag rules back in play**, evaluated at the write
+site rather than the read. `Obstacle` and `SolidObstacle` were tested against the
+wrong code.
+
+**Corroboration, free.** `FUN_004F0F90` reaches the slab a second way, off
+`world+0x9DA`: `+0xC` is the map width and `+0x14` the slab base — the same
+`world+0x9E6` and `world+0x9EE` §5.4 read elsewhere, from an independent path.
+
+**Next probe**, in order: the whole-word write to slab `+0x8`, which is where the
+set lives; then `FUN_004F0390` and `FUN_004F0840`, the two callers of the
+thing-clear, for which things qualify.
+
 ### 5.2 Which corrects what Q88 used to say
 
 The old note read: *"Fixing it means teaching the path grid about rooms, which
