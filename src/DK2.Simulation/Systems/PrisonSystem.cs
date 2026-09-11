@@ -128,7 +128,10 @@ public sealed class PrisonSystem : ISimulationSystem
     /// <remarks><c>PrisonModifyCreatureHealthPerSecond</c> = -3. A prisoner that runs
     /// out rises as a Skeleton for the keeper whose prison it was standing in: the
     /// manual's "any creatures that perish in Prison will rise as Skeletons under your
-    /// control".</remarks>
+    /// control".
+    /// <para><b>Every prisoner, which is probably too many</b> (Q306): the owner recalls
+    /// that one slapped to death leaves a corpse instead, and OpenKeeper reaches the same
+    /// rule from its own direction. No cap either (Q307).</para></remarks>
     private static void Wither(SimulationContext context)
     {
         WorldState world = context.World;

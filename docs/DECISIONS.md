@@ -2786,10 +2786,11 @@ gains no coverage until one is.
 
 **Context.** `CreatureDeathRules.HasDyingState` decided whether a creature that
 runs out of health lies there rescuable from one thing: the definition's
-`GenerateDeadBody`. That came from the owner (for the Imp) and from OpenKeeper,
-whose `processHealthDepleted` tests that flag and nothing else. **OpenKeeper is
-their guess, never evidence** (ADR-0003), and nobody had read DK2's own answer.
-Reading action type 1's arm led to `ModifyHealth` (`0x004B2CE0`), which has it.
+`GenerateDeadBody`. That came from the owner (for the Imp) and from a **partial
+quotation of OpenKeeper** — this repo recorded its `processHealthDepleted` as
+testing that flag "and nothing else", when in fact only its *first* branch does
+and three more follow (corrected below). Either way nobody had read DK2's own
+answer; action type 1's arm led to `ModifyHealth` (`0x004B2CE0`), which has it.
 
 **Decision.** Four gates, in DK2's order, between `0x004B2F2E` and
 `0x004B2F96`. Any one of them sends the creature straight to dead; the corpse
@@ -2804,29 +2805,28 @@ still follows, gate 1 having passed.
 **3 and 4 are exclusive, and that is reproduced deliberately.** The room is
 asked first, so a creature inside any *other* room is never asked about
 `DieInstantly`: a Lord Of The Land killed in a Treasury lies there rescuable and
-one killed in the corridor outside does not. That is a quirk, and quirks are the
-point.
+one killed in the corridor outside does not.
 
 **`DieInstantly` becomes state.** `CreatureState.DieInstantly` mirrors `+0x3EA`
 bit 11; trigger action type 1 sets it from its `Flag` byte's bit 2 (ADR-0137),
-which completes a piece that decision could only document. Its getter
-`0x0048E110` answers true for creature types 21, 28 and 29 — King Reginald,
-Stone Knight and Lord Of The Land — before it reads the bit, so those three
-carry it whatever a script asked. A rule, not a data lookup, so it is code.
+completing a piece that decision could only document. Its getter `0x0048E110`
+answers true for creature types 21, 28 and 29 — King Reginald, Stone Knight
+and Lord Of The Land — before it reads the bit, so those three carry it
+whatever a script asked. A rule, not a data lookup, so it is code.
+
+**What the reference projects say** — two of the three missing gates were in
+front of us, misquoted — is in `external-resources.md`, "Q303".
 
 **What this changes today.** King Reginald and Lord Of The Land were rescuable
-out of doors in this simulation and are not in DK2; Stone Knight was already
-caught by gate 1. The Prison gate is wider than our `PrisonRules.IsImprisoned`
-bypass — DK2 keys on the tile, so a creature killed in a prison it is not
-held in is covered too. Gate 2 answers from `PossessedCreatureId`, which nothing
-sets, so it is inert and asserted anyway — the same standing as condition
-type 73.
+out of doors here and are not in DK2; Stone Knight was already caught by gate 1.
+The Prison gate is wider than our `PrisonRules.IsImprisoned` bypass — DK2
+keys on the tile, so a creature killed in a prison it is not held in is covered
+too. Gate 2 answers from `PossessedCreatureId`, which nothing sets, so it is
+inert and asserted anyway — the standing of condition type 73.
 
-**Not taken.** DK2 stores the rescue clock *in* the health field, writing
+**Not taken.** DK2 keeps the rescue clock *in* the health field, writing
 `CreatureDyingStateDurationSeconds × 4` = 240 on collapse (`0x004B2FA0`); we
-keep `DyingTicks` beside a zeroed health. Same behaviour, different place, and
-only a reader of raw health could tell — changing it would move the pin for
-nothing.
+keep `DyingTicks` beside a zeroed health. Same behaviour, different place.
 
 **Consequences.** A new hashed and snapshotted bool: `HashVersion` 55 → 56,
 snapshot `FormatVersion` 55 → 56, pin `0xAEC253948973DF35`.

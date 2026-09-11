@@ -221,6 +221,37 @@ reading is the one implemented.
 
 ---
 
+## Q303, and what each project knew: a worked case from 2026-09-11
+
+Recorded because the failure was **ours misquoting a source**, not the source
+being wrong — the shape worth recognising again.
+
+`CreatureDeathRules.HasDyingState` decided the collapsed, rescuable window from
+`GenerateDeadBody` alone, on this repo's note that OpenKeeper's
+`processHealthDepleted` tests that flag "and nothing else". It does not. That is
+its **first** branch; three more follow it.
+
+| | OpenKeeper | Flame | DKII.EXE, read 2026-09-11 |
+|---|---|---|---|
+| no `GenerateDeadBody` | yes, first | — | gate 1, `0x004B2F2E` |
+| `Possessed` | **no** | — | gate 2, `0x004B2F37` |
+| Prison / Torture Chamber | yes, as **entity components** | — | gate 3, as the **room tile under the creature**, `0x004B2F81` |
+| `DieInstantly` | **no** | names the getter | gate 4, `0x004B2F8D` |
+
+So OpenKeeper had two of the three we lacked, differently keyed, and the reading
+that mattered most — the tile, not the entity — only DK2 has. Flame names
+`0x004B2CE0` as damage processing on the physical-thing base class and
+`0x0048E110` as the `DieInstantly` getter, which independently matches both
+readings; `0x0048B770` and `0x0048F1D0` are unnamed address stubs there, so this
+project's readings of those two stand alone. Flame's names are cited here **as
+Flame's** and are not adopted.
+
+**The lesson for this file's standing rule.** "Facts only, with provenance"
+already required saying where a fact came from. It did not require saying **how
+far into the source we read**, and a quotation that stops early is
+indistinguishable from a source that stops early. When a note records what
+another project does, record the whole routine or say which branch was read.
+
 ## The standing rule
 
 Every fact taken from any of these gets recorded the way a data extract already

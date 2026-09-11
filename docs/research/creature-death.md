@@ -98,14 +98,16 @@ why the bodyless set is such an odd mixture. It is not a mixture: a summon,
 three undead, a construct, a worker and Jack are exactly the things that would
 puff out rather than fall over.
 
-**One flag does not decide both halves, though.** OpenKeeper stops at that test;
-DK2 has three more. Corrected 2026-09-11 — Q303, ADR-0138.
+**One flag does not decide both halves, though**, and the quotation above is
+only OpenKeeper's *first* branch: it goes on to send tortured and imprisoned
+entities straight to death, keyed on entity state where DK2 keys on the room
+tile. Corrected 2026-09-11 — Q303, ADR-0138, `external-resources.md`.
 
 ### 2.1 Four gates on the collapsed window, in DK2's own order
 
 `ModifyHealth` (`0x004B2CE0`) runs these between `0x004B2F2E` and `0x004B2F96`,
 once health has reached zero and the creature is not already dying. **Any one
-sends it straight to dead** — the corpse still follows, gate 1 having passed.
+sends it straight to dead**; the corpse still follows, gate 1 having passed.
 
 | # | gate | at |
 |---|---|---|
@@ -116,8 +118,7 @@ sends it straight to dead** — the corpse still follows, gate 1 having passed.
 
 **3 and 4 are exclusive, and that is the quirk.** The room is asked first, so a
 creature inside any *other* room is never asked about `DieInstantly`: a Lord Of
-The Land killed in a Treasury lies there rescuable, and one killed in the
-corridor outside does not.
+The Land killed in a Treasury lies there rescuable, one killed outside does not.
 
 `DieInstantly` is `+0x3EA` bit 11. Its getter `0x0048E110` answers true for
 creature types 21, 28 and 29 — King Reginald, Stone Knight and Lord Of The
