@@ -138,11 +138,12 @@ The per-room contribution comes from a helper that is **special-cased by room
 type**, which matches the strings pass finding sixteen per-room source files
 rather than one parameterised room:
 
-| Room | Contributes |
-|---|---|
-| Most rooms | a 16-bit field on the room object, most plausibly its tile count |
-| Prison, Combat Pit | a count of something *inside* it — occupants, presumably |
-| Temple | 2 if it holds a particular object, otherwise 0 |
+| Room | Contributes | status |
+|---|---|---|
+| Most rooms | the room's **`TotalCapacity`**, `room+0x67` — which Q270 answers: auto-placed furniture **+ 1**, not geometry | **CONFIRMED** |
+| Temple (13) | **2** if it holds **object 66, the Temple Hand**, else 0 | **CONFIRMED** |
+| Prison (11), Combat Pit (16) | a count reached from the room's own tile, through the world's slab virtual | shape only |
+| Lair (2) | **flat 1.0**, or **3.0** when a byte at `+0x771` on the creature record is **22**; the room walk is skipped entirely | **CONFIRMED**, the 22 unexplained |
 
 ### Corroborated by the owner, 2026-09-11
 
@@ -183,11 +184,17 @@ built a 5x5 Temple, took a first Dark Angel, a second **1 m 44 s** later, and
 then nothing for three and a half minutes. Two, as written. A prediction met,
 not a curve fitted.
 
-**So the decrement-per-creature-held reading is right, and the Lair half is the
-wrong one.** It is not a flat 1.0: the table above already says most rooms
-contribute **a 16-bit field, most plausibly its tile count**, and a Lair of
-fifteen tiles carrying level 1's fifteen creatures is exactly that. The
-contradiction was between the two readings, never inside the mechanism.
+**The decrement-per-creature-held reading is right.** Both offsets it turns on
+are confirmed by our own files, not by this reading: `creature+0x36F` is the
+creature's type id and `object+0x12C` the object's, both from ADR-0115.
+
+**But the resolution first written here on 2026-09-11 was wrong and is
+withdrawn.** It said the Lair contributes its tile count, so lair tiles were
+the budget. They are not: `0x004DC153` tests the attraction's room id for
+**2**, and on a Lair it stores a **flat 1.0** (3.0 in one branch) and skips
+the room walk altogether. The original contradiction therefore stands — a
+Lair-attracted type would cap at one held creature, and level 1 gives
+fifteen. **It is not resolved.**
 
 **One caveat, recorded rather than waved away.** A portal's interval grows as
 `n² + EntranceGenerationSpeedSeconds` (ADR-0086), so a silence can also be a
@@ -203,10 +210,43 @@ Still unimplemented, and now worth implementing. What it means:
 > on the other. That would also match a well-known DK2 behaviour: a keeper needs
 > more lair space to attract more creatures.
 
-That mechanises the best-known piece of DK2 folklore — a keeper needs more
-lair space to attract more creatures, because **lair tiles are the attraction
-budget**. Q86's slowdown keeps two candidate mechanisms, one implemented and
-one not, but this one now has evidence the other lacks. See Q97.
+Q86's slowdown keeps two candidate mechanisms, one implemented and one not.
+See Q97.
+
+### 4.1 The builder, read whole — and why `IsAttracted` was not rewritten
+
+`Entrance.cpp`, `0x004DC0F0`-ish. The candidate table is at **`0x00746EC0`**,
+**9 bytes** an entry, indexed by creature type: `u8 typeId`, `i32 value`,
+`i32 copy`. `value` is **12-bit fixed point** (`0x1000` = 1.0).
+
+1. Zero both dwords.
+2. **Build up.** Lair takes the flat path above. Otherwise walk the keeper's
+   room list (`player+0x36`, entries through `0x006EE540`, next at `room+0x8`
+   — the list `player-object.md` already documents) and for every room whose
+   type byte `+0x18` matches the attraction's, add its contribution **shifted
+   left 12** into fixed point.
+3. **Draw down.** Walk the keeper's thing list (`player+0x6`, next at
+   `thing+0x10`) and subtract **1.0** for each whose `+0x36F` equals this
+   type, but only while the value is still positive.
+4. A type is a candidate only while `value > 0`. Past that the arm computes
+   against `0xA000` (10.0) and `0xC8000` (200.0), which is unread.
+
+**Not implemented, deliberately.** Two blockers, either sufficient:
+
+- **The contradiction above is unresolved.** Shipping this as read would cap a
+  Lair-attracted type at **one** creature and break the level 1 oracle match
+  that M5 already has. A faithfulness change that regresses a confirmed
+  comparison is not faithfulness.
+- **Its inputs are not modelled.** The general contribution is `TotalCapacity`,
+  which Q270 shows is a count of **auto-placed furniture**; we place none, and
+  the Temple's 2 needs the Hand to exist as an object. `RoomInstance` has
+  geometry, not furniture.
+
+**What unblocks it**, in order: the outer loop around `0x004DC102` and how
+attraction composes with the level's `CreaturePool` (if the pool supplies
+arrivals independently, a cap of one *attracted* goblin is compatible with
+fifteen held, and the contradiction dissolves); then auto-placed furniture,
+which Q270 leaves half-read.
 
 ---
 
