@@ -255,6 +255,16 @@ public sealed class PrisonSystem : ISimulationSystem
             break;
         }
 
+        // At the ceiling the room refuses, and DK2 sets DeadBodyOnDestroy instead
+        // (0x004B323A): the prisoner leaves a corpse, the same end a slain one gets.
+        if (raises != 0
+            && PrisonRules.SkeletonCount(world, keeper, raises)
+               >= PrisonRules.SkeletonCap(world, context.Database, keeper))
+        {
+            Slain(context, prisoner);
+            return;
+        }
+
         CreatureDef definition = context.Database.CreatureById(prisoner.CreatureTypeId);
         world.RemoveCreature(prisoner.Id);
 

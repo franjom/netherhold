@@ -813,6 +813,38 @@ public class PrisonTests
         Assert.Equal(start, free.Tile);
     }
 
+    /// <summary><b>The Skeleton ceiling is per keeper and over that keeper's prisons</b>,
+    /// and the tally counts Skeletons the keeper owns anywhere — verified from
+    /// `FUN_004E30F0`, which walks the owner's room list adding each prison's capacity and
+    /// then the owner's creature list counting the type (Q307, ADR-0143).</summary>
+    [Fact]
+    public void TheSkeletonCeilingSumsTheKeepersPrisonsAndCountsItsSkeletonsAnywhere()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        BigPrison(db, world);
+
+        // One 5x5 prison: nine fenced tiles plus one.
+        Assert.Equal(10, PrisonRules.SkeletonCap(world, db, Keeper));
+
+        // A second prison raises the ceiling for both, because the sum is the keeper's.
+        for (int y = 2; y <= 4; y++)
+            for (int x = 9; x <= 11; x++)
+                Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+        Assert.Equal(12, PrisonRules.SkeletonCap(world, db, Keeper));
+
+        // And a rival's prison is nobody else's ceiling.
+        Assert.Equal(0, PrisonRules.SkeletonCap(world, db, Rival));
+
+        // The tally is the keeper's own creatures of that type, wherever they stand:
+        // this one is outside every prison and still counts.
+        byte skeleton = db.Room(RoomTypeId.Prison).CreatedCreatureId;
+        Assert.Equal(0, PrisonRules.SkeletonCount(world, Keeper, skeleton));
+        world.SpawnCreature(db, skeleton, Keeper, Floor);
+        world.SpawnCreature(db, skeleton, Rival, Floor);
+        Assert.Equal(1, PrisonRules.SkeletonCount(world, Keeper, skeleton));
+    }
+
     // ---- wandering the cell (Q172, ADR-0073) ------------------------------
 
     /// <summary>

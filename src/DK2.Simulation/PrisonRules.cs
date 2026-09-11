@@ -128,6 +128,36 @@ public static class PrisonRules
         creature.OwnerPlayerId != PlayerIds.Neutral
         || creature.PrisonOwnerPlayerId != PlayerIds.Neutral;
 
+    /// <summary>How many Skeletons this keeper's prisons may have standing at once: the
+    /// <b>sum of every one of that keeper's prisons' capacities</b>. Per keeper and over
+    /// their prisons, not per prison and not per map (Q307, ADR-0143).</summary>
+    /// <remarks>DK2 walks the owner's own room list from <c>player+0x36</c>, keeps the
+    /// rooms whose <c>TypeId</c> is 11, and adds each one's <c>SafeCreatureCapacity</c>
+    /// (<c>0x004E3123</c>). Two prisons therefore raise more between them than either
+    /// could alone, and selling one lowers the ceiling for the other.</remarks>
+    public static int SkeletonCap(WorldState world, GameDatabase database, byte keeper)
+    {
+        int cap = 0;
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+            if (IsPrisonOf(room, keeper)) cap += Capacity(room);
+
+        return cap;
+    }
+
+    /// <summary>How many of that keeper's creatures are already of the Skeleton's type,
+    /// <b>anywhere on the map</b> — DK2 counts the owner's whole creature list
+    /// (<c>player+0x06</c>, <c>0x004E315C</c>), not the ones still in a cell. A Skeleton
+    /// that walked out of the prison it rose in still occupies the ceiling.</summary>
+    public static int SkeletonCount(WorldState world, byte keeper, byte skeletonTypeId)
+    {
+        int held = 0;
+        foreach (CreatureState creature in world.Creatures)
+            if (creature.OwnerPlayerId == keeper && creature.CreatureTypeId == skeletonTypeId)
+                held++;
+
+        return held;
+    }
+
     /// <summary>Whether this creature is somebody's prisoner.</summary>
     public static bool IsImprisoned(CreatureState creature) =>
         creature.PrisonOwnerPlayerId != NoPrison;

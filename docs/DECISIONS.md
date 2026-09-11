@@ -2987,12 +2987,11 @@ claiming the prison starts its clock. That is the campaign trick, and it needs n
 per-creature switch. `PrisonRules.Withers` is the third gate in our terms.
 
 **Two globals settle with it — Q266, open since 2026-09-08.** The drain
-exempts `word[0x006F2548]`; the exemption only makes sense for the player an
-unclaimed room belongs to, the corpus places `NEUTRAL_CREATURE` records on prison
+exempts `word[0x006F2548]`, an exemption that only makes sense for the player an
+unclaimed room belongs to; the corpus places `NEUTRAL_CREATURE` records on prison
 tiles, and the player frame returns early for the same id. **`0x006F2548` is the
-neutral player and `0x006F254C` the hero one** — the latter already ours from
-the party counter and the Good-player spawn path. Flame's map agrees with both;
-its names are cited, not adopted.
+neutral player and `0x006F254C` the hero one**, the latter already ours from the
+party counter. Flame's map agrees; cited, not adopted.
 
 **The flag hunt was not wasted, and its result is recorded rather than dropped.**
 Shipped data uses four values of the `Flags` byte — `0x09` (the constructor's
@@ -3011,5 +3010,50 @@ prison's (owner). The gate is **inert today**: nothing here
 imprisons a creature the map placed, so no neutral prisoner can arise. Built
 anyway, because the rule it replaces said every prisoner that eats withers, and
 that is wrong however few creatures reach it.
+
+**Consequences.** No state field and no stored quantity changed; the pin stands.
+
+## ADR-0143 — The Skeleton ceiling is per keeper, over that keeper's prisons
+
+**Date:** 2026-09-11 · **Status:** accepted · Q307
+
+**Context.** The owner: the ceiling is *"not global, not global per prisons on
+the map, it is per keeper, per keeper's prisons"*, and asked for it against the
+binary. The route in was `ModifyHealth`: when a health change is **exactly the
+prison drain** and the creature's definition leaves a body, it hands the room
+the creature is standing in a position and asks it to make a creature
+(`0x004B3231`). If that returns zero it sets `DeadBodyOnDestroy` instead
+(`0x004B323A`) — so the refusal and the corpse are the same branch.
+
+**What the room does** — `FUN_004E30F0`, and it is two walks:
+
+1. from the room's **owner**, walk that player's own room list (`player+0x36`),
+   keep the rooms whose `TypeId` is 11, and **sum their
+   `SafeCreatureCapacity`** (`0x004E3123`);
+2. from the same owner, walk that player's **creature list**
+   (`player+0x06`, `ThingsOwnedList[0]`) and count the ones whose type is the
+   room definition's `CreatedCreatureId` (`0x004E315C`).
+
+`count >= sum` refuses. **The owner's claim is confirmed exactly**, and the two
+walks answer more than was asked: the ceiling is the sum over the keeper's
+prisons, so a second prison raises it for both and selling one lowers it; and the
+tally counts the keeper's Skeletons **anywhere on the map**, so one that walked
+out of the cell it rose in still occupies the ceiling.
+
+**Decision.** Build both walks — `PrisonRules.SkeletonCap` and
+`SkeletonCount` — and have `PrisonSystem` route a refused prisoner into the
+body-on-the-rim path ADR-0140 already built, which is what DK2's
+`DeadBodyOnDestroy` amounts to here.
+
+**Independent corroboration of the offsets.** `player+0x36` as the room list and
+`player+0x06` as `ThingsOwnedList[0]` are DK2's own dumper names
+(`player-object.md`), read months before this, and `room+0x4B` as
+`SafeCreatureCapacity` likewise. Nothing here needed a new inference.
+
+**A route that did not work, recorded so nobody repeats it.** The tooltip string
+2586 carries the number, and its builder's argument descriptors use two different
+vtables — which looked like two data sources and is not: both are string
+**formatting-tag** classes, multi-byte and unicode. The display told us nothing
+about where the value comes from.
 
 **Consequences.** No state field and no stored quantity changed; the pin stands.
