@@ -1954,14 +1954,14 @@ same owner/type room instances from the map.
 
 **Decision.** Both conditions use the existing `PlayerCounter` and shared
 comparison path. Type 25 counts owned room instances; type 24 sums their
-`RoomInstance.TileCount`, with the original room `Size` unit explicitly only
-STRONGLY INFERRED to be slab count. A zero `RoomId` selects every room type.
-The derived room list is built lazily once per `TriggerRun`.
+`RoomInstance.TileCount`; live room captures later confirmed the original
+`Size` is the slab count (`room-list.md`). A zero `RoomId` selects every room
+type. The derived room list is built lazily once per `TriggerRun`.
 
-Type 68 remains blocked because `TotalCapacity` depends on room contents for
-which no equivalent is established (Q270). Type 25's `Comparison == 0`
-availability-table sub-mode also remains blocked: it is a different question,
-and none of the 85 shipped type-25 records uses it.
+Type 68 remains blocked pending evaluator wiring; ADR-0146 subsequently added
+the `TotalCapacity` equivalent. Type 25's `Comparison == 0` availability-table
+sub-mode also remains blocked: it is a different question, and none of the 85
+shipped type-25 records uses it.
 
 **Consequences.** No state was added, so hash and snapshot versions stay 51.
 The rebased `kwd oracle 200` measurements are recorded in the commit.
@@ -2437,10 +2437,11 @@ the tag half. Rooms are the larger half, and nothing recorded them.
 one row per change. `RoomLog` reads it back as `BuildRoomCommand`s and
 `SellRoomCommand`s (`room-list.md`).
 
-**A room does not know its tiles.** DK2's dumper prints 122 fields and names no
-slab list: only `TypeId`, `CentrePos`, `FirstSlab`, `LastSlab` and `Size`. So a
-replay can place a room exactly **only when the bounds enclose exactly `Size`
-slabs**. Anything else is counted and dropped.
+**The capture does not record the room's tile chain.** Later furniture research
+established that `FirstSlab` heads a chain through each tile's `+0x04/+0x05`
+link (`room-object.md`). The probe records only the room object's two list ends,
+so replay remains exact **only when their bounds enclose exactly `Size` slabs**.
+Anything else is counted and dropped.
 
 **We do not fill the bounding box.** An L-shaped room has the bounds of the
 rectangle that would contain it, so filling them puts tiles on the map DK2 never

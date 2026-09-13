@@ -1,9 +1,32 @@
 # The room object, named by DK2 (Q264)
 
-**Scope:** the field names DK2 prints for a room instance, transcribed from its debug
-dumper at `0x004E70B6`. Method, caveats and the other nine dumpers:
-`debug-dumpers.md`. **A name is not a mechanism** — it says a field exists and
-roughly what it holds, never its unit, writer or rule.
+**Scope:** canonical runtime layout for a room instance. Most names come from
+DK2's debug dumper at `0x004E70B6`; interpreted links below add binary traversal
+evidence. Method, caveats and the other nine dumpers: `debug-dumpers.md`.
+**A dumped name is not a mechanism** — it says a field exists and roughly what
+it holds, never its unit, writer or rule.
+
+## Established links and interpreted fields
+
+- `+0x06/+0x08` are the previous/next nodes in the owning player's room list;
+  `player+0x36` is its head. `room-list.md` owns the traversal evidence.
+- `+0x19` points to the loaded `RoomDef`. Furniture placement follows it to the
+  definition's `ObjectIds` (`auto-placed-furniture.md`).
+- `+0x2D/+0x2E` and `+0x2F/+0x30` are the head and tail coordinates of the
+  room's slab list. Each 16-byte tile record stores the next coordinates at
+  `+0x04/+0x05`; zero ends the list. Furniture and room-removal paths both walk
+  it. A room therefore does know its tiles, indirectly.
+- `+0x67` is `TotalCapacity`; `+0x6B` is the separate `UsedCapacity`.
+  `room-conditions.md` and `auto-placed-furniture.md` own their consumers.
+- `+0x92/+0x96` hold the two wall-furniture alignment phases. They start at
+  minus one and take the coordinate parity of the first eligible slab in list
+  order (`auto-placed-furniture.md`).
+- `+0xA7` is the slab count, confirmed against live rooms in `room-list.md`.
+
+## Dumper fields
+
+Duplicate offsets below are room-type-specific overlays printed by different
+dumper branches, not simultaneous meanings of one common field.
 
 | offset | size | name |
 |---|---|---|

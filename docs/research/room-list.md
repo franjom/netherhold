@@ -27,21 +27,16 @@ A **null pointer** ends it, not a zero index. `room+0x06` and `room+0x08` are
 the pair DK2's dumper prints as `PlayerRoomListNode (%d, %d)`, so `+0x06` is
 the other direction and `+0x08` is the one the walk follows.
 
-## What a room knows
+## What the recording reads
 
-From DK2's own dumper (`room-object.md`), the fields a recording needs:
+`room-object.md` is the canonical field map. `RoomLog` reads the room tag,
+type, owner, centre, slab-list ends and size from that layout.
 
-| | |
-|---|---|
-| `+0x04` | `Room TagId` — the room's identity, stable across a session |
-| `+0x18` | `TypeId` |
-| `+0x1D` | `PlayerId` |
-| `+0x27` | `CentrePos (x, y)`, two words |
-| `+0x2D`, `+0x2F` | `FirstSlab (x, y)`, `LastSlab (x, y)`, byte pairs |
-| `+0xA7` | `Size` — the slab count (STRONGLY INFERRED, `room-conditions.md`) |
-
-**A room does not know its tiles.** There is no slab list on the object, and
-the dumper — which prints 122 fields — names none.
+A room does know its tiles indirectly. `FirstSlab` is the head coordinate,
+`LastSlab` the tail, and each 16-byte tile record carries the next coordinate
+at `+0x04/+0x05`; zero ends the chain. Furniture and removal code walk it. The
+live recorder deliberately does not: it uses only the room object, so the two
+ends still cannot reconstruct an arbitrary L-shaped room.
 
 ## Why that is enough, and where it is not
 
@@ -64,8 +59,7 @@ Ordered, they span exactly the room: 3×5 for 15 slabs.
 
 Every settled room agrees. Level 1 starts with a Hero Gate 2×2 (`Size` 4), a
 Portal 3×3 (9) and a Dungeon Heart 5×5 (25), and each one's ordered bounds
-enclose exactly its slab count — which also confirms `Size` is the slab count,
-until now only STRONGLY INFERRED (`room-conditions.md`).
+enclose exactly its slab count — which also confirms `Size` is the slab count.
 
 ### But not while the room is being built
 

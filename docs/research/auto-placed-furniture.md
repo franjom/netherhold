@@ -6,8 +6,8 @@ room-specific decorative passes remain **UNKNOWN**.
 
 ## 1. The identifiers belong to the room definition
 
-The room instance stores a pointer at `room+0x19` to its loaded `RoomDef`. The
-bytes consulted by furniture placement are that definition's `ObjectIds`,
+Furniture placement follows the loaded `RoomDef` link documented in
+`room-object.md`. The bytes it consults are that definition's `ObjectIds`,
 loaded from the room record at file offset `+0x46E`. They are not six bytes of
 player state, correcting the former Q270 reading. `KwdRooms` already preserves
 all eight identifiers.
@@ -53,8 +53,8 @@ direction qualifies when:
 This excludes corners and needs a straight wall at least three tiles long.
 North/south edges keep every other x coordinate; east/west edges keep every
 other y coordinate. Each phase begins with the first eligible tile in the
-room's linked-list order. The wall type uses the same coordinate selector as
-the floor pass.
+room's slab-list order (`room-object.md`). The wall type uses the same
+coordinate selector as the floor pass.
 
 The separate byte-grid test is the cached solid-terrain classification, not an
 independent wall-geometry rule. `FUN_0044FC40` derives value 8 exactly when the

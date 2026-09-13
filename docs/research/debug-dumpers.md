@@ -1,4 +1,4 @@
-# DKII.EXE's own field names (Q264)
+# Runtime entity references and DKII.EXE's own field names (Q264)
 
 DK2 ships eleven debug dumpers: functions that write an object to a log, one
 `printf` per field, **with the field's name in the format string**. They are the
@@ -6,23 +6,33 @@ strongest evidence this project has short of running the game — names the
 original's authors wrote, not inferences from behaviour, editor labels or
 community documents.
 
-This is the index and the method. Each object's fields live in its own doc.
+This is the canonical index for established runtime layouts. Each linked entity
+page owns its offsets, names, object links and confidence; mechanic research
+owns what those fields *do* and links back rather than redefining the layout.
 
 ## The eleven
 
-| dumper | fields | object | doc |
-|---|---:|---|---|
-| `0x00490272` | 199 | creature | `creature-object.md` |
-| `0x004BCF2F` | 133 | player | `player-object.md` |
-| `0x004E70B6` | 122 | room instance | `room-object.md` |
-| `0x00503F61` | 122 | computer keeper | `computer-keeper-object.md` |
-| `0x0049D336` | 77 | placed object | `object-thing-object.md` |
-| `0x0050EAE9` | 74 | world | `world-object.md` |
-| `0x0047920D` | 64 | a creature's job and needs | `creature-job-object.md` |
-| `0x004D5C0F` | 30 | steering body | below |
-| `0x005070FE` | 29 | research list and level statistics | below |
-| `0x005083C5` | 21 | imp task pool | below |
-| `0x00526292` | 26 | *not an object* — a call-count profiler | — |
+| dumper | fields | object | layout home | related layout or traversal |
+|---|---:|---|---|---|
+| `0x00490272` | 199 | creature | [creature-object.md](creature-object.md) | [job and needs](creature-job-object.md) |
+| `0x004BCF2F` | 133 | player | [player-object.md](player-object.md) | [task pool](player-task-pool.md), [owned rooms](room-list.md) |
+| `0x004E70B6` | 122 | room instance | [room-object.md](room-object.md) | [player and slab lists](room-list.md) |
+| `0x00503F61` | 122 | computer keeper | [computer-keeper-object.md](computer-keeper-object.md) | — |
+| `0x0049D336` | 77 | placed object | [object-thing-object.md](object-thing-object.md) | — |
+| `0x0050EAE9` | 74 | world | [world-object.md](world-object.md) | [map and tiles](runtime-map.md), [trigger banks](trigger-state.md) |
+| `0x0047920D` | 64 | a creature's job and needs | [creature-job-object.md](creature-job-object.md) | embedded in creature state |
+| `0x004D5C0F` | 30 | steering body | [below](#the-steering-body--0x004d5c0f) | — |
+| `0x005070FE` | 29 | research list and level statistics | [below](#level-statistics--0x005070fe) | — |
+| `0x005083C5` | 21 | imp task pool | [below](#the-imp-task-pool--0x005083c5) | [task-pool traversal](player-task-pool.md) |
+| `0x00526292` | 26 | *not an object* — a call-count profiler | — | — |
+
+Runtime layouts without one of these dumpers live in
+[action-points.md](action-points.md#runtime-layout-and-load) and the related
+pages linked from the world row. Definition records loaded from KWD files are
+not runtime entities; their layouts stay with the relevant format research.
+
+When an offset gains a name or stronger interpretation, update its layout home.
+If evidence changes an old reading, replace it there; git retains the history.
 
 ## How to read another one
 

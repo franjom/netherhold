@@ -29,23 +29,21 @@ respectively. The availability mode is not implemented.
 
 ## Type 24: total room size
 
-The arm at `0x004C7F8E` sums room `+0xA7`, which DK2's dumper names `Size`.
-Zero `RoomId` walks every owned room; a non-zero id calls the filtered sum at
+The arm at `0x004C7F8E` sums the room's `Size` field (`room-object.md`). Zero
+`RoomId` walks every owned room; a non-zero id calls the filtered sum at
 `0x004C6EB0`. Unlike type 25, the result is not truncated to a byte.
 
-`Size` being the slab count is **STRONGLY INFERRED**, not confirmed by direct
-observation. The room-merge path adds source `Size` into the destination; its
-neighbour is `GameTickLastOnChangeSize`; and other handlers compare it with 9
-and 16, the slab counts of 3×3 and 4×4 rooms. `RoomInstance.TileCount` is the
-reimplementation's analogue, with the uncertainty pinned in its test name.
+`Size` is the slab count, **CONFIRMED** against live 2×2, 3×3, 5×5 and 3×5
+rooms (`room-list.md`). `RoomInstance.TileCount` is the reimplementation's
+analogue.
 
 ## Type 68: total capacity
 
-Type 68 sums room `+0x67`, named `TotalCapacity`. `FUN_004E3ED0` computes it by
-walking things in the room and counting those whose `+0x12C` byte matches one
-of six bytes in a per-room-type table at `room+0x431`; `0x004E4038` stores the
-result. It is a count of accepted objects, not a property of room shape.
+Type 68 sums the room's `TotalCapacity` field (`room-object.md`).
+`FUN_004E3ED0` computes it by walking things in the room and matching their
+type against the room definition's furniture identifiers; `0x004E4038` stores
+the result. It is a count of accepted objects, not a property of room shape.
 
-The simulation has no established equivalent for those categories. Its five
-shipped records on three levels remain blocked; Q270 records how to close the
-gap.
+`AutoFurnitureRules.TryTotalCapacity` implements the five established capacity
+arms (`auto-placed-furniture.md`). Trigger condition type 68 remains blocked
+until that rule is wired into the evaluator.
