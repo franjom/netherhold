@@ -169,9 +169,13 @@ public static class AutoFurnitureRules
     private static bool IsRoom(WorldState world, RoomInstance room, int x, int y) =>
         world.Contains(x, y) && room.TileIndices.Contains((y * world.Width) + x);
 
-    private static bool IsWall(WorldState world, GameDatabase database, int x, int y) =>
-        world.Contains(x, y)
-        && database.TerrainById(world.Tile(x, y).TerrainId).Flags.HasFlag(TerrainFlags.AllowRoomWalls);
+    private static bool IsWall(WorldState world, GameDatabase database, int x, int y)
+    {
+        if (!world.Contains(x, y)) return false;
+        TerrainFlags flags = database.TerrainById(world.Tile(x, y).TerrainId).Flags;
+        return flags.HasFlag(TerrainFlags.Solid)
+            && flags.HasFlag(TerrainFlags.AllowRoomWalls);
+    }
 
     private static bool UsesCheckerboard(RoomTypeId? type) =>
         type is RoomTypeId.GuardRoom or RoomTypeId.Workshop or RoomTypeId.Casino;

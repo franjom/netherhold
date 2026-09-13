@@ -56,10 +56,12 @@ other y coordinate. Each phase begins with the first eligible tile in the
 room's linked-list order. The wall type uses the same coordinate selector as
 the floor pass.
 
-The binary additionally requires a bit in its separate wall-geometry grid and
-then checks `TerrainFlags.AllowRoomWalls`. `TileState` has no equivalent of the
-first bit, so the implementation uses `AllowRoomWalls` as its proxy. The exact
-meaning and writers of that grid bit remain **UNKNOWN**. The simulation sorts
+The separate byte-grid test is the cached solid-terrain classification, not an
+independent wall-geometry rule. `FUN_0044FC40` derives value 8 exactly when the
+terrain has `TerrainFlags.Solid`, writes that value through `FUN_004D1930` or
+`FUN_004D1970`, and the wall predicate tests bit 8 before separately testing
+`TerrainFlags.AllowRoomWalls`. Wall-capable terrain therefore needs both flags.
+Every shipped terrain with `AllowRoomWalls` is also solid. The simulation sorts
 room tiles rather than preserving DK2's linked-list insertion order, so the
 every-other phase can differ when construction order differs.
 
@@ -94,8 +96,8 @@ The `AutoPlaced` bit is snapshot and hash state. Reconciliation removes only
 objects carrying that bit, so a keeper-, creature-, or level-placed object on
 the same tile is preserved.
 
-Still open: the wall-geometry bit, construction-order phase, presentation
-offsets, and special decorative passes such as Guard Posts and Workshop
-pillars. None of those decorative objects enters the five furniture capacity
-arms. Portal attraction remains on its existing boolean rule as the next
-separate implementation step.
+Still open: preserving the construction-order phase, presentation offsets, and
+special decorative passes such as Guard Posts and Workshop pillars. None of
+those decorative objects enters the five furniture capacity arms. Portal
+attraction remains on its existing boolean rule as the next separate
+implementation step.

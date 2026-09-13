@@ -120,15 +120,48 @@ public class AutoFurnitureTests
     [Fact]
     public void WallFurnitureNeedsAThreeTileStraightWallAndUsesTheFourthObjectId()
     {
+        GameDatabase database = WallDatabase();
+        WorldState world = World(database);
+        PaintRectangle(database, world, RoomTypeId.Casino, 4, 4, 5, 3);
+        for (int x = 4; x <= 8; x++)
+            world.Tile(x, 3).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+
+        new GameSimulation(database, world, 1, [new AutoFurnitureSystem()]).Tick();
+
+        ObjectState[] wallObjects = world.Objects.Where(o => o.ObjectTypeId == 68).ToArray();
+        Assert.Equal([Index(world, 5, 4), Index(world, 7, 4)],
+            wallObjects.Select(o => o.TileIndex));
+        Assert.All(wallObjects, o => Assert.True(o.AutoPlaced));
+    }
+
+    [Fact]
+    public void AllowRoomWallsWithoutSolidDoesNotSupportWallFurniture()
+    {
+        GameDatabase basis = Database();
+        TerrainFlags flags = basis.TerrainById(Dk2TerrainFixture.ReinforcedWall).Flags
+            | TerrainFlags.AllowRoomWalls;
+        GameDatabase database = WallDatabase(flags & ~TerrainFlags.Solid);
+        WorldState world = World(database);
+        PaintRectangle(database, world, RoomTypeId.Casino, 4, 4, 5, 3);
+        for (int x = 4; x <= 8; x++)
+            world.Tile(x, 3).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+
+        new GameSimulation(database, world, 1, [new AutoFurnitureSystem()]).Tick();
+
+        Assert.DoesNotContain(world.Objects, o => o.ObjectTypeId == 68);
+    }
+
+    private static GameDatabase WallDatabase(TerrainFlags? wallFlags = null)
+    {
         GameDatabase basis = Database();
         RoomDef casino = basis.Room(RoomTypeId.Casino) with { ObjectIds = [87, 59, 67, 68] };
         ObjectDef template = basis.ObjectById(Dk2TerrainFixture.BookCaseObjectId)!;
-        TerrainDef wall = basis.TerrainById(Dk2TerrainFixture.ReinforcedWall) with
+        TerrainDef originalWall = basis.TerrainById(Dk2TerrainFixture.ReinforcedWall);
+        TerrainDef wall = originalWall with
         {
-            Flags = basis.TerrainById(Dk2TerrainFixture.ReinforcedWall).Flags
-                | TerrainFlags.AllowRoomWalls,
+            Flags = wallFlags ?? originalWall.Flags | TerrainFlags.AllowRoomWalls,
         };
-        var database = new GameDatabase(
+        return new GameDatabase(
             basis.Terrain.Values.Select(t => t.TerrainId == wall.TerrainId ? wall : t),
             basis.Rooms.Values.Select(r => r.RoomId == casino.RoomId ? casino : r),
             basis.Creatures.Values,
@@ -141,17 +174,6 @@ public class AutoFurnitureTests
                 template with { Name = "Bar Table", ObjectId = 67 },
                 template with { Name = "Alcove Barrels", ObjectId = 68 },
             ]);
-        WorldState world = World(database);
-        PaintRectangle(database, world, RoomTypeId.Casino, 4, 4, 5, 3);
-        for (int x = 4; x <= 8; x++)
-            world.Tile(x, 3).TerrainId = Dk2TerrainFixture.ReinforcedWall;
-
-        new GameSimulation(database, world, 1, [new AutoFurnitureSystem()]).Tick();
-
-        ObjectState[] wallObjects = world.Objects.Where(o => o.ObjectTypeId == 68).ToArray();
-        Assert.Equal([Index(world, 5, 4), Index(world, 7, 4)],
-            wallObjects.Select(o => o.TileIndex));
-        Assert.All(wallObjects, o => Assert.True(o.AutoPlaced));
     }
 
     private static int Index(WorldState world, int x, int y) => (y * world.Width) + x;

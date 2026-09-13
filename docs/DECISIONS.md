@@ -3184,10 +3184,11 @@ would duplicate world-object state and need invalidation whenever room tiles
 change. Reconciliation preserves keeper-, creature-, and level-placed objects,
 even at an identical tile and type.
 
-**Boundary.** Wall placement uses `AllowRoomWalls` for DK2's additional,
-unmodelled wall-grid bit and sorted tiles for its linked-list phase. Object
-rotation, sub-tile offsets, and room-specific decorative passes remain open.
-The five known capacity arms are exposed; portal attraction is separate work.
+**Boundary.** Wall placement requires both `Solid` and `AllowRoomWalls`; the binary's
+extra grid test is its cached `Solid` classification. Sorted tiles stand in for
+its linked-list phase. Object rotation, sub-tile offsets, and room-specific
+decorative passes remain open. The five known capacity arms are exposed;
+portal attraction is separate work.
 
 **Consequences.** `HashVersion` and snapshot format become 58. Existing saves
 are intentionally rejected; the determinism pin changes with the added bit.
