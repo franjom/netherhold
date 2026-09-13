@@ -41,9 +41,8 @@ public class ObjectsInWorldTests
     public void AWorldStartsWithNoObjectsInIt()
     {
         // Nothing places objects from a level file yet: the PLAYERS and THINGS
-        // records are unparsed, and DK2 marks the objects that arrive that way
-        // AutoPlaced. So an empty list is the honest starting state, and a test
-        // says so rather than leaving it to be assumed.
+        // records are unparsed. So an empty list is the honest starting state,
+        // and a test says so rather than leaving it to be assumed.
         Assert.Empty(World(Db).Objects);
     }
 

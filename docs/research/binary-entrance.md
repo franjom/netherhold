@@ -140,7 +140,7 @@ rather than one parameterised room:
 
 | Room | Contributes | status |
 |---|---|---|
-| Most rooms | the room's **`TotalCapacity`**, `room+0x67` — which Q270 answers: auto-placed furniture **+ 1**, not geometry | **CONFIRMED** |
+| General furniture rooms | the room's **`TotalCapacity`**, `room+0x67`: matching auto furniture, with a conditional +1 for Library, Training, Workshop and Casino but not Torture | **CONFIRMED** |
 | Temple (13) | **2** if it holds **object 66, the Temple Hand**, else 0 | **CONFIRMED** |
 | Prison (11), Combat Pit (16) | a count reached from the room's own tile, through the world's slab virtual | shape only |
 | Lair (2) | **flat 1.0**, or **3.0** when a byte at `+0x771` on the creature record is **22**; the room walk is skipped entirely | **CONFIRMED**, the 22 unexplained |
@@ -257,23 +257,10 @@ values are the variables' and only the formula is read here. **STRONGLY
 INFERRED**, and it is a separate gate from attraction: the fifteen that
 bounds level 1 is this one, not the budget.
 
-**Not implemented, deliberately.** Two blockers, either sufficient:
-
-- ~~The contradiction blocks it.~~ **Gone** — resolved above, and the
-  resolution shows `PortalRules.IsAttracted` is **exactly right for the Lair**,
-  which is why nothing has gone wrong yet: Goblins are the Lair case.
-- **Its inputs are not modelled, and this one stands.** The general
-  contribution is `TotalCapacity`, which Q270 shows counts **auto-placed
-  furniture**; we place none, and the Temple's 2 needs the Hand to exist as an
-  object. `RoomInstance` has geometry, not furniture. Computing it today would
-  yield **0** for every room and attract nobody — strictly worse than the
-  boolean we ship.
-
-**What unblocks it is now a single dependency: auto-placed furniture.** Give a
-`RoomInstance` the objects DK2 would place in it and `TotalCapacity` follows
-from Q270, the Temple's Hand test becomes answerable, and this section becomes
-an ADR. Q270's own unread half — the six-byte kind list's writer, and
-whether every arm uses `+ 1` — is the same work.
+**Not implemented yet.** Its furniture dependency is now present: generic
+floor and wall passes, the Temple Hand, and the five relevant `TotalCapacity`
+arms are modelled (`auto-placed-furniture.md`). Replacing the boolean with this
+budget is now a separate build step rather than blocked research.
 
 ---
 

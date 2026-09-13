@@ -80,7 +80,7 @@ public class ObjectCarryingTests
 
         Assert.Equal(RoomTypeId.Library, ObjectCarryRules.HomeRoomFor(db, BookCase));
         Assert.Equal(RoomTypeId.Library,
-            ObjectCarryRules.HomeRoomFor(db, Dk2TerrainFixture.ResearchBookObjectId));
+            ObjectCarryRules.HomeRoomFor(db, Dk2TerrainFixture.LibraryBookObjectId));
 
         // A bed belongs to a creature, not to a room, and no room lists it.
         Assert.Null(ObjectCarryRules.HomeRoomFor(db, Dk2TerrainFixture.GoblinBedObjectId));

@@ -63,6 +63,11 @@ public sealed class ObjectState
     /// <b>Nothing may find, eat or decay a held object</b>, and every search that could see it tests this first, because <see cref="TileIndex"/> stays where the object was lifted from. Which keeper holds it is in <see cref="PlayerState.Hand"/>.</summary>
     public bool InHand;
 
+    /// <summary>Placed and owned by a room layout, rather than by a level record,
+    /// creature or keeper. DK2 keeps this as a dword on the object instance and a
+    /// separate linked list on the room (Q270).</summary>
+    public bool AutoPlaced;
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
@@ -74,5 +79,6 @@ public sealed class ObjectState
         hash.Add(CarriedByCreatureId);
         hash.Add(TimerTicks);
         hash.Add(InHand);
+        hash.Add(AutoPlaced);
     }
 }

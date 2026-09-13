@@ -165,12 +165,12 @@ internal static class Dk2TerrainFixture
               createdCreatureId: SkeletonCreatureId),
 
             // The library: 600 to build, 3x3, and the shipped ObjectIds list
-            // [64, 58] -- a book case and a research book. That list is the
+            // [64, 58] -- a book case and a library book. That list is the
             // whole reason this room is in the fixture: ObjectCarryRules reads
             // it backwards to find out where a loose object belongs (ADR-0065,
             // Q120).
             R(RoomTypeId.Library, "Library", 600, LibraryTerrain, 0x11ACu, 3, 3,
-              objectIds: [BookCaseObjectId, ResearchBookObjectId]),
+              objectIds: [BookCaseObjectId, LibraryBookObjectId]),
 
             // Costs, sizes and flags from the shipped table. The Temple's 5x5
             // DoubleQuad is transcribed rather than rounded off, because it is
@@ -195,7 +195,10 @@ internal static class Dk2TerrainFixture
     public const byte BookCaseObjectId = 64;
 
     /// <summary>Object id 58, the Library's other object.</summary>
-    public const byte ResearchBookObjectId = 58;
+    public const byte LibraryBookObjectId = 58;
+
+    /// <summary>Object id 66, placed at the centre of a sufficiently large Temple.</summary>
+    public const byte TempleHandObjectId = AutoFurnitureRules.TempleHandObjectId;
 
     /// <summary>The object definitions a registered system reads.</summary>
     /// <remarks>
@@ -228,6 +231,40 @@ internal static class Dk2TerrainFixture
             RoomCapacity = 0,
             StartState = 0,
             PickUpPriority = 0,
+            Width = new Fp32(4096),
+            Height = new Fp32(4096),
+            Mass = new Fp32(4096),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        },
+        new ObjectDef
+        {
+            Name = "Library Book",
+            ObjectId = LibraryBookObjectId,
+            Flags = (ObjectFlags)0u,
+            Hp = 1,
+            ManaValue = 0,
+            RoomCapacity = 0,
+            StartState = 0,
+            PickUpPriority = 0,
+            Width = new Fp32(4096),
+            Height = new Fp32(4096),
+            Mass = new Fp32(4096),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        },
+        new ObjectDef
+        {
+            Name = "Temple Hand",
+            ObjectId = TempleHandObjectId,
+            Flags = ObjectFlags.Obstacle | ObjectFlags.BoulderCanRollThrough,
+            Hp = 1,
+            ManaValue = 0,
+            RoomCapacity = 0,
+            StartState = 0,
+            PickUpPriority = 176,
             Width = new Fp32(4096),
             Height = new Fp32(4096),
             Mass = new Fp32(4096),

@@ -32,7 +32,11 @@ beside it.
 
 ## Versions
 
-**57** — `0xE9C81166EA405084` (current). Doors and traps gained derived, saved
+**58** — `0xD5508579D84F193F` (current). Objects gained the saved `AutoPlaced`
+ownership bit used by room furniture reconciliation (ADR-0146). The fixture has
+no objects, so this is composition only.
+
+**57** — `0xE9C81166EA405084`. Doors and traps gained derived, saved
 `UnderConstruction` state for player trigger conditions 27 and 28 (ADR-0141). The
 fixture contains neither kind, so this is composition only. **The literal was
 computed on the merge**: 56 and 57 were developed in parallel from the same

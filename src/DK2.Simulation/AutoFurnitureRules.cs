@@ -1,0 +1,234 @@
+﻿// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.Core;
+using DK2.Data.Model;
+
+namespace DK2.Simulation;
+
+/// <summary>DK2's room furniture slots and coordinate-stable object choice.</summary>
+/// <remarks>Room-specific decorative structures are separate passes and are not
+/// represented here. The Temple Hand is included because it is the Temple's
+/// attraction capacity, not decoration (Q89, Q270).</remarks>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/auto-placed-furniture.md")]
+public static class AutoFurnitureRules
+{
+    public const byte TempleHandObjectId = 66;
+
+    /// <summary>Builds the ordered furniture specification for one room.</summary>
+    public static void DesiredFurniture(
+        WorldState world, GameDatabase database, RoomInstance room,
+        List<(int TileIndex, byte ObjectTypeId)> into)
+    {
+        if (into is null) throw new ArgumentNullException(nameof(into));
+        into.Clear();
+
+        if (room.Definition.TypeId == RoomTypeId.Hatchery)
+        {
+            var coops = new List<int>();
+            HatcheryRules.CoopTiles(world, room, coops);
+            foreach (int tile in coops) into.Add((tile, HatcheryRules.CoopObjectId));
+            return;
+        }
+
+        if (room.Definition.TypeId == RoomTypeId.Temple)
+        {
+            int handTile = TempleHandTile(world, room);
+            if (handTile >= 0) into.Add((handTile, TempleHandObjectId));
+            return;
+        }
+
+        int choiceCount = FloorChoiceCount(room.Definition);
+        if (room.Definition.Flags.HasFlag(RoomFlags.SpecialTiles) && choiceCount != 0)
+        {
+            var slots = new List<int>();
+            foreach (int tile in room.TileIndices)
+                if (IsSurroundedByRoom(world, room, tile)) slots.Add(tile);
+
+            if (UsesCheckerboard(room.Definition.TypeId) && slots.Count != 0)
+            {
+                int anchor = slots[0];
+                foreach (int tile in slots)
+                    if ((tile % world.Width) < (anchor % world.Width)) anchor = tile;
+                int phase = ((anchor % world.Width) + (anchor / world.Width)) & 1;
+                slots.RemoveAll(tile =>
+                    (((tile % world.Width) + (tile / world.Width)) & 1) != phase);
+            }
+
+            foreach (int tile in slots)
+            {
+                int x = tile % world.Width;
+                int y = tile / world.Width;
+                int choice = CoordinateChoice(x, y, choiceCount);
+                into.Add((tile, room.Definition.ObjectIds[choice]));
+            }
+        }
+
+        AddWallFurniture(world, database, room, into);
+    }
+
+    /// <summary>The general capacity arms established by Q270.</summary>
+    public static bool TryTotalCapacity(WorldState world, RoomInstance room, out int capacity)
+    {
+        bool plusOne;
+        switch (room.Definition.TypeId)
+        {
+            case RoomTypeId.Library:
+            case RoomTypeId.TrainingRoom:
+            case RoomTypeId.Workshop:
+            case RoomTypeId.Casino:
+                plusOne = true;
+                break;
+            case RoomTypeId.TortureChamber:
+                plusOne = false;
+                break;
+            default:
+                capacity = 0;
+                return false;
+        }
+
+        int count = 0;
+        foreach (ObjectState thing in world.Objects)
+        {
+            if (!thing.AutoPlaced || thing.InHand || thing.OwnerPlayerId != room.OwnerPlayerId)
+                continue;
+            if (!room.TileIndices.Contains(thing.TileIndex)) continue;
+            if (!room.Definition.ObjectIds.Take(6).Contains(thing.ObjectTypeId)) continue;
+            count++;
+        }
+
+        capacity = count == 0 ? 0 : count + (plusOne ? 1 : 0);
+        return true;
+    }
+
+    private static int FloorChoiceCount(RoomDef room)
+    {
+        int count = 0;
+        while (count < 4 && count < room.ObjectIds.Count && room.ObjectIds[count] != 0)
+            count++;
+
+        if (count == 4 && room.Flags.HasFlag(RoomFlags.SpecialWalls)) count = 3;
+        return count;
+    }
+
+    private static void AddWallFurniture(
+        WorldState world, GameDatabase database, RoomInstance room,
+        List<(int TileIndex, byte ObjectTypeId)> into)
+    {
+        if (!room.Definition.Flags.HasFlag(RoomFlags.SpecialWalls)) return;
+
+        int choiceCount = 0;
+        while (choiceCount < 3 && choiceCount + 3 < room.Definition.ObjectIds.Count
+               && room.Definition.ObjectIds[choiceCount + 3] != 0)
+            choiceCount++;
+        if (choiceCount == 0) return;
+
+        int? horizontalPhase = null;
+        int? verticalPhase = null;
+        foreach (int tile in room.TileIndices)
+        {
+            int x = tile % world.Width;
+            int y = tile / world.Width;
+            for (int direction = 0; direction < 4; direction++)
+            {
+                if (!HasStraightWall(world, database, room, x, y, direction)) continue;
+
+                int coordinate = direction % 2 == 0 ? x : y;
+                ref int? phase = ref (direction % 2 == 0
+                    ? ref horizontalPhase
+                    : ref verticalPhase);
+                phase ??= coordinate & 1;
+                if ((coordinate & 1) != phase) continue;
+
+                int choice = CoordinateChoice(x, y, choiceCount);
+                into.Add((tile, room.Definition.ObjectIds[choice + 3]));
+                break;
+            }
+        }
+    }
+
+    private static bool HasStraightWall(
+        WorldState world, GameDatabase database, RoomInstance room,
+        int x, int y, int direction)
+    {
+        ReadOnlySpan<int> dx = [0, 1, 0, -1];
+        ReadOnlySpan<int> dy = [-1, 0, 1, 0];
+        int sideX = dx[direction];
+        int sideY = dy[direction];
+        int alongX = -sideY;
+        int alongY = sideX;
+
+        return IsWall(world, database, x + sideX, y + sideY)
+            && IsRoom(world, room, x + alongX, y + alongY)
+            && IsRoom(world, room, x - alongX, y - alongY)
+            && IsWall(world, database, x + sideX + alongX, y + sideY + alongY)
+            && IsWall(world, database, x + sideX - alongX, y + sideY - alongY);
+    }
+
+    private static bool IsRoom(WorldState world, RoomInstance room, int x, int y) =>
+        world.Contains(x, y) && room.TileIndices.Contains((y * world.Width) + x);
+
+    private static bool IsWall(WorldState world, GameDatabase database, int x, int y) =>
+        world.Contains(x, y)
+        && database.TerrainById(world.Tile(x, y).TerrainId).Flags.HasFlag(TerrainFlags.AllowRoomWalls);
+
+    private static bool UsesCheckerboard(RoomTypeId? type) =>
+        type is RoomTypeId.GuardRoom or RoomTypeId.Workshop or RoomTypeId.Casino;
+
+    private static int TempleHandTile(WorldState world, RoomInstance room)
+    {
+        foreach (int tile in room.TileIndices)
+        {
+            if (!IsSurroundedByRoom(world, room, tile)) continue;
+
+            int x = tile % world.Width;
+            int y = tile / world.Width;
+            bool surroundedBySlots = true;
+            for (int dy = -1; dy <= 1 && surroundedBySlots; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                if (dx == 0 && dy == 0) continue;
+                int neighbour = ((y + dy) * world.Width) + x + dx;
+                if (!IsSurroundedByRoom(world, room, neighbour))
+                {
+                    surroundedBySlots = false;
+                    break;
+                }
+            }
+
+            if (surroundedBySlots) return tile;
+        }
+        return -1;
+    }
+
+    private static bool IsSurroundedByRoom(WorldState world, RoomInstance room, int tile)
+    {
+        int x = tile % world.Width;
+        int y = tile / world.Width;
+        if (x <= 0 || y <= 0 || x >= world.Width - 1 || y >= world.Height - 1) return false;
+
+        for (int dy = -1; dy <= 1; dy++)
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            if (dx == 0 && dy == 0) continue;
+            if (!room.TileIndices.Contains(((y + dy) * world.Width) + x + dx)) return false;
+        }
+        return true;
+    }
+
+    private static int CoordinateChoice(int x, int y, int count)
+    {
+        uint sx = unchecked((uint)x);
+        uint sy = unchecked((uint)y);
+        uint seed = Step(ref sy, 0x2286) ^ Step(ref sx, 0x16F2);
+        return (int)Step(ref seed, unchecked((uint)count));
+    }
+
+    private static uint Step(ref uint seed, uint modulus)
+    {
+        seed = unchecked(seed * 0x0019660D + 0x3C6EF35F);
+        uint rotated = (seed >> 13) | (seed << 19);
+        return rotated % modulus;
+    }
+}

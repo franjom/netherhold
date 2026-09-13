@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 57;
+    private const int FormatVersion = 58;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -181,6 +181,7 @@ public static class WorldSnapshot
             w.Write(o.CarriedByCreatureId);
             w.Write(o.TimerTicks);
             w.Write(o.InHand);
+            w.Write(o.AutoPlaced);
         }
 
         w.Write(world.ActionPoints.Count);
@@ -455,6 +456,7 @@ public static class WorldSnapshot
                 CarriedByCreatureId = r.ReadInt32(),
                 TimerTicks = r.ReadInt32(),
                 InHand = r.ReadBoolean(),
+                AutoPlaced = r.ReadBoolean(),
             });
         }
 

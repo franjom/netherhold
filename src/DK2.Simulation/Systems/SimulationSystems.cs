@@ -21,6 +21,9 @@ public static class SimulationSystems
         new TileTagSystem(),
         new RoomSellSystem(),
         new RoomBuildSystem(),
+        // Room-owned objects are rebuilt after the room shape changes and before
+        // movement or attraction can observe it (Q270).
+        new AutoFurnitureSystem(),
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
         new CreatureMovementSystem(),
         new FogOfWarSystem(),

@@ -3162,3 +3162,32 @@ mask, search the repo for the offset before searching the binary.**
 
 **Consequences.** No state field and no stored quantity changed; the pin stands.
 Defeat loses its candidate flag and needs a new one (Q93, Q207).
+
+## ADR-0146 — Auto furniture is reconciled from room shape
+
+**Date:** 2026-09-11 · **Status:** accepted · Q89, Q270
+
+**Context.** DK2 attraction needs room `TotalCapacity`, but that value counts
+room-owned furniture rather than geometry. The simulation had no way to
+distinguish such furniture from objects placed by creatures, the level, or a
+keeper. Binary evidence for the implemented placement subset is recorded once
+in `auto-placed-furniture.md`.
+
+**Decision.** Add a hashed and snapshotted `ObjectState.AutoPlaced` bit. After
+room construction each tick, derive the desired generic floor and wall furniture,
+Temple Hand, and Hatchery coops from current room shapes, then reconcile only
+objects bearing that bit. Object type choice uses DK2's coordinate-stable
+selector, not the simulation RNG.
+
+Room instances remain derived views. Storing a second furniture list on them
+would duplicate world-object state and need invalidation whenever room tiles
+change. Reconciliation preserves keeper-, creature-, and level-placed objects,
+even at an identical tile and type.
+
+**Boundary.** Wall placement uses `AllowRoomWalls` for DK2's additional,
+unmodelled wall-grid bit and sorted tiles for its linked-list phase. Object
+rotation, sub-tile offsets, and room-specific decorative passes remain open.
+The five known capacity arms are exposed; portal attraction is separate work.
+
+**Consequences.** `HashVersion` and snapshot format become 58. Existing saves
+are intentionally rejected; the determinism pin changes with the added bit.

@@ -191,10 +191,9 @@ public static class HatcheryRules
     /// <summary>Brings this room's coops up to what its size entitles it to, and says how
     /// many it added.
     /// <para>Idempotent, so it is safe to call whenever the room changes: a coop
-    /// already on a wanted tile is left alone. A coop on a tile the rule no
-    /// longer wants — the room was dug into a different shape — is <b>not</b>
-    /// removed: UNKNOWN whether DK2 tidies those up, and removing one is the
-    /// more destructive guess.</para></summary>
+    /// already on a wanted tile is left alone. The owning
+    /// <see cref="Systems.AutoFurnitureSystem"/> reconciles obsolete coops when
+    /// a room changes shape.</para></summary>
     public static int PlaceCoops(
         WorldState world, GameDatabase database, RoomInstance hatchery)
     {
@@ -205,7 +204,7 @@ public static class HatcheryRules
         foreach (int index in wanted)
         {
             if (HasCoop(world, index)) continue;
-            world.SpawnObject(database, CoopObjectId, hatchery.OwnerPlayerId, index);
+            world.SpawnObject(database, CoopObjectId, hatchery.OwnerPlayerId, index).AutoPlaced = true;
             added++;
         }
         return added;

@@ -273,7 +273,7 @@ a base class this read did not need.
 | 0x124 | `RoomNode` (x, y) | the object knows its room's node |
 | 0x12C | `TypeId` | **the tag** — the definition id |
 | ~0x12D | pointer to the loaded definition | its flags word is at +0xF4 |
-| 0x133 | `AutoPlaced` | placed by the level rather than by play |
+| 0x133 | `AutoPlaced` | placed and owned by a room's layout rather than by play |
 | 0x138 | `RoomId` | the room it belongs to |
 | 0x13A | `StateId`, `StateAge` | its own small state machine, and how long in it |
 | 0x142 | `WhoGetsThisFromADrop` | who owns it if a keeper drops it |

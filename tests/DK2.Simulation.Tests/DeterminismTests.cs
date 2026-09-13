@@ -102,11 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 57: door and trap construction state became hashed (ADR-0141).
-        // Neither side's literal survived this merge -- 56 and 57 were developed in
-        // parallel, so this one is computed on the merged tree. Earlier pins and their
-        // reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xE9C81166EA405084UL, sim.StateHash());
+        // HashVersion 58: objects gained AutoPlaced ownership (ADR-0146).
+        // Earlier pins and their reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0xD5508579D84F193FUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
