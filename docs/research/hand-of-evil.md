@@ -3,7 +3,7 @@
 Milestone M8. The keeper's only direct contact with a creature.
 
 **Source(s).** `DKII.EXE` v1.70, read 2026-09-05 and 2026-09-06, with the owner's
-observations of the same days as the behavioural anchor. Addresses are **facts
+observations through 2026-09-13 as the behavioural anchor. Addresses are **facts
 about the binary in our own words**; no decompiler output enters this repository
 (ADR-0046).
 
@@ -25,7 +25,7 @@ about the binary in our own words**; no decompiler output enters this repository
 | **Dropping is last-in-first-out** | **CONFIRMED** (owner, 2026-09-06), on top of the drop handler reading back the slot it is about to free. It holds **across kinds**: DK2 keeps one array of things, so a creature and a chicken share the slots |
 | **The hand holds objects too** — a chicken, a pile of gold, a special | **CONFIRMED, BUILT** (owner, 2026-09-06; ADR-0075): *"I can pick up a chicken and drop it in the prison, or anywhere in the dungeon, on my owned tiles"*, with a screenshot of four held at once. `CanBePickedUp` is 26 of the 145 OBJECTS records and excludes spell books, crates and beds |
 | **An object is dropped on the keeper's own ground** | **CONFIRMED** (owner, same day). Where the rule lives is **UNREAD**: the drop handler has no ownership test, so the gate is in the input layer. It is **not** `CanBeDroppedOnAnyLand`, which is set on one record, Call To Arms, and read by nothing (Q196) |
-| **A creature is dropped on the keeper's own ground — except a worker, which may also go down on unclaimed floor** | **CONFIRMED, BUILT** (owner, 2026-09-06; `HandRules.CanDropCreatureOn`, ADR-0077): *"imps are the only creature that can be dropped onto dirt path tiles, those are tiles that are unclaimed by any keeper"*. The edges of "unclaimed" are still UNKNOWN and are refused rather than guessed (Q198) |
+| **A creature is dropped on the keeper's own ground — except a worker, which may also go down on unclaimed floor** | **CONFIRMED, BUILT** (owner, 2026-09-06; `HandRules.CanDropCreatureOn`, ADR-0077). A prisoner lifted from the keeper's prison may likewise be placed on owned tiles, a torture rack or in a Combat Pit (owner, 2026-09-13); the latter room effects are not built. The edges of “unclaimed” remain UNKNOWN (Q198) |
 | A slap raises Efficiency by ten points, and does not stack | **CONFIRMED** (owner, 2026-09-05) — *"it raises from 273 to 310 after the first slap and stays there no matter how many times i slap that imp"* |
 | **Being dropped next to work the keeper marked** raises it by ten points too, and dropping on empty ground is worth nothing | **CONFIRMED** (owner, 2026-09-05) — both halves watched |
 | **There is no cooldown on a slap** | **STRONGLY INFERRED** — the `LastSlapTick` window guards the knock-back impulse and nothing else. See §4 |
@@ -133,7 +133,8 @@ only while it is disguised, which cannot be the whole rule. The real gate is mos
 likely the virtual call the handler makes before any of this (`vtable + 0x28`);
 recorded as unread rather than guessed at. What this project does instead is the
 owner's description: **own creatures, plus prisoners in the keeper's own prison**,
-the one exception there is (`prison.md` §2).
+the one exception there is (`prison.md` §2). Once lifted, that prisoner may be
+dropped on owned tiles, a torture rack or in a Combat Pit; here a non-prison drop frees it.
 
 ---
 
@@ -354,14 +355,13 @@ duration in ticks and not a live mechanism disabled by its value (Q160, binary,
 
 ## 8. What is built beyond a creature, and what is not
 
-**Built.** Objects are held and dropped (`PickUpObjectCommand`,
-`HandRules.CanPickUpObject`/`CanDropObjectOn`, ADR-0075), in one array with
-creatures so LIFO holds across kinds. A creature is refused any tile it could not
-stand on, then any tile `CanDropCreatureOn` refuses. Two destinations are special
-and both are the owner's: a prisoner dropped back onto one of the dropper's own
-prison tiles is imprisoned again and dropped anywhere else is freed (ADR-0064);
-a creature dropped into a portal's hole leaves the world keeping its gold, the hole
-being the one unwalkable tile a drop is allowed onto (Q88/ADR-0084, Q137).
+**Built.** Objects and creatures share one LIFO array. A prisoner returned to the
+dropper's prison is re-imprisoned; elsewhere it is freed. Portal disposal exists.
+
+**Confirmed but wrong here:** ordinary and converted goodly creatures use the
+portal; Imps are refused and discarded through the Heart (owner, 2026-09-13).
+Ours accepts an Imp at a portal and refuses the Heart. Captive portal use remains
+refused, correctly (`structure-blocks.md` §4.2; ADR-0084).
 
 **Not built:**
 

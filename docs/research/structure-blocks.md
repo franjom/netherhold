@@ -2,6 +2,7 @@
 
 Source(s):
 - The owner, 2026-09-07, answering Q88
+- The owner, 2026-09-13, distinguishing portal disposal from Imp disposal
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-07
 - The reference install's `Objects.kwd`, via `DK2.Data`
 
@@ -22,8 +23,8 @@ Asked whether a portal's centre tile is walkable (owner, 2026-09-07):
 
 1. A portal's centre is not walkable.
 2. A dungeon heart's centre is not walkable either — which nobody had asked.
-3. **Dropping a creature into a portal's centre removes it from the dungeon** —
-   a keeper power this project did not have at all.
+3. **Dropping a non-Imp creature into a portal's centre removes it from the
+   dungeon.** Imps are refused there and discarded through the Heart instead.
 
 None of the three was reachable from the shipped data.
 
@@ -75,29 +76,23 @@ so the behaviour is asserted by a test rather than left to that coincidence.
 `HandSystem` refuses to drop a creature on an unwalkable tile, so making the
 hole unwalkable made it undroppable — the opposite of what the tile is for.
 
-**So the hole is the one unwalkable tile a keeper may drop onto**, tested before
-the walkability refusal rather than after it.
+**There are two unwalkable disposal targets:** the portal hole for non-Imps and
+the Dungeon Heart for Imps (owner, 2026-09-13). The current implementation only
+special-cases the portal and therefore gets both sides of the Imp rule wrong.
 
 ### 4.1 The gold goes with it, and the owner already said so
 
 Q137 was answered on 2026-09-07 too: *"a creature leaving (being thrown) through
-portal does not drop its gold"*. **The parenthesis is this mechanic.** So a
-creature posted through the hole takes its gold with it, and the removal reuses
+portal does not drop its gold"*. This applies to ordinary creatures, including
+converted goodly creatures. A creature posted through the hole takes its gold, and removal reuses
 the same `creature_left` event a deserter gets, with `via=thrown_in` instead of
 `via=portal`. Same thing happening for a different reason.
 
 ### 4.2 A captive is refused the tile
 
-Whether DK2 lets a keeper post an **enemy prisoner** home through its own portal
-is **UNKNOWN**. Three options, and two of them invent something:
-
-| Option | Invents |
-|---|---|
-| eject it | that DK2 allows it |
-| free it into the dungeon | that the drop lands, leaving a freed prisoner standing on a tile nothing may walk on |
-| **refuse the tile** | nothing — the prisoner stays in the hand, still a prisoner |
-
-The third is what is built. It leaves the prisoner rules (ADR-0064) untouched.
+An **enemy prisoner cannot be sent through a portal** (owner, 2026-09-13).
+`HandSystem.Drop` already refuses it, leaving the creature in the hand and still
+imprisoned. This is CONFIRMED, not the former conservative UNKNOWN fallback.
 
 ## 5. The original's mechanism is NOT this, and is UNREAD (Q209)
 
@@ -364,7 +359,8 @@ rather than guessing a rule that would silently decide the other thirteen.
 ## 6. What is built
 
 `StructureBlocks`, consulted by `WorldPathGrid.IsWalkable`, plus
-`PortalRules.IsHoleTile` and one branch in `HandSystem.Drop` (ADR-0084).
+`PortalRules.IsHoleTile` and one branch in `HandSystem.Drop` (ADR-0084). The
+missing Heart disposal exception and portal's missing Imp refusal are known gaps.
 
 The mask costs one byte compare per tile plus a flood fill over portal and heart
 tiles only. `CreatureMovementSystem` builds a grid per creature per tick, so it
@@ -379,8 +375,9 @@ stuck.
 
 ## Confidence
 
-CONFIRMED — both tiles unwalkable, and that a creature thrown into the hole is
-removed with its gold (owner, 2026-09-07; ADR-0084).
+CONFIRMED — both tiles unwalkable; non-Imps, including converted goodly creatures,
+leave with their gold through a portal; Imps are refused there and discarded via
+the Heart (owner, 2026-09-07 and 2026-09-13; ADR-0084).
 UNKNOWN — the predicate the original uses (Q209, §5).
 
 ## Implementation
