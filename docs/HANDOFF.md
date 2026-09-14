@@ -178,7 +178,7 @@ Agreed order as of 2026-09-08 (M0–M4 closed; the research queue's head is clea
    - **Door and trap behaviour** (Q249–Q253): their verbatim ordered state is built (ADR-0106); opening, locking, blocking, arming, firing and field transforms are UNKNOWN.
    - **Hero-party spawning and effect-generator behaviour** (Q254–Q259): verbatim state is built (ADR-0108); action type 14 spawning and generator cadence/effects are UNKNOWN.
    - Level scripting is enumerated: 3,753 generic records over 46 types and 5,408 action records over 38 types in the shipped corpus (`trigger-semantics.md`, `dk2tools kwd trigger-types`); `RESEARCH_STATUS.md` counts 51 action types including those the corpus never uses (Q225). Q220/Q221 remain the two open record-layout questions, Q223 the ROOM-owner disagreement.
-4. **Rooms still without behaviour:** Workshop (manufacture, category 5 hook), Casino, Torture Chamber and conversion (category 15's hook can kill on conversion at a zero rate, ADR-0085), Guard Room, Combat Pit (including the fallback DK2 gives a creature that has outgrown the training room — ours refuses it and ejects a capped trainee one five-second gate late; and its loser is **knocked out, not killed**, dying only if no imp carries it to its bed in time — owner, Q310 — so the pit needs no death path of its own: it produces `IsDown` and every consequence is already built), Temple beyond prayer (sacrifice; `PercentageOfManaGainedBySacrificing` 0 **doubles**, ADR-0085 amendment), Graveyard (1000 life-force → Vampire, `CreatedCreatureId` 8; reincarnation Q111 was deferred until levels existed — levels exist now).
+4. **Rooms still without behaviour:** Workshop (manufacture, category 5 hook), Casino, Torture Chamber and conversion (category 15's hook can kill on conversion at a zero rate, ADR-0085), Guard Room, Combat Pit (including the fallback DK2 gives a creature that has outgrown the training room — ours refuses it and ejects a capped trainee one five-second gate late; and its loser is **knocked out, not killed**, dying only if no imp carries it to its bed in time — owner, Q310 — so the pit needs no death path of its own: it produces `IsDown` and every consequence is already built), Temple sacrifice (44 ordered recipes and the complete matcher/reward shape are read; `sacrifice.md`, Q311), Graveyard (1000 life-force → Vampire, `CreatedCreatureId` 8; reincarnation Q111 was deferred until levels existed — levels exist now).
 5. **Wire the attraction budget** (`auto-placed-furniture.md`, Q89/Q270). Generic floor and wall furniture, Temple Hand, Hatchery coops, object ownership, and the five furniture-count capacity arms are built. Binary research resolved the extra wall-grid bit as cached `Solid`, so the wall pass now requires both `Solid` and `AllowRoomWalls`; sorted order still stands in for DK2's construction-order phase. `PortalRules.IsAttracted` remains boolean; the Lair is the uncapped special case and the Temple contributes 2 iff its Hand exists.
 
 6. **Rebel** (`CreatureAngerSystem` implements Leave only; `RebelLeavingPercentage` 70 / `RebelBecomeGoodPercentage` 15 / `RebelDefectPercentage` 15 are read by nothing).
@@ -197,7 +197,7 @@ Agreed order as of 2026-09-08 (M0–M4 closed; the research queue's head is clea
 - `ManaSystem` runs for every player, not only keepers (deliberate, ADR-0052).
 - `RoomRules` does not model a level's per-room `Availability` (ADR-0040 notes the gap; only `PortalRules` reads availability).
 - The portal tally is never zeroed (ADR-0086; DK2's reset is vtable-only and unread).
-- `HandSystem.Drop` gates by `PlayerIds`/worker rule (ADR-0077) but the object-drop gate of Q196 is the input layer's.
+- `HandSystem.Drop` gates by `PlayerIds`/worker rule (ADR-0077), but wrongly lets Imps use portals and refuses their Heart disposal route (ADR-0084); Q196's object-drop gate is in the input layer.
 
 **Housekeeping**
 
@@ -298,7 +298,7 @@ Index only; the ADR is the argument. Where a later ADR reverses an earlier one, 
 | 0081 | Anger is six counters banded on the **largest**, saturating at 65533 — not the sum (retires 0079's 550-vs-60 comparison: the two never meet) |
 | 0082 | A non-worker has a day: three mood choosers, five-second gate, only the happy chooser charges `AngerNoWork`; M4 closed |
 | 0083 | Training pays; experience: loader divide by variable 19 floored at 1, promotion zeroes the balance, imp work experience is per tick (Q79) |
-| 0084 | A portal has a hole (centre tile), a heart a 3×3; dropping a creature into the hole removes it with its gold |
+| 0084 | Portal disposal removes non-Imps with their gold; Imps are refused there and discarded through the Heart |
 | 0085 | Ten mechanics DK2 built and switched off (zero-valued variables with live readers); "cut" ≠ "disabled". Amended: a shipped 0 used as `(pct+100)/100` doubles; a level file can re-enable a global zero |
 | 0086 | A portal's arrival interval is `(n² + base)` s with `n` the portal's own tally (supersedes 0042's interval) |
 | 0087 | `CreatureFlags2.NeverAngered` (Skeleton, Jack) gates the single anger adder; Jack's anger values are a decoy |
@@ -475,7 +475,7 @@ Each is a thing a reader would plausibly re-assume. One line; the cited file has
 - The creature state table has **281** records (ADR-0072); 239 was a scan window.
 - The flower above a creature is **health**, six petals, not anger and not ten (Q108, Q171). The Hand cannot pick up a collapsed creature (Q161).
 - `MaxFreeRangeChickensPerPlayer` (12) does not cap a hatchery — one chicken per tile does (Q135); `MaxGoldPileOutsideTreasury`-style limits are not limits (ADR-0055); `TimeBetweenReattemptingSleepSeconds` and other "wrongly named" variables are **live** — a wrong name is not a missing reader.
-- A zero-valued variable with a live reader is *disabled*, not *cut*; `PercentageOfManaGainedBySacrificing` = 0 **doubles** (`x += x × (pct + 100) ÷ 100`), so "sacrificing yields no mana" is wrong; a level file can re-enable a global zero (ADR-0085 amendments).
+- A zero-valued variable with a live reader need not be inert. Variable 112's inherited sacrifice name is wrong: its zero **doubles converted-creature prayer mana** (`x += x × (pct + 100) ÷ 100`); no sacrifice path reads it (`sacrifice.md`, Q212).
 - `RoomSellSystem`/`RoomBuildSystem` already refuse on a dungeon heart; Q207's real gap is `ConvertRoom` excluding a *fallen* heart.
 - In the MAP record player **2** is the unowned marker, not 0 (`PlayerIds`, `kwd portals`).
 - Only an imp may be dropped on unclaimed Dirt Path (Q198, ADR-0077); "the handler does not refuse" proved nothing about what the UI offers.

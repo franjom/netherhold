@@ -78,6 +78,7 @@ Facts established and recorded; nothing in `src/` turns on them yet.
 
 | What | Research note |
 |---|---|
+| **Temple sacrifice.** A room retains the newest three creature/object/keeper-spell offerings and scans 44 recipes in file order for an exact ordered suffix. Shipped rewards create 21 creature types or 23 neutral crate/special objects; creature results inherit the integer average level of creature ingredients. Variable 112 is converted-creature prayer mana, not sacrifice | `sacrifice.md`, Q311 |
 | **Level scripting.** The shipped corpus holds **3,753 generic trigger records** (tag 213, **46** types) and **5,408 action records** (tag 214, **38** types). *51 is the highest action type **id**, not a count of types.* Semantics are read for the shipped types; four unshipped action types have no body read, and the transcribed selectors and unread fields are Q225–Q227 | `trigger-semantics.md`, `dk2tools kwd trigger-types` |
 | **The balance variable → global map.** The engine caches 181 of 240 variables in dedicated globals through a jump table indexed by `id − 3`, which makes *"what code reads variable N"* an answerable question | `balance-variables-in-the-binary.md` |
 | **The original's own source-file names.** Every assert carries its `__FILE__`, so the executable lists DK2's 72 translation units — and its creature AI is one file per state (`LairState.cpp`, `HungerState.cpp`, …) | `source-file-map.md`, `executable-strings.md` |

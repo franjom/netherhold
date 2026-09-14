@@ -796,24 +796,9 @@ in one disassembly window, so this is a cheap check and not a project.
 The zero-value audit (ADR-0085) split twelve zero-shipped variables into two
 cut and ten *"switched off, not cut"*, and concluded there was **nothing to
 build** because a zero rate faithfully reproduced is the absence of the effect.
-**That conclusion is wrong for one of the ten.** The single reader of
-`PercentageOfManaGainedBySacrificing` (id 112, shipped **0**) is:
-
-```
-0047bb42  TEST byte ptr [EBX + 0x3ea],0x10   ; creature flag bit 4
-0047bb4c  JZ   0x0047bb73                    ; skip the bonus
-0047bb4e  MOV  ECX,dword ptr [0x006f28f0]
-0047bb59  AND  ECX,0xffff                    ; the variable
-0047bb5f  ADD  ECX,0x64                      ; <- plus 100
-0047bb62  IMUL ECX,EDI
-0047bb65  IMUL ECX                           ; x 0x51eb851f
-0047bb67  SAR  EDX,0x5                       ; ... / 100
-0047bb71  ADD  EDI,EDX                       ; EDI += EDI * (pct + 100) / 100
-```
-
-**The variable is a delta on top of 100%, so its zero means "double", not
-"nothing".** A reimplementation that read the shipped 0 as "no bonus" would
-diverge; one that dropped the term entirely would diverge further.
+That conclusion is wrong for one of the ten. The single reader of id 112,
+inherited as `PercentageOfManaGainedBySacrificing`, computes
+`x += x * (pct + 100) / 100`. Its shipped zero therefore doubles `x`.
 
 The other nine were checked for the same shape and **none of them has it** — no
 `ADD reg,0x64` anywhere in their readers' windows — so ADR-0085's conclusion
@@ -825,12 +810,12 @@ audit that produced the ten looked for a zero and asked whether anything read
 it; it did not ask **what the reader does with it**. Any "the shipped value
 makes this inert" claim needs the reader's arithmetic, not just its existence.
 
-What the routine belongs to is **less certain than the arithmetic**. The gate is
-creature flag byte `+0x3ea` bit 4, the amount is clamped to signed 16-bit before
-the bonus, and the result accumulates into a player field at **`+0x10ee`**,
-which this project has not identified. The attribution to sacrificing is
-inherited from ADR-0085 and is consistent with the variable's name; the
-`(pct + 100) / 100` arithmetic is read directly and is certain. **Q212.**
+The surrounding routine is now identified as the Temple prayer hook. It applies
+prayer healing, derives mana from the creature's prayer-mana field and level,
+and credits it to the player. Creature flag `+0x3EA` bit 4 gates id 112's bonus;
+the manual independently identifies converted enemies as producing twice the
+mana while praying. No sacrifice routine reads id 112. The inherited identifier
+is wrong; the canonical mechanic analysis is `sacrifice.md`. **Q212 answered.**
 
 ### What the four checks actually returned
 

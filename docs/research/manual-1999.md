@@ -233,11 +233,10 @@ owner's measurement. Q34 now has three agreeing sources.
 - `MotionlessWhilePrayingSeconds` = 30,
   `ModifyCreatureAngerWhilePrayingPerSecond` = −275,
   `ModifyCreatureHealthWhilePrayingPerSecond` = +33.
-- **Sacrificial pool**: throwing creatures and objects in *"you may receive a gift
-  from the Gods"*, and a bad sacrifice is punished. `GlobalVariables` carries **44
-  sacrifice recipes**, which is the gift table. `PercentageOfManaGainedBySacrificing`
-  = **0** in v1.70 — so in the shipped balance a sacrifice returns no mana, only
-  whatever the recipe gives.
+- **Sacrificial pool**: throwing creatures and objects in *"you may receive a
+  gift from the Gods"*, and a bad sacrifice is punished. The 44 recipes are in
+  `sacrifice.md`; none rewards direct mana. Variable 112's inherited name is
+  wrong: its shipped zero doubles converted creatures' prayer mana.
 - The pool sits inside the temple, which is why the temple's usable capacity is
   its rim (Q60).
 
