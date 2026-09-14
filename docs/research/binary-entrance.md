@@ -142,8 +142,26 @@ rather than one parameterised room:
 |---|---|---|
 | General furniture rooms | the room's **`TotalCapacity`**, `room+0x67`: matching auto furniture, with a conditional +1 for Library, Training, Workshop and Casino but not Torture | **CONFIRMED** |
 | Temple (13) | **2** if it holds **object 66, the Temple Hand**, else 0 | **CONFIRMED** |
-| Prison (11), Combat Pit (16) | a count reached from the room's own tile, through the world's slab virtual | shape only |
+| Prison (11), Combat Pit (16) | the room's **slab count**: it walks the slab chain from `room+0x2D`/`+0x2E` and counts each slab `FUN_00454110` accepts, and **both types land on that function's arm 9, which returns 1 unconditionally** | **STRONGLY INFERRED**, one guard unread |
 | Lair (2) | **flat 1.0**, or **3.0** when a byte at `+0x771` on the creature record is **22**; the room walk is skipped entirely | **CONFIRMED**, the 22 unexplained |
+
+**The Prison and Combat Pit arm, read 2026-09-14.** `FUN_004DCE70` dispatches on
+the room's type byte `+0x18`: Prison and Combat Pit take the branch at
+`0x004DCEDD`, which walks the room's slab chain (next at `slab+0x04`) and
+increments a counter for every slab `FUN_00454110` returns non-zero for.
+
+That function is the same predicate the room-placement scan uses as a
+**rejection** test. It guards on the slab belonging to a room
+(`word[slab+0x02] & 0xFFF`) and on **`byte[slab+0x0C] == 0xFF`**, then
+dispatches on room type through a 20-entry table at `0x0045421C`. **Prison (11)
+and Combat Pit (16) both index arm 9**, and arm 9 is `0x004541E2` —
+`MOV EAX,1; RET`, true for every slab.
+
+**So the contribution is the room's size in slabs**, not its occupants as this
+page guessed while the row read "shape only". What stops it being CONFIRMED is
+the `+0x0C == 0xFF` guard: that field is undocumented, so how often it excludes
+a slab is unknown. Reading one prison's slabs live would settle it, and
+`runtime-map.md` already has the addressing to do that.
 
 ### Corroborated by the owner, 2026-09-11
 
