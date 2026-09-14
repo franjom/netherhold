@@ -3193,3 +3193,47 @@ portal attraction is separate work.
 
 **Consequences.** `HashVersion` and snapshot format become 58. Existing saves
 are intentionally rejected; the determinism pin changes with the added bit.
+## ADR-0147 — Attraction is a per-type budget, and the Lair is exempt
+
+**Status.** Accepted 2026-09-14.
+
+**Context.** `PortalRules.IsAttracted` answered attraction as a boolean with no
+cap, so a keeper with one Temple received Dark Angels for ever. The owner saw
+otherwise on 2026-09-11 — a 3x5 Temple produced none, a 5x5 produced exactly
+**two**, and other types kept arriving throughout, so the portal was firing and
+declining her. `binary-entrance.md` §4/§4.1 had the mechanism read and
+unbuilt for want of room furniture, which ADR-0146 has since supplied.
+
+**Decision.** A fifth gate, `AttractionBudget.Admits`, after ADR-0042's four.
+For the creature's **first** attraction slot — the only one the original's
+builder reads — sum each matching room's contribution and admit the type while
+that sum **exceeds** the number of that type the keeper already holds.
+
+| Room | Contributes | |
+|---|---|---|
+| Lair | never capped: the arm stores a flat 1.0 and jumps past the draw-down | CONFIRMED |
+| Temple | **2** while it holds object 66, the Temple Hand, else 0 | CONFIRMED |
+| Prison, Combat Pit | the room's slab count | STRONGLY INFERRED |
+| every other | `AutoFurnitureRules.TryTotalCapacity` | CONFIRMED |
+
+Whole numbers where the original uses 12-bit fixed point: every contribution is
+shifted left 12 and every subtraction is exactly 1.0, so the comparison is the
+same one and no rounding enters.
+
+**Consequences.**
+
+- **Goblins are unchanged**, because they are the Lair case. That is why level 1
+  still matches and no scenario moved.
+- Nine of the ten attracting types are capped where they were unbounded.
+- No world state is added, so `HashVersion` is untouched.
+
+**Assumptions, stated rather than hidden.**
+
+- The Prison and Combat Pit arm also guards on `byte[slab+0x0C] == 0xFF`, a field
+  this project has not read. If it excludes slabs, those two contribute fewer
+  than the slab count. One live read of a prison settles it.
+- The Lair arm has a second branch giving 3.0 when a creature byte `+0x771` is
+  **22**. Unexplained, and harmless here: the draw-down is skipped either way, so
+  1.0 and 3.0 both admit for ever.
+- Slot 1 is never budgeted, only required to exist (`PortalRules.IsAttracted`).
+

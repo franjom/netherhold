@@ -275,10 +275,10 @@ values are the variables' and only the formula is read here. **STRONGLY
 INFERRED**, and it is a separate gate from attraction: the fifteen that
 bounds level 1 is this one, not the budget.
 
-**Not implemented yet.** Its furniture dependency is now present: generic
-floor and wall passes, the Temple Hand, and the five relevant `TotalCapacity`
-arms are modelled (`auto-placed-furniture.md`). Replacing the boolean with this
-budget is now a separate build step rather than blocked research.
+**Built 2026-09-14 as ADR-0147**, once ADR-0146 supplied the furniture the
+general contribution needs. `AttractionBudget.Admits` is the fifth portal gate:
+first slot only, contributions summed, admitted while the sum exceeds the count
+held, and the Lair exempt. Goblins are unchanged, which is why nothing moved.
 
 ---
 

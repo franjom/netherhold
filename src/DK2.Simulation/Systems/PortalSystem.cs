@@ -169,6 +169,10 @@ public sealed class PortalSystem : ISimulationSystem
 
             if (!PortalRules.IsAttracted(creature, ownedRooms)) continue;
 
+            // The fifth gate, and the second half of attraction: the room's
+            // contribution less one per creature of the type already held.
+            if (!AttractionBudget.Admits(world, creature, ownedRooms, playerId)) continue;
+
             candidates.Add(creature);
         }
 

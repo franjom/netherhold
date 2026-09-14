@@ -606,6 +606,71 @@ public class PortalTests
     }
 
     [Fact]
+    public void ALairAttractedTypeIsNeverCappedHoweverManyAreHeld()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        CreatureDef goblin = db.CreatureById(GoblinId);
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+
+        // The Lair arm skips the draw-down, so holding twenty changes nothing.
+        for (int i = 0; i < 20; i++)
+            world.SpawnCreature(db, GoblinId, Keeper, new TilePos(9, 5));
+
+        Assert.True(AttractionBudget.Admits(world, goblin, RoomIndex.Build(world, db), Keeper));
+    }
+
+    [Fact]
+    public void ATempleAdmitsTwoOfItsTypeAndThenStops()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        var angel = db.CreatureById(GoblinId) with
+        {
+            Attractions = [new CreatureAttraction(1, (byte)RoomTypeId.Temple, 0)],
+        };
+
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Temple, 5, 5, 5, 5);
+        List<RoomInstance> rooms = RoomIndex.Build(world, db);
+        RoomInstance temple = rooms.Single(r => r.Definition.TypeId == RoomTypeId.Temple);
+
+        // No Hand, no contribution: this is the owner's 3x5 temple.
+        Assert.Equal(0, AttractionBudget.Contribution(world, temple));
+        Assert.False(AttractionBudget.Admits(world, angel, rooms, Keeper));
+
+        world.SpawnObject(db, AutoFurnitureRules.TempleHandObjectId, Keeper, temple.TileIndices[0])
+            .AutoPlaced = true;
+        Assert.Equal(2, AttractionBudget.Contribution(world, temple));
+
+        // Two arrive, and the third is refused: the owner watched exactly this
+        // happen on 2026-09-11, and the 2 was read off the binary four days before.
+        Assert.True(AttractionBudget.Admits(world, angel, rooms, Keeper));
+        world.SpawnCreature(db, GoblinId, Keeper, new TilePos(5, 5));
+        Assert.True(AttractionBudget.Admits(world, angel, rooms, Keeper));
+        world.SpawnCreature(db, GoblinId, Keeper, new TilePos(5, 5));
+        Assert.False(AttractionBudget.Admits(world, angel, rooms, Keeper));
+    }
+
+    [Fact]
+    public void APrisonContributesItsSlabCountAndACapacityRoomItsFurniture()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Prison, 5, 5, 3, 3);
+        List<RoomInstance> rooms = RoomIndex.Build(world, db);
+        RoomInstance prison = rooms.Single(r => r.Definition.TypeId == RoomTypeId.Prison);
+
+        // Arm 9 is an unconditional true, so every slab of the room counts.
+        Assert.Equal(prison.TileCount, AttractionBudget.Contribution(world, prison));
+
+        Paint(db, world, RoomTypeId.Library, 12, 5, 3, 3);
+        rooms = RoomIndex.Build(world, db);
+        RoomInstance library = rooms.Single(r => r.Definition.TypeId == RoomTypeId.Library);
+        AutoFurnitureRules.TryTotalCapacity(world, library, out int capacity);
+        Assert.Equal(capacity, AttractionBudget.Contribution(world, library));
+    }
+
+    [Fact]
     public void ARivalsLairDoesNotAttractAnythingToYourPortal()
     {
         GameDatabase db = Database();
