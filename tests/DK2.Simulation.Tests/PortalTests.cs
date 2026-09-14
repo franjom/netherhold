@@ -561,7 +561,7 @@ public class PortalTests
     }
 
     [Fact]
-    public void ACreaturesMinimumIsOneRoomsSizeAndNotTheKeepersTotal()
+    public void ACreaturesMinimumIsTheKeepersTotalSlabsOfThatRoomType()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         var demanding = db.CreatureById(GoblinId) with
@@ -571,15 +571,16 @@ public class PortalTests
 
         WorldState world = World(db);
 
-        // Three separate 2x2 lairs: twelve tiles between them, and not one of
-        // them is the nine-tile room the creature asked for.
+        // Two separate 2x2 lairs: eight tiles between them, short of nine.
         Paint(db, world, RoomTypeId.Lair, 5, 5, 2, 2);
         Paint(db, world, RoomTypeId.Lair, 9, 5, 2, 2);
-        Paint(db, world, RoomTypeId.Lair, 5, 9, 2, 2);
         Assert.False(PortalRules.IsAttracted(demanding, RoomIndex.Build(world, db)));
 
-        // One room of nine, and it is satisfied.
-        Paint(db, world, RoomTypeId.Lair, 9, 8, 3, 3);
+        // A third 2x2 takes the total to twelve. No single room is nine tiles
+        // and the creature comes anyway, because 0x004C6EB0 sums the room list
+        // rather than measuring one room. This test asserted the opposite until
+        // the binary was read: the old reading was OpenKeeper's.
+        Paint(db, world, RoomTypeId.Lair, 5, 9, 2, 2);
         Assert.True(PortalRules.IsAttracted(demanding, RoomIndex.Build(world, db)));
     }
 

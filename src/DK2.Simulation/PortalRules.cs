@@ -243,15 +243,15 @@ public static class PortalRules
         return limit;
     }
 
-    /// <summary>Whether this keeper's dungeon holds what this creature wants. Two
-    /// slots, and a creature that fills both needs both — the Bile Demon wants a
-    /// Workshop of any size <i>and</i> a Hatchery of 25 tiles. The size is one room's
-    /// tile count, not the keeper's total: five 5-tile hatcheries do not add up to 25.
-    /// STRONGLY INFERRED (OpenKeeper; portals.md §3). Not gated on
-    /// <see cref="RoomInstance.IsFunctional"/> (Q45). No attraction, never blocked.
-    /// <para><b>Diverges for nine of ten types (Q89):</b> DK2 budgets attraction —
-    /// a contribution per matching room, minus one per creature of the type held —
-    /// except the Lair, a flat uncapped yes, which is why Goblins match.</para></summary>
+    /// <summary>Whether this keeper's dungeon holds what this creature wants. A
+    /// creature that fills both slots needs both — CONFIRMED from the binary, not
+    /// inferred: the gate at <c>0x004DC810</c> walks every entry and fails on the first.
+    /// <para>The size is the keeper's <b>total</b> slabs of that room type, not one
+    /// room's: <c>0x004C6EB0</c> sums <c>room+0xA7</c> over the room list, so five
+    /// 5-tile hatcheries <i>do</i> make the Bile Demon's 25. That reverses OpenKeeper's
+    /// reading (portals.md §3). Owning none of the room refuses whatever the size
+    /// asks, which is what the owner saw. Not gated on IsFunctional (Q45). The budget
+    /// that caps arrivals per type is still not built (Q89).</para></summary>
     public static bool IsAttracted(CreatureDef creature, IReadOnlyList<RoomInstance> keeperRooms)
     {
         foreach (CreatureAttraction attraction in creature.Attractions)
@@ -260,17 +260,17 @@ public static class PortalRules
             // either would do; both are checked because neither field is documented.
             if (attraction.Present == 0 || attraction.RoomId == 0) continue;
 
-            bool satisfied = false;
+            bool owned = false;
+            int slabs = 0;
             for (int i = 0; i < keeperRooms.Count; i++)
             {
                 RoomInstance room = keeperRooms[i];
                 if (room.Definition.RoomId != attraction.RoomId) continue;
-                if (attraction.RoomSize != 0 && room.TileCount < attraction.RoomSize) continue;
-                satisfied = true;
-                break;
+                owned = true;
+                slabs += room.TileCount;
             }
 
-            if (!satisfied) return false;
+            if (!owned || slabs < attraction.RoomSize) return false;
         }
         return true;
     }

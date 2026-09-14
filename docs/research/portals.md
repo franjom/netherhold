@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Source(s) | `Rooms.kwd`, `Terrain.kwd`, `CREATURES`, per-level `VARIABLES` (shipped v1.70); `DKII.EXE` v1.70 (`Entrance.cpp` unit, ADR-0046); owner observations 2026-09-04 and 2026-09-07; 1999 manual p.22; OpenKeeper `CreatureSpawnSystem` (GPLv3, facts only, `THIRD-PARTY-NOTICES.md`) |
-| Confidence | Every *number* is CONFIRMED from the shipped data. The interval, its reset, the per-portal clock and the two rosters are CONFIRMED (binary plus owner). The pool's meaning and how attraction composes are STRONGLY INFERRED, mostly from OpenKeeper |
+| Confidence | Every *number* is CONFIRMED from the shipped data. The interval, its reset, the per-portal clock and the two rosters are CONFIRMED (binary plus owner). The pool's meaning is STRONGLY INFERRED; how attraction composes is CONFIRMED from the binary (§3) |
 | Implementation | `PortalRules`, `Systems/PortalSystem.cs`; `TileState.EntranceIdleTicks` and `TileState.EntranceCreaturesGenerated` on the centre tile; `PortalRules.OnOwnerChanged`, called from `TileWorkRules.Convert`. ADR-0042, ADR-0047, ADR-0086 |
 | Tests | `PortalTests` (38), `PortalOnRealDataTests` (16), `RoomConversionTests`, `RuinedHeartTests`; `scenarios/creatures/a_portal_fills_a_dungeon.yaml`, `scenarios/creatures/an_imp_claims_a_portal.yaml` |
 | Open questions | Q87 (what a `CreaturePool` entry is a quota of), Q89 (attraction below `RecommendedSize`), Q90 (weighting), Q91 (what players 1 and 2 do), Q98 (a deliberate capacity divergence) |
@@ -105,13 +105,23 @@ skirmish rather than campaign. **On level 1 the two readings are
 indistinguishable**, because the pool (15) and the first portal's capacity (15)
 coincide — two different fifteens. Q87.
 
-### 3. Two slots mean both, and the size means one room
+### 3. Two slots mean both — and the size is the keeper's total, not one room
 
-A creature that fills both attraction slots needs **both** rooms — the Bile
-Demon wants a Workshop *and* a 25-tile Hatchery. And the size is **one room's
-tile count**, not the keeper's total: five 5-tile hatcheries do not add up to
-25. Both are OpenKeeper's readings, and both are the reading under which the
-second slot and the size field mean anything at all.
+**Read from the binary 2026-09-14, and it splits OpenKeeper's two readings.**
+
+**Both slots: CONFIRMED.** `FUN_004DC810` walks the creature definition's
+counted list — `byte[def+0x788]` entries of **3 bytes** from `def+0x5DA`,
+`{u8 param, u8 amount, u8 kind}`, fetched by `FUN_00494380` — and returns 0
+on the first entry that fails, 1 only after all of them pass. Kind 0 is the room
+test; kinds 1 and 2 compare the player's `+0x7E` and `+0x82` against the amount,
+so the list carries prerequisites beyond rooms.
+
+**One room: REFUTED.** Kind 0 calls `FUN_004C6EB0(player, roomId)`, which
+**sums** `room+0xA7` — the slab count (`room-object.md`) — over every room
+of that type and requires the sum to reach the amount. Five 5-tile hatcheries
+**do** make the Bile Demon's 25. Owning **none** of the room is still refused
+whatever the size asks. `PortalRules.IsAttracted` sums from 2026-09-14, and the
+test that asserted the opposite was named for the guess it pinned.
 
 **Not gated on `RoomInstance.IsFunctional`**, and the data forces that: the
 Maiden Of The Nest wants a Temple of 9 tiles while a Temple's own
