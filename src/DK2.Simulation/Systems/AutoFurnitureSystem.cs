@@ -16,28 +16,40 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
     {
         WorldState world = context.World;
         var desired = new List<(byte Owner, int Tile, byte Type)>();
+        var unmatched = new HashSet<(byte Owner, int Tile, byte Type)>();
         var roomFurniture = new List<(int TileIndex, byte ObjectTypeId)>();
 
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
             AutoFurnitureRules.DesiredFurniture(world, context.Database, room, roomFurniture);
             foreach ((int tile, byte type) in roomFurniture)
-                desired.Add((room.OwnerPlayerId, tile, type));
+            {
+                var key = (room.OwnerPlayerId, tile, type);
+                if (unmatched.Add(key)) desired.Add(key);
+            }
         }
 
-        var unmatched = new List<(byte Owner, int Tile, byte Type)>(desired);
         var remove = new List<int>();
         foreach (ObjectState thing in world.Objects)
         {
-            if (!thing.AutoPlaced) continue;
-            int match = unmatched.FindIndex(d =>
-                d.Owner == thing.OwnerPlayerId && d.Tile == thing.TileIndex && d.Type == thing.ObjectTypeId);
-            if (match >= 0) unmatched.RemoveAt(match);
-            else remove.Add(thing.Id);
+            // Held objects retain their old TileIndex. Shipped furniture cannot
+            // reach this state (Q196), but no held object may satisfy a room slot.
+            if (thing.InHand) continue;
+
+            var key = (thing.OwnerPlayerId, thing.TileIndex, thing.ObjectTypeId);
+            if (unmatched.Remove(key)) continue;
+            if (thing.AutoPlaced) remove.Add(thing.Id);
         }
 
         foreach (int id in remove) world.RemoveObject(id);
-        foreach ((byte owner, int tile, byte type) in unmatched)
+        foreach ((byte owner, int tile, byte type) in desired)
+        {
+            if (!unmatched.Contains((owner, tile, type))) continue;
+            // HatcherySystem owns coop creation and its coops_placed event;
+            // this pass only retains or removes coops as the room shape changes.
+            if (type == HatcheryRules.CoopObjectId) continue;
+            if (context.Database.ObjectById(type) is null) continue;
             world.SpawnObject(context.Database, type, owner, tile).AutoPlaced = true;
+        }
     }
 }

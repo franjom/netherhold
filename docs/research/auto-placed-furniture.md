@@ -90,11 +90,16 @@ room construction. It currently owns:
 - the generic floor pass;
 - the generic wall pass, at tile-level precision;
 - the Temple Hand;
-- Hatchery coops, whose existing placement rule now marks them auto-placed.
+- removal and retention of Hatchery coops; `HatcherySystem` creates them so its
+  `coops_placed` event remains observable.
 
-The `AutoPlaced` bit is snapshot and hash state. Reconciliation removes only
-objects carrying that bit, so a keeper-, creature-, or level-placed object on
-the same tile is preserved.
+The `AutoPlaced` bit is snapshot and hash state. Any non-held object with the
+right owner, tile and type satisfies a slot, including keeper-, creature- and
+level-placed objects, so reconciliation never stacks an automatic duplicate on
+it. Only unmatched auto-placed objects are removed. Held objects are excluded
+defensively because their tile index is stale; shipped furniture cannot be held
+(Q196). A desired object absent from the definition table is skipped rather
+than letting this per-tick maintenance path abort the simulation.
 
 Still open: preserving the construction-order phase, presentation offsets, and
 special decorative passes such as Guard Posts and Workshop pillars. None of

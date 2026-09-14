@@ -69,6 +69,64 @@ public class AutoFurnitureTests
     }
 
     [Fact]
+    public void ExistingNonAutoFurnitureSatisfiesTheSlotWithoutAStackedDuplicate()
+    {
+        GameDatabase database = Database();
+        WorldState world = World(database);
+        PaintRectangle(database, world, RoomTypeId.Library, 4, 4, 3, 3);
+        RoomInstance room = Assert.Single(RoomIndex.Build(world, database));
+        var desired = new List<(int TileIndex, byte ObjectTypeId)>();
+        AutoFurnitureRules.DesiredFurniture(world, database, room, desired);
+        (int tile, byte type) = Assert.Single(desired);
+        ObjectState existing = world.SpawnObject(database, type, Keeper, tile);
+
+        new GameSimulation(database, world, 1, [new AutoFurnitureSystem()]).Tick();
+
+        Assert.Same(existing, Assert.Single(world.Objects));
+        Assert.False(existing.AutoPlaced);
+    }
+
+    [Fact]
+    public void HeldObjectsAreSkippedThoughFurnitureCanNeverBeHeld()
+    {
+        GameDatabase database = Database();
+        WorldState world = World(database);
+        PaintRectangle(database, world, RoomTypeId.Library, 4, 4, 3, 3);
+        var simulation = new GameSimulation(database, world, 1, [new AutoFurnitureSystem()]);
+        simulation.Tick();
+        ObjectState held = Assert.Single(world.Objects);
+        held.InHand = true;
+        world.Player(Keeper).Hand.Add(HandItem.Of(held));
+
+        simulation.Tick();
+
+        Assert.Same(held, world.ObjectById(held.Id));
+        Assert.Equal(held.Id, Assert.Single(world.Player(Keeper).Hand).Id);
+    }
+
+    [Fact]
+    public void MissingFurnitureDefinitionDoesNotAbortTheTick()
+    {
+        GameDatabase basis = Database();
+        const byte missingObject = 250;
+        RoomDef library = basis.Room(RoomTypeId.Library) with { ObjectIds = [missingObject] };
+        var database = new GameDatabase(
+            basis.Terrain.Values,
+            basis.Rooms.Values.Select(r => r.RoomId == library.RoomId ? library : r),
+            basis.Creatures.Values,
+            basis.Variables,
+            objects: basis.Objects.Values);
+        WorldState world = World(database);
+        PaintRectangle(database, world, RoomTypeId.Library, 4, 4, 3, 3);
+
+        Exception? exception = Record.Exception(() =>
+            new GameSimulation(database, world, 1, [new AutoFurnitureSystem()]).Tick());
+
+        Assert.Null(exception);
+        Assert.Empty(world.Objects);
+    }
+
+    [Fact]
     public void FurnitureCountIsTheLibraryCapacityPlusOne()
     {
         GameDatabase database = Database();

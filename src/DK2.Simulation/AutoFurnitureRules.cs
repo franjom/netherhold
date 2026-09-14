@@ -32,9 +32,11 @@ public static class AutoFurnitureRules
             return;
         }
 
+        var roomTiles = new HashSet<int>(room.TileIndices);
+
         if (room.Definition.TypeId == RoomTypeId.Temple)
         {
-            int handTile = TempleHandTile(world, room);
+            int handTile = TempleHandTile(world, room, roomTiles);
             if (handTile >= 0) into.Add((handTile, TempleHandObjectId));
             return;
         }
@@ -44,7 +46,7 @@ public static class AutoFurnitureRules
         {
             var slots = new List<int>();
             foreach (int tile in room.TileIndices)
-                if (IsSurroundedByRoom(world, room, tile)) slots.Add(tile);
+                if (IsSurroundedByRoom(world, roomTiles, tile)) slots.Add(tile);
 
             if (UsesCheckerboard(room.Definition.TypeId) && slots.Count != 0)
             {
@@ -65,7 +67,7 @@ public static class AutoFurnitureRules
             }
         }
 
-        AddWallFurniture(world, database, room, into);
+        AddWallFurniture(world, database, room, roomTiles, into);
     }
 
     /// <summary>The general capacity arms established by Q270.</summary>
@@ -88,12 +90,13 @@ public static class AutoFurnitureRules
                 return false;
         }
 
+        var roomTiles = new HashSet<int>(room.TileIndices);
         int count = 0;
         foreach (ObjectState thing in world.Objects)
         {
             if (!thing.AutoPlaced || thing.InHand || thing.OwnerPlayerId != room.OwnerPlayerId)
                 continue;
-            if (!room.TileIndices.Contains(thing.TileIndex)) continue;
+            if (!roomTiles.Contains(thing.TileIndex)) continue;
             if (!room.Definition.ObjectIds.Take(6).Contains(thing.ObjectTypeId)) continue;
             count++;
         }
@@ -114,6 +117,7 @@ public static class AutoFurnitureRules
 
     private static void AddWallFurniture(
         WorldState world, GameDatabase database, RoomInstance room,
+        HashSet<int> roomTiles,
         List<(int TileIndex, byte ObjectTypeId)> into)
     {
         if (!room.Definition.Flags.HasFlag(RoomFlags.SpecialWalls)) return;
@@ -132,7 +136,7 @@ public static class AutoFurnitureRules
             int y = tile / world.Width;
             for (int direction = 0; direction < 4; direction++)
             {
-                if (!HasStraightWall(world, database, room, x, y, direction)) continue;
+                if (!HasStraightWall(world, database, roomTiles, x, y, direction)) continue;
 
                 int coordinate = direction % 2 == 0 ? x : y;
                 ref int? phase = ref (direction % 2 == 0
@@ -149,7 +153,7 @@ public static class AutoFurnitureRules
     }
 
     private static bool HasStraightWall(
-        WorldState world, GameDatabase database, RoomInstance room,
+        WorldState world, GameDatabase database, HashSet<int> roomTiles,
         int x, int y, int direction)
     {
         ReadOnlySpan<int> dx = [0, 1, 0, -1];
@@ -160,14 +164,14 @@ public static class AutoFurnitureRules
         int alongY = sideX;
 
         return IsWall(world, database, x + sideX, y + sideY)
-            && IsRoom(world, room, x + alongX, y + alongY)
-            && IsRoom(world, room, x - alongX, y - alongY)
+            && IsRoom(world, roomTiles, x + alongX, y + alongY)
+            && IsRoom(world, roomTiles, x - alongX, y - alongY)
             && IsWall(world, database, x + sideX + alongX, y + sideY + alongY)
             && IsWall(world, database, x + sideX - alongX, y + sideY - alongY);
     }
 
-    private static bool IsRoom(WorldState world, RoomInstance room, int x, int y) =>
-        world.Contains(x, y) && room.TileIndices.Contains((y * world.Width) + x);
+    private static bool IsRoom(WorldState world, HashSet<int> roomTiles, int x, int y) =>
+        world.Contains(x, y) && roomTiles.Contains((y * world.Width) + x);
 
     private static bool IsWall(WorldState world, GameDatabase database, int x, int y)
     {
@@ -180,11 +184,12 @@ public static class AutoFurnitureRules
     private static bool UsesCheckerboard(RoomTypeId? type) =>
         type is RoomTypeId.GuardRoom or RoomTypeId.Workshop or RoomTypeId.Casino;
 
-    private static int TempleHandTile(WorldState world, RoomInstance room)
+    private static int TempleHandTile(
+        WorldState world, RoomInstance room, HashSet<int> roomTiles)
     {
         foreach (int tile in room.TileIndices)
         {
-            if (!IsSurroundedByRoom(world, room, tile)) continue;
+            if (!IsSurroundedByRoom(world, roomTiles, tile)) continue;
 
             int x = tile % world.Width;
             int y = tile / world.Width;
@@ -194,7 +199,7 @@ public static class AutoFurnitureRules
             {
                 if (dx == 0 && dy == 0) continue;
                 int neighbour = ((y + dy) * world.Width) + x + dx;
-                if (!IsSurroundedByRoom(world, room, neighbour))
+                if (!IsSurroundedByRoom(world, roomTiles, neighbour))
                 {
                     surroundedBySlots = false;
                     break;
@@ -206,7 +211,8 @@ public static class AutoFurnitureRules
         return -1;
     }
 
-    private static bool IsSurroundedByRoom(WorldState world, RoomInstance room, int tile)
+    private static bool IsSurroundedByRoom(
+        WorldState world, HashSet<int> roomTiles, int tile)
     {
         int x = tile % world.Width;
         int y = tile / world.Width;
@@ -216,7 +222,7 @@ public static class AutoFurnitureRules
         for (int dx = -1; dx <= 1; dx++)
         {
             if (dx == 0 && dy == 0) continue;
-            if (!room.TileIndices.Contains(((y + dy) * world.Width) + x + dx)) return false;
+            if (!roomTiles.Contains(((y + dy) * world.Width) + x + dx)) return false;
         }
         return true;
     }

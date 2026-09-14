@@ -115,7 +115,8 @@ public class HatcheryClockTests
         Hatchery(db, world, 3);
 
         var sink = new ListEventSink();
-        GameSimulation sim = Simulation(db, world, sink);
+        var sim = new GameSimulation(db, world, seed: 42, SimulationSystems.Default());
+        sim.ObserveWith(sink);
 
         // A 3x3 wants one coop: floor(9 / 6) = 1.
         sim.Tick(); // the first game second has not elapsed yet
