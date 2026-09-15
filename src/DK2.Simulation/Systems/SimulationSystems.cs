@@ -24,6 +24,9 @@ public static class SimulationSystems
         // Room-owned objects are rebuilt after the room shape changes and before
         // movement or attraction can observe it (Q270).
         new AutoFurnitureSystem(),
+        // Persistent Temple histories follow the derived room's anchor after all
+        // room mutations for this tick have settled (ADR-0149).
+        new TempleSacrificeSystem(),
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
         new CreatureMovementSystem(),
         new FogOfWarSystem(),

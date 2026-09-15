@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 58;
+    private const int FormatVersion = 59;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -256,6 +256,22 @@ public static class WorldSnapshot
             foreach (ushort effectId in generator.EffectIds) w.Write(effectId);
             w.Write(generator.Frequency); w.Write(generator.GeneratorId);
             w.Write(generator.Unknown_001E.ToArray());
+        }
+
+        w.Write(world.TempleSacrifices.Count);
+        foreach (TempleSacrificeState temple in world.TempleSacrifices)
+        {
+            w.Write(temple.AnchorTileIndex);
+            w.Write(temple.OwnerPlayerId);
+            w.Write(temple.Count);
+            w.Write(temple.NextInsertionIndex);
+            for (int i = 0; i < TempleSacrificeState.Capacity; i++)
+            {
+                SacrificeIngredient ingredient = temple.Slot(i);
+                w.Write(ingredient.Type);
+                w.Write(ingredient.Id);
+                w.Write(ingredient.CreatureLevel);
+            }
         }
 
         // The trigger banks. Written whole rather than sparsely: they are a
@@ -562,6 +578,19 @@ public static class WorldSnapshot
                 Frequency = r.ReadByte(), GeneratorId = r.ReadByte(),
                 Unknown_001E = r.ReadBytes(EffectGeneratorState.Unknown001ELength),
             });
+        }
+
+        int templeCount = r.ReadInt32();
+        for (int i = 0; i < templeCount; i++)
+        {
+            var temple = new TempleSacrificeState(r.ReadInt32(), r.ReadByte());
+            int count = r.ReadInt32();
+            int nextInsertionIndex = r.ReadInt32();
+            var entries = new SacrificeIngredient[TempleSacrificeState.Capacity];
+            for (int slot = 0; slot < entries.Length; slot++)
+                entries[slot] = new SacrificeIngredient(r.ReadByte(), r.ReadByte(), r.ReadInt32());
+            temple.Restore(count, nextInsertionIndex, entries);
+            world.RawTempleSacrifices.Add(temple);
         }
 
         for (int i = 0; i < TriggerState.FlagCount; i++) world.Triggers.RawFlags[i] = r.ReadByte();

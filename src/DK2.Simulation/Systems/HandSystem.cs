@@ -203,6 +203,20 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
+        int landingTileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
+        TempleSacrificeRules.Reconcile(world, context.Database);
+        RoomInstance? temple = RoomIndex.RoomAt(world, context.Database, landingTileIndex);
+        if (TempleSacrificeRules.IsTemple(temple, command.PlayerId))
+        {
+            hand.RemoveAt(hand.Count - 1);
+            creature.InHand = false;
+            SacrificeResult result = TempleSacrificeRules.OfferCreature(
+                world, context.Database, temple!, creature, landingTileIndex);
+            EmitSacrifice(context, command.PlayerId, "creature", creature.CreatureTypeId,
+                command.Tile, hand.Count, result);
+            return;
+        }
+
         hand.RemoveAt(hand.Count - 1);
         creature.InHand = false;
         creature.PickupTick = context.Tick.Value;
@@ -331,6 +345,20 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
+        int landingTileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
+        TempleSacrificeRules.Reconcile(world, context.Database);
+        RoomInstance? temple = RoomIndex.RoomAt(world, context.Database, landingTileIndex);
+        if (TempleSacrificeRules.IsTemple(temple, command.PlayerId))
+        {
+            hand.RemoveAt(hand.Count - 1);
+            thing.InHand = false;
+            SacrificeResult result = TempleSacrificeRules.OfferObject(
+                world, context.Database, temple!, thing, landingTileIndex);
+            EmitSacrifice(context, command.PlayerId, "object", thing.ObjectTypeId,
+                command.Tile, hand.Count, result);
+            return;
+        }
+
         hand.RemoveAt(hand.Count - 1);
         thing.InHand = false;
         thing.TileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
@@ -339,6 +367,20 @@ public sealed class HandSystem : ISimulationSystem
             $"player={command.PlayerId} object={thing.Id} " +
             $"type={thing.ObjectTypeId} " +
             $"tile={command.Tile.X},{command.Tile.Y} held={hand.Count}");
+    }
+
+    private static void EmitSacrifice(
+        SimulationContext context, byte playerId, string offeredKind, byte offeredTypeId,
+        TilePos tile, int held, SacrificeResult result)
+    {
+        string kind = result.SpeechId == TempleSacrificeRules.GoldSpeechId
+            ? "sacrifice_gold"
+            : result.Matched ? "sacrifice_reward" : "sacrifice_failed";
+        context.Emit(SystemName, kind,
+            $"player={playerId} offered={offeredKind}:{offeredTypeId} " +
+            $"tile={tile.X},{tile.Y} matched={(result.Matched ? "yes" : "no")} " +
+            $"speech={result.SpeechId} reward={result.RewardKind}:{result.SpawnedThingId} " +
+            $"held={held}");
     }
 
     // ------------------------------------------------------------------- slap

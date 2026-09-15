@@ -6,6 +6,11 @@ CONFIRMED without an original-game observation.
 
 ## Result
 
+**Built 2026-09-15 (ADR-0149):** creature and object Hand drops, the per-room
+ring and matcher, shipped reward types 1/2, level inheritance, gold's bypass,
+hashing and snapshots. Keeper-spell action `0x87`, reward types 3/4, and audio
+presentation remain outside the built boundary.
+
 The Temple keeps the last three offerings made to each room and compares the
 newest suffix against 44 ordered recipes. A match clears the remembered
 sequence and creates a creature, crate, or special at the offering point. A
@@ -77,6 +82,10 @@ History is per Temple room, not per keeper. It is a three-entry circular buffer
 at room `+0x49`; `+0x5B` identifies the newest slot, `+0x5C` the next insertion
 slot, and `+0x5D` is a count clamped to three. Function `0x004F1600` appends an
 offering. **STRONGLY INFERRED.**
+
+Our derived rooms have no persistent identity. ADR-0149 owns the deterministic
+anchor policy used to attach this history across room topology changes; it is
+an implementation assumption, not a binary conclusion.
 
 ## Matching
 

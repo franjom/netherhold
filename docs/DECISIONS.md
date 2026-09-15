@@ -3283,3 +3283,28 @@ is still -1 and still nobody setting off.
 - Which rim tile a refused body lands on, and how ties between eligible prisons
   break, remain UNKNOWN.
 
+## ADR-0149 — Persistent Temple history follows a deterministic room anchor
+
+**Status.** Accepted 2026-09-15.
+
+**Context.** DK2 keeps a three-offering ring on each Temple room, but our
+`RoomInstance` is rebuilt from tiles and deliberately carries no persistent
+state (ADR-0027). Sacrifice therefore needs stable ownership without turning
+all derived rooms into stored entities. DK2's identity across edits is UNKNOWN.
+
+**Decision.** `WorldState` stores ordered `TempleSacrificeState` records keyed
+by the lowest tile index of the derived Temple plus its owner. Reconciliation
+runs after room build/sell and before creatures act; Hand intake also reconciles
+before use. History follows the component only while that anchor and owner
+remain a current Temple.
+
+Thus extending without changing the lowest tile preserves history. On a split,
+the component retaining the anchor inherits it. On a merge, the lowest-anchor
+component survives and the others are discarded. Removing the anchor, adding a
+new lower tile, selling the room, changing its type, or changing its owner resets
+the affected history. These topology rules are ours, not claims about DK2.
+
+**Consequences.** Histories are sorted by anchor, hashed, and snapshotted.
+`HashVersion` and snapshot `FormatVersion` move 58 → 59; the pin becomes
+`0x659AB04378E4C2FE`. `RoomInstance` remains wholly derived.
+

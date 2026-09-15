@@ -86,7 +86,8 @@ order is part of the simulation's definition: two systems touching the same stat
 in a different order are a different game. The declared sequence:
 
 ```
-HandSystem, TileTagSystem, RoomSellSystem, RoomBuildSystem,
+HandSystem, TileTagSystem, RoomSellSystem, RoomBuildSystem, AutoFurnitureSystem,
+TempleSacrificeSystem,
 CreatureMovementSystem, FogOfWarSystem, ImpTaskSystem, TileWorkSystem,
 BridgeBurnSystem, ManaSystem, ImpSupplySystem, PortalSystem,
 HatcherySystem, CreatureEatSystem, CreatureSleepSystem, CreatureHealthSystem,
@@ -123,6 +124,7 @@ rather than to match something nobody has measured.
 | `ActionPoints` (`ActionPointState`) | in THINGS-file order, because several original lookups walk the collection linearly (ADR-0103) |
 | `Doors`, `Traps` | verbatim authored state in THINGS-file order, without behaviour (ADR-0106) |
 | `HeroParties`, `EffectGenerators` | verbatim authored state in THINGS-file order, without spawn/generation behaviour (ADR-0108) |
+| `TempleSacrifices` (`TempleSacrificeState`) | a sorted persistent three-offering ring per derived Temple anchor (ADR-0149) |
 | `Triggers` (`TriggerState`) | the level-global flag and timer banks (ADR-0102) |
 
 Three rules govern it:
