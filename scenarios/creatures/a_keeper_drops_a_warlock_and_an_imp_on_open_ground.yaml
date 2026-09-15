@@ -88,3 +88,27 @@ commands:
 observe:
   - state_hash
   - events
+# Two drops onto one tile, and the only thing that differs is what is being
+# dropped.
+expect:
+  - event: drop_refused
+    detail: "not_owned"
+    because: >
+      A non-worker may only be put down on ground its keeper holds, and the hand
+      REFUSES rather than finding somewhere else. CONFIRMED (owner).
+  - event: dropped
+    detail: "worker=yes"
+    because: >
+      A worker is the exception and lands on the very tile the Goblin was
+      refused. Being a worker is the whole difference between the two lines.
+  - event: dropped
+    detail: "worker=no"
+    because: >
+      And the Goblin does go down - on the keeper's own floor. The refusal is
+      not a ban on dropping it, only on where.
+  - event: dropped_onto_work
+    detail: "task=Claim"
+    because: >
+      The drop looks three tiles for work of a kind this worker does and records
+      the KIND it found, which is what the Efficiency bonus reads afterwards
+      (ADR-0069).

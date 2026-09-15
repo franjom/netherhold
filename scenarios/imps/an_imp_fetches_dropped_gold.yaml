@@ -86,3 +86,28 @@ commands:
 observe:
   - state_hash
   - events
+# Gold on the floor is a job, and it is not the FIRST job.
+expect:
+  - event: gold_displaced
+    detail: "reason=store_sold"
+    because: >
+      Selling a treasury tile with gold in it puts the gold on the claimed floor
+      that replaces it, deducted from the keeper's spendable total until somebody
+      fetches it back (CONFIRMED, owner 2026-09-03).
+  - event: fetch_taken
+    detail: "priority=FetchFloorGold"
+    because: >
+      Fetching sits below marked excavation and claiming in DK2's Tier A order
+      (Q24, CONFIRMED), so the keeper's marked walls come first and the pile
+      waits. The imps reach it only once the marks are gone.
+  - event: gold_picked_up
+    detail: "amount=1400"
+    because: >
+      The Imp's maxGoldHeld, off its own record - the pile is 2000 and 600 is
+      left standing for a second trip.
+  - event: gold_delivered
+    detail: "tile_total=1500"
+    because: >
+      MaxGoldPerTreasuryTile is 3000, so the whole 1400 fits in one tile and
+      nothing spills. The contrast with the heart's 1000 a tile is the point:
+      capacity is per room type, not per keeper.

@@ -26,17 +26,53 @@ commands:
   # The keeper changes their mind about the third tile.
   - { at_tick: 2, player: 3, untag: [[7, 5]] }
 work:
-  # DigRockHealth is -5000 against Rock's 165 health, so one application each.
-  - { at_tick: 4, player: 3, kind: Dig, at: [5, 5] }
-  - { at_tick: 4, player: 3, kind: Dig, at: [6, 5] }
-  # ClaimTileHealth is 825 a second and work lands five times a second (Q47), so
-  # 165 a swing against Dirt Path's 1/660: FOUR swings each. That count is the
-  # owner's "2-3-4 jumps MAX" for claiming a tile, observed in the original.
-  - { at_tick: 8, until_tick: 11, player: 3, kind: Claim, at: [5, 5] }
-  - { at_tick: 8, until_tick: 11, player: 4, kind: Claim, at: [6, 5] }
-  # Reinforcing takes fifty swings: 165 -> 660 at 10 a time. Ten seconds of an
-  # imp's life either way - the granularity changed, the rate did not.
-  - { at_tick: 15, until_tick: 64, player: 3, kind: Reinforce, at: [5, 4] }
+  # DigRockHealth is -500 against Rock's 165 health, and an application is a
+  # FIFTH of the tabled delta (Q47) - so 100 a swing and TWO swings, not the one
+  # this file asked for until 2026-09-15. It asked for one because it was written
+  # when an application was the whole delta; ADR-0089 and Q47 changed that and
+  # nothing here noticed, so the dig silently stopped happening and both claims
+  # below were refused against rock for months. Q316.
+  - { at_tick: 4, until_tick: 5, player: 3, kind: Dig, at: [5, 5] }
+  - { at_tick: 4, until_tick: 5, player: 3, kind: Dig, at: [6, 5] }
+  # ClaimTileHealth is 825 a second at Efficiency 0xCCC/4096, and the application
+  # is an ARITHMETIC SHIFT - so 164 a swing, not the 165 this file assumed, and
+  # FIVE swings against Dirt Path's 1/660 rather than four. The shift floors, so
+  # upward work loses the fraction and downward work keeps it: a dig at -500
+  # rounds to -100 a swing and a claim at +825 rounds to +164. Getting that
+  # backwards is what left the fourth swing four health short.
+  - { at_tick: 8, until_tick: 12, player: 3, kind: Claim, at: [5, 5] }
+  - { at_tick: 8, until_tick: 12, player: 4, kind: Claim, at: [6, 5] }
+  # Reinforcing is ReinforceWallHealth 50 a second, so 9 a swing by the same
+  # flooring, and Rock's 165 -> 660 is FIFTY-FIVE of them. The file said fifty at
+  # 10 and stopped 45 health short every time.
+  - { at_tick: 15, until_tick: 69, player: 3, kind: Reinforce, at: [5, 4] }
 observe:
   - state_hash
   - events
+# The dig-then-claim cycle, one tile at a time, with the swing counts the
+# arithmetic actually produces rather than the ones this file used to assume.
+expect:
+  - event: destroyed
+    detail: "Dig terrain 2->3"
+    at_tick: 5
+    count: 2
+    because: >
+      Rock 165 health against a dig application of -100 - DigRockHealth -500
+      times Efficiency 0xCCC/4096, shifted down - is two swings, at ticks 4 and
+      5 (ADR-0023, ADR-0089). Rock becomes Dirt Path, which is the terrain
+      record's own DestroyedTypeTerrainId.
+  - event: transformed
+    detail: "Claim terrain 3->8"
+    at_tick: 12
+    count: 2
+    because: >
+      Dirt Path 1 -> 660 at +164 a swing is FIVE swings, ticks 8 to 12. Two
+      different keepers claim the two tiles, so ownership follows the claimer
+      rather than the neighbour.
+  - event: transformed
+    detail: "Reinforce terrain 2->9"
+    at_tick: 69
+    because: >
+      ReinforceWallHealth 50 a second is +9 a swing by the same flooring, and
+      Rock's 165 -> 660 is fifty-five of them from tick 15. Rock becomes
+      Reinforced Wall, the record's MaxHealthTypeTerrainId.

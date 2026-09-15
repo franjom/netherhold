@@ -46,15 +46,20 @@ setup:
     # generates nothing - the 30 belongs to the keeper who owns a heart.
     - { type: Dungeon Heart, at: [2, 2], player: 3 }
 work:
-  # Eight tiles of floor claimed for the keeper, one application each.
-  - { at_tick: 0, player: 3, kind: Claim, at: [5, 5] }
-  - { at_tick: 0, player: 3, kind: Claim, at: [6, 5] }
-  - { at_tick: 0, player: 3, kind: Claim, at: [7, 5] }
-  - { at_tick: 0, player: 3, kind: Claim, at: [8, 5] }
-  - { at_tick: 0, player: 3, kind: Claim, at: [5, 6] }
-  - { at_tick: 0, player: 3, kind: Claim, at: [6, 6] }
-  - { at_tick: 0, player: 3, kind: Claim, at: [7, 6] }
-  - { at_tick: 0, player: 3, kind: Claim, at: [8, 6] }
+  # FIVE applications a tile, not the one this file asked for until 2026-09-15.
+  # ClaimTileHealth is 825 a second, an application is that times Efficiency
+  # 0xCCC/4096 arithmetic-shifted down - 164 - and Dirt Path climbs 1 -> 660. The
+  # single application was written when an application was the whole delta; after
+  # ADR-0089 and Q47 it claimed nothing, so every tile stayed neutral and the
+  # build below was refused NotYourLand on all of them. Q316.
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [5, 5] }
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [6, 5] }
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [7, 5] }
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [8, 5] }
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [5, 6] }
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [6, 6] }
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [7, 6] }
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [8, 6] }
 commands:
   # Three seconds in, after the third payment: pave three of the eight.
   - at_tick: 60
@@ -65,3 +70,21 @@ commands:
 observe:
   - state_hash
   - events
+# Income is the size of the territory, and the arithmetic is the terrain table's.
+expect:
+  - event: mana_gained
+    detail: "rate=38/s"
+    at_tick: 7
+    because: >
+      Eight claimed tiles at Claimed Path's 1 mana a second, plus a flat 30 for
+      owning a dungeon heart. The first payment after the claims land is the
+      clean reading; afterwards the free imps start claiming ground of their own
+      and the rate climbs past it.
+  - event: built
+    detail: "tiles=3 cost=600"
+    because: >
+      Three of those eight tiles are paved. Room terrain has a mana gain of zero
+      in all 26 of the game's rooms, so building on your own floor takes that
+      floor off the payroll - the rate falls without a single rule knowing a
+      treasury was involved. 600 is three tiles at the Treasury's own Cost of
+      200, paid out of the heart.

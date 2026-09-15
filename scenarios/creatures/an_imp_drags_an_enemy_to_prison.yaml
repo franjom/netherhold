@@ -157,3 +157,36 @@ commands: []
 observe:
   - state_hash
   - events
+# WARNING: these expectations record what this run does NOW, and what it does
+# now is NOT what its title says. Nobody is captured. Claiming outranks carrying
+# in DK2's Tier A order (Q24, CONFIRMED), the 9x8 floor is all unclaimed, and the
+# imp is still claiming when the sixty-second rescue window shuts - so the goblin
+# dies on the floor and rots there. That is faithful behaviour and it is also the
+# "prison too far from the fighting collects corpses instead of prisoners" edge
+# (Q164) rather than the capture this file was written for.
+#
+# Deliberately NOT repaired by shrinking the unclaimed ground: that is a change
+# to the experiment and should be a decision, not a side effect of making a check
+# green. Q315.
+expect:
+  - event: creature_collapsed
+    detail: "rescue_window=60s"
+    at_tick: 3
+    because: >
+      CreatureDyingStateDurationSeconds is 60 and the health phase books it on
+      the first game second (ADR-0089).
+  - event: creature_died
+    at_tick: 243
+    because: >
+      240 ticks later, the window untouched. The imp is claiming for all of it.
+  - event: corpse_rotted
+    at_tick: 483
+    because: >
+      DeadBodyDiesAfterSeconds is 60 as well, and there is no graveyard here.
+  - event: creature_imprisoned
+    absent: true
+    because: >
+      Q315, recorded rather than hidden: this run captured somebody until the
+      prison began deciding admission at the door, and now it does not. If this
+      ever fires again, the ordering or the map has changed and this file needs
+      re-reading before the change is believed.

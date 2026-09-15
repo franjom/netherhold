@@ -20,3 +20,6 @@ setup:
 observe:
   - state_hash
   - events
+# NO EXPECTATIONS. This run records zero events by design - it exists to show
+# that the tick advances and the hash series repeats, which
+# RunningTheSameScenarioTwice_ProducesTheSameHashSeries asserts directly.

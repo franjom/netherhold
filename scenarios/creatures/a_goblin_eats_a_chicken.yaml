@@ -125,3 +125,39 @@ commands: []
 observe:
   - state_hash
   - events
+# A hungry creature and a stocked room. The three numbers that matter are the
+# record's - when it gets hungry, what one bird is worth, and how many birds a
+# room will hold - and none of them is ours.
+expect:
+  - event: creature_hungry
+    detail: "need=1 after=180s"
+    at_tick: 719
+    because: >
+      A Goblin's HungerRate is 180 game seconds and the health phase runs on the
+      LAST tick of each one, so 180 x 4 - 1 (ADR-0089). One helping owed is
+      HungerFill; a Bile Demon would owe five.
+  - event: chicken_eaten
+    detail: "gained=375"
+    because: >
+      HpFromChicken off the Goblin's own record, capped at the health it is
+      missing - these two are placed at 900 of 1500, so the whole 375 lands
+      (ADR-0067).
+  - event: chicken_eaten
+    detail: "need=0"
+    because: >
+      One bird pays off ONE helping for a free creature. A prisoner's single
+      bird pays off the whole of HungerFill instead, which is the difference
+      between the two routes (ADR-0074).
+  - event: chicken_chosen
+    detail: "steps=1"
+    because: >
+      The nearest bird once the creature is inside the room, ranked over the
+      room's own tiles rather than the map (ADR-0066).
+  - event: egg_laid
+    at_tick: 783
+    because: >
+      The room holds one bird per tile, had all nine by tick 259 and refused to
+      lay from 279 on. Two were eaten at 758 and 763, and the next boundary of
+      the unbroken 7s interval - 27 + 27 x 28 - is 783. That the clock keeps
+      running through a full room is the claim; a room that restarted its
+      interval on the meal would lay at 786.

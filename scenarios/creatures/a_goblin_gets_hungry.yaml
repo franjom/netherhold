@@ -93,3 +93,36 @@ commands: []
 observe:
   - state_hash
   - events
+# Three needs on three clocks, all of them the creature record's own.
+expect:
+  - event: creature_hungry
+    detail: "need=1 after=180s"
+    at_tick: 719
+    count: 3
+    because: >
+      HungerRate is 180 game seconds and the health phase runs on the last tick
+      of each one: 180 x 4 - 1 (ADR-0089). All THREE, because a bed has nothing
+      to do with hunger - the goblin with no lair owes exactly what the two in
+      bed owe.
+  - event: going_to_sleep
+    at_tick: 959
+    because: >
+      TimeAwake is 240 game seconds, so 240 x 4 - 1. Only the two with beds set
+      off; the third has nowhere to go.
+  - event: woke_up
+    detail: "slept=36"
+    because: >
+      TimeSleep is 9 game seconds, which is 36 ticks. Short only in wall clock:
+      at ModifyHealthOfCreatureInLairPerSecond 100 it is 900 of a Goblin's 1500,
+      which is why the 240/9 ratio is implemented as written (Q103).
+  - event: bed_claimed
+    count: 2
+    because: >
+      One bed per lair tile and two lair tiles (ADR-0049, CONFIRMED by the
+      owner). The third goblin gets nothing for the whole run, which is the
+      experiment.
+  - event: lair_attempt_failed
+    detail: "reason=lair_full"
+    because: >
+      The third asks again at every idle decision and is refused every time. It
+      accrues AngerNoLair for HAVING no bed, not for having stopped looking.

@@ -61,3 +61,32 @@ commands:
 observe:
   - state_hash
   - events
+# Both halves are named by the shipped data in its own words, which is why this
+# is CONFIRMED rather than inferred.
+expect:
+  - event: imp_generated
+    count: 4
+    because: >
+      MinimumImpThreshold is 4: a keeper always has at least four imps, and this
+      one started the level with none. The fifth is never free.
+  - event: imp_generated
+    at_tick: 20
+    because: >
+      TimeBeforeFreeImpGeneratedSeconds is 5, and five game seconds is 20 ticks
+      (ADR-0089). They arrive at 0, 20, 40 and 60.
+  - event: imp_created
+    detail: "cost=1500"
+    because: >
+      Create Imp's mana cost, read off DK2's own record in KeeperSpells.kwd at
+      the offset that holds a plausible cost for all thirteen spells.
+  - event: imp_created
+    detail: "cost=4500"
+    because: >
+      The third paid imp at three times the base. The escalation is the owner's
+      description of the original and is Q54; that it climbs at all is what
+      stops a rich keeper flooding the map.
+  - event: create_imp_refused
+    detail: "reason=not_enough_mana"
+    because: >
+      The fourth cast wants 6000 and the land has not earned it. The refusal is
+      the mechanic working, not the run running out.

@@ -105,3 +105,35 @@ setup:
 observe:
   - state_hash
   - events
+# Payday, and the difference between a keeper who can pay and one who cannot.
+expect:
+  - event: payday
+    at_tick: 2400
+    because: >
+      TimeBeforeFirstPayDaySeconds is 600, and 600 x 4 is 2400 (ADR-0078,
+      ADR-0089). Both keepers are billed on the same tick: a payday is the
+      game's clock, not a keeper's.
+  - event: paid
+    detail: "took=500"
+    because: >
+      A Goblin's Pay is 500 and it takes exactly that off the treasury tile it
+      walked to. The gold leaves a TILE, not a counter.
+  - event: wages_unreachable
+    detail: "reason=treasury_empty"
+    because: >
+      The broke keeper's pair find a treasury with nothing in it. The reason
+      separates that from no_treasury, which is a different dungeon and a
+      different complaint.
+  - event: wages_unreachable
+    detail: "attempts=2"
+    because: >
+      Two tries and then it gives up for that payday rather than walking back
+      and forth for the rest of the run.
+  - event: creature_mood
+    detail: "Unhappy->Angry"
+    at_tick: 4587
+    because: >
+      Only the unpaid pair take AngerNoPay, 60 a second from the missed payday
+      at 2400, which carries them from the unhappy threshold to the 32767
+      ceiling 2187 ticks later. The paid pair stay unhappy on work alone - being
+      unable to pay is what costs a keeper its creatures.

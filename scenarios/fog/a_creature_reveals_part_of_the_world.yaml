@@ -22,3 +22,9 @@ setup:
     - type: Imp
       at: [6, 7]
       player: 1
+# NO EXPECTATIONS, and that is a statement about the mechanism rather than about
+# this run. Fog is a rendering question and this scenario answers it through
+# `observe`, not through the event log - it records ZERO events. Expectations
+# match on events, so there is nothing here for one to fasten to. Covered
+# instead by FogTests; if the expectation mechanism ever grows an observation
+# form, this file is the first customer.

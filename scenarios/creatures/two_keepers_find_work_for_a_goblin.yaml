@@ -168,3 +168,34 @@ setup:
 observe:
   - state_hash
   - events
+# A Goblin's whole happy table is Train, so this is the one job the shipped data
+# gives a non-worker - and the one bill a keeper pays for it.
+expect:
+  - event: job_started
+    detail: "job=Train"
+    because: >
+      HappyJobs for a Goblin is Train at 100%. The keeper that built the room
+      gets a Goblin that walks to it; the keeper that did not gets nothing to
+      offer.
+  - event: trained
+    detail: "gain=10"
+    because: >
+      ExpPerSecondTraining is 40 and a game second is four ticks, so training
+      pays 10 a tick (ADR-0089). The exp column climbs 40 a game second, which
+      is the shipped figure unrounded.
+  - event: level_up
+    detail: "1->2 via=training"
+    because: >
+      ExpForNextLevel is 3000 for a Goblin, reached in 300 game seconds of
+      standing in the room.
+  - event: job_lost
+    detail: "reason=cannot_pay"
+    because: >
+      Training costs the keeper gold per application, and the job ends the tick
+      the store cannot cover it - the creature is not told, it simply stops
+      being trained.
+  - event: wages_missed
+    count: 1
+    because: >
+      The other keeper's treasury holds 500 and two Goblins want 500 each. One
+      is paid and one is not, on the same payday, out of the same tile.

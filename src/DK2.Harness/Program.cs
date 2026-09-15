@@ -100,6 +100,14 @@ switch (args[0])
                     $"{scenario.Id,-36} {result.TicksRun,6} ticks  hash {result.FinalStateHash:x16}  -> {outDir}");
                 foreach (string item in result.Unsupported)
                     Console.WriteLine($"    not applied: {item}");
+
+                // A scenario that carries claims and does not meet them is a
+                // failure of the run, not a note on it: the corpus exists to
+                // catch exactly this, so it must reach the exit code.
+                foreach (string failure in result.ExpectationFailures)
+                    Console.Error.WriteLine($"    EXPECTATION FAILED: {failure}");
+
+                if (result.ExpectationFailures.Count > 0) failures++;
             }
             catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException or IOException)
             {

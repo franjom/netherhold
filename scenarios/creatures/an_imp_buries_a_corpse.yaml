@@ -118,3 +118,24 @@ commands: []
 observe:
   - state_hash
   - events
+# Two windows and a graveyard: the corpse must outlive the first and be buried
+# inside the second.
+expect:
+  - event: creature_died
+    at_tick: 243
+    because: >
+      CreatureDyingStateDurationSeconds is 60, so 240 ticks after the collapse
+      the health phase books at tick 3 (ADR-0089). Nothing on this map can
+      rescue them, so the window runs out untouched.
+  - event: corpse_buried
+    count: 2
+    because: >
+      Both corpses reach the graveyard. Burial is an imp task and sits BELOW
+      claiming in DK2's Tier A order (Q24), which is why this scenario uses a
+      small map - on a large one the imp is still claiming when the corpses rot.
+  - event: corpse_rotted
+    absent: true
+    because: >
+      DeadBodyDiesAfterSeconds is 60 as well, so an unburied corpse would go at
+      tick 483. Both were carried off by 399. If this ever fires, the imp got
+      there too late and the run has stopped demonstrating burial.

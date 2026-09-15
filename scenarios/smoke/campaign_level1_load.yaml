@@ -13,3 +13,7 @@ seed: 1
 duration_ticks: 60
 observe:
   - state_hash
+# NO EXPECTATIONS. What this run asserts - that every tile of a shipped map
+# resolves to a real terrain definition - is asserted by the run not throwing,
+# and a load failure is an exception rather than an event. CampaignLoadTests
+# holds the real check.

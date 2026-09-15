@@ -144,3 +144,41 @@ commands:
 observe:
   - state_hash
   - events
+# WARNING: the comparison table above this line no longer holds, and the
+# expectations below deliberately do not assert it. At the current granularity
+# the corridor falls at t5, t10, t15, t20 here and at t4, t9, t14, t19 in the
+# untouched control - the handled imp finishes LATER, because it loses three
+# ticks to being slapped and lifted and gains nothing back. Rock is 165 health
+# and a dig application is 100 at 80% Efficiency and 124 at 100%: TWO swings
+# either way, so the bonus rounds away on every tile of this corridor rather
+# than only on tiles two to four. The mechanic is real and HandTests pins it;
+# this run can no longer show it. Q317.
+expect:
+  - event: slapped
+    detail: "efficiency=90%"
+    because: >
+      One of the two ten-point bonuses, off DK2's own status bar (owner
+      2026-09-05, Q47). WorkFasterTimer starts here and runs 25 game seconds.
+  - event: slapped
+    detail: "damage=100"
+    because: >
+      SlapDamage against the Imp's 500 health: five slaps would kill it. The
+      same line carries anger=1 (+1), which is how the shipped data says imps
+      never get angry without a special case.
+  - event: dropped_onto_work
+    detail: "task=Excavate within=3"
+    because: >
+      The drop buys the look and the look buys the second ten points. DK2 stores
+      the KIND of work the drop found and searches three tiles, not one
+      (ADR-0069).
+  - event: aim_spent
+    detail: "reason=no_more_of_that_kind"
+    because: >
+      The one place DK2 clears the aiming bonus: the worker is still on that
+      kind of job and no more of that kind exists anywhere. The corridor running
+      out is what ends it, not the tile it was dropped on.
+  - event: destroyed
+    count: 4
+    because: >
+      All four marked tiles fall. Two imps and four marks, and nothing here
+      leaves work undone.

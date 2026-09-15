@@ -78,3 +78,36 @@ commands:
 observe:
   - state_hash
   - events
+# The two claims worth pinning are the propagation and the interval formula, and
+# the second one was wrong in this very file until Q86 was read off the binary.
+expect:
+  - event: room_converted
+    detail: "Portal tiles=9 spread=8 from=2"
+    because: >
+      One tile is worked and eight come with it, off the neutral player. Rooms
+      are claimed whole, never tile by tile - CONFIRMED by the owner (Q92).
+  - event: creature_entered
+    detail: "interval=72"
+    because: >
+      Level 1 overrides EntranceGenerationSpeedSeconds from the game-wide 25 to
+      18, and the first arrival is n=0: 0^2 + 18 = 18 game seconds = 72 ticks
+      (ADR-0086, ADR-0089).
+  - event: creature_entered
+    detail: "interval=76"
+    because: >
+      n=1 gives 1 + 18 = 19 game seconds. This is the line that discriminates:
+      the formula taken from OpenKeeper - max(base, base x living / 2) - agrees
+      with n^2 + base at n=3 and nowhere else, and predicts 72 here. Six
+      instructions at 0x004DBBE0 settled it (Q86).
+  - event: creature_entered
+    detail: "capacity=15"
+    because: >
+      One portal supports fifteen creatures, and level 1's pool is fifteen
+      Goblins, so the two limits coincide on this map and a longer run cannot
+      tell them apart (Q87).
+  - event: creature_left
+    detail: "via=portal"
+    because: >
+      A Goblin that never gets a bed reaches the anger ceiling and walks out
+      through the portal it came from, which this map - unlike the lair
+      scenarios - actually has (Q116).

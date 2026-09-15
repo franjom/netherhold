@@ -97,3 +97,26 @@ commands: []
 observe:
   - state_hash
   - events
+# The room's whole clock, and every number in it is the room's size.
+expect:
+  - event: coops_placed
+    detail: "added=1 tiles=9 wanted=1"
+    because: >
+      A 3x3 hatchery wants one coop. How many it wants is derived from the tile
+      count rather than stored, which is why a room that grows lays more.
+  - event: egg_laid
+    detail: "interval=7s"
+    because: >
+      The interval the nine-tile room implies. It is a property of the ROOM, not
+      of the egg: the same interval runs whether the room is full or not.
+  - event: chicken_hatched
+    detail: "after=2s"
+    because: >
+      An egg is an object (47) that becomes a bird two game seconds later, which
+      is eight ticks (ADR-0089).
+  - event: egg_laid
+    count: 9
+    because: >
+      One bird per tile and nine tiles. The tenth lay is refused and goes on
+      being refused for the rest of the run - which is why the run records 98
+      refusals and stops there rather than filling the map with chickens.

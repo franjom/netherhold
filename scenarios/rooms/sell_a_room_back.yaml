@@ -64,3 +64,18 @@ commands:
 observe:
   - state_hash
   - events
+# Half back per tile, and two things a sale must refuse to do quietly.
+expect:
+  - event: sold
+    detail: "tiles=2 refund=300 refused=NotSellable=1"
+    because: >
+      Two Lair tiles at 300 apiece return 150 each: RoomSellValuePercentageOfCost
+      is 50 and the Lair's ReturnPercentage is 100 (CONFIRMED, owner). The heart
+      tile in the same selection is refused rather than sold, because sellable
+      means buildable and a keeper never bought their heart.
+  - event: gold_displaced
+    detail: "reason=store_sold"
+    because: >
+      Selling a treasury tile that is holding gold reports the gold rather than
+      keeping or losing it silently. In the original it becomes a pile an imp can
+      fetch; here the economy is right and the pile is not (Q31).

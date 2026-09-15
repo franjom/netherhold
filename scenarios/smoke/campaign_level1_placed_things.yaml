@@ -22,3 +22,7 @@ setup:
   placed_things: true
 observe:
   - state_hash
+# NO EXPECTATIONS. Placed things reaching WorldState shows up in the state hash
+# and the picture, not in the event log; determinism is asserted by
+# RunningTheSameScenarioTwice_ProducesTheSameHashSeries. There is nothing here
+# an event expectation could fasten to.

@@ -63,3 +63,30 @@ commands:
 observe:
   - state_hash
   - events
+# Three numbers, none of them ours: what a swing frees, what a pair of hands
+# holds, and what one heart tile holds.
+expect:
+  - event: gold_mined
+    detail: "amount=273"
+    because: >
+      A seam is 3000 gold over 660 health and a swing takes 60 of it at 80%
+      Efficiency (Q47), so a swing frees 273 - the number the owner measured off
+      the original. Eight swings give 273 and three give 272, because the gold
+      comes off a running total.
+  - event: delivering
+    detail: "gold=1363"
+    because: >
+      The imp breaks off after five swings because a sixth would take it past the
+      Imp's maxGoldHeld of 1400. WHERE it stops is our routing (Q5); THAT it
+      stops when full is DK2's.
+  - event: gold_delivered
+    detail: "amount=1000"
+    because: >
+      MaxGoldPerDungeonHeartTile. The tile fills and the imp is still holding
+      363, which is what forces the spill below.
+  - event: gold_delivered
+    detail: "amount=363"
+    because: >
+      The remainder goes into the next heart tile. That spillover is coded
+      nowhere - the imp fills the tile it stands on, finds it still has gold and
+      looks again (Q35).

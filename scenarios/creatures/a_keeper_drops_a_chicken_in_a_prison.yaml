@@ -137,11 +137,50 @@ setup:
 commands:
   # Both captures are done well before this. Object ids start at 1, so the
   # chicken is 1.
-  - { at_tick: 1400, player: 3, pick_up_object: 1 }
+  #
+  # Tick 280 is SEVENTY GAME SECONDS, which is what this file has always meant:
+  # it said 1400 when a game second was 20 ticks. ADR-0089 made it four, so the
+  # bird arrived at 350 seconds - long after PrisonModifyCreatureHealthPerSecond
+  # had turned both captives to bone at 83 - and the run demonstrated nothing for
+  # months without failing. Nothing checked it. Q316.
+  - { at_tick: 280, player: 3, pick_up_object: 1 }
   # One end of the cell. Where the prisoners happen to be shuffling when it
   # lands is the run's business, not the author's - which is the honest way to
   # stage a race.
-  - { at_tick: 1401, player: 3, drop: [7, 4] }
+  - { at_tick: 281, player: 3, drop: [7, 4] }
 observe:
   - state_hash
   - events
+# The owner's sentence, in five lines. Everything here was unreachable until the
+# drop was moved back to the seventy game seconds this file always meant.
+expect:
+  - event: creature_imprisoned
+    count: 2
+    because: >
+      Only an imp can put a creature in a prison (CONFIRMED, owner 2026-09-05),
+      and both bodies go in - this cell holds four, being the tiles the rim does
+      not take plus one (Q166, ADR-0070).
+  - event: prisoner_food_chosen
+    count: 2
+    because: >
+      Nothing reserves the bird, so BOTH captives set off for the same one. The
+      race is the absence of a reservation rather than a mechanism, which is why
+      it needed no code.
+  - event: prisoner_ate
+    detail: "gained=375"
+    count: 1
+    because: >
+      "They rush toward that chicken, the first one to reach it eats it, and its
+      health replenishes" (owner, 2026-09-05). Exactly one eats, for
+      HpFromChicken.
+  - event: prisoner_food_lost
+    count: 1
+    because: >
+      The loser arrives at an empty tile and goes back to looking - state 118
+      falling through to 117. The other half of the owner's sentence.
+  - event: prisoner_no_food
+    detail: "anger=+25"
+    because: >
+      A quarter of the tabled AngerNoFood of 100: DK2's loader divides every
+      angerNo* field by the four ticks of a game second, and the prison's hunt
+      adds one of those per attempt rather than per tick.

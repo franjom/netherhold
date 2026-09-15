@@ -869,6 +869,23 @@ public sealed class ScenarioRunner
             report.AppendLine();
         }
 
+        if (result.Scenario.Expect.Count > 0)
+        {
+            report.AppendLine("## What this run claims");
+            report.AppendLine();
+            report.AppendLine(result.ExpectationFailures.Count == 0
+                ? $"All {result.Scenario.Expect.Count} expectation(s) held."
+                : $"{result.ExpectationFailures.Count} of {result.Scenario.Expect.Count} expectation(s) FAILED.");
+            report.AppendLine();
+            foreach (ScenarioExpectation expectation in result.Scenario.Expect)
+                report.AppendLine($"- {expectation}{Environment.NewLine}  because {expectation.Because.Trim()}");
+
+            foreach (string failure in result.ExpectationFailures)
+                report.AppendLine($"- **FAILED**: {failure}");
+
+            report.AppendLine();
+        }
+
         report.AppendLine("## Not answered by this run");
         report.AppendLine();
         if (result.Unsupported.Count == 0)

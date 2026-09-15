@@ -39,3 +39,23 @@ commands:
 observe:
   - state_hash
   - events
+# The control run for the slap scenario, and the baseline every timing in it is
+# measured against: two imps at 80% Efficiency, nothing touched.
+expect:
+  - event: job_taken
+    detail: "Dig priority=MarkedExcavation"
+    because: >
+      Marked excavation is the top of DK2's Tier A job table (Q24, CONFIRMED).
+      Both imps take the same near tile rather than dividing the corridor between
+      them - nothing reserves a tile.
+  - event: destroyed
+    at_tick: 4
+    because: >
+      Rock is 165 health and a dig application is DigRockHealth -500 times
+      Efficiency 0xCCC/4096, arithmetic-shifted down to -100. Two swings, and the
+      imps arrive one and two steps away (ADR-0089, ADR-0023).
+  - event: destroyed
+    count: 4
+    because: >
+      All four marks fall: 4, 9, 14, 19. The far tiles only become reachable as
+      the near ones go, which is why all four are marked in one command.

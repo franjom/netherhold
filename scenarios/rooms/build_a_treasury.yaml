@@ -36,16 +36,22 @@ setup:
     # sixth treasury tile below cannot be paid for.
     - { type: Dungeon Heart, at: [2, 2], player: 3 }
 work:
-  # Six tiles of floor claimed for the keeper. ClaimTileHealth is large enough
-  # that one application takes a dirt path tile all the way to claimed.
-  - { at_tick: 0, player: 3, kind: Claim, at: [5, 5] }
-  - { at_tick: 0, player: 3, kind: Claim, at: [6, 5] }
-  - { at_tick: 0, player: 3, kind: Claim, at: [7, 5] }
-  - { at_tick: 0, player: 3, kind: Claim, at: [5, 6] }
-  - { at_tick: 0, player: 3, kind: Claim, at: [6, 6] }
-  - { at_tick: 0, player: 3, kind: Claim, at: [7, 6] }
+  # FIVE applications a tile, not the one this file asked for until 2026-09-15.
+  # ClaimTileHealth is 825 a second, an application is that times Efficiency
+  # 0xCCC/4096 arithmetic-shifted down - 164 - and Dirt Path climbs 1 -> 660. The
+  # single application was written when an application was the whole delta; after
+  # ADR-0089 and Q47 it claimed nothing, so every tile stayed neutral and the
+  # build below was refused NotYourLand on all of them. Q316.
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [5, 5] }
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [6, 5] }
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [7, 5] }
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [5, 6] }
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [6, 6] }
+  - { at_tick: 0, until_tick: 4, player: 3, kind: Claim, at: [7, 6] }
 commands:
-  - at_tick: 2
+  # After tick 4, which is when the claims above finish. It used to be tick 2,
+  # which was after the single application that used to be a whole claim.
+  - at_tick: 6
     player: 3
     build:
       type: Treasury
@@ -53,3 +59,14 @@ commands:
 observe:
   - state_hash
   - events
+# Gold lives in tiles, so a keeper who is one tile short gets five tiles and a
+# reason rather than nothing and an error.
+expect:
+  - event: built
+    detail: "tiles=5 cost=1000 refused=NotEnoughGold=1"
+    at_tick: 6
+    because: >
+      Six tiles asked for at the Treasury's own Cost of 200. The heart holds
+      exactly MaxGoldPerDungeonHeartTile - 1000 - which buys five, and the sixth
+      is refused BY NAME. The partial build is the claim: the room is not
+      all-or-nothing.

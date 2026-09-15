@@ -59,3 +59,18 @@ setup:
 observe:
   - state_hash
   - events
+# One line is the whole scenario.
+expect:
+  - event: room_converted
+    detail: "Portal tiles=9 spread=8 from=2"
+    because: >
+      "Once an imp claims a portal then the entire portal gets claimed, all tiles
+      that are assigned to that portal are immediately claimed" - CONFIRMED by
+      the owner, 2026-09-04. One tile worked, eight spread, taken off the neutral
+      player every shipped level ships portals under (ADR-0043).
+  - event: creature_entered
+    absent: true
+    because: >
+      A synthetic map carries no level VARIABLES, so this keeper has no creature
+      pool and the producing half cannot run. That is a property of the map, not
+      a failure - a_portal_fills_a_dungeon does the producing on a real level.

@@ -38,3 +38,29 @@ work:
 observe:
   - state_hash
   - events
+# A seam is finite and a gem face is not, and the difference is entirely in the
+# terrain record's DestroyedTypeTerrainId.
+expect:
+  - event: destroyed
+    detail: "(22,4) player=3 MineGold terrain 6->3"
+    at_tick: 10
+    because: >
+      660 health at 60 a swing is eleven swings, ticks 0 to 10 (Q47). The seam
+      collapses to Dirt Path and is gone.
+  - event: gold_uncollected
+    detail: "(22,4) player=3 MineGold amount=273"
+    because: >
+      3000 gold over 660 health, taken from a running total - so eight swings
+      free 273 and three free 272, and the eleven sum to exactly 3000.
+  - event: destroyed
+    detail: "(8,75)"
+    count: 10
+    because: >
+      Gems are 100 health and their DestroyedTypeTerrainId is THEMSELVES, so the
+      face collapses every two swings and immediately comes back at full health.
+      Twenty applications, ten collapses, and the tile is still gems at the end.
+  - event: gold_uncollected
+    detail: "(8,75) player=3 MineGold amount=25"
+    because: >
+      GoldMinedFromGems is a flat 25 a cycle, independent of the health removed -
+      which is why gems are endless and slow where a seam is rich and finite.

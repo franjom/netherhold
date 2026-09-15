@@ -109,9 +109,9 @@ priority, two destinations. Three consequences reproduced here:
 - **The rescue window is a real deadline.** That run used to capture ten ticks
   inside the window; **as of 2026-09-15 it does not capture at all** — the
   goblin dies at tick 243 while the imp still claims, and the run records zero
-  `creature_imprisoned` (Q315). The margin was ten ticks at *twenty* ticks a
-  second, so ADR-0089 is the likely cause and the rule is not in doubt; the
-  *evidence* is. A prison too far from the fighting collects corpses (Q164).
+  `creature_imprisoned` (Q315). **Cause confirmed:** ADR-0089 cut the window
+  from 1200 ticks to 240 while claiming still takes longer, so the rule is not
+  in doubt and the *evidence* is; the run asserts capture ABSENT (ADR-0150).
 
 ## 4. What the prison does
 

@@ -3306,3 +3306,44 @@ the affected history. These topology rules are ours, not claims about DK2.
 `HashVersion` and snapshot `FormatVersion` move 58 → 59; the pin becomes
 `0x659AB04378E4C2FE`. `RoomInstance` remains wholly derived.
 
+## ADR-0150 — A scenario states its timings in game seconds, and asserts them
+
+**Status:** Accepted (2026-09-15)
+
+**Context.** Twenty-five of the twenty-seven scenarios asserted nothing; they
+were prose with an event log attached. Populating the expectation blocks
+(ADR-0147's gate) found that **six of the twenty-seven were no longer
+demonstrating their own question**, and four of the six had been disarmed by one
+unrelated change: ADR-0089 moved a game second from twenty ticks to four, and
+every scenario that had been tuned in ticks silently stopped reaching its
+subject. A bird landed 350 seconds into a cell whose occupants die at 83. A dig
+that needed two applications was given one, so three scenarios claimed nothing
+and then had their builds refused `NotYourLand` — for months, with green tests.
+
+**Decision.**
+
+1. **Every scenario whose claim is an event carries an `expect` block**, and
+   `EveryScenario_MeetsItsExpectations` is the gate. Twenty-three do; the other
+   four say in the file why they cannot, rather than looking unfinished.
+2. **A scenario's timings are stated in game seconds and derived into ticks in
+   the comment beside them.** A bare tick number is a unit waiting to change
+   under it.
+3. **An experiment broken by a unit change is repaired to its authored intent**,
+   not re-described. Moving the bird back to seventy game seconds is restoring
+   the experiment; re-writing the prose to say the captives die first is
+   abandoning it.
+4. **Where the repair is not determined by the authored intent, the scenario is
+   left recording its own regression instead.** A tick that meant seventy game
+   seconds converts to one answer; "how much unclaimed ground is little enough"
+   has none. `an_imp_drags_an_enemy_to_prison` (Q315) and
+   `the_keeper_picks_up_an_imp_and_slaps_it` (Q317) now assert what they do
+   today, with a `because` that names the question. Picking a new map or a new
+   seam for them would be redesigning an experiment to make a check green, which
+   is the failure mode the gate exists to prevent.
+
+**Consequences.** The corpus is a regression corpus. A run report names its
+claims and whether they held, and the harness exits non-zero when one fails, so
+the CLI and the test gate agree. The cost is that four scenarios now carry a
+WARNING paragraph saying they no longer answer their own title — which is the
+honest state of them, and was true and unsaid before.
+
