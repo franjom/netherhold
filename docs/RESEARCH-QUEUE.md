@@ -17,8 +17,8 @@ grep -oE '^\| \*{0,2}Q[0-9]+' docs/research/open-questions.md \
 
 **Closed since this page was last pruned**, and not to be re-opened here: Q1
 (a tick is 250 ms, adopted — ADR-0089), Q69, Q81, Q110, Q123 (all read from the
-binary), Q86 (the portal tally's reset is an ownership change), Q209's
-neighbourhood is *not* closed but its object half is, Q214 and Q22 (there is no
+binary), Q86 (the portal tally's reset is an ownership change), Q209 (furniture
+is continuous collision, not a nav-tile write), Q214 and Q22 (there is no
 fill-in mechanism in DK2 — Q219), and **M1** (all 18 record-type ids parse and
 round-trip, ADR-0091). Tranche B below is therefore field-level work inside
 records that already parse, not a stalled milestone.
@@ -187,21 +187,6 @@ runtime offset you can identify at both ends, then read the source offset copied
 into it.
 
 ## Tranche C — the meaty single questions
-
-**Q209 — what predicate turns an object into an impassable tile?** The highest
-value item on this page, and properly set up (ADR-0084, `structure-blocks.md`
-§5). DK2 blocks a portal's centre and a heart's platform with **objects**, and
-object **100 is named "Dungeon Heart Obstacle"**. Established: `objDef+0xF4` is
-the runtime flags word, `objDef+0xF8` a size in 4096 fixed point used as
-`size >> 1` (file offset `0x32C`), **15** objects carry `SolidObstacle` and all
-fifteen are room furniture, **58** carry `Obstacle`. **Both obvious rules are
-refuted by the shipped data** — `Obstacle && size > 0` would block every
-creature bed, and `SolidObstacle` alone would not block a portal because the
-Portal Crystal lacks it. `FUN_004D12B0` reads all of it but is a collision
-*enumerator* behind a first-person flag, not tile pathing. **So find DK2's tile
-walkability predicate itself, and come at it from the pathfinder rather than
-from the object side.** It gates the workshop's anvil, the library's bookcases,
-the casino's tables and the graveyard's tombstones.
 
 **Q186 — the rest of the state-category record.** All 32 records are decoded
 except `+0x34`, an allowed-category **bitmask** whose use is unread, and

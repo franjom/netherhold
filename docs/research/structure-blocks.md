@@ -8,7 +8,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: **Q88 (closed)**, **Q209 (new)**, Q137 (a clause confirmed), Q52
+Questions: **Q88 and Q209 (closed)**, Q137 (a clause confirmed), Q52
 (reused as evidence).
 
 ---
@@ -101,267 +101,81 @@ An **enemy prisoner cannot be sent through a portal** (owner, 2026-09-13).
 `HandSystem.Drop` already refuses it, leaving the creature in the hand and still
 imprisoned. This is CONFIRMED, not the former conservative UNKNOWN fallback.
 
-## 5. The original's mechanism is NOT this, and is UNREAD (Q209)
+## 5. Objects collide continuously; the navigation cache is separate (Q209)
 
-**DK2 has no room-level walkability override.** It has an **obstacle** system
-driven by the object table, and the object table says so out loud: object
-**100 is named "Dungeon Heart Obstacle"**. What was established:
+DK2 has no room-level walkability override and does not turn furniture into a
+blocked tile. Its object table instead drives a continuous obstacle system:
 
-| Fact | Where |
+| Fact | Evidence |
 |---|---|
-| `objDef + 0xf4` is the runtime **flags** word | `FUN_004D12B0` reads it |
-| `objDef + 0xf8` is a **size in 4096 fixed point**, used as `size >> 1` — a radius | same |
-| that size's **file offset is `0x32C`** | the loader `FUN_0049DD60` stores `objDef+0xf8` from frame `EBP+0x3AC`; flags come from `EBP+0x3C4` against a known file offset of `0x344`, so the frame-to-record delta is `0x80` |
-| the values at `0x32C` are diameters: Dungeon Heart **4096** (one tile), most beds **2048**, Work Bench **3276** | `kwd objecthex 32C 2 -w` |
-| **15 objects carry `SolidObstacle`** (bit 25) and every one is room furniture | training dummy, anvil, work bench, book case, four tombstones, roulette wheel and table, bar table, barrel, steel bucket, guard post table, Dungeon Heart Obstacle — `kwd objects` |
-| **58 objects carry `Obstacle`** (bit 14) | including every creature bed and every gold pile — `kwd objects` |
-| `FirstPersonObstacle` (bit 24) counts only when a global is set | `DAT_006ECA78` |
+| `objDef+0xF4` is the runtime flags word | `0x004D12B0` reads it |
+| `objDef+0xF8` is a 4096-fixed-point size used as `size >> 1` | same function; file offset `0x32C` from loader `0x0049DD60` |
+| shipped diameters include Heart Obstacle 4096, most beds 2048, Work Bench 3276 | `kwd objecthex 32C 2 -w` |
+| 15 objects carry `SolidObstacle`; all are room furniture | `kwd objects` |
+| 58 objects carry `Obstacle`, including every creature bed and gold pile | `kwd objects` |
+| `FirstPersonObstacle` counts only while mode global `0x006ECA78` is set | `0x004D12B0` |
 
-The flag bits are `DK2.Data.Model.ObjectFlags`; `dk2tools kwd objects`
-reproduces both counts and the per-object flag lists.
+`0x004D12B0` walks the objects overlapping a tile rectangle, gates them on
+`Obstacle`, and forwards position, size and flags to a callback. Its consumers
+operate on continuous geometry: `0x004D1AB0` performs a ray cast,
+`0x004D2B80` separates two things using their summed radii, and
+`0x004D27F0` tests approximate distance against a query threshold.
+`0x004D1170` is a separate ungated object enumerator.
 
-**And that is why the dig stopped rather than finished.** `FUN_004D12B0` is not
-tile pathing. It walks a tile rectangle, enumerates obstacles to a **callback**
-as `{x, y, size, flags}`, gates on `Obstacle` — which 58 objects carry, including
-things creatures demonstrably stand on — and consults `FirstPersonObstacle`
-behind a mode flag. It is a **collision enumerator**, plausibly for first-person
-movement and boulders.
+This explains the owner's 2026-09-11 observation that a creature routes around
+a bed, bookcase and anvil. `Obstacle && size > 0` is not an impassable-tile
+predicate; it is the gate and geometry for object collision. Portal and Dungeon
+Heart tile blocking is separate room/terrain geometry (§5.4).
 
-**Two candidate rules were considered and both are refuted by the shipped data:**
+### 5.4 The navigation cache and all known writers (Q209)
 
-- `Obstacle && size > 0` would block **every creature bed** — which the owner
-  confirms on 2026-09-11 is what DK2 does: a creature **walks around** a bed, a
-  bookcase and an anvil. So this rule is **no longer refuted**, and the
-  assumption that sank it (that a creature paths onto its own bed) was ours.
-- `SolidObstacle` alone would **not** block a portal's centre: the **Portal
-  Crystal (object 99) carries `Obstacle` without `SolidObstacle`**.
+The tile predicates are a family of world virtual methods. They read the
+one-byte grid whose descriptor is at `world+0x9F2` (stride `+0x8`, base
+`+0x10`) and, in three variants, slab word `+0x8` bit 14. The grid byte is
+an enumeration: whole-byte comparisons use 4 and compare neighbouring values,
+while bit 3 is the blocked test. Off-map lookup returns 8.
 
-So the honest position is: **DK2 blocks these tiles with objects, the object
-flags are mapped, and the predicate that turns an object into an impassable tile
-has not been found.** Q209.
+The binary has two central byte setters:
 
-### 5.1 Pathfinder-side timebox (2026-09-07)
+- `0x004D1930` stores only on change and then invalidates the changed one-tile
+  rectangle through `0x004CE770`.
+- `0x004D1970` performs the same conditional store without notification; it
+  is used during bulk map work.
 
-**MOVED, not closed.** Starting from the navigation system found a second object
-enumerator at `0x004D1170`, distinct from the already-mapped collision enumerator
-at `0x004D12B0`. Navigation initialisation registers four world callbacks:
+Their caller graph accounts for these producers:
 
-- `0x004D1170` walks the tiles overlapped by a query radius, follows each tile's
-  thing list, and forwards **every object** (thing type 0) to a supplied callback.
-  It performs no object-definition flag test itself.
-- `0x004D12B0` remains the flags-and-radius collision enumerator already ruled
-  out as the tile predicate.
-- `0x004D15E0` walks the same object lists and sums one signed field from each
-  object instance.
-- `0x004D16B0` returns the navigation byte for one world tile, or 8 outside the
-  map.
-
-This narrows the missing predicate to the **consumer callback downstream of
-`0x004D1170`**, not the world scan and not the navigation grid itself. The
-pathfinder receives raw object instances and decides later which ones affect a
-route. The timebox ended while tracing that indirect callback through the
-36-byte path-following object; no comparison against object id, flags, room
-role, size, or state was established. The next probe is precise: recover the
-callback passed through the first registered navigation slot and enumerate its
-object-definition and object-instance field reads.
-
-### 5.3 The four slots, walked (2026-09-10)
-
-§5.1's probe was "recover the callback passed through the first registered
-navigation slot". Done, and it moves the question rather than answering it.
-
-**Navigation registers four callbacks, not three.** One function stores each
-enumerator into a global with a context pointer beside it:
-
-| slot | enumerator | context | consumers |
-|---|---|---|---|
-| `0x006ED3FC` | `0x004D1170` | `0x006ED40C` | 2 |
-| `0x006ED400` | `0x004D12B0` | `0x006ED410` | 4 |
-| `0x006ED404` | `0x004D15E0` | `0x006ED414` | 2 |
-| `0x006ED408` | **`0x004D16B0`** | `0x006ED418` | 13 |
-
-The fourth was not recorded before. It is much the busiest and has not been read.
-
-**Both consumers of the first slot are ruled out.** Neither tests a tile:
-
-- `0x004D1AB0` is a **ray cast**: it sums the two things' `+0x200` radii, runs a
-  segment test on their `+0x1A8` positions and keeps the nearest hit in a global
-  seeded to `0x7FFFFFFF`. Its caller sets the `FirstPersonObstacle` global
-  `0x006ECA78` around the call and clears it after, so this is the first-person
-  path the flag bit was always about.
-- `0x004D2B80` is **thing-versus-thing separation**: `+0x84` positions, `+0xDC`
-  radii summed, a `+0x10E` bit-7 skip, and a divide against the summed radius.
-
-**The obstacle enumerator's answer is a distance, not a flag.** Of its four
-consumers, `0x004D27F0` is the one that answers a yes/no: the caller seeds
-`0x006ED37C`, asks over a 1.2-tile radius, and reads the byte back. The callback
-takes `(thing, context)`, deltas the thing's `+0x84` against the query point,
-approximates the length as `max + min/2`, compares it with a threshold at
-`context+0x8`, and sets the byte when it is within.
-
-**So the shape of the mechanism is against a per-tile predicate.** Every object
-field any of these four consumers reads is an **instance** field — `+0x84`,
-`+0xDC`, `+0x1A8`, `+0x200`, `+0x10E`. Not one reads the object *definition*, so
-neither `objDef+0xF4` flags nor `objDef+0xF8` size reaches a consumer: the flag
-gate is inside the enumerator and the geometry is a **continuous radius**.
-
-That would explain why both candidate predicates in §5 are refuted by the data.
-A creature is pushed out of a circle rather than refused a tile, so the Dungeon
-Heart Obstacle's 4096 diameter covers its tile and a bed's 2048 does not cover
-its own — no flag combination has to separate them, and none does.
-
-**HYPOTHESIS, not a finding.** It is consistent with everything read here and
-with the shipped diameters, and it is not established: the pathfinder's own tile
-test has still not been located, and a grid router needs one. The next probe is
-the fourth slot `0x004D16B0` and its thirteen consumers, which is where a router
-would sit if one of these four is it (Q209).
-
-### 5.4 The tile predicate exists, and it reads no object (2026-09-11)
-
-§5.3's next probe was the fourth slot. Done — and it **refutes §5.3's
-hypothesis**. There is a per-tile walkability test, it is a family of world
-virtual methods, and not one of them consults an object.
-
-**Slot 4 is a grid lookup, not an enumerator.** `0x004D16B0` takes `(x, y,
-world)`, asks the world's own bounds test through vtable slot `+0x1FC`, and on
-success returns one **byte** out of a grid: descriptor at `world+0x9F2`, row
-stride at `desc+0x8`, base at `desc+0x10`, one byte per tile. **Outside the map
-it returns 8.** Sixteen call sites go through the slot, not thirteen —
-§5.3 counted references, and one of the seventeen is the registration store.
-
-**The world's vtable carries a family of predicates over that byte.** None is
-ever called directly: each appears only as an `.rdata` vtable entry.
-
-| address | takes | answers |
-|---|---|---|
-| `0x00509200` | tile `x, y` | `(nav >> 3) & 1` |
-| `0x005090C0` | a fixed-point position | the same bit, `SAR 0xC` first |
-| `0x00509160` | tile `x, y` | `nav & 8` **or** slab word `+0x8` bit 14 |
-| `0x00509100` | a fixed-point position | the same pair |
-| `0x005091C0` | a slab pointer | bit 0 of `+0x17B` in the slab's **terrain** record **or** that same bit 14 |
-
-**So the slab's flag word at `+0x8` is `id:12 | flags:4`.** The placement scan at
-`0x004FE677` masks it with `0xFFF` and compares that against a field of the thing
-being placed, and three of the predicates test **bit 14** of the same word.
-Q309's `0x2000` is bit 13 — one bit below a bit that gates movement. **Which
-id the low 12 bits hold is not established**: the slab's *terrain* id is the
-separate byte at `+0x0A` (`runtime-map.md`), and `+0x02`'s low 12 bits index a
-third table at `0x006EE540`.
-
-**The nav byte is an enumeration, not a bitfield.** `0x004B228F` compares the
-whole byte against **4**; `0x00459944` reads **two** tiles' bytes and compares
-them for equality; `0x0048ECC5` hands a pair of them to one function. A plain
-blocked/clear flag would need none of that. Bit 3 is the blocked bit inside it,
-and off-map answering 8 is consistent with that reading.
-
-**And no object reaches any of it.** These predicates read the nav grid and the
-slab; nothing here touches an object instance or an object definition. So the
-link Q209 asks about cannot be a query-time test — it has to be a **write**:
-placing an object updates the nav byte or the slab bit. The grid is maintained
-through the descriptor rather than through the world, because **all 16
-references to `world+0x9F2` in both code blocks are reads** — `StoreAt`
-finds no store and a mask scan agrees. The next probe is that descriptor's own
-class, and whether object placement calls into it.
-
-### 5.5 The link is a cached bit, written when a thing is placed (2026-09-11)
-
-§5.4 left the question "who writes it". The bit-14 side answers, and it
-answers in a way that dissolves §5.3's puzzle.
-
-**A mask scan for a word-sized clear of bit 14 returns five sites in the whole
-executable, and four of them target `+0x8`** — the slab flag word. There is
-**no** matching set: no instruction anywhere ORs an immediate `0x4000` into a
-word. So the bit is cleared by bit-ops and set by a computed or whole-word
-write, which a constant scan cannot see. **Which way round the bit runs is
-therefore still UNKNOWN**, and nothing below depends on it.
-
-| function | what it does |
+| producer | value written |
 |---|---|
-| `FUN_004DAE40` | asserts from **`DungeonHeart.cpp`** — its `__FILE__` is inside the function |
-| `FUN_004EF1F0` | takes a **room**, reads its tile at `+0x2D`/`+0x2E`, **saves the old bit**, clears it, then probes two neighbouring slabs |
-| `FUN_004F09B0` | walks a **rectangle** of slabs through the world's slab-at-`(x,y)` virtual `+0x1D8`, clearing as it goes, then makes a border pass one tile out |
-| `FUN_004F0F90` | takes a **room**, same `+0x2D`/`+0x2E` tile, clears the bit, then notifies through `world+0x8` |
+| map initialization `0x0044F370` | 8 on every tile |
+| terrain update `0x0044FC40` | terrain flags `+0x17B`: bit 0 → 8, else bit 7 → 1, else bit 8 → 3, else 0 |
+| door update `0x004A66F0` | owner number in the high nibble, plus low bits 1 and 2 from map/door state; removal clears it to 0 |
+| door state change `0x004A6800` | toggles bit 2 in the existing byte |
+| room-side wrapper `0x00454FD0` | explicit 3 or 4 from three room geometry/construction paths |
 
-All four sit in the room-file block — `DungeonHeart.cpp` around `0x004DAxxx`,
-below `Workshop.cpp` at `0x004F4F9F` (`source-file-map.md`). `FUN_004EF1F0` has
-five callers, one of them `FUN_0050B5B0` at `0x0050BC95` — the level loader
-(`World.cpp`), which is where ADR-0102 read the trigger timer scaling.
+The terrain writer selects the silent setter while world flag
+`+0x7239 & 0x40` is set and the notifying setter otherwise. The door paths
+always notify. None of these writers reads an object definition, object flags,
+or object size, and the door overlays never set bit 3.
 
-**Two of the four take a room, not an object** — corrected the same day it was
-first written the other way. The gate both use, `FUN_004E4300`, reads the
-record's **type byte `+0x18`** and admits some of 24 categories, and
-`trigger-semantics.md` already names that byte as a **room's type** in the global
-thing table `0x006EE540`. Q301 goes further and settles it: the **low 12 bits of
-the slab word at `+0x8` are the room on the tile**, looked up in that table.
+**STRONGLY INFERRED:** furniture is not turned into an impassable *tile*.
+Q209's premise was wrong. The nav cache holds terrain, door, and a few
+room-geometry categories; furniture remains continuous collision geometry.
+The object enumerator at `0x004D12B0` gates on `Obstacle`, supplies object
+position and radius to its consumers, and the movement-side separation path
+works in that continuous space. This accounts for the observed routing around
+beds, bookcases and anvils without a furniture write to the tile cache.
 
-**So bit 14 shares its word with a room id, which is exactly why §5.6 finds no
-setter** — the bit is written when the room id is, in one store.
+The slab word's separate bit 14 path is room/terrain geometry: its low 12 bits
+are the room id, four sites clear bit 14, and no independent setter exists.
+It is therefore written with the room id and punched out for structures
+(STRONGLY INFERRED); this is not an object predicate either.
 
-**And Q209's own question stays open, better posed.** This machinery is
-room-keyed, so nothing here says an anvil or a bookcase blocks a tile, and §5's
-`Obstacle`/`SolidObstacle` rules gain no support. What it does suggest is that
-the portal hole and the heart's 3×3 — `StructureBlocks`' only two cases —
-are **room** geometry, and may never have been an object rule at all.
+### 5.2 What this corrects in Q88
 
-**Corroboration, free.** `FUN_004F0F90` reaches the slab a second way, off
-`world+0x9DA`: `+0xC` is the map width and `+0x14` the slab base — the same
-`world+0x9E6` and `world+0x9EE` §5.4 read elsewhere, from an independent path.
-
-**Next probe**, in order: the whole-word write to slab `+0x8`, which is where the
-set lives; then `FUN_004F0390` and `FUN_004F0840`, the two callers of the
-thing-clear, for which things qualify.
-
-### 5.6 Nothing sets bit 14 on its own, which says what it is (2026-09-11)
-
-§5.5's next probe was the set. It does not exist as a bit operation, and the
-sweep that establishes that is worth recording because it is exhaustive.
-
-**What was searched.** All of `.text` and `cseg` — `0x00401000` to
-`0x004D0000`, `0x004D0000` to `0x004F6000`, `0x004F6000` to `0x00653000`,
-disassembled whole and filtered, so this is not a range-limited claim:
-
-| shape | sites | on a slab |
-|---|---|---|
-| any **word-sized** op with immediate `0x4000` | 0 | — |
-| word-sized clear of bit 14 (`AND …,0xBFFF`) | 5 | **4**, all at `+0x8` (§5.5) |
-| `OR word ptr […], reg` | 64 | 0 |
-| `MOV word ptr [… + reg*1 + 0x8], reg` | 5 | 0 |
-| `MOV word ptr [reg + 0x8], reg` | 96 | none of those checked |
-
-The last row is the honest limit: 96 is too many to read, so the ones inside
-functions that also read the slab base (`world+0x9EE`) were checked first. Every
-one of those writes a **definition** record out of the table at `0x006EE540`,
-whose own `+0x8` is a different field — a trap worth naming, because the
-offset matches and the meaning does not.
-
-**What that constrains.** The word at `+0x8` is `roomId:12 | flags:4` (§5.5),
-so a whole-word write sets the room id and the flags together. Bit 14 having
-**no** independent setter and four independent clears means it is **written when
-a room claims the slab and punched out afterwards**, not toggled as a state.
-
-**So, STRONGLY INFERRED and not confirmed:** bit 14 is set from the terrain a
-slab holds and cleared where a structure opens that slab, which makes it read as
-**blocked**, matching the nav byte's bit 3 that the predicates OR it with.
-
-**What would settle it in one observation**, and it is cheap: the memory reader
-used for the tick-rate amendment (ADR-0102) can read the word at slab `+0x8` on
-a known tile. Compare a rock wall, a plain floor, a claimed room and a Dungeon
-Heart centre. If bit 14 is set on the wall and clear on the floor the reading
-above is confirmed; if it is the other way round this section is wrong and
-§5.5 still stands. `observation-checklist.md` is where it belongs.
-
-### 5.2 Which corrects what Q88 used to say
-
-The old note read: *"Fixing it means teaching the path grid about rooms, which
-is a bigger change than the fact justifies today."* Wrong on the mechanism.
-When the real predicate is found, the path grid should learn about **objects**,
-`StructureBlocks` should be deleted, and the two tiles should come out of the
-object table like the anvil and the bookcase do.
-
-The fifteen `SolidObstacle` objects are the workshop's anvil, the library's
-bookcases, the casino's tables and the graveyard's tombstones, and every one of
-those rooms is coming. So what is built here covers two tiles and no more,
-rather than guessing a rule that would silently decide the other thirteen.
+The portal centre and Heart platform belong to room/terrain navigation
+geometry. Furniture belongs to continuous object collision. A faithful
+replacement therefore needs both mechanisms; projecting furniture into the
+tile path grid would merge two distinct DK2 behaviours.
 
 ## 6. What is built
 
@@ -385,7 +199,8 @@ stuck.
 CONFIRMED — both tiles unwalkable; non-Imps, including converted goodly creatures,
 leave with their gold through a portal; Imps are refused there and discarded via
 the Heart (owner, 2026-09-07 and 2026-09-13; ADR-0084).
-UNKNOWN — the predicate the original uses (Q209, §5).
+STRONGLY INFERRED — Q209: furniture collision does not write the navigation
+tile cache; the binary's writer graph and continuous obstacle consumers are §5.
 
 ## Implementation
 
