@@ -105,13 +105,13 @@ priority, two destinations. Three consequences reproduced here:
 - **Capture sits below claiming.** An imp takes no prisoners while there is
   unclaimed ground: in `an_imp_drags_an_enemy_to_prison` the goblin lies on the
   floor while the imp claims the whole map first.
-- **Capacity is checked at delivery, not before pickup** (owner, 2026-09-13), and **BUILT** 2026-09-15:
-  `PrisonRules.DeliveryTileIn` picks a free cell or a full prison's rim and `AdmitsAt` decides at the door,
-  leaving the refused body there bleeding. Tie-breaking and which rim tile remain UNKNOWN (ADR-0148).
-- **The rescue window is a real deadline**: in that run the capture lands ten
-  ticks before the window expires. A prison too far from the fighting collects
-  corpses instead of prisoners, which is dungeon design rather than an oversight
-  (Q164).
+- **Capacity is checked at delivery, not before pickup** (owner, 2026-09-13), **BUILT** 2026-09-15: `DeliveryTileIn` picks a free cell or a full prison's rim, `AdmitsAt` decides at the door, and the refused body is left bleeding. Tie-breaking and which rim tile remain UNKNOWN (ADR-0148).
+- **The rescue window is a real deadline.** That run used to capture ten ticks
+  inside the window; **as of 2026-09-15 it does not capture at all** — the
+  goblin dies at tick 243 while the imp still claims, and the run records zero
+  `creature_imprisoned` (Q315). The margin was ten ticks at *twenty* ticks a
+  second, so ADR-0089 is the likely cause and the rule is not in doubt; the
+  *evidence* is. A prison too far from the fighting collects corpses (Q164).
 
 ## 4. What the prison does
 

@@ -24,6 +24,11 @@ public sealed record ScenarioResult(
     IReadOnlyList<SimEvent> Events,
     IReadOnlyList<string> Unsupported)
 {
+    /// <summary>Every expectation the run did not meet, one line each. Empty is the
+    /// only passing value; a scenario with no expectations produces an empty list too,
+    /// which is why the count of scenarios carrying any is tracked separately.</summary>
+    public IReadOnlyList<string> ExpectationFailures { get; init; } = [];
+
     /// <summary>
     /// The world at the end of the run, drawn as text through the same
     /// presentation boundary a Unity view uses.
@@ -222,6 +227,7 @@ public sealed class ScenarioRunner
         return new ScenarioResult(
             scenario, scenario.DurationTicks, simulation.StateHash(), hashes, sink.Events, unsupported)
         {
+            ExpectationFailures = CheckExpectations(scenario, sink.Events),
             Picture = picture,
             AssetSummary = assets.Summarise(),
             BalanceTable = balanceTable,
@@ -234,6 +240,36 @@ public sealed class ScenarioRunner
     /// directory that normally does not exist — which is exactly the "no assets"
     /// case the placeholder covers.
     /// </summary>
+    /// <summary>Tests every <see cref="ScenarioExpectation"/> against the events the run
+    /// produced, and returns one line per unmet claim. Reports the count it did see, because
+    /// "expected 531, saw 530" is a different problem from "expected 531, saw none".</summary>
+    private static IReadOnlyList<string> CheckExpectations(
+        Scenario scenario, IReadOnlyList<SimEvent> events)
+    {
+        var failures = new List<string>();
+        foreach (ScenarioExpectation expectation in scenario.Expect)
+        {
+            int seen = 0;
+            foreach (SimEvent observed in events)
+            {
+                if (observed.Kind != expectation.Event) continue;
+                if (expectation.Detail.Length > 0
+                    && !observed.Detail.Contains(expectation.Detail, StringComparison.Ordinal))
+                    continue;
+                if (expectation.AtTick is int tick && observed.Tick.Value != tick) continue;
+                seen++;
+            }
+
+            bool met = expectation.Absent
+                ? seen == 0
+                : expectation.Count is int want ? seen == want : seen > 0;
+
+            if (!met) failures.Add($"expected {expectation}, saw {seen}");
+        }
+
+        return failures;
+    }
+
     public const string ConvertedAssetRoot = "build/converted";
 
     /// <summary>

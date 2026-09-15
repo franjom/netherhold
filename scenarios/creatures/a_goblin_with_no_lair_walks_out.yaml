@@ -154,3 +154,44 @@ commands: []
 observe:
   - state_hash
   - events
+
+# The two thresholds are the whole claim, and they came from the owner playing
+# before this project modelled anger at all. The 2:1 ratio is the load-bearing
+# half: it pins that anger accrues linearly and that 'angry' is 100% of a
+# ceiling that appears nowhere in the 214 balance variables.
+expect:
+  - event: creature_mood
+    detail: "Content->Unhappy"
+    at_tick: 655
+    because: >
+      Owner, playing: unhappy at approx 02:45. AngerNoLair is 100 a second and
+      UnhappyThreshold is 50%, so 16383/100 rounds up to 163.75 game seconds,
+      which is tick 655 at four ticks a second (ADR-0089). Within 1%
+      of a wristwatch reading of "ish".
+  - event: creature_mood
+    detail: "Unhappy->Angry"
+    at_tick: 1311
+    because: >
+      Owner, same session: angry at approx 05:30, exactly twice the first
+      threshold: 327.75 game seconds, tick 1311. The ceiling is 32767,
+      bracketed independently by counting
+      slaps on a Salamander (6 to unhappy, 5 more to angry).
+  - event: creature_angry
+    detail: "chose=Leave result=started"
+    because: >
+      The Goblin's own AngryJobs record is Leave 50% / Rebel 50%, re-rolled on
+      every allowed selection (Q122, ADR-0061). Three Rebel draws land first
+      and are unbuilt, so Leave starts at tick 1371, sixty ticks after the
+      creature turns angry. No tick is pinned here: the draw sequence is the
+      RNG's, and pinning it would pin the stream rather than the rule.
+  - event: creature_leave_blocked
+    detail: "reason=no_reachable_portal"
+    because: >
+      Leaving is a walk to the nearest portal the keeper owns (Q116) and this
+      map has none, which is why the run ends with an angry goblin still
+      standing. Desertion that completes is a different scenario.
+  - event: creature_left
+    absent: true
+    because: >
+      The refutation half: with no portal on the map nothing may leave. If
+      this ever fires, a deserter has found an exit that does not exist.

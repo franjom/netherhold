@@ -133,3 +133,32 @@ commands: []
 observe:
   - state_hash
   - events
+
+# The two windows are the claim. Both are CONFIRMED and both are in game
+# seconds, so pinning the tick pins the tick rate with them - which is the
+# point: if a tick stops being 250 ms these fail loudly rather than silently
+# rescaling every duration in the corpus.
+expect:
+  - event: creature_collapsed
+    detail: "rescue_window=60s"
+    at_tick: 3
+    because: >
+      CreatureDyingStateDurationSeconds is 60 and the collapse is booked once a
+      game second, so a creature at zero health goes down within four ticks.
+      The routine that writes it is FUN_004B2CE0 (combat.md 1).
+  - event: creature_died
+    at_tick: 243
+    because: >
+      240 ticks after the collapse: 60 game seconds at four ticks a second
+      (ADR-0089). The window is inviolable to further damage - a second blow
+      does not finish a collapsed creature early (Q110, creature-death.md 4).
+  - event: corpse_rotted
+    at_tick: 483
+    because: >
+      A further 240 ticks. Both timers are creature variables and both read 60,
+      so the corpse lasts exactly as long as the body did.
+  - event: creature_rescued
+    absent: true
+    because: >
+      There is no imp on this map, which is what makes the run a clean reading
+      of the two windows. If this ever fires the scenario has changed shape.

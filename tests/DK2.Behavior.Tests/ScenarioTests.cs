@@ -3,8 +3,10 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data;
 using DK2.Data.Model;
 using DK2.Harness;
+using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
 
@@ -33,6 +35,47 @@ public class ScenarioTests
             Assert.True(scenario.DurationTicks > 0, $"{file}: duration_ticks must be positive");
             Assert.True(scenario.UnknownKeys.Count == 0,
                 $"{file}: unrecognised keys {string.Join(", ", scenario.UnknownKeys)}");
+        }
+    }
+
+    [Fact]
+    public void EveryExpectation_SaysWhereItCameFrom()
+    {
+        // An expectation with no source is a guess pinned by a green check, which
+        // buys silence rather than confidence. The field is mandatory by test
+        // because nothing in YAML can make it so.
+        foreach (string file in ScenarioFiles())
+        {
+            Scenario scenario = Scenario.Load(file);
+            foreach (ScenarioExpectation expectation in scenario.Expect)
+            {
+                Assert.False(string.IsNullOrWhiteSpace(expectation.Because),
+                    $"{file}: expectation '{expectation}' has no 'because'");
+                Assert.False(string.IsNullOrWhiteSpace(expectation.Event),
+                    $"{file}: an expectation has no 'event'");
+            }
+        }
+    }
+
+    [InstallFact]
+    public void EveryScenario_MeetsItsExpectations()
+    {
+        // The gate that turns a scenario from a description into a regression
+        // test. Install-gated on purpose: an expectation worth writing is a claim
+        // about DK2's own numbers, and SyntheticDatabase has four terrain types
+        // and one creature -- a goblin scenario cannot even run against it.
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+
+        foreach (string file in ScenarioFiles())
+        {
+            Scenario scenario = Scenario.Load(file);
+            if (scenario.Expect.Count == 0) continue;
+
+            ScenarioResult result = new ScenarioRunner(database, install).Run(scenario);
+            Assert.True(result.ExpectationFailures.Count == 0,
+                $"{file}:{Environment.NewLine}  " +
+                string.Join(Environment.NewLine + "  ", result.ExpectationFailures));
         }
     }
 

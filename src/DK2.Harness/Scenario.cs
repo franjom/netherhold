@@ -191,6 +191,43 @@ public sealed class ScenarioWork
     public int UntilTick { get; set; } = -1;
 }
 
+/// <summary>One behavioural claim a run must satisfy — the thing that turns a scenario
+/// from a description into a regression test.
+/// <para><b><c>because</c> is mandatory and is the whole point.</b> An expectation with no
+/// stated source is a guess pinned by a green check, which is worse than no check: it buys
+/// silence. Say where the claim comes from — an owner observation and its date, an ADR, a
+/// research note — or do not write the expectation.</para></summary>
+public sealed class ScenarioExpectation
+{
+    /// <summary>The <see cref="DK2.Core.SimEvent.Kind"/> to look for.</summary>
+    public string Event { get; set; } = "";
+
+    /// <summary>Substring the event's detail must contain. Optional.</summary>
+    public string Detail { get; set; } = "";
+
+    /// <summary>The exact tick it must occur on. Optional.</summary>
+    public int? AtTick { get; set; }
+
+    /// <summary>Exactly how many must match. Omitted means at least one.</summary>
+    public int? Count { get; set; }
+
+    /// <summary>Invert: no event may match. Refutations are evidence too.</summary>
+    public bool Absent { get; set; }
+
+    /// <summary>Where the claim comes from. Required; see the type summary.</summary>
+    public string Because { get; set; } = "";
+
+    /// <summary>A one-line rendering for a failure message and a report.</summary>
+    public override string ToString()
+    {
+        string what = Absent ? "no " + Event : Event;
+        if (Detail.Length > 0) what += $" containing \"{Detail}\"";
+        if (AtTick is int tick) what += $" at tick {tick}";
+        if (Count is int n) what += $" exactly {n} time(s)";
+        return what;
+    }
+}
+
 /// <summary>A declarative experiment: the same file is meant to eventually drive both our
 /// simulation and the original game (DK2_REIMPLEMENTATION_PLAN.md §6.2).
 /// <para>Loading is deliberately strict about its own ignorance: any key it does not recognise,
@@ -225,6 +262,10 @@ public sealed class Scenario
     /// <summary>Harness-injected tile work, standing in for a creature that does not exist yet.</summary>
     public List<ScenarioWork> Work { get; set; } = [];
 
+    /// <summary>What this run must show for the behaviour it was written for to hold.
+    /// Empty means the scenario still only describes; see <see cref="ScenarioExpectation"/>.</summary>
+    public List<ScenarioExpectation> Expect { get; set; } = [];
+
     /// <summary>What the run should record. Unrecognised entries are reported.</summary>
     public List<string> Observe { get; set; } = [];
 
@@ -236,7 +277,7 @@ public sealed class Scenario
     public string SourcePath { get; private set; } = "";
 
     private static readonly string[] KnownKeys =
-        ["id", "question", "map", "seed", "duration_ticks", "fog_of_war", "viewing_player", "setup", "commands", "work", "observe"];
+        ["id", "question", "map", "seed", "duration_ticks", "fog_of_war", "viewing_player", "setup", "commands", "work", "observe", "expect"];
 
     public static Scenario Load(string path)
     {
