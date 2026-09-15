@@ -11,9 +11,10 @@ Original version: DK2 v1.70 (GOG)
 Questions: **Q8** (the combat formula), Q313 (the attack site), and a
 confirmation for `creature-levels.md`.
 
-**Nothing here is built.** This is the first sitting on Q8, which was a one-line
-`UNKNOWN` stub with no research page. It establishes where damage *lands* and
-what scales it; it does not yet establish who swings, how often, or at whom.
+**Nothing here is built.** Two sittings on Q8, which was a one-line `UNKNOWN` stub
+with no research page. They establish where damage **lands** (§1), what **scales**
+it (§4, §5) and **who swings** (§6). Still missing: the cadence, how a defence
+reduces a blow, and what a kill awards — §7.
 
 ---
 
@@ -179,19 +180,71 @@ only in their ceiling, which is what a *weakened* and a *strengthened* state
 would look like — but naming them from the shape would be a guess, and this
 project does not name mechanisms before reading their consumers.
 
-## 6. What is still unknown, in the order it should be taken
+## 6. The swing, found 2026-09-15 (Q313)
 
-1. **Who calls `FUN_00494D00`** — the swing itself. That caller holds the
-   attacker, the target, and the moment, and it is the whole of Q313.
-2. **`MeleeRecharge`'s consumer** `FUN_00494EF0` — the cadence, and the first
+`FUN_00494D00` has **no callers and no address references anywhere in the image**.
+That is not the same as having none: a direct `CALL` encodes a *relative*
+displacement, so a byte scan for the absolute address cannot see it, and Ghidra's
+own xrefs are blind wherever code was never analysed. `CallScanAll` finds the one
+site, `0x00498EC8`, in an **unanalysed region** — the same region that reads
+`MeleeAttackType` four times over. The attack code was simply not disassembled.
+
+The swing runs from `0x00498E96`, inside a larger handler whose entry is earlier:
+
+1. **The target comes off the attacker**: `word[attacker+0x399]` is a thing id,
+   checked against the liveness byte table at `0x006ED540` and resolved through the
+   global thing table `0x006EE540`. So **`creature+0x399` is the current target**.
+2. Refuse if `target+0x16 == 2`.
+3. `damage = FUN_00494D00(attackerDef)(attacker)` — §5.1's accessor, which
+   confirms its calling convention from the other side: definition as `this`,
+   creature as the argument.
+4. **Negate it.** Damage reaches the health routine as a negative delta.
+5. A virtual call on the target, vtable slot `+0x34`, must return non-zero — a
+   "does this take a hit at all" predicate.
+6. **A bonus percentage**: a 10-bit field divided by 8, and if the result exceeds
+   **15**, `damage += damage * that / 100`. What the field is, is UNKNOWN.
+7. **A branch per target kind** on `target+0x12`, the thing's class. Kind 0 is
+   handled separately and earlier; kinds 2, 3 and 4 each read one byte out of the
+   target's own definition and call `FUN_004998A0` with it (§6.1).
+8. **A per-player multiplier**: `byte[player+0x1090]`, applied as
+   `damage * (v + 10) / 10` and skipped when it is zero or less. `+0x1091` is read
+   immediately after. Both are UNKNOWN — a keeper spell, a handicap, or a
+   difficulty setting would all look like this.
+
+### 6.1 `FUN_004998A0` is not the resistance step
+
+It was opened expecting resistance, and it is worth recording that it is not, for
+the same reason §3 is recorded.
+
+It searches a **hardcoded table at `0x0069DA38`** — in `.data`, with values
+already in the executable rather than loaded from a KWD — of **37-byte records**
+keyed by a byte at offset 0, linear, terminated by `0xFF`. The key it searches for
+is the **attack type**; the second argument, a byte from the target's definition,
+then picks one of **seven** arms through a jump table at `0x00499A24`, and each arm
+reads a **pair of 16-bit values** from that record (37 = 1 + 8 + 7 x 4).
+
+**It never touches the damage.** It takes an out-pointer, returns `RET 0xC`, and
+the damage register is untouched across all three calls. The values are in a
+170–450 band rather than looking like percentages. So this is most likely **hit
+presentation** — which effect a given attack type makes on a given surface —
+and calling it armour would have been a guess dressed as a finding. What the pairs
+are is UNKNOWN; cross-referencing them against the shipped effect table's id range
+is the cheap next check.
+
+**So the per-creature `Resistances` list still has no reader found.** For a
+creature target the path branches at step 7 into `0x004E0460` and the code around
+it, which is unread.
+
+## 7. What is still unknown, in the order it should be taken
+
+1. **`MeleeRecharge`'s consumer** `FUN_00494EF0` — the cadence, and the first
    thing that can be checked against a stopwatch.
-3. **How `MeleeAttackType` meets a defence.** The unnamed block at
-   `0x00499068`–`0x004991B6` reads it four times over. `CreatureDef` carries a
-   per-creature `Resistances` list; nothing here has yet shown the two meeting.
-4. **Experience from a kill.** `creature-levels.md` records that nothing earns
+2. **Where the `Resistances` list is read.** §6.1 rules out the obvious
+   candidate, so the creature-target branch at `0x004E0460` is next.
+3. **Experience from a kill.** `creature-levels.md` records that nothing earns
    by fighting here because combat does not exist; the adder `FUN_00457880` is
    already read, so this is a question about its callers.
-5. **What decrements a level** (§4).
+4. **What decrements a level** (§4).
 
 ## Confidence
 
@@ -204,4 +257,4 @@ is healing and not combat.
 than one of several — it is the only reader of `def+0x5C4` that is not the
 definition copier, which is strong but is an absence.
 
-**UNKNOWN:** everything in §6. No damage formula end to end, and no attack.
+**UNKNOWN:** everything in §7. No damage formula end to end, and no attack.
