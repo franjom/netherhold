@@ -167,13 +167,13 @@ public static class PrisonRules
         room.OwnerPlayerId == playerId && room.Definition.TypeId == RoomTypeId.Prison;
 
     /// <summary>A free tile in <paramref name="playerId"/>'s nearest prison, or -1
-    /// when every prison is full and -1 when there is no prison at all. Full means no
-    /// delivery, the manual's rule read back ("imps look for the next nearest prison
-    /// with space in it"; with none, "imps stop collecting prisoners"), and because
-    /// <see cref="CarryRules.TryDestinationFor"/> is asked first an imp never sets off
-    /// for a creature it has nowhere to put. Prisons rank by straight-line distance
-    /// from <paramref name="from"/> (Q25) and the lowest free tile index wins inside
-    /// one — row-major, stable, the tie-break <see cref="LairRules"/> uses.</summary>
+    /// when every prison is full and -1 when there is no prison at all — the manual's
+    /// "imps look for the next nearest prison with space in it". Prisons rank by
+    /// straight-line distance from <paramref name="from"/> (Q25) and the lowest free
+    /// tile index wins inside one — row-major, stable, the tie-break
+    /// <see cref="LairRules"/> uses.
+    /// <para>Not by itself a reason to set off: that is
+    /// <see cref="DeliveryTileIn"/>, which walks to a full prison too.</para></summary>
     public static int FreeTileIn(
         WorldState world, GameDatabase database, byte playerId, TilePos from)
     {
@@ -200,6 +200,72 @@ public static class PrisonRules
         }
 
         return best;
+    }
+
+    /// <summary>Where a carried enemy is taken: a free cell when one of this keeper's
+    /// prisons has one, and otherwise the <b>rim</b> of the nearest prison that has
+    /// none. -1 only when the keeper has no prison at all.
+    /// <para>DK2 checks capacity at the door, not before the pickup: an imp drags a
+    /// downed enemy to a full prison, admission fails and the body is left bleeding on
+    /// the rim, while a prison with space is preferred over one without (CONFIRMED,
+    /// owner 2026-09-13; ADR-0148). Which rim tile and how ties between eligible
+    /// prisons break are UNKNOWN; nearest by the same measure as everywhere else.</para></summary>
+    public static int DeliveryTileIn(
+        WorldState world, GameDatabase database, byte playerId, TilePos from)
+    {
+        int free = FreeTileIn(world, database, playerId, from);
+        if (free >= 0) return free;
+
+        int best = -1;
+        long bestDistance = long.MaxValue;
+
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
+            if (!IsPrisonOf(room, playerId)) continue;
+
+            foreach (int tileIndex in room.TileIndices)
+            {
+                if (room.IsInterior(tileIndex)) continue;
+
+                long dx = (tileIndex % world.Width) - from.X;
+                long dy = (tileIndex / world.Width) - from.Y;
+                long distance = (dx * dx) + (dy * dy);
+                if (distance >= bestDistance) continue;
+
+                bestDistance = distance;
+                best = tileIndex;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>Whether <paramref name="creature"/> is standing on a tile of one of
+    /// <paramref name="playerId"/>'s prisons, cell or rim.</summary>
+    public static bool StandsInPrisonOf(
+        WorldState world, GameDatabase database, CreatureState creature, byte playerId)
+    {
+        int tileIndex = (creature.Tile.Y * world.Width) + creature.Tile.X;
+        RoomInstance? room = RoomIndex.RoomAt(world, database, tileIndex);
+
+        return room is not null && IsPrisonOf(room, playerId);
+    }
+
+    /// <summary>Whether a prisoner may be put into this tile <i>now</i>: it is a cell —
+    /// an interior tile — of one of <paramref name="playerId"/>'s prisons, that prison
+    /// is under <see cref="Capacity"/>, and nobody is standing on it. Asked at the door
+    /// so that a prison which filled during the walk turns the body away.</summary>
+    public static bool AdmitsAt(
+        WorldState world, GameDatabase database, byte playerId, int tileIndex)
+    {
+        if (tileIndex < 0 || tileIndex >= world.Width * world.Height) return false;
+
+        RoomInstance? room = RoomIndex.RoomAt(world, database, tileIndex);
+        if (room is null || !IsPrisonOf(room, playerId)) return false;
+        if (!room.IsInterior(tileIndex)) return false;
+        if (PrisonerCount(world, room) >= Capacity(room)) return false;
+
+        return PrisonerOn(world, tileIndex) is null;
     }
 
     /// <summary>How many prisoners stand in <paramref name="room"/>.</summary>

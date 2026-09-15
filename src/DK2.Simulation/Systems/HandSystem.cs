@@ -173,18 +173,17 @@ public sealed class HandSystem : ISimulationSystem
 
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
 
-        // The hole is the one unwalkable tile a keeper may drop onto, so the
-        // walkability refusal is asked second: the portal's centre is "not
-        // walkable" and is "for hand of evil to throw creatures in" (Q88,
-        // CONFIRMED by the owner). A prisoner is refused the tile rather than
-        // freed onto it - whether DK2 ejects an enemy captive dropped into its
-        // own portal is UNKNOWN, and refusing leaves ADR-0064 untouched.
-        bool intoTheHole = !PrisonRules.IsImprisoned(creature)
-            && PortalRules.IsHoleTile(
-                world, context.Database, command.Tile, command.PlayerId);
+        // Disposal's tiles are the ones a keeper may drop onto though nothing may
+        // stand there, so the walkability refusal is asked second: a portal's
+        // centre for anything but a worker, a heart's platform for a worker
+        // (DisposalRules, ADR-0148). A prisoner is refused both - DK2 does not
+        // take a captive through a portal (CONFIRMED, owner 2026-09-13).
+        bool disposed = !PrisonRules.IsImprisoned(creature)
+            && DisposalRules.Disposes(
+                world, context.Database, definition, command.Tile, command.PlayerId);
 
         var grid = new WorldPathGrid(context.Database, world, definition);
-        if (!intoTheHole && !grid.IsWalkable(command.Tile.X, command.Tile.Y))
+        if (!disposed && !grid.IsWalkable(command.Tile.X, command.Tile.Y))
         {
             context.Emit(SystemName, "drop_refused",
                 $"player={command.PlayerId} creature={creature.Id} " +
@@ -212,13 +211,12 @@ public sealed class HandSystem : ISimulationSystem
         creature.MoveRemainder = 0;
         creature.ClearJob();
 
-        // Thrown into the portal: how a keeper gets rid of a creature (Q88,
-        // CONFIRMED by the owner 2026-09-07), and the same removal by the same
-        // event kind that a deserter reaching a portal gets. The gold goes with
-        // it rather than spilling - "a creature leaving (BEING THROWN) through
-        // portal does not drop its gold" (Q137, owner). A captive never gets
-        // here: see intoTheHole above.
-        if (intoTheHole)
+        // Thrown away: the same removal by the same event kind that a deserter
+        // reaching a portal gets, at whichever of the two tiles took it. The gold
+        // goes with it rather than spilling - "a creature leaving (BEING THROWN)
+        // through portal does not drop its gold" (Q137, owner); an imp's gold at
+        // the heart is assumed to go the same way (ADR-0148). No captive here.
+        if (disposed)
         {
             context.Emit(SystemName, "creature_left",
                 $"creature={creature.Id} type={definition.Name} " +

@@ -1398,10 +1398,10 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// kinds and searches them in order — an unconscious creature anywhere on
     /// the map outranks a corpse at the imp's feet. Within a kind the nearest by
     /// walking wins (HYPOTHESIS, Q25).</para>
-    /// <para><b>A body with nowhere to go is not taken.</b> The destination is
-    /// settled before the walk, not on arrival: a collapsed creature whose bed
-    /// was sold has nowhere to be carried, and an enemy has nowhere at all until
-    /// there is a prison.</para>
+    /// <para><b>A body with nowhere to go is not taken</b>: a collapsed creature
+    /// whose bed was sold, and an enemy whose keeper has no prison at all. A
+    /// <i>full</i> prison is not that case - the imp carries the enemy there and
+    /// is turned away at the door (ADR-0148).</para>
     /// </summary>
     private bool TryTakeBody(
         SimulationContext context, CreatureState creature, CreatureDef definition,
@@ -1610,12 +1610,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         // Somebody else's creature goes into a cell rather than a bed - kind
         // 13's other branch, and the only route into a prison there is
-        // (ADR-0064). The cell was chosen before the walk began, so all that is
-        // left is to check nobody took it in the meantime.
+        // (ADR-0064). Admission is decided HERE, at the door: a prison that was
+        // full when the imp set off, or filled up during the walk, turns the
+        // body away and it is left on the rim (ADR-0148).
         if (body.OwnerPlayerId != creature.OwnerPlayerId)
         {
             int cell = creature.TargetTileIndex;
-            if (PrisonRules.PrisonerOn(world, cell) is null
+            if (PrisonRules.AdmitsAt(world, context.Database, creature.OwnerPlayerId, cell)
                 && PrisonRules.Imprison(
                     world, context.Database, body, creature.OwnerPlayerId, cell))
             {
@@ -1628,7 +1629,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
             {
                 context.Emit(SystemName, "body_dropped",
                     $"imp={creature.Id} body={body.Id} " +
-                    $"at=({creature.Tile.X},{creature.Tile.Y}) reason=cell_taken");
+                    $"at=({creature.Tile.X},{creature.Tile.Y}) reason=not_admitted");
             }
 
             GoIdle(creature);

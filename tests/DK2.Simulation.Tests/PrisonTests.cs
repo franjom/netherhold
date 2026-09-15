@@ -180,10 +180,13 @@ public class PrisonTests
     }
 
     [Fact]
-    public void AnImpWillNotDeliverIntoAPrisonThatIsFull()
+    public void AnImpCarriesToAFullPrisonAndIsTurnedAwayAtTheDoor()
     {
-        // The manual: imps try the next nearest prison with space, and when
-        // there is none they stop collecting prisoners altogether.
+        // CONFIRMED (owner, 2026-09-13): capacity is checked at delivery, not
+        // before the pickup. The imp drags the body to the prison, admission
+        // fails, and it is left bleeding on the rim (ADR-0148). This test used
+        // to assert the opposite under the manual's wording, which says where
+        // an imp goes and not when it gives up.
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
@@ -196,10 +199,60 @@ public class PrisonTests
         Down(enemy);
         world.SpawnCreature(db, ImpId, Keeper, Floor);
 
-        GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 20 * Second; i++) sim.Tick();
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int i = 0; i < 30 * Second; i++) sim.Tick();
 
         Assert.False(PrisonRules.IsImprisoned(enemy));
+        Assert.Contains(sink.Events, e =>
+            e.Kind == "body_dropped" && e.Detail.Contains("reason=not_admitted"));
+
+        // It ends up on the room, and on the rim rather than in the one cell.
+        RoomInstance prison = RoomIndex.Build(world, db)
+            .Single(r => r.Definition.TypeId == RoomTypeId.Prison);
+        int at = (enemy.Tile.Y * world.Width) + enemy.Tile.X;
+        Assert.Contains(at, prison.TileIndices);
+        Assert.False(prison.IsInterior(at));
+
+        // And it is left there: no second carry, so no pick-up-and-drop loop.
+        Assert.Single(sink.Events, e => e.Kind == "body_dropped");
+    }
+
+    [Fact]
+    public void APrisonWithSpaceTakesTheBodyAFullerOneWouldRefuse()
+    {
+        // The other half of the same observation: a full prison does not stop
+        // the imp, and a prison with space is where the body actually goes.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+
+        // A second prison further off, with three interior tiles of its own.
+        for (int y = 1; y <= 4; y++)
+        {
+            for (int x = 9; x <= 13; x++)
+            {
+                ref TileState tile = ref world.Tile(x, y);
+                tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+                tile.OwnerPlayerId = Keeper;
+            }
+        }
+        for (int y = 1; y <= 3; y++)
+            for (int x = 9; x <= 13; x++)
+                Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+
+        Prisoner(db, world, CellA);
+        Prisoner(db, world, CellB);
+
+        CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
+        Down(enemy);
+        world.SpawnCreature(db, ImpId, Keeper, Floor);
+
+        GameSimulation sim = Simulation(db, world);
+        for (int i = 0; i < 90 * Second; i++) sim.Tick();
+
+        Assert.True(PrisonRules.IsImprisoned(enemy));
+        Assert.True(enemy.Tile.X >= 9);
     }
 
     [Fact]

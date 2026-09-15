@@ -3237,3 +3237,49 @@ same one and no rounding enters.
   1.0 and 3.0 both admit for ever.
 - Slot 1 is never budgeted, only required to exist (`PortalRules.IsAttracted`).
 
+## ADR-0148 — Two disposal tiles, and the prison decides at the door
+
+**Status.** Accepted 2026-09-15.
+
+**Context.** Owner play on 2026-09-13 recorded three divergences and built none
+of them. Two are behavioural rules with no missing rooms behind them: disposal
+has **two** unwalkable targets rather than one, and a prison refuses a delivery
+**at the door** rather than before the imp sets off.
+
+**Decision 1: `DisposalRules`, and the two targets are exclusive.** A portal's
+hole takes anything that is not a worker; a dungeon heart's raised platform takes
+a worker and nothing else. Both bypass the walkability refusal in
+`HandSystem.Drop`, as the hole alone did (ADR-0084); neither bypasses ownership,
+so a rival's heart is refused the way a rival's portal already was. A captive is
+refused both, which is now CONFIRMED rather than the conservative fallback it was
+chosen as.
+
+**Decision 2: capacity is checked at delivery.** `PrisonRules.DeliveryTileIn`
+gives a free cell where one exists and the nearest full prison's **rim** where
+none does, so the imp sets off either way; `PrisonRules.AdmitsAt` decides at the
+door, and a prison that filled during the walk turns the body away. The manual's
+*"imps stop collecting prisoners"* describes a keeper with **no** prison, which
+is still -1 and still nobody setting off.
+
+**Consequences.**
+
+- A keeper whose prisons are full now has imps that carry and are refused,
+  leaving bodies on the rim. That is work where there was none, and it is what
+  DK2 does.
+- `HashVersion` is untouched: no world state is added, and no scenario moved.
+
+**Assumptions, stated rather than hidden.**
+
+- **Which heart tile** takes an imp is UNKNOWN; all nine of the platform are
+  taken, because all nine are the structure (Q312).
+- **An imp's gold** at the heart is assumed to go with it, as a creature's does
+  through a portal (Q137). Untested either way (Q312).
+- **Heart disposal is worker-only** here. The owner's *"refused there and
+  discarded through the Heart instead"* reads as a swap; whether a goblin dropped
+  on a heart is also disposed of is UNKNOWN (Q312).
+- **Ours, not DK2's:** a body already lying at a prison that will not take it is
+  not picked up again, or the imp would carry it round the room for ever. The
+  end state is the owner's; the guard is ours.
+- Which rim tile a refused body lands on, and how ties between eligible prisons
+  break, remain UNKNOWN.
+

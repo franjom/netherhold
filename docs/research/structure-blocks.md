@@ -77,8 +77,15 @@ so the behaviour is asserted by a test rather than left to that coincidence.
 hole unwalkable made it undroppable — the opposite of what the tile is for.
 
 **There are two unwalkable disposal targets:** the portal hole for non-Imps and
-the Dungeon Heart for Imps (owner, 2026-09-13). The current implementation only
-special-cases the portal and therefore gets both sides of the Imp rule wrong.
+the Dungeon Heart for Imps (owner, 2026-09-13). **Built 2026-09-15 as ADR-0148**,
+in `DisposalRules`, asked before the walkability refusal. The two are **exclusive**:
+a worker is refused the hole, and anything else is refused the platform. Neither
+bypasses ownership, so a rival's heart is refused the way a rival's portal was.
+
+What is assumed rather than seen, all of it Q312: **which** of the heart's nine
+platform tiles DK2 accepts (all nine are taken here), whether an imp's **gold** goes
+with it as a portal's victim's does, and whether the exclusivity is real or whether
+a heart also swallows a goblin.
 
 ### 4.1 The gold goes with it, and the owner already said so
 

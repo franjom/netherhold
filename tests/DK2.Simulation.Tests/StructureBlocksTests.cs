@@ -294,6 +294,90 @@ public sealed class StructureBlocksTests
     }
 
     [Fact]
+    public void AnImpIsRefusedThePortalAndGoesThroughTheHeartInstead()
+    {
+        // CONFIRMED (owner, 2026-09-13): disposal has two tiles and they are
+        // exclusive. The imp is refused the hole a goblin leaves through, and
+        // leaves through the heart's platform instead, which is why this test
+        // asserts both halves of the same drop.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Claim(world, 1, 1, 14, 10);
+        Paint(db, world, RoomTypeId.Portal, 2, 2, 4, 4);
+        Paint(db, world, RoomTypeId.DungeonHeart, 8, 4, 12, 8);
+
+        CreatureState imp = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
+        var events = new ListEventSink();
+
+        var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
+        sim.ObserveWith(events);
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(3, 3))));
+
+        Assert.Contains(world.Creatures, c => c.Id == imp.Id);
+        Assert.Contains(events.Events, e => e.Kind == "drop_refused");
+
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
+
+        Assert.DoesNotContain(world.Creatures, c => c.Id == imp.Id);
+        SimEvent left = Assert.Single(events.Events, e => e.Kind == "creature_left");
+        Assert.Contains("at=(10,6)", left.Detail);
+    }
+
+    [Fact]
+    public void AGoblinPutOnTheHeartsPlatformIsRefusedRatherThanDisposedOf()
+    {
+        // The other half of "exclusive": the heart is the worker's tile, so a
+        // goblin meets the ordinary unwalkable refusal there. Which of the nine
+        // platform tiles DK2 accepts is UNKNOWN; all nine are taken (ADR-0148).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Claim(world, 1, 1, 14, 10);
+        Paint(db, world, RoomTypeId.DungeonHeart, 8, 4, 12, 8);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
+        var events = new ListEventSink();
+
+        var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
+        sim.ObserveWith(events);
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
+
+        Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
+        Assert.Contains(events.Events, e => e.Kind == "drop_refused");
+
+        // The ring around the platform is ordinary heart floor, and takes it.
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(8, 4))));
+        Assert.Equal(new TilePos(8, 4), goblin.Tile);
+    }
+
+    [Fact]
+    public void AnImpIsRefusedARivalsHeartTheWayItIsRefusedARivalsPortal()
+    {
+        // Disposal never bypasses ownership, only walkability.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Claim(world, 1, 1, 14, 10);
+        Paint(db, world, RoomTypeId.DungeonHeart, 8, 4, 12, 8, owner: Rival);
+
+        CreatureState imp = world.SpawnCreature(
+            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
+        var events = new ListEventSink();
+
+        var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
+        sim.ObserveWith(events);
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
+
+        Assert.Contains(world.Creatures, c => c.Id == imp.Id);
+        Assert.Contains(events.Events, e => e.Kind == "drop_refused");
+    }
+
+    [Fact]
     public void APrisonerIsRefusedTheHoleRatherThanPostedHomeOrFreedOntoIt()
     {
         // A deliberate narrowing, flagged in the code too. Whether DK2 lets a

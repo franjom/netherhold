@@ -356,12 +356,11 @@ duration in ticks and not a live mechanism disabled by its value (Q160, binary,
 ## 8. What is built beyond a creature, and what is not
 
 **Built.** Objects and creatures share one LIFO array. A prisoner returned to the
-dropper's prison is re-imprisoned; elsewhere it is freed. Portal disposal exists.
-
-**Confirmed but wrong here:** ordinary and converted goodly creatures use the
-portal; Imps are refused and discarded through the Heart (owner, 2026-09-13).
-Ours accepts an Imp at a portal and refuses the Heart. Captive portal use remains
-refused, correctly (`structure-blocks.md` §4.2; ADR-0084).
+dropper's prison is re-imprisoned; elsewhere it is freed. **Both** disposal tiles
+exist as of 2026-09-15: ordinary and converted goodly creatures go through a
+portal's hole with their gold, an Imp is refused there and goes through the
+Heart's platform instead, and a captive is refused both (`DisposalRules`,
+ADR-0148; `structure-blocks.md` §4.2). What is assumed inside that is Q312.
 
 **Not built:**
 
