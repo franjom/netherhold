@@ -211,6 +211,33 @@ The swing runs from `0x00498E96`, inside a larger handler whose entry is earlier
    immediately after. Both are UNKNOWN — a keeper spell, a handicap, or a
    difficulty setting would all look like this.
 
+### 6.0 The attack routine is `FUN_00498E34`, and nothing references it
+
+The call site above sat in code Ghidra had never turned into a function, so every
+caller query over it answered "in -". Measured on 2026-09-15: **25.2% of `.text`
+lay outside any defined function**, 1,953 runs of it, and **1,652 of those runs
+were already disassembled** — known to be code, simply unattributed. The heads
+are `83 EC xx`, an ESP frame, which is why `ForceFunc.py`'s walk back to
+`push ebp; mov ebp,esp` never reached them.
+
+`ForceGaps.py` (new) defines a function at the head of every uncovered run. It
+took the block from **8,338 functions to 10,186** and the gap from 25.2% to
+**16.2%**, and the four `MeleeAttackType` reads now attribute to one function:
+**`FUN_00498E34`**, which is the attack routine's entry and contains §6's whole
+sequence. The positive control still returns 226.
+
+**Nothing in the image refers to that function.** No `E8`/`E9` rel32 targets it,
+and its address appears nowhere as bytes — not in `.text`, not in `.rdata`, not
+in `.data`. The function before it ends in a clean `RET` and does not jump in.
+
+**The likely reason, and it is testable.** `creature-state-table.md` puts the 281
+state records at `0x006DA8B0` with each handler at `+0`, inside
+`0x006CCC00`–`0x007A6DCF` — a region **not present in the file on disk**. A
+handler reached only through a table built at runtime would look exactly like
+this. So the HYPOTHESIS is that the attack is a **creature state handler**, and
+the probe is to find which state's record holds `0x00498E34`. What writes that
+table is not a literal store of the address, because no such store exists.
+
 ### 6.1 `FUN_004998A0` is not the resistance step
 
 It was opened expecting resistance, and it is worth recording that it is not, for
@@ -237,14 +264,16 @@ it, which is unread.
 
 ## 7. What is still unknown, in the order it should be taken
 
-1. **`MeleeRecharge`'s consumer** `FUN_00494EF0` — the cadence, and the first
+1. **Which state record holds `FUN_00498E34`** (§6.0). It decides whether combat
+   is a creature state, and with it how an attack is entered at all.
+2. **`MeleeRecharge`'s consumer** `FUN_00494EF0` — the cadence, and the first
    thing that can be checked against a stopwatch.
-2. **Where the `Resistances` list is read.** §6.1 rules out the obvious
+3. **Where the `Resistances` list is read.** §6.1 rules out the obvious
    candidate, so the creature-target branch at `0x004E0460` is next.
-3. **Experience from a kill.** `creature-levels.md` records that nothing earns
+4. **Experience from a kill.** `creature-levels.md` records that nothing earns
    by fighting here because combat does not exist; the adder `FUN_00457880` is
    already read, so this is a question about its callers.
-4. **What decrements a level** (§4).
+5. **What decrements a level** (§4).
 
 ## Confidence
 
