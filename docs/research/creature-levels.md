@@ -20,6 +20,18 @@ exist (M7).
 Confidence: **CONFIRMED** for the table, the indexing and the adder's clauses;
 **CONFIRMED (owner)** that levelling happens at all.
 
+**The runtime side was read on 2026-09-15 and agrees** (`combat.md` §4). The 32 x 9
+table lives in the cached global block at `[0x006E4154]` = `0x006F2550`, one row of
+nine `int16` per stat at `+0xE1 + (stat - 1) * 18`, and every consumer applies it the
+same way: level 1 uses the record value unchanged, and any other level takes
+`record * percent / 100` through a real signed divide. `CreatureLevelRules.Scale` and
+`GameDatabase.StatPercent` match that instruction for instruction, sign included.
+Two stat rows were read off their consumers and four more were **predicted from the
+stride and then found**, so the arithmetic is tested rather than fitted.
+
+**One path here is missing: a level can go down.** `FUN_0048AFA0` decrements
+`creature+0x403`. What triggers it is UNKNOWN; `CreatureLevelRules` only grants.
+
 ---
 
 ## 2. The table

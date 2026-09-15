@@ -267,7 +267,7 @@ slapping calms it; being held annoys it).
 ## 4. The collapse window rejects further damage — CONFIRMED (binary, Q110)
 
 The cached `CreatureDyingStateDurationSeconds` value has one live reader, in the
-common creature-health routine. On the first blow that puts an eligible creature
+common creature-health routine, **`FUN_004B2CE0`** (`combat.md` §1, where its "mode" argument is named). On the first blow that puts an eligible creature
 down, that routine loads `60 * 4` into the creature's health/countdown field and
 sets the `CreatureDying` flag. The two dying-state handlers are states `0xd8` and
 `0xd9`; `0xd9` advances that countdown by calling the same health routine with
