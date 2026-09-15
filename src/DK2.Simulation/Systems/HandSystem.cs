@@ -203,10 +203,14 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
+        // A captive is not an offering. Whether DK2 lets a keeper sacrifice one is
+        // UNKNOWN (Q314); ADR-0064's "dropped anywhere that is not a prison tile, a
+        // prisoner goes free" is CONFIRMED by the owner, so it wins until asked.
         int landingTileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
         TempleSacrificeRules.Reconcile(world, context.Database);
         RoomInstance? temple = RoomIndex.RoomAt(world, context.Database, landingTileIndex);
-        if (TempleSacrificeRules.IsTemple(temple, command.PlayerId))
+        if (!PrisonRules.IsImprisoned(creature)
+            && TempleSacrificeRules.IsTemple(temple, command.PlayerId))
         {
             hand.RemoveAt(hand.Count - 1);
             creature.InHand = false;
@@ -228,8 +232,8 @@ public sealed class HandSystem : ISimulationSystem
         // Thrown away: the same removal by the same event kind that a deserter
         // reaching a portal gets, at whichever of the two tiles took it. The gold
         // goes with it rather than spilling - "a creature leaving (BEING THROWN)
-        // through portal does not drop its gold" (Q137, owner); an imp's gold at
-        // the heart is assumed to go the same way (ADR-0148). No captive here.
+        // through portal does not drop its gold" (Q137, owner), and an imp's gold
+        // vanishes with it at the heart too (owner, 2026-09-15). No captive here.
         if (disposed)
         {
             context.Emit(SystemName, "creature_left",

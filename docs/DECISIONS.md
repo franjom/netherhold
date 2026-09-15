@@ -3270,13 +3270,11 @@ is still -1 and still nobody setting off.
 
 **Assumptions, stated rather than hidden.**
 
-- **Which heart tile** takes an imp is UNKNOWN; all nine of the platform are
-  taken, because all nine are the structure (Q312).
-- **An imp's gold** at the heart is assumed to go with it, as a creature's does
-  through a portal (Q137). Untested either way (Q312).
-- **Heart disposal is worker-only** here. The owner's *"refused there and
-  discarded through the Heart instead"* reads as a swap; whether a goblin dropped
-  on a heart is also disposed of is UNKNOWN (Q312).
+- ~~Three assumptions about the heart~~ **withdrawn 2026-09-15**: the owner
+  supplied screenshots of both halves (Q312, closed). It is the **single centre
+  tile** of a heart that takes an imp, not the raised 3x3; the imp's **gold
+  vanishes with it**; and a **goblin is refused** the heart outright, so the two
+  disposal tiles really are exclusive. A dungeon heart is **always 5x5**.
 - **Ours, not DK2's:** a body already lying at a prison that will not take it is
   not picked up again, or the imp would carry it round the room for ever. The
   end state is the owner's; the guard is ours.

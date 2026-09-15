@@ -63,7 +63,9 @@ public static class TempleSacrificeRules
         WorldState world, GameDatabase database, RoomInstance temple,
         ObjectState thing, int offeringTileIndex)
     {
-        if (database.ObjectById(thing.ObjectTypeId)!.IsGold)
+        // Not null-forgiving: a level may name an object the OBJECTS table does not
+        // have, which ImpTaskSystem already handles rather than crashing on.
+        if (database.ObjectById(thing.ObjectTypeId)?.IsGold == true)
         {
             world.RemoveObject(thing.Id);
             return new SacrificeResult(false, GoldSpeechId, SacrificeRewardKind.None, -1);

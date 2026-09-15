@@ -256,6 +256,29 @@ public class PrisonTests
     }
 
     [Fact]
+    public void APrisonerDroppedOnATempleGoesFreeRatherThanBeingSacrificed()
+    {
+        // ADR-0064 is CONFIRMED by the owner on both halves: back onto the
+        // dropper's own prison and the captive is jailed again, anywhere else and
+        // it goes free. A Temple tile is anywhere else. Whether DK2 lets a keeper
+        // sacrifice a captive is UNKNOWN, so the confirmed rule wins until asked.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+
+        ref TileState templeTile = ref world.Tile(2, 7);
+        RoomRules.Place(db, ref templeTile, db.Room(RoomTypeId.Temple), Keeper);
+
+        CreatureState captive = Prisoner(db, world, CellB);
+
+        GameSimulation sim = Simulation(db, world);
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(2, 7))));
+
+        Assert.Contains(world.Creatures, c => c.Id == captive.Id);
+        Assert.False(PrisonRules.IsImprisoned(captive));
+    }
+    [Fact]
     public void ThreeByThreeIsDk2sSmallestPrisonAndItHoldsTwo()
     {
         // CONFIRMED off DK2's own status bar (owner, 2026-09-06):
