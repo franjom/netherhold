@@ -66,6 +66,15 @@ grep -oE '^\| \*{0,2}Q[0-9]+' docs/research/open-questions.md \
 
 Combat (Q8), hero-party spawning and effect-generator behaviour (their state exists; Q254–Q259), every keeper spell but Create Imp, door and trap behaviour (their state exists; Q249–Q253), the creature trigger walker (the other three run; `trigger-walkers.md`), most trigger action types and 31 of the 46 shipped condition types — `dk2tools trigger-run` prints each stall and the records it gates; ADR-0125 owns the full accounting — objectives, win/lose/defeat (a fallen heart is not claimable — Q207/Q93), the research tree (accrual only), Workshop/Casino/Torture/Guard Room/Combat Pit behaviour, Temple prayer and sacrifice action `0x87`, Graveyard beyond receiving corpses, wandering (Q41), vampire reincarnation (Q111), the pathfinder is an admitted placeholder (ADR-0012, Q5). Unity: `DungeonScene` has no branch that loads the converter's glTF/PNG (Unity ships no runtime glTF importer); boxes rather than DK2's walls (Q71).
 
+### How to keep this file from lying
+
+**A claim that something has NOT happened carries a date.** Added 2026-09-15:
+`dk2tools docs --check` fails any line here matching *never / not yet / awaits /
+still no* that has no `20xx-xx-xx` on it. It exists because this file claimed the
+input channel awaited its first capture five days after runs 13 and 14 closed it,
+and that was handed to the owner as a request for work already done. **Prefer a
+pointer to a restatement:** every stale line here was a copied conclusion.
+
 ### Standing caveats — each still true on 2026-09-08
 
 - **One deliberate departure from shipped data:** `DigRockHealth` −5000 is corrected to −500 because the owner measured two swings to dig a wall (ADR-0023, Q20). `ObservedCorrections` is the only place such a number may live, and lists the five conditions for adding one.
@@ -74,7 +83,7 @@ Combat (Q8), hero-party spawning and effect-generator behaviour (their state exi
 - **The determinism pin holds two creatures** (Q206, done 2026-09-10), so `CreatureState.HashInto` is guarded at last — but the gate registers no creature *system*, so the chaos system is the only thing that moves them.
 - **A trigger timer's unit depends on where you read it** (ADR-0102 amendments): the `.kld` holds **seconds**, DK2's level trigger initialiser multiplies by variable 19 in place at load (`0x0050C2DB` in `FUN_0050B5B0`, condition types 2 and 34, action types 16 and 23), the comparison consumes **ticks**, and a save game would contain the scaled value. Confirmed by reading level 1's condition array out of the running game: all 22 timer thresholds held the authored value times four. Ours takes seconds and converts in `HasElapsed`; when the `.kld` trigger loader is written the conversion must happen exactly once — there or at the comparison, never both.
 - **Install-gated tests skip, they do not pass** (ADR-0100, `tests/DK2.TestSupport/InstallGate.cs`): `[InstallFact]`/`[InstallTheory]` set `Skip` when `Dk2Install.Find()` is null; `InstallGateTests` fails the build if a `return`-on-null reappears; `DK2_REQUIRE_INSTALL=1` turns a missing install into a failure. CI (`.github/workflows/ci.yml`, Linux + Windows) sets `DK2_DIR: /nonexistent`, so every real-data test is reported skipped there.
-- **Simulation speed has never been measured** (goal 9, `GOAL_ALIGNMENT.md`).
+- **Simulation speed has never been measured** (still true 2026-09-15; goal 9, `GOAL_ALIGNMENT.md`).
 - **Timing is DK2's own**: `TicksPerSecond = 4`, a tick is 250 ms (ADR-0089), now **observed** as well as read — a memory reader attached to a running DKII-dx.EXE clocked 3.94 ticks/s over two runs with variable 19 read live as 4 (ADR-0102 amendment). `TicksPerSecond` (ours, refinable) and `OriginalTicksPerGameSecond` (DK2's, a fact) are equal and kept separate on purpose. Every tick count in a scenario log is a wall-clock claim; several scenario budgets are longer than their authors intended.
 - **Reference install:** `E:\GogGames\Dungeon Keeper 2` (GOG; `DKII.EXE` MD5 `2f3bbc21eae8c3aa468136baa303036d`, = v1.70 STRONGLY INFERRED, Q10), resolved by `DK2.Data.Dk2Install`; `DK2_DIR` is authoritative when set — an invalid `DK2_DIR` means *no install*, no fallback.
 
@@ -156,7 +165,7 @@ The smoke test loads campaign level 1 (30x38) through Unity's Mono runtime, pres
 
 **Live memory reader** (same directory, same gitignore): `python reverse-engineering/dk2watch.py --seconds 300 --csv D:\run.csv`. Attaches to `DKII-dx.EXE` **or** `DKII.EXE` with `PROCESS_VM_READ` only — the two exes differ in 1126 of 2,987,568 bytes and none is in `.text`, `cseg` or `.data`, so every address is valid for both. It prints the cached world pointers, variable 19, the record counts and every type-2 timer threshold, then samples the flag bank, timer bank, tick counter and root trigger id at the tick rate into a 150-column CSV. **Load the level first**; it waits for a real level, because the front end is itself one (1 condition, 1 action) and a non-null pointer is not proof. It accumulates the tick counter across a level load, which resets it. Fullscreen is fine — DK2 has no windowed switch and DDrawCompat's borderless mode crashed level load here.
 
-**Recording what the player did.** A tagged tile is not a bit on the tile: DK2 keeps a per-player **task pool**, one entry per marked tile, reachable at `playerArray + id*4389 - 0x20` (equivalently `player+0x1105`). Fifteen singly-linked kind lists, kinds 1 and 2 being the tagged tiles; head index at `pool+0x4656+kind*2`, live word at `+0x4678+kind*2`, entries 36 bytes at `pool+index*36` with `x:u16@0`, `y:u16@2`, next index `u16@0x1F`, zero ending the list. `dk2watch.py --tags <out.csv>` diffs it per sample and writes `wall,tick,player,event,kind,x,y` — a command log, which is the recording half of the input channel M5 needs (ADR-0126, ADR-0127, `player-task-pool.md`). **Never sampled from a live game yet**: the first capture is also the first test of the layout.
+**Recording what the player did.** A tagged tile is not a bit on the tile: DK2 keeps a per-player **task pool**, one entry per marked tile, reachable at `playerArray + id*4389 - 0x20` (equivalently `player+0x1105`). Fifteen singly-linked kind lists, kinds 1 and 2 being the tagged tiles; head index at `pool+0x4656+kind*2`, live word at `+0x4678+kind*2`, entries 36 bytes at `pool+index*36` with `x:u16@0`, `y:u16@2`, next index `u16@0x1F`, zero ending the list. `dk2watch.py --tags <out.csv>` diffs it per sample and writes `wall,tick,player,event,kind,x,y,type,data,id,workers` — a command log, which is the recording half of the input channel M5 needs (ADR-0126, ADR-0127, ADR-0131, `player-task-pool.md`). **Sampled live and CLOSED (2026-09-10, runs 9–14, `EXPERIMENTS.md`):** run 9's replay applied 30 marks with none rejected (Q287, so the coordinates are tile coordinates), and runs 13 and 14 fed the recorded input back through `InputLog` — DK2-only events fell from 3 to **0**, twice, on controlled three-mark captures. What is left is rate, not input: two imp-driven flags fire 37 and 28 ticks early.
 
 **Reading a condition arm.** `DispatchMap.py` prints `index + 1`, so a true type is **printed + base - 1** — `+18` for the player table (byte table `0x004C85E8`, 56 entries, jump table `0x004C8580`); the world table is base 1, so printed == type (byte `0x0051897C`, 67, jump `0x00518950`). Get the context first: a type is dispatched by its own walker's table and only then delegated, so the same number is a different arm in a player tree and in the world tree — `dk2tools trigger-run` prints it. Then check the *shipped* parameter distribution before implementing (`dk2tools kwd trigger-params 213 <type> <name>`): types 27 and 28 have an availability mode that is easy to read and that **no shipped record uses**, so building it would have moved nothing. `docs/research/trigger-dispatch-tables.md`.
 
@@ -178,12 +187,12 @@ Agreed order as of 2026-09-08 (M0–M4 closed; the research queue's head is clea
    - **Hero-party spawning and effect-generator behaviour** (Q254–Q259): verbatim state is built (ADR-0108); action type 14 spawning and generator cadence/effects are UNKNOWN.
    - Level scripting is enumerated: 3,753 generic records over 46 types and 5,408 action records over 38 types in the shipped corpus (`trigger-semantics.md`, `dk2tools kwd trigger-types`); `RESEARCH_STATUS.md` counts 51 action types including those the corpus never uses (Q225). Q220/Q221 remain the two open record-layout questions, Q223 the ROOM-owner disagreement.
 3. **Rooms still without behaviour:** Workshop (manufacture, category 5 hook), Casino, Torture Chamber and conversion (category 15's hook can kill on conversion at a zero rate, ADR-0085), Guard Room, Combat Pit (including the fallback DK2 gives a creature that has outgrown the training room — ours refuses it and ejects a capped trainee one five-second gate late; and its loser is **knocked out, not killed**, dying only if no imp carries it to its bed in time — owner, Q310 — so the pit needs no death path of its own: it produces `IsDown` and every consequence is already built), Temple keeper-spell intake (`0x87`; sacrifice otherwise built, ADR-0149), Graveyard (1000 life-force → Vampire, `CreatedCreatureId` 8; reincarnation Q111 was deferred until levels existed — levels exist now).
-5. **Wire the attraction budget** (`auto-placed-furniture.md`, Q89/Q270). Generic floor and wall furniture, Temple Hand, Hatchery coops, object ownership, and the five furniture-count capacity arms are built. Binary research resolved the extra wall-grid bit as cached `Solid`, so the wall pass now requires both `Solid` and `AllowRoomWalls`; sorted order still stands in for DK2's construction-order phase. `PortalRules.IsAttracted` remains boolean; the Lair is the uncapped special case and the Temple contributes 2 iff its Hand exists.
+5. **Wire the attraction budget** (`auto-placed-furniture.md`, Q89/Q270). Generic floor and wall furniture, Temple Hand, Hatchery coops, object ownership, and the five furniture-count capacity arms are built. Binary research resolved the extra wall-grid bit as cached `Solid`, so the wall pass now requires both `Solid` and `AllowRoomWalls`; sorted order still stands in for DK2's construction-order phase. `PortalRules.IsAttracted` is still the boolean gate and the per-type budget that would cap arrivals is still unbuilt (Q89, checked 2026-09-15); the Lair is the uncapped special case and the Temple contributes 2 iff its Hand exists.
 
 6. **Rebel** (`CreatureAngerSystem` implements Leave only; `RebelLeavingPercentage` 70 / `RebelBecomeGoodPercentage` 15 / `RebelDefectPercentage` 15 are read by nothing).
 7. **Combat** (Q8) — the largest missing mechanic, the first to subtract health per tick, and M7's head. Heroes and hero parties follow it.
 8. **Computer keeper, `docs/KEEPER_AI.md` §12.7 steps 2–5:** an `IWorldView` facade (no hash change); §12.3's missing commands and §12.4's messages (each bumps the hash and wants an ADR); threat evaluation, attack planning, Call to Arms, traps, prisoners, retreat; `KeeperAIPersonality`. §12.8's four deviations (own RNG stream, flood-fill connectivity, Chebyshev range, batched room placement) each want an ADR if they survive.
-9. **M5 — the oracle rig.** DK2 can run under the Flame built on 2026-09-07 (back up `PATCH.dll` first); plan §2.2.1 item 4 (a Ghidra import for the `sgmap`) and §11 item 5 (an `sgmap` query tool) no longer wait on anything. Three runs are recorded under `docs/experiments/`; 26 of the 27 scenarios still carry no expectation block.
+9. **M5 — the oracle rig.** DK2 can run under the Flame built on 2026-09-07 (back up `PATCH.dll` first); plan §2.2.1 item 4 (a Ghidra import for the `sgmap`) and §11 item 5 (an `sgmap` query tool) no longer wait on anything. Three runs are recorded under `docs/experiments/` and runs 1–8 under the gitignored `reverse-engineering/dk2runs/` (**the tag captures 9–14 were not kept — `EXPERIMENTS.md` and `player-task-pool.md` are the only surviving record of them**). 23 of the 27 scenarios assert; the four that do not say in the file why they cannot (ADR-0150).
 10. **Unity:** loading the converter's glTF/PNG (Unity ships no runtime glTF importer); DK2's wall pieces instead of boxes (Q71/Q72, `wall-rendering.md`).
 
 **Not in the order above — a scheduling question, raised 2026-09-10.** The creature state machine's shape is settled research (`creature-state-table.md`: 281 states CONFIRMED, `SetState`'s group/category rule in §2.1, the 32 category hooks in §6), but three parts of it are engine architecture rather than breadth and none is tracked anywhere: a **resume slot** for the utility states category 2 marks (nothing in `CreatureState` saves a caller's state); a **transition gate**, since 35 sites assign `Activity` directly across seven systems and nothing refuses an illegal move; and the **category update hook** that ADR-0083 found runs before the state handler, carrying the prison drain and the training award. `GOAL_ALIGNMENT.md` gap 2 defers breadth until after M5 and these add no behaviour, so whether they precede it is the owner's call. Reading the handlers is separately large and has no shortcut: 259 of the 264 serve one state each, and Flame names the behaviour of none.
@@ -196,15 +205,14 @@ Agreed order as of 2026-09-08 (M0–M4 closed; the research queue's head is clea
 - `ManaSystem` runs for every player, not only keepers (deliberate, ADR-0052).
 - `RoomRules` does not model a level's per-room `Availability` (ADR-0040 notes the gap; only `PortalRules` reads availability).
 - The portal tally is never zeroed (ADR-0086; DK2's reset is vtable-only and unread).
-- `HandSystem.Drop` gates by `PlayerIds`/worker rule (ADR-0077), but wrongly lets Imps use portals and refuses their Heart disposal route (ADR-0084); Q196's object-drop gate is in the input layer.
+- `HandSystem.Drop` gates by `PlayerIds`/worker rule (ADR-0077) and wrongly lets Imps use portals (ADR-0084). **The Heart disposal route is BUILT** (ADR-0148, owner 2026-09-15): the heart's centre tile takes a worker and refuses everything else, the portal's hole takes anything but a worker. Q196's object-drop gate is in the input layer.
 
 **Housekeeping**
 
 - The pin's empty world (Q206): give `TestWorld.World` a creature so `HashInto` changes fail the pin directly.
-- Scenario tick budgets were written against 20 ticks/s and now cover five times the game time; trim them.
+- Scenario tick budgets were written against 20 ticks/s and still cover five times the game time; trim them. **This note understated itself and cost a session** (2026-09-15): the same rate change did not merely lengthen runs, it DISARMED four of them — work tuned in ticks stopped reaching its subject entirely (Q316, ADR-0150). A budget that is too long is cosmetic; an experiment that no longer runs is not.
 - No `README.md` at the repository root.
 - Re-run the zero-value audit (ADR-0085's method) whenever a new record type gains a reader; it has been run on the balance table, the creature record and the object record (Q213), not on terrain or rooms.
-- Simulation speed has never been measured (goal 9).
 
 ---
 
@@ -404,7 +412,7 @@ Cheap to expensive; stop when the question is answered. `AGENTS.md` gives the ra
 
 ## Live research questions
 
-`docs/research/open-questions.md` is the record (rows are written both as `| Q123 |` and `| **Q123** |`, and the table is not in numeric order). The ones that gate work today, by how they are answered:
+`docs/research/open-questions.md` is the record. The ones that gate work today, by how they are answered:
 
 **Cheapest — one look at the running game** (`observation-checklist.md` is the list to hand over)
 
@@ -413,11 +421,8 @@ Cheap to expensive; stop when the question is answered. `AGENTS.md` gives the ra
 | Q86 leftover | a **worn** portal lost and re-claimed — does the tally reset? Needs a skirmish map with two claimable portals (`The Deep End`, `Siege`, `U Turn`; `dk2tools kwd portals` finds them). Also: portal 1's arrivals after 03:18 were missing from the second run |
 | Q202 | slap a creature to Unhappy with a bed available; does sleeping bring it down? Names anger buckets 0 and 5 |
 | Q177 | does the aimed (drop) bonus carry from one marked tile to the next? The binary says yes |
-| Q176 | does a hungry creature wake up to eat? |
-| Q97 | does a *large* lair change how fast arrivals slow? |
-| Q66 | is a tile touching owned ground only at a corner claimable? |
 | Q118 | how much does water slow a creature (a Vampire in a lake: 25 s to die = per-second hazard, 1.25 s = per-tick) |
-| Q107, Q109, Q103 | rescue after the bed is sold; enemy collapse; the 240 s / 9 s sleep cycle |
+| Q103 | the 240 s / 9 s sleep cycle — corroborated by stopwatch (owner, 2026-09-07), not settled. Q107 and Q109 answered with it |
 | Q223 | load Level13 and see who owns the hero gate at (11,8). Five of the campaign's 275 ROOM records disagree with the MAP grid about the owner of a structure, every one a Hero Gate (two on Level13, one on Onslaught, two on Siege): the record says the good player, the grid says a keeper. The grid wins today by default. A hero gate owned by a keeper spawns for the wrong side, if it spawns at all |
 
 **Binary reads** (`docs/RESEARCH-QUEUE.md` keeps the working list and the Ghidra command)
@@ -426,7 +431,6 @@ Cheap to expensive; stop when the question is answered. `AGENTS.md` gives the ra
 |---|---|
 | Q217, Q218 | who sets the keeper's casino flag at `player+0x20D`; what passes the research adder `FUN_004c2dc0` a negative amount (`CallScanAll.py`, all blocks) |
 | Q216 | does slapping a researcher visibly triple research (needs the research tree) |
-| Q204 | ANSWERED: `player+0x76 & 4` is `CallToArmsOn`, not defeat (ADR-0145) |
 | Q201 | the dizzy-drop driver: `CreatureStunnedTimeSeconds` is dead (one reference, the setter); candidate is the per-creature `fp32 stunDuration` at record `0x0ED0` |
 | Q199 | the pet-dungeon mana cap: skirmish regen clamps at 500 (`MaximumManaGainPerSecond`), pet dungeon shows +1400; no level file overrides variable 235 — find its reader |
 | Q197 | portals visible through fog on the minimap — a second mechanism; `RevealThroughFogOfWar` is a terrain flag and a Portal is a room |
@@ -444,15 +448,13 @@ Cheap to expensive; stop when the question is answered. `AGENTS.md` gives the ra
 
 | Q | Open |
 |---|---|
-| Q228 | **answered.** The root evaluator runs once per game turn: world slot `0x18` has one caller at `0x00526AA7`, reached through the owning container rather than the world global. The turn driver advances at `1000 / 4` ms. See `trigger-state.md` §6 |
 | Q229 | flag id **128** is not a flag — both dispatchers divert to a dword at `+0x72A2`, set a companion at `+0x72A6` to 1, call through virtual slot `+0x348`, and take the operand's full 32 bits. Decompile that slot and find what consumes `+0x72A2`. `TriggerState` carries it as an opaque value; do not name it first |
 | Q232 | timer id **16** is not a timer — the condition path compares against `0x10` (`0x005184EB`) and reads through virtual slot `+0x34C`, and the bank's only indexed store is action type 8's clock stamp, so a write naming 16 does not reach it either. **All 86** action type 23 records in the campaign target it and five type 2 conditions test it, so it is live, not a curiosity. `TriggerState` refuses the id |
 | Q230 | a flag id above 128 would index past the bank into the timers; **no shipped level does it** (asserted over all 66 levels in `TriggerStateOnRealDataTests`) and `TriggerState` throws instead of reproducing the overrun. Faithfulness and sanity conflict, so this is a deliberate decision if a real map is ever found doing it |
 | Q226, Q227 | the trigger selectors and fields DKII.EXE reads without revealing a role. Exposed as `Unknown_*` rather than as an external guess; action type 24 alone has 827 shipped records |
 | Q225 | do DK2-authored files corroborate the trigger types the shipped corpus never uses? Generic 3/5/25/29 and their action counterparts have body-read paths in the executable and **no** instance in the 9,161 shipped records. Needs a map made in the original editor; not M6 for any shipped level |
-| Q222 | **answered and built** (ADR-0103): all 1,152 action points are ordered world state. The answer reversed the expected one — an action point has **no availability field**, and the `Available` byte read against action types 16, 17, 27 and 31 was inferred from a parameter *name* rather than from anything the binary writes. Q235–Q238 carry what is left |
-| Q224 | **answered and built** (ADR-0106): all 940 doors and 959 traps are ordered, hashed, snapshotted world state with every parsed field verbatim. Q249–Q253 carry behaviour and possible field transforms |
 
+**Answered and removed from the lists above** (the ADR is the record): Q66, Q97, Q107, Q109 (owner, 2026-09-07); Q204 — `player+0x76 & 4` is `CallToArmsOn`, not defeat (ADR-0145); Q222 action points (ADR-0103); Q224 doors and traps (ADR-0106); Q228 the root evaluator's cadence.
 **Standing UNKNOWNs that are parked, not forgotten:** Q57 (what DK2 does when a keeper cannot pay imps; ours floors mana at zero), Q58 (Possession's 25/s upkeep that the owner never saw), Q70 (the last 72 bytes of a CREATURES record), Q75 (a player-level starting gold stockpile the manual mentions), Q76, Q78, Q81, Q83 (`GameTicks` = 340 in every level; not a rate and not Q1), Q87 (`CreaturePool`: limit or quota), Q90 (portal per-type weighting), Q94, Q102, Q160 (`TimeInHandBeforeCreaturesBecomeAngrySeconds` = 1000), Q164, Q169, Q194, Q208 (the Imp's `ExpPerSecond` is 40× its training rate).
 
 ---

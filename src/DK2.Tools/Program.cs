@@ -298,6 +298,30 @@ switch (args[0])
                 && Worse(lines.Length, baseLines.Length))
                 Report(relative, "length", lines.Length, DocBudgets.Handoff);
 
+            // A claim that something has NOT happened rots the moment it does.
+            // HANDOFF said the input channel awaited its first capture five days
+            // after two runs closed it, and that sentence was repeated to the
+            // owner as a request for work already done. A date does not make the
+            // claim true; it makes the staleness visible to the next reader.
+            if (relative.Equals("docs/HANDOFF.md", StringComparison.OrdinalIgnoreCase))
+            {
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    if (!Regex.IsMatch(lines[i],
+                            @"\b(never\s+(been|sampled|run|measured|tried|captured|solved)|not yet|awaits|still no |still carry no)",
+                            RegexOptions.IgnoreCase))
+                        continue;
+                    if (Regex.IsMatch(lines[i], @"\b20\d\d-\d\d-\d\d\b")) continue;
+
+                    // The paragraph that documents this rule quotes the words
+                    // it matches on, and a checker that fails its own
+                    // description is one somebody deletes.
+                    if (lines[i].Contains("docs --check", StringComparison.Ordinal)) continue;
+                    if (!Touched(i + 1, i + 1)) continue;
+                    findings.Add($"{relative}:{i + 1}: a 'not done yet' claim with no date on it");
+                }
+            }
+
             if (relative.StartsWith("docs/research/", StringComparison.OrdinalIgnoreCase)
                 && relative.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
                 && !relative.EndsWith("open-questions.md", StringComparison.OrdinalIgnoreCase)
