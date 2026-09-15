@@ -308,6 +308,7 @@ public sealed class StructureBlocksTests
 
         CreatureState imp = world.SpawnCreature(
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
+        imp.GoldHeld = 120;
         var events = new ListEventSink();
 
         var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
@@ -319,19 +320,28 @@ public sealed class StructureBlocksTests
         Assert.Contains(world.Creatures, c => c.Id == imp.Id);
         Assert.Contains(events.Events, e => e.Kind == "drop_refused");
 
+        // Not the raised 3x3, only its middle: a platform tile beside the centre
+        // is refused like any other unwalkable tile (owner, 2026-09-15).
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(9, 6))));
+        Assert.Contains(world.Creatures, c => c.Id == imp.Id);
+
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
 
         Assert.DoesNotContain(world.Creatures, c => c.Id == imp.Id);
         SimEvent left = Assert.Single(events.Events, e => e.Kind == "creature_left");
         Assert.Contains("at=(10,6)", left.Detail);
+
+        // The gold goes with it: CONFIRMED for the heart too, not assumed.
+        Assert.Contains("gold_lost=120", left.Detail);
+        Assert.Empty(world.Objects);
     }
 
     [Fact]
-    public void AGoblinPutOnTheHeartsPlatformIsRefusedRatherThanDisposedOf()
+    public void AGoblinIsRefusedTheHeartAltogether()
     {
-        // The other half of "exclusive": the heart is the worker's tile, so a
-        // goblin meets the ordinary unwalkable refusal there. Which of the nine
-        // platform tiles DK2 accepts is UNKNOWN; all nine are taken (ADR-0148).
+        // CONFIRMED (owner, 2026-09-15): a screenshot of a held goblin over a
+        // dungeon heart shows the refusal cursor. The two disposal tiles really
+        // are exclusive, which ADR-0148 could only assume.
         GameDatabase db = Db;
         WorldState world = World(db);
         Claim(world, 1, 1, 14, 10);
