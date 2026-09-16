@@ -29,8 +29,40 @@ same way: level 1 uses the record value unchanged, and any other level takes
 Two stat rows were read off their consumers and four more were **predicted from the
 stride and then found**, so the arithmetic is tested rather than fitted.
 
-**One path here is missing: a level can go down.** `FUN_0048AFA0` decrements
-`creature+0x403`. What triggers it is UNKNOWN; `CreatureLevelRules` only grants.
+**One path here is missing: a level can go down** — `FUN_0048AFA0` decrements
+`creature+0x403`, and `CreatureLevelRules` only grants. **Q328, answered
+2026-09-16**, and the framing was wrong: two of its three call sites are not a
+penalty but a **level setter**, §2.1. The third is vampire reincarnation
+(`combat.md` §6.3).
+
+---
+
+## 2.1 The Hero Lair sets a level rather than costing one (Q328)
+
+`FUN_0048AFA0` has **three** callers, not the two `combat.md` §4 recorded: the
+reincarnation routine, `FUN_0049C2A0`, and a third at `0x005143C6` in a region
+Ghidra had not attributed.
+
+The two new ones are the same mechanism written twice. Each resolves the tile
+under a thing through virtual slot `+0x1D4` and proceeds only when that tile's
+id at `+0x0A` is **`0x23` — terrain 35, `Hero Lair`**. Each then computes a
+target level from a byte at `thing+0x14A`, reduced `mod 10` and biased into 1–10,
+and **walks the creature's level toward it**: `FUN_0048AFA0` while it is too
+high, and the increment `FUN_0048B120` applied repeatedly while it is too low —
+nine times from level 1 at one site, ten at the other. Both re-read the level and
+loop until it matches.
+
+So the decrement is a **step in an assignment**, not a punishment, and a hero
+arriving at its lair is levelled to whatever that lair carries. The two sites
+bias the `mod 10` differently (`+9` against `+1`), so they do not agree on the
+target for the same byte; which object each reads `+0x14A` from is not settled
+here, and that difference is why this is not yet a rule.
+
+`FUN_0049C2A0` itself is a **hit reaction**, reached from `FUN_004C0FE0` and
+taking an angle: it plays sound `0xC5`, increments a per-player counter at
+`player+0xEE6`, and in its default arm builds a knockback from the sine and
+cosine tables at `0x006C1488` and `0x006C1C88` before applying it. The level arm
+is one of three it dispatches on a thing-class byte at `+0x12C`.
 
 ---
 

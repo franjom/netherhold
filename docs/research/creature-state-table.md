@@ -1,4 +1,4 @@
-# Mechanic: the creature state table
+﻿# Mechanic: the creature state table
 
 Source(s): `DKII.EXE` v1.70 (GOG) read with Ghidra 11.0.1 on 2026-09-06; the
 reference install's own `Data/Text/Default/Text.str`, decoded with `DK2.Data`'s
@@ -9,6 +9,9 @@ Original version: DK2 v1.70 (GOG)
 
 This is the table's home; `eating.md` §2.1 points here. Confidence:
 **CONFIRMED** for §1–§5, **UNKNOWN** for the items in §6.
+
+**A second, unrelated handler table** holds the melee attack routine: 29-byte
+records at `0x006E4198`, filled by `FUN_004950C0` (`combat.md` §6.0, Q338).
 
 ## 1. What it is — CONFIRMED
 

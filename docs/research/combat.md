@@ -128,9 +128,9 @@ against the executable**, and the divide by 100 is a real signed divide there
 **Who writes the level.** Only four instructions store to `creature+0x403`:
 one sets the literal **1** (`FUN_004872A0`, a creature being made), two compute
 it in `FUN_0048AFA0` and `FUN_0048B120` — both of which are also health-routine
-callers — and one is an unrelated struct. `FUN_0048AFA0` **decrements** it, so
-DK2 has a level-*loss* path; what triggers it is UNKNOWN and this project has no
-such path (`CreatureLevelRules` only grants).
+callers — and one is an unrelated struct. `FUN_0048AFA0` **decrements** it; two of
+its three callers turn out to be a level *setter* at a Hero Lair rather than a
+penalty (Q328, `creature-levels.md` §2.1).
 
 ## 5. The melee block in the creature definition
 
@@ -236,32 +236,32 @@ The swing runs from `0x00498E96`, inside a larger handler whose entry is earlier
    where before only the first was read. What they are is still UNKNOWN: a keeper
    spell, a handicap or a difficulty setting would all look like this.
 
-### 6.0 The attack routine is `FUN_00498E34`, and nothing references it
+### 6.0 The attack routine, and where it is registered
 
-The call site above sat in code Ghidra had never turned into a function, so every
-caller query over it answered "in -". Measured on 2026-09-15: **25.2% of `.text`
-lay outside any defined function**, 1,953 runs of it, and **1,652 of those runs
-were already disassembled** — known to be code, simply unattributed. The heads
-are `83 EC xx`, an ESP frame, which is why `ForceFunc.py`'s walk back to
-`push ebp; mov ebp,esp` never reached them.
+The call site sat in code Ghidra had never turned into a function, so every caller
+query over it answered "in -": on 2026-09-15, **25.2% of `.text` lay outside any
+defined function**, its heads `83 EC xx` rather than the `push ebp` that
+`ForceFunc.py` walks back to. `ForceGaps.py` defines a function at the head of
+every uncovered run, took the block from 8,338 functions to 10,186, and gathered
+the four `MeleeAttackType` reads into one — **which is the attack routine**.
 
-`ForceGaps.py` (new) defines a function at the head of every uncovered run. It
-took the block from **8,338 functions to 10,186** and the gap from 25.2% to
-**16.2%**, and the four `MeleeAttackType` reads now attribute to one function:
-**`FUN_00498E34`**, which is the attack routine's entry and contains §6's whole
-sequence. The positive control still returns 226.
+**"Nothing refers to it" was an artefact of our own tool — corrected 2026-09-16.**
+`0x00498E34` is **not a function entry**. Its epilogue pops `EBX` it never pushed
+and adds `0x20` to `ESP` it never subtracted, and four bytes earlier sit exactly
+those two instructions: the real entry is **`0x00498E30`** (`SUB ESP,0x20` /
+`PUSH EBX`). `ForceGaps.py` started the run at the wrong byte, and every "no
+references" scan since has asked about an address four bytes inside a function.
 
-**Nothing in the image refers to that function.** No `E8`/`E9` rel32 targets it,
-and its address appears nowhere as bytes — not in `.text`, not in `.rdata`, not
-in `.data`. The function before it ends in a clean `RET` and does not jump in.
+**`0x00498E30` has exactly one reference**: `MOV ESI,0x498e30` at `0x0049549E`,
+which stores it to `0x006E4385`. That store belongs to a straight-line run in
+`FUN_004950C0` filling a grid of **29-byte** records based at `0x006E4198`, into
+which sixteen handlers between `0x484940` and `0x499A40` are installed — among
+them both readers of the swing's recharge interval.
 
-**The likely reason, and it is testable.** `creature-state-table.md` puts the 281
-state records at `0x006DA8B0` with each handler at `+0`, inside
-`0x006CCC00`–`0x007A6DCF` — a region **not present in the file on disk**. A
-handler reached only through a table built at runtime would look exactly like
-this. So the HYPOTHESIS is that the attack is a **creature state handler**, and
-the probe is to find which state's record holds `0x00498E34`. What writes that
-table is not a literal store of the address, because no such store exists.
+**So the attack is not a creature state.** That table is 281 records of **25**
+bytes at `0x006DA8B0`, filled by a different run, and **no** handler in the
+`0x498`/`0x499` range appears in it (`creature-state-table.md`). Different base,
+different stride, different filler. Q338 is what the 29-byte table is.
 
 ### 6.2 The rest of the routine, read 2026-09-16
 
@@ -273,9 +273,10 @@ interval. That is **not** `MeleeRecharge` at `def+0x5C6` (§5), four bytes earli
 (`combat-cadence.md`). §5 was right and the swing does not wait on it.
 The gate is skipped entirely when `attacker+0x3E6 & 0x80` is set.
 
-**A definition flag is copied into the creature on every swing.**
-`creature+0x3EA` bit 12 := `def+0x686` bit **29**. Bit 29 is unnamed in our
-`CreatureFlags` — the enum jumps 28 to 30 — and this is a reader for it (Q326).
+**A definition flag is copied in before the gate**, so on every call and not only
+on a landed swing: `creature+0x3EA` bit 12 — `PlayInstanceAnimation` — takes
+`def+0x686` bit 29 through `SHR 0x1D / AND 1 / SHL 0xC`. **Q326 answered: bit 29
+is set on all 46 shipped creatures**, so it selects nothing.
 
 **The Monk carries the permanent kill, and it is a parameter rather than a
 state.** At `0x00499224`, if `byte[attacker+0x36F] == 0x13` — creature type 19,
@@ -365,8 +366,8 @@ its current id. That is evidence for item 1 below, not for resistance.
 
 ## 7. What is still unknown, in the order it should be taken
 
-1. **Which state record holds `FUN_00498E34`** (§6.0). It decides whether combat
-   is a creature state, and with it how an attack is entered at all.
+1. ~~**Which state record holds `FUN_00498E34`**~~ — **ANSWERED 2026-09-16, in
+   the negative** (§6.0): none. It is not a creature state; Q338 took its place.
 2. ~~**`MeleeRecharge`'s consumer**~~ — **ANSWERED 2026-09-16** (Q327): it
    gates a second clock, not the swing. `combat-cadence.md`.
 3. ~~**Where the `Resistances` list is read**~~ — **ANSWERED 2026-09-16, in the
@@ -377,8 +378,8 @@ its current id. That is evidence for item 1 below, not for resistance.
    already read, so this is a question about its callers.
 5. ~~**What decrements a level**~~ — **ANSWERED 2026-09-16**: `FUN_0048AFA0`,
    guarded by `level != 1`, writing `byte[creature+0x403] - 1` and carrying the
-   health *fraction* across the change. Two callers: the resurrection routine
-   (`creature-death.md` §2.3) and `FUN_0049C2A0`, which is unread.
+   health *fraction* across the change. **Three** callers, and two are a level
+   setter at a Hero Lair, not a penalty (Q328, `creature-levels.md` §2.1).
 
 ## Confidence
 
