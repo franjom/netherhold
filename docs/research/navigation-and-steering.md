@@ -1,4 +1,4 @@
-# Mechanic: how DK2 routes and how it moves (Q5)
+﻿# Mechanic: how DK2 routes and how it moves (Q5)
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-16. Addresses are
@@ -82,6 +82,26 @@ the creature, reads the creature's compact definition through `creature+0x370`
 (`combat-cadence.md` §2), tests definition `+0x686` bit 0, and early-outs when
 the mover's `path_finished` bit or `path_total_dist` says there is nothing left
 to follow.
+
+### 3.1 Two owner observations, and only one of them decides anything
+
+**Creatures push each other and do not pass through each other** — owner,
+2026-09-16. This is `Separation` running, and it is the first *behavioural*
+confirmation that the steering layer is not an implementation detail. Ours has
+no mutual avoidance at all: `CreatureMovementSystem` says so in its own remarks,
+and two creatures here occupy the same position without either noticing. Q345.
+
+**The diagonal glide does not discriminate, and was not claimed to.** The owner
+also reports imps crossing *the diagonal of a tile* smoothly rather than
+stepping. That re-confirms Q48(a), but it separates nothing: a tile diagonal is
+45 degrees, which is exactly what an eight-connected mover walking a tile-to-tile
+route produces. Both models predict it.
+
+What would separate them is a destination **well off any multiple of 45
+degrees** — ten tiles across and three up, over open floor. A grid route bends,
+because it is made of 45 and 90 degree legs. A corridor reduced by `Route2path`
+is one straight line at about 17 degrees. The bend is the tell, not the
+smoothness. Recorded in `observation-checklist.md`.
 
 ## 4. The per-creature path state is the steering body
 

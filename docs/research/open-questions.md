@@ -446,6 +446,7 @@ than a defect: both flags its trees write need a human (`docs/EXPERIMENTS.md`).
 | Q342 | **What reduction is `Route2path`?** | **OPEN, opened 2026-09-16 (`navigation-and-steering.md` §2).** A corridor of gates becomes a waypoint path; the string is referenced from `0x004D0501` and `0x004D0BAE`, and `rtp:Exceeded max path length` bounds it | This is the stage that decides which route a creature visibly takes, so it is the one our A* would have to match |
 | Q343 | **How are the eight steering behaviours combined, and with what weights?** | **OPEN, opened 2026-09-16 (`navigation-and-steering.md` §3).** Each is a stateless singleton with one virtual method taking the steering body and the creature; `Follow_Path`'s is `0x004D3C40`. The body carries `max_force` `+0xDE` and `max_speed` `+0xE2` | A force-accumulating mover is where the original's *motion* lives, as distinct from its route. `Separation` and `Formation` imply creatures influence each other's paths, which ours do not |
 | Q344 | **What is the `grtc:` stage?** | **OPEN, opened 2026-09-16 (`navigation-and-steering.md` §2).** A third length-limited stage with its own error string, `grtc:Exceeded max path length (i:%d,rl:%d)`, distinct from `rtp:` | Named separately from the route search and from `Route2path`, so it is a third thing, and unidentified |
+| Q345 | **Do creatures collide with each other, or share a position?** | **ANSWERED (owner, 2026-09-16), NOT BUILT: they push each other and do not pass through.** That is the `Separation` behaviour of the steering layer (`navigation-and-steering.md` §3.1), one of eight the binary names. Ours has none: `CreatureMovementSystem` reconstructs no mutual avoidance and two creatures occupy one position unremarked | The first *observable* cost of ADR-0155's divergence, as distinct from a structural one. Weights and radius are Q343 |
 
 ## Numbering
 
@@ -456,6 +457,6 @@ follow Q134, Q166 follows Q179, Q187 and Q189 precede Q184, Q214–Q219 follow Q
 **Q210–Q213 sit after Q234** in the Hero Portal section above, with Q235–Q242 after them,
 and **Q243–Q245 were reserved for a concurrent branch that needed none of them**;
 they are free. Q249–Q253 belong to ADR-0106; Q254–Q259 belong to ADR-0108.
-**Q318–Q321 were the reserved graveyard block** (ADR-0151, merged 2026-09-16); **Q322–Q324 were reserved with them and never used, and are free** — leave them, a spent reservation reused reads as a mistake. **Q330–Q334 were the reserved creature-walker block** (ADR-0152, merged 2026-09-16) and only Q330 was spent; treat Q331–Q334 the same way as Q322–Q324. Take Q345 next.
+**Q318–Q321 were the reserved graveyard block** (ADR-0151, merged 2026-09-16); **Q322–Q324 were reserved with them and never used, and are free** — leave them, a spent reservation reused reads as a mistake. **Q330–Q334 were the reserved creature-walker block** (ADR-0152, merged 2026-09-16) and only Q330 was spent; treat Q331–Q334 the same way as Q322–Q324. Take Q346 next.
 **Q39 appears twice** and both rows are kept; Q37a/Q37b, Q55x and Q118c are separate
 suffixed ids, not duplicates. **Q121 was never allocated** and must not be reused.
