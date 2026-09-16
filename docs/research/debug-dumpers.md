@@ -1,4 +1,4 @@
-# Runtime entity references and DKII.EXE's own field names (Q264)
+﻿# Runtime entity references and DKII.EXE's own field names (Q264)
 
 DK2 ships eleven debug dumpers: functions that write an object to a log, one
 `printf` per field, **with the field's name in the format string**. They are the
@@ -69,7 +69,10 @@ Lower-case names throughout, unlike every other dumper. `pos` `+0x84`, `vel`
 
 **`max_force`, `max_speed` and `projection_vector` say the mover is a steering
 system**, not a waypoint follower — which bears directly on ADR-0012's admitted
-placeholder pathfinder (Q5).
+placeholder pathfinder (Q5). That reading is now confirmed from the other side:
+this object is the argument the `Follow_Path` behaviour operates on, and the
+whole subsystem is described in
+[navigation-and-steering.md](navigation-and-steering.md).
 
 ## The imp task pool — `0x005083C5`
 

@@ -94,7 +94,7 @@ Facts established and recorded; nothing in `src/` turns on them yet.
 
 | What | Where it stands |
 |---|---|
-| **Pathfinding** (Q5) | The biggest risk. The pathfinder is an admitted placeholder behind an interface (ADR-0012); DK2's algorithm and its `Follow_Path` structure are unread, and only Flame can settle whether our A* can match the original's routes |
+| **Pathfinding** (Q5) | The biggest risk, and now a measured one. DK2 routes over a **triangulated navigation mesh** and follows it with a **steering system**, so our grid A* is structurally unlike it (ADR-0155, [navigation-and-steering.md](research/navigation-and-steering.md)). The algorithms are unread (Q341–Q344) and replacing the pathfinder is an owner decision |
 | **Combat** (Q8) | The largest unread mechanic, and the thing everything built recently begins after: a rescue, a burial and a capture all need somebody beaten down. Scenarios place creatures at zero health instead. M7 |
 | **Trigger execution** | The world, player, action-point, party and creature roots walk once per game turn (ADR-0152, `trigger-walkers.md`). The creature per-turn dispatcher evaluates its three measurable conditions and preserves DK2's constant-false event arms; ten creature-owned action effects and the separate event-filter path remain absent. Most other action effects are also partial, so no level is yet winnable |
 | **Torture and conversion** | `TortureHpChange`, `TortureMoodChange` and `TortureTimeToConvert` are parsed and unread; DK2 keeps torture's state on the creature, not on the room |

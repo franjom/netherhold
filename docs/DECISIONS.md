@@ -101,9 +101,9 @@
 - Per-second work is scheduled as whole applications, so the determinism gate never depended on the placeholder value.
 
 ## ADR-0012 — The pathfinder is an admitted placeholder behind an interface
-**Date:** 2026-08-29 (M3) · **Status:** accepted · amended 2026-08-30 by ADR-0025: connectivity and step cost are now DK2's; tie-breaking remains ours
+**Date:** 2026-08-29 (M3) · **Status:** accepted · amended 2026-08-30 by ADR-0025: connectivity and step cost are now DK2's; tie-breaking remains ours · amended 2026-09-16 by ADR-0155: the original's architecture is now known and is not a grid search
 
-**Context.** DK2's routing is Q5, the project's largest open question (plan §9, R1). Flame names a 36-byte `Follow_Path` struct with no named fields; nobody has reconstructed it.
+**Context.** DK2's routing is Q5, the project's largest open question (plan §9, R1). A 36-byte `Follow_Path` class was known by name only, and nobody had reconstructed it.
 **Decision.** `DK2.Pathfinding.IPathfinder` defines the two questions the simulation asks — route to a known tile, and route to the nearest tile satisfying a predicate. `GridPathfinder` answers them with a deterministically tie-broken grid search and documents what is not DK2. `ImpTaskSystem` takes the pathfinder by constructor, so a reconstruction drops in without touching the systems.
 **Consequences.**
 - Originally four-connected, uniform-cost, chosen as the conservative option. Code now: eight-connected with octile cost (Q28 CONFIRMED, Q48; ADR-0025); no terrain weighting (Q30 CONFIRMED — the shortest route wins even through water).
@@ -3451,3 +3451,26 @@ No hashed state changes and no scenario covers the path, so `HashVersion` stays
 at 61 and the determinism pin does not move. A captive is an offering like any
 other: it enters the Temple's three-entry recipe history under its creature type
 and current level.
+
+## ADR-0155 — The pathfinder's replacement target is known, and not chosen
+
+**Status.** Accepted 2026-09-16.
+
+**Context.** ADR-0012 shipped `GridPathfinder` as an admitted placeholder
+because DK2's routing was unread. It is now read at the architectural level
+(`navigation-and-steering.md`, Q5): the original routes over a **triangulated
+navigation mesh**, reduces a corridor of gates to waypoints, and follows it with
+a **steering system** of eight named behaviours. Ours is eight-connected A* over
+tiles.
+
+**Decision.** Record the divergence and change no code. Replacing a grid search
+with a navmesh and a force-based mover is an architectural decision with a cost
+far beyond this finding, and the owner makes it. `GridPathfinder` keeps its
+`Dk2Behavior` confidence and its docstring gains a pointer to the research.
+
+**Consequences.** The two observed facts ADR-0012 rests on survive, because they
+were measured against the running game rather than inferred: eight-connectivity
+with corner-cutting (Q28) and no terrain weighting (Q30). Any replacement must
+still satisfy both. What does not survive is the interface's premise that a tile
+route is what DK2 computes. No behaviour changes, so `HashVersion` stays at 61
+and the determinism pin does not move. Q341–Q344 carry the unread algorithms.

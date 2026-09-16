@@ -442,7 +442,7 @@ Cheap to expensive; stop when the question is answered. `AGENTS.md` gives the ra
 | Q35 | which treasury tile a withdrawal drains |
 | Q188, Q168 | when a prisoner's step roll halves; how often an overcrowded prison rolls its jailbreak |
 | Q220, Q221 | a standalone GLOBALS(0) chunk; the 16-byte DeadBody THINGS payload (absent from all 6,318 shipped THINGS records) |
-| Q5, Q3, Q8 | pathfinding (`Follow_Path`, 36 bytes — the project's biggest risk) and the RNG are UNKNOWN and large. **Q8's damage formula is read and built** (ADR-0153, `combat-damage.md`); what blocks combat is the attack state, not the arithmetic. Left: Q325, Q326, Q328, Q337 |
+| Q5, Q3, Q8 | **Q5 is answered architecturally** (ADR-0155, `navigation-and-steering.md`): DK2 routes over a triangulated navigation mesh and follows it with a steering system, so our grid A* is structurally unlike it — replacing it is an owner decision, and the algorithms are Q341–Q344. **Q8's damage formula is read and built** (ADR-0153, `combat-damage.md`); what blocks combat is the attack state, not the arithmetic. Left: Q325, Q337. The RNG (Q3) is still UNKNOWN and large |
 
 **Triggers — what still stands between the banks and a winnable level** (`trigger-semantics.md`, `trigger-state.md`; `dk2tools kwd triggers` shows a level's tree, `kwd trigger-params` a parameter's corpus distribution)
 

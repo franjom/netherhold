@@ -7,17 +7,17 @@ using DK2.Core;
 namespace DK2.Pathfinding;
 
 /// <summary>Eight-connected grid search: A* for a known destination, Dijkstra for "the nearest
-/// tile satisfying a predicate". Connectivity and step cost are DK2's; tie-breaking is ours.
-/// <para>Eight-connected and corners may be cut — CONFIRMED by observation (Q28). Octile step
-/// cost, <b>10 orthogonal and 14 diagonal</b> — STRONGLY INFERRED (Q48), forced by speed being in
-/// tiles per second (Q29): a diagonal covers root-2 tile-widths, and <c>CreatureMovementSystem</c>
-/// (DK2.Simulation, not referenced from here) charges the same 14/10, because a router and a mover
-/// that disagree produce creatures that arrive early. No terrain weighting — CONFIRMED (Q30): the
-/// shortest route wins even through water. Tie-breaking is a fixed neighbour order then tile
-/// index, reproducible for the determinism gate but arbitrary rather than reconstructed (Q5).</para>
-/// <para>Determinism: no floating point, no hashing, no unordered iteration; a generation stamp
-/// makes a reused scratch buffer indistinguishable from a fresh one, asserted by
-/// <c>PathfindingTests.RepeatedSearches_DoNotContaminateEachOther</c>. Not thread-safe.</para></summary>
+/// tile satisfying a predicate". Connectivity and step cost are DK2's; the algorithm is not.
+/// <para><b>DK2 does not route on a grid.</b> It searches a triangulated navigation mesh and follows
+/// the result with a steering system (Q5, ADR-0155, docs/research/navigation-and-steering.md). This
+/// class stands in until that is rebuilt or the divergence is accepted; it is not the original.</para>
+/// <para>Eight-connected and corners may be cut — CONFIRMED by observation (Q28). Octile step cost,
+/// <b>10 orthogonal and 14 diagonal</b> — STRONGLY INFERRED (Q48): a diagonal covers root-2
+/// tile-widths, and <c>CreatureMovementSystem</c> charges the same 14/10, because a router and a
+/// mover that disagree produce creatures that arrive early. No terrain weighting — CONFIRMED (Q30).
+/// Tie-breaking is a fixed neighbour order then tile index: reproducible, but ours.</para>
+/// <para>Determinism: no floating point, no hashing, no unordered iteration; a generation stamp makes
+/// a reused scratch buffer indistinguishable from a fresh one. Not thread-safe.</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/imp-tasks.md")]
 public sealed class GridPathfinder : IPathfinder
 {
