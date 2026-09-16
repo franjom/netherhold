@@ -62,15 +62,15 @@ to a pointer would produce.
 ## 3. The trap this sitting walked into first
 
 `FUN_00514830` reads `MeleeAttackType` **and** calls the health routine, which is
-why it was opened first. **It is not combat.** It scales `def+0x692` by the
-level percentage, subtracts `creature+0x40`, and caps the result at
-`def+0x694` — and the loader's copy pairs name those two fields **`Hp`** (file
-`0xF0C`) and **`HpFromChicken`** (file `0xF0E`). It is the healing handler: heal
-by `HpFromChicken`, but never past the level-scaled maximum.
+why it was opened first. **It is not combat.** One arm heals: `def+0x692` (`Hp`)
+scaled by the level percentage, less `creature+0x40`, capped at `def+0x694`
+(`HpFromChicken`).
 
-It has **no callers**. It is reached through a dispatch table of 20-byte entries
-around `0x006A5894`, the handler sitting at `+0x10` of its entry, which is worth
-recording because the combat handlers are likely to be its neighbours (Q313).
+**Corrected 2026-09-16 on both halves.** Calling it "the healing handler" named
+it after that one arm; it also starts creature actions 16 and 17 and sets a level
+at a Hero Lair. It is the handler for **game action `0x1A`** (`game-actions.md`),
+and the table is 20-byte records based at `0x006A54B8` with the handler at **+4**,
+not `+0x10` of an entry near `0x006A5894`. What action 26 *is* remains Q340.
 
 Named here so the next reader does not spend the same hour on it.
 

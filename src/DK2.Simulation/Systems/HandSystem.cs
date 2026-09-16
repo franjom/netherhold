@@ -203,14 +203,13 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
-        // A captive is not an offering. Whether DK2 lets a keeper sacrifice one is
-        // UNKNOWN (Q314); ADR-0064's "dropped anywhere that is not a prison tile, a
-        // prisoner goes free" is CONFIRMED by the owner, so it wins until asked.
+        // A captive IS an offering, and the Temple is ADR-0064's one exception:
+        // a wizard prisoner dropped on a Temple is sacrificed, not freed (Q314,
+        // CONFIRMED owner 2026-09-16). The intake is tested before the release.
         int landingTileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
         TempleSacrificeRules.Reconcile(world, context.Database);
         RoomInstance? temple = RoomIndex.RoomAt(world, context.Database, landingTileIndex);
-        if (!PrisonRules.IsImprisoned(creature)
-            && TempleSacrificeRules.IsTemple(temple, command.PlayerId))
+        if (TempleSacrificeRules.IsTemple(temple, command.PlayerId))
         {
             hand.RemoveAt(hand.Count - 1);
             creature.InHand = false;

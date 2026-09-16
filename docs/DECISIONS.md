@@ -1026,7 +1026,7 @@ So a keeper who dug through **their own reinforced wall** got Dirt Path still st
 - Open then: prison and capture (ADR-0064); kind 8 (ADR-0065); what a graveyard does when it fills (vampires).
 
 ## ADR-0064 — The Prison: capture, and the half of carrying that was missing
-**Date:** 2026-09-05 · **Status:** accepted · amended 2026-09-13: full-prison capacity is checked at delivery; arrival health is `MaxHealth / 6` (ADR-0071); capacity is interior + 1 (ADR-0070); the drain is hunger (ADR-0068); prisoners wander and eat (ADR-0073, ADR-0074); a captive takes no need-anger (ADR-0079)
+**Date:** 2026-09-05 · **Status:** accepted · amended 2026-09-13: full-prison capacity is checked at delivery; arrival health is `MaxHealth / 6` (ADR-0071); capacity is interior + 1 (ADR-0070); the drain is hunger (ADR-0068); prisoners wander and eat (ADR-0073, ADR-0074); a captive takes no need-anger (ADR-0079); **the Temple is the release rule's one exception (ADR-0154)**
 
 **Context.** Owner (2026-09-05): *"a corpse can not be picked up by hand of evil and dropped to a graveyard, only an imp can carry it to its grave, also an injured creature, lying on the floor bleeding out, can't be picked up by hand of evil and dropped to its lair, only an imp can carry it to its bed to recover, likewise only an imp can drag an enemy creature to prison, a hand of evil can then pick up that creature from prison and drop it around the dungeon, back in prison, or onto a torture rack in the torture chamber."* The pick-up handler refuses bit `0x200000` of the first state-flag word, which DK2's creature dump names `CreatureDying` — so ADR-0062's refusal was DK2's rule. Research: `docs/research/prison.md`, `imp-task-priority.md` §4, `manual-1999.md` §Prison.
 
@@ -3425,3 +3425,29 @@ The Combat Pit's shipped 100 is an increment against a ceiling of 100, so a pit
 fighter hits for **double** — the variable's name argues for the other reading
 and is now pinned by a test. Combat still does not happen; this buys the attack
 state a formula instead of a guess when someone writes it.
+
+## ADR-0154 — A captive dropped on a Temple is sacrificed, not freed
+
+**Status.** Accepted 2026-09-16.
+
+**Context.** ADR-0064's release rule — *dropped anywhere that is not a prison
+tile, a prisoner goes free* — is CONFIRMED by the owner, and ADR-0149's Temple
+intake consumes any creature dropped on a Temple. The two collide on one tile,
+and `HandSystem` resolved it by excluding captives from the intake, under a
+comment saying the confirmed rule wins until asked. Q314 asked.
+
+**Decision.** The Temple wins. **Owner, 2026-09-16: a wizard captive dropped on
+a Temple was sacrificed** — *"the gods have accepted your sacrifice"*. The
+`!PrisonRules.IsImprisoned` guard comes out of the creature-drop path, so the
+intake is tested before the release, and ADR-0064's rule carries an explicit
+Temple exception rather than a silent one.
+
+**Consequences.** One guard removed, one test inverted —
+`APrisonerDroppedOnATempleGoesFreeRatherThanBeingSacrificed` asserted the wrong
+half for a day and is now
+`APrisonerDroppedOnATempleIsSacrificedRatherThanFreed`. It had named its own
+doubt in a comment, which is why it was findable the moment the answer arrived.
+No hashed state changes and no scenario covers the path, so `HashVersion` stays
+at 61 and the determinism pin does not move. A captive is an offering like any
+other: it enters the Temple's three-entry recipe history under its creature type
+and current level.

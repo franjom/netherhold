@@ -256,12 +256,12 @@ public class PrisonTests
     }
 
     [Fact]
-    public void APrisonerDroppedOnATempleGoesFreeRatherThanBeingSacrificed()
+    public void APrisonerDroppedOnATempleIsSacrificedRatherThanFreed()
     {
-        // ADR-0064 is CONFIRMED by the owner on both halves: back onto the
-        // dropper's own prison and the captive is jailed again, anywhere else and
-        // it goes free. A Temple tile is anywhere else. Whether DK2 lets a keeper
-        // sacrifice a captive is UNKNOWN, so the confirmed rule wins until asked.
+        // The Temple is ADR-0064's one exception, and it took an owner to find it:
+        // dropping a wizard captive on a Temple sacrificed it, the gods accepting
+        // the offering (Q314, CONFIRMED owner 2026-09-16). This test asserted the
+        // opposite for a day, under a comment that named the doubt honestly.
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
@@ -275,8 +275,7 @@ public class PrisonTests
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(2, 7))));
 
-        Assert.Contains(world.Creatures, c => c.Id == captive.Id);
-        Assert.False(PrisonRules.IsImprisoned(captive));
+        Assert.DoesNotContain(world.Creatures, c => c.Id == captive.Id);
     }
     [Fact]
     public void ThreeByThreeIsDk2sSmallestPrisonAndItHoldsTwo()

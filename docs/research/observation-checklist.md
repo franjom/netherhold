@@ -77,7 +77,7 @@ possessed, **Q57** mana spent down to nothing on a small dungeon.
 ### Sitting E — anywhere with a fight, for §6
 
 **Q335, Q337, Q325** share one setup and one rule: **count blows to kill, never
-seconds**. **Q314** and **Q223** are single looks; **Q87** needs two portals.
+seconds**. **Q223** is a single look on Level 13; **Q87** needs two portals.
 
 ### Waiting on tooling, not on you
 
@@ -339,15 +339,11 @@ reading neither one's facing (arithmetic CONFIRMED). **Do:** attack along an
 axis, then diagonally. **Means:** fewer blows one way → the reading holds; no
 difference → a gate was missed.
 
-### Q314 — can a keeper sacrifice a captive?
-ADR-0149 consumes anything dropped on a Temple; ADR-0064 frees a prisoner dropped
-anywhere but a prison. Both CONFIRMED and they conflict.
-**Do:** drop a prisoner on a Temple. **Watch:** freed, or sacrificed.
-
 ### Q223 — who owns the disputed Hero Gates?
-Five ROOM records disagree with the MAP grid, every one a Hero Gate, on Level13,
-Onslaught and Siege. **Do:** load one and look at the gate's colour. **Means:**
-names which source the loader believes, for all five at once.
+Five ROOM records disagree with the MAP grid, every one a Hero Gate — two on
+**Level 13, "Cherish"** (the Monastery), two on Siege, one on Onslaught.
+**Do:** load one and look at the gate's colour. **Means:** names which source
+the loader believes, for all five at once.
 
 ### Q87 — is a level's `CreaturePool` a quota or a standing limit?
 Capacity is CONFIRMED (15, +5 a portal); whether the pool *drains* is not.
