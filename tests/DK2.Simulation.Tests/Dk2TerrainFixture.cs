@@ -912,6 +912,12 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.ExcessManaDecreaseRatePerSecond, 5);
         Set(vars, VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond, 30);
 
+        // The two the melee multiplier reads, as shipped. The Combat Pit's 100 is an
+        // increment and not a scale, so a pit fighter hits twice as hard; the first-person
+        // 12 is this project's hypothesis for a scalar nothing writes (Q337).
+        Set(vars, VariableTypeId.CombatPitMeleeDamageModifierPercentage, 100);
+        Set(vars, VariableTypeId.FirstPersonStatIncreasePercentage, 12);
+
         // The portal's three. The generation speed is the game-wide 25 rather
         // than level 1's 18, because this fixture is the global table; the
         // per-level override is exercised in PortalOnRealDataTests, which reads
@@ -933,6 +939,9 @@ internal static class Dk2TerrainFixture
         Stat(vars, CreatureStatId.Pay, [105, 110, 115, 120, 130, 140, 150, 180, 250]);
         Stat(vars, CreatureStatId.ExperienceForNextLevel,
              [130, 180, 250, 350, 470, 600, 720, 850, 1000]);
+        // Melee damage, to 600% at level 10 - the steepest row the table has,
+        // shared with Health (combat-damage.md section 3).
+        Stat(vars, CreatureStatId.MeleeDamage, [125, 150, 175, 200, 225, 250, 300, 400, 600]);
 
         return vars;
     }

@@ -3398,3 +3398,30 @@ two world-type-64 stalls gating two records, but its 48 creature roots are now
 walked. `HashVersion` and snapshot `FormatVersion` move 60 → 61; the pin becomes
 `0x57435BC71CE1BBDC`.
 
+## ADR-0153 — The melee damage formula is built as a rule nothing calls
+
+**Status.** Accepted 2026-09-16.
+
+**Context.** Q8 is now read end to end (`combat-damage.md`). The three helpers
+the accessor uses are a fixed-point add, divide and multiply, not the clamps
+`combat.md` §5.1 guessed; its three attacker arms are mutually exclusive and all
+three flags were already named in our own `creature-object.md`; and there is no
+resistance step anywhere between the accessor and the health routine. What the
+simulation does not have is an attack state, target acquisition, or the cadence
+of `combat-cadence.md`.
+
+**Decision.** Implement §2–§4 as `MeleeDamageRules`, a pure static class with
+tests, and **wire it to nothing**. Reproduce the original's two rounding
+behaviours rather than tidying them: the damage is negated before the bonuses,
+so every `/ 100` truncates toward zero, and a blow that rounds to zero never
+reaches the health routine at all. Take the bearing as a raw angle rather than
+reimplementing `atan2`. Mark the possession percentage `Hypothesis`, alone in
+the class, because the scalar the original reads has no writer (Q337).
+
+**Consequences.** 22 new tests, 5 of them install-gated and re-reading the three
+shipped inputs so the synthetic fixture cannot drift from the install. No
+simulation state, so `HashVersion` is unchanged at 61 and no scenario moves.
+The Combat Pit's shipped 100 is an increment against a ceiling of 100, so a pit
+fighter hits for **double** — the variable's name argues for the other reading
+and is now pinned by a test. Combat still does not happen; this buys the attack
+state a formula instead of a guess when someone writes it.
