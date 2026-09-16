@@ -339,15 +339,6 @@ reading neither one's facing (arithmetic CONFIRMED). **Do:** attack along an
 axis, then diagonally. **Means:** fewer blows one way → the reading holds; no
 difference → a gate was missed.
 
-### Q223 — who owns the disputed Hero Gates?
-**Answered from the data** (`placed-things.md` §4): the record's player is 1 for
-all 133 hero structures in the campaign, so it cannot be the owner and the grid
-is. A **confirmation** rather than a question now, and cheap if you are on
-**Level 13, "Cherish"**: the two gates at map **(11, 8)** and **(20, 8)**, in the
-monastery end, should read **unclaimed** — the other five on that level are
-hero-owned and stand as the comparison. **Means:** unclaimed confirms the sweep;
-hero-owned overturns it and the record wins after all.
-
 ### Q87 — is a level's `CreaturePool` a quota or a standing limit?
 Capacity is CONFIRMED (15, +5 a portal); whether the pool *drains* is not.
 **Do:** count arrivals past 15 on a level with two portals claimed.

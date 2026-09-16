@@ -133,9 +133,10 @@ be the per-instance owner; the grid is the only side that varies. Level13 is
 also the case that breaks the old wording: its grid says **2, unclaimed**, not a
 keeper, which is the normal state of a hero portal (`PlayerIds.Neutral`).
 
-**STRONGLY INFERRED**, not CONFIRMED: this shows the record cannot *express*
-what the grid does, not which the loader reads. But if the record won, all 86
-gates would be hero-owned and Siege's two would not be keeper 4's.
+**CONFIRMED (owner, 2026-09-16)**: on *Cherish* both gates read **unclaimed, and
+not destroyed**, which is what the grid says and what the record cannot say. The
+second half also rules out owner 2 meaning a ruined structure. Room placement,
+when it is built, takes the owner from the grid.
 
 ## 5. Hero parties are a fixed array of sixteen
 

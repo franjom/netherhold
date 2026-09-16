@@ -423,7 +423,7 @@ Cheap to expensive; stop when the question is answered. `AGENTS.md` gives the ra
 | Q177 | does the aimed (drop) bonus carry from one marked tile to the next? The binary says yes |
 | Q118 | how much does water slow a creature (a Vampire in a lake: 25 s to die = per-second hazard, 1.25 s = per-tick) |
 | Q103 | the 240 s / 9 s sleep cycle — corroborated by stopwatch (owner, 2026-09-07), not settled. Q107 and Q109 answered with it |
-| Q223 | load Level13 and see who owns the hero gate at (11,8). Five of the campaign's 275 ROOM records disagree with the MAP grid about the owner of a structure, every one a Hero Gate (two on Level13, one on Onslaught, two on Siege): the record says the good player, the grid says a keeper. The grid wins today by default. A hero gate owned by a keeper spawns for the wrong side, if it spawns at all |
+| Q223 | ~~load Level13~~ **CLOSED 2026-09-16**: the grid owns a structure, not the ROOM record, whose player is the constant 1 across all 133 hero structures; owner confirmed both Cherish gates read unclaimed |
 
 **Binary reads** (`docs/RESEARCH-QUEUE.md` keeps the working list and the Ghidra command)
 
