@@ -61,7 +61,7 @@ They are contiguous in the RTTI name block and nothing else in the image matches
 the family:
 
 `Seek`, `Arrival`, `Separation`, `Avoid_Obstacle`, `Repel_Obstacle`,
-`Formation`, `Avoid_Walls`, `Follow_Path`.
+`Formation`, `Avoid_Walls`, `Follow_Path`. **Three of them are stubs** (§3.2).
 
 That set is the classical steering-behaviour vocabulary. Combined with
 `max_force`, `max_speed` and `projection_vector` on the mover (§4), the mover is
@@ -102,6 +102,55 @@ degrees** — ten tiles across and three up, over open floor. A grid route bends
 because it is made of 45 and 90 degree legs. A corridor reduced by `Route2path`
 is one straight line at about 17 degrees. The bend is the tell, not the
 smoothness. Recorded in `observation-checklist.md`.
+
+### 3.2 Three of the eight do nothing, and Separation is read
+
+`seek`, `arrival` and `formation` share one method, `0x004D2A40`, and it is a
+**stub**: it writes a zero vector to the output and returns. Whatever those three
+meant, the shipped game gets no force from them. Five behaviours are live.
+
+`Separation` is `0x004D2DF0`, and its per-neighbour force is `0x004D2B80`. The
+steering body sits at **`entity+0x124`**, which is how the two connect.
+
+The outer routine:
+
+1. Skips entirely while the body is within `radius + 0x8000` of its **final**
+   waypoint, so creatures are not pushed apart once they have arrived. The
+   waypoint is picked out of `subpath_buffer` at `+0xB4`, stride 8.
+2. Otherwise queries neighbours within **1.2 x radius** (`0x13333` in 16.16,
+   multiplied by `radius` at `+0xDC`), through an installed function pointer at
+   `0x006ED3FC` with its context at `0x006ED40C`, passing `0x004D2B80` as the
+   per-neighbour callback.
+
+The callback, for a pushing body A and a neighbour B:
+
+| step | what the original does |
+|---|---|
+| skip | B is A; or A's `is_blocker` (`+0x10E` bit 7) is set |
+| offset | `v = A.pos - B.pos`, so the push is **away from** the neighbour |
+| distance | `d = octile(v)` = longer axis plus half the shorter |
+| gate | force only while `0 < d <= rA + rB` |
+| ratio | `r = (d << 16) / (rA + rB)` |
+| arm 1 | `r <= 0x28F` (about 1 %) -> magnitude is A's `max_force` (`+0xDE`) |
+| arm 2 | B blocks and A does not ignore blockers -> `2^32 / r - 1.0` |
+| arm 3 | otherwise -> `2^32 / isqrt(r) - 1.0` |
+
+`isqrt` is `0x0065FAE0`: seed from the highest set bit out of a 32-entry table at
+`0x0065FB14` holding round(2^(i/2)), then Newton-halve until the quotient stops
+being smaller. It is reproduced rather than replaced, because it returns the
+first converged guess and that is what the curve is fed.
+
+**One thing does not reconcile.** Arm 1 is described by its own shape as a
+saturation, yet for any ordinary `max_force` it yields *less* than arm 3 does
+just above the threshold: at `r` one above `0x28F`, arm 3 gives about 171
+million. Either `max_force` is far larger than it looks, or the curve's scale is
+to be read differently, or the integration clamps the total anyway. Recorded as
+**Q346** and pinned by a test rather than smoothed over.
+
+**What is built:** `SeparationRules` reproduces all of the above as arithmetic,
+tested, and **called by nothing** (ADR-0156). What stops it being wired is not
+this force but the integration -- how the five live behaviours combine and
+become motion (Q343) -- and our mover has no velocity to accept a force.
 
 ## 4. The per-creature path state is the steering body
 

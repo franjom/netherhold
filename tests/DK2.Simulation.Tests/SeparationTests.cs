@@ -1,0 +1,169 @@
+﻿// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.Simulation;
+
+namespace DK2.Simulation.Tests;
+
+/// <summary>
+/// DK2's Separation force (docs/research/navigation-and-steering.md §3.2, ADR-0156).
+///
+/// Pure arithmetic against the binary's own operations. Nothing here runs a simulation, because
+/// nothing calls the rule: how the original integrates a behaviour force into motion is Q343.
+/// </summary>
+public class SeparationTests
+{
+    [Fact]
+    public void TheDistanceIsTheLongerAxisPlusHalfTheShorter()
+    {
+        Assert.Equal(100, SeparationRules.OctileDistance(100, 0));
+        Assert.Equal(100, SeparationRules.OctileDistance(0, -100));
+        Assert.Equal(150, SeparationRules.OctileDistance(100, 100));
+        Assert.Equal(120, SeparationRules.OctileDistance(-100, 40));
+    }
+
+    /// <summary>The approximation never under-reports, which is what keeps a creature pushing
+    /// slightly too early rather than slightly too late.</summary>
+    [Theory]
+    [InlineData(3, 4)]
+    [InlineData(300, 400)]
+    [InlineData(1000, 1)]
+    [InlineData(7, 7)]
+    public void TheDistanceNeverUnderstatesTheTrueLength(int dx, int dy)
+    {
+        double euclidean = Math.Sqrt((double)dx * dx + (double)dy * dy);
+        Assert.True(SeparationRules.OctileDistance(dx, dy) >= (int)euclidean);
+    }
+
+    [Fact]
+    public void BodiesPushOnlyWhileTheyOverlap()
+    {
+        Assert.True(SeparationRules.Applies(99, 100));
+        Assert.True(SeparationRules.Applies(100, 100));
+        Assert.False(SeparationRules.Applies(101, 100));
+    }
+
+    /// <summary>Concentric bodies are excluded, not saturated: with no offset there is no
+    /// direction to push along, so the original drops the pair rather than dividing by zero.
+    /// The saturation arm is for <i>nearly</i> concentric.</summary>
+    [Fact]
+    public void ExactlyConcentricBodiesAreSkippedEntirely()
+    {
+        Assert.False(SeparationRules.Applies(0, 100));
+    }
+
+    [Fact]
+    public void JustTouchingIsTheWholeRatioAndConcentricIsNone()
+    {
+        Assert.Equal(SeparationRules.One, SeparationRules.Ratio(100, 100));
+        Assert.Equal(SeparationRules.One / 2, SeparationRules.Ratio(50, 100));
+    }
+
+    [Fact]
+    public void AnAlmostConcentricPairPushesAtMaxForce()
+    {
+        int ratio = SeparationRules.Ratio(1, 1000);
+        Assert.True(ratio <= SeparationRules.SaturationRatio);
+        Assert.Equal(4242, SeparationRules.Magnitude(ratio, 4242, false, false));
+    }
+
+    /// <summary>The blocker arm is a plain reciprocal, so a pair just touching pushes with
+    /// nothing at all and the force grows only as they sink into each other.</summary>
+    [Fact]
+    public void AgainstABlockerTheForceVanishesAtTheMomentOfContact()
+    {
+        Assert.Equal(0, SeparationRules.Magnitude(SeparationRules.One, 9999, true, false));
+    }
+
+    [Fact]
+    public void AgainstABlockerHalfOverlapPushesWithOne()
+    {
+        int ratio = SeparationRules.Ratio(50, 100);
+        Assert.Equal(SeparationRules.One, SeparationRules.Magnitude(ratio, 9999, true, false));
+    }
+
+    /// <summary>Ignoring blockers is what sends a body down the square-root arm instead, and the
+    /// two arms disagree — which is the point of the flag.</summary>
+    [Fact]
+    public void IgnoringBlockersTakesTheOtherArm()
+    {
+        int ratio = SeparationRules.Ratio(50, 100);
+        int blocked = SeparationRules.Magnitude(ratio, 9999, true, false);
+        int ignored = SeparationRules.Magnitude(ratio, 9999, true, true);
+        Assert.NotEqual(blocked, ignored);
+    }
+
+    /// <summary>A neighbour that does not block is treated the same as one whose blocking is
+    /// ignored: both arms are the square root.</summary>
+    [Fact]
+    public void ANonBlockingNeighbourAndAnIgnoredBlockerAgree()
+    {
+        int ratio = SeparationRules.Ratio(70, 100);
+        Assert.Equal(
+            SeparationRules.Magnitude(ratio, 9999, false, false),
+            SeparationRules.Magnitude(ratio, 9999, true, true));
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 1)]
+    [InlineData(4, 2)]
+    [InlineData(65536, 256)]
+    [InlineData(1000000, 1000)]
+    public void TheSquareRootAgreesWithTheRealOneOnExactSquares(int value, int expected)
+    {
+        Assert.Equal(expected, SeparationRules.IntegerSquareRoot(value));
+    }
+
+    /// <summary>The original's loop stops at the first guess that is no larger than the true root,
+    /// so it never overshoots. Swept rather than sampled, because an off-by-one here would bias
+    /// every force on the curve arm.</summary>
+    [Fact]
+    public void TheSquareRootNeverExceedsTheTrueRoot()
+    {
+        for (int value = 1; value < 20000; value++)
+        {
+            int root = SeparationRules.IntegerSquareRoot(value);
+            Assert.True((long)root * root <= value, $"{root}^2 > {value}");
+        }
+    }
+
+    /// <summary>On the curve arm the force is monotone: sinking further in never pushes less hard.
+    /// Swept rather than sampled, because a curve that folded back would be invisible in samples.
+    /// </summary>
+    [Fact]
+    public void SinkingDeeperNeverPushesLessHardOnTheCurve()
+    {
+        int previous = 0;
+        for (int distance = 1000; distance >= 1; distance--)
+        {
+            int ratio = SeparationRules.Ratio(distance, 1000);
+            if (ratio <= SeparationRules.SaturationRatio) break;
+
+            int magnitude = SeparationRules.Magnitude(ratio, 1 << 20, false, false);
+            Assert.True(magnitude >= previous, $"fell from {previous} to {magnitude} at {distance}");
+            previous = magnitude;
+        }
+
+        Assert.True(previous > 0);
+    }
+
+    /// <summary>The saturation arm can push <b>less</b> hard than the curve immediately above it,
+    /// which is not what "saturate at max_force" suggests and is recorded rather than smoothed.
+    ///
+    /// It is the one part of the transcription that does not obviously reconcile: either max_force
+    /// is far larger than a plausible test value, or the curve's scale is to be read differently,
+    /// or the integration clamps the total anyway. Q346 asks. If the reading changes, this test is
+    /// the thing that should fail.
+    /// </summary>
+    [Fact]
+    public void TheSaturationArmCanUndercutTheCurveItReplaces()
+    {
+        int justOnTheCurve = SeparationRules.SaturationRatio + 1;
+        int curve = SeparationRules.Magnitude(justOnTheCurve, 1 << 20, false, false);
+        int saturated = SeparationRules.Magnitude(SeparationRules.SaturationRatio, 1 << 20, false, false);
+
+        Assert.True(curve > saturated);
+    }
+}

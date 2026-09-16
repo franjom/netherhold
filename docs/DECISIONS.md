@@ -3474,3 +3474,28 @@ with corner-cutting (Q28) and no terrain weighting (Q30). Any replacement must
 still satisfy both. What does not survive is the interface's premise that a tile
 route is what DK2 computes. No behaviour changes, so `HashVersion` stays at 61
 and the determinism pin does not move. Q341–Q344 carry the unread algorithms.
+
+## ADR-0156 — Separation is built as a rule and wired to nothing
+
+**Status.** Accepted 2026-09-16.
+
+**Context.** The owner confirms creatures push each other (Q345) and ours walk
+through each other. DK2's force law is now read end to end
+(`navigation-and-steering.md` §3.2): a gate on overlap, an octile distance, a
+ratio against summed radii and three arms.
+
+**Decision.** Build `SeparationRules` as pure arithmetic reproducing the
+original's operations, and call it from nothing. Wiring needs two things this
+project does not have: DK2's rule for combining five behaviour forces into
+motion (Q343, unread), and a mover with a velocity to accept one. Inventing
+either would put a guess underneath every creature's position, which is the
+one place this project has agreed not to guess.
+
+**Consequences.** Creatures still pass through each other, and that remains a
+known, recorded divergence rather than a silent one. The arithmetic is
+transcribed rather than reinterpreted — including an integer square root kept
+because it stops at its first converged guess. One branch does not reconcile
+(Q346) and is pinned by a failing-if-changed test rather than smoothed. No
+simulation state moves, so `HashVersion` stays at 61 and the determinism pin
+does not move. Same shape as ADR-0153 for the damage formula, for the same
+reason: the rule is knowable now, the integration is not.
