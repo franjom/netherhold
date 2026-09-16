@@ -8,10 +8,11 @@ namespace DK2.Simulation;
 
 /// <summary>DK2's <c>Separation</c> steering force, the rule that stops two creatures standing in
 /// the same place (Q345, docs/research/navigation-and-steering.md §3.2).
-/// <para><b>Nothing calls this.</b> The force law is read; how DK2 turns a set of behaviour forces
-/// into motion is not (Q343), and our mover has no velocity to accept one. Wiring it would mean
-/// inventing the integration, so it is built, tested and left unwired — as ADR-0153 did for the
-/// damage formula. ADR-0156.</para>
+/// <para><b>Nothing calls this.</b> How DK2 combines behaviour forces is now read (Q343): each is
+/// truncated to <c>max_force</c>, scaled by a per-behaviour weight and summed, Separation's weight
+/// being 0.13. What turns that total into motion is still UNKNOWN, and our mover has no velocity to
+/// accept a force, so this stays built, tested and unwired — as ADR-0153 did for the damage
+/// formula. ADR-0156.</para>
 /// <para>Scalars are the steering layer's 16.16 fixed point, not <see cref="Fp32"/>'s 1/4096.
 /// Arithmetic is reproduced operation for operation rather than reinterpreted: where the original
 /// divides a 64-bit numerator by a 16.16 ratio, so does this.</para></summary>

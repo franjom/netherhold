@@ -149,13 +149,13 @@ public class SeparationTests
         Assert.True(previous > 0);
     }
 
-    /// <summary>The saturation arm can push <b>less</b> hard than the curve immediately above it,
-    /// which is not what "saturate at max_force" suggests and is recorded rather than smoothed.
+    /// <summary>The saturation arm returns a smaller <i>magnitude</i> than the curve immediately
+    /// above it, which looked incoherent until the caller was read (Q346, answered).
     ///
-    /// It is the one part of the transcription that does not obviously reconcile: either max_force
-    /// is far larger than a plausible test value, or the curve's scale is to be read differently,
-    /// or the integration clamps the total anyway. Q346 asks. If the reading changes, this test is
-    /// the thing that should fail.
+    /// It is not a discontinuity in the force: the combiner truncates every behaviour's force to
+    /// max_force before weighting it, so the curve arm's very large magnitude is clamped to exactly
+    /// what this arm returns directly. Pinned because the magnitudes are what this rule produces,
+    /// and a consumer that stopped clamping would make the difference real.
     /// </summary>
     [Fact]
     public void TheSaturationArmCanUndercutTheCurveItReplaces()

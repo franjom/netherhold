@@ -152,6 +152,58 @@ tested, and **called by nothing** (ADR-0156). What stops it being wired is not
 this force but the integration -- how the five live behaviours combine and
 become motion (Q343) -- and our mover has no velocity to accept a force.
 
+### 3.3 How the forces combine (Q343), and what that settles
+
+The eight singletons are reachable only through a **pointer table of 8 entries at
+`0x006A1488`**, in declaration order: seek, arrival, separation, avoid_obstacle,
+repel_obstacle, formation, avoid_walls, follow_path.
+
+`FUN_004D56E0` is the only function that reads it. It looks four behaviours up
+**by name**, with an inline string compare against the literal each singleton
+carries, and pushes an 8-byte `{weight, behaviour}` pair onto a list whose base,
+top and limit are `0x006ECAE0`, `0x006ECAE4` and `0x006ECAE8`:
+
+| behaviour | weight | in 16.16 |
+|---|---|---|
+| `avoid_walls` | `0x9999` | **0.6** |
+| `repel_obstacle` | `0x6666` | **0.4** |
+| `follow_path` | `0x5999` | **0.35** |
+| `separation` | `0x2147` | **0.13** |
+
+**`avoid_obstacle` is never registered**, though its method is real. Of eight
+behaviours, three are stubs (§3.2), one is implemented but unused, and **four are
+combined**.
+
+`FUN_004D4760` consumes the list once per body, and the loop is short:
+
+```
+for each {weight, behaviour} in the list:
+    f = behaviour->update(body, arg)      ; the virtual, out-parameter first
+    f = truncate(f, body.max_force)       ; 0x004D4F60
+    total += f * weight                   ; 0x004D1E70, 16.16
+```
+
+So the combination is a **weighted sum of individually clamped forces**. Because
+each term is clamped before weighting and addition commutes, the list's order does
+not affect the result.
+
+`0x004D4F60` is a vector truncation: it takes the true Euclidean length through
+`isqrt(x*x + y*y)` — in three precision bands, shifting the inputs right by 0, 8 or
+18 and the root back again, so the square never overflows — and rescales to the
+limit only when the length reaches it.
+
+**This settles Q346.** Separation's saturation arm looked like it undercut the
+curve beside it by orders of magnitude. It does not, because nothing downstream
+sees either number raw: every behaviour's force is truncated to `max_force` before
+it is weighted. The curve arm's very large magnitude is clamped to `max_force`, and
+the saturation arm returns `max_force` directly — the same value by a shorter road.
+The discontinuity is in the magnitude, not in the force.
+
+**Still UNKNOWN:** what consumes `total` — the step from an accumulated force to a
+position, where `max_speed` (`+0xE2`) presumably enters — and the rest of
+`FUN_004D4760`, which walks a count at `body+0x80` over 10-byte records from
+`body+0x8` and compares squared distances against `0xCCC`. Neither is read.
+
 ## 4. The per-creature path state is the steering body
 
 It is not in the behaviour. It is the object
