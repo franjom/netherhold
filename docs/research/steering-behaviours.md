@@ -79,7 +79,7 @@ router's `<< 8` copy of its 256-per-tile waypoints lands exactly there.
 
 1. `ahead = pos + vel` (`0x004D5080`, the predicted position one step on).
 2. `tile = pos >> 16`; `own = probe(tile)`, the body's own navigation byte.
-3. `dir = vel / |vel|`; `sx = sign(dir.x)`, `sy = sign(dir.y)` " + D + " each is `−1` when
+3. `dir = vel / |vel|`; `sx = sign(dir.x)`, `sy = sign(dir.y)` — each is `−1` when
    negative and `+1` otherwise, never zero. `len = |vel|` is the look-ahead.
 4. Three probes through `0x004D16B0`, each run through the transition-cost
    function against `own`, so "wall" means *impassable for this mover*:
@@ -88,7 +88,7 @@ router's `<< 8` copy of its 256-per-tile waypoints lands exactly there.
    tile `B` nearest the body is taken, and a ray from `pos` along `dir` is
    tested against a circle of `radius` on that corner (`0x004D20F0`). If it
    hits within `len`: `hit = pos + dir·t`, `n = (hit − corner) / radius`, and
-   the force is **`2·((hit − ahead)·n)·n − vel`** " + D + " a reflection off the corner,
+   the force is **`2·((hit − ahead)·n)·n − vel`** — a reflection off the corner,
    as a steering force (desired minus current).
 6. **Otherwise, per axis.** If `C` is a wall: with `sx > 0` the face is
    `(x+1) << 16` and the force is `2·(face − radius − ahead.x)` when `ahead.x`
