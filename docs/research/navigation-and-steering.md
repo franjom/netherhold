@@ -14,8 +14,9 @@ Questions: **Q5** (answered at the architectural level here), **Q342** and
 [navigation-mesh-and-search.md](navigation-mesh-and-search.md); the
 triangulation's internals are Q347 and `grtc:` is Q344, both open.
 
-**Nothing here is built.** `GridPathfinder` is unchanged and is now known to be
-structurally unlike the original (§6).
+**The router half is built as an unwired library** (ADR-0157 phase 1, see
+`navigation-mesh-and-search.md`); of the steering half only `SeparationRules`
+exists. `GridPathfinder` still serves the simulation until phase 3 (§6).
 
 ---
 

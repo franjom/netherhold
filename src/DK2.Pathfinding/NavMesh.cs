@@ -110,7 +110,9 @@ public sealed partial class NavMesh
         return -1;
     }
 
-    private bool Contains(int t, long x, long y)
+    /// <summary>Whether a position in 1/256-tile units lies in or on triangle <c>t</c>. A point
+    /// on a shared edge is in both triangles; <see cref="Locate"/> picks the lower index.</summary>
+    public bool Contains(int t, long x, long y)
     {
         for (int i = 0; i < 3; i++)
         {

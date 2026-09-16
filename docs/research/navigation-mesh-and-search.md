@@ -15,7 +15,10 @@ algorithm level.
 Continues `navigation-and-steering.md`, which owns the funnel (§2.1) and the
 mover; this page owns everything before the funnel.
 
-**Nothing here is built.** `GridPathfinder` is still the router (ADR-0155).
+**Built as an unwired library** (ADR-0157 phase 1): `NavMesh`, `MeshRouter` and
+`Funnel` in `DK2.Pathfinding`, tested on synthetic maps — the owner's straight
+10-by-3 walk is one of the tests. `GridPathfinder` still serves the simulation
+until phase 3.
 
 ---
 
