@@ -1,4 +1,4 @@
-# Mechanic: the steering behaviours' bodies (phase 2 of ADR-0157)
+﻿# Mechanic: the steering behaviours' bodies (phase 2 of ADR-0157)
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-16. Addresses are
@@ -71,14 +71,52 @@ Two helpers seen on the way: `0x004D4600` projects a target onto the body's
 heading to a circle, or `INT_MIN` for a miss. Both serve `0x004D32E0`, a
 repel-along-heading routine whose caller is not yet identified.
 
-## 3. What this leaves (Q349, Q344)
+## 3. `Avoid_Walls` (`0x004D35C0`, weight 0.6), the normal path
 
-- `Avoid_Walls` (`0x004D35C0`, weight **0.6** — the largest): three feelers
-  through the probe and the transition-cost function, a second four-feeler
-  block under `escape_stuck_mode`, ray-circle geometry. Skeleton seen, body
-  unread.
+The steering body's positions are **16.16 tiles**: `0x004D3BE0` turns one into a
+tile by `>> 16`, `0x004D3C10` turns a tile corner back by `<< 16`, and the
+router's `<< 8` copy of its 256-per-tile waypoints lands exactly there.
+
+1. `ahead = pos + vel` (`0x004D5080`, the predicted position one step on).
+2. `tile = pos >> 16`; `own = probe(tile)`, the body's own navigation byte.
+3. `dir = vel / |vel|`; `sx = sign(dir.x)`, `sy = sign(dir.y)` " + D + " each is `−1` when
+   negative and `+1` otherwise, never zero. `len = |vel|` is the look-ahead.
+4. Three probes through `0x004D16B0`, each run through the transition-cost
+   function against `own`, so "wall" means *impassable for this mover*:
+   `A = (x, y+sy)`, `B = (x+sx, y+sy)`, `C = (x+sx, y)`.
+5. **Only the diagonal blocked** (`B` wall, `A` and `C` open): the corner of
+   tile `B` nearest the body is taken, and a ray from `pos` along `dir` is
+   tested against a circle of `radius` on that corner (`0x004D20F0`). If it
+   hits within `len`: `hit = pos + dir·t`, `n = (hit − corner) / radius`, and
+   the force is **`2·((hit − ahead)·n)·n − vel`** " + D + " a reflection off the corner,
+   as a steering force (desired minus current).
+6. **Otherwise, per axis.** If `C` is a wall: with `sx > 0` the face is
+   `(x+1) << 16` and the force is `2·(face − radius − ahead.x)` when `ahead.x`
+   is past that limit; with `sx ≤ 0` the face is `x << 16` and the force is
+   `2·(face + radius − ahead.x)` when short of it. The same for `A` on y with
+   `sy`. Both axes are judged independently and both may contribute.
+
+So `Avoid_Walls` is a **wall margin of one radius (0.2 tiles)** enforced against
+the predicted position, with a reflected push at inside corners. It is what
+keeps a body off the wall the funnel's corners hug. The block under
+`escape_stuck_mode` (`0x004D39D5`–`0x004D3BB9`) is not yet read.
+
+## 4. The integrator's slide along solid obstacles
+
+`FUN_004D4760`, after summing the weighted forces, walks the twelve-slot list
+`Repel_Obstacle` filled. For each recorded unit direction `n` (from the obstacle
+to the body): `inward = vel · n`; if `inward ≥ 0xCCC` (0.05) the body is moving
+away and the record is skipped. Otherwise the inward component is removed,
+`vel −= (vel · n)·n`, and a **tangential push at `max_force`** is added to the
+force, its sign chosen by negating the tangent (`0x004D4550`) when the residual
+points the wrong way. That is why a creature meeting a bed slides round it
+rather than stopping.
+
+## 5. What this leaves (Q349, Q344)
+
+- `Avoid_Walls`' `escape_stuck_mode` block.
 - `Follow_Path`'s body (`0x004D3C40`, weight 0.35) beyond its early-outs.
-- The integrator's clipping of velocity against the recorded solid obstacles.
+- The exact tangent-sign rule of the slide, and `0x004D20F0`'s tail.
 - `grtc:` (`0x004CF490`–`0x004CFD00`), which shapes the aim points the mover
   is actually given (Q344).
 - The third callback `0x004D15E0`.
@@ -93,7 +131,13 @@ the twelve-slot list and its record shape.
 **CONFIRMED (binary + repo):** flag bit 0 is `SolidObstacle` — the enumerator
 forwards the object flags `structure-blocks.md` already decoded.
 
-**STRONGLY INFERRED:** that `0x004D2070` is a ray–circle intersection (its
-arithmetic is the quadratic's discriminant and root in 16.16).
+**CONFIRMED (binary):** `Avoid_Walls`' normal path as stepped in §3 — the
+prediction, the three probes and their tiles, the one-radius margin per axis
+with its factor of two, the corner case and its force; that steering positions
+are 16.16 tiles; the slide's threshold, projection and tangential push.
 
-**UNKNOWN:** everything in §3.
+**STRONGLY INFERRED:** that `0x004D2070` and `0x004D20F0` are ray–circle
+intersections (the arithmetic is the quadratic's discriminant and root in
+16.16; the tail of the second is unread).
+
+**UNKNOWN:** everything in §5.
