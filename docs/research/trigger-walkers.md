@@ -20,6 +20,7 @@ result on that level and it will not be a finding.
 | An action point's repeat argument is its root record's own byte, snapshotted when the root is attached | **Strongly inferred** | `0x004B0C90` is the only writer of `+0x36` besides the constructor's zero; direct instruction read |
 | The area context computes no action type at all | **Known** | `0x004B0CC0` calls the world action dispatcher `0x00518AD0` directly; there is no second table |
 | Action dispatch is a chain: creature → player → world | **Known** | Each default arm is a direct `CALL` to the next dispatcher — `0x0049B155`, `0x004C8A45` |
+| Condition dispatch is the same chain | **Known** | Creature default loads owner `+0x2A` and calls `0x004C7B20` at `0x0049AC0C`; player default calls world |
 | An action's return value cannot steer any shipped walk | **Known** | The walk descends only into `ChildTriggerId`, and all 5,408 shipped action records have zero there |
 
 ## One driver, five calls
@@ -81,6 +82,11 @@ repeat byte off the record, where the other three read a byte the loader stored
 beside the id. The action-point frame is nothing else — five instructions, a
 null check and the call.
 
+The creature setter `0x0049A950` stores the root and, when it is non-zero,
+resolves it in the condition array and copies that record's current `+0x0F` to
+creature `+0x4F9`. The constructor zeroes both fields. **STRONGLY INFERRED**
+from the complete writer set; this is the same snapshot shape as an action point.
+
 ## The second path: events, and it is not a tree walk
 
 Each of the three entity walkers has a second caller, and it traverses
@@ -107,22 +113,21 @@ action type 14's party creation, which fires event 3 for each creature it makes
 
 ## A tree's context decides only part of its meaning
 
-Each context has its own condition and action dispatcher, and **each one hands
-every type it does not own to the world dispatcher**, with the world as `this`.
-The delegation is the default arm of the same two-level table the world uses.
+Each context has its own condition and action dispatcher. A creature delegates
+both kinds through its owning player's dispatcher; the player then delegates
+what it does not own to the world. The area dispatcher delegates straight to
+the world.
 
 | context | conditions | base, range | delegates to | actions | base, range | delegates to |
 |---|---|---|---|---|---|---|
 | player | `0x004C7B20` | 19, `0x37` (19–74) | `0x00518270` at `0x004C856C` | `0x004C8620` | 10, `0x28` (10–50) | `0x00518AD0` at `0x004C8A3E` |
-| creature | `0x0049AAA0` | — | — | `0x0049AC80` | 15, `0x1C` (15–43) | **`0x004C8620`** at `0x0049B151` |
+| creature | `0x0049AAA0` | 3, `0x3F` (3–65) | **`0x004C7B20`** at `0x0049AC0C` | `0x0049AC80` | 15, `0x1C` (15–43) | **`0x004C8620`** at `0x0049B151` |
 | area | `0x004B0D70` | 39, `0x1F` (39–70) | `0x00518270` at `0x004B0EC9` | none | — | `0x00518AD0`, from the walker itself |
 
-**Actions delegate in a chain, not a star.** The creature dispatcher's default
-arm passes the record to the *player* dispatcher with the creature's owning
-player as `this` (`[ESI+0x2A]`), and that one passes on to the world. So an
-action reaching a creature tree has three tables to fall through and the world's
-is the last; a player tree has two. Conditions do not chain: both entity
-dispatchers hand straight to `0x00518270`.
+**Both entity dispatchers delegate in a chain, not a star.** The creature
+default loads its owning player from `+0x2A`, then calls the player dispatcher;
+the player's default passes on to the world. A creature tree therefore has
+three tables to fall through for conditions and actions alike.
 
 So a flag test (type 1), a timer test (2) and a level-time test (34) mean the
 same thing in a player tree as in the world tree, over the same level-global
@@ -132,6 +137,10 @@ reach the world. **Reusing the world evaluator inside a player tree is correct,
 not a convenience.**
 
 What each context owns is its own:
+
+- **creature conditions:** types 3–16, 50, 54, 55, 63 and 65 return false on
+  the per-turn path; 36 compares health percent, 37 carried-gold percent and 49
+  level. The event filter is the separate path above.
 
 - **player conditions:** 19–33, 47, 48, 52, 53, 56–61, 68, 71, 72, 73, 74.
   Eight of them — 48, 53, 56–61 — have a jump-table entry that **is** the
@@ -143,8 +152,9 @@ What each context owns is its own:
 - **player actions:** 10, 11, 24–28, 31, 34, 37, 38, 42, 50. Type 34's arm is
   bare `MOV EAX,1` (`0x004C8A37`): in a player tree it does nothing and succeeds.
 - **creature actions:** 15, 20, 21, 29, 30, 33, 35, 36, 42, 43. Every one of
-  these is refused by the world dispatcher, so **a type is not dead because the
-  world has no arm for it** — type 15 alone has 565 shipped records.
+  these returns success, including guarded no-op exits, and is refused by the
+  world dispatcher. **A type is not dead because the world has no arm for it**
+  — type 15 alone has 565 shipped records.
 - **area conditions:** 39, 40, 41, 42, 62, 69, 70. All seven measure something
   over the point's own inclusive rectangle; `trigger-semantics.md`, "The area
   context", has each one's quantity and comparison.

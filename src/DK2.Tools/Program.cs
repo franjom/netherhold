@@ -1133,7 +1133,7 @@ switch (args[0])
         Console.WriteLine($"Every level run headless for {unreachedTurns} turns. Records the run never");
         Console.WriteLine("walked, by why -- first bucket that claims a record keeps it:");
         Console.WriteLine("  declined = behind a condition this executor cannot answer (the frontier)");
-        Console.WriteLine("  creature = only reachable from a creature root; no creature walker exists");
+        Console.WriteLine("  creature = only reachable below a creature root that stayed closed or inactive");
         Console.WriteLine("  party    = only reachable from a party subtree nothing armed (action 14");
         Console.WriteLine("             creates no creatures, Q254)");
         Console.WriteLine("  orphan   = reachable from no root at all -- dead script in the file");
@@ -2610,17 +2610,14 @@ static int RunTriggerCsv(
     Console.WriteLine($"{levelName}: {turns} turns, root trigger {tree.RootTriggerId} "
         + $"repeat {tree.RootRepeat}, {occupied} occupied party roots -> {outPath}");
 
-    // The roots this executor does NOT walk. The world walker is one of four -- there are
-    // also player, creature and action-point walkers, each with its own root per entity --
-    // so a level can hang almost all of its script somewhere this run cannot reach, and an
-    // empty output column then says nothing about the rule under test. Print the count so
-    // a reader can tell "we got it wrong" from "we never looked".
+    // The entity-root counts make an empty output column readable: zero roots and roots
+    // that all answered false are different observations.
     int apRoots = things.OfType<ActionPointThing>().Count(a => a.TriggerId != 0);
     int creatureRoots = things.OfType<KeeperCreatureThing>().Count(c => c.TriggerId != 0)
         + things.OfType<GoodCreatureThing>().Count(c => c.TriggerId != 0);
     Console.WriteLine($"  walked: {tree.PlayerRoots.Count} player roots "
-        + $"[{string.Join(",", tree.PlayerRoots)}], {apRoots} action point roots");
-    Console.WriteLine($"  not walked here: {creatureRoots} creature roots");
+        + $"[{string.Join(",", tree.PlayerRoots)}], {apRoots} action point roots, "
+        + $"{creatureRoots} creature roots");
     // The count is what the walk declined; `gates` is what that cost -- the records
     // behind those declines it never reached because of them. They are not the same
     // number and do not rank the same way: one decline can foreclose a hundred records

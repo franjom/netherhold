@@ -167,6 +167,15 @@ public sealed class CreatureState
 
     public byte OwnerPlayerId;
 
+    /// <summary>The root of this creature's trigger tree, or zero for none.</summary>
+    /// <remarks>Copied from the placed THING and walked once per game turn. The binary's
+    /// root setter also snapshots the resolved condition record's repeat byte into
+    /// <see cref="TriggerRepeat"/> (docs/research/trigger-walkers.md).</remarks>
+    public ushort TriggerId;
+
+    /// <summary>The repeat argument snapshotted when <see cref="TriggerId"/> is attached.</summary>
+    public byte TriggerRepeat;
+
     /// <summary>Position within the dungeon in <see cref="Fp32"/> units, where
     /// <see cref="Fp32.One"/> is one tile: the centre of tile (x,y) is
     /// <c>(x * 4096 + 2048, y * 4096 + 2048)</c>. Never negative — the dungeon
@@ -509,6 +518,8 @@ public sealed class CreatureState
         hash.Add(Id);
         hash.Add(CreatureTypeId);
         hash.Add(OwnerPlayerId);
+        hash.Add(TriggerId);
+        hash.Add(TriggerRepeat);
         hash.Add(PosX);
         hash.Add(PosY);
         hash.Add(MoveRemainder);

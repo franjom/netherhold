@@ -32,7 +32,11 @@ beside it.
 
 ## Versions
 
-**60** — `0xE44F66372F8963D9` (current). Graveyard rooms gained ordered, saved
+**61** — `0x57435BC71CE1BBDC` (current). Creatures gained their saved trigger root
+and repeat snapshot for the creature trigger walker (ADR-0152). The fixture's
+creatures have no roots, so this is composition only.
+
+**60** — `0xE44F66372F8963D9`. Graveyard rooms gained ordered, saved
 per-room decomposition tallies (ADR-0151). The fixture has no Graveyard tally,
 so this is composition only: the empty collection count and version move the pin.
 

@@ -1515,6 +1515,100 @@ public class TriggerExecutorTests
         Assert.Equal(0, without.Read(3));
     }
 
+    [Fact]
+    public void CreatureRootUsesWorldConditionsAndDelegatesPlayerActionsBeforeWorldActions()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        CreatureState creature = world.SpawnCreature(
+            database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(4, 4));
+        creature.TriggerId = 5;
+
+        TriggerRecord[] records =
+        [
+            Condition(5, repeat: 1, child: 0xFFFF, next: 0, FlagEqualsZero()),
+            Typed214(1, 24, child: 0xFFFE),
+            Action(2, 3, 0x0A, 1),
+        ];
+        TriggerRunResult run = new TriggerExecutor(
+            new TriggerTree(records, 0), world.Triggers, world, database).Run(1);
+
+        Assert.Equal(1, creature.TriggerRepeat);
+        Assert.Equal(1, world.Triggers.Read(3));
+        Assert.Equal(
+            new BlockedTrigger(214, 24, 0xFFFF, TriggerContext.Creature),
+            Assert.Single(run.Partial));
+        Assert.Empty(run.Unhandled);
+        Assert.Empty(run.Blocked);
+    }
+
+    [Theory]
+    [InlineData((byte)15)]
+    [InlineData((byte)20)]
+    [InlineData((byte)43)]
+    public void CreatureOwnedActionsSucceedAndRemainExplicitlyPartial(byte type)
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        CreatureState creature = world.SpawnCreature(
+            database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(4, 4));
+        creature.TriggerId = 5;
+
+        TriggerRecord[] records =
+        [
+            Condition(5, repeat: 1, child: 0xFFFF, next: 0, FlagEqualsZero()),
+            Typed214(1, type, child: 0xFFFE),
+            Action(2, 3, 0x0A, 1),
+        ];
+        TriggerRunResult run = new TriggerExecutor(
+            new TriggerTree(records, 0), world.Triggers, world, database).Run(1);
+
+        Assert.Equal(1, world.Triggers.Read(3));
+        Assert.Equal(
+            new BlockedTrigger(214, type, 0xFFFF, TriggerContext.Creature),
+            Assert.Single(run.Partial));
+        Assert.Empty(run.Unhandled);
+    }
+
+    [Fact]
+    public void CreatureStatusConditionsAreAnsweredByTheCreatureDispatcher()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        CreatureState creature = world.SpawnCreature(
+            database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(4, 4));
+        creature.TriggerId = 5;
+        creature.Health = 0;
+
+        TriggerRecord[] records =
+        [
+            Typed(5, 36, child: 0xFFFF),
+            Action(1, 3, 0x0A, 1),
+        ];
+        TriggerRunResult run = new TriggerExecutor(
+            new TriggerTree(records, 0), world.Triggers, world, database).Run(1);
+
+        Assert.Equal(1, world.Triggers.Read(3));
+        Assert.Empty(run.Blocked);
+    }
+
+    [Fact]
+    public void CreatureEventConditionIsFalseRatherThanDeclinedOnThePerTurnPath()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        CreatureState creature = world.SpawnCreature(
+            database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(4, 4));
+        creature.TriggerId = 5;
+
+        TriggerRecord[] records = [Typed(5, 6, child: 0xFFFF), Action(1, 3, 0x0A, 1)];
+        TriggerRunResult run = new TriggerExecutor(
+            new TriggerTree(records, 0), world.Triggers, world, database).Run(1);
+
+        Assert.Equal(0, world.Triggers.Read(3));
+        Assert.Empty(run.Blocked);
+    }
+
     /// <summary>The only condition type whose meaning this executor changes with context.
     /// The player dispatcher owns 72 and computes it; the world dispatcher does not have
     /// it at all, so the same record holds in one tree and is declined in the other.

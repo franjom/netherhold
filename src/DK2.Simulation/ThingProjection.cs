@@ -79,7 +79,8 @@ public static class ThingProjection
             switch (record)
             {
                 case KeeperCreatureThing t:
-                    PlaceCreature(world, database, t, t.CreatureId, t.PlayerId, t.InitialHealth);
+                    PlaceCreature(
+                        world, database, t, t.CreatureId, t.PlayerId, t.InitialHealth, t.TriggerId);
                     creatures++;
                     break;
 
@@ -87,12 +88,16 @@ public static class ThingProjection
                 // player field, because their side is fixed by which record
                 // they are. PlayerIds documents both ids as CONFIRMED.
                 case NeutralCreatureThing t:
-                    PlaceCreature(world, database, t, t.CreatureId, PlayerIds.Neutral, t.InitialHealth);
+                    PlaceCreature(
+                        world, database, t, t.CreatureId, PlayerIds.Neutral,
+                        t.InitialHealth, t.TriggerId);
                     creatures++;
                     break;
 
                 case GoodCreatureThing t:
-                    PlaceCreature(world, database, t, t.CreatureId, PlayerIds.Good, t.InitialHealth);
+                    PlaceCreature(
+                        world, database, t, t.CreatureId, PlayerIds.Good,
+                        t.InitialHealth, t.TriggerId);
                     creatures++;
                     break;
 
@@ -153,7 +158,8 @@ public static class ThingProjection
         CreatureThing thing,
         byte creatureTypeId,
         byte ownerPlayerId,
-        int initialHealthPercent)
+        int initialHealthPercent,
+        ushort triggerId)
     {
         CreatureState state = world.SpawnCreature(
             database, creatureTypeId, ownerPlayerId, new TilePos(thing.X, thing.Y));
@@ -163,6 +169,7 @@ public static class ThingProjection
         // leave a level-10 creature standing at a level-1 creature's maximum.
         state.Level = CreatureLevelRules.Clamp(thing.Level);
         state.GoldHeld = thing.GoldHeld;
+        state.TriggerId = triggerId;
 
         // No floor on the result, deliberately: a creature that rounded to zero health would die on
         // the tick it arrived, but the clamp could never fire — the smallest Hp in the shipped table

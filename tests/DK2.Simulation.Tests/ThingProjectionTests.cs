@@ -23,12 +23,25 @@ public class ThingProjectionTests
             [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
 
     private static KeeperCreatureThing Keeper(
-        int x, int y, byte creatureId, byte playerId, byte level = 1, int health = 100) =>
+        int x, int y, byte creatureId, byte playerId, byte level = 1, int health = 100,
+        ushort triggerId = 0) =>
         new(new byte[28])
         {
             X = x, Y = y, CreatureId = creatureId, PlayerId = playerId,
-            Level = level, InitialHealth = health,
+            Level = level, InitialHealth = health, TriggerId = triggerId,
         };
+
+    [Fact]
+    public void APlacedCreatureKeepsItsTriggerRoot()
+    {
+        GameDatabase database = Database();
+        WorldState world = World(database);
+
+        ThingProjection.Place(world, database,
+            [Keeper(5, 7, Dk2TerrainFixture.ImpCreatureId, 3, triggerId: 42)]);
+
+        Assert.Equal(42, Assert.Single(world.Creatures).TriggerId);
+    }
 
     [Fact]
     public void AThingsCoordinatesAreTileIndices_NotTheSimulationsSubtileUnits()
