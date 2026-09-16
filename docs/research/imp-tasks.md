@@ -44,7 +44,7 @@ Q47); `DKII.EXE` v1.70 for the priority order (`imp-task-priority.md`).
 | Where an imp breaks off mining to go and unload | **STRONGLY INFERRED** (Q50) — when one more swing would not fit; the shipped numbers make that five swings and 1363 gold |
 | An imp with a part-load tops up from a pile it passes | **READ** (Q142) — until its hands hold a level-scaled share of `MaxGoldHeld`; ours gets the same outcome because a loaded imp is delivering before selection runs |
 | An imp with nowhere to unload keeps mining | **CONFIRMED** (Q31) — but the floor lump it should leave is NOT IMPLEMENTED, so the overflow is lost (Q138, Q140) |
-| Routing: connectivity and step cost | **CONFIRMED** eight-connected with cut corners (Q28); **CONFIRMED** no terrain weighting (Q30); **STRONGLY INFERRED** octile 10/14 (Q48). Tie-breaking is ours. The original's algorithm is **UNKNOWN** (Q5) |
+| Routing: connectivity and step cost | **CONFIRMED** eight-connected with cut corners (Q28); **CONFIRMED** no terrain weighting (Q30); **STRONGLY INFERRED** octile 10/14 (Q48). Tie-breaking is ours. The original's algorithm is **not a grid search at all** (Q5, ADR-0155): a triangulated navigation mesh followed by a steering system. Q28 and Q30 stand, because they were observed rather than inferred |
 
 ---
 

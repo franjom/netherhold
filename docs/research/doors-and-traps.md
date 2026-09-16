@@ -78,7 +78,10 @@ door contribution while it is under construction.
 This establishes that DK2 doors open, close, lock and affect navigation. It
 does not yet establish every creature eligibility partition, the exact timing
 of each transition, or how the pathfinder consumes those grid bits. Those parts
-remain **UNKNOWN** and are not implemented.
+remain **UNKNOWN** and are not implemented. The consumer is now located, which
+is where that last part should be picked up: the bits feed a family of world
+tile predicates, and DK2 routes over a navigation mesh rather than a grid
+([navigation-and-steering.md](navigation-and-steering.md), ADR-0155).
 
 ## Trap loader and fields
 

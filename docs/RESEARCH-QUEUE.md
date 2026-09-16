@@ -255,7 +255,7 @@ is slow going. **Facts only — never an identifier into the repo.**
 | Q | Question |
 |---|---|
 | **Q4** | `CMapEntry` (11 bytes) — full per-tile runtime state or a cache? Field meanings |
-| **Q5** | `Follow_Path` (36 bytes) contents, and DK2's pathfinding algorithm. This one eventually decides whether our A* can match the original's routes at all |
+| **Q5** | **ANSWERED architecturally** (ADR-0155, `research/navigation-and-steering.md`): a triangulated navigation mesh plus a steering system, so our A* cannot match the original's routes in general. `Follow_Path` held no path data. Now worked as Q341–Q344 |
 
 ---
 

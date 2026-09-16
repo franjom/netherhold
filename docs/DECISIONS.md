@@ -282,7 +282,7 @@
 **Consequences.**
 - Every route in the game is shorter. Scenario hashes moved; the pinned determinism hash did not, because the fixture behind it has nothing that walks.
 - Three tests changed, each with a four-connected assumption written in: a path-step adjacency assertion using Manhattan distance, a detour length of 8 that is now 4 diagonals, and a gold-carrying test pinned to a fixed tick count that the faster imp overran, rewritten to run to the event it is about rather than to a clock.
-- **What the *pathfinder* charges is still not evidence about DK2** (Q5). The mover's √2 is forced and the router's 14 is the only choice consistent with it, but whether the original's own search weights diagonals is unobserved and probably unobservable — in open uniform terrain both cost models produce paths of the same shape.
+- **What the *pathfinder* charges is still not evidence about DK2** (Q5). The mover's √2 is forced and the router's 14 is the only choice consistent with it, but whether the original's own search weights diagonals is unobserved and probably unobservable — in open uniform terrain both cost models produce paths of the same shape. **ADR-0155 makes the question moot:** the original searches a triangle mesh, so it has no per-step diagonal cost to weight.
 - Code now: with `TicksPerSecond = 4` (ADR-0089) the 14/10 ratio no longer survives tick quantisation — a four-tile walk is 9 ticks straight against 13 on the bias — so `ImpTests.WalkingOnTheBias_TakesRootTwoTimesAsLong` asserts within one tick and says why. How a leg's surplus is spent inside a tick is ADR-0059.
 
 ## ADR-0026 — Three workers to a face, and the fourth goes elsewhere

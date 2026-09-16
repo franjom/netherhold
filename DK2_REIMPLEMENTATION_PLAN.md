@@ -84,7 +84,7 @@ not, and turns out to be where three of the other five actually live.
 
 | | Risk | Status |
 |---|---|---|
-| 1 | **Pathfinding and movement** — the least-understood system in the ecosystem. No project has reproduced DK2's actual pathfinder. | Open, risk #1. `IPathfinder` holds an admitted placeholder (ADR-0012, Q5). |
+| 1 | **Pathfinding and movement** — the least-understood system in the ecosystem. No project has reproduced DK2's actual pathfinder. | **Read, not built** (ADR-0155, Q5): DK2 routes over a triangulated navigation mesh and follows it with a steering system of eight named behaviours, so `GridPathfinder` differs in kind. Still risk #1 — the algorithms are unread (Q341–Q344) and replacing the pathfinder is an owner decision. |
 | 2 | **Creature job/destination selection** | **Settled for workers** (ADR-0058): a byte priority table at `0x00698658`, searched whole-map one kind at a time, then a nearest-first ring scan. Non-workers have a job system (ADR-0082) built on three mood choosers and one 28-way dispatcher `FUN_00478800`. |
 | 3 | **Creature mood / anger / happiness** | **Built** (ADR-0053, ADR-0081): six counters, mood banded on the largest, once a game second, with desertion. OpenKeeper's empty `processTick()` was not the obstacle it looked like — the numbers were in the creature records and the ladder came out of the binary. |
 | 4 | **Combat resolution** — stats are known, the resolution procedure is not. | Open (Q8). Nothing is built. |
@@ -661,7 +661,8 @@ downstream code assumes it is faithful: eight-connected, 10 for a straight step 
 a diagonal (ADR-0025, Q48), deterministically tie-broken. What "walkable" means is not its
 business — `WorldPathGrid` answers that for one particular mover, from terrain flags and
 that creature's own flags. Fidelity work happens later, against recorded oracle traces
-(Q5).
+(Q5) — and ADR-0155 now says what it would have to converge on: a navigation mesh and a
+steering system, not a better grid search.
 
 ### 4.7 Presentation boundary
 
@@ -1208,7 +1209,8 @@ conflict register, which became `docs/research/open-questions.md`.
 The five questions that list was seeded with, for the record: DK2's tick rate is **4 a
 second** (ADR-0089); `CMapEntry`'s 11 bytes are still [UNKNOWN] against the KWD map;
 `f3AF_workModifier` versus `f3B3_workEnhancement` is still [UNKNOWN];
-`Follow_Path`'s 36 bytes are still [UNKNOWN] (Q5); and the job-selection order is
+`Follow_Path`'s 36 bytes held no path data — it is a stateless named behaviour, and DK2
+routes on a navigation mesh (ADR-0155, Q5); and the job-selection order is
 **confirmed for workers from the binary's own priority table** and is not OpenKeeper's
 lair → sleep → eat → work (ADR-0058).
 

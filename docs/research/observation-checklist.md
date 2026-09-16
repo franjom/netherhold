@@ -382,7 +382,7 @@ Instrumentation, measurement tooling or disassembly, and scheduled accordingly.
 | Q | Why not |
 |---|---|
 | Q3 | Which RNG — invisible by construction |
-| Q5 | The pathfinding algorithm. You can see the *route* (Q28 and Q30 both came from watching one), never the algorithm |
+| Q341–Q344 | The routing and steering algorithms. You can see the *route* (Q28 and Q30 both came from watching one), never the algorithm. Q5 itself fell to the binary (ADR-0155) |
 | Q39 | Whether mana accrues smoothly or in whole seconds. The unit is CONFIRMED per second; granularity is invisible in any total and nothing depends on it |
 | Q48 (second half) | What the *pathfinder* charges for a diagonal when choosing between routes. The mover's cost is forced — a diagonal step covers √2 tile-widths at a constant speed, so octile 14:10 — and the owner confirmed the glide. Two cost models produce the same paths except where a route with fewer steps is longer in true distance |
 | Q4, Q11, Q14, Q15, Q70, Q85, Q183 | Record and runtime-structure layouts, field meanings |

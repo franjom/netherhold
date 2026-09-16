@@ -27,7 +27,7 @@ DK2.AI ──────► DK2.Simulation ───► DK2.Pathfinding  │
 | `DK2.Data.Model` | immutable definitions, no IO — the data/simulation seam |
 | `DK2.Data` | readers for the shipped files (WAD, KWD/KLD, STR, SDT, `.SAV`) |
 | `DK2.Simulation` | all game rules and all mutable state |
-| `DK2.Pathfinding` | the Q5 placeholder behind `IPathfinder` (ADR-0012) |
+| `DK2.Pathfinding` | a known-divergent stand-in behind `IPathfinder` (ADR-0012, ADR-0155) |
 | `DK2.Assets` | logical asset keys and their resolution (ADR-0034) |
 | `DK2.Presentation` | world → drawable, renderer-independent (ADR-0035) |
 | `DK2.AI` | the computer keeper as an input source (`docs/KEEPER_AI.md` §12) |
@@ -299,7 +299,9 @@ job, walks to it and works.
   particular mover, from terrain flags and that creature's own flags.
 - **Routing is ours, not DK2's** (Q5, ADR-0012): eight-connected with 10/14
   octile costs (ADR-0025, Q48), deterministically tie-broken, and an admitted
-  placeholder behind an interface. An imp with no reachable job stands still where
+  placeholder behind an interface. DK2's own routing is now read and is a
+  navigation mesh plus a steering system, so this differs in kind and not
+  merely in tie-breaking (ADR-0155, `research/navigation-and-steering.md`). An imp with no reachable job stands still where
   DK2 would have it wander (Q41).
 
 Evidence and confidence: `docs/research/imp-tasks.md`.
@@ -507,7 +509,8 @@ design rather than merely waiting their turn:
 - **Trigger execution.** The banks, the parameter views and the action points are
   state; nothing consumes them, so no level is winnable and objectives have no
   host.
-- **The pathfinder is an admitted placeholder** (ADR-0012, Q5). Everything that
+- **The pathfinder is an admitted placeholder** (ADR-0012, Q5), and since
+  ADR-0155 a *measured* divergence rather than an unknown one. Everything that
   depends on route length or arrival order is provisional.
 - **Simulation speed has never been measured** (goal 9), so "significantly faster
   than real time" is an unverified claim about this loop.
