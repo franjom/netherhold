@@ -143,6 +143,7 @@ Recovered from the loader's copy pairs, with the known pair
 | `MeleeDamage` | `0xF14` | `def+0x5C4` |
 | `MeleeRecharge` | `0xEF8` | `def+0x5C6` |
 | `MeleeAttackType` | `0xF50` | `def+0x77A` |
+| — (unnamed, Q336) | `0xCF9` | `def+0x5CA` |
 
 **Their consumers are few, which is the useful part.** Ignoring the definition
 copier `FUN_0051F3B0`, which reads all four and writes them straight back:
@@ -150,7 +151,8 @@ copier `FUN_0051F3B0`, which reads all four and writes them straight back:
 - `def+0x5C4` **MeleeDamage** — read twice, both in `FUN_00494D00`
 - `def+0x5C0` **MeleeRange** — read once, in `FUN_0045E190`, a two-instruction
   accessor
-- `def+0x5C6` **MeleeRecharge** — read once, in `FUN_00494EF0`
+- `def+0x5C6` **MeleeRecharge** — read once, in `FUN_00494EF0` (6 callers).
+  It is **not** the swing's interval: `combat-cadence.md` settles Q327
 - `def+0x77A` **MeleeAttackType** — read in an unnamed block at
   `0x00499068`–`0x004991B6`, and in the healing handler of §3
 
@@ -267,7 +269,8 @@ table is not a literal store of the address, because no such store exists.
 `dword[attacker+0x3A5] - 1 + dword[attackerDef+0x5CA]`; not yet, and it returns 1
 without swinging. So `+0x3A5` is the **last-swing stamp** and `def+0x5CA` the
 interval. That is **not** `MeleeRecharge` at `def+0x5C6` (§5), four bytes earlier
-— which is either a second field or a mis-assignment in §5, and Q327 is which.
+— **Q327, answered 2026-09-16: a second field**, from file `0xCF9`, in ticks
+(`combat-cadence.md`). §5 was right and the swing does not wait on it.
 The gate is skipped entirely when `attacker+0x3E6 & 0x80` is set.
 
 **A definition flag is copied into the creature on every swing.**
@@ -364,8 +367,8 @@ its current id. That is evidence for item 1 below, not for resistance.
 
 1. **Which state record holds `FUN_00498E34`** (§6.0). It decides whether combat
    is a creature state, and with it how an attack is entered at all.
-2. **`MeleeRecharge`'s consumer** `FUN_00494EF0` — the cadence, and the first
-   thing that can be checked against a stopwatch.
+2. ~~**`MeleeRecharge`'s consumer**~~ — **ANSWERED 2026-09-16** (Q327): it
+   gates a second clock, not the swing. `combat-cadence.md`.
 3. ~~**Where the `Resistances` list is read**~~ — **ANSWERED 2026-09-16, in the
    negative**: by the debug dumper and by nothing else (§6.1.1). What applies
    resistance, if anything does, is Q335.
@@ -384,14 +387,12 @@ creature offsets; the melee block's runtime offsets; the stat matrix's runtime
 layout and the `× percent / 100` rule with level 1 exempt; that `FUN_00514830`
 is healing and not combat.
 
-**STRONGLY INFERRED:** that `FUN_00494D00` is *the* melee-damage accessor rather
-than one of several — it is the only reader of `def+0x5C4` that is not the
-definition copier, which is strong but is an absence.
+**STRONGLY INFERRED:** that `FUN_00494D00` is *the* melee-damage accessor — it
+is `def+0x5C4`'s only reader outside the copier, which is an absence.
 
 **CONFIRMED (binary, 2026-09-16):** that `FUN_00498E34` is the attack routine —
 it is the sole caller of the melee-damage accessor; the recharge gate's shape;
 the bearing bonus's *arithmetic*; both player multipliers; the Monk's set-damage-
 clear around `FUN_004B2CE0`.
 
-**UNKNOWN:** the bearing bonus's purpose (Q325), and the rest of §7. Still no
-damage formula end to end, because the resistance step is still not found.
+**UNKNOWN:** the bearing bonus's purpose (Q325), and the rest of §7.
