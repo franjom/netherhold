@@ -17,7 +17,7 @@ namespace DK2.Pathfinding;
 /// <para>Determinism: integer arithmetic only, arrays indexed by insertion order, free lists
 /// reused in a fixed order. Not thread-safe.</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/navigation-mesh-and-search.md")]
-public sealed class NavMesh
+public sealed partial class NavMesh
 {
     /// <summary>Positions handed to the router are in this many units per tile — the original's
     /// creature position <c>&gt;&gt; 4</c> and its mesh points <c>&lt;&lt; 8</c> meet here.</summary>
