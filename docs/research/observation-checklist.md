@@ -347,13 +347,6 @@ Capacity is CONFIRMED (15, +5 a portal); whether the pool *drains* is not.
 
 ---
 
-### Q341 — does a long off-diagonal walk bend, or run straight?
-Send one imp about **ten tiles across and three up** over open floor, and watch
-the *shape of the whole route* rather than its smoothness: one straight line, or
-a long 45-degree leg meeting a flat one. The tile-diagonal glide settles nothing
-because both models predict it. ADR-0155's keep-or-rebuild decision rests on
-this. Reasoning and what each outcome means: `navigation-and-steering.md` §3.1.
-
 ## 7. Presentation only — no rule may depend on the answer
 
 ### Q72 — does a wall deform the same way twice?

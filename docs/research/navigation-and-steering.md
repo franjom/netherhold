@@ -97,11 +97,17 @@ stepping. That re-confirms Q48(a), but it separates nothing: a tile diagonal is
 45 degrees, which is exactly what an eight-connected mover walking a tile-to-tile
 route produces. Both models predict it.
 
-What would separate them is a destination **well off any multiple of 45
-degrees** — ten tiles across and three up, over open floor. A grid route bends,
-because it is made of 45 and 90 degree legs. A corridor reduced by `Route2path`
-is one straight line at about 17 degrees. The bend is the tell, not the
-smoothness. Recorded in `observation-checklist.md`.
+**The walk that does separate them has been made, and the route is straight.**
+Owner, 2026-09-16: ten tiles across and three up, over open floor, and the route
+runs as a single straight line with no bend. That is about 17 degrees. An
+eight-connected tile route cannot produce it — it is built from 45 and 90 degree
+legs, so it must show a bend or a staircase.
+
+**DK2's routes are therefore not tile-constrained. CONFIRMED.** Note what this
+does and does not establish: it rules out a tile route, and it agrees with the
+mesh reading of §2, but on its own it would equally fit any router that is free
+of the grid. The triangles, gates and `Route2path` are what make it a mesh; this
+observation is what makes our own router wrong where it can be seen.
 
 ### 3.2 Three of the eight do nothing, and Separation is read
 

@@ -3454,7 +3454,7 @@ and current level.
 
 ## ADR-0155 — The pathfinder's replacement target is known, and not chosen
 
-**Status.** Accepted 2026-09-16 · amended the same day: the owner confirms creatures push each other (Q345), so one steering behaviour is now an observed divergence and not only a structural one.
+**Status.** Accepted 2026-09-16 · amended the same day, twice: the owner confirms creatures push each other (Q345), and that a long off-diagonal route runs **straight** (Q341). The divergence is no longer structural-but-invisible — both the routing and the mover are now wrong in ways that can be watched.
 
 **Context.** ADR-0012 shipped `GridPathfinder` as an admitted placeholder
 because DK2's routing was unread. It is now read at the architectural level
