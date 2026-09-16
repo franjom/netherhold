@@ -18,8 +18,8 @@ namespace DK2.Simulation.Systems;
 /// seconds (Q67). The tile a creature stands on is not tested, as in
 /// <see cref="GridPathfinder"/>, so it can walk off ground that turned
 /// impassable. UNKNOWN: whether the original stops dead or re-routes. Deviates:
-/// routing is ours and four-connected (Q5), and the original's turning,
-/// acceleration and mutual avoidance are not reconstructed.</remarks>
+/// routing is ours (Q5) — DK2 uses a navigation mesh and steering (ADR-0155) —
+/// and its turning, acceleration and mutual avoidance are not reconstructed.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/imp-tasks.md")]
 public sealed class CreatureMovementSystem : ISimulationSystem
 {
