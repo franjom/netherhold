@@ -9,8 +9,8 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: **Q5** (answered at the architectural level here; the algorithms
-themselves remain open as Q341-Q344).
+Questions: **Q5** (answered at the architectural level here), **Q342** and
+**Q343** (answered), **Q341** and **Q344** (open).
 
 **Nothing here is built.** `GridPathfinder` is unchanged and is now known to be
 structurally unlike the original (§6).
@@ -53,6 +53,35 @@ mesh**, not a tile search:
 The shape is the standard one for mesh navigation: search the mesh for a
 **route** (a sequence of adjacent triangles and the gates between them), then
 run `Route2path` to reduce that corridor to a **path** of waypoints.
+
+### 2.1 `Route2path` is a funnel, and the waypoints are gate midpoints (Q342)
+
+Read by a second reader (codex, 2026-09-16) and spot-verified here at the three
+points that carry the conclusion. `Route2path` is **`0x004CEF40`**. It takes the
+start, the end and an ordered triangle route; for each adjacent pair,
+`0x004CCD50` returns the two endpoints of the shared edge — the **gate**.
+
+The reduction is the standard **funnel** (string-pulling): keep a left and a
+right bound from the current apex using signed cross products; when one bound
+crosses the other, emit that bound's gate endpoint as a waypoint, move the apex
+there and continue. The destination is the final, degenerate gate. Output is the
+start, the end, a waypoint count, the 2D waypoints and the accumulated Euclidean
+length. **Nothing in it rounds to a tile**: no `0x1000` mask, no shift by 12.
+
+The steering body does not take that output raw. `0x004D5100` — called from
+`Follow_Path`'s own virtual, `0x004D3C40` — asks the dispatcher `0x004D0E10`
+for the gate branch with the literal **`0x2000`**. That branch runs the funnel,
+builds gate segments in `0x004CF490`, and `0x004D0240` picks one point on each
+segment at `fraction / 0x4000` (`IMUL` then `SAR 0xE`), so `0x2000` is **the
+midpoint of each gate**. Up to **five** points (`CMP CL,0x5`) are copied into
+`subpath_buffer` at `+0xB4`, scaled by `<< 8` and nothing else.
+
+When the funnel needs no turn, the path is the destination alone — one segment
+at whatever angle the destination lies. **That is the owner's straight 10-by-3
+walk (§3.1), predicted from the binary before it was watched.**
+
+`way=%d` prints the waypoint count and `route=%d` the triangle count; `EndGates`
+is a timing label, not a data dump.
 
 ## 3. Movement is a steering system with named behaviours
 
@@ -298,11 +327,11 @@ the owner's**, so nothing has been changed. The options are recorded in
 ## 7. What this leaves
 
 - **Q341** the route search itself: what the triangulation is built from, and
-  what the two directions of `Fwd`/`Bak` actually are.
-- **Q342** `Route2path`: which of the standard corridor-to-path reductions it is.
-- **Q343** the steering integration: how the eight behaviours are combined, and
-  with what weights.
-- **Q344** `grtc:` — the third length-limited stage, unidentified.
+  what the two directions of `Fwd`/`Bak` actually are. Routes are CONFIRMED not
+  tile-constrained (§3.1); the search is unread.
+- **Q344** `grtc:` — reported by the second reader as a clearance or contracting
+  transform applied to the gate segments between the funnel and the point
+  selection. Not verified here.
 
 ## Confidence
 
@@ -316,12 +345,16 @@ route entry's caller graph in §5.
 
 **CONFIRMED (negative):** no `.pt` or `.tr` file ships in the reference install.
 
-**STRONGLY INFERRED:** that DK2 routes over a triangulated navigation mesh and
-reduces a gate corridor to a waypoint path. Every string in §2 points this way
-and nothing contradicts it, but no routine has yet been read end to end.
+**CONFIRMED (binary + owner):** that a route is reduced to grid-free waypoints
+by a funnel over gates, and that routes run straight where the funnel needs no
+turn (§2.1, §3.1).
+
+**STRONGLY INFERRED:** that the corridor is found by a search over a
+triangulated mesh. The triangles, edges and gates are all present; the search
+and the mesh construction are not yet read (Q341).
 
 **HYPOTHESIS:** that `Fwd`/`Bak` mean a bidirectional search. They could equally
 name the two directions of travel along one route. Q341.
 
-**UNKNOWN:** the triangulation algorithm, the search, `Route2path`'s reduction,
-the steering combination and its weights, and what `grtc:` is.
+**UNKNOWN:** the triangulation algorithm, the search, the velocity-to-position
+step, and what `grtc:` does in detail.
