@@ -204,6 +204,41 @@ position, where `max_speed` (`+0xE2`) presumably enters — and the rest of
 `FUN_004D4760`, which walks a count at `body+0x80` over 10-byte records from
 `body+0x8` and compares squared distances against `0xCCC`. Neither is read.
 
+### 3.4 The constants are hard-coded, and the integration is Euler
+
+`FUN_004D5B30` resets a steering body and writes all three of its scalars as
+**literals**. No creature-record field supplies them, so every creature in the
+game separates with the same size and the same limits:
+
+| field | offset | literal | 16.16 |
+|---|---|---|---|
+| `radius` | `+0xDC` (word) | `0x3333` | **0.2** |
+| `max_force` | `+0xDE` | `0x18000` | **1.5** |
+| `max_speed` | `+0xE2` | `0x6666` | **0.4** |
+
+The constructor's earlier `max_force` of `0x10000` and `max_speed` of `0x50000`
+are overwritten by this reset and never reach the mover.
+
+The tail of `FUN_004D4760` is the integration, and it clamps **three** times --
+`0x004D4F60` has exactly three call sites, all in this function:
+
+```
+total = sum over behaviours of truncate(f_i, max_force) * weight_i   ; clamp 1, per force
+total = truncate(total, max_force)                                   ; clamp 2, on the sum
+accel = total / 0x10000                                              ; 0x004D1EC0, mass = 1.0
+vel   = vel + accel                                                  ; 0x004D1E10, into +0x8C
+vel   = truncate(vel, max_speed)                                     ; clamp 3, on velocity
+```
+
+So it is plain Euler integration of a force into a velocity, with the force
+bounded twice and the velocity once. `0x004D1EC0` is a vector divide by a 16.16
+scalar; it is handed `0x10000`, which is a division by a mass of exactly 1.
+
+**This is what wiring `SeparationRules` was waiting on.** It is no longer
+UNKNOWN. What remains is the step from `vel` to `pos`, immediately after, and
+whether our tile-to-tile mover can host a velocity at all without ADR-0155's
+larger decision being taken first.
+
 ## 4. The per-creature path state is the steering body
 
 It is not in the behaviour. It is the object

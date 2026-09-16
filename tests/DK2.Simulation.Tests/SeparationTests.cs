@@ -161,9 +161,43 @@ public class SeparationTests
     public void TheSaturationArmCanUndercutTheCurveItReplaces()
     {
         int justOnTheCurve = SeparationRules.SaturationRatio + 1;
-        int curve = SeparationRules.Magnitude(justOnTheCurve, 1 << 20, false, false);
-        int saturated = SeparationRules.Magnitude(SeparationRules.SaturationRatio, 1 << 20, false, false);
+        int curve = SeparationRules.Magnitude(justOnTheCurve, SeparationRules.ShippedMaxForce, false, false);
+        int saturated = SeparationRules.Magnitude(
+            SeparationRules.SaturationRatio, SeparationRules.ShippedMaxForce, false, false);
 
         Assert.True(curve > saturated);
+    }
+
+    /// <summary>Across the threshold both arms end at the same place once the combiner has
+    /// truncated them, which is the whole of Q346's answer. The two magnitudes differ by a factor
+    /// of about 1700 and the clamp erases all of it.</summary>
+    [Fact]
+    public void BothArmsClampToMaxForceAtTheThreshold()
+    {
+        int below = SeparationRules.Magnitude(
+            SeparationRules.SaturationRatio, SeparationRules.ShippedMaxForce, false, false);
+        int above = SeparationRules.Magnitude(
+            SeparationRules.SaturationRatio + 1, SeparationRules.ShippedMaxForce, false, false);
+
+        Assert.Equal(SeparationRules.ShippedMaxForce, below);
+        Assert.True(above > SeparationRules.ShippedMaxForce);
+
+        static int Truncate(int magnitude, int limit) => magnitude > limit ? limit : magnitude;
+        Assert.Equal(Truncate(below, SeparationRules.ShippedMaxForce),
+                     Truncate(above, SeparationRules.ShippedMaxForce));
+    }
+
+    /// <summary>The three scalars are literals in the steering reset, not creature-record fields,
+    /// so every creature separates identically. If a per-creature source is ever found, this is the
+    /// assertion that should stop being true.</summary>
+    [Fact]
+    public void EveryCreatureSharesOneRadiusForceAndSpeed()
+    {
+        Assert.Equal(0x3333, SeparationRules.ShippedRadius);
+        Assert.Equal(0x18000, SeparationRules.ShippedMaxForce);
+        Assert.Equal(0x6666, SeparationRules.ShippedMaxSpeed);
+
+        // Two creatures overlap only within 0.4 of each other, which is well under one tile.
+        Assert.Equal(2 * 0x3333, SeparationRules.ShippedRadius * 2);
     }
 }

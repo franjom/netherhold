@@ -26,6 +26,19 @@ public static class SeparationRules
     /// <c>max_force</c> instead of following the curve — <c>0x28F</c>, about 1 %.</summary>
     public const int SaturationRatio = 0x28F;
 
+    /// <summary>Every creature's <c>radius</c>: 0.2. Written as a literal by the steering reset at
+    /// <c>0x004D5BA9</c>, so separation does not vary with creature size (§3.4).</summary>
+    public const int ShippedRadius = 0x3333;
+
+    /// <summary>Every creature's <c>max_force</c>: 1.5, a literal at <c>0x004D5B7D</c>. The
+    /// combiner truncates each behaviour's force to this before weighting it, which is why the
+    /// curve arm's very large magnitudes never reach the mover.</summary>
+    public const int ShippedMaxForce = 0x18000;
+
+    /// <summary>Every creature's <c>max_speed</c>: 0.4, a literal at <c>0x004D5B87</c>. The
+    /// constructor's earlier 0x50000 is overwritten by the reset and never used.</summary>
+    public const int ShippedMaxSpeed = 0x6666;
+
     /// <summary>The original's distance: the longer axis plus half the shorter, an integer
     /// approximation to the Euclidean length that never leaves fixed point.</summary>
     public static int OctileDistance(int dx, int dy)

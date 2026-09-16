@@ -3494,8 +3494,10 @@ one place this project has agreed not to guess.
 **Consequences.** Creatures still pass through each other, and that remains a
 known, recorded divergence rather than a silent one. The arithmetic is
 transcribed rather than reinterpreted — including an integer square root kept
-because it stops at its first converged guess. One branch does not reconcile
-(Q346) and is pinned by a failing-if-changed test rather than smoothed. No
+because it stops at its first converged guess. The branch that would not
+reconcile was answered by reading the caller instead (Q346, Q343): every force
+is truncated to `max_force` before weighting, so the two arms agree downstream.
+No
 simulation state moves, so `HashVersion` stays at 61 and the determinism pin
 does not move. Same shape as ADR-0153 for the damage formula, for the same
 reason: the rule is knowable now, the integration is not.
