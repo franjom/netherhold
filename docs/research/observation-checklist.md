@@ -7,7 +7,7 @@ an experiment is removed from this file when its question closes.
 
 **The test for whether a question belongs here: would a player *see* it happen?**
 Internals — tick rate, per-tile arithmetic, update order, RNG — will never be
-settled by playing. §7 says which those are, so nobody wastes an evening on one.
+settled by playing. §8 says which those are, so nobody wastes an evening on one.
 
 Answers go in `open-questions.md` marked **CONFIRMED — owner observation**, with
 the same weight as a data extract. A "no" closes a question as hard as a "yes".
@@ -57,17 +57,13 @@ global is 600 (`Level1Variables.kld`), so do not sit waiting for one here.
 
 Build to the exact sizes given; the size *is* the experiment.
 
-- **Q60** — a **3x5** temple and a **4x4** graveyard. Every previous reading was
-  a square, so width and height have never been independent; and not a 7x7,
-  which leaves you counting headstones in a crowd.
 - **Q179** — a **4x4** prison, against the record's 5x5.
 - **Q216** — one creature in a library, let the bar move, then slap it.
 - **Q63** — train a *different* creature at the dummy: a goblin against a bile
   demon.
 - **Q164** — kill something as far from the graveyard as the map allows.
 - **Q35, Q138, Q140** — one 3x3 treasury: fill it, then keep mining.
-- **Q202** (slap to unhappy with a free bed available) and **Q175** (watch one
-  creature finish a chicken) need no setup of their own.
+- **Q202** — slap to unhappy with a free bed available; no setup of its own.
 
 ### Sitting C — a skirmish map, for a rival and a fight
 
@@ -77,6 +73,11 @@ possessed, **Q57** mana spent down to nothing on a small dungeon.
 ### Sitting D — the My Pet Dungeon level that read +1400
 
 **Q199**, and **write down which level it is**: no note here names it.
+
+### Sitting E — anywhere with a fight, for §6
+
+**Q335, Q337, Q325** share one setup and one rule: **count blows to kill, never
+seconds**. **Q314** and **Q223** are single looks; **Q87** needs two portals.
 
 ### Waiting on tooling, not on you
 
@@ -170,12 +171,6 @@ the creature is picked up.
 hatchery. Then repeat with one you pick up and drop halfway through.
 **Means:** an unchanged interval says the clock is not reset by the hand.
 
-### Q175 — does a creature wander around the hatchery after eating?
-The original has a state for it (0x5F: pick a random direction, test the tile,
-walk one tile) and ours has none, so a creature here leaves the moment it is fed.
-**Do:** watch one creature finish a chicken. **Watch:** whether it mills about
-the room or leaves at once.
-
 ### Q7 — the shape of anger
 The four causes are recorded (no lair, hunger, no pay, hated company) and the
 ceiling is measured (32767, Q106). What is missing is the shape.
@@ -223,31 +218,11 @@ below its own 3x3 record. Working → the field gates nothing and the two matche
 the rule was built on were coincidence. Not working → the prison is a real
 exception needing its own reason.
 
-### Q60 — how does a room's yield scale above the minimum?
-The two rooms do not follow the same rule, and both are now settled.
-
-**Temple: the room's own rim**, `2(w+h) − 4` — 8, 12, 16 at 3x3, 4x4, 5x5 and
-**12 at a 3x5** (owner, 2026-09-11). The 3x5 is what closed it: every square
-makes `2(w+h) − 4` and `4 × (side − 1)` agree, so three squares could not tell
-the rim from two other rules that predicted 8 and 16 here.
-`RoomInstance.EdgeTileCount` stands.
-
-**Graveyard: the rim of the room's interior**, and closed on five printed
-capacities (owner, 2026-09-11) — 0, 1, 4, 3 and 8 for 2x2, 3x3, 4x4, 5x3 and
-5x5. The 5x3 is what ruled out a linear fit, which wanted 4; the 2x2's zero is
-why a graveyard below its recommended size does nothing without any gate being
-involved. Built as `RoomInstance.InteriorRimTileCount`.
-
 ### Q89 — does a room below `RecommendedSize` still attract?
-Creature attraction is a parsed field, `CreatureAttraction(RoomId, RoomSize)`,
-two per creature, and `RoomSize` is a tile count. **The Dark Angel's temple entry
-is `size >= 0`**, against the owner's recollection and the 1999 manual, which
-both say 5x5 (*"9.1.14 DARK ANGEL — Attracted By: Temple (Minimum 5x5 tiles)"*).
-The mechanism can express a minimum — four creatures carry one, always on a
-*second* attraction: Bile Demon and Giant want Hatchery ≥ 25, Royal Guard
-Training Room ≥ 25, **Maiden Of The Nest Temple ≥ 9**. Attraction is not gated on
-`RoomInstance.IsFunctional`, because gating it would make the Maiden's own
-requirement unsatisfiable (Q89).
+**The Dark Angel's temple entry is `size >= 0`**, against both the owner's
+recollection and the 1999 manual, which say 5x5. The mechanism *can* express a
+minimum — four creatures carry one, the Maiden of the Nest wanting Temple ≥ 9 —
+so the Dark Angel's zero is a statement, not an absence. Q89's row has the rest.
 
 **Do:** a dungeon with a **3x3 temple** and nothing else either creature wants,
 on a level whose pool holds the Dark Angel and the Maiden.
@@ -340,7 +315,48 @@ count what is actually in the treasury and heart.
 
 ---
 
-## 6. Presentation only — no rule may depend on the answer
+## 6. Combat
+
+The damage formula is **built** (`MeleeDamageRules`, ADR-0153) and four branches
+are guesses. **Count blows to kill, never seconds**: possession skips the
+recharge gate, so anything timed measures cadence rather than damage.
+
+### Q335 — does a creature resist the attack type its record says it resists?
+Nothing in the executable reads the shipped `Resistances` table (`combat.md`
+§6.1.1). **Do:** hit a creature with an attack type its row resists and one it
+does not. **Means:** equal counts → the column is vestigial; different → it lives
+somewhere unfound.
+
+### Q337 — does possession change damage per blow?
+**Owner, 2026-09-16: it "feels" stronger — which the gate skip already explains**,
+so it does not settle this. The scalar has no writer, so the bonus is either +12%
+or nothing. **Do:** same creature and target, blows to kill, possessed and not.
+**Means:** 8 against 9 on 1500 HP → +12%; equal → the Hypothesis comes out.
+
+### Q325 — is there really a direction bonus?
+The swing adds up to **+51%** off the compass bearing between the two things,
+reading neither one's facing (arithmetic CONFIRMED). **Do:** attack along an
+axis, then diagonally. **Means:** fewer blows one way → the reading holds; no
+difference → a gate was missed.
+
+### Q314 — can a keeper sacrifice a captive?
+ADR-0149 consumes anything dropped on a Temple; ADR-0064 frees a prisoner dropped
+anywhere but a prison. Both CONFIRMED and they conflict.
+**Do:** drop a prisoner on a Temple. **Watch:** freed, or sacrificed.
+
+### Q223 — who owns the disputed Hero Gates?
+Five ROOM records disagree with the MAP grid, every one a Hero Gate, on Level13,
+Onslaught and Siege. **Do:** load one and look at the gate's colour. **Means:**
+names which source the loader believes, for all five at once.
+
+### Q87 — is a level's `CreaturePool` a quota or a standing limit?
+Capacity is CONFIRMED (15, +5 a portal); whether the pool *drains* is not.
+**Do:** count arrivals past 15 on a level with two portals claimed.
+**Means:** more than the pool's own number ever arrives → a standing limit.
+
+---
+
+## 7. Presentation only — no rule may depend on the answer
 
 ### Q72 — does a wall deform the same way twice?
 DK2's wall meshes are authored straight and are visibly bent in game, sometimes
@@ -365,13 +381,9 @@ of a Library, don't touch the mouse, time both. **Means:** taunt ~160 s then
 wander ~20 s later → the read holds; later, or nothing → a gate was missed.
 Report the **exact line**: over a Library with >4 creatures it should differ.
 
-### Q74 — is there a fill-in tool in the level editor?
-Curiosity, not a blocker: Q219 established that no keeper can trigger a fill-in
-and the engine reads no fill-in health. If the editor is ever open, look.
-
 ---
 
-## 7. What playing cannot settle
+## 8. What playing cannot settle
 
 Instrumentation, measurement tooling or disassembly, and scheduled accordingly.
 `docs/RESEARCH-QUEUE.md` is where they are worked.
