@@ -1,4 +1,4 @@
-# Placed things: what a level's THINGS file puts in the world
+﻿# Placed things: what a level's THINGS file puts in the world
 
 How one campaign level's THINGS records become world contents, what each field
 means, and which fields are read from the shipped data rather than transcribed
@@ -119,13 +119,23 @@ ordinary treasury does not.
 with a rotation in 45-degree units used only at right angles. Not yet read from
 the binary, so it is not yet applied to anything.
 
-### Owner is the one thing a ROOM record and the grid disagree on
+### Owner: the record cannot express it, so the grid is it (Q223)
 
-Five of the 275 disagree, and only ever about the owner: two Hero Gates on
-Level13, one on Onslaught and two on Siege. In each the record gives the gate to
-the good player (1) while the grid gives it to a keeper (2, 4 or 5). Which one
-the original believes is **Q223** — the projection does not currently apply
-either, because it does not place rooms at all.
+Five of the 275 disagree, always about the owner and always a Hero Gate — two on
+Level13 (*Cherish*), two on Siege, one on Onslaught. **Swept whole, the
+disagreement dissolves.** All **133** hero structures in the campaign — 86 type
+33, 6 type 34, 41 type 37 — carry record player **1**, without exception, while
+the grid under them takes 1, 2, 4 and 5. The 142 Dungeon Hearts carry the real
+owner, 3 to 7, and never disagree.
+
+So the ROOM record's `player` is a **constant** for a hero structure and cannot
+be the per-instance owner; the grid is the only side that varies. Level13 is
+also the case that breaks the old wording: its grid says **2, unclaimed**, not a
+keeper, which is the normal state of a hero portal (`PlayerIds.Neutral`).
+
+**STRONGLY INFERRED**, not CONFIRMED: this shows the record cannot *express*
+what the grid does, not which the loader reads. But if the record won, all 86
+gates would be hero-owned and Siege's two would not be keeper 4's.
 
 ## 5. Hero parties are a fixed array of sixteen
 
@@ -170,4 +180,4 @@ Each authored-state collection is hashed and snapshotted (ADR-0103/0106/0108).
 | Neutral/Good creature side comes from the record type | **Strongly inferred** | neither record carries a player field; `PlayerIds` ids are confirmed |
 | Hero-party members are 16 slots, 0 meaning empty | **Known** (from data) | 220 × 16 slots, most with creature id 0 |
 | `Direction` is a rotation | **Hypothesis** | only 0/2/4/6 occur; no binary reading yet |
-| Which owner wins when a ROOM record and the grid disagree | **UNKNOWN** | Q223 |
+| Which owner wins when a ROOM record and the grid disagree | **the grid** — the record's field is constant across all 133 hero structures (§4) | Q223 |
