@@ -337,9 +337,8 @@ the owner's**, so nothing has been changed. The options are recorded in
 
 ## 7. What this leaves
 
-- **Q347** the triangulation itself — how a rectangle of navigation bytes
-  becomes triangles. The search around it is read (Q341, its own page); this is
-  the last unread piece between the two pages and a faithful router.
+- **Q348** the six edge-flag bits and the ten-bit id on a triangle. The
+  triangulation itself is read (Q347, `navigation-mesh-and-search.md` §2.1).
 - **Q344** `grtc:` — reported by the second reader as a clearance or contracting
   transform applied to the gate segments between the funnel and the point
   selection. Not verified here.
@@ -367,5 +366,5 @@ result kept (Q341, `navigation-mesh-and-search.md`).
 **HYPOTHESIS:** that `Fwd`/`Bak` mean a bidirectional search. They could equally
 name the two directions of travel along one route. Q341.
 
-**UNKNOWN:** the triangulation algorithm (Q347) and what `grtc:` does in
+**UNKNOWN:** the edge-flag bits and region ids (Q348) and what `grtc:` does in
 detail (Q344).

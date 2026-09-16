@@ -3454,7 +3454,7 @@ and current level.
 
 ## ADR-0155 — The pathfinder's replacement target is known, and not chosen
 
-**Status.** Accepted 2026-09-16 · amended the same day, twice: the owner confirms creatures push each other (Q345), and that a long off-diagonal route runs **straight** (Q341). The divergence is no longer structural-but-invisible — both the routing and the mover are now wrong in ways that can be watched. Amended again the same day: the original's search is read end to end (Q341, `navigation-mesh-and-search.md`) — greedy best-first from both ends, shorter funnelled route kept — so the rebuild decision is now informable; only the triangulation's internals remain (Q347).
+**Status.** Accepted 2026-09-16 · amended the same day, twice: the owner confirms creatures push each other (Q345), and that a long off-diagonal route runs **straight** (Q341). The divergence is no longer structural-but-invisible — both the routing and the mover are now wrong in ways that can be watched. Amended again the same day: the original's search is read end to end (Q341, `navigation-mesh-and-search.md`) — greedy best-first from both ends, shorter funnelled route kept — so the rebuild decision is now informable; only the triangulation's internals remain (Q347). Amended once more: the triangulation is read at the algorithm level as well — a rectangle-decomposed, constrained, non-Delaunay mesh (`navigation-mesh-and-search.md` §2.1) — so the rebuild waits on nothing UNKNOWN beyond Q348's flag bits.
 
 **Context.** ADR-0012 shipped `GridPathfinder` as an admitted placeholder
 because DK2's routing was unread. It is now read at the architectural level
