@@ -10,7 +10,9 @@ Source(s):
 Original version: DK2 v1.70 (GOG)
 
 Questions: **Q5** (answered at the architectural level here), **Q342** and
-**Q343** (answered), **Q341** and **Q344** (open).
+**Q343** (answered). The mesh and the search are Q341, answered in
+[navigation-mesh-and-search.md](navigation-mesh-and-search.md); the
+triangulation's internals are Q347 and `grtc:` is Q344, both open.
 
 **Nothing here is built.** `GridPathfinder` is unchanged and is now known to be
 structurally unlike the original (§6).
@@ -52,7 +54,9 @@ mesh**, not a tile search:
 
 The shape is the standard one for mesh navigation: search the mesh for a
 **route** (a sequence of adjacent triangles and the gates between them), then
-run `Route2path` to reduce that corridor to a **path** of waypoints.
+run `Route2path` to reduce that corridor to a **path** of waypoints. The mesh's
+layout and the search — greedy best-first, run from both ends, shorter wins —
+are read in [navigation-mesh-and-search.md](navigation-mesh-and-search.md).
 
 ### 2.1 `Route2path` is a funnel, and the waypoints are gate midpoints (Q342)
 
@@ -326,9 +330,9 @@ the owner's**, so nothing has been changed. The options are recorded in
 
 ## 7. What this leaves
 
-- **Q341** the route search itself: what the triangulation is built from, and
-  what the two directions of `Fwd`/`Bak` actually are. Routes are CONFIRMED not
-  tile-constrained (§3.1); the search is unread.
+- **Q347** the triangulation itself — how a rectangle of navigation bytes
+  becomes triangles. The search around it is read (Q341, its own page); this is
+  the last unread piece between the two pages and a faithful router.
 - **Q344** `grtc:` — reported by the second reader as a clearance or contracting
   transform applied to the gate segments between the funnel and the point
   selection. Not verified here.
@@ -349,12 +353,12 @@ route entry's caller graph in §5.
 by a funnel over gates, and that routes run straight where the funnel needs no
 turn (§2.1, §3.1).
 
-**STRONGLY INFERRED:** that the corridor is found by a search over a
-triangulated mesh. The triangles, edges and gates are all present; the search
-and the mesh construction are not yet read (Q341).
+**CONFIRMED (binary):** that the corridor is found by a greedy best-first
+search over a triangulated mesh, run from both ends with the shorter funnelled
+result kept (Q341, `navigation-mesh-and-search.md`).
 
 **HYPOTHESIS:** that `Fwd`/`Bak` mean a bidirectional search. They could equally
 name the two directions of travel along one route. Q341.
 
-**UNKNOWN:** the triangulation algorithm, the search, the velocity-to-position
-step, and what `grtc:` does in detail.
+**UNKNOWN:** the triangulation algorithm (Q347), the velocity-to-position
+step, and what `grtc:` does in detail (Q344).
