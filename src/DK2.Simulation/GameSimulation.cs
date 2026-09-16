@@ -20,7 +20,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 60;
+    private const ulong HashVersion = 61;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationContext _context;
@@ -102,6 +102,13 @@ public sealed class GameSimulation
         // DK2's first game turn is 1; our next-tick clock starts at 0.
         int dk2Turn = unchecked((int)(World.CurrentTick.Value + 1));
         LastTriggerRun = _triggers.Run(dk2Turn);
+        foreach (BlockedTrigger partial in LastTriggerRun.Partial)
+        {
+            _context.Emit(
+                nameof(TriggerExecutor), "trigger_partial",
+                $"tag={partial.Tag} type={partial.Type} id={partial.TriggerId} "
+                + $"context={partial.Context}");
+        }
 
         foreach (ISimulationSystem system in _systems)
             system.Execute(_context);

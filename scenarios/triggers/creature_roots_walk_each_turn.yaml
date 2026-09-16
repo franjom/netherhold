@@ -1,0 +1,21 @@
+# Four ticks are one DK2 game second (SimulationTiming.OriginalTicksPerGameSecond).
+# Frosty's Castle has five placed creature roots. Each reaches creature-owned
+# action type 15 after its one-game-second gate; its effect is not implemented,
+# so the honest observable is five partial dispatches on zero-based tick 3.
+id: creature-roots-walk-each-turn-001
+question: Do all placed creature trigger roots run once per game turn?
+map: "campaign:Frosty's Castle"
+seed: 1
+duration_ticks: 4
+setup:
+  placed_things: true
+observe:
+  - events
+expect:
+  - event: trigger_partial
+    detail: "type=15"
+    at_tick: 3
+    count: 5
+    because: >
+      DKII.EXE's world frame reaches every creature through its entity-list pass,
+      and each of these five roots dispatches type 15; trigger-walkers.md and ADR-0152.

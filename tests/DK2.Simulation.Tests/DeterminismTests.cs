@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 60: Graveyard rooms gained persistent decomposition tallies (ADR-0151).
+        // HashVersion 61: creatures gained their trigger root and repeat snapshot (ADR-0152).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xE44F66372F8963D9UL, sim.StateHash());
+        Assert.Equal(0x57435BC71CE1BBDCUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

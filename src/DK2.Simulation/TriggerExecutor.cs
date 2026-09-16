@@ -268,6 +268,10 @@ public enum TriggerContext
     /// <summary>One action point's tree. Its dispatcher owns seven condition types and
     /// <b>no action types at all</b> — <see cref="TriggerAreaConditions"/>.</summary>
     Area,
+
+    /// <summary>One creature's tree. Conditions and actions delegate through the
+    /// creature's owning player and then the world.</summary>
+    Creature,
 }
 
 /// <summary>One action point's trigger root, with the repeat argument its frame passes.
@@ -294,6 +298,9 @@ internal sealed class TriggerRun(int currentTick)
     /// </summary>
     public byte? Player { get; set; }
 
+    /// <summary>The creature whose tree is being walked, or null outside one.</summary>
+    public CreatureState? Creature { get; set; }
+
     /// <summary>The map's derived rooms, built only if a reached condition asks for them.
     /// One run sees one world state because trigger actions that alter terrain are not yet
     /// performed; when one is, it must invalidate this after the write.</summary>
@@ -319,8 +326,8 @@ internal sealed class TriggerRun(int currentTick)
         new(Blocked, Partial, Assumed, Unhandled, Reached, Unsatisfied);
 }
 
-/// <summary>Walks a level's trigger roots once a game turn — world, 24 parties, action
-/// points, players — performing action types 7, 8 and 14 and answering for the rest.</summary>
+/// <summary>Walks every level trigger root once a game turn — world, 24 parties, action
+/// points, creatures and players — performing supported actions and accounting for the rest.</summary>
 /// <remarks>
 /// <para>Rule: a record runs only while its active bit is set; a child chain is entered
 /// only on success; the next sibling is visited either way; a condition passes its own
@@ -329,9 +336,9 @@ internal sealed class TriggerRun(int currentTick)
 /// <para>Gaps are counted, not hidden, and which list one lands in follows DK2's own
 /// answer: <see cref="TriggerRunResult.Partial"/>, <see cref="TriggerRunResult.Blocked"/>,
 /// <see cref="TriggerRunResult.Unhandled"/>, <see cref="TriggerRunResult.Assumed"/>
-/// (ADR-0107). Creature trees are not walked.</para>
+/// (ADR-0107).</para>
 /// </remarks>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-tree.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-walkers.md")]
 public sealed class TriggerExecutor
 {
     private readonly TriggerTree? _tree;
@@ -363,15 +370,19 @@ public sealed class TriggerExecutor
         _database = database;
         _state.InitializeRecords(tree.Records);
         DisablePartySubtrees();
-        if (world is not null && database is not null) _areaRoots = BuildAreaRoots(world);
+        if (world is not null && database is not null)
+        {
+            _areaRoots = BuildAreaRoots(world);
+            AttachCreatureRoots(world);
+        }
     }
 
     internal TriggerExecutor(TriggerState state) => _state = state;
 
     public TriggerTree? Tree => _tree;
 
-    /// <summary>Runs one game turn: the world tree's twenty-five roots, then every action
-    /// point's, then every player's — the frame's own order (<c>0x0050A75B</c> onward).
+    /// <summary>Runs one game turn: the world tree's twenty-five roots, then entity roots,
+    /// then every player's — the frame's own order (<c>0x0050A75B</c> onward).
     /// </summary>
     /// <remarks>
     /// <para>Rule: the id at <c>+0x7310</c> is walked with the repeat byte at
@@ -399,15 +410,27 @@ public sealed class TriggerExecutor
         }
 
         // Before the players and after the parties, because the frame walks the world's
-        // eight entity lists there (0x0050A7D7). Creatures share those lists and are not
-        // walked, so an action point's position among them is ours; theirs is the thing
-        // table's order, and this is THINGS order (Q246).
+        // eight entity lists there (0x0050A7D7). Action points and creatures share that
+        // pass. Their relative order here remains ours (Q330), while each projected
+        // class preserves THINGS order.
         foreach (TriggerAreaRoot root in _areaRoots)
         {
             run.Area = root.Point;
             Walk(unchecked((short)root.Point.TriggerId), root.Repeat, TriggerContext.Area, run);
         }
         run.Area = null;
+
+        foreach (CreatureState creature in _world?.Creatures ?? [])
+        {
+            if (creature.TriggerId == 0) continue;
+            run.Creature = creature;
+            run.Player = creature.OwnerPlayerId;
+            Walk(
+                unchecked((short)creature.TriggerId), creature.TriggerRepeat,
+                TriggerContext.Creature, run);
+        }
+        run.Creature = null;
+        run.Player = null;
 
         // Last in the turn, and in the player context: 0x0050A7F5 calls the loop that
         // gives every player its frame, and the frame walks that player's own root.
@@ -453,6 +476,18 @@ public sealed class TriggerExecutor
         .Select(point => new TriggerAreaRoot(
             point, _tree!.ResolveCondition(point.TriggerId)?.RepeatCount ?? 0))
         .ToArray();
+
+    /// <summary>Models the creature root setter at <c>0x0049A950</c>: attach the id,
+    /// resolve it in the condition array regardless of sign, and snapshot byte
+    /// <c>+0x0F</c> beside the creature for later frame calls.</summary>
+    private void AttachCreatureRoots(WorldState world)
+    {
+        foreach (CreatureState creature in world.Creatures)
+        {
+            if (creature.TriggerId == 0) continue;
+            creature.TriggerRepeat = _tree!.ResolveCondition(creature.TriggerId)?.RepeatCount ?? 0;
+        }
+    }
 
     private void SetSubtreeActive(ushort triggerId, bool active) =>
         SetSubtreeActive(unchecked((short)triggerId), active);
@@ -536,11 +571,9 @@ public sealed class TriggerExecutor
 
     /// <summary>Evaluates one condition in the context whose walker reached it.</summary>
     /// <remarks>
-    /// <para>Rule: the player dispatcher owns 30 condition types and hands <b>every other
-    /// type to the world dispatcher</b>, `this` being the world object
-    /// (<c>0x004C856C</c>). So types 1, 2 and 34 mean the same thing in a player tree as
-    /// in the world tree, over the same level-global banks, and reusing the world
-    /// evaluator is right rather than convenient. `trigger-walkers.md`.</para>
+    /// <para>The creature dispatcher answers its own status types, then delegates to the
+    /// owning player's dispatcher; the player's default delegates to the world. Thus types
+    /// 1, 2 and 34 still reach the level-global banks. `trigger-walkers.md`.</para>
     /// <para>The area dispatcher (<c>0x004B0D70</c>) delegates the same way, and owns
     /// seven types of its own — <see cref="TriggerAreaConditions"/>.</para>
     /// </remarks>
@@ -550,7 +583,11 @@ public sealed class TriggerExecutor
         if (context == TriggerContext.Area && TriggerAreaConditions.Owns(record.Type))
             return TriggerAreaConditions.Evaluate(record, run.Area!, _world!, _database!);
 
-        if (context != TriggerContext.Player || !PlayerOwnsCondition(record.Type))
+        if (context == TriggerContext.Creature && CreatureOwnsCondition(record.Type))
+            return EvaluateCreatureCondition(record, run.Creature!, _database!);
+
+        bool reachesPlayer = context is TriggerContext.Player or TriggerContext.Creature;
+        if (!reachesPlayer || !PlayerOwnsCondition(record.Type))
             return TriggerConditionEvaluator.Evaluate(record, _state, run.CurrentTick);
 
         if (PlayerConditionIsConstantFalse(record.Type))
@@ -582,6 +619,33 @@ public sealed class TriggerExecutor
         run.Assumed.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
         return TriggerConditionResult.Satisfied;
     }
+
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/trigger-walkers.md")]
+    private static TriggerConditionResult EvaluateCreatureCondition(
+        TriggerRecord record, CreatureState creature, GameDatabase database)
+    {
+        if (CreatureConditionIsConstantFalse(record.Type))
+            return TriggerConditionResult.Unsatisfied;
+
+        int measured = record.Type switch
+        {
+            36 => creature.Health * 100 / CreatureLevelRules.MaxHealth(
+                database, database.CreatureById(creature.CreatureTypeId), creature.Level),
+            37 => creature.GoldHeld * 100 / CreatureLevelRules.Scale(
+                database.CreatureById(creature.CreatureTypeId).MaxGoldHeld,
+                CreatureLevelRules.Percent(database, CreatureStatId.MaxGoldHeld, creature.Level)),
+            49 => creature.Level,
+            _ => throw new ArgumentOutOfRangeException(nameof(record), record.Type, null),
+        };
+        return Result(TriggerState.Compare(
+            Byte(record.Parameters, "Comparison"), measured,
+            unchecked((int)record.Parameters["Value"])));
+    }
+
+    /// <summary>Creature condition types whose jump-table entries return zero without
+    /// reading their bodies. Their event-filter path is separate and out of scope.</summary>
+    private static bool CreatureConditionIsConstantFalse(byte type) =>
+        type is >= 3 and <= 16 or 50 or 54 or 55 or 63 or 65;
 
     /// <summary>The player quantity a condition type compares, or null for a type whose
     /// arm we cannot answer. Types 19, 24, 25, 27, 28 and 52 walk owned things; type 24 assumes
@@ -823,6 +887,10 @@ public sealed class TriggerExecutor
     /// </remarks>
     private bool RunAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
+        if (context == TriggerContext.Creature && CreatureOwnsAction(record.Type))
+            return Unperformed(record, context, run.Partial);
+        if (context == TriggerContext.Creature && PlayerOwnsAction(record.Type))
+            return Unperformed(record, context, run.Partial);
         if (context == TriggerContext.Player && PlayerOwnsAction(record.Type))
             return Unperformed(record, context, run.Partial);
         if (Performs(record.Type))
@@ -876,6 +944,20 @@ public sealed class TriggerExecutor
     {
         10 or 11 or 31 or 34 or 37 or 38 or 42 or 50 => true,
         >= 24 and <= 28 => true,
+        _ => false,
+    };
+
+    /// <summary>The creature condition dispatcher computes three per-instance counters
+    /// and gives its constant-false event types an answer of its own.</summary>
+    private static bool CreatureOwnsCondition(byte type) =>
+        CreatureConditionIsConstantFalse(type) || type is 36 or 37 or 49;
+
+    /// <summary>The ten action types owned by the creature dispatcher
+    /// (<c>0x0049AC80</c>, base 15, range <c>0x1C</c>). Every other type delegates
+    /// to the owning player's dispatcher, whose default delegates to the world.</summary>
+    private static bool CreatureOwnsAction(byte type) => type switch
+    {
+        15 or 20 or 21 or 29 or 30 or 33 or 35 or 36 or 42 or 43 => true,
         _ => false,
     };
 

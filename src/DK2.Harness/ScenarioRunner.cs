@@ -191,12 +191,14 @@ public sealed class ScenarioRunner
         PlaceResources(scenario, world, unsupported);
         SpawnCreatures(scenario, world, unsupported);
 
+        TriggerTree? triggers = ResolveShippedTriggers(scenario, campaignLevel);
+
         // Registration order is part of the simulation's definition, and there
         // is exactly one of it — see SimulationSystems. A harness that ran the
         // systems in a different order from the test suite would be producing
         // evidence about neither.
         var simulation = new GameSimulation(
-            _database, world, scenario.Seed, SimulationSystems.Default());
+            _database, world, scenario.Seed, SimulationSystems.Default(), triggers);
 
         var sink = new ListEventSink();
         simulation.ObserveWith(sink);
@@ -750,6 +752,28 @@ public sealed class ScenarioRunner
             unsupported.Add(
                 $"{level}: {result.NotYetProjected} placed things this build cannot project yet "
                 + "(doors, traps, hero parties, effect generators)");
+    }
+
+    private TriggerTree? ResolveShippedTriggers(Scenario scenario, string? campaignLevel)
+    {
+        if (!scenario.Setup.PlacedThings || campaignLevel is null || _installDir is null)
+            return null;
+
+        LevelDef level = GameDatabaseLoader.LoadCampaignLevel(_installDir, campaignLevel)
+            ?? throw new InvalidOperationException($"No LEVEL file for '{campaignLevel}'.");
+        List<TriggerRecord> records = GameDatabaseLoader.LoadCampaignTriggers(
+            _installDir, campaignLevel)
+            ?? throw new InvalidOperationException($"No TRIGGERS file for '{campaignLevel}'.");
+        List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(
+            _installDir, campaignLevel)
+            ?? throw new InvalidOperationException($"No PLAYERS file for '{campaignLevel}'.");
+        List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(
+            _installDir, campaignLevel)
+            ?? throw new InvalidOperationException($"No THINGS file for '{campaignLevel}'.");
+
+        return new TriggerTree(
+            records, level.TriggerId, things.OfType<HeroPartyThing>(),
+            players.Select(player => new TriggerPlayerRoot(player.PlayerId, player.TriggerId)));
     }
 
     /// <summary>Resolves a scenario's map field. <c>campaign:level1</c> loads a shipped map;

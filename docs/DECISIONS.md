@@ -3372,3 +3372,29 @@ burial (Q320), and clear the tally once reconciliation observes the room absent
 **Consequences.** Tallies are hashed and snapshotted. `HashVersion` and snapshot
 `FormatVersion` move 59 → 60; the pin becomes `0xE44F66372F8963D9`.
 
+## ADR-0152 — Creature trigger roots join the per-turn entity pass
+
+**Status.** Accepted 2026-09-16.
+
+**Context.** THINGS creatures carry a trigger root, but projection discarded it
+and the executor walked only action points and players. The binary's creature
+setter snapshots the root condition's repeat byte; its per-turn condition and
+action dispatchers delegate creature → owner player → world. The separate
+event-filter caller is not a tree walk and remains out of scope.
+
+**Decision.** Project each creature's root and its initial repeat snapshot,
+hash and snapshot both, then walk creature roots in THINGS order once per game
+turn after action points. Q330 records that relative ordering as UNKNOWN. The
+creature dispatcher evaluates health percentage (36), carried-gold percentage
+(37), and level (49). Types 3–16, 50, 54, 55, 63 and 65 return DK2's constant
+false on this path. The ten creature-owned action types report `Partial`: their
+success return is known, but their effects are not implemented by guesswork.
+
+**Consequences.** In the 14,400-turn shipped corpus, executed records rise
+3144 → 3793 and the creature-only bucket falls 1138 → 504. The declined
+condition frontier stays 128: the newly reached event arms are intentionally
+false here, while their firing path remains future work. Level16 still reports
+two world-type-64 stalls gating two records, but its 48 creature roots are now
+walked. `HashVersion` and snapshot `FormatVersion` move 60 → 61; the pin becomes
+`0x57435BC71CE1BBDC`.
+
