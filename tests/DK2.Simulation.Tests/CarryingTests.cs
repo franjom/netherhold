@@ -215,6 +215,7 @@ public class CarryingTests
 
         SimEvent buried = Assert.Single(sink.Events, e => e.Kind == "corpse_buried");
         Assert.Contains("decompose_value=", buried.Detail);
+        Assert.Contains("tally=200 raised=none", buried.Detail);
         Assert.DoesNotContain(world.Creatures, c => c.Id == goblin.Id);
     }
 

@@ -102,9 +102,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 59: Temple rooms gained persistent sacrifice history (ADR-0149).
+        // HashVersion 60: Graveyard rooms gained persistent decomposition tallies (ADR-0151).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x659AB04378E4C2FEUL, sim.StateHash());
+        Assert.Equal(0xE44F66372F8963D9UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -603,6 +603,7 @@ public sealed class WorldState
     private readonly List<HeroPartyState> _heroParties = [];
     private readonly List<EffectGeneratorState> _effectGenerators = [];
     private readonly List<TempleSacrificeState> _templeSacrifices = [];
+    private readonly List<GraveyardState> _graveyards = [];
     private int _nextCreatureId = 1;
     private int _nextObjectId = 1;
 
@@ -890,6 +891,28 @@ public sealed class WorldState
         return created;
     }
 
+    /// <summary>Persistent decomposition tallies, ordered by their Graveyard room anchor.</summary>
+    public IReadOnlyList<GraveyardState> Graveyards => _graveyards;
+
+    internal GraveyardState GraveyardAt(int anchorTileIndex, byte ownerPlayerId)
+    {
+        int index = 0;
+        while (index < _graveyards.Count && _graveyards[index].AnchorTileIndex < anchorTileIndex)
+            index++;
+
+        if (index < _graveyards.Count && _graveyards[index].AnchorTileIndex == anchorTileIndex)
+        {
+            GraveyardState existing = _graveyards[index];
+            if (existing.OwnerPlayerId != ownerPlayerId)
+                throw new InvalidOperationException("A Graveyard anchor cannot belong to two players.");
+            return existing;
+        }
+
+        var created = new GraveyardState(anchorTileIndex, ownerPlayerId);
+        _graveyards.Insert(index, created);
+        return created;
+    }
+
     public bool HasPlayer(byte playerId)
     {
         foreach (PlayerState p in _players)
@@ -956,6 +979,7 @@ public sealed class WorldState
     internal List<HeroPartyState> RawHeroParties => _heroParties;
     internal List<EffectGeneratorState> RawEffectGenerators => _effectGenerators;
     internal List<TempleSacrificeState> RawTempleSacrifices => _templeSacrifices;
+    internal List<GraveyardState> RawGraveyards => _graveyards;
 
     /// <summary>Restores the id counter after a snapshot, so ids stay unique across a save.</summary>
     internal int NextCreatureId
@@ -1011,6 +1035,9 @@ public sealed class WorldState
 
         hash.Add(_templeSacrifices.Count);
         foreach (TempleSacrificeState temple in _templeSacrifices) temple.HashInto(ref hash);
+
+        hash.Add(_graveyards.Count);
+        foreach (GraveyardState graveyard in _graveyards) graveyard.HashInto(ref hash);
 
         // The trigger banks are level state, not level data: an action record
         // writes a flag and a later condition reads it, so two worlds that

@@ -82,8 +82,8 @@ public enum ObjectFlags : uint
 /// <c>0x34C</c> to the end sum to <b>0x37E = 894</b>, the independently measured record stride, and
 /// the <see cref="ObjectId"/> column reads 1 to 145 exactly once each.</para>
 /// <para>Not the home of corpses: "a corpse is an object" is <b>refuted</b> (§4). A corpse is
-/// <c>CreatureActivity.Dead</c> and an imp carries it to a Graveyard (ADR-0063); what a Graveyard
-/// then does with them is Q165.</para>
+/// <c>CreatureActivity.Dead</c> and an imp carries it to a Graveyard (ADR-0063); the simulation
+/// counts its creature-definition value there rather than inventing a corpse object (ADR-0151).</para>
 /// </summary>
 public sealed record ObjectDef
 {

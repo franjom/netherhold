@@ -79,12 +79,9 @@
 #     Prison (room 11) and this project has none, so an enemy on the floor is
 #     left there rather than quietly rescued into the wrong dungeon (Q163).
 #
-#   * **What a graveyard does with what it is fed.** Its `CreatedCreatureId` is
-#     8 — the Vampire — and it is one of only two rooms in the game that names a
-#     creature. Nothing here counts `DecomposeValue` towards anything; the event
-#     reports it so that the tally has something to be built from (Q165). Making
-#     vampires now would be premature for reasons `creature-death.md` sets out
-#     at length.
+#   * **A Vampire.** The two Goblins contribute 400 of the 1000 needed, so this
+#     run establishes that the per-room tally advances but cannot cross its
+#     threshold. `five_corpses_make_a_vampire.yaml` covers the crossing (Q165).
 #
 #   * **Whether the corpse clock pauses in an imp's arms.** It does not here, so
 #     a long walk to a distant graveyard can outlast the body and the imp
@@ -128,6 +125,7 @@ expect:
       the health phase books at tick 3 (ADR-0089). Nothing on this map can
       rescue them, so the window runs out untouched.
   - event: corpse_buried
+    detail: raised=none
     count: 2
     because: >
       Both corpses reach the graveyard. Burial is an imp task and sits BELOW

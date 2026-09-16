@@ -182,7 +182,7 @@ creature is not finished.
 **It is deliberately not implemented.** The cost of reincarnation is a level, and
 although levels now exist (`creature-levels.md`), both exits are still out of
 reach: *"a monk killed it"* needs the killer's identity, which needs combat (M7),
-and the destination needs a Graveyard that does something (Q165). The flag is
+and the destination needs the Graveyard burial path (Q165). The flag is
 read and tested and nothing branches on it (Q111).
 
 **OpenKeeper does not implement or even read `CanBeResurrected`.**
@@ -312,7 +312,7 @@ blocked this for five sittings.
 | The corpse | **Built** (ADR-0063). A creature in `CreatureActivity.Dead`, lying for `DeadBodyDiesAfterSeconds` |
 | Rescue | **Built** (ADR-0063). `CreatureDeathRules.Rescue` had been written, tested and callerless for five sittings so the gap would be visible; kind 13 is its caller |
 | Prison for enemies | **Built** (ADR-0064, `docs/research/prison.md`): an imp drags an unconscious enemy to a cell, it withers at `PrisonModifyCreatureHealthPerSecond` (−3) a game second, and at nothing it rises as a **Skeleton for the jailer**. A prisoner arrives at **max / 6** health (Q167, ADR-0071). `MotionlessInPrisonSeconds` (8) is still parsed and unread |
-| The Vampire | **Not built.** A graveyard keeps a tally — DK2's room dump gives the Graveyard case exactly one field of its own, `DecomposeValue`, a dword on the room instance — and `corpse_buried` reports what each body is worth. What is unread is the **threshold**: what fills a graveyard and what happens at the top (Q165) |
+| The Vampire | **Built (ADR-0151).** A Graveyard keeps the room dump's per-instance `DecomposeValue` dword; burial adds the corpse's value, and shipped variable 25 sets 1000 as the threshold for its `CreatedCreatureId`, Vampire. Five Goblins contribute 5 × 200, independently agreeing with the five-corpse account (Q165) |
 | Chickens for the dying | **Not built.** A keeper keeps a *prisoner* alive by dropping chickens on it, so a prisoner's countdown always runs out here (ADR-0064) |
 
 **The petals are health** (Q108), and there are **six** of them (Q171, CONFIRMED
@@ -369,7 +369,7 @@ Two corollaries:
 
 ## Tests
 
-`CreatureNeedsTests` and `CarryingTests` (`tests/DK2.Simulation.Tests/`);
+`CreatureNeedsTests`, `CarryingTests` and `GraveyardTests` (`tests/DK2.Simulation.Tests/`);
 `BothDyingTimersAreSixtySecondsAndTheyAreTwoDifferentClocks`,
 `EightCreaturesLeaveNoBodyAndThatSetIsNotTheNeverHungryOne`,
 `TheEightCreaturesThatLeaveNoBodyAreExactlyTheOnesWithNoLyingState`,
@@ -380,7 +380,7 @@ Two corollaries:
 `TheVampiresOwnNumbersMatchTheWikisDk2Column`
 (`tests/DK2.Behavior.Tests/CreatureNeedsOnRealDataTests.cs`). Scenarios
 `scenarios/creatures/a_goblin_collapses_and_dies.yaml`,
-`an_imp_buries_a_corpse.yaml` and `an_imp_drags_an_enemy_to_prison.yaml`.
+`an_imp_buries_a_corpse.yaml`, `five_corpses_make_a_vampire.yaml` and `an_imp_drags_an_enemy_to_prison.yaml`.
 
 ## Known exceptions
 
@@ -394,7 +394,5 @@ Two corollaries:
 
 ## Open questions
 
-- **Q165**: what a graveyard does with the corpses it is fed, which is the only
-  route to a Vampire.
 - **Q111**: the remaining half of reincarnation — the killer's identity, so that
   *"a monk killed it"* can be tested.

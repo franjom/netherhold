@@ -1016,7 +1016,7 @@ So a keeper who dug through **their own reinforced wall** got Dirt Path still st
 - A collapsed creature goes to its own bed (kept through the dying window for this); arrival calls `CreatureDeathRules.Rescue`. A corpse goes to the nearest Graveyard tile and is consumed. The destination is settled before the walk starts.
 - `DyingTicks` counts the rescue window while `Dying` and the corpse window while `Dead`; reset at the seam.
 - Both ends stored: `CarriedCreatureId` on the carrier, `CarriedByCreatureId` on the body; `TargetBodyId` is the body a worker walks towards.
-- Ours: no prison then (Q163; ADR-0064); the corpse clock does not pause in an imp's arms (Q164, UNKNOWN in the original); a graveyard keeps no tally (Q165) — it consumes the corpse and the event reports `DecomposeValue`; nearest by walking (Q25) where the original scans rings.
+- At acceptance: no prison then (Q163; ADR-0064); the corpse clock did not pause in an imp's arms (Q164, UNKNOWN in the original); a graveyard kept no tally until ADR-0151; nearest by walking (Q25) where the original scans rings.
 
 **Consequences.**
 - A creature that leaves a body no longer vanishes; four tests that asserted vanishing now assert the corpse.
@@ -3346,4 +3346,29 @@ claims and whether they held, and the harness exits non-zero when one fails, so
 the CLI and the test gate agree. The cost is that four scenarios now carry a
 WARNING paragraph saying they no longer answer their own title — which is the
 honest state of them, and was true and unsaid before.
+
+## ADR-0151 — Graveyard life-force belongs to a persistent room anchor
+
+**Status.** Accepted 2026-09-16.
+
+**Context.** The Graveyard room dump names one room field, the dword
+`DecomposeValue`. Burial supplies the creature field of the same name; shipped
+variable 25 requires 1000 and the room's `CreatedCreatureId` is Vampire. A
+Goblin supplies 200, independently agreeing with the five-corpse account (Q165).
+`RoomInstance` remains derived, so the tally needs persistent identity.
+
+**Decision.** `WorldState` stores ordered `GraveyardState` records keyed by the
+room's lowest tile index and owner, reconciled by ADR-0149's Temple policy.
+Only successful burial adds life-force; death does not, because Horny and Jack
+have value 200 but produce no body. At the threshold the room raises its
+`CreatedCreatureId`, and `corpse_buried` reports `tally` plus `raised=Vampire
+as=N`, matching the Prison's creation event shape.
+
+Four unresolved edges use explicit project defaults: spawn on the last burial
+tile (Q318), subtract 1000 rather than zeroing (Q319), at most one Vampire per
+burial (Q320), and clear the tally once reconciliation observes the room absent
+(Q321). These are not claims about DK2.
+
+**Consequences.** Tallies are hashed and snapshotted. `HashVersion` and snapshot
+`FormatVersion` move 59 → 60; the pin becomes `0xE44F66372F8963D9`.
 
