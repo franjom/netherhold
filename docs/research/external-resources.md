@@ -70,9 +70,12 @@ attribution is an obligation and not a courtesy. Not a quiet copy. The one place
 worth even asking about is the file-format readers, which are the most complete
 in existence — and which are also the part already reproduced here independently
 and cross-validated to the byte. Their **gameplay** code is the part where the
-clean-room argument would cost something, and it is also where their own authors
-say the least is settled: OpenKeeper's creature AI has been an acknowledged stub
-for years, which is the same wall Q7 describes here.
+clean-room argument would cost something, and also the part with the least
+behind it. Checked 2026-09-16 at `fee2624d`: the creature AI is a 19-state FSM
+with threat/fear flee arithmetic, tasks and moods — broader than ours, and not
+the stub this file called it until then — but the repository carries no
+automated test at all, so nothing in it separates a measured DK2 rule from a
+plausible one. Copying it would import that ambiguity.
 
 ### The order of preference, unchanged
 
