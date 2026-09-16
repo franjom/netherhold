@@ -172,61 +172,61 @@ So reincarnation puts the creature on a **Graveyard** tile, which needs a
 Graveyard under the keeper's control — which the DK2 wiki also gives as a third
 permanent-death condition.
 
-### 2.3 The vampire, and why it is not implemented
+### 2.3 The vampire — routine found 2026-09-16 (Q111)
 
-`CanBeResurrected` (bit 23) is set on **exactly the two Vampires and nobody
-else**, so the owner's rule is data-driven rather than a name check. The vampire
-having no dead body stops being an oddity: there is no corpse because the
-creature is not finished.
+`CanBeResurrected` (bit 23) is set on **exactly the two Vampires and nobody else**,
+so the owner's rule is data-driven rather than a name check, and the vampire having
+no dead body stops being an oddity: there is no corpse because it is not finished.
 
-**It is deliberately not implemented.** The cost of reincarnation is a level, and
-although levels now exist (`creature-levels.md`), both exits are still out of
-reach: *"a monk killed it"* needs the killer's identity, which needs combat (M7),
-and the destination needs a Graveyard that does something (Q165). The flag is
-read and tested and nothing branches on it (Q111).
+**`FUN_0048FFC0` is the reincarnation, and the owner's sentence is its guard
+list** (binary, 2026-09-16): level 1 is permanent, a Monk's kill is permanent,
+and it comes back at the level-scaled maximum one level down. The routine, its
+guards and how the Monk's blow reaches it are in `combat.md` §6.3 — it is reached
+from the damage sink, so it is read there.
+
+**DK2 never records a killer**, which is how the monk half works at all. This
+document used to say that exit *"needs the killer's identity"* — right about the
+problem, wrong about the shape of the answer. **Still not implemented here**, now
+for one reason rather than two: the destination needs a Graveyard that does
+something (Q165).
 
 **OpenKeeper does not implement or even read `CanBeResurrected`.**
 
 ### 2.4 What the DK2 wiki adds, and where it disagrees
 
-> *"Although not completely immortal, Vampires can only be eternally 'laid to
-> rest' by Monks (hence their unbridled hatred of the shaven-pated holy ones).
-> Each time a Vampire is slain, it loses an experience level before
-> re-incarnating in the Graveyard. If you are not in control of a Graveyard when
-> a Vampire is slain, or if the Vampire is level 1, then it is lost for good."*
-
-That **confirms three of the owner's four points** — loses a level, level 1 is
+The wiki's Vampire page, in our own words — the four-sentence quotation that
+stood here until 2026-09-16 broke `wiki-as-a-source.md`'s own rule against a
+large block quote of CC BY-SA prose. It **confirms three of the owner's four
+points** — loses a level, level 1 is
 final, only a Monk makes it final regardless — and adds a **third permanent-death
 condition the owner did not mention: no Graveyard.** So a vampire dies for good
 if it is level 1, *or* a Monk killed it, *or* its keeper controls no Graveyard at
 that moment. The third is the only one that is a property of the dungeon rather
-than of the creature or its killer.
+than of the creature or its killer. Two of the three are now read from the binary
+(§2.3); **the Graveyard condition is not in `FUN_0048FFC0`'s guards** and is
+either elsewhere or wrong (Q329).
 
-**A third source disagrees with both on health.** The page's *lead paragraph*
-says a resurrected vampire returns "at full health" — but the lead is
-game-agnostic prose covering all four titles, so it is not a DK2 claim, and the
-DK2 section says nothing about health. The owner's account is that it *sleeps to
-recover*. Untagged lead prose is the weakest of the three and is not followed.
+**On health the wiki is not followed.** Its *lead* says a resurrected vampire
+returns at full health, but the lead is game-agnostic prose covering all four
+titles and the DK2 section says nothing about health. §2.3 settles it from the
+binary anyway: `FUN_0048FFC0` writes the level-scaled maximum.
 
 **Two numbers the wiki gave that the shipped data confirms exactly**, both pinned
 by tests:
 
 - **Five corpses in a Graveyard make a Vampire.** The data never says "five": it
   says `DecomposeValue` 200 a corpse and `DecomposeValueNeededForVampire` 1000.
-  1000 ÷ 200 = 5. Two independent sources on one integer, and it is worth more
-  than either alone — it confirms the wiki *and* confirms that our reading of
-  `DecomposeValue` as a per-corpse worth is right, which nothing else could
-  check. (DK1 needs ten, which is on the adjacent line of the same infobox
-  field; read carelessly that page supports either number.)
-- **Two Black Knights sacrificed make a Vampire.** Present in the shipped temple
-  table as `BlackKnight + BlackKnight → rewardType=1 value=8`, and creature 8 is
-  the Vampire. The first thing in the project ever to read `SacrificeEntry`, so
-  it doubles as a layout check on that record.
+  Two independent sources on one integer, worth more than either alone — it
+  confirms the wiki *and* confirms our reading of `DecomposeValue` as a per-corpse
+  worth, which nothing else could check. (DK1 needs ten, on the adjacent line of
+  the same infobox field; read carelessly that page supports either number.)
+- **Two Black Knights sacrificed make a Vampire.** In the shipped temple table as
+  `BlackKnight + BlackKnight → rewardType=1 value=8`. The first thing in the
+  project ever to read `SacrificeEntry`, so it doubles as a layout check.
 
 One more, unimplementable: **at level 10 a Vampire raises any corpse it sees into
-a Skeleton**, which competes with its keeper's own supply of corpses for making
-more Vampires. That is `SkeletonArmyDurationSeconds` and `RaiseDead` territory,
-and needs corpses and combat first.
+a Skeleton**, competing with its own keeper's supply for making more Vampires.
+`SkeletonArmyDurationSeconds` and `RaiseDead` territory; needs corpses and combat.
 
 ## 3. The bodies: eight creatures leave none
 
@@ -396,5 +396,5 @@ Two corollaries:
 
 - **Q165**: what a graveyard does with the corpses it is fed, which is the only
   route to a Vampire.
-- **Q111**: the remaining half of reincarnation — the killer's identity, so that
-  *"a monk killed it"* can be tested.
+- **Q329**: the wiki's third permanent-death condition — no Graveyard — is not
+  among `FUN_0048FFC0`'s guards (§2.3).

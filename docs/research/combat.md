@@ -1,4 +1,4 @@
-# Mechanic: combat — the damage sink, and what scales a blow
+﻿# Mechanic: combat — the damage sink, and what scales a blow
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-15. Addresses are
@@ -180,9 +180,18 @@ only in their ceiling, which is what a *weakened* and a *strengthened* state
 would look like — but naming them from the shape would be a guess, and this
 project does not name mechanisms before reading their consumers.
 
-## 6. The swing, found 2026-09-15 (Q313)
+## 6. The swing, found 2026-09-15, named 2026-09-16 (Q313 — ANSWERED)
 
-`FUN_00494D00` has **no callers and no address references anywhere in the image**.
+**`FUN_00494D00` has exactly one caller: `FUN_00498E34`.** That is Q313's whole
+question, and it is now answered from two directions that agree — `CallScanAll`
+found the call site as bytes before the region was analysed, and `AtAndCallers`
+attributes it to a named function after `ForceGaps.py` defined one there (§6.0).
+So the accessor's caller IS the attack routine, which is what the hypothesis
+below predicted.
+
+The rest of this section is how it was found, and §6.2 is what the routine does.
+
+`FUN_00494D00` had **no callers and no address references anywhere in the image**.
 That is not the same as having none: a direct `CALL` encodes a *relative*
 displacement, so a byte scan for the absolute address cannot see it, and Ghidra's
 own xrefs are blind wherever code was never analysed. `CallScanAll` finds the one
@@ -201,15 +210,29 @@ The swing runs from `0x00498E96`, inside a larger handler whose entry is earlier
 4. **Negate it.** Damage reaches the health routine as a negative delta.
 5. A virtual call on the target, vtable slot `+0x34`, must return non-zero — a
    "does this take a hit at all" predicate.
-6. **A bonus percentage**: a 10-bit field divided by 8, and if the result exceeds
-   **15**, `damage += damage * that / 100`. What the field is, is UNKNOWN.
+6. **A bonus percentage off the bearing between the two things.** Corrected
+   2026-09-16 — this said "a 10-bit field divided by 8", and the divisor is **20**:
+   `0x66666667` with `SAR EDX,3` is a signed divide by 20, and reading the shift
+   alone gave 8. The arithmetic, instruction by instruction at `0x004990C4`:
+   `FUN_0065FB54(attacker.x - target.x, attacker.y - target.y)` — an atan2 over
+   the position triple at `+0x1A`/`+0x1E` — then `& 0x7FF` (2048 to a turn),
+   reflected about zero as `0x7FE - a` when above `0x3FF`, divided by 20 to give
+   0–51, and **if that exceeds 15**, `damage += damage * it / 100`.
+   **The arithmetic is CONFIRMED and the purpose is UNKNOWN (Q325).** Nothing in
+   it reads either thing's facing, so as written the bonus is a function of the
+   compass bearing from target to attacker — up to +51% for attacking along one
+   axis and nothing along the other. That is a strange combat rule, which is
+   reason to doubt the reading of its *purpose*, not the reading of its
+   instructions.
 7. **A branch per target kind** on `target+0x12`, the thing's class. Kind 0 is
    handled separately and earlier; kinds 2, 3 and 4 each read one byte out of the
    target's own definition and call `FUN_004998A0` with it (§6.1).
-8. **A per-player multiplier**: `byte[player+0x1090]`, applied as
-   `damage * (v + 10) / 10` and skipped when it is zero or less. `+0x1091` is read
-   immediately after. Both are UNKNOWN — a keeper spell, a handicap, or a
-   difficulty setting would all look like this.
+8. **Two per-player multipliers**, both verified instruction by instruction on
+   2026-09-16 and both skipped when the byte is zero or less:
+   `byte[player+0x1090]` applies `damage * (v + 10) / 10`, and
+   `byte[player+0x1091]` applies `damage * (15v + 100) / 100` — **+15% a unit**,
+   where before only the first was read. What they are is still UNKNOWN: a keeper
+   spell, a handicap or a difficulty setting would all look like this.
 
 ### 6.0 The attack routine is `FUN_00498E34`, and nothing references it
 
@@ -237,6 +260,63 @@ handler reached only through a table built at runtime would look exactly like
 this. So the HYPOTHESIS is that the attack is a **creature state handler**, and
 the probe is to find which state's record holds `0x00498E34`. What writes that
 table is not a literal store of the address, because no such store exists.
+
+### 6.2 The rest of the routine, read 2026-09-16
+
+**The recharge gate is the first thing it does.** `now = FUN_00517490()` against
+`dword[attacker+0x3A5] - 1 + dword[attackerDef+0x5CA]`; not yet, and it returns 1
+without swinging. So `+0x3A5` is the **last-swing stamp** and `def+0x5CA` the
+interval. That is **not** `MeleeRecharge` at `def+0x5C6` (§5), four bytes earlier
+— which is either a second field or a mis-assignment in §5, and Q327 is which.
+The gate is skipped entirely when `attacker+0x3E6 & 0x80` is set.
+
+**A definition flag is copied into the creature on every swing.**
+`creature+0x3EA` bit 12 := `def+0x686` bit **29**. Bit 29 is unnamed in our
+`CreatureFlags` — the enum jumps 28 to 30 — and this is a reader for it (Q326).
+
+**The Monk carries the permanent kill, and it is a parameter rather than a
+state.** At `0x00499224`, if `byte[attacker+0x36F] == 0x13` — creature type 19,
+the **Monk** — and the target is a creature, the routine does exactly this:
+
+```
+MOV ECX,[ESI + 0x3ea] / OR ECX,0x4 / MOV [ESI + 0x3ea],ECX   ; set bit 2 on the TARGET
+CALL 0x004b2ce0                                              ; deal the damage
+MOV EAX,[ESI + 0x3ea] / AND AL,0xfb / MOV [ESI + 0x3ea],EAX  ; clear it again
+```
+
+Set, damage, clear. A bit held only across one call is an **argument smuggled
+through the damage sink**, not a status — which is how DK2 tells the death path
+who struck the blow without widening `FUN_004B2CE0`'s signature. What consumes it
+is the resurrection routine; see `creature-death.md` §2.3, and it closes the
+owner's *"a monk's kill is permanent at any level"*.
+
+**Two Horned Reaper branches**, both keyed on `def+0x686 & 0x4000`, which is
+`IsHorny` in our own enum. One fires when attacker and target share an owner
+(`word+0x28`) and ends the swing early through virtual slot `+0x20`; the other,
+at `0x00499289`, fires when the target's type is `0x1C` — **Stone Knight** — and
+calls `FUN_00490120`. Neither is read further (Q328).
+
+### 6.3 What the Monk's bit reaches: reincarnation (Q111)
+
+`FUN_0048FFC0` is the vampire's reincarnation. Its one caller is the death block
+of `FUN_004B2CE0`, on the arm where `def+0x686 & 0x800000` — bit 23,
+`CanBeResurrected`, set on exactly the two Vampires — is set. It proceeds only
+when **both**:
+
+    1 < byte[creature+0x403]          the level, so level 1 is permanent
+    (byte[creature+0x3EA] & 4) == 0   the bit §6.2's Monk branch sets
+
+and then restores health to the level-scaled maximum, calls **`FUN_0048AFA0`**
+— the level decrement, `level - 1` guarded by `level != 1`, carrying the health
+*fraction* across the change — and clears `+0x3E6 & 0x8000`.
+
+**Three CONFIRMED owner statements land on one routine** (Q111, 2026-09-04):
+*"they lose a level once they reincarnate"*, *"if they were killed at level 1
+they are permanently dead"*, and *"a monk's kill is permanent at any level"*.
+`creature-death.md` §2.3 carries the rule; this is the mechanism.
+
+**`FUN_0048AFA0`'s other caller is `FUN_0049C2A0`, and it is unread** — a second
+way to lose a level that nothing here has looked at (Q328).
 
 ### 6.1 `FUN_004998A0` is not the resistance step
 
@@ -273,7 +353,10 @@ it, which is unread.
 4. **Experience from a kill.** `creature-levels.md` records that nothing earns
    by fighting here because combat does not exist; the adder `FUN_00457880` is
    already read, so this is a question about its callers.
-5. **What decrements a level** (§4).
+5. ~~**What decrements a level**~~ — **ANSWERED 2026-09-16**: `FUN_0048AFA0`,
+   guarded by `level != 1`, writing `byte[creature+0x403] - 1` and carrying the
+   health *fraction* across the change. Two callers: the resurrection routine
+   (`creature-death.md` §2.3) and `FUN_0049C2A0`, which is unread.
 
 ## Confidence
 
@@ -286,4 +369,10 @@ is healing and not combat.
 than one of several — it is the only reader of `def+0x5C4` that is not the
 definition copier, which is strong but is an absence.
 
-**UNKNOWN:** everything in §7. No damage formula end to end, and no attack.
+**CONFIRMED (binary, 2026-09-16):** that `FUN_00498E34` is the attack routine —
+it is the sole caller of the melee-damage accessor; the recharge gate's shape;
+the bearing bonus's *arithmetic*; both player multipliers; the Monk's set-damage-
+clear around `FUN_004B2CE0`.
+
+**UNKNOWN:** the bearing bonus's purpose (Q325), and the rest of §7. Still no
+damage formula end to end, because the resistance step is still not found.
