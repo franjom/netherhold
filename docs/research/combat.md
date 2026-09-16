@@ -336,34 +336,35 @@ then picks one of **seven** arms through a jump table at `0x00499A24`, and each 
 reads a **pair of 16-bit values** from that record (37 = 1 + 8 + 7 x 4).
 
 **It never touches the damage.** It takes an out-pointer, returns `RET 0xC`, and
-the damage register is untouched across all three calls. The values are in a
-170–450 band rather than looking like percentages. So this is most likely **hit
-presentation** — which effect a given attack type makes on a given surface —
-and calling it armour would have been a guess dressed as a finding. What the pairs
-are is UNKNOWN; cross-referencing them against the shipped effect table's id range
-is the cheap next check.
+the damage register is untouched across all three calls; the values sit in a
+170–450 band rather than looking like percentages. Most likely **hit
+presentation** — which effect an attack type makes on a given surface — and
+calling it armour would have been a guess dressed as a finding.
 
-### 6.1.1 `Resistances` is loaded, printable, and consulted by nothing
+### 6.1.1 `Resistances` is loaded, saved, and consulted by nothing
 
-Traced 2026-09-16, and the answer is a negative. The runtime array is at
-`def+0x11FC` — the loader `FUN_00568E30` copies four 2-byte pairs there from file
-`+0xE0C` (`0x0056983E`), which also confirms the +0x3F0 file-to-runtime mapping
-against an instruction. Two bounds-checked accessors read it: `FUN_00569D90`
-returns slot *i*'s attack type, `FUN_00569DB0` its value, both refusing `i >= 4`.
+Traced 2026-09-16, and the answer is a negative. `FUN_00568E30` copies four
+2-byte pairs into record `+0x11FC` from file `+0xE0C` (`0x0056983E`), confirming
+the +0x3F0 mapping against an instruction; `FUN_00569D90` and `FUN_00569DB0`
+read slot *i*'s attack type and value, both refusing `i >= 4`.
 
-**Each accessor has exactly one caller: the debug dumper `FUN_00492320`.**
-`0x11FC` occurs **once in the whole executable**, and neither accessor has a
-single absolute occurrence in any initialised block, so neither sits in a vtable.
-Positive control on the same sitting: 226. So in v1.70 nothing computes damage
-from this table, which is why §6.1's hunt kept failing — the step it looked for
-is not there. Residual doubt is one shape only, a reader forming the base from a
-*different* displacement, which the accessors' existence argues against. Q335.
+**The reasoning here was wrong twice and the conclusion survived both**, redone
+2026-09-16. `FUN_00492320` is the **definition builder**, not a dumper, and the
+scan was aimed at the wrong struct: `+0x11FC` is the 5449-byte *record*, while
+creatures hold a pointer (`+0x370`) to a compact definition the builder fills
+from it. A loop at `0x0049368E` packs the four slots into **`def+0x61C`** as
+2-byte pairs and counts them into **`def+0x78A`**, so the live struct does carry
+resistances — at a displacement the first scan never looked at.
+
+**Scanned there, the absence holds.** Four routines touch them and no more: the
+constructor that zeroes them, the builder, the copier `FUN_0051F3B0`, and the
+serializer `FUN_00492230`, whose `(ESI+0x61C, size 2, count 4)` writes the array
+out rather than consulting it. The only other `LEA` on the displacement builds a
+file path on an unrelated object. Control: 226. **No damage path reads it.** Q335.
 
 `0x004E0460` was named here as the next place to look and **that was wrong**: it
-is `[this+0x25E] == 0x53`, a creature-state test called from target-resolution at
-`FUN_00498E34+0x101`, before the damage step. Twenty bytes on, the routine sets
-state `0x54` through `[ESI+0x24E]`, so `+0x24E` is a state machine and `+0x25E`
-its current id. That is evidence for item 1 below, not for resistance.
+is `[this+0x25E] == 0x53`, a creature-state test in target resolution, and the
+routine sets `0x54` through `[ESI+0x24E]` twenty bytes on. Not resistance.
 
 ## 7. What is still unknown, in the order it should be taken
 
@@ -385,16 +386,14 @@ its current id. That is evidence for item 1 below, not for resistance.
 ## Confidence
 
 **CONFIRMED (binary):** the health routine and its argument shape; the three
-creature offsets; the melee block's runtime offsets; the stat matrix's runtime
-layout and the `× percent / 100` rule with level 1 exempt; that `FUN_00514830`
-is healing and not combat.
+creature offsets; the melee block's runtime offsets; the stat matrix's layout and
+the `× percent / 100` rule with level 1 exempt; that `FUN_00514830` is not
+combat (it is game action `0x1A`, §3); that `FUN_00498E34` is the attack routine
+and the sole caller of the melee-damage accessor; the recharge gate's shape; the
+bearing bonus's *arithmetic*; both player multipliers; the Monk's
+set-damage-clear around `FUN_004B2CE0`.
 
 **STRONGLY INFERRED:** that `FUN_00494D00` is *the* melee-damage accessor — it
 is `def+0x5C4`'s only reader outside the copier, which is an absence.
-
-**CONFIRMED (binary, 2026-09-16):** that `FUN_00498E34` is the attack routine —
-it is the sole caller of the melee-damage accessor; the recharge gate's shape;
-the bearing bonus's *arithmetic*; both player multipliers; the Monk's set-damage-
-clear around `FUN_004B2CE0`.
 
 **UNKNOWN:** the bearing bonus's purpose (Q325), and the rest of §7.

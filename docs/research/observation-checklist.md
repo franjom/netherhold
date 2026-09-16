@@ -322,10 +322,11 @@ are guesses. **Count blows to kill, never seconds**: possession skips the
 recharge gate, so anything timed measures cadence rather than damage.
 
 ### Q335 — does a creature resist the attack type its record says it resists?
-Nothing in the executable reads the shipped `Resistances` table (`combat.md`
-§6.1.1). **Do:** hit a creature with an attack type its row resists and one it
-does not. **Means:** equal counts → the column is vestigial; different → it lives
-somewhere unfound.
+Nothing on a damage path reads it, in either struct it lives in (`combat.md`
+§6.1.1). Only **5 of 46** creatures ship any resistance at all, so there is one
+clean test: a **Salamander** resists `MeleeBlade` at 75. **Do:** set a Goblin,
+Skeleton or Knight (all `MeleeBlade`) on one, then a **Bile Demon or Firefly**
+(`MeleeBody`). **Means:** equal blow counts → the column is vestigial.
 
 ### Q337 — does possession change damage per blow?
 **Owner, 2026-09-16: it "feels" stronger — which the gate skip already explains**,
