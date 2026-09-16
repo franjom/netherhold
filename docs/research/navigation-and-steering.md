@@ -337,8 +337,6 @@ the owner's**, so nothing has been changed. The options are recorded in
 
 ## 7. What this leaves
 
-- **Q348** the six edge-flag bits and the ten-bit id on a triangle. The
-  triangulation itself is read (Q347, `navigation-mesh-and-search.md` §2.1).
 - **Q344** `grtc:` — reported by the second reader as a clearance or contracting
   transform applied to the gate segments between the funnel and the point
   selection. Not verified here.
@@ -366,5 +364,5 @@ result kept (Q341, `navigation-mesh-and-search.md`).
 **HYPOTHESIS:** that `Fwd`/`Bak` mean a bidirectional search. They could equally
 name the two directions of travel along one route. Q341.
 
-**UNKNOWN:** the edge-flag bits and region ids (Q348) and what `grtc:` does in
-detail (Q344).
+**UNKNOWN:** what `grtc:` does in detail (Q344). Q341, Q347 and Q348 are
+answered in `navigation-mesh-and-search.md`.

@@ -9,8 +9,9 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: **Q341** (the search) and **Q347** (the triangulation), both answered
-here at the algorithm level; **Q348** carries the flag bits and region ids.
+Questions: **Q341** (the search), **Q347** (the triangulation) and **Q348**
+(edge classes, constraint flags, region ids), all answered here at the
+algorithm level.
 Continues `navigation-and-steering.md`, which owns the funnel (§2.1) and the
 mover; this page owns everything before the funnel.
 
@@ -51,8 +52,9 @@ sum of the slices:
 
 A **triangle** is three point indices (words at `+0`, `+2`, `+4`), three
 neighbour triangle indices (`+6`, `+8`, `+0xA`), the **navigation-cache byte of
-its tile** at `+0xC`, and a word at `+0xE` holding six flag bits below a
-ten-bit id (§2.1). `+0xD` is not read by anything on this page. A **point** is two words, `x` then `y`.
+its tile** at `+0xC`, a byte of **per-edge flags** at `+0xD`, and a word at
+`+0xE` holding three **2-bit edge width classes** below a ten-bit **region
+id** (§2.2). A **point** is two words, `x` then `y`.
 
 The mesh is **built, not shipped**. `0x004CEF20` calls the re-triangulation entry
 `0x004CE770` with the whole `256 × 256` map, and the notifying nav-byte setter
@@ -100,19 +102,53 @@ edge, frees the vertex between them (`+2 = 0x8000` marks a dead point) and
 pushes both dead triangles onto a free list threaded through their `+6` slot.
 This is what keeps a whole room down to a handful of triangles.
 
-**Bookkeeping.** `+0xE` is a **word**: the low six bits are flags set two per
-edge as triangles are cloned, and the high ten bits are an id whose per-id
-triangle counts live at `0x6E96C8`, with a byte table at `0x6E96CA` beside
-them. Which functions among `0x004CE0C0`, `0x004CE380`, `0x004CE410`,
-`0x004CC650` and `0x004CB170` perform the coarsening and the id assignment is
-STRONGLY INFERRED from their calls rather than read. What the six flag bits
-*mean*, and whether the id is a connected-region label (which would make
-reachability a single compare), is **Q348**.
+**Bookkeeping.** Every new or rewired triangle passes through `0x004C8F50`,
+which computes its three edge width classes, and a rebuild ends by
+re-labelling connected regions. Both are §2.2. Which of `0x004CE0C0`,
+`0x004CC650` and `0x004CB170` does which part of the coarsening is STRONGLY
+INFERRED from their calls rather than read; the primitives they use are not.
 
 Point coordinates are 16-bit words at tile-corner positions; a tile edge that
 separates two different navigation bytes is always a constraint edge, and a run
 of tiles with one byte never is. That, and not anything about Delaunay
 quality, is what decides where the funnel's gates fall.
+
+### 2.2 Edge width classes, constraint flags and region ids (Q348)
+
+Three per-triangle annotations, each now read to its consumers.
+
+**`+0xE` low six bits: a 2-bit width class per edge.** `0x004C8F50` runs after
+every triangle is created or rewired. For each edge it takes `|dx|` and `|dy|`
+between the endpoints, clamps both to 3, and looks up the 4x4 table at
+`0x66DA38`, which is simply `max(|dx|, |dy|)` clamped to 1..3 — how many
+tiles the edge spans. The three results are packed two bits each. The search
+(§4) indexes its passability table with `(classes & 0x3F) | mask[slot]`, the
+masks being `0x3C`, `0x33`, `0x0F` for the three neighbour slots, so each lookup
+sees exactly the class of **the edge being crossed**. Mover class 1 passes only
+edges of class 2 or 3 (at least two tiles wide); class 2 only class 3.
+
+**It is a clearance mechanism, and the shipped game never engages it.** The
+class byte reaches the orchestrator only through the dispatcher, as
+`[0x006A11F0] − 1`; that byte initialises to 1, has no writer and sits in no
+block copy. Every request therefore uses the all-ones table, and no gate is ever
+too narrow for anyone. A live mechanism with a zero rate, not dead code.
+
+**`+0xD`: two flags per edge.** Bits 3–5 mark an edge as a **constraint**:
+`0x004CE380` sets bit `slot + 3` along each inserted rectangle's sides, the
+clone helper clears it for a new internal edge, and the flip `0x004C9FC0`
+tests bit `slot + 3` on both triangles and **refuses** if either is set. That is
+what keeps category boundaries in the mesh. Bits 0–2 are set on every new edge
+and read only inside the builder; their meaning is unread and nothing in
+routing depends on it.
+
+**`+0xE` high ten bits: a connected-region id.** `0x004C91A0` is a breadth-first
+flood fill over non-solid triangles (bit 3 of `+0xC` clear) with a 200-slot
+ring queue, assigning ids and keeping 3-byte per-region records at `0x6E96C8`
+(a word count and a byte). `0x004CE410` gathers the ids bordering a rebuilt
+rectangle so the fill can be re-run locally. **Nothing outside the mesh builder
+reads either the ids or the records.** They are the triangulation's own
+incremental bookkeeping; the router never asks "is the goal reachable" before
+it searches.
 
 ## 3. The search is greedy best-first
 
@@ -161,9 +197,11 @@ Two gates decide whether the search may step from triangle `c` into `n`.
 `0x006E8AA8 + (class + 1) · 0x100`, selected by the request's class byte; the
 `+1` means the default class 0 gets the table at `0x006E8BA8`, which is **all
 ones**. Class 1's table passes only flag bytes with bit 1 set; class 2's only
-those with bits 0 and 1. The index is `(n.flags & 0x3F) | 0x3C` in the forward
-search and `| 0x33` in the backward one, so each variant tests a different
-*pair* of the six flag bits. What the pairs mean is Q347.
+those with bits 0 and 1. The index is `(c.classes & 0x3F) | mask[slot]`, with masks
+`0x3C`, `0x33`, `0x0F` for the three neighbour slots — not one mask per search
+direction, as an earlier draft of this page had it — so each lookup sees the
+width class of the edge being crossed (§2.2). In the shipped game the class
+byte is always 0 and the table always all ones.
 
 **The cost function `0x004C8BD0(n.nav, c.nav)`**, on the two tiles' navigation
 bytes (§5.4: `8` solid, `1` and `3` two terrain categories, owner in the high
@@ -207,10 +245,9 @@ the class byte at `[0x006A11F4]`, and a dirty flag at `[0x006A11EC]` that the
 notifying nav-byte setter raises through `0x004CE770` — and if all match, skips
 both searches and re-runs only the funnel. `DOUBLE PATH` labels that path.
 
-## 6. What this leaves (Q348)
+## 6. What this leaves
 
-- The six edge-flag bits and the ten-bit id at `+0xE` (§2.1), and which of the
-  five unread functions coarsens and which assigns ids.
+- Bits 0–2 of `+0xD`, set on every new edge and read only by the builder.
 - The point-location walk (`0x004C98B0`, `0x004C9B50`, `0x004C9540`).
 - The list of triangle indices at `0x6E86F0`, pre-marked visited by every
   search and consulted by `0x004C9710` when it looks for a boundary edge.
@@ -234,10 +271,18 @@ by orientation-guided flipping with recursion at vertices; the flip itself;
 stamping of `+0xC`; the merge, the dead markers and the free lists; that
 `+0xE` is a word with six flag bits below a ten-bit id.
 
+**CONFIRMED (binary):** the width-class table and its packing; the three
+per-slot masks and that the search advances through them; that the class byte
+is `[0x006A11F0] − 1` with no writer of that byte found; the constraint bits
+`slot + 3` — set by the side-marker, cleared by the clone, refused by the flip;
+the flood fill, its queue and its records; that nothing outside the builder
+reads region ids or records.
+
 **CONFIRMED (binary + repo):** categories 1 and 3 are water and lava — the two
 definition bits the request reads are the two our `CreatureFlags` already names.
 
 **STRONGLY INFERRED:** that the forward search is seeded at the destination;
-which of the five unread functions coarsens and which assigns ids.
+that the width-class unit is tiles; which of three unread functions does
+which part of the coarsening.
 
 **UNKNOWN:** everything in §6.
