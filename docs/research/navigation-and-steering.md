@@ -16,7 +16,9 @@ triangulation's internals are Q347 and `grtc:` is Q344, both open.
 
 **The router half is built as an unwired library** (ADR-0157 phase 1, see
 `navigation-mesh-and-search.md`); of the steering half only `SeparationRules`
-exists. `GridPathfinder` still serves the simulation until phase 3 (§6).
+exists, and the other behaviours' bodies are being read in
+[steering-behaviours.md](steering-behaviours.md). `GridPathfinder` still
+serves the simulation until phase 3 (§6).
 
 ---
 
