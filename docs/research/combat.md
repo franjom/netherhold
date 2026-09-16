@@ -260,8 +260,9 @@ them both readers of the swing's recharge interval.
 
 **So the attack is not a creature state.** That table is 281 records of **25**
 bytes at `0x006DA8B0`, filled by a different run, and **no** handler in the
-`0x498`/`0x499` range appears in it (`creature-state-table.md`). Different base,
-different stride, different filler. Q338 is what the 29-byte table is.
+`0x498`/`0x499` range appears in it (`creature-state-table.md`). **Q338, answered:**
+it is the 81-record creature **action** table, and combat is entered by starting
+action **17** — `creature-action-table.md`.
 
 ### 6.2 The rest of the routine, read 2026-09-16
 
@@ -366,8 +367,8 @@ its current id. That is evidence for item 1 below, not for resistance.
 
 ## 7. What is still unknown, in the order it should be taken
 
-1. ~~**Which state record holds `FUN_00498E34`**~~ — **ANSWERED 2026-09-16, in
-   the negative** (§6.0): none. It is not a creature state; Q338 took its place.
+1. ~~**Which state record holds `FUN_00498E34`**~~ — **ANSWERED 2026-09-16**: none.
+   It is creature **action 17** (`creature-action-table.md`). What is left is Q339.
 2. ~~**`MeleeRecharge`'s consumer**~~ — **ANSWERED 2026-09-16** (Q327): it
    gates a second clock, not the swing. `combat-cadence.md`.
 3. ~~**Where the `Resistances` list is read**~~ — **ANSWERED 2026-09-16, in the

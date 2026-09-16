@@ -10,8 +10,8 @@ Original version: DK2 v1.70 (GOG)
 This is the table's home; `eating.md` §2.1 points here. Confidence:
 **CONFIRMED** for §1–§5, **UNKNOWN** for the items in §6.
 
-**A second, unrelated handler table** holds the melee attack routine: 29-byte
-records at `0x006E4198`, filled by `FUN_004950C0` (`combat.md` §6.0, Q338).
+**A second, unrelated handler table** holds the melee attack: the 81-record
+creature **action** table at `0x006E4198` (`creature-action-table.md`).
 
 ## 1. What it is — CONFIRMED
 
