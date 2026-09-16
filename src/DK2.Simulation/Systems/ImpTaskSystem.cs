@@ -1594,11 +1594,33 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         if (CreatureDeathRules.IsCorpse(body))
         {
+            RoomInstance? graveyard = RoomIndex.RoomAt(
+                world, context.Database, creature.TargetTileIndex);
+            if (graveyard is null
+                || graveyard.Definition.TypeId != RoomTypeId.Graveyard
+                || graveyard.OwnerPlayerId != creature.OwnerPlayerId)
+            {
+                context.Emit(SystemName, "body_dropped",
+                    $"imp={creature.Id} body={body.Id} " +
+                    $"at=({creature.Tile.X},{creature.Tile.Y}) reason=no_graveyard");
+                CarryRules.PutDown(creature, body);
+                GoIdle(creature);
+                return;
+            }
+
+            GraveyardBurialResult result = GraveyardRules.Bury(
+                world, context.Database, graveyard,
+                definition.DecomposeValue, creature.TargetTileIndex);
+            string raised = result.SpawnedCreatureId < 0
+                ? "raised=none"
+                : $"raised={context.Database.CreatureById(result.SpawnedCreatureTypeId).Name} " +
+                  $"as={result.SpawnedCreatureId}";
+
             context.Emit(SystemName, "corpse_buried",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
                 $"type={definition.Name} {Describe(world, creature.TargetTileIndex)} " +
                 $"decompose_value={definition.DecomposeValue} " +
-                "(Q165: what a graveyard does with its tally is unbuilt)");
+                $"tally={result.DecomposeValue} {raised}");
 
             CarryRules.PutDown(creature, body);
             world.RemoveCreature(body.Id);

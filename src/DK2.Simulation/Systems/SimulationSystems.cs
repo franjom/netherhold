@@ -27,6 +27,8 @@ public static class SimulationSystems
         // Persistent Temple histories follow the derived room's anchor after all
         // room mutations for this tick have settled (ADR-0149).
         new TempleSacrificeSystem(),
+        // Graveyard decomposition tallies use the same persistent room identity.
+        new GraveyardSystem(),
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
         new CreatureMovementSystem(),
         new FogOfWarSystem(),

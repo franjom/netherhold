@@ -152,8 +152,8 @@ internal static class Dk2TerrainFixture
 
             // The graveyard: 2000 to build, 3x3 recommended, and the only room
             // besides the Portal whose CreatedCreatureId is set -- 8, the
-            // Vampire. Nothing here creates one and doing so would be premature
-            // (creature-death.md), but the corpse has somewhere to go.
+            // Vampire. GraveyardRules reads this when the room's tally reaches
+            // DecomposeValueNeededForVampire (Q165, ADR-0151).
             R(RoomTypeId.Graveyard, "Graveyard", 2000, GraveyardTerrain, 0x128Cu, 3, 3,
               createdCreatureId: VampireCreatureId),
 
@@ -873,6 +873,7 @@ internal static class Dk2TerrainFixture
         // so CreatureDeathRules.BodyWindowTicks can be pinned rather than only
         // documented — two variables sharing a value is a fact worth a test.
         Set(vars, VariableTypeId.DeadBodyDiesAfterSeconds, 60);
+        Set(vars, VariableTypeId.DecomposeValueNeededForVampire, 1000);
         Set(vars, VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds, 5);
 
         // What an imp earns for working (Q124, CONFIRMED by the owner: "imps

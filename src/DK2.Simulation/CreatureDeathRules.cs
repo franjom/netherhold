@@ -14,7 +14,7 @@ namespace DK2.Simulation;
 /// if an enemy, to a prison; then it dies and lies as a corpse for <c>DeadBodyDiesAfterSeconds</c>
 /// (also 60), in which an imp may carry it to a graveyard; then it disappears. CONFIRMED (owner,
 /// Q99; ADR-0051, ADR-0063).</para>
-/// <para>A corpse is a creature in a state, not an object: none of the 145 OBJECTS records is a corpse (objects.md §4). Not implemented: what a graveyard does with its corpses, so no Vampire is made (Q165).</para></remarks>
+/// <para>A corpse is a creature in a state, not an object: none of the 145 OBJECTS records is a corpse (objects.md §4). Burial feeds the per-room tally in <see cref="GraveyardRules"/> (Q165).</para></remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-death.md")]
 public static class CreatureDeathRules
 {

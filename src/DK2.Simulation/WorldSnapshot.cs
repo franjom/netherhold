@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 59;
+    private const int FormatVersion = 60;
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -272,6 +272,14 @@ public static class WorldSnapshot
                 w.Write(ingredient.Id);
                 w.Write(ingredient.CreatureLevel);
             }
+        }
+
+        w.Write(world.Graveyards.Count);
+        foreach (GraveyardState graveyard in world.Graveyards)
+        {
+            w.Write(graveyard.AnchorTileIndex);
+            w.Write(graveyard.OwnerPlayerId);
+            w.Write(graveyard.DecomposeValue);
         }
 
         // The trigger banks. Written whole rather than sparsely: they are a
@@ -591,6 +599,14 @@ public static class WorldSnapshot
                 entries[slot] = new SacrificeIngredient(r.ReadByte(), r.ReadByte(), r.ReadInt32());
             temple.Restore(count, nextInsertionIndex, entries);
             world.RawTempleSacrifices.Add(temple);
+        }
+
+        int graveyardCount = r.ReadInt32();
+        for (int i = 0; i < graveyardCount; i++)
+        {
+            var graveyard = new GraveyardState(r.ReadInt32(), r.ReadByte());
+            graveyard.Restore(r.ReadInt32());
+            world.RawGraveyards.Add(graveyard);
         }
 
         for (int i = 0; i < TriggerState.FlagCount; i++) world.Triggers.RawFlags[i] = r.ReadByte();

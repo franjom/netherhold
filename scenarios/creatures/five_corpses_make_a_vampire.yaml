@@ -1,0 +1,50 @@
+# Five Goblin corpses contribute 5 x 200 DecomposeValue to one Graveyard room.
+# The shipped threshold is DecomposeValueNeededForVampire = 1000, and that
+# independent agreement with the documented five-corpse outcome closes Q165.
+id: creatures-five-corpses-make-a-vampire-001
+question: >
+  Does one Graveyard tally the corpses buried in it and raise its configured
+  Vampire when their DecomposeValue reaches the shipped threshold?
+map: flat_9x8
+seed: 5
+# Both death windows are 60 game seconds = 240 ticks. Five imps let all five
+# burials finish inside the second window rather than serialising behind one.
+duration_ticks: 500
+setup:
+  players:
+    - { id: 3, gold: 0, mana: 0 }
+  rooms:
+    # A shipped-size 3x3 Graveyard, rather than relying on the smaller room's
+    # zero grave capacity (Q60/Q179).
+    - { type: Graveyard, at: [5, 4], player: 3 }
+    - { type: Graveyard, at: [6, 4], player: 3 }
+    - { type: Graveyard, at: [7, 4], player: 3 }
+    - { type: Graveyard, at: [5, 5], player: 3 }
+    - { type: Graveyard, at: [6, 5], player: 3 }
+    - { type: Graveyard, at: [7, 5], player: 3 }
+    - { type: Graveyard, at: [5, 6], player: 3 }
+    - { type: Graveyard, at: [6, 6], player: 3 }
+    - { type: Graveyard, at: [7, 6], player: 3 }
+  creatures:
+    - { type: Goblin, at: [2, 2], player: 3, health: 0 }
+    - { type: Goblin, at: [3, 2], player: 3, health: 0 }
+    - { type: Goblin, at: [4, 2], player: 3, health: 0 }
+    - { type: Goblin, at: [2, 3], player: 3, health: 0 }
+    - { type: Goblin, at: [3, 3], player: 3, health: 0 }
+    - { type: Imp, at: [1, 1], player: 3 }
+    - { type: Imp, at: [2, 1], player: 3 }
+    - { type: Imp, at: [3, 1], player: 3 }
+    - { type: Imp, at: [4, 1], player: 3 }
+    - { type: Imp, at: [5, 1], player: 3 }
+commands: []
+observe:
+  - state_hash
+  - events
+expect:
+  - event: corpse_buried
+    detail: raised=Vampire as=
+    count: 1
+    because: >
+      The binary identifies a per-room DecomposeValue tally; shipped variable
+      25 requires 1000 and each Goblin supplies 200. The Graveyard record names
+      Vampire as CreatedCreatureId, so the fifth burial raises it (ADR-0151).

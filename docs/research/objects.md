@@ -160,7 +160,7 @@ checked against.
 | **Eating** | "chickens are objects" | **DONE** — the Chicken is object 9, `TypeFood`, decays outside a room; the Coop is 35 and the Egg is 47. `HatcheryRules`/`HatcherySystem` lay the eggs and `EatingRules`/`CreatureEatSystem` consume them (`eating.md`, `hatchery.md`) |
 | **Gold piles** | "a pile is an object" | **DONE** (2026-09-05) — object 1 on the floor, object 3 in a treasury, `FloorGold`. And `MaxGoldPileOutsideTreasury` turned out not to be a limit at all (Q65) |
 | **Beds as things** | "a bed is an object" | Twelve bed objects, and `LairRules` already tracks which tile holds whose |
-| **Graveyard / vampires** | "a corpse is an object" | **Refuted** — see §4. It needed a creature-carrying task, not this record, and **that task now exists** (ADR-0063): a corpse is `CreatureActivity.Dead` and an imp carries it to a Graveyard. What is still missing is only what a graveyard *does* with them (Q165) |
+| **Graveyard / vampires** | "a corpse is an object" | **Refuted** — see §4. A corpse is `CreatureActivity.Dead`; an imp carries it to a Graveyard (ADR-0063), whose per-room tally consumes the creature's `DecomposeValue` (Q165, ADR-0151) |
 
 | **Putting things away** | nothing — it was never named as blocked, only as *"nothing to act on"* | **DONE** (2026-09-05, ADR-0065). DK2's imp task **kind 8** carries a loose object to the room that lists it, and the list it reads is `RoomDef.ObjectIds` — parsed since Q120 and read by nothing until now. Second in the Tier A table, above marked excavation and above claiming |
 
@@ -168,7 +168,7 @@ checked against.
 Hatchery makes them — it knows how many coops a room gets, where they stand, and
 since ADR-0066 it has its clock — and a creature eats them. What a graveyard
 *does* with a corpse is the remaining gap: it keeps a per-room tally and the
-thing counted is `DecomposeValue` (Q165, partly answered).
+thing counted is `DecomposeValue` (Q165, ADR-0151).
 
 ## 7. The instance: one type, an 18-byte union, and the id that picks it
 
