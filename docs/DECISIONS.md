@@ -3501,3 +3501,46 @@ No
 simulation state moves, so `HashVersion` stays at 61 and the determinism pin
 does not move. Same shape as ADR-0153 for the damage formula, for the same
 reason: the rule is knowable now, the integration is not.
+
+## ADR-0157 — The router is rebuilt on the original's mesh, search and funnel
+
+**Status.** Accepted 2026-09-16.
+
+**Context.** ADR-0155 recorded that DK2 routes over a navigation mesh and moves
+by steering, and left the rebuild to the owner. Since then the owner has watched
+routes run straight where a grid must bend (Q341) and creatures push each other
+(Q345), and every algorithm is read: the constrained, rectangle-decomposed
+triangulation (Q347, Q348), the greedy two-ended search (Q341), the funnel and
+gate midpoints (Q342), the four weighted behaviours, their clamps and Euler
+integration (Q343). **The owner decided on 2026-09-16 to rebuild.**
+
+**Decision.** Three phases, each landing tested and the first two unwired.
+1. **Router library** in `DK2.Pathfinding`: `INavByteGrid` (the §5.4 byte per
+   tile), `NavMesh` (two-triangle reset; maximal uniform rectangles; corners as
+   points with on-edge and interior splits; sides as constraints inserted by
+   orientation-guided flips; same-byte coarsening), `MeshRouter` (min-heap of
+   1024, key `minVertexDist² << (2·cost−2)`, no accumulated cost, run from both
+   ends, shorter funnelled route kept) and `Funnel` (Route2path; gate midpoints,
+   five at a time). Output is grid-free waypoints in 1/256-tile units.
+2. **Steering library**, after `avoid_walls`, `repel_obstacle`, `follow_path`'s
+   body and `grtc:` (Q344) are read: the steering body, four behaviours, the
+   combiner and integrator already specified in `navigation-and-steering.md`.
+3. **Wiring**: continuous position and velocity on the creature, a waypoint
+   window, the movement system replaced, `IPathfinder`'s callers moved to the
+   router. `HashVersion` moves and the pin is re-baselined in that commit.
+
+**Consequences.**
+- `GridPathfinder` and `CreatureMovementSystem` stay in service until phase 3.
+- `TryFindNearest` has no original analogue: DK2 chooses work by whole-map kind
+  lists and ring scans (ADR-0058), never by path-distance-nearest. Phase 3 must
+  move those callers onto that, or keep a labelled grid Dijkstra for them.
+- Deliberately omitted, because the shipped game never engages them and no
+  route changes: edge width classes and mover classes; region ids. Recorded on
+  `NavMesh` so nobody mistakes the omission for ignorance.
+- Known residuals, each labelled in code: point location is a scan, not the
+  original's walk; the coarsening order is inferred, so gate midpoints inside
+  non-convex regions may sit on different diagonals than the original's;
+  the cost function's door arm awaits doors; `grtc:` awaits Q344.
+- Priority (4) applies with force: the router **must** be greedy and
+  non-optimal in the original's way. A shortest-path router here is a fidelity
+  bug, however much better it looks.
