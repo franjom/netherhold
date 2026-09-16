@@ -267,15 +267,22 @@ total = truncate(total, max_force)                                   ; clamp 2, 
 accel = total / 0x10000                                              ; 0x004D1EC0, mass = 1.0
 vel   = vel + accel                                                  ; 0x004D1E10, into +0x8C
 vel   = truncate(vel, max_speed)                                     ; clamp 3, on velocity
+pos   = pos + vel                                                    ; 0x004D1E10, into +0x84
 ```
 
 So it is plain Euler integration of a force into a velocity, with the force
 bounded twice and the velocity once. `0x004D1EC0` is a vector divide by a 16.16
 scalar; it is handed `0x10000`, which is a division by a mass of exactly 1.
 
-**This is what wiring `SeparationRules` was waiting on.** It is no longer
-UNKNOWN. What remains is the step from `vel` to `pos`, immediately after, and
-whether our tile-to-tile mover can host a velocity at all without ADR-0155's
+The position step has one guard. When `path_flags` bit 2 is set and the mover
+is on its **last** waypoint, it compares the octile distance still to go with
+the octile length of this tick's `vel`; if the step would overshoot, the new
+position is **snapped onto the waypoint and `vel` is zeroed**. So a creature
+lands exactly where it was going rather than oscillating around it.
+
+**This is what wiring `SeparationRules` was waiting on, and it is now read end
+to end.** What remains is not a gap in the original but a decision about ours:
+whether a tile-to-tile mover can host a velocity at all without ADR-0155's
 larger decision being taken first.
 
 ## 4. The per-creature path state is the steering body
@@ -360,5 +367,5 @@ result kept (Q341, `navigation-mesh-and-search.md`).
 **HYPOTHESIS:** that `Fwd`/`Bak` mean a bidirectional search. They could equally
 name the two directions of travel along one route. Q341.
 
-**UNKNOWN:** the triangulation algorithm (Q347), the velocity-to-position
-step, and what `grtc:` does in detail (Q344).
+**UNKNOWN:** the triangulation algorithm (Q347) and what `grtc:` does in
+detail (Q344).
