@@ -338,9 +338,27 @@ and calling it armour would have been a guess dressed as a finding. What the pai
 are is UNKNOWN; cross-referencing them against the shipped effect table's id range
 is the cheap next check.
 
-**So the per-creature `Resistances` list still has no reader found.** For a
-creature target the path branches at step 7 into `0x004E0460` and the code around
-it, which is unread.
+### 6.1.1 `Resistances` is loaded, printable, and consulted by nothing
+
+Traced 2026-09-16, and the answer is a negative. The runtime array is at
+`def+0x11FC` — the loader `FUN_00568E30` copies four 2-byte pairs there from file
+`+0xE0C` (`0x0056983E`), which also confirms the +0x3F0 file-to-runtime mapping
+against an instruction. Two bounds-checked accessors read it: `FUN_00569D90`
+returns slot *i*'s attack type, `FUN_00569DB0` its value, both refusing `i >= 4`.
+
+**Each accessor has exactly one caller: the debug dumper `FUN_00492320`.**
+`0x11FC` occurs **once in the whole executable**, and neither accessor has a
+single absolute occurrence in any initialised block, so neither sits in a vtable.
+Positive control on the same sitting: 226. So in v1.70 nothing computes damage
+from this table, which is why §6.1's hunt kept failing — the step it looked for
+is not there. Residual doubt is one shape only, a reader forming the base from a
+*different* displacement, which the accessors' existence argues against. Q335.
+
+`0x004E0460` was named here as the next place to look and **that was wrong**: it
+is `[this+0x25E] == 0x53`, a creature-state test called from target-resolution at
+`FUN_00498E34+0x101`, before the damage step. Twenty bytes on, the routine sets
+state `0x54` through `[ESI+0x24E]`, so `+0x24E` is a state machine and `+0x25E`
+its current id. That is evidence for item 1 below, not for resistance.
 
 ## 7. What is still unknown, in the order it should be taken
 
@@ -348,8 +366,9 @@ it, which is unread.
    is a creature state, and with it how an attack is entered at all.
 2. **`MeleeRecharge`'s consumer** `FUN_00494EF0` — the cadence, and the first
    thing that can be checked against a stopwatch.
-3. **Where the `Resistances` list is read.** §6.1 rules out the obvious
-   candidate, so the creature-target branch at `0x004E0460` is next.
+3. ~~**Where the `Resistances` list is read**~~ — **ANSWERED 2026-09-16, in the
+   negative**: by the debug dumper and by nothing else (§6.1.1). What applies
+   resistance, if anything does, is Q335.
 4. **Experience from a kill.** `creature-levels.md` records that nothing earns
    by fighting here because combat does not exist; the adder `FUN_00457880` is
    already read, so this is a question about its callers.

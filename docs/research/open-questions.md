@@ -435,6 +435,7 @@ than a defect: both flags its trees write need a human (`docs/EXPERIMENTS.md`).
 | Q327 | **Is the melee recharge `def+0x5C6` or `def+0x5CA`?** | **OPEN, found 2026-09-16.** The swing's own gate reads `dword[attackerDef+0x5CA]` against the clock and `creature+0x3A5`, the last-swing stamp. `combat.md` §5 assigns `MeleeRecharge` to `def+0x5C6`, four bytes earlier. Either they are two fields or one of the two assignments is wrong | The cadence, and the first combat number that can be checked against a stopwatch. Sweep the record for which offset carries the shipped MeleeRecharge values |
 | Q328 | **What is `FUN_0049C2A0`, the other caller of the level decrement?** | **OPEN.** `FUN_0048AFA0` writes `level - 1` guarded by `level != 1` and has exactly two callers: the vampire's reincarnation and this. So DK2 has a second way to lose a level and nothing here knows what it is | Drain is an attack type in the shipped table; the torture and conversion paths are also unread. Decompile it |
 | Q329 | **Does having no Graveyard make a vampire's death permanent?** | **OPEN.** The wiki gives it as a third permanent-death condition. It is **not** among `FUN_0048FFC0`'s guards, which test only the level and the Monk bit, so it is either enforced elsewhere — in whatever chooses the destination — or it is wrong | Matters only once a Graveyard does something (Q165). Read where the reincarnation's destination comes from: it builds a position from a register-relative read this sitting did not chase |
+| Q335 | **If the per-creature `Resistances` table is never read, what applies resistance?** | **OPEN, from a firm negative (2026-09-16, `combat.md` §6.1.1).** The array at `def+0x11FC` is written by the loader and read by two accessors whose only caller is the debug dumper; the displacement occurs once in the image and neither accessor is reachable through a vtable | Either v1.70 applies no per-creature resistance and the shipped column is vestigial, or it applies it without this array. **One owner glance separates those**: hit a creature with an attack type its row resists and one it does not, and compare |
 
 ## Numbering
 
@@ -445,6 +446,6 @@ follow Q134, Q166 follows Q179, Q187 and Q189 precede Q184, Q214–Q219 follow Q
 **Q210–Q213 sit after Q234** in the Hero Portal section above, with Q235–Q242 after them,
 and **Q243–Q245 were reserved for a concurrent branch that needed none of them**;
 they are free. Q249–Q253 belong to ADR-0106; Q254–Q259 belong to ADR-0108.
-**Q318–Q321 were the reserved graveyard block** (ADR-0151, merged 2026-09-16); **Q322–Q324 were reserved with them and never used, and are free**. Take Q330 next.
+**Q318–Q321 were the reserved graveyard block** (ADR-0151, merged 2026-09-16); **Q322–Q324 were reserved with them and never used, and are free** — leave them, a spent reservation reused reads as a mistake. **Q330–Q334 are reserved** for the concurrent creature-walker branch (2026-09-16); take Q336 next.
 **Q39 appears twice** and both rows are kept; Q37a/Q37b, Q55x and Q118c are separate
 suffixed ids, not duplicates. **Q121 was never allocated** and must not be reused.
