@@ -285,9 +285,45 @@ memory it writes `nav.log`, and a ` retC` line there names a refusal.
 - The door matrix in the cost function's third arm.
 - Why a backward search failing after a forward success returns no route.
 
+## 7. Measured against the original's own log
+
+The logger behind §1's labels (`[0x006EC9E8]`, §5) was switched on in a
+running game by a memory write, and Level 7 — the first campaign level with a
+computer keeper, so creatures move with nobody at the controls — was left to
+run for seven minutes (2026-09-17). The recipe: `DKII-DX.exe -LEVEL Level7`
+boots straight into the level; the game runs elevated (GOG's `RUNASADMIN`
+compat flag), so `reverse-engineering/dk2move.py --navlog --csv <out>` is
+started from an elevated shell **first**, the game second, and nothing after
+— a UAC prompt or window steals focus, stops the clock and leaves the
+fullscreen window unrecoverable. `--navlog` writes 1 to the gate and the game
+writes `nav.log` beside the exe; positions come from the entity table
+`0x006EE540` (type `+0x12`, position `+0x1A`/`+0x1E`, definition `+0x370`).
+Both outputs are game-derived and stay out of the repository. Each request logs `F=<counter> Path x0,y0 x1,y1` in 1/256 tile, then ` retC`,
+` gate … EndGates` (the mover's branch) or, for a reachability probe,
+` route=<triangles> … way=<waypoints>`; ` Fwd route route=-1` is a failed
+search and ` DOUBLE PATH` the cache. Replaying its 21,398 requests through
+our router on the level's initial map:
+
+| outcome | requests |
+|---|---|
+| both route | 13,287 |
+| DK2 refuses (` retC`), ours has a solid end | 4,828 |
+| both searches fail | 320 |
+| DK2 refuses, our search fails | 124 |
+| DK2's search fails at a **door**, ours routes | 968 |
+| DK2 routes, our end is solid: heart platform 411, rock 382, gold 203, other 71 | 1,131 |
+| cache hits, skipped | 710 |
+
+Of 5,077 probes with counts, **waypoint counts agree in 99.4 %** (29 off by
+one, 3 by two); corridor triangle counts agree in 15 % and are otherwise ours
++1 to +3 (Q351). The rock and gold cases are tiles the keeper dug during the
+run — the replay used the initial map; the door cases are doors outside our
+navigation byte; the heart platform is Q352. The position capture's steps per
+tick match the loader rule: the imps' 1888 against a predicted 1884–1887.
+
 ## Confidence
 
-**CONFIRMED (binary):** the call chain and every address in §1; the allocator's
+**CONFIRMED (capture, 2026-09-17):** §7's agreement rates. **CONFIRMED (binary):** the call chain and every address in §1; the allocator's
 layout and the 29-byte derivation; the triangle and point records as far as the
 fields named; the full-map and single-tile rebuild entries; the heap, its cap,
 the stamp, the key expression and that the heap compares on it; termination on
