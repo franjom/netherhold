@@ -14,7 +14,8 @@ integrator's obstacle clipping) and **Q344** (`grtc:`). Continues
 the integration; this page owns what each behaviour computes.
 
 **Only `Separation` is built** (`SeparationRules`, ADR-0156). The rest waits on
-this page.
+this page. Section 5 is the mover proper: what `Follow_Path` aims at, that a
+creature **turns before it moves**, and how the route window is refilled.
 
 ---
 
@@ -22,13 +23,15 @@ this page.
 
 The steering initialiser `FUN_004D10D0` registers the behaviours (`0x004D56E0`,
 `navigation-and-steering.md` §3.3) and then installs four function pointers
-through the setters at `0x004D2770`–`0x004D27D0`:
+through the setters at `0x004D2770`–`0x004D27D0`, each storing a function and a
+context pointer (`[0x006ED40C]`-`[0x006ED418]`) that is passed back as the last
+argument:
 
 | slot | function | what it is | used by |
 |---|---|---|---|
 | `[0x006ED3FC]` | `0x004D1170` | the **ungated** object enumerator (§5.4 of `structure-blocks.md`) | `Separation`'s neighbour query |
 | `[0x006ED400]` | `0x004D12B0` | the enumerator that **gates on `Obstacle`** and forwards position, size, flags | `Repel_Obstacle` |
-| `[0x006ED404]` | `0x004D15E0` | UNKNOWN | not yet seen |
+| `[0x006ED404]` | `0x004D15E0` | UNKNOWN; its return scales `Follow_Path`'s seek (section 5.4) | `Follow_Path` |
 | `[0x006ED408]` | `0x004D16B0` | the **navigation-byte probe** at a position (reads `world+0x9F2`) | `Avoid_Walls`' feelers |
 
 So `structure-blocks.md`'s inference — that furniture is continuous collision
@@ -99,7 +102,7 @@ router's `<< 8` copy of its 256-per-tile waypoints lands exactly there.
 So `Avoid_Walls` is a **wall margin of one radius (0.2 tiles)** enforced against
 the predicted position, with a reflected push at inside corners. It is what
 keeps a body off the wall the funnel's corners hug. The block under
-`escape_stuck_mode` (`0x004D39D5`–`0x004D3BB9`) is not yet read.
+`escape_stuck_mode` is section 6.
 
 ## 4. The integrator's slide along solid obstacles
 
@@ -112,14 +115,142 @@ force, its sign chosen by negating the tangent (`0x004D4550`) when the residual
 points the wrong way. That is why a creature meeting a bed slides round it
 rather than stopping.
 
-## 5. What this leaves (Q349, Q344)
+## 5. `Follow_Path` (`0x004D3C40`, weight 0.35)
 
-- `Avoid_Walls`' `escape_stuck_mode` block.
-- `Follow_Path`'s body (`0x004D3C40`, weight 0.35) beyond its early-outs.
-- The exact tangent-sign rule of the slide, and `0x004D20F0`'s tail.
-- `grtc:` (`0x004CF490`–`0x004CFD00`), which shapes the aim points the mover
-  is actually given (Q344).
-- The third callback `0x004D15E0`.
+Arguments: the force to fill, the body, and the creature entity. It reads the
+definition's `+0x686` bit 0, `IsWorker`, and has **an imp arm and a creature
+arm**. Both start with the same bookkeeping.
+
+### 5.1 Progress and the stuck history
+
+`progress = 1 - remaining / path_total_dist` in 16.16, where `remaining` is the
+octile distance from `pos` to the current subpath point plus
+`path_subpath_dist` (`+0xFE`, the window's unwalked segments) plus
+`path_tail_dist` (`+0x102`, the route beyond the window). All three are in
+**sixteenths of a tile** (a 16.16 octile `>> 12`). It is 1.0 when
+`path_finished` is set or the total is zero. `0x004D54F0` computes the same
+thing for callers.
+
+The **integrator** owns the history: at the end of `FUN_004D4760` it shifts
+`path_stuck_buffer` (`+0x10A`) left and sets bit 0 when this tick's progress is
+**not greater than** `path_last_progress` (`+0x106`), then stores the progress.
+It pushes a second `1` in the same tick when its own wall clamp refused the
+step (`0x004D4E2B`; the clamp itself is codex's read of the integrator).
+
+`Follow_Path`, when progress is below 1.0, takes `stuck = popcount(low 15 bits)
+/ 15`. If `stuck >= 0x5555` (five of fifteen ticks): re-request the route from
+where the body stands (section 7), put the history word back (the request
+clears it), and set `escape_stuck_mode`. Then, if `escape_stuck_mode` is set
+and `stuck <= 0x2222` (two of fifteen), clear it.
+
+### 5.2 Which point it aims at
+
+No route (`path_total_count` 0) or `path_finished`: the force is **`-vel`**, a
+brake. Otherwise `idx` is bits 3-5 of `+0x10E` and `last` means
+`idx == path_total_count - 1`.
+
+Creature arm, `last`: `d = path_target_pos - pos`; the arrival threshold is
+`radius x (path_flags bit 0 ? 0.1 : 0.5)`, so **0.02 or 0.1 tile**; if
+`octile(d)` is under it **and** `octile(vel) <= 0x6147` (0.38), `path_finished`
+is set. The aim is `path_target_pos`.
+
+Creature arm, not `last`: `p = subpath[idx]`. `near` is `octile(p - pos) <
+1.2 x radius` (0.24 tile). `occupied` (`0x004D2850`, callback `0x004D27F0`) is
+"some `Obstacle` within 1.2 tiles of `p` has `octile(obstacle.pos - p) <=
+obstacle.size`". If `near`, or `occupied` with `octile(p - pos) < 0xCCCC`
+(0.8): **advance**: `path_subpath_dist -= segment[idx]` (five dwords at
+`+0xE6`), `idx++`, and if `idx` now equals `path_buffer_count` (bits 0-2 of
+`+0x10E`) re-request the route from the current position (section 7). The aim
+is `subpath[idx]`.
+
+Imp arm: on `last`, `path_finished` when `octile(path_target_pos - pos) <
+0x1999` (0.1 tile), with **no speed test and no radius scaling**; otherwise
+advance when `octile(subpath[idx] - pos) < 0x8000` (**0.5 tile**), with no
+obstacle test. Imps therefore cut corners half a tile early; creatures a
+quarter.
+
+### 5.3 Turning comes first
+
+Both arms then call `0x004B2AE0(entity, aim >> 4)`, the entity-level turn.
+`aim >> 4` is in 1/4096 tile, the unit of the entity position at `+0x1A`/`+0x1E`
+(`combat.md` section 4). It takes the bearing to the aim with the same `atan2`
+(`0x0065FB54`, **2048 to a turn**), the shortest angular distance to the
+heading at `entity+0xF4` (`0x005119F0`), and if that is nonzero steps the
+heading toward the aim by `min(distance, rate)` (`0x00511A30` picks the side)
+and recomputes the distance. The rate is a hook at `entity+0x12` when set, else
+the definition's `+0x6A0 & 0x7FF`.
+
+**If the heading is not yet on the aim, `Follow_Path` returns `-vel`.** A
+creature stops to turn, and moves only once it faces its waypoint.
+
+The rate's loader (`FUN_00492320`) reads the KWD creature record's `u16` at file
+offset **`0xF20`** and divides by variable 19, the four game ticks a second,
+flooring at 1 when the file value is nonzero. The shipped values, in 2048ths of
+a turn: Imp `4096` (1024 a tick: half a turn), most creatures `2048` (512),
+Warlock, Vampire and Skeleton `1365` (341), Troll `1024` (256), Bile Demon `682`
+(170, so a U-turn costs it seven ticks). `KwdCreatures.cs` does not yet read
+this field; it is a phase-3 addition.
+
+### 5.4 The seek
+
+Facing the aim, the force is a desired velocity minus `vel`:
+
+- **Creature arm, `last`, `path_flags` bit 1 clear** (the final approach):
+  `d = aim - pos`, `len = |d|` (three-band `isqrt`); `len == 0` gives a zero
+  force; `speed = min(max_speed, len / 2.0)`; force `= d x (speed / len) - vel`.
+  So it **decelerates inside 0.8 tile** of the destination.
+- **Otherwise** (creature intermediate points, or bit 1 set; and the imp arm
+  always): `c = min(1.0, callback[0x006ED404](&subpath[idx], 0xF333, ctx))` and
+  `k = 1.02 - c` for creatures (`0x1051E`) or `1.825 - c` for imps (`0x1D332`);
+  force `= (aim - pos) x k - vel`. The callback is `0x004D15E0`, not yet read
+  (section 8); `0xF333` is 0.95 tile. Whatever `c` is, the desired velocity is
+  then truncated to `max_speed` by the integrator, so `k` matters only near the
+  aim.
+
+## 6. `Avoid_Walls` in `escape_stuck_mode`
+
+The block at `0x004D39D5` runs **after** the normal path of section 3 and adds
+to its force. `v = (subpath[idx] - pos) + vel`; its dominant axis gives a unit
+step `s` of `(+-1, 0)` or `(0, +-1)`; `t = pos >> 16`; `P = (s.y, -s.x)` and
+`Q = -P` are the two perpendiculars. Four tiles are probed through the nav
+probe and the cost function against the body's own tile: `t+P`, `t+s+P`,
+`t+Q`, `t+s+Q`. If both `P` tiles are passable the nudge is toward `P`; else if
+both `Q` tiles are, toward `Q`; else `P`.
+
+The nudge is **`+-2` raw units**: the integer signs are doubled and added to the
+16.16 accumulator with no shift, so it is 2/65536 of a tile. In the shipped
+game this block is a tie-break for a zero force, not a push. Reproduce as is.
+
+## 7. The mover's route request (`0x004D5100`)
+
+Called by `Follow_Path` when stuck or when the window is exhausted, and by the
+state machine when a destination is set. It calls the dispatcher `0x004D0E10`
+with `pos >> 8`, `target >> 8` and the fraction `0x2000`; the result count is
+`[0x006ECB28]` and the points, 256 to a tile, start at `[0x006ECB2C]`.
+
+- **No route:** `path_target_pos` stored, counts and the four distances zeroed,
+  history zeroed, `path_finished` set, index and buffer count cleared,
+  `path_flags` set from the argument; returns false.
+- **A route of `n` points:** `path_total_count = n`; `path_buffer_count =
+  min(n, 5)`; `path_total_dist = octile(p0 - pos) + sum of octile(p_i -
+  p_i-1)`, each `>> 12`; the first `min(n, 5)` points copied `<< 8` into
+  `subpath_buffer`; `segment[k] = octile(sub[k+1] - sub[k]) >> 12` and
+  `path_subpath_dist` their sum; `path_tail_dist` the same sum over the points
+  beyond the window; `path_last_progress` and the history zeroed; index and
+  `path_finished` cleared; returns true.
+
+So the window **does not slide**. When five points are consumed the whole route
+is requested again from wherever the body is, and the funnel runs afresh.
+
+## 8. What this leaves (Q349, Q344)
+
+- The third callback `0x004D15E0`, whose return scales the seek (5.4).
+- The exact tangent-sign rule of the slide, the integrator's wall clamp, and
+  `0x004D20F0`'s tail.
+- `grtc:` (`0x004CF510`-`0x004CFC4A`), which calls `Route2path` and the
+  dispatcher itself (Q344).
+- The `atan2` orientation (irrelevant to timing: only angular distances are
+  compared) and the `entity+0x12` turn-rate hook.
 
 ## Confidence
 
@@ -136,8 +267,15 @@ prediction, the three probes and their tiles, the one-radius margin per axis
 with its factor of two, the corner case and its force; that steering positions
 are 16.16 tiles; the slide's threshold, projection and tangential push.
 
+**CONFIRMED (binary, 2026-09-17):** `Follow_Path` as stepped in section 5: the
+progress formula and its units, the history's writer and both thresholds, the
+two arms and their advance and arrival rules, the turn-before-move gate and
+the turn rate's source and loader, both seek laws; the stuck block of section
+6 including its raw-unit nudge; the route request of section 7 end to end.
+
 **STRONGLY INFERRED:** that `0x004D2070` and `0x004D20F0` are ray–circle
 intersections (the arithmetic is the quadratic's discriminant and root in
-16.16; the tail of the second is unread).
+16.16; the tail of the second is unread); that the integrator's second
+history push marks a refused step.
 
-**UNKNOWN:** everything in §5.
+**UNKNOWN:** everything in section 8, above all what `0x004D15E0` returns.
