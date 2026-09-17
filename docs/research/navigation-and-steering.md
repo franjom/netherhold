@@ -9,11 +9,10 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: **Q5** (answered at the architectural level here), **Q342** and
-**Q343** (answered). The mesh and the search are Q341, answered in
-[navigation-mesh-and-search.md](navigation-mesh-and-search.md); the
-triangulation's internals are Q347, answered there too; `grtc:` is Q344,
-read but not built.
+Questions: **Q5** (answered at the architectural level here), **Q342**,
+**Q343** and **Q344** (answered, built). The mesh and the search are Q341 and
+the triangulation Q347, both answered in
+[navigation-mesh-and-search.md](navigation-mesh-and-search.md).
 
 **Both halves are built as unwired libraries** (ADR-0157 phases 1 and 2): the
 router in `DK2.Pathfinding` (`navigation-mesh-and-search.md`), and the four
@@ -25,19 +24,12 @@ behaviours, the route window, the turn and the integrator in
 
 ## 1. First, a provenance correction
 
-Six documents in this repository say Flame "names a 36-byte `Follow_Path`
-struct". That attribution is wrong, and it has quietly made the name look
-riskier to use than it is.
-
-`Follow_Path` is **DKII.EXE's own class name**, recoverable from the shipped
-executable with no third-party artefact involved. Its MSVC type descriptor sits
-at `0x006A15D8`, its complete object locator at `0x0067DBC8`, and its vtable at
-`0x0066DB74`. The constructor additionally copies the lower-case literal
-`follow_path` into the object (§3).
-
-Flame knew the name because the binary contains it. So does anyone who opens the
-binary. ADR-0080's rule is unaffected in substance — it is about Flame's
-identifiers — but this particular name never needed it.
+Six documents here said Flame "names a 36-byte `Follow_Path` struct". Wrong:
+`Follow_Path` is **DKII.EXE's own class name** — MSVC type descriptor at
+`0x006A15D8`, complete object locator at `0x0067DBC8`, vtable at `0x0066DB74`,
+and the constructor copies the lower-case literal `follow_path` into the object
+(§3). Flame knew the name because the binary contains it. ADR-0080's rule is
+unaffected in substance, but this name never needed it.
 
 ## 2. DK2 does not route on a grid
 
@@ -53,7 +45,7 @@ mesh**, not a tile search:
 | `Fwd route`, `Bak route`, `Bak reverse choice` | the route search runs in two directions |
 | `EndGates`, `gate`, `way=%d`, `route=%d` | a route is a sequence of gates, not tiles |
 | `Route2path`, `rtp:Exceeded max path length` | a second stage turns a route into a path |
-| `grtc:Exceeded max path length` | a third, separately named, length-limited stage |
+| `grtc:Exceeded max path length` | the gate re-walk's 256-record diagnostic (§2.1) |
 | `NavigationSystem:`, `NavigationSystemMap:` | the module's own two-layer naming |
 
 The shape is the standard one for mesh navigation: search the mesh for a
@@ -78,30 +70,44 @@ length. **Nothing in it rounds to a tile**: no `0x1000` mask, no shift by 12.
 
 The steering body does not take that output raw. `0x004D5100` — called from
 `Follow_Path`'s own virtual, `0x004D3C40` — asks the dispatcher `0x004D0E10`
-for the gate branch with the literal **`0x2000`**. That branch runs the funnel,
-builds gate segments in `0x004CF490`, and `0x004D0240` picks one point on each
-segment at `fraction / 0x4000` (`IMUL` then `SAR 0xE`), so `0x2000` is **the
-midpoint of each gate**. Up to **five** points (`CMP CL,0x5`) are copied into
-`subpath_buffer` at `+0xB4`, scaled by `<< 8` and nothing else.
+for the gate branch with the literal **`0x2000`**. That branch runs the driver
+(mesh page §3.1); `0x004D0150` then funnels the kept route again in walking
+order and hands it to the **gate re-walk `0x004CF490`** (diagnostic prefix
+`grtc:`; Q344, read by two readers and built as `GateWalk`, 2026-09-17):
 
-When the funnel needs no turn, the path is the destination alone — one segment
-at whatever angle the destination lies. **That is the owner's straight 10-by-3
-walk (§3.1), predicted from the binary before it was watched.**
+- **Kept gates.** A gate is dropped only when all four sight-lines from the
+  last kept gate's endpoints (the start, before any is kept) to the next
+  gate's endpoints pass between its own — eight signed 64-bit cross products,
+  zero counting as between. The gates a straight route sees through all go.
+- **Selected endpoint.** The one nearer the funnel polyline's current point
+  (ties take the second); a nearer next point advances the cursor first.
+- **The cap** is a literal **`0x1000`** in `0x004D0150`, sixteen tiles in
+  router units; the mover's `0x2000` never reaches it. A kept gate within a
+  tile of the polyline is cut to fifteen tiles from its selected endpoint if
+  it is sixteen or longer (`0x004CFC50`). Otherwise the *line* through the two
+  polyline points around the cursor is intersected with it (`0x004CFFD0`: Q14
+  parameter within ±1, then the gate's box; the crossing is written before
+  that test) and `0x004CFDA0` leaves a gate whose ends are both within eight
+  tiles of the crossing, collapses toward an end that is, or moves both ends
+  to eight tiles from it. No gate under sixteen tiles ever moves; how often a
+  shipped map has a longer one is unmeasured.
+- **The point.** `0x004D0240` takes `fraction / 0x4000` of each kept gate
+  (`IMUL` then `SAR 0xE`) from the selected endpoint — `0x2000` is **the
+  midpoint** — then the destination. Up to **five** points (`CMP CL,0x5`) go
+  into `subpath_buffer` at `+0xB4`, scaled by `<< 8` and nothing else.
+
+The edge function `0x004CCD50` names the walker's **right-hand** endpoint
+first: the original's triangles are wound clockwise in the cross product's
+terms (the reset `0x004C8D10` stores `(3,1,0)` and `(1,3,2)` over corners
+`0..3`), ours the other way, so `GateWalk` takes `Funnel.Gate`'s right as A.
+
+When no gate is kept the path is the destination alone — one segment at
+whatever angle the destination lies. **That is the owner's straight 10-by-3
+walk (§3.1), predicted from the binary before it was watched.** Around the end
+of a wall the mover aims at the middle of the gap's gates, not at its corners.
 
 `way=%d` prints the waypoint count and `route=%d` the triangle count; `EndGates`
 is a timing label, not a data dump.
-
-**The funnel is not the last stage (Q344; codex, 2026-09-17).** `Route2path`
-is called by `0x004CF490`, which then re-walks the triangle route's shared
-gates against the funnel polyline: it keeps the gates the polyline turns
-through (four cross-product tests), orders each kept gate's endpoints by
-proximity to the polyline, and contracts endpoints inward around the
-polyline's crossing (`0x004CFC50` one-sided, `0x004CFDA0` both), diagnosing
-`grtc:Exceeded max path length` past 256 records. `0x004D0240` then takes its
-fraction across the **adjusted** gate. So the mover aims at points across
-contracted gates, not at funnel corners. Phase 1's `Funnel` emits corners and
-is incomplete until this stage is specified: the contraction amount is the
-eighth argument, passed down from the mover's request and not yet traced.
 
 ## 3. Movement is a steering system with named behaviours
 
@@ -357,16 +363,16 @@ game rather than assumed: eight-connectivity and corner-cutting (Q28,
 CONFIRMED), no terrain weighting (Q30, CONFIRMED). Those remain true
 *observations* and any replacement must still satisfy them.
 
-What is now known to be wrong is the claim implied by the interface: that a tile
-route is the thing DK2 computes. **This is an architectural decision and it is
-the owner's**, so nothing has been changed. The options are recorded in
-`open-questions.md` under Q341.
+The claim implied by the interface — that a tile route is what DK2 computes —
+is wrong; the owner chose to rebuild (ADR-0157), and phase 3 retires it.
 
 ## 7. What this leaves
 
-- **Q344** `grtc:` — reported by the second reader as a clearance or contracting
-  transform applied to the gate segments between the funnel and the point
-  selection. Not verified here.
+- `0x004CFFD0` divides a 64-bit numerator by a 32-bit divisor, so near-parallel
+  lines could fault the original; whether a layout reaches that is UNKNOWN.
+  `GateWalk` reports no crossing there.
+- On the funnel's last point `0x004CF490` reads one point past it — the previous
+  route's leftovers. `GateWalk` uses a degenerate segment, which never crosses.
 
 ## Confidence
 
@@ -388,9 +394,6 @@ turn (§2.1, §3.1).
 search over a triangulated mesh, run from both ends with the shorter funnelled
 result kept (Q341, `navigation-mesh-and-search.md`).
 
-**HYPOTHESIS:** that `Fwd`/`Bak` mean a bidirectional search. They could equally
-name the two directions of travel along one route. Q341.
-
-**UNKNOWN:** how much `grtc:` contracts a gate, and whether any shipped gate
-is contracted at all (Q344); §2.1 has what has been read. Q341, Q347 and
-Q348 are answered in `navigation-mesh-and-search.md`.
+**CONFIRMED (binary):** the gate re-walk of §2.1 end to end — its eight cross
+products, selection, cap, adjusters and intersection — and that the cap is the
+wrapper's `0x1000`. UNKNOWN: whether a shipped map has a sixteen-tile gate.

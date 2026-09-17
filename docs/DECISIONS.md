@@ -3508,8 +3508,8 @@ reason: the rule is knowable now, the integration is not.
 `MeshRouter` and `Funnel`, tested and unwired · phase 2 landed 2026-09-17:
 `Follow_Path`, `Avoid_Walls`, `Repel_Obstacle`, `Separation`, the route window,
 the turn and `SteeringIntegrator` (combiner, Euler step, slide, wall clamp),
-tested and unwired in `DK2.Simulation.Steering`. Phase 3 waits on the funnel's
-gate re-walk (Q344).
+tested and unwired in `DK2.Simulation.Steering` · the gate re-walk `GateWalk`
+(Q344) landed the same day, so phase 3 waits on nothing.
 
 **Context.** ADR-0155 recorded that DK2 routes over a navigation mesh and moves
 by steering, and left the rebuild to the owner. Since then the owner has watched
@@ -3525,8 +3525,9 @@ integration (Q343). **The owner decided on 2026-09-16 to rebuild.**
    points with on-edge and interior splits; sides as constraints inserted by
    orientation-guided flips; same-byte coarsening), `MeshRouter` (min-heap of
    1024, key `minVertexDist² << (2·cost−2)`, no accumulated cost, run from both
-   ends, shorter funnelled route kept) and `Funnel` (Route2path; gate midpoints,
-   five at a time). Output is grid-free waypoints in 1/256-tile units.
+   ends, shorter funnelled route kept), `Funnel` (Route2path) and `GateWalk`
+   (the gate re-walk; midpoints of kept gates). Output is grid-free waypoints
+   in 1/256-tile units.
 2. **Steering library**, after `avoid_walls`, `repel_obstacle`, `follow_path`'s
    body and `grtc:` (Q344) are read: the steering body, four behaviours, the
    combiner and integrator already specified in `navigation-and-steering.md`.
@@ -3540,14 +3541,14 @@ integration (Q343). **The owner decided on 2026-09-16 to rebuild.**
   lists and ring scans (ADR-0058), never by path-distance-nearest. Phase 3 must
   move those callers onto that, or keep a labelled grid Dijkstra for them.
 - Deliberately omitted, because the shipped game never engages them and no
-  route changes: edge width classes and mover classes; region ids. Recorded on
-  `NavMesh` so nobody mistakes the omission for ignorance.
+  route changes: edge width classes and mover classes; region ids, which only
+  the request's reachability pre-check reads and a failed search stands in for.
+  Recorded on `NavMesh` so nobody mistakes the omission for ignorance.
 - Known residuals, each labelled in code: point location is a scan, not the
   original's walk; the coarsening order is inferred, so gate midpoints inside
   non-convex regions may sit on different diagonals than the original's;
-  the cost function's door arm awaits doors; the gate re-walk after the funnel
-  (Q344) is read but not built, so `Funnel` emits corners where the original
-  aims across contracted gates: it must be added before phase 3.
+  the cost function's door arm awaits doors; `GateWalk` drops kept gates past
+  256 where the original overruns its buffer.
 - Priority (4) applies with force: the router **must** be greedy and
   non-optimal in the original's way. A shortest-path router here is a fidelity
   bug, however much better it looks.

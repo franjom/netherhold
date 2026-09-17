@@ -64,10 +64,12 @@ public class MeshRouterTests
     }
 
     /// <summary>Around a wall one tile thick a taut string wraps both corners of its free end, so
-    /// the funnel turns twice — at the lower corner, then the upper — and the route never crosses
-    /// solid ground.</summary>
+    /// the funnel turns twice — at the lower corner, then the upper. The mover does not aim at
+    /// those corners: the re-walk keeps the two gates the sight-lines miss, the diagonal of the
+    /// region past the wall's end and the top edge of the gap, and aims at their midpoints, so
+    /// the route runs through the middle of the gap and never crosses solid ground.</summary>
     [Fact]
-    public void AroundAWallTheRouteTurnsAtBothCornersOfItsEnd()
+    public void AroundAWallTheRouteAimsAtTheMiddleOfTheGatesItTurnsThrough()
     {
         (MeshRouter router, NavMesh mesh) = Make(
             "##########",
@@ -81,7 +83,7 @@ public class MeshRouterTests
         NavPoint from = NavPoint.FromTileCentre(1, 5), to = NavPoint.FromTileCentre(1, 1);
 
         Assert.True(router.TryRoute(from, to, MoverProfile.Walker, path));
-        Assert.Equal([new NavPoint(5 * U, 4 * U), new NavPoint(5 * U, 3 * U), to], path);
+        Assert.Equal([new NavPoint(7 * U, 5 * U), new NavPoint(7 * U, 3 * U), to], path);
         AssertOnFloor(mesh, from, path);
     }
 

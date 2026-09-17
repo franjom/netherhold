@@ -29,15 +29,18 @@ public sealed class MeshRouter
 
     private readonly List<int> _corridorA = [];
     private readonly List<int> _corridorB = [];
+    private readonly List<int> _route = [];
     private readonly List<NavPoint> _pathA = [];
     private readonly List<NavPoint> _pathB = [];
+    private readonly GateRecord[] _records = new GateRecord[GateWalk.MaxRecords + 1];
 
     public MeshRouter(NavMesh mesh) => _mesh = mesh ?? throw new ArgumentNullException(nameof(mesh));
 
     /// <summary>The whole request: locate both ends, search from the destination toward the
     /// mover and from the mover toward the destination, funnel both, keep the shorter. Either
-    /// search failing fails the request, as the original's driver does. Waypoints are the turn
-    /// corners followed by the destination.</summary>
+    /// search failing fails the request, as the original's driver does. The kept corridor is then
+    /// funnelled again in walking order and re-walked by <see cref="GateWalk"/>: the waypoints are
+    /// the midpoint of each kept gate, then the destination.</summary>
     public bool TryRoute(NavPoint from, NavPoint to, MoverProfile mover, List<NavPoint> waypoints)
     {
         if (waypoints is null) throw new ArgumentNullException(nameof(waypoints));
@@ -57,17 +60,20 @@ public sealed class MeshRouter
         int lengthA = Funnel.Reduce(_mesh, from, to, _corridorA, _pathA);
         int lengthB = Funnel.Reduce(_mesh, to, from, _corridorB, _pathB);
 
+        List<int> route = _corridorA;
         if (lengthA > lengthB)
         {
-            // The backward path runs destination -> mover: its corners reversed, then the
-            // destination — `Bak reverse choice`.
-            for (int i = _pathB.Count - 2; i >= 0; i--) waypoints.Add(_pathB[i]);
-            waypoints.Add(to);
+            // The backward corridor runs destination -> mover; `Bak reverse choice` copies its
+            // triangles reversed over the forward one before the funnel runs again.
+            _route.Clear();
+            for (int i = _corridorB.Count - 1; i >= 0; i--) _route.Add(_corridorB[i]);
+            route = _route;
         }
-        else
-        {
-            waypoints.AddRange(_pathA);
-        }
+
+        _pathA.Clear();
+        Funnel.Reduce(_mesh, from, to, route, _pathA);
+        int count = GateWalk.Run(_mesh, from, to, route, _pathA, _records, GateWalk.Cap);
+        GateWalk.Select(_records, count, to, GateWalk.Midpoint, waypoints);
         return true;
     }
 

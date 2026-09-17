@@ -73,7 +73,10 @@ rectangles, which is the whole reason routes cross rooms in one straight line.
 
 **Reset** (`0x004C8D10`, whole-map builds only): four corner points and **two
 triangles** covering the map, every other slot marked dead with `+0xC = 0xFF`.
-Everything else is inserted incrementally.
+Everything else is inserted incrementally. The two are stored as `(3,1,0)` and
+`(1,3,2)` over corners `0..3`: **clockwise** in the cross product's terms, where
+our builder winds the other way. Only the edge function's endpoint order sees
+the difference, and `GateWalk` allows for it.
 
 **Decompose.** `0x004CE570` scans the rebuild rectangle for **maximal uniform
 rectangles** of one navigation byte: from a start tile it extends right while
@@ -148,10 +151,10 @@ routing depends on it.
 flood fill over non-solid triangles (bit 3 of `+0xC` clear) with a 200-slot
 ring queue, assigning ids and keeping 3-byte per-region records at `0x6E96C8`
 (a word count and a byte). `0x004CE410` gathers the ids bordering a rebuilt
-rectangle so the fill can be re-run locally. **Nothing outside the mesh builder
-reads either the ids or the records.** They are the triangulation's own
-incremental bookkeeping; the router never asks "is the goal reachable" before
-it searches.
+rectangle so the fill can be re-run locally. Outside the builder only the
+mover's gate branch reads them: `0x004C9400` compares the two endpoint
+triangles' ids before any search runs (§5). The search itself never consults
+them.
 
 ## 3. The search is greedy best-first
 
@@ -248,6 +251,11 @@ the class byte at `[0x006A11F4]`, and a dirty flag at `[0x006A11EC]` that the
 notifying nav-byte setter raises through `0x004CE770` — and if all match, skips
 both searches and re-runs only the funnel. `DOUBLE PATH` labels that path.
 
+The mover's gate branch (mode `0x2000`, `navigation-and-steering.md` §2.1)
+first asks `0x004C9400` whether the two triangles carry one region id and
+refuses the route (` retC`) if not — the only reader of region ids outside the
+builder. Our router has no region ids and relies on the search failing instead.
+
 ## 6. What this leaves
 
 - Bits 0–2 of `+0xD`, set on every new edge and read only by the builder.
@@ -278,8 +286,8 @@ stamping of `+0xC`; the merge, the dead markers and the free lists; that
 per-slot masks and that the search advances through them; that the class byte
 is `[0x006A11F0] − 1` with no writer of that byte found; the constraint bits
 `slot + 3` — set by the side-marker, cleared by the clone, refused by the flip;
-the flood fill, its queue and its records; that nothing outside the builder
-reads region ids or records.
+the flood fill, its queue and its records; that outside the builder only the
+gate branch's pre-check `0x004C9400` reads region ids (§5).
 
 **CONFIRMED (binary + repo):** categories 1 and 3 are water and lava — the two
 definition bits the request reads are the two our `CreatureFlags` already names.
