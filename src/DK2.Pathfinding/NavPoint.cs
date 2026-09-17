@@ -25,7 +25,7 @@ public readonly record struct MoverProfile(
     byte Owner = 0,
     bool RespectDoors = false,
     bool PassOwnLockedDoors = false,
-    bool IgnoreLockMismatch = false)
+    bool EntersPortalHole = false)
 {
     public static readonly MoverProfile Walker = new(false, false);
 }

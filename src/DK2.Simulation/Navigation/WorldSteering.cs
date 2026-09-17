@@ -14,9 +14,9 @@ namespace DK2.Simulation.Navigation;
 /// Q88), the mesh built from those bytes and rebuilt whenever one changes, and the four probes
 /// the behaviours call (docs/research/steering-behaviours.md §1). One instance serves one world for
 /// its whole life; nothing here is simulation state, so nothing here is hashed.</summary>
-/// <remarks>Not built: <c>Obstacle</c> objects, so <c>Repel_Obstacle</c> never fires; the
-/// remembered entity of <c>Separation</c>'s second term; doors in the navigation byte. Each is
-/// recorded on the method that would supply it.</remarks>
+/// <remarks>Not built: <c>Obstacle</c> objects other than the heart's, so <c>Repel_Obstacle</c>
+/// sees no furniture; the remembered entity of <c>Separation</c>'s second term. Each is recorded
+/// on the method that would supply it.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
 public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 {
@@ -26,6 +26,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private byte[] _scratch = [];
     private NavMesh? _mesh;
     private MeshRouter? _router;
+    private StructureBlocks? _structures;
     private readonly List<NavPoint> _waypoints = [];
 
     public WorldSteering(GameDatabase database, WorldState world)
@@ -49,12 +50,13 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         int count = _world.Width * _world.Height;
         if (_scratch.Length != count) _scratch = new byte[count];
         StructureBlocks structures = StructureBlocks.For(_world, _database);
+        _structures = structures;
         for (int y = 0; y < _world.Height; y++)
         {
             for (int x = 0; x < _world.Width; x++)
             {
                 int index = (y * _world.Width) + x;
-                _scratch[index] = ByteOf(_database.TerrainById(_world.Tile(x, y).TerrainId), structures.Blocks(index));
+                _scratch[index] = ByteOf(_database.TerrainById(_world.Tile(x, y).TerrainId), structures.IsPortalCentre(index));
             }
         }
 
@@ -74,10 +76,13 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         Rebuilds++;
     }
 
-    /// <summary>The navigation byte the original's cache holds (structure-blocks.md §5.4).</summary>
-    public static byte ByteOf(TerrainDef terrain, bool structure)
+    /// <summary>The navigation byte the original's cache holds (structure-blocks.md §5.4): solid,
+    /// water, lava or floor from the terrain, and 4 on a portal's centre. A heart's platform is
+    /// floor in the cache; what keeps creatures off it is not the router (Q352).</summary>
+    public static byte ByteOf(TerrainDef terrain, bool portalCentre)
     {
-        if (terrain.IsSolid || structure) return NavBytes.Solid;
+        if (terrain.IsSolid) return NavBytes.Solid;
+        if (portalCentre) return NavBytes.PortalHole;
         if (terrain.IsWater) return NavBytes.Water;
         if (terrain.IsLava) return NavBytes.Lava;
         return NavBytes.Floor;
@@ -92,13 +97,13 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// <summary>The cost function's six globals for one mover (navigation-mesh-and-search.md §4):
     /// the owner, the two definition flags that unlock water and lava, and the three door bits of
     /// the state's option word (<see cref="MoveOptions"/>: 7 respect doors, 1 pass own locked
-    /// doors, 2 ignore a lock-bit mismatch).</summary>
+    /// doors, 2 enter a portal's hole).</summary>
     public static MoverProfile ProfileOf(CreatureDef definition, byte owner, int options) =>
         new(definition.Flags.HasFlag(CreatureFlags.CanWalkOnWater), definition.Flags.HasFlag(CreatureFlags.CanWalkOnLava),
             owner,
             RespectDoors: (options & 0x80) != 0,
             PassOwnLockedDoors: (options & 0x02) != 0,
-            IgnoreLockMismatch: (options & 0x04) != 0);
+            EntersPortalHole: (options & 0x04) != 0);
 
     /// <summary>The body's position from the creature's, as the original does before every mover
     /// update (<c>0x004D59A0</c>): the entity's 1/4096 units shifted up four.</summary>
@@ -135,11 +140,29 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return true;
     }
 
-    /// <summary>No <c>Obstacle</c> objects exist in the simulation yet (structure-blocks.md §5.4), so
-    /// the gated enumerator yields nothing.</summary>
+    /// <summary>The heart's obstacle object, <c>Dungeon Heart Obstacle</c> (object 100: flags
+    /// <c>Obstacle</c> and <c>SolidObstacle</c>, width 3.0 tiles), standing on the heart's centre
+    /// tile with a radius of half its width — which is exactly the 3×3 platform the owner sees
+    /// creatures keep off (Q88, Q352) while the navigation cache reads floor there. That the room
+    /// spawns one such object at its centre, and that the probe's size is half the width, are
+    /// HYPOTHESES (Q355); furniture and other objects are not yet obstacles.</summary>
     public void CollectObstacles(Fixed16Vector centre, int range, List<SteeringObstacle> into)
     {
+        if (_structures is null || _structures.HeartCentres.Count == 0) return;
+        if (!_database.Objects.TryGetValue(DungeonHeartObstacleObjectId, out ObjectDef? obstacle)) return;
+
+        int size = (obstacle.Width.Raw << 4) >> 1;
+        foreach (int index in _structures.HeartCentres)
+        {
+            var pos = new Fixed16Vector(
+                CreatureState.CentreOf(index % _world.Width) << 4, CreatureState.CentreOf(index / _world.Width) << 4);
+            if ((pos - centre).Octile() > range + size) continue;
+            into.Add(new SteeringObstacle(pos, size, obstacle.Flags.HasFlag(ObjectFlags.SolidObstacle), false));
+        }
     }
+
+    /// <summary>OBJECTS record 100, the invisible object a heart keeps creatures off with.</summary>
+    public const byte DungeonHeartObstacleObjectId = 100;
 
     /// <summary>The crowd probe <c>0x004D15E0</c>: tiles from the floor of the square's low edge to
     /// the ceiling of its high edge, both inclusive, and every creature standing on one of them adds

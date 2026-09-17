@@ -237,7 +237,7 @@ neighbour. In order, with `n` the tile walked into and `c` the tile left:
 | `n` is not a door but `c` is | the same two tests on `c` |
 | `n` is category **3** and `c` is not, unless `[0x006EC9DC]` | 0 |
 | `n` is category **1** and `c` is not, unless `[0x006EC9E4]` | 0 |
-| bit 2 differs between `n` and `c`, unless `[0x006EC9D8]` | 0 |
+| bit 2 differs between `n` and `c`, unless `[0x006EC9D8]` (option bit 2) | 0 — on a plain tile bit 2 is a **portal's centre hole**: the captured cache holds 4 on exactly Level 7's two portal centres, so only a state passing option bit 2 (leaving, 0x6E) walks in |
 | otherwise | **`(n.nav & 3) + 1`**, so 1, 2, 3 or 4 |
 
 The requests (`0x004D0F60` for the mover, `0x004D0E60` and `0x004D1700` for
@@ -322,10 +322,22 @@ our router on the level's initial map:
 Of 5,077 probes with counts, **waypoint counts agree in 99.4 %** (29 off by
 one, 3 by two); corridor triangle counts agree in 15 % and are otherwise ours
 +1 to +3 (Q351). The rock and gold cases are tiles the keeper dug during the
-run — the replay used the initial map; the heart platform is Q352. The 968
-door cases were doors outside our navigation byte: with doors built
-(ADR-0158) and a keeper-owned mover respecting them, **all 968 reproduce**,
-and the walked-into argument order recovers four more routes. The position capture's steps per
+run — the replay used the initial map. The 968 door cases were doors outside
+our navigation byte: with doors built (ADR-0158) and a keeper-owned mover
+respecting them, **all 968 reproduce**, and the walked-into argument order
+recovers four more routes.
+
+**Second capture, on DK2's own bytes.** The probe then dumped the cache
+`[world+0x9F2]` itself (stride `+8`, base `+0x10`) every sample, and the owner
+played the level. Replaying 21,298 requests on the captured byte grid as it
+stood at each request's tick (the log has no ticks; its file size per sample
+gives them): **21,185 agree, 99.5 %**; waypoint counts match in 99.75 %. The
+cache answered Q352 outright — every one of a heart's 25 tiles is plain
+floor, and the only plain tiles carrying bit 2 are the two portal centres.
+The 113 left: 93 targets on a tile **corner** shared with a solid tile (an
+integer coordinate, where our locate picks the solid triangle and DK2's does
+not — its point location `0x004C98B0` is unread, Q354) and 20 requests
+crossing into a portal hole or lava that the requesting creature was allowed. The position capture's steps per
 tick match the loader rule: the imps' 1888 against a predicted 1884–1887.
 
 ## Confidence

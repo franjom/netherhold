@@ -32,6 +32,12 @@ public static class NavBytes
     /// <summary>Bit 2 of a door's byte: its lock mode is not zero (`0x004A66F0`).</summary>
     public const byte DoorLocked = 4;
 
+    /// <summary>The same bit on a plain tile: a portal's centre hole. DK2's cache (captured on
+    /// Level 7, 2026-09-17) holds 4 on exactly the two portal centres and plain floor on every
+    /// heart tile; the cost function crosses a bit-2 boundary only for a mover whose state passed
+    /// option bit 2, which is how a leaving creature enters the hole.</summary>
+    public const byte PortalHole = 4;
+
     /// <summary>Bit 1 of a door's byte: the tile's own flag bit 0, the one the task pool reads
     /// as "tagged" (`0x00450FC0`); a foreign door carrying it stops every mover.</summary>
     public const byte DoorTagged = 2;

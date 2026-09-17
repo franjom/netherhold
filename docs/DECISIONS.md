@@ -1453,7 +1453,7 @@ Legal basis: copyright protects expression, not names, titles or short phrases, 
 - Ours, flagged: a capped creature keeps the job for up to one five-second gate instead of being ejected by a state handler, because we have one working state where DK2 has six; the gold comes out of the keeper's tiles rather than the tile underfoot; no floating "−20", no message `0x37`, no combat-pit fallback for a creature that has outgrown the training room. Q79's factor of four rests on `tile-work.md`'s per-tick accrual rather than a caller read — the probe: find what iterates the imp task table at `0x006E4198`.
 
 ## ADR-0084 — Portal disposal is for non-Imps; Imp disposal is through the Heart
-**Date:** 2026-09-07 · **Status:** accepted · amended 2026-09-13; closes Q88, opens Q209; confirms Q137 · Research: `docs/research/structure-blocks.md`
+**Date:** 2026-09-07 · **Status:** accepted · amended 2026-09-13; closes Q88, opens Q209; confirms Q137 · amended 2026-09-17: the router follows DK2's captured cache (heart floor, portal centre byte 4 for option bit 2), the grid and the Hand keep the blocks (Q352) · Research: `docs/research/structure-blocks.md`
 
 **Context.** Q88 asked whether a portal's centre tile is walkable. Owner: *"no it is not walkable, dungeon heart's center is also not walkable. portal's center is reserved for creature's 'arriving' animation and for hand of evil to throw creatures in, removing them from dungeon"* — the third clause a keeper power this project did not have.
 

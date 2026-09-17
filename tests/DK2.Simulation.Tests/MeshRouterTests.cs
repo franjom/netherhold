@@ -50,7 +50,7 @@ public class MeshRouterTests
     {
         byte door = NavBytes.Door((byte)doorOwner, locked, tagged);
         var mover = new MoverProfile(true, false, (byte)moverOwner,
-            RespectDoors: (options & 0x80) != 0, PassOwnLockedDoors: (options & 0x02) != 0, IgnoreLockMismatch: (options & 0x04) != 0);
+            RespectDoors: (options & 0x80) != 0, PassOwnLockedDoors: (options & 0x02) != 0, EntersPortalHole: (options & 0x04) != 0);
 
         int entering = MeshRouter.TransitionCost(door, NavBytes.Floor, mover);
         Assert.Equal(passes, entering != 0);
@@ -62,10 +62,10 @@ public class MeshRouterTests
     }
 
     [Fact]
-    public void TheLockBitMismatchBetweenPlainTilesBlocksUnlessTheOptionIgnoresIt()
+    public void APortalHoleIsEnteredOnlyWithOptionBitTwo()
     {
-        Assert.Equal(0, MeshRouter.TransitionCost(NavBytes.Floor | NavBytes.DoorLocked, NavBytes.Floor, MoverProfile.Walker));
-        Assert.Equal(1, MeshRouter.TransitionCost(NavBytes.Floor | NavBytes.DoorLocked, NavBytes.Floor, new MoverProfile(false, false, IgnoreLockMismatch: true)));
+        Assert.Equal(0, MeshRouter.TransitionCost(NavBytes.PortalHole, NavBytes.Floor, MoverProfile.Walker));
+        Assert.Equal(1, MeshRouter.TransitionCost(NavBytes.PortalHole, NavBytes.Floor, new MoverProfile(false, false, EntersPortalHole: true)));
     }
 
     [Fact]

@@ -421,4 +421,76 @@ public sealed class StructureBlocksTests
         // nothing at all.
         Assert.True(PrisonRules.IsImprisoned(captive));
     }
+
+    // ---- the router's view (DK2's cache, captured 2026-09-17) ---------------
+
+    /// <summary>DK2's navigation cache holds byte 4 on a portal's centre and the cost function
+    /// crosses that boundary only for a mover whose state passed option bit 2: a creature
+    /// leaving the dungeon walks in, anyone else routes round (navigation-mesh-and-search.md §4).</summary>
+    [Fact]
+    public void TheRouterEntersAPortalsHoleOnlyForAMoverWhoseWordHasBitTwo()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Claim(world, 3, 3, 9, 9);
+        Paint(db, world, RoomTypeId.Portal, 5, 5, 7, 7);
+        var steering = new Navigation.WorldSteering(db, world);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 6));
+        Assert.False(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Loose));
+        Assert.True(steering.TryRoute(goblin, new TilePos(9, 6), Navigation.MoveOptions.Loose));
+        Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Leaving));
+    }
+
+    /// <summary>The same cache holds plain floor on every one of a heart's 25 tiles, so the
+    /// router walks its platform; the path grid still blocks it for work selection and the Hand
+    /// (Q352: what keeps creatures off the platform in play is not the router).</summary>
+    [Fact]
+    public void TheRouterWalksTheHeartPlatformThatThePathGridStillBlocks()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Claim(world, 3, 3, 9, 9);
+        Paint(db, world, RoomTypeId.DungeonHeart, 4, 4, 8, 8);
+
+        Assert.False(Grid(db, world).IsWalkable(6, 6));
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 6));
+        Assert.True(new Navigation.WorldSteering(db, world).TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Loose));
+    }
+
+    /// <summary>What keeps creatures off the platform is the heart's obstacle object (record 100,
+    /// width 3.0 tiles) fed to <c>Repel_Obstacle</c>: one solid obstacle on the centre tile with a
+    /// radius of a tile and a half. A goblin walked straight at it is deflected and never stands
+    /// on the centre tile. It does cut inside the radius once the stuck detector fires (Q355):
+    /// whether DK2's does is the open half, the owner having seen creatures keep off a circle
+    /// about a tile wide (2026-09-17).</summary>
+    [Fact]
+    public void TheHeartIsAnObstacleOfATileAndAHalfThatDeflectsAWalker()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Claim(world, 2, 3, 10, 9);
+        Paint(db, world, RoomTypeId.DungeonHeart, 4, 4, 8, 8);
+        var steering = new Navigation.WorldSteering(db, world);
+        steering.Refresh();
+
+        var obstacles = new List<DK2.Simulation.Steering.SteeringObstacle>();
+        steering.CollectObstacles(new DK2.Simulation.Steering.Fixed16Vector(6 << 16, 6 << 16), 1 << 16, obstacles);
+        DK2.Simulation.Steering.SteeringObstacle heart = Assert.Single(obstacles);
+        Assert.Equal(3 << 15, heart.Size);
+        Assert.True(heart.Solid);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 6));
+        var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
+        Assert.True(steering.TryRoute(goblin, new TilePos(10, 6), Navigation.MoveOptions.Loose));
+        bool deflected = false;
+        for (int tick = 0; tick < 400; tick++)
+        {
+            sim.Tick(InputFrame.Empty);
+            if (goblin.Body.SolidContacts.Count > 0 && goblin.Body.Vel.Y != 0) deflected = true;
+            Assert.NotEqual(new TilePos(6, 6), goblin.Tile);
+        }
+        Assert.True(deflected);
+        Assert.Equal(new TilePos(10, 6), goblin.Tile);
+    }
 }

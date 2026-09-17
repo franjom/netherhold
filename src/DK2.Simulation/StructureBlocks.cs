@@ -7,32 +7,45 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>The tiles a room's own structure stands on, which nothing may walk over.</summary>
+/// <summary>The tiles a room's own structure stands on, which the path grid and the Hand treat as
+/// unwalkable. The router does not: DK2's captured navigation cache holds floor on a heart and
+/// byte 4 on a portal's centre (<see cref="IsPortalCentre"/>, Q352).</summary>
 /// <remarks>
-/// <para>CONFIRMED by the owner (2026-09-07, Q88): a portal's centre tile is not walkable and nor is
-/// a dungeon heart's — the portal's centre is reserved for the arriving animation and for the Hand of Evil to throw creatures out of the dungeon (<see cref="HandRules"/>).</para>
+/// <para>CONFIRMED by the owner (Q88): a portal's centre and a heart's centre are not walked on;
+/// the portal's is reserved for the arriving animation and for the Hand (<see cref="HandRules"/>).</para>
 /// <para>Two shapes. A portal blocks its single centre tile, the one <see cref="PortalRules"/>
 /// already spawns a new creature on (ADR-0042). A heart blocks its centre 3x3: a keeper with no
 /// treasury tops out at 16000 gold against a <c>MaxGoldPerDungeonHeartTile</c> of 1000, so 16 of the
-/// heart's 25 tiles store gold and the other 9 are structure (Q52), and
-/// <see cref="RoomInstance.IsCentrePlatform"/> is the same test the gold rules use, so the two cannot drift apart.</para>
-/// <para>The original's mechanism is NOT this and is UNREAD (Q209): DK2 blocks these tiles with
-/// objects, the object flags are mapped, and the routine that turns an object into an impassable
-/// tile has not been found (structure-blocks.md §5). When it is, delete this type and teach the path grid about objects rather than rooms.</para></remarks>
+/// heart's 25 tiles store gold and the other 9 are structure (Q52; <see cref="RoomInstance.IsCentrePlatform"/>).</para>
+/// <para>The original keeps creatures off with objects carrying the <c>Obstacle</c> flags, fed to
+/// <c>Repel_Obstacle</c> (<see cref="Navigation.WorldSteering.CollectObstacles"/>); this block is the grid's and the Hand's (structure-blocks.md §5).</para></remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/structure-blocks.md")]
 public sealed class StructureBlocks
 {
-    private static readonly StructureBlocks Empty = new(new HashSet<int>());
+    private static readonly StructureBlocks Empty = new(new HashSet<int>(), new HashSet<int>());
 
     private readonly HashSet<int> _blocked;
+    private readonly HashSet<int> _portalCentres;
 
-    private StructureBlocks(HashSet<int> blocked) => _blocked = blocked;
+    private StructureBlocks(HashSet<int> blocked, HashSet<int> portalCentres)
+    {
+        _blocked = blocked;
+        _portalCentres = portalCentres;
+    }
+
+    /// <summary>The centre tile of every heart with a platform: where its obstacle object stands
+    /// (<see cref="Navigation.WorldSteering.CollectObstacles"/>).</summary>
+    public IReadOnlyList<int> HeartCentres { get; private init; } = [];
 
     /// <summary>How many tiles are blocked. Zero on a map with no portal or heart.</summary>
     public int Count => _blocked.Count;
 
     /// <summary>Whether a room's structure stands on this tile index.</summary>
     public bool Blocks(int tileIndex) => _blocked.Contains(tileIndex);
+
+    /// <summary>Whether this tile is a portal's centre hole — byte 4 in DK2's navigation cache,
+    /// where a heart's platform is plain floor (<see cref="Navigation.WorldSteering.ByteOf"/>).</summary>
+    public bool IsPortalCentre(int tileIndex) => _portalCentres.Contains(tileIndex);
 
     /// <summary>Works out which tiles a portal's or a heart's structure occupies. Scans for the two
     /// room terrains first and returns the shared empty instance when there are none — the common
@@ -67,6 +80,8 @@ public sealed class StructureBlocks
         if (seeds is null) return Empty;
 
         var blocked = new HashSet<int>();
+        var portalCentres = new HashSet<int>();
+        var heartCentres = new List<int>();
         var seen = new HashSet<int>();
 
         foreach (int seed in seeds)
@@ -81,13 +96,13 @@ public sealed class StructureBlocks
             }
 
             foreach (int index in room.TileIndices) seen.Add(index);
-            Add(world, room, blocked);
+            Add(world, room, blocked, portalCentres, heartCentres);
         }
 
-        return blocked.Count == 0 ? Empty : new StructureBlocks(blocked);
+        return blocked.Count == 0 ? Empty : new StructureBlocks(blocked, portalCentres) { HeartCentres = heartCentres };
     }
 
-    private static void Add(WorldState world, RoomInstance room, HashSet<int> blocked)
+    private static void Add(WorldState world, RoomInstance room, HashSet<int> blocked, HashSet<int> portalCentres, List<int> heartCentres)
     {
         switch (room.Definition.TypeId)
         {
@@ -98,19 +113,26 @@ public sealed class StructureBlocks
                 // smaller than 3x3 does not exist in DK2, and blocking the only tile of a 1x1 test
                 // portal would wall off the thing a deserter is walking to.
                 if (room.Width >= 3 && room.Height >= 3)
-                    blocked.Add(PortalRules.EntranceTileIndex(world, room));
+                {
+                    int centre = PortalRules.EntranceTileIndex(world, room);
+                    blocked.Add(centre);
+                    portalCentres.Add(centre);
+                }
                 break;
 
             case RoomTypeId.DungeonHeart:
                 // The middle nine, the raised platform Q52's 16000 pinned. IsCentrePlatform answers
                 // false for a room narrower than 3, so a half-destroyed heart blocks nothing and
                 // does not trap the creatures standing in it.
+                bool platform = false;
                 foreach (int index in room.TileIndices)
                 {
                     int x = index % world.Width;
                     int y = index / world.Width;
-                    if (room.IsCentrePlatform(x, y)) blocked.Add(index);
+                    if (room.IsCentrePlatform(x, y)) { blocked.Add(index); platform = true; }
                 }
+                if (platform)
+                    heartCentres.Add((((room.MinY + room.MaxY) / 2) * world.Width) + ((room.MinX + room.MaxX) / 2));
                 break;
         }
     }

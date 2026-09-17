@@ -216,6 +216,26 @@ internal static class Dk2TerrainFixture
         Bed(GoblinBedObjectId, "Goblin Creature Bed"),
         Bed(VampireBedObjectId, "Vampire Creature Bed"),
 
+        // The heart's invisible obstacle, transcribed from the shipped record: width 3.0 tiles,
+        // Obstacle and SolidObstacle (structure-blocks.md §6, Q355).
+        new ObjectDef
+        {
+            Name = "Dungeon Heart Obstacle",
+            ObjectId = Navigation.WorldSteering.DungeonHeartObstacleObjectId,
+            Flags = ObjectFlags.Obstacle | ObjectFlags.BoulderCanRollThrough | ObjectFlags.FirstPersonObstacle | ObjectFlags.SolidObstacle,
+            Hp = 1000,
+            ManaValue = 0,
+            RoomCapacity = 0,
+            StartState = 0,
+            PickUpPriority = 0,
+            Width = new Fp32(12288),
+            Height = new Fp32(256),
+            Mass = new Fp32(8192),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        },
+
         // The Library's two, which are what an imp puts away (ADR-0065). Their
         // ids are the shipped Rooms.kwd ObjectIds for room 6; the fields below
         // are NOT transcribed and nothing reads them, because kind 8 asks the

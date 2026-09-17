@@ -143,7 +143,7 @@ public sealed class MeshRouter
         int tc = NavBytes.Category(to), fc = NavBytes.Category(from);
         if (tc == 3 && fc != 3 && !mover.CanWalkOnLava) return 0;
         if (tc == 1 && fc != 1 && !mover.CanWalkOnWater) return 0;
-        if (!mover.IgnoreLockMismatch && ((to ^ from) & NavBytes.DoorLocked) != 0) return 0;
+        if (!mover.EntersPortalHole && ((to ^ from) & NavBytes.PortalHole) != 0) return 0;
         return cost;
     }
 

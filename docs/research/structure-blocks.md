@@ -184,6 +184,20 @@ tile path grid would merge two distinct DK2 behaviours.
 `PortalRules.IsHoleTile` and one branch in `HandSystem.Drop` (ADR-0084). The
 missing Heart disposal exception and portal's missing Imp refusal are known gaps.
 
+**The router does not use the block** (2026-09-17). DK2's own navigation
+cache, captured from a running Level 7, holds plain floor on every one of a
+heart's 25 tiles and byte 4 on a portal's centre, and the cost function
+crosses a bit-2 boundary only for a state that passed option bit 2 (§5.4,
+navigation-mesh-and-search.md §4). `WorldSteering.ByteOf` follows the cache:
+the router walks the heart's platform and enters the hole only for a leaving
+creature, while the path grid and the Hand keep the owner's blocks. What keeps
+creatures off the platform in play is the heart's obstacle object — record 100,
+`Dungeon Heart Obstacle`, `Obstacle | SolidObstacle`, width 3.0 tiles, so a
+slide contact of radius 1.5 through `Repel_Obstacle` — built as one obstacle
+on the centre tile (`WorldSteering.CollectObstacles`; placement and count are
+HYPOTHESES, Q355). The owner's screenshot of the same day marks the circle
+creatures keep off at about a tile around the centre.
+
 The mask costs one byte compare per tile plus a flood fill over portal and heart
 tiles only. `CreatureMovementSystem` builds a grid per creature per tick, so it
 computes the mask once for the tick and passes it in.
