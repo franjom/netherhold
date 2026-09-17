@@ -196,6 +196,11 @@ public sealed class CreatureState
     /// face its waypoint before it moves (steering-behaviours.md §5.3).</summary>
     public int Heading;
 
+    /// <summary>The option word of this creature's last route request
+    /// (<see cref="Navigation.MoveOptions"/>): its door bits stay with the creature, as
+    /// <c>creature+0x3E6</c> bits 17–19 do, and drive every later re-request and wall probe.</summary>
+    public int RouteOptions;
+
     /// <summary>Gold in this creature's hands: mined into its own hands up to
     /// <see cref="Data.Model.CreatureDef.MaxGoldHeld"/>, carried to a place its
     /// keeper can keep gold, put down there (Q31, CONFIRMED by the owner).
@@ -533,6 +538,7 @@ public sealed class CreatureState
         hash.Add(PosX);
         hash.Add(PosY);
         hash.Add(Heading);
+        hash.Add(RouteOptions);
         Body.HashInto(ref hash);
         hash.Add(GoldHeld);
         hash.Add(Health);

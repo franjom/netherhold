@@ -412,6 +412,16 @@ public sealed class DoorState
     public byte PlayerId { get; init; }
     public byte Flags { get; init; }
     public bool UnderConstruction { get; init; }
+
+    /// <summary>DK2's <c>+0x111</c>: 0 opens for every allied creature, 1 for none of the
+    /// workers, 2 for workers only, 3 for nobody. The loader seeds 3 from authored flag bit 0
+    /// (doors-and-traps.md); the lock transition <c>0x004A6800</c> is not built.</summary>
+    public byte LockMode { get; init; }
+
+    /// <summary>DK2's <c>+0x10D</c>, recomputed every tick by <see cref="Systems.DoorSystem"/>:
+    /// while open the tile's navigation byte is plain floor for everyone.</summary>
+    public bool Open { get; set; }
+
     /// <summary>How long <see cref="Unknown_0011"/> is. The snapshot writes those bytes
     /// without a length and reads back exactly this many, so a door carrying any other
     /// number would desync the stream and silently corrupt everything after it.</summary>
@@ -441,6 +451,8 @@ public sealed class DoorState
         hash.Add(PlayerId);
         hash.Add(Flags);
         hash.Add(UnderConstruction);
+        hash.Add(LockMode);
+        hash.Add(Open);
         foreach (byte value in Unknown_0011.Span) hash.Add(value);
     }
 }

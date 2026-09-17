@@ -52,8 +52,8 @@ public sealed class MeshRouter
 
         // Forward: seeded at the destination, drawn toward the mover, so the predecessor chain
         // already reads mover -> destination.
-        if (!TrySearch(toTri, fromTri, from, mover, _corridorA)) return false;
-        if (!TrySearch(fromTri, toTri, to, mover, _corridorB)) return false;
+        if (!TrySearch(toTri, fromTri, from, mover, _corridorA, seededAtDestination: true)) return false;
+        if (!TrySearch(fromTri, toTri, to, mover, _corridorB, seededAtDestination: false)) return false;
 
         _pathA.Clear();
         _pathB.Clear();
@@ -80,7 +80,7 @@ public sealed class MeshRouter
     /// <summary>One direction of the search (`0x004CD000`). The corridor comes out ordered from
     /// <paramref name="target"/> back to <paramref name="seed"/> by following predecessors, which
     /// is the walking order when the seed is the destination.</summary>
-    public bool TrySearch(int seed, int target, NavPoint goal, MoverProfile mover, List<int> corridor)
+    public bool TrySearch(int seed, int target, NavPoint goal, MoverProfile mover, List<int> corridor, bool seededAtDestination = true)
     {
         corridor.Clear();
         EnsureScratch();
@@ -107,8 +107,8 @@ public sealed class MeshRouter
                 second = Pop();
             }
 
-            if (!Expand(first, gx, gy, mover)) return false;
-            if (second >= 0 && !Expand(second, gx, gy, mover)) return false;
+            if (!Expand(first, gx, gy, mover, seededAtDestination)) return false;
+            if (second >= 0 && !Expand(second, gx, gy, mover, seededAtDestination)) return false;
         }
 
         if (_heapCount == 0 || _heap[1] != target) return false;
@@ -121,18 +121,41 @@ public sealed class MeshRouter
         return true;
     }
 
-    /// <summary>The original's transition cost (`0x004C8BD0`) on two navigation bytes, for the
-    /// arms that exist without doors: solid is impassable; water and lava may only be entered by a
-    /// mover with the flag; otherwise one plus the category. Entering is judged from the
-    /// expansion's side, so the two search directions do not agree — faithfully.</summary>
-    public static int TransitionCost(byte next, byte current, MoverProfile mover)
+    /// <summary>The original's cost function (`0x004C8BD0`, navigation-mesh-and-search.md §4) on
+    /// the byte of the tile walked into and the tile left. Zero is impassable; otherwise one plus
+    /// the entered tile's category, which the search shifts its key by. A door tile carries its
+    /// owner in the high nibble, bit 2 when locked and bit 1 from the tile's tag bit, and the
+    /// mover's option bits decide which doors stop it (<see cref="DoorPassable"/>).</summary>
+    public static int TransitionCost(byte to, byte from, MoverProfile mover)
     {
-        if (NavBytes.IsSolid(next)) return 0;
-        int nc = NavBytes.Category(next), cc = NavBytes.Category(current);
-        if (nc == 3 && cc != 3 && !mover.CanWalkOnLava) return 0;
-        if (nc == 1 && cc != 1 && !mover.CanWalkOnWater) return 0;
-        if (((next ^ current) & 4) != 0) return 0;
-        return nc + 1;
+        if (NavBytes.IsSolid(to)) return 0;
+        int cost = NavBytes.Category(to) + 1;
+        if (NavBytes.IsDoor(to))
+        {
+            bool foreign = NavBytes.Owner(to) != mover.Owner;
+            if (foreign && (to & NavBytes.DoorTagged) != 0) return 0;
+            return DoorPassable(to, foreign, mover) ? cost : 0;
+        }
+
+        if (NavBytes.IsDoor(from))
+            return DoorPassable(from, NavBytes.Owner(from) != mover.Owner, mover) ? cost : 0;
+
+        int tc = NavBytes.Category(to), fc = NavBytes.Category(from);
+        if (tc == 3 && fc != 3 && !mover.CanWalkOnLava) return 0;
+        if (tc == 1 && fc != 1 && !mover.CanWalkOnWater) return 0;
+        if (!mover.IgnoreLockMismatch && ((to ^ from) & NavBytes.DoorLocked) != 0) return 0;
+        return cost;
+    }
+
+    /// <summary>The door arms of `0x004C8BD0`: with the respect-doors option (bit 7 of the state's
+    /// word) every foreign door and every locked own door stops the mover; without it only a
+    /// locked own door does, and the pass-own-locked option (bit 1) lifts even that.</summary>
+    private static bool DoorPassable(byte door, bool foreign, MoverProfile mover)
+    {
+        bool locked = (door & NavBytes.DoorLocked) != 0;
+        if (mover.RespectDoors) return !foreign && !locked;
+        if (mover.PassOwnLockedDoors) return true;
+        return foreign || !locked;
     }
 
     private void EnsureScratch()
@@ -155,7 +178,7 @@ public sealed class MeshRouter
 
     /// <summary>Push each unvisited, passable neighbour keyed on its nearest vertex's squared
     /// distance to the goal, shifted by the transition cost; false only on heap overflow.</summary>
-    private bool Expand(int current, int gx, int gy, MoverProfile mover)
+    private bool Expand(int current, int gx, int gy, MoverProfile mover, bool seededAtDestination)
     {
         byte currentNav = _mesh.NavByte(current);
         for (int slot = 0; slot < 3; slot++)
@@ -163,7 +186,10 @@ public sealed class MeshRouter
             int n = _mesh.Neighbour(current, slot);
             if (n == NavMesh.NoNeighbour || _stamp[n] == _generation) continue;
 
-            int cost = TransitionCost(_mesh.NavByte(n), currentNav, mover);
+            // The tile walked into is judged: seeded at the destination the walk runs n -> current
+            // (`0x004CD000` pushes current second), from the mover it runs current -> n (`0x004CD490`).
+            byte nNav = _mesh.NavByte(n);
+            int cost = seededAtDestination ? TransitionCost(currentNav, nNav, mover) : TransitionCost(nNav, currentNav, mover);
             if (cost == 0) continue;
 
             int best = int.MaxValue;

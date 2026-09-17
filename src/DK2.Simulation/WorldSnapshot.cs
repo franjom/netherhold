@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 62;
+    private const int FormatVersion = 63;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -177,6 +177,7 @@ public static class WorldSnapshot
             w.Write(c.PosX);
             w.Write(c.PosY);
             w.Write(c.Heading);
+            w.Write(c.RouteOptions);
             w.Write(c.GoldHeld);
             w.Write(c.Health);
             w.Write(c.HungerTicks);
@@ -268,6 +269,8 @@ public static class WorldSnapshot
             w.Write(door.PlayerId);
             w.Write(door.Flags);
             w.Write(door.UnderConstruction);
+            w.Write(door.LockMode);
+            w.Write(door.Open);
             w.Write(door.Unknown_0011.ToArray());
         }
 
@@ -464,6 +467,7 @@ public static class WorldSnapshot
                 PosX = r.ReadInt32(),
                 PosY = r.ReadInt32(),
                 Heading = r.ReadInt32(),
+                RouteOptions = r.ReadInt32(),
                 GoldHeld = r.ReadInt32(),
                 Health = r.ReadInt32(),
                 HungerTicks = r.ReadInt32(),
@@ -577,6 +581,8 @@ public static class WorldSnapshot
                 PlayerId = r.ReadByte(),
                 Flags = r.ReadByte(),
                 UnderConstruction = r.ReadBoolean(),
+                LockMode = r.ReadByte(),
+                Open = r.ReadBoolean(),
                 Unknown_0011 = r.ReadBytes(DoorState.Unknown0011Length),
             });
         }

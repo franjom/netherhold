@@ -3552,3 +3552,41 @@ integration (Q343). **The owner decided on 2026-09-16 to rebuild.**
 - Priority (4) applies with force: the router **must** be greedy and
   non-optimal in the original's way. A shortest-path router here is a fidelity
   bug, however much better it looks.
+
+## ADR-0158 — Doors enter the navigation byte
+
+**Status.** Accepted 2026-09-17 · `HashVersion` 63 · Q353 · Research:
+`docs/research/doors-and-traps.md`, `navigation-mesh-and-search.md` §4 and §7.
+
+**Context.** The first oracle capture of routing (§7 of the mesh doc) put 968
+of DK2's route failures on hero doors that our navigation byte did not know:
+the largest measured divergence, and the cost function's door arms had been
+read but had nothing to read. The door update, the byte writer and the lock
+transition were then read: a completed door is **open** while an eligible
+allied creature stands on its tile or beside it, **lock mode** 3 keeps it
+shut, and the tile's byte is `owner << 4 | lock bit | tile-tag bit` while
+closed and plain floor while open. The cost function stops a mover at any
+foreign door and any locked own door when its state passed option bit 7, at a
+locked own door only otherwise, and never when option bit 1 is set.
+
+**Decision.**
+- `DoorState` gains `LockMode` (authored flag bit 0 → 3) and `Open`, recomputed
+  every tick by `DoorSystem` before movement; both are hashed and snapshotted.
+- `WorldSteering.Refresh` overlays each closed, completed door's byte
+  (`NavBytes.Door`) on the terrain byte; an open door leaves floor.
+- `MoverProfile` carries the owner and the option word's three door bits, set
+  once per request and kept on the creature (`RouteOptions`) as DK2 keeps them
+  at `creature+0x3E6`, so re-requests and wall probes judge doors alike.
+- `MeshRouter.TransitionCost(to, from, mover)` gains the door arms as read, and
+  the search passes the tile walked into as `to` in both directions, which the
+  original's two push orders do and the earlier code did not.
+- The alliance test is "same owner": alliances are unbuilt.
+
+**Consequences.**
+- Replaying Level 7's log, every one of the 968 door-blocked searches now
+  reproduces for a keeper-owned mover, and four more routes agree.
+- A creature attacking with option word 0 routes through a closed foreign door,
+  as DK2's router does; stopping it there is combat's job, not the router's.
+- Which tiles beside a door count, the creature flag the update skips, the
+  door type that always reads as locked and the lock transition's callers are
+  Q353; until the transition is built no door changes mode after loading.

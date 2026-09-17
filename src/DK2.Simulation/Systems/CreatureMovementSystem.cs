@@ -82,7 +82,7 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             TurnRate = SimulationTiming.LoaderRatePerTick(definition.TurnRate),
             SizeClass = definition.SizeClass,
             CrowdWord = body.Radius,
-            Profile = WorldSteering.ProfileOf(definition),
+            Profile = WorldSteering.ProfileOf(definition, creature.OwnerPlayerId, creature.RouteOptions),
         };
 
         Fixed16Vector avoidWalls = AvoidWallsRules.Compute(body, mover.Profile, steering);

@@ -65,23 +65,28 @@ condition 27's zero/nonzero partition.
 
 The ordinary update at `0x004A55F0` separates construction from completed-door
 behavior. While construction is nonzero it refreshes the construction
-presentation and bypasses the normal open/close work. A completed door derives
-its open state from nearby eligible creatures, its lock mode, and a lock-pick
-timer; a transition refreshes navigation and presentation.
+presentation and bypasses the normal open/close work. A completed door's
+**open** state (`+0x10D`, read 2026-09-17) is recomputed every update: lock
+mode 3 (`+0x111`) keeps it shut and a running lock-pick timer (`+0x115`) forces
+it open; otherwise it is open while an **eligible** creature stands on one of
+three tile chains (`0x004A5E9E`–`0x004A5F1B`) — the door's tile and, STRONGLY
+INFERRED, the two beside it along the passage. Eligible: allied with the owner
+(`0x004BF3D0`: the same player, else the owner's alliance byte at
+`player+0x1AE+id`), not the neutral player (`[0x006F2548]`), creature flag
+`+0x3E6` bit 21 clear (unread), and by lock mode — 0 any, 1 no worker
+(definition flag bit 0), 2 workers only.
 
-The lock transition at `0x004A6800` refuses to act while the door is under
-construction. Once constructed it changes the saved lock field and the
-corresponding navigation-grid bit. The navigation writer at `0x004A66F0`
-installs ownership and blocked/locked bits for completed doors, and removes the
-door contribution while it is under construction.
+**Navigation.** The writer `0x004A66F0` sets the tile's byte to
+`owner << 4 | 4 if lock mode ≠ 0 (or definition byte +0x8B bit 6) | 2 if the
+tile's flag bit 0` and, when told the door is open or under construction,
+writes plain floor instead; an open door is floor for everyone. The lock
+transition `0x004A6800` stores the mode and toggles bit 2 in place. How the
+cost function reads the byte is navigation-mesh-and-search.md §4.
 
-This establishes that DK2 doors open, close, lock and affect navigation. It
-does not yet establish every creature eligibility partition, the exact timing
-of each transition, or how the pathfinder consumes those grid bits. Those parts
-remain **UNKNOWN** and are not implemented. The consumer is now located, which
-is where that last part should be picked up: the bits feed a family of world
-tile predicates, and DK2 routes over a navigation mesh rather than a grid
-([navigation-and-steering.md](navigation-and-steering.md), ADR-0155).
+Built (ADR-0158, `DoorSystem`, `WorldSteering`, `MeshRouter.TransitionCost`):
+open state, lock mode from the authored flag, the byte and the cost arms.
+Unbuilt: the lock transition and who calls it, the lock-pick timer, alliances,
+definition byte `+0x8B` (Q353).
 
 ## Trap loader and fields
 

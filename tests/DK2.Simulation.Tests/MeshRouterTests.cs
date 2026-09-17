@@ -33,6 +33,41 @@ public class MeshRouterTests
         return (new MeshRouter(mesh), mesh);
     }
 
+    /// <summary>The door arms of the cost function (`0x004C8BD0`; navigation-mesh-and-search.md §4).
+    /// Owner 3's mover meets its own door and player 4's, closed, locked or tagged, with each of
+    /// the state option bits; the tile left is judged by the same rule.</summary>
+    [Theory]
+    [InlineData(3, false, false, 0x80, 3, true)]   // own unlocked door, respecting doors: pass
+    [InlineData(3, true, false, 0x80, 3, false)]   // own locked door: stop
+    [InlineData(4, false, false, 0x80, 3, false)]  // foreign door, respecting doors: stop
+    [InlineData(4, false, false, 0x00, 3, true)]   // foreign door, not respecting: pass
+    [InlineData(4, true, false, 0x00, 3, true)]    // foreign locked door, not respecting: pass
+    [InlineData(4, false, true, 0x00, 3, false)]   // foreign tagged door: stop whatever the word
+    [InlineData(3, true, false, 0x00, 3, false)]   // own locked door, not respecting: stop
+    [InlineData(3, true, false, 0x02, 3, true)]    // own locked door, pass-own-locked: pass
+    [InlineData(3, true, true, 0x02, 3, true)]     // own tagged locked door, pass-own-locked: pass
+    public void TheDoorArmsFollowTheOwnerTheLockAndTheOptionWord(int doorOwner, bool locked, bool tagged, int options, int moverOwner, bool passes)
+    {
+        byte door = NavBytes.Door((byte)doorOwner, locked, tagged);
+        var mover = new MoverProfile(true, false, (byte)moverOwner,
+            RespectDoors: (options & 0x80) != 0, PassOwnLockedDoors: (options & 0x02) != 0, IgnoreLockMismatch: (options & 0x04) != 0);
+
+        int entering = MeshRouter.TransitionCost(door, NavBytes.Floor, mover);
+        Assert.Equal(passes, entering != 0);
+        if (passes) Assert.Equal(NavBytes.Category(door) + 1, entering);
+
+        // Leaving a door tile applies the same arms without the tag test.
+        bool leaves = passes || (tagged && doorOwner != moverOwner && (options & 0x80) == 0 && !locked);
+        Assert.Equal(leaves, MeshRouter.TransitionCost(NavBytes.Floor, door, mover) != 0);
+    }
+
+    [Fact]
+    public void TheLockBitMismatchBetweenPlainTilesBlocksUnlessTheOptionIgnoresIt()
+    {
+        Assert.Equal(0, MeshRouter.TransitionCost(NavBytes.Floor | NavBytes.DoorLocked, NavBytes.Floor, MoverProfile.Walker));
+        Assert.Equal(1, MeshRouter.TransitionCost(NavBytes.Floor | NavBytes.DoorLocked, NavBytes.Floor, new MoverProfile(false, false, IgnoreLockMismatch: true)));
+    }
+
     [Fact]
     public void TenAcrossAndThreeUpOverOpenFloorIsOneStraightSegment()
     {

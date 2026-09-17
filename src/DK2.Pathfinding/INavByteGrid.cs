@@ -29,6 +29,21 @@ public static class NavBytes
     /// <summary>The marker the mesh writes into a dead triangle's byte.</summary>
     public const byte Dead = 0xFF;
 
+    /// <summary>Bit 2 of a door's byte: its lock mode is not zero (`0x004A66F0`).</summary>
+    public const byte DoorLocked = 4;
+
+    /// <summary>Bit 1 of a door's byte: the tile's own flag bit 0, the one the task pool reads
+    /// as "tagged" (`0x00450FC0`); a foreign door carrying it stops every mover.</summary>
+    public const byte DoorTagged = 2;
+
     public static bool IsSolid(byte nav) => (nav & Solid) != 0;
     public static int Category(byte nav) => nav & 3;
+
+    /// <summary>A closed, completed door: the owner's id in the high nibble, so never zero.</summary>
+    public static bool IsDoor(byte nav) => (nav & 0xF0) != 0;
+    public static int Owner(byte nav) => nav >> 4;
+
+    /// <summary>The byte `0x004A66F0` writes for a closed door; an open one writes plain floor.</summary>
+    public static byte Door(byte owner, bool locked, bool tagged) =>
+        (byte)(((owner & 0xF) << 4) | (locked ? DoorLocked : 0) | (tagged ? DoorTagged : 0));
 }

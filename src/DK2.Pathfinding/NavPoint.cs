@@ -19,7 +19,13 @@ public readonly record struct NavPoint(int X, int Y)
 /// <summary>What the original's request setup (`0x004D0E60`) reads off the mover before routing:
 /// the two definition flags that unlock water and lava (navigation-mesh-and-search.md §4). The
 /// door-related request options are absent until doors exist in the navigation bytes.</summary>
-public readonly record struct MoverProfile(bool CanWalkOnWater, bool CanWalkOnLava)
+public readonly record struct MoverProfile(
+    bool CanWalkOnWater,
+    bool CanWalkOnLava,
+    byte Owner = 0,
+    bool RespectDoors = false,
+    bool PassOwnLockedDoors = false,
+    bool IgnoreLockMismatch = false)
 {
     public static readonly MoverProfile Walker = new(false, false);
 }

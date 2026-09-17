@@ -29,6 +29,8 @@ public static class SimulationSystems
         new TempleSacrificeSystem(),
         // Graveyard decomposition tallies use the same persistent room identity.
         new GraveyardSystem(),
+        // Doors open and close before anyone routes across them this tick.
+        new DoorSystem(),
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
         new CreatureMovementSystem(),
         new FogOfWarSystem(),

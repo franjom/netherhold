@@ -219,9 +219,14 @@ direction, as an earlier draft of this page had it — so each lookup sees the
 width class of the edge being crossed (§2.2). In the shipped game the class
 byte is always 0 and the table always all ones.
 
-**The cost function `0x004C8BD0(n.nav, c.nav)`**, on the two tiles' navigation
-bytes (§5.4: `8` solid, `1` and `3` two terrain categories, owner in the high
-nibble and two state bits for doors). In order:
+**The cost function `0x004C8BD0(from, to)`**, on the navigation bytes of the
+tile left and the tile walked into (`8` solid, `1` and `3` two terrain
+categories; a closed door's byte is its owner in the high nibble, bit 2 when
+its lock mode is not zero and bit 1 from the tile's flag bit 0, the task pool's
+"tagged" bit — doors-and-traps.md). The two searches push the arguments in
+opposite orders (`0x004CD233`, `0x004CD6C8`) so that `to` is always the tile
+walked into: seeded at the destination, that is the popped triangle, not the
+neighbour. In order, with `n` the tile walked into and `c` the tile left:
 
 | arm | result |
 |---|---|
@@ -317,8 +322,10 @@ our router on the level's initial map:
 Of 5,077 probes with counts, **waypoint counts agree in 99.4 %** (29 off by
 one, 3 by two); corridor triangle counts agree in 15 % and are otherwise ours
 +1 to +3 (Q351). The rock and gold cases are tiles the keeper dug during the
-run — the replay used the initial map; the door cases are doors outside our
-navigation byte; the heart platform is Q352. The position capture's steps per
+run — the replay used the initial map; the heart platform is Q352. The 968
+door cases were doors outside our navigation byte: with doors built
+(ADR-0158) and a keeper-owned mover respecting them, **all 968 reproduce**,
+and the walked-into argument order recovers four more routes. The position capture's steps per
 tick match the loader rule: the imps' 1888 against a predicted 1884–1887.
 
 ## Confidence

@@ -223,6 +223,7 @@ public static class ThingProjection
             PlayerId = thing.PlayerId,
             Flags = thing.Flags,
             UnderConstruction = (thing.Flags & 0x02) != 0,
+            LockMode = (byte)((thing.Flags & 0x01) != 0 ? 3 : 0),
             Unknown_0011 = thing.Unknown_0011.ToArray(),
         });
 

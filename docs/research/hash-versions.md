@@ -32,7 +32,12 @@ beside it.
 
 ## Versions
 
-**62** — `0xE4BA93698075EF4F` (current). The tile path, its index and the
+**63** — `0xE53ED0F1EDDD2036` (current). A creature's route option word and a
+door's lock mode and open state entered (ADR-0158: doors in the navigation
+byte). The pinned world has no doors and requests no route, so this is
+composition only.
+
+**62** — `0xE4BA93698075EF4F`. The tile path, its index and the
 movement remainder left the creature; its heading and the steering body's
 surviving fields entered (ADR-0157 phase 3). The pinned world moves nobody, so
 this is composition only.

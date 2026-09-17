@@ -58,6 +58,14 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             }
         }
 
+        // A closed, completed door overwrites its tile (`0x004A66F0`); an open one leaves floor.
+        foreach (DoorState door in _world.Doors)
+        {
+            if (door.UnderConstruction || door.Open || !_world.Contains(door.X, door.Y)) continue;
+            _scratch[(door.Y * _world.Width) + door.X] =
+                NavBytes.Door(door.PlayerId, door.LockMode != 0, _world.Tile(door.X, door.Y).IsTaggedByAnyone);
+        }
+
         if (_mesh != null && _scratch.AsSpan().SequenceEqual(_bytes)) return;
         (_bytes, _scratch) = (_scratch, _bytes);
         if (_scratch.Length != count) _scratch = new byte[count];
@@ -81,10 +89,16 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return _bytes[(y * _world.Width) + x];
     }
 
-    /// <summary>The route request's mover options (navigation-mesh-and-search.md §4): the two
-    /// definition flags that unlock water and lava.</summary>
-    public static MoverProfile ProfileOf(CreatureDef definition) =>
-        new(definition.Flags.HasFlag(CreatureFlags.CanWalkOnWater), definition.Flags.HasFlag(CreatureFlags.CanWalkOnLava));
+    /// <summary>The cost function's six globals for one mover (navigation-mesh-and-search.md §4):
+    /// the owner, the two definition flags that unlock water and lava, and the three door bits of
+    /// the state's option word (<see cref="MoveOptions"/>: 7 respect doors, 1 pass own locked
+    /// doors, 2 ignore a lock-bit mismatch).</summary>
+    public static MoverProfile ProfileOf(CreatureDef definition, byte owner, int options) =>
+        new(definition.Flags.HasFlag(CreatureFlags.CanWalkOnWater), definition.Flags.HasFlag(CreatureFlags.CanWalkOnLava),
+            owner,
+            RespectDoors: (options & 0x80) != 0,
+            PassOwnLockedDoors: (options & 0x02) != 0,
+            IgnoreLockMismatch: (options & 0x04) != 0);
 
     /// <summary>The body's position from the creature's, as the original does before every mover
     /// update (<c>0x004D59A0</c>): the entity's 1/4096 units shifted up four.</summary>
@@ -99,6 +113,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     public bool TryRoute(CreatureState creature, TilePos to, int options)
     {
         SyncBody(creature);
+        creature.RouteOptions = options;
         byte flags = MoveOptions.PathFlagsOf(options);
         var target = new Fixed16Vector(CreatureState.CentreOf(to.X) << 4, CreatureState.CentreOf(to.Y) << 4);
         if (creature.Tile == to)
@@ -108,7 +123,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         }
 
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
-        return RouteWindow.Request(creature.Body, this, ProfileOf(definition), target, flags);
+        return RouteWindow.Request(creature.Body, this, ProfileOf(definition, creature.OwnerPlayerId, options), target, flags);
     }
 
     public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points)
