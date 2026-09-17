@@ -3473,7 +3473,8 @@ were measured against the running game rather than inferred: eight-connectivity
 with corner-cutting (Q28) and no terrain weighting (Q30). Any replacement must
 still satisfy both. What does not survive is the interface's premise that a tile
 route is what DK2 computes. No behaviour changes, so `HashVersion` stays at 61
-and the determinism pin does not move. Q341–Q344 carry the unread algorithms.
+and the determinism pin does not move. Q341–Q344 carried the unread
+algorithms; all four are now answered and built (ADR-0157).
 
 ## ADR-0156 — Separation is built as a rule and wired to nothing
 

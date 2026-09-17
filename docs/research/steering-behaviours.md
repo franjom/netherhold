@@ -283,10 +283,11 @@ with `pos >> 8`, `target >> 8` and the fraction `0x2000`; the result count is
 So the window **does not slide**. When five points are consumed the whole route
 is requested again from wherever the body is, and the funnel runs afresh.
 
-## 8. What this leaves (Q344)
+## 8. What this leaves
 
-- Nothing of Q349. `grtc:` is read (codex, 2026-09-17) and belongs to the
-  router: `navigation-and-steering.md` section 2.1 and Q344.
+- Nothing of Q349, and nothing of Q344: `grtc:` is read and built as
+  `GateWalk`, which belongs to the router (`navigation-and-steering.md`
+  section 2.1).
 - The KWD field at `0xEA0` has no name in the repo's reader yet; phase 3 adds
   it beside the turn rate at `0xF20` and the size class at `0xEA8`.
 
