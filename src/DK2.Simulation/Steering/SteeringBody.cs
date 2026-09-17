@@ -81,6 +81,10 @@ public sealed class SteeringBody
     /// <summary><c>path_flags</c> bit 2 (our name): repulsion stops near the last point and the
     /// integrator snaps onto it.</summary>
     public bool SnapsOnArrival => (PathFlags & 4) != 0;
+
+    /// <summary><c>path_flags</c> bit 3 (our name): Separation stops within half a tile of the
+    /// last point.</summary>
+    public bool SeparatesUntilArrival => (PathFlags & 8) != 0;
 }
 
 /// <summary>A recorded solid obstacle: the unit direction from it to the body and its flag bit 1,

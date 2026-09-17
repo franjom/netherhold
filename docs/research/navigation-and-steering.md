@@ -145,54 +145,65 @@ mesh reading of §2, but on its own it would equally fit any router that is free
 of the grid. The triangles, gates and `Route2path` are what make it a mesh; this
 observation is what makes our own router wrong where it can be seen.
 
-### 3.2 Three of the eight do nothing, and Separation is read
+### 3.2 Three of the eight do nothing, and Separation is read to its store
 
-`seek`, `arrival` and `formation` share one method, `0x004D2A40`, and it is a
-**stub**: it writes a zero vector to the output and returns. Whatever those three
-meant, the shipped game gets no force from them. Five behaviours are live.
+`seek`, `arrival` and `formation` share one method, `0x004D2A40`, a **stub**
+that writes a zero vector. Five behaviours are live.
 
-`Separation` is `0x004D2DF0`, and its per-neighbour force is `0x004D2B80`. The
-steering body sits at **`entity+0x124`**, which is how the two connect.
+`Separation` is `0x004D2DF0`; its per-neighbour callback is `0x004D2B80`. The
+steering body sits at `entity+0x124`, which is how the two connect.
 
-The outer routine:
+**The outer routine.**
 
-1. Skips entirely while the body is within `radius + 0x8000` of its **final**
-   waypoint, so creatures are not pushed apart once they have arrived. The
-   waypoint is picked out of `subpath_buffer` at `+0xB4`, stride 8.
-2. Otherwise queries neighbours within **1.2 x radius** (`0x13333` in 16.16,
-   multiplied by `radius` at `+0xDC`), through an installed function pointer at
-   `0x006ED3FC` with its context at `0x006ED40C`, passing `0x004D2B80` as the
-   per-neighbour callback.
+1. With `path_flags` bit 3 set, on the last window point or with
+   `path_finished`, and within `radius + 0.5` (octile) of that point: zero
+   force, return. Arrived creatures are not pushed apart.
+2. Asks the ungated enumerator (`[0x006ED3FC]`, context `[0x006ED40C]`) for
+   neighbours within `1.2 x radius` and runs the callback on each, summing into
+   `[0x006ECAD8]`/`[0x006ECADC]`.
+3. Adds one more repulsion, from a **remembered entity**: the id at
+   `entity+0x537`, written with the countdown at `+0x539` by the victim
+   selector `0x0045CB00` and resolved to a body by `0x00460F60`. With
+   `v = pos - other.pos` and `d = octile(v)`, the reach is that entity's
+   `DistanceCanSee` in whole tiles (definition `+0x77B`, `(KWD 0xEC8 + 0x800)
+   >> 12`, 4 for every shipped creature) plus own `radius`, or one tile plus
+   `radius` while the body's state is 8 (en route). Within reach:
+   `r = (d << 16) / reach`, magnitude `max_force` at `r <= 0x28F` else
+   `2^32 / r - 1.0`, and `normalise(v) x magnitude` is added. Which entity it
+   is and when it is set are UNKNOWN (hypothesis: what it flees or fights).
 
-The callback, for a pushing body A and a neighbour B:
+**The callback**, for a body A and a neighbour B:
 
 | step | what the original does |
 |---|---|
-| skip | B is A; or A's `is_blocker` (`+0x10E` bit 7) is set |
-| offset | `v = A.pos - B.pos`, so the push is **away from** the neighbour |
-| distance | `d = octile(v)` = longer axis plus half the shorter |
-| gate | force only while `0 < d <= rA + rB` |
+| skip | B is A; or A's `is_blocker` (`+0x10E` bit 7) |
+| offset | `v = A.pos - B.pos`, `d = octile(v)`, `n = normalise(v)` |
+| gate | a push only while `0 < d <= rA + rB` |
 | ratio | `r = (d << 16) / (rA + rB)` |
-| arm 1 | `r <= 0x28F` (about 1 %) -> magnitude is A's `max_force` (`+0xDE`) |
-| arm 2 | B blocks and A does not ignore blockers -> `2^32 / r - 1.0` |
-| arm 3 | otherwise -> `2^32 / isqrt(r) - 1.0` |
+| arm 1 | `r <= 0x28F` (about 1 %) -> magnitude is A's `max_force` |
+| arm 2 | B `is_blocker` and A not `ignore_blocker` -> `2^32 / r - 1.0` |
+| arm 3 | otherwise `root = isqrt(r)`; `root = 0` -> `max_force`, else `2^32 / root - 1.0` |
+| cosine | `c = n . normalise(A.vel)`; `k = (c + 1.0) / 2` |
+| size | `F = table[B.size - 1][A.size - 1]`: `B / (A + B)` over size classes 1-5 (definition `+0x624`, KWD `0xEA8`; Imp 1, Bile Demon and Giant 5), except cell (A 4, B 5), which holds 0.75 |
+| scale | `S = (k + 0.2) x F` as a **plain 32-bit multiply with no `>> 16`** |
+| store | `accumulator += (n x magnitude) x S`, a 16.16 multiply |
+
+The unshifted multiply makes `S` some 65536 times a 16.16 product, so any
+contact saturates at `max_force` once the combiner truncates it; and when
+`(k + 0.2) x F >= 0.5` the product passes 2^31 and **wraps negative**, so the
+push points *toward* the neighbour. Equal sizes flip at `c >= 0.6` (moving
+away from the neighbour); a size-1 body beside a size-5 one flips at
+`c >= -0.2`. The arithmetic is CONFIRMED from the binary; its consequence is
+unobserved (Q345). Priority (4): reproduce, do not fix.
 
 `isqrt` is `0x0065FAE0`: seed from the highest set bit out of a 32-entry table at
 `0x0065FB14` holding round(2^(i/2)), then Newton-halve until the quotient stops
-being smaller. It is reproduced rather than replaced, because it returns the
-first converged guess and that is what the curve is fed.
+being smaller. It returns the first converged guess and that is what the curve
+is fed.
 
-**One thing does not reconcile.** Arm 1 is described by its own shape as a
-saturation, yet for any ordinary `max_force` it yields *less* than arm 3 does
-just above the threshold: at `r` one above `0x28F`, arm 3 gives about 171
-million. Either `max_force` is far larger than it looks, or the curve's scale is
-to be read differently, or the integration clamps the total anyway. Recorded as
-**Q346** and pinned by a test rather than smoothed over.
-
-**What is built:** `SeparationRules` reproduces all of the above as arithmetic,
-tested, and **called by nothing** (ADR-0156). What stops it being wired is not
-this force but the integration -- how the five live behaviours combine and
-become motion (Q343) -- and our mover has no velocity to accept a force.
+**What is built:** `SeparationRules` holds the arms, the size table and the
+scale as arithmetic; `SeparationBehaviour` assembles the force (ADR-0156,
+unwired until ADR-0157 phase 3).
 
 ### 3.3 How the forces combine (Q343), and what that settles
 
@@ -241,10 +252,8 @@ it is weighted. The curve arm's very large magnitude is clamped to `max_force`, 
 the saturation arm returns `max_force` directly — the same value by a shorter road.
 The discontinuity is in the magnitude, not in the force.
 
-**Still UNKNOWN:** what consumes `total` — the step from an accumulated force to a
-position, where `max_speed` (`+0xE2`) presumably enters — and the rest of
-`FUN_004D4760`, which walks a count at `body+0x80` over 10-byte records from
-`body+0x8` and compares squared distances against `0xCCC`. Neither is read.
+What consumes `total` is §3.4; the walk over the twelve-slot list is the slide
+along solid obstacles, `steering-behaviours.md` §4.
 
 ### 3.4 The constants are hard-coded, and the integration is Euler
 

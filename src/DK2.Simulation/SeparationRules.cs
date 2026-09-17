@@ -71,5 +71,32 @@ public static class SeparationRules
     }
 
     /// <summary>2^32 over the divisor, less one — the original's expression, exact in 64 bits.</summary>
-    private static int Reciprocal(int divisor) => (int)((1L << 32) / divisor - One);
+    public static int Reciprocal(int divisor) => (int)((1L << 32) / divisor - One);
+
+    /// <summary>The 5x5 table at <c>[0x006ED420]</c>, rows the neighbour's size class, columns the
+    /// pusher's: <c>B / (A + B)</c> in 16.16, except (A 4, B 5), where the initialiser reused a
+    /// register and stored 0.75 instead of 5/9. Kept cell for cell.</summary>
+    private static readonly int[] SizeShareTable =
+    [
+        0x8000, 0x553F, 0x4000, 0x3333, 0x2A7E,
+        0xAAC0, 0x8000, 0x6666, 0x553F, 0x4937,
+        0xC000, 0x9999, 0x8000, 0x6DD2, 0x6000,
+        0xCCCC, 0xAAC0, 0x922D, 0x8000, 0x71A9,
+        0xD53F, 0xB6C8, 0xA000, 0xC000, 0x8000,
+    ];
+
+    /// <summary>The neighbour's share of the pair's size, for size classes 1..5 (definition
+    /// <c>+0x624</c>, KWD <c>0xEA8</c>).</summary>
+    public static int SizeShare(int pusherSize, int neighbourSize) =>
+        SizeShareTable[((neighbourSize - 1) * 5) + (pusherSize - 1)];
+
+    /// <summary>The factor the push is finally scaled by: <c>((cosine + 1) / 2 + 0.2) x share</c> as
+    /// the original's plain 32-bit multiply, with no 16.16 shift. It is about 65536 times a proper
+    /// product, so a contact saturates at <c>max_force</c>; and it wraps negative once the true
+    /// product reaches 2^31, which turns the push toward the neighbour (Q345).</summary>
+    public static int Scale(int cosine, int share)
+    {
+        int k = (cosine + One) >> 1;
+        return unchecked((k + 0x3333) * share);
+    }
 }

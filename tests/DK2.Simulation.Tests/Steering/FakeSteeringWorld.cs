@@ -58,6 +58,26 @@ internal sealed class FakeSteeringWorld : ISteeringWorld, INavByteGrid
 
     public int Clearance(Fixed16Vector point, int range) => ClearanceValue;
 
+    public List<SteeringNeighbour> Neighbours { get; } = new();
+
+    public SteeringBody? Related { get; set; }
+
+    public int RelatedReachTiles { get; set; } = 4;
+
+    public void CollectNeighbours(Fixed16Vector centre, int range, List<SteeringNeighbour> into)
+    {
+        foreach (SteeringNeighbour n in Neighbours)
+        {
+            if ((n.Body.Pos - centre).Octile() <= range) into.Add(n);
+        }
+    }
+
+    public SteeringBody? RelatedBody(SteeringMover mover, out int reachTiles)
+    {
+        reachTiles = RelatedReachTiles;
+        return Related;
+    }
+
     public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points)
     {
         RouteRequests++;

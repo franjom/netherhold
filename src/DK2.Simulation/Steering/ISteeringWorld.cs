@@ -25,7 +25,18 @@ public interface ISteeringWorld
     /// <summary>The route dispatcher (<c>0x004D0E10</c>) at the midpoint fraction: the waypoints
     /// in 16.16, ending on <paramref name="to"/>; false and empty when there is no route.</summary>
     bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points);
+
+    /// <summary>Every creature body the ungated enumerator (<c>0x004D1170</c>) yields within
+    /// <paramref name="range"/> of <paramref name="centre"/>, the asking body included.</summary>
+    void CollectNeighbours(Fixed16Vector centre, int range, List<SteeringNeighbour> into);
+
+    /// <summary>The body of the entity remembered at <c>+0x537</c>, if any, with the reach in whole
+    /// tiles that <c>0x00460F90</c> gives it (navigation-and-steering.md §3.2 step 3).</summary>
+    SteeringBody? RelatedBody(SteeringMover mover, out int reachTiles);
 }
+
+/// <summary>A neighbouring creature as Separation sees it: its body and its size class 1..5.</summary>
+public readonly record struct SteeringNeighbour(SteeringBody Body, int SizeClass);
 
 /// <summary>What the <c>Obstacle</c> enumerator forwards per object: position, size and the two
 /// flag bits steering reads, bit 0 being <c>SolidObstacle</c> (structure-blocks.md §5).</summary>
@@ -41,6 +52,9 @@ public sealed class SteeringMover
 
     /// <summary>Definition <c>+0x6A0</c>: the KWD <c>u16</c> at <c>0xF20</c> over four ticks a second.</summary>
     public int TurnRate { get; set; }
+
+    /// <summary>Definition <c>+0x624</c>, KWD <c>0xEA8</c>: 1 (Imp) to 5 (Bile Demon, Giant).</summary>
+    public int SizeClass { get; set; } = 2;
 
     public MoverProfile Profile { get; set; } = MoverProfile.Walker;
 }
