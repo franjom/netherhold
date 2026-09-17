@@ -13,8 +13,10 @@ integrator's obstacle clipping) and **Q344** (`grtc:`). Continues
 `navigation-and-steering.md`, which owns the combination, the constants and
 the integration; this page owns what each behaviour computes.
 
-**Only `Separation` is built** (`SeparationRules`, ADR-0156). The rest waits on
-this page. Section 5 is the mover proper: what `Follow_Path` aims at, that a
+**Built, unwired** (ADR-0157 phase 2, `src/DK2.Simulation/Steering/`): the three
+behaviours below, the route window, the turn and the 16.16 helpers, beside
+`SeparationRules`. Still to build: the combiner and integrator, once section 8
+is read. Section 5 is the mover proper: what `Follow_Path` aims at, that a
 creature **turns before it moves**, and how the route window is refilled.
 
 ---
