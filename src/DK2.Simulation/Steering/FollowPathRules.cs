@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -37,8 +37,8 @@ public static class FollowPathRules
 
     public const int ArrivalSpeed = 0x6147;
 
-    /// <summary>The third callback's range, 0.95 tile, and the two seek gains it is taken from.</summary>
-    public const int ClearanceRange = 0xF333;
+    /// <summary>The crowd probe's square, 0.95 tile a side, and the two seek gains its sum comes off.</summary>
+    public const int CrowdSpan = 0xF333;
 
     public const int ImpGain = 0x1D332;
 
@@ -127,7 +127,7 @@ public static class FollowPathRules
         }
 
         if (Turn(body, mover, aim) != 0) return -body.Vel;
-        return (aim - body.Pos).Scale(ImpGain - Clearance(body, world)) - body.Vel;
+        return (aim - body.Pos).Scale(ImpGain - CrowdWeight(body, world)) - body.Vel;
     }
 
     private static Fixed16Vector CreatureArm(SteeringBody body, SteeringMover mover, ISteeringWorld world)
@@ -154,7 +154,7 @@ public static class FollowPathRules
         bool finalApproach = body.SubpathIndex >= body.PathTotalCount - 1 && !body.NoFinalApproach;
         if (Turn(body, mover, aim) != 0) return -body.Vel;
 
-        if (!finalApproach) return (aim - body.Pos).Scale(CreatureGain - Clearance(body, world)) - body.Vel;
+        if (!finalApproach) return (aim - body.Pos).Scale(CreatureGain - CrowdWeight(body, world)) - body.Vel;
 
         Fixed16Vector toAim = aim - body.Pos;
         int len = toAim.Length();
@@ -164,9 +164,9 @@ public static class FollowPathRules
         return toAim.Scale(Fixed16.Div(speed, len)) - body.Vel;
     }
 
-    private static int Clearance(SteeringBody body, ISteeringWorld world)
+    private static int CrowdWeight(SteeringBody body, ISteeringWorld world)
     {
-        int c = world.Clearance(body.CurrentPoint, ClearanceRange);
+        int c = world.CrowdWeight(body.CurrentPoint, CrowdSpan);
         return c < Fixed16.One ? c : Fixed16.One;
     }
 }

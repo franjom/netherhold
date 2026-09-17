@@ -3544,7 +3544,9 @@ integration (Q343). **The owner decided on 2026-09-16 to rebuild.**
 - Known residuals, each labelled in code: point location is a scan, not the
   original's walk; the coarsening order is inferred, so gate midpoints inside
   non-convex regions may sit on different diagonals than the original's;
-  the cost function's door arm awaits doors; `grtc:` awaits Q344.
+  the cost function's door arm awaits doors; the gate re-walk after the funnel
+  (Q344) is read but not built, so `Funnel` emits corners where the original
+  aims across contracted gates: it must be added before phase 3.
 - Priority (4) applies with force: the router **must** be greedy and
   non-optimal in the original's way. A shortest-path router here is a fidelity
   bug, however much better it looks.

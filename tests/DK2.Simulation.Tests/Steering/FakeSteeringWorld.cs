@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -8,7 +8,7 @@ using DK2.Simulation.Steering;
 namespace DK2.Simulation.Tests.Steering;
 
 /// <summary>A world for the steering tests: a character grid ('#' solid, '~' water, 'L' lava),
-/// a list of obstacles, a fixed clearance, and routes from the real <see cref="MeshRouter"/>
+/// a list of obstacles, a fixed crowd weight, and routes from the real <see cref="MeshRouter"/>
 /// unless a fixed route is given.</summary>
 internal sealed class FakeSteeringWorld : ISteeringWorld, INavByteGrid
 {
@@ -28,7 +28,7 @@ internal sealed class FakeSteeringWorld : ISteeringWorld, INavByteGrid
 
     public List<SteeringObstacle> Obstacles { get; } = new();
 
-    public int ClearanceValue { get; set; }
+    public int CrowdWeightValue { get; set; }
 
     public int RouteRequests { get; private set; }
 
@@ -56,7 +56,7 @@ internal sealed class FakeSteeringWorld : ISteeringWorld, INavByteGrid
         }
     }
 
-    public int Clearance(Fixed16Vector point, int range) => ClearanceValue;
+    public int CrowdWeight(Fixed16Vector point, int span) => CrowdWeightValue;
 
     public List<SteeringNeighbour> Neighbours { get; } = new();
 

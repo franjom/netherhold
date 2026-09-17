@@ -47,30 +47,29 @@ public class AvoidWallsTests
     public void AStillBodyInsideTheMarginIsPushedOutToo() =>
         Assert.Equal(new Fixed16Vector(-0x4CCC, 0), Force(Room(), T(5.95, 2.5), Fixed16Vector.Zero));
 
+    /// <summary>The original's root is the integer square root of the 16.16 discriminant taken
+    /// unscaled, so the "hit" lands almost at the corner itself: a body a step away misses (the
+    /// distance exceeds its speed), a body already inside the corner circle is braked.</summary>
     [Fact]
-    public void OnlyTheDiagonalBlockedReflectsOffTheCorner()
+    public void TheCornerReflectionFiresOnlyWithinOneStepOfTheCornerInTheOriginalsArithmetic()
     {
         var world = new FakeSteeringWorld("#######", "#.....#", "#..#..#", "#.....#", "#######");
 
-        Fixed16Vector force = Force(world, T(2.7, 1.7), new Fixed16Vector(0x4000, 0x4000));
-
-        Assert.True(force.X < 0 && force.Y < 0, $"reflection was {force}");
-        Assert.True(Fixed16.Abs(force.X - force.Y) <= 2, $"reflection was not symmetric: {force}");
+        Assert.Equal(Fixed16Vector.Zero, Force(world, T(2.7, 1.7), new Fixed16Vector(0x4000, 0x4000)));
+        Fixed16Vector inside = Force(world, T(2.95, 1.95), new Fixed16Vector(0x2000, 0x2000));
+        Assert.True(inside.X < 0 && inside.Y < 0, $"inside the circle gave {inside}");
     }
 
     [Fact]
-    public void ABodyAlreadyInsideTheCornerCircleGetsNoReflection()
+    public void TheRayCircleDistanceIsTheOriginalsNotTheTextbooks()
     {
-        var world = new FakeSteeringWorld("#######", "#.....#", "#..#..#", "#.....#", "#######");
+        Fixed16Vector origin = Fixed16Vector.Zero, along = new(Fixed16.One, 0);
 
-        Assert.Equal(Fixed16Vector.Zero, Force(world, T(2.95, 1.95), new Fixed16Vector(0x2000, 0x2000)));
-    }
-
-    [Fact]
-    public void TheRayCircleDistanceIsTheNearerRootUntilTheOriginalsRoundingIsRead()
-    {
-        Assert.Equal(2 * Fixed16.One, RayCircle.Distance(Fixed16Vector.Zero, new Fixed16Vector(Fixed16.One, 0), new Fixed16Vector(3 * Fixed16.One, 0), Fixed16.One));
-        Assert.Equal(RayCircle.Miss, RayCircle.Distance(Fixed16Vector.Zero, new Fixed16Vector(Fixed16.One, 0), new Fixed16Vector(3 * Fixed16.One, 2 * Fixed16.One), Fixed16.One));
+        int headOn = RayCircle.Distance(origin, along, new Fixed16Vector(3 * Fixed16.One, 0), Fixed16.One);
+        Assert.InRange(headOn, 2 * Fixed16.One + 0x8000, 3 * Fixed16.One);
+        Assert.Equal(RayCircle.Miss, RayCircle.Distance(origin, along, new Fixed16Vector(0, 3 * Fixed16.One), Fixed16.One));
+        Assert.NotEqual(RayCircle.Miss, RayCircle.Distance(origin, along, new Fixed16Vector(3 * Fixed16.One, 2 * Fixed16.One), Fixed16.One));
+        Assert.Equal(int.MinValue, RayCircle.Miss);
     }
 
     [Fact]

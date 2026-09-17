@@ -90,6 +90,18 @@ walk (§3.1), predicted from the binary before it was watched.**
 `way=%d` prints the waypoint count and `route=%d` the triangle count; `EndGates`
 is a timing label, not a data dump.
 
+**The funnel is not the last stage (Q344; codex, 2026-09-17).** `Route2path`
+is called by `0x004CF490`, which then re-walks the triangle route's shared
+gates against the funnel polyline: it keeps the gates the polyline turns
+through (four cross-product tests), orders each kept gate's endpoints by
+proximity to the polyline, and contracts endpoints inward around the
+polyline's crossing (`0x004CFC50` one-sided, `0x004CFDA0` both), diagnosing
+`grtc:Exceeded max path length` past 256 records. `0x004D0240` then takes its
+fraction across the **adjusted** gate. So the mover aims at points across
+contracted gates, not at funnel corners. Phase 1's `Funnel` emits corners and
+is incomplete until this stage is specified: the contraction amount is the
+eighth argument, passed down from the mover's request and not yet traced.
+
 ## 3. Movement is a steering system with named behaviours
 
 The binary defines a `Behaviour` base class and **exactly eight** subclasses.
@@ -188,13 +200,15 @@ steering body sits at `entity+0x124`, which is how the two connect.
 | scale | `S = (k + 0.2) x F` as a **plain 32-bit multiply with no `>> 16`** |
 | store | `accumulator += (n x magnitude) x S`, a 16.16 multiply |
 
-The unshifted multiply makes `S` some 65536 times a 16.16 product, so any
-contact saturates at `max_force` once the combiner truncates it; and when
-`(k + 0.2) x F >= 0.5` the product passes 2^31 and **wraps negative**, so the
-push points *toward* the neighbour. Equal sizes flip at `c >= 0.6` (moving
-away from the neighbour); a size-1 body beside a size-5 one flips at
-`c >= -0.2`. The arithmetic is CONFIRMED from the binary; its consequence is
-unobserved (Q345). Priority (4): reproduce, do not fix.
+The unshifted multiply makes `S` some 65536 times a 16.16 product, and the
+store's 16.16 multiply then keeps bits 16-47 of `(n x magnitude) x S`, which
+wraps again for any real contact, per component. So the stored contribution
+is the **middle bits of two overflowing products**: deterministic in the
+operands, unrelated to the geometry (a stationary equal-size contact comes out
+pointing *toward* the neighbour; the sign of `S` decides nothing). The combiner
+then truncates it to `max_force`. Arithmetic CONFIRMED from the binary by two
+readers; what contact looks like in play is unobserved (Q345). Priority (4):
+reproduce, do not fix.
 
 `isqrt` is `0x0065FAE0`: seed from the highest set bit out of a 32-entry table at
 `0x0065FB14` holding round(2^(i/2)), then Newton-halve until the quotient stops

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -18,9 +18,11 @@ public interface ISteeringWorld
     /// <paramref name="range"/> of <paramref name="centre"/>, appended to <paramref name="into"/>.</summary>
     void CollectObstacles(Fixed16Vector centre, int range, List<SteeringObstacle> into);
 
-    /// <summary>The third callback, <c>0x004D15E0</c>: UNKNOWN (Q349). Capped at 1.0, its return
-    /// is taken off the seek gain near a waypoint (§5.4).</summary>
-    int Clearance(Fixed16Vector point, int range);
+    /// <summary>The crowd probe <c>0x004D15E0</c>: the signed sum of creature word <c>+0x200</c> over
+    /// every creature on a tile of the axis-aligned square of side <paramref name="span"/> centred on
+    /// <paramref name="point"/> (tiles taken by floor and ceiling of the square's edges). Capped at
+    /// 1.0, it comes off the seek gain near a waypoint (§5.4).</summary>
+    int CrowdWeight(Fixed16Vector point, int span);
 
     /// <summary>The route dispatcher (<c>0x004D0E10</c>) at the midpoint fraction: the waypoints
     /// in 16.16, ending on <paramref name="to"/>; false and empty when there is no route.</summary>

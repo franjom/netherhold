@@ -33,7 +33,7 @@ argument:
 |---|---|---|---|
 | `[0x006ED3FC]` | `0x004D1170` | the **ungated** object enumerator (§5.4 of `structure-blocks.md`) | `Separation`'s neighbour query |
 | `[0x006ED400]` | `0x004D12B0` | the enumerator that **gates on `Obstacle`** and forwards position, size, flags | `Repel_Obstacle` |
-| `[0x006ED404]` | `0x004D15E0` | UNKNOWN; its return scales `Follow_Path`'s seek (section 5.4) | `Follow_Path` |
+| `[0x006ED404]` | `0x004D15E0` | the **crowd probe**: the signed sum of creature word `+0x200` over the creatures on a square of tiles (section 5.4) | `Follow_Path`'s seek |
 | `[0x006ED408]` | `0x004D16B0` | the **navigation-byte probe** at a position (reads `world+0x9F2`) | `Avoid_Walls`' feelers |
 
 So `structure-blocks.md`'s inference — that furniture is continuous collision
@@ -101,21 +101,53 @@ router's `<< 8` copy of its 256-per-tile waypoints lands exactly there.
    `2·(face + radius − ahead.x)` when short of it. The same for `A` on y with
    `sy`. Both axes are judged independently and both may contribute.
 
+The ray-circle test (`0x004D20F0`) is not the textbook's. With `b = 2(d.m)` it
+forms `4(b^2 - ac)`, takes the integer square root of that 16.16 value unscaled,
+and returns `(-b - root) / 2`, or `INT_MIN` when the discriminant is not
+positive. The "hit" therefore lands almost on the corner's centre, and the
+reflection fires only when the corner is within one step; a body approaching
+from further off gets nothing. Reproduced as read (`RayCircle`).
+
 So `Avoid_Walls` is a **wall margin of one radius (0.2 tiles)** enforced against
 the predicted position, with a reflected push at inside corners. It is what
 keeps a body off the wall the funnel's corners hug. The block under
 `escape_stuck_mode` is section 6.
 
-## 4. The integrator's slide along solid obstacles
+## 4. The integrator: slide, step and wall clamp
 
-`FUN_004D4760`, after summing the weighted forces, walks the twelve-slot list
-`Repel_Obstacle` filled. For each recorded unit direction `n` (from the obstacle
-to the body): `inward = vel · n`; if `inward ≥ 0xCCC` (0.05) the body is moving
-away and the record is skipped. Otherwise the inward component is removed,
-`vel −= (vel · n)·n`, and a **tangential push at `max_force`** is added to the
-force, its sign chosen by negating the tangent (`0x004D4550`) when the residual
-points the wrong way. That is why a creature meeting a bed slides round it
-rather than stopping.
+`FUN_004D4760` runs, in this order: the weighted sum of section 3.3 of
+`navigation-and-steering.md`; the slide; the sum clamped to `max_force` and
+divided by a mass of 1.0; `vel += accel`; `vel` clamped to `max_speed`;
+`next = pos + vel`; the arrival snap; the wall clamp; the local axes; the stuck
+history (section 5.1). Built as `SteeringIntegrator`.
+
+**The slide.** The twelve-slot list `Repel_Obstacle` filled is walked from the
+last record to the first. For each unit direction `n` from the obstacle to the
+body: `inward = (F + vel) . n`, on the **tentative** motion; a record with
+`inward >= 0xCCC` (0.05) is skipped. Otherwise both `F` and `vel` lose their
+component along `n` through `I - n n^T`, **x first and y from the already
+updated x**, so the result is not quite the ideal projection. The tangent is
+`t = (-ny, nx)`; if `(F' + vel') . t < 0` it is negated. `t x max_force` is
+gathered, and after the walk the gathered pushes are added to `F`. (A filter
+comparing `(n >> 18)^2` sums against the largest seen is inert for unit
+normals.)
+
+**The snap.** With `path_flags` bit 2, on the last window point, when the
+octile distance still to go is **less than** the octile length of `vel`, `next`
+is the point and `vel` is zeroed.
+
+**The wall clamp.** `own` is the byte of the tile the body stands on; a tile is
+open when the transition cost from `own` to it is nonzero. If `next`'s tile is
+open the body moves there. Else the x move alone, if its tile is open, with
+`vel.y` zeroed; else the y move alone with `vel.x` zeroed. Else, with
+`(dx, dy)` the tile delta and `step = next - pos`: if the tile a quarter turn
+left, `(ox - dy, oy + dx)`, is open the body moves by `(-step.y, step.x)`; else
+if `(ox + dy, oy - dx)` is open, by `(step.y, -step.x)`; **the turned step is
+taken without a look at the tile it lands on**. Otherwise the body stays, `vel`
+is kept, and an extra `1` is pushed into `path_stuck_buffer`.
+
+**The axes.** `local_xaxis = normalise(F clamped)`, or of the turned step when
+the clamp turned it; `local_yaxis` is its perpendicular `(-y, x)`.
 
 ## 5. `Follow_Path` (`0x004D3C40`, weight 0.35)
 
@@ -202,12 +234,15 @@ Facing the aim, the force is a desired velocity minus `vel`:
   force; `speed = min(max_speed, len / 2.0)`; force `= d x (speed / len) - vel`.
   So it **decelerates inside 0.8 tile** of the destination.
 - **Otherwise** (creature intermediate points, or bit 1 set; and the imp arm
-  always): `c = min(1.0, callback[0x006ED404](&subpath[idx], 0xF333, ctx))` and
-  `k = 1.02 - c` for creatures (`0x1051E`) or `1.825 - c` for imps (`0x1D332`);
-  force `= (aim - pos) x k - vel`. The callback is `0x004D15E0`, not yet read
-  (section 8); `0xF333` is 0.95 tile. Whatever `c` is, the desired velocity is
-  then truncated to `max_speed` by the integrator, so `k` matters only near the
-  aim.
+  always): `c = min(1.0, crowd)` and `k = 1.02 - c` for creatures (`0x1051E`) or
+  `1.825 - c` for imps (`0x1D332`); force `= (aim - pos) x k - vel`. `crowd` is
+  the probe `0x004D15E0`: the signed sum of creature word `+0x200` over every
+  creature on a tile of the **0.95-tile square** centred on `subpath[idx]`
+  (edges by floor and ceiling; a square, not a circle). The creature
+  initialiser writes that word as `(v >> 1) << 4` from virtual slot `0x3C`
+  (`0x00487B0B`); what the slot returns is section 8. So a crowded waypoint
+  collapses a creature's seek gain to 0.02 and an imp's to 0.825: creatures
+  yield to a crowd, imps barely do.
 
 ## 6. `Avoid_Walls` in `escape_stuck_mode`
 
@@ -246,13 +281,9 @@ is requested again from wherever the body is, and the funnel runs afresh.
 
 ## 8. What this leaves (Q349, Q344)
 
-- The third callback `0x004D15E0`, whose return scales the seek (5.4).
-- The exact tangent-sign rule of the slide, the integrator's wall clamp, and
-  `0x004D20F0`'s tail.
-- `grtc:` (`0x004CF510`-`0x004CFC4A`), which calls `Route2path` and the
-  dispatcher itself (Q344).
-- The `atan2` orientation (irrelevant to timing: only angular distances are
-  compared) and the `entity+0x12` turn-rate hook.
+- What virtual slot `0x3C` of a creature returns: the source of the crowd word.
+- `grtc:` is read (codex, 2026-09-17) and belongs to the router:
+  `navigation-and-steering.md` section 2.1 and Q344.
 
 ## Confidence
 
@@ -275,9 +306,11 @@ two arms and their advance and arrival rules, the turn-before-move gate and
 the turn rate's source and loader, both seek laws; the stuck block of section
 6 including its raw-unit nudge; the route request of section 7 end to end.
 
-**STRONGLY INFERRED:** that `0x004D2070` and `0x004D20F0` are ray–circle
-intersections (the arithmetic is the quadratic's discriminant and root in
-16.16; the tail of the second is unread); that the integrator's second
-history push marks a refused step.
+**CONFIRMED (binary, second reader codex, 2026-09-17):** the slide's inward
+test, projection order and tangent sign; the wall clamp's five arms and its
+stuck bit; the ray-circle test to its return; the crowd probe's square and sum.
 
-**UNKNOWN:** everything in section 8, above all what `0x004D15E0` returns.
+**STRONGLY INFERRED:** that `0x004D2070` is the same ray-circle shape as
+`0x004D20F0` (its tail is unread; `Repel_Obstacle` does not call it).
+
+**UNKNOWN:** section 8.

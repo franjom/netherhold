@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -118,10 +118,10 @@ public class FollowPathTests
     }
 
     [Fact]
-    public void AnIntermediatePointIsSoughtWithTheCreatureGainLessTheClearance()
+    public void AnIntermediatePointIsSoughtWithTheCreatureGainLessTheCrowdWeight()
     {
         (SteeringBody body, SteeringMover mover, FakeSteeringWorld world) = Setup(false, T(1.5, 1.5), T(3.5, 1.5), T(6.5, 1.5));
-        world.ClearanceValue = 0x8000;
+        world.CrowdWeightValue = 0x8000;
 
         Fixed16Vector force = FollowPathRules.Compute(body, mover, world);
 

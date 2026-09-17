@@ -99,25 +99,29 @@ public static class AvoidWallsRules
         MeshRouter.TransitionCost(world.NavByte(tileX, tileY), own, mover) != 0;
 }
 
-/// <summary>The distance along a heading to a circle (<c>0x004D20F0</c>), 16.16. STRONGLY INFERRED
-/// from the arithmetic's shape (a quadratic's discriminant and root); the original's exact
-/// rounding is Q349's last unread helper, so this is the plain formula until then.</summary>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
+/// <summary>The original's ray–circle test (<c>0x004D20F0</c>, steering-behaviours.md §3), operation
+/// for operation. It is a quadratic in 16.16 with two departures from the textbook that are kept:
+/// the discriminant is <c>4·(b² − a·c)</c> with <c>b</c> already doubled, and the root is the
+/// integer square root of the 16.16 discriminant taken as it comes. So a head-on approach reports
+/// a negative distance and the caller's corner reflection fires only in a narrow band.</summary>
+[Dk2Behavior(Confidence.Confirmed, "docs/research/steering-behaviours.md")]
 public static class RayCircle
 {
-    public const int Miss = int.MaxValue;
+    /// <summary>Reported when the discriminant is not positive.</summary>
+    public const int Miss = int.MinValue;
 
-    /// <summary>The nearer root, or <see cref="Miss"/> when the ray's line misses the circle.
-    /// <paramref name="dir"/> is a unit vector.</summary>
     public static int Distance(Fixed16Vector origin, Fixed16Vector dir, Fixed16Vector centre, int radius)
     {
-        Fixed16Vector f = origin - centre;
-        long along = f.Dot(dir);
-        long outside = f.Dot(f) - Fixed16.Mul(radius, radius);
-        long discriminant = (along * along) - (outside << 16);
-        if (discriminant < 0) return Miss;
-        long shifted = discriminant >> 16;
-        int root = IntegerMath.SquareRoot(shifted > int.MaxValue ? int.MaxValue : (int)shifted) << 8;
-        return (int)(-along - root);
+        Fixed16Vector m = origin - centre;
+        int a = Fixed16.Mul(dir.X, dir.X) + Fixed16.Mul(dir.Y, dir.Y);
+        int b = (Fixed16.Mul(dir.X, m.X) + Fixed16.Mul(dir.Y, m.Y)) << 1;
+        int c = Fixed16.Mul(m.Y, m.Y) - Fixed16.Mul(radius, radius) + Fixed16.Mul(m.X, m.X);
+        int discriminant = (Fixed16.Mul(b, b) - Fixed16.Mul(a, c)) << 2;
+        if (discriminant <= 0) return Miss;
+
+        int root = IntegerMath.SquareRoot(discriminant);
+        int first = -(root + b);
+        int second = root - b;
+        return (first < second ? first : second) >> 1;
     }
 }
