@@ -60,6 +60,19 @@ public sealed record CreatureDef
     /// </summary>
     public required Fp32 PerceptionRange { get; init; }
 
+    /// <summary>The steering footprint in 1/4096 tile (KWD <c>0xEA0</c>): half of it, in 16.16,
+    /// is the body's separation radius and the weight it adds to a crowd
+    /// (docs/research/steering-behaviours.md §5.4).</summary>
+    public required Fp32 FootprintRadius { get; init; }
+
+    /// <summary>Size class 1..5 for the separation share table (KWD <c>0xEA8</c> shifted down twelve;
+    /// docs/research/navigation-and-steering.md §3.2).</summary>
+    public required int SizeClass { get; init; }
+
+    /// <summary>Turn rate in 1/2048 of a turn per game second (KWD <c>0xF20</c>); the loader divides it
+    /// by the tick rate, floored at one (docs/research/steering-behaviours.md §5.3).</summary>
+    public required ushort TurnRate { get; init; }
+
     // Vitals / needs
     public required ushort Hp { get; init; }
     public required ushort HpFromChicken { get; init; }

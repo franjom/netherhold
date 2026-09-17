@@ -102,9 +102,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 61: creatures gained their trigger root and repeat snapshot (ADR-0152).
-        // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x57435BC71CE1BBDCUL, sim.StateHash());
+        // HashVersion 62: the tile path and movement remainder left the creature; its steering
+        // body and heading entered (ADR-0157 phase 3). Earlier pins and their reasons live in
+        // docs/research/hash-versions.md.
+        Assert.Equal(0xE4BA93698075EF4FUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

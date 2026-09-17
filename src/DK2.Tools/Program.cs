@@ -3074,7 +3074,9 @@ static (int Total, int Gated) CountTests(string root, List<string> problems)
             problems.Add("could not start dotnet for test discovery");
             return (-1, -1);
         }
+        Task<string> errors = process.StandardError.ReadToEndAsync();
         output = process.StandardOutput.ReadToEnd();
+        errors.Wait();
         process.WaitForExit();
     }
     catch (Exception ex)
@@ -3220,7 +3222,11 @@ static string RunGit(string root, params string[] arguments)
     {
         using Process? process = Process.Start(psi);
         if (process is null) return string.Empty;
+        // Drain stderr concurrently: forty changed files' line-ending warnings fill the pipe
+        // and deadlock a reader that waits for stdout first.
+        Task<string> errors = process.StandardError.ReadToEndAsync();
         string output = process.StandardOutput.ReadToEnd();
+        errors.Wait();
         process.WaitForExit();
         return output;
     }

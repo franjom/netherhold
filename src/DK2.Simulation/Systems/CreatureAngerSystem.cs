@@ -206,7 +206,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
         }
 
         // Mid-walk. Leave it alone; the movement system is carrying it.
-        if (state.PathIndex < state.Path.Count) return;
+        if (state.HasRoute) return;
 
         var grid = new WorldPathGrid(database, world, creature);
         bool routed = _pathfinder.TryFindNearest(
@@ -215,11 +215,8 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             at => PortalRules.IsExitTile(world, database, at, state.OwnerPlayerId),
             _route);
 
-        if (routed && _route.Count > 0)
+        if (routed && _route.Count > 0 && context.Navigation.TryRoute(state, _route[^1]))
         {
-            state.Path.Clear();
-            state.Path.AddRange(_route);
-            state.PathIndex = 0;
 
             if (decidingNow)
             {

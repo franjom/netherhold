@@ -68,6 +68,41 @@ public sealed class SteeringBody
     /// <summary>Solid obstacles <c>Repel_Obstacle</c> recorded this tick for the integrator's slide.</summary>
     public List<SolidContact> SolidContacts { get; } = new(SolidContactSlots);
 
+    /// <summary>Everything that survives a tick, in the determinism hash. Not the position, which
+    /// the creature's own position replaces before every step, nor the contacts, which are one
+    /// tick's scratch, nor the three limits, which come from the definition.</summary>
+    public void HashInto(ref Hash64 hash)
+    {
+        hash.Add(Vel.X);
+        hash.Add(Vel.Y);
+        hash.Add(LocalXAxis.X);
+        hash.Add(LocalXAxis.Y);
+        hash.Add(LocalYAxis.X);
+        hash.Add(LocalYAxis.Y);
+        hash.Add(PathTargetPos.X);
+        hash.Add(PathTargetPos.Y);
+        for (int i = 0; i < WindowSize; i++)
+        {
+            hash.Add(Subpath[i].X);
+            hash.Add(Subpath[i].Y);
+            hash.Add(Segment[i]);
+        }
+
+        hash.Add(PathTotalDist);
+        hash.Add(PathSubpathDist);
+        hash.Add(PathTailDist);
+        hash.Add(PathLastProgress);
+        hash.Add(PathStuckBuffer);
+        hash.Add(PathTotalCount);
+        hash.Add(PathFlags);
+        hash.Add(PathBufferCount);
+        hash.Add(SubpathIndex);
+        hash.Add(PathFinished);
+        hash.Add(IsBlocker);
+        hash.Add(IgnoreBlocker);
+        hash.Add(EscapeStuckMode);
+    }
+
     public Fixed16Vector CurrentPoint => Subpath[SubpathIndex];
 
     public bool OnLastPoint => SubpathIndex == PathTotalCount - 1;

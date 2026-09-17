@@ -23,12 +23,16 @@ public sealed class SimulationContext
         World = world;
         Rng = rng;
         Events = events;
+        Navigation = new Navigation.WorldSteering(database, world);
     }
-
 
     public GameDatabase Database { get; }
     public WorldState World { get; }
     public SimRandom Rng { get; }
+
+    /// <summary>The mesh, the router and the steering probes over <see cref="World"/>. Systems
+    /// request routes through it; the movement system steps bodies against it.</summary>
+    public Navigation.WorldSteering Navigation { get; }
     public ISimulationEventSink Events { get; internal set; }
 
     /// <summary>The tick currently being executed.</summary>

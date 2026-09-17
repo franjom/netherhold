@@ -186,12 +186,15 @@ public sealed class CreatureState
     public int PosX;
     public int PosY;
 
-    /// <summary>Fractional movement carried between ticks, in units of
-    /// <c>1 / SimulationTiming.TicksPerSecond</c> of an <see cref="Fp32"/> unit.
-    /// <para>Speed is given per second and spent per tick; discarding the
-    /// remainder each tick would make an imp at 1.84 tiles/second walk 0.4% slow
-    /// for ever.</para></summary>
-    public int MoveRemainder;
+    /// <summary>DK2's steering body, which the original embeds in the creature at <c>+0x124</c>
+    /// (docs/research/steering-behaviours.md §7.5): velocity, the route window, the stuck history
+    /// and the path flags. Its position is re-derived from <see cref="PosX"/> and <see cref="PosY"/>
+    /// before every step, as the original does, so it is not hashed; everything else in it is.</summary>
+    public readonly Steering.SteeringBody Body = new();
+
+    /// <summary>Facing, 2048 to a full turn (<see cref="Steering.Bearing"/>). A creature turns to
+    /// face its waypoint before it moves (steering-behaviours.md §5.3).</summary>
+    public int Heading;
 
     /// <summary>Gold in this creature's hands: mined into its own hands up to
     /// <see cref="Data.Model.CreatureDef.MaxGoldHeld"/>, carried to a place its
@@ -484,12 +487,20 @@ public sealed class CreatureState
     /// application when working.</summary>
     public int TimerTicks;
 
-    /// <summary>The route being walked, excluding the tile it started from. Empty when
-    /// the creature is not going anywhere.</summary>
-    public readonly List<TilePos> Path = [];
+    /// <summary>Walking somewhere it has not reached: a route is loaded and <c>path_finished</c>
+    /// is clear. The mover's arrival test sets the flag (steering-behaviours.md §5.2).</summary>
+    public bool HasRoute => Body.PathTotalCount != 0 && !Body.PathFinished;
 
-    /// <summary>How far along <see cref="Path"/> the creature is.</summary>
-    public int PathIndex;
+    /// <summary>A route was requested and found, arrived or not. False after <see cref="StopMoving"/>.</summary>
+    public bool IsRouted => Body.PathTotalCount != 0;
+
+    /// <summary>The tile the loaded route ends on.</summary>
+    public TilePos Destination => new((Body.PathTargetPos.X >> 4) / Fp32.One, (Body.PathTargetPos.Y >> 4) / Fp32.One);
+
+    /// <summary>Drops the route: the body keeps its velocity and brakes under <c>Follow_Path</c>'s
+    /// no-route force (steering-behaviours.md §5.2), as the original's cleared window does.</summary>
+    public void StopMoving() =>
+        Steering.RouteWindow.Load(Body, [], new Steering.Fixed16Vector(PosX << 4, PosY << 4), 0);
 
     /// <summary>The tile the creature is standing on.</summary>
     public TilePos Tile => new(PosX / Fp32.One, PosY / Fp32.One);
@@ -509,8 +520,7 @@ public sealed class CreatureState
         Activity = CreatureActivity.Idle;
         TargetTileIndex = -1;
         TargetWork = default;
-        Path.Clear();
-        PathIndex = 0;
+        StopMoving();
     }
 
     public void HashInto(ref Hash64 hash)
@@ -522,7 +532,8 @@ public sealed class CreatureState
         hash.Add(TriggerRepeat);
         hash.Add(PosX);
         hash.Add(PosY);
-        hash.Add(MoveRemainder);
+        hash.Add(Heading);
+        Body.HashInto(ref hash);
         hash.Add(GoldHeld);
         hash.Add(Health);
         hash.Add(HungerTicks);
@@ -561,12 +572,5 @@ public sealed class CreatureState
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);
         hash.Add(TimerTicks);
-        hash.Add(Path.Count);
-        foreach (TilePos p in Path)
-        {
-            hash.Add(p.X);
-            hash.Add(p.Y);
-        }
-        hash.Add(PathIndex);
     }
 }

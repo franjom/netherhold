@@ -148,9 +148,9 @@ public sealed class LairSeeker
             return false;
         }
 
-        creature.Path.Clear();
-        creature.Path.AddRange(_route);
-        creature.PathIndex = 0;
+        int chosenArrival = LairRules.ArrivalTile(world, chosen);
+        if (!context.Navigation.TryRoute(creature, new TilePos(chosenArrival % world.Width, chosenArrival / world.Width)))
+            return false;
         creature.TimerTicks = 0;
         creature.Activity = CreatureActivity.SeekingLair;
 

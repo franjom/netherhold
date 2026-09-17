@@ -125,7 +125,7 @@ public class LairAcquisitionTests
         Assert.Equal(CreatureActivity.SeekingLair, goblin.Activity);
         Assert.False(LairRules.HasBed(world, db, goblin));
         Assert.Empty(world.Objects);
-        Assert.NotEmpty(goblin.Path);
+        Assert.True(goblin.HasRoute);
 
         sim.Run(Second * 15);
 

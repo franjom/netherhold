@@ -674,94 +674,55 @@ public class ImpTests
     // ---- movement --------------------------------------------------------
 
     [Fact]
-    public void AnImpCoversATileAtTheSpeedItsDataGives()
+    public void AnImpFinishesItsWalkNearTheTargetAndNeverSnapsToTheCentre()
     {
-        // The Imp's speed is 7536 in DK2's 4096-denominator fixed point: 1.84
-        // tiles per second (STRONGLY INFERRED — see CreatureMovementSystem).
-        // Crossing one tile therefore takes ceil(4096 * ticksPerSecond / 7536)
-        // ticks, and nothing about that number is written into the simulation.
+        // Follow_Path's imp arm (steering-behaviours.md §5.2) finishes a route once the body is
+        // within 0.1 tile of the target, at any speed; that tick still moves it by its braking
+        // velocity, and nothing puts it on the centre afterwards unless the request carried the
+        // snap flag, which none does yet.
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
         CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
-        imp.Path.Add(new TilePos(2, 1));
+        Assert.True(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(2, 1)));
 
         var sim = new GameSimulation(database, world, 1, [new CreatureMovementSystem()]);
+        int ticks = 0;
+        while (imp.HasRoute && ticks < 20)
+        {
+            sim.Tick();
+            ticks++;
+        }
 
-        int speed = Dk2TerrainFixture.Imp().Speed.Raw;
-        int expected = ((Fp32.One * SimulationTiming.TicksPerSecond) + speed - 1) / speed;
-
-        for (int i = 0; i < expected - 1; i++) sim.Tick();
+        Assert.False(imp.HasRoute);
+        Assert.InRange(ticks, 2, 3);
+        Assert.InRange(imp.PosX, CreatureState.CentreOf(2) - (Fp32.One / 10), CreatureState.CentreOf(3));
         Assert.NotEqual(CreatureState.CentreOf(2), imp.PosX);
-
-        sim.Tick();
-        Assert.Equal(CreatureState.CentreOf(2), imp.PosX);
         Assert.Equal(CreatureState.CentreOf(1), imp.PosY);
     }
 
-    /// <summary>A diagonal leg is longer and the mover charges for it: walking
-    /// four tiles on the bias covers 4 x root-2 tile-widths, so it takes about
-    /// 1.41x as long as four straight — not the same time (which Chebyshev
-    /// distance would give) and not twice (Manhattan, which it used to use).
-    /// Forced rather than chosen: a creature's speed is in tiles per second (Q29),
-    /// so it moves continuously at a constant rate and a longer leg takes longer.
-    /// It also has to agree with <see cref="GridPathfinder"/>, which costs the
-    /// route at 14/10 — a router and a mover that disagree produce creatures that
-    /// arrive early (Q48, ADR-0025).</summary>
+    /// <summary>Two floor tiles that touch only at a corner share no edge, so the mesh has no gate
+    /// between them and the router no route — as in DK2, whose region check refuses such a pair
+    /// before any search (Q28, 2026-09-17). Whether the mover can still be steered through the
+    /// corner is Q28's open half and is not what this pins.</summary>
     [Fact]
-    public void WalkingOnTheBias_TakesRootTwoTimesAsLong()
+    public void TheMeshHasNoRouteBetweenTilesThatTouchOnlyAtACorner_AsTheOriginalRefusesItToo()
     {
-        static int TicksToWalk(bool diagonal)
-        {
-            GameDatabase database = Dk2TerrainFixture.Database();
-            WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
-            CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+        CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
 
-            // Open the route first. The fixture map is mostly rock, and a
-            // creature does not walk through rock (CONFIRMED — see
-            // WallsBlockMovementTests): a route laid over it would now be
-            // dropped at the first solid waypoint, and this test would be
-            // timing the block rather than the walk.
-            for (int i = 1; i <= 4; i++)
-                Carve(world, database, new TilePos(1 + i, diagonal ? 1 + i : 1));
+        // The fixture's room is (1,1)-(3,3); a chain of tiles on the bias leads out of its corner.
+        for (int i = 1; i <= 3; i++) Carve(world, database, new TilePos(3 + i, 3 + i));
 
-            for (int i = 1; i <= 4; i++)
-                imp.Path.Add(new TilePos(1 + i, diagonal ? 1 + i : 1));
-
-            var sim = new GameSimulation(database, world, 1, [new CreatureMovementSystem()]);
-            for (int tick = 1; tick <= 10_000; tick++)
-            {
-                sim.Tick();
-                if (imp.PathIndex >= imp.Path.Count) return tick;
-            }
-
-            throw new InvalidOperationException("the imp never arrived");
-        }
-
-        int straight = TicksToWalk(diagonal: false);
-        int bias = TicksToWalk(diagonal: true);
-
-        // 14/10 is the integer stand-in for root-2 that both the mover and the
-        // search use, so the ratio lands on it rather than on 1.41421. Within one
-        // tick: a tick is 250 ms (Q1) and a four-tile walk is nine ticks straight
-        // against thirteen on the bias, so a whole tick is 11 % of the answer and
-        // the exact ratio cannot survive the rounding. DK2 steps at the same rate
-        // and has the same quantisation, so equality would assert a finer one.
-        int predicted = straight * GridPathfinder.DiagonalCost / GridPathfinder.StraightCost;
-        Assert.InRange(bias, predicted - 1, predicted + 1);
-
-        // Stated again as the property, because the numbers above would also be
-        // satisfied by two coincidences: the bias walk is strictly slower than
-        // the straight one and strictly faster than walking it as an L.
-        Assert.True(bias > straight, $"bias {bias} was not slower than straight {straight}");
-        Assert.True(bias < straight * 2, $"bias {bias} was not faster than an L of {straight * 2}");
+        Assert.False(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(6, 6)));
     }
 
     [Fact]
-    public void SpeedDoesNotDriftFromRoundingItAwayEveryTick()
+    public void ASecondOfWalkingCoversTheRecordsSpeed()
     {
-        // 7536 does not divide by the tick rate, and throwing the remainder away
-        // each tick would leave every creature permanently slower than its data.
-        // Over a whole second the distance covered must be exactly the speed.
+        // The speed setter (0x0048D010) caps the body at the definition's speed divided by the
+        // tick rate, and an imp reaches that cap on its first tick, so a second on a straight
+        // corridor covers the record's 7536: 1.84 tiles a second (Q29).
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
         CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
@@ -770,13 +731,18 @@ public class ImpTests
         // an open corridor to walk it down — a route over rock would be dropped
         // at the first solid waypoint (see WallsBlockMovementTests).
         for (int x = 2; x <= 14; x++) Carve(world, database, new TilePos(x, 1));
-        for (int x = 2; x <= 14; x++) imp.Path.Add(new TilePos(x, 1));
+        Assert.True(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(14, 1)));
 
         var sim = new GameSimulation(database, world, 1, [new CreatureMovementSystem()]);
         int start = imp.PosX;
         sim.Run(SimulationTiming.TicksPerSecond);
 
-        Assert.Equal(Dk2TerrainFixture.Imp().Speed.Raw, imp.PosX - start);
+        // The body's cap is the record's speed over the tick rate in 16.16, and the velocity is
+        // clamped to it by the original's three-band truncation, which lands a fraction over on a
+        // straight run; every tick then moves that clamped amount, shifted back to entity units.
+        int perTick = CreatureMovementSystem.MaxSpeedOf(database, Dk2TerrainFixture.Imp(), imp.Level) >> 4;
+        Assert.Equal(Dk2TerrainFixture.Imp().Speed.Raw, SimulationTiming.TicksPerSecond * perTick);
+        Assert.InRange(imp.PosX - start, Dk2TerrainFixture.Imp().Speed.Raw, Dk2TerrainFixture.Imp().Speed.Raw * 101 / 100);
     }
 
     // ---- the gate --------------------------------------------------------

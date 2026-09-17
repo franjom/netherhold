@@ -44,7 +44,10 @@ public static class FollowPathRules
 
     public const int CreatureGain = 0x1051E;
 
-    private static readonly List<SteeringObstacle> Scratch = new();
+    // Per thread, not per process: the original is single-threaded, the test host is not.
+    [ThreadStatic] private static List<SteeringObstacle>? _scratch;
+
+    private static List<SteeringObstacle> Scratch => _scratch ??= new List<SteeringObstacle>();
 
     /// <summary>How much of the route is behind the body, 16.16; 1.0 with no route left.</summary>
     public static int Progress(SteeringBody body)

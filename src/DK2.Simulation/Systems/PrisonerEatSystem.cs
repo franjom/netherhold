@@ -132,20 +132,14 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             return;
         }
 
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
 
-        var grid = new CellGrid(
-            new WorldPathGrid(database, world, definition), cell, world.Width);
-        if (_pathfinder.TryFindPath(grid, creature.Tile, new TilePos(x, y), _route))
-        {
-            creature.Path.AddRange(_route);
-        }
+        context.Navigation.TryRoute(creature, new TilePos(x, y));
 
         context.Emit(SystemName, "prisoner_food_chosen",
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} object={food.Id} " +
-            $"at=({x},{y}) steps={creature.Path.Count}");
+            $"at=({x},{y}) steps={creature.Body.PathTotalCount}");
     }
 
     /// <summary>
@@ -176,7 +170,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         {
             // Still walking. A route that ran out short of the bird is a failed
             // approach and the search starts again from where it stands.
-            if (creature.PathIndex < creature.Path.Count) return;
+            if (creature.HasRoute) return;
 
             BackToTheSearch(creature);
             return;
@@ -213,8 +207,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         }
 
         creature.TargetObjectId = EatingRules.NoChicken;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
     }
 
     /// <summary>
@@ -227,23 +220,6 @@ public sealed class PrisonerEatSystem : ISimulationSystem
     {
         creature.TargetObjectId = EatingRules.NoChicken;
         creature.FoodAttemptTicks = 1;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
-    }
-
-    /// <summary>The cell, as a thing to walk about in: every tile the mover could
-    /// ordinarily use, minus every tile that is not this room's.</summary>
-    /// <remarks>Ours, a narrowing rather than a rule. DK2 issues an ordinary move and
-    /// relies on the bird being in the room the prisoner stands in; an unrestricted
-    /// route across an L-shaped prison's corner would run along the corridor outside
-    /// and look exactly like an escape. Same containment as ADR-0073's wander.</remarks>
-    private sealed class CellGrid(IPathGrid inner, RoomInstance room, int width) : IPathGrid
-    {
-        public int Width => inner.Width;
-
-        public int Height => inner.Height;
-
-        public bool IsWalkable(int x, int y) =>
-            inner.IsWalkable(x, y) && EatingRules.Contains(room, (y * width) + x);
+        creature.StopMoving();
     }
 }

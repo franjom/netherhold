@@ -225,7 +225,7 @@ public sealed class HandSystem : ISimulationSystem
         creature.PickupTick = context.Tick.Value;
         creature.PosX = CreatureState.CentreOf(command.Tile.X);
         creature.PosY = CreatureState.CentreOf(command.Tile.Y);
-        creature.MoveRemainder = 0;
+        creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.ClearJob();
 
         // Thrown away: the same removal by the same event kind that a deserter

@@ -283,13 +283,54 @@ with `pos >> 8`, `target >> 8` and the fraction `0x2000`; the result count is
 So the window **does not slide**. When five points are consumed the whole route
 is requested again from wherever the body is, and the funnel runs afresh.
 
+### 7.5 The creature's tick (`0x004D5A40` and its callers)
+
+The body lives inside the creature at `+0x124`. Each of four per-state callers
+(`0x00470C80`, `0x00471460`, `0x004769D0` and the main update `0x00488930`)
+does the same five things: read the body's velocity shifted down four
+(`0x004D5AF0`); write the entity's position and that velocity back into the
+body shifted up four (`0x004D59A0`), so both keep only 1/4096-tile precision
+across a tick; set the six navigation globals from the creature and run the
+integrator (`0x004D5A40`, skipped when `max_speed` is zero); read the position
+back shifted down four (`0x004D5AC0`); and set the entity there (`0x004B5560`).
+The main update alone first asks `0x004B35C0` whether the new tile is on the
+map and not solid, and on refusal puts the body back on the entity with zero
+velocity. It moves a creature only when its state's table byte at
+`0x006DA8C8 + state × 25` has bit 0 set; which states those are is unread.
+
+**Speed.** The compact definition holds the walk, run and shuffle speeds **per
+tick** at `def+0x5B4`, `+0x5B8`, `+0x5BC`: the loader (`0x00492320`) divides the
+KWD fields by variable 19, floored at one, and the stat setter (`0x00494BA4`)
+divides the same way when a level changes them. `0x004887D0(mode, or an
+explicit speed)` picks one and calls the speed setter `0x0048D010`, which keeps
+`min(speed, 0xFFF)` at `creature+0x11C` and writes it shifted up four into
+`max_speed`. Two callers scale the current speed by a percentage for a timed
+effect (`0x0048B8A0` by 150 %, `0x0048CAD0` by an argument), floored at a
+quarter of the walk and capped at four tiles a tick, with the countdown at
+`+0x459`. The body's `radius` is `(footprint >> 1) << 4` through vslot `0x3C`
+(`0x00487AF3`). So `max_speed` and `radius` are per creature after all; only
+`max_force` keeps the reset's `0x18000`.
+
+Ours (`CreatureMovementSystem`, `WorldSteering`): the main update's arm for every
+creature with a route loaded, at the level-scaled walk speed. Run and shuffle,
+the timed multipliers and the per-state gate are not built.
+
 ## 8. What this leaves
 
-- Nothing of Q349, and nothing of Q344: `grtc:` is read and built as
-  `GateWalk`, which belongs to the router (`navigation-and-steering.md`
-  section 2.1).
-- The KWD field at `0xEA0` has no name in the repo's reader yet; phase 3 adds
-  it beside the turn rate at `0xF20` and the size class at `0xEA8`.
+- Which creature states pass which `path_flags`. Every request here carries
+  bit 3 (`WorldSteering.DefaultPathFlags`, HYPOTHESIS): without it two
+  creatures sent to one tile keep each other off its centre.
+- `Obstacle` objects, so `Repel_Obstacle` never fires; the remembered entity of
+  `Separation`'s second term; run and shuffle speeds and the timed multipliers;
+  the per-state movement gate.
+- Two floor tiles that touch only at a corner: no route, ours or DK2's
+  (`0x004C9400` refuses before any search), but the mover commits a step by
+  the tile it lands in, so a steered crossing is not forbidden. Q28 recorded a
+  crossing from play; which mechanism it was is the open half. Experiment: a
+  target reachable both through a diagonal gap and by a 20-tile detour —
+  routing takes the detour, steering cuts the corner; an Imp and a Bile Demon
+  differ if it is steering (the wall margin is one radius). `nav.log` switches
+  on by setting `[0x006EC9E8]` to 1, and a ` retC` line there names a refusal.
 
 ## Confidence
 

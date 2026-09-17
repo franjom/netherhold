@@ -142,13 +142,9 @@ public class CreatureLevelTests
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
         fast.Level = 2;
 
+        var steering = new Navigation.WorldSteering(db, world);
         foreach (CreatureState c in new[] { slow, fast })
-        {
-            c.Path.Clear();
-            c.Path.Add(new TilePos(2, 1));
-            c.Path.Add(new TilePos(3, 1));
-            c.PathIndex = 0;
-        }
+            Assert.True(steering.TryRoute(c, new TilePos(3, 1)));
 
         new GameSimulation(db, world, 42, [new CreatureMovementSystem()]).Run(Second / 2);
 

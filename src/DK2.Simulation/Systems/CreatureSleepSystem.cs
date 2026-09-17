@@ -158,7 +158,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
     private void Seeking(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.PathIndex < creature.Path.Count) return;
+        if (creature.HasRoute) return;
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -188,12 +188,8 @@ public sealed class CreatureSleepSystem : ISimulationSystem
                 out int found, out LairRules.TileFound how))
         {
             var to = new TilePos(found % world.Width, found / world.Width);
-            var grid = new WorldPathGrid(database, world, definition);
-            if (_pathfinder.TryFindPath(grid, at, to, _route))
+            if (context.Navigation.TryRoute(creature, to))
             {
-                creature.Path.Clear();
-                creature.Path.AddRange(_route);
-                creature.PathIndex = 0;
 
                 context.Emit(SystemName, "lair_tile_found",
                     $"creature={creature.Id} type={definition.Name} " +
@@ -233,8 +229,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         }
 
         LairRules.PlaceBed(world, database, creature, tileIndex);
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
         creature.TimerTicks = 0;
 
         TilePos at = creature.Tile;
@@ -256,8 +251,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
     private static void GiveUp(CreatureState creature)
     {
         creature.Activity = CreatureActivity.Idle;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
         creature.TimerTicks = LairRules.IdleRedecisionTicks;
     }
 
@@ -273,12 +267,8 @@ public sealed class CreatureSleepSystem : ISimulationSystem
 
         var bed = new TilePos(index % world.Width, index / world.Width);
 
-        var grid = new WorldPathGrid(context.Database, world, definition);
-        if (!_pathfinder.TryFindPath(grid, creature.Tile, bed, _route)) return;
+        if (!context.Navigation.TryRoute(creature, bed)) return;
 
-        creature.Path.Clear();
-        creature.Path.AddRange(_route);
-        creature.PathIndex = 0;
         creature.Activity = CreatureActivity.GoingToSleep;
 
         context.Emit(SystemName, "going_to_sleep",
@@ -300,7 +290,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             // Still walking. If the path has run out without arriving — the
             // route was blocked mid-walk — fall back to standing up, so a
             // creature cannot be stuck in GoingToSleep forever.
-            if (creature.PathIndex < creature.Path.Count) return;
+            if (creature.HasRoute) return;
             Wake(creature);
             return;
         }
@@ -313,8 +303,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
     {
         creature.Activity = CreatureActivity.Sleeping;
         creature.SleepTicks = 0;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
 
         TilePos at = creature.Tile;
         context.Emit(SystemName, "fell_asleep",
@@ -343,7 +332,6 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         creature.Activity = CreatureActivity.Idle;
         creature.AwakeTicks = 0;
         creature.SleepTicks = 0;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
     }
 }

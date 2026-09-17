@@ -450,6 +450,9 @@ internal static class Dk2TerrainFixture
         DistanceCanSee = new Fp32(16384),
         DistanceCanHear = new Fp32(16384),
         PerceptionRange = new Fp32(0x6000),
+        FootprintRadius = new Fp32(573),
+        SizeClass = 1,
+        TurnRate = 4096,
 
         Hp = 500,
         HungerRate = new Fp32(134213632), // 32767 in DK2's fixed point: the "never" sentinel (Q12)
@@ -543,6 +546,9 @@ internal static class Dk2TerrainFixture
         Name = "Goblin",
         CreatureId = GoblinCreatureId,
         SlapDamage = 115,
+        FootprintRadius = new Fp32(651),
+        SizeClass = 2,
+        TurnRate = 2048,
 
         // The real Goblin's flags, all load-bearing. AvailableViaPortal is what
         // PortalRules.CanComeFromPortal requires; GenerateDeadBody decides
@@ -660,6 +666,9 @@ internal static class Dk2TerrainFixture
     {
         Name = "Vampire",
         CreatureId = VampireCreatureId,
+        FootprintRadius = new Fp32(999),
+        SizeClass = 3,
+        TurnRate = 1365,
 
         // 30 is the value that DOES lose to the loader's divide - 30 / 4 = 7,
         // so a Vampire trains at 28 a game second, not 30 - which makes it the
@@ -730,6 +739,8 @@ internal static class Dk2TerrainFixture
     {
         Name = "Skeleton",
         CreatureId = SkeletonCreatureId,
+        FootprintRadius = new Fp32(634),
+        TurnRate = 1365,
 
         Flags = CreatureFlags.IsEvil | CreatureFlags.IsFearless
                 | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped,
@@ -795,6 +806,9 @@ internal static class Dk2TerrainFixture
     {
         Name = "Bile Demon",
         CreatureId = BileDemonCreatureId,
+        FootprintRadius = new Fp32(1740),
+        SizeClass = 5,
+        TurnRate = 682,
 
         Hp = 6000,
         MeleeDamage = 525,

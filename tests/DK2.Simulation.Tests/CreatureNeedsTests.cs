@@ -939,14 +939,15 @@ public class CreatureNeedsTests
         sim.Run(Second * 10);
 
         // One bed each for the two that got there first, on two different
-        // tiles, and nothing for the third — which found the room full on
-        // arrival and was told so.
-        Assert.True(LairRules.HasBed(world, db, first));
-        Assert.True(LairRules.HasBed(world, db, second));
+        // tiles, and nothing for the last — which found the room full on
+        // arrival and was told so. Which two is geometry: the middle goblin
+        // walks straight while the outer two turn first, and the steering
+        // mover carries them at DK2's speeds, so the order is not asserted.
+        CreatureState[] bedded = [.. new[] { first, second, third }.Where(g => LairRules.HasBed(world, db, g))];
+        Assert.Equal(2, bedded.Length);
         Assert.NotEqual(
-            LairRules.BedTileIndex(world, db, first),
-            LairRules.BedTileIndex(world, db, second));
-        Assert.Equal(-1, LairRules.BedTileIndex(world, db, third));
+            LairRules.BedTileIndex(world, db, bedded[0]),
+            LairRules.BedTileIndex(world, db, bedded[1]));
         Assert.Equal(2, world.Objects.Count);
         Assert.Contains(events.Events, e =>
             e.Kind == "lair_attempt_failed" && e.Detail.Contains("reason=lair_full"));
@@ -1085,7 +1086,11 @@ public class CreatureNeedsTests
         // at its next idle decision — hence a run longer than the dying window.
         first.Health = 0;
         CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 3));
-        sim.Run(Second * 65);
+
+        // Sixty seconds of dying, an idle re-evaluation, and the walk onto the freed tile: the
+        // steering mover's final approach settles onto the centre over a few ticks, so a
+        // sixty-five second window ends with the goblin still approaching.
+        sim.Run(Second * 70);
 
         // Dead, and lying there as a corpse - the bed is what death frees, not
         // the tile the body is on (ADR-0063).

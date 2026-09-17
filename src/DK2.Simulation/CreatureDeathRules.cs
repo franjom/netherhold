@@ -131,15 +131,13 @@ public static class CreatureDeathRules
 
         creature.Activity = CreatureActivity.Dead;
 
-        // A fresh sixty seconds: the corpse and rescue windows share one field,
-        // so a corpse would inherit a spent clock without this.
+        // A fresh sixty seconds: the corpse and rescue windows share one field.
         creature.DyingTicks = 0;
 
         creature.TargetTileIndex = -1;
         creature.TargetWork = default;
         creature.TimerTicks = 0;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
     }
 
     /// <summary>Whether this creature leaves a corpse behind —
@@ -166,8 +164,7 @@ public static class CreatureDeathRules
         creature.TargetTileIndex = -1;
         creature.TargetWork = default;
         creature.TimerTicks = 0;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
         return true;
     }
 
@@ -187,7 +184,7 @@ public static class CreatureDeathRules
 
         creature.PosX = CreatureState.CentreOf(bed % world.Width);
         creature.PosY = CreatureState.CentreOf(bed / world.Width);
-        creature.MoveRemainder = 0;
+        creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
         creature.AwakeTicks = 0;

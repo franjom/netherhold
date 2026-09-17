@@ -15,10 +15,10 @@ algorithm level.
 Continues `navigation-and-steering.md`, which owns the funnel (§2.1) and the
 mover; this page owns everything before the funnel.
 
-**Built as an unwired library** (ADR-0157 phase 1): `NavMesh`, `MeshRouter` and
-`Funnel` in `DK2.Pathfinding`, tested on synthetic maps — the owner's straight
-10-by-3 walk is one of the tests. `GridPathfinder` still serves the simulation
-until phase 3.
+**Built** (ADR-0157 phases 1 and 3): `NavMesh`, `MeshRouter` and `Funnel` in
+`DK2.Pathfinding`, driven by `WorldSteering` for every creature since
+2026-09-17 and building all seven campaign maps; the owner's straight 10-by-3
+walk is one of the tests.
 
 ---
 
@@ -100,7 +100,11 @@ rectangle's navigation byte (`0x004CC9B0`).
   (`0x004C9FC0`: two orientation tests as a convexity guard, then both
   triangles' vertex and neighbour words are rewritten). If the segment passes
   exactly through an existing vertex the routine **recurses on the two halves**.
-  That is textbook constrained-edge insertion by flipping.
+  That is textbook constrained-edge insertion by flipping. Its flip order is
+  unread; ours collects the crossed edges first and flips them in Sloan's queue
+  order — a non-convex quad waits, a new diagonal that still crosses re-queues —
+  because flipping the first crossed edge and restarting cycled on five
+  campaign maps.
 
 **Coarsen.** Adjacent triangles whose `+0xC` bytes agree are merge candidates
 (`0x004C97B0` compares neighbours); `0x004CB8C0` merges two across a shared
@@ -152,9 +156,13 @@ flood fill over non-solid triangles (bit 3 of `+0xC` clear) with a 200-slot
 ring queue, assigning ids and keeping 3-byte per-region records at `0x6E96C8`
 (a word count and a byte). `0x004CE410` gathers the ids bordering a rebuilt
 rectangle so the fill can be re-run locally. Outside the builder only the
-mover's gate branch reads them: `0x004C9400` compares the two endpoint
-triangles' ids before any search runs (§5). The search itself never consults
-them.
+orchestrator reads them: `0x004D0320` asks `0x004C9400` to compare the two
+endpoint triangles' ids before either mode's search runs (§5). The search
+itself never consults them. When neither region is marked in use the check
+re-runs the fill and then compares the two words with `XOR` and `AND AL,0xC0`
+(`0x004C952B`) — the low two bits of the id only, so two regions whose ids
+differ by a multiple of four read as one. Rare in play: ids are almost always
+in use and take the direct compare.
 
 ## 3. The search is greedy best-first
 
@@ -167,7 +175,9 @@ search over triangle indices** with:
   search, the array cleared when it wraps, the same generation trick our own
   `GridPathfinder` uses;
 - a **predecessor** per triangle, read back into the route slots on success;
-- termination when the goal triangle is **popped**.
+- **two pops a round** (`0x004CD15A`–`0x004CD1C4`): the root, then the next
+  root unless it is the goal, both expanded before the root is looked at again;
+- termination when the goal triangle is at the **root**.
 
 The key stored for a neighbour `n`, and the only thing the heap compares
 (`0x004CCF00` sifts on `[0x006ECA1C]` with a `−1` sentinel at the root), is
@@ -251,10 +261,15 @@ the class byte at `[0x006A11F4]`, and a dirty flag at `[0x006A11EC]` that the
 notifying nav-byte setter raises through `0x004CE770` — and if all match, skips
 both searches and re-runs only the funnel. `DOUBLE PATH` labels that path.
 
-The mover's gate branch (mode `0x2000`, `navigation-and-steering.md` §2.1)
-first asks `0x004C9400` whether the two triangles carry one region id and
-refuses the route (` retC`) if not — the only reader of region ids outside the
-builder. Our router has no region ids and relies on the search failing instead.
+Every request that misses the cache first asks `0x004C9400` (one call site,
+`0x004D06F1` in `0x004D0320`, before the mode branch) whether the two endpoint
+triangles carry one region id, and returns a zero-length route (` retC`) if
+not — the only reader of region ids outside the builder. The mover then sets
+`path_finished` and `Follow_Path` brakes; nothing retries, digs or walks
+straight at the target. Our router has no region ids and relies on the search
+failing instead. The logger behind every label in §1 is gated on
+`[0x006EC9E8]`, which 44 instructions read and none writes: set to 1 in
+memory it writes `nav.log`, and a ` retC` line there names a refusal.
 
 ## 6. What this leaves
 
@@ -287,7 +302,8 @@ per-slot masks and that the search advances through them; that the class byte
 is `[0x006A11F0] − 1` with no writer of that byte found; the constraint bits
 `slot + 3` — set by the side-marker, cleared by the clone, refused by the flip;
 the flood fill, its queue and its records; that outside the builder only the
-gate branch's pre-check `0x004C9400` reads region ids (§5).
+orchestrator's pre-check `0x004C9400` reads region ids, before either mode's
+search (§5); the search's two pops a round.
 
 **CONFIRMED (binary + repo):** categories 1 and 3 are water and lava — the two
 definition bits the request reads are the two our `CreatureFlags` already names.

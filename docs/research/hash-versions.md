@@ -32,7 +32,12 @@ beside it.
 
 ## Versions
 
-**61** — `0x57435BC71CE1BBDC` (current). Creatures gained their saved trigger root
+**62** — `0xE4BA93698075EF4F` (current). The tile path, its index and the
+movement remainder left the creature; its heading and the steering body's
+surviving fields entered (ADR-0157 phase 3). The pinned world moves nobody, so
+this is composition only.
+
+**61** — `0x57435BC71CE1BBDC`. Creatures gained their saved trigger root
 and repeat snapshot for the creature trigger walker (ADR-0152). The fixture's
 creatures have no roots, so this is composition only.
 

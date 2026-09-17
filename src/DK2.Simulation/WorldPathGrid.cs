@@ -52,8 +52,8 @@ public sealed class WorldPathGrid : IPathGrid
 
     public int Height => _world.Height;
 
-    /// <summary>Whether this creature may stand on the tile; <see cref="Systems.CreatureMovementSystem"/>
-    /// applies the rule again when stepping, because a route is planned once and the world moves.</summary>
+    /// <summary>Whether this creature may stand on the tile; <see cref="Navigation.WorldSteering.ByteOf"/>
+    /// derives the mover's navigation byte from the same flags.</summary>
     /// <remarks>
     /// <para>Water and lava carry <c>Impenetrable</c> in the shipped record and that is deliberately
     /// not what is tested: impenetrable means "cannot be tunnelled through" and says nothing about

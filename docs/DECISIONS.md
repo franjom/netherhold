@@ -3505,12 +3505,11 @@ reason: the rule is knowable now, the integration is not.
 
 ## ADR-0157 — The router is rebuilt on the original's mesh, search and funnel
 
-**Status.** Accepted 2026-09-16 · phase 1 landed the same day: `NavMesh`,
-`MeshRouter` and `Funnel`, tested and unwired · phase 2 landed 2026-09-17:
-`Follow_Path`, `Avoid_Walls`, `Repel_Obstacle`, `Separation`, the route window,
-the turn and `SteeringIntegrator` (combiner, Euler step, slide, wall clamp),
-tested and unwired in `DK2.Simulation.Steering` · the gate re-walk `GateWalk`
-(Q344) landed the same day, so phase 3 waits on nothing.
+**Status.** Accepted 2026-09-16 · phase 1 (`NavMesh`, `MeshRouter`, `Funnel`)
+landed the same day · phase 2 (`DK2.Simulation.Steering`: four behaviours, route
+window, turn, `SteeringIntegrator`) and the gate re-walk `GateWalk` (Q344) landed
+2026-09-17 · **phase 3** landed the same day: `WorldSteering` and
+`CreatureMovementSystem` drive every creature; `HashVersion` 62.
 
 **Context.** ADR-0155 recorded that DK2 routes over a navigation mesh and moves
 by steering, and left the rebuild to the owner. Since then the owner has watched
@@ -3537,10 +3536,10 @@ integration (Q343). **The owner decided on 2026-09-16 to rebuild.**
    router. `HashVersion` moves and the pin is re-baselined in that commit.
 
 **Consequences.**
-- `GridPathfinder` and `CreatureMovementSystem` stay in service until phase 3.
-- `TryFindNearest` has no original analogue: DK2 chooses work by whole-map kind
-  lists and ring scans (ADR-0058), never by path-distance-nearest. Phase 3 must
-  move those callers onto that, or keep a labelled grid Dijkstra for them.
+- `GridPathfinder` survives only behind `TryFindNearest`, a labelled stand-in:
+  DK2 chooses work by kind lists and ring scans (ADR-0058), never by walking
+  distance. The route to what it chose comes from the mesh; a target the grid
+  reaches and the mesh cannot (Q28's corner) is skipped.
 - Deliberately omitted, because the shipped game never engages them and no
   route changes: edge width classes and mover classes; region ids, which only
   the request's reachability pre-check reads and a failed search stands in for.

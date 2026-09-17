@@ -94,35 +94,21 @@ public sealed class MeshRouter
         _heapCount = 0;
         if (!Push(seed)) return false;
 
+        // Two pops a round (`0x004CD15A`–`0x004CD1C4`): the root and then, if the new root is
+        // not the goal, the next one; both are expanded before the root is tested again.
         while (_heapCount > 0)
         {
-            int current = _heap[1];
-            if (current == target) break;
-            Pop();
-
-            byte currentNav = _mesh.NavByte(current);
-            for (int slot = 0; slot < 3; slot++)
+            if (_heap[1] == target) break;
+            int first = Pop();
+            int second = -1;
+            if (_heapCount > 0)
             {
-                int n = _mesh.Neighbour(current, slot);
-                if (n == NavMesh.NoNeighbour || _stamp[n] == _generation) continue;
-
-                int cost = TransitionCost(_mesh.NavByte(n), currentNav, mover);
-                if (cost == 0) continue;
-
-                int best = int.MaxValue;
-                for (int i = 0; i < 3; i++)
-                {
-                    int p = _mesh.Vertex(n, i);
-                    int dx = gx - _mesh.PointX(p), dy = gy - _mesh.PointY(p);
-                    int d2 = (dx * dx) + (dy * dy);
-                    if (d2 < best) best = d2;
-                }
-
-                _key[n] = best << ((2 * cost) - 2);
-                _stamp[n] = _generation;
-                _pred[n] = current;
-                if (!Push(n)) return false;
+                if (_heap[1] == target) break;
+                second = Pop();
             }
+
+            if (!Expand(first, gx, gy, mover)) return false;
+            if (second >= 0 && !Expand(second, gx, gy, mover)) return false;
         }
 
         if (_heapCount == 0 || _heap[1] != target) return false;
@@ -167,6 +153,36 @@ public sealed class MeshRouter
         _generation = 1;
     }
 
+    /// <summary>Push each unvisited, passable neighbour keyed on its nearest vertex's squared
+    /// distance to the goal, shifted by the transition cost; false only on heap overflow.</summary>
+    private bool Expand(int current, int gx, int gy, MoverProfile mover)
+    {
+        byte currentNav = _mesh.NavByte(current);
+        for (int slot = 0; slot < 3; slot++)
+        {
+            int n = _mesh.Neighbour(current, slot);
+            if (n == NavMesh.NoNeighbour || _stamp[n] == _generation) continue;
+
+            int cost = TransitionCost(_mesh.NavByte(n), currentNav, mover);
+            if (cost == 0) continue;
+
+            int best = int.MaxValue;
+            for (int i = 0; i < 3; i++)
+            {
+                int p = _mesh.Vertex(n, i);
+                int dx = gx - _mesh.PointX(p), dy = gy - _mesh.PointY(p);
+                int d2 = (dx * dx) + (dy * dy);
+                if (d2 < best) best = d2;
+            }
+
+            _key[n] = best << ((2 * cost) - 2);
+            _stamp[n] = _generation;
+            _pred[n] = current;
+            if (!Push(n)) return false;
+        }
+        return true;
+    }
+
     /// <summary>The original's push (`0x004CCF00`): append, then sift up while the key is not
     /// greater than the parent's — so a newcomer rises past parents with an equal key.</summary>
     private bool Push(int t)
@@ -186,9 +202,10 @@ public sealed class MeshRouter
 
     /// <summary>The original's pop (`0x004CCF70`): move the last entry to the root and sift it
     /// down toward the smaller child — the left one on a tie — stopping only when the moving key
-    /// is strictly smaller than the child's, so it sinks below equal keys.</summary>
-    private void Pop()
+    /// is strictly smaller than the child's, so it sinks below equal keys. Returns the root.</summary>
+    private int Pop()
     {
+        int root = _heap[1];
         int t = _heap[_heapCount--];
         int i = 1;
         while (true)
@@ -201,5 +218,6 @@ public sealed class MeshRouter
             i = child;
         }
         _heap[i] = t;
+        return root;
     }
 }

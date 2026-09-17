@@ -124,8 +124,7 @@ public static class CarryRules
 
         // A corpse that was walking when it died would otherwise keep its route; collapsing
         // already clears the path.
-        body.Path.Clear();
-        body.PathIndex = 0;
+        body.StopMoving();
     }
 
     /// <summary>Takes <paramref name="body"/> out of <paramref name="worker"/>'s arms.</summary>

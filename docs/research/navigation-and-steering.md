@@ -14,11 +14,11 @@ Questions: **Q5** (answered at the architectural level here), **Q342**,
 the triangulation Q347, both answered in
 [navigation-mesh-and-search.md](navigation-mesh-and-search.md).
 
-**Both halves are built as unwired libraries** (ADR-0157 phases 1 and 2): the
-router in `DK2.Pathfinding` (`navigation-mesh-and-search.md`), and the four
-behaviours, the route window, the turn and the integrator in
-`DK2.Simulation.Steering` ([steering-behaviours.md](steering-behaviours.md)).
-`GridPathfinder` still serves the simulation until phase 3 (§6).
+**Both halves are built and wired** (ADR-0157): the router in
+`DK2.Pathfinding` (`navigation-mesh-and-search.md`), the four behaviours, the
+route window, the turn and the integrator in `DK2.Simulation.Steering`
+([steering-behaviours.md](steering-behaviours.md)), and `WorldSteering` with
+`CreatureMovementSystem` between them and the world (§6).
 
 ---
 
@@ -353,18 +353,19 @@ actually uses, not a disabled development path.
 
 ## 6. What this means for our pathfinder
 
-`GridPathfinder` is eight-connected A* over tiles with octile cost. The original
-searches a triangle mesh and then steers along the extracted path under forces.
-These are not the same algorithm and they will not generally return the same
-route, nor the same motion along it.
+Since ADR-0157 phase 3 (2026-09-17) every creature walks this way:
+`WorldSteering` keeps the navigation byte of every tile, rebuilds the mesh when
+one changes and answers the four probes; a system that wants a creature
+somewhere asks it for a route to a tile's centre, and `CreatureMovementSystem`
+runs the mover's tick (steering-behaviours.md §7.5). `GridPathfinder` survives
+only behind `IPathfinder.TryFindNearest`, which chooses work by walking
+distance where DK2 chooses by kind lists and ring scans (ADR-0058); the route
+to what it chose comes from the mesh, and a target the grid reaches but the
+mesh cannot — two floor tiles touching at a corner (Q28) — is skipped.
 
-The parts of ADR-0012 that survive are the parts that were measured against the
-game rather than assumed: eight-connectivity and corner-cutting (Q28,
-CONFIRMED), no terrain weighting (Q30, CONFIRMED). Those remain true
-*observations* and any replacement must still satisfy them.
-
-The claim implied by the interface — that a tile route is what DK2 computes —
-is wrong; the owner chose to rebuild (ADR-0157), and phase 3 retires it.
+The parts of ADR-0012 that were measured against the game still hold as
+observations: a route runs straight where it can (Q341) and no terrain is
+weighted (Q30).
 
 ## 7. What this leaves
 

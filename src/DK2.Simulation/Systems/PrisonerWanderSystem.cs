@@ -40,7 +40,7 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
 
             // Already walking. The original rolls in state 116 only once the
             // walk it was given has finished, and this is that condition.
-            if (creature.PathIndex < creature.Path.Count) continue;
+            if (creature.HasRoute) continue;
 
             // On its way to a chicken, or standing over one. That is states 117
             // and 118 rather than 116, and they do not roll for a step: the
@@ -63,9 +63,7 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
                 continue;
             }
 
-            creature.Path.Clear();
-            creature.Path.Add(step);
-            creature.PathIndex = 0;
+            if (!context.Navigation.TryRoute(creature, step)) continue;
 
             context.Emit(SystemName, "prisoner_stepped",
                 $"creature={creature.Id} player={creature.OwnerPlayerId} " +

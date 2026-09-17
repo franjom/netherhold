@@ -37,7 +37,7 @@ public sealed class StructureBlocks
     /// <summary>Works out which tiles a portal's or a heart's structure occupies. Scans for the two
     /// room terrains first and returns the shared empty instance when there are none — the common
     /// case for a test map — so the cost is one byte compare per tile plus a flood fill over portal
-    /// and heart tiles only. Compute once a tick and share it: <see cref="WorldPathGrid"/> is built per creature per tick by <see cref="Systems.CreatureMovementSystem"/>.</summary>
+    /// and heart tiles only. Compute once and share it: <see cref="Navigation.WorldSteering.Refresh"/> reads it once per refresh.</summary>
     public static StructureBlocks For(WorldState world, GameDatabase database)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));

@@ -22,7 +22,10 @@ public static class SeparationBehaviour
     /// <summary>Arrived within half a tile of the last point, with the flag, nothing pushes.</summary>
     public const int ArrivalSlack = 0x8000;
 
-    private static readonly List<SteeringNeighbour> Scratch = new();
+    // Per thread, not per process: the original is single-threaded, the test host is not.
+    [ThreadStatic] private static List<SteeringNeighbour>? _scratch;
+
+    private static List<SteeringNeighbour> Scratch => _scratch ??= new List<SteeringNeighbour>();
 
     public static Fixed16Vector Compute(SteeringBody body, SteeringMover mover, ISteeringWorld world)
     {

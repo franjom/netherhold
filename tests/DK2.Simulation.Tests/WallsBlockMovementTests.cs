@@ -108,11 +108,16 @@ public class WallsBlockMovementTests
             sim.Tick(InputFrame.Empty);
 
             foreach (CreatureState creature in world.Creatures)
-                for (int i = creature.PathIndex; i < creature.Path.Count; i++)
+            {
+                if (!creature.HasRoute) continue;
+                for (int i = creature.Body.SubpathIndex; i < creature.Body.PathBufferCount; i++)
+                {
+                    var at = new TilePos((creature.Body.Subpath[i].X >> 4) / Fp32.One, (creature.Body.Subpath[i].Y >> 4) / Fp32.One);
                     Assert.False(
-                        IsSolidAt(database, world, creature.Path[i]),
-                        $"creature {creature.Id} was routed through " +
-                        $"({creature.Path[i].X},{creature.Path[i].Y}) on tick {tick}");
+                        IsSolidAt(database, world, at),
+                        $"creature {creature.Id} was routed through ({at.X},{at.Y}) on tick {tick}");
+                }
+            }
         }
     }
 
@@ -142,8 +147,7 @@ public class WallsBlockMovementTests
         }
 
         CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
-        for (int x = 4; x <= 10; x++)
-            imp.Path.Add(new TilePos(x, 2));
+        Assert.True(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(10, 2)));
 
         var sim = new GameSimulation(database, world, 11, [new Systems.CreatureMovementSystem()]);
 
@@ -164,9 +168,10 @@ public class WallsBlockMovementTests
                 $"imp reached ({imp.Tile.X},{imp.Tile.Y}), past the lava at ({blockAt},2)");
         }
 
-        // And it did not simply freeze mid-route: the route is dropped, which is
-        // what lets the task system give it something else to do.
-        Assert.Empty(imp.Path);
+        // And it did not simply freeze mid-route: Avoid_Walls treats the lava as a wall, the
+        // stuck history fills, the re-request finds no route and the walk is finished, which
+        // is what lets the task system give it something else to do.
+        Assert.False(imp.HasRoute);
     }
 
     /// <summary>

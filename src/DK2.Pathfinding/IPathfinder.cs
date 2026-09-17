@@ -27,18 +27,12 @@ public interface IPathGrid
     bool IsWalkable(int x, int y);
 }
 
-/// <summary>
-/// Grid search over a dungeon.
-///
-/// <b>Q5 is UNKNOWN and this is not an answer to it.</b> How Dungeon Keeper 2
-/// actually routes creatures is the project's largest open question — Flame
-/// names a 36-byte <c>Follow_Path</c> struct and has zero named fields for it,
-/// and nobody has solved it. What lives behind this interface is an honest
-/// placeholder: a correct, deterministic, shortest-path search that lets the
-/// rest of the simulation be built, and that can be replaced wholesale once the
-/// original's routing is understood. Nothing outside this assembly may assume
-/// which of several equally short routes comes back.
-/// </summary>
+/// <summary>Grid search over a dungeon. Since ADR-0157 no creature walks a route from here: DK2
+/// routes over a navigation mesh (<see cref="MeshRouter"/>) and the simulation requests its routes
+/// there. What remains in service is <see cref="TryFindNearest"/>, a Dijkstra that chooses the
+/// nearest goal by walking distance, a labelled stand-in for DK2's kind lists and ring scans
+/// (ADR-0058). Nothing outside this assembly may assume which of several equally short routes
+/// comes back.</summary>
 public interface IPathfinder
 {
     /// <summary>

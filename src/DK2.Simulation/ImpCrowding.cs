@@ -73,7 +73,7 @@ public static class ImpCrowding
     /// being walked — one less field to keep in step, and one less in the determinism hash.</summary>
     public static int FaceOf(WorldState world, CreatureState creature)
     {
-        TilePos at = creature.Path.Count > 0 ? creature.Path[^1] : creature.Tile;
+        TilePos at = creature.IsRouted ? creature.Destination : creature.Tile;
         return (at.Y * world.Width) + at.X;
     }
 }

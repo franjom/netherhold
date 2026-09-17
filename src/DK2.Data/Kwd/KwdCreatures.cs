@@ -140,6 +140,9 @@ public static class KwdCreatures
             DistanceCanSee = Fp(0xEC8),
             DistanceCanHear = Fp(0xECC),
             PerceptionRange = Fp(0xD01),
+            FootprintRadius = Fp(0xEA0),
+            SizeClass = (int)(U32(0xEA8) >> 12),
+            TurnRate = U16(0xF20),
 
             Hp = U16(0xF0C),
             HpFromChicken = U16(0xF0E),

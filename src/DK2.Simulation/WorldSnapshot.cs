@@ -29,7 +29,70 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 61;
+    private const int FormatVersion = 62;
+
+    /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
+    private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
+    {
+        WriteVector(w, body.Vel);
+        WriteVector(w, body.LocalXAxis);
+        WriteVector(w, body.LocalYAxis);
+        WriteVector(w, body.PathTargetPos);
+        for (int i = 0; i < Steering.SteeringBody.WindowSize; i++)
+        {
+            WriteVector(w, body.Subpath[i]);
+            w.Write(body.Segment[i]);
+        }
+
+        w.Write(body.PathTotalDist);
+        w.Write(body.PathSubpathDist);
+        w.Write(body.PathTailDist);
+        w.Write(body.PathLastProgress);
+        w.Write(body.PathStuckBuffer);
+        w.Write(body.PathTotalCount);
+        w.Write(body.PathFlags);
+        w.Write(body.PathBufferCount);
+        w.Write(body.SubpathIndex);
+        w.Write(body.PathFinished);
+        w.Write(body.IsBlocker);
+        w.Write(body.IgnoreBlocker);
+        w.Write(body.EscapeStuckMode);
+    }
+
+    private static void ReadBody(BinaryReader r, Steering.SteeringBody body)
+    {
+        body.Vel = ReadVector(r);
+        body.LocalXAxis = ReadVector(r);
+        body.LocalYAxis = ReadVector(r);
+        body.PathTargetPos = ReadVector(r);
+        for (int i = 0; i < Steering.SteeringBody.WindowSize; i++)
+        {
+            body.Subpath[i] = ReadVector(r);
+            body.Segment[i] = r.ReadInt32();
+        }
+
+        body.PathTotalDist = r.ReadInt32();
+        body.PathSubpathDist = r.ReadInt32();
+        body.PathTailDist = r.ReadInt32();
+        body.PathLastProgress = r.ReadInt32();
+        body.PathStuckBuffer = r.ReadUInt16();
+        body.PathTotalCount = r.ReadByte();
+        body.PathFlags = r.ReadByte();
+        body.PathBufferCount = r.ReadInt32();
+        body.SubpathIndex = r.ReadInt32();
+        body.PathFinished = r.ReadBoolean();
+        body.IsBlocker = r.ReadBoolean();
+        body.IgnoreBlocker = r.ReadBoolean();
+        body.EscapeStuckMode = r.ReadBoolean();
+    }
+
+    private static void WriteVector(BinaryWriter w, Steering.Fixed16Vector v)
+    {
+        w.Write(v.X);
+        w.Write(v.Y);
+    }
+
+    private static Steering.Fixed16Vector ReadVector(BinaryReader r) => new(r.ReadInt32(), r.ReadInt32());
 
     public static void Write(Stream stream, GameSimulation simulation)
     {
@@ -113,7 +176,7 @@ public static class WorldSnapshot
             w.Write(c.TriggerRepeat);
             w.Write(c.PosX);
             w.Write(c.PosY);
-            w.Write(c.MoveRemainder);
+            w.Write(c.Heading);
             w.Write(c.GoldHeld);
             w.Write(c.Health);
             w.Write(c.HungerTicks);
@@ -157,17 +220,10 @@ public static class WorldSnapshot
             w.Write(c.TargetTileIndex);
             w.Write((int)c.TargetWork);
             w.Write(c.TimerTicks);
-            w.Write(c.PathIndex);
 
-            // The path is state, not a cache: a creature restored without it
-            // would re-plan and could pick a different equally short route, so
-            // the restored run would diverge from the one it claims to continue.
-            w.Write(c.Path.Count);
-            foreach (TilePos p in c.Path)
-            {
-                w.Write(p.X);
-                w.Write(p.Y);
-            }
+            // The route window is state, not a cache: a creature restored without it would
+            // request again from a different position and the restored run would diverge.
+            WriteBody(w, c.Body);
         }
 
         w.Write(world.NextObjectId);
@@ -407,7 +463,7 @@ public static class WorldSnapshot
                 TriggerRepeat = r.ReadByte(),
                 PosX = r.ReadInt32(),
                 PosY = r.ReadInt32(),
-                MoveRemainder = r.ReadInt32(),
+                Heading = r.ReadInt32(),
                 GoldHeld = r.ReadInt32(),
                 Health = r.ReadInt32(),
                 HungerTicks = r.ReadInt32(),
@@ -454,13 +510,10 @@ public static class WorldSnapshot
                 TargetTileIndex = r.ReadInt32(),
                 TargetWork = (TileWorkKind)r.ReadInt32(),
                 TimerTicks = r.ReadInt32(),
-                PathIndex = r.ReadInt32(),
             };
 
-            int pathLength = r.ReadInt32();
-            for (int p = 0; p < pathLength; p++)
-                creature.Path.Add(new TilePos(r.ReadInt32(), r.ReadInt32()));
-
+            ReadBody(r, creature.Body);
+            Navigation.WorldSteering.SyncBody(creature);
             world.RawCreatures.Add(creature);
         }
 

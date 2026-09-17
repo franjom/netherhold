@@ -215,24 +215,20 @@ public sealed class PaydaySystem : ISimulationSystem
             if (at == creature.Tile)
             {
                 creature.Activity = CreatureActivity.SeekingWages;
-                creature.Path.Clear();
-                creature.PathIndex = 0;
+                creature.StopMoving();
                 Take(context, creature);
                 return;
             }
 
-            if (!_pathfinder.TryFindPath(grid, creature.Tile, at, _route)) continue;
+            if (!context.Navigation.TryRoute(creature, at)) continue;
 
-            creature.Path.Clear();
-            creature.Path.AddRange(_route);
-            creature.PathIndex = 0;
             creature.Activity = CreatureActivity.SeekingWages;
 
             context.Emit(SystemName, "wages_sought",
                 $"creature={creature.Id} type={definition.Name} " +
                 $"player={creature.OwnerPlayerId} owed={creature.WageOwed} " +
                 $"to=({at.X},{at.Y}) gold={world.TileAtIndex(target).GoldHeld} " +
-                $"steps={creature.Path.Count}");
+                $"steps={creature.Body.PathTotalCount}");
             return;
         }
 
@@ -254,7 +250,7 @@ public sealed class PaydaySystem : ISimulationSystem
     {
         // CreatureMovementSystem walks the path; this only notices the end of
         // it, exactly as the hunger walk does.
-        if (creature.PathIndex < creature.Path.Count) return;
+        if (creature.HasRoute) return;
         Take(context, creature);
     }
 
@@ -280,8 +276,7 @@ public sealed class PaydaySystem : ISimulationSystem
         {
             creature.PayAttemptsFailed++;
             creature.Activity = CreatureActivity.Idle;
-            creature.Path.Clear();
-            creature.PathIndex = 0;
+            creature.StopMoving();
 
             context.Emit(SystemName, "wages_missed",
                 $"creature={creature.Id} player={creature.OwnerPlayerId} " +
@@ -301,8 +296,7 @@ public sealed class PaydaySystem : ISimulationSystem
         // walks to another tile; so does this, on the next tick, because the
         // creature goes idle and the decision runs again.
         creature.Activity = CreatureActivity.Idle;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
     }
 
     /// <summary>

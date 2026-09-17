@@ -58,6 +58,9 @@ public class ImpsOnRealDataTests
         Assert.Equal(16384, real.DistanceCanSee.Raw);
         Assert.Equal(0x6000, real.PerceptionRange.Raw);
         Assert.Equal(16384, real.DistanceCanHear.Raw);
+        Assert.Equal(573, real.FootprintRadius.Raw);
+        Assert.Equal(1, real.SizeClass);
+        Assert.Equal(4096, real.TurnRate);
 
         Assert.Equal(500, real.Hp);
         Assert.Equal(134213632, real.HungerRate.Raw); // 32767.0, the "never" sentinel

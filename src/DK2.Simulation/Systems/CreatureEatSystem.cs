@@ -89,8 +89,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
                     if (EatingRules.HatcheryUnder(world, database, creature) is not null)
                     {
                         creature.Activity = CreatureActivity.SeekingFood;
-                        creature.Path.Clear();
-                        creature.PathIndex = 0;
+                        creature.StopMoving();
                         Seeking(context, creature, definition);
                         break;
                     }
@@ -150,7 +149,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
         {
             int target = ArrivalTile(world, room);
             var at = new TilePos(target % world.Width, target / world.Width);
-            if (!_pathfinder.TryFindPath(grid, creature.Tile, at, _route)) continue;
+            if (!context.Navigation.TryRoute(creature, at)) continue;
 
             chosen = room;
             arrival = target;
@@ -169,9 +168,6 @@ public sealed class CreatureEatSystem : ISimulationSystem
             return false;
         }
 
-        creature.Path.Clear();
-        creature.Path.AddRange(_route);
-        creature.PathIndex = 0;
         creature.TargetObjectId = EatingRules.NoChicken;
         creature.Activity = CreatureActivity.SeekingFood;
 
@@ -198,7 +194,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
     private void Seeking(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.PathIndex < creature.Path.Count) return;
+        if (creature.HasRoute) return;
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -269,7 +265,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
             // Still walking. A route that ran out short of the bird — a waypoint
             // that stopped being walkable — is a failed approach, and the search
             // starts again from where the creature now stands.
-            if (creature.PathIndex < creature.Path.Count) return;
+            if (creature.HasRoute) return;
 
             BackToTheSearch(creature);
             return;
@@ -287,8 +283,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
 
         creature.TargetObjectId = chicken.Id;
         creature.Activity = CreatureActivity.FetchingChicken;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
 
         int x = chicken.TileIndex % world.Width;
         int y = chicken.TileIndex / world.Width;
@@ -301,16 +296,12 @@ public sealed class CreatureEatSystem : ISimulationSystem
             return;
         }
 
-        var grid = new WorldPathGrid(database, world, definition);
-        if (_pathfinder.TryFindPath(grid, creature.Tile, new TilePos(x, y), _route))
-        {
-            creature.Path.AddRange(_route);
-        }
+        context.Navigation.TryRoute(creature, new TilePos(x, y));
 
         context.Emit(SystemName, "chicken_chosen",
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} chicken={chicken.Id} " +
-            $"at=({x},{y}) steps={creature.Path.Count}");
+            $"at=({x},{y}) steps={creature.Body.PathTotalCount}");
     }
 
     /// <summary>One bird eaten: one tick's work once the creature is within a tile.
@@ -350,8 +341,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
     {
         creature.TargetObjectId = EatingRules.NoChicken;
         creature.Activity = CreatureActivity.SeekingFood;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
     }
 
     /// <summary>Out of the eating states entirely, and idle.</summary>
@@ -359,8 +349,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
     {
         creature.TargetObjectId = EatingRules.NoChicken;
         creature.Activity = CreatureActivity.Idle;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
     }
 
     /// <summary>The room's centre tile, rounded down — the same shape a lair uses.</summary>

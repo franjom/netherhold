@@ -217,7 +217,7 @@ public class CreatureAngerTests
         Assert.Contains(world.Creatures, c => c.Id == goblin.Id);
         Assert.Equal(CreatureActivity.Leaving, goblin.Activity);
         Assert.Equal(-1, LairRules.BedTileIndex(world, db, goblin));
-        Assert.NotEmpty(goblin.Path);
+        Assert.True(goblin.HasRoute);
 
         SimEvent leaving = Assert.Single(
             events.Events, e => e.Kind == "creature_leaving");
@@ -462,7 +462,7 @@ public class CreatureAngerTests
         sim.Run(Second);
 
         Assert.Equal(CreatureActivity.SeekingLair, goblin.Activity);
-        Assert.NotEmpty(goblin.Path);
+        Assert.True(goblin.HasRoute);
 
         // The selection was spent on the journey rather than on a roll: the
         // attempt is reported under the anger system's own name, and no roll

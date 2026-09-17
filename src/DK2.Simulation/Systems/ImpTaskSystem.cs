@@ -234,14 +234,13 @@ public sealed class ImpTaskSystem : ISimulationSystem
     {
         if (IsInWorkingPosition(context, creature, grid))
         {
-            creature.Path.Clear();
-            creature.PathIndex = 0;
+            creature.StopMoving();
             creature.Activity = CreatureActivity.Working;
             creature.TimerTicks = SimulationTiming.WorkApplicationPeriodTicks;
             return;
         }
 
-        if (creature.PathIndex < creature.Path.Count) return;
+        if (creature.HasRoute) return;
 
         // Walked the whole route and the target is still not next to it: the
         // world changed under the route. Drop the job rather than re-planning
@@ -327,9 +326,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = default;
-        creature.Path.Clear();
-        creature.Path.AddRange(_route);
-        creature.PathIndex = 0;
+        context.Navigation.TryRoute(creature, standing);
         creature.Activity = CreatureActivity.FetchingGold;
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.FetchGold;
@@ -404,7 +401,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (here != creature.TargetTileIndex)
         {
-            if (creature.PathIndex < creature.Path.Count) return;
+            if (creature.HasRoute) return;
 
             context.Emit(SystemName, "fetch_abandoned",
                 $"imp={creature.Id} {Describe(world, creature.TargetTileIndex)} " +
@@ -507,7 +504,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         }
 
         // Still on the road.
-        if (creature.PathIndex < creature.Path.Count) return;
+        if (creature.HasRoute) return;
 
         if (TryRouteToSomewhereItFits(context, creature, grid)) return;
 
@@ -562,11 +559,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
         if (!_pathfinder.TryFindNearest(grid, creature.Tile, at => HasRoomForGold(context, at, player), _route))
             return false;
 
-        creature.Path.Clear();
-        creature.Path.AddRange(_route);
-        creature.PathIndex = 0;
-
         TilePos drop = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
+        if (!context.Navigation.TryRoute(creature, drop)) return false;
         context.Emit(SystemName, "delivering",
             $"imp={creature.Id} player={player} gold={creature.GoldHeld} " +
             $"to=({drop.X},{drop.Y}) steps={_route.Count}");
@@ -859,9 +853,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
     {
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = kind;
-        creature.Path.Clear();
-        creature.Path.AddRange(_route);
-        creature.PathIndex = 0;
+        context.Navigation.TryRoute(creature, _route.Count > 0 ? _route[^1] : creature.Tile);
 
         if (_route.Count == 0)
         {
@@ -1236,9 +1228,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
         creature.TargetObjectId = thing.Id;
-        creature.Path.Clear();
-        creature.Path.AddRange(_route);
-        creature.PathIndex = 0;
+        context.Navigation.TryRoute(creature, at);
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.CarryObject;
 
@@ -1298,7 +1288,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (here != thing.TileIndex)
         {
-            if (creature.PathIndex < creature.Path.Count) return;
+            if (creature.HasRoute) return;
 
             context.Emit(SystemName, "object_abandoned",
                 $"imp={creature.Id} object={thing.Id} reason=out_of_reach");
@@ -1327,7 +1317,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         context.Emit(SystemName, "object_picked_up",
             $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
             $"type={ObjectName(context, thing)} " +
-            $"to={Describe(world, destination)} steps={creature.Path.Count}");
+            $"to={Describe(world, destination)} steps={creature.Body.PathTotalCount}");
     }
 
     /// <summary>Carrying a loose object, and shelving it on arrival.</summary>
@@ -1349,7 +1339,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (here != creature.TargetTileIndex)
         {
-            if (creature.PathIndex < creature.Path.Count) return;
+            if (creature.HasRoute) return;
 
             int destination = ObjectCarryRules.TryDestinationFor(
                 world, context.Database, creature, thing);
@@ -1437,9 +1427,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         creature.CarriedCreatureId = -1;
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
-        creature.Path.Clear();
-        creature.Path.AddRange(_route);
-        creature.PathIndex = 0;
+        context.Navigation.TryRoute(creature, at);
         creature.TimerTicks = 0;
         creature.LastTaskKind = corpses ? ImpTaskKind.CarryCorpse : ImpTaskKind.CarryUnconscious;
 
@@ -1507,7 +1495,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         // Still on the road.
         if (creature.Tile != body.Tile)
         {
-            if (creature.PathIndex < creature.Path.Count) return;
+            if (creature.HasRoute) return;
 
             context.Emit(SystemName, "body_abandoned",
                 $"imp={creature.Id} body={body.Id} reason=out_of_reach");
@@ -1534,7 +1522,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         context.Emit(SystemName, "body_picked_up",
             $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
             $"kind={(CreatureDeathRules.IsCorpse(body) ? "corpse" : "unconscious")} " +
-            $"to={Describe(world, destination)} steps={creature.Path.Count}");
+            $"to={Describe(world, destination)} steps={creature.Body.PathTotalCount}");
     }
 
     /// <summary>Carrying a body, and delivering it on arrival.</summary>
@@ -1560,7 +1548,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (here != creature.TargetTileIndex)
         {
-            if (creature.PathIndex < creature.Path.Count) return;
+            if (creature.HasRoute) return;
 
             // The destination moved or the route was lost. Try again from here;
             // failing that, put the body down where it stands.
@@ -1690,12 +1678,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         WorldState world = context.World;
         var to = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
 
-        if (!_pathfinder.TryFindPath(grid, creature.Tile, to, _route)) return false;
-
-        creature.Path.Clear();
-        creature.Path.AddRange(_route);
-        creature.PathIndex = 0;
-        return true;
+        return context.Navigation.TryRoute(creature, to);
     }
 
     /// <summary>Clears the "body I am walking towards" note.</summary>

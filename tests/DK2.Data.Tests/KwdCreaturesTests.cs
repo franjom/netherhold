@@ -132,6 +132,8 @@ public class KwdCreaturesTests
             Assert.InRange(c.Speed.ToDouble(), 0.1, 5.0);
             Assert.InRange(c.RunSpeed.ToDouble(), 0.1, 5.0);
             Assert.InRange(c.DistanceCanSee.ToDouble(), 0.0, 64.0);
+            Assert.InRange(c.SizeClass, 1, 5);
+            Assert.InRange(c.TurnRate, 1, 4096);
             Assert.True(Enum.IsDefined(c.JobClass), $"{c.Name}: bad JobClass {c.JobClass}");
             Assert.True(Enum.IsDefined(c.FightStyle), $"{c.Name}: bad FightStyle {c.FightStyle}");
             Assert.True(Enum.IsDefined(c.MeleeAttackType), $"{c.Name}: bad AttackType {c.MeleeAttackType}");

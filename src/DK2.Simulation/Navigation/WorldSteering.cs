@@ -1,0 +1,166 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.Core;
+using DK2.Data.Model;
+using DK2.Pathfinding;
+using DK2.Simulation.Steering;
+
+namespace DK2.Simulation.Navigation;
+
+/// <summary>The world as DK2's router and steering behaviours see it: one navigation byte per
+/// tile (solid, water, lava or floor; a portal's centre and a heart's platform count as solid,
+/// Q88), the mesh built from those bytes and rebuilt whenever one changes, and the four probes
+/// the behaviours call (docs/research/steering-behaviours.md §1). One instance serves one world for
+/// its whole life; nothing here is simulation state, so nothing here is hashed.</summary>
+/// <remarks>Not built: <c>Obstacle</c> objects, so <c>Repel_Obstacle</c> never fires; the
+/// remembered entity of <c>Separation</c>'s second term; doors in the navigation byte. Each is
+/// recorded on the method that would supply it.</remarks>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
+public sealed class WorldSteering : ISteeringWorld, INavByteGrid
+{
+    private readonly GameDatabase _database;
+    private readonly WorldState _world;
+    private byte[] _bytes = [];
+    private byte[] _scratch = [];
+    private NavMesh? _mesh;
+    private MeshRouter? _router;
+    private readonly List<NavPoint> _waypoints = [];
+
+    public WorldSteering(GameDatabase database, WorldState world)
+    {
+        _database = database ?? throw new ArgumentNullException(nameof(database));
+        _world = world ?? throw new ArgumentNullException(nameof(world));
+    }
+
+    public int Width => _world.Width;
+
+    public int Height => _world.Height;
+
+    /// <summary>How many times the mesh has been built; a change of navigation byte costs one.</summary>
+    public int Rebuilds { get; private set; }
+
+    /// <summary>Re-reads every tile's navigation byte and rebuilds the mesh if any changed. The
+    /// original rebuilds around the tile its byte setter is told about; comparing the whole map is
+    /// cheaper than hooking its five writers and gives the same mesh.</summary>
+    public void Refresh()
+    {
+        int count = _world.Width * _world.Height;
+        if (_scratch.Length != count) _scratch = new byte[count];
+        StructureBlocks structures = StructureBlocks.For(_world, _database);
+        for (int y = 0; y < _world.Height; y++)
+        {
+            for (int x = 0; x < _world.Width; x++)
+            {
+                int index = (y * _world.Width) + x;
+                _scratch[index] = ByteOf(_database.TerrainById(_world.Tile(x, y).TerrainId), structures.Blocks(index));
+            }
+        }
+
+        if (_mesh != null && _scratch.AsSpan().SequenceEqual(_bytes)) return;
+        (_bytes, _scratch) = (_scratch, _bytes);
+        if (_scratch.Length != count) _scratch = new byte[count];
+        _mesh = NavMesh.Build(this);
+        _router = new MeshRouter(_mesh);
+        Rebuilds++;
+    }
+
+    /// <summary>The navigation byte the original's cache holds (structure-blocks.md §5.4).</summary>
+    public static byte ByteOf(TerrainDef terrain, bool structure)
+    {
+        if (terrain.IsSolid || structure) return NavBytes.Solid;
+        if (terrain.IsWater) return NavBytes.Water;
+        if (terrain.IsLava) return NavBytes.Lava;
+        return NavBytes.Floor;
+    }
+
+    public byte NavByte(int x, int y)
+    {
+        if (x < 0 || y < 0 || x >= _world.Width || y >= _world.Height || _bytes.Length == 0) return NavBytes.Solid;
+        return _bytes[(y * _world.Width) + x];
+    }
+
+    /// <summary>The route request's mover options (navigation-mesh-and-search.md §4): the two
+    /// definition flags that unlock water and lava.</summary>
+    public static MoverProfile ProfileOf(CreatureDef definition) =>
+        new(definition.Flags.HasFlag(CreatureFlags.CanWalkOnWater), definition.Flags.HasFlag(CreatureFlags.CanWalkOnLava));
+
+    /// <summary>The body's position from the creature's, as the original does before every mover
+    /// update (<c>0x004D59A0</c>): the entity's 1/4096 units shifted up four.</summary>
+    public static void SyncBody(CreatureState creature) =>
+        creature.Body.Pos = new Fixed16Vector(creature.PosX << 4, creature.PosY << 4);
+
+    /// <summary>The <c>path_flags</c> every request here carries: bit 3, so <c>Separation</c> stops
+    /// within half a tile of the destination on the last point (navigation-and-steering.md §3.2).
+    /// HYPOTHESIS: which flags each of the original's states passes is unread; without this one,
+    /// two creatures sent to one tile keep each other off its centre for ever.</summary>
+    public const byte DefaultPathFlags = 8;
+
+    /// <summary>The state machine's route request (<c>0x004D59E0</c>): aim the body at the centre of
+    /// <paramref name="to"/> and load the first window. A creature already on that tile gets a
+    /// finished route and is treated as arrived. False when the mesh has no route.</summary>
+    public bool TryRoute(CreatureState creature, TilePos to)
+    {
+        SyncBody(creature);
+        var target = new Fixed16Vector(CreatureState.CentreOf(to.X) << 4, CreatureState.CentreOf(to.Y) << 4);
+        if (creature.Tile == to)
+        {
+            RouteWindow.Load(creature.Body, [], target, DefaultPathFlags);
+            return true;
+        }
+
+        CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
+        return RouteWindow.Request(creature.Body, this, ProfileOf(definition), target, DefaultPathFlags);
+    }
+
+    public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points)
+    {
+        Refresh();
+        if (!_router!.TryRoute(new NavPoint(from.X >> 8, from.Y >> 8), new NavPoint(to.X >> 8, to.Y >> 8), mover, _waypoints))
+            return false;
+        foreach (NavPoint p in _waypoints) points.Add(new Fixed16Vector(p.X << 8, p.Y << 8));
+        return true;
+    }
+
+    /// <summary>No <c>Obstacle</c> objects exist in the simulation yet (structure-blocks.md §5.4), so
+    /// the gated enumerator yields nothing.</summary>
+    public void CollectObstacles(Fixed16Vector centre, int range, List<SteeringObstacle> into)
+    {
+    }
+
+    /// <summary>The crowd probe <c>0x004D15E0</c>: tiles from the floor of the square's low edge to
+    /// the ceiling of its high edge, both inclusive, and every creature standing on one of them adds
+    /// its radius word, the asking creature included.</summary>
+    public int CrowdWeight(Fixed16Vector point, int span)
+    {
+        int half = span / 2;
+        int x0 = (point.X - half) >> 16, x1 = (((point.X + half) >> 4) + 0xFFF) >> 12;
+        int y0 = (point.Y - half) >> 16, y1 = (((point.Y + half) >> 4) + 0xFFF) >> 12;
+        int sum = 0;
+        foreach (CreatureState c in _world.Creatures)
+        {
+            TilePos t = c.Tile;
+            if (t.X >= x0 && t.X <= x1 && t.Y >= y0 && t.Y <= y1) sum += (short)c.Body.Radius;
+        }
+
+        return sum;
+    }
+
+    public void CollectNeighbours(Fixed16Vector centre, int range, List<SteeringNeighbour> into)
+    {
+        foreach (CreatureState c in _world.Creatures)
+        {
+            if ((c.Body.Pos - centre).Octile() > range) continue;
+            into.Add(new SteeringNeighbour(c.Body, _database.CreatureById(c.CreatureTypeId).SizeClass));
+        }
+    }
+
+    /// <summary>Nothing remembers a victim yet (combat is unbuilt, Q8), so the second term of
+    /// <c>Separation</c> never applies.</summary>
+    public SteeringBody? RelatedBody(SteeringMover mover, out int reachTiles)
+    {
+        reachTiles = 0;
+        return null;
+    }
+}

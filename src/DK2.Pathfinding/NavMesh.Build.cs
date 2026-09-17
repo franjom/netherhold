@@ -86,87 +86,119 @@ public sealed partial class NavMesh
         _px[p] >= x0 && _px[p] <= x1 && _py[p] >= y0 && _py[p] <= y1;
 
     /// <summary>The original's constraint insertion (`0x004CBD10`): walk from one end toward the
-    /// other, flipping every edge the segment crosses, and recurse where it passes through a
-    /// vertex. Both ends must already be vertices. When the segment becomes an edge it is marked
-    /// a constraint on both sides, which is what the flip will later refuse to cross.
-    /// Flip order is ours where the original's is unread (ADR-0157 residual).</summary>
+    /// other collecting every edge the segment crosses, recursing where it passes through a
+    /// vertex, then flip the crossed edges. The order is Sloan's, not the original's unread one
+    /// (ADR-0157 residual): a crossed edge whose quad is not convex waits at the back of the
+    /// queue, and a new diagonal that still crosses the segment joins it. Once the segment is an
+    /// edge it is marked a constraint on both sides, which the flip will later refuse to cross.
+    /// Both ends must already be vertices.</summary>
     public void InsertConstraint(int pa, int pb)
     {
         if (pa == pb) return;
         long ax = _px[pa], ay = _py[pa], bx = _px[pb], by = _py[pb];
 
-        for (int guard = 0; guard < 4 * _triCount + 16; guard++)
+        int t0 = -1, exit = -1;
+        for (int t = 0; t < _triCount && t0 < 0; t++)
         {
-            bool progressed = false;
-            for (int t = 0; t < _triCount && !progressed; t++)
-            {
-                if (!IsTriangleLive(t)) continue;
-                int i = IndexOf(t, pa);
-                if (i < 0) continue;
+            if (!IsTriangleLive(t)) continue;
+            int i = IndexOf(t, pa);
+            if (i < 0) continue;
 
-                int v1 = Vertex(t, (i + 1) % 3), v2 = Vertex(t, (i + 2) % 3);
-                if (v1 == pb) { MarkConstraint(t, i); return; }
-                if (v2 == pb) { MarkConstraint(t, (i + 2) % 3); return; }
+            int v1 = Vertex(t, (i + 1) % 3), v2 = Vertex(t, (i + 2) % 3);
+            if (v1 == pb) { MarkConstraint(t, i); return; }
+            if (v2 == pb) { MarkConstraint(t, (i + 2) % 3); return; }
 
-                int o1 = Orient(ax, ay, bx, by, _px[v1], _py[v1]);
-                int o2 = Orient(ax, ay, bx, by, _px[v2], _py[v2]);
+            int o1 = Orient(ax, ay, bx, by, _px[v1], _py[v1]);
+            int o2 = Orient(ax, ay, bx, by, _px[v2], _py[v2]);
+            if (o1 == 0 && Ahead(pa, pb, v1)) { InsertConstraint(pa, v1); InsertConstraint(v1, pb); return; }
+            if (o2 == 0 && Ahead(pa, pb, v2)) { InsertConstraint(pa, v2); InsertConstraint(v2, pb); return; }
 
-                if (o1 == 0 && Ahead(pa, pb, v1)) { InsertConstraint(pa, v1); InsertConstraint(v1, pb); return; }
-                if (o2 == 0 && Ahead(pa, pb, v2)) { InsertConstraint(pa, v2); InsertConstraint(v2, pb); return; }
-
-                // The segment leaves t through the edge opposite pa when v1 is to its right and v2
-                // to its left.
-                if (o1 < 0 && o2 > 0)
-                {
-                    FlipOrAdvance(t, (i + 1) % 3, pa, pb);
-                    progressed = true;
-                }
-            }
-            if (!progressed) throw new InvalidOperationException($"constraint {pa}->{pb} found no exit edge");
+            // The segment leaves t through the edge opposite pa when v1 is to its right and v2 to its left.
+            if (o1 < 0 && o2 > 0) { t0 = t; exit = (i + 1) % 3; }
         }
-        throw new InvalidOperationException($"constraint {pa}->{pb} did not converge");
-    }
+        if (t0 < 0) throw new InvalidOperationException($"constraint {pa}->{pb} found no exit edge");
 
-    /// <summary>Flip the crossed edge if its quad is convex; otherwise the segment also crosses a
-    /// further edge of the neighbour, so flip the first flippable edge along the segment beyond
-    /// it. Every flip strictly reduces the number of crossed edges eventually.</summary>
-    private void FlipOrAdvance(int t, int edge, int pa, int pb)
-    {
-        long ax = _px[pa], ay = _py[pa], bx = _px[pb], by = _py[pb];
-        int current = t, currentEdge = edge;
-
-        for (int steps = 0; steps < _triCount + 4; steps++)
+        _crossed.Clear();
+        int cur = t0, edge = exit;
+        for (int steps = 0; ; steps++)
         {
-            int u = Neighbour(current, currentEdge);
-            if (u == NoNeighbour) throw new InvalidOperationException("constraint runs off the mesh");
-            if (IsConstraint(current, currentEdge))
-                throw new InvalidOperationException("constraint crosses an existing constraint");
+            if (steps > _triCount) throw new InvalidOperationException($"constraint {pa}->{pb} never reaches its end");
+            if (IsConstraint(cur, edge)) throw new InvalidOperationException($"constraint {pa}->{pb} crosses an existing constraint");
+            int v1 = Vertex(cur, edge), v2 = Vertex(cur, (edge + 1) % 3);
+            _crossed.Add((v1, v2));
 
-            if (TryFlip(current, currentEdge)) return;
-
-            // Not flippable yet: continue along the segment into u and find the edge it exits by.
-            int v1 = Vertex(current, currentEdge), v2 = Vertex(current, (currentEdge + 1) % 3);
+            int u = Neighbour(cur, edge);
+            if (u == NoNeighbour) throw new InvalidOperationException($"constraint {pa}->{pb} runs off the mesh");
             int j = EdgeIndexOf(u, v2, v1);
             int d = Vertex(u, (j + 2) % 3);
+            if (d == pb) break;
+
             int od = Orient(ax, ay, bx, by, _px[d], _py[d]);
-            if (od == 0) throw new InvalidOperationException("segment meets a vertex mid-walk");
+            if (od == 0) { InsertConstraint(pa, d); InsertConstraint(d, pb); return; }
             // u reads (v2, v1, d) from j, so it exits by (v1, d) when d is left of the segment, else (d, v2).
-            current = u;
-            currentEdge = od > 0 ? (j + 1) % 3 : (j + 2) % 3;
+            cur = u;
+            edge = od > 0 ? (j + 1) % 3 : (j + 2) % 3;
         }
-        throw new InvalidOperationException("flip walk did not converge");
+
+        for (int head = 0, guard = 0; head < _crossed.Count; guard++)
+        {
+            if (guard > (8 * _triCount) + 64)
+                throw new InvalidOperationException($"constraint {pa}->{pb} from ({ax},{ay}) to ({bx},{by}) did not converge");
+            (int v1, int v2) = _crossed[head++];
+            int t = TriangleWithEdge(v1, v2, out int e);
+            if (!TryFlip(t, e, out int c, out int d)) { _crossed.Add((v1, v2)); continue; }
+            if ((c == pa && d == pb) || (c == pb && d == pa)) { MarkConstraint(t, EdgeBetween(t, c, d)); return; }
+            if (Crosses(ax, ay, bx, by, c, d)) _crossed.Add((c, d));
+        }
+        throw new InvalidOperationException($"constraint {pa}->{pb} left no edge to mark");
+    }
+
+    private readonly List<(int, int)> _crossed = [];
+
+    private bool Crosses(long ax, long ay, long bx, long by, int c, int d)
+    {
+        long cx = _px[c], cy = _py[c], dx = _px[d], dy = _py[d];
+        return Orient(ax, ay, bx, by, cx, cy) * Orient(ax, ay, bx, by, dx, dy) < 0
+            && Orient(cx, cy, dx, dy, ax, ay) * Orient(cx, cy, dx, dy, bx, by) < 0;
+    }
+
+    private int TriangleWithEdge(int p, int q, out int edge)
+    {
+        for (int t = 0; t < _triCount; t++)
+        {
+            if (!IsTriangleLive(t)) continue;
+            edge = EdgeBetween(t, p, q);
+            if (edge >= 0) return t;
+        }
+        throw new InvalidOperationException($"no live triangle has the edge {p}-{q}");
+    }
+
+    /// <summary>The edge of <c>t</c> joining <c>p</c> and <c>q</c> in either order, or −1.</summary>
+    private int EdgeBetween(int t, int p, int q)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            int a = Vertex(t, i), b = Vertex(t, (i + 1) % 3);
+            if ((a == p && b == q) || (a == q && b == p)) return i;
+        }
+        return -1;
     }
 
     /// <summary>The original's flip (`0x004C9FC0`): refuse across a constraint or when the quad is
-    /// not convex; otherwise the two triangles trade their shared edge for the other diagonal.</summary>
-    public bool TryFlip(int t, int edge)
+    /// not convex; otherwise the two triangles trade their shared edge for the other diagonal,
+    /// which comes back as <paramref name="c"/>–<paramref name="d"/>.</summary>
+    public bool TryFlip(int t, int edge) => TryFlip(t, edge, out _, out _);
+
+    public bool TryFlip(int t, int edge, out int c, out int d)
     {
+        c = d = -1;
         int u = Neighbour(t, edge);
         if (u == NoNeighbour || IsConstraint(t, edge)) return false;
 
-        int a = Vertex(t, edge), b = Vertex(t, (edge + 1) % 3), c = Vertex(t, (edge + 2) % 3);
+        int a = Vertex(t, edge), b = Vertex(t, (edge + 1) % 3);
+        c = Vertex(t, (edge + 2) % 3);
         int j = EdgeIndexOf(u, b, a);
-        int d = Vertex(u, (j + 2) % 3);
+        d = Vertex(u, (j + 2) % 3);
 
         // Convex iff c and d lie on opposite sides of (a, b) and a and b on opposite sides of (c, d).
         if (Orient(_px[c], _py[c], _px[d], _py[d], _px[a], _py[a]) *

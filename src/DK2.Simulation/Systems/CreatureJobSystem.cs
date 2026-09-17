@@ -221,7 +221,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} job={job} roll={roll} how={how} " +
             $"room={wants} effect={(JobRules.EffectIsBuilt(job) ? "built" : "unbuilt")} " +
-            $"steps={creature.Path.Count}");
+            $"steps={creature.Body.PathTotalCount}");
         return true;
     }
 
@@ -258,22 +258,18 @@ public sealed class CreatureJobSystem : ISimulationSystem
                 ? a.Distance.CompareTo(b.Distance)
                 : a.FirstTile.CompareTo(b.FirstTile));
 
-        var grid = new WorldPathGrid(database, world, definition);
         foreach ((_, _, RoomInstance room) in candidates)
         {
             int target = ArrivalTile(world, room);
             var at = new TilePos(target % world.Width, target / world.Width);
-            if (!_pathfinder.TryFindPath(grid, creature.Tile, at, _route)) continue;
+            if (!context.Navigation.TryRoute(creature, at)) continue;
 
-            creature.Path.Clear();
-            creature.Path.AddRange(_route);
-            creature.PathIndex = 0;
             creature.JobTileIndex = target;
             creature.Activity = CreatureActivity.GoingToJob;
 
             // Standing in it already - a creature that rolls Train while stood
             // in the training room. No walk to make, so it is at work now.
-            if (creature.Path.Count == 0) Arrive(context, creature, definition, job);
+            if (!creature.IsRouted) Arrive(context, creature, definition, job);
             return true;
         }
 
@@ -286,15 +282,14 @@ public sealed class CreatureJobSystem : ISimulationSystem
     private void Travelling(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.PathIndex < creature.Path.Count) return;
+        if (creature.HasRoute) return;
         Arrive(context, creature, definition, creature.CurrentJob);
     }
 
     private void Arrive(
         SimulationContext context, CreatureState creature, CreatureDef definition, JobType job)
     {
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
         creature.Activity = CreatureActivity.AtWork;
 
         context.Emit(SystemName, "job_started",
@@ -483,8 +478,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
     {
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
         creature.Activity = CreatureActivity.Idle;
     }
 

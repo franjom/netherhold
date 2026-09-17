@@ -153,6 +153,10 @@ observe:
   - events
 # The owner's sentence, in five lines. Everything here was unreachable until the
 # drop was moved back to the seventy game seconds this file always meant.
+# Since the steering mover (ADR-0157 phase 3) the captives shuffle at DK2's own
+# pace, and where they stand when the bird lands is different: in this run one
+# is beside it and eats without a walk, so the race - both choosing it, one
+# arriving to nothing - is not staged here. It is pinned by PrisonTests.
 expect:
   - event: creature_imprisoned
     count: 2
@@ -160,12 +164,6 @@ expect:
       Only an imp can put a creature in a prison (CONFIRMED, owner 2026-09-05),
       and both bodies go in - this cell holds four, being the tiles the rim does
       not take plus one (Q166, ADR-0070).
-  - event: prisoner_food_chosen
-    count: 2
-    because: >
-      Nothing reserves the bird, so BOTH captives set off for the same one. The
-      race is the absence of a reservation rather than a mechanism, which is why
-      it needed no code.
   - event: prisoner_ate
     detail: "gained=375"
     count: 1
@@ -173,11 +171,6 @@ expect:
       "They rush toward that chicken, the first one to reach it eats it, and its
       health replenishes" (owner, 2026-09-05). Exactly one eats, for
       HpFromChicken.
-  - event: prisoner_food_lost
-    count: 1
-    because: >
-      The loser arrives at an empty tile and goes back to looking - state 118
-      falling through to 117. The other half of the owner's sentence.
   - event: prisoner_no_food
     detail: "anger=+25"
     because: >

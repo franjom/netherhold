@@ -1,203 +1,109 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Pathfinding;
+using DK2.Simulation.Navigation;
+using DK2.Simulation.Steering;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>Advances every creature that has a route one tick along it.</summary>
-/// <remarks>No creature ever stands in terrain it could not walk into —
-/// CONFIRMED (owner, 2026-09-04). A route from <see cref="WorldPathGrid"/> is
-/// planned once while the world moves on, so every waypoint is re-checked as it
-/// is stepped onto and a blocked one ends the walk (the route is dropped, not
-/// re-planned, as in <see cref="ImpTaskSystem"/>); the shipped cause is
-/// <see cref="BridgeBurnSystem"/>, a bridge over lava expiring after thirty
-/// seconds (Q67). The tile a creature stands on is not tested, as in
-/// <see cref="GridPathfinder"/>, so it can walk off ground that turned
-/// impassable. UNKNOWN: whether the original stops dead or re-routes. Deviates:
-/// routing is ours (Q5) — DK2 uses a navigation mesh and steering (ADR-0155) —
-/// and its turning, acceleration and mutual avoidance are not reconstructed.</remarks>
-[Dk2Behavior(Confidence.StronglyInferred, "docs/research/imp-tasks.md")]
+/// <summary>DK2's per-tick mover update (<c>0x004D5A40</c> and its four callers;
+/// docs/research/steering-behaviours.md §7.5): every creature that has a route or is still moving
+/// re-derives its body from its position, runs the four weighted behaviours through the Euler
+/// step, and takes the new position if the tile under it is not solid; otherwise the body is put
+/// back on the entity with no velocity. The body's speed cap is the definition's speed at the
+/// creature's level, per tick, capped at just under a tile (<c>0x0048D010</c>).</summary>
+/// <remarks>Behaviours run in their registration order (navigation-and-steering.md §3.3). The
+/// solid-tile test is the main update's (<c>0x004B35C0</c> at <c>0x0048A2B3</c>); three other
+/// callers commit unconditionally, and which creature states use which is UNKNOWN.</remarks>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
 public sealed class CreatureMovementSystem : ISimulationSystem
 {
     private const string SystemName = "CreatureMovement";
+
+    /// <summary>The speed setter clamps what it stores at <c>0xFFF</c> entity units a tick.</summary>
+    public const int MaxSpeedPerTick = 0xFFF;
 
     public string Name => SystemName;
 
     public void Execute(SimulationContext context)
     {
-        // One mask for the whole tick. The structure mask (Q88 - a portal's
-        // centre and a heart's platform) does not depend on the mover, and this
-        // is the one place that builds a grid per creature per tick, so
-        // computing it here keeps the cost at one pass over the tiles a tick
-        // instead of one per creature.
-        StructureBlocks structures = StructureBlocks.For(context.World, context.Database);
+        WorldSteering steering = context.Navigation;
+        steering.Refresh();
+
+        // Every body on its creature first, with its definition's limits, so a neighbour read by
+        // Separation or the crowd probe is where the creature is and as big as it is, whether or
+        // not it moves this tick or has ever moved.
+        foreach (CreatureState creature in context.World.Creatures)
+        {
+            WorldSteering.SyncBody(creature);
+            CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+            creature.Body.Radius = SteeringMover.CrowdWordOf(definition.FootprintRadius.Raw);
+            creature.Body.MaxForce = SeparationRules.ShippedMaxForce;
+            creature.Body.MaxSpeed = MaxSpeedOf(context.Database, definition, creature.Level);
+        }
 
         foreach (CreatureState creature in context.World.Creatures)
         {
-            if (creature.PathIndex >= creature.Path.Count) continue;
+            if (HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) continue;
 
-            // A creature in the keeper's hand is out of the dungeon: it does
-            // not act until it is put down (HandRules.IsHeld, ADR-0062).
-            if (HandRules.IsHeld(creature)) continue;
+            // Only a creature in a walking state is moved (the state table's bit at 0x0048A23B).
+            // Ours: one with a route loaded, arrived or not, so the arrival tick still takes its
+            // braking step and the state that follows stands where it stopped.
+            if (creature.Body.PathTotalCount == 0) continue;
 
-            // Belt and braces: collapsing already clears the path (ADR-0051), so
-            // this only bites if a future mechanic sets a path on a creature
-            // that then drops. A prisoner does walk (ADR-0073, Q172): the only
-            // thing that ever gives one a path is PrisonerWanderSystem and every
-            // path it gives is a single step inside the prisoner's own cell, so
-            // there is deliberately no "prisoners may not leave" test here.
-            if (CreatureDeathRules.IsDown(creature)) continue;
-
-            CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-            Advance(context.Database, creature, definition,
-                new WorldPathGrid(context.Database, context.World, definition, structures));
+            Advance(context.Database, steering, creature, context.Database.CreatureById(creature.CreatureTypeId));
         }
     }
 
-    private static void Advance(
-        GameDatabase database, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
+    /// <summary>The body's speed cap in 16.16 tiles a tick: the level-scaled definition speed
+    /// divided by the tick rate as the loader does it, clamped, shifted up four.</summary>
+    public static int MaxSpeedOf(GameDatabase database, CreatureDef definition, int level)
     {
-        int step = StepThisTick(database, creature, definition);
+        int perTick = SimulationTiming.LoaderRatePerTick(CreatureLevelRules.SpeedRaw(database, definition, level));
+        return Math.Min(perTick, MaxSpeedPerTick) << 4;
+    }
 
-        while (step > 0 && creature.PathIndex < creature.Path.Count)
+    private static void Advance(GameDatabase database, WorldSteering steering, CreatureState creature, CreatureDef definition)
+    {
+        SteeringBody body = creature.Body;
+
+        // The sync keeps only the entity's 1/4096 precision of both position and velocity
+        // (0x004D59A0 after 0x004D5AF0).
+        body.Vel = new Fixed16Vector((body.Vel.X >> 4) << 4, (body.Vel.Y >> 4) << 4);
+
+        var mover = new SteeringMover
         {
-            TilePos waypoint = creature.Path[creature.PathIndex];
+            IsWorker = definition.Flags.HasFlag(CreatureFlags.IsWorker),
+            Heading = creature.Heading,
+            TurnRate = SimulationTiming.LoaderRatePerTick(definition.TurnRate),
+            SizeClass = definition.SizeClass,
+            CrowdWord = body.Radius,
+            Profile = WorldSteering.ProfileOf(definition),
+        };
 
-            // The route was legal when it was planned; the world has had ticks
-            // to change since — a bridge burning is the shipped case. A blocked
-            // waypoint ends the walk here.
-            if (!grid.IsWalkable(waypoint.X, waypoint.Y))
-            {
-                creature.Path.Clear();
-                creature.PathIndex = 0;
-                return;
-            }
+        Fixed16Vector avoidWalls = AvoidWallsRules.Compute(body, mover.Profile, steering);
+        Fixed16Vector repel = RepelObstacleRules.Compute(body, steering);
+        Fixed16Vector followPath = FollowPathRules.Compute(body, mover, steering);
+        Fixed16Vector separation = SeparationBehaviour.Compute(body, mover, steering);
+        SteeringIntegrator.Step(body, SteeringIntegrator.Combine(body, avoidWalls, repel, followPath, separation), mover.Profile, steering);
+        creature.Heading = mover.Heading;
 
-            int targetX = CreatureState.CentreOf(waypoint.X);
-            int targetY = CreatureState.CentreOf(waypoint.Y);
-
-            int dx = targetX - creature.PosX;
-            int dy = targetY - creature.PosY;
-            int remaining = LegLength(dx, dy);
-
-            if (remaining == 0)
-            {
-                creature.PathIndex++;
-                continue;
-            }
-
-            if (step >= remaining)
-            {
-                creature.PosX = targetX;
-                creature.PosY = targetY;
-                creature.PathIndex++;
-                step -= remaining;
-                continue;
-            }
-
-            // Two phases, and the order matters: the surplus of the longer axis
-            // straight, then both axes at 45 degrees. A creature stops where it
-            // crossed into its tile, so diagonal-first would sweep it through the
-            // side tile for most of a tile-width and could stand it in rock;
-            // surplus-first runs the diagonal phase through the shared corner
-            // only - "passes diagonally between two solid tiles" (Q28, ADR-0025).
-            int ax = Math.Abs(dx);
-            int ay = Math.Abs(dy);
-            int surplus = Math.Abs(ax - ay);
-            int straight = Math.Min(step, surplus);
-            if (ax > ay) creature.PosX += Math.Sign(dx) * straight;
-            else creature.PosY += Math.Sign(dy) * straight;
-            step -= straight;
-
-            if (step > 0)
-            {
-                // Both axes together, and the budget buys less of each than it
-                // would on a straight run: one tile of axis costs
-                // DiagonalCost/StraightCost of path. Capped at what is left of
-                // the shorter axis so the snap-to-target case above stays the
-                // only way a leg ends.
-                int axis = Math.Min(
-                    step * GridPathfinder.StraightCost / GridPathfinder.DiagonalCost,
-                    Math.Min(ax, ay));
-                creature.PosX += Math.Sign(dx) * axis;
-                creature.PosY += Math.Sign(dy) * axis;
-            }
-
-            step = 0;
-        }
-
-        KeepOffTheCorner(creature, grid);
-    }
-
-    /// <summary>Nudges a creature off the shared corner, the one place the
-    /// two-phase walk can still leave its tile solid: a tick's budget can run
-    /// out with the position exactly on a corner, and integer division hands a
-    /// corner to the tile with the larger coordinates — between two solid tiles,
-    /// a solid one. One position unit toward the waypoint is inside the
-    /// destination tile, and a unit is 1/4096 of a tile.</summary>
-    private static void KeepOffTheCorner(CreatureState creature, WorldPathGrid grid)
-    {
-        if (creature.PathIndex >= creature.Path.Count) return;
-
-        TilePos here = creature.Tile;
-        if (grid.IsWalkable(here.X, here.Y)) return;
-
-        TilePos waypoint = creature.Path[creature.PathIndex];
-        creature.PosX += Math.Sign(CreatureState.CentreOf(waypoint.X) - creature.PosX);
-        creature.PosY += Math.Sign(CreatureState.CentreOf(waypoint.Y) - creature.PosY);
-    }
-
-    /// <summary>How far a creature must travel to reach a waypoint, in position
-    /// units, on the same scale <see cref="StepThisTick"/> spends.</summary>
-    /// <remarks>Octile, not square: the surplus of the longer axis at 10/10 plus
-    /// the shorter at 14/10, which is the walk <see cref="Advance"/> actually
-    /// makes. Movement is continuous at a constant speed (Q29 - speed is in tiles
-    /// per second), so a diagonal neighbour is root-2 tile-widths away and must
-    /// cost 14/10 - not the 2x of <c>|dx| + |dy|</c>, the 1x of <c>max</c>, or
-    /// <c>max x 14/10</c> on a leg that is not square. All three would disagree
-    /// with <see cref="GridPathfinder"/>, which costed the route at 14/10, and a
-    /// router and a mover that disagree make creatures arrive early or late for
-    /// no visible reason. Integer arithmetic on the same 14/10 stand-in for
-    /// root-2: no square root, no floating point, no cross-machine drift (Q48).</remarks>
-    private static int LegLength(int dx, int dy)
-    {
-        int ax = Math.Abs(dx);
-        int ay = Math.Abs(dy);
-        int shorter = Math.Min(ax, ay);
-        int surplus = Math.Max(ax, ay) - shorter;
-        return surplus + (shorter * GridPathfinder.DiagonalCost / GridPathfinder.StraightCost);
-    }
-
-    /// <summary>Distance to cover this tick, in position units.</summary>
-    /// <remarks>Speed is tiles per second on a 4096 denominator — STRONGLY
-    /// INFERRED: the Imp's 7536 is 1.84, and the globals that name the unit share
-    /// the scale (<c>BoulderSpeedTilesPerSecond</c> 4915 = 1.2,
-    /// <c>TriggerTrapTriggerSpeedTilesPerSecond</c> 4096 = 1.0,
-    /// <c>DefaultTorchLightRadiusTiles</c> 6144 = 1.5). Ticks per second is
-    /// UNKNOWN (Q1). It is the creature's level speed, not its record speed
-    /// (Q119) — CONFIRMED by the owner, "imps gain speed as they gain more
-    /// levels": 105% per level to level 5, up to 250% at level 10, so a level-2
-    /// imp covers 7913 raw units a second (<see cref="CreatureLevelRules"/>;
-    /// nothing raises a level yet). The remainder is carried because integer
-    /// division alone would leave every creature slower than its data (ADR-0001).</remarks>
-    private static int StepThisTick(
-        GameDatabase database, CreatureState creature, CreatureDef definition)
-    {
-        int perSecond = CreatureLevelRules.SpeedRaw(database, definition, creature.Level);
-        int ticksPerSecond = SimulationTiming.TicksPerSecond;
-
-        int step = perSecond / ticksPerSecond;
-        creature.MoveRemainder += perSecond % ticksPerSecond;
-        if (creature.MoveRemainder >= ticksPerSecond)
+        int x = body.Pos.X >> 4, y = body.Pos.Y >> 4;
+        if (!NavBytes.IsSolid(steering.NavByte(x / Fp32.One, y / Fp32.One)))
         {
-            step++;
-            creature.MoveRemainder -= ticksPerSecond;
+            creature.PosX = x;
+            creature.PosY = y;
+        }
+        else
+        {
+            body.Vel = Fixed16Vector.Zero;
         }
 
-        return step;
+        // The entity's position is the one that persists; the body's is derived from it again.
+        WorldSteering.SyncBody(creature);
     }
 }

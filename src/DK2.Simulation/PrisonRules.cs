@@ -318,7 +318,7 @@ public static class PrisonRules
         creature.PrisonOwnerPlayerId = playerId;
         creature.PosX = CreatureState.CentreOf(tileIndex % world.Width);
         creature.PosY = CreatureState.CentreOf(tileIndex / world.Width);
-        creature.MoveRemainder = 0;
+        creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.Health = CreatureHealthRules.KnockoutHealth(
             database, database.CreatureById(creature.CreatureTypeId), creature);
         creature.DyingTicks = 0;
@@ -328,8 +328,7 @@ public static class PrisonRules
         creature.TargetTileIndex = -1;
         creature.TargetWork = default;
         creature.TimerTicks = 0;
-        creature.Path.Clear();
-        creature.PathIndex = 0;
+        creature.StopMoving();
         return true;
     }
 
