@@ -220,7 +220,7 @@ public sealed class PaydaySystem : ISimulationSystem
                 return;
             }
 
-            if (!context.Navigation.TryRoute(creature, at)) continue;
+            if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot)) continue;
 
             creature.Activity = CreatureActivity.SeekingWages;
 

@@ -683,7 +683,7 @@ public class ImpTests
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
         CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
-        Assert.True(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(2, 1)));
+        Assert.True(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(2, 1), Navigation.MoveOptions.Plain));
 
         var sim = new GameSimulation(database, world, 1, [new CreatureMovementSystem()]);
         int ticks = 0;
@@ -714,7 +714,7 @@ public class ImpTests
         // The fixture's room is (1,1)-(3,3); a chain of tiles on the bias leads out of its corner.
         for (int i = 1; i <= 3; i++) Carve(world, database, new TilePos(3 + i, 3 + i));
 
-        Assert.False(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(6, 6)));
+        Assert.False(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(6, 6), Navigation.MoveOptions.Plain));
     }
 
     [Fact]
@@ -731,7 +731,7 @@ public class ImpTests
         // an open corridor to walk it down — a route over rock would be dropped
         // at the first solid waypoint (see WallsBlockMovementTests).
         for (int x = 2; x <= 14; x++) Carve(world, database, new TilePos(x, 1));
-        Assert.True(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(14, 1)));
+        Assert.True(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(14, 1), Navigation.MoveOptions.Plain));
 
         var sim = new GameSimulation(database, world, 1, [new CreatureMovementSystem()]);
         int start = imp.PosX;

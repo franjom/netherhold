@@ -326,7 +326,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = default;
-        context.Navigation.TryRoute(creature, standing);
+        context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Plain);
         creature.Activity = CreatureActivity.FetchingGold;
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.FetchGold;
@@ -560,7 +560,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
             return false;
 
         TilePos drop = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
-        if (!context.Navigation.TryRoute(creature, drop)) return false;
+        if (!context.Navigation.TryRoute(creature, drop, Navigation.MoveOptions.Plain)) return false;
         context.Emit(SystemName, "delivering",
             $"imp={creature.Id} player={player} gold={creature.GoldHeld} " +
             $"to=({drop.X},{drop.Y}) steps={_route.Count}");
@@ -853,7 +853,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
     {
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = kind;
-        context.Navigation.TryRoute(creature, _route.Count > 0 ? _route[^1] : creature.Tile);
+        context.Navigation.TryRoute(creature, _route.Count > 0 ? _route[^1] : creature.Tile, Navigation.MoveOptions.Plain);
 
         if (_route.Count == 0)
         {
@@ -1228,7 +1228,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
         creature.TargetObjectId = thing.Id;
-        context.Navigation.TryRoute(creature, at);
+        context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Plain);
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.CarryObject;
 
@@ -1427,7 +1427,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         creature.CarriedCreatureId = -1;
         creature.TargetTileIndex = (at.Y * world.Width) + at.X;
         creature.TargetWork = default;
-        context.Navigation.TryRoute(creature, at);
+        context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Plain);
         creature.TimerTicks = 0;
         creature.LastTaskKind = corpses ? ImpTaskKind.CarryCorpse : ImpTaskKind.CarryUnconscious;
 
@@ -1678,7 +1678,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         WorldState world = context.World;
         var to = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
 
-        return context.Navigation.TryRoute(creature, to);
+        return context.Navigation.TryRoute(creature, to, Navigation.MoveOptions.Plain);
     }
 
     /// <summary>Clears the "body I am walking towards" note.</summary>

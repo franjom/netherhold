@@ -188,7 +188,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
                 out int found, out LairRules.TileFound how))
         {
             var to = new TilePos(found % world.Width, found / world.Width);
-            if (context.Navigation.TryRoute(creature, to))
+            if (context.Navigation.TryRoute(creature, to, Navigation.MoveOptions.Spot))
             {
 
                 context.Emit(SystemName, "lair_tile_found",
@@ -267,7 +267,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
 
         var bed = new TilePos(index % world.Width, index / world.Width);
 
-        if (!context.Navigation.TryRoute(creature, bed)) return;
+        if (!context.Navigation.TryRoute(creature, bed, Navigation.MoveOptions.ExactSpot)) return;
 
         creature.Activity = CreatureActivity.GoingToSleep;
 

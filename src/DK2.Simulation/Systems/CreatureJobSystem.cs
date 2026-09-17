@@ -262,7 +262,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
         {
             int target = ArrivalTile(world, room);
             var at = new TilePos(target % world.Width, target / world.Width);
-            if (!context.Navigation.TryRoute(creature, at)) continue;
+            if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) continue;
 
             creature.JobTileIndex = target;
             creature.Activity = CreatureActivity.GoingToJob;

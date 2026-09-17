@@ -134,7 +134,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
 
         creature.StopMoving();
 
-        context.Navigation.TryRoute(creature, new TilePos(x, y));
+        context.Navigation.TryRoute(creature, new TilePos(x, y), Navigation.MoveOptions.CaptiveSpot);
 
         context.Emit(SystemName, "prisoner_food_chosen",
             $"creature={creature.Id} type={definition.Name} " +

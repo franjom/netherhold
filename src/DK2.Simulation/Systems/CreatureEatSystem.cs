@@ -149,7 +149,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
         {
             int target = ArrivalTile(world, room);
             var at = new TilePos(target % world.Width, target / world.Width);
-            if (!context.Navigation.TryRoute(creature, at)) continue;
+            if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) continue;
 
             chosen = room;
             arrival = target;
@@ -296,7 +296,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
             return;
         }
 
-        context.Navigation.TryRoute(creature, new TilePos(x, y));
+        context.Navigation.TryRoute(creature, new TilePos(x, y), Navigation.MoveOptions.ExactSpot);
 
         context.Emit(SystemName, "chicken_chosen",
             $"creature={creature.Id} type={definition.Name} " +

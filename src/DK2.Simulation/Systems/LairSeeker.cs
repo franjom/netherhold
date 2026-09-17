@@ -149,7 +149,7 @@ public sealed class LairSeeker
         }
 
         int chosenArrival = LairRules.ArrivalTile(world, chosen);
-        if (!context.Navigation.TryRoute(creature, new TilePos(chosenArrival % world.Width, chosenArrival / world.Width)))
+        if (!context.Navigation.TryRoute(creature, new TilePos(chosenArrival % world.Width, chosenArrival / world.Width), Navigation.MoveOptions.Spot))
             return false;
         creature.TimerTicks = 0;
         creature.Activity = CreatureActivity.SeekingLair;

@@ -147,7 +147,7 @@ public class WallsBlockMovementTests
         }
 
         CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
-        Assert.True(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(10, 2)));
+        Assert.True(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(10, 2), Navigation.MoveOptions.Plain));
 
         var sim = new GameSimulation(database, world, 11, [new Systems.CreatureMovementSystem()]);
 

@@ -227,20 +227,25 @@ nibble and two state bits for doors). In order:
 |---|---|
 | `n` has bit 3 (solid) | 0 — impassable |
 | `n` is a door (owner nibble set) of another player with bit 1 | 0 |
-| `n` is a door of this player, gated by two request flags and bit 2 | 0 on some combinations; the matrix is read but not summarised here |
+| `n` is a door, with `[0x006EC9E0]` (option bit 7, "respect doors") | 0 for another player's door, and for this player's with bit 2 |
+| `n` is a door, without it and without `[0x006EC9D4]` (option bit 1) | 0 for this player's door with bit 2 |
+| `n` is not a door but `c` is | the same two tests on `c` |
 | `n` is category **3** and `c` is not, unless `[0x006EC9DC]` | 0 |
 | `n` is category **1** and `c` is not, unless `[0x006EC9E4]` | 0 |
 | bit 2 differs between `n` and `c`, unless `[0x006EC9D8]` | 0 |
 | otherwise | **`(n.nav & 3) + 1`**, so 1, 2, 3 or 4 |
 
-The request at `0x004D0E60` sets those globals from the creature: the player id
-from `[creature+0x2A] + 0x10FC`; **`[0x006EC9E4]` from definition flags
-`def+0x686` bit 4 and `[0x006EC9DC]` from bit 5** through the compact definition
-at `creature+0x370`. Our `CreatureFlags` names those bits **`CanWalkOnWater`**
+The requests (`0x004D0F60` for the mover, `0x004D0E60` and `0x004D1700` for
+reachability) set those globals from the creature: the player id from
+`[creature+0x2A] + 0x10FC`; **`[0x006EC9E4]` from definition flags `def+0x686`
+bit 4 and `[0x006EC9DC]` from bit 5** through the compact definition at
+`creature+0x370`. Our `CreatureFlags` names those bits **`CanWalkOnWater`**
 and **`CanWalkOnLava`**. So navigation category **1 is water and 3 is lava**,
-each impassable to a creature without the flag, and the three door globals come
-from the request's option bits, parked in `creature+0x3E6` bits 17–19 for the
-duration of the call.
+each impassable to a creature without the flag. The three door globals come
+from the state's option word (steering-behaviours.md §7.6): bit 1 →
+`[0x006EC9D4]`, bit 2 → `[0x006EC9D8]`, bit 7 → `[0x006EC9E0]`, parked in
+`creature+0x3E6` bits 17–19 for the call. Most states pass `0x80`, so a
+creature normally refuses every door it does not own and its own locked ones.
 
 **What "cost" does.** It never accumulates. It shifts the greedy key: floor ×1,
 water ×4, lava ×64. That is a bias in *expansion order* — the search tries

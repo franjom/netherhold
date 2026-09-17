@@ -91,27 +91,24 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     public static void SyncBody(CreatureState creature) =>
         creature.Body.Pos = new Fixed16Vector(creature.PosX << 4, creature.PosY << 4);
 
-    /// <summary>The <c>path_flags</c> every request here carries: bit 3, so <c>Separation</c> stops
-    /// within half a tile of the destination on the last point (navigation-and-steering.md §3.2).
-    /// HYPOTHESIS: which flags each of the original's states passes is unread; without this one,
-    /// two creatures sent to one tile keep each other off its centre for ever.</summary>
-    public const byte DefaultPathFlags = 8;
-
-    /// <summary>The state machine's route request (<c>0x004D59E0</c>): aim the body at the centre of
-    /// <paramref name="to"/> and load the first window. A creature already on that tile gets a
-    /// finished route and is treated as arrived. False when the mesh has no route.</summary>
-    public bool TryRoute(CreatureState creature, TilePos to)
+    /// <summary>The state machine's route request (<c>0x004D0F60</c> → <c>0x004D59E0</c>): aim the
+    /// body at the centre of <paramref name="to"/> with the <see cref="MoveOptions"/> word the
+    /// original's state pushes, and load the first window. A creature already on that tile gets
+    /// a finished route and is treated as arrived. False when the mesh has no route. The word's
+    /// door bits are inert here: doors are not in the navigation byte yet.</summary>
+    public bool TryRoute(CreatureState creature, TilePos to, int options)
     {
         SyncBody(creature);
+        byte flags = MoveOptions.PathFlagsOf(options);
         var target = new Fixed16Vector(CreatureState.CentreOf(to.X) << 4, CreatureState.CentreOf(to.Y) << 4);
         if (creature.Tile == to)
         {
-            RouteWindow.Load(creature.Body, [], target, DefaultPathFlags);
+            RouteWindow.Load(creature.Body, [], target, flags);
             return true;
         }
 
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
-        return RouteWindow.Request(creature.Body, this, ProfileOf(definition), target, DefaultPathFlags);
+        return RouteWindow.Request(creature.Body, this, ProfileOf(definition), target, flags);
     }
 
     public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points)

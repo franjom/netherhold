@@ -144,7 +144,7 @@ public class CreatureLevelTests
 
         var steering = new Navigation.WorldSteering(db, world);
         foreach (CreatureState c in new[] { slow, fast })
-            Assert.True(steering.TryRoute(c, new TilePos(3, 1)));
+            Assert.True(steering.TryRoute(c, new TilePos(3, 1), Navigation.MoveOptions.Loose));
 
         new GameSimulation(db, world, 42, [new CreatureMovementSystem()]).Run(Second / 2);
 

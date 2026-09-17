@@ -215,7 +215,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             at => PortalRules.IsExitTile(world, database, at, state.OwnerPlayerId),
             _route);
 
-        if (routed && _route.Count > 0 && context.Navigation.TryRoute(state, _route[^1]))
+        if (routed && _route.Count > 0 && context.Navigation.TryRoute(state, _route[^1], Navigation.MoveOptions.Leaving))
         {
 
             if (decidingNow)

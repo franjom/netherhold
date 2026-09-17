@@ -315,11 +315,39 @@ Ours (`CreatureMovementSystem`, `WorldSteering`): the main update's arm for ever
 creature with a route loaded, at the level-scaled walk speed. Run and shuffle,
 the timed multipliers and the per-state gate are not built.
 
+### 7.6 The state's option word (`0x004D0F60`)
+
+A state does not call the request itself. Two helpers — `0x00471890(target*,
+next state, options)` for a position and `0x00471A70(object, next state,
+options)` for an entity — check the target tile (`0x004B35C0`) and call
+`0x004D0F60(creature, target*, options)`, which unpacks the **option word**:
+bits 1, 2 and 7 go to `creature+0x3E6` bits 17–19, the cost function's door
+globals (navigation-mesh-and-search.md §4); bit 3 sets `path_flags` bit 0, bit
+4 sets bit 1, bit 5 or 6 sets bits 2 and 3 together. Bit 0 stays with the
+helper, tested on a failed request (what follows is unread). The stop
+`0x004D1070` requests the creature's own position with word 0. So **`path_flags`
+bit 3 never travels alone and bit 1 is never set**: the values that occur are
+0, `0xC` and `0xD`. Of 134 call sites (`reverse-engineering/pf-precall3.txt`,
+`pf-precall4.txt`), 118 push a literal; states by handler id
+(creature-state-table.md):
+
+| word | flags | states |
+|---|---|---|
+| `0x80` | 0 | 45 sites: room jobs 53, 63, 108; eating's walk to the hatchery 91, 96; guarding 97; prisoners 115, 117; praying 101; wandering 86; fleeing 220; drinking 145; recuperating 266; advancing 223 |
+| `0x00`, `0x01` | 0 | imps en route 8, 9; attacking 177, 181, 183; battle 200; stealing 160, 161, 166, 167; training 109; patrol 100 |
+| `0xE8` | `0xD` | going to bed 81; the chicken 92; wages 187; gambling 155; pit-fighting 139 |
+| `0xE0` | `0xC` | making a home 80 |
+| `0x68`, `0x69`, `0x6C`, `0x6E` | `0xD` | freeing comrades 121; a captive's chicken 124; torturing 127; stealing 162, 163; leaving 195 |
+| `0x20`, `0x41`, `0x26` | `0xC` | torturing 127; idle 232; helpers of 223 and 273 |
+| `0x02`, `0x06` | 0 | `PatrolState.cpp`; `WorldTrigger.cpp` |
+
+Ours: `MoveOptions` names the words and `WorldSteering.TryRoute` takes one per
+request; the door bits are inert until doors enter the navigation byte.
+
 ## 8. What this leaves
 
-- Which creature states pass which `path_flags`. Every request here carries
-  bit 3 (`WorldSteering.DefaultPathFlags`, HYPOTHESIS): without it two
-  creatures sent to one tile keep each other off its centre.
+- The sixteen request sites that push a register (§7.6), among them the main
+  update's own at `0x00489E17` and states 1, 86, 100 and 186.
 - `Obstacle` objects, so `Repel_Obstacle` never fires; the remembered entity of
   `Separation`'s second term; run and shuffle speeds and the timed multipliers;
   the per-state movement gate.

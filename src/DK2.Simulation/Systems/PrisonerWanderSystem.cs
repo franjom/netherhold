@@ -63,7 +63,7 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
                 continue;
             }
 
-            if (!context.Navigation.TryRoute(creature, step)) continue;
+            if (!context.Navigation.TryRoute(creature, step, Navigation.MoveOptions.Loose)) continue;
 
             context.Emit(SystemName, "prisoner_stepped",
                 $"creature={creature.Id} player={creature.OwnerPlayerId} " +
