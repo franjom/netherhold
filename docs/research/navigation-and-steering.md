@@ -12,13 +12,14 @@ Original version: DK2 v1.70 (GOG)
 Questions: **Q5** (answered at the architectural level here), **Q342** and
 **Q343** (answered). The mesh and the search are Q341, answered in
 [navigation-mesh-and-search.md](navigation-mesh-and-search.md); the
-triangulation's internals are Q347 and `grtc:` is Q344, both open.
+triangulation's internals are Q347, answered there too; `grtc:` is Q344,
+read but not built.
 
-**The router half is built as an unwired library** (ADR-0157 phase 1, see
-`navigation-mesh-and-search.md`); of the steering half only `SeparationRules`
-exists, and the other behaviours' bodies are being read in
-[steering-behaviours.md](steering-behaviours.md). `GridPathfinder` still
-serves the simulation until phase 3 (§6).
+**Both halves are built as unwired libraries** (ADR-0157 phases 1 and 2): the
+router in `DK2.Pathfinding` (`navigation-mesh-and-search.md`), and the four
+behaviours, the route window, the turn and the integrator in
+`DK2.Simulation.Steering` ([steering-behaviours.md](steering-behaviours.md)).
+`GridPathfinder` still serves the simulation until phase 3 (§6).
 
 ---
 
@@ -390,5 +391,6 @@ result kept (Q341, `navigation-mesh-and-search.md`).
 **HYPOTHESIS:** that `Fwd`/`Bak` mean a bidirectional search. They could equally
 name the two directions of travel along one route. Q341.
 
-**UNKNOWN:** what `grtc:` does in detail (Q344). Q341, Q347 and Q348 are
-answered in `navigation-mesh-and-search.md`.
+**UNKNOWN:** how much `grtc:` contracts a gate, and whether any shipped gate
+is contracted at all (Q344); §2.1 has what has been read. Q341, Q347 and
+Q348 are answered in `navigation-mesh-and-search.md`.

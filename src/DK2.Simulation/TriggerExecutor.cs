@@ -62,8 +62,9 @@ public sealed class TriggerRunResult
     /// <summary>Records <b>DK2's own dispatchers refuse</b> in the context they were
     /// reached in, printing <c>Unhandled Trigger When</c> and returning zero. Not a gap in
     /// this executor. Actions only, and 25 of the 51 world action types are in the set —
-    /// but ten of those belong to the creature dispatcher, whose trees nothing here walks,
-    /// so this is a statement about a context and not about a type.</summary>
+    /// but ten of those belong to the creature dispatcher and are refused only when reached
+    /// inside a creature tree (<see cref="TriggerExecutor.CreatureOwnsAction"/>), which this executor does
+    /// walk, so this is a statement about a context and not about a type.</summary>
     public IReadOnlyList<BlockedTrigger> Unhandled { get; }
 
     /// <summary>Records answered from a <b>modelling assumption</b> rather than from

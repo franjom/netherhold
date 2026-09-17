@@ -15,9 +15,10 @@ the integration; this page owns what each behaviour computes.
 
 **Built, unwired** (ADR-0157 phase 2, `src/DK2.Simulation/Steering/`): the three
 behaviours below, the route window, the turn and the 16.16 helpers, beside
-`SeparationRules`. Still to build: the combiner and integrator, once section 8
-is read. Section 5 is the mover proper: what `Follow_Path` aims at, that a
-creature **turns before it moves**, and how the route window is refilled.
+`SeparationRules`, and `SteeringIntegrator`: the combiner, the Euler step, the
+slide and the wall clamp. Section 5 is the mover proper: what `Follow_Path`
+aims at, that a creature **turns before it moves**, and how the route window is
+refilled.
 
 ---
 

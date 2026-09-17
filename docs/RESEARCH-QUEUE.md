@@ -255,7 +255,7 @@ is slow going. **Facts only — never an identifier into the repo.**
 | Q | Question |
 |---|---|
 | **Q4** | `CMapEntry` (11 bytes) — full per-tile runtime state or a cache? Field meanings |
-| **Q5** | **ANSWERED architecturally** (ADR-0155, `research/navigation-and-steering.md`): a triangulated navigation mesh plus a steering system, so our A* cannot match the original's routes in general. `Follow_Path` held no path data. Now worked as Q341–Q344 |
+| **Q5** | **ANSWERED architecturally** (ADR-0155, `research/navigation-and-steering.md`): a triangulated navigation mesh plus a steering system, so our A* cannot match the original's routes in general. `Follow_Path` held no path data. Now worked as Q341–Q349, and rebuilt as ADR-0157 (phases 1 and 2 built unwired) |
 
 ---
 

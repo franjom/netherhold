@@ -12,7 +12,7 @@ namespace DK2.Pathfinding;
 /// a waypoint and the apex. The destination is the final, degenerate gate. Nothing here rounds to
 /// a tile, which is why a route across open floor is one straight segment.</summary>
 /// <remarks>What the mover aims at is not these corners but a point on each corner's gate after
-/// the clearance stage (`grtc:`, Q344), still unread; phase 2 adds it (ADR-0157).</remarks>
+/// the clearance stage (`grtc:`, Q344), read but not built; ADR-0157 wants it before phase 3.</remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/navigation-and-steering.md")]
 public static class Funnel
 {

@@ -3505,10 +3505,11 @@ reason: the rule is knowable now, the integration is not.
 ## ADR-0157 — The router is rebuilt on the original's mesh, search and funnel
 
 **Status.** Accepted 2026-09-16 · phase 1 landed the same day: `NavMesh`,
-`MeshRouter` and `Funnel`, tested and unwired · phase 2 begun 2026-09-17:
-`Follow_Path`, `Avoid_Walls`, `Repel_Obstacle`, the route window and the turn
-are built and tested unwired in `DK2.Simulation.Steering`; the combiner and
-integrator wait on the integrator's read.
+`MeshRouter` and `Funnel`, tested and unwired · phase 2 landed 2026-09-17:
+`Follow_Path`, `Avoid_Walls`, `Repel_Obstacle`, `Separation`, the route window,
+the turn and `SteeringIntegrator` (combiner, Euler step, slide, wall clamp),
+tested and unwired in `DK2.Simulation.Steering`. Phase 3 waits on the funnel's
+gate re-walk (Q344).
 
 **Context.** ADR-0155 recorded that DK2 routes over a navigation mesh and moves
 by steering, and left the rebuild to the owner. Since then the owner has watched
