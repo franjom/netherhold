@@ -239,10 +239,13 @@ Facing the aim, the force is a desired velocity minus `vel`:
   the probe `0x004D15E0`: the signed sum of creature word `+0x200` over every
   creature on a tile of the **0.95-tile square** centred on `subpath[idx]`
   (edges by floor and ceiling; a square, not a circle). The creature
-  initialiser writes that word as `(v >> 1) << 4` from virtual slot `0x3C`
-  (`0x00487B0B`); what the slot returns is section 8. So a crowded waypoint
-  collapses a creature's seek gain to 0.02 and an imp's to 0.825: creatures
-  yield to a crowd, imps barely do.
+  initialiser writes that word as `(v >> 1) << 4` (`0x00487B0B`), where `v` is
+  virtual slot `0x3C` of `CCreature` (vtable `0x0066D524`, `0x004B5D60`): the
+  definition word `+0x63A`, loaded from the KWD creature `u16` at `0xEA0`, a
+  radius in 1/4096 tile (Imp 573, Bile Demon 1740; our name: footprint radius).
+  So each creature near the point takes half its footprint radius, in tiles,
+  off the gain: an imp 0.07, a Bile Demon 0.21. Four Bile Demons round a
+  waypoint bring a creature's gain from 1.02 to 0.18; imps hardly slow.
 
 ## 6. `Avoid_Walls` in `escape_stuck_mode`
 
@@ -279,11 +282,12 @@ with `pos >> 8`, `target >> 8` and the fraction `0x2000`; the result count is
 So the window **does not slide**. When five points are consumed the whole route
 is requested again from wherever the body is, and the funnel runs afresh.
 
-## 8. What this leaves (Q349, Q344)
+## 8. What this leaves (Q344)
 
-- What virtual slot `0x3C` of a creature returns: the source of the crowd word.
-- `grtc:` is read (codex, 2026-09-17) and belongs to the router:
-  `navigation-and-steering.md` section 2.1 and Q344.
+- Nothing of Q349. `grtc:` is read (codex, 2026-09-17) and belongs to the
+  router: `navigation-and-steering.md` section 2.1 and Q344.
+- The KWD field at `0xEA0` has no name in the repo's reader yet; phase 3 adds
+  it beside the turn rate at `0xF20` and the size class at `0xEA8`.
 
 ## Confidence
 
@@ -313,4 +317,5 @@ stuck bit; the ray-circle test to its return; the crowd probe's square and sum.
 **STRONGLY INFERRED:** that `0x004D2070` is the same ray-circle shape as
 `0x004D20F0` (its tail is unread; `Repel_Obstacle` does not call it).
 
-**UNKNOWN:** section 8.
+**UNKNOWN:** nothing on this page; the KWD field names at `0xEA0`, `0xEA8` and
+`0xF20` are ours until the reader gains them.
