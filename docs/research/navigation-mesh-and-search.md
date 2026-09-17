@@ -293,9 +293,10 @@ memory it writes `nav.log`, and a ` retC` line there names a refusal.
 ## 7. Measured against the original's own log
 
 The logger behind §1's labels (`[0x006EC9E8]`, §5) was switched on in a
-running game by a memory write, and Level 7 — the first campaign level with a
-computer keeper, so creatures move with nobody at the controls — was left to
-run for seven minutes (2026-09-17). The recipe: `DKII-DX.exe -LEVEL Level7`
+running game by a memory write, and Level 7 — whose creatures move with nobody
+at the controls; its keeper Gormagon is scripted to fall within seconds (owner,
+2026-09-17), so a keeper that plays needs Level 10 — was left to run for seven
+minutes (2026-09-17). The recipe: `DKII-DX.exe -LEVEL Level7`
 boots straight into the level; the game runs elevated (GOG's `RUNASADMIN`
 compat flag), so `reverse-engineering/dk2move.py --navlog --csv <out>` is
 started from an elevated shell **first**, the game second, and nothing after

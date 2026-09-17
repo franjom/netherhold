@@ -282,6 +282,13 @@ The 23 keepers, with the parameters that separate them (all CONFIRMED from data)
 | level18 | Nemesis, Fabian, Faust | 3000–10000 | 1 | 25/9 | 12/4 / 30 | 26,4,0 / 4,1,4 / 125,1,170 | 0,1,1 / 0 | 3000/1000 | torture/leave |
 | TrapTime | Keeper 2, Keeper 3 | 3000 | 1 | 12/25 | 4/20 / 15 | 4,15 / 0,10 / 200,20 | 1,0 / 1,0 | 6000/9000 | leave/torture |
 
+**Gormagon never plays.** The owner (2026-09-17): Level 7's keeper dies within the
+first seconds and the player takes over its rooms. Its own root (trigger 3, condition
+47) only reacts to the death; what deals it is UNKNOWN — the hero at (55,36) rooted on
+trigger 29 (creature condition 3 → creature actions 20 and 42) is the candidate. So the
+first campaign keeper that plays is **Asmodeus on Level 10**; Level 13, Level 17 and
+TrapTime also author neither action anywhere.
+
 Constant across all 121 AI rows: `ManaValue` 100, `GoldValue` 100, starting mana 100,
 `RemoveCallToArmsWithinRange` mostly 5. `MaxBuildArea` is per level (50 distinct
 rectangles).
