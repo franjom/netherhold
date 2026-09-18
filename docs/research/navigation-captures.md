@@ -178,6 +178,16 @@ them from reading commands off in order:
 - **Focus.** The `92`s bracket the two moments the owner alt-tabbed, which they
   reported without being asked.
 
+**The stream looks like intent, not outcome.** Only one trap type and one door
+type were ever selected, both id 3 - `Sentry Trap` and `Braced Door` - yet there
+are **11 trap placements and 7 door placements on 18 distinct tiles**, while the
+owner reports building 4-5 doors and says several of the traps they placed never
+got built for want of a manufactured one. So a placement the game goes on to
+refuse appears to be recorded anyway. Not settled: a 30-second recording that
+places a trap with nothing manufactured would say outright whether a refused
+placement still writes a command. It matters for anything that reads these
+commands as state changes.
+
 **STRONGLY INFERRED.** What is still UNKNOWN: **88**, seen in the first session
 and in neither of these, and **93** and **106**, which appeared here (a large id
 and a 1) against no action the owner named.
