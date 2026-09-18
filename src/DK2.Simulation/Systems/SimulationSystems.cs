@@ -29,6 +29,9 @@ public static class SimulationSystems
         new TempleSacrificeSystem(),
         // Graveyard decomposition tallies use the same persistent room identity.
         new GraveyardSystem(),
+        // Alliances before doors: a door opens for an ally, so a pact made this tick is
+        // honoured on the tick it was made.
+        new AllianceSystem(),
         // Doors open and close before anyone routes across them this tick.
         new DoorSystem(),
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.

@@ -296,9 +296,22 @@ public struct PlayerState
     /// <see cref="WorldState"/> gives every keeper a list on creation.</para></summary>
     public List<HandItem> Hand;
 
+    /// <summary>Which players this one is allied with, one bit per player id — DK2's eight bytes
+    /// at <c>player+0x1AE</c>, indexed there by the player's compact number at <c>+0x10FC</c>.
+    /// Symmetric: the make- and break-alliance handlers (<c>0x00513FF0</c>, <c>0x00513F60</c>)
+    /// always write both sides, and nothing else writes the array. A player is never its own ally
+    /// here; the original's predicate <c>0x004BF3D0</c> answers yes for the same player before it
+    /// reads the array, which is what <see cref="WorldState.AreAllied"/> does.</summary>
+    /// <remarks>DK2 keeps a second eight-byte array at <c>+0x1B6</c> beside it, cleared whenever
+    /// an alliance is made; what it holds is UNKNOWN and nothing here stands in for it. One byte
+    /// covers ids 0..7, which is every id the campaign uses (<see cref="PlayerIds"/>) and exactly
+    /// as many as the original's array holds.</remarks>
+    public byte AlliedWith;
+
     public readonly void HashInto(ref Hash64 hash)
     {
         hash.Add(PlayerId);
+        hash.Add(AlliedWith);
         hash.Add(Mana);
         hash.Add(GoldMined);
         hash.Add(KilledByPlayerId);
@@ -414,9 +427,21 @@ public sealed class DoorState
     public bool UnderConstruction { get; init; }
 
     /// <summary>DK2's <c>+0x111</c>: 0 opens for every allied creature, 1 for none of the
-    /// workers, 2 for workers only, 3 for nobody. The loader seeds 3 from authored flag bit 0
-    /// (doors-and-traps.md); the lock transition <c>0x004A6800</c> is not built.</summary>
-    public byte LockMode { get; init; }
+    /// workers, 2 for workers only, 3 for nobody. The loader seeds 3 from authored flag bit 0,
+    /// and the owner's lock command toggles it between 0 and 3 — modes 1 and 2 have their arms
+    /// in the update but no caller in v1.70 (doors-and-traps.md).</summary>
+    public byte LockMode { get; set; }
+
+    /// <summary>DK2's <c>+0x115</c>: ticks left on a picked lock, counted down one per update
+    /// (<c>0x004A56A1</c>) and, while it is not zero, <b>forcing the door open</b> ahead of every
+    /// other rule including lock mode 3 (<c>0x004A5D52</c>).</summary>
+    /// <remarks><b>Nothing sets it.</b> The one writer is <c>0x004A6DF0</c>, reached from the
+    /// effect handler <c>0x00474F80</c> that a creature ability dispatches through a descriptor
+    /// table; which ability owns that descriptor is UNKNOWN, and abilities are not built, so a
+    /// lock here is never picked. The duration it writes is the product of two globals in
+    /// uninitialised data, <c>[0x006F28D3] * [0x006F2590]</c>, so its value is unread as
+    /// well.</remarks>
+    public int LockPickTicks { get; set; }
 
     /// <summary>DK2's <c>+0x10D</c>, recomputed every tick by <see cref="Systems.DoorSystem"/>:
     /// while open the tile's navigation byte is plain floor for everyone.</summary>
@@ -452,6 +477,7 @@ public sealed class DoorState
         hash.Add(Flags);
         hash.Add(UnderConstruction);
         hash.Add(LockMode);
+        hash.Add(LockPickTicks);
         hash.Add(Open);
         foreach (byte value in Unknown_0011.Span) hash.Add(value);
     }
@@ -678,6 +704,32 @@ public sealed class WorldState
             if (_players[i].PlayerId == playerId)
                 return ref _players[i];
         throw new KeyNotFoundException($"No player with id {playerId} in this world.");
+    }
+
+    /// <summary>Whether <paramref name="playerId"/> counts <paramref name="otherId"/> a friend —
+    /// the original's <c>0x004BF3D0</c>, which answers yes for the same player without reading
+    /// the array and otherwise returns the byte at <c>player+0x1AE+other</c>. The door update
+    /// asks it of every creature standing at a door (doors-and-traps.md).</summary>
+    public bool AreAllied(byte playerId, byte otherId) =>
+        playerId == otherId
+        || (otherId < 8 && (Player(playerId).AlliedWith & (1 << otherId)) != 0);
+
+    /// <summary>Make or break an alliance. <b>Always symmetric</b>: the original's two handlers
+    /// write both players' arrays, and nothing else writes them, so a one-sided alliance is a
+    /// state DK2 cannot reach.</summary>
+    public void SetAllied(byte playerId, byte otherId, bool allied)
+    {
+        if (playerId == otherId) return;
+        if (playerId >= 8 || otherId >= 8)
+            throw new ArgumentOutOfRangeException(nameof(playerId), "The alliance array holds eight players.");
+        Write(ref Player(playerId), otherId, allied);
+        Write(ref Player(otherId), playerId, allied);
+
+        static void Write(ref PlayerState player, byte other, bool allied)
+        {
+            if (allied) player.AlliedWith |= (byte)(1 << other);
+            else player.AlliedWith &= (byte)~(1 << other);
+        }
     }
 
     /// <summary>

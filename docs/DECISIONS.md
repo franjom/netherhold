@@ -3593,3 +3593,47 @@ locked own door only otherwise, and never when option bit 1 is set.
 - Which tiles beside a door count, the creature flag the update skips, the
   door type that always reads as locked and the lock transition's callers are
   Q353; until the transition is built no door changes mode after loading.
+
+## ADR-0159 — The rest of the door model: alliances, the lock command, the picked lock
+
+**Status.** Accepted 2026-09-18 · `HashVersion` 64 · Research:
+`docs/research/doors-and-traps.md`.
+
+**Context.** ADR-0158 built the door update with three pieces missing, each
+named there: the alliance test stood in as "same owner", nothing could change a
+lock mode after loading, and the lock-pick timer the update reads had neither a
+field nor a reader. All three are now read from the binary rather than inferred.
+`0x004BF3D0` answers yes for the same player and otherwise returns the byte at
+`player+0x1AE+other`; the make and break handlers (`0x00513FF0`, `0x00513F60`)
+write **both** players' arrays and nothing else writes them; the lock command
+`0x00513800` takes no mode and **toggles** an unlocked door to 3 and any other
+to 0; and the update tests the timer at `+0x115` **before** the lock mode, so a
+picked lock holds even a mode-3 door open (`0x004A5D52`).
+
+**Decision.**
+- `PlayerState.AlliedWith`, one bit per player id, with `WorldState.AreAllied`
+  and a symmetric `SetAllied`. `DoorSystem.Eligible` asks it instead of
+  comparing owners.
+- `SetAllianceCommand` and `AllianceSystem`, ordered before `DoorSystem` so a
+  pact made on a tick is honoured on it. One command with a flag where the
+  original has two handlers; neither checks that the issuer is one of the pair,
+  so neither does this.
+- `LockDoorCommand`, applied by `DoorSystem` before it recomputes anything: the
+  owner's own door only, and a toggle, which is half of why modes 1 and 2 are
+  unreachable.
+- `DoorState.LockPickTicks`, counted down one per update ahead of the
+  construction bypass and read ahead of the lock mode.
+
+**Consequences.**
+- **Nothing starts a picked lock.** Its only writer is `0x004A6DF0`, reached
+  from the effect handler `0x00474F80` through an ability descriptor table;
+  which ability owns it is UNKNOWN and abilities are unbuilt. The field is
+  hashed anyway, on version 53's reasoning: state the simulation can be *given*
+  is testable where a hardcoded false is not.
+- The duration that writer computes is a product of two globals in
+  uninitialised data, so its value stays unread; only the shape is built.
+- Trigger action 18 is the third writer of the alliance array (`0x0051DCEB`,
+  STRONGLY INFERRED). It has no arm in the executor and gains none here.
+- Our eligibility still uses `CreatureDeathRules.IsDown` where DK2 tests
+  `CreatureDying` alone, a door wider than the original's by at most the tick
+  window in which a creature is out of health and not yet booked as collapsed.

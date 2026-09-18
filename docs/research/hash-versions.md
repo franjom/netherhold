@@ -32,10 +32,13 @@ beside it.
 
 ## Versions
 
-**63** — `0xE53ED0F1EDDD2036` (current). A creature's route option word and a
-door's lock mode and open state entered (ADR-0158: doors in the navigation
-byte). The pinned world has no doors and requests no route, so this is
-composition only.
+**64** — `0x8FAF223321EE1523` (current). A keeper's alliance bits and a door's
+lock-pick timer entered (ADR-0159: the rest of the door model). The pinned world
+has no doors and makes no alliance, so this is composition only.
+
+**63** — `0xE53ED0F1EDDD2036`. A creature's route option word and a door's lock
+mode and open state entered (ADR-0158: doors in the navigation byte). The pinned
+world has no doors and requests no route, so this is composition only.
 
 **62** — `0xE4BA93698075EF4F`. The tile path, its index and the
 movement remainder left the creature; its heading and the steering body's

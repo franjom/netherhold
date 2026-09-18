@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Commands;
 using DK2.Simulation.Navigation;
 using DK2.Simulation.Systems;
 
@@ -105,6 +106,80 @@ public class DoorNavigationTests
         world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(5, 2));
         var sim = new GameSimulation(db, world, 7, Dk2TerrainFixture.DefaultSystems());
         sim.Tick(InputFrame.Empty);
+        Assert.False(door.Open);
+    }
+
+    /// <summary>An alliance is what the door update asks about, not ownership: the same rival
+    /// creature that a keeper's door ignores opens it once the two are allied, and is shut out
+    /// again the moment the pact breaks (<c>0x004BF3D0</c>, doors-and-traps.md).</summary>
+    [Fact]
+    public void AnAllyOpensTheDoorAndBreakingThePactShutsIt()
+    {
+        (WorldState world, GameDatabase db, DoorState door) = Build(Keeper, 0);
+        world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Rival, new TilePos(5, 2));
+        var sim = new GameSimulation(db, world, 7, Dk2TerrainFixture.DefaultSystems());
+
+        sim.Tick(InputFrame.Empty);
+        Assert.False(door.Open);
+
+        sim.Tick(InputFrame.Of(new SetAllianceCommand(Keeper, Rival, true)));
+        Assert.True(door.Open);
+
+        sim.Tick(InputFrame.Of(new SetAllianceCommand(Rival, Keeper, false)));
+        Assert.False(door.Open);
+    }
+
+    /// <summary>Both handlers write both players' arrays, so there is no one-sided alliance
+    /// (<c>0x00513FF0</c>, <c>0x00513F60</c>).</summary>
+    [Fact]
+    public void AnAllianceIsSymmetricWhicheverKeeperAsks()
+    {
+        (WorldState world, _, _) = Build(Keeper, 0);
+        Assert.False(world.AreAllied(Keeper, Rival));
+
+        world.SetAllied(Rival, Keeper, true);
+
+        Assert.True(world.AreAllied(Keeper, Rival));
+        Assert.True(world.AreAllied(Rival, Keeper));
+        Assert.True(world.AreAllied(Keeper, Keeper));
+    }
+
+    /// <summary>The lock command has no mode argument: it sends an unlocked door to 3 and a door
+    /// at any other mode to 0 (<c>0x0051382D</c>), which is why 1 and 2 are unreachable.</summary>
+    [Fact]
+    public void TheOwnersLockCommandTogglesAndAnotherKeepersDoesNothing()
+    {
+        (WorldState world, GameDatabase db, DoorState door) = Build(Keeper, 0);
+        var sim = new GameSimulation(db, world, 7, Dk2TerrainFixture.DefaultSystems());
+        Assert.Equal(0, door.LockMode);
+
+        sim.Tick(InputFrame.Of(new LockDoorCommand(Keeper, new TilePos(5, 2))));
+        Assert.Equal(3, door.LockMode);
+
+        sim.Tick(InputFrame.Of(new LockDoorCommand(Rival, new TilePos(5, 2))));
+        Assert.Equal(3, door.LockMode);
+
+        sim.Tick(InputFrame.Of(new LockDoorCommand(Keeper, new TilePos(5, 2))));
+        Assert.Equal(0, door.LockMode);
+    }
+
+    /// <summary>A picked lock is read before the lock mode and before anyone is looked for, so a
+    /// door locked against everybody stands open until the timer runs out (<c>0x004A5D52</c>).
+    /// Nothing in this project starts one — the only writer is an ability effect
+    /// (doors-and-traps.md) — so the test sets it the way that effect would.</summary>
+    [Fact]
+    public void APickedLockHoldsALockedDoorOpenUntilItRunsOut()
+    {
+        (WorldState world, GameDatabase db, DoorState door) = Build(Keeper, flags: 0x01);
+        var sim = new GameSimulation(db, world, 7, Dk2TerrainFixture.DefaultSystems());
+        door.LockPickTicks = 2;
+
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(1, door.LockPickTicks);
+        Assert.True(door.Open);
+
+        sim.Tick(InputFrame.Empty);
+        Assert.Equal(0, door.LockPickTicks);
         Assert.False(door.Open);
     }
 }

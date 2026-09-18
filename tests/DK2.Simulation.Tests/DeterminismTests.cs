@@ -102,10 +102,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 63: a creature's route option word and a door's lock mode and open state
-        // entered (ADR-0158, doors in the navigation byte). Earlier pins and their reasons live in
+        // HashVersion 64: a keeper's alliances and a door's lock-pick timer entered (ADR-0159,
+        // the rest of the door model). Earlier pins and their reasons live in
         // docs/research/hash-versions.md.
-        Assert.Equal(0xE53ED0F1EDDD2036UL, sim.StateHash());
+        Assert.Equal(0x8FAF223321EE1523UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
