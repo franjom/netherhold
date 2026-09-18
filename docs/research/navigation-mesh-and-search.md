@@ -81,7 +81,9 @@ the difference, and `GateWalk` allows for it.
 **Decompose.** `0x004CE570` scans the rebuild rectangle for **maximal uniform
 rectangles** of one navigation byte: from a start tile it extends right while
 the bytes match, then extends down while each whole row segment matches, and
-returns the rectangle with its byte. The rebuild loop asks for the next one
+returns the rectangle with its byte (`0x004CE4E0` starts at the topmost
+uncovered row's leftmost run, a per-column skyline at `0x006E7EE8` recording
+cover, so the partition is the one ours makes). The rebuild loop asks for the next one
 until none remain.
 
 **Insert each rectangle** (`0x004CCCB0`): its four corners as points, its four
@@ -338,7 +340,10 @@ fifteen ticks; keyed by tick, 32 routes into freshly dug tiles read as solid).
 Replaying 21,298 requests on that grid with a keeper-owned, door-respecting
 wader: **21,288 agree, 99.95 %** (2026-09-18, with §2.3's endpoint rule; 93
 corner targets disagreed without it). Waypoint counts match in 4,923 of 4,941
-probes; corridor triangle counts are ours +1 to +3 in most (Q351). The ten
+probes. ` route=` is the driver's return, the kept corridor's **last index**
+(`0x004CDE21` copies entries `route..0`), so it is triangles − 1: against that,
+our corridors agree exactly in 48 %, run longer in 35 % and shorter in 17 %;
+before the first tile change they agree in 74 % (Q351). The ten
 left are one portal-hole target, three lava targets and six lava crossings
 that the requesting creature's own flags allowed. The cache answered Q352
 outright — every one of a heart's 25 tiles is plain floor, and the only plain
