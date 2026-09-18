@@ -31,22 +31,24 @@ flags allowed; the cache also answered Q352 (structure-blocks.md §5.4). Steps p
 tick match the loader rule: the imps' 1888 against 1884–1887.
 
 **Level 10, 2026-09-18, a keeper playing.** Twelve minutes, 87,619 requests
-logged, 86,140 with a tick, 1,883 byte changes, 107 creatures. **Whose creatures
-is not known**: the probe's owner offset was wrong and past the end of its header
-read, so every sample recorded owner 0 (it is `word[thing+0x28]`, fixed
-2026-09-18). The owner sees heroes on this map between the two dungeons, so
-Asmodeus is not the only one moving. Replayed with six movers (each
-owner, respecting doors, with and without lava, or attacking), **every request
-but three is explained by one of them** — but the six cover owners 3 and 4 only,
-so which profile explains which request is not evidence until a capture records
-the owner; the three enter a portal hole, the
+logged, 86,140 with a tick, 1,883 byte changes, 107 creatures. **Most of them are
+heroes.** The probe's owner offset was wrong here and read past the end of its
+header, so this capture recorded owner 0 for everything; a later one with the
+offset fixed to `word[thing+0x28]` counted **74 creatures of player 1 against 15
+of Asmodeus's, 14 of the owner's and 4 neutral**. Replayed with nine movers
+(owners 1, 3 and 4, respecting doors, with and without lava, or attacking),
+**every request but three is explained by one of them**, and the hero profile
+explains the most of any single one — 53,479 agreements against 52,934 for
+Asmodeus and 52,553 for the owner, which is the ownership showing up
+independently in the routing; the three enter a portal hole, the
 leaving word's bit 2. The probe also dumped DK2's triangle and point tables
 (§2.1): at tick 7 its point set is **exactly ours** once the base rectangle and
 the byte-0 skip are built, 1,417 for 1,417, and 2,765 triangles inside the map
 against our 2,765, **2,612 identical**. Of the 153 that differ 124 are in rock,
 which neither coarsening walks; the rest are quads whose two diagonals tie,
-settled by insertion order. Corridor lengths are **exact in 84 %**, but **3,232
-of the 3,254 differences leave the waypoint count unchanged**. Nor does our
+settled by insertion order. Measured against
+the hero profile, corridor lengths are **exact in 17,678 of 20,979** and the
+waypoint count differs in only **22**. Nor does our
 whole-map build drift where DK2 patches the mesh a tile at a time: across the
 probe's 353 dumps its triangles stay 92-94 % ours, 88 % at the worst. No creature
 stepped between two solid tiles in 216,882 steps (Q28).
@@ -92,3 +94,14 @@ wanted, which is what makes any probe change an A/B test rather than a new
 sample. Playing also generates routing far faster than watching: 98,313 calls in
 five minutes against 87,619 in twelve idle ones. The `.sav` is game-derived and
 stays out of the repository.
+
+## What the probe still cannot see
+
+The creature pass walks 4,096 entity slots and takes **~128 ms**, so asking it
+for 8 Hz leaves nothing over: a first attempt to sample the navigation cache in
+the loop's idle time never executed a single iteration, and measured *worse*
+than no fix because a played session flaps doors about 2.4 times as fast as an
+idle one — **644 of 1,974 door rebuilds missed** on the 2026-09-18 played
+replay, against 126 of 1,980 idle. The sampling now runs on its own thread,
+which `ReadProcessMemory` allows because it releases the GIL. Unverified until
+the next capture.
