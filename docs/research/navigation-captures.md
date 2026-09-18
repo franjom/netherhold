@@ -62,3 +62,33 @@ waypoint count disagreed is one of those: toggling **one door tile** — (24,16)
 DK2's `route=` **and** `way=` exactly, 23 times in 23, and 20 of them had our
 door open where DK2's was shut. The probe now re-reads the cache every 5 ms
 while its creature pass waits (Q351).
+
+## DK2 records and replays a session itself (Q356)
+
+The shipped exe carries a **packet recorder**, parsed at `0x005A65D5`-`0x005A668F`:
+`-PSAVE <name>` writes `PacketRecord\<name>.sav`, `-PLOAD <name> <n>` plays one
+back, and `-PNUMBER`, `-PQUIT` and `-PMESH` sit beside them. **`-LEVEL` must be
+given on both**: the record's header names its level but the loader does not act
+on it, and without it the game feeds the packets to the front end — itself a
+7x14 level — and desyncs on turn 1. The second `-PLOAD` argument is **0**, which
+is what the game's own config path passes (`0x004016E8`).
+
+A record is a level name, twelve header dwords, then one record per game turn: a
+**4-byte turn counter**, the turn's **RNG seed** and **state checksum** as two
+dwords, and a short packet payload — 17 bytes on 2,588 of one session's 2,925
+turns, because most turns carry nothing but the camera. Playback compares both
+stored values against the live ones every turn (`0x005268FD`) and logs
+`Gone Out Of Sync (Seed|Checksum) GT %d [%08X:%08X]` on a mismatch.
+
+**It replays faithfully.** A five-minute played session of Level 10, recorded
+2026-09-18 and replayed at once: **no seed ever diverged** over 2,924 turns, and
+the state checksum diverged **once**, at GT 1099, by 0x3F8 on what the near-equal
+values suggest is a sum. Every gross counter in `MESSAGE.LOG` matched the
+recording exactly — 2,939 world frames, **98,313 navigation calls**, 65,583 imp
+calls, 2,922 computer-player calls.
+
+So a played session can be captured once and replayed unattended as often as
+wanted, which is what makes any probe change an A/B test rather than a new
+sample. Playing also generates routing far faster than watching: 98,313 calls in
+five minutes against 87,619 in twelve idle ones. The `.sav` is game-derived and
+stays out of the repository.
