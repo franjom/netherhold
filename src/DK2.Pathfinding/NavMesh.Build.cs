@@ -5,26 +5,31 @@
 namespace DK2.Pathfinding;
 
 /// <summary>Building the mesh from a grid: maximal uniform rectangles, constraint insertion by
-/// flipping, stamping and coarsening (navigation-mesh-and-search.md §2.1).</summary>
+/// flipping and stamping (navigation-mesh-and-search.md §2.1).</summary>
 public sealed partial class NavMesh
 {
-    /// <summary>The original's whole-map build: reset, then every maximal rectangle of one
-    /// navigation byte in row-major discovery order, each inserted as four corners and four
-    /// constraint sides and stamped, then coarsened.</summary>
+    /// <summary>The original's whole-map rebuild (`0x004CE770` with the whole map as its
+    /// rectangle): reset to the canvas, stamp the map as one rectangle of navigation byte 0, then
+    /// every maximal rectangle of one byte in discovery order — <b>skipping those whose byte is
+    /// 0</b>, which the base rectangle already covers (`0x004CEB56`). It runs no vertex removal:
+    /// the pass that reduces a vertex's degree by flipping and then merges it away is gated on the
+    /// partial-rebuild flag (`0x004CEC10`), and a whole-map rebuild never reaches it.</summary>
     public static NavMesh Build(INavByteGrid grid)
     {
         if (grid is null) throw new ArgumentNullException(nameof(grid));
         var mesh = new NavMesh();
-        mesh.Reset(grid.Width, grid.Height);
+        mesh.Reset(CanvasMin, CanvasMin, CanvasMax, CanvasMax);
+        mesh.InsertRectangle(0, 0, grid.Width, grid.Height, NavBytes.Floor);
         mesh.InsertRectangles(grid);
         mesh.Coarsen();
         return mesh;
     }
 
-    /// <summary>The scanner (`0x004CE570`): from the first uncovered tile in row-major order,
-    /// extend right while the byte matches, then down while the whole row segment matches. The
-    /// original compares bytes only; stopping at already-covered tiles as well is ours, and keeps
-    /// the rectangles disjoint (ADR-0157 residual).</summary>
+    /// <summary>The scanner (`0x004CE570` over `0x004CE4E0`): take the leftmost column of the
+    /// topmost uncovered row, extend right while the byte matches and the column is uncovered,
+    /// then down while the whole row segment matches. The original keeps coverage as a per-column
+    /// skyline word, which is the same partition as our covered array because every rectangle is
+    /// laid against that skyline.</summary>
     private void InsertRectangles(INavByteGrid grid)
     {
         int w = grid.Width, h = grid.Height;
@@ -47,7 +52,9 @@ public sealed partial class NavMesh
                     for (int x = x0; x <= x1; x++)
                         covered[(y * w) + x] = true;
 
+                if (nav == NavBytes.Floor) continue;
                 InsertRectangle(x0, y0, x1 + 1, y1 + 1, nav);
+                Coarsen();
             }
         }
     }
@@ -189,11 +196,13 @@ public sealed partial class NavMesh
     /// which comes back as <paramref name="c"/>–<paramref name="d"/>.</summary>
     public bool TryFlip(int t, int edge) => TryFlip(t, edge, out _, out _);
 
-    public bool TryFlip(int t, int edge, out int c, out int d)
+    public bool TryFlip(int t, int edge, out int c, out int d) => TryFlip(t, edge, true, out c, out d);
+
+    private bool TryFlip(int t, int edge, bool respectConstraints, out int c, out int d)
     {
         c = d = -1;
         int u = Neighbour(t, edge);
-        if (u == NoNeighbour || IsConstraint(t, edge)) return false;
+        if (u == NoNeighbour || (respectConstraints && IsConstraint(t, edge))) return false;
 
         int a = Vertex(t, edge), b = Vertex(t, (edge + 1) % 3);
         c = Vertex(t, (edge + 2) % 3);
@@ -223,161 +232,46 @@ public sealed partial class NavMesh
         return true;
     }
 
-    /// <summary>Same-byte coarsening (`0x004C97B0` / `0x004CB8C0`): a vertex whose every incident
-    /// triangle carries one byte separates nothing, so it is removed and its fan re-triangulated.
-    /// One pass in point order; removability never changes with other removals.</summary>
+    /// <summary>The coarsening pass (`0x004CC650`): walk the mesh flipping every edge the
+    /// criterion accepts until none is left. The original walks it as a flood fill from the
+    /// rebuilt rectangle's corners, stamped by a generation counter, and never enters a solid
+    /// triangle (`0x004CC75E` and its two copies test bit 3 of a neighbour's byte); ours sweeps
+    /// the slots instead, which reaches the same triangles for a whole-map rebuild.</summary>
     public void Coarsen()
     {
-        for (int p = 0; p < _pointCount; p++)
+        for (bool again = true; again;)
         {
-            if (_pointDead[p]) continue;
-            if (IsResetCorner(p)) continue;
-            List<int>? fan = FanAround(p);
-            if (fan is null || fan.Count < 2) continue;
-
-            byte nav = _nav[fan[0]];
-            bool uniform = true;
-            foreach (int t in fan) if (_nav[t] != nav) { uniform = false; break; }
-            if (!uniform) continue;
-
-            RemovePoint(p, fan, nav);
-        }
-    }
-
-    private bool IsResetCorner(int p) =>
-        (_px[p] == 0 || _px[p] == Width) && (_py[p] == 0 || _py[p] == Height);
-
-    /// <summary>The triangles around a point in counter-clockwise order, or null when the fan
-    /// does not close and cannot be walked both ways (a point on the map border).</summary>
-    private List<int>? FanAround(int p)
-    {
-        int start = -1;
-        for (int t = 0; t < _triCount && start < 0; t++)
-            if (IsTriangleLive(t) && IndexOf(t, p) >= 0) start = t;
-        if (start < 0) return null;
-
-        // In a positively wound (p, v1, v2) the counter-clockwise next triangle is across
-        // (v2, p), edge i+2, and the clockwise previous one across (p, v1), edge i. Walk
-        // clockwise to the fan's first triangle if the fan is open at the map border.
-        int first = start;
-        for (int guard = 0; guard < _triCount; guard++)
-        {
-            int i = IndexOf(first, p);
-            int prev = Neighbour(first, i);
-            if (prev == NoNeighbour || prev == start) break;
-            first = prev;
-        }
-
-        var fan = new List<int>();
-        int cur = first;
-        for (int guard = 0; guard < _triCount; guard++)
-        {
-            fan.Add(cur);
-            int i = IndexOf(cur, p);
-            int next = Neighbour(cur, (i + 2) % 3);
-            if (next == NoNeighbour || next == first) break;
-            cur = next;
-        }
-        return fan;
-    }
-
-    /// <summary>Delete the fan and ear-clip the boundary polygon, carrying each boundary edge's
-    /// neighbour and constraint bit onto the new triangle that owns it.</summary>
-    private void RemovePoint(int p, List<int> fan, byte nav)
-    {
-        int m = fan.Count;
-        var poly = new List<int>(m + 1);
-        var outer = new List<int>(m + 1);
-        var cons = new List<bool>(m + 1);
-        foreach (int t in fan)
-        {
-            int i = IndexOf(t, p);
-            poly.Add(Vertex(t, (i + 1) % 3));
-            outer.Add(Neighbour(t, (i + 1) % 3));
-            cons.Add(IsConstraint(t, (i + 1) % 3));
-        }
-        bool open = Neighbour(fan[m - 1], (IndexOf(fan[m - 1], p) + 2) % 3) == NoNeighbour;
-        if (open)
-        {
-            int last = fan[m - 1];
-            int i = IndexOf(last, p);
-            poly.Add(Vertex(last, (i + 2) % 3));
-        }
-
-        foreach (int t in fan) { _nav[t] = NavBytes.Dead; _triFree.Add(t); }
-        _pointDead[p] = true;
-        _pointFree.Add(p);
-
-        // Boundary edges of the polygon: (poly[k], poly[k+1]) with outer[k]; the closing edge of an
-        // open fan is the former border pair (poly[m], poly[0]) which had no triangle either side.
-        var verts = new List<int>(poly);
-        var edgeOuter = new Dictionary<(int, int), (int, bool)>();
-        for (int k = 0; k < poly.Count - (open ? 1 : 0); k++)
-        {
-            int a = poly[k], b = poly[(k + 1) % poly.Count];
-            edgeOuter[(a, b)] = (outer[k], cons[k]);
-        }
-        if (open) edgeOuter[(poly[poly.Count - 1], poly[0])] = (NoNeighbour, true);
-
-        var made = new List<int>();
-        int guardTotal = verts.Count * verts.Count + 8;
-        while (verts.Count > 3 && guardTotal-- > 0)
-        {
-            bool clipped = false;
-            for (int k = 0; k < verts.Count; k++)
+            again = false;
+            for (int t = 0; t < _triCount; t++)
             {
-                int a = verts[(k + verts.Count - 1) % verts.Count], b = verts[k], c = verts[(k + 1) % verts.Count];
-                if (Orient(_px[a], _py[a], _px[b], _py[b], _px[c], _py[c]) <= 0) continue;
-                if (AnyInside(verts, a, b, c)) continue;
-                made.Add(NewTriangle(a, b, c, nav));
-                verts.RemoveAt(k);
-                clipped = true;
-                break;
-            }
-            if (!clipped) throw new InvalidOperationException("ear clipping stalled");
-        }
-        made.Add(NewTriangle(verts[0], verts[1], verts[2], nav));
-
-        // Link every new triangle: boundary edges to the recorded outer neighbours, inner edges
-        // to each other by reversed-edge lookup.
-        var inner = new Dictionary<(int, int), int>();
-        foreach (int t in made)
-            for (int i = 0; i < 3; i++)
-                inner[(Vertex(t, i), Vertex(t, (i + 1) % 3))] = t;
-
-        foreach (int t in made)
-        {
-            for (int i = 0; i < 3; i++)
-            {
-                int a = Vertex(t, i), b = Vertex(t, (i + 1) % 3);
-                if (edgeOuter.TryGetValue((a, b), out (int neighbour, bool constraint) o))
-                {
-                    Link(t, i, o.neighbour);
-                    SetConstraint(t, i, o.constraint || o.neighbour == NoNeighbour);
-                }
-                else if (inner.TryGetValue((b, a), out int u))
-                {
-                    _n[(3 * t) + i] = u;
-                    SetConstraint(t, i, false);
-                }
-                else throw new InvalidOperationException("ear clipping left an unmatched edge");
+                if (!IsTriangleLive(t) || NavBytes.IsSolid(_nav[t])) continue;
+                for (int i = 0; i < 3; i++)
+                    if (ShouldFlip(t, i) && TryFlip(t, i, false, out _, out _)) { again = true; break; }
             }
         }
     }
 
-    /// <summary>Whether any other polygon vertex lies in the closed ear triangle. Closed, not
-    /// open: on a tile grid many vertices are collinear, and an ear whose diagonal passes through
-    /// one would leave an edge nothing matches.</summary>
-    private bool AnyInside(List<int> verts, int a, int b, int c)
+    /// <summary>`0x004CC190`: an edge gives way to the quad's other diagonal when both triangles
+    /// carry one navigation byte, the quad is convex (two orientation tests), and the other
+    /// diagonal is <b>strictly shorter</b> in squared length. That, not any in-circle test, is
+    /// what decides every diagonal inside a room. The original also needs bit `edge` of `+0xD` on
+    /// both sides, which a whole-map rebuild always has, and its flip refuses a constraint, which
+    /// a whole-map rebuild never sets (§2.2: the side marker runs on the partial path only).
+    /// </summary>
+    private bool ShouldFlip(int t, int edge)
     {
-        foreach (int q in verts)
-        {
-            if (q == a || q == b || q == c) continue;
-            if (Orient(_px[a], _py[a], _px[b], _py[b], _px[q], _py[q]) >= 0 &&
-                Orient(_px[b], _py[b], _px[c], _py[c], _px[q], _py[q]) >= 0 &&
-                Orient(_px[c], _py[c], _px[a], _py[a], _px[q], _py[q]) >= 0) return true;
-        }
-        return false;
+        int u = Neighbour(t, edge);
+        if (u == NoNeighbour || _nav[u] != _nav[t]) return false;
+
+        int a = Vertex(t, edge), b = Vertex(t, (edge + 1) % 3);
+        int c = Vertex(t, (edge + 2) % 3);
+        int d = Vertex(u, (EdgeIndexOf(u, b, a) + 2) % 3);
+        if (Orient(_px[c], _py[c], _px[d], _py[d], _px[a], _py[a]) *
+            Orient(_px[c], _py[c], _px[d], _py[d], _px[b], _py[b]) >= 0) return false;
+
+        long nx = _px[d] - _px[c], ny = _py[d] - _py[c];
+        long ox = _px[b] - _px[a], oy = _py[b] - _py[a];
+        return (nx * nx) + (ny * ny) < (ox * ox) + (oy * oy);
     }
 
     private void MarkConstraint(int t, int i)

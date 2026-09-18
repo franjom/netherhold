@@ -38,8 +38,19 @@ public sealed partial class NavMesh
     private int _triCount;
     private readonly List<int> _triFree = [];
 
-    public int Width { get; private set; }
-    public int Height { get; private set; }
+    /// <summary>The canvas the reset covers, in tiles. The original's is always −256 … 1280
+    /// (`0x004C8F30`), far outside any map, so a map's own border is an ordinary constraint and
+    /// the tiles beyond it are triangles like any other, carrying <see cref="NavBytes.Outside"/>.
+    /// </summary>
+    public const int CanvasMin = -256, CanvasMax = 1280;
+
+    public int MinX { get; private set; }
+    public int MinY { get; private set; }
+    public int MaxX { get; private set; }
+    public int MaxY { get; private set; }
+
+    public int Width => MaxX - MinX;
+    public int Height => MaxY - MinY;
 
     /// <summary>Slots ever allocated, live or dead; the index bound for iteration.</summary>
     public int TriangleSlots => _triCount;
@@ -69,27 +80,33 @@ public sealed partial class NavMesh
         return d > 0 ? 1 : d < 0 ? -1 : 0;
     }
 
+    /// <summary>A canvas from the origin, for a mesh assembled by hand.</summary>
+    public void Reset(int width, int height) => Reset(0, 0, width, height);
+
     /// <summary>The original's reset (`0x004C8D10`): four corner points and two triangles over the
-    /// whole map, everything else dead.</summary>
-    public void Reset(int width, int height)
+    /// given rectangle, both stamped <see cref="NavBytes.Outside"/>, everything else dead.</summary>
+    public void Reset(int x0, int y0, int x1, int y1)
     {
-        if (width <= 0 || height <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        Width = width;
-        Height = height;
+        if (x1 <= x0) throw new ArgumentOutOfRangeException(nameof(x1));
+        if (y1 <= y0) throw new ArgumentOutOfRangeException(nameof(y1));
+        MinX = x0;
+        MinY = y0;
+        MaxX = x1;
+        MaxY = y1;
         _pointCount = 0;
         _pointFree.Clear();
         _triCount = 0;
         _triFree.Clear();
 
-        int p0 = NewPoint(0, 0);
-        int p1 = NewPoint(width, 0);
-        int p2 = NewPoint(width, height);
-        int p3 = NewPoint(0, height);
+        int p0 = NewPoint(x0, y0);
+        int p1 = NewPoint(x1, y0);
+        int p2 = NewPoint(x1, y1);
+        int p3 = NewPoint(x0, y1);
 
-        int t0 = NewTriangle(p0, p1, p2, NavBytes.Floor);
-        int t1 = NewTriangle(p0, p2, p3, NavBytes.Floor);
+        int t0 = NewTriangle(p0, p1, p2, NavBytes.Outside);
+        int t1 = NewTriangle(p0, p2, p3, NavBytes.Outside);
         Link(t0, EdgeIndexOf(t0, p2, p0), t1);
-        // The map border is a constraint on every side; nothing routes off the map.
+        // The canvas border is a constraint on every side; nothing routes off it.
         for (int i = 0; i < 3; i++)
         {
             if (Neighbour(t0, i) == NoNeighbour) SetConstraint(t0, i, true);
@@ -180,7 +197,7 @@ public sealed partial class NavMesh
     /// Returns the point's index.</summary>
     public int InsertPoint(int tileX, int tileY)
     {
-        if (tileX < 0 || tileY < 0 || tileX > Width || tileY > Height)
+        if (tileX < MinX || tileY < MinY || tileX > MaxX || tileY > MaxY)
             throw new ArgumentOutOfRangeException(nameof(tileX), "tile corner outside the map");
 
         long x = (long)tileX * UnitsPerTile, y = (long)tileY * UnitsPerTile;

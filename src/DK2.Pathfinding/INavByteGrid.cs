@@ -26,6 +26,10 @@ public static class NavBytes
     public const byte Lava = 3;
     public const byte Solid = 8;
 
+    /// <summary>What the mesh's reset stamps on its two triangles (`0x004C8E79`), so everything
+    /// off the map keeps it. Solid, so nothing routes there.</summary>
+    public const byte Outside = 0x0F;
+
     /// <summary>The marker the mesh writes into a dead triangle's byte.</summary>
     public const byte Dead = 0xFF;
 

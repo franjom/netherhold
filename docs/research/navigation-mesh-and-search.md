@@ -10,15 +10,13 @@ Source(s):
 Original version: DK2 v1.70 (GOG)
 
 Questions: **Q341** (the search), **Q347** (the triangulation) and **Q348**
-(edge classes, constraint flags, region ids), all answered here at the
-algorithm level.
-Continues `navigation-and-steering.md`, which owns the funnel (§2.1) and the
-mover; this page owns everything before the funnel.
+(edge classes, constraint flags, region ids), all answered here at the algorithm
+level. Continues `navigation-and-steering.md`, which owns the funnel (§2.1) and
+the mover; this page owns everything before the funnel.
 
 **Built** (ADR-0157 phases 1 and 3): `NavMesh`, `MeshRouter` and `Funnel` in
-`DK2.Pathfinding`, driven by `WorldSteering` for every creature since
-2026-09-17 and building all seven campaign maps; the owner's straight 10-by-3
-walk is one of the tests.
+`DK2.Pathfinding`, driven by `WorldSteering` for every creature since 2026-09-17
+and building all seven campaign maps.
 
 ---
 
@@ -34,8 +32,8 @@ walk is one of the tests.
 | funnel | `0x004CEF40` | `navigation-and-steering.md` §2.1 |
 
 Every stage is timed into `nav.log` under a ` c=%d %s` label when logging is on;
-`Fwd route`, `Bak route`, `Fwd path`, `Bak path`, `Route2path`, `DOUBLE PATH`
-and `EndGates` are those labels, not data.
+`Fwd route`, `Bak route`, `Fwd path`, `Bak path`, `Route2path`, `DOUBLE PATH` and
+`EndGates` are those labels, not data.
 
 ## 2. The mesh in memory
 
@@ -72,11 +70,14 @@ The triangulation is **constrained and not Delaunay**, and it is driven by
 rectangles, which is the whole reason routes cross rooms in one straight line.
 
 **Reset** (`0x004C8D10`, whole-map builds only): four corner points and **two
-triangles** covering the map, every other slot marked dead with `+0xC = 0xFF`.
-Everything else is inserted incrementally. The two are stored as `(3,1,0)` and
-`(1,3,2)` over corners `0..3`: **clockwise** in the cross product's terms, where
-our builder winds the other way. Only the edge function's endpoint order sees
-the difference, and `GateWalk` allows for it.
+triangles** over a fixed canvas of **-256 to 1280 tiles** (`0x004C8F30`), far
+outside any map, both stamped `+0xC = 0x0F`; every other slot is marked dead
+with `+0xC = 0xFF`. The two are stored as `(3,1,0)` and `(1,3,2)` over corners
+`0..3`: **clockwise** in the cross product's terms, where our builder winds the
+other way. Only the edge function's endpoint order sees the difference, and
+`GateWalk` allows for it. The whole-map path then inserts **the map itself as
+one rectangle of navigation byte 0** (`0x004CE99D`), so the map border is an
+ordinary constraint and everything past it keeps `0x0F`, which is solid.
 
 **Decompose.** `0x004CE570` scans the rebuild rectangle for **maximal uniform
 rectangles** of one navigation byte: from a start tile it extends right while
@@ -88,7 +89,9 @@ until none remain.
 
 **Insert each rectangle** (`0x004CCCB0`): its four corners as points, its four
 sides as constraint segments, then stamp the triangles inside it with the
-rectangle's navigation byte (`0x004CC9B0`).
+rectangle's navigation byte (`0x004CC9B0`). A whole-map rebuild **skips every
+rectangle whose byte is 0** (`0x004CEB56`), because the base rectangle already
+stamped it; that alone accounts for the whole point-set difference of §7.
 
 - *Point insertion* `0x004CAA50(x, y)`: locate the containing triangle
   (`0x004C98B0`, inputs scaled `<< 8`); if the point is already a vertex do
@@ -102,26 +105,33 @@ rectangle's navigation byte (`0x004CC9B0`).
   (`0x004C9FC0`: two orientation tests as a convexity guard, then both
   triangles' vertex and neighbour words are rewritten). If the segment passes
   exactly through an existing vertex the routine **recurses on the two halves**.
-  That is textbook constrained-edge insertion by flipping. Its flip order is
-  unread; ours collects the crossed edges first and flips them in Sloan's queue
-  order — a non-convex quad waits, a new diagonal that still crosses re-queues —
-  because flipping the first crossed edge and restarting cycled on five
-  campaign maps.
+  Its flip order is unread; ours collects the crossed edges first and flips them
+  in Sloan's queue order — a non-convex quad waits, a new diagonal that still
+  crosses re-queues — because flipping the first crossed edge and restarting
+  cycled on five campaign maps.
 
-**Coarsen.** Adjacent triangles whose `+0xC` bytes agree are merge candidates
-(`0x004C97B0` compares neighbours); `0x004CB8C0` merges two across a shared
-edge, frees the vertex between them (`+2 = 0x8000` marks a dead point) and
-pushes both dead triangles onto a free list threaded through their `+6` slot.
-This is what keeps a whole room down to a handful of triangles. The Level 10
-dump (§7) shows it also removes a vertex on a **straight boundary between two
-bytes** when each side keeps its byte along it — a collinear point between two
-same-byte pairs — which ours keeps (Q351).
+**Coarsen** (`0x004CC650`, after each rectangle and once more at the end): a
+flood over the rebuilt area stamped by a generation counter, which **never
+enters a solid triangle** (bit 3 of `+0xC`) and abandons the pass once its stack
+passes 1000. Each triangle's three edges go to `0x004CC190`, and a yes flips
+(`0x004C9FC0`). The criterion is that both triangles carry **one navigation
+byte**, bit `edge` of `+0xD` is set on both, the quad is **convex** (two
+orientation tests), and its other diagonal is **strictly shorter** in squared
+length. The mesh is therefore a **shortest-diagonal** triangulation of each
+uniform region, not a Delaunay one, and rock keeps whatever insertion left. This
+is what holds a whole room to a handful of triangles (Q351).
+
+**Removing a vertex is not part of a whole-map rebuild.** That pass is gated on
+the partial-rebuild flag (`0x004CEC10`) and sees only the points along the
+rebuilt rectangle's four sides (`0x004CE410`). For each, `0x004CAF40` walks the
+fan flipping incident edges until the degree is 3 or 4, then `0x004CB8C0` (3) or
+`0x004CB170` (4) frees the point (`+2 = 0x8000` marks a dead point) and pushes
+the dead triangles onto a free list threaded through `+6`. A whole-map build
+keeps **every** rectangle corner it inserted, which is what §7's dump shows.
 
 **Bookkeeping.** Every new or rewired triangle passes through `0x004C8F50`,
 which computes its three edge width classes, and a rebuild ends by
-re-labelling connected regions. Both are §2.2. Which of `0x004CE0C0`,
-`0x004CC650` and `0x004CB170` does which part of the coarsening is STRONGLY
-INFERRED from their calls rather than read; the primitives they use are not.
+re-labelling connected regions. Both are §2.2.
 
 Point coordinates are 16-bit words at tile-corner positions; a tile edge that
 separates two different navigation bytes is always a constraint edge, and a run
@@ -152,26 +162,27 @@ Three per-triangle annotations, each now read to its consumers.
 **`+0xE` low six bits: a 2-bit width class per edge.** `0x004C8F50` runs after
 every triangle is created or rewired. For each edge it takes `|dx|` and `|dy|`
 between the endpoints, clamps both to 3, and looks up the 4x4 table at
-`0x66DA38`, which is simply `max(|dx|, |dy|)` clamped to 1..3 — how many
-tiles the edge spans. The three results are packed two bits each. The search
-(§4) indexes its passability table with `(classes & 0x3F) | mask[slot]`, the
-masks being `0x3C`, `0x33`, `0x0F` for the three neighbour slots, so each lookup
-sees exactly the class of **the edge being crossed**. Mover class 1 passes only
-edges of class 2 or 3 (at least two tiles wide); class 2 only class 3.
+`0x66DA38`, which is simply `max(|dx|, |dy|)` clamped to 1..3 — how many tiles
+the edge spans; the three results are packed two bits each. The search (§4)
+indexes its passability table with `(classes & 0x3F) | mask[slot]`, the masks
+being `0x3C`, `0x33`, `0x0F` for the three neighbour slots, so each lookup sees
+the class of **the edge being crossed**. Mover class 1 passes only edges of
+class 2 or 3 (at least two tiles wide); class 2 only class 3.
 
 **It is a clearance mechanism, and the shipped game never engages it.** The
 class byte reaches the orchestrator only through the dispatcher, as
 `[0x006A11F0] − 1`; that byte initialises to 1, has no writer and sits in no
-block copy. Every request therefore uses the all-ones table, and no gate is ever
-too narrow for anyone. A live mechanism with a zero rate, not dead code.
+block copy. Every request uses the all-ones table, and no gate is ever too
+narrow. A live mechanism with a zero rate, not dead code.
 
 **`+0xD`: two flags per edge.** Bits 3–5 mark an edge as a **constraint**:
 `0x004CE380` sets bit `slot + 3` along each inserted rectangle's sides, the
 clone helper clears it for a new internal edge, and the flip `0x004C9FC0`
-tests bit `slot + 3` on both triangles and **refuses** if either is set. That is
-what keeps category boundaries in the mesh. Bits 0–2 are set on every new edge
-and read only inside the builder; their meaning is unread and nothing in
-routing depends on it.
+tests bit `slot + 3` on both triangles and **refuses** if either is set. Only a
+partial rebuild calls the side marker, so a whole-map build carries no
+constraint at all and the byte test alone keeps category boundaries; a Level 10
+dump has `+0xD = 7` on all 2,828 triangles. Bits 0–2 are set on every new edge
+and read only by the coarsening criterion.
 
 **`+0xE` high ten bits: a connected-region id.** `0x004C91A0` is a breadth-first
 flood fill over non-solid triangles (bit 3 of `+0xC` clear) with a 200-slot
@@ -179,12 +190,11 @@ ring queue, assigning ids and keeping 3-byte per-region records at `0x6E96C8`
 (a word count and a byte). `0x004CE410` gathers the ids bordering a rebuilt
 rectangle so the fill can be re-run locally. Outside the builder only the
 orchestrator reads them: `0x004D0320` asks `0x004C9400` to compare the two
-endpoint triangles' ids before either mode's search runs (§5). The search
-itself never consults them. When neither region is marked in use the check
-re-runs the fill and then compares the two words with `XOR` and `AND AL,0xC0`
-(`0x004C952B`) — the low two bits of the id only, so two regions whose ids
-differ by a multiple of four read as one. Rare in play: ids are almost always
-in use and take the direct compare.
+endpoint triangles' ids before either mode's search runs (§5); the search itself
+never consults them. When neither region is marked in use the check re-runs the
+fill and compares the two words with `XOR` and `AND AL,0xC0` (`0x004C952B`) —
+the low two bits of the id only, so two regions whose ids differ by a multiple
+of four read as one. Rare in play: ids are almost always in use.
 
 ## 3. The search is greedy best-first
 
@@ -299,71 +309,60 @@ triangles carry one region id, and returns a zero-length route (` retC`) if
 not — the only reader of region ids outside the builder. The mover then sets
 `path_finished` and `Follow_Path` brakes; nothing retries, digs or walks
 straight at the target. Our router has no region ids and relies on the search
-failing instead. The logger behind every label in §1 is gated on
-`[0x006EC9E8]`, which 44 instructions read and none writes: set to 1 in
-memory it writes `nav.log`, and a ` retC` line there names a refusal.
+failing instead. §1's labels are gated on `[0x006EC9E8]`, which 44 instructions
+read and none writes (§7).
 
 ## 6. What this leaves
 
-- Bits 0–2 of `+0xD`, set on every new edge and read only by the builder.
+- What bits 0–2 of `+0xD` mean; they are set everywhere in a finished mesh.
+- The seeding of the coarsening flood (`0x004CC3D0`).
 - The point-location walk's start cache refresh (`0x004C97B0`) and `0x004C9B50`.
-- The list of triangle indices at `0x6E86F0`, pre-marked visited by every
-  search and consulted by `0x004C9710` when it looks for a boundary edge.
+- The triangle-index list at `0x6E86F0`, pre-marked visited by every search and
+  consulted by `0x004C9710` when it looks for a boundary edge.
 - The door matrix in the cost function's third arm.
 - Why a backward search failing after a forward success returns no route.
 
 ## 7. Measured against the original's own log
 
-The logger behind §1's labels (`[0x006EC9E8]`, §5) was switched on in a
-running game by a memory write, and Level 7 — whose creatures move with nobody
-at the controls; its keeper Gormagon is scripted to fall within seconds (owner,
-2026-09-17), so a keeper that plays needs Level 10 — was left to run for seven
-minutes (2026-09-17). The recipe: `DKII-DX.exe -LEVEL Level7`
-boots straight into the level; the game runs elevated (GOG's `RUNASADMIN`
-compat flag), so `reverse-engineering/dk2move.py --navlog --csv <out>` is
-started from an elevated shell **first**, the game second, and nothing after
-— a UAC prompt or window steals focus, stops the clock and leaves the
-fullscreen window unrecoverable. `--navlog` writes 1 to the gate and the game
-writes `nav.log` beside the exe; positions come from the entity table
-`0x006EE540` (type `+0x12`, position `+0x1A`/`+0x1E`, definition `+0x370`).
-Both outputs are game-derived and stay out of the repository. Each request logs `F=<counter> Path x0,y0 x1,y1` in 1/256 tile, then ` retC`,
-` gate … EndGates` (the mover's branch) or, for a reachability probe,
-` route=<triangles> … way=<waypoints>`; ` Fwd route route=-1` is a failed
-search and ` DOUBLE PATH` the cache. Replaying its 21,398 requests through
-our router on the level's **initial** map, 87 % agreed; the rest were 968
-searches DK2 failed at a door (all reproduce with doors in the byte, ADR-0158),
-1,131 solid ends of ours on tiles dug during the run, and four routes the
-walked-into argument order recovered.
+The logger behind §1's labels (`[0x006EC9E8]`, §5) was switched on in a running
+game by a memory write, and two levels were captured with nobody at the
+controls; `reverse-engineering/dk2move.py` holds the recipe, and both its
+outputs are game-derived and stay out of the repository. Each request logs
+`F=<counter> Path x0,y0 x1,y1` in 1/256 tile, then ` retC`, ` gate … EndGates`
+(the mover's branch) or, for a reachability probe,
+` route=<triangles> … way=<waypoints>`; ` Fwd route route=-1` is a failed search
+and ` DOUBLE PATH` the cache. ` route=` is the driver's return, the kept
+corridor's **last index** (`0x004CDE21` copies entries `route..0`), so it is
+triangles − 1. Positions come from the entity table `0x006EE540` (type `+0x12`,
+position `+0x1A`/`+0x1E`, definition `+0x370`), the navigation cache from
+`[world+0x9F2]` (stride `+8`, base `+0x10`).
 
-**Second capture, on DK2's own bytes.** The probe then dumped the cache
-`[world+0x9F2]` itself (stride `+8`, base `+0x10`) every sample. Each byte
-change is applied when the log's own single-tile ` Area` rebuild line for that
-tile passes (the probe's tick and the log's frame counter drift apart by up to
-fifteen ticks; keyed by tick, 32 routes into freshly dug tiles read as solid).
-Replaying 21,298 requests on that grid with a keeper-owned, door-respecting
-wader: **21,288 agree, 99.95 %** (2026-09-18, with §2.3's endpoint rule; 93
-corner targets disagreed without it). Waypoint counts match in 4,923 of 4,941
-probes. ` route=` is the driver's return, the kept corridor's **last index**
-(`0x004CDE21` copies entries `route..0`), so it is triangles − 1: against that,
-our corridors agree exactly in 48 %, run longer in 35 % and shorter in 17 %;
-before the first tile change they agree in 74 % (Q351). The ten
-left are one portal-hole target, three lava targets and six lava crossings
-that the requesting creature's own flags allowed. The cache answered Q352
-outright — every one of a heart's 25 tiles is plain floor, and the only plain
-tiles carrying bit 2 are the two portal centres. The position capture's steps
-per tick match the loader rule: the imps' 1888 against a predicted 1884–1887.
+**Level 7, 2026-09-17, seven minutes.** Its keeper Gormagon is scripted to fall
+within seconds (owner), so this watched the player's imps and the heroes.
+Replayed on DK2's own dumped cache — each byte change applied when the log's
+single-tile ` Area` line for that tile passes, the probe's tick and the log's
+frame counter drifting by up to fifteen ticks — **21,288 of 21,298 agree,
+99.95 %** (with §2.3's endpoint rule; 93 corner targets disagreed without it).
+Waypoint counts match in 4,923 of 4,941 probes. The ten left are one
+portal-hole target, three lava targets and six lava crossings the requesting
+creature's own flags allowed. The cache answered Q352 outright — every one of a
+heart's 25 tiles is plain floor, and the only plain tiles carrying bit 2 are the
+two portal centres. The position capture's steps per tick match the loader
+rule: the imps' 1888 against a predicted 1884–1887.
 
 **Level 10, 2026-09-18, a keeper playing.** Twelve minutes, 87,619 requests
 logged, 86,140 with a tick, 1,883 byte changes as Asmodeus dug. Replayed with
 six movers (each owner, respecting doors, with and without lava, or attacking),
 **every request but three is explained by one of them**; the three are movers
-entering a portal hole, the leaving word's bit 2. Waypoint counts match in
-20,827 of 20,859. The probe also dumped DK2's triangle and point tables (§2.1):
-at tick 7, 2,765 triangles inside the map against our 2,674, **809 identical**;
-1,413 points against our 1,472 with 1,409 common — the 63 we keep lie on
-straight boundaries, which DK2's coarsening also removes. Corridor lengths:
-exact in 33 %, ours shorter in 31 %, longer in 36 % (Q351). No creature stepped
-between two solid tiles in 216,882 steps; one corner-only pair saw traffic (Q28).
+entering a portal hole, the leaving word's bit 2. The probe also dumped DK2's
+triangle and point tables (§2.1): at tick 7 its point set is **exactly ours**
+once the base rectangle and the byte-0 skip are built, 1,417 for 1,417, and
+2,765 triangles inside the map against our 2,765, **2,612 identical**. Of the
+153 that differ 124 are in rock, which neither coarsening walks; the rest are
+quads whose two diagonals are the same length, settled by insertion order.
+Corridor lengths are **exact in 84 %**, ours shorter in 15 %, longer in 1 %, and
+waypoints match in 20,837 of 20,859 (Q351). No creature stepped between two
+solid tiles in 216,882 steps; one corner-only pair saw traffic (Q28).
 
 ## Confidence
 
@@ -379,8 +378,10 @@ globals and their sources; the route cache and its keys.
 scan; four corners then four constraint sides per rectangle; point insertion
 as on-vertex / on-edge / interior with no in-circle test; constraint insertion
 by orientation-guided flipping with recursion at vertices; the flip itself;
-stamping of `+0xC`; the merge, the dead markers and the free lists; that
-`+0xE` is a word with six flag bits below a ten-bit id.
+stamping of `+0xC`; the base rectangle and the byte-0 skip; the coarsening
+flood, its criterion and its exemption of rock; that the vertex-removal pass is
+gated on the partial-rebuild flag; the merge, the dead markers and the free
+lists; that `+0xE` is a word with six flag bits below a ten-bit id.
 
 **CONFIRMED (binary):** the width-class table and its packing; the three
 per-slot masks and that the search advances through them; that the class byte
@@ -394,7 +395,6 @@ search (§5); the search's two pops a round.
 definition bits the request reads are the two our `CreatureFlags` already names.
 
 **STRONGLY INFERRED:** that the forward search is seeded at the destination;
-that the width-class unit is tiles; which of three unread functions does
-which part of the coarsening.
+that the width-class unit is tiles.
 
 **UNKNOWN:** everything in §6.

@@ -34,11 +34,12 @@ public class GateWalkTests
     public void OctileIsTheLongerAxisPlusHalfTheShorter(int ax, int ay, int bx, int by, int expected) =>
         Assert.Equal(expected, GateWalk.Octile(new NavPoint(ax, ay), new NavPoint(bx, by)));
 
-    /// <summary>An L one tile wide: the route leaves the horizontal arm through the bottom edge of
-    /// its last tile. The arm's own diagonal is dropped because both sight-lines from the start to
-    /// that edge's ends pass through it; the edge is kept because the sight-line to the destination
-    /// clips the inner corner instead. Its first endpoint (4,2) is on the walker's right going
-    /// down, its second (3,2) is the funnel corner and so the nearer, selected one.</summary>
+    /// <summary>An L one tile wide: the route leaves the horizontal arm across the edge from the
+    /// L's outer corner (4,1) to its inner corner (3,2). The arm's own diagonal is dropped because
+    /// both sight-lines from the start to that edge's ends pass through it; this edge is kept
+    /// because the sight-line to the destination clips the inner corner instead. Its first
+    /// endpoint (4,1) is on the walker's right going down, its second (3,2) is the funnel corner
+    /// and so the nearer, selected one.</summary>
     [Fact]
     public void AGateTheSightLinesPassThroughIsDroppedAndOneTheyMissIsKept()
     {
@@ -56,13 +57,13 @@ public class GateWalkTests
         int count = GateWalk.Run(mesh, from, to, corridor, funnel, records, GateWalk.Cap);
 
         Assert.Equal(2, count);
-        Assert.Equal(P(4, 2), records[0].A);
+        Assert.Equal(P(4, 1), records[0].A);
         Assert.Equal(P(3, 2), records[0].B);
         Assert.Equal(1, records[0].Selector);
         Assert.Equal(to, records[1].A);
         var waypoints = new List<NavPoint>();
         GateWalk.Select(records, count, to, GateWalk.Midpoint, waypoints);
-        Assert.Equal([new NavPoint((7 * U) / 2, 2 * U), to], waypoints);
+        Assert.Equal([new NavPoint((7 * U) / 2, (3 * U) / 2), to], waypoints);
     }
 
     [Fact]

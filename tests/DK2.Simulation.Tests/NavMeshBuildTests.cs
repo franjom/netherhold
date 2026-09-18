@@ -34,11 +34,24 @@ public class NavMeshBuildTests
         public byte NavByte(int x, int y) => _nav[x, y];
     }
 
+    /// <summary>Triangles on the map, which is every triangle the reset's canvas did not keep.
+    /// The canvas reaches far past any map (−256 … 1280 tiles), so a build always leaves a ring of
+    /// <see cref="NavBytes.Outside"/> triangles no route can enter.</summary>
+    private static int MapTriangles(NavMesh mesh)
+    {
+        int count = 0;
+        for (int t = 0; t < mesh.TriangleSlots; t++)
+            if (mesh.IsTriangleLive(t) && mesh.NavByte(t) != NavBytes.Outside) count++;
+        return count;
+    }
+
+    /// <summary>A map of one byte needs no rectangle of its own: the build stamps the whole map
+    /// as one rectangle of byte 0 and the scan's only rectangle is byte 0 and so skipped.</summary>
     [Fact]
-    public void AUniformMapCoarsensBackToTwoTriangles()
+    public void AUniformMapIsTwoTriangles()
     {
         NavMesh mesh = NavMesh.Build(new Grid(["....", "....", "...."]));
-        Assert.Equal(2, mesh.LiveTriangleCount());
+        Assert.Equal(2, MapTriangles(mesh));
         NavMeshTests.AssertInvariants(mesh);
     }
 
@@ -101,8 +114,7 @@ public class NavMeshBuildTests
             ".......",
         ]));
         NavMeshTests.AssertInvariants(mesh);
-        int live = mesh.LiveTriangleCount();
-        Assert.InRange(live, 3, 12);
+        Assert.InRange(MapTriangles(mesh), 3, 12);
     }
 
     [Fact]
@@ -142,5 +154,75 @@ public class NavMeshBuildTests
         Assert.True(flipped);
         Assert.Equal(2, mesh.LiveTriangleCount());
         NavMeshTests.AssertInvariants(mesh);
+    }
+
+    private static bool HasEdge(NavMesh mesh, int ax, int ay, int bx, int by)
+    {
+        for (int t = 0; t < mesh.TriangleSlots; t++)
+        {
+            if (!mesh.IsTriangleLive(t)) continue;
+            for (int i = 0; i < 3; i++)
+            {
+                int p = mesh.Vertex(t, i), q = mesh.Vertex(t, (i + 1) % 3);
+                if ((mesh.PointX(p) == ax && mesh.PointY(p) == ay && mesh.PointX(q) == bx && mesh.PointY(q) == by)
+                    || (mesh.PointX(p) == bx && mesh.PointY(p) == by && mesh.PointX(q) == ax && mesh.PointY(q) == ay))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>The coarsening criterion (`0x004CC190`): a convex quad of one byte keeps whichever
+    /// diagonal is shorter. Here the reset's own diagonal (0,0)-(6,4) spans 52 squared units and
+    /// the other, (6,0)-(2,4), spans 32, so the pass takes it.</summary>
+    [Fact]
+    public void AQuadKeepsItsShorterDiagonal()
+    {
+        var mesh = new NavMesh();
+        mesh.Reset(0, 0, 6, 4);
+        mesh.InsertRectangle(0, 0, 6, 4, NavBytes.Floor);
+        mesh.InsertPoint(2, 4);
+        Assert.True(HasEdge(mesh, 0, 0, 6, 4));
+
+        mesh.Coarsen();
+
+        Assert.False(HasEdge(mesh, 0, 0, 6, 4));
+        Assert.True(HasEdge(mesh, 6, 0, 2, 4));
+        NavMeshTests.AssertInvariants(mesh);
+    }
+
+    /// <summary>The pass runs to its fixed point: after a build no edge inside one byte is the
+    /// longer diagonal of a convex quad. Solid triangles are exempt — the original's flood fill
+    /// never enters one, so rock keeps whatever the insertions left.</summary>
+    [Fact]
+    public void AfterABuildNoWalkableEdgeCanBeShortened()
+    {
+        NavMesh mesh = NavMesh.Build(new Grid([
+            "........",
+            "..##....",
+            "..##..~~",
+            "......~~",
+            "LL......",
+        ]));
+
+        for (int t = 0; t < mesh.TriangleSlots; t++)
+        {
+            if (!mesh.IsTriangleLive(t) || NavBytes.IsSolid(mesh.NavByte(t))) continue;
+            for (int i = 0; i < 3; i++)
+            {
+                int u = mesh.Neighbour(t, i);
+                if (u == NavMesh.NoNeighbour || mesh.NavByte(u) != mesh.NavByte(t)) continue;
+                int a = mesh.Vertex(t, i), b = mesh.Vertex(t, (i + 1) % 3);
+                int c = mesh.Vertex(t, (i + 2) % 3);
+                int d = mesh.Vertex(u, (mesh.EdgeIndexOf(u, b, a) + 2) % 3);
+                if (NavMesh.Orient(mesh.PointX(c), mesh.PointY(c), mesh.PointX(d), mesh.PointY(d), mesh.PointX(a), mesh.PointY(a)) *
+                    NavMesh.Orient(mesh.PointX(c), mesh.PointY(c), mesh.PointX(d), mesh.PointY(d), mesh.PointX(b), mesh.PointY(b)) >= 0)
+                    continue;
+                long nx = mesh.PointX(d) - mesh.PointX(c), ny = mesh.PointY(d) - mesh.PointY(c);
+                long ox = mesh.PointX(b) - mesh.PointX(a), oy = mesh.PointY(b) - mesh.PointY(a);
+                Assert.False((nx * nx) + (ny * ny) < (ox * ox) + (oy * oy),
+                    $"triangle {t} edge {i} is the longer diagonal of its quad");
+            }
+        }
     }
 }

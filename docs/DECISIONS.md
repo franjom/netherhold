@@ -3507,51 +3507,51 @@ reason: the rule is knowable now, the integration is not.
 
 **Status.** Accepted 2026-09-16 · phase 1 (`NavMesh`, `MeshRouter`, `Funnel`)
 landed the same day · phase 2 (`DK2.Simulation.Steering`: four behaviours, route
-window, turn, `SteeringIntegrator`) and the gate re-walk `GateWalk` (Q344) landed
-2026-09-17 · **phase 3** landed the same day: `WorldSteering` and
-`CreatureMovementSystem` drive every creature; `HashVersion` 62.
+window, turn, `SteeringIntegrator`) and `GateWalk` (Q344) landed 2026-09-17 ·
+**phase 3** the same day: `WorldSteering` and `CreatureMovementSystem` drive
+every creature; `HashVersion` 62.
 
 **Context.** ADR-0155 recorded that DK2 routes over a navigation mesh and moves
 by steering, and left the rebuild to the owner. Since then the owner has watched
 routes run straight where a grid must bend (Q341) and creatures push each other
-(Q345), and every algorithm is read: the constrained, rectangle-decomposed
-triangulation (Q347, Q348), the greedy two-ended search (Q341), the funnel and
-gate midpoints (Q342), the four weighted behaviours, their clamps and Euler
-integration (Q343). **The owner decided on 2026-09-16 to rebuild.**
+(Q345), and every algorithm is read: the triangulation (Q347, Q348), the greedy
+two-ended search (Q341), the funnel and gate midpoints (Q342), the behaviours
+and their integration (Q343). **The owner decided on 2026-09-16 to rebuild.**
 
 **Decision.** Three phases, each landing tested and the first two unwired.
 1. **Router library** in `DK2.Pathfinding`: `INavByteGrid` (the §5.4 byte per
    tile), `NavMesh` (two-triangle reset; maximal uniform rectangles; corners as
-   points with on-edge and interior splits; sides as constraints inserted by
-   orientation-guided flips; same-byte coarsening), `MeshRouter` (min-heap of
-   1024, key `minVertexDist² << (2·cost−2)`, no accumulated cost, run from both
-   ends, shorter funnelled route kept), `Funnel` (Route2path) and `GateWalk`
-   (the gate re-walk; midpoints of kept gates). Output is grid-free waypoints
-   in 1/256-tile units.
+   points; sides as constraints inserted by orientation-guided flips; same-byte
+   coarsening), `MeshRouter` (min-heap of 1024, key
+   `minVertexDist² << (2·cost−2)`, no accumulated cost, run from both ends,
+   shorter funnelled route kept), `Funnel` (Route2path) and `GateWalk` (the gate
+   re-walk; midpoints of kept gates). Output is waypoints in 1/256-tile units.
 2. **Steering library**, after `avoid_walls`, `repel_obstacle`, `follow_path`'s
    body and `grtc:` (Q344) are read: the steering body, four behaviours, the
    combiner and integrator already specified in `navigation-and-steering.md`.
 3. **Wiring**: continuous position and velocity on the creature, a waypoint
    window, the movement system replaced, `IPathfinder`'s callers moved to the
-   router. `HashVersion` moves and the pin is re-baselined in that commit.
+   router. `HashVersion` moves and the pin is re-baselined there.
 
 **Consequences.**
 - `GridPathfinder` survives only behind `TryFindNearest`, a labelled stand-in:
   DK2 chooses work by kind lists and ring scans (ADR-0058), never by walking
-  distance. The route to what it chose comes from the mesh; a target the grid
-  reaches and the mesh cannot (Q28's corner) is skipped.
-- Deliberately omitted, because the shipped game never engages them and no
-  route changes: edge width classes and mover classes; region ids, which only
-  the request's reachability pre-check reads and a failed search stands in for.
-  Recorded on `NavMesh` so nobody mistakes the omission for ignorance.
+  distance. A target the grid reaches and the mesh cannot (Q28) is skipped.
+- Deliberately omitted, because the shipped game never engages them and no route
+  changes: edge width classes and mover classes; region ids, which only the
+  reachability pre-check reads and a failed search stands in for. Recorded on
+  `NavMesh` so nobody mistakes the omission for ignorance.
 - Known residuals, each labelled in code: point location is a scan, not the
-  original's walk; the coarsening order is inferred, so gate midpoints inside
-  non-convex regions may sit on different diagonals than the original's;
-  the cost function's door arm awaits doors; `GateWalk` drops kept gates past
-  256 where the original overruns its buffer.
-- Priority (4) applies with force: the router **must** be greedy and
-  non-optimal in the original's way. A shortest-path router here is a fidelity
-  bug, however much better it looks.
+  original's walk; the constraint-insertion flip order is Sloan's, not the
+  original's unread one; `GateWalk` drops kept gates past 256 where the original
+  overruns its buffer.
+- **Amended 2026-09-18 (Q351).** The whole-map rebuild is now read whole: a
+  −256…1280 canvas, the map stamped as one byte-0 rectangle, scanned byte-0
+  rectangles skipped, no vertex removal, coarsening by shortest diagonal within
+  one byte and never in rock. Level 10's points are ours exactly and 94 % of its
+  triangles; corridors match in 84 % of 20,859 requests, against 33 %.
+- Priority (4) applies with force: the router **must** be greedy and non-optimal
+  in the original's way. A shortest-path router here is a fidelity bug.
 
 ## ADR-0158 — Doors enter the navigation byte
 
