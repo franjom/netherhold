@@ -86,12 +86,33 @@ on it, and without it the game feeds the packets to the front end — itself a
 7x14 level — and desyncs on turn 1. The second `-PLOAD` argument is **0**, which
 is what the game's own config path passes (`0x004016E8`).
 
-A record is a level name, twelve header dwords, then one record per game turn: a
-**4-byte turn counter**, the turn's **RNG seed** and **state checksum** as two
-dwords, and a short packet payload — 17 bytes on 2,588 of one session's 2,925
-turns, because most turns carry nothing but the camera. Playback compares both
-stored values against the live ones every turn (`0x005268FD`) and logs
-`Gone Out Of Sync (Seed|Checksum) GT %d [%08X:%08X]` on a mismatch.
+A record is a level name, twelve header dwords, then one record per game turn.
+Playback compares the stored seed and checksum against the live ones every turn
+(`0x005268FD`) and logs `Gone Out Of Sync (Seed|Checksum) GT %d [%08X:%08X]` on a
+mismatch. A turn is:
+
+| field | bytes | what it is |
+|---|---|---|
+| counter | 4 | the game turn, from 1 |
+| seed | 4 | the turn's RNG seed, compared on playback |
+| checksum | 4 | its state checksum, likewise |
+| header | 4 | `01 01 00 00` on every turn of this session |
+| commands | 18 each | **none on 2,588 of 2,925 turns** |
+| camera | 13 | x, y in 1/4096 tile, then `0x0FFF` and a flag |
+
+The camera trailer is what makes most turns identical: it pans around the
+player's own heart, starting exactly on its centre at (28.5, 85.5). A command is
+`startTile`, `endTile` (each a dword of x in the low word and y in the high),
+a dword that is usually zero, an **action id**, and a word that was 3 throughout.
+
+**Action 40 is tag-for-digging and 41 is untag** — 118 and 11 of the session's
+~360 commands, single tiles while the player drags and a rectangle like
+(24,82)-(24,85) when they release, which is `TagTilesCommand`'s shape exactly
+(ADR-0013, arrived at from DK2's `GameActionArray` and now confirmed against its
+own recorded stream). The other ids seen — 47, 49, 50, 54, 55, 57, 59, 61, 62,
+88, 92 and 114 — do not read as tile rectangles, so their arguments are laid out
+per action and remain UNKNOWN; the cheapest way to name one is a short recording
+that performs only that action.
 
 **It replays faithfully.** A five-minute played session of Level 10, recorded
 2026-09-18 and replayed at once: **no seed ever diverged** over 2,924 turns, and
