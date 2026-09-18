@@ -123,6 +123,23 @@ separates two different navigation bytes is always a constraint edge, and a run
 of tiles with one byte never is. That, and not anything about Delaunay
 quality, is what decides where the funnel's gates fall.
 
+### 2.3 A route endpoint on a corner or an edge leans south-east (Q354)
+
+The orchestrator locates both endpoints through `0x004C9DF0` (calls at
+`0x004D06CE`, `0x004D06DD`). It first walks the mesh (`0x004C98B0`: start at a
+4×4 per-cell cache of the last answer, then cross whichever edge has the point
+strictly outside; a point on an edge or vertex counts as inside, so the walk
+stops at the first triangle whose closed boundary holds it). Then it corrects
+the tie. If the point **is a vertex**, `0x004C9540` turns around that vertex,
+crossing the edge that leaves it, until the far point `(0x10100, 0x10100)`
+— 257 tiles past the origin on both axes — lies strictly inside the edge
+arriving at the vertex and inside or on the edge leaving it; off the hull it
+returns −1. If the point lies **on an edge** and the far point is outside
+that edge, the neighbour across is taken. So a target on the corner of a solid
+tile belongs to the tile to its south-east: floor there routes, rock there is
+refused. Ours is `NavMesh.LocateEndpoint`, written for our winding, which is
+the original's reversed (§2.1's reset).
+
 ### 2.2 Edge width classes, constraint flags and region ids (Q348)
 
 Three per-triangle annotations, each now read to its consumers.
@@ -284,7 +301,7 @@ memory it writes `nav.log`, and a ` retC` line there names a refusal.
 ## 6. What this leaves
 
 - Bits 0–2 of `+0xD`, set on every new edge and read only by the builder.
-- The point-location walk (`0x004C98B0`, `0x004C9B50`, `0x004C9540`).
+- The point-location walk's start cache refresh (`0x004C97B0`) and `0x004C9B50`.
 - The list of triangle indices at `0x6E86F0`, pre-marked visited by every
   search and consulted by `0x004C9710` when it looks for a boundary edge.
 - The door matrix in the cost function's third arm.
@@ -308,38 +325,25 @@ Both outputs are game-derived and stay out of the repository. Each request logs 
 ` gate … EndGates` (the mover's branch) or, for a reachability probe,
 ` route=<triangles> … way=<waypoints>`; ` Fwd route route=-1` is a failed
 search and ` DOUBLE PATH` the cache. Replaying its 21,398 requests through
-our router on the level's initial map:
-
-| outcome | requests |
-|---|---|
-| both route | 13,287 |
-| DK2 refuses (` retC`), ours has a solid end | 4,828 |
-| both searches fail | 320 |
-| DK2 refuses, our search fails | 124 |
-| DK2's search fails at a **door**, ours routes | 968 |
-| DK2 routes, our end is solid: heart platform 411, rock 382, gold 203, other 71 | 1,131 |
-| cache hits, skipped | 710 |
-
-Of 5,077 probes with counts, **waypoint counts agree in 99.4 %** (29 off by
-one, 3 by two); corridor triangle counts agree in 15 % and are otherwise ours
-+1 to +3 (Q351). The rock and gold cases are tiles the keeper dug during the
-run — the replay used the initial map. The 968 door cases were doors outside
-our navigation byte: with doors built (ADR-0158) and a keeper-owned mover
-respecting them, **all 968 reproduce**, and the walked-into argument order
-recovers four more routes.
+our router on the level's **initial** map, 87 % agreed; the rest were 968
+searches DK2 failed at a door (all reproduce once doors entered the byte,
+ADR-0158), 1,131 solid ends of ours on tiles dug or claimed during the run, and
+four routes the walked-into argument order recovered.
 
 **Second capture, on DK2's own bytes.** The probe then dumped the cache
-`[world+0x9F2]` itself (stride `+8`, base `+0x10`) every sample, and the owner
-played the level. Replaying 21,298 requests on the captured byte grid as it
-stood at each request's tick (the log has no ticks; its file size per sample
-gives them): **21,185 agree, 99.5 %**; waypoint counts match in 99.75 %. The
-cache answered Q352 outright — every one of a heart's 25 tiles is plain
-floor, and the only plain tiles carrying bit 2 are the two portal centres.
-The 113 left: 93 targets on a tile **corner** shared with a solid tile (an
-integer coordinate, where our locate picks the solid triangle and DK2's does
-not — its point location `0x004C98B0` is unread, Q354) and 20 requests
-crossing into a portal hole or lava that the requesting creature was allowed. The position capture's steps per
-tick match the loader rule: the imps' 1888 against a predicted 1884–1887.
+`[world+0x9F2]` itself (stride `+8`, base `+0x10`) every sample. Each byte
+change is applied when the log's own single-tile ` Area` rebuild line for that
+tile passes (the probe's tick and the log's frame counter drift apart by up to
+fifteen ticks; keyed by tick, 32 routes into freshly dug tiles read as solid).
+Replaying 21,298 requests on that grid with a keeper-owned, door-respecting
+wader: **21,288 agree, 99.95 %** (2026-09-18, with §2.3's endpoint rule; 93
+corner targets disagreed without it). Waypoint counts match in 4,923 of 4,941
+probes; corridor triangle counts are ours +1 to +3 in most (Q351). The ten
+left are one portal-hole target, three lava targets and six lava crossings
+that the requesting creature's own flags allowed. The cache answered Q352
+outright — every one of a heart's 25 tiles is plain floor, and the only plain
+tiles carrying bit 2 are the two portal centres. The position capture's steps
+per tick match the loader rule: the imps' 1888 against a predicted 1884–1887.
 
 ## Confidence
 

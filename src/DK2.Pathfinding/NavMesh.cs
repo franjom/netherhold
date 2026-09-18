@@ -110,6 +110,55 @@ public sealed partial class NavMesh
         return -1;
     }
 
+    /// <summary>The far point the endpoint rule leans toward: 257 tiles past the origin on both axes.</summary>
+    public const int FarX = 0x10100, FarY = 0x10100;
+
+    /// <summary>The triangle a route endpoint belongs to (`0x004C9DF0`): the containing triangle,
+    /// unless the point is a vertex — then the fan triangle around it whose wedge holds the far
+    /// point — or lies on an edge with the far point beyond it — then the neighbour across. So a
+    /// target on a corner shared with a solid tile resolves toward the south-east, as DK2's does
+    /// (Q354). −1 when the fan or the edge runs off the map.</summary>
+    public int LocateEndpoint(int x, int y)
+    {
+        int t = Locate(x, y);
+        if (t < 0) return -1;
+        for (int k = 0; k < 3; k++)
+        {
+            int p = Vertex(t, k);
+            if (Sx(p) == x && Sy(p) == y) return FanToward(t, k, FarX, FarY);
+        }
+        for (int i = 0; i < 3; i++)
+        {
+            int a = Vertex(t, i), b = Vertex(t, (i + 1) % 3);
+            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) != 0) continue;
+            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), FarX, FarY) < 0) return Neighbour(t, i);
+        }
+        return t;
+    }
+
+    /// <summary>The original's fan walk (`0x004C9540`) around vertex slot <c>k</c> of <c>t</c>, written
+    /// for our winding, which is the original's reversed: stop where the far point is strictly
+    /// inside the edge leaving the vertex and inside or on the edge arriving at it; otherwise cross
+    /// the arriving edge and keep the same vertex. −1 when the fan reaches the hull.</summary>
+    private int FanToward(int t, int k, long qx, long qy)
+    {
+        for (int guard = 0; guard <= _triCount; guard++)
+        {
+            int v = Vertex(t, k), next = Vertex(t, (k + 1) % 3), prev = Vertex(t, (k + 2) % 3);
+            bool strictlyInsideLeaving = Orient(Sx(v), Sy(v), Sx(next), Sy(next), qx, qy) > 0;
+            bool onOrInsideArriving = Orient(Sx(prev), Sy(prev), Sx(v), Sy(v), qx, qy) >= 0;
+            if (strictlyInsideLeaving && onOrInsideArriving) return t;
+
+            int n = Neighbour(t, (k + 2) % 3);
+            if (n < 0) return -1;
+            int j = 0;
+            while (j < 3 && Neighbour(n, j) != t) j++;
+            t = n;
+            k = j;
+        }
+        return -1;
+    }
+
     /// <summary>Whether a position in 1/256-tile units lies in or on triangle <c>t</c>. A point
     /// on a shared edge is in both triangles; <see cref="Locate"/> picks the lower index.</summary>
     public bool Contains(int t, long x, long y)

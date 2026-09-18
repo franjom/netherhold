@@ -33,6 +33,34 @@ public class MeshRouterTests
         return (new MeshRouter(mesh), mesh);
     }
 
+    /// <summary>DK2's endpoint rule (`0x004C9DF0`, navigation-mesh-and-search.md §2.3): a target on a
+    /// tile corner or edge belongs to the triangle toward the far point (257, 257), so a corner
+    /// shared with a solid tile routes when the south-east tile is floor and is refused when it is
+    /// solid; 93 of Level 7's replayed corner targets turned on this (Q354).</summary>
+    [Theory]
+    [InlineData(2.0, 2.0, true)]   // corner: solid to the north-west, floor south-east
+    [InlineData(1.0, 1.0, false)]  // corner: floor around, the solid tile south-east
+    [InlineData(1.5, 2.0, true)]   // edge below the solid tile: floor lies south
+    [InlineData(1.5, 1.0, false)]  // edge above the solid tile: the solid tile lies south
+    [InlineData(2.0, 1.5, true)]   // edge east of the solid tile: floor lies east
+    [InlineData(1.0, 1.5, false)]  // edge west of the solid tile: the solid tile lies east
+    public void AnEndpointOnACornerOrEdgeLeansTowardTheSouthEast(double tx, double ty, bool routes)
+    {
+        (MeshRouter router, NavMesh mesh) = Make(
+            "....",
+            ".#..",
+            "....",
+            "....");
+        var to = new NavPoint((int)(tx * NavMesh.UnitsPerTile), (int)(ty * NavMesh.UnitsPerTile));
+
+        int t = mesh.LocateEndpoint(to.X, to.Y);
+        Assert.True(t >= 0);
+        Assert.Equal(routes, !NavBytes.IsSolid(mesh.NavByte(t)));
+
+        var from = new NavPoint(NavMesh.UnitsPerTile / 2, (3 * NavMesh.UnitsPerTile) + (NavMesh.UnitsPerTile / 2));
+        Assert.Equal(routes, router.TryRoute(from, to, MoverProfile.Walker, new List<NavPoint>()));
+    }
+
     /// <summary>The door arms of the cost function (`0x004C8BD0`; navigation-mesh-and-search.md §4).
     /// Owner 3's mover meets its own door and player 4's, closed, locked or tagged, with each of
     /// the state option bits; the tile left is judged by the same rule.</summary>

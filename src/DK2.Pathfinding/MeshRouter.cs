@@ -46,8 +46,8 @@ public sealed class MeshRouter
         if (waypoints is null) throw new ArgumentNullException(nameof(waypoints));
         waypoints.Clear();
 
-        int fromTri = _mesh.Locate(from.X, from.Y);
-        int toTri = _mesh.Locate(to.X, to.Y);
+        int fromTri = _mesh.LocateEndpoint(from.X, from.Y);
+        int toTri = _mesh.LocateEndpoint(to.X, to.Y);
         if (fromTri < 0 || toTri < 0) return false;
 
         // Forward: seeded at the destination, drawn toward the mover, so the predecessor chain
