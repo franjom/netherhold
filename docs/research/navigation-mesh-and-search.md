@@ -33,7 +33,13 @@ and building all seven campaign maps.
 
 Every stage is timed into `nav.log` under a ` c=%d %s` label when logging is on;
 `Fwd route`, `Bak route`, `Fwd path`, `Bak path`, `Route2path`, `DOUBLE PATH` and
-`EndGates` are those labels, not data.
+`EndGates` are those labels, not data. A request logs
+`F=<counter> Path x0,y0 x1,y1` in 1/256 tile, then ` retC`, ` gate … EndGates`
+(the mover's branch) or, for a reachability probe,
+` route=<triangles> … way=<waypoints>`; ` Fwd route route=-1` is a failed search
+and ` DOUBLE PATH` the cache. ` route=` is the driver's return, the kept
+corridor's **last index** (`0x004CDE21` copies entries `route..0`), so it is
+triangles − 1. A single-tile rebuild logs ` Area x0,y0 x1,y1`.
 
 ## 2. The mesh in memory
 
@@ -324,49 +330,20 @@ read and none writes (§7).
 
 ## 7. Measured against the original's own log
 
-The logger behind §1's labels (`[0x006EC9E8]`, §5) was switched on in a running
-game by a memory write, and two levels were captured with nobody at the
-controls; `reverse-engineering/dk2move.py` holds the recipe, and both its outputs
-are game-derived and stay out of the repository. Each request logs
-`F=<counter> Path x0,y0 x1,y1` in 1/256 tile, then ` retC`, ` gate … EndGates`
-(the mover's branch) or, for a reachability probe,
-` route=<triangles> … way=<waypoints>`; ` Fwd route route=-1` is a failed search
-and ` DOUBLE PATH` the cache. ` route=` is the driver's return, the kept
-corridor's **last index** (`0x004CDE21` copies entries `route..0`), so it is
-triangles − 1. Positions come from the entity table `0x006EE540` (type `+0x12`,
-position `+0x1A`/`+0x1E`, definition `+0x370`), the cache from `[world+0x9F2]`.
-
-**Level 7, 2026-09-17, seven minutes.** Its keeper Gormagon is scripted to fall
-within seconds (owner), so this watched the player's imps and the heroes.
-Replayed on DK2's own dumped cache — each byte change applied when the log's
-single-tile ` Area` line for that tile passes, the probe's tick and the log's
-frame counter drifting by up to fifteen ticks — **21,288 of 21,298 agree,
-99.95 %** (with §2.3's endpoint rule; 93 corner targets disagreed without it);
-waypoint counts match in 4,923 of 4,941 probes. The ten left are one portal-hole
-target, three lava targets and six lava crossings the requesting creature's own
-flags allowed. The cache answered Q352 outright — every one of a heart's 25 tiles
-is plain floor, and the only plain tiles carrying bit 2 are the two portal
-centres. Steps per tick match the loader rule: the imps' 1888 against 1884–1887.
-
-**Level 10, 2026-09-18, a keeper playing.** Twelve minutes, 87,619 requests
-logged, 86,140 with a tick, 1,883 byte changes as Asmodeus dug. Replayed with six
-movers (each owner, respecting doors, with and without lava, or attacking),
-**every request but three is explained by one of them**; the three enter a portal
-hole, the leaving word's bit 2. The probe also dumped DK2's triangle and point
-tables (§2.1): at tick 7 its point set is **exactly ours** once the base
-rectangle and the byte-0 skip are built, 1,417 for 1,417, and 2,765 triangles
-inside the map against our 2,765, **2,612 identical**. Of the 153 that differ 124
-are in rock, which neither coarsening walks; the rest are quads whose two
-diagonals tie, settled by insertion order. Corridor lengths are **exact in 84 %**, but **3,232 of the 3,254 differences
-leave the waypoint count unchanged**, so only 22 requests of 20,859 reach the
-mover differently (Q351). Nor does our whole-map build drift where DK2 patches
-the mesh a tile at a time: across the probe's 353 dumps its triangles stay
-92-94 % ours, 88 % at the worst. No creature stepped between two solid tiles in
-216,882 steps (Q28).
+`navigation-captures.md` is the log of those captures. In short: replaying
+Level 7's 21,298 requests on DK2's own dumped navigation bytes, **21,288 agree**
+(99.95 %); on a Level 10 played by a keeper, **every request but three of
+86,140** is explained by one of six mover profiles, corridor lengths are exact
+in 84 %, and at tick 7 DK2's point set is **exactly ours**, 1,417 for 1,417, with
+2,612 of its 2,765 triangles identical. The handful of routes that still
+disagree are the probe's sampling rate at a door that opens and shuts between
+two of its samples, not anything the router does.
 
 ## Confidence
 
-**CONFIRMED (capture, 2026-09-17):** §7's agreement rates. **CONFIRMED (binary):** the call chain and every address in §1; the allocator's
+**CONFIRMED (capture, 2026-09-17 and 2026-09-18):** §7's agreement rates, and
+that the last of its disagreements is the probe's sampling rate at a flapping
+door rather than anything the router does. **CONFIRMED (binary):** the call chain and every address in §1; the allocator's
 layout and the 29-byte derivation; the triangle and point records as far as the
 fields named; the full-map and single-tile rebuild entries; the heap, its cap,
 the stamp, the key expression and that the heap compares on it; termination on

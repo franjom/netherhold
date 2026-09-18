@@ -3559,7 +3559,8 @@ and their integration (Q343). **The owner decided on 2026-09-16 to rebuild.**
 ## ADR-0158 — Doors enter the navigation byte
 
 **Status.** Accepted 2026-09-17 · `HashVersion` 63 · Q353 · Research:
-`docs/research/doors-and-traps.md`, `navigation-mesh-and-search.md` §4 and §7.
+`docs/research/doors-and-traps.md`, `navigation-mesh-and-search.md` §4,
+`navigation-captures.md`.
 
 **Context.** The first oracle capture of routing (§7 of the mesh doc) put 968
 of DK2's route failures on hero doors that our navigation byte did not know:
