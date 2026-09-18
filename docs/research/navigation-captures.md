@@ -68,11 +68,13 @@ replayed session, tile for tile, 8 Hz recorded 109, 96, 92 and 93 changes on the
 four busiest doors where the thread recorded 109, 96, 92 and 93. **About a third
 of DK2's single-tile rebuilds therefore write the byte the tile already
 carried**, and the probe was seeing every change all along (CONFIRMED by
-capture; which writers do it is unread). The likelier cause is the replay's own
-rule for *when* to apply a change — it matches each one to an ` Area` line, and
-with three rebuilds for every two changes that match can land on the wrong one
-and move the transition in time. The threaded sampling is worth keeping for a
-different reason: it timestamps a change to about 15 ms rather than 125 (Q351).
+capture; which writers do it is unread). Nor is it **when** we apply a change. Placing each one at
+the last rebuild of its own tile at or before the sample that saw it, rather
+than at the first rebuild left unmatched, moved **corridor agreement from 84.3 %
+to 87.2 %** — worth keeping on its own — and left the waypoint residual at 22.
+Nor is it the capture's resolution: the same replay against a capture whose
+changes are timestamped to **15 ms instead of 125** leaves 22 as well. Three
+candidates eliminated; the cause is Q357 and still open (Q351).
 
 ## DK2 records and replays a session itself (Q356)
 
