@@ -287,8 +287,10 @@ and **`CanWalkOnLava`**. So navigation category **1 is water and 3 is lava**,
 each impassable to a creature without the flag. The three door globals come
 from the state's option word (steering-behaviours.md §7.6): bit 1 →
 `[0x006EC9D4]`, bit 2 → `[0x006EC9D8]`, bit 7 → `[0x006EC9E0]`, parked in
-`creature+0x3E6` bits 17–19 for the call. Most states pass `0x80`, so a
-creature normally refuses every door it does not own and its own locked ones.
+`creature+0x3E6` bits 17–19 for the call. Most *states* pass `0x80`, so a
+creature normally refuses every door it does not own and its own locked ones —
+but most *requests* in a running game do not, because two thirds of them are the
+imp pass, and an imp en route passes `0x00` (navigation-captures.md, Q357).
 
 **What "cost" does.** It never accumulates. It shifts the greedy key: floor ×1,
 water ×4, lava ×64. That is a bias in *expansion order* — the search tries
@@ -334,16 +336,17 @@ read and none writes (§7).
 Level 7's 21,298 requests on DK2's own dumped navigation bytes, **21,288 agree**
 (99.95 %); on a Level 10 played by a keeper, **every request but three of
 86,140** is explained by one of six mover profiles, corridor lengths are exact
-in 84 %, and at tick 7 DK2's point set is **exactly ours**, 1,417 for 1,417, with
-2,612 of its 2,765 triangles identical. The handful of routes that still
-disagree are the probe's sampling rate at a door that opens and shuts between
-two of its samples, not anything the router does.
+in 87 %, and at tick 7 DK2's point set is **exactly ours**, 1,417 for 1,417, with
+2,612 of its 2,765 triangles identical. **One** request of 20,926 produces a
+waypoint count no mover profile reproduces. What is left is the corridor: ours
+is one or two triangles short of DK2's on 12 % of requests, which Q351 puts on
+the quads whose two diagonals tie.
 
 ## Confidence
 
 **CONFIRMED (capture, 2026-09-17 and 2026-09-18):** §7's agreement rates, and
-that the last of its disagreements is the probe's sampling rate at a flapping
-door rather than anything the router does. **CONFIRMED (binary):** the call chain and every address in §1; the allocator's
+the door arms of §4, which reproduce DK2's own `route=` and `way=` once each
+request is scored against the option word its caller passes (Q357). **CONFIRMED (binary):** the call chain and every address in §1; the allocator's
 layout and the 29-byte derivation; the triangle and point records as far as the
 fields named; the full-map and single-tile rebuild entries; the heap, its cap,
 the stamp, the key expression and that the heap compares on it; termination on

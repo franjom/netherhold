@@ -47,19 +47,33 @@ the byte-0 skip are built, 1,417 for 1,417, and 2,765 triangles inside the map
 against our 2,765, **2,612 identical**. Of the 153 that differ 124 are in rock,
 which neither coarsening walks; the rest are quads whose two diagonals tie,
 settled by insertion order. Measured against
-the hero profile, corridor lengths are **exact in 17,678 of 20,979** and the
-waypoint count differs in only **22**. Nor does our
+the hero profile, corridor lengths are **exact in 18,273 of 20,926** and the
+waypoint count differs in **one** (Q357). Nor does our
 whole-map build drift where DK2 patches the mesh a tile at a time: across the
 probe's 353 dumps its triangles stay 92-94 % ours, 88 % at the worst. No creature
 stepped between two solid tiles in 216,882 steps (Q28).
 
-**What was left is a door's state, and it is not the sampling rate.** Of the
-2,014 single-tile rebuilds DK2 logged, **1,980 are on the 23 tiles that ever
-carried a door byte** and 34 are digging. Every request whose waypoint count
-disagreed is one of those: toggling **one door tile** — (24,16), (27,14),
-(30,16) or (32,14) — reproduces DK2's `route=` **and** `way=` exactly, 23 times
-in 23, and 20 of them had our door open where DK2's was shut. So the state we
-replayed was wrong; **why** is open.
+**What was left was never a door's state — it was the mover's option word
+(Q357).** The replay scored every request against a profile that respects doors,
+and `0x004D0F60`'s option table says most of this traffic does not: imps en
+route, attacking and patrol offsets push `MoveOptions.Plain`, no door rule at
+all (steering-behaviours.md §7.6), and **65,583 of the session's 98,313
+navigation calls are the imp pass**. Clearing that one bit takes the waypoint
+disagreements from **24 to 2**; the respecting profile explains one of those, so
+**1 request of 20,926** is left that no profile reproduces. The corridor
+outliers where we walked the long way round a door — route differences of 16 to
+34 triangles — disappear outright, and corridor agreement is 87.3 %.
+
+The earlier reading of the same residual — that **one door tile** was in the
+wrong state, which reproduced DK2's `route=` and `way=` 23 times in 23 — does
+not reproduce and is **withdrawn**. Re-run under the change placement it was
+measured with, a single door toggle reproduces both numbers in **1 of 22**
+requests; under the current placement, 3 of 24. The test discriminates: of
+**3,254** control perturbations — the same block applied to a floor tile beside
+the route instead of to a door — **none** reproduced both numbers, and the 51
+door toggles reach only 2 to 4 distinct outcomes per request. That paragraph
+also miscounted: the 1,980 single-tile rebuilds fall on **51** tiles that ever
+carried a door byte, not 23. 23 was the number of requests.
 
 It is **not** that the 8 Hz probe missed flips, which is what the 126-change gap
 between rebuilds and recorded changes looked like. Sampling the cache from its
@@ -73,8 +87,9 @@ the last rebuild of its own tile at or before the sample that saw it, rather
 than at the first rebuild left unmatched, moved **corridor agreement from 84.3 %
 to 87.2 %** — worth keeping on its own — and left the waypoint residual at 22.
 Nor is it the capture's resolution: the same replay against a capture whose
-changes are timestamped to **15 ms instead of 125** leaves 22 as well. Three
-candidates eliminated; the cause is Q357 and still open (Q351).
+changes are timestamped to **15 ms instead of 125** leaves 22 as well. All three
+were eliminated before the cause turned out to be on our side of the comparison
+and not in the capture at all (Q351, Q357).
 
 ## DK2 records and replays a session itself (Q356)
 

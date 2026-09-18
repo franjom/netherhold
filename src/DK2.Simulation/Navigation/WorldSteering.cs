@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -116,7 +116,8 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// body at the centre of <paramref name="to"/> with the <see cref="MoveOptions"/> word the
     /// original's state pushes, and load the first window. A creature already on that tile gets
     /// a finished route and is treated as arrived. False when the mesh has no route. The word's
-    /// door bits are inert here: doors are not in the navigation byte yet.</summary>
+    /// door bits reach the cost function through <see cref="ProfileOf"/>; most requests in a
+    /// running game are the imp pass, which passes none of them (Q357).</summary>
     public bool TryRoute(CreatureState creature, TilePos to, int options)
     {
         SyncBody(creature);
