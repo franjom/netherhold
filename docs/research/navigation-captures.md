@@ -122,12 +122,17 @@ a dword that is usually zero, an **action id**, and a word that was 3 throughout
 
 **Action 40 is tag-for-digging and 41 is untag** — 118 and 11 of the session's
 ~360 commands, single tiles while the player drags and a rectangle like
-(24,82)-(24,85) when they release, which is `TagTilesCommand`'s shape exactly
-(ADR-0013, arrived at from DK2's `GameActionArray` and now confirmed against its
-own recorded stream). The other ids seen — 47, 49, 50, 54, 55, 57, 59, 61, 62,
-88, 92 and 114 — do not read as tile rectangles, so their arguments are laid out
-per action and remain UNKNOWN; the cheapest way to name one is a short recording
-that performs only that action.
+(24,82)-(24,85) when they release, which is `TagTilesCommand`'s shape exactly.
+(That command's shape was guessed from the `GameAction` / `GameActionArray` pair
+in **Flame's** disassembly, not DK2's — neither name is anywhere in either exe,
+so treat them as Flame's and not as evidence, ADR-0080. The recorded stream is
+the evidence.) The other ids seen — 47, 49, 50, 54, 55, 57, 59, 61, 62, 88, 92
+and 114 — do not read as tile rectangles, so their arguments are laid out per
+action and remain UNKNOWN. DKII.EXE ships no RTTI for them either: its 161 RTTI
+class names hold no `GameAction`, and the only switch wide enough to be the
+dispatcher (240 arms at `0x0051D740`) turns out to set a global per id, three
+instructions an arm — a variable table, not an action one. So naming them starts
+with a recording that performs known actions in a known order.
 
 **It replays faithfully.** A five-minute played session of Level 10, recorded
 2026-09-18 and replayed at once: **no seed ever diverged** over 2,924 turns, and
