@@ -168,8 +168,10 @@ them from reading commands off in order:
   which `portals-room-handler-table.md` numbers Treasury, Lair, Hatchery,
   Training Room, Wooden Bridge, Workshop, Prison and Torture Chamber. The owner,
   asked afterwards, listed exactly those seven rooms and the bridge.
-- **Doors.** The door type placed was **3**, and `Doors.kwd` record 3 is
-  **Braced Door** - what the owner said they built.
+- **Doors and traps.** The only types ever selected or placed were door **3**
+  and trap **3**, and `Doors.kwd` record 3 is **Braced Door** while `Traps.kwd`
+  record 3 is **Sentry Trap**. Asked afterwards, the owner confirmed they placed
+  braced doors and sentry traps and nothing else.
 - **Spells.** `54` carried spell 4 ten times, and `KeeperSpells.kwd` record 4 is
   **Create Imp**, which the owner reported using. `55` carried 10 (Heal) and 6
   (Thunderbolt) on thing ids, and 2 (**Possession**) in the first recording,
