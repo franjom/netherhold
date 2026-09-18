@@ -224,7 +224,7 @@ is fed.
 
 **What is built:** `SeparationRules` holds the arms, the size table and the
 scale as arithmetic; `SeparationBehaviour` assembles the force (ADR-0156,
-unwired until ADR-0157 phase 3).
+wired by ADR-0157 phase 3).
 
 ### 3.3 How the forces combine (Q343), and what that settles
 

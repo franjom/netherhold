@@ -299,7 +299,7 @@ as the final tie-break.
 | Octile 10/14 | **STRONGLY INFERRED** (Q48): speed is tiles per second through world space, so a diagonal step must take √2 as long; the mover charges the same. At four ticks a second the ratio no longer survives rounding, so `ImpTests.WalkingOnTheBias_TakesRootTwoTimesAsLong` asserts within one tick — DK2 steps at the same rate and has the same quantisation (ADR-0089) |
 | No terrain weighting | **CONFIRMED** (Q30, owner 2026-08-29): the shortest path wins even through water |
 | Tie-breaking | Ours. Reproducible, which the determinism gate needs — arbitrary otherwise |
-| The original's algorithm | **Not a grid search** (Q5): a triangulated navigation mesh followed by a steering system — see [navigation-and-steering.md](navigation-and-steering.md). The algorithms are read (Q341–Q349) and built as unwired libraries (ADR-0157); this grid search serves until phase 3 |
+| The original's algorithm | **Not a grid search** (Q5): a triangulated navigation mesh followed by a steering system — see [navigation-and-steering.md](navigation-and-steering.md). The algorithms are read (Q341–Q349) and built (ADR-0157): an imp's route now comes from the mesh, and this grid search survives only as `TryFindNearest`, which picks the work |
 
 Walkability is data-driven: not solid, and no hazard the creature lacks the flag
 for. Bridges are rooms on hazard tiles and are read by `BridgeRules` (MAP byte 3

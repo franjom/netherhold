@@ -3478,7 +3478,10 @@ algorithms; all four are now answered and built (ADR-0157).
 
 ## ADR-0156 — Separation is built as a rule and wired to nothing
 
-**Status.** Accepted 2026-09-16.
+**Status.** Accepted 2026-09-16 · the wiring it declined arrived the next day
+with ADR-0157 phase 3: `SeparationBehaviour` is one of the four forces
+`CreatureMovementSystem` combines, so ours push each other apart as the owner
+describes (Q345).
 
 **Context.** The owner confirms creatures push each other (Q345) and ours walk
 through each other. DK2's force law is now read end to end
@@ -3492,8 +3495,8 @@ motion (Q343, unread), and a mover with a velocity to accept one. Inventing
 either would put a guess underneath every creature's position, which is the
 one place this project has agreed not to guess.
 
-**Consequences.** Creatures still pass through each other, and that remains a
-known, recorded divergence rather than a silent one. The arithmetic is
+**Consequences.** Creatures passed through each other until phase 3, and that
+was a known, recorded divergence rather than a silent one. The arithmetic is
 transcribed rather than reinterpreted — including an integer square root kept
 because it stops at its first converged guess. The branch that would not
 reconcile was answered by reading the caller instead (Q346, Q343): every force

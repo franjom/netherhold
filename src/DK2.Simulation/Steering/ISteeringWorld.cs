@@ -8,7 +8,7 @@ namespace DK2.Simulation.Steering;
 
 /// <summary>What the behaviours ask of the world: the callbacks the original installs
 /// (docs/research/steering-behaviours.md §1) and the route dispatcher (§7). The simulation
-/// implements it in ADR-0157 phase 3; until then only tests do.</summary>
+/// implements it as <see cref="Navigation.WorldSteering"/> (ADR-0157 phase 3).</summary>
 public interface ISteeringWorld
 {
     /// <summary>The navigation byte of a tile (<c>0x004D16B0</c>); off the map it is solid.</summary>

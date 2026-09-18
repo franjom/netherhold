@@ -8,8 +8,9 @@ namespace DK2.Simulation;
 
 /// <summary>DK2's <c>Separation</c> steering force, the rule that stops two creatures standing in
 /// the same place (Q345, docs/research/navigation-and-steering.md §3.2).
-/// <para><b>Nothing calls this</b> (ADR-0156): the combination and integration are read, but our
-/// mover has no velocity to accept a force until ADR-0157's phase 3.</para>
+/// <para>Wired since ADR-0157 phase 3, having been built for nothing (ADR-0156):
+/// <see cref="Steering.SeparationBehaviour"/> assembles these arms into the force
+/// <c>CreatureMovementSystem</c> combines with the other three.</para>
 /// <para>Scalars are the steering layer's 16.16 fixed point, not <see cref="Fp32"/>'s 1/4096.
 /// Arithmetic is reproduced operation for operation rather than reinterpreted: where the original
 /// divides a 64-bit numerator by a 16.16 ratio, so does this.</para></summary>

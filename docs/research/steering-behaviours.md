@@ -13,12 +13,13 @@ integrator's obstacle clipping) and **Q344** (`grtc:`). Continues
 `navigation-and-steering.md`, which owns the combination, the constants and
 the integration; this page owns what each behaviour computes.
 
-**Built, unwired** (ADR-0157 phase 2, `src/DK2.Simulation/Steering/`): the three
+**Built and wired** (ADR-0157, `src/DK2.Simulation/Steering/`): the three
 behaviours below, the route window, the turn and the 16.16 helpers, beside
 `SeparationRules`, and `SteeringIntegrator`: the combiner, the Euler step, the
-slide and the wall clamp. Section 5 is the mover proper: what `Follow_Path`
-aims at, that a creature **turns before it moves**, and how the route window is
-refilled.
+slide and the wall clamp. Phase 3 runs them for every creature:
+`CreatureMovementSystem` over `WorldSteering`. Section 5 is the mover proper:
+what `Follow_Path` aims at, that a creature **turns before it moves**, and how
+the route window is refilled.
 
 ---
 
