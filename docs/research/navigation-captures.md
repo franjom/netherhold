@@ -127,12 +127,37 @@ a dword that is usually zero, an **action id**, and a word that was 3 throughout
 in **Flame's** disassembly, not DK2's — neither name is anywhere in either exe,
 so treat them as Flame's and not as evidence, ADR-0080. The recorded stream is
 the evidence.) The other ids seen — 47, 49, 50, 54, 55, 57, 59, 61, 62, 88, 92
-and 114 — do not read as tile rectangles, so their arguments are laid out per
-action and remain UNKNOWN. DKII.EXE ships no RTTI for them either: its 161 RTTI
-class names hold no `GameAction`, and the only switch wide enough to be the
+and 114 — do not read as tile rectangles. DKII.EXE names none of them: its 161
+RTTI class names hold no `GameAction`, and the only switch wide enough to be the
 dispatcher (240 arms at `0x0051D740`) turns out to set a global per id, three
-instructions an arm — a variable table, not an action one. So naming them starts
-with a recording that performs known actions in a known order.
+instructions an arm — a variable table, not an action one.
+
+**A recording of known actions in a known order names nine of them.** The owner
+performed a numbered list on Level 10, one action at a time (2026-09-18, 321
+turns, 41 commands). Tag and untag were the first two, as a calibration, and
+came back as 40 and 41 on the same tile (24,85) — so the stream is aligned, and
+everything after it is read off in order:
+
+| id | what it is | argument seen |
+|---|---|---|
+| 57 | take a creature into the hand | thing id 436 |
+| 61 | drop the hand's contents | a world position, 1/4096 |
+| 62 | slap | thing id 439 |
+| 114 | pick a tool or a build item | two small ids; UI only, no world effect |
+| 47 | build a room | room type 2, tile (28,82) |
+| 49 | sell | the tile rectangle (28,82)-(28,82) |
+| 55 | possess a creature | thing id **436**, the same imp as 57 |
+| 25 | the per-turn stream while possessing | the possessed position, 22 turns |
+| 21 | leave possession | — |
+| 59 | take gold into the hand | thing id 1490 |
+| 92 | the window lost or regained focus | 1 leaving, 0 returning |
+
+**STRONGLY INFERRED, not confirmed**: one run, read off by order. Three of it
+are much firmer than the rest — 47 and 49 name the *same tile* the owner built
+on and then sold, 55 repeats the *same thing id* 57 had picked up, and the two
+92s bracket the two moments the owner alt-tabbed, which they reported without
+being asked. The run performed no door, trap or spell, so **50, 54 and 88 are
+still UNKNOWN** and are the obvious candidates for those.
 
 **It replays faithfully.** A five-minute played session of Level 10, recorded
 2026-09-18 and replayed at once: **no seed ever diverged** over 2,924 turns, and
