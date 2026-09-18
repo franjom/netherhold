@@ -148,10 +148,14 @@ imp 427 rode that ring for nine ticks before turning in to a job on the platform
 (arrival exemption, steering-behaviours.md §2). Imp 428 jittered eight ticks at
 the heart's wall, then walked straight across the platform at full speed,
 passing 0.64 tiles from the centre: **escape mode does switch the obstacle off
-in DK2**, as ours does. Closest approaches over the run were 0.50–0.60 tiles;
-what holds that last half tile is UNKNOWN — the visible `Dungeon Heart` (record
-13, `Obstacle`, width 1.0, a shove of reach 0.5 + radius) is the candidate, and
-a Level 10 object dump would settle it.
+in DK2**, as ours does. **The Level 10 object dump (2026-09-18)** shows what
+holds the last half tile: each heart's centre tile carries three objects —
+type 100 (flags `0x03014000`, width 12288), the visible `Dungeon Heart` 13
+(`0x00234000`, width 4096) and `Arches` 86 (`0x00014000`, width 2457). The
+latter two pass the enumerator's per-tile walk as plain shoves of reach 0.5
+and 0.3 tiles plus the body's radius. Over 564,231 Level 10 samples the ring
+peaks in the same 1.375–1.625 band and the closest approaches are 0.64 and
+0.95 tiles; Level 7's were 0.50–0.60.
 
 ### 5.4 The navigation cache and all known writers (Q209)
 
@@ -217,11 +221,12 @@ navigation-mesh-and-search.md §4). `WorldSteering.ByteOf` follows the cache:
 the router walks the heart's platform and enters the hole only for a leaving
 creature, while the path grid and the Hand keep the owner's blocks. What keeps
 creatures off the platform in play is §5.3's forwarded obstacle — record 100,
-size 1.5 tiles, flag bits 0 and 1 — built as one solid obstacle on the centre
-tile (`WorldSteering.CollectObstacles`). Off the heart's axis a walker rides
+size 1.5 tiles, flag bits 0 and 1 — with the visible heart and the arches as
+shoves inside it, three obstacles on the centre tile
+(`WorldSteering.CollectObstacles`). Off the heart's axis a walker rides
 the ring and arrives; aimed at the centre it stalls, and escape mode carries it
 across, as Level 7's imp 428 did. The owner's screenshot of 2026-09-17 marks the
-last half tile creatures never enter (§5.3's open remainder).
+last half tile creatures never enter: the visible heart's shove (§5.3).
 
 The mask costs one byte compare per tile plus a flood fill over portal and heart
 tiles only. `CreatureMovementSystem` builds a grid per creature per tick, so it

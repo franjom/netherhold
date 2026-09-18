@@ -361,8 +361,8 @@ request; the door bits are inert until doors enter the navigation byte.
   crossing from play; which mechanism it was is the open half. The Level 7
   capture cannot say: its cache holds no corner-only floor pair, and none of
   its 289 diagonal tile changes in 41,654 steps passed between two solid tiles.
-  Level 10 starts with three such corners, at (11,19), (36,57) and (47,84);
-  its capture's steps past them are the next evidence. Failing that: a target
+  Level 10's capture (216,882 steps) has none either, but its three such
+  corners saw three steps in all, so the question stands. Next: a target
   reachable both through a diagonal gap and by a 20-tile detour — routing takes
   the detour, steering cuts the corner; an Imp and a Bile Demon differ if it is
   steering (the wall margin is one radius).

@@ -112,7 +112,10 @@ rectangle's navigation byte (`0x004CC9B0`).
 (`0x004C97B0` compares neighbours); `0x004CB8C0` merges two across a shared
 edge, frees the vertex between them (`+2 = 0x8000` marks a dead point) and
 pushes both dead triangles onto a free list threaded through their `+6` slot.
-This is what keeps a whole room down to a handful of triangles.
+This is what keeps a whole room down to a handful of triangles. The Level 10
+dump (§7) shows it also removes a vertex on a **straight boundary between two
+bytes** when each side keeps its byte along it — a collinear point between two
+same-byte pairs — which ours keeps (Q351).
 
 **Bookkeeping.** Every new or rewired triangle passes through `0x004C8F50`,
 which computes its three edge width classes, and a rebuild ends by
@@ -328,9 +331,9 @@ Both outputs are game-derived and stay out of the repository. Each request logs 
 ` route=<triangles> … way=<waypoints>`; ` Fwd route route=-1` is a failed
 search and ` DOUBLE PATH` the cache. Replaying its 21,398 requests through
 our router on the level's **initial** map, 87 % agreed; the rest were 968
-searches DK2 failed at a door (all reproduce once doors entered the byte,
-ADR-0158), 1,131 solid ends of ours on tiles dug or claimed during the run, and
-four routes the walked-into argument order recovered.
+searches DK2 failed at a door (all reproduce with doors in the byte, ADR-0158),
+1,131 solid ends of ours on tiles dug during the run, and four routes the
+walked-into argument order recovered.
 
 **Second capture, on DK2's own bytes.** The probe then dumped the cache
 `[world+0x9F2]` itself (stride `+8`, base `+0x10`) every sample. Each byte
@@ -349,6 +352,18 @@ that the requesting creature's own flags allowed. The cache answered Q352
 outright — every one of a heart's 25 tiles is plain floor, and the only plain
 tiles carrying bit 2 are the two portal centres. The position capture's steps
 per tick match the loader rule: the imps' 1888 against a predicted 1884–1887.
+
+**Level 10, 2026-09-18, a keeper playing.** Twelve minutes, 87,619 requests
+logged, 86,140 with a tick, 1,883 byte changes as Asmodeus dug. Replayed with
+six movers (each owner, respecting doors, with and without lava, or attacking),
+**every request but three is explained by one of them**; the three are movers
+entering a portal hole, the leaving word's bit 2. Waypoint counts match in
+20,827 of 20,859. The probe also dumped DK2's triangle and point tables (§2.1):
+at tick 7, 2,765 triangles inside the map against our 2,674, **809 identical**;
+1,413 points against our 1,472 with 1,409 common — the 63 we keep lie on
+straight boundaries, which DK2's coarsening also removes. Corridor lengths:
+exact in 33 %, ours shorter in 31 %, longer in 36 % (Q351). No creature stepped
+between two solid tiles in 216,882 steps; one corner-only pair saw traffic (Q28).
 
 ## Confidence
 

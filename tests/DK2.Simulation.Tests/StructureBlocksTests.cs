@@ -458,11 +458,11 @@ public sealed class StructureBlocksTests
         Assert.True(new Navigation.WorldSteering(db, world).TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Loose));
     }
 
-    /// <summary>DK2's obstacle enumerator forwards the heart's obstacle object (record 100, width
-    /// 3.0) once per query as a solid contact with flag bits 0 and 1, so <c>Repel_Obstacle</c> slides
-    /// a walker along a ring of a tile and a half plus its radius; Level 7's imps rode that ring in
-    /// the 2026-09-17 capture (Q355). Off the heart's axis the slide keeps making progress, so the
-    /// stuck detector stays quiet and the goblin arrives.</summary>
+    /// <summary>A running heart's centre tile holds three objects (Level 10 dump): the solid
+    /// obstacle (100, width 3.0) DK2's enumerator forwards once per query with flag bits 0 and 1,
+    /// and the visible heart (13) and arches (86), plain shoves. <c>Repel_Obstacle</c> slides a
+    /// walker along a ring of a tile and a half plus its radius, as Level 7's and 10's imps rode
+    /// it (Q355). Off the axis the slide keeps making progress and the goblin arrives.</summary>
     [Fact]
     public void TheHeartsObstacleKeepsAnOffAxisWalkerOnARingOfATileAndAHalf()
     {
@@ -471,10 +471,12 @@ public sealed class StructureBlocksTests
 
         var obstacles = new List<DK2.Simulation.Steering.SteeringObstacle>();
         steering.CollectObstacles(new DK2.Simulation.Steering.Fixed16Vector(6 << 16, 6 << 16), 1 << 16, obstacles);
-        DK2.Simulation.Steering.SteeringObstacle heart = Assert.Single(obstacles);
+        Assert.Equal(3, obstacles.Count);
+        DK2.Simulation.Steering.SteeringObstacle heart = Assert.Single(obstacles, o => o.Solid);
         Assert.Equal(3 << 15, heart.Size);
-        Assert.True(heart.Solid);
         Assert.True(heart.Flag2);
+        Assert.Contains(obstacles, o => !o.Solid && o.Size == 1 << 15);
+        Assert.Contains(obstacles, o => !o.Solid && o.Size == (2457 << 4) >> 1);
 
         int closest = int.MaxValue;
         int contactTicks = 0;

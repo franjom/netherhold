@@ -142,28 +142,36 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return true;
     }
 
-    /// <summary>The heart's obstacle object, <c>Dungeon Heart Obstacle</c> (object 100, width 3.0
-    /// tiles). DK2's obstacle enumerator skips object 100 in its per-tile walk and instead, when the
-    /// query touches heart terrain, forwards the one standing on the room's centre tile with size
-    /// width/2 and flag bits 0 and 1 (structure-blocks.md §5.3; Q355). Level 7's imps ride a ring of
-    /// 1.5 tiles plus their radius around it. Furniture and other objects are not yet obstacles.</summary>
+    /// <summary>The three objects a running game holds on a heart's centre tile (Level 10 object
+    /// dump, structure-blocks.md §5.3): the <c>Dungeon Heart Obstacle</c> (100, width 3.0, solid),
+    /// which DK2's enumerator skips on its tile and forwards once from the room's centre with flag
+    /// bits 0 and 1, and the visible <c>Dungeon Heart</c> (13, width 1.0) and <c>Arches</c> (86,
+    /// width 0.6), plain shoves. Each has size width/2 (Q355). Furniture is not yet an obstacle.</summary>
     public void CollectObstacles(Fixed16Vector centre, int range, List<SteeringObstacle> into)
     {
         if (_structures is null || _structures.HeartCentres.Count == 0) return;
-        if (!_database.Objects.TryGetValue(DungeonHeartObstacleObjectId, out ObjectDef? obstacle)) return;
 
-        int size = (obstacle.Width.Raw << 4) >> 1;
         foreach (int index in _structures.HeartCentres)
         {
             var pos = new Fixed16Vector(
                 CreatureState.CentreOf(index % _world.Width) << 4, CreatureState.CentreOf(index / _world.Width) << 4);
-            if ((pos - centre).Octile() > range + size) continue;
-            into.Add(new SteeringObstacle(pos, size, obstacle.Flags.HasFlag(ObjectFlags.SolidObstacle), true));
+            foreach (byte id in HeartObjectIds)
+            {
+                if (!_database.Objects.TryGetValue(id, out ObjectDef? def)) continue;
+                int size = (def.Width.Raw << 4) >> 1;
+                if ((pos - centre).Octile() > range + size) continue;
+                into.Add(new SteeringObstacle(pos, size, def.Flags.HasFlag(ObjectFlags.SolidObstacle), id == DungeonHeartObstacleObjectId));
+            }
         }
     }
 
     /// <summary>OBJECTS record 100, the invisible object a heart keeps creatures off with.</summary>
     public const byte DungeonHeartObstacleObjectId = 100;
+
+    /// <summary>OBJECTS records 13 (<c>Dungeon Heart</c>) and 86 (<c>Arches</c>), also on the centre.</summary>
+    public const byte DungeonHeartObjectId = 13, ArchesObjectId = 86;
+
+    private static readonly byte[] HeartObjectIds = [DungeonHeartObstacleObjectId, DungeonHeartObjectId, ArchesObjectId];
 
     /// <summary>The crowd probe <c>0x004D15E0</c>: tiles from the floor of the square's low edge to
     /// the ceiling of its high edge, both inclusive, and every creature standing on one of them adds
