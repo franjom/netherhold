@@ -51,6 +51,14 @@ internal static class Dk2TerrainFixture
     public const byte ManaVaultTerrain = 31;
     public const byte ClaimedVaultTerrain = 32;
 
+    /// <summary>Two shipped door records: the Wooden Door and the Barricade, whose flags byte
+    /// (0x40) the navigation writer reads as a permanent lock.</summary>
+    public static DoorDef[] Doors() =>
+    [
+        new() { Name = "Wooden Door", DoorId = 1, Health = 400, GoldCost = 500, ManufactureRequired = 1000 },
+        new() { Name = "Barricade", DoorId = 6, Health = 800, GoldCost = 750, ManufactureRequired = 1000, Flags = DoorFlags.Barricade },
+    ];
+
     public static GameDatabase Database(params CreatureDef[] extraCreatures) => new(
         [
             T(ImpenetrableRock, "Impenetrable Rock",
@@ -124,6 +132,7 @@ internal static class Dk2TerrainFixture
               2000, 2000, ClaimedVaultTerrain, ManaVaultTerrain,
               manaGain: 100, maxManaGain: 100),
         ],
+        doors: Doors(),
         rooms:
         [
             // Cost, terrain and placement flags exactly as the install has them

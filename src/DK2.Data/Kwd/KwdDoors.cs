@@ -15,6 +15,7 @@ public static class KwdDoors
 
     // Six 84-byte art resources follow the 32-byte name. The gameplay tail is
     // verified against all eight shipped records and the manual's six prices.
+    private const int OffsetFlags = 0x228;
     private const int OffsetHealth = 0x22C;
     private const int OffsetGoldCost = 0x22E;
     private const int OffsetManufactureRequired = 0x234;
@@ -49,6 +50,7 @@ public static class KwdDoors
         GoldCost = U16(record, at + OffsetGoldCost),
         ManufactureRequired = BinaryPrimitives.ReadUInt32LittleEndian(
             record.AsSpan(at + OffsetManufactureRequired)),
+        Flags = (DoorFlags)record[at + OffsetFlags],
     };
 
     private static ushort U16(byte[] record, int at) =>

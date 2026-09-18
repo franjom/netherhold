@@ -66,27 +66,48 @@ condition 27's zero/nonzero partition.
 The ordinary update at `0x004A55F0` separates construction from completed-door
 behavior. While construction is nonzero it refreshes the construction
 presentation and bypasses the normal open/close work. A completed door's
-**open** state (`+0x10D`, read 2026-09-17) is recomputed every update: lock
-mode 3 (`+0x111`) keeps it shut and a running lock-pick timer (`+0x115`) forces
-it open; otherwise it is open while an **eligible** creature stands on one of
-three tile chains (`0x004A5E9E`–`0x004A5F1B`) — the door's tile and, STRONGLY
-INFERRED, the two beside it along the passage. Eligible: allied with the owner
-(`0x004BF3D0`: the same player, else the owner's alliance byte at
-`player+0x1AE+id`), not the neutral player (`[0x006F2548]`), creature flag
-`+0x3E6` bit 21 clear (unread), and by lock mode — 0 any, 1 no worker
-(definition flag bit 0), 2 workers only.
+**open** state (`+0x10D`) is recomputed every update: lock mode 3 (`+0x111`)
+keeps it shut and a running lock-pick timer (`+0x115`) forces it open;
+otherwise it is open while an **eligible** creature stands on one of three
+tiles (read 2026-09-18): the door's own, and the two beside it along the
+passage — `(x−1, y)` and `(x+1, y)` when the world predicate `+0x208` holds
+for the tiles above and below, else `(x, y−1)` and `(x, y+1)`
+(`0x004A5A4B`–`0x004A5B02`). Eligible: allied with the owner (`0x004BF3D0`:
+the same player, else the owner's alliance byte at `player+0x1AE+id`), not
+the neutral player (`[0x006F2548]`), not `CreatureDying` (creature flag
+`+0x3E6` bit 21, named by the debug dumper), and by lock mode — 0 any, 1 no
+worker (definition flag bit 0), 2 workers only.
+
+**Lock modes 1 and 2 are unreachable.** The transition `0x004A6800` has three
+callers: the loader (`0x00521130`, mode 3 from authored flag bit 0), the
+player's lock command handler (`0x00513800`: entity type 4, owner checked,
+mode `3` if unlocked else `0`), and an effect handler `0x00474F80` registered
+in a descriptor table at `0x0047F972` that, over the four neighbours of an
+entity's tile, destroys traps, unlocks the entity owner's locked doors (mode 0)
+and hands foreign doors to `0x004A6DF0`. Which ability owns that descriptor is
+UNKNOWN.
+
+**Definition flags.** Record offset `0x228` is the flags byte, runtime
+`def+0x8B` (the offset delta is STRONGLY INFERRED from the bits' owners): the
+Secret Door alone carries bit 5, Barricade and Hero Barricade bit 6, Hero
+Barricade and Hero Portcullis bit 7. `DoorFlags` names them.
+
+**Alliances.** `player+0x1AE+id` is written symmetrically by the make- and
+break-alliance command handlers (`0x00513FF0`, `0x00513F60`; the former also
+clears `+0x1B6`) and by `0x0051DCEB` from a table, STRONGLY INFERRED to be
+trigger action 18's `Available`. Nothing else writes it; ours has no alliances.
 
 **Navigation.** The writer `0x004A66F0` sets the tile's byte to
-`owner << 4 | 4 if lock mode ≠ 0 (or definition byte +0x8B bit 6) | 2 if the
+`owner << 4 | 4 if lock mode ≠ 0 or definition bit 6 (a barricade) | 2 if the
 tile's flag bit 0` and, when told the door is open or under construction,
 writes plain floor instead; an open door is floor for everyone. The lock
 transition `0x004A6800` stores the mode and toggles bit 2 in place. How the
 cost function reads the byte is navigation-mesh-and-search.md §4.
 
 Built (ADR-0158, `DoorSystem`, `WorldSteering`, `MeshRouter.TransitionCost`):
-open state, lock mode from the authored flag, the byte and the cost arms.
-Unbuilt: the lock transition and who calls it, the lock-pick timer, alliances,
-definition byte `+0x8B` (Q353).
+open state, the three tiles, lock mode from the authored flag, the byte with
+the barricade arm, and the cost arms. Unbuilt: the lock command, the effect
+handler, the lock-pick timer and alliances.
 
 ## Trap loader and fields
 
@@ -150,7 +171,7 @@ nonzero comparison, so no shipped record needs the unread availability mode.
 |---|---|
 | Record counts, all-zero door trigger ids, 3 unfinished doors and 0 unfinished traps | **CONFIRMED from shipped data** |
 | Loader transforms, saved ranges and runtime state transitions above | **STRONGLY INFERRED from DKII.EXE v1.70** |
-| Exact door open eligibility and transition timing | **UNKNOWN** |
+| Door open eligibility, its three tiles and the lock transition's callers | **CONFIRMED from DKII.EXE v1.70** |
 | Exact trap targeting, charge, mana, disarm and shot behavior | **UNKNOWN** |
 | Any semantic meaning for either `Unknown_0008`, door trailing bytes or trap `Unknown_000F` | **UNKNOWN** |
 

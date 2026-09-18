@@ -61,11 +61,13 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         }
 
         // A closed, completed door overwrites its tile (`0x004A66F0`); an open one leaves floor.
+        // A barricade (definition flag bit 6) carries the lock bit whatever its lock mode.
         foreach (DoorState door in _world.Doors)
         {
             if (door.UnderConstruction || door.Open || !_world.Contains(door.X, door.Y)) continue;
+            bool barricade = _database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && def.Flags.HasFlag(DoorFlags.Barricade);
             _scratch[(door.Y * _world.Width) + door.X] =
-                NavBytes.Door(door.PlayerId, door.LockMode != 0, _world.Tile(door.X, door.Y).IsTaggedByAnyone);
+                NavBytes.Door(door.PlayerId, door.LockMode != 0 || barricade, _world.Tile(door.X, door.Y).IsTaggedByAnyone);
         }
 
         if (_mesh != null && _scratch.AsSpan().SequenceEqual(_bytes)) return;

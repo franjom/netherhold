@@ -24,4 +24,20 @@ public sealed record DoorDef
 
     /// <summary>Workshop manufacture work required to produce the door.</summary>
     public required uint ManufactureRequired { get; init; }
+
+    /// <summary>The flags byte at record offset 0x228, runtime <c>def+0x8B</c>
+    /// (doors-and-traps.md, "Door runtime behavior").</summary>
+    public DoorFlags Flags { get; init; }
+}
+
+/// <summary>The door record's flags byte. Named by which shipped records carry each bit: the
+/// Secret Door alone has bit 5, both barricades bit 6, the two hero doors bit 7 (CONFIRMED
+/// from data); the binary's navigation writer treats bit 6 as a permanent lock.</summary>
+[Flags]
+public enum DoorFlags : byte
+{
+    None = 0,
+    Secret = 0x20,
+    Barricade = 0x40,
+    Hero = 0x80,
 }

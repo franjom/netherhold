@@ -18,7 +18,7 @@ public class DoorNavigationTests
     private const byte Rival = PlayerIds.FirstKeeper + 1;
     private static readonly TilePos Beyond = new(7, 2);
 
-    private static (WorldState world, GameDatabase db, DoorState door) Build(byte doorOwner, byte flags)
+    private static (WorldState world, GameDatabase db, DoorState door) Build(byte doorOwner, byte flags, byte doorId = 1)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
@@ -29,7 +29,7 @@ public class DoorNavigationTests
             tile.Health = db.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
         }
 
-        ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = 5, Y = 2, PlayerId = doorOwner, Flags = flags, DoorId = 1, Unknown_0011 = new byte[3] }]);
+        ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = 5, Y = 2, PlayerId = doorOwner, Flags = flags, DoorId = doorId, Unknown_0011 = new byte[3] }]);
         return (world, db, world.Doors[0]);
     }
 
@@ -51,6 +51,19 @@ public class DoorNavigationTests
     {
         (WorldState world, GameDatabase db, _) = Build(Keeper, 0);
         Assert.False(Routes(world, db, Rival, MoveOptions.Loose));
+        Assert.True(Routes(world, db, Rival, MoveOptions.Plain));
+    }
+
+    /// <summary>The byte writer sets the lock bit for a definition with flag bit 6 whatever the
+    /// lock mode (`0x004A66F0`), and the Barricade record alone among the keeper's doors carries
+    /// it: unlocked, it still stops its owner, and a rival attacking it (word 0) still passes.</summary>
+    [Fact]
+    public void ABarricadeIsLockedForItsOwnerWhateverItsLockMode()
+    {
+        (WorldState world, GameDatabase db, DoorState door) = Build(Keeper, 0, doorId: 6);
+        Assert.Equal(0, door.LockMode);
+        Assert.False(Routes(world, db, Keeper, MoveOptions.Loose));
+        Assert.True(Routes(world, db, Keeper, MoveOptions.Leaving));
         Assert.True(Routes(world, db, Rival, MoveOptions.Plain));
     }
 

@@ -45,7 +45,9 @@ public sealed class DoorSystem : ISimulationSystem
         return false;
     }
 
-    /// <summary>The creature arms of the update (<c>0x004A5E9E</c>–<c>0x004A5F1B</c>).</summary>
+    /// <summary>The creature arms of the update (<c>0x004A5E9E</c>–<c>0x004A5F1B</c>). Lock modes 1
+    /// and 2 have their arms but no caller sets them in v1.70: the lock command toggles 3 and 0,
+    /// the loader sets 3, and an effect handler sets 0 (doors-and-traps.md).</summary>
     public static bool Eligible(SimulationContext context, DoorState door, CreatureState creature)
     {
         if (creature.OwnerPlayerId != door.PlayerId) return false;
