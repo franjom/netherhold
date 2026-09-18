@@ -140,12 +140,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return true;
     }
 
-    /// <summary>The heart's obstacle object, <c>Dungeon Heart Obstacle</c> (object 100: flags
-    /// <c>Obstacle</c> and <c>SolidObstacle</c>, width 3.0 tiles), standing on the heart's centre
-    /// tile with a radius of half its width — which is exactly the 3×3 platform the owner sees
-    /// creatures keep off (Q88, Q352) while the navigation cache reads floor there. That the room
-    /// spawns one such object at its centre, and that the probe's size is half the width, are
-    /// HYPOTHESES (Q355); furniture and other objects are not yet obstacles.</summary>
+    /// <summary>The heart's obstacle object, <c>Dungeon Heart Obstacle</c> (object 100, width 3.0
+    /// tiles). DK2's obstacle enumerator skips object 100 in its per-tile walk and instead, when the
+    /// query touches heart terrain, forwards the one standing on the room's centre tile with size
+    /// width/2 and flag bits 0 and 1 (structure-blocks.md §5.3; Q355). Level 7's imps ride a ring of
+    /// 1.5 tiles plus their radius around it. Furniture and other objects are not yet obstacles.</summary>
     public void CollectObstacles(Fixed16Vector centre, int range, List<SteeringObstacle> into)
     {
         if (_structures is null || _structures.HeartCentres.Count == 0) return;
@@ -157,7 +156,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             var pos = new Fixed16Vector(
                 CreatureState.CentreOf(index % _world.Width) << 4, CreatureState.CentreOf(index / _world.Width) << 4);
             if ((pos - centre).Octile() > range + size) continue;
-            into.Add(new SteeringObstacle(pos, size, obstacle.Flags.HasFlag(ObjectFlags.SolidObstacle), false));
+            into.Add(new SteeringObstacle(pos, size, obstacle.Flags.HasFlag(ObjectFlags.SolidObstacle), true));
         }
     }
 

@@ -111,10 +111,11 @@ blocked tile. Its object table instead drives a continuous obstacle system:
 |---|---|
 | `objDef+0xF4` is the runtime flags word | `0x004D12B0` reads it |
 | `objDef+0xF8` is a 4096-fixed-point size used as `size >> 1` | same function; file offset `0x32C` from loader `0x0049DD60` |
-| shipped diameters include Heart Obstacle 4096, most beds 2048, Work Bench 3276 | `kwd objecthex 32C 2 -w` |
+| shipped diameters include Dungeon Heart Obstacle 12288, Dungeon Heart 4096, most beds 2048, Work Bench 3276 | `kwd objecthex 32C 2 -w` |
 | 15 objects carry `SolidObstacle`; all are room furniture | `kwd objects` |
 | 58 objects carry `Obstacle`, including every creature bed and gold pile | `kwd objects` |
 | `FirstPersonObstacle` counts only while mode global `0x006ECA78` is set | `0x004D12B0` |
+| object 100 is skipped by the per-tile walk and forwarded once through the heart-tile path | `0x004D13EA`, `0x004D1503`–`0x004D15AD` |
 
 `0x004D12B0` walks the objects overlapping a tile rectangle, gates them on
 `Obstacle`, and forwards position, size and flags to a callback. Its consumers
@@ -127,6 +128,30 @@ This explains the owner's 2026-09-11 observation that a creature routes around
 a bed, bookcase and anvil. `Obstacle && size > 0` is not an impassable-tile
 predicate; it is the gate and geometry for object collision. Portal and Dungeon
 Heart tile blocking is separate room/terrain geometry (§5.4).
+
+### 5.3 The heart's obstacle is forwarded by the room, not found on its tile (Q355)
+
+The gated enumerator walks the query rectangle's tiles and remembers the last
+one whose slab type byte `+0xA` is 14, Dungeon Heart terrain. Its per-tile walk
+forwards every `Obstacle` object **except type 100**. After the walk, if a heart
+tile was seen, it takes the room's stored centre (`room+0xB43`, set by
+`0x004C5F60`), lists that tile's things and forwards the `Dungeon Heart
+Obstacle` standing there: its own position, size `width >> 1` = 1.5 tiles, flag
+bits 0 **and 1** (`OR AL,3`). So `Repel_Obstacle` records one slide contact per
+query whenever the query touches heart terrain, wherever the body stands.
+The heart's construction code spawns object 100 at the centre tile
+(`0x004DAC87`, `0x004DB154`: position `(tile << 12) + 0x800`).
+
+**Measured (Level 7 capture, 2026-09-17, 119,445 creature samples):** the
+nearest-approach histogram peaks in the 1.375–1.625 band around both hearts, and
+imp 427 rode that ring for nine ticks before turning in to a job on the platform
+(arrival exemption, steering-behaviours.md §2). Imp 428 jittered eight ticks at
+the heart's wall, then walked straight across the platform at full speed,
+passing 0.64 tiles from the centre: **escape mode does switch the obstacle off
+in DK2**, as ours does. Closest approaches over the run were 0.50–0.60 tiles;
+what holds that last half tile is UNKNOWN — the visible `Dungeon Heart` (record
+13, `Obstacle`, width 1.0, a shove of reach 0.5 + radius) is the candidate, and
+a Level 10 object dump would settle it.
 
 ### 5.4 The navigation cache and all known writers (Q209)
 
@@ -191,12 +216,12 @@ crosses a bit-2 boundary only for a state that passed option bit 2 (§5.4,
 navigation-mesh-and-search.md §4). `WorldSteering.ByteOf` follows the cache:
 the router walks the heart's platform and enters the hole only for a leaving
 creature, while the path grid and the Hand keep the owner's blocks. What keeps
-creatures off the platform in play is the heart's obstacle object — record 100,
-`Dungeon Heart Obstacle`, `Obstacle | SolidObstacle`, width 3.0 tiles, so a
-slide contact of radius 1.5 through `Repel_Obstacle` — built as one obstacle
-on the centre tile (`WorldSteering.CollectObstacles`; placement and count are
-HYPOTHESES, Q355). The owner's screenshot of the same day marks the circle
-creatures keep off at about a tile around the centre.
+creatures off the platform in play is §5.3's forwarded obstacle — record 100,
+size 1.5 tiles, flag bits 0 and 1 — built as one solid obstacle on the centre
+tile (`WorldSteering.CollectObstacles`). Off the heart's axis a walker rides
+the ring and arrives; aimed at the centre it stalls, and escape mode carries it
+across, as Level 7's imp 428 did. The owner's screenshot of 2026-09-17 marks the
+last half tile creatures never enter (§5.3's open remainder).
 
 The mask costs one byte compare per tile plus a flood fill over portal and heart
 tiles only. `CreatureMovementSystem` builds a grid per creature per tick, so it

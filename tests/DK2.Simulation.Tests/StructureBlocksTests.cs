@@ -458,14 +458,67 @@ public sealed class StructureBlocksTests
         Assert.True(new Navigation.WorldSteering(db, world).TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Loose));
     }
 
-    /// <summary>What keeps creatures off the platform is the heart's obstacle object (record 100,
-    /// width 3.0 tiles) fed to <c>Repel_Obstacle</c>: one solid obstacle on the centre tile with a
-    /// radius of a tile and a half. A goblin walked straight at it is deflected and never stands
-    /// on the centre tile. It does cut inside the radius once the stuck detector fires (Q355):
-    /// whether DK2's does is the open half, the owner having seen creatures keep off a circle
-    /// about a tile wide (2026-09-17).</summary>
+    /// <summary>DK2's obstacle enumerator forwards the heart's obstacle object (record 100, width
+    /// 3.0) once per query as a solid contact with flag bits 0 and 1, so <c>Repel_Obstacle</c> slides
+    /// a walker along a ring of a tile and a half plus its radius; Level 7's imps rode that ring in
+    /// the 2026-09-17 capture (Q355). Off the heart's axis the slide keeps making progress, so the
+    /// stuck detector stays quiet and the goblin arrives.</summary>
     [Fact]
-    public void TheHeartIsAnObstacleOfATileAndAHalfThatDeflectsAWalker()
+    public void TheHeartsObstacleKeepsAnOffAxisWalkerOnARingOfATileAndAHalf()
+    {
+        (WorldState world, Navigation.WorldSteering steering, CreatureState goblin, GameSimulation sim) =
+            HeartWalk(new TilePos(2, 4), new TilePos(10, 7));
+
+        var obstacles = new List<DK2.Simulation.Steering.SteeringObstacle>();
+        steering.CollectObstacles(new DK2.Simulation.Steering.Fixed16Vector(6 << 16, 6 << 16), 1 << 16, obstacles);
+        DK2.Simulation.Steering.SteeringObstacle heart = Assert.Single(obstacles);
+        Assert.Equal(3 << 15, heart.Size);
+        Assert.True(heart.Solid);
+        Assert.True(heart.Flag2);
+
+        int closest = int.MaxValue;
+        int contactTicks = 0;
+        for (int tick = 0; tick < 400 && goblin.Tile != new TilePos(10, 7); tick++)
+        {
+            sim.Tick(InputFrame.Empty);
+            closest = Math.Min(closest, DistanceToHeartCentre(goblin));
+            if (goblin.Body.SolidContacts.Count > 0) contactTicks++;
+            Assert.False(goblin.Body.EscapeStuckMode);
+        }
+        Assert.Equal(new TilePos(10, 7), goblin.Tile);
+        Assert.True(contactTicks > 0);
+        Assert.InRange(closest, (3 << 15) - (1 << 13), (3 << 15) + goblin.Body.Radius + (1 << 13));
+    }
+
+    /// <summary>A walker aimed straight through the centre slides sideways, which lengthens its
+    /// octile distance to the waypoint, so five stuck ticks accumulate, escape mode switches
+    /// <c>Repel_Obstacle</c> off and it crosses the platform. Level 7's capture holds the same: imp
+    /// 428 stalled at the heart's wall, then walked across at full speed 0.64 tiles from the centre
+    /// (Q355). The owner's never-crossed circle is the centre itself, not the platform.</summary>
+    [Fact]
+    public void AWalkerStalledHeadOnCutsAcrossThePlatform_AsALevel7ImpDid()
+    {
+        (WorldState world, Navigation.WorldSteering steering, CreatureState goblin, GameSimulation sim) =
+            HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
+
+        int closest = int.MaxValue;
+        bool escaped = false;
+        for (int tick = 0; tick < 400 && goblin.Tile != new TilePos(10, 6); tick++)
+        {
+            sim.Tick(InputFrame.Empty);
+            closest = Math.Min(closest, DistanceToHeartCentre(goblin));
+            escaped |= goblin.Body.EscapeStuckMode;
+        }
+        Assert.Equal(new TilePos(10, 6), goblin.Tile);
+        Assert.True(escaped);
+        Assert.True(closest < 3 << 15);
+    }
+
+    private static int DistanceToHeartCentre(CreatureState goblin) =>
+        (goblin.Body.Pos - new DK2.Simulation.Steering.Fixed16Vector((6 << 16) + 0x8000, (6 << 16) + 0x8000)).Length();
+
+    /// <summary>A 9×7 claimed room holding a 5×5 heart centred on (6,6), and a goblin routed across it.</summary>
+    private static (WorldState, Navigation.WorldSteering, CreatureState, GameSimulation) HeartWalk(TilePos from, TilePos to)
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -473,24 +526,9 @@ public sealed class StructureBlocksTests
         Paint(db, world, RoomTypeId.DungeonHeart, 4, 4, 8, 8);
         var steering = new Navigation.WorldSteering(db, world);
         steering.Refresh();
-
-        var obstacles = new List<DK2.Simulation.Steering.SteeringObstacle>();
-        steering.CollectObstacles(new DK2.Simulation.Steering.Fixed16Vector(6 << 16, 6 << 16), 1 << 16, obstacles);
-        DK2.Simulation.Steering.SteeringObstacle heart = Assert.Single(obstacles);
-        Assert.Equal(3 << 15, heart.Size);
-        Assert.True(heart.Solid);
-
-        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 6));
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, from);
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
-        Assert.True(steering.TryRoute(goblin, new TilePos(10, 6), Navigation.MoveOptions.Loose));
-        bool deflected = false;
-        for (int tick = 0; tick < 400; tick++)
-        {
-            sim.Tick(InputFrame.Empty);
-            if (goblin.Body.SolidContacts.Count > 0 && goblin.Body.Vel.Y != 0) deflected = true;
-            Assert.NotEqual(new TilePos(6, 6), goblin.Tile);
-        }
-        Assert.True(deflected);
-        Assert.Equal(new TilePos(10, 6), goblin.Tile);
+        Assert.True(steering.TryRoute(goblin, to, Navigation.MoveOptions.Loose));
+        return (world, steering, goblin, sim);
     }
 }

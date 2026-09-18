@@ -69,7 +69,11 @@ accumulator, and asks the `Obstacle` enumerator for everything within
 Bit 0 of the forwarded flags is what §5 of `structure-blocks.md` identified as
 the object's **`SolidObstacle`**: fifteen objects carry it, all room furniture.
 So furniture is not pushed away from; it is slid along. Everything else that is
-an `Obstacle` — beds, gold piles, the Heart's tile-wide collider — shoves.
+an `Obstacle` — beds, gold piles, the visible Heart — shoves. The enumerator
+skips the `Dungeon Heart Obstacle` (object 100) in its tile walk and forwards
+the one on the heart room's centre once per query that touches heart terrain,
+with flag bits 0 and 1 (`structure-blocks.md` §5.3): a slide ring of 1.5 tiles
+plus the body's radius, which Level 7's imps rode in the capture.
 
 Two helpers seen on the way: `0x004D4600` projects a target onto the body's
 `local_xaxis`/`local_yaxis` (forward and lateral offsets, 16.16), and
