@@ -53,17 +53,26 @@ whole-map build drift where DK2 patches the mesh a tile at a time: across the
 probe's 353 dumps its triangles stay 92-94 % ours, 88 % at the worst. No creature
 stepped between two solid tiles in 216,882 steps (Q28).
 
-**What was left is the instrument, not the router.** Of the 2,014 single-tile
-rebuilds DK2 logged, **1,980 are on the 23 tiles that ever carried a door byte**
-and 34 are digging: a door tile alternates between `owner << 4` and plain floor,
-and each flaps as creatures pass. The probe saw 1,854, so **at least 126 flips
-fell between two of its samples** — it walks 4,096 entity slots a pass, which
-caps it near 8 Hz, and a door can open and shut in a tick. Every request whose
-waypoint count disagreed is one of those: toggling **one door tile** — (24,16),
-(27,14), (30,16) or (32,14), the four with the most missed flips — reproduces
-DK2's `route=` **and** `way=` exactly, 23 times in 23, and 20 of them had our
-door open where DK2's was shut. The probe now re-reads the cache every 5 ms
-while its creature pass waits (Q351).
+**What was left is a door's state, and it is not the sampling rate.** Of the
+2,014 single-tile rebuilds DK2 logged, **1,980 are on the 23 tiles that ever
+carried a door byte** and 34 are digging. Every request whose waypoint count
+disagreed is one of those: toggling **one door tile** — (24,16), (27,14),
+(30,16) or (32,14) — reproduces DK2's `route=` **and** `way=` exactly, 23 times
+in 23, and 20 of them had our door open where DK2's was shut. So the state we
+replayed was wrong; **why** is open.
+
+It is **not** that the 8 Hz probe missed flips, which is what the 126-change gap
+between rebuilds and recorded changes looked like. Sampling the cache from its
+own thread instead, about 25 times faster, moved that gap by nothing: on one
+replayed session, tile for tile, 8 Hz recorded 109, 96, 92 and 93 changes on the
+four busiest doors where the thread recorded 109, 96, 92 and 93. **About a third
+of DK2's single-tile rebuilds therefore write the byte the tile already
+carried**, and the probe was seeing every change all along (CONFIRMED by
+capture; which writers do it is unread). The likelier cause is the replay's own
+rule for *when* to apply a change — it matches each one to an ` Area` line, and
+with three rebuilds for every two changes that match can land on the wrong one
+and move the transition in time. The threaded sampling is worth keeping for a
+different reason: it timestamps a change to about 15 ms rather than 125 (Q351).
 
 ## DK2 records and replays a session itself (Q356)
 
@@ -95,13 +104,11 @@ sample. Playing also generates routing far faster than watching: 98,313 calls in
 five minutes against 87,619 in twelve idle ones. The `.sav` is game-derived and
 stays out of the repository.
 
-## What the probe still cannot see
+## The probe's own limits
 
 The creature pass walks 4,096 entity slots and takes **~128 ms**, so asking it
-for 8 Hz leaves nothing over: a first attempt to sample the navigation cache in
-the loop's idle time never executed a single iteration, and measured *worse*
-than no fix because a played session flaps doors about 2.4 times as fast as an
-idle one — **644 of 1,974 door rebuilds missed** on the 2026-09-18 played
-replay, against 126 of 1,980 idle. The sampling now runs on its own thread,
-which `ReadProcessMemory` allows because it releases the GIL. Unverified until
-the next capture.
+for 8 Hz leaves no idle time at all — a first attempt to sample the navigation
+cache in that idle time never executed a single iteration. Sampling now runs on
+its own thread, which `ReadProcessMemory` allows because it releases the GIL,
+and resolves changes about 15 ms apart rather than 125. It does **not** record
+more of them: see above.
