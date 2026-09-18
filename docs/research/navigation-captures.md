@@ -31,9 +31,15 @@ flags allowed; the cache also answered Q352 (structure-blocks.md §5.4). Steps p
 tick match the loader rule: the imps' 1888 against 1884–1887.
 
 **Level 10, 2026-09-18, a keeper playing.** Twelve minutes, 87,619 requests
-logged, 86,140 with a tick, 1,883 byte changes. Replayed with six movers (each
+logged, 86,140 with a tick, 1,883 byte changes, 107 creatures. **Whose creatures
+is not known**: the probe's owner offset was wrong and past the end of its header
+read, so every sample recorded owner 0 (it is `word[thing+0x28]`, fixed
+2026-09-18). The owner sees heroes on this map between the two dungeons, so
+Asmodeus is not the only one moving. Replayed with six movers (each
 owner, respecting doors, with and without lava, or attacking), **every request
-but three is explained by one of them**; the three enter a portal hole, the
+but three is explained by one of them** — but the six cover owners 3 and 4 only,
+so which profile explains which request is not evidence until a capture records
+the owner; the three enter a portal hole, the
 leaving word's bit 2. The probe also dumped DK2's triangle and point tables
 (§2.1): at tick 7 its point set is **exactly ours** once the base rectangle and
 the byte-0 skip are built, 1,417 for 1,417, and 2,765 triangles inside the map
