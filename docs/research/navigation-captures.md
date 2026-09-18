@@ -132,45 +132,55 @@ RTTI class names hold no `GameAction`, and the only switch wide enough to be the
 dispatcher (240 arms at `0x0051D740`) turns out to set a global per id, three
 instructions an arm — a variable table, not an action one.
 
-**A recording of known actions in a known order names nine of them.** The owner
-performed a numbered list on Level 10, one action at a time (2026-09-18, 321
-turns, 41 commands). Tag and untag were the first two, as a calibration, and
-came back as 40 and 41 on the same tile (24,85) — so the stream is aligned, and
-everything after it is read off in order:
+**Two recordings of known actions in a known order name the rest.** The owner
+performed a numbered list on Level 10 (2026-09-18: 321 turns, then a 16-minute
+run of 3,757 turns and 479 commands). Tag and untag went first as a calibration
+and came back as 40 and 41 on the same tile, so the stream is aligned and the
+rest reads off in order.
 
-| id | what it is | argument seen |
+| id | what it is | its arguments |
 |---|---|---|
-| 57 | take a creature into the hand | thing id 436 |
-| 61 | drop the hand's contents | a world position, 1/4096 |
-| 62 | slap | thing id 439 |
-| 114 | pick a tool or a build item | two small ids; UI only, no world effect |
-| 47 | build a room | room type 2, tile (28,82) |
-| 49 | sell | the tile rectangle (28,82)-(28,82) |
-| 55 | possess a creature | thing id **436**, the same imp as 57 |
-| 25 | the per-turn stream while possessing | the possessed position, 22 turns |
-| 21 | leave possession | — |
-| 59 | take gold into the hand | thing id 1490 |
+| 40 / 41 | tag / untag for digging | a tile rectangle |
+| 47 | build a room | room type, then the drag rectangle |
+| 49 | sell | a tile rectangle |
+| 50 | place a trap | tile, then the trap type |
+| 52 | place a door | tile, then the door type |
+| 54 | cast a spell at a place | spell id, then a world position |
+| 55 | cast a spell on a creature | spell id, then a thing id |
+| 25 | the per-turn stream while possessing | the possessed position |
+| 21 | leave possession | - |
+| 57 | take a creature into the hand | thing id |
+| 59 | take gold into the hand | thing id |
+| 61 | drop what the hand holds | a world position |
+| 62 | slap | thing id |
+| 114 | select a category and an item | the `Availability` pair |
 | 92 | the window lost or regained focus | 1 leaving, 0 returning |
 
-**STRONGLY INFERRED, not confirmed**: one run, read off by order. Three of it
-are much firmer than the rest — 47 and 49 name the *same tile* the owner built
-on and then sold, 55 repeats the *same thing id* 57 had picked up, and the two
-92s bracket the two moments the owner alt-tabbed, which they reported without
-being asked. The run performed no door, trap or spell, so **50, 54 and 88 are
-still UNKNOWN** and are the obvious candidates for those.
+**`114` is the key that checks all the others.** Every placement is preceded by
+a `114`, and its two arguments are exactly the `Availability` enum that
+`kwd-variables.md` derived from level data: kind **1 rooms, 3 traps, 4 doors, 5
+keeper spells** (0 is the built-in tools). The pairing is total - all 11 traps
+follow a `(3, ...)`, all 7 doors follow a `(4, ...)`, and the item id repeats
+inside the placement itself. That makes four independent confirmations, none of
+them from reading commands off in order:
 
-**It replays faithfully.** A five-minute played session of Level 10, recorded
-2026-09-18 and replayed at once: **no seed ever diverged** over 2,924 turns, and
-the state checksum diverged **once**, at GT 1099, by 0x3F8 on what the near-equal
-values suggest is a sum. Every gross counter in `MESSAGE.LOG` matched the
-recording exactly — 2,939 world frames, **98,313 navigation calls**, 65,583 imp
-calls, 2,922 computer-player calls.
+- **Rooms.** The eight room types `47` carried are 1, 2, 4, 7, 8, 10, 11 and 12,
+  which `portals-room-handler-table.md` numbers Treasury, Lair, Hatchery,
+  Training Room, Wooden Bridge, Workshop, Prison and Torture Chamber. The owner,
+  asked afterwards, listed exactly those seven rooms and the bridge.
+- **Doors.** The door type placed was **3**, and `Doors.kwd` record 3 is
+  **Braced Door** - what the owner said they built.
+- **Spells.** `54` carried spell 4 ten times, and `KeeperSpells.kwd` record 4 is
+  **Create Imp**, which the owner reported using. `55` carried 10 (Heal) and 6
+  (Thunderbolt) on thing ids, and 2 (**Possession**) in the first recording,
+  followed by the `25` stream and `21`. So possession is not its own command: it
+  is spell 2 cast on a creature.
+- **Focus.** The `92`s bracket the two moments the owner alt-tabbed, which they
+  reported without being asked.
 
-So a played session can be captured once and replayed unattended as often as
-wanted, which is what makes any probe change an A/B test rather than a new
-sample. Playing also generates routing far faster than watching: 98,313 calls in
-five minutes against 87,619 in twelve idle ones. The `.sav` is game-derived and
-stays out of the repository.
+**STRONGLY INFERRED.** What is still UNKNOWN: **88**, seen in the first session
+and in neither of these, and **93** and **106**, which appeared here (a large id
+and a 1) against no action the owner named.
 
 ## The probe's own limits
 

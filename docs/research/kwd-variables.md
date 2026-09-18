@@ -1,4 +1,4 @@
-# Mechanic: VARIABLES(230) record layout — the global game-rule table
+﻿# Mechanic: VARIABLES(230) record layout — the global game-rule table
 
 Source(s):
 - ufdada/dk2-tools `variables_struct.bt` (payload layouts + 200 named ids)
@@ -124,7 +124,7 @@ source was consulted**.
 | 1 | up to 17, and level 20 has 7..17 | **rooms** |
 | 2 | matches that level's `CreaturePool` creature ids exactly | **creatures** |
 | 3 | 1..11 — eleven | **traps** (the manual lists exactly eleven) |
-| 4 | 1..6 — six | **doors** (Wooden, Braced, Steel, Magic, Secret, Barricade) |
+| 4 | 1..6 — six | **doors**; `Doors.kwd`'s own order is Wooden, **Steel, Braced**, Magic, Secret, Barricade, then two hero records the player cannot build |
 | 5 | 1..11 and 13 | **keeper spells** (KeeperSpells.kwd has thirteen) |
 
 **`value`**: the global table uses **3** for rooms and **2** for
