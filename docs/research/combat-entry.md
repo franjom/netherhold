@@ -168,7 +168,8 @@ The field's writers, for whoever reads `FUN_0045bdf0` next: **43 stores to
 
 Who a creature fights is `combat-target-selection.md`: **`FightStyle`**, the
 parsed-but-unread definition field at file `0x0F03`, selects one of **five**
-routines, and the acquirer of §7 dispatches through it. Two are read.
+routines, and the acquirer of §7 dispatches through it. Three are read, and the
+binary's own assertion calls the field *fight type*.
 
 ## 9. What is left
 

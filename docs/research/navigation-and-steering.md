@@ -188,8 +188,8 @@ steering body sits at `entity+0x124`, which is how the two connect.
    >> 12`, 4 for every shipped creature) plus own `radius`, or one tile plus
    `radius` while the body's state is 8 (en route). Within reach:
    `r = (d << 16) / reach`, magnitude `max_force` at `r <= 0x28F` else
-   `2^32 / r - 1.0`, and `normalise(v) x magnitude` is added. Which entity it
-   is and when it is set are UNKNOWN (hypothesis: what it flees or fights).
+   `2^32 / r - 1.0`, and `normalise(v) x magnitude` is added. **The entity is the
+   one it fights** (`combat-target-selection.md` §5, which reads the writer).
 
 **The callback**, for a body A and a neighbour B:
 
