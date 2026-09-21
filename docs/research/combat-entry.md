@@ -172,14 +172,57 @@ everything in it reads as that once you know: it is not a search over every
 enemy but a judgement of **one candidate creature**, held in `ESI`, which it
 either commits to or puts back.
 
-**It opens by measuring the way home** — which is what a worker would do. Before anything else it takes the
+**It opens by measuring the way home.** Before anything else it takes the
 creature's own player (`creature+0x2A`), asks it for the dungeon heart's
 position, converts that tile to 1/4096 units with a half-tile centre offset
 (`<<12`, `+0x800`), and squares the absolute differences against the creature's
-own position at `+0x1A`/`+0x1E`. So **the creature's squared distance from its
-own heart is an input to the decision**, computed first. Flame's map calls that
-accessor `getDungeonHeartPosition`; the instructions say the same thing
-independently, which is the only reason it is repeated here (ADR-0080).
+own position at `+0x1A`/`+0x1E`. Flame's map calls that accessor
+`getDungeonHeartPosition`; the instructions say the same independently, which is
+the only reason it is repeated here (ADR-0080).
+
+**That distance is a threshold, and §9.1 is what it is for.**
+
+### 9.1 Near its own heart, a worker stops checking whose side you are on
+
+**Owner, 2026-09-21, unprompted:** *imps do fight when the dungeon heart is under
+attack — they attack the creatures attacking it.* That observation is what sent
+this read back into the routine, and it lands on the one computation §9 had
+flagged as unexplained.
+
+```
+EDX = dx*dx + dy*dy            ; to the creature's OWN heart, 12.12 fixed
+CMP EDX,0xD000                 ; 53248 / 4096 = 13 tiles squared
+JNC  skip                      ; farther -> leave the flag clear
+MOV dword[EBP-0x18],1          ; nearer -> set it
+```
+
+so the radius is **sqrt(13), about 3.6 tiles**. The flag starts clear and is read
+**exactly once**:
+
+```
+CMP AL,1 / JZ  0x0045C1AB      ; one condition takes a different path
+MOV EAX,[EBP-0x18]
+TEST EAX,EAX / JNZ 0x0045C1AB  ; being near my own heart takes the SAME path
+MOV AX,word[ESI + 0x28]        ; the path it skips begins with the candidate's OWNER
+```
+
+`word[thing+0x28]` is the owner word (`navigation-captures.md`). **So a worker
+within ~3.6 tiles of its own dungeon heart is routed past the test that starts by
+reading whose side the candidate is on.** What the alternative path at
+`0x0045C1AB` then decides is unread, so the *mechanism's location and trigger*
+are established here and its outcome is not — but it is where the owner's
+behaviour lives, and nothing else in the routine could produce it.
+
+**And the Imp is special-cased by id.** The engagement range comes from
+`def+0x77B`, squared and shifted into 1/4096 — except when `byte[creature+0x36F]`,
+the creature type, **is 1**, which `Creatures.kwd` says is the **Imp**. Then the
+range is forced to `0x1000`, exactly **one tile squared**. So the two creatures
+sharing `NonFighter` do not share a reach.
+
+**Where the candidate comes from.** `ESI` is walked out of a list: the creature's
+player at `+0x2A`, then `dword[player + 0x10FD]` to a head, a tag at its `+0`
+resolved through the thing table, then `word[thing + 0x6]` to the candidate. That
+answers §10's open "where does the candidate come from" for this arm.
 
 **The acceptance gate is mutual.** A candidate passes only if
 
@@ -189,8 +232,9 @@ word[cand + 0x502] == 0        ; it has no target of its own
 and byte[cand + 0x3EA] & 0x40  ; and it carries this flag
 ```
 
-so it engages **only somebody already coming for it**. For a non-combatant that
-is the whole rule: fight back, never pick a fight.
+so on **this** path it engages only somebody already coming for it. The
+near-the-heart path above does not pass through here, which is the difference
+between a worker minding itself and a worker defending the heart.
 
 **The commit is tentative, and this is what the twelve stores are.** On
 acceptance the candidate's tag goes into `creature+0x502` and **the previous
@@ -315,6 +359,11 @@ general one — it is what `FightStyle` 0 dispatches to and its two creatures ar
 the Imp and Jack, but the other four arms are unread, so nothing here compares
 them.
 
-**UNKNOWN:** the four unread selectors, the two predicates the NonFighter commit
-tries, `+0x3EA` bit 6, the rest of the `+0x4FE` record, and what
-`AttackingSpecificCreature` is.
+**CONFIRMED (binary):** the heart-proximity threshold `0xD000` and that its flag
+is read once, to skip the path that begins with the candidate's owner word; the
+Imp's forced one-tile range and that creature type 1 is the Imp; the candidate
+list walked from `player+0x10FD`.
+
+**UNKNOWN:** what the near-the-heart path decides, the four unread selectors, the
+two predicates the NonFighter commit tries, `+0x3EA` bit 6, the rest of the
+`+0x4FE` record, and what `AttackingSpecificCreature` is.
