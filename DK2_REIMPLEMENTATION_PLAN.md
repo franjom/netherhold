@@ -111,6 +111,10 @@ suitable for AI-assisted implementation, but not research-risky.
 **A playable, faithful-feeling first level is a 12–18 month goal, not a 3 month goal.**
 It is achievable because the data-driven insight above removes most of the guesswork.
 
+**Measured against this table, 2026-09-21:** phases 0–3 closed in **23 days**
+against the 21–34 weeks estimated here. The table is kept as written rather than
+rescaled — §8.1 says why, and §8's Run column is the live ordering.
+
 ### 1.4 The one thing that must be decided before writing code
 
 **Licensing — resolved.** The project is GPL-3.0-or-later with a clean-room policy
@@ -891,20 +895,72 @@ content format.
 
 ## 8. Milestones
 
-| # | Milestone | Definition of done | Est. |
-|---|---|---|---|
-| **M0** ✅ | Research baseline | This document; repo skeleton; DK2 v1.70 installed; Flame + OpenKeeper building locally | 1–2 wk |
-| **M1** ✅ | Formats readable | `DK2.Tools extract` dumps WAD contents; KWD parses to `GameDatabase`; all 18 record types round-trip; unit tests over the shipped campaign maps | complete 2026-09-07 |
-| **M2** ✅ | Deterministic skeleton | `GameSimulation.Tick()` exists; `StateHash()` stable; save/load round-trips; determinism gate green; headless harness runs a scenario file | 3–4 wk |
-| **M3** ✅ | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold; Unity view renders it with placeholder art | 8–12 wk |
-| **M4** ✅ | First creature loop | Portal spawn; lair claim; hunger→hatchery; sleep; training; payday; job selection with logged reasons | 8–12 wk |
-| **M5** ◐ | First oracle comparison | Memory-reading oracle probe working against DK2; 20+ scenarios captured from both sides; first divergence report | 4–6 wk |
-| **M6** ◐ | Real level loads | A stock campaign level loads, terrain and things place correctly, triggers/objectives fire, level is winnable | 6–10 wk |
-| **M7** | Combat & heroes | Combat resolution, hero parties, hero gates, traps, doors | 3–5 mo |
-| **M8** | Breadth | All rooms, all creatures, all keeper spells, research, possession, prison/torture/graveyard/temple | 6–12 mo |
-| **M9** | Fidelity | 500+ behavioural regression scenarios green; documented divergence list; pathfinding rewritten against oracle traces | continuous |
-| **M10** | Campaign | Full campaign playable start to finish | after M8 |
-| **M11** | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
+**Ids are names, not a sequence.** `M6` and `M7` are cited about eighty times
+across the ADRs and research docs, so the ids never move. The **Run** column is
+the order, and revision 2 changes only that column and the last three rows.
+
+| # | Run | Milestone | Definition of done | Est. |
+|---|---|---|---|---|
+| **M0** ✅ | — | Research baseline | This document; repo skeleton; DK2 v1.70 installed; Flame + OpenKeeper building locally | 1–2 wk |
+| **M1** ✅ | — | Formats readable | `DK2.Tools extract` dumps WAD contents; KWD parses to `GameDatabase`; all 18 record types round-trip; unit tests over the shipped campaign maps | complete 2026-09-07 |
+| **M2** ✅ | — | Deterministic skeleton | `GameSimulation.Tick()` exists; `StateHash()` stable; save/load round-trips; determinism gate green; headless harness runs a scenario file | 3–4 wk |
+| **M3** ✅ | — | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold; Unity view renders it with placeholder art | 8–12 wk |
+| **M4** ✅ | — | First creature loop | Portal spawn; lair claim; hunger→hatchery; sleep; training; payday; job selection with logged reasons | 8–12 wk |
+| **M5** ◐ | 2 | First oracle comparison | Memory-reading oracle probe working against DK2; 20+ scenarios captured from both sides; first divergence report | 4–6 wk |
+| **M6** ◐ | **1** | Real level loads | A stock campaign level loads, terrain and things place correctly, triggers/objectives fire, **level is winnable** | 6–10 wk |
+| **M7** | 3 | Combat & heroes | Combat resolution, hero parties, hero gates, traps, doors | 3–5 mo |
+| **M8** | 5 | Breadth | All rooms, all creatures, all keeper spells, research, possession, prison/torture/graveyard/temple | 6–12 mo |
+| **M9** | cont. | Fidelity | 500+ behavioural regression scenarios green; documented divergence list; pathfinding rewritten against oracle traces | continuous |
+| **M10** | 6 | Campaign | Full campaign playable start to finish | after M8 |
+| **M11** | 8 | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide | after M10 |
+| **M12** *new* | **4** | **Keeper AI** | A computer keeper plays a stock level unaided: digs, expands, builds to a need, recruits, defends, attacks. Measured against DK2's own keeper on the same map, not against our expectations | 4–8 mo |
+| **M13** *new* | 7 | **Skirmish** | Any multiplayer-capable map playable against 1–3 computer keepers, with win and loss conditions, alliances and the lose-by-conquest path | after M12 |
+| **M14** *new* | 9 | **Multiplayer** | Command-based lockstep over a network: identical `StateHash()` across peers for a full match, with rejoin and desync detection | after M13 |
+
+### 8.1 Revision 2 — 2026-09-21
+
+Revision 1 ended at "full campaign playable" plus presentation. The owner's goal
+is **campaign, skirmish and multiplayer**, and two of those three had no
+milestone at all. This revision adds them and moves one existing item.
+
+**Measured pace, for calibrating everything below.** First commit **2026-08-29**;
+**23 days** later, 19 of them with commits, 574 commits, M0–M4 all closed.
+Revision 1 estimated those five at **21–34 weeks**. So the attempted work has run
+at roughly **6–10× the planned rate**. That is what AI assistance buys on
+transcription-shaped work, and the estimates above are left unchanged rather than
+rescaled, because the three risk-bearing milestones — M7, M12, M9 — are
+research-bound and will not compress the same way. Treat the remaining estimates
+as upper bounds everywhere except M12.
+
+**What changed, and why.**
+
+1. **M6 runs first, ahead of finishing M5.** The plan's own words are *"No level
+   is winnable"*. Everything else is built on levels that cannot be won, and
+   objectives plus defeat are the smallest remaining step to a thing the owner
+   can actually play and report on. Owner feedback has outrun research at every
+   point where the two were compared, and there is no way to get it without a
+   winnable level.
+2. **M12 Keeper AI is pulled from post-M8 to immediately after combat.** It was
+   never a milestone, only risk #5 of §1.2, and it is the long pole for two of
+   the three stated goals: **skirmish is the keeper AI**, and a campaign level
+   with a rival keeper needs it too. `DK2.AI.KeeperAI` today is ours — it digs to
+   gold and places rooms in a fixed order — and the plan already says it "would
+   inject divergence that cannot be attributed". It is the least-solved system in
+   the ecosystem after pathfinding, which is now solved, so it is also the
+   largest remaining unknown. Research-bound work should start early and run
+   alongside breadth, not after it.
+3. **M13 Skirmish and M14 Multiplayer are named** so they stop being implicit.
+   R20 in §9 parks multiplayer until post-M10 to keep it from distorting the
+   architecture; that guard stands, and M14 sits after M13 accordingly. The head
+   start is real but partial: DK2's multiplayer is command-based lockstep, the
+   determinism gate has held since M2, and `docs/research/game-actions.md` has
+   the 86-record action table the packet stream uses. What is missing is the
+   transport, rejoin and desync handling, none of it researched.
+
+**One risk this revision does not solve.** Research has outpaced building. Today
+the repository holds 90 research docs, 154 ADRs and 350 open-question rows, and
+combat is read end to end with nothing built. The ordering above is only useful
+if each milestone closes on working simulation rather than on a document.
 
 <!-- GENERATED by `dotnet run --project src/DK2.Tools -c Release -- status`.
      REGENERATE, DO NOT EDIT. `status --check` exits 1 if this is stale. -->
