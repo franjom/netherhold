@@ -15,6 +15,7 @@ using DK2.Data.Text;
 using DK2.Data.Wad;
 using DK2.Simulation;
 using DK2.Simulation.Systems;
+using DK2.Tools;
 
 // DK2.Tools — command-line utilities for inspecting original game data.
 
@@ -35,6 +36,9 @@ switch (args[0])
 
     case "replay" when args.Length >= 4:
         return Replay(args);
+
+    case "sgmap":
+        return SgmapCommand.Run(args[1..], FindRepoRoot());
 
     case "where":
     {
@@ -2479,6 +2483,10 @@ static int Usage()
     Console.WriteLine("                                         extract PCM as WAV, compressed audio raw");
     Console.WriteLine("  str list <file.str>                    list decoded string ids and values");
     Console.WriteLine("  str get <file.str> <id>                resolve one table-local string id");
+    Console.WriteLine("  sgmap [--sgmap <path>] struct <name>   show a structure's concrete field layout");
+    Console.WriteLine("  sgmap [--sgmap <path>] find <text>     find structures, fields and globals by name");
+    Console.WriteLine("  sgmap [--sgmap <path>] global <hex>    identify a global by address");
+    Console.WriteLine("  sgmap [--sgmap <path>] at <name> <hex> identify a field by structure offset");
     Console.WriteLine("  kwd chunks <file.kwd|kld>              list chunks of a KWD/KLD file");
     Console.WriteLine("  kwd vars [file.kwd]                    dump the global balance table");
     Console.WriteLine("  kwd alterterrain [-v]                  every ALTER_TERRAIN_TYPE trigger in every shipped");
