@@ -76,24 +76,88 @@ this byte. Not tested, and not named on the strength of a shape.
 
 ## 4. Who starts what
 
-Twenty-four call sites across the game pass a literal. The ones whose caller this
-project has already identified:
+Every call of `FUN_00496700` and its three wrappers was read for the literal
+pushed before it: **109 sites** (26 direct, 83 through the wrappers), of which
+**4** compute the index instead and are not in this map. **55** of the 81 records
+are started by a literal.
 
-| index | started by | what that routine is |
+| index | sites | where |
 |---|---|---|
-| `0x10` (16) | `FUN_00514830` | `combat.md` §3 |
-| **`0x11` (17)** | `FUN_00514830` | **the melee attack** — record 17's handler is `0x00498E30` |
-| `0x28` (40) | `FUN_00478F00` | the prison cluster |
-| `0x4C`, `0x50` | `0x00483961`, `0x00483AA2` | the torture cluster |
+| 1 (`0x01`) | 6 | `0x00465679` `0x00485e7d` `0x00514fc9` +3 |
+| 2 (`0x02`) | 2 | `0x00465a5d` `0x00485e45` |
+| 3 (`0x03`) | 1 | `0x00456931` |
+| 4 (`0x04`) | 2 | `0x00465d83` `0x00514ea9` |
+| 5 (`0x05`) | 1 | `0x00465fbe` |
+| 6 (`0x06`) | 1 | `0x00514ee0` |
+| 7 (`0x07`) | 1 | `0x0046645b` |
+| 8 (`0x08`) | 1 | `0x004667c0` |
+| 9 (`0x09`) | 1 | `0x00458dba` |
+| 10 (`0x0a`) | 1 | `0x00466220` |
+| 11 (`0x0b`) | 3 | `0x0045845b` `0x004585ad` `0x00458661` |
+| 13 (`0x0d`) | 1 | `0x00459002` |
+| 15 (`0x0f`) | 1 | `0x00515394` |
+| 16 (`0x10`) | 4 | `0x0051529f` `0x005152b8` `0x0045fb96` +1 |
+| 17 (`0x11`) | 2 | `0x00514da4` `0x00460103` |
+| 18 (`0x12`) | 1 | `0x0046f37f` |
+| 19 (`0x13`) | 1 | `0x0046f21d` |
+| 20 (`0x14`) | 1 | `0x00480fc7` |
+| 22 (`0x16`) | 1 | `0x0048ba4f` |
+| 24 (`0x18`) | 1 | `0x0046fc50` |
+| 25 (`0x19`) | 1 | `0x00482ff7` |
+| 26 (`0x1a`) | 5 | `0x004639d5` `0x00463bc2` `0x004738fc` +2 |
+| 27 (`0x1b`) | 2 | `0x00459499` `0x00472e42` |
+| 29 (`0x1d`) | 2 | `0x00475e00` `0x00475e4c` |
+| 30 (`0x1e`) | 2 | `0x00485692` `0x00485794` |
+| 31 (`0x1f`) | 1 | `0x0048571e` |
+| 32 (`0x20`) | 1 | `0x0047053e` |
+| 35 (`0x23`) | 9 | `0x00457d1a` `0x00456f1f` `0x00456e84` +6 |
+| 36 (`0x24`) | 2 | `0x00484461` `0x004846d0` |
+| 37 (`0x25`) | 2 | `0x004846fb` `0x00484ec4` |
+| 40 (`0x28`) | 1 | `0x00478fdd` |
+| 41 (`0x29`) | 1 | `0x0047351c` |
+| 43 (`0x2b`) | 9 | `0x0047044c` `0x00475cb6` `0x00481d2a` +6 |
+| 44 (`0x2c`) | 4 | `0x00457c2f` `0x0048554f` `0x00464305` +1 |
+| 45 (`0x2d`) | 1 | `0x00474c56` |
+| 46 (`0x2e`) | 3 | `0x00474865` `0x004743d6` `0x00474d08` |
+| 47 (`0x2f`) | 1 | `0x004745e4` |
+| 49 (`0x31`) | 2 | `0x004dcbe2` `0x004dd0c7` |
+| 50 (`0x32`) | 1 | `0x00489572` |
+| 52 (`0x34`) | 2 | `0x00481062` `0x00491855` |
+| 53 (`0x35`) | 3 | `0x004811c8` `0x004813e2` `0x004815e2` |
+| 54 (`0x36`) | 2 | `0x00474e5e` `0x00474f5b` |
+| 55 (`0x37`) | 2 | `0x00461109` `0x004611b6` |
+| 56 (`0x38`) | 1 | `0x00456d1e` |
+| 57 (`0x39`) | 2 | `0x00456f02` `0x004bfb46` |
+| 59 (`0x3b`) | 1 | `0x00474326` |
+| 60 (`0x3c`) | 1 | `0x0046534b` |
+| 61 (`0x3d`) | 1 | `0x00465415` |
+| 62 (`0x3e`) | 1 | `0x0048b828` |
+| 63 (`0x3f`) | 1 | `0x00483f94` |
+| 64 (`0x40`) | 1 | `0x00481573` |
+| 68 (`0x44`) | 1 | `0x00456460` |
+| 76 (`0x4c`) | 1 | `0x00483aa2` |
+| 79 (`0x4f`) | 1 | `0x00475976` |
+| 80 (`0x50`) | 1 | `0x00483961` |
 
-**So combat is entered by starting creature action 17**, not by a creature state.
-`combat.md` §6.0's withdrawn hypothesis had it in the 281-record, 25-byte state
-table at `0x006DA8B0`; it is in this one.
+Only three addresses matter for combat, and they are the subject of
+`combat-entry.md`: **17** is the melee instance and **16** the spell instance,
+each started from exactly two places — game action 26's handler, which is the
+player possessing a creature (`game-actions.md` §3), and `spFighting` at
+`0x0045f030`, which is the creature fighting by itself. Nothing else in the
+executable starts either with a literal.
+
+**So combat is entered by starting creature action 17**, not by a creature state
+— but the *decision* is a creature state, 200 "engaging in battle", whose handler
+is `spFighting`. `combat.md` §6.0's withdrawn hypothesis had the attack routine
+itself in the 281-record state table at `0x006DA8B0`; the attack is in this
+table and the state that reaches it is in that one.
 
 That `FUN_00514830` starts both 16 and 17 is worth flagging: `combat.md` §3 names
 it "the healing handler" from its `HpFromChicken` arm, and it also holds a Hero
 Lair level setter (`creature-levels.md` §2.1). Three unrelated jobs in one
-routine means **§3's name describes an arm, not the function**.
+routine means **§3's name describes an arm, not the function** — and once 21 and
+25 are known to be *leave possession* and *the possession stream*, the three stop
+being unrelated (`game-actions.md` §3).
 
 ## 5. The `+25` word is not a label
 

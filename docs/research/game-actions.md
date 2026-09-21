@@ -44,33 +44,54 @@ independently caught it**. All six land on a handler here:
 
 None was used to *derive* the layout; all six were checked against it after.
 
+## 2.1 The recordings name thirteen more, and the two tables are one id space
+
+DK2's own packet recorder writes the player's commands as `[startTile, endTile,
+zero, action id, word]` (`navigation-captures.md`, Q356). **Those action ids are
+these ids.** Three of §2's anchors — 40 tag, 41 untag, 62 slap — came back from
+recorded sessions unchanged, and **88 arrives here already named**: the table
+calls it *pick up Special* from `KEEPER_AI.md`, and a played session issued it.
+
+So the two halves name each other. The recordings say what a command *is*, from
+an owner performing a numbered list; this table says what code *runs*. The names
+folded into §4's map below are the recordings', and each one now has a handler to
+read when its turn comes. Thirteen were added this way; **93 and 106 appeared in
+a recording against no action the owner named, and stay UNKNOWN.**
+
 ## 3. `FUN_00514830` is game action 26, not "the healing handler"
 
 `combat.md` §3 named it from its `HpFromChicken` arm and recorded the table's
 handler at `+0x10`. Both are corrected here: the handler is at `+4`, and the
 function is the handler for **game action `0x1A` (26)**. Its other arms start
 creature actions 16 and 17 (`creature-action-table.md`) and set a creature's
-level at a Hero Lair (`creature-levels.md` §2.1). What the action *is* is
-**Q340** — a name taken from one arm is what caused this, and one arm is all the
-evidence there is for any of the three.
+level at a Hero Lair (`creature-levels.md` §2.1).
+
+**Q340, now STRONGLY INFERRED: action 26 is the possessed creature acting.** Its
+three arms stop looking unrelated once §2.1's names land on its neighbours: 21 is
+*leave possession* and 25 is *the per-turn stream while possessing*, so 26 sits
+inside the possession cluster. A possessed creature swings (actions 16 and 17,
+the spell and melee instances) and eats a chicken (`HpFromChicken`) — two of the
+three arms are what possession does, and combat's own entry does not go through
+here (`combat-entry.md`). **Cheap confirmation, not yet run**: possess a creature
+and attack with `-PSAVE` running; the prediction is action 26 in the stream.
 
 ## 4. The map
 
 | id | handler | id | handler | id | handler |
 |---|---|---|---|---|---|
 | `0x01` | `0x00512930` | `0x35` | `0x005132a0` | `0x53` | `0x00506050` |
-| `0x14` | `0x00514560` | `0x36` | `0x005132d0` | `0x54` | `0x005060e0` |
-| `0x15` | `0x00514590` | `0x37` | `0x00513340` | `0x55` | `0x00506100` |
-| `0x19` | `0x005146b0` | `0x38` | `0x00513370` | `0x58` | `0x00513760` pick up Special |
-| `0x1a` | `0x00514830` **UNKNOWN — Q340** | `0x39` | `0x00513480` | `0x5c` | `0x005137e0` |
+| `0x14` | `0x00514560` | `0x36` | `0x005132d0` cast a spell at a place | `0x54` | `0x005060e0` |
+| `0x15` | `0x00514590` leave possession | `0x37` | `0x00513340` cast a spell on a creature | `0x55` | `0x00506100` |
+| `0x19` | `0x005146b0` the per-turn stream while possessing | `0x38` | `0x00513370` | `0x58` | `0x00513760` pick up Special |
+| `0x1a` | `0x00514830` **the possessed creature acts — Q340** | `0x39` | `0x00513480` take a creature into the hand | `0x5c` | `0x005137e0` the window lost or regained focus |
 | `0x1b` | `0x005163c0` | `0x3a` | `0x005134e0` | `0x5d` | `0x00513800` |
-| `0x1c` | `0x00516ec0` | `0x3b` | `0x005135b0` | `0x64` | `0x00513850` |
+| `0x1c` | `0x00516ec0` | `0x3b` | `0x005135b0` take gold into the hand | `0x64` | `0x00513850` |
 | `0x1d` | `0x00517270` | `0x3c` | `0x00513600` | `0x65` | `0x00513860` |
-| `0x1e` | `0x00517190` | `0x3d` | `0x00513650` | `0x66` | `0x00513870` |
+| `0x1e` | `0x00517190` | `0x3d` | `0x00513650` drop what the hand holds | `0x66` | `0x00513870` |
 | `0x1f` | `0x00517220` | `0x3e` | `0x00513690` slap | `0x69` | `0x00513ce0` |
 | `0x20` | `0x005172b0` | `0x3f` | `0x005136e0` remove Call To Arms | `0x6a` | `0x00513dc0` |
 | `0x21` | `0x005172c0` | `0x40` | `0x00513730` | `0x71` | `0x00513e50` |
-| `0x22` | `0x00517310` | `0x42` | `0x00505830` | `0x72` | `0x00513eb0` |
+| `0x22` | `0x00517310` | `0x42` | `0x00505830` | `0x72` | `0x00513eb0` select a category and an item |
 | `0x24` | `0x005169e0` | `0x43` | `0x00505a10` | `0x76` | `0x00513ee0` |
 | `0x25` | `0x00516a20` | `0x44` | `0x00505aa0` | `0x77` | `0x00514100` |
 | `0x26` | `0x00516e40` | `0x45` | `0x00505ad0` | `0x78` | `0x005141b0` |
@@ -81,12 +102,12 @@ evidence there is for any of the three.
 | `0x2c` | `0x005172b0` | `0x4a` | `0x00505d00` | `0x7d` | `0x00512940` |
 | `0x2d` | `0x005127b0` | `0x4b` | `0x00505d70` | `0x81` | `0x005142e0` |
 | `0x2e` | `0x00512800` | `0x4c` | `0x00505da0` | `0x82` | `0x00514320` |
-| `0x2f` | `0x00512850` | `0x4d` | `0x00505dd0` | `0x86` | `0x00512950` |
+| `0x2f` | `0x00512850` build a room | `0x4d` | `0x00505dd0` | `0x86` | `0x00512950` |
 | `0x30` | `0x00512890` | `0x4e` | `0x00505e20` | `0x87` | `0x005133a0` Temple keeper-spell offering |
-| `0x31` | `0x005128f0` | `0x4f` | `0x00505e80` | `0x88` | `0x00514420` |
-| `0x32` | `0x00513210` | `0x50` | `0x00505ec0` | `0x89` | `0x00514470` |
+| `0x31` | `0x005128f0` sell | `0x4f` | `0x00505e80` | `0x88` | `0x00514420` |
+| `0x32` | `0x00513210` place a trap | `0x50` | `0x00505ec0` | `0x89` | `0x00514470` |
 | `0x33` | `0x00513240` | `0x51` | `0x00505f00` |  |  |
-| `0x34` | `0x00513270` | `0x52` | `0x00505f80` |  |  |
+| `0x34` | `0x00513270` place a door | `0x52` | `0x00505f80` |  |  |
 ## Confidence
 
 **CONFIRMED (binary):** the base, the 20-byte stride, the 86 records and the
