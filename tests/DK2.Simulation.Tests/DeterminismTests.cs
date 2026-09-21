@@ -102,10 +102,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 64: a keeper's alliances and a door's lock-pick timer entered (ADR-0159,
-        // the rest of the door model). Earlier pins and their reasons live in
+        // HashVersion 65: trigger-controlled anger and notification gates entered
+        // (ADR-0160). Earlier pins and their reasons live in
         // docs/research/hash-versions.md.
-        Assert.Equal(0x8FAF223321EE1523UL, sim.StateHash());
+        Assert.Equal(0x15441322D8A9D319UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

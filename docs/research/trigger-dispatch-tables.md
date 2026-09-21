@@ -331,6 +331,31 @@ a question of its own (Q309).
 *Flame's map names three of these addresses — the per-slab tick, and the
 command forwarder pair. Cited as Flame's under ADR-0080, adopted nowhere.*
 
+## Action types 44 and 45 write two world gates
+
+The world action dispatcher at `0x00518AD0` gives types 44 and 45 adjacent
+arms. Each reads only byte 0, tests it strictly against **1**, and replaces one
+bit of the world byte at `+0x72A1`: type 44 writes bit 0 and type 45 writes bit
+1. Other values disable the bit. The world initialiser at `0x005099A0` starts
+both enabled (it sets the low three bits).
+
+The consumers establish functions without requiring UI labels:
+
+- bit 0 guards the shared six-bucket anger adder. When clear, no counter
+  changes, but the creature's mood band is still recomputed
+  (`creature-anger.md`);
+- bit 1 guards the notification constructor at `0x004C4600`. When clear it
+  refuses ordinary notification types, with four hard-coded categories exempt.
+  This is presentation state; there is no notification queue in the simulation.
+
+Both writes are world actions even when reached through a player tree: types
+44 and 45 are outside the player dispatcher's owned set and delegate. They are
+implemented as saved, hashed trigger state by ADR-0160.
+
+This read also corrects ADR-0120's forecast: player action type 38 does **not**
+write spell availability. Its arm emits a presentation command and calls an
+interface object; the keeper-spell table remains immutable in this simulation.
+
 ## What is implemented, and what is not
 
 ADR-0121 built 46, 52, 71 and 73. Types 71 and 73 read player fields nothing

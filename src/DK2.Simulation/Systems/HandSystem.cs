@@ -411,7 +411,7 @@ public sealed class HandSystem : ISimulationSystem
 
         int hurt = CreatureHealthRules.Apply(
             context.Database, definition, creature, -definition.SlapDamage);
-        int anger = CreatureAngerRules.Slap(definition, creature);
+        int anger = CreatureAngerRules.Slap(world, definition, creature);
 
         context.Emit(SystemName, "slapped",
             $"player={command.PlayerId} creature={creature.Id} " +
@@ -441,7 +441,7 @@ public sealed class HandSystem : ISimulationSystem
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             if (!CreatureAngerRules.CanBeAngered(definition)) continue;
 
-            CreatureAngerRules.Held(definition, creature);
+            CreatureAngerRules.Held(world, definition, creature);
         }
     }
 }

@@ -970,7 +970,7 @@ public sealed class TriggerExecutor
     /// condition reading the map as it was before the write.
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
-    public static bool Performs(byte type) => type is 1 or 7 or 8 or 14 or 22;
+    public static bool Performs(byte type) => type is 1 or 7 or 8 or 14 or 22 or 44 or 45;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -979,6 +979,16 @@ public sealed class TriggerExecutor
         if (record.Type == 8)
         {
             _state.StartTimer(checked((byte)p["TimerId"]), run.CurrentTick);
+            return true;
+        }
+        if (record.Type == 44)
+        {
+            _state.SetCreatureAngerEnabled(Byte(p, "Available") == 1);
+            return true;
+        }
+        if (record.Type == 45)
+        {
+            _state.SetNotificationsEnabled(Byte(p, "Available") == 1);
             return true;
         }
         if (record.Type == 1) return CreateCreature(record, context, p, run);
