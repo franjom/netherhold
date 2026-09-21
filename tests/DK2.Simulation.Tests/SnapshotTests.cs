@@ -61,6 +61,23 @@ public class SnapshotTests
     }
 
     [Fact]
+    public void RoundTrip_CarriesMutableAvailability()
+    {
+        var level = new GlobalVariables();
+        level.Availabilities.Add(new AvailabilityEntry(5, 1, 7, 1));
+        GameDatabase database = TestWorld.Database().ForLevel(level);
+        WorldState world = TestWorld.World(database);
+        world.SetAvailability(1, 5, 7, 3);
+        var original = new GameSimulation(database, world, 1);
+
+        GameSimulation restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(original), database);
+
+        Assert.Equal(3, restored.World.Availability(1, 5, 7));
+        Assert.Equal(original.StateHash(), restored.StateHash());
+    }
+
+    [Fact]
     public void RoundTrip_CarriesRetiredTriggerRecords()
     {
         GameDatabase database = TestWorld.Database();

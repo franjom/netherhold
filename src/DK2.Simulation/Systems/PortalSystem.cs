@@ -161,7 +161,7 @@ public sealed class PortalSystem : ISimulationSystem
             // the only one of the four that does not consult the level at all.
             if (!PortalRules.CanComeFromPortal(creature, portal)) continue;
 
-            if (!PortalRules.IsUnlocked(database, playerId, creature.CreatureId)) continue;
+            if (!PortalRules.IsUnlocked(world, playerId, creature.CreatureId)) continue;
 
             int limit = PortalRules.PoolLimit(database, playerId, creature.CreatureId);
             if (limit <= PortalRules.CreatureCountOfType(world, playerId, creature.CreatureId))

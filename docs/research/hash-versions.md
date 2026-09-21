@@ -32,7 +32,12 @@ beside it.
 
 ## Versions
 
-**65** — `0x15441322D8A9D319` (current). The world byte holding the
+**66** — `0x8FE50E548AC844F2` (current). Each keeper's room, creature, door,
+trap and spell availability rows entered, copied from the level and made mutable
+so trigger action 6 can write them (ADR-0161). Composition and initial values
+only: the pinned fixture fires no action 6.
+
+**65** — `0x15441322D8A9D319`. The world byte holding the
 trigger-controlled anger and notification gates entered (ADR-0160). Both stay
 at their initial enabled values in the pinned fixture, so this is composition only.
 

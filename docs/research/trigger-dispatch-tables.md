@@ -74,6 +74,22 @@ both count modes from projected construction state and the live object list;
 availability remains declined. Door navigation and trap firing are separate,
 still-unbuilt mechanics (Q249).
 
+## Action type 6 writes availability
+
+**Read whole from the world arm and its five callees, 2026-09-21.** Bytes 1
+and 2 select one of the keeper's availability tables and a type within it:
+1 room (`player+0x56/+0x5A`), 2 creature (`+0x4E/+0x52`), 3 door
+(`+0x5E/+0x62`), 4 trap (`+0x66/+0x6A`) and 5 spell (`+0x6E/+0x72`). The
+other four tables are independently identified by their condition readers;
+the creature table is the 13-byte table condition 19 counts through.
+
+Byte 3 equal to zero writes UNAVAILABLE (1); every other value writes
+AVAILABLE (3). Each callee searches the existing sorted table and changes the
+dword at entry `+1`. A missing type is a successful no-op: the arm never adds a
+row and never changes the adjacent upgraded state. All 303 shipped records use
+kinds 1–5; 300 enable and three disable. ADR-0161 makes these rows mutable world
+state and action 6 leaves the `Partial` census.
+
 ## Area type 70 is not type 39 asked for existence
 
 Both walk the action point's rectangle and both end at the same predicate

@@ -937,7 +937,7 @@ public class TriggerExecutorTests
         byte[] performed = Enumerable.Range(0, 256)
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
-        Assert.Equal([(byte)1, (byte)7, (byte)8, (byte)14, (byte)22, (byte)44, (byte)45], performed);
+        Assert.Equal([(byte)1, (byte)6, (byte)7, (byte)8, (byte)14, (byte)22, (byte)44, (byte)45], performed);
     }
 
     /// <summary>Action type 22's coordinates are <b>one-based</b>: the arm at
@@ -1220,7 +1220,7 @@ public class TriggerExecutorTests
         int state, int spellId, int asked, bool holds)
     {
         GameDatabase database = SpellDatabase(spellId, state, Keeper);
-        WorldState world = TestWorld.World(database);
+        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
 
         TriggerRecord[] records = [SpellAvailable(5, asked), Action(1, 3, 0x0A, 1)];
         var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
@@ -1239,7 +1239,7 @@ public class TriggerExecutorTests
     {
         GameDatabase database = Dk2TerrainFixture.Database().ForLevel(Level(
             new AvailabilityEntry((ushort)kind, (ushort)owner, 7, 3)));
-        WorldState world = TestWorld.World(database);
+        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper, (byte)owner]);
 
         var tree = new TriggerTree(
             [SpellAvailable(5, 7), Action(1, 3, 0x0A, 1)], 0,
@@ -1256,7 +1256,7 @@ public class TriggerExecutorTests
     public void ConditionTwentyNineIsAnsweredRatherThanDeclined()
     {
         GameDatabase database = SpellDatabase(7, 1, Keeper);
-        WorldState world = TestWorld.World(database);
+        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
 
         TriggerRunResult result = new TriggerExecutor(
                 new TriggerTree([SpellAvailable(5, 7), Action(1, 3, 0x0A, 1)], 0,
@@ -1280,11 +1280,11 @@ public class TriggerExecutorTests
 
     /// <summary>A type-29 record as the reader builds one: <c>TargetId</c> at byte 01 and
     /// nothing else the arm reads.</summary>
-    private static TriggerRecord SpellAvailable(ushort id, int targetId) =>
+    private static TriggerRecord SpellAvailable(ushort id, int targetId, ushort child = 0xFFFF) =>
         new GenericTriggerRecord(new byte[16])
         {
             Body = new byte[8], TriggerId = id, Type = 29, RepeatCount = 1,
-            ChildTriggerId = 0xFFFF, NextTriggerId = 0,
+            ChildTriggerId = child, NextTriggerId = 0,
             Parameters = new Dictionary<string, long> { ["TargetId"] = targetId },
         };
 
@@ -1440,6 +1440,66 @@ public class TriggerExecutorTests
 
         Assert.True(type == 44 ? state.CreatureAngerEnabled : state.NotificationsEnabled);
         Assert.Empty(enabled.Partial);
+    }
+
+    [Theory]
+    [InlineData((byte)1)]
+    [InlineData((byte)2)]
+    [InlineData((byte)3)]
+    [InlineData((byte)4)]
+    [InlineData((byte)5)]
+    public void ActionSixChangesAnExistingAvailabilityRow(byte kind)
+    {
+        GameDatabase database = TestWorld.Database().ForLevel(Level(
+            new AvailabilityEntry(kind, Keeper, 7, 1)));
+        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+
+        TriggerRunResult enabled = new TriggerExecutor(
+            new TriggerTree([AvailabilityAction(1, Keeper, kind, 7, available: 2)], 0xFFFF),
+            world.Triggers, world, database).Run(1);
+
+        Assert.Equal(3, world.Availability(Keeper, kind, 7));
+        Assert.Empty(enabled.Partial);
+
+        new TriggerExecutor(
+            new TriggerTree([AvailabilityAction(2, Keeper, kind, 7, available: 0)], 0xFFFE),
+            world.Triggers, world, database).Run(2);
+
+        Assert.Equal(1, world.Availability(Keeper, kind, 7));
+    }
+
+    [Fact]
+    public void ActionSixDoesNotCreateAMissingAvailabilityRow()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+
+        new TriggerExecutor(
+            new TriggerTree([AvailabilityAction(1, Keeper, 2, 7, available: 1)], 0xFFFF),
+            world.Triggers, world, database).Run(1);
+
+        Assert.Empty(world.Player(Keeper).Availabilities);
+        Assert.False(PortalRules.IsUnlocked(world, Keeper, 7));
+    }
+
+    [Fact]
+    public void ActionSixFeedsSpellAvailabilityConditionsLaterInTheRun()
+    {
+        GameDatabase database = TestWorld.Database().ForLevel(Level(
+            new AvailabilityEntry(5, Keeper, 7, 1)));
+        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+        TriggerRecord[] records =
+        [
+            AvailabilityAction(1, Keeper, 5, 7, available: 1),
+            SpellAvailable(5, 7, child: 0xFFFE),
+            Action(2, 3, 0x0A, 1),
+        ];
+        var tree = new TriggerTree(
+            records, 0xFFFF, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
+
+        new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Equal(1, world.Triggers.Read(3));
     }
 
     [Fact]
@@ -1680,6 +1740,7 @@ public class TriggerExecutorTests
     [InlineData(213, (byte)2)]
     [InlineData(213, (byte)34)]
     [InlineData(214, (byte)7)]
+    [InlineData(214, (byte)6)]
     [InlineData(214, (byte)8)]
     [InlineData(214, (byte)14)]
     [InlineData(214, (byte)44)]
@@ -1737,6 +1798,18 @@ public class TriggerExecutorTests
         {
             Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = type,
             Parameters = new Dictionary<string, long> { ["Available"] = available },
+        };
+
+    private static TriggerRecord AvailabilityAction(
+        ushort id, byte playerId, byte kind, byte typeId, byte available) =>
+        new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 6,
+            Parameters = new Dictionary<string, long>
+            {
+                ["PlayerId"] = playerId, ["AvailabilityKind"] = kind,
+                ["TypeId"] = typeId, ["Available"] = available,
+            },
         };
 
     // A party root (5) whose subtree writes flag 3, a spare member subtree (7) linked from

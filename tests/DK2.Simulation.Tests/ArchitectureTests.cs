@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace DK2.Simulation.Tests;
 
@@ -55,5 +56,28 @@ public class ArchitectureTests
             ?.FrameworkName;
 
         Assert.Equal(".NETStandard,Version=v2.1", target);
+    }
+
+    [Fact]
+    public void SimulationSystemsCannotBypassTheWorldAngerGate()
+    {
+        string root = RepositoryRoot();
+        string source = string.Join('\n', Directory.GetFiles(
+                Path.Combine(root, "src", "DK2.Simulation", "Systems"), "*.cs")
+            .Select(File.ReadAllText));
+        const string call = @"CreatureAngerRules\.(?:Apply|Slap|Held)\s*\(";
+        const string gated = call + @"\s*(?:context\.World|world)\s*,";
+
+        MatchCollection calls = Regex.Matches(source, call);
+        Assert.NotEmpty(calls);
+        Assert.Equal(calls.Count, Regex.Matches(source, gated).Count);
+    }
+
+    private static string RepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "DK2.slnx")))
+            directory = directory.Parent;
+        return directory?.FullName ?? throw new DirectoryNotFoundException("Repository root not found.");
     }
 }

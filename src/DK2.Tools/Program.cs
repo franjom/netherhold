@@ -1134,6 +1134,8 @@ switch (args[0])
         string reachMaps = Path.Combine(Dk2Install.Require(), "Data", "editor", "maps");
         int total = 0, ran = 0, declined = 0, creature = 0, party = 0, orphan = 0, closed = 0;
         var closedByType = new Dictionary<byte, int>();
+        var partialByArm = new Dictionary<(int Tag, byte Type, TriggerContext Context),
+            HashSet<(string Level, ushort TriggerId)>>();
         Console.WriteLine($"Every level run headless for {unreachedTurns} turns. Records the run never");
         Console.WriteLine("walked, by why -- first bucket that claims a record keeps it:");
         Console.WriteLine("  declined = behind a condition this executor cannot answer (the frontier)");
@@ -1185,6 +1187,13 @@ switch (args[0])
                 rsim.Tick();
                 if (rsim.LastTriggerRun is not { } run) continue;
                 if (run.Reached is not null) walked.UnionWith(run.Reached);
+                foreach (BlockedTrigger item in run.Partial)
+                {
+                    var key = (item.Tag, item.Type, item.Context);
+                    if (!partialByArm.TryGetValue(key, out HashSet<(string, ushort)>? records))
+                        partialByArm[key] = records = [];
+                    records.Add((level, item.TriggerId));
+                }
                 foreach (TriggerGate gate in TriggerReach.Gated(rtree, run))
                     foreclosed.UnionWith(gate.Foreclosed);
                 foreach (TriggerClosure c in TriggerReach.Closed(rtree, run))
@@ -1265,6 +1274,13 @@ switch (args[0])
         Console.WriteLine("closed by condition type (the nearest false condition above each record):");
         foreach ((byte type, int count) in closedByType.OrderByDescending(e => e.Value).Take(20))
             Console.WriteLine($"  type {type,3}: {count,5}");
+
+        Console.WriteLine();
+        Console.WriteLine("partial action records reached at least once, ranked by unique record:");
+        foreach (((int tag, byte type, TriggerContext context), HashSet<(string, ushort)> records)
+                 in partialByArm.OrderByDescending(e => e.Value.Count)
+                     .ThenBy(e => e.Key.Type).ThenBy(e => e.Key.Context))
+            Console.WriteLine($"  tag {tag} type {type,3} in {context,-8}: {records.Count,5}");
         return 0;
     }
 

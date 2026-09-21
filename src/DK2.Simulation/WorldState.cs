@@ -282,6 +282,10 @@ public struct PlayerState
     /// slot with no creatures bills nobody.</para></summary>
     public GameTick NextPaydayTick;
 
+    /// <summary>The level's mutable unlock rows for this keeper. Trigger action 6
+    /// changes an existing row but never creates one (ADR-0161).</summary>
+    public List<AvailabilityState> Availabilities;
+
     /// <summary>
     /// The Hand of Evil: the <b>things</b> this keeper is holding, in pick-up order.
     /// Things, not creatures (ADR-0075) — DK2 keeps one array of thing ids on the
@@ -320,12 +324,26 @@ public struct PlayerState
         hash.Add(ResearchPoints);
         hash.Add(NextFreeImpTick);
         hash.Add(NextPaydayTick);
+        hash.Add(Availabilities.Count);
+        foreach (AvailabilityState availability in Availabilities)
+            availability.HashInto(ref hash);
         hash.Add(Hand.Count);
         foreach (HandItem held in Hand)
         {
             hash.Add((byte)held.Kind);
             hash.Add(held.Id);
         }
+    }
+}
+
+/// <summary>One mutable room, creature, door, trap or spell availability row.</summary>
+public readonly record struct AvailabilityState(ushort Kind, int TypeId, int Value)
+{
+    internal void HashInto(ref Hash64 hash)
+    {
+        hash.Add(Kind);
+        hash.Add(TypeId);
+        hash.Add(Value);
     }
 }
 
@@ -658,7 +676,10 @@ public sealed class WorldState
         // PlayerState is a struct in an array, and a caller using an object
         // initialiser would have had to know to supply the list.
         for (int i = 0; i < _players.Length; i++)
+        {
             _players[i].Hand ??= [];
+            _players[i].Availabilities ??= [];
+        }
 
         CurrentTick = GameTick.Zero;
     }
@@ -705,6 +726,32 @@ public sealed class WorldState
                 return ref _players[i];
         throw new KeyNotFoundException($"No player with id {playerId} in this world.");
     }
+
+    /// <summary>Returns a keeper's availability state, or 1 when no row exists.</summary>
+    public int Availability(byte playerId, ushort kind, int typeId)
+    {
+        foreach (AvailabilityState entry in Player(playerId).Availabilities)
+            if (entry.Kind == kind && entry.TypeId == typeId)
+                return entry.Value;
+        return 1;
+    }
+
+    /// <summary>Changes an existing availability row. A missing row is a successful no-op.</summary>
+    public void SetAvailability(byte playerId, ushort kind, int typeId, int value)
+    {
+        ref PlayerState player = ref Player(playerId);
+        for (int i = 0; i < player.Availabilities.Count; i++)
+        {
+            AvailabilityState entry = player.Availabilities[i];
+            if (entry.Kind != kind || entry.TypeId != typeId) continue;
+            player.Availabilities[i] = entry with { Value = value };
+            return;
+        }
+    }
+
+    /// <summary>Whether any row of one kind has the requested state.</summary>
+    public bool HasAvailability(byte playerId, ushort kind, int value) =>
+        Player(playerId).Availabilities.Any(a => a.Kind == kind && a.Value == value);
 
     /// <summary>Whether <paramref name="playerId"/> counts <paramref name="otherId"/> a friend —
     /// the original's <c>0x004BF3D0</c>, which answers yes for the same player without reading
@@ -1021,7 +1068,15 @@ public sealed class WorldState
         PlayerState[] players = playerIds
             .Distinct()
             .OrderBy(id => id)
-            .Select(id => new PlayerState { PlayerId = id })
+            .Select(id => new PlayerState
+            {
+                PlayerId = id,
+                Availabilities = database.Variables.Availabilities
+                    .Where(a => a.PlayerId == id)
+                    .OrderBy(a => a.Kind).ThenBy(a => a.TypeId)
+                    .Select(a => new AvailabilityState(a.Kind, a.TypeId, a.Value))
+                    .ToList(),
+            })
             .ToArray();
 
         return new WorldState(map.Width, map.Height, tiles, players, fogOfWarEnabled);

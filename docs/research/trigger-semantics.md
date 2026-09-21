@@ -315,7 +315,7 @@ have **no shipped-data corroboration**; Q225 keeps custom-map verification open.
 | 1 (268) | `CreatureId:u8@00`, `PlayerId:u8@01`, `Level:u8@02`, `Flag:u8@03`, `PosX:u16@04`, `PosY:u16@06` — all **B**. **Both coordinates are zero-based**, unlike type 22's, and `Level` is one-based (ADR-0137) |
 | 2 (5) | `ObjectId:u8@00`, `PlayerId:u8@01`, `PosX:u16@04`, `PosY:u16@06` — all **B**; `02..03` **N** |
 | 4 (1) | `ObjectiveId:u16@00` **C**, `ActionPointId:u8@04` **B**; `02..03,05..07` **N** |
-| 6 (303) | `PlayerId:u8@00` **B**, `MakeType:u8@01` **T**, `TargetId:u8@02` **T**, `Available:u8@03` **B**; `04..07` **N** |
+| 6 (303) | `PlayerId:u8@00`, `AvailabilityKind:u8@01`, `TypeId:u8@02`, `Available:u8@03` **B**; `04..07` **N** |
 | 7 (1417) | `FlagId:u8@00` **B**, `Flag:u8@01` **T**, `Value:u32@04` **B**; `02..03` **N** |
 | 8 (291) | `TimerId:u8@00` **B**; `01..07` **N** |
 | 9 (78) | `MakeType:u8@00` **T**, `TargetId:u8@01` **T**, `Available:u8@02` **B**, `Value:u32@04` **B**; `03` **N** |
@@ -383,7 +383,7 @@ were evidence. Direct binary reads showed these claims false:
 The **T** entries are the complete remaining list: generic `TargetId` and
 `Flag` for types 1/2, generic `TargetId`/`Flag` for 27/28, generic `TargetId`
 for 29, generic `TargetType`/`TargetId` for 53; action `MakeType`/`TargetId` for
-6 and 9, action `Flag` for 7, action `Value` for 30 and 50, and action
+9, action `Flag` for 7, action `Value` for 30 and 50, and action
 `TargetId` for 42 and 47. Their offsets and widths are binary readings; their
 semantic names are not.
 

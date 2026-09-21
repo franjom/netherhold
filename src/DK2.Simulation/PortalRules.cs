@@ -206,32 +206,23 @@ public static class PortalRules
     }
 
     /// <summary>Whether this keeper has this creature unlocked — <c>Availability</c>
-    /// kind 2, this player, state AVAILABLE (3) or RESEARCHABLE (2). Both count
-    /// (OpenKeeper's reading), which changes nothing on shipped data: creature
-    /// availability is only ever 1 or 3, asserted by <c>PortalOnRealDataTests</c>. A
-    /// creature the level never mentions is unavailable — level 1's keeper has one
-    /// availability line, the other 45 creatures unmentioned rather than barred.</summary>
-    public static bool IsUnlocked(GameDatabase database, byte playerId, byte creatureTypeId)
-    {
-        foreach (AvailabilityEntry entry in database.Variables.Availabilities)
-        {
-            if (entry.Kind != KindCreature) continue;
-            if (entry.PlayerId != playerId) continue;
-            if (entry.TypeId != creatureTypeId) continue;
-            if (entry.Value is Available or Researchable) return true;
-        }
-        return false;
-    }
+    /// kind 2, state AVAILABLE (3) or RESEARCHABLE (2); a creature the level never
+    /// mentions is unavailable. <c>PortalOnRealDataTests</c> and
+    /// <c>docs/research/portals.md</c> hold why both states count.</summary>
+    public static bool IsUnlocked(WorldState world, byte playerId, byte creatureTypeId) =>
+        world.Availability(playerId, KindCreature, creatureTypeId)
+            is Available or Researchable;
+
+    /// <summary>Reads the immutable level definition before a world exists.</summary>
+    public static bool IsUnlocked(GameDatabase database, byte playerId, byte creatureTypeId) =>
+        database.Variables.Availabilities.Any(a =>
+            a.Kind == KindCreature && a.PlayerId == playerId
+            && a.TypeId == creatureTypeId && a.Value is Available or Researchable);
 
     /// <summary>The most of this creature type the keeper's pool allows at once, or 0
-    /// if the pool does not mention it — a standing limit, not a draining quota, so
-    /// level 1's <c>creature7 = 15</c> means "no more than fifteen goblins at a time"
-    /// and sacking one lets another in. STRONGLY INFERRED: OpenKeeper compares against
-    /// the current count, the manual has a sacked creature "replaced by a new
-    /// creature", and the file stores one value per type with nowhere to record
-    /// depletion. The manual's "multiplayer pools are finite" is the case against, so
-    /// UNKNOWN which the campaign uses; level 1 cannot separate them, pool and first-portal cap both being 15 (Q87).
-    /// Last entry wins on a duplicate type, which no shipped level has (<c>PortalOnRealDataTests</c>).</summary>
+    /// if the pool does not mention it — a standing limit, not a draining quota
+    /// (STRONGLY INFERRED; <c>docs/research/portals.md</c> §2 has both cases and Q87).
+    /// Last entry wins on a duplicate type, which no shipped level has.</summary>
     public static int PoolLimit(GameDatabase database, byte playerId, byte creatureTypeId)
     {
         int limit = 0;

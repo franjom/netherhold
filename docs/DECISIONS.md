@@ -3661,3 +3661,26 @@ turn therefore has five Partial action groups instead of seven. Keeper-spell
 availability remains level data: action 38 is a presentation command, not its
 writer. The third initially-set bit is retained but unnamed; action 51 and its
 consumer remain unimplemented.
+
+## ADR-0161 — Availability is mutable per-player world state
+
+**Status.** Accepted 2026-09-21 · `HashVersion` 66 · Research:
+`docs/research/trigger-dispatch-tables.md`.
+
+**Context.** The executor's 600-turn corpus census ranks action 6 third among
+missing effects by unique reached records. The two larger arms cannot be built:
+type 17 writes display-facing slab state with no simulated reader (ADR-0144),
+and type 24 still has an unread parameter (Q227). Action 6's world arm and all
+five callees establish its complete effect.
+
+**Decision.** Copy each keeper's level availability rows into `PlayerState`.
+Action 6 selects room, creature, door, trap or spell by bytes 1 and 2, then
+writes state 1 when byte 3 is zero and state 3 otherwise. It changes an existing
+row only; a missing row is a successful no-op. Portal unlocks and trigger spell
+conditions read the live state. Hash and snapshot every row.
+
+**Consequences.** Action 6 leaves `Partial`: 29 unique records reached during
+the measured corpus run now perform their effect. Room building and the
+availability modes of conditions 25, 27 and 28 remain unimplemented consumers;
+their shipped records do not use those modes. Q226 no longer includes action
+6's selectors. `HashVersion` and snapshot format advance together to 66.

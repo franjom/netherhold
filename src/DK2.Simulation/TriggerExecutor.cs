@@ -599,8 +599,8 @@ public sealed class TriggerExecutor
         if (record.Type == 47 && _world is not null)
             return Result(KilledBy(record.Parameters, _world, run.Player!.Value));
 
-        if (record.Type == 29 && _database is not null)
-            return Result(SpellAvailable(record.Parameters, _database, run.Player!.Value));
+        if (record.Type == 29 && _world is not null)
+            return Result(SpellAvailable(record.Parameters, _world, run.Player!.Value));
 
         if (record.Type == 73 && _world is not null)
             return Possessing(_world, run.Player!.Value)
@@ -746,18 +746,14 @@ public sealed class TriggerExecutor
     /// that distinction load-bearing: 271 shipped kind-5 entries hold 1, and one holds 4.
     /// </summary>
     private static bool SpellAvailable(
-        IReadOnlyDictionary<string, long> parameters, GameDatabase database, byte playerId)
+        IReadOnlyDictionary<string, long> parameters, WorldState world, byte playerId)
     {
         const ushort KindSpell = 5;
         const int Available = 3;
         byte wanted = Byte(parameters, "TargetId");
-        foreach (AvailabilityEntry entry in database.Variables.Availabilities)
-        {
-            if (entry.Kind != KindSpell || entry.PlayerId != playerId) continue;
-            if (wanted != 0 && entry.TypeId != wanted) continue;
-            if (entry.Value == Available) return true;
-        }
-        return false;
+        return wanted == 0
+            ? world.HasAvailability(playerId, KindSpell, Available)
+            : world.Availability(playerId, KindSpell, wanted) == Available;
     }
 
     /// <summary>Condition type 52 — <b>how many of this keeper's creatures have reached
@@ -970,12 +966,22 @@ public sealed class TriggerExecutor
     /// condition reading the map as it was before the write.
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
-    public static bool Performs(byte type) => type is 1 or 7 or 8 or 14 or 22 or 44 or 45;
+    public static bool Performs(byte type) => type is 1 or 6 or 7 or 8 or 14 or 22 or 44 or 45;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
         IReadOnlyDictionary<string, long> p = record.Parameters;
         List<BlockedTrigger> partial = run.Partial;
+        if (record.Type == 6)
+        {
+            if (_world is null) return Unperformed(record, context, partial);
+            byte kind = Byte(p, "AvailabilityKind");
+            if (kind is >= 1 and <= 5)
+                _world.SetAvailability(
+                    Byte(p, "PlayerId"), kind, Byte(p, "TypeId"),
+                    Byte(p, "Available") == 0 ? 1 : 3);
+            return true;
+        }
         if (record.Type == 8)
         {
             _state.StartTimer(checked((byte)p["TimerId"]), run.CurrentTick);

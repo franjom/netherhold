@@ -102,10 +102,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 65: trigger-controlled anger and notification gates entered
-        // (ADR-0160). Earlier pins and their reasons live in
-        // docs/research/hash-versions.md.
-        Assert.Equal(0x15441322D8A9D319UL, sim.StateHash());
+        // HashVersion 66: each keeper's availability rows are mutable world state
+        // that trigger action 6 writes (ADR-0161). Earlier pins and their reasons
+        // live in docs/research/hash-versions.md.
+        Assert.Equal(0x8FE50E548AC844F2UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
