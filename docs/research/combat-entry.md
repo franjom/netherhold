@@ -151,7 +151,7 @@ game action 26's handler, the possession path, and four elsewhere
 **`FUN_0045cb00` calls `FUN_0045bdf0`**, and that is where a target is chosen.
 It writes `creature+0x502` twelve times and, between two of them, calls
 `FUN_004752b0` — one of the four sites that `SetState`s **199**. The twelve are
-not twelve rules; §9 reads them.
+not twelve rules; `combat-target-selection.md` §3 reads them.
 
 That reverses the obvious reading. A creature does not enter "engaging in battle"
 and then look for someone to hit; **it acquires a target and entering the state
@@ -164,159 +164,17 @@ The field's writers, for whoever reads `FUN_0045bdf0` next: **43 stores to
 `spFighting` (7), `FUN_0045cb00` (6), `FUN_004602e0` (5) and a cluster at
 `0x0045a550`–`0x0045b000` (7).
 
-## 9. The NonFighter selector judges one candidate, and rolls back
+## 8. Which enemy — elsewhere
 
-`0x0045BDF0` is `thiscall (CCreature*, int32) -> int16` — a **tag** out. §10 shows
-it is the **NonFighter** arm, which only the **Imp** and **Jack** ever run, and
-everything in it reads as that once you know: it is not a search over every
-enemy but a judgement of **one candidate creature**, held in `ESI`, which it
-either commits to or puts back.
+Who a creature fights is `combat-target-selection.md`: **`FightStyle`**, the
+parsed-but-unread definition field at file `0x0F03`, selects one of **five**
+routines, and the acquirer of §7 dispatches through it. Two are read.
 
-**It opens by measuring the way home.** Before anything else it takes the
-creature's own player (`creature+0x2A`), asks it for the dungeon heart's
-position, converts that tile to 1/4096 units with a half-tile centre offset
-(`<<12`, `+0x800`), and squares the absolute differences against the creature's
-own position at `+0x1A`/`+0x1E`. Flame's map calls that accessor
-`getDungeonHeartPosition`; the instructions say the same independently, which is
-the only reason it is repeated here (ADR-0080).
+## 9. What is left
 
-**That distance is a threshold, and §9.1 is what it is for.**
-
-### 9.1 Near its own heart, a worker stops checking whose side you are on
-
-**Owner, 2026-09-21, unprompted:** *imps do fight when the dungeon heart is under
-attack — they attack the creatures attacking it.* That observation is what sent
-this read back into the routine, and it lands on the one computation §9 had
-flagged as unexplained.
-
-```
-EDX = dx*dx + dy*dy            ; to the creature's OWN heart, 12.12 fixed
-CMP EDX,0xD000                 ; 53248 / 4096 = 13 tiles squared
-JNC  skip                      ; farther -> leave the flag clear
-MOV dword[EBP-0x18],1          ; nearer -> set it
-```
-
-so the radius is **sqrt(13), about 3.6 tiles**. The flag starts clear and is read
-**exactly once**:
-
-```
-CMP AL,1 / JZ  0x0045C1AB      ; one condition takes a different path
-MOV EAX,[EBP-0x18]
-TEST EAX,EAX / JNZ 0x0045C1AB  ; being near my own heart takes the SAME path
-MOV AX,word[ESI + 0x28]        ; the path it skips begins with the candidate's OWNER
-```
-
-`word[thing+0x28]` is the owner word (`navigation-captures.md`). **So a worker
-within ~3.6 tiles of its own dungeon heart is routed past the test that starts by
-reading whose side the candidate is on.** What the alternative path at
-`0x0045C1AB` then decides is unread, so the *mechanism's location and trigger*
-are established here and its outcome is not — but it is where the owner's
-behaviour lives, and nothing else in the routine could produce it.
-
-**And the Imp is special-cased by id.** The engagement range comes from
-`def+0x77B`, squared and shifted into 1/4096 — except when `byte[creature+0x36F]`,
-the creature type, **is 1**, which `Creatures.kwd` says is the **Imp**. Then the
-range is forced to `0x1000`, exactly **one tile squared**. So the two creatures
-sharing `NonFighter` do not share a reach.
-
-**Where the candidate comes from.** `ESI` is walked out of a list: the creature's
-player at `+0x2A`, then `dword[player + 0x10FD]` to a head, a tag at its `+0`
-resolved through the thing table, then `word[thing + 0x6]` to the candidate. That
-answers §10's open "where does the candidate come from" for this arm.
-
-**The acceptance gate is mutual.** A candidate passes only if
-
-```
-word[cand + 0x502] == 0        ; it has no target of its own
-  or word[cand + 0x502] == our own tag   ; or its target is us
-and byte[cand + 0x3EA] & 0x40  ; and it carries this flag
-```
-
-so on **this** path it engages only somebody already coming for it. The
-near-the-heart path above does not pass through here, which is the difference
-between a worker minding itself and a worker defending the heart.
-
-**The commit is tentative, and this is what the twelve stores are.** On
-acceptance the candidate's tag goes into `creature+0x502` and **the previous
-target is stashed** in a local. A predicate then runs (`0x00460b50`), and a map
-query with `0x5000` — five tiles in 1/4096 units — follows. If a check fails the
-stashed tag is **written back**. So:
-
-| stores | what they are |
-|---|---|
-| 1 | take the new candidate |
-| 5 | **restore** the previous target after a failed check |
-| 6 | **clear** the target, some also zeroing two word arrays at fight `+0x6` and `+0x16` |
-
-**A correction to this document.** Its previous revision said the selector
-"writes the target on twelve separate branches", which read as twelve ways of
-choosing an enemy. Eleven of the twelve are rollback and teardown; exactly one
-takes a target.
-
-## 10. `FightStyle` picks the selector — the field's consumer, found
-
-Inside the acquirer, immediately before the call, sits a five-arm jump table:
-
-```
-EDX = creature[0x370]          ; the compact definition
-AL  = byte[EDX + 0x67E]        ; 0..4, else the default arm
-JMP [EAX*4 + 0x45E174]
-```
-
-`def+0x67E` is loaded from **file offset `0x0F03`**, by a guarded store at
-`0x0049347A` taking `EBP+0x12F3` — the `0x3F0` frame delta again. That offset is
-**`FightStyle`**, which this project already parses and *nothing reads*
-(`KwdCreatures`, `manual-1999.md` § the editor's enum). **So `FightStyle` selects
-which routine chooses a creature's enemy.** It also fills the slot `training.md`
-§4 observed the experience run skipping.
-
-**The table is not in index order**, which is worth stating because assuming it
-was inverted the reading once:
-
-| `FightStyle` | routine | size | the shipped creatures |
-|---|---|---|---|
-| 0 `NonFighter` | **`0x0045BDF0`** | 0x7DC | Imp, Jack |
-| 1 `Blitzer` | `0x0045B800` | 0x2C5 | Mistress, Vampire, Dark Angel, Horny, King Reginald, + 5 uniques |
-| 2 `Blocker` | `0x0045B140` | 0x2D7 | Bile Demon, Troll, Giant, Knight, Black Knight, Guard, Royal Guard, Stone Knight, Lord Of The Land, three princes, Maiden Of The Nest, + 2 uniques |
-| 3 `Flanker` | `0x0045BAD0` | 0x315 | Goblin, Skeleton, Salamander, Firefly, Dwarf, Thief, Monk, Fairy, Rogue, + 4 uniques |
-| 4 `Support` | `0x0045B500` | 0x300 | Warlock, Dark Elf, Wizard, Elven Archer, + 2 uniques |
-
-All five take `(creature, int32)` and return a **word** — a tag — and the return
-is compared against the sentinel **`0xEA60`** (60000). The rosters are the whole
-shipped file, 46 records read at `0x0F03`, and they corroborate DK2's own names
-without any of the four unread arms being opened: `Support` is exactly the four
-ranged archetypes and their uniques, `Blocker` exactly the heavy melee, and
-`NonFighter` exactly the two creatures that do not fight.
-
-**That the biggest of the five is `NonFighter` is the finding**, not a curiosity.
-Deciding *not* to fight is the complicated case: §9's distance to one's own
-dungeon heart, its two calls into a withdraw-from-fight state, its
-engage-only-what-engages-me gate and its heavy rollback are all a worker's
-reluctance, and none of it generalises to how a Knight picks a fight.
-
-**Before the dispatch, a re-acquisition path.** `word[creature + 0x482]` is
-resolved through the liveness and thing tables; if it is live, `word[thing +
-0x4D0]` is read and, if *that* is live, it becomes the answer and **no strategy
-runs at all**. This is what `spFighting`'s *"failed to re-aquire previous
-target"* assertion is about.
-
-**The strategy byte is on the definition, not the creature**, which is settled
-rather than assumed: `CCreature` is `0x53F` bytes, so `+0x67E` cannot be on it.
-Its only three writers are that definition's **constructor**, a
-definition-to-definition **copy**, and `FUN_00492320` (`combat-cadence.md` §5
-asks separately whether that one is live). **No file-load site is among them**,
-so whether the strategy id is shipped per creature or computed is UNKNOWN — and
-it cannot be answered by subtracting `0x3F0` from `0x67E`, because that constant
-maps a file offset to the loader's **staging** struct, not to the runtime one
-(`library-and-research.md` has the worked pair).
-
-## 11. What is left
-
-**The four selectors that matter for a fight** — `Blitzer`, `Blocker`, `Flanker`
-and `Support` — none of which is read. Also: the two predicates the NonFighter
-commit is tried against (`0x00460b50`, and `0x004512F0` with its five-tile
-argument), what `+0x3EA` bit 6 means, what `AttackingSpecificCreature` is, and
-the rest of the `+0x4FE` record.
+The rest of the `+0x4FE` record's layout, what `+0x3EA` bit 6 means, and what
+`AttackingSpecificCreature` is. Which enemy gets picked is
+`combat-target-selection.md` §5.
 
 ## Confidence
 
@@ -324,46 +182,15 @@ the rest of the `+0x4FE` record.
 200's handler is `0x0045f030`; the five state labels through `Text.str`; the
 switch's selector, its five arms and which action each starts; that action 17 has
 exactly two literal starters; every quoted assertion, which is the binary's own
-text.
+text; that the switch's base is `creature + 0x4FE`, by the single entry into the
+block and the absence of any register write on that path; that state 199's
+handler ends in a call to `spFighting`; that state 200 is set by no literal and
+199 by four; the acquisition gate's four instructions; that `FUN_0045cb00` has
+twelve call sites, six of them in `spFighting`.
 
-**STRONGLY INFERRED:** that arms 1 and 4 are melee and 0, 2, 3 spell — the
-assertion sits on the failure path of each, which is one instruction removed from
-the start it guards.
+**STRONGLY INFERRED:** that arms 1 and 4 of the AttackType switch are melee and
+0, 2, 3 spell — the assertion sits on the failure path of each, one instruction
+from the start it guards.
 
-**CONFIRMED (binary):** that the switch's base is `creature + 0x4FE`, by the
-single entry into the block and the absence of any EDI write on that path; that
-state 199's handler ends in a call to `spFighting`; that state 200 is set by no
-literal and 199 by four.
-
-**CONFIRMED (binary):** the acquisition gate's four instructions; that
-`FUN_0045cb00` has exactly twelve call sites and six of them are in `spFighting`;
-that `FUN_0045bdf0` writes `+0x502` twelve times and calls `FUN_004752b0`, which
-sets state 199; the 43-store census of `+0x502`.
-
-**CONFIRMED (binary):** that the selector measures the creature's squared
-distance to its own keeper's heart before anything else; the mutual acceptance
-gate; that the commit stashes the previous target and restores it on failure, so
-one of the twelve stores takes a target and eleven undo or clear.
-
-**CONFIRMED (binary):** the five-arm dispatch, its jump table read entry by
-entry, and all five targets; that the five share a signature returning a tag;
-the re-acquisition path ahead of it; that `+0x67E` is a definition field, from
-`CCreature`'s size; the loader pair `EBP+0x12F3` → `def+0x67E` and so the file
-offset `0x0F03`.
-
-**CONFIRMED (data):** the `FightStyle` of all 46 shipped creatures, read from
-`Creatures.kwd` at `0x0F03`.
-
-**STRONGLY INFERRED:** that `0x0045BDF0` is the non-combatant rule rather than a
-general one — it is what `FightStyle` 0 dispatches to and its two creatures are
-the Imp and Jack, but the other four arms are unread, so nothing here compares
-them.
-
-**CONFIRMED (binary):** the heart-proximity threshold `0xD000` and that its flag
-is read once, to skip the path that begins with the candidate's owner word; the
-Imp's forced one-tile range and that creature type 1 is the Imp; the candidate
-list walked from `player+0x10FD`.
-
-**UNKNOWN:** what the near-the-heart path decides, the four unread selectors, the
-two predicates the NonFighter commit tries, `+0x3EA` bit 6, the rest of the
-`+0x4FE` record, and what `AttackingSpecificCreature` is.
+**UNKNOWN:** the rest of the `+0x4FE` record's layout, and what
+`AttackingSpecificCreature` is.
