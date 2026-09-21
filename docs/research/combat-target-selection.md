@@ -111,12 +111,23 @@ Then, per candidate and in this order:
    `+0x53B` is `0x3D` into the `+0x4FE` fight block. So most creatures will not
    start on something that is already running — toward a threat or away from one
    — while they are still tracking someone retreating.
-3. **Distance** `d`, then **a weighting by the candidate's level**, applied only
-   when `dword[cand+0x3E6]` bit 12 is set: `d = d * pct / 100`, where `pct` is
-   the candidate's `def+0x760` for a level-1 creature and otherwise that value
-   scaled by a word from a table indexed by its **experience level**
-   (`byte[cand+0x403]`, `combat.md` §4). So level can make an enemy read as
-   nearer or farther than it is. Bit 12 and `def+0x760` are both UNKNOWN.
+3. **Distance** `d`, then **a priority weighting**, applied only when
+   `dword[cand+0x3E6]` bit 12 is set: `d = d * pct / 100`, where `pct` is the
+   candidate's `def+0x760` for a level-1 creature and otherwise that value scaled
+   by a word from a table indexed by its **experience level** (`byte[cand+0x403]`,
+   `combat.md` §4). **`def+0x760` is file `0xEE4`** — loaded from staging
+   `EBP+0x12D4` — a field this project does not parse, sitting in the gap between
+   `SlapFearlessDuration` (`0xEDC`) and `PossessionManaCost` (`0xEE8`). It is
+   **50 on all 46 creatures except the Horned Reaper, where it is 0**
+   (`dk2tools kwd creaturehex EE4 4`). So the bit **halves a candidate's apparent
+   distance, and makes the Horned Reaper's zero** — with the bit set it is the
+   most attractive target on the map, at any range, to every arm at once.
+
+   **What sets bit 12 is UNKNOWN**, and no `OR reg,0x1000` exists anywhere in the
+   executable, so it is never set by an immediate. Its readers are enumerated
+   though, and every one of them is target scoring: all five arms, both scans
+   inside `FUN_0045CB00`, both inside `FUN_0045C690`, `FUN_0040E910` and
+   `FUN_0048EE90`. Nothing else in DKII.EXE reads it.
 4. **An alignment discount.** `def+0x686` is the creature flag dword
    (`job-selection.md` §6.2), bit 7 `IsEvil` and bit 8 `IsGood`:
 
@@ -136,8 +147,8 @@ Then, per candidate and in this order:
    my player id: `+0x4A3` is **`SneakingAs`** (`hand-of-evil.md`, `prison.md`),
    so **a creature disguised as my keeper is not attacked**, the disguise working
    on target selection and not only on the hand. Then **either** within
-   `def+0x77B` and `0x004512F0([0x6E5050]+0x9DA, myPos, itsPos, 0, 1)` non-zero,
-   **or** within `def+0x77F` and `0x0045AFF0` non-zero.
+   `def+0x77B` and it can be **seen**, **or** within `def+0x77F` and it can be
+   **reached** — §2.1.
 7. Accepting stores the candidate's tag (`word[cand+0x4]`) and its score.
 
 **The two ranges are `DistanceCanSee` and `DistanceCanHear`**, file `0xEC8` and
@@ -147,6 +158,33 @@ already names for `+0x77B`. The loader rounds each to whole tiles
 **not a min/max pair**: sight has one test and hearing another, and passing
 *either* accepts — a creature engages what it can see, or what it can hear. For
 creature type 1, the **Imp**, sight is forced to one tile and hearing to zero.
+
+### 2.1 See it, or be able to walk to it
+
+The two acceptance paths were read on 2026-09-21 and are **not two distance
+tests**. Each range gates a different question.
+
+**`0x004512F0` is line of sight.** Its `this` is `[0x006E5050] + 0x9DA`, which
+`runtime-map.md` already identifies as **the map**. It shifts both positions left
+4, sets up a DDA with `0x10000` fractions and a `0x7FFFFFFF` sentinel, walks the
+straight line between them and asks `0x004511A0` per tile, which indexes a
+per-tile byte grid off the map and tests **bit 3**. Anything else on the line
+fails it.
+
+**`0x0045AFF0` is a routing query, and this is the finding.** It does not measure
+distance at all. It asks `0x004D0E60` — the navigation **request**, already
+documented in `navigation-mesh-and-search.md` §1 as the one that fills the
+per-query globals and passes positions `>> 4` with mode `-2` — with a search
+budget of `0x100`, or `0x80` for the Imp; then `0x004D0E10`, the **dispatcher**,
+builds a waypoint list into a 2 KB stack buffer. It sums the legs with the octile
+metric `|dx| + |dy| - min(|dx|,|dy|)/2` and returns whether the **path** length
+squared is under the range. Identical positions and an empty route both answer
+yes.
+
+So a creature engages what it can **see** within `DistanceCanSee`, or what it can
+**walk to** within `DistanceCanHear` — and the second measures the walk, not the
+gap. A reimplementation cannot approximate that one with a radius: it needs the
+navigation mesh, and a target behind a wall is at its path distance.
 
 **On shipped data the distinction is invisible.** All 46 creatures ship both
 ranges at `16384`, exactly **4 tiles** (`dk2tools kwd creatures -s`). A
@@ -186,8 +224,8 @@ the only reason it is repeated here (ADR-0080).
 
 **Owner, 2026-09-21, unprompted:** *imps do fight when the dungeon heart is under
 attack — they attack the creatures attacking it.* That observation is what sent
-this read back into the routine, and it lands on the one computation the section above had
-flagged as unexplained.
+this read back into the routine, and it lands on the one computation the section
+above had flagged as unexplained.
 
 ```
 EDX = dx*dx + dy*dy            ; to the creature's OWN heart, 12.12 fixed
@@ -197,32 +235,33 @@ MOV dword[EBP-0x18],1          ; nearer -> set it
 ```
 
 so the radius is **sqrt(13), about 3.6 tiles**. The flag starts clear and is read
-**exactly once**:
+**exactly once**, as one of two conditions that jump to `0x0045C1AB` and so skip
+the test the fall-through begins with:
 
 ```
-CMP AL,1 / JZ  0x0045C1AB      ; one condition takes a different path
-MOV EAX,[EBP-0x18]
-TEST EAX,EAX / JNZ 0x0045C1AB  ; being near my own heart takes the SAME path
-MOV AX,word[ESI + 0x28]        ; the path it skips begins with the candidate's OWNER
+CMP AX,word[ESI + 0x28]        ; the candidate's owner word
+CMP AX,word[0x006F254C]
+JNZ next-candidate
 ```
 
-`word[thing+0x28]` is the owner word (`navigation-captures.md`). **So a worker
-within ~3.6 tiles of its own dungeon heart is routed past the test that starts by
-reading whose side the candidate is on.** What the alternative path at
-`0x0045C1AB` then decides is unread, so the *mechanism's location and trigger*
-are established here and its outcome is not — but it is where the owner's
-behaviour lives, and nothing else in the routine could produce it.
+**`[0x006F254C]` is the hero player id** — ANSWERED as Q266, ADR-0142. So the
+filter is not "whose side" in general: **a worker normally attacks heroes and
+nobody else.**
 
-**And the Imp is special-cased by id.** The engagement range comes from
-`def+0x77B`, squared and shifted into 1/4096 — except when `byte[creature+0x36F]`,
-the creature type, **is 1**, which `Creatures.kwd` says is the **Imp**. Then the
-range is forced to `0x1000`, exactly **one tile squared**. So the two creatures
+**And `0x0045C1AB` is not a different decision — it is the shared template of
+§2.** Scoring, the best-so-far comparison, `+0x3EA` bit 6, `SneakingAs`, sight
+and reach, take the tag. So the two escapes from the hero filter route the
+candidate into the same judgement every other arm makes.
+
+**Which completes the owner's observation.** Near its own heart a worker will
+fight *anything*, not only heroes, and it judges that candidate the ordinary way
+rather than by §3.2's reluctant one. The second escape is
+`0x00494360(cand.def) == 1`, which reads `byte[def+0x5B3]` for a creature with
+`IsUnique` and `byte[def+0x770]` otherwise; what that byte means is UNKNOWN.
+
+**And the Imp is special-cased by id**, `byte[creature+0x36F] == 1`: its sight is
+forced to `0x1000`, one tile squared, and its reach to zero. So the two creatures
 sharing `NonFighter` do not share a reach.
-
-**Where the candidate comes from.** `ESI` is walked out of a list: the creature's
-player at `+0x2A`, then `dword[player + 0x10FD]` to a head, a tag at its `+0`
-resolved through the thing table, then `word[thing + 0x6]` to the candidate —
-the outer walk of §2.
 
 **The acceptance gate is mutual.** A candidate passes only if
 
@@ -236,24 +275,55 @@ so on **this** path it engages only somebody already coming for it. The
 near-the-heart path above does not pass through here, which is the difference
 between a worker minding itself and a worker defending the heart.
 
-**The commit is tentative, and this is what the twelve stores are.** On
-acceptance the candidate's tag goes into `creature+0x502` and **the previous
-target is stashed** in a local. A predicate then runs (`0x00460b50`), and a map
-query with `0x5000` — five tiles in 1/4096 units — follows. If a check fails the
-stashed tag is **written back**. So:
+### 3.2 The hero path: a head-count, then a commit — and what the twelve stores are
 
-| stores | what they are |
-|---|---|
-| 1 | take the new candidate |
-| 5 | **restore** the previous target after a failed check |
-| 6 | **clear** the target, some also zeroing two word arrays at fight `+0x6` and `+0x16` |
+Only the hero path reaches this. It is the reluctance, and it is why `NonFighter`
+is three times the size of any other arm.
 
-**Twice corrected, and still under review.** One revision of this document said
-the selector "writes the target on twelve separate branches", reading as twelve
-ways of choosing an enemy; the next said one store takes and eleven undo. The
-counts above were made while the routine was believed to judge a single
-candidate. It loops (§2), and three of the twelve stores are inside the loop
-while nine are in a tail past its exit, so the split needs re-reading.
+**The commit is tentative.** The candidate's tag goes into **my** `+0x502` and my
+previous target is stashed in a local, so that `0x00460B50` can be asked about me
+*with the target already set*.
+
+**Then a local head-count.** Two calls to `0x004FAC40`, one per side, each over a
+`0x5000` — five-tile — neighbourhood of my position. Writing `theirs` and `ours`
+for the two answers:
+
+```
+if (theirs * 3 / 4 > ours)  -> put the old target back, keep scanning
+0x004752B0(me + 0x24E, myPosition, (ours - theirs * 3 / 4) * 3 / 2)
+```
+
+`0x004752B0` is one of the four sites that `SetState`s **199** (`combat-entry.md`
+§6). **So a worker counts the room before it commits**, backs out when the enemy
+holds more than four thirds of the local bodies, and passes the surplus on as an
+argument when it does fight.
+
+**The twelve stores, correctly.** An earlier revision called them one commit and
+eleven rollbacks. They are:
+
+| where | how many | what |
+|---|---|---|
+| `0x0045C0AF` | 1 | the tentative commit above |
+| `0x0045C17C`, `0x0045C19F` | 2 | restore the stashed tag and go to the next candidate |
+| `0x45C389`, `0x45C41D`, `0x45C509` | 9 | **three copies of one inlined disengagement**, three stores each |
+
+Each disengagement copy does the same thing: put the stashed tag back **so it can
+find the creature it points at**, then — when the AttackType nibble at `+0x529`
+is under 2 or equal to 3, the tag resolves live, and that thing's `+0x12` is zero
+— walk the 8 slots of each of its `+0x504` and `+0x514` arrays and **clear my own
+tag from whichever one holds it** (the first copy calls `0x0045E450` instead of
+inlining the walk). Then set `+0x502` to zero, and the third store is the same
+zero on the path where there was no stashed tag at all.
+
+**So nine of the twelve are not rollback: they are a creature letting go of a
+fight**, unlinking itself from the other side's engagement lists — which is a
+fourth corroboration that `+0x504`/`+0x514` are who-is-engaged-with-me, and the
+one place the repo has seen them written.
+
+**And it explains `0xEA60`.** All three copies return it, after setting or
+clearing bit 0 of `me+0x233` according to whether I am a hero. It is not a tag:
+it means **"I disengaged; stop looking"**, which is why the acquirer answers
+success immediately on seeing it (§2) instead of treating it as a target.
 
 ## 4. What Blocker settles about NonFighter
 
@@ -293,34 +363,35 @@ initiates while any melee-engaged enemy is in range.
 
 ## 6. What is left
 
-Within NonFighter, what the near-the-heart path decides and the split of its
-twelve stores. The score the acquirer starts the competition from. `0x0045AFF0`,
-the hearing test common to all five, and `0x004512F0`, the sight test — line of
-sight is the obvious reading of the latter and is not yet evidence. Bit 12 of
-`+0x3E6` and `def+0x760`, the level weighting's gate and base.
+Small and named. What sets `+0x3E6` bit 12 (§2 step 3 enumerates every reader and
+rules out an immediate). What `def+0x760`'s file field `0xEE4` should be called,
+and the per-level table at `dword[0x006E4154] + 0x2A3` it is scaled by. What
+`0x00494360`'s definition byte means (§3.1). What `+0x3EA` bit 6 is. The score the
+acquirer starts the competition from. And the rest of the `+0x4FE` record, which
+`combat-entry.md` owns.
 
 ## Confidence
 
 **CONFIRMED (binary):** the five-arm dispatch, its jump table read entry by
 entry, and all five targets; the assertion naming the field *fight type*; the
 shared body of §2 read in all five — both nested walks, the hostility predicate,
-the exclusion and which two arms omit it, the level weighting, the alignment
+the exclusion and which two arms omit it, the priority weighting, the alignment
 discount, the two acceptance paths, and that lower scores win; that only
 NonFighter writes `+0x502` and only its return meets `0xEA60`; the loader pairs
-`EBP+0x12F3` → `def+0x67E` (file `0x0F03`) and `EBP+0x12B8`/`0x12BC` →
-`def+0x77B`/`+0x77F` (file `0xEC8`/`0xECC`) with the round-to-tiles conversion;
-what `0x0045B420` and `0x0045B490` count; every score expression in §5;
-NonFighter's `0xD000` threshold and the single read of that flag; the Imp's
-forced one-tile sight and that creature type 1 is the Imp.
+giving file `0x0F03`, `0xEC8`/`0xECC` and `0xEE4`; what `0x0045B420` and
+`0x0045B490` count; every score expression in §5; §2.1 — that `0x004512F0` walks
+the line and tests a per-tile bit and that `0x0045AFF0` builds a route and sums
+its legs; NonFighter's `0xD000` threshold, its hero filter, its head-count
+commit, and the twelve stores as one commit, two restores and three inlined
+disengagements returning `0xEA60`.
 
-**CONFIRMED (data):** the `FightStyle` of all 46 shipped creatures, read from
-`Creatures.kwd` at `0x0F03`; `DistanceCanSee` and `DistanceCanHear` are `16384`
-on all 46; the state labels 6, 202 and 251 through `Text.str`.
+**CONFIRMED (data):** the `FightStyle` of all 46 shipped creatures;
+`DistanceCanSee` and `DistanceCanHear` are `16384` on all 46; file `0xEE4` is 50
+on all 46 but the Horned Reaper, where it is 0; the state labels 6, 202 and 251.
 
 **STRONGLY INFERRED:** that `0x0045BDF0` is the non-combatant rule rather than a
 general one — it is what `FightStyle` 0 dispatches to, its two creatures are the
-Imp and Jack, and now that all four fighting arms are read, none of them
-contains its heart test or its target writes.
+Imp and Jack, and none of the four fighting arms has its heart test, its hero
+filter or its disengagements.
 
-**UNKNOWN:** what the near-the-heart path decides, `+0x3EA` bit 6, `+0x3E6`
-bit 12, `def+0x760`, and the score the competition starts from.
+**UNKNOWN:** the six items of §6.

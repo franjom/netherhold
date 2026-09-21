@@ -150,8 +150,10 @@ game action 26's handler, the possession path, and four elsewhere
 
 **`FUN_0045cb00` calls `FUN_0045bdf0`**, and that is where a target is chosen.
 It writes `creature+0x502` twelve times and, between two of them, calls
-`FUN_004752b0` — one of the four sites that `SetState`s **199**. The twelve are
-not twelve rules; `combat-target-selection.md` §3 reads them.
+`FUN_004752b0` — one of the four sites that `SetState`s **199**, reached only
+after a five-tile head-count of both sides. The twelve stores are one tentative
+commit, two restores and three inlined disengagements, read in
+`combat-target-selection.md` §3.2.
 
 That reverses the obvious reading. A creature does not enter "engaging in battle"
 and then look for someone to hit; **it acquires a target and entering the state
@@ -176,7 +178,9 @@ calls the field *fight type*.
 
 The rest of the `+0x4FE` record's layout, what `+0x3EA` bit 6 means, and what
 `AttackingSpecificCreature` is. Which enemy gets picked is
-`combat-target-selection.md` §5.
+`combat-target-selection.md` §5. **The sentinel `0xEA60` is answered there**: it
+is not a tag but "I disengaged, stop looking", which is why this acquirer reports
+success on seeing it.
 
 ## Confidence
 
