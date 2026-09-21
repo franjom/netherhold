@@ -45,6 +45,14 @@ into the repository** — not a function name, not a struct name, not a field na
 A Flame name may be *cited in a document* under ADR-0080 and may never appear in
 code.
 
+> **`dk2tools sgmap` now puts those identifiers one command away**, which is what
+> makes this rule easy to break by reflex. The tool reads the map outside the
+> repository and prints to the terminal; it writes nothing. Use it the way it was
+> used first — **derive the offset yourself, then ask the map what it calls it**,
+> so the map corroborates a reading instead of supplying one. A name that arrives
+> that way is Flame's and stays in the terminal or, cited as Flame's, in a
+> document.
+
 **3. OpenKeeper is reusable with attribution** (ADR-0003's second amendment,
 `THIRD-PARTY-NOTICES.md`) — **and its implementation is its guess, never
 evidence.** The owner's standing instruction: *"reference it and compare with
