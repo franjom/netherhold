@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -17,9 +17,11 @@ public class ArchitectureTests
     [InlineData("DK2.Core")]
     [InlineData("DK2.Data.Model")]
     [InlineData("DK2.Simulation")]
-    // DK2.Assets is guarded the same way, in DK2.Assets.Tests — the guard lives
-    // beside the assembly it guards rather than dragging an asset reference into
-    // the simulation's own tests.
+    [InlineData("DK2.Pathfinding")]
+    // DK2.Assets, DK2.Data, DK2.Presentation and DK2.AI are guarded the same way
+    // in their own test projects — the guard lives beside the assembly it guards
+    // rather than dragging references into the simulation's own tests. Between
+    // them the five files cover every assembly Unity loads, on both rules.
     public void SimulationAssemblies_DoNotReferenceUnity(string assemblyName)
     {
         var assembly = Assembly.Load(assemblyName);
