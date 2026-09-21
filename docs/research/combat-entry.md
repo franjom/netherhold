@@ -129,18 +129,46 @@ gate compares. And the value `spFighting` passes to the action-start wrapper is
 > action 17 copies it into the action block, where `creature+0x399` is the
 > **swing's** target. The state picks the enemy; the action carries it.
 
-## 7. What is left
+## 7. Acquisition drives the state, not the other way round
 
-**How a creature reaches the fight at all.** State **200 is never set by a
-literal** anywhere in the executable; state **199** — same label, handler
-`0x0045eb20` — is, from four sites, and that handler does its once-only work and
-then **calls `spFighting` directly** (`0x0045ec01`). Two of the four sites are
-inside the fleeing-adjacent sibling `FUN_004602e0` and one is at `0x0046172a`, so
-combat largely re-enters itself; the outside entry is **`FUN_004752b0`**, at
-`0x0047540e`, and it is unread.
+**`spFighting`'s first act is an acquisition gate**, and it is the four
+instructions after the rebase:
 
-That, and whatever writes `creature+0x502`, is the whole of what stands between a
-creature standing still and its enemy losing health.
+```
+CMP word[creature + 0x502],0   ; do I have a target?
+LEA EDI,[creature + 0x4FE]
+JNZ  ...                       ; yes -> straight on
+CALL 0x0045cb00                ; no  -> acquire one
+TEST EAX,EAX / JZ ...          ; acquisition can fail
+```
+
+So the target field is the fight's condition, and **`FUN_0045cb00` is the
+acquirer**. It has twelve callers: **six inside `spFighting` itself** — which is
+what the *"failed to re-aquire previous target"* assertion is about — one inside
+game action 26's handler, the possession path, and four elsewhere
+(`0x0045e9f0`, `0x00470e30`, `0x00481400` twice, `0x00488930`).
+
+**`FUN_0045cb00` calls `FUN_0045bdf0`**, and that is where a target is chosen:
+it writes `creature+0x502` on **twelve separate branches**, and between two of
+them it calls `FUN_004752b0` — one of the four sites that `SetState`s **199**.
+
+That reverses the obvious reading. A creature does not enter "engaging in battle"
+and then look for someone to hit; **it acquires a target and entering the state
+is a consequence**, written on the same branch. Which is why state 200 is set by
+no literal anywhere and 199 by four: the states are reached through acquisition
+and through combat re-entering itself, never announced from outside.
+
+The field's writers, for whoever reads `FUN_0045bdf0` next: **43 stores to
+`+0x502` across twelve functions**, concentrated in `FUN_0045bdf0` (12),
+`spFighting` (7), `FUN_0045cb00` (6), `FUN_004602e0` (5) and a cluster at
+`0x0045a550`–`0x0045b000` (7).
+
+## 8. What is left
+
+**What `FUN_0045bdf0`'s twelve branches choose between** — the actual rule for
+picking an enemy, which is the last thing between a creature standing still and
+its enemy losing health. Also unread: what `AttackingSpecificCreature` is, and
+the rest of the `+0x4FE` record's layout.
 
 ## Confidence
 
@@ -159,5 +187,10 @@ single entry into the block and the absence of any EDI write on that path; that
 state 199's handler ends in a call to `spFighting`; that state 200 is set by no
 literal and 199 by four.
 
-**UNKNOWN:** what writes `creature+0x502`, what `FUN_004752b0` is, the rest of
-the record's layout, and what `AttackingSpecificCreature` is.
+**CONFIRMED (binary):** the acquisition gate's four instructions; that
+`FUN_0045cb00` has exactly twelve call sites and six of them are in `spFighting`;
+that `FUN_0045bdf0` writes `+0x502` twelve times and calls `FUN_004752b0`, which
+sets state 199; the 43-store census of `+0x502`.
+
+**UNKNOWN:** the rule `FUN_0045bdf0` picks by, the rest of the `+0x4FE` record's
+layout, and what `AttackingSpecificCreature` is.
