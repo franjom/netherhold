@@ -164,13 +164,15 @@ The field's writers, for whoever reads `FUN_0045bdf0` next: **43 stores to
 `spFighting` (7), `FUN_0045cb00` (6), `FUN_004602e0` (5) and a cluster at
 `0x0045a550`–`0x0045b000` (7).
 
-## 9. The selector judges one candidate, and rolls back
+## 9. The NonFighter selector judges one candidate, and rolls back
 
-`fun_45BDF0` is `thiscall (CCreature*, int32) -> int16` — a **tag** out. It is
-not a search over every enemy: it evaluates **one candidate creature**, held in
-`ESI`, and either commits to it or puts things back.
+`0x0045BDF0` is `thiscall (CCreature*, int32) -> int16` — a **tag** out. §10 shows
+it is the **NonFighter** arm, which only the **Imp** and **Jack** ever run, and
+everything in it reads as that once you know: it is not a search over every
+enemy but a judgement of **one candidate creature**, held in `ESI`, which it
+either commits to or puts back.
 
-**It opens by measuring the way home.** Before anything else it takes the
+**It opens by measuring the way home** — which is what a worker would do. Before anything else it takes the
 creature's own player (`creature+0x2A`), asks it for the dungeon heart's
 position, converts that tile to 1/4096 units with a half-tile centre offset
 (`<<12`, `+0x800`), and squares the absolute differences against the creature's
@@ -187,7 +189,8 @@ word[cand + 0x502] == 0        ; it has no target of its own
 and byte[cand + 0x3EA] & 0x40  ; and it carries this flag
 ```
 
-so a creature already busy with somebody else is refused.
+so it engages **only somebody already coming for it**. For a non-combatant that
+is the whole rule: fight back, never pick a fight.
 
 **The commit is tentative, and this is what the twelve stores are.** On
 acceptance the candidate's tag goes into `creature+0x502` and **the previous
@@ -206,10 +209,9 @@ stashed tag is **written back**. So:
 choosing an enemy. Eleven of the twelve are rollback and teardown; exactly one
 takes a target.
 
-## 10. There are five selectors, and the creature's own definition picks one
+## 10. `FightStyle` picks the selector — the field's consumer, found
 
-`fun_45BDF0` is not *the* target chooser. Inside the acquirer, immediately
-before the call, sits a five-arm jump table:
+Inside the acquirer, immediately before the call, sits a five-arm jump table:
 
 ```
 EDX = creature[0x370]          ; the compact definition
@@ -217,18 +219,36 @@ AL  = byte[EDX + 0x67E]        ; 0..4, else the default arm
 JMP [EAX*4 + 0x45E174]
 ```
 
-| arm | routine | size |
-|---|---|---|
-| 0 | `0x0045B140` | 0x2D7 |
-| 1 | `0x0045B500` | 0x300 |
-| 2 | `0x0045B800` | 0x2C5 |
-| 3 | `0x0045BAD0` | 0x315 |
-| 4 | `0x0045BDF0` | 0x7DC |
+`def+0x67E` is loaded from **file offset `0x0F03`**, by a guarded store at
+`0x0049347A` taking `EBP+0x12F3` — the `0x3F0` frame delta again. That offset is
+**`FightStyle`**, which this project already parses and *nothing reads*
+(`KwdCreatures`, `manual-1999.md` § the editor's enum). **So `FightStyle` selects
+which routine chooses a creature's enemy.** It also fills the slot `training.md`
+§4 observed the experience run skipping.
 
-All five take `(creature, int32)` and return a **word** — a tag. So **target
-selection is a per-creature-type strategy**, and §9 read arm 4, which is nearly
-three times the size of any other. The strategy's return is then compared
-against the sentinel **`0xEA60`** (60000).
+**The table is not in index order**, which is worth stating because assuming it
+was inverted the reading once:
+
+| `FightStyle` | routine | size | the shipped creatures |
+|---|---|---|---|
+| 0 `NonFighter` | **`0x0045BDF0`** | 0x7DC | Imp, Jack |
+| 1 `Blitzer` | `0x0045B800` | 0x2C5 | Mistress, Vampire, Dark Angel, Horny, King Reginald, + 5 uniques |
+| 2 `Blocker` | `0x0045B140` | 0x2D7 | Bile Demon, Troll, Giant, Knight, Black Knight, Guard, Royal Guard, Stone Knight, Lord Of The Land, three princes, Maiden Of The Nest, + 2 uniques |
+| 3 `Flanker` | `0x0045BAD0` | 0x315 | Goblin, Skeleton, Salamander, Firefly, Dwarf, Thief, Monk, Fairy, Rogue, + 4 uniques |
+| 4 `Support` | `0x0045B500` | 0x300 | Warlock, Dark Elf, Wizard, Elven Archer, + 2 uniques |
+
+All five take `(creature, int32)` and return a **word** — a tag — and the return
+is compared against the sentinel **`0xEA60`** (60000). The rosters are the whole
+shipped file, 46 records read at `0x0F03`, and they corroborate DK2's own names
+without any of the four unread arms being opened: `Support` is exactly the four
+ranged archetypes and their uniques, `Blocker` exactly the heavy melee, and
+`NonFighter` exactly the two creatures that do not fight.
+
+**That the biggest of the five is `NonFighter` is the finding**, not a curiosity.
+Deciding *not* to fight is the complicated case: §9's distance to one's own
+dungeon heart, its two calls into a withdraw-from-fight state, its
+engage-only-what-engages-me gate and its heavy rollback are all a worker's
+reluctance, and none of it generalises to how a Knight picks a fight.
 
 **Before the dispatch, a re-acquisition path.** `word[creature + 0x482]` is
 resolved through the liveness and thing tables; if it is live, `word[thing +
@@ -248,10 +268,11 @@ maps a file offset to the loader's **staging** struct, not to the runtime one
 
 ## 11. What is left
 
-The strategy byte's origin and meaning, and the four selectors not yet read.
-Also: the two predicates arm 4's commit is tried against (`0x00460b50`, and
-`0x004512F0` with its five-tile argument), what `+0x3EA` bit 6 means, what
-`AttackingSpecificCreature` is, and the rest of the `+0x4FE` record.
+**The four selectors that matter for a fight** — `Blitzer`, `Blocker`, `Flanker`
+and `Support` — none of which is read. Also: the two predicates the NonFighter
+commit is tried against (`0x00460b50`, and `0x004512F0` with its five-tile
+argument), what `+0x3EA` bit 6 means, what `AttackingSpecificCreature` is, and
+the rest of the `+0x4FE` record.
 
 ## Confidence
 
@@ -280,11 +301,20 @@ distance to its own keeper's heart before anything else; the mutual acceptance
 gate; that the commit stashes the previous target and restores it on failure, so
 one of the twelve stores takes a target and eleven undo or clear.
 
-**CONFIRMED (binary):** the five-arm dispatch, its jump table and all five
-targets; that the five share a signature returning a tag; the re-acquisition
-path ahead of it; that `+0x67E` is a definition field, from `CCreature`'s size;
-that its only writers are a constructor, a copy and `FUN_00492320`.
+**CONFIRMED (binary):** the five-arm dispatch, its jump table read entry by
+entry, and all five targets; that the five share a signature returning a tag;
+the re-acquisition path ahead of it; that `+0x67E` is a definition field, from
+`CCreature`'s size; the loader pair `EBP+0x12F3` → `def+0x67E` and so the file
+offset `0x0F03`.
 
-**UNKNOWN:** where the strategy byte comes from, the four unread selectors, the
-two predicates arm 4 tries, `+0x3EA` bit 6, the rest of the `+0x4FE` record, and
-what `AttackingSpecificCreature` is.
+**CONFIRMED (data):** the `FightStyle` of all 46 shipped creatures, read from
+`Creatures.kwd` at `0x0F03`.
+
+**STRONGLY INFERRED:** that `0x0045BDF0` is the non-combatant rule rather than a
+general one — it is what `FightStyle` 0 dispatches to and its two creatures are
+the Imp and Jack, but the other four arms are unread, so nothing here compares
+them.
+
+**UNKNOWN:** the four unread selectors, the two predicates the NonFighter commit
+tries, `+0x3EA` bit 6, the rest of the `+0x4FE` record, and what
+`AttackingSpecificCreature` is.

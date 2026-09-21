@@ -1,4 +1,4 @@
-# Mechanic: training, and the four rates that share its shape
+﻿# Mechanic: training, and the four rates that share its shape
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-07
@@ -104,6 +104,8 @@ runtime fields, and **four of the five are divided as they are stored**:
 The frame-to-record delta is the established `0x3F0` (`payday.md` §6), and the
 mapping is airtight in both directions: the file record skips `0x0F02` (two
 `u8`s, `JobClass` and `FightStyle`) and the loader's run skips that frame slot.
+**`FightStyle` is loaded all the same**, separately to `def+0x67E`, where it
+picks one of five target selectors (`combat-entry.md` §10).
 
 **The divisor is `[0x006E4154 + 0x40]`, which is variable 19** — the same
 globals block and the same slot payday already used for its percentage table.
