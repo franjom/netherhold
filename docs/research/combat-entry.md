@@ -148,9 +148,10 @@ what the *"failed to re-aquire previous target"* assertion is about — one insi
 game action 26's handler, the possession path, and four elsewhere
 (`0x0045e9f0`, `0x00470e30`, `0x00481400` twice, `0x00488930`).
 
-**`FUN_0045cb00` calls `FUN_0045bdf0`**, and that is where a target is chosen:
-it writes `creature+0x502` on **twelve separate branches**, and between two of
-them it calls `FUN_004752b0` — one of the four sites that `SetState`s **199**.
+**`FUN_0045cb00` calls `FUN_0045bdf0`**, and that is where a target is chosen.
+It writes `creature+0x502` twelve times and, between two of them, calls
+`FUN_004752b0` — one of the four sites that `SetState`s **199**. The twelve are
+not twelve rules; §9 reads them.
 
 That reverses the obvious reading. A creature does not enter "engaging in battle"
 and then look for someone to hit; **it acquires a target and entering the state
@@ -163,12 +164,55 @@ The field's writers, for whoever reads `FUN_0045bdf0` next: **43 stores to
 `spFighting` (7), `FUN_0045cb00` (6), `FUN_004602e0` (5) and a cluster at
 `0x0045a550`–`0x0045b000` (7).
 
-## 8. What is left
+## 9. The selector judges one candidate, and rolls back
 
-**What `FUN_0045bdf0`'s twelve branches choose between** — the actual rule for
-picking an enemy, which is the last thing between a creature standing still and
-its enemy losing health. Also unread: what `AttackingSpecificCreature` is, and
-the rest of the `+0x4FE` record's layout.
+`fun_45BDF0` is `thiscall (CCreature*, int32) -> int16` — a **tag** out. It is
+not a search over every enemy: it evaluates **one candidate creature**, held in
+`ESI`, and either commits to it or puts things back.
+
+**It opens by measuring the way home.** Before anything else it takes the
+creature's own player (`creature+0x2A`), asks it for the dungeon heart's
+position, converts that tile to 1/4096 units with a half-tile centre offset
+(`<<12`, `+0x800`), and squares the absolute differences against the creature's
+own position at `+0x1A`/`+0x1E`. So **the creature's squared distance from its
+own heart is an input to the decision**, computed first. Flame's map calls that
+accessor `getDungeonHeartPosition`; the instructions say the same thing
+independently, which is the only reason it is repeated here (ADR-0080).
+
+**The acceptance gate is mutual.** A candidate passes only if
+
+```
+word[cand + 0x502] == 0        ; it has no target of its own
+  or word[cand + 0x502] == our own tag   ; or its target is us
+and byte[cand + 0x3EA] & 0x40  ; and it carries this flag
+```
+
+so a creature already busy with somebody else is refused.
+
+**The commit is tentative, and this is what the twelve stores are.** On
+acceptance the candidate's tag goes into `creature+0x502` and **the previous
+target is stashed** in a local. A predicate then runs (`0x00460b50`), and a map
+query with `0x5000` — five tiles in 1/4096 units — follows. If a check fails the
+stashed tag is **written back**. So:
+
+| stores | what they are |
+|---|---|
+| 1 | take the new candidate |
+| 5 | **restore** the previous target after a failed check |
+| 6 | **clear** the target, some also zeroing two word arrays at fight `+0x6` and `+0x16` |
+
+**A correction to this document.** Its previous revision said the selector
+"writes the target on twelve separate branches", which read as twelve ways of
+choosing an enemy. Eleven of the twelve are rollback and teardown; exactly one
+takes a target.
+
+## 10. What is left
+
+**Where the candidate comes from** — `ESI` arrives from outside this routine, so
+the enumeration of who is even considered is in `FUN_0045cb00` or its caller.
+Also unread: the two predicates the commit is tried against (`0x00460b50`, and
+`0x004512F0` with its five-tile argument), what the `+0x3EA` bit 6 means, what
+`AttackingSpecificCreature` is, and the rest of the `+0x4FE` record.
 
 ## Confidence
 
@@ -192,5 +236,11 @@ literal and 199 by four.
 that `FUN_0045bdf0` writes `+0x502` twelve times and calls `FUN_004752b0`, which
 sets state 199; the 43-store census of `+0x502`.
 
-**UNKNOWN:** the rule `FUN_0045bdf0` picks by, the rest of the `+0x4FE` record's
-layout, and what `AttackingSpecificCreature` is.
+**CONFIRMED (binary):** that the selector measures the creature's squared
+distance to its own keeper's heart before anything else; the mutual acceptance
+gate; that the commit stashes the previous target and restores it on failure, so
+one of the twelve stores takes a target and eleven undo or clear.
+
+**UNKNOWN:** where the candidate comes from, the two predicates the commit is
+tried against, `+0x3EA` bit 6, the rest of the `+0x4FE` record, and what
+`AttackingSpecificCreature` is.
