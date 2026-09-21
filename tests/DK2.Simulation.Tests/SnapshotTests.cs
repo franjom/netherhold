@@ -36,6 +36,13 @@ public class SnapshotTests
         original.World.Triggers.StartTimer(0, now: 11);
         original.World.Triggers.StartTimer(15, now: -4);
         original.World.Triggers.Write(TriggerState.SpecialFlagId, FlagWriteMode.Assign, 0x7FFFFFFF);
+        TriggerRecord option = new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = 0xFFFF, Type = 45,
+            Parameters = new Dictionary<string, long> { ["Available"] = 0 },
+        };
+        new TriggerExecutor(
+            new TriggerTree([option], 0xFFFF), original.World.Triggers).Run(1);
 
         GameSimulation restored = WorldSnapshot.FromBytes(
             WorldSnapshot.ToBytes(original), TestWorld.Database(), [new ChaosSystem()]);
@@ -50,6 +57,7 @@ public class SnapshotTests
         Assert.Equal(-4, restored.World.Triggers.ReadTimer(15));
         Assert.Equal(0x7FFFFFFF, restored.World.Triggers.SpecialValue);
         Assert.True(restored.World.Triggers.SpecialValueWritten);
+        Assert.False(restored.World.Triggers.NotificationsEnabled);
     }
 
     [Fact]

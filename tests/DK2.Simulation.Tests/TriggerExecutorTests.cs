@@ -926,7 +926,7 @@ public class TriggerExecutorTests
     /// <summary>The room list types 24 and 25 read is built once per <see cref="Run"/> and
     /// held for the whole walk (ADR-0114). That is only sound while <b>no action this
     /// executor performs can alter terrain</b> — a flag write, a timer start and party
-    /// arming cannot. This pins the set so that adding a fourth is a failure here rather
+    /// arming cannot. This pins the set so that adding another is a failure here rather
     /// than a room condition silently reading the map as it was before the write.</summary>
     [Fact]
     public void OnlyActionsThatCannotAlterTerrainArePerformed()
@@ -937,7 +937,7 @@ public class TriggerExecutorTests
         byte[] performed = Enumerable.Range(0, 256)
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
-        Assert.Equal([(byte)1, (byte)7, (byte)8, (byte)14, (byte)22], performed);
+        Assert.Equal([(byte)1, (byte)7, (byte)8, (byte)14, (byte)22, (byte)44, (byte)45], performed);
     }
 
     /// <summary>Action type 22's coordinates are <b>one-based</b>: the arm at
@@ -1408,7 +1408,6 @@ public class TriggerExecutorTests
     [Theory]
     [InlineData((byte)5)]
     [InlineData((byte)17)]
-    [InlineData((byte)45)]
     [InlineData((byte)51)]
     public void AnActionDk2SucceedsAtDescendsAndCountsAsPartial(byte type)
     {
@@ -1421,6 +1420,44 @@ public class TriggerExecutorTests
         Assert.Equal(1, state.Read(3));
         Assert.Equal(new BlockedTrigger(214, type, 0xFFFF, TriggerContext.World), Assert.Single(result.Partial));
         Assert.Empty(result.Unhandled);
+    }
+
+    [Theory]
+    [InlineData((byte)44)]
+    [InlineData((byte)45)]
+    public void WorldOptionActionsUseOnlyLiteralOneAsEnabled(byte type)
+    {
+        var state = new TriggerState();
+
+        TriggerRunResult disabled = new TriggerExecutor(
+            new TriggerTree([WorldOptionAction(1, type, 2)], 0xFFFF), state).Run(1);
+
+        Assert.False(type == 44 ? state.CreatureAngerEnabled : state.NotificationsEnabled);
+        Assert.Empty(disabled.Partial);
+
+        TriggerRunResult enabled = new TriggerExecutor(
+            new TriggerTree([WorldOptionAction(2, type, 1)], 0xFFFE), state).Run(2);
+
+        Assert.True(type == 44 ? state.CreatureAngerEnabled : state.NotificationsEnabled);
+        Assert.Empty(enabled.Partial);
+    }
+
+    [Fact]
+    public void DisabledWorldAngerOptionRefusesEveryAngerDelta()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        CreatureDef definition = database.CreatureById(Dk2TerrainFixture.GoblinCreatureId);
+        CreatureState creature = world.SpawnCreature(
+            database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(3, 3));
+
+        new TriggerExecutor(
+            new TriggerTree([WorldOptionAction(1, 44, 0)], 0xFFFF),
+            world.Triggers, world, database).Run(1);
+
+        Assert.Equal(0, CreatureAngerRules.Apply(
+            world, definition, creature, AngerBucket.Treatment, 3000));
+        Assert.Equal(0, creature.Anger.Treatment);
     }
 
     /// <summary>And an action DK2 itself refuses must not: its dispatcher prints
@@ -1645,6 +1682,8 @@ public class TriggerExecutorTests
     [InlineData(214, (byte)7)]
     [InlineData(214, (byte)8)]
     [InlineData(214, (byte)14)]
+    [InlineData(214, (byte)44)]
+    [InlineData(214, (byte)45)]
     public void EveryTypeWeImplementIsOneThePlayerDispatcherDelegates(int tag, byte type)
     {
         // A record of that type in a player tree must reach the same code as in a world
@@ -1689,7 +1728,15 @@ public class TriggerExecutorTests
             {
                 ["FlagId"] = 3, ["Flag"] = 0x0A, ["Value"] = 1, ["TimerId"] = 0,
                 ["PartyId"] = 0, ["PartyType"] = 0, ["ActionPointId"] = 0,
+                ["Available"] = 1,
             },
+        };
+
+    private static TriggerRecord WorldOptionAction(ushort id, byte type, byte available) =>
+        new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = type,
+            Parameters = new Dictionary<string, long> { ["Available"] = available },
         };
 
     // A party root (5) whose subtree writes flag 3, a spare member subtree (7) linked from

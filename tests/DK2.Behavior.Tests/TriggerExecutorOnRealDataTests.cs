@@ -35,7 +35,7 @@ public class TriggerExecutorOnRealDataTests
 
         // Actions, which descend whatever we do because their dispatcher succeeds.
         Assert.Equal(
-            "214:14@World=2,214:17@Player=2,214:24@Player=2,214:31@Player=2,214:38@Player=2,214:44@Player=1,214:45@Player=1",
+            "214:14@World=2,214:17@Player=2,214:24@Player=2,214:31@Player=2,214:38@Player=2",
             Census(simulation.LastTriggerRun!.PartialSummary));
 
         // Nothing on level 1's opening turn reaches a type DK2 itself refuses.

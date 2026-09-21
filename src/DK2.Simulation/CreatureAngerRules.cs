@@ -57,6 +57,13 @@ public static class CreatureAngerRules
         return state.Anger[bucket] - before;
     }
 
+    public static int Apply(
+        WorldState world, CreatureDef creature, CreatureState state,
+        AngerBucket bucket, int delta) =>
+        world.Triggers.CreatureAngerEnabled
+            ? Apply(creature, state, bucket, delta)
+            : 0;
+
     /// <summary>The anger a creature must <b>exceed</b> to be angry: the ceiling itself. No variable
     /// states it — it is the owner's 2:1 ratio, angry at twice the time unhappy took.</summary>
     public static int AngryAt(CreatureDef creature) => Ceiling;
@@ -122,6 +129,13 @@ public static class CreatureAngerRules
         }
     }
 
+    public static void Apply(
+        WorldState world, CreatureDef creature, CreatureState state, CreatureAnger delta)
+    {
+        if (!world.Triggers.CreatureAngerEnabled) return;
+        Apply(creature, state, delta);
+    }
+
     /// <summary>Whether this creature can be angered at all — one flag read from the record. False
     /// for the Skeleton and Jack, the two carrying <see cref="CreatureFlags2.NeverAngered"/>, whose
     /// doc has the trap: Jack's anger values are populated and DK2 reads none of them, so deriving
@@ -138,12 +152,18 @@ public static class CreatureAngerRules
     public static int Slap(CreatureDef creature, CreatureState state) =>
         Apply(creature, state, AngerBucket.Treatment, creature.AngerSlap);
 
+    public static int Slap(WorldState world, CreatureDef creature, CreatureState state) =>
+        Apply(world, creature, state, AngerBucket.Treatment, creature.AngerSlap);
+
     /// <summary>Being held in the Hand of Evil: <c>AngerInHand</c>, which <b>calms</b> most
     /// creatures (−250 for a Goblin, −500 for a Warlock) and annoys Jack (+500). A rate, not a
     /// one-shot (ADR-0062): once a game second, from twenty seconds after the pick-up
     /// (<see cref="HandRules.AngerDueThisTick"/>), so parking a creature in the hand calms it.</summary>
     public static int Held(CreatureDef creature, CreatureState state) =>
         Apply(creature, state, AngerBucket.Treatment, creature.AngerInHand);
+
+    public static int Held(WorldState world, CreatureDef creature, CreatureState state) =>
+        Apply(world, creature, state, AngerBucket.Treatment, creature.AngerInHand);
 
     /// <summary>How long an angry creature must wait between selections that came to something:
     /// <b>five game seconds</b>, the original's <c>5 x</c> variable 19 (Q122, ADR-0061). What the

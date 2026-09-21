@@ -107,7 +107,8 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             int anger = PrisonRules.AngerPerFailedFoodSearch(definition);
             if (anger != 0)
             {
-                CreatureAngerRules.Apply(definition, creature, AngerBucket.Hunger, anger);
+                CreatureAngerRules.Apply(
+                    world, definition, creature, AngerBucket.Hunger, anger);
                 context.Emit(SystemName, "prisoner_no_food",
                     $"creature={creature.Id} type={definition.Name} " +
                     $"player={creature.OwnerPlayerId} " +

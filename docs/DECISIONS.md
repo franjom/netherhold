@@ -3638,3 +3638,26 @@ picked lock holds even a mode-3 door open (`0x004A5D52`).
 - Our eligibility still uses `CreatureDeathRules.IsDown` where DK2 tests
   `CreatureDying` alone, a door wider than the original's by at most the tick
   window in which a creature is out of health and not yet booked as collapsed.
+
+## ADR-0160 — Trigger actions 44 and 45 control saved world gates
+
+**Status.** Accepted 2026-09-21 · `HashVersion` 65 · Research:
+`docs/research/trigger-dispatch-tables.md`, `creature-anger.md`.
+
+**Context.** Level 1 reaches one action of each type on its first turn and the
+executor reported both Partial. Their adjacent world-dispatch arms had not been
+read. ADR-0120 also forecast that player action 38 would mutate spell
+availability; reading that arm refuted the forecast.
+
+**Decision.** Preserve the world byte's low option bits on `TriggerState`,
+initially `0x07` as DK2 initialises them. Type 44 replaces bit 0 and type 45 bit
+1; only parameter value 1 enables a bit. Bit 0 gates every simulated anger
+delta while leaving mood recomputation intact. Bit 1 is exposed as the ordinary
+notification gate, but drives no queue because notifications are presentation
+state and this simulation has none. Hash and snapshot the whole byte.
+
+**Consequences.** Types 44 and 45 leave the Partial census. Level 1's first
+turn therefore has five Partial action groups instead of seven. Keeper-spell
+availability remains level data: action 38 is a presentation command, not its
+writer. The third initially-set bit is retained but unnamed; action 51 and its
+consumer remain unimplemented.

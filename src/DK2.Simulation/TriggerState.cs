@@ -65,6 +65,22 @@ public sealed class TriggerState
     private readonly byte[] _flags = new byte[FlagCount];
     private readonly int[] _timers = new int[TimerCount];
     private readonly Dictionary<(int Tag, ushort Id), TriggerRecordState> _records = [];
+    private byte _worldOptions = 0x07;
+
+    /// <summary>Whether anger deltas may change a creature's six counters.</summary>
+    public bool CreatureAngerEnabled => (_worldOptions & 0x01) != 0;
+
+    /// <summary>Whether ordinary notifications may enter the presentation queue.</summary>
+    public bool NotificationsEnabled => (_worldOptions & 0x02) != 0;
+
+    internal void SetCreatureAngerEnabled(bool enabled) => SetWorldOption(0x01, enabled);
+
+    internal void SetNotificationsEnabled(bool enabled) => SetWorldOption(0x02, enabled);
+
+    private void SetWorldOption(byte mask, bool enabled) =>
+        _worldOptions = enabled
+            ? (byte)(_worldOptions | mask)
+            : (byte)(_worldOptions & ~mask);
 
     /// <summary>The value written when an action names <see cref="SpecialFlagId"/>.
     /// Opaque: see that constant.</summary>
@@ -206,6 +222,11 @@ public sealed class TriggerState
 
     internal byte[] RawFlags => _flags;
     internal int[] RawTimers => _timers;
+    internal byte RawWorldOptions
+    {
+        get => _worldOptions;
+        set => _worldOptions = value;
+    }
     internal IEnumerable<KeyValuePair<(int Tag, ushort Id), TriggerRecordState>> RawRecords =>
         _records.OrderBy(p => p.Key.Tag).ThenBy(p => p.Key.Id);
 
@@ -243,6 +264,7 @@ public sealed class TriggerState
         foreach (int t in _timers) hash.Add(t);
         hash.Add(SpecialValue);
         hash.Add(SpecialValueWritten ? (byte)1 : (byte)0);
+        hash.Add(_worldOptions);
         hash.Add(_records.Count);
         foreach (((int tag, ushort id), TriggerRecordState record) in RawRecords)
         {

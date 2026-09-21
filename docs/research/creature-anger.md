@@ -188,9 +188,9 @@ untouched by this: Q106 measured the *band*, which is still 16383 and 32767, and
 the saturation above it is invisible to any observation. Angry is `> 32767`
 rather than `>= 32767`, from the routine's own comparison.
 
-The add is skipped entirely — the mood still recomputed — when
-`DAT_006dc424 + 0x72a1 & 1` is clear. A global option, unidentified, presumably
-"creatures never get angry". Not modelled; Q202 carries it.
+The add is skipped — the mood still recomputed — when world byte `+0x72a1` bit
+0 is clear. Action 44 writes it and the world starts set (`trigger-dispatch-tables.md`).
+Every simulated anger source reproduces the gate (ADR-0160); its UI label is unknown.
 
 ## Two creatures have no anger at all, and it is a flag (Q210)
 
