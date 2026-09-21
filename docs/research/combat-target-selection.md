@@ -143,7 +143,8 @@ Then, per candidate and in this order:
 5. **The score. This one line is the whole difference between the arms**, and §5
    tabulates it. **Lower wins**: `if (score >= best) skip`.
 6. **The gates**, reached only by a candidate that beat the best.
-   `byte[cand+0x3EA] & 0x40` must be set. Then `word[cand+0x4A3]` must not equal
+   `byte[cand+0x3EA] & 0x40` must be set — bit 6 is **`IsAttackable`**, named by
+   DK2's own dumper in `creature-object.md`. Then `word[cand+0x4A3]` must not equal
    my player id: `+0x4A3` is **`SneakingAs`** (`hand-of-evil.md`, `prison.md`),
    so **a creature disguised as my keeper is not attacked**, the disguise working
    on target selection and not only on the hand. Then **either** within
@@ -366,9 +367,9 @@ initiates while any melee-engaged enemy is in range.
 Small and named. What sets `+0x3E6` bit 12 (§2 step 3 enumerates every reader and
 rules out an immediate). What `def+0x760`'s file field `0xEE4` should be called,
 and the per-level table at `dword[0x006E4154] + 0x2A3` it is scaled by. What
-`0x00494360`'s definition byte means (§3.1). What `+0x3EA` bit 6 is. The score the
-acquirer starts the competition from. And the rest of the `+0x4FE` record, which
-`combat-entry.md` owns.
+`0x00494360`'s definition byte means (§3.1). The score the acquirer starts the
+competition from. And the rest of the `+0x4FE` record, which `combat-entry.md`
+owns.
 
 ## Confidence
 
@@ -394,4 +395,4 @@ general one — it is what `FightStyle` 0 dispatches to, its two creatures are t
 Imp and Jack, and none of the four fighting arms has its heart test, its hero
 filter or its disengagements.
 
-**UNKNOWN:** the six items of §6.
+**UNKNOWN:** the five items of §6.

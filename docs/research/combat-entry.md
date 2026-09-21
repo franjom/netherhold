@@ -176,8 +176,8 @@ calls the field *fight type*.
 
 ## 9. What is left
 
-The rest of the `+0x4FE` record's layout, what `+0x3EA` bit 6 means, and what
-`AttackingSpecificCreature` is. Which enemy gets picked is
+The rest of the `+0x4FE` record's layout, and what `AttackingSpecificCreature`
+is. Which enemy gets picked is
 `combat-target-selection.md` §5. **The sentinel `0xEA60` is answered there**: it
 is not a tag but "I disengaged, stop looking", which is why this acquirer reports
 success on seeing it.
@@ -199,4 +199,5 @@ twelve call sites, six of them in `spFighting`.
 from the start it guards.
 
 **UNKNOWN:** the rest of the `+0x4FE` record's layout, and what
-`AttackingSpecificCreature` is.
+`AttackingSpecificCreature` is. `+0x3EA` bit 6 was listed here and is
+`IsAttackable`, already named in `creature-object.md`.
