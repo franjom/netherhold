@@ -206,12 +206,51 @@ stashed tag is **written back**. So:
 choosing an enemy. Eleven of the twelve are rollback and teardown; exactly one
 takes a target.
 
-## 10. What is left
+## 10. There are five selectors, and the creature's own definition picks one
 
-**Where the candidate comes from** — `ESI` arrives from outside this routine, so
-the enumeration of who is even considered is in `FUN_0045cb00` or its caller.
-Also unread: the two predicates the commit is tried against (`0x00460b50`, and
-`0x004512F0` with its five-tile argument), what the `+0x3EA` bit 6 means, what
+`fun_45BDF0` is not *the* target chooser. Inside the acquirer, immediately
+before the call, sits a five-arm jump table:
+
+```
+EDX = creature[0x370]          ; the compact definition
+AL  = byte[EDX + 0x67E]        ; 0..4, else the default arm
+JMP [EAX*4 + 0x45E174]
+```
+
+| arm | routine | size |
+|---|---|---|
+| 0 | `0x0045B140` | 0x2D7 |
+| 1 | `0x0045B500` | 0x300 |
+| 2 | `0x0045B800` | 0x2C5 |
+| 3 | `0x0045BAD0` | 0x315 |
+| 4 | `0x0045BDF0` | 0x7DC |
+
+All five take `(creature, int32)` and return a **word** — a tag. So **target
+selection is a per-creature-type strategy**, and §9 read arm 4, which is nearly
+three times the size of any other. The strategy's return is then compared
+against the sentinel **`0xEA60`** (60000).
+
+**Before the dispatch, a re-acquisition path.** `word[creature + 0x482]` is
+resolved through the liveness and thing tables; if it is live, `word[thing +
+0x4D0]` is read and, if *that* is live, it becomes the answer and **no strategy
+runs at all**. This is what `spFighting`'s *"failed to re-aquire previous
+target"* assertion is about.
+
+**The strategy byte is on the definition, not the creature**, which is settled
+rather than assumed: `CCreature` is `0x53F` bytes, so `+0x67E` cannot be on it.
+Its only three writers are that definition's **constructor**, a
+definition-to-definition **copy**, and `FUN_00492320` (`combat-cadence.md` §5
+asks separately whether that one is live). **No file-load site is among them**,
+so whether the strategy id is shipped per creature or computed is UNKNOWN — and
+it cannot be answered by subtracting `0x3F0` from `0x67E`, because that constant
+maps a file offset to the loader's **staging** struct, not to the runtime one
+(`library-and-research.md` has the worked pair).
+
+## 11. What is left
+
+The strategy byte's origin and meaning, and the four selectors not yet read.
+Also: the two predicates arm 4's commit is tried against (`0x00460b50`, and
+`0x004512F0` with its five-tile argument), what `+0x3EA` bit 6 means, what
 `AttackingSpecificCreature` is, and the rest of the `+0x4FE` record.
 
 ## Confidence
@@ -241,6 +280,11 @@ distance to its own keeper's heart before anything else; the mutual acceptance
 gate; that the commit stashes the previous target and restores it on failure, so
 one of the twelve stores takes a target and eleven undo or clear.
 
-**UNKNOWN:** where the candidate comes from, the two predicates the commit is
-tried against, `+0x3EA` bit 6, the rest of the `+0x4FE` record, and what
-`AttackingSpecificCreature` is.
+**CONFIRMED (binary):** the five-arm dispatch, its jump table and all five
+targets; that the five share a signature returning a tag; the re-acquisition
+path ahead of it; that `+0x67E` is a definition field, from `CCreature`'s size;
+that its only writers are a constructor, a copy and `FUN_00492320`.
+
+**UNKNOWN:** where the strategy byte comes from, the four unread selectors, the
+two predicates arm 4 tries, `+0x3EA` bit 6, the rest of the `+0x4FE` record, and
+what `AttackingSpecificCreature` is.
