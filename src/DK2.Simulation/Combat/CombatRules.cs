@@ -57,6 +57,11 @@ public static class CombatRules
 
     public static bool IsFighting(CreatureState creature) => creature.Activity == CreatureActivity.Fighting;
 
+    /// <summary>DK2's state group 22 with the withdraw walk: fighting, fleeing or withdrawing — the
+    /// states the job systems leave alone.</summary>
+    public static bool InCombat(CreatureState creature) =>
+        creature.Activity is CreatureActivity.Fighting or CreatureActivity.Fleeing or CreatureActivity.Withdrawing;
+
     /// <summary>The engagement's registration on its target: the first free slot of the melee or
     /// the ranged array. False when all eight are taken, and then the attacker does not engage.</summary>
     public static bool Register(CreatureState target, int attackerId, bool ranged)
@@ -140,12 +145,14 @@ public static class CombatRules
 
     /// <summary>The gate <c>0x0045A6D0</c>: may this creature look for a fight? Refused for a captive,
     /// one asleep, one leaving unless forced, one in the hand unless forced, the possessed
-    /// creature and a dying one. Not modelled: frozen and chickened timers, hypnosis, the flee and
-    /// threat-response states, the Call to Arms radius (Q361) and the Horned Reaper's states.</summary>
+    /// creature, a dying one and one walking to its withdraw destination unless forced. Not modelled:
+    /// frozen and chickened timers, hypnosis, the threat-response state, the Call to Arms radius
+    /// (Q361) and the Horned Reaper's states.</summary>
     public static bool MayLookForAFight(WorldState world, CreatureState creature, bool force) =>
         !PrisonRules.IsImprisoned(creature)
         && creature.Activity != CreatureActivity.Sleeping
         && (creature.Activity != CreatureActivity.Leaving || force)
+        && (creature.Activity != CreatureActivity.Withdrawing || force)
         && (!HandRules.IsHeld(creature) || force)
         && !CreatureDeathRules.IsPossessed(world, creature)
         && !CreatureDeathRules.IsDown(creature);
@@ -241,10 +248,11 @@ public static class CombatRules
         creature.FightTargetTileIndex = -1;
         creature.AttackType = 0;
         creature.AttackRangeSquared = 0;
-        if (!IsFighting(creature)) return;
+        if (!InCombat(creature)) return;
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
         creature.StopMoving();
+        creature.Running = false;
         creature.Activity = CreatureActivity.Idle;
     }
 }

@@ -885,27 +885,28 @@ internal static class Dk2TerrainFixture
 
     public const byte KnightCreatureId = 20;
 
-    /// <summary>A hero: the Goblin's record with the good alignment and the Blocker arm, so the
-    /// alignment discount and a hero's own acquisition have a creature to run on. The real
-    /// Knight's stats are not these and nothing here reads them.</summary>
+    /// <summary>A hero: the Goblin's record with the good alignment, the Blocker arm and no fear,
+    /// so the alignment discount, a hero's own acquisition and the retaliation rules have a
+    /// creature that stands its ground. The real Knight's stats are not these.</summary>
     public static CreatureDef Knight() => Goblin() with
     {
         Name = "Knight",
         CreatureId = KnightCreatureId,
         Flags = CreatureFlags.IsGood | CreatureFlags.GenerateDeadBody | CreatureFlags.CanWalkOnWater
-                | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped,
+                | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped | CreatureFlags.IsFearless,
         FightStyle = FightStyle.Blocker,
         LairObjectId = 0,
     };
 
     public const byte WarlockCreatureId = 21;
 
-    /// <summary>The Goblin's record with the Support arm, for the scores that prefer a crowded
-    /// enemy and the Blitzer's dive at the backline. Not the real Warlock's stats.</summary>
+    /// <summary>The Goblin's record with the Support arm and no fear, for the scores that prefer a
+    /// crowded enemy and the Blitzer's dive at the backline. Not the real Warlock's stats.</summary>
     public static CreatureDef Warlock() => Goblin() with
     {
         Name = "Warlock",
         CreatureId = WarlockCreatureId,
+        Flags = Goblin().Flags | CreatureFlags.IsFearless,
         FightStyle = FightStyle.Support,
         LairObjectId = 0,
     };
@@ -927,6 +928,12 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.RepairWallHealth, 22);
         Set(vars, VariableTypeId.ConvertRoomHealth, -4000);
         Set(vars, VariableTypeId.GoldMinedFromGems, 25);
+
+        // Fear (combat-fear.md): the back-off runs between these two, in ticks of the flee state;
+        // a fleeing creature counts heads within the guard room's reporting distance of its rooms.
+        Set(vars, VariableTypeId.BackOffMinimumDurationSeconds, 0);
+        Set(vars, VariableTypeId.BackOffMaximumDurationSeconds, 30);
+        Set(vars, VariableTypeId.GuardRoomReportingDistanceTiles, 7);
 
         // Creature needs. All four are the shipped values, and
         // CreatureNeedsOnRealDataTests reads them back out of the install so

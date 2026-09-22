@@ -32,7 +32,11 @@ beside it.
 
 ## Versions
 
-**69** — `0xA02044E4AE17A79B` (current). The target's kind, the heart it names,
+**70** — `0x05719C220035BA50` (current). `TempFear`, `CurrentFear`,
+`OverThreatCounter`, `BackOffTimer`, the run flag and the combat state's entry
+tick entered (ADR-0165). Composition only in the pinned fixture.
+
+**69** — `0xA02044E4AE17A79B`. The target's kind, the heart it names,
 `TimeLastUsedMelee`, and the swing in progress with its start tick and its own
 target entered (ADR-0164). Composition only in the pinned fixture.
 

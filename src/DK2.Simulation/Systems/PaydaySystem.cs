@@ -153,7 +153,7 @@ public sealed class PaydaySystem : ISimulationSystem
             // leaving BECAUSE of things like this. Same narrowing the eat and
             // sleep systems make, and ours rather than the original's.
             if (creature.Activity == CreatureActivity.Leaving) continue;
-            if (Combat.CombatRules.IsFighting(creature)) continue;
+            if (Combat.CombatRules.InCombat(creature)) continue;
 
             // Only an idle creature sets off. The original gates on the current
             // state's category byte instead, which is the same idea expressed

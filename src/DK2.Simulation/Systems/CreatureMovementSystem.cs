@@ -43,7 +43,7 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             creature.Body.Radius = SteeringMover.CrowdWordOf(definition.FootprintRadius.Raw);
             creature.Body.MaxForce = SeparationRules.ShippedMaxForce;
-            creature.Body.MaxSpeed = MaxSpeedOf(context.Database, definition, creature.Level);
+            creature.Body.MaxSpeed = MaxSpeedOf(context.Database, definition, creature.Level, creature.Running);
         }
 
         foreach (CreatureState creature in context.World.Creatures)
@@ -61,9 +61,18 @@ public sealed class CreatureMovementSystem : ISimulationSystem
 
     /// <summary>The body's speed cap in 16.16 tiles a tick: the level-scaled definition speed
     /// divided by the tick rate as the loader does it, clamped, shifted up four.</summary>
-    public static int MaxSpeedOf(GameDatabase database, CreatureDef definition, int level)
+    public static int MaxSpeedOf(GameDatabase database, CreatureDef definition, int level) =>
+        MaxSpeedOf(database, definition, level, running: false);
+
+    /// <summary>The same cap for a creature set running (<c>0x004887D0(1)</c>, the fight and the
+    /// withdrawal): the record's <c>RunSpeed</c>, scaled by the Speed row like the walk
+    /// (STRONGLY INFERRED: the stat setter scales all three speeds together).</summary>
+    public static int MaxSpeedOf(GameDatabase database, CreatureDef definition, int level, bool running)
     {
-        int perTick = SimulationTiming.LoaderRatePerTick(CreatureLevelRules.SpeedRaw(database, definition, level));
+        int raw = running
+            ? CreatureLevelRules.Scale(definition.RunSpeed.Raw, CreatureLevelRules.Percent(database, CreatureStatId.Speed, level))
+            : CreatureLevelRules.SpeedRaw(database, definition, level);
+        int perTick = SimulationTiming.LoaderRatePerTick(raw);
         return Math.Min(perTick, MaxSpeedPerTick) << 4;
     }
 

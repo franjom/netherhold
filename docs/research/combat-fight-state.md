@@ -8,7 +8,8 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: advances Q8; answers the mechanism half of Q327; opens Q367–Q371.
+Questions: advances Q8; answers the mechanism half of Q327; opens Q367–Q371
+(Q367 answered in combat-fear.md, which also corrects §1 and §2 step 6 here).
 `combat-acquisition.md` owns who is picked; `combat.md` §6 and `combat-damage.md`
 the blow's arithmetic; `combat-cadence.md` the two clocks' fields. This is what
 happens between them: the state that holds a target, walks up to it, swings and
@@ -17,8 +18,8 @@ listens for the target's answer.
 **What this settles:** a melee swing is a creature *action* that winds up for
 `def+0x5CA` ticks and lands once, started at most every `MeleeRecharge` ticks;
 the target it lands on is the one the swing began at; a struck creature turns
-on its attacker only when its own target is already double-teamed; and fear is a
-counter over a level-scaled `Fear` threshold, read here and not built.
+on its attacker only when its own target is already double-teamed; and fear —
+read here in outline — is combat-fear.md's, built with ADR-0165.
 
 ---
 
@@ -26,8 +27,8 @@ counter over a level-scaled `Fear` threshold, read here and not built.
 
 State 199's handler `0x0045EB20` is a thin prologue: it drops a dead target
 (unlinking from its arrays for creature targets, `0x0045E450`), and on the turn
-the state was entered (`state+0x18` equals the game turn) it plays a cue
-(`0x004887D0(creature, 1, 0)`) and, unless the attack is at an ally, raises
+the state was entered (`state+0x18` equals the game turn) it **sets the run
+speed** (`0x004887D0(creature, 1, 0)`, the speed-mode setter — combat-fear.md §6) and, unless the attack is at an ally, raises
 **player event 6 at the creature's tile** (`0x004C4600(world+0x2E54, 6, owner,
 x, y, 1)`) — the "your creature is fighting" notice. Then it tail-calls
 **`spFighting` `0x0045F030`**, DK2's own name (combat-entry.md §1).
@@ -51,28 +52,14 @@ move-option word, `+0x18` the turn entered. `EDI` is the engagement record
    tag"* assertion), `+0x16 ≠ 2`, and — unless I am a `CombatPitFighter` —
    `IsAttackable`. Invalid: a fighter unlinks and clears the target and goes
    on with none; an `AttackAbnormalTargets` creature clears and returns 0.
-6. **The fear checks**, skipped entirely when `0x00460C50` says **no adjacent
-   hostile is attacking me** (it walks the eight neighbouring tiles, routes to
-   each, and looks for a creature whose `+0x502` is my tag). Cornered:
-   - `0x0045EDA0` — **withdraw**: not `CombatPitFighter`; not `IsFearless`
-     (`def+0x686` bit 18); the turn past `FearlessUntil` (`+0x3D7`, DK2's
-     name); farther than 5 tiles (Chebyshev, in tiles) from my own heart — a
-     hero counts as 6 when `Flags` bit 4 is set and 0 otherwise; and **health
-     below a third of the level-scaled `Hp`** (`0x0048F250`). If so, and the
-     state was not entered this turn, `0x004611D0` (`FightWithDrawState.cpp`)
-     takes over and the routine returns 1.
-   - `0x0045EC80` — **the fear counter** `+0x528`: clamped (over 5 → 0, over 3
-     → 3); zeroed for `CombatPitFighter`, `IsFearless`, or inside
-     `FearlessUntil`; otherwise incremented when the accumulator **`+0x526`**
-     exceeds the level-scaled **`Fear`** stat (`def+0x696`, table `+0xF3`) —
-     the *"fear threshold of %d on this level"* assertion prints exactly this
-     value — and zeroed when it does not. A `NonFighter` with an Imp among its
-     attackers (`0x0045EC10`) jumps to 3. **At 3 the creature flees**: state
-     **203** (`0x004602E0`) with `+0x532` set from `+0x526 / threshold`, capped
-     at 4, mixed with two globals `0x006F29B1/B2`, and zeroed when its target
-     is a creature whose `def+0x5B8` does not exceed its own. What fills
-     `+0x526` is `0x0045E4F0`, run every tick after `ProcessFight` — **unread,
-     Q367**.
+6. **The fear checks**, run only when `0x00460C50` finds an **escape**: a
+   neighbouring tile I can route to that holds no hostile creature attacking me
+   (combat-fear.md §3.1; an earlier reading had this inverted). Then the withdraw
+   check `0x0045EDA0` — under a third of health, more than five tiles from my
+   heart, the state a turn old — hands to the withdraw state `0x004611D0`; else
+   the counter `0x0045EC80` over `CurrentFear` (`+0x526`, filled by `0x0045E4F0`)
+   against the level-scaled `Fear` sends the creature into state **203** with its
+   `BackOffTimer`. All of it is combat-fear.md §3; **built (ADR-0165)**.
 7. **Busy** (`0x00496D00`: current action `+0x3A9` nonzero and not 21) → return 1.
    A swinging creature neither moves nor looks.
 8. **Support re-acquires every tick**: a fight type 4 creature without
@@ -143,7 +130,7 @@ allow; action 16 starts with the slot and target; `+0x41B + slot·4` is stamped
 with the turn; the target is told with flag 0. A spell arm that cannot cast
 falls to `0x0045FEA0`: within a quarter of `AttackRangeSquared` and of sight²
 it **steps back** by a vector from its heading (`+0xF4`) scaled by
-`def+0x5BC` (`0x00460DA0`, `0x004B1F60`), else plays cue 1.
+`def+0x5BC` (`0x00460DA0`, `0x004B1F60`), else sets the run speed.
 
 ## 5. The target's answer (`0x0045AA20(target, attackerTag, melee)`)
 
@@ -191,8 +178,8 @@ style but `NonFighter` acquires; and **the heart as a target**, hit through
 `WorldState.DamageHeart` with the attacker's player as the source (Q363: the
 heart tile stands in for the Arch Pillar).
 
-**Not built, named:** the fear counter, withdrawal and fleeing (§2 step 6,
-Q367); state 8's own body (§3, Q368); the victory arm (§6, Q369); the spell
+**Built since (ADR-0165):** the fear checks, the flee and withdraw states
+(combat-fear.md). **Not built, named:** state 8's own body (§3, Q368); the victory arm (§6, Q369); the spell
 arms and the step-back (§4); haste and slow on Gate B; waking a sleeper on the
 blow; `+0x445`; the room notice and player event 6 (§1); the NonFighter arm.
 
@@ -214,4 +201,4 @@ in combat-cadence.md §3.
 199; that `+0x526` is a fear accumulator (its threshold and name point that
 way; its writer is unread).
 
-**UNKNOWN:** Q367–Q371 (§7).
+**UNKNOWN:** Q368–Q371 (§7); Q367 is answered in combat-fear.md.

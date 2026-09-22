@@ -226,7 +226,7 @@ What a fighting creature then does is combat-fight-state.md.
 
 **Not built:** the `NonFighter` arm and the `Creeping` weighting; the spell survey
 and scans B and F; scan C (who attacks me) and scan A; doors (D); `SneakingAs`; the
-flee check; the trigger event.
+trigger event. The flee check is built since ADR-0165 (combat-fear.md §3.4).
 
 ## 10. What is left
 

@@ -102,10 +102,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 67: a player's Status and the heart's health, ruin and killer
-        // entered (ADR-0162). Earlier pins and their reasons live in
-        // docs/research/hash-versions.md.
-        Assert.Equal(0xA02044E4AE17A79BUL, sim.StateHash());
+        // HashVersion 70: fear's two accumulators, the counter, the back-off timer, the run
+        // flag and the combat state's entry tick entered (ADR-0165). Earlier pins and their
+        // reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0x05719C220035BA50UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

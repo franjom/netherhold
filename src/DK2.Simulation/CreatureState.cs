@@ -152,8 +152,16 @@ public enum CreatureActivity
     /// <summary>Engaged with an enemy — DK2's states 199 and 200, "engaging in battle", which
     /// a creature enters by acquiring a target and never by being told to fight
     /// (docs/research/combat-acquisition.md). What it does in the state — approach, swing,
-    /// flee — is <c>spFighting</c>, not yet built; here it stands and holds its target.</summary>
+    /// flee — is <c>spFighting</c> (docs/research/combat-fight-state.md).</summary>
     Fighting = 21,
+
+    /// <summary>DK2's state 203, "fleeing": backing off from its attacker for <see cref="BackOffTimer"/>
+    /// ticks, then running (docs/research/combat-fear.md §4).</summary>
+    Fleeing = 22,
+
+    /// <summary>DK2's state 6 on the way to 202: running to the withdraw destination — lair, heart,
+    /// a room or a nearby tile — and idle on arrival (docs/research/combat-fear.md §5).</summary>
+    Withdrawing = 23,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -543,6 +551,30 @@ public sealed class CreatureState
     public int SwingTargetId;
     public byte SwingTargetPlayerId;
 
+    /// <summary>Fear taken in this tick from everyone fighting me — DK2's <c>TempFear</c>
+    /// (<c>+0x524</c>), a word that wraps. Handed to <see cref="CurrentFear"/> next tick.</summary>
+    public ushort TempFear;
+
+    /// <summary>Last tick's intake scaled by my distance from my heart — DK2's <c>CurrentFear</c>
+    /// (<c>+0x526</c>), measured against the level-scaled <c>Fear</c> stat.</summary>
+    public ushort CurrentFear;
+
+    /// <summary>Ticks in a row over the threshold, clamped — DK2's <c>OverThreatCounter</c>
+    /// (<c>+0x528</c>); at three the creature flees.</summary>
+    public byte OverThreatCounter;
+
+    /// <summary>Ticks of backing off left before the creature runs — DK2's <c>BackOffTimer</c>
+    /// (<c>+0x532</c>), set on entering <see cref="CreatureActivity.Fleeing"/>.</summary>
+    public byte BackOffTimer;
+
+    /// <summary>Whether the body's speed cap is the run speed: set on entering a fight or a
+    /// withdrawal (<c>0x004887D0(1)</c>), cleared when the creature stands down.</summary>
+    public bool Running;
+
+    /// <summary>The tick the current combat activity was entered — DK2's <c>state+0x18</c>;
+    /// a withdrawal is refused in the state's first tick.</summary>
+    public long CombatStateEnteredTick;
+
     /// <summary>The eight melee attackers engaged with this creature, by id, 0 for a free slot —
     /// DK2's <c>+0x504</c> array. An attacker takes the first free slot when it engages and is
     /// struck out when it disengages; a ninth melee attacker cannot engage at all.</summary>
@@ -651,6 +683,12 @@ public sealed class CreatureState
         hash.Add(SwingTargetKind);
         hash.Add(SwingTargetId);
         hash.Add(SwingTargetPlayerId);
+        hash.Add(TempFear);
+        hash.Add(CurrentFear);
+        hash.Add(OverThreatCounter);
+        hash.Add(BackOffTimer);
+        hash.Add(Running);
+        hash.Add(CombatStateEnteredTick);
         for (int i = 0; i < EngagedMelee.Length; i++) hash.Add(EngagedMelee[i]);
         for (int i = 0; i < EngagedRanged.Length; i++) hash.Add(EngagedRanged[i]);
     }

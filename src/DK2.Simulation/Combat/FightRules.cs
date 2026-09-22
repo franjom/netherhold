@@ -144,6 +144,7 @@ public static class FightRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
+        if (target.Activity == CreatureActivity.Fleeing) return;
         if (!CombatRules.MayLookForAFight(world, target, force: false)) return;
 
         if (CombatRules.IsFighting(target))

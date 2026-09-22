@@ -3771,3 +3771,32 @@ blows and hearts to creatures. Nobody flees, celebrates or casts yet, and those
 are named (Q367–Q369). Snapshot format and `HashVersion` advance to 69; the
 fixture's Goblin and Bile Demon take their shipped recharge; the two-keepers
 scenario spaces its rivals beyond sight so it stays about work.
+
+## ADR-0165 — Fear: threat radiated every tick, the back-off, the withdrawal
+
+**Status.** Accepted 2026-09-22 · `HashVersion` 70 · Research:
+`docs/research/combat-fear.md`.
+
+**Context.** Fighters fought to the death. The binary's fear was read: every
+tick a creature radiates its level-scaled `Threat`, split among its engagements,
+into the `TempFear` of each opponent it can see; its own `CurrentFear` is last
+tick's intake scaled by its distance from its heart, nothing beside it; three
+ticks over its level-scaled `Fear`, with an escape tile free, it enters state 203
+for a `BackOffTimer` between the two BackOff variables, shorter the more afraid,
+then runs for its lair, its heart two tiles off, one of three random rooms or a
+neighbouring tile; under a third of its health and over five tiles from its
+heart it runs at once, from the fight or from the acquirer. The fight's entry
+sets the run speed, not a cue.
+
+**Decision.** `FearRules` builds that order, run by `CombatSystem` after each
+creature's fight processing. `CreatureActivity.Fleeing` is state 203,
+`Withdrawing` the walk to state 202; `Running` is the body's speed cap. The step
+back is a short route away from the target, and a state ending lets the
+engagement go — both named as approximations (Q373). Heroes fear in full and
+never withdraw for want of a creature flag and hero gates (Q372); the Scout's
+alarm (Q374) and three per-type owner modifiers (Q375) are not built.
+
+**Consequences.** Frightened creatures back off and run; a fight near one's own
+heart holds and one far from it breaks. `HashVersion` 70; the fixture's Knight and
+Warlock are fearless so the retaliation tests keep their premise; the fixture
+carries the BackOff and guard-room variables.

@@ -393,6 +393,8 @@ public sealed class WorldView
         CreatureActivity.GoingToJob => "going_to_job",
         CreatureActivity.AtWork => "at_work",
         CreatureActivity.Fighting => "fighting",
+        CreatureActivity.Fleeing => "fleeing",
+        CreatureActivity.Withdrawing => "withdrawing",
         _ => throw new ArgumentOutOfRangeException(
             nameof(activity), activity, "No animation key for this activity."),
     };

@@ -16,15 +16,20 @@ public sealed class HeartSites
 {
     public readonly struct Site
     {
-        public Site(byte owner, int centreX, int centreY, int[] ringTiles)
+        public Site(byte owner, int centreX, int centreY, int[] ringTiles, bool standing)
         {
             Owner = owner;
             CentreX = centreX;
             CentreY = centreY;
             RingTiles = ringTiles;
+            Standing = standing;
         }
 
         public byte Owner { get; }
+
+        /// <summary>Live and unruined: a target. A fallen heart keeps its place — DK2's
+        /// <c>DungeonHeartPosition</c> is never cleared — for the distance fear is scaled by.</summary>
+        public bool Standing { get; }
 
         /// <summary>The heart's centre tile, as a position: tile centre in 1/4096 units.</summary>
         public int CentreX { get; }
@@ -36,8 +41,16 @@ public sealed class HeartSites
 
     public IReadOnlyList<Site> Sites => _sites;
 
-    /// <summary>Every live, unruined heart of a keeper still playing: the bounding box of its tiles
-    /// gives the centre and the box's border the ring.</summary>
+    /// <summary>The site of this player's heart, standing or fallen; none for a player without one.</summary>
+    public Site? SiteOf(byte owner)
+    {
+        for (int i = 0; i < _sites.Count; i++)
+            if (_sites[i].Owner == owner) return _sites[i];
+        return null;
+    }
+
+    /// <summary>Every keeper's heart: the bounding box of its tiles gives the centre and the box's
+    /// border the ring; a fallen or ruined one is kept with <see cref="Site.Standing"/> clear.</summary>
     public void Refresh(WorldState world, GameDatabase database)
     {
         _sites.Clear();
@@ -47,7 +60,8 @@ public sealed class HeartSites
         for (int p = 0; p < world.PlayerCount; p++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(p);
-            if (!PlayerIds.IsKeeper(player.PlayerId) || player.HeartRuined || player.HeartHealth <= 0) continue;
+            if (!PlayerIds.IsKeeper(player.PlayerId)) continue;
+            bool standing = !player.HeartRuined && player.HeartHealth > 0;
 
             int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
             for (int i = 0; i < world.TileCount; i++)
@@ -75,7 +89,7 @@ public sealed class HeartSites
             }
 
             int centreX = CreatureState.CentreOf((minX + maxX) / 2), centreY = CreatureState.CentreOf((minY + maxY) / 2);
-            _sites.Add(new Site(player.PlayerId, centreX, centreY, ring.ToArray()));
+            _sites.Add(new Site(player.PlayerId, centreX, centreY, ring.ToArray(), standing));
         }
     }
 }
@@ -84,9 +98,10 @@ public sealed class HeartSites
 /// the shared scan over every creature in the game with each arm's score, the acceptance by sight
 /// or by a walkable route, the heart scan (§6 scan E), the route check on the winner, the final
 /// gate, and the fight-starter that registers the engagement and sets the reach
-/// (docs/research/combat-acquisition.md §6–§8). Not built and named there: the NonFighter arm, the
-/// spell survey and the spell arms, the scan over who is already attacking me, the door scan
-/// and the flee check. Every engagement made here is melee.</summary>
+/// (docs/research/combat-acquisition.md §6–§8), and the withdrawal of a hurt creature in place of
+/// the fight (combat-fear.md §3). Not built and named there: the NonFighter arm, the spell survey
+/// and the spell arms, the scan over who is already attacking me and the door scan. Every
+/// engagement made here is melee.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-acquisition.md")]
 public static class CombatTargetRules
 {
@@ -98,10 +113,23 @@ public static class CombatTargetRules
 
     /// <summary>Finds and engages a target for <paramref name="me"/>. True when it now fights.</summary>
     public static bool SelectAVictim(
-        SimulationContext context, ISightBlocker sight, HeartSites hearts, CreatureState me, CreatureDef definition,
+        SimulationContext context, ISightBlocker sight, HeartSites hearts, RoomCache rooms, CreatureState me, CreatureDef definition,
         List<Fixed16Vector> scratch)
     {
         if (!IsBuilt(definition.FightStyle)) return false;
+        if (!Choose(context, sight, hearts, me, definition, scratch)) return false;
+
+        // The acquirer's own withdraw check (0x0045DEE0): a hurt creature far from its heart lets
+        // the target it just chose go and runs instead; finding nowhere to run, it fights.
+        if (FearRules.ShouldWithdraw(context.World, context.Database, hearts, me, definition) && !CreatureDeathRules.IsDown(me))
+            FearRules.Withdraw(context, sight, hearts, rooms, me, definition, scratch);
+        return true;
+    }
+
+    private static bool Choose(
+        SimulationContext context, ISightBlocker sight, HeartSites hearts, CreatureState me, CreatureDef definition,
+        List<Fixed16Vector> scratch)
+    {
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -190,7 +218,7 @@ public static class CombatTargetRules
         for (int s = 0; s < hearts.Sites.Count; s++)
         {
             HeartSites.Site site = hearts.Sites[s];
-            if (!CombatRules.IsHostile(world, me.OwnerPlayerId, site.Owner)) continue;
+            if (!site.Standing || !CombatRules.IsHostile(world, me.OwnerPlayerId, site.Owner)) continue;
             if (CombatRules.DistanceSquared(me.PosX, me.PosY, site.CentreX, site.CentreY) > sightSq) continue;
             if (!LineOfSight.Clear(sight, me.PosX, me.PosY, site.CentreX, site.CentreY)) continue;
 
@@ -278,6 +306,8 @@ public static class CombatTargetRules
     {
         // Ours: the state change drops the route unless the target is the one already approached.
         if (!sameTarget) me.StopMoving();
+        if (!CombatRules.IsFighting(me)) me.CombatStateEnteredTick = context.Tick.Value;
+        me.Running = true; // state 199's entry sets the run speed (0x004887D0(1))
         me.Activity = CreatureActivity.Fighting;
         context.Emit("combat", "engaged",
             $"creature={me.Id} type={mine.Name} player={me.OwnerPlayerId} {target} reach2={me.AttackRangeSquared}");
