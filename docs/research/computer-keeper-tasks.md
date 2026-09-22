@@ -85,7 +85,27 @@ change it but are reached through that one switch.
 
 ## 3. Task ids
 
-Not yet investigated.
+DK2 provides no enum strings for these ids. The names below describe what each
+arm does; they are not recovered source identifiers.
+
+| id | evidence-based name | confidence and evidence |
+|---:|---|---|
+| 0 | no ordinary task / choose work | **CONFIRMED behaviour.** Initialisation and completed tasks write 0. The inline arm spends one allowance unit, runs the room planner, and may start a gold search when money is below `TendancyMoney`. |
+| 1 | select and validate a room footprint | **STRONGLY INFERRED name.** `0x004FCE70` uses `DefaultRoomSize`, `DigRoomAtCurrent`, the direction fields and the map ownership around a candidate square. Success writes id 2; exhaustion clears the task. |
+| 2 | tag the room footprint for digging | **CONFIRMED behaviour.** `0x004FD030` walks the rectangle described by `DigRoomAt`, `DigRoomAtCurrent`, `DigDX/DigDY`, `InnerLoopXOrY` and `MaxX/MaxY`, issuing game action `0x28`, independently established as tag-for-digging. Completion writes id 3, or clears the task for the special no-room case. |
+| 3 | build the room tiles | **STRONGLY INFERRED name.** `0x004FD2B0` walks the same rectangle and submits `CurrentRoomToBuild` at each eligible tile. Its submit helper checks the room's cost against player money; Flame independently calls the callee at `0x004C5C30` `buildRoom`. Completion writes id 4. |
+| 4 | finish the room cycle | **STRONGLY INFERRED name.** The inline arm spends one allowance unit, may start the low-money gold fallback, resets `TaskTimeCounter`, and clears id 4 if nothing replaced it. It performs no tile work itself. |
+| 5 | choose a tunnel start toward gold | **CONFIRMED behaviour.** The only writer selects an entry from `GoldDeposits`, then `0x004FD660` chooses the nearest owned creature position as `DigRoomAtCurrent` and starts id 7 with id 6 as the continuation. |
+| 6 | expose the selected gold area | **STRONGLY INFERRED name.** `0x004FD750` expands a square around the selected deposit and issues tag-for-digging action `0x28` on eligible tiles. It is reached as id 7's continuation from the low-money path. |
+| 7 | dig a route, then resume `NextTask` | **CONFIRMED mechanism; STRONGLY INFERRED name.** `0x004FDC50` advances `DigRoomAtCurrent` toward `DigRoomAt`, fills `WallHugStart`, `WallHugEnd`, `WallHugDistance` and `WallHugHeading`, and tags obstructing tiles. On completion or refusal it copies `NextTask` into `Task`. |
+| 8 | stop/suspended sentinel | **UNKNOWN meaning.** Its arm merely exhausts the allowance and returns. No immediate-value writer of id 8 was found in the executable; save/load or a computed write remains possible. |
+
+The shipped `Text.str` was checked for task, room, gold, dig, corridor and tunnel
+vocabulary. It contains UI labels such as `Digging Rock`, `Mining Gold`, `Next
+Room` and `tunnelling`, but none is referenced by these handlers and none maps
+an id. The handlers and their helpers likewise carry only the source path
+`ComputerPlayer.cpp`, not task-name assertions. The text therefore corroborates
+the vocabulary but does not raise any inferred name to confirmed.
 
 ## 4. `Task` and event tasks
 
@@ -93,14 +113,16 @@ Not yet investigated.
 
 ## What is left
 
-- Name the supported task ids only where strings, assertions or field effects
-  justify it.
 - Read the three-entry event ring and its relationship to ordinary tasks.
+- Find a writer for task id 8, or establish that it is only loadable state.
 
 ## Confidence
 
 - **CONFIRMED:** the addresses, call chain, cadence, field layout, jump-table
-  contents, bounds check, and listed readers/writers are direct binary reads.
-- **STRONGLY INFERRED:** none in the answered section.
+  contents, bounds check, listed readers/writers, and per-id mechanics marked
+  confirmed are direct binary reads.
+- **STRONGLY INFERRED:** the descriptive names marked that way in §3; the
+  evidence is each arm's field and game-action use, not a recovered enum.
 - **HYPOTHESIS:** none.
-- **UNKNOWN:** questions 2-4 and the semantic names of the player status values.
+- **UNKNOWN:** question 4, id 8's meaning and writer, and the semantic names of
+  the player status values.
