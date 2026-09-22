@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 67;
+    private const int FormatVersion = 68;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -234,6 +234,13 @@ public static class WorldSnapshot
             w.Write(c.TargetTileIndex);
             w.Write((int)c.TargetWork);
             w.Write(c.TimerTicks);
+            w.Write(c.FightTargetId);
+            w.Write(c.AttackType);
+            w.Write(c.AttackRangeSquared);
+            w.Write(c.FightProcessCounter);
+            w.Write(c.LastFightScanTileIndex);
+            for (int i = 0; i < c.EngagedMelee.Length; i++) w.Write(c.EngagedMelee[i]);
+            for (int i = 0; i < c.EngagedRanged.Length; i++) w.Write(c.EngagedRanged[i]);
 
             // The route window is state, not a cache: a creature restored without it would
             // request again from a different position and the restored run would diverge.
@@ -541,7 +548,14 @@ public static class WorldSnapshot
                 TargetTileIndex = r.ReadInt32(),
                 TargetWork = (TileWorkKind)r.ReadInt32(),
                 TimerTicks = r.ReadInt32(),
+                FightTargetId = r.ReadInt32(),
+                AttackType = r.ReadByte(),
+                AttackRangeSquared = r.ReadInt32(),
+                FightProcessCounter = r.ReadByte(),
+                LastFightScanTileIndex = r.ReadInt32(),
             };
+            for (int k = 0; k < creature.EngagedMelee.Length; k++) creature.EngagedMelee[k] = r.ReadInt32();
+            for (int k = 0; k < creature.EngagedRanged.Length; k++) creature.EngagedRanged[k] = r.ReadInt32();
 
             ReadBody(r, creature.Body);
             Navigation.WorldSteering.SyncBody(creature);

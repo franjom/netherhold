@@ -3712,3 +3712,34 @@ heart variables the shipped global table always carries. Not built and named
 so: what a defeat does to creatures, rooms and gold (Q358), and alliance
 propagation of verdicts (Q359). Nothing in the tick order damages a heart until
 combat lands.
+
+## ADR-0163 — Acquisition is `SelectAVictim`; the Blocker arm is built first
+
+**Status.** Accepted 2026-09-22 · `HashVersion` 68 · Research:
+`docs/research/combat-acquisition.md`.
+
+**Context.** Target selection's five arms were read (combat-target-selection.md)
+but not the routine that dispatches to them, when it runs, or what happens to
+its answer. Reading it named it — DK2's own `SelectAVictim` — and showed six
+scans, a tick throttle, a per-tick attackability recompute and the enemy heart
+entering as its nearest Arch Pillar. Nothing in the simulation could yet decide
+to fight.
+
+**Decision.** `CombatSystem` runs `ProcessFight` for every unpossessed creature
+before movement and the job systems, as DK2's creature update does: neutral
+creatures never look; the gate and the ten-tick (Imp: four) standing throttle
+are DK2's. `SelectAVictim` is built for `FightStyle.Blocker` only — the shared
+scan with score `d`, the alignment discount, `IsAttackable` as a predicate,
+sight by DK2's line walk and reach by DK2's route sum, the route check, the
+final gate, melee commit, registration in the target's eight melee slots and
+`AttackRangeSquared`. A creature that engages enters `CreatureActivity.Fighting`
+(state 199), holds its target while it exists and is attackable, and is skipped
+by every job system. The other four arms, the spell survey, the who-attacks-me,
+door and pillar scans and the flee check are named in the document and not
+built, so nothing half-built runs.
+
+**Consequences.** A Blocker within four tiles of an enemy it can see, or walk to
+in under four tiles, now engages it; nothing yet swings, so health is untouched
+until `spFighting` is read and built. Snapshot format and `HashVersion` advance
+to 68. The fixture's Bile Demon takes its shipped `Blocker` style and gains a
+`Knight`. Open: Q360–Q366.

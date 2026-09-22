@@ -134,9 +134,14 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return RouteWindow.Request(creature.Body, this, ProfileOf(definition, creature.OwnerPlayerId, options), target, flags);
     }
 
-    public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points)
+    public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points) =>
+        Route(from, to, mover, points, refresh: true);
+
+    /// <summary>The route query with the rebuild check left to the caller: a scan that asks many
+    /// times in one tick refreshes once and passes false.</summary>
+    public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points, bool refresh)
     {
-        Refresh();
+        if (refresh || _router is null) Refresh();
         if (!_router!.TryRoute(new NavPoint(from.X >> 8, from.Y >> 8), new NavPoint(to.X >> 8, to.Y >> 8), mover, _waypoints))
             return false;
         foreach (NavPoint p in _waypoints) points.Add(new Fixed16Vector(p.X << 8, p.Y << 8));

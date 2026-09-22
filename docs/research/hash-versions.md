@@ -32,7 +32,12 @@ beside it.
 
 ## Versions
 
-**67** — `0x8E6F0889810E2C53` (current). A player's `Status` and its tick, and
+**68** — `0xD8CDBD3CD4546586` (current). A creature's fight target, attack type,
+`AttackRangeSquared`, `FightProcessCounter`, last fight-scan tile and its two
+eight-slot engagement arrays entered (ADR-0163). Composition only in the pinned
+fixture: no Blocker stands near an enemy there.
+
+**67** — `0x8E6F0889810E2C53`. A player's `Status` and its tick, and
 the dungeon heart's health, last attacker, death tick and ruin entered
 (ADR-0162). Composition only in the pinned fixture: its players are not
 keepers, so every new field is zero.

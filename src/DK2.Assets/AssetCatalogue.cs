@@ -52,6 +52,7 @@ public static class AssetCatalogue
         "seeking_wages",
         "going_to_job",
         "at_work",
+        "fighting",
     ];
 
     /// <summary>

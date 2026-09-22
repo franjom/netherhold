@@ -189,7 +189,7 @@ internal static class Dk2TerrainFixture
               construction: TileConstruction.DoubleQuad),
             R(RoomTypeId.Casino, "Casino", 750, CasinoTerrain, 0x13ACu, 3, 3),
         ],
-        creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), .. extraCreatures],
+        creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), .. extraCreatures],
         variables: Variables(),
         keeperSpells: KeeperSpells(),
         objects: Objects());
@@ -866,12 +866,31 @@ internal static class Dk2TerrainFixture
         Fear = 300,
         Threat = 120,
 
+        // The shipped Bile Demon is a Blocker, one of the fifteen heavy melee that pick the
+        // nearest hostile (combat-target-selection.md §1); the fixture's one built arm.
+        FightStyle = FightStyle.Blocker,
+
         HungerRate = Fp32.FromDouble(220),
         HungerFill = 5,
         HpFromChicken = 200,
         TimeAwake = 270,
         TimeSleep = 9,
         LairObjectId = 18,
+    };
+
+    public const byte KnightCreatureId = 20;
+
+    /// <summary>A hero: the Goblin's record with the good alignment and the Blocker arm, so the
+    /// alignment discount and a hero's own acquisition have a creature to run on. The real
+    /// Knight's stats are not these and nothing here reads them.</summary>
+    public static CreatureDef Knight() => Goblin() with
+    {
+        Name = "Knight",
+        CreatureId = KnightCreatureId,
+        Flags = CreatureFlags.IsGood | CreatureFlags.GenerateDeadBody | CreatureFlags.CanWalkOnWater
+                | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped,
+        FightStyle = FightStyle.Blocker,
+        LairObjectId = 0,
     };
 
     /// <summary>Every global variable a built mechanic reads, at its shipped

@@ -936,6 +936,9 @@ public sealed class WorldState
         {
             if (_creatures[i].Id != id) continue;
             _creatures.RemoveAt(i);
+            // DK2's death handler unlinks the dead from every engagement list it was on; a
+            // creature that was fighting it notices the empty target on its next fight process.
+            foreach (CreatureState other in _creatures) Combat.CombatRules.Unregister(other, id);
             return true;
         }
         return false;

@@ -148,7 +148,9 @@ what the *"failed to re-aquire previous target"* assertion is about — one insi
 game action 26's handler, the possession path, and four elsewhere
 (`0x0045e9f0`, `0x00470e30`, `0x00481400` twice, `0x00488930`).
 
-**`FUN_0045cb00` calls `FUN_0045bdf0`**, and that is where a target is chosen.
+**`FUN_0045cb00` is `SelectAVictim`, by its own assertions, read end to end in
+`combat-acquisition.md`**; among its five arms it calls `FUN_0045bdf0`, and that
+is where a worker's target is chosen.
 It writes `creature+0x502` twelve times and, between two of them, calls
 `FUN_004752b0` — one of the four sites that `SetState`s **199**, reached only
 after a five-tile head-count of both sides. The twelve stores are one tentative
@@ -176,8 +178,10 @@ calls the field *fight type*.
 
 ## 9. What is left
 
-The rest of the `+0x4FE` record's layout, and what `AttackingSpecificCreature`
-is. Which enemy gets picked is
+The `+0x4FE` record is `combat-acquisition.md` §7, and `AttackingSpecificCreature`
+is the pair `AttackAbnormalTargets` (`+0x3E6` bit 2) and `AttackingId` (`+0x3F9`).
+Left here: the rest of `spFighting` — the approach, the swing's start,
+re-acquisition and fear. Which enemy gets picked is
 `combat-target-selection.md` §5. **The sentinel `0xEA60` is answered there**: it
 is not a tag but "I disengaged, stop looking", which is why this acquirer reports
 success on seeing it.

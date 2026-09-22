@@ -81,8 +81,9 @@ reimplementation writes one scan and five scoring expressions.
 - **`thiscall (CCreature* me, int32 bestSoFar) -> int16 tag`.** The argument is
   an incoming **best score** and the return the winning candidate's tag, 0 for
   none. The acquirer runs a scan of its own first and hands the running best
-  down, so an arm **continues one competition** rather than starting one. What
-  that best is initialised to, before either scan, is not yet read.
+  down, so an arm **continues one competition** rather than starting one. The
+  best starts at `0x7FFFFFFF`, and the acquirer's own scan before the dispatch
+  is over whoever is already attacking it (`combat-acquisition.md` §6).
 - **two nested walks.** An outer list from `dword[player + 0x10FD]` linked by
   `word[+0x3A]`; for each node an inner list from its `word[+0x6]` linked by
   `word[+0x10]`. Every candidate is visited — nothing exits early on a hit.
@@ -123,9 +124,9 @@ Then, per candidate and in this order:
    distance, and makes the Horned Reaper's zero** — with the bit set it is the
    most attractive target on the map, at any range, to every arm at once.
 
-   **What sets bit 12 is UNKNOWN**, and no `OR reg,0x1000` exists anywhere in the
-   executable, so it is never set by an immediate. Its readers are enumerated
-   though, and every one of them is target scoring: all five arms, both scans
+   **Bit 12 is `Creeping`**, by DK2's own dumper (`creature-object.md`); no
+   `OR reg,0x1000` exists in the executable, so a mask sets it, and what creeps
+   is unread. Its readers are enumerated, and every one of them is target scoring: all five arms, both scans
    inside `FUN_0045CB00`, both inside `FUN_0045C690`, `FUN_0040E910` and
    `FUN_0048EE90`. Nothing else in DKII.EXE reads it.
 4. **An alignment discount.** `def+0x686` is the creature flag dword
@@ -168,9 +169,10 @@ tests**. Each range gates a different question.
 **`0x004512F0` is line of sight.** Its `this` is `[0x006E5050] + 0x9DA`, which
 `runtime-map.md` already identifies as **the map**. It shifts both positions left
 4, sets up a DDA with `0x10000` fractions and a `0x7FFFFFFF` sentinel, walks the
-straight line between them and asks `0x004511A0` per tile, which indexes a
-per-tile byte grid off the map and tests **bit 3**. Anything else on the line
-fails it.
+straight line between them and asks `0x004511A0` per tile: the map's
+**navigation byte**, whose bit 3 is `Solid`, then the tile's things, where a door
+blocks unless it is a barricade. The walk, its corner rule and the door test are
+`combat-acquisition.md` §5, which `LineOfSight` reproduces.
 
 **`0x0045AFF0` is a routing query, and this is the finding.** It does not measure
 distance at all. It asks `0x004D0E60` — the navigation **request**, already
@@ -364,12 +366,11 @@ initiates while any melee-engaged enemy is in range.
 
 ## 6. What is left
 
-Small and named. What sets `+0x3E6` bit 12 (§2 step 3 enumerates every reader and
-rules out an immediate). What `def+0x760`'s file field `0xEE4` should be called,
-and the per-level table at `dword[0x006E4154] + 0x2A3` it is scaled by. What
-`0x00494360`'s definition byte means (§3.1). The score the acquirer starts the
-competition from. And the rest of the `+0x4FE` record, which `combat-entry.md`
-owns.
+Small and named. What `def+0x760`'s file field `0xEE4` should be called, and the
+per-level table at `dword[0x006E4154] + 0x2A3` it is scaled by. What
+`0x00494360`'s definition byte means (§3.1). Bit 12 is `Creeping`, the starting
+score is `0x7FFFFFFF`, and the `+0x4FE` record is laid out in
+`combat-acquisition.md`, which owns the acquirer.
 
 ## Confidence
 

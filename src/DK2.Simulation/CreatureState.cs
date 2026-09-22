@@ -148,6 +148,12 @@ public enum CreatureActivity
     /// stands in the room, which is still a second it is not idle and not taking
     /// <c>AngerNoWork</c>.</para></summary>
     AtWork = 20,
+
+    /// <summary>Engaged with an enemy — DK2's states 199 and 200, "engaging in battle", which
+    /// a creature enters by acquiring a target and never by being told to fight
+    /// (docs/research/combat-acquisition.md). What it does in the state — approach, swing,
+    /// flee — is <c>spFighting</c>, not yet built; here it stands and holds its target.</summary>
+    Fighting = 21,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -492,6 +498,37 @@ public sealed class CreatureState
     /// application when working.</summary>
     public int TimerTicks;
 
+    /// <summary>The creature this one is engaged with, or 0 — DK2's <c>creature+0x502</c>, the
+    /// engagement's target, written by <c>SelectAVictim</c> and copied into the swing when an
+    /// attack begins (docs/research/combat-acquisition.md §7).</summary>
+    public int FightTargetId;
+
+    /// <summary>How the engagement attacks — the low nibble of <c>creature+0x529</c>: 0 spell at a
+    /// creature, 1 melee at a creature, 2 spell at a thing, 3 spell at an ally, 4 melee at a thing
+    /// (<see cref="Combat.CombatRules.AttackTypes"/>). The high nibble, the spell slot, is not kept.</summary>
+    public byte AttackType;
+
+    /// <summary>DK2's own <c>AttackRangeSquared</c> (<c>+0x4FE</c>): how close the engagement has to
+    /// get, in squared 1/4096 units — melee reach plus half the target's footprint, squared.</summary>
+    public int AttackRangeSquared;
+
+    /// <summary>DK2's own <c>FightProcessCounter</c>, the nibble at bits 22–25 of the flag dword:
+    /// a creature standing on the tile it stood on last tick looks for a fight only every tenth
+    /// tick, an Imp every fourth; one that has moved tile looks at once (§3).</summary>
+    public byte FightProcessCounter;
+
+    /// <summary>The tile this creature stood on when the fight process last ran — the position
+    /// DK2 compares with the previous frame's to tell a mover from a stander.</summary>
+    public int LastFightScanTileIndex = -1;
+
+    /// <summary>The eight melee attackers engaged with this creature, by id, 0 for a free slot —
+    /// DK2's <c>+0x504</c> array. An attacker takes the first free slot when it engages and is
+    /// struck out when it disengages; a ninth melee attacker cannot engage at all.</summary>
+    public readonly int[] EngagedMelee = new int[Combat.CombatRules.Slots];
+
+    /// <summary>The eight ranged attackers engaged with this creature — DK2's <c>+0x514</c>.</summary>
+    public readonly int[] EngagedRanged = new int[Combat.CombatRules.Slots];
+
     /// <summary>Walking somewhere it has not reached: a route is loaded and <c>path_finished</c>
     /// is clear. The mover's arrival test sets the flag (steering-behaviours.md §5.2).</summary>
     public bool HasRoute => Body.PathTotalCount != 0 && !Body.PathFinished;
@@ -578,5 +615,12 @@ public sealed class CreatureState
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);
         hash.Add(TimerTicks);
+        hash.Add(FightTargetId);
+        hash.Add(AttackType);
+        hash.Add(AttackRangeSquared);
+        hash.Add(FightProcessCounter);
+        hash.Add(LastFightScanTileIndex);
+        for (int i = 0; i < EngagedMelee.Length; i++) hash.Add(EngagedMelee[i]);
+        for (int i = 0; i < EngagedRanged.Length; i++) hash.Add(EngagedRanged[i]);
     }
 }

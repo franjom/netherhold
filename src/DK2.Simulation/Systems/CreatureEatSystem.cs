@@ -54,6 +54,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
             // A creature walking out for good does not stop for lunch, for the
             // same reason it does not stop for a bed.
             if (creature.Activity == CreatureActivity.Leaving) continue;
+            if (Combat.CombatRules.IsFighting(creature)) continue;
 
             switch (creature.Activity)
             {

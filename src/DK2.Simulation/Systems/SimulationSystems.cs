@@ -34,6 +34,8 @@ public static class SimulationSystems
         new AllianceSystem(),
         // Doors open and close before anyone routes across them this tick.
         new DoorSystem(),
+        // Acquisition before state handlers and steering, as ProcessFight sits in DK2's update.
+        new CombatSystem(),
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
         new CreatureMovementSystem(),
         new FogOfWarSystem(),
