@@ -37,7 +37,51 @@ the invocation cadence is one per turn.
 
 ## 2. `Task`
 
-Not yet investigated beyond the field location printed by DK2's dumper.
+**CONFIRMED from DK2's own dumper and the binary:** `Task` is not a separate
+field. It occupies bits 22-25 of the computer keeper's dword at `+0x00`:
+
+```text
+task = (keeper[+0x00] >> 22) & 0x0f
+```
+
+`0x00500C20` extracts that value, rejects values above 8, and dispatches through
+a compiler jump table. This is not a record array like the creature-action
+table: the id is implicit in the table index and each four-byte entry is a jump
+target.
+
+| id | table entry | switch arm | destination |
+|---:|---:|---:|---|
+| 0 | `0x0050127C` | `0x00501103` | inline idle/planning arm |
+| 1 | `0x00501280` | `0x00501171` | calls `0x004FCE70` |
+| 2 | `0x00501284` | `0x00501184` | calls `0x004FD030` |
+| 3 | `0x00501288` | `0x00501197` | calls `0x004FD2B0` |
+| 4 | `0x0050128C` | `0x005011AA` | inline arm |
+| 5 | `0x00501290` | `0x005011FF` | calls `0x004FD660` |
+| 6 | `0x00501294` | `0x0050120F` | calls `0x004FD750` |
+| 7 | `0x00501298` | `0x0050121F` | calls `0x004FDC50` |
+| 8 | `0x0050129C` | `0x0050123E` | stops this turn's task loop |
+
+Thus the table base is `0x0050127C`, stride is 4, count is 9, id is the index,
+and the stored field is the switch-arm address. The bounds check precedes the
+table lookup. An out-of-range id is changed to 4 and processing stops; arm 8
+also stops without calling a handler.
+
+The immediate-mask sweep found these computer-keeper writers:
+
+- `0x004F8360`, the object initialiser, clears `Task` and the adjacent
+  `NextTask` field.
+- The inline idle/planning path `0x004FC690` clears `Task`, starts id 1, or
+  starts id 5 according to the planning result.
+- Handlers `0x004FCE70`, `0x004FD030`, `0x004FD2B0` and `0x004FD750` finish or
+  replace their current task by masked writes to the same dword.
+- `0x00500C20` clears it on timeout and when inline id 4 completes, and changes
+  an invalid id to 4.
+- `0x004FDC50` reads `NextTask`; its relationship to `Task` is covered in §4.
+
+The only other whole-binary hits for the same mask operate on creature offset
+`+0x3E6` in the combat update and are unrelated. Apart from DK2's debug dumper,
+the extracted four-bit `Task` value is read only by `0x00500C20`; task handlers
+change it but are reached through that one switch.
 
 ## 3. Task ids
 
@@ -49,16 +93,14 @@ Not yet investigated.
 
 ## What is left
 
-- Trace every reader and writer of the `Task` and `NextTask` bit fields.
-- Establish whether the visible switch is the complete dispatcher and name its
-  supported ids only where strings, assertions or field effects justify it.
+- Name the supported task ids only where strings, assertions or field effects
+  justify it.
 - Read the three-entry event ring and its relationship to ordinary tasks.
 
 ## Confidence
 
-- **CONFIRMED:** the addresses, direct call chain, player gates, once-per-world-
-  turn cadence, `TaskTimeCounter` increment, 1,680-turn timeout, and work-
-  allowance byte are direct reads of `DKII.EXE`.
+- **CONFIRMED:** the addresses, call chain, cadence, field layout, jump-table
+  contents, bounds check, and listed readers/writers are direct binary reads.
 - **STRONGLY INFERRED:** none in the answered section.
 - **HYPOTHESIS:** none.
 - **UNKNOWN:** questions 2-4 and the semantic names of the player status values.
