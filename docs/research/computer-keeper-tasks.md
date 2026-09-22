@@ -1,4 +1,4 @@
-# The computer keeper's task dispatcher
+﻿# The computer keeper's task dispatcher
 
 **Scope:** `DKII.EXE` v1.70, MD5
 `2f3bbc21eae8c3aa468136baa303036d`. This document follows the computer
@@ -20,8 +20,10 @@ call chain is:
 3. `0x004C2310` walks the world's player list and calls `0x004B9EC0` once for
    each player.
 4. `0x004B9EC0` calls `0x00500C20` when the player's computer-control byte at
-   `+0x10FA` is nonzero and player status at `+0x19A` is neither 1 nor 3. It
-   passes the computer-keeper pointer stored at player `+0x1101`.
+   `+0x10FA` is nonzero and player status at `+0x19A` is neither 1 nor 3 —
+   *conquered* and *lost* (`win-and-defeat.md` §1), so a defeated computer
+   keeper stops acting while a winner (2) keeps its turn. It passes the
+   computer-keeper pointer stored at player `+0x1101`.
 
 Therefore an eligible computer keeper is advanced **once every game turn**,
 not every N turns and not when a countdown expires. `0x00500C20` independently
@@ -155,5 +157,5 @@ can introduce one is UNKNOWN.
 - **STRONGLY INFERRED:** the descriptive names marked that way in §3; the
   evidence is each arm's field and game-action use, not a recovered enum.
 - **HYPOTHESIS:** none.
-- **UNKNOWN:** id 8's meaning and writer, whether loading can introduce other
-  event ids, and the semantic names of the player status values.
+- **UNKNOWN:** id 8's meaning and writer, and whether loading can introduce
+  other event ids. The player status values are named in `win-and-defeat.md`.
