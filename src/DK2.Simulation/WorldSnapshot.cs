@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 66;
+    private const int FormatVersion = 67;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -144,6 +144,12 @@ public static class WorldSnapshot
             w.Write(p.ResearchPoints);
             w.Write(p.NextFreeImpTick.Value);
             w.Write(p.NextPaydayTick.Value);
+            w.Write(p.Status);
+            w.Write(p.StatusTick.Value);
+            w.Write(p.HeartHealth);
+            w.Write(p.HeartLastAttackerPlayerId);
+            w.Write(p.HeartDiedTick.Value);
+            w.Write(p.HeartRuined);
             w.Write(p.Availabilities.Count);
             foreach (AvailabilityState availability in p.Availabilities)
             {
@@ -441,6 +447,12 @@ public static class WorldSnapshot
                 ResearchPoints = r.ReadInt32(),
                 NextFreeImpTick = new GameTick(r.ReadInt64()),
                 NextPaydayTick = new GameTick(r.ReadInt64()),
+                Status = r.ReadByte(),
+                StatusTick = new GameTick(r.ReadInt64()),
+                HeartHealth = r.ReadInt32(),
+                HeartLastAttackerPlayerId = r.ReadByte(),
+                HeartDiedTick = new GameTick(r.ReadInt64()),
+                HeartRuined = r.ReadBoolean(),
                 Availabilities = [],
                 Hand = [],
             };

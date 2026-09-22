@@ -550,6 +550,10 @@ public class ScenarioTests
         vars.Misc[VariableTypeId.ExcessManaDecreaseRatePerSecond] =
             new MiscVariable(VariableTypeId.ExcessManaDecreaseRatePerSecond, 5, 0, 0);
 
+        // The heart's health and regeneration, as the shipped global VARIABLES table
+        // carries them (rows 174 and 131); a keeper's world needs both (ADR-0162).
+        vars.Misc[VariableTypeId.DungeonHeartObjectHealth] = new MiscVariable(VariableTypeId.DungeonHeartObjectHealth, 100000, 0, 0);
+        vars.Misc[VariableTypeId.DungeonHeartHealthRegenerationPerSecond] = new MiscVariable(VariableTypeId.DungeonHeartHealthRegenerationPerSecond, 25, 0, 0);
         return vars;
     }
 

@@ -970,7 +970,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
             case JobPriority.Claim:
                 if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId))
                     kind = TileWorkKind.Claim;
-                else if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.ConvertRoom, playerId))
+                else if (TileWorkRules.Applies(context.World, context.Database, tile, TileWorkKind.ConvertRoom, playerId))
                     kind = TileWorkKind.ConvertRoom;
                 else
                     return false;
@@ -1157,7 +1157,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         }
 
         return TileWorkRules.Applies(
-            context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
+            context.World, context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
     }
 
     /// <summary>

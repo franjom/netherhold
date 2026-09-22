@@ -102,10 +102,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 66: each keeper's availability rows are mutable world state
-        // that trigger action 6 writes (ADR-0161). Earlier pins and their reasons
-        // live in docs/research/hash-versions.md.
-        Assert.Equal(0x8FE50E548AC844F2UL, sim.StateHash());
+        // HashVersion 67: a player's Status and the heart's health, ruin and killer
+        // entered (ADR-0162). Earlier pins and their reasons live in
+        // docs/research/hash-versions.md.
+        Assert.Equal(0x8E6F0889810E2C53UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

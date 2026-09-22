@@ -223,6 +223,17 @@ public static class TileWorkRules
     /// about the reference install, not about DK2.
     /// </summary>
     public static bool Applies(GameDatabase database, in TileState tile, TileWorkKind kind, byte playerId)
+        => Applies(database, tile, kind, playerId, ruinedHeart: false);
+
+    /// <summary>The same, knowing whether the tile's owner has lost their heart: a
+    /// ruined heart is claimable like any room (Q93, ADR-0162), a live one never is.</summary>
+    public static bool Applies(
+        WorldState world, GameDatabase database, in TileState tile, TileWorkKind kind, byte playerId)
+        => Applies(database, tile, kind, playerId,
+                   world.HasPlayer(tile.OwnerPlayerId) && world.Player(tile.OwnerPlayerId).HeartRuined);
+
+    private static bool Applies(
+        GameDatabase database, in TileState tile, TileWorkKind kind, byte playerId, bool ruinedHeart)
     {
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
 
@@ -256,12 +267,13 @@ public static class TileWorkRules
             // Somebody else's room — a rival's, or a neutral one, which is what
             // an unclaimed portal is (PlayerIds.Neutral, ADR-0043). A live
             // dungeon heart is excluded by terrain identity, because nothing in
-            // the record separates a heart from a portal (Q40, Q93).
+            // the record separates a heart from a portal; a ruined one is a room
+            // like any other (Q40, Q93, ADR-0162).
             TileWorkKind.ConvertRoom =>
                 !terrain.IsSolid
                 && terrain.IsRoom
                 && tile.OwnerPlayerId != playerId
-                && terrain.TerrainId != ManaRules.DungeonHeartTerrainId(database),
+                && (ruinedHeart || terrain.TerrainId != ManaRules.DungeonHeartTerrainId(database)),
 
             TileWorkKind.AttackTile =>
                 !terrain.IsSolid && terrain.IsOwnable && tile.OwnerPlayerId != playerId,

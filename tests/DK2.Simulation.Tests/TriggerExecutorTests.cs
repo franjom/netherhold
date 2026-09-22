@@ -937,7 +937,9 @@ public class TriggerExecutorTests
         byte[] performed = Enumerable.Range(0, 256)
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
-        Assert.Equal([(byte)1, (byte)6, (byte)7, (byte)8, (byte)14, (byte)22, (byte)44, (byte)45], performed);
+        Assert.Equal(
+            [(byte)1, (byte)6, (byte)7, (byte)8, (byte)10, (byte)11, (byte)14, (byte)22, (byte)44, (byte)45],
+            performed);
     }
 
     /// <summary>Action type 22's coordinates are <b>one-based</b>: the arm at
@@ -1280,6 +1282,66 @@ public class TriggerExecutorTests
 
     /// <summary>A type-29 record as the reader builds one: <c>TargetId</c> at byte 01 and
     /// nothing else the arm reads.</summary>
+    // ---- WIN_GAME and LOSE_GAME (ADR-0162) -------------------------------
+
+    [Fact]
+    public void WinGameInAPlayerTreeEndsThatPlayersGameAsWon()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+        var tree = new TriggerTree(
+            [Condition(5, repeat: 255, child: 0xFFFF, next: 0, FlagEqualsZero()), EndGameAction(1, 10)],
+            0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
+
+        TriggerRunResult run = new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Equal(PlayerStatus.Won, world.Player(Keeper).Status);
+        Assert.Empty(run.Partial);
+        Assert.Empty(run.Unhandled);
+    }
+
+    [Fact]
+    public void LoseGameEndsTheGameAsLost_AndALaterWinDoesNotOverturnIt()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+        var lose = new TriggerTree(
+            [Condition(5, repeat: 255, child: 0xFFFF, next: 0, FlagEqualsZero()), EndGameAction(1, 11)],
+            0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
+        var win = new TriggerTree(
+            [Condition(5, repeat: 255, child: 0xFFFF, next: 0, FlagEqualsZero()), EndGameAction(1, 10)],
+            0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
+
+        new TriggerExecutor(lose, world.Triggers, world, database).Run(1);
+        new TriggerExecutor(win, world.Triggers, world, database).Run(2);
+
+        Assert.Equal(PlayerStatus.Lost, world.Player(Keeper).Status);
+    }
+
+    /// <summary>The world action dispatcher's jump table sends types 10 and 11 to its
+    /// failure exit, so a WIN_GAME authored in a world tree ends nothing — DK2's answer,
+    /// not a decline (trigger-semantics.md, "What an arm returns").</summary>
+    [Fact]
+    public void WinGameInAWorldTreeIsRefusedAsDk2Refuses()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+        var tree = new TriggerTree(
+            [Condition(5, repeat: 255, child: 0xFFFF, next: 0, FlagEqualsZero()), EndGameAction(1, 10)], 5);
+
+        TriggerRunResult run = new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Equal(PlayerStatus.Playing, world.Player(Keeper).Status);
+        Assert.Contains(run.Unhandled, b => b.Type == 10);
+    }
+
+    private static TriggerRecord EndGameAction(ushort id, byte type) =>
+        new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = type,
+            Parameters = new Dictionary<string, long>(),
+        };
+
     private static TriggerRecord SpellAvailable(ushort id, int targetId, ushort child = 0xFFFF) =>
         new GenericTriggerRecord(new byte[16])
         {

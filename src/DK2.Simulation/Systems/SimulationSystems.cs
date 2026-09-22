@@ -78,5 +78,6 @@ public static class SimulationSystems
         new CreatureAngerSystem(),
 
         new CreatureExperienceSystem(),
+        new DungeonHeartSystem(), // last, as the verdict is the last thing DK2's player frame does
     ];
 }

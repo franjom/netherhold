@@ -884,6 +884,18 @@ public sealed class TriggerExecutor
     /// </remarks>
     private bool RunAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
+        // WIN_GAME and LOSE_GAME are the player dispatcher's first two arms
+        // (0x004C8662, 0x004C8675): each ends the game for the player whose tree —
+        // or whose creature's tree, the creature dispatcher delegating with the
+        // owner as `this` — reached it. The world dispatcher refuses them, which the
+        // fall-through below reproduces (ADR-0162, win-and-defeat.md §2).
+        if (record.Type is 10 or 11)
+        {
+            if (context != TriggerContext.World) return ExecuteAction(record, context, run);
+            run.Unhandled.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
+            return false;
+        }
+
         if (context == TriggerContext.Creature && CreatureOwnsAction(record.Type))
             return Unperformed(record, context, run.Partial);
         if (context == TriggerContext.Creature && PlayerOwnsAction(record.Type))
@@ -966,7 +978,8 @@ public sealed class TriggerExecutor
     /// condition reading the map as it was before the write.
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
-    public static bool Performs(byte type) => type is 1 or 6 or 7 or 8 or 14 or 22 or 44 or 45;
+    public static bool Performs(byte type) =>
+        type is 1 or 6 or 7 or 8 or 10 or 11 or 14 or 22 or 44 or 45;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -985,6 +998,13 @@ public sealed class TriggerExecutor
         if (record.Type == 8)
         {
             _state.StartTimer(checked((byte)p["TimerId"]), run.CurrentTick);
+            return true;
+        }
+        if (record.Type is 10 or 11)
+        {
+            if (_world is null || run.Player is not byte player)
+                return Unperformed(record, context, partial);
+            _world.EndGame(player, record.Type == 10 ? PlayerStatus.Won : PlayerStatus.Lost);
             return true;
         }
         if (record.Type == 44)

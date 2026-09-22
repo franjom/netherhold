@@ -286,6 +286,32 @@ public struct PlayerState
     /// changes an existing row but never creates one (ADR-0161).</summary>
     public List<AvailabilityState> Availabilities;
 
+    /// <summary>DK2's <c>Status</c> at <c>player+0x19A</c>: one of <see cref="PlayerStatus"/>,
+    /// written once by <see cref="WorldState.EndGame"/> and never changed after (ADR-0162).</summary>
+    public byte Status;
+
+    /// <summary>The tick <see cref="Status"/> left <see cref="PlayerStatus.Playing"/>. DK2
+    /// snapshots the end-of-level statistics at that moment; this is the one of them a
+    /// deterministic replay cannot recompute.</summary>
+    public GameTick StatusTick;
+
+    /// <summary>The dungeon heart object's health, <c>object+0x40</c>. Starts at
+    /// <c>DungeonHeartObjectHealth</c>, regenerates once a second while above zero, and
+    /// at zero the heart is dead: <see cref="KilledByPlayerId"/> is stamped from
+    /// <see cref="HeartLastAttackerPlayerId"/> and the room ruins on the next turn.</summary>
+    public int HeartHealth;
+
+    /// <summary>The player whose blow last hit the heart, <c>object+0x36</c>; becomes
+    /// <see cref="KilledByPlayerId"/> when the heart dies.</summary>
+    public byte HeartLastAttackerPlayerId;
+
+    /// <summary>When the heart died — DK2's <c>GameTickDied</c> at <c>player+0xEE2</c>.</summary>
+    public GameTick HeartDiedTick;
+
+    /// <summary>Bit 0 of the heart room's <c>+0x9A</c>: set by the room's own frame when it
+    /// finds no heart object. A ruined heart stores no gold and can be claimed (Q93, Q263).</summary>
+    public bool HeartRuined;
+
     /// <summary>
     /// The Hand of Evil: the <b>things</b> this keeper is holding, in pick-up order.
     /// Things, not creatures (ADR-0075) — DK2 keeps one array of thing ids on the
@@ -324,6 +350,12 @@ public struct PlayerState
         hash.Add(ResearchPoints);
         hash.Add(NextFreeImpTick);
         hash.Add(NextPaydayTick);
+        hash.Add(Status);
+        hash.Add(StatusTick);
+        hash.Add(HeartHealth);
+        hash.Add(HeartLastAttackerPlayerId);
+        hash.Add(HeartDiedTick);
+        hash.Add(HeartRuined ? (byte)1 : (byte)0);
         hash.Add(Availabilities.Count);
         foreach (AvailabilityState availability in Availabilities)
             availability.HashInto(ref hash);
@@ -753,6 +785,37 @@ public sealed class WorldState
     public bool HasAvailability(byte playerId, ushort kind, int value) =>
         Player(playerId).Availabilities.Any(a => a.Kind == kind && a.Value == value);
 
+    /// <summary>Ends the game for one player — DK2's <c>0x004BE630</c>, which returns at
+    /// once if <c>Status</c> is already set, so the first verdict stands. Returns whether
+    /// this call was the one that ended it (ADR-0162).</summary>
+    public bool EndGame(byte playerId, byte status)
+    {
+        ref PlayerState player = ref Player(playerId);
+        if (PlayerStatus.HasEnded(player.Status)) return false;
+        player.Status = status;
+        player.StatusTick = CurrentTick;
+        return true;
+    }
+
+    /// <summary>Takes health off a keeper's dungeon heart, remembering whose blow it was.
+    /// At zero the heart is dead: <c>KilledByPlayerId</c> and <c>GameTickDied</c> are
+    /// stamped as DK2's object death handler does (<c>0x0049B5E0</c>, type 13 arm). The
+    /// ruin and the verdict follow on later turns, in <see cref="Systems.DungeonHeartSystem"/>.
+    /// Nothing in the tick order calls this yet — combat is unbuilt (Q8).</summary>
+    public bool DamageHeart(byte playerId, int amount, byte attackerPlayerId)
+    {
+        ref PlayerState player = ref Player(playerId);
+        if (player.HeartHealth <= 0) return false;
+        player.HeartLastAttackerPlayerId = attackerPlayerId;
+        player.HeartHealth -= amount;
+        if (player.HeartHealth > 0) return false;
+
+        player.HeartHealth = 0;
+        player.KilledByPlayerId = attackerPlayerId;
+        player.HeartDiedTick = CurrentTick;
+        return true;
+    }
+
     /// <summary>Whether <paramref name="playerId"/> counts <paramref name="otherId"/> a friend —
     /// the original's <c>0x004BF3D0</c>, which answers yes for the same player without reading
     /// the array and otherwise returns the byte at <c>player+0x1AE+other</c>. The door update
@@ -1071,6 +1134,9 @@ public sealed class WorldState
             .Select(id => new PlayerState
             {
                 PlayerId = id,
+                HeartHealth = Data.Model.PlayerIds.IsKeeper(id)
+                    ? database[VariableTypeId.DungeonHeartObjectHealth]
+                    : 0,
                 Availabilities = database.Variables.Availabilities
                     .Where(a => a.PlayerId == id)
                     .OrderBy(a => a.Kind).ThenBy(a => a.TypeId)

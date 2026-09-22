@@ -3684,3 +3684,31 @@ the measured corpus run now perform their effect. Room building and the
 availability modes of conditions 25, 27 and 28 remain unimplemented consumers;
 their shipped records do not use those modes. Q226 no longer includes action
 6's selectors. `HashVersion` and snapshot format advance together to 66.
+
+## ADR-0162 — A game ends once: `Status`, the heart's fall, and the verdict
+
+**Status.** Accepted 2026-09-22 · `HashVersion` 67 · Research:
+`docs/research/win-and-defeat.md`.
+
+**Context.** The plan's own words were "no level is winnable": nothing held a
+verdict, `WIN_GAME` and `LOSE_GAME` were `Partial`, and a fallen heart had no
+state (Q40, Q93, Q207). DK2 keeps one field, `Status` at `player+0x19A`, written
+by one routine that returns if it is already set. 39 of the 40 shipped `WIN_GAME`
+records hang off flag or timer conditions the executor already evaluates.
+
+**Decision.** `PlayerState.Status` takes DK2's codes — 0 playing, 1 conquered,
+2 won, 3 lost — and `WorldState.EndGame` writes it once. Actions 10 and 11 are
+performed for the player of the player or creature tree that reached them and
+refused in a world tree, as the dispatchers do. The heart is health on the
+player, from `DungeonHeartObjectHealth`: `DamageHeart` stamps `KilledByPlayerId`
+at zero; `DungeonHeartSystem`, last in the tick, regenerates once a second, ruins
+the room one turn after death (`+0x9A` bit 0, Q263), turns a stamped killer into
+*lost* or *conquered* by side, and awards the win to the last keeper standing.
+A ruined heart stores no gold and can be claimed.
+
+**Consequences.** Every campaign level's win is reachable by the executor.
+Snapshot format and `HashVersion` advance to 67; six test fixtures gain the two
+heart variables the shipped global table always carries. Not built and named
+so: what a defeat does to creatures, rooms and gold (Q358), and alliance
+propagation of verdicts (Q359). Nothing in the tick order damages a heart until
+combat lands.

@@ -68,6 +68,13 @@ public static class GoldStore
     {
         if (room is null) return 0;
 
+        // A ruined heart holds nothing: DK2's gold sum skips a heart whose +0x9A bit 0
+        // is set, and that bit is the ruin (Q263, win-and-defeat.md §4).
+        if (room.Definition.TypeId == RoomTypeId.DungeonHeart
+            && world.HasPlayer(room.OwnerPlayerId)
+            && world.Player(room.OwnerPlayerId).HeartRuined)
+            return 0;
+
         int perTile = room.Definition.TypeId switch
         {
             RoomTypeId.Treasury => database[VariableTypeId.MaxGoldPerTreasuryTile],

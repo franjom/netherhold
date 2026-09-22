@@ -32,7 +32,12 @@ beside it.
 
 ## Versions
 
-**66** — `0x8FE50E548AC844F2` (current). Each keeper's room, creature, door,
+**67** — `0x8E6F0889810E2C53` (current). A player's `Status` and its tick, and
+the dungeon heart's health, last attacker, death tick and ruin entered
+(ADR-0162). Composition only in the pinned fixture: its players are not
+keepers, so every new field is zero.
+
+**66** — `0x8FE50E548AC844F2`. Each keeper's room, creature, door,
 trap and spell availability rows entered, copied from the level and made mutable
 so trigger action 6 can write them (ADR-0161). Composition and initial values
 only: the pinned fixture fires no action 6.

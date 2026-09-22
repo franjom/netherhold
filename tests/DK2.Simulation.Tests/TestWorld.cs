@@ -86,6 +86,11 @@ internal static class TestWorld
         Set(vars, VariableTypeId.TimeBeforeFirstPayDaySeconds, 600);
         Set(vars, VariableTypeId.MinimumImpThreshold, 4);
         Set(vars, VariableTypeId.TimeBeforeFreeImpGeneratedSeconds, 5);
+        // The dungeon heart's health and its regeneration, as shipped in the global
+        // VARIABLES table (balance-variables-in-the-binary.md rows 174 and 131). A
+        // keeper's world cannot be built without them (ADR-0162).
+        Set(vars, VariableTypeId.DungeonHeartObjectHealth, 100000);
+        Set(vars, VariableTypeId.DungeonHeartHealthRegenerationPerSecond, 25);
         return vars;
     }
 

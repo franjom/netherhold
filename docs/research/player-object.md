@@ -1,4 +1,4 @@
-# The player object's fields, named by DK2 (Q264)
+﻿# The player object's fields, named by DK2 (Q264)
 
 **Scope:** runtime offsets on DK2's player object. What a *trigger* does with
 them is `trigger-semantics.md`; this is the map those readings point into.
@@ -36,7 +36,7 @@ or a community document.
 | `+0x134`, `+0x136` | `CreaturePossessed`, `CreatureHeldInPossession` | `+0x134` gates condition type 73 |
 | `+0x138`–`+0x13E` | `CallToArmsTag`, `CallToArmsPosition`, `CallToArmsManaTick` | |
 | `+0x173` | **creatures lost** | a dword, incremented by the death handler `FUN_00487C70`; condition type 22's `PlayerId 0` path |
-| `+0x19A`, `+0x19E` | `Status`, `ObjectiveTextId` | but see the kill tally below |
+| `+0x19A`, `+0x19E` | `Status`, `ObjectiveTextId` | `Status` is 0/1/2/3 = playing/conquered/won/lost, written once (`win-and-defeat.md` §1); but see the kill tally below |
 | `+0x1BE`–`+0x1C1` | `ObjectiveActionPointId`, `NumberOfThingsInHand`, `MaxNumberOfThingsInHand`, `FreeRangeChickenCount` | |
 | `+0x20D` | `CasinoBigWinnerGameTickRemaining` | |
 | `+0x20F`, `+0x213` | `ResearchCompleted`, `ResearchPoint` | **contradicts a comment in `WorldState.PlayerState`** — Q265 |
