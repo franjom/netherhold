@@ -105,7 +105,7 @@ public class DeterminismTests
         // HashVersion 67: a player's Status and the heart's health, ruin and killer
         // entered (ADR-0162). Earlier pins and their reasons live in
         // docs/research/hash-versions.md.
-        Assert.Equal(0xD8CDBD3CD4546586UL, sim.StateHash());
+        Assert.Equal(0xA02044E4AE17A79BUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

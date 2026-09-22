@@ -7,6 +7,17 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Combat;
 
+/// <summary>What an engagement's target is: DK2 keeps one tag and reads the thing's class.</summary>
+public static class FightTargetKind
+{
+    public const byte None = 0;
+    public const byte Creature = 1;
+
+    /// <summary>An enemy dungeon heart, which DK2 attacks through its Arch Pillar objects; here the
+    /// heart tile stood in for the pillar (Q363).</summary>
+    public const byte Heart = 2;
+}
+
 /// <summary>The engagement record and the rules around it: who may look for a fight, who can be
 /// attacked, how an engagement is registered on its target and how it is let go. Each is one of
 /// DK2's routines, named by address in docs/research/combat-acquisition.md: the gate
@@ -28,6 +39,10 @@ public static class CombatRules
     /// tick since it last looked; an Imp on the fourth (<c>ProcessFight</c>, §3).</summary>
     public const int StandingScanPeriod = 10;
     public const int ImpStandingScanPeriod = 4;
+
+    /// <summary>The fight-starter's melee reach against a thing rather than a creature: an
+    /// object adds a quarter tile to <c>MeleeRange</c>, a door half, a secret door three quarters.</summary>
+    public const int ObjectReach = 0x400;
 
     /// <summary>The low nibble of <c>creature+0x529</c>, which <c>spFighting</c> switches on to
     /// start action 16 (spell) or 17 (melee) — combat-entry.md §3.</summary>
@@ -73,6 +88,42 @@ public static class CombatRules
         for (int i = 0; i < Slots; i++)
             if (creature.EngagedMelee[i] == NoTarget || creature.EngagedRanged[i] == NoTarget) return false;
         return true;
+    }
+
+    /// <summary>How many slots of both arrays are taken — the retaliation rule's head-count.</summary>
+    public static int AttackerCount(CreatureState creature)
+    {
+        int count = 0;
+        for (int i = 0; i < Slots; i++)
+        {
+            if (creature.EngagedMelee[i] != NoTarget) count++;
+            if (creature.EngagedRanged[i] != NoTarget) count++;
+        }
+        return count;
+    }
+
+    /// <summary>The two counters the fighting arms score with (<c>0x0045B420</c>, <c>0x0045B490</c>):
+    /// over both of the candidate's arrays, how many attackers fight as Blitzer or Blocker, and
+    /// how many as Support. Neither tests sides.</summary>
+    public static void CountEngaged(WorldState world, GameDatabase database, CreatureState candidate, out int melee, out int ranged)
+    {
+        melee = 0;
+        ranged = 0;
+        for (int i = 0; i < Slots; i++)
+        {
+            Count(world, database, candidate.EngagedMelee[i], ref melee, ref ranged);
+            Count(world, database, candidate.EngagedRanged[i], ref melee, ref ranged);
+        }
+
+        static void Count(WorldState world, GameDatabase database, int id, ref int melee, ref int ranged)
+        {
+            if (id == NoTarget) return;
+            CreatureState? attacker = world.CreatureById(id);
+            if (attacker is null) return;
+            FightStyle style = database.CreatureById(attacker.CreatureTypeId).FightStyle;
+            if (style is FightStyle.Blitzer or FightStyle.Blocker) melee++;
+            else if (style == FightStyle.Support) ranged++;
+        }
     }
 
     /// <summary>DK2's <c>IsAttackable</c>, recomputed every tick by <c>0x0045A8B0</c> rather than
@@ -139,24 +190,55 @@ public static class CombatRules
     /// <summary><c>0x004BF390</c>: another player's creature is an enemy unless allied.</summary>
     public static bool IsHostile(WorldState world, byte mySide, byte theirSide) => !world.AreAllied(mySide, theirSide);
 
+    /// <summary>The one line the four fighting arms differ in (combat-target-selection.md §5):
+    /// <c>d</c> the discounted distance, <c>r</c> the squared sight range, <c>melee</c> and
+    /// <c>ranged</c> the counts of <see cref="CountEngaged"/>. Lower wins.</summary>
+    public static int Score(FightStyle style, int d, int r, int melee, int ranged, bool candidateIsSupport) => style switch
+    {
+        FightStyle.Blocker => d,
+        FightStyle.Blitzer => candidateIsSupport ? d : d + r,
+        FightStyle.Support => melee > 0 ? (melee * r) + d : d + (9 * r),
+        FightStyle.Flanker => melee > 0 ? (melee * r) + d : ranged > 0 ? ((ranged + 8) * r) + d : d + (17 * r),
+        _ => throw new ArgumentOutOfRangeException(nameof(style), style, "No scoring arm for this fight style."),
+    };
+
     /// <summary>The fight-starter's melee reach: my <c>MeleeRange</c> plus half the target's
     /// footprint, squared and shifted down twelve.</summary>
-    public static int MeleeReachSquared(CreatureDef me, CreatureDef target)
-    {
-        int reach = me.MeleeRange.Raw + (target.FootprintRadius.Raw >> 1);
-        return unchecked(reach * reach) >> 12;
-    }
+    public static int MeleeReachSquared(CreatureDef me, CreatureDef target) =>
+        ReachSquared(me.MeleeRange.Raw + (target.FootprintRadius.Raw >> 1));
+
+    /// <summary>The same reach against a thing: <c>MeleeRange</c> plus the thing's allowance.</summary>
+    public static int ReachSquared(int reach) => unchecked(reach * reach) >> 12;
+
+    /// <summary>Seconds in the record to ticks, as the loader converts both melee clocks
+    /// (combat-cadence.md §3): multiply by the tick rate, shift the fixed point away, truncate.</summary>
+    public static int TicksOf(Fp32 seconds) => (seconds.Raw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
+
+    /// <summary>Gate B (<c>0x0048C9B0</c>): a melee swing may begin when <c>MeleeRecharge</c> ticks
+    /// have passed since the last one began. Haste and slow, which divide the interval, are not
+    /// modelled.</summary>
+    public static bool SwingMayBegin(CreatureState creature, CreatureDef definition, long tick) =>
+        tick >= creature.TimeLastUsedMelee + TicksOf(definition.MeleeRecharge);
+
+    /// <summary>Gate A (<c>0x00498E30</c>): the blow lands <see cref="CreatureDef.MeleeHitDelay"/>
+    /// ticks after the swing began, the original's <c>now &gt; start + interval - 1</c>.</summary>
+    public static bool BlowLands(CreatureState creature, CreatureDef definition, long tick) =>
+        tick >= creature.SwingStartTick + TicksOf(definition.MeleeHitDelay);
 
     /// <summary>Lets go of the engagement: struck out of the target's arrays, target and reach
-    /// cleared, and a creature that was fighting stands idle with no job.</summary>
+    /// cleared, and a creature that was fighting stands idle with no job. A swing already begun
+    /// keeps its own target and still lands.</summary>
     public static void Disengage(WorldState world, CreatureState creature)
     {
-        if (creature.FightTargetId != NoTarget)
+        if (creature.FightTargetKind == FightTargetKind.Creature && creature.FightTargetId != NoTarget)
         {
             CreatureState? target = world.CreatureById(creature.FightTargetId);
             if (target != null) Unregister(target, creature.Id);
         }
         creature.FightTargetId = NoTarget;
+        creature.FightTargetKind = FightTargetKind.None;
+        creature.FightTargetPlayerId = 0;
+        creature.FightTargetTileIndex = -1;
         creature.AttackType = 0;
         creature.AttackRangeSquared = 0;
         if (!IsFighting(creature)) return;

@@ -90,6 +90,11 @@ public sealed record CreatureDef
     public required ushort SlapDamage { get; init; }
     public required Fp32 MeleeRange { get; init; }
     public required Fp32 MeleeRecharge { get; init; }
+
+    /// <summary>File <c>0xCF9</c>, seconds: how long a melee swing winds up before the blow lands,
+    /// the interval the swing's own gate waits on (combat-cadence.md §1, <c>def+0x5CA</c>). Our
+    /// name; the shipped one is Q336. Zero on the Imp and every unique record.</summary>
+    public required Fp32 MeleeHitDelay { get; init; }
     public required AttackType MeleeAttackType { get; init; }
     public required Fp32 StunDuration { get; init; }
     public required FightStyle FightStyle { get; init; }

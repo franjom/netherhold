@@ -11,7 +11,9 @@ Original version: DK2 v1.70 (GOG)
 Questions: **Q8** (the combat formula). Opens Q337. Completes `combat.md` §5–§6,
 which found the pieces; this assembles them.
 
-**Built as a pure rule** (`MeleeDamageRules`), and **not yet called by anything** —
+**Built as a pure rule** (`MeleeDamageRules`), **called by the swing since ADR-0164**
+(`FightRules.LandBlow`, combat-fight-state.md §4) with no stance, the bearing from target to
+attacker and no player modifier —
 the simulation has no attack state, so nothing swings. See §6.
 
 ---

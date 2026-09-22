@@ -521,6 +521,28 @@ public sealed class CreatureState
     /// DK2 compares with the previous frame's to tell a mover from a stander.</summary>
     public int LastFightScanTileIndex = -1;
 
+    /// <summary>What <see cref="FightTargetId"/> or <see cref="FightTargetTileIndex"/> names
+    /// (<see cref="Combat.FightTargetKind"/>): a creature, or an enemy dungeon heart.</summary>
+    public byte FightTargetKind;
+
+    /// <summary>For a heart target, the heart's owner and the heart tile stood in for its pillar
+    /// (Q363); -1 and 0 otherwise.</summary>
+    public byte FightTargetPlayerId;
+    public int FightTargetTileIndex = -1;
+
+    /// <summary>DK2's own <c>TimeLastUsedMelee</c> (<c>+0x427</c>): the tick the last melee swing
+    /// began, which <c>MeleeRecharge</c> is measured from (combat-fight-state.md §4).</summary>
+    public long TimeLastUsedMelee;
+
+    /// <summary>A melee swing in progress — DK2's creature action 17 being the current action —
+    /// with the tick it began (<c>+0x3A5</c>) and the target it was started at (<c>+0x399</c>),
+    /// which the blow lands on whether or not the engagement has moved since.</summary>
+    public bool SwingInProgress;
+    public long SwingStartTick;
+    public byte SwingTargetKind;
+    public int SwingTargetId;
+    public byte SwingTargetPlayerId;
+
     /// <summary>The eight melee attackers engaged with this creature, by id, 0 for a free slot —
     /// DK2's <c>+0x504</c> array. An attacker takes the first free slot when it engages and is
     /// struck out when it disengages; a ninth melee attacker cannot engage at all.</summary>
@@ -620,6 +642,15 @@ public sealed class CreatureState
         hash.Add(AttackRangeSquared);
         hash.Add(FightProcessCounter);
         hash.Add(LastFightScanTileIndex);
+        hash.Add(FightTargetKind);
+        hash.Add(FightTargetPlayerId);
+        hash.Add(FightTargetTileIndex);
+        hash.Add(TimeLastUsedMelee);
+        hash.Add(SwingInProgress);
+        hash.Add(SwingStartTick);
+        hash.Add(SwingTargetKind);
+        hash.Add(SwingTargetId);
+        hash.Add(SwingTargetPlayerId);
         for (int i = 0; i < EngagedMelee.Length; i++) hash.Add(EngagedMelee[i]);
         for (int i = 0; i < EngagedRanged.Length; i++) hash.Add(EngagedRanged[i]);
     }

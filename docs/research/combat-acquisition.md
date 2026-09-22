@@ -1,4 +1,4 @@
-# Mechanic: how a creature acquires an enemy — `ProcessFight`, `SelectAVictim`, the fight-starter
+﻿# Mechanic: how a creature acquires an enemy — `ProcessFight`, `SelectAVictim`, the fight-starter
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-22. Addresses are
@@ -215,18 +215,18 @@ already in group 22. With no target left, the nibble is restored.
 
 ## 9. Built and not built (ADR-0163)
 
-**Built:** `CombatSystem` running `ProcessFight`'s gate and throttle;
-`SelectAVictim` for **`FightStyle.Blocker`** only — the dispatch scan with
-score `d`, the alignment discount, `IsAttackable`, sight and reach, the route
-check, the final gate, melee commit, registration, `AttackRangeSquared`, and
-`CreatureActivity.Fighting` for state 199. `LineOfSight` reproduces §5's walk;
-`CombatTargetRules.CanReach` §5's route sum. A fighting creature holds its
-target while it exists and is attackable, and is skipped by every job system.
+**Built (ADR-0163, extended by ADR-0164):** `CombatSystem` running `ProcessFight`'s
+gate and throttle; `SelectAVictim` for the **four fighting arms** — the dispatch
+scan with each arm's score (`CombatRules.Score`), the alignment discount,
+`IsAttackable`, sight and reach, the route check, the final gate, melee commit,
+registration, `AttackRangeSquared`, and `CreatureActivity.Fighting` for state 199;
+**scan E**, with the heart's ring tile standing in for its Arch Pillar (Q363).
+`LineOfSight` reproduces §5's walk; `CombatTargetRules.CanReach` §5's route sum.
+What a fighting creature then does is combat-fight-state.md.
 
-**Not built:** the other four arms and the `Creeping` weighting; the spell
-survey and scans B and F; scan C (who attacks me) and scan A; doors (D) and the
-heart's pillars (E); `SneakingAs`; the flee check; `spFighting` itself — approach,
-swing, re-acquisition — so nothing yet subtracts health; the trigger event.
+**Not built:** the `NonFighter` arm and the `Creeping` weighting; the spell survey
+and scans B and F; scan C (who attacks me) and scan A; doors (D); `SneakingAs`; the
+flee check; the trigger event.
 
 ## 10. What is left
 

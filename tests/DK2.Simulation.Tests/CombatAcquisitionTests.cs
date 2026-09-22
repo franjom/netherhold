@@ -35,7 +35,8 @@ public class CombatAcquisitionTests
             CombatRules.MeleeReachSquared(db.CreatureById(demon.CreatureTypeId), db.CreatureById(near.CreatureTypeId)),
             demon.AttackRangeSquared);
         Assert.Equal(demon.Id, near.EngagedMelee[0]);
-        Assert.Equal(CreatureActivity.Idle, near.Activity);
+        // The Goblin's own arm, Blitzer, sees no Support to dive at and takes the nearest too.
+        Assert.Equal(demon.Id, near.FightTargetId);
     }
 
     [Fact]

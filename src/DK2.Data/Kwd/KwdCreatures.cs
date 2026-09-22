@@ -159,6 +159,7 @@ public static class KwdCreatures
             SlapDamage = U16(0xF16),
             MeleeRange = Fp(0xEEC),
             MeleeRecharge = Fp(0xEF8),
+            MeleeHitDelay = Fp(0xCF9),
             MeleeAttackType = (AttackType)U8(0xF50),
             StunDuration = Fp(0xED0),
             FightStyle = (FightStyle)U8(0xF03),

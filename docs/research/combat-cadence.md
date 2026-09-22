@@ -11,7 +11,11 @@ Original version: DK2 v1.70 (GOG)
 Questions: **Q327** (answered here), Q336 (opened here). Splits the cadence out
 of `combat.md`, which was at its line budget.
 
-**Nothing here is built.**
+**Built (ADR-0164):** both clocks in ticks — `CombatRules.TicksOf` — Gate B as
+`CombatRules.SwingMayBegin` on `TimeLastUsedMelee`, Gate A as `CombatRules.BlowLands`
+on the swing's start tick and `MeleeHitDelay`, the `0xCF9` field now parsed (Q336 keeps
+its shipped name open). Haste and slow on Gate B are not. combat-fight-state.md §4 has
+the swing they gate.
 
 ---
 
@@ -156,7 +160,7 @@ holds — `FUN_0051F3B0` confirms that independently — but the file-to-runtime
 observation discriminates: a Troll's gate interval is 1 tick and a Bile Demon's
 is 5, so **a Troll should swing about five times as often as a Bile Demon**.
 
-## 6. What this project should build
+## 6. What this project builds
 
 - `MeleeRecharge` and the `0x0CF9` field are **both** per-creature integers in
   ticks, converted once at load with `× 4 >> 12`. Store the ticks, not the

@@ -163,8 +163,10 @@ setup:
     # watching: the Vampire never gets one, so its Lair bucket climbs at 100 a
     # second, and praying is the only thing in DK2 that can take it back out.
     - { type: Vampire, at: [7, 3], player: 3 }
-    - { type: Goblin, at: [10, 3], player: 4 }
-    - { type: Goblin, at: [11, 3], player: 4 }
+    # Six tiles from the Vampire: two tiles beyond DistanceCanSee, so nobody
+    # picks a fight and the run stays about work (ADR-0164).
+    - { type: Goblin, at: [13, 3], player: 4 }
+    - { type: Goblin, at: [14, 3], player: 4 }
 observe:
   - state_hash
   - events

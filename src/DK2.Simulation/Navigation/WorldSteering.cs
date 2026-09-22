@@ -118,13 +118,19 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// a finished route and is treated as arrived. False when the mesh has no route. The word's
     /// door bits reach the cost function through <see cref="ProfileOf"/>; most requests in a
     /// running game are the imp pass, which passes none of them (Q357).</summary>
-    public bool TryRoute(CreatureState creature, TilePos to, int options)
+    public bool TryRoute(CreatureState creature, TilePos to, int options) =>
+        TryRouteTo(creature, CreatureState.CentreOf(to.X), CreatureState.CentreOf(to.Y), options);
+
+    /// <summary>The same request aimed at a position rather than a tile centre — what the fight
+    /// state does with its target's own position (<c>0x00471D10</c>). A creature already on the
+    /// position's tile gets a finished route.</summary>
+    public bool TryRouteTo(CreatureState creature, int x, int y, int options)
     {
         SyncBody(creature);
         creature.RouteOptions = options;
         byte flags = MoveOptions.PathFlagsOf(options);
-        var target = new Fixed16Vector(CreatureState.CentreOf(to.X) << 4, CreatureState.CentreOf(to.Y) << 4);
-        if (creature.Tile == to)
+        var target = new Fixed16Vector(x << 4, y << 4);
+        if (creature.Tile == new TilePos(x / Fp32.One, y / Fp32.One))
         {
             RouteWindow.Load(creature.Body, [], target, flags);
             return true;

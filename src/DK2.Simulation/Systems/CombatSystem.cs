@@ -10,18 +10,18 @@ using DK2.Simulation.Steering;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>DK2's <c>ProcessFight</c> (<c>0x0045E9F0</c>), run for every creature but the possessed
-/// one inside its per-tick update, before its state handler and its steering step
-/// (docs/research/combat-acquisition.md §3): a neutral creature never looks; one that may look
-/// (<see cref="CombatRules.MayLookForAFight"/>) and is due (<see cref="CombatRules.ScanIsDue"/>)
-/// runs <c>SelectAVictim</c>. Ours, until <c>spFighting</c> is read: a fighting creature holds its
-/// target while it exists and can be attacked, and lets go otherwise.</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-acquisition.md")]
+/// <summary>DK2's <c>ProcessFight</c> (<c>0x0045E9F0</c>) for every creature but the possessed one,
+/// and <c>spFighting</c> for those already fighting, inside the per-tick update before the state
+/// handlers and the steering step (combat-acquisition.md §3, combat-fight-state.md §2): a neutral
+/// creature never looks; one that may look and is due runs <c>SelectAVictim</c>; a fighter holds
+/// its target while it stands, winds up and lands its swing, or looks again and walks closer.</summary>
+[Dk2Behavior(Confidence.Confirmed, "docs/research/combat-fight-state.md")]
 public sealed class CombatSystem : ISimulationSystem
 {
     private const string SystemName = "combat";
 
     private readonly List<Fixed16Vector> _scratch = [];
+    private readonly HeartSites _hearts = new();
     private WorldSight? _sight;
     private WorldState? _sightWorld;
 
@@ -38,6 +38,7 @@ public sealed class CombatSystem : ISimulationSystem
             _sight = new WorldSight(navigation, world, database);
             _sightWorld = world;
         }
+        _hearts.Refresh(world, database);
 
         IReadOnlyList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
@@ -45,8 +46,9 @@ public sealed class CombatSystem : ISimulationSystem
             CreatureState creature = creatures[i];
             if (!CreatureDeathRules.IsPossessed(world, creature))
             {
-                if (CombatRules.IsFighting(creature)) HoldOrLetGo(context, creature);
-                else ProcessFight(context, creature, database.CreatureById(creature.CreatureTypeId));
+                CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+                if (CombatRules.IsFighting(creature)) Fight(context, creature, definition);
+                else ProcessFight(context, creature, definition);
             }
 
             TilePos tile = creature.Tile;
@@ -63,23 +65,65 @@ public sealed class CombatSystem : ISimulationSystem
         bool moved = creature.LastFightScanTileIndex != (tile.Y * context.World.Width) + tile.X;
         if (!CombatRules.ScanIsDue(creature, moved)) return;
 
-        CombatTargetRules.SelectAVictim(context, _sight!, creature, definition, _scratch);
+        CombatTargetRules.SelectAVictim(context, _sight!, _hearts, creature, definition, _scratch);
     }
 
-    /// <summary>Ours: the target must still be there and attackable, and I must still be able to
-    /// fight — not held, not down, not a captive. DK2's <c>spFighting</c> re-acquires instead
-    /// (combat-entry.md §5); until it is read, letting go is the whole of it.</summary>
-    private static void HoldOrLetGo(SimulationContext context, CreatureState creature)
+    /// <summary><c>spFighting</c>'s melee path in the order it runs: a swing in progress lands and
+    /// nothing else happens; a target gone or unattackable is let go and another sought; in reach,
+    /// a swing begins when the recharge allows; out of reach, a creature target is sought again
+    /// and the winner approached. The fear checks between validation and the attack are not built.</summary>
+    private void Fight(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
-        CreatureState? target = world.CreatureById(creature.FightTargetId);
-        bool keep = target != null
-            && CombatRules.IsAttackable(target)
-            && CombatRules.MayLookForAFight(world, creature, force: false);
-        if (keep) return;
+        long tick = context.Tick.Value;
 
-        CombatRules.Disengage(world, creature);
-        context.Emit(SystemName, "disengaged",
-            $"creature={creature.Id} player={creature.OwnerPlayerId} reason={(target is null ? "target_gone" : "cannot_continue")}");
+        if (creature.SwingInProgress)
+        {
+            if (CombatRules.BlowLands(creature, definition, tick)) FightRules.LandBlow(context, creature, definition);
+            return;
+        }
+
+        if (!CombatRules.MayLookForAFight(world, creature, force: false))
+        {
+            LetGo(context, creature, "cannot_continue");
+            return;
+        }
+
+        if (!FightRules.TargetIsValid(world, creature))
+        {
+            LetGo(context, creature, "target_gone");
+            if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, creature, definition, _scratch)) return;
+        }
+
+        if (!FightRules.TargetPosition(world, creature, out int x, out int y, out TilePos targetTile)) return;
+        if (FightRules.InRange(_sight!, creature, x, y))
+        {
+            creature.StopMoving();
+            if (CombatRules.SwingMayBegin(creature, definition, tick))
+                FightRules.StartSwing(context, _sight!, creature, definition, _scratch);
+            return;
+        }
+
+        // Out of reach: a creature target is chosen afresh every tick, and no choice ends the fight.
+        if (creature.FightTargetKind == FightTargetKind.Creature)
+        {
+            int previous = creature.FightTargetId;
+            CombatRules.Disengage(world, creature);
+            if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, creature, definition, _scratch))
+            {
+                context.Emit(SystemName, "disengaged", $"creature={creature.Id} player={creature.OwnerPlayerId} reason=nobody_in_reach");
+                return;
+            }
+            if (creature.FightTargetId != previous) creature.StopMoving();
+            if (!FightRules.TargetPosition(world, creature, out x, out y, out targetTile)) return;
+        }
+
+        FightRules.Approach(context.Navigation, creature, x, y, targetTile);
+    }
+
+    private static void LetGo(SimulationContext context, CreatureState creature, string reason)
+    {
+        CombatRules.Disengage(context.World, creature);
+        context.Emit(SystemName, "disengaged", $"creature={creature.Id} player={creature.OwnerPlayerId} reason={reason}");
     }
 }

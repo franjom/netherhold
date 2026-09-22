@@ -180,8 +180,8 @@ calls the field *fight type*.
 
 The `+0x4FE` record is `combat-acquisition.md` §7, and `AttackingSpecificCreature`
 is the pair `AttackAbnormalTargets` (`+0x3E6` bit 2) and `AttackingId` (`+0x3F9`).
-Left here: the rest of `spFighting` — the approach, the swing's start,
-re-acquisition and fear. Which enemy gets picked is
+The rest of `spFighting` — the approach, the swing's two clocks, re-acquisition,
+fear and the target's answer — is combat-fight-state.md. Which enemy gets picked is
 `combat-target-selection.md` §5. **The sentinel `0xEA60` is answered there**: it
 is not a tag but "I disengaged, stop looking", which is why this acquirer reports
 success on seeing it.

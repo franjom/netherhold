@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 68;
+    private const int FormatVersion = 69;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -239,6 +239,15 @@ public static class WorldSnapshot
             w.Write(c.AttackRangeSquared);
             w.Write(c.FightProcessCounter);
             w.Write(c.LastFightScanTileIndex);
+            w.Write(c.FightTargetKind);
+            w.Write(c.FightTargetPlayerId);
+            w.Write(c.FightTargetTileIndex);
+            w.Write(c.TimeLastUsedMelee);
+            w.Write(c.SwingInProgress);
+            w.Write(c.SwingStartTick);
+            w.Write(c.SwingTargetKind);
+            w.Write(c.SwingTargetId);
+            w.Write(c.SwingTargetPlayerId);
             for (int i = 0; i < c.EngagedMelee.Length; i++) w.Write(c.EngagedMelee[i]);
             for (int i = 0; i < c.EngagedRanged.Length; i++) w.Write(c.EngagedRanged[i]);
 
@@ -553,6 +562,15 @@ public static class WorldSnapshot
                 AttackRangeSquared = r.ReadInt32(),
                 FightProcessCounter = r.ReadByte(),
                 LastFightScanTileIndex = r.ReadInt32(),
+                FightTargetKind = r.ReadByte(),
+                FightTargetPlayerId = r.ReadByte(),
+                FightTargetTileIndex = r.ReadInt32(),
+                TimeLastUsedMelee = r.ReadInt64(),
+                SwingInProgress = r.ReadBoolean(),
+                SwingStartTick = r.ReadInt64(),
+                SwingTargetKind = r.ReadByte(),
+                SwingTargetId = r.ReadInt32(),
+                SwingTargetPlayerId = r.ReadByte(),
             };
             for (int k = 0; k < creature.EngagedMelee.Length; k++) creature.EngagedMelee[k] = r.ReadInt32();
             for (int k = 0; k < creature.EngagedRanged.Length; k++) creature.EngagedRanged[k] = r.ReadInt32();

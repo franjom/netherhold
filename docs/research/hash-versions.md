@@ -32,7 +32,11 @@ beside it.
 
 ## Versions
 
-**68** — `0xD8CDBD3CD4546586` (current). A creature's fight target, attack type,
+**69** — `0xA02044E4AE17A79B` (current). The target's kind, the heart it names,
+`TimeLastUsedMelee`, and the swing in progress with its start tick and its own
+target entered (ADR-0164). Composition only in the pinned fixture.
+
+**68** — `0xD8CDBD3CD4546586`. A creature's fight target, attack type,
 `AttackRangeSquared`, `FightProcessCounter`, last fight-scan tile and its two
 eight-slot engagement arrays entered (ADR-0163). Composition only in the pinned
 fixture: no Blocker stands near an enemy there.

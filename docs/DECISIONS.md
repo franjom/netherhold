@@ -3743,3 +3743,31 @@ in under four tiles, now engages it; nothing yet swings, so health is untouched
 until `spFighting` is read and built. Snapshot format and `HashVersion` advance
 to 68. The fixture's Bile Demon takes its shipped `Blocker` style and gains a
 `Knight`. Open: Q360–Q366.
+
+## ADR-0164 — Melee lands: `spFighting`'s two clocks, the approach, the answer, the heart
+
+**Status.** Accepted 2026-09-22 · `HashVersion` 69 · Research:
+`docs/research/combat-fight-state.md`.
+
+**Context.** ADR-0163 let a Blocker choose an enemy and stand. `spFighting`
+(DK2's own name) was then read end to end: a melee swing is creature action 17,
+started at most every `MeleeRecharge` ticks and landing `def+0x5CA` ticks later
+on the target it began at, with no range test at the blow; out of reach the
+creature looks again every tick and routes to the target's position; a struck
+creature turns on its attacker only when its own target is already fought by
+more than one; the health routine takes the attacker's player as the source.
+
+**Decision.** `FightRules` and `CombatSystem.Fight` run that order for melee.
+`MeleeHitDelay` is parsed from file `0xCF9` (its shipped name stays Q336) and
+both clocks are kept in ticks. The blow is `MeleeDamageRules.Blow` with no
+stance, the bearing from target to attacker and no player modifier, into
+`CreatureHealthRules.Apply`; a heart takes it through `WorldState.DamageHeart`
+with the heart's ring tile standing in for the Arch Pillar (Q363). The four
+fighting arms' scores are built so every fight style but `NonFighter` fights.
+Retaliation is built for melee with the spell survey replaced by melee.
+
+**Consequences.** A level can now be lost and won by play: creatures fall to
+blows and hearts to creatures. Nobody flees, celebrates or casts yet, and those
+are named (Q367–Q369). Snapshot format and `HashVersion` advance to 69; the
+fixture's Goblin and Bile Demon take their shipped recharge; the two-keepers
+scenario spaces its rivals beyond sight so it stays about work.

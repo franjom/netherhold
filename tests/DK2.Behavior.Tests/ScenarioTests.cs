@@ -593,6 +593,7 @@ public class ScenarioTests
         SlapDamage = 0,
         MeleeRange = new Fp32(0),
         MeleeRecharge = new Fp32(0),
+        MeleeHitDelay = new Fp32(0),
         MeleeAttackType = AttackType.None,
         StunDuration = new Fp32(0),
         FightStyle = FightStyle.NonFighter,

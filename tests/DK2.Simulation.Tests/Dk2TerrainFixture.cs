@@ -189,7 +189,7 @@ internal static class Dk2TerrainFixture
               construction: TileConstruction.DoubleQuad),
             R(RoomTypeId.Casino, "Casino", 750, CasinoTerrain, 0x13ACu, 3, 3),
         ],
-        creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), .. extraCreatures],
+        creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), Warlock(), .. extraCreatures],
         variables: Variables(),
         keeperSpells: KeeperSpells(),
         objects: Objects());
@@ -511,6 +511,7 @@ internal static class Dk2TerrainFixture
 
         MeleeDamage = 30,
         MeleeRange = new Fp32(1433),
+        MeleeHitDelay = new Fp32(0),
         MeleeRecharge = new Fp32(4915),
         MeleeAttackType = AttackType.MeleeBlade,
 
@@ -612,6 +613,8 @@ internal static class Dk2TerrainFixture
 
         Hp = 1500,
         MeleeDamage = 170,
+        MeleeHitDelay = Fp32.FromDouble(0.75),
+        MeleeRecharge = Fp32.FromDouble(1.3),
         Pay = 500,
         Fear = 50,
         Threat = 37,
@@ -862,6 +865,8 @@ internal static class Dk2TerrainFixture
 
         Hp = 6000,
         MeleeDamage = 525,
+        MeleeHitDelay = Fp32.FromDouble(1.25),
+        MeleeRecharge = Fp32.FromDouble(3.5),
         Pay = 600,
         Fear = 300,
         Threat = 120,
@@ -890,6 +895,18 @@ internal static class Dk2TerrainFixture
         Flags = CreatureFlags.IsGood | CreatureFlags.GenerateDeadBody | CreatureFlags.CanWalkOnWater
                 | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped,
         FightStyle = FightStyle.Blocker,
+        LairObjectId = 0,
+    };
+
+    public const byte WarlockCreatureId = 21;
+
+    /// <summary>The Goblin's record with the Support arm, for the scores that prefer a crowded
+    /// enemy and the Blitzer's dive at the backline. Not the real Warlock's stats.</summary>
+    public static CreatureDef Warlock() => Goblin() with
+    {
+        Name = "Warlock",
+        CreatureId = WarlockCreatureId,
+        FightStyle = FightStyle.Support,
         LairObjectId = 0,
     };
 
