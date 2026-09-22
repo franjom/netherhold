@@ -109,20 +109,51 @@ the vocabulary but does not raise any inferred name to confirmed.
 
 ## 4. `Task` and event tasks
 
-Not yet investigated.
+They are separate schedulers sharing one flags dword.
+
+| field | location | role |
+|---|---|---|
+| `CurrentEventTask` | `+0x00`, bits 14-17 | head index of a three-slot ring |
+| `NumberOfEventTasks` | `+0x00`, bits 18-21 | occupied-slot count, constrained to 0-3 by producers |
+| `Task` | `+0x00`, bits 22-25 | persistent ordinary-task state from §3 |
+| `NextTask` | `+0x00`, bits 26-29 | continuation used by ordinary task 7 |
+| `EventTask[3]` | `+0x22`, three dwords | event kind at each ring slot |
+| response payloads | `+0x5A`, three 8-byte records | signed threat plus target tile for the matching slot |
+
+**CONFIRMED:** event production uses tail index `(CurrentEventTask +
+NumberOfEventTasks) % 3`, increments the count, stores event id 1 and fills the
+same slot's response payload. Producers refuse a fourth entry. DK2's own dumper
+prints the payload as `RespondToAttack` when the event id is 1, so that name is
+the game's, not an external inference.
+
+At the start of `0x00500C20`, player messages can enqueue responses. A nonempty
+event ring is serviced before ordinary `Task`: the routine reads
+`EventTask[CurrentEventTask]` and dispatches id 1 to `0x004FE0B0`. That handler
+moves eligible creatures to or from the threatened tile, consuming the same
+per-turn allowance used by ordinary work. Completion advances the head modulo
+3 and decrements the count. The ordinary `Task` bits are not cleared or
+replaced, so response work **temporarily preempts a persistent ordinary task**;
+it is not a second encoding of that task.
+
+Every normal producer found writes event id 1. If a nonempty head contains any
+other id, `0x00500C20` spends no more allowance and does not dequeue it. Such an
+id is therefore unsupported by the live producer paths; whether save loading
+can introduce one is UNKNOWN.
 
 ## What is left
 
-- Read the three-entry event ring and its relationship to ordinary tasks.
 - Find a writer for task id 8, or establish that it is only loadable state.
+- Check save loading for task id 8 or event ids other than 1.
 
 ## Confidence
 
 - **CONFIRMED:** the addresses, call chain, cadence, field layout, jump-table
   contents, bounds check, listed readers/writers, and per-id mechanics marked
-  confirmed are direct binary reads.
+  confirmed are direct binary reads. The event-ring shape, capacity, priority,
+  id 1, payload association and completion update are also direct binary reads;
+  `RespondToAttack` is printed by DK2's own dumper.
 - **STRONGLY INFERRED:** the descriptive names marked that way in §3; the
   evidence is each arm's field and game-action use, not a recovered enum.
 - **HYPOTHESIS:** none.
-- **UNKNOWN:** question 4, id 8's meaning and writer, and the semantic names of
-  the player status values.
+- **UNKNOWN:** id 8's meaning and writer, whether loading can introduce other
+  event ids, and the semantic names of the player status values.
