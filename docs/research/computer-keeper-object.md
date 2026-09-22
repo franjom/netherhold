@@ -17,10 +17,10 @@ roughly what it holds, never its unit, writer or rule.
 | *(same push)* | | gtDirection %d |
 | *(same push)* | | DefendDirection %d |
 | *(same push)* | | OpenDirection %d |
-| *(same push)* | | CurrentEventTask %d |
-| *(same push)* | | NumberOfEventTasks %d |
-| *(same push)* | | Task %d |
-| *(same push)* | | NextTask %d |
+| `+0`, bits 14-17 | nibble | CurrentEventTask %d |
+| `+0`, bits 18-21 | nibble | NumberOfEventTasks %d |
+| `+0`, bits 22-25 | nibble | Task %d |
+| `+0`, bits 26-29 | nibble | NextTask %d |
 | `+8` | word | AttackingPlayerId %d |
 | `+12` | dword | MaxBuildArea (%d, %d, %d, %d) |
 | `+4E` | dword | CallToArmsPos (%d, %d, %d) |
