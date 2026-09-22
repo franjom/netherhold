@@ -1053,7 +1053,10 @@ named quirk the harness can assert on.
    `LineWalker` + room placement via `BuildRoomCommand`. **No simulation change.**
    Deliverable: a keeper that digs out and builds its dungeon in the shipped order.
    **Done** (§12.8), except the training moves of §5.1 step 9.
-2. Simulation: `IWorldView` facade over existing state. No hash change.
+2. Simulation: `IWorldView` facade over existing state. No hash change. Serialisable
+   and tick-paced from the start: goal 10 names an out-of-process agent such as an
+   LLM as a consumer (`GOAL_ALIGNMENT.md`, owner 2026-09-22), and it wants an ADR
+   for how a slow agent is paced.
 3. Simulation: §12.3's missing commands, §12.4's messages, alliances, status, spell
    state. Hash bumps, each with an ADR.
 4. `DK2.AI`: `ThreatEvaluator`, respond-to-attack, `AttackPlanner`, `BattleStep`, Call

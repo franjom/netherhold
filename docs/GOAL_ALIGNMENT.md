@@ -36,7 +36,7 @@ Counts are not kept here. `dk2tools status` prints them; `docs/HANDOFF.md`
 | 7 | Level editor | Readers for all 18 record types, and a `dk2tools` surface that dumps most of them | **No writers of any kind.** Not blocked by anything | ADR-0091 |
 | 8 | Modding framework | The rule *"a balance constant hardcoded in simulation code is a bug"* means every number is read from `GameDatabase`, and every simulation test builds one by hand with no DK2 install — so the hand-authored-database path is proven | **No external content format.** `GameDatabase` is DK2-shaped, so a mod author would express content in DK2's record shape | plan §7.3 |
 | 9 | Deterministic, fast | A pinned cross-machine state hash, the RNG's position hashed, snapshots verified by continuation rather than byte equality, no floating point in gameplay maths, one explicit system order, fully headless | **Simulation speed has never been measured** (gap 4). The cross-machine claim rests on local runs: `ci.yml` declares a Linux + Windows matrix but no CI is running | ADR-0001, ADR-0006, ADR-0013; `docs/architecture/simulation-loop.md` |
-| 10 | AI/bot interface | `Tick(in InputFrame)` is the only way time moves and `PlayerCommand`s are the only input — the observe → act → advance loop the goal draws. Eight command types | **Observation is still raw `WorldState`**; there is no agent-shaped schema, and it should not be frozen while `WorldState` is still growing | `docs/KEEPER_AI.md` §12 |
+| 10 | AI/bot interface | `Tick(in InputFrame)` is the only way time moves and `PlayerCommand`s are the only input — the observe → act → advance loop the goal draws. Eight command types. Every player enters through that door — human, scripted scenario, `DK2.AI.KeeperAI`, and DK2's own keeper acts only through the player hand too (`docs/KEEPER_AI.md` §4) | **Observation is still raw `WorldState`**; there is no agent-shaped schema, and it should not be frozen while `WorldState` is still growing. The intended consumers include an **out-of-process agent such as an LLM** (owner, 2026-09-22), so when `IWorldView` is built (§12.7 step 2) it must be serialisable and tick-paced from the start — a frame with no commands from a player is legal, so a slow agent acts every N ticks or the game waits on its turn; which, is the ADR to write then | `docs/KEEPER_AI.md` §12 |
 | 11 | Presentation modes | Headless, text and Unity boxes: three targets over one view, each with its own redraw strategy, which is what proves the boundary assumes neither; the Unity adapter has camera controls and builds `InputFrame`s through the presentation translator | Boxes rather than DK2's walls (gap 5, Q71) | ADR-0035, ADR-0036, ADR-0104 |
 | 12 | Preservation | Downstream of 1–3 | Nothing to assess independently yet | |
 
@@ -62,7 +62,9 @@ Numbered for citation; the numbers do not move.
   mod author would express content in DK2's record shape. Revisit at M6.
 - **`WorldState` grows one mechanic at a time, on purpose.** Good discipline, but
   goal 10 will eventually want a stable observation schema, and that schema is
-  still moving. Do not freeze a bot-facing API early.
+  still moving. Do not freeze a bot-facing API early — but design it for a
+  consumer outside the process (goal 10's row), not as a C# convenience for
+  `KeeperAI`.
 
 ---
 
