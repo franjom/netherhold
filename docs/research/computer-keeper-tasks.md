@@ -6,6 +6,9 @@ keeper object named by DK2's debug dumper; see `computer-keeper-object.md`.
 Addresses are virtual addresses in that executable. Behaviour below is stated
 in our own words; no decompiler output is reproduced.
 
+The planner and handlers summarized in §3 are opened instruction-by-instruction in
+[`computer-keeper-handlers.md`](computer-keeper-handlers.md).
+
 ## 1. Per-turn entry point
 
 **CONFIRMED from the binary:** `0x00500C20` advances one computer keeper. Its
