@@ -1,4 +1,4 @@
-# Computer keeper task handlers and room planner
+﻿# Computer keeper task handlers and room planner
 
 **Scope:** `DKII.EXE` v1.70, MD5 `2f3bbc21eae8c3aa468136baa303036d`. Addresses are
 virtual. This opens `computer-keeper-tasks.md` §3; decompiled text is not reproduced.
@@ -351,11 +351,11 @@ scan owned creatures in list order within squared fixed-point distance `<0x19000
 (strictly less than five tiles) of that tile, excluding descriptor flag `0x4000`, the
 `0x004888C0` state predicate, creatures in hand and state `0x4C`, plus the exact
 gate `(creature.u16[+0x46D] <= 300 && turn <= 300)`. Move the first eligible creature beside the heart and add its
-level-scaled threat. The semantic name of `+0x46D` is **UNKNOWN**.
+level-scaled threat. `+0x46D` is **`LastDroppedCounter`** by DK2's dumper (`creature-object.md`), so the gate reads how recently the hand dropped it.
 
 **Known:** nonnegative means reinforce. Scan owned creatures in list order; require
 descriptor bits 0 and `0x4000` clear, `0x004888C0==0`, generic eligibility
-`0x0045A6D0(0)`, health above half of level-scaled maximum (the quarter-health and
+`0x0045A6D0(0)` — the fight gate of `combat-acquisition.md` §2 — health above half of level-scaled maximum (the quarter-health and
 state-category 7/3 checks are redundant before that), category !=22, not in hand,
 state !=`0x4C`, and not one of states `0xD1/0xFF/0x100/0x101`. If the threatened tile
 is not owned, replace the payload tile with the first owned, unobstructed candidate
@@ -373,7 +373,7 @@ advance `CurrentEventTask=(head+1)%3`, decrement `NumberOfEventTasks`.
 `TagId/ThingsOwnedList[0]/TotalNumberOfOwnedThings[0]`; creature `+0x04/+0x10`
 tag/next, `+0x1A/+0x1E` position, `+0x40` health, `+0x24E` state subobject,
 `+0x25E` state, `+0x370`
-definition, `+0x403` level, `+0x46D` unnamed; definition `+0x686/+0x692/+0x698`
+definition, `+0x403` level, `+0x46D` `LastDroppedCounter`; definition `+0x686/+0x692/+0x698`
 flags/base health/threat (**Strongly inferred** roles except threat formula).
 
 **Callees — Known roles:** `0x004888C0`, `0x0045A6D0`, `0x00478050`, `0x0048F350`
@@ -393,7 +393,7 @@ hand; `0x0048E6A0` tests keeper interaction; `0x004BFBD0` prepares a creature,
 the gold selector may cast keeper spell 13 (Create Gold) at one tile beside the heart.
 
 **UNKNOWN:** retail names for terrain bits `+0x17B/+0x1CB`, keeper/world words
-`+0x4650/+0x467A/+0x467C`, creature `+0x46D`, and most state constants; which eligible
+`+0x4650/+0x467A/+0x467C` and most state constants; which eligible
 strip wins an irregular-room expansion; and unused bytes/padding in the action record.
 Resolve names only from another DK2 dumper/assertion or their complete reader/writer
 sets; resolve strip order with instruction-level branch tracing or a rectangular-room
