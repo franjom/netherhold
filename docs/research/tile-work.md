@@ -132,14 +132,14 @@ it, and each upward job lands where the data points:
 |---|---|---|---|
 | Rock | Reinforce | 9 | Reinforced Wall |
 | Dirt Path | Claim | 8 | Claimed Path |
-| Claimed Path | Fill in | 2 | Rock |
 | Mana Vault | Claim | 32 | Claimed Vault |
+| Claimed Path | **none — fill-in does not exist, below** | 2 | Rock, **unreachable** |
 
 That table is also the answer to **Q18**: no second meaning, no second field.
 `maxHealthTypeTerrainId` is the destination of whichever upward job the terrain
 admits, and which job that is follows from the terrain's own flags. `FillInable`
-is set on exactly five types — Dirt Path, Claimed Path, Mana Vault, Claimed Vault
-and Hero Lair — all floor.
+is set on exactly five types — all floor. **Claimed Path's row is data, not
+behaviour**, and was once read as a live transition and quoted outside the project.
 
 **An upward job costs the deficit, not the whole maximum** (Q62, ADR-0089
 reversing ADR-0024): reinforcing Rock is 660 − 165 = 495, fifty applications at
