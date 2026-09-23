@@ -520,6 +520,16 @@ public sealed class CreatureState
 
     public CreatureActivity Activity;
 
+    /// <summary>DK2's own state id, 0–280 (<c>creature-state-table.md</c>), and the
+    /// authoritative representation of what a creature is doing (ADR-0135).
+    /// <see cref="Activity"/> is the retiring convenience beside it: new work sets
+    /// this, and an activity retires once the states composing it have been read.
+    /// <para><b>-1 means no state has been assigned yet</b>, which is every creature
+    /// until the first activity retires. It is not state 0 — that is a real state
+    /// (<c>idle</c>, the only row with no handler at all), and defaulting to it would
+    /// silently claim a state nothing had chosen.</para></summary>
+    public int Dk2StateId = -1;
+
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
     public int TargetTileIndex = -1;
 
@@ -753,6 +763,7 @@ public sealed class CreatureState
         hash.Add(CarriedObjectId);
         hash.Add(TargetObjectId);
         hash.Add((int)Activity);
+        hash.Add(Dk2StateId);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);
         hash.Add(TimerTicks);

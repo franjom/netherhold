@@ -24,6 +24,26 @@ public class SnapshotTests
     }
 
     [Fact]
+    public void RoundTrip_CarriesDk2StateId_AndUnassignedIsMinusOneNotStateZero()
+    {
+        // The sentinel is the point. State 0 is a real row - `idle`, and the only
+        // one of the 281 with no handler at all - so defaulting the field to 0
+        // would have every creature silently claiming a state nothing chose, and
+        // the hash would not notice. Asserted rather than trusted to a comment,
+        // because nothing reads the field yet (ADR-0135).
+        GameSimulation original = TestWorld.Simulation();
+        Assert.NotEmpty(original.World.Creatures);   // Q206: Assert.All passes on an empty population
+        Assert.All(original.World.Creatures, c => Assert.Equal(-1, c.Dk2StateId));
+
+        original.World.Creatures[0].Dk2StateId = 21;   // reinforcing walls
+        byte[] bytes = WorldSnapshot.ToBytes(original);
+        GameSimulation restored = WorldSnapshot.FromBytes(bytes, TestWorld.Database(), [new ChaosSystem()]);
+
+        Assert.Equal(21, restored.World.Creatures[0].Dk2StateId);
+        Assert.Equal(original.StateHash(), restored.StateHash());
+    }
+
+    [Fact]
     public void RoundTrip_CarriesTheTriggerBanks()
     {
         // RoundTrip_PreservesStateHash would catch this too, since the banks

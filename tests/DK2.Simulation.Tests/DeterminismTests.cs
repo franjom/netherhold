@@ -102,10 +102,11 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 74: state 8's flag and refresh countdown, the chase counter, the retreating
-        // target, the celebration clock and the body target entered (ADR-0169). Earlier pins and
-        // their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x434B838F6410D5F7UL, sim.StateHash());
+        // HashVersion 75: CreatureState.Dk2StateId entered, DK2's own state id beside the
+        // retiring Activity enum (ADR-0135). Nothing writes it yet, so every creature hashes
+        // -1; the bump is the field's arrival, not a behaviour change. Earlier pins and their
+        // reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0x51E5A81A5FE19DE8UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
