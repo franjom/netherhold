@@ -305,7 +305,9 @@ not: it subtracts one from `SleepNeeded` every game tick, flooring at zero, and
 runs the lair effect once per game second. The handler leaves only after
 `SleepNeeded == 0` **and** current health has reached the creature's
 level-scaled maximum. This is a real mismatch with `CreatureSleepSystem`, which
-wakes after `TimeSleep` regardless of health; Q403 holds the owner decision.
+woke after `TimeSleep` regardless of health until ADR-0173 corrected it (Q403,
+owner 2026-09-23): `LairRules.HasSleptEnough` now takes the database and requires
+both.
 
 States 82 and 84 have table flag byte `+0x18 = 5`, while 83 has 4. The only
 difference is bit 0. None of these handlers reads that byte, and the executable

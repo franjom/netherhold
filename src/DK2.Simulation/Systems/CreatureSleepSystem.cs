@@ -318,7 +318,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
     {
         creature.SleepTicks++;
 
-        if (!LairRules.HasSleptEnough(definition, creature)) return;
+        if (!LairRules.HasSleptEnough(context.Database, definition, creature)) return;
 
         context.Emit(SystemName, "woke_up",
             $"creature={creature.Id} type={definition.Name} " +

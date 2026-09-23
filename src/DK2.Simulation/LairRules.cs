@@ -419,7 +419,16 @@ public static class LairRules
         return creature.AwakeTicks >= SimulationTiming.TicksFromSeconds(definition.TimeAwake);
     }
 
-    /// <summary>Whether this creature has slept for its record's <c>TimeSleep</c>.</summary>
-    public static bool HasSleptEnough(CreatureDef definition, CreatureState creature) =>
-        creature.SleepTicks >= SimulationTiming.TicksFromSeconds(definition.TimeSleep);
+    /// <summary>Whether this creature may wake. DK2's state 83 leaves only when its rest
+    /// need has run out <b>and</b> its health has reached the level-scaled maximum, so a
+    /// wounded creature sleeps past its record's <c>TimeSleep</c> until it is whole
+    /// (Q403, ADR-0173; `lair-acquisition.md` §9).</summary>
+    /// <remarks>The health half is what makes a bed a hospital rather than a timer, and it
+    /// only became visible once combat could wound anything (ADR-0163). A creature that
+    /// cannot heal to full would sleep for ever; so would DK2's, and losing the bed is the
+    /// way out either way (<see cref="BedStillValid"/>).</remarks>
+    public static bool HasSleptEnough(
+        GameDatabase database, CreatureDef definition, CreatureState creature) =>
+        creature.SleepTicks >= SimulationTiming.TicksFromSeconds(definition.TimeSleep)
+        && creature.Health >= CreatureHealthRules.MaxHealth(database, definition, creature);
 }

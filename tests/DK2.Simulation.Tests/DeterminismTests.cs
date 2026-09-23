@@ -102,11 +102,12 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 78: rebellion (ADR-0172). Angry job 16 walks out through its own
-        // keeper's nearest Portal, and with none reachable waits RebelCountdownTicks and
-        // changes owner to the hero side with KillPlayer remembering the keeper it left.
-        // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x00C68551383ADF89UL, sim.StateHash());
+        // HashVersion 79: a bed is a hospital (ADR-0173). DK2's state 83 leaves only when
+        // the rest need has run out AND health has reached the level-scaled maximum, so a
+        // wounded creature sleeps past its TimeSleep. The pinned world exercises none of
+        // it; the bump is what keeps two builds from comparing. Earlier pins and their
+        // reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0x6ACE9686C2A3E64EUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

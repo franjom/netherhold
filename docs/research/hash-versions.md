@@ -32,6 +32,12 @@ beside it.
 
 ## Versions
 
+**79** — `0x6ACE9686C2A3E64E`. A bed is a hospital (ADR-0173). Waking needs
+both an elapsed `TimeSleep` and full level-scaled health, as DK2's state 83
+does. **The pinned world exercises none of it** — nothing in it sleeps
+wounded — so the literal moved on the version alone. The behaviour is pinned
+by two tests instead, both verified to fail with the predicate flipped off.
+
 **78** — `0x00C68551383ADF89`. Rebellion (ADR-0172). Angry job 16 walks out
 through its own keeper's nearest Portal, and with none reachable waits
 `RebelCountdownTicks` and changes owner to the hero side, carrying

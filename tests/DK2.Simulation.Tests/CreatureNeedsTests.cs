@@ -995,11 +995,56 @@ public class CreatureNeedsTests
         // went down, and being hurt, it lay down there and then.
         Assert.DoesNotContain(events.Events, e => e.Kind == "going_to_sleep");
 
-        // It slept for its record's nine seconds at 100 a second, so it woke up
-        // considerably better off than it lay down.
-        Assert.True(goblin.Health > 300, $"health is {goblin.Health}, expected a heal");
+        // It woke up WHOLE, not merely better. DK2's state 83 leaves only when the
+        // rest need has run out AND health has reached the level-scaled maximum, so
+        // nine seconds at 100 a second is not enough from 300 of 1500 and the goblin
+        // stays in bed for the twelve it takes (Q403, ADR-0173).
+        SimEvent woke = Assert.Single(events.Events, e => e.Kind == "woke_up");
+        Assert.Contains("health=1500/1500", woke.Detail);
+        Assert.Equal(1500, goblin.Health);
         Assert.Equal(CreatureActivity.Idle, goblin.Activity);
         Assert.Equal(0, goblin.SleepTicks);
+    }
+
+    [Fact]
+    public void AWoundedGoblinSleepsPastItsTimeSleepUntilItIsWhole()
+    {
+        // The refutation half of the rule above, and the thing that changed: the
+        // record's TimeSleep is nine seconds, so a time-only wake would have this
+        // goblin up and about at t36 with 1200 of 1500. It is still asleep.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+
+        var bed = new TilePos(4, 4);
+        Paint(db, world, RoomTypeId.Lair, bed, Keeper);
+        for (int x = 2; x <= 4; x++)
+        {
+            ref TileState tile = ref world.Tile(x, 4);
+            if (tile.TerrainId == Dk2TerrainFixture.LairTerrain) continue;
+            tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+            tile.OwnerPlayerId = Keeper;
+        }
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, bed);
+        goblin.Health = 300;
+
+        var sim = new GameSimulation(db, world, 42, [
+            new CreatureMovementSystem(),
+            new CreatureSleepSystem(),
+            new CreatureHealthSystem(),
+        ]);
+
+        // Long enough to be asleep, and long enough for TimeSleep to have elapsed
+        // twice over, but not long enough to have healed 1200.
+        sim.Run(Second * 11);
+        Assert.Equal(CreatureActivity.Sleeping, goblin.Activity);
+        Assert.True(goblin.SleepTicks > SimulationTiming.TicksFromSeconds(db.CreatureById(GoblinId).TimeSleep),
+            $"slept {goblin.SleepTicks} ticks, expected past TimeSleep");
+        Assert.True(goblin.Health < 1500, $"health is {goblin.Health}, expected still short");
+
+        sim.Run(Second * 10);
+        Assert.Equal(CreatureActivity.Idle, goblin.Activity);
+        Assert.Equal(1500, goblin.Health);
     }
 
     [Fact]
