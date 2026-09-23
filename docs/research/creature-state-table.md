@@ -392,7 +392,7 @@ per §3, only their ids.
 `CreatureStateTransitions` implements §2.2's equal-tags half and reports the
 other half as `NeedsCategoryTable`. It hashes nothing and holds no state.
 
-This project still has **21 activities** (`CreatureActivity`) where DK2 has 281
+This project still has **30 activities** (`CreatureActivity`) where DK2 has 281
 states, each of ours composing several of the original's. ADR-0135 makes the
 state id authoritative and retires the enum state by state rather than at once.
 The table is also the map a mechanic is read against: `eating.md`, `prison.md`,

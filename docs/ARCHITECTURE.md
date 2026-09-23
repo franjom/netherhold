@@ -365,7 +365,7 @@ Q207/Q93). Evidence: `docs/research/mana.md`.
 Every rate comes from the record or the balance table; none is in the code.
 `CreatureState` carries position in fixed point, activity, target, timer, route,
 health, hunger, anger, level and experience — and only because a mechanic reads
-each. It has **21 activities against the 281 states read from the binary**
+each. It has **30 activities against the 281 states read from the binary**
 (ADR-0072), which is the honest measure of how much of the creature loop exists.
 
 Three shapes matter to a change:
