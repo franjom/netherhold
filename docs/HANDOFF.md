@@ -64,16 +64,16 @@ grep -oE '^\| \*{0,2}Q[0-9]+' docs/research/open-questions.md \
 
 ### What does not exist
 
-Combat (Q8), hero-party spawning and effect-generator behaviour (their state exists; Q254–Q259), every keeper spell but Create Imp, trap behaviour, and everything of a door beyond opening, locking and its navigation byte (their state exists; Q249–Q253, ADR-0158), the creature trigger event filter and ten creature-owned action effects, most other trigger action types and 31 of the 46 shipped condition types — `dk2tools trigger-run` prints each stall and the records it gates; ADR-0125 owns the full accounting — objectives, win/lose/defeat (a fallen heart is not claimable — Q207/Q93), the research tree (accrual only), Workshop/Casino/Torture/Guard Room/Combat Pit behaviour, Temple sacrifice action `0x87`, wandering (Q41), vampire reincarnation (Q111), `Obstacle` furniture for `Repel_Obstacle`, the remembered victim of `Separation`, run and shuffle speeds and the per-state path flags (Q5 itself is built and wired, ADR-0157). Unity: `DungeonScene` has no branch that loads the converter's glTF/PNG (Unity ships no runtime glTF importer); boxes rather than DK2's walls (Q71).
+**The creature state machine is the largest researched-and-unbuilt item** (2026-09-23): 281 states, 32 categories and the transition rule are CONFIRMED, generated into `DK2.Data.Model` and tested, and nothing in `DK2.Simulation` reads them — the one `StateId` there is a comment. Ours has 30 activities (ADR-0135 retires them one state at a time); the 36 category hook functions are addressed in `state-categories.md` §7.1 and 35 are unread. Every room behaviour below is a set of states in that table, so wiring it first makes them data rather than four separate builds. Also absent: hero-party spawning and effect-generator behaviour (their state exists; Q254–Q259), every keeper spell but Create Imp, trap behaviour, and everything of a door beyond opening, locking and its navigation byte (their state exists; Q249–Q253, ADR-0158), the creature trigger event filter and ten creature-owned action effects, most other trigger action types and 31 of the 46 shipped condition types — `dk2tools trigger-run` prints each stall and the records it gates; ADR-0125 owns the full accounting — objectives (the verdict itself is built, ADR-0162; a fallen heart is not claimable — Q207/Q93), the research tree (accrual only), Workshop/Casino/Torture/Guard Room/Combat Pit behaviour, DK2's own computer keeper (M12 is researched; `DK2.AI.KeeperAI` implements none of it), mentor speech and notifications, the campaign progress registry, Temple sacrifice action `0x87`, wandering (Q41), vampire reincarnation (Q111), `Obstacle` furniture for `Repel_Obstacle`, the remembered victim of `Separation`, run and shuffle speeds and the per-state path flags (Q5 itself is built and wired, ADR-0157). Combat is **built** as of ADR-0163–0169 — acquisition, melee, fear, the worker's arm, the spell arms, shots and status effects — and this paragraph claimed otherwise until 2026-09-23. Unity: `DungeonScene` has no branch that loads the converter's glTF/PNG (Unity ships no runtime glTF importer); boxes rather than DK2's walls (Q71).
 
 ### How to keep this file from lying
 
-**A claim that something has NOT happened carries a date.** Added 2026-09-15:
-`dk2tools docs --check` fails any line here matching *never / not yet / awaits /
-still no* that has no `20xx-xx-xx` on it. It exists because this file claimed the
-input channel awaited its first capture five days after runs 13 and 14 closed it,
-and that was handed to the owner as a request for work already done. **Prefer a
-pointer to a restatement:** every stale line here was a copied conclusion.
+**A claim that something has NOT happened carries a date** (2026-09-15):
+`dk2tools docs --check` fails any *never / not yet / awaits / still no* line here
+without a `20xx-xx-xx`. **Prefer a pointer to a restatement**, not a copy.
+
+**What exists is measured, not typed** (2026-09-23): `dk2tools coverage [--all]
+[--check]` — 101 docs, 63 built, 38 research only, 0 stale claims.
 
 ### Standing caveats — each still true on 2026-09-08
 
