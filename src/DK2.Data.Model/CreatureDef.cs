@@ -33,6 +33,13 @@ public sealed record CreatureDef
 {
     public required string Name { get; init; }
     public required byte CreatureId { get; init; }
+
+    /// <summary>
+    /// The ordinary creature archetype represented by a unique definition
+    /// (CREATURES record offset <c>0xD3B</c>); zero for non-unique definitions.
+    /// </summary>
+    public byte UniqueBaseCreatureId { get; init; }
+
     public required CreatureFlags Flags { get; init; }
 
     /// <summary>

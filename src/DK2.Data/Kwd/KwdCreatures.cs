@@ -125,6 +125,7 @@ public static class KwdCreatures
         {
             Name = Str(0x00, 32),
             CreatureId = U8(0xF4B),
+            UniqueBaseCreatureId = U8(0xD3B),
             Flags = (CreatureFlags)U32(0xEFC),
 
             // The record's last four bytes, and part of the 72-byte tail Q70

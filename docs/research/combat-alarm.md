@@ -8,7 +8,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: answers Q374; opens Q390–Q391; corrects combat-target-selection.md §3.2,
+Questions: answers Q374 and Q390; opens Q391; corrects combat-target-selection.md §3.2,
 which read the alarm's call as a commit to a fight. `combat-fear.md` owns the
 head-count and the withdraw state this shares; `combat-target-selection.md` §3.1 the
 near-the-heart path, restated in §1 only as far as the build needs.
@@ -32,9 +32,8 @@ to nothing. My side is the Turncoat player while `TurncoatTimer` runs.
 
 **Per hostile candidate**, over every player's creatures:
 
-1. `nearHeart`, **or** a definition byte read by `0x00494360` equal to 1 — `def+0x5B3`
-   for an `IsUnique` creature, `def+0x770` otherwise, files `0xCE2`/`0xE9F`, unparsed
-   and unnamed (Q390) — takes the **shared template**: distance with the alignment
+1. `nearHeart`, **or** the candidate's base creature type id read by `0x00494360`
+   equal to 1 — an Imp candidate (§6) — takes the **shared template**: distance with the alignment
    discount (7/8), `IsAttackable`, not my `+0x4A3`, seen within sight or reached
    within hearing, lowest wins. The winner goes to the acquirer's common tail (route,
    the `d/3` gate, the fight-starter) and **the worker fights**.
@@ -103,7 +102,7 @@ every tenth tick and the ordinary acquisition takes over.
 ## 5. Built and not built (ADR-0166)
 
 **Built** (`CombatTargetRules.NonFighter`, `FearRules.RaiseAlarm`,
-`RespondToThreat`, `RaisingAlarm`, `Reporting`): §1 without the unnamed byte's
+`RespondToThreat`, `RaisingAlarm`, `Reporting`): §1 without the base-type
 escape; §2 with the room's bounding-box centre for its position; §3 steps 2–3 with
 the room match as a room job whose tile lies in the alarm's room, the group-tag
 exclusions as the room-job activities, and the raiser's-speed slip replaced by the
@@ -113,6 +112,126 @@ walk and the thirty ticks.
 **Not built, named:** step 1's eight-tile test and action 79 (state 252 ends at
 once here); Call to Arms; the Turncoat side; `state+0x3C`; the `+0x6E3` sounds;
 Jack, the other NonFighter.
+
+## 6. The escape byte
+
+`0x00494360(def)` returns a **base creature type id**: `def+0x5B3` when
+`IsUnique` is set, otherwise `def+0x770`. The raw-record reader `0x00568E30`
+and definition builder `0x00492320` establish the complete mapping directly:
+
+| file read | staging store | definition store | meaning |
+|---:|---:|---:|---|
+| `record+0xD3B` | `+0x112B` | `def+0x5B3` | unique definition's ordinary archetype |
+| `record+0xF4B` | `+0x133B` | `def+0x770` | definition's own `CreatureId` |
+
+The builder stores those staging bytes at `0x00492391` and `0x00492380`; the
+record reader fills them at `0x00568E5A` and `0x00568E4B`. Thus the earlier
+`0xCE2`/`0xE9F` adjacency guess was wrong. The
+`creatures_struct.bt` transcription in `kwd-creatures.md` names neither
+`0xD3B` nor this relationship; `0xF4B` was already named `CreatureId`.
+
+### Readers
+
+`ReadsAt.py` found seven instructions for each byte after excluding three
+`+0x770` false positives whose base is not a definition. The initialiser
+(`0x00491DC0`), loader and copier
+(`0x0051F3B0`) only move the bytes. The four other direct readers agree with
+the base-id interpretation:
+
+- `0x004B4C30` updates a player's per-archetype creature population, using the
+  instance type for an ordinary creature and `def+0x5B3` for a unique one.
+- `0x004B7900` resolves a requested definition to the ordinary archetype before
+  its creation/availability check, substituting `def+0x5B3` only for a unique.
+- `0x00488520` serialises the definition's own `def+0x770` id before the
+  creature's fight, action and other state blocks.
+- `0x004A3FC0` passes the definition's own `def+0x770` id as the creature type
+  during an action-event branch.
+
+The apparent `+0x770` reads at `0x004EA986`, `0x0050E37D` and `0x0050E3D8`
+use a stack or indexed unrelated base and are not creature-definition readers.
+
+`CallScanAll.py` found every call or tail-jump to the resolver:
+
+- `0x00418080` (`0x004181CD`) selects a live creature matching a requested base
+  type; `0x004185E0` (`0x0041878A`) groups creature statistics by base type.
+- NonFighter `0x0045BDF0` (`0x0045BF59`) tests the candidate's result against
+  1. This is both the escape to the shared target template and, consequently,
+  the escape from the Good-owner filter: the candidate is an Imp.
+- The shot processor `0x004AD7A0` (`0x004ADA16`) special-cases base type 23,
+  Dark Angel, when shot kind 9 creates its collision effect.
+- Definition-table accessors `0x0050D220`, `0x0050D240`, `0x0050D2E0`,
+  `0x0050D390`, `0x0050D420`, `0x0050D460` and `0x0050D4D0` use the result to
+  return the first id, step forward/backward with wraparound, find by id, get an
+  index's id, map another definition byte to an id, or test whether an id exists.
+  Their call sites are `0x0050D230`, `0x0050D260`, `0x0050D2AA`, `0x0050D2BC`,
+  `0x0050D304`, `0x0050D350`, `0x0050D37B`, `0x0050D3D0`, `0x0050D448`,
+  `0x0050D4AF` and `0x0050D510`.
+- The definition inserter `0x0051F240` (`0x0051F308`) orders the definition
+  table by the resolved base id before copying entries upward.
+
+### Shipped roster
+
+The table is the raw `Creatures.kwd` pair, not the resolver's output. `0xD3B`
+is zero for every ordinary definition; every unique carries its ordinary
+archetype's id. `0xF4B` is the contiguous definition id.
+
+| creature | `0xD3B` | `0xF4B` |
+|---|---:|---:|
+| Imp | 0 | 1 |
+| Prince Tristran | 0 | 2 |
+| Bile Demon | 0 | 3 |
+| Mistress | 0 | 4 |
+| Warlock | 0 | 5 |
+| Dark Elf | 0 | 6 |
+| Goblin | 0 | 7 |
+| Vampire | 0 | 8 |
+| Skeleton | 0 | 9 |
+| Troll | 0 | 10 |
+| Salamander | 0 | 11 |
+| Firefly | 0 | 12 |
+| Knight | 0 | 13 |
+| Dwarf | 0 | 14 |
+| Giant | 0 | 15 |
+| Wizard | 0 | 16 |
+| Elven Archer | 0 | 17 |
+| Thief | 0 | 18 |
+| Monk | 0 | 19 |
+| Fairy | 0 | 20 |
+| King Reginald | 0 | 21 |
+| Black Knight | 0 | 22 |
+| Dark Angel | 0 | 23 |
+| Rogue | 0 | 24 |
+| Guard | 0 | 25 |
+| Prince Felix | 0 | 26 |
+| Horny | 0 | 27 |
+| Stone Knight | 0 | 28 |
+| Lord Of The Land | 0 | 29 |
+| Royal Guard | 0 | 30 |
+| Prince Balder | 0 | 31 |
+| Unique Firefly | 12 | 32 |
+| Unique Goblin | 7 | 33 |
+| Unique Warlock | 5 | 34 |
+| Unique Troll | 10 | 35 |
+| Unique Dark Elf | 6 | 36 |
+| Unique Skeleton | 9 | 37 |
+| Unique Mistress | 4 | 38 |
+| Unique Salamander | 11 | 39 |
+| Unique Rogue | 24 | 40 |
+| Unique Bile Demon | 3 | 41 |
+| Unique Vampire | 8 | 42 |
+| Unique Black Knight | 22 | 43 |
+| Unique Dark Angel | 23 | 44 |
+| Maiden Of The Nest | 0 | 45 |
+| Jack | 0 | 46 |
+
+No shipped unique maps to 1. Therefore the resolver returns 1 only for the Imp,
+and the NonFighter escape is an **Imp-candidate test**. The parsed raw field is
+named `UniqueBaseCreatureId`; the resolver's concept is the base creature type
+id.
+
+**Confidence: CONFIRMED (binary and shipped data).** The loader fixes both file
+offsets, all readers use the result as a creature type id, and all 13 unique
+records map exactly to their ordinary archetypes.
 
 ## Confidence
 
@@ -126,5 +245,5 @@ the walk speed; state 6's arrival.
 "nearest room" is over all rooms, not guard rooms only; that `RoomId` is the room
 a creature works in.
 
-**UNKNOWN:** Q390 (the escape byte), Q391 (`0x004E4D90`'s spot, `state+0x3C`,
+**UNKNOWN:** Q391 (`0x004E4D90`'s spot, `state+0x3C`,
 action 79's length).
