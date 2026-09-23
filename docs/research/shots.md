@@ -114,9 +114,9 @@ the target `+0x147` if it is alive. Otherwise the `CollideType` routine
 radius covers and returns the first thing that overlaps (`0x004B5590`) and
 passes the predicate — **never the caster** (`+0x145`), unless caster and target
 are one. Predicates: **1 friends** (`0x004B58E0`): a creature of my owner that is
-not `Invisible` (body bit 21), a closed door of any owner, an Arch Pillar
+not dying (body bit 21, `creature-death.md`), a closed door of any owner, an Arch Pillar
 (object 94) of another owner or object 74; **2 enemies** (`0x004B5800`): a
-creature whose owner is hostile to mine (`0x004BF390`) and not `Invisible`, or a
+creature whose owner is hostile to mine (`0x004BF390`) and not dying, or a
 Turncoat; the same doors and objects; **3 both**; **4** a dead body (class 6).
 
 **On a hit:** the hit-thing effect (`+0x67`) — on a creature its body `+0x133`
@@ -188,10 +188,10 @@ Each runs with the shot as `this`; the target is `+0x147`, `t/s` variable 19.
 | 10 | Invulnerable (5) | creature `+0x445` = data1 × t/s — the word the melee blow and §7 refuse |
 | 11 | Mistress and Fairy Freeze (10, 15) | `0x004B32A0(shot, +0x52, owner, 2)`; not `IsHorny` → `0x0048CB60(creature, data1 × t/s)` |
 | 12 | (keeper) | effect 0x2F at the tile; a UI call for the local player |
-| 20 | the Invisibles (15) | creature `+0x44F` = data1 × t/s; `0x0045EE60(creature)` — the routine the death path also calls, which lets its attackers go (STRONGLY INFERRED) |
+| 20 | the Invisibles (15) | creature `+0x44F` = data1 × t/s; `0x0045EE60(creature)` drops every attacker's hold on it and its targetable bit clears while the ticks run (`creature-status-effects.md` §2) |
 | 28 | the Guided Bolts | every eighth turn the velocity is re-aimed at the target with the shot's speed; wired to event 0x4 only in the shipped flags — how it homes in flight is UNKNOWN (Q395) |
 | 34 | the Heals, Hail Storm, Skeleton Army | **instant**: the shot is moved onto the target and `+0x14D` forced, so §4a hits it this tick; no target or a room → health 0 |
-| 35 | Drain (25) | `d = min(target health, data1% of its level-scaled Hp)`; the target loses `d` and the caster gains `d`, both through the health routine; refused on an `Invisible` target |
+| 35 | Drain (25) | `d = min(target health, data1% of its level-scaled Hp)`; the target loses `d` and the caster gains `d`, both through the health routine; refused on a dying target |
 
 Unread: 1, 17 Cyclone, 18 Raise Dead, 29 Reaper Fireball, 31 the gas cloud's,
 37 Web, 38 Poison Spit, and the buff table `0x006E4AC8` (Q394, Q395).
@@ -246,9 +246,9 @@ handling; §7 contact and type-2 area arithmetic; §8's ten handlers as tabled.
 
 **CONFIRMED (data):** §9 and the radius.
 
-**STRONGLY INFERRED:** the bounce in §6; body bit 21 as `Invisible` (set by
-type 20's timer, refused by the predicates and Drain); `0x0045EE60` letting
-attackers go; class 6 as dead bodies.
+**STRONGLY INFERRED:** the bounce in §6; class 6 as dead bodies. (Body bit 21 was
+first read here as invisibility; it is the dying flag `0x0048B770` sets —
+`creature-status-effects.md` §3, corrected 2026-09-23.)
 
 **UNKNOWN:** Q395 (flags bit 5, events 0x1/0x100, Guided Bolt's wiring, the
 unread handlers and area types), Q396 (the creature side of the status fields),

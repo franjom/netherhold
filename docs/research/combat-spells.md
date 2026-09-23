@@ -98,8 +98,10 @@ the creature's frame — the Warlock's `(0, −1761, 1433)` is 0.43 tile ahead a
 
 No spell id → no. Never cast (stamp 0) → yes. Otherwise the recharge `R` from
 `0x004F7AB0` (ticks) is scaled `(R << 12) / (haste + slow)`, the two words at
-`+0x3AF`/`+0x3B3` summed — the divisor Gate B uses (`combat-fight-state.md` §4),
-4096 unhasted — and the answer is **`stamp + scaled < now`**, strict.
+`+0x3AF`/`+0x3B3` summed — **the work rate and its enhancement** (Q6,
+`EfficiencyRules.Modifier`: `0xCCC` = 0.8 fresh, so a fresh creature's cooldown runs a
+quarter long; the divisor Gate B uses too, `combat-fight-state.md` §4) — and the
+answer is **`stamp + scaled < now`**, strict.
 
 `0x004F7AB0(spellDef, creature)`: unpossessed, `+0x2D` as it stands. `Possessed`
 (`+0x3E6` bit 7): `R × (100 + a) / 100 × FirstPersonRechargeModifyPercentage / 100`
