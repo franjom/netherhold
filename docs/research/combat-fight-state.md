@@ -8,8 +8,9 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: advances Q8; answers the mechanism half of Q327; opens Q367–Q371
-(Q367 answered in combat-fear.md, which also corrects §1 and §2 step 6 here).
+Questions: advances Q8; answers the mechanism half of Q327; opened Q367–Q371.
+Q367 is answered in `combat-fear.md`, which also corrects §1 and §2 step 6 here;
+Q368 and Q369 in `combat-approach-and-victory.md`.
 `combat-acquisition.md` owns who is picked; `combat.md` §6 and `combat-damage.md`
 the blow's arithmetic; `combat-cadence.md` the two clocks' fields. This is what
 happens between them: the state that holds a target, walks up to it, swings and
@@ -36,7 +37,7 @@ x, y, 1)`) — the "your creature is fighting" notice. Then it tail-calls
 ## 2. `spFighting`, in order
 
 `this` is the state object: `+0x8` the creature, `+0xC` the world, `+0x10` the
-move-option word, `+0x18` the turn entered. `EDI` is the engagement record
+current state id, `+0x18` the turn entered. `EDI` is the engagement record
 `creature+0x4FE` throughout (combat-entry.md §6).
 
 1. **A dead target is dropped**, as in §1. Two steering body bits are cleared
@@ -73,22 +74,15 @@ move-option word, `+0x18` the turn entered. `EDI` is the engagement record
     tick out of reach. No target → return 0 (the state ends). A target whose
     state is en route to a threat or fleeing keeps `+0x53D`, else it is cleared.
     Then **the approach** `0x00471D10(state, target, AttackRangeSquared,
-    options)`: §3. Its failure for a spell nibble (0 or 2) with line of sight
+    currentState)`: §3. Its failure for a spell nibble (0 or 2) with line of sight
     tries a point part-way to the target (`isqrt` of the distance, one to
     four steps) that the terrain flag `+0x17B` bit 8 accepts, and routes there.
 
 ## 3. The approach (`0x00471D10`)
 
-Copies the target's position; `0x004B35C0(creature, &pos)` must accept it; a
-**route request `0x004D0F60(body, creature, &pos, 2)`** to that exact position;
-for a door target that fails, the four adjacent offsets in the table at
-`0x0069A070` are tried with `0x004D0E60`, the first that routes becomes the
-destination. Then **`SetState(8)`** — state 8, "en route", handler
-`0x00470E30`, the one carrying the fear-threshold string — with the state's
-fields filled: options at `+0xDF`/`+0xEB`, the destination at `+0xE3`/`+0xE7`,
-the target tag at `+0xEF`, the range² at `+0xF1`, and 10 at `+0xF5`. So walking
-to a fight is its own state, which returns to 199 when it arrives; its body is
-**unread (Q368)**. Ours re-requests the route only when the target changes tile.
+The entry, state 8's complete handler, its periodic rerouting, arrival, and the
+correction that `+0xDF`/`+0xEB` hold state 199 are in
+[`combat-approach-and-victory.md`](combat-approach-and-victory.md) §§1–4.
 
 ## 4. The swing, two clocks
 
@@ -157,14 +151,9 @@ rule): **`SetState(1)`** and route to the attacker's position (`0x00471890`,
 
 ## 6. When the target dies
 
-`0x0045EE60`, called on a creature's death, walks its own two arrays: every
-attacker whose `+0x502` is the dead creature has that cleared, its `+0x3F9`
-handled, and — **when the dead creature's health is ≤ 0** — its nibble ORed to
-`0xF`. Next `spFighting`, a nibble of `0xF` with no target reaches the **victory
-arm `0x00460FE0`**: a creature with `NeedBodyForFightIdle` (`def+0x686` bit 20)
-routes to the nearest neutral-player thing within `0x2000` and remembers it at
-`state+0xA7`; anyone else enters **state 260, "celebrating"**, and starts
-action 55 on the spot. Not built (Q369); ours stands idle.
+The death unlink, victory arm, body-seeking state 259, and animation-ended
+celebration state 260 are in
+[`combat-approach-and-victory.md`](combat-approach-and-victory.md) §§5–7.
 
 ## 7. Built and not built (ADR-0164)
 
@@ -179,8 +168,8 @@ style but `NonFighter` acquires; and **the heart as a target**, hit through
 heart tile stands in for the Arch Pillar).
 
 **Built since (ADR-0165):** the fear checks, the flee and withdraw states
-(combat-fear.md). **Not built, named:** state 8's own body (§3, Q368); the victory arm (§6, Q369); the spell
-arms and the step-back (§4); haste and slow on Gate B; waking a sleeper on the
+(combat-fear.md). **Not built, named:** state 8 and the victory states
+(`combat-approach-and-victory.md`); the spell arms and the step-back (§4); haste and slow on Gate B; waking a sleeper on the
 blow; `+0x445`; the room notice and player event 6 (§1); the NonFighter arm.
 
 ## Confidence
@@ -197,8 +186,7 @@ the `0xF` nibble, state 260 and action 55; the names `TimeLastUsedMelee`,
 **CONFIRMED (data):** `0xCF9` and `0xEF8` ticks for the seven creatures tabled
 in combat-cadence.md §3.
 
-**STRONGLY INFERRED:** that state 8 walks to the destination and returns to
-199; that `+0x526` is a fear accumulator (its threshold and name point that
-way; its writer is unread).
+**STRONGLY INFERRED:** none retained here; the former state-8 and fear findings
+are settled in `combat-approach-and-victory.md` and `combat-fear.md`.
 
-**UNKNOWN:** Q368–Q371 (§7); Q367 is answered in combat-fear.md.
+**UNKNOWN:** Q370–Q371 (§7).
