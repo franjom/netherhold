@@ -1,0 +1,112 @@
+# Mechanic: state-category hook bodies
+
+Source: `DKII.EXE` v1.70 (GOG), all 32 functions below disassembled in full
+with Ghidra 11.0.1 on 2026-09-23. `state-categories.md` owns the table and hook
+addresses; this note owns what the previously unread bodies do. Confidence is
+**STRONGLY INFERRED** unless a row says **UNKNOWN**: this is binary evidence,
+not a running-game observation (ADR-0046).
+
+## 1. Shared mechanisms
+
+### Room position, admission and occupancy
+
+Nine distinct enter functions, filling ten hook slots because Research and
+GuardPost share one, use the same chain. The world virtual call at `+0x1D4`
+looks up the map cell under the creature. `0x004559B0` resolves the cell's
+low-12-bit thing id. `0x004E7F80` accepts the room when its occupant/type word
+already names this creature or when the room type is one of the supported
+work-room types. `0x004E5A70` then inserts the creature into the room's linked
+occupant lists, writes the room id to creature `+0x3B9`, and increases the
+room's used-capacity counters by the creature definition's `+0x672` byte.
+
+The corresponding leave operation is `0x004E5E00(room, creature)`. It unlinks
+the creature, zeroes creature `+0x3B9`, and subtracts the same capacity. Seven
+category leaves then inspect the thing formerly named by `+0x3B9`; if it is
+class 26 and its occupant word `+0x53` names this creature, they pass zero to
+`0x004D8E60`. That routine reassigns the thing's occupant, maintaining the old
+and new player's type-specific counts, and writes the new id to `+0x53`.
+
+This confirms that the repeated enter/leave idioms **claim and release a
+creature's room position**, not merely a boolean room slot. The room keeps
+linked membership and capacity, the creature keeps the room id, and some room
+furniture keeps a separate occupant id.
+
+### Cadence fields
+
+The hooks do not use one universal countdown:
+
+| Category | Gate | Reload and cadence |
+|---|---|---|
+| Spectating (31) | state `+0xAB` | variable 19; once per game second |
+| Prison (14) | state `+0xAB` | variable 19 x 4; once per four game seconds |
+| Torture (15) | state `+0xAC` | variable 19; once per game second |
+| Casino (17) | state `+0xB0` | variable 19; once per game second |
+| Training (13) | state `+0xB3` | variable 19; once per game second |
+| Lair (6), Sleeping (9), Sulking (10) | no countdown | game turn modulo variable 19 |
+
+Combat Pit enter initializes `+0xAB`, but its update is the success stub and
+does not decrement it. Temple enter initializes `+0xAF`; its already-read
+update is outside this worklist. Within these 32 bodies, only the named update
+hook decrements each countdown. No whole-program writer sweep was done, so
+whether another subsystem also decrements one is **UNKNOWN**.
+
+## 2. Non-room hooks
+
+Each row states what the hook reads, calls and writes. A return of zero means
+the category operation failed; a return of one means it remains valid.
+
+| Address | Category / role | Body |
+|---|---|---|
+| `0x00455E70` | CallToArms enter | Calls the creature speed-mode setter `0x004887D0(1, 0)` and succeeds. |
+| `0x00455E90` | CallToArms leave | Calls the same setter with `(0, 0)`, restoring the ordinary mode. |
+| `0x00459130` | TrapDisarm leave | Resolves creature `+0x43D`; if it is a live class-3 thing, clears that thing's `+0x115` word, then always clears `+0x43D`. The words' meanings are **UNKNOWN**. |
+| `0x004647D0` | WorkerJob leave | Ends two possible current-action words, normalizes task kinds 6/7 through state `+0xDF`, then dispatches on states 10-49. Depending on the state it removes or completes a player task with ids 1-14 and coordinates from state `+0x8A/+0x94/+0x96`, or clears one of two creature work flags. Exact task-id meanings are owned by `imp-task-priority.md`; several arms remain **UNKNOWN**. |
+| `0x004752A0` | ReportingDanger leave | Clears creature `+0x3E6` bit 3. The bit's meaning is **UNKNOWN**. |
+| `0x0047A780` | Refused leave | Calls `0x0048FD70` with a local `0x1000`, clears creature `+0x3CD`, zeroes the vectors at `+0x104` and `+0x110`, and clears `+0x3E6` bit 20. The combined role is **UNKNOWN**. |
+| `0x0047A810` | Combat enter | Calls `0x0048ECE0`, ends a nonzero current action, and clears the combat words at `+0x3D5`, `+0x95`, `+0x97`, `+0x99`, `+0x64`, `+0x66` and `+0x68`. |
+| `0x0047A870` | Combat update | Only states 199/200 can award combat experience. After definition-flag and target-class gates, it takes `ExpPerSecond` from definition `+0x6B7`, scales levels 2-10 by stat 15, clamps to `0..65534`, and calls the experience adder. It writes no field directly. |
+| `0x0047A980` | Combat leave | Calls the fight-leave routine `0x0045ADC0`, restores speed mode `(0, 0)`, and clears creature `+0x3D5`. |
+| `0x0047A9B0` | Unnamed28 update | Unless the owner's `Status` is Won (2), applies a health delta of -10 to the creature every tick. This does not distinguish what the 15 otherwise `idle` states represent, so category 28 remains unnamed. |
+
+## 3. Room-category hooks
+
+“Claims” and “releases” below mean the full shared mechanisms in section 1.
+
+| Address | Category / role | Body |
+|---|---|---|
+| `0x0047A9E0` | Spectating enter | On room type 16, clears creature `+0x3E6` bit 23; initializes `+0xAB`; claims the room position. |
+| `0x0047AAE0` | CombatPit enter | On room type 16 and an exact `0x400` position test, sets creature `+0x3E6` bit 23; initializes `+0xAB`; claims the room position. |
+| `0x0047AB90` | Sleeping leave | If creature `+0x3B7` names a class-2 thing, toggles that thing's `+0xF3` bit 0; then toggles creature `+0xF3` bit 0. The precise bed/occupancy fields are **UNKNOWN**. |
+| `0x0047AC00` | Sleeping update | State 83 first calls `0x00477B20(1)`. Once per game second by turn modulus, calls the shared lair effect `0x004DFF00`. |
+| `0x0047AC40` | Lair update | Once per game second by turn modulus, calls `0x004DFF00`. |
+| `0x0047AC70` | Sulking update | Does the same lair call, then returns whether `0x004871A0` finds id 5 in creature `+0x26E`. |
+| `0x0047ACB0` | Casino enter | Resolves the room position and its type-15 station. Unless player `+0xF4A` is nonzero, refuses when creature money `+0x3FB` is at most `abs(GamblingModifyCreatureMoneyMoneyPerSecond)` (8). Initializes `+0xB0/+0xB3` and claims. |
+| `0x0047AD70` | Casino update | Once per second, advances the fearless countdown at creature `+0x4F4`. Station mode byte `+0x4A` selects Smiles or Money. Smiles applies anger -2000; Money applies +100; both charge buckets 5, 0 and 3 with selector 2. It then adds 1 money in Smiles or subtracts 8 in Money. A roll uses jackpot chances 5000/20000 and calls the keeper jackpot routine on result 42. |
+| `0x0047AF20` | Casino leave | Clears the fearless flag (`+0x3EA` bit 13), writes `now + variable19 x 120` to creature `+0x3D7`, and releases. |
+| `0x0047AFB0` | Research / GuardPost enter | Claims the room position; no category-specific side effect. |
+| `0x0047B000` | Research update | Reads level and definition `ResearchPerSecond` (`+0x6BB`), scales levels 2-10 by stat 17, clamps `0..65534`, and credits the owning keeper through `0x004C2DC0`. See `library-and-research.md` for the canonical rate analysis. |
+| `0x0047B0A0` | Manufacture enter | Increments room/station `+0x8A`, clears state `+0xB9`, and claims. The counter's exact meaning is **UNKNOWN**. |
+| `0x0047B120` | Manufacture leave | Decrements the same `+0x8A` and releases. |
+| `0x0047B190` | Manufacture update | Reads definition `ManufacturePerSecond` (`+0x6BD`), scales levels 2-10 by stat 18, clamps `0..65534`, and credits the keeper through `0x004C3200`; zero returns failure. |
+| `0x0047B230` | Training enter | Refuses and raises message 55 when keeper gold is below `-ModifyPlayerGoldWhileTrainingPerSecond` (5). Otherwise clears `+0xB4`, initializes `+0xB3`, and claims. |
+| `0x0047B2D0` | Training update | Below the level cap, adds level-scaled `ExpPerSecondTraining` every tick. Once per second it checks the keeper can pay; after four successful checks it withdraws `5 x 4 = 20` gold at the creature's tile and resets `+0xB4`. Insufficient gold raises message 55 and returns failure. |
+| `0x0047B430` | Torture enter | Claims, then initializes `+0xAC`. |
+| `0x0047B4A0` | Torture leave | Clears two station occupancy bits, conditionally clears state `+0x6E`, clears creature `+0x3EA` bit 14, and releases. The station helpers' exact contracts are **UNKNOWN**. |
+| `0x0047B590` | Torture update | Once per second, adds variable 19 to creature `+0x4F6`, applies definition `TortureHpChange` (`+0x79F`) as health, and, when the station's `+0x1D` names the creature, applies definition **`TortureMoodChange` (`+0x7A1`)** to anger bucket 5 with selector 8. Thus the anger amount is per creature, not a global. At the level-scaled `TortureTimeToConvert` threshold it either kills on the variable-234 roll (shipped zero) or calls the conversion helper. |
+| `0x0047B740` | Prison enter | Claims, initializes `+0xAB`, and fires creature trigger event 7. |
+| `0x0047B7C0` | Prison update | Every four game seconds, and only for a creature with nonzero level-scaled `HungerFill` and a room id, applies `4 x PrisonModifyCreatureHealthPerSecond` (-12) and **`ModifyAngerInCompanyOfHatedCreaturesPerSecond` (+150)** to bucket 0 with selector 9. |
+| `0x0047B8C0` | Temple enter | Initializes `+0xAF` and claims. |
+
+## 4. Answers and limits
+
+- Casino's two anger globals are variables 201/202:
+  `GamblingModifyCreatureAngerSmilesPerSecond` (-2000) and
+  `GamblingModifyCreatureAngerMoneyPerSecond` (+100).
+- Prison uses variable 78,
+  `ModifyAngerInCompanyOfHatedCreaturesPerSecond` (+150).
+- Torture uses the creature definition's `TortureMoodChange`, not a global.
+- Category 28's drain is real but is not enough evidence for a durable name.
+  Categories 7, 18, 21, 27 and 29 have no hooks, so this work names none of the
+  six remaining `UnnamedNN` values.
+- The built divergences are an owner decision under Q402. No behavior or hashed
+  state changed in this research branch.
