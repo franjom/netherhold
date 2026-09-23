@@ -49,6 +49,25 @@ public class CombatNonFighterTests
     }
 
     [Fact]
+    public void AnImpAwayFromItsHeartAcquiresAnEnemyImp_WhichThenFleesItsImpAttacker()
+    {
+        // The escape byte (Q390): a candidate whose base creature type is the Imp's is judged by the
+        // shared template wherever the worker stands — so enemy Imps engage each other anywhere. A
+        // NonFighter with an Imp among its attackers then flees at once (combat-fear.md §2), so the
+        // engagement is the fact to pin, not a lasting fight.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
+        CreatureState rival = Touching(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, imp);
+        GameSimulation sim = Combat(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Run(5);
+        Assert.Contains(sink.Events, e => e.Kind == "engaged" && e.Detail.Contains("creature=" + imp.Id) && e.Detail.Contains("target=" + rival.Id));
+        Assert.Contains(sink.Events, e => e.Kind == "flees" && e.Detail.Contains("creature=" + rival.Id));
+    }
+
+    [Fact]
     public void AnImpThatSeesAHeroAwayFromItsRoomsWithdraws()
     {
         (GameDatabase db, WorldState world) = OpenWorld();

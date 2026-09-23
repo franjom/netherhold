@@ -191,7 +191,8 @@ public static class CombatTargetRules
     /// <summary>The NonFighter arm (<c>0x0045BDF0</c>, the Imp's and Jack's; combat-target-selection.md
     /// §3, combat-alarm.md §1). Within <see cref="HeartDefenceRadiusSquared"/> of its own heart a
     /// worker judges every hostile creature by plain distance like a Blocker — an Imp only within a
-    /// tile — and fights. Elsewhere it looks only at heroes within sight that have no target or
+    /// tile — and fights; an enemy Imp it judges that way anywhere (<c>0x00494360</c>, the base
+    /// creature type, is 1). Elsewhere it looks only at heroes within sight that have no target or
     /// target it, and never fights them: away from its rooms it withdraws; near them it counts
     /// heads, keeps scanning when its side at three quarters outweighs the enemy's within five
     /// tiles, and otherwise raises the alarm or withdraws. False: nothing to do. True with a
@@ -225,7 +226,10 @@ public static class CombatTargetRules
             CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
             int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
 
-            if (nearHeart)
+            // The escape (0x00494360 == 1, combat-alarm.md §6): an enemy Imp — by its base type, so a
+            // unique's archetype counts — is judged by the shared template anywhere, not only near the heart.
+            bool impCandidate = BaseTypeId(theirs) == CombatRules.ImpCreatureTypeId;
+            if (nearHeart || impCandidate)
             {
                 // The shared template: distance, the alignment discount, attackable, seen or reached.
                 if (CombatRules.OppositeAlignment(definition, theirs)) d = CombatRules.Discounted(d);
@@ -259,6 +263,10 @@ public static class CombatTargetRules
         }
         return chosen != null;
     }
+
+    /// <summary>DK2's <c>0x00494360</c>: a unique definition's ordinary archetype, any other's own id.</summary>
+    private static byte BaseTypeId(CreatureDef definition) =>
+        (definition.Flags & CreatureFlags.IsUnique) != 0 ? definition.UniqueBaseCreatureId : definition.CreatureId;
 
     /// <summary>The fighting arms (<c>0x0045B140</c> and its three siblings): every hostile creature in
     /// the game, scored by the arm's one line over the discounted distance and the counts of who

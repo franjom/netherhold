@@ -3820,8 +3820,9 @@ reading had taken the alarm's call for a commit to a fight.
 alarm: `RaisingAlarm` is state 6 toward 251, `Reporting` state 6 toward 254 and 254
 itself; a room job whose tile lies in the alarm's room stands for `RoomId`; the
 responders run at their own speed where DK2 gives them the raiser's; state 252
-ends at once. The escape byte `0x00494360` reads (Q390), the room's spot,
-`state+0x3C` and action 79 (Q391) are not modelled.
+ends at once. The room's spot, `state+0x3C` and action 79 (Q391) are not
+modelled. **Amended 2026-09-23:** the escape byte is the candidate's base creature
+type (Q390, Codex): an enemy Imp is judged by the shared template anywhere — built.
 
 **Consequences.** Imps scatter from heroes, defend the heart, and call a room to
 arms when outnumbered — the last visible piece of creature-side combat before the

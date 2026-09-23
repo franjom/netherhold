@@ -102,8 +102,8 @@ every tenth tick and the ordinary acquisition takes over.
 ## 5. Built and not built (ADR-0166)
 
 **Built** (`CombatTargetRules.NonFighter`, `FearRules.RaiseAlarm`,
-`RespondToThreat`, `RaisingAlarm`, `Reporting`): §1 without the base-type
-escape; §2 with the room's bounding-box centre for its position; §3 steps 2–3 with
+`RespondToThreat`, `RaisingAlarm`, `Reporting`): §1 with the Imp escape (§6, built
+2026-09-23: an enemy Imp is judged by the shared template anywhere); §2 with the room's bounding-box centre for its position; §3 steps 2–3 with
 the room match as a room job whose tile lies in the alarm's room, the group-tag
 exclusions as the room-job activities, and the raiser's-speed slip replaced by the
 responder's own run speed; §4 with `CreatureActivity.Reporting` covering both the
