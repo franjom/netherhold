@@ -146,11 +146,15 @@ public static class CombatTargetRules
         int hearSq = CombatRules.RangeSquared(definition.DistanceCanHear);
 
         // The spell survey (combat-spells.md §5), skipped for a worker: the attack spell the
-        // fight-starter will pick over melee at range. Friendly and thing-targeting spells are not built.
-        int spellSlot = -1;
-        CreatureSpellDef? spell = null;
+        // fight-starter will pick over melee at range, and the last friendly slot for scan F.
+        // Thing-targeting spells are not built.
+        int spellSlot = -1, friendlySlot = -1;
+        CreatureSpellDef? spell = null, friendly = null;
         if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
+        {
             spellSlot = SpellRules.SurveyAttack(database, me, definition, context.Tick.Value, out spell);
+            friendlySlot = SpellRules.SurveyFriendly(database, me, definition, context.Tick.Value, out friendly);
+        }
 
         int best = int.MaxValue;
         CreatureState? chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
@@ -164,6 +168,14 @@ public static class CombatTargetRules
         if (heartMayEnter && me.CreatureTypeId != CombatRules.ImpCreatureTypeId && !definition.Flags.HasFlag(CreatureFlags.IsHorny))
             heartTile = ScanHearts(world, sight, hearts, me, sightSq, ref best, out heartOwner);
 
+        // Scan F (spell-friendly-arm.md §8): an ally that wants the friendly spell outranks whatever
+        // the hostile scans found; none found, the hostile best stands.
+        if (friendly != null)
+        {
+            CreatureState? ally = FriendlyScan(context, sight, me, definition, friendly, sightSq, hearSq, scratch);
+            if (ally != null && EngageAlly(context, me, definition, ally, friendlySlot, friendly, scratch)) return true;
+        }
+
         if (heartTile >= 0)
         {
             if (!CanReach(context.Navigation, me, definition, TileCentreX(world, heartTile), TileCentreY(world, heartTile), int.MaxValue, scratch))
@@ -173,6 +185,65 @@ public static class CombatTargetRules
 
         if (chosen is null) return false;
         return Commit(context, sight, me, definition, chosen, scratch, spellSlot, spell);
+    }
+
+    /// <summary>Scan F (spell-friendly-arm.md §8.2—§8.3): a self-only spell offers the caster alone, in the
+    /// Combat category and wanting it; any other walks the caster's own creatures — the caster
+    /// included, allies never — for the nearest that is not captive, wants the spell, is in the
+    /// Combat category, has under a quarter of its level-scaled health, and is seen within sight or
+    /// reached within hearing. The Turncoat gate and the pit and torture refusals are not modelled.</summary>
+    private static CreatureState? FriendlyScan(
+        SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition, CreatureSpellDef spell,
+        int sightSq, int hearSq, List<Fixed16Vector> scratch)
+    {
+        GameDatabase database = context.Database;
+        if (SpellRules.IsSelfOnly(spell))
+            return CombatRules.InCombat(me) && SpellRules.BuffApplies(database, definition, me, spell) ? me : null;
+
+        CreatureState? chosen = null;
+        int best = int.MaxValue;
+        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            CreatureState candidate = creatures[i];
+            if (candidate.OwnerPlayerId != me.OwnerPlayerId) continue;
+            int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+            if (d >= best || PrisonRules.IsImprisoned(candidate)) continue;
+            CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
+            if (!SpellRules.BuffApplies(database, theirs, candidate, spell) || !CombatRules.InCombat(candidate)) continue;
+            if (candidate.Health >= (CreatureHealthRules.MaxHealth(database, theirs, candidate) >> 2)) continue;
+            bool seen = d < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+            if (!seen && !(d < hearSq && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch)))
+                continue;
+            best = d;
+            chosen = candidate;
+        }
+        return chosen;
+    }
+
+    /// <summary>Scan F's engagement (§8.4): one final route test, then the ally as the target with nibble 3,
+    /// the slot and the spell's range squared. No attacker slot is taken on the ally.</summary>
+    private static bool EngageAlly(
+        SimulationContext context, CreatureState me, CreatureDef mine, CreatureState ally, int slot, CreatureSpellDef spell,
+        List<Fixed16Vector> scratch)
+    {
+        if (ally.Id != me.Id && !CanReach(context.Navigation, me, mine, ally.PosX, ally.PosY, int.MaxValue, scratch)) return false;
+        bool same = me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId == ally.Id
+            && me.AttackType == CombatRules.AttackTypes.SpellAtAlly;
+        if (me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId != CombatRules.NoTarget && !same)
+        {
+            CreatureState? previous = context.World.CreatureById(me.FightTargetId);
+            if (previous != null) CombatRules.Unregister(previous, me.Id);
+        }
+        me.FightTargetKind = FightTargetKind.Creature;
+        me.FightTargetId = ally.Id;
+        me.FightTargetPlayerId = 0;
+        me.FightTargetTileIndex = -1;
+        me.AttackType = CombatRules.AttackTypes.SpellAtAlly;
+        me.AttackSpellSlot = (byte)slot;
+        me.AttackRangeSquared = SpellRules.RangeSquared(spell);
+        Enter(context, me, mine, same, $"ally={ally.Id} attack={me.AttackType} slot={slot}");
+        return true;
     }
 
     /// <summary>The acquirer's common tail on a chosen creature: the winner must be walkable to — a

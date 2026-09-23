@@ -125,7 +125,8 @@ public sealed class CombatSystem : ISimulationSystem
         }
 
         // Step 1: a target that has died is dropped with the 0xF nibble (§6); the victory arm runs next tick.
-        if (creature.FightTargetKind == FightTargetKind.Creature)
+        // A healer holds no attacker slot on its ally, so an ally's death marks nothing.
+        if (creature.FightTargetKind == FightTargetKind.Creature && creature.AttackType != CombatRules.AttackTypes.SpellAtAlly)
         {
             CreatureState? dying = world.CreatureById(creature.FightTargetId);
             if (dying != null && CreatureDeathRules.IsDown(dying))
@@ -160,11 +161,22 @@ public sealed class CombatSystem : ISimulationSystem
         // Busy (0x00496D00): a swinging creature neither moves nor looks.
         if (creature.SwingInProgress) return;
 
+        // Step 8: a Support re-acquires every tick, keeping a new target and restoring the old one
+        // when nothing is found (combat-fight-state.md §2).
+        if (definition.FightStyle == FightStyle.Support && !FightRules.Reacquire(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+            return;
+
         if (!FightRules.TargetPosition(world, creature, out int x, out int y, out TilePos targetTile)) return;
         if (FightRules.InRange(_sight!, creature, x, y))
         {
             creature.StopMoving();
-            if (creature.AttackType is CombatRules.AttackTypes.SpellAtCreature or CombatRules.AttackTypes.SpellAtThing)
+            if (creature.AttackType == CombatRules.AttackTypes.SpellAtAlly)
+            {
+                // The ally arm (combat-spells.md §8): cast once when the cooldown allows, else stand.
+                if (SpellRules.CanCast(context.Database, creature, definition, creature.AttackSpellSlot, tick))
+                    FightRules.CastOnAlly(context, creature, definition);
+            }
+            else if (creature.AttackType is CombatRules.AttackTypes.SpellAtCreature or CombatRules.AttackTypes.SpellAtThing)
             {
                 // The spell arm (combat-spells.md §6): cast when the cooldown allows, else §9.
                 if (SpellRules.CanCast(context.Database, creature, definition, creature.AttackSpellSlot, tick))

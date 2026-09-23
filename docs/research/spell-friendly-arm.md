@@ -203,12 +203,21 @@ The loader at `0x004F7860` copies the bit, but no analyzed behavior reads it.
 
 ## 10. Built and not built
 
-**Built:** nothing in this document. This was a research-only change.
+**Built (ADR-0170).** `SpellRules.SurveyFriendly` (the last castable friendly slot, §8.1),
+`SpellRules.BuffApplies` (the table of §1—§7 by `AlternativeShot`, the Combat category as
+`CombatRules.InCombat`), scan F in `CombatTargetRules` (§8.2—§8.4: the self-only arm, the walk
+over the caster's own creatures, the quarter-health gate, sight or hearing, one reach test,
+nibble 3 with no attacker slot taken) run after the hostile scans and win when an ally
+qualifies; `spFighting` step 8, the Support's re-acquisition every tick, so a healer in melee
+reach still finds its ally; the ally arm (`FightRules.CastOnAlly`: cast once, target and nibble
+cleared, the ally not told). The Heal chain is built with it: the instant handler (type 34)
+moves the shot onto its target, the death shot 4 chains, and the Modify Health handler (type 3,
+`shots.md` §8) heals the lesser of the data word and the missing health.
 
-**Not built:** the friendly survey, applicability dispatch and ally-spell arm;
-the Imp Teleport and Imp Haste special paths; all bit-7 target overrides. The
-status-effect setters that a future friendly cast will invoke already exist,
-but that does not build the selection or cast behavior established here.
+**Not built, named (Q401):** the Support's escape gate on the survey (`0x00460C50`); the
+`TurncoatTimer`, pit-fighter and torture refusals; the Imp Teleport and Imp Haste paths of
+bits 5 and 6; the possessed-creature overrides. The buff shots fly as ordinary shots, so a
+Haste at 3686 units a tick can pass a standing ally where the 2048-a-tick buffs cannot.
 
 ## Confidence
 

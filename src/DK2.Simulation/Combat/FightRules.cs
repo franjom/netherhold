@@ -138,8 +138,8 @@ public static class FightRules
     /// <summary>The spell arm's cast (combat-spells.md §6) — action 16 begun on the engagement's
     /// target from <paramref name="slot"/>: the slot is stamped with this turn at once, the target
     /// copied into the action, and a creature target told it is attacked. The shot leaves when
-    /// <see cref="CastFires"/> says so.</summary>
-    public static void StartCast(SimulationContext context, CreatureState me, CreatureDef mine, int slot)
+    /// <see cref="CastFires"/> says so. The ally arm passes <paramref name="tell"/> false: the ally is not told.</summary>
+    public static void StartCast(SimulationContext context, CreatureState me, CreatureDef mine, int slot, bool tell = true)
     {
         me.SwingInProgress = true;
         me.SwingKind = SpellRules.SpellCast;
@@ -153,11 +153,56 @@ public static class FightRules
         context.Emit(SystemName, "cast",
             $"creature={me.Id} type={mine.Name} slot={slot} spell={mine.Spells[slot].CreatureSpellId} target={me.SwingTargetId} heart={me.SwingTargetPlayerId}");
 
-        if (me.SwingTargetKind == FightTargetKind.Creature)
+        if (tell && me.SwingTargetKind == FightTargetKind.Creature)
         {
             CreatureState? target = context.World.CreatureById(me.SwingTargetId);
             if (target != null) Retaliate(context, target, me);
         }
+    }
+
+    /// <summary><c>spFighting</c> step 8 (combat-fight-state.md §2): a Support lets its target go and
+    /// selects afresh every tick; a choice replaces the engagement, and none restores the old one,
+    /// registration included. False when the creature has left the fight state.</summary>
+    public static bool Reacquire(
+        SimulationContext context, ISightBlocker sight, HeartSites hearts, RoomCache rooms, CreatureState me, CreatureDef mine,
+        List<Fixed16Vector> scratch)
+    {
+        WorldState world = context.World;
+        byte kind = me.FightTargetKind, attack = me.AttackType, slot = me.AttackSpellSlot, player = me.FightTargetPlayerId;
+        int id = me.FightTargetId, tile = me.FightTargetTileIndex, range = me.AttackRangeSquared;
+        CreatureState? old = kind == FightTargetKind.Creature ? world.CreatureById(id) : null;
+        bool ranged = attack is CombatRules.AttackTypes.SpellAtCreature or CombatRules.AttackTypes.SpellAtThing;
+        if (old != null) CombatRules.Unregister(old, me.Id);
+        me.FightTargetKind = FightTargetKind.None;
+        me.FightTargetId = CombatRules.NoTarget;
+        me.AttackType = 0;
+        if (CombatTargetRules.SelectAVictim(context, sight, hearts, rooms, me, mine, scratch)) return CombatRules.IsFighting(me);
+        if (!CombatRules.IsFighting(me)) return false;
+        me.FightTargetKind = kind;
+        me.FightTargetId = id;
+        me.FightTargetPlayerId = player;
+        me.FightTargetTileIndex = tile;
+        me.AttackType = attack;
+        me.AttackSpellSlot = slot;
+        me.AttackRangeSquared = range;
+        if (old != null && attack != CombatRules.AttackTypes.SpellAtAlly) CombatRules.Register(old, me.Id, ranged);
+        return true;
+    }
+
+    /// <summary>The ally-spell arm (combat-spells.md §8, <c>0x00460011</c>): action 16 on the ally from the
+    /// engagement's slot, the ally not told; then the target and the low nibble are cleared with the
+    /// slot kept, so the caster casts once and looks again next tick.</summary>
+    public static void CastOnAlly(SimulationContext context, CreatureState me, CreatureDef mine)
+    {
+        int slot = me.AttackSpellSlot;
+        StartCast(context, me, mine, slot, tell: false);
+        context.Emit(SystemName, "casts_on_ally", $"creature={me.Id} ally={me.FightTargetId} slot={slot}");
+        me.FightTargetId = CombatRules.NoTarget;
+        me.FightTargetKind = FightTargetKind.None;
+        me.FightTargetPlayerId = 0;
+        me.FightTargetTileIndex = -1;
+        me.AttackType = 0;
+        me.AttackRangeSquared = 0;
     }
 
     /// <summary>Action 16's wind-up (combat-spells.md §7 step 2): the shot leaves once the turn is

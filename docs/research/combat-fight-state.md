@@ -172,7 +172,8 @@ heart tile stands in for the Arch Pillar).
 (combat-fear.md); the spell arms and the step-back (ADR-0167); the NonFighter arm
 (ADR-0166); Gate B's division by the work rate and the blow's refusal of `+0x445` with
 the health routine's multipliers (ADR-0168, `creature-status-effects.md`); state 8, the death
-unlink's `0xF` nibble and the victory states (ADR-0169, `combat-approach-and-victory.md`).
+unlink's `0xF` nibble and the victory states (ADR-0169, `combat-approach-and-victory.md`);
+step 8's Support re-acquisition and the ally arm (ADR-0170, `spell-friendly-arm.md`).
 **Not built, named:** waking a sleeper on the blow; the room notice and player event 6 (§1).
 
 ## Confidence

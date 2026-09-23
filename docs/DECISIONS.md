@@ -3929,3 +3929,37 @@ an evil one chases for seven. A killer stands two seconds after a kill, open to
 a blow it will not answer. The old per-tick re-route had crawled: targets now
 arrive, so a struck Warlock turns to its fists as DK2's retaliation says, and
 two spell tests freeze their targets to keep the caster casting. `HashVersion` 74.
+
+## ADR-0170 — The friendly spell arm: the last castable buff, on the nearest own fighter under a quarter health
+
+**Status.** Accepted 2026-09-23 · `HashVersion` 74 (no state added) · Research:
+`docs/research/spell-friendly-arm.md`, `docs/research/shots.md` §4a and §8.
+
+**Context.** Heal, Haste, Cast Armour, Invulnerable and the Invisibles flew and
+landed since ADR-0168 but nobody cast them: the friendly survey was unread until
+Codex's Q394 (merged, reviewed). It settles: the survey keeps the **last**
+castable friendly slot; Invisible is cast on the caster alone; every other buff
+goes to the nearest of the caster's own creatures — the caster included, allies
+never — in the Combat state category, under a quarter of its level-scaled
+health, that the spell's applicability routine accepts (Haste: no speed effect;
+Heal: under half health; Armour, Invulnerable, Invisible: their word zero); the
+cast is made once and the target let go. `spFighting` step 8 makes a Support
+re-acquire every tick, which is how a healer in melee reach turns to its ally.
+Reading Heal's chain reached two more facts: type 34 moves the shot onto its
+target, type 3 heals the lesser of the data word and the missing health (and
+Disruption's five-percent floor); the overlap test is a box half the radii's
+sum wide with the shot's radius doubled.
+
+**Decision.** `SpellRules.SurveyFriendly` and `BuffApplies`; scan F and
+`EngageAlly` in `CombatTargetRules` after the hostile scans; `FightRules.Reacquire`
+(step 8) and `CastOnAlly`; `ShotRules.Overlaps`, `ModifyHealth` and the instant
+handler; the finder admits the caster when it is the target. The fixture gains a
+Priest (Haste, Armour, Heal) and a Thief (Invisible). No creature state is added.
+
+**Consequences.** A Priest heals a fighter under a quarter health for the missing
+amount, then armours it, then hastens it; a Thief in a fight vanishes on its own
+spell; a hurt fighter at half health gets nothing. A Support that was struck turns
+to melee for one tick and is back on its spell the next. A Haste at 3686 units a
+tick can pass a standing ally, as DK2's per-tick finder would (Q401, an owner
+question). Not built: the Support's escape gate on the survey, the Turncoat, pit
+and torture refusals, the Imp's Teleport and Haste paths (Q401).

@@ -119,6 +119,15 @@ not dying (body bit 21, `creature-death.md`), a closed door of any owner, an Arc
 creature whose owner is hostile to mine (`0x004BF390`) and not dying, or a
 Turncoat; the same doors and objects; **3 both**; **4** a dead body (class 6).
 
+**The overlap test (`0x004B5590`, read 2026-09-23)** is a box, not a circle: on each
+axis the distance between the two things is strictly under **half the sum of their
+radii**, and the height difference under the sum of their heights. The shot's radius
+here is **twice** its `Radius` (`0x004B7E10`), 1638 for every creature shot; a
+creature's is its footprint (STRONGLY INFERRED: the only radius it has); an object of a
+hostile owner counts as 0x800 wide. A door with `+0x10D` or `+0x109` set never
+overlaps; a thing never overlaps itself. Sampled once a tick, so a shot at 3686 units a
+tick can pass a standing creature between two positions where a 2048 one cannot.
+
 **On a hit:** the hit-thing effect (`+0x67`) — on a creature its body `+0x133`
 set to the effect's tag; the **hit-thing shot** (`+0x69`) inherits my target
 position, data words, caster, target and possessed flag and is aimed at my target
@@ -189,6 +198,7 @@ Each runs with the shot as `this`; the target is `+0x147`, `t/s` variable 19.
 
 | type | who | what it does |
 |---|---|---|
+| 3 | Modify Health (shot 4, the Heals' death shot; shot 43 Disruption) — `0x004ADB30` | a live creature target that is not `IsHorny`; a fire-category shot on one under a fifth of its health, not on water, ignites it (display); **shot 43** sets health to five percent of the level-scaled `Hp` (`health := 5% — health` through the health routine) or destroys a target already under it; **any other** heals `min(data1, max — health)` through the health routine, after `0x0048AD30(1)` unless frozen, held, a pit fighter or abnormal-targeting (unread, likely the heal display) |
 | 4 | Haste Creature (150, 15), Slow (20, 15), Imp Haste | `0x0048CAD0(creature, data1, data2)` — the speed modifier and its duration; then, faster than `def+0x5B4` → body bit 23 set, bit 16 clear, `+0x4DD` = data2; slower → bit 16 set, `+0x4DD` 0 |
 | 5 | Cast Armour (80, 50) | creature `+0x443` = data1 |
 | 9 | Lightning (300) | `0x004B32A0(shot, +0x52, owner, 2)`; the target alive, an object only if an Arch Pillar or untagged; a creature whose second flag word `def+0x68A` bit 0 is set is immune; **damage data1, doubled on water**, through the health routine; then `+0x4E3` = 20 and, unless held (`+0x3CB`), in state 23, `IsHorny` or `Possessed`, `0x00491830(creature, 0xFF)` |
@@ -240,11 +250,13 @@ lower than a half.
 **Built since (ADR-0168):** §4's process events 0x40 (first tick) and 0x4 (the thing
 struck, written into the target word first) for the nine types with a creature side
 (`creature-status-effects.md`); §7's invulnerable refusal and the health routine's
-multipliers on contact and area damage.
+multipliers on contact and area damage. **(ADR-0170):** the pre-move event 0x2 with the
+instant handler 34 (the shot moved onto its target, dying with no live one) and the Modify
+Health handler 3 (§8, the heal and the Disruption); the finder's overlap box (§4a).
 
 **Not built, named (Q398):** height — every shot flies flat and gravity, the lob and
-the aim's half-height are dropped; the overlap test `0x004B5590` — ours is the shot's
-radius plus half the creature's footprint, nearest first where DK2 takes tile order;
+the aim's half-height are dropped, the overlap box's height test with them; the finder
+takes the nearest overlap where DK2 takes tile order;
 doors, objects and bodies as things hit — a shot sent at a heart strikes within an
 object's reach of its tile (Q363); process types 28 (guided), 34 (instant) and the unread
 ones (Q394, Q395); a stopped or standing shot counts its lifetime down where DK2's physics returns 0 and does
@@ -258,6 +270,8 @@ arithmetic; §4's order and every branch; §4a's finder, predicates and hit
 handling; §7 contact and type-2 area arithmetic; §8's ten handlers as tabled.
 
 **CONFIRMED (data):** §9 and the radius.
+
+**CONFIRMED (binary, 2026-09-23):** §4a's overlap test; §8's types 3 and 34.
 
 **STRONGLY INFERRED:** the bounce in §6; class 6 as dead bodies. (Body bit 21 was
 first read here as invisibility; it is the dying flag `0x0048B770` sets —

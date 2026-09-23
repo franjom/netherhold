@@ -9,8 +9,8 @@ namespace DK2.Simulation.Combat;
 
 /// <summary>A creature's spells as the fight uses them — docs/research/combat-spells.md: the three
 /// slots, the cooldown gate (<c>0x0048C800</c>), and the survey's choice of attack spell (§5).
-/// The haste and slow words that scale the cooldown are not modelled (Q393); the friendly and
-/// thing-targeting spells are not built (Q394).</summary>
+/// The friendly survey and the applicability table are docs/research/spell-friendly-arm.md
+/// (§1—§8). The thing-targeting spells are not built; Q393's possession modifiers are not.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-spells.md")]
 public static class SpellRules
 {
@@ -19,6 +19,16 @@ public static class SpellRules
     public const uint ThingTargetFlag = 2u;
     public const uint FriendlyFlag = 4u;
     public const uint StatusFlag = 8u;
+
+    /// <summary>Bit 7: the two Invisibles, cast on the caster alone (spell-friendly-arm.md §8.2).</summary>
+    public const uint SelfOnlyFlag = 0x80u;
+
+    /// <summary>The <c>AlternativeShot</c> indices of the applicability table at <c>0x006E4AC8</c> (§1).</summary>
+    public const byte HasteBuff = 1;
+    public const byte HealBuff = 2;
+    public const byte ArmourBuff = 3;
+    public const byte InvulnerableBuff = 4;
+    public const byte InvisibleBuff = 5;
 
     public const int Slots = 3;
 
@@ -44,6 +54,8 @@ public static class SpellRules
     public static int RangeSquared(CreatureSpellDef spell) => (spell.Range >> 12) * spell.Range;
 
     public static bool IsAttack(CreatureSpellDef spell) => (spell.Flags & AttackFlag) != 0;
+    public static bool IsFriendly(CreatureSpellDef spell) => (spell.Flags & FriendlyFlag) != 0;
+    public static bool IsSelfOnly(CreatureSpellDef spell) => (spell.Flags & SelfOnlyFlag) != 0;
 
     /// <summary>A status spell without damage: melee is taken against a thing instead (§2).</summary>
     public static bool IsStatus(CreatureSpellDef spell) => (spell.Flags & StatusFlag) != 0;
@@ -80,5 +92,42 @@ public static class SpellRules
             chosen = spell;
         }
         return best;
+    }
+
+    /// <summary>Survey F's spell (spell-friendly-arm.md §8.1): over the castable slots the level
+    /// allows, the <b>last</b> friendly one wins — each overwrites the saved slot. −1 when none.</summary>
+    public static int SurveyFriendly(GameDatabase database, CreatureState me, CreatureDef definition, long tick, out CreatureSpellDef? chosen)
+    {
+        chosen = null;
+        int best = -1;
+        int count = Math.Min(definition.Spells.Count, Slots);
+        for (int i = 0; i < count; i++)
+        {
+            if (definition.Spells[i].LevelAvailable > me.Level) continue;
+            if (!CanCast(database, me, definition, i, tick)) continue;
+            CreatureSpellDef spell = SpellOf(database, definition, i)!;
+            if (!IsFriendly(spell)) continue;
+            best = i;
+            chosen = spell;
+        }
+        return best;
+    }
+
+    /// <summary>The applicability table (<c>0x006E4AC8</c>, spell-friendly-arm.md §1—§7) by the spell's
+    /// <c>AlternativeShot</c>: Haste wants no speed effect; Heal wants health under half the
+    /// level-scaled maximum; Armour, Invulnerable and Invisible want the Combat state category
+    /// (<see cref="CombatRules.InCombat"/>, a walk to a fight included) and their own word zero.
+    /// Index 0 and anything past the six records is false.</summary>
+    public static bool BuffApplies(GameDatabase database, CreatureDef targetDef, CreatureState target, CreatureSpellDef spell)
+    {
+        switch (spell.AlternativeShot)
+        {
+            case HasteBuff: return target.SpeedEffectTicks == 0;
+            case HealBuff: return target.Health < (CreatureHealthRules.MaxHealth(database, targetDef, target) >> 1);
+            case ArmourBuff: return CombatRules.InCombat(target) && target.ArmourTicks == 0;
+            case InvulnerableBuff: return CombatRules.InCombat(target) && target.InvulnerableTicks == 0;
+            case InvisibleBuff: return CombatRules.InCombat(target) && target.InvisibleTicks == 0;
+            default: return false;
+        }
     }
 }

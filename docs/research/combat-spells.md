@@ -120,8 +120,9 @@ Fireball, Freeze over Lightning; once cast, a spell's stamp keeps it ahead for a
 long as it is castable at all. The earlier reading called this "the strongest by
 `0x004F7AB0`"; that routine is the recharge, and the order is readiness. The
 chosen spell's `Range` becomes `(range >> 12) × range`, the range² the
-fight-starter stores. A friendly slot (bit 2) is taken first-castable, with its
-range² and bit 7; a bit-1 slot is the thing-targeting spell.
+fight-starter stores. A friendly slot (bit 2) is the **last** castable one — each
+overwrites the saved slot (`spell-friendly-arm.md` §8.1; an earlier reading said
+first) — with its range² and bit 7; a bit-1 slot is the thing-targeting spell.
 
 ## 6. The spell arm of `spFighting` (nibbles 0 and 2), `0x0045FB65`
 
@@ -217,7 +218,8 @@ fallback §9 and the step-back §10 in `CombatSystem.CannotCast`, except that
 nothing found leaves the creature idle where DK2 restores the old target. The shot
 itself is `shots.md` §10.
 
-**Not built:** the ally arm §8 and the friendly survey (Q394); the thing-targeting
+**Built since (ADR-0170):** the ally arm §8 and the friendly survey
+(`spell-friendly-arm.md`). **Not built:** the thing-targeting
 survey; the possession recharge modifiers (Q393); the approach's part-way point for a
 spell nibble (`combat-fight-state.md` §2 step 10).
 

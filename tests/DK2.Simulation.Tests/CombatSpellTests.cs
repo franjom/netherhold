@@ -52,14 +52,17 @@ public class CombatSpellTests
         var fired = sink.Events.First(e => e.Kind == "shot_fired" && e.Detail.Contains("creature=" + warlock.Id));
         // The wind-up is 11345/4096 s = 11 ticks; the shot leaves on the first tick past it.
         Assert.Equal(cast.Tick.Value + 12, fired.Tick.Value);
-        Assert.Equal(cast.Tick.Value, warlock.SpellStamps[0]);
+        // A Support re-acquires every tick and casts again when the recharge allows: the stamp is the latest cast's.
+        Assert.True(warlock.SpellStamps[0] >= cast.Tick.Value);
 
         var hit = sink.Events.First(e => e.Kind == "shot_hit" && e.Detail.Contains("target=" + goblin.Id));
         Assert.Contains("damage=300", hit.Detail);
         Assert.Contains("landed=-300", hit.Detail);
         // A Fireball covers 3686 units a tick: the three tiles take four ticks.
         Assert.InRange(hit.Tick.Value - fired.Tick.Value, 1, 5);
-        Assert.Empty(world.Shots);
+        // The first shot is spent on the hit; a later recast may still be in flight.
+        string shotId = fired.Detail.Split("shot=")[1].Split(' ')[0];
+        Assert.Contains(sink.Events, e => e.Kind == "shot_died" && e.Detail.Contains("shot=" + shotId + " "));
     }
 
     [Fact]

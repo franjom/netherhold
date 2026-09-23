@@ -45,6 +45,8 @@ public static class ShotRules
     public const uint DeathEvent = 0x80u;
 
     /// <summary><c>ProcessType</c>s with a creature side built (§8, creature-status-effects.md).</summary>
+    public const byte ModifyHealthProcess = 3;
+    public const byte InstantProcess = 34;
     public const byte SpeedProcess = 4;
     public const byte ArmourProcess = 5;
     public const byte LightningProcess = 9;
@@ -54,6 +56,9 @@ public static class ShotRules
     public const byte ReaperStunProcess = 29;
     public const byte DrainProcess = 35;
     public const byte PoisonProcess = 38;
+
+    /// <summary>The Disruption shot: its type-3 handler sets the target to five percent or kills it (§8).</summary>
+    public const byte DisruptionShotId = 43;
 
     /// <summary>A new shot from a definition, its data words the caller's (a spell's two words, or the
     /// parent's for a chained shot), its lifetime the definition's health, not yet moving.</summary>
@@ -99,8 +104,8 @@ public static class ShotRules
     }
 
     /// <summary>The overlap finder's answer (§4a): the nearest standing creature the collide class
-    /// admits — an enemy by alliance, a friend by owner — within the shot's radius and the
-    /// creature's half footprint, never the caster. Doors, objects and bodies are not looked for.</summary>
+    /// admits — an enemy by alliance, a friend by owner — that <see cref="Overlaps"/> the shot, never
+    /// the caster unless it is the target. Doors, objects and bodies are not looked for.</summary>
     public static CreatureState? FindHit(WorldState world, GameDatabase database, ShotState shot, ShotDef definition)
     {
         byte mode = definition.CollideType;
@@ -111,19 +116,32 @@ public static class ShotRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
-            if (candidate.Id == shot.CasterId || CreatureDeathRules.IsDown(candidate)) continue;
+            // Never the caster, unless caster and target are one (§4a): a self-cast Invisible lands.
+            bool selfTarget = shot.TargetKind == FightTargetKind.Creature && shot.TargetId == shot.CasterId;
+            if ((candidate.Id == shot.CasterId && !selfTarget) || CreatureDeathRules.IsDown(candidate)) continue;
             bool friend = candidate.OwnerPlayerId == shot.OwnerPlayerId;
             bool enemy = CombatRules.IsHostile(world, shot.OwnerPlayerId, candidate.OwnerPlayerId);
             if (mode == CollideEnemies && !enemy) continue;
             if (mode == CollideFriends && !friend) continue;
             if (mode == CollideBoth && !friend && !enemy) continue;
-            int reach = CombatRules.ReachSquared(definition.Radius + (database.CreatureById(candidate.CreatureTypeId).FootprintRadius.Raw >> 1));
+            if (!Overlaps(shot, definition, candidate, database.CreatureById(candidate.CreatureTypeId))) continue;
             int distance = CombatRules.DistanceSquared(shot.PosX, shot.PosY, candidate.PosX, candidate.PosY);
-            if (distance >= reach || distance >= bestDistance) continue;
+            if (distance >= bestDistance) continue;
             best = candidate;
             bestDistance = distance;
         }
         return best;
+    }
+
+    /// <summary>The overlap test (<c>0x004B5590</c>, §4a): a box, not a circle — on each axis the
+    /// distance is under half the sum of the two radii, the shot's being twice its <c>Radius</c>
+    /// (1638 for every creature shot) and the creature's its footprint. The height test is dropped
+    /// with the rest of the flight's height (Q398). Sampled once a tick, so a fast shot can pass a
+    /// standing creature between two positions, as DK2's does.</summary>
+    public static bool Overlaps(ShotState shot, ShotDef definition, CreatureState creature, CreatureDef creatureDef)
+    {
+        int half = ((definition.Radius << 1) + creatureDef.FootprintRadius.Raw) >> 1;
+        return Math.Abs(shot.PosX - creature.PosX) < half && Math.Abs(shot.PosY - creature.PosY) < half;
     }
 
     /// <summary>A shot aimed at a heart reaches it within its radius and an object's reach of the
@@ -194,11 +212,22 @@ public static class ShotRules
         if ((definition.ShotProcessFlags & eventBit) == 0) return;
         WorldState world = context.World;
         CreatureState? target = struck ?? (shot.TargetKind == FightTargetKind.Creature ? world.CreatureById(shot.TargetId) : null);
-        if (target is null) return;
+        if (target is null)
+        {
+            if (definition.ProcessType == InstantProcess) shot.Health = 0;
+            return;
+        }
         CreatureDef definitionOfTarget = context.Database.CreatureById(target.CreatureTypeId);
         int perSecond = SimulationTiming.OriginalTicksPerGameSecond;
         switch (definition.ProcessType)
         {
+            case InstantProcess:
+                // The shot is moved onto its target and the collision forced (§8, type 34): here it stands on
+                // the target and the finder takes it this tick; no live target and the shot dies.
+                if (struck is null && !CreatureDeathRules.IsDown(target)) { shot.PosX = target.PosX; shot.PosY = target.PosY; }
+                else if (struck is null) shot.Health = 0;
+                break;
+            case ModifyHealthProcess: ModifyHealth(context, shot, definition, target, definitionOfTarget); break;
             case SpeedProcess: StatusEffectRules.ModifySpeed(context, target, shot.Data1, shot.Data2); break;
             case ArmourProcess: target.ArmourTicks = shot.Data1; break;
             case LightningProcess: StatusEffectRules.Lightning(context, target, definitionOfTarget, shot.Data1, shot.CasterId); break;
@@ -209,6 +238,32 @@ public static class ShotRules
             case DrainProcess: StatusEffectRules.Drain(context, target, definitionOfTarget, world.CreatureById(shot.CasterId), shot.Data1); break;
             case PoisonProcess: StatusEffectRules.Poison(context, target, shot.Data2, shot.Data1, shot.OwnerPlayerId); break;
         }
+    }
+
+    /// <summary>Type 3, <c>0x004ADB30</c> (§8): nothing for <c>IsHorny</c>; a fire-category shot's ignition is
+    /// display; the Disruption shot sets health to five percent of the level-scaled maximum, or
+    /// kills under it; every other carrier heals the lesser of its data word and the missing
+    /// health — through the health routine, so a target over its maximum loses the excess.</summary>
+    public static void ModifyHealth(SimulationContext context, ShotState shot, ShotDef definition, CreatureState target, CreatureDef targetDef)
+    {
+        if (targetDef.Flags.HasFlag(CreatureFlags.IsHorny) || CreatureDeathRules.IsDown(target)) return;
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        int max = CreatureHealthRules.MaxHealth(database, targetDef, target);
+        if (definition.ShotId == DisruptionShotId)
+        {
+            int floor = max * 5 / 100;
+            int landed = floor == 0 || target.Health < floor
+                ? CreatureHealthRules.Apply(database, targetDef, target, -target.Health)
+                : StatusEffectRules.Hurt(world, database, targetDef, target, target.Health - floor);
+            context.Emit(SystemName, "disrupted", $"shot={shot.Id} target={target.Id} landed={landed} health={target.Health}");
+            return;
+        }
+        int amount = Math.Min(shot.Data1, max - target.Health);
+        int healed = amount >= 0
+            ? CreatureHealthRules.Apply(database, targetDef, target, amount)
+            : StatusEffectRules.Hurt(world, database, targetDef, target, -amount);
+        context.Emit(SystemName, "healed", $"shot={shot.Id} type={definition.ShotId} caster={shot.CasterId} target={target.Id} amount={amount} landed={healed} health={target.Health}");
     }
 
     /// <summary>A position the shot may occupy: on the map and not a solid tile.</summary>

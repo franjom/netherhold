@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Combat;
 
 namespace DK2.Simulation.Tests;
 
@@ -189,7 +190,7 @@ internal static class Dk2TerrainFixture
               construction: TileConstruction.DoubleQuad),
             R(RoomTypeId.Casino, "Casino", 750, CasinoTerrain, 0x13ACu, 3, 3),
         ],
-        creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), Warlock(), .. extraCreatures],
+        creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), Warlock(), Priest(), Thief(), .. extraCreatures],
         variables: Variables(),
         keeperSpells: KeeperSpells(),
         objects: Objects(),
@@ -922,8 +923,38 @@ internal static class Dk2TerrainFixture
         ],
     };
 
+    public const byte PriestCreatureId = 22;
+    public const byte ThiefCreatureId = 23;
+
+    /// <summary>A Support with three friendly slots at their shipped words — Haste, Cast Armour and Heal
+    /// — so the last castable slot wins (spell-friendly-arm.md §8.1). Not a shipped creature's stats.</summary>
+    public static CreatureDef Priest() => Goblin() with
+    {
+        Name = "Priest", CreatureId = PriestCreatureId, Flags = Goblin().Flags | CreatureFlags.IsFearless,
+        FightStyle = FightStyle.Support, LairObjectId = 0,
+        Spells =
+        [
+            new CreatureSpellSlot(HasteSpellId, 1, new Fp32(4096), 1),
+            new CreatureSpellSlot(ArmourSpellId, 1, new Fp32(4096), 1),
+            new CreatureSpellSlot(HealSpellId, 1, new Fp32(4096), 1),
+        ],
+    };
+
+    /// <summary>A fighter with the self-only Invisible (bit 7).</summary>
+    public static CreatureDef Thief() => Goblin() with
+    {
+        Name = "Thief", CreatureId = ThiefCreatureId, Flags = Goblin().Flags | CreatureFlags.IsFearless, LairObjectId = 0,
+        Spells = [new CreatureSpellSlot(InvisibleSpellId, 1, new Fp32(4096), 1)],
+    };
+
     public const byte FireballSpellId = 1;
     public const byte FirebombSpellId = 2;
+    public const byte HasteSpellId = 3;
+    public const byte ArmourSpellId = 4;
+    public const byte InvisibleSpellId = 5;
+    public const byte HealSpellId = 6;
+    public const byte ModifyHealthShotId = 4;
+    public const byte HealInstantShotId = 53;
     public const byte FireballShotId = 1;
     public const byte FirebombShotId = 16;
     public const byte FirebombExplosionShotId = 34;
@@ -960,7 +991,19 @@ internal static class Dk2TerrainFixture
             Flags = 0x101, Range = 16384, RechargeTime = 30720, ShotTypeId = FirebombShotId, ShotData1 = 600, ShotData2 = 0,
             Unknown_00EF = default,
         },
+        Friendly("Haste Creature", HasteSpellId, 0x104, SpellRules.HasteBuff, HasteShotId, 150, 15),
+        Friendly("Cast Armour", ArmourSpellId, 0x104, SpellRules.ArmourBuff, ArmourShotId, 80, 50),
+        Friendly("Invisible", InvisibleSpellId, 0x84, SpellRules.InvisibleBuff, InvisibleShotId, 15, 0),
+        Friendly("Heal", HealSpellId, 0x104, SpellRules.HealBuff, HealInstantShotId, 3000, 0),
     ];
+
+    /// <summary>A friendly spell (bit 2) with a four-tile range and a five-second recharge.</summary>
+    private static CreatureSpellDef Friendly(string name, byte id, uint flags, byte alternativeShot, byte shot, uint data1, uint data2) =>
+        new(new byte[266])
+        {
+            Name = name, EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = id, Flags = flags, Range = 16384, RechargeTime = 20480,
+            ShotTypeId = shot, AlternativeShot = alternativeShot, ShotData1 = data1, ShotData2 = data2, Unknown_00EF = default,
+        };
 
     /// <summary>The shots those spells fire, at their shipped values (shots.md §9): the Fireball dies
     /// on solid and on a thing and lives 60 ticks; the Firebomb chains its explosion on either hit;
@@ -996,13 +1039,16 @@ internal static class Dk2TerrainFixture
         Status("Drain", DrainShotId, 2048, 128, 0x27, 0x4, 2, 35),
         Status("Reaper Fireball", ReaperFireballShotId, 3686, 128, 0x123, 0x4, 2, 29, damageType: 7, attackCategory: 4),
         Status("Maiden Poison Spit", PoisonSpitShotId, 2048, 20, 0x123, 0x4, 2, 38),
+        // The Heal chain (shots.md §8): the instant shot stands on its target and dies on it, chaining Modify Health.
+        Status("Heal Instant Shot", HealInstantShotId, 0, 1, 0x2, 0x2, 1, 34, deathShot: ModifyHealthShotId),
+        Status("Modify Health", ModifyHealthShotId, 3686, 128, 0x23, 0x4, 3, 3),
     ];
 
-    private static ShotDef Status(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte collide, byte process, byte damageType = 0, byte attackCategory = 0) =>
+    private static ShotDef Status(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte collide, byte process, byte damageType = 0, byte attackCategory = 0, byte deathShot = 0) =>
         new(new byte[239])
         {
             Name = name, MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = id, Speed = speed, Radius = 819,
-            Health = health, Flags = flags, ShotProcessFlags = processFlags, CollideType = collide, ProcessType = process, DamageType = damageType, AttackCategory = attackCategory,
+            Health = health, Flags = flags, ShotProcessFlags = processFlags, CollideType = collide, ProcessType = process, DamageType = damageType, AttackCategory = attackCategory, DeathShotId = deathShot,
         };
 
     /// <summary>Every global variable a built mechanic reads, at its shipped

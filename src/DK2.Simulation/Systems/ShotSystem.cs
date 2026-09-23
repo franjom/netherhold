@@ -48,6 +48,14 @@ public sealed class ShotSystem : ISimulationSystem
                 continue;
             }
 
+            // Step 4: the pre-move event (an instant shot moves onto its target here).
+            ShotRules.Process(context, shot, definition, ShotRules.PreMoveEvent, null);
+            if (shot.Health <= 0)
+            {
+                Die(context, shot, definition, deathShot: false);
+                continue;
+            }
+
             bool stopped = false;
             CreatureState? hit = ShotRules.FindHit(world, database, shot, definition);
             if (hit != null)
