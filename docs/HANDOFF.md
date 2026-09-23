@@ -42,7 +42,7 @@ partial: combat is built (ADR-0163–0170), heroes, traps and door behaviour are
 - **Imps.** Two-tier job choice (ADR-0058); carrying bodies, captives and objects (ADR-0063–0065); aimed bonus (ADR-0069).
 - **Creatures.** Health and hunger, own bed, eating, levels and experience through the loader divide (ADR-0083), anger as six banded counters saturating at 65533 (ADR-0081/0087), desertion, the 60 s dying window (ADR-0051), payday as a journey, three mood choosers on a five-second gate (ADR-0082), Hand of Evil (ADR-0062/0075/0077, disposal ADR-0148), knock-out at a sixth (ADR-0071), hazard damage. `Dk2StateId`, `StateBeforeUtilityState`, `UtilityNewState` are hashed fields written by nothing (ADR-0135 step one).
 - **Combat** (ADR-0163–0170; `combat-*.md`, `shots.md`, `creature-status-effects.md`, `spell-friendly-arm.md`). `SelectAVictim` from `ProcessFight`: the dispatch scan for all five fight styles, the heart (scan E, its ring tile standing in for the Arch Pillar, Q363) and the ally scan F; the fight state with its two clocks and `MeleeDamageRules`; the struck creature's answer; fear, back-off, flight and withdrawal; the worker's arm and the alarm; attack spells as action 16 firing shot things; the friendly arm; status effects as countdown words; state 8's approach; a fixed 8-tick victory pause (Q376) and the corpse walk. Scans A, B (thing-targeting spells), C and D are not built (2026-09-23).
-- **Win and defeat** (ADR-0162). `Status` written once, heart health, ruin and killer, actions 10/11, last keeper standing; a ruined heart is claimable and stores no gold. Alliances are symmetric state (`AllianceSystem`, ADR-0159).
+- **Win and defeat** (ADR-0162). `Status` written once, heart health, ruin and killer, actions 10/11, last keeper standing; a ruined heart is claimable and stores no gold. A fallen keeper's dungeon falls (`DefeatRules`: gold, rooms and land on the death turn, workers killed and the rest leaving from the fifth). Alliances are symmetric state (`AllianceSystem`, ADR-0159).
 - **Navigation** (ADR-0155/0157/0158). DK2's mesh router, funnel and four steering forces drive every creature; doors are in the navigation byte and `DoorSystem` opens, closes, locks and picks them (ADR-0159).
 - **Players.** `PlayerIds` 0 unowned, 1 heroes, 2 neutral, 3–7 keepers (ADR-0043); only a keeper is staffed (ADR-0052). `DK2.AI.KeeperAI` is an input source emitting `PlayerCommand`s (`KEEPER_AI.md` §12.7 step 1).
 - **World.** Fog of war as simulation state, one bit per keeper in ours (ADR-0076); levels on their own VARIABLES (ADR-0040); FNV-1a state hash with one pin and `ChaosSystem` (ADR-0006).
@@ -58,8 +58,8 @@ runs on 30 activities assigned directly at 35 sites, with no transition gate and
 category update hook. Also absent: hero-party spawning and effect generators
 (Q254–Q259), every keeper spell but Create Imp, trap behaviour and door blocking,
 the creature trigger event filter, most trigger action types and 31 of 46 condition
-types (`dk2tools trigger-run` prints each stall; ADR-0125), defeat's consequences
-(Q358), the research tree (accrual only), Workshop, Casino, Torture, Guard Room and
+types (`dk2tools trigger-run` prints each stall; ADR-0125), the local player's
+collapse sequence (Q358) and alliance propagation (Q359), the research tree (accrual only), Workshop, Casino, Torture, Guard Room and
 Combat Pit, DK2's own computer keeper, mentor speech and notifications, the campaign
 progress registry, Temple spell intake `0x87`, wandering (Q41), vampire
 reincarnation (read, Q329), `Obstacle` furniture, the shuffle speed mode.
@@ -184,7 +184,7 @@ capture it in PowerShell with `Out-File -Encoding utf8`.
 Order as of 2026-09-23, from the plan's §8 Run column: M6 and M7 first, the keeper
 AI (M12) ahead of breadth.
 
-1. **The heart and defeat.** Q363 is read: the pillar proxies a flat blow to the Heart, and the generic thing sweep deletes the object when health is at most zero (`win-and-defeat.md` §3.1); left is what places the pillars and how many (2026-09-23). Q358: what a defeat does (`0x004DAA10`, `0x004DAE40`). Q359: alliance propagation.
+1. **The heart and defeat.** Q363 and Q358 are read and built (`win-and-defeat.md` §3.1, §7); left are what places the Arch Pillars, the local player's collapse sequence with its Destructors (research only), the leaving handler `0x00459DE0`, and Q359 alliance propagation (2026-09-23).
 2. **Heroes.** Hero parties and action type 14 spawning (Q254–Q259), the hero gate; heroes can now fight.
 3. **Combat's leftovers.** Q376 (the celebration animation's length, KMF frame counts), Q401 (does Haste sometimes miss?), Q395's unread shot handlers and the Guided Bolt, the thing-targeting spells (scan B), scans A/C/D, Q337's possession scalar, Q335 resistance.
 4. **M6 triggers.** `kwd unreached` ranks remaining action effects; types 17 and 24 rank first and are parked (Q309, Q227). Door and trap behaviour (Q249–Q253); effect generators (Q254–Q259). Q220/Q221 are the two open record layouts.
@@ -316,7 +316,7 @@ that gate work today, by how they are answered:
 
 | Q | Read |
 |---|---|
-| Q363, Q358, Q359 | the pillar's damage path; the defeat routines `0x004DAA10`/`0x004DAE40`; the alliance loops' conditions |
+| Q359, Q358 leftovers | the alliance loops' conditions; the leaving handler `0x00459DE0`, the Destructor (object 98), the obstacle object 100 |
 | Q395, Q393, Q397, Q400 | unread shot handlers and the Guided Bolt; `0x00495080(0x1F)` possession modifier; `0x004B32A0`; the approach loop's approximations |
 | Q201 | the dizzy-drop driver: candidate is the per-creature `stunDuration` at record `0x0ED0` |
 | Q199 | the pet-dungeon mana cap (+1400 against variable 235's 500) — find its reader |

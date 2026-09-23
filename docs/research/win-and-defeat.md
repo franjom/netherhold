@@ -10,8 +10,8 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: answers Q263 and Q363, closes the state half of Q40, Q93 and Q207,
-opens Q358 and Q359. Built as ADR-0162.
+Questions: answers Q263, Q358 and Q363, closes the state half of Q40, Q93 and Q207,
+opens Q359. Built as ADR-0162, amended 2026-09-23 for the defeat's consequences.
 
 ---
 
@@ -219,7 +219,7 @@ later, and the side that struck decides between *lost* and *conquered*.
 are not in `Text.str` (that table's 0–704 are placeholders), so `ObjectiveTextId`
 indexes another table: UNKNOWN which.
 
-## 7. Two things read, not built
+## 7. Alliances, read and not built; what a defeat does, read and built
 
 **Alliances end games together** (Q359). After the snapshot, `0x004BE630`
 walks every player from `game+0x7A`, reading the alliance byte
@@ -230,12 +230,63 @@ mutual ally, and at `0x004BF172` those allies with 2 as well; at `0x004BEFFB` a
 loop ends allies with 3. Which code each loop is reached under is unread, so the
 structure is CONFIRMED and the conditions are not.
 
-**What a defeat does** (Q358, the owner's Q40: *creatures leave through the
-nearest portal, rivals claim rooms and gold*). `0x004DAA10` (1069 bytes) and
-`0x004DAE40` (2159 bytes, `DungeonHeart.cpp`) are the two consequence routines.
-The first puts creatures into state **194 "leaving Dungeon"** by id
-(`0x0048AD30(0xC2)`, twice), clears actions (`0x00496D00`/`0x00496D20`), and
-ends with a call to the health routine `0x004B2CE0`. Neither is read further.
+**What a defeat does** (Q358; the owner's Q40: *creatures leave through the nearest
+portal, rivals claim rooms and gold*). Read 2026-09-23. The verdict tail (§6) calls one
+of two `DungeonHeart.cpp` routines **every turn a killer is stamped**: `0x004DAE40` for
+the local player in mode 1 (`[0x0075AD4B]`, single player), `0x004DAA10` for everyone
+else — every computer keeper, and every player in the other modes.
+
+**`0x004DAA10`, the general arm.** On the death turn (`now == GameTickDied`), and only
+while the heart tile still carries a heart room (`0x00453A20(tile, 5)`):
+
+1. `0x004F38C0(heart room)`: each gold pile (object 3) in the room becomes a *Gold*
+   object (1) of the **neutral** player at the same tile with the same amount, the
+   keeper's total debited (`0x004BA420`); the pile is deleted.
+2. every room in the keeper's list (`player+0x36`, next `+0x8`) **except the heart (5)
+   and room ids 18–23** (hero gates, hero stone bridge) is given to the neutral player
+   (`0x004E5650`: relinked into that player's list, `room+0x1D` retagged, counts moved) —
+   portals included, which is why the creatures below can still leave;
+3. every tile in the keeper's bounding box (`+0x3C..+0x48`) owned by the keeper
+   (`tile+8 & 0xFFF`) with no room (`tile+2 & 0xFFF == 0`) is rewritten to its terrain's
+   `DestroyedTypeTerrainId` (`def+0x1C6`) owned by neutral (`0x0044FC40(x, y, type,
+   NEUTRAL, 1, 1)`): claimed path to dirt, a reinforced wall to rock;
+4. sound `0xF4` at the heart; then for each room left in the list a *Dungeon Heart
+   Obstacle* (object 100) is created at the heart's centre, owned by neutral, and attached
+   to the room (`0x004E6220`, `obj+0x133 = 1`). Its role is UNKNOWN.
+
+From the fifth turn (`GameTickDied + 4 < now`), every turn, for each creature in the
+keeper's list (`player+0x6`, next `+0x10`): one flagged `CreatureDying` gets virtual
+slot `+0x20` (unread); one whose prison-owner word `+0x3CB` is set is skipped unless
+the jailer is the fallen keeper, when it gets slot `+0x20` too; then, if the thing's own
+finished predicate (slot `+0x28`, §3.1) is false: a **non-worker owned by the keeper**
+not yet `Leaving` (`+0x3E6` bit 14) has any action cleared (`0x00496D00`/`0x00496D20`)
+and is set to state 1 then **194 "leaving Dungeon"** (states 194–196, 6, 7, 87 and 193
+are left as they are); **everyone else — every Imp, and any creature in the list not
+owned by the keeper — is killed outright**, `0x004B2CE0(c, −health, KilledByPlayerId,
+0)`, the killer credited.
+
+**`0x004DAE40`, the local player's collapse** (research only). At death only the
+Portal (3), Wooden Bridge (8), Stone Bridge (17) and Hero Stone Bridge (22) go neutral;
+each other room has the thing on every slab removed (`0x00453760`, `0x004E62D0`, tile
+bit 14 cleared, `0x00452340`, deleted) and gets the same obstacle object. From
+15 s + 1 turn after death every non-heart room's slabs are rewritten to their destroyed
+terrain (`0x0044FC40(…, roomOwnerTag, 0, 1)`) and the room freed (`0x004ECD00`), and a
+*Destructor* (object 98) is created at the heart with effect `0x26`; afterwards, while
+no Destructor lives (`player+0xB4C`, decremented by its death arm) and `+0x76` bit 14
+is clear, one is created on a random owned tile holding no gold pile (3) and no alarm
+crate (5) — the bounding box exhausted, bit 14 is set. Its creatures follow the same
+arm from the death turn, not the fifth. What a Destructor does is UNKNOWN.
+
+**Built (hash-neutral, 2026-09-23): `DefeatRules`, run by `DungeonHeartSystem` every
+turn a killer is stamped.** The general arm: gold to neutral piles per heart tile
+(ours holds gold in tiles, not pile objects), rooms to `PlayerIds.Neutral` by retagging
+their tiles, roomless owned tiles to their destroyed terrain (an unownable result
+carries no owner, ADR-0045), workers killed, non-workers set `Leaving` and walked by
+`LeavingRules` to a portal of the keeper's or of nobody's — that the leaving state
+accepts a neutral portal is INFERRED from steps 2 and the fifth turn together, its
+handler `0x00459DE0` being unread. Not built: the obstacle objects, the prisoner and
+dying slots, the collapse arm. The heart room stays in the list as a ruin, so how
+condition type 25 counts it out is still UNKNOWN.
 
 ## 8. What this project builds (ADR-0162)
 

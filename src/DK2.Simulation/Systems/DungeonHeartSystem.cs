@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
@@ -14,13 +15,22 @@ namespace DK2.Simulation.Systems;
 /// player frame's tail <c>0x004BB2A0</c> reads <c>KilledByPlayerId</c> and ends the game
 /// — lost to heroes or neutrals, conquered by a keeper — then awards the win to the one
 /// keeper left playing. The verdict is one-shot: a <c>WIN_GAME</c> already performed stands.
-/// <para>Not built, and named so nothing here is mistaken for it: what a defeat <i>does</i>
-/// to creatures, rooms and gold (Q40, Q358) lives in <c>0x004DAA10</c>/<c>0x004DAE40</c>,
-/// unread; and alliances end games together in DK2 (Q359), where here allies are not
-/// consulted.</para></summary>
+/// <para>The tail then runs the fallen keeper's consequences every turn (<see cref="DefeatRules"/>,
+/// DK2's <c>0x004DAA10</c>). Not built: alliances ending games together (Q359), where here
+/// allies are not consulted.</para></summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/win-and-defeat.md")]
 public sealed class DungeonHeartSystem : ISimulationSystem
 {
+    private readonly IPathfinder _pathfinder;
+    private readonly List<TilePos> _route = [];
+
+    public DungeonHeartSystem() : this(new GridPathfinder()) { }
+
+    public DungeonHeartSystem(IPathfinder pathfinder)
+    {
+        _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
+    }
+
     public string Name => "dungeon heart";
 
     public void Execute(SimulationContext context)
@@ -42,7 +52,14 @@ public sealed class DungeonHeartSystem : ISimulationSystem
 
             // The frame's tail: a stamped killer is the whole condition, and the
             // verdict depends only on which side struck the blow.
-            if (player.KilledByPlayerId == 0 || PlayerStatus.HasEnded(player.Status)) continue;
+            if (player.KilledByPlayerId == 0) continue;
+            byte fallen = player.PlayerId;
+            if (DefeatRules.IsDeathTurn(context.Tick, player.HeartDiedTick)) DefeatRules.OnDeathTurn(context, fallen);
+            if (DefeatRules.CreaturesGo(context.Tick, player.HeartDiedTick))
+                DefeatRules.ScatterCreatures(context, _pathfinder, _route, fallen);
+
+            player = ref world.Player(fallen);
+            if (PlayerStatus.HasEnded(player.Status)) continue;
             byte verdict = PlayerIds.IsKeeper(player.KilledByPlayerId)
                 ? PlayerStatus.Conquered
                 : PlayerStatus.Lost;
