@@ -119,12 +119,9 @@ the blow landing `MeleeHitDelay` ticks into each; a fresh creature's stamp is
 0 from the constructor `0x004872A0`, so its first swing waits `MeleeRecharge`
 turns from the start of the level.
 
-**Spell arms**, read and not built: `0x0048C800(creature, def, slot)` must
-allow; action 16 starts with the slot and target; `+0x41B + slot·4` is stamped
-with the turn; the target is told with flag 0. A spell arm that cannot cast
-falls to `0x0045FEA0`: within a quarter of `AttackRangeSquared` and of sight²
-it **steps back** by a vector from its heading (`+0xF4`) scaled by
-`def+0x5BC` (`0x00460DA0`, `0x004B1F60`), else sets the run speed.
+**The spell arms** (nibbles 0, 2 and 3) are [`combat-spells.md`](combat-spells.md)
+§§6–10: the same two clocks with `RechargeTime` for Gate B and the slot's
+`ShotDelay` for Gate A, ending in a shot thing instead of a blow.
 
 ## 5. The target's answer (`0x0045AA20(target, attackerTag, melee)`)
 

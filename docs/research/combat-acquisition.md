@@ -135,9 +135,11 @@ starts at `0x7FFFFFFF` — **the score the arms are handed.**
 id is nonzero, and `0x0048C800(me, def, i)` allows (a Support creature also
 needs `0x00460C50`); the spell definition from the world's `vtable+0xE8`. Its
 flag byte `+0x27`: bit 2 → a friendly spell (range `+0x31`, bit 7 kept as its
-kind); bit 0 → an **attack spell**, the strongest by `0x004F7AB0` kept; bit 1
-with target class 4 (`vtable+0x1B0(def+0x44)[0x6A]`) → a thing-targeting spell.
-None of this is built (Q365).
+kind); bit 0 → an **attack spell**, the one whose next-ready time `stamp +
+recharge` is latest kept (`0x004F7AB0` is the recharge in ticks, not a strength
+— corrected 2026-09-23, `combat-spells.md` §5); bit 1 with target class 4
+(`vtable+0x1B0(def+0x44)[0x6A]`) → a thing-targeting spell. The bits are named
+from the roster in `combat-spells.md` §2. None of this is built (Q392).
 
 **The scans, in order.** Each keeps a running best and a tag; `d` is the
 squared distance of `combat-target-selection.md` §2.
