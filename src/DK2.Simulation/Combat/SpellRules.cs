@@ -49,13 +49,13 @@ public static class SpellRules
     public static bool IsStatus(CreatureSpellDef spell) => (spell.Flags & StatusFlag) != 0;
 
     /// <summary><c>0x0048C800</c>: castable when never cast, or when the last cast plus the recharge
-    /// is strictly before now. The divisor by the haste and slow words is 4096 here (Q393).</summary>
+    /// — over the creature's work rate, <see cref="CombatRules.Scaled"/> — is strictly before now.</summary>
     public static bool CanCast(GameDatabase database, CreatureState me, CreatureDef definition, int slot, long tick)
     {
         CreatureSpellDef? spell = SpellOf(database, definition, slot);
         if (spell is null) return false;
         long stamp = me.SpellStamps[slot];
-        return stamp == 0 || stamp + RechargeTicks(spell) < tick;
+        return stamp == 0 || stamp + CombatRules.Scaled(RechargeTicks(spell), me, definition) < tick;
     }
 
     /// <summary>The survey's attack choice (§5): over the castable attack slots the creature's level

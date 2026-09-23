@@ -91,10 +91,12 @@ test, UNKNOWN). Then the **AttackType switch** (`0x004602C0`): nibbles 0 and 2
 → the spell arm `0x0045FB65`; 3 → the ally-spell arm `0x00460011`, which casts
 and then clears the target; **1 and 4 → the melee arm `0x004600DD`**:
 
-1. **Gate B, `0x0048C9B0`**: `now ≥ TimeLastUsedMelee + MeleeRecharge`, the
-   stamp `+0x427` by DK2's own name and the interval in ticks
-   (combat-cadence.md §3), divided by the haste/slow word at `+0x3AF`/`+0x3B3`
-   (not modelled). Not yet → return 1, standing still.
+1. **Gate B, `0x0048C9B0`**: a **zero stamp swings at once**; otherwise
+   `TimeLastUsedMelee + (MeleeRecharge × 4096) / rate < now`, strict — the stamp
+   `+0x427` by DK2's own name, the interval in ticks (combat-cadence.md §3, with the
+   possession modifiers of `0x00494EF0`, Q393), and `rate` the work rate and its
+   enhancement at `+0x3AF`/`+0x3B3` (0.8 fresh, `EfficiencyRules`; corrected and built
+   2026-09-23, `creature-status-effects.md` §4). Not yet → return 1, standing still.
 2. **Start action 17** (`0x004969D0(creature, 0x11, 1, target, 0, 0)`; failing
    asserts *"failed to set melee instance"*). Then `AttackCreatureHits`
    (`+0x4D9`) is incremented, **`TimeLastUsedMelee = now`**, and for a creature
@@ -114,10 +116,12 @@ and then clears the target; **1 and 4 → the melee arm `0x004600DD`**:
    as the source**, which is what stamps a heart's killer — and the routine
    returns 0, ending the action.
 
-So the period of a melee attacker standing in reach is `MeleeRecharge` ticks,
-the blow landing `MeleeHitDelay` ticks into each; a fresh creature's stamp is
-0 from the constructor `0x004872A0`, so its first swing waits `MeleeRecharge`
-turns from the start of the level.
+So the period of a melee attacker standing in reach is `MeleeRecharge` ticks over
+its work rate — a quarter longer than the file's seconds for a fresh creature —
+the blow landing `MeleeHitDelay` ticks into each; a fresh creature's stamp is 0
+from the constructor `0x004872A0`, and **a zero stamp passes Gate B at once**, so
+its first swing waits nothing (an earlier reading here had it waiting a recharge;
+corrected 2026-09-23 against the disassembly).
 
 **The spell arms** (nibbles 0, 2 and 3) are [`combat-spells.md`](combat-spells.md)
 §§6–10: the same two clocks with `RechargeTime` for Gate B and the slot's

@@ -226,7 +226,15 @@ public static class CombatRules
     /// have passed since the last one began. Haste and slow, which divide the interval, are not
     /// modelled.</summary>
     public static bool SwingMayBegin(CreatureState creature, CreatureDef definition, long tick) =>
-        tick >= creature.TimeLastUsedMelee + TicksOf(definition.MeleeRecharge);
+        creature.TimeLastUsedMelee == 0
+        || creature.TimeLastUsedMelee + Scaled(TicksOf(definition.MeleeRecharge), creature, definition) < tick;
+
+    /// <summary>The cooldown divisor Gate B and the spell gate share (<c>0x0043D750</c> over
+    /// <c>+0x3AF</c>/<c>+0x3B3</c>): the interval in ticks × 4096 over the creature's work rate and
+    /// enhancement — 0.8 fresh, so a fresh creature waits a quarter longer than the file's seconds
+    /// (creature-status-effects.md §4, Q393).</summary>
+    public static int Scaled(int ticks, CreatureState creature, CreatureDef definition) =>
+        (int)(((long)ticks << 12) / EfficiencyRules.Modifier(creature, definition));
 
     /// <summary>Gate A (<c>0x00498E30</c>): the blow lands <see cref="CreatureDef.MeleeHitDelay"/>
     /// ticks after the swing began, the original's <c>now &gt; start + interval - 1</c>.</summary>

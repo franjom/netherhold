@@ -3772,6 +3772,11 @@ are named (Q367–Q369). Snapshot format and `HashVersion` advance to 69; the
 fixture's Goblin and Bile Demon take their shipped recharge; the two-keepers
 scenario spaces its rivals beyond sight so it stays about work.
 
+**Amended 2026-09-23.** Gate B corrected against the disassembly: a zero stamp swings
+at once, and the recharge — like the spell cooldown — divides by the work rate and its
+enhancement (`EfficiencyRules.Modifier`, 0.8 fresh), so a fresh creature waits a quarter
+longer than the file's seconds (`creature-status-effects.md` §4, `CombatRules.Scaled`).
+
 ## ADR-0165 — Fear: threat radiated every tick, the back-off, the withdrawal
 
 **Status.** Accepted 2026-09-22 · `HashVersion` 70 · Research:

@@ -34,12 +34,13 @@ public class CombatTests
             Bearing.Of(demon.PosX - goblin.PosX, demon.PosY - goblin.PosY), 0, 0);
         Assert.True(expected < 0);
 
+        // Gate B (0x0048C9B0): a zero stamp swings at once, and the next swing waits the recharge
+        // over the work rate — 14 ticks × 4096 / 0xCCC = 17 — strictly past the stamp.
+        Assert.Equal(17, CombatRules.Scaled(recharge, demon, demonDef));
         GameSimulation sim = Combat(db, world);
-        sim.Run(recharge);
-        Assert.False(demon.SwingInProgress);
-        sim.Run(1);
-        Assert.True(demon.SwingInProgress);
-        Assert.Equal(recharge, demon.TimeLastUsedMelee);
+        RunUntilSwing(sim, demon);
+        long first = demon.TimeLastUsedMelee; // the tick the swing began; the world's counter is one past it
+        Assert.InRange(first, 1, 3);
         Assert.Equal(1500, goblin.Health);
 
         sim.Run(delay - 1);
@@ -48,8 +49,20 @@ public class CombatTests
         Assert.False(demon.SwingInProgress);
         Assert.Equal(1500 + expected, goblin.Health);
 
-        sim.Run(recharge - delay);
+        // Ticks up to first + 17 pass without a swing (1 + 17 < 18 is false); tick first + 18 swings.
+        sim.Run((int)(first + 18 - sim.World.CurrentTick.Value));
+        Assert.False(demon.SwingInProgress);
+        sim.Run(1);
         Assert.True(demon.SwingInProgress);
+        Assert.Equal(first + 18, demon.TimeLastUsedMelee);
+    }
+
+    /// <summary>Runs one tick at a time until the creature's swing begins, at most twenty ticks.</summary>
+    private static long RunUntilSwing(GameSimulation sim, CreatureState creature)
+    {
+        for (int i = 0; i < 20 && !creature.SwingInProgress; i++) sim.Run(1);
+        Assert.True(creature.SwingInProgress, "no swing within twenty ticks");
+        return sim.World.CurrentTick.Value;
     }
 
     [Fact]
@@ -59,8 +72,7 @@ public class CombatTests
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
         GameSimulation sim = Combat(db, world);
-        sim.Run(15);
-        Assert.True(demon.SwingInProgress);
+        RunUntilSwing(sim, demon);
 
         // The target steps out of reach during the wind-up; DK2 checks liveness at the blow, not range.
         goblin.PosX += 3 * Fp32.One;
@@ -119,8 +131,7 @@ public class CombatTests
         Assert.Equal(goblin.Id, warlock.FightTargetId);
         Assert.Equal(knight.Id, demon.FightTargetId);
 
-        sim.Run(14);
-        Assert.True(demon.SwingInProgress);
+        RunUntilSwing(sim, demon);
         Assert.Equal(demon.Id, knight.FightTargetId);
         Assert.Contains(knight.Id, demon.EngagedMelee);
         Assert.DoesNotContain(knight.Id, goblin.EngagedMelee);
@@ -137,9 +148,7 @@ public class CombatTests
         demon.PosY = knight.PosY;
         GameSimulation sim = Combat(db, world);
 
-        sim.Run(15);
-
-        Assert.True(demon.SwingInProgress);
+        RunUntilSwing(sim, demon);
         Assert.Equal(goblin.Id, knight.FightTargetId);
     }
 
@@ -153,9 +162,7 @@ public class CombatTests
         CreatureState bystander = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.Neutral, demon);
         GameSimulation sim = Combat(db, world);
 
-        sim.Run(15);
-
-        Assert.True(demon.SwingInProgress);
+        RunUntilSwing(sim, demon);
         Assert.Equal(CreatureActivity.Idle, bystander.Activity);
         Assert.True(bystander.IsRouted);
         Assert.Equal(demon.Tile, bystander.Destination);
@@ -232,8 +239,7 @@ public class CombatTests
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
         GameSimulation original = Combat(db, world);
-        original.Run(16);
-        Assert.True(demon.SwingInProgress);
+        RunUntilSwing(original, demon);
 
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), db, [new CombatSystem()]);
 
