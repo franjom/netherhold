@@ -102,10 +102,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 73: the ten status words on every creature entered, and every blow and shot
-        // now passes the health routine's multipliers (ADR-0168). Earlier pins and their reasons
-        // live in docs/research/hash-versions.md.
-        Assert.Equal(0x187461CFD5C6ADF0UL, sim.StateHash());
+        // HashVersion 74: state 8's flag and refresh countdown, the chase counter, the retreating
+        // target, the celebration clock and the body target entered (ADR-0169). Earlier pins and
+        // their reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0x434B838F6410D5F7UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

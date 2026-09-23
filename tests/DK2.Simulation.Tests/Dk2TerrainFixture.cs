@@ -1028,6 +1028,9 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.BackOffMinimumDurationSeconds, 0);
         Set(vars, VariableTypeId.BackOffMaximumDurationSeconds, 30);
         Set(vars, VariableTypeId.GuardRoomReportingDistanceTiles, 7);
+        // The chase limit on a retreating target (combat-approach-and-victory.md §2): 3 s Good, 7 s Evil.
+        Set(vars, VariableTypeId.GoodCreaturesChaseEnemyDurationSeconds, 3);
+        Set(vars, VariableTypeId.EvilCreaturesChaseEnemyDurationSeconds, 7);
 
         // Creature needs. All four are the shipped values, and
         // CreatureNeedsOnRealDataTests reads them back out of the install so

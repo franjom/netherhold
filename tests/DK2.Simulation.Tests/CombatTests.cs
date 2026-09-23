@@ -82,18 +82,22 @@ public class CombatTests
     }
 
     [Fact]
-    public void ThreeBlowsKillAGoblin_AndTheKillerLetsGo()
+    public void ThreeBlowsKillAGoblin_AndTheKillerCelebratesThenLetsGo()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
 
-        sim.Run(14 + (2 * 14) + 5 + 2);
-
+        for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++) sim.Run(1);
         Assert.True(CreatureDeathRules.IsDown(goblin), $"health {goblin.Health}");
-        Assert.Equal(CreatureActivity.Idle, demon.Activity);
+
+        // The death unlink, then the victory arm (combat-approach-and-victory.md §5): a pause, then idle.
+        sim.Run(2);
+        Assert.Equal(CreatureActivity.Celebrating, demon.Activity);
         Assert.Equal(CombatRules.NoTarget, demon.FightTargetId);
+        sim.Run(VictoryRules.PauseTicks);
+        Assert.Equal(CreatureActivity.Idle, demon.Activity);
     }
 
     [Fact]

@@ -53,15 +53,21 @@ public static class CombatRules
         public const byte SpellAtThing = 2;
         public const byte SpellAtAlly = 3;
         public const byte MeleeAtThing = 4;
+
+        /// <summary>The death unlink's mark: my target has died, and <c>spFighting</c> takes the victory
+        /// arm on its next tick (combat-approach-and-victory.md §5).</summary>
+        public const byte Victorious = 0xF;
     }
 
     public static bool IsFighting(CreatureState creature) => creature.Activity == CreatureActivity.Fighting;
 
     /// <summary>DK2's state group 22 with the walks it sends creatures on: fighting, fleeing,
-    /// withdrawing, raising the alarm or reporting danger — the states the job systems leave alone.</summary>
+    /// withdrawing, raising the alarm, reporting danger, celebrating a kill or walking to a body
+    /// to celebrate over — the states the job systems leave alone.</summary>
     public static bool InCombat(CreatureState creature) =>
         creature.Activity is CreatureActivity.Fighting or CreatureActivity.Fleeing or CreatureActivity.Withdrawing
-            or CreatureActivity.RaisingAlarm or CreatureActivity.Reporting;
+            or CreatureActivity.RaisingAlarm or CreatureActivity.Reporting
+            or CreatureActivity.Celebrating or CreatureActivity.GoingToBody;
 
     /// <summary>What the job systems leave alone: the combat group, and a creature standing frozen or
     /// stunned (creature-status-effects.md §2).</summary>
@@ -264,6 +270,7 @@ public static class CombatRules
         creature.FightTargetTileIndex = -1;
         creature.AttackType = 0;
         creature.AttackRangeSquared = 0;
+        creature.Approaching = false;
         if (!InCombat(creature)) return;
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;

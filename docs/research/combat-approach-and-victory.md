@@ -10,7 +10,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: answers Q368 and Q369; opens Q376. `combat-fight-state.md` owns the
+Questions: answers Q368 and Q369; opens Q376 and, with the build, Q400. `combat-fight-state.md` owns the
 fight state around these two branches, `combat-fear.md` the fear routines, and
 `combat-acquisition.md` attackability and the per-tick fight scan.
 
@@ -163,14 +163,27 @@ controls when the pause ends.
 
 ## 8. Built and not built
 
-Nothing is built by this research task.
+**Built (ADR-0169, `HashVersion` 74).** `ApproachRules` is state 8 as a flag on the fighting
+creature (`Approaching`): entry with a plain route and the countdown at ten (§1); each tick
+a target gone ends it, an ordinary creature target is chosen afresh and a changed choice
+ends it, the fear counter runs without the withdrawal test, a target fleeing or
+withdrawing counts the chase against variable 213 or 214 and is given up as
+`RetreatingCreature`, strict reach with line of sight ends it, and every tenth call the
+route is refreshed to the target's position — a Flanker two tiles or a quarter tile
+behind a moving target (§2—§3). `spFighting` (`CombatSystem.Fight`) enters it out of reach
+and runs the tick it hands back. `VictoryRules`: the death leaves the `0xF` nibble
+(`TargetDied`); the victory arm celebrates in `Celebrating` (state 260) or, for
+`NeedBodyForFightIdle`, walks to the nearest corpse strictly within `0x2000` squared
+(`GoingToBody`, state 259) and celebrates there; the celebrant is attackable, does not scan
+and does not turn on a blow (§5—§7).
 
-A builder needs state 8's per-tick re-selection, fear counter without the
-withdrawal arm, retreating-target chase limit, strict reach/line-of-sight exit,
-ten-call route refresh and Flanker offset; state 259's body validation and
-arrival gate; and state 260 plus an animation-completion signal for action 55.
-Until presentation can provide that signal, a simulation substitute would be a
-documented deviation, not a duration inferred from the unused action stamp.
+**Deviations, named (Q400):** the pause lasts a fixed **8 ticks** (`VictoryRules.PauseTicks`)
+where DK2 plays animation slot 35 once (Q376); behind the target is read from its
+velocity, not its facing, and a standing target gives its own position; freeze, stun and a
+changed choice let the engagement go where DK2 leaves the attack word; the body's arrival
+is half a tile squared where `0x004B2AE0` is unread; a corpse is looked for under any
+owner; a failed route to a body celebrates at once; `AttackAbnormalTargets` is not
+modelled.
 
 ## Confidence
 

@@ -70,6 +70,8 @@ public sealed class CombatSystem : ISimulationSystem
                     case CreatureActivity.Fleeing: FearRules.Flee(context, _sight!, _hearts, _rooms, creature, definition, _scratch); break;
                     case CreatureActivity.Withdrawing: FearRules.Withdrawing(context, creature); break;
                     case CreatureActivity.RaisingAlarm: FearRules.RaisingAlarm(context, _rooms, creature, definition); break;
+                    case CreatureActivity.Celebrating: VictoryRules.Celebrating(context, creature); break;
+                    case CreatureActivity.GoingToBody: VictoryRules.GoingToBody(context, creature); break;
                     case CreatureActivity.Reporting:
                         // States 6 → 254 and 254 are outside the combat group: they look for a fight on the way.
                         FearRules.Reporting(context, creature);
@@ -99,10 +101,12 @@ public sealed class CombatSystem : ISimulationSystem
         CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch);
     }
 
-    /// <summary><c>spFighting</c>'s melee path in the order it runs: a target gone or unattackable is
-    /// let go and another sought, and the tick ends; the fear checks, when an escape tile exists;
-    /// a swing in progress stops everything else; in reach, a swing begins when the recharge
-    /// allows; out of reach, a creature target is sought again and the winner approached.</summary>
+    /// <summary><c>spFighting</c> in the order it runs (combat-fight-state.md §2), with state 8 as
+    /// <see cref="ApproachRules"/> while <see cref="CreatureState.Approaching"/> is set: a dead target
+    /// leaves the victory nibble; no target seeks one or takes the victory arm; an invalid target is
+    /// let go and another sought; the fear checks, when an escape tile exists; a swing in progress
+    /// stops everything else; in reach, a swing or a cast begins when the recharge allows; out of
+    /// reach, a creature target is sought again and the approach entered.</summary>
     private void Fight(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
@@ -111,6 +115,36 @@ public sealed class CombatSystem : ISimulationSystem
         if (!CombatRules.MayLookForAFight(world, creature, force: false))
         {
             LetGo(context, creature, "cannot_continue");
+            return;
+        }
+
+        if (creature.Approaching)
+        {
+            ApproachRules.Tick(context, _sight!, _hearts, _rooms, creature, definition, _scratch);
+            return;
+        }
+
+        // Step 1: a target that has died is dropped with the 0xF nibble (§6); the victory arm runs next tick.
+        if (creature.FightTargetKind == FightTargetKind.Creature)
+        {
+            CreatureState? dying = world.CreatureById(creature.FightTargetId);
+            if (dying != null && CreatureDeathRules.IsDown(dying))
+            {
+                VictoryRules.TargetDied(context, creature);
+                return;
+            }
+        }
+
+        // Step 3: no target — a victim is sought, or the victory arm taken.
+        if (creature.FightTargetKind == FightTargetKind.None)
+        {
+            if (creature.AttackType == CombatRules.AttackTypes.Victorious)
+            {
+                VictoryRules.Victory(context, creature, definition);
+                return;
+            }
+            if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+                LetGo(context, creature, "nobody");
             return;
         }
 
@@ -145,7 +179,7 @@ public sealed class CombatSystem : ISimulationSystem
             return;
         }
 
-        // Out of reach: a creature target is chosen afresh every tick, and no choice ends the fight.
+        // Out of reach: a creature target is chosen afresh, and no choice ends the fight.
         if (creature.FightTargetKind == FightTargetKind.Creature)
         {
             int previous = creature.FightTargetId;
@@ -160,7 +194,8 @@ public sealed class CombatSystem : ISimulationSystem
             if (!FightRules.TargetPosition(world, creature, out x, out y, out targetTile)) return;
         }
 
-        FightRules.Approach(context.Navigation, creature, x, y, targetTile);
+        // State 8 (combat-approach-and-victory.md §1): the walk, with its own handler from next tick.
+        ApproachRules.Enter(context, creature, x, y);
     }
 
     /// <summary>A spell that cannot be cast (combat-spells.md §9, §10): the target is let go and

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 73;
+    private const int FormatVersion = 74;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -274,6 +274,12 @@ public static class WorldSnapshot
             w.Write(c.PoisonAmount);
             w.Write(c.PoisonOwner);
             w.Write(c.StunTicks);
+            w.Write(c.Approaching);
+            w.Write(c.RouteRefreshCountdown);
+            w.Write(c.ChaseTicks);
+            w.Write(c.RetreatingCreature);
+            w.Write(c.CelebrationTicks);
+            w.Write(c.BodyTargetId);
             for (int i = 0; i < c.SpellStamps.Length; i++) w.Write(c.SpellStamps[i]);
             for (int i = 0; i < c.EngagedMelee.Length; i++) w.Write(c.EngagedMelee[i]);
             for (int i = 0; i < c.EngagedRanged.Length; i++) w.Write(c.EngagedRanged[i]);
@@ -648,6 +654,12 @@ public static class WorldSnapshot
                 PoisonAmount = r.ReadInt32(),
                 PoisonOwner = r.ReadByte(),
                 StunTicks = r.ReadInt32(),
+                Approaching = r.ReadBoolean(),
+                RouteRefreshCountdown = r.ReadInt32(),
+                ChaseTicks = r.ReadInt32(),
+                RetreatingCreature = r.ReadInt32(),
+                CelebrationTicks = r.ReadInt32(),
+                BodyTargetId = r.ReadInt32(),
             };
             for (int k = 0; k < creature.SpellStamps.Length; k++) creature.SpellStamps[k] = r.ReadInt64();
             for (int k = 0; k < creature.EngagedMelee.Length; k++) creature.EngagedMelee[k] = r.ReadInt32();

@@ -229,6 +229,8 @@ public static class FightRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         if (target.Activity == CreatureActivity.Fleeing) return;
+        // A celebrating creature is not switched out of state 260 by a blow (combat-approach-and-victory.md §7).
+        if (target.Activity is CreatureActivity.Celebrating or CreatureActivity.GoingToBody) return;
         if (!CombatRules.MayLookForAFight(world, target, force: false)) return;
 
         if (CombatRules.IsFighting(target))

@@ -179,6 +179,14 @@ public enum CreatureActivity
     /// <summary>Stunned by Lightning or the Reaper Fireball — DK2's state 255, standing for
     /// <c>StunDuration</c> (<see cref="CreatureState.StunTicks"/>) at double damage, then idle.</summary>
     Stunned = 27,
+
+    /// <summary>The victory pause — DK2's state 260 with action 55, one animation instance after a
+    /// kill; ours lasts <see cref="Combat.VictoryRules.PauseTicks"/> (combat-approach-and-victory.md §7, Q376).</summary>
+    Celebrating = 28,
+
+    /// <summary>Walking to a nearby corpse to celebrate over it — DK2's state 6 resuming in 259, taken
+    /// by <c>NeedBodyForFightIdle</c> creatures (combat-approach-and-victory.md §5—§6).</summary>
+    GoingToBody = 29,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -640,6 +648,20 @@ public sealed class CreatureState
     public byte PoisonOwner;
     public int StunTicks;
 
+    /// <summary>State 8, the walk to a fight, as a flag on the fighting creature; while set
+    /// <see cref="Combat.ApproachRules"/> runs instead of <c>spFighting</c>. <see cref="RouteRefreshCountdown"/>
+    /// is the state's <c>+0xF5</c>, <see cref="ChaseTicks"/> the creature's <c>+0x53D</c>, and
+    /// <see cref="RetreatingCreature"/> DK2's own name for the target given up (combat-approach-and-victory.md).</summary>
+    public bool Approaching;
+    public int RouteRefreshCountdown;
+    public int ChaseTicks;
+    public int RetreatingCreature;
+
+    /// <summary>The victory pause left to stand, and the corpse a <c>NeedBodyForFightIdle</c> creature walks
+    /// to (DK2's <c>state+0xA7</c>).</summary>
+    public int CelebrationTicks;
+    public int BodyTargetId;
+
     /// <summary>The eight melee attackers engaged with this creature, by id, 0 for a free slot —
     /// DK2's <c>+0x504</c> array. An attacker takes the first free slot when it engages and is
     /// struck out when it disengages; a ninth melee attacker cannot engage at all.</summary>
@@ -775,6 +797,12 @@ public sealed class CreatureState
         hash.Add(PoisonAmount);
         hash.Add(PoisonOwner);
         hash.Add(StunTicks);
+        hash.Add(Approaching);
+        hash.Add(RouteRefreshCountdown);
+        hash.Add(ChaseTicks);
+        hash.Add(RetreatingCreature);
+        hash.Add(CelebrationTicks);
+        hash.Add(BodyTargetId);
         for (int i = 0; i < EngagedMelee.Length; i++) hash.Add(EngagedMelee[i]);
         for (int i = 0; i < EngagedRanged.Length; i++) hash.Add(EngagedRanged[i]);
     }

@@ -3896,3 +3896,36 @@ five-quarters damage; a Warlock's Armour halves damage for twenty seconds; a
 Thief vanishes from every attacker for fifteen; Lightning stuns and doubles the
 damage that follows; the Reaper Fireball doubles its own. `CreatureFlags2` bit 0
 is Lightning immunity (Q210). `HashVersion` 73.
+
+## ADR-0169 — State 8 is a flag on the fighter, and a kill ends in a fixed pause
+
+**Status.** Accepted 2026-09-23 · `HashVersion` 74 · Research:
+`docs/research/combat-approach-and-victory.md`.
+
+**Context.** Our fighter re-routed to its target every tick and let a dead
+target go at once. DK2's walk to a fight is its own state, 8: it chooses an
+ordinary creature target afresh every tick and ends when the choice changes,
+runs the fear counter without the low-health withdrawal, gives up a fleeing or
+withdrawing target after `GoodCreaturesChaseEnemyDurationSeconds` (3) or
+`EvilCreaturesChaseEnemyDurationSeconds` (7), ends strictly in reach with line
+of sight, and refreshes its route every tenth call even when the target has not
+moved — a Flanker aiming behind the target. A kill leaves every attacker the
+`0xF` nibble; `spFighting` then celebrates in state 260 for one animation
+instance, or for `NeedBodyForFightIdle` walks to a corpse within `0x2000`
+squared and celebrates there; the celebrant is attackable and does not turn.
+
+**Decision.** `ApproachRules` runs while `CreatureState.Approaching` is set,
+entered by `CombatSystem.Fight` out of reach; `VictoryRules` holds the death
+unlink, the victory arm, `Celebrating` and `GoingToBody`; both are states the job
+systems leave alone and the retaliation path returns from. The pause is a fixed
+8 ticks, a stated stand-in until slot 35's length is known (Q376); the other
+approximations — velocity for facing, the engagement let go, the body's arrival
+reach, a corpse under any owner — are Q400. Six words enter the state, hash and
+snapshot.
+
+**Consequences.** A fighter now walks to a stale point for up to ten ticks when
+its target moves, and a hero gives up a fleeing creature in three seconds where
+an evil one chases for seven. A killer stands two seconds after a kill, open to
+a blow it will not answer. The old per-tick re-route had crawled: targets now
+arrive, so a struck Warlock turns to its fists as DK2's retaliation says, and
+two spell tests freeze their targets to keep the caster casting. `HashVersion` 74.
