@@ -23,6 +23,22 @@ public static class EatingRules
     /// <summary>No chicken chosen — <see cref="CreatureState.TargetObjectId"/>'s idle value.</summary>
     public const int NoChicken = -1;
 
+    /// <summary>DK2 state 91 (<c>0x5B</c>): find a hatchery and walk there in state 7,
+    /// resuming in <see cref="InHatcheryState"/> (<c>eating.md</c> §2, <c>travel-states.md</c>
+    /// §8). Group 7, category Eating, like the rest of the chain.</summary>
+    public const int FindHatcheryState = 91;
+
+    /// <summary>DK2 state 92 (<c>0x5C</c>): standing in the hatchery, choosing the nearest
+    /// chicken and walking to it in state 6, resuming in <see cref="EatState"/>.</summary>
+    public const int InHatcheryState = 92;
+
+    /// <summary>DK2 state 93 (<c>0x5D</c>): eating the chosen chicken.</summary>
+    public const int EatState = 93;
+
+    /// <summary>DK2 state 94 (<c>0x5E</c>): after the meal — back to
+    /// <see cref="InHatcheryState"/> while a helping is owed, else idle.</summary>
+    public const int AfterMealState = 94;
+
     /// <summary>How near a creature must be to eat: one tile, squared.
     /// <para>The original's test is <c>dx² + dy² &lt; 0x1001</c> on fixed-point
     /// positions with 4096 to the tile, so a bird exactly one tile away is in

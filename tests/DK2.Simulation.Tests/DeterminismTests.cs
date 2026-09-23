@@ -102,11 +102,11 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 80: the resume pair stops carrying a sentinel (ADR-0175). DK2's
-        // state-object constructor writes 0 to both slots and every arrival writes 1 to
-        // the resume one, so -1 was ours and it made the transition rule throw. Earlier
-        // pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xF53826B464578C5BUL, sim.StateHash());
+        // HashVersion 81: eating is the first errand on DK2's own state ids (ADR-0176).
+        // A hungry creature now writes 91, 7, 92, 6, 93 and 94 beside its activity. The
+        // pinned world never grows hungry, so the literal moved on the version alone.
+        // Earlier pins and their reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0xE54D6E7BACCB5868UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

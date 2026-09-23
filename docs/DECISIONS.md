@@ -4063,3 +4063,21 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **The handover can never be refused by the rule alone**, and a test now says so over all 281 resume states. Leaving a travel state is judged by the resume state, and the target *is* the resume state, so the comparison is a state against itself. Every refusal the original checks for comes from the enter hook of the resume's category — which nothing here has yet, and which is why the branch looked live.
 - `HashVersion` and `FormatVersion` **80**, pin `0xF53826B464578C5B`. A composition bump: both fields hold their default for the whole pinned run.
 - **This is what the re-derivation practice is for.** ADR-0174 was reviewed, tested and committed, and was still wrong in three places — the sentinel, the stale save, and the travel-to-travel case. All three were found by reading the original rather than by a failing test, because no test this project could have written would have caught them.
+
+## ADR-0176 — Eating is the first errand on DK2's own state ids
+**Date:** 2026-09-23 · **Status:** accepted · advances ADR-0135 (step two, first slice) · Research: `docs/research/travel-states.md` §8, `eating.md` §2
+
+**Context.** With the gate built (ADR-0174), corrected to the read protocol (ADR-0175) and Q414 answered, the thirteen travelling activities can retire onto the utility pair. Each needs the DK2 state its original caller passes as the resume, and for most of the thirteen that mapping is not written down: `travel-states.md` §9 notes that the 138 route-helper call sites "are reproduced by the caller scan and not copied here". Eating is the exception — Codex traced it end to end, 91 → 7 → 92 → 6 → 93 → 94 — so it goes first, as the pattern the rest will copy.
+
+**Decision.**
+1. **The state id rides beside the activity.** `CreatureEatSystem` writes the chain through `CreatureStateMachine` at the points our activity changes: into 91 from idle; `BeginTravel(7, 92)` for the hatchery; `BeginTravel(6, 93)` for the bird; `Arrive` at each; 94 after the meal; 92 again or 1. Behaviour is still driven by `Activity`, so nothing a player sees changes.
+2. **The room helper's shortcut is reproduced.** A creature already standing in a hatchery takes DK2's already-inside path — `SetState(1)`, then 92, no walk — rather than a walk of length zero.
+3. **The migration rule: a creature holds a state id only while it is in a retired activity.** `CreatureStateMachine.Release` hands the id back. The eat system releases on leaving the chain, and at the top of every pass it releases any creature whose activity is no longer an eating one — the hand, a fight and a death still set `Activity` directly, and would otherwise leave a creature holding a state it is not in. `Release` is a shim, not DK2, and goes when the last activity retires.
+4. **A refusal is reported, not forced.** The whole chain is legal under DK2's rule — checked against the gate before building — so a refused move would mean the mapping is wrong. It emits `state_refused` and the creature keeps its state, as the original would.
+
+**Consequences.**
+- **This is the first time DK2's transition rule has met a real errand**, and it said yes to every step. That is corroboration between two independent reads: the rule from the table and the chain from the handlers.
+- **Pinned by the trace, not by the hash.** The pinned world never grows hungry, so the literal moved on the version alone. `TheWalksAreDk2sStateSevenToTheRoomAndStateSixToTheBird` asserts the sequence using the saved caller as evidence, because states inside one tick are transient; it was verified to fail with the two travel states swapped.
+- **One pre-existing difference is left alone:** a bird already in reach is eaten this tick, where DK2's position helper has no already-there shortcut and would arrive a tick later. The state sequence is faithful; the timing was ours before this change.
+- **The rest of step two, in order of evidence:** `GoingToJob` next (every job handler calls the room helper with its job's state, `job-selection.md` §3); then the lair and sleep group (80, 81, 82, 83, all read); then `SeekingWages` (one helper call unread); then the seven imp activities, whose resume states need a read of the imp states' helper calls.
+- `HashVersion` and `FormatVersion` **81**, pin `0xE54D6E7BACCB5868`.

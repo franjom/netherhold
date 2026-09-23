@@ -22,8 +22,8 @@ public class CreatureStateMachineTests
     private const int Sleeping = 83;             // group 7, Sleeping
     private const int LookingForLair = 79;       // group 7, Lair
     private const int EnRouteToRoom = 7;         // group 9, Movement - the room helper's
-    private const int HatcheryWalkCaller = 91;   // group 8, the eating trace's first state
-    private const int Eating = 92;               // group 8, its resume
+    private const int HatcheryWalkCaller = 91;   // group 7, Eating - the trace's first state
+    private const int Eating = 92;               // group 7, Eating - its resume
 
     private static CreatureState Fresh() => new() { Id = 1 };
 

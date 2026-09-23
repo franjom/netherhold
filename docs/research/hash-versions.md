@@ -32,6 +32,12 @@ beside it.
 
 ## Versions
 
+**81** — `0xE54D6E7BACCB5868`. Eating is the first errand on DK2's own state ids
+(ADR-0176): a hungry creature writes 91, 7, 92, 6, 93 and 94 beside its activity.
+**The pinned world never grows hungry**, so the literal moved on the version alone;
+the chain is pinned by `TheWalksAreDk2sStateSevenToTheRoomAndStateSixToTheBird`,
+verified to fail with the two travel states swapped.
+
 **80** — `0xF53826B464578C5B`. The resume pair stops carrying a sentinel
 (ADR-0175). `StateBeforeUtilityState` and `UtilityNewState` default to **0**, as
 DK2's state-object constructor writes, not to -1; the resume slot is never unset

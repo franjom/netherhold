@@ -114,6 +114,20 @@ public static class CreatureStateMachine
         return took;
     }
 
+    /// <summary>Takes a creature's state id away again. <b>A migration shim, not DK2</b>, and
+    /// it goes when the last activity retires (ADR-0176).</summary>
+    /// <remarks>While only some activities are on state ids, a creature that leaves them —
+    /// or is pulled out by a system that still sets <see cref="CreatureState.Activity"/>
+    /// directly — would otherwise keep a state it is no longer in, and the next gated move
+    /// would be judged from the wrong place. So the rule while migrating is: a creature
+    /// holds a state id <b>only while it is in a retired activity</b>. Releasing keeps the
+    /// saved caller and the resume slot, which DK2 itself never clears.</remarks>
+    public static void Release(CreatureState creature)
+    {
+        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        creature.Dk2StateId = NoState;
+    }
+
     /// <summary>State 1, <c>idle</c> — and the value DK2 leaves in the resume slot between
     /// walks. Its constructor writes 0 and every arrival writes 1, so the slot is never
     /// unset while a creature is travelling (<c>travel-states.md</c> §2.4, §9).</summary>

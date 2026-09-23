@@ -334,6 +334,10 @@ prison path. `CreatureState.HungerNeed` is the accumulator (§3's "it adds") and
 §7. Scenarios `scenarios/creatures/a_goblin_gets_hungry.yaml`,
 `a_goblin_eats_a_chicken.yaml` and `a_keeper_drops_a_chicken_in_a_prison.yaml`.
 
+**On DK2's state ids since ADR-0176**, the first errand to be: beside its activity a
+hungry creature writes `travel-states.md` §8's chain - 91, state 7 into 92, state 6 into
+93, then 94 - and hands the id back on leaving (`EatingRules.FindHatcheryState` et al.).
+
 **Ours, and said so in the code:** composing the walk and the in-room search
 into one step where DK2 has `0x5A` and `0x5B`; driving the retry from the eat
 system rather than from a needs routine shared with sleep; leaving a sleeper
