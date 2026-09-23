@@ -57,10 +57,11 @@ public static class CombatRules
 
     public static bool IsFighting(CreatureState creature) => creature.Activity == CreatureActivity.Fighting;
 
-    /// <summary>DK2's state group 22 with the withdraw walk: fighting, fleeing or withdrawing — the
-    /// states the job systems leave alone.</summary>
+    /// <summary>DK2's state group 22 with the walks it sends creatures on: fighting, fleeing,
+    /// withdrawing, raising the alarm or reporting danger — the states the job systems leave alone.</summary>
     public static bool InCombat(CreatureState creature) =>
-        creature.Activity is CreatureActivity.Fighting or CreatureActivity.Fleeing or CreatureActivity.Withdrawing;
+        creature.Activity is CreatureActivity.Fighting or CreatureActivity.Fleeing or CreatureActivity.Withdrawing
+            or CreatureActivity.RaisingAlarm or CreatureActivity.Reporting;
 
     /// <summary>The engagement's registration on its target: the first free slot of the melee or
     /// the ranged array. False when all eight are taken, and then the attacker does not engage.</summary>
@@ -152,7 +153,7 @@ public static class CombatRules
         !PrisonRules.IsImprisoned(creature)
         && creature.Activity != CreatureActivity.Sleeping
         && (creature.Activity != CreatureActivity.Leaving || force)
-        && (creature.Activity != CreatureActivity.Withdrawing || force)
+        && (creature.Activity is not (CreatureActivity.Withdrawing or CreatureActivity.RaisingAlarm) || force)
         && (!HandRules.IsHeld(creature) || force)
         && !CreatureDeathRules.IsPossessed(world, creature)
         && !CreatureDeathRules.IsDown(creature);

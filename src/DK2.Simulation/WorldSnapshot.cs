@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 70;
+    private const int FormatVersion = 71;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -254,6 +254,11 @@ public static class WorldSnapshot
             w.Write(c.BackOffTimer);
             w.Write(c.Running);
             w.Write(c.CombatStateEnteredTick);
+            w.Write(c.AlarmX);
+            w.Write(c.AlarmY);
+            w.Write(c.AlarmDeficit);
+            w.Write(c.AlarmRoomTile);
+            w.Write(c.ReportTicks);
             for (int i = 0; i < c.EngagedMelee.Length; i++) w.Write(c.EngagedMelee[i]);
             for (int i = 0; i < c.EngagedRanged.Length; i++) w.Write(c.EngagedRanged[i]);
 
@@ -583,6 +588,11 @@ public static class WorldSnapshot
                 BackOffTimer = r.ReadByte(),
                 Running = r.ReadBoolean(),
                 CombatStateEnteredTick = r.ReadInt64(),
+                AlarmX = r.ReadInt32(),
+                AlarmY = r.ReadInt32(),
+                AlarmDeficit = r.ReadInt32(),
+                AlarmRoomTile = r.ReadInt32(),
+                ReportTicks = r.ReadInt32(),
             };
             for (int k = 0; k < creature.EngagedMelee.Length; k++) creature.EngagedMelee[k] = r.ReadInt32();
             for (int k = 0; k < creature.EngagedRanged.Length; k++) creature.EngagedRanged[k] = r.ReadInt32();

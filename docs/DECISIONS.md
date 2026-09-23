@@ -3800,3 +3800,29 @@ alarm (Q374) and three per-type owner modifiers (Q375) are not built.
 heart holds and one far from it breaks. `HashVersion` 70; the fixture's Knight and
 Warlock are fearless so the retaliation tests keep their premise; the fixture
 carries the BackOff and guard-room variables.
+
+## ADR-0166 — The worker's arm: fight at the heart, withdraw from a hero, or raise the alarm
+
+**Status.** Accepted 2026-09-23 · `HashVersion` 71 · Research:
+`docs/research/combat-alarm.md`.
+
+**Context.** Imps and the other `NonFighter` never reacted to an enemy. The arm
+was read to its exits: within 3.6 tiles of its own heart a worker judges every
+hostile creature by plain distance — an Imp within a tile — and fights; elsewhere
+it looks only at heroes in sight that have no target or target it, and never
+fights them: away from its rooms it withdraws; near them it counts heads within
+five tiles and, outnumbered, a `Scout` runs to its nearest room and raises the
+alarm — that room's creatures run to the hero until their `Threat` covers the
+deficit and stand thirty ticks there acquiring by the ordinary scan. An earlier
+reading had taken the alarm's call for a commit to a fight.
+
+**Decision.** `CombatTargetRules.NonFighter` builds the arm and `FearRules` the
+alarm: `RaisingAlarm` is state 6 toward 251, `Reporting` state 6 toward 254 and 254
+itself; a room job whose tile lies in the alarm's room stands for `RoomId`; the
+responders run at their own speed where DK2 gives them the raiser's; state 252
+ends at once. The escape byte `0x00494360` reads (Q390), the room's spot,
+`state+0x3C` and action 79 (Q391) are not modelled.
+
+**Consequences.** Imps scatter from heroes, defend the heart, and call a room to
+arms when outnumbered — the last visible piece of creature-side combat before the
+spell arms. `HashVersion` 71.

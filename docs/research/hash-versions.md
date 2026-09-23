@@ -32,7 +32,11 @@ beside it.
 
 ## Versions
 
-**70** — `0x05719C220035BA50` (current). `TempFear`, `CurrentFear`,
+**71** — `0xF7F8F30AF29050DF` (current). The alarm a Scout carries — the threat's
+position, the deficit, the room — and the ticks stood reporting danger entered
+(ADR-0166). Composition only in the pinned fixture.
+
+**70** — `0x05719C220035BA50`. `TempFear`, `CurrentFear`,
 `OverThreatCounter`, `BackOffTimer`, the run flag and the combat state's entry
 tick entered (ADR-0165). Composition only in the pinned fixture.
 

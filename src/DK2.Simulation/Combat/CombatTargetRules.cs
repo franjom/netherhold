@@ -108,16 +108,25 @@ public static class CombatTargetRules
     /// <summary>One tile squared in the scans' units: closer than this, a creature fights hand to hand.</summary>
     public const int MeleeDecisionDistance = 0x1000;
 
-    /// <summary>Whether this simulation runs an arm for the style yet.</summary>
-    public static bool IsBuilt(FightStyle style) => style != FightStyle.NonFighter;
+    /// <summary>Every arm runs: the four fighting arms since ADR-0163/0164, the NonFighter since ADR-0166.</summary>
+    public static bool IsBuilt(FightStyle style) => true;
 
-    /// <summary>Finds and engages a target for <paramref name="me"/>. True when it now fights.</summary>
+    /// <summary>A worker within this of its own heart, squared, fights anything (NonFighter §3.1).</summary>
+    public const int HeartDefenceRadiusSquared = 0xD000;
+
+    /// <summary>Finds and engages a target for <paramref name="me"/>. True when it now fights, or —
+    /// DK2's <c>0xEA60</c> — when the NonFighter arm has taken it out of the fight instead.</summary>
     public static bool SelectAVictim(
         SimulationContext context, ISightBlocker sight, HeartSites hearts, RoomCache rooms, CreatureState me, CreatureDef definition,
         List<Fixed16Vector> scratch)
     {
-        if (!IsBuilt(definition.FightStyle)) return false;
-        if (!Choose(context, sight, hearts, me, definition, scratch)) return false;
+        if (definition.FightStyle == FightStyle.NonFighter)
+        {
+            if (!NonFighter(context, sight, hearts, rooms, me, definition, scratch, out CreatureState? chosen)) return false;
+            if (chosen is null) return true;
+            if (!Commit(context, sight, me, definition, chosen, scratch)) return false;
+        }
+        else if (!Choose(context, sight, hearts, me, definition, scratch)) return false;
 
         // The acquirer's own withdraw check (0x0045DEE0): a hurt creature far from its heart lets
         // the target it just chose go and runs instead; finding nowhere to run, it fights.
@@ -156,18 +165,99 @@ public static class CombatTargetRules
         }
 
         if (chosen is null) return false;
+        return Commit(context, sight, me, definition, chosen, scratch);
+    }
 
-        // The winner must be walkable to; a creature with an attack spell may keep one it can only
-        // see, and none here has one, so the route decides.
+    /// <summary>The acquirer's common tail on a chosen creature: the winner must be walkable to — a
+    /// creature with an attack spell may keep one it can only see, and none here has one, so the
+    /// route decides — then the last gate on a third of the distance: within hearing, or within
+    /// sight and seen. Then the fight-starter.</summary>
+    private static bool Commit(
+        SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition, CreatureState chosen,
+        List<Fixed16Vector> scratch)
+    {
+        int sightSq = CombatRules.RangeSquared(definition.DistanceCanSee);
+        int hearSq = CombatRules.RangeSquared(definition.DistanceCanHear);
         int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, chosen.PosX, chosen.PosY);
         if (!CanReach(context.Navigation, me, definition, chosen.PosX, chosen.PosY, int.MaxValue, scratch)) return false;
 
-        // The last gate, on a third of the distance: within hearing, or within sight and seen.
         int third = distance / 3;
         if (third >= hearSq && (third >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, chosen.PosX, chosen.PosY)))
             return false;
 
-        return Engage(context, me, definition, chosen, database.CreatureById(chosen.CreatureTypeId));
+        return Engage(context, me, definition, chosen, context.Database.CreatureById(chosen.CreatureTypeId));
+    }
+
+    /// <summary>The NonFighter arm (<c>0x0045BDF0</c>, the Imp's and Jack's; combat-target-selection.md
+    /// §3, combat-alarm.md §1). Within <see cref="HeartDefenceRadiusSquared"/> of its own heart a
+    /// worker judges every hostile creature by plain distance like a Blocker — an Imp only within a
+    /// tile — and fights. Elsewhere it looks only at heroes within sight that have no target or
+    /// target it, and never fights them: away from its rooms it withdraws; near them it counts
+    /// heads, keeps scanning when its side at three quarters outweighs the enemy's within five
+    /// tiles, and otherwise raises the alarm or withdraws. False: nothing to do. True with a
+    /// <paramref name="chosen"/>: fight it. True without: the creature has left.</summary>
+    private static bool NonFighter(
+        SimulationContext context, ISightBlocker sight, HeartSites hearts, RoomCache rooms, CreatureState me, CreatureDef definition,
+        List<Fixed16Vector> scratch, out CreatureState? chosen)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        chosen = null;
+        bool imp = me.CreatureTypeId == CombatRules.ImpCreatureTypeId;
+        int sightSq = imp ? MeleeDecisionDistance : CombatRules.RangeSquared(definition.DistanceCanSee);
+        int hearSq = imp ? 0 : CombatRules.RangeSquared(definition.DistanceCanHear);
+
+        int heartX = 0, heartY = 0;
+        HeartSites.Site? heart = hearts.SiteOf(me.OwnerPlayerId);
+        if (heart.HasValue)
+        {
+            heartX = heart.Value.CentreX;
+            heartY = heart.Value.CentreY;
+        }
+        bool nearHeart = CombatRules.DistanceSquared(me.PosX, me.PosY, heartX, heartY) < HeartDefenceRadiusSquared;
+
+        int best = int.MaxValue;
+        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            CreatureState candidate = creatures[i];
+            if (candidate.Id == me.Id || !CombatRules.IsHostile(world, me.OwnerPlayerId, candidate.OwnerPlayerId)) continue;
+            CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
+            int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+
+            if (nearHeart)
+            {
+                // The shared template: distance, the alignment discount, attackable, seen or reached.
+                if (CombatRules.OppositeAlignment(definition, theirs)) d = CombatRules.Discounted(d);
+                if (d >= best || !CombatRules.IsAttackable(candidate)) continue;
+                bool seen = d < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+                if (!seen && !(d < hearSq && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch)))
+                    continue;
+                best = d;
+                chosen = candidate;
+                continue;
+            }
+
+            // The hero path: reluctance, never a fight.
+            if (candidate.OwnerPlayerId != PlayerIds.Good) continue;
+            if (d >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY)) continue;
+            if (d >= best) continue;
+            if (candidate.FightTargetKind == FightTargetKind.Creature && candidate.FightTargetId != me.Id) continue;
+            if (!CombatRules.IsAttackable(candidate)) continue;
+
+            if (!FearRules.NearOwnRooms(context, rooms, me))
+            {
+                if (FearRules.Withdraw(context, sight, hearts, rooms, me, definition, scratch)) return true;
+                continue;
+            }
+            int theirStrength = FearRules.LocalStrength(context, candidate.OwnerPlayerId, me.PosX, me.PosY);
+            int ourStrength = FearRules.LocalStrength(context, me.OwnerPlayerId, me.PosX, me.PosY) * 3 / 4;
+            if (ourStrength > theirStrength) continue;
+            int deficit = (theirStrength - ourStrength) * 3 / 2;
+            if (FearRules.RaiseAlarm(context, rooms, me, definition, candidate.PosX, candidate.PosY, deficit)) return true;
+            if (FearRules.Withdraw(context, sight, hearts, rooms, me, definition, scratch)) return true;
+        }
+        return chosen != null;
     }
 
     /// <summary>The fighting arms (<c>0x0045B140</c> and its three siblings): every hostile creature in

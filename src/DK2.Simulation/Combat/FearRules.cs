@@ -556,6 +556,145 @@ public static class FearRules
         context.Emit(SystemName, "withdrawn", $"creature={me.Id} tile={me.Tile.X},{me.Tile.Y}");
     }
 
+    // ------------------------------------------------------------------ the alarm
+
+    /// <summary>Ticks a creature stands at the threat's position before standing down (state 254).</summary>
+    public const int ReportTicks = 30;
+
+    /// <summary>The alarm is not raised twice: another responder within five tiles of the threat refuses it.</summary>
+    private const int RespondingRadiusSquared = 0x19000;
+
+    /// <summary><c>0x004752B0</c>: a <c>Scout</c> with Call to Arms off, when none of its owner's
+    /// creatures already responds within five tiles of the threat, runs to its owner's nearest room
+    /// carrying the threat's position and the strength still wanted there (combat-alarm.md §2).
+    /// True when it is on its way and out of the fight.</summary>
+    public static bool RaiseAlarm(
+        SimulationContext context, RoomCache rooms, CreatureState me, CreatureDef mine, int threatX, int threatY, int deficit)
+    {
+        if (mine.JobClass != JobClass.Scout) return false;
+        WorldState world = context.World;
+        if (AlreadyResponding(world, me.OwnerPlayerId, threatX, threatY)) return false;
+
+        RoomInstance? nearest = null;
+        int best = int.MaxValue;
+        foreach (RoomInstance room in rooms.Of(context, me.OwnerPlayerId))
+        {
+            int d = CombatRules.DistanceSquared(threatX, threatY, RoomCentreX(room), RoomCentreY(room));
+            if (d >= best) continue;
+            best = d;
+            nearest = room;
+        }
+        if (nearest is null) return false;
+
+        int options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Plain : MoveOptions.Loose;
+        if (!context.Navigation.TryRouteTo(me, RoomCentreX(nearest), RoomCentreY(nearest), options)) return false;
+
+        ClearTarget(world, me);
+        me.SwingInProgress = false;
+        me.CurrentJob = JobType.None;
+        me.JobTileIndex = -1;
+        me.AlarmX = threatX;
+        me.AlarmY = threatY;
+        me.AlarmDeficit = deficit;
+        me.AlarmRoomTile = nearest.TileIndices[0];
+        me.Running = true;
+        me.Activity = CreatureActivity.RaisingAlarm;
+        me.CombatStateEnteredTick = context.Tick.Value;
+        context.Emit(SystemName, "raises_alarm",
+            $"creature={me.Id} type={mine.Name} threat={threatX / Fp32.One},{threatY / Fp32.One} deficit={deficit} room={nearest.Definition.Name}");
+        return true;
+    }
+
+    /// <summary><c>0x004754D0</c>: one of the owner's creatures already raising the alarm or
+    /// reporting danger whose destination — or, standing, position — lies within five tiles.</summary>
+    private static bool AlreadyResponding(WorldState world, byte owner, int x, int y)
+    {
+        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            CreatureState c = creatures[i];
+            if (c.OwnerPlayerId != owner || c.Activity is not (CreatureActivity.RaisingAlarm or CreatureActivity.Reporting)) continue;
+            int cx = c.PosX, cy = c.PosY;
+            if (c.HasRoute)
+            {
+                TilePos to = c.Destination;
+                cx = CreatureState.CentreOf(to.X);
+                cy = CreatureState.CentreOf(to.Y);
+            }
+            if (CombatRules.DistanceSquared(cx, cy, x, y) < RespondingRadiusSquared) return true;
+        }
+        return false;
+    }
+
+    /// <summary>State 6 on the way to 251: arriving, the Scout dispatches the room (<see cref="RespondToThreat"/>).</summary>
+    public static void RaisingAlarm(SimulationContext context, RoomCache rooms, CreatureState me, CreatureDef mine)
+    {
+        if (me.HasRoute) return;
+        RespondToThreat(context, rooms, me, mine);
+    }
+
+    /// <summary>State 251 (<c>0x00475660</c>), "responding to a threat": every creature of the owner
+    /// working in the alarm's room — no worker, no Horned Reaper, not fighting, allowed to fight,
+    /// above a quarter of its health — is sent running to the threat's position until their summed
+    /// level-scaled <c>Threat</c> covers the deficit. The Scout then stands down (state 252, which
+    /// ends at once here; DK2 plays a worker's action 79 first, of unread length).</summary>
+    public static void RespondToThreat(SimulationContext context, RoomCache rooms, CreatureState me, CreatureDef mine)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        RoomInstance? room = me.AlarmRoomTile >= 0 ? RoomIndex.RoomAt(world, database, me.AlarmRoomTile) : null;
+        int wanted = me.AlarmDeficit;
+        int sent = 0;
+
+        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        for (int i = 0; room != null && wanted >= 0 && i < creatures.Count; i++)
+        {
+            CreatureState c = creatures[i];
+            if (c.OwnerPlayerId != me.OwnerPlayerId || c.Id == me.Id) continue;
+            CreatureDef def = database.CreatureById(c.CreatureTypeId);
+            if (def.Flags.HasFlag(CreatureFlags.IsWorker) || def.Flags.HasFlag(CreatureFlags.IsHorny)) continue;
+            if (CombatRules.InCombat(c) || !CombatRules.MayLookForAFight(world, c, force: false)) continue;
+            if (c.Activity is not (CreatureActivity.Working or CreatureActivity.AtWork or CreatureActivity.GoingToJob)) continue;
+            if (c.JobTileIndex < 0 || !room.TileIndices.Contains(c.JobTileIndex)) continue;
+            if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4) continue;
+
+            int options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Plain : MoveOptions.Loose;
+            if (!context.Navigation.TryRouteTo(c, me.AlarmX, me.AlarmY, options)) continue;
+            c.CurrentJob = JobType.None;
+            c.JobTileIndex = -1;
+            c.Running = true; // DK2 sets the raiser's run speed on it (combat-alarm.md §3)
+            c.Activity = CreatureActivity.Reporting;
+            c.ReportTicks = 0;
+            c.CombatStateEnteredTick = context.Tick.Value;
+            sent++;
+            wanted -= ThreatAtLevel(database, def, c.Level);
+        }
+
+        context.Emit(SystemName, "alarm_raised", $"creature={me.Id} sent={sent} deficit={me.AlarmDeficit} left={wanted}");
+        me.AlarmRoomTile = -1;
+        me.AlarmDeficit = 0;
+        me.Running = false;
+        me.Activity = CreatureActivity.Idle;
+    }
+
+    /// <summary>State 6 on the way to 254, then state 254 "reporting danger" (<c>0x004759A0</c>):
+    /// stand at the threat's position for thirty ticks, looking for a fight the ordinary way each
+    /// tick, then walk again and stand down.</summary>
+    public static void Reporting(SimulationContext context, CreatureState me)
+    {
+        if (me.HasRoute) return;
+        if (++me.ReportTicks <= ReportTicks) return;
+        me.ReportTicks = 0;
+        me.Running = false;
+        me.Activity = CreatureActivity.Idle;
+        context.Emit(SystemName, "stands_down", $"creature={me.Id}");
+    }
+
+    /// <summary>The room's position as the alarm and the withdrawal take it: DK2 reads the room's
+    /// own <c>+0x27</c>/<c>+0x29</c> tile, taken here as its bounding box's centre (Q391).</summary>
+    public static int RoomCentreX(RoomInstance room) => CreatureState.CentreOf((room.MinX + room.MaxX) / 2);
+    public static int RoomCentreY(RoomInstance room) => CreatureState.CentreOf((room.MinY + room.MaxY) / 2);
+
     // ------------------------------------------------------------------ transitions
 
     /// <summary>Back into state 199 with the target kept.</summary>

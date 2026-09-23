@@ -170,8 +170,8 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
    when its own side at three quarters outweighs the enemy's**; otherwise a
    `Scout` (`JobClass` 3) with Call to Arms off and nobody already responding
    within five tiles goes to the nearest room to raise the alarm
-   (`0x004752B0`: state 251, "responding to a threat", carrying the deficit
-   × 3/2), unlinking and setting body bit `+0x10F`.0; anyone else ends the state.
+   (`0x004752B0`, combat-alarm.md §2–§3, built with ADR-0166), unlinking and
+   setting body bit `+0x10F`.0; anyone else ends the state.
    **Away from its rooms**, or with a dead target: unlink, clear, and the
    withdraw state — its result is the handler's.
 
@@ -231,7 +231,7 @@ lets the engagement go rather than leaving the tag (Q373); the room's
 `+0x27/+0x29` is taken as its bounding-box centre; a hero's flag bit 4 is
 absent, so heroes neither withdraw nor count as six tiles out (Q372).
 
-**Not built:** the Scout's alarm and state 251 (Q374); hero gates; the casino's
+**Not built:** hero gates; the casino's
 `FearlessUntil`; the stunned and chicken gates; the owner modifiers (Q375);
 `ThreatThing`; the two spell sources of §2; the body bit `+0x10F`.0.
 

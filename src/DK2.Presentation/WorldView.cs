@@ -395,6 +395,8 @@ public sealed class WorldView
         CreatureActivity.Fighting => "fighting",
         CreatureActivity.Fleeing => "fleeing",
         CreatureActivity.Withdrawing => "withdrawing",
+        CreatureActivity.RaisingAlarm => "raising_alarm",
+        CreatureActivity.Reporting => "reporting",
         _ => throw new ArgumentOutOfRangeException(
             nameof(activity), activity, "No animation key for this activity."),
     };

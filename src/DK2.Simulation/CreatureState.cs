@@ -162,6 +162,15 @@ public enum CreatureActivity
     /// <summary>DK2's state 6 on the way to 202: running to the withdraw destination — lair, heart,
     /// a room or a nearby tile — and idle on arrival (docs/research/combat-fear.md §5).</summary>
     Withdrawing = 23,
+
+    /// <summary>DK2's state 6 on the way to 251: a Scout running to its nearest room to raise the
+    /// alarm; on arrival that room's creatures are sent at the threat (combat-alarm.md §3).</summary>
+    RaisingAlarm = 24,
+
+    /// <summary>DK2's state 6 on the way to 254, "reporting danger": a creature sent by the alarm
+    /// running to the threat's position, then standing thirty ticks there looking for a fight
+    /// (combat-alarm.md §4).</summary>
+    Reporting = 25,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -575,6 +584,18 @@ public sealed class CreatureState
     /// a withdrawal is refused in the state's first tick.</summary>
     public long CombatStateEnteredTick;
 
+    /// <summary>The alarm a Scout carries to its room (DK2's state fields <c>+0xA7</c>, <c>+0xAF</c>,
+    /// <c>+0xB1</c>): the threat's position, the strength still wanted there, and the room by its
+    /// first tile. Read on arrival by <see cref="Combat.FearRules.RespondToThreat"/>.</summary>
+    public int AlarmX;
+    public int AlarmY;
+    public int AlarmDeficit;
+    public int AlarmRoomTile = -1;
+
+    /// <summary>Ticks stood at the threat's position by a creature sent there — DK2's
+    /// <c>state+0x7E</c> in state 254; over thirty and it stands down.</summary>
+    public int ReportTicks;
+
     /// <summary>The eight melee attackers engaged with this creature, by id, 0 for a free slot —
     /// DK2's <c>+0x504</c> array. An attacker takes the first free slot when it engages and is
     /// struck out when it disengages; a ninth melee attacker cannot engage at all.</summary>
@@ -689,6 +710,11 @@ public sealed class CreatureState
         hash.Add(BackOffTimer);
         hash.Add(Running);
         hash.Add(CombatStateEnteredTick);
+        hash.Add(AlarmX);
+        hash.Add(AlarmY);
+        hash.Add(AlarmDeficit);
+        hash.Add(AlarmRoomTile);
+        hash.Add(ReportTicks);
         for (int i = 0; i < EngagedMelee.Length; i++) hash.Add(EngagedMelee[i]);
         for (int i = 0; i < EngagedRanged.Length; i++) hash.Add(EngagedRanged[i]);
     }

@@ -292,41 +292,27 @@ previous target is stashed in a local, so that `0x00460B50` can be asked about m
 for the two answers:
 
 ```
-if (theirs * 3 / 4 > ours)  -> put the old target back, keep scanning
-0x004752B0(me + 0x24E, myPosition, (ours - theirs * 3 / 4) * 3 / 2)
+theirs = 0x004FAC40(the hero's owner);  ours = 0x004FAC40(my owner) * 3 / 4
+if (ours > theirs)  -> put the old target back, keep scanning
+0x004752B0(me + 0x24E, heroPosition, (theirs - ours) * 3 / 2)   -> the alarm
+else 0x004611D0(me + 0x24E)                                    -> withdraw
 ```
 
-`0x004752B0` is one of the four sites that `SetState`s **199** (`combat-entry.md`
-§6). **So a worker counts the room before it commits**, backs out when the enemy
-holds more than four thirds of the local bodies, and passes the surplus on as an
-argument when it does fight.
+**Corrected 2026-09-23 (combat-alarm.md §1).** An earlier reading took `0x004752B0`
+for a commit to a fight because it `SetState`s 199 on the way; it is **the alarm**: a
+`Scout` runs to its nearest room and sends that room's creatures at the hero, passing
+the deficit along. **So a worker never fights a hero on this path:** outnumbered it
+raises the alarm or withdraws, outnumbering it does nothing, and either way its tag
+goes back. The three `0xEA60` exits below are those departures.
 
-**The twelve stores, correctly.** An earlier revision called them one commit and
-eleven rollbacks. They are:
-
-| where | how many | what |
-|---|---|---|
-| `0x0045C0AF` | 1 | the tentative commit above |
-| `0x0045C17C`, `0x0045C19F` | 2 | restore the stashed tag and go to the next candidate |
-| `0x45C389`, `0x45C41D`, `0x45C509` | 9 | **three copies of one inlined disengagement**, three stores each |
-
-Each disengagement copy does the same thing: put the stashed tag back **so it can
-find the creature it points at**, then — when the AttackType nibble at `+0x529`
-is under 2 or equal to 3, the tag resolves live, and that thing's `+0x12` is zero
-— walk the 8 slots of each of its `+0x504` and `+0x514` arrays and **clear my own
-tag from whichever one holds it** (the first copy calls `0x0045E450` instead of
-inlining the walk). Then set `+0x502` to zero, and the third store is the same
-zero on the path where there was no stashed tag at all.
-
-**So nine of the twelve are not rollback: they are a creature letting go of a
-fight**, unlinking itself from the other side's engagement lists — which is a
-fourth corroboration that `+0x504`/`+0x514` are who-is-engaged-with-me, and the
-one place the repo has seen them written.
-
-**And it explains `0xEA60`.** All three copies return it, after setting or
-clearing bit 0 of `me+0x233` according to whether I am a hero. It is not a tag:
-it means **"I disengaged; stop looking"**, which is why the acquirer answers
-success immediately on seeing it (§2) instead of treating it as a target.
+**The stores.** One tentative commit (`0x0045C0AF`), two restores that go to the next
+candidate (`0x0045C17C`, `0x0045C19F`), and three copies of one inlined disengagement
+(`0x45C389`, `0x45C41D`, `0x45C509`) after the alarm or the withdraw state has taken the
+creature: each puts the stashed tag back, strikes my tag out of that creature's `+0x504`
+and `+0x514` arrays (the first through `0x0045E450`), zeroes `+0x502`, sets or clears
+bit 0 of `me+0x233` by whether I am a hero, and returns **`0xEA60`** — "I left; stop
+looking", which the acquirer answers with success (§2). It is the one place the repo
+has seen the engagement arrays written.
 
 ## 4. What Blocker settles about NonFighter
 
@@ -368,7 +354,8 @@ initiates while any melee-engaged enemy is in range.
 
 Small and named. What `def+0x760`'s file field `0xEE4` should be called, and the
 per-level table at `dword[0x006E4154] + 0x2A3` it is scaled by. What
-`0x00494360`'s definition byte means (§3.1). Bit 12 is `Creeping`, the starting
+`0x00494360`'s definition byte means (§3.1, Q390). The arm is built since
+ADR-0166 (combat-alarm.md). Bit 12 is `Creeping`, the starting
 score is `0x7FFFFFFF`, and the `+0x4FE` record is laid out in
 `combat-acquisition.md`, which owns the acquirer.
 

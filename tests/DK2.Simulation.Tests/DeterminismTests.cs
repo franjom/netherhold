@@ -102,10 +102,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 70: fear's two accumulators, the counter, the back-off timer, the run
-        // flag and the combat state's entry tick entered (ADR-0165). Earlier pins and their
-        // reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x05719C220035BA50UL, sim.StateHash());
+        // HashVersion 71: the alarm a Scout carries — threat position, deficit, room — and the
+        // ticks stood reporting danger entered (ADR-0166). Earlier pins and their reasons live
+        // in docs/research/hash-versions.md.
+        Assert.Equal(0xF7F8F30AF29050DFUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

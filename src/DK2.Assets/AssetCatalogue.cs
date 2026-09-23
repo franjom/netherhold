@@ -55,6 +55,8 @@ public static class AssetCatalogue
         "fighting",
         "fleeing",
         "withdrawing",
+        "raising_alarm",
+        "reporting",
     ];
 
     /// <summary>

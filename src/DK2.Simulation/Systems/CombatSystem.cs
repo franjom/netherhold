@@ -59,6 +59,12 @@ public sealed class CombatSystem : ISimulationSystem
                     case CreatureActivity.Fighting: Fight(context, creature, definition); break;
                     case CreatureActivity.Fleeing: FearRules.Flee(context, _sight!, _hearts, _rooms, creature, definition, _scratch); break;
                     case CreatureActivity.Withdrawing: FearRules.Withdrawing(context, creature); break;
+                    case CreatureActivity.RaisingAlarm: FearRules.RaisingAlarm(context, _rooms, creature, definition); break;
+                    case CreatureActivity.Reporting:
+                        // States 6 → 254 and 254 are outside the combat group: they look for a fight on the way.
+                        FearRules.Reporting(context, creature);
+                        ProcessFight(context, creature, definition);
+                        break;
                     default: ProcessFight(context, creature, definition); break;
                 }
             }
