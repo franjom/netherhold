@@ -234,23 +234,27 @@ calls one.
 
 ## 7.2 What the hooks do
 
-All 35 were fingerprinted on 2026-09-23 — calls, globals and field offsets — and
-the ones below were read in full. The rest are still only shapes.
+The complete reads of the 32 formerly unread bodies live in
+[`state-category-hooks.md`](state-category-hooks.md). This section remains the
+index and records only the cross-hook conclusions.
 
-**An update hook runs every tick and throttles itself to once a game second.**
-Each opens with the same gate: a per-creature countdown byte, skip while it is
-non-zero, otherwise reload it from **`0x006F2590` — variable 19, ticks a game
-second** (Q1, so 4). The countdown field is per category, `+0xAB` for Prison,
-CombatPit and Spectating, `+0xAC` for Torture, `+0xAF` for Lair, Sleeping and
-Temple. So a "per second" balance value is charged by a per-tick hook that skips
-three ticks in four, which is a different mechanism from the work rates being
-pre-divided at load (`tile-work.md`) and reaches the same place.
+All 36 distinct functions are now read in full: four in the first pass and the
+remaining 32 in `state-category-hooks.md`.
 
-**Three idioms cover most of the 35.** Eight enter hooks share
-`vtable +0x1D4` → `0x004E5A70` → `0x004E7F80` → `0x004559B0`, which is claiming a
-slot in the room the state needs. Nine leave hooks share `0x004E5E00` →
-`0x004D8E60` against the id at `+0x3B9` — releasing it. The Lair, Sleeping and
-Sulking updates share `0x004DFF00` → `0x00517490`.
+**The cadence is not one idiom.** Spectating uses countdown `+0xAB`, Torture
+`+0xAC`, Casino `+0xB0` and Training `+0xB3`, each reloaded from variable 19.
+Prison also uses `+0xAB` but reloads `4 x variable 19`; Lair, Sleeping and
+Sulking use `gameTurn % variable19` instead of a countdown. Combat Pit enter
+initializes `+0xAB`, but its update is the success stub. Temple enter initializes
+`+0xAF`; its update was already read. The per-hook table and consequences are in
+`state-category-hooks.md` §1.
+
+**Three idioms cover most of the 36.** Nine distinct enter functions, filling
+ten hook slots, share the same room-position operation: `vtable +0x1D4` finds
+the cell, `0x004559B0` resolves its thing, `0x004E7F80` admits it, and
+`0x004E5A70` claims it. Ten leave slots call `0x004E5E00` to release the room
+position and conditionally `0x004D8E60` to clear a furniture occupant id. The
+Lair, Sleeping and Sulking updates share `0x004DFF00` → `0x00517490`.
 
 **Periodic anger is a category hook, and the complaint selector is read off.**
 The wrapper is `creature-anger.md`'s `FUN_00478B80(bucket, amount, selector)`:
@@ -259,9 +263,9 @@ The wrapper is `creature-anger.md`'s `FUN_00478B80(bucket, amount, selector)`:
 |---:|---|---|---|
 | 12 Temple | 0, 1, 2, 3, 4, 5 — **all six** | 9, 1, 0, 3, 2, 9 | v102 `ModifyCreatureAngerWhilePrayingPerSecond` −275 |
 | 31 Spectating | 5, 0, 3 | 9 | v135 `ModifyAngerOfPitSpectatorPerSecond` −275 |
-| 17 Casino | 5, 0, 5, 0, 3 | 2 | two globals, unread |
-| 15 Torture | 5 | 8 | computed, per creature |
-| 14 Prison | 0 | 9 | one global, unread |
+| 17 Casino | 5, 0, 5, 0, 3 | 2 | v201 -2000 (Smiles), v202 +100 (Money) |
+| 15 Torture | 5 | 8 | creature definition `TortureMoodChange` |
+| 14 Prison | 0 | 9 | v78 `ModifyAngerInCompanyOfHatedCreaturesPerSecond` +150 |
 
 The Temple's six calls carry six *different* selectors against one amount, which
 is what proves the selector is not the bucket: bucket 0 raises complaint 9,
@@ -293,8 +297,9 @@ category names neither, and what separates the two clusters is unread. The rest
 are dominated by `idle`, which is the commonest label in the table at 49 states
 and says nothing about a mechanic.
 
-The route that would settle the other six is the handlers, not the labels: each
-category's enter/update/leave hooks are in §7 and none has been read.
+The hooks now settle none of the other six names. Five have no hook, and
+category 28's hook says only that its creature loses 10 health per tick unless
+its owner has won. The individual state handlers remain the route to a name.
 
 ## Implementation and tests
 
