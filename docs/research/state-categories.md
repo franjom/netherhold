@@ -2,7 +2,8 @@
 
 Source(s): `DKII.EXE` v1.70 (GOG) read with Ghidra 11.0.1 on 2026-09-10 — the fill
 run, the transition routine `FUN_00476D30`, the per-tick dispatcher
-`FUN_00476FC0`, and the two accessors of §4. Flame's map was consulted on six
+`FUN_00476FC0`, and the two accessors of §4; the fill run re-walked and the hook
+addresses recovered on 2026-09-23 (§7.1). Flame's map was consulted on six
 function addresses and named none of them (ADR-0046; ADR-0080).
 
 Original version: DK2 v1.70 (GOG)
@@ -134,19 +135,16 @@ return 25 and 26, which no record holds.
 - **`+0x3c`'s meaning** (§5). The next step is the caller at `0x004BFBD0`, which
   is the shortest of the three and the one that compares against `0x4B`.
 - Whether record 0's zero bit is deliberate (§3).
-- The **hook addresses** are recovered but deliberately not carried into `src/`:
-  nothing in this project calls them. They are the reading list for naming the
-  seven categories `CreatureStateCategory` still leaves as `UnnamedNN`, and ten
-  categories have no hook at all, so for those the states themselves are the
-  only evidence there will be.
+- The **hook bodies**. Their addresses are §7.1 and 35 of the 36 have not been
+  read. They are the reading list for naming the seven categories
+  `CreatureStateCategory` still leaves as `UnnamedNN`.
 
 
 ## 7. The 32 records, as recovered
 
 The values themselves, so this note is the table's source and the generated code
 is downstream of it. `bit` is `+0x00`, `mask` is `+0x34`, and `E`/`U`/`L` say whether
-the enter, update and leave hooks are set. Hook *addresses* are deliberately absent:
-nothing in this project calls them (§6).
+the enter, update and leave hooks are set. The addresses are §7.1.
 
 | Cat | Our name | bit | mask | E | U | L | `+0x3c` |
 |---:|---|---|---|:-:|:-:|:-:|---:|
@@ -184,6 +182,55 @@ nothing in this project calls them (§6).
 | 31 | Spectating | `0x80000000` | `0x8002383B` | Y | Y | Y | 21 |
 
 Record 0's `bit` is **0** because nothing writes it (§3), not because it is zero-valued.
+
+## 7.1 The hook addresses
+
+Re-walked 2026-09-23 from the run's true entry, `0x004798E0` — a `JMP` into the
+`XOR EAX,EAX` / `XOR EDX,EDX` pair at `0x004798F0`; `0x004798F4` is only the first
+*store*. 511 of 512 dwords resolve with none left over, reproducing §1's count, and
+the bit/mask/`+0x3c` columns of §7 come back identical.
+
+**Ninety-six slots hold 36 distinct functions**, because two are shared hard:
+
+- **`0x004B4C20` is `MOV EAX,1; RET`** — a success stub. It fills six hook slots
+  (6 enter, 8 update, 9 enter, 10 enter, 16 update, 23 update) **and** is the update
+  handler of states 50, 227, 241 and 270, all labelled `idle`. Ten slots, two
+  instructions, and no behaviour to reproduce in any of them.
+- **`0x0047B920` is one leave hook for seven categories** — 4, 11, 12, 13, 14, 16
+  and 31, the room-occupying ones. It reads a stored id, indexes the table at
+  `0x006EE540`, and acts only when the indexed record's `+0x18` is `0x1A` and its
+  `+0x53` matches: the shape of releasing a room slot on the way out.
+- `0x0047AFB0` is the enter hook of both 4 (Research) and 11 (GuardPost).
+
+| Cat | enter | update | leave |
+|---:|---|---|---|
+| 0 | | | `0x0047A780` |
+| 3 | | | `0x004647D0` |
+| 4 | `0x0047AFB0` | `0x0047B000` | `0x0047B920` |
+| 5 | `0x0047B0A0` | `0x0047B190` | `0x0047B120` |
+| 6 | `0x004B4C20` | `0x0047AC40` | |
+| 8 | | `0x004B4C20` | |
+| 9 | `0x004B4C20` | `0x0047AC00` | `0x0047AB90` |
+| 10 | `0x004B4C20` | `0x0047AC70` | |
+| 11 | `0x0047AFB0` | | `0x0047B920` |
+| 12 | `0x0047B8C0` | `0x0047B970` | `0x0047B920` |
+| 13 | `0x0047B230` | `0x0047B2D0` | `0x0047B920` |
+| 14 | `0x0047B740` | `0x0047B7C0` | `0x0047B920` |
+| 15 | `0x0047B430` | `0x0047B590` | `0x0047B4A0` |
+| 16 | `0x0047AAE0` | `0x004B4C20` | `0x0047B920` |
+| 17 | `0x0047ACB0` | `0x0047AD70` | `0x0047AF20` |
+| 22 | `0x0047A810` | `0x0047A870` | `0x0047A980` |
+| 23 | | `0x004B4C20` | |
+| 24 | | | `0x00459130` |
+| 25 | `0x00455E70` | | `0x00455E90` |
+| 26 | | | `0x004752A0` |
+| 28 | | `0x0047A9B0` | |
+| 31 | `0x0047A9E0` | `0x0047AA70` | `0x0047B920` |
+
+The other ten categories have no hook of any kind, so for those the states
+themselves stay the only evidence. Nothing here is carried into `src/`: the
+generated table keeps only whether a hook exists, because nothing in this project
+calls one. This is the reading list.
 ## 8. What the labels say about the seven unnamed ones
 
 Every state carries a `Text.str` id (`creature-state-table.md` §3), so a category
