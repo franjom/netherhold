@@ -14,8 +14,9 @@ namespace DK2.Simulation.Combat;
 /// while it is valid, stand still while a swing winds up, swing when in reach and the recharge
 /// allows, otherwise look again and walk toward the target. The blow is the swing action's
 /// handler (<c>0x00498E30</c>): it lands <c>MeleeHitDelay</c> after the swing began on the target
-/// the swing was started at, through <see cref="MeleeDamageRules"/>. Not built and named there:
-/// fear and withdrawal, the celebration over a kill, the spell arms and the step-back.</summary>
+/// the swing was started at, through <see cref="MeleeDamageRules"/>. The spell arms are here too
+/// (combat-spells.md, ADR-0167): a cast is action 16, its shot leaving after the slot's wind-up.
+/// Not built and named there: the celebration over a kill and the ally arm.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-fight-state.md")]
 public static class FightRules
 {
@@ -82,6 +83,7 @@ public static class FightRules
     public static void StartSwing(SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef mine, List<Fixed16Vector> scratch)
     {
         me.SwingInProgress = true;
+        me.SwingKind = SpellRules.MeleeSwing;
         me.SwingStartTick = context.Tick.Value;
         me.TimeLastUsedMelee = context.Tick.Value;
         me.SwingTargetKind = me.FightTargetKind;
@@ -130,6 +132,87 @@ public static class FightRules
             context.Emit(SystemName, "heart_hit",
                 $"creature={me.Id} heart={owner.PlayerId} blow={blow} health={owner.HeartHealth}{(killed ? " destroyed" : "")}");
         }
+    }
+
+    /// <summary>The spell arm's cast (combat-spells.md §6) — action 16 begun on the engagement's
+    /// target from <paramref name="slot"/>: the slot is stamped with this turn at once, the target
+    /// copied into the action, and a creature target told it is attacked. The shot leaves when
+    /// <see cref="CastFires"/> says so.</summary>
+    public static void StartCast(SimulationContext context, CreatureState me, CreatureDef mine, int slot)
+    {
+        me.SwingInProgress = true;
+        me.SwingKind = SpellRules.SpellCast;
+        me.SwingSpellSlot = (byte)slot;
+        me.SwingStartTick = context.Tick.Value;
+        me.SwingTargetKind = me.FightTargetKind;
+        me.SwingTargetId = me.FightTargetId;
+        me.SwingTargetPlayerId = me.FightTargetPlayerId;
+        me.SpellStamps[slot] = context.Tick.Value;
+        me.StopMoving();
+        context.Emit(SystemName, "cast",
+            $"creature={me.Id} type={mine.Name} slot={slot} spell={mine.Spells[slot].CreatureSpellId} target={me.SwingTargetId} heart={me.SwingTargetPlayerId}");
+
+        if (me.SwingTargetKind == FightTargetKind.Creature)
+        {
+            CreatureState? target = context.World.CreatureById(me.SwingTargetId);
+            if (target != null) Retaliate(context, target, me);
+        }
+    }
+
+    /// <summary>Action 16's wind-up (combat-spells.md §7 step 2): the shot leaves once the turn is
+    /// past the start plus the slot's delay — strictly, so a zero delay fires the next tick.</summary>
+    public static bool CastFires(CreatureState me, CreatureDef mine, long tick) =>
+        me.SwingInProgress && me.SwingKind == SpellRules.SpellCast
+        && me.SwingSpellSlot < mine.Spells.Count
+        && tick > me.SwingStartTick + SpellRules.DelayTicks(mine, me.SwingSpellSlot);
+
+    /// <summary>Action 16's shot (combat-spells.md §7 steps 3–7): from the caster's position — the
+    /// slot's origin vector is not carried (Q398) — at the target's centre led by its last move
+    /// times the whole tiles between them and a half, carrying the spell's two data words, launched
+    /// at the shot definition's speed. A target gone or a heart fallen fires nothing.</summary>
+    public static void FireSpell(SimulationContext context, CreatureState me, CreatureDef mine)
+    {
+        me.SwingInProgress = false;
+        me.SwingKind = SpellRules.MeleeSwing;
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        CreatureSpellDef? spell = SpellRules.SpellOf(database, mine, me.SwingSpellSlot);
+        if (spell is null) return;
+        if (!database.Shots.TryGetValue(spell.ShotTypeId, out ShotDef? shotDef))
+        {
+            context.Emit(SystemName, "cast_failed", $"creature={me.Id} spell={spell.CreatureSpellId} reason=no_shot_type");
+            return;
+        }
+
+        int aimX, aimY;
+        int targetTile = -1;
+        if (me.SwingTargetKind == FightTargetKind.Creature)
+        {
+            CreatureState? target = world.CreatureById(me.SwingTargetId);
+            if (target is null || CreatureDeathRules.IsDown(target)) return;
+            int distanceSquared = CombatRules.DistanceSquared(me.PosX, me.PosY, target.PosX, target.PosY);
+            long tiles = ShotRules.Isqrt((long)distanceSquared << 4) >> 8;
+            aimX = target.PosX + (int)((target.PosX - target.LastPosX) * tiles * 3 / 2);
+            aimY = target.PosY + (int)((target.PosY - target.LastPosY) * tiles * 3 / 2);
+        }
+        else if (me.SwingTargetKind == FightTargetKind.Heart && me.FightTargetTileIndex >= 0)
+        {
+            ref PlayerState owner = ref world.Player(me.SwingTargetPlayerId);
+            if (owner.HeartHealth <= 0 || owner.HeartRuined) return;
+            targetTile = me.FightTargetTileIndex;
+            aimX = CombatTargetRules.TileCentreX(world, targetTile);
+            aimY = CombatTargetRules.TileCentreY(world, targetTile);
+        }
+        else
+        {
+            return;
+        }
+
+        ShotState shot = ShotRules.Spawn(world, shotDef, me.OwnerPlayerId, me.PosX, me.PosY, (int)spell.ShotData1, (int)spell.ShotData2,
+            me.Id, me.SwingTargetKind, me.SwingTargetId, me.SwingTargetPlayerId, targetTile, aimX, aimY);
+        ShotRules.Launch(shot, shotDef, aimX, aimY);
+        context.Emit(SystemName, "shot_fired",
+            $"creature={me.Id} spell={spell.CreatureSpellId} shot={shot.Id} type={shotDef.ShotId} aim={aimX},{aimY} vel={shot.VelX},{shot.VelY} data1={shot.Data1}");
     }
 
     private static int Blow(GameDatabase database, CreatureState me, CreatureDef mine, int targetX, int targetY) =>

@@ -102,10 +102,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 71: the alarm a Scout carries — threat position, deficit, room — and the
-        // ticks stood reporting danger entered (ADR-0166). Earlier pins and their reasons live
-        // in docs/research/hash-versions.md.
-        Assert.Equal(0xF7F8F30AF29050DFUL, sim.StateHash());
+        // HashVersion 72: the three spell stamps, the spell slot and the cast action on every
+        // creature, its last position, and the shots in flight entered (ADR-0167). Earlier pins
+        // and their reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0xE13D73F01C848BC5UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

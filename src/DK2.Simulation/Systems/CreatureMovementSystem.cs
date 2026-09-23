@@ -39,6 +39,10 @@ public sealed class CreatureMovementSystem : ISimulationSystem
         // not it moves this tick or has ever moved.
         foreach (CreatureState creature in context.World.Creatures)
         {
+            // The previous frame's position (DK2's vtable+0x2C): where the creature stood before
+            // this tick's move, which a shot's aim leads by (shots.md §7).
+            creature.LastPosX = creature.PosX;
+            creature.LastPosY = creature.PosY;
             WorldSteering.SyncBody(creature);
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             creature.Body.Radius = SteeringMover.CrowdWordOf(definition.FootprintRadius.Raw);

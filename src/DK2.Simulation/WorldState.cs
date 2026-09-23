@@ -694,6 +694,8 @@ public sealed class WorldState
     private readonly List<GraveyardState> _graveyards = [];
     private int _nextCreatureId = 1;
     private int _nextObjectId = 1;
+    private readonly List<ShotState> _shots = [];
+    private int _nextShotId = 1;
 
     private WorldState(
         int width, int height, TileState[] tiles, PlayerState[] players, bool fogOfWarEnabled)
@@ -906,6 +908,8 @@ public sealed class WorldState
             OwnerPlayerId = ownerPlayerId,
             PosX = CreatureState.CentreOf(at.X),
             PosY = CreatureState.CentreOf(at.Y),
+            LastPosX = CreatureState.CentreOf(at.X),
+            LastPosY = CreatureState.CentreOf(at.Y),
             Activity = CreatureActivity.Idle,
 
             // The database is a parameter for this one line: a creature spawned at
@@ -1023,6 +1027,33 @@ public sealed class WorldState
     public IReadOnlyList<ActionPointState> ActionPoints => _actionPoints;
 
     internal void AddActionPoint(ActionPointState actionPoint) => _actionPoints.Add(actionPoint);
+
+    /// <summary>Shots in flight, in creation order (shots.md). Ids climb like creatures' and are
+    /// never reused.</summary>
+    public IReadOnlyList<ShotState> Shots => _shots;
+
+    public int NextShotId { get => _nextShotId; internal set => _nextShotId = value; }
+
+    internal List<ShotState> RawShots => _shots;
+
+    /// <summary>A new shot at a position, with the next id; the caller fills the rest.</summary>
+    public ShotState SpawnShot(byte shotTypeId, byte ownerPlayerId, int x, int y)
+    {
+        var shot = new ShotState { Id = _nextShotId++, ShotTypeId = shotTypeId, OwnerPlayerId = ownerPlayerId, PosX = x, PosY = y };
+        _shots.Add(shot);
+        return shot;
+    }
+
+    public bool RemoveShot(int id)
+    {
+        for (int i = 0; i < _shots.Count; i++)
+        {
+            if (_shots[i].Id != id) continue;
+            _shots.RemoveAt(i);
+            return true;
+        }
+        return false;
+    }
 
     /// <summary>The level's doors in THINGS-file order. No door behaviour exists yet.</summary>
     public IReadOnlyList<DoorState> Doors => _doors;
@@ -1205,6 +1236,10 @@ public sealed class WorldState
         hash.Add(_objects.Count);
         hash.Add(_nextObjectId);
         foreach (ObjectState o in _objects) o.HashInto(ref hash);
+
+        hash.Add(_shots.Count);
+        hash.Add(_nextShotId);
+        foreach (ShotState s in _shots) s.HashInto(ref hash);
 
         hash.Add(_actionPoints.Count);
         foreach (ActionPointState actionPoint in _actionPoints) actionPoint.HashInto(ref hash);

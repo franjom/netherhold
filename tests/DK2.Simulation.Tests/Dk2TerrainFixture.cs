@@ -192,7 +192,9 @@ internal static class Dk2TerrainFixture
         creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), Warlock(), .. extraCreatures],
         variables: Variables(),
         keeperSpells: KeeperSpells(),
-        objects: Objects());
+        objects: Objects(),
+        creatureSpells: CreatureSpells(),
+        shots: Shots());
 
     /// <summary>Object id 22, the Goblin's bed.</summary>
     public const byte GoblinBedObjectId = 22;
@@ -909,7 +911,67 @@ internal static class Dk2TerrainFixture
         Flags = Goblin().Flags | CreatureFlags.IsFearless,
         FightStyle = FightStyle.Support,
         LairObjectId = 0,
+        // The shipped Warlock's first two slots: Fireball from level 1 and Firebomb from level 8,
+        // both winding up 11345/4096 s — eleven ticks (combat-spells.md §3).
+        Spells =
+        [
+            new CreatureSpellSlot(FireballSpellId, 1, new Fp32(11345), 1),
+            new CreatureSpellSlot(FirebombSpellId, 8, new Fp32(11345), 1),
+        ],
     };
+
+    public const byte FireballSpellId = 1;
+    public const byte FirebombSpellId = 2;
+    public const byte FireballShotId = 1;
+    public const byte FirebombShotId = 16;
+    public const byte FirebombExplosionShotId = 34;
+
+    private static readonly KwdArtResource NoArt = new("", 0, default, 0, 0, 0, 0);
+    private static readonly KwdLight NoLight = new(0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+    /// <summary>The Warlock's two attack spells at their shipped values (combat-spells.md §1–§2):
+    /// attack flag, four-tile range, 5 s and 7.5 s recharges, 300 and 600 damage.</summary>
+    public static CreatureSpellDef[] CreatureSpells() =>
+    [
+        new(new byte[266])
+        {
+            Name = "Warlock Fireball", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = FireballSpellId,
+            Flags = 0x101, Range = 16384, RechargeTime = 20480, ShotTypeId = FireballShotId, ShotData1 = 300, ShotData2 = 0,
+            Unknown_00EF = default,
+        },
+        new(new byte[266])
+        {
+            Name = "Warlock Firebomb", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = FirebombSpellId,
+            Flags = 0x101, Range = 16384, RechargeTime = 30720, ShotTypeId = FirebombShotId, ShotData1 = 600, ShotData2 = 0,
+            Unknown_00EF = default,
+        },
+    ];
+
+    /// <summary>The shots those spells fire, at their shipped values (shots.md §9): the Fireball dies
+    /// on solid and on a thing and lives 60 ticks; the Firebomb chains its explosion on either hit;
+    /// the explosion stands still and hurts a linear area for the ticks its health lasts.</summary>
+    public static ShotDef[] Shots() =>
+    [
+        new(new byte[239])
+        {
+            Name = "Fireball", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = FireballShotId,
+            Speed = 3686, Radius = 819, Health = 60, Flags = 0x127, ShotProcessFlags = 0x1, CollideType = 2, DamageType = 7,
+            AttackCategory = 4, Unknown_0098 = 50,
+        },
+        new(new byte[239])
+        {
+            Name = "Firebomb", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = FirebombShotId,
+            Speed = 2048, Radius = 819, Health = 128, Flags = 0x123, ShotProcessFlags = 0xC, CollideType = 2, DamageType = 7,
+            HitSolidShotId = FirebombExplosionShotId, HitThingShotId = FirebombExplosionShotId, AttackCategory = 4,
+            Unknown_0098 = 250, Unknown_009C = 3,
+        },
+        new(new byte[239])
+        {
+            Name = "Fire Bomb Explosion", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = FirebombExplosionShotId,
+            Speed = 0, Radius = 819, Health = 3, Flags = 0x105, ShotProcessFlags = 0x1, CollideType = 2, DamageType = 2,
+            AttackCategory = 4, Unknown_0098 = 250, Unknown_009C = 3,
+        },
+    ];
 
     /// <summary>Every global variable a built mechanic reads, at its shipped
     /// value, plus four rows of the per-level stat table.</summary>

@@ -50,9 +50,19 @@ public sealed class CombatSystem : ISimulationSystem
             if (!CreatureDeathRules.IsPossessed(world, creature))
             {
                 // The swing is an action, not the state: its handler lands the blow whatever the
-                // creature is doing by then (Gate A, 0x00498E30).
-                if (creature.SwingInProgress && CombatRules.BlowLands(creature, definition, context.Tick.Value))
-                    FightRules.LandBlow(context, creature, definition);
+                // creature is doing by then (Gate A, 0x00498E30); a cast's handler fires its shot
+                // the same way (action 16, 0x00498870).
+                if (creature.SwingInProgress)
+                {
+                    if (creature.SwingKind == SpellRules.SpellCast)
+                    {
+                        if (FightRules.CastFires(creature, definition, context.Tick.Value)) FightRules.FireSpell(context, creature, definition);
+                    }
+                    else if (CombatRules.BlowLands(creature, definition, context.Tick.Value))
+                    {
+                        FightRules.LandBlow(context, creature, definition);
+                    }
+                }
 
                 switch (creature.Activity)
                 {
@@ -120,8 +130,18 @@ public sealed class CombatSystem : ISimulationSystem
         if (FightRules.InRange(_sight!, creature, x, y))
         {
             creature.StopMoving();
-            if (CombatRules.SwingMayBegin(creature, definition, tick))
+            if (creature.AttackType is CombatRules.AttackTypes.SpellAtCreature or CombatRules.AttackTypes.SpellAtThing)
+            {
+                // The spell arm (combat-spells.md §6): cast when the cooldown allows, else §9.
+                if (SpellRules.CanCast(context.Database, creature, definition, creature.AttackSpellSlot, tick))
+                    FightRules.StartCast(context, creature, definition, creature.AttackSpellSlot);
+                else
+                    CannotCast(context, creature, definition, x, y);
+            }
+            else if (CombatRules.SwingMayBegin(creature, definition, tick))
+            {
                 FightRules.StartSwing(context, _sight!, creature, definition, _scratch);
+            }
             return;
         }
 
@@ -141,6 +161,38 @@ public sealed class CombatSystem : ISimulationSystem
         }
 
         FightRules.Approach(context.Navigation, creature, x, y, targetTile);
+    }
+
+    /// <summary>A spell that cannot be cast (combat-spells.md §9, §10): the target is let go and
+    /// another sought; the same target chosen again with a spell nibble makes the caster step back
+    /// when within a quarter of its range and sight, else run. DK2 restores the old target when
+    /// nothing is found; here the creature stands idle until its next scan (Q398).</summary>
+    private void CannotCast(SimulationContext context, CreatureState creature, CreatureDef definition, int targetX, int targetY)
+    {
+        WorldState world = context.World;
+        byte kind = creature.FightTargetKind;
+        int previous = creature.FightTargetId;
+        CombatRules.Disengage(world, creature);
+        if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+        {
+            context.Emit(SystemName, "disengaged", $"creature={creature.Id} player={creature.OwnerPlayerId} reason=cannot_cast");
+            return;
+        }
+        if (!CombatRules.IsFighting(creature)) return;
+        if (creature.FightTargetKind != kind || creature.FightTargetId != previous) return;
+        if (creature.AttackType is not (CombatRules.AttackTypes.SpellAtCreature or CombatRules.AttackTypes.SpellAtThing)) return;
+
+        int distance = CombatRules.DistanceSquared(creature.PosX, creature.PosY, targetX, targetY);
+        int sightSq = CombatRules.RangeSquared(definition.DistanceCanSee);
+        if (distance < creature.AttackRangeSquared / 4 && distance < sightSq / 4)
+        {
+            if (FearRules.StepBack(context, creature, definition, targetX, targetY, _scratch))
+                context.Emit(SystemName, "steps_back", $"creature={creature.Id} target={previous}");
+        }
+        else
+        {
+            creature.Running = true;
+        }
     }
 
     private static void LetGo(SimulationContext context, CreatureState creature, string reason)

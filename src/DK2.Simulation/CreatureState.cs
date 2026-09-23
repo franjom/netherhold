@@ -596,6 +596,26 @@ public sealed class CreatureState
     /// <c>state+0x7E</c> in state 254; over thirty and it stands down.</summary>
     public int ReportTicks;
 
+    /// <summary>The turn each of the three spell slots was last cast at — DK2's <c>+0x41B + 4i</c>;
+    /// zero means never, and a cast stamps it when the action starts, not when the shot leaves
+    /// (combat-spells.md §4, §6).</summary>
+    public readonly long[] SpellStamps = new long[3];
+
+    /// <summary>The high nibble of <c>creature+0x529</c>: which slot the engagement's spell nibble
+    /// casts from. Meaningless while <see cref="AttackType"/> is a melee nibble.</summary>
+    public byte AttackSpellSlot;
+
+    /// <summary>What the current action is: 0 the melee swing (action 17), 1 a spell cast (action
+    /// 16) from <see cref="SwingSpellSlot"/>, whose shot leaves <c>ShotDelay</c> ticks after
+    /// <see cref="SwingStartTick"/> (combat-spells.md §7).</summary>
+    public byte SwingKind;
+    public byte SwingSpellSlot;
+
+    /// <summary>Where the creature stood at the start of the last movement tick — the previous
+    /// position DK2's <c>vtable+0x2C</c> returns, which a shot's aim leads by (shots.md §7).</summary>
+    public int LastPosX;
+    public int LastPosY;
+
     /// <summary>The eight melee attackers engaged with this creature, by id, 0 for a free slot —
     /// DK2's <c>+0x504</c> array. An attacker takes the first free slot when it engages and is
     /// struck out when it disengages; a ninth melee attacker cannot engage at all.</summary>
@@ -715,6 +735,12 @@ public sealed class CreatureState
         hash.Add(AlarmDeficit);
         hash.Add(AlarmRoomTile);
         hash.Add(ReportTicks);
+        for (int i = 0; i < SpellStamps.Length; i++) hash.Add(SpellStamps[i]);
+        hash.Add(AttackSpellSlot);
+        hash.Add(SwingKind);
+        hash.Add(SwingSpellSlot);
+        hash.Add(LastPosX);
+        hash.Add(LastPosY);
         for (int i = 0; i < EngagedMelee.Length; i++) hash.Add(EngagedMelee[i]);
         for (int i = 0; i < EngagedRanged.Length; i++) hash.Add(EngagedRanged[i]);
     }

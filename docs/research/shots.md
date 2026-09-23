@@ -216,13 +216,27 @@ Every creature shot has radius 819 (a fifth of a tile).
 
 ## 10. Built and not built
 
-**Nothing here is built.** The damaging path is complete enough to build with the
-casters (`combat-spells.md` §11): a shot thing stepping `Speed` a tick toward
-its aim, the enemy predicate within its radius, contact damage flat from data1
-through `CreatureHealthRules`, the chained explosion and its linear area, death
-by lifetime or hit. The status shots need the creature side of §8's stores
-(Q396) before they mean anything; Guided Bolt's homing and the unread handlers
-are Q395.
+**Built (ADR-0167):** `ShotState` is the thing, `ShotSystem` its tick after the
+creatures have moved, `ShotRules` its rules: §3's launch at `Speed` a tick along the
+line to the aim; §4's order — a hit, else two half-steps refused by solid
+tiles, a bounce for flags bit 3, else a stop that kills a bit-0 shot; the lifetime
+counting down; death chaining the death shot, none for a shot the world stopped;
+§4a's collide classes over creatures by alliance and owner, never the caster; §7's
+contact damage flat and the type-2 linear area; chained hit shots inheriting the data
+words. Corrections from the build's last read: flags **bit 3 bounces** (slot `+0x60`,
+`0x004AB810`), **bit 4 is the lobbed launch** (slot `+0x68`, the `+0x400` of §3), a
+**zero mass flies** (slot `+0x88`, `0x004B7E40`), slot `+0x84` returns 0 for every shot,
+and air friction scales the velocity by `(4096 — AirFriction) / 4096` a tick, no
+lower than a half.
+
+**Not built, named (Q398):** height — every shot flies flat and gravity, the lob and
+the aim's half-height are dropped; the overlap test `0x004B5590` — ours is the shot's
+radius plus half the creature's footprint, nearest first where DK2 takes tile order;
+doors, objects and bodies as things hit — a shot sent at a heart strikes within an
+object's reach of its tile (Q363); the process types and their creature side (Q396); a
+stopped or standing shot counts its lifetime down where DK2's physics returns 0 and does
+not; the events 0x1/0x100 and the effects. DK2's thing order between creatures and
+shots is unread: ours flies a shot from the tick after it is made.
 
 ## Confidence
 

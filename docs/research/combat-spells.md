@@ -22,8 +22,8 @@ times its last movement per tile of range; the action ends the tick the shot
 leaves. The survey keeps the attack spell whose next-ready time is latest, so a
 fresh Warlock throws Firebomb before Fireball. A friendly spell is cast once and
 the target dropped. A spell the creature cannot cast makes it look for another
-target, then step back or run. **Nothing here is built** (§11): the shot's flight
-and hit are the unread piece, Q392.
+target, then step back or run. **Built for the attack spells** (ADR-0167, §11); the
+friendly arm waits on the buff table (Q394).
 
 ---
 
@@ -204,15 +204,20 @@ by `0x00460DA0` (a route to the spot and the terrain flag) and applied by
 
 ## 11. Built and not built
 
-**Nothing here is built.** Every cast ends in a shot thing; its damaging path is
-read in `shots.md` and the status shots' creature side is not (Q396). An arm
-without shots would have casters stand at range firing nothing, worse than the
-melee `SelectAVictim` gives everyone today because the survey is not built
-(`combat-acquisition.md` §6). The build is one slice: survey, arms, action 16
-and the damaging shots together.
-The data layer is ready: `CreatureSpellDef` carries every field §1 names, and
-`CreatureSpellSlot.ShotDelay` is fixed seconds, `CombatRules.TicksOf` the
-loader's multiply. The friendly arm needs Q394's buff table as well.
+**Built (ADR-0167, `HashVersion` 72):** the survey's attack choice (§5) in
+`SpellRules.SurveyAttack`, run by `CombatTargetRules.Choose` for every non-worker; the
+fight-starter's nibble in `Engage` and `EngageHeart`; the cooldown gate §4 without
+the haste words (Q393); the spell arm §6 as `FightRules.StartCast`, stamping the
+slot at the start; action 16 §7 as `CastFires`/`FireSpell`, firing when the turn is
+past start + delay, with the lead on the target's last move, from the caster's own
+position — the slot's origin vector is not carried (Q398); the cannot-cast
+fallback §9 and the step-back §10 in `CombatSystem.CannotCast`, except that
+nothing found leaves the creature idle where DK2 restores the old target. The shot
+itself is `shots.md` §10.
+
+**Not built:** the ally arm §8 and the friendly survey (Q394); the thing-targeting
+survey; the possession recharge modifiers (Q393); the approach's part-way point for a
+spell nibble (`combat-fight-state.md` §2 step 10).
 
 ## Confidence
 

@@ -38,6 +38,8 @@ public static class SimulationSystems
         new CombatSystem(),
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
         new CreatureMovementSystem(),
+        // Shots fly after the creatures have moved; where DK2's thing list puts them is Q398.
+        new ShotSystem(),
         new FogOfWarSystem(),
         // Work queued and resolved inside one tick, so nothing survives the boundary
         // half-done; bridges burn after the work (Q67), which makes the fire final.

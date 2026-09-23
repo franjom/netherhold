@@ -3827,3 +3827,33 @@ type (Q390, Codex): an enemy Imp is judged by the shared template anywhere — b
 **Consequences.** Imps scatter from heroes, defend the heart, and call a room to
 arms when outnumbered — the last visible piece of creature-side combat before the
 spell arms. `HashVersion` 71.
+
+## ADR-0167 — The attack spells and their shots: a cast is action 16 firing a shot thing
+
+**Status.** Accepted 2026-09-23 · `HashVersion` 72 · Research:
+`docs/research/combat-spells.md`, `docs/research/shots.md`.
+
+**Context.** Every creature fought with melee because the spell survey was not
+built, and a caster without shots would have stood at range firing nothing. Both
+halves were read to the byte: the survey keeps the castable attack spell whose
+next-ready time is latest; in reach and off cooldown the caster stamps the slot
+and starts action 16, whose handler fires a shot of the spell's `ShotTypeId`
+`ShotDelay` ticks later, aimed with a lead of the target's last move per tile; the
+shot flies `Speed` position units a tick, hits the first thing of its collide class
+within its radius, never its caster, deals `ShotData1` **flat, unscaled by level**
+through the melee blow's health routine, and chains hit and death shots that
+inherit its data words.
+
+**Decision.** `SpellRules` (survey, cooldown, ranges), `FightRules.StartCast` /
+`CastFires` / `FireSpell`, `CombatSystem.CannotCast`; `ShotState` as a world
+collection with its own id counter, `ShotSystem` after movement, `ShotRules`
+(launch, finder, contact and area damage, chaining). Creature state gains the
+three stamps, the spell slot, the action's kind and slot, and its last position.
+Approximations are named in Q398: flat flight, the overlap test, the origin
+vector, a stopped shot's countdown, the idle fallback, the thing order.
+
+**Consequences.** Warlocks, Mistresses, Dark Elves, Salamanders and every other
+caster fight at range with the shipped spells; a Support never melees. The
+status spells (Freeze, Slow, Haste, Heal, Armour, Invulnerable, Invisible,
+Lightning, Drain) fly and land but do nothing until their creature side is read
+(Q396); the friendly arm waits on the buff table (Q394). `HashVersion` 72.

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 71;
+    private const int FormatVersion = 72;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -259,12 +259,42 @@ public static class WorldSnapshot
             w.Write(c.AlarmDeficit);
             w.Write(c.AlarmRoomTile);
             w.Write(c.ReportTicks);
+            w.Write(c.AttackSpellSlot);
+            w.Write(c.SwingKind);
+            w.Write(c.SwingSpellSlot);
+            w.Write(c.LastPosX);
+            w.Write(c.LastPosY);
+            for (int i = 0; i < c.SpellStamps.Length; i++) w.Write(c.SpellStamps[i]);
             for (int i = 0; i < c.EngagedMelee.Length; i++) w.Write(c.EngagedMelee[i]);
             for (int i = 0; i < c.EngagedRanged.Length; i++) w.Write(c.EngagedRanged[i]);
 
             // The route window is state, not a cache: a creature restored without it would
             // request again from a different position and the restored run would diverge.
             WriteBody(w, c.Body);
+        }
+
+        w.Write(world.NextShotId);
+        w.Write(world.Shots.Count);
+        foreach (ShotState s in world.Shots)
+        {
+            w.Write(s.Id);
+            w.Write(s.ShotTypeId);
+            w.Write(s.OwnerPlayerId);
+            w.Write(s.PosX);
+            w.Write(s.PosY);
+            w.Write(s.VelX);
+            w.Write(s.VelY);
+            w.Write(s.Health);
+            w.Write(s.Age);
+            w.Write(s.Data1);
+            w.Write(s.Data2);
+            w.Write(s.CasterId);
+            w.Write(s.TargetKind);
+            w.Write(s.TargetId);
+            w.Write(s.TargetPlayerId);
+            w.Write(s.TargetTileIndex);
+            w.Write(s.TargetX);
+            w.Write(s.TargetY);
         }
 
         w.Write(world.NextObjectId);
@@ -593,7 +623,13 @@ public static class WorldSnapshot
                 AlarmDeficit = r.ReadInt32(),
                 AlarmRoomTile = r.ReadInt32(),
                 ReportTicks = r.ReadInt32(),
+                AttackSpellSlot = r.ReadByte(),
+                SwingKind = r.ReadByte(),
+                SwingSpellSlot = r.ReadByte(),
+                LastPosX = r.ReadInt32(),
+                LastPosY = r.ReadInt32(),
             };
+            for (int k = 0; k < creature.SpellStamps.Length; k++) creature.SpellStamps[k] = r.ReadInt64();
             for (int k = 0; k < creature.EngagedMelee.Length; k++) creature.EngagedMelee[k] = r.ReadInt32();
             for (int k = 0; k < creature.EngagedRanged.Length; k++) creature.EngagedRanged[k] = r.ReadInt32();
 
@@ -606,6 +642,34 @@ public static class WorldSnapshot
         // so the counter is restored rather than derived: a level that has had
         // creatures die must not hand out an id it has already used.
         world.NextCreatureId = nextCreatureId;
+
+        int nextShotId = r.ReadInt32();
+        int shotCount = r.ReadInt32();
+        for (int i = 0; i < shotCount; i++)
+        {
+            world.RawShots.Add(new ShotState
+            {
+                Id = r.ReadInt32(),
+                ShotTypeId = r.ReadByte(),
+                OwnerPlayerId = r.ReadByte(),
+                PosX = r.ReadInt32(),
+                PosY = r.ReadInt32(),
+                VelX = r.ReadInt32(),
+                VelY = r.ReadInt32(),
+                Health = r.ReadInt32(),
+                Age = r.ReadInt32(),
+                Data1 = r.ReadInt32(),
+                Data2 = r.ReadInt32(),
+                CasterId = r.ReadInt32(),
+                TargetKind = r.ReadByte(),
+                TargetId = r.ReadInt32(),
+                TargetPlayerId = r.ReadByte(),
+                TargetTileIndex = r.ReadInt32(),
+                TargetX = r.ReadInt32(),
+                TargetY = r.ReadInt32(),
+            });
+        }
+        world.NextShotId = nextShotId;
 
         int nextObjectId = r.ReadInt32();
         int objectCount = r.ReadInt32();

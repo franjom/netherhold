@@ -99,9 +99,9 @@ public sealed class HeartSites
 /// or by a walkable route, the heart scan (§6 scan E), the route check on the winner, the final
 /// gate, and the fight-starter that registers the engagement and sets the reach
 /// (docs/research/combat-acquisition.md §6–§8), and the withdrawal of a hurt creature in place of
-/// the fight (combat-fear.md §3). Not built and named there: the NonFighter arm, the spell survey
-/// and the spell arms, the scan over who is already attacking me and the door scan. Every
-/// engagement made here is melee.</summary>
+/// the fight (combat-fear.md §3), and the attack-spell survey that lets a caster engage at its
+/// spell's range (combat-spells.md §5, ADR-0167). Not built and named there: the friendly and
+/// thing-targeting surveys, the scan over who is already attacking me and the door scan.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-acquisition.md")]
 public static class CombatTargetRules
 {
@@ -145,6 +145,13 @@ public static class CombatTargetRules
         int sightSq = CombatRules.RangeSquared(definition.DistanceCanSee);
         int hearSq = CombatRules.RangeSquared(definition.DistanceCanHear);
 
+        // The spell survey (combat-spells.md §5), skipped for a worker: the attack spell the
+        // fight-starter will pick over melee at range. Friendly and thing-targeting spells are not built.
+        int spellSlot = -1;
+        CreatureSpellDef? spell = null;
+        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
+            spellSlot = SpellRules.SurveyAttack(database, me, definition, context.Tick.Value, out spell);
+
         int best = int.MaxValue;
         CreatureState? chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
 
@@ -161,11 +168,11 @@ public static class CombatTargetRules
         {
             if (!CanReach(context.Navigation, me, definition, TileCentreX(world, heartTile), TileCentreY(world, heartTile), int.MaxValue, scratch))
                 return false;
-            return EngageHeart(context, me, definition, heartOwner, heartTile);
+            return EngageHeart(context, me, definition, heartOwner, heartTile, spellSlot, spell);
         }
 
         if (chosen is null) return false;
-        return Commit(context, sight, me, definition, chosen, scratch);
+        return Commit(context, sight, me, definition, chosen, scratch, spellSlot, spell);
     }
 
     /// <summary>The acquirer's common tail on a chosen creature: the winner must be walkable to — a
@@ -174,18 +181,23 @@ public static class CombatTargetRules
     /// sight and seen. Then the fight-starter.</summary>
     private static bool Commit(
         SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition, CreatureState chosen,
-        List<Fixed16Vector> scratch)
+        List<Fixed16Vector> scratch, int spellSlot = -1, CreatureSpellDef? spell = null)
     {
         int sightSq = CombatRules.RangeSquared(definition.DistanceCanSee);
         int hearSq = CombatRules.RangeSquared(definition.DistanceCanHear);
         int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, chosen.PosX, chosen.PosY);
-        if (!CanReach(context.Navigation, me, definition, chosen.PosX, chosen.PosY, int.MaxValue, scratch)) return false;
+        if (!CanReach(context.Navigation, me, definition, chosen.PosX, chosen.PosY, int.MaxValue, scratch))
+        {
+            // A creature with an attack spell keeps a target it can only see (§6.2 step 1).
+            if (spell is null || distance >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, chosen.PosX, chosen.PosY))
+                return false;
+        }
 
         int third = distance / 3;
         if (third >= hearSq && (third >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, chosen.PosX, chosen.PosY)))
             return false;
 
-        return Engage(context, me, definition, chosen, context.Database.CreatureById(chosen.CreatureTypeId));
+        return Engage(context, me, definition, chosen, context.Database.CreatureById(chosen.CreatureTypeId), spellSlot, spell);
     }
 
     /// <summary>The NonFighter arm (<c>0x0045BDF0</c>, the Imp's and Jack's; combat-target-selection.md
@@ -368,35 +380,67 @@ public static class CombatTargetRules
         return unchecked((length >> 12) * length) < rangeSq;
     }
 
-    /// <summary>Commit and start: the target and its attack type on me — melee, since the spell
-    /// survey is not built — my id in the target's melee slots, the reach, and the state. A target
-    /// with all eight melee slots taken refuses the engagement and leaves me as I was.</summary>
-    private static bool Engage(SimulationContext context, CreatureState me, CreatureDef mine, CreatureState target, CreatureDef theirs)
+    /// <summary>Commit and start (the fight-starter, combat-acquisition.md §6.2 step 3): the target
+    /// and its attack type on me — melee within a tile unless I am <c>Support</c>, else the surveyed
+    /// attack spell with its range as the reach, else melee — my id in the target's melee or ranged
+    /// slots, and the state. A target with all eight slots of that kind taken refuses the
+    /// engagement and leaves me as I was.</summary>
+    private static bool Engage(
+        SimulationContext context, CreatureState me, CreatureDef mine, CreatureState target, CreatureDef theirs,
+        int spellSlot = -1, CreatureSpellDef? spell = null)
     {
+        int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, target.PosX, target.PosY);
+        bool useSpell = spell != null && !(distance < MeleeDecisionDistance && mine.FightStyle != FightStyle.Support);
         bool same = me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId == target.Id;
-        if (!same && !CombatRules.Register(target, me.Id, ranged: false)) return false;
+        bool wasRanged = me.AttackType is CombatRules.AttackTypes.SpellAtCreature or CombatRules.AttackTypes.SpellAtThing;
+        if (same && wasRanged != useSpell) CombatRules.Unregister(target, me.Id);
+        if ((!same || wasRanged != useSpell) && !CombatRules.Register(target, me.Id, ranged: useSpell)) return false;
 
         me.FightTargetKind = FightTargetKind.Creature;
         me.FightTargetId = target.Id;
         me.FightTargetPlayerId = 0;
         me.FightTargetTileIndex = -1;
-        me.AttackType = CombatRules.AttackTypes.MeleeAtCreature;
-        me.AttackRangeSquared = CombatRules.MeleeReachSquared(mine, theirs);
-        Enter(context, me, mine, same, $"target={target.Id}");
+        if (useSpell)
+        {
+            me.AttackType = CombatRules.AttackTypes.SpellAtCreature;
+            me.AttackSpellSlot = (byte)spellSlot;
+            me.AttackRangeSquared = SpellRules.RangeSquared(spell!);
+        }
+        else
+        {
+            me.AttackType = CombatRules.AttackTypes.MeleeAtCreature;
+            me.AttackSpellSlot = 0;
+            me.AttackRangeSquared = CombatRules.MeleeReachSquared(mine, theirs);
+        }
+        Enter(context, me, mine, same, $"target={target.Id} attack={me.AttackType}");
         return true;
     }
 
-    /// <summary>The heart as a thing target: melee at a thing, an object's reach, no slots.</summary>
-    private static bool EngageHeart(SimulationContext context, CreatureState me, CreatureDef mine, byte owner, int tile)
+    /// <summary>The heart as a thing target: a spell at a thing when the surveyed spell deals damage
+    /// (a status spell takes melee against a thing, combat-spells.md §2), else melee at an object's
+    /// reach; no slots.</summary>
+    private static bool EngageHeart(
+        SimulationContext context, CreatureState me, CreatureDef mine, byte owner, int tile, int spellSlot = -1, CreatureSpellDef? spell = null)
     {
         bool same = me.FightTargetKind == FightTargetKind.Heart && me.FightTargetTileIndex == tile;
+        bool useSpell = spell != null && !SpellRules.IsStatus(spell);
         me.FightTargetKind = FightTargetKind.Heart;
         me.FightTargetId = CombatRules.NoTarget;
         me.FightTargetPlayerId = owner;
         me.FightTargetTileIndex = tile;
-        me.AttackType = CombatRules.AttackTypes.MeleeAtThing;
-        me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange.Raw + CombatRules.ObjectReach);
-        Enter(context, me, mine, same, $"heart={owner} tile={tile}");
+        if (useSpell)
+        {
+            me.AttackType = CombatRules.AttackTypes.SpellAtThing;
+            me.AttackSpellSlot = (byte)spellSlot;
+            me.AttackRangeSquared = SpellRules.RangeSquared(spell!);
+        }
+        else
+        {
+            me.AttackType = CombatRules.AttackTypes.MeleeAtThing;
+            me.AttackSpellSlot = 0;
+            me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange.Raw + CombatRules.ObjectReach);
+        }
+        Enter(context, me, mine, same, $"heart={owner} tile={tile} attack={me.AttackType}");
         return true;
     }
 

@@ -139,7 +139,8 @@ kind); bit 0 → an **attack spell**, the one whose next-ready time `stamp +
 recharge` is latest kept (`0x004F7AB0` is the recharge in ticks, not a strength
 — corrected 2026-09-23, `combat-spells.md` §5); bit 1 with target class 4
 (`vtable+0x1B0(def+0x44)[0x6A]`) → a thing-targeting spell. The bits are named
-from the roster in `combat-spells.md` §2. None of this is built (Q392).
+from the roster in `combat-spells.md` §2. The attack survey is built (ADR-0167); the
+friendly and thing-targeting spells are not (Q394).
 
 **The scans, in order.** Each keeps a running best and a tag; `d` is the
 squared distance of `combat-target-selection.md` §2.
