@@ -32,6 +32,12 @@ beside it.
 
 ## Versions
 
+**80** — `0xF53826B464578C5B`. The resume pair stops carrying a sentinel
+(ADR-0175). `StateBeforeUtilityState` and `UtilityNewState` default to **0**, as
+DK2's state-object constructor writes, not to -1; the resume slot is never unset
+while a creature travels, so the transition rule may read it unconditionally.
+A composition bump: both fields hold their default for the whole pinned run.
+
 **79** — `0x6ACE9686C2A3E64E`. A bed is a hospital (ADR-0173). Waking needs
 both an elapsed `TimeSleep` and full level-scaled health, as DK2's state 83
 does. **The pinned world exercises none of it** — nothing in it sleeps

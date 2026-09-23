@@ -21,6 +21,9 @@ public class CreatureStateMachineTests
     private const int EnRoute = 6;               // group 9, Movement — a utility state
     private const int Sleeping = 83;             // group 7, Sleeping
     private const int LookingForLair = 79;       // group 7, Lair
+    private const int EnRouteToRoom = 7;         // group 9, Movement - the room helper's
+    private const int HatcheryWalkCaller = 91;   // group 8, the eating trace's first state
+    private const int Eating = 92;               // group 8, its resume
 
     private static CreatureState Fresh() => new() { Id = 1 };
 
@@ -91,95 +94,101 @@ public class CreatureStateMachineTests
     [Fact]
     public void EnteringATravelStateRecordsWhatItInterrupted()
     {
-        // DK2 writes the caller's state as it enters a utility state, which is the half of
-        // the resume slot that IS read (creature-state-table.md 2.1). Who writes the other
-        // half, UtilityNewState, is Q414 and this gate does not guess.
+        // SetState saves the caller as it enters a utility state (travel-states.md 3), and
+        // the route helper writes the resume slot only after that call returns - so the
+        // save is the caller's state, never the resume.
         CreatureState creature = Fresh();
         CreatureStateMachine.Begin(creature, LeavingDungeon);
-        Assert.Equal(CreatureStateMachine.NoState, creature.StateBeforeUtilityState);
+        Assert.Equal(0, creature.StateBeforeUtilityState);
 
         Assert.True(CreatureStateTable.Get(EnRoute).IsUtility);
         Assert.True(CreatureStateMachine.TrySetState(creature, EnRoute));
 
         Assert.Equal(EnRoute, creature.Dk2StateId);
         Assert.Equal(LeavingDungeon, creature.StateBeforeUtilityState);
-        Assert.Equal(CreatureStateMachine.NoState, creature.UtilityNewState);
     }
 
     [Fact]
-    public void LeavingATravelStateClearsTheSlotItWroteOnTheWayIn()
+    public void LeavingATravelStateDoesNotClearTheSaveAndTravelToTravelOverwritesItWithIdle()
     {
+        // Two things the original does that look like oversights and are not. Leaving a
+        // utility state never clears +0x40, so the save goes stale and the rule keeps
+        // judging by it. And a travel-to-travel move recurses through SetState(1) first,
+        // so the save ends up 1 rather than the walk it came from (travel-states.md 3).
         CreatureState creature = Fresh();
         CreatureStateMachine.Begin(creature, LeavingDungeon);
-        CreatureStateMachine.TrySetState(creature, EnRoute);
+        CreatureStateMachine.BeginTravel(creature, EnRoute, Idle);
         Assert.Equal(LeavingDungeon, creature.StateBeforeUtilityState);
 
-        Assert.True(CreatureStateMachine.TrySetState(creature, Idle));
-        Assert.Equal(CreatureStateMachine.NoState, creature.StateBeforeUtilityState);
+        Assert.True(CreatureStateMachine.Arrive(creature));
+        Assert.Equal(Idle, creature.Dk2StateId);
+        Assert.Equal(LeavingDungeon, creature.StateBeforeUtilityState);
+
+        // Travel to travel: the save is 1, not the walk it came from.
+        CreatureStateMachine.BeginTravel(creature, EnRoute, Sleeping);
+        Assert.Equal(Idle, creature.StateBeforeUtilityState);
+        Assert.True(CreatureStateMachine.TrySetState(creature, EnRouteToRoom));
+        Assert.Equal(CreatureStateMachine.Idle, creature.StateBeforeUtilityState);
+    }
+
+    [Fact]
+    public void AWalkIsOneCallInAndOneCallOut()
+    {
+        // The protocol, as the two route helpers and the arrival branch have it: enter the
+        // travel state, then write the slot; on arrival hand over and reset the slot to 1.
+        // A caller's whole contribution is the target, the resume state and the options.
+        CreatureState creature = Fresh();
+        CreatureStateMachine.Begin(creature, HatcheryWalkCaller);
+
+        CreatureStateMachine.BeginTravel(creature, EnRouteToRoom, Eating);
+        Assert.Equal(EnRouteToRoom, creature.Dk2StateId);
+        Assert.Equal(HatcheryWalkCaller, creature.StateBeforeUtilityState);
+        Assert.Equal(Eating, creature.UtilityNewState);
+
+        Assert.True(CreatureStateMachine.Arrive(creature));
+        Assert.Equal(Eating, creature.Dk2StateId);
+        Assert.Equal(CreatureStateMachine.Idle, creature.UtilityNewState);
+    }
+
+    [Fact]
+    public void TheHandoverCanNeverBeRefusedByTheRuleAlone()
+    {
+        // Worth pinning because it explains a branch that otherwise looks live. Leaving a
+        // travel state is judged by the resume state, and the target IS the resume state,
+        // so the comparison is a state against itself and the rule always says yes. Every
+        // refusal the original checks for comes from the enter hook of the resume's
+        // category, which nothing here has yet (travel-states.md 3, 4).
+        int allowed = 0;
+        for (int resume = 0; resume < CreatureStateTable.Count; resume++)
+        {
+            CreatureState creature = Fresh();
+            CreatureStateMachine.Begin(creature, Sleeping);
+            CreatureStateMachine.BeginTravel(creature, EnRoute, resume);
+            if (CreatureStateMachine.Arrive(creature)) allowed++;
+            Assert.Equal(CreatureStateMachine.Idle, creature.UtilityNewState);
+        }
+
+        Assert.Equal(CreatureStateTable.Count, allowed);
     }
 
     [Fact]
     public void ACreatureInTransitIsJudgedByWhereItIsHeading()
     {
         // The substitution is the rule's, not ours, and it is why the resume slot had to
-        // exist before the gate could: with the slot set, a move out of a travel state is
-        // tested against the errand rather than against the walk.
+        // exist before the gate could: a move out of a travel state is tested against the
+        // errand rather than against the walk.
         CreatureState creature = Fresh();
         CreatureStateMachine.Begin(creature, Idle);
-        CreatureStateMachine.TrySetState(creature, EnRoute);
+        CreatureStateMachine.BeginTravel(creature, EnRoute, Sleeping);
 
-        creature.UtilityNewState = Sleeping;
         Assert.Equal(Sleeping,
             CreatureStateTransitions.ResolveComparisonState(creature.Dk2StateId, Sleeping));
 
         // With Sleeping substituted in, the sibling Lair state is refused exactly as it is
         // from Sleeping itself - the walk has stopped shielding it.
         Assert.Equal(
-            CreatureStateTransitions.Classify(Sleeping, LookingForLair, CreatureStateMachine.NoState),
+            CreatureStateTransitions.Classify(Sleeping, LookingForLair, Sleeping),
             CreatureStateMachine.Classify(creature, LookingForLair));
-    }
-
-    [Fact]
-    public void ResumeNeedsASlotAndATravelStateToLeave()
-    {
-        CreatureState creature = Fresh();
-        CreatureStateMachine.Begin(creature, Idle);
-
-        // Not travelling.
-        creature.UtilityNewState = Sleeping;
-        Assert.False(CreatureStateMachine.TryResume(creature));
-        Assert.Equal(Idle, creature.Dk2StateId);
-
-        // Travelling with an empty slot.
-        CreatureStateMachine.TrySetState(creature, EnRoute);
-        creature.UtilityNewState = CreatureStateMachine.NoState;
-        Assert.False(CreatureStateMachine.TryResume(creature));
-        Assert.Equal(EnRoute, creature.Dk2StateId);
-
-        // Both, and it lands on the errand and forgets it.
-        creature.UtilityNewState = Idle;
-        Assert.True(CreatureStateMachine.TryResume(creature));
-        Assert.Equal(Idle, creature.Dk2StateId);
-        Assert.Equal(CreatureStateMachine.NoState, creature.UtilityNewState);
-    }
-
-    [Fact]
-    public void ATravelStateWithNoResumeTargetIsOursAndDoesNotThrow()
-    {
-        // Classify throws on an unset slot - there is no state -1 to look up - and DK2
-        // presumably never asks, because the slot is written before the travel state is
-        // entered. Who writes it is Q414. Until that is read this project CAN reach the
-        // unset case, so the gate judges the travel state by itself instead. Ours, not
-        // DK2's, pinned so it cannot be mistaken for the original when Q414 lands.
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => CreatureStateTransitions.Classify(EnRoute, Idle, CreatureStateMachine.NoState));
-
-        CreatureState creature = Fresh();
-        CreatureStateMachine.Begin(creature, EnRoute);
-        Assert.Equal(CreatureStateMachine.NoState, creature.UtilityNewState);
-
-        StateTransition answered = CreatureStateMachine.Classify(creature, Idle);
-        Assert.Equal(CreatureStateTransitions.Classify(EnRoute, Idle, EnRoute), answered);
     }
 
     [Fact]
@@ -198,14 +207,10 @@ public class CreatureStateMachineTests
                 CreatureState creature = Fresh();
                 CreatureStateMachine.Begin(creature, from);
 
-                // The rule's third argument is the resume slot. An unset slot is a state
-                // this project cannot yet produce, and the rule throws on it, so the gate
-                // substitutes the travel state itself; feed the rule the same thing or
-                // this compares two different questions.
-                StateTransition expected = CreatureStateTransitions.Classify(
-                    from, to, CreatureStateTable.Get(from).IsUtility
-                        ? from
-                        : CreatureStateMachine.NoState);
+                // The rule's third argument is the resume slot, which a fresh creature
+                // carries at DK2's constructor value of 0; feed the rule the same thing
+                // the gate reads or this compares two different questions.
+                StateTransition expected = CreatureStateTransitions.Classify(from, to, 0);
                 Assert.Equal(expected, CreatureStateMachine.Classify(creature, to));
 
                 bool took = CreatureStateMachine.TrySetState(creature, to);

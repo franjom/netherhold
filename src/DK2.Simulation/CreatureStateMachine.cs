@@ -36,7 +36,7 @@ public static class CreatureStateMachine
         if (!HasState(creature)) return StateTransition.Allowed;
 
         return CreatureStateTransitions.Classify(
-            creature.Dk2StateId, targetStateId, ResumeOrSelf(creature));
+            creature.Dk2StateId, targetStateId, creature.UtilityNewState);
     }
 
     /// <summary>Gives a creature its first state id. Separate from <see cref="TrySetState"/>
@@ -71,39 +71,70 @@ public static class CreatureStateMachine
         return true;
     }
 
-    /// <summary>Leaves a utility state for the state it was holding, and clears the slot.
-    /// Returns false when there is nothing to resume to or the rule refuses the move.</summary>
-    /// <remarks>Which site performs this in the original — the travel handler's arrival
-    /// branch, a category hook, or the caller — is <b>UNKNOWN</b> (Q414), and so is who
-    /// writes <see cref="CreatureState.UtilityNewState"/> in the first place. This is the
-    /// shape the slot implies, not a site that has been read; nothing calls it yet.</remarks>
-    public static bool TryResume(CreatureState creature)
+    /// <summary>Starts a walk the way the original's two route helpers do: enter the travel
+    /// state, then write the resume slot (<c>travel-states.md</c> §2). The order is theirs
+    /// and it matters — <c>SetState</c> saves the caller into
+    /// <see cref="CreatureState.StateBeforeUtilityState"/> before the slot is touched, and
+    /// the helpers do not test the transition's result.</summary>
+    /// <remarks>A caller's whole contribution in DK2 is one call with a target, a resume
+    /// state and an option word. Routing and the destination are the mover's; this models
+    /// only the state side, because nothing retires onto it yet.</remarks>
+    public static void BeginTravel(CreatureState creature, int travelStateId, int resumeStateId)
     {
         if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (!CreatureStateTable.Get(travelStateId).IsUtility)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(travelStateId), travelStateId, "Not a travel state.");
+        }
 
-        int resume = creature.UtilityNewState;
-        if (resume == NoState) return false;
-        if (!CreatureStateTable.Get(creature.Dk2StateId).IsUtility) return false;
-        if (!TrySetState(creature, resume)) return false;
-
-        creature.UtilityNewState = NoState;
-        return true;
+        _ = CreatureStateTable.Get(resumeStateId);
+        TrySetState(creature, travelStateId);
+        creature.UtilityNewState = resumeStateId;
     }
 
-    /// <summary>The state the differing-tags half of the rule compares against: a creature
-    /// mid-travel is judged by where the travel is going. Falls back to the travel state
-    /// itself when the resume slot is empty, because the rule has to answer and a creature
-    /// with an unset slot is a state this project cannot yet produce (Q414).</summary>
-    private static int ResumeOrSelf(CreatureState creature) =>
-        creature.UtilityNewState == NoState ? creature.Dk2StateId : creature.UtilityNewState;
+    /// <summary>The arrival branch of a travel handler: hand control to the resume state and
+    /// put the slot back to <see cref="Idle"/>.</summary>
+    /// <remarks>The reset happens <b>whether or not the transition was allowed</b>, which is
+    /// the original's order and not a tidy-up — state 6 sets the slot from a register loaded
+    /// before the call and only then branches on the result. Returns what the move returned,
+    /// as the handler does; a false there reaches DK2's dispatcher, which idles the
+    /// creature.</remarks>
+    public static bool Arrive(CreatureState creature)
+    {
+        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (!CreatureStateTable.Get(creature.Dk2StateId).IsUtility)
+        {
+            throw new InvalidOperationException(
+                $"Creature {creature.Id} is in state {creature.Dk2StateId}, not a travel state.");
+        }
+
+        bool took = TrySetState(creature, creature.UtilityNewState);
+        creature.UtilityNewState = Idle;
+        return took;
+    }
+
+    /// <summary>State 1, <c>idle</c> — and the value DK2 leaves in the resume slot between
+    /// walks. Its constructor writes 0 and every arrival writes 1, so the slot is never
+    /// unset while a creature is travelling (<c>travel-states.md</c> §2.4, §9).</summary>
+    public const int Idle = 1;
 
     private static void Enter(CreatureState creature, int stateId)
     {
-        // DK2 writes the caller's state into the slot as it enters a utility state, so a
-        // travel state always knows what it interrupted (creature-state-table.md §2.1).
-        creature.StateBeforeUtilityState = CreatureStateTable.Get(stateId).IsUtility
-            ? creature.Dk2StateId
-            : NoState;
+        // Entering a utility state saves the caller; leaving one does NOT clear the save.
+        // DK2's own 2-to-2 move recurses through SetState(1) first, so the slot ends up
+        // holding 1 rather than the travel state it came from - reproduced here rather
+        // than shortened, because a stale save is load-bearing: it is what the transition
+        // rule judges a creature by when a walk drops it to idle (travel-states.md 3, 5).
+        if (CreatureStateTable.Get(stateId).IsUtility)
+        {
+            if (HasState(creature) && CreatureStateTable.Get(creature.Dk2StateId).IsUtility)
+            {
+                Enter(creature, Idle);
+            }
+
+            creature.StateBeforeUtilityState = creature.Dk2StateId;
+        }
 
         creature.Dk2StateId = stateId;
     }

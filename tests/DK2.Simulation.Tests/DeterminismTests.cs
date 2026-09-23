@@ -102,12 +102,11 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 79: a bed is a hospital (ADR-0173). DK2's state 83 leaves only when
-        // the rest need has run out AND health has reached the level-scaled maximum, so a
-        // wounded creature sleeps past its TimeSleep. The pinned world exercises none of
-        // it; the bump is what keeps two builds from comparing. Earlier pins and their
-        // reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x6ACE9686C2A3E64EUL, sim.StateHash());
+        // HashVersion 80: the resume pair stops carrying a sentinel (ADR-0175). DK2's
+        // state-object constructor writes 0 to both slots and every arrival writes 1 to
+        // the resume one, so -1 was ours and it made the transition rule throw. Earlier
+        // pins and their reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0xF53826B464578C5BUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

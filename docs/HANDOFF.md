@@ -57,8 +57,11 @@ bodies are read (`creature-state-table.md`, `state-categories.md`,
 `state-category-hooks.md`). `CreatureStateMachine` is the one door and an architecture
 test forbids every other write (ADR-0174) - but **nothing holds a state id yet**, so
 ours still runs on 30 activities assigned directly at 35 sites, with no category update
-hook. Next: `Sleeping` onto state 83, then the thirteen travelling activities onto the
-utility pair once Q414 is read. Also absent: hero-party spawning and effect generators
+hook. **Q414 is answered** (`travel-states.md`): a caller makes one call with a target, a
+resume state and options; the route helper enters state 6 or 7 and writes the slot;
+the mover's arrival hands over and resets the slot to 1. So the thirteen travelling
+activities can retire, and the lair and sleep group after them - 81 reaches 82 only
+through a walk. Also absent: hero-party spawning and effect generators
 (Q254–Q259), every keeper spell but Create Imp, trap behaviour and door blocking,
 the creature trigger event filter, most trigger action types and 31 of 46 condition
 types (`dk2tools trigger-run` prints each stall; ADR-0125), the local player's

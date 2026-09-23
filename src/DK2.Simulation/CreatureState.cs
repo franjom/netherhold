@@ -531,23 +531,21 @@ public sealed class CreatureState
     public int Dk2StateId = -1;
 
     /// <summary>DK2's own <c>StateBeforeUtilityState</c> (state object <c>+0x40</c>): the
-    /// state this creature was in when it entered a utility state, or -1 for none.
-    /// Written by <c>SetState</c> when the target's category is 2.</summary>
-    public int StateBeforeUtilityState = -1;
+    /// state this creature was in when it entered a utility state. <c>SetState</c> writes
+    /// it and <b>never clears it on the way out</b>, so a stale save is load-bearing.
+    /// <b>0, not -1</b>, before the first walk (<c>travel-states.md</c> §3).</summary>
+    public int StateBeforeUtilityState;
 
     /// <summary>DK2's own <c>UtilityNewState</c> (state object <c>+0xDF</c>): the state
-    /// control is handed to when the utility state finishes, or -1 for none.
-    /// <para>This is the resume slot, and it is what makes travel composable: a creature
-    /// walking somewhere is in one of four <c>en route</c> states (category 2) with its
-    /// errand held here, rather than in a state per errand — DK2 state 91 is "find a
-    /// hatchery, move to it, resume in 92" (<c>eating.md</c> §2.2). The transition rule
-    /// reads <b>this</b> field, not the current state, when the current category is 2, so
-    /// a creature in transit is judged by where it is heading
-    /// (<c>creature-state-table.md</c> §2.2).</para>
-    /// <para>Nothing writes either field yet. They are here so the thirteen travelling
-    /// entries of <see cref="CreatureActivity"/> have somewhere to land when they retire
-    /// together (ADR-0135).</para></summary>
-    public int UtilityNewState = -1;
+    /// control is handed to when the utility state finishes. It is what makes travel
+    /// composable — a creature walking somewhere is in one of four <c>en route</c> states
+    /// with its errand held here, rather than in a state per errand — and the transition
+    /// rule reads <b>this</b>, not the current state, so a creature in transit is judged by
+    /// where it is heading (<c>travel-states.md</c>).
+    /// <para><b>There is no "none".</b> The constructor writes 0, every arrival writes
+    /// <b>1</b>, and the route helper fills it as the walk starts, so the rule may read it
+    /// unconditionally. Nothing writes it here yet (ADR-0135, ADR-0175).</para></summary>
+    public int UtilityNewState;
 
     /// <summary>Ticks until the prison takes its next bite, DK2's state byte <c>+0xAB</c>
     /// for the prison category. The enter hook sets it and the update hook reloads it with

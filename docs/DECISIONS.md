@@ -4046,3 +4046,20 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **One deviation, and it is ours (Q414).** `CreatureStateTransitions.Classify` **throws** when a creature is in a travel state with no resume target — there is no state −1 to look up. DK2 presumably never asks, because the slot is written before the travel state is entered, but nothing has read *who* writes it. Until then this project can reach the unset case, so the gate judges the travel state by itself. Pinned by its own test so it cannot later be mistaken for the original.
 - **The gate is not a second opinion.** Every ordered pair of the 281 states is driven through both the rule and the gate, and a single disagreement fails — 78,680 pairs, so the wrapper cannot quietly add a rule.
 - **No hash change.** Nothing hashed moved and no behaviour did; the pin is untouched. The next step, retiring `Sleeping` onto state 83, is the first one that bumps it.
+
+## ADR-0175 — The resume slot has no "unset", so the gate stops pretending it does
+**Date:** 2026-09-23 · **Status:** accepted · follows ADR-0174, applies Q414 · Research: `docs/research/travel-states.md` §2–§4
+
+**Context.** ADR-0174 shipped the transition gate a few hours before Q414 was answered, and guessed at the one thing it could not read: what a travel state holds when no errand is waiting. It used −1, which is not a state, so `CreatureStateTransitions.Classify` threw and the gate needed a fallback that judged a travel state by itself. That fallback was recorded as ours and pinned by a test. Q414's read retires it.
+
+**Decision.** Follow the original exactly.
+
+1. **Neither slot carries a sentinel.** DK2's state-object constructor writes 0 to `StateBeforeUtilityState` and `UtilityNewState`, and every arrival writes **1** to the resume slot. Both default to 0 here. `Dk2StateId` keeps its −1, which is a *migration* sentinel — no activity has retired onto this creature yet — and not a claim about DK2.
+2. **`BeginTravel` and `Arrive` model the two route helpers and the arrival branch.** The caller's whole contribution in the original is one call with a target, a resume state and an option word: the helper enters the travel state and *then* writes the slot, and the mover hands over and resets the slot to 1. Neither is a caller's job, so neither is exposed as one.
+3. **Two things that look like oversights are reproduced.** Leaving a utility state does **not** clear the saved caller, so the save goes stale and the rule keeps judging by it. And a travel-to-travel move recurses through `SetState(1)` first, so the save ends up 1 rather than the walk it came from.
+4. **The fallback is deleted**, with the test that pinned it.
+
+**Consequences.**
+- **The handover can never be refused by the rule alone**, and a test now says so over all 281 resume states. Leaving a travel state is judged by the resume state, and the target *is* the resume state, so the comparison is a state against itself. Every refusal the original checks for comes from the enter hook of the resume's category — which nothing here has yet, and which is why the branch looked live.
+- `HashVersion` and `FormatVersion` **80**, pin `0xF53826B464578C5B`. A composition bump: both fields hold their default for the whole pinned run.
+- **This is what the re-derivation practice is for.** ADR-0174 was reviewed, tested and committed, and was still wrong in three places — the sentinel, the stale save, and the travel-to-travel case. All three were found by reading the original rather than by a failing test, because no test this project could have written would have caught them.

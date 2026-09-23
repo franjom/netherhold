@@ -24,20 +24,18 @@ public class SnapshotTests
     }
 
     [Fact]
-    public void RoundTrip_CarriesTheStateIdAndUtilityPair_AndUnassignedIsMinusOneNotStateZero()
+    public void RoundTrip_CarriesTheStateIdAndUtilityPair_AndOnlyTheStateIdIsSentinelled()
     {
-        // The sentinel is the point. State 0 is a real row - `idle`, and the only
-        // one of the 281 with no handler at all - so defaulting the field to 0
-        // would have every creature silently claiming a state nothing chose, and
-        // the hash would not notice. Asserted rather than trusted to a comment,
-        // because nothing reads the field yet (ADR-0135).
+        // Only Dk2StateId carries a sentinel, and it is a migration artefact rather than
+        // DK2's: -1 says no activity has retired onto this creature yet (ADR-0135). The
+        // two slots do NOT get one - the constructor writes 0 and every arrival writes 1,
+        // so there is no "unset" for the rule to trip over (ADR-0175). Asserted rather
+        // than trusted to a comment, because nothing reads the fields yet.
         GameSimulation original = TestWorld.Simulation();
         Assert.NotEmpty(original.World.Creatures);   // Q206: Assert.All passes on an empty population
         Assert.All(original.World.Creatures, c => Assert.Equal(-1, c.Dk2StateId));
-
-        // The utility pair is unassigned too, and for the same reason: state 0 is real.
-        Assert.All(original.World.Creatures, c => Assert.Equal(-1, c.StateBeforeUtilityState));
-        Assert.All(original.World.Creatures, c => Assert.Equal(-1, c.UtilityNewState));
+        Assert.All(original.World.Creatures, c => Assert.Equal(0, c.StateBeforeUtilityState));
+        Assert.All(original.World.Creatures, c => Assert.Equal(0, c.UtilityNewState));
 
         // 91 is "find a hatchery, move to it, resume in 92" (eating.md 2.2): the shape the
         // travelling activities retire into - one en route state, the errand in the slot.
