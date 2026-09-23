@@ -63,6 +63,10 @@ public static class CombatRules
         creature.Activity is CreatureActivity.Fighting or CreatureActivity.Fleeing or CreatureActivity.Withdrawing
             or CreatureActivity.RaisingAlarm or CreatureActivity.Reporting;
 
+    /// <summary>What the job systems leave alone: the combat group, and a creature standing frozen or
+    /// stunned (creature-status-effects.md §2).</summary>
+    public static bool Preoccupied(CreatureState creature) => InCombat(creature) || StatusEffectRules.IsIncapacitated(creature);
+
     /// <summary>The engagement's registration on its target: the first free slot of the melee or
     /// the ranged array. False when all eight are taken, and then the attacker does not engage.</summary>
     public static bool Register(CreatureState target, int attackerId, bool ranged)
@@ -134,20 +138,22 @@ public static class CombatRules
 
     /// <summary>DK2's <c>IsAttackable</c>, recomputed every tick by <c>0x0045A8B0</c> rather than
     /// stored, so it is a predicate here. Cleared for a dying creature, a captive, one leaving, one
-    /// in a state whose table flag says so — the lair walk and sleep among them — and one with all
-    /// sixteen slots taken. Not modelled: the combat-pit fighter, torture, invisibility.</summary>
+    /// in a state whose table flag says so — the lair walk and sleep among them — one with all
+    /// sixteen slots taken, and one whose invisible word runs (creature-status-effects.md §2).
+    /// Not modelled: the combat-pit fighter and torture.</summary>
     public static bool IsAttackable(CreatureState creature) =>
         !CreatureDeathRules.IsDown(creature)
         && !PrisonRules.IsImprisoned(creature)
         && creature.Activity != CreatureActivity.Leaving
         && !HandRules.IsHeld(creature)
         && creature.Activity is not (CreatureActivity.SeekingLair or CreatureActivity.GoingToSleep or CreatureActivity.Sleeping)
+        && !StatusEffectRules.IsInvisible(creature)
         && !AllSlotsTaken(creature);
 
     /// <summary>The gate <c>0x0045A6D0</c>: may this creature look for a fight? Refused for a captive,
     /// one asleep, one leaving unless forced, one in the hand unless forced, the possessed
-    /// creature, a dying one and one walking to its withdraw destination unless forced. Not modelled:
-    /// frozen and chickened timers, hypnosis, the threat-response state, the Call to Arms radius
+    /// creature, a dying one, one standing frozen or stunned, and one walking to its withdraw
+    /// destination unless forced. Not modelled: the chicken timer, hypnosis, the threat-response state, the Call to Arms radius
     /// (Q361) and the Horned Reaper's states.</summary>
     public static bool MayLookForAFight(WorldState world, CreatureState creature, bool force) =>
         !PrisonRules.IsImprisoned(creature)
@@ -156,6 +162,7 @@ public static class CombatRules
         && (creature.Activity is not (CreatureActivity.Withdrawing or CreatureActivity.RaisingAlarm) || force)
         && (!HandRules.IsHeld(creature) || force)
         && !CreatureDeathRules.IsPossessed(world, creature)
+        && !StatusEffectRules.IsIncapacitated(creature)
         && !CreatureDeathRules.IsDown(creature);
 
     /// <summary>The throttle at the top of <c>ProcessFight</c>: bump the counter; a creature on a

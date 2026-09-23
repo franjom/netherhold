@@ -12,7 +12,8 @@ Original version: DK2 v1.70 (GOG)
 Questions: answers Q396; corrects Q393 — the words the cooldowns divide by are the
 **work rate and its enhancement** (Q6, `EfficiencyRules`), not haste; reads the
 Reaper Fireball's handler for Q395; corrects `shots.md` §4a, whose body bit 21 is
-**dying**, not invisibility. `shots.md` §8 is the shot side of every effect here.
+**dying**, not invisibility; opens Q399 (what the build approximates). `shots.md` §8
+is the shot side of every effect here.
 
 **What this settles:** every status a shot leaves is a **tick countdown on the
 creature**, run once a tick by one routine, plus a rule somewhere else that reads
@@ -157,15 +158,26 @@ same `0x0048B770`.
 
 ## 4. Built and not built
 
-**Nothing here is built.** The shots that carry these effects fly and land
-(ADR-0167) and their handlers are stubs. To build: the words of §1 as hashed
-creature fields with one countdown system; the health multipliers of §3 in
-`CreatureHealthRules` for every blow and shot; the targetable rule with `+0x44F`;
-the frozen and stunned states as activities that stand; Haste and Slow through
-the movement cap; Poison's bleed. One correction is due at once and separately:
-**Gate B and the spell cooldown divide by the work rate** (`+0x3AF` = `0xCCC` plus
-`+0x3B3`, Q6, `EfficiencyRules.Modifier`), so a fresh creature swings and casts
-**a quarter slower** than the file's seconds until its bonuses raise the rate.
+**Built (ADR-0168, `HashVersion` 73).** `StatusEffectRules`, `CreatureStatusSystem` and
+`ShotRules.Process`: the words of §1 that have a setter here — armour, invulnerable,
+frozen, invisible, the speed effect (stored as ticks and percent), poison's three, and
+the stun's clock — as hashed creature fields stepped once a tick before the fight, skipped
+whole for `IsHorny`; §3's multipliers and refusals in `Hurt`, which every melee blow,
+contact and area hit now passes, the invulnerable word refused by all three; §2's
+setters from the shot's process events 0x40 and 0x4, on the thing struck (a hit
+writes it into the target word, `0x004ABE7D`); `Frozen` and `Stunned` as standing
+activities the fight gate and the job systems refuse (`CombatRules.Preoccupied`);
+`IsAttackable` refusing an invisible creature and `DropAttackers` letting its
+attackers' targets go; Haste and Slow as a percent on the movement cap with the
+quarter-walk floor; Lightning on the first tick, doubled on water, immune for
+`CreatureFlags2` bit 0; Drain through the health routine both ways. Gate B's division
+by the work rate was corrected first (`combat-fight-state.md` §4).
+
+**Not built, named (Q399):** the per-player byte `+0x1095`, `CombatPitFighter`, the Stone
+Knight's blow path, the stun's early end `0x00481360`, state 257's length, the ignite
+and every other display, the fear-over-time pair, the unread words. Ours lets the
+engagement go on freeze and stun where DK2 only changes the state, and scales the
+cap every tick where DK2 pins the body speed once.
 
 ## Confidence
 

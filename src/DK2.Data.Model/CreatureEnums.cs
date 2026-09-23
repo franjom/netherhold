@@ -99,8 +99,8 @@ public enum CreatureFlags2 : uint
     /// <summary>King Reginald, Stone Knight and Jack: immune to whatever the impact routine at
     /// <c>0x004af1e0</c> applies, its only reader. That routine damages a target creature and
     /// doubles the damage when the target's tile carries terrain flag <c>+0x17b &amp; 0x80</c>;
-    /// this bit makes it skip the target entirely. Which attack it is has <b>not</b> been
-    /// established — the routine is installed into a table rather than called. Q210,
+    /// this bit makes it skip the target entirely. The routine is the Lightning shot's process
+    /// handler (type 9, shots.md §8): the three are immune to Lightning, read 2026-09-23. Q210,
     /// ADR-0087.</summary>
     Unk0 = 1u << 0,
 

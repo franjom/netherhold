@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Pathfinding;
+using DK2.Simulation.Combat;
 using DK2.Simulation.Navigation;
 using DK2.Simulation.Steering;
 
@@ -47,7 +48,8 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             creature.Body.Radius = SteeringMover.CrowdWordOf(definition.FootprintRadius.Raw);
             creature.Body.MaxForce = SeparationRules.ShippedMaxForce;
-            creature.Body.MaxSpeed = MaxSpeedOf(context.Database, definition, creature.Level, creature.Running);
+            creature.Body.MaxSpeed = StatusEffectRules.SpeedCap(context.Database, definition, creature,
+                MaxSpeedOf(context.Database, definition, creature.Level, creature.Running));
         }
 
         foreach (CreatureState creature in context.World.Creatures)

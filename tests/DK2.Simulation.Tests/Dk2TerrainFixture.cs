@@ -617,6 +617,8 @@ internal static class Dk2TerrainFixture
         MeleeDamage = 170,
         MeleeHitDelay = Fp32.FromDouble(0.75),
         MeleeRecharge = Fp32.FromDouble(1.3),
+        // A test value, not the shipped Goblin's: five seconds stunned by Lightning (creature-status-effects.md §2).
+        StunDuration = Fp32.FromDouble(5),
         Pay = 500,
         Fear = 50,
         Threat = 37,
@@ -926,6 +928,19 @@ internal static class Dk2TerrainFixture
     public const byte FirebombShotId = 16;
     public const byte FirebombExplosionShotId = 34;
 
+    /// <summary>The status shots at their shipped ids and flags (shots.md §9): the process type and
+    /// the event that runs it. Their data words come from the spell that fires them.</summary>
+    public const byte HasteShotId = 6;
+    public const byte InvulnerableShotId = 7;
+    public const byte FreezeShotId = 8;
+    public const byte ArmourShotId = 9;
+    public const byte InvisibleShotId = 22;
+    public const byte LightningShotId = 30;
+    public const byte SlowShotId = 38;
+    public const byte DrainShotId = 42;
+    public const byte ReaperFireballShotId = 52;
+    public const byte PoisonSpitShotId = 62;
+
     private static readonly KwdArtResource NoArt = new("", 0, default, 0, 0, 0, 0);
     private static readonly KwdLight NoLight = new(0, 0, 0, 0, 0, 0, 0, 0, 0);
 
@@ -971,7 +986,24 @@ internal static class Dk2TerrainFixture
             Speed = 0, Radius = 819, Health = 3, Flags = 0x105, ShotProcessFlags = 0x1, CollideType = 2, DamageType = 2,
             AttackCategory = 4, Unknown_0098 = 250, Unknown_009C = 3,
         },
+        Status("Increase Speed", HasteShotId, 3686, 1, 0x23, 0x104, 1, 4),
+        Status("Invulnerable", InvulnerableShotId, 2048, 1, 0x23, 0x4, 1, 10),
+        Status("Mistress Freeze", FreezeShotId, 4096, 50, 0x27, 0x4, 2, 11),
+        Status("Modify Armour", ArmourShotId, 2048, 76, 0x27, 0x4, 1, 5),
+        Status("Invisible", InvisibleShotId, 2048, 1, 0x26, 0x44, 1, 20),
+        Status("Lightning Shot", LightningShotId, 0, 8, 0x104, 0x40, 0, 9),
+        Status("Decrease Speed", SlowShotId, 3686, 1, 0x23, 0x104, 2, 4),
+        Status("Drain", DrainShotId, 2048, 128, 0x27, 0x4, 2, 35),
+        Status("Reaper Fireball", ReaperFireballShotId, 3686, 128, 0x123, 0x4, 2, 29, damageType: 7, attackCategory: 4),
+        Status("Maiden Poison Spit", PoisonSpitShotId, 2048, 20, 0x123, 0x4, 2, 38),
     ];
+
+    private static ShotDef Status(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte collide, byte process, byte damageType = 0, byte attackCategory = 0) =>
+        new(new byte[239])
+        {
+            Name = name, MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = id, Speed = speed, Radius = 819,
+            Health = health, Flags = flags, ShotProcessFlags = processFlags, CollideType = collide, ProcessType = process, DamageType = damageType, AttackCategory = attackCategory,
+        };
 
     /// <summary>Every global variable a built mechanic reads, at its shipped
     /// value, plus four rows of the per-level stat table.</summary>

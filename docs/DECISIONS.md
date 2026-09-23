@@ -3860,5 +3860,39 @@ vector, a stopped shot's countdown, the idle fallback, the thing order.
 **Consequences.** Warlocks, Mistresses, Dark Elves, Salamanders and every other
 caster fight at range with the shipped spells; a Support never melees. The
 status spells (Freeze, Slow, Haste, Heal, Armour, Invulnerable, Invisible,
-Lightning, Drain) fly and land but do nothing until their creature side is read
-(Q396); the friendly arm waits on the buff table (Q394). `HashVersion` 72.
+Lightning, Drain) flew and landed doing nothing until ADR-0168 built their
+creature side; the friendly arm waits on the buff table (Q394). `HashVersion` 72.
+
+## ADR-0168 — Status effects are tick countdowns on the creature, read by the health routine and the gates
+
+**Status.** Accepted 2026-09-23 · `HashVersion` 73 · Research:
+`docs/research/creature-status-effects.md`, `docs/research/shots.md` §8.
+
+**Context.** ADR-0167 landed the status shots and left their handlers stubs:
+Freeze, Slow, Haste, Armour, Invulnerable, Invisible, Lightning, Drain and Poison
+Spit flew and did nothing. The creature side was read to the byte: one routine
+steps every status word down a tick and is skipped whole for `IsHorny`; the
+health routine scales every negative change by 128ths — stunned +128, frozen +32,
+armoured or possessed −64 — and refuses `IsHorny`, `OnlyAttackableByHorny` and a
+creature in the hand; freeze is state 218 standing while its word runs; Lightning
+and the Reaper Fireball stun into state 255 for `StunDuration`; Haste and Slow
+pin the body speed between a quarter of the walk and four tiles a tick; Invisible
+drops the attackers and clears the targetable bit; Poison bleeds a fixed amount a
+tick while not frozen; fire is display only. A hit writes the struck thing into
+the shot's target word before the handler runs.
+
+**Decision.** `StatusEffectRules` holds the multipliers (`Hurt`), the setters and
+the speed cap; `CreatureStatusSystem` runs the countdowns before `CombatSystem`;
+`ShotRules.Process` dispatches `ShotProcessFlags` events 0x40 (first tick) and
+0x4 (thing struck) to the nine process types with a creature side;
+`CreatureActivity.Frozen` and `Stunned` are standing states the job systems leave
+alone (`CombatRules.Preoccupied`) and the fight gate refuses; `IsAttackable`
+refuses an invisible creature; the melee blow, contact and area damage refuse an
+invulnerable one and pass through `Hurt`. Ten words enter `CreatureState`, the
+hash and the snapshot. Approximations are named in Q399.
+
+**Consequences.** A Mistress's Freeze holds its target forty ticks at
+five-quarters damage; a Warlock's Armour halves damage for twenty seconds; a
+Thief vanishes from every attacker for fifteen; Lightning stuns and doubles the
+damage that follows; the Reaper Fireball doubles its own. `CreatureFlags2` bit 0
+is Lightning immunity (Q210). `HashVersion` 73.

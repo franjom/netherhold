@@ -128,7 +128,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
             // among them.
             if (PrisonRules.IsImprisoned(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
-            if (Combat.CombatRules.InCombat(creature)) continue;
+            if (Combat.CombatRules.Preoccupied(creature)) continue;
 
             Update(context, creature, definition);
         }

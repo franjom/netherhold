@@ -13,7 +13,8 @@ namespace DK2.Simulation.Systems;
 /// flight: a hit on a creature or the heart it was sent at, else a move in two half-steps
 /// stopped by solid ground — a bounce for a shot that bounces, otherwise a stop that kills a shot
 /// flagged to die on solid; the area damage some shots deal each tick; the lifetime counting down;
-/// death chaining a death shot. A shot made this tick flies from the next (Q398).</summary>
+/// death chaining a death shot; the process handler on the first tick and on the thing struck,
+/// which becomes the shot's target. A shot made this tick flies from the next (Q398).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/shots.md")]
 public sealed class ShotSystem : ISimulationSystem
 {
@@ -40,6 +41,7 @@ public sealed class ShotSystem : ISimulationSystem
             }
 
             shot.Age++;
+            if (shot.Age == 1) ShotRules.Process(context, shot, definition, ShotRules.FirstTickEvent, null);
             if (shot.Health <= 0)
             {
                 Die(context, shot, definition, deathShot: false);
@@ -50,7 +52,11 @@ public sealed class ShotSystem : ISimulationSystem
             CreatureState? hit = ShotRules.FindHit(world, database, shot, definition);
             if (hit != null)
             {
+                // 0x004ABE7D: the thing struck is written into the target word before anything else.
+                shot.TargetKind = FightTargetKind.Creature;
+                shot.TargetId = hit.Id;
                 ShotRules.Chain(context, shot, definition.HitThingShotId);
+                ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, hit);
                 ShotRules.ContactDamage(context, shot, definition, hit);
                 if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
             }

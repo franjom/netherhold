@@ -193,8 +193,9 @@ Each runs with the shot as `this`; the target is `+0x147`, `t/s` variable 19.
 | 34 | the Heals, Hail Storm, Skeleton Army | **instant**: the shot is moved onto the target and `+0x14D` forced, so §4a hits it this tick; no target or a room → health 0 |
 | 35 | Drain (25) | `d = min(target health, data1% of its level-scaled Hp)`; the target loses `d` and the caster gains `d`, both through the health routine; refused on a dying target |
 
-Unread: 1, 17 Cyclone, 18 Raise Dead, 29 Reaper Fireball, 31 the gas cloud's,
-37 Web, 38 Poison Spit, and the buff table `0x006E4AC8` (Q394, Q395).
+Read since, in `creature-status-effects.md` §2: 29 Reaper Fireball (the stun), 38 Poison
+Spit. Unread: 1, 17 Cyclone, 18 Raise Dead, 31 the gas cloud's, 37 Web, and the buff
+table `0x006E4AC8` (Q394, Q395).
 
 ## 9. The shipped creature shots, compressed
 
@@ -229,12 +230,17 @@ words. Corrections from the build's last read: flags **bit 3 bounces** (slot `+0
 and air friction scales the velocity by `(4096 — AirFriction) / 4096` a tick, no
 lower than a half.
 
+**Built since (ADR-0168):** §4's process events 0x40 (first tick) and 0x4 (the thing
+struck, written into the target word first) for the nine types with a creature side
+(`creature-status-effects.md`); §7's invulnerable refusal and the health routine's
+multipliers on contact and area damage.
+
 **Not built, named (Q398):** height — every shot flies flat and gravity, the lob and
 the aim's half-height are dropped; the overlap test `0x004B5590` — ours is the shot's
 radius plus half the creature's footprint, nearest first where DK2 takes tile order;
 doors, objects and bodies as things hit — a shot sent at a heart strikes within an
-object's reach of its tile (Q363); the process types and their creature side (Q396); a
-stopped or standing shot counts its lifetime down where DK2's physics returns 0 and does
+object's reach of its tile (Q363); process types 28 (guided), 34 (instant) and the unread
+ones (Q394, Q395); a stopped or standing shot counts its lifetime down where DK2's physics returns 0 and does
 not; the events 0x1/0x100 and the effects. DK2's thing order between creatures and
 shots is unread: ours flies a shot from the tick after it is made.
 
@@ -251,5 +257,5 @@ first read here as invisibility; it is the dying flag `0x0048B770` sets —
 `creature-status-effects.md` §3, corrected 2026-09-23.)
 
 **UNKNOWN:** Q395 (flags bit 5, events 0x1/0x100, Guided Bolt's wiring, the
-unread handlers and area types), Q396 (the creature side of the status fields),
-Q397 (`0x004B32A0` with the never-loaded word `+0x52`).
+unread handlers and area types), Q397 (`0x004B32A0` with the never-loaded word
+`+0x52`).

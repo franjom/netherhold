@@ -102,9 +102,10 @@ public static class FightRules
     }
 
     /// <summary>The blow (<c>0x00498E30</c> past its gate): the swing's own target, whether or not
-    /// the engagement has moved on; a creature no longer standing takes nothing; the health change
-    /// is <see cref="MeleeDamageRules.Blow"/> with no stance, the bearing from target to attacker,
-    /// and no player modifier. A heart takes it as <see cref="WorldState.DamageHeart"/> (Q363).</summary>
+    /// the engagement has moved on; a creature no longer standing, or invulnerable, takes nothing; the
+    /// health change is <see cref="MeleeDamageRules.Blow"/> with no stance, the bearing from target to
+    /// attacker and no player modifier, through <see cref="StatusEffectRules.Hurt"/>'s multipliers.
+    /// A heart takes it as <see cref="WorldState.DamageHeart"/> (Q363).</summary>
     public static void LandBlow(SimulationContext context, CreatureState me, CreatureDef mine)
     {
         me.SwingInProgress = false;
@@ -114,10 +115,10 @@ public static class FightRules
         if (me.SwingTargetKind == FightTargetKind.Creature)
         {
             CreatureState? target = world.CreatureById(me.SwingTargetId);
-            if (target is null || CreatureDeathRules.IsDown(target)) return;
+            if (target is null || CreatureDeathRules.IsDown(target) || StatusEffectRules.IsInvulnerable(target)) return;
             int blow = Blow(database, me, mine, target.PosX, target.PosY);
             if (blow == 0) return;
-            int landed = CreatureHealthRules.Apply(database, database.CreatureById(target.CreatureTypeId), target, blow);
+            int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, -blow);
             context.Emit(SystemName, "hit",
                 $"creature={me.Id} target={target.Id} blow={blow} landed={landed} health={target.Health}");
         }

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 72;
+    private const int FormatVersion = 73;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -264,6 +264,16 @@ public static class WorldSnapshot
             w.Write(c.SwingSpellSlot);
             w.Write(c.LastPosX);
             w.Write(c.LastPosY);
+            w.Write(c.ArmourTicks);
+            w.Write(c.InvulnerableTicks);
+            w.Write(c.FrozenTicks);
+            w.Write(c.InvisibleTicks);
+            w.Write(c.SpeedEffectTicks);
+            w.Write(c.SpeedPercent);
+            w.Write(c.PoisonTicks);
+            w.Write(c.PoisonAmount);
+            w.Write(c.PoisonOwner);
+            w.Write(c.StunTicks);
             for (int i = 0; i < c.SpellStamps.Length; i++) w.Write(c.SpellStamps[i]);
             for (int i = 0; i < c.EngagedMelee.Length; i++) w.Write(c.EngagedMelee[i]);
             for (int i = 0; i < c.EngagedRanged.Length; i++) w.Write(c.EngagedRanged[i]);
@@ -628,6 +638,16 @@ public static class WorldSnapshot
                 SwingSpellSlot = r.ReadByte(),
                 LastPosX = r.ReadInt32(),
                 LastPosY = r.ReadInt32(),
+                ArmourTicks = r.ReadInt32(),
+                InvulnerableTicks = r.ReadInt32(),
+                FrozenTicks = r.ReadInt32(),
+                InvisibleTicks = r.ReadInt32(),
+                SpeedEffectTicks = r.ReadInt32(),
+                SpeedPercent = r.ReadInt32(),
+                PoisonTicks = r.ReadInt32(),
+                PoisonAmount = r.ReadInt32(),
+                PoisonOwner = r.ReadByte(),
+                StunTicks = r.ReadInt32(),
             };
             for (int k = 0; k < creature.SpellStamps.Length; k++) creature.SpellStamps[k] = r.ReadInt64();
             for (int k = 0; k < creature.EngagedMelee.Length; k++) creature.EngagedMelee[k] = r.ReadInt32();

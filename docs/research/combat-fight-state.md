@@ -169,9 +169,11 @@ style but `NonFighter` acquires; and **the heart as a target**, hit through
 heart tile stands in for the Arch Pillar).
 
 **Built since (ADR-0165):** the fear checks, the flee and withdraw states
-(combat-fear.md). **Not built, named:** state 8 and the victory states
-(`combat-approach-and-victory.md`); the spell arms and the step-back (§4); haste and slow on Gate B; waking a sleeper on the
-blow; `+0x445`; the room notice and player event 6 (§1); the NonFighter arm.
+(combat-fear.md); the spell arms and the step-back (ADR-0167); the NonFighter arm
+(ADR-0166); Gate B's division by the work rate and the blow's refusal of `+0x445` with
+the health routine's multipliers (ADR-0168, `creature-status-effects.md`). **Not built,
+named:** state 8 and the victory states (`combat-approach-and-victory.md`); waking a
+sleeper on the blow; the room notice and player event 6 (§1).
 
 ## Confidence
 

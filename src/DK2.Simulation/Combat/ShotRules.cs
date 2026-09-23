@@ -13,8 +13,8 @@ namespace DK2.Simulation.Combat;
 /// definition's speed (§3), finds the first thing of its collide class within its radius but
 /// never its caster (§4a), deals its data word flat on contact (§7), hurts a linear area each tick
 /// when its damage type says so (§7), and chains hit and death shots that inherit its words (§4).
-/// Height, the overlap test's exact shape, doors and objects as targets, and the status process
-/// types are not modelled (Q396, Q398).</summary>
+/// The status process types run on the first tick or the creature struck (§8, <see cref="Process"/>).
+/// Height, the overlap test's exact shape, doors and objects as targets are not modelled (Q398).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/shots.md")]
 public static class ShotRules
 {
@@ -36,6 +36,24 @@ public static class ShotRules
     /// <summary><c>DamageType</c>: 7 on contact, 2 an area each tick (§7). The others do nothing here.</summary>
     public const byte ContactDamageType = 7;
     public const byte AreaDamageType = 2;
+
+    /// <summary><c>ShotProcessFlags</c> events (§4): the handler runs when its bit is set.</summary>
+    public const uint FirstTickEvent = 0x40u;
+    public const uint PreMoveEvent = 0x2u;
+    public const uint HitThingEvent = 0x4u;
+    public const uint HitSolidEvent = 0x8u;
+    public const uint DeathEvent = 0x80u;
+
+    /// <summary><c>ProcessType</c>s with a creature side built (§8, creature-status-effects.md).</summary>
+    public const byte SpeedProcess = 4;
+    public const byte ArmourProcess = 5;
+    public const byte LightningProcess = 9;
+    public const byte InvulnerableProcess = 10;
+    public const byte FreezeProcess = 11;
+    public const byte InvisibleProcess = 20;
+    public const byte ReaperStunProcess = 29;
+    public const byte DrainProcess = 35;
+    public const byte PoisonProcess = 38;
 
     /// <summary>A new shot from a definition, its data words the caller's (a spell's two words, or the
     /// parent's for a chained shot), its lifetime the definition's health, not yet moving.</summary>
@@ -120,13 +138,15 @@ public static class ShotRules
             CombatTargetRules.TileCentreX(world, shot.TargetTileIndex), CombatTargetRules.TileCentreY(world, shot.TargetTileIndex)) < reach;
     }
 
-    /// <summary>Contact damage (§7, <c>0x004AC420</c>): the data word flat, through the same health
-    /// routine as the melee blow. The invulnerable word and the fire it lights are Q396.</summary>
+    /// <summary>Contact damage (§7, <c>0x004AC420</c>): the data word flat, refused while the target's
+    /// invulnerable word runs, through the melee blow's health routine and its multipliers. The fire a
+    /// fire-category hit lights is display in v1.70 (creature-status-effects.md §2).</summary>
     public static void ContactDamage(SimulationContext context, ShotState shot, ShotDef definition, CreatureState target)
     {
         if (definition.DamageType != ContactDamageType || shot.Data1 <= 0 || CreatureDeathRules.IsDown(target)) return;
+        if (StatusEffectRules.IsInvulnerable(target)) return;
         GameDatabase database = context.Database;
-        int landed = CreatureHealthRules.Apply(database, database.CreatureById(target.CreatureTypeId), target, -shot.Data1);
+        int landed = StatusEffectRules.Hurt(context.World, database, database.CreatureById(target.CreatureTypeId), target, shot.Data1);
         context.Emit(SystemName, "shot_hit", $"shot={shot.Id} type={definition.ShotId} caster={shot.CasterId} target={target.Id} damage={shot.Data1} landed={landed} health={target.Health}");
     }
 
@@ -154,14 +174,40 @@ public static class ShotRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState target = creatures[i];
-            if (target.OwnerPlayerId == shot.OwnerPlayerId || CreatureDeathRules.IsDown(target)) continue;
+            if (target.OwnerPlayerId == shot.OwnerPlayerId || CreatureDeathRules.IsDown(target) || StatusEffectRules.IsInvulnerable(target)) continue;
             int distanceSquared = CombatRules.DistanceSquared(shot.PosX, shot.PosY, target.PosX, target.PosY);
             if (distanceSquared >= radiusSquared) continue;
             long distance = Isqrt((long)distanceSquared << 12);
             int damage = (int)(shot.Data1 * (radius - distance) / radius);
             if (damage <= 0) continue;
-            int landed = CreatureHealthRules.Apply(database, database.CreatureById(target.CreatureTypeId), target, -damage);
+            int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, damage);
             context.Emit(SystemName, "shot_area_hit", $"shot={shot.Id} type={definition.ShotId} target={target.Id} damage={damage} landed={landed} health={target.Health}");
+        }
+    }
+
+    /// <summary>The process handler (§8) for one event, when the definition's flags wire it: on the
+    /// creature struck, else the shot's target creature (<c>+0x147</c>, which a hit overwrites). The
+    /// data words are the spell's; seconds become ticks at the original rate. Types without a
+    /// creature side built (28 guided, 34 instant, and the unread ones) do nothing (Q394, Q395).</summary>
+    public static void Process(SimulationContext context, ShotState shot, ShotDef definition, uint eventBit, CreatureState? struck)
+    {
+        if ((definition.ShotProcessFlags & eventBit) == 0) return;
+        WorldState world = context.World;
+        CreatureState? target = struck ?? (shot.TargetKind == FightTargetKind.Creature ? world.CreatureById(shot.TargetId) : null);
+        if (target is null) return;
+        CreatureDef definitionOfTarget = context.Database.CreatureById(target.CreatureTypeId);
+        int perSecond = SimulationTiming.OriginalTicksPerGameSecond;
+        switch (definition.ProcessType)
+        {
+            case SpeedProcess: StatusEffectRules.ModifySpeed(context, target, shot.Data1, shot.Data2); break;
+            case ArmourProcess: target.ArmourTicks = shot.Data1; break;
+            case LightningProcess: StatusEffectRules.Lightning(context, target, definitionOfTarget, shot.Data1, shot.CasterId); break;
+            case InvulnerableProcess: target.InvulnerableTicks = shot.Data1 * perSecond; break;
+            case FreezeProcess: StatusEffectRules.Freeze(context, target, definitionOfTarget, shot.Data1 * perSecond); break;
+            case InvisibleProcess: StatusEffectRules.MakeInvisible(context, target, shot.Data1 * perSecond); break;
+            case ReaperStunProcess: StatusEffectRules.Stun(context, target, definitionOfTarget); break;
+            case DrainProcess: StatusEffectRules.Drain(context, target, definitionOfTarget, world.CreatureById(shot.CasterId), shot.Data1); break;
+            case PoisonProcess: StatusEffectRules.Poison(context, target, shot.Data2, shot.Data1, shot.OwnerPlayerId); break;
         }
     }
 

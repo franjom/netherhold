@@ -171,6 +171,14 @@ public enum CreatureActivity
     /// running to the threat's position, then standing thirty ticks there looking for a fight
     /// (combat-alarm.md §4).</summary>
     Reporting = 25,
+
+    /// <summary>Standing frozen — DK2's state 218, whose handler stands while the word
+    /// <see cref="CreatureState.FrozenTicks"/> runs and then goes idle (creature-status-effects.md §2).</summary>
+    Frozen = 26,
+
+    /// <summary>Stunned by Lightning or the Reaper Fireball — DK2's state 255, standing for
+    /// <c>StunDuration</c> (<see cref="CreatureState.StunTicks"/>) at double damage, then idle.</summary>
+    Stunned = 27,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -616,6 +624,22 @@ public sealed class CreatureState
     public int LastPosX;
     public int LastPosY;
 
+    /// <summary>The status words of creature-status-effects.md §1, tick countdowns stepped by
+    /// <see cref="Systems.CreatureStatusSystem"/>: armour <c>+0x443</c> (damage halved), invulnerable
+    /// <c>+0x445</c> (blows and shots refused), frozen <c>+0x447</c>, invisible <c>+0x44F</c> (not
+    /// attackable), the speed effect <c>+0x459</c> with its percent (DK2 stores the pinned speed
+    /// itself), poison <c>+0x45D</c>/<c>+0x45F</c>/<c>+0x461</c>, and the stun state's clock.</summary>
+    public int ArmourTicks;
+    public int InvulnerableTicks;
+    public int FrozenTicks;
+    public int InvisibleTicks;
+    public int SpeedEffectTicks;
+    public int SpeedPercent = 100;
+    public int PoisonTicks;
+    public int PoisonAmount;
+    public byte PoisonOwner;
+    public int StunTicks;
+
     /// <summary>The eight melee attackers engaged with this creature, by id, 0 for a free slot —
     /// DK2's <c>+0x504</c> array. An attacker takes the first free slot when it engages and is
     /// struck out when it disengages; a ninth melee attacker cannot engage at all.</summary>
@@ -741,6 +765,16 @@ public sealed class CreatureState
         hash.Add(SwingSpellSlot);
         hash.Add(LastPosX);
         hash.Add(LastPosY);
+        hash.Add(ArmourTicks);
+        hash.Add(InvulnerableTicks);
+        hash.Add(FrozenTicks);
+        hash.Add(InvisibleTicks);
+        hash.Add(SpeedEffectTicks);
+        hash.Add(SpeedPercent);
+        hash.Add(PoisonTicks);
+        hash.Add(PoisonAmount);
+        hash.Add(PoisonOwner);
+        hash.Add(StunTicks);
         for (int i = 0; i < EngagedMelee.Length; i++) hash.Add(EngagedMelee[i]);
         for (int i = 0; i < EngagedRanged.Length; i++) hash.Add(EngagedRanged[i]);
     }

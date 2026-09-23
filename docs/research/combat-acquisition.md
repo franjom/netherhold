@@ -49,7 +49,7 @@ Returns 1 only when every test passes. DK2's own field names throughout.
 | state ≠ 76 (an idle variant) and ≠ 83 (`0x004E0460`, the middle sleeping state) | `Activity != Sleeping` |
 | `Leaving` (`+0x3E6` bit 14) → only with `force` | `Activity == Leaving` needs force |
 | `+0x16 ≠ 2` | UNKNOWN (Q364) |
-| `FreezeTimer` `+0x447` and `ChickenTimer` `+0x44B` both zero | not modelled |
+| `FreezeTimer` `+0x447` and `ChickenTimer` `+0x44B` both zero | `Activity` not `Frozen` or `Stunned` (ADR-0168); the chicken not modelled |
 | `Flags` `+0x46F` bit 0 — cleared with the state-242 change on the pick-up path, 9 at construction — or `force` | `!InHand` |
 | not `Possessed` (bit 7), not `CreatureDying` (bit 21) | `IsPossessed`, `IsDown` |
 | not en route (state 6) toward a threat (251) or fleeing (202), unless `force` | no such states yet |

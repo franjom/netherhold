@@ -57,6 +57,8 @@ public static class AssetCatalogue
         "withdrawing",
         "raising_alarm",
         "reporting",
+        "frozen",
+        "stunned",
     ];
 
     /// <summary>

@@ -45,7 +45,7 @@ public sealed class LairSeeker
         if (HandRules.IsHeld(creature)) return false;
         if (PrisonRules.IsImprisoned(creature)) return false;
         if (CreatureDeathRules.IsDown(creature)) return false;
-        if (Combat.CombatRules.InCombat(creature)) return false;
+        if (Combat.CombatRules.Preoccupied(creature)) return false;
         if (creature.Activity is CreatureActivity.SeekingLair
             or CreatureActivity.Leaving) return false;
         return !LairRules.HasBed(world, database, creature);

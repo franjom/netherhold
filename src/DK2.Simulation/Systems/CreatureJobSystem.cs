@@ -61,7 +61,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
             if (PrisonRules.IsImprisoned(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
             if (creature.Activity == CreatureActivity.Leaving) continue;
-            if (Combat.CombatRules.InCombat(creature)) continue;
+            if (Combat.CombatRules.Preoccupied(creature)) continue;
 
             switch (creature.Activity)
             {

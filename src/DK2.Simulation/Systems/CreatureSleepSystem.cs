@@ -98,7 +98,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             // the last free tile out from under a creature that intends to
             // stay, and then leaves with it.
             if (creature.Activity == CreatureActivity.Leaving) continue;
-            if (Combat.CombatRules.InCombat(creature)) continue;
+            if (Combat.CombatRules.Preoccupied(creature)) continue;
 
             switch (creature.Activity)
             {

@@ -102,10 +102,10 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 72: the three spell stamps, the spell slot and the cast action on every
-        // creature, its last position, and the shots in flight entered (ADR-0167). Earlier pins
-        // and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xE13D73F01C848BC5UL, sim.StateHash());
+        // HashVersion 73: the ten status words on every creature entered, and every blow and shot
+        // now passes the health routine's multipliers (ADR-0168). Earlier pins and their reasons
+        // live in docs/research/hash-versions.md.
+        Assert.Equal(0x187461CFD5C6ADF0UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
