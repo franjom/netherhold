@@ -4,14 +4,16 @@ Source(s):
 - The owner's recordings of DK2 v1.70, 2026-09-05
 - `DKII.EXE` v1.70, `LairState.cpp`'s translation unit and the player's lair
   finder `FUN_004e0470`, read 2026-09-05
+- `DKII.EXE` v1.70, lair and sleep state handlers 79–84, read 2026-09-23
 - OpenKeeper `RoomLairControl` and `TaskManager`, for the contrast in §7a only
 
 Original version: DK2 v1.70
 
 Facts in our own words; ADR-0046 governs the boundary.
 
-Confidence: **CONFIRMED** for §3–§6 and §8 from the binary, **CONFIRMED (owner)**
-for §1. Built 2026-09-05, ADR-0060 and ADR-0061.
+Confidence: **CONFIRMED** for §3–§6 and §8 from the binary, **STRONGLY
+INFERRED** for §9 from complete handler reads, and **CONFIRMED (owner)** for
+§1. Built 2026-09-05, ADR-0060 and ADR-0061.
 
 ## 1. What was watched
 
@@ -273,6 +275,49 @@ them to their own routines by owner id before needs are looked at.
 arithmetic quirks that only show under a second reading — the ranges are
 inclusive at both ends, and the "sort" cannot reorder anything — are in
 `creature-anger.md`, "The chooser, read from the binary".
+
+## 9. The six lair and sleep handlers
+
+The six contiguous handlers answer what states 79–84 do. Claims below are
+**STRONGLY INFERRED** from complete reads of each handler; helper names not
+already established elsewhere remain **UNKNOWN** rather than being guessed.
+
+| state | reads | important calls and writes | exit |
+|---|---|---|---|
+| 79, looking for Lair | tile underfoot, room owner/type, `TimeSleep`, current bed and its room | accepts an existing bed in this room; otherwise finds a free tile, destroys a bed in another room, and gives the walk a seeded random offset | existing bed → 81; candidate → travel to 80; no candidate → message and idle |
+| 80, making a home | first-tick marker, current tile, room, candidate validity | stops the old action on entry; validates and registers the bed at the tile, or searches and walks to another candidate | placed bed → 81; candidate → 80 again; exhausted room → restart the global lair finder or end |
+| 81, going to bed | bed id, kind, validity, position and facing | derives a point from the bed facing, ends an active action, starts movement | travel to the point in state 82; invalid bed ends the state |
+| 82, sleeping | bed id, position and facing; creature position | turns toward the bed; when close, snaps ordinary-bed users to it and copies its facing | close and aligned → 83; too far → 81; no bed ends the state |
+| 83, sleeping | bed validity/type, `SleepNeeded`, level-scaled maximum and current health | zeros velocity; starts the bed animation; maintains bed/creature presentation flags; writes a 48-tick effect counter | stays while sleep need is non-zero or health is below maximum; ready in the Mistress bed → 84; ready in an ordinary bed → clean up and end |
+| 84, sleeping | bed kind and presentation flags, first-tick marker | performs the Mistress-bed exit animation and placement; its field writes are presentation state, not another rest counter | entry tick remains in 84; a ready Mistress-bed exit → 87, wandering; invalid/non-object bed returns success without a transition |
+
+This separates three activities that share labels in the table. State 79 is an
+on-arrival room/tile selector, while state 80 owns the repeated walk, placement
+and retry loop. The normal bedless-lair finder enters **80**, not 79; no direct
+entry to 79 has yet been established. State 81 is the journey to an existing
+bed, state 82 is final alignment, and **83 is the main sleeping state**. State
+84 is only the special wake/get-out path for object 23, the Mistress Creature
+Bed. Consequently `CreatureActivity.Sleeping` maps to state 83 for migration;
+82 and 84 are not interchangeable sleep states.
+
+The state-category hook supplies the rest operation that state 83 itself does
+not: it subtracts one from `SleepNeeded` every game tick, flooring at zero, and
+runs the lair effect once per game second. The handler leaves only after
+`SleepNeeded == 0` **and** current health has reached the creature's
+level-scaled maximum. This is a real mismatch with `CreatureSleepSystem`, which
+wakes after `TimeSleep` regardless of health; Q403 holds the owner decision.
+
+States 82 and 84 have table flag byte `+0x18 = 5`, while 83 has 4. The only
+difference is bit 0. None of these handlers reads that byte, and the executable
+reader survey found no test of bit 0. There is therefore no evidence that it
+gates rest depletion, healing, interruption or animation; its meaning remains
+**UNKNOWN** (Q185). The observed differences come from the explicit state id,
+the handler body and the bed kind.
+
+Finally, none of the six handlers writes a source read by the lair effect's
+virtual health predicate. State 83 reads health only for its own exit test.
+That does not identify why the once-per-second effect sometimes heals, so the
+health half of Q123 remains **UNKNOWN** and must not be widened by inference.
 
 ## Tests
 
