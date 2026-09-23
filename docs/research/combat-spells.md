@@ -168,10 +168,9 @@ first parameter (`+0x399`) and the target's tag in its second (`+0x39D`):
    face the aim (`0x0065FB54`, atan2) and launches it. **Return 0**: the action
    ends the tick the shot leaves.
 
-Everything after — the flight, the hit, whether `ShotData1` is the damage
-(Fireball 300, the Heals 3000 and 4000) and `ShotData2` a percentage or duration
-(Slow and Haste 15, Armour 50) — belongs to the shot thing's own update and to
-`Shots.kwd`, unread: **Q392, the next read.**
+Everything after — the flight, the hit, `ShotData1` as the flat contact damage,
+`ShotData2` as an area radius or a duration — is the shot thing's own update:
+[`shots.md`](shots.md).
 
 ## 8. The ally-spell arm (nibble 3), `0x00460011`
 
@@ -205,12 +204,12 @@ by `0x00460DA0` (a route to the spot and the terrain flag) and applied by
 
 ## 11. Built and not built
 
-**Nothing here is built.** Every cast ends in a shot thing whose flight and hit
-are unread (Q392); an arm without shots would have casters stand at range firing
-nothing, worse than the melee `SelectAVictim` gives everyone today because the
-survey is not built (`combat-acquisition.md` §6). The order is therefore: read
-the shot — `Shots.kwd`'s fields, the shot update, its hit into
-`CreatureHealthRules` — then build survey, arms, action 16 and shot in one slice.
+**Nothing here is built.** Every cast ends in a shot thing; its damaging path is
+read in `shots.md` and the status shots' creature side is not (Q396). An arm
+without shots would have casters stand at range firing nothing, worse than the
+melee `SelectAVictim` gives everyone today because the survey is not built
+(`combat-acquisition.md` §6). The build is one slice: survey, arms, action 16
+and the damaging shots together.
 The data layer is ready: `CreatureSpellDef` carries every field §1 names, and
 `CreatureSpellSlot.ShotDelay` is fixed seconds, `CombatRules.TicksOf` the
 loader's multiply. The friendly arm needs Q394's buff table as well.
