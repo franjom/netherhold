@@ -20,7 +20,7 @@ slot, then either targets the caster alone for Invisible or searches the
 caster's own creature list for the nearest fighting creature below a quarter
 health. Haste requires no current speed effect; Heal requires less than half
 health; Armour, Invulnerable and Invisible require their own status word to be
-zero, with the latter three also requiring fight state 22. The scan may choose
+zero, with the latter three also requiring the Combat state category, 22. The scan may choose
 the caster and never searches allied players. Spell flag bits 5 and 6 drive
 the Imp's Teleport and Haste special paths; bit 7 makes Invisible self-only;
 no reader of bit 8 was found.
@@ -89,17 +89,19 @@ its half-health test.
 
 ## 5. Cast Armour applicability (`0x0049A8C0`)
 
-True only when the target's current state is 22 (fighting) and its armour
-countdown `+0x443` is zero.
+True only when the target's state category is 22, Combat, and its armour countdown
+`+0x443` is zero. The category comes from `0x00478050`: the state table's category
+byte for the current state, and for a walk (category 2) the category of the state it
+resumes in — so a creature walking to a fight counts, and 22 is not one state id.
 
 ## 6. Invulnerable applicability (`0x0049A8F0`)
 
-True only when the target's current state is 22 and its invulnerability
+True only when the target's state category is 22 (§5) and its invulnerability
 countdown `+0x445` is zero.
 
 ## 7. Invisible applicability (`0x0049A920`)
 
-True only when the target's current state is 22 and its invisibility countdown
+True only when the target's state category is 22 (§5) and its invisibility countdown
 `+0x44F` is zero. Bit 7 makes the survey offer only the caster as this
 routine's target (§8); the possessed-creature action applies the same override
 again (§9).
@@ -119,7 +121,7 @@ discarding bit 8.
 ### 8.2 Invisible: the self-only arm
 
 Kind 1 means bit 7 was set. The only candidate is the caster itself. It must
-already be in state 22 and pass §2; there is no health gate and no creature-list
+already be in the Combat category (22, §5) and pass §2; there is no health gate and no creature-list
 walk. On success its own tag is selected. This is the survey-side use of bit 7.
 
 ### 8.3 Every other friendly spell
@@ -132,7 +134,7 @@ encountered in that list. A candidate must, in order:
 - have a strictly smaller squared distance than the current best;
 - not be a `CombatPitFighter`, captive or tortured;
 - pass the spell-specific predicate in §3–§6;
-- be in state 22;
+- be in the Combat category, 22 (`0x00478050` at `0x0045DC3F`, §5);
 - have health strictly below one quarter of its level-scaled `Hp`;
 - be within the caster's sight and visible, or within hearing and reachable by
   `0x0045AFF0`. An Imp's sight limit here is one tile and its hearing limit is
@@ -217,6 +219,11 @@ of bits 5, 6 and 7; the bounded negative for bit 8.
 
 **CONFIRMED (data):** the `AlternativeShot` and flag-bit membership of the
 shipped spell records.
+
+**CONFIRMED (review at merge, 2026-09-23):** the dispatcher and all five predicates
+(`0x0049A7B0`—`0x0049A949`), the category helper `0x00478050`, and the walk's quarter-health
+gate (`0x0045DCA3`, `SHR 2` after the level scale) were re-read from the binary; the
+test Codex wrote as "state 22" is the state category, corrected above.
 
 **STRONGLY INFERRED:** the table's four dwords are a compiler member-call
 representation; only their observed invocation semantics are claimed above.
