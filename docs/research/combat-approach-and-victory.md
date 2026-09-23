@@ -107,7 +107,8 @@ State 9 (`0x00471430`) is not a second combat approach. Its only extra rule over
 the shared movement handler is a countdown at `+0xEF`: while nonzero it
 decrements and delegates to `0x00470C80`; at zero it ends the route and returns
 false, so the dispatcher sends the creature idle. It has none of state 8's
-target selection, fear, chase limit, reach, or rerouting logic.
+target selection, fear, chase limit, reach, or rerouting logic, and no entry site
+was found for it (travel-states.md §7, which owns states 6, 7, 9 and 88).
 
 ## 5. Choosing the victory branch (`0x00460FE0`)
 

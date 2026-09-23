@@ -75,18 +75,19 @@ recovered and named. Two facts from it that this mechanic needs:
   at `0x00699688` (§10). When the group tags match, the move is allowed if the
   categories match; when they differ, the category tables decide, and the leave
   and enter hooks run. It then writes `CurrentStateId`, stamps `StartedAt`, and
-  zeroes `Age` and `SuspendTime`. Category `2` means "utility state", which saves
-  the previous state in `StateBeforeUtilityState` and the state to resume in
-  `UtilityNewState`.
+  zeroes `Age` and `SuspendTime`. Category `2` means "utility state": `SetState`
+  saves the previous state in `StateBeforeUtilityState`, and the route helper that
+  entered the walk writes the state to resume in `UtilityNewState`
+  (travel-states.md).
 
 ### 2.2 The states this mechanic uses
 
 | Id | Handler | Label | What it does |
 |---|---|---|---|
-| `0x5B` (91) | `FUN_004634b0` | eating | find a hatchery, MoveToRoom, resume in `0x5C` |
-| `0x5C` (92) | `FUN_00463500` | eating | **in the hatchery**: find the nearest chicken, walk to it, resume in `0x5E` |
+| `0x5B` (91) | `FUN_004634b0` | eating | find a hatchery, walk there in state 7, resume in `0x5C` |
+| `0x5C` (92) | `FUN_00463500` | eating | **in the hatchery**: find the nearest chicken, walk to it in state 6, resume in `0x5D` |
 | `0x5D` (93) | `FUN_00463760` | eating | **eat** the chosen chicken if within a tile |
-| `0x5E` (94) | `FUN_00463720` | eating | arriving at the chicken; when `HungerNeed != 0` go to `0x5D` |
+| `0x5E` (94) | `FUN_00463720` | eating | after the meal: wait while busy, then back to `0x5C` if the eat byte `+0xab` (`HungerNeed != 0`) is set, else idle |
 | `0x5F` (95) | `FUN_00458680` | eating | wait out the eating animation |
 | `0x73` (115) | `FUN_004731f0` | being held captive | the prison's copy of the hunger test |
 | `0x75` (117) | `FUN_00473550` | being held captive | **in the prison**: find the nearest *food-flagged* object **and walk to it**, resuming in `0x76` |
