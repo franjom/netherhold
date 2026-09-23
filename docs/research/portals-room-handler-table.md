@@ -40,8 +40,8 @@ the slot**. Thirteen indexing sites in twelve callers:
 | `+0x0d` | `FUN_004E5650` | **the room ownership change** — fires the portal's reset (`portals-interval.md`) |
 | `+0x11` | `FUN_004E3DD0` | null for portals |
 | `+0x15` | `FUN_004E4B00` | **the per-tick handler**, `0x004DBBE0` for a portal |
-| `+0x19` | `FUN_004E6C90` (accessor), `FUN_004E8DA0` | integer, **UNKNOWN** |
-| `+0x1d` | `FUN_004E6D10` (accessor) | integer, **UNKNOWN** |
+| `+0x19` | `FUN_004E6C90` (accessor), `FUN_004E8DA0` | a creature state id, below |
+| `+0x1d` | `FUN_004E6D10` (accessor) | a creature state id, below |
 | `+0x21` | `FUN_004E6CD0` (accessor) | integer, **UNKNOWN** |
 | `+0x25` | `FUN_004E8DA0` (twice) | **the job this room offers** |
 
@@ -110,11 +110,12 @@ room with no job slot is not a room with no purpose (`job-selection.md`).
 Two patterns, with no reading attached. **`+0x1d`, wherever it is non-zero, is
 an exact copy of `+0x19`** — six rooms (Portal, Dungeon Heart, Prison, Torture
 Chamber, Temple, Combat Pit, plus Hero Portal as Portal's twin). And `+0x21` is
-small (3–6) everywhere except the two portals, which carry **52**. Both are
-**UNKNOWN**, and guessing from the shape of a number is the move that made bit
-30 of the creature flags look right (`portals-mercenary.md` §3). The accessors
-are the way in: whoever calls `FUN_004E6C90`, `FUN_004E6CD0` and `FUN_004E6D10`
-will say what each integer is for.
+small (3–6) everywhere except the two portals, which carry **52**.
+**`+0x19` and `+0x1d` are creature state ids — CONFIRMED** (2026-09-23): both
+accessors' results go straight to `SetState` (`0x0046EF7F`, `0x0046F127`,
+`0x004E9035`), and the values name each room's working state (Hatchery 92
+*eating*, Library 53 *researching*, Temple 101). What separates the two slots is
+UNKNOWN. `+0x21`, read by `FUN_004E6CD0`, is still **UNKNOWN**.
 
 **Rows 18–24 being empty is consistent with the shipped data** rather than a gap
 in the dump: those are the hero gates and the Mercenary Gate, two of which the

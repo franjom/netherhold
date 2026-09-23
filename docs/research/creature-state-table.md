@@ -66,7 +66,7 @@ index: `&DAT_00699688 + cat * 0x40`, with two sibling tables at `0x006996BC` and
 `0x006996C0`. Its range across all 281 records is **`0`–`31`**, exactly the 32
 entries of a `0x40`-byte-per-entry table, and **`+0x17 == 2` means "utility
 state"** — the case that saves the caller's state and resumes through
-`UtilityNewState`. This is the probe **Q174** named.
+`UtilityNewState` (probe **Q174**; the protocol is `travel-states.md`).
 
 ### 2.2 The transition rule, in the original's own order — CONFIRMED
 

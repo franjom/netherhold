@@ -322,15 +322,15 @@ the timed multipliers and the per-state gate are not built.
 
 ### 7.6 The state's option word (`0x004D0F60`)
 
-A state does not call the request itself. Two helpers — `0x00471890(target*,
-next state, options)` for a position and `0x00471A70(object, next state,
-options)` for an entity — check the target tile (`0x004B35C0`) and call
+A state does not call the request itself. Two helpers (travel-states.md §2) —
+`0x00471890(target*, next state, options)` for a position and `0x00471A70(room,
+next state, options)` for a room — check the target tile (`0x004B35C0`) and call
 `0x004D0F60(creature, target*, options)`, which unpacks the **option word**:
 bits 1, 2 and 7 go to `creature+0x3E6` bits 17–19, the cost function's door
 globals (navigation-mesh-and-search.md §4); bit 3 sets `path_flags` bit 0, bit
 4 sets bit 1, bit 5 or 6 sets bits 2 and 3 together. Bit 0 stays with the
-helper, tested on a failed request (what follows is unread). The stop
-`0x004D1070` requests the creature's own position with word 0. So **`path_flags`
+helper: on a failed request a hero worker tunnels and its party follows (§2.3
+there). The stop `0x004D1070` requests the creature's own position with word 0. So **`path_flags`
 bit 3 never travels alone and bit 1 is never set**: the values that occur are
 0, `0xC` and `0xD`. Of 134 call sites (`reverse-engineering/pf-precall3.txt`,
 `pf-precall4.txt`), 118 push a literal; states by handler id
