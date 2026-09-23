@@ -259,8 +259,8 @@ candidate into the same judgement every other arm makes.
 **Which completes the owner's observation.** Near its own heart a worker will
 fight *anything*, not only heroes, and it judges that candidate the ordinary way
 rather than by §3.2's reluctant one. The second escape is
-`0x00494360(cand.def) == 1`, which reads `byte[def+0x5B3]` for a creature with
-`IsUnique` and `byte[def+0x770]` otherwise; what that byte means is UNKNOWN.
+`0x00494360(cand.def) == 1`: the base creature type id is 1, so the candidate is
+an Imp. `combat-alarm.md` §6 owns the loader mapping, readers and shipped roster.
 
 **And the Imp is special-cased by id**, `byte[creature+0x36F] == 1`: its sight is
 forced to `0x1000`, one tile squared, and its reach to zero. So the two creatures
@@ -353,9 +353,8 @@ initiates while any melee-engaged enemy is in range.
 ## 6. What is left
 
 Small and named. What `def+0x760`'s file field `0xEE4` should be called, and the
-per-level table at `dword[0x006E4154] + 0x2A3` it is scaled by. What
-`0x00494360`'s definition byte means (§3.1, Q390). The arm is built since
-ADR-0166 (combat-alarm.md). Bit 12 is `Creeping`, the starting
+per-level table at `dword[0x006E4154] + 0x2A3` it is scaled by. The arm is built
+since ADR-0166 (combat-alarm.md). Bit 12 is `Creeping`, the starting
 score is `0x7FFFFFFF`, and the `+0x4FE` record is laid out in
 `combat-acquisition.md`, which owns the acquirer.
 
@@ -383,4 +382,4 @@ general one — it is what `FightStyle` 0 dispatches to, its two creatures are t
 Imp and Jack, and none of the four fighting arms has its heart test, its hero
 filter or its disengagements.
 
-**UNKNOWN:** the five items of §6.
+**UNKNOWN:** the two items of §6.

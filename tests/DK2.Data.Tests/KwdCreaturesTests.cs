@@ -57,6 +57,34 @@ public class KwdCreaturesTests
     }
 
     [InstallFact]
+    public void UniqueBaseCreatureIds_MapToOrdinaryArchetypes()
+    {
+        List<CreatureDef> all = Load();
+        var expected = new Dictionary<string, byte>
+        {
+            ["Unique Firefly"] = 12,
+            ["Unique Goblin"] = 7,
+            ["Unique Warlock"] = 5,
+            ["Unique Troll"] = 10,
+            ["Unique Dark Elf"] = 6,
+            ["Unique Skeleton"] = 9,
+            ["Unique Mistress"] = 4,
+            ["Unique Salamander"] = 11,
+            ["Unique Rogue"] = 24,
+            ["Unique Bile Demon"] = 3,
+            ["Unique Vampire"] = 8,
+            ["Unique Black Knight"] = 22,
+            ["Unique Dark Angel"] = 23,
+        };
+
+        Assert.Equal(expected.Count, all.Count(c => c.Flags.HasFlag(CreatureFlags.IsUnique)));
+        foreach ((string name, byte baseId) in expected)
+            Assert.Equal(baseId, By(all, name).UniqueBaseCreatureId);
+        Assert.All(all.Where(c => !c.Flags.HasFlag(CreatureFlags.IsUnique)),
+            c => Assert.Equal(0, c.UniqueBaseCreatureId));
+    }
+
+    [InstallFact]
     public void Imp_HasWorkerSemantics()
     {
         List<CreatureDef> all = Load();
