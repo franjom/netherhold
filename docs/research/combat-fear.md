@@ -97,7 +97,8 @@ otherwise, anyone else measures Chebyshev tiles to `DungeonHeartPosition`; not
 tiles**; and health under a third of the level-scaled `Hp` (`0x0048F250`). In
 `spFighting` the state must also be a turn old; then the withdraw state (§5)
 takes over and, succeeding, the handler returns 1. What bit 4 marks is UNKNOWN
-(Q372); without it a hero never withdraws.
+(Q372); without it a hero never withdraws. The owner's observation agrees: campaign
+heroes back off from an overwhelming enemy and do not run to their gate.
 
 ### 3.3 The counter (`0x0045EC80`)
 
