@@ -188,6 +188,9 @@ multipliers and refusals; the Stone Knight path.
 
 **CONFIRMED (negative):** fire changes no health in v1.70.
 
+**CONFIRMED (owner, 2026-09-23):** the Reaper Fireball stuns — the target is thrown to the
+ground with the stunned effect.
+
 **STRONGLY INFERRED:** state 257 ends idle when action 53 ends; the fight gate's
 use of `+0x447`; `0x00481360` as the stun's early end.
 

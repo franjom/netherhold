@@ -162,7 +162,7 @@ public static class ShotRules
 
     /// <summary>Area damage each tick (§7, <c>0x004AC6D0</c>): every standing creature not of the
     /// shot's owner within <c>data2</c> tiles takes <c>data1 × (R − d) / R</c>. A zero radius hurts
-    /// nobody — the Firebomb's explosion inherits its spell's zero (Q398).</summary>
+    /// nobody — the Firebomb's explosion inherits its spell's zero (CONFIRMED, §7).</summary>
     public static void AreaDamage(SimulationContext context, ShotState shot, ShotDef definition)
     {
         if (definition.DamageType != AreaDamageType || shot.Data1 <= 0 || shot.Data2 <= 0) return;

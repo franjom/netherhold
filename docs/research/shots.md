@@ -176,6 +176,13 @@ a door unless my category is 7 — within `data2` tiles takes `data1 × (R − d
 R` through the health routine, `R` and `d` in position units. Types 1, 3, 4 and
 8 print *"Creature Damage, %d"* and are unread (Q395).
 
+**The Firebomb's explosion hurts nobody in v1.70.** Action 16 writes the spell's two
+words over the definition's defaults with no zero test (`0x00498A9D`), the hit shot
+copies its parent's words unconditionally (`0x004AB433`), and the area handler reads
+the shot's own `+0x141` (`0x004AC6DA`); the Firebomb spell's `ShotData2` is 0, so the
+explosion chained on the hit has a zero radius. The Firebomb is a 600-point contact
+hit with a display (CONFIRMED binary 2026-09-23; the owner recalls no splash, Q398).
+
 ## 8. Process types read (table at `0x0069E84F`, filled by `0x004AD1B0`)
 
 Each runs with the shot as `this`; the target is `+0x147`, `t/s` variable 19.

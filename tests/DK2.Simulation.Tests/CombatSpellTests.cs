@@ -80,7 +80,7 @@ public class CombatSpellTests
     }
 
     [Fact]
-    public void ALevelEightWarlockThrowsTheFirebomb_WhoseExplosionInheritsAZeroRadius_Q398()
+    public void ALevelEightWarlockThrowsTheFirebomb_WhoseExplosionInheritsAZeroRadius()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState warlock = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
@@ -99,7 +99,7 @@ public class CombatSpellTests
         var hit = sink.Events.First(e => e.Kind == "shot_hit" && e.Detail.Contains("caster=" + warlock.Id));
         Assert.Contains("damage=600", hit.Detail);
         // The explosion chained on the hit carries the Firebomb spell's data words: 600 and 0 —
-        // a zero-tile area that hurts nobody (shots.md §7; whether DK2 shows the same is Q398).
+        // a zero-tile area that hurts nobody (shots.md §7, CONFIRMED from the binary and the owner).
         var chained = sink.Events.First(e => e.Kind == "shot_chained" && e.Detail.Contains("type=" + Dk2TerrainFixture.FirebombExplosionShotId));
         Assert.Contains("data1=600 data2=0", chained.Detail);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "shot_area_hit");
