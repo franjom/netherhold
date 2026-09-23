@@ -42,6 +42,33 @@ If evidence changes an old reading, replace it there; git retains the history.
 2. `Disasm.py <lo> <hi> <out>` over the cluster.
 3. Pair each format string with the most recent `[reg + 0xNNN]` load before it.
 
+## Running one: the world log (`0x0050EA70`)
+
+Everything above reads the dumpers for their *names*. One of them can be run, and
+then it gives values.
+
+**CONFIRMED (static, 2026-09-23).** `0x0050EA70` is the world logger: `this` is the
+world object at `0x006F2A08`, it reads the game tick and formats `Logging World [GT %d]...`,
+and the world dumper at `0x0050EAE9` above is inside it. Nothing calls it directly. It is
+reached through the world's vtable at `+0x38`, from three sites in one routine,
+`0x00526590` (`0x00526828`, `0x005268AE`, `0x00526DCF`) - the out-of-sync handler, whose
+messages read *GamePacket says we're OOS*. Each site is gated on a global at `0x0075B174`
+whose **only writer** is the command-line parser `0x005A63B0`, at `0x005A6C6E`. So it runs
+only for a multiplayer desync under `-LOGOOS`, and **never in ordinary play**.
+
+**REPORTED, not reproduced here.** Called directly on a loaded level it writes a complete
+world dump to `MESSAGE.LOG`, about 600 KB and 26,000 lines (belgianguy, OpenKeeper #505,
+2026-08-11, under Wine and GDB: `ECX` = `0x006F2A08`, call `0x0050EA70`; ufdada gives a
+Cheat Engine recipe that does the same from a created thread, 2026-09-12). Cited, not
+adopted: neither run is ours yet.
+
+**Why it matters here.** 26,000 lines is far more than the world's own 74 fields, so it
+almost certainly recurses into the other dumpers - and the creature job object's dumper is where `StateBeforeUtilityState`, `UtilityNewState` and
+`SleepNeeded` come from. If it does (unread - Q417), one call gives every creature's
+current state id and resume pair at a known tick, which is the check the ADR-0135
+retirements otherwise have no way to make. `dk2watch.py` opens the process read-only, so
+calling a function in it needs a remote thread - a tool change, not a patch.
+
 ## Four cautions
 
 - **A name is not a mechanism.** It says a field exists and roughly what it
