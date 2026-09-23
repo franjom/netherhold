@@ -164,8 +164,21 @@ public sealed class PrisonSystem : ISimulationSystem
 
             if (!PrisonRules.Withers(creature)) continue;   // neutral in a neutral cell
 
-            int wither = PrisonRules.WitherPerSecond(context.Database, definition);
+            // The countdown runs whatever the creature is, so a Skeleton's phase is the
+            // same as anyone's; only what lands when it fires depends on the record.
+            creature.PrisonWitherTicks -= SimulationTiming.TicksPerSecond;
+            if (creature.PrisonWitherTicks > 0) continue;
+            creature.PrisonWitherTicks =
+                PrisonRules.WitherIntervalSeconds * SimulationTiming.TicksPerSecond;
+
+            int wither = PrisonRules.WitherPerApplication(context.Database, definition);
             if (wither == 0) continue;   // never eats, never withers - Q173
+
+            // Health and anger in the same breath, and the anger is not scaled by the
+            // interval (ADR-0171).
+            CreatureAngerRules.Apply(
+                context.World, definition, creature, AngerBucket.Company,
+                PrisonRules.CellAngerPerApplication(context.Database));
 
             creature.Health += wither;
             if (creature.Health > 0) continue;

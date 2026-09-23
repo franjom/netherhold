@@ -549,6 +549,12 @@ public sealed class CreatureState
     /// together (ADR-0135).</para></summary>
     public int UtilityNewState = -1;
 
+    /// <summary>Ticks until the prison takes its next bite, DK2's state byte <c>+0xAB</c>
+    /// for the prison category. The enter hook sets it and the update hook reloads it with
+    /// <c>variable19 &lt;&lt; 2</c>, so the phase is the moment of imprisonment and two
+    /// prisoners taken a second apart wither on different seconds (ADR-0171).</summary>
+    public int PrisonWitherTicks;
+
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
     public int TargetTileIndex = -1;
 
@@ -785,6 +791,7 @@ public sealed class CreatureState
         hash.Add(Dk2StateId);
         hash.Add(StateBeforeUtilityState);
         hash.Add(UtilityNewState);
+        hash.Add(PrisonWitherTicks);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);
         hash.Add(TimerTicks);

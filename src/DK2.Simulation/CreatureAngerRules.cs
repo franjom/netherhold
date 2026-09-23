@@ -82,7 +82,10 @@ public static class CreatureAngerRules
     /// sources — <c>AngerNoLair</c> +100, <c>AngerNoPay</c> +60 (ADR-0079; being owed is the whole
     /// trigger, <see cref="PaydayRules.IsOwedWages"/>) and
     /// <c>ModifyAngerOfCreatureInLairPerSecond</c> −550. Elsewhere: <c>AngerNoFood</c> +100 in the
-    /// prison only (ADR-0074), <c>AngerNoWork</c> +50 in <see cref="Systems.CreatureJobSystem"/>. Not implemented: <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> +150.</summary>
+    /// prison only (ADR-0074), <c>AngerNoWork</c> +50 in <see cref="Systems.CreatureJobSystem"/>,
+    /// and <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> +150 every four seconds in a
+    /// cell (<see cref="PrisonRules.CellAngerPerApplication"/>, ADR-0171). That variable's
+    /// <i>other</i> reader, the mixed-alignment room rule, is still unbuilt.</summary>
     public static CreatureAnger PerSecond(
         WorldState world,
         GameDatabase database, CreatureDef creature, CreatureState state)
@@ -111,7 +114,9 @@ public static class CreatureAngerRules
 
         // And a bed pays off neither of them (ADR-0081): ModifyAngerOfCreatureInLairPerSecond
         // reaches bucket 5 and nothing else, where the charges above are buckets 2 and 4.
-        if (LairRules.AsleepInOwnBed(world, database, state))
+        // Cooling is category-gated, not bed-gated — seven states including awake ones
+        // (Q123, ADR-0171).
+        if (LairRules.CoolsAngerInLair(state))
         {
             delta.Treatment += database[VariableTypeId.ModifyAngerOfCreatureInLairPerSecond];
         }

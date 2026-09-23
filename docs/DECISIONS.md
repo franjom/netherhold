@@ -3963,3 +3963,20 @@ to melee for one tick and is back on its spell the next. A Haste at 3686 units a
 tick can pass a standing ally, as DK2's per-tick finder would (Q401, an owner
 question). Not built: the Support's escape gate on the survey, the Turncoat, pit
 and torture refusals, the Imp's Teleport and Haste paths (Q401).
+
+## ADR-0171 — A cell bites in fours, and anger cools in seven states not three
+**Date:** 2026-09-23 · **Status:** accepted · closes Q402, closes Q123's live divergence · Research: `docs/research/state-category-hooks.md` §3, `state-categories.md` §7.2, `prison.md`, `creature-anger.md`
+
+**Context.** Reading all 36 state-category hook bodies reached two mechanics this project had already built, and both were built differently from the original. The stop rule in that brief recorded them as Q402 rather than changing behaviour on a research branch.
+
+**Decision.** Both are corrected to the original.
+
+1. **The prison charges in lumps.** `0x0047B7C0` reloads `variable19 << 2` and applies `4 × PrisonModifyCreatureHealthPerSecond` (−12) once every four game seconds, where ours took −3 every second. The average is identical and the moment of death is not, so a prisoner dies on a four-second boundary and a keeper's chicken has a coarser window. The phase is per creature, set by the enter hook at the moment of imprisonment, so two prisoners taken a second apart wither on different seconds — that needs state, and it is `CreatureState.PrisonWitherTicks`.
+2. **A cell angers as well as withers.** The same hook adds `ModifyAngerInCompanyOfHatedCreaturesPerSecond` (150, and 100 on campaign level 1) to bucket 0 with complaint selector 9, in the same breath as the health. It is **not** scaled by the four-second interval: the variable passes through whole, so a prisoner gains 150 an application, not 600. This is the variable's *second* reader; the mixed-alignment room rule is the other and is still unbuilt.
+3. **Cooling is category-gated, not bed-gated.** The lair effect `0x004DFF00` is called from the per-tick hooks of categories 6, 9 and 10 — seven states: 79 looking for the Lair, 80 making a home, 81 going to bed, 82/83/84 sleeping, 85 sulking. It tests nothing about tile or bed, so awake creatures cool too. `LairRules.CoolsAngerInLair` replaces `AsleepInOwnBed` at the anger site.
+
+**Consequences.**
+- **Healing is deliberately not widened.** The same routine heals behind a predicate that has not been read, so whether an awake creature gains health in a lair stays UNKNOWN (Q123). `CreatureHealthRules` keeps `AsleepInOwnBed`.
+- **One known over-cool.** `CreatureActivity.SeekingLair` folds states 79 and 80 together with the walk between them, which DK2 spends in a movement state that does not cool. It resolves when travel retires into the utility slot (ADR-0135); until then ours cools for the length of that walk.
+- The old cooling rule had a test, and it only ever covered the sleeping case — which is why the divergence survived from 2026-09-07 with a green suite. The widened rule is pinned on the awake arms and on a negative (`AtWork` at a non-lair job) so it cannot degrade into "cooling always happens".
+- `HashVersion` and `FormatVersion` **77**, pin `0x2EC7D308858908C2`. `Dk2TerrainFixture` gains variable 78, which only a prison reads.

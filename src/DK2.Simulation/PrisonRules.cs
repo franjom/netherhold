@@ -325,6 +325,12 @@ public static class PrisonRules
         creature.SleepTicks = 0;
         creature.AwakeTicks = 0;
         creature.Activity = CreatureActivity.Imprisoned;
+
+        // DK2's prison enter hook sets the countdown, so the phase is the moment of
+        // imprisonment: two prisoners taken a second apart wither on different seconds.
+        creature.PrisonWitherTicks =
+            WitherIntervalSeconds * SimulationTiming.TicksPerSecond;
+
         creature.TargetTileIndex = -1;
         creature.TargetWork = default;
         creature.TimerTicks = 0;
@@ -347,19 +353,37 @@ public static class PrisonRules
     /// <c>PrisonModifyCreatureHealthPerSecond</c>, which ships at <b>-3</b>. The
     /// manual says it in words — "whilst in Prison, creatures gradually lose health as
     /// they wither away".
-    /// <para>It is hunger: STRONGLY INFERRED (binary, 2026-09-06, Q173) — the prison
-    /// state category's per-tick hook <c>FUN_0047b7c0</c> takes the health off only
-    /// when <c>HungerFill</c> is non-zero, so the four creatures that never eat never
-    /// wither and a <b>Skeleton</b> in a cell is stable for ever, which matters because
-    /// a Skeleton is what a prison makes. Two deviations: the original applies -12
-    /// every four game seconds (<c>ticksPerSecond &lt;&lt; 2</c>, same average, coarser
-    /// granularity), and it also applies
-    /// <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> (150) under anger reason 9 in the same breath, which this does not (prison.md §4b). What stops it entirely is <see cref="Withers"/>, not this.</para></summary>
+    /// <para>It is hunger: STRONGLY INFERRED (binary, 2026-09-06, Q173) — the hook takes
+    /// the health off only when <c>HungerFill</c> is non-zero, so a <b>Skeleton</b> in a
+    /// cell is stable for ever, which matters because a Skeleton is what a prison makes.
+    /// What stops it entirely is <see cref="Withers"/>, not this. Charged in a lump every
+    /// four seconds (ADR-0171), so <see cref="WitherPerApplication"/> is what lands.</para>
+    /// </summary>
     public static int WitherPerSecond(
         GameDatabase database, CreatureDef creature) =>
         CreatureHealthRules.CanGetHungry(creature)
             ? database[VariableTypeId.PrisonModifyCreatureHealthPerSecond]
             : 0;
+
+    /// <summary>Game seconds between one bite and the next: <b>four</b>, DK2's
+    /// <c>variable19 &lt;&lt; 2</c> reload of the prison category's countdown.</summary>
+    public const int WitherIntervalSeconds = 4;
+
+    /// <summary>What one bite takes off — four seconds' worth in a lump, so -12.</summary>
+    public static int WitherPerApplication(
+        GameDatabase database, CreatureDef creature) =>
+        WitherPerSecond(database, creature) * WitherIntervalSeconds;
+
+    /// <summary>The anger a cell adds in the same breath as the health:
+    /// <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> (150) into bucket
+    /// <see cref="AngerBucket.Company"/>, DK2's complaint selector 9.
+    /// <para>Not scaled by the interval — the hook passes the variable through whole,
+    /// once every four seconds, so a prisoner gains 150 an application and not 600
+    /// (ADR-0171; <c>state-category-hooks.md</c> §3). The name is the variable's, and
+    /// the prison is a second reader of it; the mixed-company rule is the other.</para>
+    /// </summary>
+    public static int CellAngerPerApplication(GameDatabase database) =>
+        database[VariableTypeId.ModifyAngerInCompanyOfHatedCreaturesPerSecond];
 
     /// <summary>The chance in percent that an overcrowded prison breaks out this game
     /// second: <c>OvercrowdingJailBreakPercentagePerExtraCreature</c>, which ships at

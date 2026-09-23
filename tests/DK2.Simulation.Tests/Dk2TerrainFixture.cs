@@ -1145,6 +1145,11 @@ internal static class Dk2TerrainFixture
         // out (ADR-0064).
         Set(vars, VariableTypeId.PrisonModifyCreatureHealthPerSecond, -3);
         Set(vars, VariableTypeId.OvercrowdingJailBreakPercentagePerExtraCreature, 50);
+
+        // The cell's anger, charged in the same breath as the health (ADR-0171).
+        // The shipped global is 150; campaign level 1 overrides it to 100, which is
+        // why the rule reads it through the database rather than as a constant.
+        Set(vars, VariableTypeId.ModifyAngerInCompanyOfHatedCreaturesPerSecond, 150);
         Set(vars, VariableTypeId.MotionlessInPrisonSeconds, 8);
         // Payday, as shipped: ten minutes between them, and the first one ten
         // minutes in rather than at zero (Q9, ADR-0078).

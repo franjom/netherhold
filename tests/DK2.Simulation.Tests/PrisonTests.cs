@@ -350,7 +350,7 @@ public class PrisonTests
     // ---- withering --------------------------------------------------------
 
     [Fact]
-    public void APrisonerWakesAtOneSixthAndLosesThreeHealthASecond()
+    public void APrisonerWakesAtOneSixthAndLosesTwelveHealthEveryFourthSecond()
     {
         // CONFIRMED (owner, 2026-09-05, Q167): "its flower gets two petals, and
         // then that creature starts loosing health at some standard rate". Read,
@@ -371,7 +371,11 @@ public class PrisonTests
         GameSimulation sim = Simulation(db, world);
         for (int i = 0; i < 10 * Second; i++) sim.Tick();
 
-        Assert.Equal(250 - 30, captive.Health);
+        // Twelve at a time on the fourth second and the eighth, not three on each of
+        // ten: the hook reloads variable19 << 2, so the average matches the shipped
+        // -3 a second and the moment does not (ADR-0171). Ten seconds in, two bites
+        // have landed and the third is two seconds away.
+        Assert.Equal(250 - 24, captive.Health);
     }
 
     [Fact]
@@ -423,7 +427,9 @@ public class PrisonTests
         // which this used to assert only by accident of the creature never
         // moving.
         TilePos died = captive.Tile;
-        for (int i = 0; i < 2 * Second; i++)
+        // Five seconds, not two: the cell bites once every four (ADR-0171), so a
+        // prisoner on 3 health survives the first three seconds whatever its total.
+        for (int i = 0; i < 5 * Second; i++)
         {
             sim.Tick();
             if (world.CreatureById(captiveId) is null) break;

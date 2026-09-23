@@ -587,6 +587,59 @@ public class CreatureAngerTests
         Assert.Equal(100, db.CreatureById(GoblinId).AngerNoLair);
     }
 
+    [Theory]
+    [InlineData(CreatureActivity.SeekingLair)]
+    [InlineData(CreatureActivity.GoingToSleep)]
+    public void AnAwakeCreatureCoolsToo_BecauseCoolingIsCategoryGatedNotBedGated(
+        CreatureActivity activity)
+    {
+        // Q123: the lair effect runs from the hooks of categories 6, 9 and 10 - seven
+        // states, only three of them sleeping - and tests nothing about tile or bed
+        // (ADR-0171). No bed is placed on purpose: asking whether the creature was
+        // asleep ON its own bed tile is exactly what undercooled, and the test that
+        // existed covered only the sleeping case, so it passed throughout.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var lair = new TilePos(4, 4);
+        PaintLair(db, world, lair);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, lair);
+        goblin.Activity = activity;
+
+        // The rule, not a run: the sleep system moves a lair-seeker on within the same
+        // tick, so driving this through a simulation would measure the ordering rather
+        // than the gate.
+        CreatureAnger delta = CreatureAngerRules.PerSecond(
+            world, db, db.CreatureById(GoblinId), goblin);
+
+        Assert.Equal(-550, delta.Treatment);
+    }
+
+    [Fact]
+    public void WorkingIsNotCoolingButSulkingIs_BecauseSulkingIsCategoryTen()
+    {
+        // The other side of the widening: categories 6, 9 and 10 and nothing else.
+        // Without this the rule above could be "cooling always happens" and pass.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var lair = new TilePos(4, 4);
+        PaintLair(db, world, lair);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, lair);
+        goblin.Activity = CreatureActivity.AtWork;
+        goblin.CurrentJob = JobType.Research;
+
+        CreatureAnger working = CreatureAngerRules.PerSecond(
+            world, db, db.CreatureById(GoblinId), goblin);
+        Assert.Equal(0, working.Treatment);
+
+        // And the fourth arm of the widening, category 10: sulking is a lair job.
+        goblin.CurrentJob = JobType.Sulk;
+        CreatureAnger sulking = CreatureAngerRules.PerSecond(
+            world, db, db.CreatureById(GoblinId), goblin);
+        Assert.Equal(-550, sulking.Treatment);
+    }
+
     [Fact]
     public void AngerFloorsAtZeroRatherThanGoingNegative()
     {

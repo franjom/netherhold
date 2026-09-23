@@ -102,11 +102,12 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 76: the utility-state pair, StateBeforeUtilityState and UtilityNewState,
-        // beside Dk2StateId (ADR-0135). Still nothing writes any of the three, so every creature
-        // hashes -1 three times; the bump is the fields' arrival. Earlier pins and their reasons
-        // live in docs/research/hash-versions.md.
-        Assert.Equal(0xFD44E939D714F3F1UL, sim.StateHash());
+        // HashVersion 77: the two Q402 divergences (ADR-0171). A cell bites 12 every four
+        // seconds instead of 3 every second and adds 150 anger with it, which needs the
+        // per-creature countdown PrisonWitherTicks; and anger cools in all seven states of
+        // categories 6, 9 and 10 rather than only asleep in one's own bed. Earlier pins and
+        // their reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0x2EC7D308858908C2UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

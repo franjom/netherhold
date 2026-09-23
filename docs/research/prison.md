@@ -169,11 +169,10 @@ The applier's cadence and gate are its own prologue:
 ```
 
 So the original applies **−12 every 16 ticks** — −12 every four game seconds, an
-average of exactly the −3 a second the variable's name promises. **This project
-applies −3 every game second**: the same average, four times finer, so a prisoner
-here dies at the same moment rather than in the same steps, and **without the
-anger**, which is not built. The only way to tell the cadences apart is to watch
-a health bar tick.
+average of exactly the −3 a second the variable's name promises. **Built that way
+since 2026-09-23** (ADR-0171), phase per creature from the moment of
+imprisonment, with the +150 anger the same hook adds in the same breath. This
+project used to apply −3 every game second and no anger at all.
 
 ### It is the prison's, and it is hunger
 
@@ -207,8 +206,7 @@ support (Q171).
 
 ## 5. What is ours, stated
 
-- **The drain is applied in single seconds rather than four-second lumps**
-  (§4b), and **without the anger that accompanies it in the original.**
+
 - **The jail break is rolled once a game second here, and that is wrong**
   (Q168). DK2 rolls only in the room-insertion path, once, after a creature joins
   a Prison whose occupancy now exceeds its safe capacity: `random(100)` against

@@ -32,6 +32,12 @@ beside it.
 
 ## Versions
 
+**77** — `0x2EC7D308858908C2`. The two Q402 divergences the hook read found (ADR-0171):
+a cell bites `4 × PrisonModifyCreatureHealthPerSecond` every four game seconds instead of
+one second's worth each second, and adds `ModifyAngerInCompanyOfHatedCreaturesPerSecond`
+with it; anger cools in all seven states of categories 6, 9 and 10 rather than only asleep
+in one's own bed. `CreatureState.PrisonWitherTicks` carries the per-creature phase.
+
 **76** — `0xFD44E939D714F3F1`. The utility-state pair beside it — DK2's own
 `StateBeforeUtilityState` (`+0x40`) and `UtilityNewState` (`+0xDF`). The second is the
 resume slot the transition rule reads in place of the current state while the category
