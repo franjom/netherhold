@@ -230,7 +230,46 @@ the bit/mask/`+0x3c` columns of §7 come back identical.
 The other ten categories have no hook of any kind, so for those the states
 themselves stay the only evidence. Nothing here is carried into `src/`: the
 generated table keeps only whether a hook exists, because nothing in this project
-calls one. This is the reading list.
+calls one.
+
+## 7.2 What the hooks do
+
+All 35 were fingerprinted on 2026-09-23 — calls, globals and field offsets — and
+the ones below were read in full. The rest are still only shapes.
+
+**An update hook runs every tick and throttles itself to once a game second.**
+Each opens with the same gate: a per-creature countdown byte, skip while it is
+non-zero, otherwise reload it from **`0x006F2590` — variable 19, ticks a game
+second** (Q1, so 4). The countdown field is per category, `+0xAB` for Prison,
+CombatPit and Spectating, `+0xAC` for Torture, `+0xAF` for Lair, Sleeping and
+Temple. So a "per second" balance value is charged by a per-tick hook that skips
+three ticks in four, which is a different mechanism from the work rates being
+pre-divided at load (`tile-work.md`) and reaches the same place.
+
+**Three idioms cover most of the 35.** Eight enter hooks share
+`vtable +0x1D4` → `0x004E5A70` → `0x004E7F80` → `0x004559B0`, which is claiming a
+slot in the room the state needs. Nine leave hooks share `0x004E5E00` →
+`0x004D8E60` against the id at `+0x3B9` — releasing it. The Lair, Sleeping and
+Sulking updates share `0x004DFF00` → `0x00517490`.
+
+**Periodic anger is a category hook, and the complaint selector is read off.**
+The wrapper is `creature-anger.md`'s `FUN_00478B80(bucket, amount, selector)`:
+
+| Cat | buckets charged | selector | amount |
+|---:|---|---|---|
+| 12 Temple | 0, 1, 2, 3, 4, 5 — **all six** | 9, 1, 0, 3, 2, 9 | v102 `ModifyCreatureAngerWhilePrayingPerSecond` −275 |
+| 31 Spectating | 5, 0, 3 | 9 | v135 `ModifyAngerOfPitSpectatorPerSecond` −275 |
+| 17 Casino | 5, 0, 5, 0, 3 | 2 | two globals, unread |
+| 15 Torture | 5 | 8 | computed, per creature |
+| 14 Prison | 0 | 9 | one global, unread |
+
+The Temple's six calls carry six *different* selectors against one amount, which
+is what proves the selector is not the bucket: bucket 0 raises complaint 9,
+bucket 1 raises 1, bucket 2 raises **0**, bucket 3 raises 3, bucket 4 raises 2.
+Training (13) has an update hook and charges no anger.
+
+This narrows **Q202**: buckets 0 and 5 are still not *named*, but every periodic
+writer of them is now known.
 ## 8. What the labels say about the seven unnamed ones
 
 Every state carries a `Text.str` id (`creature-state-table.md` §3), so a category

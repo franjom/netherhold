@@ -131,9 +131,10 @@ maxing a creature's anger every time a player touched it.
 
 ## Anger is six counters, not one (ADR-0081)
 
-Every anger site in DKII.EXE goes through one wrapper, `FUN_00478b80`, into one
-adder, `FUN_00487030`. The adder's receiver is an `int[8]` at `creature+0x26e`:
-**six counters**, then the unhappy threshold, then the mood band.
+Every anger site goes through one wrapper, `FUN_00478b80(bucket, amount, selector)`
+— the **selector is a third thing, not the bucket** (`state-categories.md` §7.2) —
+into one adder, `FUN_00487030`, receiver an `int[8]` at `creature+0x26e`: **six
+counters**, then the unhappy threshold, then the mood band.
 
 ```
 add amount to counter[index]
@@ -164,11 +165,10 @@ without being made to. Buckets 5 and 0 are **Q202**.
 | **5** | `angerSlap`, `angerInHand`, `ModifyAngerOfCreatureInLairPerSecond`, `ModifyAngerOfCombatPitVictor`, `GamblingModifyCreatureAngerMoney/Smiles`, the torture sites |
 | **0** | `ModifyAngerInCompanyOfHatedCreaturesPerSecond`, a share of the casino and of pit spectating, and `angerNoWork` at one site inside the combat pit |
 
-Bucket 5 reads as *what is done to you, and resting it off* — slapping, carrying,
-torture and the pit fill it, and a bed drains it. **Which makes "sleep it off"
-the specific answer to slapping**, and explains why the shipped calm (−550) is so
-much larger than any need charge: it is undoing 3000-point slaps, not 100-point
-grievances. Bucket 0 is less coherent and its name here is ours.
+Bucket 5 is *what is done to you, and resting it off* — slapping, carrying, torture
+and the pit fill it, a bed drains it, **so "sleep it off" is the specific answer to
+slapping** and the shipped calm (−550) dwarfs any need charge. Every *periodic* site
+is a category update hook, and each one's bucket is now read off (§7.2 there).
 
 ### What the split changes
 
