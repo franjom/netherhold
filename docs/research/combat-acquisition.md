@@ -158,8 +158,8 @@ squared distance of `combat-target-selection.md` §2.
 
 **Scan E is the heart's blow.** A creature that can see an enemy heart's centre
 within four tiles attacks its nearest pillar, outranking a worker it had
-already picked; how a pillar's damage reaches the heart object (13, health
-variable 174) is Q363.
+already picked; the pillar is a proxy — the health routine hands its delta to
+the owner's heart (Q363, `win-and-defeat.md` §3.1).
 
 ### 6.1 Two names from the dumper
 
@@ -234,7 +234,7 @@ trigger event. The flee check is built since ADR-0165 (combat-fear.md §3.4).
 ## 10. What is left
 
 Q360 sleeping and lair-walk creatures unattackable (owner); Q361 the Call to
-Arms radius; Q362 scan D's list; Q363 pillar damage to the heart; Q364
+Arms radius; Q362 scan D's list; Q363's leftover, the pillars' placement; Q364
 `0x0045EDA0`, `+0x16 == 2`, `vtable+0x2C`; Q365 the spell survey; Q366 creature
 trigger event 6.
 

@@ -9,12 +9,33 @@ using DK2.Simulation.Systems;
 namespace DK2.Simulation.Tests;
 
 /// <summary>The heart's fall and the verdicts it brings — docs/research/win-and-defeat.md,
-/// ADR-0162. Nothing in the tick order damages a heart yet (combat, Q8), so the blow is
-/// dealt directly and what is pinned is everything DK2 does after it.</summary>
+/// ADR-0162. The blow is dealt directly here (combat lands it in CombatTests), and what is
+/// pinned is the heart's own routine and everything DK2 does after the fall.</summary>
 public class DungeonHeartTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
+
+    [Fact]
+    public void RegenerationStampsTheOwnerAsTheLastSource_AndAFullHeartKeepsItsAttacker()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = NewWorld(database);
+        GiveHeart(world, database, Keeper, new TilePos(5, 5));
+        world.DamageHeart(Keeper, 10, Rival);
+        Assert.Equal(Rival, world.Player(Keeper).HeartLastAttackerPlayerId);
+        GameSimulation sim = Simulation(database, world);
+
+        // The room frame passes the owner's own tag as the source of the regeneration (0x004D9F4B).
+        sim.Run(SimulationTiming.TicksPerSecond);
+        Assert.Equal(Keeper, sim.World.Player(Keeper).HeartLastAttackerPlayerId);
+
+        // Full again: the capped amount is zero and DK2 never makes the call, so a blow's stamp stays.
+        sim.World.DamageHeart(Keeper, 0, Rival);
+        sim.Run(SimulationTiming.TicksPerSecond * 2);
+        Assert.Equal(database[VariableTypeId.DungeonHeartObjectHealth], sim.World.Player(Keeper).HeartHealth);
+        Assert.Equal(Rival, sim.World.Player(Keeper).HeartLastAttackerPlayerId);
+    }
 
     [Fact]
     public void AKeeperStartsWithAFullHeartAndNobodyElseHasOne()

@@ -184,7 +184,7 @@ capture it in PowerShell with `Out-File -Encoding utf8`.
 Order as of 2026-09-23, from the plan's §8 Run column: M6 and M7 first, the keeper
 AI (M12) ahead of breadth.
 
-1. **The heart and defeat.** Q363: how a blow on an Arch Pillar (object 94) reaches the heart object's health (`0x004B2CE0`'s object arm, `0x0049B5E0`'s type-13 arm); nothing places pillars yet (2026-09-23). Q358: what a defeat does (`0x004DAA10`, `0x004DAE40`). Q359: alliance propagation.
+1. **The heart and defeat.** Q363 is read: the pillar is a proxy and the owner's routine `0x004DA200` takes the blow flat (`win-and-defeat.md` §3.1); left are what places the pillars and what deletes a heart object at zero health (2026-09-23). Q358: what a defeat does (`0x004DAA10`, `0x004DAE40`). Q359: alliance propagation.
 2. **Heroes.** Hero parties and action type 14 spawning (Q254–Q259), the hero gate; heroes can now fight.
 3. **Combat's leftovers.** Q376 (the celebration animation's length, KMF frame counts), Q401 (does Haste sometimes miss?), Q395's unread shot handlers and the Guided Bolt, the thing-targeting spells (scan B), scans A/C/D, Q337's possession scalar, Q335 resistance.
 4. **M6 triggers.** `kwd unreached` ranks remaining action effects; types 17 and 24 rank first and are parked (Q309, Q227). Door and trap behaviour (Q249–Q253); effect generators (Q254–Q259). Q220/Q221 are the two open record layouts.

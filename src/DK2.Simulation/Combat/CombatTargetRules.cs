@@ -10,8 +10,8 @@ using DK2.Simulation.Steering;
 namespace DK2.Simulation.Combat;
 
 /// <summary>Where the enemy hearts stand this tick, for the acquirer's heart scan: each hostile
-/// keeper's heart centre and the heart tiles round it that stand in for its Arch Pillars (Q363).
-/// Built once a tick by <see cref="Systems.CombatSystem"/>.</summary>
+/// keeper's heart centre and the heart tiles round it that stand in for its Arch Pillars, whose
+/// placement is unread (Q363). Built once a tick by <see cref="Systems.CombatSystem"/>.</summary>
 public sealed class HeartSites
 {
     public readonly struct Site
@@ -390,7 +390,8 @@ public static class CombatTargetRules
 
     /// <summary>Scan E: each hostile keeper's heart whose centre is within sight and seen, and then
     /// its nearest ring tile that beats the best so far. DK2's candidates are the room's Arch
-    /// Pillar objects; the ring tile is the stand-in until they are placed (Q363).</summary>
+    /// Pillar objects, each a proxy whose blow the health routine hands to the heart; the ring
+    /// tile is the stand-in until their placement is read (Q363).</summary>
     private static int ScanHearts(
         WorldState world, ISightBlocker sight, HeartSites hearts, CreatureState me, int sightSq, ref int best, out byte owner)
     {

@@ -108,6 +108,46 @@ none:  0x004E9130(room, 1)                          ; ruin it (§4)
 A heart at zero health **does not regenerate** — the `health != 0` test skips it
 — and a room whose heart object is gone is ruined on its next frame.
 
+### 3.1 The health change routine, `0x004DA200(owner, delta, source)` — Q363
+
+Read 2026-09-23. Both the frame's regeneration and every blow arrive here. The
+health routine `0x004B2CE0` opens with `word[thing+0x36] = source` for every thing,
+and its object arm (class `+0x12` == 2) tests the type: an **Arch Pillar (94) hands
+its delta straight to `0x004DA200` on its owner** (`thing+0x2A`); any other object
+takes a negative delta only if its definition's flags (`def+0xF4`) carry `Damageable`
+(bit 21); and an object's delta then lands **flat** — no multiplier, no clamp — at
+`0x004B324A`. So a pillar is a proxy: it has no health of its own that matters.
+
+`0x004DA200` finds the owner's heart tile (`0x004C5F50`), its room (`0x004559B0`)
+and the room's object of type 13; none → return 0. Then, in order:
+
+1. a negative delta plays sound `0x329` at the heart (display);
+2. **`player+0x76` bit 4, `DungeonHeartIsInvulnerable`, skips everything below** (its
+   writer is unread; bit 3 is `HeartPlugRemoved`, bit 2 `CallToArmsOn` — the dumper
+   prints the last two in the other order);
+3. `0x004B2CE0(heart, delta, source, 0)` — the flat add above, stamping the source;
+4. a negative delta raises **notification 1 at the heart tile** (`0x004C4600(world+0x2E54,
+   1, owner, x, y, 1)`): speech 345 *"Your Dungeon Heart is under attack!"*, 120 s;
+5. the heart's visual stage from `health × 100 / max` clamped to 0..100, in tens
+   (tables `0x006A1930`/`0x006A1948`; display);
+6. returns the heart's health.
+
+The frame's regeneration passes `word[room+0x1D]`, the owner's tag, as the source, so
+between blows the heart's last source is its own keeper. The frame head also reads the
+percentage every tick and raises notification 39 (speech 346, *"Your Dungeon Heart is
+dying!"*, 50 s) when it is **exactly 50** and 40 (speech 344, *"... in a critical
+state!"*, 50 s) when it is **exactly 10** — equality, not a threshold crossed.
+
+**UNKNOWN (bounded, 2026-09-23): what deletes the heart object at zero health.** Neither
+this routine nor the frame does; none of the thing deleter's eleven direct callers reads
+the object's health. Method: `ReadsAt` `+0x40` over the class-2 handlers, or a live
+capture of a heart kill sampling the object list against the health word.
+
+**Built (hash-neutral):** `WorldState.DamageHeart` is step 3 flat with the source stamped
+first; `RegenerateHeart` stamps the owner; the `heart_hit`/`shot_heart_hit` events stand
+for notification 1. Not built: the invulnerable flag (no writer read), the two
+percentage notices, pillar objects (the ring tile stands in, Q363).
+
 ## 4. Ruin: Q263 answered
 
 `0x004E9130(room, flag)` switches on the room type byte `+0x18` from 5 (Dungeon

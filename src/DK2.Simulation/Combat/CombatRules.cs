@@ -13,8 +13,9 @@ public static class FightTargetKind
     public const byte None = 0;
     public const byte Creature = 1;
 
-    /// <summary>An enemy dungeon heart, which DK2 attacks through its Arch Pillar objects; here the
-    /// heart tile stood in for the pillar (Q363).</summary>
+    /// <summary>An enemy dungeon heart, which DK2 attacks through its Arch Pillar objects — the health
+    /// routine redirects a pillar's delta to the owner's heart (<c>0x004DA200</c>); here the heart tile
+    /// stands in for the pillar, whose placement is unread (Q363).</summary>
     public const byte Heart = 2;
 }
 

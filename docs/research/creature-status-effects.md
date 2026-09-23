@@ -131,6 +131,11 @@ and the serialisers. Burning is a two-and-a-half-second display in v1.70
 
 ## 3. The health routine's multipliers (`0x004B2CE0(thing, delta, source, flag)`)
 
+The routine opens by stamping the source into `thing+0x36` for every thing, then takes
+its **object arm** (class 2): an Arch Pillar hands the delta to its owner's heart routine,
+any other object needs `Damageable`, and the delta lands flat (`win-and-defeat.md` §3.1).
+What follows is the creature arm.
+
 For a creature and a negative delta, after the refusals — dying (body bit 21)
 unless `flag`; `OnlyAttackableByHorny` (def bit 22); **`IsHorny` (def bit 14) takes
 no negative delta at all**; body `+0x3E6` bit 0 (`InHand`) leaves the health

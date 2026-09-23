@@ -105,7 +105,9 @@ public static class FightRules
     /// the engagement has moved on; a creature no longer standing, or invulnerable, takes nothing; the
     /// health change is <see cref="MeleeDamageRules.Blow"/> with no stance, the bearing from target to
     /// attacker and no player modifier, through <see cref="StatusEffectRules.Hurt"/>'s multipliers.
-    /// A heart takes it as <see cref="WorldState.DamageHeart"/> (Q363).</summary>
+    /// A heart takes it flat through <see cref="WorldState.DamageHeart"/>, as DK2's health routine
+    /// hands a pillar's blow to the owner's heart (<c>0x004DA200</c>, Q363); DK2 also raises the
+    /// "under attack" notice there, which the <c>heart_hit</c> event stands for.</summary>
     public static void LandBlow(SimulationContext context, CreatureState me, CreatureDef mine)
     {
         me.SwingInProgress = false;

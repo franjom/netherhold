@@ -168,7 +168,9 @@ public static class ShotRules
         context.Emit(SystemName, "shot_hit", $"shot={shot.Id} type={definition.ShotId} caster={shot.CasterId} target={target.Id} damage={shot.Data1} landed={landed} health={target.Health}");
     }
 
-    /// <summary>Contact damage on a heart: the data word, with the shooter's owner as the source.</summary>
+    /// <summary>Contact damage on a heart: the data word flat, with the shooter's owner as the
+    /// source — in DK2 the shot strikes an Arch Pillar and the health routine hands the delta to
+    /// the owner's heart (<c>0x004DA200</c>, Q363).</summary>
     public static void ContactDamageHeart(SimulationContext context, ShotState shot, ShotDef definition)
     {
         if (definition.DamageType != ContactDamageType || shot.Data1 <= 0) return;

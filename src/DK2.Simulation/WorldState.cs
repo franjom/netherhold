@@ -799,11 +799,13 @@ public sealed class WorldState
         return true;
     }
 
-    /// <summary>Takes health off a keeper's dungeon heart, remembering whose blow it was.
-    /// At zero the heart is dead: <c>KilledByPlayerId</c> and <c>GameTickDied</c> are
-    /// stamped as DK2's object death handler does (<c>0x0049B5E0</c>, type 13 arm). The
-    /// ruin and the verdict follow on later turns, in <see cref="Systems.DungeonHeartSystem"/>.
-    /// Nothing in the tick order calls this yet — combat is unbuilt (Q8).</summary>
+    /// <summary>The negative half of DK2's heart health change (<c>0x004DA200</c>, win-and-defeat.md
+    /// §3.1): a blow on an Arch Pillar or a shot on the heart is redirected here by the health
+    /// routine itself, the source is stamped first (<c>+0x36</c>, the killer at death) and the delta
+    /// lands flat — no multiplier, no armour. At zero the heart is dead: <c>KilledByPlayerId</c> and
+    /// <c>GameTickDied</c> are stamped as the object death handler does (<c>0x0049B5E0</c>, type 13
+    /// arm); the ruin and the verdict follow in <see cref="Systems.DungeonHeartSystem"/>. Not modelled
+    /// (2026-09-23): the <c>DungeonHeartIsInvulnerable</c> player flag, whose writer is unread.</summary>
     public bool DamageHeart(byte playerId, int amount, byte attackerPlayerId)
     {
         ref PlayerState player = ref Player(playerId);
@@ -816,6 +818,16 @@ public sealed class WorldState
         player.KilledByPlayerId = attackerPlayerId;
         player.HeartDiedTick = CurrentTick;
         return true;
+    }
+
+    /// <summary>The positive half of the same routine, as the heart room's frame calls it
+    /// (<c>0x004D9EFB</c>): the owner's own tag is the source, so a regenerating heart's last
+    /// source reads as its keeper until the next blow. The caller has already capped the amount.</summary>
+    public void RegenerateHeart(byte playerId, int amount)
+    {
+        ref PlayerState player = ref Player(playerId);
+        player.HeartLastAttackerPlayerId = playerId;
+        player.HeartHealth += amount;
     }
 
     /// <summary>Whether <paramref name="playerId"/> counts <paramref name="otherId"/> a friend —

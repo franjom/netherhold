@@ -3777,6 +3777,12 @@ at once, and the recharge — like the spell cooldown — divides by the work ra
 enhancement (`EfficiencyRules.Modifier`, 0.8 fresh), so a fresh creature waits a quarter
 longer than the file's seconds (`creature-status-effects.md` §4, `CombatRules.Scaled`).
 
+**Amended 2026-09-23 (Q363 read).** The pillar is a proxy: DK2's health routine hands a
+blow on an Arch Pillar to the owner's heart routine `0x004DA200`, which adds it flat and
+stamps the source; regeneration goes through the same routine with the owner's tag.
+`DamageHeart` was already that; `RegenerateHeart` now stamps the owner
+(`win-and-defeat.md` §3.1). The ring tile still stands in for the pillar object.
+
 ## ADR-0165 — Fear: threat radiated every tick, the back-off, the withdrawal
 
 **Status.** Accepted 2026-09-22 · `HashVersion` 70 · Research:

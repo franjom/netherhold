@@ -58,8 +58,10 @@ public sealed class DungeonHeartSystem : ISimulationSystem
     }
 
     /// <summary>Once a second the heart heals by the regeneration rate, never past its
-    /// maximum and never from zero — a dead heart does not come back. The room whose
-    /// heart object is gone becomes a ruin on this frame, one turn after the death.</summary>
+    /// maximum and never from zero — a dead heart does not come back. A full heart is not
+    /// touched at all (DK2 skips the call when the capped amount is zero), so its last source
+    /// stays whoever struck it. The room whose heart object is gone becomes a ruin on this
+    /// frame, one turn after the death.</summary>
     private void RoomFrame(
         SimulationContext context, ref PlayerState player, int max, int regen, bool secondEnds)
     {
@@ -72,7 +74,9 @@ public sealed class DungeonHeartSystem : ISimulationSystem
         }
 
         if (!secondEnds) return;
-        player.HeartHealth = Math.Min(max, player.HeartHealth + regen);
+        int amount = Math.Min(regen, max - player.HeartHealth);
+        if (amount <= 0) return;
+        context.World.RegenerateHeart(player.PlayerId, amount);
     }
 
     /// <summary>DK2 counts the keepers still playing only when somebody has just fallen,

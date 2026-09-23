@@ -25,7 +25,7 @@ or a community document.
 | `+0x06`, `+0x16` | `ThingsOwnedList[]`, `TotalNumberOfOwnedThings[]` | eight-entry arrays, one slot per thing category — words then dwords. **Category 0 is creatures**, and condition type 19 walks both |
 | `+0x36` | `RoomList` | head of the owned-room list, walked through the object table at `0x006EE540` |
 | `+0x3C` | `OwnedArea` | four values |
-| `+0x76` | *(bitfield)* | `CanPopImps`, `BookHeldInPossession`, `CallToArmsOn`, `DungeonHeartIsInvulnerable`, `HeartPlugRemoved`, `GameWonSequenceActive`, `ReaperCreatedForEndSequence`, `ThirdPersonPossess`, `WarnAboutLowMana`, `FirstPayDaySet`, `HasPlayedHornyAvailable`, `HasPlayedToDismissReaper`, `PortalsOpen`, `Active`, `NotUsed` |
+| `+0x76` | *(bitfield)* | `CanPopImps`, `BookHeldInPossession`, `CallToArmsOn`, `DungeonHeartIsInvulnerable`, `HeartPlugRemoved`, `GameWonSequenceActive`, `ReaperCreatedForEndSequence`, `ThirdPersonPossess`, `WarnAboutLowMana`, `FirstPayDaySet`, `HasPlayedHornyAvailable`, `HasPlayedToDismissReaper`, `PortalsOpen`, `Active`, `NotUsed`. Bits read 2026-09-23: 2 `CallToArmsOn`, 3 `HeartPlugRemoved`, 4 `DungeonHeartIsInvulnerable` — the dumper prints the last two in the other order (`0x004BD478`, `0x004BD494`) |
 | `+0x7A` | `ImpProcessedCounter` | zeroed at the top of every player frame |
 | `+0x7E` | **`Money`** | condition type 30 |
 | `+0x82` | **`CurrentMana`** | condition type 32 |

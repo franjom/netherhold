@@ -86,6 +86,12 @@ A **variant list** is 8-byte records — `{u16 variantId, u16 durationSeconds,
 i32 speechRef}` — terminated by a record with variant id 0 whose reference is the
 default used when the requested variant is not found.
 
+Rows read so far (2026-09-23): type **1** → speech 345 *"Your Dungeon Heart is under
+attack!"*, 120 s, raised by the heart's health change on a negative delta; **39** → 346
+*"Your Dungeon Heart is dying!"* and **40** → 344 *"... in a critical state!"*, 50 s each,
+raised by the heart room's frame at exactly 50 % and 10 % (`win-and-defeat.md` §3.1).
+Type 6 is the "your creature is fighting" notice (`combat-fight-state.md` §1), its row unread.
+
 ### The encoding, and why it matters
 
 A speech reference is stored **negated with a 10000 bias**:
