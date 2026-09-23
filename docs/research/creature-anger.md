@@ -6,7 +6,7 @@ Source(s):
 - The reference install's `Creatures.kwd` and `GlobalVariables.kwd`, via `DK2.Data`
 - `DKII.EXE` v1.70: the anger wrapper `FUN_00478b80`, the adder `FUN_00487030`,
   the three job choosers, and the category update hooks, read 2026-09-05 to
-  2026-09-07
+  2026-09-07; the adder and its percentage sibling re-read 2026-09-23
 - OpenKeeper `CreatureMoodSystem` / `CreaturesController`
 
 Original version: DK2 v1.70
@@ -143,6 +143,10 @@ band  = worst < counter[6] ? content : worst > 0x7FFF ? angry : unhappy
 ```
 
 **Nothing sums them.** The mood is the largest single grievance.
+
+**Both ends of that clamp are DK2's**: a signed test against zero, then a
+saturate at `0xFFFD` — anger does not bank below zero. The percentage sibling
+`0x004870e0` (`counter * pct / 100`) clamps alike; ties keep the lowest index.
 
 ### Which bucket takes what
 
@@ -382,9 +386,6 @@ seconds later.
 
 ## Known exceptions
 
-- The zero floor on a counter is **ours** (Q115): nothing in the data states it,
-  and without it a combat-pit victor (−16400) would be immune to every grievance
-  for three minutes.
 - Cooling gated on sleeping in one's own bed undercools against Q123 (above).
 - The chooser's inclusive range bounds and its no-op sort are reproduced.
 

@@ -834,7 +834,7 @@ So a keeper who dug through **their own reinforced wall** got Dirt Path still st
 - `HashVersion` 13 → 14, `FormatVersion` 13 → 14: `CreatureState` gained `Anger` and `AngryChoice`.
 - A creature that is down is skipped (ADR-0051).
 - Imps need no special case: `AngerNoLair` = 1 against 32767 is nine hours, and an imp is owed no bed. The Skeleton is the only creature whose four `angerNo*` fields are all zero (see ADR-0087: the rule is a flag, and Jack's values are a decoy).
-- Not done: rebelling (`RebelLeavingPercentage` 70, `RebelBecomeGoodPercentage` 15, `RebelDefectPercentage` 15 have nothing to act on); where a deserter goes (DK2 sends it to a portal; the wiki's "rebellion is the fallback" conflicts with the record's weighted table — Q116); the zero floor is ours (Q115 — without it a combat-pit victor at −16400 would be immune for three minutes).
+- Not done: rebelling (`RebelLeavingPercentage` 70, `RebelBecomeGoodPercentage` 15, `RebelDefectPercentage` 15 have nothing to act on); where a deserter goes (DK2 sends it to a portal; the wiki's "rebellion is the fallback" conflicts with the record's weighted table — Q116). The zero floor was recorded here as ours; it is DK2's, read off the adder on 2026-09-23 (Q115).
 - Code now: `Anger` is six counters and the mood is the maximum (ADR-0081); `AngryChoice` is replaced by `LastAngryChoiceTick` (ADR-0061); `AngerNoPay` (ADR-0079), `AngerNoWork` (ADR-0082) and the prison's `AngerNoFood` (ADR-0074) are charged.
 
 
