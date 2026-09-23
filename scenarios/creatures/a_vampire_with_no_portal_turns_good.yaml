@@ -1,0 +1,115 @@
+﻿# Rebellion, end to end (ADR-0172, `docs/research/rebellion.md`).
+#
+# The companion to `a_goblin_with_no_lair_walks_out.yaml`, and deliberately its
+# mirror. That run is about the *other* half of a Goblin's angry table: a coin
+# toss between `Leave` and `Rebel`, on a map with no portal, where nobody can go
+# anywhere. This one removes the coin toss and lets the second half finish.
+#
+# A **Vampire**, because its shipped `AngryJobs` is `Rebel` outright — one entry,
+# 100% — so the run is about the mechanic rather than about seed 5. A Goblin here
+# would test the RNG.
+#
+# What job 16 does, read from `0x00475170`:
+#
+#   1. Three guards: not a captive, not a Combat Pit fighter, not in the Hand.
+#   2. Find the nearest **Portal of the creature's own keeper** and route to it,
+#      entering state 194 `leaving Dungeon` — the same state job 10 `Leave` sets.
+#   3. **Only if that fails**: enter state 271, and 30 ticks later change owner
+#      to the hero player.
+#
+# So the two angry-table entries are far closer than their names suggest. With a
+# portal on the map, `Rebel` and `Leave` are the same walk; the difference only
+# shows when there is no way out. This map therefore has **no portal**, which is
+# the entire setup.
+#
+# Step 3 is what the wiki was describing when it called rebellion "the fallback
+# when the exit is unreachable" (Q116). It was right — one level down. The
+# *table* decides between jobs 10 and 16 and is the record's; the portal-then-
+# Good order is inside job 16 and is an engine rule. Both accounts were true and
+# they were talking past each other.
+#
+# Thirty ticks is **7.5 game seconds**, which is not a whole number of seconds
+# and is why the countdown runs per tick. DK2 stores it as an absolute deadline
+# at the state object's `+0xB7` and compares with `JBE`, so the tick that equals
+# the deadline still waits.
+#
+# What this run does NOT establish, recorded rather than implied:
+#
+#   * **The three outcome percentages.** `RebelLeavingPercentage` (70),
+#     `RebelBecomeGoodPercentage` (15) and `RebelDefectPercentage` (15) are
+#     written by their loader stubs and read by **nothing** in DKII.EXE — each
+#     global's address occurs exactly once in the whole 2,987,568-byte image,
+#     against two positive controls that returned their documented reader counts.
+#     So there is no roll to reproduce and setting Defect to 100 changes nothing.
+#     `RebelMaxFollowers` (2) is dead the same way, which is why no other
+#     creature follows this one out.
+#   * **`RebelActive` and `RebelLeader`**, `+0x3E6` bits 3 and 4. DK2 sets both;
+#     bit 4 is read nowhere in the image and both of bit 3's readers are unbuilt
+#     here, so neither is modelled.
+#   * **The `KillPlayer` job the defector is given.** It is remembered — job 19,
+#     naming the keeper it left — and not performed: job 19 has no handler yet.
+#     The Vampire changes sides and then fights as any hero creature does.
+#   * **Creature action 43 and notification type 19**, both started by the
+#     original at the moment of rebellion and neither built.
+id: creatures-a-vampire-with-no-portal-turns-good-001
+question: >
+  Does an angry Vampire on a map with no portal change owner to the hero player
+  7.5 game seconds after it draws Rebel, carrying KillPlayer against the keeper
+  it left?
+map: flat_24x20
+seed: 5
+duration_ticks: 1500
+setup:
+  players:
+    # The hero side has to exist: it is who a rebel becomes. DK2 reads the id
+    # from a global that always names a player; a world built without it has
+    # nobody to defect to and the creature stays put.
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
+  rooms: []
+  creatures:
+    # No lair anywhere on the map, so AngerNoLair accrues from tick 0 and this
+    # is a clock rather than a scenario about lairs.
+    - { type: Vampire, at: [8, 8], player: 3 }
+commands: []
+observe:
+  - state_hash
+  - events
+expect:
+  - event: creature_angry
+    detail: "chose=Rebel result=started"
+    because: >
+      The Vampire's own record, not a rule of ours: its AngryJobs is a single
+      Rebel entry at 100%, so every allowed selection draws it. result=started
+      because job 16 is built as of ADR-0172; it read result=unbuilt until then.
+  - event: creature_rebelling
+    detail: "defects_in=30"
+    because: >
+      Step 3 of job 16. The portal search found nothing - there is no Portal on
+      this map - so the creature enters DK2's state 271 with a 30-tick deadline
+      rather than routing anywhere. No tick is pinned: the moment it turns angry
+      is the anger ladder's business and is pinned by the Goblin run.
+  - event: creature_defected
+    detail: "player=3->1"
+    because: >
+      The countdown ran out. Owner becomes the hero player, and the remembered
+      job is KillPlayer naming the keeper just left - DK2 writes both into the
+      triple at creature +0x409 in one call.
+  - event: creature_defected
+    detail: "job=KillPlayer target=3"
+    because: >
+      The other half of that triple, asserted separately because the event puts
+      the creature's tile between the two and a contains match is contiguous.
+  - event: creature_left
+    absent: true
+    because: >
+      The refutation half, and the thing this scenario exists to separate from
+      the Goblin run: rebelling is not leaving. With no portal on the map
+      nothing may walk out, and a defector does not vanish - it is still on the
+      board, on the other side.
+  - event: creature_defect_blocked
+    absent: true
+    because: >
+      Player 1 is in the setup, so the hero side exists and the defection must
+      complete. If this fires, the guard that covers worlds without a hero
+      player has swallowed a defection that should have happened.

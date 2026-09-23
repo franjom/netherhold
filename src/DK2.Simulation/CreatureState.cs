@@ -555,6 +555,17 @@ public sealed class CreatureState
     /// prisoners taken a second apart wither on different seconds (ADR-0171).</summary>
     public int PrisonWitherTicks;
 
+    /// <summary>Ticks until a rebelling creature with no reachable Portal defects to the
+    /// hero side, or 0 when it is not rebelling. DK2 keeps the same clock the other way
+    /// up, as an absolute deadline at its state object's <c>+0xB7</c>
+    /// (<c>rebellion.md</c> §2).</summary>
+    public int RebelCountdownTicks;
+
+    /// <summary>The keeper a defected creature was given as its <see cref="JobType.KillPlayer"/>
+    /// target, or <see cref="PlayerIds.Unowned"/> for none. DK2 stores it beside the job id
+    /// in the remembered-job triple at <c>creature+0x409</c> (<c>rebellion.md</c> §3).</summary>
+    public byte RebelAgainstPlayerId;
+
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
     public int TargetTileIndex = -1;
 
@@ -792,6 +803,8 @@ public sealed class CreatureState
         hash.Add(StateBeforeUtilityState);
         hash.Add(UtilityNewState);
         hash.Add(PrisonWitherTicks);
+        hash.Add(RebelCountdownTicks);
+        hash.Add(RebelAgainstPlayerId);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);
         hash.Add(TimerTicks);

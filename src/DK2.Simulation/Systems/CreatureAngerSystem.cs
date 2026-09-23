@@ -42,6 +42,10 @@ public sealed class CreatureAngerSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
+        // Before the once-a-second gate, because DK2's defection deadline is 30 ticks
+        // and 7.5 game seconds is not something a per-second pass can express.
+        Defections(context);
+
         if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
 
         WorldState world = context.World;
@@ -162,30 +166,131 @@ public sealed class CreatureAngerSystem : ISimulationSystem
         context.Emit(SystemName, "creature_angry",
             $"creature={state.Id} type={creature.Name} " +
             $"player={state.OwnerPlayerId} roll={roll} chose={chosen} " +
-            $"result={(chosen == JobType.Leave ? "started" : "unbuilt")} " +
+            $"result={(chosen is JobType.Leave or JobType.Rebel ? "started" : "unbuilt")} " +
             $"from=[{string.Join(",", creature.AngryJobs
                 .Select(j => $"{j.Job}:{j.ChancePercent}%"))}]");
 
-        // Not implemented: Rebel, Sulk, DestroyWalls, StealGold and the rest are
-        // real DK2 outcomes with nothing here to act on. The event above reports
-        // them as unbuilt and the creature stays in the dungeon, angry, until
-        // its gate opens and it rolls again.
+        // Not implemented: Sulk, DestroyWalls, StealGold and the rest are real DK2
+        // outcomes with nothing here to act on. The event above reports them as
+        // unbuilt and the creature stays in the dungeon, angry, until its gate
+        // opens and it rolls again.
         if (chosen == JobType.Leave) Leave(context, creature, state);
+        else if (chosen == JobType.Rebel) Rebel(context, creature, state);
+    }
+
+    /// <summary>Angry job 16. The Portal first, and turning Good only when there is no
+    /// way out: <c>0x00475170</c> (rebellion.md §2).</summary>
+    /// <remarks>Its three guards refuse silently, and the original returns success either
+    /// way it goes — so the chooser never falls through past a rebellion, and a creature
+    /// that gets as far as the countdown has spent its selection. What it does <i>not</i>
+    /// reproduce: the <c>RebelActive</c> and <c>RebelLeader</c> flags, both of whose
+    /// readers are unbuilt or absent, and creature action 43.</remarks>
+    private void Rebel(
+        SimulationContext context, CreatureDef creature, CreatureState state)
+    {
+        if (!RebellionRules.CanRebel(state)) return;
+        if (RebellionRules.IsDefecting(state)) return;
+
+        // Ours, not DK2's: a creature already on the side it would defect to has
+        // nowhere to go, and running the countdown again would overwrite the keeper it
+        // rebelled against with itself. DK2 has no such guard - it also has no angry
+        // hero creatures to need one.
+        if (state.OwnerPlayerId == RebellionRules.DefectsTo) return;
+
+        // The same walk job 10 takes, into the same state: DK2 routes a rebel to the
+        // Portal with state 194 "leaving Dungeon", which is what Leave sets. The probe
+        // comes first and matters: job 10 sets that state blind, where job 16 only goes
+        // if it can get there, so a rebel with no way out never gives up its bed.
+        if (CanReachAnExit(context, creature, state)
+            && Leave(context, creature, state)) return;
+
+        state.Activity = CreatureActivity.Idle;
+        state.RebelCountdownTicks = RebellionRules.DefectDelayTicks;
+
+        context.Emit(SystemName, "creature_rebelling",
+            $"creature={state.Id} type={creature.Name} " +
+            $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
+            $"anger={state.Anger.Max} defects_in={RebellionRules.DefectDelayTicks}");
+    }
+
+    /// <summary>Is there a Portal of this creature's own keeper it can walk to?
+    /// <c>0x004C61C0(3, position, ...)</c> searches the creature's own player's rooms, so
+    /// an enemy portal is never a candidate.</summary>
+    private bool CanReachAnExit(
+        SimulationContext context, CreatureDef creature, CreatureState state)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+
+        if (PortalRules.IsExitTile(world, database, state.Tile, state.OwnerPlayerId)) return true;
+
+        var grid = new WorldPathGrid(database, world, creature);
+        return _pathfinder.TryFindNearest(
+            grid,
+            state.Tile,
+            at => PortalRules.IsExitTile(world, database, at, state.OwnerPlayerId),
+            _route)
+            && _route.Count > 0;
+    }
+
+    /// <summary>The countdown of DK2's state 271, run every tick (rebellion.md §3).</summary>
+    /// <remarks>At zero the creature changes owner to the hero side, is given
+    /// <see cref="JobType.KillPlayer"/> naming the keeper it left, and stops leaving. The
+    /// job is remembered and not performed: job 19 has no handler here, so the defector
+    /// then fights as any hero creature does.</remarks>
+    private static void Defections(SimulationContext context)
+    {
+        for (int i = context.World.Creatures.Count - 1; i >= 0; i--)
+        {
+            CreatureState state = context.World.Creatures[i];
+            if (state.RebelCountdownTicks <= 0) continue;
+
+            if (CreatureDeathRules.IsDown(state))
+            {
+                state.RebelCountdownTicks = 0;
+                continue;
+            }
+
+            if (--state.RebelCountdownTicks > 0) continue;
+
+            // DK2 reads the hero id from a global that always names a player. A world
+            // built without the hero side has nobody to defect to, so the creature
+            // stays where it is - angry, and free to roll again.
+            if (!context.World.HasPlayer(RebellionRules.DefectsTo))
+            {
+                context.Emit(SystemName, "creature_defect_blocked",
+                    $"creature={state.Id} player={state.OwnerPlayerId} " +
+                    $"reason=no_player_{RebellionRules.DefectsTo}");
+                continue;
+            }
+
+            byte was = state.OwnerPlayerId;
+            state.OwnerPlayerId = RebellionRules.DefectsTo;
+            state.RebelAgainstPlayerId = was;
+            state.CurrentJob = JobType.KillPlayer;
+            state.Activity = CreatureActivity.Idle;
+
+            CreatureDef creature = context.Database.CreatureById(state.CreatureTypeId);
+            context.Emit(SystemName, "creature_defected",
+                $"creature={state.Id} type={creature.Name} " +
+                $"player={was}->{state.OwnerPlayerId} " +
+                $"at=({state.Tile.X},{state.Tile.Y}) job=KillPlayer target={was}");
+        }
     }
 
     /// <summary>Walks the creature out to the nearest portal its keeper owns; it only
-    /// actually goes when it gets there.</summary>
-    /// <remarks>CONFIRMED by the owner (2026-09-04, Q116): an angry evil creature goes to
-    /// the nearest available portal and leaves; an angry converted good creature turns
-    /// turncoat instead — not implemented, since it needs conversion
-    /// (docs/research/creature-anger.md). A keeper whose portal is unreachable therefore
-    /// keeps a creature that wanted to leave, and a deserter is visible and still on the
-    /// payroll for the length of its walk. Nearest is by path, not line: Dijkstra over
-    /// this creature's own <see cref="WorldPathGrid"/>. A route is planned only when it
-    /// has none, and a failure is retried silently each second but reported once. Its bed
-    /// goes when it decides, not on arrival, so a lair cannot leak a tile per storm-off
-    /// and a leaver cannot cure itself at −550 a second by walking past its own lair.</remarks>
-    private void Leave(
+    /// actually goes when it gets there (Q116).</summary>
+    /// <remarks>Job 10, and job 16's first branch: both enter DK2's state 194. Nearest
+    /// is by path, not line - Dijkstra over this creature's own
+    /// <see cref="WorldPathGrid"/>; a route is planned only when it has none, and a
+    /// failure is retried silently each second but reported once. Its bed goes when it
+    /// decides, not on arrival, so a lair cannot leak a tile per storm-off and a leaver
+    /// cannot cure itself at -550 a second walking past its own lair. That commit is
+    /// unconditional because DK2's job 10 sets the state without looking for a portal
+    /// at all, where <see cref="Rebel"/> looks first.</remarks>
+    /// <returns><c>true</c> when it is on its way out - on an exit, walking, or newly
+    /// routed. <c>false</c> is no reachable portal, the branch <see cref="Rebel"/> needs.</returns>
+    private bool Leave(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
         WorldState world = context.World;
@@ -203,11 +308,11 @@ public sealed class CreatureAngerSystem : ISimulationSystem
         if (PortalRules.IsExitTile(world, database, state.Tile, state.OwnerPlayerId))
         {
             Gone(context, creature, state);
-            return;
+            return true;
         }
 
         // Mid-walk. Leave it alone; the movement system is carrying it.
-        if (state.HasRoute) return;
+        if (state.HasRoute) return true;
 
         var grid = new WorldPathGrid(database, world, creature);
         bool routed = _pathfinder.TryFindNearest(
@@ -229,7 +334,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
                     $"steps={_route.Count}");
             }
 
-            return;
+            return true;
         }
 
         if (decidingNow)
@@ -239,6 +344,8 @@ public sealed class CreatureAngerSystem : ISimulationSystem
                 $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
                 $"anger={state.Anger} reason=no_reachable_portal");
         }
+
+        return false;
     }
 
     /// <summary>It reached the portal. Gone, with whatever gold it was carrying.</summary>

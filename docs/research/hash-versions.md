@@ -32,6 +32,11 @@ beside it.
 
 ## Versions
 
+**78** — `0x00C68551383ADF89`. Rebellion (ADR-0172). Angry job 16 walks out
+through its own keeper's nearest Portal, and with none reachable waits
+`RebelCountdownTicks` and changes owner to the hero side, carrying
+`JobType.KillPlayer` and `RebelAgainstPlayerId`. Two new hashed fields.
+
 **77** — `0x2EC7D308858908C2`. The two Q402 divergences the hook read found (ADR-0171):
 a cell bites `4 × PrisonModifyCreatureHealthPerSecond` every four game seconds instead of
 one second's worth each second, and adds `ModifyAngerInCompanyOfHatedCreaturesPerSecond`

@@ -339,16 +339,16 @@ public class CreatureAngerTests
     }
 
     [Fact]
-    public void AVampireThatDrawsRebelStaysPutAndSaysSo()
+    public void AVampireThatDrawsRebelAndHasNoPortalTurnsGood()
     {
-        // Not implemented: rebelling, which needs a creature to change sides and
-        // become a hero, so RebelLeavingPercentage and its two siblings have
-        // nothing to act on. Tested for what it is rather than quietly turned into
-        // desertion: the creature stays, angry, and the log says so. A Vampire,
-        // because its angry table is Rebel outright where a Goblin's is a coin
-        // toss re-tossed (ADR-0061) — here the unbuilt outcome is the only one.
+        // Rebelling is built as of ADR-0172: job 16 walks out through its own keeper's
+        // nearest Portal, and with none reachable waits 30 ticks and changes owner to
+        // the hero side. This world has no Portal, so the fallback is the whole test. A
+        // Vampire, because its angry table is Rebel outright where a Goblin's is a coin
+        // toss re-tossed (ADR-0061) - here the branch under test is the only one.
         GameDatabase db = Db;
-        WorldState world = World(db);
+        WorldState world = WorldState.FromMap(
+            db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, new TilePos(2, 2));
 
         vampire.Anger.Lair = CreatureAngerRules.Ceiling + 1;
@@ -357,22 +357,30 @@ public class CreatureAngerTests
         Simulation(db, world, events).Run(Second * 30);
 
         Assert.Single(world.Creatures);
-        Assert.Equal(CreatureActivity.Idle, vampire.Activity);
+        Assert.Equal(RebellionRules.DefectsTo, vampire.OwnerPlayerId);
+        Assert.Equal(Keeper, vampire.RebelAgainstPlayerId);
+        Assert.Equal(JobType.KillPlayer, vampire.CurrentJob);
 
-        // Still angry, and CROSSER than it started — which it could not have
+        // Still angry, and CROSSER than it started - which it could not have
         // been before ADR-0081, when a counter stopped dead at the angry band.
         // It saturates at 65533 instead, so thirty more seconds of having no
-        // bed cost it three thousand more it will have to pray off.
+        // bed cost it three thousand more it will have to pray off. Changing
+        // sides does not settle a grievance.
         Assert.Equal(CreatureMood.Angry, CreatureAngerRules.MoodOf(db.CreatureById(VampireId), vampire));
         Assert.Equal(CreatureAngerRules.Ceiling + 1 + (30 * 100), vampire.Anger.Lair);
 
-        Assert.All(
-            events.Events.Where(e => e.Kind == "creature_angry"),
-            e =>
-            {
-                Assert.Contains("chose=Rebel", e.Detail);
-                Assert.Contains("result=unbuilt", e.Detail);
-            });
+        List<SimEvent> rolls = events.Events.Where(e => e.Kind == "creature_angry").ToList();
+        Assert.NotEmpty(rolls);
+        Assert.All(rolls, e =>
+        {
+            Assert.Contains("chose=Rebel", e.Detail);
+            Assert.Contains("result=started", e.Detail);
+        });
+
+        // It rebelled once and defected once, however many times it rolled.
+        Assert.Single(events.Events, e => e.Kind == "creature_rebelling");
+        SimEvent gone = Assert.Single(events.Events, e => e.Kind == "creature_defected");
+        Assert.Contains($"player={Keeper}->{RebellionRules.DefectsTo}", gone.Detail);
     }
 
     [Fact]

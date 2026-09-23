@@ -1,4 +1,4 @@
-# Mechanic: shots — what a creature spell fires, how it flies, and how it lands
+﻿# Mechanic: shots — what a creature spell fires, how it flies, and how it lands
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-23. Addresses are
@@ -198,7 +198,7 @@ Each runs with the shot as `this`; the target is `+0x147`, `t/s` variable 19.
 
 | type | who | what it does |
 |---|---|---|
-| 3 | Modify Health (shot 4, the Heals' death shot; shot 43 Disruption) — `0x004ADB30` | a live creature target that is not `IsHorny`; a fire-category shot on one under a fifth of its health, not on water, ignites it (display); **shot 43** sets health to five percent of the level-scaled `Hp` (`health := 5% — health` through the health routine) or destroys a target already under it; **any other** heals `min(data1, max — health)` through the health routine, after `0x0048AD30(1)` unless frozen, held, a pit fighter or abnormal-targeting (unread, likely the heal display) |
+| 3 | Modify Health (shot 4, the Heals' death shot; shot 43 Disruption) — `0x004ADB30` | a live creature target that is not `IsHorny`; a fire-category shot on one under a fifth of its health, not on water, ignites it (display); **shot 43** sets health to five percent of the level-scaled `Hp` (`health := 5% — health` through the health routine) or destroys a target already under it; **any other** heals `min(data1, max — health)` through the health routine, after `0x0048AD30(1)` — **`SetState(1)`, idle** (`rebellion.md` §7.2), so the heal interrupts what the target was doing — unless frozen, held, a pit fighter or abnormal-targeting |
 | 4 | Haste Creature (150, 15), Slow (20, 15), Imp Haste | `0x0048CAD0(creature, data1, data2)` — the speed modifier and its duration; then, faster than `def+0x5B4` → body bit 23 set, bit 16 clear, `+0x4DD` = data2; slower → bit 16 set, `+0x4DD` 0 |
 | 5 | Cast Armour (80, 50) | creature `+0x443` = data1 |
 | 9 | Lightning (300) | `0x004B32A0(shot, +0x52, owner, 2)`; the target alive, an object only if an Arch Pillar or untagged; a creature whose second flag word `def+0x68A` bit 0 is set is immune; **damage data1, doubled on water**, through the health routine; then `+0x4E3` = 20 and, unless held (`+0x3CB`), in state 23, `IsHorny` or `Possessed`, `0x00491830(creature, 0xFF)` |

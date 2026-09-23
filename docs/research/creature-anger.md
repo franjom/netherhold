@@ -260,10 +260,10 @@ virtual predicate is unread, so whether awake states receive *health* remains
 `FUN_004780e0` the happy one, and the three are the same routine three times
 (`job-selection.md` §1). What the angry one does, in order:
 
-1. **A per-creature flag aborts it** before anything else, and a definition flag
-   (`0x4000` in the record's flag dword at runtime `+0x686`) diverts the creature
-   into a state of its own instead of choosing at all. Neither is identified
-   (Q204).
+1. **`InHand` aborts it** before anything else (`+0x3E6` bit 0), and the
+   definition flag `0x4000` **`IsHorny`** (Q204) diverts the creature into state
+   238 instead of choosing at all, where it loses 10 health a tick
+   (`rebellion.md` §7.1).
 2. **The five-game-second gate.** `if (last != 0 && now - last < 5 x var19)
    return` — `var19` being ticks-a-game-second (**4**, Q1) and `last` the field
    EA's own debug dump calls **`LastGameTickSuccessfullyChoseAngryJob`**, the
@@ -359,17 +359,15 @@ gated to at most one a game second, so **a hungry prisoner in an unstocked cell
 angers at 25 a second where a bedless creature angers at 100**
 (`prison.md` §7.4). Reproduced rather than tidied.
 
-**Recovery is 5.5× faster than accrual** — the −550 instalment once a game
-second against +100 a second for having no lair. **Ours:** cooling is gated on
-`LairRules.AsleepInOwnBed`, where Q123 says the original cools in all seven
-category-6/9/10 states, so **this undercools**; the divergence is recorded here
-rather than removed.
+**Recovery is 5.5x faster than accrual** - the -550 instalment once a game
+second against +100 a second for having no lair. It is the update hook of three
+state *categories*, seven states in all, so a creature looking for a lair or
+sulking is already cooling (ADR-0171).
 
-**Leaving is implemented. Rebelling is not**: it needs a creature to change sides
-and become a hero, and `RebelLeavingPercentage` (70),
-`RebelBecomeGoodPercentage` (15) and `RebelDefectPercentage` (15) have nothing to
-act on. A creature that draws it stays angry, says so, and rolls again five game
-seconds later.
+**Both shipped angry-table entries are implemented.** `Leave` walks out; `Rebel`
+walks out too when a Portal is reachable and otherwise turns the creature Good
+after 30 ticks (`rebellion.md`, ADR-0172). The three `Rebel*Percentage` variables
+and `RebelMaxFollowers` are read by nothing, so job 16 holds no roll.
 
 ## Tests
 
@@ -386,15 +384,17 @@ seconds later.
 
 ## Known exceptions
 
-- Cooling gated on sleeping in one's own bed undercools against Q123 (above).
 - The chooser's inclusive range bounds and its no-op sort are reproduced.
+- Job 16's Combat Pit guard is inert; nothing here sets that flag
+  (`rebellion.md`).
 
 ## Open questions
 
 - **Q202**: buckets 0 and 5's taxonomy, and the whole-routine guard flag.
-- **Q204**: the two unidentified flags in the chooser's first step.
-- **Q116**: the wiki's DK2 section describes rebellion as the *fallback* when the
-  exit is unreachable, where the record holds a weighted table. Both cannot be
-  right, and the record is the stronger source.
-- Rebellion itself, and its three outcome percentages; and whether awake
-  creatures receive the in-lair *heal* as well as the calm (Q123).
+- The chooser's per-creature abort flag is **`InHand`**, and Q204's `IsHorny`
+  diversion lands an angry Horned Reaper in state 238, losing 10 health a tick
+  (`rebellion.md` §7.1). Step 1 above is corrected accordingly.
+- **Q116 ANSWERED** (`rebellion.md` §6): both accounts were right one level
+  apart. The table picks the job; portal-then-Good is inside job 16.
+- Whether awake creatures receive the in-lair *heal* as well as the calm (Q123).
+- Q410-Q413, rebellion's own remainder (`rebellion.md`).

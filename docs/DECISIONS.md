@@ -3986,3 +3986,23 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **One known over-cool.** `CreatureActivity.SeekingLair` folds states 79 and 80 together with the walk between them, which DK2 spends in a movement state that does not cool. It resolves when travel retires into the utility slot (ADR-0135); until then ours cools for the length of that walk.
 - The old cooling rule had a test, and it only ever covered the sleeping case — which is why the divergence survived from 2026-09-07 with a green suite. The widened rule is pinned on the awake arms and on a negative (`AtWork` at a non-lair job) so it cannot degrade into "cooling always happens".
 - `HashVersion` and `FormatVersion` **77**, pin `0x2EC7D308858908C2`. `Dk2TerrainFixture` gains variable 78, which only a prison reads.
+
+## ADR-0172 — Rebellion is not a roll: the Portal first, and turning Good is the fallback
+**Date:** 2026-09-23 · **Status:** accepted · closes Q116, sharpens Q204, opens Q410–Q413 · Research: `docs/research/rebellion.md`
+
+**Context.** `CreatureAngerSystem` has picked angry job 16 since ADR-0061 and done nothing with it, and the three `Rebel*Percentage` variables plus `RebelMaxFollowers` were parsed and read by nothing. Q116 held two irreconcilable accounts of what rebelling is: the wiki's, that it is the fallback when the exit is unreachable, and the creature record's, that `AngryJobs` is a weighted table. Job 16's handler `0x00475170` and state 271's handler `0x004750B0` were read in full to settle it.
+
+**Decision.** Rebellion is built as the original has it, and the original has no roll in it.
+
+1. **Job 16 tries the Portal first.** Three guards — not a captive, not a Combat Pit fighter, not in the Hand — then the nearest Portal belonging to the creature's *own* keeper, routed to in state 194 `leaving Dungeon`, which is the state job 10 `Leave` also sets. A rebel with a way out is a deserter.
+2. **With no way out it turns Good.** State 271, a 30-tick deadline — 7.5 game seconds, which is why `RebelCountdownTicks` runs per tick rather than with the anger ladder — then the owner becomes the hero player and the creature is given job 19 `KillPlayer` naming the keeper it left. Both are one call in DK2, into the remembered-job triple at `creature+0x409`.
+3. **Q116 is answered by separating the levels.** The table picks between jobs 10 and 16 and is the record's; portal-then-Good is inside job 16 and is an engine rule. Both accounts were true of different things.
+4. **The four `Rebel*` variables are dead.** Each global's address occurs exactly once in the whole image, at its loader store, against two positive controls that returned their documented reader counts. `RebelLeader` is written twice and tested nowhere, so the follower mechanic the names describe was never wired.
+
+**Consequences.**
+- **Job 16 probes before it commits, and job 10 does not.** `Leave` releases the bed the moment it decides, which is DK2's job 10 setting state 194 blind. Job 16 checks first, so a rebel that cannot leave keeps its bed. That asymmetry is the original's and is the one place the two jobs visibly differ.
+- **`RebelActive` and `RebelLeader` are recorded, not modelled** (`+0x3E6` bits 3 and 4, DK2's own dumper names). Bit 4 has no reader anywhere; both of bit 3's readers are unbuilt here. Naming bit 3 closes an UNKNOWN in `state-category-hooks.md`, and why category 26's leave hook clears it is Q411.
+- **`KillPlayer` is remembered and not performed**; job 19 has no handler. Creature action 43 and notification type 19 are not built either.
+- **Ours, not DK2's:** a world without the hero player has nobody to defect to, so the countdown stalls and says so. DK2 reads the id from a global that always names a player.
+- **Two loose ends in the chooser close on the way.** Its per-creature abort flag is `InHand`, which this project already had from the other side. And Q204's `IsHorny` diversion, answered in ADR-0145 without reading what it *does*, lands an angry Horned Reaper in state 238 — a category-28 state losing 10 health a tick. That is where "an angry Horny kills itself" starts; unbuilt, and out of scope here.
+- `HashVersion` and `FormatVersion` **78**, pin `0x00C68551383ADF89`.

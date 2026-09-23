@@ -88,11 +88,12 @@
 #           each second in silence. Desertion that actually completes is covered
 #           by `AnAngryGoblinWalksToThePortalAndLeavesThroughIt`.
 #
-#           Had it rolled 50 or over it would have drawn `Rebel`, which does not
-#           exist: it would have said so, stood there for five game seconds and
-#           rolled again. An unbuilt outcome ends the selection where DK2 would
-#           have succeeded rather than falling through to `Leave`, so half of
-#           every angry Goblin is never quietly turned into a deserter.
+#           Had it rolled 50 or over it would have drawn `Rebel`, which since
+#           ADR-0172 does something: job 16 looks for a portal of its own keeper
+#           first - there is none here - and then starts a 30-tick countdown to
+#           changing sides. This map has no hero player either, so the countdown
+#           stalls and says so. `a_vampire_with_no_portal_turns_good.yaml` is the
+#           run where it completes.
 #
 # Note the other two goblins: they had beds within nine seconds, so their anger
 # never exceeds the few hundred the walk cost and is cleared by their first
@@ -102,22 +103,20 @@
 #
 # What this run does NOT establish, recorded rather than implied:
 #
-#   * **Rebelling.** Half the table, and unimplemented: it needs a creature to
-#     change sides and become a hero. `RebelLeavingPercentage` (70),
-#     `RebelBecomeGoodPercentage` (15) and `RebelDefectPercentage` (15) have
-#     nothing to act on. A goblin that draws it stays put, angry, says so, and
-#     rolls again five game seconds later — so it is a delay here where in DK2
-#     it is an outcome.
+#   * **Rebelling completing.** Built since ADR-0172, but this map has neither a
+#     portal nor a hero player, so the countdown starts and stalls. The three
+#     `Rebel*Percentage` variables are read by nothing in DKII.EXE and there is
+#     no roll inside job 16 to reproduce (`docs/research/rebellion.md`).
 #   * **Where a deserter goes — ANSWERED and implemented since this run was
 #     written** (owner, Q116): "angry evil creature goes to the nearest available
 #     portal and leaves the dungeon. Angry converted good creature turns turncoat
-#     and starts attacking the dungeon and its creatures." So the two table
-#     entries are two mechanics keyed on alignment: `Leave` is the evil
-#     creature's exit, `Rebel` is the converted one's turncoat. A deserter now
-#     walks to the nearest portal its keeper owns and only goes when it arrives,
-#     which means **this map has no portal and so nobody could leave it anyway**
-#     — which is the whole reason the run ends with a creature still standing in
-#     the dungeon.
+#     and starts attacking the dungeon and its creatures." The binary since
+#     refined that: `Rebel` is not keyed on alignment at all - it tries the same
+#     portal `Leave` does and only turns the creature Good when there is none
+#     (ADR-0172). A deserter walks to the nearest portal its keeper owns and only
+#     goes when it arrives, which means **this map has no portal and so nobody
+#     could leave it anyway** - the whole reason the run ends with a creature
+#     still standing in the dungeon.
 #   * **The other three anger sources.** `AngerNoFood` (100), `AngerNoPay` (60)
 #     and `AngerNoWork` (50) are all in the record and none is applied, because
 #     none can be *satisfied* yet: chickens are objects (M6), there is no payday,

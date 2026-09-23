@@ -102,12 +102,11 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 77: the two Q402 divergences (ADR-0171). A cell bites 12 every four
-        // seconds instead of 3 every second and adds 150 anger with it, which needs the
-        // per-creature countdown PrisonWitherTicks; and anger cools in all seven states of
-        // categories 6, 9 and 10 rather than only asleep in one's own bed. Earlier pins and
-        // their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x2EC7D308858908C2UL, sim.StateHash());
+        // HashVersion 78: rebellion (ADR-0172). Angry job 16 walks out through its own
+        // keeper's nearest Portal, and with none reachable waits RebelCountdownTicks and
+        // changes owner to the hero side with KillPlayer remembering the keeper it left.
+        // Earlier pins and their reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0x00C68551383ADF89UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
