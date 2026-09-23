@@ -1,7 +1,7 @@
 ﻿# Mechanic: winning, losing, and the fall of a dungeon heart
 
 Source(s):
-- `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-22. Addresses are
+- `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-22 and 2026-09-23. Addresses are
   **facts about the binary in our own words**; no decompiler output enters this
   repository (ADR-0046). Names in `code` that are not ours are DK2's, from its
   debug dumper (`player-object.md`) or its own assertion strings
@@ -10,8 +10,8 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: answers Q263, closes the state half of Q40, Q93 and Q207, opens Q358
-and Q359. Built as ADR-0162.
+Questions: answers Q263 and Q363, closes the state half of Q40, Q93 and Q207,
+opens Q358 and Q359. Built as ADR-0162.
 
 ---
 
@@ -138,10 +138,16 @@ percentage every tick and raises notification 39 (speech 346, *"Your Dungeon Hea
 dying!"*, 50 s) when it is **exactly 50** and 40 (speech 344, *"... in a critical
 state!"*, 50 s) when it is **exactly 10** — equality, not a threshold crossed.
 
-**UNKNOWN (bounded, 2026-09-23): what deletes the heart object at zero health.** Neither
-this routine nor the frame does; none of the thing deleter's eleven direct callers reads
-the object's health. Method: `ReadsAt` `+0x40` over the class-2 handlers, or a live
-capture of a heart kill sampling the object list against the health word.
+**The generic thing sweep deletes it (STRONGLY INFERRED, 2026-09-23).** The
+two-pass sweep `0x004B7830` updates things first, then calls each thing's virtual
+slot `+0x28`. The class-2 object's implementation, `0x004B5C30`, returns true
+exactly when signed `object+0x40 <= 0`. A true result calls virtual slot `+0x30`;
+the object's slot is `0x0049BEC0`, which reads its thing id and calls the generic
+deleter `0x004B7B10`. That invokes the object death handler `0x0049B5E0` before
+destruction and unlinking, so the Heart-specific killer stamp, pillar removal and
+death effect in §5 run as part of the same deletion. On a later Heart-room frame,
+the missing object causes the ruin transition in §4. No Heart-specific health
+poller is involved: the class-wide `<= 0` predicate is the Q363 missing link.
 
 **Built (hash-neutral):** `WorldState.DamageHeart` is step 3 flat with the source stamped
 first; `RegenerateHeart` stamps the owner; the `heart_hit`/`shot_heart_hit` events stand
