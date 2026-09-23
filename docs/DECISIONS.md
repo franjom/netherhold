@@ -4014,3 +4014,17 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **Ours, not DK2's:** a world without the hero player has nobody to defect to, so the countdown stalls and says so. DK2 reads the id from a global that always names a player.
 - **Two loose ends in the chooser close on the way.** Its per-creature abort flag is `InHand`, which this project already had from the other side. And Q204's `IsHorny` diversion, answered in ADR-0145 without reading what it *does*, lands an angry Horned Reaper in state 238 — a category-28 state losing 10 health a tick. That is where "an angry Horny kills itself" starts; unbuilt, and out of scope here.
 - `HashVersion` and `FormatVersion` **78**, pin `0x00C68551383ADF89`.
+
+## ADR-0173 — A bed is a hospital: a wounded creature sleeps until it is whole
+**Date:** 2026-09-23 · **Status:** accepted · closes Q403 · Research: `docs/research/lair-acquisition.md` §9
+
+**Context.** Codex's read of states 79–84 reached a mechanic this project had already built and found it built differently, and the brief's stop rule recorded it as Q403 rather than changing behaviour on a research branch — the same route Q402 took the day before. State 83's exit test was re-derived instruction by instruction before merging: it reads `SleepNeeded`, stays while positive, then compares current health against the level-scaled maximum and stays while it is short.
+
+**Decision.** Waking requires both. `LairRules.HasSleptEnough` takes the `GameDatabase` and returns true only when `SleepTicks` has reached `TimeSleep` **and** `Health` has reached `CreatureHealthRules.MaxHealth`. A wounded creature sleeps past its record's `TimeSleep` until it is whole.
+
+**Consequences.**
+- **It only became visible when combat landed.** Before ADR-0163–0170 nothing wounded a creature that then went to bed, so a time-only wake and DK2's agreed on every run. It is live on every level now, and a Goblin that lies down at 300 of 1500 is in bed for twelve seconds where it used to be up at nine.
+- **A creature that cannot heal to full would sleep for ever.** So would DK2's; losing the bed is the way out of both, and `CreatureSleepSystem` already wakes on `BedStillValid` failing.
+- **The pinned world exercises none of it**, so the literal moved only because `HashVersion` is folded into the hash. That is the point of the bump: two builds that disagree about when a creature wakes must not compare states. Verified by flipping the predicate off and watching both tests fail, so neither is a vacuous pin (Q206's lesson).
+- **Not adopted:** DK2 counts `SleepNeeded` **down** from `TimeSleep` in the category hook, gated on the state id, where ours counts `SleepTicks` up in the system. Same clock read the other way; it costs a hashed field to change and buys nothing until the state machine is wired, so it waits for ADR-0135.
+- `HashVersion` and `FormatVersion` **79**, pin `0x6ACE9686C2A3E64E`.
