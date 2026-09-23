@@ -530,6 +530,25 @@ public sealed class CreatureState
     /// silently claim a state nothing had chosen.</para></summary>
     public int Dk2StateId = -1;
 
+    /// <summary>DK2's own <c>StateBeforeUtilityState</c> (state object <c>+0x40</c>): the
+    /// state this creature was in when it entered a utility state, or -1 for none.
+    /// Written by <c>SetState</c> when the target's category is 2.</summary>
+    public int StateBeforeUtilityState = -1;
+
+    /// <summary>DK2's own <c>UtilityNewState</c> (state object <c>+0xDF</c>): the state
+    /// control is handed to when the utility state finishes, or -1 for none.
+    /// <para>This is the resume slot, and it is what makes travel composable: a creature
+    /// walking somewhere is in one of four <c>en route</c> states (category 2) with its
+    /// errand held here, rather than in a state per errand — DK2 state 91 is "find a
+    /// hatchery, move to it, resume in 92" (<c>eating.md</c> §2.2). The transition rule
+    /// reads <b>this</b> field, not the current state, when the current category is 2, so
+    /// a creature in transit is judged by where it is heading
+    /// (<c>creature-state-table.md</c> §2.2).</para>
+    /// <para>Nothing writes either field yet. They are here so the thirteen travelling
+    /// entries of <see cref="CreatureActivity"/> have somewhere to land when they retire
+    /// together (ADR-0135).</para></summary>
+    public int UtilityNewState = -1;
+
     /// <summary>The tile this creature intends to work on, or -1 for none.</summary>
     public int TargetTileIndex = -1;
 
@@ -764,6 +783,8 @@ public sealed class CreatureState
         hash.Add(TargetObjectId);
         hash.Add((int)Activity);
         hash.Add(Dk2StateId);
+        hash.Add(StateBeforeUtilityState);
+        hash.Add(UtilityNewState);
         hash.Add(TargetTileIndex);
         hash.Add((int)TargetWork);
         hash.Add(TimerTicks);

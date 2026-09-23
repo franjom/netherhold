@@ -24,7 +24,7 @@ public class SnapshotTests
     }
 
     [Fact]
-    public void RoundTrip_CarriesDk2StateId_AndUnassignedIsMinusOneNotStateZero()
+    public void RoundTrip_CarriesTheStateIdAndUtilityPair_AndUnassignedIsMinusOneNotStateZero()
     {
         // The sentinel is the point. State 0 is a real row - `idle`, and the only
         // one of the 281 with no handler at all - so defaulting the field to 0
@@ -35,11 +35,21 @@ public class SnapshotTests
         Assert.NotEmpty(original.World.Creatures);   // Q206: Assert.All passes on an empty population
         Assert.All(original.World.Creatures, c => Assert.Equal(-1, c.Dk2StateId));
 
+        // The utility pair is unassigned too, and for the same reason: state 0 is real.
+        Assert.All(original.World.Creatures, c => Assert.Equal(-1, c.StateBeforeUtilityState));
+        Assert.All(original.World.Creatures, c => Assert.Equal(-1, c.UtilityNewState));
+
+        // 91 is "find a hatchery, move to it, resume in 92" (eating.md 2.2): the shape the
+        // travelling activities retire into - one en route state, the errand in the slot.
         original.World.Creatures[0].Dk2StateId = 21;   // reinforcing walls
+        original.World.Creatures[0].StateBeforeUtilityState = 91;
+        original.World.Creatures[0].UtilityNewState = 92;
         byte[] bytes = WorldSnapshot.ToBytes(original);
         GameSimulation restored = WorldSnapshot.FromBytes(bytes, TestWorld.Database(), [new ChaosSystem()]);
 
         Assert.Equal(21, restored.World.Creatures[0].Dk2StateId);
+        Assert.Equal(91, restored.World.Creatures[0].StateBeforeUtilityState);
+        Assert.Equal(92, restored.World.Creatures[0].UtilityNewState);
         Assert.Equal(original.StateHash(), restored.StateHash());
     }
 

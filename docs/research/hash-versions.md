@@ -32,6 +32,12 @@ beside it.
 
 ## Versions
 
+**76** — `0xFD44E939D714F3F1`. The utility-state pair beside it — DK2's own
+`StateBeforeUtilityState` (`+0x40`) and `UtilityNewState` (`+0xDF`). The second is the
+resume slot the transition rule reads in place of the current state while the category
+is 2, and it is where the thirteen travelling `CreatureActivity` entries land when they
+retire together. Nothing writes either; composition only.
+
 **75** — `0x51E5A81A5FE19DE8`. `CreatureState.Dk2StateId`, DK2's own state id beside
 the retiring `Activity` enum (ADR-0135, decided 2026-09-10 and landed 2026-09-23).
 Nothing writes it yet, so every creature hashes the unassigned `-1`: the bump is the

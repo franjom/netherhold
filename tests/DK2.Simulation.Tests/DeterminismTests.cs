@@ -102,11 +102,11 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 75: CreatureState.Dk2StateId entered, DK2's own state id beside the
-        // retiring Activity enum (ADR-0135). Nothing writes it yet, so every creature hashes
-        // -1; the bump is the field's arrival, not a behaviour change. Earlier pins and their
-        // reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x51E5A81A5FE19DE8UL, sim.StateHash());
+        // HashVersion 76: the utility-state pair, StateBeforeUtilityState and UtilityNewState,
+        // beside Dk2StateId (ADR-0135). Still nothing writes any of the three, so every creature
+        // hashes -1 three times; the bump is the fields' arrival. Earlier pins and their reasons
+        // live in docs/research/hash-versions.md.
+        Assert.Equal(0xFD44E939D714F3F1UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
