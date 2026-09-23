@@ -51,11 +51,14 @@ partial: combat is built (ADR-0163–0170), heroes, traps and door behaviour are
 
 ### What does not exist
 
-**The creature state machine is researched and not wired** (2026-09-23): 281 states,
-32 categories, the transition rule and all 36 category hook bodies are read
-(`creature-state-table.md`, `state-categories.md`, `state-category-hooks.md`); ours
-runs on 30 activities assigned directly at 35 sites, with no transition gate and no
-category update hook. Also absent: hero-party spawning and effect generators
+**The creature state machine is researched, gated and not yet occupied** (2026-09-23).
+281 states, 32 categories, the transition rule and all 36 category hook
+bodies are read (`creature-state-table.md`, `state-categories.md`,
+`state-category-hooks.md`). `CreatureStateMachine` is the one door and an architecture
+test forbids every other write (ADR-0174) - but **nothing holds a state id yet**, so
+ours still runs on 30 activities assigned directly at 35 sites, with no category update
+hook. Next: `Sleeping` onto state 83, then the thirteen travelling activities onto the
+utility pair once Q414 is read. Also absent: hero-party spawning and effect generators
 (Q254–Q259), every keeper spell but Create Imp, trap behaviour and door blocking,
 the creature trigger event filter, most trigger action types and 31 of 46 condition
 types (`dk2tools trigger-run` prints each stall; ADR-0125), the local player's
@@ -191,7 +194,7 @@ AI (M12) ahead of breadth.
 5. **Rooms without behaviour:** Workshop (category 5 hook), Casino, Torture and conversion (ADR-0085), Guard Room, Combat Pit (its loser is knocked out, not killed — Q310 — so it needs no death path), Temple spell intake `0x87`. Vampire reincarnation is read (Q111) and waits on Q329.
 6. **Rebel is BUILT** (ADR-0172, `rebellion.md`, 2026-09-23): job 16 tries its own keeper's nearest Portal first — the same walk and the same state as job 10 — and turns the creature Good after 30 ticks only when there is none, carrying `KillPlayer` against the keeper it left. The three `Rebel*Percentage` variables and `RebelMaxFollowers` are read by **nothing in the image**: one occurrence each, at their loader store, against two positive controls. Left: job 19 `KillPlayer` has no handler, creature action 43 and notification type 19 are unbuilt, and Q410–Q413 are the remainder.
 7. **Computer keeper (M12).** DK2's own is read: entry, `Task` dispatcher, all seven handlers, the room planner, `RespondToAttack` (`computer-keeper-tasks.md`, `computer-keeper-handlers.md`). Next: compare `DK2.AI.KeeperAI` against it (`KEEPER_AI.md` §12.7 steps 2–5); §12.8's four deviations each want an ADR if they survive.
-8. **The creature state machine.** Wire what is read: a transition gate over the 35 direct `Activity` assignments, the category update hook (prison drain, training, research, manufacture), and the travelling activities collapsing onto the utility-state pair (ADR-0135). Q402 asked whether hook divergences should be corrected; ADR-0171 corrected two.
+8. **The creature state machine.** **Step one is built** (ADR-0174, 2026-09-23): `CreatureStateMachine` gates every state-id write and agrees with the rule on all 78,680 pairs. Left, in order: retire `Sleeping` onto state 83 and the lair trio onto 79-81 (all six handlers read, ADR-0172's merge), giving categories 6 and 9 real occupants; then the **category update hook** (prison drain, training, research, manufacture), which is what turns Casino, Torture, Workshop, Guard Room and Combat Pit into data rather than four builds; then the thirteen travelling activities onto the utility pair, which waits on **Q414**. Q402 and Q403 were hook divergences found on the way and ADR-0171/0173 corrected both.
 9. **M5.** A scenario that cannot assert says why in its file (ADR-0150); runs are under `docs/experiments/` and the gitignored `reverse-engineering/dk2runs/` (tag captures 9–14 were not kept; `EXPERIMENTS.md` is their record).
 10. **Unity:** load the converter's output; DK2's wall pieces (Q71/Q72, `wall-rendering.md`).
 

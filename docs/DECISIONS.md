@@ -4028,3 +4028,21 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **The pinned world exercises none of it**, so the literal moved only because `HashVersion` is folded into the hash. That is the point of the bump: two builds that disagree about when a creature wakes must not compare states. Verified by flipping the predicate off and watching both tests fail, so neither is a vacuous pin (Q206's lesson).
 - **Not adopted:** DK2 counts `SleepNeeded` **down** from `TimeSleep` in the category hook, gated on the state id, where ours counts `SleepTicks` up in the system. Same clock read the other way; it costs a hashed field to change and buys nothing until the state machine is wired, so it waits for ADR-0135.
 - `HashVersion` and `FormatVersion` **79**, pin `0x6ACE9686C2A3E64E`.
+
+## ADR-0174 — One door into the state machine, built before anything walks through it
+**Date:** 2026-09-23 · **Status:** accepted · advances ADR-0135 (step one), opens Q414 · Research: `docs/research/creature-state-table.md` §2.1, §2.2
+
+**Context.** ADR-0135 made DK2's state id the authoritative representation and retires the 30-value `CreatureActivity` enum one group at a time. The pieces it needs now all exist: the 281-state table, the 32 categories, the resume pair on `CreatureState`, and the transition rule with all 78,680 ordered pairs resolved and pinned (Q300). What did not exist is the one thing that makes an incremental retirement safe — a single place a state id may change.
+
+**Decision.** `CreatureStateMachine` is that place, and it is built **now, while nothing writes a state id**.
+
+1. **`TrySetState` is DK2's `SetState`** (`0x00476D30`): it classifies through `CreatureStateTransitions`, refuses an illegal move, and returns whether the move was taken. A refusal is an answer, not an error — the creature keeps the state it has, which is the original's behaviour.
+2. **`Begin` is the only unjudged entry**, and it throws on a creature that already has a state. Without that, a second `Begin` would reach any state from any state and the gate would be decoration.
+3. **Entering a utility state writes `StateBeforeUtilityState`** and leaving one clears it. That half of the resume pair is CONFIRMED; the other half is not (below).
+4. **An architecture test forbids every other write.** `NothingOutsideTheStateMachineAssignsADk2StateId` sweeps `src/` and exempts three files: the gate, the field's declaration, and the snapshot reader, which restores a state some gate already allowed. It asserts the exemptions still match, so a pattern that silently stopped matching fails rather than passing everything.
+
+**Consequences.**
+- **It adds no behaviour and is inert by construction.** That is the argument for it, not against: each of the twenty-nine remaining retirements that landed without it would be an opportunity to invent a transition rule DK2 does not have, and AGENTS.md forbids inventing what can be researched.
+- **One deviation, and it is ours (Q414).** `CreatureStateTransitions.Classify` **throws** when a creature is in a travel state with no resume target — there is no state −1 to look up. DK2 presumably never asks, because the slot is written before the travel state is entered, but nothing has read *who* writes it. Until then this project can reach the unset case, so the gate judges the travel state by itself. Pinned by its own test so it cannot later be mistaken for the original.
+- **The gate is not a second opinion.** Every ordered pair of the 281 states is driven through both the rule and the gate, and a single disagreement fails — 78,680 pairs, so the wrapper cannot quietly add a rule.
+- **No hash change.** Nothing hashed moved and no behaviour did; the pin is untouched. The next step, retiring `Sleeping` onto state 83, is the first one that bumps it.

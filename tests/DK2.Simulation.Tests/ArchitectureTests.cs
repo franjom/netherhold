@@ -75,6 +75,40 @@ public class ArchitectureTests
         Assert.Equal(calls.Count, Regex.Matches(source, gated).Count);
     }
 
+    [Fact]
+    public void NothingOutsideTheStateMachineAssignsADk2StateId()
+    {
+        // ADR-0135 step one. The point of the gate is that thirty activities retire onto
+        // state ids one group at a time, over months, and a single direct assignment
+        // anywhere is a transition rule this project invented rather than read. There is
+        // nothing to count yet - nothing writes the field - so this guards the future,
+        // which is the only moment it can be added without also rewriting callers.
+        string root = RepositoryRoot();
+        string[] files = Directory
+            .GetFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
+                     && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))
+            .ToArray();
+        Assert.NotEmpty(files);
+
+        const string write = @"[.\s]Dk2StateId\s*(?:=[^=]|\+\+|--)";
+        var offenders = files
+            .Where(f => Regex.IsMatch(File.ReadAllText(f), write))
+            .Select(f => Path.GetFileName(f))
+            // The gate itself; the field's own declaration; and the snapshot reader, which
+            // restores a state a gate already allowed rather than taking a transition.
+            .Where(f => f is not "CreatureStateMachine.cs"
+                         and not "CreatureState.cs"
+                         and not "WorldSnapshot.cs")
+            .ToArray();
+
+        Assert.Empty(offenders);
+
+        // And the guard is not vacuous: the three files it exempts do contain a write, so
+        // a pattern that stopped matching would fail here rather than pass everything.
+        Assert.Equal(3, files.Count(f => Regex.IsMatch(File.ReadAllText(f), write)));
+    }
+
     private static string RepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
