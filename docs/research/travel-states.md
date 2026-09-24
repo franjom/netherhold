@@ -278,8 +278,8 @@ harmless, because the substitution applies only in category 2, which is also whe
 ## 10. Checked against a live game — OBSERVED (2026-09-24)
 
 Two world-log samples (`debug-dumpers.md`, "Running one"): belgianguy's, 15 creatures
-at GT 231, and the owner's, **four dumps of one played level** (GT 1234, 1772, 2522,
-3177; 76 to 91 creatures, 336 creature records), kept as
+at GT 231, and the owner's, **four dumps of the skirmish map Hopping** (GT 1234, 1772,
+2522, 3177; 76 to 91 creatures, 336 creature records), kept as
 `samples/worldlog-owner-4dumps.log.gz`. `python tools/worldlog.py <file>` prints
 every table below. All 23 states seen, and every resume and saved state, are in the
 table.
@@ -316,7 +316,9 @@ matching the caller:
   re-entering 116 between every pair of dumps). The protocol cannot produce this: 115
   walks to 116 (`0x00473331`) and an arrival writes 1. A refused `SetState(6)` would
   leave the slot written (§2.1 step 3), but category 2's entry mask is 0, so it
-  admits 115. Unexplained (Q422).
+  admits 115. These four were never caught in play: Hopping places them, four
+  `NeutralCreature` records of creature 8 with flags `0x49`, so their way into 116 may be
+  a placement path rather than a walk. Unexplained (Q422).
 
 The dumps are 500–750 ticks apart, longer than any walk, so they show where creatures
 are, not the order they move through states. A tighter series would show that.

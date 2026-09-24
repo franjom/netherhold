@@ -59,8 +59,10 @@ only for a multiplayer desync under `-LOGOOS`, and **never in ordinary play**.
 **REPRODUCED (owner, 2026-09-24).** Called directly on a loaded level it writes a complete
 world dump to `MESSAGE.LOG` (belgianguy, OpenKeeper #505, 2026-08-11, under Wine and GDB:
 `ECX` = `0x006F2A08`, call `0x0050EA70`; ufdada gives a Cheat Engine recipe that does the
-same from a created thread, 2026-09-12). The owner ran the recipe four times in one
-level played on the GOG `DKII-dx.EXE`. **Each dump is appended** to the one
+same from a created thread, 2026-09-12). The owner ran the recipe four times in a
+skirmish on Hopping, started from the GOG launcher (`DKII-dx.EXE`). The launcher puts no
+level on the command line; the map was identified from the dump: 81×81 (only Hopping
+and Level16 are), four players, and Hopping's placed heroes and four captives. **Each dump is appended** to the one
 `MESSAGE.LOG` of the session, and the game's call-count profiler (`0x00526292`,
 `Navigation:`, `Imps:`, `World Time:`) is added at exit. Kept as
 `samples/worldlog-owner-4dumps.log.gz` (262,843 lines, SHA-256 of the log
