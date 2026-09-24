@@ -282,6 +282,14 @@ public static class LairRules
     /// tick is not established, so it has the right shape and is not measured.</summary>
     public const int IdleRedecisionTicks = 12;
 
+    /// <summary>DK2's lair and sleep states (<c>lair-acquisition.md</c> §9, ADR-0178): 80
+    /// walks to a lair and places the bed, 81 walks to the bed, 82 lines up on it and 83
+    /// sleeps. 79 has no known entry and 84 is the Mistress bed's exit, neither built.</summary>
+    public const int MakingAHomeState = 80;
+    public const int GoingToBedState = 81;
+    public const int LyingDownState = 82;
+    public const int SleepingState = 83;
+
     /// <summary>Puts this creature's own bed on the first free tile of any lair its
     /// keeper owns, from wherever it happens to be — <b>with no journey</b>. Not how a
     /// creature gets a bed: that is <see cref="Systems.CreatureSleepSystem"/>, which

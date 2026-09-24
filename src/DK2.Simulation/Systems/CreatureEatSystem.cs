@@ -180,7 +180,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
 
         creature.TargetObjectId = EatingRules.NoChicken;
         EnterTheChain(context, creature);
-        CreatureStateMachine.BeginTravel(creature, TravelToRoom, EatingRules.InHatcheryState);
+        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToRoom, EatingRules.InHatcheryState);
         creature.Activity = CreatureActivity.SeekingFood;
 
         context.Emit(SystemName, "food_sought",
@@ -226,7 +226,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
         // The walk is over and the room is still this keeper's hatchery: state 7's arrival,
         // which hands over to 92. A creature already standing in 92 asking again is not
         // arriving, so this happens once per walk.
-        if (IsTravelling(creature)) Arrive(context, creature);
+        if (StateShadow.IsTravelling(creature)) Arrive(context, creature);
 
         // Nothing left to pay off — fed on the way, or the last bird went down
         // last tick. Note this is StillOwesFood and not IsHungry: it takes a
@@ -289,7 +289,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
         }
 
         // Within reach: state 6's arrival hands over to 93, which eats.
-        if (IsTravelling(creature)) Arrive(context, creature);
+        if (StateShadow.IsTravelling(creature)) Arrive(context, creature);
         Swallow(context, creature, definition, chicken);
     }
 
@@ -307,7 +307,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
         // 92 hands the bird to the position helper: state 6, resuming in 93. That helper has
         // no already-there shortcut, unlike the room one - so even a bird underfoot is a
         // walk, and it is its arrival that reaches 93 (travel-states.md 2.1, 8).
-        CreatureStateMachine.BeginTravel(creature, TravelToPoint, EatingRules.EatState);
+        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, EatingRules.EatState);
 
         int x = chicken.TileIndex % world.Width;
         int y = chicken.TileIndex / world.Width;
@@ -316,7 +316,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
         if (EatingRules.DistanceSquared(world, creature.Tile, chicken.TileIndex)
             <= EatingRules.ReachTilesSquared)
         {
-            if (IsTravelling(creature)) Arrive(context, creature);
+            if (StateShadow.IsTravelling(creature)) Arrive(context, creature);
             Swallow(context, creature, definition, chicken);
             return;
         }
@@ -384,15 +384,6 @@ public sealed class CreatureEatSystem : ISimulationSystem
         creature.StopMoving();
     }
 
-    /// <summary>DK2's two travel states: 6 walks to a point, 7 walks to a room and checks
-    /// the room again on arrival (<c>travel-states.md</c> §5).</summary>
-    private const int TravelToPoint = 6;
-    private const int TravelToRoom = 7;
-
-    private static bool IsTravelling(CreatureState creature) =>
-        CreatureStateMachine.HasState(creature)
-        && CreatureStateTable.Get(creature.Dk2StateId).IsUtility;
-
     /// <summary>From idle into state 91, the needs routine's entry into eating
     /// (<c>eating.md</c> §3). A creature arrives here with no state id, because idle is
     /// not yet on one.</summary>
@@ -403,25 +394,11 @@ public sealed class CreatureEatSystem : ISimulationSystem
         Shadow(context, creature, EatingRules.FindHatcheryState);
     }
 
-    private static void Arrive(SimulationContext context, CreatureState creature)
-    {
-        int to = creature.UtilityNewState;
-        if (CreatureStateMachine.Arrive(creature)) return;
-        Refused(context, creature, to);
-    }
+    private static void Arrive(SimulationContext context, CreatureState creature) =>
+        StateShadow.Arrive(context, SystemName, creature);
 
-    /// <summary>A gated move beside the activity change it mirrors. Every move in the chain is
-    /// legal under DK2's rule, so a refusal means this mapping is wrong: it is reported, and
-    /// the creature keeps its state as the original would, rather than being forced.</summary>
-    private static void Shadow(SimulationContext context, CreatureState creature, int state)
-    {
-        if (CreatureStateMachine.TrySetState(creature, state)) return;
-        Refused(context, creature, state);
-    }
-
-    private static void Refused(SimulationContext context, CreatureState creature, int state) =>
-        context.Emit(SystemName, "state_refused",
-            $"creature={creature.Id} from={creature.Dk2StateId} to={state}");
+    private static void Shadow(SimulationContext context, CreatureState creature, int state) =>
+        StateShadow.Move(context, SystemName, creature, state);
 
     /// <summary>The room's centre tile, rounded down — the same shape a lair uses.</summary>
     private static int CentreTileIndex(WorldState world, RoomInstance room) =>

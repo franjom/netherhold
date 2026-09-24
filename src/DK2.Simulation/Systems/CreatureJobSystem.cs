@@ -298,12 +298,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
         creature.StopMoving();
         creature.Activity = CreatureActivity.AtWork;
 
-        if (CreatureStateMachine.HasState(creature)
-            && CreatureStateTable.Get(creature.Dk2StateId).IsUtility)
-        {
-            int to = creature.UtilityNewState;
-            if (!CreatureStateMachine.Arrive(creature)) Refused(context, creature, to);
-        }
+        StateShadow.Arrive(context, SystemName, creature);
 
         context.Emit(SystemName, "job_started",
             $"creature={creature.Id} type={definition.Name} " +
@@ -495,9 +490,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
         creature.StopMoving();
         creature.Activity = CreatureActivity.Idle;
 
-        if (!CreatureStateMachine.HasState(creature)) return;
-        Shadow(context, creature, CreatureStateMachine.Idle);
-        CreatureStateMachine.Release(creature);
+        StateShadow.ToIdle(context, SystemName, creature);
     }
 
     /// <summary>DK2's room helper, called by the job's handler from idle with the job's
@@ -508,29 +501,16 @@ public sealed class CreatureJobSystem : ISimulationSystem
         if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
         if (JobRules.StateFor(job) is not int state) return;
 
-        CreatureStateMachine.Begin(creature, CreatureStateMachine.Idle);
+        StateShadow.FromIdle(creature);
         if (creature.IsRouted)
         {
-            CreatureStateMachine.BeginTravel(creature, TravelToRoom, state);
+            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToRoom, state);
             return;
         }
 
-        Shadow(context, creature, CreatureStateMachine.Idle);
-        Shadow(context, creature, state);
+        StateShadow.Move(context, SystemName, creature, CreatureStateMachine.Idle);
+        StateShadow.Move(context, SystemName, creature, state);
     }
-
-    private const int TravelToRoom = 7;
-
-    /// <summary>A gated move beside the activity it mirrors; a refusal means the mapping is
-    /// wrong, so it is reported and not forced, as in <see cref="CreatureEatSystem"/>.</summary>
-    private static void Shadow(SimulationContext context, CreatureState creature, int state)
-    {
-        if (!CreatureStateMachine.TrySetState(creature, state)) Refused(context, creature, state);
-    }
-
-    private static void Refused(SimulationContext context, CreatureState creature, int state) =>
-        context.Emit(SystemName, "state_refused",
-            $"creature={creature.Id} from={creature.Dk2StateId} to={state}");
 
     /// <summary>
     /// The tile underfoot is a room of this type belonging to this creature's

@@ -10,10 +10,9 @@ namespace DK2.Simulation;
 /// <summary>The one way a creature's DK2 state id changes: DK2's <c>SetState</c>
 /// (<c>0x00476D30</c>), which consults the transition rule and refuses an illegal move
 /// rather than taking it (ADR-0135 step one).
-/// <para>Nothing writes <see cref="CreatureState.Dk2StateId"/> yet, so this gate is inert
-/// by construction. It exists first on purpose: the thirty activities retire onto state
-/// ids one group at a time, and each retirement that lands before the gate is a chance to
-/// invent a transition rule the original does not have. AGENTS.md forbids inventing
+/// <para>The activities retire onto state ids one group at a time (<see cref="IsRetired"/>),
+/// and the gate came first on purpose: each retirement that landed before it would have
+/// been a chance to invent a transition rule the original does not have. AGENTS.md forbids inventing
 /// behaviour that can be researched, and this one is researched — all 78,680 ordered pairs
 /// resolve (<see cref="CreatureStateTransitions"/>, Q300).</para></summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-state-table.md")]
@@ -129,10 +128,13 @@ public static class CreatureStateMachine
     }
 
     /// <summary>The retired activities, the only ones a creature may hold a state id in:
-    /// eating (ADR-0176) and a job's walk and work (ADR-0177). Part of the shim.</summary>
+    /// eating (ADR-0176), a job's walk and work (ADR-0177), the lair and sleep (ADR-0178).
+    /// Part of the shim.</summary>
     public static bool IsRetired(CreatureActivity activity) =>
         activity is CreatureActivity.SeekingFood or CreatureActivity.FetchingChicken
-            or CreatureActivity.GoingToJob or CreatureActivity.AtWork;
+            or CreatureActivity.GoingToJob or CreatureActivity.AtWork
+            or CreatureActivity.SeekingLair or CreatureActivity.GoingToSleep
+            or CreatureActivity.Sleeping;
 
     /// <summary>Hands the state id back if the creature has left the retired activities.
     /// Every system that owns a retired activity calls it first, so one system's shim

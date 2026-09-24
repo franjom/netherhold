@@ -6,11 +6,10 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>The transition gate, ADR-0135 step one. Nothing in the simulation writes a
-/// state id yet, so every test here drives <see cref="CreatureStateMachine"/> directly —
-/// which is the point: the gate has to be right before the thirty activities start
-/// arriving on it, because each retirement that lands without it is a chance to invent a
-/// transition rule DK2 does not have.
+/// <summary>The transition gate, ADR-0135 step one. Every test here drives
+/// <see cref="CreatureStateMachine"/> directly, apart from the systems that retire onto it:
+/// the gate has to be right on its own, because each retirement that leans on a wrong gate
+/// is a chance to invent a transition rule DK2 does not have.
 /// <para><see cref="CreatureStateTransitions"/> owns the rule and is tested against all
 /// 78,680 ordered pairs elsewhere. These tests are about the gate's own behaviour: what it
 /// refuses, what it writes on the way in, and what it will not let a caller skip.</para></summary>

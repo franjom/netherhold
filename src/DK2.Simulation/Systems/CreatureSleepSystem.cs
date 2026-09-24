@@ -50,6 +50,9 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             CreatureState creature = creatures[i];
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
+            // Taken out of the lair states by a system that still sets Activity (ADR-0178).
+            CreatureStateMachine.ReleaseIfLeft(creature);
+
             // Workers are skipped explicitly rather than incidentally: an imp
             // has no bed (LairObjectId 0) and would fall out of NeedsBed anyway,
             // but "excluded because its record happens to say 0" stops being
@@ -71,7 +74,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
                 if (creature.Activity is CreatureActivity.Sleeping
                     or CreatureActivity.GoingToSleep)
                 {
-                    Wake(creature);
+                    Wake(context, creature);
                 }
             }
 
@@ -160,6 +163,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (creature.HasRoute) return;
+        StateShadow.Arrive(context, SystemName, creature);
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -171,7 +175,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             context.Emit(SystemName, "lair_attempt_failed",
                 $"creature={creature.Id} type={definition.Name} " +
                 $"player={creature.OwnerPlayerId} at=({at.X},{at.Y}) reason=not_in_lair");
-            GiveUp(creature);
+            GiveUp(context, creature);
             return;
         }
 
@@ -191,6 +195,9 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             var to = new TilePos(found % world.Width, found / world.Width);
             if (context.Navigation.TryRoute(creature, to, Navigation.MoveOptions.Spot))
             {
+                // State 80 walks to the next candidate in 6 and resumes in 80 (0x0046F7D3).
+                CreatureStateMachine.BeginTravel(
+                    creature, StateShadow.TravelToPoint, LairRules.MakingAHomeState);
 
                 context.Emit(SystemName, "lair_tile_found",
                     $"creature={creature.Id} type={definition.Name} " +
@@ -203,7 +210,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
 
         // This room has nothing for it. Another lair, if there is one.
         if (_seeker.TrySetOutForALair(context, SystemName, creature, definition)) return;
-        GiveUp(creature);
+        GiveUp(context, creature);
     }
 
     /// <summary>The bed goes down on the tile the creature is standing on, at the tile
@@ -239,21 +246,26 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             $"player={creature.OwnerPlayerId} object={definition.LairObjectId} " +
             $"tile=({at.X},{at.Y}) health={creature.Health}/{definition.Hp}");
 
+        // State 80 asks the wound test once the bed is down (0x0046F785): hurt is 81, and
+        // anything else returns failure, which is idle.
         if (CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature))
         {
+            StateShadow.Move(context, SystemName, creature, LairRules.GoingToBedState);
             FallAsleep(context, creature, definition);
             return;
         }
 
         creature.Activity = CreatureActivity.Idle;
+        StateShadow.ToIdle(context, SystemName, creature);
     }
 
     /// <summary>The attempt ended with nothing. Idle, and try again later.</summary>
-    private static void GiveUp(CreatureState creature)
+    private static void GiveUp(SimulationContext context, CreatureState creature)
     {
         creature.Activity = CreatureActivity.Idle;
         creature.StopMoving();
         creature.TimerTicks = LairRules.IdleRedecisionTicks;
+        StateShadow.ToIdle(context, SystemName, creature);
     }
 
     // ---- sleeping in a bed it has ------------------------------------------
@@ -272,6 +284,21 @@ public sealed class CreatureSleepSystem : ISimulationSystem
 
         creature.Activity = CreatureActivity.GoingToSleep;
 
+        // The Sleep job calls the room helper with 81 (0x0046F4B0), from whatever state the
+        // need interrupted; already in the bed's room is 1, 81, and 81's own walk to the bed.
+        StateShadow.FromIdle(creature);
+        if (InBedsRoom(context, creature))
+        {
+            StateShadow.Move(context, SystemName, creature, CreatureStateMachine.Idle);
+            StateShadow.Move(context, SystemName, creature, LairRules.GoingToBedState);
+            WalkToTheBed(creature);
+        }
+        else
+        {
+            CreatureStateMachine.BeginTravel(
+                creature, StateShadow.TravelToRoom, LairRules.GoingToBedState);
+        }
+
         context.Emit(SystemName, "going_to_sleep",
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} to=({bed.X},{bed.Y}) " +
@@ -286,22 +313,63 @@ public sealed class CreatureSleepSystem : ISimulationSystem
         TilePos at = creature.Tile;
         int here = (at.Y * world.Width) + at.X;
 
+        // Our one walk is DK2's two: state 7 to the room, then 81 walks to the bed in 6.
+        // The hand-over happens on the first tile of the bed's room.
+        if (creature.Dk2StateId == StateShadow.TravelToRoom && InBedsRoom(context, creature))
+        {
+            StateShadow.Arrive(context, SystemName, creature);
+            WalkToTheBed(creature);
+        }
+
         if (here != LairRules.BedTileIndex(world, context.Database, creature))
         {
             // Still walking. If the path has run out without arriving — the
             // route was blocked mid-walk — fall back to standing up, so a
             // creature cannot be stuck in GoingToSleep forever.
             if (creature.HasRoute) return;
-            Wake(creature);
+            Wake(context, creature);
             return;
         }
 
         FallAsleep(context, creature, definition);
     }
 
+    /// <summary>State 81 walks to the bed in state 6, resuming in 82 (0x0046F8EC).</summary>
+    private static void WalkToTheBed(CreatureState creature)
+    {
+        if (creature.Dk2StateId != LairRules.GoingToBedState) return;
+        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, LairRules.LyingDownState);
+    }
+
+    /// <summary>Whether the creature stands in the room its bed is in, the room helper's
+    /// already-inside test. The flood fill runs only on a lair tile of its own keeper.</summary>
+    private static bool InBedsRoom(SimulationContext context, CreatureState creature)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        int bed = LairRules.BedTileIndex(world, database, creature);
+        if (bed < 0 || !world.Contains(creature.Tile)) return false;
+
+        int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
+        if (!LairRules.IsLairTileOf(world, database, here, creature.OwnerPlayerId)) return false;
+
+        RoomInstance? room = RoomIndex.RoomAt(world, database, here);
+        return room is not null && EatingRules.Contains(room, bed);
+    }
+
     private static void FallAsleep(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        // 81's walk arrives in 82, which lines the creature up and moves to 83 - or to 1
+        // and then 83 if that is refused. A bed placed underfoot walks nowhere, so 81's
+        // walk and its arrival fall in this tick, as eating's bird in reach does.
+        WalkToTheBed(creature);
+        StateShadow.Arrive(context, SystemName, creature);
+        if (creature.Dk2StateId == LairRules.LyingDownState)
+        {
+            StateShadow.MoveOrViaIdle(context, SystemName, creature, LairRules.SleepingState);
+        }
+
         creature.Activity = CreatureActivity.Sleeping;
         creature.SleepTicks = 0;
         creature.StopMoving();
@@ -325,14 +393,16 @@ public sealed class CreatureSleepSystem : ISimulationSystem
             $"player={creature.OwnerPlayerId} slept={creature.SleepTicks} " +
             $"health={creature.Health}/{definition.Hp}");
 
-        Wake(creature);
+        Wake(context, creature);
     }
 
-    private static void Wake(CreatureState creature)
+    /// <summary>83's own exit for an ordinary bed returns failure, which is idle.</summary>
+    private static void Wake(SimulationContext context, CreatureState creature)
     {
         creature.Activity = CreatureActivity.Idle;
         creature.AwakeTicks = 0;
         creature.SleepTicks = 0;
         creature.StopMoving();
+        StateShadow.ToIdle(context, SystemName, creature);
     }
 }

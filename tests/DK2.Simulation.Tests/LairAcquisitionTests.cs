@@ -529,6 +529,143 @@ public class LairAcquisitionTests
         Assert.DoesNotContain(events.Events, e => e.Kind == "going_to_sleep");
     }
 
+    // ---- on DK2's state ids (ADR-0178) --------------------------------------
+
+    /// <summary>Each change of state id, with the saved caller and the resume slot beside
+    /// it. States inside one tick are transient, so the two slots are the evidence of where
+    /// a walk came from and where it was going.</summary>
+    private static List<(int State, int Saved, int Resume)> StatesSeen(
+        GameSimulation sim, CreatureState creature, int ticks)
+    {
+        var seen = new List<(int State, int Saved, int Resume)>();
+        int last = creature.Dk2StateId;
+        for (int t = 0; t < ticks; t++)
+        {
+            sim.Run(1);
+            if (creature.Dk2StateId == last) continue;
+            seen.Add((creature.Dk2StateId, creature.StateBeforeUtilityState, creature.UtilityNewState));
+            last = creature.Dk2StateId;
+        }
+
+        return seen;
+    }
+
+    private const int NoState = CreatureStateMachine.NoState;
+    private const int Idle = CreatureStateMachine.Idle;
+
+    [Fact]
+    public void ABedlessCreatureWalksToTheLairInStateSevenAndMakesItsHomeInEighty()
+    {
+        // The attempt calls the room helper from idle with 80; 80 places the bed, and a
+        // healthy creature's 80 then returns failure, which is idle. The arrival and 80's
+        // decision fall in one tick here, so 80 itself is never seen between ticks.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var events = new ListEventSink();
+        CorridorToA3x3Lair(db, world);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        GameSimulation sim = Walking(db, world, events);
+
+        Assert.Equal(
+            [(7, Idle, LairRules.MakingAHomeState), (NoState, Idle, Idle)],
+            StatesSeen(sim, goblin, Second * 15));
+        Assert.Single(events.Events, e => e.Kind == "bed_claimed");
+        Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void ATileTakenMidWalkIsAStateSixWalkThatResumesInEighty()
+    {
+        // 80 finds the next candidate and walks to it through the position helper, with 80
+        // as its own resume - so the second walk's saved caller is 80, not idle.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var events = new ListEventSink();
+        CorridorToA3x3Lair(db, world);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        GameSimulation sim = Walking(db, world, events);
+        List<(int State, int Saved, int Resume)> seen = StatesSeen(sim, goblin, 1);
+
+        CreatureState lodger = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(8, 3));
+        LairRules.PlaceBed(world, db, lodger, Index(world, 7, 2));
+        seen.AddRange(StatesSeen(sim, goblin, Second * 15));
+
+        Assert.Equal(
+            [(7, Idle, LairRules.MakingAHomeState), (6, LairRules.MakingAHomeState, LairRules.MakingAHomeState), (NoState, LairRules.MakingAHomeState, Idle)],
+            seen);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void AWoundedCreatureGoesFromEightyThroughEightyOneToSleepInEightyThree()
+    {
+        // Hurt, 80 moves to 81. The bed is underfoot, so 81's walk in state 6 and its
+        // arrival in 82 fall in the same tick, and 82 lines up and moves to 83.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var events = new ListEventSink();
+        CorridorToA3x3Lair(db, world);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        goblin.Health = 700;
+        GameSimulation sim = Walking(db, world, events);
+
+        List<(int State, int Saved, int Resume)> seen = StatesSeen(sim, goblin, Second * 15);
+
+        Assert.Equal(
+            [(7, Idle, LairRules.MakingAHomeState), (LairRules.SleepingState, LairRules.GoingToBedState, Idle)],
+            seen);
+        Assert.Equal(CreatureActivity.Sleeping, goblin.Activity);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void ATiredCreatureWalksToItsBedInSevenThenSixAndWakesToIdle()
+    {
+        // The Sleep job's room helper walks in 7 resuming in 81; on the bed's room 81
+        // walks on to the bed in 6 resuming in 82, and 82 moves to 83. Waking is 83's
+        // failure, which is idle.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var events = new ListEventSink();
+        CorridorToA3x3Lair(db, world);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        LairRules.PlaceBed(world, db, goblin, Index(world, 8, 3));
+        goblin.AwakeTicks = SimulationTiming.TicksFromSeconds(db.CreatureById(GoblinId).TimeAwake);
+        GameSimulation sim = Walking(db, world, events);
+
+        Assert.Equal(
+            [(7, Idle, LairRules.GoingToBedState), (6, LairRules.GoingToBedState, LairRules.LyingDownState),
+             (LairRules.SleepingState, LairRules.GoingToBedState, Idle), (NoState, LairRules.GoingToBedState, Idle)],
+            StatesSeen(sim, goblin, Second * 40));
+        Assert.Contains(events.Events, e => e.Kind == "woke_up");
+        Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void ASleepingCreatureKeepsEightyThreeWhileTheOtherShimsRun()
+    {
+        // Every system owning a retired activity runs a release shim; each must count the
+        // lair states retired, or the job or eat system takes a sleeper's id.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CorridorToA3x3Lair(db, world);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        goblin.Health = 700;
+        var sim = new GameSimulation(db, world, seed: 42, [
+            new CreatureMovementSystem(), new CreatureSleepSystem(),
+            new CreatureJobSystem(), new CreatureEatSystem(),
+        ]);
+        sim.Run(Second * 15);
+
+        Assert.Equal(CreatureActivity.Sleeping, goblin.Activity);
+        Assert.Equal(LairRules.SleepingState, goblin.Dk2StateId);
+    }
+
     // ---- the gate -----------------------------------------------------------
 
     [Fact]

@@ -321,6 +321,27 @@ virtual health predicate. State 83 reads health only for its own exit test.
 That does not identify why the once-per-second effect sometimes heals, so the
 health half of Q123 remains **UNKNOWN** and must not be widened by inference.
 
+### 9.1 How the chain moves, read for ADR-0178 — CONFIRMED
+
+Three exits, each read instruction by instruction on 2026-09-24:
+
+- **80 after placing the bed** calls `0x00488840`, a percentage test of current
+  health against the level-scaled maximum. True sets **81** (`0x0046F793`);
+  false returns 0, which the dispatcher turns into idle. That is our
+  `ShouldSleepFromWounds` branch. A candidate walk is `0x00471890` with 80 as
+  its own resume (`0x0046F7D3`); an exhausted room calls the lair attempt
+  `0x0046F390` again, from 80.
+- **81** walks to the bed point in state 6, resuming in **82** (`0x0046F8EC`).
+- **82** moves to 83 when aligned and within `0x1000` squared (one tile), and to
+  81 when farther. **Each move is guarded the same way**: `SetState(target)`;
+  if refused, `SetState(1)`, then `SetState(target)` again (`0x0046F9F8`,
+  `0x0046FA28`). The rule refuses 82→81, since the two share group 7 but not
+  the category, so "too far" reaches 81 through idle. 82→83 is allowed and the
+  fallback never runs.
+
+Every other move of the chain is legal under the rule: 1→7, 80→81, 81→6, each
+handover, and 80, 81, 82 and 83 down to 1.
+
 ## Tests
 
 `LairAcquisitionTests` and `CreatureAngerTests`

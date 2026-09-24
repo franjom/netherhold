@@ -155,6 +155,19 @@ public sealed class LairSeeker
         creature.TimerTicks = 0;
         creature.Activity = CreatureActivity.SeekingLair;
 
+        // The attempt calls the room helper with 80, from idle or from 80 itself when a
+        // room had nothing left (0x0046F422, 0x0046F7EB); already inside is 1, then 80.
+        StateShadow.FromIdle(creature);
+        if (creature.IsRouted)
+        {
+            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToRoom, LairRules.MakingAHomeState);
+        }
+        else
+        {
+            StateShadow.Move(context, systemName, creature, CreatureStateMachine.Idle);
+            StateShadow.Move(context, systemName, creature, LairRules.MakingAHomeState);
+        }
+
         TilePos centre = LairRules.CentreTile(chosen);
         int target = LairRules.ArrivalTile(world, chosen);
         context.Emit(systemName, "lair_sought",

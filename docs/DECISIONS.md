@@ -4096,3 +4096,19 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Every step was probed through the gate before building, for all ten jobs; nine were legal throughout, and Torture was the one refusal.
 - Pinned by the traces, not the hash: the pinned world has nobody working. `AGoblinWalksToTrainingInStateSevenAndTrainsInStateOneHundredAndEight` fails with 107 for 108. `TheEatSystemsShimLeavesAWorkingGoblinsStateAlone` fails with the old eat-only shim.
 - `HashVersion` and `FormatVersion` **82**, pin `0xF1F260238F3D713D`.
+
+## ADR-0178 — The lair and sleep run on DK2's own state ids
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0135 (step two, third slice) · Research: `docs/research/lair-acquisition.md` §9.1, `travel-state-call-sites.md` §2
+
+**Context.** The lair states 80–83 were read, but 82's "too far" exit to 81 is a move DK2's rule refuses. Reading 82 settled it: every move it makes falls back to idle and retries, so 81 is reached through state 1. With that, the whole chain is legal.
+
+**Decision.**
+1. **`SeekingLair`, `GoingToSleep` and `Sleeping` retire together.** The lair attempt walks in 7 resuming in 80; 80 re-walks in 6 resuming in 80; a wounded creature's 80 moves to 81; the Sleep job walks in 7 resuming in 81; 81 walks in 6 resuming in 82; 82 moves to 83. Healthy after placement, a blocked walk and waking all go to 1 and release.
+2. **Our one walk to a bed is DK2's two.** The switch from 7 to 81's walk in 6 happens on the first tile of the bed's room, because our route goes straight to the bed.
+3. **The shared moves live in `StateShadow`**, used by the eating, job and lair systems: `Move`, `MoveOrViaIdle` (82's retry through idle), `Arrive` and `ToIdle`.
+4. **Not built:** 79 (no known entry), 84 (the Mistress bed's exit) and 82's "too far" branch, since our creature always arrives on its bed.
+
+**Consequences.**
+- As with eating, 80 and 82 are entered and left inside one tick, so the traces pin them through the saved caller and the resume slot, not by being seen. With 80's candidate walk resuming in 81, with the Sleep job walking in 6, or with the wounded 80 not moving to 81, a trace test fails. Dropping `Sleeping` from the retired set fails the cross-shim test.
+- `CoolsAngerInLair` still reads the activity. Moving it onto state categories 6, 9 and 10 needs one fact first: whose category a travel state's hook runs, the saved caller's or the resume's.
+- `HashVersion` and `FormatVersion` **83**, pin `0xDFC977B66E524362`.
