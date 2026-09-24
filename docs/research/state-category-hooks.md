@@ -152,6 +152,35 @@ the category operation failed; a return of one means it remains valid.
   and the leave hook's `+0x3D7`, the enter hook's lever test (every Casino here has a
   lever), and the chain's own order (ours is tile-index order).
 
+### 3.2 The captive's states, 114–126 (read 2026-09-24)
+
+Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
+- **In.** The imp's 44 puts an admitted captive in **114**. The generic drop state
+  **120** (`0x0046F1F0`) sends a creature dropped in a Prison to 115, in a Workshop to
+  63 and in a Torture Chamber to 130; a Horny-flagged one goes to 238. **126**
+  (`0x00473920`), after its first tick, goes to 114 on a Prison tile.
+- **114** (`0x00473130`): on a Prison slab that `0x00454110` accepts (for a Prison, any
+  interior slab), sets 115 and stores the prison at creature `+0x3CB`; otherwise
+  returns 0, which is idle.
+- **115** (`0x004731F0`): hungry (the level-scaled `HungerFill` against `+0x4C`, and a
+  gap of variable `0x006F2598` since `+0x50`) goes to 117. Otherwise it picks a slab
+  within 4 through `0x004E50F0` and, when accepted, walks there through `0x00471890(tile,
+  116, 0x80)`, which is state 6 resuming in 116; then it sets 116.
+- **116** (`0x00473350`): every 10 ticks it looks for a bar object (type 2, model
+  `0x31`–`0x33`, `+0x138` naming its prison) and pushes against it; otherwise it plays
+  idle actions and a 20 % complaint. It always returns 1. How it gets back to 115 is Q422.
+- **117** (`0x00473550`): the nearest food object in the prison's slab chain. With none,
+  `AngerNoFood` goes to bucket 1 with selector 1 and message `0x40`; otherwise a walk to
+  it resuming in 118. It then sets 116.
+- **118** (`0x00473750`): on the food it wipes bucket 1 (`0x00486F80(1)`), eats, and goes
+  to 119, or to 115 without food. **119** (`0x00473730`) waits for the action, then 115.
+- **123–125** toggle the prison's `+0x5D` and walk; **121/122** are "freeing comrades".
+  Neither is traced further.
+- **Built** (ADR-0191): 114 and 120 into 115, the step walks in 6 into 116, 117 to 118,
+  119 and 115, 117 to 116 with no food, and the drain on category 14. **Ours:** 114's move
+  to 115 happens on the tick of admission. The roll for a step is our 20 % a tick, from
+  116 through 115, which stands in for Q422's unread way back.
+
 ## 4. Answers and limits
 
 - Casino's two anger globals are variables 201/202:
@@ -169,7 +198,14 @@ the category operation failed; a return of one means it remains valid.
   cooling (ADR-0185); Training, Research, Temple and **Spectating** at work
   (ADR-0186). Spectating's update `0x0047AA70` was re-read for it: countdown `+0xAB`
   reloaded from variable 19, then variable 135 to buckets 5, 0 and 3, selector 9,
-  always returning 1. The **Casino** followed (ADR-0187, §3.1). Not built:
-  Manufacture (its adder `0x004C3200` is unread and nothing holds manufacture
-  points), Torture, Prison on the hook, the enter and leave hooks, and the
+  always returning 1. The **Casino** followed (ADR-0187, §3.1), then **Prison**
+  (ADR-0191, §3.2). Not built: Manufacture (its adder `0x004C3200` is unread and
+  nothing holds manufacture points), Torture, the enter and leave hooks, and the
   room-position claim.
+- **Every countdown hook fires every v19 + 1 turns, from entry** (Q424). Casino
+  `0x0047AD75`, Spectating `0x0047AA73`, Training `0x0047B368` and Torture `0x0047B596`
+  each test the byte, decrement and return while it is nonzero, and at zero reload and
+  act. The enter hooks seed it with variable 19 (four). So the effect lands on the fifth
+  turn after entry and every fifth turn after that, and Prison's `4 × v19` reload makes it
+  every seventeenth. `training.md`'s `--countdown` reading is wrong on this point. Ours
+  runs all of them on the global second.

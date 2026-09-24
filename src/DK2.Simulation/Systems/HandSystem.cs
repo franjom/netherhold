@@ -298,7 +298,7 @@ public sealed class HandSystem : ISimulationSystem
             if (!PrisonRules.IsPrisonOf(room, command.PlayerId)) continue;
             if (!room.TileIndices.Contains(here)) continue;
 
-            PrisonRules.Imprison(world, context.Database, creature, command.PlayerId, here);
+            PrisonRules.Imprison(world, context.Database, creature, command.PlayerId, here, dropped: true);
 
             int held = PrisonRules.PrisonerCount(world, room);
             context.Emit(SystemName, "prisoner_returned",

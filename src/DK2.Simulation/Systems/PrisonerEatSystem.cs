@@ -101,6 +101,11 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         // frees it on the same second; there is nothing to search.
         if (cell is null) return;
 
+        // 115 decides it is hungry and moves to 117 (ADR-0191).
+        if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
+        To(context, creature, PrisonRules.DecidingState);
+        To(context, creature, PrisonRules.SeekingFoodState);
+
         ObjectState? food = EatingRules.NearestFoodIn(world, database, cell, creature.Tile);
         if (food is null)
         {
@@ -117,6 +122,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
                     $"total={creature.Anger.Hunger}");
             }
 
+            To(context, creature, PrisonRules.InTheCellState);
             return;
         }
 
@@ -136,6 +142,8 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         creature.StopMoving();
 
         context.Navigation.TryRoute(creature, new TilePos(x, y), Navigation.MoveOptions.CaptiveSpot);
+        if (CreatureStateMachine.HasState(creature))
+            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, PrisonRules.EatingState);
 
         context.Emit(SystemName, "prisoner_food_chosen",
             $"creature={creature.Id} type={definition.Name} " +
@@ -162,7 +170,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             context.Emit(SystemName, "prisoner_food_lost",
                 $"creature={creature.Id} type={definition.Name} " +
                 $"player={creature.OwnerPlayerId} object={creature.TargetObjectId}");
-            BackToTheSearch(creature);
+            BackToTheSearch(context, creature);
             return;
         }
 
@@ -173,7 +181,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             // approach and the search starts again from where it stands.
             if (creature.HasRoute) return;
 
-            BackToTheSearch(creature);
+            BackToTheSearch(context, creature);
             return;
         }
 
@@ -184,6 +192,11 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         SimulationContext context, CreatureState creature,
         CreatureDef definition, ObjectState food)
     {
+        // At the bird: 118, straight from 117 when it was already within reach.
+        if (creature.Dk2StateId == PrisonRules.SeekingFoodState)
+            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, PrisonRules.EatingState);
+        if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
+
         int before = creature.Health;
         int gained = EatingRules.EatInPrison(context.Database, definition, creature);
         context.World.RemoveObject(food.Id);
@@ -195,6 +208,10 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             $"health={before}->{creature.Health} gained={gained} " +
             $"need={creature.HungerNeed}");
 
+        // 118 eats, 119 waits it out, 115 decides again.
+        To(context, creature, PrisonRules.AfterEatingState);
+        To(context, creature, PrisonRules.DecidingState);
+
         // Still owing helpings sends it round again at once. One bird fills a
         // prisoner completely: EatInPrison pays off a whole level-scaled
         // HungerFill rather than one helping, because DK2's state 118 passes it
@@ -203,7 +220,7 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         // which is any prisoner left long enough.
         if (EatingRules.StillOwesFood(creature))
         {
-            BackToTheSearch(creature);
+            BackToTheSearch(context, creature);
             return;
         }
 
@@ -217,10 +234,21 @@ public sealed class PrisonerEatSystem : ISimulationSystem
     /// into the search, so a prisoner that loses its bird looks again straight
     /// away rather than a second later.
     /// </summary>
-    private static void BackToTheSearch(CreatureState creature)
+    private static void BackToTheSearch(SimulationContext context, CreatureState creature)
     {
         creature.TargetObjectId = EatingRules.NoChicken;
         creature.FoodAttemptTicks = 1;
         creature.StopMoving();
+
+        // 118 without its bird goes back to 115.
+        if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
+        To(context, creature, PrisonRules.DecidingState);
+    }
+
+    /// <summary>A captive state change, for a captive on state ids; a repeat is no move.</summary>
+    private static void To(SimulationContext context, CreatureState creature, int state)
+    {
+        if (!CreatureStateMachine.HasState(creature) || creature.Dk2StateId == state) return;
+        StateShadow.Move(context, SystemName, creature, state);
     }
 }

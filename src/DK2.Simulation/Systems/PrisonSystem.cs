@@ -164,6 +164,10 @@ public sealed class PrisonSystem : ISimulationSystem
 
             if (!PrisonRules.Withers(creature)) continue;   // neutral in a neutral cell
 
+            // The drain is the Prison category's update hook 0x0047B7C0 (ADR-0191): a captive
+            // whose state is not in category 14, or a walk between two of them, takes none.
+            if (CreatureStateMachine.UpdatingCategory(creature) != CreatureStateCategory.Prison) continue;
+
             // The countdown runs whatever the creature is, so a Skeleton's phase is the
             // same as anyone's; only what lands when it fires depends on the record.
             creature.PrisonWitherTicks -= SimulationTiming.TicksPerSecond;

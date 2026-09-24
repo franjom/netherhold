@@ -23,6 +23,31 @@ public static class PrisonRules
     /// <summary>Nobody's prisoner — the value <see cref="CreatureState.PrisonOwnerPlayerId"/> starts at.</summary>
     public const int NoPrison = -1;
 
+    /// <summary>The captive's states, category 14 Prison (ADR-0191, <c>prison.md</c> §10). An
+    /// imp's admission (state 44) puts the captive in 114, which moves to 115 on an interior
+    /// slab; a hand drop lands in 120, which moves to 115 in a Prison.</summary>
+    public const int AdmittedState = 114;
+
+    /// <summary>115 decides: hungry, to 117; otherwise a walk in 6 to a slab nearby,
+    /// resuming in <see cref="InTheCellState"/>.</summary>
+    public const int DecidingState = 115;
+
+    /// <summary>116: standing in the cell.</summary>
+    public const int InTheCellState = 116;
+
+    /// <summary>117: finds the nearest chicken in the prison and walks to it in 6, resuming
+    /// in <see cref="EatingState"/>; with none, the hunger anger and back to 116.</summary>
+    public const int SeekingFoodState = 117;
+
+    /// <summary>118: eats the chicken underfoot, then <see cref="AfterEatingState"/>.</summary>
+    public const int EatingState = 118;
+
+    /// <summary>119: waits out the eating, then 115.</summary>
+    public const int AfterEatingState = 119;
+
+    /// <summary>120: the state a creature dropped in a room takes; in a Prison it goes to 115.</summary>
+    public const int DroppedState = 120;
+
     /// <summary>The chance, <b>per tick</b>, that a prisoner standing still takes
     /// another step — <b>20 in 100</b>. Read from DK2's state 116 (<c>0x74</c>), which
     /// rolls <c>random(100)</c> and enters the decision state 115 under 20. It rolls
@@ -309,7 +334,7 @@ public static class PrisonRules
     /// two (Q167, Q171).</para></summary>
     public static bool Imprison(
         WorldState world, GameDatabase database, CreatureState creature,
-        byte playerId, int tileIndex)
+        byte playerId, int tileIndex, bool dropped = false)
     {
         if (tileIndex < 0 || tileIndex >= world.Width * world.Height) return false;
 
@@ -325,6 +350,11 @@ public static class PrisonRules
         creature.SleepTicks = 0;
         creature.AwakeTicks = 0;
         creature.Activity = CreatureActivity.Imprisoned;
+
+        // Into the captive's states: 114 from an imp, 120 from the hand, then 115 (ADR-0191).
+        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
+        CreatureStateMachine.Begin(creature, dropped ? DroppedState : AdmittedState);
+        CreatureStateMachine.TrySetState(creature, DecidingState);
 
         // DK2's prison enter hook sets the countdown, so the phase is the moment of
         // imprisonment: two prisoners taken a second apart wither on different seconds.
@@ -345,7 +375,11 @@ public static class PrisonRules
     /// enemy in it".</summary>
     public static void Release(CreatureState creature)
     {
+        bool wasCaptive = creature.PrisonOwnerPlayerId != NoPrison;
         creature.PrisonOwnerPlayerId = NoPrison;
+
+        // A captive holds only the captive states and the walks between them.
+        if (wasCaptive && CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
         if (creature.Activity == CreatureActivity.Imprisoned) creature.ClearJob();
     }
 

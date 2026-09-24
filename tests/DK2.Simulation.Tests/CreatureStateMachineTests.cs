@@ -223,6 +223,34 @@ public class CreatureStateMachineTests
     }
 
     [Fact]
+    public void TheCaptiveChainIsLegalFromAdmissionAndFromADrop()
+    {
+        // prison.md: an imp admits a captive into 114 and a hand drop lands in 120, both then
+        // 115. 115 walks in 6 to resume in 116, and the next roll goes back through 115. A
+        // hungry captive goes 115 -> 117, walks in 6 to its chicken in 118, eats, 119, 115;
+        // with no chicken 117 goes to 116.
+        CreatureState captive = Fresh();
+        CreatureStateMachine.Begin(captive, 114);
+        Assert.True(CreatureStateMachine.TrySetState(captive, 115));
+        CreatureStateMachine.BeginTravel(captive, EnRoute, 116);
+        Assert.Equal(EnRoute, captive.Dk2StateId);
+        Assert.True(CreatureStateMachine.Arrive(captive));
+        Assert.Equal(116, captive.Dk2StateId);
+        Assert.True(CreatureStateMachine.TrySetState(captive, 115));
+        Assert.True(CreatureStateMachine.TrySetState(captive, 117));
+        CreatureStateMachine.BeginTravel(captive, EnRoute, 118);
+        Assert.True(CreatureStateMachine.Arrive(captive));
+        Assert.True(CreatureStateMachine.TrySetState(captive, 119));
+        Assert.True(CreatureStateMachine.TrySetState(captive, 115));
+        Assert.True(CreatureStateMachine.TrySetState(captive, 117));
+        Assert.True(CreatureStateMachine.TrySetState(captive, 116));
+
+        CreatureState dropped = Fresh();
+        CreatureStateMachine.Begin(dropped, 120);
+        Assert.True(CreatureStateMachine.TrySetState(dropped, 115));
+    }
+
+    [Fact]
     public void ThePaydayChainIsLegalFromIdleAndEachStateDropsBackToIt()
     {
         // payday.md 4.1-4.4: the decision sets 187 from idle, 187 walks in 6 resuming in

@@ -31,8 +31,8 @@ its ADR (`docs/DECISIONS.md`), the evidence in the research doc beside it.
 
 ## Versions
 
-**95** — `0xA22834D9084DFA9E`. The Casino's lever on a furniture slot, none below 3×3 (ADR-0190).
-**94** — `0x71F6772A33262059`. Paid, then to the Casino, for a Drink in the happy table (ADR-0189).
+**96** — `0xA2D20DF5116200CB`. A captive on DK2's state ids; the drain on the Prison category (ADR-0191).
+**95** — `0xA22834D9084DFA9E`, the lever on a furniture slot (ADR-0190); **94** — `0x71F6772A33262059`, paid then to the Casino (ADR-0189).
 **93** — `0xD783D2057BC97FE4`, the Casino's lever (ADR-0188); **92** — `0x669BBBA8B0751A77`, a creature's purse and the Casino (ADR-0187); **91** — `0xA5F9A90F3ED7133A`, work effects by category (ADR-0186); **90** — `0xFD1E03A96BC65015`, the dispatcher's category rule (ADR-0185); **89** — `0x584E9B5AC2195900`, an imp's bodies (ADR-0184).
 **88** — `0x89B5AB8D13B66793`, objects by their flags (ADR-0183); **87** — `0x1B90606BEF13CDC6`, an imp's gold (ADR-0182); **86** — `0xDEB6A8B84200ED21`, its tile work (ADR-0181).
 **85** — `0xE0EDFEC6BD215E6C`, collecting wages (ADR-0180); **84** — `0xDB5AAE21ABF713BF`, the anger wipes (ADR-0179); **83** — `0xDFC977B66E524362`, the lair and sleep (ADR-0178); **82** — `0xF1F260238F3D713D`, a job's walk and work (ADR-0177).

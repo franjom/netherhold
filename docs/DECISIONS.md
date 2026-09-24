@@ -4290,3 +4290,19 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - The fixture Casino gains its shipped ObjectIds. New tests cover 2×2, 3×2 and 2×3 (no lever), 3×3 (centre) and 5×5 (first slot, no table on it). Negative controls, one at a time: a lever on any room tile, and a table left under the lever, each fail a named test.
 - `HashVersion` and `FormatVersion` **95**, pin `0xA22834D9084DFA9E`.
 
+## ADR-0191 — A captive runs on DK2's own state ids, and the drain is the Prison hook
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0186, ADR-0135 step 2 · Research: `docs/research/state-category-hooks.md` §3.2
+
+**Context.** The cell drain was already the Prison update hook's numbers (ADR-0171), keyed on the prisoner's activity. The hook runs for the creature's state category, and captives had no state ids. The captive's handlers, 114–126, are now read.
+
+**Decision.**
+1. **`PrisonRules.Imprison`** puts an imp's admission in 114 and a hand drop in 120, and both move to 115. `PrisonRules.Release` gives the state back, and `Imprisoned` joins the retired activities.
+2. **Steps** are 116 → 115 → a walk in 6 resuming in 116. **Eating** is 115 → 117 → a walk in 6 to the bird resuming in 118 → 119 → 115; with no bird, 117 → 116.
+3. **The drain dispatches on category 14** (`UpdatingCategory`), so a walk between two captive states keeps it and a captive with no state takes none.
+
+**Consequences.**
+- Ours, stated: 114's move to 115 falls on the tick of admission, and a step still rolls 20 % a tick from 116, standing in for Q422's unread way back to 115.
+- Found while reading and recorded as Q424: every countdown hook fires every v19 + 1 turns from entry. Ours still runs them on the global second.
+- A gate probe and five trace tests. Negative controls, one at a time: the drain by activity, a step from 116, no arrival, no 117, no 116 after an empty search, and a freed captive keeping its state each fail a named test.
+- `HashVersion` and `FormatVersion` **96**, pin `0xA2D20DF5116200CB`.
+

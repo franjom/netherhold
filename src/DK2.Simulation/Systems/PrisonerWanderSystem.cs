@@ -48,6 +48,9 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
             // only when the answer is no (PrisonerEatSystem, ADR-0074).
             if (creature.TargetObjectId >= 0) continue;
 
+            // A step just finished: the walk hands over to 116, standing in the cell.
+            if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
+
             if (context.Rng.NextInt(100) >= PrisonRules.WanderPercentPerTick) continue;
 
             int start = context.Rng.NextInt(PrisonRules.WanderDirections);
@@ -64,6 +67,14 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
             }
 
             if (!context.Navigation.TryRoute(creature, step, Navigation.MoveOptions.Loose)) continue;
+
+            // 116 back to 115, which walks in 6 to resume in 116 (ADR-0191).
+            if (CreatureStateMachine.HasState(creature))
+            {
+                if (creature.Dk2StateId == PrisonRules.InTheCellState)
+                    StateShadow.Move(context, SystemName, creature, PrisonRules.DecidingState);
+                CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, PrisonRules.InTheCellState);
+            }
 
             context.Emit(SystemName, "prisoner_stepped",
                 $"creature={creature.Id} player={creature.OwnerPlayerId} " +

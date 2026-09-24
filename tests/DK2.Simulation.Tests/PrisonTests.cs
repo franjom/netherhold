@@ -1426,4 +1426,114 @@ public class PrisonTests
         Assert.Equal(0, near.HungerNeed);
         Assert.True(far.HungerNeed > 0);
     }
+
+    // ---- the captive's own states (ADR-0191) --------------------------------
+
+    private const int Walk = 6;   // the point walk
+
+    [Fact]
+    public void AnAdmittedCaptiveIsInOneFifteenAndItsStepsAreWalksInSixToOneSixteen()
+    {
+        // 44 puts the captive in 114, and 114 moves it to 115 on an interior slab. From
+        // 115 a step is a walk in 6 resuming in 116; the next roll goes back through 115.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        BigPrison(db, world);
+        CreatureState captive = Prisoner(db, world, CellB);
+        Assert.Equal(PrisonRules.DecidingState, captive.Dk2StateId);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        var seen = ImpStateTrace.Seen(sim, captive, 20 * Second);
+
+        Assert.Contains((Walk, PrisonRules.DecidingState, PrisonRules.InTheCellState), seen);
+        Assert.Contains(seen, s => s.State == PrisonRules.InTheCellState);
+
+        // Every step, the first and the later ones, walks from 115.
+        Assert.True(seen.Count(s => s.State == Walk) >= 2);
+        Assert.All(seen.Where(s => s.State == Walk), s => Assert.Equal(PrisonRules.DecidingState, s.Saved));
+        Assert.All(seen, s => Assert.True(
+            s.State is PrisonRules.DecidingState or PrisonRules.InTheCellState or Walk));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void AHungryCaptiveEatsThroughOneSeventeenOneEighteenAndOneNineteen()
+    {
+        // 115 finds it hungry and moves to 117, which walks in 6 to the bird resuming in
+        // 118; 118 eats and 119 waits it out, back to 115.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = HungryPrisoner(db, world, CellA);
+        Chicken(db, world, CellC);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        var seen = ImpStateTrace.Seen(sim, captive, 10 * Second,
+            () => sink.Events.Any(e => e.Kind == "prisoner_ate"));
+
+        Assert.Contains((Walk, PrisonRules.SeekingFoodState, PrisonRules.EatingState), seen);
+        Assert.Equal(PrisonRules.DecidingState, captive.Dk2StateId);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void AHungryCaptiveWithNoBirdInItsCellGoesFromOneSeventeenToOneSixteen()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = HungryPrisoner(db, world, CellA);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        var seen = ImpStateTrace.Seen(sim, captive, 5 * Second,
+            () => sink.Events.Any(e => e.Kind == "prisoner_no_food"));
+
+        Assert.Equal(PrisonRules.InTheCellState, captive.Dk2StateId);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void ADroppedCaptiveIsBackInItsOwnStatesAndAFreedOneHasNone()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = Prisoner(db, world, CellA);
+
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, CellC)));
+        Assert.Equal(CreatureStateCategory.Prison, CreatureStateMachine.UpdatingCategory(captive));
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        Assert.False(PrisonRules.IsImprisoned(captive));
+        Assert.False(CreatureStateMachine.HasState(captive));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+
+        // And letting one go gives its state back there and then, whatever runs next.
+        CreatureState other = Prisoner(db, world, CellA);
+        PrisonRules.Release(other);
+        Assert.False(CreatureStateMachine.HasState(other));
+    }
+
+    [Fact]
+    public void ACaptiveWithNoPrisonStateTakesNoDrainWhateverItsActivitySays()
+    {
+        // The drain is the Prison category's update hook (ADR-0191): no state, no hook.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState captive = Prisoner(db, world, CellA);
+        CreatureStateMachine.Release(captive);
+
+        GameSimulation sim = Simulation(db, world);
+        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+
+        Assert.Equal(250, captive.Health);
+    }
 }
