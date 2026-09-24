@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
@@ -28,6 +29,19 @@ public static class ImpStates
     /// <summary>State 29: deposits what fits and sets 10; a tile that no longer stores this
     /// keeper's gold returns 0, which is idle. 10 then walks on with any remainder.</summary>
     public const int PuttingDownGold = 29;
+
+    /// <summary>State 30: takes the loose object on its tile and walks it to its room through
+    /// the destination helper <c>0x0046E480</c>, or sets 10.</summary>
+    public const int PickingUpObject = 30;
+
+    /// <summary>The state a carried object walks into, by the flag the destination helper tests
+    /// first: 31 a spell book, 33 a Special, 32 a crate (<c>travel-state-call-sites.md</c> §3).
+    /// Each stores the object and sets 10, or re-routes through the helper.</summary>
+    public static int CarryingStateFor(ObjectFlags flags) =>
+        flags.HasFlag(ObjectFlags.TypeSpellBook) ? 31
+        : flags.HasFlag(ObjectFlags.TypeSpecial) ? 33
+        : flags.HasFlag(ObjectFlags.TypeCrate) ? 32
+        : throw new ArgumentOutOfRangeException(nameof(flags), flags, "Not a carried object.");
 
     /// <summary>The (entry, work) pair for a kind of tile work. The pairing is by the creature
     /// action each even state starts, read against the action table's work handlers

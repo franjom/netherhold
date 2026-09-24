@@ -31,10 +31,10 @@ its ADR (`docs/DECISIONS.md`), the evidence in the research doc beside it.
 
 ## Versions
 
+**88** — `0x89B5AB8D13B66793`. Objects carried by their flags, on DK2's state ids (ADR-0183).
 **87** — `0x1B90606BEF13CDC6`. An imp's gold on DK2's state ids (ADR-0182).
 **86** — `0xDEB6A8B84200ED21`. An imp's tile work on DK2's state ids (ADR-0181).
-**85** — `0xE0EDFEC6BD215E6C`. Collecting wages on DK2's state ids (ADR-0180).
-**84** — `0xDB5AAE21ABF713BF`. A bed and a full wage wipe their anger bucket (ADR-0179).
+**85** — `0xE0EDFEC6BD215E6C`, collecting wages (ADR-0180); **84** — `0xDB5AAE21ABF713BF`, the anger wipes (ADR-0179).
 **83** — `0xDFC977B66E524362`, the lair and sleep (ADR-0178); **82** — `0xF1F260238F3D713D`, a job's walk and work (ADR-0177).
 **81** — `0xE54D6E7BACCB5868`. Eating on DK2's state ids (ADR-0176). From 81 on, traces pin the chains.
 

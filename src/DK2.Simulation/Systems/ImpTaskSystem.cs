@@ -1272,6 +1272,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
         context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Plain);
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.CarryObject;
+        FromTaskSelection(creature);
+        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, ImpStates.PickingUpObject);
 
         context.Emit(SystemName, "object_claimed",
             $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
@@ -1322,6 +1324,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
             context.Emit(SystemName, "object_abandoned",
                 $"imp={creature.Id} object={creature.TargetObjectId} reason=gone");
             creature.TargetObjectId = -1;
+            WorkEnded(context, creature);
             GoIdle(creature);
             return;
         }
@@ -1334,10 +1337,12 @@ public sealed class ImpTaskSystem : ISimulationSystem
             context.Emit(SystemName, "object_abandoned",
                 $"imp={creature.Id} object={thing.Id} reason=out_of_reach");
             creature.TargetObjectId = -1;
+            StateShadow.ToIdle(context, SystemName, creature);
             GoIdle(creature);
             return;
         }
 
+        StateShadow.Arrive(context, SystemName, creature);
         int destination = ObjectCarryRules.TryDestinationFor(
             world, context.Database, creature, thing);
 
@@ -1346,9 +1351,14 @@ public sealed class ImpTaskSystem : ISimulationSystem
             context.Emit(SystemName, "object_abandoned",
                 $"imp={creature.Id} object={thing.Id} reason=nowhere_to_take_it");
             creature.TargetObjectId = -1;
+            WorkEnded(context, creature);
             GoIdle(creature);
             return;
         }
+
+        // 30 walks it to its room in 6, resuming in the state for its kind.
+        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint,
+            ImpStates.CarryingStateFor(context.Database.ObjectById(thing.ObjectTypeId)!.Flags));
 
         creature.TargetObjectId = -1;
         ObjectCarryRules.PickUp(creature, thing);
@@ -1370,7 +1380,9 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         if (thing is null)
         {
+            // An invalid carried id: 31-33 return 0, which is idle.
             creature.CarriedObjectId = -1;
+            StateShadow.ToIdle(context, SystemName, creature);
             GoIdle(creature);
             return;
         }
@@ -1387,7 +1399,11 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
             if (destination >= 0 && RouteTo(context, creature, grid, destination))
             {
+                // The carry state finds the tile unsuitable and asks the helper again.
                 creature.TargetTileIndex = destination;
+                int carrying = creature.UtilityNewState;
+                StateShadow.Arrive(context, SystemName, creature);
+                CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, carrying);
                 return;
             }
 
@@ -1395,6 +1411,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
                 $"imp={creature.Id} object={thing.Id} " +
                 $"at=({creature.Tile.X},{creature.Tile.Y}) reason=no_route");
             ObjectCarryRules.PutDown(creature, thing);
+            StateShadow.ToIdle(context, SystemName, creature);
             GoIdle(creature);
             return;
         }
@@ -1406,6 +1423,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
                 $"imp={creature.Id} object={thing.Id} " +
                 $"at=({creature.Tile.X},{creature.Tile.Y}) reason=tile_taken");
             ObjectCarryRules.PutDown(creature, thing);
+            StateShadow.ToIdle(context, SystemName, creature);
             GoIdle(creature);
             return;
         }
@@ -1417,6 +1435,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
             $"type={ObjectName(context, thing)} " +
             $"{Describe(world, here)}");
 
+        // Stored: the carry state sets 10.
+        WorkEnded(context, creature);
         GoIdle(creature);
     }
 

@@ -21,29 +21,22 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/objects.md")]
 public static class ObjectCarryRules
 {
-    /// <summary>The room an object of this type belongs in, or null when no room claims it.</summary>
-    /// <remarks>
-    /// <para>Read backwards out of <c>Rooms.kwd</c>: each room record carries an <c>ObjectIds</c>
-    /// list — Library 64 and 58, Workshop 16, 15, 46, Prison 49, 50, 51, Graveyard 31-34 (Q120) —
-    /// and this walks them to find the room that lists a given object. The original goes the other
-    /// way, looking a room up from the object's own definition, so there is presumably a room field
-    /// in the OBJECTS record this project has not identified (as for a bed's owner, Q130).</para>
-    /// <para>The mapping is not one-to-one and the first room in table order wins: objects 49 and 50
-    /// are listed by both the Prison and the Combat Pit, and the Torture Chamber lists object 8
-    /// three times. Which room the original would pick is UNKNOWN (Q169); a stable rule — the lower
-    /// room id — is what matters here.</para></remarks>
+    /// <summary>The room an object of this type belongs in, or null when it belongs nowhere.
+    /// <b>By the object's own flags</b>, in the order DK2's destination helper <c>0x0046E480</c>
+    /// tests them (ADR-0183): <see cref="ObjectFlags.TypeSpellBook"/> and then
+    /// <see cref="ObjectFlags.TypeSpecial"/> go to the Library, <see cref="ObjectFlags.TypeCrate"/>
+    /// to the Workshop, and anything else is not carried.</summary>
+    /// <remarks>This used to walk each room's <c>ObjectIds</c> list (Q120), which is the room's
+    /// furniture: book cases, anvils, tombstones. None of those has a carry flag, and none of the
+    /// spell book, the fifteen Specials or the eighteen crates is on any list, so the old rule
+    /// carried what DK2 leaves alone and never carried what DK2 carries.</remarks>
     public static RoomTypeId? HomeRoomFor(GameDatabase database, byte objectTypeId)
     {
-        RoomTypeId? best = null;
-
-        foreach (RoomDef room in database.Rooms.Values)
-        {
-            if (room.TypeId is not { } type) continue;
-            if (!room.ObjectIds.Contains(objectTypeId)) continue;
-            if (best is null || (byte)type < (byte)best) best = type;
-        }
-
-        return best;
+        if (database.ObjectById(objectTypeId) is not { } definition) return null;
+        if (definition.Flags.HasFlag(ObjectFlags.TypeSpellBook)) return RoomTypeId.Library;
+        if (definition.Flags.HasFlag(ObjectFlags.TypeSpecial)) return RoomTypeId.Library;
+        if (definition.Flags.HasFlag(ObjectFlags.TypeCrate)) return RoomTypeId.Workshop;
+        return null;
     }
 
     /// <summary>Whether this object is lying loose and belongs somewhere — what kind 8 looks for.

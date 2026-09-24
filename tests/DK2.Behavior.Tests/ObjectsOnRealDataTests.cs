@@ -244,6 +244,34 @@ public class ObjectsOnRealDataTests
     }
 
     [InstallFact]
+    public void TheCarryFlagsNameOneBookFifteenSpecialsAndEighteenCratesAndNoFurniture()
+    {
+        // ADR-0183. DK2's destination helper 0x0046E480 sends TypeSpellBook and TypeSpecial to
+        // the Library and TypeCrate to the Workshop. The rule used to read each room's
+        // ObjectIds, which is its furniture, and no object is in both sets.
+        GameDatabase db = GameDatabaseLoader.Load(Install());
+
+        byte[] With(ObjectFlags flag) =>
+            [.. db.Objects.Values.Where(o => o.Flags.HasFlag(flag)).Select(o => o.ObjectId).Order()];
+
+        Assert.Equal([4], With(ObjectFlags.TypeSpellBook));
+        Assert.Equal(15, With(ObjectFlags.TypeSpecial).Length);
+        Assert.Equal(18, With(ObjectFlags.TypeCrate).Length);
+
+        // The ids and flags the simulation fixture transcribes.
+        Assert.Contains((byte)118, With(ObjectFlags.TypeSpecial));
+        Assert.Contains((byte)5, With(ObjectFlags.TypeCrate));
+
+        const ObjectFlags carried =
+            ObjectFlags.TypeSpellBook | ObjectFlags.TypeSpecial | ObjectFlags.TypeCrate;
+        foreach (RoomDef room in db.Rooms.Values)
+        {
+            foreach (byte id in room.ObjectIds.Where(o => o != 0))
+                Assert.Equal((ObjectFlags)0, db.ObjectById(id)!.Flags & carried);
+        }
+    }
+
+    [InstallFact]
     public void RoomFurnitureIsWhatMostOfTheRecordIs()
     {
         string install = Install();

@@ -203,8 +203,20 @@ internal static class Dk2TerrainFixture
     /// <summary>Object id 26, the Vampire's coffin.</summary>
     public const byte VampireBedObjectId = 26;
 
-    /// <summary>Object id 64, the Library's book case — the fixture's loose object.</summary>
+    /// <summary>Object id 64, the Library's book case: furniture, which no imp carries.</summary>
     public const byte BookCaseObjectId = 64;
+
+    /// <summary>Object id 4, the Spell Book: <see cref="ObjectFlags.TypeSpellBook"/>, carried to
+    /// the Library in state 31 (ADR-0183).</summary>
+    public const byte SpellBookObjectId = 4;
+
+    /// <summary>Object id 118, the Reveal Map Special: <see cref="ObjectFlags.TypeSpecial"/>,
+    /// carried to the Library in state 33.</summary>
+    public const byte RevealMapSpecialObjectId = 118;
+
+    /// <summary>Object id 5, the Alarm trap's crate: <see cref="ObjectFlags.TypeCrate"/>, carried
+    /// to the Workshop in state 32.</summary>
+    public const byte AlarmCrateObjectId = 5;
 
     /// <summary>Object id 58, the Library's other object.</summary>
     public const byte LibraryBookObjectId = 58;
@@ -223,6 +235,13 @@ internal static class Dk2TerrainFixture
     /// transcribed from the shipped <c>Objects.kwd</c> and read back by
     /// <c>ObjectsOnRealDataTests</c>, so none can drift from it.
     /// </remarks>
+    private static ObjectDef Carried(byte id, string name, ObjectFlags flags) => new()
+    {
+        Name = name, ObjectId = id, Flags = flags, Hp = 1, ManaValue = 0, RoomCapacity = 0,
+        StartState = 0, PickUpPriority = 0, Width = new Fp32(4096), Height = new Fp32(4096),
+        Mass = new Fp32(4096), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
+    };
+
     private static ObjectDef[] Objects() =>
     [
         Bed(GoblinBedObjectId, "Goblin Creature Bed"),
@@ -269,11 +288,14 @@ internal static class Dk2TerrainFixture
             NameStringId = 0, TooltipStringId = 0,
         },
 
-        // The Library's two, which are what an imp puts away (ADR-0065). Their
-        // ids are the shipped Rooms.kwd ObjectIds for room 6; the fields below
-        // are NOT transcribed and nothing reads them, because kind 8 asks the
-        // ROOM which objects are its, not the object which room is its - see
-        // ObjectCarryRules.HomeRoomFor for what that reversal costs.
+        // The three an imp carries, one per carry flag (ADR-0183). Ids and flags are the
+        // shipped records' (ObjectsOnRealDataTests); nothing reads the other fields.
+        Carried(SpellBookObjectId, "Spell Book", ObjectFlags.TypeSpellBook),
+        Carried(RevealMapSpecialObjectId, "Special [ Reveal Map ]", ObjectFlags.TypeSpecial),
+        Carried(AlarmCrateObjectId, "Crate Alarm", ObjectFlags.TypeCrate),
+
+        // The Library's furniture, the shipped Rooms.kwd ObjectIds for room 6. It carries
+        // no carry flag, so no imp fetches it; the fields below are NOT transcribed.
         new ObjectDef
         {
             Name = "Book Case",

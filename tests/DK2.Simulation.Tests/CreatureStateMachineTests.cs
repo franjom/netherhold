@@ -324,6 +324,37 @@ public class CreatureStateMachineTests
         Assert.True(CreatureStateMachine.TrySetState(emptyHanded, ImpStates.TaskSelection));
     }
 
+    [Theory]
+    [InlineData(ObjectFlags.TypeSpellBook, 31)]
+    [InlineData(ObjectFlags.TypeSpecial, 33)]
+    [InlineData(ObjectFlags.TypeCrate, 32)]
+    public void TheImpObjectChainIsLegalFromTaskSelection(ObjectFlags flag, int carrying)
+    {
+        // 10 walks in 6 to 30; 30 walks in 6 to the kind's carry state through 0x0046E480;
+        // the carry state stores and sets 10, or re-routes through the helper to itself.
+        Assert.Equal(carrying, ImpStates.CarryingStateFor(flag));
+
+        CreatureState imp = Fresh();
+        CreatureStateMachine.Begin(imp, Idle);
+        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
+        CreatureStateMachine.BeginTravel(imp, EnRoute, ImpStates.PickingUpObject);
+        Assert.True(CreatureStateMachine.Arrive(imp));
+        CreatureStateMachine.BeginTravel(imp, EnRoute, carrying);
+        Assert.Equal(EnRoute, imp.Dk2StateId);
+        Assert.True(CreatureStateMachine.Arrive(imp));
+        CreatureStateMachine.BeginTravel(imp, EnRoute, carrying);
+        Assert.Equal(EnRoute, imp.Dk2StateId);
+        Assert.True(CreatureStateMachine.Arrive(imp));
+        Assert.Equal(carrying, imp.Dk2StateId);
+        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
+
+        CreatureState empty = Fresh();
+        CreatureStateMachine.Begin(empty, Idle);
+        Assert.True(CreatureStateMachine.TrySetState(empty, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(empty, ImpStates.PickingUpObject));
+        Assert.True(CreatureStateMachine.TrySetState(empty, ImpStates.TaskSelection));
+    }
+
     [Fact]
     public void TortureIsOffStateIdsBecauseItsStateCannotDropToIdleAndTheWayOutIsUnread()
     {

@@ -4174,3 +4174,18 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Negative controls, one at a time: the store walk resuming in 29, the fetch resuming in 28, no walk on after a spill, a full miner releasing instead of walking, and dropping the two activities from the retired set each fail a named test.
 - `HashVersion` and `FormatVersion` **87**, pin `0x1B90606BEF13CDC6`.
 
+## ADR-0183 — An imp carries an object by its own flags, on DK2's state ids
+**Date:** 2026-09-24 · **Status:** accepted · amends ADR-0065, advances ADR-0135 (step two, seventh slice) · Research: `docs/research/imp-state-exits.md` §2 (states 30–33), `travel-state-call-sites.md` §3
+
+**Context.** Reading DK2's object-destination helper `0x0046E480` for this slice found the rule ADR-0065 could not: it tests the object definition's flag word, `TypeSpellBook` then `TypeSpecial` for the Library and `TypeCrate` for the Workshop, and walks nowhere for anything else. Ours read each room's `ObjectIds`, which is its furniture. On the shipped data the two sets are disjoint: no listed object carries a carry flag, and the spell book, fifteen Specials and eighteen crates are on no list. **So our imps carried loose furniture DK2 leaves alone and never carried a book, a Special or a crate.**
+
+**Decision.**
+1. **`ObjectCarryRules.HomeRoomFor` reads the three flags**, in the helper's order. Q169 is moot and closed. The fixture carries the Spell Book, the Reveal Map Special and the Alarm crate, pinned against the shipped records.
+2. **`FetchingObject` and `CarryingObject` retire.** 10 walks in 6 to 30; 30 takes the object and walks in 6 to 31 (spell book), 33 (Special) or 32 (crate); the carry state stores it and sets 10, or re-routes to itself through the helper.
+3. **Ours, kept:** an invalid carried id, no route and a taken tile all put the object down and drop to idle.
+4. **Not built:** trap and door crates for a placed trap or door (34–37), and what delivering a Special or a spell book does in the Library.
+
+**Consequences.**
+- Negative controls, one at a time: a Special to the Workshop, the book and Special states swapped, the pickup resuming in the carry state, dropping the two activities, and no spell-book branch each fail a named test.
+- `HashVersion` and `FormatVersion` **88**, pin `0x89B5AB8D13B66793`.
+

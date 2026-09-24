@@ -165,6 +165,32 @@ public class ImpStateTests
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
 
+    [Theory]
+    [InlineData(Dk2TerrainFixture.SpellBookObjectId, 31)]
+    [InlineData(Dk2TerrainFixture.RevealMapSpecialObjectId, 33)]
+    public void ALooseObjectIsPickedUpInThirtyAndCarriedInTheStateForItsKind(byte type, int carrying)
+    {
+        // 10 walks in 6 to 30; 30 picks it up and walks it to the Library in 6 resuming in 31
+        // for a spell book, 33 for a Special; the carry state stores it and sets 10.
+        GameDatabase db = Dk2TerrainFixture.Database();
+        (GameSimulation sim, ListEventSink events) = Start(new TilePos(2, 2));
+        foreach (TilePos p in new TilePos[] { new(3, 3), new(3, 2) })
+        {
+            ref TileState tile = ref sim.World.Tile(p);
+            RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Library), Keeper);
+        }
+
+        sim.World.SpawnObject(db, type, PlayerIds.Unowned, (1 * sim.World.Width) + 1);
+
+        Assert.Equal(
+            [(Walk, Select, ImpStates.PickingUpObject),
+             (Walk, ImpStates.PickingUpObject, carrying),
+             (NoState, ImpStates.PickingUpObject, Idle)],
+            StatesSeen(sim, 200).Take(3));
+        Assert.Contains(events.Events, e => e.Kind == "object_stored");
+        Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
+    }
+
     [Fact]
     public void AnImpMinesInTwentySix()
     {

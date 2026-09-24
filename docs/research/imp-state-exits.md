@@ -148,4 +148,6 @@ Q420 asked whether the built work loop is wrong; it is not. The tile-work rows
 are **built** on state ids (ADR-0181): `ImpStates.For` pairs each `TileWorkKind`
 with its entry and work state by the creature action the work state starts
 (`balance-variables-in-the-binary.md`, task records 1, 2, 4, 5, 7, 8, 10). The
-gold rows 26–29 are built too (ADR-0182), 28's wait for a standing point aside.
+gold rows 26–29 are built too (ADR-0182), 28's wait for a standing point aside,
+and the object rows 30–33 (ADR-0183), with the carry rule corrected to the object's
+own flags as `0x0046E480` reads them. Trap and door crates (34–37) are not.

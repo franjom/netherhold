@@ -25,7 +25,7 @@ public class ObjectCarryingTests
     private const byte Rival = 1;
     private const byte ImpId = Dk2TerrainFixture.ImpCreatureId;
     private const byte GoblinId = 7;
-    private const byte BookCase = Dk2TerrainFixture.BookCaseObjectId;
+    private const byte SpellBook = Dk2TerrainFixture.SpellBookObjectId;
     private const int Second = SimulationTiming.TicksPerSecond;
 
     // The fixture map's walkable ground is a 3x3 claimed room at (1..3, 1..3).
@@ -64,32 +64,36 @@ public class ObjectCarryingTests
     }
 
     private static ObjectState Drop(
-        GameDatabase db, WorldState world, TilePos at, byte type = BookCase,
+        GameDatabase db, WorldState world, TilePos at, byte type = SpellBook,
         byte owner = PlayerIds.Unowned) =>
         world.SpawnObject(db, type, owner, (at.Y * world.Width) + at.X);
 
     // ---- where a thing belongs ---------------------------------------------
 
     [Fact]
-    public void ARoomsObjectListIsWhatSaysWhereALooseThingBelongs()
+    public void AnObjectsCarryFlagIsWhatSaysWhereALooseThingBelongs()
     {
-        // Read backwards out of Rooms.kwd: the room lists its objects, so
-        // finding an object's room means walking the rooms. The original goes
-        // the other way and this project has not identified the field it uses.
+        // DK2's destination helper 0x0046E480 tests the object's own flags (ADR-0183): a
+        // spell book or a Special to the Library, a crate to the Workshop.
         GameDatabase db = Db;
 
-        Assert.Equal(RoomTypeId.Library, ObjectCarryRules.HomeRoomFor(db, BookCase));
+        Assert.Equal(RoomTypeId.Library, ObjectCarryRules.HomeRoomFor(db, SpellBook));
         Assert.Equal(RoomTypeId.Library,
-            ObjectCarryRules.HomeRoomFor(db, Dk2TerrainFixture.LibraryBookObjectId));
+            ObjectCarryRules.HomeRoomFor(db, Dk2TerrainFixture.RevealMapSpecialObjectId));
+        Assert.Equal(RoomTypeId.Workshop,
+            ObjectCarryRules.HomeRoomFor(db, Dk2TerrainFixture.AlarmCrateObjectId));
 
-        // A bed belongs to a creature, not to a room, and no room lists it.
+        // The Library's own furniture has no carry flag, though the room lists it, and a
+        // bed belongs to a creature.
+        Assert.Null(ObjectCarryRules.HomeRoomFor(db, Dk2TerrainFixture.BookCaseObjectId));
+        Assert.Null(ObjectCarryRules.HomeRoomFor(db, Dk2TerrainFixture.LibraryBookObjectId));
         Assert.Null(ObjectCarryRules.HomeRoomFor(db, Dk2TerrainFixture.GoblinBedObjectId));
     }
 
     [Fact]
     public void ABedIsNeverFetchedHoweverLongItLies()
     {
-        // Two reasons, and either alone would do: no room lists a bed, and a
+        // Two reasons, and either alone would do: a bed has no carry flag, and a
         // bed carries the creature id of whoever put it down.
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -111,7 +115,7 @@ public class ObjectCarryingTests
     // ---- the carry ----------------------------------------------------------
 
     [Fact]
-    public void AnImpCarriesALooseBookCaseToTheLibrary()
+    public void AnImpCarriesALooseSpellBookToTheLibrary()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
