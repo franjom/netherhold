@@ -282,9 +282,8 @@ turn a killer is stamped.** The general arm: gold to neutral piles per heart til
 (ours holds gold in tiles, not pile objects), rooms to `PlayerIds.Neutral` by retagging
 their tiles, roomless owned tiles to their destroyed terrain (an unownable result
 carries no owner, ADR-0045), workers killed, non-workers set `Leaving` and walked by
-`LeavingRules` to a portal of the keeper's or of nobody's — that the leaving state
-accepts a neutral portal is INFERRED from steps 2 and the fifth turn together, its
-handler `0x00459DE0` being unread. Not built: the obstacle objects, the prisoner and
+`LeavingRules`; `creature-leaving.md` shows that DK2 instead chooses the nearest
+Portal or Hero Portal of **any** player by straight-line distance. Not built: the obstacle objects, the prisoner and
 dying slots, the collapse arm. The heart room stays in the list as a ruin, so how
 condition type 25 counts it out is still UNKNOWN.
 
