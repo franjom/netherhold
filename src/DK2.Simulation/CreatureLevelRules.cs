@@ -43,6 +43,11 @@ public static class CreatureLevelRules
     public static int MaxHealth(GameDatabase database, CreatureDef creature, int level) =>
         Scale(creature.Hp, Percent(database, CreatureStatId.Health, level));
 
+    /// <summary>The most gold this creature can carry at this level: the record's
+    /// <c>MaxGoldHeld</c> scaled by the MaxGoldHeld row, 120% from level 5.</summary>
+    public static int MaxGoldHeld(GameDatabase database, CreatureDef creature, int level) =>
+        Scale(creature.MaxGoldHeld, Percent(database, CreatureStatId.MaxGoldHeld, level));
+
     /// <summary>Walking speed in fixed-point raw units at this level — the record's <c>Speed</c>
     /// scaled by the Speed row. Scaled raw on purpose: <see cref="Fp32"/>'s denominator is 4096 and
     /// the percentage is integer, so raw arithmetic is exact where a decimal round trip is not.</summary>

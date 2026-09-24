@@ -312,19 +312,21 @@ public sealed class PaydaySystem : ISimulationSystem
             return;
         }
 
+        // Half of what came off the floor goes into the creature's own purse, and the rest
+        // is gone (0x0048AE70(taken / 2), payday.md 4.4).
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        int pocketed = PurseRules.Receive(
+            context.Database, definition, creature, PurseRules.PocketedFromWage(taken));
         creature.WageOwed -= taken;
 
         // Paid in full, state 189 wipes the pay grievance outright (payday.md 4.4).
         if (creature.WageOwed == 0)
-        {
-            CreatureAngerRules.Forget(
-                world, context.Database.CreatureById(creature.CreatureTypeId),
-                creature, AngerBucket.Pay);
-        }
+            CreatureAngerRules.Forget(world, definition, creature, AngerBucket.Pay);
 
         context.Emit(SystemName, "paid",
             $"creature={creature.Id} player={creature.OwnerPlayerId} " +
-            $"took={taken} still_owed={creature.WageOwed} " +
+            $"took={taken} pocketed={pocketed} purse={creature.GoldHeld} " +
+            $"still_owed={creature.WageOwed} " +
             $"at=({creature.Tile.X},{creature.Tile.Y})");
 
         // Still owed something? The original loops back to its search state and

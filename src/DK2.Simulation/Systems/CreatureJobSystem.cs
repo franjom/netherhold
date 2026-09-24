@@ -18,7 +18,7 @@ namespace DK2.Simulation.Systems;
 /// duration variables, <c>MotionlessWhileResearchingSeconds</c> through
 /// <c>MinimumJobDurationSeconds</c>, are read by nothing (ADR-0082), so a job lasts
 /// until the room stops being the keeper's or a need intervenes. Not implemented:
-/// the effects of Guard, Drink and the roomless jobs (Leave, Rebel, Explore,
+/// the effects of Guard and the roomless jobs (Leave, Rebel, Explore,
 /// StealGold), which are still chosen, logged and occupy the creature.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/job-selection.md")]
 public sealed class CreatureJobSystem : ISimulationSystem
@@ -368,7 +368,41 @@ public sealed class CreatureJobSystem : ISimulationSystem
             case CreatureStateCategory.Temple:
                 if (second) Pray(context, world, database, creature, definition);
                 return;
+
+            case CreatureStateCategory.Casino:
+                if (second) Gamble(context, world, database, creature, definition);
+                return;
         }
+    }
+
+    /// <summary>A game second at the tables: the Casino's update hook <c>0x0047AD70</c> in its
+    /// default mode. A purse at or below the stake fails the hook, which is idle; otherwise
+    /// the calm, then a coin into the purse (ADR-0187).</summary>
+    /// <remarks>Not built: the room's other mode, which only a keeper's toggle reaches
+    /// (anger +100 and 8 gold a second); the jackpot roll; the fearless countdown
+    /// (<c>state-category-hooks.md</c> §3).</remarks>
+    private static void Gamble(
+        SimulationContext context, WorldState world, GameDatabase database,
+        CreatureState creature, CreatureDef definition)
+    {
+        if (creature.GoldHeld <= JobRules.GamblingStake(database))
+        {
+            context.Emit(SystemName, "job_lost",
+                $"creature={creature.Id} type={definition.Name} " +
+                $"player={creature.OwnerPlayerId} job={creature.CurrentJob} " +
+                $"at=({creature.Tile.X},{creature.Tile.Y}) reason=cannot_afford_to_gamble " +
+                $"purse={creature.GoldHeld}");
+            Stop(context, creature);
+            return;
+        }
+
+        CreatureAngerRules.Apply(world, definition, creature, JobRules.GamblingCalm(database));
+        int won = PurseRules.Receive(database, definition, creature, JobRules.GamblingWinnings(database));
+
+        context.Emit(SystemName, "gambled",
+            $"creature={creature.Id} type={definition.Name} " +
+            $"player={creature.OwnerPlayerId} won={won} purse={creature.GoldHeld} " +
+            $"anger={creature.Anger.Max} [{creature.Anger}]");
     }
 
     /// <summary>A game second of praying: the Temple's update hook.</summary>

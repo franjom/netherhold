@@ -246,8 +246,10 @@ public sealed class CreatureState
     /// <para>On the creature rather than the player for the same reason gold is
     /// on tiles (ADR-0015); while it is here it is not spendable. Survives
     /// <see cref="ClearJob"/> — an imp whose seam collapsed still holds what it
-    /// mined. Not seeded from <c>InitialGoldHeld</c> (Imp: 500), whose purpose
-    /// is UNKNOWN and which nothing here reads.</para></summary>
+    /// mined.</para>
+    /// <para>Also every creature's purse, <c>creature+0x3FB</c>: half of each wage and the
+    /// Casino's winnings land here (<see cref="PurseRules"/>, ADR-0187). Not seeded from
+    /// <c>InitialGoldHeld</c>, which DK2's loader copies and nothing reads.</para></summary>
     public int GoldHeld;
 
     /// <summary>Current health, seeded from the creature record's <c>Hp</c> on spawn and

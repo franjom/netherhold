@@ -181,6 +181,28 @@ public class PaydayTests
         // payday is the strongest confirmation of that this project has.
         Assert.Equal(1500, world.Tile(vault.X, vault.Y).GoldHeld);
         Assert.Contains(sink.Events, e => e.Kind == "paid" && e.Detail.Contains("took=500"));
+
+        // And half of it is the creature's own now, the other half gone (ADR-0187).
+        Assert.Equal(250, goblin.GoldHeld);
+    }
+
+    [Fact]
+    public void HalfAWageGoesInThePurseAndWhatDoesNotFitIsLost()
+    {
+        // 0x0048AE70(taken / 2): the purse stops at the level-scaled MaxGoldHeld, 5000
+        // for a level-1 Goblin, so 4900 plus half of 500 is 5000 and 150 is lost.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Treasury(world, new TilePos(1, 3), 2000);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.GoldHeld = 4900;
+
+        var sink = new ListEventSink();
+        RunToFirstPayday(Simulation(db, world, sink), db, extraTicks: 200);
+
+        Assert.Equal(0, goblin.WageOwed);
+        Assert.Equal(5000, goblin.GoldHeld);
+        Assert.Contains(sink.Events, e => e.Kind == "paid" && e.Detail.Contains("pocketed=100"));
     }
 
     [Fact]
@@ -262,6 +284,7 @@ public class PaydayTests
         // when a keeper has no vault at all.
         Assert.Equal(0, world.Tile(vault.X, vault.Y).GoldHeld);
         Assert.Equal(300, goblin.WageOwed);
+        Assert.Equal(100, goblin.GoldHeld);
     }
 
     [Fact]

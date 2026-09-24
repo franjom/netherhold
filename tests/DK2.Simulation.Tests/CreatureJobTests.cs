@@ -215,11 +215,93 @@ public sealed class CreatureJobTests
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         goblin.Anger.Treatment = CreatureAngerRules.UnhappyAt(db.CreatureById(GoblinId));
+        goblin.GoldHeld = 100;
 
         Simulation(db, world).Run(Second * 30);
 
         Assert.Equal(JobType.Drink, goblin.CurrentJob);
         Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
+    }
+
+    [Fact]
+    public void AGoblinWithEightGoldOrLessIsRefusedTheCasino()
+    {
+        // The Drink handler 0x004560F0 wants more in the purse than the stake, 8, before
+        // it looks for a casino (ADR-0187). A creature never paid has nothing.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Casino, new TilePos(3, 3));
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.Anger.Treatment = CreatureAngerRules.UnhappyAt(db.CreatureById(GoblinId));
+        goblin.GoldHeld = 8;
+
+        var sink = new ListEventSink();
+        Simulation(db, world, sink).Run(Second * 30);
+
+        Assert.Equal(JobType.None, goblin.CurrentJob);
+        Assert.Contains(sink.Events, e => e.Kind == "job_refused"
+            && e.Detail.Contains("job=Drink") && e.Detail.Contains("reason=cannot_afford_to_gamble"));
+    }
+
+    [Fact]
+    public void AGamblerIsCalmedOnTreatmentCompanyAndWorkAndWinsACoinASecond()
+    {
+        // The Casino's update hook 0x0047AD70 in its default mode (ADR-0187): once a game
+        // second, -2000 to buckets 5, 0 and 3 and one gold into the purse. Pay is seeded
+        // to show the hook leaves it alone.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Casino, Floor);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.CurrentJob = JobType.Drink;
+        goblin.Activity = CreatureActivity.AtWork;
+        CreatureStateMachine.Begin(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
+        goblin.GoldHeld = 100;
+        goblin.Anger.Treatment = 10_000;
+        goblin.Anger.Company = 10_000;
+        goblin.Anger.Work = 10_000;
+        goblin.Anger.Pay = 10_000;
+
+        var sink = new ListEventSink();
+        Simulation(db, world, sink).Run(Second * 4);
+
+        Assert.Equal(CreatureStateCategory.Casino, CreatureStateMachine.UpdatingCategory(goblin));
+        Assert.Equal(10_000 - (4 * 2000), goblin.Anger.Treatment);
+        Assert.Equal(10_000 - (4 * 2000), goblin.Anger.Company);
+        Assert.Equal(10_000 - (4 * 2000), goblin.Anger.Work);
+        Assert.Equal(10_000, goblin.Anger.Pay);
+        Assert.Equal(104, goblin.GoldHeld);
+        Assert.Equal(4, sink.Events.Count(e => e.Kind == "gambled"));
+    }
+
+    [Fact]
+    public void AGamblerWithAPurseAtTheStakeIsSentIdleByTheHook()
+    {
+        // The same hook tests the purse every second before anything else and fails at 8
+        // or below, which the dispatcher turns into state 1 (ADR-0187).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Casino, Floor);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.CurrentJob = JobType.Drink;
+        goblin.Activity = CreatureActivity.AtWork;
+        CreatureStateMachine.Begin(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
+        goblin.GoldHeld = 8;
+        goblin.Anger.Work = 10_000;
+
+        var sink = new ListEventSink();
+        Simulation(db, world, sink).Run(Second);
+
+        Assert.Equal(JobType.None, goblin.CurrentJob);
+        Assert.Equal(CreatureActivity.Idle, goblin.Activity);
+        Assert.False(CreatureStateMachine.HasState(goblin));
+        Assert.Equal(8, goblin.GoldHeld);
+        Assert.Equal(10_000, goblin.Anger.Work);
+        Assert.Contains(sink.Events, e => e.Kind == "job_lost"
+            && e.Detail.Contains("reason=cannot_afford_to_gamble"));
     }
 
     // ---- the one job with an effect ---------------------------------------

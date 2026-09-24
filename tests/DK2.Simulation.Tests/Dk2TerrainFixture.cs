@@ -710,8 +710,9 @@ internal static class Dk2TerrainFixture
         UnhappyJobs = [new(JobType.Drink, 0, 0, 100)],
         AngryJobs = [new(JobType.Leave, 0, 0, 50), new(JobType.Rebel, 0, 0, 50)],
 
-        // Imp facts, cleared rather than inherited.
-        MaxGoldHeld = 0,
+        // Its purse, as shipped: a wage's half and the Casino's winnings stop at 5000
+        // (ADR-0187). InitialGoldHeld ships as 500 and nothing reads it, so it is 0 here.
+        MaxGoldHeld = 5000,
         InitialGoldHeld = 0,
     };
 
@@ -1200,6 +1201,13 @@ internal static class Dk2TerrainFixture
         // increment and not a scale, so a pit fighter hits twice as hard; the first-person
         // 12 is this project's hypothesis for a scalar nothing writes (Q337).
         Set(vars, VariableTypeId.CombatPitMeleeDamageModifierPercentage, 100);
+
+        // The Casino's default mode, as shipped: a coin into the purse and -2000 anger a
+        // second; the other mode's -8 is also the stake a purse must beat (ADR-0187).
+        Set(vars, VariableTypeId.GamblingModifyCreatureMoneySmilesPerSecond, 1);
+        Set(vars, VariableTypeId.GamblingModifyCreatureMoneyMoneyPerSecond, -8);
+        Set(vars, VariableTypeId.GamblingModifyCreatureAngerSmilesPerSecond, -2000);
+        Set(vars, VariableTypeId.GamblingModifyCreatureAngerMoneyPerSecond, 100);
         Set(vars, VariableTypeId.FirstPersonStatIncreasePercentage, 12);
 
         // The portal's three. The generation speed is the game-wide 25 rather
@@ -1226,6 +1234,8 @@ internal static class Dk2TerrainFixture
         // Melee damage, to 600% at level 10 - the steepest row the table has,
         // shared with Health (combat-damage.md section 3).
         Stat(vars, CreatureStatId.MeleeDamage, [125, 150, 175, 200, 225, 250, 300, 400, 600]);
+        // How much a purse holds, to 120% from level 5 (ADR-0187).
+        Stat(vars, CreatureStatId.MaxGoldHeld, [105, 110, 115, 120, 120, 120, 120, 120, 120]);
 
         // The dungeon heart's health and its regeneration, as shipped in the global
         // VARIABLES table (balance-variables-in-the-binary.md rows 174 and 131). A

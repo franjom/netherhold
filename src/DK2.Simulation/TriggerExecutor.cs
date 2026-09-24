@@ -632,9 +632,8 @@ public sealed class TriggerExecutor
         {
             36 => creature.Health * 100 / CreatureLevelRules.MaxHealth(
                 database, database.CreatureById(creature.CreatureTypeId), creature.Level),
-            37 => creature.GoldHeld * 100 / CreatureLevelRules.Scale(
-                database.CreatureById(creature.CreatureTypeId).MaxGoldHeld,
-                CreatureLevelRules.Percent(database, CreatureStatId.MaxGoldHeld, creature.Level)),
+            37 => creature.GoldHeld * 100 / CreatureLevelRules.MaxGoldHeld(
+                database, database.CreatureById(creature.CreatureTypeId), creature.Level),
             49 => creature.Level,
             _ => throw new ArgumentOutOfRangeException(nameof(record), record.Type, null),
         };

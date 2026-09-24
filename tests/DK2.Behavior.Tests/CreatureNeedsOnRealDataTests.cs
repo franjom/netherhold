@@ -1077,6 +1077,11 @@ public class CreatureNeedsOnRealDataTests
         // pinning: it means a level does not change the ratio between them.
         Assert.Equal(Levels(db, CreatureStatId.Speed), Levels(db, CreatureStatId.RunSpeed));
 
+        // A purse, to 120% from level 5 and no further (ADR-0187).
+        Assert.Equal(
+            new[] { 105, 110, 115, 120, 120, 120, 120, 120, 120 },
+            Levels(db, CreatureStatId.MaxGoldHeld));
+
         // Experience for the next level, to 1000% -- the last level costs ten
         // times the first.
         Assert.Equal(
@@ -1324,5 +1329,22 @@ public class CreatureNeedsOnRealDataTests
         Assert.False(CreatureHealthRules.CanGetHungry(vampire));
         Assert.False(CreatureDeathRules.LeavesBody(vampire));
         Assert.True(CreatureDeathRules.CanBeResurrected(vampire));
+    }
+
+    [InstallFact]
+    public void AGoblinsPurseHoldsFiveThousandAndTheCasinoWantsMoreThanEight()
+    {
+        // The Casino's default mode and its stake, as JobRules reads them, and the purse
+        // cap a wage's half and the winnings stop at (ADR-0187). Every creature but the
+        // imp starts with an empty purse: InitialGoldHeld has no reader.
+        GameDatabase db = GameDatabaseLoader.Load(Install());
+        CreatureDef goblin = db.CreatureByName("Goblin")!;
+
+        Assert.Equal(5000, goblin.MaxGoldHeld);
+        Assert.Equal(6000, CreatureLevelRules.MaxGoldHeld(db, goblin, 10));
+        Assert.Equal(8, JobRules.GamblingStake(db));
+        Assert.Equal(1, JobRules.GamblingWinnings(db));
+        Assert.Equal(-2000, JobRules.GamblingCalm(db).Work);
+        Assert.Equal(100, db[VariableTypeId.GamblingModifyCreatureAngerMoneyPerSecond]);
     }
 }

@@ -4233,3 +4233,19 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Four test setups that put a creature at work by hand now give it its job's state. Negative controls, one at a time: no Spectating case, a spectator calming Pay, and Research dispatched as Manufacture each fail a named test.
 - `HashVersion` and `FormatVersion` **91**, pin `0xA5F9A90F3ED7133A`.
 
+## ADR-0187 — A creature's purse, and the Casino on its category hook
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0186, amends ADR-0078 · Research: `docs/research/payday.md` §4.4, `state-category-hooks.md` §3.1, `job-selection.md` §3
+
+**Context.** The Casino's hooks test and change `creature+0x3FB`, which DK2's dumper names `GoldHeld`: the field an imp carries gold in (ADR-0019) is every creature's purse. Only payday's unread `0x0048AE70(taken / 2)` could fill it for a non-worker. Read now, it adds to the purse and caps it at the level-scaled `MaxGoldHeld`.
+
+**Decision.**
+1. **`PurseRules.Receive`** is `0x0048AE70`. State 189 puts half of what it took in the purse, and the rest is gone. `CreatureLevelRules.MaxGoldHeld` scales the cap (to 120 %). `InitialGoldHeld` is only copied by the loader, so every purse starts empty.
+2. **The Drink handler's gate:** more than 8 in the purse (`abs(GamblingModifyCreatureMoneyMoneyPerSecond)`), then a casino. `job-selection.md` had read it as "a casino or money"; corrected.
+3. **The Casino's update hook** (category 17), in the room's default mode: once a game second, a purse at or below 8 fails the hook and the creature goes idle. Otherwise −2000 goes to Treatment, Company and Work, and one gold into the purse.
+4. **Not built:** the second mode, reached only by a keeper's toggle (Q423); the jackpot and its party; the fearless countdown and the leave hook; the enter hook's station test; Q421's hand-off from payday.
+
+**Consequences.**
+- An unpaid creature no longer drinks: the Goblin's shipped unhappy table is Drink alone, and before its first payday it now finds nothing. The fixture Goblin gains its shipped `MaxGoldHeld` (5000), the MaxGoldHeld stat row, and variables 199–202, with drift guards on the install.
+- Negative controls, one at a time: the whole wage pocketed, no cap, no Drink gate, a strict stake, the other mode's anger, no coin, no Casino case, and a payday that pockets nothing each fail a named test.
+- `HashVersion` and `FormatVersion` **92**, pin `0x669BBBA8B0751A77`.
+

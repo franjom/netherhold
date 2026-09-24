@@ -187,8 +187,14 @@ strongest independent confirmation yet of ADR-0015's finding that **DK2 has no
 player gold counter** — payday, the one moment where a global balance would be
 most convenient, is implemented as a withdrawal from a tile.
 
-`FUN_0048ae70(taken / 2)` is **unread**; the halving is conspicuous and has no
-candidate.
+**`FUN_0048ae70(taken / 2)` puts half the wage in the creature's purse — CONFIRMED
+(2026-09-24).** Its receiver is the creature (`MOV ECX,[ESI+0x8]` at the call). It adds
+the argument to `creature+0x3FB`, the `GoldHeld` field DK2's own dumper names, then caps
+it at the definition's `MaxGoldHeld` (`+0x69C`), scaled at levels 2–10 by the stat row
+at `0x006E4154 + 0x13B` (to 120 %); what does not fit is lost. The other half is simply
+gone. The Casino pays into the same purse and the Drink job wants more than 8 in it
+(`state-category-hooks.md` §3). `InitialGoldHeld` (`+0x6B2`) is only copied by the
+loader, never read, so a purse starts empty. **Built** (ADR-0187).
 
 **How 189 ends — read 2026-09-24.** Every path returns 0, which is idle, with one
 exception. After a successful take it walks the creature's job list (count at
@@ -224,7 +230,7 @@ places a bed (`lair-acquisition.md` §9.1). **Built** (ADR-0179).
 | Two distinct "cannot pay" messages | **read** |
 | `AngerNoPay` firing on an unpaid creature | **READ AND BUILT** the same day (ADR-0079) — see §6 |
 | `PayDayCutOffTimeSeconds` | **UNKNOWN**, and its readers are not in the payday path |
-| `FUN_0048ae70(taken/2)` | **UNKNOWN** |
+| `FUN_0048ae70(taken/2)`: half the wage into the purse, capped | **READ AND BUILT** (ADR-0187) |
 | `FUN_00486f80(4)`: zero the pay-anger bucket when fully paid | **READ AND BUILT** (ADR-0179) |
 
 **Built on 2026-09-06 (ADR-0078):** `PaydayRules`, `PaydaySystem`,
@@ -232,7 +238,7 @@ places a bed (`lair-acquisition.md` §9.1). **Built** (ADR-0179).
 player. It cost one bump of `GameSimulation.HashVersion` and the snapshot
 `FormatVersion` with it; ADR-0078 records which.
 
-What is left unread: `PayDayCutOffTimeSeconds` and `FUN_0048ae70` in state 189.
+What is left unread: `PayDayCutOffTimeSeconds`, and `FUN_0048e810(-taken)` in state 189.
 The owner's account of the consequence stands as the observation (Q9: unhappy,
 then angry, then leaves — or rebels, if converted).
 

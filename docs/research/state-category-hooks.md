@@ -97,6 +97,40 @@ the category operation failed; a return of one means it remains valid.
 | `0x0047B7C0` | Prison update | Every four game seconds, and only for a creature with nonzero level-scaled `HungerFill` and a room id, applies `4 x PrisonModifyCreatureHealthPerSecond` (-12) and **`ModifyAngerInCompanyOfHatedCreaturesPerSecond` (+150)** to bucket 0 with selector 9. |
 | `0x0047B8C0` | Temple enter | Initializes `+0xAF` and claims. |
 
+### 3.1 The Casino, re-read for building (2026-09-24)
+
+- **The mode is the room's.** `0x004D6880` is `MOV AL,[ECX+0x4A]; RET`, called on the
+  room the creature's `+0x3B9` names. Mode 0 ("Smiles") calms by variable 201 (−2000)
+  and pays variable 199 (1) into the purse through `0x0048AE70`. Mode 1 ("Money")
+  angers by variable 202 (+100) and takes `-(variable 200)` = 8 through `0x0048AF50`,
+  which subtracts and floors at 0; the gold goes nowhere. Any other value does
+  neither. `0x004D6890(mode, flag)` stores the byte and restyles the room's type-`0x5F`
+  objects. `0x004D69D0` flips 0 and 1, and its one caller is the command handler
+  `0x00513E50`: a player's action on a thing whose `+0x138` names the room. Which
+  action that is has not been read (Q423). Of the other byte writers at `+0x4A`, only
+  `0x004D6250` sits among the Casino's methods. It has no direct caller (a vtable
+  slot, not traced) and zeroes `+0x4A` together with `+0x53`, so a new Casino is in
+  mode 0 (STRONGLY INFERRED). `0x004D7A30`/`0x004D7A60` are the Combat Pit's.
+- **Update order:** first the countdown `+0xB0`. Then the fearless countdown
+  `+0x4F4`, which the creature constructor `0x004872A0` seeds from variable 203 (120):
+  at 0 it sets `+0x3EA` bit 13 and reloads. Then the purse test, which returns 0 when
+  the purse is at most 8. Then the mode's anger and money. Then the jackpot roll
+  `0x005558D0(chance)` == 42, with a chance of 5000 in mode 0 and 20000 in mode 1.
+- **The jackpot** `0x004D6AA0`, on the keeper, runs only if none of the keeper's
+  creatures holds a `+0x3F2` timer. It gives every other creature in the room
+  complaints 1 and `0x99`. It increments player `+0xF4A`, the count DK2's dumper
+  names `DiscoInfernoCount`, which lifts the purse test in both the Drink job and
+  this enter hook. It sets the winner's `+0x3F2` to variable 207 × variable 19
+  ticks, and its `+0x3F4` to the larger of `0x004BE290()` (on the keeper) and
+  variable 209 (1000). The payout path and variable 208's missed-deadline anger
+  (applied to bucket 5 with selector 9 by `0x004D6A40`) are not traced further.
+- **Enter** also refuses when the room's type-15 lookup finds a station whose
+  `+0x53` is 0; `0x004D6ED0` writes `+0x53` as it sets the room up.
+- **Built** (ADR-0187): mode 0's calm and coin, the purse test at the Drink handler
+  and every second, and the purse itself. **Not built:** mode 1 and its toggle, the
+  jackpot and party, the fearless countdown and the leave hook's `+0x3D7`, and the
+  station test.
+
 ## 4. Answers and limits
 
 - Casino's two anger globals are variables 201/202:
@@ -114,6 +148,7 @@ the category operation failed; a return of one means it remains valid.
   cooling (ADR-0185); Training, Research, Temple and **Spectating** at work
   (ADR-0186). Spectating's update `0x0047AA70` was re-read for it: countdown `+0xAB`
   reloaded from variable 19, then variable 135 to buckets 5, 0 and 3, selector 9,
-  always returning 1. Not built: Manufacture (its adder `0x004C3200` is unread and
-  nothing holds manufacture points), Casino, Torture, Prison on the hook, the
-  enter and leave hooks, and the room-position claim.
+  always returning 1. The **Casino** followed (ADR-0187, §3.1). Not built:
+  Manufacture (its adder `0x004C3200` is unread and nothing holds manufacture
+  points), Torture, Prison on the hook, the enter and leave hooks, and the
+  room-position claim.

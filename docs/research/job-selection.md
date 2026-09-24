@@ -103,7 +103,7 @@ Job **20 (Tunnelling)** has a case that does nothing and returns zero, and job
 | 5 Manufacture | `FUN_00470080` | Workshop | `0x3f` | `player+0xa1c != 0` — **something queued** |
 | 6 Guard | `FUN_00462850` | **room type 9** | `0x61` | reuses a remembered guard post if it is still valid |
 | 8 Praying | `FUN_004728e0` | Temple | `0x65` | **none at all** — three lines, straight to the temple search |
-| 9 Drink | `FUN_004560f0` | Casino | `0x91` | keeper has a casino **or** the creature is carrying more than the gambling stake |
+| 9 Drink | `FUN_004560f0` | Casino | `0x91` | a jackpot party is on (player `+0xF4A`) **or** the purse `+0x3FB` holds more than the stake, 8; **then** a casino (corrected 2026-09-24, ADR-0187) |
 | 15 Sulk | `FUN_00482ef0` | **Lair** | `0x55` | sleeps at all, **has a bed**, and that bed is in a room |
 
 ### 3.1 Sulking is going to your lair and moping in it
