@@ -18,7 +18,7 @@ namespace DK2.Simulation.Systems;
 /// <para>Ours, stated: a captive whose health reaches zero is let go of there and then, and the
 /// health system takes it; DK2 knocks it out on the device and then kills it, revealing
 /// information (<c>0x004F2370</c>, unbuilt). A convert is let go of too, and stands in the
-/// chamber as its new keeper's; whether DK2 leaves it on the device is Q425.</para></remarks>
+/// chamber idle as its new keeper's, and beds down like any other creature (owner, Q425).</para></remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public sealed class TortureSystem : ISimulationSystem
 {

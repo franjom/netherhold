@@ -213,7 +213,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   duration, hurt, own-keeper mood, threshold and conversion; the device-gone release.
   **Ours:** health at zero releases the victim to the health system (DK2 knocks it out
   and kills it on the device, revealing information); a convert is released rather than
-  left on the device (Q425). **Not built:** the torturer (127, 128, 134), 136, the
+  left on the device, which the owner confirms (Q425: it gets off, beds down, eats). **Not built:** the torturer (127, 128, 134), 136, the
   information, and your own creatures on a device.
 
 ## 4. Answers and limits
