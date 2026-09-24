@@ -310,6 +310,110 @@ public sealed class CreatureJobTests
             e.Kind == "job_lost" && e.Detail.Contains("reason=room_gone"));
     }
 
+    // ---- on DK2's state ids (ADR-0177) --------------------------------------
+
+    private static List<(int State, int Saved)> StatesSeen(
+        GameSimulation sim, CreatureState creature, int ticks)
+    {
+        var seen = new List<(int State, int Saved)>();
+        int last = creature.Dk2StateId;
+        for (int t = 0; t < ticks; t++)
+        {
+            sim.Run(1);
+            if (creature.Dk2StateId == last) continue;
+            seen.Add((creature.Dk2StateId, creature.StateBeforeUtilityState));
+            last = creature.Dk2StateId;
+        }
+
+        return seen;
+    }
+
+    [Fact]
+    public void AGoblinWalksToTrainingInStateSevenAndTrainsInStateOneHundredAndEight()
+    {
+        // The Train handler calls the room helper from idle with 108 as the resume
+        // (travel-state-call-sites.md 2). The saved caller is the evidence the walk came
+        // from idle; selling the room drops the creature to 1 and the shim takes the id.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
+        Fund(world, 10_000);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        var events = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, events);
+
+        List<(int State, int Saved)> seen = StatesSeen(sim, goblin, Second * 20);
+        world.Tile(3, 3).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        seen.AddRange(StatesSeen(sim, goblin, Second * 2));
+
+        Assert.Equal(
+            [(7, CreatureStateMachine.Idle), (108, CreatureStateMachine.Idle),
+             (CreatureStateMachine.NoState, CreatureStateMachine.Idle)],
+            seen);
+        Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void AGoblinAlreadyInTheRoomTakesItsJobStateWithoutAWalk()
+    {
+        // The room helper's shortcut: already on a tile of the room is 1, then the resume.
+        // No travel state is entered, so nothing is ever saved.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.TrainingRoom, Floor);
+        Fund(world, 10_000);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        var events = new ListEventSink();
+
+        Assert.Equal([(108, 0)], StatesSeen(Simulation(db, world, events), goblin, Second * 10));
+        Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void TheEatSystemsShimLeavesAWorkingGoblinsStateAlone()
+    {
+        // The trap this slice had and eating did not: AtWork holds the job's state, so
+        // every system's release shim must count it retired, or the id goes on arrival.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
+        Fund(world, 10_000);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        var sim = new GameSimulation(db, world, seed: 42,
+        [
+            new CreatureMovementSystem(),
+            new CreatureJobSystem(),
+            new CreatureEatSystem(),
+        ]);
+        sim.Run(Second * 20);
+
+        Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
+        Assert.Equal(108, goblin.Dk2StateId);
+    }
+
+    [Fact]
+    public void AGoblinTakenOffItsJobGivesItsStateIdBack()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
+        Fund(world, 10_000);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        GameSimulation sim = Simulation(db, world);
+        sim.Run(Second * 20);
+        Assert.Equal(108, goblin.Dk2StateId);
+
+        goblin.Activity = CreatureActivity.Working;
+        sim.Run(1);
+
+        Assert.Equal(CreatureStateMachine.NoState, goblin.Dk2StateId);
+    }
+
     [Fact]
     public void AnAlliesTrainingRoomIsNoUseToACreature()
     {

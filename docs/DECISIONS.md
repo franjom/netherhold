@@ -4081,3 +4081,18 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - **One pre-existing difference is left alone:** a bird already in reach is eaten this tick, where DK2's position helper has no already-there shortcut and would arrive a tick later. The state sequence is faithful; the timing was ours before this change.
 - **The rest of step two, in order of evidence:** `GoingToJob` next (every job handler calls the room helper with its job's state, `job-selection.md` §3); then the lair and sleep group (80, 81, 82, 83, all read); then `SeekingWages` (one helper call unread); then the seven imp activities, whose resume states need a read of the imp states' helper calls.
 - `HashVersion` and `FormatVersion` **81**, pin `0xE54D6E7BACCB5868`.
+
+## ADR-0177 — A job's walk and its work run on DK2's own state ids
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0135 (step two, second slice) · Research: `docs/research/travel-state-call-sites.md` §2, `job-selection.md` §3
+
+**Context.** Every job handler is called from idle and calls the room helper with its job's state as the resume, so a creature at work is in that state. Our job is two activities, `GoingToJob` and `AtWork`, and the second is where the walk resumes: retiring only the walk would have let the release shim take the id on arrival.
+
+**Decision.**
+1. **Both activities retire together.** `CreatureJobSystem` enters 1, then `BeginTravel(7, job state)`, or 1 and the job state when already in the room; `Arrive` on arrival; 1 and a release when the job ends. `JobRules.StateFor` holds the nine states: 53, 63, 81, 85, 97, 101, 108, 142, 145.
+2. **The retired set is one list.** `CreatureStateMachine.IsRetired` and `ReleaseIfLeft` replace the eat system's own test, and every system owning a retired activity calls the shim first. One system's shim can no longer take the id of an errand another owns.
+3. **Torture stays off state ids** (Q419). Its state 127 is in the Refused category and the rule refuses 127 to 1, so the way a torturer leaves is unread. Eat and Wait have no job state either.
+
+**Consequences.**
+- Every step was probed through the gate before building, for all ten jobs; nine were legal throughout, and Torture was the one refusal.
+- Pinned by the traces, not the hash: the pinned world has nobody working. `AGoblinWalksToTrainingInStateSevenAndTrainsInStateOneHundredAndEight` fails with 107 for 108. `TheEatSystemsShimLeavesAWorkingGoblinsStateAlone` fails with the old eat-only shim.
+- `HashVersion` and `FormatVersion` **82**, pin `0xF1F260238F3D713D`.

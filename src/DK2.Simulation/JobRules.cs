@@ -46,6 +46,25 @@ public static class JobRules
         _ => null,
     };
 
+    /// <summary>The state a job's handler hands the room helper as its resume, so the state a
+    /// creature at work is in (<c>travel-state-call-sites.md</c> §2). Null for Eat, whose
+    /// handler enters state 91 and walks from there (<c>eating.md</c> §3), for Wait, which
+    /// has no handler in the jump table, and for Torture: its state 127 cannot drop back to
+    /// idle under DK2's rule, so the way out is unread (Q419).</summary>
+    public static int? StateFor(JobType job) => job switch
+    {
+        JobType.Research => 53,
+        JobType.Manufacture => 63,
+        JobType.Sleep => 81,
+        JobType.Sulk => 85,
+        JobType.Guard => 97,
+        JobType.Praying => 101,
+        JobType.Train => 108,
+        JobType.CombatPitSpectate => 142,
+        JobType.Drink => 145,
+        _ => null,
+    };
+
     /// <summary>Whether this job's <i>effect</i> is built, as opposed to its choosing
     /// and its walk. <b>Two are: Praying and Training</b> (ADR-0081; Q205). Not
     /// implemented: Research, Guard, Drink, Manufacture and the rest are walked to and

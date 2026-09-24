@@ -191,6 +191,51 @@ public class CreatureStateMachineTests
             CreatureStateMachine.Classify(creature, LookingForLair));
     }
 
+    [Theory]
+    [InlineData(JobType.Research)]
+    [InlineData(JobType.Manufacture)]
+    [InlineData(JobType.Sleep)]
+    [InlineData(JobType.Sulk)]
+    [InlineData(JobType.Guard)]
+    [InlineData(JobType.Praying)]
+    [InlineData(JobType.Train)]
+    [InlineData(JobType.CombatPitSpectate)]
+    [InlineData(JobType.Drink)]
+    public void EveryJobsWalkAndItsEndAreLegalFromIdle(JobType job)
+    {
+        // The chooser runs in idle, the handler walks in state 7 resuming in the job's
+        // state, and a job that ends drops back to idle. Each step through the rule, and
+        // the room helper's no-walk shortcut (1, then the job state) as well.
+        int state = JobRules.StateFor(job)!.Value;
+
+        CreatureState walker = Fresh();
+        CreatureStateMachine.Begin(walker, Idle);
+        Assert.Equal(StateTransition.Allowed, CreatureStateMachine.Classify(walker, EnRouteToRoom));
+        CreatureStateMachine.BeginTravel(walker, EnRouteToRoom, state);
+        Assert.Equal(EnRouteToRoom, walker.Dk2StateId);
+        Assert.True(CreatureStateMachine.Arrive(walker));
+        Assert.True(CreatureStateMachine.TrySetState(walker, Idle));
+
+        CreatureState standing = Fresh();
+        CreatureStateMachine.Begin(standing, Idle);
+        Assert.True(CreatureStateMachine.TrySetState(standing, Idle));
+        Assert.True(CreatureStateMachine.TrySetState(standing, state));
+        Assert.True(CreatureStateMachine.TrySetState(standing, Idle));
+    }
+
+    [Fact]
+    public void TortureIsOffStateIdsBecauseItsStateCannotDropToIdleAndTheWayOutIsUnread()
+    {
+        // Q419. The torture handler resumes in 127, which is in the Refused category, and
+        // the rule refuses 127 to 1 - so a torturer leaves by some move nobody has read.
+        // Building the job on 127 would mean inventing that move.
+        const int Torturing = 127;
+        Assert.Null(JobRules.StateFor(JobType.Torture));
+        Assert.Equal(CreatureStateCategory.Refused, CreatureStateTable.Get(Torturing).Category);
+        Assert.Equal(StateTransition.Refused,
+            CreatureStateTransitions.Classify(Torturing, Idle, Idle));
+    }
+
     [Fact]
     public void TheGateAgreesWithTheRuleOnEveryPairItCanBeAsked()
     {

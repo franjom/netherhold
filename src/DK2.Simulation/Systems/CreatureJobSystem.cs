@@ -51,6 +51,9 @@ public sealed class CreatureJobSystem : ISimulationSystem
             CreatureState creature = creatures[i];
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
+            // Taken off its job by a system that still sets Activity directly (ADR-0177).
+            CreatureStateMachine.ReleaseIfLeft(creature);
+
             // Workers have their own whole system and their own priority order
             // (ADR-0018). DK2 dispatches them before any of this too - an Imp's
             // happy table is Explore at 100%, and nothing here would know what
@@ -268,6 +271,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
 
             creature.JobTileIndex = target;
             creature.Activity = CreatureActivity.GoingToJob;
+            SetOutInState(context, creature, job);
 
             // Standing in it already - a creature that rolls Train while stood
             // in the training room. No walk to make, so it is at work now.
@@ -293,6 +297,13 @@ public sealed class CreatureJobSystem : ISimulationSystem
     {
         creature.StopMoving();
         creature.Activity = CreatureActivity.AtWork;
+
+        if (CreatureStateMachine.HasState(creature)
+            && CreatureStateTable.Get(creature.Dk2StateId).IsUtility)
+        {
+            int to = creature.UtilityNewState;
+            if (!CreatureStateMachine.Arrive(creature)) Refused(context, creature, to);
+        }
 
         context.Emit(SystemName, "job_started",
             $"creature={creature.Id} type={definition.Name} " +
@@ -328,7 +339,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
                 $"creature={creature.Id} type={definition.Name} " +
                 $"player={creature.OwnerPlayerId} job={job} " +
                 $"at=({creature.Tile.X},{creature.Tile.Y}) reason=room_gone");
-            Stop(creature);
+            Stop(context, creature);
             return;
         }
 
@@ -472,17 +483,54 @@ public sealed class CreatureJobSystem : ISimulationSystem
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} job={creature.CurrentJob} " +
             $"at=({creature.Tile.X},{creature.Tile.Y}) reason=cannot_pay cost={cost}");
-        Stop(creature);
+        Stop(context, creature);
     }
 
-    /// <summary>Gives up the job and goes idle.</summary>
-    private static void Stop(CreatureState creature)
+    /// <summary>Gives up the job and goes idle: state 1, then the shim takes the id, idle
+    /// not being on state ids yet.</summary>
+    private static void Stop(SimulationContext context, CreatureState creature)
     {
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
         creature.StopMoving();
         creature.Activity = CreatureActivity.Idle;
+
+        if (!CreatureStateMachine.HasState(creature)) return;
+        Shadow(context, creature, CreatureStateMachine.Idle);
+        CreatureStateMachine.Release(creature);
     }
+
+    /// <summary>DK2's room helper, called by the job's handler from idle with the job's
+    /// state as the resume (ADR-0177): state 7 for a walk, or 1 and then the job state
+    /// when the creature is already in the room (<c>travel-states.md</c> §8).</summary>
+    private static void SetOutInState(SimulationContext context, CreatureState creature, JobType job)
+    {
+        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
+        if (JobRules.StateFor(job) is not int state) return;
+
+        CreatureStateMachine.Begin(creature, CreatureStateMachine.Idle);
+        if (creature.IsRouted)
+        {
+            CreatureStateMachine.BeginTravel(creature, TravelToRoom, state);
+            return;
+        }
+
+        Shadow(context, creature, CreatureStateMachine.Idle);
+        Shadow(context, creature, state);
+    }
+
+    private const int TravelToRoom = 7;
+
+    /// <summary>A gated move beside the activity it mirrors; a refusal means the mapping is
+    /// wrong, so it is reported and not forced, as in <see cref="CreatureEatSystem"/>.</summary>
+    private static void Shadow(SimulationContext context, CreatureState creature, int state)
+    {
+        if (!CreatureStateMachine.TrySetState(creature, state)) Refused(context, creature, state);
+    }
+
+    private static void Refused(SimulationContext context, CreatureState creature, int state) =>
+        context.Emit(SystemName, "state_refused",
+            $"creature={creature.Id} from={creature.Dk2StateId} to={state}");
 
     /// <summary>
     /// The tile underfoot is a room of this type belonging to this creature's

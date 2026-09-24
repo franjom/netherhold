@@ -48,10 +48,7 @@ public sealed class CreatureEatSystem : ISimulationSystem
 
             // Pulled out of the chain by a system that still sets Activity directly - the
             // hand, a fight, a death - it is no longer in the state it holds (ADR-0176).
-            if (CreatureStateMachine.HasState(creature) && !IsEating(creature))
-            {
-                CreatureStateMachine.Release(creature);
-            }
+            CreatureStateMachine.ReleaseIfLeft(creature);
 
             if (!CreatureHealthRules.CanGetHungry(definition)) continue;
             if (HandRules.IsHeld(creature)) continue;
@@ -391,11 +388,6 @@ public sealed class CreatureEatSystem : ISimulationSystem
     /// the room again on arrival (<c>travel-states.md</c> §5).</summary>
     private const int TravelToPoint = 6;
     private const int TravelToRoom = 7;
-
-    /// <summary>Whether this creature holds one of the eating chain's state ids — the only
-    /// errand on state ids so far, so the one this system may find a creature in.</summary>
-    private static bool IsEating(CreatureState creature) =>
-        creature.Activity is CreatureActivity.SeekingFood or CreatureActivity.FetchingChicken;
 
     private static bool IsTravelling(CreatureState creature) =>
         CreatureStateMachine.HasState(creature)
