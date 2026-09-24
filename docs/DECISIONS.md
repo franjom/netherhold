@@ -4413,3 +4413,15 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Seventeen tests. Negative controls: idle-only hunger, idle-only pay, no mask, no group-7 skip, no walk resolution, the Casino clock ignored, eating via idle, the job kept, pay via idle, and sleep ungated each fail a named test.
 - `HashVersion` and `FormatVersion` **102**, pin `0x91DAFF09144DBA4F`.
 
+## ADR-0199 — A tired creature that cannot sleep loses health
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/creature-needs-routine.md` §3, §5
+
+**Context.** The needs routine `0x00477C20` takes `CannotSleepModifyCreatureHealthPerSecond` (variable 82) ÷ variable 19 of health each turn from a creature whose sleep latch `+0x58` is set and whose category through a walk is not Sleeping, through the health routine `0x004B2CE0`. The variable is 0 in every shipped level, so the effect is invisible on shipped data but live for any level that sets it.
+
+**Decision.** `NeedRules.CannotSleepHealthPerSecond`: four times the per-turn `IDIV` quotient, for a keeper's non-worker (the dispatcher skips workers and the hero and neutral players) that is tired (`IsTired`: `TimeSleep` non-zero, `TimeAwake` passed since waking), not in a group-7 state and not Sleeping through a walk. `CreatureHealthSystem` applies it after the hunger clock and emits `creature_cannot_sleep_health`.
+
+**Consequences.**
+- Ours, stated: the latch is read as `IsTired` at the moment (DK2 latches it, so the Casino's bit 4 delays a latch rather than hiding one already set); prisoners are skipped, as `PrisonSystem` owns their health; the dying pit fighter's exemption (`+0x3E6` bits 21 and 15) needs nothing, since ours never drains the dying.
+- The fixture carries variable 82 at 0. No hash change on shipped data.
+- Two tests (one a four-row theory). Negative controls: no truncation, no group-7 skip, no Sleeping skip, heroes asked, not tired, and the drain not applied each fail a named test.
+

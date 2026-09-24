@@ -1249,6 +1249,9 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.PrisonModifyCreatureHealthPerSecond, -3);
         Set(vars, VariableTypeId.OvercrowdingJailBreakPercentagePerExtraCreature, 50);
 
+        // Tired and not asleep: shipped at zero everywhere (ADR-0199).
+        Set(vars, VariableTypeId.CannotSleepModifyCreatureHealthPerSecond, 0);
+
         // The cell's anger, charged in the same breath as the health (ADR-0171).
         // The shipped global is 150; campaign level 1 overrides it to 100, which is
         // why the rule reads it through the database rather than as a constant.

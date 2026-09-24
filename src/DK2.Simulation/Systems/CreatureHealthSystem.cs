@@ -87,6 +87,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             }
 
             Hunger(context, creature, state);
+            CannotSleep(context, database, creature, state);
 
             // Healing sources add: nothing in the data or in OpenKeeper makes them
             // exclusive, and the own-land term is zero for 44 of the 46 creatures
@@ -123,6 +124,19 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             else
                 Die(context, creature, state);
         }
+    }
+
+    /// <summary>Tired and not asleep: the needs routine's health loss (NeedRules, ADR-0199).</summary>
+    private static void CannotSleep(
+        SimulationContext context, GameDatabase database, CreatureDef creature, CreatureState state)
+    {
+        int delta = NeedRules.CannotSleepHealthPerSecond(database, creature, state);
+        if (delta == 0) return;
+        int landed = CreatureHealthRules.Apply(database, creature, state, delta);
+        if (landed == 0) return;
+        context.Emit(SystemName, "creature_cannot_sleep_health",
+            $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} delta={landed} " +
+            $"health={state.Health}/{CreatureHealthRules.MaxHealth(database, creature, state)}");
     }
 
     private static void Hunger(

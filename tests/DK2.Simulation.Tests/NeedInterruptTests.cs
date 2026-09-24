@@ -232,6 +232,66 @@ public class NeedInterruptTests
         Assert.True(goblin.HungerNeed > 0);
     }
 
+    [Theory]
+    [InlineData(-8, -8)]   // -2 a turn
+    [InlineData(-5, -4)]   // IDIV truncates: -1 a turn, not -1.25
+    [InlineData(-3, 0)]    // under one a turn is nothing
+    [InlineData(0, 0)]     // as shipped
+    public void ATiredCreatureNotAsleepLosesVariableEightyTwoOverFourATurn(int perSecond, int landed)
+    {
+        GameDatabase db = Db;
+        db.Variables.Misc[VariableTypeId.CannotSleepModifyCreatureHealthPerSecond] =
+            new MiscVariable(VariableTypeId.CannotSleepModifyCreatureHealthPerSecond, perSecond, 0, 0);
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 4));
+        CreatureDef def = db.CreatureById(GoblinId);
+        var sim = new GameSimulation(db, world, seed: 42, [new CreatureHealthSystem()]);
+        goblin.Health -= 100;
+        int before = goblin.Health;
+
+        sim.Run(Second);
+        Assert.Equal(before, goblin.Health);
+
+        goblin.AwakeTicks = SimulationTiming.TicksFromSeconds(def.TimeAwake);
+        sim.Run(Second);
+        Assert.Equal(before + landed, goblin.Health);
+    }
+
+    [Fact]
+    public void NoLossAsleepInANeedsStateForAnImpOrForAHero()
+    {
+        GameDatabase db = Db;
+        CreatureDef goblin = db.CreatureById(GoblinId);
+        var tired = new CreatureState { Id = 1, OwnerPlayerId = Keeper,
+            AwakeTicks = SimulationTiming.TicksFromSeconds(goblin.TimeAwake) };
+        db.Variables.Misc[VariableTypeId.CannotSleepModifyCreatureHealthPerSecond] =
+            new MiscVariable(VariableTypeId.CannotSleepModifyCreatureHealthPerSecond, -8, 0, 0);
+        Assert.Equal(-8, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
+
+        // A walk to eat resolves to group 7; asleep is group 7 and Sleeping.
+        CreatureStateMachine.Begin(tired, EatingRules.FindHatcheryState);
+        Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
+        CreatureStateMachine.Release(tired);
+        CreatureStateMachine.Begin(tired, 83);
+        Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
+        CreatureStateMachine.Release(tired);
+
+        // A walk (group 9) to the bed is judged by the Sleeping state it resumes.
+        CreatureStateMachine.Begin(tired, 1);
+        CreatureStateMachine.BeginTravel(tired, Walk, 83);
+        Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
+        CreatureStateMachine.Release(tired);
+
+        // At a job it is still tired and still awake.
+        CreatureStateMachine.Begin(tired, Training);
+        Assert.Equal(-8, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
+
+        tired.OwnerPlayerId = PlayerIds.Good;
+        Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));
+        tired.OwnerPlayerId = Keeper;
+        Assert.Equal(0, NeedRules.CannotSleepHealthPerSecond(db, db.CreatureById(Dk2TerrainFixture.ImpCreatureId), tired));
+    }
+
     private static CreatureState Fresh(int state)
     {
         var creature = new CreatureState { Id = 1 };

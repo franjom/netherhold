@@ -102,8 +102,14 @@ leaves.
   `+0x58` when the period passes, so a creature tired before it sat down at a table
   would still be sent to bed by DK2.
 - The order of our systems is DK2's: eat, then sleep, then pay.
+- **The cannot-sleep drain** (ADR-0199), `NeedRules.CannotSleepHealthPerSecond`: variable
+  82 ÷ variable 19 a turn, truncated as `IDIV` does (`0x00477E74`), so −5 is −1 a turn
+  and −3 nothing. Keepers' non-workers only, not in group 7, not Sleeping through a walk,
+  and with or without a bed. Applied once a second by `CreatureHealthSystem`. Ours reads
+  the latch `+0x58` as `NeedRules.IsTired`, and the drain skips prisoners, whose health
+  `PrisonSystem` owns. Zero in every shipped level.
 
-**Not built:** the cannot-sleep drain; the busy test's fields beyond our activities;
+**Not built:** the busy test's fields beyond our activities;
 the wounded attempt's missing 4-turn gate (ours shares the tired path); pay's 4-turn
 cadence (ours tries every tick). Creatures still
 on our own activities (combat, leaving, fleeing) are asked by none of the three, as

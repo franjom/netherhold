@@ -43,8 +43,7 @@ public static class NeedRules
         ref readonly CreatureStateDef current = ref CreatureStateTable.Get(creature.Dk2StateId);
         if (current.Group is NeedGroup or BusyGroup) return false;
 
-        int resolved = current.IsUtility ? creature.UtilityNewState : creature.Dk2StateId;
-        CreatureStateCategory from = CreatureStateTable.Get(resolved).Category;
+        CreatureStateCategory from = ResolvedCategory(creature);
 
         // Hunger and sleep also refuse their own category (`!= 8`, `!= 9`); pay has no such
         // test, and only the group-7 skip keeps it from asking a creature already at it.
@@ -53,6 +52,44 @@ public static class NeedRules
         // The rule's three arms: the same category, a zero mask, or the bit.
         return from == need
             || CreatureStateCategoryTable.Get(need).AdmitsFrom(CreatureStateCategoryTable.Get(from));
+    }
+
+    /// <summary>The health a tired creature that is not asleep loses a second:
+    /// <c>CannotSleepModifyCreatureHealthPerSecond</c> ÷ variable 19 a turn (a truncating
+    /// <c>IDIV</c>, <c>0x00477E74</c>), so four times that a second. Zero in every shipped level.</summary>
+    /// <remarks>DK2 takes it inside the needs routine: keepers' non-workers only, not in a
+    /// group-7 state, while the sleep latch <c>+0x58</c> is set and the category through a
+    /// walk is not Sleeping. Ours reads the latch as <see cref="IsTired"/>, wounds aside.</remarks>
+    public static int CannotSleepHealthPerSecond(
+        GameDatabase database, CreatureDef definition, CreatureState creature)
+    {
+        if (!IsAsked(definition, creature) || !IsTired(definition, creature)) return 0;
+        if (CreatureStateMachine.HasState(creature)
+            && (CreatureStateTable.Get(creature.Dk2StateId).Group == NeedGroup
+                || ResolvedCategory(creature) == CreatureStateCategory.Sleeping)) return 0;
+        int perTurn = database[VariableTypeId.CannotSleepModifyCreatureHealthPerSecond]
+                      / SimulationTiming.OriginalTicksPerGameSecond;
+        return perTurn * SimulationTiming.OriginalTicksPerGameSecond;
+    }
+
+    /// <summary>Whether the needs routine runs for this creature at all: the dispatcher skips
+    /// workers (definition flag bit 0) and the hero and neutral players' creatures.</summary>
+    public static bool IsAsked(CreatureDef definition, CreatureState creature) =>
+        (definition.Flags & CreatureFlags.IsWorker) == 0 && PlayerIds.IsKeeper(creature.OwnerPlayerId);
+
+    /// <summary>The sleep latch: <c>TimeSleep</c> (<c>+0x5D6</c>) non-zero and <c>TimeAwake</c>
+    /// (<c>+0x5D2</c>) passed since the creature last woke.</summary>
+    public static bool IsTired(CreatureDef definition, CreatureState creature) =>
+        definition.TimeSleep != 0 && definition.TimeAwake < CreatureHealthRules.Never
+        && creature.AwakeTicks >= SimulationTiming.TicksFromSeconds(definition.TimeAwake);
+
+    /// <summary>The category DK2 judges a creature by: its state's, or through a walk the state
+    /// the walk resumes (<c>+0xDF</c>).</summary>
+    public static CreatureStateCategory ResolvedCategory(CreatureState creature)
+    {
+        ref readonly CreatureStateDef current = ref CreatureStateTable.Get(creature.Dk2StateId);
+        int resolved = current.IsUtility ? creature.UtilityNewState : creature.Dk2StateId;
+        return CreatureStateTable.Get(resolved).Category;
     }
 
     /// <summary>Whether the hunger clock runs: not in a state flagged
