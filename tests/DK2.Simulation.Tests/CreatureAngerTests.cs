@@ -572,6 +572,7 @@ public class CreatureAngerTests
         // point of ABedStopsTheGrievanceGrowingButDoesNotUndoIt.
         goblin.Anger.Treatment = 10_000;
         goblin.Activity = CreatureActivity.Sleeping;
+        CreatureStateMachine.Begin(goblin, LairRules.SleepingState);
 
         Simulation(db, world).Run(Second);
 
@@ -581,10 +582,10 @@ public class CreatureAngerTests
     }
 
     [Theory]
-    [InlineData(CreatureActivity.SeekingLair)]
-    [InlineData(CreatureActivity.GoingToSleep)]
-    public void AnAwakeCreatureCoolsToo_BecauseCoolingIsCategoryGatedNotBedGated(
-        CreatureActivity activity)
+    [InlineData(79)]
+    [InlineData(LairRules.MakingAHomeState)]
+    [InlineData(LairRules.GoingToBedState)]
+    public void AnAwakeCreatureCoolsToo_BecauseCoolingIsCategoryGatedNotBedGated(int state)
     {
         // Q123: the lair effect runs from the hooks of categories 6, 9 and 10 - seven
         // states, only three of them sleeping - and tests nothing about tile or bed
@@ -597,7 +598,7 @@ public class CreatureAngerTests
         PaintLair(db, world, lair);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, lair);
-        goblin.Activity = activity;
+        CreatureStateMachine.Begin(goblin, state);
 
         // The rule, not a run: the sleep system moves a lair-seeker on within the same
         // tick, so driving this through a simulation would measure the ordering rather
@@ -619,18 +620,54 @@ public class CreatureAngerTests
         PaintLair(db, world, lair);
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, lair);
-        goblin.Activity = CreatureActivity.AtWork;
-        goblin.CurrentJob = JobType.Research;
+        CreatureStateMachine.Begin(goblin, JobRules.StateFor(JobType.Research)!.Value);
 
         CreatureAnger working = CreatureAngerRules.PerSecond(
             world, db, db.CreatureById(GoblinId), goblin);
         Assert.Equal(0, working.Treatment);
 
         // And the fourth arm of the widening, category 10: sulking is a lair job.
-        goblin.CurrentJob = JobType.Sulk;
+        CreatureState sulker = world.SpawnCreature(db, GoblinId, Keeper, lair);
+        CreatureStateMachine.Begin(sulker, JobRules.StateFor(JobType.Sulk)!.Value);
         CreatureAnger sulking = CreatureAngerRules.PerSecond(
-            world, db, db.CreatureById(GoblinId), goblin);
+            world, db, db.CreatureById(GoblinId), sulker);
         Assert.Equal(-550, sulking.Treatment);
+    }
+
+    [Fact]
+    public void AWalkCoolsOnlyBetweenTwoStatesOfOneLairCategory()
+    {
+        // The dispatcher runs a travel state's update hook only when the saved caller and
+        // the resume share a category (ADR-0185). 80's re-walk to another candidate tile
+        // is 80 to 80 and cools; the attempt's walk in from idle, 1 to 80, does not; and
+        // 81's walk to the bed, 81 to 82, crosses from Lair to Sleeping and does not.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureDef definition = db.CreatureById(GoblinId);
+
+        int CoolingOf(int from, int travel, int resume)
+        {
+            CreatureState walker = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+            CreatureStateMachine.Begin(walker, from);
+            CreatureStateMachine.BeginTravel(walker, travel, resume);
+            return CreatureAngerRules.PerSecond(world, db, definition, walker).Treatment;
+        }
+
+        Assert.Equal(-550, CoolingOf(LairRules.MakingAHomeState, 6, LairRules.MakingAHomeState));
+        Assert.Equal(0, CoolingOf(CreatureStateMachine.Idle, 7, LairRules.MakingAHomeState));
+        Assert.Equal(0, CoolingOf(LairRules.GoingToBedState, 6, LairRules.LyingDownState));
+    }
+
+    [Fact]
+    public void ACreatureWithNoStateIdDoesNotCoolWhateverItsActivitySays()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        goblin.Activity = CreatureActivity.Sleeping;
+
+        Assert.Equal(0, CreatureAngerRules.PerSecond(
+            world, db, db.CreatureById(GoblinId), goblin).Treatment);
     }
 
     [Fact]

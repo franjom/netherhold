@@ -374,24 +374,20 @@ public static class LairRules
             && tile.TerrainId == database.Room(RoomTypeId.Lair).TerrainId;
     }
 
-    /// <summary>Whether this creature is asleep in its own bed — the healing condition.</summary>
-    /// <summary>Whether anger cools this tick. DK2 runs the lair effect from the hooks of
-    /// state <b>categories</b> 6, 9 and 10 — seven states, 79 to 85 — and tests nothing
-    /// about tile or bed, so <b>awake states cool too</b> (Q123, ADR-0171).
+    /// <summary>Whether anger cools this tick. DK2 runs the lair effect from the update hooks
+    /// of state <b>categories</b> 6, 9 and 10 — seven states, 79 to 85 — and tests nothing
+    /// about tile or bed, so <b>awake states cool too</b> (Q123, ADR-0171). Read off the
+    /// dispatcher's category (ADR-0185), so a walk cools only between two states of one of
+    /// those categories: 80's re-walk does, the walk in from idle and 81's walk to 82 do not.
     /// <para>Healing stays on <see cref="AsleepInOwnBed"/>: the same routine heals behind a
-    /// predicate nobody has read. Ours reads the activity because
-    /// <see cref="CreatureState.Dk2StateId"/> is unwritten, and
-    /// <see cref="CreatureActivity.SeekingLair"/> folds in a walk DK2 spends in a movement
-    /// state, so this over-cools by that walk until travel retires (ADR-0135).</para>
-    /// </summary>
+    /// predicate nobody has read.</para></summary>
     public static bool CoolsAngerInLair(CreatureState creature) =>
-        creature.Activity
-            is CreatureActivity.SeekingLair
-            or CreatureActivity.GoingToSleep
-            or CreatureActivity.Sleeping
-        || (creature.Activity == CreatureActivity.AtWork
-            && creature.CurrentJob == JobType.Sulk);
+        CreatureStateMachine.UpdatingCategory(creature)
+            is CreatureStateCategory.Lair
+            or CreatureStateCategory.Sleeping
+            or CreatureStateCategory.Sulking;
 
+    /// <summary>Whether this creature is asleep in its own bed — the healing condition.</summary>
     public static bool AsleepInOwnBed(
         WorldState world, GameDatabase database, CreatureState creature)
     {

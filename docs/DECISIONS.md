@@ -4204,3 +4204,18 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - With this, every imp activity holds a DK2 state id; `Idle`, the combat group, `Leaving`, `Imprisoned` and the dying remain.
 - `HashVersion` and `FormatVersion` **89**, pin `0x584E9B5AC2195900`.
 
+## ADR-0185 — The dispatcher's category rule, and lair cooling on it
+**Date:** 2026-09-24 · **Status:** accepted · amends ADR-0171, begins the category-hook layer (ADR-0135) · Research: `docs/research/state-categories.md` §5.1
+
+**Context.** ADR-0178 left one fact unread before lair cooling could move onto state categories: whose category a travel state's update hook runs. The dispatcher `0x00476FC0` answers it: outside category 2 the current state's; inside it, the category shared by the saved caller and the resume slot, and none when they differ.
+
+**Decision.**
+1. **`CreatureStateMachine.UpdatingCategory`** is that rule: the first piece of the hook layer, which later slices hang the room hooks on.
+2. **`LairRules.CoolsAngerInLair` reads it** instead of the activity: categories 6, 9 and 10. The walk in from idle (1 to 80) and 81's walk to the bed (Lair to Sleeping) no longer cool; 80's re-walk does. The over-cooling ADR-0171 recorded for the lair-seeker's walk is gone.
+3. A creature with no state id does not cool, whatever its activity says.
+
+**Consequences.**
+- Five tests that set the activity by hand now set the state, and two new ones pin the walk cases and the stateless creature. Negative controls, one at a time: a walk judged by its resume alone, by its saved caller alone, or never, and dropping Sulking each fail a named test.
+- The failing-hook branch (a zero return sends the creature to 1) is read but unused: cooling cannot fail.
+- `HashVersion` and `FormatVersion` **90**, pin `0xFD1E03A96BC65015`.
+

@@ -106,7 +106,7 @@ public class DeterminismTests
         // A hungry creature now writes 91, 7, 92, 6, 93 and 94 beside its activity. The
         // pinned world never grows hungry, so the literal moved on the version alone.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x584E9B5AC2195900UL, sim.StateHash());
+        Assert.Equal(0xFD1E03A96BC65015UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

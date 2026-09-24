@@ -130,6 +130,17 @@ state object's own `+0x3c` either.
 Values in the table run 2, 4, 5, 6, 12, 16-22 and 29; the accessors can also
 return 25 and 26, which no record holds.
 
+## 5.1 Which category's update hook runs — CONFIRMED (2026-09-24)
+
+The per-tick dispatcher `0x00476FC0` reads the current state's category byte. If it is
+not 2, it runs that category's update hook (`0x0069969C + cat * 0x40`). If it is 2, it
+reads the categories of the resume slot `+0xDF` and the saved caller `+0x40`; **only when
+the two are equal** does it run that shared category's hook, and otherwise none
+(`0x00477037`–`0x0047705C`). A hook that returns 0 sends the creature to state 1 and ends
+the tick (`0x00477090`). So a walk between two states of one category keeps its
+category's per-tick effect, and every other walk has none. Built as
+`CreatureStateMachine.UpdatingCategory` (ADR-0185).
+
 ## 6. What is still open
 
 - **`+0x3c`'s meaning** (§5). The next step is the caller at `0x004BFBD0`, which

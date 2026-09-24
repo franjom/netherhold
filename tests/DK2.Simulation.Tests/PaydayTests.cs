@@ -606,6 +606,7 @@ public class PaydayTests
         goblin.Anger.Treatment = 30_000;
         goblin.Anger.Pay = 30_000;
         goblin.Activity = CreatureActivity.Sleeping;
+        CreatureStateMachine.Begin(goblin, LairRules.SleepingState);
         goblin.WageOwed = 500;
 
         WithAnger(db, world).Run(SimulationTiming.TicksPerSecond * 10);

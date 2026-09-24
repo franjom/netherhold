@@ -149,6 +149,25 @@ public static class CreatureStateMachine
         if (HasState(creature) && !IsRetired(creature.Activity)) Release(creature);
     }
 
+    /// <summary>The category whose update hook DK2's per-tick dispatcher <c>0x00476FC0</c>
+    /// runs for this creature, or null when none does (ADR-0185). Outside a travel state it
+    /// is the current state's. In one, the dispatcher compares the categories of the saved
+    /// caller and the resume slot and runs the hook only when they agree, so a walk between
+    /// two states of one category keeps that category's effect and any other walk has none.
+    /// A creature with no state id yet has no category.</summary>
+    public static CreatureStateCategory? UpdatingCategory(CreatureState creature)
+    {
+        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (!HasState(creature)) return null;
+
+        CreatureStateCategory current = CreatureStateTable.Get(creature.Dk2StateId).Category;
+        if (current != CreatureStateCategory.Movement) return current;
+
+        CreatureStateCategory resume = CreatureStateTable.Get(creature.UtilityNewState).Category;
+        CreatureStateCategory saved = CreatureStateTable.Get(creature.StateBeforeUtilityState).Category;
+        return resume == saved ? resume : null;
+    }
+
     /// <summary>State 1, <c>idle</c> — and the value DK2 leaves in the resume slot between
     /// walks. Its constructor writes 0 and every arrival writes 1, so the slot is never
     /// unset while a creature is travelling (<c>travel-states.md</c> §2.4, §9).</summary>
