@@ -31,11 +31,11 @@ its ADR (`docs/DECISIONS.md`), the evidence in the research doc beside it.
 
 ## Versions
 
+**91** — `0xA5F9A90F3ED7133A`. Work effects by category; a spectator cools (ADR-0186).
 **90** — `0xFD1E03A96BC65015`. The dispatcher's category rule; lair cooling reads it (ADR-0185).
 **89** — `0x584E9B5AC2195900`. An imp's bodies on DK2's state ids (ADR-0184).
 **88** — `0x89B5AB8D13B66793`, objects by their flags (ADR-0183); **87** — `0x1B90606BEF13CDC6`, an imp's gold (ADR-0182); **86** — `0xDEB6A8B84200ED21`, its tile work (ADR-0181).
-**85** — `0xE0EDFEC6BD215E6C`, collecting wages (ADR-0180); **84** — `0xDB5AAE21ABF713BF`, the anger wipes (ADR-0179).
-**83** — `0xDFC977B66E524362`, the lair and sleep (ADR-0178); **82** — `0xF1F260238F3D713D`, a job's walk and work (ADR-0177).
+**85** — `0xE0EDFEC6BD215E6C`, collecting wages (ADR-0180); **84** — `0xDB5AAE21ABF713BF`, the anger wipes (ADR-0179); **83** — `0xDFC977B66E524362`, the lair and sleep (ADR-0178); **82** — `0xF1F260238F3D713D`, a job's walk and work (ADR-0177).
 **81** — `0xE54D6E7BACCB5868`. Eating on DK2's state ids (ADR-0176). From 81 on, traces pin the chains.
 
 **80** — `0xF53826B464578C5B`. The resume pair stops carrying a sentinel

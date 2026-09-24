@@ -338,31 +338,44 @@ public sealed class CreatureJobSystem : ISimulationSystem
             return;
         }
 
-        // TRAINING IS THE ONE JOB PAID ON THE ORIGINAL'S OWN CADENCE, four
-        // times a game second rather than once (Q205). Not a flourish: DK2
-        // discards the overshoot when a creature levels, so the size of an
-        // award decides how much is thrown away and collapsing four into one
-        // would leave a different balance behind.
-        if (job == JobType.Train)
+        // What happens at work is the update hook of the job state's CATEGORY, which the
+        // dispatcher runs before the state's own handler (ADR-0186). A job with no state id
+        // (Torture, Q419) has no category and so no effect here.
+        switch (CreatureStateMachine.UpdatingCategory(creature))
         {
-            if (originalTick) Train(context, world, database, creature, definition);
-            if (second) ChargeForTraining(context, world, database, creature, definition);
-            return;
-        }
+            // TRAINING IS PAID ON THE ORIGINAL'S OWN CADENCE, four times a game second
+            // rather than once (Q205). Not a flourish: DK2 discards the overshoot when a
+            // creature levels, so the size of an award decides how much is thrown away and
+            // collapsing four into one would leave a different balance behind.
+            case CreatureStateCategory.Training:
+                if (originalTick) Train(context, world, database, creature, definition);
+                if (second) ChargeForTraining(context, world, database, creature, definition);
+                return;
 
-        // RESEARCH IS PAID EVERY TICK, and the bonuses once a game second.
-        // That split is the original's: its adder credits the base amount
-        // unconditionally and computes the bonuses only inside a
-        // `tick % variable19 == 0` guard (FUN_004c2dc0). So the tabled
-        // ResearchPerSecond arrives in four instalments and a slap's bonus
-        // arrives in one lump.
-        if (job == JobType.Research)
-        {
-            if (originalTick) Research(context, world, database, creature, definition, second);
-            return;
-        }
+            // RESEARCH IS PAID EVERY TICK, and the bonuses once a game second. That split
+            // is the original's: its adder credits the base amount unconditionally and
+            // computes the bonuses only inside a `tick % variable19 == 0` guard
+            // (FUN_004c2dc0). So the tabled ResearchPerSecond arrives in four instalments
+            // and a slap's bonus arrives in one lump.
+            case CreatureStateCategory.Research:
+                if (originalTick) Research(context, world, database, creature, definition, second);
+                return;
 
-        if (!second || job != JobType.Praying) return;
+            case CreatureStateCategory.Spectating:
+                if (second) Spectate(context, world, database, creature, definition);
+                return;
+
+            case CreatureStateCategory.Temple:
+                if (second) Pray(context, world, database, creature, definition);
+                return;
+        }
+    }
+
+    /// <summary>A game second of praying: the Temple's update hook.</summary>
+    private static void Pray(
+        SimulationContext context, WorldState world, GameDatabase database,
+        CreatureState creature, CreatureDef definition)
+    {
 
         // The only source in the game that drains an anger bucket it did not
         // fill (ADR-0081). Six calls, one per bucket, at -275 each; then 33
@@ -378,6 +391,21 @@ public sealed class CreatureJobSystem : ISimulationSystem
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} calm={JobRules.PrayingCalm(database).Lair} " +
             $"health=+{healed} anger={creature.Anger.Max} [{creature.Anger}]");
+    }
+
+    /// <summary>A game second of cheering on a fight: the Spectating hook's calm, which
+    /// always succeeds.</summary>
+    private static void Spectate(
+        SimulationContext context, WorldState world, GameDatabase database,
+        CreatureState creature, CreatureDef definition)
+    {
+        CreatureAnger before = creature.Anger;
+        CreatureAngerRules.Apply(world, definition, creature, JobRules.SpectatorCalm(database));
+        if (before.Equals(creature.Anger)) return;
+
+        context.Emit(SystemName, "spectated",
+            $"creature={creature.Id} type={definition.Name} " +
+            $"player={creature.OwnerPlayerId} anger={creature.Anger.Max} [{creature.Anger}]");
     }
 
     /// <summary>

@@ -49,6 +49,9 @@ internal static class Dk2TerrainFixture
 
     /// <summary>Terrain 24, and where every unhappy creature in the game goes.</summary>
     public const byte CasinoTerrain = 24;
+
+    /// <summary>Terrain 25, the Combat Pit, where a spectator's anger cools (ADR-0186).</summary>
+    public const byte CombatPitTerrain = 25;
     public const byte ManaVaultTerrain = 31;
     public const byte ClaimedVaultTerrain = 32;
 
@@ -106,6 +109,8 @@ internal static class Dk2TerrainFixture
               TerrainFlags.Ownable, 10000, 10000, TempleTerrain, ClaimedPath),
             T(CasinoTerrain, "Casino",
               TerrainFlags.Ownable, 10000, 10000, CasinoTerrain, ClaimedPath),
+            T(CombatPitTerrain, "Combat Pit",
+              TerrainFlags.Ownable, 10000, 10000, CombatPitTerrain, ClaimedPath),
             T(ClaimedPath, "Claimed Path",
               TerrainFlags.Ownable | TerrainFlags.Attackable | TerrainFlags.FillInable,
               660, 660, Rock, DirtPath, manaGain: 1),
@@ -189,6 +194,7 @@ internal static class Dk2TerrainFixture
             R(RoomTypeId.Temple, "Temple", 3000, TempleTerrain, 0x108Cu, 5, 5,
               construction: TileConstruction.DoubleQuad),
             R(RoomTypeId.Casino, "Casino", 750, CasinoTerrain, 0x13ACu, 3, 3),
+            R(RoomTypeId.CombatPit, "Combat Pit", 750, CombatPitTerrain, 0x12ACu, 5, 5),
         ],
         creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), Warlock(), Priest(), Thief(), .. extraCreatures],
         variables: Variables(),
@@ -1117,6 +1123,7 @@ internal static class Dk2TerrainFixture
         // DK2 that drains an anger bucket it did not fill (ADR-0081), and it
         // applies the -275 six times, once per bucket.
         Set(vars, VariableTypeId.ModifyCreatureAngerWhilePrayingPerSecond, -275);
+        Set(vars, VariableTypeId.ModifyAngerOfPitSpectatorPerSecond, -275);
         Set(vars, VariableTypeId.ModifyCreatureHealthWhilePrayingPerSecond, 33);
 
         // The training cap the job dispatcher tests a creature's level against

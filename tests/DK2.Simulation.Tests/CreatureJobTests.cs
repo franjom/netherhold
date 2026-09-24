@@ -225,6 +225,36 @@ public sealed class CreatureJobTests
     // ---- the one job with an effect ---------------------------------------
 
     [Fact]
+    public void ASpectatorCoolsTreatmentCompanyAndWorkAndNothingElse()
+    {
+        // The Spectating update hook 0x0047AA70 (ADR-0186): once a game second,
+        // ModifyAngerOfPitSpectatorPerSecond (-275) to buckets 5, 0 and 3. Pay and Lair
+        // are seeded too, to show the hook leaves them alone.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.CombatPit, Floor);
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.CurrentJob = JobType.CombatPitSpectate;
+        goblin.Activity = CreatureActivity.AtWork;
+        CreatureStateMachine.Begin(goblin, JobRules.StateFor(goblin.CurrentJob)!.Value);
+        goblin.Anger.Treatment = 5_000;
+        goblin.Anger.Company = 5_000;
+        goblin.Anger.Work = 5_000;
+        goblin.Anger.Pay = 5_000;
+
+        var sink = new ListEventSink();
+        Simulation(db, world, sink).Run(Second * 4);
+
+        Assert.Equal(CreatureStateCategory.Spectating, CreatureStateMachine.UpdatingCategory(goblin));
+        Assert.Equal(5_000 - (4 * 275), goblin.Anger.Treatment);
+        Assert.Equal(5_000 - (4 * 275), goblin.Anger.Company);
+        Assert.Equal(5_000 - (4 * 275), goblin.Anger.Work);
+        Assert.Equal(5_000, goblin.Anger.Pay);
+        Assert.Equal(4, sink.Events.Count(e => e.Kind == "spectated"));
+    }
+
+    [Fact]
     public void PrayingDrainsAllSixAngerBucketsAndIsTheOnlyThingThatDoes()
     {
         // Since ADR-0081 this is the whole reason the Temple exists: every
@@ -237,6 +267,7 @@ public sealed class CreatureJobTests
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, Floor);
         vampire.CurrentJob = JobType.Praying;
         vampire.Activity = CreatureActivity.AtWork;
+        CreatureStateMachine.Begin(vampire, JobRules.StateFor(vampire.CurrentJob)!.Value);
         vampire.Anger.Pay = 10_000;
         vampire.Anger.Lair = 8_000;
         vampire.Anger.Treatment = 500;
@@ -269,6 +300,7 @@ public sealed class CreatureJobTests
         CreatureDef definition = db.CreatureById(VampireId);
         vampire.CurrentJob = JobType.Praying;
         vampire.Activity = CreatureActivity.AtWork;
+        CreatureStateMachine.Begin(vampire, JobRules.StateFor(vampire.CurrentJob)!.Value);
         vampire.Health = 100;
 
         Simulation(db, world).Run(Second * 3);

@@ -110,3 +110,10 @@ the category operation failed; a return of one means it remains valid.
   six remaining `UnnamedNN` values.
 - The built divergences are an owner decision under Q402. No behavior or hashed
   state changed in this research branch.
+- **Built on the dispatcher's category (2026-09-24):** Lair, Sleeping and Sulking
+  cooling (ADR-0185); Training, Research, Temple and **Spectating** at work
+  (ADR-0186). Spectating's update `0x0047AA70` was re-read for it: countdown `+0xAB`
+  reloaded from variable 19, then variable 135 to buckets 5, 0 and 3, selector 9,
+  always returning 1. Not built: Manufacture (its adder `0x004C3200` is unread and
+  nothing holds manufacture points), Casino, Torture, Prison on the hook, the
+  enter and leave hooks, and the room-position claim.

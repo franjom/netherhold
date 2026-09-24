@@ -4219,3 +4219,17 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - The failing-hook branch (a zero return sends the creature to 1) is read but unused: cooling cannot fail.
 - `HashVersion` and `FormatVersion` **90**, pin `0xFD1E03A96BC65015`.
 
+## ADR-0186 — A creature's work is its state category's update hook
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0185 · Research: `docs/research/state-categories.md` §5.1, §7.2, `state-category-hooks.md` §4
+
+**Context.** What a creature does at work lives in DK2 in the update hook of its state's category, run by the dispatcher before the state's own handler. Ours was keyed on the job, and only three were built. With every job's walk and work on state ids (ADR-0177), the category is now there to key on.
+
+**Decision.**
+1. **`CreatureJobSystem.Working` switches on `UpdatingCategory`**: Training (13), Research (4) and Temple (12) as before, with their cadences unchanged. A job with no state id, Torture (Q419), has no category and no effect.
+2. **Spectating (31) is built.** Its update `0x0047AA70`, re-read for this, applies `ModifyAngerOfPitSpectatorPerSecond` (−275) to Treatment, Company and Work once a game second (`JobRules.SpectatorCalm`). The test fixture gains the Combat Pit and variable 135, transcribed from the shipped records.
+3. **Not built:** Manufacture, whose adder is unread; the Casino, Torture and Prison hooks; every enter and leave hook, including the room-position claim.
+
+**Consequences.**
+- Four test setups that put a creature at work by hand now give it its job's state. Negative controls, one at a time: no Spectating case, a spectator calming Pay, and Research dispatched as Manufacture each fail a named test.
+- `HashVersion` and `FormatVersion` **91**, pin `0xA5F9A90F3ED7133A`.
+

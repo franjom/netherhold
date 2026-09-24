@@ -47,6 +47,7 @@ public sealed class ResearchTests
             db, Dk2TerrainFixture.VampireCreatureId, Keeper, Room);
         it.CurrentJob = JobType.Research;
         it.Activity = CreatureActivity.AtWork;
+        CreatureStateMachine.Begin(it, JobRules.StateFor(it.CurrentJob)!.Value);
         it.JobTileIndex = (Room.Y * world.Width) + Room.X;
         return it;
     }
