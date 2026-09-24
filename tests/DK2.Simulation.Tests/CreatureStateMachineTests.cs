@@ -223,6 +223,32 @@ public class CreatureStateMachineTests
     }
 
     [Fact]
+    public void ThePaydayChainIsLegalFromIdleAndEachStateDropsBackToIt()
+    {
+        // payday.md 4.1-4.4: the decision sets 187 from idle, 187 walks in 6 resuming in
+        // 188, 188 moves to 189, and 189 returns failure, which is idle. 187 and 188 fail
+        // to idle as well. 189's other exit, the Drink job's walk (Q421), goes in 7.
+        CreatureState payee = Fresh();
+        CreatureStateMachine.Begin(payee, Idle);
+        Assert.True(CreatureStateMachine.TrySetState(payee, PaydayRules.FindTheMoneyState));
+        CreatureStateMachine.BeginTravel(payee, EnRoute, PaydayRules.ArrivingState);
+        Assert.Equal(EnRoute, payee.Dk2StateId);
+        Assert.True(CreatureStateMachine.Arrive(payee));
+        Assert.Equal(PaydayRules.ArrivingState, payee.Dk2StateId);
+        Assert.True(CreatureStateMachine.TrySetState(payee, PaydayRules.TakeItState));
+        Assert.Equal(StateTransition.Allowed, CreatureStateMachine.Classify(payee, EnRouteToRoom));
+        Assert.True(CreatureStateMachine.TrySetState(payee, Idle));
+
+        foreach (int state in new[] { PaydayRules.FindTheMoneyState, PaydayRules.ArrivingState })
+        {
+            CreatureState failing = Fresh();
+            CreatureStateMachine.Begin(failing, Idle);
+            Assert.True(CreatureStateMachine.TrySetState(failing, state));
+            Assert.True(CreatureStateMachine.TrySetState(failing, Idle));
+        }
+    }
+
+    [Fact]
     public void TortureIsOffStateIdsBecauseItsStateCannotDropToIdleAndTheWayOutIsUnread()
     {
         // Q419. The torture handler resumes in 127, which is in the Refused category, and

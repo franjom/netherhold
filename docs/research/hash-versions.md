@@ -27,11 +27,11 @@ added to an empty list still has to change the hash, which is what proves the
 hash covers the field rather than the value.
 
 This file is the per-version history. The decision behind each change lives in
-its ADR (`docs/DECISIONS.md`); the evidence lives in the research doc named
-beside it.
+its ADR (`docs/DECISIONS.md`), the evidence in the research doc beside it.
 
 ## Versions
 
+**85** — `0xE0EDFEC6BD215E6C`. Collecting wages on DK2's state ids (ADR-0180).
 **84** — `0xDB5AAE21ABF713BF`. A bed and a full wage wipe their anger bucket (ADR-0179).
 **83** — `0xDFC977B66E524362`. The lair and sleep on DK2's state ids (ADR-0178).
 **82** — `0xF1F260238F3D713D`. A job's walk and work on DK2's state ids (ADR-0177).

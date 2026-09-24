@@ -164,7 +164,9 @@ pile — and the creature is issued `move(target, resume: 0xbc, flags: 0xe8)`.
 
 Re-checks that the player still owns a room of type 1 or 5 (`FUN_004539b0`) and
 bails if not — so a treasury sold out from under a creature mid-walk aborts the
-trip. On arrival: `SetState(0xbd)` = **189**.
+trip. On arrival: `SetState(0xbd)` = **189**, but only when the region test
+`0x004B2AE0` on the tile centre returns a zero word; otherwise 188 returns 1 and
+waits (read 2026-09-24; the test is Q371's, unread). Ours does neither check.
 
 ### 4.4 State 189 `FUN_00472740` — take it
 
@@ -187,6 +189,16 @@ most convenient, is implemented as a withdrawal from a tile.
 
 `FUN_0048ae70(taken / 2)` is **unread**; the halving is conspicuous and has no
 candidate.
+
+**How 189 ends — read 2026-09-24.** Every path returns 0, which is idle, with one
+exception. After a successful take it walks the creature's job list (count at
+`creature+0x370 → +0x78B`, entries by `0x004944D0(i)`); if any entry's job byte is
+**9, Drink**, it calls the Drink job's starter `0x004560F0` and returns what that
+returns, a room walk in 7 resuming in 145 (`travel-state-call-sites.md`). So **a
+creature whose job table holds Drink goes to the Casino straight from being paid**.
+No keeper's rooms or gold are tested here; the starter's own gates are in
+`job-selection.md`. **Not built** (Q421). The empty take, the missing room and nothing
+owed all return 0 as well.
 
 **`FUN_00486f80(4)` wipes the pay-anger bucket — CONFIRMED (2026-09-24).** Its
 receiver is the same `int[8]` the anger wrapper `0x00478B80` hands the adder

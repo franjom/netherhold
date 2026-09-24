@@ -26,6 +26,18 @@ public static class PaydayRules
     /// two. Hardcoded as <c>creature[0x474] &lt; 2</c>, reset by the payday clock — per payday, not per life.</summary>
     public const int MaxFailedAttempts = 2;
 
+    /// <summary>State 187: finds a treasury with gold and walks to it in state 6, resuming in
+    /// <see cref="ArrivingState"/> (<c>payday.md</c> §4.2).</summary>
+    public const int FindTheMoneyState = 187;
+
+    /// <summary>State 188: checks the keeper still owns a treasury or heart, then moves to
+    /// <see cref="TakeItState"/> (§4.3).</summary>
+    public const int ArrivingState = 188;
+
+    /// <summary>State 189: takes the wage off the tile underfoot, then returns failure, which
+    /// is idle, unless the Drink job takes over (§4.4, Q421).</summary>
+    public const int TakeItState = 189;
+
     /// <summary>What this creature is owed for one payday: its record's <c>Pay</c> scaled by the
     /// level table's <see cref="CreatureStatId.Pay"/> row, 105 % at L2 rising to 250 % at L10
     /// (Q119). An imp is unpaid by its own <c>pay=0</c>, not by a rule.</summary>

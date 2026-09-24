@@ -16,8 +16,8 @@ namespace DK2.Simulation.Systems;
 /// Being owed is what charges <c>AngerNoPay</c> +60, and that charge lives in
 /// <see cref="CreatureAngerRules"/> on the anger system's second (ADR-0079,
 /// <see cref="PaydayRules.IsOwedWages"/>). Ours, none of it changing who gets paid:
-/// three original states folded into one activity; the arrival tile is the room's
-/// gold-bearing tile nearest the creature, not the original's object search; and the
+/// one activity over states 187-189, held as state ids (ADR-0180); the arrival tile is
+/// the room's gold-bearing tile nearest the creature, not the original's search; and the
 /// Dungeon Heart is admitted unconditionally where the original tests one undecoded
 /// flag bit beside the type.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/payday.md")]
@@ -138,6 +138,7 @@ public sealed class PaydaySystem : ISimulationSystem
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
+            CreatureStateMachine.ReleaseIfLeft(creature);
 
             if (HandRules.IsHeld(creature)) continue;
             if (CreatureDeathRules.IsDown(creature)) continue;
@@ -217,13 +218,15 @@ public sealed class PaydaySystem : ISimulationSystem
             {
                 creature.Activity = CreatureActivity.SeekingWages;
                 creature.StopMoving();
-                Take(context, creature);
+                SetOutInState(context, creature);
+                Arrived(context, creature);
                 return;
             }
 
             if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot)) continue;
 
             creature.Activity = CreatureActivity.SeekingWages;
+            SetOutInState(context, creature);
 
             context.Emit(SystemName, "wages_sought",
                 $"creature={creature.Id} type={definition.Name} " +
@@ -252,6 +255,28 @@ public sealed class PaydaySystem : ISimulationSystem
         // CreatureMovementSystem walks the path; this only notices the end of
         // it, exactly as the hunger walk does.
         if (creature.HasRoute) return;
+        Arrived(context, creature);
+    }
+
+    /// <summary>The decision sets 187, and 187 calls the position helper with 188 as the
+    /// resume (<c>payday.md</c> §4.1-4.2, ADR-0180). Even a creature standing on the tile
+    /// takes the helper's walk, because 187 has no shortcut of its own.</summary>
+    private static void SetOutInState(SimulationContext context, CreatureState creature)
+    {
+        CreatureStateMachine.Release(creature);
+        StateShadow.FromIdle(creature);
+        StateShadow.Move(context, SystemName, creature, PaydayRules.FindTheMoneyState);
+        CreatureStateMachine.BeginTravel(
+            creature, StateShadow.TravelToPoint, PaydayRules.ArrivingState);
+    }
+
+    /// <summary>The walk ends in 188, which moves to 189 to take the money. 188 first
+    /// re-checks the keeper still owns a treasury or heart, and waits while the unread
+    /// region test <c>0x004B2AE0</c> is nonzero (Q371); ours does neither.</summary>
+    private static void Arrived(SimulationContext context, CreatureState creature)
+    {
+        StateShadow.Arrive(context, SystemName, creature);
+        StateShadow.Move(context, SystemName, creature, PaydayRules.TakeItState);
         Take(context, creature);
     }
 
@@ -278,6 +303,7 @@ public sealed class PaydaySystem : ISimulationSystem
             creature.PayAttemptsFailed++;
             creature.Activity = CreatureActivity.Idle;
             creature.StopMoving();
+            StateShadow.ToIdle(context, SystemName, creature);
 
             context.Emit(SystemName, "wages_missed",
                 $"creature={creature.Id} player={creature.OwnerPlayerId} " +
@@ -306,6 +332,7 @@ public sealed class PaydaySystem : ISimulationSystem
         // creature goes idle and the decision runs again.
         creature.Activity = CreatureActivity.Idle;
         creature.StopMoving();
+        StateShadow.ToIdle(context, SystemName, creature);
     }
 
     /// <summary>

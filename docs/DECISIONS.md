@@ -4127,3 +4127,19 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - An unhappy Goblin given a bed is Content on the tick the bed goes down, which is the owner's Q115 observation reached by a different road. `AnUnhappyGoblinGivenABedCoolsBackToContentOneSleepAtATime` claimed a frozen bucket and is now `...IsContentTheMomentTheBedGoesDown`; the deserter test is angered in the Work bucket, since a bed would cure a lair grievance first.
 - Negative controls, one at a time: no payday wipe, wiping on any take, bypassing the switch, no lair wipe, and wiping a second bucket each fail a named test.
 - `HashVersion` and `FormatVersion` **84**, pin `0xDB5AAE21ABF713BF`.
+
+## ADR-0180 — Collecting wages runs on DK2's own state ids
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0135 (step two, fourth slice) · Research: `docs/research/payday.md` §4
+
+**Context.** Payday's three states were read except their exits. Reading 188 and 189 through (2026-09-24) settled them: 188 moves to 189 on arrival, and every path out of 189 returns 0, which is idle, except a hand-off to the Drink job.
+
+**Decision.**
+1. **`SeekingWages` retires.** The decision moves idle to 187; 187 walks in 6 resuming in 188; arrival hands over to 188, which moves to 189; 189 takes the money and drops to idle, paid, part-paid or empty. The whole chain is legal under the rule (`ThePaydayChainIsLegalFromIdleAndEachStateDropsBackToIt`).
+2. **A creature standing on the gold still takes the walk.** 187 has no shortcut; it always calls the position helper, so 6 and 188 run on the tick it is paid.
+3. **Not built:** 188's ownership re-check and its wait on the region test `0x004B2AE0` (Q371), and 189's Drink hand-off (Q421).
+
+**Consequences.**
+- 187, 188 and 189 last less than a tick, so the traces pin them through the saved caller and the resume slot. With the wrong resume, without `SeekingWages` in the retired set, without the release, or with the standing creature skipping the walk, a named test fails.
+- The pinned world collects no wages; the bump is the policy.
+- `HashVersion` and `FormatVersion` **85**, pin `0xE0EDFEC6BD215E6C`.
+

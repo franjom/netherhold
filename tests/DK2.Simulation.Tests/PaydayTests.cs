@@ -406,6 +406,90 @@ public class PaydayTests
         Assert.Equal(settled + (AngerWindowSeconds * def.AngerNoLair), goblin.Anger.Lair);
     }
 
+    // ---- on DK2's state ids (ADR-0180) ---------------------------------------
+
+    /// <summary>Each change of state id, with the saved caller and the resume slot beside it.
+    /// 187, 188 and 189 each last less than a tick, so the saved caller and the slot are the
+    /// evidence that they ran.</summary>
+    private static List<(int State, int Saved, int Resume)> StatesSeen(
+        GameSimulation sim, CreatureState creature, int ticks)
+    {
+        var seen = new List<(int, int, int)>();
+        int last = creature.Dk2StateId;
+        for (int t = 0; t < ticks; t++)
+        {
+            sim.Run(1);
+            if (creature.Dk2StateId == last) continue;
+            seen.Add((creature.Dk2StateId, creature.StateBeforeUtilityState, creature.UtilityNewState));
+            last = creature.Dk2StateId;
+        }
+
+        return seen;
+    }
+
+    [Fact]
+    public void AGoblinWalksForItsWagesInStateSixFromOneEightySevenAndEndsIdle()
+    {
+        // The decision sets 187, which walks in 6 resuming in 188; on arrival 188 moves to
+        // 189, which takes the money and returns failure, which is idle.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Treasury(world, new TilePos(1, 3), 2000);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.WageOwed = 500;
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        Assert.Equal(
+            [(6, PaydayRules.FindTheMoneyState, PaydayRules.ArrivingState),
+             (CreatureStateMachine.NoState, PaydayRules.FindTheMoneyState, CreatureStateMachine.Idle)],
+            StatesSeen(sim, goblin, 200));
+        Assert.Equal(0, goblin.WageOwed);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void AGoblinStandingOnTheGoldStillTakesTheHelpersWalkThroughOneEightyEight()
+    {
+        // 187 has no shortcut: it always calls the position helper, so even a creature on
+        // the tile passes 6 and 188 on the tick it is paid.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Treasury(world, Floor, 2000);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.WageOwed = 500;
+        var sink = new ListEventSink();
+
+        Simulation(db, world, sink).Run(1);
+
+        Assert.Equal(0, goblin.WageOwed);
+        Assert.Equal(CreatureStateMachine.NoState, goblin.Dk2StateId);
+        Assert.Equal(PaydayRules.FindTheMoneyState, goblin.StateBeforeUtilityState);
+        Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void AWageWalkerPickedUpGivesItsStateIdBack()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Treasury(world, new TilePos(1, 3), 2000);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        goblin.WageOwed = 500;
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Run(1);
+        Assert.Equal(6, goblin.Dk2StateId);
+
+        goblin.Activity = CreatureActivity.Idle;
+        goblin.StopMoving();
+        goblin.WageOwed = 0;
+        sim.Run(1);
+
+        Assert.Equal(CreatureStateMachine.NoState, goblin.Dk2StateId);
+    }
+
     // ---- a full wage wipes the pay bucket (ADR-0179) ------------------------
 
     /// <summary>A Goblin with a pay grievance and its debt, standing beside a treasury.</summary>
