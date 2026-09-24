@@ -185,8 +185,17 @@ strongest independent confirmation yet of ADR-0015's finding that **DK2 has no
 player gold counter** — payday, the one moment where a global balance would be
 most convenient, is implemented as a withdrawal from a tile.
 
-`FUN_0048ae70(taken / 2)` and `FUN_00486f80(4)` are **unread**. The halving is
-conspicuous and has no candidate.
+`FUN_0048ae70(taken / 2)` is **unread**; the halving is conspicuous and has no
+candidate.
+
+**`FUN_00486f80(4)` wipes the pay-anger bucket — CONFIRMED (2026-09-24).** Its
+receiver is the same `int[8]` the anger wrapper `0x00478B80` hands the adder
+(`LEA ECX,[ESI+0x20]` in both). It adds the counter's own negation, so the
+counter becomes 0, clamps as the adder does and recomputes the maximum. The
+world byte `+0x72A1` bit 0 gates it, the same switch that gates every anger add
+(`creature-anger.md`). So **a creature paid in full forgets its pay grievance at
+once**, rather than cooling. State 80 makes the same call with bucket 2 as it
+places a bed (`lair-acquisition.md` §9.1). **Not built.**
 
 ---
 
@@ -203,14 +212,15 @@ conspicuous and has no candidate.
 | Two distinct "cannot pay" messages | **read** |
 | `AngerNoPay` firing on an unpaid creature | **READ AND BUILT** the same day (ADR-0079) — see §6 |
 | `PayDayCutOffTimeSeconds` | **UNKNOWN**, and its readers are not in the payday path |
-| `FUN_0048ae70(taken/2)`, `FUN_00486f80(4)` | **UNKNOWN** |
+| `FUN_0048ae70(taken/2)` | **UNKNOWN** |
+| `FUN_00486f80(4)`: zero the pay-anger bucket when fully paid | **read**, not built |
 
 **Built on 2026-09-06 (ADR-0078):** `PaydayRules`, `PaydaySystem`,
 `CreatureActivity.SeekingWages`, three fields on the creature and one on the
 player. It cost one bump of `GameSimulation.HashVersion` and the snapshot
 `FormatVersion` with it; ADR-0078 records which.
 
-What is left unread: `PayDayCutOffTimeSeconds` and the two calls in state 189.
+What is left unread: `PayDayCutOffTimeSeconds` and `FUN_0048ae70` in state 189.
 The owner's account of the consequence stands as the observation (Q9: unhappy,
 then angry, then leaves — or rebels, if converted).
 
