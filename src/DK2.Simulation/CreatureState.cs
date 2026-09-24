@@ -192,6 +192,10 @@ public enum CreatureActivity
     /// states 130 and 131, category 15 (ADR-0193, <see cref="TortureRules"/>). It stays that
     /// keeper's captive, so everything that leaves a prisoner alone leaves it alone too.</summary>
     BeingTortured = 30,
+
+    /// <summary>Freeing an ally from an enemy's torture device: DK2's state 134 and its walk
+    /// (ADR-0201, <see cref="RescueRules"/>).</summary>
+    Rescuing = 31,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -572,6 +576,13 @@ public sealed class CreatureState
     /// <summary>Turns left of the whip, action 63, or 0 (ADR-0196).</summary>
     public int WhipTurnsLeft;
 
+    /// <summary>The tile the contact test last ran on, or -1: DK2 runs <c>0x004E8660</c> on the
+    /// turn a creature steps onto a new tile (ADR-0201).</summary>
+    public int ContactTileIndex = -1;
+
+    /// <summary>Turns left before 134 acts, or 0 (ADR-0201).</summary>
+    public int RescueTurnsLeft;
+
     /// <summary>Ticks until a rebelling creature with no reachable Portal defects to the
     /// hero side, or 0 when it is not rebelling. DK2 keeps the same clock the other way
     /// up, as an absolute deadline at its state object's <c>+0xB7</c>
@@ -736,8 +747,8 @@ public sealed class CreatureState
     public byte WanderRadius;
 
     /// <summary>DK2's creature <c>Flags</c> byte (<c>+0x46F</c>, Q302): bit 1 party leader, bit 2
-    /// follower, bits 5 and 6 unread here. Only a party spawn writes it so far; placed creatures and
-    /// action 1 leave the constructor's default 0.</summary>
+    /// follower, bit 5 frees friends (<see cref="RescueRules"/>), bit 6 unread here. A party spawn and
+    /// a placed creature write it (ADR-0201); action 1 leaves the default 0.</summary>
     public byte Flags;
 
     /// <summary>The member's <c>Flags2</c> bits landed on the second flag dword: <c>DestroysRooms</c>
@@ -854,6 +865,8 @@ public sealed class CreatureState
         hash.Add(TorturedDuration);
         hash.Add(TortureTargetTile);
         hash.Add(WhipTurnsLeft);
+        hash.Add(ContactTileIndex);
+        hash.Add(RescueTurnsLeft);
         hash.Add(RebelCountdownTicks);
         hash.Add(RebelAgainstPlayerId);
         hash.Add(TargetTileIndex);

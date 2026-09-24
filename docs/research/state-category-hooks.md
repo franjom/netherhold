@@ -248,7 +248,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   128 ↔ 129 through idle, action 63 for 6 turns, a new one every 7th; the chair turning away
   a creature without `CanBeElectrocuted` (131). **Ours:** tile-level positions, instant
   facing, no capacity test, and no need interrupting her, as for every job here. **Not
-  built:** 134, the information, and the leave hook's `+0x6E`.
+  built:** the information, and the leave hook's `+0x6E`.
 - **Read 2026-09-24: 77, 136 and the others' way in.** 77 (`0x0046F1F0`), once the landing
   action ends, sends a Horned Reaper (`IsHorny`, definition flag bit 14) to **238** in any
   room; otherwise by the room at `+0x3B9`: Workshop 63, Prison 115, Torture Chamber 130. So
@@ -267,6 +267,35 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   tile or beside it, and stays a captive if it was one. **Ours:** a tie between two side
   neighbours goes to the lower tile index, and a captive with nothing in reach is let go
   where DK2 idles it; the `+0x43E` path is not built.
+- **Read 2026-09-24: who enters 134.** The creature update `0x00488930`, on a turn it has
+  moved to a new tile (a local flag), for a creature on the ground, not dying and not
+  attached to a room (`+0x3B9` zero), on a room tile, calls `0x004E8660(room, creature)`.
+  Its Torture Chamber arm needs: a non-worker; the room's `UsedCapacity` (`+0x6B`)
+  non-zero; creature `Flags` (`+0x46F`) bit 5; the room's owner not allied to the creature
+  (`0x004BF3D0`); the creature's category through a walk not 15 or 22. It then walks the
+  room's attached list (`+0x0A`, linked by `+0x238`) for a creature not dying and allied
+  to it, and calls `SetState(134)` on **itself** (`MOV ECX,EDI` at `0x004E8857`) until one
+  is taken. The Prison arm sets 122, "freeing comrades": the same tests with category 14
+  for 15, the creature not already in 122, and the neutral player counting as an ally
+  on both sides. `Flags` bit 5 comes only from a level's creature records (the loader
+  copies bits 0 and 3–7 of a neutral or keeper record's `Flags`, all eight of a good one's,
+  `0x00520391` on) and from triggers (`0x00518C09`, `0x0051A52B`); the constructor stores 9.
+  616 of the 1,944 placed creatures carry it (104 neutral, 427 good, 85 keeper).
+- **Read 2026-09-24: the information** `0x004F2370(chamber, victim)`. Nothing for a hero
+  victim but the last choice. Otherwise, by the victim definition's `+0x67D` byte (0, 1 or
+  2), the candidates are 3 and 7, 4 and 9, or 5 and 8, each only if `0x004C2BC0(k, victim's
+  owner, chamber's owner)` says it is not yet given; then 10 on the same test; then always
+  11. `rand(n)` picks one. 11 walks the victim's keeper's first room chain and calls
+  `0x00517480` (an area of radius 3, kind 6) on each tile not flagged `0x20`, or failing
+  that sets `+0x475 = 0x10` and `+0x476` to the chamber's owner on the first creature
+  standing on such a tile; any other marks it given through `0x004C2B60`. Then speech
+  `0x61`, and `0x60` for 3–10 or `0x3B` for 11. What 3–10 unlock is not read.
+- **Built** (ADR-0201): the contact test and 134. `ThingProjection` copies the record's
+  `Flags` with the loader's masks. A creature stepping onto a tile of an enemy's chamber
+  with an ally on a device goes to 134, waits two turns, frees an ally on its tile (133,
+  then off the device and out of captivity), or walks to the nearest one and repeats.
+  **Ours:** the test runs for an idle creature or one holding a state id; the walk goes
+  onto the victim's tile; "attached to a room" is read as at a job. 122 is not built.
 
 ## 4. Answers and limits
 

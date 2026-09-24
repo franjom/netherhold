@@ -67,6 +67,7 @@ public static class SimulationSystems
 
         new PrisonSystem(),
         new TortureSystem(), // a captive on a device: the category 15 hook (ADR-0193)
+        new RescueSystem(), // an ally freed from an enemy's device: 134 (ADR-0201)
 
         // The rest of being a prisoner, every tick; after PrisonSystem so one freed or
         // boned gets no step, and eat before wander as its one handler does in the

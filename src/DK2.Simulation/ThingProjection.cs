@@ -80,7 +80,8 @@ public static class ThingProjection
             {
                 case KeeperCreatureThing t:
                     PlaceCreature(
-                        world, database, t, t.CreatureId, t.PlayerId, t.InitialHealth, t.TriggerId);
+                        world, database, t, t.CreatureId, t.PlayerId, t.InitialHealth, t.TriggerId,
+                        RescueRules.OtherCreatureFlagMask);
                     creatures++;
                     break;
 
@@ -90,14 +91,14 @@ public static class ThingProjection
                 case NeutralCreatureThing t:
                     PlaceCreature(
                         world, database, t, t.CreatureId, PlayerIds.Neutral,
-                        t.InitialHealth, t.TriggerId);
+                        t.InitialHealth, t.TriggerId, RescueRules.OtherCreatureFlagMask);
                     creatures++;
                     break;
 
                 case GoodCreatureThing t:
                     PlaceCreature(
                         world, database, t, t.CreatureId, PlayerIds.Good,
-                        t.InitialHealth, t.TriggerId);
+                        t.InitialHealth, t.TriggerId, RescueRules.GoodCreatureFlagMask);
                     creatures++;
                     break;
 
@@ -159,7 +160,8 @@ public static class ThingProjection
         byte creatureTypeId,
         byte ownerPlayerId,
         int initialHealthPercent,
-        ushort triggerId)
+        ushort triggerId,
+        byte flagMask)
     {
         CreatureState state = world.SpawnCreature(
             database, creatureTypeId, ownerPlayerId, new TilePos(thing.X, thing.Y));
@@ -170,6 +172,9 @@ public static class ThingProjection
         state.Level = CreatureLevelRules.Clamp(thing.Level);
         state.GoldHeld = thing.GoldHeld;
         state.TriggerId = triggerId;
+
+        // The record's Flags into the creature's, the bits the loader copies (ADR-0201).
+        state.Flags = (byte)(thing.Flags & flagMask);
 
         // No floor on the result, deliberately: a creature that rounded to zero health would die on
         // the tick it arrived, but the clamp could never fire — the smallest Hp in the shipped table

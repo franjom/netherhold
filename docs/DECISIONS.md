@@ -4439,3 +4439,17 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - No hash change: no new fields, and no shipped scenario drops a creature on a device.
 - Four tests. Negative controls: a Horned Reaper strapped, diagonal reach, no re-strap, and own creatures refused each fail a named test; skipping 77 and 130 on the way to 131 is not observable and survives.
 
+## ADR-0201 — Freeing comrades from a Torture Chamber
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/state-category-hooks.md` §3.3
+
+**Context.** State 134 was read as a torturer's, and so unbuilt. It is entered by `0x004E8660`, which the creature update calls on the turn a creature steps onto a new room tile. In an enemy keeper's Torture Chamber holding one of its allies on a device, a non-worker whose `Flags` (`+0x46F`) bit 5 is set goes to 134. It waits two turns, then frees the ally on its tile, or walks to the nearest. The bit comes from the level's creature records, where 616 of 1,944 placed creatures carry it.
+
+**Decision.**
+1. `ThingProjection` copies a placed creature's record `Flags` into `CreatureState.Flags` with the loader's masks: all eight bits for a good creature, and bits 0 and 3–7 for a neutral or keeper creature.
+2. `RescueRules.StartsARescue` is the contact test. `RescueSystem` runs it when a creature's tile changes (`CreatureState.ContactTileIndex`) and steps 134, now a retired activity, `Rescuing`. After `RescueRules.WaitTurns` turns (variable 19 halved) it frees an ally on its own tile. The victim goes to 133, then off the device and out of captivity. Otherwise the creature walks in 6 to the nearest ally, resuming 134, or idles.
+
+**Consequences.**
+- Ours, stated: the test runs for an idle creature or one holding a state id, not one still on our own activities. The walk ends on the victim's tile. "Not attached to a room" is read as not at a job. Heroes do not walk in our simulation yet, so a rescue needs a creature brought to the chamber. Not built: the Prison's 122, and the information a victim gives on dying (`0x004F2370`, read).
+- New hashed and snapshotted fields `ContactTileIndex` and `RescueTurnsLeft`. `HashVersion` and `FormatVersion` **103**, pin `0x1A5F99A4C9E39974`.
+- Eight tests. Negative controls: no flag test, no worker test, an allied chamber, a victim of any side, testing every tick, no wait, no walk, the victim kept on the device, and flags copied unmasked each fail a named test.
+

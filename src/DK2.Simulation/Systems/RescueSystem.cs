@@ -1,0 +1,133 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.Core;
+using DK2.Data.Model;
+
+namespace DK2.Simulation.Systems;
+
+/// <summary>A creature that steps into an enemy's Torture Chamber holding one of its allies
+/// frees it: the contact test <c>0x004E8660</c> and state 134 (ADR-0201, <see cref="RescueRules"/>).</summary>
+/// <remarks>Ours, stated: the contact test runs for an idle creature or one holding a state
+/// id, not for one still on our own activities (combat, leaving, fleeing), as the busy
+/// creature is refused elsewhere; the 134 walk goes onto the victim's tile. The freed victim
+/// is let go as a captive dropped off a device is: its own side's, idle.</remarks>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
+public sealed class RescueSystem : ISimulationSystem
+{
+    private const string SystemName = "Rescue";
+
+    public string Name => SystemName;
+
+    public void Execute(SimulationContext context)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+
+        for (int i = 0; i < world.Creatures.Count; i++)
+        {
+            CreatureState creature = world.Creatures[i];
+            if (HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) continue;
+
+            int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
+            if (creature.Activity == CreatureActivity.Rescuing)
+            {
+                creature.ContactTileIndex = here;
+                Step(context, creature, here);
+                continue;
+            }
+
+            if (here == creature.ContactTileIndex) continue;
+            creature.ContactTileIndex = here;
+            if (MayStart(creature) && RescueRules.StartsARescue(world, database, creature, here)) Start(context, creature);
+        }
+    }
+
+    private static bool MayStart(CreatureState creature) =>
+        creature.Activity == CreatureActivity.Idle
+        || (CreatureStateMachine.HasState(creature) && creature.Activity is CreatureActivity.AtWork or CreatureActivity.GoingToJob);
+
+    private static void Start(SimulationContext context, CreatureState creature)
+    {
+        if (CreatureStateMachine.HasState(creature))
+        {
+            if (!CreatureStateMachine.TrySetState(creature, RescueRules.RescuingState)) return;
+            NeedRules.EndJob(creature);
+        }
+        else
+        {
+            CreatureStateMachine.Begin(creature, RescueRules.RescuingState);
+        }
+
+        creature.StopMoving();
+        creature.Activity = CreatureActivity.Rescuing;
+        creature.RescueTurnsLeft = RescueRules.WaitTurns;
+        context.Emit(SystemName, "rescue_started",
+            $"creature={creature.Id} owner={creature.OwnerPlayerId} at=({creature.Tile.X},{creature.Tile.Y})");
+    }
+
+    private static void Step(SimulationContext context, CreatureState creature, int here)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+
+        if (StateShadow.IsTravelling(creature))
+        {
+            if (creature.HasRoute) return;
+            creature.StopMoving();
+            if (!CreatureStateMachine.Arrive(creature)) { Stop(creature); return; }
+            creature.RescueTurnsLeft = RescueRules.WaitTurns;
+        }
+
+        if (creature.RescueTurnsLeft > 0 && --creature.RescueTurnsLeft > 0) return;
+
+        RoomInstance? room = RoomIndex.RoomAt(world, database, here);
+        if (room is null || room.Definition.TypeId != RoomTypeId.TortureChamber) { Stop(creature); return; }
+
+        CreatureState? nearest = null;
+        long best = long.MaxValue;
+        foreach (CreatureState victim in RescueRules.AlliedVictims(world, database, creature, room))
+        {
+            if (victim.Tile == creature.Tile)
+            {
+                Free(context, creature, victim);
+                return;
+            }
+
+            long distance = EatingRules.DistanceSquared(world, creature.Tile, (victim.Tile.Y * world.Width) + victim.Tile.X);
+            if (distance < best) { best = distance; nearest = victim; }
+        }
+
+        if (nearest is not null && context.Navigation.TryRoute(creature, nearest.Tile, Navigation.MoveOptions.ExactSpot))
+        {
+            CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, RescueRules.RescuingState);
+            context.Emit(SystemName, "rescuer_to_victim",
+                $"creature={creature.Id} victim={nearest.Id} at=({nearest.Tile.X},{nearest.Tile.Y})");
+            return;
+        }
+
+        Stop(creature);
+    }
+
+    /// <summary>134 moves the victim to 133, which drops it to idle off the device; 134 then
+    /// returns 0 and the rescuer is idle too.</summary>
+    private static void Free(SimulationContext context, CreatureState rescuer, CreatureState victim)
+    {
+        CreatureStateMachine.TrySetState(victim, RescueRules.FreedState);
+        TortureRules.Unstrap(victim);
+        PrisonRules.Release(victim);
+        context.Emit(SystemName, "captive_rescued",
+            $"creature={rescuer.Id} victim={victim.Id} owner={victim.OwnerPlayerId} " +
+            $"at=({victim.Tile.X},{victim.Tile.Y})");
+        Stop(rescuer);
+    }
+
+    private static void Stop(CreatureState creature)
+    {
+        creature.StopMoving();
+        creature.RescueTurnsLeft = 0;
+        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
+        creature.ClearJob();
+    }
+}

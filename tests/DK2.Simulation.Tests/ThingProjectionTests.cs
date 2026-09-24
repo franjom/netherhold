@@ -124,6 +124,27 @@ public class ThingProjectionTests
     }
 
     [Fact]
+    public void APlacedCreatureTakesTheRecordFlagBitsTheLoaderCopies()
+    {
+        // 0x00520391 on: a good creature's eight bits, a neutral or keeper creature's all but
+        // bits 1 and 2 (ADR-0201).
+        GameDatabase database = Database();
+        WorldState world = World(database);
+
+        ThingProjection.Place(world, database,
+        [
+            new NeutralCreatureThing(new byte[24])
+            { X = 4, Y = 4, CreatureId = 7, Level = 1, InitialHealth = 100, Flags = 0xFF },
+            new GoodCreatureThing(new byte[32])
+            { X = 5, Y = 4, CreatureId = 7, Level = 1, InitialHealth = 100, Flags = 0xFF },
+            new KeeperCreatureThing(new byte[28])
+            { X = 6, Y = 4, CreatureId = 7, Level = 1, InitialHealth = 100, Flags = 0x26, PlayerId = PlayerIds.FirstKeeper },
+        ]);
+
+        Assert.Equal([(byte)0xF9, (byte)0xFF, (byte)0x20], world.Creatures.Select(c => c.Flags).ToArray());
+    }
+
+    [Fact]
     public void AnObjectCarriesItsMoneyAmountAsGold()
     {
         GameDatabase database = Database();

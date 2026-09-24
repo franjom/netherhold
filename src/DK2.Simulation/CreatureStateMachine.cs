@@ -139,7 +139,8 @@ public static class CreatureStateMachine
             or CreatureActivity.FetchingGold or CreatureActivity.DeliveringGold
             or CreatureActivity.FetchingObject or CreatureActivity.CarryingObject
             or CreatureActivity.FetchingBody or CreatureActivity.CarryingBody
-            or CreatureActivity.Imprisoned or CreatureActivity.BeingTortured;
+            or CreatureActivity.Imprisoned or CreatureActivity.BeingTortured
+            or CreatureActivity.Rescuing;
 
     /// <summary>Hands the state id back if the creature has left the retired activities.
     /// Every system that owns a retired activity calls it first, so one system's shim
