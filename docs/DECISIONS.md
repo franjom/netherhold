@@ -4265,3 +4265,17 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Five trace tests, and a fixture record for object 95 with its drift guard. Negative controls, one at a time: a lever looking south, a stuck toggle, anyone's pull, a pile that does not grow, a pile not paid from, stingy calming, no spend, and settling every second each fail a named test.
 - `HashVersion` and `FormatVersion` **93**, pin `0xD783D2057BC97FE4`.
 
+## ADR-0189 — A paid creature with Drink in its happy table goes gambling
+**Date:** 2026-09-24 · **Status:** accepted · closes Q421 · Research: `docs/research/payday.md` §4.4
+
+**Context.** State 189 ends by walking a job list for job 9 and calling the Drink handler. The list is the happy table. The loader fills def `+0x628` from the three happy entries, six bytes each with the job at `+5`, and counts them in `+0x78B`. The happy chooser rolls over the same list.
+
+**Decision.**
+1. After a take that got gold, a creature whose happy table holds Drink is handed to the Drink handler (`CreatureJobSystem.TryGoGamblingWhenPaid`), owed or not. If the handler refuses, 189 returns 0 and the creature goes idle, as before.
+2. The walk starts from 189 itself: the job set-out keeps the current state instead of releasing it, so the trace is 189 → 7 → 145, as DK2's is.
+
+**Consequences.**
+- Shipped, only heroes carry Drink in the happy table: King Reginald and Lord of the Land at 100%, the three princes at 5%. The keeper's own creatures are unchanged.
+- Two trace tests. Negative controls, one at a time: the unhappy table, a walk through idle, and no hand-off each fail a named test.
+- `HashVersion` and `FormatVersion` **94**, pin `0x71F6772A33262059`.
+

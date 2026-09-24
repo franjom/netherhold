@@ -187,6 +187,53 @@ public class PaydayTests
     }
 
     [Fact]
+    public void ACreatureWhoseHappyTableHoldsDrinkGoesFromItsWagesStraightToTheCasino()
+    {
+        // State 189's tail (Q421): after a take, the happy table is walked for job 9 and the
+        // Drink handler called, which walks in 7 to resume in 145. Shipped, only heroes carry
+        // Drink there (King Reginald and Lord of the Land at 100%); this is a Goblin with one.
+        CreatureDef drinker = Dk2TerrainFixture.Goblin() with
+        {
+            CreatureId = 40, Name = "Drinker", HappyJobs = [new(JobType.Drink, 0, 0, 100)],
+        };
+        GameDatabase db = Dk2TerrainFixture.Database(drinker);
+        WorldState world = World(db);
+        Treasury(world, new TilePos(1, 3), 2000);
+        RoomRules.Place(db, ref world.Tile(3, 1), db.Room(RoomTypeId.Casino), Keeper);
+        CreatureState paid = world.SpawnCreature(db, 40, Keeper, Floor);
+
+        var sink = new ListEventSink();
+        RunToFirstPayday(Simulation(db, world, sink), db, extraTicks: 200);
+
+        Assert.Equal(250, paid.GoldHeld);
+        Assert.Equal(JobType.Drink, paid.CurrentJob);
+        Assert.Equal(7, paid.Dk2StateId);  // the room walk
+        Assert.Equal(JobRules.StateFor(JobType.Drink), paid.UtilityNewState);
+        Assert.Contains(sink.Events, e => e.Kind == "job_taken"
+            && e.Detail.Contains("job=Drink") && e.Detail.Contains("how=paid"));
+
+        // And the walk starts from 189 itself, not through idle.
+        Assert.Equal(PaydayRules.TakeItState, paid.StateBeforeUtilityState);
+    }
+
+    [Fact]
+    public void APaidGoblinWithNoDrinkInItsHappyTableGoesIdle()
+    {
+        // The Goblin's happy table is Train alone, so 189 returns 0 even with a casino there.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Treasury(world, new TilePos(1, 3), 2000);
+        RoomRules.Place(db, ref world.Tile(3, 1), db.Room(RoomTypeId.Casino), Keeper);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+
+        RunToFirstPayday(Simulation(db, world), db, extraTicks: 200);
+
+        Assert.Equal(250, goblin.GoldHeld);
+        Assert.Equal(JobType.None, goblin.CurrentJob);
+        Assert.Equal(CreatureActivity.Idle, goblin.Activity);
+    }
+
+    [Fact]
     public void HalfAWageGoesInThePurseAndWhatDoesNotFitIsLost()
     {
         // 0x0048AE70(taken / 2): the purse stops at the level-scaled MaxGoldHeld, 5000

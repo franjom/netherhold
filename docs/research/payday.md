@@ -201,9 +201,12 @@ exception. After a successful take it walks the creature's job list (count at
 `creature+0x370 → +0x78B`, entries by `0x004944D0(i)`); if any entry's job byte is
 **9, Drink**, it calls the Drink job's starter `0x004560F0` and returns what that
 returns, a room walk in 7 resuming in 145 (`travel-state-call-sites.md`). So **a
-creature whose job table holds Drink goes to the Casino straight from being paid**.
+creature whose happy table holds Drink goes to the Casino straight from being paid**. The
+list is the happy table: def `+0x628`, six-byte entries with the job at `+5`, its count at
+`+0x78B`, filled by the loader from the three happy entries and rolled by the happy
+chooser `0x004780E0`. Shipped, only heroes have Drink there.
 No keeper's rooms or gold are tested here; the starter's own gates are in
-`job-selection.md`. **Not built** (Q421). The empty take, the missing room and nothing
+`job-selection.md`. **Built** (Q421, ADR-0189). The empty take, the missing room and nothing
 owed all return 0 as well.
 
 **`FUN_00486f80(4)` wipes the pay-anger bucket — CONFIRMED (2026-09-24).** Its

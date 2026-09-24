@@ -188,9 +188,9 @@ public sealed class CreatureJobSystem : ISimulationSystem
     /// not in the log whichever part refused, which is the "logged reasons"
     /// half of M4's seventh item.
     /// </summary>
-    private bool TryTake(
+    private static bool TryTake(
         SimulationContext context, CreatureState creature, CreatureDef definition,
-        JobType job, int roll, string how, bool report)
+        JobType job, int roll, string how, bool report, bool fromCurrentState = false)
     {
         string? refused = JobRules.Refused(context.World, context.Database, definition, creature, job);
         RoomTypeId? wants = JobRules.RoomFor(job);
@@ -203,7 +203,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
             refused = "no_such_job_here";
         }
 
-        if (refused is null && !TrySetOut(context, creature, definition, job, wants!.Value))
+        if (refused is null && !TrySetOut(context, creature, definition, job, wants!.Value, fromCurrentState))
         {
             refused = "no_room";
         }
@@ -230,6 +230,17 @@ public sealed class CreatureJobSystem : ISimulationSystem
         return true;
     }
 
+    /// <summary>State 189's tail (<c>0x004728C3</c>): a creature just paid whose happy table
+    /// holds Drink calls the Drink handler <c>0x004560F0</c>, and goes idle if it refuses
+    /// (<c>payday.md</c> §4.4, Q421, ADR-0189).</summary>
+    internal static bool TryGoGamblingWhenPaid(
+        SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (!definition.HappyJobs.Any(j => j.Job == JobType.Drink)) return false;
+        return TryTake(context, creature, definition, JobType.Drink, roll: -1, how: "paid", report: true,
+            fromCurrentState: true);
+    }
+
     /// <summary>Chooses the room and sets off for it.</summary>
     /// <remarks>The keeper's own rooms only — an ally's library is no use to a
     /// creature, exactly as an ally's hatchery is not. Nearest first by squared
@@ -239,9 +250,9 @@ public sealed class CreatureJobSystem : ISimulationSystem
     /// hatchery and lair walks, down to the arrival tile: an L-shaped room's
     /// centre may not be in it, in which case the walk ends at its lowest
     /// tile.</remarks>
-    private bool TrySetOut(
+    private static bool TrySetOut(
         SimulationContext context, CreatureState creature, CreatureDef definition,
-        JobType job, RoomTypeId wants)
+        JobType job, RoomTypeId wants, bool fromCurrentState = false)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -271,7 +282,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
 
             creature.JobTileIndex = target;
             creature.Activity = CreatureActivity.GoingToJob;
-            SetOutInState(context, creature, job);
+            SetOutInState(context, creature, job, fromCurrentState);
 
             // Standing in it already - a creature that rolls Train while stood
             // in the training room. No walk to make, so it is at work now.
@@ -292,7 +303,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
         Arrive(context, creature, definition, creature.CurrentJob);
     }
 
-    private void Arrive(
+    private static void Arrive(
         SimulationContext context, CreatureState creature, CreatureDef definition, JobType job)
     {
         creature.StopMoving();
@@ -562,10 +573,13 @@ public sealed class CreatureJobSystem : ISimulationSystem
 
     /// <summary>DK2's room helper, called by the job's handler from idle with the job's
     /// state as the resume (ADR-0177): state 7 for a walk, or 1 and then the job state
-    /// when the creature is already in the room (<c>travel-states.md</c> §8).</summary>
-    private static void SetOutInState(SimulationContext context, CreatureState creature, JobType job)
+    /// when the creature is already in the room (<c>travel-states.md</c> §8). From idle, or
+    /// with <paramref name="fromCurrentState"/> from the state the caller is in (189).</summary>
+    private static void SetOutInState(
+        SimulationContext context, CreatureState creature, JobType job, bool fromCurrentState)
     {
-        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
+        if (CreatureStateMachine.HasState(creature) && !fromCurrentState)
+            CreatureStateMachine.Release(creature);
         if (JobRules.StateFor(job) is not int state) return;
 
         StateShadow.FromIdle(creature);

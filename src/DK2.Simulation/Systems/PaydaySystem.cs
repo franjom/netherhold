@@ -329,11 +329,12 @@ public sealed class PaydaySystem : ISimulationSystem
             $"still_owed={creature.WageOwed} " +
             $"at=({creature.Tile.X},{creature.Tile.Y})");
 
-        // Still owed something? The original loops back to its search state and
-        // walks to another tile; so does this, on the next tick, because the
-        // creature goes idle and the decision runs again.
+        // State 189 returns 0, which is idle, and payday's own decision runs again next tick
+        // for anything still owed. Unless the creature's happy table holds Drink: then 189
+        // hands it to the Drink handler, owed or not, which walks from 189 itself (Q421).
         creature.Activity = CreatureActivity.Idle;
         creature.StopMoving();
+        if (CreatureJobSystem.TryGoGamblingWhenPaid(context, creature, definition)) return;
         StateShadow.ToIdle(context, SystemName, creature);
     }
 
