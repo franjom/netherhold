@@ -264,8 +264,9 @@ Each of `MovingToJob`, `GoingToSleep`, `SeekingLair`, `SeekingFood`,
 passes, `+0x40` = the caller's state*. Per activity, the resume id is the helper
 argument at the original's call site. For instance, the lair states call the room
 helper with 80 and 81 (`0x0046F422`, `0x0046F4B0`) and the position helper with 80
-and 82. The full list of 138 helper sites is reproduced by the caller scan and is not
-copied here.
+and 82. All 134 helper sites, and the 45 sites of the Imp's route-or-teleport wrapper
+`0x004651A0` through which every imp walk goes, are tabulated in
+`travel-state-call-sites.md`, with the resume state for each activity (§4 there).
 
 For the transition gate on master (Q414's note on ADR-0174): in DK2 the slot is
 **never unset while a creature is in a travel state**. It is 0 only before the first
