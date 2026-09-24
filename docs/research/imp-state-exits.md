@@ -38,19 +38,19 @@ does the transition established above.
 | 11 | `0x00463DB0` | 3 · 8 | Clears the worker's arrival flag and marks it freshly dropped. | `S(10)`. | If refused → 1. |
 | 12 | `0x00464240` | 3 · 8 | Waits for the idle deadline, occasionally plays an idle interaction, then reselects; while waiting it may start wandering. | Deadline: `S(10)`; waiting: one ignored `S(87)`. | Only refused `S(10)` → 1. |
 | 13 | `0x004654F0` | 3 · 8 | Revalidates a dig task and adjacency; waits if its stance is occupied. | `S(14)` when ready, else `S(10)`. | Refusal → 1. |
-| 14 | `0x004655D0` | 3 · 8 | Holds while the dig action runs; on completion applies the dig, releases the task and may seed the adjacent follow-up. | `S(10)` after completion or invalidation. | Refusal, or failed follow-up allocation after `S(10)`, → 1. |
+| 14 | `0x004655D0` | 3 · 8 | Holds while a swing runs. After it, if the task stands and the tile is still a diggable wall (`0x00453D10`), starts another swing (action 1) and **stays**; once dug, releases the task and seeds the claim-it follow-up (kind 14). | `S(10)` once dug or invalid. | Refusal, or failed follow-up allocation after `S(10)`, → 1. |
 | 15 | `0x00465BC0` | 3 · 8 | Revalidates the plain-floor claim and current tile; waits if obstructed. | `S(16)` when ready, else `S(10)`. | Refusal → 1. |
-| 16 | `0x00465CD0` | 3 · 8 | Holds while claim action 4 runs; on completion removes competing claim tasks, claims the tile and records task kind 3. | `S(10)`. | Refusal → 1. |
+| 16 | `0x00465CD0` | 3 · 8 | Holds while claim action 4 runs; while the task stands and the tile is still claimable (`0x00453FC0`, `0x00453B30`), starts another and **stays**; then removes competing claim tasks and records task kind 3. | `S(10)`. | Refusal → 1. |
 | 17 | `0x00466080` | 3 · 8 | Revalidates an enemy-room claim and, when attackable, begins the room-destruction action. | `S(18)` when ready, else `S(10)`. | Refusal → 1. |
-| 18 | `0x00466180` | 3 · 8 | Holds while action 10 runs; on completion clears the room-tile task chain and releases the task. | `S(10)`. | Refusal → 1. |
+| 18 | `0x00466180` | 3 · 8 | Holds while action 10 runs; while the task stands and `0x00453B30` holds, starts another and **stays**; then clears the room-tile task chain and releases the task. | `S(10)`. | Refusal → 1. |
 | 19 | `0x00465E60` | 3 · 8 | Revalidates an enemy-floor claim. | `S(20)` when ready, else `S(10)`. | Refusal → 1. |
 | 20 | `0x00465F20` | 3 · 8 | Holds while claim action 5 runs; on completion applies ownership/cost side effects. | One **ignored** `S(15)` after completion. | No explicit 0 path. |
 | 21 | `0x004662E0` | 3 · 8 | Revalidates the reinforce task; waits if its stance is occupied. | `S(22)` when ready, else `S(10)`. | Refusal → 1. |
-| 22 | `0x00466390` | 3 · 8 | Holds while reinforce action 7 runs; applies reinforcement and neighbour visual updates, then releases the task. | `S(10)`. | Refusal → 1. |
+| 22 | `0x00466390` | 3 · 8 | Holds while reinforce action 7 runs; while the task stands and the wall still takes it (`0x00453DC0`, `0x00453B30`), starts another and **stays**; then neighbour visual updates and releases the task. | `S(10)`. | Refusal → 1. |
 | 23 | `0x00466660` | 3 · 8 | Revalidates the wall-repair task; waits if its stance is occupied. | `S(24)` when ready, else `S(10)`. | Refusal → 1. |
-| 24 | `0x00466710` | 3 · 8 | Holds while repair action 8 runs; applies the repair and releases the task. | `S(10)`. | Refusal → 1. |
+| 24 | `0x00466710` | 3 · 8 | Holds while repair action 8 runs; while the task stands and `0x00453E30` holds, starts another and **stays**; then releases the task. | `S(10)`. | Refusal → 1. |
 | 25 | `0x00465790` | 3 · 8 | Revalidates a mining task and adjacency; waits if its stance is occupied. | `S(26)` when ready, else `S(10)`. | Refusal → 1. |
-| 26 | `0x00465870` | 3 · 8 | Holds while mining action 2 runs. Before another strike, a nearly full imp tries `G`; otherwise it applies the strike, releases an exhausted seam and accounts for loose gold. | `G` → state 6/51 with resume 28; `S(10)` after invalidation or the completed strike. | Refusal or a failed post-strike follow-up → 1. |
+| 26 | `0x00465870` | 3 · 8 | Holds while mining action 2 runs. Before another strike, a nearly full imp tries `G`; otherwise, while the seam still passes `0x00453D80`, starts another strike and **stays**; an exhausted seam is released. | `G` → state 6/51 with resume 28; `S(10)` after invalidation or the completed strike. | Refusal or a failed post-strike follow-up → 1. |
 | 27 | `0x00466850` | 3 · 8 | Removes the floor-gold task and takes matching nearby piles up to the level-scaled carrying limit. | With gold, `G` → resume 28; otherwise `S(10)`. | If both `G` and `S(10)` fail, or final `S(10)` fails → 1. |
 | 28 | `0x00466A40` | 3 · 8 | Waits for a free standing point at the chosen store tile. | `S(29)` when free. | Refusal → 1. |
 | 29 | `0x00466AC0` | 3 · 8 | Rechecks that the tile stores this keeper's gold, deposits what fits and emits the deposit effect. | `S(10)` after a deposit. | Invalid store, or refused `S(10)`, → 1. |
@@ -103,18 +103,20 @@ result or tests it.
 
 ### Work loops
 
-The ordinary per-application loop is not a persistent work state:
+**The even state is a persistent work state; reselection is per tile, not per
+strike.** Corrected 2026-09-24 (Q420): the first draft of this note read "action
+over" as "work over".
 
 ```text
-10 selection → 6 walk (or 51 → 52 teleport) → odd entry → even action → 10
+10 selection → 6 walk (or 51 → 52 teleport) → odd entry → even action, repeated → 10
 ```
 
-Dig is 13 → 14 → 10; mine is 25 → 26 → 10. The action state may hold across
-ticks while its creature action runs. State 10 can select the same task again,
-so the next strike repeats the whole loop. Mining instead branches from 26
-through `G` to state 6/51 with resume 28 when the next load would not fit; then
-28 → 29 → 10 deposits it. This contradicts the built `Working` activity, which
-keeps one target across repeated applications (Q420).
+Each even state holds while its creature action runs. When the action ends it
+re-tests the task and the tile; while both still stand it starts the next action
+and returns 1, staying where it is. Only a finished tile or a gone task sets 10.
+Dig is 13 → 14 (every swing) → 10; mine is 25 → 26 (every strike) → 10, except
+that before a strike a nearly full imp branches through `G` to 6/51 resuming in
+28, then 28 → 29 → 10. This is the shape of the built `Working` activity.
 
 ### The body chain
 
@@ -132,7 +134,7 @@ body down and releases the imp. Thus 46 is carrier cleanup after admission, and
 | our activity | DK2 states over the same span | boundary with no DK2 counterpart |
 |---|---|---|
 | `MovingToJob` | 10 chooses; 6 walks (or 51 → 52 teleports); resumes 13/25/15/19/17/21/23/38. | Ours begins after selection; DK2's state 10 is separate. |
-| `Working` | 13→14 dig, 25→26 mine, 15→16 claim, 19→20 enemy claim, 17→18 room destruction, 21→22 reinforce, 23→24 repair, 38→39 kind 11; each completed application returns to 10 (39 via dispatcher state 1). | Ours persists across applications; DK2 reselects between them (Q420). |
+| `Working` | 13→14 dig, 25→26 mine, 15→16 claim, 19→20 enemy claim, 17→18 room destruction, 21→22 reinforce, 23→24 repair, 38→39 kind 11; each even state repeats its action until the tile is done, then returns to 10 (39 via dispatcher state 1). | None: both persist across applications (Q420). |
 | `FetchingGold` | 10 → 6/51 → 27. | None beyond folded state 10 and travel protocol. |
 | `DeliveringGold` | `G`: 6/51 → 28 → 29 → 10, entered from 10, 26, 27 or 76. | Ours has no separate arrival/deposit boundary 28 → 29. |
 | `FetchingBody` | Corpse: 10 → 6/51 → 40. Casualty: 10 → 6/51 → 42. | Ours folds the pickup handler (40/42) into the activity's arrival tick. |
@@ -142,5 +144,5 @@ body down and releases the imp. Thus 46 is carrier cleanup after admission, and
 
 ## 5. Open consequence
 
-Q420 records the built work-loop mismatch. No behavior, source, test, hash or
-format version is changed by this research.
+Q420 asked whether the built work loop is wrong; it is not. No behaviour, source,
+test, hash or format version is changed by this research.
