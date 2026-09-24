@@ -53,25 +53,15 @@ public sealed class CreatureStateTransitionsTests
         Assert.Equal(StateTransition.Allowed, Classify(207, 216));
     }
 
-    /// <summary>"Anything dies out of anything" is nearly true, and precisely not.
-    /// Inside group 3 the passthrough admits it; outside, Dying's entry mask is all ones.
-    /// But the mask is tested against the <i>source</i> category's bit, and record 0's bit
-    /// is permanently zero because nothing in the program writes it
-    /// (`state-categories.md` §3) — so the Refused states outside group 3 can never enter
-    /// Dying. This pins that consequence, which is the zero bit's only visible effect so
-    /// far.</summary>
+    /// <summary>"Anything dies out of anything" holds. Inside group 3 the passthrough admits
+    /// it; outside, Dying's entry mask is all ones, tested against the source category's
+    /// bit, and record 0's bit is 1 from the file's initialised data (ADR-0195). The rule
+    /// read with that bit at 0 left 45 Refused states that could not die.</summary>
     [Fact]
-    public void EveryStateCanEnterDyingExceptThoseWhoseCategoryBitIsNeverWritten()
+    public void EveryStateCanEnterDyingTheRefusedCategoryIncluded()
     {
-        int[] refused = Enumerable.Range(0, CreatureStateTable.Count)
-            .Where(id => Classify(id, 216) != StateTransition.Allowed)
-            .ToArray();
-
-        Assert.All(refused, id => Assert.Equal(
-            CreatureStateCategory.Refused, CreatureStateTable.Get(id).Category));
-        Assert.All(refused, id => Assert.NotEqual(
-            CreatureStateTransitions.PassthroughGroup, CreatureStateTable.Get(id).Group));
-        Assert.Equal(45, refused.Length);
+        Assert.All(Enumerable.Range(0, CreatureStateTable.Count),
+            id => Assert.Equal(StateTransition.Allowed, Classify(id, 216)));
     }
 
     /// <summary>Differing tags now resolve, on the target's entry mask against the bit of
@@ -143,7 +133,7 @@ public sealed class CreatureStateTransitionsTests
         }
 
         Assert.Equal(78680, allowed + refused);
-        Assert.Equal(37791, allowed);
-        Assert.Equal(40889, refused);
+        Assert.Equal(46534, allowed);
+        Assert.Equal(32146, refused);
     }
 }

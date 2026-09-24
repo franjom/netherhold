@@ -77,16 +77,20 @@ exception. The transition routine indirects through it twice — `index[index[t]
 this project's took the double indirection to mean `+0x38` named a
 *representative* category; it does not.
 
-**Record 0's bit is zero, and nothing writes it.** The fill run stores 511 of
-the 512 dwords and never `0x00699688`. A whole-program reference scan confirms
-it: fourteen instructions **read** that address, across three functions, and not
-one writes it. So the refused category's bit is permanently `0`.
+**Record 0's bit is 1, and it comes from the file.** The fill run stores 511 of
+the 512 dwords and never `0x00699688`, and no instruction writes it; fourteen read
+it. It needs no writer: the table sits in initialised `.data`, and the file holds
+`0x00000001` there, while every other record's bit is 0 in the file and set by the
+filler. So every bit is `1 << index`, category 0's included. (Corrected 2026-09-24,
+ADR-0195: this section said the bit was permanently 0, having read "no writer" as
+"zero". The owner's Mistress, who whips, leaves and eats, did not fit.)
 
-The consequence is load-bearing. The mask test is `bit[from] & mask[target]`, so
-a creature whose current category is 0 can never be admitted by a mask — and
-several masks *do* name category 0 (bit 0 set), which means **those bits can
-never fire**. Whether that is deliberate or a shipped defect is UNKNOWN; the
-behaviour is the same either way, and this project reproduces it.
+The consequence is load-bearing. The mask test is `bit[from] & mask[target]`, so a
+creature in category 0 is admitted by every mask that names bit 0, idle's all-ones
+mask among them. What category 0 still refuses is its own group: a target of
+category 0 in the same group is refused by the equal-tags branch. That is why 128
+and 129 hop through idle (`SetState(1)`, then the other) rather than moving
+directly.
 
 ## 4. The entry mask — `+0x34`
 
@@ -162,7 +166,7 @@ the enter, update and leave hooks are set. The addresses are §7.1.
 
 | Cat | Our name | bit | mask | E | U | L | `+0x3c` |
 |---:|---|---|---|:-:|:-:|:-:|---:|
-| 0 | Refused | `0` | `0x00000000` | . | . | Y | 2 |
+| 0 | Refused | `0x00000001` | `0x00000000` | . | . | Y | 2 |
 | 1 | Idle | `0x00000002` | `0xFFFFFFFF` | . | . | . | 5 |
 | 2 | Movement | `0x00000004` | `0x00000000` | . | . | . | 5 |
 | 3 | WorkerJob | `0x00000008` | `0x00000003` | . | . | Y | 29 |
@@ -319,7 +323,7 @@ its owner has won. The individual state handlers remain the route to a name.
 
 `CreatureStateCategoryTable` carries all 32 records — bit, entry mask, whether
 each hook exists, and `+0x3c` — generated from this note's dump, and
-`CreatureStateCategoryTableTests` re-asserts §1's checks and §3's two anomalies.
+`CreatureStateCategoryTableTests` re-asserts §1's checks and §3's two findings.
 `CreatureStateTransitions` is now complete: with the mask in hand, **every one of
-the 78,680 ordered pairs of distinct states resolves**, 37,791 allowed and
-40,889 refused, and `NeedsCategoryTable` is gone.
+the 78,680 ordered pairs of distinct states resolves**, 46,534 allowed and
+32,146 refused (ADR-0195), and `NeedsCategoryTable` is gone.

@@ -104,7 +104,7 @@ double indirection through it collapses; **the records, the mask's direction and
 that identity have one home, `state-categories.md`** (Q300).
 
 **Coverage.** Both halves now resolve: **all 78,680** ordered pairs of distinct
-states are decided, 37,791 allowed and 40,889 refused. The two state bytes alone
+states are decided, 46,534 allowed and 32,146 refused (ADR-0195). The two state bytes alone
 settled 20,628 of them; the category records decide the rest.
 
 ## 3. The labels — CONFIRMED

@@ -425,16 +425,23 @@ public class CreatureStateMachineTests
     }
 
     [Fact]
-    public void TortureIsOffStateIdsBecauseItsStateCannotDropToIdleAndTheWayOutIsUnread()
+    public void ATorturersStatesReachEachOtherOnlyThroughIdle()
     {
-        // Q419. The torture handler resumes in 127, which is in the Refused category, and
-        // the rule refuses 127 to 1 - so a torturer leaves by some move nobody has read.
-        // Building the job on 127 would mean inventing that move.
-        const int Torturing = 127;
-        Assert.Null(JobRules.StateFor(JobType.Torture));
-        Assert.Equal(CreatureStateCategory.Refused, CreatureStateTable.Get(Torturing).Category);
-        Assert.Equal(StateTransition.Refused,
-            CreatureStateTransitions.Classify(Torturing, Idle, Idle));
+        // Q419, Q426. 127, 128 and 129 are group 8, category 0: the equal-tags branch
+        // refuses a category-0 target in the same group, so 128 and 129 hop through idle,
+        // SetState(1) then the other, as their handlers do. With category 0's bit at 1
+        // (ADR-0195) each drops to idle, so a torturer can stop, eat and die.
+        const int Torturing = 127, Facing = 128, Whipping = 129;
+        foreach (int state in new[] { Torturing, Facing, Whipping })
+        {
+            Assert.Equal(CreatureStateCategory.Refused, CreatureStateTable.Get(state).Category);
+            Assert.Equal(StateTransition.Allowed, CreatureStateTransitions.Classify(state, Idle, Idle));
+        }
+
+        Assert.Equal(StateTransition.Refused, CreatureStateTransitions.Classify(Facing, Whipping, Idle));
+        Assert.Equal(StateTransition.Refused, CreatureStateTransitions.Classify(Whipping, Facing, Idle));
+        Assert.Equal(StateTransition.Allowed, CreatureStateTransitions.Classify(Idle, Whipping, Idle));
+        Assert.Equal(StateTransition.Allowed, CreatureStateTransitions.Classify(Idle, Facing, Idle));
     }
 
     [Fact]

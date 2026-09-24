@@ -29,25 +29,23 @@ public sealed class CreatureStateCategoryTableTests
         }
     }
 
-    /// <summary>Every category's bit is <c>1 &lt;&lt; index</c> — except the refused one,
-    /// whose bit the program never writes. A whole-program scan finds 511 of the 512 dwords
-    /// stored and that one absent, while fourteen instructions read it.</summary>
+    /// <summary>Every category's bit is <c>1 &lt;&lt; index</c>, the refused one's included.
+    /// The filler stores 511 of the 512 dwords and not that one, because the file already
+    /// holds 1 there in initialised <c>.data</c> (ADR-0195; it was read as 0 for want of a
+    /// writer).</summary>
     [Fact]
-    public void EveryBitIsOneShiftedExceptTheRefusedCategoryWhichHasNone()
+    public void EveryBitIsOneShiftedTheRefusedCategorysFromTheFile()
     {
-        Assert.Equal(0u, CreatureStateCategoryTable.Get(CreatureStateCategory.Refused).Bit);
-
-        for (int i = 1; i < CreatureStateCategoryTable.Count; i++)
+        for (int i = 0; i < CreatureStateCategoryTable.Count; i++)
         {
             Assert.Equal(1u << i, CreatureStateCategoryTable.All[i].Bit);
         }
     }
 
-    /// <summary>The consequence of that missing bit: several entry masks name the refused
-    /// category, and not one of those bits can ever match, because the bit tested against
-    /// them is zero. A mask bit that can never fire.</summary>
+    /// <summary>Several entry masks name the refused category, and each admits it: a
+    /// creature in category 0 may leave for idle, dying, eating and the rest.</summary>
     [Fact]
-    public void MasksThatNameTheRefusedCategoryCanNeverAdmitIt()
+    public void MasksThatNameTheRefusedCategoryAdmitIt()
     {
         ref readonly CreatureStateCategoryDef refused =
             ref CreatureStateCategoryTable.Get(CreatureStateCategory.Refused);
@@ -60,8 +58,7 @@ public sealed class CreatureStateCategoryTableTests
 
         foreach (CreatureStateCategoryDef d in naming)
         {
-            // The mask names it, yet the mask test cannot admit it.
-            Assert.Equal(d.EntryMask == 0, d.AdmitsFrom(refused));
+            Assert.True(d.AdmitsFrom(refused));
         }
     }
 

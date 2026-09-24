@@ -23,7 +23,7 @@ public static class CreatureStateCategoryTable
     //                              category        bit          entry mask   enter   update  leave  +3c
     private static readonly CreatureStateCategoryDef[] Rows =
     {
-        new CreatureStateCategoryDef(Cat.Refused,       0x00000000u, 0x00000000u, false, false, true,    2),
+        new CreatureStateCategoryDef(Cat.Refused,       0x00000001u, 0x00000000u, false, false, true,    2),
         new CreatureStateCategoryDef(Cat.Idle,          0x00000002u, 0xFFFFFFFFu, false, false, false,   5),
         new CreatureStateCategoryDef(Cat.Movement,      0x00000004u, 0x00000000u, false, false, false,   5),
         new CreatureStateCategoryDef(Cat.WorkerJob,     0x00000008u, 0x00000003u, false, false, true,   29),

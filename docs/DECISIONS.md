@@ -4351,3 +4351,16 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Also read: 116's way back to 115 (a roll under 20 when no action plays), state 76's placement dispatch (it zeroes `TorturedDuration` for a creature the map puts on a device; 77 does not), and the Mistress's whip, 128 ↔ 129 with action 63, cosmetic.
 - `HashVersion` and `FormatVersion` **99**, pin `0xD079580BE0144072`.
 
+## ADR-0195 — Category 0's admission bit is 1, from the file
+**Date:** 2026-09-24 · **Status:** accepted · corrects ADR-0135 point 4 and `state-categories.md` §3 · Research: `state-categories.md` §3, `state-category-hooks.md` §3.3
+
+**Context.** The rule read the refused category's bit as permanently 0 because no instruction writes `0x00699688`. By that rule a Mistress who reached a victim could not whip it, drop to idle, eat or even die, and the owner says she whips, stops and leaves like any creature (Q426). The table is in initialised `.data`, and the file holds `0x00000001` there; the filler writes the other 511 dwords, whose file bytes are 0.
+
+**Decision.** Every category's bit is `1 << index`, category 0's included. The generated `CreatureStateCategoryTable` carries it, and the generator now asserts it.
+
+**Consequences.**
+- The split of the 78,680 ordered pairs moves from 37,791 allowed and 40,889 refused to **46,534 and 32,146**. All 281 states may now enter dying.
+- What category 0 still refuses is a category-0 target in its own group, which is why the torturer's 128 and 129 hop through idle.
+- No hashed state or pin moves: nothing built yet enters a category-0 state. `HashVersion` stays 99.
+- The lesson, for the record: a value with no writer can still be set, by the file.
+

@@ -192,7 +192,7 @@ def emit_category_table(cats, CATEGORY_NAME):
     for i, c in cats.items():
         assert c["name"] == CATEGORY_NAME[i], \
             "category %d: the note calls it %s, this script %s" % (i, c["name"], CATEGORY_NAME[i])
-        want = 0 if i == 0 else (1 << i)
+        want = 1 << i
         assert c["bit"] == want, "category %d: bit is 0x%X, expected 0x%X" % (i, c["bit"], want)
 
     rows = []
