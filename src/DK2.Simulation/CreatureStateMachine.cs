@@ -190,7 +190,46 @@ public static class CreatureStateMachine
 
             creature.StateBeforeUtilityState = creature.Dk2StateId;
         }
+        else if (EntersCategory(creature, stateId))
+        {
+            // The target's enter hook: every countdown hook's seeds its byte with variable 19.
+            creature.HookCountdown = HookCountdownSeed;
+        }
 
         creature.Dk2StateId = stateId;
+    }
+
+    /// <summary>Whether <c>SetState</c> runs the target's enter hook (<c>travel-states.md</c> §3):
+    /// judged against the current state's category, or the saved caller's when leaving a walk,
+    /// so a walk between two states of one category runs none.</summary>
+    private static bool EntersCategory(CreatureState creature, int stateId)
+    {
+        if (!HasState(creature)) return true;
+        CreatureStateDef current = CreatureStateTable.Get(creature.Dk2StateId);
+        int from = current.IsUtility ? creature.StateBeforeUtilityState : creature.Dk2StateId;
+        if (from < 0) return true;
+        return CreatureStateTable.Get(from).Category != CreatureStateTable.Get(stateId).Category;
+    }
+
+    /// <summary>What every countdown hook's enter hook seeds and most reload: variable 19,
+    /// DK2's four turns a game second (<c>training.md</c> §3).</summary>
+    public const int HookCountdownSeed = SimulationTiming.OriginalTicksPerGameSecond;
+
+    /// <summary>One turn of a countdown hook (Casino, Spectating, Training, Temple, Torture,
+    /// Prison): nonzero, it counts down and the hook does nothing; at zero it reloads with
+    /// <paramref name="reload"/> and the hook acts. So the effect lands every reload + 1
+    /// turns, the first on the fifth turn after entry (Q424, ADR-0192). Called once a turn
+    /// while the creature's <see cref="UpdatingCategory"/> is the hook's.</summary>
+    public static bool HookFires(CreatureState creature, int reload)
+    {
+        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (creature.HookCountdown != 0)
+        {
+            creature.HookCountdown--;
+            return false;
+        }
+
+        creature.HookCountdown = reload;
+        return true;
     }
 }

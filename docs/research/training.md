@@ -69,8 +69,8 @@ award = (creature.level == 1)
 
 AddExperienceClamped(creature, award)          -- every tick
 
-if (--creature.goldCountdown != 0) return success
-creature.goldCountdown = variable19            -- so: once a game second
+if (creature.goldCountdown != 0) { creature.goldCountdown--; return success }
+creature.goldCountdown = variable19   -- so every 5th turn, not every 4th (Q424)
 if (keeper.gold < trainingCostPerSecond) { message 0x37; return failure }
 spend(trainingCostPerSecond) at the creature's tile
 if (++creature.chargeCount == 4) { pop a floating "-20"; chargeCount = 0 }

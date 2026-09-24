@@ -549,11 +549,11 @@ public sealed class CreatureState
     /// unconditionally. Nothing writes it here yet (ADR-0135, ADR-0175).</para></summary>
     public int UtilityNewState;
 
-    /// <summary>Ticks until the prison takes its next bite, DK2's state byte <c>+0xAB</c>
-    /// for the prison category. The enter hook sets it and the update hook reloads it with
-    /// <c>variable19 &lt;&lt; 2</c>, so the phase is the moment of imprisonment and two
-    /// prisoners taken a second apart wither on different seconds (ADR-0171).</summary>
-    public int PrisonWitherTicks;
+    /// <summary>The countdown of the category update hook the creature is under, DK2's state
+    /// bytes <c>+0xAB</c>, <c>+0xAC</c>, <c>+0xAF</c>, <c>+0xB0</c> and <c>+0xB3</c>: one per
+    /// category, only one live at a time, so one field. Seeded by entering the category and
+    /// run by <see cref="CreatureStateMachine.HookFires"/> (Q424, ADR-0192).</summary>
+    public int HookCountdown;
 
     /// <summary>Ticks until a rebelling creature with no reachable Portal defects to the
     /// hero side, or 0 when it is not rebelling. DK2 keeps the same clock the other way
@@ -802,7 +802,7 @@ public sealed class CreatureState
         hash.Add(Dk2StateId);
         hash.Add(StateBeforeUtilityState);
         hash.Add(UtilityNewState);
-        hash.Add(PrisonWitherTicks);
+        hash.Add(HookCountdown);
         hash.Add(RebelCountdownTicks);
         hash.Add(RebelAgainstPlayerId);
         hash.Add(TargetTileIndex);

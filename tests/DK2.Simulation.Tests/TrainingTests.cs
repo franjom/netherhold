@@ -207,13 +207,13 @@ public sealed class TrainingTests
     // ---- the bill ---------------------------------------------------------
 
     [Fact]
-    public void TrainingBillsTheKeeperFiveGoldEveryGameSecond()
+    public void TrainingBillsTheKeeperFiveGoldEveryFifthTurn()
     {
         // ModifyPlayerColdWhileTrainingPerSecond is -5, "Cold" is the shipped
         // spelling of gold, and the original negates the tabled figure before
-        // spending it. Charged once a game second on a countdown reloaded from
-        // variable 19 - so per second, not per tick, even though the experience
-        // is per tick.
+        // spending it. Charged on a countdown seeded and reloaded from variable 19,
+        // which acts on the turn after it reaches zero: turns 4, 9, 14 ... (Q424). So 16
+        // charges in 20 seconds, not 20, while the experience is every turn.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = Trainee(db, world, gold: 1000);
@@ -222,7 +222,7 @@ public sealed class TrainingTests
 
         Simulation(db, world).Run(Second * 20);
 
-        Assert.Equal(1000 - (20 * 5), GoldStore.Total(world, Keeper));
+        Assert.Equal(1000 - (16 * 5), GoldStore.Total(world, Keeper));
         Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
     }
 
@@ -239,14 +239,14 @@ public sealed class TrainingTests
         var events = new ListEventSink();
         GameSimulation sim = Simulation(db, world, events);
 
-        // Three seconds is exactly the money.
-        sim.Run(Second * 3);
+        // Three charges, on turns 4, 9 and 14, are exactly the money.
+        sim.Run(15);
         Assert.Equal(0, GoldStore.Total(world, Keeper));
         Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
-        Assert.Equal(120, goblin.ExperiencePoints);
+        Assert.Equal(150, goblin.ExperiencePoints);
 
-        // The fourth second cannot be paid for, and the job ends.
-        sim.Run(Second);
+        // The fourth, on turn 19, cannot be paid for, and the job ends.
+        sim.Run(5);
         Assert.Equal(CreatureActivity.Idle, goblin.Activity);
         Assert.Equal(JobType.None, goblin.CurrentJob);
 
@@ -265,10 +265,11 @@ public sealed class TrainingTests
         WorldState world = World(db);
         CreatureState goblin = Trainee(db, world, gold: 4);
 
-        Simulation(db, world).Run(Second);
+        // The first charge is on the fifth turn, and it fails.
+        Simulation(db, world).Run(5);
 
         Assert.Equal(CreatureActivity.Idle, goblin.Activity);
-        Assert.Equal(40, goblin.ExperiencePoints);
+        Assert.Equal(50, goblin.ExperiencePoints);
         Assert.Equal(4, GoldStore.Total(world, Keeper));
     }
 

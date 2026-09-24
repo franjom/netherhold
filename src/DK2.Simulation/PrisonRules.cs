@@ -356,11 +356,6 @@ public static class PrisonRules
         CreatureStateMachine.Begin(creature, dropped ? DroppedState : AdmittedState);
         CreatureStateMachine.TrySetState(creature, DecidingState);
 
-        // DK2's prison enter hook sets the countdown, so the phase is the moment of
-        // imprisonment: two prisoners taken a second apart wither on different seconds.
-        creature.PrisonWitherTicks =
-            WitherIntervalSeconds * SimulationTiming.TicksPerSecond;
-
         creature.TargetTileIndex = -1;
         creature.TargetWork = default;
         creature.TimerTicks = 0;
@@ -399,9 +394,12 @@ public static class PrisonRules
             ? database[VariableTypeId.PrisonModifyCreatureHealthPerSecond]
             : 0;
 
-    /// <summary>Game seconds between one bite and the next: <b>four</b>, DK2's
-    /// <c>variable19 &lt;&lt; 2</c> reload of the prison category's countdown.</summary>
+    /// <summary>Game seconds' worth in one bite: <b>four</b>, DK2's <c>variable19 &lt;&lt; 2</c>.</summary>
     public const int WitherIntervalSeconds = 4;
+
+    /// <summary>The Prison hook's reload, <c>variable19 &lt;&lt; 2</c> = 16, so a bite every 17
+    /// turns, the first on the fifth after entering the category (Q424, ADR-0192).</summary>
+    public const int WitherReload = CreatureStateMachine.HookCountdownSeed * WitherIntervalSeconds;
 
     /// <summary>What one bite takes off — four seconds' worth in a lump, so -12.</summary>
     public static int WitherPerApplication(

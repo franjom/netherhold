@@ -397,7 +397,7 @@ public class PrisonTests
     // ---- withering --------------------------------------------------------
 
     [Fact]
-    public void APrisonerWakesAtOneSixthAndLosesTwelveHealthEveryFourthSecond()
+    public void APrisonerWakesAtOneSixthAndLosesTwelveHealthEverySeventeenthTurn()
     {
         // CONFIRMED (owner, 2026-09-05, Q167): "its flower gets two petals, and
         // then that creature starts loosing health at some standard rate". Read,
@@ -416,24 +416,26 @@ public class PrisonTests
             captive.Health);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 10 * Second; i++) sim.Tick();
 
-        // Twelve at a time on the fourth second and the eighth, not three on each of
-        // ten: the hook reloads variable19 << 2, so the average matches the shipped
-        // -3 a second and the moment does not (ADR-0171). Ten seconds in, two bites
-        // have landed and the third is two seconds away.
+        // Twelve at a time, not three a second: the hook reloads variable19 << 2 (ADR-0171).
+        // It bites on the fifth turn after entry and then every 17 (Q424): turns 4, 21, 38.
+        for (int i = 0; i < 4; i++) sim.Tick();
+        Assert.Equal(250, captive.Health);
+        sim.Tick();
+        Assert.Equal(250 - 12, captive.Health);
+        for (int i = 0; i < 16; i++) sim.Tick();
+        Assert.Equal(250 - 12, captive.Health);
+        sim.Tick();
         Assert.Equal(250 - 24, captive.Health);
     }
 
     [Fact]
-    public void ACapturedGoblinIsASkeletonInEightyThreeGameSeconds()
+    public void ACapturedGoblinIsASkeletonInEightySixGameSeconds()
     {
-        // The whole clock end to end. A Goblin knocked out sits at 1500/6 = 250,
-        // and PrisonModifyCreatureHealthPerSecond is -3, so it has 83 seconds -
-        // not the 100 this test asserted while the arrival health was a guessed
-        // 20%, and not the 500 a full-health prisoner would have had. That is
-        // the difference between a prison being an urgent decision and a
-        // forgettable one, and it is why a keeper reaches for a chicken.
+        // The whole clock end to end. A Goblin knocked out sits at 1500/6 = 250, and a
+        // bite is 4 x -3 = -12, so the 21st bite finishes it. The Prison hook bites on the
+        // fifth turn after entry and then every 17 (reload 16, Q424): turn 4 + 17 x 20 =
+        // 344, so 86.25 seconds, not the 83 a bite every four seconds from zero gave.
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
@@ -441,10 +443,10 @@ public class PrisonTests
         int captiveId = captive.Id;
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 82 * Second; i++) sim.Tick();
+        for (int i = 0; i < 344; i++) sim.Tick();
         Assert.NotNull(world.CreatureById(captiveId));
 
-        for (int i = 0; i < 2 * Second; i++) sim.Tick();
+        sim.Tick();
         Assert.Null(world.CreatureById(captiveId));
 
         CreatureState skeleton = Assert.Single(world.Creatures);
@@ -1156,19 +1158,24 @@ public class PrisonTests
     /// the same creature on the same tick.
     /// </summary>
     [Fact]
-    public void AWanderingPrisonerKeepsTheSameEightyThreeSecondClock()
+    public void AWanderingPrisonerKeepsTheSameClock()
     {
+        // Its steps are walks between two captive states, so the hook keeps running and its
+        // countdown is never reseeded: the same 345 turns as a prisoner standing still. The
+        // 5x5, so it has somewhere to step.
         GameDatabase db = Db;
         WorldState world = World(db);
-        Prison(db, world);
+        BigPrison(db, world);
         CreatureState captive = Prisoner(db, world, CellB);
         int captiveId = captive.Id;
 
-        GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 82 * Second; i++) sim.Tick();
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+        for (int i = 0; i < 344; i++) sim.Tick();
         Assert.NotNull(world.CreatureById(captiveId));
+        Assert.Contains(sink.Events, e => e.Kind == "prisoner_stepped");
 
-        for (int i = 0; i < 2 * Second; i++) sim.Tick();
+        sim.Tick();
         Assert.Null(world.CreatureById(captiveId));
     }
 

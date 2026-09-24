@@ -4306,3 +4306,19 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - A gate probe and five trace tests. Negative controls, one at a time: the drain by activity, a step from 116, no arrival, no 117, no 116 after an empty search, and a freed captive keeping its state each fail a named test.
 - `HashVersion` and `FormatVersion` **96**, pin `0xA2D20DF5116200CB`.
 
+## ADR-0192 — The countdown hooks act every fifth turn from entry
+**Date:** 2026-09-24 · **Status:** accepted · closes the build half of Q424 · Research: `docs/research/state-category-hooks.md` §4, `travel-states.md` §3
+
+**Context.** Six category update hooks keep a countdown byte: Casino, Spectating, Training's charge, Temple, Torture and Prison. Each tests the byte and, while it is nonzero, decrements it and returns; at zero it reloads and acts. The enter hooks seed it with variable 19 (four). So a hook acts on the fifth turn after entry and every reload + 1 turns after that. Ours ran them on the global second.
+
+**Decision.**
+1. **`CreatureState.HookCountdown`**, one field standing for DK2's per-category bytes, of which only one is live at a time. It is seeded in the state machine's `Enter` whenever `SetState` would run an enter hook: the target's category differs from the current state's, or from the saved caller's when leaving a walk. A walk inside one category keeps the countdown.
+2. **`CreatureStateMachine.HookFires(creature, reload)`** is one turn of the idiom. Casino, Spectating, Temple and Training's charge reload 4, so they act every fifth turn. Prison reloads 16, so it bites every seventeenth, and its drain now runs every turn rather than on the second.
+3. **`PrisonWitherTicks` is gone**, replaced by the general countdown.
+
+**Consequences.**
+- Every one of these effects is 20 % slower than before and phased from the creature's own entry. Shipped: Training costs 4 gold a second, not 5; a captured Goblin becomes a Skeleton in 86.25 s, not 83.
+- Still inferred: that variable 19 is 4 and that the dispatcher runs once a turn. Q424 names the world-log check.
+- Negative controls, one at a time: reseeding on every state, a period of N, Prison every fifth turn, and no seed each fail a named test.
+- `HashVersion` and `FormatVersion` **97**, pin `0x99249045AA085298`.
+

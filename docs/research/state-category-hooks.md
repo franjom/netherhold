@@ -207,5 +207,6 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   each test the byte, decrement and return while it is nonzero, and at zero reload and
   act. The enter hooks seed it with variable 19 (four). So the effect lands on the fifth
   turn after entry and every fifth turn after that, and Prison's `4 × v19` reload makes it
-  every seventeenth. `training.md`'s `--countdown` reading is wrong on this point. Ours
-  runs all of them on the global second.
+  every seventeenth. The Temple's `+0xAF` (`0x0047B970`, seeded by `0x0047B8C0`) is the
+  same. **Built** (ADR-0192): one countdown per creature, seeded when `SetState` runs an
+  enter hook, so a walk inside one category keeps it.

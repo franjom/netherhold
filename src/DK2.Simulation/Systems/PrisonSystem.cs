@@ -26,11 +26,13 @@ public sealed class PrisonSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
+        // The drain is the Prison hook, which the dispatcher runs every turn (ADR-0192).
+        Wither(context);
         if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
 
         FreeThoseWhoseCellIsGone(context);
         BreakOutTheOvercrowded(context);
-        Wither(context);
+        SlayTheFallen(context);
     }
 
     /// <summary>A prisoner standing anywhere but on a tile of a prison belonging to
@@ -145,14 +147,7 @@ public sealed class PrisonSystem : ISimulationSystem
             CreatureState creature = world.Creatures[i];
             if (!PrisonRules.IsImprisoned(creature)) continue;
             if (HandRules.IsHeld(creature)) continue;
-
-            // Out of health before the drain reached it, so the drain is not what
-            // killed it: a slain captive leaves a body, not a Skeleton (ADR-0140).
-            if (creature.Health <= 0)
-            {
-                Slain(context, creature);
-                continue;
-            }
+            if (creature.Health <= 0) continue;   // SlayTheFallen's, on the second
 
             // Read here rather than once above, so that a level with no prison
             // does not demand a variable that only a prison needs. The synthetic
@@ -170,10 +165,7 @@ public sealed class PrisonSystem : ISimulationSystem
 
             // The countdown runs whatever the creature is, so a Skeleton's phase is the
             // same as anyone's; only what lands when it fires depends on the record.
-            creature.PrisonWitherTicks -= SimulationTiming.TicksPerSecond;
-            if (creature.PrisonWitherTicks > 0) continue;
-            creature.PrisonWitherTicks =
-                PrisonRules.WitherIntervalSeconds * SimulationTiming.TicksPerSecond;
+            if (!CreatureStateMachine.HookFires(creature, PrisonRules.WitherReload)) continue;
 
             int wither = PrisonRules.WitherPerApplication(context.Database, definition);
             if (wither == 0) continue;   // never eats, never withers - Q173
@@ -188,6 +180,19 @@ public sealed class PrisonSystem : ISimulationSystem
             if (creature.Health > 0) continue;
 
             Raise(context, creature);
+        }
+    }
+
+    /// <summary>Out of health before the drain reached it, so the drain is not what killed it:
+    /// a slain captive leaves a body, not a Skeleton (ADR-0140). Once a game second.</summary>
+    private static void SlayTheFallen(SimulationContext context)
+    {
+        WorldState world = context.World;
+        for (int i = world.Creatures.Count - 1; i >= 0; i--)
+        {
+            CreatureState creature = world.Creatures[i];
+            if (!PrisonRules.IsImprisoned(creature) || HandRules.IsHeld(creature)) continue;
+            if (creature.Health <= 0) Slain(context, creature);
         }
     }
 

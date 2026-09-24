@@ -245,10 +245,10 @@ public sealed class CreatureJobTests
     }
 
     [Fact]
-    public void AGamblerIsCalmedOnTreatmentCompanyAndWorkAndWinsACoinASecond()
+    public void AGamblerIsCalmedOnTreatmentCompanyAndWorkAndWinsACoinEachTimeTheHookActs()
     {
-        // The Casino's update hook 0x0047AD70 in its default mode (ADR-0187): once a game
-        // second, -2000 to buckets 5, 0 and 3 and one gold into the purse. Pay is seeded
+        // The Casino's update hook 0x0047AD70 in its default mode (ADR-0187): each time it
+        // acts, -2000 to buckets 5, 0 and 3 and one gold into the purse. Pay is seeded
         // to show the hook leaves it alone.
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -267,13 +267,14 @@ public sealed class CreatureJobTests
         var sink = new ListEventSink();
         Simulation(db, world, sink).Run(Second * 4);
 
+        // Every fifth turn from entry (Q424): turns 4, 9 and 14 of these sixteen.
         Assert.Equal(CreatureStateCategory.Casino, CreatureStateMachine.UpdatingCategory(goblin));
-        Assert.Equal(10_000 - (4 * 2000), goblin.Anger.Treatment);
-        Assert.Equal(10_000 - (4 * 2000), goblin.Anger.Company);
-        Assert.Equal(10_000 - (4 * 2000), goblin.Anger.Work);
+        Assert.Equal(10_000 - (3 * 2000), goblin.Anger.Treatment);
+        Assert.Equal(10_000 - (3 * 2000), goblin.Anger.Company);
+        Assert.Equal(10_000 - (3 * 2000), goblin.Anger.Work);
         Assert.Equal(10_000, goblin.Anger.Pay);
-        Assert.Equal(104, goblin.GoldHeld);
-        Assert.Equal(4, sink.Events.Count(e => e.Kind == "gambled"));
+        Assert.Equal(103, goblin.GoldHeld);
+        Assert.Equal(3, sink.Events.Count(e => e.Kind == "gambled"));
     }
 
     [Fact]
@@ -292,8 +293,9 @@ public sealed class CreatureJobTests
         goblin.GoldHeld = 8;
         goblin.Anger.Work = 10_000;
 
+        // The hook's first turn to act is the fifth.
         var sink = new ListEventSink();
-        Simulation(db, world, sink).Run(Second);
+        Simulation(db, world, sink).Run(5);
 
         Assert.Equal(JobType.None, goblin.CurrentJob);
         Assert.Equal(CreatureActivity.Idle, goblin.Activity);
@@ -328,12 +330,13 @@ public sealed class CreatureJobTests
         var sink = new ListEventSink();
         Simulation(db, world, sink).Run(Second * 4);
 
+        // Every fifth turn from entry (Q424): turns 4, 9 and 14 of these sixteen.
         Assert.Equal(CreatureStateCategory.Spectating, CreatureStateMachine.UpdatingCategory(goblin));
-        Assert.Equal(5_000 - (4 * 275), goblin.Anger.Treatment);
-        Assert.Equal(5_000 - (4 * 275), goblin.Anger.Company);
-        Assert.Equal(5_000 - (4 * 275), goblin.Anger.Work);
+        Assert.Equal(5_000 - (3 * 275), goblin.Anger.Treatment);
+        Assert.Equal(5_000 - (3 * 275), goblin.Anger.Company);
+        Assert.Equal(5_000 - (3 * 275), goblin.Anger.Work);
         Assert.Equal(5_000, goblin.Anger.Pay);
-        Assert.Equal(4, sink.Events.Count(e => e.Kind == "spectated"));
+        Assert.Equal(3, sink.Events.Count(e => e.Kind == "spectated"));
     }
 
     [Fact]
@@ -357,14 +360,14 @@ public sealed class CreatureJobTests
         Simulation(db, world).Run(Second * 4);
 
         // Nothing else in the game fills or drains the Pay bucket here, so this
-        // one is the Temple's arithmetic on its own.
-        Assert.Equal(10_000 - (4 * 275), vampire.Anger.Pay);
+        // one is the Temple's arithmetic on its own: a prayer every fifth turn.
+        Assert.Equal(10_000 - (3 * 275), vampire.Anger.Pay);
 
         // The Lair bucket is the more interesting number, because the anger
         // system is running in the same seconds and this Vampire has no bed:
-        // -275 from the Temple against +100 of AngerNoLair, netting -175 a
-        // second. A Temple out-drains a grievance that is still accruing.
-        Assert.Equal(8_000 - (4 * (275 - 100)), vampire.Anger.Lair);
+        // three prayers of -275 (turns 4, 9, 14; Q424) against four seconds of +100
+        // AngerNoLair. A Temple out-drains a grievance that is still accruing.
+        Assert.Equal(8_000 - (3 * 275) + (4 * 100), vampire.Anger.Lair);
 
         // And the small one floors at zero rather than going negative, per
         // bucket, which is what the original's clamp does.
@@ -372,7 +375,7 @@ public sealed class CreatureJobTests
     }
 
     [Fact]
-    public void PrayingHealsThirtyThreeASecondAndStopsAtFull()
+    public void PrayingHealsThirtyThreeEveryFifthTurnAndStopsAtFull()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -387,8 +390,9 @@ public sealed class CreatureJobTests
 
         Simulation(db, world).Run(Second * 3);
 
+        // Turns 4 and 9 of these twelve (Q424).
         Assert.Equal(33, db[VariableTypeId.ModifyCreatureHealthWhilePrayingPerSecond]);
-        Assert.Equal(100 + (3 * 33), vampire.Health);
+        Assert.Equal(100 + (2 * 33), vampire.Health);
 
         Simulation(db, world).Run(Second * 600);
         Assert.Equal(CreatureHealthRules.MaxHealth(db, definition, vampire), vampire.Health);

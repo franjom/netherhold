@@ -351,7 +351,9 @@ public sealed class CreatureJobSystem : ISimulationSystem
 
         // What happens at work is the update hook of the job state's CATEGORY, which the
         // dispatcher runs before the state's own handler (ADR-0186). A job with no state id
-        // (Torture, Q419) has no category and so no effect here.
+        // (Torture, Q419) has no category and so no effect here. The countdown hooks act on
+        // the creature's own countdown, every fifth turn from entry (Q424, ADR-0192).
+        const int reload = CreatureStateMachine.HookCountdownSeed;
         switch (CreatureStateMachine.UpdatingCategory(creature))
         {
             // TRAINING IS PAID ON THE ORIGINAL'S OWN CADENCE, four times a game second
@@ -360,7 +362,8 @@ public sealed class CreatureJobSystem : ISimulationSystem
             // collapsing four into one would leave a different balance behind.
             case CreatureStateCategory.Training:
                 if (originalTick) Train(context, world, database, creature, definition);
-                if (second) ChargeForTraining(context, world, database, creature, definition);
+                if (CreatureStateMachine.HookFires(creature, reload))
+                    ChargeForTraining(context, world, database, creature, definition);
                 return;
 
             // RESEARCH IS PAID EVERY TICK, and the bonuses once a game second. That split
@@ -373,20 +376,23 @@ public sealed class CreatureJobSystem : ISimulationSystem
                 return;
 
             case CreatureStateCategory.Spectating:
-                if (second) Spectate(context, world, database, creature, definition);
+                if (CreatureStateMachine.HookFires(creature, reload))
+                    Spectate(context, world, database, creature, definition);
                 return;
 
             case CreatureStateCategory.Temple:
-                if (second) Pray(context, world, database, creature, definition);
+                if (CreatureStateMachine.HookFires(creature, reload))
+                    Pray(context, world, database, creature, definition);
                 return;
 
             case CreatureStateCategory.Casino:
-                if (second) Gamble(context, world, database, creature, definition);
+                if (CreatureStateMachine.HookFires(creature, reload))
+                    Gamble(context, world, database, creature, definition);
                 return;
         }
     }
 
-    /// <summary>A game second at the tables: the Casino's update hook <c>0x0047AD70</c>. A purse
+    /// <summary>One act of the Casino's update hook <c>0x0047AD70</c>, every fifth turn. A purse
     /// at or below the stake fails the hook, which is idle; otherwise the lever's setting
     /// decides the anger and the purse: calm and a coin, or anger and eight lost (ADR-0187,
     /// ADR-0188).</summary>
@@ -421,7 +427,7 @@ public sealed class CreatureJobSystem : ISimulationSystem
             $"anger={creature.Anger.Max} [{creature.Anger}]");
     }
 
-    /// <summary>A game second of praying: the Temple's update hook.</summary>
+    /// <summary>One act of the Temple's update hook <c>0x0047B970</c>, every fifth turn.</summary>
     private static void Pray(
         SimulationContext context, WorldState world, GameDatabase database,
         CreatureState creature, CreatureDef definition)
@@ -443,8 +449,8 @@ public sealed class CreatureJobSystem : ISimulationSystem
             $"health=+{healed} anger={creature.Anger.Max} [{creature.Anger}]");
     }
 
-    /// <summary>A game second of cheering on a fight: the Spectating hook's calm, which
-    /// always succeeds.</summary>
+    /// <summary>One act of the Spectating hook, every fifth turn: its calm, which always
+    /// succeeds.</summary>
     private static void Spectate(
         SimulationContext context, WorldState world, GameDatabase database,
         CreatureState creature, CreatureDef definition)
@@ -533,12 +539,12 @@ public sealed class CreatureJobSystem : ISimulationSystem
             $"gain={amount} bonus={bonus} points={keeper.ResearchPoints}");
     }
 
-    /// <summary>A game second of training billed to the keeper, and the job lost
+    /// <summary>One charge of training billed to the keeper, and the job lost
     /// if the keeper cannot pay.</summary>
     /// <remarks>Training is the only job a keeper can be evicted from by being
     /// poor (Q205). The original charges
-    /// <c>ModifyPlayerColdWhileTrainingPerSecond</c> once a game second on a
-    /// countdown reloaded from variable 19, tests the keeper's gold before every
+    /// <c>ModifyPlayerColdWhileTrainingPerSecond</c> every fifth turn on a
+    /// countdown reloaded from variable 19 (Q424), tests the keeper's gold before every
     /// charge, and returns failure from the category hook, which the state
     /// dispatcher turns into "back to idle". Charged after the tick's experience,
     /// the order the original's hook uses: a creature is paid for the tick it

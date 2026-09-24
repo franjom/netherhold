@@ -207,7 +207,7 @@ carries the same guess and is corrected with it.
 
 `RebellionRules` + `CreatureAngerSystem.Rebel`, and
 `CreatureState.RebelCountdownTicks` — the deadline of §2 kept as a countdown,
-which is the same clock read the other way and matches `PrisonWitherTicks`.
+which is the same clock read the other way, as the category hooks keep `HookCountdown`.
 `Leave` now reports whether it found a route, because §2's branch is exactly
 that question. The defection pass runs **every tick**, before the once-a-second
 ladder, because 30 ticks is 7.5 game seconds and a once-a-second system cannot

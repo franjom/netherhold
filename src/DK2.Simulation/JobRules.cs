@@ -137,7 +137,7 @@ public static class JobRules
         };
     }
 
-    /// <summary>What one game second of watching a fight in the Combat Pit is worth: the
+    /// <summary>What one turn of the Spectating hook is worth, every fifth turn (Q424): the
     /// Spectating update hook <c>0x0047AA70</c> applies
     /// <c>ModifyAngerOfPitSpectatorPerSecond</c> (−275) to buckets 5, 0 and 3, Treatment,
     /// Company and Work, and nothing else (<c>state-categories.md</c> §7.2, ADR-0186).</summary>
