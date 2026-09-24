@@ -77,9 +77,26 @@ public class DefeatTests
         Assert.NotNull(world.CreatureById(rivals.Id));
     }
 
+    [Fact]
+    public void TheFallenKeepersCreaturesLeaveThroughARivalsPortal_TheNearestEntranceOfAnyone()
+    {
+        // creature-leaving.md §1: state 194 walks every player's rooms and takes the nearest
+        // Portal or Hero Portal by straight line, whoever owns it.
+        (GameDatabase db, WorldState world, _, _, CreatureState goblin, _) = FallenDungeon(portalOwner: Rival);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world);
+        sim.ObserveWith(sink);
+
+        sim.Run(206);
+
+        Assert.Equal(Rival, world.Tile(new TilePos(12, 3)).OwnerPlayerId);
+        Assert.Null(world.CreatureById(goblin.Id));
+        Assert.Contains(sink.Events, e => e.Kind == "creature_left" && e.Detail.Contains("creature=" + goblin.Id));
+    }
+
     // ------------------------------------------------------------------ helpers
 
-    private static (GameDatabase, WorldState, int, CreatureState, CreatureState, CreatureState) FallenDungeon()
+    private static (GameDatabase, WorldState, int, CreatureState, CreatureState, CreatureState) FallenDungeon(byte portalOwner = Keeper)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
@@ -94,7 +111,7 @@ public class DefeatTests
 
         Paint(db, world, RoomTypeId.DungeonHeart, Keeper, 3, 3, 7, 7);
         Paint(db, world, RoomTypeId.Lair, Keeper, 9, 3, 10, 4);
-        Paint(db, world, RoomTypeId.Portal, Keeper, 12, 3, 14, 5);
+        Paint(db, world, RoomTypeId.Portal, portalOwner, 12, 3, 14, 5);
         Paint(db, world, RoomTypeId.Lair, Rival, 9, 8, 9, 8);
         Claim(world, Dk2TerrainFixture.ClaimedPath, Keeper, 8, 3);
         Claim(world, Dk2TerrainFixture.ReinforcedWall, Keeper, 8, 4);

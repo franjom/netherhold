@@ -303,41 +303,20 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             state.Activity = CreatureActivity.Leaving;
         }
 
-        // Standing on the way out already — either it walked here, or the anger
-        // ran out while it happened to be on the portal.
-        if (PortalRules.IsExitTile(world, database, state.Tile, state.OwnerPlayerId))
+        // The walk itself is DK2's states 194-196 — the nearest entrance of anyone —
+        // shared with a fallen keeper's creatures (LeavingRules, creature-leaving.md).
+        bool leaving = LeavingRules.Step(context, creature, state, SystemName, out TilePos exit);
+        if (!decidingNow) return leaving;
+
+        if (leaving)
         {
-            Gone(context, creature, state);
-            return true;
-        }
-
-        // Mid-walk. Leave it alone; the movement system is carrying it.
-        if (state.HasRoute) return true;
-
-        var grid = new WorldPathGrid(database, world, creature);
-        bool routed = _pathfinder.TryFindNearest(
-            grid,
-            state.Tile,
-            at => PortalRules.IsExitTile(world, database, at, state.OwnerPlayerId),
-            _route);
-
-        if (routed && _route.Count > 0 && context.Navigation.TryRoute(state, _route[^1], Navigation.MoveOptions.Leaving))
-        {
-
-            if (decidingNow)
-            {
-                TilePos exit = _route[^1];
+            if (world.CreatureById(state.Id) is not null)
                 context.Emit(SystemName, "creature_leaving",
                     $"creature={state.Id} type={creature.Name} " +
                     $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
-                    $"anger={state.Anger} portal=({exit.X},{exit.Y}) " +
-                    $"steps={_route.Count}");
-            }
-
-            return true;
+                    $"anger={state.Anger} portal=({exit.X},{exit.Y})");
         }
-
-        if (decidingNow)
+        else
         {
             context.Emit(SystemName, "creature_leave_blocked",
                 $"creature={state.Id} type={creature.Name} " +
@@ -345,18 +324,6 @@ public sealed class CreatureAngerSystem : ISimulationSystem
                 $"anger={state.Anger} reason=no_reachable_portal");
         }
 
-        return false;
-    }
-
-    /// <summary>It reached the portal. Gone, with whatever gold it was carrying.</summary>
-    private static void Gone(
-        SimulationContext context, CreatureDef creature, CreatureState state)
-    {
-        context.Emit(SystemName, "creature_left",
-            $"creature={state.Id} type={creature.Name} " +
-            $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
-            $"anger={state.Anger} gold_lost={state.GoldHeld} via=portal");
-
-        context.World.RemoveCreature(state.Id);
+        return leaving;
     }
 }

@@ -328,8 +328,8 @@ health, so one that collapsed this second is already `Dying` and is skipped.
 `MoodOf` the band, `CanBeAngered` the Q210 flag, `Slap` and `Held` the two
 discrete deltas, `ReselectionGateTicks` the five-second gate, `RollPercent` /
 `CumulativeRanges` the chooser arithmetic of Q122, and
-`CreatureAngerSystem.Leave` walks a deserter to the nearest portal its keeper
-owns.
+`CreatureAngerSystem.Leave` hands a deserter to `LeavingRules`: the nearest Portal
+or Hero Portal of anyone by straight line (`creature-leaving.md` §1, 2026-09-24).
 
 **Which sources are applied, and the rule is one sentence: a source is applied
 when the player's own choices can turn it off.**

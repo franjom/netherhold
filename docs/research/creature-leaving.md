@@ -111,3 +111,16 @@ begin.
 - **7, room travel (`0x00471460`):** it likewise owns an in-progress room route
   and resumes its stored next state after validating the destination room, so a
   defeat tick must not replace it.
+
+## 5. Built (2026-09-24, hash-neutral)
+
+`LeavingRules` drives both the deserter (`CreatureAngerSystem.Leave`) and a fallen
+keeper's creatures (`DefeatRules`): §1's rule — every player's Portals and Hero
+Portals, the nearest by squared straight-line distance, no reachability test —
+then one route request, retried each call when it fails; on an entrance tile the
+creature is removed and its gold vanishes (§2). Deviations, each flagged at the
+site: the target is the nearest entrance *tile* that is not the blocked centre,
+where DK2 targets the room's `(x+1, y)` and then a quarter-tile point (195); arrival
+is any entrance tile; the no-entrance fallback to state 87 is not built (Q41), the
+creature standing instead; the sacking table, notification 20 and the `+0x423`
+effect are not modelled.

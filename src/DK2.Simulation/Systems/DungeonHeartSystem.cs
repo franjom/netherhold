@@ -4,7 +4,6 @@
 
 using DK2.Core;
 using DK2.Data.Model;
-using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
@@ -21,16 +20,6 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.Confirmed, "docs/research/win-and-defeat.md")]
 public sealed class DungeonHeartSystem : ISimulationSystem
 {
-    private readonly IPathfinder _pathfinder;
-    private readonly List<TilePos> _route = [];
-
-    public DungeonHeartSystem() : this(new GridPathfinder()) { }
-
-    public DungeonHeartSystem(IPathfinder pathfinder)
-    {
-        _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
-    }
-
     public string Name => "dungeon heart";
 
     public void Execute(SimulationContext context)
@@ -55,8 +44,7 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             if (player.KilledByPlayerId == 0) continue;
             byte fallen = player.PlayerId;
             if (DefeatRules.IsDeathTurn(context.Tick, player.HeartDiedTick)) DefeatRules.OnDeathTurn(context, fallen);
-            if (DefeatRules.CreaturesGo(context.Tick, player.HeartDiedTick))
-                DefeatRules.ScatterCreatures(context, _pathfinder, _route, fallen);
+            if (DefeatRules.CreaturesGo(context.Tick, player.HeartDiedTick)) DefeatRules.ScatterCreatures(context, fallen);
 
             player = ref world.Player(fallen);
             if (PlayerStatus.HasEnded(player.Status)) continue;

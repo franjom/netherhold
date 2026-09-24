@@ -35,13 +35,11 @@ public static class PortalRules
     /// <summary>Whether this room is a keeper's portal, as opposed to a hero one.</summary>
     public static bool IsKeeperPortal(RoomDef room) => room.RoomId == (byte)RoomTypeId.Portal;
 
-    /// <summary>Whether a creature on this tile is on a way out of its keeper's
-    /// dungeon: portal terrain, owned by that keeper — the exit a deserter walks to
-    /// (Q116, CONFIRMED by the owner). A tile test so a path search can use it as a
-    /// goal predicate without a <see cref="RoomIndex"/>. "Available" reads as
-    /// "reachable and yours" — one word, and where this could be wrong — so no
-    /// <see cref="CanProduce"/>, and hero portals are excluded (the <c>Rebel</c>
-    /// branch that would use one does not exist).</summary>
+    /// <summary>Portal terrain owned by <paramref name="playerId"/>: the hole test builds on it.
+    /// No longer the deserter's exit — DK2 leaves by the nearest entrance of anyone, hero
+    /// portals included (<see cref="LeavingRules"/>, creature-leaving.md, 2026-09-24). A tile
+    /// test so a path search can use it as a goal predicate without a <see cref="RoomIndex"/>;
+    /// no <see cref="CanProduce"/>.</summary>
     public static bool IsExitTile(
         WorldState world, GameDatabase database, TilePos at, byte playerId)
     {

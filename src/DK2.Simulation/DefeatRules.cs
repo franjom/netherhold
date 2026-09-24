@@ -4,7 +4,6 @@
 
 using DK2.Core;
 using DK2.Data.Model;
-using DK2.Pathfinding;
 using DK2.Simulation.Combat;
 
 namespace DK2.Simulation;
@@ -96,15 +95,12 @@ public static class DefeatRules
 
     /// <summary>The creature arm, each turn from the fifth: a creature already down, held, or in a
     /// prison is left alone; a worker is killed outright with the killer as source; anyone else not
-    /// already leaving drops its fight, job and bed and sets off for the nearest portal — the
-    /// portals having gone neutral on the death turn, one of the loser's or of nobody's.</summary>
-    public static void ScatterCreatures(
-        SimulationContext context, IPathfinder pathfinder, List<TilePos> route, byte playerId)
+    /// already leaving drops its fight, job and bed and sets off for the nearest entrance of
+    /// anyone (<see cref="LeavingRules"/>), the loser's own having gone neutral on the death turn.</summary>
+    public static void ScatterCreatures(SimulationContext context, byte playerId)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        bool IsExit(TilePos at) =>
-            PortalRules.IsExitTile(world, database, at, playerId) || PortalRules.IsExitTile(world, database, at, PlayerIds.Neutral);
 
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
@@ -129,7 +125,7 @@ public static class DefeatRules
                 context.Emit(SystemName, "creature_leaving", $"creature={state.Id} type={creature.Name} player={playerId}");
             }
 
-            LeavingRules.Step(context, pathfinder, route, creature, state, IsExit, SystemName);
+            LeavingRules.Step(context, creature, state, SystemName, out _);
         }
     }
 }

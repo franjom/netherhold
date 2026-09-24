@@ -190,7 +190,7 @@ capture it in PowerShell with `Out-File -Encoding utf8`.
 Order as of 2026-09-23, from the plan's §8 Run column: M6 and M7 first, the keeper
 AI (M12) ahead of breadth.
 
-1. **The heart and defeat.** Q363 and Q358 are read and built (`win-and-defeat.md` §3.1, §7); left are what places the Arch Pillars, the local player's collapse sequence with its Destructors (research only), the leaving handler `0x00459DE0`, and Q359 alliance propagation (2026-09-23).
+1. **The heart and defeat.** Q363 and Q358 are read and built (`win-and-defeat.md` §3.1, §7); left are what places the Arch Pillars, the local player's collapse sequence with its Destructors (research only), and Q359 alliance propagation (2026-09-24). The leaving walk is read and built (`creature-leaving.md`, `LeavingRules`).
 2. **Heroes.** Hero parties and action type 14 spawning (Q254–Q259), the hero gate; heroes can now fight.
 3. **Combat's leftovers.** Q376 (the celebration animation's length, KMF frame counts), Q401 (does Haste sometimes miss?), Q395's unread shot handlers and the Guided Bolt, the thing-targeting spells (scan B), scans A/C/D, Q337's possession scalar, Q335 resistance.
 4. **M6 triggers.** `kwd unreached` ranks remaining action effects; types 17 and 24 rank first and are parked (Q309, Q227). Door and trap behaviour (Q249–Q253); effect generators (Q254–Q259). Q220/Q221 are the two open record layouts.
@@ -322,7 +322,7 @@ that gate work today, by how they are answered:
 
 | Q | Read |
 |---|---|
-| Q359, Q358 leftovers | the alliance loops' conditions; the leaving handler `0x00459DE0`, the Destructor (object 98), the obstacle object 100 |
+| Q359, Q358 leftovers | the alliance loops' conditions; the Destructor (object 98), the obstacle object 100, the no-entrance wander (state 87) |
 | Q395, Q393, Q397, Q400 | unread shot handlers and the Guided Bolt; `0x00495080(0x1F)` possession modifier; `0x004B32A0`; the approach loop's approximations |
 | Q201 | the dizzy-drop driver: candidate is the per-creature `stunDuration` at record `0x0ED0` |
 | Q199 | the pet-dungeon mana cap (+1400 against variable 235's 500) — find its reader |
