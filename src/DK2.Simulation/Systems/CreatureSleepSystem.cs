@@ -122,7 +122,12 @@ public sealed class CreatureSleepSystem : ISimulationSystem
                     creature.AwakeTicks++;
                     if (bedIndex >= 0)
                     {
-                        if (LairRules.WantsToSleep(database, definition, creature))
+                        // The needs routine's mask test (NeedRules, ADR-0198); in the Casino's
+                        // states tiredness is not felt, wounds still are.
+                        bool wants = NeedRules.TirednessClockRuns(creature)
+                            ? LairRules.WantsToSleep(database, definition, creature)
+                            : CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature);
+                        if (wants && NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping))
                             SetOff(context, creature, definition);
                         break;
                     }
@@ -283,6 +288,7 @@ public sealed class CreatureSleepSystem : ISimulationSystem
 
         if (!context.Navigation.TryRoute(creature, bed, Navigation.MoveOptions.ExactSpot)) return;
 
+        if (NeedRules.IsAtAJob(creature)) NeedRules.EndJob(creature);
         creature.Activity = CreatureActivity.GoingToSleep;
 
         // The Sleep job calls the room helper with 81 (0x0046F4B0), from whatever state the

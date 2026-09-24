@@ -132,6 +132,9 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
         state.HungerTicks += SimulationTiming.TicksPerSecond;
 
+        // The Casino's states stop the clock but not its time (NeedRules, ADR-0198).
+        if (!NeedRules.HungerClockRuns(state)) return;
+
         // The clock ADDS a helping and restarts; it does not raise a flag. A
         // creature with nowhere to eat therefore accumulates, and owes every
         // helping it missed (EatingRules.Tick, docs/research/eating.md).

@@ -77,10 +77,9 @@ public sealed class CreatureEatSystem : ISimulationSystem
                     if (creature.Activity is CreatureActivity.Sleeping
                         or CreatureActivity.GoingToSleep) break;
 
-                    // Only an idle creature goes looking. A worker mid-job keeps
-                    // its job; DK2 gates the same way, on a state-category byte
-                    // rather than on this list.
-                    if (creature.Activity != CreatureActivity.Idle) break;
+                    // An idle creature goes looking, and so does one at a job whose state
+                    // admits Eating: the needs routine's mask test (NeedRules, ADR-0198).
+                    if (!NeedRules.MayAsk(creature, CreatureStateCategory.Eating)) break;
                     if (!EatingRules.IsHungry(database, definition, creature)) break;
 
                     // At most one attempt a game second, the original's
@@ -389,6 +388,14 @@ public sealed class CreatureEatSystem : ISimulationSystem
     /// not yet on one.</summary>
     private static void EnterTheChain(SimulationContext context, CreatureState creature)
     {
+        // Taken off a job: 0x004633D0 sets 91 from the job's own state.
+        if (NeedRules.IsAtAJob(creature) && CreatureStateMachine.HasState(creature))
+        {
+            NeedRules.EndJob(creature);
+            Shadow(context, creature, EatingRules.FindHatcheryState);
+            return;
+        }
+
         if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
         CreatureStateMachine.Begin(creature, CreatureStateMachine.Idle);
         Shadow(context, creature, EatingRules.FindHatcheryState);

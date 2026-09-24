@@ -4396,3 +4396,20 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Level 1's two type-14 records leave `Partial`; the trigger census test moves accordingly.
 - Six tests, the health double-application named in one (Q427); the corpus test pins the tail bytes and the shipped flag values.
 - `HashVersion` and `FormatVersion` **101**, pin `0x4543E72F3F20FE22`.
+
+## ADR-0198 — Hunger, sleep and pay take a creature off its job
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/creature-needs-routine.md`
+
+**Context.** Our hunger and pay set off only from idle, and sleep from anything at all, so a creature at a job never broke off to eat or be paid, and one on its way to eat could be turned round for bed. DK2's dispatcher runs the needs routine `0x00477C20` for every non-worker every turn, and its tests are data this project already carries.
+
+**Decision.**
+1. `NeedRules.Admits` is the routine's test: nothing for a state of group 7 (the needs') or group 1 (the busy test `0x00477B40`); otherwise the transition rule's three arms for the need's category (Eating, Sleeping, Payday) against the creature's, read through a walk; hunger and sleep also refuse their own category. All three masks are `0x800A3C3B`.
+2. `NeedRules.MayAsk`: an idle creature, or one at or walking to a job whose state admits the need. The eat, sleep and pay systems use it. Hunger enters 91 and pay 187 straight from the job's state; the job ends.
+3. The hunger clock does not add in a state flagged `SuppressHungerClock`, and tiredness is not felt in one flagged `SuppressTirednessClock`: the Casino's 145–159.
+
+**Consequences.**
+- A hungry trainee breaks off for the hatchery; a creature on a torture device, in a prison or a Combat Pit does not; one walking to eat is not sent to bed.
+- Ours, stated: tiredness is judged at the decision rather than latched when due; the wounded attempt shares the tired path's gate; pay is tried every tick. Not built: the cannot-sleep drain, and the busy test's creature fields beyond our activity filters.
+- Seventeen tests. Negative controls: idle-only hunger, idle-only pay, no mask, no group-7 skip, no walk resolution, the Casino clock ignored, eating via idle, the job kept, pay via idle, and sleep ungated each fail a named test.
+- `HashVersion` and `FormatVersion` **102**, pin `0x91DAFF09144DBA4F`.
+

@@ -1,0 +1,87 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.Core;
+using DK2.Data.Model;
+
+namespace DK2.Simulation;
+
+/// <summary>Whether a need may take a creature away from what it is doing: DK2's needs routine
+/// <c>0x00477C20</c>, which the dispatcher runs for every non-worker every turn before the
+/// state's handler (ADR-0198, <c>creature-needs-routine.md</c>).</summary>
+/// <remarks>The routine does nothing for a state of group 7, the needs' own. Otherwise each
+/// need asks the transition rule's entry-mask half about its own category, Eating (8),
+/// Sleeping (9) or Payday (20), against the creature's category, read through a walk to the
+/// state it resumes. All three masks are <c>0x800A3C3B</c>: idle, the job categories,
+/// Sulking, the Casino, Spectating and category 0 are admitted; the Lair, Prison, Torture,
+/// the Combat Pit and combat are not. So a hungry researcher breaks off to eat, and a
+/// creature on a torture device does not.</remarks>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-needs-routine.md")]
+public static class NeedRules
+{
+    /// <summary>The needs' own state group: the routine returns at once for it.</summary>
+    public const byte NeedGroup = 7;
+
+    /// <summary>The group the busy test <c>0x00477B40</c> refuses every attempt from: captives,
+    /// the devices, leaving, the pit fighter.</summary>
+    public const byte BusyGroup = 1;
+
+    /// <summary>Whether <paramref name="need"/> may act on this creature now. An idle creature
+    /// always may; one at a job, or walking to one, when its state admits the need.
+    /// Everything else still on our own activities (combat, leaving) is left alone.</summary>
+    public static bool MayAsk(CreatureState creature, CreatureStateCategory need)
+    {
+        if (creature.Activity == CreatureActivity.Idle) return true;
+        if (creature.Activity is not (CreatureActivity.AtWork or CreatureActivity.GoingToJob)) return false;
+        return CreatureStateMachine.HasState(creature) && Admits(creature, need);
+    }
+
+    /// <summary>The routine's own test on a creature holding a state id.</summary>
+    public static bool Admits(CreatureState creature, CreatureStateCategory need)
+    {
+        ref readonly CreatureStateDef current = ref CreatureStateTable.Get(creature.Dk2StateId);
+        if (current.Group is NeedGroup or BusyGroup) return false;
+
+        int resolved = current.IsUtility ? creature.UtilityNewState : creature.Dk2StateId;
+        CreatureStateCategory from = CreatureStateTable.Get(resolved).Category;
+
+        // Hunger and sleep also refuse their own category (`!= 8`, `!= 9`); pay has no such
+        // test, and only the group-7 skip keeps it from asking a creature already at it.
+        if (need != CreatureStateCategory.Payday && from == need) return false;
+
+        // The rule's three arms: the same category, a zero mask, or the bit.
+        return from == need
+            || CreatureStateCategoryTable.Get(need).AdmitsFrom(CreatureStateCategoryTable.Get(from));
+    }
+
+    /// <summary>Whether the hunger clock runs: not in a state flagged
+    /// <see cref="CreatureStateFlags.SuppressHungerClock"/>, the Casino's. The clock's time
+    /// still passes, so a helping overdue on leaving lands at once.</summary>
+    public static bool HungerClockRuns(CreatureState creature) =>
+        !Flagged(creature, CreatureStateFlags.SuppressHungerClock);
+
+    /// <summary>Whether tiredness can be felt: not in a state flagged
+    /// <see cref="CreatureStateFlags.SuppressTirednessClock"/>, the Casino's.</summary>
+    public static bool TirednessClockRuns(CreatureState creature) =>
+        !Flagged(creature, CreatureStateFlags.SuppressTirednessClock);
+
+    /// <summary>A need has taken the creature off its job: no job and no job tile. The need's own
+    /// route, already set, is kept.</summary>
+    public static void EndJob(CreatureState creature)
+    {
+        creature.CurrentJob = JobType.None;
+        creature.JobTileIndex = -1;
+        creature.TortureTargetTile = -1;
+        creature.WhipTurnsLeft = 0;
+    }
+
+    /// <summary>Whether the creature is at a job or on its way to one, the case a need
+    /// interrupts rather than starts from idle.</summary>
+    public static bool IsAtAJob(CreatureState creature) =>
+        creature.Activity is CreatureActivity.AtWork or CreatureActivity.GoingToJob;
+
+    private static bool Flagged(CreatureState creature, CreatureStateFlags flag) =>
+        CreatureStateMachine.HasState(creature)
+        && (CreatureStateTable.Get(creature.Dk2StateId).Flags & flag) != 0;
+}

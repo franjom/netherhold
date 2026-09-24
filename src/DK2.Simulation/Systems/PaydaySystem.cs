@@ -156,10 +156,9 @@ public sealed class PaydaySystem : ISimulationSystem
             if (creature.Activity == CreatureActivity.Leaving) continue;
             if (Combat.CombatRules.Preoccupied(creature)) continue;
 
-            // Only an idle creature sets off. The original gates on the current
-            // state's category byte instead, which is the same idea expressed
-            // against a table this project does not have.
-            if (creature.Activity != CreatureActivity.Idle) continue;
+            // An idle creature sets off, and so does one at a job whose state admits
+            // Payday: the needs routine's mask test (NeedRules, ADR-0198).
+            if (!NeedRules.MayAsk(creature, CreatureStateCategory.Payday)) continue;
 
             if (creature.WageOwed <= 0) continue;
             if (creature.PayAttemptsFailed >= PaydayRules.MaxFailedAttempts) continue;
@@ -216,17 +215,17 @@ public sealed class PaydaySystem : ISimulationSystem
             // Standing on it already: no walk to make, take the money now.
             if (at == creature.Tile)
             {
-                creature.Activity = CreatureActivity.SeekingWages;
                 creature.StopMoving();
                 SetOutInState(context, creature);
+                creature.Activity = CreatureActivity.SeekingWages;
                 Arrived(context, creature);
                 return;
             }
 
             if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot)) continue;
 
-            creature.Activity = CreatureActivity.SeekingWages;
             SetOutInState(context, creature);
+            creature.Activity = CreatureActivity.SeekingWages;
 
             context.Emit(SystemName, "wages_sought",
                 $"creature={creature.Id} type={definition.Name} " +
@@ -263,7 +262,9 @@ public sealed class PaydaySystem : ISimulationSystem
     /// takes the helper's walk, because 187 has no shortcut of its own.</summary>
     private static void SetOutInState(SimulationContext context, CreatureState creature)
     {
-        CreatureStateMachine.Release(creature);
+        // Taken off a job, 187 is set from the job's own state; otherwise from idle.
+        if (NeedRules.IsAtAJob(creature) && CreatureStateMachine.HasState(creature)) NeedRules.EndJob(creature);
+        else CreatureStateMachine.Release(creature);
         StateShadow.FromIdle(creature);
         StateShadow.Move(context, SystemName, creature, PaydayRules.FindTheMoneyState);
         CreatureStateMachine.BeginTravel(
