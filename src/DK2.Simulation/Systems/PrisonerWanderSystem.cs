@@ -32,6 +32,7 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
         foreach (CreatureState creature in world.Creatures)
         {
             if (!PrisonRules.IsImprisoned(creature)) continue;
+            if (TortureRules.IsBeingTortured(creature)) continue;   // on a device, not in a cell
 
             // In the keeper's hand it is out of the dungeon (ADR-0062); down,
             // it is not walking anywhere.

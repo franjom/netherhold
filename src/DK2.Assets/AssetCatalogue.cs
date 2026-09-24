@@ -61,6 +61,7 @@ public static class AssetCatalogue
         "stunned",
         "celebrating",
         "going_to_body",
+        "being_tortured",
     ];
 
     /// <summary>

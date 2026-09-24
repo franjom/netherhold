@@ -1341,6 +1341,21 @@ public class CreatureNeedsOnRealDataTests
         CreatureDef goblin = db.CreatureByName("Goblin")!;
 
         Assert.Equal(5000, goblin.MaxGoldHeld);
+
+        // And its torture, as the fixture transcribes it (ADR-0193).
+        Assert.Equal(-10, goblin.TortureHpChange);
+        Assert.Equal(1092, goblin.TortureMoodChange);
+        Assert.Equal(80 * 4096, goblin.TortureTimeToConvert.Raw);
+        Assert.Equal(320, TortureRules.ConversionThreshold(db, goblin, 1));
+        Assert.Equal(960, TortureRules.ConversionThreshold(db, goblin, 10));
+        Assert.Equal(0, db[VariableTypeId.TortureChanceOfDyingWhenConverted]);
+        Assert.Equal("Torture Wheel", db.ObjectById(TortureRules.WheelObjectId)!.Name);
+        Assert.Equal("Electric Chair", db.ObjectById(TortureRules.ElectricChairObjectId)!.Name);
+        Assert.Equal((3686, 819, 176), (db.ObjectById(8)!.Width.Raw, db.ObjectById(8)!.Height.Raw, db.ObjectById(8)!.PickUpPriority));
+        Assert.Equal((1083, 1228), (db.ObjectById(61)!.Width.Raw, db.ObjectById(61)!.Height.Raw));
+        Assert.Equal(
+            new[] { 105, 110, 115, 120, 130, 140, 150, 200, 300 },
+            Enumerable.Range(2, 9).Select(l => db.StatPercent(CreatureStatId.TortureTimeToConvert, l)));
         Assert.Equal(6000, CreatureLevelRules.MaxGoldHeld(db, goblin, 10));
         Assert.Equal(8, CasinoRules.Stake(db));
         Assert.Equal(1, CasinoRules.PursePerSecond(db, CasinoRules.Generous));

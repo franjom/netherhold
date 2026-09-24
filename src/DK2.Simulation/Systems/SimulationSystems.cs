@@ -66,6 +66,7 @@ public static class SimulationSystems
         new CreatureHealthSystem(),
 
         new PrisonSystem(),
+        new TortureSystem(), // a captive on a device: the category 15 hook (ADR-0193)
 
         // The rest of being a prisoner, every tick; after PrisonSystem so one freed or
         // boned gets no step, and eat before wander as its one handler does in the

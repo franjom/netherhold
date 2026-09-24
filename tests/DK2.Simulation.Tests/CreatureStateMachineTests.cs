@@ -245,9 +245,18 @@ public class CreatureStateMachineTests
         Assert.True(CreatureStateMachine.TrySetState(captive, 117));
         Assert.True(CreatureStateMachine.TrySetState(captive, 116));
 
+        // The hand drops a creature into 77, whose handler 0x0046F1F0 sends it to 115 in a
+        // Prison and 130 in a Torture Chamber; 130 straps it on and moves to 131. 120 shares
+        // that handler through a thunk, but in its own group 130 is refused from it.
         CreatureState dropped = Fresh();
-        CreatureStateMachine.Begin(dropped, 120);
+        CreatureStateMachine.Begin(dropped, 77);
         Assert.True(CreatureStateMachine.TrySetState(dropped, 115));
+
+        CreatureState victim = Fresh();
+        CreatureStateMachine.Begin(victim, 77);
+        Assert.True(CreatureStateMachine.TrySetState(victim, 130));
+        Assert.True(CreatureStateMachine.TrySetState(victim, 131));
+        Assert.Equal(StateTransition.Refused, CreatureStateTransitions.Classify(120, 130, CreatureStateMachine.Idle));
     }
 
     [Fact]

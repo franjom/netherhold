@@ -53,6 +53,7 @@ public sealed class PrisonSystem : ISimulationSystem
             // A prisoner in the keeper's hand is between cells, not out of one.
             // Where it lands is the drop's business (HandSystem).
             if (HandRules.IsHeld(creature)) continue;
+            if (TortureRules.IsBeingTortured(creature)) continue;   // TortureSystem's
             if (StandsInItsOwnPrison(context, creature)) continue;
 
             context.Emit(SystemName, "prisoner_freed",
@@ -192,6 +193,7 @@ public sealed class PrisonSystem : ISimulationSystem
         {
             CreatureState creature = world.Creatures[i];
             if (!PrisonRules.IsImprisoned(creature) || HandRules.IsHeld(creature)) continue;
+            if (TortureRules.IsBeingTortured(creature)) continue;
             if (creature.Health <= 0) Slain(context, creature);
         }
     }

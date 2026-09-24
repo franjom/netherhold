@@ -52,6 +52,9 @@ internal static class Dk2TerrainFixture
 
     /// <summary>Terrain 25, the Combat Pit, where a spectator's anger cools (ADR-0186).</summary>
     public const byte CombatPitTerrain = 25;
+
+    /// <summary>Terrain 21, the Torture Chamber (ADR-0193).</summary>
+    public const byte TortureChamberTerrain = 21;
     public const byte ManaVaultTerrain = 31;
     public const byte ClaimedVaultTerrain = 32;
 
@@ -111,6 +114,8 @@ internal static class Dk2TerrainFixture
               TerrainFlags.Ownable, 10000, 10000, CasinoTerrain, ClaimedPath),
             T(CombatPitTerrain, "Combat Pit",
               TerrainFlags.Ownable, 10000, 10000, CombatPitTerrain, ClaimedPath),
+            T(TortureChamberTerrain, "Torture Chamber",
+              TerrainFlags.Ownable, 10000, 10000, TortureChamberTerrain, ClaimedPath),
             T(ClaimedPath, "Claimed Path",
               TerrainFlags.Ownable | TerrainFlags.Attackable | TerrainFlags.FillInable,
               660, 660, Rock, DirtPath, manaGain: 1),
@@ -198,6 +203,10 @@ internal static class Dk2TerrainFixture
             R(RoomTypeId.Casino, "Casino", 750, CasinoTerrain, 0x13ACu, 3, 3,
               objectIds: [87, 59, 67, 68]),
             R(RoomTypeId.CombatPit, "Combat Pit", 750, CombatPitTerrain, 0x12ACu, 5, 5),
+            // With its shipped slot list (three wheels, a chair, coals, water): tests put the
+            // devices down by hand, since the fixture carries only the two device records.
+            R(RoomTypeId.TortureChamber, "Torture Chamber", 1500, TortureChamberTerrain, 0x13ACu, 3, 3,
+              objectIds: [8, 8, 61, 8, 62, 63]),
         ],
         creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), Warlock(), Priest(), Thief(), .. extraCreatures],
         variables: Variables(),
@@ -339,6 +348,24 @@ internal static class Dk2TerrainFixture
             NameStringId = 0,
             TooltipStringId = 0,
         },
+        // The two torture devices, as shipped (ADR-0193).
+        new ObjectDef
+        {
+            Name = "Torture Wheel", ObjectId = TortureRules.WheelObjectId,
+            Flags = ObjectFlags.Obstacle | ObjectFlags.BoulderCanRollThrough | ObjectFlags.Highlightable,
+            Hp = 1, ManaValue = 0, RoomCapacity = 0, StartState = 0, PickUpPriority = 176,
+            Width = new Fp32(3686), Height = new Fp32(819), Mass = new Fp32(8192), Speed = new Fp32(0),
+            NameStringId = 0, TooltipStringId = 0,
+        },
+        new ObjectDef
+        {
+            Name = "Electric Chair", ObjectId = TortureRules.ElectricChairObjectId,
+            Flags = ObjectFlags.Obstacle | ObjectFlags.Highlightable,
+            Hp = 1, ManaValue = 0, RoomCapacity = 0, StartState = 0, PickUpPriority = 176,
+            Width = new Fp32(1083), Height = new Fp32(1228), Mass = new Fp32(8192), Speed = new Fp32(0),
+            NameStringId = 0, TooltipStringId = 0,
+        },
+
         // The Casino's lever, as shipped (ADR-0188): an obstacle a hand could lift, which
         // nothing here lets it do.
         new ObjectDef
@@ -711,6 +738,12 @@ internal static class Dk2TerrainFixture
         // Goblin the fixture creature that sleeps — the Imp's is 0, which the
         // owner confirms means no lair at all (as for the Skeleton).
         LairObjectId = 22,
+
+        // What a torture device does to it, as shipped (ADR-0193): 10 health an act, the
+        // mood that only its own keeper's chamber applies, and 80 seconds to convert.
+        TortureHpChange = -10,
+        TortureMoodChange = 1092,
+        TortureTimeToConvert = Fp32.FromDouble(80),
 
         // The Goblin's real anger record. AngerNoLair is the rate the owner
         // measured against a stopwatch to give the ceiling (Q106): 100 a second
@@ -1230,6 +1263,8 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.GamblingModifyCreatureMoneyMoneyPerSecond, -8);
         Set(vars, VariableTypeId.GamblingModifyCreatureAngerSmilesPerSecond, -2000);
         Set(vars, VariableTypeId.GamblingModifyCreatureAngerMoneyPerSecond, 100);
+        // A convert never dies of it, as shipped (ADR-0193).
+        Set(vars, VariableTypeId.TortureChanceOfDyingWhenConverted, 0);
         Set(vars, VariableTypeId.FirstPersonStatIncreasePercentage, 12);
 
         // The portal's three. The generation speed is the game-wide 25 rather
@@ -1258,6 +1293,8 @@ internal static class Dk2TerrainFixture
         Stat(vars, CreatureStatId.MeleeDamage, [125, 150, 175, 200, 225, 250, 300, 400, 600]);
         // How much a purse holds, to 120% from level 5 (ADR-0187).
         Stat(vars, CreatureStatId.MaxGoldHeld, [105, 110, 115, 120, 120, 120, 120, 120, 120]);
+        // How long a captive takes to convert, to 300% at level 10 (ADR-0193).
+        Stat(vars, CreatureStatId.TortureTimeToConvert, [105, 110, 115, 120, 130, 140, 150, 200, 300]);
 
         // The dungeon heart's health and its regeneration, as shipped in the global
         // VARIABLES table (balance-variables-in-the-binary.md rows 174 and 131). A

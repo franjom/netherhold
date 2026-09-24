@@ -67,6 +67,7 @@ public sealed class HandSystem : ISimulationSystem
         // body carried up into the hand would be somewhere no rule could reach
         // (ADR-0065).
         DropLoad(context, creature);
+        TortureRules.Unstrap(creature);
         creature.ClearJob();
 
         creature.InHand = true;
@@ -249,11 +250,19 @@ public sealed class HandSystem : ISimulationSystem
         // A creature lifted out of a cell stays that keeper's prisoner while in
         // the hand, and where it lands decides whether it stays one: back onto
         // a tile of one of the keeper's prisons and it is imprisoned again,
-        // anywhere else and it is loose (ADR-0064). Not implemented: the third
-        // destination the owner named, a torture rack, needs the Torture
-        // Chamber.
+        // anywhere else and it is loose (ADR-0064). The third destination the owner
+        // named is a torture device in the keeper's own Torture Chamber (ADR-0193).
         if (PrisonRules.IsImprisoned(creature))
         {
+            if (TortureRules.TryStrap(world, context.Database, creature, command.PlayerId, landingTileIndex))
+            {
+                context.Emit(SystemName, "captive_strapped",
+                    $"player={command.PlayerId} creature={creature.Id} " +
+                    $"owner={creature.OwnerPlayerId} tile={command.Tile.X},{command.Tile.Y} " +
+                    $"held={hand.Count}");
+                return;
+            }
+
             if (DropIntoACell(context, command, creature)) return;
 
             context.Emit(SystemName, "prisoner_freed",

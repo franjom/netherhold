@@ -23,9 +23,10 @@ public static class PrisonRules
     /// <summary>Nobody's prisoner — the value <see cref="CreatureState.PrisonOwnerPlayerId"/> starts at.</summary>
     public const int NoPrison = -1;
 
-    /// <summary>The captive's states, category 14 Prison (ADR-0191, <c>prison.md</c> §10). An
-    /// imp's admission (state 44) puts the captive in 114, which moves to 115 on an interior
-    /// slab; a hand drop lands in 120, which moves to 115 in a Prison.</summary>
+    /// <summary>The captive's states, category 14 Prison (ADR-0191, <c>state-category-hooks.md</c>
+    /// §3.2). An imp's admission (state 44) puts the captive in 114, which moves to 115 on an
+    /// interior slab; a hand drop lands in <see cref="HandDropState"/>, which moves to 115 in a
+    /// Prison.</summary>
     public const int AdmittedState = 114;
 
     /// <summary>115 decides: hungry, to 117; otherwise a walk in 6 to a slab nearby,
@@ -45,8 +46,11 @@ public static class PrisonRules
     /// <summary>119: waits out the eating, then 115.</summary>
     public const int AfterEatingState = 119;
 
-    /// <summary>120: the state a creature dropped in a room takes; in a Prison it goes to 115.</summary>
-    public const int DroppedState = 120;
+    /// <summary>77, the state a creature dropped from the hand takes (an idle state, category 7):
+    /// its handler <c>0x0046F1F0</c> sends it to 115 in a Prison, 130 in a Torture Chamber and 63
+    /// in a Workshop (ADR-0193). 120 reuses that handler through a thunk, but is a captive
+    /// state, and from it 130 is refused.</summary>
+    public const int HandDropState = 77;
 
     /// <summary>The chance, <b>per tick</b>, that a prisoner standing still takes
     /// another step — <b>20 in 100</b>. Read from DK2's state 116 (<c>0x74</c>), which
@@ -351,9 +355,9 @@ public static class PrisonRules
         creature.AwakeTicks = 0;
         creature.Activity = CreatureActivity.Imprisoned;
 
-        // Into the captive's states: 114 from an imp, 120 from the hand, then 115 (ADR-0191).
+        // Into the captive's states: 114 from an imp, 77 from the hand, then 115 (ADR-0191, ADR-0193).
         if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
-        CreatureStateMachine.Begin(creature, dropped ? DroppedState : AdmittedState);
+        CreatureStateMachine.Begin(creature, dropped ? HandDropState : AdmittedState);
         CreatureStateMachine.TrySetState(creature, DecidingState);
 
         creature.TargetTileIndex = -1;
@@ -375,7 +379,8 @@ public static class PrisonRules
 
         // A captive holds only the captive states and the walks between them.
         if (wasCaptive && CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
-        if (creature.Activity == CreatureActivity.Imprisoned) creature.ClearJob();
+        if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.BeingTortured)
+            creature.ClearJob();
     }
 
     /// <summary>The health a prison takes off a prisoner each game second:

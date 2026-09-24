@@ -4322,3 +4322,20 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Negative controls, one at a time: reseeding on every state, a period of N, Prison every fifth turn, and no seed each fail a named test.
 - `HashVersion` and `FormatVersion` **97**, pin `0x99249045AA085298`.
 
+## ADR-0193 — A captive on a torture device, and the hand drop is state 77
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0191, ADR-0192 · Research: `docs/research/state-category-hooks.md` §3.2, §3.3
+
+**Context.** Torture was unbuilt. Its states 127–135, its three hooks, and the routines behind them are now read. Reading the drop showed that a creature dropped from the hand is in state 77, not 120: 77 owns the handler `0x0046F1F0`, and 120 only reuses it through a thunk. From 120 the move to 130 would be refused.
+
+**Decision.**
+1. **The hand drop is state 77** (`PrisonRules.HandDropState`), for a prison drop as well; ADR-0191's 120 is corrected.
+2. **`TortureRules.TryStrap`**: a captive dropped on a free Torture Wheel (8) or Electric Chair (61) in its keeper's Torture Chamber goes 77 → 130 → 131 and stays that keeper's captive (`CreatureActivity.BeingTortured`), so every rule that leaves prisoners alone leaves it alone. Dropped anywhere else in the chamber, it goes free, as elsewhere.
+3. **`TortureSystem`** is the category 15 hook on the countdown (ADR-0192). Each act adds 4 to `CreatureState.TorturedDuration` (hashed, kept across strappings) and applies `TortureHpChange` through `StatusEffectRules.Hurt`; the mood applies only in the creature's own keeper's chamber. Past the level-scaled `TortureTimeToConvert` × 4, an enemy dies on a roll under variable 234 (0) or joins the chamber's keeper.
+4. **Ours, stated:** a victim at zero health is let go to the health system, and a convert is let go (Q425).
+
+**Consequences.**
+- A Goblin converts on its 81st act, 101 s after being strapped on, having lost 810 health. A captive fresh from a cell (250) dies first, as the manual says a victim may.
+- Owner (2026-09-24): only the Mistress tortures, whipping victims on the devices. Her job (127, 128, 134) is the next slice (Q419).
+- The fixture gains the Torture Chamber, its terrain, both devices, the Goblin's torture numbers, stat row 24 and variable 234, with drift guards. Nine trace tests and a gate probe. Negative controls, one at a time: mood on a captive, no conversion, conversion at the threshold, a reset on strapping, a device on any tile, the hook by activity, and no occupancy each fail a named test.
+- `HashVersion` and `FormatVersion` **98**, pin `0xD686048703B6ED8D`.
+

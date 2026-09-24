@@ -155,10 +155,13 @@ the category operation failed; a return of one means it remains valid.
 ### 3.2 The captive's states, 114–126 (read 2026-09-24)
 
 Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
-- **In.** The imp's 44 puts an admitted captive in **114**. The generic drop state
-  **120** (`0x0046F1F0`) sends a creature dropped in a Prison to 115, in a Workshop to
-  63 and in a Torture Chamber to 130; a Horny-flagged one goes to 238. **126**
-  (`0x00473920`), after its first tick, goes to 114 on a Prison tile.
+- **In.** The imp's 44 puts an admitted captive in **114**. A hand drop puts a creature
+  in **77**, whose handler `0x0046F1F0` sends it to 115 in a Prison, 63 in a Workshop and
+  130 in a Torture Chamber; a Horny-flagged one goes to 238. 120 reuses that handler
+  through the thunk `0x00470C00`, but it is a captive state: 130 is refused from it,
+  since the two share group 1 and differ in category. (Corrected 2026-09-24; this line
+  first said 120.) **126** (`0x00473920`), after its first tick, goes to 114 on a
+  Prison tile.
 - **114** (`0x00473130`): on a Prison slab that `0x00454110` accepts (for a Prison, any
   interior slab), sets 115 and stores the prison at creature `+0x3CB`; otherwise
   returns 0, which is idle.
@@ -180,6 +183,38 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   119 and 115, 117 to 116 with no food, and the drain on category 14. **Ours:** 114's move
   to 115 happens on the tick of admission. The roll for a step is our 20 % a tick, from
   116 through 115, which stands in for Q422's unread way back.
+
+### 3.3 Torture, 127–135 (read 2026-09-24)
+
+- **The devices** are object types 8 (Torture Wheel) and 61 (Electric Chair).
+  `0x004F2180` returns the nearest one in the room that no creature in 131 or 136 is
+  standing on. **130** (`0x00484110`) needs that device on the creature's own tile, within
+  a tile of it, then places it and sets **131**; otherwise it returns 0, which is idle.
+  **131** (`0x00484590`) animates, and goes to 136 if the device is gone. 132 is a stub
+  returning 0; 133 and 135 reset the animation and return 0.
+- **The hook** `0x0047B590`, every fifth turn. It adds variable 19 to `+0x4F6`
+  (`TorturedDuration`) and applies `TortureHpChange` through `0x004B2CE0`. When the
+  chamber's owner is the creature's own it applies `TortureMoodChange` to bucket 5 with
+  selector 8, so a captive's mood never moves. An enemy that is dead (vtable `+0x28`)
+  gets `0x004F2370`, the manual's "valuable piece of information", and the hook returns
+  before reloading. Otherwise it reloads. Past the threshold, the definition's
+  `+0x76C` (`TortureTimeToConvert` × variable 19, stored by the loader at `0x0049391A`)
+  scaled by stat row 24, it zeroes the duration. An enemy then dies on
+  `rand(100) < TortureChanceOfDyingWhenConverted` (0) or is converted by `0x004F2800`:
+  owner changed to the chamber's, trigger event 9, and the keeper's conversion count
+  `+0x16A` goes up.
+- **The torturer.** The job handler `0x00483AE0` walks in 7 resuming in **127**
+  (`0x00483B90`). 127 looks for a creature in 129 on the chamber's slabs and walks
+  beside it (6, resuming 128); failing that, it walks onto a free device resuming 130,
+  setting `+0x3EA` bit 14. **134** (`0x00484950`) walks to the nearest category-15
+  creature nearby. Owner (2026-09-24): only the Mistress tortures, going to the chamber to
+  whip victims on the devices. Only the two Mistresses carry the job (50 %).
+- **Built** (ADR-0193): a captive dropped on a free device, 77 → 130 → 131; the hook's
+  duration, hurt, own-keeper mood, threshold and conversion; the device-gone release.
+  **Ours:** health at zero releases the victim to the health system (DK2 knocks it out
+  and kills it on the device, revealing information); a convert is released rather than
+  left on the device (Q425). **Not built:** the torturer (127, 128, 134), 136, the
+  information, and your own creatures on a device.
 
 ## 4. Answers and limits
 

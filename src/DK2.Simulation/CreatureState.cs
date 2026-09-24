@@ -187,6 +187,11 @@ public enum CreatureActivity
     /// <summary>Walking to a nearby corpse to celebrate over it — DK2's state 6 resuming in 259, taken
     /// by <c>NeedBodyForFightIdle</c> creatures (combat-approach-and-victory.md §5—§6).</summary>
     GoingToBody = 29,
+
+    /// <summary>A captive strapped to a torture device in its keeper's Torture Chamber: DK2's
+    /// states 130 and 131, category 15 (ADR-0193, <see cref="TortureRules"/>). It stays that
+    /// keeper's captive, so everything that leaves a prisoner alone leaves it alone too.</summary>
+    BeingTortured = 30,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -555,6 +560,11 @@ public sealed class CreatureState
     /// run by <see cref="CreatureStateMachine.HookFires"/> (Q424, ADR-0192).</summary>
     public int HookCountdown;
 
+    /// <summary>How long this creature has been tortured, DK2's <c>TorturedDuration</c> at
+    /// <c>creature+0x4F6</c>: variable 19 more each time the Torture hook acts, zeroed only by a
+    /// conversion, so it carries over from one session on the device to the next (ADR-0193).</summary>
+    public int TorturedDuration;
+
     /// <summary>Ticks until a rebelling creature with no reachable Portal defects to the
     /// hero side, or 0 when it is not rebelling. DK2 keeps the same clock the other way
     /// up, as an absolute deadline at its state object's <c>+0xB7</c>
@@ -803,6 +813,7 @@ public sealed class CreatureState
         hash.Add(StateBeforeUtilityState);
         hash.Add(UtilityNewState);
         hash.Add(HookCountdown);
+        hash.Add(TorturedDuration);
         hash.Add(RebelCountdownTicks);
         hash.Add(RebelAgainstPlayerId);
         hash.Add(TargetTileIndex);
