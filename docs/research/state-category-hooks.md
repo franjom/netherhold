@@ -218,17 +218,26 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   sets 1 and 129 and starts action 63 on it. **129** (`0x00483FF0`) keeps facing it while
   the action plays, then sets 1 and 128; with no victim left, 128 returns 0, idle. Action
   63's handler `0x00499C20` waits 5 turns and spawns effect `0xED` at the victim (world
-  method `+0x38C`); it does not touch its health. **134** waits half of variable
-  `0x006F2590`; a creature in category 15 on its own tile, not in 133, sends it to 133
-  (`0x00484C80`, reset and 0); otherwise it walks to the nearest one in the chamber,
-  resuming 134. 127–129 are category 0: the torturer takes no hook.
+  method `+0x38C`); it does not touch its health. There is no torture-specific duration
+  or boredom check in either handler. Before them each tick, dispatcher `0x00476FC0`
+  runs the common needs routine `0x00477C20`—hunger, sleep, then payday—and can run the
+  unhappy or angry job chooser. These can interrupt 127–129; otherwise the whip repeats
+  until the victim is no longer valid. **134** waits half of variable `0x006F2590`; when
+  a nearby category-15 creature on its tile is not in 133, it calls `0x0048AD30(133)` on
+  that creature, then returns 0 so the Mistress goes idle. Otherwise it walks to the
+  nearest one in the chamber, resuming 134. 127–129 are category 0: the torturer takes
+  no hook.
 - **The gate, through idle.** 127–129 are group 8, category 0 (the filler at
-  `0x0047DDC0`). `0x00476D30` has no force argument; its second is an out flag. A direct
-  128 → 129 is refused (same group, target category 0), so 128 and 129 go through idle:
+  `0x0047DDC0`). A whole-program operand scan finds 2,529 state-table filler stores and
+  91 reads, with no later write to the 281 records. `0x00476D30` has no force argument;
+  its second is an out flag. A direct 128 → 129 is refused (same group, target category
+  0), so 128 and 129 go through idle:
   1 then the other, both allowed now that category 0's bit is read as 1 (ADR-0195), and
   each drops to idle when its handler fails. First read with the bit at 0, which refused
   every one of these and made the whip impossible; the owner's Mistress (Q426) did not
-  fit. 134 → 133 is still refused, same group and a different category.
+  fit. The apparent 134 → 133 dead end is not a transition of the Mistress: 134 invokes
+  it on the victim. From victim state 131 it is same-group/category 15 → 15; from 136 it
+  is different-group category 0 → 15, whose target mask is zero. Both are allowed.
 - **Built** (ADR-0193): a captive dropped on a free device, 77 → 130 → 131; the hook's
   duration, hurt, own-keeper mood, threshold and conversion; the device-gone release.
   **Ours:** health at zero releases the victim to the health system (DK2 knocks it out

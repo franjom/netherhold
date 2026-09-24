@@ -16,10 +16,10 @@ is a binary read, and none has been watched in the running game.
 ## 1. What it is
 
 **32 records of `0x40` bytes based at `0x00699688`**, indexed by a state's
-category byte (`+0x17` of a state record). Like the state table it lives in
-uninitialised `.data`, so there is nothing to read on disk: it is filled at run
-time by a straight-line run of `MOV`s between **`0x004798F4` and `0x0047A773`**,
-which no function contains.
+category byte (`+0x17` of a state record). It lies in the raw-backed part of
+initialised `.data`: RVA `0x00299688`, file offset `0x00297C88`. The file supplies
+record 0's bit; a straight-line run of `MOV`s between **`0x004798F4` and
+`0x0047A773`** fills the other 511 dwords at run time. No function contains the run.
 
 Recovered by walking that run and simulating register values. `Q300`.
 
@@ -28,13 +28,13 @@ Recovered by walking that run and simulating register values. `Q300`.
 | | Check |
 |---|---|
 | 1 | **Exact identity.** 512 dwords = 32 records x 16 fields, and the walk resolves **511** of them |
-| 2 | **The extent is not the scan's.** A whole-program scan for writes into the range finds the same 511 dwords, and the writing instructions span exactly `0x004798F4`-`0x0047A773` — so the hand-chosen window did not decide the answer |
+| 2 | **The extent is not the scan's.** A whole-program operand scan over both code blocks finds 537 references into the range: the same 511 stores in `0x004798F4`-`0x0047A773` and 26 reads elsewhere. No later direct, indexed or block write takes an address in the range |
 | 3 | **Contiguity.** Every field is written for all 32 records, bar the one below |
 | 4 | **Three rows agree with an earlier independent reading** — categories 2, 8 and 9's hooks match `eating.md` §10 exactly |
 | 5 | The one unresolved store targets address 0 from `ESP`, outside the table: a function epilogue, not a record |
 
-**The single missing dword is record 0's `+0x00`**, and it is missing because
-nothing in the program writes it — see §3.
+**The single dword the run does not write is record 0's `+0x00`**. It is already
+initialised from the file — see §3.
 
 One register idiom had to be modelled to resolve the rest: `OR ECX,0xFFFFFFFF`
 yields all-ones whatever the register held, so those 59 stores resolve without
@@ -78,12 +78,13 @@ this project's took the double indirection to mean `+0x38` named a
 *representative* category; it does not.
 
 **Record 0's bit is 1, and it comes from the file.** The fill run stores 511 of
-the 512 dwords and never `0x00699688`, and no instruction writes it; fourteen read
-it. It needs no writer: the table sits in initialised `.data`, and the file holds
-`0x00000001` there, while every other record's bit is 0 in the file and set by the
-filler. So every bit is `1 << index`, category 0's included. (Corrected 2026-09-24,
-ADR-0195: this section said the bit was permanently 0, having read "no writer" as
-"zero". The owner's Mistress, who whips, leaves and eats, did not fit.)
+the 512 dwords and never `0x00699688`. A whole-program operand scan finds no later
+direct, indexed or block write into the table; the other 26 references are reads.
+It needs no writer: the PE maps that address from `.data` file offset `0x00297C88`,
+whose bytes begin `01 00 00 00`; every other record's bit is 0 in the file and set
+by the filler. So every bit is `1 << index`, category 0's included. (Corrected
+2026-09-24, ADR-0195: this section said the bit was permanently 0, having read "no
+writer" as "zero". The owner's Mistress, who whips, leaves and eats, did not fit.)
 
 The consequence is load-bearing. The mask test is `bit[from] & mask[target]`, so a
 creature in category 0 is admitted by every mask that names bit 0, idle's all-ones
@@ -149,7 +150,6 @@ category's per-tick effect, and every other walk has none. Built as
 
 - **`+0x3c`'s meaning** (§5). The next step is the caller at `0x004BFBD0`, which
   is the shortest of the three and the one that compares against `0x4B`.
-- Whether record 0's zero bit is deliberate (§3).
 - Naming the six categories `CreatureStateCategory` still leaves as `UnnamedNN`.
   All 36 hook bodies are now read (§7.2, `state-category-hooks.md`) and settle
   none of them: five of the six have no hook at all. The **state handlers** are
@@ -199,7 +199,7 @@ the enter, update and leave hooks are set. The addresses are §7.1.
 | 30 | Incapacitated | `0x40000000` | `0xFFFFFFFF` | . | . | . | 5 |
 | 31 | Spectating | `0x80000000` | `0x8002383B` | Y | Y | Y | 21 |
 
-Record 0's `bit` is **0** because nothing writes it (§3), not because it is zero-valued.
+Record 0's `bit` is the one field supplied by the file rather than the fill run (§3).
 
 ## 7.1 The hook addresses
 
