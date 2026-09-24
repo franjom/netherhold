@@ -222,6 +222,11 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   `0x006F2590`; a creature in category 15 on its own tile, not in 133, sends it to 133
   (`0x00484C80`, reset and 0); otherwise it walks to the nearest one in the chamber,
   resuming 134. 127–129 are category 0: the torturer takes no hook.
+- **The gate says no** (probed on our transcription of `0x00476D30`, which has no force
+  argument; its second is an out flag). 127–129 are group 8, category 0, set by the filler
+  at `0x0047DDC0`. 128 → 1 and 128 → 129 are refused, and so is 134 → 133, so neither whip
+  can start; from 127 or 128 only movement, 130 and category 0 elsewhere are open. Whether
+  DK2 plays this way is Q426.
 - **Built** (ADR-0193): a captive dropped on a free device, 77 → 130 → 131; the hook's
   duration, hurt, own-keeper mood, threshold and conversion; the device-gone release.
   **Ours:** health at zero releases the victim to the health system (DK2 knocks it out
