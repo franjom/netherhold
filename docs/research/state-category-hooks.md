@@ -242,8 +242,13 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   duration, hurt, own-keeper mood, threshold and conversion; the device-gone release.
   **Ours:** health at zero releases the victim to the health system (DK2 knocks it out
   and kills it on the device, revealing information); a convert is released rather than
-  left on the device, which the owner confirms (Q425: it gets off, beds down, eats). **Not built:** the torturer (127, 128, 134), 136, the
-  information, and your own creatures on a device.
+  left on the device, which the owner confirms (Q425: it gets off, beds down, eats).
+- **Built** (ADR-0196): the Mistress's job, 7 into 127, the chamber holding a victim first;
+  127's walk to an unattended victim (6, 128) or onto a free device (6, 130, 131); the whip,
+  128 ↔ 129 through idle, action 63 for 6 turns, a new one every 7th; the chair turning away
+  a creature without `CanBeElectrocuted` (131). **Ours:** tile-level positions, instant
+  facing, no capacity test, and no need interrupting her, as for every job here. **Not
+  built:** 134, 136, the information, and the leave hook's `+0x6E`.
 
 ## 4. Answers and limits
 

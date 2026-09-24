@@ -38,7 +38,7 @@ public sealed class TortureSystem : ISimulationSystem
             if (HandRules.IsHeld(creature)) continue;
 
             int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
-            byte keeper = (byte)creature.PrisonOwnerPlayerId;
+            byte keeper = TortureRules.KeeperOf(creature);
             if (TortureRules.FreeDeviceAt(world, database, keeper, here, creature.Id) is null)
             {
                 // The device or the chamber is gone: 131 cannot carry on, and a captive standing

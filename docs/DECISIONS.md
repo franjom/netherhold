@@ -4364,3 +4364,19 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - No hashed state or pin moves: nothing built yet enters a category-0 state. `HashVersion` stays 99.
 - The lesson, for the record: a value with no writer can still be set, by the file.
 
+## ADR-0196 — The Mistress's Torture job
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0193, ADR-0195 · Research: `docs/research/state-category-hooks.md` §3.3
+
+**Context.** Only the Mistress carries the Torture job (Train 50, Torture 50). With category 0's bit read as 1 (ADR-0195, re-derived by Codex), her states 127–129 have ordinary exits, and the owner describes the job (Q426): she whips a victim over and over, and with none she gets on a device herself.
+
+**Decision.**
+1. `JobRules.StateFor(Torture)` is 127. While the keeper has a victim, the job goes to the nearest chamber holding one (`0x004F29A0`), else to any (`0x004F2B80`).
+2. `TorturerStep`, one original turn at a time: 127 walks in 6 to the first victim no torturer of the keeper's has in 129 (resuming 128), else onto the nearest free device (resuming 130), else idles and the job ends. 128 goes 1, 129 and starts the whip, action 63, for 6 turns, with effect `0xED` and no hurt; 129 goes 1, 128 when it ends. A whip every 7th turn.
+3. A Mistress on a device is her keeper's own, not a captive (`TortureRules.KeeperOf`): hurt and mood are her 0 and 0, and she does not convert. An Electric Chair holds only a creature with `CanBeElectrocuted`.
+4. New hashed fields `TortureTargetTile` (state `+0x119`) and `WhipTurnsLeft`.
+
+**Consequences.**
+- Ours, stated: tile-level positions, instant facing, no room capacity test. DK2's needs routine can pull her out; ours pulls no creature out of a job, a gap shared by every job.
+- Eight trace tests. Negative controls: a direct 128 → 129, 128 counting as whipping, no chamber preference, a chair for anyone, a five-turn whip, and a self-strapped captive each fail a named test.
+- `HashVersion` and `FormatVersion` **100**, pin `0xFB318DBAE28A937F`.
+

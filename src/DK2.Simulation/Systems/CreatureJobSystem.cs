@@ -269,6 +269,11 @@ public sealed class CreatureJobSystem : ISimulationSystem
                 room.TileIndices[0], room));
         }
 
+        // The torture handler 0x00483AE0: while the keeper has victims, the nearest chamber
+        // holding one (0x004F29A0) before any other (0x004F2B80).
+        if (job == JobType.Torture && candidates.Any(c => HoldsAVictim(world, c.Room)))
+            candidates.RemoveAll(c => !HoldsAVictim(world, c.Room));
+
         candidates.Sort((a, b) =>
             a.Distance != b.Distance
                 ? a.Distance.CompareTo(b.Distance)
@@ -349,9 +354,16 @@ public sealed class CreatureJobSystem : ISimulationSystem
             return;
         }
 
+        // A torturer's states are category 0, with no hook: what she does is their handlers,
+        // one turn at a time (ADR-0196).
+        if (job == JobType.Torture)
+        {
+            if (originalTick && !TorturerStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            return;
+        }
+
         // What happens at work is the update hook of the job state's CATEGORY, which the
-        // dispatcher runs before the state's own handler (ADR-0186). A job with no state id
-        // (Torture, Q419) has no category and so no effect here. The countdown hooks act on
+        // dispatcher runs before the state's own handler (ADR-0186). The countdown hooks act on
         // the creature's own countdown, every fifth turn from entry (Q424, ADR-0192).
         const int reload = CreatureStateMachine.HookCountdownSeed;
         switch (CreatureStateMachine.UpdatingCategory(creature))
@@ -616,6 +628,10 @@ public sealed class CreatureJobSystem : ISimulationSystem
             && room.Definition.TypeId == wants
             && room.OwnerPlayerId == creature.OwnerPlayerId;
     }
+
+    private static bool HoldsAVictim(WorldState world, RoomInstance room) =>
+        world.Creatures.Any(c => TortureRules.IsBeingTortured(c)
+            && EatingRules.Contains(room, (c.Tile.Y * world.Width) + c.Tile.X));
 
     /// <summary>The last tick of a game second, which is the phase every
     /// per-second system in this simulation shares.</summary>

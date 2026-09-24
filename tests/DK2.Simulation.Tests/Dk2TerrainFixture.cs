@@ -208,7 +208,7 @@ internal static class Dk2TerrainFixture
             R(RoomTypeId.TortureChamber, "Torture Chamber", 1500, TortureChamberTerrain, 0x13ACu, 3, 3,
               objectIds: [8, 8, 61, 8, 62, 63]),
         ],
-        creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), Warlock(), Priest(), Thief(), .. extraCreatures],
+        creatures: [Imp(), Goblin(), Vampire(), Skeleton(), BileDemon(), Knight(), Warlock(), Priest(), Thief(), Mistress(), .. extraCreatures],
         variables: Variables(),
         keeperSpells: KeeperSpells(),
         objects: Objects(),
@@ -788,6 +788,24 @@ internal static class Dk2TerrainFixture
         Name = "Deserter",
         CreatureId = DeserterCreatureId,
         AngryJobs = [new(JobType.Leave, 0, 0, 100)],
+    };
+
+    public const byte MistressCreatureId = 4;
+
+    /// <summary>The Mistress, the one creature with the Torture job (ADR-0196): her shipped
+    /// happy table, Train and Torture at 50 each, and her torture numbers, 0 health and 0 mood
+    /// an act. Everything else is the Goblin's. <c>CreatureNeedsOnRealDataTests</c> guards the
+    /// overrides.</summary>
+    public static CreatureDef Mistress() => Goblin() with
+    {
+        Name = "Mistress",
+        CreatureId = MistressCreatureId,
+        Hp = 2000,
+        HappyJobs = [new(JobType.Train, 10, 0, 50), new(JobType.Torture, 0, 0, 50)],
+        UnhappyJobs = [new(JobType.Sulk, 0, 0, 10), new(JobType.Drink, 0, 0, 90)],
+        TortureHpChange = 0,
+        TortureMoodChange = 0,
+        TortureTimeToConvert = Fp32.FromDouble(280),
     };
 
     public const byte VampireCreatureId = 8;

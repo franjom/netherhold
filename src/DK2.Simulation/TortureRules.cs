@@ -29,12 +29,34 @@ public static class TortureRules
     /// variable 19.</summary>
     public const int DurationPerAct = CreatureStateMachine.HookCountdownSeed;
 
+    /// <summary>The torturer's states, group 8 and category 0 (ADR-0196): 127 chooses in the
+    /// chamber, 128 faces a victim, 129 whips it. 128 and 129 reach each other through idle,
+    /// since a category-0 target in the same group is refused (ADR-0195).</summary>
+    public const int TorturerChoosingState = 127;
+    public const int TorturerFacingState = 128;
+    public const int TorturerWhippingState = 129;
+
+    /// <summary>Turns a whip lasts: action 63's handler <c>0x00499C20</c> ends once more than
+    /// five turns have passed since it began, spawning effect <c>0xED</c> at the victim.</summary>
+    public const int WhipTurns = 6;
+
     public static bool IsDevice(byte objectTypeId) =>
         objectTypeId is WheelObjectId or ElectricChairObjectId;
 
     /// <summary>Whether this creature is on a device.</summary>
     public static bool IsBeingTortured(CreatureState creature) =>
         creature.Activity == CreatureActivity.BeingTortured;
+
+    /// <summary>The keeper whose chamber a creature on a device is in: its jailer if it is a
+    /// captive, else its own, a Mistress who got on by herself.</summary>
+    public static byte KeeperOf(CreatureState creature) =>
+        PrisonRules.IsImprisoned(creature) ? (byte)creature.PrisonOwnerPlayerId : creature.OwnerPlayerId;
+
+    /// <summary>Whether a device will hold this creature. 131 (<c>0x00484590</c>) turns away,
+    /// from an Electric Chair, a creature without <see cref="CreatureFlags.CanBeElectrocuted"/>
+    /// (definition <c>+0x686</c> bit 19); the wheel takes anyone.</summary>
+    public static bool Holds(ObjectState device, CreatureDef creature) =>
+        device.ObjectTypeId != ElectricChairObjectId || creature.Flags.HasFlag(CreatureFlags.CanBeElectrocuted);
 
     /// <summary>The time served that converts: the definition's <c>TortureTimeToConvert</c> in
     /// turns (the loader stores seconds × variable 19, <c>0x0049391A</c>), scaled by the level row
@@ -78,14 +100,11 @@ public static class TortureRules
     public static bool TryStrap(
         WorldState world, GameDatabase database, CreatureState creature, byte keeper, int tileIndex)
     {
-        if (FreeDeviceAt(world, database, keeper, tileIndex, creature.Id) is null) return false;
+        ObjectState? device = FreeDeviceAt(world, database, keeper, tileIndex, creature.Id);
+        if (device is null || !Holds(device, database.CreatureById(creature.CreatureTypeId))) return false;
 
         creature.PrisonOwnerPlayerId = keeper;
-        creature.PosX = CreatureState.CentreOf(tileIndex % world.Width);
-        creature.PosY = CreatureState.CentreOf(tileIndex / world.Width);
-        creature.Body.Vel = Steering.Fixed16Vector.Zero;
-        creature.StopMoving();
-        creature.Activity = CreatureActivity.BeingTortured;
+        StrapOn(world, creature, tileIndex);
 
         if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
         CreatureStateMachine.Begin(creature, PrisonRules.HandDropState);
@@ -94,12 +113,44 @@ public static class TortureRules
         return true;
     }
 
-    /// <summary>Takes a creature off its device, giving its state back. It is still its keeper's
-    /// captive until something decides otherwise: the hand's drop, or <see cref="PrisonRules.Release"/>.</summary>
+    /// <summary>130 for a creature that walked onto a free device of its own keeper's chamber,
+    /// a Mistress with no victim to whip: it straps itself on and moves to 131. It stays its
+    /// keeper's own. Returns whether it took; 130 fails to idle otherwise.</summary>
+    public static bool TryStrapSelf(WorldState world, GameDatabase database, CreatureState creature)
+    {
+        int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
+        ObjectState? device = FreeDeviceAt(world, database, creature.OwnerPlayerId, here, creature.Id);
+        if (device is null || !Holds(device, database.CreatureById(creature.CreatureTypeId))) return false;
+        if (!CreatureStateMachine.TrySetState(creature, TorturedState)) return false;
+
+        StrapOn(world, creature, here);
+        return true;
+    }
+
+    private static void StrapOn(WorldState world, CreatureState creature, int tileIndex)
+    {
+        creature.PosX = CreatureState.CentreOf(tileIndex % world.Width);
+        creature.PosY = CreatureState.CentreOf(tileIndex / world.Width);
+        creature.Body.Vel = Steering.Fixed16Vector.Zero;
+        creature.StopMoving();
+        creature.Activity = CreatureActivity.BeingTortured;
+    }
+
+    /// <summary>Takes a creature off its device, giving its state back. A captive is still its
+    /// keeper's until something decides otherwise: the hand's drop, or
+    /// <see cref="PrisonRules.Release"/>. A creature that got on by itself is idle.</summary>
     public static void Unstrap(CreatureState creature)
     {
         if (!IsBeingTortured(creature)) return;
         if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
-        creature.Activity = CreatureActivity.Imprisoned;
+        if (PrisonRules.IsImprisoned(creature))
+        {
+            creature.Activity = CreatureActivity.Imprisoned;
+            return;
+        }
+
+        creature.CurrentJob = JobType.None;
+        creature.JobTileIndex = -1;
+        creature.ClearJob();
     }
 }

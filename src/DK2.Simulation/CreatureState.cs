@@ -565,6 +565,13 @@ public sealed class CreatureState
     /// conversion, so it carries over from one session on the device to the next (ADR-0193).</summary>
     public int TorturedDuration;
 
+    /// <summary>The tile of the victim a torturer is whipping, DK2's target at the state
+    /// object's <c>+0x119</c>/<c>+0x11D</c>, or -1 (ADR-0196).</summary>
+    public int TortureTargetTile = -1;
+
+    /// <summary>Turns left of the whip, action 63, or 0 (ADR-0196).</summary>
+    public int WhipTurnsLeft;
+
     /// <summary>Ticks until a rebelling creature with no reachable Portal defects to the
     /// hero side, or 0 when it is not rebelling. DK2 keeps the same clock the other way
     /// up, as an absolute deadline at its state object's <c>+0xB7</c>
@@ -814,6 +821,8 @@ public sealed class CreatureState
         hash.Add(UtilityNewState);
         hash.Add(HookCountdown);
         hash.Add(TorturedDuration);
+        hash.Add(TortureTargetTile);
+        hash.Add(WhipTurnsLeft);
         hash.Add(RebelCountdownTicks);
         hash.Add(RebelAgainstPlayerId);
         hash.Add(TargetTileIndex);

@@ -1349,6 +1349,19 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(320, TortureRules.ConversionThreshold(db, goblin, 1));
         Assert.Equal(960, TortureRules.ConversionThreshold(db, goblin, 10));
         Assert.Equal(0, db[VariableTypeId.TortureChanceOfDyingWhenConverted]);
+        // The Mistress, as the fixture transcribes her (ADR-0196).
+        CreatureDef mistress = db.CreatureById(4);
+        Assert.Equal("Mistress", mistress.Name);
+        Assert.Equal((2000, (short)0, (short)0, 280 * 4096),
+            (mistress.Hp, mistress.TortureHpChange, mistress.TortureMoodChange, mistress.TortureTimeToConvert.Raw));
+        Assert.Equal(
+            new CreatureJobPreference[] { new(JobType.Train, 10, 0, 50), new(JobType.Torture, 0, 0, 50) },
+            mistress.HappyJobs);
+        Assert.Equal(
+            new CreatureJobPreference[] { new(JobType.Sulk, 0, 0, 10), new(JobType.Drink, 0, 0, 90) },
+            mistress.UnhappyJobs);
+        Assert.True(mistress.Flags.HasFlag(CreatureFlags.CanBeElectrocuted));
+        Assert.False(db.CreatureByName("Firefly")!.Flags.HasFlag(CreatureFlags.CanBeElectrocuted));
         Assert.Equal("Torture Wheel", db.ObjectById(TortureRules.WheelObjectId)!.Name);
         Assert.Equal("Electric Chair", db.ObjectById(TortureRules.ElectricChairObjectId)!.Name);
         Assert.Equal((3686, 819, 176), (db.ObjectById(8)!.Width.Raw, db.ObjectById(8)!.Height.Raw, db.ObjectById(8)!.PickUpPriority));

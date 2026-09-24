@@ -48,9 +48,9 @@ public static class JobRules
 
     /// <summary>The state a job's handler hands the room helper as its resume, so the state a
     /// creature at work is in (<c>travel-state-call-sites.md</c> §2). Null for Eat, whose
-    /// handler enters state 91 and walks from there (<c>eating.md</c> §3), for Wait, which
-    /// has no handler in the jump table, and for Torture: its state 127 cannot drop back to
-    /// idle under DK2's rule, so the way out is unread (Q419).</summary>
+    /// handler enters state 91 and walks from there (<c>eating.md</c> §3), and for Wait, which
+    /// has no handler in the jump table. Torture's 127 drops to idle like the rest once
+    /// category 0's bit is read as 1 (ADR-0195, ADR-0196).</summary>
     public static int? StateFor(JobType job) => job switch
     {
         JobType.Research => 53,
@@ -60,6 +60,7 @@ public static class JobRules
         JobType.Guard => 97,
         JobType.Praying => 101,
         JobType.Train => 108,
+        JobType.Torture => TortureRules.TorturerChoosingState,
         JobType.CombatPitSpectate => 142,
         JobType.Drink => 145,
         _ => null,
@@ -71,7 +72,7 @@ public static class JobRules
     /// and say so in the log.</summary>
     public static bool EffectIsBuilt(JobType job) =>
         job is JobType.Praying or JobType.Train or JobType.Research
-            or JobType.CombatPitSpectate or JobType.Drink;
+            or JobType.CombatPitSpectate or JobType.Drink or JobType.Torture;
 
     /// <summary>The keeper-or-creature test each handler makes before it looks for a
     /// room. Null means it passes; a non-null string is the reason and goes into the
