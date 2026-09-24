@@ -57,17 +57,72 @@ whose **only writer** is the command-line parser `0x005A63B0`, at `0x005A6C6E`. 
 only for a multiplayer desync under `-LOGOOS`, and **never in ordinary play**.
 
 **REPORTED, not reproduced here.** Called directly on a loaded level it writes a complete
-world dump to `MESSAGE.LOG`, about 600 KB and 26,000 lines (belgianguy, OpenKeeper #505,
-2026-08-11, under Wine and GDB: `ECX` = `0x006F2A08`, call `0x0050EA70`; ufdada gives a
-Cheat Engine recipe that does the same from a created thread, 2026-09-12). Cited, not
-adopted: neither run is ours yet.
+world dump to `MESSAGE.LOG` (belgianguy, OpenKeeper #505, 2026-08-11, under Wine and GDB:
+`ECX` = `0x006F2A08`, call `0x0050EA70`; ufdada gives a Cheat Engine recipe that does the
+same from a created thread, 2026-09-12). Neither run is ours yet.
 
-**Why it matters here.** 26,000 lines is far more than the world's own 74 fields, so it
-almost certainly recurses into the other dumpers - and the creature job object's dumper is where `StateBeforeUtilityState`, `UtilityNewState` and
-`SleepNeeded` come from. If it does (unread - Q417), one call gives every creature's
-current state id and resume pair at a known tick, which is the check the ADR-0135
-retirements otherwise have no way to make. `dk2watch.py` opens the process read-only, so
-calling a function in it needs a remote thread - a tool change, not a patch.
+**OBSERVED in one outside dump (2026-09-24).** belgianguy attached the file they made; it is
+kept byte-for-byte as [samples/worldlog-envmapshowcase-gt231.log](samples/worldlog-envmapshowcase-gt231.log)
+(26,346 CRLF lines, 606,516 bytes, SHA-256 `1bda4b04…22d27`; `DKII.exe -q -level
+EnvMapShowcase` under Wine, `World Log at GameTick 231`). The world log does **recurse into
+the other dumpers**. In file order:
+
+- **Header** between `*` rules: the tick; `Checksums: Exe, Level, Data, TM, Map, RM, PM`
+  (hex); the running `Checksum` and `Seed`; `ME Player TagId`. Then `Data Checksums:` for
+  nine subsystems (`Terrain`, `Room`, `Creature`, `Door`, `Trap`, `Object`, `CreatureSpell`,
+  `KeeperSpell`, `Shot`), decimal.
+- **`PlayerManager:`** and each player: the player dumper's fields, `Statistics:`,
+  `TaskStack:`, `ManufactureList:`, `PlayerRoomPlacmentInfo:` (sic), `RoomRemovalInfo:`.
+- **`ThingManager`** twice: first over rooms (`Room TagId N`, from line 11,064), then over
+  things (`NumberOfCreaturesCreated 15`, `NumberOfObjectsCreated 55`, ..., then one
+  `Thing TagId N` block per thing from line 11,325). A creature's block holds the creature dumper's fields with sub-blocks `RenderInfo:`,
+  `Pilot Navigation:` (the steering body: `pos`, `vel`, `path_*`, `max_speed`, `radius`),
+  `State:` (`CurrentStateId`, `GameTickLastUpdated`, `StartedAt`, `Age`), `Anger:` (the job
+  and needs object: `StateBeforeUtilityState`, `SleepNeeded`, `CurrentlyDoingJobId`,
+  `UtilityNewState`, ...), `Utility State Data:` and `Fight:`.
+- **`Map:`**, **`NavigationSystem:`**, **`NavigationSystemMap:`**, **`PlayerMessageQueue:`**
+  (line 19,765 on), then the world's own fields from the world dumper above (`LevelScore`,
+  `NeutralPlayerId`, `HornedReaperTypeId`, the trigger counts, ...), the level-intro
+  overrides, and the line `End World Log`.
+
+The order is read from the output, not from `0x0050EA70`'s call list; reading that list is
+what would promote this to CONFIRMED.
+
+**What the dump says about creature state.** Every id in it names a state in
+[creature-state-table.md](creature-state-table.md):
+
+| tag | `TypeId` | `CurrentStateId` | `StateBeforeUtilityState` (`+0x40`) | `UtilityNewState` (`+0xDF`) | `Utility State Data` |
+|---|---:|---|---|---:|---|
+| 440 | 29 | 176 idle | 176 | 1 | not in utility state |
+| 442, 444, 445, 447 | 30, 3, 22, 4 | 250 guarding | 0 | 0 | not in utility state |
+| 446 | 23 | 3 doing nothing | 0 | 0 | not in utility state |
+| 443 | 13 | **7 en route** | 89 idle | **80** making a home | `RoomId 1125` |
+| 448, 449, 451 | 1 (imp) | 20 claiming territory | 10 idle | 1 | not in utility state |
+| 450 | 1 | 10 idle | 10 | 1 | not in utility state |
+| 452, 455 | 1 | 12 idle | 87 wandering | 1 | not in utility state |
+| 453 | 1 | 10 idle | 87 | 1 | not in utility state |
+| 454 | 1 | **6 en route** | 87 | 1 | `MoveTo (22527, 22527)` |
+
+Creature 443 is Q414's reading on a live game: the room route helper put it in state 7 with
+`+0xDF` = its errand's state and the room in the utility data. It also adds a fact Q414 did
+not have: the five creatures that have apparently never travelled hold **0** in `+0xDF`,
+not the 1 an arrival writes. So an empty slot reads 0 before a creature's first trip and 1
+after it.
+
+**Why it matters here.** One call gives every creature's current state id and resume pair
+at a known tick: the check the ADR-0135 retirements otherwise have no way to make. Two
+ways to take one:
+
+- **By hand, now:** ufdada's Cheat Engine script (Auto Assemble: `alloc`, `mov ecx,0x006f2a08`,
+  `call 0x0050EA70`, `retn`, `createthread`). **Pause the game first.** The created thread
+  runs alongside the game's main thread, so a dump taken while the game is running can mix
+  two ticks.
+- **Scripted, not built:** `dk2watch.py` opens the process read-only. Calling the function
+  needs `PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_CREATE_THREAD` (elevated), then
+  `VirtualAllocEx`, `WriteProcessMemory` for a 13-byte stub (`B9 08 2A 6F 00` `E8 rel32`
+  `C2 04 00`: a thread procedure is stdcall with one argument, so `ret 4`; the Cheat Engine
+  script's plain `retn` survives only because the thread exits at once), and
+  `CreateRemoteThread`. The same tick-mixing caution applies.
 
 ## Four cautions
 
