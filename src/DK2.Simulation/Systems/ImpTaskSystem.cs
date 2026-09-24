@@ -142,6 +142,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         // answered against the same world, or a worker can be routed by one
         // answer and judged by another.
         var grid = new WorldPathGrid(context.Database, context.World, definition);
+        CreatureStateMachine.ReleaseIfLeft(creature);
 
         if (creature.Activity == CreatureActivity.DeliveringGold)
         {
@@ -184,6 +185,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
             context.Emit(SystemName, "job_abandoned",
                 $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
                 $"{creature.TargetWork} reason=gone");
+            WorkEnded(context, creature);
             GoIdle(creature);
             return;
         }
@@ -238,6 +240,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
             creature.StopMoving();
             creature.Activity = CreatureActivity.Working;
             creature.TimerTicks = SimulationTiming.WorkApplicationPeriodTicks;
+            AtWork(context, creature);
             return;
         }
 
@@ -249,6 +252,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
         context.Emit(SystemName, "job_abandoned",
             $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
             $"{creature.TargetWork} reason=out_of_reach");
+        StateShadow.ToIdle(context, SystemName, creature);
         GoIdle(creature);
     }
 
@@ -257,6 +261,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
     {
         if (!IsInWorkingPosition(context, creature, grid))
         {
+            WorkEnded(context, creature);
             GoIdle(creature);
             return;
         }
@@ -278,6 +283,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
         if (WouldOverfillItsHands(context, creature, definition)
             && TryRouteToSomewhereItFits(context, creature, grid))
         {
+            // 26 walks to the store in 6 resuming in 28, which is not on state ids yet.
+            CreatureStateMachine.Release(creature);
             BeginDelivering(creature);
             return;
         }
@@ -865,6 +872,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
         {
             creature.Activity = CreatureActivity.MovingToJob;
         }
+
+        SetOutInState(context, creature, kind, routed: _route.Count > 0);
 
         creature.LastTaskKind = KindOf(priority);
 
@@ -1695,6 +1704,41 @@ public sealed class ImpTaskSystem : ISimulationSystem
     /// <c>ImpIdleDelayBeforeReevaluation</c>. Also ours: a freshly placed worker
     /// looks immediately.</para>
     /// </summary>
+    // ---- on DK2's state ids (ADR-0181) ---------------------------------------
+
+    /// <summary>State 10 takes the task and walks through the imp wrapper in 6, resuming in
+    /// the kind's entry state. An imp already in its stance still takes the walk, and the
+    /// entry state moves to the work state on the same tick. The teleport branch (51, 52) is
+    /// not built: every imp walks (Q418).</summary>
+    private static void SetOutInState(
+        SimulationContext context, CreatureState creature, TileWorkKind kind, bool routed)
+    {
+        CreatureStateMachine.Release(creature);
+        StateShadow.FromIdle(creature);
+        StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
+        CreatureStateMachine.BeginTravel(
+            creature, StateShadow.TravelToPoint, ImpStates.For(kind).Entry);
+        if (!routed) AtWork(context, creature);
+    }
+
+    /// <summary>The walk ends in the entry state, which finds the stance free and moves to
+    /// the work state. The entry state's wait for an occupied stance is not modelled.</summary>
+    private static void AtWork(SimulationContext context, CreatureState creature)
+    {
+        StateShadow.Arrive(context, SystemName, creature);
+        StateShadow.Move(context, SystemName, creature, ImpStates.For(creature.TargetWork).Work);
+    }
+
+    /// <summary>The task or the stance has gone, or the tile is done: the entry or work state
+    /// sets 10. Our idle is not on state ids, so the id is then handed back.</summary>
+    private static void WorkEnded(SimulationContext context, CreatureState creature)
+    {
+        if (!CreatureStateMachine.HasState(creature)) return;
+        StateShadow.Arrive(context, SystemName, creature);
+        StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
+        CreatureStateMachine.Release(creature);
+    }
+
     private static void GoIdle(CreatureState creature)
     {
         creature.ClearJob();

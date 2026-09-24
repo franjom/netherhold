@@ -31,13 +31,12 @@ its ADR (`docs/DECISIONS.md`), the evidence in the research doc beside it.
 
 ## Versions
 
+**86** — `0xDEB6A8B84200ED21`. An imp's tile work on DK2's state ids (ADR-0181).
 **85** — `0xE0EDFEC6BD215E6C`. Collecting wages on DK2's state ids (ADR-0180).
 **84** — `0xDB5AAE21ABF713BF`. A bed and a full wage wipe their anger bucket (ADR-0179).
 **83** — `0xDFC977B66E524362`. The lair and sleep on DK2's state ids (ADR-0178).
 **82** — `0xF1F260238F3D713D`. A job's walk and work on DK2's state ids (ADR-0177).
-
-**81** — `0xE54D6E7BACCB5868`. Eating on DK2's state ids (ADR-0176). The pinned world
-neither eats nor works, so both moved on the version alone; the traces pin the chains.
+**81** — `0xE54D6E7BACCB5868`. Eating on DK2's state ids (ADR-0176). From 81 on, traces pin the chains.
 
 **80** — `0xF53826B464578C5B`. The resume pair stops carrying a sentinel
 (ADR-0175). `StateBeforeUtilityState` and `UtilityNewState` default to **0**, as

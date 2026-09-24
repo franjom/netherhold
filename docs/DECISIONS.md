@@ -4143,3 +4143,19 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - The pinned world collects no wages; the bump is the policy.
 - `HashVersion` and `FormatVersion` **85**, pin `0xE0EDFEC6BD215E6C`.
 
+## ADR-0181 — An imp's tile work runs on DK2's own state ids
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0135 (step two, fifth slice) · Research: `docs/research/imp-state-exits.md` §2, §4
+
+**Context.** Codex read the worker states 10–48 and 76; a re-read of the six work states closed Q420 by showing each repeats its action in place until the tile is done. Every move of the chain is legal under the rule (`EveryImpWorkChainIsLegalFromIdleThroughTaskSelection`).
+
+**Decision.**
+1. **`MovingToJob` and `Working` retire.** Taking a job moves 1 to 10, and 10 walks in 6 resuming in the kind's entry state; arrival hands over to it and it moves to the work state, which holds for every swing. A finished tile, a gone task or a lost stance goes through 10 and hands the id back; a failed walk drops from 6 to 1.
+2. **`ImpStates.For` pairs each kind with its states** by the action the work state starts: the three digs 13/14, mining 25/26, claiming 15/16, a rival room 17/18, a rival floor 19/20, reinforcing 21/22, repairing 23/24.
+3. **An imp already in its stance still takes the walk**, and 6, the entry state and the work state fall in one tick.
+4. **Not built:** the teleport branch (51, 52; Q418), the entry state's wait for an occupied stance, 14's failed follow-up returning 0, and the carrying activities, so 26's walk to a store releases the id.
+
+**Consequences.**
+- Negative controls, one at a time: pairing dig or mining with the other's states, dropping the two activities from the retired set, and skipping the same-tick arrival each fail a named test; reselecting after every swing fails fifteen existing imp tests.
+- 10's pass before the id is handed back is not visible in a trace, since 10 is not a travel state; the gate probe covers its legality.
+- `HashVersion` and `FormatVersion` **86**, pin `0xDEB6A8B84200ED21`.
+

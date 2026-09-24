@@ -248,6 +248,48 @@ public class CreatureStateMachineTests
         }
     }
 
+    [Theory]
+    [InlineData(TileWorkKind.Dig)]
+    [InlineData(TileWorkKind.DigOwnWall)]
+    [InlineData(TileWorkKind.DigEnemyWall)]
+    [InlineData(TileWorkKind.MineGold)]
+    [InlineData(TileWorkKind.Claim)]
+    [InlineData(TileWorkKind.AttackTile)]
+    [InlineData(TileWorkKind.ConvertRoom)]
+    [InlineData(TileWorkKind.Reinforce)]
+    [InlineData(TileWorkKind.RepairWall)]
+    public void EveryImpWorkChainIsLegalFromIdleThroughTaskSelection(TileWorkKind kind)
+    {
+        // imp-state-exits.md: 1 reaches 10 on a later tick, 10's handler walks in 6 resuming
+        // in the odd entry state, the entry moves to the even work state, and the even state
+        // sets 10 once the tile is done. A failed walk returns 0 from 6, which is 1.
+        (int entry, int work) = ImpStates.For(kind);
+
+        CreatureState imp = Fresh();
+        CreatureStateMachine.Begin(imp, Idle);
+        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
+        CreatureStateMachine.BeginTravel(imp, EnRoute, entry);
+        Assert.Equal(EnRoute, imp.Dk2StateId);
+        Assert.True(CreatureStateMachine.Arrive(imp));
+        Assert.Equal(entry, imp.Dk2StateId);
+        Assert.True(CreatureStateMachine.TrySetState(imp, work));
+        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(imp, Idle));
+
+        CreatureState lost = Fresh();
+        CreatureStateMachine.Begin(lost, Idle);
+        Assert.True(CreatureStateMachine.TrySetState(lost, ImpStates.TaskSelection));
+        CreatureStateMachine.BeginTravel(lost, EnRoute, entry);
+        Assert.True(CreatureStateMachine.TrySetState(lost, Idle));
+
+        // The entry state gives up to 10 as well, when the task has gone on arrival.
+        CreatureState late = Fresh();
+        CreatureStateMachine.Begin(late, Idle);
+        Assert.True(CreatureStateMachine.TrySetState(late, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(late, entry));
+        Assert.True(CreatureStateMachine.TrySetState(late, ImpStates.TaskSelection));
+    }
+
     [Fact]
     public void TortureIsOffStateIdsBecauseItsStateCannotDropToIdleAndTheWayOutIsUnread()
     {
