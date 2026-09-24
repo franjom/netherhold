@@ -204,3 +204,24 @@ public class ImpStateTests
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
 }
+
+/// <summary>Each change of an imp's (state, saved caller, resume slot), tick by tick.</summary>
+internal static class ImpStateTrace
+{
+    public static List<(int State, int Saved, int Resume)> Seen(
+        GameSimulation sim, CreatureState imp, int ticks, Func<bool>? until = null)
+    {
+        var seen = new List<(int, int, int)>();
+        (int, int, int) last = (imp.Dk2StateId, imp.StateBeforeUtilityState, imp.UtilityNewState);
+        for (int t = 0; t < ticks && !(until?.Invoke() ?? false); t++)
+        {
+            sim.Tick(InputFrame.Empty);
+            (int, int, int) now = (imp.Dk2StateId, imp.StateBeforeUtilityState, imp.UtilityNewState);
+            if (now == last) continue;
+            seen.Add(now);
+            last = now;
+        }
+
+        return seen;
+    }
+}

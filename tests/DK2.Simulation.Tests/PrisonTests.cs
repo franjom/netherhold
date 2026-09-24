@@ -160,6 +160,53 @@ public class PrisonTests
     }
 
     [Fact]
+    public void AnAdmittedPrisonerIsFortyThreeFortyFourThenFortySix()
+    {
+        // 42 walks an enemy in 6 to 43; ours arrives at the cell, so 43's inner leg to 44 and
+        // 44's walk away to 46 fall in that tick, and the last walk's saved caller is 44.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
+        Down(enemy);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        Assert.Equal(
+            [(6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
+             (6, ImpStates.PickingUpCasualty, ImpStates.CarryingToPrison),
+             (CreatureStateMachine.NoState, ImpStates.AtThePrisonDoor, CreatureStateMachine.Idle)],
+            ImpStateTrace.Seen(sim, imp, 30 * Second,
+                () => sink.Events.Any(e => e.Kind == "creature_imprisoned")));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void ARefusedBodyIsPutDownThroughFortySevenAndFortyEight()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        Prisoner(db, world, CellA);
+        Prisoner(db, world, CellB);
+        CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
+        Down(enemy);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        // The walk into 48 is 47's, so 47 is the saved caller the id is handed back with.
+        Assert.Equal(
+            [(6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
+             (6, ImpStates.PickingUpCasualty, ImpStates.CarryingToPrison),
+             (CreatureStateMachine.NoState, ImpStates.TakingTheRefusedBody, CreatureStateMachine.Idle)],
+            ImpStateTrace.Seen(sim, imp, 30 * Second,
+                () => sink.Events.Any(e => e.Kind == "body_dropped")));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
     public void AnImpLeavesAnEnemyLyingWhenItsKeeperHasNoPrison()
     {
         // What ADR-0063 shipped as a deliberate stop, kept as a rule: without

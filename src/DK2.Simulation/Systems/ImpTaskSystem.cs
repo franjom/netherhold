@@ -1491,6 +1491,9 @@ public sealed class ImpTaskSystem : ISimulationSystem
         context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Plain);
         creature.TimerTicks = 0;
         creature.LastTaskKind = corpses ? ImpTaskKind.CarryCorpse : ImpTaskKind.CarryUnconscious;
+        FromTaskSelection(creature);
+        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint,
+            corpses ? ImpStates.PickingUpCorpse : ImpStates.PickingUpCasualty);
 
         // Remembered so that the walk and the pick-up agree about which body
         // this is, even if a second one falls on the same tile before the imp
@@ -1549,6 +1552,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
             context.Emit(SystemName, "body_abandoned",
                 $"imp={creature.Id} body={creature.TargetBodyId} reason=gone");
             ForgetBody(creature);
+            WorkEnded(context, creature);
             GoIdle(creature);
             return;
         }
@@ -1561,19 +1565,28 @@ public sealed class ImpTaskSystem : ISimulationSystem
             context.Emit(SystemName, "body_abandoned",
                 $"imp={creature.Id} body={body.Id} reason=out_of_reach");
             ForgetBody(creature);
+            StateShadow.ToIdle(context, SystemName, creature);
             GoIdle(creature);
             return;
         }
 
+        StateShadow.Arrive(context, SystemName, creature);
         int destination = CarryRules.TryDestinationFor(world, context.Database, creature, body);
         if (destination < 0 || !RouteTo(context, creature, grid, destination))
         {
             context.Emit(SystemName, "body_abandoned",
                 $"imp={creature.Id} body={body.Id} reason=nowhere_to_take_it");
             ForgetBody(creature);
+            WorkEnded(context, creature);
             GoIdle(creature);
             return;
         }
+
+        // 40 walks a corpse to 41; 42 chooses by ownership through 0x0046E610.
+        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint,
+            CreatureDeathRules.IsCorpse(body) ? ImpStates.CarryingCorpse
+            : body.OwnerPlayerId == creature.OwnerPlayerId ? ImpStates.CarryingToLair
+            : ImpStates.CarryingToPrison);
 
         ForgetBody(creature);
         CarryRules.PickUp(creature, body);
@@ -1597,7 +1610,9 @@ public sealed class ImpTaskSystem : ISimulationSystem
         // really can do (Q164).
         if (body is null)
         {
+            // A bad carried id: the carry state returns 0, which is idle.
             creature.CarriedCreatureId = -1;
+            StateShadow.ToIdle(context, SystemName, creature);
             GoIdle(creature);
             return;
         }
@@ -1616,7 +1631,11 @@ public sealed class ImpTaskSystem : ISimulationSystem
             int destination = CarryRules.TryDestinationFor(world, context.Database, creature, body);
             if (destination >= 0 && RouteTo(context, creature, grid, destination))
             {
+                // 41, 43 and 45 each re-route to themselves.
                 creature.TargetTileIndex = destination;
+                int carrying = creature.UtilityNewState;
+                StateShadow.Arrive(context, SystemName, creature);
+                CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, carrying);
                 return;
             }
 
@@ -1624,10 +1643,12 @@ public sealed class ImpTaskSystem : ISimulationSystem
                 $"imp={creature.Id} body={body.Id} " +
                 $"at=({creature.Tile.X},{creature.Tile.Y}) reason=no_route");
             CarryRules.PutDown(creature, body);
+            StateShadow.ToIdle(context, SystemName, creature);
             GoIdle(creature);
             return;
         }
 
+        StateShadow.Arrive(context, SystemName, creature);
         Deliver(context, creature, body);
     }
 
@@ -1653,6 +1674,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
                     $"imp={creature.Id} body={body.Id} " +
                     $"at=({creature.Tile.X},{creature.Tile.Y}) reason=no_graveyard");
                 CarryRules.PutDown(creature, body);
+                StateShadow.ToIdle(context, SystemName, creature);
                 GoIdle(creature);
                 return;
             }
@@ -1673,6 +1695,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
             CarryRules.PutDown(creature, body);
             world.RemoveCreature(body.Id);
+            WorkEnded(context, creature);
             GoIdle(creature);
             return;
         }
@@ -1686,11 +1709,16 @@ public sealed class ImpTaskSystem : ISimulationSystem
         // body away and it is left on the rim (ADR-0148).
         if (body.OwnerPlayerId != creature.OwnerPlayerId)
         {
+            // Our one walk ends at the cell, so 43's inner leg to 44 and 44's own walks fall
+            // in this tick: admitted walks away through 46, refused puts it down through 47
+            // and 48, and both end in 10.
+            WalkOn(context, creature, ImpStates.AtThePrisonDoor);
             int cell = creature.TargetTileIndex;
             if (PrisonRules.AdmitsAt(world, context.Database, creature.OwnerPlayerId, cell)
                 && PrisonRules.Imprison(
                     world, context.Database, body, creature.OwnerPlayerId, cell))
             {
+                WalkOn(context, creature, ImpStates.LeavingThePrisoner);
                 context.Emit(SystemName, "creature_imprisoned",
                     $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
                     $"type={definition.Name} owner={body.OwnerPlayerId} " +
@@ -1701,8 +1729,11 @@ public sealed class ImpTaskSystem : ISimulationSystem
                 context.Emit(SystemName, "body_dropped",
                     $"imp={creature.Id} body={body.Id} " +
                     $"at=({creature.Tile.X},{creature.Tile.Y}) reason=not_admitted");
+                WalkOn(context, creature, ImpStates.TakingTheRefusedBody);
+                WalkOn(context, creature, ImpStates.PuttingDownTheRefusedBody);
             }
 
+            WorkEnded(context, creature);
             GoIdle(creature);
             return;
         }
@@ -1713,15 +1744,26 @@ public sealed class ImpTaskSystem : ISimulationSystem
                 $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
                 $"type={definition.Name} {Describe(world, creature.TargetTileIndex)} " +
                 $"health={body.Health} (the lair heals it from here, ADR-0049)");
+            WorkEnded(context, creature);
         }
         else
         {
             context.Emit(SystemName, "body_dropped",
                 $"imp={creature.Id} body={body.Id} " +
                 $"at=({creature.Tile.X},{creature.Tile.Y}) reason=bed_gone");
+            StateShadow.ToIdle(context, SystemName, creature);
         }
 
         GoIdle(creature);
+    }
+
+    /// <summary>A walk of DK2's that ours does not make: 6 resuming in the state, arrived at on
+    /// the same tick.</summary>
+    private static void WalkOn(SimulationContext context, CreatureState creature, int resume)
+    {
+        if (!CreatureStateMachine.HasState(creature)) return;
+        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, resume);
+        StateShadow.Arrive(context, SystemName, creature);
     }
 
     /// <summary>

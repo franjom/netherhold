@@ -355,6 +355,38 @@ public class CreatureStateMachineTests
         Assert.True(CreatureStateMachine.TrySetState(empty, ImpStates.TaskSelection));
     }
 
+    /// <summary>From 10 along walks in 6 and hand-overs, ending with a move to 10.</summary>
+    private static void WalksThenBackToSelection(int[] walks)
+    {
+        CreatureState imp = Fresh();
+        CreatureStateMachine.Begin(imp, Idle);
+        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
+        foreach (int resume in walks)
+        {
+            CreatureStateMachine.BeginTravel(imp, EnRoute, resume);
+            Assert.Equal(EnRoute, imp.Dk2StateId);
+            Assert.True(CreatureStateMachine.Arrive(imp));
+            Assert.Equal(resume, imp.Dk2StateId);
+        }
+
+        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
+    }
+
+    [Fact]
+    public void TheImpBodyChainsAreLegalFromTaskSelection()
+    {
+        // imp-state-exits.md 40-48: a corpse 40 into 41, re-routing to itself; the keeper's
+        // own casualty 42 into 45; an enemy 42 into 43, 44 and then 46 when admitted or 47 and
+        // 48 when refused. Every chain ends in 10.
+        WalksThenBackToSelection([ImpStates.PickingUpCorpse, ImpStates.CarryingCorpse, ImpStates.CarryingCorpse]);
+        WalksThenBackToSelection([ImpStates.PickingUpCasualty, ImpStates.CarryingToLair]);
+        WalksThenBackToSelection([ImpStates.PickingUpCasualty, ImpStates.CarryingToPrison,
+            ImpStates.AtThePrisonDoor, ImpStates.LeavingThePrisoner]);
+        WalksThenBackToSelection([ImpStates.PickingUpCasualty, ImpStates.CarryingToPrison,
+            ImpStates.AtThePrisonDoor, ImpStates.TakingTheRefusedBody,
+            ImpStates.PuttingDownTheRefusedBody]);
+    }
+
     [Fact]
     public void TortureIsOffStateIdsBecauseItsStateCannotDropToIdleAndTheWayOutIsUnread()
     {

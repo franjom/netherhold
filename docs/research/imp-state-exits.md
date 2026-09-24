@@ -150,4 +150,6 @@ with its entry and work state by the creature action the work state starts
 (`balance-variables-in-the-binary.md`, task records 1, 2, 4, 5, 7, 8, 10). The
 gold rows 26–29 are built too (ADR-0182), 28's wait for a standing point aside,
 and the object rows 30–33 (ADR-0183), with the carry rule corrected to the object's
-own flags as `0x0046E480` reads them. Trap and door crates (34–37) are not.
+own flags as `0x0046E480` reads them, and the body rows 40–48 (ADR-0184), with 43's
+inner leg and 44's walks falling in one tick because our carry walks straight to the
+cell. Trap and door crates (34–37) and teleport (51, 52) are not built.

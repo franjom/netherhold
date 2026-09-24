@@ -198,6 +198,56 @@ public class CarryingTests
         Assert.DoesNotContain(world.Creatures, c => c.Id == imp.Id);
     }
 
+    // ---- on DK2's state ids (ADR-0184) ---------------------------------------
+
+    [Fact]
+    public void ARescueIsFortyTwoThenFortyFiveAndEndsInTaskSelection()
+    {
+        // 10 walks in 6 to 42; 42 chooses the keeper's own Lair and walks in 6 to 45, so the
+        // saved caller turns from 10 to 42; 45 delivers and sets 10.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var lair = new TilePos(1, 1);
+        Paint(db, world, RoomTypeId.Lair, lair);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, lair);
+        Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
+        goblin.PosX = CreatureState.CentreOf(3);
+        goblin.PosY = CreatureState.CentreOf(3);
+        Down(goblin);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        Assert.Equal(
+            [(6, ImpStates.TaskSelection, ImpStates.PickingUpCasualty),
+             (6, ImpStates.PickingUpCasualty, ImpStates.CarryingToLair),
+             (CreatureStateMachine.NoState, ImpStates.PickingUpCasualty, CreatureStateMachine.Idle)],
+            ImpStateTrace.Seen(sim, imp, 30 * Second,
+                () => sink.Events.Any(e => e.Kind == "creature_rescued")));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void ABurialIsFortyThenFortyOneAndEndsInTaskSelection()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.Graveyard, new TilePos(1, 1));
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        CreatureDeathRules.BecomeCorpse(world, db, goblin);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 3));
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        Assert.Equal(
+            [(6, ImpStates.TaskSelection, ImpStates.PickingUpCorpse),
+             (6, ImpStates.PickingUpCorpse, ImpStates.CarryingCorpse),
+             (CreatureStateMachine.NoState, ImpStates.PickingUpCorpse, CreatureStateMachine.Idle)],
+            ImpStateTrace.Seen(sim, imp, 30 * Second,
+                () => sink.Events.Any(e => e.Kind == "corpse_buried")));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
     [Fact]
     public void AnImpCarriesACorpseToTheGraveyard()
     {

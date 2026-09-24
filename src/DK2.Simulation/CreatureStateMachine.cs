@@ -129,7 +129,7 @@ public static class CreatureStateMachine
 
     /// <summary>The retired activities, the only ones a creature may hold a state id in:
     /// eating (ADR-0176), a job's walk and work (ADR-0177), the lair and sleep (ADR-0178),
-    /// collecting wages (ADR-0180), an imp's tile work (ADR-0181), its gold (ADR-0182) and objects (ADR-0183). Part of the shim.</summary>
+    /// collecting wages (ADR-0180), an imp's tile work (ADR-0181), its gold (ADR-0182), objects (ADR-0183) and bodies (ADR-0184). Part of the shim.</summary>
     public static bool IsRetired(CreatureActivity activity) =>
         activity is CreatureActivity.SeekingFood or CreatureActivity.FetchingChicken
             or CreatureActivity.GoingToJob or CreatureActivity.AtWork
@@ -137,7 +137,8 @@ public static class CreatureStateMachine
             or CreatureActivity.Sleeping or CreatureActivity.SeekingWages
             or CreatureActivity.MovingToJob or CreatureActivity.Working
             or CreatureActivity.FetchingGold or CreatureActivity.DeliveringGold
-            or CreatureActivity.FetchingObject or CreatureActivity.CarryingObject;
+            or CreatureActivity.FetchingObject or CreatureActivity.CarryingObject
+            or CreatureActivity.FetchingBody or CreatureActivity.CarryingBody;
 
     /// <summary>Hands the state id back if the creature has left the retired activities.
     /// Every system that owns a retired activity calls it first, so one system's shim

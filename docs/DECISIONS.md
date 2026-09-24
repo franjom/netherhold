@@ -4189,3 +4189,18 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Negative controls, one at a time: a Special to the Workshop, the book and Special states swapped, the pickup resuming in the carry state, dropping the two activities, and no spell-book branch each fail a named test.
 - `HashVersion` and `FormatVersion` **88**, pin `0x89B5AB8D13B66793`.
 
+## ADR-0184 — An imp's bodies run on DK2's own state ids
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0135 (step two, eighth slice) · Research: `docs/research/imp-state-exits.md` §2 (states 40–48), §4 (the body chain)
+
+**Context.** Codex's read settled the body chain: 40 takes a corpse to 41; 42 chooses by ownership through `0x0046E610`, the keeper's own to 45 and an enemy to 43; 43 walks the inner leg to 44, which admits and walks away to 46, or refuses and goes 47 then 48 to put the body down. Every chain is legal and ends in 10 (`TheImpBodyChainsAreLegalFromTaskSelection`).
+
+**Decision.**
+1. **`FetchingBody` and `CarryingBody` retire**, the last two imp activities. 10 walks in 6 to 40 or 42; the pickup walks in 6 to 41, 45 or 43; burial and rescue set 10; each carry state re-routes to itself.
+2. **Ours collapses DK2's prison walks.** Our carry walks straight to the cell, so on arrival 43's inner leg to 44 and 44's walk to 46, or to 47 and then 48, fall in that tick. The last walk's saved caller is the evidence: 44 when admitted, 47 when refused.
+3. **Ours, kept:** no graveyard, a gone bed and a lost route put the body down and drop to idle.
+
+**Consequences.**
+- Negative controls, one at a time: ownership inverted, no walk to 46, no 47, a corpse carried in 45, and dropping the two activities from the retired set each fail a named test.
+- With this, every imp activity holds a DK2 state id; `Idle`, the combat group, `Leaving`, `Imprisoned` and the dying remain.
+- `HashVersion` and `FormatVersion` **89**, pin `0x584E9B5AC2195900`.
+

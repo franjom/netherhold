@@ -7,10 +7,10 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>DK2's worker states for tile work (<c>imp-state-exits.md</c>, ADR-0181). Each kind of
-/// work is an odd entry state, which re-tests the task and the stance, and the even state after
-/// it, which repeats its creature action until the tile is done and then sets
-/// <see cref="TaskSelection"/>.</summary>
+/// <summary>DK2's worker states (<c>imp-state-exits.md</c>): tile work (ADR-0181), gold (ADR-0182),
+/// objects (ADR-0183) and bodies (ADR-0184). Each kind of tile work is an odd entry state, which
+/// re-tests the task and the stance, and the even state after it, which repeats its creature
+/// action until the tile is done and then sets <see cref="TaskSelection"/>.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/imp-state-exits.md")]
 public static class ImpStates
 {
@@ -42,6 +42,36 @@ public static class ImpStates
         : flags.HasFlag(ObjectFlags.TypeSpecial) ? 33
         : flags.HasFlag(ObjectFlags.TypeCrate) ? 32
         : throw new ArgumentOutOfRangeException(nameof(flags), flags, "Not a carried object.");
+
+    /// <summary>State 40: takes the corpse on its tile and walks it to a Graveyard in 6.</summary>
+    public const int PickingUpCorpse = 40;
+
+    /// <summary>State 41: buries the carried corpse and sets 10, or re-routes to another
+    /// Graveyard.</summary>
+    public const int CarryingCorpse = 41;
+
+    /// <summary>State 42: takes the unconscious creature on its tile and chooses by ownership,
+    /// the keeper's own to its Lair (45), an enemy to a Prison (43).</summary>
+    public const int PickingUpCasualty = 42;
+
+    /// <summary>State 43: carries an enemy to a Prison, then walks the inner leg to 44.</summary>
+    public const int CarryingToPrison = 43;
+
+    /// <summary>State 44: admission. Admitted walks away to 46; refused goes to 47.</summary>
+    public const int AtThePrisonDoor = 44;
+
+    /// <summary>State 45: delivers the keeper's own casualty to its Lair and sets 10.</summary>
+    public const int CarryingToLair = 45;
+
+    /// <summary>State 46: the admitted prisoner's carrier finishes walking away and sets 10.</summary>
+    public const int LeavingThePrisoner = 46;
+
+    /// <summary>State 47: chooses a put-down point in the Prison for a refused body and walks
+    /// there, resuming in 48.</summary>
+    public const int TakingTheRefusedBody = 47;
+
+    /// <summary>State 48: puts the refused body down, releases the imp and sets 10.</summary>
+    public const int PuttingDownTheRefusedBody = 48;
 
     /// <summary>The (entry, work) pair for a kind of tile work. The pairing is by the creature
     /// action each even state starts, read against the action table's work handlers
