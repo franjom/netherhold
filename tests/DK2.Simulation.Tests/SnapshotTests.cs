@@ -305,7 +305,7 @@ public class SnapshotTests
     public void Read_RejectsUnsupportedVersion()
     {
         byte[] bytes = WorldSnapshot.ToBytes(TestWorld.Simulation());
-        bytes[4] = 99; // format version field, immediately after the 4-byte magic
+        bytes[4] = 250; // format version field, immediately after the 4-byte magic
 
         Assert.Throws<InvalidDataException>(
             () => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));

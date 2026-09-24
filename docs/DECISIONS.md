@@ -4339,3 +4339,15 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - The fixture gains the Torture Chamber, its terrain, both devices, the Goblin's torture numbers, stat row 24 and variable 234, with drift guards. Nine trace tests and a gate probe. Negative controls, one at a time: mood on a captive, no conversion, conversion at the threshold, a reset on strapping, a device on any tile, the hook by activity, and no occupancy each fail a named test.
 - `HashVersion` and `FormatVersion` **98**, pin `0xD686048703B6ED8D`.
 
+## ADR-0194 — A prisoner walks each step in 116
+**Date:** 2026-09-24 · **Status:** accepted · amends ADR-0191 · Research: `docs/research/state-category-hooks.md` §3.2, `travel-states.md` §10
+
+**Context.** DK2's world log showed every prisoner in state 116 with 116 in its resume slot and 115 saved (Q422), which ADR-0191's trace, a walk in 6 arriving in 116, cannot produce. The owner suggested these were placed prisoners waiting to be reached. Reading 115 (`0x004731F0`) settled the state side: after starting the walk it sets 116 unconditionally, and the walk carries on under 116.
+
+**Decision.** A prisoner's step goes 116 → 115 → 6 (resume 116) → 116 in one call, and the walk ends with no arrival. The eating walk (117 → 6 → 118) is unchanged: 117 returns 1 after a walk that started.
+
+**Consequences.**
+- The trace test now expects (116, saved 115, resume 116) and no turn ending in 6. It fails on the old code.
+- Also read: 116's way back to 115 (a roll under 20 when no action plays), state 76's placement dispatch (it zeroes `TorturedDuration` for a creature the map puts on a device; 77 does not), and the Mistress's whip, 128 ↔ 129 with action 63, cosmetic.
+- `HashVersion` and `FormatVersion` **99**, pin `0xD079580BE0144072`.
+

@@ -1439,10 +1439,11 @@ public class PrisonTests
     private const int Walk = 6;   // the point walk
 
     [Fact]
-    public void AnAdmittedCaptiveIsInOneFifteenAndItsStepsAreWalksInSixToOneSixteen()
+    public void AnAdmittedCaptiveIsInOneFifteenAndItWalksEachStepInOneSixteenNotInSix()
     {
         // 44 puts the captive in 114, and 114 moves it to 115 on an interior slab. From
-        // 115 a step is a walk in 6 resuming in 116; the next roll goes back through 115.
+        // 115 a step starts a walk in 6 resuming in 116, then sets 116 at once: it walks in
+        // 116 with resume 116 and saved 115, as DK2's world log shows (Q422).
         GameDatabase db = Db;
         WorldState world = World(db);
         BigPrison(db, world);
@@ -1453,14 +1454,14 @@ public class PrisonTests
         GameSimulation sim = Simulation(db, world, sink);
         var seen = ImpStateTrace.Seen(sim, captive, 20 * Second);
 
-        Assert.Contains((Walk, PrisonRules.DecidingState, PrisonRules.InTheCellState), seen);
-        Assert.Contains(seen, s => s.State == PrisonRules.InTheCellState);
+        Assert.Contains((PrisonRules.InTheCellState, PrisonRules.DecidingState, PrisonRules.InTheCellState), seen);
+        Assert.True(sink.Events.Count(e => e.Kind == "prisoner_stepped" && e.Detail.Contains($"creature={captive.Id} ")) >= 2);
 
-        // Every step, the first and the later ones, walks from 115.
-        Assert.True(seen.Count(s => s.State == Walk) >= 2);
-        Assert.All(seen.Where(s => s.State == Walk), s => Assert.Equal(PrisonRules.DecidingState, s.Saved));
+        // No turn ends in the walk: 115 leaves it for 116 in the same call.
         Assert.All(seen, s => Assert.True(
-            s.State is PrisonRules.DecidingState or PrisonRules.InTheCellState or Walk));
+            s.State is PrisonRules.DecidingState or PrisonRules.InTheCellState));
+        Assert.All(seen.Where(s => s.State == PrisonRules.InTheCellState && s.Resume != CreatureStateMachine.Idle),
+            s => Assert.Equal(PrisonRules.DecidingState, s.Saved));
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 

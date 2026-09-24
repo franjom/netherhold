@@ -313,12 +313,11 @@ matching the caller:
   implies. Only a comparison of a dump with our state needs it: compare the slot
   only in category 2, or model the staleness.
 - **Captives hold 116 in state 116** (4 prisoners in all 4 dumps, saved 115,
-  re-entering 116 between every pair of dumps). The protocol cannot produce this: 115
-  walks to 116 (`0x00473331`) and an arrival writes 1. A refused `SetState(6)` would
-  leave the slot written (§2.1 step 3), but category 2's entry mask is 0, so it
-  admits 115. These four were never caught in play: Hopping places them, four
-  `NeutralCreature` records of creature 8 with flags `0x49`, so their way into 116 may be
-  a placement path rather than a walk. Unexplained (Q422).
+  re-entering 116 between every pair of dumps). **Explained** (Q422): 115 starts the walk
+  (`0x00473331`) and then sets 116 itself, so the walk's resume stays written and the
+  creature walks on in 116, with a target and the walk animation in the dumps. Hopping
+  places the four (creature 8, flags `0x49`): player 2, held by player 1, health 3125
+  in every dump.
 
 The dumps are 500–750 ticks apart, longer than any walk, so they show where creatures
 are, not the order they move through states. A tighter series would show that.

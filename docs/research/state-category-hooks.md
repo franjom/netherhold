@@ -168,21 +168,25 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
 - **115** (`0x004731F0`): hungry (the level-scaled `HungerFill` against `+0x4C`, and a
   gap of variable `0x006F2598` since `+0x50`) goes to 117. Otherwise it picks a slab
   within 4 through `0x004E50F0` and, when accepted, walks there through `0x00471890(tile,
-  116, 0x80)`, which is state 6 resuming in 116; then it sets 116.
+  116, 0x80)`, which is state 6 resuming in 116; then it sets 116 whether or not the walk
+  started. So a prisoner walks in 116, holding resume 116 and saved 115 (Q422).
 - **116** (`0x00473350`): every 10 ticks it looks for a bar object (type 2, model
   `0x31`–`0x33`, `+0x138` naming its prison) and pushes against it; otherwise it plays
-  idle actions and a 20 % complaint. It always returns 1. How it gets back to 115 is Q422.
+  idle actions. When none is playing it rolls 100: under 10, with action 9 available, an
+  idle action 41; otherwise under 20 sets 115, the way back (Q422). It always returns 1.
 - **117** (`0x00473550`): the nearest food object in the prison's slab chain. With none,
   `AngerNoFood` goes to bucket 1 with selector 1 and message `0x40`; otherwise a walk to
-  it resuming in 118. It then sets 116.
+  it resuming in 118, returning 1. No food, or a walk that fails, sets 116.
 - **118** (`0x00473750`): on the food it wipes bucket 1 (`0x00486F80(1)`), eats, and goes
   to 119, or to 115 without food. **119** (`0x00473730`) waits for the action, then 115.
 - **123–125** toggle the prison's `+0x5D` and walk; **121/122** are "freeing comrades".
   Neither is traced further.
-- **Built** (ADR-0191): 114 and 120 into 115, the step walks in 6 into 116, 117 to 118,
+- **76** (`0x0046EAB0`), a creature the map places with flag bit 6, goes by the room it
+  stands in; in a Torture Chamber it zeroes `+0x4F6` and sets 130. 77 does not zero it.
+- **Built** (ADR-0191, ADR-0194): 114 and 120 into 115, a step walked in 116, 117 to 118,
   119 and 115, 117 to 116 with no food, and the drain on category 14. **Ours:** 114's move
   to 115 happens on the tick of admission. The roll for a step is our 20 % a tick, from
-  116 through 115, which stands in for Q422's unread way back.
+  116 through 115, standing in for 116's roll and 115's slab pick.
 
 ### 3.3 Torture, 127–135 (read 2026-09-24)
 
@@ -209,6 +213,15 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   setting `+0x3EA` bit 14. **134** (`0x00484950`) walks to the nearest category-15
   creature nearby. Owner (2026-09-24): only the Mistress tortures, going to the chamber to
   whip victims on the devices. Only the two Mistresses carry the job (50 %).
+- **The whip** (read 2026-09-24). **128** (`0x00483E90`) finds, on the target tile
+  `+0x119`, a creature in 136 or category 15; it turns to face it (`0x004B2AE0`), then
+  sets 1 and 129 and starts action 63 on it. **129** (`0x00483FF0`) keeps facing it while
+  the action plays, then sets 1 and 128; with no victim left, 128 returns 0, idle. Action
+  63's handler `0x00499C20` waits 5 turns and spawns effect `0xED` at the victim (world
+  method `+0x38C`); it does not touch its health. **134** waits half of variable
+  `0x006F2590`; a creature in category 15 on its own tile, not in 133, sends it to 133
+  (`0x00484C80`, reset and 0); otherwise it walks to the nearest one in the chamber,
+  resuming 134. 127–129 are category 0: the torturer takes no hook.
 - **Built** (ADR-0193): a captive dropped on a free device, 77 → 130 → 131; the hook's
   duration, hurt, own-keeper mood, threshold and conversion; the device-gone release.
   **Ours:** health at zero releases the victim to the health system (DK2 knocks it out
