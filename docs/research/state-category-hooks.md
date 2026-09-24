@@ -127,12 +127,25 @@ the category operation failed; a return of one means it remains valid.
   ticks, and its `+0x3F4` to the larger of `0x004BE290()` (on the keeper) and
   variable 209 (1000). The payout path and variable 208's missed-deadline anger
   (applied to bucket 5 with selector 9 by `0x004D6A40`) are not traced further.
-- **Enter** also refuses when the room's type-15 lookup finds a station whose
-  `+0x53` is 0; `0x004D6ED0` writes `+0x53` as it sets the room up.
-- **Built** (ADR-0187): mode 0's calm and coin, the purse test at the Drink handler
-  and every second, and the purse itself. **Not built:** mode 1 and its toggle, the
-  jackpot and party, the fearless countdown and the leave hook's `+0x3D7`, and the
-  station test.
+- **The lever's place.** The set-up `0x004D6ED0` walks the room's slab chain from
+  `room+0x2D/+0x2E` and takes the first slab `0x00454110` accepts (an unobstructed
+  room slab) whose north-west, north and north-east neighbours it does not. It stores
+  that tile at `+0x4B/+0x4F`, creates object `0x5F` there, and writes `+0x53` nonzero
+  when the lever exists. **Enter** refuses a Casino whose `+0x53` is 0.
+- **The settlement** is the room's own update, around `0x004D6783`. It runs only with a
+  lever, and on turns divisible by variable 19 × 4, so every four game seconds. For
+  each creature on the room's occupant list (`room+0xA`, then `+0x238`) it calls
+  `0x004D7180(-4 × purse change, creature)`. Stingy, that is +32: added to the first
+  gold pile (object flag `0x40`) on the lever's tile through `0x0049C760`, which has no
+  cap, or else a new pile made there. Generous, it is −4: taken from that pile first,
+  destroying it when empty, and the rest from the keeper through
+  `0x004BA420(-min(rest, player+0x7E))`. The owner confirms that stingy takings lie
+  beneath the lever (2026-09-24).
+- **Built:** mode 0's calm and coin, the purse test at the Drink handler and every
+  second, and the purse itself (ADR-0187). Also the lever, its pull, mode 1 and the
+  settlement (ADR-0188). **Not built:** the jackpot and party, the fearless countdown
+  and the leave hook's `+0x3D7`, the enter hook's lever test (every Casino here has a
+  lever), and the chain's own order (ours is tile-index order).
 
 ## 4. Answers and limits
 

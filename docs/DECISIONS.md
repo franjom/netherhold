@@ -4249,3 +4249,19 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Negative controls, one at a time: the whole wage pocketed, no cap, no Drink gate, a strict stake, the other mode's anger, no coin, no Casino case, and a payday that pockets nothing each fail a named test.
 - `HashVersion` and `FormatVersion` **92**, pin `0x669BBBA8B0751A77`.
 
+## ADR-0188 — The Casino's lever, and the gold it settles
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0187 · Research: `docs/research/state-category-hooks.md` §3.1, Q423
+
+**Context.** ADR-0187 built the Casino in its default mode only. The owner confirmed that a Casino holds a lever that switches it between generous and not generous, and that the stingy takings drop beneath it. The binary agrees on each point. The lever is object 95, *Casino Pay Out Adjuster*, placed by the room's set-up `0x004D6ED0`, and it is toggled by the command handler `0x00513E50`. The room's four-second update settles gold at the lever through `0x004D7180`.
+
+**Decision.**
+1. **The lever is furniture.** `AutoFurnitureRules.CasinoLeverTile` is the set-up's rule: the first room tile whose three northern neighbours are not the room. The lever stands on it, and the rule walks tiles in index order.
+2. **`ObjectState.Setting` holds the lever's position**, and `PullCasinoLeverCommand` toggles it for its owner. DK2 keeps the byte on the room (`+0x4A`); here a reshape that moves the lever resets it to generous.
+3. **`CasinoRules`** gives both settings' numbers. The update hook reads the lever of the room a gambler stands in: stingy is +100 anger to buckets 5, 0 and 3 and 8 out of the purse (`PurseRules.Spend`, `0x0048AF50`).
+4. **`CasinoSystem`** settles every four game seconds, per gambler. Stingy puts 32 onto a pile at the lever, uncapped. Generous pays 4, from that pile first and then the keeper's treasury, as far as it goes.
+
+**Consequences.**
+- A generous Casino costs its keeper a coin a second per gambler; a stingy one fills a pile an imp can carry away.
+- Five trace tests, and a fixture record for object 95 with its drift guard. Negative controls, one at a time: a lever looking south, a stuck toggle, anyone's pull, a pile that does not grow, a pile not paid from, stingy calming, no spend, and settling every second each fail a named test.
+- `HashVersion` and `FormatVersion` **93**, pin `0xD783D2057BC97FE4`.
+

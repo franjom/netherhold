@@ -68,6 +68,11 @@ public sealed class ObjectState
     /// separate linked list on the room (Q270).</summary>
     public bool AutoPlaced;
 
+    /// <summary>A switch's position. Only the Casino's lever has one: 0 generous (Smiley), 1
+    /// stingy ($). DK2 keeps it on the room (<c>room+0x4A</c>); here it rides on the lever, so a
+    /// reshape that moves the lever resets it (ADR-0188).</summary>
+    public byte Setting;
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
@@ -80,5 +85,6 @@ public sealed class ObjectState
         hash.Add(TimerTicks);
         hash.Add(InHand);
         hash.Add(AutoPlaced);
+        hash.Add(Setting);
     }
 }

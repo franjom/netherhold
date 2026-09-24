@@ -108,7 +108,7 @@ public static class JobRules
                 // 0x004560F0: more gold in the purse than a second of losing costs, unless
                 // a jackpot party is on (player+0xF4A, unbuilt, so never), and only then a
                 // casino. A creature that has never been paid has an empty purse.
-                return state.GoldHeld > GamblingStake(database) ? null : "cannot_afford_to_gamble";
+                return state.GoldHeld > CasinoRules.Stake(database) ? null : "cannot_afford_to_gamble";
 
             case JobType.Sulk or JobType.Sleep:
                 // Its handler wants a bed of its own before it walks anywhere (RoomFor).
@@ -146,25 +146,6 @@ public static class JobRules
         int per = database[VariableTypeId.ModifyAngerOfPitSpectatorPerSecond];
         return new CreatureAnger { Treatment = per, Company = per, Work = per };
     }
-
-    /// <summary>The purse a gambler must beat: <c>abs(GamblingModifyCreatureMoneyMoneyPerSecond)</c>,
-    /// 8. Tested by the Drink job, the Casino's enter hook <c>0x0047ACB0</c> and every second
-    /// of its update <c>0x0047AD70</c>, which sends a creature at or below it idle.</summary>
-    public static int GamblingStake(GameDatabase database) =>
-        Math.Abs(database[VariableTypeId.GamblingModifyCreatureMoneyMoneyPerSecond]);
-
-    /// <summary>A game second at a Casino in its default mode (room <c>+0x4A</c> = 0):
-    /// <c>GamblingModifyCreatureAngerSmilesPerSecond</c> (−2000) to buckets 5, 0 and 3,
-    /// Treatment, Company and Work (<c>state-category-hooks.md</c> §3, ADR-0187).</summary>
-    public static CreatureAnger GamblingCalm(GameDatabase database)
-    {
-        int per = database[VariableTypeId.GamblingModifyCreatureAngerSmilesPerSecond];
-        return new CreatureAnger { Treatment = per, Company = per, Work = per };
-    }
-
-    /// <summary>What the same second puts in the purse: <c>GamblingModifyCreatureMoneySmilesPerSecond</c>, 1.</summary>
-    public static int GamblingWinnings(GameDatabase database) =>
-        database[VariableTypeId.GamblingModifyCreatureMoneySmilesPerSecond];
 
     /// <summary>Health a praying creature gains a game second.</summary>
     public static int PrayingHeal(GameDatabase database) =>

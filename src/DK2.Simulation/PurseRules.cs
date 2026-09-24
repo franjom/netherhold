@@ -9,7 +9,7 @@ namespace DK2.Simulation;
 
 /// <summary>A creature's own gold, <see cref="CreatureState.GoldHeld"/> (<c>creature+0x3FB</c>):
 /// an imp's load and a fighter's purse are one field. Half of every wage lands in it
-/// (state 189) and the Casino pays into it (<c>payday.md</c> §4.4, ADR-0187).</summary>
+/// (state 189) and the Casino pays into it or takes from it (<c>payday.md</c> §4.4, ADR-0187).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/payday.md")]
 public static class PurseRules
 {
@@ -22,6 +22,16 @@ public static class PurseRules
         int cap = CreatureLevelRules.MaxGoldHeld(database, creature, state.Level);
         state.GoldHeld = (int)Math.Min((long)before + amount, cap);
         return state.GoldHeld - before;
+    }
+
+    /// <summary>DK2's <c>0x0048AF50(amount)</c>: takes from the purse, flooring it at zero. The
+    /// gold goes nowhere; a stingy Casino's settlement puts its own down beneath the lever.
+    /// Returns what came off.</summary>
+    public static int Spend(CreatureState state, int amount)
+    {
+        int taken = Math.Min(amount, state.GoldHeld);
+        state.GoldHeld -= taken;
+        return taken;
     }
 
     /// <summary>The share of a wage that goes into the purse: half, rounded down

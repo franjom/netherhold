@@ -1332,7 +1332,7 @@ public class CreatureNeedsOnRealDataTests
     }
 
     [InstallFact]
-    public void AGoblinsPurseHoldsFiveThousandAndTheCasinoWantsMoreThanEight()
+    public void AGoblinsPurseHoldsFiveThousandAndTheCasinosLeverSetsItsNumbers()
     {
         // The Casino's default mode and its stake, as JobRules reads them, and the purse
         // cap a wage's half and the winnings stop at (ADR-0187). Every creature but the
@@ -1342,9 +1342,18 @@ public class CreatureNeedsOnRealDataTests
 
         Assert.Equal(5000, goblin.MaxGoldHeld);
         Assert.Equal(6000, CreatureLevelRules.MaxGoldHeld(db, goblin, 10));
-        Assert.Equal(8, JobRules.GamblingStake(db));
-        Assert.Equal(1, JobRules.GamblingWinnings(db));
-        Assert.Equal(-2000, JobRules.GamblingCalm(db).Work);
-        Assert.Equal(100, db[VariableTypeId.GamblingModifyCreatureAngerMoneyPerSecond]);
+        Assert.Equal(8, CasinoRules.Stake(db));
+        Assert.Equal(1, CasinoRules.PursePerSecond(db, CasinoRules.Generous));
+        Assert.Equal(-8, CasinoRules.PursePerSecond(db, CasinoRules.Stingy));
+        Assert.Equal(-2000, CasinoRules.AngerPerSecond(db, CasinoRules.Generous).Work);
+        Assert.Equal(100, CasinoRules.AngerPerSecond(db, CasinoRules.Stingy).Work);
+
+        // The lever is object 95, and the settlement is four seconds of the purse, negated.
+        ObjectDef lever = db.ObjectById(AutoFurnitureRules.CasinoLeverObjectId)!;
+        Assert.Equal("Casino Pay Out Adjuster", lever.Name);
+        Assert.Equal(ObjectFlags.CanBePickedUp | ObjectFlags.Obstacle, lever.Flags);
+        Assert.Equal((1685, 1228, 8192, 1, 2506), (lever.Width.Raw, lever.Height.Raw, lever.Mass.Raw, lever.PickUpPriority, lever.NameStringId));
+        Assert.Equal(-4, CasinoRules.SettlementPerGambler(db, CasinoRules.Generous));
+        Assert.Equal(32, CasinoRules.SettlementPerGambler(db, CasinoRules.Stingy));
     }
 }

@@ -31,8 +31,8 @@ its ADR (`docs/DECISIONS.md`), the evidence in the research doc beside it.
 
 ## Versions
 
-**92** — `0x669BBBA8B0751A77`. A creature's purse; half a wage goes in it, and the Casino (ADR-0187).
-**91** — `0xA5F9A90F3ED7133A`, work effects by category (ADR-0186); **90** — `0xFD1E03A96BC65015`, the dispatcher's category rule (ADR-0185); **89** — `0x584E9B5AC2195900`, an imp's bodies (ADR-0184).
+**93** — `0xD783D2057BC97FE4`. The Casino's lever, its stingy setting and the four-second settlement (ADR-0188).
+**92** — `0x669BBBA8B0751A77`, a creature's purse and the Casino (ADR-0187); **91** — `0xA5F9A90F3ED7133A`, work effects by category (ADR-0186); **90** — `0xFD1E03A96BC65015`, the dispatcher's category rule (ADR-0185); **89** — `0x584E9B5AC2195900`, an imp's bodies (ADR-0184).
 **88** — `0x89B5AB8D13B66793`, objects by their flags (ADR-0183); **87** — `0x1B90606BEF13CDC6`, an imp's gold (ADR-0182); **86** — `0xDEB6A8B84200ED21`, its tile work (ADR-0181).
 **85** — `0xE0EDFEC6BD215E6C`, collecting wages (ADR-0180); **84** — `0xDB5AAE21ABF713BF`, the anger wipes (ADR-0179); **83** — `0xDFC977B66E524362`, the lair and sleep (ADR-0178); **82** — `0xF1F260238F3D713D`, a job's walk and work (ADR-0177).
 **81** — `0xE54D6E7BACCB5868`. Eating on DK2's state ids (ADR-0176). From 81 on, traces pin the chains.

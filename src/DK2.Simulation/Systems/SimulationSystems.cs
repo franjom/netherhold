@@ -29,6 +29,7 @@ public static class SimulationSystems
         new TempleSacrificeSystem(),
         // Graveyard decomposition tallies use the same persistent room identity.
         new GraveyardSystem(),
+        new CasinoSystem(), // the lever, and the gold settled at it every four seconds (ADR-0188)
         // Alliances before doors: a door opens for an ally, so a pact made this tick is
         // honoured on the tick it was made.
         new AllianceSystem(),

@@ -375,17 +375,17 @@ public sealed class CreatureJobSystem : ISimulationSystem
         }
     }
 
-    /// <summary>A game second at the tables: the Casino's update hook <c>0x0047AD70</c> in its
-    /// default mode. A purse at or below the stake fails the hook, which is idle; otherwise
-    /// the calm, then a coin into the purse (ADR-0187).</summary>
-    /// <remarks>Not built: the room's other mode, which only a keeper's toggle reaches
-    /// (anger +100 and 8 gold a second); the jackpot roll; the fearless countdown
-    /// (<c>state-category-hooks.md</c> §3).</remarks>
+    /// <summary>A game second at the tables: the Casino's update hook <c>0x0047AD70</c>. A purse
+    /// at or below the stake fails the hook, which is idle; otherwise the lever's setting
+    /// decides the anger and the purse: calm and a coin, or anger and eight lost (ADR-0187,
+    /// ADR-0188).</summary>
+    /// <remarks>Not built: the jackpot roll and the fearless countdown
+    /// (<c>state-category-hooks.md</c> §3.1).</remarks>
     private static void Gamble(
         SimulationContext context, WorldState world, GameDatabase database,
         CreatureState creature, CreatureDef definition)
     {
-        if (creature.GoldHeld <= JobRules.GamblingStake(database))
+        if (creature.GoldHeld <= CasinoRules.Stake(database))
         {
             context.Emit(SystemName, "job_lost",
                 $"creature={creature.Id} type={definition.Name} " +
@@ -396,12 +396,17 @@ public sealed class CreatureJobSystem : ISimulationSystem
             return;
         }
 
-        CreatureAngerRules.Apply(world, definition, creature, JobRules.GamblingCalm(database));
-        int won = PurseRules.Receive(database, definition, creature, JobRules.GamblingWinnings(database));
+        byte setting = CasinoRules.SettingUnder(world, database, creature);
+        CreatureAngerRules.Apply(world, definition, creature, CasinoRules.AngerPerSecond(database, setting));
+
+        int change = CasinoRules.PursePerSecond(database, setting);
+        int won = change >= 0
+            ? PurseRules.Receive(database, definition, creature, change)
+            : -PurseRules.Spend(creature, -change);
 
         context.Emit(SystemName, "gambled",
             $"creature={creature.Id} type={definition.Name} " +
-            $"player={creature.OwnerPlayerId} won={won} purse={creature.GoldHeld} " +
+            $"player={creature.OwnerPlayerId} setting={setting} won={won} purse={creature.GoldHeld} " +
             $"anger={creature.Anger.Max} [{creature.Anger}]");
     }
 

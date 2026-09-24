@@ -336,6 +336,25 @@ internal static class Dk2TerrainFixture
             NameStringId = 0,
             TooltipStringId = 0,
         },
+        // The Casino's lever, as shipped (ADR-0188): an obstacle a hand could lift, which
+        // nothing here lets it do.
+        new ObjectDef
+        {
+            Name = "Casino Pay Out Adjuster",
+            ObjectId = AutoFurnitureRules.CasinoLeverObjectId,
+            Flags = ObjectFlags.CanBePickedUp | ObjectFlags.Obstacle,
+            Hp = 1,
+            ManaValue = 0,
+            RoomCapacity = 0,
+            StartState = 0,
+            PickUpPriority = 1,
+            Width = new Fp32(1685),
+            Height = new Fp32(1228),
+            Mass = new Fp32(8192),
+            Speed = new Fp32(0),
+            NameStringId = 2506,
+            TooltipStringId = 0,
+        },
         new ObjectDef
         {
             Name = "Temple Hand",

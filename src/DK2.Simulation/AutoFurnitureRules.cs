@@ -16,6 +16,9 @@ public static class AutoFurnitureRules
 {
     public const byte TempleHandObjectId = 66;
 
+    /// <summary>Object 95, <i>Casino Pay Out Adjuster</i>: the Casino's lever (Q423).</summary>
+    public const byte CasinoLeverObjectId = 95;
+
     /// <summary>Builds the ordered furniture specification for one room.</summary>
     public static void DesiredFurniture(
         WorldState world, GameDatabase database, RoomInstance room,
@@ -39,6 +42,12 @@ public static class AutoFurnitureRules
             int handTile = TempleHandTile(world, room, roomTiles);
             if (handTile >= 0) into.Add((handTile, TempleHandObjectId));
             return;
+        }
+
+        if (room.Definition.TypeId == RoomTypeId.Casino)
+        {
+            int leverTile = CasinoLeverTile(world, room, roomTiles);
+            if (leverTile >= 0) into.Add((leverTile, CasinoLeverObjectId));
         }
 
         int choiceCount = FloorChoiceCount(room.Definition);
@@ -207,6 +216,25 @@ public static class AutoFurnitureRules
             }
 
             if (surroundedBySlots) return tile;
+        }
+        return -1;
+    }
+
+    /// <summary>Where the Casino's set-up <c>0x004D6ED0</c> puts its lever: the first slab in the
+    /// room's chain that <c>0x00454110</c> accepts and whose three neighbours to the north
+    /// (north-west, north, north-east) it does not. Ours walks the tiles in index order, and
+    /// floor furniture stands only on interior tiles, so no edge tile is obstructed. DK2's
+    /// chain order is not read (<c>state-category-hooks.md</c> §3.1).</summary>
+    public static int CasinoLeverTile(WorldState world, RoomInstance room, HashSet<int> roomTiles)
+    {
+        foreach (int tile in room.TileIndices)
+        {
+            int x = tile % world.Width;
+            int y = tile / world.Width;
+            if (!IsRoom(world, roomTiles, x - 1, y - 1)
+                && !IsRoom(world, roomTiles, x, y - 1)
+                && !IsRoom(world, roomTiles, x + 1, y - 1))
+                return tile;
         }
         return -1;
     }
