@@ -5,3 +5,4 @@
 
 # Captured game output is evidence: keep its bytes (CRLF included) exactly as written.
 docs/research/samples/*.log -text
+docs/research/samples/*.gz binary

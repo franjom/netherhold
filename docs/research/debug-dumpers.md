@@ -56,10 +56,15 @@ messages read *GamePacket says we're OOS*. Each site is gated on a global at `0x
 whose **only writer** is the command-line parser `0x005A63B0`, at `0x005A6C6E`. So it runs
 only for a multiplayer desync under `-LOGOOS`, and **never in ordinary play**.
 
-**REPORTED, not reproduced here.** Called directly on a loaded level it writes a complete
+**REPRODUCED (owner, 2026-09-24).** Called directly on a loaded level it writes a complete
 world dump to `MESSAGE.LOG` (belgianguy, OpenKeeper #505, 2026-08-11, under Wine and GDB:
 `ECX` = `0x006F2A08`, call `0x0050EA70`; ufdada gives a Cheat Engine recipe that does the
-same from a created thread, 2026-09-12). Neither run is ours yet.
+same from a created thread, 2026-09-12). The owner ran the recipe four times in one
+level played on the GOG `DKII-dx.EXE`. **Each dump is appended** to the one
+`MESSAGE.LOG` of the session, and the game's call-count profiler (`0x00526292`,
+`Navigation:`, `Imps:`, `World Time:`) is added at exit. Kept as
+`samples/worldlog-owner-4dumps.log.gz` (262,843 lines, SHA-256 of the log
+`d9b05ad1…bceddb`); the file lives beside the executable.
 
 **OBSERVED in one outside dump (2026-09-24).** belgianguy attached the file they made; it is
 kept byte-for-byte as [samples/worldlog-envmapshowcase-gt231.log](samples/worldlog-envmapshowcase-gt231.log)
@@ -110,13 +115,15 @@ not the 1 an arrival writes. So an empty slot reads 0 before a creature's first 
 after it.
 
 **Why it matters here.** One call gives every creature's current state id and resume pair
-at a known tick: the check the ADR-0135 retirements otherwise have no way to make. Two
-ways to take one:
+at a known tick: the check the ADR-0135 retirements otherwise have no way to make.
+`tools/worldlog.py` reads a dump (plain or gzipped) and prints each creature's state,
+resume and saved state; `travel-states.md` §10 is its first use. Two ways to take one:
 
-- **By hand, now:** ufdada's Cheat Engine script (Auto Assemble: `alloc`, `mov ecx,0x006f2a08`,
-  `call 0x0050EA70`, `retn`, `createthread`). **Pause the game first.** The created thread
-  runs alongside the game's main thread, so a dump taken while the game is running can mix
-  two ticks.
+- **By hand, used:** Cheat Engine, run as administrator (the GOG game runs elevated),
+  attached to the game, Auto Assemble, Execute once per dump:
+  `alloc(newmem,2048)` / `newmem:` / `mov ecx,006F2A08` / `call 0050EA70` / `ret 4` /
+  `createthread(newmem)`. **Pause the game first.** The created thread runs alongside
+  the game's main thread, so a dump taken while the game is running can mix two ticks.
 - **Scripted, not built:** `dk2watch.py` opens the process read-only. Calling the function
   needs `PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_CREATE_THREAD` (elevated), then
   `VirtualAllocEx`, `WriteProcessMemory` for a 13-byte stub (`B9 08 2A 6F 00` `E8 rel32`

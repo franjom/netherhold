@@ -269,10 +269,57 @@ and 82. All 134 helper sites, and the 45 sites of the Imp's route-or-teleport wr
 `travel-state-call-sites.md`, with the resume state for each activity (§4 there).
 
 For the transition gate on master (Q414's note on ADR-0174): in DK2 the slot is
-**never unset while a creature is in a travel state**. It is 0 only before the first
-walk, and 1 after every resume. The helper writes it immediately after
-`SetState(travel)`, so the only window with a stale value is inside that call, where
-the current state is the caller's and the substitution does not apply.
+**never unset while a creature is in a travel state**. It is 0 before the first walk
+and 1 after every resume. **Outside a travel state it can be stale** (§10): only an
+arrival resets it, so a walk that ends any other way leaves its resume behind. That is
+harmless, because the substitution applies only in category 2, which is also where
+`CreatureStateTransitions.Classify` applies it.
+
+## 10. Checked against a live game — OBSERVED (2026-09-24)
+
+Two world-log samples (`debug-dumpers.md`, "Running one"): belgianguy's, 15 creatures
+at GT 231, and the owner's, **four dumps of one played level** (GT 1234, 1772, 2522,
+3177; 76 to 91 creatures, 336 creature records), kept as
+`samples/worldlog-owner-4dumps.log.gz`. `python tools/worldlog.py <file>` prints
+every table below. All 23 states seen, and every resume and saved state, are in the
+table.
+
+**The two helpers hold on every record.** All 92 creatures in state 6 carry
+`MoveTo (x, y)` and all 23 in state 7 carry `RoomId N`, so §2.1's point and §2.2's room
+are written together with the state.
+
+**Every walk seen is a row of `travel-state-call-sites.md`**, with the saved state
+matching the caller:
+
+| errand | saved `+0x40` | walk | resume `+0xDF` | later seen (saved) |
+|---|---|---|---|---|
+| eating | 91 | 7 | 92 | 94 (92) |
+| to bed | 56, 108, 112, 1 (the interrupted job) | 7 | 81 | 83 (81) |
+| training | 89 / 108 | 7 / 6 | 108 / 111 | 112 (108) |
+| research | 89 / 53 | 7 / 6 | 53 / 54 | 56, 62 (53) |
+| wages | 187 | 6 | 188 | 89 (187) |
+| exploring, job 24 | 89 | 6 | 225 | |
+| imp dig, mine, claim, reinforce | 10 | 6 | 13, 25, 15, 21 | 14, 26, 16, 22 (10) |
+| imp gold to the Treasury | 26 | 6 | 28 | 28 (26) |
+| wandering (heroes) | 87 | 6 | 1 | |
+
+**The slot outside a travel state:**
+
+- **0** only on hero and neutral creatures, and no creature goes from 1 back to 0: 0
+  means "never walked", as §2.4's constructor predicts.
+- **Stale after an interrupted walk.** Three imps in 12 idle still hold 13 or 21, each
+  entered 12 within 20 ticks of the dump; three creatures in 257 stunned hold 188 or 81.
+  §2.4's writer list has no reset outside an arrival, so this is what the protocol
+  implies. Only a comparison of a dump with our state needs it: compare the slot
+  only in category 2, or model the staleness.
+- **Captives hold 116 in state 116** (4 prisoners in all 4 dumps, saved 115,
+  re-entering 116 between every pair of dumps). The protocol cannot produce this: 115
+  walks to 116 (`0x00473331`) and an arrival writes 1. A refused `SetState(6)` would
+  leave the slot written (§2.1 step 3), but category 2's entry mask is 0, so it
+  admits 115. Unexplained (Q422).
+
+The dumps are 500–750 ticks apart, longer than any walk, so they show where creatures
+are, not the order they move through states. A tighter series would show that.
 
 ## Implementation and tests
 
