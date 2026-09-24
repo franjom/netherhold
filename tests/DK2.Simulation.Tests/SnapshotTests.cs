@@ -230,7 +230,7 @@ public class SnapshotTests
                         X = 8, Y = 9, Z = 10, GoldHeld = 11, Level = 12, Flags = 13,
                         ObjectiveTargetActionPointId = 14, InitialHealth = 15, TriggerId = 16,
                         ObjectiveTargetPlayerId = 17, Objective = 18, CreatureId = 19,
-                        Unknown_001D = new byte[] { 20, 21 }, Flags2 = 22,
+                        WanderRadius = 20, PartyId = 21, Flags2 = 22,
                     },
                 ],
             },
@@ -252,7 +252,7 @@ public class SnapshotTests
         HeroPartyMemberState member = Assert.Single(party.Members);
         Assert.Equal((8, 9, 10, (ushort)11, (byte)12, (byte)13),
             (member.X, member.Y, member.Z, member.GoldHeld, member.Level, member.Flags));
-        Assert.Equal(new byte[] { 20, 21 }, member.Unknown_001D.ToArray());
+        Assert.Equal(20, member.WanderRadius); Assert.Equal(21, member.PartyId);
 
         EffectGeneratorState generator = Assert.Single(restored.World.EffectGenerators);
         Assert.Equal(new ushort[] { 29, 30, 31 }, generator.EffectIds);

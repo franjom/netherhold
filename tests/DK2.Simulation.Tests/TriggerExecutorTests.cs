@@ -1891,7 +1891,7 @@ public class TriggerExecutorTests
             Name = string.Empty, TriggerId = triggerId, PartyId = partyId,
             Members = members.Select(m => new GoodCreatureThing(new byte[32])
             {
-                TriggerId = m.Trigger, CreatureId = m.Creature, Unknown_001D = new byte[2],
+                TriggerId = m.Trigger, CreatureId = m.Creature,
             }).ToArray(),
         };
 

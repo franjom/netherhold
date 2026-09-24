@@ -399,7 +399,7 @@ public class PlacedThingsOnRealDataTests
                     Assert.Equal(member.ObjectiveTargetPlayerId, state.ObjectiveTargetPlayerId);
                     Assert.Equal(member.Objective, state.Objective);
                     Assert.Equal(member.CreatureId, state.CreatureId);
-                    Assert.Equal(member.Unknown_001D.ToArray(), state.Unknown_001D.ToArray());
+                    Assert.Equal(member.WanderRadius, state.WanderRadius); Assert.Equal(member.PartyId, state.PartyId);
                     Assert.Equal(member.Flags2, state.Flags2);
                 }
             }
@@ -546,9 +546,9 @@ public class PlacedThingsOnRealDataTests
                     if (m.CreatureId == 0) continue;
                     members++;
                     flags.Add(m.Flags); flags2.Add(m.Flags2); objectives.Add(m.Objective);
-                    radii.Add(m.Unknown_001D.Span[0]);
-                    if (m.Unknown_001D.Span[1] != party.PartyId)
-                        mismatches.Add($"{level} party {party.PartyId} member {m.CreatureId}: tail {m.Unknown_001D.Span[1]}");
+                    radii.Add(m.WanderRadius);
+                    if (m.PartyId != party.PartyId)
+                        mismatches.Add($"{level} party {party.PartyId} member {m.CreatureId}: tail {m.PartyId}");
                 }
             }
         }

@@ -38,13 +38,12 @@ source `HeroPartyThing` sequence. The same records therefore have two homes for
 now. Refactoring that ownership without the spawn path would be speculation, so
 Q256 records it rather than this change rewiring the tree.
 
-## No behaviour
+## Behaviour
 
-Parties do not spawn yet (2026-09-24; the read below is the build's brief). Effect
-generators do not generate or choose effects; their fields, cadence and consumption
-are UNKNOWN (Q255, Q259).
-Verbatim storage loses no information; its conservative risk is hashing a value
-or bit DK2 discards or transforms.
+Parties spawn (ADR-0197; `HeroPartyRules`, the last section here is its brief).
+Effect generators do not generate or choose effects; their fields, cadence and
+consumption are UNKNOWN (Q255, Q259). Verbatim storage of the generator loses no
+information; its conservative risk is hashing a value or bit DK2 discards.
 
 Adding both collections changes the state shape even in an empty world, so
 `HashVersion` and snapshot `FormatVersion` are 47. The pin is recorded in
@@ -190,3 +189,11 @@ the 43-byte file header and the handler reads the trigger id alone, so
 UNKNOWN: thing classes 3 and 4; `+0x38`; what `0x00519B20`'s gate step-off and
 `0x004D0F60` do; where `PositionInParty` and `MyLeadersId` are read
 (`travel-states.md` §2.3 has one reader).
+
+### Built (2026-09-24, ADR-0197)
+
+`HeroPartyRules.Spawn` follows the list above; `CreatureLevelRules.LevelUp` is step 7's
+arithmetic. Deviations, each named at its site: the creature stands at the tile's centre
+(DK2: its corner); things on the spawn tile are not cleared; no party pace, event 3, gate
+state 269, effects or King notification. The fields the spawn writes are hashed on the
+creature under the dumper's names, and `SpawnCount` on the party.

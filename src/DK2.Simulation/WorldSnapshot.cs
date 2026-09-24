@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 100;
+    private const int FormatVersion = 101;
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
@@ -289,6 +289,17 @@ public static class WorldSnapshot
             w.Write(c.RetreatingCreature);
             w.Write(c.CelebrationTicks);
             w.Write(c.BodyTargetId);
+            w.Write(c.PartyId);
+            w.Write(c.PositionInParty);
+            w.Write(c.LeaderId);
+            w.Write(c.WanderRadius);
+            w.Write(c.Flags);
+            w.Write(c.DestroysRooms);
+            w.Write(c.IsTool);
+            w.Write(c.IsMercenary);
+            w.Write((int)c.GoodJob);
+            w.Write(c.GoodJobPlayerId);
+            w.Write(c.GoodJobActionPointId);
             for (int i = 0; i < c.SpellStamps.Length; i++) w.Write(c.SpellStamps[i]);
             for (int i = 0; i < c.EngagedMelee.Length; i++) w.Write(c.EngagedMelee[i]);
             for (int i = 0; i < c.EngagedRanged.Length; i++) w.Write(c.EngagedRanged[i]);
@@ -392,6 +403,7 @@ public static class WorldSnapshot
             w.Write(party.PartyId);
             w.Write(party.Unknown_0023);
             w.Write(party.Unknown_0027);
+            w.Write(party.SpawnCount);
             w.Write(party.Members.Count);
             foreach (HeroPartyMemberState member in party.Members)
             {
@@ -400,7 +412,7 @@ public static class WorldSnapshot
                 w.Write(member.ObjectiveTargetActionPointId); w.Write(member.InitialHealth);
                 w.Write(member.TriggerId); w.Write(member.ObjectiveTargetPlayerId);
                 w.Write(member.Objective); w.Write(member.CreatureId);
-                w.Write(member.Unknown_001D.ToArray()); w.Write(member.Flags2);
+                w.Write(member.WanderRadius); w.Write(member.PartyId); w.Write(member.Flags2);
             }
         }
 
@@ -679,6 +691,17 @@ public static class WorldSnapshot
                 RetreatingCreature = r.ReadInt32(),
                 CelebrationTicks = r.ReadInt32(),
                 BodyTargetId = r.ReadInt32(),
+                PartyId = r.ReadByte(),
+                PositionInParty = r.ReadByte(),
+                LeaderId = r.ReadInt32(),
+                WanderRadius = r.ReadByte(),
+                Flags = r.ReadByte(),
+                DestroysRooms = r.ReadBoolean(),
+                IsTool = r.ReadBoolean(),
+                IsMercenary = r.ReadBoolean(),
+                GoodJob = (JobType)r.ReadInt32(),
+                GoodJobPlayerId = r.ReadByte(),
+                GoodJobActionPointId = r.ReadInt32(),
             };
             for (int k = 0; k < creature.SpellStamps.Length; k++) creature.SpellStamps[k] = r.ReadInt64();
             for (int k = 0; k < creature.EngagedMelee.Length; k++) creature.EngagedMelee[k] = r.ReadInt32();
@@ -809,6 +832,7 @@ public static class WorldSnapshot
             byte partyId = r.ReadByte();
             int unknown0023 = r.ReadInt32();
             int unknown0027 = r.ReadInt32();
+            byte spawnCount = r.ReadByte();
             int memberCount = r.ReadInt32();
             var members = new HeroPartyMemberState[memberCount];
             for (int m = 0; m < memberCount; m++)
@@ -820,14 +844,14 @@ public static class WorldSnapshot
                     ObjectiveTargetActionPointId = r.ReadInt32(), InitialHealth = r.ReadInt32(),
                     TriggerId = r.ReadUInt16(), ObjectiveTargetPlayerId = r.ReadByte(),
                     Objective = r.ReadByte(), CreatureId = r.ReadByte(),
-                    Unknown_001D = r.ReadBytes(HeroPartyMemberState.Unknown001DLength),
+                    WanderRadius = r.ReadByte(), PartyId = r.ReadByte(),
                     Flags2 = r.ReadByte(),
                 };
             }
             world.RawHeroParties.Add(new HeroPartyState
             {
                 Name = name, TriggerId = triggerId, PartyId = partyId,
-                Unknown_0023 = unknown0023, Unknown_0027 = unknown0027, Members = members,
+                Unknown_0023 = unknown0023, Unknown_0027 = unknown0027, SpawnCount = spawnCount, Members = members,
             });
         }
 

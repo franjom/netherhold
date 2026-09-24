@@ -208,7 +208,7 @@ public sealed class GoodCreatureThing : CreatureThing
     public int ObjectiveTargetActionPointId { get; init; } public int InitialHealth { get; init; }
     public ushort TriggerId { get; init; } public byte ObjectiveTargetPlayerId { get; init; }
     public byte Objective { get; init; } public byte CreatureId { get; init; }
-    public required ReadOnlyMemory<byte> Unknown_001D { get; init; } public byte Flags2 { get; init; }
+    public byte WanderRadius { get; init; } public byte PartyId { get; init; } public byte Flags2 { get; init; }
 }
 
 public sealed class KeeperCreatureThing : CreatureThing

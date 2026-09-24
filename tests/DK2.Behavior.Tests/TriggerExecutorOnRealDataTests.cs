@@ -255,7 +255,24 @@ public class TriggerExecutorOnRealDataTests
         }
     }
 
-    private static (GameSimulation Simulation, TriggerTree Tree) LevelOne(ulong seed)
+    /// <summary>With level 1's THINGS in the world, its two type-14 records raise their parties on the
+    /// opening turn (ADR-0197): hero-owned creatures exist and type 14 has left <c>Partial</c>. The
+    /// census test above keeps a world without THINGS, where the action can only arm.</summary>
+    [InstallFact]
+    public void LevelOnesPartiesAreRaisedOnTheOpeningTurnWhenTheWorldHasItsThings()
+    {
+        (GameSimulation simulation, _) = LevelOne(seed: 7, withThings: true);
+        Assert.All(simulation.World.HeroParties, p => Assert.Equal((byte)0, p.SpawnCount));
+
+        simulation.Tick();
+
+        int heroes = simulation.World.Creatures.Count(c => c.OwnerPlayerId == PlayerIds.Good && c.PartyId != HeroPartyRules.NoParty);
+        Assert.True(heroes > 0, "no party member was raised");
+        Assert.DoesNotContain("214:14@World", Census(simulation.LastTriggerRun!.PartialSummary));
+        Assert.Equal(2, simulation.World.HeroParties.Count(p => p.SpawnCount == 1));
+    }
+
+    private static (GameSimulation Simulation, TriggerTree Tree) LevelOne(ulong seed, bool withThings = false)
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "level1");
@@ -266,6 +283,7 @@ public class TriggerExecutorOnRealDataTests
             .Select(p => p.PlayerId).ToArray();
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "level1")!;
         WorldState world = WorldState.FromMap(database, map, players);
+        if (withThings) ThingProjection.Place(world, database, things);
         var tree = new TriggerTree(
             records, level.TriggerId, things.OfType<HeroPartyThing>(),
             GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!

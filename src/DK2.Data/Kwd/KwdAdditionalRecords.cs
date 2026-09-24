@@ -194,7 +194,7 @@ public static class KwdThings
     { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], InitialHealth = I(r, 16), TriggerId = U(r, 20), CreatureId = r[22], Unknown_0017 = r[23] };
 
     private static GoodCreatureThing Creature199(byte[] r) => new(r)
-    { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], ObjectiveTargetActionPointId = I(r, 16), InitialHealth = I(r, 20), TriggerId = U(r, 24), ObjectiveTargetPlayerId = r[26], Objective = r[27], CreatureId = r[28], Unknown_001D = r.AsMemory(29, 2), Flags2 = r[31] };
+    { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], ObjectiveTargetActionPointId = I(r, 16), InitialHealth = I(r, 20), TriggerId = U(r, 24), ObjectiveTargetPlayerId = r[26], Objective = r[27], CreatureId = r[28], WanderRadius = r[29], PartyId = r[30], Flags2 = r[31] };
 
     private static KeeperCreatureThing Creature200(byte[] r) => new(r)
     { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], InitialHealth = I(r, 16), ObjectiveTargetActionPointId = I(r, 20), TriggerId = U(r, 24), CreatureId = r[26], PlayerId = r[27] };

@@ -256,7 +256,7 @@ public static class ThingProjection
                 InitialHealth = member.InitialHealth, TriggerId = member.TriggerId,
                 ObjectiveTargetPlayerId = member.ObjectiveTargetPlayerId,
                 Objective = member.Objective, CreatureId = member.CreatureId,
-                Unknown_001D = member.Unknown_001D.ToArray(), Flags2 = member.Flags2,
+                WanderRadius = member.WanderRadius, PartyId = member.PartyId, Flags2 = member.Flags2,
             }).ToArray(),
         });
 

@@ -113,6 +113,25 @@ public static class CreatureLevelRules
     /// value at level 1, so the first level costs the record's own 3000 where indexing by the target
     /// would make it 3900. Not reproduced: the clamp of the scaled threshold to <c>0xFFFE</c>, which
     /// cannot bite, the largest shipped product being 3000 at 1000 %.</summary>
+    /// <summary>DK2's level increment <c>0x0048B120</c>, without its effect and sound: nothing at
+    /// level 10 or on a finished (dead) creature; otherwise the level rises by one and health is
+    /// carried across as its share of the maximum — <c>ratio = (health &lt;&lt; 12) / oldMax</c>
+    /// in 12-bit fixed point, <c>new = (ratio × newMax) &gt;&gt; 12</c> — applied as a delta through
+    /// the health routine, which clamps at the new maximum. The <c>+0x3AF</c> adjustment and the
+    /// <c>+0x3E6</c> bit-15 call it also makes are not modelled (Q427). Returns whether it rose.</summary>
+    public static bool LevelUp(GameDatabase database, CreatureDef creature, CreatureState state)
+    {
+        if (state.Level >= MaxLevel || state.Health <= 0) return false;
+        int oldMax = CreatureHealthRules.MaxHealth(database, creature, state);
+        int current = state.Health;
+        long ratio = ((long)current << 12) / oldMax;
+        state.Level++;
+        int newMax = CreatureHealthRules.MaxHealth(database, creature, state);
+        int target = (int)((ratio * newMax) >> 12);
+        CreatureHealthRules.Apply(database, creature, state, target - current);
+        return true;
+    }
+
     public static int ExperienceForNextLevel(
         GameDatabase database, CreatureDef creature, int level) =>
         Scale(creature.ExpForNextLevel,

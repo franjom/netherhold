@@ -43,6 +43,7 @@ partial: combat is built (ADR-0163–0170), heroes, traps and door behaviour are
 - **Creatures.** Health and hunger, own bed, eating, levels and experience through the loader divide (ADR-0083), anger as six banded counters saturating at 65533 (ADR-0081/0087), desertion, the 60 s dying window (ADR-0051), payday as a journey, three mood choosers on a five-second gate (ADR-0082), Hand of Evil (ADR-0062/0075/0077, disposal ADR-0148), knock-out at a sixth (ADR-0071), hazard damage. `Dk2StateId`, `StateBeforeUtilityState`, `UtilityNewState` are hashed fields written by nothing (ADR-0135 step one).
 - **Combat** (ADR-0163–0170; `combat-*.md`, `shots.md`, `creature-status-effects.md`, `spell-friendly-arm.md`). `SelectAVictim` from `ProcessFight`: the dispatch scan for all five fight styles, the heart (scan E, its ring tile standing in for the Arch Pillar, Q363) and the ally scan F; the fight state with its two clocks and `MeleeDamageRules`; the struck creature's answer; fear, back-off, flight and withdrawal; the worker's arm and the alarm; attack spells as action 16 firing shot things; the friendly arm; status effects as countdown words; state 8's approach; a fixed 8-tick victory pause (Q376) and the corpse walk. Scans A, B (thing-targeting spells), C and D are not built (2026-09-23).
 - **Win and defeat** (ADR-0162). `Status` written once, heart health, ruin and killer, actions 10/11, last keeper standing; a ruined heart is claimable and stores no gold. A fallen keeper's dungeon falls (`DefeatRules`: gold, rooms and land on the death turn, workers killed and the rest leaving from the fifth). Alliances are symmetric state (`AllianceSystem`, ADR-0159).
+- **Hero parties** (ADR-0197). Action 14 raises a party at its action point: types, level-ups, gold, health, job, flags, trigger roots, leader and followers (`HeroPartyRules`); the walk is not built.
 - **Navigation** (ADR-0155/0157/0158). DK2's mesh router, funnel and four steering forces drive every creature; doors are in the navigation byte and `DoorSystem` opens, closes, locks and picks them (ADR-0159).
 - **Players.** `PlayerIds` 0 unowned, 1 heroes, 2 neutral, 3–7 keepers (ADR-0043); only a keeper is staffed (ADR-0052). `DK2.AI.KeeperAI` is an input source emitting `PlayerCommand`s (`KEEPER_AI.md` §12.7 step 1).
 - **World.** Fog of war as simulation state, one bit per keeper in ours (ADR-0076); levels on their own VARIABLES (ADR-0040); FNV-1a state hash with one pin and `ChaosSystem` (ADR-0006).
@@ -61,8 +62,8 @@ hook. **Q414 is answered** (`travel-states.md`): a caller makes one call with a 
 resume state and options; the route helper enters state 6 or 7 and writes the slot;
 the mover's arrival hands over and resets the slot to 1. So the thirteen travelling
 activities can retire, and the lair and sleep group after them - 81 reaches 82 only
-through a walk. Also absent: hero-party spawning and effect generators
-(Q254–Q259), every keeper spell but Create Imp, trap behaviour and door blocking,
+through a walk. Also absent: a hero party's walk and pace (Q427) and effect generators
+(Q255, Q259), every keeper spell but Create Imp, trap behaviour and door blocking,
 the creature trigger event filter, most trigger action types and 31 of 46 condition
 types (`dk2tools trigger-run` prints each stall; ADR-0125), the local player's
 collapse sequence (Q358) and alliance propagation (Q359), the research tree (accrual only), Workshop, Casino, Torture, Guard Room and
@@ -191,7 +192,7 @@ Order as of 2026-09-23, from the plan's §8 Run column: M6 and M7 first, the kee
 AI (M12) ahead of breadth.
 
 1. **The heart and defeat.** Q363 and Q358 are read and built (`win-and-defeat.md` §3.1, §7); left are what places the Arch Pillars, the local player's collapse sequence with its Destructors (research only), and Q359 alliance propagation (2026-09-24). The leaving walk is read and built (`creature-leaving.md`, `LeavingRules`).
-2. **Heroes.** Hero parties and action type 14 spawning (Q254–Q259), the hero gate; heroes can now fight.
+2. **Heroes.** Parties spawn (ADR-0197, 2026-09-24). Next: the party's walk — states 223/224 and the `MyLeadersId`/`PositionInParty` readers, the pace cap `0x004887D0(0, slowest)` — the gate step-off and the health double-application (Q427), the creature event filter (event 3), effect generators (Q255, Q259).
 3. **Combat's leftovers.** Q376 (the celebration animation's length, KMF frame counts), Q401 (does Haste sometimes miss?), Q395's unread shot handlers and the Guided Bolt, the thing-targeting spells (scan B), scans A/C/D, Q337's possession scalar, Q335 resistance.
 4. **M6 triggers.** `kwd unreached` ranks remaining action effects; types 17 and 24 rank first and are parked (Q309, Q227). Door and trap behaviour (Q249–Q253); effect generators (Q254–Q259). Q220/Q221 are the two open record layouts.
 5. **Rooms without behaviour:** Workshop (category 5 hook), Casino, Torture and conversion (ADR-0085), Guard Room, Combat Pit (its loser is knocked out, not killed — Q310 — so it needs no death path), Temple spell intake `0x87`. Vampire reincarnation is read (Q111) and waits on Q329.

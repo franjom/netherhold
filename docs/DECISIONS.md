@@ -4380,3 +4380,19 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - Eight trace tests. Negative controls: a direct 128 → 129, 128 counting as whipping, no chamber preference, a chair for anyone, a five-turn whip, and a self-strapped captive each fail a named test.
 - `HashVersion` and `FormatVersion` **100**, pin `0xFB318DBAE28A937F`.
 
+## ADR-0197 — A hero party is raised by action 14
+**Date:** 2026-09-24 · **Status:** accepted · completes ADR-0108, resolves Q256 · Research: `docs/research/hero-parties-and-effect-generators.md`
+
+**Context.** Action type 14 armed a party's trigger subtrees and made no creatures, so a level whose script waits on a hero could not proceed. The handler `0x00519F90` is now read to its last instruction and the member record's tail is named by the corpus.
+
+**Decision.**
+1. `HeroPartyRules.Spawn`, in the handler's order: the guard against a living member for a non-zero `PartyType`; the action point's centre tile, shifted one tile right and down on a Hero Gate 2×2; the party subtree armed; one creature of the hero player per occupied slot — the slot's type, or a Dwarf then `MpdRandomInvader` draws; gold and health as percentages of the member level's maxima on a level-1 creature; `Level−1` level-ups plus the party's spawn count for a random party; the job triple, seven flag bits, `Flags2` bits, trigger root and repeat; then followers linked to the last leader and numbered.
+2. `CreatureLevelRules.LevelUp` is `0x0048B120`'s arithmetic: health carried as its 12-bit share of the maximum, the delta clamped at the new maximum.
+3. New hashed state: on the creature `PartyId`, `PositionInParty`, `LeaderId`, `WanderRadius`, `Flags`, `DestroysRooms`, `IsTool`, `IsMercenary`, `GoodJob`, `GoodJobPlayerId`, `GoodJobActionPointId`; on the party `SpawnCount`. The member tail `Unknown_001D` is `WanderRadius`, `PartyId` in the model, the parser and the state.
+4. The world's party record is the one the spawn reads; `TriggerTree.Parties` keeps only the subtree ids it disabled at load (Q256). A party id with no record is DK2's empty slot and succeeds doing nothing.
+
+**Consequences.**
+- Ours, stated: creatures stand at tile centres where DK2 uses the tile's corner; things on the spawn tile are not cleared; no party pace, no creature event 3, no gate state 269, effects or King notification; a random party without a random source throws (Q427).
+- Level 1's two type-14 records leave `Partial`; the trigger census test moves accordingly.
+- Six tests, the health double-application named in one (Q427); the corpus test pins the tail bytes and the shipped flag values.
+- `HashVersion` and `FormatVersion` **101**, pin `0x4543E72F3F20FE22`.

@@ -183,12 +183,10 @@ only bit 0 varies. What bit 1 means is UNKNOWN; nothing above reads it.
 ## Implementation boundary
 
 `TriggerExecutor` walks all twenty-five roots once per turn, starts every party
-subtree disabled, and runs action types 7, 8 and 14. Type 14 runs **in part**:
-it arms the party's and its occupied members' subtrees and creates no creatures.
-That half is counted in `TriggerRunResult.Partial` rather than reported as
-success, because a level whose script waits on a hero existing — being killed,
-reaching a point, being fought — cannot proceed, and a divergence there is ours.
-Everything else is blocked and counted, not guessed.
+subtree disabled, and runs action types 7, 8 and 14. Type 14 raises the party
+(`HeroPartyRules`, ADR-0197) when the executor has a world; without one it only
+arms the party's and its occupied members' subtrees and is counted in
+`TriggerRunResult.Partial`. Everything else is blocked and counted, not guessed.
 
 **What this walker is not.** It is one of four, and campaign level 1 keeps its
 script in another one — see `trigger-walkers.md` for which code drives each tree

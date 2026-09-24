@@ -563,15 +563,13 @@ public sealed class TrapState
 }
 
 /// <summary>
-/// One authored member of a hero party. Party members are templates for a
-/// future spawn, not creatures currently placed in the level (ADR-0108).
-/// Every parsed field is retained verbatim and no spawning behaviour exists.
+/// One authored member of a hero party: the template action 14 raises a creature from
+/// (<see cref="HeroPartyRules"/>), not a creature placed in the level (ADR-0108). Every
+/// parsed field is retained verbatim.
 /// </summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
 public sealed class HeroPartyMemberState
 {
-    public const int Unknown001DLength = 2;
-
     public int X { get; init; }
     public int Y { get; init; }
     public int Z { get; init; }
@@ -584,18 +582,12 @@ public sealed class HeroPartyMemberState
     public byte ObjectiveTargetPlayerId { get; init; }
     public byte Objective { get; init; }
     public byte CreatureId { get; init; }
-    public required ReadOnlyMemory<byte> Unknown_001D
-    {
-        get => _unknown001D;
-        init => _unknown001D = value.Length == Unknown001DLength
-            ? value
-            : throw new ArgumentException(
-                $"A hero-party member's trailing unknown is {Unknown001DLength} bytes, not {value.Length}.",
-                nameof(Unknown_001D));
-    }
+    /// <summary>The two bytes once stored as an unknown tail: copied by the spawn to the
+    /// creature's <c>WanderRadius</c> (<c>+0x418</c>) and <c>PartyId</c> (<c>+0x417</c>). Every
+    /// shipped member carries its own party's id and a zero radius (Q258).</summary>
+    public byte WanderRadius { get; init; }
+    public byte PartyId { get; init; }
     public byte Flags2 { get; init; }
-
-    private readonly ReadOnlyMemory<byte> _unknown001D;
 
     public void HashInto(ref Hash64 hash)
     {
@@ -603,7 +595,7 @@ public sealed class HeroPartyMemberState
         hash.Add(Level); hash.Add(Flags); hash.Add(ObjectiveTargetActionPointId);
         hash.Add(InitialHealth); hash.Add(TriggerId); hash.Add(ObjectiveTargetPlayerId);
         hash.Add(Objective); hash.Add(CreatureId);
-        foreach (byte value in Unknown_001D.Span) hash.Add(value);
+        hash.Add(WanderRadius); hash.Add(PartyId);
         hash.Add(Flags2);
     }
 }
@@ -622,10 +614,14 @@ public sealed class HeroPartyState
     public int Unknown_0027 { get; init; }
     public required IReadOnlyList<HeroPartyMemberState> Members { get; init; }
 
+    /// <summary>How often action 14 has raised this party — DK2's byte at
+    /// <c>world+0x70F0+PartyId</c>, added to a random party's member levels on each raising.</summary>
+    public byte SpawnCount { get; set; }
+
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Name); hash.Add(TriggerId); hash.Add(PartyId);
-        hash.Add(Unknown_0023); hash.Add(Unknown_0027);
+        hash.Add(Unknown_0023); hash.Add(Unknown_0027); hash.Add(SpawnCount);
         hash.Add(Members.Count);
         foreach (HeroPartyMemberState member in Members) member.HashInto(ref hash);
     }

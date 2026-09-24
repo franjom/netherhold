@@ -116,7 +116,7 @@ public class ThingProjectionTests
             new NeutralCreatureThing(new byte[24])
             { X = 4, Y = 4, CreatureId = 7, Level = 1, InitialHealth = 100 },
             new GoodCreatureThing(new byte[32])
-            { X = 5, Y = 4, CreatureId = 7, Level = 1, InitialHealth = 100, Unknown_001D = new byte[2] },
+            { X = 5, Y = 4, CreatureId = 7, Level = 1, InitialHealth = 100 },
         ]);
 
         Assert.Equal([PlayerIds.Neutral, PlayerIds.Good],
@@ -343,7 +343,7 @@ public class ThingProjectionTests
             X = -1, Y = 2, Z = -3, GoldHeld = 65432, Level = 201, Flags = 0xE1,
             ObjectiveTargetActionPointId = -4, InitialHealth = -5, TriggerId = 65000,
             ObjectiveTargetPlayerId = 202, Objective = 203, CreatureId = 204,
-            Unknown_001D = new byte[] { 0xA1, 0xB2 }, Flags2 = 0xC3,
+            WanderRadius = 0xA1, PartyId = 0xB2, Flags2 = 0xC3,
         };
 
         ThingProjectionResult result = ThingProjection.Place(world, database,
@@ -381,7 +381,7 @@ public class ThingProjectionTests
         Assert.Equal((-4, -5, (ushort)65000, (byte)202, (byte)203, (byte)204, (byte)0xC3),
             (projected.ObjectiveTargetActionPointId, projected.InitialHealth, projected.TriggerId,
              projected.ObjectiveTargetPlayerId, projected.Objective, projected.CreatureId, projected.Flags2));
-        Assert.Equal(new byte[] { 0xA1, 0xB2 }, projected.Unknown_001D.ToArray());
+        Assert.Equal(0xA1, projected.WanderRadius); Assert.Equal(0xB2, projected.PartyId);
 
         EffectGeneratorState generator = Assert.Single(world.EffectGenerators);
         Assert.Equal((-8, 9, -10, 11, (ushort)60001, (ushort)60002, (byte)206, (byte)207),
@@ -392,11 +392,9 @@ public class ThingProjectionTests
     }
 
     [Fact]
-    public void FixedHeroPartyAndEffectGeneratorTailsRejectWrongLengths()
+    public void FixedEffectGeneratorTailRejectsWrongLengths()
     {
-        Assert.Equal(2, HeroPartyMemberState.Unknown001DLength);
         Assert.Equal(6, EffectGeneratorState.Unknown001ELength);
-        Assert.Throws<ArgumentException>(() => new HeroPartyMemberState { Unknown_001D = new byte[] { 1 } });
         Assert.Throws<ArgumentException>(() => new EffectGeneratorState
         {
             EffectIds = [], Unknown_001E = new byte[] { 1, 2, 3, 4, 5 },
@@ -474,7 +472,7 @@ public class ThingProjectionTests
             ObjectiveTargetActionPointId = ObjectiveTargetActionPointId,
             InitialHealth = InitialHealth, TriggerId = TriggerId,
             ObjectiveTargetPlayerId = ObjectiveTargetPlayerId, Objective = Objective,
-            CreatureId = CreatureId, Unknown_001D = Unknown, Flags2 = Flags2,
+            CreatureId = CreatureId, WanderRadius = Unknown[0], PartyId = Unknown[1], Flags2 = Flags2,
         };
     }
 

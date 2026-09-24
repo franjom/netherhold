@@ -725,6 +725,37 @@ public sealed class CreatureState
     public int CelebrationTicks;
     public int BodyTargetId;
 
+    /// <summary>The hero party this creature was raised in — DK2's <c>PartyId</c> (<c>+0x417</c>),
+    /// <see cref="HeroPartyRules.NoParty"/> for none — with its <c>PositionInParty</c> (<c>+0x3E1</c>,
+    /// a follower's number from 1, the leader's the follower count), <c>MyLeadersId</c>
+    /// (<c>+0x3DF</c>, -1 for none) and <c>WanderRadius</c> (<c>+0x418</c>, 0 in every shipped
+    /// member). Written by <see cref="HeroPartyRules"/>; nothing walks a party yet (Q427).</summary>
+    public byte PartyId = HeroPartyRules.NoParty;
+    public byte PositionInParty;
+    public int LeaderId = -1;
+    public byte WanderRadius;
+
+    /// <summary>DK2's creature <c>Flags</c> byte (<c>+0x46F</c>, Q302): bit 1 party leader, bit 2
+    /// follower, bits 5 and 6 unread here. Only a party spawn writes it so far; placed creatures and
+    /// action 1 leave the constructor's default 0.</summary>
+    public byte Flags;
+
+    /// <summary>The member's <c>Flags2</c> bits landed on the second flag dword: <c>DestroysRooms</c>
+    /// (bit 7), <c>IsTool</c> (bit 8), <c>IsMercenary</c> (bit 9); <see cref="DieInstantly"/> is bit 11.
+    /// Remembered, not yet read by any rule.</summary>
+    public bool DestroysRooms;
+    public bool IsTool;
+    public bool IsMercenary;
+
+    /// <summary>DK2's standing job triple at <c>+0x409</c>/<c>+0x40D</c>/<c>+0x40F</c>, named
+    /// <c>GoodJob</c> by the debug dumper: the job, the player it names and its value, an action
+    /// point id for <see cref="JobType.SendToActionPoint"/>. A party member's comes from its record;
+    /// a rebel's <see cref="JobType.KillPlayer"/> is still kept in <see cref="CurrentJob"/> and
+    /// <see cref="RebelAgainstPlayerId"/> (rebellion.md). Remembered, not performed.</summary>
+    public JobType GoodJob;
+    public byte GoodJobPlayerId;
+    public int GoodJobActionPointId;
+
     /// <summary>The eight melee attackers engaged with this creature, by id, 0 for a free slot —
     /// DK2's <c>+0x504</c> array. An attacker takes the first free slot when it engages and is
     /// struck out when it disengages; a ninth melee attacker cannot engage at all.</summary>
@@ -875,6 +906,17 @@ public sealed class CreatureState
         hash.Add(RetreatingCreature);
         hash.Add(CelebrationTicks);
         hash.Add(BodyTargetId);
+        hash.Add(PartyId);
+        hash.Add(PositionInParty);
+        hash.Add(LeaderId);
+        hash.Add(WanderRadius);
+        hash.Add(Flags);
+        hash.Add(DestroysRooms);
+        hash.Add(IsTool);
+        hash.Add(IsMercenary);
+        hash.Add((int)GoodJob);
+        hash.Add(GoodJobPlayerId);
+        hash.Add(GoodJobActionPointId);
         for (int i = 0; i < EngagedMelee.Length; i++) hash.Add(EngagedMelee[i]);
         for (int i = 0; i < EngagedRanged.Length; i++) hash.Add(EngagedRanged[i]);
     }

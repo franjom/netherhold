@@ -346,6 +346,7 @@ public sealed class TriggerExecutor
     private readonly TriggerState _state;
     private readonly WorldState? _world;
     private readonly GameDatabase? _database;
+    private readonly SimRandom? _rng;
     private readonly TriggerAreaRoot[] _areaRoots = [];
 
     /// <summary>Builds an executor over <paramref name="tree"/>.</summary>
@@ -363,12 +364,14 @@ public sealed class TriggerExecutor
         TriggerTree tree,
         TriggerState state,
         WorldState? world = null,
-        GameDatabase? database = null)
+        GameDatabase? database = null,
+        SimRandom? rng = null)
     {
         _tree = tree ?? throw new ArgumentNullException(nameof(tree));
         _state = state ?? throw new ArgumentNullException(nameof(state));
         _world = world;
         _database = database;
+        _rng = rng;
         _state.InitializeRecords(tree.Records);
         DisablePartySubtrees();
         if (world is not null && database is not null)
@@ -1116,18 +1119,13 @@ public sealed class TriggerExecutor
         return true;
     }
 
-    /// <summary>Action type 14 — <b>the arming half only</b>. Creates no creatures.</summary>
-    /// <remarks>
-    /// <para>Rule, in <c>FUN_00519F90</c>'s order: arm slot <c>PartyId</c>'s own subtree
-    /// (<c>0x0051A197</c>), then per member slot skip a zero creature id
-    /// (<c>0x0051A1CF</c>) or else create the creature and arm that member's subtree
-    /// (<c>0x0051A58F</c>). trigger-tree.md, "Action type 14 creates a party" — including
-    /// the <c>PartyType</c> branch that can arm nothing and still succeed (Q240).</para>
-    /// <para><b>Why it still returns true.</b> The creature-creation block is missing, so
-    /// this reports through <see cref="TriggerRunResult.Partial"/> rather than passing as
-    /// success — but it succeeds, as its arm does. The subtrees it arms are party roots,
-    /// walked from the world's own slot table and not from this record's children.</para>
-    /// </remarks>
+    /// <summary>Action type 14, <c>FUN_00519F90</c>: raise hero party <c>PartyId</c> at action point
+    /// <c>ActionPointId</c> (<see cref="HeroPartyRules.Spawn"/>). The party is the world's record;
+    /// the tree keeps only the subtree ids it disabled at load (Q256). Without a world there is
+    /// nothing to raise, so the subtrees are armed as before and the record is reported
+    /// <see cref="TriggerRunResult.Partial"/>; so is a world built without its THINGS, whose tree
+    /// still has the slot. A party id neither has is DK2's empty slot: nothing happens and the
+    /// action succeeds.</summary>
     private bool CreateParty(
         TriggerRecord record, TriggerContext context,
         IReadOnlyDictionary<string, long> p, List<BlockedTrigger> partial)
@@ -1139,14 +1137,28 @@ public sealed class TriggerExecutor
                 + $"{TriggerTree.PartySlotCount} world slots. DK2 masks the byte and indexes "
                 + "without a bound check; no shipped level does it.");
 
+        HeroPartyState? party = null;
+        foreach (HeroPartyState candidate in _world?.HeroParties ?? [])
+        {
+            if (candidate.PartyId != partyId) continue;
+            party = candidate;
+            break;
+        }
+
+        if (party is not null && _world is not null && _database is not null)
+            return HeroPartyRules.Spawn(
+                _world, _database, _rng, _tree!, party,
+                Byte(p, "ActionPointId"), Byte(p, "PartyType"),
+                id => SetSubtreeActive(id, active: true));
+
         TriggerPartySlot slot = _tree!.Parties[partyId];
+        if (ReferenceEquals(slot, TriggerPartySlot.Empty)) return true;
         SetSubtreeActive(slot.TriggerId, active: true);
         foreach (TriggerPartyMember member in slot.Members)
         {
             if (!member.HasCreature) continue;
             SetSubtreeActive(member.TriggerId, active: true);
         }
-
         partial.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
         return true;
     }
