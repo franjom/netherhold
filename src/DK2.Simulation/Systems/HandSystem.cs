@@ -273,6 +273,15 @@ public sealed class HandSystem : ISimulationSystem
 
             PrisonRules.Release(creature);
         }
+        else if (creature.OwnerPlayerId == command.PlayerId
+                 && TortureRules.TryStrapOwn(world, context.Database, creature, landingTileIndex))
+        {
+            // 77 in a Torture Chamber is 130 for any creature but a Horned Reaper (ADR-0200).
+            context.Emit(SystemName, "own_strapped",
+                $"player={command.PlayerId} creature={creature.Id} " +
+                $"tile={command.Tile.X},{command.Tile.Y} held={hand.Count}");
+            return;
+        }
 
         // Dropping a worker sets a one-shot ticket and nothing else; the next
         // evaluation spends it by looking around where the worker landed, and

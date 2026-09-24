@@ -248,7 +248,25 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   128 ↔ 129 through idle, action 63 for 6 turns, a new one every 7th; the chair turning away
   a creature without `CanBeElectrocuted` (131). **Ours:** tile-level positions, instant
   facing, no capacity test, and no need interrupting her, as for every job here. **Not
-  built:** 134, 136, the information, and the leave hook's `+0x6E`.
+  built:** 134, the information, and the leave hook's `+0x6E`.
+- **Read 2026-09-24: 77, 136 and the others' way in.** 77 (`0x0046F1F0`), once the landing
+  action ends, sends a Horned Reaper (`IsHorny`, definition flag bit 14) to **238** in any
+  room; otherwise by the room at `+0x3B9`: Workshop 63, Prison 115, Torture Chamber 130. So
+  any creature, a keeper's own included, is strapped on by a drop. **136** (`0x00484CE0`),
+  in a Torture Chamber, takes `0x004F2180`'s nearest free device and needs its squared
+  distance under `0x1800` (1.5 tiles²): from a tile's centre, that tile or a side
+  neighbour. It moves onto it (sound `0x24` wheel, `0x25` chair; a chair turns away a
+  creature without `CanBeElectrocuted`) and sets 130; otherwise 0, idle. 136 is entered
+  from 131 when the device is gone (`0x00484920`), for every creature attached to a
+  chamber by `0x004F1F10` (it then re-tests the room for devices, object type 8 or 61),
+  and by `0x004E44E0`, which moves every creature attached to a room of the keeper's
+  when owner `+0x43E` bit 0 is set: Hatchery 62, 7 113, 10 70, Torture 136, 15 154.
+- **Built** (ADR-0200): a keeper's own creature dropped on a free device of its own
+  chamber, 77, 130, 131, with the hurt and the mood; a Horned Reaper is not strapped
+  (238 is not built). 131 with its device gone goes through 136 onto a free device on its
+  tile or beside it, and stays a captive if it was one. **Ours:** a tie between two side
+  neighbours goes to the lower tile index, and a captive with nothing in reach is let go
+  where DK2 idles it; the `+0x43E` path is not built.
 
 ## 4. Answers and limits
 

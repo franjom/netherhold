@@ -36,6 +36,14 @@ public static class TortureRules
     public const int TorturerFacingState = 128;
     public const int TorturerWhippingState = 129;
 
+    /// <summary>136: taken off a device that went away (<c>0x00484CE0</c>). It gets onto another
+    /// free one within reach, through 130, or goes idle.</summary>
+    public const int ReleasedState = 136;
+
+    /// <summary>77's destination for a Horned Reaper (<c>IsHorny</c>, definition flag bit 14),
+    /// whatever room it lands in: it is never strapped on.</summary>
+    public const int HornyDropState = 238;
+
     /// <summary>Turns a whip lasts: action 63's handler <c>0x00499C20</c> ends once more than
     /// five turns have passed since it began, spawning effect <c>0xED</c> at the victim.</summary>
     public const int WhipTurns = 6;
@@ -111,6 +119,58 @@ public static class TortureRules
         CreatureStateMachine.TrySetState(creature, StrappingState);
         CreatureStateMachine.TrySetState(creature, TorturedState);
         return true;
+    }
+
+    /// <summary>77 for a keeper's own creature dropped on a free device of its own chamber: 130
+    /// and 131, as for a captive, but it stays its own and is not a prisoner. A Horned Reaper
+    /// goes to 238 instead (<c>0x0046F1F0</c>). Returns whether it took.</summary>
+    public static bool TryStrapOwn(
+        WorldState world, GameDatabase database, CreatureState creature, int tileIndex)
+    {
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        if ((definition.Flags & CreatureFlags.IsHorny) != 0) return false;
+        ObjectState? device = FreeDeviceAt(world, database, creature.OwnerPlayerId, tileIndex, creature.Id);
+        if (device is null || !Holds(device, definition)) return false;
+
+        StrapOn(world, creature, tileIndex);
+        creature.CurrentJob = JobType.None;
+        creature.JobTileIndex = -1;
+        if (CreatureStateMachine.HasState(creature)) CreatureStateMachine.Release(creature);
+        CreatureStateMachine.Begin(creature, PrisonRules.HandDropState);
+        CreatureStateMachine.TrySetState(creature, StrappingState);
+        CreatureStateMachine.TrySetState(creature, TorturedState);
+        return true;
+    }
+
+    /// <summary>136's search: a free device that holds this creature, on its own tile or one
+    /// orthogonally beside it. DK2 takes the nearest in the room and needs it within √1.5 of
+    /// a tile (<c>0x1800</c> against the squared distance), which from a tile's centre is the
+    /// tile itself or a side neighbour. Ours, stated: a tie goes to the lower tile index.</summary>
+    public static int DeviceWithinReach(
+        WorldState world, GameDatabase database, CreatureState creature, byte keeper)
+    {
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        int x = creature.Tile.X, y = creature.Tile.Y;
+        ReadOnlySpan<(int X, int Y)> order = [(x, y), (x, y - 1), (x - 1, y), (x + 1, y), (x, y + 1)];
+        foreach ((int tx, int ty) in order)
+        {
+            if (tx < 0 || ty < 0 || tx >= world.Width || ty >= world.Height) continue;
+            int index = (ty * world.Width) + tx;
+            ObjectState? device = FreeDeviceAt(world, database, keeper, index, creature.Id);
+            if (device is not null && Holds(device, definition)) return index;
+        }
+
+        return -1;
+    }
+
+    /// <summary>131 found its device gone: 136, and from there 130 and 131 on the device at
+    /// <paramref name="tileIndex"/>. Keeps the creature a captive if it was one.</summary>
+    public static void Restrap(WorldState world, CreatureState creature, int tileIndex)
+    {
+        CreatureStateMachine.TrySetState(creature, ReleasedState);
+        StrapOn(world, creature, tileIndex);
+        CreatureStateMachine.TrySetState(creature, StrappingState);
+        CreatureStateMachine.TrySetState(creature, TorturedState);
     }
 
     /// <summary>130 for a creature that walked onto a free device of its own keeper's chamber,

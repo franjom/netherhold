@@ -247,4 +247,85 @@ public class TortureTests
 
         Assert.Equal(1000, captive.Health);
     }
+
+    [Fact]
+    public void AnOwnGoblinDroppedOnTheWheelIsStrappedStaysItsOwnAndTakesTheMood()
+    {
+        // 77 goes to 130 in a Torture Chamber for any creature (0x0046F1F0); in its own keeper's
+        // chamber the hook also applies TortureMoodChange, 1092 for a Goblin.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, ChamberFloor);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        Carry(sim, goblin, Wheel);
+        Assert.True(TortureRules.IsBeingTortured(goblin));
+        Assert.Equal(TortureRules.TorturedState, goblin.Dk2StateId);
+        Assert.False(PrisonRules.IsImprisoned(goblin));
+        Assert.Contains(sink.Events, e => e.Kind == "own_strapped");
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+
+        int health = goblin.Health;
+        sim.Run(5);
+        Assert.Equal(health - 10, goblin.Health);
+        Assert.NotEqual(0, goblin.Anger.Treatment);
+        Assert.Equal(Keeper, goblin.OwnerPlayerId);
+    }
+
+    [Fact]
+    public void AnOwnHornedReaperDroppedOnTheWheelIsNotStrapped()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Goblin() with
+        {
+            CreatureId = 60, Name = "Horny", Flags = Dk2TerrainFixture.Goblin().Flags | CreatureFlags.IsHorny,
+        });
+        WorldState world = World(db);
+        CreatureState reaper = world.SpawnCreature(db, 60, Keeper, ChamberFloor);
+        GameSimulation sim = Simulation(db, world);
+
+        Carry(sim, reaper, Wheel);
+
+        Assert.False(TortureRules.IsBeingTortured(reaper));
+    }
+
+    [Fact]
+    public void AVictimWhoseWheelIsGoneGetsOntoAFreeOneBesideItThroughOneThirtySix()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var beside = new TilePos(Wheel.X, Wheel.Y - 1);
+        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, beside));
+        CreatureState captive = Captive(db, world);
+        Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        world.RemoveObject(world.Objects.Single(o => o.TileIndex == Index(world, Wheel)).Id);
+        sim.Run(1);
+
+        Assert.True(TortureRules.IsBeingTortured(captive));
+        Assert.Equal(beside, captive.Tile);
+        Assert.Equal(TortureRules.TorturedState, captive.Dk2StateId);
+        Assert.Equal(Keeper, captive.PrisonOwnerPlayerId);
+        Assert.Contains(sink.Events, e => e.Kind == "restrapped");
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void AFreeWheelOnlyDiagonallyBesideIsOutOfOneThirtySixsReach()
+    {
+        // 0x1800 against the squared distance: a side neighbour is 1, a diagonal 2.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, new TilePos(Wheel.X + 1, Wheel.Y - 1)));
+        CreatureState captive = Captive(db, world);
+        Assert.True(TortureRules.TryStrap(world, db, captive, Keeper, Index(world, Wheel)));
+        GameSimulation sim = Simulation(db, world);
+
+        world.RemoveObject(world.Objects.Single(o => o.TileIndex == Index(world, Wheel)).Id);
+        sim.Run(1);
+
+        Assert.False(TortureRules.IsBeingTortured(captive));
+    }
 }

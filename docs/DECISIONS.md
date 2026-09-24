@@ -4425,3 +4425,17 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - The fixture carries variable 82 at 0. No hash change on shipped data.
 - Two tests (one a four-row theory). Negative controls: no truncation, no group-7 skip, no Sleeping skip, heroes asked, not tired, and the drain not applied each fail a named test.
 
+## ADR-0200 — Own creatures on a torture device, and 136's re-strap
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0135 · Research: `docs/research/state-category-hooks.md` §3.3
+
+**Context.** Only captives could be strapped on. DK2's drop state 77 (`0x0046F1F0`) sends any creature landing in a Torture Chamber to 130, except a Horned Reaper, which goes to 238. And a victim whose device went away was let go, where DK2's 136 (`0x00484CE0`) first looks for another free device within √1.5 of a tile.
+
+**Decision.**
+1. `TortureRules.TryStrapOwn`: a keeper's own creature dropped on a free device of its own chamber goes through 77, 130 and 131 and stays its own. `HandSystem` tries it after the captive branch. The hook already hurts it and, as the chamber is its own keeper's, applies `TortureMoodChange`.
+2. `TortureRules.DeviceWithinReach` and `Restrap`: 131 with its device gone moves through 136 onto a free device on its own tile or a side neighbour (squared distance under `0x1800`), then 130 and 131. A captive stays a captive. With none in reach, the old release.
+
+**Consequences.**
+- Ours, stated: a tie between side neighbours goes to the lower tile index; a captive with nothing in reach is freed where DK2 idles it; 238, and `0x004E44E0`'s move of every attached creature, are not built.
+- No hash change: no new fields, and no shipped scenario drops a creature on a device.
+- Four tests. Negative controls: a Horned Reaper strapped, diagonal reach, no re-strap, and own creatures refused each fail a named test; skipping 77 and 130 on the way to 131 is not observable and survives.
+

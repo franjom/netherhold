@@ -41,8 +41,18 @@ public sealed class TortureSystem : ISimulationSystem
             byte keeper = TortureRules.KeeperOf(creature);
             if (TortureRules.FreeDeviceAt(world, database, keeper, here, creature.Id) is null)
             {
-                // The device or the chamber is gone: 131 cannot carry on, and a captive standing
+                // The device is gone: 131 goes to 136, which gets onto another free one within
+                // reach (ADR-0200). Failing that, or with the chamber gone, a captive standing
                 // outside its keeper's prison is not one any more.
+                int next = TortureRules.DeviceWithinReach(world, database, creature, keeper);
+                if (next >= 0)
+                {
+                    TortureRules.Restrap(world, creature, next);
+                    context.Emit(SystemName, "restrapped",
+                        $"creature={creature.Id} at=({next % world.Width},{next / world.Width})");
+                    continue;
+                }
+
                 Free(context, creature, "device_gone");
                 continue;
             }
