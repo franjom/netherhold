@@ -37,13 +37,14 @@ public class ImpStateTests
     {
         CreatureState imp = sim.World.Creatures[0];
         var seen = new List<(int, int, int)>();
-        int last = imp.Dk2StateId;
+        (int, int, int) last = (imp.Dk2StateId, imp.StateBeforeUtilityState, imp.UtilityNewState);
         for (int t = 0; t < ticks; t++)
         {
             sim.Tick(t == 0 && first.Length > 0 ? InputFrame.Of(first) : InputFrame.Empty);
-            if (imp.Dk2StateId == last) continue;
-            seen.Add((imp.Dk2StateId, imp.StateBeforeUtilityState, imp.UtilityNewState));
-            last = imp.Dk2StateId;
+            (int, int, int) now = (imp.Dk2StateId, imp.StateBeforeUtilityState, imp.UtilityNewState);
+            if (now == last) continue;
+            seen.Add(now);
+            last = now;
         }
 
         return seen;
@@ -105,17 +106,70 @@ public class ImpStateTests
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
 
-    [Fact]
-    public void AnImpMinesInTwentySix()
+    private static void Store(GameSimulation sim, TilePos at, RoomTypeId type)
     {
-        GameDatabase database = Dk2TerrainFixture.Database();
-        (GameSimulation sim, ListEventSink events) = Start(new TilePos(2, 2));
+        GameDatabase db = Dk2TerrainFixture.Database();
+        ref TileState tile = ref sim.World.Tile(at);
+        tile.TerrainId = db.Room(type).TerrainId;
+        tile.Health = db.TerrainById(tile.TerrainId).StartingHealth;
+        tile.OwnerPlayerId = Keeper;
+    }
+
+    private static void OpenTheSeam(GameSimulation sim)
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
         foreach (TilePos p in new TilePos[] { new(4, 3), new(4, 4), new(4, 5) })
         {
             ref TileState tile = ref sim.World.Tile(p);
             tile.TerrainId = Dk2TerrainFixture.DirtPath;
-            tile.Health = database.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
+            tile.Health = db.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
         }
+    }
+
+    [Fact]
+    public void FloorGoldIsPickedUpInTwentySevenAndPutDownThroughTwentyEightAndTwentyNine()
+    {
+        // 10 walks in 6 to 27; 27 takes the pile and walks to the store in 6 resuming in 28,
+        // so the saved caller turns from 10 to 27. 28 moves to 29, which deposits and sets 10.
+        GameDatabase db = Dk2TerrainFixture.Database();
+        (GameSimulation sim, ListEventSink events) = Start(new TilePos(1, 1));
+        Store(sim, new TilePos(3, 3), RoomTypeId.Treasury);
+        FloorGold.Drop(sim.World, db, (2 * sim.World.Width) + 2, 900);
+
+        Assert.Equal(
+            [(Walk, Select, ImpStates.PickingUpGold),
+             (Walk, ImpStates.PickingUpGold, ImpStates.AtTheStore),
+             (NoState, ImpStates.PickingUpGold, Idle)],
+            StatesSeen(sim, 100).Take(3));
+        Assert.Contains(events.Events, e => e.Kind == "gold_delivered" && e.Detail.Contains("amount=900"));
+        Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void AFullMinerWalksFromTwentySixAndSpillsTheRestThroughTen()
+    {
+        // 26 calls the store chooser before the swing that would not fit. The first heart
+        // tile takes 1000 of 1363; 29 sets 10 and 10 walks on with the rest, so the second
+        // walk's saved caller is 10.
+        (GameSimulation sim, ListEventSink events) = Start(new TilePos(4, 4));
+        OpenTheSeam(sim);
+        Store(sim, new TilePos(3, 3), RoomTypeId.DungeonHeart);
+        Store(sim, new TilePos(3, 2), RoomTypeId.DungeonHeart);
+
+        Assert.Equal(
+            [(Walk, Select, 25), (26, Select, Idle),
+             (Walk, 26, ImpStates.AtTheStore), (Walk, Select, ImpStates.AtTheStore),
+             (NoState, Select, Idle)],
+            StatesSeen(sim, 30, TagTilesCommand.Tag(Keeper, new TilePos(5, 5))).Take(5));
+        Assert.Equal(1000, sim.World.Tile(3, 3).GoldHeld);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
+    }
+
+    [Fact]
+    public void AnImpMinesInTwentySix()
+    {
+        (GameSimulation sim, ListEventSink events) = Start(new TilePos(2, 2));
+        OpenTheSeam(sim);
 
         List<(int State, int Saved, int Resume)> seen = StatesSeen(
             sim, SimulationTiming.TicksFromSeconds(4), TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));

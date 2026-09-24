@@ -200,6 +200,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
             && TryRouteToSomewhereItFits(context, creature, grid))
         {
             BeginDelivering(creature);
+            FromTaskSelection(creature);
+            ToTheStore(creature);
             return;
         }
 
@@ -283,9 +285,9 @@ public sealed class ImpTaskSystem : ISimulationSystem
         if (WouldOverfillItsHands(context, creature, definition)
             && TryRouteToSomewhereItFits(context, creature, grid))
         {
-            // 26 walks to the store in 6 resuming in 28, which is not on state ids yet.
-            CreatureStateMachine.Release(creature);
+            // 26 walks to the store in 6 resuming in 28.
             BeginDelivering(creature);
+            ToTheStore(creature);
             return;
         }
 
@@ -338,6 +340,8 @@ public sealed class ImpTaskSystem : ISimulationSystem
         creature.Activity = CreatureActivity.FetchingGold;
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.FetchGold;
+        FromTaskSelection(creature);
+        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, ImpStates.PickingUpGold);
 
         context.Emit(SystemName, "fetch_taken",
             $"imp={creature.Id} player={creature.OwnerPlayerId} " +
@@ -401,6 +405,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
             context.Emit(SystemName, "fetch_abandoned",
                 $"imp={creature.Id} {Describe(world, Math.Max(0, creature.TargetTileIndex))} " +
                 "reason=gone");
+            WorkEnded(context, creature);
             GoIdle(creature);
             return;
         }
@@ -414,10 +419,12 @@ public sealed class ImpTaskSystem : ISimulationSystem
             context.Emit(SystemName, "fetch_abandoned",
                 $"imp={creature.Id} {Describe(world, creature.TargetTileIndex)} " +
                 "reason=out_of_reach");
+            StateShadow.ToIdle(context, SystemName, creature);
             GoIdle(creature);
             return;
         }
 
+        StateShadow.Arrive(context, SystemName, creature);
         int room = definition.MaxGoldHeld - creature.GoldHeld;
         int taken = TakeFromPilesOn(context, creature.TargetTileIndex, room);
         creature.GoldHeld += taken;
@@ -430,6 +437,7 @@ public sealed class ImpTaskSystem : ISimulationSystem
 
         if (creature.GoldHeld <= 0)
         {
+            WorkEnded(context, creature);
             GoIdle(creature);
             return;
         }
@@ -439,12 +447,14 @@ public sealed class ImpTaskSystem : ISimulationSystem
         if (TryRouteToSomewhereItFits(context, creature, grid))
         {
             BeginDelivering(creature);
+            ToTheStore(creature);
             return;
         }
 
         context.Emit(SystemName, "delivery_blocked",
             $"imp={creature.Id} player={creature.OwnerPlayerId} gold={creature.GoldHeld} " +
             "reason=no_room after=fetch");
+        WorkEnded(context, creature);
         GoIdle(creature);
         creature.TimerTicks = IdleDelayTicks(context.Database);
     }
@@ -505,20 +515,41 @@ public sealed class ImpTaskSystem : ISimulationSystem
     private void UpdateDelivering(
         SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        if (TryPutDown(context, creature) && creature.GoldHeld == 0)
+        if (TryPutDown(context, creature))
         {
-            GoIdle(creature);
-            return;
+            // 28 moves to 29, which deposits what fits and sets 10.
+            StateShadow.Arrive(context, SystemName, creature);
+            StateShadow.Move(context, SystemName, creature, ImpStates.PuttingDownGold);
+            StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
+
+            if (creature.GoldHeld == 0)
+            {
+                CreatureStateMachine.Release(creature);
+                GoIdle(creature);
+                return;
+            }
+
+            // 10 walks on with the remainder, the spill into the next tile (Q35).
+            ToTheStore(creature);
         }
 
         // Still on the road.
         if (creature.HasRoute) return;
 
-        if (TryRouteToSomewhereItFits(context, creature, grid)) return;
+        if (TryRouteToSomewhereItFits(context, creature, grid))
+        {
+            // Arrived with no room here: through 28 and 29 to 10, which walks on.
+            StateShadow.Arrive(context, SystemName, creature);
+            StateShadow.Move(context, SystemName, creature, ImpStates.PuttingDownGold);
+            StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
+            ToTheStore(creature);
+            return;
+        }
 
         context.Emit(SystemName, "delivery_blocked",
             $"imp={creature.Id} player={creature.OwnerPlayerId} gold={creature.GoldHeld} " +
             "reason=no_room (Q140: the original may put the load down on the floor here)");
+        StateShadow.ToIdle(context, SystemName, creature);
         GoIdle(creature);
         creature.TimerTicks = IdleDelayTicks(context.Database);
     }
@@ -1720,6 +1751,20 @@ public sealed class ImpTaskSystem : ISimulationSystem
             creature, StateShadow.TravelToPoint, ImpStates.For(kind).Entry);
         if (!routed) AtWork(context, creature);
     }
+
+    /// <summary>State 10 is where a worker's every task starts; ours arrives at it from an
+    /// idle that holds no state id.</summary>
+    private static void FromTaskSelection(CreatureState creature)
+    {
+        CreatureStateMachine.Release(creature);
+        StateShadow.FromIdle(creature);
+        CreatureStateMachine.TrySetState(creature, ImpStates.TaskSelection);
+    }
+
+    /// <summary>The gold-store chooser <c>0x00464400</c>: a walk in 6 resuming in 28, from
+    /// whichever of 10, 26 and 27 called it.</summary>
+    private static void ToTheStore(CreatureState creature) =>
+        CreatureStateMachine.BeginTravel(creature, StateShadow.TravelToPoint, ImpStates.AtTheStore);
 
     /// <summary>The walk ends in the entry state, which finds the stance free and moves to
     /// the work state. The entry state's wait for an occupied stance is not modelled.</summary>

@@ -147,4 +147,5 @@ body down and releases the imp. Thus 46 is carrier cleanup after admission, and
 Q420 asked whether the built work loop is wrong; it is not. The tile-work rows
 are **built** on state ids (ADR-0181): `ImpStates.For` pairs each `TileWorkKind`
 with its entry and work state by the creature action the work state starts
-(`balance-variables-in-the-binary.md`, task records 1, 2, 4, 5, 7, 8, 10).
+(`balance-variables-in-the-binary.md`, task records 1, 2, 4, 5, 7, 8, 10). The
+gold rows 26–29 are built too (ADR-0182), 28's wait for a standing point aside.

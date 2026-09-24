@@ -291,6 +291,40 @@ public class CreatureStateMachineTests
     }
 
     [Fact]
+    public void TheImpGoldChainIsLegalFromTaskSelectionMiningAndPickingUp()
+    {
+        // imp-state-exits.md 27-29: 10 walks in 6 to 27; 27 and 26 walk in 6 to 28 through
+        // the store chooser; 28 moves to 29, which sets 10, and 10 walks on to 28 again.
+        CreatureState imp = Fresh();
+        CreatureStateMachine.Begin(imp, Idle);
+        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
+        CreatureStateMachine.BeginTravel(imp, EnRoute, ImpStates.PickingUpGold);
+        Assert.True(CreatureStateMachine.Arrive(imp));
+        Assert.Equal(ImpStates.PickingUpGold, imp.Dk2StateId);
+        CreatureStateMachine.BeginTravel(imp, EnRoute, ImpStates.AtTheStore);
+        Assert.Equal(EnRoute, imp.Dk2StateId);
+        Assert.True(CreatureStateMachine.Arrive(imp));
+        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.PuttingDownGold));
+        Assert.True(CreatureStateMachine.TrySetState(imp, ImpStates.TaskSelection));
+        CreatureStateMachine.BeginTravel(imp, EnRoute, ImpStates.AtTheStore);
+        Assert.Equal(EnRoute, imp.Dk2StateId);
+        Assert.True(CreatureStateMachine.TrySetState(imp, Idle));
+
+        CreatureState miner = Fresh();
+        CreatureStateMachine.Begin(miner, Idle);
+        Assert.True(CreatureStateMachine.TrySetState(miner, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(miner, ImpStates.For(TileWorkKind.MineGold).Work));
+        CreatureStateMachine.BeginTravel(miner, EnRoute, ImpStates.AtTheStore);
+        Assert.Equal(EnRoute, miner.Dk2StateId);
+
+        CreatureState emptyHanded = Fresh();
+        CreatureStateMachine.Begin(emptyHanded, Idle);
+        Assert.True(CreatureStateMachine.TrySetState(emptyHanded, ImpStates.TaskSelection));
+        Assert.True(CreatureStateMachine.TrySetState(emptyHanded, ImpStates.PickingUpGold));
+        Assert.True(CreatureStateMachine.TrySetState(emptyHanded, ImpStates.TaskSelection));
+    }
+
+    [Fact]
     public void TortureIsOffStateIdsBecauseItsStateCannotDropToIdleAndTheWayOutIsUnread()
     {
         // Q419. The torture handler resumes in 127, which is in the Refused category, and

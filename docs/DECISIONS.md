@@ -4159,3 +4159,18 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 - 10's pass before the id is handed back is not visible in a trace, since 10 is not a travel state; the gate probe covers its legality.
 - `HashVersion` and `FormatVersion` **86**, pin `0xDEB6A8B84200ED21`.
 
+## ADR-0182 — An imp's gold runs on DK2's own state ids
+**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0135 (step two, sixth slice) · Research: `docs/research/imp-state-exits.md` §2 (states 26–29)
+
+**Context.** The gold rows were read with the rest of the worker states: 27 takes floor gold, the store chooser `0x00464400` walks in 6 resuming in 28, 28 moves to 29, and 29 deposits what fits and sets 10. The chain is legal under the rule (`TheImpGoldChainIsLegalFromTaskSelectionMiningAndPickingUp`).
+
+**Decision.**
+1. **`FetchingGold` and `DeliveringGold` retire.** A pile is 10 walking in 6 to 27. The store walk comes from whichever state holds the gold: 27 after a pickup, 26 before a swing that would not fit, or 10 for an idle imp still carrying. A deposit is 28, 29, then 10; empty-handed, the id is handed back.
+2. **A spill goes through 10.** A load the tile cannot hold leaves 29 with a remainder, and 10 walks on to the next store; our re-routing does the same, so the second walk's saved caller is 10.
+3. **Ours, kept:** the put-down test runs on every tile walked over, not only at the chosen store (`UpdateDelivering`). When it deposits mid-walk the shadow takes the same 28, 29, 10.
+4. **Not built:** 28's wait for a free standing point, and 29's return of 0 on a tile that no longer stores gold. A load with nowhere to go drops from 6 to 1.
+
+**Consequences.**
+- Negative controls, one at a time: the store walk resuming in 29, the fetch resuming in 28, no walk on after a spill, a full miner releasing instead of walking, and dropping the two activities from the retired set each fail a named test.
+- `HashVersion` and `FormatVersion` **87**, pin `0x1B90606BEF13CDC6`.
+
